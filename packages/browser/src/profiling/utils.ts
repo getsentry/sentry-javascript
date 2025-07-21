@@ -2,11 +2,11 @@
 import type { DebugImage, Envelope, Event, EventEnvelope, Profile, Span, ThreadCpuProfile } from '@sentry/core';
 import {
   browserPerformanceTimeOrigin,
+  debug,
   DEFAULT_ENVIRONMENT,
   forEachEnvelopeItem,
   getClient,
   getDebugImagesForResources,
-  logger,
   spanToJSON,
   timestampInSeconds,
   uuid4,
@@ -98,13 +98,13 @@ export interface ProfiledEvent extends Event {
 }
 
 function getTraceId(event: Event): string {
-  const traceId: unknown = event.contexts?.trace?.['trace_id'];
+  const traceId: unknown = event.contexts?.trace?.trace_id;
   // Log a warning if the profile has an invalid traceId (should be uuidv4).
   // All profiles and transactions are rejected if this is the case and we want to
   // warn users that this is happening if they enable debug flag
   if (typeof traceId === 'string' && traceId.length !== 32) {
     if (DEBUG_BUILD) {
-      logger.log(`[Profiling] Invalid traceId: ${traceId} on profiled event`);
+      debug.log(`[Profiling] Invalid traceId: ${traceId} on profiled event`);
     }
   }
   if (typeof traceId !== 'string') {
@@ -333,7 +333,7 @@ export function findProfiledTransactionsFromEnvelope(envelope: Envelope): Event[
     for (let j = 1; j < item.length; j++) {
       const event = item[j] as Event;
 
-      if (event?.contexts && event.contexts['profile'] && event.contexts['profile']['profile_id']) {
+      if (event?.contexts?.profile?.profile_id) {
         events.push(item[j] as Event);
       }
     }
@@ -364,7 +364,7 @@ export function isValidSampleRate(rate: unknown): boolean {
   // we need to check NaN explicitly because it's of type 'number' and therefore wouldn't get caught by this typecheck
   if ((typeof rate !== 'number' && typeof rate !== 'boolean') || (typeof rate === 'number' && isNaN(rate))) {
     DEBUG_BUILD &&
-      logger.warn(
+      debug.warn(
         `[Profiling] Invalid sample rate. Sample rate must be a boolean or a number between 0 and 1. Got ${JSON.stringify(
           rate,
         )} of type ${JSON.stringify(typeof rate)}.`,
@@ -379,7 +379,7 @@ export function isValidSampleRate(rate: unknown): boolean {
 
   // in case sampleRate is a boolean, it will get automatically cast to 1 if it's true and 0 if it's false
   if (rate < 0 || rate > 1) {
-    DEBUG_BUILD && logger.warn(`[Profiling] Invalid sample rate. Sample rate must be between 0 and 1. Got ${rate}.`);
+    DEBUG_BUILD && debug.warn(`[Profiling] Invalid sample rate. Sample rate must be between 0 and 1. Got ${rate}.`);
     return false;
   }
   return true;
@@ -391,14 +391,14 @@ function isValidProfile(profile: JSSelfProfile): profile is JSSelfProfile & { pr
       // Log a warning if the profile has less than 2 samples so users can know why
       // they are not seeing any profiling data and we cant avoid the back and forth
       // of asking them to provide us with a dump of the profile data.
-      logger.log('[Profiling] Discarding profile because it contains less than 2 samples');
+      debug.log('[Profiling] Discarding profile because it contains less than 2 samples');
     }
     return false;
   }
 
   if (!profile.frames.length) {
     if (DEBUG_BUILD) {
-      logger.log('[Profiling] Discarding profile because it contains no frames');
+      debug.log('[Profiling] Discarding profile because it contains no frames');
     }
     return false;
   }
@@ -428,9 +428,7 @@ export function startJSSelfProfile(): JSSelfProfiler | undefined {
 
   if (!isJSProfilerSupported(JSProfilerConstructor)) {
     if (DEBUG_BUILD) {
-      logger.log(
-        '[Profiling] Profiling is not supported by this browser, Profiler interface missing on window object.',
-      );
+      debug.log('[Profiling] Profiling is not supported by this browser, Profiler interface missing on window object.');
     }
     return;
   }
@@ -447,10 +445,10 @@ export function startJSSelfProfile(): JSSelfProfiler | undefined {
     return new JSProfilerConstructor({ sampleInterval: samplingIntervalMS, maxBufferSize: maxSamples });
   } catch (e) {
     if (DEBUG_BUILD) {
-      logger.log(
+      debug.log(
         "[Profiling] Failed to initialize the Profiling constructor, this is likely due to a missing 'Document-Policy': 'js-profiling' header.",
       );
-      logger.log('[Profiling] Disabling profiling for current user session.');
+      debug.log('[Profiling] Disabling profiling for current user session.');
     }
     PROFILING_CONSTRUCTOR_FAILED = true;
   }
@@ -465,14 +463,14 @@ export function shouldProfileSpan(span: Span): boolean {
   // If constructor failed once, it will always fail, so we can early return.
   if (PROFILING_CONSTRUCTOR_FAILED) {
     if (DEBUG_BUILD) {
-      logger.log('[Profiling] Profiling has been disabled for the duration of the current user session.');
+      debug.log('[Profiling] Profiling has been disabled for the duration of the current user session.');
     }
     return false;
   }
 
   if (!span.isRecording()) {
     if (DEBUG_BUILD) {
-      logger.log('[Profiling] Discarding profile because transaction was not sampled.');
+      debug.log('[Profiling] Discarding profile because transaction was not sampled.');
     }
     return false;
   }
@@ -480,7 +478,7 @@ export function shouldProfileSpan(span: Span): boolean {
   const client = getClient();
   const options = client?.getOptions();
   if (!options) {
-    DEBUG_BUILD && logger.log('[Profiling] Profiling disabled, no options found.');
+    DEBUG_BUILD && debug.log('[Profiling] Profiling disabled, no options found.');
     return false;
   }
 
@@ -490,14 +488,14 @@ export function shouldProfileSpan(span: Span): boolean {
   // Since this is coming from the user (or from a function provided by the user), who knows what we might get. (The
   // only valid values are booleans or numbers between 0 and 1.)
   if (!isValidSampleRate(profilesSampleRate)) {
-    DEBUG_BUILD && logger.warn('[Profiling] Discarding profile because of invalid sample rate.');
+    DEBUG_BUILD && debug.warn('[Profiling] Discarding profile because of invalid sample rate.');
     return false;
   }
 
   // if the function returned 0 (or false), or if `profileSampleRate` is 0, it's a sign the profile should be dropped
   if (!profilesSampleRate) {
     DEBUG_BUILD &&
-      logger.log(
+      debug.log(
         '[Profiling] Discarding profile because a negative sampling decision was inherited or profileSampleRate is set to 0',
       );
     return false;
@@ -509,7 +507,7 @@ export function shouldProfileSpan(span: Span): boolean {
   // Check if we should sample this profile
   if (!sampled) {
     DEBUG_BUILD &&
-      logger.log(
+      debug.log(
         `[Profiling] Discarding profile because it's not included in the random sample (sampling rate = ${Number(
           profilesSampleRate,
         )})`,

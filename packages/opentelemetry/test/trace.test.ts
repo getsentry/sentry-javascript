@@ -2,7 +2,6 @@
 import type { Span, TimeInput } from '@opentelemetry/api';
 import { context, ROOT_CONTEXT, SpanKind, trace, TraceFlags } from '@opentelemetry/api';
 import type { ReadableSpan } from '@opentelemetry/sdk-trace-base';
-import { Span as SpanClass } from '@opentelemetry/sdk-trace-base';
 import { SEMATTRS_HTTP_METHOD } from '@opentelemetry/semantic-conventions';
 import type { Event, Scope } from '@sentry/core';
 import {
@@ -21,6 +20,7 @@ import {
   withScope,
 } from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { getParentSpanId } from '../../../packages/opentelemetry/src/utils/getParentSpanId';
 import { continueTrace, startInactiveSpan, startSpan, startSpanManual } from '../src/trace';
 import type { AbstractSpan } from '../src/types';
 import { getActiveSpan } from '../src/utils/getActiveSpan';
@@ -28,6 +28,7 @@ import { getSamplingDecision } from '../src/utils/getSamplingDecision';
 import { getSpanKind } from '../src/utils/getSpanKind';
 import { makeTraceState } from '../src/utils/makeTraceState';
 import { spanHasAttributes, spanHasName } from '../src/utils/spanTypes';
+import { isSpan } from './helpers/isSpan';
 import { cleanupOtel, mockSdkInit } from './helpers/mockSdkInit';
 
 describe('trace', () => {
@@ -534,7 +535,7 @@ describe('trace', () => {
           return span;
         });
 
-        expect(span).not.toBeInstanceOf(SpanClass);
+        expect(isSpan(span)).toBe(false);
       });
 
       it('creates a span if there is a parent', () => {
@@ -546,7 +547,7 @@ describe('trace', () => {
           return span;
         });
 
-        expect(span).toBeInstanceOf(SpanClass);
+        expect(isSpan(span)).toBe(true);
       });
     });
   });
@@ -826,7 +827,7 @@ describe('trace', () => {
       it('does not create a span if there is no parent', () => {
         const span = startInactiveSpan({ name: 'test span', onlyIfParent: true });
 
-        expect(span).not.toBeInstanceOf(SpanClass);
+        expect(isSpan(span)).toBe(false);
       });
 
       it('creates a span if there is a parent', () => {
@@ -836,7 +837,7 @@ describe('trace', () => {
           return span;
         });
 
-        expect(span).toBeInstanceOf(SpanClass);
+        expect(isSpan(span)).toBe(true);
       });
     });
 
@@ -1196,7 +1197,7 @@ describe('trace', () => {
           return span;
         });
 
-        expect(span).not.toBeInstanceOf(SpanClass);
+        expect(isSpan(span)).toBe(false);
       });
 
       it('creates a span if there is a parent', () => {
@@ -1208,7 +1209,7 @@ describe('trace', () => {
           return span;
         });
 
-        expect(span).toBeInstanceOf(SpanClass);
+        expect(isSpan(span)).toBe(true);
       });
     });
   });
@@ -1340,6 +1341,21 @@ describe('trace', () => {
           });
         });
       });
+    });
+  });
+
+  describe('scope passing', () => {
+    it('handles active span when passing scopes to withScope', () => {
+      const [scope, span] = startSpan({ name: 'outer' }, span => {
+        return [getCurrentScope(), span];
+      });
+
+      const spanOnScope = withScope(scope, () => {
+        return getActiveSpan();
+      });
+
+      expect(spanOnScope).toBeDefined();
+      expect(spanOnScope).toBe(span);
     });
   });
 });
@@ -1906,6 +1922,38 @@ describe('suppressTracing', () => {
       expect(spanIsSampled(child)).toBe(false);
     });
   });
+
+  it('works with parallel processes', async () => {
+    const span = suppressTracing(() => {
+      return startInactiveSpan({ name: 'span' });
+    });
+
+    const span2Promise = suppressTracing(async () => {
+      await new Promise(resolve => setTimeout(resolve, 100));
+      return startInactiveSpan({ name: 'span2' });
+    });
+
+    const span3Promise = suppressTracing(async () => {
+      const span = startInactiveSpan({ name: 'span3' });
+      await new Promise(resolve => setTimeout(resolve, 100));
+      return span;
+    });
+
+    const span4 = suppressTracing(() => {
+      return startInactiveSpan({ name: 'span' });
+    });
+
+    const span5 = startInactiveSpan({ name: 'span5' });
+
+    const span2 = await span2Promise;
+    const span3 = await span3Promise;
+
+    expect(spanIsSampled(span)).toBe(false);
+    expect(spanIsSampled(span2)).toBe(false);
+    expect(spanIsSampled(span3)).toBe(false);
+    expect(spanIsSampled(span4)).toBe(false);
+    expect(spanIsSampled(span5)).toBe(true);
+  });
 });
 
 function getSpanName(span: AbstractSpan): string | undefined {
@@ -1925,5 +1973,5 @@ function getSpanAttributes(span: AbstractSpan): Record<string, unknown> | undefi
 }
 
 function getSpanParentSpanId(span: AbstractSpan): string | undefined {
-  return (span as ReadableSpan).parentSpanId;
+  return getParentSpanId(span as ReadableSpan);
 }

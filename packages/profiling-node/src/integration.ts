@@ -2,12 +2,12 @@
 import type { Event, IntegrationFn, Profile, ProfileChunk, ProfilingIntegration, Span } from '@sentry/core';
 import {
   consoleSandbox,
+  debug,
   defineIntegration,
   getCurrentScope,
   getGlobalScope,
   getIsolationScope,
   getRootSpan,
-  logger,
   LRUMap,
   spanToJSON,
   uuid4,
@@ -75,7 +75,7 @@ class ContinuousProfiler {
         this._legacyProfilerMode =
           'profilesSampleRate' in options || 'profilesSampler' in options ? 'span' : 'continuous';
 
-        DEBUG_BUILD && logger.log(`[Profiling] Profiling mode is ${this._legacyProfilerMode}.`);
+        DEBUG_BUILD && debug.log(`[Profiling] Profiling mode is ${this._legacyProfilerMode}.`);
 
         switch (this._legacyProfilerMode) {
           case 'span': {
@@ -88,7 +88,7 @@ class ContinuousProfiler {
           }
           default: {
             DEBUG_BUILD &&
-              logger.warn(
+              debug.warn(
                 `[Profiling] Unknown profiler mode: ${this._legacyProfilerMode}, profiler was not initialized`,
               );
             break;
@@ -100,7 +100,7 @@ class ContinuousProfiler {
       case 'current': {
         this._setupSpanChunkInstrumentation();
 
-        DEBUG_BUILD && logger.log(`[Profiling] Profiling mode is ${this._profileLifecycle}.`);
+        DEBUG_BUILD && debug.log(`[Profiling] Profiling mode is ${this._profileLifecycle}.`);
 
         switch (this._profileLifecycle) {
           case 'trace': {
@@ -113,14 +113,14 @@ class ContinuousProfiler {
           }
           default: {
             DEBUG_BUILD &&
-              logger.warn(`[Profiling] Unknown profiler mode: ${this._profileLifecycle}, profiler was not initialized`);
+              debug.warn(`[Profiling] Unknown profiler mode: ${this._profileLifecycle}, profiler was not initialized`);
             break;
           }
         }
         break;
       }
       default: {
-        DEBUG_BUILD && logger.warn(`[Profiling] Unknown profiler mode: ${this._mode}, profiler was not initialized`);
+        DEBUG_BUILD && debug.warn(`[Profiling] Unknown profiler mode: ${this._mode}, profiler was not initialized`);
         break;
       }
     }
@@ -142,17 +142,17 @@ class ContinuousProfiler {
     }
 
     if (!this._client) {
-      DEBUG_BUILD && logger.log('[Profiling] Failed to start, sentry client was never attached to the profiler.');
+      DEBUG_BUILD && debug.log('[Profiling] Failed to start, sentry client was never attached to the profiler.');
       return;
     }
 
     if (this._mode !== 'legacy') {
-      DEBUG_BUILD && logger.log('[Profiling] Continuous profiling is not supported in the current mode.');
+      DEBUG_BUILD && debug.log('[Profiling] Continuous profiling is not supported in the current mode.');
       return;
     }
 
     if (this._legacyProfilerMode === 'span') {
-      DEBUG_BUILD && logger.log('[Profiling] Calls to profiler.start() are not supported in span profiling mode.');
+      DEBUG_BUILD && debug.log('[Profiling] Calls to profiler.start() are not supported in span profiling mode.');
       return;
     }
 
@@ -176,17 +176,17 @@ class ContinuousProfiler {
     }
 
     if (!this._client) {
-      DEBUG_BUILD && logger.log('[Profiling] Failed to stop, sentry client was never attached to the profiler.');
+      DEBUG_BUILD && debug.log('[Profiling] Failed to stop, sentry client was never attached to the profiler.');
       return;
     }
 
     if (this._mode !== 'legacy') {
-      DEBUG_BUILD && logger.log('[Profiling] Continuous profiling is not supported in the current mode.');
+      DEBUG_BUILD && debug.log('[Profiling] Continuous profiling is not supported in the current mode.');
       return;
     }
 
     if (this._legacyProfilerMode === 'span') {
-      DEBUG_BUILD && logger.log('[Profiling] Calls to profiler.stop() are not supported in span profiling mode.');
+      DEBUG_BUILD && debug.log('[Profiling] Calls to profiler.stop() are not supported in span profiling mode.');
       return;
     }
 
@@ -196,25 +196,25 @@ class ContinuousProfiler {
 
   private _startProfiler(): void {
     if (this._mode !== 'current') {
-      DEBUG_BUILD && logger.log('[Profiling] Continuous profiling is not supported in the current mode.');
+      DEBUG_BUILD && debug.log('[Profiling] Continuous profiling is not supported in the current mode.');
       return;
     }
 
     if (this._chunkData !== undefined) {
-      DEBUG_BUILD && logger.log('[Profiling] Profile session already running, no-op.');
+      DEBUG_BUILD && debug.log('[Profiling] Profile session already running, no-op.');
       return;
     }
 
     if (this._mode === 'current') {
       if (!this._sampled) {
-        DEBUG_BUILD && logger.log('[Profiling] Profile session not sampled, no-op.');
+        DEBUG_BUILD && debug.log('[Profiling] Profile session not sampled, no-op.');
         return;
       }
     }
 
     if (this._profileLifecycle === 'trace') {
       DEBUG_BUILD &&
-        logger.log(
+        debug.log(
           '[Profiling] You are using the trace profile lifecycle, manual calls to profiler.startProfiler() and profiler.stopProfiler() will be ignored.',
         );
       return;
@@ -225,20 +225,20 @@ class ContinuousProfiler {
 
   private _stopProfiler(): void {
     if (this._mode !== 'current') {
-      DEBUG_BUILD && logger.log('[Profiling] Continuous profiling is not supported in the current mode.');
+      DEBUG_BUILD && debug.log('[Profiling] Continuous profiling is not supported in the current mode.');
       return;
     }
 
     if (this._profileLifecycle === 'trace') {
       DEBUG_BUILD &&
-        logger.log(
+        debug.log(
           '[Profiling] You are using the trace profile lifecycle, manual calls to profiler.startProfiler() and profiler.stopProfiler() will be ignored.',
         );
       return;
     }
 
     if (!this._chunkData) {
-      DEBUG_BUILD && logger.log('[Profiling] No profile session running, no-op.');
+      DEBUG_BUILD && debug.log('[Profiling] No profile session running, no-op.');
       return;
     }
 
@@ -251,7 +251,7 @@ class ContinuousProfiler {
   private _startTraceLifecycleProfiling(): void {
     if (!this._client) {
       DEBUG_BUILD &&
-        logger.log(
+        debug.log(
           '[Profiling] Failed to start trace lifecycle profiling, sentry client was never attached to the profiler.',
         );
       return;
@@ -276,7 +276,7 @@ class ContinuousProfiler {
   private _setupAutomaticSpanProfiling(): void {
     if (!this._client) {
       DEBUG_BUILD &&
-        logger.log(
+        debug.log(
           '[Profiling] Failed to setup automatic span profiling, sentry client was never attached to the profiler.',
         );
       return;
@@ -307,7 +307,7 @@ class ContinuousProfiler {
         // Enqueue a timeout to prevent profiles from running over max duration.
         const timeout = global.setTimeout(() => {
           DEBUG_BUILD &&
-            logger.log(
+            debug.log(
               '[Profiling] max profile duration elapsed, stopping profiling for:',
               spanToJSON(span).description,
             );
@@ -371,7 +371,7 @@ class ContinuousProfiler {
 
         const cpuProfile = takeFromProfileQueue(profile_id);
         if (!cpuProfile) {
-          DEBUG_BUILD && logger.log(`[Profiling] Could not retrieve profile for transaction: ${profile_id}`);
+          DEBUG_BUILD && debug.log(`[Profiling] Could not retrieve profile for transaction: ${profile_id}`);
           continue;
         }
 
@@ -406,13 +406,13 @@ class ContinuousProfiler {
       // The client is not attached to the profiler if the user has not enabled continuous profiling.
       // In this case, calling start() and stop() is a noop action.The reason this exists is because
       // it makes the types easier to work with and avoids users having to do null checks.
-      DEBUG_BUILD && logger.log('[Profiling] Profiler was never attached to the client.');
+      DEBUG_BUILD && debug.log('[Profiling] Profiler was never attached to the client.');
       return;
     }
 
     if (this._chunkData) {
       DEBUG_BUILD &&
-        logger.log(
+        debug.log(
           `[Profiling] Chunk with chunk_id ${this._chunkData.id} is still running, current chunk will be stopped a new chunk will be started.`,
         );
       this._stopChunkProfiling();
@@ -426,26 +426,26 @@ class ContinuousProfiler {
    */
   private _stopChunkProfiling(): void {
     if (!this._chunkData) {
-      DEBUG_BUILD && logger.log('[Profiling] No chunk data found, no-op.');
+      DEBUG_BUILD && debug.log('[Profiling] No chunk data found, no-op.');
       return;
     }
 
     if (this._chunkData?.timer) {
       global.clearTimeout(this._chunkData.timer);
       this._chunkData.timer = undefined;
-      DEBUG_BUILD && logger.log(`[Profiling] Stopping profiling chunk: ${this._chunkData.id}`);
+      DEBUG_BUILD && debug.log(`[Profiling] Stopping profiling chunk: ${this._chunkData.id}`);
     }
 
     if (!this._client) {
       DEBUG_BUILD &&
-        logger.log('[Profiling] Failed to collect profile, sentry client was never attached to the profiler.');
+        debug.log('[Profiling] Failed to collect profile, sentry client was never attached to the profiler.');
       this._resetChunkData();
       return;
     }
 
     if (!this._chunkData?.id) {
       DEBUG_BUILD &&
-        logger.log(`[Profiling] Failed to collect profile for: ${this._chunkData?.id}, the chunk_id is missing.`);
+        debug.log(`[Profiling] Failed to collect profile for: ${this._chunkData?.id}, the chunk_id is missing.`);
       this._resetChunkData();
       return;
     }
@@ -453,22 +453,22 @@ class ContinuousProfiler {
     const profile = CpuProfilerBindings.stopProfiling(this._chunkData.id, ProfileFormat.CHUNK);
 
     if (!profile) {
-      DEBUG_BUILD && logger.log(`[Profiling] Failed to collect profile for: ${this._chunkData.id}`);
+      DEBUG_BUILD && debug.log(`[Profiling] Failed to collect profile for: ${this._chunkData.id}`);
       this._resetChunkData();
       return;
     }
 
     if (!this._profilerId) {
       DEBUG_BUILD &&
-        logger.log('[Profiling] Profile chunk does not contain a valid profiler_id, this is a bug in the SDK');
+        debug.log('[Profiling] Profile chunk does not contain a valid profiler_id, this is a bug in the SDK');
       this._resetChunkData();
       return;
     }
     if (profile) {
-      DEBUG_BUILD && logger.log(`[Profiling] Sending profile chunk ${this._chunkData.id}.`);
+      DEBUG_BUILD && debug.log(`[Profiling] Sending profile chunk ${this._chunkData.id}.`);
     }
 
-    DEBUG_BUILD && logger.log(`[Profiling] Profile chunk ${this._chunkData.id} sent to Sentry.`);
+    DEBUG_BUILD && debug.log(`[Profiling] Profile chunk ${this._chunkData.id} sent to Sentry.`);
     const chunk = createProfilingChunkEvent(
       this._client,
       this._client.getOptions(),
@@ -482,7 +482,7 @@ class ContinuousProfiler {
     );
 
     if (!chunk) {
-      DEBUG_BUILD && logger.log(`[Profiling] Failed to create profile chunk for: ${this._chunkData.id}`);
+      DEBUG_BUILD && debug.log(`[Profiling] Failed to create profile chunk for: ${this._chunkData.id}`);
       this._resetChunkData();
       return;
     }
@@ -502,13 +502,13 @@ class ContinuousProfiler {
   private _flush(chunk: ProfileChunk): void {
     if (!this._client) {
       DEBUG_BUILD &&
-        logger.log('[Profiling] Failed to collect profile, sentry client was never attached to the profiler.');
+        debug.log('[Profiling] Failed to collect profile, sentry client was never attached to the profiler.');
       return;
     }
 
     const transport = this._client.getTransport();
     if (!transport) {
-      DEBUG_BUILD && logger.log('[Profiling] No transport available to send profile chunk.');
+      DEBUG_BUILD && debug.log('[Profiling] No transport available to send profile chunk.');
       return;
     }
 
@@ -518,7 +518,7 @@ class ContinuousProfiler {
 
     const envelope = makeProfileChunkEnvelope('node', chunk, metadata?.sdk, tunnel, dsn);
     transport.send(envelope).then(null, reason => {
-      DEBUG_BUILD && logger.error('Error while sending profile chunk envelope:', reason);
+      DEBUG_BUILD && debug.error('Error while sending profile chunk envelope:', reason);
     });
   }
 
@@ -528,7 +528,7 @@ class ContinuousProfiler {
    */
   private _startChunkProfiling(): void {
     if (this._chunkData) {
-      DEBUG_BUILD && logger.log('[Profiling] Chunk is already running, no-op.');
+      DEBUG_BUILD && debug.log('[Profiling] Chunk is already running, no-op.');
       return;
     }
 
@@ -537,12 +537,12 @@ class ContinuousProfiler {
     const chunk = this._initializeChunk(traceId);
 
     CpuProfilerBindings.startProfiling(chunk.id);
-    DEBUG_BUILD && logger.log(`[Profiling] starting profiling chunk: ${chunk.id}`);
+    DEBUG_BUILD && debug.log(`[Profiling] starting profiling chunk: ${chunk.id}`);
 
     chunk.timer = global.setTimeout(() => {
-      DEBUG_BUILD && logger.log(`[Profiling] Stopping profiling chunk: ${chunk.id}`);
+      DEBUG_BUILD && debug.log(`[Profiling] Stopping profiling chunk: ${chunk.id}`);
       this._stopChunkProfiling();
-      DEBUG_BUILD && logger.log('[Profiling] Starting new profiling chunk.');
+      DEBUG_BUILD && debug.log('[Profiling] Starting new profiling chunk.');
       setImmediate(this._restartChunkProfiling.bind(this));
     }, CHUNK_INTERVAL_MS);
 
@@ -557,9 +557,7 @@ class ContinuousProfiler {
   private _setupSpanChunkInstrumentation(): void {
     if (!this._client) {
       DEBUG_BUILD &&
-        logger.log(
-          '[Profiling] Failed to initialize span profiling, sentry client was never attached to the profiler.',
-        );
+        debug.log('[Profiling] Failed to initialize span profiling, sentry client was never attached to the profiler.');
       return;
     }
 
@@ -648,7 +646,7 @@ export const _nodeProfilingIntegration = ((): ProfilingIntegration<NodeClient> =
     name: 'ProfilingIntegration',
     _profiler: new ContinuousProfiler(),
     setup(client: NodeClient) {
-      DEBUG_BUILD && logger.log('[Profiling] Profiling integration setup.');
+      DEBUG_BUILD && debug.log('[Profiling] Profiling integration setup.');
       this._profiler.initialize(client);
       return;
     },

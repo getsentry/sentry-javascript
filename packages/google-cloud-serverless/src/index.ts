@@ -14,6 +14,7 @@ export {
   createTransport,
   getClient,
   isInitialized,
+  isEnabled,
   generateInstrumentOnce,
   getCurrentScope,
   getGlobalScope,
@@ -41,13 +42,16 @@ export {
   close,
   getSentryRelease,
   createGetModuleFromFilename,
+  // eslint-disable-next-line deprecation/deprecation
   anrIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   disableAnrDetectionForCallback,
   consoleIntegration,
   httpIntegration,
   nativeNodeFetchIntegration,
   onUncaughtExceptionIntegration,
   onUnhandledRejectionIntegration,
+  openAIIntegration,
   modulesIntegration,
   contextLinesIntegration,
   nodeContextIntegration,
@@ -98,6 +102,7 @@ export {
   redisIntegration,
   tediousIntegration,
   postgresIntegration,
+  postgresJsIntegration,
   prismaIntegration,
   hapiIntegration,
   setupHapiErrorHandler,
@@ -119,6 +124,15 @@ export {
   logger,
   consoleLoggingIntegration,
   wrapMcpServerWithSentry,
+  NODE_VERSION,
+  featureFlagsIntegration,
+  type FeatureFlagsIntegration,
+  launchDarklyIntegration,
+  buildLaunchDarklyFlagUsedHandler,
+  openFeatureIntegration,
+  OpenFeatureIntegrationHook,
+  statsigIntegration,
+  unleashIntegration,
 } from '@sentry/node';
 
 export {

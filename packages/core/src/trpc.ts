@@ -2,8 +2,8 @@ import { getClient, withIsolationScope } from './currentScopes';
 import { captureException } from './exports';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from './semanticAttributes';
 import { startSpanManual } from './tracing';
-import { normalize } from './utils-hoist/normalize';
-import { addNonEnumerableProperty } from './utils-hoist/object';
+import { normalize } from './utils/normalize';
+import { addNonEnumerableProperty } from './utils/object';
 
 interface SentryTrpcMiddlewareOptions {
   /** Whether to include procedure inputs in reported events. Defaults to `false`. */
@@ -70,7 +70,7 @@ export function trpcMiddleware(options: SentryTrpcMiddlewareOptions = {}) {
           const rawRes = await getRawInput();
 
           trpcContext.input = normalize(rawRes);
-        } catch (err) {
+        } catch {
           // noop
         }
       }

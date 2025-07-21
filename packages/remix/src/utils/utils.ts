@@ -1,7 +1,7 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs, ServerBuild } from '@remix-run/node';
 import type { AgnosticRouteObject } from '@remix-run/router';
 import type { Span, TransactionSource } from '@sentry/core';
-import { logger } from '@sentry/core';
+import { debug } from '@sentry/core';
 import { DEBUG_BUILD } from './debug-build';
 import { getRequestMatch, matchServerRoutes } from './vendor/response';
 
@@ -39,7 +39,7 @@ export async function storeFormDataKeys(
       }
     });
   } catch (e) {
-    DEBUG_BUILD && logger.warn('Failed to read FormData from request', e);
+    DEBUG_BUILD && debug.warn('Failed to read FormData from request', e);
   }
 }
 

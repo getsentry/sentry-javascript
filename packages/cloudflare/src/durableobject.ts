@@ -25,16 +25,21 @@ type MethodWrapperOptions = {
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function wrapMethodWithSentry<T extends (...args: any[]) => any>(
+type OriginalMethod = (...args: any[]) => any;
+
+function wrapMethodWithSentry<T extends OriginalMethod>(
   wrapperOptions: MethodWrapperOptions,
   handler: T,
   callback?: (...args: Parameters<T>) => void,
+  noMark?: true,
 ): T {
   if (isInstrumented(handler)) {
     return handler;
   }
 
-  markAsInstrumented(handler);
+  if (!noMark) {
+    markAsInstrumented(handler);
+  }
 
   return new Proxy(handler, {
     apply(target, thisArg, args: Parameters<T>) {
@@ -47,9 +52,11 @@ function wrapMethodWithSentry<T extends (...args: any[]) => any>(
         // see: https://github.com/getsentry/sentry-javascript/issues/13217
         const context = wrapperOptions.context as ExecutionContext | undefined;
 
+        const waitUntil = context?.waitUntil?.bind?.(context);
+
         const currentClient = scope.getClient();
         if (!currentClient) {
-          const client = init(wrapperOptions.options);
+          const client = init({ ...wrapperOptions.options, ctx: context });
           scope.setClient(client);
         }
 
@@ -68,7 +75,7 @@ function wrapMethodWithSentry<T extends (...args: any[]) => any>(
             });
             throw e;
           } finally {
-            context?.waitUntil(flush(2000));
+            waitUntil?.(flush(2000));
           }
         }
 
@@ -92,7 +99,7 @@ function wrapMethodWithSentry<T extends (...args: any[]) => any>(
             });
             throw e;
           } finally {
-            context?.waitUntil(flush(2000));
+            waitUntil?.(flush(2000));
           }
         });
       });
@@ -219,8 +226,46 @@ export function instrumentDurableObjectWithSentry<
           );
         }
       }
+      const instrumentedPrototype = instrumentPrototype(target, options, context);
+      Object.setPrototypeOf(obj, instrumentedPrototype);
 
       return obj;
+    },
+  });
+}
+
+function instrumentPrototype<T extends NewableFunction>(
+  target: T,
+  options: CloudflareOptions,
+  context: MethodWrapperOptions['context'],
+): T {
+  return new Proxy(target.prototype, {
+    get(target, prop, receiver) {
+      const value = Reflect.get(target, prop, receiver);
+      if (prop === 'constructor' || typeof value !== 'function') {
+        return value;
+      }
+      const wrapped = wrapMethodWithSentry(
+        { options, context, spanName: prop.toString(), spanOp: 'rpc' },
+        value,
+        undefined,
+        true,
+      );
+      const instrumented = new Proxy(wrapped, {
+        get(target, p, receiver) {
+          if ('__SENTRY_INSTRUMENTED__' === p) {
+            return true;
+          }
+          return Reflect.get(target, p, receiver);
+        },
+      });
+      Object.defineProperty(receiver, prop, {
+        value: instrumented,
+        enumerable: true,
+        writable: true,
+        configurable: true,
+      });
+      return instrumented;
     },
   });
 }

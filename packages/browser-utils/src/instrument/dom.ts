@@ -86,7 +86,7 @@ export function instrumentDOM(): void {
             }
 
             handlerForType.refCount++;
-          } catch (e) {
+          } catch {
             // Accessing dom properties is always fragile.
             // Also allows us to skip `addEventListeners` calls with no proper `this` context.
           }
@@ -120,7 +120,7 @@ export function instrumentDOM(): void {
                   delete this.__sentry_instrumentation_handlers__;
                 }
               }
-            } catch (e) {
+            } catch {
               // Accessing dom properties is always fragile.
               // Also allows us to skip `addEventListeners` calls with no proper `this` context.
             }
@@ -148,7 +148,7 @@ function isSimilarToLastCapturedEvent(event: Event): boolean {
     if (!event.target || (event.target as SentryWrappedTarget)._sentryId !== lastCapturedEventTargetId) {
       return false;
     }
-  } catch (e) {
+  } catch {
     // just accessing `target` property can throw an exception in some rare circumstances
     // see: https://github.com/getsentry/sentry-javascript/issues/838
   }
@@ -236,7 +236,7 @@ function makeDOMEventHandler(
 function getEventTarget(event: Event): SentryWrappedTarget | null {
   try {
     return event.target as SentryWrappedTarget | null;
-  } catch (e) {
+  } catch {
     // just accessing `target` property can throw an exception in some rare circumstances
     // see: https://github.com/getsentry/sentry-javascript/issues/838
     return null;

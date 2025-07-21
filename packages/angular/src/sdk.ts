@@ -12,10 +12,10 @@ import {
 import type { Client, Integration } from '@sentry/core';
 import {
   applySdkMetadata,
+  debug,
   dedupeIntegration,
   functionToStringIntegration,
   inboundFiltersIntegration,
-  logger,
 } from '@sentry/core';
 import { IS_DEBUG_BUILD } from './flags';
 
@@ -68,7 +68,7 @@ function checkAndSetAngularVersion(): void {
   if (angularVersion) {
     if (angularVersion < ANGULAR_MINIMUM_VERSION) {
       IS_DEBUG_BUILD &&
-        logger.warn(
+        debug.warn(
           `This Sentry SDK does not officially support Angular ${angularVersion}.`,
           `This SDK only supports Angular ${ANGULAR_MINIMUM_VERSION} and above.`,
           "If you're using lower Angular versions, check the Angular Version Compatibility table in our docs: https://docs.sentry.io/platforms/javascript/guides/angular/#angular-version-compatibility.",

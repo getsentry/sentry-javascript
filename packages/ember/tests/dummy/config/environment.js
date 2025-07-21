@@ -32,7 +32,6 @@ module.exports = function (environment) {
         },
       },
     },
-    ignoreEmberOnErrorWarning: true,
     minimumRunloopQueueDuration: 0,
     minimumComponentRenderDuration: 0,
   };

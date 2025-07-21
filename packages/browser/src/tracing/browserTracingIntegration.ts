@@ -3,7 +3,8 @@ import type { Client, IntegrationFn, Span, StartSpanOptions, TransactionSource, 
 import {
   addNonEnumerableProperty,
   browserPerformanceTimeOrigin,
-  consoleSandbox,
+  dateTimestampInSeconds,
+  debug,
   generateTraceId,
   getClient,
   getCurrentScope,
@@ -11,7 +12,6 @@ import {
   getIsolationScope,
   getLocationHref,
   GLOBAL_OBJ,
-  logger,
   parseStringToURLObject,
   propagationContextFromHeaders,
   registerSpanErrorInstrumentation,
@@ -21,12 +21,15 @@ import {
   spanIsSampled,
   spanToJSON,
   startIdleSpan,
+  startInactiveSpan,
+  timestampInSeconds,
   TRACING_DEFAULTS,
 } from '@sentry/core';
 import {
   addHistoryInstrumentationHandler,
   addPerformanceEntries,
   registerInpInteractionListener,
+  startTrackingElementTiming,
   startTrackingINP,
   startTrackingInteractions,
   startTrackingLongAnimationFrames,
@@ -117,6 +120,14 @@ export interface BrowserTracingOptions {
   enableInp: boolean;
 
   /**
+   * If true, Sentry will capture [element timing](https://developer.mozilla.org/en-US/docs/Web/API/PerformanceElementTiming)
+   * information and add it to the corresponding transaction.
+   *
+   * Default: true
+   */
+  enableElementTiming: boolean;
+
+  /**
    * Flag to disable patching all together for fetch requests.
    *
    * Default: true
@@ -144,6 +155,56 @@ export interface BrowserTracingOptions {
    * Default: true
    */
   enableHTTPTimings: boolean;
+
+  /**
+   * Resource spans with `op`s matching strings in the array will not be emitted.
+   *
+   * Default: []
+   */
+  ignoreResourceSpans: Array<'resouce.script' | 'resource.css' | 'resource.img' | 'resource.other' | string>;
+
+  /**
+   * Spans created from the following browser Performance APIs,
+   *
+   * - [`performance.mark(...)`](https://developer.mozilla.org/en-US/docs/Web/API/Performance/mark)
+   * - [`performance.measure(...)`](https://developer.mozilla.org/en-US/docs/Web/API/Performance/measure)
+   *
+   * will not be emitted if their names match strings in this array.
+   *
+   * This is useful, if you come across `mark` or `measure` spans in your Sentry traces
+   * that you want to ignore. For example, sometimes, browser extensions or libraries
+   * emit these entries on their own, which might not be relevant to your application.
+   *
+   * * @example
+   * ```ts
+   * Sentry.init({
+   *   integrations: [
+   *     Sentry.browserTracingIntegration({
+   *      ignorePerformanceApiSpans: ['myMeasurement', /myMark/],
+   *     }),
+   *   ],
+   * });
+   *
+   * // no spans will be created for these:
+   * performance.mark('myMark');
+   * performance.measure('myMeasurement');
+   *
+   * // spans will be created for these:
+   * performance.mark('authenticated');
+   * performance.measure('input-duration', ...);
+   * ```
+   *
+   * Default: [] - By default, all `mark` and `measure` entries are sent as spans.
+   */
+  ignorePerformanceApiSpans: Array<string | RegExp>;
+
+  /**
+   * By default, the SDK will try to detect redirects and avoid creating separate spans for them.
+   * If you want to opt-out of this behavior, you can set this option to `false`.
+   *
+   * Default: true
+   */
+  detectRedirects: boolean;
 
   /**
    * Link the currently started trace to a previous trace (e.g. a prior pageload, navigation or
@@ -195,6 +256,7 @@ export interface BrowserTracingOptions {
   _experiments: Partial<{
     enableInteractions: boolean;
     enableStandaloneClsSpans: boolean;
+    enableStandaloneLcpSpans: boolean;
   }>;
 
   /**
@@ -227,13 +289,15 @@ const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
   enableLongTask: true,
   enableLongAnimationFrame: true,
   enableInp: true,
+  enableElementTiming: true,
+  ignoreResourceSpans: [],
+  ignorePerformanceApiSpans: [],
+  detectRedirects: true,
   linkPreviousTrace: 'in-memory',
   consistentTraceSampling: false,
   _experiments: {},
   ...defaultRequestInstrumentationOptions,
 };
-
-let _hasBeenInitialized = false;
 
 /**
  * The Browser Tracing integration automatically instruments browser pageload/navigation
@@ -245,14 +309,10 @@ let _hasBeenInitialized = false;
  * We explicitly export the proper type here, as this has to be extended in some cases.
  */
 export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptions> = {}) => {
-  if (_hasBeenInitialized) {
-    consoleSandbox(() => {
-      // eslint-disable-next-line no-console
-      console.warn('Multiple browserTracingIntegration instances are not supported.');
-    });
-  }
-
-  _hasBeenInitialized = true;
+  const latestRoute: RouteInfo = {
+    name: undefined,
+    source: undefined,
+  };
 
   /**
    * This is just a small wrapper that makes `document` optional.
@@ -260,13 +320,12 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
    */
   const optionalWindowDocument = WINDOW.document as (typeof WINDOW)['document'] | undefined;
 
-  registerSpanErrorInstrumentation();
-
   const {
     enableInp,
+    enableElementTiming,
     enableLongTask,
     enableLongAnimationFrame,
-    _experiments: { enableInteractions, enableStandaloneClsSpans },
+    _experiments: { enableInteractions, enableStandaloneClsSpans, enableStandaloneLcpSpans },
     beforeStartSpan,
     idleTimeout,
     finalTimeout,
@@ -277,8 +336,11 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
     trackFetchStreamPerformance,
     shouldCreateSpanForRequest,
     enableHTTPTimings,
+    ignoreResourceSpans,
+    ignorePerformanceApiSpans,
     instrumentPageLoad,
     instrumentNavigation,
+    detectRedirects,
     linkPreviousTrace,
     consistentTraceSampling,
     onRequestSpanStart,
@@ -287,34 +349,11 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
     ..._options,
   };
 
-  const _collectWebVitals = startTrackingWebVitals({ recordClsStandaloneSpans: enableStandaloneClsSpans || false });
-
-  if (enableInp) {
-    startTrackingINP();
-  }
-
-  if (
-    enableLongAnimationFrame &&
-    GLOBAL_OBJ.PerformanceObserver &&
-    PerformanceObserver.supportedEntryTypes &&
-    PerformanceObserver.supportedEntryTypes.includes('long-animation-frame')
-  ) {
-    startTrackingLongAnimationFrames();
-  } else if (enableLongTask) {
-    startTrackingLongTasks();
-  }
-
-  if (enableInteractions) {
-    startTrackingInteractions();
-  }
-
-  const latestRoute: RouteInfo = {
-    name: undefined,
-    source: undefined,
-  };
+  let _collectWebVitals: undefined | (() => void);
+  let lastInteractionTimestamp: number | undefined;
 
   /** Create routing idle transaction. */
-  function _createRouteSpan(client: Client, startSpanOptions: StartSpanOptions): void {
+  function _createRouteSpan(client: Client, startSpanOptions: StartSpanOptions, makeActive = true): void {
     const isPageloadTransaction = startSpanOptions.op === 'pageload';
 
     const finalStartSpanOptions: StartSpanOptions = beforeStartSpan
@@ -330,6 +369,16 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
       finalStartSpanOptions.attributes = attributes;
     }
 
+    if (!makeActive) {
+      // We want to ensure this has 0s duration
+      const now = dateTimestampInSeconds();
+      startInactiveSpan({
+        ...finalStartSpanOptions,
+        startTime: now,
+      }).end(now);
+      return;
+    }
+
     latestRoute.name = finalStartSpanOptions.name;
     latestRoute.source = attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
 
@@ -340,8 +389,15 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
       // should wait for finish signal if it's a pageload transaction
       disableAutoFinish: isPageloadTransaction,
       beforeSpanEnd: span => {
-        _collectWebVitals();
-        addPerformanceEntries(span, { recordClsOnPageloadSpan: !enableStandaloneClsSpans });
+        // This will generally always be defined here, because it is set in `setup()` of the integration
+        // but technically, it is optional, so we guard here to be extra safe
+        _collectWebVitals?.();
+        addPerformanceEntries(span, {
+          recordClsOnPageloadSpan: !enableStandaloneClsSpans,
+          recordLcpOnPageloadSpan: !enableStandaloneLcpSpans,
+          ignoreResourceSpans,
+          ignorePerformanceApiSpans,
+        });
         setActiveIdleSpan(client, undefined);
 
         // A trace should stay consistent over the entire timespan of one route - even after the pageload/navigation ended.
@@ -378,22 +434,73 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
 
   return {
     name: BROWSER_TRACING_INTEGRATION_ID,
-    afterAllSetup(client) {
-      let startingUrl: string | undefined = getLocationHref();
+    setup(client) {
+      registerSpanErrorInstrumentation();
+
+      _collectWebVitals = startTrackingWebVitals({
+        recordClsStandaloneSpans: enableStandaloneClsSpans || false,
+        recordLcpStandaloneSpans: enableStandaloneLcpSpans || false,
+        client,
+      });
+
+      if (enableInp) {
+        startTrackingINP();
+      }
+
+      if (enableElementTiming) {
+        startTrackingElementTiming();
+      }
+
+      if (
+        enableLongAnimationFrame &&
+        GLOBAL_OBJ.PerformanceObserver &&
+        PerformanceObserver.supportedEntryTypes &&
+        PerformanceObserver.supportedEntryTypes.includes('long-animation-frame')
+      ) {
+        startTrackingLongAnimationFrames();
+      } else if (enableLongTask) {
+        startTrackingLongTasks();
+      }
+
+      if (enableInteractions) {
+        startTrackingInteractions();
+      }
+
+      if (detectRedirects && optionalWindowDocument) {
+        const interactionHandler = (): void => {
+          lastInteractionTimestamp = timestampInSeconds();
+        };
+        addEventListener('click', interactionHandler, { capture: true });
+        addEventListener('keydown', interactionHandler, { capture: true, passive: true });
+      }
 
       function maybeEndActiveSpan(): void {
         const activeSpan = getActiveIdleSpan(client);
 
         if (activeSpan && !spanToJSON(activeSpan).timestamp) {
-          DEBUG_BUILD && logger.log(`[Tracing] Finishing current active span with op: ${spanToJSON(activeSpan).op}`);
+          DEBUG_BUILD && debug.log(`[Tracing] Finishing current active span with op: ${spanToJSON(activeSpan).op}`);
           // If there's an open active span, we need to finish it before creating an new one.
           activeSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON, 'cancelled');
           activeSpan.end();
         }
       }
 
-      client.on('startNavigationSpan', startSpanOptions => {
+      client.on('startNavigationSpan', (startSpanOptions, navigationOptions) => {
         if (getClient() !== client) {
+          return;
+        }
+
+        if (navigationOptions?.isRedirect) {
+          DEBUG_BUILD &&
+            debug.warn('[Tracing] Detected redirect, navigation span will not be the root span, but a child span.');
+          _createRouteSpan(
+            client,
+            {
+              op: 'navigation.redirect',
+              ...startSpanOptions,
+            },
+            false,
+          );
           return;
         }
 
@@ -440,6 +547,9 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
           ...startSpanOptions,
         });
       });
+    },
+    afterAllSetup(client) {
+      let startingUrl: string | undefined = getLocationHref();
 
       if (linkPreviousTrace !== 'off') {
         linkTraces(client, { linkPreviousTrace, consistentTraceSampling });
@@ -477,23 +587,20 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
 
             startingUrl = undefined;
             const parsed = parseStringToURLObject(to);
-            startBrowserTracingNavigationSpan(client, {
-              name: parsed?.pathname || WINDOW.location.pathname,
-              attributes: {
-                [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
-                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.browser',
+            const activeSpan = getActiveIdleSpan(client);
+            const navigationIsRedirect =
+              activeSpan && detectRedirects && isRedirect(activeSpan, lastInteractionTimestamp);
+            startBrowserTracingNavigationSpan(
+              client,
+              {
+                name: parsed?.pathname || WINDOW.location.pathname,
+                attributes: {
+                  [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+                  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.browser',
+                },
               },
-            });
-
-            // We store the normalized request data on the scope, so we get the request data at time of span creation
-            // otherwise, the URL etc. may already be of the following navigation, and we'd report the wrong URL
-            getCurrentScope().setSDKProcessingMetadata({
-              normalizedRequest: {
-                ...getHttpRequestData(),
-                // Ensure to set this, so this matches the target route even if the URL has not yet been updated
-                url: to,
-              },
-            });
+              { url: to, isRedirect: navigationIsRedirect },
+            );
           });
         }
       }
@@ -538,17 +645,41 @@ export function startBrowserTracingPageLoadSpan(
   client.emit('startPageLoadSpan', spanOptions, traceOptions);
   getCurrentScope().setTransactionName(spanOptions.name);
 
-  return getActiveIdleSpan(client);
+  const pageloadSpan = getActiveIdleSpan(client);
+
+  if (pageloadSpan) {
+    client.emit('afterStartPageLoadSpan', pageloadSpan);
+  }
+
+  return pageloadSpan;
 }
 
 /**
  * Manually start a navigation span.
  * This will only do something if a browser tracing integration has been setup.
  */
-export function startBrowserTracingNavigationSpan(client: Client, spanOptions: StartSpanOptions): Span | undefined {
-  client.emit('startNavigationSpan', spanOptions);
+export function startBrowserTracingNavigationSpan(
+  client: Client,
+  spanOptions: StartSpanOptions,
+  options?: { url?: string; isRedirect?: boolean },
+): Span | undefined {
+  const { url, isRedirect } = options || {};
+  client.emit('beforeStartNavigationSpan', spanOptions, { isRedirect });
+  client.emit('startNavigationSpan', spanOptions, { isRedirect });
 
-  getCurrentScope().setTransactionName(spanOptions.name);
+  const scope = getCurrentScope();
+  scope.setTransactionName(spanOptions.name);
+
+  // We store the normalized request data on the scope, so we get the request data at time of span creation
+  // otherwise, the URL etc. may already be of the following navigation, and we'd report the wrong URL
+  if (url && !isRedirect) {
+    scope.setSDKProcessingMetadata({
+      normalizedRequest: {
+        ...getHttpRequestData(),
+        url,
+      },
+    });
+  }
 
   return getActiveIdleSpan(client);
 }
@@ -588,7 +719,7 @@ function registerInteractionListener(
       const currentRootSpanOp = spanToJSON(activeIdleSpan).op;
       if (['navigation', 'pageload'].includes(currentRootSpanOp as string)) {
         DEBUG_BUILD &&
-          logger.warn(`[Tracing] Did not create ${op} span because a pageload or navigation span is in progress.`);
+          debug.warn(`[Tracing] Did not create ${op} span because a pageload or navigation span is in progress.`);
         return undefined;
       }
     }
@@ -600,7 +731,7 @@ function registerInteractionListener(
     }
 
     if (!latestRoute.name) {
-      DEBUG_BUILD && logger.warn(`[Tracing] Did not create ${op} transaction because _latestRouteName is missing.`);
+      DEBUG_BUILD && debug.warn(`[Tracing] Did not create ${op} transaction because _latestRouteName is missing.`);
       return undefined;
     }
 
@@ -621,7 +752,7 @@ function registerInteractionListener(
   };
 
   if (optionalWindowDocument) {
-    addEventListener('click', registerInteractionTransaction, { once: false, capture: true });
+    addEventListener('click', registerInteractionTransaction, { capture: true });
   }
 }
 
@@ -633,4 +764,28 @@ function getActiveIdleSpan(client: Client): Span | undefined {
 
 function setActiveIdleSpan(client: Client, span: Span | undefined): void {
   addNonEnumerableProperty(client, ACTIVE_IDLE_SPAN_PROPERTY, span);
+}
+
+// The max. time in seconds between two pageload/navigation spans that makes us consider the second one a redirect
+const REDIRECT_THRESHOLD = 0.3;
+
+function isRedirect(activeSpan: Span, lastInteractionTimestamp: number | undefined): boolean {
+  const spanData = spanToJSON(activeSpan);
+
+  const now = dateTimestampInSeconds();
+
+  // More than 300ms since last navigation/pageload span?
+  // --> never consider this a redirect
+  const startTimestamp = spanData.start_timestamp;
+  if (now - startTimestamp > REDIRECT_THRESHOLD) {
+    return false;
+  }
+
+  // A click happened in the last 300ms?
+  // --> never consider this a redirect
+  if (lastInteractionTimestamp && now - lastInteractionTimestamp <= REDIRECT_THRESHOLD) {
+    return false;
+  }
+
+  return true;
 }

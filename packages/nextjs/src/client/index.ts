@@ -81,7 +81,7 @@ export function init(options: BrowserOptions): Client | undefined {
     if (process.turbopack) {
       getGlobalScope().setTag('turbopack', true);
     }
-  } catch (e) {
+  } catch {
     // Noop
     // The statement above can throw because process is not defined on the client
   }

@@ -2,8 +2,8 @@ import { defineIntegration } from '../integration';
 import type { Event } from '../types-hoist/event';
 import type { StackFrame } from '../types-hoist/stackframe';
 import type { Stacktrace } from '../types-hoist/stacktrace';
-import { basename, relative } from '../utils-hoist/path';
-import { GLOBAL_OBJ } from '../utils-hoist/worldwide';
+import { basename, relative } from '../utils/path';
+import { GLOBAL_OBJ } from '../utils/worldwide';
 
 type StackFrameIteratee = (frame: StackFrame) => StackFrame;
 
@@ -75,7 +75,7 @@ export const rewriteFramesIntegration = defineIntegration((options: RewriteFrame
           })),
         },
       };
-    } catch (_oO) {
+    } catch {
       return event;
     }
   }
@@ -84,7 +84,7 @@ export const rewriteFramesIntegration = defineIntegration((options: RewriteFrame
   function _processStacktrace(stacktrace?: Stacktrace): Stacktrace {
     return {
       ...stacktrace,
-      frames: stacktrace?.frames && stacktrace.frames.map(f => iteratee(f)),
+      frames: stacktrace?.frames?.map(f => iteratee(f)),
     };
   }
 

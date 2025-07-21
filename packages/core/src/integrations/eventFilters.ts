@@ -3,10 +3,10 @@ import { defineIntegration } from '../integration';
 import type { Event } from '../types-hoist/event';
 import type { IntegrationFn } from '../types-hoist/integration';
 import type { StackFrame } from '../types-hoist/stackframe';
+import { debug } from '../utils/debug-logger';
 import { getPossibleEventMessages } from '../utils/eventUtils';
-import { logger } from '../utils-hoist/logger';
-import { getEventDescription } from '../utils-hoist/misc';
-import { stringMatchesSomePattern } from '../utils-hoist/string';
+import { getEventDescription } from '../utils/misc';
+import { stringMatchesSomePattern } from '../utils/string';
 
 // "Script error." is hard coded into browsers for errors that it can't read.
 // this is the result of a script being pulled in from an external domain and CORS.
@@ -111,14 +111,14 @@ function _shouldDropEvent(event: Event, options: Partial<EventFiltersOptions>): 
     // Filter errors
     if (_isIgnoredError(event, options.ignoreErrors)) {
       DEBUG_BUILD &&
-        logger.warn(
+        debug.warn(
           `Event dropped due to being matched by \`ignoreErrors\` option.\nEvent: ${getEventDescription(event)}`,
         );
       return true;
     }
     if (_isUselessError(event)) {
       DEBUG_BUILD &&
-        logger.warn(
+        debug.warn(
           `Event dropped due to not having an error message, error type or stacktrace.\nEvent: ${getEventDescription(
             event,
           )}`,
@@ -127,7 +127,7 @@ function _shouldDropEvent(event: Event, options: Partial<EventFiltersOptions>): 
     }
     if (_isDeniedUrl(event, options.denyUrls)) {
       DEBUG_BUILD &&
-        logger.warn(
+        debug.warn(
           `Event dropped due to being matched by \`denyUrls\` option.\nEvent: ${getEventDescription(
             event,
           )}.\nUrl: ${_getEventFilterUrl(event)}`,
@@ -136,7 +136,7 @@ function _shouldDropEvent(event: Event, options: Partial<EventFiltersOptions>): 
     }
     if (!_isAllowedUrl(event, options.allowUrls)) {
       DEBUG_BUILD &&
-        logger.warn(
+        debug.warn(
           `Event dropped due to not being matched by \`allowUrls\` option.\nEvent: ${getEventDescription(
             event,
           )}.\nUrl: ${_getEventFilterUrl(event)}`,
@@ -148,7 +148,7 @@ function _shouldDropEvent(event: Event, options: Partial<EventFiltersOptions>): 
 
     if (_isIgnoredTransaction(event, options.ignoreTransactions)) {
       DEBUG_BUILD &&
-        logger.warn(
+        debug.warn(
           `Event dropped due to being matched by \`ignoreTransactions\` option.\nEvent: ${getEventDescription(event)}`,
         );
       return true;
@@ -211,8 +211,8 @@ function _getEventFilterUrl(event: Event): string | null {
       .find(value => value.mechanism?.parent_id === undefined && value.stacktrace?.frames?.length);
     const frames = rootException?.stacktrace?.frames;
     return frames ? _getLastValidUrl(frames) : null;
-  } catch (oO) {
-    DEBUG_BUILD && logger.error(`Cannot extract url for event ${getEventDescription(event)}`);
+  } catch {
+    DEBUG_BUILD && debug.error(`Cannot extract url for event ${getEventDescription(event)}`);
     return null;
   }
 }

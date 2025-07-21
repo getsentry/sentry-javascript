@@ -22,6 +22,9 @@ export declare function init(
 export declare const linkedErrorsIntegration: typeof clientSdk.linkedErrorsIntegration;
 export declare const contextLinesIntegration: typeof clientSdk.contextLinesIntegration;
 
+// Different implementation in server and worker
+export declare const vercelAIIntegration: typeof serverSdk.vercelAIIntegration;
+
 export declare const getDefaultIntegrations: (options: Options) => Integration[];
 export declare const defaultStackParser: StackParser;
 
@@ -138,3 +141,10 @@ export declare function wrapApiHandlerWithSentryVercelCrons<F extends (...args: 
 export declare function wrapPageComponentWithSentry<C>(WrappingTarget: C): C;
 
 export { captureRequestError } from './common/captureRequestError';
+
+export declare const launchDarklyIntegration: typeof clientSdk.launchDarklyIntegration;
+export declare const buildLaunchDarklyFlagUsedHandler: typeof clientSdk.buildLaunchDarklyFlagUsedHandler;
+export declare const openFeatureIntegration: typeof clientSdk.openFeatureIntegration;
+export declare const OpenFeatureIntegrationHook: typeof clientSdk.OpenFeatureIntegrationHook;
+export declare const statsigIntegration: typeof clientSdk.statsigIntegration;
+export declare const unleashIntegration: typeof clientSdk.unleashIntegration;

@@ -34,11 +34,3 @@ export function hasSpansEnabled(
     (options.tracesSampleRate != null || !!options.tracesSampler)
   );
 }
-
-/**
- * @see JSDoc of `hasSpansEnabled`
- * @deprecated Use `hasSpansEnabled` instead, which is a more accurately named version of this function.
- * This function will be removed in the next major version of the SDK.
- */
-// TODO(v10): Remove this export
-export const hasTracingEnabled = hasSpansEnabled;

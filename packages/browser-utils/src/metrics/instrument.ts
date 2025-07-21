@@ -1,4 +1,4 @@
-import { getFunctionName, logger } from '@sentry/core';
+import { debug, getFunctionName } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import { onCLS } from './web-vitals/getCLS';
 import { onFID } from './web-vitals/getFID';
@@ -13,7 +13,8 @@ type InstrumentHandlerTypePerformanceObserver =
   | 'navigation'
   | 'paint'
   | 'resource'
-  | 'first-input';
+  | 'first-input'
+  | 'element';
 
 type InstrumentHandlerTypeMetric = 'cls' | 'lcp' | 'fid' | 'ttfb' | 'inp';
 
@@ -158,13 +159,17 @@ export function addTtfbInstrumentationHandler(callback: (data: { metric: Metric 
   return addMetricObserver('ttfb', callback, instrumentTtfb, _previousTtfb);
 }
 
+export type InstrumentationHandlerCallback = (data: {
+  metric: Omit<Metric, 'entries'> & {
+    entries: PerformanceEventTiming[];
+  };
+}) => void;
+
 /**
  * Add a callback that will be triggered when a INP metric is available.
  * Returns a cleanup callback which can be called to remove the instrumentation handler.
  */
-export function addInpInstrumentationHandler(
-  callback: (data: { metric: Omit<Metric, 'entries'> & { entries: PerformanceEventTiming[] } }) => void,
-): CleanupHandlerCallback {
+export function addInpInstrumentationHandler(callback: InstrumentationHandlerCallback): CleanupHandlerCallback {
   return addMetricObserver('inp', callback, instrumentInp, _previousInp);
 }
 
@@ -209,7 +214,7 @@ function triggerHandlers(type: InstrumentHandlerType, data: unknown): void {
       handler(data);
     } catch (e) {
       DEBUG_BUILD &&
-        logger.error(
+        debug.error(
           `Error while triggering instrumentation handler.\nType: ${type}\nName: ${getFunctionName(handler)}\nError:`,
           e,
         );

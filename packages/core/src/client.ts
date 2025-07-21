@@ -1,7 +1,7 @@
 /* eslint-disable max-lines */
 import { getEnvelopeEndpointWithUrlEncodedAuth } from './api';
 import { DEFAULT_ENVIRONMENT } from './constants';
-import { getCurrentScope, getIsolationScope, getTraceContextFromScope } from './currentScopes';
+import { getCurrentScope, getIsolationScope, getTraceContextFromScope, withScope } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
 import { createEventEnvelope, createSessionEnvelope } from './envelope';
 import type { IntegrationIndex } from './integration';
@@ -32,20 +32,19 @@ import type { SeverityLevel } from './types-hoist/severity';
 import type { Span, SpanAttributes, SpanContextData, SpanJSON } from './types-hoist/span';
 import type { StartSpanOptions } from './types-hoist/startSpanOptions';
 import type { Transport, TransportMakeRequestResponse } from './types-hoist/transport';
+import { createClientReportEnvelope } from './utils/clientreport';
+import { debug } from './utils/debug-logger';
+import { dsnToString, makeDsn } from './utils/dsn';
+import { addItemToEnvelope, createAttachmentEnvelopeItem } from './utils/envelope';
 import { getPossibleEventMessages } from './utils/eventUtils';
+import { isParameterizedString, isPlainObject, isPrimitive, isThenable } from './utils/is';
 import { merge } from './utils/merge';
+import { checkOrSetAlreadyCaught, uuid4 } from './utils/misc';
 import { parseSampleRate } from './utils/parseSampleRate';
 import { prepareEvent } from './utils/prepareEvent';
-import { _getSpanForScope } from './utils/spanOnScope';
-import { showSpanDropWarning, spanToTraceContext } from './utils/spanUtils';
+import { getActiveSpan, showSpanDropWarning, spanToTraceContext } from './utils/spanUtils';
+import { rejectedSyncPromise, resolvedSyncPromise, SyncPromise } from './utils/syncpromise';
 import { convertSpanJsonToTransactionEvent, convertTransactionEventToSpanJson } from './utils/transactionEvent';
-import { createClientReportEnvelope } from './utils-hoist/clientreport';
-import { dsnToString, makeDsn } from './utils-hoist/dsn';
-import { addItemToEnvelope, createAttachmentEnvelopeItem } from './utils-hoist/envelope';
-import { isParameterizedString, isPlainObject, isPrimitive, isThenable } from './utils-hoist/is';
-import { logger } from './utils-hoist/logger';
-import { checkOrSetAlreadyCaught, uuid4 } from './utils-hoist/misc';
-import { rejectedSyncPromise, resolvedSyncPromise, SyncPromise } from './utils-hoist/syncpromise';
 
 const ALREADY_SEEN_ERROR = "Not capturing exception because it's already been captured.";
 const MISSING_RELEASE_FOR_SESSION_ERROR = 'Discarded session because of missing or non-string release';
@@ -155,7 +154,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     if (options.dsn) {
       this._dsn = makeDsn(options.dsn);
     } else {
-      DEBUG_BUILD && logger.warn('No DSN provided, client will not send events.');
+      DEBUG_BUILD && debug.warn('No DSN provided, client will not send events.');
     }
 
     if (this._dsn) {
@@ -183,7 +182,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
 
     // ensure we haven't captured this very object before
     if (checkOrSetAlreadyCaught(exception)) {
-      DEBUG_BUILD && logger.log(ALREADY_SEEN_ERROR);
+      DEBUG_BUILD && debug.log(ALREADY_SEEN_ERROR);
       return eventId;
     }
 
@@ -238,7 +237,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
 
     // ensure we haven't captured this very object before
     if (hint?.originalException && checkOrSetAlreadyCaught(hint.originalException)) {
-      DEBUG_BUILD && logger.log(ALREADY_SEEN_ERROR);
+      DEBUG_BUILD && debug.log(ALREADY_SEEN_ERROR);
       return eventId;
     }
 
@@ -430,7 +429,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     if ('aggregates' in session) {
       const sessionAttrs = session.attrs || {};
       if (!sessionAttrs.release && !clientReleaseOption) {
-        DEBUG_BUILD && logger.warn(MISSING_RELEASE_FOR_SESSION_ERROR);
+        DEBUG_BUILD && debug.warn(MISSING_RELEASE_FOR_SESSION_ERROR);
         return;
       }
       sessionAttrs.release = sessionAttrs.release || clientReleaseOption;
@@ -438,7 +437,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
       session.attrs = sessionAttrs;
     } else {
       if (!session.release && !clientReleaseOption) {
-        DEBUG_BUILD && logger.warn(MISSING_RELEASE_FOR_SESSION_ERROR);
+        DEBUG_BUILD && debug.warn(MISSING_RELEASE_FOR_SESSION_ERROR);
         return;
       }
       session.release = session.release || clientReleaseOption;
@@ -466,7 +465,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
       // would be `Partial<Record<SentryRequestType, Partial<Record<Outcome, number>>>>`
       // With typescript 4.1 we could even use template literal types
       const key = `${reason}:${category}`;
-      DEBUG_BUILD && logger.log(`Recording outcome: "${key}"${count > 1 ? ` (${count} times)` : ''}`);
+      DEBUG_BUILD && debug.log(`Recording outcome: "${key}"${count > 1 ? ` (${count} times)` : ''}`);
       this._outcomes[key] = (this._outcomes[key] || 0) + count;
     }
   }
@@ -499,7 +498,8 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   ): void;
 
   /**
-   * Register a callback for whenever a span is ended.
+   * Register a callback for after a span is ended.
+   * NOTE: The span cannot be mutated anymore in this callback.
    * Receives the span as argument.
    * @returns {() => void} A function that, when executed, removes the registered callback.
    */
@@ -604,10 +604,28 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   ): () => void;
 
   /**
+   * A hook for the browser tracing integrations to trigger after the pageload span was started.
+   * @returns {() => void} A function that, when executed, removes the registered callback.
+   */
+  public on(hook: 'afterStartPageLoadSpan', callback: (span: Span) => void): () => void;
+
+  /**
+   * A hook for triggering right before a navigation span is started.
+   * @returns {() => void} A function that, when executed, removes the registered callback.
+   */
+  public on(
+    hook: 'beforeStartNavigationSpan',
+    callback: (options: StartSpanOptions, navigationOptions?: { isRedirect?: boolean }) => void,
+  ): () => void;
+
+  /**
    * A hook for browser tracing integrations to trigger a span for a navigation.
    * @returns {() => void} A function that, when executed, removes the registered callback.
    */
-  public on(hook: 'startNavigationSpan', callback: (options: StartSpanOptions) => void): () => void;
+  public on(
+    hook: 'startNavigationSpan',
+    callback: (options: StartSpanOptions, navigationOptions?: { isRedirect?: boolean }) => void,
+  ): () => void;
 
   /**
    * A hook for GraphQL client integration to enhance a span with request data.
@@ -780,9 +798,27 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   ): void;
 
   /**
+   * Emit a hook event for browser tracing integrations to trigger aafter the pageload span was started.
+   */
+  public emit(hook: 'afterStartPageLoadSpan', span: Span): void;
+
+  /**
+   * Emit a hook event for triggering right before a navigation span is started.
+   */
+  public emit(
+    hook: 'beforeStartNavigationSpan',
+    options: StartSpanOptions,
+    navigationOptions?: { isRedirect?: boolean },
+  ): void;
+
+  /**
    * Emit a hook event for browser tracing integrations to trigger a span for a navigation.
    */
-  public emit(hook: 'startNavigationSpan', options: StartSpanOptions): void;
+  public emit(
+    hook: 'startNavigationSpan',
+    options: StartSpanOptions,
+    navigationOptions?: { isRedirect?: boolean },
+  ): void;
 
   /**
    * Emit a hook event for GraphQL client integration to enhance a span with request data.
@@ -841,12 +877,12 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
 
     if (this._isEnabled() && this._transport) {
       return this._transport.send(envelope).then(null, reason => {
-        DEBUG_BUILD && logger.error('Error while sending envelope:', reason);
+        DEBUG_BUILD && debug.error('Error while sending envelope:', reason);
         return reason;
       });
     }
 
-    DEBUG_BUILD && logger.error('Transport disabled');
+    DEBUG_BUILD && debug.error('Transport disabled');
 
     return resolvedSyncPromise({});
   }
@@ -996,7 +1032,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     isolationScope = getIsolationScope(),
   ): PromiseLike<string | undefined> {
     if (DEBUG_BUILD && isErrorEvent(event)) {
-      logger.log(`Captured error event \`${getPossibleEventMessages(event)[0] || '<unknown>'}\``);
+      debug.log(`Captured error event \`${getPossibleEventMessages(event)[0] || '<unknown>'}\``);
     }
 
     return this._processEvent(event, hint, currentScope, isolationScope).then(
@@ -1006,11 +1042,11 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
       reason => {
         if (DEBUG_BUILD) {
           if (_isDoNotSendEventError(reason)) {
-            logger.log(reason.message);
+            debug.log(reason.message);
           } else if (_isInternalError(reason)) {
-            logger.warn(reason.message);
+            debug.warn(reason.message);
           } else {
-            logger.warn(reason);
+            debug.warn(reason);
           }
         }
         return undefined;
@@ -1171,22 +1207,22 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    * Sends client reports as an envelope.
    */
   protected _flushOutcomes(): void {
-    DEBUG_BUILD && logger.log('Flushing outcomes...');
+    DEBUG_BUILD && debug.log('Flushing outcomes...');
 
     const outcomes = this._clearOutcomes();
 
     if (outcomes.length === 0) {
-      DEBUG_BUILD && logger.log('No outcomes to send');
+      DEBUG_BUILD && debug.log('No outcomes to send');
       return;
     }
 
     // This is really the only place where we want to check for a DSN and only send outcomes then
     if (!this._dsn) {
-      DEBUG_BUILD && logger.log('No dsn provided, will not send outcomes');
+      DEBUG_BUILD && debug.log('No dsn provided, will not send outcomes');
       return;
     }
 
-    DEBUG_BUILD && logger.log('Sending outcomes:', outcomes);
+    DEBUG_BUILD && debug.log('Sending outcomes:', outcomes);
 
     const envelope = createClientReportEnvelope(outcomes, this._options.tunnel && dsnToString(this._dsn));
 
@@ -1209,18 +1245,6 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     _hint?: EventHint,
   ): PromiseLike<Event>;
 }
-
-/**
- * @deprecated Use `Client` instead. This alias may be removed in a future major version.
- */
-// TODO(v10): Remove
-export type BaseClient = Client;
-
-/**
- * @deprecated Use `Client` instead. This alias may be removed in a future major version.
- */
-// TODO(v10): Remove
-export const BaseClient = Client;
 
 /**
  * Verifies that return value of configured `beforeSend` or `beforeSendTransaction` is of expected type, and returns the value if so.
@@ -1325,10 +1349,12 @@ export function _getTraceInfoFromScope(
     return [undefined, undefined];
   }
 
-  const span = _getSpanForScope(scope);
-  const traceContext = span ? spanToTraceContext(span) : getTraceContextFromScope(scope);
-  const dynamicSamplingContext = span
-    ? getDynamicSamplingContextFromSpan(span)
-    : getDynamicSamplingContextFromScope(client, scope);
-  return [dynamicSamplingContext, traceContext];
+  return withScope(scope, () => {
+    const span = getActiveSpan();
+    const traceContext = span ? spanToTraceContext(span) : getTraceContextFromScope(scope);
+    const dynamicSamplingContext = span
+      ? getDynamicSamplingContextFromSpan(span)
+      : getDynamicSamplingContextFromScope(client, scope);
+    return [dynamicSamplingContext, traceContext];
+  });
 }

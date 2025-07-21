@@ -9,6 +9,7 @@ import {
 import type { EventProcessor } from '@sentry/core';
 import {
   applySdkMetadata,
+  debug,
   extractTraceparentData,
   getCapturedScopesOnSpan,
   getClient,
@@ -17,7 +18,6 @@ import {
   getIsolationScope,
   getRootSpan,
   GLOBAL_OBJ,
-  logger,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
@@ -125,13 +125,13 @@ export function init(options: NodeOptions): NodeClient | undefined {
   };
 
   if (DEBUG_BUILD && opts.debug) {
-    logger.enable();
+    debug.enable();
   }
 
-  DEBUG_BUILD && logger.log('Initializing SDK...');
+  DEBUG_BUILD && debug.log('Initializing SDK...');
 
   if (sdkAlreadyInitialized()) {
-    DEBUG_BUILD && logger.log('SDK already initialized');
+    DEBUG_BUILD && debug.log('SDK already initialized');
     return;
   }
 
@@ -377,7 +377,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
     // The statement above can throw because process is not defined on the client
   }
 
-  DEBUG_BUILD && logger.log('SDK successfully initialized');
+  DEBUG_BUILD && debug.log('SDK successfully initialized');
 
   return client;
 }

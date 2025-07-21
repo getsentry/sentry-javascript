@@ -16,6 +16,7 @@ import type {
 import type { RequestEventData, Span, TransactionSource, WrappedFunction } from '@sentry/core';
 import {
   continueTrace,
+  debug,
   fill,
   getActiveSpan,
   getClient,
@@ -24,7 +25,6 @@ import {
   hasSpansEnabled,
   isNodeEnv,
   loadModule,
-  logger,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
@@ -73,7 +73,7 @@ export function sentryHandleError(err: unknown, { request }: DataFunctionArgs): 
   }
 
   captureRemixServerException(err, 'remix.server.handleError', request).then(null, e => {
-    DEBUG_BUILD && logger.warn('Failed to capture Remix Server exception.', e);
+    DEBUG_BUILD && debug.warn('Failed to capture Remix Server exception.', e);
   });
 }
 
@@ -220,7 +220,7 @@ function makeWrappedRootLoader() {
         // We skip injection of trace and baggage in those cases.
         // For `redirect`, a valid internal redirection target will have the trace and baggage injected.
         if (isRedirectResponse(res) || isCatchResponse(res)) {
-          DEBUG_BUILD && logger.warn('Skipping injection of trace and baggage as the response does not have a body');
+          DEBUG_BUILD && debug.warn('Skipping injection of trace and baggage as the response does not have a body');
           return res;
         } else {
           const data = await extractData(res);
@@ -235,7 +235,7 @@ function makeWrappedRootLoader() {
               },
             );
           } else {
-            DEBUG_BUILD && logger.warn('Skipping injection of trace and baggage as the response body is not an object');
+            DEBUG_BUILD && debug.warn('Skipping injection of trace and baggage as the response body is not an object');
             return res;
           }
         }
@@ -246,12 +246,9 @@ function makeWrappedRootLoader() {
   };
 }
 
-function wrapRequestHandler(
+function wrapRequestHandler<T extends ServerBuild | (() => ServerBuild | Promise<ServerBuild>)>(
   origRequestHandler: RequestHandler,
-  build:
-    | ServerBuild
-    | { build: ServerBuild }
-    | (() => ServerBuild | { build: ServerBuild } | Promise<ServerBuild | { build: ServerBuild }>),
+  build: T,
   options?: {
     instrumentTracing?: boolean;
   },
@@ -278,7 +275,7 @@ function wrapRequestHandler(
 
       // check if the build is nested under `build` key
       if ('build' in resolvedBuild) {
-        resolvedRoutes = createRoutes(resolvedBuild.build.routes);
+        resolvedRoutes = createRoutes((resolvedBuild.build as ServerBuild).routes);
       } else {
         resolvedRoutes = createRoutes(resolvedBuild.routes);
       }
@@ -291,8 +288,8 @@ function wrapRequestHandler(
 
       try {
         normalizedRequest = winterCGRequestToRequestData(request);
-      } catch (e) {
-        DEBUG_BUILD && logger.warn('Failed to normalize Remix request');
+      } catch {
+        DEBUG_BUILD && debug.warn('Failed to normalize Remix request');
       }
 
       if (options?.instrumentTracing && resolvedRoutes) {
@@ -407,12 +404,12 @@ function instrumentBuildCallback(
 /**
  * Instruments `remix` ServerBuild for performance tracing and error tracking.
  */
-export function instrumentBuild(
-  build: ServerBuild | (() => ServerBuild | Promise<ServerBuild>),
+export function instrumentBuild<T extends ServerBuild | (() => ServerBuild | Promise<ServerBuild>)>(
+  build: T,
   options?: {
     instrumentTracing?: boolean;
   },
-): ServerBuild | (() => ServerBuild | Promise<ServerBuild>) {
+): T {
   if (typeof build === 'function') {
     return function () {
       const resolvedBuild = build();
@@ -424,19 +421,15 @@ export function instrumentBuild(
       } else {
         return instrumentBuildCallback(resolvedBuild, options);
       }
-    };
+    } as T;
   } else {
-    return instrumentBuildCallback(build, options);
+    return instrumentBuildCallback(build, options) as T;
   }
 }
 
 export const makeWrappedCreateRequestHandler = (options?: { instrumentTracing?: boolean }) =>
   function (origCreateRequestHandler: CreateRequestHandlerFunction): CreateRequestHandlerFunction {
-    return function (
-      this: unknown,
-      build: ServerBuild | (() => ServerBuild | Promise<ServerBuild>),
-      ...args: unknown[]
-    ): RequestHandler {
+    return function (this: unknown, build, ...args: unknown[]): RequestHandler {
       const newBuild = instrumentBuild(build, options);
       const requestHandler = origCreateRequestHandler.call(this, newBuild, ...args);
 
@@ -454,7 +447,7 @@ export function instrumentServer(options?: { instrumentTracing?: boolean }): voi
   }>('@remix-run/server-runtime', module);
 
   if (!pkg) {
-    DEBUG_BUILD && logger.warn('Remix SDK was unable to require `@remix-run/server-runtime` package.');
+    DEBUG_BUILD && debug.warn('Remix SDK was unable to require `@remix-run/server-runtime` package.');
 
     return;
   }

@@ -8,6 +8,7 @@ export type {
   EventHint,
   ErrorEvent,
   Exception,
+  FeatureFlagsIntegration,
   Session,
   SeverityLevel,
   Span,
@@ -33,6 +34,7 @@ export {
   flush,
   getClient,
   isInitialized,
+  isEnabled,
   getCurrentScope,
   getGlobalScope,
   getIsolationScope,
@@ -89,11 +91,13 @@ export {
   spanToBaggageHeader,
   wrapMcpServerWithSentry,
   consoleLoggingIntegration,
+  featureFlagsIntegration,
 } from '@sentry/core';
 
 export { VercelEdgeClient } from './client';
 export { getDefaultIntegrations, init } from './sdk';
 
 export { winterCGFetchIntegration } from './integrations/wintercg-fetch';
+export { vercelAIIntegration } from './integrations/tracing/vercelai';
 
 export * as logger from './logs/exports';

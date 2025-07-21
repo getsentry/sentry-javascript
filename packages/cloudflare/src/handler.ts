@@ -26,6 +26,7 @@ import { init } from './sdk';
  * @param handler {ExportedHandler} The handler to wrap.
  * @returns The wrapped handler.
  */
+// eslint-disable-next-line complexity
 export function withSentry<Env = unknown, QueueHandlerMessage = unknown, CfHostMetadata = unknown>(
   optionsCallback: (env: Env) => CloudflareOptions,
   handler: ExportedHandler<Env, QueueHandlerMessage, CfHostMetadata>,
@@ -47,14 +48,35 @@ export function withSentry<Env = unknown, QueueHandlerMessage = unknown, CfHostM
       markAsInstrumented(handler.fetch);
     }
 
+    /* hono does not reach the catch block of the fetch handler and captureException needs to be called in the hono errorHandler */
+    if (
+      'onError' in handler &&
+      'errorHandler' in handler &&
+      typeof handler.errorHandler === 'function' &&
+      !isInstrumented(handler.errorHandler)
+    ) {
+      handler.errorHandler = new Proxy(handler.errorHandler, {
+        apply(target, thisArg, args) {
+          const [err] = args;
+
+          captureException(err, { mechanism: { handled: false, type: 'cloudflare' } });
+
+          return Reflect.apply(target, thisArg, args);
+        },
+      });
+
+      markAsInstrumented(handler.errorHandler);
+    }
+
     if ('scheduled' in handler && typeof handler.scheduled === 'function' && !isInstrumented(handler.scheduled)) {
       handler.scheduled = new Proxy(handler.scheduled, {
         apply(target, thisArg, args: Parameters<ExportedHandlerScheduledHandler<Env>>) {
           const [event, env, context] = args;
           return withIsolationScope(isolationScope => {
             const options = getFinalOptions(optionsCallback(env), env);
+            const waitUntil = context.waitUntil.bind(context);
 
-            const client = init(options);
+            const client = init({ ...options, ctx: context });
             isolationScope.setClient(client);
 
             addCloudResourceContext(isolationScope);
@@ -78,7 +100,7 @@ export function withSentry<Env = unknown, QueueHandlerMessage = unknown, CfHostM
                   captureException(e, { mechanism: { handled: false, type: 'cloudflare' } });
                   throw e;
                 } finally {
-                  context.waitUntil(flush(2000));
+                  waitUntil(flush(2000));
                 }
               },
             );
@@ -95,8 +117,9 @@ export function withSentry<Env = unknown, QueueHandlerMessage = unknown, CfHostM
           const [emailMessage, env, context] = args;
           return withIsolationScope(isolationScope => {
             const options = getFinalOptions(optionsCallback(env), env);
+            const waitUntil = context.waitUntil.bind(context);
 
-            const client = init(options);
+            const client = init({ ...options, ctx: context });
             isolationScope.setClient(client);
 
             addCloudResourceContext(isolationScope);
@@ -118,7 +141,7 @@ export function withSentry<Env = unknown, QueueHandlerMessage = unknown, CfHostM
                   captureException(e, { mechanism: { handled: false, type: 'cloudflare' } });
                   throw e;
                 } finally {
-                  context.waitUntil(flush(2000));
+                  waitUntil(flush(2000));
                 }
               },
             );
@@ -136,8 +159,9 @@ export function withSentry<Env = unknown, QueueHandlerMessage = unknown, CfHostM
 
           return withIsolationScope(isolationScope => {
             const options = getFinalOptions(optionsCallback(env), env);
+            const waitUntil = context.waitUntil.bind(context);
 
-            const client = init(options);
+            const client = init({ ...options, ctx: context });
             isolationScope.setClient(client);
 
             addCloudResourceContext(isolationScope);
@@ -151,7 +175,10 @@ export function withSentry<Env = unknown, QueueHandlerMessage = unknown, CfHostM
                   'messaging.destination.name': batch.queue,
                   'messaging.system': 'cloudflare',
                   'messaging.batch.message_count': batch.messages.length,
-                  'messaging.message.retry.count': batch.messages.reduce((acc, message) => acc + message.attempts, 0),
+                  'messaging.message.retry.count': batch.messages.reduce(
+                    (acc, message) => acc + message.attempts - 1,
+                    0,
+                  ),
                   [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'queue.process',
                   [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.faas.cloudflare.queue',
                   [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'task',
@@ -164,7 +191,7 @@ export function withSentry<Env = unknown, QueueHandlerMessage = unknown, CfHostM
                   captureException(e, { mechanism: { handled: false, type: 'cloudflare' } });
                   throw e;
                 } finally {
-                  context.waitUntil(flush(2000));
+                  waitUntil(flush(2000));
                 }
               },
             );
@@ -183,7 +210,9 @@ export function withSentry<Env = unknown, QueueHandlerMessage = unknown, CfHostM
           return withIsolationScope(async isolationScope => {
             const options = getFinalOptions(optionsCallback(env), env);
 
-            const client = init(options);
+            const waitUntil = context.waitUntil.bind(context);
+
+            const client = init({ ...options, ctx: context });
             isolationScope.setClient(client);
 
             addCloudResourceContext(isolationScope);
@@ -194,7 +223,7 @@ export function withSentry<Env = unknown, QueueHandlerMessage = unknown, CfHostM
               captureException(e, { mechanism: { handled: false, type: 'cloudflare' } });
               throw e;
             } finally {
-              context.waitUntil(flush(2000));
+              waitUntil(flush(2000));
             }
           });
         },
@@ -204,7 +233,7 @@ export function withSentry<Env = unknown, QueueHandlerMessage = unknown, CfHostM
     }
 
     // This is here because Miniflare sometimes cannot get instrumented
-  } catch (e) {
+  } catch {
     // Do not console anything here, we don't want to spam the console with errors
   }
 

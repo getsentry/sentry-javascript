@@ -18,15 +18,15 @@ import type { Event } from './types-hoist/event';
 import type { SdkInfo } from './types-hoist/sdkinfo';
 import type { SdkMetadata } from './types-hoist/sdkmetadata';
 import type { Session, SessionAggregates } from './types-hoist/session';
-import { showSpanDropWarning, spanToJSON } from './utils/spanUtils';
-import { dsnToString } from './utils-hoist/dsn';
+import { dsnToString } from './utils/dsn';
 import {
   createEnvelope,
   createEventEnvelopeHeaders,
   createSpanEnvelopeItem,
   getSdkMetadataForEnvelopeHeader,
-} from './utils-hoist/envelope';
-import { uuid4 } from './utils-hoist/misc';
+} from './utils/envelope';
+import { uuid4 } from './utils/misc';
+import { showSpanDropWarning, spanToJSON } from './utils/spanUtils';
 
 /**
  * Apply SdkInfo (name, version, packages, integrations) to the corresponding event key.

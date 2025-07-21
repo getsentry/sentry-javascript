@@ -51,8 +51,9 @@ import { getRecordingSamplingOptions } from './util/getRecordingSamplingOptions'
 import { getHandleRecordingEmit } from './util/handleRecordingEmit';
 import { isExpired } from './util/isExpired';
 import { isSessionExpired } from './util/isSessionExpired';
-import { logger } from './util/logger';
+import { debug } from './util/logger';
 import { resetReplayIdOnDynamicSamplingContext } from './util/resetReplayIdOnDynamicSamplingContext';
+import { closestElementOfNode } from './util/rrweb';
 import { sendReplay } from './util/sendReplay';
 import { RateLimitError } from './util/sendReplayRequest';
 import type { SKIPPED } from './util/throttle';
@@ -227,10 +228,10 @@ export class ReplayContainer implements ReplayContainerInterface {
       this.clickDetector = new ClickDetector(this, slowClickConfig);
     }
 
-    // Configure replay logger w/ experimental options
+    // Configure replay debug logger w/ experimental options
     if (DEBUG_BUILD) {
       const experiments = options._experiments;
-      logger.setConfig({
+      debug.setConfig({
         captureExceptions: !!experiments.captureExceptions,
         traceInternals: !!experiments.traceInternals,
       });
@@ -303,7 +304,7 @@ export class ReplayContainer implements ReplayContainerInterface {
 
   /** A wrapper to conditionally capture exceptions. */
   public handleException(error: unknown): void {
-    DEBUG_BUILD && logger.exception(error);
+    DEBUG_BUILD && debug.exception(error);
     if (this._options.onError) {
       this._options.onError(error);
     }
@@ -332,7 +333,7 @@ export class ReplayContainer implements ReplayContainerInterface {
 
     if (!this.session) {
       // This should not happen, something wrong has occurred
-      DEBUG_BUILD && logger.exception(new Error('Unable to initialize and create session'));
+      DEBUG_BUILD && debug.exception(new Error('Unable to initialize and create session'));
       return;
     }
 
@@ -346,7 +347,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     // In this case, we still want to continue in `session` recording mode
     this.recordingMode = this.session.sampled === 'buffer' && this.session.segmentId === 0 ? 'buffer' : 'session';
 
-    DEBUG_BUILD && logger.infoTick(`Starting replay in ${this.recordingMode} mode`);
+    DEBUG_BUILD && debug.infoTick(`Starting replay in ${this.recordingMode} mode`);
 
     this._initializeRecording();
   }
@@ -360,16 +361,16 @@ export class ReplayContainer implements ReplayContainerInterface {
    */
   public start(): void {
     if (this._isEnabled && this.recordingMode === 'session') {
-      DEBUG_BUILD && logger.info('Recording is already in progress');
+      DEBUG_BUILD && debug.log('Recording is already in progress');
       return;
     }
 
     if (this._isEnabled && this.recordingMode === 'buffer') {
-      DEBUG_BUILD && logger.info('Buffering is in progress, call `flush()` to save the replay');
+      DEBUG_BUILD && debug.log('Buffering is in progress, call `flush()` to save the replay');
       return;
     }
 
-    DEBUG_BUILD && logger.infoTick('Starting replay in session mode');
+    DEBUG_BUILD && debug.infoTick('Starting replay in session mode');
 
     // Required as user activity is initially set in
     // constructor, so if `start()` is called after
@@ -401,11 +402,11 @@ export class ReplayContainer implements ReplayContainerInterface {
    */
   public startBuffering(): void {
     if (this._isEnabled) {
-      DEBUG_BUILD && logger.info('Buffering is in progress, call `flush()` to save the replay');
+      DEBUG_BUILD && debug.log('Buffering is in progress, call `flush()` to save the replay');
       return;
     }
 
-    DEBUG_BUILD && logger.infoTick('Starting replay in buffer mode');
+    DEBUG_BUILD && debug.infoTick('Starting replay in buffer mode');
 
     const session = loadOrCreateSession(
       {
@@ -503,7 +504,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     this._isEnabled = false;
 
     try {
-      DEBUG_BUILD && logger.info(`Stopping Replay${reason ? ` triggered by ${reason}` : ''}`);
+      DEBUG_BUILD && debug.log(`Stopping Replay${reason ? ` triggered by ${reason}` : ''}`);
 
       resetReplayIdOnDynamicSamplingContext();
 
@@ -542,7 +543,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     this._isPaused = true;
     this.stopRecording();
 
-    DEBUG_BUILD && logger.info('Pausing replay');
+    DEBUG_BUILD && debug.log('Pausing replay');
   }
 
   /**
@@ -559,7 +560,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     this._isPaused = false;
     this.startRecording();
 
-    DEBUG_BUILD && logger.info('Resuming replay');
+    DEBUG_BUILD && debug.log('Resuming replay');
   }
 
   /**
@@ -576,7 +577,7 @@ export class ReplayContainer implements ReplayContainerInterface {
 
     const activityTime = Date.now();
 
-    DEBUG_BUILD && logger.info('Converting buffer to session');
+    DEBUG_BUILD && debug.log('Converting buffer to session');
 
     // Allow flush to complete before resuming as a session recording, otherwise
     // the checkout from `startRecording` may be included in the payload.
@@ -1010,7 +1011,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       // If the user has come back to the page within SESSION_IDLE_PAUSE_DURATION
       // ms, we will re-use the existing session, otherwise create a new
       // session
-      DEBUG_BUILD && logger.info('Document has become active, but session has expired');
+      DEBUG_BUILD && debug.log('Document has become active, but session has expired');
       return;
     }
 
@@ -1137,7 +1138,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     const replayId = this.getSessionId();
 
     if (!this.session || !this.eventBuffer || !replayId) {
-      DEBUG_BUILD && logger.error('No session or eventBuffer found to flush.');
+      DEBUG_BUILD && debug.error('No session or eventBuffer found to flush.');
       return;
     }
 
@@ -1230,7 +1231,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     }
 
     if (!this.checkAndHandleExpiredSession()) {
-      DEBUG_BUILD && logger.error('Attempting to finish replay event after session expired.');
+      DEBUG_BUILD && debug.error('Attempting to finish replay event after session expired.');
       return;
     }
 
@@ -1252,7 +1253,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     const tooLong = duration > this._options.maxReplayDuration + 5_000;
     if (tooShort || tooLong) {
       DEBUG_BUILD &&
-        logger.info(
+        debug.log(
           `Session duration (${Math.floor(duration / 1000)}s) is too ${
             tooShort ? 'short' : 'long'
           }, not sending replay.`,
@@ -1266,7 +1267,7 @@ export class ReplayContainer implements ReplayContainerInterface {
 
     const eventBuffer = this.eventBuffer;
     if (eventBuffer && this.session.segmentId === 0 && !eventBuffer.hasCheckout) {
-      DEBUG_BUILD && logger.info('Flushing initial segment without checkout.');
+      DEBUG_BUILD && debug.log('Flushing initial segment without checkout.');
       // TODO FN: Evaluate if we want to stop here, or remove this again?
     }
 
@@ -1304,7 +1305,20 @@ export class ReplayContainer implements ReplayContainerInterface {
   }
 
   /** Handler for rrweb.record.onMutation */
-  private _onMutationHandler(mutations: unknown[]): boolean {
+  private _onMutationHandler(mutations: MutationRecord[]): boolean {
+    const { ignoreMutations } = this._options._experiments;
+    if (ignoreMutations?.length) {
+      if (
+        mutations.some(mutation => {
+          const el = closestElementOfNode(mutation.target);
+          const selector = ignoreMutations.join(',');
+          return el?.matches(selector);
+        })
+      ) {
+        return false;
+      }
+    }
+
     const count = mutations.length;
 
     const mutationLimit = this._options.mutationLimit;
@@ -1335,4 +1349,13 @@ export class ReplayContainer implements ReplayContainerInterface {
     // `true` means we use the regular mutation handling by rrweb
     return true;
   }
+}
+
+interface MutationRecord {
+  type: string;
+  target: Node;
+  oldValue: string | null;
+  addedNodes: NodeList;
+  removedNodes: NodeList;
+  attributeName: string | null;
 }

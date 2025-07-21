@@ -1,8 +1,8 @@
 import type { RequestEventData, Scope, SpanAttributes } from '@sentry/core';
 import {
   addNonEnumerableProperty,
+  debug,
   extractQueryParamsFromUrl,
-  logger,
   objectify,
   stripUrlQueryAndFragment,
   vercelWaitUntil,
@@ -23,6 +23,7 @@ import {
   withIsolationScope,
 } from '@sentry/node';
 import type { APIContext, MiddlewareResponseHandler } from 'astro';
+import type { ResolvedRouteWithCasedPattern } from '../integration/types';
 
 type MiddlewareOptions = {
   /**
@@ -95,6 +96,9 @@ async function instrumentRequest(
     addNonEnumerableProperty(locals, '__sentry_wrapped__', true);
   }
 
+  const storedBuildTimeRoutes = (globalThis as unknown as { __sentryRouteInfo?: ResolvedRouteWithCasedPattern[] })
+    ?.__sentryRouteInfo;
+
   const isDynamicPageRequest = checkIsDynamicPageRequest(ctx);
 
   const request = ctx.request;
@@ -128,8 +132,15 @@ async function instrumentRequest(
       }
 
       try {
-        const interpolatedRoute = interpolateRouteFromUrlAndParams(ctx.url.pathname, ctx.params);
-        const source = interpolatedRoute ? 'route' : 'url';
+        // `routePattern` is available after Astro 5
+        const contextWithRoutePattern = ctx as Parameters<MiddlewareResponseHandler>[0] & { routePattern?: string };
+        const rawRoutePattern = contextWithRoutePattern.routePattern;
+        const foundRoute = storedBuildTimeRoutes?.find(route => route.pattern === rawRoutePattern);
+
+        const parametrizedRoute =
+          foundRoute?.patternCaseSensitive || interpolateRouteFromUrlAndParams(ctx.url.pathname, ctx.params);
+
+        const source = parametrizedRoute ? 'route' : 'url';
         // storing res in a variable instead of directly returning is necessary to
         // invoke the catch block if next() throws
 
@@ -148,12 +159,12 @@ async function instrumentRequest(
           attributes['http.fragment'] = ctx.url.hash;
         }
 
-        isolationScope?.setTransactionName(`${method} ${interpolatedRoute || ctx.url.pathname}`);
+        isolationScope?.setTransactionName(`${method} ${parametrizedRoute || ctx.url.pathname}`);
 
         const res = await startSpan(
           {
             attributes,
-            name: `${method} ${interpolatedRoute || ctx.url.pathname}`,
+            name: `${method} ${parametrizedRoute || ctx.url.pathname}`,
             op: 'http.server',
           },
           async span => {
@@ -184,14 +195,28 @@ async function instrumentRequest(
 
               const newResponseStream = new ReadableStream({
                 start: async controller => {
+                  // Assign to a new variable to avoid TS losing the narrower type checked above.
+                  const body = originalBody;
+
+                  async function* bodyReporter(): AsyncGenerator<string | Buffer> {
+                    try {
+                      for await (const chunk of body) {
+                        yield chunk;
+                      }
+                    } catch (e) {
+                      // Report stream errors coming from user code or Astro rendering.
+                      sendErrorToSentry(e);
+                      throw e;
+                    }
+                  }
+
                   try {
-                    for await (const chunk of originalBody) {
+                    for await (const chunk of bodyReporter()) {
                       const html = typeof chunk === 'string' ? chunk : decoder.decode(chunk, { stream: true });
                       const modifiedHtml = addMetaTagToHead(html);
                       controller.enqueue(new TextEncoder().encode(modifiedHtml));
                     }
                   } catch (e) {
-                    sendErrorToSentry(e);
                     controller.error(e);
                   } finally {
                     controller.close();
@@ -214,7 +239,7 @@ async function instrumentRequest(
             try {
               await flush(2000);
             } catch (e) {
-              logger.log('Error while flushing events:\n', e);
+              debug.log('Error while flushing events:\n', e);
             }
           })(),
         );

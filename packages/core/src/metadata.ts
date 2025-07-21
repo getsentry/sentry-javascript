@@ -1,6 +1,6 @@
 import type { Event } from './types-hoist/event';
 import type { StackParser } from './types-hoist/stacktrace';
-import { GLOBAL_OBJ } from './utils-hoist/worldwide';
+import { GLOBAL_OBJ } from './utils/worldwide';
 
 /** Keys are source filename/url, values are metadata objects. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -72,7 +72,7 @@ export function addMetadataToStackFrames(parser: StackParser, event: Event): voi
         }
       }
     });
-  } catch (_) {
+  } catch {
     // To save bundle size we're just try catching here instead of checking for the existence of all the different objects.
   }
 }
@@ -92,7 +92,7 @@ export function stripMetadataFromStackFrames(event: Event): void {
         delete frame.module_metadata;
       }
     });
-  } catch (_) {
+  } catch {
     // To save bundle size we're just try catching here instead of checking for the existence of all the different objects.
   }
 }

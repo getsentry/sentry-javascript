@@ -7,10 +7,12 @@
     "clean": "npx rimraf node_modules pnpm-lock.yaml",
     "test:prod": "TEST_ENV=production playwright test",
     "test:dev": "TEST_ENV=development playwright test",
+    "test:dev-turbo": "TEST_ENV=dev-turbopack playwright test",
     "test:build": "pnpm install && pnpm build",
     "test:build-canary": "pnpm install && pnpm add next@canary && pnpm add react@beta && pnpm add react-dom@beta && pnpm build",
     "//": "15.0.0-canary.194 is the canary release attached to Next.js RC 1. We need to use the canary version instead of the RC because PPR will not work without. The specific react version is also attached to RC 1.",
     "test:build-latest": "pnpm install && pnpm add next@15.0.0-canary.194 && pnpm add react@19.0.0-rc-cd22717c-20241013 && pnpm add react-dom@19.0.0-rc-cd22717c-20241013 && pnpm build",
+    "test:build-turbo": "pnpm install && pnpm add next@15.4.2-canary.1 && next build --turbopack",
     "test:assert": "pnpm test:prod && pnpm test:dev"
   },
   "dependencies": {
@@ -18,25 +20,16 @@
     "@types/node": "^18.19.1",
     "@types/react": "18.0.26",
     "@types/react-dom": "18.0.9",
-    "next": "15.3.0-canary.33",
+    "ai": "^3.0.0",
+    "next": "15.4.2-canary.1",
     "react": "beta",
     "react-dom": "beta",
-    "typescript": "~5.0.0"
+    "typescript": "~5.0.0",
+    "zod": "^3.22.4"
   },
   "devDependencies": {
-    "@playwright/test": "~1.50.0",
-    "@sentry-internal/test-utils": "link:../../../test-utils",
-    "@sentry-internal/feedback": "latest || *",
-    "@sentry-internal/replay-canvas": "latest || *",
-    "@sentry-internal/browser-utils": "latest || *",
-    "@sentry/browser": "latest || *",
-    "@sentry/core": "latest || *",
-    "@sentry/nextjs": "latest || *",
-    "@sentry/node": "latest || *",
-    "@sentry/opentelemetry": "latest || *",
-    "@sentry/react": "latest || *",
-    "@sentry-internal/replay": "latest || *",
-    "@sentry/vercel-edge": "latest || *"
+    "@playwright/test": "~1.53.2",
+    "@sentry-internal/test-utils": "link:../../../test-utils"
   },
   "volta": {
     "extends": "../../package.json"
@@ -50,6 +43,11 @@
       {
         "build-command": "test:build-latest",
         "label": "nextjs-15 (latest)"
+      },
+      {
+        "build-command": "test:build-turbo",
+        "assert-command": "pnpm test:prod && pnpm test:dev-turbo",
+        "label": "nextjs-15 (turbo)"
       }
     ]
   }

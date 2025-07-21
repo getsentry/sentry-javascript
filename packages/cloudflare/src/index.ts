@@ -8,6 +8,7 @@ export type {
   EventHint,
   ErrorEvent,
   Exception,
+  FeatureFlagsIntegration,
   Session,
   SeverityLevel,
   Span,
@@ -33,6 +34,7 @@ export {
   flush,
   getClient,
   isInitialized,
+  isEnabled,
   getCurrentScope,
   getGlobalScope,
   getIsolationScope,
@@ -90,6 +92,7 @@ export {
   updateSpanName,
   wrapMcpServerWithSentry,
   consoleLoggingIntegration,
+  featureFlagsIntegration,
 } from '@sentry/core';
 
 export * as logger from './logs/exports';
@@ -104,7 +107,10 @@ export { CloudflareClient } from './client';
 export { getDefaultIntegrations } from './sdk';
 
 export { fetchIntegration } from './integrations/fetch';
+export { vercelAIIntegration } from './integrations/tracing/vercelai';
 
 export { instrumentD1WithSentry } from './d1';
+
+export { instrumentWorkflowWithSentry } from './workflows';
 
 export { setAsyncLocalStorageAsyncContextStrategy } from './async';

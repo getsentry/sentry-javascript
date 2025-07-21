@@ -46,6 +46,15 @@ interface BrowserApiErrorsOptions {
   requestAnimationFrame: boolean;
   XMLHttpRequest: boolean;
   eventTarget: boolean | string[];
+
+  /**
+   * If you experience issues with this integration causing double-invocations of event listeners,
+   * try setting this option to `true`. It will unregister the original callbacks from the event targets
+   * before adding the instrumented callback.
+   *
+   * @default false
+   */
+  unregisterOriginalCallbacks: boolean;
 }
 
 const _browserApiErrorsIntegration = ((options: Partial<BrowserApiErrorsOptions> = {}) => {
@@ -55,6 +64,7 @@ const _browserApiErrorsIntegration = ((options: Partial<BrowserApiErrorsOptions>
     requestAnimationFrame: true,
     setInterval: true,
     setTimeout: true,
+    unregisterOriginalCallbacks: false,
     ...options,
   };
 
@@ -82,7 +92,7 @@ const _browserApiErrorsIntegration = ((options: Partial<BrowserApiErrorsOptions>
       const eventTargetOption = _options.eventTarget;
       if (eventTargetOption) {
         const eventTarget = Array.isArray(eventTargetOption) ? eventTargetOption : DEFAULT_EVENT_TARGET;
-        eventTarget.forEach(_wrapEventTarget);
+        eventTarget.forEach(target => _wrapEventTarget(target, _options));
       }
     },
   };
@@ -160,7 +170,7 @@ function _wrapXHR(originalSend: () => void): () => void {
   };
 }
 
-function _wrapEventTarget(target: string): void {
+function _wrapEventTarget(target: string, integrationOptions: BrowserApiErrorsOptions): void {
   const globalObject = WINDOW as unknown as Record<string, { prototype?: object }>;
   const proto = globalObject[target]?.prototype;
 
@@ -195,6 +205,10 @@ function _wrapEventTarget(target: string): void {
         }
       } catch {
         // can sometimes get 'Permission denied to access property "handle Event'
+      }
+
+      if (integrationOptions.unregisterOriginalCallbacks) {
+        unregisterOriginalCallback(this, eventName, fn);
       }
 
       return original.apply(this, [
@@ -242,7 +256,7 @@ function _wrapEventTarget(target: string): void {
         if (originalEventHandler) {
           originalRemoveEventListener.call(this, eventName, originalEventHandler, options);
         }
-      } catch (e) {
+      } catch {
         // ignore, accessing __sentry_wrapped__ will throw in some Selenium environments
       }
       return originalRemoveEventListener.call(this, eventName, fn, options);
@@ -252,4 +266,15 @@ function _wrapEventTarget(target: string): void {
 
 function isEventListenerObject(obj: unknown): obj is EventListenerObject {
   return typeof (obj as EventListenerObject).handleEvent === 'function';
+}
+
+function unregisterOriginalCallback(target: unknown, eventName: string, fn: EventListenerOrEventListenerObject): void {
+  if (
+    target &&
+    typeof target === 'object' &&
+    'removeEventListener' in target &&
+    typeof target.removeEventListener === 'function'
+  ) {
+    target.removeEventListener(eventName, fn);
+  }
 }

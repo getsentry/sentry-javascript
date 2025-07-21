@@ -5,8 +5,8 @@ import {
 } from '../semanticAttributes';
 import type { Measurements, MeasurementUnit } from '../types-hoist/measurement';
 import type { TimedEvent } from '../types-hoist/timedEvent';
+import { debug } from '../utils/debug-logger';
 import { getActiveSpan, getRootSpan } from '../utils/spanUtils';
-import { logger } from '../utils-hoist/logger';
 
 /**
  * Adds a measurement to the active transaction on the current global scope. You can optionally pass in a different span
@@ -16,7 +16,7 @@ export function setMeasurement(name: string, value: number, unit: MeasurementUni
   const rootSpan = activeSpan && getRootSpan(activeSpan);
 
   if (rootSpan) {
-    DEBUG_BUILD && logger.log(`[Measurement] Setting measurement on root span: ${name} = ${value} ${unit}`);
+    DEBUG_BUILD && debug.log(`[Measurement] Setting measurement on root span: ${name} = ${value} ${unit}`);
     rootSpan.addEvent(name, {
       [SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE]: value,
       [SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_UNIT]: unit as string,

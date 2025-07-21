@@ -2,7 +2,7 @@ import type { Span as WriteableSpan } from '@opentelemetry/api';
 import type { Instrumentation } from '@opentelemetry/instrumentation';
 import type { ReadableSpan, SpanProcessor } from '@opentelemetry/sdk-trace-base';
 import type { ClientOptions, Options, SamplingContext, Scope, Span, TracePropagationTargets } from '@sentry/core';
-import type { NodeTransportOptions } from './transports';
+import type { NodeTransportOptions } from '@sentry/node-core';
 
 export interface BaseNodeOptions {
   /**
@@ -60,6 +60,16 @@ export interface BaseNodeOptions {
    * @default 'manual'
    */
   profileLifecycle?: 'manual' | 'trace';
+
+  /**
+   * If set to `false`, the SDK will not automatically detect the `serverName`.
+   *
+   * This is useful if you are using the SDK in a CLI app or Electron where the
+   * hostname might be considered PII.
+   *
+   * @default true
+   */
+  includeServerName?: boolean;
 
   /** Sets an optional server name (device name) */
   serverName?: string;

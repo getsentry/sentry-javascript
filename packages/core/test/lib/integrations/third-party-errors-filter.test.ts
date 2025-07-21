@@ -3,9 +3,9 @@ import type { Client } from '../../../src/client';
 import { thirdPartyErrorFilterIntegration } from '../../../src/integrations/third-party-errors-filter';
 import { addMetadataToStackFrames } from '../../../src/metadata';
 import type { Event } from '../../../src/types-hoist/event';
-import { nodeStackLineParser } from '../../../src/utils-hoist/node-stack-trace';
-import { createStackParser } from '../../../src/utils-hoist/stacktrace';
-import { GLOBAL_OBJ } from '../../../src/utils-hoist/worldwide';
+import { nodeStackLineParser } from '../../../src/utils/node-stack-trace';
+import { createStackParser } from '../../../src/utils/stacktrace';
+import { GLOBAL_OBJ } from '../../../src/utils/worldwide';
 
 function clone<T>(data: T): T {
   return JSON.parse(JSON.stringify(data));

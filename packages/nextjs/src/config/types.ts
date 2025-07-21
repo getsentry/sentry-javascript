@@ -45,10 +45,13 @@ export type NextConfigObject = {
   experimental?: {
     instrumentationHook?: boolean;
     clientTraceMetadata?: string[];
+    serverComponentsExternalPackages?: string[]; // next < v15.0.0
   };
   productionBrowserSourceMaps?: boolean;
   // https://nextjs.org/docs/pages/api-reference/next-config-js/env
   env?: Record<string, string>;
+  serverExternalPackages?: string[]; // next >= v15.0.0
+  turbopack?: TurbopackOptions;
 };
 
 export type SentryBuildOptions = {
@@ -151,7 +154,7 @@ export type SentryBuildOptions = {
     /**
      * Toggle whether generated source maps within your Next.js build folder should be automatically deleted after being uploaded to Sentry.
      *
-     * Defaults to `false`.
+     * Defaults to `true`.
      */
     deleteSourcemapsAfterUpload?: boolean;
   };
@@ -424,9 +427,12 @@ export type SentryBuildOptions = {
    * Tunnel Sentry requests through this route on the Next.js server, to circumvent ad-blockers blocking Sentry events
    * from being sent. This option should be a path (for example: '/error-monitoring').
    *
+   * - Pass `true` to auto-generate a random, ad-blocker-resistant route for each build
+   * - Pass a string path (e.g., '/monitoring') to use a custom route
+   *
    * NOTE: This feature only works with Next.js 11+
    */
-  tunnelRoute?: string;
+  tunnelRoute?: string | boolean;
 
   /**
    * Tree shakes Sentry SDK logger statements from the bundle.
@@ -439,6 +445,58 @@ export type SentryBuildOptions = {
    * Defaults to `false`.
    */
   automaticVercelMonitors?: boolean;
+
+  /**
+   * When an error occurs during release creation or sourcemaps upload, the plugin will call this function.
+   *
+   * By default, the plugin will simply throw an error, thereby stopping the bundling process.
+   * If an `errorHandler` callback is provided, compilation will continue, unless an error is
+   * thrown in the provided callback.
+   *
+   * To allow compilation to continue but still emit a warning, set this option to the following:
+   *
+   * ```js
+   * (err) => {
+   *   console.warn(err);
+   * }
+   * ```
+   */
+  errorHandler?: (err: Error) => void;
+
+  /**
+   * Suppress the warning about the `onRouterTransitionStart` hook.
+   */
+  suppressOnRouterTransitionStartWarning?: boolean;
+
+  /**
+   * Disables automatic injection of the route manifest into the client bundle.
+   *
+   * The route manifest is a build-time generated mapping of your Next.js App Router
+   * routes that enables Sentry to group transactions by parameterized route names
+   * (e.g., `/users/:id` instead of `/users/123`, `/users/456`, etc.).
+   *
+   * **Disable this option if:**
+   * - You want to minimize client bundle size
+   * - You're experiencing build issues related to route scanning
+   * - You're using custom routing that the scanner can't detect
+   * - You prefer raw URLs in transaction names
+   * - You're only using Pages Router (this feature is only supported in the App Router)
+   *
+   * @default false
+   */
+  disableManifestInjection?: boolean;
+
+  /**
+   * Disables automatic injection of Sentry's Webpack configuration.
+   *
+   * By default, the Sentry Next.js SDK injects its own Webpack configuration to enable features such as
+   * source map upload and automatic instrumentation. Set this option to `true` if you want to prevent
+   * the SDK from modifying your Webpack config (for example, if you want to handle Sentry integration manually
+   * or if you are on an older version of Next.js while using Turbopack).
+   *
+   * @default false
+   */
+  disableSentryWebpackConfig?: boolean;
 
   /**
    * Contains a set of experimental flags that might change in future releases. These flags enable
@@ -562,3 +620,38 @@ export type EnhancedGlobal = typeof GLOBAL_OBJ & {
   SENTRY_RELEASE?: { id: string };
   SENTRY_RELEASES?: { [key: string]: { id: string } };
 };
+
+type JSONValue = string | number | boolean | JSONValue[] | { [k: string]: JSONValue };
+
+type TurbopackLoaderItem =
+  | string
+  | {
+      loader: string;
+      // At the moment, Turbopack options must be JSON-serializable, so restrict values.
+      options: Record<string, JSONValue>;
+    };
+
+type TurbopackRuleCondition = {
+  path: string | RegExp;
+};
+
+export type TurbopackRuleConfigItemOrShortcut = TurbopackLoaderItem[] | TurbopackRuleConfigItem;
+
+type TurbopackRuleConfigItemOptions = {
+  loaders: TurbopackLoaderItem[];
+  as?: string;
+};
+
+type TurbopackRuleConfigItem =
+  | TurbopackRuleConfigItemOptions
+  | { [condition: string]: TurbopackRuleConfigItem }
+  | false;
+
+export interface TurbopackOptions {
+  resolveAlias?: Record<string, string | string[] | Record<string, string | string[]>>;
+  resolveExtensions?: string[];
+  rules?: Record<string, TurbopackRuleConfigItemOrShortcut>;
+  conditions?: Record<string, TurbopackRuleCondition>;
+  moduleIds?: 'named' | 'deterministic';
+  root?: string;
+}

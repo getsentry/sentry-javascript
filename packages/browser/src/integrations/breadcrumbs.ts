@@ -19,13 +19,13 @@ import {
   addBreadcrumb,
   addConsoleInstrumentationHandler,
   addFetchInstrumentationHandler,
+  debug,
   defineIntegration,
   getBreadcrumbLogLevelFromHttpStatusCode,
   getClient,
   getComponentName,
   getEventDescription,
   htmlTreeAsString,
-  logger,
   parseUrl,
   safeJoin,
   severityLevelFromString,
@@ -142,7 +142,7 @@ function _getDomBreadcrumbHandler(
       typeof dom === 'object' && typeof dom.maxStringLength === 'number' ? dom.maxStringLength : undefined;
     if (maxStringLength && maxStringLength > MAX_ALLOWED_STRING_LENGTH) {
       DEBUG_BUILD &&
-        logger.warn(
+        debug.warn(
           `\`dom.maxStringLength\` cannot exceed ${MAX_ALLOWED_STRING_LENGTH}, but a value of ${maxStringLength} was configured. Sentry will use ${MAX_ALLOWED_STRING_LENGTH} instead.`,
         );
       maxStringLength = MAX_ALLOWED_STRING_LENGTH;
@@ -159,7 +159,7 @@ function _getDomBreadcrumbHandler(
 
       target = htmlTreeAsString(element, { keyAttrs, maxStringLength });
       componentName = getComponentName(element);
-    } catch (e) {
+    } catch {
       target = '<unknown>';
     }
 

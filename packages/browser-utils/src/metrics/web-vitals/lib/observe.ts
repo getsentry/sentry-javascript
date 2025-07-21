@@ -28,6 +28,9 @@ interface PerformanceEntryMap {
   // our `instrumentPerformanceObserver` function also observes 'longtask'
   // entries.
   longtask: PerformanceEntry[];
+  // Sentry-specific change:
+  // We add element as a supported entry type for ElementTiming API
+  element: PerformanceEntry[];
 }
 
 /**
@@ -41,7 +44,7 @@ interface PerformanceEntryMap {
 export const observe = <K extends keyof PerformanceEntryMap>(
   type: K,
   callback: (entries: PerformanceEntryMap[K]) => void,
-  opts?: PerformanceObserverInit,
+  opts: PerformanceObserverInit = {},
 ): PerformanceObserver | undefined => {
   try {
     if (PerformanceObserver.supportedEntryTypes.includes(type)) {
@@ -54,18 +57,10 @@ export const observe = <K extends keyof PerformanceEntryMap>(
           callback(list.getEntries() as PerformanceEntryMap[K]);
         });
       });
-      po.observe(
-        Object.assign(
-          {
-            type,
-            buffered: true,
-          },
-          opts || {},
-        ) as PerformanceObserverInit,
-      );
+      po.observe({ type, buffered: true, ...opts });
       return po;
     }
-  } catch (e) {
+  } catch {
     // Do nothing.
   }
   return;

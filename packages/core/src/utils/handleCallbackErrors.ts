@@ -1,4 +1,4 @@
-import { isThenable } from '../utils-hoist/is';
+import { isThenable } from '../utils/is';
 
 /**
  * Wrap a callback function with error handling.
@@ -14,12 +14,7 @@ import { isThenable } from '../utils-hoist/is';
 export function handleCallbackErrors<
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   Fn extends () => any,
->(
-  fn: Fn,
-  onError: (error: unknown) => void,
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
-  onFinally: () => void = () => {},
-): ReturnType<Fn> {
+>(fn: Fn, onError: (error: unknown) => void, onFinally: () => void = () => {}): ReturnType<Fn> {
   let maybePromiseResult: ReturnType<Fn>;
   try {
     maybePromiseResult = fn();

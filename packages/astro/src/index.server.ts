@@ -12,7 +12,9 @@ export {
   addEventProcessor,
   addIntegration,
   amqplibIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   anrIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   disableAnrDetectionForCallback,
   captureCheckIn,
   captureConsoleIntegration,
@@ -63,6 +65,7 @@ export {
   eventFiltersIntegration,
   initOpenTelemetry,
   isInitialized,
+  isEnabled,
   kafkaIntegration,
   koaIntegration,
   knexIntegration,
@@ -81,8 +84,10 @@ export {
   nodeContextIntegration,
   onUncaughtExceptionIntegration,
   onUnhandledRejectionIntegration,
+  openAIIntegration,
   parameterize,
   postgresIntegration,
+  postgresJsIntegration,
   prismaIntegration,
   childProcessIntegration,
   createSentryWinstonTransport,
@@ -133,6 +138,15 @@ export {
   logger,
   consoleLoggingIntegration,
   wrapMcpServerWithSentry,
+  NODE_VERSION,
+  featureFlagsIntegration,
+  type FeatureFlagsIntegration,
+  launchDarklyIntegration,
+  buildLaunchDarklyFlagUsedHandler,
+  openFeatureIntegration,
+  OpenFeatureIntegrationHook,
+  statsigIntegration,
+  unleashIntegration,
 } from '@sentry/node';
 
 export { init } from './server/sdk';

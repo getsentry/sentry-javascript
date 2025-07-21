@@ -2,19 +2,18 @@ import { HapiInstrumentation } from '@opentelemetry/instrumentation-hapi';
 import type { IntegrationFn, Span } from '@sentry/core';
 import {
   captureException,
+  debug,
   defineIntegration,
   getClient,
   getDefaultIsolationScope,
   getIsolationScope,
-  logger,
   SDK_VERSION,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   spanToJSON,
 } from '@sentry/core';
+import { ensureIsWrapped, generateInstrumentOnce } from '@sentry/node-core';
 import { DEBUG_BUILD } from '../../../debug-build';
-import { generateInstrumentOnce } from '../../../otel/instrument';
-import { ensureIsWrapped } from '../../../utils/ensureIsWrapped';
 import type { Request, RequestEvent, Server } from './types';
 
 const INTEGRATION_NAME = 'Hapi';
@@ -79,7 +78,7 @@ export const hapiErrorPlugin = {
         }
       } else {
         DEBUG_BUILD &&
-          logger.warn('Isolation scope is still the default isolation scope - skipping setting transactionName');
+          debug.warn('Isolation scope is still the default isolation scope - skipping setting transactionName');
       }
 
       if (isErrorEvent(event)) {

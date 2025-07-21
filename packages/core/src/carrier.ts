@@ -1,9 +1,10 @@
 import type { AsyncContextStack } from './asyncContext/stackStrategy';
 import type { AsyncContextStrategy } from './asyncContext/types';
+import type { Client } from './client';
 import type { Scope } from './scope';
-import type { Logger } from './utils-hoist/logger';
-import { SDK_VERSION } from './utils-hoist/version';
-import { GLOBAL_OBJ } from './utils-hoist/worldwide';
+import type { SerializedLog } from './types-hoist/log';
+import { SDK_VERSION } from './utils/version';
+import { GLOBAL_OBJ } from './utils/worldwide';
 
 /**
  * An object that contains globally accessible properties and maintains a scope stack.
@@ -24,7 +25,12 @@ export interface SentryCarrier {
   globalScope?: Scope;
   defaultIsolationScope?: Scope;
   defaultCurrentScope?: Scope;
-  logger?: Logger;
+  loggerSettings?: { enabled: boolean };
+  /**
+   * A map of Sentry clients to their log buffers.
+   * This is used to store logs that are sent to Sentry.
+   */
+  clientToLogBufferMap?: WeakMap<Client, Array<SerializedLog>>;
 
   /** Overwrites TextEncoder used in `@sentry/core`, need for `react-native@0.73` and older */
   encodePolyfill?: (input: string) => Uint8Array;

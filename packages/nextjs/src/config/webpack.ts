@@ -1,12 +1,13 @@
 /* eslint-disable complexity */
 /* eslint-disable max-lines */
 
-import { escapeStringForRegex, loadModule, logger, parseSemver } from '@sentry/core';
+import { debug, escapeStringForRegex, loadModule, parseSemver } from '@sentry/core';
 import * as chalk from 'chalk';
 import * as fs from 'fs';
 import * as path from 'path';
 import { sync as resolveSync } from 'resolve';
 import type { VercelCronsConfig } from '../common/types';
+import type { RouteManifest } from './manifest/types';
 // Note: If you need to import a type from Webpack, do it in `types.ts` and export it from there. Otherwise, our
 // circular dependency check thinks this file is importing from itself. See https://github.com/pahen/madge/issues/306.
 import type {
@@ -43,6 +44,7 @@ export function constructWebpackConfigFunction(
   userNextConfig: NextConfigObject = {},
   userSentryOptions: SentryBuildOptions = {},
   releaseName: string | undefined,
+  routeManifest: RouteManifest | undefined,
 ): WebpackConfigFunction {
   // Will be called by nextjs and passed its default webpack configuration and context data about the build (whether
   // we're building server or client, whether we're in dev, what version of webpack we're using, etc). Note that
@@ -88,7 +90,7 @@ export function constructWebpackConfigFunction(
     const newConfig = setUpModuleRules(rawNewConfig);
 
     // Add a loader which will inject code that sets global values
-    addValueInjectionLoader(newConfig, userNextConfig, userSentryOptions, buildContext, releaseName);
+    addValueInjectionLoader(newConfig, userNextConfig, userSentryOptions, buildContext, releaseName, routeManifest);
 
     addOtelWarningIgnoreRule(newConfig);
 
@@ -217,7 +219,7 @@ export function constructWebpackConfigFunction(
           // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
           vercelCronsConfig = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'vercel.json'), 'utf8')).crons;
           if (vercelCronsConfig) {
-            logger.info(
+            debug.log(
               `${chalk.cyan(
                 'info',
               )} - Creating Sentry cron monitors for your Vercel Cron Jobs. You can disable this feature by setting the ${chalk.bold.cyan(
@@ -231,7 +233,7 @@ export function constructWebpackConfigFunction(
           // noop if file does not exist
         } else {
           // log but noop
-          logger.error(
+          debug.error(
             `${chalk.red(
               'error',
             )} - Sentry failed to read vercel.json for automatic cron job monitoring instrumentation`,
@@ -366,7 +368,7 @@ export function constructWebpackConfigFunction(
           // We only update this if no explicit value is set
           // (Next.js defaults to `false`: https://github.com/vercel/next.js/blob/5f4f96c133bd6b10954812cc2fef6af085b82aa5/packages/next/src/build/webpack/config/blocks/base.ts#L61)
           if (!newConfig.devtool) {
-            logger.info(`[@sentry/nextjs] Automatically enabling source map generation for ${runtime} build.`);
+            debug.log(`[@sentry/nextjs] Automatically enabling source map generation for ${runtime} build.`);
             // `hidden-source-map` produces the same sourcemaps as `source-map`, but doesn't include the `sourceMappingURL`
             // comment at the bottom. For folks who aren't publicly hosting their sourcemaps, this is helpful because then
             // the browser won't look for them and throw errors into the console when it can't find them. Because this is a
@@ -381,7 +383,7 @@ export function constructWebpackConfigFunction(
 
           // enable source map deletion if not explicitly disabled
           if (!isServer && userSentryOptions.sourcemaps?.deleteSourcemapsAfterUpload === undefined) {
-            logger.warn(
+            debug.warn(
               '[@sentry/nextjs] Source maps will be automatically deleted after being uploaded to Sentry. If you want to keep the source maps, set the `sourcemaps.deleteSourcemapsAfterUpload` option to false in `withSentryConfig()`. If you do not want to generate and upload sourcemaps at all, set the `sourcemaps.disable` option to true.',
             );
             userSentryOptions.sourcemaps = {
@@ -409,6 +411,14 @@ export function constructWebpackConfigFunction(
         }),
       );
     }
+
+    // We inject a map of dependencies that the nextjs app has, as we cannot reliably extract them at runtime, sadly
+    newConfig.plugins = newConfig.plugins || [];
+    newConfig.plugins.push(
+      new buildContext.webpack.DefinePlugin({
+        __SENTRY_SERVER_MODULES__: JSON.stringify(_getModules(projectDir)),
+      }),
+    );
 
     return newConfig;
   };
@@ -477,7 +487,7 @@ function getInstrumentationFile(projectDir: string, dotPrefixedExtensions: strin
   for (const pathSegments of paths) {
     try {
       return fs.readFileSync(path.resolve(projectDir, ...pathSegments), { encoding: 'utf-8' });
-    } catch (e) {
+    } catch {
       // no-op
     }
   }
@@ -633,7 +643,7 @@ function addFilesToWebpackEntryPoint(
       import: newImportValue,
     };
   }
-  // malformed entry point (use `console.error` rather than `logger.error` because it will always be printed, regardless
+  // malformed entry point (use `console.error` rather than `debug.error` because it will always be printed, regardless
   // of SDK settings)
   else {
     // eslint-disable-next-line no-console
@@ -678,19 +688,27 @@ function addValueInjectionLoader(
   userSentryOptions: SentryBuildOptions,
   buildContext: BuildContext,
   releaseName: string | undefined,
+  routeManifest: RouteManifest | undefined,
 ): void {
   const assetPrefix = userNextConfig.assetPrefix || userNextConfig.basePath || '';
+
+  // Check if release creation is disabled to prevent injection that breaks build determinism
+  const shouldCreateRelease = userSentryOptions.release?.create !== false;
+  const releaseToInject = releaseName && shouldCreateRelease ? releaseName : undefined;
 
   const isomorphicValues = {
     // `rewritesTunnel` set by the user in Next.js config
     _sentryRewritesTunnelPath:
-      userSentryOptions.tunnelRoute !== undefined && userNextConfig.output !== 'export'
+      userSentryOptions.tunnelRoute !== undefined &&
+      userNextConfig.output !== 'export' &&
+      typeof userSentryOptions.tunnelRoute === 'string'
         ? `${userNextConfig.basePath ?? ''}${userSentryOptions.tunnelRoute}`
         : undefined,
 
     // The webpack plugin's release injection breaks the `app` directory so we inject the release manually here instead.
     // Having a release defined in dev-mode spams releases in Sentry so we only set one in non-dev mode
-    SENTRY_RELEASE: releaseName && !buildContext.dev ? { id: releaseName } : undefined,
+    // Only inject if release creation is not explicitly disabled (to maintain build determinism)
+    SENTRY_RELEASE: releaseToInject && !buildContext.dev ? { id: releaseToInject } : undefined,
     _sentryBasePath: buildContext.dev ? userNextConfig.basePath : undefined,
   };
 
@@ -712,6 +730,7 @@ function addValueInjectionLoader(
     _sentryExperimentalThirdPartyOriginStackFrames: userSentryOptions._experimental?.thirdPartyOriginStackFrames
       ? 'true'
       : undefined,
+    _sentryRouteManifest: JSON.stringify(routeManifest),
   };
 
   if (buildContext.isServer) {
@@ -729,7 +748,7 @@ function addValueInjectionLoader(
     });
   } else {
     newConfig.module.rules.push({
-      test: /sentry\.client\.config\.(jsx?|tsx?)/,
+      test: /(?:sentry\.client\.config\.(jsx?|tsx?)|(?:src[\\/])?instrumentation-client\.(js|ts))$/,
       use: [
         {
           loader: path.resolve(__dirname, 'loaders/valueInjectionLoader.js'),
@@ -823,5 +842,23 @@ function addOtelWarningIgnoreRule(newConfig: WebpackConfigObjectWithModuleRules)
     newConfig.ignoreWarnings = ignoreRules;
   } else if (Array.isArray(newConfig.ignoreWarnings)) {
     newConfig.ignoreWarnings.push(...ignoreRules);
+  }
+}
+
+function _getModules(projectDir: string): Record<string, string> {
+  try {
+    const packageJson = path.join(projectDir, 'package.json');
+    const packageJsonContent = fs.readFileSync(packageJson, 'utf8');
+    const packageJsonObject = JSON.parse(packageJsonContent) as {
+      dependencies?: Record<string, string>;
+      devDependencies?: Record<string, string>;
+    };
+
+    return {
+      ...packageJsonObject.dependencies,
+      ...packageJsonObject.devDependencies,
+    };
+  } catch {
+    return {};
   }
 }

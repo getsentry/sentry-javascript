@@ -1,7 +1,7 @@
 import { DEBUG_BUILD } from '../debug-build';
 import type { Span } from '../types-hoist/span';
+import { debug } from '../utils/debug-logger';
 import { getRootSpan, spanIsSampled, spanToJSON } from '../utils/spanUtils';
-import { logger } from '../utils-hoist/logger';
 
 /**
  * Print a log message for a started span.
@@ -35,7 +35,7 @@ export function logSpanStart(span: Span): void {
     }
   }
 
-  logger.log(`${header}
+  debug.log(`${header}
   ${infoParts.join('\n  ')}`);
 }
 
@@ -51,5 +51,5 @@ export function logSpanEnd(span: Span): void {
   const isRootSpan = rootSpan === span;
 
   const msg = `[Tracing] Finishing "${op}" ${isRootSpan ? 'root ' : ''}span "${description}" with ID ${spanId}`;
-  logger.log(msg);
+  debug.log(msg);
 }

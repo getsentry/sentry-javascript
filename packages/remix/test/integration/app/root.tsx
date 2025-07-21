@@ -48,9 +48,9 @@ export const loader: LoaderFunction = async ({ request }) => {
     case 'returnRedirect':
       return redirect('/?type=plain');
     case 'throwRedirectToExternal':
-      throw redirect('https://example.com');
+      throw redirect(`https://docs.sentry.io`);
     case 'returnRedirectToExternal':
-      return redirect('https://example.com');
+      return redirect('https://docs.sentry.io');
     default: {
       return {};
     }

@@ -4,7 +4,7 @@ import { download } from './download.mjs';
 
 try {
   execSync('deno --version', { stdio: 'inherit' });
-} catch (_) {
+} catch {
   // eslint-disable-next-line no-console
   console.error('Deno is not installed. Installing...');
   if (process.platform === 'win32') {

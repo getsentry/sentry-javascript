@@ -6,8 +6,8 @@ import {
 } from './semanticAttributes';
 import { startSpan, withActiveSpan } from './tracing';
 import type { Span } from './types-hoist/span';
+import { debug } from './utils/debug-logger';
 import { getActiveSpan } from './utils/spanUtils';
-import { logger } from './utils-hoist/logger';
 
 interface MCPTransport {
   // The first argument is a JSON RPC message
@@ -41,7 +41,7 @@ export function wrapMcpServerWithSentry<S extends object>(mcpServerInstance: S):
   }
 
   if (!isMcpServerInstance(mcpServerInstance)) {
-    DEBUG_BUILD && logger.warn('Did not patch MCP server. Interface is incompatible.');
+    DEBUG_BUILD && debug.warn('Did not patch MCP server. Interface is incompatible.');
     return mcpServerInstance;
   }
 

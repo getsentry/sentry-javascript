@@ -1,5 +1,5 @@
 import type { Event, EventHint } from '@sentry/core';
-import { GLOBAL_OBJ, logger, parseSemver, suppressTracing } from '@sentry/core';
+import { debug, GLOBAL_OBJ, parseSemver, suppressTracing } from '@sentry/core';
 import type { StackFrame } from 'stacktrace-parser';
 import * as stackTraceParser from 'stacktrace-parser';
 import { DEBUG_BUILD } from './debug-build';
@@ -91,7 +91,7 @@ export async function devErrorSymbolicationEventProcessor(event: Event, hint: Ev
         );
       }
     }
-  } catch (e) {
+  } catch {
     return event;
   }
 
@@ -150,7 +150,7 @@ async function resolveStackFrame(
       originalStackFrame: body.originalStackFrame,
     };
   } catch (e) {
-    DEBUG_BUILD && logger.error('Failed to symbolicate event with Next.js dev server', e);
+    DEBUG_BUILD && debug.error('Failed to symbolicate event with Next.js dev server', e);
     return null;
   }
 }
@@ -192,22 +192,24 @@ async function resolveStackFrames(
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 3000);
 
-    const res = await fetch(
-      `${
-        // eslint-disable-next-line no-restricted-globals
-        typeof window === 'undefined' ? 'http://localhost:3000' : '' // TODO: handle the case where users define a different port
-      }${basePath}/__nextjs_original-stack-frames`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+    const res = await suppressTracing(() =>
+      fetch(
+        `${
+          // eslint-disable-next-line no-restricted-globals
+          typeof window === 'undefined' ? 'http://localhost:3000' : '' // TODO: handle the case where users define a different port
+        }${basePath}/__nextjs_original-stack-frames`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          signal: controller.signal,
+          body: JSON.stringify(postBody),
         },
-        signal: controller.signal,
-        body: JSON.stringify(postBody),
-      },
-    ).finally(() => {
-      clearTimeout(timer);
-    });
+      ).finally(() => {
+        clearTimeout(timer);
+      }),
+    );
 
     if (!res.ok || res.status === 204) {
       return null;
@@ -222,7 +224,7 @@ async function resolveStackFrames(
       };
     });
   } catch (e) {
-    DEBUG_BUILD && logger.error('Failed to symbolicate event with Next.js dev server', e);
+    DEBUG_BUILD && debug.error('Failed to symbolicate event with Next.js dev server', e);
     return null;
   }
 }

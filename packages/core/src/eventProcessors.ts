@@ -1,9 +1,9 @@
 import { DEBUG_BUILD } from './debug-build';
 import type { Event, EventHint } from './types-hoist/event';
 import type { EventProcessor } from './types-hoist/eventprocessor';
-import { isThenable } from './utils-hoist/is';
-import { logger } from './utils-hoist/logger';
-import { SyncPromise } from './utils-hoist/syncpromise';
+import { debug } from './utils/debug-logger';
+import { isThenable } from './utils/is';
+import { SyncPromise } from './utils/syncpromise';
 
 /**
  * Process an array of event processors, returning the processed event (or `null` if the event was dropped).
@@ -21,7 +21,7 @@ export function notifyEventProcessors(
     } else {
       const result = processor({ ...event }, hint) as Event | null;
 
-      DEBUG_BUILD && processor.id && result === null && logger.log(`Event processor "${processor.id}" dropped event`);
+      DEBUG_BUILD && processor.id && result === null && debug.log(`Event processor "${processor.id}" dropped event`);
 
       if (isThenable(result)) {
         void result

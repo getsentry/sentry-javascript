@@ -95,7 +95,7 @@ describe('startSpan', () => {
         await startSpan({ name: 'GET users/[id]' }, () => {
           return callback();
         });
-      } catch (e) {
+      } catch {
         //
       }
       expect(_span).toBeDefined();
@@ -114,7 +114,7 @@ describe('startSpan', () => {
           span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'http.server');
           return callback();
         });
-      } catch (e) {
+      } catch {
         //
       }
 
@@ -134,7 +134,7 @@ describe('startSpan', () => {
             return callback();
           });
         });
-      } catch (e) {
+      } catch {
         //
       }
 
@@ -161,7 +161,7 @@ describe('startSpan', () => {
             return callback();
           });
         });
-      } catch (e) {
+      } catch {
         //
       }
 
@@ -187,7 +187,7 @@ describe('startSpan', () => {
             return callback();
           },
         );
-      } catch (e) {
+      } catch {
         //
       }
 
@@ -621,32 +621,97 @@ describe('startSpan', () => {
         });
       });
     });
+
+    it('explicit parentSpan takes precedence over parentSpanIsAlwaysRootSpan=true', () => {
+      const options = getDefaultTestClientOptions({
+        tracesSampleRate: 1,
+        parentSpanIsAlwaysRootSpan: true,
+      });
+      client = new TestClient(options);
+      setCurrentClient(client);
+      client.init();
+
+      const parentSpan = startInactiveSpan({ name: 'parent span' });
+
+      startSpan({ name: 'parent span' }, () => {
+        startSpan({ name: 'child span' }, () => {
+          startSpan({ name: 'grand child span', parentSpan }, grandChildSpan => {
+            expect(spanToJSON(grandChildSpan).parent_span_id).toBe(parentSpan.spanContext().spanId);
+          });
+        });
+      });
+    });
+
+    it('explicit parentSpan=null takes precedence over parentSpanIsAlwaysRootSpan=true', () => {
+      const options = getDefaultTestClientOptions({
+        tracesSampleRate: 1,
+        parentSpanIsAlwaysRootSpan: true,
+      });
+      client = new TestClient(options);
+      setCurrentClient(client);
+      client.init();
+
+      startSpan({ name: 'parent span' }, () => {
+        startSpan({ name: 'child span' }, () => {
+          startSpan({ name: 'grand child span', parentSpan: null }, grandChildSpan => {
+            expect(spanToJSON(grandChildSpan).parent_span_id).toBe(undefined);
+          });
+        });
+      });
+    });
   });
 
-  it('samples with a tracesSampler', () => {
-    const tracesSampler = vi.fn(() => {
+  describe('uses tracesSampler if defined', () => {
+    const tracesSampler = vi.fn<() => boolean | number>(() => {
       return true;
     });
 
-    const options = getDefaultTestClientOptions({ tracesSampler });
-    client = new TestClient(options);
-    setCurrentClient(client);
-    client.init();
+    it.each([true, 1])('returns a positive sampling decision if tracesSampler returns %s', tracesSamplerResult => {
+      tracesSampler.mockReturnValueOnce(tracesSamplerResult);
 
-    startSpan({ name: 'outer', attributes: { test1: 'aa', test2: 'aa', test3: 'bb' } }, outerSpan => {
-      expect(outerSpan).toBeDefined();
+      const options = getDefaultTestClientOptions({ tracesSampler });
+      client = new TestClient(options);
+      setCurrentClient(client);
+      client.init();
+
+      startSpan({ name: 'outer', attributes: { test1: 'aa', test2: 'aa', test3: 'bb' } }, outerSpan => {
+        expect(outerSpan).toBeDefined();
+        expect(spanIsSampled(outerSpan)).toBe(true);
+      });
+
+      expect(tracesSampler).toBeCalledTimes(1);
+      expect(tracesSampler).toHaveBeenLastCalledWith({
+        parentSampled: undefined,
+        name: 'outer',
+        attributes: {
+          test1: 'aa',
+          test2: 'aa',
+          test3: 'bb',
+        },
+        inheritOrSampleWith: expect.any(Function),
+      });
     });
 
-    expect(tracesSampler).toBeCalledTimes(1);
-    expect(tracesSampler).toHaveBeenLastCalledWith({
-      parentSampled: undefined,
-      name: 'outer',
-      attributes: {
-        test1: 'aa',
-        test2: 'aa',
-        test3: 'bb',
-      },
-      inheritOrSampleWith: expect.any(Function),
+    it.each([false, 0])('returns a negative sampling decision if tracesSampler returns %s', tracesSamplerResult => {
+      tracesSampler.mockReturnValueOnce(tracesSamplerResult);
+
+      const options = getDefaultTestClientOptions({ tracesSampler });
+      client = new TestClient(options);
+      setCurrentClient(client);
+      client.init();
+
+      startSpan({ name: 'outer' }, outerSpan => {
+        expect(outerSpan).toBeDefined();
+        expect(spanIsSampled(outerSpan)).toBe(false);
+      });
+
+      expect(tracesSampler).toBeCalledTimes(1);
+      expect(tracesSampler).toHaveBeenLastCalledWith({
+        parentSampled: undefined,
+        attributes: {},
+        name: 'outer',
+        inheritOrSampleWith: expect.any(Function),
+      });
     });
   });
 
@@ -1175,6 +1240,46 @@ describe('startSpanManual', () => {
         span.end();
       });
     });
+
+    it('explicit parentSpan takes precedence over parentSpanIsAlwaysRootSpan=true', () => {
+      const options = getDefaultTestClientOptions({
+        tracesSampleRate: 1,
+        parentSpanIsAlwaysRootSpan: true,
+      });
+      client = new TestClient(options);
+      setCurrentClient(client);
+      client.init();
+
+      const parentSpan = startInactiveSpan({ name: 'parent span' });
+
+      startSpan({ name: 'parent span' }, () => {
+        startSpan({ name: 'child span' }, () => {
+          startSpanManual({ name: 'grand child span', parentSpan }, grandChildSpan => {
+            expect(spanToJSON(grandChildSpan).parent_span_id).toBe(parentSpan.spanContext().spanId);
+            grandChildSpan.end();
+          });
+        });
+      });
+    });
+
+    it('explicit parentSpan=null takes precedence over parentSpanIsAlwaysRootSpan=true', () => {
+      const options = getDefaultTestClientOptions({
+        tracesSampleRate: 1,
+        parentSpanIsAlwaysRootSpan: true,
+      });
+      client = new TestClient(options);
+      setCurrentClient(client);
+      client.init();
+
+      startSpan({ name: 'parent span' }, () => {
+        startSpan({ name: 'child span' }, () => {
+          startSpanManual({ name: 'grand child span', parentSpan: null }, grandChildSpan => {
+            expect(spanToJSON(grandChildSpan).parent_span_id).toBe(undefined);
+            grandChildSpan.end();
+          });
+        });
+      });
+    });
   });
 
   it('sets a child span reference on the parent span', () => {
@@ -1541,6 +1646,44 @@ describe('startInactiveSpan', () => {
             const inactiveSpan = startInactiveSpan({ name: 'inactive span' });
             expect(spanToJSON(inactiveSpan).parent_span_id).toBe(grandChildSpan.spanContext().spanId);
           });
+        });
+      });
+    });
+
+    it('explicit parentSpan takes precedence over parentSpanIsAlwaysRootSpan=true', () => {
+      const options = getDefaultTestClientOptions({
+        tracesSampleRate: 1,
+        parentSpanIsAlwaysRootSpan: true,
+      });
+      client = new TestClient(options);
+      setCurrentClient(client);
+      client.init();
+
+      const parentSpan = startInactiveSpan({ name: 'parent span' });
+
+      startSpan({ name: 'parent span' }, () => {
+        startSpan({ name: 'child span' }, () => {
+          const grandChildSpan = startInactiveSpan({ name: 'grand child span', parentSpan });
+          expect(spanToJSON(grandChildSpan).parent_span_id).toBe(parentSpan.spanContext().spanId);
+          grandChildSpan.end();
+        });
+      });
+    });
+
+    it('explicit parentSpan=null takes precedence over parentSpanIsAlwaysRootSpan=true', () => {
+      const options = getDefaultTestClientOptions({
+        tracesSampleRate: 1,
+        parentSpanIsAlwaysRootSpan: true,
+      });
+      client = new TestClient(options);
+      setCurrentClient(client);
+      client.init();
+
+      startSpan({ name: 'parent span' }, () => {
+        startSpan({ name: 'child span' }, () => {
+          const grandChildSpan = startInactiveSpan({ name: 'grand child span', parentSpan: null });
+          expect(spanToJSON(grandChildSpan).parent_span_id).toBe(undefined);
+          grandChildSpan.end();
         });
       });
     });
@@ -1927,6 +2070,19 @@ describe('getActiveSpan', () => {
     const result = getActiveSpan();
     expect(result).toBe(staticSpan);
   });
+
+  it('handles active span when passing scopes to withScope', () => {
+    const [scope, span] = startSpan({ name: 'outer' }, span => {
+      return [getCurrentScope(), span];
+    });
+
+    const spanOnScope = withScope(scope, () => {
+      return getActiveSpan();
+    });
+
+    expect(spanOnScope).toBeDefined();
+    expect(spanOnScope).toBe(span);
+  });
 });
 
 describe('withActiveSpan()', () => {
@@ -2107,6 +2263,40 @@ describe('suppressTracing', () => {
       expect(child.isRecording()).toBe(false);
       expect(spanIsSampled(child)).toBe(false);
     });
+  });
+
+  it('works with parallel processes', async () => {
+    const span = suppressTracing(() => {
+      return startInactiveSpan({ name: 'span' });
+    });
+
+    // Note: This is unintuitive, but it is the expected behavior
+    // because we only suppress tracing synchronously in the browser
+    const span2Promise = suppressTracing(async () => {
+      await new Promise(resolve => setTimeout(resolve, 100));
+      return startInactiveSpan({ name: 'span2' });
+    });
+
+    const span3Promise = suppressTracing(async () => {
+      const span = startInactiveSpan({ name: 'span3' });
+      await new Promise(resolve => setTimeout(resolve, 100));
+      return span;
+    });
+
+    const span4 = suppressTracing(() => {
+      return startInactiveSpan({ name: 'span' });
+    });
+
+    const span5 = startInactiveSpan({ name: 'span5' });
+
+    const span2 = await span2Promise;
+    const span3 = await span3Promise;
+
+    expect(spanIsSampled(span)).toBe(false);
+    expect(spanIsSampled(span2)).toBe(true);
+    expect(spanIsSampled(span3)).toBe(false);
+    expect(spanIsSampled(span4)).toBe(false);
+    expect(spanIsSampled(span5)).toBe(true);
   });
 });
 

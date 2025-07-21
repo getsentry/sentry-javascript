@@ -7,8 +7,8 @@ import type {
   SpanTimeInput,
 } from '../types-hoist/span';
 import type { SpanStatus } from '../types-hoist/spanStatus';
+import { generateSpanId, generateTraceId } from '../utils/propagationContext';
 import { TRACE_FLAG_NONE } from '../utils/spanUtils';
-import { generateSpanId, generateTraceId } from '../utils-hoist/propagationContext';
 
 /**
  * A Sentry Span that is non-recording, meaning it will not be sent to Sentry.
@@ -32,7 +32,6 @@ export class SentryNonRecordingSpan implements Span {
   }
 
   /** @inheritdoc */
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
   public end(_timestamp?: SpanTimeInput): void {}
 
   /** @inheritdoc */
