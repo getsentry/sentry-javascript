@@ -27,11 +27,11 @@ const spanAddDoc = expect.objectContaining({
 });
 
 const spanSetDocs = expect.objectContaining({
-  description: 'setDocs cities',
+  description: 'setDoc cities',
   data: expect.objectContaining({
     'db.collection.name': 'cities',
     'db.namespace': '[DEFAULT]',
-    'db.operation.name': 'setDocs',
+    'db.operation.name': 'setDoc',
     'db.system.name': 'firebase.firestore',
     'firebase.firestore.options.projectId': 'sentry-15d85',
     'firebase.firestore.type': 'collection',

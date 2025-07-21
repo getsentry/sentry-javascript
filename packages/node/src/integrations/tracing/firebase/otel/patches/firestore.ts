@@ -213,7 +213,7 @@ function patchSetDoc<AppModelType, DbModelType extends DocumentData>(
       data: WithFieldValue<AppModelType> & PartialWithFieldValue<AppModelType>,
       options?: SetOptions,
     ): Promise<void> {
-      const span = startDBSpan(tracer, 'setDocs', reference.parent || reference);
+      const span = startDBSpan(tracer, 'setDoc', reference.parent || reference);
       firestoreSpanCreationHook(span);
 
       return executeContextWithSpan<Promise<void>>(span, () => {
