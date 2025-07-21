@@ -23,6 +23,7 @@ import {
   withIsolationScope,
 } from '@sentry/node';
 import type { APIContext, MiddlewareResponseHandler } from 'astro';
+import type { ResolvedRouteWithCasedPattern } from '../integration/types';
 
 type MiddlewareOptions = {
   /**
@@ -95,6 +96,9 @@ async function instrumentRequest(
     addNonEnumerableProperty(locals, '__sentry_wrapped__', true);
   }
 
+  const storedBuildTimeRoutes = (globalThis as unknown as { __sentryRouteInfo?: ResolvedRouteWithCasedPattern[] })
+    ?.__sentryRouteInfo;
+
   const isDynamicPageRequest = checkIsDynamicPageRequest(ctx);
 
   const request = ctx.request;
@@ -128,7 +132,13 @@ async function instrumentRequest(
       }
 
       try {
-        const interpolatedRoute = interpolateRouteFromUrlAndParams(ctx.url.pathname, ctx.params);
+        const contextWithRoutePattern = ctx as Parameters<MiddlewareResponseHandler>[0] & { routePattern?: string };
+        const rawRoutePattern = contextWithRoutePattern.routePattern;
+
+        const foundRoute = storedBuildTimeRoutes?.find(route => route.pattern === rawRoutePattern);
+
+        const interpolatedRoute =
+          foundRoute?.patternCaseSensitive || interpolateRouteFromUrlAndParams(ctx.url.pathname, ctx.params);
         const source = interpolatedRoute ? 'route' : 'url';
         // storing res in a variable instead of directly returning is necessary to
         // invoke the catch block if next() throws

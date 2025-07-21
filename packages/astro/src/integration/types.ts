@@ -1,4 +1,5 @@
 import type { SentryVitePluginOptions } from '@sentry/vite-plugin';
+import type { InjectedRoute, RouteData } from 'astro';
 
 type SdkInitPaths = {
   /**
@@ -224,3 +225,23 @@ export type SentryOptions = SdkInitPaths &
     debug?: boolean;
     // eslint-disable-next-line deprecation/deprecation
   } & DeprecatedRuntimeOptions;
+
+/**
+ * Inline type for official `IntegrationResolvedRoute` (only available after Astro v5)
+ * The type includes more properties, but we only need some of them.
+ *
+ * @see https://github.com/withastro/astro/blob/04e60119afee668264a2ff6665c19a32150f4c91/packages/astro/src/types/public/integrations.ts#L287
+ */
+export type IntegrationResolvedRoute = InjectedRoute & {
+  patternRegex: RouteData['pattern'];
+  segments: RouteData['segments'];
+};
+
+/**
+ * Internal type for Astro routes, as we store an additional `patternCaseSensitive` property alongside the
+ * lowercased parametrized `pattern` of each Astro route.
+ */
+export type ResolvedRouteWithCasedPattern = IntegrationResolvedRoute & {
+  patternRegex: string; // RegEx gets stringified
+  patternCaseSensitive: string;
+};

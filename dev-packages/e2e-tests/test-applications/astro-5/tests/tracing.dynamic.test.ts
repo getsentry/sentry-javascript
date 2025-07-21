@@ -245,7 +245,7 @@ test.describe('nested SSR routes (client, server, server request)', () => {
 
     // Server HTTP request transaction - should be parametrized (todo: currently not parametrized)
     expect(serverHTTPServerRequestTxn).toMatchObject({
-      transaction: 'GET /api/user/myUsername123.json', // todo: should be parametrized to 'GET /api/user/[userId].json'
+      transaction: 'GET /api/user/[userId].json',
       transaction_info: { source: 'route' },
       contexts: {
         trace: {
@@ -294,7 +294,7 @@ test.describe('nested SSR routes (client, server, server request)', () => {
     });
 
     expect(serverPageRequestTxn).toMatchObject({
-      transaction: 'GET /catchAll/[path]',
+      transaction: 'GET /catchAll/[...path]',
       transaction_info: { source: 'route' },
       contexts: {
         trace: {
