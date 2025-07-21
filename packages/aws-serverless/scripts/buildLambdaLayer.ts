@@ -142,7 +142,7 @@ function getAllFiles(dir: string): string[] {
 
 function buildPackageJson(): void {
   console.log('Building package.json');
-  const packagesDir = path.resolve(__dirname, '..');
+  const packagesDir = path.resolve(__dirname, '../..');
   const packageDirs = fs
     .readdirSync(packagesDir, { withFileTypes: true })
     .filter(dirent => dirent.isDirectory())
