@@ -211,7 +211,7 @@ describe('ServerRuntimeClient', () => {
     it('flushes logs when weight exceeds 800KB', () => {
       const options = getDefaultClientOptions({
         dsn: PUBLIC_DSN,
-        _experiments: { enableLogs: true },
+        enableLogs: true,
       });
       client = new ServerRuntimeClient(options);
 
@@ -228,7 +228,7 @@ describe('ServerRuntimeClient', () => {
     it('accumulates log weight without flushing when under threshold', () => {
       const options = getDefaultClientOptions({
         dsn: PUBLIC_DSN,
-        _experiments: { enableLogs: true },
+        enableLogs: true,
       });
       client = new ServerRuntimeClient(options);
 
@@ -245,7 +245,7 @@ describe('ServerRuntimeClient', () => {
     it('flushes logs on flush event', () => {
       const options = getDefaultClientOptions({
         dsn: PUBLIC_DSN,
-        _experiments: { enableLogs: true },
+        enableLogs: true,
       });
       client = new ServerRuntimeClient(options);
 
@@ -265,7 +265,6 @@ describe('ServerRuntimeClient', () => {
     it('does not flush logs when logs are disabled', () => {
       const options = getDefaultClientOptions({
         dsn: PUBLIC_DSN,
-        _experiments: { enableLogs: false },
       });
       client = new ServerRuntimeClient(options);
 
@@ -282,7 +281,7 @@ describe('ServerRuntimeClient', () => {
     it('flushes logs when flush event is triggered', () => {
       const options = getDefaultClientOptions({
         dsn: PUBLIC_DSN,
-        _experiments: { enableLogs: true },
+        enableLogs: true,
       });
       client = new ServerRuntimeClient(options);
 

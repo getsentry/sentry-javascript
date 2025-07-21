@@ -1,6 +1,8 @@
 /* eslint-disable no-console */
+import { nodeFileTrace } from '@vercel/nft';
 import * as childProcess from 'child_process';
 import * as fs from 'fs';
+import * as path from 'path';
 import { version } from '../package.json';
 
 /**
@@ -11,21 +13,24 @@ function run(cmd: string, options?: childProcess.ExecSyncOptions): string {
   return String(childProcess.execSync(cmd, { stdio: 'inherit', ...options }));
 }
 
+/**
+ * Build the AWS lambda layer by first installing the local package into `build/aws/dist-serverless/nodejs`.
+ * Then, prune the node_modules directory to remove unused files by first getting all necessary files with
+ * `@vercel/nft` and then deleting all other files inside `node_modules`.
+ * Finally, create a zip file of the layer.
+ */
 async function buildLambdaLayer(): Promise<void> {
-  // Create the main SDK bundle
-  run('yarn rollup --config rollup.aws.config.mjs');
+  console.log('Building Lambda layer.');
+  console.log('Installing local @sentry/aws-serverless into build/aws/dist-serverless/nodejs.');
 
-  // We build a minified bundle, but it's standing in for the regular `index.js` file listed in `package.json`'s `main`
-  // property, so we have to rename it so it's findable.
-  fs.renameSync(
-    'build/aws/dist-serverless/nodejs/node_modules/@sentry/aws-serverless/build/npm/cjs/index.debug.min.js',
-    'build/aws/dist-serverless/nodejs/node_modules/@sentry/aws-serverless/build/npm/cjs/index.js',
-  );
+  console.log('Creating target directory for npm install.');
+  fsForceMkdirSync('./build/aws/dist-serverless/nodejs');
 
-  // We're creating a bundle for the SDK, but still using it in a Node context, so we need to copy in `package.json`,
-  // purely for its `main` property.
-  console.log('Copying `package.json` into lambda layer.');
-  fs.copyFileSync('package.json', 'build/aws/dist-serverless/nodejs/node_modules/@sentry/aws-serverless/package.json');
+  run('npm install . --prefix ./build/aws/dist-serverless/nodejs --install-links');
+
+  await pruneNodeModules();
+  fs.rmSync('./build/aws/dist-serverless/nodejs/package.json', { force: true });
+  fs.rmSync('./build/aws/dist-serverless/nodejs/package-lock.json', { force: true });
 
   // The layer also includes `awslambda-auto.js`, a helper file which calls `Sentry.init()` and wraps the lambda
   // handler. It gets run when Node is launched inside the lambda, using the environment variable
@@ -59,5 +64,81 @@ buildLambdaLayer();
  */
 function fsForceMkdirSync(path: string): void {
   fs.rmSync(path, { recursive: true, force: true });
-  fs.mkdirSync(path);
+  fs.mkdirSync(path, { recursive: true });
+}
+
+async function pruneNodeModules(): Promise<void> {
+  const entrypoints = [
+    './build/aws/dist-serverless/nodejs/node_modules/@sentry/aws-serverless/build/npm/esm/index.js',
+    './build/aws/dist-serverless/nodejs/node_modules/@sentry/aws-serverless/build/npm/cjs/index.js',
+    './build/aws/dist-serverless/nodejs/node_modules/@sentry/aws-serverless/build/npm/cjs/awslambda-auto.js',
+    './build/aws/dist-serverless/nodejs/node_modules/@sentry/aws-serverless/build/npm/esm/awslambda-auto.js',
+  ];
+
+  const { fileList } = await nodeFileTrace(entrypoints);
+
+  const allFiles = getAllFiles('./build/aws/dist-serverless/nodejs/node_modules');
+
+  const filesToDelete = allFiles.filter(file => !fileList.has(file));
+  console.log(`Removing ${filesToDelete.length} unused files from node_modules.`);
+
+  for (const file of filesToDelete) {
+    try {
+      fs.unlinkSync(file);
+    } catch {
+      console.error(`Error deleting ${file}`);
+    }
+  }
+
+  console.log('Cleaning up empty directories.');
+
+  removeEmptyDirs('./build/aws/dist-serverless/nodejs/node_modules');
+}
+
+function removeEmptyDirs(dir: string): void {
+  try {
+    const entries = fs.readdirSync(dir);
+
+    for (const entry of entries) {
+      const fullPath = path.join(dir, entry);
+      const stat = fs.statSync(fullPath);
+      if (stat.isDirectory()) {
+        removeEmptyDirs(fullPath);
+      }
+    }
+
+    const remainingEntries = fs.readdirSync(dir);
+
+    if (remainingEntries.length === 0) {
+      fs.rmdirSync(dir);
+    }
+  } catch {
+    // Directory might not exist or might not be empty, that's ok
+  }
+}
+
+function getAllFiles(dir: string): string[] {
+  const files: string[] = [];
+
+  function walkDirectory(currentPath: string): void {
+    try {
+      const entries = fs.readdirSync(currentPath, { withFileTypes: true });
+
+      for (const entry of entries) {
+        const fullPath = path.join(currentPath, entry.name);
+        const relativePath = path.relative(process.cwd(), fullPath);
+
+        if (entry.isDirectory()) {
+          walkDirectory(fullPath);
+        } else {
+          files.push(relativePath);
+        }
+      }
+    } catch {
+      console.log(`Skipping directory ${currentPath}`);
+    }
+  }
+
+  walkDirectory(dir);
+  return files;
 }

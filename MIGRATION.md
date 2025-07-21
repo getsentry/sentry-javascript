@@ -6,10 +6,7 @@ These docs walk through how to migrate our JavaScript SDKs through different maj
 - Upgrading from [SDK 6.x to 7.x](./docs/migration/v6-to-v7.md)
 - Upgrading from [SDK 7.x to 8.x](./docs/migration/v7-to-v8.md)
 - Upgrading from [SDK 8.x to 9.x](./docs/migration/v8-to-v9.md)
-  <<<<<<< HEAD
-- # Upgrading from [SDK 9.x to 10.x](#upgrading-from-9x-to-10x)
-- Upgrading from [SDK 9.x to 10.x](#upgrading-from-8x-to-9x)
-  > > > > > > > f726d5ab5 (chore: Add migration guide for v10 and move v8->v9 guide to docs)
+- Upgrading from [SDK 9.x to 10.x](#upgrading-from-9x-to-10x)
 
 # Upgrading from 9.x to 10.x
 
@@ -42,6 +39,27 @@ Updates and fixes for version 9 will be published as `SentryNodeServerlessSDKv9`
 - `BaseClient` was removed, use `Client` as a direct replacement.
 - `hasTracingEnabled` was removed, use `hasSpansEnabled` as a direct replacement.
 - `logger` and type `Logger` were removed, use `debug` and type `SentryDebugLogger` instead.
+- The `_experiments.enableLogs` and `_experiments.beforeSendLog` options were removed, use the top-level `enableLogs` and `beforeSendLog` options instead.
+
+```js
+// before
+Sentry.init({
+  _experiments: {
+    enableLogs: true,
+    beforeSendLog: log => {
+      return log;
+    },
+  },
+});
+
+// after
+Sentry.init({
+  enableLogs: true,
+  beforeSendLog: log => {
+    return log;
+  },
+});
+```
 
 ## No Version Support Timeline
 
