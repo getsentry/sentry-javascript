@@ -69,4 +69,9 @@ test('Lambda layer SDK bundle sends events', async ({ request }) => {
       op: 'test',
     }),
   );
+
+  // shows that the SDK source is correctly detected
+  expect(transactionEvent.sdk?.packages).toContainEqual(
+    expect.objectContaining({ name: 'aws:@sentry/aws-serverless' }),
+  );
 });

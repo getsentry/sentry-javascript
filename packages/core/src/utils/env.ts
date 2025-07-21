@@ -15,7 +15,7 @@
 
 declare const __SENTRY_BROWSER_BUNDLE__: boolean | undefined;
 
-export type SdkSource = 'npm' | 'cdn' | 'loader';
+export type SdkSource = 'npm' | 'cdn' | 'loader' | 'aws';
 
 /**
  * Figures out if we're building a browser bundle.

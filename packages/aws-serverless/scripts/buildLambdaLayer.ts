@@ -43,10 +43,12 @@ async function buildLambdaLayer(): Promise<void> {
     'build/aws/dist-serverless/nodejs/node_modules/@sentry/aws-serverless/dist/awslambda-auto.js',
   );
 
+  replaceSDKSource();
+
   const zipFilename = `sentry-node-serverless-${version}.zip`;
   console.log(`Creating final layer zip file ${zipFilename}.`);
   // need to preserve the symlink above with -y
-  run(`zip -r -y ${zipFilename} .`, { cwd: 'build/aws/dist-serverless' });
+  run(`zip -r -y -q ${zipFilename} .`, { cwd: 'build/aws/dist-serverless' });
 }
 
 // eslint-disable-next-line @typescript-eslint/no-floating-promises
@@ -177,4 +179,31 @@ function buildPackageJson(): void {
   fsForceMkdirSync('./build/aws/dist-serverless/nodejs');
   const packageJsonPath = './build/aws/dist-serverless/nodejs/package.json';
   fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
+}
+
+function replaceSDKSource(): void {
+  console.log('Replacing SDK source.');
+
+  const envFiles = [
+    './build/aws/dist-serverless/nodejs/node_modules/@sentry/core/build/cjs/utils/env.js',
+    './build/aws/dist-serverless/nodejs/node_modules/@sentry/core/build/esm/utils/env.js',
+  ];
+
+  for (const envFile of envFiles) {
+    try {
+      let content = fs.readFileSync(envFile, 'utf-8');
+
+      // Replace the line marked with __SENTRY_SDK_SOURCE__ comment
+      // Change from 'npm' to 'aws' to identify that this is the AWS Lambda layer
+      content = content.replace(
+        "/* __SENTRY_SDK_SOURCE__ */ return 'npm';",
+        "/* __SENTRY_SDK_SOURCE__ */ return 'aws';",
+      );
+
+      fs.writeFileSync(envFile, content);
+      console.log(`Updated SDK source in ${envFile}`);
+    } catch {
+      console.warn(`Warning: Could not update SDK source in ${envFile}`);
+    }
+  }
 }
