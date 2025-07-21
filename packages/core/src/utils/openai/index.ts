@@ -1,6 +1,6 @@
 import { getCurrentScope } from '../../currentScopes';
 import { captureException } from '../../exports';
-import { startSpan } from '../../tracing/trace';
+import { startSpan, startSpanManual } from '../../tracing/trace';
 import type { Span, SpanAttributeValue } from '../../types-hoist/span';
 import {
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
@@ -178,37 +178,55 @@ function instrumentMethod<T extends unknown[], R>(
     const model = (requestAttributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] as string) || 'unknown';
     const operationName = getOperationName(methodPath);
 
-    return startSpan(
-      {
-        name: `${operationName} ${model}`,
-        op: getSpanOperation(methodPath),
-        attributes: requestAttributes as Record<string, SpanAttributeValue>,
-      },
-      async (span: Span) => {
-        try {
-          if (finalOptions.recordInputs && args[0] && typeof args[0] === 'object') {
-            addRequestAttributes(span, args[0] as Record<string, unknown>);
-          }
+    const result = await originalMethod.apply(context, args);
 
-          const result = await originalMethod.apply(context, args);
+    if (isStream(result)) {
+      return startSpanManual(
+        {
+          name: `${operationName} ${model}`,
+          op: getSpanOperation(methodPath),
+          attributes: requestAttributes as Record<string, SpanAttributeValue>,
+        },
+        (span: Span, finish: () => void) => {
+          try {
+            if (finalOptions.recordInputs && args[0] && typeof args[0] === 'object') {
+              addRequestAttributes(span, args[0] as Record<string, unknown>);
+            }
 
-          if (isStream(result)) {
             return instrumentStream(
               result as OpenAIStream<ChatCompletionChunk | ResponseStreamingEvent>,
               span,
               finalOptions.recordOutputs ?? false,
+              finish,
             ) as unknown as R;
+          } catch (error) {
+            captureException(error);
+            finish();
+            throw error;
           }
-
-          // Handle non-streaming responses
-          addResponseAttributes(span, result, finalOptions.recordOutputs);
-          return result;
-        } catch (error) {
-          captureException(error);
-          throw error;
-        }
-      },
-    );
+        },
+      );
+    } else {
+      return startSpan(
+        {
+          name: `${operationName} ${model}`,
+          op: getSpanOperation(methodPath),
+          attributes: requestAttributes as Record<string, SpanAttributeValue>,
+        },
+        async (span: Span) => {
+          try {
+            if (finalOptions.recordInputs && args[0] && typeof args[0] === 'object') {
+              addRequestAttributes(span, args[0] as Record<string, unknown>);
+            }
+            addResponseAttributes(span, result, finalOptions.recordOutputs);
+            return result;
+          } catch (error) {
+            captureException(error);
+            throw error;
+          }
+        },
+      );
+    }
   };
 }
 

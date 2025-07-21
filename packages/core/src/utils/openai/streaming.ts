@@ -95,12 +95,14 @@ function processResponsesApiEvent(
  * @param stream - The stream of events to instrument
  * @param span - The span to add attributes to
  * @param recordOutputs - Whether to record outputs
+ * @param finishSpan - Optional function to finish the span manually
  * @returns A generator that yields the events
  */
 export async function* instrumentStream<T>(
   stream: AsyncIterable<T>,
   span: Span,
   recordOutputs: boolean,
+  finishSpan?: () => void,
 ): AsyncGenerator<T, void, unknown> {
   const state: StreamingState = {
     eventTypes: [],
@@ -123,14 +125,18 @@ export async function* instrumentStream<T>(
 
     if (state.finishReasons.length) {
       span.setAttributes({
-        [GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]: JSON.stringify(state.finishReasons),
+        [GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]: state.finishReasons.join(','),
       });
     }
 
     if (recordOutputs && state.responseTexts.length) {
       span.setAttributes({
-        [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: JSON.stringify(state.responseTexts),
+        [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: state.responseTexts.join(''),
       });
     }
+  }
+
+  if (finishSpan) {
+    finishSpan();
   }
 }
