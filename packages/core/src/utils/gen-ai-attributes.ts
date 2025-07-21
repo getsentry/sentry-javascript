@@ -127,14 +127,19 @@ export const OPENAI_RESPONSE_MODEL_ATTRIBUTE = 'openai.response.model';
 export const OPENAI_RESPONSE_TIMESTAMP_ATTRIBUTE = 'openai.response.timestamp';
 
 /**
- * The number of completion tokens used (OpenAI specific)
+ * The number of completion tokens used
  */
 export const OPENAI_USAGE_COMPLETION_TOKENS_ATTRIBUTE = 'openai.usage.completion_tokens';
 
 /**
- * The number of prompt tokens used (OpenAI specific)
+ * The number of prompt tokens used
  */
 export const OPENAI_USAGE_PROMPT_TOKENS_ATTRIBUTE = 'openai.usage.prompt_tokens';
+
+/**
+ * Whether the response is a stream response
+ */
+export const OPENAI_RESPONSE_STREAM_ATTRIBUTE = 'openai.response.stream';
 
 // =============================================================================
 // OPENAI OPERATIONS

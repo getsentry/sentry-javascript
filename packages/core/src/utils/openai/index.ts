@@ -8,24 +8,18 @@ import {
   GEN_AI_REQUEST_MESSAGES_ATTRIBUTE,
   GEN_AI_REQUEST_MODEL_ATTRIBUTE,
   GEN_AI_REQUEST_PRESENCE_PENALTY_ATTRIBUTE,
+  GEN_AI_REQUEST_STREAM_ATTRIBUTE,
   GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE,
   GEN_AI_REQUEST_TOP_P_ATTRIBUTE,
   GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE,
-  GEN_AI_RESPONSE_ID_ATTRIBUTE,
-  GEN_AI_RESPONSE_MODEL_ATTRIBUTE,
   GEN_AI_RESPONSE_TEXT_ATTRIBUTE,
   GEN_AI_SYSTEM_ATTRIBUTE,
-  GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
-  GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
-  GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
-  OPENAI_RESPONSE_ID_ATTRIBUTE,
-  OPENAI_RESPONSE_MODEL_ATTRIBUTE,
-  OPENAI_RESPONSE_TIMESTAMP_ATTRIBUTE,
-  OPENAI_USAGE_COMPLETION_TOKENS_ATTRIBUTE,
-  OPENAI_USAGE_PROMPT_TOKENS_ATTRIBUTE,
+  OPENAI_RESPONSE_STREAM_ATTRIBUTE,
 } from '../gen-ai-attributes';
 import { OPENAI_INTEGRATION_NAME } from './constants';
+import { instrumentStream } from './streaming';
 import type {
+  ChatCompletionChunk,
   InstrumentedMethod,
   OpenAiChatCompletionObject,
   OpenAiClient,
@@ -33,6 +27,8 @@ import type {
   OpenAiOptions,
   OpenAiResponse,
   OpenAIResponseObject,
+  OpenAIStream,
+  ResponseStreamingEvent,
 } from './types';
 import {
   buildMethodPath,
@@ -40,6 +36,9 @@ import {
   getSpanOperation,
   isChatCompletionResponse,
   isResponsesApiResponse,
+  isStream,
+  setCommonResponseAttributes,
+  setTokenUsageAttributes,
   shouldInstrument,
 } from './utils';
 
@@ -61,62 +60,12 @@ function extractRequestAttributes(args: unknown[], methodPath: string): Record<s
     if ('frequency_penalty' in params)
       attributes[GEN_AI_REQUEST_FREQUENCY_PENALTY_ATTRIBUTE] = params.frequency_penalty;
     if ('presence_penalty' in params) attributes[GEN_AI_REQUEST_PRESENCE_PENALTY_ATTRIBUTE] = params.presence_penalty;
+    if ('stream' in params) attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE] = params.stream;
   } else {
     attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] = 'unknown';
   }
 
   return attributes;
-}
-
-/**
- * Helper function to set token usage attributes
- */
-function setTokenUsageAttributes(
-  span: Span,
-  promptTokens?: number,
-  completionTokens?: number,
-  totalTokens?: number,
-): void {
-  if (promptTokens !== undefined) {
-    span.setAttributes({
-      [OPENAI_USAGE_PROMPT_TOKENS_ATTRIBUTE]: promptTokens,
-      [GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]: promptTokens,
-    });
-  }
-  if (completionTokens !== undefined) {
-    span.setAttributes({
-      [OPENAI_USAGE_COMPLETION_TOKENS_ATTRIBUTE]: completionTokens,
-      [GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]: completionTokens,
-    });
-  }
-  if (totalTokens !== undefined) {
-    span.setAttributes({
-      [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: totalTokens,
-    });
-  }
-}
-
-/**
- * Helper function to set common response attributes (ID, model, timestamp)
- */
-function setCommonResponseAttributes(span: Span, id?: string, model?: string, timestamp?: number): void {
-  if (id) {
-    span.setAttributes({
-      [OPENAI_RESPONSE_ID_ATTRIBUTE]: id,
-      [GEN_AI_RESPONSE_ID_ATTRIBUTE]: id,
-    });
-  }
-  if (model) {
-    span.setAttributes({
-      [OPENAI_RESPONSE_MODEL_ATTRIBUTE]: model,
-      [GEN_AI_RESPONSE_MODEL_ATTRIBUTE]: model,
-    });
-  }
-  if (timestamp) {
-    span.setAttributes({
-      [OPENAI_RESPONSE_TIMESTAMP_ATTRIBUTE]: new Date(timestamp * 1000).toISOString(),
-    });
-  }
 }
 
 /**
@@ -195,6 +144,9 @@ function addRequestAttributes(span: Span, params: Record<string, unknown>): void
   if ('input' in params) {
     span.setAttributes({ [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: JSON.stringify(params.input) });
   }
+  if ('stream' in params) {
+    span.setAttributes({ [OPENAI_RESPONSE_STREAM_ATTRIBUTE]: Boolean(params.stream) });
+  }
 }
 
 function getOptionsFromIntegration(): OpenAiOptions {
@@ -239,7 +191,16 @@ function instrumentMethod<T extends unknown[], R>(
           }
 
           const result = await originalMethod.apply(context, args);
-          // TODO: Add streaming support
+
+          if (isStream(result)) {
+            return instrumentStream(
+              result as OpenAIStream<ChatCompletionChunk | ResponseStreamingEvent>,
+              span,
+              finalOptions.recordOutputs ?? false,
+            ) as unknown as R;
+          }
+
+          // Handle non-streaming responses
           addResponseAttributes(span, result, finalOptions.recordOutputs);
           return result;
         } catch (error) {
