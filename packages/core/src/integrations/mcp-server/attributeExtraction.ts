@@ -10,122 +10,34 @@ import {
   MCP_LOGGING_LEVEL_ATTRIBUTE,
   MCP_LOGGING_LOGGER_ATTRIBUTE,
   MCP_LOGGING_MESSAGE_ATTRIBUTE,
-  MCP_PROMPT_NAME_ATTRIBUTE,
-  MCP_REQUEST_ARGUMENT,
+  MCP_PROTOCOL_VERSION_ATTRIBUTE,
   MCP_REQUEST_ID_ATTRIBUTE,
   MCP_RESOURCE_URI_ATTRIBUTE,
+  MCP_SERVER_NAME_ATTRIBUTE,
+  MCP_SERVER_TITLE_ATTRIBUTE,
+  MCP_SERVER_VERSION_ATTRIBUTE,
   MCP_SESSION_ID_ATTRIBUTE,
-  MCP_TOOL_NAME_ATTRIBUTE,
   MCP_TOOL_RESULT_CONTENT_COUNT_ATTRIBUTE,
   MCP_TOOL_RESULT_IS_ERROR_ATTRIBUTE,
   MCP_TRANSPORT_ATTRIBUTE,
   NETWORK_PROTOCOL_VERSION_ATTRIBUTE,
   NETWORK_TRANSPORT_ATTRIBUTE,
 } from './attributes';
+import { extractTargetInfo, getRequestArguments } from './methodConfig';
+import {
+  getClientInfoForTransport,
+  getProtocolVersionForTransport,
+  getSessionDataForTransport,
+} from './sessionManagement';
 import type {
   ExtraHandlerData,
   JsonRpcNotification,
   JsonRpcRequest,
   McpSpanType,
   MCPTransport,
-  MethodConfig,
+  PartyInfo,
+  SessionData,
 } from './types';
-
-/**
- * Configuration for MCP methods to extract targets and arguments
- * @internal Maps method names to their extraction configuration
- */
-const METHOD_CONFIGS: Record<string, MethodConfig> = {
-  'tools/call': {
-    targetField: 'name',
-    targetAttribute: MCP_TOOL_NAME_ATTRIBUTE,
-    captureArguments: true,
-    argumentsField: 'arguments',
-  },
-  'resources/read': {
-    targetField: 'uri',
-    targetAttribute: MCP_RESOURCE_URI_ATTRIBUTE,
-    captureUri: true,
-  },
-  'resources/subscribe': {
-    targetField: 'uri',
-    targetAttribute: MCP_RESOURCE_URI_ATTRIBUTE,
-  },
-  'resources/unsubscribe': {
-    targetField: 'uri',
-    targetAttribute: MCP_RESOURCE_URI_ATTRIBUTE,
-  },
-  'prompts/get': {
-    targetField: 'name',
-    targetAttribute: MCP_PROMPT_NAME_ATTRIBUTE,
-    captureName: true,
-    captureArguments: true,
-    argumentsField: 'arguments',
-  },
-};
-
-/**
- * Extracts target info from method and params based on method type
- * @param method - MCP method name
- * @param params - Method parameters
- * @returns Target name and attributes for span instrumentation
- */
-export function extractTargetInfo(
-  method: string,
-  params: Record<string, unknown>,
-): {
-  target?: string;
-  attributes: Record<string, string>;
-} {
-  const config = METHOD_CONFIGS[method as keyof typeof METHOD_CONFIGS];
-  if (!config) {
-    return { attributes: {} };
-  }
-
-  const target =
-    config.targetField && typeof params?.[config.targetField] === 'string'
-      ? (params[config.targetField] as string)
-      : undefined;
-
-  return {
-    target,
-    attributes: target && config.targetAttribute ? { [config.targetAttribute]: target } : {},
-  };
-}
-
-/**
- * Extracts request arguments based on method type
- * @param method - MCP method name
- * @param params - Method parameters
- * @returns Arguments as span attributes with mcp.request.argument prefix
- */
-export function getRequestArguments(method: string, params: Record<string, unknown>): Record<string, string> {
-  const args: Record<string, string> = {};
-  const config = METHOD_CONFIGS[method as keyof typeof METHOD_CONFIGS];
-
-  if (!config) {
-    return args;
-  }
-
-  if (config.captureArguments && config.argumentsField && params?.[config.argumentsField]) {
-    const argumentsObj = params[config.argumentsField];
-    if (typeof argumentsObj === 'object' && argumentsObj !== null) {
-      for (const [key, value] of Object.entries(argumentsObj as Record<string, unknown>)) {
-        args[`${MCP_REQUEST_ARGUMENT}.${key.toLowerCase()}`] = JSON.stringify(value);
-      }
-    }
-  }
-
-  if (config.captureUri && params?.uri) {
-    args[`${MCP_REQUEST_ARGUMENT}.uri`] = JSON.stringify(params.uri);
-  }
-
-  if (config.captureName && params?.name) {
-    args[`${MCP_REQUEST_ARGUMENT}.name`] = JSON.stringify(params.name);
-  }
-
-  return args;
-}
 
 /**
  * Extracts transport types based on transport constructor name
@@ -227,6 +139,104 @@ export function getNotificationAttributes(
 }
 
 /**
+ * Extracts and validates PartyInfo from an unknown object
+ * @param obj - Unknown object that might contain party info
+ * @returns Validated PartyInfo object with only string properties
+ */
+function extractPartyInfo(obj: unknown): PartyInfo {
+  const partyInfo: PartyInfo = {};
+
+  if (obj && typeof obj === 'object' && obj !== null) {
+    const source = obj as Record<string, unknown>;
+    if (typeof source.name === 'string') partyInfo.name = source.name;
+    if (typeof source.title === 'string') partyInfo.title = source.title;
+    if (typeof source.version === 'string') partyInfo.version = source.version;
+  }
+
+  return partyInfo;
+}
+
+/**
+ * Extracts session data from "initialize" requests
+ * @param request - JSON-RPC "initialize" request containing client info and protocol version
+ * @returns Session data extracted from request parameters including protocol version and client info
+ */
+export function extractSessionDataFromInitializeRequest(request: JsonRpcRequest): SessionData {
+  const sessionData: SessionData = {};
+  if (request.params && typeof request.params === 'object' && request.params !== null) {
+    const params = request.params as Record<string, unknown>;
+    if (typeof params.protocolVersion === 'string') {
+      sessionData.protocolVersion = params.protocolVersion;
+    }
+    if (params.clientInfo) {
+      sessionData.clientInfo = extractPartyInfo(params.clientInfo);
+    }
+  }
+  return sessionData;
+}
+
+/**
+ * Extracts session data from "initialize" response
+ * @param result - "initialize" response result containing server info and protocol version
+ * @returns Partial session data extracted from response including protocol version and server info
+ */
+export function extractSessionDataFromInitializeResponse(result: unknown): Partial<SessionData> {
+  const sessionData: Partial<SessionData> = {};
+  if (result && typeof result === 'object') {
+    const resultObj = result as Record<string, unknown>;
+    if (typeof resultObj.protocolVersion === 'string') sessionData.protocolVersion = resultObj.protocolVersion;
+    if (resultObj.serverInfo) {
+      sessionData.serverInfo = extractPartyInfo(resultObj.serverInfo);
+    }
+  }
+  return sessionData;
+}
+
+/**
+ * Build client attributes from stored client info
+ * @param transport - MCP transport instance
+ * @returns Client attributes for span instrumentation
+ */
+export function getClientAttributes(transport: MCPTransport): Record<string, string> {
+  const clientInfo = getClientInfoForTransport(transport);
+  const attributes: Record<string, string> = {};
+
+  if (clientInfo?.name) {
+    attributes['mcp.client.name'] = clientInfo.name;
+  }
+  if (clientInfo?.title) {
+    attributes['mcp.client.title'] = clientInfo.title;
+  }
+  if (clientInfo?.version) {
+    attributes['mcp.client.version'] = clientInfo.version;
+  }
+
+  return attributes;
+}
+
+/**
+ * Build server attributes from stored server info
+ * @param transport - MCP transport instance
+ * @returns Server attributes for span instrumentation
+ */
+export function getServerAttributes(transport: MCPTransport): Record<string, string> {
+  const serverInfo = getSessionDataForTransport(transport)?.serverInfo;
+  const attributes: Record<string, string> = {};
+
+  if (serverInfo?.name) {
+    attributes[MCP_SERVER_NAME_ATTRIBUTE] = serverInfo.name;
+  }
+  if (serverInfo?.title) {
+    attributes[MCP_SERVER_TITLE_ATTRIBUTE] = serverInfo.title;
+  }
+  if (serverInfo?.version) {
+    attributes[MCP_SERVER_VERSION_ATTRIBUTE] = serverInfo.version;
+  }
+
+  return attributes;
+}
+
+/**
  * Extracts client connection info from extra handler data
  * @param extra - Extra handler data containing connection info
  * @returns Client address and port information
@@ -258,15 +268,23 @@ export function buildTransportAttributes(
   const sessionId = transport.sessionId;
   const clientInfo = extra ? extractClientInfo(extra) : {};
   const { mcpTransport, networkTransport } = getTransportTypes(transport);
+  const clientAttributes = getClientAttributes(transport);
+  const serverAttributes = getServerAttributes(transport);
+  const protocolVersion = getProtocolVersionForTransport(transport);
 
-  return {
+  const attributes = {
     ...(sessionId && { [MCP_SESSION_ID_ATTRIBUTE]: sessionId }),
     ...(clientInfo.address && { [CLIENT_ADDRESS_ATTRIBUTE]: clientInfo.address }),
     ...(clientInfo.port && { [CLIENT_PORT_ATTRIBUTE]: clientInfo.port }),
     [MCP_TRANSPORT_ATTRIBUTE]: mcpTransport,
     [NETWORK_TRANSPORT_ATTRIBUTE]: networkTransport,
     [NETWORK_PROTOCOL_VERSION_ATTRIBUTE]: '2.0',
+    ...(protocolVersion && { [MCP_PROTOCOL_VERSION_ATTRIBUTE]: protocolVersion }),
+    ...clientAttributes,
+    ...serverAttributes,
   };
+
+  return attributes;
 }
 
 /**
@@ -296,90 +314,45 @@ export function buildTypeSpecificAttributes(
 }
 
 /**
- * Get metadata about tool result content array
- * @internal
- */
-function getContentMetadata(content: unknown[]): Record<string, string | number> {
-  return {
-    [MCP_TOOL_RESULT_CONTENT_COUNT_ATTRIBUTE]: content.length,
-  };
-}
-
-/**
- * Build attributes from a single content item
- * @internal
- */
-function buildContentItemAttributes(
-  contentItem: Record<string, unknown>,
-  prefix: string,
-): Record<string, string | number> {
-  const attributes: Record<string, string | number> = {};
-
-  if (typeof contentItem.type === 'string') {
-    attributes[`${prefix}.content_type`] = contentItem.type;
-  }
-
-  if (typeof contentItem.text === 'string') {
-    const text = contentItem.text;
-    attributes[`${prefix}.content`] = text.length > 500 ? `${text.substring(0, 497)}...` : text;
-  }
-
-  if (typeof contentItem.mimeType === 'string') {
-    attributes[`${prefix}.mime_type`] = contentItem.mimeType;
-  }
-
-  if (typeof contentItem.uri === 'string') {
-    attributes[`${prefix}.uri`] = contentItem.uri;
-  }
-
-  if (typeof contentItem.name === 'string') {
-    attributes[`${prefix}.name`] = contentItem.name;
-  }
-
-  if (typeof contentItem.data === 'string') {
-    attributes[`${prefix}.data_size`] = contentItem.data.length;
-  }
-
-  return attributes;
-}
-
-/**
- * Build attributes from embedded resource object
- * @internal
- */
-function buildEmbeddedResourceAttributes(resource: Record<string, unknown>, prefix: string): Record<string, string> {
-  const attributes: Record<string, string> = {};
-
-  if (typeof resource.uri === 'string') {
-    attributes[`${prefix}.resource_uri`] = resource.uri;
-  }
-
-  if (typeof resource.mimeType === 'string') {
-    attributes[`${prefix}.resource_mime_type`] = resource.mimeType;
-  }
-
-  return attributes;
-}
-
-/**
- * Build attributes for all content items in the tool result
- * @internal
+ * Build attributes for tool result content items
+ * @param content - Array of content items from tool result
+ * @returns Attributes extracted from each content item including type, text, mime type, URI, and resource info
  */
 function buildAllContentItemAttributes(content: unknown[]): Record<string, string | number> {
-  const attributes: Record<string, string | number> = {};
+  const attributes: Record<string, string | number> = {
+    [MCP_TOOL_RESULT_CONTENT_COUNT_ATTRIBUTE]: content.length,
+  };
 
-  for (let i = 0; i < content.length; i++) {
-    const item = content[i];
-    if (item && typeof item === 'object' && item !== null) {
-      const contentItem = item as Record<string, unknown>;
-      const prefix = content.length === 1 ? 'mcp.tool.result' : `mcp.tool.result.${i}`;
+  for (const [i, item] of content.entries()) {
+    if (typeof item !== 'object' || item === null) continue;
 
-      Object.assign(attributes, buildContentItemAttributes(contentItem, prefix));
+    const contentItem = item as Record<string, unknown>;
+    const prefix = content.length === 1 ? 'mcp.tool.result' : `mcp.tool.result.${i}`;
 
-      if (contentItem.resource && typeof contentItem.resource === 'object') {
-        const resourceAttrs = buildEmbeddedResourceAttributes(contentItem.resource as Record<string, unknown>, prefix);
-        Object.assign(attributes, resourceAttrs);
-      }
+    const safeSet = (key: string, value: unknown): void => {
+      if (typeof value === 'string') attributes[`${prefix}.${key}`] = value;
+    };
+
+    safeSet('content_type', contentItem.type);
+    safeSet('mime_type', contentItem.mimeType);
+    safeSet('uri', contentItem.uri);
+    safeSet('name', contentItem.name);
+
+    if (typeof contentItem.text === 'string') {
+      const text = contentItem.text;
+      const maxLength = 500;
+      attributes[`${prefix}.content`] = text.length > maxLength ? `${text.slice(0, maxLength - 3)}...` : text;
+    }
+
+    if (typeof contentItem.data === 'string') {
+      attributes[`${prefix}.data_size`] = contentItem.data.length;
+    }
+
+    const resource = contentItem.resource;
+    if (typeof resource === 'object' && resource !== null) {
+      const res = resource as Record<string, unknown>;
+      safeSet('resource_uri', res.uri);
+      safeSet('resource_mime_type', res.mimeType);
     }
   }
 
@@ -393,24 +366,14 @@ function buildAllContentItemAttributes(content: unknown[]): Record<string, strin
  */
 export function extractToolResultAttributes(result: unknown): Record<string, string | number | boolean> {
   let attributes: Record<string, string | number | boolean> = {};
-
-  if (typeof result !== 'object' || result === null) {
-    return attributes;
-  }
+  if (typeof result !== 'object' || result === null) return attributes;
 
   const resultObj = result as Record<string, unknown>;
-
   if (typeof resultObj.isError === 'boolean') {
     attributes[MCP_TOOL_RESULT_IS_ERROR_ATTRIBUTE] = resultObj.isError;
   }
-
   if (Array.isArray(resultObj.content)) {
-    attributes = {
-      ...attributes,
-      ...getContentMetadata(resultObj.content),
-      ...buildAllContentItemAttributes(resultObj.content),
-    };
+    attributes = { ...attributes, ...buildAllContentItemAttributes(resultObj.content) };
   }
-
   return attributes;
 }

@@ -163,3 +163,23 @@ export type McpErrorType =
   | 'protocol'
   | 'validation'
   | 'timeout';
+
+/**
+ * Party (client/server) information extracted from MCP initialize requests
+ * @internal
+ */
+export type PartyInfo = {
+  name?: string;
+  title?: string;
+  version?: string;
+};
+
+/**
+ * Session-level data collected from various MCP messages
+ * @internal
+ */
+export type SessionData = {
+  clientInfo?: PartyInfo;
+  protocolVersion?: string;
+  serverInfo?: PartyInfo;
+};

@@ -6,7 +6,7 @@
 
 import { DEBUG_BUILD } from '../../debug-build';
 import { debug } from '../../utils/debug-logger';
-import type { JsonRpcNotification, JsonRpcRequest } from './types';
+import type { JsonRpcNotification, JsonRpcRequest, JsonRpcResponse } from './types';
 
 /**
  * Validates if a message is a JSON-RPC request
@@ -45,9 +45,7 @@ export function isJsonRpcNotification(message: unknown): message is JsonRpcNotif
  * @param message - Message to validate
  * @returns True if message is a JSON-RPC response
  */
-export function isJsonRpcResponse(
-  message: unknown,
-): message is { jsonrpc: '2.0'; id: string | number | null; result?: unknown; error?: unknown } {
+export function isJsonRpcResponse(message: unknown): message is JsonRpcResponse {
   return (
     typeof message === 'object' &&
     message !== null &&

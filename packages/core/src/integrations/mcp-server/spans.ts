@@ -12,7 +12,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '../../semanticAttributes';
 import { startSpan } from '../../tracing';
-import { buildTransportAttributes, buildTypeSpecificAttributes, extractTargetInfo } from './attributeExtraction';
+import { buildTransportAttributes, buildTypeSpecificAttributes } from './attributeExtraction';
 import {
   MCP_FUNCTION_ORIGIN_VALUE,
   MCP_METHOD_NAME_ATTRIBUTE,
@@ -22,6 +22,7 @@ import {
   MCP_ROUTE_SOURCE_VALUE,
   MCP_SERVER_OP_VALUE,
 } from './attributes';
+import { extractTargetInfo } from './methodConfig';
 import { filterMcpPiiFromSpanData } from './piiFiltering';
 import type { ExtraHandlerData, JsonRpcNotification, JsonRpcRequest, McpSpanConfig, MCPTransport } from './types';
 

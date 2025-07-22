@@ -22,6 +22,35 @@ export const MCP_SESSION_ID_ATTRIBUTE = 'mcp.session.id';
 export const MCP_TRANSPORT_ATTRIBUTE = 'mcp.transport';
 
 // =============================================================================
+// CLIENT ATTRIBUTES
+// =============================================================================
+
+/** Name of the MCP client application */
+export const MCP_CLIENT_NAME_ATTRIBUTE = 'mcp.client.name';
+
+/** Display title of the MCP client application */
+export const MCP_CLIENT_TITLE_ATTRIBUTE = 'mcp.client.title';
+
+/** Version of the MCP client application */
+export const MCP_CLIENT_VERSION_ATTRIBUTE = 'mcp.client.version';
+
+// =============================================================================
+// SERVER ATTRIBUTES
+// =============================================================================
+
+/** Name of the MCP server application */
+export const MCP_SERVER_NAME_ATTRIBUTE = 'mcp.server.name';
+
+/** Display title of the MCP server application */
+export const MCP_SERVER_TITLE_ATTRIBUTE = 'mcp.server.title';
+
+/** Version of the MCP server application */
+export const MCP_SERVER_VERSION_ATTRIBUTE = 'mcp.server.version';
+
+/** MCP protocol version used in the session */
+export const MCP_PROTOCOL_VERSION_ATTRIBUTE = 'mcp.protocol.version';
+
+// =============================================================================
 // METHOD-SPECIFIC ATTRIBUTES
 // =============================================================================
 
