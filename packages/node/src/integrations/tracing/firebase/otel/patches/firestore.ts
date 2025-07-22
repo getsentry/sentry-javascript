@@ -253,22 +253,25 @@ function startDBSpan<AppModelType, DbModelType extends DocumentData>(
 }
 
 /**
- * Sets the server address and port attributes on the span based on the Firestore settings.
+ * Gets the server address and port attributes from the Firestore settings.
  * It's best effort to extract the address and port from the settings, especially for IPv6.
  * @param span - The span to set attributes on.
  * @param settings - The Firestore settings containing host information.
  */
-function setPortAndAddress(span: Span, settings: FirestoreSettings): void {
-  if (typeof settings.host === 'string') {
-    let address: string | undefined;
-    let port: string | undefined;
+export function getPortAndAddress(settings: FirestoreSettings): {
+  address?: string;
+  port?: number;
+} {
+  let address: string | undefined;
+  let port: string | undefined;
 
+  if (typeof settings.host === 'string') {
     if (settings.host.startsWith('[')) {
       // IPv6 addresses can be enclosed in square brackets, e.g., [2001:db8::1]:8080
       if (settings.host.endsWith(']')) {
         // IPv6 with square brackets without port
         address = settings.host.replace(/^\[|\]$/g, '');
-      } else {
+      } else if (settings.host.includes(']:')) {
         // IPv6 with square brackets with port
         const lastColonIndex = settings.host.lastIndexOf(':');
         if (lastColonIndex !== -1) {
@@ -293,14 +296,11 @@ function setPortAndAddress(span: Span, settings: FirestoreSettings): void {
         }
       }
     }
-    if (address) {
-      span.setAttribute(ATTR_SERVER_ADDRESS, address);
-    }
-
-    if (port !== undefined) {
-      span.setAttribute(ATTR_SERVER_PORT, Number(port));
-    }
   }
+  return {
+    address: address,
+    port: port ? parseInt(port, 10) : undefined,
+  };
 }
 
 function addAttributes<AppModelType, DbModelType extends DocumentData>(
@@ -323,6 +323,14 @@ function addAttributes<AppModelType, DbModelType extends DocumentData>(
     'firebase.firestore.options.storageBucket': firestoreOptions.storageBucket,
   };
 
+  const { address, port } = getPortAndAddress(settings);
+
+  if (address) {
+    attributes[ATTR_SERVER_ADDRESS] = address;
+  }
+  if (port) {
+    attributes[ATTR_SERVER_PORT] = port;
+  }
+
   span.setAttributes(attributes);
-  setPortAndAddress(span, settings);
 }
