@@ -3,6 +3,12 @@ import type { WorkflowEvent, WorkflowStep, WorkflowStepConfig } from 'cloudflare
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { instrumentWorkflowWithSentry } from '../src/workflows';
 
+const NODE_MAJOR_VERSION = parseInt(process.versions.node.split('.')[0]!);
+
+if (NODE_MAJOR_VERSION < 20) {
+  process.exit(0); // Skip tests for Node.js versions below 20
+}
+
 const mockStep: WorkflowStep = {
   do: vi
     .fn()
