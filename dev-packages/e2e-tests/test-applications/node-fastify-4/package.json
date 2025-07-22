@@ -4,11 +4,13 @@
   "private": true,
   "scripts": {
     "start": "ts-node src/app.ts",
+    "start:override": "ts-node src/app-handle-error-override.ts",
     "test": "playwright test",
+    "test:override": "playwright test --config playwright.override.config.mjs",
     "clean": "npx rimraf node_modules pnpm-lock.yaml",
     "typecheck": "tsc",
     "test:build": "pnpm install && pnpm run typecheck",
-    "test:assert": "pnpm test"
+    "test:assert": "pnpm test && pnpm test:override"
   },
   "dependencies": {
     "@sentry/node": "latest || *",
