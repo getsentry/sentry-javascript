@@ -26,11 +26,13 @@ const UUID_REGEX = /^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f
 
 async function hashStringToUuid(input: string): Promise<string> {
   const buf = await crypto.subtle.digest('SHA-1', new TextEncoder().encode(input));
-  return Array.from(new Uint8Array(buf))
-    // We only need the first 16 bytes for the 32 characters
-    .slice(0, 16)
-    .map(b => b.toString(16).padStart(2, '0'))
-    .join('');
+  return (
+    Array.from(new Uint8Array(buf))
+      // We only need the first 16 bytes for the 32 characters
+      .slice(0, 16)
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('')
+  );
 }
 
 async function propagationContextFromInstanceId(instanceId: string): Promise<PropagationContext> {
