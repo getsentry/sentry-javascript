@@ -170,7 +170,6 @@ describe('componentTrackingPreprocessor', () => {
 
       expect(processedComponent.newCode).toEqual(processedComponent.originalCode);
     });
-  });
 
     it('doesnt inject the function call to a module context script block with Svelte 5 module attribute', () => {
       const preProc = componentTrackingPreprocessor();
