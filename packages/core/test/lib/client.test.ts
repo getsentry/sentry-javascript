@@ -11,7 +11,6 @@ import {
   SyncPromise,
   withMonitor,
 } from '../../src';
-import type { BaseClient, Client } from '../../src/client';
 import * as integrationModule from '../../src/integration';
 import type { Envelope } from '../../src/types-hoist/envelope';
 import type { ErrorEvent, Event, TransactionEvent } from '../../src/types-hoist/event';
@@ -2107,30 +2106,22 @@ describe('Client', () => {
   describe('hooks', () => {
     const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
 
-    // Make sure types work for both Client & BaseClient
-    const scenarios = [
-      // eslint-disable-next-line deprecation/deprecation
-      ['BaseClient', new TestClient(options) as BaseClient],
-      ['Client', new TestClient(options) as Client],
-    ] as const;
+    it('should call a beforeEnvelope hook', () => {
+      const client = new TestClient(options);
+      expect.assertions(1);
 
-    describe.each(scenarios)('with client %s', (_, client) => {
-      it('should call a beforeEnvelope hook', () => {
-        expect.assertions(1);
+      const mockEnvelope = [
+        {
+          event_id: '12345',
+        },
+        {},
+      ] as Envelope;
 
-        const mockEnvelope = [
-          {
-            event_id: '12345',
-          },
-          {},
-        ] as Envelope;
-
-        client.on('beforeEnvelope', envelope => {
-          expect(envelope).toEqual(mockEnvelope);
-        });
-
-        client.emit('beforeEnvelope', mockEnvelope);
+      client.on('beforeEnvelope', envelope => {
+        expect(envelope).toEqual(mockEnvelope);
       });
+
+      client.emit('beforeEnvelope', mockEnvelope);
     });
   });
 

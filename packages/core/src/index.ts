@@ -49,11 +49,7 @@ export { Scope } from './scope';
 export type { CaptureContext, ScopeContext, ScopeData } from './scope';
 export { notifyEventProcessors } from './eventProcessors';
 export { getEnvelopeEndpointWithUrlEncodedAuth, getReportDialogEndpoint } from './api';
-export {
-  Client,
-  // eslint-disable-next-line deprecation/deprecation
-  BaseClient,
-} from './client';
+export { Client } from './client';
 export { ServerRuntimeClient } from './server-runtime-client';
 export { initAndBind, setCurrentClient } from './sdk';
 export { createTransport } from './transports/base';
@@ -63,8 +59,6 @@ export { getIntegrationsToSetup, addIntegration, defineIntegration } from './int
 export { applyScopeDataToEvent, mergeScopeData } from './utils/applyScopeDataToEvent';
 export { prepareEvent } from './utils/prepareEvent';
 export { createCheckInEnvelope } from './checkin';
-// eslint-disable-next-line deprecation/deprecation
-export { hasTracingEnabled } from './utils/hasSpansEnabled';
 export { hasSpansEnabled } from './utils/hasSpansEnabled';
 export { isSentryRequestUrl } from './utils/isSentryRequestUrl';
 export { handleCallbackErrors } from './utils/handleCallbackErrors';
@@ -167,10 +161,8 @@ export {
   isVueViewModel,
 } from './utils/is';
 export { isBrowser } from './utils/isBrowser';
-// eslint-disable-next-line deprecation/deprecation
-export { CONSOLE_LEVELS, consoleSandbox, debug, logger, originalConsoleMethods } from './utils/debug-logger';
-// eslint-disable-next-line deprecation/deprecation
-export type { Logger, SentryDebugLogger } from './utils/debug-logger';
+export { CONSOLE_LEVELS, consoleSandbox, debug, originalConsoleMethods } from './utils/debug-logger';
+export type { SentryDebugLogger } from './utils/debug-logger';
 export {
   addContextToFrame,
   addExceptionMechanism,

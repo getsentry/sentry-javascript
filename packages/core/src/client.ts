@@ -1247,18 +1247,6 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
 }
 
 /**
- * @deprecated Use `Client` instead. This alias may be removed in a future major version.
- */
-// TODO(v10): Remove
-export type BaseClient = Client;
-
-/**
- * @deprecated Use `Client` instead. This alias may be removed in a future major version.
- */
-// TODO(v10): Remove
-export const BaseClient = Client;
-
-/**
  * Verifies that return value of configured `beforeSend` or `beforeSendTransaction` is of expected type, and returns the value if so.
  */
 function _validateBeforeSendResult(
