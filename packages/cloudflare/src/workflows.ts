@@ -24,14 +24,17 @@ import { init } from './sdk';
 
 const UUID_REGEX = /^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$/i;
 
-function propagationContextFromInstanceId(instanceId: string): PropagationContext {
-  // Validate and normalize traceId - should be a valid UUID with or without hyphens
-  if (!UUID_REGEX.test(instanceId)) {
-    throw new Error("Invalid 'instanceId' for workflow: Sentry requires random UUIDs for instanceId.");
-  }
+async function hashStringToUuid(input: string): Promise<string> {
+  const buf = await crypto.subtle.digest('SHA-1', new TextEncoder().encode(input));
+  return Array.from(new Uint8Array(buf))
+    // We only need the first 16 bytes for the 32 characters
+    .slice(0, 16)
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+}
 
-  // Remove hyphens to get UUID without hyphens
-  const traceId = instanceId.replace(/-/g, '');
+async function propagationContextFromInstanceId(instanceId: string): Promise<PropagationContext> {
+  const traceId = UUID_REGEX.test(instanceId) ? instanceId.replace(/-/g, '') : await hashStringToUuid(instanceId);
 
   // Derive sampleRand from last 4 characters of the random UUID
   //
@@ -60,7 +63,7 @@ async function workflowStepWithSentry<V>(
     addCloudResourceContext(isolationScope);
 
     return withScope(async scope => {
-      const propagationContext = propagationContextFromInstanceId(instanceId);
+      const propagationContext = await propagationContextFromInstanceId(instanceId);
       scope.setPropagationContext(propagationContext);
 
       // eslint-disable-next-line no-return-await
