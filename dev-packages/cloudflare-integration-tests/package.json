@@ -16,7 +16,7 @@
     "@sentry/cloudflare": "9.40.0"
   },
   "devDependencies": {
-    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@sentry-internal/test-utils": "link:../test-utils",
     "@cloudflare/workers-types": "^4.20250708.0",
     "vitest": "^3.2.4",
     "wrangler": "4.22.0"

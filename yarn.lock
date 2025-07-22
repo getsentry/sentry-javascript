@@ -6923,9 +6923,10 @@
     fflate "^0.4.4"
     mitt "^3.0.0"
 
-"@sentry-internal/test-utils@link:../test-utils":
-  version "0.0.0"
-  uid ""
+"@sentry-internal/test-utils@link:dev-packages/test-utils":
+  version "9.40.0"
+  dependencies:
+    express "^4.21.1"
 
 "@sentry/babel-plugin-component-annotate@2.22.6":
   version "2.22.6"
