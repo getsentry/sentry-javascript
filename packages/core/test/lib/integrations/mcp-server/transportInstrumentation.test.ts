@@ -1,6 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as currentScopes from '../../../../src/currentScopes';
 import { wrapMcpServerWithSentry } from '../../../../src/integrations/mcp-server';
+import {
+  extractSessionDataFromInitializeRequest,
+  extractSessionDataFromInitializeResponse,
+} from '../../../../src/integrations/mcp-server/attributeExtraction';
+import {
+  cleanupSessionDataForTransport,
+  getClientInfoForTransport,
+  getProtocolVersionForTransport,
+  getSessionDataForTransport,
+  storeSessionDataForTransport,
+  updateSessionDataForTransport,
+} from '../../../../src/integrations/mcp-server/sessionManagement';
 import { buildMcpServerSpanConfig } from '../../../../src/integrations/mcp-server/spans';
 import {
   wrapTransportError,
@@ -358,6 +370,134 @@ describe('MCP Server Transport Instrumentation', () => {
           'sentry.source': 'route',
         }),
       });
+    });
+  });
+
+  describe('Session Management', () => {
+    let mockTransport: ReturnType<typeof createMockTransport>;
+
+    beforeEach(() => {
+      mockTransport = createMockTransport();
+      mockTransport.sessionId = 'test-session-123';
+    });
+
+    it('should extract session data from initialize request', () => {
+      const initializeRequest = {
+        jsonrpc: '2.0' as const,
+        method: 'initialize',
+        id: 'init-1',
+        params: {
+          protocolVersion: '2025-06-18',
+          clientInfo: {
+            name: 'test-client',
+            title: 'Test Client',
+            version: '1.0.0',
+          },
+        },
+      };
+
+      const sessionData = extractSessionDataFromInitializeRequest(initializeRequest);
+
+      expect(sessionData).toEqual({
+        protocolVersion: '2025-06-18',
+        clientInfo: {
+          name: 'test-client',
+          title: 'Test Client',
+          version: '1.0.0',
+        },
+      });
+    });
+
+    it('should extract session data from initialize response', () => {
+      const initializeResponse = {
+        protocolVersion: '2025-06-18',
+        serverInfo: {
+          name: 'test-server',
+          title: 'Test Server',
+          version: '2.0.0',
+        },
+        capabilities: {},
+      };
+
+      const sessionData = extractSessionDataFromInitializeResponse(initializeResponse);
+
+      expect(sessionData).toEqual({
+        protocolVersion: '2025-06-18',
+        serverInfo: {
+          name: 'test-server',
+          title: 'Test Server',
+          version: '2.0.0',
+        },
+      });
+    });
+
+    it('should store and retrieve session data', () => {
+      const sessionData = {
+        protocolVersion: '2025-06-18',
+        clientInfo: {
+          name: 'test-client',
+          version: '1.0.0',
+        },
+      };
+
+      storeSessionDataForTransport(mockTransport, sessionData);
+
+      expect(getSessionDataForTransport(mockTransport)).toEqual(sessionData);
+      expect(getProtocolVersionForTransport(mockTransport)).toBe('2025-06-18');
+      expect(getClientInfoForTransport(mockTransport)).toEqual({
+        name: 'test-client',
+        version: '1.0.0',
+      });
+    });
+
+    it('should update existing session data', () => {
+      const initialData = {
+        protocolVersion: '2025-06-18',
+        clientInfo: { name: 'test-client' },
+      };
+
+      storeSessionDataForTransport(mockTransport, initialData);
+
+      const serverData = {
+        serverInfo: { name: 'test-server', version: '2.0.0' },
+      };
+
+      updateSessionDataForTransport(mockTransport, serverData);
+
+      const updatedData = getSessionDataForTransport(mockTransport);
+      expect(updatedData).toEqual({
+        protocolVersion: '2025-06-18',
+        clientInfo: { name: 'test-client' },
+        serverInfo: { name: 'test-server', version: '2.0.0' },
+      });
+    });
+
+    it('should clean up session data', () => {
+      const sessionData = {
+        protocolVersion: '2025-06-18',
+        clientInfo: { name: 'test-client' },
+      };
+
+      storeSessionDataForTransport(mockTransport, sessionData);
+      expect(getSessionDataForTransport(mockTransport)).toEqual(sessionData);
+
+      cleanupSessionDataForTransport(mockTransport);
+      expect(getSessionDataForTransport(mockTransport)).toBeUndefined();
+    });
+
+    it('should only store data for transports with sessionId', () => {
+      const transportWithoutSession = {
+        onmessage: vi.fn(),
+        onclose: vi.fn(),
+        onerror: vi.fn(),
+        send: vi.fn().mockResolvedValue(undefined),
+        protocolVersion: '2025-06-18',
+      };
+
+      const sessionData = { protocolVersion: '2025-06-18' };
+
+      storeSessionDataForTransport(transportWithoutSession, sessionData);
+      expect(getSessionDataForTransport(transportWithoutSession)).toBeUndefined();
     });
   });
 });
