@@ -133,6 +133,71 @@ describe('workflows', () => {
     ]);
   });
 
+    test('Calls expected functions with non-uuid instance id', async () => {
+    class BasicTestWorkflow {
+      constructor(_ctx: ExecutionContext, _env: unknown) {}
+
+      async run(_event: Readonly<WorkflowEvent<Params>>, step: WorkflowStep): Promise<void> {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const files = await step.do('first step', async () => {
+          return { files: ['doc_7392_rev3.pdf', 'report_x29_final.pdf'] };
+        });
+      }
+    }
+
+    const TestWorkflowInstrumented = instrumentWorkflowWithSentry(getSentryOptions, BasicTestWorkflow as any);
+    const workflow = new TestWorkflowInstrumented(mockContext, {}) as BasicTestWorkflow;
+    const event = { payload: {}, timestamp: new Date(), instanceId: 'ae0ee067' };
+    await workflow.run(event, mockStep);
+
+    expect(mockStep.do).toHaveBeenCalledTimes(1);
+    expect(mockStep.do).toHaveBeenCalledWith('first step', expect.any(Function));
+    expect(mockContext.waitUntil).toHaveBeenCalledTimes(1);
+    expect(mockContext.waitUntil).toHaveBeenCalledWith(expect.any(Promise));
+    expect(mockTransport.send).toHaveBeenCalledTimes(1);
+    expect(mockTransport.send).toHaveBeenCalledWith([
+      expect.objectContaining({
+        trace: expect.objectContaining({
+          transaction: 'first step',
+          trace_id: '0d2b6d1743ce6d53af4f5ee416ad5d1b',
+          sample_rand: '0.3636987869077592',
+        }),
+      }),
+      [
+        [
+          {
+            type: 'transaction',
+          },
+          expect.objectContaining({
+            event_id: expect.any(String),
+            contexts: {
+              trace: {
+                parent_span_id: undefined,
+                span_id: expect.any(String),
+                trace_id: '0d2b6d1743ce6d53af4f5ee416ad5d1b',
+                data: {
+                  'sentry.origin': 'auto.faas.cloudflare.workflow',
+                  'sentry.op': 'function.step.do',
+                  'sentry.source': 'task',
+                  'sentry.sample_rate': 1,
+                },
+                op: 'function.step.do',
+                status: 'ok',
+                origin: 'auto.faas.cloudflare.workflow',
+              },
+              cloud_resource: { 'cloud.provider': 'cloudflare' },
+              runtime: { name: 'cloudflare' },
+            },
+            type: 'transaction',
+            transaction_info: { source: 'task' },
+            start_timestamp: expect.any(Number),
+            timestamp: expect.any(Number),
+          }),
+        ],
+      ],
+    ]);
+  });
+
   class ErrorTestWorkflow {
     count = 0;
     constructor(_ctx: ExecutionContext, _env: unknown) {}
