@@ -272,23 +272,44 @@ function addAttributes<AppModelType, DbModelType extends DocumentData>(
   };
 
   if (typeof settings.host === 'string') {
-    if (settings.host.startsWith('[') && settings.host.endsWith(']')) {
-      // Handling IPv6 addresses
-      attributes[ATTR_SERVER_ADDRESS] = settings.host.slice(1, -1);
+    let address: string | undefined;
+    let port: string | undefined;
+
+    if (settings.host.startsWith('[')) {
+      if (settings.host.endsWith(']')) {
+        // Theres no port, just the address
+        address = settings.host.slice(1, -1);
+      } else {
+        // Handling IPv6 addresses with port
+        const lastColonIndex = settings.host.lastIndexOf(':');
+        if (lastColonIndex !== -1) {
+          address = settings.host.slice(1, lastColonIndex);
+          port = settings.host.slice(lastColonIndex + 1);
+        }
+      }
     } else {
-      // Handling IPv4 addresses
-      attributes[ATTR_SERVER_ADDRESS] = settings.host;
+      if (settings.host.includes('::')) {
+        // Handling IPv6 addresses with port
+        const parts = settings.host.split(':');
+        address = parts.slice(0, -1).join(':');
+        port = parts[parts.length - 1];
+      } else if (settings.host.includes(':')) {
+        // Handling IPv4 addresses with port
+        const parts = settings.host.split(':');
+        address = parts[0];
+        port = parts[1];
+      } else {
+        // Handling IPv4 addresses without port
+        address = settings.host;
+      }
     }
 
-    if (settings.host.includes(':')) {
-      // Split the host by ':' to get the address and port
-      // This will handle both IPv4 and IPv6 addresses correctly
-      // It will split at the last colon
-      const lastColonIndex = settings.host.lastIndexOf(':');
-      if (lastColonIndex !== -1) {
-        attributes[ATTR_SERVER_ADDRESS] = settings.host.slice(0, lastColonIndex);
-        attributes[ATTR_SERVER_PORT] = Number(settings.host.slice(lastColonIndex + 1));
-      }
+    if (address) {
+      attributes[ATTR_SERVER_ADDRESS] = address;
+    }
+
+    if (port !== undefined) {
+      attributes[ATTR_SERVER_PORT] = Number(port);
     }
   }
 
