@@ -1,3 +1,4 @@
+import * as net from 'node:net';
 import type { Span, Tracer } from '@opentelemetry/api';
 import { context, diag, SpanKind, trace } from '@opentelemetry/api';
 import {
@@ -251,6 +252,57 @@ function startDBSpan<AppModelType, DbModelType extends DocumentData>(
   return span;
 }
 
+/**
+ * Sets the server address and port attributes on the span based on the Firestore settings.
+ * It's best effort to extract the address and port from the settings, especially for IPv6.
+ * @param span - The span to set attributes on.
+ * @param settings - The Firestore settings containing host information.
+ */
+function setPortAndAddress(span: Span, settings: FirestoreSettings): void {
+  if (typeof settings.host === 'string') {
+    let address: string | undefined;
+    let port: string | undefined;
+
+    if (settings.host.startsWith('[')) {
+      // IPv6 addresses can be enclosed in square brackets, e.g., [2001:db8::1]:8080
+      if (settings.host.endsWith(']')) {
+        // IPv6 with square brackets without port
+        address = settings.host.slice(1, -1);
+      } else {
+        // IPv6 with square brackets with port
+        const lastColonIndex = settings.host.lastIndexOf(':');
+        if (lastColonIndex !== -1) {
+          address = settings.host.slice(1, lastColonIndex);
+          port = settings.host.slice(lastColonIndex + 1);
+        }
+      }
+    } else {
+      // IPv4 or IPv6 without square brackets
+      // If it's an IPv6 address without square brackets, we assume it does not have a port.
+      if (net.isIPv6(settings.host)) {
+        address = settings.host;
+      }
+      // If it's an IPv4 address, we can extract the port if it exists.
+      else {
+        const lastColonIndex = settings.host.lastIndexOf(':');
+        if (lastColonIndex !== -1) {
+          address = settings.host.slice(0, lastColonIndex);
+          port = settings.host.slice(lastColonIndex + 1);
+        } else {
+          address = settings.host;
+        }
+      }
+    }
+    if (address) {
+      span.setAttribute(ATTR_SERVER_ADDRESS, address);
+    }
+
+    if (port !== undefined) {
+      span.setAttribute(ATTR_SERVER_PORT, Number(port));
+    }
+  }
+}
+
 function addAttributes<AppModelType, DbModelType extends DocumentData>(
   span: Span,
   reference: CollectionReference<AppModelType, DbModelType> | DocumentReference<AppModelType, DbModelType>,
@@ -271,47 +323,6 @@ function addAttributes<AppModelType, DbModelType extends DocumentData>(
     'firebase.firestore.options.storageBucket': firestoreOptions.storageBucket,
   };
 
-  if (typeof settings.host === 'string') {
-    let address: string | undefined;
-    let port: string | undefined;
-
-    if (settings.host.startsWith('[')) {
-      if (settings.host.endsWith(']')) {
-        // Theres no port, just the address
-        address = settings.host.slice(1, -1);
-      } else {
-        // Handling IPv6 addresses with port
-        const lastColonIndex = settings.host.lastIndexOf(':');
-        if (lastColonIndex !== -1) {
-          address = settings.host.slice(1, lastColonIndex);
-          port = settings.host.slice(lastColonIndex + 1);
-        }
-      }
-    } else {
-      if (settings.host.includes('::')) {
-        // Handling IPv6 addresses with port
-        const parts = settings.host.split(':');
-        address = parts.slice(0, -1).join(':');
-        port = parts[parts.length - 1];
-      } else if (settings.host.includes(':')) {
-        // Handling IPv4 addresses with port
-        const parts = settings.host.split(':');
-        address = parts[0];
-        port = parts[1];
-      } else {
-        // Handling IPv4 addresses without port
-        address = settings.host;
-      }
-    }
-
-    if (address) {
-      attributes[ATTR_SERVER_ADDRESS] = address;
-    }
-
-    if (port !== undefined) {
-      attributes[ATTR_SERVER_PORT] = Number(port);
-    }
-  }
-
   span.setAttributes(attributes);
+  setPortAndAddress(span, settings);
 }
