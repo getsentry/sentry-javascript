@@ -6923,6 +6923,10 @@
     fflate "^0.4.4"
     mitt "^3.0.0"
 
+"@sentry-internal/test-utils@link:../test-utils":
+  version "0.0.0"
+  uid ""
+
 "@sentry/babel-plugin-component-annotate@2.22.6":
   version "2.22.6"
   resolved "https://registry.yarnpkg.com/@sentry/babel-plugin-component-annotate/-/babel-plugin-component-annotate-2.22.6.tgz#829d6caf2c95c1c46108336de4e1049e6521435e"
