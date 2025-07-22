@@ -80,7 +80,7 @@ export function wrapTransportSend(transport: MCPTransport): void {
     fill(transport, 'send', originalSend => {
       return async function (this: MCPTransport, ...args: unknown[]) {
         const [message] = args;
-        
+
         if (isJsonRpcNotification(message)) {
           return createMcpOutgoingNotificationSpan(message, this, () => {
             return (originalSend as (...args: unknown[]) => unknown).call(this, ...args);
