@@ -1,5 +1,5 @@
 import type { Integration } from '@sentry/core';
-import { logger } from '@sentry/core';
+import { debug, SDK_VERSION } from '@sentry/core';
 import * as SentryOpentelemetry from '@sentry/opentelemetry';
 import { type Mock, type MockInstance, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { getClient, NodeClient, validateOpenTelemetrySetup } from '../../src/';
@@ -26,8 +26,8 @@ describe('init()', () => {
   beforeEach(() => {
     global.__SENTRY__ = {};
 
-    // prevent the logger from being enabled, resulting in console.log calls
-    vi.spyOn(logger, 'enable').mockImplementation(() => {});
+    // prevent the debug from being enabled, resulting in console.log calls
+    vi.spyOn(debug, 'enable').mockImplementation(() => {});
 
     mockAutoPerformanceIntegrations = vi.spyOn(auto, 'getAutoPerformanceIntegrations').mockImplementation(() => []);
   });
@@ -36,6 +36,24 @@ describe('init()', () => {
     cleanupOtel();
 
     vi.clearAllMocks();
+  });
+
+  describe('metadata', () => {
+    it('has the correct metadata', () => {
+      init({ dsn: PUBLIC_DSN });
+
+      const client = getClient<NodeClient>();
+
+      expect(client?.getSdkMetadata()).toEqual(
+        expect.objectContaining({
+          sdk: {
+            name: 'sentry.javascript.node',
+            version: SDK_VERSION,
+            packages: [{ name: 'npm:@sentry/node', version: SDK_VERSION }],
+          },
+        }),
+      );
+    });
   });
 
   describe('integrations', () => {
@@ -267,8 +285,8 @@ describe('validateOpenTelemetrySetup', () => {
   });
 
   it('works with correct setup', () => {
-    const errorSpy = vi.spyOn(logger, 'error').mockImplementation(() => {});
-    const warnSpy = vi.spyOn(logger, 'warn').mockImplementation(() => {});
+    const errorSpy = vi.spyOn(debug, 'error').mockImplementation(() => {});
+    const warnSpy = vi.spyOn(debug, 'warn').mockImplementation(() => {});
 
     vi.spyOn(SentryOpentelemetry, 'openTelemetrySetupCheck').mockImplementation(() => {
       return ['SentryContextManager', 'SentryPropagator', 'SentrySampler'];
@@ -281,8 +299,8 @@ describe('validateOpenTelemetrySetup', () => {
   });
 
   it('works with missing setup, without tracing', () => {
-    const errorSpy = vi.spyOn(logger, 'error').mockImplementation(() => {});
-    const warnSpy = vi.spyOn(logger, 'warn').mockImplementation(() => {});
+    const errorSpy = vi.spyOn(debug, 'error').mockImplementation(() => {});
+    const warnSpy = vi.spyOn(debug, 'warn').mockImplementation(() => {});
 
     vi.spyOn(SentryOpentelemetry, 'openTelemetrySetupCheck').mockImplementation(() => {
       return [];
@@ -300,8 +318,8 @@ describe('validateOpenTelemetrySetup', () => {
   });
 
   it('works with missing setup, with tracing', () => {
-    const errorSpy = vi.spyOn(logger, 'error').mockImplementation(() => {});
-    const warnSpy = vi.spyOn(logger, 'warn').mockImplementation(() => {});
+    const errorSpy = vi.spyOn(debug, 'error').mockImplementation(() => {});
+    const warnSpy = vi.spyOn(debug, 'warn').mockImplementation(() => {});
 
     vi.spyOn(SentryOpentelemetry, 'openTelemetrySetupCheck').mockImplementation(() => {
       return [];

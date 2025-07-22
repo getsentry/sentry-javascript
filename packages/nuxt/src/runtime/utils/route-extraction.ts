@@ -1,4 +1,4 @@
-import { logger } from '@sentry/core';
+import { debug } from '@sentry/core';
 import type { NuxtSSRContext } from 'nuxt/app';
 import type { NuxtPage } from 'nuxt/schema';
 
@@ -39,11 +39,11 @@ export function extractParametrizedRouteFromContext(
   const cacheKey = Array.from(ssrContextModules).sort().join('|');
   const cachedResult = extractionResultCache.get(cacheKey);
   if (cachedResult !== undefined) {
-    logger.log('Found cached result for parametrized route:', requestedUrl);
+    debug.log('Found cached result for parametrized route:', requestedUrl);
     return cachedResult;
   }
 
-  logger.log('No parametrized route found in cache lookup. Extracting parametrized route for:', requestedUrl);
+  debug.log('No parametrized route found in cache lookup. Extracting parametrized route for:', requestedUrl);
 
   const modulesArray = Array.from(ssrContextModules);
 

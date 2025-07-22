@@ -1,4 +1,4 @@
-import { getDefaultIsolationScope, getIsolationScope, logger, withIsolationScope } from '@sentry/core';
+import { debug, getDefaultIsolationScope, getIsolationScope, withIsolationScope } from '@sentry/core';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { type EventHandler } from 'h3';
 // eslint-disable-next-line import/no-extraneous-dependencies
@@ -27,7 +27,7 @@ function patchEventHandler(handler: EventHandler): EventHandler {
       const isolationScope = getIsolationScope();
       const newIsolationScope = isolationScope === getDefaultIsolationScope() ? isolationScope.clone() : isolationScope;
 
-      logger.log(
+      debug.log(
         `Patched h3 event handler. ${
           isolationScope === newIsolationScope ? 'Using existing' : 'Created new'
         } isolation scope.`,

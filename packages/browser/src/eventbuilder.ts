@@ -120,7 +120,7 @@ function parseStackFrames(
 
   try {
     return stackParser(stacktrace, skipLines, framesToPop);
-  } catch (e) {
+  } catch {
     // no-empty
   }
 
@@ -392,7 +392,7 @@ function getObjectClassName(obj: unknown): string | undefined | void {
   try {
     const prototype: Prototype | null = Object.getPrototypeOf(obj);
     return prototype ? prototype.constructor.name : undefined;
-  } catch (e) {
+  } catch {
     // ignore errors here
   }
 }

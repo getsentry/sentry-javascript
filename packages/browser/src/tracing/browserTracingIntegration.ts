@@ -4,6 +4,7 @@ import {
   addNonEnumerableProperty,
   browserPerformanceTimeOrigin,
   dateTimestampInSeconds,
+  debug,
   generateTraceId,
   getClient,
   getCurrentScope,
@@ -11,7 +12,6 @@ import {
   getIsolationScope,
   getLocationHref,
   GLOBAL_OBJ,
-  logger,
   parseStringToURLObject,
   propagationContextFromHeaders,
   registerSpanErrorInstrumentation,
@@ -478,7 +478,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         const activeSpan = getActiveIdleSpan(client);
 
         if (activeSpan && !spanToJSON(activeSpan).timestamp) {
-          DEBUG_BUILD && logger.log(`[Tracing] Finishing current active span with op: ${spanToJSON(activeSpan).op}`);
+          DEBUG_BUILD && debug.log(`[Tracing] Finishing current active span with op: ${spanToJSON(activeSpan).op}`);
           // If there's an open active span, we need to finish it before creating an new one.
           activeSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON, 'cancelled');
           activeSpan.end();
@@ -492,7 +492,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
 
         if (navigationOptions?.isRedirect) {
           DEBUG_BUILD &&
-            logger.warn('[Tracing] Detected redirect, navigation span will not be the root span, but a child span.');
+            debug.warn('[Tracing] Detected redirect, navigation span will not be the root span, but a child span.');
           _createRouteSpan(
             client,
             {
@@ -719,7 +719,7 @@ function registerInteractionListener(
       const currentRootSpanOp = spanToJSON(activeIdleSpan).op;
       if (['navigation', 'pageload'].includes(currentRootSpanOp as string)) {
         DEBUG_BUILD &&
-          logger.warn(`[Tracing] Did not create ${op} span because a pageload or navigation span is in progress.`);
+          debug.warn(`[Tracing] Did not create ${op} span because a pageload or navigation span is in progress.`);
         return undefined;
       }
     }
@@ -731,7 +731,7 @@ function registerInteractionListener(
     }
 
     if (!latestRoute.name) {
-      DEBUG_BUILD && logger.warn(`[Tracing] Did not create ${op} transaction because _latestRouteName is missing.`);
+      DEBUG_BUILD && debug.warn(`[Tracing] Did not create ${op} transaction because _latestRouteName is missing.`);
       return undefined;
     }
 

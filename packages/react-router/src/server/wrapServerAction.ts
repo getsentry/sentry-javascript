@@ -1,16 +1,16 @@
+import { SEMATTRS_HTTP_TARGET } from '@opentelemetry/semantic-conventions';
 import type { SpanAttributes } from '@sentry/core';
 import {
   getActiveSpan,
   getRootSpan,
-  parseStringToURLObject,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   spanToJSON,
   startSpan,
+  updateSpanName,
 } from '@sentry/core';
 import type { ActionFunctionArgs } from 'react-router';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OVERWRITE } from './instrumentation/util';
 
 type SpanOptions = {
   name?: string;
@@ -42,13 +42,18 @@ export function wrapServerAction<T>(options: SpanOptions = {}, actionFn: (args: 
     const active = getActiveSpan();
     if (active) {
       const root = getRootSpan(active);
-      // coming from auto.http.otel.http
-      if (spanToJSON(root).description === 'POST') {
-        const url = parseStringToURLObject(args.request.url);
-        if (url?.pathname) {
+      const spanData = spanToJSON(root);
+      if (spanData.origin === 'auto.http.otel.http') {
+        // eslint-disable-next-line deprecation/deprecation
+        const target = spanData.data[SEMATTRS_HTTP_TARGET];
+
+        if (target) {
+          // We cannot rely on the regular span name inferral here, as the express instrumentation sets `*` as the route
+          // So we force this to be a more sensible name here
+          updateSpanName(root, `${args.request.method} ${target}`);
           root.setAttributes({
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
-            [SEMANTIC_ATTRIBUTE_SENTRY_OVERWRITE]: `${args.request.method} ${url.pathname}`,
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react-router.action',
           });
         }
       }
@@ -59,7 +64,7 @@ export function wrapServerAction<T>(options: SpanOptions = {}, actionFn: (args: 
         name,
         ...options,
         attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react-router',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react-router.action',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.react-router.action',
           ...options.attributes,
         },

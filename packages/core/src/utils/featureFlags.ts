@@ -1,7 +1,7 @@
 import { getCurrentScope } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
 import { type Event } from '../types-hoist/event';
-import { debug } from '../utils/logger';
+import { debug } from './debug-logger';
 import { getActiveSpan, spanToJSON } from './spanUtils';
 
 /**

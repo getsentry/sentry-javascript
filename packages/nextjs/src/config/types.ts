@@ -487,6 +487,18 @@ export type SentryBuildOptions = {
   disableManifestInjection?: boolean;
 
   /**
+   * Disables automatic injection of Sentry's Webpack configuration.
+   *
+   * By default, the Sentry Next.js SDK injects its own Webpack configuration to enable features such as
+   * source map upload and automatic instrumentation. Set this option to `true` if you want to prevent
+   * the SDK from modifying your Webpack config (for example, if you want to handle Sentry integration manually
+   * or if you are on an older version of Next.js while using Turbopack).
+   *
+   * @default false
+   */
+  disableSentryWebpackConfig?: boolean;
+
+  /**
    * Contains a set of experimental flags that might change in future releases. These flags enable
    * features that are still in development and may be modified, renamed, or removed without notice.
    * Use with caution in production environments.

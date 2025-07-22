@@ -2,7 +2,6 @@
 import type { Span, TimeInput } from '@opentelemetry/api';
 import { context, ROOT_CONTEXT, SpanKind, trace, TraceFlags } from '@opentelemetry/api';
 import type { ReadableSpan } from '@opentelemetry/sdk-trace-base';
-import { Span as SpanClass } from '@opentelemetry/sdk-trace-base';
 import { SEMATTRS_HTTP_METHOD } from '@opentelemetry/semantic-conventions';
 import type { Event, Scope } from '@sentry/core';
 import {
@@ -21,6 +20,7 @@ import {
   withScope,
 } from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { getParentSpanId } from '../../../packages/opentelemetry/src/utils/getParentSpanId';
 import { continueTrace, startInactiveSpan, startSpan, startSpanManual } from '../src/trace';
 import type { AbstractSpan } from '../src/types';
 import { getActiveSpan } from '../src/utils/getActiveSpan';
@@ -28,6 +28,7 @@ import { getSamplingDecision } from '../src/utils/getSamplingDecision';
 import { getSpanKind } from '../src/utils/getSpanKind';
 import { makeTraceState } from '../src/utils/makeTraceState';
 import { spanHasAttributes, spanHasName } from '../src/utils/spanTypes';
+import { isSpan } from './helpers/isSpan';
 import { cleanupOtel, mockSdkInit } from './helpers/mockSdkInit';
 
 describe('trace', () => {
@@ -534,7 +535,7 @@ describe('trace', () => {
           return span;
         });
 
-        expect(span).not.toBeInstanceOf(SpanClass);
+        expect(isSpan(span)).toBe(false);
       });
 
       it('creates a span if there is a parent', () => {
@@ -546,7 +547,7 @@ describe('trace', () => {
           return span;
         });
 
-        expect(span).toBeInstanceOf(SpanClass);
+        expect(isSpan(span)).toBe(true);
       });
     });
   });
@@ -826,7 +827,7 @@ describe('trace', () => {
       it('does not create a span if there is no parent', () => {
         const span = startInactiveSpan({ name: 'test span', onlyIfParent: true });
 
-        expect(span).not.toBeInstanceOf(SpanClass);
+        expect(isSpan(span)).toBe(false);
       });
 
       it('creates a span if there is a parent', () => {
@@ -836,7 +837,7 @@ describe('trace', () => {
           return span;
         });
 
-        expect(span).toBeInstanceOf(SpanClass);
+        expect(isSpan(span)).toBe(true);
       });
     });
 
@@ -1196,7 +1197,7 @@ describe('trace', () => {
           return span;
         });
 
-        expect(span).not.toBeInstanceOf(SpanClass);
+        expect(isSpan(span)).toBe(false);
       });
 
       it('creates a span if there is a parent', () => {
@@ -1208,7 +1209,7 @@ describe('trace', () => {
           return span;
         });
 
-        expect(span).toBeInstanceOf(SpanClass);
+        expect(isSpan(span)).toBe(true);
       });
     });
   });
@@ -1972,5 +1973,5 @@ function getSpanAttributes(span: AbstractSpan): Record<string, unknown> | undefi
 }
 
 function getSpanParentSpanId(span: AbstractSpan): string | undefined {
-  return (span as ReadableSpan).parentSpanId;
+  return getParentSpanId(span as ReadableSpan);
 }

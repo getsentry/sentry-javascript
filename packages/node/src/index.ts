@@ -23,6 +23,7 @@ export { genericPoolIntegration } from './integrations/tracing/genericPool';
 export { dataloaderIntegration } from './integrations/tracing/dataloader';
 export { amqplibIntegration } from './integrations/tracing/amqplib';
 export { vercelAIIntegration } from './integrations/tracing/vercelai';
+export { openAIIntegration } from './integrations/tracing/openai';
 export {
   launchDarklyIntegration,
   buildLaunchDarklyFlagUsedHandler,

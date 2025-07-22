@@ -4,7 +4,7 @@ import { DEBUG_BUILD } from './debug-build';
 import type { Event, EventHint } from './types-hoist/event';
 import type { Integration, IntegrationFn } from './types-hoist/integration';
 import type { Options } from './types-hoist/options';
-import { debug } from './utils/logger';
+import { debug } from './utils/debug-logger';
 
 export const installedIntegrations: string[] = [];
 

@@ -1,14 +1,15 @@
 import type { Integration, Options } from '@sentry/core';
 import {
+  applySdkMetadata,
   consoleIntegration,
   consoleSandbox,
+  debug,
   functionToStringIntegration,
   getCurrentScope,
   getIntegrationsToSetup,
   hasSpansEnabled,
   inboundFiltersIntegration,
   linkedErrorsIntegration,
-  logger,
   propagationContextFromHeaders,
   requestDataIntegration,
   stackParserFromStackParserOptions,
@@ -93,9 +94,9 @@ function _init(
 
   if (options.debug === true) {
     if (DEBUG_BUILD) {
-      logger.enable();
+      debug.enable();
     } else {
-      // use `console.warn` rather than `logger.warn` since by non-debug bundles have all `logger.x` statements stripped
+      // use `console.warn` rather than `debug.warn` since by non-debug bundles have all `debug.x` statements stripped
       consoleSandbox(() => {
         // eslint-disable-next-line no-console
         console.warn('[Sentry] Cannot initialize SDK with `debug` option using a non-debug bundle.');
@@ -120,13 +121,15 @@ function _init(
     );
   }
 
+  applySdkMetadata(options, 'node-core');
+
   const client = new NodeClient(options);
   // The client is on the current scope, from where it generally is inherited
   getCurrentScope().setClient(client);
 
   client.init();
 
-  logger.log(`Running in ${isCjs() ? 'CommonJS' : 'ESM'} mode.`);
+  debug.log(`Running in ${isCjs() ? 'CommonJS' : 'ESM'} mode.`);
 
   client.startClientReportTracking();
 
@@ -156,14 +159,14 @@ export function validateOpenTelemetrySetup(): void {
 
   for (const k of required) {
     if (!setup.includes(k)) {
-      logger.error(
+      debug.error(
         `You have to set up the ${k}. Without this, the OpenTelemetry & Sentry integration will not work properly.`,
       );
     }
   }
 
   if (!setup.includes('SentrySampler')) {
-    logger.warn(
+    debug.warn(
       'You have to set up the SentrySampler. Without this, the OpenTelemetry & Sentry integration may still work, but sample rates set for the Sentry SDK will not be respected. If you use a custom sampler, make sure to use `wrapSamplingDecision`.',
     );
   }

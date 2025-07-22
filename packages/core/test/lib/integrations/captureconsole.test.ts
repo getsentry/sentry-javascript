@@ -9,7 +9,7 @@ import { resetInstrumentationHandlers } from '../../../src/instrument/handlers';
 import { captureConsoleIntegration } from '../../../src/integrations/captureconsole';
 import type { Event } from '../../../src/types-hoist/event';
 import type { ConsoleLevel } from '../../../src/types-hoist/instrument';
-import { CONSOLE_LEVELS, originalConsoleMethods } from '../../../src/utils/logger';
+import { CONSOLE_LEVELS, originalConsoleMethods } from '../../../src/utils/debug-logger';
 import { GLOBAL_OBJ } from '../../../src/utils/worldwide';
 
 const mockConsole: { [key in ConsoleLevel]: Mock<any> } = {

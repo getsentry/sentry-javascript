@@ -22,7 +22,6 @@ function getUser(): User | undefined {
 export const feedbackModalIntegration = ((): FeedbackModalIntegration => {
   return {
     name: 'FeedbackModal',
-    // eslint-disable-next-line @typescript-eslint/no-empty-function
     setupOnce() {},
     createDialog: ({ options, screenshotIntegration, sendFeedback, shadow }) => {
       const shadowRoot = shadow as unknown as ShadowRoot;
@@ -70,8 +69,8 @@ export const feedbackModalIntegration = ((): FeedbackModalIntegration => {
             screenshotInput={screenshotInput}
             showName={options.showName || options.isNameRequired}
             showEmail={options.showEmail || options.isEmailRequired}
-            defaultName={(userKey && user && user[userKey.name]) || ''}
-            defaultEmail={(userKey && user && user[userKey.email]) || ''}
+            defaultName={(userKey && user?.[userKey.name]) || ''}
+            defaultEmail={(userKey && user?.[userKey.email]) || ''}
             onFormClose={() => {
               renderContent(false);
               options.onFormClose?.();

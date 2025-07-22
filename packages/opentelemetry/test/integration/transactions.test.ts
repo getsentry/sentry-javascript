@@ -1,12 +1,11 @@
 import type { SpanContext } from '@opentelemetry/api';
 import { context, ROOT_CONTEXT, trace, TraceFlags } from '@opentelemetry/api';
 import { TraceState } from '@opentelemetry/core';
-import type { SpanProcessor } from '@opentelemetry/sdk-trace-base';
 import type { Event, TransactionEvent } from '@sentry/core';
 import {
   addBreadcrumb,
+  debug,
   getClient,
-  logger,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setTag,
@@ -15,10 +14,9 @@ import {
 } from '@sentry/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { SENTRY_TRACE_STATE_DSC } from '../../src/constants';
-import { SentrySpanProcessor } from '../../src/spanProcessor';
 import { startInactiveSpan, startSpan } from '../../src/trace';
 import { makeTraceState } from '../../src/utils/makeTraceState';
-import { cleanupOtel, getProvider, mockSdkInit } from '../helpers/mockSdkInit';
+import { cleanupOtel, getSpanProcessor, mockSdkInit } from '../helpers/mockSdkInit';
 import type { TestClientInterface } from '../helpers/TestClient';
 
 describe('Integration | Transactions', () => {
@@ -440,17 +438,11 @@ describe('Integration | Transactions', () => {
     vi.setSystemTime(now);
 
     const logs: unknown[] = [];
-    vi.spyOn(logger, 'log').mockImplementation(msg => logs.push(msg));
+    vi.spyOn(debug, 'log').mockImplementation(msg => logs.push(msg));
 
     mockSdkInit({ tracesSampleRate: 1, beforeSendTransaction });
 
-    const provider = getProvider();
-    const multiSpanProcessor = provider?.activeSpanProcessor as
-      | (SpanProcessor & { _spanProcessors?: SpanProcessor[] })
-      | undefined;
-    const spanProcessor = multiSpanProcessor?.['_spanProcessors']?.find(
-      spanProcessor => spanProcessor instanceof SentrySpanProcessor,
-    ) as SentrySpanProcessor | undefined;
+    const spanProcessor = getSpanProcessor();
 
     const exporter = spanProcessor ? spanProcessor['_exporter'] : undefined;
 
@@ -510,7 +502,7 @@ describe('Integration | Transactions', () => {
     vi.setSystemTime(now);
 
     const logs: unknown[] = [];
-    vi.spyOn(logger, 'log').mockImplementation(msg => logs.push(msg));
+    vi.spyOn(debug, 'log').mockImplementation(msg => logs.push(msg));
 
     const transactions: Event[] = [];
 
@@ -522,13 +514,7 @@ describe('Integration | Transactions', () => {
       },
     });
 
-    const provider = getProvider();
-    const multiSpanProcessor = provider?.activeSpanProcessor as
-      | (SpanProcessor & { _spanProcessors?: SpanProcessor[] })
-      | undefined;
-    const spanProcessor = multiSpanProcessor?.['_spanProcessors']?.find(
-      spanProcessor => spanProcessor instanceof SentrySpanProcessor,
-    ) as SentrySpanProcessor | undefined;
+    const spanProcessor = getSpanProcessor();
 
     const exporter = spanProcessor ? spanProcessor['_exporter'] : undefined;
 
@@ -568,7 +554,7 @@ describe('Integration | Transactions', () => {
     vi.setSystemTime(now);
 
     const logs: unknown[] = [];
-    vi.spyOn(logger, 'log').mockImplementation(msg => logs.push(msg));
+    vi.spyOn(debug, 'log').mockImplementation(msg => logs.push(msg));
 
     const transactions: Event[] = [];
 
@@ -580,13 +566,7 @@ describe('Integration | Transactions', () => {
       },
     });
 
-    const provider = getProvider();
-    const multiSpanProcessor = provider?.activeSpanProcessor as
-      | (SpanProcessor & { _spanProcessors?: SpanProcessor[] })
-      | undefined;
-    const spanProcessor = multiSpanProcessor?.['_spanProcessors']?.find(
-      spanProcessor => spanProcessor instanceof SentrySpanProcessor,
-    ) as SentrySpanProcessor | undefined;
+    const spanProcessor = getSpanProcessor();
 
     const exporter = spanProcessor ? spanProcessor['_exporter'] : undefined;
 
@@ -639,7 +619,7 @@ describe('Integration | Transactions', () => {
     vi.setSystemTime(now);
 
     const logs: unknown[] = [];
-    vi.spyOn(logger, 'log').mockImplementation(msg => logs.push(msg));
+    vi.spyOn(debug, 'log').mockImplementation(msg => logs.push(msg));
 
     const transactions: Event[] = [];
 
@@ -651,13 +631,7 @@ describe('Integration | Transactions', () => {
       },
     });
 
-    const provider = getProvider();
-    const multiSpanProcessor = provider?.activeSpanProcessor as
-      | (SpanProcessor & { _spanProcessors?: SpanProcessor[] })
-      | undefined;
-    const spanProcessor = multiSpanProcessor?.['_spanProcessors']?.find(
-      spanProcessor => spanProcessor instanceof SentrySpanProcessor,
-    ) as SentrySpanProcessor | undefined;
+    const spanProcessor = getSpanProcessor();
 
     const exporter = spanProcessor ? spanProcessor['_exporter'] : undefined;
 
@@ -701,7 +675,7 @@ describe('Integration | Transactions', () => {
     vi.setSystemTime(now);
 
     const logs: unknown[] = [];
-    vi.spyOn(logger, 'log').mockImplementation(msg => logs.push(msg));
+    vi.spyOn(debug, 'log').mockImplementation(msg => logs.push(msg));
 
     const transactions: Event[] = [];
 
@@ -713,13 +687,7 @@ describe('Integration | Transactions', () => {
       },
     });
 
-    const provider = getProvider();
-    const multiSpanProcessor = provider?.activeSpanProcessor as
-      | (SpanProcessor & { _spanProcessors?: SpanProcessor[] })
-      | undefined;
-    const spanProcessor = multiSpanProcessor?.['_spanProcessors']?.find(
-      spanProcessor => spanProcessor instanceof SentrySpanProcessor,
-    ) as SentrySpanProcessor | undefined;
+    const spanProcessor = getSpanProcessor();
 
     const exporter = spanProcessor ? spanProcessor['_exporter'] : undefined;
 

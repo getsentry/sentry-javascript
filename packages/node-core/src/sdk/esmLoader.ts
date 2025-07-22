@@ -1,4 +1,4 @@
-import { consoleSandbox, GLOBAL_OBJ, logger } from '@sentry/core';
+import { consoleSandbox, debug, GLOBAL_OBJ } from '@sentry/core';
 import { createAddHookMessageChannel } from 'import-in-the-middle';
 import moduleModule from 'module';
 
@@ -17,7 +17,7 @@ export function maybeInitializeEsmLoader(): void {
           transferList: [addHookMessagePort],
         });
       } catch (error) {
-        logger.warn('Failed to register ESM hook', error);
+        debug.warn('Failed to register ESM hook', error);
       }
     }
   } else {

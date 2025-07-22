@@ -25,20 +25,18 @@ describe('openTelemetrySetupCheck', () => {
 
   it('returns all setup parts', () => {
     const client = new TestClient(getDefaultTestClientOptions());
-    provider = setupOtel(client);
+    [provider] = setupOtel(client);
 
     const setup = openTelemetrySetupCheck();
-    expect(setup).toEqual(['SentrySampler', 'SentrySpanProcessor', 'SentryPropagator', 'SentryContextManager']);
+    expect(setup).toEqual(['SentrySpanProcessor', 'SentrySampler', 'SentryPropagator', 'SentryContextManager']);
   });
 
   it('returns partial setup parts', () => {
     const client = new TestClient(getDefaultTestClientOptions());
     provider = new BasicTracerProvider({
       sampler: new SentrySampler(client),
+      spanProcessors: [new SentrySpanProcessor()],
     });
-    // We want to test this deprecated case also works
-    // eslint-disable-next-line deprecation/deprecation
-    provider.addSpanProcessor(new SentrySpanProcessor());
 
     const setup = openTelemetrySetupCheck();
     expect(setup).toEqual(['SentrySampler', 'SentrySpanProcessor']);

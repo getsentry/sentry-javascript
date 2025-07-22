@@ -5,7 +5,7 @@ import {
 } from '../semanticAttributes';
 import type { Measurements, MeasurementUnit } from '../types-hoist/measurement';
 import type { TimedEvent } from '../types-hoist/timedEvent';
-import { debug } from '../utils/logger';
+import { debug } from '../utils/debug-logger';
 import { getActiveSpan, getRootSpan } from '../utils/spanUtils';
 
 /**

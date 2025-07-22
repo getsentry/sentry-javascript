@@ -22,12 +22,12 @@
     "clean:all": "run-s clean:build clean:tarballs clean:caches clean:deps clean:watchman",
     "fix": "run-s fix:prettier fix:lerna",
     "fix:lerna": "lerna run fix",
-    "fix:prettier": "prettier \"**/*.{md,css,yml,yaml}\" \"packages/**/**.{ts,js,mjs,cjs,mts,cts,jsx,tsx,astro,vue}\" \"dev-packages/!(e2e-tests)/**/**.{ts,js,mjs,cjs,mts,cts,jsx,tsx,astro,vue}\" --write",
+    "fix:prettier": "prettier \"**/*.{md,css,yml,yaml,mdc}\" \"packages/**/**.{ts,js,mjs,cjs,mts,cts,jsx,tsx,astro,vue}\" \"dev-packages/!(e2e-tests)/**/**.{ts,js,mjs,cjs,mts,cts,jsx,tsx,astro,vue}\" --write",
     "changelog": "ts-node ./scripts/get-commit-list.ts",
     "link:yarn": "lerna exec yarn link",
     "lint": "run-s lint:prettier lint:lerna",
     "lint:lerna": "lerna run lint",
-    "lint:prettier": "prettier \"**/*.{md,css,yml,yaml}\" \"packages/**/**.{ts,js,mjs,cjs,mts,cts,jsx,tsx,astro,vue}\" --check",
+    "lint:prettier": "prettier \"**/*.{md,css,yml,yaml,mdc}\" \"packages/**/**.{ts,js,mjs,cjs,mts,cts,jsx,tsx,astro,vue}\" --check",
     "lint:es-compatibility": "lerna run lint:es-compatibility",
     "dedupe-deps:check": "yarn-deduplicate yarn.lock --list --fail",
     "dedupe-deps:fix": "yarn-deduplicate yarn.lock",
@@ -101,8 +101,7 @@
     "dev-packages/size-limit-gh-action",
     "dev-packages/clear-cache-gh-action",
     "dev-packages/external-contributor-gh-action",
-    "dev-packages/rollup-utils",
-    "dev-packages/opentelemetry-v2-tests"
+    "dev-packages/rollup-utils"
   ],
   "devDependencies": {
     "@rollup/plugin-commonjs": "^25.0.7",
@@ -164,6 +163,13 @@
       {
         "files": "*.md",
         "options": {
+          "proseWrap": "preserve"
+        }
+      },
+      {
+        "files": "*.mdc",
+        "options": {
+          "parser": "markdown",
           "proseWrap": "preserve"
         }
       }

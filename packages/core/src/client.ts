@@ -33,11 +33,11 @@ import type { Span, SpanAttributes, SpanContextData, SpanJSON } from './types-ho
 import type { StartSpanOptions } from './types-hoist/startSpanOptions';
 import type { Transport, TransportMakeRequestResponse } from './types-hoist/transport';
 import { createClientReportEnvelope } from './utils/clientreport';
+import { debug } from './utils/debug-logger';
 import { dsnToString, makeDsn } from './utils/dsn';
 import { addItemToEnvelope, createAttachmentEnvelopeItem } from './utils/envelope';
 import { getPossibleEventMessages } from './utils/eventUtils';
 import { isParameterizedString, isPlainObject, isPrimitive, isThenable } from './utils/is';
-import { debug } from './utils/logger';
 import { merge } from './utils/merge';
 import { checkOrSetAlreadyCaught, uuid4 } from './utils/misc';
 import { parseSampleRate } from './utils/parseSampleRate';
@@ -1245,18 +1245,6 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     _hint?: EventHint,
   ): PromiseLike<Event>;
 }
-
-/**
- * @deprecated Use `Client` instead. This alias may be removed in a future major version.
- */
-// TODO(v10): Remove
-export type BaseClient = Client;
-
-/**
- * @deprecated Use `Client` instead. This alias may be removed in a future major version.
- */
-// TODO(v10): Remove
-export const BaseClient = Client;
 
 /**
  * Verifies that return value of configured `beforeSend` or `beforeSendTransaction` is of expected type, and returns the value if so.

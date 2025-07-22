@@ -1,9 +1,9 @@
-import { isWrapped } from '@opentelemetry/core';
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import {
   InstrumentationBase,
   InstrumentationNodeModuleDefinition,
   InstrumentationNodeModuleFile,
+  isWrapped,
 } from '@opentelemetry/instrumentation';
 import { captureException, SDK_VERSION, startSpan } from '@sentry/core';
 import { getEventSpanOptions } from './helpers';
@@ -83,7 +83,11 @@ export class SentryNestEventInstrumentation extends InstrumentationBase {
           descriptor.value = async function (...args: unknown[]) {
             // When multiple @OnEvent decorators are used on a single method, we need to get all event names
             // from the reflector metadata as there is no information during execution which event triggered it
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore - reflect-metadata of nestjs adds these methods to Reflect
             if (Reflect.getMetadataKeys(descriptor.value).includes('EVENT_LISTENER_METADATA')) {
+              // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+              // @ts-ignore - reflect-metadata of nestjs adds these methods to Reflect
               const eventData = Reflect.getMetadata('EVENT_LISTENER_METADATA', descriptor.value);
               if (Array.isArray(eventData)) {
                 eventName = eventData

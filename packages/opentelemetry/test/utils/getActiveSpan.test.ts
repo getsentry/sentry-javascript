@@ -12,7 +12,7 @@ describe('getActiveSpan', () => {
 
   beforeEach(() => {
     const client = new TestClient(getDefaultTestClientOptions());
-    provider = setupOtel(client);
+    [provider] = setupOtel(client);
   });
 
   afterEach(() => {
@@ -97,7 +97,7 @@ describe('getRootSpan', () => {
 
   beforeEach(() => {
     const client = new TestClient(getDefaultTestClientOptions({ tracesSampleRate: 1 }));
-    provider = setupOtel(client);
+    [provider] = setupOtel(client);
   });
 
   afterEach(async () => {

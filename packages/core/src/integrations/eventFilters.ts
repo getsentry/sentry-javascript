@@ -3,8 +3,8 @@ import { defineIntegration } from '../integration';
 import type { Event } from '../types-hoist/event';
 import type { IntegrationFn } from '../types-hoist/integration';
 import type { StackFrame } from '../types-hoist/stackframe';
+import { debug } from '../utils/debug-logger';
 import { getPossibleEventMessages } from '../utils/eventUtils';
-import { debug } from '../utils/logger';
 import { getEventDescription } from '../utils/misc';
 import { stringMatchesSomePattern } from '../utils/string';
 
@@ -211,7 +211,7 @@ function _getEventFilterUrl(event: Event): string | null {
       .find(value => value.mechanism?.parent_id === undefined && value.stacktrace?.frames?.length);
     const frames = rootException?.stacktrace?.frames;
     return frames ? _getLastValidUrl(frames) : null;
-  } catch (oO) {
+  } catch {
     DEBUG_BUILD && debug.error(`Cannot extract url for event ${getEventDescription(event)}`);
     return null;
   }

@@ -31,7 +31,11 @@ test.describe('Trace propagation', () => {
     const clientTx = await clientTxPromise;
 
     expect(clientTx.contexts?.trace?.trace_id).toEqual(serverTx.contexts?.trace?.trace_id);
-    expect(clientTx.contexts?.trace?.parent_span_id).toBe(serverTx.contexts?.trace?.span_id);
+
+    const requestHandlerSpan = serverTx.spans?.find(span => span.op === 'request_handler.express');
+
+    expect(requestHandlerSpan).toBeDefined();
+    expect(clientTx.contexts?.trace?.parent_span_id).toBe(requestHandlerSpan?.span_id);
   });
 
   test('should not have trace connection for prerendered pages', async ({ page }) => {

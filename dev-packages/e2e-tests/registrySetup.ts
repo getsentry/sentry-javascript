@@ -85,8 +85,15 @@ export function registrySetup(): void {
       },
     );
 
-    if (publishImageContainerRunProcess.status !== 0) {
-      throw new Error('Publish Image Container failed.');
+    const statusCode = publishImageContainerRunProcess.status;
+
+    if (statusCode !== 0) {
+      if (statusCode === 137) {
+        throw new Error(
+          `Publish Image Container failed with exit code ${statusCode}, possibly due to memory issues. Consider increasing the memory limit for the container.`,
+        );
+      }
+      throw new Error(`Publish Image Container failed with exit code ${statusCode}`);
     }
   });
 

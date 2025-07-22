@@ -63,7 +63,7 @@ test.describe('tracing in static routes with server islands', () => {
       ]),
     );
 
-    expect(baggageMetaTagContent).toContain('sentry-transaction=GET%20%2Fserver-island%2F'); // URL-encoded for 'GET /test-static/'
+    expect(baggageMetaTagContent).toContain('sentry-transaction=GET%20%2Fserver-island'); // URL-encoded for 'GET /server-island'
     expect(baggageMetaTagContent).toContain('sentry-sampled=true');
 
     const serverIslandEndpointTxn = await serverIslandEndpointTxnPromise;

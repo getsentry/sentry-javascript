@@ -311,9 +311,10 @@ function getFinalConfigObject(
             ],
           },
         }),
-    webpack: !isTurbopack
-      ? constructWebpackConfigFunction(incomingUserNextConfigObject, userSentryOptions, releaseName, routeManifest)
-      : undefined,
+    webpack:
+      isTurbopack || userSentryOptions.disableSentryWebpackConfig
+        ? incomingUserNextConfigObject.webpack // just return the original webpack config
+        : constructWebpackConfigFunction(incomingUserNextConfigObject, userSentryOptions, releaseName, routeManifest),
     ...(isTurbopackSupported && isTurbopack
       ? {
           turbopack: constructTurbopackConfig({
@@ -469,7 +470,7 @@ function getGitRevision(): string | undefined {
       .execSync('git rev-parse HEAD', { stdio: ['ignore', 'pipe', 'ignore'] })
       .toString()
       .trim();
-  } catch (e) {
+  } catch {
     // noop
   }
   return gitRevision;
