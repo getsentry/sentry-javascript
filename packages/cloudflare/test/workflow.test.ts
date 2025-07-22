@@ -133,7 +133,7 @@ describe('workflows', () => {
     ]);
   });
 
-    test('Calls expected functions with non-uuid instance id', async () => {
+  test('Calls expected functions with non-uuid instance id', async () => {
     class BasicTestWorkflow {
       constructor(_ctx: ExecutionContext, _env: unknown) {}
 
