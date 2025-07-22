@@ -78,10 +78,12 @@ export function wrapTransportOnMessage(transport: MCPTransport): void {
 export function wrapTransportSend(transport: MCPTransport): void {
   if (transport.send) {
     fill(transport, 'send', originalSend => {
-      return async function (this: MCPTransport, message: unknown) {
+      return async function (this: MCPTransport, ...args: unknown[]) {
+        const [message] = args;
+        
         if (isJsonRpcNotification(message)) {
           return createMcpOutgoingNotificationSpan(message, this, () => {
-            return (originalSend as (...args: unknown[]) => unknown).call(this, message);
+            return (originalSend as (...args: unknown[]) => unknown).call(this, ...args);
           });
         }
 
@@ -107,7 +109,7 @@ export function wrapTransportSend(transport: MCPTransport): void {
           }
         }
 
-        return (originalSend as (...args: unknown[]) => unknown).call(this, message);
+        return (originalSend as (...args: unknown[]) => unknown).call(this, ...args);
       };
     });
   }
