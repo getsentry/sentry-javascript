@@ -267,12 +267,12 @@ function setPortAndAddress(span: Span, settings: FirestoreSettings): void {
       // IPv6 addresses can be enclosed in square brackets, e.g., [2001:db8::1]:8080
       if (settings.host.endsWith(']')) {
         // IPv6 with square brackets without port
-        address = settings.host.slice(1, -1);
+        address = settings.host.replace(/^\[|\]$/g, '');
       } else {
         // IPv6 with square brackets with port
         const lastColonIndex = settings.host.lastIndexOf(':');
         if (lastColonIndex !== -1) {
-          address = settings.host.slice(1, lastColonIndex);
+          address = settings.host.slice(1, lastColonIndex).replace(/^\[|\]$/g, '');
           port = settings.host.slice(lastColonIndex + 1);
         }
       }
