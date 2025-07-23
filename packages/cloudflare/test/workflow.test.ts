@@ -5,10 +5,6 @@ import { deterministicTraceIdFromInstanceId, instrumentWorkflowWithSentry } from
 
 const NODE_MAJOR_VERSION = parseInt(process.versions.node.split('.')[0]!);
 
-if (NODE_MAJOR_VERSION < 20) {
-  process.exit(0); // Skip tests for Node.js versions below 20
-}
-
 const mockStep: WorkflowStep = {
   do: vi
     .fn()
@@ -69,7 +65,7 @@ const INSTANCE_ID = 'ae0ee067-61b3-4852-9219-5d62282270f0';
 const SAMPLE_RAND = '0.44116884107728693';
 const TRACE_ID = INSTANCE_ID.replace(/-/g, '');
 
-describe('workflows', () => {
+describe.skipIf(NODE_MAJOR_VERSION < 20)('workflows', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
