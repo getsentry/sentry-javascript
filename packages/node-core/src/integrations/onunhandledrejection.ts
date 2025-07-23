@@ -53,7 +53,8 @@ export function makeUnhandledPromiseHandler(
 
     // this can be set in places where we cannot reliably get access to the active span/error
     // when the error bubbles up to this handler, we can use this to set the active span
-    const activeSpanForError = (reason as { _sentry_active_span?: Span })._sentry_active_span;
+    const activeSpanForError =
+      reason && typeof reason === 'object' ? (reason as { _sentry_active_span?: Span })._sentry_active_span : undefined;
 
     const activeSpanWrapper = activeSpanForError
       ? (fn: () => void) => withActiveSpan(activeSpanForError, fn)
