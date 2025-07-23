@@ -194,10 +194,10 @@ function replaceSDKSource(): void {
       let content = fs.readFileSync(envFile, 'utf-8');
 
       // Replace the line marked with __SENTRY_SDK_SOURCE__ comment
-      // Change from 'npm' to 'aws' to identify that this is the AWS Lambda layer
+      // Change from 'npm' to 'aws-lambda-layer' to identify that this is the AWS Lambda layer
       content = content.replace(
         "/* __SENTRY_SDK_SOURCE__ */ return 'npm';",
-        "/* __SENTRY_SDK_SOURCE__ */ return 'aws';",
+        "/* __SENTRY_SDK_SOURCE__ */ return 'aws-lambda-layer';",
       );
 
       fs.writeFileSync(envFile, content);
