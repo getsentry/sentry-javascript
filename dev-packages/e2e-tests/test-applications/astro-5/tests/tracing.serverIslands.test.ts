@@ -33,7 +33,7 @@ test.describe('tracing in static routes with server islands', () => {
           data: expect.objectContaining({
             'sentry.op': 'pageload',
             'sentry.origin': 'auto.pageload.browser',
-            'sentry.source': 'url',
+            'sentry.source': 'route',
           }),
           op: 'pageload',
           origin: 'auto.pageload.browser',
@@ -45,7 +45,7 @@ test.describe('tracing in static routes with server islands', () => {
       platform: 'javascript',
       transaction: '/server-island',
       transaction_info: {
-        source: 'url',
+        source: 'route',
       },
       type: 'transaction',
     });

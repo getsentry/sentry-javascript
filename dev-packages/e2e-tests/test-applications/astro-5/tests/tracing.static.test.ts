@@ -36,7 +36,7 @@ test.describe('tracing in static/pre-rendered routes', () => {
           data: expect.objectContaining({
             'sentry.op': 'pageload',
             'sentry.origin': 'auto.pageload.browser',
-            'sentry.source': 'url',
+            'sentry.source': 'route',
           }),
           op: 'pageload',
           origin: 'auto.pageload.browser',
@@ -48,7 +48,7 @@ test.describe('tracing in static/pre-rendered routes', () => {
       platform: 'javascript',
       transaction: '/test-static',
       transaction_info: {
-        source: 'url',
+        source: 'route',
       },
       type: 'transaction',
     });
