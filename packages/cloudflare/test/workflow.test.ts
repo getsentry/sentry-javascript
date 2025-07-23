@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import type { WorkflowEvent, WorkflowStep, WorkflowStepConfig } from 'cloudflare:workers';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-import { instrumentWorkflowWithSentry } from '../src/workflows';
+import { deterministicTraceIdFromInstanceId, instrumentWorkflowWithSentry } from '../src/workflows';
 
 const NODE_MAJOR_VERSION = parseInt(process.versions.node.split('.')[0]!);
 
@@ -72,6 +72,13 @@ const TRACE_ID = INSTANCE_ID.replace(/-/g, '');
 describe('workflows', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  test('hashStringToUuid hashes a string to a UUID for Sentry trace ID', async () => {
+    const UUID_WITHOUT_HYPHENS_REGEX = /^[0-9a-f]{32}$/i;
+    expect(await deterministicTraceIdFromInstanceId('s')).toMatch(UUID_WITHOUT_HYPHENS_REGEX);
+    expect(await deterministicTraceIdFromInstanceId('test-string')).toMatch(UUID_WITHOUT_HYPHENS_REGEX);
+    expect(await deterministicTraceIdFromInstanceId(INSTANCE_ID)).toMatch(UUID_WITHOUT_HYPHENS_REGEX);
   });
 
   test('Calls expected functions', async () => {

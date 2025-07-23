@@ -24,8 +24,11 @@ import { init } from './sdk';
 
 const UUID_REGEX = /^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$/i;
 
-async function hashStringToUuid(input: string): Promise<string> {
-  const buf = await crypto.subtle.digest('SHA-1', new TextEncoder().encode(input));
+/**
+ * Hashes a string to a UUID using SHA-1.
+ */
+export async function deterministicTraceIdFromInstanceId(instanceId: string): Promise<string> {
+  const buf = await crypto.subtle.digest('SHA-1', new TextEncoder().encode(instanceId));
   return (
     Array.from(new Uint8Array(buf))
       // We only need the first 16 bytes for the 32 characters
@@ -36,7 +39,9 @@ async function hashStringToUuid(input: string): Promise<string> {
 }
 
 async function propagationContextFromInstanceId(instanceId: string): Promise<PropagationContext> {
-  const traceId = UUID_REGEX.test(instanceId) ? instanceId.replace(/-/g, '') : await hashStringToUuid(instanceId);
+  const traceId = UUID_REGEX.test(instanceId)
+    ? instanceId.replace(/-/g, '')
+    : await deterministicTraceIdFromInstanceId(instanceId);
 
   // Derive sampleRand from last 4 characters of the random UUID
   //
