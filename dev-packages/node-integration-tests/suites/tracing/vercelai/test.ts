@@ -1,6 +1,6 @@
+import type { Event } from '@sentry/node';
 import { afterAll, describe, expect } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
-import { Event } from '@sentry/node';
 
 describe('Vercel AI integration', () => {
   afterAll(() => {

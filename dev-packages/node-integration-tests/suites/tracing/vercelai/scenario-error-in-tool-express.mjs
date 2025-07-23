@@ -1,9 +1,9 @@
 import * as Sentry from '@sentry/node';
+import { startExpressServerAndSendPortToRunner } from '@sentry-internal/node-integration-tests';
 import { generateText } from 'ai';
 import { MockLanguageModelV1 } from 'ai/test';
-import { z } from 'zod';
-import { startExpressServerAndSendPortToRunner } from '@sentry-internal/node-integration-tests';
 import express from 'express';
+import { z } from 'zod';
 
 const app = express();
 
