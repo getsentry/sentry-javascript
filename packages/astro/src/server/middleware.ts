@@ -341,7 +341,7 @@ export function interpolateRouteFromUrlAndParams(
       })
       .join('/')
       // Remove trailing slash (only if it's not the only segment)
-      .replace(/(.+)\/$/, '$1')
+      .replace(/^(.+?)\/$/, '$1')
   );
 }
 
