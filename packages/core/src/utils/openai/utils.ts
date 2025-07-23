@@ -76,18 +76,6 @@ export function isResponsesApiResponse(response: unknown): response is OpenAIRes
 }
 
 /**
- * Check if a result is a stream (AsyncIterable)
- */
-export function isStream(result: unknown): result is AsyncIterable<unknown> {
-  return (
-    result !== null &&
-    typeof result === 'object' &&
-    Symbol.asyncIterator in result &&
-    typeof (result as Record<symbol, unknown>)[Symbol.asyncIterator] === 'function'
-  );
-}
-
-/**
  * Check if streaming event is from the Responses API
  */
 export function isResponsesApiStreamEvent(event: unknown): boolean {

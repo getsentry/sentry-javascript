@@ -7,7 +7,6 @@ import {
   isChatCompletionResponse,
   isResponsesApiResponse,
   isResponsesApiStreamEvent,
-  isStream,
   shouldInstrument,
 } from '../../../src/utils/openai/utils';
 
@@ -102,27 +101,6 @@ describe('openai-utils', () => {
       expect(isResponsesApiResponse({})).toBe(false);
       expect(isResponsesApiResponse({ object: 'different' })).toBe(false);
       expect(isResponsesApiResponse({ object: null })).toBe(false);
-    });
-  });
-
-  describe('isStream', () => {
-    it('should return true for AsyncIterable objects', () => {
-      const validStream = {
-        async *[Symbol.asyncIterator]() {
-          yield 'test';
-        },
-      };
-      expect(isStream(validStream)).toBe(true);
-    });
-
-    it('should return false for non-stream objects', () => {
-      expect(isStream(null)).toBe(false);
-      expect(isStream(undefined)).toBe(false);
-      expect(isStream('string')).toBe(false);
-      expect(isStream(123)).toBe(false);
-      expect(isStream({})).toBe(false);
-      expect(isStream({ [Symbol.asyncIterator]: 'not-a-function' })).toBe(false);
-      expect(isStream([])).toBe(false);
     });
   });
 

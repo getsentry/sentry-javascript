@@ -36,7 +36,6 @@ import {
   getSpanOperation,
   isChatCompletionResponse,
   isResponsesApiResponse,
-  isStream,
   setCommonResponseAttributes,
   setTokenUsageAttributes,
   shouldInstrument,
@@ -178,37 +177,39 @@ function instrumentMethod<T extends unknown[], R>(
     const model = (requestAttributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] as string) || 'unknown';
     const operationName = getOperationName(methodPath);
 
-    const result = await originalMethod.apply(context, args);
+    const params = args[0] as Record<string, unknown> | undefined;
+    const isStreamRequested = params && typeof params === 'object' && params.stream === true;
 
-    if (isStream(result)) {
+    if (isStreamRequested) {
+      // For streaming responses, use manual span management to properly handle the async generator lifecycle
       return startSpanManual(
         {
           name: `${operationName} ${model} stream-response`,
           op: getSpanOperation(methodPath),
           attributes: requestAttributes as Record<string, SpanAttributeValue>,
         },
-        (span: Span, finish: () => void) => {
+        async (span: Span) => {
           try {
             if (finalOptions.recordInputs && args[0] && typeof args[0] === 'object') {
               addRequestAttributes(span, args[0] as Record<string, unknown>);
             }
 
+            const result = await originalMethod.apply(context, args);
+
             return instrumentStream(
               result as OpenAIStream<ChatCompletionChunk | ResponseStreamingEvent>,
               span,
               finalOptions.recordOutputs ?? false,
-              finish,
             ) as unknown as R;
-            
           } catch (error) {
             captureException(error);
-            finish();
+            span.end();
             throw error;
           }
         },
       );
     } else {
-      // Non-streaming responses
+      //  Non-streaming responses
       return startSpan(
         {
           name: `${operationName} ${model}`,
@@ -220,6 +221,8 @@ function instrumentMethod<T extends unknown[], R>(
             if (finalOptions.recordInputs && args[0] && typeof args[0] === 'object') {
               addRequestAttributes(span, args[0] as Record<string, unknown>);
             }
+
+            const result = await originalMethod.apply(context, args);
             addResponseAttributes(span, result, finalOptions.recordOutputs);
             return result;
           } catch (error) {

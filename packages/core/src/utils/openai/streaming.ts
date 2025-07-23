@@ -102,7 +102,6 @@ export async function* instrumentStream<T>(
   stream: AsyncIterable<T>,
   span: Span,
   recordOutputs: boolean,
-  finishSpan?: () => void,
 ): AsyncGenerator<T, void, unknown> {
   const state: StreamingState = {
     eventTypes: [],
@@ -125,7 +124,7 @@ export async function* instrumentStream<T>(
 
     if (state.finishReasons.length) {
       span.setAttributes({
-        [GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]: state.finishReasons.join(','),
+        [GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]: state.finishReasons[state.finishReasons.length - 1],
       });
     }
 
@@ -134,9 +133,7 @@ export async function* instrumentStream<T>(
         [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: state.responseTexts.join(''),
       });
     }
-  }
 
-  if (finishSpan) {
-    finishSpan();
+    span.end();
   }
 }
