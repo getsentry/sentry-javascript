@@ -25,7 +25,7 @@ async function run() {
       tools: {
         getWeather: {
           parameters: z.object({ location: z.string() }),
-          execute: async args => {
+          execute: async () => {
             throw new Error('Error in tool');
           },
         },
