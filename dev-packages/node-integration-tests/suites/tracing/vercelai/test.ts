@@ -458,7 +458,7 @@ describe('Vercel AI integration', () => {
       expect(errorTraceId).toMatch(/^[a-f0-9]{32}$/);
 
       expect(errorTraceId).toBe(transactionTraceId);
-    }, 30000);
+    });
   });
 
   createEsmAndCjsTests(__dirname, 'scenario-express-error.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
@@ -504,6 +504,6 @@ describe('Vercel AI integration', () => {
       expect(errorTraceId).toMatch(/^[a-f0-9]{32}$/);
 
       expect(errorTraceId).toBe(transactionTraceId);
-    }, 30000);
+    });
   });
 });
