@@ -30,9 +30,11 @@ export function browserTracingIntegration(
         const routeNameFromMetaTags = getMetaContent('sentry-route-name');
 
         if (routeNameFromMetaTags) {
-          DEBUG_BUILD && debug.log(`[Tracing] Using route name from Sentry HTML meta-tag: ${routeNameFromMetaTags}`);
+          const decodedRouteName = decodeURIComponent(routeNameFromMetaTags);
 
-          pageLoadSpan.updateName(routeNameFromMetaTags);
+          DEBUG_BUILD && debug.log(`[Tracing] Using route name from Sentry HTML meta-tag: ${decodedRouteName}`);
+
+          pageLoadSpan.updateName(decodedRouteName);
           pageLoadSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route' as TransactionSource);
         }
       });

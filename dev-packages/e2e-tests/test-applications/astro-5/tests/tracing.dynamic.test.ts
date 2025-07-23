@@ -194,7 +194,7 @@ test.describe('nested SSR routes (client, server, server request)', () => {
     );
 
     const routeNameMetaContent = await page.locator('meta[name="sentry-route-name"]').getAttribute('content');
-    expect(routeNameMetaContent).toBe('/user-page/[userId]');
+    expect(routeNameMetaContent).toBe('%2Fuser-page%2F%5BuserId%5D');
 
     // Client pageload transaction - actual URL with pageload operation
     expect(clientPageloadTxn).toMatchObject({
@@ -278,7 +278,7 @@ test.describe('nested SSR routes (client, server, server request)', () => {
     await page.goto('/catchAll/hell0/whatever-do');
 
     const routeNameMetaContent = await page.locator('meta[name="sentry-route-name"]').getAttribute('content');
-    expect(routeNameMetaContent).toBe('/catchAll/[...path]');
+    expect(routeNameMetaContent).toBe('%2FcatchAll%2F%5B...path%5D');
 
     const clientPageloadTxn = await clientPageloadTxnPromise;
     const serverPageRequestTxn = await serverPageRequestTxnPromise;

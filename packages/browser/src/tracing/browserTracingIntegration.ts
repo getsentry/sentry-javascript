@@ -309,6 +309,7 @@ const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
  * We explicitly export the proper type here, as this has to be extended in some cases.
  */
 export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptions> = {}) => {
+  console.log('init browserTracingIntegration _options', _options);
   const latestRoute: RouteInfo = {
     name: undefined,
     source: undefined,
@@ -349,6 +350,8 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
     ..._options,
   };
 
+  console.log('deconstructed beforeStartSpan', beforeStartSpan);
+
   let _collectWebVitals: undefined | (() => void);
   let lastInteractionTimestamp: number | undefined;
 
@@ -359,6 +362,10 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
     const finalStartSpanOptions: StartSpanOptions = beforeStartSpan
       ? beforeStartSpan(startSpanOptions)
       : startSpanOptions;
+
+    // fixme: this is always undefined
+    console.log('beforeStartSpan (inside _createRouteSpan)', beforeStartSpan);
+    console.log('finalStartSpanOptions', finalStartSpanOptions);
 
     const attributes = finalStartSpanOptions.attributes || {};
 
@@ -556,6 +563,11 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
       }
 
       if (WINDOW.location) {
+        console.log('window.location', WINDOW.location);
+
+        // todo: set globalThis and check if we can access it here
+        // @ts-ignore
+        console.log('routemanifest', globalThis._sentryRouteManifest);
         if (instrumentPageLoad) {
           const origin = browserPerformanceTimeOrigin();
           startBrowserTracingPageLoadSpan(client, {
@@ -789,3 +801,38 @@ function isRedirect(activeSpan: Span, lastInteractionTimestamp: number | undefin
 
   return true;
 }
+
+/**
+ *   return originalBrowserTracingIntegration({
+ *     ...options,
+ *     beforeStartSpan: (startSpanOptions) => {
+ *       console.log('beforeStartSpan called with options:', startSpanOptions);
+ *
+ *       const routeName = getMetaContent('sentry-route-name');
+ *       console.log('astro routeName from beforeStartSpan:', routeName);
+ *
+ *       if (routeName) {
+ *         const modifiedOptions = {
+ *           ...startSpanOptions,
+ *           name: routeName,
+ *           attributes: {
+ *             ...startSpanOptions.attributes,
+ *             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route' as TransactionSource,
+ *           },
+ *         };
+ *         console.log('modified options:', modifiedOptions);
+ *         return modifiedOptions;
+ *       }
+ *
+ *
+ *       if (options.beforeStartSpan) {
+ *         return options.beforeStartSpan(startSpanOptions);
+ *       }
+ *
+ *       return startSpanOptions;
+ *     },
+ *   });
+ * }
+ *
+ * export { browserTracingIntegration };
+ */

@@ -258,7 +258,7 @@ function addMetaTagToHead(htmlChunk: string, parametrizedRoute?: string): string
     return htmlChunk;
   }
   const metaTags = parametrizedRoute
-    ? `${getTraceMetaTags()}\n<meta name="sentry-route-name" content="${parametrizedRoute}"/>\n`
+    ? `${getTraceMetaTags()}\n<meta name="sentry-route-name" content="${encodeURIComponent(parametrizedRoute)}"/>\n`
     : getTraceMetaTags();
 
   if (!metaTags) {
