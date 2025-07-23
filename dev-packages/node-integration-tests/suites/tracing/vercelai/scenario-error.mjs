@@ -5,7 +5,7 @@ import { z } from 'zod';
 
 async function run() {
   // Create a manual outer span (simulating the root span)
-  await Sentry.startSpan({ op: 'http.server', name: 'GET /api/test', description: 'HTTP server request' }, async () => {
+  await Sentry.startSpan({ op: 'outer', name: 'outer span', description: 'outer span' }, async () => {
     // It is expected that the error will bubble up naturally to the outer span
     await generateText({
       model: new MockLanguageModelV1({

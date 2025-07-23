@@ -426,7 +426,7 @@ describe('Vercel AI integration', () => {
         .expect({
           transaction: (transaction: any) => {
             capturedTransaction = transaction;
-            expect(transaction.transaction).toBe('GET /api/test');
+            expect(transaction.transaction).toBe('outer span');
           },
         })
         .expect({
