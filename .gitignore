@@ -60,3 +60,4 @@ packages/gatsby/gatsby-node.d.ts
 
 # intellij
 *.iml
+/**/.wrangler/*
