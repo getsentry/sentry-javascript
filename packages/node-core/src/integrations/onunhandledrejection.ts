@@ -1,5 +1,5 @@
-import type { Client, IntegrationFn, SeverityLevel } from '@sentry/core';
-import { captureException, consoleSandbox, defineIntegration, getClient } from '@sentry/core';
+import type { Client, IntegrationFn, SeverityLevel, Span } from '@sentry/core';
+import { captureException, consoleSandbox, defineIntegration, getClient, withActiveSpan } from '@sentry/core';
 import { logAndExitProcess } from '../utils/errorhandling';
 
 type UnhandledRejectionMode = 'none' | 'warn' | 'strict';
@@ -51,16 +51,26 @@ export function makeUnhandledPromiseHandler(
 
     const level: SeverityLevel = options.mode === 'strict' ? 'fatal' : 'error';
 
-    captureException(reason, {
-      originalException: promise,
-      captureContext: {
-        extra: { unhandledPromiseRejection: true },
-        level,
-      },
-      mechanism: {
-        handled: false,
-        type: 'onunhandledrejection',
-      },
+    // this can be set in places where we cannot reliably get access to the active span/error
+    // when the error bubbles up to this handler, we can use this to set the active span
+    const activeSpanForError = (reason as { _sentry_active_span?: Span })._sentry_active_span;
+
+    const activeSpanWrapper = activeSpanForError
+      ? (fn: () => void) => withActiveSpan(activeSpanForError, fn)
+      : (fn: () => void) => fn();
+
+    activeSpanWrapper(() => {
+      captureException(reason, {
+        originalException: promise,
+        captureContext: {
+          extra: { unhandledPromiseRejection: true },
+          level,
+        },
+        mechanism: {
+          handled: false,
+          type: 'onunhandledrejection',
+        },
+      });
     });
 
     handleRejection(reason, options.mode);
