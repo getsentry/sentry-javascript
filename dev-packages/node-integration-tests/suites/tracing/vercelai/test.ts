@@ -416,4 +416,94 @@ describe('Vercel AI integration', () => {
       await createRunner().expect({ transaction: EXPECTED_TRANSACTION_DEFAULT_PII_TRUE }).start().completed();
     });
   });
+
+  createEsmAndCjsTests(__dirname, 'scenario-error.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
+    test('Vercel AI errors should inherit parent trace context from manually created outer span', async () => {
+      let capturedTransaction: any;
+      let capturedEvent: any;
+
+      const runner = createRunner()
+        .expect({
+          transaction: (transaction: any) => {
+            capturedTransaction = transaction;
+            expect(transaction.transaction).toBe('GET /api/test');
+          },
+        })
+        .expect({
+          event: (event: any) => {
+            capturedEvent = event;
+
+            expect(event).toMatchObject({
+              exception: {
+                values: expect.arrayContaining([
+                  expect.objectContaining({
+                    type: 'AI_ToolExecutionError',
+                    value: 'Error executing tool calculateTool: Not implemented',
+                  }),
+                ]),
+              },
+            });
+          },
+        })
+        .start();
+
+      await runner.completed();
+
+      const transactionTraceId = capturedTransaction?.contexts?.trace?.trace_id;
+      const errorTraceId = capturedEvent?.contexts?.trace?.trace_id;
+
+      expect(transactionTraceId).toBeDefined();
+      expect(errorTraceId).toBeDefined();
+      expect(transactionTraceId).toMatch(/^[a-f0-9]{32}$/);
+      expect(errorTraceId).toMatch(/^[a-f0-9]{32}$/);
+
+      expect(errorTraceId).toBe(transactionTraceId);
+    });
+  });
+
+  createEsmAndCjsTests(__dirname, 'scenario-express-error.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
+    test('Vercel AI errors should inherit parent trace context from server HTTP request', async () => {
+      let capturedTransaction: any;
+      let capturedEvent: any;
+
+      const runner = createRunner()
+        .withMockSentryServer()
+        .expect({
+          transaction: (transaction: any) => {
+            capturedTransaction = transaction;
+            // Express creates a transaction like "GET /api/chat"
+            expect(transaction.transaction).toBe('GET /api/chat');
+          },
+        })
+        .expect({
+          event: (event: any) => {
+            capturedEvent = event;
+
+            expect(event).toMatchObject({
+              exception: {
+                values: expect.arrayContaining([
+                  expect.objectContaining({
+                    type: 'AI_ToolExecutionError',
+                    value: 'Error executing tool calculateTool: Calculation service unavailable',
+                  }),
+                ]),
+              },
+            });
+          },
+        })
+        .start();
+
+      await runner.completed();
+
+      const transactionTraceId = capturedTransaction?.contexts?.trace?.trace_id;
+      const errorTraceId = capturedEvent?.contexts?.trace?.trace_id;
+
+      expect(transactionTraceId).toBeDefined();
+      expect(errorTraceId).toBeDefined();
+      expect(transactionTraceId).toMatch(/^[a-f0-9]{32}$/);
+      expect(errorTraceId).toMatch(/^[a-f0-9]{32}$/);
+
+      expect(errorTraceId).toBe(transactionTraceId);
+    });
+  });
 });
