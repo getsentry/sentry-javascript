@@ -62,19 +62,23 @@ async function run() {
   const server = createServer(app);
 
   // Start server and make request
-  server.listen(0, () => {
+  server.listen(0, async () => {
     const port = server.address()?.port;
     // eslint-disable-next-line no-console
     console.log(JSON.stringify({ port }));
 
-    // Make the request that will trigger the error
-    fetch(`http://localhost:${port}/api/chat`)
-      .then(() => {
-        server.close();
-      })
-      .catch(() => {
-        server.close();
-      });
+    try {
+      // Make the request that will trigger the error
+      const response = await fetch(`http://localhost:${port}/api/chat`);
+      await response.json(); // Consume the response
+    } catch (error) {
+      // Expected to fail due to the tool error, but we still want to capture it
+    }
+
+    // Give time for Sentry to process and send the error
+    setTimeout(() => {
+      server.close();
+    }, 1000);
   });
 }
 
