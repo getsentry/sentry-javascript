@@ -2,11 +2,15 @@ import * as Sentry from '@sentry/node';
 import { generateText } from 'ai';
 import { MockLanguageModelV1 } from 'ai/test';
 import { z } from 'zod';
+import { startExpressServerAndSendPortToRunner } from '@sentry-internal/node-integration-tests';
+import express from 'express';
 
-async function run() {
+const app = express();
+
+app.get('/test/error-in-tool', async (_req, res, next) => {
   Sentry.setTag('test-tag', 'test-value');
 
-  await Sentry.startSpan({ op: 'function', name: 'main' }, async () => {
+  try {
     await generateText({
       model: new MockLanguageModelV1({
         doGenerate: async () => ({
@@ -34,7 +38,13 @@ async function run() {
       },
       prompt: 'What is the weather in San Francisco?',
     });
-  });
-}
+  } catch (error) {
+    next(error);
+    return;
+  }
 
-run();
+  res.send({ message: 'OK' });
+});
+Sentry.setupExpressErrorHandler(app);
+
+startExpressServerAndSendPortToRunner(app);

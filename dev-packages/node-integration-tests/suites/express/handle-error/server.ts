@@ -4,8 +4,8 @@ import { loggingTransport, startExpressServerAndSendPortToRunner } from '@sentry
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   release: '1.0',
+  tracesSampleRate: 1,
   transport: loggingTransport,
-  tracesSampleRate: 0
 });
 
 import express from 'express';
