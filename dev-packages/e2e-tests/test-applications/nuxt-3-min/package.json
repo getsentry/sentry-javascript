@@ -11,15 +11,15 @@
     "start": "node .output/server/index.mjs",
     "start:import": "node --import ./.output/server/sentry.server.config.mjs .output/server/index.mjs",
     "clean": "npx nuxi cleanup",
-    "test": "playwright test -g 'distributed tracing'",
+    "test": "playwright test",
     "test:build": "pnpm install && pnpm build",
     "test:assert": "pnpm test"
   },
   "dependencies": {
     "@sentry/nuxt": "latest || *",
-    "nuxt": "3.9.0",
-    "vue": "latest",
-    "vue-router": "latest"
+    "nuxt": "3.7.0",
+    "vue": "3.3.4",
+    "vue-router": "4.2.4"
   },
   "devDependencies": {
     "@playwright/test": "~1.53.2",
