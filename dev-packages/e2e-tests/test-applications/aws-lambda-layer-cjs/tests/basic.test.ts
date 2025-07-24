@@ -18,7 +18,7 @@ test('Lambda layer SDK bundle sends events', async ({ request }) => {
   );
 
   child_process.execSync('pnpm start', {
-    stdio: 'ignore',
+    stdio: 'inherit',
   });
 
   const transactionEvent = await transactionEventPromise;
@@ -68,5 +68,10 @@ test('Lambda layer SDK bundle sends events', async ({ request }) => {
       description: 'manual-span',
       op: 'test',
     }),
+  );
+
+  // shows that the SDK source is correctly detected
+  expect(transactionEvent.sdk?.packages).toContainEqual(
+    expect.objectContaining({ name: 'aws-lambda-layer:@sentry/aws-serverless' }),
   );
 });

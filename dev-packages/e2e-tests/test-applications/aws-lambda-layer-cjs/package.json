@@ -1,7 +1,8 @@
 {
-  "name": "node-express-app",
+  "name": "aws-lambda-layer-cjs",
   "version": "1.0.0",
   "private": true,
+  "type": "commonjs",
   "scripts": {
     "start": "node src/run.js",
     "test": "playwright test",
@@ -18,5 +19,8 @@
   },
   "volta": {
     "extends": "../../package.json"
+  },
+  "sentryTest": {
+    "skip": true
   }
 }
