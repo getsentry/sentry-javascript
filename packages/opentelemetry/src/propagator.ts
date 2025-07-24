@@ -4,6 +4,7 @@ import { isTracingSuppressed, W3CBaggagePropagator } from '@opentelemetry/core';
 import { ATTR_URL_FULL, SEMATTRS_HTTP_URL } from '@opentelemetry/semantic-conventions';
 import type { Client, continueTrace, DynamicSamplingContext, Options, Scope } from '@sentry/core';
 import {
+  baggageHeaderToDynamicSamplingContext,
   debug,
   generateSentryTraceHeader,
   getClient,
@@ -19,7 +20,6 @@ import {
   spanToJSON,
   stringMatchesSomePattern,
 } from '@sentry/core';
-import { baggageHeaderToDynamicSamplingContext } from '@sentry/core/src';
 import { SENTRY_BAGGAGE_HEADER, SENTRY_TRACE_HEADER, SENTRY_TRACE_STATE_URL } from './constants';
 import { DEBUG_BUILD } from './debug-build';
 import { getScopesFromContext, setScopesOnContext } from './utils/contextData';
