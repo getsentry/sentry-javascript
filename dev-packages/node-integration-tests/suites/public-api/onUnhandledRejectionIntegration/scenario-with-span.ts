@@ -8,6 +8,7 @@ Sentry.init({
   transport: loggingTransport,
 });
 
+// eslint-disable-next-line @typescript-eslint/no-floating-promises
 Sentry.startSpan({ name: 'test-span' }, async () => {
   throw new Error('test error');
 });

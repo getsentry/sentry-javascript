@@ -8,21 +8,25 @@ Sentry.init({
   transport: loggingTransport,
 });
 
+// eslint-disable-next-line @typescript-eslint/no-floating-promises
 recordSpan(async () => {
+  // eslint-disable-next-line @typescript-eslint/no-floating-promises
   doSomething();
+  // eslint-disable-next-line @typescript-eslint/no-floating-promises
   doSomethingWithError();
 });
 
-async function doSomething() {
+async function doSomething(): Promise<void> {
   return Promise.resolve();
 }
 
-async function doSomethingWithError() {
+async function doSomethingWithError(): Promise<void> {
   await new Promise(resolve => setTimeout(resolve, 100));
   throw new Error('test error');
 }
 
-function recordSpan(fn: (span: unknown) => Promise<void>) {
+// Duplicating some code from vercel-ai to verify how things work in more complex/weird scenarios
+function recordSpan(fn: (span: unknown) => Promise<void>): Promise<void> {
   return Sentry.startSpanManual({ name: 'test-span' }, async span => {
     try {
       const result = await fn(span);

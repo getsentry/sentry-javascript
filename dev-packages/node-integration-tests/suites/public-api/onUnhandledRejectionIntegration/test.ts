@@ -1,8 +1,8 @@
+import type { Event } from '@sentry/node';
 import * as childProcess from 'child_process';
 import * as path from 'path';
 import { afterAll, describe, expect, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
-import type { Event } from '@sentry/node';
 
 describe('onUnhandledRejectionIntegration', () => {
   afterAll(() => {
