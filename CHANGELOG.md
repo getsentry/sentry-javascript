@@ -32,11 +32,11 @@ Sentry.init({
 });
 ```
 
-- **feat(astro): Implement paramaterized routes**
+- **feat(astro): Implement parameterized routes**
   - feat(v9/astro): Parametrize dynamic server routes ([#17141](https://github.com/getsentry/sentry-javascript/pull/17141))
   - feat(v9/astro): Parametrize routes on client-side ([#17143](https://github.com/getsentry/sentry-javascript/pull/17143))
 
-Server-side and client-side paramaterized routes are now supported in the Astro SDK. No configuration changes are required.
+Server-side and client-side parameterized routes are now supported in the Astro SDK. No configuration changes are required.
 
 ### Other Changes
 
