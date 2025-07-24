@@ -1,0 +1,35 @@
+{
+  "name": "tsx-express-app",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "tsx --import ./instrument.mjs ./src/app.ts",
+    "test": "playwright test",
+    "clean": "npx rimraf node_modules pnpm-lock.yaml",
+    "test:build": "pnpm install",
+    "test:assert": "pnpm test"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.10.2",
+    "@sentry/core": "latest || *",
+    "@sentry/node": "latest || *",
+    "@trpc/server": "10.45.2",
+    "@trpc/client": "10.45.2",
+    "@types/express": "^4.17.21",
+    "@types/node": "^18.19.1",
+    "express": "^4.21.2",
+    "typescript": "~5.0.0",
+    "zod": "~3.24.3"
+  },
+  "devDependencies": {
+    "@playwright/test": "~1.50.0",
+    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "tsx": "^4.20.3"
+  },
+  "resolutions": {
+    "@types/qs": "6.9.17"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  }
+}
