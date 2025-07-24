@@ -436,4 +436,9 @@ export type { ContinuousProfiler, ProfilingIntegration, Profiler } from './types
 export type { ViewHierarchyData, ViewHierarchyWindow } from './types-hoist/view-hierarchy';
 export type { LegacyCSPReport } from './types-hoist/csp';
 export type { SerializedLog, SerializedLogContainer } from './types-hoist/log';
-export type { BuildTimeOptionsBase } from './build-time-plugins/buildTimeOptionsBase';
+export type {
+  BuildTimeOptionsBase,
+  UnstableVitePluginOptions,
+  UnstableRollupPluginOptions,
+  UnstableWebpackPluginOptions,
+} from './build-time-plugins/buildTimeOptionsBase';
