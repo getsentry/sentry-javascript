@@ -27,7 +27,7 @@ const captureExceptionEventHint = {
 
 const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(_ => {});
 
-describe('handleError', () => {
+describe('handleError (client)', () => {
   beforeEach(() => {
     mockCaptureException.mockClear();
     consoleErrorSpy.mockClear();
@@ -55,19 +55,22 @@ describe('handleError', () => {
 
       expect(returnVal.message).toEqual('Whoops!');
       expect(mockCaptureException).toHaveBeenCalledTimes(1);
-      expect(mockCaptureException).toHaveBeenCalledWith(mockError, captureExceptionEventHint);
+      expect(mockCaptureException).toHaveBeenCalledWith(mockError, {
+        mechanism: { handled: true, type: 'sveltekit' },
+      });
+
       // Check that the default handler wasn't invoked
       expect(consoleErrorSpy).toHaveBeenCalledTimes(0);
     });
   });
 
-  it("doesn't capture 404 errors", async () => {
+  it.each([400, 401, 402, 403, 404, 429, 499])("doesn't capture %s errors", async statusCode => {
     const wrappedHandleError = handleErrorWithSentry(handleError);
     const returnVal = (await wrappedHandleError({
-      error: new Error('404 Not Found'),
+      error: new Error(`Error with status ${statusCode}`),
       event: navigationEvent,
-      status: 404,
-      message: 'Not Found',
+      status: statusCode,
+      message: `Error with status ${statusCode}`,
     })) as any;
 
     expect(returnVal.message).toEqual('Whoops!');
