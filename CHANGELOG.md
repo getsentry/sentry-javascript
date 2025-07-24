@@ -4,7 +4,14 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-Work in this release was contributed by @richardjelinek-fastest. Thank you for your contribution!
+## 10.0.0-alpha.2
+
+This is an alpha release of the upcoming major release of version 10.
+This release does not yet entail a comprehensive changelog as version 10 is not yet stable.
+
+For this release's iteration of the migration guide, see the [Migration Guide as per `10.0.0-alpha.1`](https://github.com/getsentry/sentry-javascript/blob/d059b06254251507792369171a7f7a3d5a1d7640/MIGRATION.md?plain=1#L11).
+
+Please note that the migration guide is work in progress and subject to change.
 
 ## 10.0.0-alpha.1
 
