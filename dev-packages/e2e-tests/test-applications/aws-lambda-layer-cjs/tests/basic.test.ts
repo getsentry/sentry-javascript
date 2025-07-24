@@ -18,7 +18,7 @@ test('Lambda layer SDK bundle sends events', async ({ request }) => {
   );
 
   child_process.execSync('pnpm start', {
-    stdio: 'ignore',
+    stdio: 'inherit',
   });
 
   const transactionEvent = await transactionEventPromise;
