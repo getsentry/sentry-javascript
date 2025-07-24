@@ -53,7 +53,7 @@ test.describe('tracing in static/pre-rendered routes', () => {
       type: 'transaction',
     });
 
-    expect(baggageMetaTagContent).toContain('sentry-transaction=GET%20%2Ftest-static%2F'); // URL-encoded for 'GET /test-static/'
+    expect(baggageMetaTagContent).toContain('sentry-transaction=GET%20%2Ftest-static'); // URL-encoded for 'GET /test-static'
     expect(baggageMetaTagContent).toContain('sentry-sampled=true');
 
     await page.waitForTimeout(1000); // wait another sec to ensure no server transaction is sent
