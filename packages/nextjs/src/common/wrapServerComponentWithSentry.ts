@@ -26,6 +26,7 @@ import { TRANSACTION_ATTR_SENTRY_TRACE_BACKFILL } from './span-attributes-with-l
 import { flushSafelyWithTimeout } from './utils/responseEnd';
 import { commonObjectToIsolationScope, commonObjectToPropagationContext } from './utils/tracingUtils';
 import { getSanitizedRequestUrl } from './utils/urls';
+import { safeExtractParamsAndSearchParamsFromProps } from './utils/wrapperUtils';
 
 /**
  * Wraps an `app` directory server component with Sentry error instrumentation.
@@ -40,7 +41,7 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
   // Next.js will turn them into synchronous functions and it will transform any `await`s into instances of the `use`
   // hook. 🤯
   return new Proxy(appDirComponent, {
-    apply: (originalFunction, thisArg, args) => {
+    apply: async (originalFunction, thisArg, args) => {
       const requestTraceId = getActiveSpan()?.spanContext().traceId;
       const isolationScope = commonObjectToIsolationScope(context.headers);
 
@@ -64,10 +65,8 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
 
       if (getClient()?.getOptions().sendDefaultPii) {
         const props: unknown = args[0];
-        params =
-          props && typeof props === 'object' && 'params' in props
-            ? (props.params as Record<string, string>)
-            : undefined;
+        const { params: paramsFromProps } = await safeExtractParamsAndSearchParamsFromProps(props);
+        params = paramsFromProps;
       }
 
       isolationScope.setSDKProcessingMetadata({

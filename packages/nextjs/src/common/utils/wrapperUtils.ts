@@ -6,6 +6,7 @@ import {
   getRootSpan,
   getTraceData,
   httpRequestToRequestData,
+  isThenable,
 } from '@sentry/core';
 import type { IncomingMessage, ServerResponse } from 'http';
 import { TRANSACTION_ATTR_SENTRY_ROUTE_BACKFILL } from '../span-attributes-with-logic-attached';
@@ -101,4 +102,40 @@ export async function callDataFetcherTraced<F extends (...args: any[]) => Promis
     captureException(e, { mechanism: { handled: false } });
     throw e;
   }
+}
+
+/**
+ * Extracts the params and searchParams from the props object.
+ *
+ * Depending on the next version, params and searchParams may be a promise.
+ */
+export async function safeExtractParamsAndSearchParamsFromProps(props: unknown): Promise<{
+  params: Record<string, string> | undefined;
+  searchParams: Record<string, string> | undefined;
+}> {
+  let params =
+    props && typeof props === 'object' && 'params' in props
+      ? (props.params as Record<string, string> | Promise<Record<string, string>> | undefined)
+      : undefined;
+  if (isThenable(params)) {
+    try {
+      params = await params;
+    } catch (e) {
+      params = undefined;
+    }
+  }
+
+  let searchParams =
+    props && typeof props === 'object' && 'searchParams' in props
+      ? (props.searchParams as Record<string, string> | Promise<Record<string, string>> | undefined)
+      : undefined;
+  if (isThenable(searchParams)) {
+    try {
+      searchParams = await searchParams;
+    } catch (e) {
+      searchParams = undefined;
+    }
+  }
+
+  return { params, searchParams };
 }
