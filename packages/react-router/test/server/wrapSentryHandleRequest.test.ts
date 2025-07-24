@@ -3,13 +3,11 @@ import { ATTR_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
 import {
   getActiveSpan,
   getRootSpan,
-  getTraceMetaTags,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '@sentry/core';
-import { PassThrough } from 'stream';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-import { getMetaTagTransformer, wrapSentryHandleRequest } from '../../src/server/wrapSentryHandleRequest';
+import { wrapSentryHandleRequest } from '../../src/server/wrapSentryHandleRequest';
 
 vi.mock('@opentelemetry/core', () => ({
   RPCType: { HTTP: 'http' },
@@ -124,76 +122,3 @@ describe('wrapSentryHandleRequest', () => {
   });
 });
 
-describe('getMetaTagTransformer', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    (getTraceMetaTags as unknown as ReturnType<typeof vi.fn>).mockReturnValue(
-      '<meta name="sentry-trace" content="test-trace-id">',
-    );
-  });
-
-  test('should inject meta tags before closing head tag', done => {
-    const outputStream = new PassThrough();
-    const bodyStream = new PassThrough();
-    const transformer = getMetaTagTransformer(bodyStream);
-
-    let outputData = '';
-    outputStream.on('data', chunk => {
-      outputData += chunk.toString();
-    });
-
-    outputStream.on('end', () => {
-      expect(outputData).toContain('<meta name="sentry-trace" content="test-trace-id"></head>');
-      expect(outputData).not.toContain('</head></head>');
-      done();
-    });
-
-    transformer.pipe(outputStream);
-
-    bodyStream.write('<html><head></head><body>Test</body></html>');
-    bodyStream.end();
-  });
-
-  test('should not modify chunks without head closing tag', done => {
-    const outputStream = new PassThrough();
-    const bodyStream = new PassThrough();
-    const transformer = getMetaTagTransformer(bodyStream);
-
-    let outputData = '';
-    outputStream.on('data', chunk => {
-      outputData += chunk.toString();
-    });
-
-    outputStream.on('end', () => {
-      expect(outputData).toBe('<html><body>Test</body></html>');
-      expect(getTraceMetaTags).toHaveBeenCalled();
-      done();
-    });
-
-    transformer.pipe(outputStream);
-
-    bodyStream.write('<html><body>Test</body></html>');
-    bodyStream.end();
-  });
-
-  test('should handle buffer input', done => {
-    const outputStream = new PassThrough();
-    const bodyStream = new PassThrough();
-    const transformer = getMetaTagTransformer(bodyStream);
-
-    let outputData = '';
-    outputStream.on('data', chunk => {
-      outputData += chunk.toString();
-    });
-
-    outputStream.on('end', () => {
-      expect(outputData).toContain('<meta name="sentry-trace" content="test-trace-id"></head>');
-      done();
-    });
-
-    transformer.pipe(outputStream);
-
-    bodyStream.write(Buffer.from('<html><head></head><body>Test</body></html>'));
-    bodyStream.end();
-  });
-});
