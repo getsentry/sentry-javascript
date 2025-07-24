@@ -9,11 +9,10 @@
   "private": true,
   "scripts": {
     "clean": "rimraf -g suites/**/dist loader-suites/**/dist tmp",
-    "install-browsers": "npx playwright install",
+    "install-browsers": "npx playwright install --with-deps",
     "lint": "eslint . --format stylish",
     "fix": "eslint . --format stylish --fix",
     "type-check": "tsc",
-    "postinstall": "yarn install-browsers",
     "pretest": "yarn clean && yarn type-check",
     "test": "yarn test:all --project='chromium'",
     "test:all": "npx playwright test -c playwright.browser.config.ts",
