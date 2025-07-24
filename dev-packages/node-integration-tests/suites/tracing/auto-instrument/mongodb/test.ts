@@ -19,6 +19,7 @@ conditionalTest({ min: 12 })('MongoDB Test', () => {
     }
   });
 
+  // eslint-disable-next-line jest/no-disabled-tests
   test.skip('should auto-instrument `mongodb` package.', async () => {
     const env = await TestEnv.init(__dirname);
     const envelope = await env.getEnvelopeRequest({ envelopeType: 'transaction' });
