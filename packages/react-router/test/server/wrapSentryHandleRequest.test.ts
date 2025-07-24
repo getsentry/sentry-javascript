@@ -8,9 +8,10 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '@sentry/core';
-import { PassThrough } from 'stream';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-import { getMetaTagTransformer, wrapSentryHandleRequest } from '../../src/server/wrapSentryHandleRequest';
+import { getMetaTagTransformer } from '../../src/server/getMetaTagTransformer';
+import { wrapSentryHandleRequest } from '../../src/server/wrapSentryHandleRequest';
+import { PassThrough } from 'node:stream';
 
 vi.mock('@opentelemetry/core', () => ({
   RPCType: { HTTP: 'http' },
