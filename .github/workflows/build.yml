@@ -47,8 +47,6 @@ env:
     ${{ github.workspace }}/packages/*/lib
     ${{ github.workspace }}/packages/ember/*.d.ts
     ${{ github.workspace }}/packages/gatsby/*.d.ts
-    ${{ github.workspace }}/packages/utils/cjs
-    ${{ github.workspace }}/packages/utils/esm
 
   BUILD_CACHE_TARBALL_KEY: tarball-${{ github.event.inputs.commit || github.sha }}
 
