@@ -196,47 +196,6 @@ jobs:
           path: ${{ env.CACHED_DEPENDENCY_PATHS }}
           key: ${{ steps.compute_lockfile_hash.outputs.hash }}
 
-      - name: Install OS Dependencies for Playwright
-        run: |
-          sudo apt-get update
-          # Install core dependencies for Playwright on Ubuntu 24.04
-          sudo apt-get install -y \
-            libasound2t64 \
-            libasound2-dev \
-            libatk-bridge2.0-0t64 \
-            libatk1.0-0t64 \
-            libatspi2.0-0t64 \
-            libcups2t64 \
-            libgtk-3-0t64 \
-            libpng16-16t64 \
-            libevent-2.1-7t64 \
-            libffi8 \
-            libicu74 \
-            libx264-164 \
-            libglib2.0-0t64 \
-            libgstreamer1.0-0 \
-            libgstreamer-plugins-base1.0-0 \
-            libenchant-2-2 \
-            libsecret-1-0 \
-            libmanette-0.2-0 \
-            libflite1 \
-            libxss1 \
-            xvfb \
-            fonts-liberation \
-            fonts-noto-color-emoji \
-            fonts-noto-cjk \
-            libnss3 \
-            libdrm2 \
-            libxcomposite1 \
-            libxdamage1 \
-            libxrandr2 \
-            libgbm1 \
-            libxkbcommon0 \
-            libpango-1.0-0 \
-            libcairo-gobject2 \
-            libdbus-1-3 \
-            libasound2-plugins
-
       - name: Install dependencies
         if: steps.cache_dependencies.outputs.cache-hit != 'true'
         run: yarn install --ignore-engines --frozen-lockfile
