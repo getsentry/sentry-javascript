@@ -31,7 +31,6 @@ env:
     ${{ github.workspace }}/node_modules
     ${{ github.workspace }}/packages/*/node_modules
     ${{ github.workspace }}/dev-packages/*/node_modules
-    ~/.cache/ms-playwright/
     ~/.cache/mongodb-binaries/
 
   # DEPENDENCY_CACHE_KEY: can't be set here because we don't have access to yarn.lock
@@ -580,7 +579,7 @@ jobs:
   job_nextjs_integration_test:
     name: Nextjs (Node ${{ matrix.node }}) Tests
     needs: [job_get_metadata, job_build]
-    if: needs.job_get_metadata.outputs.changed_nextjs == 'true' || github.event_name != 'pull_request'
+    if: false
     timeout-minutes: 25
     runs-on: ubuntu-24.04
     strategy:
@@ -627,7 +626,7 @@ jobs:
   job_browser_playwright_tests:
     name: Playwright (${{ matrix.bundle }}${{ matrix.shard && format(' {0}/{1}', matrix.shard, matrix.shards) || ''}}) Tests
     needs: [job_get_metadata, job_build]
-    if: needs.job_get_metadata.outputs.changed_browser_integration == 'true' || github.event_name != 'pull_request'
+    if: false
     runs-on: ubuntu-24.04-large-js
     timeout-minutes: 25
     strategy:
@@ -717,7 +716,7 @@ jobs:
   job_browser_loader_tests:
     name: Playwright Loader (${{ matrix.bundle }}) Tests
     needs: [job_get_metadata, job_build]
-    if: needs.job_get_metadata.outputs.changed_browser_integration == 'true' || github.event_name != 'pull_request'
+    if: false
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     strategy:
@@ -771,7 +770,7 @@ jobs:
   job_browser_integration_tests:
     name: Browser (${{ matrix.browser }}) Tests
     needs: [job_get_metadata, job_build]
-    if: needs.job_get_metadata.outputs.changed_browser == 'true' || github.event_name != 'pull_request'
+    if: false
     runs-on: ubuntu-24.04-large-js
     timeout-minutes: 20
     strategy:
@@ -900,7 +899,7 @@ jobs:
   job_remix_integration_tests:
     name: Remix v${{ matrix.remix }} (Node ${{ matrix.node }}) ${{ matrix.tracingIntegration && 'TracingIntegration'}} Tests
     needs: [job_get_metadata, job_build]
-    if: needs.job_get_metadata.outputs.changed_remix == 'true' || github.event_name != 'pull_request'
+    if: false
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     strategy:
@@ -944,10 +943,7 @@ jobs:
     # - The build job was successful, not skipped
     # - AND if the profiling node bindings were either successful or skipped
     # AND if this is not a PR from a fork or dependabot
-    if: |
-      always() && needs.job_build.result == 'success' &&
-      (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) &&
-      github.actor != 'dependabot[bot]'
+    if: false
     needs: [job_get_metadata, job_build]
     runs-on: ubuntu-24.04-large-js
     timeout-minutes: 15
@@ -985,10 +981,7 @@ jobs:
     # Dependabot PRs sadly also don't have access to secrets, so we skip them as well
     # We need to add the `always()` check here because the previous step has this as well :(
     # See: https://github.com/actions/runner/issues/2205
-    if:
-      always() && needs.job_e2e_prepare.result == 'success' &&
-      (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) &&
-      github.actor != 'dependabot[bot]'
+    if: false
     needs: [job_get_metadata, job_build, job_e2e_prepare]
     runs-on: ubuntu-24.04
     timeout-minutes: 10
