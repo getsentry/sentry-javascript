@@ -13,7 +13,6 @@
     "lint": "eslint . --format stylish",
     "fix": "eslint . --format stylish --fix",
     "type-check": "tsc",
-    "postinstall": "yarn install-browsers",
     "pretest": "yarn clean && yarn type-check",
     "test": "yarn test:all --project='chromium'",
     "test:all": "npx playwright test -c playwright.browser.config.ts",

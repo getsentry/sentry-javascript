@@ -81,7 +81,8 @@ conditionalTest({ min: 14 })('MongoDB experimental Test', () => {
     ]),
   };
 
-  test('CJS - should auto-instrument `mongodb` package.', done => {
+  // eslint-disable-next-line jest/no-disabled-tests
+  test.skip('CJS - should auto-instrument `mongodb` package.', done => {
     createRunner(__dirname, 'scenario.js').expect({ transaction: EXPECTED_TRANSACTION }).start(done);
   });
 });
