@@ -30,11 +30,11 @@ test.describe('tracing in dynamically rendered (ssr) routes', () => {
         trace: {
           data: expect.objectContaining({
             'sentry.op': 'pageload',
-            'sentry.origin': 'auto.pageload.browser',
+            'sentry.origin': 'auto.pageload.astro',
             'sentry.source': 'route',
           }),
           op: 'pageload',
-          origin: 'auto.pageload.browser',
+          origin: 'auto.pageload.astro',
           span_id: expect.stringMatching(/[a-f0-9]{16}/),
           parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
           trace_id: expect.stringMatching(/[a-f0-9]{32}/),
@@ -203,10 +203,10 @@ test.describe('nested SSR routes (client, server, server request)', () => {
       contexts: {
         trace: {
           op: 'pageload',
-          origin: 'auto.pageload.browser',
+          origin: 'auto.pageload.astro',
           data: {
             'sentry.op': 'pageload',
-            'sentry.origin': 'auto.pageload.browser',
+            'sentry.origin': 'auto.pageload.astro',
             'sentry.source': 'route',
           },
         },
@@ -289,10 +289,10 @@ test.describe('nested SSR routes (client, server, server request)', () => {
       contexts: {
         trace: {
           op: 'pageload',
-          origin: 'auto.pageload.browser',
+          origin: 'auto.pageload.astro',
           data: {
             'sentry.op': 'pageload',
-            'sentry.origin': 'auto.pageload.browser',
+            'sentry.origin': 'auto.pageload.astro',
             'sentry.source': 'route',
           },
         },
@@ -341,10 +341,10 @@ test.describe('parametrized vs static paths', () => {
       contexts: {
         trace: {
           op: 'pageload',
-          origin: 'auto.pageload.browser',
+          origin: 'auto.pageload.astro',
           data: {
             'sentry.op': 'pageload',
-            'sentry.origin': 'auto.pageload.browser',
+            'sentry.origin': 'auto.pageload.astro',
             'sentry.source': 'route',
           },
         },

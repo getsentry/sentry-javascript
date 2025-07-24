@@ -32,11 +32,11 @@ test.describe('tracing in static routes with server islands', () => {
         trace: {
           data: expect.objectContaining({
             'sentry.op': 'pageload',
-            'sentry.origin': 'auto.pageload.browser',
+            'sentry.origin': 'auto.pageload.astro',
             'sentry.source': 'route',
           }),
           op: 'pageload',
-          origin: 'auto.pageload.browser',
+          origin: 'auto.pageload.astro',
           parent_span_id: metaParentSpanId,
           span_id: expect.stringMatching(/[a-f0-9]{16}/),
           trace_id: metaTraceId,

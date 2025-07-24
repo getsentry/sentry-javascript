@@ -1,6 +1,6 @@
 import { browserTracingIntegration as originalBrowserTracingIntegration, WINDOW } from '@sentry/browser';
 import type { Integration, TransactionSource } from '@sentry/core';
-import { debug, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
+import { debug, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 
 /**
@@ -30,12 +30,21 @@ export function browserTracingIntegration(
         const routeNameFromMetaTags = getMetaContent('sentry-route-name');
 
         if (routeNameFromMetaTags) {
-          const decodedRouteName = decodeURIComponent(routeNameFromMetaTags);
+          let decodedRouteName;
+          try {
+            decodedRouteName = decodeURIComponent(routeNameFromMetaTags);
+          } catch {
+            // We ignore errors here, e.g. if the value cannot be URL decoded.
+            return;
+          }
 
           DEBUG_BUILD && debug.log(`[Tracing] Using route name from Sentry HTML meta-tag: ${decodedRouteName}`);
 
           pageLoadSpan.updateName(decodedRouteName);
-          pageLoadSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route' as TransactionSource);
+          pageLoadSpan.setAttributes({
+            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route' as TransactionSource,
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.astro',
+          });
         }
       });
     },
