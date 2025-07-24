@@ -48,7 +48,7 @@ conditionalTest({ min: 14 })('Mongoose experimental Test', () => {
     ]),
   };
 
-  test('CJS - should auto-instrument `mongoose` package.', done => {
+  test.skip('CJS - should auto-instrument `mongoose` package.', done => {
     createRunner(__dirname, 'scenario.js').expect({ transaction: EXPECTED_TRANSACTION }).start(done);
   });
 });

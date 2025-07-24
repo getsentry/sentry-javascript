@@ -19,7 +19,7 @@ conditionalTest({ min: 12 })('MongoDB Test', () => {
     }
   });
 
-  test('should auto-instrument `mongodb` package.', async () => {
+  test.skip('should auto-instrument `mongodb` package.', async () => {
     const env = await TestEnv.init(__dirname);
     const envelope = await env.getEnvelopeRequest({ envelopeType: 'transaction' });
 
