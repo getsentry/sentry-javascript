@@ -1,3 +1,4 @@
+import { PassThrough } from 'node:stream';
 import { RPCType } from '@opentelemetry/core';
 import { ATTR_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
 import {
@@ -11,7 +12,6 @@ import {
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { getMetaTagTransformer } from '../../src/server/getMetaTagTransformer';
 import { wrapSentryHandleRequest } from '../../src/server/wrapSentryHandleRequest';
-import { PassThrough } from 'node:stream';
 
 vi.mock('@opentelemetry/core', () => ({
   RPCType: { HTTP: 'http' },

@@ -1,6 +1,4 @@
-import {
-  getTraceMetaTags,
-} from '@sentry/core';
+import { getTraceMetaTags } from '@sentry/core';
 import { PassThrough } from 'stream';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { getMetaTagTransformer } from '../../src/server/getMetaTagTransformer';
@@ -17,7 +15,6 @@ vi.mock('@sentry/core', () => ({
   getRootSpan: vi.fn(),
   getTraceMetaTags: vi.fn(),
 }));
-
 
 describe('getMetaTagTransformer', () => {
   beforeEach(() => {
