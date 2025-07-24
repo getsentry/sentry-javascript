@@ -121,4 +121,3 @@ describe('wrapSentryHandleRequest', () => {
     expect(getRPCMetadata).not.toHaveBeenCalled();
   });
 });
-
