@@ -950,13 +950,13 @@ jobs:
           retention-days: 7
 
       - name: Pre-process E2E Test Dumps
-        if: always()
+        if: failure()
         run: |
           node ./scripts/normalize-e2e-test-dump-transaction-events.js
 
       - name: Upload E2E Test Event Dumps
         uses: actions/upload-artifact@v4
-        if: always()
+        if: failure()
         with:
           name: E2E Test Dump (${{ matrix.label || matrix.test-application }})
           path: ${{ runner.temp }}/test-application/event-dumps
@@ -1062,13 +1062,13 @@ jobs:
         run: pnpm ${{ matrix.assert-command || 'test:assert' }}
 
       - name: Pre-process E2E Test Dumps
-        if: always()
+        if: failure()
         run: |
           node ./scripts/normalize-e2e-test-dump-transaction-events.js
 
       - name: Upload E2E Test Event Dumps
         uses: actions/upload-artifact@v4
-        if: always()
+        if: failure()
         with:
           name: E2E Test Dump (${{ matrix.label || matrix.test-application }})
           path: ${{ runner.temp }}/test-application/event-dumps
