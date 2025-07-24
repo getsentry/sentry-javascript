@@ -5,6 +5,5 @@ Sentry.init({
   // https://docs.sentry.io/platforms/javascript/guides/react-router/configuration/options/#sendDefaultPii
   sendDefaultPii: true,
   tracesSampleRate: 1.0,
-  debug: true,
   tunnel: `http://localhost:3031/`, // proxy server
 });

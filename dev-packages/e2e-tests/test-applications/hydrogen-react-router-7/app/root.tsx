@@ -2,44 +2,16 @@ import * as Sentry from '@sentry/react-router/cloudflare';
 import {type LoaderFunctionArgs} from '@shopify/remix-oxygen';
 import {
   Outlet,
-  useRouteError,
   isRouteErrorResponse,
   type ShouldRevalidateFunction,
   Links,
   Meta,
   Scripts,
   ScrollRestoration,
-  useLocation,
-  useMatches,
-  useRouteLoaderData,
 } from 'react-router';
 import {FOOTER_QUERY, HEADER_QUERY} from '~/lib/fragments';
-import {useEffect} from 'react';
-import {useNonce} from '@shopify/hydrogen';
 
-// export const meta = ({
-//   data,
-// }: {
-//   data: {
-//     ENV: {SENTRY_DSN: string};
-//     sentryTrace: string;
-//     sentryBaggage: string;
-//   };
-// }) => {
-//   return [
-//     {
-//       env: data.ENV,
-//     },
-//     {
-//       name: 'sentry-trace',
-//       content: data.sentryTrace,
-//     },
-//     {
-//       name: 'baggage',
-//       content: data.sentryBaggage,
-//     },
-//   ];
-// };
+import {useNonce} from '@shopify/hydrogen';
 
 export type RootLoader = typeof loader;
 
@@ -95,7 +67,7 @@ export async function loader(args: LoaderFunctionArgs) {
   // Await the critical data required to render initial state of the page
   const criticalData = await loadCriticalData(args);
 
-  const {storefront, env} = args.context;
+  const {env} = args.context;
 
   return {
     ...deferredData,
@@ -166,7 +138,6 @@ function loadDeferredData({context}: LoaderFunctionArgs) {
 
 export function Layout({children}: {children?: React.ReactNode}) {
   const nonce = useNonce();
-  const data = useRouteLoaderData<RootLoader>('root');
 
   return (
     <html lang="en">
