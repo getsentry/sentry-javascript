@@ -9,7 +9,7 @@
     "test:dev": "TEST_ENV=development playwright test",
     "test:build": "pnpm install && pnpm build:canary",
     "test:test-build": "pnpm ts-node --script-mode assert-build.ts",
-    "build:canary": "pnpm install && pnpm add next@canary && pnpm add react@beta && pnpm add react-dom@beta && pnpm build",
+    "test:build:canary": "pnpm install && pnpm add next@canary && pnpm add react@beta && pnpm add react-dom@beta && pnpm build",
     "test:build-latest": "pnpm install && pnpm add next@latest && pnpm build",
     "test:build-13": "pnpm install && pnpm add next@13.5.11 && pnpm build",
     "test:assert": "pnpm test:test-build && pnpm test:prod && pnpm test:dev"
