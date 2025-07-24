@@ -1,4 +1,3 @@
-// import { wrapRequestHandler } from '@sentry/cloudflare/request';
 import {
   cartGetIdDefault,
   cartSetIdDefault,
