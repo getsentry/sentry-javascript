@@ -4,6 +4,48 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 9.41.0
+
+### Important Changes
+
+- **feat(v9/core): Deprecate experimental `enableLogs` and `beforeSendLog` option ([#17092](https://github.com/getsentry/sentry-javascript/pull/17092))**
+
+Sentry now has support for [structured logging](https://docs.sentry.io/product/explore/logs/getting-started/). Previously to enable structured logging, you had to use the `_experiments.enableLogs` and `_experiments.beforeSendLog` options. These options have been deprecated in favor of the top-level `enableLogs` and `beforeSendLog` options.
+
+```js
+// before
+Sentry.init({
+  _experiments: {
+    enableLogs: true,
+    beforeSendLog: log => {
+      return log;
+    },
+  },
+});
+
+// after
+Sentry.init({
+  enableLogs: true,
+  beforeSendLog: log => {
+    return log;
+  },
+});
+```
+
+- **feat(astro): Implement paramaterized routes**
+  - feat(v9/astro): Parametrize dynamic server routes ([#17141](https://github.com/getsentry/sentry-javascript/pull/17141))
+  - feat(v9/astro): Parametrize routes on client-side ([#17143](https://github.com/getsentry/sentry-javascript/pull/17143))
+
+Server-side and client-side paramaterized routes are now supported in the Astro SDK. No configuration changes are required.
+
+### Other Changes
+
+- feat(v9/node): Add shouldHandleError option to fastifyIntegration ([#17123](https://github.com/getsentry/sentry-javascript/pull/17123))
+- fix(v9/cloudflare) Allow non UUID workflow instance IDs ([#17135](https://github.com/getsentry/sentry-javascript/pull/17135))
+- fix(v9/node): Ensure tool errors for `vercelAiIntegration` have correct trace ([#17142](https://github.com/getsentry/sentry-javascript/pull/17142))
+- fix(v9/remix): Ensure source maps upload fails silently if Sentry CLI fails ([#17095](https://github.com/getsentry/sentry-javascript/pull/17095))
+- fix(v9/svelte): Do not insert preprocess code in script module in Svelte 5 ([#17124](https://github.com/getsentry/sentry-javascript/pull/17124))
+
 Work in this release was contributed by @richardjelinek-fastest. Thank you for your contribution!
 
 ## 9.40.0
