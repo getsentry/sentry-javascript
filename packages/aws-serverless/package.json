@@ -102,5 +102,23 @@
   "volta": {
     "extends": "../../package.json"
   },
-  "sideEffects": false
+  "sideEffects": false,
+  "nx": {
+    "targets": {
+      "build:transpile": {
+        "inputs": [
+          "production",
+          "^production"
+        ],
+        "dependsOn": [
+          "^build:transpile"
+        ],
+        "outputs": [
+          "{projectRoot}/build/npm/esm",
+          "{projectRoot}/build/npm/cjs",
+          "{projectRoot}/build/aws"
+        ]
+      }
+    }
+  }
 }
