@@ -30,11 +30,11 @@ test.describe('tracing in dynamically rendered (ssr) routes', () => {
         trace: {
           data: expect.objectContaining({
             'sentry.op': 'pageload',
-            'sentry.origin': 'auto.pageload.browser',
-            'sentry.source': 'url',
+            'sentry.origin': 'auto.pageload.astro',
+            'sentry.source': 'route',
           }),
           op: 'pageload',
-          origin: 'auto.pageload.browser',
+          origin: 'auto.pageload.astro',
           span_id: expect.stringMatching(/[a-f0-9]{16}/),
           parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
           trace_id: expect.stringMatching(/[a-f0-9]{32}/),
@@ -56,7 +56,7 @@ test.describe('tracing in dynamically rendered (ssr) routes', () => {
       timestamp: expect.any(Number),
       transaction: '/test-ssr',
       transaction_info: {
-        source: 'url',
+        source: 'route',
       },
       type: 'transaction',
     });
@@ -193,18 +193,21 @@ test.describe('nested SSR routes (client, server, server request)', () => {
       span => span.op === 'http.client' && span.description?.includes('/api/user/'),
     );
 
+    const routeNameMetaContent = await page.locator('meta[name="sentry-route-name"]').getAttribute('content');
+    expect(routeNameMetaContent).toBe('%2Fuser-page%2F%5BuserId%5D');
+
     // Client pageload transaction - actual URL with pageload operation
     expect(clientPageloadTxn).toMatchObject({
-      transaction: '/user-page/myUsername123', // todo: parametrize to '/user-page/[userId]'
-      transaction_info: { source: 'url' },
+      transaction: '/user-page/[userId]',
+      transaction_info: { source: 'route' },
       contexts: {
         trace: {
           op: 'pageload',
-          origin: 'auto.pageload.browser',
+          origin: 'auto.pageload.astro',
           data: {
             'sentry.op': 'pageload',
-            'sentry.origin': 'auto.pageload.browser',
-            'sentry.source': 'url',
+            'sentry.origin': 'auto.pageload.astro',
+            'sentry.source': 'route',
           },
         },
       },
@@ -274,20 +277,23 @@ test.describe('nested SSR routes (client, server, server request)', () => {
 
     await page.goto('/catchAll/hell0/whatever-do');
 
+    const routeNameMetaContent = await page.locator('meta[name="sentry-route-name"]').getAttribute('content');
+    expect(routeNameMetaContent).toBe('%2FcatchAll%2F%5B...path%5D');
+
     const clientPageloadTxn = await clientPageloadTxnPromise;
     const serverPageRequestTxn = await serverPageRequestTxnPromise;
 
     expect(clientPageloadTxn).toMatchObject({
-      transaction: '/catchAll/hell0/whatever-do', // todo: parametrize to '/catchAll/[...path]'
-      transaction_info: { source: 'url' },
+      transaction: '/catchAll/[...path]',
+      transaction_info: { source: 'route' },
       contexts: {
         trace: {
           op: 'pageload',
-          origin: 'auto.pageload.browser',
+          origin: 'auto.pageload.astro',
           data: {
             'sentry.op': 'pageload',
-            'sentry.origin': 'auto.pageload.browser',
-            'sentry.source': 'url',
+            'sentry.origin': 'auto.pageload.astro',
+            'sentry.source': 'route',
           },
         },
       },
@@ -331,15 +337,15 @@ test.describe('parametrized vs static paths', () => {
 
     expect(clientPageloadTxn).toMatchObject({
       transaction: '/user-page/settings',
-      transaction_info: { source: 'url' },
+      transaction_info: { source: 'route' },
       contexts: {
         trace: {
           op: 'pageload',
-          origin: 'auto.pageload.browser',
+          origin: 'auto.pageload.astro',
           data: {
             'sentry.op': 'pageload',
-            'sentry.origin': 'auto.pageload.browser',
-            'sentry.source': 'url',
+            'sentry.origin': 'auto.pageload.astro',
+            'sentry.source': 'route',
           },
         },
       },
