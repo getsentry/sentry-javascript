@@ -3,7 +3,7 @@ import { waitForEnvelopeItem } from '@sentry-internal/test-utils';
 import type { SerializedLogContainer } from '@sentry/core';
 
 test('should send logs', async ({ baseURL }) => {
-  const logEnvelopePromise = waitForEnvelopeItem('node-expres-v5', envelope => {
+  const logEnvelopePromise = waitForEnvelopeItem('node-express-v5', envelope => {
     return envelope[0].type === 'log' && (envelope[1] as SerializedLogContainer).items[0]?.level === 'debug';
   });
 

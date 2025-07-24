@@ -4,7 +4,7 @@ import { createTRPCProxyClient, httpBatchLink } from '@trpc/client';
 import type { AppRouter } from '../src/app';
 
 test('Should record span for trpc query', async ({ baseURL }) => {
-  const transactionEventPromise = waitForTransaction('node-expres-v5', transactionEvent => {
+  const transactionEventPromise = waitForTransaction('node-express-v5', transactionEvent => {
     return (
       transactionEvent.transaction === 'GET /trpc' &&
       !!transactionEvent.spans?.find(span => span.description === 'trpc/getSomething')
@@ -36,7 +36,7 @@ test('Should record span for trpc query', async ({ baseURL }) => {
 });
 
 test('Should record transaction for trpc mutation', async ({ baseURL }) => {
-  const transactionEventPromise = waitForTransaction('node-expres-v5', transactionEvent => {
+  const transactionEventPromise = waitForTransaction('node-express-v5', transactionEvent => {
     return (
       transactionEvent.transaction === 'POST /trpc' &&
       !!transactionEvent.spans?.find(span => span.description === 'trpc/createSomething')
@@ -68,14 +68,14 @@ test('Should record transaction for trpc mutation', async ({ baseURL }) => {
 });
 
 test('Should record transaction and error for a crashing trpc handler', async ({ baseURL }) => {
-  const transactionEventPromise = waitForTransaction('node-expres-v5', transactionEvent => {
+  const transactionEventPromise = waitForTransaction('node-express-v5', transactionEvent => {
     return (
       transactionEvent.transaction === 'POST /trpc' &&
       !!transactionEvent.spans?.find(span => span.description === 'trpc/crashSomething')
     );
   });
 
-  const errorEventPromise = waitForError('node-expres-v5', errorEvent => {
+  const errorEventPromise = waitForError('node-express-v5', errorEvent => {
     return !!errorEvent?.exception?.values?.some(exception => exception.value?.includes('I crashed in a trpc handler'));
   });
 
@@ -106,14 +106,14 @@ test('Should record transaction and error for a crashing trpc handler', async ({
 });
 
 test('Should record transaction and error for a trpc handler that returns a status code', async ({ baseURL }) => {
-  const transactionEventPromise = waitForTransaction('node-expres-v5', transactionEvent => {
+  const transactionEventPromise = waitForTransaction('node-express-v5', transactionEvent => {
     return (
       transactionEvent.transaction === 'POST /trpc' &&
       !!transactionEvent.spans?.find(span => span.description === 'trpc/badRequest')
     );
   });
 
-  const errorEventPromise = waitForError('node-expres-v5', errorEvent => {
+  const errorEventPromise = waitForError('node-express-v5', errorEvent => {
     return !!errorEvent?.exception?.values?.some(exception => exception.value?.includes('Bad Request'));
   });
 

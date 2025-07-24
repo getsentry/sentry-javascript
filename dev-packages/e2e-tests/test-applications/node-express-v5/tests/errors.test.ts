@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { waitForError } from '@sentry-internal/test-utils';
 
 test('Sends correct error event', async ({ baseURL }) => {
-  const errorEventPromise = waitForError('node-expres-v5', event => {
+  const errorEventPromise = waitForError('node-express-v5', event => {
     return !event.type && event.exception?.values?.[0]?.value === 'This is an exception with id 123';
   });
 
@@ -29,7 +29,7 @@ test('Sends correct error event', async ({ baseURL }) => {
 });
 
 test('Should record caught exceptions with local variable', async ({ baseURL }) => {
-  const errorEventPromise = waitForError('node-expres-v5', event => {
+  const errorEventPromise = waitForError('node-express-v5', event => {
     return event.transaction === 'GET /test-local-variables-caught';
   });
 

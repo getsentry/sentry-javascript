@@ -14,10 +14,10 @@ test('Should record transactions for mcp handlers', async ({ baseURL }) => {
   await client.connect(transport);
 
   await test.step('tool handler', async () => {
-    const postTransactionPromise = waitForTransaction('node-expres-v5', transactionEvent => {
+    const postTransactionPromise = waitForTransaction('node-express-v5', transactionEvent => {
       return transactionEvent.transaction === 'POST /messages';
     });
-    const toolTransactionPromise = waitForTransaction('node-expres-v5', transactionEvent => {
+    const toolTransactionPromise = waitForTransaction('node-express-v5', transactionEvent => {
       return transactionEvent.transaction === 'mcp-server/tool:echo';
     });
 
@@ -47,10 +47,10 @@ test('Should record transactions for mcp handlers', async ({ baseURL }) => {
   });
 
   await test.step('resource handler', async () => {
-    const postTransactionPromise = waitForTransaction('node-expres-v5', transactionEvent => {
+    const postTransactionPromise = waitForTransaction('node-express-v5', transactionEvent => {
       return transactionEvent.transaction === 'POST /messages';
     });
-    const resourceTransactionPromise = waitForTransaction('node-expres-v5', transactionEvent => {
+    const resourceTransactionPromise = waitForTransaction('node-express-v5', transactionEvent => {
       return transactionEvent.transaction === 'mcp-server/resource:echo';
     });
 
@@ -72,10 +72,10 @@ test('Should record transactions for mcp handlers', async ({ baseURL }) => {
   });
 
   await test.step('prompt handler', async () => {
-    const postTransactionPromise = waitForTransaction('node-expres-v5', transactionEvent => {
+    const postTransactionPromise = waitForTransaction('node-express-v5', transactionEvent => {
       return transactionEvent.transaction === 'POST /messages';
     });
-    const promptTransactionPromise = waitForTransaction('node-expres-v5', transactionEvent => {
+    const promptTransactionPromise = waitForTransaction('node-express-v5', transactionEvent => {
       return transactionEvent.transaction === 'mcp-server/prompt:echo';
     });
 
