@@ -23,6 +23,7 @@ import {
   withIsolationScope,
 } from '@sentry/node';
 import type { APIContext, MiddlewareResponseHandler } from 'astro';
+import type { ResolvedRouteWithCasedPattern } from '../integration/types';
 
 type MiddlewareOptions = {
   /**
@@ -95,6 +96,9 @@ async function instrumentRequest(
     addNonEnumerableProperty(locals, '__sentry_wrapped__', true);
   }
 
+  const storedBuildTimeRoutes = (globalThis as unknown as { __sentryRouteInfo?: ResolvedRouteWithCasedPattern[] })
+    ?.__sentryRouteInfo;
+
   const isDynamicPageRequest = checkIsDynamicPageRequest(ctx);
 
   const request = ctx.request;
@@ -128,8 +132,15 @@ async function instrumentRequest(
       }
 
       try {
-        const interpolatedRoute = interpolateRouteFromUrlAndParams(ctx.url.pathname, ctx.params);
-        const source = interpolatedRoute ? 'route' : 'url';
+        // `routePattern` is available after Astro 5
+        const contextWithRoutePattern = ctx as Parameters<MiddlewareResponseHandler>[0] & { routePattern?: string };
+        const rawRoutePattern = contextWithRoutePattern.routePattern;
+        const foundRoute = storedBuildTimeRoutes?.find(route => route.pattern === rawRoutePattern);
+
+        const parametrizedRoute =
+          foundRoute?.patternCaseSensitive || interpolateRouteFromUrlAndParams(ctx.url.pathname, ctx.params);
+
+        const source = parametrizedRoute ? 'route' : 'url';
         // storing res in a variable instead of directly returning is necessary to
         // invoke the catch block if next() throws
 
@@ -148,12 +159,12 @@ async function instrumentRequest(
           attributes['http.fragment'] = ctx.url.hash;
         }
 
-        isolationScope?.setTransactionName(`${method} ${interpolatedRoute || ctx.url.pathname}`);
+        isolationScope?.setTransactionName(`${method} ${parametrizedRoute || ctx.url.pathname}`);
 
         const res = await startSpan(
           {
             attributes,
-            name: `${method} ${interpolatedRoute || ctx.url.pathname}`,
+            name: `${method} ${parametrizedRoute || ctx.url.pathname}`,
             op: 'http.server',
           },
           async span => {
@@ -202,7 +213,7 @@ async function instrumentRequest(
                   try {
                     for await (const chunk of bodyReporter()) {
                       const html = typeof chunk === 'string' ? chunk : decoder.decode(chunk, { stream: true });
-                      const modifiedHtml = addMetaTagToHead(html);
+                      const modifiedHtml = addMetaTagToHead(html, parametrizedRoute);
                       controller.enqueue(new TextEncoder().encode(modifiedHtml));
                     }
                   } catch (e) {
@@ -242,11 +253,13 @@ async function instrumentRequest(
  * This function optimistically assumes that the HTML coming in chunks will not be split
  * within the <head> tag. If this still happens, we simply won't replace anything.
  */
-function addMetaTagToHead(htmlChunk: string): string {
+function addMetaTagToHead(htmlChunk: string, parametrizedRoute?: string): string {
   if (typeof htmlChunk !== 'string') {
     return htmlChunk;
   }
-  const metaTags = getTraceMetaTags();
+  const metaTags = parametrizedRoute
+    ? `${getTraceMetaTags()}\n<meta name="sentry-route-name" content="${encodeURIComponent(parametrizedRoute)}"/>\n`
+    : getTraceMetaTags();
 
   if (!metaTags) {
     return htmlChunk;
@@ -306,26 +319,30 @@ export function interpolateRouteFromUrlAndParams(
     return acc.replace(key, `[${valuesToMultiSegmentParams[key]}]`);
   }, decodedUrlPathname);
 
-  return urlWithReplacedMultiSegmentParams
-    .split('/')
-    .map(segment => {
-      if (!segment) {
-        return '';
-      }
+  return (
+    urlWithReplacedMultiSegmentParams
+      .split('/')
+      .map(segment => {
+        if (!segment) {
+          return '';
+        }
 
-      if (valuesToParams[segment]) {
-        return replaceWithParamName(segment);
-      }
+        if (valuesToParams[segment]) {
+          return replaceWithParamName(segment);
+        }
 
-      // astro permits multiple params in a single path segment, e.g. /[foo]-[bar]/
-      const segmentParts = segment.split('-');
-      if (segmentParts.length > 1) {
-        return segmentParts.map(part => replaceWithParamName(part)).join('-');
-      }
+        // astro permits multiple params in a single path segment, e.g. /[foo]-[bar]/
+        const segmentParts = segment.split('-');
+        if (segmentParts.length > 1) {
+          return segmentParts.map(part => replaceWithParamName(part)).join('-');
+        }
 
-      return segment;
-    })
-    .join('/');
+        return segment;
+      })
+      .join('/')
+      // Remove trailing slash (only if it's not the only segment)
+      .replace(/^(.+?)\/$/, '$1')
+  );
 }
 
 function tryDecodeUrl(url: string): string | undefined {
