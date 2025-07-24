@@ -57,6 +57,7 @@ app.get('/test-transaction', function (_req, res) {
 
   res.send({ status: 'ok' });
 });
+
 app.get('/test-error', async function (req, res) {
   const exceptionId = Sentry.captureException(new Error('This is an error'));
 
