@@ -11,17 +11,17 @@ conditionalTest({ min: 12 })('Prisma ORM Integration', () => {
         {
           description: 'User create',
           op: 'db.prisma',
-          data: { 'db.system': 'postgresql', 'db.operation': 'create', 'db.prisma.version': '3.12.0' },
+          data: { 'db.system': 'postgresql', 'db.operation': 'create', 'db.prisma.version': '4.16.2' },
         },
         {
           description: 'User findMany',
           op: 'db.prisma',
-          data: { 'db.system': 'postgresql', 'db.operation': 'findMany', 'db.prisma.version': '3.12.0' },
+          data: { 'db.system': 'postgresql', 'db.operation': 'findMany', 'db.prisma.version': '4.16.2' },
         },
         {
           description: 'User deleteMany',
           op: 'db.prisma',
-          data: { 'db.system': 'postgresql', 'db.operation': 'deleteMany', 'db.prisma.version': '3.12.0' },
+          data: { 'db.system': 'postgresql', 'db.operation': 'deleteMany', 'db.prisma.version': '4.16.2' },
         },
       ],
     });
