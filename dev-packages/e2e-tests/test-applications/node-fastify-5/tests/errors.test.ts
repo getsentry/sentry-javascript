@@ -28,3 +28,18 @@ test('Sends correct error event', async ({ baseURL }) => {
     parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
   });
 });
+
+test('Does not send error when shouldHandleError returns false', async ({ baseURL }) => {
+  const errorEventPromise = waitForError('node-fastify-5', event => {
+    return !event.type && event.exception?.values?.[0]?.value === 'This is an error that will not be captured';
+  });
+
+  errorEventPromise.then(() => {
+    throw new Error('This error should not be captured');
+  });
+
+  await fetch(`${baseURL}/test-error-not-captured`);
+
+  // wait for a short time to ensure the error is not captured
+  await new Promise(resolve => setTimeout(resolve, 1000));
+});
