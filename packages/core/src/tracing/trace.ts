@@ -219,7 +219,7 @@ export const continueTrace = <V>(
 
   const incomingDsc = baggageHeaderToDynamicSamplingContext(baggage);
 
-  if (shouldContinueTrace(getClient(), incomingDsc?.org_id)) {
+  if (!shouldContinueTrace(getClient(), incomingDsc?.org_id)) {
     return startNewTrace(callback);
   }
 

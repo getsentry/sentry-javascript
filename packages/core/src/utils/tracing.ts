@@ -138,7 +138,7 @@ function getSampleRandFromTraceparentAndDsc(
 export function shouldContinueTrace(client: Client | undefined, baggageOrgId?: string): boolean {
   const sdkOptionOrgId = deriveOrgIdFromClient(client);
 
-  // Case: baggage org ID and SDK org ID don't match - always start new trace
+  // Case: baggage orgID and SDK orgID don't match - always start new trace
   if (baggageOrgId && sdkOptionOrgId && baggageOrgId !== sdkOptionOrgId) {
     debug.log(
       `Starting a new trace because org IDs don't match (incoming baggage: ${baggageOrgId}, SDK options: ${sdkOptionOrgId})`,
@@ -146,12 +146,12 @@ export function shouldContinueTrace(client: Client | undefined, baggageOrgId?: s
     return false;
   }
 
-  const strictTraceContinuation = client?.getOptions()?.strictTraceContinuation || false; // default for `strictTraceContinuation` is `false` todo(v10): set default to `true`
+  const strictTraceContinuation = client?.getOptions()?.strictTraceContinuation || false; // default for `strictTraceContinuation` is `false`
 
   if (strictTraceContinuation) {
     // With strict continuation enabled, start new trace if:
-    // - Baggage has org ID but SDK doesn't have one
-    // - SDK has org ID but baggage doesn't have one
+    // - Baggage has orgID, but SDK doesn't have one
+    // - SDK has orgID, but baggage doesn't have one
     if ((baggageOrgId && !sdkOptionOrgId) || (!baggageOrgId && sdkOptionOrgId)) {
       debug.log(
         `Starting a new trace because strict trace continuation is enabled and one org ID is missing (incoming baggage: ${baggageOrgId}, SDK options: ${sdkOptionOrgId})`,
