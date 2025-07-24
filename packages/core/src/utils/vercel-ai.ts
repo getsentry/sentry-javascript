@@ -10,6 +10,7 @@ import {
   AI_PROMPT_ATTRIBUTE,
   AI_PROMPT_MESSAGES_ATTRIBUTE,
   AI_PROMPT_TOOLS_ATTRIBUTE,
+  AI_RESPONSE_OBJECT_ATTRIBUTE,
   AI_RESPONSE_PROVIDER_METADATA_ATTRIBUTE,
   AI_RESPONSE_TEXT_ATTRIBUTE,
   AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
@@ -93,6 +94,7 @@ function processEndedVercelAiSpan(span: SpanJSON): void {
   renameAttributeKey(attributes, AI_PROMPT_MESSAGES_ATTRIBUTE, 'gen_ai.request.messages');
   renameAttributeKey(attributes, AI_RESPONSE_TEXT_ATTRIBUTE, 'gen_ai.response.text');
   renameAttributeKey(attributes, AI_RESPONSE_TOOL_CALLS_ATTRIBUTE, 'gen_ai.response.tool_calls');
+  renameAttributeKey(attributes, AI_RESPONSE_OBJECT_ATTRIBUTE, 'gen_ai.response.object');
   renameAttributeKey(attributes, AI_PROMPT_TOOLS_ATTRIBUTE, 'gen_ai.request.available_tools');
 
   renameAttributeKey(attributes, AI_TOOL_CALL_ARGS_ATTRIBUTE, 'gen_ai.tool.input');
