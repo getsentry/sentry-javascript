@@ -123,20 +123,6 @@ export { OPENAI_INTEGRATION_NAME } from './utils/openai/constants';
 export type { OpenAiClient, OpenAiOptions, InstrumentedMethod } from './utils/openai/types';
 export type { FeatureFlag } from './utils/featureFlags';
 
-export type { FeatureFlag } from './featureFlags';
-
-export { applyAggregateErrorsToEvent } from './utils-hoist/aggregate-errors';
-export { getBreadcrumbLogLevelFromHttpStatusCode } from './utils-hoist/breadcrumb-log-level';
-export { getComponentName, getLocationHref, htmlTreeAsString } from './utils-hoist/browser';
-export { dsnFromString, dsnToString, makeDsn, deriveOrgIdFromClient } from './utils-hoist/dsn';
-// eslint-disable-next-line deprecation/deprecation
-export { SentryError } from './utils-hoist/error';
-export { GLOBAL_OBJ } from './utils-hoist/worldwide';
-export type { InternalGlobal } from './utils-hoist/worldwide';
-export { addConsoleInstrumentationHandler } from './utils-hoist/instrument/console';
-export { addFetchEndInstrumentationHandler, addFetchInstrumentationHandler } from './utils-hoist/instrument/fetch';
-export { addGlobalErrorInstrumentationHandler } from './utils-hoist/instrument/globalError';
-export { addGlobalUnhandledRejectionInstrumentationHandler } from './utils-hoist/instrument/globalUnhandledRejection';
 export {
   _INTERNAL_copyFlagsFromScopeToEvent,
   _INTERNAL_insertFlagToScope,
