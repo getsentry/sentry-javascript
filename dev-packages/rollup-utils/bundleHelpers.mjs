@@ -98,6 +98,7 @@ export function makeBaseBundleConfig(options) {
     plugins: [
       jsonPlugin,
       commonJSPlugin,
+      makeSetSDKSourcePlugin('aws-lambda-layer'),
       // Temporary fix for the lambda layer SDK bundle.
       // This is necessary to apply to our lambda layer bundle because calling `new ImportInTheMiddle()` will throw an
       // that `ImportInTheMiddle` is not a constructor. Instead we modify the code to call `new ImportInTheMiddle.default()`

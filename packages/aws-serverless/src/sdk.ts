@@ -2,6 +2,7 @@ import type { Integration, Options, Scope, Span } from '@sentry/core';
 import {
   applySdkMetadata,
   debug,
+  getSDKSource,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '@sentry/core';
@@ -81,7 +82,7 @@ export function init(options: NodeOptions = {}): NodeClient | undefined {
     ...options,
   };
 
-  applySdkMetadata(opts, 'aws-serverless');
+  applySdkMetadata(opts, 'aws-serverless', ['aws-serverless'], getSDKSource());
 
   return initWithoutDefaultIntegrations(opts);
 }
