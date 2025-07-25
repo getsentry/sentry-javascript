@@ -61,16 +61,6 @@ Sentry.init({
 });
 ```
 
-## No Version Support Timeline
-
-Version support timelines are stressful for everybody using the SDK, so we won't be defining one.
-Instead, we will be applying bug fixes and features to older versions as long as there is demand.
-
-Additionally, we hold ourselves accountable to any security issues, meaning that if any vulnerabilities are found, we will in almost all cases backport them.
-
-Note, that it is decided on a case-per-case basis, what gets backported or not.
-If you need a fix or feature in a previous version of the SDK, please reach out via a GitHub Issue.
-
 ## 3. Behaviour Changes
 
 ### Removal of First Input Delay (FID) Web Vital Reporting
@@ -87,3 +77,13 @@ The removal entails **no breaking API changes**. However, in rare cases, you mig
 - Remove any logic in `beforeSend` or other filtering/event processing logic that depends on FID or replace it with INP logic.
 - If you set up Sentry Alerts that depend on FID, be aware that these could trigger once you upgrade the SDK, due to a lack of new values.
   To replace them, adjust your alerts (or dashbaords) to use INP.
+
+## No Version Support Timeline
+
+Version support timelines are stressful for everybody using the SDK, so we won't be defining one.
+Instead, we will be applying bug fixes and features to older versions as long as there is demand.
+
+Additionally, we hold ourselves accountable to any security issues, meaning that if any vulnerabilities are found, we will in almost all cases backport them.
+
+Note, that it is decided on a case-per-case basis, what gets backported or not.
+If you need a fix or feature in a previous version of the SDK, please reach out via a GitHub Issue.
