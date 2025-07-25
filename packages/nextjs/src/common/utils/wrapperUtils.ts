@@ -107,22 +107,18 @@ export async function callDataFetcherTraced<F extends (...args: any[]) => Promis
 /**
  * Extracts the params and searchParams from the props object.
  *
- * Depending on the next version, params and searchParams may be a promise.
+ * Depending on the next version, params and searchParams may be a promise which we do not want to resolve in this function.
  */
-export async function safeExtractParamsAndSearchParamsFromProps(props: unknown): Promise<{
+export function maybeExtractSynchronousParamsAndSearchParams(props: unknown): {
   params: Record<string, string> | undefined;
   searchParams: Record<string, string> | undefined;
-}> {
+} {
   let params =
     props && typeof props === 'object' && 'params' in props
       ? (props.params as Record<string, string> | Promise<Record<string, string>> | undefined)
       : undefined;
   if (isThenable(params)) {
-    try {
-      params = await params;
-    } catch (e) {
-      params = undefined;
-    }
+    params = undefined;
   }
 
   let searchParams =
@@ -130,11 +126,7 @@ export async function safeExtractParamsAndSearchParamsFromProps(props: unknown):
       ? (props.searchParams as Record<string, string> | Promise<Record<string, string>> | undefined)
       : undefined;
   if (isThenable(searchParams)) {
-    try {
-      searchParams = await searchParams;
-    } catch (e) {
-      searchParams = undefined;
-    }
+    searchParams = undefined;
   }
 
   return { params, searchParams };
