@@ -124,7 +124,7 @@ export async function* instrumentStream<T>(
 
     if (state.finishReasons.length) {
       span.setAttributes({
-        [GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]: state.finishReasons[state.finishReasons.length - 1],
+        [GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]: JSON.stringify(state.finishReasons),
       });
     }
 

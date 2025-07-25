@@ -13,7 +13,13 @@ import {
   OPENAI_USAGE_PROMPT_TOKENS_ATTRIBUTE,
 } from '../gen-ai-attributes';
 import { INSTRUMENTED_METHODS } from './constants';
-import type { InstrumentedMethod, OpenAiChatCompletionObject, OpenAIResponseObject } from './types';
+import type {
+  ChatCompletionChunk,
+  InstrumentedMethod,
+  OpenAiChatCompletionObject,
+  OpenAIResponseObject,
+  ResponseStreamingEvent,
+} from './types';
 
 /**
  * Maps OpenAI method paths to Sentry operation names
@@ -78,7 +84,7 @@ export function isResponsesApiResponse(response: unknown): response is OpenAIRes
 /**
  * Check if streaming event is from the Responses API
  */
-export function isResponsesApiStreamEvent(event: unknown): boolean {
+export function isResponsesApiStreamEvent(event: unknown): event is ResponseStreamingEvent {
   return (
     event !== null &&
     typeof event === 'object' &&
@@ -91,7 +97,7 @@ export function isResponsesApiStreamEvent(event: unknown): boolean {
 /**
  * Check if streaming event is a chat completion chunk
  */
-export function isChatCompletionChunk(event: unknown): boolean {
+export function isChatCompletionChunk(event: unknown): event is ChatCompletionChunk {
   return (
     event !== null &&
     typeof event === 'object' &&

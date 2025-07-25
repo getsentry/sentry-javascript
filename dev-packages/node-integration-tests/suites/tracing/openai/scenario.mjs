@@ -222,7 +222,7 @@ class MockOpenAI {
         user: null,
         metadata: {},
         output: [],
-        output_text: `Streaming response to: ${params.input}`,
+        output_text: params.input,
         usage: {
           input_tokens: 6,
           output_tokens: 10,
