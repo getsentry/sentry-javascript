@@ -4,6 +4,13 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 9.42.0
+
+- feat(v9/aws): Detect SDK source for AWS Lambda layer ([#17150](https://github.com/getsentry/sentry-javascript/pull/17150))
+- fix(v9/core): Fix OpenAI SDK private field access by binding non-instrumented fns ([#17167](https://github.com/getsentry/sentry-javascript/pull/17167))
+- fix(v9/core): Update ai.response.object to gen_ai.response.object ([#17155](https://github.com/getsentry/sentry-javascript/pull/17155))
+- fix(v9/nextjs): Update stackframe calls for next v15.5 ([#17161](https://github.com/getsentry/sentry-javascript/pull/17161))
+
 ## 9.41.0
 
 ### Important Changes
