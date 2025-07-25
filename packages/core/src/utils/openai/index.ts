@@ -264,6 +264,12 @@ function createDeepProxy(target: object, currentPath = '', options?: OpenAiOptio
         return instrumentMethod(value as (...args: unknown[]) => Promise<unknown>, methodPath, obj, options);
       }
 
+      if (typeof value === 'function') {
+        // Bind non-instrumented functions to preserve the original `this` context,
+        // which is required for accessing private class fields (e.g. #baseURL) in OpenAI SDK v5.
+        return value.bind(obj);
+      }
+
       if (value && typeof value === 'object') {
         return createDeepProxy(value as object, methodPath, options);
       }
