@@ -176,14 +176,4 @@ describe('shouldContinueTrace', () => {
     const result = shouldContinueTrace(client, '123456');
     expect(result).toBe(false);
   });
-
-  test('returns true when client is undefined', () => {
-    const result = shouldContinueTrace(undefined, '123456');
-    expect(result).toBe(true);
-  });
-
-  test('returns true when both org IDs and client are undefined', () => {
-    const result = shouldContinueTrace(undefined, undefined);
-    expect(result).toBe(true);
-  });
 });

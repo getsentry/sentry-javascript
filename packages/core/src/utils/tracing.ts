@@ -129,16 +129,16 @@ function getSampleRandFromTraceparentAndDsc(
 }
 
 /**
- * Determines whether a new trace should be continued based on the provided client and baggage org ID.
+ * Determines whether a new trace should be continued based on the provided baggage org ID and the client's `strictTraceContinuation` option.
  * If the trace should not be continued, a new trace will be started.
  *
  * The result is dependent on the `strictTraceContinuation` option in the client.
  * See https://develop.sentry.dev/sdk/telemetry/traces/#stricttracecontinuation
  */
-export function shouldContinueTrace(client: Client | undefined, baggageOrgId?: string): boolean {
+export function shouldContinueTrace(client: Client, baggageOrgId?: string): boolean {
   const sdkOptionOrgId = deriveOrgIdFromClient(client);
 
-  // Case: baggage orgID and SDK orgID don't match - always start new trace
+  // Case: baggage orgID and Client orgID don't match - always start new trace
   if (baggageOrgId && sdkOptionOrgId && baggageOrgId !== sdkOptionOrgId) {
     debug.log(
       `Starting a new trace because org IDs don't match (incoming baggage: ${baggageOrgId}, SDK options: ${sdkOptionOrgId})`,
@@ -146,15 +146,15 @@ export function shouldContinueTrace(client: Client | undefined, baggageOrgId?: s
     return false;
   }
 
-  const strictTraceContinuation = client?.getOptions()?.strictTraceContinuation || false; // default for `strictTraceContinuation` is `false`
+  const strictTraceContinuation = client.getOptions()?.strictTraceContinuation || false; // default for `strictTraceContinuation` is `false`
 
   if (strictTraceContinuation) {
     // With strict continuation enabled, start new trace if:
-    // - Baggage has orgID, but SDK doesn't have one
-    // - SDK has orgID, but baggage doesn't have one
+    // - Baggage has orgID, but Client doesn't have one
+    // - Client has orgID, but baggage doesn't have one
     if ((baggageOrgId && !sdkOptionOrgId) || (!baggageOrgId && sdkOptionOrgId)) {
       debug.log(
-        `Starting a new trace because strict trace continuation is enabled and one org ID is missing (incoming baggage: ${baggageOrgId}, SDK options: ${sdkOptionOrgId})`,
+        `Starting a new trace because strict trace continuation is enabled but one org ID is missing (incoming baggage: ${baggageOrgId}, SDK options: ${sdkOptionOrgId})`,
       );
       return false;
     }
