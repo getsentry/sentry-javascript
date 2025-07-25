@@ -217,9 +217,9 @@ export const continueTrace = <V>(
 
   const { sentryTrace, baggage } = options;
 
+  const client = getClient();
   const incomingDsc = baggageHeaderToDynamicSamplingContext(baggage);
-
-  if (!shouldContinueTrace(getClient(), incomingDsc?.org_id)) {
+  if (client && !shouldContinueTrace(client, incomingDsc?.org_id)) {
     return startNewTrace(callback);
   }
 
