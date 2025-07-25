@@ -136,12 +136,12 @@ function getSampleRandFromTraceparentAndDsc(
  * See https://develop.sentry.dev/sdk/telemetry/traces/#stricttracecontinuation
  */
 export function shouldContinueTrace(client: Client, baggageOrgId?: string): boolean {
-  const sdkOptionOrgId = deriveOrgIdFromClient(client);
+  const clientOrgId = deriveOrgIdFromClient(client);
 
   // Case: baggage orgID and Client orgID don't match - always start new trace
-  if (baggageOrgId && sdkOptionOrgId && baggageOrgId !== sdkOptionOrgId) {
+  if (baggageOrgId && clientOrgId && baggageOrgId !== clientOrgId) {
     debug.log(
-      `Starting a new trace because org IDs don't match (incoming baggage: ${baggageOrgId}, SDK options: ${sdkOptionOrgId})`,
+      `Won't continue trace because org IDs don't match (incoming baggage: ${baggageOrgId}, SDK options: ${clientOrgId})`,
     );
     return false;
   }
@@ -149,12 +149,12 @@ export function shouldContinueTrace(client: Client, baggageOrgId?: string): bool
   const strictTraceContinuation = client.getOptions()?.strictTraceContinuation || false; // default for `strictTraceContinuation` is `false`
 
   if (strictTraceContinuation) {
-    // With strict continuation enabled, start new trace if:
+    // With strict continuation enabled, don't continue trace if:
     // - Baggage has orgID, but Client doesn't have one
     // - Client has orgID, but baggage doesn't have one
-    if ((baggageOrgId && !sdkOptionOrgId) || (!baggageOrgId && sdkOptionOrgId)) {
+    if ((baggageOrgId && !clientOrgId) || (!baggageOrgId && clientOrgId)) {
       debug.log(
-        `Starting a new trace because strict trace continuation is enabled but one org ID is missing (incoming baggage: ${baggageOrgId}, SDK options: ${sdkOptionOrgId})`,
+        `Starting a new trace because strict trace continuation is enabled but one org ID is missing (incoming baggage: ${baggageOrgId}, Sentry client: ${clientOrgId})`,
       );
       return false;
     }
