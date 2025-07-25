@@ -1,6 +1,5 @@
-import { captureException, consoleSandbox, flush } from '@sentry/core';
+import { captureException, consoleSandbox, flushIfServerless } from '@sentry/core';
 import type { HandleServerError } from '@sveltejs/kit';
-import { flushIfServerless } from '../server-common/utils';
 
 // The SvelteKit default error handler just logs the error's stack trace to the console
 // see: https://github.com/sveltejs/kit/blob/369e7d6851f543a40c947e033bfc4a9506fdc0a8/packages/kit/src/runtime/server/index.js#L43
@@ -48,14 +47,12 @@ export function handleErrorWithSentry(handleError?: HandleServerError): HandleSe
       };
     };
 
-    // Cloudflare workers have a `waitUntil` method that we can use to flush the event queue
+    // Cloudflare workers have a `waitUntil` method on `ctx` that we can use to flush the event queue
     // We already call this in `wrapRequestHandler` from `sentryHandleInitCloudflare`
     // However, `handleError` can be invoked when wrapRequestHandler already finished
     // (e.g. when responses are streamed / returning promises from load functions)
-    const cloudflareWaitUntil = platform?.context?.waitUntil;
-    if (typeof cloudflareWaitUntil === 'function') {
-      const waitUntil = cloudflareWaitUntil.bind(platform.context);
-      waitUntil(flush(2000));
+    if (typeof platform?.context?.waitUntil === 'function') {
+      await flushIfServerless({ cloudflareCtx: platform.context as { waitUntil(promise: Promise<void>): void } });
     } else {
       await flushIfServerless();
     }

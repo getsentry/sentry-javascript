@@ -1,17 +1,15 @@
 import type { RequestEventData, Scope, SpanAttributes } from '@sentry/core';
 import {
   addNonEnumerableProperty,
-  debug,
   extractQueryParamsFromUrl,
+  flushIfServerless,
   objectify,
   stripUrlQueryAndFragment,
-  vercelWaitUntil,
   winterCGRequestToRequestData,
 } from '@sentry/core';
 import {
   captureException,
   continueTrace,
-  flush,
   getActiveSpan,
   getClient,
   getCurrentScope,
@@ -233,16 +231,7 @@ async function instrumentRequest(
         );
         return res;
       } finally {
-        vercelWaitUntil(
-          (async () => {
-            // Flushes pending Sentry events with a 2-second timeout and in a way that cannot create unhandled promise rejections.
-            try {
-              await flush(2000);
-            } catch (e) {
-              debug.log('Error while flushing events:\n', e);
-            }
-          })(),
-        );
+        await flushIfServerless();
       }
       // TODO: flush if serverless (first extract function)
     },

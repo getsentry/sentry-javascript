@@ -1,6 +1,6 @@
 import {
   captureException,
-  flush,
+  flushIfServerless,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
@@ -74,7 +74,6 @@ export function withSentry<Env = unknown, QueueHandlerMessage = unknown, CfHostM
           const [event, env, context] = args;
           return withIsolationScope(isolationScope => {
             const options = getFinalOptions(optionsCallback(env), env);
-            const waitUntil = context.waitUntil.bind(context);
 
             const client = init({ ...options, ctx: context });
             isolationScope.setClient(client);
@@ -100,7 +99,7 @@ export function withSentry<Env = unknown, QueueHandlerMessage = unknown, CfHostM
                   captureException(e, { mechanism: { handled: false, type: 'cloudflare' } });
                   throw e;
                 } finally {
-                  waitUntil(flush(2000));
+                  await flushIfServerless({ cloudflareCtx: context });
                 }
               },
             );
@@ -117,7 +116,6 @@ export function withSentry<Env = unknown, QueueHandlerMessage = unknown, CfHostM
           const [emailMessage, env, context] = args;
           return withIsolationScope(isolationScope => {
             const options = getFinalOptions(optionsCallback(env), env);
-            const waitUntil = context.waitUntil.bind(context);
 
             const client = init({ ...options, ctx: context });
             isolationScope.setClient(client);
@@ -141,7 +139,7 @@ export function withSentry<Env = unknown, QueueHandlerMessage = unknown, CfHostM
                   captureException(e, { mechanism: { handled: false, type: 'cloudflare' } });
                   throw e;
                 } finally {
-                  waitUntil(flush(2000));
+                  await flushIfServerless({ cloudflareCtx: context });
                 }
               },
             );
@@ -159,7 +157,6 @@ export function withSentry<Env = unknown, QueueHandlerMessage = unknown, CfHostM
 
           return withIsolationScope(isolationScope => {
             const options = getFinalOptions(optionsCallback(env), env);
-            const waitUntil = context.waitUntil.bind(context);
 
             const client = init({ ...options, ctx: context });
             isolationScope.setClient(client);
@@ -191,7 +188,7 @@ export function withSentry<Env = unknown, QueueHandlerMessage = unknown, CfHostM
                   captureException(e, { mechanism: { handled: false, type: 'cloudflare' } });
                   throw e;
                 } finally {
-                  waitUntil(flush(2000));
+                  await flushIfServerless({ cloudflareCtx: context });
                 }
               },
             );
@@ -210,8 +207,6 @@ export function withSentry<Env = unknown, QueueHandlerMessage = unknown, CfHostM
           return withIsolationScope(async isolationScope => {
             const options = getFinalOptions(optionsCallback(env), env);
 
-            const waitUntil = context.waitUntil.bind(context);
-
             const client = init({ ...options, ctx: context });
             isolationScope.setClient(client);
 
@@ -223,7 +218,7 @@ export function withSentry<Env = unknown, QueueHandlerMessage = unknown, CfHostM
               captureException(e, { mechanism: { handled: false, type: 'cloudflare' } });
               throw e;
             } finally {
-              waitUntil(flush(2000));
+              await flushIfServerless({ cloudflareCtx: context });
             }
           });
         },

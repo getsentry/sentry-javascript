@@ -1,4 +1,4 @@
-import { Context, GLOBAL_OBJ, flush, debug, vercelWaitUntil } from '@sentry/core';
+import { Context, flushIfServerless } from '@sentry/core';
 import * as SentryNode from '@sentry/node';
 import { H3Error } from 'h3';
 import type { CapturedErrorContext } from 'nitropack';
@@ -52,32 +52,4 @@ function extractErrorContext(errorContext: CapturedErrorContext): Context {
   }
 
   return ctx;
-}
-
-async function flushIfServerless(): Promise<void> {
-  const isServerless =
-    !!process.env.FUNCTIONS_WORKER_RUNTIME || // Azure Functions
-    !!process.env.LAMBDA_TASK_ROOT || // AWS Lambda
-    !!process.env.VERCEL ||
-    !!process.env.NETLIFY;
-
-  // @ts-expect-error This is not typed
-  if (GLOBAL_OBJ[Symbol.for('@vercel/request-context')]) {
-    vercelWaitUntil(flushWithTimeout());
-  } else if (isServerless) {
-    await flushWithTimeout();
-  }
-}
-
-async function flushWithTimeout(): Promise<void> {
-  const sentryClient = SentryNode.getClient();
-  const isDebug = sentryClient ? sentryClient.getOptions().debug : false;
-
-  try {
-    isDebug && debug.log('Flushing events...');
-    await flush(2000);
-    isDebug && debug.log('Done flushing events');
-  } catch (e) {
-    isDebug && debug.log('Error while flushing events:\n', e);
-  }
 }

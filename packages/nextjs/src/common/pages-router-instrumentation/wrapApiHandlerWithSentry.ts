@@ -2,6 +2,7 @@ import {
   captureException,
   continueTrace,
   debug,
+  flushIfServerless,
   getActiveSpan,
   httpRequestToRequestData,
   isString,
@@ -10,7 +11,6 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setHttpStatus,
   startSpanManual,
-  vercelWaitUntil,
   withIsolationScope,
 } from '@sentry/core';
 import type { NextApiRequest } from 'next';
@@ -95,7 +95,7 @@ export function wrapApiHandlerWithSentry(apiHandler: NextApiHandler, parameteriz
                     apply(target, thisArg, argArray) {
                       setHttpStatus(span, res.statusCode);
                       span.end();
-                      vercelWaitUntil(flushSafelyWithTimeout());
+                      flushIfServerless().catch(() => /* no-op */ {});
                       return target.apply(thisArg, argArray);
                     },
                   });
