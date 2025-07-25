@@ -22,9 +22,15 @@ export async function flushIfServerless(): Promise<void> {
     return;
   }
 
-  const platformSupportsStreaming = !process.env.LAMBDA_TASK_ROOT && !process.env.VERCEL;
+  const isServerless =
+    !!process.env.FUNCTIONS_WORKER_RUNTIME || // Azure Functions
+    !!process.env.LAMBDA_TASK_ROOT || // AWS Lambda
+    !!process.env.K_SERVICE || // Google Cloud Run
+    !!process.env.CF_PAGES || // Cloudflare
+    !!process.env.VERCEL ||
+    !!process.env.NETLIFY;
 
-  if (!platformSupportsStreaming) {
+  if (isServerless) {
     try {
       DEBUG_BUILD && debug.log('Flushing events...');
       await flush(2000);
