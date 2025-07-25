@@ -1,6 +1,7 @@
 import type { TransactionSource } from '@sentry/core';
 import {
   captureException,
+  flushIfServerless,
   getActiveSpan,
   getCurrentScope,
   getRootSpan,
@@ -9,12 +10,10 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setCapturedScopesOnSpan,
   startSpan,
-  vercelWaitUntil,
   winterCGRequestToRequestData,
   withIsolationScope,
 } from '@sentry/core';
 import type { EdgeRouteHandler } from '../edge/types';
-import { flushSafelyWithTimeout } from './utils/responseEnd';
 
 /**
  * Wraps Next.js middleware with Sentry error and performance instrumentation.
@@ -108,7 +107,7 @@ export function wrapMiddlewareWithSentry<H extends EdgeRouteHandler>(
                 });
               },
               () => {
-                vercelWaitUntil(flushSafelyWithTimeout());
+                flushIfServerless().catch(() => /* no-op */ {});
               },
             );
           },

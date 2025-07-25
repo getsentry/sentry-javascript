@@ -1,5 +1,6 @@
 import {
   captureException,
+  flushIfServerless,
   getActiveSpan,
   getCurrentScope,
   getRootSpan,
@@ -9,11 +10,9 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setCapturedScopesOnSpan,
   startSpan,
-  vercelWaitUntil,
   winterCGRequestToRequestData,
   withIsolationScope,
 } from '@sentry/core';
-import { flushSafelyWithTimeout } from '../common/utils/responseEnd';
 import type { EdgeRouteHandler } from './types';
 
 /**
@@ -88,7 +87,7 @@ export function wrapApiHandlerWithSentry<H extends EdgeRouteHandler>(
                 });
               },
               () => {
-                vercelWaitUntil(flushSafelyWithTimeout());
+                flushIfServerless().catch(() => /* no-op */ {});
               },
             );
           },

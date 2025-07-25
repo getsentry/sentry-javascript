@@ -3,6 +3,7 @@ import {
   captureException,
   continueTrace,
   debug,
+  flushIfServerless,
   getActiveSpan,
   getClient,
   getIsolationScope,
@@ -10,12 +11,10 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SPAN_STATUS_ERROR,
   startSpan,
-  vercelWaitUntil,
   withIsolationScope,
 } from '@sentry/core';
 import { DEBUG_BUILD } from './debug-build';
 import { isNotFoundNavigationError, isRedirectNavigationError } from './nextNavigationErrorUtils';
-import { flushSafelyWithTimeout } from './utils/responseEnd';
 
 interface Options {
   formData?: FormData;
@@ -152,7 +151,7 @@ async function withServerActionInstrumentationImplementation<A extends (...args:
             },
           );
         } finally {
-          vercelWaitUntil(flushSafelyWithTimeout());
+          flushIfServerless().catch(() => /* no-op */ {});
         }
       },
     );
