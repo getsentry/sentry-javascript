@@ -10,7 +10,7 @@ import {
 import type { DynamicSamplingContext } from '../types-hoist/envelope';
 import type { Span } from '../types-hoist/span';
 import { baggageHeaderToDynamicSamplingContext, dynamicSamplingContextToSentryBaggageHeader } from '../utils/baggage';
-import { deriveOrgIdFromClient } from '../utils/dsn';
+import { extractOrgIdFromClient } from '../utils/dsn';
 import { hasSpansEnabled } from '../utils/hasSpansEnabled';
 import { addNonEnumerableProperty } from '../utils/object';
 import { getRootSpan, spanIsSampled, spanToJSON } from '../utils/spanUtils';
@@ -51,7 +51,7 @@ export function getDynamicSamplingContextFromClient(trace_id: string, client: Cl
     release: options.release,
     public_key,
     trace_id,
-    org_id: deriveOrgIdFromClient(client),
+    org_id: extractOrgIdFromClient(client),
   };
 
   client.emit('createDsc', dsc);

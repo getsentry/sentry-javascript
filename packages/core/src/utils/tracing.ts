@@ -4,7 +4,7 @@ import type { PropagationContext } from '../types-hoist/tracing';
 import type { TraceparentData } from '../types-hoist/transaction';
 import { debug } from '../utils/debug-logger';
 import { baggageHeaderToDynamicSamplingContext } from './baggage';
-import { deriveOrgIdFromClient } from './dsn';
+import { extractOrgIdFromClient } from './dsn';
 import { parseSampleRate } from './parseSampleRate';
 import { generateSpanId, generateTraceId } from './propagationContext';
 
@@ -136,7 +136,7 @@ function getSampleRandFromTraceparentAndDsc(
  * See https://develop.sentry.dev/sdk/telemetry/traces/#stricttracecontinuation
  */
 export function shouldContinueTrace(client: Client, baggageOrgId?: string): boolean {
-  const clientOrgId = deriveOrgIdFromClient(client);
+  const clientOrgId = extractOrgIdFromClient(client);
 
   // Case: baggage orgID and Client orgID don't match - always start new trace
   if (baggageOrgId && clientOrgId && baggageOrgId !== clientOrgId) {
@@ -146,7 +146,7 @@ export function shouldContinueTrace(client: Client, baggageOrgId?: string): bool
     return false;
   }
 
-  const strictTraceContinuation = client.getOptions()?.strictTraceContinuation || false; // default for `strictTraceContinuation` is `false`
+  const strictTraceContinuation = client.getOptions().strictTraceContinuation || false; // default for `strictTraceContinuation` is `false`
 
   if (strictTraceContinuation) {
     // With strict continuation enabled, don't continue trace if:

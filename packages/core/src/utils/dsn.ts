@@ -135,14 +135,14 @@ export function extractOrgIdFromDsnHost(host: string): string | undefined {
  *
  *  The organization ID is extracted from the DSN. If the client options include a `orgId`, this will always take precedence.
  */
-export function deriveOrgIdFromClient(client: Client): string | undefined {
+export function extractOrgIdFromClient(client: Client): string | undefined {
   const options = client.getOptions();
 
   const { host } = client.getDsn() || {};
 
   let org_id: string | undefined;
 
-  if (options?.orgId) {
+  if (options.orgId) {
     org_id = String(options.orgId);
   } else if (host) {
     org_id = extractOrgIdFromDsnHost(host);

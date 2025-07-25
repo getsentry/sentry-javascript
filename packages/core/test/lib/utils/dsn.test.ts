@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, test, vi } from 'vitest';
 import { DEBUG_BUILD } from '../../../src/debug-build';
 import { debug } from '../../../src/utils/debug-logger';
-import { deriveOrgIdFromClient, dsnToString, extractOrgIdFromDsnHost, makeDsn } from '../../../src/utils/dsn';
+import { dsnToString, extractOrgIdFromClient, extractOrgIdFromDsnHost, makeDsn } from '../../../src/utils/dsn';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
 
 function testIf(condition: boolean) {
@@ -249,7 +249,7 @@ describe('extractOrgIdFromDsnHost', () => {
   });
 });
 
-describe('deriveOrgIdFromClient', () => {
+describe('extractOrgIdFromClient', () => {
   let client: TestClient;
 
   beforeEach(() => {
@@ -264,7 +264,7 @@ describe('deriveOrgIdFromClient', () => {
       }),
     );
 
-    const result = deriveOrgIdFromClient(client);
+    const result = extractOrgIdFromClient(client);
     expect(result).toBe('00222111');
   });
 
@@ -276,7 +276,7 @@ describe('deriveOrgIdFromClient', () => {
       }),
     );
 
-    const result = deriveOrgIdFromClient(client);
+    const result = extractOrgIdFromClient(client);
     expect(result).toBe('12345');
   });
 
@@ -287,14 +287,14 @@ describe('deriveOrgIdFromClient', () => {
       }),
     );
 
-    const result = deriveOrgIdFromClient(client);
+    const result = extractOrgIdFromClient(client);
     expect(result).toBe('012300');
   });
 
   test('returns undefined when neither options.orgId nor DSN host are available', () => {
     client = new TestClient(getDefaultTestClientOptions({}));
 
-    const result = deriveOrgIdFromClient(client);
+    const result = extractOrgIdFromClient(client);
     expect(result).toBeUndefined();
   });
 });
