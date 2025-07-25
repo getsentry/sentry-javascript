@@ -19,7 +19,7 @@ const requestEvent = {} as RequestEvent;
 
 const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(_ => {});
 
-describe('handleError', () => {
+describe('handleError (server)', () => {
   beforeEach(() => {
     mockCaptureException.mockClear();
     consoleErrorSpy.mockClear();
@@ -42,20 +42,23 @@ describe('handleError', () => {
     expect(consoleErrorSpy).toHaveBeenCalledTimes(1);
   });
 
-  it('doesn\'t capture "Not found" errors for incorrect navigations [Kit 2.x]', async () => {
-    const wrappedHandleError = handleErrorWithSentry();
+  it.each([400, 401, 402, 403, 404, 429, 499])(
+    "doesn't capture %s errors for incorrect navigations [Kit 2.x]",
+    async statusCode => {
+      const wrappedHandleError = handleErrorWithSentry();
 
-    const returnVal = await wrappedHandleError({
-      error: new Error('404 /asdf/123'),
-      event: requestEvent,
-      status: 404,
-      message: 'Not Found',
-    });
+      const returnVal = await wrappedHandleError({
+        error: new Error(`Error with status ${statusCode}`),
+        event: requestEvent,
+        status: statusCode,
+        message: `Error with status ${statusCode}`,
+      });
 
-    expect(returnVal).not.toBeDefined();
-    expect(mockCaptureException).toHaveBeenCalledTimes(0);
-    expect(consoleErrorSpy).toHaveBeenCalledTimes(1);
-  });
+      expect(returnVal).not.toBeDefined();
+      expect(mockCaptureException).toHaveBeenCalledTimes(0);
+      expect(consoleErrorSpy).toHaveBeenCalledTimes(1);
+    },
+  );
 
   describe('calls captureException', () => {
     it('invokes the default handler if no handleError func is provided', async () => {
@@ -87,7 +90,9 @@ describe('handleError', () => {
 
       expect(returnVal.message).toEqual('Whoops!');
       expect(mockCaptureException).toHaveBeenCalledTimes(1);
-      expect(mockCaptureException).toHaveBeenCalledWith(mockError, captureExceptionEventHint);
+      expect(mockCaptureException).toHaveBeenCalledWith(mockError, {
+        mechanism: { handled: true, type: 'sveltekit' },
+      });
       // Check that the default handler wasn't invoked
       expect(consoleErrorSpy).toHaveBeenCalledTimes(0);
     });
