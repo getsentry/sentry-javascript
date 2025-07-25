@@ -10,9 +10,6 @@
 [![npm dm](https://img.shields.io/npm/dm/@sentry/node-core.svg)](https://www.npmjs.com/package/@sentry/node-core)
 [![npm dt](https://img.shields.io/npm/dt/@sentry/node-core.svg)](https://www.npmjs.com/package/@sentry/node-core)
 
-> [!CAUTION]
-> This package is in alpha state and may be subject to breaking changes.
-
 Unlike the `@sentry/node` SDK, this SDK comes with no OpenTelemetry auto-instrumentation out of the box. It requires the following OpenTelemetry dependencies and supports both v1 and v2 of OpenTelemetry:
 
 - `@opentelemetry/api`
