@@ -302,10 +302,23 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
   tracePropagationTargets?: TracePropagationTargets;
 
   /**
-   * The organization ID of the current SDK. The organization ID is a string containing only numbers. This ID is used to
-   * propagate traces to other Sentry services.
+   * If set to `true`, the SDK will only continue a trace if the `organization ID` of the incoming trace found in the
+   * `baggage` header matches the `organization ID` of the current Sentry client.
    *
-   * The SDK tries to automatically extract the organization ID from the DSN. With this option, you can override it.
+   * The client's organization ID is extracted from the DSN or can be set with the `orgId` option.
+   *
+   * If the organization IDs do not match, the SDK will start a new trace instead of continuing the incoming one.
+   * This is useful to prevent traces of unknown third-party services from being continued in your application.
+   *
+   * @default false
+   */
+  strictTraceContinuation?: boolean;
+
+  /**
+   * The organization ID for your Sentry project.
+   *
+   * The SDK will try to extract the organization ID from the DSN. If it cannot be found, or if you need to override it,
+   * you can provide the ID with this option. The organization ID is used for trace propagation and for features like `strictTraceContinuation`.
    */
   orgId?: `${number}` | number;
 
