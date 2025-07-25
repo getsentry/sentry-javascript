@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Should create a transaction for middleware', async ({ request }) => {
-  const middlewareTransactionPromise = waitForTransaction('nextjs-app-dir', async transactionEvent => {
+  const middlewareTransactionPromise = waitForTransaction('nextjs-pages-dir', async transactionEvent => {
     return transactionEvent?.transaction === 'middleware GET /api/endpoint-behind-middleware';
   });
 
@@ -22,11 +22,11 @@ test('Should create a transaction for middleware', async ({ request }) => {
 });
 
 test('Faulty middlewares', async ({ request }) => {
-  const middlewareTransactionPromise = waitForTransaction('nextjs-app-dir', async transactionEvent => {
+  const middlewareTransactionPromise = waitForTransaction('nextjs-pages-dir', async transactionEvent => {
     return transactionEvent?.transaction === 'middleware GET /api/endpoint-behind-faulty-middleware';
   });
 
-  const errorEventPromise = waitForError('nextjs-app-dir', errorEvent => {
+  const errorEventPromise = waitForError('nextjs-pages-dir', errorEvent => {
     return errorEvent?.exception?.values?.[0]?.value === 'Middleware Error';
   });
 
@@ -53,7 +53,7 @@ test('Faulty middlewares', async ({ request }) => {
 });
 
 test('Should trace outgoing fetch requests inside middleware and create breadcrumbs for it', async ({ request }) => {
-  const middlewareTransactionPromise = waitForTransaction('nextjs-app-dir', async transactionEvent => {
+  const middlewareTransactionPromise = waitForTransaction('nextjs-pages-dir', async transactionEvent => {
     return (
       transactionEvent?.transaction === 'middleware GET /api/endpoint-behind-middleware' &&
       !!transactionEvent.spans?.find(span => span.op === 'http.client')
