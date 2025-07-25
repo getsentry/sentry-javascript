@@ -1,12 +1,12 @@
 import {
   captureException,
+  flushIfServerless,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   startSpan,
   withIsolationScope,
 } from '@sentry/core';
-import { flushIfServerless } from '@sentry/core/src';
 import { setAsyncLocalStorageAsyncContextStrategy } from './async';
 import type { CloudflareOptions } from './client';
 import { isInstrumented, markAsInstrumented } from './instrument';
