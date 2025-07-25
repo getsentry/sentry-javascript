@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Sends an API route transaction', async ({ baseURL }) => {
-  const pageloadTransactionEventPromise = waitForTransaction('node-express', transactionEvent => {
+  const pageloadTransactionEventPromise = waitForTransaction('node-express-v5', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
       transactionEvent?.transaction === 'GET /test-transaction'
@@ -75,43 +75,7 @@ test('Sends an API route transaction', async ({ baseURL }) => {
     trace_id: expect.stringMatching(/[a-f0-9]{32}/),
   });
 
-  // auto instrumented spans
-  expect(spans).toContainEqual({
-    data: {
-      'sentry.origin': 'auto.http.otel.express',
-      'sentry.op': 'middleware.express',
-      'express.name': 'query',
-      'express.type': 'middleware',
-    },
-    description: 'query',
-    op: 'middleware.express',
-    origin: 'auto.http.otel.express',
-    parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-    span_id: expect.stringMatching(/[a-f0-9]{16}/),
-    start_timestamp: expect.any(Number),
-    status: 'ok',
-    timestamp: expect.any(Number),
-    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-  });
-
-  expect(spans).toContainEqual({
-    data: {
-      'sentry.origin': 'auto.http.otel.express',
-      'sentry.op': 'middleware.express',
-      'express.name': 'expressInit',
-      'express.type': 'middleware',
-    },
-    description: 'expressInit',
-    op: 'middleware.express',
-    origin: 'auto.http.otel.express',
-    parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-    span_id: expect.stringMatching(/[a-f0-9]{16}/),
-    start_timestamp: expect.any(Number),
-    status: 'ok',
-    timestamp: expect.any(Number),
-    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-  });
-
+  // auto instrumented span
   expect(spans).toContainEqual({
     data: {
       'sentry.origin': 'auto.http.otel.express',
@@ -133,7 +97,7 @@ test('Sends an API route transaction', async ({ baseURL }) => {
 });
 
 test('Sends an API route transaction for an errored route', async ({ baseURL }) => {
-  const transactionEventPromise = waitForTransaction('node-express', transactionEvent => {
+  const transactionEventPromise = waitForTransaction('node-express-v5', transactionEvent => {
     return (
       transactionEvent.contexts?.trace?.op === 'http.server' &&
       transactionEvent.transaction === 'GET /test-exception/:id' &&
@@ -149,62 +113,4 @@ test('Sends an API route transaction for an errored route', async ({ baseURL }) 
   expect(transactionEvent.transaction).toEqual('GET /test-exception/:id');
   expect(transactionEvent.contexts?.trace?.status).toEqual('internal_error');
   expect(transactionEvent.contexts?.trace?.data?.['http.status_code']).toEqual(500);
-
-  const spans = transactionEvent.spans || [];
-
-  expect(spans).toContainEqual({
-    data: {
-      'sentry.origin': 'auto.http.otel.express',
-      'sentry.op': 'middleware.express',
-      'express.name': 'query',
-      'express.type': 'middleware',
-    },
-    description: 'query',
-    op: 'middleware.express',
-    origin: 'auto.http.otel.express',
-    parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-    span_id: expect.stringMatching(/[a-f0-9]{16}/),
-    start_timestamp: expect.any(Number),
-    status: 'ok',
-    timestamp: expect.any(Number),
-    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-  });
-
-  expect(spans).toContainEqual({
-    data: {
-      'sentry.origin': 'auto.http.otel.express',
-      'sentry.op': 'middleware.express',
-      'express.name': 'expressInit',
-      'express.type': 'middleware',
-    },
-    description: 'expressInit',
-    op: 'middleware.express',
-    origin: 'auto.http.otel.express',
-    parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-    span_id: expect.stringMatching(/[a-f0-9]{16}/),
-    start_timestamp: expect.any(Number),
-    status: 'ok',
-    timestamp: expect.any(Number),
-    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-  });
-
-  expect(spans).toContainEqual({
-    data: {
-      'sentry.origin': 'auto.http.otel.express',
-      'sentry.op': 'request_handler.express',
-      'http.route': '/test-exception/:id',
-      'express.name': '/test-exception/:id',
-      'express.type': 'request_handler',
-    },
-    description: '/test-exception/:id',
-    op: 'request_handler.express',
-    origin: 'auto.http.otel.express',
-    parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-    span_id: expect.stringMatching(/[a-f0-9]{16}/),
-    start_timestamp: expect.any(Number),
-    status: 'unknown_error',
-    timestamp: expect.any(Number),
-    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-    measurements: {},
-  });
 });

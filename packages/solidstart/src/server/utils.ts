@@ -5,7 +5,13 @@ import { DEBUG_BUILD } from '../common/debug-build';
 
 /** Flush the event queue to ensure that events get sent to Sentry before the response is finished and the lambda ends */
 export async function flushIfServerless(): Promise<void> {
-  const isServerless = !!process.env.LAMBDA_TASK_ROOT || !!process.env.VERCEL;
+  const isServerless =
+    !!process.env.FUNCTIONS_WORKER_RUNTIME || // Azure Functions
+    !!process.env.LAMBDA_TASK_ROOT || // AWS Lambda
+    !!process.env.K_SERVICE || // Google Cloud Run
+    !!process.env.CF_PAGES || // Cloudflare
+    !!process.env.VERCEL ||
+    !!process.env.NETLIFY;
 
   if (isServerless) {
     try {
