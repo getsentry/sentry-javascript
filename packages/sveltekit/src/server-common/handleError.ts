@@ -27,18 +27,18 @@ type SafeHandleServerErrorInput = Omit<HandleServerErrorInput, 'status' | 'messa
  *
  * @param handleError The original SvelteKit error handler.
  */
-export function handleErrorWithSentry(handleError: HandleServerError = defaultErrorHandler): HandleServerError {
-  return async (input: SafeHandleServerErrorInput): Promise<void | App.Error> => {
-    if (isNotFoundError(input)) {
-      // We're extra cautious with SafeHandleServerErrorInput - this type is not compatible with HandleServerErrorInput
-      // @ts-expect-error - we're still passing the same object, just with a different (backwards-compatible) type
-      return handleError(input);
+export function handleErrorWithSentry(handleError?: HandleServerError): HandleServerError {
+  const errorHandler = handleError ?? defaultErrorHandler;
+
+  return async (input: HandleServerErrorInput): Promise<void | App.Error> => {
+    if (is4xxError(input)) {
+      return errorHandler(input);
     }
 
     captureException(input.error, {
       mechanism: {
         type: 'sveltekit',
-        handled: false,
+        handled: !!handleError,
       },
     });
 
@@ -60,20 +60,18 @@ export function handleErrorWithSentry(handleError: HandleServerError = defaultEr
       await flushIfServerless();
     }
 
-    // We're extra cautious with SafeHandleServerErrorInput - this type is not compatible with HandleServerErrorInput
-    // @ts-expect-error - we're still passing the same object, just with a different (backwards-compatible) type
-    return handleError(input);
+    return errorHandler(input);
   };
 }
 
 /**
  * When a page request fails because the page is not found, SvelteKit throws a "Not found" error.
  */
-function isNotFoundError(input: SafeHandleServerErrorInput): boolean {
+function is4xxError(input: SafeHandleServerErrorInput): boolean {
   const { error, event, status } = input;
 
   // SvelteKit 2.0 offers a reliable way to check for a Not Found error:
-  if (status === 404) {
+  if (!!status && status >= 400 && status < 500) {
     return true;
   }
 
