@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import fs from 'fs';
 
-test.only('should not print warning for async params', async ({ page }) => {
+test('should not print warning for async params', async ({ page }) => {
   test.skip(
     process.env.TEST_ENV !== 'development' && process.env.TEST_ENV !== 'dev-turbopack',
     'should be skipped for non-dev mode',
