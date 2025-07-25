@@ -4,6 +4,7 @@ import { isTracingSuppressed, W3CBaggagePropagator } from '@opentelemetry/core';
 import { ATTR_URL_FULL, SEMATTRS_HTTP_URL } from '@opentelemetry/semantic-conventions';
 import type { Client, continueTrace, DynamicSamplingContext, Options, Scope } from '@sentry/core';
 import {
+  baggageHeaderToDynamicSamplingContext,
   debug,
   generateSentryTraceHeader,
   getClient,
@@ -15,6 +16,7 @@ import {
   parseBaggageHeader,
   propagationContextFromHeaders,
   SENTRY_BAGGAGE_KEY_PREFIX,
+  shouldContinueTrace,
   spanToJSON,
   stringMatchesSomePattern,
 } from '@sentry/core';
@@ -212,9 +214,12 @@ function getContextWithRemoteActiveSpan(
 
   const { traceId, parentSpanId, sampled, dsc } = propagationContext;
 
+  const client = getClient();
+  const incomingDsc = baggageHeaderToDynamicSamplingContext(baggage);
+
   // We only want to set the virtual span if we are continuing a concrete trace
   // Otherwise, we ignore the incoming trace here, e.g. if we have no trace headers
-  if (!parentSpanId) {
+  if (!parentSpanId || (client && !shouldContinueTrace(client, incomingDsc?.org_id))) {
     return ctx;
   }
 
