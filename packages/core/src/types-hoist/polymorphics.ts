@@ -50,13 +50,13 @@ type NextjsRequest = NodeRequest & {
     [key: string]: string;
   };
   query?: {
-    [key: string]: any;
+    [key: string]: unknown;
   };
 };
 
 type ExpressRequest = NodeRequest & {
   baseUrl?: string;
-  body?: string | { [key: string]: any };
+  body?: string | { [key: string]: unknown };
   host?: string;
   hostname?: string;
   ip?: string;
@@ -70,10 +70,10 @@ type ExpressRequest = NodeRequest & {
     ];
   };
   query?: {
-    [key: string]: any;
+    [key: string]: unknown;
   };
   user?: {
-    [key: string]: any;
+    [key: string]: unknown;
   };
   _reconstructedRoute?: string;
 };
