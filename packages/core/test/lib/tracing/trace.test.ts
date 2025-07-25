@@ -1876,6 +1876,151 @@ describe('continueTrace', () => {
 
     expect(result).toEqual('aha');
   });
+
+  describe('strictTraceContinuation', () => {
+    const creatOrgIdInDsn = (orgId: number) => {
+      vi.spyOn(client, 'getDsn').mockReturnValue({
+        host: `o${orgId}.ingest.sentry.io`,
+        protocol: 'https',
+        projectId: 'projId',
+      });
+    };
+
+    afterEach(() => {
+      vi.clearAllMocks();
+    });
+
+    it('continues trace when org IDs match', () => {
+      creatOrgIdInDsn(123);
+
+      const scope = continueTrace(
+        {
+          sentryTrace: '12312012123120121231201212312012-1121201211212012-1',
+          baggage: 'sentry-org_id=123',
+        },
+        () => {
+          return getCurrentScope();
+        },
+      );
+
+      expect(scope.getPropagationContext().traceId).toBe('12312012123120121231201212312012');
+      expect(scope.getPropagationContext().parentSpanId).toBe('1121201211212012');
+    });
+
+    it('starts new trace when both SDK and baggage org IDs are set and do not match', () => {
+      creatOrgIdInDsn(123);
+
+      const scope = continueTrace(
+        {
+          sentryTrace: '12312012123120121231201212312012-1121201211212012-1',
+          baggage: 'sentry-org_id=456',
+        },
+        () => {
+          return getCurrentScope();
+        },
+      );
+
+      // Should start a new trace with a different trace ID
+      expect(scope.getPropagationContext().traceId).not.toBe('12312012123120121231201212312012');
+      expect(scope.getPropagationContext().parentSpanId).toBeUndefined();
+    });
+
+    describe('when strictTraceContinuation is true', () => {
+      it('starts new trace when baggage org ID is missing', () => {
+        client.getOptions().strictTraceContinuation = true;
+
+        creatOrgIdInDsn(123);
+
+        const scope = continueTrace(
+          {
+            sentryTrace: '12312012123120121231201212312012-1121201211212012-1',
+            baggage: 'sentry-environment=production',
+          },
+          () => {
+            return getCurrentScope();
+          },
+        );
+
+        // Should start a new trace with a different trace ID
+        expect(scope.getPropagationContext().traceId).not.toBe('12312012123120121231201212312012');
+        expect(scope.getPropagationContext().parentSpanId).toBeUndefined();
+      });
+
+      it('starts new trace when SDK org ID is missing', () => {
+        client.getOptions().strictTraceContinuation = true;
+
+        const scope = continueTrace(
+          {
+            sentryTrace: '12312012123120121231201212312012-1121201211212012-1',
+            baggage: 'sentry-org_id=123',
+          },
+          () => {
+            return getCurrentScope();
+          },
+        );
+
+        // Should start a new trace with a different trace ID
+        expect(scope.getPropagationContext().traceId).not.toBe('12312012123120121231201212312012');
+        expect(scope.getPropagationContext().parentSpanId).toBeUndefined();
+      });
+
+      it('continues trace when both org IDs are missing', () => {
+        client.getOptions().strictTraceContinuation = true;
+
+        const scope = continueTrace(
+          {
+            sentryTrace: '12312012123120121231201212312012-1121201211212012-1',
+            baggage: 'sentry-environment=production',
+          },
+          () => {
+            return getCurrentScope();
+          },
+        );
+
+        // Should continue the trace
+        expect(scope.getPropagationContext().traceId).toBe('12312012123120121231201212312012');
+        expect(scope.getPropagationContext().parentSpanId).toBe('1121201211212012');
+      });
+    });
+
+    describe('when strictTraceContinuation is false', () => {
+      it('continues trace when baggage org ID is missing', () => {
+        client.getOptions().strictTraceContinuation = false;
+
+        creatOrgIdInDsn(123);
+
+        const scope = continueTrace(
+          {
+            sentryTrace: '12312012123120121231201212312012-1121201211212012-1',
+            baggage: 'sentry-environment=production',
+          },
+          () => {
+            return getCurrentScope();
+          },
+        );
+
+        expect(scope.getPropagationContext().traceId).toBe('12312012123120121231201212312012');
+        expect(scope.getPropagationContext().parentSpanId).toBe('1121201211212012');
+      });
+
+      it('SDK org ID is missing', () => {
+        client.getOptions().strictTraceContinuation = false;
+
+        const scope = continueTrace(
+          {
+            sentryTrace: '12312012123120121231201212312012-1121201211212012-1',
+            baggage: 'sentry-org_id=123',
+          },
+          () => {
+            return getCurrentScope();
+          },
+        );
+
+        expect(scope.getPropagationContext().traceId).toBe('12312012123120121231201212312012');
+        expect(scope.getPropagationContext().parentSpanId).toBe('1121201211212012');
+      });
+    });
+  });
 });
 
 describe('getActiveSpan', () => {
