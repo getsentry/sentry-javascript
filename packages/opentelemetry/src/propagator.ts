@@ -213,11 +213,13 @@ function getContextWithRemoteActiveSpan(
   const propagationContext = propagationContextFromHeaders(sentryTrace, baggage);
 
   const { traceId, parentSpanId, sampled, dsc } = propagationContext;
+
+  const client = getClient();
   const incomingDsc = baggageHeaderToDynamicSamplingContext(baggage);
 
   // We only want to set the virtual span if we are continuing a concrete trace
   // Otherwise, we ignore the incoming trace here, e.g. if we have no trace headers
-  if (!parentSpanId || !shouldContinueTrace(getClient(), incomingDsc?.org_id)) {
+  if (!parentSpanId || (client && !shouldContinueTrace(client, incomingDsc?.org_id))) {
     return ctx;
   }
 
