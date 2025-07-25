@@ -4,7 +4,9 @@
     "module": "esnext",
     "lib": ["webworker", "scripthost"],
     "esModuleInterop": true,
-    "target": "es2020",
+    // Keep ES5 target for web worker compatibility
+    // Web worker code is embedded as strings and cannot be transpiled by user build tools
+    "target": "es5",
     "strictPropertyInitialization": false
   },
   "include": ["src/**/*.ts"]
