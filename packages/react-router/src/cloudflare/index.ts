@@ -23,17 +23,17 @@ export function injectTraceMetaTags(body: ReadableStream): ReadableStream {
         return;
       }
 
+      const encoder = new TextEncoder();
       const html = value instanceof Uint8Array ? new TextDecoder().decode(value) : String(value);
 
       if (html.includes(headClosingTag)) {
         const modifiedHtml = html.replace(headClosingTag, `${getTraceMetaTags()}${headClosingTag}`);
 
-        const encoder = new TextEncoder();
         controller.enqueue(encoder.encode(modifiedHtml));
         return;
       }
 
-      controller.enqueue(value);
+      controller.enqueue(encoder.encode(html));
     },
   });
 
