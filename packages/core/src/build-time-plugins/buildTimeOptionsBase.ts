@@ -211,6 +211,14 @@ interface SourceMapsOptions {
    * @default []
    */
   ignore?: string | string[];
+
+  /**
+   * A glob or an array of globs that specifies the build artifacts that should be deleted after the artifact
+   * upload to Sentry has been completed.
+   *
+   * The globbing patterns must follow the implementation of the `glob` package: https://www.npmjs.com/package/glob#glob-primer
+   */
+  filesToDeleteAfterUpload?: string | Array<string>;
 }
 
 interface ReleaseOptions {
