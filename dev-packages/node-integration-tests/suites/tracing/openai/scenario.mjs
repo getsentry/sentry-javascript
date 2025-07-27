@@ -61,11 +61,11 @@ class MockOpenAI {
         return {
           id: 'resp_mock456',
           object: 'response',
-          created: 1677652290,
+          created_at: 1677652290,
           model: params.model,
           input_text: params.input,
           output_text: `Response to: ${params.input}`,
-          finish_reason: 'stop',
+          status: 'completed',
           usage: {
             input_tokens: 5,
             output_tokens: 8,
@@ -260,7 +260,7 @@ async function run() {
       instructions: 'You are a translator',
     });
 
-    // Third test: error handling
+    // Third test: error handling in chat completions
     try {
       await client.chat.completions.create({
         model: 'error-model',

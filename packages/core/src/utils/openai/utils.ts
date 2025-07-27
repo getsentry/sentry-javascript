@@ -145,22 +145,16 @@ export function setTokenUsageAttributes(
  * @param model - The response model
  * @param timestamp - The response timestamp
  */
-export function setCommonResponseAttributes(span: Span, id?: string, model?: string, timestamp?: number): void {
-  if (id) {
-    span.setAttributes({
-      [OPENAI_RESPONSE_ID_ATTRIBUTE]: id,
-      [GEN_AI_RESPONSE_ID_ATTRIBUTE]: id,
-    });
-  }
-  if (model) {
-    span.setAttributes({
-      [OPENAI_RESPONSE_MODEL_ATTRIBUTE]: model,
-      [GEN_AI_RESPONSE_MODEL_ATTRIBUTE]: model,
-    });
-  }
-  if (timestamp) {
-    span.setAttributes({
-      [OPENAI_RESPONSE_TIMESTAMP_ATTRIBUTE]: new Date(timestamp * 1000).toISOString(),
-    });
-  }
+export function setCommonResponseAttributes(span: Span, id: string, model: string, timestamp: number): void {
+  span.setAttributes({
+    [OPENAI_RESPONSE_ID_ATTRIBUTE]: id,
+    [GEN_AI_RESPONSE_ID_ATTRIBUTE]: id,
+  });
+  span.setAttributes({
+    [OPENAI_RESPONSE_MODEL_ATTRIBUTE]: model,
+    [GEN_AI_RESPONSE_MODEL_ATTRIBUTE]: model,
+  });
+  span.setAttributes({
+    [OPENAI_RESPONSE_TIMESTAMP_ATTRIBUTE]: new Date(timestamp * 1000).toISOString(),
+  });
 }

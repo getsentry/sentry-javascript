@@ -1,5 +1,6 @@
 import { getCurrentScope } from '../../currentScopes';
 import { captureException } from '../../exports';
+import { SPAN_STATUS_ERROR } from '../../tracing';
 import { startSpan, startSpanManual } from '../../tracing/trace';
 import type { Span, SpanAttributeValue } from '../../types-hoist/span';
 import {
@@ -14,7 +15,6 @@ import {
   GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE,
   GEN_AI_RESPONSE_TEXT_ATTRIBUTE,
   GEN_AI_SYSTEM_ATTRIBUTE,
-  OPENAI_RESPONSE_STREAM_ATTRIBUTE,
 } from '../gen-ai-attributes';
 import { OPENAI_INTEGRATION_NAME } from './constants';
 import { instrumentStream } from './streaming';
@@ -143,9 +143,6 @@ function addRequestAttributes(span: Span, params: Record<string, unknown>): void
   if ('input' in params) {
     span.setAttributes({ [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: JSON.stringify(params.input) });
   }
-  if ('stream' in params) {
-    span.setAttributes({ [OPENAI_RESPONSE_STREAM_ATTRIBUTE]: Boolean(params.stream) });
-  }
 }
 
 function getOptionsFromIntegration(): OpenAiOptions {
@@ -202,7 +199,14 @@ function instrumentMethod<T extends unknown[], R>(
               finalOptions.recordOutputs ?? false,
             ) as unknown as R;
           } catch (error) {
-            captureException(error);
+            // For streaming requests that fail before stream creation, we still want to record
+            // them as streaming requests but end the span gracefully
+            span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+            captureException(error, {
+              mechanism: {
+                handled: false,
+              },
+            });
             span.end();
             throw error;
           }
