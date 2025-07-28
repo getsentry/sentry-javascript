@@ -18,7 +18,7 @@ test('Should record transactions for mcp handlers', async ({ baseURL }) => {
       return transactionEvent.transaction === 'POST /messages';
     });
     const toolTransactionPromise = waitForTransaction('node-express-v5', transactionEvent => {
-      return transactionEvent.transaction === 'mcp-server/tool:echo';
+      return transactionEvent.transaction === 'tools/call echo';
     });
 
     const toolResult = await client.callTool({
@@ -51,7 +51,7 @@ test('Should record transactions for mcp handlers', async ({ baseURL }) => {
       return transactionEvent.transaction === 'POST /messages';
     });
     const resourceTransactionPromise = waitForTransaction('node-express-v5', transactionEvent => {
-      return transactionEvent.transaction === 'mcp-server/resource:echo';
+      return transactionEvent.transaction === 'resources/read echo://foobar';
     });
 
     const resourceResult = await client.readResource({
@@ -76,7 +76,7 @@ test('Should record transactions for mcp handlers', async ({ baseURL }) => {
       return transactionEvent.transaction === 'POST /messages';
     });
     const promptTransactionPromise = waitForTransaction('node-express-v5', transactionEvent => {
-      return transactionEvent.transaction === 'mcp-server/prompt:echo';
+      return transactionEvent.transaction === 'prompts/get echo';
     });
 
     const promptResult = await client.getPrompt({
