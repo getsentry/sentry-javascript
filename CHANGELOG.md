@@ -4,6 +4,13 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 9.42.1
+
+- fix(v9/astro): Revert Astro v5 storing route data to `globalThis` ([#17185](https://github.com/getsentry/sentry-javascript/pull/17185))
+- fix(v9/cloudflare): Avoid turning DurableObject sync methods into async ([#17187](https://github.com/getsentry/sentry-javascript/pull/17187))
+- fix(v9/nextjs): Handle async params in url extraction ([#17176](https://github.com/getsentry/sentry-javascript/pull/17176))
+- fix(v9/sveltekit): Align error status filtering and mechanism in `handleErrorWithSentry` ([#17174](https://github.com/getsentry/sentry-javascript/pull/17174))
+
 ## 9.42.0
 
 - feat(v9/aws): Detect SDK source for AWS Lambda layer ([#17150](https://github.com/getsentry/sentry-javascript/pull/17150))
