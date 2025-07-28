@@ -29,7 +29,7 @@ describe('sentrySolidStartVite()', () => {
       'sentry-solidstart-build-instrumentation-file',
       'sentry-telemetry-plugin',
       'sentry-vite-release-injection-plugin',
-      'sentry-debug-id-upload-plugin',
+      'sentry-release-management-plugin',
       'sentry-vite-debug-id-injection-plugin',
       'sentry-vite-debug-id-upload-plugin',
       'sentry-file-deletion-plugin',

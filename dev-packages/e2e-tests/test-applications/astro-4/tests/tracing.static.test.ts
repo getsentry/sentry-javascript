@@ -35,11 +35,11 @@ test.describe('tracing in static/pre-rendered routes', () => {
         trace: {
           data: expect.objectContaining({
             'sentry.op': 'pageload',
-            'sentry.origin': 'auto.pageload.browser',
-            'sentry.source': 'url',
+            'sentry.origin': 'auto.pageload.astro',
+            'sentry.source': 'route',
           }),
           op: 'pageload',
-          origin: 'auto.pageload.browser',
+          origin: 'auto.pageload.astro',
           parent_span_id: metaParentSpanId,
           span_id: expect.stringMatching(/[a-f0-9]{16}/),
           trace_id: metaTraceId,
@@ -48,12 +48,12 @@ test.describe('tracing in static/pre-rendered routes', () => {
       platform: 'javascript',
       transaction: '/test-static',
       transaction_info: {
-        source: 'url',
+        source: 'route',
       },
       type: 'transaction',
     });
 
-    expect(baggageMetaTagContent).toContain('sentry-transaction=GET%20%2Ftest-static%2F'); // URL-encoded for 'GET /test-static/'
+    expect(baggageMetaTagContent).toContain('sentry-transaction=GET%20%2Ftest-static'); // URL-encoded for 'GET /test-static'
     expect(baggageMetaTagContent).toContain('sentry-sampled=true');
 
     await page.waitForTimeout(1000); // wait another sec to ensure no server transaction is sent

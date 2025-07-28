@@ -11,6 +11,7 @@ import type { DynamicSamplingContext } from '../types-hoist/envelope';
 import type { ClientOptions } from '../types-hoist/options';
 import type { SentrySpanArguments, Span, SpanTimeInput } from '../types-hoist/span';
 import type { StartSpanOptions } from '../types-hoist/startSpanOptions';
+import { baggageHeaderToDynamicSamplingContext } from '../utils/baggage';
 import { debug } from '../utils/debug-logger';
 import { handleCallbackErrors } from '../utils/handleCallbackErrors';
 import { hasSpansEnabled } from '../utils/hasSpansEnabled';
@@ -18,7 +19,7 @@ import { parseSampleRate } from '../utils/parseSampleRate';
 import { generateTraceId } from '../utils/propagationContext';
 import { _getSpanForScope, _setSpanForScope } from '../utils/spanOnScope';
 import { addChildSpanToSpan, getRootSpan, spanIsSampled, spanTimeInputToSeconds, spanToJSON } from '../utils/spanUtils';
-import { propagationContextFromHeaders } from '../utils/tracing';
+import { propagationContextFromHeaders, shouldContinueTrace } from '../utils/tracing';
 import { freezeDscOnSpan, getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 import { logSpanStart } from './logSpans';
 import { sampleSpan } from './sampling';
@@ -215,6 +216,12 @@ export const continueTrace = <V>(
   }
 
   const { sentryTrace, baggage } = options;
+
+  const client = getClient();
+  const incomingDsc = baggageHeaderToDynamicSamplingContext(baggage);
+  if (client && !shouldContinueTrace(client, incomingDsc?.org_id)) {
+    return startNewTrace(callback);
+  }
 
   return withScope(scope => {
     const propagationContext = propagationContextFromHeaders(sentryTrace, baggage);
