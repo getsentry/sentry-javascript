@@ -25,6 +25,8 @@ import { mcpRouter } from './mcp';
 const app = express();
 const port = 3030;
 
+app.use(express.json());
+
 app.use(mcpRouter);
 
 app.get('/crash-in-with-monitor/:id', async (req, res) => {
