@@ -12,7 +12,8 @@ test('Should record transactions for mcp handlers', async ({ baseURL }) => {
   });
 
   await client.connect(transport);
-
+  // waith for the SSE connection to be established in CI.
+  await new Promise(resolve => setTimeout(resolve, 3000));
   await test.step('tool handler', async () => {
     const postTransactionPromise = waitForTransaction('node-express', transactionEvent => {
       return transactionEvent.transaction === 'POST /messages';
@@ -45,8 +46,7 @@ test('Should record transactions for mcp handlers', async ({ baseURL }) => {
     expect(toolTransaction).toBeDefined();
     expect(toolTransaction.contexts?.trace?.op).toEqual('mcp.server');
     expect(toolTransaction.contexts?.trace?.data?.['mcp.method.name']).toEqual('tools/call');
-      // TODO: When https://github.com/modelcontextprotocol/typescript-sdk/pull/358 is released check for trace id equality between the post transaction and the handler transaction
-
+    // TODO: When https://github.com/modelcontextprotocol/typescript-sdk/pull/358 is released check for trace id equality between the post transaction and the handler transaction
   });
 
   await test.step('resource handler', async () => {
