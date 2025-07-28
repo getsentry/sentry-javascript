@@ -1,8 +1,10 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import {
+  type Scope,
   captureException,
   flush,
   getClient,
+  isThenable,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startSpan,
@@ -46,7 +48,8 @@ function wrapMethodWithSentry<T extends OriginalMethod>(
       const currentClient = getClient();
       // if a client is already set, use withScope, otherwise use withIsolationScope
       const sentryWithScope = currentClient ? withScope : withIsolationScope;
-      return sentryWithScope(async scope => {
+
+      const wrappedFunction = (scope: Scope): unknown => {
         // In certain situations, the passed context can become undefined.
         // For example, for Astro while prerendering pages at build time.
         // see: https://github.com/getsentry/sentry-javascript/issues/13217
@@ -65,7 +68,29 @@ function wrapMethodWithSentry<T extends OriginalMethod>(
             if (callback) {
               callback(...args);
             }
-            return await Reflect.apply(target, thisArg, args);
+            const result = Reflect.apply(target, thisArg, args);
+
+            if (isThenable(result)) {
+              return result.then(
+                (res: unknown) => {
+                  waitUntil?.(flush(2000));
+                  return res;
+                },
+                (e: unknown) => {
+                  captureException(e, {
+                    mechanism: {
+                      type: 'cloudflare_durableobject',
+                      handled: false,
+                    },
+                  });
+                  waitUntil?.(flush(2000));
+                  throw e;
+                },
+              );
+            } else {
+              waitUntil?.(flush(2000));
+              return result;
+            }
           } catch (e) {
             captureException(e, {
               mechanism: {
@@ -73,9 +98,8 @@ function wrapMethodWithSentry<T extends OriginalMethod>(
                 handled: false,
               },
             });
-            throw e;
-          } finally {
             waitUntil?.(flush(2000));
+            throw e;
           }
         }
 
@@ -87,9 +111,31 @@ function wrapMethodWithSentry<T extends OriginalMethod>(
           : {};
 
         // Only create these spans if they have a parent span.
-        return startSpan({ name: wrapperOptions.spanName, attributes, onlyIfParent: true }, async () => {
+        return startSpan({ name: wrapperOptions.spanName, attributes, onlyIfParent: true }, () => {
           try {
-            return await Reflect.apply(target, thisArg, args);
+            const result = Reflect.apply(target, thisArg, args);
+
+            if (isThenable(result)) {
+              return result.then(
+                (res: unknown) => {
+                  waitUntil?.(flush(2000));
+                  return res;
+                },
+                (e: unknown) => {
+                  captureException(e, {
+                    mechanism: {
+                      type: 'cloudflare_durableobject',
+                      handled: false,
+                    },
+                  });
+                  waitUntil?.(flush(2000));
+                  throw e;
+                },
+              );
+            } else {
+              waitUntil?.(flush(2000));
+              return result;
+            }
           } catch (e) {
             captureException(e, {
               mechanism: {
@@ -97,12 +143,13 @@ function wrapMethodWithSentry<T extends OriginalMethod>(
                 handled: false,
               },
             });
-            throw e;
-          } finally {
             waitUntil?.(flush(2000));
+            throw e;
           }
         });
-      });
+      };
+
+      return sentryWithScope(wrappedFunction);
     },
   });
 }
