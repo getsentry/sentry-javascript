@@ -12,8 +12,7 @@ test('Should record transactions for mcp handlers', async ({ baseURL }) => {
   });
 
   await client.connect(transport);
-  // waith for the SSE connection to be established in CI.
-  await new Promise(resolve => setTimeout(resolve, 3000));
+
   await test.step('tool handler', async () => {
     const postTransactionPromise = waitForTransaction('node-express', transactionEvent => {
       return transactionEvent.transaction === 'POST /messages';
