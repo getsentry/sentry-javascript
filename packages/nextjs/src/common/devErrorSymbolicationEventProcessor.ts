@@ -1,5 +1,5 @@
 import type { Event, EventHint } from '@sentry/core';
-import { GLOBAL_OBJ, logger, parseSemver, suppressTracing } from '@sentry/core';
+import { debug, GLOBAL_OBJ, parseSemver, suppressTracing } from '@sentry/core';
 import type { StackFrame } from 'stacktrace-parser';
 import * as stackTraceParser from 'stacktrace-parser';
 import { DEBUG_BUILD } from './debug-build';
@@ -45,7 +45,7 @@ export async function devErrorSymbolicationEventProcessor(event: Event, hint: Ev
 
       let resolvedFrames: ({
         originalCodeFrame: string | null;
-        originalStackFrame: StackFrame | null;
+        originalStackFrame: (StackFrame & { line1?: number; column1?: number }) | null;
       } | null)[];
 
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -84,8 +84,9 @@ export async function devErrorSymbolicationEventProcessor(event: Event, hint: Ev
               post_context: postContextLines,
               function: resolvedFrame.originalStackFrame.methodName,
               filename: resolvedFrame.originalStackFrame.file || undefined,
-              lineno: resolvedFrame.originalStackFrame.lineNumber || undefined,
-              colno: resolvedFrame.originalStackFrame.column || undefined,
+              lineno:
+                resolvedFrame.originalStackFrame.lineNumber || resolvedFrame.originalStackFrame.line1 || undefined,
+              colno: resolvedFrame.originalStackFrame.column || resolvedFrame.originalStackFrame.column1 || undefined,
             };
           },
         );
@@ -150,7 +151,7 @@ async function resolveStackFrame(
       originalStackFrame: body.originalStackFrame,
     };
   } catch (e) {
-    DEBUG_BUILD && logger.error('Failed to symbolicate event with Next.js dev server', e);
+    DEBUG_BUILD && debug.error('Failed to symbolicate event with Next.js dev server', e);
     return null;
   }
 }
@@ -175,6 +176,8 @@ async function resolveStackFrames(
             arguments: [],
             lineNumber: frame.lineNumber ?? 0,
             column: frame.column ?? 0,
+            line1: frame.lineNumber ?? 0,
+            column1: frame.column ?? 0,
           };
         }),
       isServer: false,
@@ -224,7 +227,7 @@ async function resolveStackFrames(
       };
     });
   } catch (e) {
-    DEBUG_BUILD && logger.error('Failed to symbolicate event with Next.js dev server', e);
+    DEBUG_BUILD && debug.error('Failed to symbolicate event with Next.js dev server', e);
     return null;
   }
 }

@@ -49,11 +49,7 @@ export { Scope } from './scope';
 export type { CaptureContext, ScopeContext, ScopeData } from './scope';
 export { notifyEventProcessors } from './eventProcessors';
 export { getEnvelopeEndpointWithUrlEncodedAuth, getReportDialogEndpoint } from './api';
-export {
-  Client,
-  // eslint-disable-next-line deprecation/deprecation
-  BaseClient,
-} from './client';
+export { Client } from './client';
 export { ServerRuntimeClient } from './server-runtime-client';
 export { initAndBind, setCurrentClient } from './sdk';
 export { createTransport } from './transports/base';
@@ -63,8 +59,6 @@ export { getIntegrationsToSetup, addIntegration, defineIntegration } from './int
 export { applyScopeDataToEvent, mergeScopeData } from './utils/applyScopeDataToEvent';
 export { prepareEvent } from './utils/prepareEvent';
 export { createCheckInEnvelope } from './checkin';
-// eslint-disable-next-line deprecation/deprecation
-export { hasTracingEnabled } from './utils/hasSpansEnabled';
 export { hasSpansEnabled } from './utils/hasSpansEnabled';
 export { isSentryRequestUrl } from './utils/isSentryRequestUrl';
 export { handleCallbackErrors } from './utils/handleCallbackErrors';
@@ -124,8 +118,11 @@ export type { ReportDialogOptions } from './report-dialog';
 export { _INTERNAL_captureLog, _INTERNAL_flushLogsBuffer, _INTERNAL_captureSerializedLog } from './logs/exports';
 export { consoleLoggingIntegration } from './logs/console-integration';
 export { addVercelAiProcessors } from './utils/vercel-ai';
-
+export { instrumentOpenAiClient } from './utils/openai';
+export { OPENAI_INTEGRATION_NAME } from './utils/openai/constants';
+export type { OpenAiClient, OpenAiOptions, InstrumentedMethod } from './utils/openai/types';
 export type { FeatureFlag } from './utils/featureFlags';
+
 export {
   _INTERNAL_copyFlagsFromScopeToEvent,
   _INTERNAL_insertFlagToScope,
@@ -165,8 +162,8 @@ export {
   isVueViewModel,
 } from './utils/is';
 export { isBrowser } from './utils/isBrowser';
-export { CONSOLE_LEVELS, consoleSandbox, debug, logger, originalConsoleMethods } from './utils/logger';
-export type { Logger } from './utils/logger';
+export { CONSOLE_LEVELS, consoleSandbox, debug, originalConsoleMethods } from './utils/debug-logger';
+export type { SentryDebugLogger } from './utils/debug-logger';
 export {
   addContextToFrame,
   addExceptionMechanism,
@@ -223,6 +220,7 @@ export {
   extractTraceparentData,
   generateSentryTraceHeader,
   propagationContextFromHeaders,
+  shouldContinueTrace,
 } from './utils/tracing';
 export { getSDKSource, isBrowserBundle } from './utils/env';
 export type { SdkSource } from './utils/env';

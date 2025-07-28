@@ -4,7 +4,7 @@ import { trace } from '@opentelemetry/api';
 import { registerInstrumentations } from '@opentelemetry/instrumentation';
 import type { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import type { DynamicSamplingContext, Scope, ServerRuntimeClientOptions, TraceContext } from '@sentry/core';
-import { _INTERNAL_flushLogsBuffer, applySdkMetadata, logger, SDK_VERSION, ServerRuntimeClient } from '@sentry/core';
+import { _INTERNAL_flushLogsBuffer, applySdkMetadata, debug, SDK_VERSION, ServerRuntimeClient } from '@sentry/core';
 import { getTraceContextForScope } from '@sentry/opentelemetry';
 import { isMainThread, threadId } from 'worker_threads';
 import { DEBUG_BUILD } from '../debug-build';
@@ -41,13 +41,11 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
 
     applySdkMetadata(clientOptions, 'node');
 
-    logger.log(
-      `Initializing Sentry: process: ${process.pid}, thread: ${isMainThread ? 'main' : `worker-${threadId}`}.`,
-    );
+    debug.log(`Initializing Sentry: process: ${process.pid}, thread: ${isMainThread ? 'main' : `worker-${threadId}`}.`);
 
     super(clientOptions);
 
-    if (this.getOptions()._experiments?.enableLogs) {
+    if (this.getOptions().enableLogs) {
       this._logOnExitFlushListener = () => {
         _INTERNAL_flushLogsBuffer(this);
       };
@@ -134,7 +132,7 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
       };
 
       this._clientReportInterval = setInterval(() => {
-        DEBUG_BUILD && logger.log('Flushing client reports based on interval.');
+        DEBUG_BUILD && debug.log('Flushing client reports based on interval.');
         this._flushOutcomes();
       }, clientOptions.clientReportFlushInterval ?? DEFAULT_CLIENT_REPORT_FLUSH_INTERVAL_MS)
         // Unref is critical for not preventing the process from exiting because the interval is active.

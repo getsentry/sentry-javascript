@@ -3,11 +3,11 @@ import {
   addExceptionMechanism,
   addFetchInstrumentationHandler,
   captureEvent,
+  debug,
   defineIntegration,
   getClient,
   GLOBAL_OBJ,
   isSentryRequestUrl,
-  logger,
   supportsNativeFetch,
 } from '@sentry/core';
 import { addXhrInstrumentationHandler, SENTRY_XHR_DATA_KEY } from '@sentry-internal/browser-utils';
@@ -333,7 +333,7 @@ function _wrapXHR(client: Client, options: HttpClientOptions): void {
     try {
       _xhrResponseHandler(options, xhr, method, headers, error || virtualError);
     } catch (e) {
-      DEBUG_BUILD && logger.warn('Error while extracting response event form XHR response', e);
+      DEBUG_BUILD && debug.warn('Error while extracting response event form XHR response', e);
     }
   });
 }

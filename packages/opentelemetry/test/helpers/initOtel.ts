@@ -1,6 +1,6 @@
 import { context, diag, DiagLogLevel, propagation, trace } from '@opentelemetry/api';
 import { AsyncLocalStorageContextManager } from '@opentelemetry/context-async-hooks';
-import { Resource } from '@opentelemetry/resources';
+import { defaultResource, resourceFromAttributes } from '@opentelemetry/resources';
 import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import {
   ATTR_SERVICE_NAME,
@@ -49,23 +49,27 @@ export function initOtel(): void {
   setupEventContextTrace(client);
   enhanceDscWithOpenTelemetryRootSpanName(client);
 
-  const provider = setupOtel(client);
+  const [provider, spanProcessor] = setupOtel(client);
   client.traceProvider = provider;
+  client.spanProcessor = spanProcessor;
 }
 
 /** Just exported for tests. */
-export function setupOtel(client: TestClientInterface): BasicTracerProvider {
+export function setupOtel(client: TestClientInterface): [BasicTracerProvider, SentrySpanProcessor] {
+  const spanProcessor = new SentrySpanProcessor();
   // Create and configure NodeTracerProvider
   const provider = new BasicTracerProvider({
     sampler: new SentrySampler(client),
-    resource: new Resource({
-      [ATTR_SERVICE_NAME]: 'opentelemetry-test',
-      // eslint-disable-next-line deprecation/deprecation
-      [SEMRESATTRS_SERVICE_NAMESPACE]: 'sentry',
-      [ATTR_SERVICE_VERSION]: SDK_VERSION,
-    }),
+    resource: defaultResource().merge(
+      resourceFromAttributes({
+        [ATTR_SERVICE_NAME]: 'opentelemetry-test',
+        // eslint-disable-next-line deprecation/deprecation
+        [SEMRESATTRS_SERVICE_NAMESPACE]: 'sentry',
+        [ATTR_SERVICE_VERSION]: SDK_VERSION,
+      }),
+    ),
     forceFlushTimeoutMillis: 500,
-    spanProcessors: [new SentrySpanProcessor()],
+    spanProcessors: [spanProcessor],
   });
 
   // We use a custom context manager to keep context in sync with sentry scope
@@ -75,5 +79,5 @@ export function setupOtel(client: TestClientInterface): BasicTracerProvider {
   propagation.setGlobalPropagator(new SentryPropagator());
   context.setGlobalContextManager(new SentryContextManager());
 
-  return provider;
+  return [provider, spanProcessor];
 }

@@ -1,6 +1,5 @@
 import {
   addClsInstrumentationHandler,
-  addFidInstrumentationHandler,
   addInpInstrumentationHandler,
   addLcpInstrumentationHandler,
   addPerformanceInstrumentationHandler,
@@ -8,7 +7,6 @@ import {
 import type { ReplayContainer } from '../types';
 import {
   getCumulativeLayoutShift,
-  getFirstInputDelay,
   getInteractionToNextPaint,
   getLargestContentfulPaint,
   webVitalHandler,
@@ -39,7 +37,6 @@ export function setupPerformanceObserver(replay: ReplayContainer): () => void {
   clearCallbacks.push(
     addLcpInstrumentationHandler(webVitalHandler(getLargestContentfulPaint, replay)),
     addClsInstrumentationHandler(webVitalHandler(getCumulativeLayoutShift, replay)),
-    addFidInstrumentationHandler(webVitalHandler(getFirstInputDelay, replay)),
     addInpInstrumentationHandler(webVitalHandler(getInteractionToNextPaint, replay)),
   );
 

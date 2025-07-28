@@ -4,6 +4,111 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+Work in this release was contributed by @richardjelinek-fastest. Thank you for your contribution!
+
+## 9.40.0
+
+### Important Changes
+
+- **feat(browser): Add debugId sync APIs between web worker and main thread ([#16981](https://github.com/getsentry/sentry-javascript/pull/16981))**
+
+This release adds two Browser SDK APIs to let the main thread know about debugIds of worker files:
+
+- `webWorkerIntegration({worker})` to be used in the main thread
+- `registerWebWorker({self})` to be used in the web worker
+
+```js
+// main.js
+Sentry.init({...})
+
+const worker = new MyWorker(...);
+
+Sentry.addIntegration(Sentry.webWorkerIntegration({ worker }));
+
+worker.addEventListener('message', e => {...});
+```
+
+```js
+// worker.js
+Sentry.registerWebWorker({ self });
+
+self.postMessage(...);
+```
+
+- **feat(core): Deprecate logger in favor of debug ([#17040](https://github.com/getsentry/sentry-javascript/pull/17040))**
+
+The internal SDK `logger` export from `@sentry/core` has been deprecated in favor of the `debug` export. `debug` only exposes `log`, `warn`, and `error` methods but is otherwise identical to `logger`. Note that this deprecation does not affect the `logger` export from other packages (like `@sentry/browser` or `@sentry/node`) which is used for Sentry Logging.
+
+```js
+import { logger, debug } from '@sentry/core';
+
+// before
+logger.info('This is an info message');
+
+// after
+debug.log('This is an info message');
+```
+
+- **feat(node): Add OpenAI integration ([#17022](https://github.com/getsentry/sentry-javascript/pull/17022))**
+
+This release adds official support for instrumenting OpenAI SDK calls in with Sentry tracing, following OpenTelemetry semantic conventions for Generative AI. It instruments:
+
+- `client.chat.completions.create()` - For chat-based completions
+- `client.responses.create()` - For the responses API
+
+```js
+// The integration respects your `sendDefaultPii` option, but you can override the behavior in the integration options
+
+Sentry.init({
+  dsn: '__DSN__',
+  integrations: [
+    Sentry.openAIIntegration({
+      recordInputs: true, // Force recording prompts
+      recordOutputs: true, // Force recording responses
+    }),
+  ],
+});
+```
+
+### Other Changes
+
+- feat(node-core): Expand `@opentelemetry/instrumentation` range to cover `0.203.0` ([#17043](https://github.com/getsentry/sentry-javascript/pull/17043))
+- fix(cloudflare): Ensure errors get captured from durable objects ([#16838](https://github.com/getsentry/sentry-javascript/pull/16838))
+- fix(sveltekit): Ensure server errors from streamed responses are sent ([#17044](https://github.com/getsentry/sentry-javascript/pull/17044))
+
+Work in this release was contributed by @0xbad0c0d3 and @tommy-gilligan. Thank you for your contributions!
+
+## 9.39.0
+
+### Important Changes
+
+- **feat(browser): Add `afterStartPageloadSpan` hook to improve spanId assignment on web vital spans ([#16893](https://github.com/getsentry/sentry-javascript/pull/16893))**
+
+This PR adds a new afterStartPageloadSpan lifecycle hook to more robustly assign the correct pageload span ID to web vital spans, replacing the previous unreliable "wait for a tick" approach with a direct callback that fires when the pageload span becomes available.
+
+- **feat(nextjs): Client-side parameterized routes ([#16934](https://github.com/getsentry/sentry-javascript/pull/16934))**
+
+This PR implements client-side parameterized routes for Next.js by leveraging an injected manifest within the existing app-router instrumentation to automatically parameterize all client-side transactions (e.g. `users/123` and `users/456` now become become `users/:id`).
+
+- **feat(node): Drop 401-404 and 3xx status code spans by default ([#16972](https://github.com/getsentry/sentry-javascript/pull/16972))**
+
+This PR changes the default behavior in the Node SDK to drop HTTP spans with 401-404 and 3xx status codes by default to reduce noise in tracing data.
+
+### Other Changes
+
+- feat(core): Prepend vercel ai attributes with `vercel.ai.X` ([#16908](https://github.com/getsentry/sentry-javascript/pull/16908))
+- feat(nextjs): Add `disableSentryWebpackConfig` flag ([#17013](https://github.com/getsentry/sentry-javascript/pull/17013))
+- feat(nextjs): Build app manifest ([#16851](https://github.com/getsentry/sentry-javascript/pull/16851))
+- feat(nextjs): Inject manifest into client for turbopack builds ([#16902](https://github.com/getsentry/sentry-javascript/pull/16902))
+- feat(nextjs): Inject manifest into client for webpack builds ([#16857](https://github.com/getsentry/sentry-javascript/pull/16857))
+- feat(node-native): Add option to disable event loop blocked detection ([#16919](https://github.com/getsentry/sentry-javascript/pull/16919))
+- feat(react-router): Ensure http.server route handling is consistent ([#16986](https://github.com/getsentry/sentry-javascript/pull/16986))
+- fix(core): Avoid prolonging idle span when starting standalone span ([#16928](https://github.com/getsentry/sentry-javascript/pull/16928))
+- fix(core): Remove side-effect from `tracing/errors.ts` ([#16888](https://github.com/getsentry/sentry-javascript/pull/16888))
+- fix(core): Wrap `beforeSendLog` in `consoleSandbox` ([#16968](https://github.com/getsentry/sentry-javascript/pull/16968))
+- fix(node-core): Apply correct SDK metadata ([#17014](https://github.com/getsentry/sentry-javascript/pull/17014))
+- fix(react-router): Ensure that all browser spans have `source=route` ([#16984](https://github.com/getsentry/sentry-javascript/pull/16984))
+
 Work in this release was contributed by @janpapenbrock. Thank you for your contribution!
 
 ## 9.38.0

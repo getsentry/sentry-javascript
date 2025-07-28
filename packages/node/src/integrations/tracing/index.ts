@@ -2,8 +2,9 @@ import type { Integration } from '@sentry/core';
 import { instrumentOtelHttp } from '../http';
 import { amqplibIntegration, instrumentAmqplib } from './amqplib';
 import { connectIntegration, instrumentConnect } from './connect';
-import { expressIntegration, instrumentExpress, instrumentExpressV5 } from './express';
+import { expressIntegration, instrumentExpress } from './express';
 import { fastifyIntegration, instrumentFastify, instrumentFastifyV3 } from './fastify';
+import { firebaseIntegration, instrumentFirebase } from './firebase';
 import { genericPoolIntegration, instrumentGenericPool } from './genericPool';
 import { graphqlIntegration, instrumentGraphql } from './graphql';
 import { hapiIntegration, instrumentHapi } from './hapi';
@@ -14,6 +15,7 @@ import { instrumentMongo, mongoIntegration } from './mongo';
 import { instrumentMongoose, mongooseIntegration } from './mongoose';
 import { instrumentMysql, mysqlIntegration } from './mysql';
 import { instrumentMysql2, mysql2Integration } from './mysql2';
+import { instrumentOpenAi, openAIIntegration } from './openai';
 import { instrumentPostgres, postgresIntegration } from './postgres';
 import { instrumentPostgresJs, postgresJsIntegration } from './postgresjs';
 import { prismaIntegration } from './prisma';
@@ -45,7 +47,9 @@ export function getAutoPerformanceIntegrations(): Integration[] {
     amqplibIntegration(),
     lruMemoizerIntegration(),
     vercelAIIntegration(),
+    openAIIntegration(),
     postgresJsIntegration(),
+    firebaseIntegration(),
   ];
 }
 
@@ -57,7 +61,6 @@ export function getOpenTelemetryInstrumentationToPreload(): (((options?: any) =>
   return [
     instrumentOtelHttp,
     instrumentExpress,
-    instrumentExpressV5,
     instrumentConnect,
     instrumentFastify,
     instrumentFastifyV3,
@@ -77,6 +80,8 @@ export function getOpenTelemetryInstrumentationToPreload(): (((options?: any) =>
     instrumentGenericPool,
     instrumentAmqplib,
     instrumentVercelAi,
+    instrumentOpenAi,
     instrumentPostgresJs,
+    instrumentFirebase,
   ];
 }

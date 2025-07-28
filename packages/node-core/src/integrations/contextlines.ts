@@ -1,7 +1,7 @@
 import { createReadStream } from 'node:fs';
 import { createInterface } from 'node:readline';
 import type { Event, IntegrationFn, StackFrame } from '@sentry/core';
-import { defineIntegration, logger, LRUMap, snipLine } from '@sentry/core';
+import { debug, defineIntegration, LRUMap, snipLine } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 
 const LRU_FILE_CONTENTS_CACHE = new LRUMap<string, Record<number, string>>(10);
@@ -167,7 +167,7 @@ function getContextLinesFromFile(path: string, ranges: ReadlineRange[], output: 
     function onStreamError(e: Error): void {
       // Mark file path as failed to read and prevent multiple read attempts.
       LRU_FILE_CONTENTS_FS_READ_FAILED.set(path, 1);
-      DEBUG_BUILD && logger.error(`Failed to read file: ${path}. Error: ${e}`);
+      DEBUG_BUILD && debug.error(`Failed to read file: ${path}. Error: ${e}`);
       lineReaded.close();
       lineReaded.removeAllListeners();
       destroyStreamAndResolve();
@@ -281,7 +281,7 @@ async function addSourceContext(event: Event, contextLines: number): Promise<Eve
 
   // The promise rejections are caught in order to prevent them from short circuiting Promise.all
   await Promise.all(readlinePromises).catch(() => {
-    DEBUG_BUILD && logger.log('Failed to read one or more source files and resolve context lines');
+    DEBUG_BUILD && debug.log('Failed to read one or more source files and resolve context lines');
   });
 
   // Perform the same loop as above, but this time we can assume all files are in the cache
@@ -339,7 +339,7 @@ export function addContextToFrame(
   // When there is no line number in the frame, attaching context is nonsensical and will even break grouping.
   // We already check for lineno before calling this, but since StackFrame lineno ism optional, we check it again.
   if (frame.lineno === undefined || contents === undefined) {
-    DEBUG_BUILD && logger.error('Cannot resolve context for frame with no lineno or file contents');
+    DEBUG_BUILD && debug.error('Cannot resolve context for frame with no lineno or file contents');
     return;
   }
 
@@ -350,7 +350,7 @@ export function addContextToFrame(
     const line = contents[i];
     if (line === undefined) {
       clearLineContext(frame);
-      DEBUG_BUILD && logger.error(`Could not find line ${i} in file ${frame.filename}`);
+      DEBUG_BUILD && debug.error(`Could not find line ${i} in file ${frame.filename}`);
       return;
     }
 
@@ -361,7 +361,7 @@ export function addContextToFrame(
   // without adding any linecontext.
   if (contents[lineno] === undefined) {
     clearLineContext(frame);
-    DEBUG_BUILD && logger.error(`Could not find line ${lineno} in file ${frame.filename}`);
+    DEBUG_BUILD && debug.error(`Could not find line ${lineno} in file ${frame.filename}`);
     return;
   }
 

@@ -30,10 +30,10 @@
 /* eslint-disable jsdoc/require-jsdoc */
 import type { IncomingHttpHeaders } from 'node:http';
 import type { Readable } from 'node:stream';
-import { logger } from '@sentry/core';
+import { debug } from '@sentry/core';
 
-function debug(...args: unknown[]): void {
-  logger.log('[https-proxy-agent:parse-proxy-response]', ...args);
+function debugLog(...args: unknown[]): void {
+  debug.log('[https-proxy-agent:parse-proxy-response]', ...args);
 }
 
 export interface ConnectResponse {
@@ -65,13 +65,13 @@ export function parseProxyResponse(socket: Readable): Promise<{ connect: Connect
 
     function onend() {
       cleanup();
-      debug('onend');
+      debugLog('onend');
       reject(new Error('Proxy connection ended before receiving CONNECT response'));
     }
 
     function onerror(err: Error) {
       cleanup();
-      debug('onerror %o', err);
+      debugLog('onerror %o', err);
       reject(err);
     }
 
@@ -84,7 +84,7 @@ export function parseProxyResponse(socket: Readable): Promise<{ connect: Connect
 
       if (endOfHeaders === -1) {
         // keep buffering
-        debug('have not received end of HTTP headers yet...');
+        debugLog('have not received end of HTTP headers yet...');
         read();
         return;
       }
@@ -117,7 +117,7 @@ export function parseProxyResponse(socket: Readable): Promise<{ connect: Connect
           headers[key] = value;
         }
       }
-      debug('got proxy server response: %o %o', firstLine, headers);
+      debugLog('got proxy server response: %o %o', firstLine, headers);
       cleanup();
       resolve({
         connect: {

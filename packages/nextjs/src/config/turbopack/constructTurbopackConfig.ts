@@ -1,4 +1,4 @@
-import { logger } from '@sentry/core';
+import { debug } from '@sentry/core';
 import * as chalk from 'chalk';
 import * as path from 'path';
 import type { RouteManifest } from '../manifest/types';
@@ -63,7 +63,7 @@ export function safelyAddTurbopackRule(
 
   // If the rule already exists, we don't want to mess with it.
   if (existingRules[matcher]) {
-    logger.info(
+    debug.log(
       `${chalk.cyan(
         'info',
       )} - Turbopack rule already exists for ${matcher}. Please remove it from your Next.js config in order for Sentry to work properly.`,

@@ -86,13 +86,10 @@ async function getNodeAdapterOutputDir(svelteConfig: Config): Promise<string> {
     },
     // @ts-expect-error - No need to implement the other methods
     log: {
-      // eslint-disable-next-line @typescript-eslint/no-empty-function -- this should be a noop
       minor() {},
     },
     getBuildDirectory: () => '',
-    // eslint-disable-next-line @typescript-eslint/no-empty-function -- this should be a noop
     rimraf: () => {},
-    // eslint-disable-next-line @typescript-eslint/no-empty-function -- this should be a noop
     mkdirp: () => {},
 
     config: {

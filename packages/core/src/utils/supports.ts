@@ -1,5 +1,5 @@
 import { DEBUG_BUILD } from '../debug-build';
-import { debug } from './logger';
+import { debug } from './debug-logger';
 import { GLOBAL_OBJ } from './worldwide';
 
 const WINDOW = GLOBAL_OBJ as unknown as Window;

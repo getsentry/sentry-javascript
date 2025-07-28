@@ -3,8 +3,8 @@ import { defineIntegration } from '../integration';
 import type { Event } from '../types-hoist/event';
 import type { IntegrationFn } from '../types-hoist/integration';
 import type { StackFrame } from '../types-hoist/stackframe';
+import { debug } from '../utils/debug-logger';
 import { getPossibleEventMessages } from '../utils/eventUtils';
-import { debug } from '../utils/logger';
 import { getEventDescription } from '../utils/misc';
 import { stringMatchesSomePattern } from '../utils/string';
 

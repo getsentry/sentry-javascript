@@ -28,7 +28,7 @@ function fixPackageJson(cwd: string): void {
 
   // 2. Fix volta extends
   if (!packageJson.volta) {
-    throw new Error('No volta config found, please provide one!');
+    throw new Error("No volta config found, please add one to the test app's package.json!");
   }
 
   if (typeof packageJson.volta.extends === 'string') {

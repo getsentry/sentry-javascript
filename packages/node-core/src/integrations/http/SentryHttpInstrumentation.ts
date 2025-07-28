@@ -12,6 +12,7 @@ import type { AggregationCounts, Client, SanitizedRequestData, Scope } from '@se
 import {
   addBreadcrumb,
   addNonEnumerableProperty,
+  debug,
   generateSpanId,
   getBreadcrumbLogLevelFromHttpStatusCode,
   getClient,
@@ -21,7 +22,6 @@ import {
   getTraceData,
   httpRequestToRequestData,
   isError,
-  logger,
   LRUMap,
   parseUrl,
   SDK_VERSION,
@@ -219,7 +219,7 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
    * It has access to the final request and response objects.
    */
   private _onOutgoingRequestFinish(request: http.ClientRequest, response?: http.IncomingMessage): void {
-    DEBUG_BUILD && logger.log(INSTRUMENTATION_NAME, 'Handling finished outgoing request');
+    DEBUG_BUILD && debug.log(INSTRUMENTATION_NAME, 'Handling finished outgoing request');
 
     const _breadcrumbs = this.getConfig().breadcrumbs;
     const breadCrumbsEnabled = typeof _breadcrumbs === 'undefined' ? true : _breadcrumbs;
@@ -266,10 +266,10 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
     if (sentryTrace && !request.getHeader('sentry-trace')) {
       try {
         request.setHeader('sentry-trace', sentryTrace);
-        DEBUG_BUILD && logger.log(INSTRUMENTATION_NAME, 'Added sentry-trace header to outgoing request');
+        DEBUG_BUILD && debug.log(INSTRUMENTATION_NAME, 'Added sentry-trace header to outgoing request');
       } catch (error) {
         DEBUG_BUILD &&
-          logger.error(
+          debug.error(
             INSTRUMENTATION_NAME,
             'Failed to add sentry-trace header to outgoing request:',
             isError(error) ? error.message : 'Unknown error',
@@ -283,10 +283,10 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
       if (newBaggage) {
         try {
           request.setHeader('baggage', newBaggage);
-          DEBUG_BUILD && logger.log(INSTRUMENTATION_NAME, 'Added baggage header to outgoing request');
+          DEBUG_BUILD && debug.log(INSTRUMENTATION_NAME, 'Added baggage header to outgoing request');
         } catch (error) {
           DEBUG_BUILD &&
-            logger.error(
+            debug.error(
               INSTRUMENTATION_NAME,
               'Failed to add baggage header to outgoing request:',
               isError(error) ? error.message : 'Unknown error',
@@ -309,7 +309,7 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
       return;
     }
 
-    DEBUG_BUILD && logger.log(INSTRUMENTATION_NAME, 'Patching server.emit');
+    DEBUG_BUILD && debug.log(INSTRUMENTATION_NAME, 'Patching server.emit');
 
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const instrumentation = this;
@@ -322,7 +322,7 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
           return target.apply(thisArg, args);
         }
 
-        DEBUG_BUILD && logger.log(INSTRUMENTATION_NAME, 'Handling incoming request');
+        DEBUG_BUILD && debug.log(INSTRUMENTATION_NAME, 'Handling incoming request');
 
         const isolationScope = getIsolationScope().clone();
         const request = args[1] as http.IncomingMessage;
@@ -467,7 +467,7 @@ function patchRequestToCaptureBody(
   let bodyByteLength = 0;
   const chunks: Buffer[] = [];
 
-  DEBUG_BUILD && logger.log(INSTRUMENTATION_NAME, 'Patching request.on');
+  DEBUG_BUILD && debug.log(INSTRUMENTATION_NAME, 'Patching request.on');
 
   /**
    * We need to keep track of the original callbacks, in order to be able to remove listeners again.
@@ -491,7 +491,7 @@ function patchRequestToCaptureBody(
 
         if (event === 'data') {
           DEBUG_BUILD &&
-            logger.log(INSTRUMENTATION_NAME, `Handling request.on("data") with maximum body size of ${maxBodySize}b`);
+            debug.log(INSTRUMENTATION_NAME, `Handling request.on("data") with maximum body size of ${maxBodySize}b`);
 
           const callback = new Proxy(listener, {
             apply: (target, thisArg, args: Parameters<typeof listener>) => {
@@ -503,13 +503,13 @@ function patchRequestToCaptureBody(
                   chunks.push(bufferifiedChunk);
                   bodyByteLength += bufferifiedChunk.byteLength;
                 } else if (DEBUG_BUILD) {
-                  logger.log(
+                  debug.log(
                     INSTRUMENTATION_NAME,
                     `Dropping request body chunk because maximum body length of ${maxBodySize}b is exceeded.`,
                   );
                 }
               } catch (err) {
-                DEBUG_BUILD && logger.error(INSTRUMENTATION_NAME, 'Encountered error while storing body chunk.');
+                DEBUG_BUILD && debug.error(INSTRUMENTATION_NAME, 'Encountered error while storing body chunk.');
               }
 
               return Reflect.apply(target, thisArg, args);
@@ -561,13 +561,13 @@ function patchRequestToCaptureBody(
         }
       } catch (error) {
         if (DEBUG_BUILD) {
-          logger.error(INSTRUMENTATION_NAME, 'Error building captured request body', error);
+          debug.error(INSTRUMENTATION_NAME, 'Error building captured request body', error);
         }
       }
     });
   } catch (error) {
     if (DEBUG_BUILD) {
-      logger.error(INSTRUMENTATION_NAME, 'Error patching request to capture body', error);
+      debug.error(INSTRUMENTATION_NAME, 'Error patching request to capture body', error);
     }
   }
 }
@@ -611,7 +611,7 @@ export function recordRequestSession({
     const requestSession = requestIsolationScope.getScopeData().sdkProcessingMetadata.requestSession;
 
     if (client && requestSession) {
-      DEBUG_BUILD && logger.debug(`Recorded request session with status: ${requestSession.status}`);
+      DEBUG_BUILD && debug.log(`Recorded request session with status: ${requestSession.status}`);
 
       const roundedDate = new Date();
       roundedDate.setSeconds(0, 0);
@@ -624,7 +624,7 @@ export function recordRequestSession({
       if (existingClientAggregate) {
         existingClientAggregate[dateBucketKey] = bucket;
       } else {
-        DEBUG_BUILD && logger.debug('Opened new request session aggregate.');
+        DEBUG_BUILD && debug.log('Opened new request session aggregate.');
         const newClientAggregate = { [dateBucketKey]: bucket };
         clientToRequestSessionAggregatesMap.set(client, newClientAggregate);
 
@@ -645,11 +645,11 @@ export function recordRequestSession({
         };
 
         const unregisterClientFlushHook = client.on('flush', () => {
-          DEBUG_BUILD && logger.debug('Sending request session aggregate due to client flush');
+          DEBUG_BUILD && debug.log('Sending request session aggregate due to client flush');
           flushPendingClientAggregates();
         });
         const timeout = setTimeout(() => {
-          DEBUG_BUILD && logger.debug('Sending request session aggregate due to flushing schedule');
+          DEBUG_BUILD && debug.log('Sending request session aggregate due to flushing schedule');
           flushPendingClientAggregates();
         }, sessionFlushingDelayMS).unref();
       }

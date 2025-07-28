@@ -110,10 +110,18 @@ function copyFunctionNameAndMetadata({
   });
 
   // copy metadata
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore - reflect-metadata of nestjs adds these methods to Reflect
   if (typeof Reflect !== 'undefined' && typeof Reflect.getMetadataKeys === 'function') {
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore - reflect-metadata of nestjs adds these methods to Reflect
     const originalMetaData = Reflect.getMetadataKeys(originalMethod);
     for (const key of originalMetaData) {
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore - reflect-metadata of nestjs adds these methods to Reflect
       const value = Reflect.getMetadata(key, originalMethod);
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore - reflect-metadata of nestjs adds these methods to Reflect
       Reflect.defineMetadata(key, value, descriptor.value);
     }
   }

@@ -6,8 +6,8 @@ import { DEBUG_BUILD } from '../debug-build';
 import type { Scope, ScopeData } from '../scope';
 import type { Log, SerializedLog, SerializedLogAttributeValue } from '../types-hoist/log';
 import { mergeScopeData } from '../utils/applyScopeDataToEvent';
+import { consoleSandbox, debug } from '../utils/debug-logger';
 import { isParameterizedString } from '../utils/is';
-import { consoleSandbox, debug } from '../utils/logger';
 import { _getSpanForScope } from '../utils/spanOnScope';
 import { timestampInSeconds } from '../utils/time';
 import { SEVERITY_TEXT_TO_SEVERITY_NUMBER } from './constants';
@@ -124,8 +124,7 @@ export function _INTERNAL_captureLog(
     return;
   }
 
-  const { _experiments, release, environment } = client.getOptions();
-  const { enableLogs = false, beforeSendLog } = _experiments ?? {};
+  const { release, environment, enableLogs = false, beforeSendLog } = client.getOptions();
   if (!enableLogs) {
     DEBUG_BUILD && debug.warn('logging option not enabled, log will not be captured.');
     return;
