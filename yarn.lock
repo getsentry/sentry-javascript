@@ -6847,10 +6847,10 @@
     detect-libc "^2.0.3"
     node-abi "^3.73.0"
 
-"@sentry-internal/node-native-stacktrace@^0.2.0":
-  version "0.2.0"
-  resolved "https://registry.yarnpkg.com/@sentry-internal/node-native-stacktrace/-/node-native-stacktrace-0.2.0.tgz#d759d9ba62101aea46829c436aec490d4a63f9f7"
-  integrity sha512-MPkjcXFUaBVxbpx8whvqQu7UncriCt3nUN7uA+ojgauHF2acvSp5nJCqKM2a4KInFWNiI1AxJ6tLE7EuBJ4WBQ==
+"@sentry-internal/node-native-stacktrace@^0.2.2":
+  version "0.2.2"
+  resolved "https://registry.yarnpkg.com/@sentry-internal/node-native-stacktrace/-/node-native-stacktrace-0.2.2.tgz#b32dde884642f100dd691b12b643361040825eeb"
+  integrity sha512-ZRS+a1Ik+w6awjp9na5vHBqLNkIxysfGDswLVAkjtVdBUxtfsEVI8OA6r8PijJC5Gm1oAJJap2e9H7TSiCUQIQ==
   dependencies:
     detect-libc "^2.0.4"
     node-abi "^3.73.0"
