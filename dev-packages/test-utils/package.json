@@ -43,6 +43,9 @@
   "peerDependencies": {
     "@playwright/test": "~1.53.2"
   },
+  "dependencies": {
+    "express": "^4.21.1"
+  },
   "devDependencies": {
     "@playwright/test": "~1.53.2",
     "@sentry/core": "9.42.1"
