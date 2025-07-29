@@ -20,6 +20,11 @@ test('should create AI spans with correct attributes and error linking', async (
 
   const spans = aiTransaction.spans || [];
 
+  // Each generateText call should create 2 spans: one for the pipeline and one for doGenerate
+  // Plus a span for the tool call
+  // TODO: For now, this is sadly not fully working - the monkey patching of the ai package is not working
+  // because of this, only spans that are manually opted-in at call time will be captured
+  // this may be fixed by https://github.com/vercel/ai/pull/6716 in the future
   const aiPipelineSpans = spans.filter(span => span.op === 'gen_ai.invoke_agent');
   const aiGenerateSpans = spans.filter(span => span.op === 'gen_ai.generate_text');
   const toolCallSpans = spans.filter(span => span.op === 'gen_ai.execute_tool');
