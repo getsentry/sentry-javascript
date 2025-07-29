@@ -1,7 +1,6 @@
 import type { RequestEventData } from '@sentry/core';
 import {
   captureException,
-  flushIfServerless,
   getActiveSpan,
   getCapturedScopesOnSpan,
   getClient,
@@ -16,12 +15,14 @@ import {
   SPAN_STATUS_OK,
   spanToJSON,
   startSpanManual,
+  vercelWaitUntil,
   winterCGHeadersToDict,
   withIsolationScope,
   withScope,
 } from '@sentry/core';
 import { isNotFoundNavigationError, isRedirectNavigationError } from '../common/nextNavigationErrorUtils';
 import type { ServerComponentContext } from '../common/types';
+import { flushSafelyWithTimeout } from '../common/utils/responseEnd';
 import { TRANSACTION_ATTR_SENTRY_TRACE_BACKFILL } from './span-attributes-with-logic-attached';
 import { commonObjectToIsolationScope, commonObjectToPropagationContext } from './utils/tracingUtils';
 import { getSanitizedRequestUrl } from './utils/urls';
@@ -136,7 +137,7 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
                 },
                 () => {
                   span.end();
-                  flushIfServerless().catch(() => /* no-op */ {});
+                  vercelWaitUntil(flushSafelyWithTimeout());
                 },
               );
             },

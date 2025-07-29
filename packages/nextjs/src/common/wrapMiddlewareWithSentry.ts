@@ -1,7 +1,6 @@
 import type { TransactionSource } from '@sentry/core';
 import {
   captureException,
-  flushIfServerless,
   getActiveSpan,
   getCurrentScope,
   getRootSpan,
@@ -10,9 +9,11 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setCapturedScopesOnSpan,
   startSpan,
+  vercelWaitUntil,
   winterCGRequestToRequestData,
   withIsolationScope,
 } from '@sentry/core';
+import { flushSafelyWithTimeout } from '../common/utils/responseEnd';
 import type { EdgeRouteHandler } from '../edge/types';
 
 /**
@@ -107,7 +108,7 @@ export function wrapMiddlewareWithSentry<H extends EdgeRouteHandler>(
                 });
               },
               () => {
-                flushIfServerless().catch(() => /* no-op */ {});
+                vercelWaitUntil(flushSafelyWithTimeout());
               },
             );
           },

@@ -1,5 +1,6 @@
-import { captureException, flushIfServerless, httpRequestToRequestData, withScope } from '@sentry/core';
+import { captureException, httpRequestToRequestData, vercelWaitUntil, withScope } from '@sentry/core';
 import type { NextPageContext } from 'next';
+import { flushSafelyWithTimeout } from '../utils/responseEnd';
 
 type ContextOrProps = {
   req?: NextPageContext['req'];
@@ -53,5 +54,5 @@ export async function captureUnderscoreErrorException(contextOrProps: ContextOrP
     });
   });
 
-  flushIfServerless().catch(() => /* no-op */ {});
+  vercelWaitUntil(flushSafelyWithTimeout());
 }

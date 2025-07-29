@@ -1,6 +1,5 @@
 import {
   applySdkMetadata,
-  flushIfServerless,
   getGlobalScope,
   getRootSpan,
   GLOBAL_OBJ,
@@ -10,10 +9,12 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   spanToJSON,
   stripUrlQueryAndFragment,
+  vercelWaitUntil,
 } from '@sentry/core';
 import type { VercelEdgeOptions } from '@sentry/vercel-edge';
 import { getDefaultIntegrations, init as vercelEdgeInit } from '@sentry/vercel-edge';
 import { isBuild } from '../common/utils/isBuild';
+import { flushSafelyWithTimeout } from '../common/utils/responseEnd';
 import { distDirRewriteFramesIntegration } from './distDirRewriteFramesIntegration';
 
 export * from '@sentry/vercel-edge';
@@ -89,7 +90,7 @@ export function init(options: VercelEdgeOptions = {}): void {
 
   client?.on('spanEnd', span => {
     if (span === getRootSpan(span)) {
-      flushIfServerless().catch(() => /* no-op */ {});
+      vercelWaitUntil(flushSafelyWithTimeout());
     }
   });
 
