@@ -4,6 +4,10 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.120.4
+
+- fix(v7/cdn): Stop using `Object.assign` to be ES5 compatible (#17080)
+
 ## 7.120.4-alpha.1
 
 No user-facing changes, only internal changes.
