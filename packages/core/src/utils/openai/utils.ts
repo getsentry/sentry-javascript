@@ -29,8 +29,7 @@ export function getOperationName(methodPath: string): string {
     return OPENAI_OPERATIONS.CHAT;
   }
   if (methodPath.includes('responses')) {
-    // The responses API is also a chat operation
-    return OPENAI_OPERATIONS.CHAT;
+    return OPENAI_OPERATIONS.RESPONSES;
   }
   return methodPath.split('.').pop() || 'unknown';
 }

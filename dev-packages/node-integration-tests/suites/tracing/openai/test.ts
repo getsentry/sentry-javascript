@@ -38,8 +38,8 @@ describe('OpenAI integration', () => {
       // Second span - responses API
       expect.objectContaining({
         data: {
-          'gen_ai.operation.name': 'chat',
-          'sentry.op': 'gen_ai.chat',
+          'gen_ai.operation.name': 'responses',
+          'sentry.op': 'gen_ai.responses',
           'sentry.origin': 'manual',
           'gen_ai.system': 'openai',
           'gen_ai.request.model': 'gpt-3.5-turbo',
@@ -55,8 +55,8 @@ describe('OpenAI integration', () => {
           'openai.usage.completion_tokens': 8,
           'openai.usage.prompt_tokens': 5,
         },
-        description: 'chat gpt-3.5-turbo',
-        op: 'gen_ai.chat',
+        description: 'responses gpt-3.5-turbo',
+        op: 'gen_ai.responses',
         origin: 'manual',
         status: 'ok',
       }),
@@ -105,8 +105,8 @@ describe('OpenAI integration', () => {
       // Fifth span - responses API streaming
       expect.objectContaining({
         data: {
-          'gen_ai.operation.name': 'chat',
-          'sentry.op': 'gen_ai.chat',
+          'gen_ai.operation.name': 'responses',
+          'sentry.op': 'gen_ai.responses',
           'sentry.origin': 'manual',
           'gen_ai.system': 'openai',
           'gen_ai.request.model': 'gpt-4',
@@ -124,8 +124,8 @@ describe('OpenAI integration', () => {
           'openai.usage.completion_tokens': 10,
           'openai.usage.prompt_tokens': 6,
         },
-        description: 'chat gpt-4 stream-response',
-        op: 'gen_ai.chat',
+        description: 'responses gpt-4 stream-response',
+        op: 'gen_ai.responses',
         origin: 'manual',
         status: 'ok',
       }),
@@ -182,8 +182,8 @@ describe('OpenAI integration', () => {
       // Second span - responses API with PII
       expect.objectContaining({
         data: {
-          'gen_ai.operation.name': 'chat',
-          'sentry.op': 'gen_ai.chat',
+          'gen_ai.operation.name': 'responses',
+          'sentry.op': 'gen_ai.responses',
           'sentry.origin': 'manual',
           'gen_ai.system': 'openai',
           'gen_ai.request.model': 'gpt-3.5-turbo',
@@ -201,8 +201,8 @@ describe('OpenAI integration', () => {
           'openai.usage.completion_tokens': 8,
           'openai.usage.prompt_tokens': 5,
         },
-        description: 'chat gpt-3.5-turbo',
-        op: 'gen_ai.chat',
+        description: 'responses gpt-3.5-turbo',
+        op: 'gen_ai.responses',
         origin: 'manual',
         status: 'ok',
       }),
@@ -255,8 +255,8 @@ describe('OpenAI integration', () => {
       // Fifth span - responses API streaming with PII
       expect.objectContaining({
         data: expect.objectContaining({
-          'gen_ai.operation.name': 'chat',
-          'sentry.op': 'gen_ai.chat',
+          'gen_ai.operation.name': 'responses',
+          'sentry.op': 'gen_ai.responses',
           'sentry.origin': 'manual',
           'gen_ai.system': 'openai',
           'gen_ai.request.model': 'gpt-4',
@@ -276,8 +276,8 @@ describe('OpenAI integration', () => {
           'openai.usage.completion_tokens': 10,
           'openai.usage.prompt_tokens': 6,
         }),
-        description: 'chat gpt-4 stream-response',
-        op: 'gen_ai.chat',
+        description: 'responses gpt-4 stream-response',
+        op: 'gen_ai.responses',
         origin: 'manual',
         status: 'ok',
       }),

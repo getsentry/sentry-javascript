@@ -150,4 +150,5 @@ export const OPENAI_RESPONSE_STREAM_ATTRIBUTE = 'openai.response.stream';
  */
 export const OPENAI_OPERATIONS = {
   CHAT: 'chat',
+  RESPONSES: 'responses',
 } as const;
