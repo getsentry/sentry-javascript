@@ -16,7 +16,6 @@
 
 import type { CLSMetric, CLSMetricWithAttribution } from './cls';
 import type { FCPMetric, FCPMetricWithAttribution } from './fcp';
-import type { FIDMetric, FIDMetricWithAttribution } from './fid';
 import type { INPMetric, INPMetricWithAttribution } from './inp';
 import type { LCPMetric, LCPMetricWithAttribution } from './lcp';
 import type { TTFBMetric, TTFBMetricWithAttribution } from './ttfb';
@@ -24,9 +23,8 @@ import type { TTFBMetric, TTFBMetricWithAttribution } from './ttfb';
 export interface Metric {
   /**
    * The name of the metric (in acronym form).
-   * // sentry: re-added FID here since we continue supporting it for now
    */
-  name: 'CLS' | 'FCP' | 'FID' | 'INP' | 'LCP' | 'TTFB';
+  name: 'CLS' | 'FCP' | 'INP' | 'LCP' | 'TTFB';
 
   /**
    * The current value of the metric.
@@ -79,14 +77,12 @@ export interface Metric {
 }
 
 /** The union of supported metric types. */
-// sentry: re-added FIDMetric here since we continue supporting it for now
-export type MetricType = CLSMetric | FCPMetric | FIDMetric | INPMetric | LCPMetric | TTFBMetric;
+export type MetricType = CLSMetric | FCPMetric | INPMetric | LCPMetric | TTFBMetric;
 
 /** The union of supported metric attribution types. */
 export type MetricWithAttribution =
   | CLSMetricWithAttribution
   | FCPMetricWithAttribution
-  | FIDMetricWithAttribution
   | INPMetricWithAttribution
   | LCPMetricWithAttribution
   | TTFBMetricWithAttribution;

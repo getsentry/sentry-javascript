@@ -25,6 +25,8 @@ import { mcpRouter } from './mcp';
 const app = express();
 const port = 3030;
 
+app.use(express.json());
+
 app.use(mcpRouter);
 
 app.get('/crash-in-with-monitor/:id', async (req, res) => {
@@ -52,20 +54,11 @@ app.get('/test-param/:param', function (req, res) {
   res.send({ paramWas: req.params.param });
 });
 
-app.get('/test-transaction', function (req, res) {
-  Sentry.withActiveSpan(null, async () => {
-    Sentry.startSpan({ name: 'test-transaction', op: 'e2e-test' }, () => {
-      Sentry.startSpan({ name: 'test-span' }, () => undefined);
-    });
+app.get('/test-transaction', function (_req, res) {
+  Sentry.startSpan({ name: 'test-span' }, () => undefined);
 
-    await Sentry.flush();
-
-    res.send({
-      transactionIds: global.transactionIds || [],
-    });
-  });
+  res.send({ status: 'ok' });
 });
-
 app.get('/test-error', async function (req, res) {
   const exceptionId = Sentry.captureException(new Error('This is an error'));
 

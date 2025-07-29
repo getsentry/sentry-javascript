@@ -112,7 +112,7 @@ export { featureFlagsIntegration, type FeatureFlagsIntegration } from './integra
 export { profiler } from './profiling';
 export { instrumentFetchRequest } from './fetch';
 export { trpcMiddleware } from './trpc';
-export { wrapMcpServerWithSentry } from './mcp-server';
+export { wrapMcpServerWithSentry } from './integrations/mcp-server';
 export { captureFeedback } from './feedback';
 export type { ReportDialogOptions } from './report-dialog';
 export { _INTERNAL_captureLog, _INTERNAL_flushLogsBuffer, _INTERNAL_captureSerializedLog } from './logs/exports';
@@ -122,6 +122,7 @@ export { instrumentOpenAiClient } from './utils/openai';
 export { OPENAI_INTEGRATION_NAME } from './utils/openai/constants';
 export type { OpenAiClient, OpenAiOptions, InstrumentedMethod } from './utils/openai/types';
 export type { FeatureFlag } from './utils/featureFlags';
+
 export {
   _INTERNAL_copyFlagsFromScopeToEvent,
   _INTERNAL_insertFlagToScope,
@@ -219,6 +220,7 @@ export {
   extractTraceparentData,
   generateSentryTraceHeader,
   propagationContextFromHeaders,
+  shouldContinueTrace,
 } from './utils/tracing';
 export { getSDKSource, isBrowserBundle } from './utils/env';
 export type { SdkSource } from './utils/env';

@@ -8,6 +8,7 @@ describe('instrumentDurableObjectWithSentry', () => {
   afterEach(() => {
     vi.restoreAllMocks();
   });
+
   it('Generic functionality', () => {
     const options = vi.fn();
     const instrumented = instrumentDurableObjectWithSentry(options, vi.fn());
@@ -15,13 +16,35 @@ describe('instrumentDurableObjectWithSentry', () => {
     expect(() => Reflect.construct(instrumented, [])).not.toThrow();
     expect(options).toHaveBeenCalledOnce();
   });
-  it('Instruments prototype methods and defines implementation in the object', () => {
+
+  it('Instruments sync prototype methods and defines implementation in the object', () => {
     const testClass = class {
-      method() {}
+      method() {
+        return 'sync-result';
+      }
     };
     const obj = Reflect.construct(instrumentDurableObjectWithSentry(vi.fn(), testClass as any), []) as any;
     expect(obj.method).toBe(obj.method);
+
+    const result = obj.method();
+    expect(result).not.toBeInstanceOf(Promise);
+    expect(result).toEqual('sync-result');
   });
+
+  it('Instruments async prototype methods and returns a promise', async () => {
+    const testClass = class {
+      async asyncMethod() {
+        return 'async-result';
+      }
+    };
+    const obj = Reflect.construct(instrumentDurableObjectWithSentry(vi.fn(), testClass as any), []) as any;
+    expect(obj.asyncMethod).toBe(obj.asyncMethod);
+
+    const result = obj.asyncMethod();
+    expect(result).toBeInstanceOf(Promise);
+    expect(await result).toBe('async-result');
+  });
+
   it('Instruments prototype methods without "sticking" to the options', () => {
     const initCore = vi.spyOn(SentryCore, 'initAndBind');
     vi.spyOn(SentryCore, 'getClient').mockReturnValue(undefined);
@@ -41,6 +64,7 @@ describe('instrumentDurableObjectWithSentry', () => {
     expect(initCore).nthCalledWith(1, expect.any(Function), expect.objectContaining({ orgId: 1 }));
     expect(initCore).nthCalledWith(2, expect.any(Function), expect.objectContaining({ orgId: 2 }));
   });
+
   it('All available durable object methods are instrumented', () => {
     const testClass = class {
       propertyFunction = vi.fn();
@@ -72,6 +96,7 @@ describe('instrumentDurableObjectWithSentry', () => {
       expect(isInstrumented((obj as any)[method_name]), `Method ${method_name} is instrumented`).toBeTruthy();
     }
   });
+
   it('flush performs after all waitUntil promises are finished', async () => {
     vi.useFakeTimers();
     onTestFinished(() => {

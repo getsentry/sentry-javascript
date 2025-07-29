@@ -61,6 +61,23 @@ Sentry.init({
 });
 ```
 
+## 3. Behaviour Changes
+
+### Removal of First Input Delay (FID) Web Vital Reporting
+
+Affected SDKs: All SDKs running in browser applications (`@sentry/browser`, `@sentry/react`, `@sentry/nextjs`, etc.)
+
+In v10, the SDK stopped reporting the First Input Delay (FID) web vital.
+This was done because FID has been replaced by Interaction to Next Paint (INP) and is therefore no longer relevant for assessing and tracking a website's performance.
+For reference, FID has long been deprecated by Google's official `web-vitals` library and was eventually removed in version `5.0.0`.
+Sentry now follows Google's lead by also removing it.
+
+The removal entails **no breaking API changes**. However, in rare cases, you might need to adjust some of your Sentry SDK and product setup:
+
+- Remove any logic in `beforeSend` or other filtering/event processing logic that depends on FID or replace it with INP logic.
+- If you set up Sentry Alerts that depend on FID, be aware that these could trigger once you upgrade the SDK, due to a lack of new values.
+  To replace them, adjust your alerts (or dashbaords) to use INP.
+
 ## No Version Support Timeline
 
 Version support timelines are stressful for everybody using the SDK, so we won't be defining one.

@@ -82,4 +82,9 @@ test('AWS Serverless SDK sends events in ESM mode', async ({ request }) => {
       op: 'manual',
     }),
   );
+
+  // shows that the SDK source is correctly detected
+  expect(transactionEvent.sdk?.packages).toContainEqual(
+    expect.objectContaining({ name: 'npm:@sentry/aws-serverless' }),
+  );
 });

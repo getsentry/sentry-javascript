@@ -1,6 +1,7 @@
 import { getCurrentScope } from '../../currentScopes';
 import { captureException } from '../../exports';
-import { startSpan } from '../../tracing/trace';
+import { SPAN_STATUS_ERROR } from '../../tracing';
+import { startSpan, startSpanManual } from '../../tracing/trace';
 import type { Span, SpanAttributeValue } from '../../types-hoist/span';
 import {
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
@@ -8,24 +9,17 @@ import {
   GEN_AI_REQUEST_MESSAGES_ATTRIBUTE,
   GEN_AI_REQUEST_MODEL_ATTRIBUTE,
   GEN_AI_REQUEST_PRESENCE_PENALTY_ATTRIBUTE,
+  GEN_AI_REQUEST_STREAM_ATTRIBUTE,
   GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE,
   GEN_AI_REQUEST_TOP_P_ATTRIBUTE,
   GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE,
-  GEN_AI_RESPONSE_ID_ATTRIBUTE,
-  GEN_AI_RESPONSE_MODEL_ATTRIBUTE,
   GEN_AI_RESPONSE_TEXT_ATTRIBUTE,
   GEN_AI_SYSTEM_ATTRIBUTE,
-  GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
-  GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
-  GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
-  OPENAI_RESPONSE_ID_ATTRIBUTE,
-  OPENAI_RESPONSE_MODEL_ATTRIBUTE,
-  OPENAI_RESPONSE_TIMESTAMP_ATTRIBUTE,
-  OPENAI_USAGE_COMPLETION_TOKENS_ATTRIBUTE,
-  OPENAI_USAGE_PROMPT_TOKENS_ATTRIBUTE,
 } from '../gen-ai-attributes';
 import { OPENAI_INTEGRATION_NAME } from './constants';
+import { instrumentStream } from './streaming';
 import type {
+  ChatCompletionChunk,
   InstrumentedMethod,
   OpenAiChatCompletionObject,
   OpenAiClient,
@@ -33,6 +27,8 @@ import type {
   OpenAiOptions,
   OpenAiResponse,
   OpenAIResponseObject,
+  OpenAIStream,
+  ResponseStreamingEvent,
 } from './types';
 import {
   buildMethodPath,
@@ -40,6 +36,8 @@ import {
   getSpanOperation,
   isChatCompletionResponse,
   isResponsesApiResponse,
+  setCommonResponseAttributes,
+  setTokenUsageAttributes,
   shouldInstrument,
 } from './utils';
 
@@ -61,62 +59,12 @@ function extractRequestAttributes(args: unknown[], methodPath: string): Record<s
     if ('frequency_penalty' in params)
       attributes[GEN_AI_REQUEST_FREQUENCY_PENALTY_ATTRIBUTE] = params.frequency_penalty;
     if ('presence_penalty' in params) attributes[GEN_AI_REQUEST_PRESENCE_PENALTY_ATTRIBUTE] = params.presence_penalty;
+    if ('stream' in params) attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE] = params.stream;
   } else {
     attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] = 'unknown';
   }
 
   return attributes;
-}
-
-/**
- * Helper function to set token usage attributes
- */
-function setTokenUsageAttributes(
-  span: Span,
-  promptTokens?: number,
-  completionTokens?: number,
-  totalTokens?: number,
-): void {
-  if (promptTokens !== undefined) {
-    span.setAttributes({
-      [OPENAI_USAGE_PROMPT_TOKENS_ATTRIBUTE]: promptTokens,
-      [GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]: promptTokens,
-    });
-  }
-  if (completionTokens !== undefined) {
-    span.setAttributes({
-      [OPENAI_USAGE_COMPLETION_TOKENS_ATTRIBUTE]: completionTokens,
-      [GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]: completionTokens,
-    });
-  }
-  if (totalTokens !== undefined) {
-    span.setAttributes({
-      [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: totalTokens,
-    });
-  }
-}
-
-/**
- * Helper function to set common response attributes (ID, model, timestamp)
- */
-function setCommonResponseAttributes(span: Span, id?: string, model?: string, timestamp?: number): void {
-  if (id) {
-    span.setAttributes({
-      [OPENAI_RESPONSE_ID_ATTRIBUTE]: id,
-      [GEN_AI_RESPONSE_ID_ATTRIBUTE]: id,
-    });
-  }
-  if (model) {
-    span.setAttributes({
-      [OPENAI_RESPONSE_MODEL_ATTRIBUTE]: model,
-      [GEN_AI_RESPONSE_MODEL_ATTRIBUTE]: model,
-    });
-  }
-  if (timestamp) {
-    span.setAttributes({
-      [OPENAI_RESPONSE_TIMESTAMP_ATTRIBUTE]: new Date(timestamp * 1000).toISOString(),
-    });
-  }
 }
 
 /**
@@ -226,28 +174,68 @@ function instrumentMethod<T extends unknown[], R>(
     const model = (requestAttributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] as string) || 'unknown';
     const operationName = getOperationName(methodPath);
 
-    return startSpan(
-      {
-        name: `${operationName} ${model}`,
-        op: getSpanOperation(methodPath),
-        attributes: requestAttributes as Record<string, SpanAttributeValue>,
-      },
-      async (span: Span) => {
-        try {
-          if (finalOptions.recordInputs && args[0] && typeof args[0] === 'object') {
-            addRequestAttributes(span, args[0] as Record<string, unknown>);
-          }
+    const params = args[0] as Record<string, unknown> | undefined;
+    const isStreamRequested = params && typeof params === 'object' && params.stream === true;
 
-          const result = await originalMethod.apply(context, args);
-          // TODO: Add streaming support
-          addResponseAttributes(span, result, finalOptions.recordOutputs);
-          return result;
-        } catch (error) {
-          captureException(error);
-          throw error;
-        }
-      },
-    );
+    if (isStreamRequested) {
+      // For streaming responses, use manual span management to properly handle the async generator lifecycle
+      return startSpanManual(
+        {
+          name: `${operationName} ${model} stream-response`,
+          op: getSpanOperation(methodPath),
+          attributes: requestAttributes as Record<string, SpanAttributeValue>,
+        },
+        async (span: Span) => {
+          try {
+            if (finalOptions.recordInputs && args[0] && typeof args[0] === 'object') {
+              addRequestAttributes(span, args[0] as Record<string, unknown>);
+            }
+
+            const result = await originalMethod.apply(context, args);
+
+            return instrumentStream(
+              result as OpenAIStream<ChatCompletionChunk | ResponseStreamingEvent>,
+              span,
+              finalOptions.recordOutputs ?? false,
+            ) as unknown as R;
+          } catch (error) {
+            // For streaming requests that fail before stream creation, we still want to record
+            // them as streaming requests but end the span gracefully
+            span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+            captureException(error, {
+              mechanism: {
+                handled: false,
+              },
+            });
+            span.end();
+            throw error;
+          }
+        },
+      );
+    } else {
+      //  Non-streaming responses
+      return startSpan(
+        {
+          name: `${operationName} ${model}`,
+          op: getSpanOperation(methodPath),
+          attributes: requestAttributes as Record<string, SpanAttributeValue>,
+        },
+        async (span: Span) => {
+          try {
+            if (finalOptions.recordInputs && args[0] && typeof args[0] === 'object') {
+              addRequestAttributes(span, args[0] as Record<string, unknown>);
+            }
+
+            const result = await originalMethod.apply(context, args);
+            addResponseAttributes(span, result, finalOptions.recordOutputs);
+            return result;
+          } catch (error) {
+            captureException(error);
+            throw error;
+          }
+        },
+      );
+    }
   };
 }
 
@@ -262,6 +250,12 @@ function createDeepProxy(target: object, currentPath = '', options?: OpenAiOptio
 
       if (typeof value === 'function' && shouldInstrument(methodPath)) {
         return instrumentMethod(value as (...args: unknown[]) => Promise<unknown>, methodPath, obj, options);
+      }
+
+      if (typeof value === 'function') {
+        // Bind non-instrumented functions to preserve the original `this` context,
+        // which is required for accessing private class fields (e.g. #baseURL) in OpenAI SDK v5.
+        return value.bind(obj);
       }
 
       if (value && typeof value === 'object') {
