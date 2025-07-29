@@ -4,6 +4,13 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 9.43.0
+
+- feat(v9/core): add MCP server instrumentation ([#17196](https://github.com/getsentry/sentry-javascript/pull/17196))
+- feat(v9/meta): Unify detection of serverless environments and add Cloud Run ([#17204](https://github.com/getsentry/sentry-javascript/pull/17204))
+- fix(v9/node): Add mechanism to `fastifyIntegration` error handler ([#17211](https://github.com/getsentry/sentry-javascript/pull/17211))
+- fix(v9/replay): Fix re-sampled sessions after a click ([#17195](https://github.com/getsentry/sentry-javascript/pull/17195))
+
 ## 9.42.1
 
 - fix(v9/astro): Revert Astro v5 storing route data to `globalThis` ([#17185](https://github.com/getsentry/sentry-javascript/pull/17185))
