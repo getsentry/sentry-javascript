@@ -16,7 +16,7 @@ describe('flushIfServerless', () => {
     vi.restoreAllMocks();
   });
 
-  test('should bind context (preserve `this`) when calling waitUntil', async () => {
+  test('should bind context (preserve `this`) when calling waitUntil from the Cloudflare execution context', async () => {
     const flushMock = vi.spyOn(flushModule, 'flush').mockResolvedValue(true);
 
     // Mock Cloudflare context with `waitUntil` (which should be called if `this` is bound correctly)
@@ -44,6 +44,18 @@ describe('flushIfServerless', () => {
     };
 
     await flushIfServerless({ cloudflareCtx: mockCloudflareCtx, timeout: 5000 });
+
+    expect(mockCloudflareCtx.waitUntil).toHaveBeenCalledTimes(1);
+    expect(flushMock).toHaveBeenCalledWith(5000);
+  });
+
+  test('should use cloudflare waitUntil when Cloudflare `waitUntil` is provided', async () => {
+    const flushMock = vi.spyOn(flushModule, 'flush').mockResolvedValue(true);
+    const mockCloudflareCtx = {
+      waitUntil: vi.fn(),
+    };
+
+    await flushIfServerless({ cloudflareWaitUntil: mockCloudflareCtx.waitUntil, timeout: 5000 });
 
     expect(mockCloudflareCtx.waitUntil).toHaveBeenCalledTimes(1);
     expect(flushMock).toHaveBeenCalledWith(5000);
