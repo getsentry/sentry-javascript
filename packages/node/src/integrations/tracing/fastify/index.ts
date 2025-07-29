@@ -131,7 +131,7 @@ function handleFastifyError(
   }
 
   if (shouldHandleError(error, request, reply)) {
-    captureException(error);
+    captureException(error, { mechanism: { handled: false, type: 'fastify' } });
   }
 }
 
