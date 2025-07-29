@@ -16,10 +16,7 @@ import type { ReplayContainer } from '../types';
 /**
  * Add global listeners that cannot be removed.
  */
-export function addGlobalListeners(
-  replay: ReplayContainer,
-  { autoFlushOnFeedback }: { autoFlushOnFeedback?: boolean },
-): void {
+export function addGlobalListeners(replay: ReplayContainer): void {
   // Listeners from core SDK //
   const client = getClient();
 
@@ -64,17 +61,15 @@ export function addGlobalListeners(
       const replayId = replay.getSessionId();
       if (options?.includeReplay && replay.isEnabled() && replayId && feedbackEvent.contexts?.feedback) {
         // In case the feedback is sent via API and not through our widget, we want to flush replay
-        if (feedbackEvent.contexts.feedback.source === 'api' && autoFlushOnFeedback) {
+        if (feedbackEvent.contexts.feedback.source === 'api') {
           await replay.flush();
         }
         feedbackEvent.contexts.feedback.replay_id = replayId;
       }
     });
 
-    if (autoFlushOnFeedback) {
-      client.on('openFeedbackWidget', async () => {
-        await replay.flush();
-      });
-    }
+    client.on('openFeedbackWidget', async () => {
+      await replay.flush();
+    });
   }
 }
