@@ -167,14 +167,14 @@ function processResponsesApiEvent(
 
   // Handle output text delta
   if (recordOutputs) {
-    if (event.type === 'response.output_text.delta' && 'delta' in event && event.delta) {
-      state.responseTexts.push(event.delta);
-      return;
-    }
-
     // Handle function call events for Responses API
     if (event.type === 'response.output_item.done' && 'item' in event) {
       state.responsesApiFunctionCalls.push(event.item as ResponseFunctionCall);
+    }
+
+    if (event.type === 'response.output_text.delta' && 'delta' in event && event.delta) {
+      state.responseTexts.push(event.delta);
+      return;
     }
   }
 

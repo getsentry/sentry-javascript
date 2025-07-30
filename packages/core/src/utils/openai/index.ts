@@ -88,7 +88,7 @@ function extractRequestAttributes(args: unknown[], methodPath: string): Record<s
 /**
  * Add attributes for Chat Completion responses
  */
-function addChatCompletionAttributes(span: Span, response: OpenAiChatCompletionObject): void {
+function addChatCompletionAttributes(span: Span, response: OpenAiChatCompletionObject, recordOutputs?: boolean): void {
   setCommonResponseAttributes(span, response.id, response.model, response.created);
   if (response.usage) {
     setTokenUsageAttributes(
@@ -108,16 +108,18 @@ function addChatCompletionAttributes(span: Span, response: OpenAiChatCompletionO
       });
     }
 
-    // Extract tool calls from all choices
-    const toolCalls = response.choices
-      .map(choice => choice.message?.tool_calls)
-      .filter(calls => Array.isArray(calls) && calls.length > 0)
-      .flat();
+    // Extract tool calls from all choices (only if recordOutputs is true)
+    if (recordOutputs) {
+      const toolCalls = response.choices
+        .map(choice => choice.message?.tool_calls)
+        .filter(calls => Array.isArray(calls) && calls.length > 0)
+        .flat();
 
-    if (toolCalls.length > 0) {
-      span.setAttributes({
-        [GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE]: JSON.stringify(toolCalls),
-      });
+      if (toolCalls.length > 0) {
+        span.setAttributes({
+          [GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE]: JSON.stringify(toolCalls),
+        });
+      }
     }
   }
 }
@@ -125,7 +127,7 @@ function addChatCompletionAttributes(span: Span, response: OpenAiChatCompletionO
 /**
  * Add attributes for Responses API responses
  */
-function addResponsesApiAttributes(span: Span, response: OpenAIResponseObject): void {
+function addResponsesApiAttributes(span: Span, response: OpenAIResponseObject, recordOutputs?: boolean): void {
   setCommonResponseAttributes(span, response.id, response.model, response.created_at);
   if (response.status) {
     span.setAttributes({
@@ -141,19 +143,21 @@ function addResponsesApiAttributes(span: Span, response: OpenAIResponseObject): 
     );
   }
 
-  // Extract function calls from the response output
-  const responseWithOutput = response as OpenAIResponseObject & { output?: unknown[] };
-  if (Array.isArray(responseWithOutput.output) && responseWithOutput.output.length > 0) {
-    // Filter for function_call type objects in the output array
-    const functionCalls = responseWithOutput.output.filter(
-      (item): unknown =>
-        typeof item === 'object' && item !== null && (item as Record<string, unknown>).type === 'function_call',
-    );
+  // Extract function calls from output (only if recordOutputs is true)
+  if (recordOutputs) {
+    const responseWithOutput = response as OpenAIResponseObject & { output?: unknown[] };
+    if (Array.isArray(responseWithOutput.output) && responseWithOutput.output.length > 0) {
+      // Filter for function_call type objects in the output array
+      const functionCalls = responseWithOutput.output.filter(
+        (item): unknown =>
+          typeof item === 'object' && item !== null && (item as Record<string, unknown>).type === 'function_call',
+      );
 
-    if (functionCalls.length > 0) {
-      span.setAttributes({
-        [GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE]: JSON.stringify(functionCalls),
-      });
+      if (functionCalls.length > 0) {
+        span.setAttributes({
+          [GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE]: JSON.stringify(functionCalls),
+        });
+      }
     }
   }
 }
@@ -168,13 +172,13 @@ function addResponseAttributes(span: Span, result: unknown, recordOutputs?: bool
   const response = result as OpenAiResponse;
 
   if (isChatCompletionResponse(response)) {
-    addChatCompletionAttributes(span, response);
+    addChatCompletionAttributes(span, response, recordOutputs);
     if (recordOutputs && response.choices?.length) {
       const responseTexts = response.choices.map(choice => choice.message?.content || '');
       span.setAttributes({ [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: JSON.stringify(responseTexts) });
     }
   } else if (isResponsesApiResponse(response)) {
-    addResponsesApiAttributes(span, response);
+    addResponsesApiAttributes(span, response, recordOutputs);
     if (recordOutputs && response.output_text) {
       span.setAttributes({ [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: response.output_text });
     }
