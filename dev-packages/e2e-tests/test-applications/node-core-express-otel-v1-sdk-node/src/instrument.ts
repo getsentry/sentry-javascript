@@ -20,7 +20,7 @@ if (sentryClient) {
     contextManager: new Sentry.SentryContextManager(),
     spanProcessors: [
       new SentrySpanProcessor(),
-      new opentelemetry.BatchSpanProcessor(
+      new opentelemetry.node.BatchSpanProcessor(
         new OTLPTraceExporter({
           url: 'http://localhost:3032/',
         }),
