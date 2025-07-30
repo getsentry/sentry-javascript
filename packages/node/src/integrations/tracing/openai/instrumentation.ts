@@ -83,12 +83,21 @@ export class SentryOpenAiInstrumentation extends InstrumentationBase<Instrumenta
       }
     }
 
-    const isESM = Object.prototype.toString.call(exports) === '[object Module]';
-    if (isESM) {
+    // Constructor replacement - handle read-only properties
+    // The OpenAI property might have only a getter, so use defineProperty
+    // Constructor replacement works the same for both ESM and CJS modules
+    // We can directly assign to exports.OpenAI in both module systems
+    try {
       exports.OpenAI = WrappedOpenAI;
-      return exports;
+    } catch (error) {
+      // If direct assignment fails, override the property descriptor
+      Object.defineProperty(exports, 'OpenAI', {
+        value: WrappedOpenAI,
+        writable: true,
+        configurable: true,
+        enumerable: true,
+      });
     }
-
-    return { ...exports, OpenAI: WrappedOpenAI };
+    return exports;
   }
 }
