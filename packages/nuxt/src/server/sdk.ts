@@ -94,7 +94,7 @@ function getNuxtDefaultIntegrations(options: NodeOptions): Integration[] {
 /**
  * Flushes pending Sentry events with a 2-second timeout and in a way that cannot create unhandled promise rejections.
  */
-export async function flushSafelyWithTimeout(): Promise<void> {
+async function flushSafelyWithTimeout(): Promise<void> {
   try {
     DEBUG_BUILD && debug.log('Flushing events...');
     await flush(2000);

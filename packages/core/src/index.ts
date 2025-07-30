@@ -269,6 +269,7 @@ export { callFrameToStackFrame, watchdogTimer } from './utils/anr';
 export { LRUMap } from './utils/lru';
 export { generateTraceId, generateSpanId } from './utils/propagationContext';
 export { vercelWaitUntil } from './utils/vercelWaitUntil';
+export { flushIfServerless } from './utils/flushIfServerless';
 export { SDK_VERSION } from './utils/version';
 export { getDebugImagesForResources, getFilenameToDebugIdMap } from './utils/debug-ids';
 export { escapeStringForRegex } from './vendor/escapeStringForRegex';

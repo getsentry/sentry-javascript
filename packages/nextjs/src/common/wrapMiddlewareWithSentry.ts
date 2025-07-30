@@ -13,8 +13,8 @@ import {
   winterCGRequestToRequestData,
   withIsolationScope,
 } from '@sentry/core';
+import { flushSafelyWithTimeout } from '../common/utils/responseEnd';
 import type { EdgeRouteHandler } from '../edge/types';
-import { flushSafelyWithTimeout } from './utils/responseEnd';
 
 /**
  * Wraps Next.js middleware with Sentry error and performance instrumentation.
