@@ -68,8 +68,8 @@ export function wrapSentryHandleRequest(originalHandle: OriginalHandleRequest): 
   };
 }
 
-/** @deprecated Use `wrapSentryHandleRequest` instead. */
 // todo(v11): remove this
+/** @deprecated Use `wrapSentryHandleRequest` instead. */
 export const sentryHandleRequest = wrapSentryHandleRequest;
 
 /**
