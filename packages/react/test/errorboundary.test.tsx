@@ -96,6 +96,75 @@ describe('withErrorBoundary', () => {
     const Component = withErrorBoundary(() => <h1>Hello World</h1>, { fallback: <h1>fallback</h1> });
     expect(Component.displayName).toBe(`errorBoundary(${UNKNOWN_COMPONENT})`);
   });
+
+  it('should not rerender when props are unchanged', () => {
+    let renderCount = 0;
+    const TestComponent = (props: { value: number }) => {
+      renderCount++;
+      return <div data-testid="test-component">Value: {props.value}</div>;
+    };
+
+    const WrappedComponent = withErrorBoundary(TestComponent, { fallback: <h1>fallback</h1> });
+
+    // Create a parent component that can trigger rerenders
+    const ParentComponent = () => {
+      const [parentState, setParentState] = useState(0);
+      return (
+        <div>
+          <button onClick={() => setParentState(prev => prev + 1)}>Parent Rerender</button>
+          <div>Parent State: {parentState}</div>
+          <WrappedComponent value={42} />
+        </div>
+      );
+    };
+
+    render(<ParentComponent />);
+
+    // Initial render should have rendered the test component
+    expect(renderCount).toBe(1);
+    expect(screen.getByTestId('test-component')).toHaveTextContent('Value: 42');
+
+    // Trigger parent rerender
+    fireEvent.click(screen.getByText('Parent Rerender'));
+
+    // The wrapped component should not have rerendered since props didn't change
+    expect(renderCount).toBe(1);
+    expect(screen.getByTestId('test-component')).toHaveTextContent('Value: 42');
+  });
+
+  it('should rerender when props change', () => {
+    let renderCount = 0;
+    const TestComponent = (props: { value: number }) => {
+      renderCount++;
+      return <div data-testid="test-component">Value: {props.value}</div>;
+    };
+
+    const WrappedComponent = withErrorBoundary(TestComponent, { fallback: <h1>fallback</h1> });
+
+    // Create a parent component that can change the props
+    const ParentComponent = () => {
+      const [value, setValue] = useState(42);
+      return (
+        <div>
+          <button onClick={() => setValue(prev => prev + 1)}>Change Value</button>
+          <WrappedComponent value={value} />
+        </div>
+      );
+    };
+
+    render(<ParentComponent />);
+
+    // Initial render
+    expect(renderCount).toBe(1);
+    expect(screen.getByTestId('test-component')).toHaveTextContent('Value: 42');
+
+    // Change the prop value
+    fireEvent.click(screen.getByText('Change Value'));
+
+    // The wrapped component should have rerendered since props changed
+    expect(renderCount).toBe(2);
+    expect(screen.getByTestId('test-component')).toHaveTextContent('Value: 43');
+  });
 });
 
 describe('ErrorBoundary', () => {
