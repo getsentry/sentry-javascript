@@ -96,6 +96,27 @@ describe('withErrorBoundary', () => {
     const Component = withErrorBoundary(() => <h1>Hello World</h1>, { fallback: <h1>fallback</h1> });
     expect(Component.displayName).toBe(`errorBoundary(${UNKNOWN_COMPONENT})`);
   });
+
+  it('prevents unnecessary rerenders with React.memo', () => {
+    let renderCount = 0;
+    const TestComponent = ({ value }: { value: string }) => {
+      renderCount++;
+      return <div>{value}</div>;
+    };
+
+    const WrappedComponent = withErrorBoundary(TestComponent, { fallback: <h1>fallback</h1> });
+    
+    const { rerender } = render(<WrappedComponent value="test" />);
+    expect(renderCount).toBe(1);
+    
+    // Rerender with same props - should not cause wrapped component to rerender
+    rerender(<WrappedComponent value="test" />);
+    expect(renderCount).toBe(1);
+    
+    // Rerender with different props - should cause wrapped component to rerender
+    rerender(<WrappedComponent value="different" />);
+    expect(renderCount).toBe(2);
+  });
 });
 
 describe('ErrorBoundary', () => {
