@@ -1,6 +1,6 @@
 {
   "private": true,
-  "version": "9.40.0",
+  "version": "10.0.0-beta.0",
   "name": "@sentry-internal/test-utils",
   "author": "Sentry",
   "license": "MIT",
@@ -48,7 +48,7 @@
   },
   "devDependencies": {
     "@playwright/test": "~1.53.2",
-    "@sentry/core": "9.40.0"
+    "@sentry/core": "10.0.0-beta.0"
   },
   "volta": {
     "extends": "../../package.json"
