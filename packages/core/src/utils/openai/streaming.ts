@@ -53,7 +53,7 @@ interface StreamingState {
    * Accumulated function calls from Responses API streaming.
    * @see https://platform.openai.com/docs/guides/function-calling?api-mode=responses#streaming
    */
-  responsesApiFunctionCalls: Array<ResponseFunctionCall | unknown>;
+  responsesApiToolCalls: Array<ResponseFunctionCall | unknown>;
 }
 
 /**
@@ -167,9 +167,9 @@ function processResponsesApiEvent(
 
   // Handle output text delta
   if (recordOutputs) {
-    // Handle function call events for Responses API
+    // Handle tool call events for Responses API
     if (event.type === 'response.output_item.done' && 'item' in event) {
-      state.responsesApiFunctionCalls.push(event.item as ResponseFunctionCall | unknown);
+      state.responsesApiToolCalls.push(event.item as ResponseFunctionCall | unknown);
     }
 
     if (event.type === 'response.output_text.delta' && 'delta' in event && event.delta) {
@@ -231,7 +231,7 @@ export async function* instrumentStream<T>(
     completionTokens: undefined,
     totalTokens: undefined,
     chatCompletionToolCalls: {},
-    responsesApiFunctionCalls: [],
+    responsesApiToolCalls: [],
   };
 
   try {
@@ -265,7 +265,7 @@ export async function* instrumentStream<T>(
 
     // Set tool calls attribute if any were accumulated
     const chatCompletionToolCallsArray = Object.values(state.chatCompletionToolCalls);
-    const allToolCalls = [...chatCompletionToolCallsArray, ...state.responsesApiFunctionCalls];
+    const allToolCalls = [...chatCompletionToolCallsArray, ...state.responsesApiToolCalls];
 
     if (allToolCalls.length > 0) {
       span.setAttributes({
