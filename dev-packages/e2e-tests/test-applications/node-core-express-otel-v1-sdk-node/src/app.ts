@@ -42,7 +42,7 @@ app.get('/test-exception/:id', function (req, _res) {
 app.use(function onError(err: unknown, req: any, res: any, next: any) {
   // Explicitly capture the error with Sentry because @sentry/node-core doesn't have
   // a way to capture errors from express like @sentry/node does.
-  Sentry.captureException(err);
+  res.sentry = Sentry.captureException(err);
 
   // The error id is attached to `res.sentry` to be returned
   // and optionally displayed to the user for support.
