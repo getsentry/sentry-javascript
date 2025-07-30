@@ -2,13 +2,12 @@ import { context } from '@opentelemetry/api';
 import { getRPCMetadata, RPCType } from '@opentelemetry/core';
 import { ATTR_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
 import {
-  flush,
+  flushIfServerless,
   getActiveSpan,
   getRootSpan,
   getTraceMetaTags,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  vercelWaitUntil,
 } from '@sentry/core';
 import type { AppLoadContext, EntryContext } from 'react-router';
 import type { PassThrough } from 'stream';
@@ -63,7 +62,7 @@ export function wrapSentryHandleRequest(originalHandle: OriginalHandleRequest): 
     try {
       return await originalHandle(request, responseStatusCode, responseHeaders, routerContext, loadContext);
     } finally {
-      vercelWaitUntil(flush());
+      await flushIfServerless();
     }
   };
 }
