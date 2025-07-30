@@ -22,8 +22,7 @@ import {
   startSpan,
   withIsolationScope,
 } from '@sentry/node';
-import type { APIContext, MiddlewareResponseHandler } from 'astro';
-import type { ResolvedRouteWithCasedPattern } from '../integration/types';
+import type { APIContext, MiddlewareResponseHandler, RoutePart } from 'astro';
 
 type MiddlewareOptions = {
   /**
@@ -96,9 +95,6 @@ async function instrumentRequest(
     addNonEnumerableProperty(locals, '__sentry_wrapped__', true);
   }
 
-  const storedBuildTimeRoutes = (globalThis as unknown as { __sentryRouteInfo?: ResolvedRouteWithCasedPattern[] })
-    ?.__sentryRouteInfo;
-
   const isDynamicPageRequest = checkIsDynamicPageRequest(ctx);
 
   const request = ctx.request;
@@ -135,10 +131,21 @@ async function instrumentRequest(
         // `routePattern` is available after Astro 5
         const contextWithRoutePattern = ctx as Parameters<MiddlewareResponseHandler>[0] & { routePattern?: string };
         const rawRoutePattern = contextWithRoutePattern.routePattern;
-        const foundRoute = storedBuildTimeRoutes?.find(route => route.pattern === rawRoutePattern);
+
+        // @ts-expect-error Implicit any on Symbol.for (This is available in Astro 5)
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        const routesFromManifest = ctx?.[Symbol.for('context.routes')]?.manifest?.routes;
+
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        const matchedRouteSegmentsFromManifest = routesFromManifest?.find(
+          (route: { routeData?: { route?: string } }) => route?.routeData?.route === rawRoutePattern,
+        )?.routeData?.segments;
 
         const parametrizedRoute =
-          foundRoute?.patternCaseSensitive || interpolateRouteFromUrlAndParams(ctx.url.pathname, ctx.params);
+          // Astro v5 - Joining the segments to get the correct casing of the parametrized route
+          (matchedRouteSegmentsFromManifest && joinRouteSegments(matchedRouteSegmentsFromManifest)) ||
+          // Fallback (Astro v4 and earlier)
+          interpolateRouteFromUrlAndParams(ctx.url.pathname, ctx.params);
 
         const source = parametrizedRoute ? 'route' : 'url';
         // storing res in a variable instead of directly returning is necessary to
@@ -364,4 +371,19 @@ function checkIsDynamicPageRequest(context: Parameters<MiddlewareResponseHandler
   } catch {
     return false;
   }
+}
+
+/**
+ * Join Astro route segments into a case-sensitive single path string.
+ *
+ * Astro lowercases the parametrized route. Joining segments manually is recommended to get the correct casing of the routes.
+ * Recommendation in comment: https://github.com/withastro/astro/issues/13885#issuecomment-2934203029
+ * Function Reference: https://github.com/joanrieu/astro-typed-links/blob/b3dc12c6fe8d672a2bc2ae2ccc57c8071bbd09fa/package/src/integration.ts#L16
+ */
+function joinRouteSegments(segments: RoutePart[][]): string {
+  const parthArray = segments.map(segment =>
+    segment.map(routePart => (routePart.dynamic ? `[${routePart.content}]` : routePart.content)).join(''),
+  );
+
+  return `/${parthArray.join('/')}`;
 }
