@@ -53,7 +53,7 @@ interface StreamingState {
    * Accumulated function calls from Responses API streaming.
    * @see https://platform.openai.com/docs/guides/function-calling?api-mode=responses#streaming
    */
-  responsesApiFunctionCalls: Array<ResponseFunctionCall>;
+  responsesApiFunctionCalls: Array<ResponseFunctionCall | unknown>;
 }
 
 /**
@@ -169,7 +169,7 @@ function processResponsesApiEvent(
   if (recordOutputs) {
     // Handle function call events for Responses API
     if (event.type === 'response.output_item.done' && 'item' in event) {
-      state.responsesApiFunctionCalls.push(event.item as ResponseFunctionCall);
+      state.responsesApiFunctionCalls.push(event.item as ResponseFunctionCall | unknown);
     }
 
     if (event.type === 'response.output_text.delta' && 'delta' in event && event.delta) {
