@@ -3,6 +3,15 @@ import type { ActionFunctionArgs } from 'react-router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { wrapServerAction } from '../../src/server/wrapServerAction';
 
+vi.mock('@sentry/core', async () => {
+  const actual = await vi.importActual('@sentry/core');
+  return {
+    ...actual,
+    startSpan: vi.fn(),
+    flushIfServerless: vi.fn(),
+  };
+});
+
 describe('wrapServerAction', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -12,11 +21,12 @@ describe('wrapServerAction', () => {
     const mockActionFn = vi.fn().mockResolvedValue('result');
     const mockArgs = { request: new Request('http://test.com') } as ActionFunctionArgs;
 
-    const spy = vi.spyOn(core, 'startSpan');
+    (core.startSpan as any).mockImplementation((_: any, fn: any) => fn());
+
     const wrappedAction = wrapServerAction({}, mockActionFn);
     await wrappedAction(mockArgs);
 
-    expect(spy).toHaveBeenCalledWith(
+    expect(core.startSpan).toHaveBeenCalledWith(
       {
         name: 'Executing Server Action',
         attributes: {
@@ -27,6 +37,7 @@ describe('wrapServerAction', () => {
       expect.any(Function),
     );
     expect(mockActionFn).toHaveBeenCalledWith(mockArgs);
+    expect(core.flushIfServerless).toHaveBeenCalled();
   });
 
   it('should wrap an action function with custom options', async () => {
@@ -40,11 +51,12 @@ describe('wrapServerAction', () => {
     const mockActionFn = vi.fn().mockResolvedValue('result');
     const mockArgs = { request: new Request('http://test.com') } as ActionFunctionArgs;
 
-    const spy = vi.spyOn(core, 'startSpan');
+    (core.startSpan as any).mockImplementation((_: any, fn: any) => fn());
+
     const wrappedAction = wrapServerAction(customOptions, mockActionFn);
     await wrappedAction(mockArgs);
 
-    expect(spy).toHaveBeenCalledWith(
+    expect(core.startSpan).toHaveBeenCalledWith(
       {
         name: 'Custom Action',
         attributes: {
@@ -56,5 +68,43 @@ describe('wrapServerAction', () => {
       expect.any(Function),
     );
     expect(mockActionFn).toHaveBeenCalledWith(mockArgs);
+    expect(core.flushIfServerless).toHaveBeenCalled();
+  });
+
+  it('should call flushIfServerless on successful execution', async () => {
+    const mockActionFn = vi.fn().mockResolvedValue('result');
+    const mockArgs = { request: new Request('http://test.com') } as ActionFunctionArgs;
+
+    (core.startSpan as any).mockImplementation((_: any, fn: any) => fn());
+
+    const wrappedAction = wrapServerAction({}, mockActionFn);
+    await wrappedAction(mockArgs);
+
+    expect(core.flushIfServerless).toHaveBeenCalled();
+  });
+
+  it('should call flushIfServerless even when action throws an error', async () => {
+    const mockError = new Error('Action failed');
+    const mockActionFn = vi.fn().mockRejectedValue(mockError);
+    const mockArgs = { request: new Request('http://test.com') } as ActionFunctionArgs;
+
+    (core.startSpan as any).mockImplementation((_: any, fn: any) => fn());
+
+    const wrappedAction = wrapServerAction({}, mockActionFn);
+
+    await expect(wrappedAction(mockArgs)).rejects.toThrow('Action failed');
+    expect(core.flushIfServerless).toHaveBeenCalled();
+  });
+
+  it('should propagate errors from action function', async () => {
+    const mockError = new Error('Test error');
+    const mockActionFn = vi.fn().mockRejectedValue(mockError);
+    const mockArgs = { request: new Request('http://test.com') } as ActionFunctionArgs;
+
+    (core.startSpan as any).mockImplementation((_: any, fn: any) => fn());
+
+    const wrappedAction = wrapServerAction({}, mockActionFn);
+
+    await expect(wrappedAction(mockArgs)).rejects.toBe(mockError);
   });
 });
