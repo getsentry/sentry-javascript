@@ -5,7 +5,7 @@ import { reparentChildSpans, shouldIgnoreSpan } from '../../../src/utils/should-
 describe('shouldIgnoreSpan', () => {
   it('should not ignore spans with empty ignoreSpans', () => {
     const span = { description: 'test', op: 'test' };
-    const ignoreSpans = [] as ClientOptions['ignoreSpans'];
+    const ignoreSpans = [] as Required<ClientOptions>['ignoreSpans'];
     expect(shouldIgnoreSpan(span, ignoreSpans)).toBe(false);
   });
 

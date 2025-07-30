@@ -10,10 +10,31 @@ import type { StackLineParser, StackParser } from './stacktrace';
 import type { TracePropagationTargets } from './tracing';
 import type { BaseTransportOptions, Transport } from './transport';
 
-interface IgnoreSpanFilter {
-  name?: string | RegExp;
-  op?: string | RegExp;
-}
+/**
+ * A filter object for ignoring spans.
+ * At least one of the properties (`op` or `name`) must be set.
+ */
+type IgnoreSpanFilter =
+  | {
+      /**
+       * Spans with a name matching this pattern will be ignored.
+       */
+      name: string | RegExp;
+      /**
+       * Spans with an op matching this pattern will be ignored.
+       */
+      op?: string | RegExp;
+    }
+  | {
+      /**
+       * Spans with a name matching this pattern will be ignored.
+       */
+      name?: string | RegExp;
+      /**
+       * Spans with an op matching this pattern will be ignored.
+       */
+      op: string | RegExp;
+    };
 
 export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOptions> {
   /**
@@ -215,6 +236,9 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
 
   /**
    * A list of span names or patterns to ignore.
+   *
+   * If you specify a pattern {@link IgnoreSpanFilter}, at least one
+   * of the properties (`op` or `name`) must be set.
    *
    * @default []
    */

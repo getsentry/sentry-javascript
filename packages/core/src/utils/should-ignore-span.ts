@@ -1,38 +1,37 @@
 import type { ClientOptions } from '../types-hoist/options';
 import type { SpanJSON } from '../types-hoist/span';
-import { isMatchingPattern, stringMatchesSomePattern } from './string';
+import { isMatchingPattern } from './string';
 
 /**
  * Check if a span should be ignored based on the ignoreSpans configuration.
  */
 export function shouldIgnoreSpan(
   span: Pick<SpanJSON, 'description' | 'op'>,
-  ignoreSpans: ClientOptions['ignoreSpans'],
+  ignoreSpans: Required<ClientOptions>['ignoreSpans'],
 ): boolean {
-  if (!ignoreSpans?.length) {
+  if (!ignoreSpans?.length || !span.description) {
     return false;
   }
 
-  if (!span.description) {
-    return false;
-  }
-
-  // First we check the simple string/regex patterns - if the name matches any of them, we ignore the span
-  const simplePatterns = ignoreSpans.filter(isStringOrRegExp);
-  if (simplePatterns.length && stringMatchesSomePattern(span.description, simplePatterns)) {
-    return true;
-  }
-
-  // Then we check the more complex patterns, where both parts must match
   for (const pattern of ignoreSpans) {
-    // Have already checked for simple patterns, so we can skip these
-    if (isStringOrRegExp(pattern) || (!pattern.name && !pattern.op)) {
+    if (isStringOrRegExp(pattern)) {
+      if (isMatchingPattern(span.description, pattern)) {
+        return true;
+      }
+      continue;
+    }
+
+    if (!pattern.name && !pattern.op) {
       continue;
     }
 
     const nameMatches = pattern.name ? isMatchingPattern(span.description, pattern.name) : true;
     const opMatches = pattern.op ? span.op && isMatchingPattern(span.op, pattern.op) : true;
 
+    // This check here is only correct because we can guarantee that we ran `isMatchingPattern`
+    // for at least one of `nameMatches` and `opMatches`. So in contrary to how this looks,
+    // not both op and name actually have to match. This is the most efficient way to check
+    // for all combinations of name and op patterns.
     if (nameMatches && opMatches) {
       return true;
     }

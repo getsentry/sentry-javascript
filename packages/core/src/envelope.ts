@@ -125,7 +125,9 @@ export function createSpanEnvelope(spans: [SentrySpan, ...SentrySpan[]], client?
 
   const { beforeSendSpan, ignoreSpans } = client?.getOptions() || {};
 
-  const filteredSpans = ignoreSpans ? spans.filter(span => !shouldIgnoreSpan(spanToJSON(span), ignoreSpans)) : spans;
+  const filteredSpans = ignoreSpans?.length
+    ? spans.filter(span => !shouldIgnoreSpan(spanToJSON(span), ignoreSpans))
+    : spans;
   const droppedSpans = spans.length - filteredSpans.length;
 
   if (droppedSpans) {
