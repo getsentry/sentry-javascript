@@ -1,6 +1,7 @@
 import { SEMATTRS_HTTP_TARGET } from '@opentelemetry/semantic-conventions';
 import type { SpanAttributes } from '@sentry/core';
 import {
+  flushIfServerless,
   getActiveSpan,
   getRootSpan,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
@@ -59,17 +60,21 @@ export function wrapServerAction<T>(options: SpanOptions = {}, actionFn: (args: 
       }
     }
 
-    return startSpan(
-      {
-        name,
-        ...options,
-        attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react-router.action',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.react-router.action',
-          ...options.attributes,
+    try {
+      return await startSpan(
+        {
+          name,
+          ...options,
+          attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react-router.action',
+            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.react-router.action',
+            ...options.attributes,
+          },
         },
-      },
-      () => actionFn(args),
-    );
+        () => actionFn(args),
+      );
+    } finally {
+      await flushIfServerless();
+    }
   };
 }
