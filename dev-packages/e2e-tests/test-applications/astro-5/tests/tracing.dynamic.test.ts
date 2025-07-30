@@ -248,7 +248,7 @@ test.describe('nested SSR routes (client, server, server request)', () => {
 
     // Server HTTP request transaction
     expect(serverHTTPServerRequestTxn).toMatchObject({
-      transaction: 'GET /api/user/myUsername123.json', // fixme: should be GET /api/user/[userId].json
+      transaction: 'GET /api/user/[userId].json',
       transaction_info: { source: 'route' },
       contexts: {
         trace: {
@@ -278,13 +278,13 @@ test.describe('nested SSR routes (client, server, server request)', () => {
     await page.goto('/catchAll/hell0/whatever-do');
 
     const routeNameMetaContent = await page.locator('meta[name="sentry-route-name"]').getAttribute('content');
-    expect(routeNameMetaContent).toBe('%2FcatchAll%2F%5Bpath%5D'); // fixme: should be %2FcatchAll%2F%5B...path%5D
+    expect(routeNameMetaContent).toBe('%2FcatchAll%2F%5B...path%5D');
 
     const clientPageloadTxn = await clientPageloadTxnPromise;
     const serverPageRequestTxn = await serverPageRequestTxnPromise;
 
     expect(clientPageloadTxn).toMatchObject({
-      transaction: '/catchAll/[path]', // fixme: should be /catchAll/[...path]
+      transaction: '/catchAll/[...path]',
       transaction_info: { source: 'route' },
       contexts: {
         trace: {
@@ -300,7 +300,7 @@ test.describe('nested SSR routes (client, server, server request)', () => {
     });
 
     expect(serverPageRequestTxn).toMatchObject({
-      transaction: 'GET /catchAll/[path]', // fixme: should be GET /catchAll/[...path]
+      transaction: 'GET /catchAll/[...path]',
       transaction_info: { source: 'route' },
       contexts: {
         trace: {
