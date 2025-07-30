@@ -1,4 +1,10 @@
-import { debug, getDefaultIsolationScope, getIsolationScope, withIsolationScope } from '@sentry/core';
+import {
+  debug,
+  flushIfServerless,
+  getDefaultIsolationScope,
+  getIsolationScope,
+  withIsolationScope,
+} from '@sentry/core';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { type EventHandler } from 'h3';
 // eslint-disable-next-line import/no-extraneous-dependencies
@@ -6,7 +12,7 @@ import { defineNitroPlugin } from 'nitropack/runtime';
 import type { NuxtRenderHTMLContext } from 'nuxt/app';
 import { sentryCaptureErrorHook } from '../hooks/captureErrorHook';
 import { updateRouteBeforeResponse } from '../hooks/updateRouteBeforeResponse';
-import { addSentryTracingMetaTags, flushIfServerless } from '../utils';
+import { addSentryTracingMetaTags } from '../utils';
 
 export default defineNitroPlugin(nitroApp => {
   nitroApp.h3App.handler = patchEventHandler(nitroApp.h3App.handler);

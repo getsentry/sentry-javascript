@@ -2,6 +2,7 @@ import type { Span } from '@sentry/core';
 import {
   continueTrace,
   debug,
+  flushIfServerless,
   getCurrentScope,
   getDefaultIsolationScope,
   getIsolationScope,
@@ -15,7 +16,7 @@ import {
 } from '@sentry/core';
 import type { Handle, ResolveOptions } from '@sveltejs/kit';
 import { DEBUG_BUILD } from '../common/debug-build';
-import { flushIfServerless, getTracePropagationData, sendErrorToSentry } from './utils';
+import { getTracePropagationData, sendErrorToSentry } from './utils';
 
 export type SentryHandleOptions = {
   /**

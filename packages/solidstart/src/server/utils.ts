@@ -1,28 +1,6 @@
 import type { EventProcessor, Options } from '@sentry/core';
 import { debug } from '@sentry/core';
-import { flush, getGlobalScope } from '@sentry/node';
-import { DEBUG_BUILD } from '../common/debug-build';
-
-/** Flush the event queue to ensure that events get sent to Sentry before the response is finished and the lambda ends */
-export async function flushIfServerless(): Promise<void> {
-  const isServerless =
-    !!process.env.FUNCTIONS_WORKER_RUNTIME || // Azure Functions
-    !!process.env.LAMBDA_TASK_ROOT || // AWS Lambda
-    !!process.env.K_SERVICE || // Google Cloud Run
-    !!process.env.CF_PAGES || // Cloudflare
-    !!process.env.VERCEL ||
-    !!process.env.NETLIFY;
-
-  if (isServerless) {
-    try {
-      DEBUG_BUILD && debug.log('Flushing events...');
-      await flush(2000);
-      DEBUG_BUILD && debug.log('Done flushing events');
-    } catch (e) {
-      DEBUG_BUILD && debug.log('Error while flushing events:\n', e);
-    }
-  }
-}
+import { getGlobalScope } from '@sentry/node';
 
 /**
  * Determines if a thrown "error" is a redirect Response which Solid Start users can throw to redirect to another route.

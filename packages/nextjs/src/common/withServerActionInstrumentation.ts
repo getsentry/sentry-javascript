@@ -13,9 +13,9 @@ import {
   vercelWaitUntil,
   withIsolationScope,
 } from '@sentry/core';
+import { flushSafelyWithTimeout } from '../common/utils/responseEnd';
 import { DEBUG_BUILD } from './debug-build';
 import { isNotFoundNavigationError, isRedirectNavigationError } from './nextNavigationErrorUtils';
-import { flushSafelyWithTimeout } from './utils/responseEnd';
 
 interface Options {
   formData?: FormData;
