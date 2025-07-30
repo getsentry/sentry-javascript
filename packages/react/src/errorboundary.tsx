@@ -222,11 +222,11 @@ function withErrorBoundary<P extends Record<string, any>>(
 ): React.FC<P> {
   const componentDisplayName = WrappedComponent.displayName || WrappedComponent.name || UNKNOWN_COMPONENT;
 
-  const Wrapped: React.FC<P> = (props: P) => (
+  const Wrapped = React.memo((props: P) => (
     <ErrorBoundary {...errorBoundaryOptions}>
       <WrappedComponent {...props} />
     </ErrorBoundary>
-  );
+  )) as unknown as React.FC<P>;
 
   Wrapped.displayName = `errorBoundary(${componentDisplayName})`;
 
