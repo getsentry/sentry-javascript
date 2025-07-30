@@ -59,7 +59,9 @@ function extractRequestAttributes(args: unknown[], methodPath: string): Record<s
 
     const tools = Array.isArray(params.tools) ? params.tools : [];
     const hasWebSearchOptions = params.web_search_options && typeof params.web_search_options === 'object';
-    const webSearchOptions = hasWebSearchOptions ? [{ type: 'web_search_options', ...hasWebSearchOptions }] : [];
+    const webSearchOptions = hasWebSearchOptions
+      ? [{ type: 'web_search_options', ...(params.web_search_options as Record<string, unknown>) }]
+      : [];
 
     const availableTools = [...tools, ...webSearchOptions];
 
