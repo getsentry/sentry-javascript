@@ -5,6 +5,7 @@ import { startSpan, startSpanManual } from '../../tracing/trace';
 import type { Span, SpanAttributeValue } from '../../types-hoist/span';
 import {
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
+  GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE,
   GEN_AI_REQUEST_FREQUENCY_PENALTY_ATTRIBUTE,
   GEN_AI_REQUEST_MESSAGES_ATTRIBUTE,
   GEN_AI_REQUEST_MODEL_ATTRIBUTE,
@@ -14,6 +15,7 @@ import {
   GEN_AI_REQUEST_TOP_P_ATTRIBUTE,
   GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE,
   GEN_AI_RESPONSE_TEXT_ATTRIBUTE,
+  GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
   GEN_AI_SYSTEM_ATTRIBUTE,
 } from '../gen-ai-attributes';
 import { OPENAI_INTEGRATION_NAME } from './constants';
@@ -49,6 +51,22 @@ function extractRequestAttributes(args: unknown[], methodPath: string): Record<s
     [GEN_AI_SYSTEM_ATTRIBUTE]: 'openai',
     [GEN_AI_OPERATION_NAME_ATTRIBUTE]: getOperationName(methodPath),
   };
+
+  // Chat completion API accepts web_search_options and tools as parameters
+  // we append web search options to the available tools to capture all tool calls
+  if (args.length > 0 && typeof args[0] === 'object' && args[0] !== null) {
+    const params = args[0] as Record<string, unknown>;
+
+    const tools = Array.isArray(params.tools) ? params.tools : [];
+    const hasWebSearchOptions = params.web_search_options && typeof params.web_search_options === 'object';
+    const webSearchOptions = hasWebSearchOptions ? [{ type: 'web_search_options', ...hasWebSearchOptions }] : [];
+
+    const availableTools = [...tools, ...webSearchOptions];
+
+    if (availableTools.length > 0) {
+      attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE] = JSON.stringify(availableTools);
+    }
+  }
 
   if (args.length > 0 && typeof args[0] === 'object' && args[0] !== null) {
     const params = args[0] as Record<string, unknown>;
@@ -89,6 +107,18 @@ function addChatCompletionAttributes(span: Span, response: OpenAiChatCompletionO
         [GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]: JSON.stringify(finishReasons),
       });
     }
+
+    // Extract tool calls from all choices
+    const toolCalls = response.choices
+      .map(choice => choice.message?.tool_calls)
+      .filter(calls => Array.isArray(calls) && calls.length > 0)
+      .flat();
+
+    if (toolCalls.length > 0) {
+      span.setAttributes({
+        [GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE]: JSON.stringify(toolCalls),
+      });
+    }
   }
 }
 
@@ -109,6 +139,22 @@ function addResponsesApiAttributes(span: Span, response: OpenAIResponseObject): 
       response.usage.output_tokens,
       response.usage.total_tokens,
     );
+  }
+
+  // Extract function calls from the response output
+  const responseWithOutput = response as OpenAIResponseObject & { output?: unknown[] };
+  if (Array.isArray(responseWithOutput.output) && responseWithOutput.output.length > 0) {
+    // Filter for function_call type objects in the output array
+    const functionCalls = responseWithOutput.output.filter(
+      (item): unknown =>
+        typeof item === 'object' && item !== null && (item as Record<string, unknown>).type === 'function_call',
+    );
+
+    if (functionCalls.length > 0) {
+      span.setAttributes({
+        [GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE]: JSON.stringify(functionCalls),
+      });
+    }
   }
 }
 

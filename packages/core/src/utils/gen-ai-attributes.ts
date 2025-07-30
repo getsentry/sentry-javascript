@@ -91,21 +91,38 @@ export const GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE = 'gen_ai.usage.output_tokens'
 export const GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE = 'gen_ai.usage.total_tokens';
 
 /**
- * The operation name for OpenAI API calls
+ * The operation name
  */
 export const GEN_AI_OPERATION_NAME_ATTRIBUTE = 'gen_ai.operation.name';
 
 /**
- * The prompt messages sent to OpenAI (stringified JSON)
+ * The prompt messages
  * Only recorded when recordInputs is enabled
  */
 export const GEN_AI_REQUEST_MESSAGES_ATTRIBUTE = 'gen_ai.request.messages';
 
 /**
- * The response text from OpenAI (stringified JSON array)
+ * The response text
  * Only recorded when recordOutputs is enabled
  */
 export const GEN_AI_RESPONSE_TEXT_ATTRIBUTE = 'gen_ai.response.text';
+
+/**
+ * The available tools from incoming request
+ * Only recorded when recordInputs is enabled
+ */
+export const GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE = 'gen_ai.request.available_tools';
+
+/**
+ * Whether the response is a streaming response
+ */
+export const GEN_AI_RESPONSE_STREAMING_ATTRIBUTE = 'gen_ai.response.streaming';
+
+/**
+ * The tool calls from the response
+ * Only recorded when recordOutputs is enabled
+ */
+export const GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE = 'gen_ai.response.tool_calls';
 
 // =============================================================================
 // OPENAI-SPECIFIC ATTRIBUTES
@@ -135,11 +152,6 @@ export const OPENAI_USAGE_COMPLETION_TOKENS_ATTRIBUTE = 'openai.usage.completion
  * The number of prompt tokens used
  */
 export const OPENAI_USAGE_PROMPT_TOKENS_ATTRIBUTE = 'openai.usage.prompt_tokens';
-
-/**
- * Whether the response is a stream response
- */
-export const OPENAI_RESPONSE_STREAM_ATTRIBUTE = 'openai.response.stream';
 
 // =============================================================================
 // OPENAI OPERATIONS

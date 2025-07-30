@@ -50,6 +50,7 @@ export interface OpenAiChatCompletionObject {
       content: string | null;
       refusal?: string | null;
       annotations?: Array<unknown>; // Depends on whether annotations are enabled
+      tool_calls?: Array<unknown>;
     };
     logprobs?: unknown | null;
     finish_reason: string | null;
@@ -144,7 +145,11 @@ export type ResponseStreamingEvent =
   | ResponseCompletedEvent
   | ResponseIncompleteEvent
   | ResponseQueuedEvent
-  | ResponseOutputTextDeltaEvent;
+  | ResponseOutputTextDeltaEvent
+  | ResponseOutputItemAddedEvent
+  | ResponseFunctionCallArgumentsDeltaEvent
+  | ResponseFunctionCallArgumentsDoneEvent
+  | ResponseOutputItemDoneEvent;
 
 interface ResponseCreatedEvent {
   type: 'response.created';
@@ -192,6 +197,78 @@ interface ResponseQueuedEvent {
 }
 
 /**
+ * @see https://platform.openai.com/docs/api-reference/realtime-server-events/response/output_item/added
+ */
+interface ResponseOutputItemAddedEvent {
+  type: 'response.output_item.added';
+  output_index: number;
+  item: unknown;
+  event_id: string;
+  response_id: string;
+}
+
+/**
+ * @see https://platform.openai.com/docs/api-reference/realtime-server-events/response/function_call_arguments/delta
+ */
+interface ResponseFunctionCallArgumentsDeltaEvent {
+  type: 'response.function_call_arguments.delta';
+  item_id: string;
+  output_index: number;
+  delta: string;
+  call_id: string;
+  event_id: string;
+  response_id: string;
+}
+
+/**
+ * @see https://platform.openai.com/docs/api-reference/realtime-server-events/response/function_call_arguments/done
+ */
+interface ResponseFunctionCallArgumentsDoneEvent {
+  type: 'response.function_call_arguments.done';
+  response_id: string;
+  item_id: string;
+  output_index: number;
+  arguments: string;
+  call_id: string;
+  event_id: string;
+}
+
+/**
+ * @see https://platform.openai.com/docs/api-reference/realtime-server-events/response/output_item/done
+ */
+interface ResponseOutputItemDoneEvent {
+  type: 'response.output_item.done';
+  response_id: string;
+  output_index: number;
+  item: unknown;
+  event_id: string;
+}
+
+/**
+ * Tool call object for Chat Completion streaming
+ */
+export interface ChatCompletionToolCall {
+  index?: number; // Present for streaming responses
+  id: string;
+  type?: string; // Could be missing for streaming responses
+  function: {
+    name: string;
+    arguments?: string;
+  };
+}
+
+/**
+ * Function call object for Responses API
+ */
+export interface ResponseFunctionCall {
+  type: string;
+  id: string;
+  call_id: string;
+  name: string;
+  arguments: string;
+}
+
+/**
  * Chat Completion streaming chunk type
  * @see https://platform.openai.com/docs/api-reference/chat-streaming/streaming
  */
@@ -209,7 +286,7 @@ export interface ChatCompletionChunk {
       role: string;
       function_call?: object;
       refusal?: string | null;
-      tool_calls?: Array<unknown>;
+      tool_calls?: Array<ChatCompletionToolCall>;
     };
     logprobs?: unknown | null;
     finish_reason?: string | null;
