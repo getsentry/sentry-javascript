@@ -12,12 +12,14 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setCapturedScopesOnSpan,
   setHttpStatus,
+  vercelWaitUntil,
   winterCGHeadersToDict,
   withIsolationScope,
   withScope,
 } from '@sentry/core';
 import { isNotFoundNavigationError, isRedirectNavigationError } from './nextNavigationErrorUtils';
 import type { RouteHandlerContext } from './types';
+import { flushSafelyWithTimeout } from './utils/responseEnd';
 import { commonObjectToIsolationScope } from './utils/tracingUtils';
 
 /**
@@ -91,6 +93,9 @@ export function wrapRouteHandlerWithSentry<F extends (...args: any[]) => any>(
                     },
                   });
                 }
+              },
+              () => {
+                vercelWaitUntil(flushSafelyWithTimeout());
               },
             );
 
