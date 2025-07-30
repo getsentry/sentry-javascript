@@ -2,11 +2,13 @@ import { context } from '@opentelemetry/api';
 import { getRPCMetadata, RPCType } from '@opentelemetry/core';
 import { ATTR_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
 import {
+  flush,
   getActiveSpan,
   getRootSpan,
   getTraceMetaTags,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  vercelWaitUntil,
 } from '@sentry/core';
 import type { AppLoadContext, EntryContext } from 'react-router';
 import type { PassThrough } from 'stream';
@@ -58,11 +60,16 @@ export function wrapSentryHandleRequest(originalHandle: OriginalHandleRequest): 
       });
     }
 
-    return originalHandle(request, responseStatusCode, responseHeaders, routerContext, loadContext);
+    try {
+      return await originalHandle(request, responseStatusCode, responseHeaders, routerContext, loadContext);
+    } finally {
+      vercelWaitUntil(flush());
+    }
   };
 }
 
 /** @deprecated Use `wrapSentryHandleRequest` instead. */
+// todo(v11): remove this
 export const sentryHandleRequest = wrapSentryHandleRequest;
 
 /**
