@@ -123,7 +123,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
       }
 
       const handled = this.props.handled != null ? this.props.handled : !!this.props.fallback;
-      const eventId = captureReactException(error, errorInfo, { mechanism: { handled } });
+      const eventId = captureReactException(error, errorInfo, { mechanism: { handled, type: 'react.error-boundary' } });
 
       if (onError) {
         onError(error, componentStack, eventId);
