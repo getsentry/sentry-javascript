@@ -99,7 +99,7 @@ function captureWorkerThreadEvents(worker: Worker, options: Options): void {
     .on('error', error => {
       if (options.captureWorkerErrors !== false) {
         captureException(error, {
-          mechanism: { type: 'instrument', handled: false, data: { threadId: String(threadId) } },
+          mechanism: { type: 'worker_thread', handled: false, data: { threadId: String(threadId) } },
         });
       } else {
         addBreadcrumb({

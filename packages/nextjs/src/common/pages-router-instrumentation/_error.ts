@@ -45,7 +45,7 @@ export async function captureUnderscoreErrorException(contextOrProps: ContextOrP
     // is what passing a string to `captureException` will wind up doing)
     captureException(err || `_error.js called with falsy error (${err})`, {
       mechanism: {
-        type: 'instrument',
+        type: 'nextjs.error',
         handled: false,
         data: {
           function: '_error.getInitialProps',

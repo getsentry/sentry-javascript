@@ -82,7 +82,7 @@ export function wrapApiHandlerWithSentry<H extends EdgeRouteHandler>(
               error => {
                 captureException(error, {
                   mechanism: {
-                    type: 'instrument',
+                    type: 'nextjs.edge',
                     handled: false,
                   },
                 });

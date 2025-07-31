@@ -95,7 +95,7 @@ export function reactErrorHandler(
 ): (error: any, errorInfo: ErrorInfo) => void {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return (error: any, errorInfo: ErrorInfo) => {
-    const eventId = captureReactException(error, errorInfo);
+    const eventId = captureReactException(error, errorInfo, { mechanism: { handled: false, type: 'react' } });
     if (callback) {
       callback(error, errorInfo, eventId);
     }
