@@ -19,7 +19,8 @@
   ],
   "main": "src/index.js",
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "tag": "v9"
   },
   "dependencies": {
     "@sentry-internal/eslint-plugin-sdk": "9.44.0",

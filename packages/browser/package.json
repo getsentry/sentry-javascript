@@ -36,7 +36,8 @@
     }
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "tag": "v9"
   },
   "dependencies": {
     "@sentry-internal/browser-utils": "9.44.0",

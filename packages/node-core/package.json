@@ -54,7 +54,8 @@
     }
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "tag": "v9"
   },
   "peerDependencies": {
     "@opentelemetry/api": "^1.9.0",

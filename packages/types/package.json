@@ -36,7 +36,8 @@
     }
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "tag": "v9"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",
