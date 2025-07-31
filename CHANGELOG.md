@@ -4,6 +4,18 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 9.44.0
+
+- feat(replay/v9): Deprecate `_experiments.autoFlushOnFeedback` ([#17219](https://github.com/getsentry/sentry-javascript/pull/17219))
+- feat(v9/core): Add shared `flushIfServerless` function ([#17239](https://github.com/getsentry/sentry-javascript/pull/17239))
+- feat(v9/node-native): Upgrade `@sentry-internal/node-native-stacktrace` to `0.2.2` ([#17256](https://github.com/getsentry/sentry-javascript/pull/17256))
+- feat(v9/react-router): Add `createSentryHandleError` ([#17244](https://github.com/getsentry/sentry-javascript/pull/17244))
+- feat(v9/react-router): Automatically flush on serverless for loaders/actions ([#17243](https://github.com/getsentry/sentry-javascript/pull/17243))
+- feat(v9/react-router): Automatically flush on serverless for request handler ([#17242](https://github.com/getsentry/sentry-javascript/pull/17242))
+- fix(v9/astro): Construct parametrized route during runtime ([#17227](https://github.com/getsentry/sentry-javascript/pull/17227))
+- fix(v9/nextjs): Flush in route handlers ([#17245](https://github.com/getsentry/sentry-javascript/pull/17245))
+- fix(v9/node): Fix exports for openai instrumentation ([#17238](https://github.com/getsentry/sentry-javascript/pull/17238)) (#17241)
+
 ## 9.43.0
 
 - feat(v9/core): add MCP server instrumentation ([#17196](https://github.com/getsentry/sentry-javascript/pull/17196))
