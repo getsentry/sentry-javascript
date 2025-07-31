@@ -110,7 +110,7 @@ function _wrapTimeFunction(original: () => void): () => number {
       mechanism: {
         data: { function: getFunctionName(original) },
         handled: false,
-        type: 'instrument',
+        type: 'browserApiErrors',
       },
     });
     return original.apply(this, args);
@@ -127,7 +127,7 @@ function _wrapRAF(original: () => void): (callback: () => void) => unknown {
             handler: getFunctionName(original),
           },
           handled: false,
-          type: 'instrument',
+          type: 'browserApiErrors',
         },
       }),
     ]);
@@ -150,7 +150,7 @@ function _wrapXHR(originalSend: () => void): () => void {
                 handler: getFunctionName(original),
               },
               handled: false,
-              type: 'instrument',
+              type: 'browserApiErrors',
             },
           };
 
@@ -199,7 +199,7 @@ function _wrapEventTarget(target: string, integrationOptions: BrowserApiErrorsOp
                 target,
               },
               handled: false,
-              type: 'instrument',
+              type: 'browserApiErrors',
             },
           });
         }
@@ -221,7 +221,7 @@ function _wrapEventTarget(target: string, integrationOptions: BrowserApiErrorsOp
               target,
             },
             handled: false,
-            type: 'instrument',
+            type: 'browserApiErrors',
           },
         }),
         options,
