@@ -35,7 +35,8 @@
     }
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "tag": "v9"
   },
   "peerDependencies": {
     "@sveltejs/kit": "2.x",

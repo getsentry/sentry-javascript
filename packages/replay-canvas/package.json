@@ -53,7 +53,8 @@
     "yalc:publish": "yalc publish --push --sig"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "tag": "v9"
   },
   "repository": {
     "type": "git",
