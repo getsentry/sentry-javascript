@@ -258,6 +258,10 @@ function instrumentMethod<T extends unknown[], R>(
             captureException(error, {
               mechanism: {
                 handled: false,
+                type: 'openai.stream',
+                data: {
+                  function: methodPath,
+                },
               },
             });
             span.end();
@@ -283,7 +287,15 @@ function instrumentMethod<T extends unknown[], R>(
             addResponseAttributes(span, result, finalOptions.recordOutputs);
             return result;
           } catch (error) {
-            captureException(error);
+            captureException(error, {
+              mechanism: {
+                handled: false,
+                type: 'openai',
+                data: {
+                  function: methodPath,
+                },
+              },
+            });
             throw error;
           }
         },
