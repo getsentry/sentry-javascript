@@ -110,7 +110,7 @@ export function wrapApiHandlerWithSentry(apiHandler: NextApiHandler, parameteriz
 
                     captureException(objectifiedErr, {
                       mechanism: {
-                        type: 'instrument',
+                        type: 'nextjs.api',
                         handled: false,
                         data: {
                           wrapped_handler: wrappingTarget.name,
