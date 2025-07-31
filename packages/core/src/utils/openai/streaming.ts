@@ -68,21 +68,21 @@ interface StreamingState {
 function processChatCompletionToolCalls(toolCalls: ChatCompletionToolCall[], state: StreamingState): void {
   for (const toolCall of toolCalls) {
     const index = toolCall.index;
-    if (index === undefined) continue;
+    if (index === undefined || !toolCall.function) continue;
 
     // Initialize tool call if this is the first chunk for this index
     if (!(index in state.chatCompletionToolCalls)) {
       state.chatCompletionToolCalls[index] = {
         ...toolCall,
         function: {
-          name: toolCall.function?.name || '',
-          arguments: toolCall.function?.arguments || '',
+          name: toolCall.function.name,
+          arguments: toolCall.function.arguments || '',
         },
       };
     } else {
       // Accumulate function arguments from subsequent chunks
       const existingToolCall = state.chatCompletionToolCalls[index];
-      if (toolCall.function?.arguments && existingToolCall?.function) {
+      if (toolCall.function.arguments && existingToolCall?.function) {
         existingToolCall.function.arguments += toolCall.function.arguments;
       }
     }
@@ -169,7 +169,7 @@ function processResponsesApiEvent(
   if (recordOutputs) {
     // Handle tool call events for Responses API
     if (event.type === 'response.output_item.done' && 'item' in event) {
-      state.responsesApiToolCalls.push(event.item as ResponseFunctionCall | unknown);
+      state.responsesApiToolCalls.push(event.item);
     }
 
     if (event.type === 'response.output_text.delta' && 'delta' in event && event.delta) {

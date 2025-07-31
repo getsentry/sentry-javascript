@@ -251,7 +251,7 @@ export interface ChatCompletionToolCall {
   index?: number; // Present for streaming responses
   id: string;
   type?: string; // Could be missing for streaming responses
-  function: {
+  function?: {
     name: string;
     arguments?: string;
   };
