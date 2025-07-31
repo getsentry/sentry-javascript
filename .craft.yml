@@ -144,17 +144,16 @@ targets:
     includeNames: /^sentry-internal-eslint-config-sdk-\d.*\.tgz$/
 
   # AWS Lambda Layer target
-  # Commented out until we release v10, otherwise we'd override the current v9 layer
-  # - name: aws-lambda-layer
-  #   includeNames: /^sentry-node-serverless-\d+.\d+.\d+(-(beta|alpha|rc)\.\d+)?\.zip$/
-  #   layerName: SentryNodeServerlessSDKv10
-  #   compatibleRuntimes:
-  #     - name: node
-  #       versions:
-  #         - nodejs18.x
-  #         - nodejs20.x
-  #         - nodejs22.x
-  #   license: MIT
+  - name: aws-lambda-layer
+    includeNames: /^sentry-node-serverless-\d+.\d+.\d+(-(beta|alpha|rc)\.\d+)?\.zip$/
+    layerName: SentryNodeServerlessSDKv10
+    compatibleRuntimes:
+      - name: node
+        versions:
+          - nodejs18.x
+          - nodejs20.x
+          - nodejs22.x
+    license: MIT
 
   # CDN Bundle Target
   - name: gcs
