@@ -15,7 +15,7 @@ sentryTest(
       type: 'Error',
       value: 'xhr_error',
       mechanism: {
-        type: 'public-api/instrumentation',
+        type: 'browserApiErrors',
         handled: false,
         data: {
           function: 'onreadystatechange',
