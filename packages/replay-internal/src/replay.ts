@@ -939,7 +939,7 @@ export class ReplayContainer implements ReplayContainerInterface {
 
       // There is no way to remove these listeners, so ensure they are only added once
       if (!this._hasInitializedCoreListeners) {
-        addGlobalListeners(this, { autoFlushOnFeedback: this._options._experiments.autoFlushOnFeedback });
+        addGlobalListeners(this);
 
         this._hasInitializedCoreListeners = true;
       }
