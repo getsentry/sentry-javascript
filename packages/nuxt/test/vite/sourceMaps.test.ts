@@ -18,15 +18,13 @@ describe('getPluginOptions', () => {
     process.env = {};
   });
 
-  it('uses environment variables when no moduleOptions are provided', () => {
-    const defaultEnv = {
+  it('uses environment variables as fallback when no moduleOptions are provided', () => {
+    process.env = {
       SENTRY_ORG: 'default-org',
       SENTRY_PROJECT: 'default-project',
       SENTRY_AUTH_TOKEN: 'default-token',
       SENTRY_URL: 'https://santry.io',
     };
-
-    process.env = { ...defaultEnv };
 
     const options = getPluginOptions({} as SentryNuxtModuleOptions);
 
@@ -110,46 +108,159 @@ describe('getPluginOptions', () => {
     );
   });
 
-  it('overrides options that were undefined with options from unstable_sentryRollupPluginOptions', () => {
-    const customOptions: SentryNuxtModuleOptions = {
-      sourceMapsUploadOptions: {
-        org: 'custom-org',
-        project: 'custom-project',
-        sourcemaps: {
-          assets: ['custom-assets/**/*'],
-          filesToDeleteAfterUpload: ['delete-this.js'],
-        },
-        url: 'https://santry.io',
-      },
+  it('prioritizes new BuildTimeOptionsBase options over deprecated ones', () => {
+    const options: SentryNuxtModuleOptions = {
+      // New options
+      org: 'new-org',
+      project: 'new-project',
+      authToken: 'new-token',
+      sentryUrl: 'https://new.sentry.io',
+      telemetry: false,
+      silent: true,
       debug: true,
-      unstable_sentryBundlerPluginOptions: {
-        org: 'unstable-org',
+      sourcemaps: {
+        assets: ['new-assets/**/*'],
+        ignore: ['new-ignore.js'],
+        filesToDeleteAfterUpload: ['new-delete.js'],
+      },
+      release: {
+        name: 'test-release',
+        create: false,
+        finalize: true,
+        dist: 'build-123',
+        vcsRemote: 'upstream',
+        setCommits: { auto: true },
+        deploy: { env: 'production' },
+      },
+      bundleSizeOptimizations: { excludeTracing: true },
+
+      // Deprecated options (should be ignored)
+      sourceMapsUploadOptions: {
+        org: 'old-org',
+        project: 'old-project',
+        authToken: 'old-token',
+        url: 'https://old.sentry.io',
+        telemetry: true,
+        silent: false,
         sourcemaps: {
-          assets: ['unstable-assets/**/*'],
+          assets: ['old-assets/**/*'],
+          ignore: ['old-ignore.js'],
+          filesToDeleteAfterUpload: ['old-delete.js'],
         },
-        release: {
-          name: 'test-release',
-        },
-        url: 'https://suntry.io',
+        release: { name: 'old-release' },
       },
     };
-    const options = getPluginOptions(customOptions);
-    expect(options).toEqual(
-      expect.objectContaining({
-        debug: true,
-        org: 'unstable-org',
-        project: 'custom-project',
-        sourcemaps: expect.objectContaining({
-          assets: ['unstable-assets/**/*'],
-          filesToDeleteAfterUpload: ['delete-this.js'],
-          rewriteSources: expect.any(Function),
-        }),
-        release: expect.objectContaining({
-          name: 'test-release',
-        }),
-        url: 'https://suntry.io',
+
+    const result = getPluginOptions(options);
+
+    expect(result).toMatchObject({
+      org: 'new-org',
+      project: 'new-project',
+      authToken: 'new-token',
+      url: 'https://new.sentry.io',
+      telemetry: false,
+      silent: true,
+      debug: true,
+      bundleSizeOptimizations: { excludeTracing: true },
+      release: {
+        name: 'test-release',
+        create: false,
+        finalize: true,
+        dist: 'build-123',
+        vcsRemote: 'upstream',
+        setCommits: { auto: true },
+        deploy: { env: 'production' },
+      },
+      sourcemaps: expect.objectContaining({
+        assets: ['new-assets/**/*'],
+        ignore: ['new-ignore.js'],
+        filesToDeleteAfterUpload: ['new-delete.js'],
       }),
-    );
+    });
+  });
+
+  it('falls back to deprecated options when new ones are undefined', () => {
+    const options: SentryNuxtModuleOptions = {
+      debug: true,
+      sourceMapsUploadOptions: {
+        org: 'deprecated-org',
+        project: 'deprecated-project',
+        authToken: 'deprecated-token',
+        url: 'https://deprecated.sentry.io',
+        telemetry: false,
+        sourcemaps: {
+          assets: ['deprecated/**/*'],
+        },
+        release: { name: 'deprecated-release' },
+      },
+    };
+
+    const result = getPluginOptions(options);
+
+    expect(result).toMatchObject({
+      org: 'deprecated-org',
+      project: 'deprecated-project',
+      authToken: 'deprecated-token',
+      url: 'https://deprecated.sentry.io',
+      telemetry: false,
+      debug: true,
+      release: { name: 'deprecated-release' },
+      sourcemaps: expect.objectContaining({
+        assets: ['deprecated/**/*'],
+      }),
+    });
+  });
+
+  it('supports bundleSizeOptimizations', () => {
+    const options: SentryNuxtModuleOptions = {
+      bundleSizeOptimizations: {
+        excludeDebugStatements: true,
+        excludeTracing: true,
+        excludeReplayShadowDom: true,
+        excludeReplayIframe: true,
+        excludeReplayWorker: true,
+      },
+    };
+
+    const result = getPluginOptions(options);
+
+    expect(result.bundleSizeOptimizations).toEqual({
+      excludeDebugStatements: true,
+      excludeTracing: true,
+      excludeReplayShadowDom: true,
+      excludeReplayIframe: true,
+      excludeReplayWorker: true,
+    });
+  });
+
+  it('merges with unstable_sentryBundlerPluginOptions correctly', () => {
+    const options: SentryNuxtModuleOptions = {
+      org: 'base-org',
+      bundleSizeOptimizations: {
+        excludeDebugStatements: false,
+      },
+      unstable_sentryBundlerPluginOptions: {
+        org: 'override-org',
+        release: { name: 'override-release' },
+        sourcemaps: { assets: ['override/**/*'] },
+        bundleSizeOptimizations: {
+          excludeDebugStatements: true,
+        },
+      },
+    };
+
+    const result = getPluginOptions(options);
+
+    expect(result).toMatchObject({
+      org: 'override-org',
+      release: { name: 'override-release' },
+      sourcemaps: expect.objectContaining({
+        assets: ['override/**/*'],
+      }),
+      bundleSizeOptimizations: {
+        excludeDebugStatements: true,
+      },
+    });
   });
 
   it.each([
@@ -185,12 +296,19 @@ describe('getPluginOptions', () => {
       serverFallback: false,
       customOptions: {
         sourceMapsUploadOptions: {
-          sourcemaps: {
-            filesToDeleteAfterUpload: ['custom/path/**/*.map'],
-          },
+          sourcemaps: { filesToDeleteAfterUpload: ['deprecated/path/**/*.map'] },
         },
       },
-      expectedFilesToDelete: ['custom/path/**/*.map'],
+      expectedFilesToDelete: ['deprecated/path/**/*.map'],
+    },
+    {
+      name: 'no fallback, but custom filesToDeleteAfterUpload is provided',
+      clientFallback: false,
+      serverFallback: false,
+      customOptions: {
+        sourcemaps: { filesToDeleteAfterUpload: ['new-custom/path/**/*.map'] },
+      },
+      expectedFilesToDelete: ['new-custom/path/**/*.map'],
     },
     {
       name: 'no fallback, both source maps explicitly false and no custom filesToDeleteAfterUpload',
