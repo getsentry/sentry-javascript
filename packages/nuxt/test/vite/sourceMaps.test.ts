@@ -291,7 +291,7 @@ describe('getPluginOptions', () => {
       expectedFilesToDelete: ['.*/**/server/**/*.map', '.*/**/output/**/*.map', '.*/**/function/**/*.map'],
     },
     {
-      name: 'no fallback, but custom filesToDeleteAfterUpload is provided',
+      name: 'no fallback, but custom filesToDeleteAfterUpload is provided (deprecated)',
       clientFallback: false,
       serverFallback: false,
       customOptions: {
@@ -302,7 +302,7 @@ describe('getPluginOptions', () => {
       expectedFilesToDelete: ['deprecated/path/**/*.map'],
     },
     {
-      name: 'no fallback, but custom filesToDeleteAfterUpload is provided',
+      name: 'no fallback, but custom filesToDeleteAfterUpload is provided (new)',
       clientFallback: false,
       serverFallback: false,
       customOptions: {
