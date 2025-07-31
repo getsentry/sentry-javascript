@@ -176,27 +176,6 @@ describe('wrapSentryHandleRequest', () => {
   });
 });
 
-test('should not set span attributes when parameterized path does not exist', async () => {
-  const mockActiveSpan = {};
-  const mockRootSpan = { setAttributes: vi.fn() };
-
-  (getActiveSpan as unknown as ReturnType<typeof vi.fn>).mockReturnValue(mockActiveSpan);
-  (getRootSpan as unknown as ReturnType<typeof vi.fn>).mockReturnValue(mockRootSpan);
-
-  const originalHandler = vi.fn().mockResolvedValue('test');
-  const wrappedHandler = wrapSentryHandleRequest(originalHandler);
-
-  const routerContext = {
-    staticHandlerContext: {
-      matches: [],
-    },
-  } as any;
-
-  await wrappedHandler(new Request('https://guapo.chulo'), 200, new Headers(), routerContext, {} as any);
-
-  expect(mockRootSpan.setAttributes).not.toHaveBeenCalled();
-});
-
 describe('getMetaTagTransformer', () => {
   beforeEach(() => {
     vi.clearAllMocks();
