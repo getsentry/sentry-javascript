@@ -13,7 +13,7 @@
     "test:watch": "yarn test --watch"
   },
   "dependencies": {
-    "@sentry/cloudflare": "9.42.1"
+    "@sentry/cloudflare": "9.43.0"
   },
   "devDependencies": {
     "@sentry-internal/test-utils": "link:../test-utils",
