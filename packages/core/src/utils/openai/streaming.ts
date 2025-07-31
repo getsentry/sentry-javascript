@@ -96,6 +96,7 @@ function processResponsesApiEvent(
     captureException(streamEvent, {
       mechanism: {
         handled: false,
+        type: 'openai',
       },
     });
     return;

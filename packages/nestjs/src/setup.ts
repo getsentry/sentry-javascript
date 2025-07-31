@@ -101,7 +101,12 @@ class SentryGlobalFilter extends BaseExceptionFilter {
         this._logger.error(exception.message, exception.stack);
       }
 
-      captureException(exception);
+      captureException(exception, {
+        mechanism: {
+          handled: false,
+          type: 'nestjs.graphql',
+        },
+      });
       throw exception;
     }
 
@@ -117,7 +122,12 @@ class SentryGlobalFilter extends BaseExceptionFilter {
       // Handle any other kind of error
       if (!(exception instanceof Error)) {
         if (!isExpectedError(exception)) {
-          captureException(exception);
+          captureException(exception, {
+            mechanism: {
+              handled: false,
+              type: 'nestjs.rpc',
+            },
+          });
         }
         throw exception;
       }
@@ -125,7 +135,12 @@ class SentryGlobalFilter extends BaseExceptionFilter {
       // In this case we're likely running into an RpcException, which the user should handle with a dedicated filter
       // https://github.com/nestjs/nest/blob/master/sample/03-microservices/src/common/filters/rpc-exception.filter.ts
       if (!isExpectedError(exception)) {
-        captureException(exception);
+        captureException(exception, {
+          mechanism: {
+            handled: false,
+            type: 'nestjs.rpc',
+          },
+        });
       }
 
       this._logger.warn(
@@ -139,7 +154,12 @@ class SentryGlobalFilter extends BaseExceptionFilter {
 
     // HTTP exceptions
     if (!isExpectedError(exception)) {
-      captureException(exception);
+      captureException(exception, {
+        mechanism: {
+          handled: false,
+          type: 'nestjs.http',
+        },
+      });
     }
 
     return super.catch(exception, host);

@@ -40,7 +40,7 @@ export async function sentryCaptureErrorHook(error: Error, errorContext: Capture
 
   captureException(error, {
     captureContext: { contexts: { nuxt: structuredContext } },
-    mechanism: { handled: false },
+    mechanism: { handled: false, type: 'nuxt' },
   });
 
   await flushIfServerless();

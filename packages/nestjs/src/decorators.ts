@@ -19,12 +19,22 @@ export const SentryCron = (monitorSlug: string, monitorConfig?: MonitorConfig): 
           try {
             result = originalMethod.apply(this, args);
           } catch (e) {
-            captureException(e);
+            captureException(e, {
+              mechanism: {
+                handled: false,
+                type: 'nestjs.cron',
+              },
+            });
             throw e;
           }
           if (isThenable(result)) {
             return result.then(undefined, e => {
-              captureException(e);
+              captureException(e, {
+                mechanism: {
+                  handled: false,
+                  type: 'nestjs.cron',
+                },
+              });
               throw e;
             });
           }
@@ -77,7 +87,12 @@ export function SentryExceptionCaptured() {
         return originalCatch.apply(this, [exception, host, ...args]);
       }
 
-      captureException(exception);
+      captureException(exception, {
+        mechanism: {
+          handled: true, // User provided exception filter to handle the error
+          type: 'nestjs.exception-filter',
+        },
+      });
       return originalCatch.apply(this, [exception, host, ...args]);
     };
 

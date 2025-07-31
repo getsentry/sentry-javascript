@@ -17,7 +17,12 @@ export function withSentryErrorBoundary(ErrorBoundary: Component<ErrorBoundaryPr
     const [local, others] = splitProps(props, ['fallback']);
 
     const fallback = (error: unknown, reset: () => void): JSX.Element => {
-      captureException(error);
+      captureException(error, {
+        mechanism: {
+          handled: true, // User provided fallback function to handle the error
+          type: 'solid',
+        },
+      });
 
       const f = local.fallback;
       return typeof f === 'function' ? f(error, reset) : f;

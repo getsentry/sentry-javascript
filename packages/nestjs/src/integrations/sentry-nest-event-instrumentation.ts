@@ -109,7 +109,12 @@ export class SentryNestEventInstrumentation extends InstrumentationBase {
                 return result;
               } catch (error) {
                 // exceptions from event handlers are not caught by global error filter
-                captureException(error);
+                captureException(error, {
+                  mechanism: {
+                    handled: false,
+                    type: 'nestjs.event',
+                  },
+                });
                 throw error;
               }
             });

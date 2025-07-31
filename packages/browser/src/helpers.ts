@@ -133,7 +133,12 @@ export function wrap<T extends WrappableFunction, NonFunction>(
           return event;
         });
 
-        captureException(ex);
+        captureException(ex, {
+          mechanism: {
+            handled: false,
+            type: 'browser',
+          },
+        });
       });
 
       throw ex;

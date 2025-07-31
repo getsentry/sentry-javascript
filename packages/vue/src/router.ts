@@ -52,7 +52,7 @@ export function instrumentVueRouter(
 ): void {
   let hasHandledFirstPageLoad = false;
 
-  router.onError(error => captureException(error, { mechanism: { handled: false } }));
+  router.onError(error => captureException(error, { mechanism: { handled: false, type: 'vue' } }));
 
   router.beforeEach((to, _from, next) => {
     // We avoid trying to re-fetch the page load span when we know we already handled it the first time

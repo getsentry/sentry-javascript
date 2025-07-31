@@ -236,6 +236,7 @@ function instrumentAuthOperation(operation: AuthOperationFn, isAdmin = false): A
                 captureException(res.error, {
                   mechanism: {
                     handled: false,
+                    type: 'supabase',
                   },
                 });
               } else {
@@ -252,6 +253,7 @@ function instrumentAuthOperation(operation: AuthOperationFn, isAdmin = false): A
               captureException(err, {
                 mechanism: {
                   handled: false,
+                  type: 'supabase',
                 },
               });
 
@@ -417,6 +419,10 @@ function instrumentPostgRESTFilterBuilder(PostgRESTFilterBuilder: PostgRESTFilte
                     }
 
                     captureException(err, {
+                      mechanism: {
+                        handled: false,
+                        type: 'supabase',
+                      },
                       contexts: {
                         supabase: supabaseContext,
                       },
