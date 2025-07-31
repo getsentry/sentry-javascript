@@ -24,13 +24,13 @@ export function setupSourceMaps(moduleOptions: SentryNuxtModuleOptions, nuxt: Nu
   // eslint-disable-next-line deprecation/deprecation
   const sourceMapsUploadOptions = moduleOptions.sourceMapsUploadOptions || {};
 
-  // Check new 'sourcemaps.disable' option first, then fall back to deprecated 'enabled' option
-  // Note: 'disable' is the inverse of 'enabled'
   const sourceMapsEnabled =
     moduleOptions.sourcemaps?.disable === true
       ? false
-      : // eslint-disable-next-line deprecation/deprecation
-        sourceMapsUploadOptions.enabled ?? true;
+      : moduleOptions.sourcemaps?.disable === false
+        ? true
+        : // eslint-disable-next-line deprecation/deprecation
+          sourceMapsUploadOptions.enabled ?? true;
 
   // In case we overwrite the source map settings, we default to deleting the files
   let shouldDeleteFilesFallback = { client: true, server: true };
@@ -222,7 +222,9 @@ export function getPluginOptions(
       // The server/client files are in different places depending on the nitro preset (e.g. '.output/server' or '.netlify/functions-internal/server')
       // We cannot determine automatically how the build folder looks like (depends on the preset), so we have to accept that source maps are uploaded multiple times (with the vitePlugin for Nuxt and the rollupPlugin for Nitro).
       // If we could know where the server/client assets are located, we could do something like this (based on the Nitro preset): isNitro ? ['./.output/server/**/*'] : ['./.output/public/**/*'],
+      // eslint-disable-next-line deprecation/deprecation
       assets: sourcemapsOptions.assets ?? deprecatedSourcemapsOptions.assets ?? undefined,
+      // eslint-disable-next-line deprecation/deprecation
       ignore: sourcemapsOptions.ignore ?? deprecatedSourcemapsOptions.ignore ?? undefined,
       filesToDeleteAfterUpload: filesToDeleteAfterUpload
         ? filesToDeleteAfterUpload
