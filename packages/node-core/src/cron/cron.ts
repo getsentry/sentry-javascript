@@ -99,7 +99,15 @@ export function instrumentCron<T>(lib: T & CronJobConstructor, monitorSlug: stri
             try {
               await onTick(context, onComplete);
             } catch (e) {
-              captureException(e);
+              captureException(e, {
+                mechanism: {
+                  handled: false,
+                  type: 'cron.instrumentCron',
+                  data: {
+                    function: 'constructor',
+                  },
+                },
+              });
               throw e;
             }
           },
@@ -136,7 +144,15 @@ export function instrumentCron<T>(lib: T & CronJobConstructor, monitorSlug: stri
                 try {
                   await onTick(context, onComplete);
                 } catch (e) {
-                  captureException(e);
+                  captureException(e, {
+                    mechanism: {
+                      handled: false,
+                      type: 'cron.instrumentCron.on-tick',
+                      data: {
+                        function: 'from',
+                      },
+                    },
+                  });
                   throw e;
                 }
               },
