@@ -1,4 +1,4 @@
-import type { IncomingRequestCfProperties } from '@cloudflare/workers-types';
+import type { IncomingRequestCfProperties, Request as CloudflareRequest } from '@cloudflare/workers-types';
 import type { Scope } from '@sentry/core';
 import { winterCGRequestToRequestData } from '@sentry/core';
 
@@ -23,6 +23,6 @@ export function addCultureContext(scope: Scope, cf: IncomingRequestCfProperties)
 /**
  * Set request data on scope
  */
-export function addRequest(scope: Scope, request: Request): void {
+export function addRequest(scope: Scope, request: CloudflareRequest): void {
   scope.setSDKProcessingMetadata({ normalizedRequest: winterCGRequestToRequestData(request) });
 }
