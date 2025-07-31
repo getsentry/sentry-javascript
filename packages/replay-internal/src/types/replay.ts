@@ -235,6 +235,9 @@ export interface ReplayPluginOptions extends ReplayNetworkOptions {
      * https://github.com/rrweb-io/rrweb/blob/master/docs/recipes/cross-origin-iframes.md#considerations
      */
     recordCrossOriginIframes: boolean;
+    /**
+     * @deprecated This option is now the default behavior and the option is no longer needed. It will be removed in the next major version.
+     */
     autoFlushOnFeedback: boolean;
     /**
      * Completetly ignore mutations matching the given selectors.
