@@ -380,4 +380,16 @@ describe('node', () => {
 
     expect(node(input)).toEqual(expectedOutput);
   });
+
+  it('parses function name when filename is a data uri ', () => {
+    const input =
+      "at dynamicFn (data:application/javascript,export function dynamicFn() {  throw new Error('Error from data-uri module');};:1:38)";
+
+    const expectedOutput = {
+      function: 'dynamicFn',
+      filename: '<data:application/javascript>',
+    };
+
+    expect(node(input)).toEqual(expectedOutput);
+  });
 });
