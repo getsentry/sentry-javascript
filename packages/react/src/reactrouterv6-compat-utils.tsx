@@ -64,6 +64,62 @@ type V6CompatibleVersion = '6' | '7';
 const allRoutes = new Set<RouteObject>();
 
 /**
+ * Recursively checks a route for async handlers and sets up Proxies to add discovered child routes to allRoutes when called.
+ */
+export function checkRouteForAsyncHandler(route: RouteObject): void {
+  // If the route has a handle, set up proxies for any functions on it
+  if (route.handle && typeof route.handle === 'object') {
+    for (const key of Object.keys(route.handle)) {
+      const maybeFn = route.handle[key];
+      if (typeof maybeFn === 'function') {
+        // Create a proxy that intercepts function calls
+        route.handle[key] = new Proxy(maybeFn, {
+          apply(target, thisArg, argArray) {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            const result = target.apply(thisArg, argArray);
+            // If the result is a promise, handle it when resolved
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            if (result && typeof result.then === 'function') {
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+              result
+                .then((resolvedRoutes: unknown) => {
+                  if (Array.isArray(resolvedRoutes)) {
+                    // Add resolved routes as children to maintain proper route tree structure
+                    route.children = resolvedRoutes;
+                    // Add discovered children to allRoutes
+                    resolvedRoutes.forEach(child => {
+                      allRoutes.add(child);
+                      // Recursively check for async handlers in child routes
+                      checkRouteForAsyncHandler(child);
+                    });
+                  }
+                })
+                .catch((e: unknown) => {
+                  DEBUG_BUILD && debug.warn(`Error resolving async handler '${key}' for route`, route, e);
+                });
+            } else if (Array.isArray(result)) {
+              // Handle synchronous array results - add as children to maintain route tree structure
+              route.children = result;
+              result.forEach(child => {
+                allRoutes.add(child);
+                checkRouteForAsyncHandler(child);
+              });
+            }
+            return result;
+          },
+        });
+      }
+    }
+  }
+  // If the route has children, check them recursively
+  if (Array.isArray(route.children)) {
+    for (const child of route.children) {
+      checkRouteForAsyncHandler(child);
+    }
+  }
+}
+
+/**
  * Creates a wrapCreateBrowserRouter function that can be used with all React Router v6 compatible versions.
  */
 export function createV6CompatibleWrapCreateBrowserRouter<
@@ -84,6 +140,16 @@ export function createV6CompatibleWrapCreateBrowserRouter<
 
   return function (routes: RouteObject[], opts?: Record<string, unknown> & { basename?: string }): TRouter {
     addRoutesToAllRoutes(routes);
+
+    // Check for async handlers that might contain sub-route declarations
+    const checkAsyncHandlers = (): void => {
+      for (const route of routes) {
+        checkRouteForAsyncHandler(route);
+      }
+    };
+
+    // Start checking async handlers
+    checkAsyncHandlers();
 
     const router = createRouterFunction(routes, opts);
     const basename = opts?.basename;
