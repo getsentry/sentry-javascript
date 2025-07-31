@@ -20,7 +20,8 @@ test.describe('server-side errors', () => {
             type: 'Error',
             value: errorMessage,
             mechanism: {
-              handled: true,
+              handled: false,
+              type: 'react-router',
             },
           },
         ],
@@ -67,7 +68,8 @@ test.describe('server-side errors', () => {
             type: 'Error',
             value: errorMessage,
             mechanism: {
-              handled: true,
+              handled: false,
+              type: 'react-router',
             },
           },
         ],
