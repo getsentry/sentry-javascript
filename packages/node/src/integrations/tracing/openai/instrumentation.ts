@@ -85,8 +85,6 @@ export class SentryOpenAiInstrumentation extends InstrumentationBase<Instrumenta
 
     // Constructor replacement - handle read-only properties
     // The OpenAI property might have only a getter, so use defineProperty
-    // Constructor replacement works the same for both ESM and CJS modules
-    // We can directly assign to exports.OpenAI in both module systems
     try {
       exports.OpenAI = WrappedOpenAI;
     } catch (error) {
