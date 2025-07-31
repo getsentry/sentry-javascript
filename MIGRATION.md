@@ -61,6 +61,8 @@ Sentry.init({
 });
 ```
 
+- (Session Replay) The `_experiments.autoFlushOnFeedback` option was removed and is now default behavior.
+
 ## 3. Behaviour Changes
 
 ### Removal of First Input Delay (FID) Web Vital Reporting
