@@ -96,6 +96,7 @@ export function wrapRouteHandlerWithSentry<F extends (...args: any[]) => any>(
                   captureException(error, {
                     mechanism: {
                       handled: false,
+                      type: 'nextjs.route-handler',
                     },
                   });
                 }

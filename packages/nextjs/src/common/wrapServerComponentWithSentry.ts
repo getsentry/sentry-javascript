@@ -136,6 +136,7 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
                     captureException(error, {
                       mechanism: {
                         handled: false,
+                        type: 'nextjs.server-component',
                       },
                     });
                   }

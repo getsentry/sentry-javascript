@@ -130,6 +130,7 @@ async function withServerActionInstrumentationImplementation<A extends (...args:
                   captureException(error, {
                     mechanism: {
                       handled: false,
+                      type: 'nextjs.server-action',
                     },
                   });
                 }
