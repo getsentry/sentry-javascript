@@ -1,6 +1,6 @@
 {
   "name": "@sentry/cloudflare",
-  "version": "9.43.0",
+  "version": "9.44.0",
   "description": "Official Sentry SDK for Cloudflare Workers and Pages",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/cloudflare",
@@ -46,11 +46,12 @@
     }
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "tag": "v9"
   },
   "dependencies": {
     "@opentelemetry/api": "^1.9.0",
-    "@sentry/core": "9.43.0"
+    "@sentry/core": "9.44.0"
   },
   "peerDependencies": {
     "@cloudflare/workers-types": "^4.x"

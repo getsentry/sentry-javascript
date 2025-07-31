@@ -1,6 +1,6 @@
 {
   "name": "@sentry/profiling-node",
-  "version": "9.43.0",
+  "version": "9.44.0",
   "description": "Official Sentry SDK for Node.js Profiling",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/profiling-node",
@@ -36,7 +36,8 @@
     "node": ">=18"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "tag": "v9"
   },
   "files": [
     "/build",
@@ -63,8 +64,8 @@
   },
   "dependencies": {
     "@sentry-internal/node-cpu-profiler": "^2.2.0",
-    "@sentry/core": "9.43.0",
-    "@sentry/node": "9.43.0"
+    "@sentry/core": "9.44.0",
+    "@sentry/node": "9.44.0"
   },
   "devDependencies": {
     "@types/node": "^18.19.1"
