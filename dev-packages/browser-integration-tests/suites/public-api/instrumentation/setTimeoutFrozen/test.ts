@@ -25,7 +25,7 @@ sentryTest(
       type: 'Error',
       value: 'setTimeout_error',
       mechanism: {
-        type: 'instrument',
+        type: 'browserApiErrors',
         handled: false,
       },
       stacktrace: {

@@ -13,7 +13,7 @@ sentryTest('should capture target name in mechanism data', async ({ getLocalTest
     type: 'Error',
     value: 'event_listener_error',
     mechanism: {
-      type: 'instrument',
+      type: 'browserApiErrors',
       handled: false,
       data: {
         function: 'addEventListener',
