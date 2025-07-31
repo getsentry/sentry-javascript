@@ -767,7 +767,7 @@ function setActiveIdleSpan(client: Client, span: Span | undefined): void {
 }
 
 // The max. time in seconds between two pageload/navigation spans that makes us consider the second one a redirect
-const REDIRECT_THRESHOLD = 0.3;
+const REDIRECT_THRESHOLD = 1.5;
 
 function isRedirect(activeSpan: Span, lastInteractionTimestamp: number | undefined): boolean {
   const spanData = spanToJSON(activeSpan);
