@@ -1,3 +1,4 @@
+import type { BuildTimeOptionsBase } from '@sentry/core';
 import type { init as initNode } from '@sentry/node';
 import type { SentryRollupPluginOptions } from '@sentry/rollup-plugin';
 import type { SentryVitePluginOptions } from '@sentry/vite-plugin';
@@ -26,6 +27,7 @@ type SourceMapsOptions = {
    * Suppresses all logs.
    *
    * @default false
+   * @deprecated Use option `silent` instead of `sourceMapsUploadOptions.silent`
    */
   silent?: boolean;
 
@@ -43,6 +45,8 @@ type SourceMapsOptions = {
    *   console.warn(err);
    * }
    * ```
+   *
+   * @deprecated Use option `errorHandler` instead of `sourceMapsUploadOptions.errorHandler`
    */
   errorHandler?: (err: Error) => void;
 
@@ -50,6 +54,8 @@ type SourceMapsOptions = {
    * Options related to managing the Sentry releases for a build.
    *
    * More info: https://docs.sentry.io/product/releases/
+   *
+   * @deprecated Use option `release` instead of `sourceMapsUploadOptions.release`
    */
   release?: {
     /**
@@ -62,6 +68,8 @@ type SourceMapsOptions = {
      * (the latter requires access to git CLI and for the root directory to be a valid repository)
      *
      * If you didn't provide a value and the plugin can't automatically detect one, no release will be created.
+     *
+     * @deprecated Use `release.name` instead of `sourceMapsUploadOptions.release.name`
      */
     name?: string;
   };
@@ -71,6 +79,7 @@ type SourceMapsOptions = {
    * automatically generate and upload source maps to Sentry during a production build.
    *
    * @default true
+   * @deprecated Use option `sourcemaps.disable` instead of `sourceMapsUploadOptions.enabled`
    */
   enabled?: boolean;
 
@@ -81,12 +90,14 @@ type SourceMapsOptions = {
    *
    * To create an auth token, follow this guide:
    * @see https://docs.sentry.io/product/accounts/auth-tokens/#organization-auth-tokens
+   * @deprecated Use option `authToken` instead of `sourceMapsUploadOptions.authToken`
    */
   authToken?: string;
 
   /**
    * The organization slug of your Sentry organization.
    * Instead of specifying this option, you can also set the `SENTRY_ORG` environment variable.
+   * @deprecated Use option `org` instead of `sourceMapsUploadOptions.org`
    */
   org?: string;
 
@@ -94,12 +105,15 @@ type SourceMapsOptions = {
    * The URL of your Sentry instance if you're using self-hosted Sentry.
    *
    * @default https://sentry.io by default the plugin will point towards the Sentry SaaS URL
+   * @deprecated Use `sentryUrl` instead of `sourceMapsUploadOptions.url`
    */
   url?: string;
 
   /**
    * The project slug of your Sentry project.
    * Instead of specifying this option, you can also set the `SENTRY_PROJECT` environment variable.
+   *
+   * @deprecated Use option `project` instead of `sourceMapsUploadOptions.project`
    */
   project?: string;
 
@@ -108,11 +122,14 @@ type SourceMapsOptions = {
    * It will not collect any sensitive or user-specific data.
    *
    * @default true
+   * @deprecated Use option `telemetry` instead of `sourceMapsUploadOptions.telemetry`
    */
   telemetry?: boolean;
 
   /**
    * Options related to sourcemaps
+   *
+   * @deprecated Use option `sourcemaps` instead of `sourceMapsUploadOptions.sourcemaps`
    */
   sourcemaps?: {
     /**
@@ -124,6 +141,8 @@ type SourceMapsOptions = {
      *
      * The globbing patterns must follow the implementation of the `glob` package.
      * @see https://www.npmjs.com/package/glob#glob-primer
+     *
+     * @deprecated Use option `sourcemaps.assets` instead of `sourceMapsUploadOptions.sourcemaps.assets`
      */
     assets?: string | Array<string>;
 
@@ -134,6 +153,8 @@ type SourceMapsOptions = {
      * or the default value for `assets` are uploaded.
      *
      * The globbing patterns follow the implementation of the glob package. (https://www.npmjs.com/package/glob)
+     *
+     * @deprecated Use option `sourcemaps.ignore` instead of `sourceMapsUploadOptions.sourcemaps.ignore`
      */
     ignore?: string | Array<string>;
 
@@ -144,6 +165,8 @@ type SourceMapsOptions = {
      * @default [] - By default no files are deleted.
      *
      * The globbing patterns follow the implementation of the glob package. (https://www.npmjs.com/package/glob)
+     *
+     * @deprecated Use option `sourcemaps.filesToDeleteAfterUpload` instead of `sourceMapsUploadOptions.sourcemaps.filesToDeleteAfterUpload`
      */
     filesToDeleteAfterUpload?: string | Array<string>;
   };
@@ -152,7 +175,7 @@ type SourceMapsOptions = {
 /**
  *  Build options for the Sentry module. These options are used during build-time by the Sentry SDK.
  */
-export type SentryNuxtModuleOptions = {
+export type SentryNuxtModuleOptions = BuildTimeOptionsBase & {
   /**
    * Enable the Sentry Nuxt Module.
    *
@@ -165,14 +188,11 @@ export type SentryNuxtModuleOptions = {
    *
    * These options are always read from the `sentry` module options in the `nuxt.config.(js|ts).
    * Do not define them in the `sentry.client.config.(js|ts)` or `sentry.server.config.(js|ts)` files.
+   *
+   * @deprecated  This option was deprecated as it adds unnecessary nesting.
+   *              Put the options one level higher to the root-level of the `sentry` module options.
    */
   sourceMapsUploadOptions?: SourceMapsOptions;
-
-  /**
-   * Enable debug functionality of the SDK during build-time.
-   * Enabling this will give you, for example, logs about source maps.
-   */
-  debug?: boolean;
 
   /**
    *
