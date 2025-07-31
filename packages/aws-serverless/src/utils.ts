@@ -26,7 +26,7 @@ const headerGetter: TextMapGetter<APIGatewayProxyEventHeaders> = {
 /**
  * Marks an event as unhandled by adding a span processor to the passed scope.
  */
-export function markEventUnhandled(scope: Scope, type = 'aws-serverless'): Scope {
+export function markEventUnhandled(scope: Scope, type: string): Scope {
   scope.addEventProcessor(event => {
     addExceptionMechanism(event, { handled: false, type });
     return event;
