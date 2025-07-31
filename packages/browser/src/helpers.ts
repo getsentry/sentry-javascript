@@ -133,6 +133,7 @@ export function wrap<T extends WrappableFunction, NonFunction>(
           return event;
         });
 
+        // no need to add a mechanism here, we already add it via an event processor above
         captureException(ex);
       });
 
