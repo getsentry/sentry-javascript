@@ -1,10 +1,10 @@
 import type { Client, StartSpanOptions } from '@sentry/core';
 import {
+  debug,
   getActiveSpan,
   getCurrentScope,
   getRootSpan,
   isNodeEnv,
-  logger,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '@sentry/core';
@@ -119,7 +119,7 @@ export function withSentry<P extends Record<string, unknown>, R extends React.Co
     if (!_useEffect || !_useLocation || !_useMatches) {
       DEBUG_BUILD &&
         !isNodeEnv() &&
-        logger.warn('Remix SDK was unable to wrap your root because of one or more missing parameters.');
+        debug.warn('Remix SDK was unable to wrap your root because of one or more missing parameters.');
 
       // @ts-expect-error Setting more specific React Component typing for `R` generic above
       // will break advanced type inference done by react router params

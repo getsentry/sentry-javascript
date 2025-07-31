@@ -2,20 +2,20 @@ import type { RequestEventData } from '@sentry/core';
 import {
   captureException,
   continueTrace,
+  debug,
   getActiveSpan,
   getClient,
   getIsolationScope,
   handleCallbackErrors,
-  logger,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SPAN_STATUS_ERROR,
   startSpan,
   vercelWaitUntil,
   withIsolationScope,
 } from '@sentry/core';
+import { flushSafelyWithTimeout } from '../common/utils/responseEnd';
 import { DEBUG_BUILD } from './debug-build';
 import { isNotFoundNavigationError, isRedirectNavigationError } from './nextNavigationErrorUtils';
-import { flushSafelyWithTimeout } from './utils/responseEnd';
 
 interface Options {
   formData?: FormData;
@@ -82,9 +82,9 @@ async function withServerActionInstrumentationImplementation<A extends (...args:
       awaitedHeaders?.forEach((value, key) => {
         fullHeadersObject[key] = value;
       });
-    } catch (e) {
+    } catch {
       DEBUG_BUILD &&
-        logger.warn(
+        debug.warn(
           "Sentry wasn't able to extract the tracing headers for a server action. Will not trace this request.",
         );
     }

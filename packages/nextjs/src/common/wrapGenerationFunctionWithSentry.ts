@@ -24,6 +24,7 @@ import { isNotFoundNavigationError, isRedirectNavigationError } from './nextNavi
 import { TRANSACTION_ATTR_SENTRY_TRACE_BACKFILL } from './span-attributes-with-logic-attached';
 import { commonObjectToIsolationScope, commonObjectToPropagationContext } from './utils/tracingUtils';
 import { getSanitizedRequestUrl } from './utils/urls';
+import { maybeExtractSynchronousParamsAndSearchParams } from './utils/wrapperUtils';
 /**
  * Wraps a generation function (e.g. generateMetadata) with Sentry error and performance instrumentation.
  */
@@ -40,7 +41,7 @@ export function wrapGenerationFunctionWithSentry<F extends (...args: any[]) => a
       // We try-catch here just in case anything goes wrong with the async storage here goes wrong since it is Next.js internal API
       try {
         headers = requestAsyncStorage?.getStore()?.headers;
-      } catch (e) {
+      } catch {
         /** empty */
       }
 
@@ -65,9 +66,7 @@ export function wrapGenerationFunctionWithSentry<F extends (...args: any[]) => a
       let data: Record<string, unknown> | undefined = undefined;
       if (getClient()?.getOptions().sendDefaultPii) {
         const props: unknown = args[0];
-        const params = props && typeof props === 'object' && 'params' in props ? props.params : undefined;
-        const searchParams =
-          props && typeof props === 'object' && 'searchParams' in props ? props.searchParams : undefined;
+        const { params, searchParams } = maybeExtractSynchronousParamsAndSearchParams(props);
         data = { params, searchParams };
       }
 

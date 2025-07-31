@@ -1,8 +1,10 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import {
+  type Scope,
   captureException,
   flush,
   getClient,
+  isThenable,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startSpan,
@@ -25,23 +27,29 @@ type MethodWrapperOptions = {
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function wrapMethodWithSentry<T extends (...args: any[]) => any>(
+type OriginalMethod = (...args: any[]) => any;
+
+function wrapMethodWithSentry<T extends OriginalMethod>(
   wrapperOptions: MethodWrapperOptions,
   handler: T,
   callback?: (...args: Parameters<T>) => void,
+  noMark?: true,
 ): T {
   if (isInstrumented(handler)) {
     return handler;
   }
 
-  markAsInstrumented(handler);
+  if (!noMark) {
+    markAsInstrumented(handler);
+  }
 
   return new Proxy(handler, {
     apply(target, thisArg, args: Parameters<T>) {
       const currentClient = getClient();
       // if a client is already set, use withScope, otherwise use withIsolationScope
       const sentryWithScope = currentClient ? withScope : withIsolationScope;
-      return sentryWithScope(async scope => {
+
+      const wrappedFunction = (scope: Scope): unknown => {
         // In certain situations, the passed context can become undefined.
         // For example, for Astro while prerendering pages at build time.
         // see: https://github.com/getsentry/sentry-javascript/issues/13217
@@ -60,7 +68,29 @@ function wrapMethodWithSentry<T extends (...args: any[]) => any>(
             if (callback) {
               callback(...args);
             }
-            return await Reflect.apply(target, thisArg, args);
+            const result = Reflect.apply(target, thisArg, args);
+
+            if (isThenable(result)) {
+              return result.then(
+                (res: unknown) => {
+                  waitUntil?.(flush(2000));
+                  return res;
+                },
+                (e: unknown) => {
+                  captureException(e, {
+                    mechanism: {
+                      type: 'cloudflare_durableobject',
+                      handled: false,
+                    },
+                  });
+                  waitUntil?.(flush(2000));
+                  throw e;
+                },
+              );
+            } else {
+              waitUntil?.(flush(2000));
+              return result;
+            }
           } catch (e) {
             captureException(e, {
               mechanism: {
@@ -68,9 +98,8 @@ function wrapMethodWithSentry<T extends (...args: any[]) => any>(
                 handled: false,
               },
             });
-            throw e;
-          } finally {
             waitUntil?.(flush(2000));
+            throw e;
           }
         }
 
@@ -82,9 +111,31 @@ function wrapMethodWithSentry<T extends (...args: any[]) => any>(
           : {};
 
         // Only create these spans if they have a parent span.
-        return startSpan({ name: wrapperOptions.spanName, attributes, onlyIfParent: true }, async () => {
+        return startSpan({ name: wrapperOptions.spanName, attributes, onlyIfParent: true }, () => {
           try {
-            return await Reflect.apply(target, thisArg, args);
+            const result = Reflect.apply(target, thisArg, args);
+
+            if (isThenable(result)) {
+              return result.then(
+                (res: unknown) => {
+                  waitUntil?.(flush(2000));
+                  return res;
+                },
+                (e: unknown) => {
+                  captureException(e, {
+                    mechanism: {
+                      type: 'cloudflare_durableobject',
+                      handled: false,
+                    },
+                  });
+                  waitUntil?.(flush(2000));
+                  throw e;
+                },
+              );
+            } else {
+              waitUntil?.(flush(2000));
+              return result;
+            }
           } catch (e) {
             captureException(e, {
               mechanism: {
@@ -92,12 +143,13 @@ function wrapMethodWithSentry<T extends (...args: any[]) => any>(
                 handled: false,
               },
             });
-            throw e;
-          } finally {
             waitUntil?.(flush(2000));
+            throw e;
           }
         });
-      });
+      };
+
+      return sentryWithScope(wrappedFunction);
     },
   });
 }
@@ -221,8 +273,46 @@ export function instrumentDurableObjectWithSentry<
           );
         }
       }
+      const instrumentedPrototype = instrumentPrototype(target, options, context);
+      Object.setPrototypeOf(obj, instrumentedPrototype);
 
       return obj;
+    },
+  });
+}
+
+function instrumentPrototype<T extends NewableFunction>(
+  target: T,
+  options: CloudflareOptions,
+  context: MethodWrapperOptions['context'],
+): T {
+  return new Proxy(target.prototype, {
+    get(target, prop, receiver) {
+      const value = Reflect.get(target, prop, receiver);
+      if (prop === 'constructor' || typeof value !== 'function') {
+        return value;
+      }
+      const wrapped = wrapMethodWithSentry(
+        { options, context, spanName: prop.toString(), spanOp: 'rpc' },
+        value,
+        undefined,
+        true,
+      );
+      const instrumented = new Proxy(wrapped, {
+        get(target, p, receiver) {
+          if ('__SENTRY_INSTRUMENTED__' === p) {
+            return true;
+          }
+          return Reflect.get(target, p, receiver);
+        },
+      });
+      Object.defineProperty(receiver, prop, {
+        value: instrumented,
+        enumerable: true,
+        writable: true,
+        configurable: true,
+      });
+      return instrumented;
     },
   });
 }

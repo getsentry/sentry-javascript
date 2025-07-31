@@ -56,7 +56,7 @@ export function htmlTreeAsString(
     }
 
     return out.reverse().join(separator);
-  } catch (_oO) {
+  } catch {
     return '<unknown>';
   }
 }
@@ -134,7 +134,7 @@ function _htmlElementAsString(el: unknown, keyAttrs?: string[]): string {
 export function getLocationHref(): string {
   try {
     return WINDOW.document.location.href;
-  } catch (oO) {
+  } catch {
     return '';
   }
 }

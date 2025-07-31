@@ -4,7 +4,7 @@ import * as SentryNode from '@sentry/node';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { lowQualityTransactionsFilterIntegration } from '../../src/server/integration/lowQualityTransactionsFilterIntegration';
 
-const loggerLog = vi.spyOn(SentryCore.logger, 'log').mockImplementation(() => {});
+const debugLoggerLogSpy = vi.spyOn(SentryCore.debug, 'log').mockImplementation(() => {});
 
 describe('Low Quality Transactions Filter Integration', () => {
   afterEach(() => {
@@ -30,7 +30,7 @@ describe('Low Quality Transactions Filter Integration', () => {
 
         expect(result).toBeNull();
 
-        expect(loggerLog).toHaveBeenCalledWith('[ReactRouter] Filtered node_modules transaction:', transaction);
+        expect(debugLoggerLogSpy).toHaveBeenCalledWith('[ReactRouter] Filtered node_modules transaction:', transaction);
       });
     });
 

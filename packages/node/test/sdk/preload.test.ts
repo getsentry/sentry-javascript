@@ -1,10 +1,10 @@
-import { logger } from '@sentry/core';
+import { debug } from '@sentry/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 describe('preload', () => {
   afterEach(() => {
     vi.resetAllMocks();
-    logger.disable();
+    debug.disable();
 
     delete process.env.SENTRY_DEBUG;
     delete process.env.SENTRY_PRELOAD_INTEGRATIONS;

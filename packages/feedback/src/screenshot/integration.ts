@@ -7,7 +7,6 @@ import { ScreenshotEditorFactory } from './components/ScreenshotEditor';
 export const feedbackScreenshotIntegration = ((): FeedbackScreenshotIntegration => {
   return {
     name: 'FeedbackScreenshot',
-    // eslint-disable-next-line @typescript-eslint/no-empty-function
     setupOnce() {},
     createInput: ({ h, hooks, dialog, options }) => {
       const outputBuffer = DOCUMENT.createElement('canvas');

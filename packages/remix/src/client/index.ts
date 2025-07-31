@@ -1,4 +1,4 @@
-import { logger } from '@sentry/core';
+import { debug } from '@sentry/core';
 import { DEBUG_BUILD } from '../utils/debug-build';
 
 export * from '@sentry/react';
@@ -17,7 +17,7 @@ export { browserTracingIntegration } from './browserTracingIntegration';
  */
 export async function captureRemixServerException(err: unknown, name: string, request: Request): Promise<void> {
   DEBUG_BUILD &&
-    logger.warn(
+    debug.warn(
       '`captureRemixServerException` is a server-only function and should not be called in the browser. ' +
         'This function is a no-op in the browser environment.',
     );

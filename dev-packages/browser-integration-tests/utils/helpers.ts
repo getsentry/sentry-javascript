@@ -23,7 +23,7 @@ export const envelopeParser = (request: Request | null): unknown[] => {
   return envelope.split('\n').map(line => {
     try {
       return JSON.parse(line);
-    } catch (error) {
+    } catch {
       return line;
     }
   });
@@ -172,7 +172,7 @@ export async function runScriptInSandbox(
 ): Promise<void> {
   try {
     await page.addScriptTag({ path: impl.path, content: impl.content });
-  } catch (e) {
+  } catch {
     // no-op
   }
 }

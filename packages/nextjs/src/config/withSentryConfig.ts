@@ -5,6 +5,9 @@ import { getSentryRelease } from '@sentry/node';
 import * as childProcess from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
+import { createRouteManifest } from './manifest/createRouteManifest';
+import type { RouteManifest } from './manifest/types';
+import { constructTurbopackConfig } from './turbopack';
 import type {
   ExportedNextConfig as NextConfig,
   NextConfigFunction,
@@ -107,17 +110,15 @@ function getFinalConfigObject(
         showedExportModeTunnelWarning = true;
         // eslint-disable-next-line no-console
         console.warn(
-          '[@sentry/nextjs] The Sentry Next.js SDK `tunnelRoute` option will not work in combination with Next.js static exports. The `tunnelRoute` option uses serverside features that cannot be accessed in export mode. If you still want to tunnel Sentry events, set up your own tunnel: https://docs.sentry.io/platforms/javascript/troubleshooting/#using-the-tunnel-option',
+          '[@sentry/nextjs] The Sentry Next.js SDK `tunnelRoute` option will not work in combination with Next.js static exports. The `tunnelRoute` option uses server-side features that cannot be accessed in export mode. If you still want to tunnel Sentry events, set up your own tunnel: https://docs.sentry.io/platforms/javascript/troubleshooting/#using-the-tunnel-option',
         );
       }
     } else {
       const resolvedTunnelRoute =
-        typeof userSentryOptions.tunnelRoute === 'boolean'
-          ? generateRandomTunnelRoute()
-          : userSentryOptions.tunnelRoute;
+        userSentryOptions.tunnelRoute === true ? generateRandomTunnelRoute() : userSentryOptions.tunnelRoute;
 
       // Update the global options object to use the resolved value everywhere
-      userSentryOptions.tunnelRoute = resolvedTunnelRoute;
+      userSentryOptions.tunnelRoute = resolvedTunnelRoute || undefined;
       setUpTunnelRewriteRules(incomingUserNextConfigObject, resolvedTunnelRoute);
     }
   }
@@ -141,6 +142,11 @@ function getFinalConfigObject(
       // We skip Sentry processing during generate to avoid this issue.
       return incomingUserNextConfigObject;
     }
+  }
+
+  let routeManifest: RouteManifest | undefined;
+  if (!userSentryOptions.disableManifestInjection) {
+    routeManifest = createRouteManifest();
   }
 
   setUpBuildTimeVariables(incomingUserNextConfigObject, userSentryOptions, releaseName);
@@ -236,7 +242,8 @@ function getFinalConfigObject(
   const instrumentationClientFileContents = getInstrumentationClientFileContents();
   if (
     instrumentationClientFileContents !== undefined &&
-    !instrumentationClientFileContents.includes('onRouterTransitionStart')
+    !instrumentationClientFileContents.includes('onRouterTransitionStart') &&
+    !userSentryOptions.suppressOnRouterTransitionStartWarning
   ) {
     // eslint-disable-next-line no-console
     console.warn(
@@ -245,6 +252,8 @@ function getFinalConfigObject(
   }
 
   let nextMajor: number | undefined;
+  const isTurbopack = process.env.TURBOPACK;
+  let isTurbopackSupported = false;
   if (nextJsVersion) {
     const { major, minor, patch, prerelease } = parseSemver(nextJsVersion);
     nextMajor = major;
@@ -256,6 +265,7 @@ function getFinalConfigObject(
         (major === 15 && minor > 3) ||
         (major === 15 && minor === 3 && patch === 0 && prerelease === undefined) ||
         (major === 15 && minor === 3 && patch > 0));
+    isTurbopackSupported = isSupportedVersion;
     const isSupportedCanary =
       major !== undefined &&
       minor !== undefined &&
@@ -268,7 +278,7 @@ function getFinalConfigObject(
       parseInt(prerelease.split('.')[1] || '', 10) >= 28;
     const supportsClientInstrumentation = isSupportedCanary || isSupportedVersion;
 
-    if (!supportsClientInstrumentation && process.env.TURBOPACK) {
+    if (!supportsClientInstrumentation && isTurbopack) {
       if (process.env.NODE_ENV === 'development') {
         // eslint-disable-next-line no-console
         console.warn(
@@ -301,7 +311,18 @@ function getFinalConfigObject(
             ],
           },
         }),
-    webpack: constructWebpackConfigFunction(incomingUserNextConfigObject, userSentryOptions, releaseName),
+    webpack:
+      isTurbopack || userSentryOptions.disableSentryWebpackConfig
+        ? incomingUserNextConfigObject.webpack // just return the original webpack config
+        : constructWebpackConfigFunction(incomingUserNextConfigObject, userSentryOptions, releaseName, routeManifest),
+    ...(isTurbopackSupported && isTurbopack
+      ? {
+          turbopack: constructTurbopackConfig({
+            userNextConfig: incomingUserNextConfigObject,
+            routeManifest,
+          }),
+        }
+      : {}),
   };
 }
 
@@ -449,7 +470,7 @@ function getGitRevision(): string | undefined {
       .execSync('git rev-parse HEAD', { stdio: ['ignore', 'pipe', 'ignore'] })
       .toString()
       .trim();
-  } catch (e) {
+  } catch {
     // noop
   }
   return gitRevision;

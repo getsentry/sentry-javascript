@@ -1,6 +1,0 @@
-{
-  "name": "express-v5",
-  "dependencies": {
-    "express": "^5.0.0"
-  }
-}

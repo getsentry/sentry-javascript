@@ -3,12 +3,12 @@ import {
   addGlobalErrorInstrumentationHandler,
   addGlobalUnhandledRejectionInstrumentationHandler,
   captureEvent,
+  debug,
   defineIntegration,
   getClient,
   getLocationHref,
   isPrimitive,
   isString,
-  logger,
   UNKNOWN_FUNCTION,
 } from '@sentry/core';
 import type { BrowserClient } from '../client';
@@ -188,7 +188,7 @@ function _enhanceEventWithInitialFrame(
 }
 
 function globalHandlerLog(type: string): void {
-  DEBUG_BUILD && logger.log(`Global Handler attached: ${type}`);
+  DEBUG_BUILD && debug.log(`Global Handler attached: ${type}`);
 }
 
 function getOptions(): { stackParser: StackParser; attachStacktrace?: boolean } {

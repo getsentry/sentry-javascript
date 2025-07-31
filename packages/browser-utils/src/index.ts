@@ -1,7 +1,6 @@
 export {
   addPerformanceInstrumentationHandler,
   addClsInstrumentationHandler,
-  addFidInstrumentationHandler,
   addTtfbInstrumentationHandler,
   addLcpInstrumentationHandler,
   addInpInstrumentationHandler,
@@ -16,6 +15,8 @@ export {
   startTrackingINP,
   registerInpInteractionListener,
 } from './metrics/browserMetrics';
+
+export { startTrackingElementTiming } from './metrics/elementTiming';
 
 export { extractNetworkProtocol } from './metrics/utils';
 

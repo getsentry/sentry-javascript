@@ -14,11 +14,11 @@ import type { TraceContext } from '../types-hoist/context';
 import type { SpanLink, SpanLinkJSON } from '../types-hoist/link';
 import type { Span, SpanAttributes, SpanJSON, SpanOrigin, SpanTimeInput } from '../types-hoist/span';
 import type { SpanStatus } from '../types-hoist/spanStatus';
-import { consoleSandbox } from '../utils/logger';
 import { addNonEnumerableProperty } from '../utils/object';
 import { generateSpanId } from '../utils/propagationContext';
 import { timestampInSeconds } from '../utils/time';
 import { generateSentryTraceHeader } from '../utils/tracing';
+import { consoleSandbox } from './debug-logger';
 import { _getSpanForScope } from './spanOnScope';
 
 // These are aligned with OpenTelemetry trace flags

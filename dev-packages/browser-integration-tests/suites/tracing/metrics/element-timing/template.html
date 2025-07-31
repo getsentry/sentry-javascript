@@ -1,0 +1,49 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+  </head>
+  <body>
+    <!-- eagerly loaded image (image-paint) with fast load time -->
+    <img src="https://sentry-test-site.example/path/to/image-fast.png" elementtiming="image-fast" id="image-fast-id"/>
+
+    <!-- eagerly rendered text (text-paint) -->
+    <p elementtiming="text1" id="text1-id">
+      This is some text content
+      <pan>with another nested span</pan>
+      <small>and a small text</small>
+    </p>
+
+    <!--
+    eagerly rendered div with an eagerly loaded nested image with slow load time (image-paint)
+    Although the div has an elementtiming attribute, it will not emit an entry because it's
+    neither a text nor an image
+    -->
+    <div elementtiming="div1">
+      <h1>Header with element timing</h1>
+      <img src="https://sentry-test-site.example/path/to/image-slow.png" elementtiming="image-nested-slow" />
+    </div>
+
+    <!-- eagerly loaded image (image-paint) with slow load time -->
+    <img src="https://sentry-test-site.example/path/to/image-slow.png" elementtiming="image-slow" />
+
+    <!-- lazily loaded content (image-paint and text-paint) with slow load time -->
+    <div id="content-lazy">
+      <p>This div will be populated lazily</p>
+    </div>
+
+    <!-- content loaded after navigation (image-paint and text-paint) -->
+    <div id="content-navigation">
+      <p>This div will be populated after a navigation</p>
+    </div>
+
+    <!-- content loaded after navigation (image-paint and text-paint) -->
+    <div id="content-click">
+      <p>This div will be populated on click</p>
+    </div>
+
+    <!-- eagerly rendered buttons-->
+    <button id="button1" elementtiming="button1">Navigate</button>
+    <button id="button2" elementtiming="button2">Populate on Click</button>
+  </body>
+</html>

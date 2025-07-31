@@ -14,7 +14,7 @@ const EXPECTED_TRANSCATION = {
         'rpc.system': 'aws-api',
         'rpc.method': 'PutObject',
         'rpc.service': 'S3',
-        'aws.region': 'us-east-1',
+        'cloud.region': 'us-east-1',
         'aws.s3.bucket': 'ot-demo-test',
         'otel.kind': 'CLIENT',
       }),

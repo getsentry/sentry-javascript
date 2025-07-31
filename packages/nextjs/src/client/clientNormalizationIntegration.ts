@@ -39,7 +39,7 @@ export const nextjsClientStackFrameNormalizationIntegration = defineIntegration(
               if (frameOrigin === windowOrigin) {
                 frame.filename = frame.filename?.replace(frameOrigin, 'app://').replace(basePath, '');
               }
-            } catch (err) {
+            } catch {
               // Filename wasn't a properly formed URL, so there's nothing we can do
             }
           }
@@ -47,7 +47,7 @@ export const nextjsClientStackFrameNormalizationIntegration = defineIntegration(
           try {
             const { origin } = new URL(frame.filename as string);
             frame.filename = frame.filename?.replace(origin, 'app://').replace(rewriteFramesAssetPrefixPath, '');
-          } catch (err) {
+          } catch {
             // Filename wasn't a properly formed URL, so there's nothing we can do
           }
         }

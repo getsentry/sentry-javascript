@@ -5,7 +5,7 @@ import type {
   Integration,
   IntegrationFn,
 } from '@sentry/core';
-import { addIntegration, isBrowser, logger } from '@sentry/core';
+import { addIntegration, debug, isBrowser } from '@sentry/core';
 import {
   ADD_SCREENSHOT_LABEL,
   CANCEL_BUTTON_LABEL,
@@ -194,7 +194,7 @@ export const buildFeedbackIntegration = ({
         addIntegration(modalIntegration);
       } catch {
         DEBUG_BUILD &&
-          logger.error(
+          debug.error(
             '[Feedback] Error when trying to load feedback integrations. Try using `feedbackSyncIntegration` in your `Sentry.init`.',
           );
         throw new Error('[Feedback] Missing feedback modal integration!');
@@ -213,7 +213,7 @@ export const buildFeedbackIntegration = ({
         }
       } catch {
         DEBUG_BUILD &&
-          logger.error('[Feedback] Missing feedback screenshot integration. Proceeding without screenshots.');
+          debug.error('[Feedback] Missing feedback screenshot integration. Proceeding without screenshots.');
       }
 
       const dialog = modalIntegration.createDialog({
@@ -243,7 +243,7 @@ export const buildFeedbackIntegration = ({
         typeof el === 'string' ? DOCUMENT.querySelector(el) : typeof el.addEventListener === 'function' ? el : null;
 
       if (!targetEl) {
-        DEBUG_BUILD && logger.error('[Feedback] Unable to attach to target element');
+        DEBUG_BUILD && debug.error('[Feedback] Unable to attach to target element');
         throw new Error('Unable to attach to target element');
       }
 

@@ -42,13 +42,16 @@ export {
   close,
   getSentryRelease,
   createGetModuleFromFilename,
+  // eslint-disable-next-line deprecation/deprecation
   anrIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   disableAnrDetectionForCallback,
   consoleIntegration,
   httpIntegration,
   nativeNodeFetchIntegration,
   onUncaughtExceptionIntegration,
   onUnhandledRejectionIntegration,
+  openAIIntegration,
   modulesIntegration,
   contextLinesIntegration,
   nodeContextIntegration,
@@ -87,6 +90,7 @@ export {
   connectIntegration,
   setupConnectErrorHandler,
   fastifyIntegration,
+  firebaseIntegration,
   genericPoolIntegration,
   graphqlIntegration,
   knexIntegration,
@@ -124,6 +128,12 @@ export {
   NODE_VERSION,
   featureFlagsIntegration,
   type FeatureFlagsIntegration,
+  launchDarklyIntegration,
+  buildLaunchDarklyFlagUsedHandler,
+  openFeatureIntegration,
+  OpenFeatureIntegrationHook,
+  statsigIntegration,
+  unleashIntegration,
 } from '@sentry/node';
 
 export {

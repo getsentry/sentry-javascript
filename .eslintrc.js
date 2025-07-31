@@ -9,7 +9,7 @@ module.exports = {
     es2017: true,
   },
   parserOptions: {
-    ecmaVersion: 2018,
+    ecmaVersion: 2020,
   },
   extends: ['@sentry-internal/sdk'],
   ignorePatterns: [

@@ -25,7 +25,7 @@ glob.glob(
         let envelope;
         try {
           envelope = JSON.parse(serializedEnvelope);
-        } catch (e) {
+        } catch {
           return;
           // noop
         }

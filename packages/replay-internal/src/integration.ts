@@ -145,7 +145,7 @@ export class Replay implements Integration {
       errorHandler: (err: Error & { __rrweb__?: boolean }) => {
         try {
           err.__rrweb__ = true;
-        } catch (error) {
+        } catch {
           // ignore errors here
           // this can happen if the error is frozen or does not allow mutation for other reasons
         }

@@ -321,7 +321,7 @@ describe('sendFeedback', () => {
 
     mockSdk();
     vi.spyOn(getClient()!.getTransport()!, 'send').mockImplementation(() => {
-      return new Promise(resolve => setTimeout(resolve, 10_000));
+      return new Promise(resolve => setTimeout(resolve, 40_000));
     });
 
     const promise = sendFeedback({
@@ -330,7 +330,7 @@ describe('sendFeedback', () => {
       message: 'mi',
     });
 
-    vi.advanceTimersByTime(5_000);
+    vi.advanceTimersByTime(30_000);
 
     await expect(promise).rejects.toMatch('Unable to determine if Feedback was correctly sent.');
 

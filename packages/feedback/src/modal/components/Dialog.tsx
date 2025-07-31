@@ -30,8 +30,8 @@ export function Dialog({ open, onFormSubmitted, ...props }: Props): VNode {
   }, [timeoutId]);
 
   const onSubmitSuccess = useCallback(
-    (data: FeedbackFormData) => {
-      props.onSubmitSuccess(data);
+    (data: FeedbackFormData, eventId: string) => {
+      props.onSubmitSuccess(data, eventId);
       setTimeoutId(
         setTimeout(() => {
           onFormSubmitted();

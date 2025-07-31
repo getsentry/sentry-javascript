@@ -1,6 +1,12 @@
 import type { InstrumentationConfig, InstrumentationModuleDefinition } from '@opentelemetry/instrumentation';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition } from '@opentelemetry/instrumentation';
-import { getCurrentScope, SDK_VERSION } from '@sentry/core';
+import {
+  addNonEnumerableProperty,
+  getActiveSpan,
+  getCurrentScope,
+  handleCallbackErrors,
+  SDK_VERSION,
+} from '@sentry/core';
 import { INTEGRATION_NAME } from './constants';
 import type { TelemetrySettings, VercelAiIntegration } from './types';
 
@@ -132,8 +138,21 @@ export class SentryVercelAiInstrumentation extends InstrumentationBase {
           recordOutputs,
         };
 
-        // @ts-expect-error we know that the method exists
-        return originalMethod.apply(this, args);
+        return handleCallbackErrors(
+          () => {
+            // @ts-expect-error we know that the method exists
+            return originalMethod.apply(this, args);
+          },
+          error => {
+            // This error bubbles up to unhandledrejection handler (if not handled before),
+            // where we do not know the active span anymore
+            // So to circumvent this, we set the active span on the error object
+            // which is picked up by the unhandledrejection handler
+            if (error && typeof error === 'object') {
+              addNonEnumerableProperty(error, '_sentry_active_span', getActiveSpan());
+            }
+          },
+        );
       };
     }
 

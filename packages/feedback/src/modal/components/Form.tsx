@@ -4,7 +4,7 @@ import type {
   FeedbackScreenshotIntegration,
   SendFeedback,
 } from '@sentry/core';
-import { logger } from '@sentry/core';
+import { debug } from '@sentry/core';
 import type { JSX, VNode } from 'preact';
 import { h } from 'preact'; // eslint-disable-line @typescript-eslint/no-unused-vars
 import { useCallback, useState } from 'preact/hooks';
@@ -18,7 +18,7 @@ export interface Props extends Pick<FeedbackInternalOptions, 'showEmail' | 'show
   defaultName: string;
   onFormClose: () => void;
   onSubmit: SendFeedback;
-  onSubmitSuccess: (data: FeedbackFormData) => void;
+  onSubmitSuccess: (data: FeedbackFormData, eventId: string) => void;
   onSubmitError: (error: Error) => void;
   screenshotInput: ReturnType<FeedbackScreenshotIntegration['createInput']> | undefined;
 }
@@ -118,7 +118,7 @@ export function Form({
         }
 
         try {
-          await onSubmit(
+          const eventId = await onSubmit(
             {
               name: data.name,
               email: data.email,
@@ -128,9 +128,9 @@ export function Form({
             },
             { attachments: data.attachments },
           );
-          onSubmitSuccess(data);
+          onSubmitSuccess(data, eventId);
         } catch (error) {
-          DEBUG_BUILD && logger.error(error);
+          DEBUG_BUILD && debug.error(error);
           setError(error as string);
           onSubmitError(error as Error);
         }

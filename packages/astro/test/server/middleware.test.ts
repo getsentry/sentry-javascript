@@ -482,4 +482,11 @@ describe('interpolateRouteFromUrlAndParams', () => {
     const expectedRoute = '/usernames/user';
     expect(interpolateRouteFromUrlAndParams(rawUrl, params)).toEqual(expectedRoute);
   });
+
+  it('removes trailing slashes from the route', () => {
+    const rawUrl = '/users/123/';
+    const params = { id: '123' };
+    const expectedRoute = '/users/[id]';
+    expect(interpolateRouteFromUrlAndParams(rawUrl, params)).toEqual(expectedRoute);
+  });
 });

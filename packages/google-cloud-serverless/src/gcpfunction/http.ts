@@ -1,8 +1,8 @@
 import {
+  debug,
   handleCallbackErrors,
   httpRequestToRequestData,
   isString,
-  logger,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setHttpStatus,
@@ -68,7 +68,7 @@ function _wrapHttpFunction(fn: HttpFunction, options: Partial<WrapperOptions>): 
             // eslint-disable-next-line @typescript-eslint/no-floating-promises
             flush(flushTimeout)
               .then(null, e => {
-                DEBUG_BUILD && logger.error(e);
+                DEBUG_BUILD && debug.error(e);
               })
               .then(() => {
                 _end.call(this, chunk, encoding, cb);

@@ -1,11 +1,12 @@
 import type { Span } from '@sentry/core';
 import {
   continueTrace,
+  debug,
+  flushIfServerless,
   getCurrentScope,
   getDefaultIsolationScope,
   getIsolationScope,
   getTraceMetaTags,
-  logger,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setHttpStatus,
@@ -15,7 +16,7 @@ import {
 } from '@sentry/core';
 import type { Handle, ResolveOptions } from '@sveltejs/kit';
 import { DEBUG_BUILD } from '../common/debug-build';
-import { flushIfServerless, getTracePropagationData, sendErrorToSentry } from './utils';
+import { getTracePropagationData, sendErrorToSentry } from './utils';
 
 export type SentryHandleOptions = {
   /**
@@ -112,7 +113,7 @@ async function instrumentHandle(
   if (getIsolationScope() !== getDefaultIsolationScope()) {
     getIsolationScope().setTransactionName(routeName);
   } else {
-    DEBUG_BUILD && logger.warn('Isolation scope is default isolation scope - skipping setting transactionName');
+    DEBUG_BUILD && debug.warn('Isolation scope is default isolation scope - skipping setting transactionName');
   }
 
   try {

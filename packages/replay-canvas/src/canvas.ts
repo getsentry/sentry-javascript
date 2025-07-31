@@ -94,7 +94,7 @@ export const _replayCanvasIntegration = ((options: Partial<ReplayCanvasOptions> 
                 if (typeof err === 'object') {
                   (err as Error & { __rrweb__?: boolean }).__rrweb__ = true;
                 }
-              } catch (error) {
+              } catch {
                 // ignore errors here
                 // this can happen if the error is frozen or does not allow mutation for other reasons
               }

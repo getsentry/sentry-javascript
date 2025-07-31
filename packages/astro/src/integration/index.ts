@@ -23,13 +23,36 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
         // Will revisit this later.
         const env = process.env;
 
+        const {
+          enabled,
+          clientInitPath,
+          serverInitPath,
+          autoInstrumentation,
+          sourceMapsUploadOptions,
+          bundleSizeOptimizations,
+          debug,
+          ...otherOptions
+        } = options;
+
+        const otherOptionsKeys = Object.keys(otherOptions);
+        if (otherOptionsKeys.length > 0) {
+          consoleSandbox(() => {
+            //  eslint-disable-next-line no-console
+            console.warn(
+              `[Sentry] You passed in additional options (${otherOptionsKeys.join(
+                ', ',
+              )}) to the Sentry integration. This is deprecated and will stop working in a future version. Instead, configure the Sentry SDK in your \`sentry.client.config.(js|ts)\` or \`sentry.server.config.(js|ts)\` files.`,
+            );
+          });
+        }
+
         const sdkEnabled = {
-          client: typeof options.enabled === 'boolean' ? options.enabled : options.enabled?.client ?? true,
-          server: typeof options.enabled === 'boolean' ? options.enabled : options.enabled?.server ?? true,
+          client: typeof enabled === 'boolean' ? enabled : enabled?.client ?? true,
+          server: typeof enabled === 'boolean' ? enabled : enabled?.server ?? true,
         };
 
         const sourceMapsNeeded = sdkEnabled.client || sdkEnabled.server;
-        const { unstable_sentryVitePluginOptions, ...uploadOptions } = options.sourceMapsUploadOptions || {};
+        const { unstable_sentryVitePluginOptions, ...uploadOptions } = sourceMapsUploadOptions || {};
         const shouldUploadSourcemaps = (sourceMapsNeeded && uploadOptions?.enabled) ?? true;
 
         // We don't need to check for AUTH_TOKEN here, because the plugin will pick it up from the env
@@ -72,7 +95,7 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
                     },
                   },
                   ...unstable_sentryVitePluginOptions,
-                  debug: options.debug ?? false,
+                  debug: debug ?? false,
                   sourcemaps: {
                     assets: uploadOptions.assets ?? [getSourcemapsAssetsGlob(config)],
                     filesToDeleteAfterUpload:
@@ -80,10 +103,7 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
                     ...unstable_sentryVitePluginOptions?.sourcemaps,
                   },
                   bundleSizeOptimizations: {
-                    ...options.bundleSizeOptimizations,
-                    // TODO: with a future version of the vite plugin (probably 2.22.0) this re-mapping is not needed anymore
-                    // ref: https://github.com/getsentry/sentry-javascript-bundler-plugins/pull/582
-                    excludePerformanceMonitoring: options.bundleSizeOptimizations?.excludeTracing,
+                    ...bundleSizeOptimizations,
                     ...unstable_sentryVitePluginOptions?.bundleSizeOptimizations,
                   },
                 }),
@@ -93,28 +113,24 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
         }
 
         if (sdkEnabled.client) {
-          const pathToClientInit = options.clientInitPath
-            ? path.resolve(options.clientInitPath)
-            : findDefaultSdkInitFile('client');
+          const pathToClientInit = clientInitPath ? path.resolve(clientInitPath) : findDefaultSdkInitFile('client');
 
           if (pathToClientInit) {
-            options.debug && logger.info(`Using ${pathToClientInit} for client init.`);
+            debug && logger.info(`Using ${pathToClientInit} for client init.`);
             injectScript('page', buildSdkInitFileImportSnippet(pathToClientInit));
           } else {
-            options.debug && logger.info('Using default client init.');
+            debug && logger.info('Using default client init.');
             injectScript('page', buildClientSnippet(options || {}));
           }
         }
 
         if (sdkEnabled.server) {
-          const pathToServerInit = options.serverInitPath
-            ? path.resolve(options.serverInitPath)
-            : findDefaultSdkInitFile('server');
+          const pathToServerInit = serverInitPath ? path.resolve(serverInitPath) : findDefaultSdkInitFile('server');
           if (pathToServerInit) {
-            options.debug && logger.info(`Using ${pathToServerInit} for server init.`);
+            debug && logger.info(`Using ${pathToServerInit} for server init.`);
             injectScript('page-ssr', buildSdkInitFileImportSnippet(pathToServerInit));
           } else {
-            options.debug && logger.info('Using default server init.');
+            debug && logger.info('Using default server init.');
             injectScript('page-ssr', buildServerSnippet(options || {}));
           }
 
@@ -136,7 +152,7 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
         }
 
         const isSSR = config && (config.output === 'server' || config.output === 'hybrid');
-        const shouldAddMiddleware = sdkEnabled.server && options.autoInstrumentation?.requestHandler !== false;
+        const shouldAddMiddleware = sdkEnabled.server && autoInstrumentation?.requestHandler !== false;
 
         // Guarding calling the addMiddleware function because it was only introduced in astro@3.5.0
         // Users on older versions of astro will need to add the middleware manually.

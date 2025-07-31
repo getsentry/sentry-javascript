@@ -1,0 +1,12 @@
+{
+  "name": "Sentry JavaScript SDK Development",
+  "install": "curl https://get.volta.sh | bash && export VOLTA_HOME=\"$HOME/.volta\" && export PATH=\"$VOLTA_HOME/bin:$PATH\" && export VOLTA_FEATURE_PNPM=1 && yarn install",
+  "start": "export VOLTA_HOME=\"$HOME/.volta\" && export PATH=\"$VOLTA_HOME/bin:$PATH\" && export VOLTA_FEATURE_PNPM=1",
+  "terminals": [
+    {
+      "name": "Development",
+      "command": "export VOLTA_HOME=\"$HOME/.volta\" && export PATH=\"$VOLTA_HOME/bin:$PATH\" && export VOLTA_FEATURE_PNPM=1 && echo 'Volta setup complete. Node version:' && node --version && echo 'Yarn version:' && yarn --version",
+      "description": "Main development terminal with Volta environment configured"
+    }
+  ]
+}

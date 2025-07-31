@@ -22,7 +22,7 @@ test.describe('client - navigation performance', () => {
           data: {
             'sentry.origin': 'auto.navigation.react-router',
             'sentry.op': 'navigation',
-            'sentry.source': 'url',
+            'sentry.source': 'route',
           },
           op: 'navigation',
           origin: 'auto.navigation.react-router',
@@ -33,7 +33,7 @@ test.describe('client - navigation performance', () => {
       timestamp: expect.any(Number),
       transaction: '/performance/ssr',
       type: 'transaction',
-      transaction_info: { source: 'url' },
+      transaction_info: { source: 'route' },
       platform: 'javascript',
       request: {
         url: expect.stringContaining('/performance/ssr'),

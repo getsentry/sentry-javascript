@@ -2,14 +2,11 @@
 import { isThenable } from './is';
 
 /** SyncPromise internal states */
-const enum States {
-  /** Pending */
-  PENDING = 0,
-  /** Resolved / OK */
-  RESOLVED = 1,
-  /** Rejected / Error */
-  REJECTED = 2,
-}
+const STATE_PENDING = 0;
+const STATE_RESOLVED = 1;
+const STATE_REJECTED = 2;
+
+type State = typeof STATE_PENDING | typeof STATE_RESOLVED | typeof STATE_REJECTED;
 
 // Overloads so we can call resolvedSyncPromise without arguments and generic argument
 export function resolvedSyncPromise(): PromiseLike<void>;
@@ -46,12 +43,12 @@ type Executor<T> = (resolve: (value?: T | PromiseLike<T> | null) => void, reject
  * but is not async internally
  */
 export class SyncPromise<T> implements PromiseLike<T> {
-  private _state: States;
+  private _state: State;
   private _handlers: Array<[boolean, (value: T) => void, (reason: any) => any]>;
   private _value: any;
 
   public constructor(executor: Executor<T>) {
-    this._state = States.PENDING;
+    this._state = STATE_PENDING;
     this._handlers = [];
 
     this._runExecutor(executor);
@@ -135,7 +132,7 @@ export class SyncPromise<T> implements PromiseLike<T> {
 
   /** Excute the resolve/reject handlers. */
   private _executeHandlers(): void {
-    if (this._state === States.PENDING) {
+    if (this._state === STATE_PENDING) {
       return;
     }
 
@@ -147,11 +144,11 @@ export class SyncPromise<T> implements PromiseLike<T> {
         return;
       }
 
-      if (this._state === States.RESOLVED) {
+      if (this._state === STATE_RESOLVED) {
         handler[1](this._value as unknown as any);
       }
 
-      if (this._state === States.REJECTED) {
+      if (this._state === STATE_REJECTED) {
         handler[2](this._value);
       }
 
@@ -161,8 +158,8 @@ export class SyncPromise<T> implements PromiseLike<T> {
 
   /** Run the executor for the SyncPromise. */
   private _runExecutor(executor: Executor<T>): void {
-    const setResult = (state: States, value?: T | PromiseLike<T> | any): void => {
-      if (this._state !== States.PENDING) {
+    const setResult = (state: State, value?: T | PromiseLike<T> | any): void => {
+      if (this._state !== STATE_PENDING) {
         return;
       }
 
@@ -178,11 +175,11 @@ export class SyncPromise<T> implements PromiseLike<T> {
     };
 
     const resolve = (value: unknown): void => {
-      setResult(States.RESOLVED, value);
+      setResult(STATE_RESOLVED, value);
     };
 
     const reject = (reason: unknown): void => {
-      setResult(States.REJECTED, reason);
+      setResult(STATE_REJECTED, reason);
     };
 
     try {

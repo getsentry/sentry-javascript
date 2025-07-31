@@ -97,7 +97,7 @@ function shouldInjectFunction(
   // because the code inside is not executed when the component is instantiated but
   // when the module is first imported.
   // see: https://svelte.dev/docs#component-format-script-context-module
-  if (attributes.context === 'module') {
+  if (attributes.module || attributes.context === 'module') {
     return false;
   }
 

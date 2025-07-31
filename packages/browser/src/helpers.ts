@@ -96,7 +96,7 @@ export function wrap<T extends WrappableFunction, NonFunction>(
     if (getOriginalFunction(fn)) {
       return fn;
     }
-  } catch (e) {
+  } catch {
     // Just accessing custom props in some Selenium environments
     // can cause a "Permission denied" exception (see raven-js#495).
     // Bail on wrapping and return the function as-is (defers to window.onerror).

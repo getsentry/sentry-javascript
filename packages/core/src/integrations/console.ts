@@ -3,7 +3,7 @@ import { getClient } from '../currentScopes';
 import { addConsoleInstrumentationHandler } from '../instrument/console';
 import { defineIntegration } from '../integration';
 import type { ConsoleLevel } from '../types-hoist/instrument';
-import { CONSOLE_LEVELS } from '../utils/logger';
+import { CONSOLE_LEVELS } from '../utils/debug-logger';
 import { severityLevelFromString } from '../utils/severity';
 import { safeJoin } from '../utils/string';
 import { GLOBAL_OBJ } from '../utils/worldwide';

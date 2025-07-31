@@ -79,7 +79,7 @@ export function instrumentXHR(): void {
             // touching statusCode in some platforms throws
             // an exception
             xhrInfo.status_code = xhrOpenThisArg.status;
-          } catch (e) {
+          } catch {
             /* do nothing */
           }
 

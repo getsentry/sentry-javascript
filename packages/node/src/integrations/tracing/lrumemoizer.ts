@@ -1,7 +1,7 @@
 import { LruMemoizerInstrumentation } from '@opentelemetry/instrumentation-lru-memoizer';
 import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
-import { generateInstrumentOnce } from '../../otel/instrument';
+import { generateInstrumentOnce } from '@sentry/node-core';
 
 const INTEGRATION_NAME = 'LruMemoizer';
 

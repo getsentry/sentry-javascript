@@ -44,3 +44,5 @@ next-env.d.ts
 
 test-results
 event-dumps
+
+.tmp_dev_server_logs

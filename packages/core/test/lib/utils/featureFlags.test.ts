@@ -1,11 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { getCurrentScope } from '../../../src/currentScopes';
+import { debug } from '../../../src/utils/debug-logger';
 import {
   type FeatureFlag,
   _INTERNAL_insertFlagToScope,
   _INTERNAL_insertToFlagBuffer,
 } from '../../../src/utils/featureFlags';
-import { logger } from '../../../src/utils/logger';
 
 describe('flags', () => {
   describe('insertFlagToScope()', () => {
@@ -26,7 +26,7 @@ describe('flags', () => {
   });
 
   describe('insertToFlagBuffer()', () => {
-    const loggerSpy = vi.spyOn(logger, 'error');
+    const loggerSpy = vi.spyOn(debug, 'error');
 
     afterEach(() => {
       loggerSpy.mockClear();

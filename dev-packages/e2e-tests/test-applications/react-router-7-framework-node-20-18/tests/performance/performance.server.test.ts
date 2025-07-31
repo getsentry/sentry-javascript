@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 import { APP_NAME } from '../constants';
 
-test.describe('servery - performance', () => {
+test.describe('server - performance', () => {
   test('should send server transaction on pageload', async ({ page }) => {
     const txPromise = waitForTransaction(APP_NAME, async transactionEvent => {
       return transactionEvent.transaction === 'GET /performance';
@@ -19,11 +19,11 @@ test.describe('servery - performance', () => {
           trace_id: expect.any(String),
           data: {
             'sentry.op': 'http.server',
-            'sentry.origin': 'auto.http.otel.http',
+            'sentry.origin': 'auto.http.react-router.request-handler',
             'sentry.source': 'route',
           },
           op: 'http.server',
-          origin: 'auto.http.otel.http',
+          origin: 'auto.http.react-router.request-handler',
         },
       },
       spans: expect.any(Array),
@@ -70,11 +70,11 @@ test.describe('servery - performance', () => {
           trace_id: expect.any(String),
           data: {
             'sentry.op': 'http.server',
-            'sentry.origin': 'auto.http.otel.http',
+            'sentry.origin': 'auto.http.react-router.request-handler',
             'sentry.source': 'route',
           },
           op: 'http.server',
-          origin: 'auto.http.otel.http',
+          origin: 'auto.http.react-router.request-handler',
         },
       },
       spans: expect.any(Array),
@@ -110,26 +110,59 @@ test.describe('servery - performance', () => {
       return transactionEvent.transaction === 'GET /performance/server-loader.data';
     });
 
-    await page.goto(`/performance`); // initial ssr pageloads do not contain .data requests
-    await page.waitForTimeout(500); // quick breather before navigation
+    await page.goto('/performance'); // initial ssr pageloads do not contain .data requests
     await page.getByRole('link', { name: 'Server Loader' }).click(); // this will actually trigger a .data request
 
     const transaction = await txPromise;
 
-    expect(transaction?.spans?.[transaction.spans?.length - 1]).toMatchObject({
+    expect(transaction).toEqual(
+      expect.objectContaining({
+        contexts: expect.objectContaining({
+          trace: {
+            span_id: expect.any(String),
+            trace_id: expect.any(String),
+            op: 'http.server',
+            origin: 'auto.http.react-router.server',
+            parent_span_id: expect.any(String),
+            status: 'ok',
+            data: expect.objectContaining({
+              'http.method': 'GET',
+              'http.response.status_code': 200,
+              'http.status_code': 200,
+              'http.status_text': 'OK',
+              'http.target': '/performance/server-loader.data',
+              'http.url': 'http://localhost:3030/performance/server-loader.data',
+              'sentry.op': 'http.server',
+              'sentry.origin': 'auto.http.react-router.server',
+              'sentry.source': 'url',
+              url: 'http://localhost:3030/performance/server-loader.data',
+            }),
+          },
+        }),
+        transaction: 'GET /performance/server-loader.data',
+        type: 'transaction',
+        transaction_info: { source: 'url' },
+        platform: 'node',
+      }),
+    );
+
+    // ensure we do not have a stray, bogus route attribute
+    expect(transaction.contexts?.trace?.data?.['http.route']).not.toBeDefined();
+
+    expect(transaction.spans).toContainEqual({
       span_id: expect.any(String),
       trace_id: expect.any(String),
       data: {
-        'sentry.origin': 'auto.http.react-router',
         'sentry.op': 'function.react-router.loader',
+        'sentry.origin': 'auto.http.react-router.server',
       },
       description: 'Executing Server Loader',
+      op: 'function.react-router.loader',
+      origin: 'auto.http.react-router.server',
       parent_span_id: expect.any(String),
       start_timestamp: expect.any(Number),
-      timestamp: expect.any(Number),
       status: 'ok',
-      op: 'function.react-router.loader',
-      origin: 'auto.http.react-router',
+      timestamp: expect.any(Number),
     });
   });
 
@@ -143,20 +176,53 @@ test.describe('servery - performance', () => {
 
     const transaction = await txPromise;
 
-    expect(transaction?.spans?.[transaction.spans?.length - 1]).toMatchObject({
+    expect(transaction).toEqual(
+      expect.objectContaining({
+        contexts: expect.objectContaining({
+          trace: {
+            span_id: expect.any(String),
+            trace_id: expect.any(String),
+            op: 'http.server',
+            origin: 'auto.http.react-router.server',
+            parent_span_id: expect.any(String),
+            status: 'ok',
+            data: expect.objectContaining({
+              'http.method': 'POST',
+              'http.response.status_code': 200,
+              'http.status_code': 200,
+              'http.status_text': 'OK',
+              'http.target': '/performance/server-action.data',
+              'http.url': 'http://localhost:3030/performance/server-action.data',
+              'sentry.op': 'http.server',
+              'sentry.origin': 'auto.http.react-router.server',
+              'sentry.source': 'url',
+              url: 'http://localhost:3030/performance/server-action.data',
+            }),
+          },
+        }),
+        transaction: 'POST /performance/server-action.data',
+        type: 'transaction',
+        transaction_info: { source: 'url' },
+        platform: 'node',
+      }),
+    );
+    // ensure we do not have a stray, bogus route attribute
+    expect(transaction.contexts?.trace?.data?.['http.route']).not.toBeDefined();
+
+    expect(transaction.spans).toContainEqual({
       span_id: expect.any(String),
       trace_id: expect.any(String),
       data: {
-        'sentry.origin': 'auto.http.react-router',
         'sentry.op': 'function.react-router.action',
+        'sentry.origin': 'auto.http.react-router.server',
       },
       description: 'Executing Server Action',
+      op: 'function.react-router.action',
+      origin: 'auto.http.react-router.server',
       parent_span_id: expect.any(String),
       start_timestamp: expect.any(Number),
-      timestamp: expect.any(Number),
       status: 'ok',
-      op: 'function.react-router.action',
-      origin: 'auto.http.react-router',
+      timestamp: expect.any(Number),
     });
   });
 });

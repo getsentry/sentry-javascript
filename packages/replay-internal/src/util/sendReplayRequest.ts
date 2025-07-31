@@ -4,7 +4,7 @@ import { REPLAY_EVENT_NAME, UNABLE_TO_SEND_REPLAY } from '../constants';
 import { DEBUG_BUILD } from '../debug-build';
 import type { SendReplayData } from '../types';
 import { createReplayEnvelope } from './createReplayEnvelope';
-import { logger } from './logger';
+import { debug } from './logger';
 import { prepareRecordingData } from './prepareRecordingData';
 import { prepareReplayEvent } from './prepareReplayEvent';
 
@@ -54,7 +54,7 @@ export async function sendReplayRequest({
   if (!replayEvent) {
     // Taken from baseclient's `_processEvent` method, where this is handled for errors/transactions
     client.recordDroppedEvent('event_processor', 'replay');
-    DEBUG_BUILD && logger.info('An event processor returned `null`, will not send event.');
+    DEBUG_BUILD && debug.log('An event processor returned `null`, will not send event.');
     return resolvedSyncPromise({});
   }
 

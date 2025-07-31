@@ -172,7 +172,7 @@ export async function runScriptInSandbox(
 ): Promise<void> {
   try {
     await page.addScriptTag({ path: impl.path, content: impl.content });
-  } catch (e) {
+  } catch {
     // no-op
   }
 }

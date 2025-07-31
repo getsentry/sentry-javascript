@@ -1,5 +1,5 @@
 import type { BaseTransportOptions, Transport, TransportMakeRequestResponse, TransportRequest } from '@sentry/core';
-import { consoleSandbox, createTransport, logger, rejectedSyncPromise, suppressTracing } from '@sentry/core';
+import { consoleSandbox, createTransport, debug, rejectedSyncPromise, suppressTracing } from '@sentry/core';
 
 export interface DenoTransportOptions extends BaseTransportOptions {
   /** Custom headers for the transport. Used by the XHRTransport and FetchTransport */
@@ -24,7 +24,7 @@ export function makeFetchTransport(options: DenoTransportOptions): Transport {
       }
     })
     .catch(() => {
-      logger.warn('Failed to read the "net" permission.');
+      debug.warn('Failed to read the "net" permission.');
     });
 
   function makeRequest(request: TransportRequest): PromiseLike<TransportMakeRequestResponse> {

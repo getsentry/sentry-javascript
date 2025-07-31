@@ -1,6 +1,11 @@
-import { handleCallbackErrors, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SPAN_STATUS_ERROR } from '@sentry/core';
+import {
+  flushIfServerless,
+  handleCallbackErrors,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SPAN_STATUS_ERROR,
+} from '@sentry/core';
 import { captureException, getActiveSpan, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, spanToJSON, startSpan } from '@sentry/node';
-import { flushIfServerless, isRedirect } from './utils';
+import { isRedirect } from './utils';
 
 /**
  * Wraps a server action (functions that use the 'use server' directive)

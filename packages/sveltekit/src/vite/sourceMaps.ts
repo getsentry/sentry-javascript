@@ -330,7 +330,7 @@ export async function makeCustomSentryVitePlugins(options?: CustomSentryVitePlug
         // Not pretty but my testing shows that it works.
         // @ts-expect-error - this hook exists on the plugin!
         await sentryViteDebugIdUploadPlugin.writeBundle({ dir: outDir });
-      } catch (_) {
+      } catch {
         // eslint-disable-next-line no-console
         console.warn('[Source Maps Plugin] Failed to upload source maps!');
         // eslint-disable-next-line no-console
@@ -464,7 +464,7 @@ function detectSentryRelease(): string {
       .execSync('git rev-parse HEAD', { stdio: ['ignore', 'pipe', 'ignore'] })
       .toString()
       .trim();
-  } catch (_) {
+  } catch {
     // the command can throw for various reasons. Most importantly:
     // - git is not installed
     // - there is no git repo or no commit yet

@@ -9,7 +9,7 @@ export interface ContinuousProfiler<T extends Client> {
   stop(): void;
 }
 
-export interface ProfilingIntegration<T extends Client> extends Integration {
+export interface ProfilingIntegration<T extends Client = Client> extends Integration {
   _profiler: ContinuousProfiler<T>;
 }
 

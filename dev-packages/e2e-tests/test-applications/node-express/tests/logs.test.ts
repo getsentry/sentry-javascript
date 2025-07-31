@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { waitForEnvelopeItem } from '@sentry-internal/test-utils';
-import type { SerializedLog, SerializedLogContainer } from '@sentry/core';
+import type { SerializedLogContainer } from '@sentry/core';
 
 test('should send logs', async ({ baseURL }) => {
   const logEnvelopePromise = waitForEnvelopeItem('node-express', envelope => {

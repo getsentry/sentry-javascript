@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/node-integration-tests",
-  "version": "9.34.0",
+  "version": "9.40.0",
   "license": "MIT",
   "engines": {
     "node": ">=18"
@@ -16,23 +16,21 @@
     "build:types": "tsc -p tsconfig.types.json",
     "clean": "rimraf -g **/node_modules && run-p clean:script",
     "clean:script": "node scripts/clean.js",
-    "express-v5-install": "cd suites/express-v5 && yarn --no-lockfile",
     "lint": "eslint . --format stylish",
     "fix": "eslint . --format stylish --fix",
     "type-check": "tsc",
-    "pretest": "yarn express-v5-install",
     "test": "vitest run",
     "test:watch": "yarn test --watch"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.552.0",
     "@hapi/hapi": "^21.3.10",
-    "@nestjs/common": "11.0.16",
-    "@nestjs/core": "10.4.6",
-    "@nestjs/platform-express": "10.4.6",
-    "@sentry/aws-serverless": "9.34.0",
-    "@sentry/core": "9.34.0",
-    "@sentry/node": "9.34.0",
+    "@nestjs/common": "11.1.3",
+    "@nestjs/core": "11.1.3",
+    "@nestjs/platform-express": "11.1.3",
+    "@sentry/aws-serverless": "9.40.0",
+    "@sentry/core": "9.40.0",
+    "@sentry/node": "9.40.0",
     "@types/mongodb": "^3.6.20",
     "@types/mysql": "^2.15.21",
     "@types/pg": "^8.6.5",
@@ -71,10 +69,14 @@
     "yargs": "^16.2.0"
   },
   "devDependencies": {
+    "@sentry-internal/test-utils": "link:../test-utils",
     "@types/amqplib": "^0.10.5",
     "@types/node-cron": "^3.0.11",
     "@types/node-schedule": "^2.1.7",
-    "globby": "11"
+    "file-type": "^20.4.1",
+    "globby": "11",
+    "react": "^18.3.1",
+    "zod": "^3.24.1"
   },
   "config": {
     "mongodbMemoryServer": {

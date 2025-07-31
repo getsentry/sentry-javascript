@@ -71,8 +71,7 @@ class SentryCloudflareTracer implements Tracer {
           ? context
           : typeof fn === 'function'
             ? fn
-            : // eslint-disable-next-line @typescript-eslint/no-empty-function
-              () => {}
+            : () => {}
     ) as F;
 
     // In OTEL the semantic matches `startSpanManual` because spans are not auto-ended

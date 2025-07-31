@@ -7,7 +7,7 @@ if (!testEnv) {
 
 const config = getPlaywrightConfig(
   {
-    startCommand: testEnv === 'development' ? 'pnpm next dev -p 3030 --turbo' : 'pnpm next start -p 3030',
+    startCommand: testEnv === 'development' ? 'pnpm next dev -p 3030 --turbopack' : 'pnpm next start -p 3030',
     port: 3030,
   },
   {

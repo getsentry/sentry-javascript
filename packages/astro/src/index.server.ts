@@ -12,7 +12,9 @@ export {
   addEventProcessor,
   addIntegration,
   amqplibIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   anrIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   disableAnrDetectionForCallback,
   captureCheckIn,
   captureConsoleIntegration,
@@ -37,6 +39,7 @@ export {
   expressIntegration,
   extraErrorDataIntegration,
   fastifyIntegration,
+  firebaseIntegration,
   flush,
   fsIntegration,
   functionToStringIntegration,
@@ -82,6 +85,7 @@ export {
   nodeContextIntegration,
   onUncaughtExceptionIntegration,
   onUnhandledRejectionIntegration,
+  openAIIntegration,
   parameterize,
   postgresIntegration,
   postgresJsIntegration,
@@ -138,6 +142,12 @@ export {
   NODE_VERSION,
   featureFlagsIntegration,
   type FeatureFlagsIntegration,
+  launchDarklyIntegration,
+  buildLaunchDarklyFlagUsedHandler,
+  openFeatureIntegration,
+  OpenFeatureIntegrationHook,
+  statsigIntegration,
+  unleashIntegration,
 } from '@sentry/node';
 
 export { init } from './server/sdk';

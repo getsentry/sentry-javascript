@@ -68,7 +68,7 @@ exports.onCreateWebpackConfig = ({ getConfig, actions }, options) => {
   let configFile = null;
   try {
     configFile = SENTRY_USER_CONFIG.find(file => fs.existsSync(file));
-  } catch (error) {
+  } catch {
     // Some node versions (like v11) throw an exception on `existsSync` instead of
     // returning false. See https://github.com/tschaub/mock-fs/issues/256
   }

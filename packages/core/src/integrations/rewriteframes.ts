@@ -75,7 +75,7 @@ export const rewriteFramesIntegration = defineIntegration((options: RewriteFrame
           })),
         },
       };
-    } catch (_oO) {
+    } catch {
       return event;
     }
   }
@@ -84,7 +84,7 @@ export const rewriteFramesIntegration = defineIntegration((options: RewriteFrame
   function _processStacktrace(stacktrace?: Stacktrace): Stacktrace {
     return {
       ...stacktrace,
-      frames: stacktrace?.frames && stacktrace.frames.map(f => iteratee(f)),
+      frames: stacktrace?.frames?.map(f => iteratee(f)),
     };
   }
 

@@ -256,7 +256,7 @@ function _wrapEventTarget(target: string, integrationOptions: BrowserApiErrorsOp
         if (originalEventHandler) {
           originalRemoveEventListener.call(this, eventName, originalEventHandler, options);
         }
-      } catch (e) {
+      } catch {
         // ignore, accessing __sentry_wrapped__ will throw in some Selenium environments
       }
       return originalRemoveEventListener.call(this, eventName, fn, options);

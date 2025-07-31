@@ -45,7 +45,7 @@ export function uuid4(crypto = getCrypto()): string {
         return typedArray[0]!;
       };
     }
-  } catch (_) {
+  } catch {
     // some runtimes can crash invoking crypto
     // https://github.com/getsentry/sentry-javascript/issues/8935
   }
@@ -222,7 +222,7 @@ export function checkOrSetAlreadyCaught(exception: unknown): boolean {
     // set it this way rather than by assignment so that it's not ennumerable and therefore isn't recorded by the
     // `ExtraErrorData` integration
     addNonEnumerableProperty(exception as { [key: string]: unknown }, '__sentry_captured__', true);
-  } catch (err) {
+  } catch {
     // `exception` is a primitive, so we can't mark it seen
   }
 

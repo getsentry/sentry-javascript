@@ -1,5 +1,5 @@
 import type { ReportDialogOptions } from '@sentry/core';
-import { getClient, getCurrentScope, getReportDialogEndpoint, lastEventId, logger } from '@sentry/core';
+import { debug, getClient, getCurrentScope, getReportDialogEndpoint, lastEventId } from '@sentry/core';
 import { DEBUG_BUILD } from './debug-build';
 import { WINDOW } from './helpers';
 
@@ -14,7 +14,7 @@ export function showReportDialog(options: ReportDialogOptions = {}): void {
 
   // doesn't work without a document (React Native)
   if (!injectionPoint) {
-    DEBUG_BUILD && logger.error('[showReportDialog] Global document not defined');
+    DEBUG_BUILD && debug.error('[showReportDialog] Global document not defined');
     return;
   }
 
@@ -23,7 +23,7 @@ export function showReportDialog(options: ReportDialogOptions = {}): void {
   const dsn = client?.getDsn();
 
   if (!dsn) {
-    DEBUG_BUILD && logger.error('[showReportDialog] DSN not configured');
+    DEBUG_BUILD && debug.error('[showReportDialog] DSN not configured');
     return;
   }
 

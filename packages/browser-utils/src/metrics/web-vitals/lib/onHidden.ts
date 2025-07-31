@@ -27,7 +27,7 @@ export interface OnHiddenCallback {
 // The PR removed listening to the `pagehide` event, in favour of only listening to `visibilitychange` event.
 // This is "more correct" but some browsers we still support (Safari <14.4) don't fully support `visibilitychange`
 // or have known bugs w.r.t the `visibilitychange` event.
-// TODO (v10): If we decide to drop support for Safari 14.4, we can use the logic from web-vitals 4.2.4
+// TODO (v11): If we decide to drop support for Safari 14.4, we can use the logic from web-vitals 4.2.4
 // In this case, we also need to update the integration tests that currently trigger the `pagehide` event to
 // simulate the page being hidden.
 export const onHidden = (cb: OnHiddenCallback) => {

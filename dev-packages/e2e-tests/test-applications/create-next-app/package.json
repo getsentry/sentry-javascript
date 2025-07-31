@@ -8,7 +8,7 @@
     "test:prod": "TEST_ENV=prod playwright test",
     "test:dev": "TEST_ENV=dev playwright test",
     "test:build": "pnpm install && pnpm build",
-    "test:build-13": "pnpm install && pnpm add next@13.5.9 && pnpm build",
+    "test:build-13": "pnpm install && pnpm add next@13.5.11 && pnpm build",
     "test:assert": "pnpm test:prod && pnpm test:dev"
   },
   "dependencies": {
@@ -22,7 +22,7 @@
     "typescript": "~5.0.0"
   },
   "devDependencies": {
-    "@playwright/test": "~1.50.0",
+    "@playwright/test": "~1.53.2",
     "@sentry-internal/test-utils": "link:../../../test-utils"
   },
   "volta": {

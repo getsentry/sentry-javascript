@@ -121,8 +121,8 @@ describe('instrumentVueRouter()', () => {
       beforeEachCallback(to, testRoutes['initialPageloadRoute']!, mockNext); // fake initial pageload
       beforeEachCallback(to, from, mockNext);
 
-      expect(mockStartSpan).toHaveBeenCalledTimes(1);
-      expect(mockStartSpan).toHaveBeenCalledWith({
+      expect(mockStartSpan).toHaveBeenCalledTimes(2);
+      expect(mockStartSpan).toHaveBeenLastCalledWith({
         name: transactionName,
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.vue',
@@ -423,6 +423,7 @@ function getAttributesForRoute(route: Route): SpanAttributes {
   const attributes: SpanAttributes = {};
 
   for (const key of Object.keys(params)) {
+    attributes[`url.path.parameter.${key}`] = params[key];
     attributes[`params.${key}`] = params[key];
   }
   for (const key of Object.keys(query)) {

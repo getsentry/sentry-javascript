@@ -13,7 +13,7 @@ const getLatestNextVersion = async () => {
     const response = await fetch('https://registry.npmjs.org/next/latest');
     const data = await response.json();
     return data.version as string;
-  } catch (error) {
+  } catch {
     return '0.0.0';
   }
 };

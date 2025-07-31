@@ -1,5 +1,5 @@
-import { context, diag, DiagLogLevel, propagation, trace } from '@opentelemetry/api';
-import { Resource } from '@opentelemetry/resources';
+import { context, propagation, trace } from '@opentelemetry/api';
+import { defaultResource, resourceFromAttributes } from '@opentelemetry/resources';
 import type { SpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import {
@@ -7,15 +7,13 @@ import {
   ATTR_SERVICE_VERSION,
   SEMRESATTRS_SERVICE_NAMESPACE,
 } from '@opentelemetry/semantic-conventions';
-import { consoleSandbox, GLOBAL_OBJ, logger, SDK_VERSION } from '@sentry/core';
+import { consoleSandbox, debug as coreDebug, GLOBAL_OBJ, SDK_VERSION } from '@sentry/core';
+import { type NodeClient, isCjs, SentryContextManager, setupOpenTelemetryLogger } from '@sentry/node-core';
 import { SentryPropagator, SentrySampler, SentrySpanProcessor } from '@sentry/opentelemetry';
 import { createAddHookMessageChannel } from 'import-in-the-middle';
 import moduleModule from 'module';
 import { DEBUG_BUILD } from '../debug-build';
 import { getOpenTelemetryInstrumentationToPreload } from '../integrations/tracing';
-import { SentryContextManager } from '../otel/contextManager';
-import { isCjs } from '../utils/commonjs';
-import type { NodeClient } from './client';
 
 // About 277h - this must fit into new Array(len)!
 const MAX_MAX_SPAN_WAIT_DURATION = 1_000_000;
@@ -52,7 +50,7 @@ export function maybeInitializeEsmLoader(): void {
           transferList: [addHookMessagePort],
         });
       } catch (error) {
-        logger.warn('Failed to register ESM hook', error);
+        coreDebug.warn('Failed to register ESM hook', error);
       }
     }
   } else {
@@ -79,8 +77,7 @@ export function preloadOpenTelemetry(options: NodePreloadOptions = {}): void {
   const { debug } = options;
 
   if (debug) {
-    logger.enable();
-    setupOpenTelemetryLogger();
+    coreDebug.enable();
   }
 
   if (!isCjs()) {
@@ -92,7 +89,7 @@ export function preloadOpenTelemetry(options: NodePreloadOptions = {}): void {
     fn();
 
     if (debug) {
-      logger.log(`[Sentry] Preloaded ${fn.id} instrumentation`);
+      coreDebug.log(`[Sentry] Preloaded ${fn.id} instrumentation`);
     }
   });
 }
@@ -112,12 +109,14 @@ export function setupOtel(client: NodeClient, options: AdditionalOpenTelemetryOp
   // Create and configure NodeTracerProvider
   const provider = new BasicTracerProvider({
     sampler: new SentrySampler(client),
-    resource: new Resource({
-      [ATTR_SERVICE_NAME]: 'node',
-      // eslint-disable-next-line deprecation/deprecation
-      [SEMRESATTRS_SERVICE_NAMESPACE]: 'sentry',
-      [ATTR_SERVICE_VERSION]: SDK_VERSION,
-    }),
+    resource: defaultResource().merge(
+      resourceFromAttributes({
+        [ATTR_SERVICE_NAME]: 'node',
+        // eslint-disable-next-line deprecation/deprecation
+        [SEMRESATTRS_SERVICE_NAMESPACE]: 'sentry',
+        [ATTR_SERVICE_VERSION]: SDK_VERSION,
+      }),
+    ),
     forceFlushTimeoutMillis: 500,
     spanProcessors: [
       new SentrySpanProcessor({
@@ -145,28 +144,12 @@ export function _clampSpanProcessorTimeout(maxSpanWaitDuration: number | undefin
   // So if this value is too large, this would fail
   if (maxSpanWaitDuration > MAX_MAX_SPAN_WAIT_DURATION) {
     DEBUG_BUILD &&
-      logger.warn(`\`maxSpanWaitDuration\` is too high, using the maximum value of ${MAX_MAX_SPAN_WAIT_DURATION}`);
+      coreDebug.warn(`\`maxSpanWaitDuration\` is too high, using the maximum value of ${MAX_MAX_SPAN_WAIT_DURATION}`);
     return MAX_MAX_SPAN_WAIT_DURATION;
   } else if (maxSpanWaitDuration <= 0 || Number.isNaN(maxSpanWaitDuration)) {
-    DEBUG_BUILD && logger.warn('`maxSpanWaitDuration` must be a positive number, using default value instead.');
+    DEBUG_BUILD && coreDebug.warn('`maxSpanWaitDuration` must be a positive number, using default value instead.');
     return undefined;
   }
 
   return maxSpanWaitDuration;
-}
-
-/**
- * Setup the OTEL logger to use our own logger.
- */
-function setupOpenTelemetryLogger(): void {
-  const otelLogger = new Proxy(logger as typeof logger & { verbose: (typeof logger)['debug'] }, {
-    get(target, prop, receiver) {
-      const actualProp = prop === 'verbose' ? 'debug' : prop;
-      return Reflect.get(target, actualProp, receiver);
-    },
-  });
-
-  // Disable diag, to ensure this works even if called multiple times
-  diag.disable();
-  diag.setLogger(otelLogger, DiagLogLevel.DEBUG);
 }

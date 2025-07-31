@@ -586,6 +586,28 @@ describe('startIdleSpan', () => {
       expect(spanToJSON(idleSpan).status).not.toEqual('deadline_exceeded');
       expect(spanToJSON(idleSpan).timestamp).toBeDefined();
     });
+
+    it("doesn't reset the timeout for standalone spans", () => {
+      const idleSpan = startIdleSpan({ name: 'idle span' }, { finalTimeout: 99_999 });
+      expect(idleSpan).toBeDefined();
+
+      // Start any span to cancel idle timeout
+      startInactiveSpan({ name: 'span' });
+
+      // Wait some time
+      vi.advanceTimersByTime(TRACING_DEFAULTS.childSpanTimeout - 1000);
+      expect(spanToJSON(idleSpan).status).not.toEqual('deadline_exceeded');
+      expect(spanToJSON(idleSpan).timestamp).toBeUndefined();
+
+      // new standalone span should not reset the timeout
+      const standaloneSpan = startInactiveSpan({ name: 'standalone span', experimental: { standalone: true } });
+      expect(standaloneSpan).toBeDefined();
+
+      // Wait for timeout to exceed
+      vi.advanceTimersByTime(1001);
+      expect(spanToJSON(idleSpan).status).not.toEqual('deadline_exceeded');
+      expect(spanToJSON(idleSpan).timestamp).toBeDefined();
+    });
   });
 
   describe('disableAutoFinish', () => {

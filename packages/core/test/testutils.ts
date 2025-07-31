@@ -10,7 +10,7 @@ export const testOnlyIfNodeVersionAtLeast = (minVersion: number): Function => {
     if (Number(currentNodeVersion?.split('.')[0]) < minVersion) {
       return it.skip;
     }
-  } catch (oO) {
+  } catch {
     // we can't tell, so err on the side of running the test
   }
 

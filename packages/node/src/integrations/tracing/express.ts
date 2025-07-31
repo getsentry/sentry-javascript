@@ -5,22 +5,18 @@ import { ExpressInstrumentation } from '@opentelemetry/instrumentation-express';
 import type { IntegrationFn } from '@sentry/core';
 import {
   captureException,
+  debug,
   defineIntegration,
   getDefaultIsolationScope,
   getIsolationScope,
   httpRequestToRequestData,
-  logger,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   spanToJSON,
 } from '@sentry/core';
+import { addOriginToSpan, ensureIsWrapped, generateInstrumentOnce } from '@sentry/node-core';
 import { DEBUG_BUILD } from '../../debug-build';
-import { generateInstrumentOnce } from '../../otel/instrument';
-import { addOriginToSpan } from '../../utils/addOriginToSpan';
-import { ensureIsWrapped } from '../../utils/ensureIsWrapped';
-import { ExpressInstrumentationV5 } from './express-v5/instrumentation';
 
 const INTEGRATION_NAME = 'Express';
-const INTEGRATION_NAME_V5 = 'Express-V5';
 
 function requestHook(span: Span): void {
   addOriginToSpan(span, 'auto.http.otel.express');
@@ -42,7 +38,7 @@ function requestHook(span: Span): void {
 
 function spanNameHook(info: ExpressRequestInfo<unknown>, defaultName: string): string {
   if (getIsolationScope() === getDefaultIsolationScope()) {
-    DEBUG_BUILD && logger.warn('Isolation scope is still default isolation scope - skipping setting transactionName');
+    DEBUG_BUILD && debug.warn('Isolation scope is still default isolation scope - skipping setting transactionName');
     return defaultName;
   }
   if (info.layerType === 'request_handler') {
@@ -63,21 +59,11 @@ export const instrumentExpress = generateInstrumentOnce(
     }),
 );
 
-export const instrumentExpressV5 = generateInstrumentOnce(
-  INTEGRATION_NAME_V5,
-  () =>
-    new ExpressInstrumentationV5({
-      requestHook: span => requestHook(span),
-      spanNameHook: (info, defaultName) => spanNameHook(info, defaultName),
-    }),
-);
-
 const _expressIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
       instrumentExpress();
-      instrumentExpressV5();
     },
   };
 }) satisfies IntegrationFn;

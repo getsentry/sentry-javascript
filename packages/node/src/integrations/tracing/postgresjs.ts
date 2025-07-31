@@ -19,15 +19,14 @@ import {
 } from '@opentelemetry/semantic-conventions';
 import type { IntegrationFn, Span } from '@sentry/core';
 import {
+  debug,
   defineIntegration,
   getCurrentScope,
-  logger,
   SDK_VERSION,
   SPAN_STATUS_ERROR,
   startSpanManual,
 } from '@sentry/core';
-import { generateInstrumentOnce } from '../../otel/instrument';
-import { addOriginToSpan } from '../../utils/addOriginToSpan';
+import { addOriginToSpan, generateInstrumentOnce } from '@sentry/node-core';
 
 const INTEGRATION_NAME = 'PostgresJs';
 const SUPPORTED_VERSIONS = ['>=3.0.0 <4'];
@@ -212,7 +211,7 @@ export class PostgresJsInstrumentation extends InstrumentationBase<PostgresJsIns
                 () => requestHook(span, sanitizedSqlQuery, postgresConnectionContext),
                 error => {
                   if (error) {
-                    logger.error(`Error in requestHook for ${INTEGRATION_NAME} integration:`, error);
+                    debug.error(`Error in requestHook for ${INTEGRATION_NAME} integration:`, error);
                   }
                 },
               );

@@ -53,7 +53,7 @@ export function getCacheKeySafely(redisCommand: string, cmdArgs: IORedisCommandA
     }
 
     return flatten(cmdArgs.map(arg => processArg(arg)));
-  } catch (e) {
+  } catch {
     return undefined;
   }
 }
@@ -82,7 +82,7 @@ export function calculateCacheItemSize(response: unknown): number | undefined {
       else if (typeof value === 'number') return value.toString().length;
       else if (value === null || value === undefined) return 0;
       return JSON.stringify(value).length;
-    } catch (e) {
+    } catch {
       return undefined;
     }
   };

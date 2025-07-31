@@ -2,7 +2,7 @@ import * as http from 'http';
 import { AddressInfo } from 'net';
 import * as path from 'path';
 import { createRequestHandler } from '@remix-run/express';
-import { logger } from '@sentry/core';
+import { debug } from '@sentry/core';
 import type { EnvelopeItemType, Event, TransactionEvent } from '@sentry/core';
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import * as Sentry from '@sentry/node';
@@ -46,7 +46,7 @@ async function makeRequest(
   } catch (e) {
     // We sometimes expect the request to fail, but not the test.
     // So, we do nothing.
-    logger.warn(e);
+    debug.warn(e);
   }
 }
 
@@ -195,7 +195,7 @@ class TestEnv {
 
               this._closeServer()
                 .catch(e => {
-                  logger.warn(e);
+                  debug.warn(e);
                 })
                 .finally(() => {
                   resolve(envelopes);

@@ -4,15 +4,16 @@ import type { HttpInstrumentationConfig } from '@opentelemetry/instrumentation-h
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
 import type { Span } from '@sentry/core';
 import { defineIntegration, getClient, hasSpansEnabled } from '@sentry/core';
-import { NODE_VERSION } from '../../nodeVersion';
-import { generateInstrumentOnce } from '../../otel/instrument';
-import type { NodeClient } from '../../sdk/client';
-import type { HTTPModuleRequestIncomingMessage } from '../../transports/http-module';
+import type { HTTPModuleRequestIncomingMessage, NodeClient } from '@sentry/node-core';
+import {
+  type SentryHttpInstrumentationOptions,
+  addOriginToSpan,
+  generateInstrumentOnce,
+  getRequestUrl,
+  NODE_VERSION,
+  SentryHttpInstrumentation,
+} from '@sentry/node-core';
 import type { NodeClientOptions } from '../../types';
-import { addOriginToSpan } from '../../utils/addOriginToSpan';
-import { getRequestUrl } from '../../utils/getRequestUrl';
-import type { SentryHttpInstrumentationOptions } from './SentryHttpInstrumentation';
-import { SentryHttpInstrumentation } from './SentryHttpInstrumentation';
 
 const INTEGRATION_NAME = 'Http';
 
@@ -78,7 +79,7 @@ interface HttpOptions {
    * By default, spans with 404 status code are ignored.
    * Expects an array of status codes or a range of status codes, e.g. [[300,399], 404] would ignore 3xx and 404 status codes.
    *
-   * @default `[404]`
+   * @default `[[401, 404], [300, 399]]`
    */
   dropSpansForIncomingRequestStatusCodes?: (number | [number, number])[];
 
@@ -183,7 +184,10 @@ export function _shouldInstrumentSpans(options: HttpOptions, clientOptions: Part
  * It creates breadcrumbs and spans for outgoing HTTP requests which will be attached to the currently active span.
  */
 export const httpIntegration = defineIntegration((options: HttpOptions = {}) => {
-  const dropSpansForIncomingRequestStatusCodes = options.dropSpansForIncomingRequestStatusCodes ?? [404];
+  const dropSpansForIncomingRequestStatusCodes = options.dropSpansForIncomingRequestStatusCodes ?? [
+    [401, 404],
+    [300, 399],
+  ];
 
   return {
     name: INTEGRATION_NAME,

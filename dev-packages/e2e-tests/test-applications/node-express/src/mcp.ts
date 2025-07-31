@@ -2,7 +2,7 @@ import express from 'express';
 import { McpServer, ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import { z } from 'zod';
-import { wrapMcpServerWithSentry } from '@sentry/core';
+import { wrapMcpServerWithSentry } from '@sentry/node';
 
 const mcpRouter = express.Router();
 
@@ -55,7 +55,7 @@ mcpRouter.post('/messages', async (req, res) => {
   const sessionId = req.query.sessionId;
   const transport = transports[sessionId as string];
   if (transport) {
-    await transport.handlePostMessage(req, res);
+    await transport.handlePostMessage(req, res, req.body);
   } else {
     res.status(400).send('No transport found for sessionId');
   }

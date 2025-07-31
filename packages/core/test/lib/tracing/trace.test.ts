@@ -94,7 +94,7 @@ describe('startSpan', () => {
         await startSpan({ name: 'GET users/[id]' }, () => {
           return callback();
         });
-      } catch (e) {
+      } catch {
         //
       }
       expect(_span).toBeDefined();
@@ -113,7 +113,7 @@ describe('startSpan', () => {
           span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'http.server');
           return callback();
         });
-      } catch (e) {
+      } catch {
         //
       }
 
@@ -133,7 +133,7 @@ describe('startSpan', () => {
             return callback();
           });
         });
-      } catch (e) {
+      } catch {
         //
       }
 
@@ -160,7 +160,7 @@ describe('startSpan', () => {
             return callback();
           });
         });
-      } catch (e) {
+      } catch {
         //
       }
 
@@ -186,7 +186,7 @@ describe('startSpan', () => {
             return callback();
           },
         );
-      } catch (e) {
+      } catch {
         //
       }
 
@@ -660,30 +660,57 @@ describe('startSpan', () => {
     });
   });
 
-  it('samples with a tracesSampler', () => {
-    const tracesSampler = vi.fn(() => {
+  describe('uses tracesSampler if defined', () => {
+    const tracesSampler = vi.fn<() => boolean | number>(() => {
       return true;
     });
 
-    const options = getDefaultTestClientOptions({ tracesSampler });
-    client = new TestClient(options);
-    setCurrentClient(client);
-    client.init();
+    it.each([true, 1])('returns a positive sampling decision if tracesSampler returns %s', tracesSamplerResult => {
+      tracesSampler.mockReturnValueOnce(tracesSamplerResult);
 
-    startSpan({ name: 'outer', attributes: { test1: 'aa', test2: 'aa', test3: 'bb' } }, outerSpan => {
-      expect(outerSpan).toBeDefined();
+      const options = getDefaultTestClientOptions({ tracesSampler });
+      client = new TestClient(options);
+      setCurrentClient(client);
+      client.init();
+
+      startSpan({ name: 'outer', attributes: { test1: 'aa', test2: 'aa', test3: 'bb' } }, outerSpan => {
+        expect(outerSpan).toBeDefined();
+        expect(spanIsSampled(outerSpan)).toBe(true);
+      });
+
+      expect(tracesSampler).toBeCalledTimes(1);
+      expect(tracesSampler).toHaveBeenLastCalledWith({
+        parentSampled: undefined,
+        name: 'outer',
+        attributes: {
+          test1: 'aa',
+          test2: 'aa',
+          test3: 'bb',
+        },
+        inheritOrSampleWith: expect.any(Function),
+      });
     });
 
-    expect(tracesSampler).toBeCalledTimes(1);
-    expect(tracesSampler).toHaveBeenLastCalledWith({
-      parentSampled: undefined,
-      name: 'outer',
-      attributes: {
-        test1: 'aa',
-        test2: 'aa',
-        test3: 'bb',
-      },
-      inheritOrSampleWith: expect.any(Function),
+    it.each([false, 0])('returns a negative sampling decision if tracesSampler returns %s', tracesSamplerResult => {
+      tracesSampler.mockReturnValueOnce(tracesSamplerResult);
+
+      const options = getDefaultTestClientOptions({ tracesSampler });
+      client = new TestClient(options);
+      setCurrentClient(client);
+      client.init();
+
+      startSpan({ name: 'outer' }, outerSpan => {
+        expect(outerSpan).toBeDefined();
+        expect(spanIsSampled(outerSpan)).toBe(false);
+      });
+
+      expect(tracesSampler).toBeCalledTimes(1);
+      expect(tracesSampler).toHaveBeenLastCalledWith({
+        parentSampled: undefined,
+        attributes: {},
+        name: 'outer',
+        inheritOrSampleWith: expect.any(Function),
+      });
     });
   });
 
@@ -1848,6 +1875,151 @@ describe('continueTrace', () => {
     );
 
     expect(result).toEqual('aha');
+  });
+
+  describe('strictTraceContinuation', () => {
+    const creatOrgIdInDsn = (orgId: number) => {
+      vi.spyOn(client, 'getDsn').mockReturnValue({
+        host: `o${orgId}.ingest.sentry.io`,
+        protocol: 'https',
+        projectId: 'projId',
+      });
+    };
+
+    afterEach(() => {
+      vi.clearAllMocks();
+    });
+
+    it('continues trace when org IDs match', () => {
+      creatOrgIdInDsn(123);
+
+      const scope = continueTrace(
+        {
+          sentryTrace: '12312012123120121231201212312012-1121201211212012-1',
+          baggage: 'sentry-org_id=123',
+        },
+        () => {
+          return getCurrentScope();
+        },
+      );
+
+      expect(scope.getPropagationContext().traceId).toBe('12312012123120121231201212312012');
+      expect(scope.getPropagationContext().parentSpanId).toBe('1121201211212012');
+    });
+
+    it('starts new trace when both SDK and baggage org IDs are set and do not match', () => {
+      creatOrgIdInDsn(123);
+
+      const scope = continueTrace(
+        {
+          sentryTrace: '12312012123120121231201212312012-1121201211212012-1',
+          baggage: 'sentry-org_id=456',
+        },
+        () => {
+          return getCurrentScope();
+        },
+      );
+
+      // Should start a new trace with a different trace ID
+      expect(scope.getPropagationContext().traceId).not.toBe('12312012123120121231201212312012');
+      expect(scope.getPropagationContext().parentSpanId).toBeUndefined();
+    });
+
+    describe('when strictTraceContinuation is true', () => {
+      it('starts new trace when baggage org ID is missing', () => {
+        client.getOptions().strictTraceContinuation = true;
+
+        creatOrgIdInDsn(123);
+
+        const scope = continueTrace(
+          {
+            sentryTrace: '12312012123120121231201212312012-1121201211212012-1',
+            baggage: 'sentry-environment=production',
+          },
+          () => {
+            return getCurrentScope();
+          },
+        );
+
+        // Should start a new trace with a different trace ID
+        expect(scope.getPropagationContext().traceId).not.toBe('12312012123120121231201212312012');
+        expect(scope.getPropagationContext().parentSpanId).toBeUndefined();
+      });
+
+      it('starts new trace when SDK org ID is missing', () => {
+        client.getOptions().strictTraceContinuation = true;
+
+        const scope = continueTrace(
+          {
+            sentryTrace: '12312012123120121231201212312012-1121201211212012-1',
+            baggage: 'sentry-org_id=123',
+          },
+          () => {
+            return getCurrentScope();
+          },
+        );
+
+        // Should start a new trace with a different trace ID
+        expect(scope.getPropagationContext().traceId).not.toBe('12312012123120121231201212312012');
+        expect(scope.getPropagationContext().parentSpanId).toBeUndefined();
+      });
+
+      it('continues trace when both org IDs are missing', () => {
+        client.getOptions().strictTraceContinuation = true;
+
+        const scope = continueTrace(
+          {
+            sentryTrace: '12312012123120121231201212312012-1121201211212012-1',
+            baggage: 'sentry-environment=production',
+          },
+          () => {
+            return getCurrentScope();
+          },
+        );
+
+        // Should continue the trace
+        expect(scope.getPropagationContext().traceId).toBe('12312012123120121231201212312012');
+        expect(scope.getPropagationContext().parentSpanId).toBe('1121201211212012');
+      });
+    });
+
+    describe('when strictTraceContinuation is false', () => {
+      it('continues trace when baggage org ID is missing', () => {
+        client.getOptions().strictTraceContinuation = false;
+
+        creatOrgIdInDsn(123);
+
+        const scope = continueTrace(
+          {
+            sentryTrace: '12312012123120121231201212312012-1121201211212012-1',
+            baggage: 'sentry-environment=production',
+          },
+          () => {
+            return getCurrentScope();
+          },
+        );
+
+        expect(scope.getPropagationContext().traceId).toBe('12312012123120121231201212312012');
+        expect(scope.getPropagationContext().parentSpanId).toBe('1121201211212012');
+      });
+
+      it('SDK org ID is missing', () => {
+        client.getOptions().strictTraceContinuation = false;
+
+        const scope = continueTrace(
+          {
+            sentryTrace: '12312012123120121231201212312012-1121201211212012-1',
+            baggage: 'sentry-org_id=123',
+          },
+          () => {
+            return getCurrentScope();
+          },
+        );
+
+        expect(scope.getPropagationContext().traceId).toBe('12312012123120121231201212312012');
+        expect(scope.getPropagationContext().parentSpanId).toBe('1121201211212012');
+      });
+    });
   });
 });
 

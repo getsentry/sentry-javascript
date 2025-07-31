@@ -62,13 +62,16 @@ export {
   close,
   getSentryRelease,
   createGetModuleFromFilename,
+  // eslint-disable-next-line deprecation/deprecation
   anrIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   disableAnrDetectionForCallback,
   consoleIntegration,
   httpIntegration,
   nativeNodeFetchIntegration,
   onUncaughtExceptionIntegration,
   onUnhandledRejectionIntegration,
+  openAIIntegration,
   modulesIntegration,
   contextLinesIntegration,
   nodeContextIntegration,
@@ -104,6 +107,7 @@ export {
   setupExpressErrorHandler,
   fastifyIntegration,
   setupFastifyErrorHandler,
+  firebaseIntegration,
   koaIntegration,
   setupKoaErrorHandler,
   connectIntegration,
@@ -142,6 +146,12 @@ export {
   createSentryWinstonTransport,
   wrapMcpServerWithSentry,
   featureFlagsIntegration,
+  launchDarklyIntegration,
+  buildLaunchDarklyFlagUsedHandler,
+  openFeatureIntegration,
+  OpenFeatureIntegrationHook,
+  statsigIntegration,
+  unleashIntegration,
 } from '@sentry/node';
 
 export {

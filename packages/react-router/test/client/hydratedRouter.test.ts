@@ -39,8 +39,8 @@ describe('instrumentHydratedRouter', () => {
     };
     (globalThis as any).__reactRouterDataRouter = mockRouter;
 
-    mockPageloadSpan = { updateName: vi.fn(), setAttribute: vi.fn() };
-    mockNavigationSpan = { updateName: vi.fn(), setAttribute: vi.fn() };
+    mockPageloadSpan = { updateName: vi.fn(), setAttributes: vi.fn() };
+    mockNavigationSpan = { updateName: vi.fn(), setAttributes: vi.fn() };
 
     (core.getActiveSpan as any).mockReturnValue(mockPageloadSpan);
     (core.getRootSpan as any).mockImplementation((span: any) => span);
@@ -66,7 +66,7 @@ describe('instrumentHydratedRouter', () => {
   it('updates pageload transaction name if needed', () => {
     instrumentHydratedRouter();
     expect(mockPageloadSpan.updateName).toHaveBeenCalled();
-    expect(mockPageloadSpan.setAttribute).toHaveBeenCalled();
+    expect(mockPageloadSpan.setAttributes).toHaveBeenCalled();
   });
 
   it('creates navigation transaction on navigate', () => {
@@ -89,7 +89,7 @@ describe('instrumentHydratedRouter', () => {
     (core.getActiveSpan as any).mockReturnValue(mockNavigationSpan);
     callback(newState);
     expect(mockNavigationSpan.updateName).toHaveBeenCalled();
-    expect(mockNavigationSpan.setAttribute).toHaveBeenCalled();
+    expect(mockNavigationSpan.setAttributes).toHaveBeenCalled();
   });
 
   it('does not update navigation transaction on state change to loading', () => {
@@ -106,6 +106,6 @@ describe('instrumentHydratedRouter', () => {
     (core.getActiveSpan as any).mockReturnValue(mockNavigationSpan);
     callback(newState);
     expect(mockNavigationSpan.updateName).not.toHaveBeenCalled();
-    expect(mockNavigationSpan.setAttribute).not.toHaveBeenCalled();
+    expect(mockNavigationSpan.setAttributes).not.toHaveBeenCalled();
   });
 });

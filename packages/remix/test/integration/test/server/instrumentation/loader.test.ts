@@ -123,27 +123,14 @@ describe('Remix API Loaders', () => {
 
     const envelopes = await env.getMultipleEnvelopeRequest({
       url,
-      count: 3,
+      count: 2,
       envelopeType: ['transaction', 'event'],
     });
 
-    const [transaction_1, transaction_2] = envelopes.filter(envelope => envelope[1].type === 'transaction');
+    const [transaction] = envelopes.filter(envelope => envelope[1].type === 'transaction');
     const [event] = envelopes.filter(envelope => envelope[1].type === 'event');
 
-    assertSentryTransaction(transaction_1[2], {
-      contexts: {
-        trace: {
-          op: 'http.server',
-          status: 'ok',
-          data: {
-            'http.response.status_code': 302,
-          },
-        },
-      },
-      transaction: `GET loader-json-response/:id`,
-    });
-
-    assertSentryTransaction(transaction_2[2], {
+    assertSentryTransaction(transaction[2], {
       contexts: {
         trace: {
           op: 'http.server',

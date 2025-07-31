@@ -4,9 +4,12 @@ window.Sentry = Sentry;
 
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
-  integrations: [Sentry.browserTracingIntegration()],
+  integrations: [Sentry.browserTracingIntegration({ idleTimeout: 2000 })],
   tracesSampleRate: 1,
 });
 
-// Immediately navigate to a new page to abort the pageload
-window.history.pushState({}, '', '/sub-page');
+// Navigate to a new page to abort the pageload
+// We have to wait >300ms to avoid the redirect handling
+setTimeout(() => {
+  window.history.pushState({}, '', '/sub-page');
+}, 500);

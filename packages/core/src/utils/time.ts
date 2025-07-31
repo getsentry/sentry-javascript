@@ -32,14 +32,13 @@ export function dateTimestampInSeconds(): number {
  */
 function createUnixTimestampInSecondsFunc(): () => number {
   const { performance } = GLOBAL_OBJ as typeof GLOBAL_OBJ & { performance?: Performance };
-  if (!performance?.now) {
+  // Some browser and environments don't have a performance or timeOrigin, so we fallback to
+  // using Date.now() to compute the starting time.
+  if (!performance?.now || !performance.timeOrigin) {
     return dateTimestampInSeconds;
   }
 
-  // Some browser and environments don't have a timeOrigin, so we fallback to
-  // using Date.now() to compute the starting time.
-  const approxStartingTimeOrigin = Date.now() - performance.now();
-  const timeOrigin = performance.timeOrigin == undefined ? approxStartingTimeOrigin : performance.timeOrigin;
+  const timeOrigin = performance.timeOrigin;
 
   // performance.now() is a monotonic clock, which means it starts at 0 when the process begins. To get the current
   // wall clock time (actual UNIX timestamp), we need to add the starting time origin and the current time elapsed.
@@ -55,6 +54,8 @@ function createUnixTimestampInSecondsFunc(): () => number {
   };
 }
 
+let _cachedTimestampInSeconds: (() => number) | undefined;
+
 /**
  * Returns a timestamp in seconds since the UNIX epoch using either the Performance or Date APIs, depending on the
  * availability of the Performance API.
@@ -64,7 +65,11 @@ function createUnixTimestampInSecondsFunc(): () => number {
  * skew can grow to arbitrary amounts like days, weeks or months.
  * See https://github.com/getsentry/sentry-javascript/issues/2590.
  */
-export const timestampInSeconds = createUnixTimestampInSecondsFunc();
+export function timestampInSeconds(): number {
+  // We store this in a closure so that we don't have to create a new function every time this is called.
+  const func = _cachedTimestampInSeconds ?? (_cachedTimestampInSeconds = createUnixTimestampInSecondsFunc());
+  return func();
+}
 
 /**
  * Cached result of getBrowserTimeOrigin.

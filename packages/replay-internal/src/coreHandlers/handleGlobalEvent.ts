@@ -3,7 +3,7 @@ import { DEBUG_BUILD } from '../debug-build';
 import type { ReplayContainer } from '../types';
 import { isErrorEvent, isFeedbackEvent, isReplayEvent, isTransactionEvent } from '../util/eventUtils';
 import { isRrwebError } from '../util/isRrwebError';
-import { logger } from '../util/logger';
+import { debug } from '../util/logger';
 import { resetReplayIdOnDynamicSamplingContext } from '../util/resetReplayIdOnDynamicSamplingContext';
 import { addFeedbackBreadcrumb } from './util/addFeedbackBreadcrumb';
 import { shouldSampleForBufferEvent } from './util/shouldSampleForBufferEvent';
@@ -52,7 +52,7 @@ export function handleGlobalEventListener(replay: ReplayContainer): (event: Even
       // Unless `captureExceptions` is enabled, we want to ignore errors coming from rrweb
       // As there can be a bunch of stuff going wrong in internals there, that we don't want to bubble up to users
       if (isRrwebError(event, hint) && !replay.getOptions()._experiments.captureExceptions) {
-        DEBUG_BUILD && logger.log('Ignoring error from rrweb internals', event);
+        DEBUG_BUILD && debug.log('Ignoring error from rrweb internals', event);
         return null;
       }
 

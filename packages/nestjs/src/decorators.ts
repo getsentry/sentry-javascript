@@ -1,5 +1,5 @@
 import type { MonitorConfig } from '@sentry/core';
-import { captureException } from '@sentry/core';
+import { captureException, isThenable } from '@sentry/core';
 import * as Sentry from '@sentry/node';
 import { startSpan } from '@sentry/node';
 import { isExpectedError } from './helpers';
@@ -15,7 +15,20 @@ export const SentryCron = (monitorSlug: string, monitorConfig?: MonitorConfig): 
       return Sentry.withMonitor(
         monitorSlug,
         () => {
-          return originalMethod.apply(this, args);
+          let result;
+          try {
+            result = originalMethod.apply(this, args);
+          } catch (e) {
+            captureException(e);
+            throw e;
+          }
+          if (isThenable(result)) {
+            return result.then(undefined, e => {
+              captureException(e);
+              throw e;
+            });
+          }
+          return result;
         },
         monitorConfig,
       );
@@ -97,10 +110,18 @@ function copyFunctionNameAndMetadata({
   });
 
   // copy metadata
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore - reflect-metadata of nestjs adds these methods to Reflect
   if (typeof Reflect !== 'undefined' && typeof Reflect.getMetadataKeys === 'function') {
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore - reflect-metadata of nestjs adds these methods to Reflect
     const originalMetaData = Reflect.getMetadataKeys(originalMethod);
     for (const key of originalMetaData) {
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore - reflect-metadata of nestjs adds these methods to Reflect
       const value = Reflect.getMetadata(key, originalMethod);
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore - reflect-metadata of nestjs adds these methods to Reflect
       Reflect.defineMetadata(key, value, descriptor.value);
     }
   }

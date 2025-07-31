@@ -1,19 +1,24 @@
 import type { Client } from '../client';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
 import type { Event } from '../types-hoist/event';
-import type { Span, SpanAttributes, SpanJSON, SpanOrigin } from '../types-hoist/span';
+import type { Span, SpanAttributes, SpanAttributeValue, SpanJSON, SpanOrigin } from '../types-hoist/span';
 import { spanToJSON } from './spanUtils';
+import type { ProviderMetadata } from './vercel-ai-attributes';
 import {
   AI_MODEL_ID_ATTRIBUTE,
   AI_MODEL_PROVIDER_ATTRIBUTE,
   AI_PROMPT_ATTRIBUTE,
   AI_PROMPT_MESSAGES_ATTRIBUTE,
   AI_PROMPT_TOOLS_ATTRIBUTE,
+  AI_RESPONSE_OBJECT_ATTRIBUTE,
+  AI_RESPONSE_PROVIDER_METADATA_ATTRIBUTE,
   AI_RESPONSE_TEXT_ATTRIBUTE,
   AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
   AI_TELEMETRY_FUNCTION_ID_ATTRIBUTE,
+  AI_TOOL_CALL_ARGS_ATTRIBUTE,
   AI_TOOL_CALL_ID_ATTRIBUTE,
   AI_TOOL_CALL_NAME_ATTRIBUTE,
+  AI_TOOL_CALL_RESULT_ATTRIBUTE,
   AI_USAGE_COMPLETION_TOKENS_ATTRIBUTE,
   AI_USAGE_PROMPT_TOKENS_ATTRIBUTE,
   GEN_AI_RESPONSE_MODEL_ATTRIBUTE,
@@ -55,19 +60,15 @@ function onVercelAiSpanStart(span: Span): void {
   processGenerateSpan(span, name, attributes);
 }
 
-const vercelAiEventProcessor = Object.assign(
-  (event: Event): Event => {
-    if (event.type === 'transaction' && event.spans) {
-      for (const span of event.spans) {
-        // this mutates spans in-place
-        processEndedVercelAiSpan(span);
-      }
+function vercelAiEventProcessor(event: Event): Event {
+  if (event.type === 'transaction' && event.spans) {
+    for (const span of event.spans) {
+      // this mutates spans in-place
+      processEndedVercelAiSpan(span);
     }
-    return event;
-  },
-  { id: 'VercelAiEventProcessor' },
-);
-
+  }
+  return event;
+}
 /**
  * Post-process spans emitted by the Vercel AI SDK.
  */
@@ -93,7 +94,20 @@ function processEndedVercelAiSpan(span: SpanJSON): void {
   renameAttributeKey(attributes, AI_PROMPT_MESSAGES_ATTRIBUTE, 'gen_ai.request.messages');
   renameAttributeKey(attributes, AI_RESPONSE_TEXT_ATTRIBUTE, 'gen_ai.response.text');
   renameAttributeKey(attributes, AI_RESPONSE_TOOL_CALLS_ATTRIBUTE, 'gen_ai.response.tool_calls');
+  renameAttributeKey(attributes, AI_RESPONSE_OBJECT_ATTRIBUTE, 'gen_ai.response.object');
   renameAttributeKey(attributes, AI_PROMPT_TOOLS_ATTRIBUTE, 'gen_ai.request.available_tools');
+
+  renameAttributeKey(attributes, AI_TOOL_CALL_ARGS_ATTRIBUTE, 'gen_ai.tool.input');
+  renameAttributeKey(attributes, AI_TOOL_CALL_RESULT_ATTRIBUTE, 'gen_ai.tool.output');
+
+  addProviderMetadataToAttributes(attributes);
+
+  // Change attributes namespaced with `ai.X` to `vercel.ai.X`
+  for (const key of Object.keys(attributes)) {
+    if (key.startsWith('ai.')) {
+      renameAttributeKey(attributes, key, `vercel.${key}`);
+    }
+  }
 }
 
 /**
@@ -111,9 +125,16 @@ function renameAttributeKey(attributes: Record<string, unknown>, oldKey: string,
 function processToolCallSpan(span: Span, attributes: SpanAttributes): void {
   addOriginToSpan(span, 'auto.vercelai.otel');
   span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'gen_ai.execute_tool');
-  span.setAttribute('gen_ai.tool.call.id', attributes[AI_TOOL_CALL_ID_ATTRIBUTE]);
-  span.setAttribute('gen_ai.tool.name', attributes[AI_TOOL_CALL_NAME_ATTRIBUTE]);
-  span.updateName(`execute_tool ${attributes[AI_TOOL_CALL_NAME_ATTRIBUTE]}`);
+  renameAttributeKey(attributes, AI_TOOL_CALL_NAME_ATTRIBUTE, 'gen_ai.tool.name');
+  renameAttributeKey(attributes, AI_TOOL_CALL_ID_ATTRIBUTE, 'gen_ai.tool.call.id');
+  // https://opentelemetry.io/docs/specs/semconv/registry/attributes/gen-ai/#gen-ai-tool-type
+  if (!attributes['gen_ai.tool.type']) {
+    span.setAttribute('gen_ai.tool.type', 'function');
+  }
+  const toolName = attributes['gen_ai.tool.name'];
+  if (toolName) {
+    span.updateName(`execute_tool ${toolName}`);
+  }
 }
 
 function processGenerateSpan(span: Span, name: string, attributes: SpanAttributes): void {
@@ -127,7 +148,7 @@ function processGenerateSpan(span: Span, name: string, attributes: SpanAttribute
   const functionId = attributes[AI_TELEMETRY_FUNCTION_ID_ATTRIBUTE];
   if (functionId && typeof functionId === 'string' && name.split('.').length - 1 === 1) {
     span.updateName(`${nameWthoutAi} ${functionId}`);
-    span.setAttribute('ai.pipeline.name', functionId);
+    span.setAttribute('gen_ai.function_id', functionId);
   }
 
   if (attributes[AI_PROMPT_ATTRIBUTE]) {
@@ -217,5 +238,87 @@ function processGenerateSpan(span: Span, name: string, attributes: SpanAttribute
 export function addVercelAiProcessors(client: Client): void {
   client.on('spanStart', onVercelAiSpanStart);
   // Note: We cannot do this on `spanEnd`, because the span cannot be mutated anymore at this point
-  client.addEventProcessor(vercelAiEventProcessor);
+  client.addEventProcessor(Object.assign(vercelAiEventProcessor, { id: 'VercelAiEventProcessor' }));
+}
+
+function addProviderMetadataToAttributes(attributes: SpanAttributes): void {
+  const providerMetadata = attributes[AI_RESPONSE_PROVIDER_METADATA_ATTRIBUTE] as string | undefined;
+  if (providerMetadata) {
+    try {
+      const providerMetadataObject = JSON.parse(providerMetadata) as ProviderMetadata;
+      if (providerMetadataObject.openai) {
+        setAttributeIfDefined(
+          attributes,
+          'gen_ai.usage.input_tokens.cached',
+          providerMetadataObject.openai.cachedPromptTokens,
+        );
+        setAttributeIfDefined(
+          attributes,
+          'gen_ai.usage.output_tokens.reasoning',
+          providerMetadataObject.openai.reasoningTokens,
+        );
+        setAttributeIfDefined(
+          attributes,
+          'gen_ai.usage.output_tokens.prediction_accepted',
+          providerMetadataObject.openai.acceptedPredictionTokens,
+        );
+        setAttributeIfDefined(
+          attributes,
+          'gen_ai.usage.output_tokens.prediction_rejected',
+          providerMetadataObject.openai.rejectedPredictionTokens,
+        );
+        setAttributeIfDefined(attributes, 'gen_ai.conversation.id', providerMetadataObject.openai.responseId);
+      }
+
+      if (providerMetadataObject.anthropic) {
+        setAttributeIfDefined(
+          attributes,
+          'gen_ai.usage.input_tokens.cached',
+          providerMetadataObject.anthropic.cacheReadInputTokens,
+        );
+        setAttributeIfDefined(
+          attributes,
+          'gen_ai.usage.input_tokens.cache_write',
+          providerMetadataObject.anthropic.cacheCreationInputTokens,
+        );
+      }
+
+      if (providerMetadataObject.bedrock?.usage) {
+        setAttributeIfDefined(
+          attributes,
+          'gen_ai.usage.input_tokens.cached',
+          providerMetadataObject.bedrock.usage.cacheReadInputTokens,
+        );
+        setAttributeIfDefined(
+          attributes,
+          'gen_ai.usage.input_tokens.cache_write',
+          providerMetadataObject.bedrock.usage.cacheWriteInputTokens,
+        );
+      }
+
+      if (providerMetadataObject.deepseek) {
+        setAttributeIfDefined(
+          attributes,
+          'gen_ai.usage.input_tokens.cached',
+          providerMetadataObject.deepseek.promptCacheHitTokens,
+        );
+        setAttributeIfDefined(
+          attributes,
+          'gen_ai.usage.input_tokens.cache_miss',
+          providerMetadataObject.deepseek.promptCacheMissTokens,
+        );
+      }
+    } catch {
+      // Ignore
+    }
+  }
+}
+
+/**
+ * Sets an attribute only if the value is not null or undefined.
+ */
+function setAttributeIfDefined(attributes: SpanAttributes, key: string, value: SpanAttributeValue | undefined): void {
+  if (value != null) {
+    attributes[key] = value;
+  }
 }

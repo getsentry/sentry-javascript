@@ -43,7 +43,7 @@ function wrapHandler<T>(handler: T, method: 'GET' | 'POST' | 'PUT' | 'PATCH' | '
       try {
         const requestAsyncStore = requestAsyncStorage?.getStore() as ReturnType<RequestAsyncStorage['getStore']>;
         headers = requestAsyncStore?.headers;
-      } catch (e) {
+      } catch {
         /** empty */
       }
 

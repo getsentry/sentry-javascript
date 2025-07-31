@@ -8,7 +8,7 @@ import type {
   ReplayNetworkRequestData,
   ReplayNetworkRequestOrResponse,
 } from '../../types';
-import { logger } from '../../util/logger';
+import { debug } from '../../util/logger';
 import { addNetworkBreadcrumb } from './addNetworkBreadcrumb';
 import {
   buildNetworkRequestOrResponse,
@@ -39,7 +39,7 @@ export async function captureFetchBreadcrumbToReplay(
     const result = makeNetworkReplayBreadcrumb('resource.fetch', data);
     addNetworkBreadcrumb(options.replay, result);
   } catch (error) {
-    DEBUG_BUILD && logger.exception(error, 'Failed to capture fetch breadcrumb');
+    DEBUG_BUILD && debug.exception(error, 'Failed to capture fetch breadcrumb');
   }
 }
 
@@ -115,7 +115,7 @@ function _getRequestInfo(
 
   // We only want to transmit string or string-like bodies
   const requestBody = getFetchRequestArgBody(input);
-  const [bodyStr, warning] = getBodyString(requestBody, logger);
+  const [bodyStr, warning] = getBodyString(requestBody, debug);
   const data = buildNetworkRequestOrResponse(headers, requestBodySize, bodyStr);
 
   if (warning) {
@@ -188,7 +188,7 @@ function getResponseData(
 
     return buildNetworkRequestOrResponse(headers, size, undefined);
   } catch (error) {
-    DEBUG_BUILD && logger.exception(error, 'Failed to serialize response body');
+    DEBUG_BUILD && debug.exception(error, 'Failed to serialize response body');
     // fallback
     return buildNetworkRequestOrResponse(headers, responseBodySize, undefined);
   }
@@ -206,11 +206,11 @@ async function _parseFetchResponseBody(response: Response): Promise<[string | un
     return [text];
   } catch (error) {
     if (error instanceof Error && error.message.indexOf('Timeout') > -1) {
-      DEBUG_BUILD && logger.warn('Parsing text body from response timed out');
+      DEBUG_BUILD && debug.warn('Parsing text body from response timed out');
       return [undefined, 'BODY_PARSE_TIMEOUT'];
     }
 
-    DEBUG_BUILD && logger.exception(error, 'Failed to get text body from response');
+    DEBUG_BUILD && debug.exception(error, 'Failed to get text body from response');
     return [undefined, 'BODY_PARSE_ERROR'];
   }
 }
@@ -271,7 +271,7 @@ function _tryCloneResponse(response: Response): Response | void {
     return response.clone();
   } catch (error) {
     // this can throw if the response was already consumed before
-    DEBUG_BUILD && logger.exception(error, 'Failed to clone response body');
+    DEBUG_BUILD && debug.exception(error, 'Failed to clone response body');
   }
 }
 

@@ -34,7 +34,7 @@ sentryTest.describe('When `consistentTraceSampling` is `true` and page contains 
       });
 
       await sentryTest.step('Make fetch request', async () => {
-        const tracingHeadersPromise = waitForTracingHeadersOnUrl(page, 'https://someUrl.com');
+        const tracingHeadersPromise = waitForTracingHeadersOnUrl(page, 'http://sentry-test-external.io');
 
         await page.locator('#btn2').click();
 

@@ -1,5 +1,5 @@
 /* eslint-disable max-lines */
-import type { Measurements, Span, SpanAttributes, SpanAttributeValue, StartSpanOptions } from '@sentry/core';
+import type { Client, Measurements, Span, SpanAttributes, SpanAttributeValue, StartSpanOptions } from '@sentry/core';
 import {
   browserPerformanceTimeOrigin,
   getActiveSpan,
@@ -17,7 +17,6 @@ import { trackClsAsStandaloneSpan } from './cls';
 import {
   type PerformanceLongAnimationFrameTiming,
   addClsInstrumentationHandler,
-  addFidInstrumentationHandler,
   addLcpInstrumentationHandler,
   addPerformanceInstrumentationHandler,
   addTtfbInstrumentationHandler,
@@ -83,6 +82,7 @@ let _clsEntry: LayoutShift | undefined;
 interface StartTrackingWebVitalsOptions {
   recordClsStandaloneSpans: boolean;
   recordLcpStandaloneSpans: boolean;
+  client: Client;
 }
 
 /**
@@ -94,6 +94,7 @@ interface StartTrackingWebVitalsOptions {
 export function startTrackingWebVitals({
   recordClsStandaloneSpans,
   recordLcpStandaloneSpans,
+  client,
 }: StartTrackingWebVitalsOptions): () => void {
   const performance = getBrowserPerformanceAPI();
   if (performance && browserPerformanceTimeOrigin()) {
@@ -101,13 +102,11 @@ export function startTrackingWebVitals({
     if (performance.mark) {
       WINDOW.performance.mark('sentry-tracing-init');
     }
-    const fidCleanupCallback = _trackFID();
-    const lcpCleanupCallback = recordLcpStandaloneSpans ? trackLcpAsStandaloneSpan() : _trackLCP();
+    const lcpCleanupCallback = recordLcpStandaloneSpans ? trackLcpAsStandaloneSpan(client) : _trackLCP();
     const ttfbCleanupCallback = _trackTtfb();
-    const clsCleanupCallback = recordClsStandaloneSpans ? trackClsAsStandaloneSpan() : _trackCLS();
+    const clsCleanupCallback = recordClsStandaloneSpans ? trackClsAsStandaloneSpan(client) : _trackCLS();
 
     return (): void => {
-      fidCleanupCallback();
       lcpCleanupCallback?.();
       ttfbCleanupCallback();
       clsCleanupCallback?.();
@@ -275,21 +274,6 @@ function _trackLCP(): () => void {
   }, true);
 }
 
-/** Starts tracking the First Input Delay on the current page. */
-function _trackFID(): () => void {
-  return addFidInstrumentationHandler(({ metric }) => {
-    const entry = metric.entries[metric.entries.length - 1];
-    if (!entry) {
-      return;
-    }
-
-    const timeOrigin = msToSec(browserPerformanceTimeOrigin() as number);
-    const startTime = msToSec(entry.startTime);
-    _measurements['fid'] = { value: metric.value, unit: 'millisecond' };
-    _measurements['mark.fid'] = { value: timeOrigin + startTime, unit: 'second' };
-  });
-}
-
 function _trackTtfb(): () => void {
   return addTtfbInstrumentationHandler(({ metric }) => {
     const entry = metric.entries[metric.entries.length - 1];
@@ -413,25 +397,8 @@ export function addPerformanceEntries(span: Span, options: AddPerformanceEntries
   if (op === 'pageload') {
     _addTtfbRequestTimeToMeasurements(_measurements);
 
-    const fidMark = _measurements['mark.fid'];
-    if (fidMark && _measurements['fid']) {
-      // create span for FID
-      startAndEndSpan(span, fidMark.value, fidMark.value + msToSec(_measurements['fid'].value), {
-        name: 'first input delay',
-        op: 'ui.action',
-        attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
-        },
-      });
-
-      // Delete mark.fid as we don't want it to be part of final payload
-      delete _measurements['mark.fid'];
-    }
-
-    // If FCP is not recorded we should not record the cls value
-    // according to the new definition of CLS.
-    // TODO: Check if the first condition is still necessary: `onCLS` already only fires once `onFCP` was called.
-    if (!('fcp' in _measurements) || !options.recordClsOnPageloadSpan) {
+    // If CLS standalone spans are enabled, don't record CLS as a measurement
+    if (!options.recordClsOnPageloadSpan) {
       delete _measurements.cls;
     }
 
@@ -715,9 +682,13 @@ export function _addResourceSpans(
 
   attributes['url.same_origin'] = resourceUrl.includes(WINDOW.location.origin);
 
-  const { name, version } = extractNetworkProtocol(entry.nextHopProtocol);
-  attributes['network.protocol.name'] = name;
-  attributes['network.protocol.version'] = version;
+  // Checking for only `undefined` and `null` is intentional because it's
+  // valid for `nextHopProtocol` to be an empty string.
+  if (entry.nextHopProtocol != null) {
+    const { name, version } = extractNetworkProtocol(entry.nextHopProtocol);
+    attributes['network.protocol.name'] = name;
+    attributes['network.protocol.version'] = version;
+  }
 
   const startTimestamp = timeOrigin + startTime;
   const endTimestamp = startTimestamp + duration;

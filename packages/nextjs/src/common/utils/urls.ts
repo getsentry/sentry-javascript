@@ -91,7 +91,7 @@ export function extractSanitizedUrlFromRefererHeader(headersDict?: HeadersDict):
   try {
     const refererUrl = new URL(referer);
     return getSanitizedUrlStringFromUrlObject(refererUrl);
-  } catch (error) {
+  } catch {
     return undefined;
   }
 }

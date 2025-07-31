@@ -3,7 +3,7 @@
  */
 
 import type { Client } from '@sentry/core';
-import { logger } from '@sentry/core';
+import { debug } from '@sentry/core';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createApp } from 'vue';
 import * as Sentry from '../../src';
@@ -35,7 +35,7 @@ describe('Sentry.VueIntegration', () => {
     warnings = [];
     loggerWarnings = [];
 
-    vi.spyOn(logger, 'warn').mockImplementation((message: unknown) => {
+    vi.spyOn(debug, 'warn').mockImplementation((message: unknown) => {
       loggerWarnings.push(message);
     });
 

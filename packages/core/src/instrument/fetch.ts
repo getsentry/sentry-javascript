@@ -172,7 +172,7 @@ async function resolveResponse(res: Response | undefined, onFinishedResolving: (
           onFinishedResolving();
           readingActive = false;
         }
-      } catch (error) {
+      } catch {
         readingActive = false;
       } finally {
         clearTimeout(chunkTimeout);

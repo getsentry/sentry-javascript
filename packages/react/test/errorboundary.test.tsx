@@ -96,6 +96,122 @@ describe('withErrorBoundary', () => {
     const Component = withErrorBoundary(() => <h1>Hello World</h1>, { fallback: <h1>fallback</h1> });
     expect(Component.displayName).toBe(`errorBoundary(${UNKNOWN_COMPONENT})`);
   });
+
+  it('does not rerender when props are identical', () => {
+    let renderCount = 0;
+    const TestComponent = ({ title }: { title: string }) => {
+      renderCount++;
+      return <h1>{title}</h1>;
+    };
+
+    const WrappedComponent = withErrorBoundary(TestComponent, { fallback: <h1>fallback</h1> });
+    const { rerender } = render(<WrappedComponent title="test" />);
+
+    expect(renderCount).toBe(1);
+
+    // Rerender with identical props - should not cause TestComponent to rerender
+    rerender(<WrappedComponent title="test" />);
+    expect(renderCount).toBe(1);
+
+    // Rerender with different props - should cause TestComponent to rerender
+    rerender(<WrappedComponent title="different" />);
+    expect(renderCount).toBe(2);
+  });
+
+  it('does not rerender when complex props are identical', () => {
+    let renderCount = 0;
+    const TestComponent = ({ data }: { data: { id: number; name: string } }) => {
+      renderCount++;
+      return <h1>{data.name}</h1>;
+    };
+
+    const WrappedComponent = withErrorBoundary(TestComponent, { fallback: <h1>fallback</h1> });
+    const props = { data: { id: 1, name: 'test' } };
+    const { rerender } = render(<WrappedComponent {...props} />);
+
+    expect(renderCount).toBe(1);
+
+    // Rerender with same object reference - should not cause TestComponent to rerender
+    rerender(<WrappedComponent {...props} />);
+    expect(renderCount).toBe(1);
+
+    // Rerender with different object but same values - should cause rerender
+    rerender(<WrappedComponent data={{ id: 1, name: 'test' }} />);
+    expect(renderCount).toBe(2);
+
+    // Rerender with different values - should cause rerender
+    rerender(<WrappedComponent data={{ id: 2, name: 'different' }} />);
+    expect(renderCount).toBe(3);
+  });
+
+  it('does not rerender when errorBoundaryOptions are the same', () => {
+    let renderCount = 0;
+    const TestComponent = ({ title }: { title: string }) => {
+      renderCount++;
+      return <h1>{title}</h1>;
+    };
+
+    const errorBoundaryOptions = { fallback: <h1>fallback</h1> };
+    const WrappedComponent = withErrorBoundary(TestComponent, errorBoundaryOptions);
+    const { rerender } = render(<WrappedComponent title="test" />);
+
+    expect(renderCount).toBe(1);
+
+    // Rerender with identical props - should not cause TestComponent to rerender
+    rerender(<WrappedComponent title="test" />);
+    expect(renderCount).toBe(1);
+  });
+
+  it('preserves function component behavior with React.memo', () => {
+    const TestComponent = ({ title }: { title: string }) => <h1>{title}</h1>;
+    const WrappedComponent = withErrorBoundary(TestComponent, { fallback: <h1>fallback</h1> });
+
+    expect(WrappedComponent).toBeDefined();
+    expect(typeof WrappedComponent).toBe('object');
+    expect(WrappedComponent.displayName).toBe('errorBoundary(TestComponent)');
+
+    const { container } = render(<WrappedComponent title="test" />);
+    expect(container.innerHTML).toContain('test');
+  });
+
+  it('does not rerender parent component unnecessarily', () => {
+    let parentRenderCount = 0;
+    let childRenderCount = 0;
+
+    const ChildComponent = ({ value }: { value: number }) => {
+      childRenderCount++;
+      return <div>Child: {value}</div>;
+    };
+
+    const WrappedChild = withErrorBoundary(ChildComponent, { fallback: <div>Error</div> });
+
+    const ParentComponent = ({ childValue, otherProp }: { childValue: number; otherProp: string }) => {
+      parentRenderCount++;
+      return (
+        <div>
+          <div>Parent: {otherProp}</div>
+          <WrappedChild value={childValue} />
+        </div>
+      );
+    };
+
+    const { rerender } = render(<ParentComponent childValue={1} otherProp="test" />);
+
+    expect(parentRenderCount).toBe(1);
+    expect(childRenderCount).toBe(1);
+
+    // Change otherProp but keep childValue the same
+    rerender(<ParentComponent childValue={1} otherProp="changed" />);
+
+    expect(parentRenderCount).toBe(2); // Parent should rerender
+    expect(childRenderCount).toBe(1); // Child should NOT rerender due to memo
+
+    // Change childValue
+    rerender(<ParentComponent childValue={2} otherProp="changed" />);
+
+    expect(parentRenderCount).toBe(3); // Parent should rerender
+    expect(childRenderCount).toBe(2); // Child should rerender due to changed props
+  });
 });
 
 describe('ErrorBoundary', () => {

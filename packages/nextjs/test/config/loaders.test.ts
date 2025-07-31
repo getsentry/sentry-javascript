@@ -240,7 +240,7 @@ describe('webpack loaders', () => {
       });
 
       expect(finalWebpackConfig.module.rules).toContainEqual({
-        test: /sentry\.client\.config\.(jsx?|tsx?)/,
+        test: /(?:sentry\.client\.config\.(jsx?|tsx?)|(?:src[\\/])?instrumentation-client\.(js|ts))$/,
         use: [
           {
             loader: expect.stringMatching(/valueInjectionLoader\.js$/),

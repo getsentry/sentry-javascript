@@ -7,7 +7,6 @@ afterAll(() => {
 
 test('should capture and send Express controller error with txn name if tracesSampleRate is 0', async () => {
   const runner = createRunner(__dirname, 'server.ts')
-    .ignore('transaction')
     .expect({
       event: {
         exception: {

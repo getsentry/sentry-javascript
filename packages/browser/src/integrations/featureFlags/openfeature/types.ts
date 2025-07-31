@@ -17,16 +17,17 @@ export const StandardResolutionReasons = {
   STALE: 'STALE',
   ERROR: 'ERROR',
 } as const;
-export enum ErrorCode {
-  PROVIDER_NOT_READY = 'PROVIDER_NOT_READY',
-  PROVIDER_FATAL = 'PROVIDER_FATAL',
-  FLAG_NOT_FOUND = 'FLAG_NOT_FOUND',
-  PARSE_ERROR = 'PARSE_ERROR',
-  TYPE_MISMATCH = 'TYPE_MISMATCH',
-  TARGETING_KEY_MISSING = 'TARGETING_KEY_MISSING',
-  INVALID_CONTEXT = 'INVALID_CONTEXT',
-  GENERAL = 'GENERAL',
-}
+
+type ErrorCode =
+  | 'PROVIDER_NOT_READY'
+  | 'PROVIDER_FATAL'
+  | 'FLAG_NOT_FOUND'
+  | 'PARSE_ERROR'
+  | 'TYPE_MISMATCH'
+  | 'TARGETING_KEY_MISSING'
+  | 'INVALID_CONTEXT'
+  | 'GENERAL';
+
 export interface Logger {
   error(...args: unknown[]): void;
   warn(...args: unknown[]): void;

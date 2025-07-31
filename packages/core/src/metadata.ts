@@ -72,7 +72,7 @@ export function addMetadataToStackFrames(parser: StackParser, event: Event): voi
         }
       }
     });
-  } catch (_) {
+  } catch {
     // To save bundle size we're just try catching here instead of checking for the existence of all the different objects.
   }
 }
@@ -92,7 +92,7 @@ export function stripMetadataFromStackFrames(event: Event): void {
         delete frame.module_metadata;
       }
     });
-  } catch (_) {
+  } catch {
     // To save bundle size we're just try catching here instead of checking for the existence of all the different objects.
   }
 }

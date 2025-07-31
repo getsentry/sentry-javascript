@@ -1,10 +1,10 @@
 import {
   captureException,
   continueTrace,
+  debug,
   getActiveSpan,
   httpRequestToRequestData,
   isString,
-  logger,
   objectify,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
@@ -42,12 +42,12 @@ export function wrapApiHandlerWithSentry(apiHandler: NextApiHandler, parameteriz
         const [req, res] = args;
 
         if (!req) {
-          logger.debug(
+          debug.log(
             `Wrapped API handler on route "${parameterizedRoute}" was not passed a request object. Will not instrument.`,
           );
           return wrappingTarget.apply(thisArg, args);
         } else if (!res) {
-          logger.debug(
+          debug.log(
             `Wrapped API handler on route "${parameterizedRoute}" was not passed a response object. Will not instrument.`,
           );
           return wrappingTarget.apply(thisArg, args);

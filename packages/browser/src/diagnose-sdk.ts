@@ -25,9 +25,12 @@ export async function diagnoseSdkConnectivity(): Promise<
   try {
     // If fetch throws, there is likely an ad blocker active or there are other connective issues.
     await fetch(
-      // We want this to be as close as possible to an actual ingest URL so that ad blockers will actually block the request
-      // We are using the "sentry-sdks" org with id 447951 not to pollute any actual organizations.
-      'https://o447951.ingest.sentry.io/api/1337/envelope/?sentry_version=7&sentry_key=1337&sentry_client=sentry.javascript.browser%2F1.33.7',
+      // We are using the
+      // - "sentry-sdks" org with id 447951 not to pollute any actual organizations.
+      // - "diagnose-sdk-connectivity" project with id 4509632503087104
+      // - the public key of said org/project, which is disabled in the project settings
+      // => this DSN: https://c1dfb07d783ad5325c245c1fd3725390@o447951.ingest.us.sentry.io/4509632503087104 (i.e. disabled)
+      'https://o447951.ingest.sentry.io/api/4509632503087104/envelope/?sentry_version=7&sentry_key=c1dfb07d783ad5325c245c1fd3725390&sentry_client=sentry.javascript.browser%2F1.33.7',
       {
         body: '{}',
         method: 'POST',

@@ -2,10 +2,11 @@ import { context } from '@opentelemetry/api';
 import { getRPCMetadata, RPCType } from '@opentelemetry/core';
 import { ATTR_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
 import {
+  flushIfServerless,
   getActiveSpan,
   getRootSpan,
   getTraceMetaTags,
-  SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '@sentry/core';
 import type { AppLoadContext, EntryContext } from 'react-router';
@@ -37,32 +38,36 @@ export function wrapSentryHandleRequest(originalHandle: OriginalHandleRequest): 
     const parameterizedPath =
       routerContext?.staticHandlerContext?.matches?.[routerContext.staticHandlerContext.matches.length - 1]?.route.path;
 
-    if (parameterizedPath) {
-      const activeSpan = getActiveSpan();
-      if (activeSpan) {
-        const rootSpan = getRootSpan(activeSpan);
-        const routeName = `/${parameterizedPath}`;
+    const activeSpan = getActiveSpan();
+    const rootSpan = activeSpan ? getRootSpan(activeSpan) : undefined;
 
-        // The express instrumentation writes on the rpcMetadata and that ends up stomping on the `http.route` attribute.
-        const rpcMetadata = getRPCMetadata(context.active());
+    if (parameterizedPath && rootSpan) {
+      const routeName = `/${parameterizedPath}`;
 
-        if (rpcMetadata?.type === RPCType.HTTP) {
-          rpcMetadata.route = routeName;
-        }
+      // The express instrumentation writes on the rpcMetadata and that ends up stomping on the `http.route` attribute.
+      const rpcMetadata = getRPCMetadata(context.active());
 
-        // The span exporter picks up the `http.route` (ATTR_HTTP_ROUTE) attribute to set the transaction name
-        rootSpan.setAttributes({
-          [ATTR_HTTP_ROUTE]: routeName,
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-          [SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]: `${request.method} ${routeName}`,
-        });
+      if (rpcMetadata?.type === RPCType.HTTP) {
+        rpcMetadata.route = routeName;
       }
+
+      // The span exporter picks up the `http.route` (ATTR_HTTP_ROUTE) attribute to set the transaction name
+      rootSpan.setAttributes({
+        [ATTR_HTTP_ROUTE]: routeName,
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react-router.request-handler',
+      });
     }
 
-    return originalHandle(request, responseStatusCode, responseHeaders, routerContext, loadContext);
+    try {
+      return await originalHandle(request, responseStatusCode, responseHeaders, routerContext, loadContext);
+    } finally {
+      await flushIfServerless();
+    }
   };
 }
 
+// todo(v11): remove this
 /** @deprecated Use `wrapSentryHandleRequest` instead. */
 export const sentryHandleRequest = wrapSentryHandleRequest;
 

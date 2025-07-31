@@ -1,4 +1,4 @@
-import type { Span } from '@sentry/core';
+import type { Span, SpanJSON } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ReactRouterInstrumentation } from '../../../src/server/instrumentation/reactRouter';
@@ -8,8 +8,10 @@ vi.mock('@sentry/core', async () => {
   return {
     getActiveSpan: vi.fn(),
     getRootSpan: vi.fn(),
-    logger: {
-      debug: vi.fn(),
+    spanToJSON: vi.fn(),
+    updateSpanName: vi.fn(),
+    debug: {
+      log: vi.fn(),
     },
     SDK_VERSION: '1.0.0',
     SEMANTIC_ATTRIBUTE_SENTRY_OP: 'sentry.op',
@@ -80,9 +82,7 @@ describe('ReactRouterInstrumentation', () => {
     const req = createRequest('https://test.com/data');
     await wrappedHandler(req);
 
-    expect(SentryCore.logger.debug).toHaveBeenCalledWith(
-      'No active root span found, skipping tracing for data request',
-    );
+    expect(SentryCore.debug.log).toHaveBeenCalledWith('No active root span found, skipping tracing for data request');
     expect(originalHandler).toHaveBeenCalledWith(req, undefined);
   });
 
@@ -90,6 +90,7 @@ describe('ReactRouterInstrumentation', () => {
     vi.spyOn(Util, 'isDataRequest').mockReturnValue(true);
     vi.spyOn(SentryCore, 'getActiveSpan').mockReturnValue(mockSpan as Span);
     vi.spyOn(SentryCore, 'getRootSpan').mockReturnValue(mockSpan as Span);
+    vi.spyOn(SentryCore, 'spanToJSON').mockReturnValue({ data: {} } as SpanJSON);
     vi.spyOn(Util, 'getSpanName').mockImplementation((pathname, method) => `span:${pathname}:${method}`);
     vi.spyOn(SentryCore, 'startSpan').mockImplementation((_opts, fn) => fn(mockSpan as Span));
 

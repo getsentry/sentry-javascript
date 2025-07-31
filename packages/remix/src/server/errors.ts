@@ -11,9 +11,9 @@ import type { RequestEventData, Span } from '@sentry/core';
 import {
   addExceptionMechanism,
   captureException,
+  debug,
   getClient,
   handleCallbackErrors,
-  logger,
   objectify,
   winterCGRequestToRequestData,
 } from '@sentry/core';
@@ -46,7 +46,7 @@ export async function captureRemixServerException(err: unknown, name: string, re
   // Skip capturing if the request is aborted as Remix docs suggest
   // Ref: https://remix.run/docs/en/main/file-conventions/entry.server#handleerror
   if (request.signal.aborted) {
-    DEBUG_BUILD && logger.warn('Skipping capture of aborted request');
+    DEBUG_BUILD && debug.warn('Skipping capture of aborted request');
     return;
   }
 
@@ -54,8 +54,8 @@ export async function captureRemixServerException(err: unknown, name: string, re
 
   try {
     normalizedRequest = winterCGRequestToRequestData(request);
-  } catch (e) {
-    DEBUG_BUILD && logger.warn('Failed to normalize Remix request');
+  } catch {
+    DEBUG_BUILD && debug.warn('Failed to normalize Remix request');
   }
 
   const objectifiedErr = objectify(err);

@@ -3,6 +3,7 @@ import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import type { ClientOptions, Options } from '@sentry/core';
 import { flush, getClient, getCurrentScope, getGlobalScope, getIsolationScope } from '@sentry/core';
 import { setOpenTelemetryContextAsyncContextStrategy } from '../../src/asyncContextStrategy';
+import { SentrySpanProcessor } from '../../src/spanProcessor';
 import type { OpenTelemetryClient } from '../../src/types';
 import { clearOpenTelemetrySetupCheck } from '../../src/utils/setupCheck';
 import { initOtel } from './initOtel';
@@ -49,6 +50,20 @@ export async function cleanupOtel(_provider?: BasicTracerProvider): Promise<void
   propagation.disable();
 
   await flush();
+}
+
+export function getSpanProcessor(): SentrySpanProcessor | undefined {
+  const client = getClient<OpenTelemetryClient>();
+  if (!client) {
+    return undefined;
+  }
+
+  const spanProcessor = client.spanProcessor;
+  if (spanProcessor instanceof SentrySpanProcessor) {
+    return spanProcessor;
+  }
+
+  return undefined;
 }
 
 export function getProvider(_provider?: BasicTracerProvider): BasicTracerProvider | undefined {

@@ -145,6 +145,130 @@ describe('withSentryConfig', () => {
     });
   });
 
+  describe('webpack configuration behavior', () => {
+    const originalTurbopack = process.env.TURBOPACK;
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+      process.env.TURBOPACK = originalTurbopack;
+    });
+
+    it('uses constructed webpack function when Turbopack is disabled and disableSentryWebpackConfig is false/undefined', () => {
+      delete process.env.TURBOPACK;
+
+      // default behavior
+      const finalConfigUndefined = materializeFinalNextConfig(exportedNextConfig);
+      expect(finalConfigUndefined.webpack).toBeInstanceOf(Function);
+
+      const sentryOptions = {
+        disableSentryWebpackConfig: false,
+      };
+      const finalConfigFalse = materializeFinalNextConfig(exportedNextConfig, undefined, sentryOptions);
+      expect(finalConfigFalse.webpack).toBeInstanceOf(Function);
+    });
+
+    it('preserves original webpack config when disableSentryWebpackConfig is true (regardless of Turbopack)', () => {
+      const originalWebpackFunction = vi.fn();
+      const configWithWebpack = {
+        ...exportedNextConfig,
+        webpack: originalWebpackFunction,
+      };
+
+      const sentryOptions = {
+        disableSentryWebpackConfig: true,
+      };
+
+      delete process.env.TURBOPACK;
+      const finalConfigWithoutTurbopack = materializeFinalNextConfig(configWithWebpack, undefined, sentryOptions);
+      expect(finalConfigWithoutTurbopack.webpack).toBe(originalWebpackFunction);
+
+      process.env.TURBOPACK = '1';
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.3.0');
+      const finalConfigWithTurbopack = materializeFinalNextConfig(configWithWebpack, undefined, sentryOptions);
+      expect(finalConfigWithTurbopack.webpack).toBe(originalWebpackFunction);
+    });
+
+    it('preserves original webpack config when Turbopack is enabled (ignores disableSentryWebpackConfig flag)', () => {
+      process.env.TURBOPACK = '1';
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.3.0');
+
+      const originalWebpackFunction = vi.fn();
+      const configWithWebpack = {
+        ...exportedNextConfig,
+        webpack: originalWebpackFunction,
+      };
+
+      const sentryOptionsWithFalse = {
+        disableSentryWebpackConfig: false,
+      };
+      const finalConfigWithFalse = materializeFinalNextConfig(configWithWebpack, undefined, sentryOptionsWithFalse);
+      expect(finalConfigWithFalse.webpack).toBe(originalWebpackFunction);
+
+      const finalConfigWithUndefined = materializeFinalNextConfig(configWithWebpack);
+      expect(finalConfigWithUndefined.webpack).toBe(originalWebpackFunction);
+
+      const sentryOptionsWithTrue = {
+        disableSentryWebpackConfig: true,
+      };
+      const finalConfigWithTrue = materializeFinalNextConfig(configWithWebpack, undefined, sentryOptionsWithTrue);
+      expect(finalConfigWithTrue.webpack).toBe(originalWebpackFunction);
+    });
+
+    it('preserves original webpack config when Turbopack is enabled and disableSentryWebpackConfig is true', () => {
+      process.env.TURBOPACK = '1';
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.3.0');
+
+      const sentryOptions = {
+        disableSentryWebpackConfig: true,
+      };
+
+      const originalWebpackFunction = vi.fn();
+      const configWithWebpack = {
+        ...exportedNextConfig,
+        webpack: originalWebpackFunction,
+      };
+
+      const finalConfig = materializeFinalNextConfig(configWithWebpack, undefined, sentryOptions);
+
+      expect(finalConfig.webpack).toBe(originalWebpackFunction);
+    });
+
+    it('preserves undefined webpack when Turbopack is enabled, disableSentryWebpackConfig is true, and no original webpack config exists', () => {
+      process.env.TURBOPACK = '1';
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.3.0');
+
+      const sentryOptions = {
+        disableSentryWebpackConfig: true,
+      };
+
+      const configWithoutWebpack = {
+        ...exportedNextConfig,
+      };
+      delete configWithoutWebpack.webpack;
+
+      const finalConfig = materializeFinalNextConfig(configWithoutWebpack, undefined, sentryOptions);
+
+      expect(finalConfig.webpack).toBeUndefined();
+    });
+
+    it('includes turbopack config when Turbopack is supported and enabled', () => {
+      process.env.TURBOPACK = '1';
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.3.0');
+
+      const finalConfig = materializeFinalNextConfig(exportedNextConfig);
+
+      expect(finalConfig.turbopack).toBeDefined();
+    });
+
+    it('does not include turbopack config when Turbopack is not enabled', () => {
+      delete process.env.TURBOPACK;
+
+      const finalConfig = materializeFinalNextConfig(exportedNextConfig);
+
+      expect(finalConfig.turbopack).toBeUndefined();
+    });
+  });
+
   describe('release injection behavior', () => {
     afterEach(() => {
       vi.restoreAllMocks();

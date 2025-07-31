@@ -2,7 +2,7 @@ import { makeBaseNPMConfig, makeNPMConfigVariants } from '@sentry-internal/rollu
 
 export default makeNPMConfigVariants(
   makeBaseNPMConfig({
-    entrypoints: ['src/index.ts'],
+    entrypoints: ['src/index.ts', 'src/event-loop-block-watchdog.ts'],
     packageSpecificConfig: {
       output: {
         dir: 'build',

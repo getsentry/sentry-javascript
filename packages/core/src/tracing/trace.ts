@@ -11,14 +11,15 @@ import type { DynamicSamplingContext } from '../types-hoist/envelope';
 import type { ClientOptions } from '../types-hoist/options';
 import type { SentrySpanArguments, Span, SpanTimeInput } from '../types-hoist/span';
 import type { StartSpanOptions } from '../types-hoist/startSpanOptions';
+import { baggageHeaderToDynamicSamplingContext } from '../utils/baggage';
+import { debug } from '../utils/debug-logger';
 import { handleCallbackErrors } from '../utils/handleCallbackErrors';
 import { hasSpansEnabled } from '../utils/hasSpansEnabled';
-import { logger } from '../utils/logger';
 import { parseSampleRate } from '../utils/parseSampleRate';
 import { generateTraceId } from '../utils/propagationContext';
 import { _getSpanForScope, _setSpanForScope } from '../utils/spanOnScope';
 import { addChildSpanToSpan, getRootSpan, spanIsSampled, spanTimeInputToSeconds, spanToJSON } from '../utils/spanUtils';
-import { propagationContextFromHeaders } from '../utils/tracing';
+import { propagationContextFromHeaders, shouldContinueTrace } from '../utils/tracing';
 import { freezeDscOnSpan, getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 import { logSpanStart } from './logSpans';
 import { sampleSpan } from './sampling';
@@ -216,6 +217,12 @@ export const continueTrace = <V>(
 
   const { sentryTrace, baggage } = options;
 
+  const client = getClient();
+  const incomingDsc = baggageHeaderToDynamicSamplingContext(baggage);
+  if (client && !shouldContinueTrace(client, incomingDsc?.org_id)) {
+    return startNewTrace(callback);
+  }
+
   return withScope(scope => {
     const propagationContext = propagationContextFromHeaders(sentryTrace, baggage);
     scope.setPropagationContext(propagationContext);
@@ -287,7 +294,7 @@ export function startNewTrace<T>(callback: () => T): T {
       traceId: generateTraceId(),
       sampleRand: Math.random(),
     });
-    DEBUG_BUILD && logger.info(`Starting a new trace with id ${scope.getPropagationContext().traceId}`);
+    DEBUG_BUILD && debug.log(`Starting a new trace with id ${scope.getPropagationContext().traceId}`);
     return withActiveSpan(null, callback);
   });
 }
@@ -447,7 +454,7 @@ function _startRootSpan(spanArguments: SentrySpanArguments, scope: Scope, parent
   });
 
   if (!sampled && client) {
-    DEBUG_BUILD && logger.log('[Tracing] Discarding root span because its trace was not chosen to be sampled.');
+    DEBUG_BUILD && debug.log('[Tracing] Discarding root span because its trace was not chosen to be sampled.');
     client.recordDroppedEvent('sample_rate', 'transaction');
   }
 

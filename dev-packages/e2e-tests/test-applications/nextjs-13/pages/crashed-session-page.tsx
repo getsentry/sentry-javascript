@@ -6,7 +6,7 @@ export default function CrashedPage() {
       // @ts-expect-error
       window.onerror(null, null, null, null, new Error('Crashed'));
     }
-  } catch (_e) {
+  } catch {
     // no-empty
   }
   return <h1>Crashed</h1>;

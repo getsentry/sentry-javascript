@@ -1,6 +1,6 @@
 import { existsSync } from 'node:fs';
 import { createResolver } from '@nuxt/kit';
-import { logger } from '@sentry/core';
+import { debug } from '@sentry/core';
 import * as fs from 'fs';
 import type { Nitro } from 'nitropack';
 import type { InputPluginOption } from 'rollup';
@@ -124,7 +124,7 @@ export function addDynamicImportEntryFileWrapper(
 /**
  * Rollup plugin to include the Sentry server configuration file to the server build output.
  */
-function injectServerConfigPlugin(nitro: Nitro, serverConfigFile: string, debug?: boolean): InputPluginOption {
+function injectServerConfigPlugin(nitro: Nitro, serverConfigFile: string, isDebug?: boolean): InputPluginOption {
   const filePrefix = '\0virtual:sentry-server-config:';
 
   return {
@@ -134,8 +134,8 @@ function injectServerConfigPlugin(nitro: Nitro, serverConfigFile: string, debug?
       const configPath = createResolver(nitro.options.srcDir).resolve(`/${serverConfigFile}`);
 
       if (!existsSync(configPath)) {
-        if (debug) {
-          logger.log(`[Sentry] Sentry server config file not found: ${configPath}`);
+        if (isDebug) {
+          debug.log(`[Sentry] Sentry server config file not found: ${configPath}`);
         }
         return;
       }

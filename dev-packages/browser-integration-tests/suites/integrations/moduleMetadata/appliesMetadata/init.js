@@ -14,7 +14,7 @@ Sentry.init({
             moduleMetadataEntries.push(frame.module_metadata);
           });
         });
-      } catch (e) {
+      } catch {
         // noop
       }
     }

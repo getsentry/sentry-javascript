@@ -1,6 +1,7 @@
+import type { Client } from '../client';
 import { DEBUG_BUILD } from '../debug-build';
 import type { DsnComponents, DsnLike, DsnProtocol } from '../types-hoist/dsn';
-import { consoleSandbox, logger } from './logger';
+import { consoleSandbox, debug } from './debug-logger';
 
 /** Regular expression used to extract org ID from a DSN host. */
 const ORG_ID_REGEX = /^o(\d+)\./;
@@ -89,7 +90,7 @@ function validateDsn(dsn: DsnComponents): boolean {
   const requiredComponents: ReadonlyArray<keyof DsnComponents> = ['protocol', 'publicKey', 'host', 'projectId'];
   const hasMissingRequiredComponent = requiredComponents.find(component => {
     if (!dsn[component]) {
-      logger.error(`Invalid Sentry Dsn: ${component} missing`);
+      debug.error(`Invalid Sentry Dsn: ${component} missing`);
       return true;
     }
     return false;
@@ -100,17 +101,17 @@ function validateDsn(dsn: DsnComponents): boolean {
   }
 
   if (!projectId.match(/^\d+$/)) {
-    logger.error(`Invalid Sentry Dsn: Invalid projectId ${projectId}`);
+    debug.error(`Invalid Sentry Dsn: Invalid projectId ${projectId}`);
     return false;
   }
 
   if (!isValidProtocol(protocol)) {
-    logger.error(`Invalid Sentry Dsn: Invalid protocol ${protocol}`);
+    debug.error(`Invalid Sentry Dsn: Invalid protocol ${protocol}`);
     return false;
   }
 
   if (port && isNaN(parseInt(port, 10))) {
-    logger.error(`Invalid Sentry Dsn: Invalid port ${port}`);
+    debug.error(`Invalid Sentry Dsn: Invalid port ${port}`);
     return false;
   }
 
@@ -127,6 +128,27 @@ export function extractOrgIdFromDsnHost(host: string): string | undefined {
   const match = host.match(ORG_ID_REGEX);
 
   return match?.[1];
+}
+
+/**
+ *  Returns the organization ID of the client.
+ *
+ *  The organization ID is extracted from the DSN. If the client options include a `orgId`, this will always take precedence.
+ */
+export function extractOrgIdFromClient(client: Client): string | undefined {
+  const options = client.getOptions();
+
+  const { host } = client.getDsn() || {};
+
+  let org_id: string | undefined;
+
+  if (options.orgId) {
+    org_id = String(options.orgId);
+  } else if (host) {
+    org_id = extractOrgIdFromDsnHost(host);
+  }
+
+  return org_id;
 }
 
 /**

@@ -6,7 +6,7 @@ test('Creates a pageload transaction for app router routes', async ({ page }) =>
 
   const clientPageloadTransactionPromise = waitForTransaction('nextjs-app-dir', transactionEvent => {
     return (
-      transactionEvent?.transaction === `/server-component/parameter/${randomRoute}` &&
+      transactionEvent?.transaction === `/server-component/parameter/:parameter` &&
       transactionEvent.contexts?.trace?.op === 'pageload'
     );
   });
@@ -21,7 +21,7 @@ test('Creates a navigation transaction for app router routes', async ({ page }) 
 
   const clientPageloadTransactionPromise = waitForTransaction('nextjs-app-dir', transactionEvent => {
     return (
-      transactionEvent?.transaction === `/server-component/parameter/${randomRoute}` &&
+      transactionEvent?.transaction === `/server-component/parameter/:parameter` &&
       transactionEvent.contexts?.trace?.op === 'pageload'
     );
   });
@@ -32,7 +32,7 @@ test('Creates a navigation transaction for app router routes', async ({ page }) 
 
   const clientNavigationTransactionPromise = waitForTransaction('nextjs-app-dir', transactionEvent => {
     return (
-      transactionEvent?.transaction === '/server-component/parameter/foo/bar/baz' &&
+      transactionEvent?.transaction === '/server-component/parameter/:parameters*' &&
       transactionEvent.contexts?.trace?.op === 'navigation'
     );
   });
@@ -59,7 +59,7 @@ test('Creates a navigation transaction for app router routes', async ({ page }) 
 test('Creates a navigation transaction for `router.push()`', async ({ page }) => {
   const navigationTransactionPromise = waitForTransaction('nextjs-app-dir', transactionEvent => {
     return (
-      transactionEvent?.transaction === `/navigation/42/router-push` &&
+      transactionEvent?.transaction === `/navigation/:param/router-push` &&
       transactionEvent.contexts?.trace?.op === 'navigation' &&
       transactionEvent.contexts.trace.data?.['navigation.type'] === 'router.push'
     );
@@ -75,7 +75,7 @@ test('Creates a navigation transaction for `router.push()`', async ({ page }) =>
 test('Creates a navigation transaction for `router.replace()`', async ({ page }) => {
   const navigationTransactionPromise = waitForTransaction('nextjs-app-dir', transactionEvent => {
     return (
-      transactionEvent?.transaction === `/navigation/42/router-replace` &&
+      transactionEvent?.transaction === `/navigation/:param/router-replace` &&
       transactionEvent.contexts?.trace?.op === 'navigation' &&
       transactionEvent.contexts.trace.data?.['navigation.type'] === 'router.replace'
     );
@@ -91,7 +91,7 @@ test('Creates a navigation transaction for `router.replace()`', async ({ page })
 test('Creates a navigation transaction for `router.back()`', async ({ page }) => {
   const navigationTransactionPromise = waitForTransaction('nextjs-app-dir', transactionEvent => {
     return (
-      transactionEvent?.transaction === `/navigation/1337/router-back` &&
+      transactionEvent?.transaction === `/navigation/:param/router-back` &&
       transactionEvent.contexts?.trace?.op === 'navigation'
     );
   });
@@ -116,7 +116,7 @@ test('Creates a navigation transaction for `router.back()`', async ({ page }) =>
 test('Creates a navigation transaction for `router.forward()`', async ({ page }) => {
   const navigationTransactionPromise = waitForTransaction('nextjs-app-dir', transactionEvent => {
     return (
-      transactionEvent?.transaction === `/navigation/42/router-push` &&
+      transactionEvent?.transaction === `/navigation/:param/router-push` &&
       transactionEvent.contexts?.trace?.op === 'navigation' &&
       (transactionEvent.contexts.trace.data?.['navigation.type'] === 'router.forward' ||
         transactionEvent.contexts.trace.data?.['navigation.type'] === 'router.traverse')
@@ -137,7 +137,7 @@ test('Creates a navigation transaction for `router.forward()`', async ({ page })
 test('Creates a navigation transaction for `<Link />`', async ({ page }) => {
   const navigationTransactionPromise = waitForTransaction('nextjs-app-dir', transactionEvent => {
     return (
-      transactionEvent?.transaction === `/navigation/42/link` &&
+      transactionEvent?.transaction === `/navigation/:param/link` &&
       transactionEvent.contexts?.trace?.op === 'navigation' &&
       transactionEvent.contexts.trace.data?.['navigation.type'] === 'router.push'
     );
@@ -152,7 +152,7 @@ test('Creates a navigation transaction for `<Link />`', async ({ page }) => {
 test('Creates a navigation transaction for `<Link replace />`', async ({ page }) => {
   const navigationTransactionPromise = waitForTransaction('nextjs-app-dir', transactionEvent => {
     return (
-      transactionEvent?.transaction === `/navigation/42/link-replace` &&
+      transactionEvent?.transaction === `/navigation/:param/link-replace` &&
       transactionEvent.contexts?.trace?.op === 'navigation' &&
       transactionEvent.contexts.trace.data?.['navigation.type'] === 'router.replace'
     );
@@ -168,7 +168,7 @@ test('Creates a navigation transaction for `<Link replace />`', async ({ page })
 test('Creates a navigation transaction for browser-back', async ({ page }) => {
   const navigationTransactionPromise = waitForTransaction('nextjs-app-dir', transactionEvent => {
     return (
-      transactionEvent?.transaction === `/navigation/42/browser-back` &&
+      transactionEvent?.transaction === `/navigation/:param/browser-back` &&
       transactionEvent.contexts?.trace?.op === 'navigation' &&
       (transactionEvent.contexts.trace.data?.['navigation.type'] === 'browser.popstate' ||
         transactionEvent.contexts.trace.data?.['navigation.type'] === 'router.traverse')
@@ -187,7 +187,7 @@ test('Creates a navigation transaction for browser-back', async ({ page }) => {
 test('Creates a navigation transaction for browser-forward', async ({ page }) => {
   const navigationTransactionPromise = waitForTransaction('nextjs-app-dir', transactionEvent => {
     return (
-      transactionEvent?.transaction === `/navigation/42/router-push` &&
+      transactionEvent?.transaction === `/navigation/:param/router-push` &&
       transactionEvent.contexts?.trace?.op === 'navigation' &&
       (transactionEvent.contexts.trace.data?.['navigation.type'] === 'browser.popstate' ||
         transactionEvent.contexts.trace.data?.['navigation.type'] === 'router.traverse')

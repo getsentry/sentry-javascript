@@ -90,6 +90,8 @@ export interface ReplayNetworkOptions {
   networkResponseHeaders: string[];
 }
 
+export type ReplayWorkerURL = string | URL;
+
 export interface ReplayPluginOptions extends ReplayNetworkOptions {
   /**
    * The sample rate for session-long replays. 1.0 will record all sessions and
@@ -130,7 +132,7 @@ export interface ReplayPluginOptions extends ReplayNetworkOptions {
    * If defined, use this worker URL instead of the default included one for compression.
    * This will only be used if `useCompression` is not false.
    */
-  workerUrl?: string;
+  workerUrl?: ReplayWorkerURL;
 
   /**
    * Block all media (e.g. images, svg, video) in recordings.
@@ -234,6 +236,13 @@ export interface ReplayPluginOptions extends ReplayNetworkOptions {
      */
     recordCrossOriginIframes: boolean;
     autoFlushOnFeedback: boolean;
+    /**
+     * Completetly ignore mutations matching the given selectors.
+     * This can be used if a specific type of mutation is causing (e.g. performance) problems.
+     * NOTE: This can be dangerous to use, as mutations are applied as incremental patches.
+     * Make sure to verify that the captured replays still work when using this option.
+     */
+    ignoreMutations: string[];
   }>;
 }
 

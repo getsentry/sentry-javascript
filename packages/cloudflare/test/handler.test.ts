@@ -843,7 +843,7 @@ describe('withSentry', () => {
             'messaging.destination.name': batch.queue,
             'messaging.system': 'cloudflare',
             'messaging.batch.message_count': batch.messages.length,
-            'messaging.message.retry.count': batch.messages.reduce((acc, message) => acc + message.attempts, 0),
+            'messaging.message.retry.count': batch.messages.reduce((acc, message) => acc + message.attempts - 1, 0),
             'sentry.sample_rate': 1,
             'sentry.source': 'task',
           },

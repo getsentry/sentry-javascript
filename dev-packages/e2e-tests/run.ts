@@ -1,8 +1,11 @@
 /* eslint-disable no-console */
 import { spawn } from 'child_process';
 import * as dotenv from 'dotenv';
+import { mkdtemp, rm } from 'fs/promises';
 import { sync as globSync } from 'glob';
-import { resolve } from 'path';
+import { tmpdir } from 'os';
+import { join, resolve } from 'path';
+import { copyToTemp } from './lib/copyToTemp';
 import { registrySetup } from './registrySetup';
 
 const DEFAULT_DSN = 'https://username@domain/123';
@@ -39,7 +42,7 @@ async function run(): Promise<void> {
   dotenv.config();
 
   // Allow to run a single app only via `yarn test:run <app-name>`
-  const appName = process.argv[2];
+  const appName = process.argv[2] || '';
 
   const dsn = process.env.E2E_TEST_DSN || DEFAULT_DSN;
 
@@ -66,6 +69,7 @@ async function run(): Promise<void> {
     }
 
     await asyncExec('pnpm clean:test-applications', { env, cwd: __dirname });
+    await asyncExec('pnpm cache delete "@sentry/*"', { env, cwd: __dirname });
 
     const testAppPaths = appName ? [appName.trim()] : globSync('*', { cwd: `${__dirname}/test-applications/` });
 
@@ -73,13 +77,20 @@ async function run(): Promise<void> {
     console.log('');
 
     for (const testAppPath of testAppPaths) {
-      const cwd = resolve('test-applications', testAppPath);
+      const originalPath = resolve('test-applications', testAppPath);
+      const tmpDirPath = await mkdtemp(join(tmpdir(), `sentry-e2e-tests-${appName}-`));
 
-      console.log(`Building ${testAppPath}...`);
-      await asyncExec('pnpm test:build', { env, cwd });
+      await copyToTemp(originalPath, tmpDirPath);
+      const cwd = tmpDirPath;
+
+      console.log(`Building ${testAppPath} in ${tmpDirPath}...`);
+      await asyncExec('volta run pnpm test:build', { env, cwd });
 
       console.log(`Testing ${testAppPath}...`);
-      await asyncExec('pnpm test:assert', { env, cwd });
+      await asyncExec('volta run pnpm test:assert', { env, cwd });
+
+      // clean up (although this is tmp, still nice to do)
+      await rm(tmpDirPath, { recursive: true });
     }
   } catch (error) {
     console.error(error);

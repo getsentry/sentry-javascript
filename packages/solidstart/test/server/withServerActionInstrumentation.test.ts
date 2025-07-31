@@ -1,4 +1,4 @@
-import { SentrySpan } from '@sentry/core';
+import * as SentryCore from '@sentry/core';
 import * as SentryNode from '@sentry/node';
 import {
   createTransport,
@@ -16,7 +16,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { withServerActionInstrumentation } from '../../src/server';
 
 const mockCaptureException = vi.spyOn(SentryNode, 'captureException').mockImplementation(() => '');
-const mockFlush = vi.spyOn(SentryNode, 'flush').mockImplementation(async () => true);
+const mockFlush = vi.spyOn(SentryCore, 'flushIfServerless').mockImplementation(async () => {});
 const mockGetActiveSpan = vi.spyOn(SentryNode, 'getActiveSpan');
 
 const mockGetRequestEvent = vi.fn();
@@ -126,7 +126,7 @@ describe('withServerActionInstrumentation', () => {
   });
 
   it('sets a server action name on the active span', async () => {
-    const span = new SentrySpan();
+    const span = new SentryCore.SentrySpan();
     span.setAttribute('http.target', '/_server');
     mockGetActiveSpan.mockReturnValue(span);
     const mockSpanSetAttribute = vi.spyOn(span, 'setAttribute');
@@ -145,7 +145,7 @@ describe('withServerActionInstrumentation', () => {
   });
 
   it('does not set a server action name if the active span had a non `/_server` target', async () => {
-    const span = new SentrySpan();
+    const span = new SentryCore.SentrySpan();
     span.setAttribute('http.target', '/users/5');
     mockGetActiveSpan.mockReturnValue(span);
     const mockSpanSetAttribute = vi.spyOn(span, 'setAttribute');

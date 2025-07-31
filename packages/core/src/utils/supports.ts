@@ -1,5 +1,5 @@
 import { DEBUG_BUILD } from '../debug-build';
-import { logger } from './logger';
+import { debug } from './debug-logger';
 import { GLOBAL_OBJ } from './worldwide';
 
 const WINDOW = GLOBAL_OBJ as unknown as Window;
@@ -16,7 +16,7 @@ export function supportsErrorEvent(): boolean {
   try {
     new ErrorEvent('');
     return true;
-  } catch (e) {
+  } catch {
     return false;
   }
 }
@@ -34,7 +34,7 @@ export function supportsDOMError(): boolean {
     // @ts-expect-error It really needs 1 argument, not 0.
     new DOMError('');
     return true;
-  } catch (e) {
+  } catch {
     return false;
   }
 }
@@ -49,7 +49,7 @@ export function supportsDOMException(): boolean {
   try {
     new DOMException('');
     return true;
-  } catch (e) {
+  } catch {
     return false;
   }
 }
@@ -83,7 +83,7 @@ function _isFetchSupported(): boolean {
     new Request('http://www.example.com');
     new Response();
     return true;
-  } catch (e) {
+  } catch {
     return false;
   }
 }
@@ -133,8 +133,7 @@ export function supportsNativeFetch(): boolean {
       }
       doc.head.removeChild(sandbox);
     } catch (err) {
-      DEBUG_BUILD &&
-        logger.warn('Could not create sandbox iframe for pure fetch check, bailing to window.fetch: ', err);
+      DEBUG_BUILD && debug.warn('Could not create sandbox iframe for pure fetch check, bailing to window.fetch: ', err);
     }
   }
 
@@ -173,7 +172,7 @@ export function supportsReferrerPolicy(): boolean {
       referrerPolicy: 'origin' as ReferrerPolicy,
     });
     return true;
-  } catch (e) {
+  } catch {
     return false;
   }
 }

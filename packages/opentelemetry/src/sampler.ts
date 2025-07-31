@@ -13,8 +13,8 @@ import {
 import type { Client, SpanAttributes } from '@sentry/core';
 import {
   baggageHeaderToDynamicSamplingContext,
+  debug,
   hasSpansEnabled,
-  logger,
   parseSampleRate,
   sampleSpan,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
@@ -137,7 +137,7 @@ export class SentrySampler implements Sampler {
 
     const method = `${maybeSpanHttpMethod}`.toUpperCase();
     if (method === 'OPTIONS' || method === 'HEAD') {
-      DEBUG_BUILD && logger.log(`[Tracing] Not sampling span because HTTP method is '${method}' for ${spanName}`);
+      DEBUG_BUILD && debug.log(`[Tracing] Not sampling span because HTTP method is '${method}' for ${spanName}`);
 
       return wrapSamplingDecision({
         decision: SamplingDecision.NOT_RECORD,
@@ -153,7 +153,7 @@ export class SentrySampler implements Sampler {
       // We check for `parentSampled === undefined` because we only want to record client reports for spans that are trace roots (ie. when there was incoming trace)
       parentSampled === undefined
     ) {
-      DEBUG_BUILD && logger.log('[Tracing] Discarding root span because its trace was not chosen to be sampled.');
+      DEBUG_BUILD && debug.log('[Tracing] Discarding root span because its trace was not chosen to be sampled.');
       this._client.recordDroppedEvent('sample_rate', 'transaction');
     }
 
@@ -187,12 +187,12 @@ function getParentSampled(parentSpan: Span, traceId: string, spanName: string): 
     if (parentContext.isRemote) {
       const parentSampled = getSamplingDecision(parentSpan.spanContext());
       DEBUG_BUILD &&
-        logger.log(`[Tracing] Inheriting remote parent's sampled decision for ${spanName}: ${parentSampled}`);
+        debug.log(`[Tracing] Inheriting remote parent's sampled decision for ${spanName}: ${parentSampled}`);
       return parentSampled;
     }
 
     const parentSampled = getSamplingDecision(parentContext);
-    DEBUG_BUILD && logger.log(`[Tracing] Inheriting parent's sampled decision for ${spanName}: ${parentSampled}`);
+    DEBUG_BUILD && debug.log(`[Tracing] Inheriting parent's sampled decision for ${spanName}: ${parentSampled}`);
     return parentSampled;
   }
 

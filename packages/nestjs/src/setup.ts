@@ -8,7 +8,7 @@ import type {
 } from '@nestjs/common';
 import { Catch, Global, HttpException, Injectable, Logger, Module } from '@nestjs/common';
 import { APP_INTERCEPTOR, BaseExceptionFilter } from '@nestjs/core';
-import { captureException, getDefaultIsolationScope, getIsolationScope, logger } from '@sentry/core';
+import { captureException, debug, getDefaultIsolationScope, getIsolationScope } from '@sentry/core';
 import type { Observable } from 'rxjs';
 import { isExpectedError } from './helpers';
 
@@ -49,7 +49,7 @@ class SentryTracingInterceptor implements NestInterceptor {
    */
   public intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     if (getIsolationScope() === getDefaultIsolationScope()) {
-      logger.warn('Isolation scope is still the default isolation scope, skipping setting transactionName.');
+      debug.warn('Isolation scope is still the default isolation scope, skipping setting transactionName.');
       return next.handle();
     }
 

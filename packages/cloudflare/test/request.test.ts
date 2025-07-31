@@ -212,6 +212,33 @@ describe('withSentry', () => {
 
       expect(thrownError).toBe(error);
     });
+
+    test("doesn't capture errors if `captureErrors` is false", async () => {
+      const captureExceptionSpy = vi.spyOn(SentryCore, 'captureException');
+      const error = new Error('test');
+
+      expect(captureExceptionSpy).not.toHaveBeenCalled();
+      let thrownError: Error | undefined;
+
+      try {
+        await wrapRequestHandler(
+          {
+            options: MOCK_OPTIONS,
+            request: new Request('https://example.com'),
+            context: createMockExecutionContext(),
+            captureErrors: false,
+          },
+          () => {
+            throw error;
+          },
+        );
+      } catch (e: any) {
+        thrownError = e;
+      }
+
+      expect(captureExceptionSpy).not.toHaveBeenCalled();
+      expect(thrownError).toBe(error);
+    });
   });
 
   describe('tracing instrumentation', () => {

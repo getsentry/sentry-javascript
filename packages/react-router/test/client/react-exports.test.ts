@@ -76,7 +76,7 @@ describe('Re-exports from React SDK', () => {
       });
 
       expect(WrappedComponent).toBeDefined();
-      expect(typeof WrappedComponent).toBe('function');
+      expect(typeof WrappedComponent).toBe('object');
       expect(WrappedComponent.displayName).toBe('errorBoundary(TestComponent)');
 
       const { getByText } = render(React.createElement(WrappedComponent));

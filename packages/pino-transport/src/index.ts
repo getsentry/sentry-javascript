@@ -1,5 +1,5 @@
 import type { LogSeverityLevel } from '@sentry/core';
-import { _INTERNAL_captureLog, isPrimitive, logger, normalize } from '@sentry/core';
+import { _INTERNAL_captureLog, debug, isPrimitive, normalize } from '@sentry/core';
 import type buildType from 'pino-abstract-transport';
 import * as pinoAbstractTransport from 'pino-abstract-transport';
 import { DEBUG_BUILD } from './debug-build';
@@ -84,7 +84,7 @@ interface PinoSourceConfig {
 }
 
 /**
- * Creates a new Sentry Pino transport that forwards logs to Sentry. Requires `_experiments.enableLogs` to be enabled.
+ * Creates a new Sentry Pino transport that forwards logs to Sentry. Requires the `enableLogs` option to be enabled.
  *
  * Supports Pino v8 and v9.
  *
@@ -95,7 +95,7 @@ interface PinoSourceConfig {
  * the stable Sentry SDK API and can be changed or removed without warning.
  */
 export function createSentryPinoTransport(options?: SentryPinoTransportOptions): ReturnType<typeof buildType> {
-  DEBUG_BUILD && logger.log('Initializing Sentry Pino transport');
+  DEBUG_BUILD && debug.log('Initializing Sentry Pino transport');
   const capturedLogLevels = new Set(options?.logLevels ?? DEFAULT_CAPTURED_LEVELS);
 
   return build(

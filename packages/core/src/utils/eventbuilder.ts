@@ -82,7 +82,7 @@ function getObjectClassName(obj: unknown): string | undefined | void {
   try {
     const prototype: unknown | null = Object.getPrototypeOf(obj);
     return prototype ? prototype.constructor.name : undefined;
-  } catch (e) {
+  } catch {
     // ignore errors here
   }
 }

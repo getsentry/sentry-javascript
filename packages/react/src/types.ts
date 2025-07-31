@@ -197,11 +197,7 @@ export type Navigation = NavigationStates[keyof NavigationStates];
 export type RouteData = any;
 export type Fetcher = any;
 
-export declare enum HistoryAction {
-  Pop = 'POP',
-  Push = 'PUSH',
-  Replace = 'REPLACE',
-}
+type HistoryAction = 'POP' | 'PUSH' | 'REPLACE';
 
 export interface RouterState {
   historyAction: Action | HistoryAction | any;

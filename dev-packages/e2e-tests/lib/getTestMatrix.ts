@@ -143,8 +143,27 @@ function getAffectedTestApplications(
     .map(line => line.trim())
     .filter(Boolean);
 
-  // If something in e2e tests themselves are changed, just run everything
+  // If something in e2e tests themselves are changed, check if only test applications were changed
   if (affectedProjects.includes('@sentry-internal/e2e-tests')) {
+    try {
+      const changedTestApps = getChangedTestApps(base, head);
+
+      // Shared code was changed, run all tests
+      if (changedTestApps === false) {
+        return testApplications;
+      }
+
+      // Only test applications that were changed, run selectively
+      if (changedTestApps.size > 0) {
+        return testApplications.filter(testApp => changedTestApps.has(testApp));
+      }
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('Failed to get changed files, running all tests:', error);
+      return testApplications;
+    }
+
+    // Fall back to running all tests
     return testApplications;
   }
 
@@ -152,4 +171,33 @@ function getAffectedTestApplications(
     const sentryDependencies = getSentryDependencies(testApp);
     return sentryDependencies.some(dep => affectedProjects.includes(dep));
   });
+}
+
+function getChangedTestApps(base: string, head?: string): false | Set<string> {
+  const changedFiles = execSync(`git diff --name-only ${base}${head ? `..${head}` : ''} -- dev-packages/e2e-tests/`, {
+    encoding: 'utf-8',
+  })
+    .toString()
+    .split('\n')
+    .map(line => line.trim())
+    .filter(Boolean);
+
+  const changedTestApps: Set<string> = new Set();
+  const testAppsPrefix = 'dev-packages/e2e-tests/test-applications/';
+
+  for (const file of changedFiles) {
+    if (!file.startsWith(testAppsPrefix)) {
+      // Shared code change - need to run all tests
+      return false;
+    }
+
+    const pathAfterPrefix = file.slice(testAppsPrefix.length);
+    const slashIndex = pathAfterPrefix.indexOf('/');
+
+    if (slashIndex > 0) {
+      changedTestApps.add(pathAfterPrefix.slice(0, slashIndex));
+    }
+  }
+
+  return changedTestApps;
 }

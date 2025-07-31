@@ -81,11 +81,13 @@ describe('SentrySampler', () => {
     const links = undefined;
 
     const actual = sampler.shouldSample(ctx, traceId, spanName, spanKind, spanAttributes, links);
-    expect(actual).toEqual({
-      decision: SamplingDecision.RECORD_AND_SAMPLED,
-      attributes: { 'sentry.sample_rate': 1 },
-      traceState: expect.any(TraceState),
-    });
+    expect(actual).toEqual(
+      expect.objectContaining({
+        decision: SamplingDecision.RECORD_AND_SAMPLED,
+        attributes: { 'sentry.sample_rate': 1 },
+      }),
+    );
+    expect(actual.traceState?.constructor.name).toBe('TraceState');
     expect(spyOnDroppedEvent).toHaveBeenCalledTimes(0);
 
     spyOnDroppedEvent.mockReset();

@@ -729,7 +729,7 @@ var te = typeof TextEncoder != 'undefined' && /*#__PURE__*/ new TextEncoder();
 var td = typeof TextDecoder != 'undefined' && /*#__PURE__*/ new TextDecoder();
 try {
   td.decode(et, { stream: true });
-} catch (e) {}
+} catch {}
 /**
  * Streaming UTF-8 encoding
  */

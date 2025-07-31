@@ -54,7 +54,7 @@ function getCwd(): string | undefined {
     if (permission.state == 'granted') {
       return Deno.cwd();
     }
-  } catch (_) {
+  } catch {
     //
   }
 

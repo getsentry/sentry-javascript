@@ -3,6 +3,7 @@ description: Use this rule if you are looking to upgrade a dependency in the Sen
 globs:
 alwaysApply: false
 ---
+
 # Yarn v1 Dependency Upgrades
 
 ## Upgrade Process
@@ -45,10 +46,12 @@ Avoid upgrading top-level dependencies (defined in `package.json`), especially i
 **STOP UPGRADE IMMEDIATELY** if upgrading any dependency with `opentelemetry` in the name and the new version or any of its dependencies uses forbidden OpenTelemetry versions.
 
 **FORBIDDEN VERSION PATTERNS:**
+
 - `2.x.x` versions (e.g., `2.0.0`, `2.1.0`)
 - `0.2xx.x` versions (e.g., `0.200.0`, `0.201.0`)
 
 When upgrading OpenTelemetry dependencies:
+
 1. Check the dependency's `package.json` after upgrade
 2. Verify the package itself doesn't use forbidden version patterns
 3. Verify none of its dependencies use `@opentelemetry/*` packages with forbidden version patterns
@@ -153,6 +156,7 @@ yarn info <package-name> versions
 ```
 
 The `yarn info` command provides detailed dependency information without requiring installation, making it particularly useful for:
+
 - Verifying OpenTelemetry packages don't introduce forbidden version patterns (`2.x.x` or `0.2xx.x`)
 - Checking what dependencies a package will bring in before upgrading
 - Understanding package version history and compatibility

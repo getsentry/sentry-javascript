@@ -1,4 +1,4 @@
-import { captureSession, defineIntegration, logger, startSession } from '@sentry/core';
+import { captureSession, debug, defineIntegration, startSession } from '@sentry/core';
 import { addHistoryInstrumentationHandler } from '@sentry-internal/browser-utils';
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';
@@ -15,7 +15,7 @@ export const browserSessionIntegration = defineIntegration(() => {
     setupOnce() {
       if (typeof WINDOW.document === 'undefined') {
         DEBUG_BUILD &&
-          logger.warn('Using the `browserSessionIntegration` in non-browser environments is not supported.');
+          debug.warn('Using the `browserSessionIntegration` in non-browser environments is not supported.');
         return;
       }
 

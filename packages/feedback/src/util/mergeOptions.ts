@@ -23,9 +23,9 @@ export function mergeOptions(
       optionOverrides.onFormClose?.();
       defaultOptions.onFormClose?.();
     },
-    onSubmitSuccess: (data: FeedbackFormData) => {
-      optionOverrides.onSubmitSuccess?.(data);
-      defaultOptions.onSubmitSuccess?.(data);
+    onSubmitSuccess: (data: FeedbackFormData, eventId: string) => {
+      optionOverrides.onSubmitSuccess?.(data, eventId);
+      defaultOptions.onSubmitSuccess?.(data, eventId);
     },
     onSubmitError: (error: Error) => {
       optionOverrides.onSubmitError?.(error);

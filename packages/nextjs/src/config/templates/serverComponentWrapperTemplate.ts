@@ -50,7 +50,7 @@ if (typeof serverComponent === 'function') {
         sentryTraceHeader = requestAsyncStore?.headers.get('sentry-trace') ?? undefined;
         baggageHeader = requestAsyncStore?.headers.get('baggage') ?? undefined;
         headers = requestAsyncStore?.headers;
-      } catch (e) {
+      } catch {
         /** empty */
       }
 

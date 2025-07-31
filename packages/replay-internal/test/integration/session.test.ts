@@ -207,14 +207,39 @@ describe('Integration | session', () => {
     await vi.advanceTimersByTimeAsync(DEFAULT_FLUSH_MIN_DELAY);
     await new Promise(process.nextTick);
 
-    const newTimestamp = BASE_TIMESTAMP + ELAPSED;
+    // The click actually does not trigger a flush because it never gets added to event buffer because
+    // the session is expired. We stop recording and re-sample the session expires.
+    expect(replay).not.toHaveLastSentReplay();
+
+    // This click will trigger a flush now that the session is active
+    // (sessionSampleRate=1 when resampling)
+    domHandler({
+      name: 'click',
+      event: new Event('click'),
+    });
+    await vi.advanceTimersByTimeAsync(DEFAULT_FLUSH_MIN_DELAY);
+    await new Promise(process.nextTick);
+    const newTimestamp = BASE_TIMESTAMP + ELAPSED + DEFAULT_FLUSH_MIN_DELAY;
 
     expect(replay).toHaveLastSentReplay({
       recordingPayloadHeader: { segment_id: 0 },
       recordingData: JSON.stringify([
-        { data: { isCheckout: true }, timestamp: newTimestamp, type: 2 },
+        { data: { isCheckout: true }, timestamp: newTimestamp - DEFAULT_FLUSH_MIN_DELAY, type: 2 },
         optionsEvent,
-        // the click is lost, but that's OK
+        {
+          type: 5,
+          timestamp: newTimestamp,
+          data: {
+            tag: 'breadcrumb',
+            payload: {
+              timestamp: newTimestamp / 1000,
+              type: 'default',
+              category: 'ui.click',
+              message: '<unknown>',
+              data: {},
+            },
+          },
+        },
       ]),
     });
 
@@ -224,7 +249,7 @@ describe('Integration | session', () => {
     // `_context` should be reset when a new session is created
     expect(replay.getContext()).toEqual({
       initialUrl: 'http://dummy/',
-      initialTimestamp: newTimestamp,
+      initialTimestamp: newTimestamp - DEFAULT_FLUSH_MIN_DELAY,
       urls: [],
       errorIds: new Set(),
       traceIds: new Set(),

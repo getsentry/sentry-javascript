@@ -1,5 +1,5 @@
 import type { PropagationContext } from '@sentry/core';
-import { getActiveSpan, getRootSpan, GLOBAL_OBJ, logger, Scope, spanToJSON, startNewTrace } from '@sentry/core';
+import { debug, getActiveSpan, getRootSpan, GLOBAL_OBJ, Scope, spanToJSON, startNewTrace } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import { TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION } from '../span-attributes-with-logic-attached';
 
@@ -72,7 +72,7 @@ export function escapeNextjsTracing<T>(cb: () => T): T {
 
   if (!MaybeGlobalAsyncLocalStorage) {
     DEBUG_BUILD &&
-      logger.warn(
+      debug.warn(
         "Tried to register AsyncLocalStorage async context strategy in a runtime that doesn't support AsyncLocalStorage.",
       );
     return cb();

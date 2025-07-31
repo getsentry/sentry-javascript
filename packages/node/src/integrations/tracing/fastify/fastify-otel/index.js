@@ -30,7 +30,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-/* eslint-disable @typescript-eslint/explicit-member-accessibility */
 /* eslint-disable jsdoc/require-jsdoc */
 /* eslint-disable max-lines */
 /* eslint-disable no-param-reassign */
@@ -44,6 +43,7 @@ import {
   ATTR_HTTP_ROUTE,
   ATTR_SERVICE_NAME,
 } from '@opentelemetry/semantic-conventions';
+import * as minimatch from 'minimatch';
 
 // SENTRY VENDOR NOTE
 // Instead of using the package.json file, we hard code the package name and version here.
@@ -97,18 +97,12 @@ export class FastifyOtelInstrumentation extends InstrumentationBase {
         throw new TypeError('ignorePaths must be a string or a function');
       }
 
-      let globMatcher = null;
+      const globMatcher = minimatch.minimatch;
 
       this[kIgnorePaths] = routeOptions => {
         if (typeof ignorePaths === 'function') {
           return ignorePaths(routeOptions);
         } else {
-          // Using minimatch to match the path until path.matchesGlob is out of experimental
-          // path.matchesGlob uses minimatch internally
-          if (globMatcher == null) {
-            globMatcher = require('minimatch').minimatch;
-          }
-
           return globMatcher(routeOptions.url, ignorePaths);
         }
       };
