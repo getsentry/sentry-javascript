@@ -42,15 +42,16 @@ test('Should send a transaction and an error event for a faulty generateMetadata
   });
 
   const errorEventPromise = waitForError('nextjs-14', errorEvent => {
-    return errorEvent?.exception?.values?.[0]?.value === 'generateMetadata Error';
+    return (
+      errorEvent?.exception?.values?.[0]?.value === 'generateMetadata Error' &&
+      errorEvent.transaction === 'Page.generateMetadata (/generation-functions)'
+    );
   });
 
   await page.goto(`/generation-functions?metadataTitle=${testTitle}&shouldThrowInGenerateMetadata=1`);
 
   const errorEvent = await errorEventPromise;
   const transactionEvent = await transactionPromise;
-
-  expect(errorEvent.transaction).toBe('Page.generateMetadata (/generation-functions)');
 
   // Assert that isolation scope works properly
   expect(errorEvent.tags?.['my-isolated-tag']).toBe(true);
