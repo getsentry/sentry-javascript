@@ -3,12 +3,18 @@ import { SPAN_STATUS_ERROR } from '../../tracing';
 import type { Span } from '../../types-hoist/span';
 import {
   GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE,
+  GEN_AI_RESPONSE_STREAMING_ATTRIBUTE,
   GEN_AI_RESPONSE_TEXT_ATTRIBUTE,
-  OPENAI_RESPONSE_STREAM_ATTRIBUTE,
+  GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
 } from '../gen-ai-attributes';
 import { RESPONSE_EVENT_TYPES } from './constants';
 import type { OpenAIResponseObject } from './types';
-import { type ChatCompletionChunk, type ResponseStreamingEvent } from './types';
+import {
+  type ChatCompletionChunk,
+  type ChatCompletionToolCall,
+  type ResponseFunctionCall,
+  type ResponseStreamingEvent,
+} from './types';
 import {
   isChatCompletionChunk,
   isResponsesApiStreamEvent,
@@ -38,6 +44,49 @@ interface StreamingState {
   completionTokens: number | undefined;
   /** Total number of tokens used (prompt + completion). */
   totalTokens: number | undefined;
+  /**
+   * Accumulated tool calls from Chat Completion streaming, indexed by tool call index.
+   * @see https://platform.openai.com/docs/guides/function-calling?api-mode=chat#streaming
+   */
+  chatCompletionToolCalls: Record<number, ChatCompletionToolCall>;
+  /**
+   * Accumulated function calls from Responses API streaming.
+   * @see https://platform.openai.com/docs/guides/function-calling?api-mode=responses#streaming
+   */
+  responsesApiToolCalls: Array<ResponseFunctionCall | unknown>;
+}
+
+/**
+ * Processes tool calls from a chat completion chunk delta.
+ * Follows the pattern: accumulate by index, then convert to array at the end.
+ *
+ * @param toolCalls - Array of tool calls from the delta.
+ * @param state - The current streaming state to update.
+ *
+ *  @see https://platform.openai.com/docs/guides/function-calling#streaming
+ */
+function processChatCompletionToolCalls(toolCalls: ChatCompletionToolCall[], state: StreamingState): void {
+  for (const toolCall of toolCalls) {
+    const index = toolCall.index;
+    if (index === undefined || !toolCall.function) continue;
+
+    // Initialize tool call if this is the first chunk for this index
+    if (!(index in state.chatCompletionToolCalls)) {
+      state.chatCompletionToolCalls[index] = {
+        ...toolCall,
+        function: {
+          name: toolCall.function.name,
+          arguments: toolCall.function.arguments || '',
+        },
+      };
+    } else {
+      // Accumulate function arguments from subsequent chunks
+      const existingToolCall = state.chatCompletionToolCalls[index];
+      if (toolCall.function.arguments && existingToolCall?.function) {
+        existingToolCall.function.arguments += toolCall.function.arguments;
+      }
+    }
+  }
 }
 
 /**
@@ -64,8 +113,15 @@ function processChatCompletionChunk(chunk: ChatCompletionChunk, state: Streaming
   }
 
   for (const choice of chunk.choices ?? []) {
-    if (recordOutputs && choice.delta?.content) {
-      state.responseTexts.push(choice.delta.content);
+    if (recordOutputs) {
+      if (choice.delta?.content) {
+        state.responseTexts.push(choice.delta.content);
+      }
+
+      // Handle tool calls from delta
+      if (choice.delta?.tool_calls) {
+        processChatCompletionToolCalls(choice.delta.tool_calls, state);
+      }
     }
     if (choice.finish_reason) {
       state.finishReasons.push(choice.finish_reason);
@@ -109,9 +165,17 @@ function processResponsesApiEvent(
     return;
   }
 
-  if (recordOutputs && event.type === 'response.output_text.delta' && 'delta' in event && event.delta) {
-    state.responseTexts.push(event.delta);
-    return;
+  // Handle output text delta
+  if (recordOutputs) {
+    // Handle tool call events for Responses API
+    if (event.type === 'response.output_item.done' && 'item' in event) {
+      state.responsesApiToolCalls.push(event.item);
+    }
+
+    if (event.type === 'response.output_text.delta' && 'delta' in event && event.delta) {
+      state.responseTexts.push(event.delta);
+      return;
+    }
   }
 
   if ('response' in event) {
@@ -166,6 +230,8 @@ export async function* instrumentStream<T>(
     promptTokens: undefined,
     completionTokens: undefined,
     totalTokens: undefined,
+    chatCompletionToolCalls: {},
+    responsesApiToolCalls: [],
   };
 
   try {
@@ -182,7 +248,7 @@ export async function* instrumentStream<T>(
     setTokenUsageAttributes(span, state.promptTokens, state.completionTokens, state.totalTokens);
 
     span.setAttributes({
-      [OPENAI_RESPONSE_STREAM_ATTRIBUTE]: true,
+      [GEN_AI_RESPONSE_STREAMING_ATTRIBUTE]: true,
     });
 
     if (state.finishReasons.length) {
@@ -194,6 +260,16 @@ export async function* instrumentStream<T>(
     if (recordOutputs && state.responseTexts.length) {
       span.setAttributes({
         [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: state.responseTexts.join(''),
+      });
+    }
+
+    // Set tool calls attribute if any were accumulated
+    const chatCompletionToolCallsArray = Object.values(state.chatCompletionToolCalls);
+    const allToolCalls = [...chatCompletionToolCallsArray, ...state.responsesApiToolCalls];
+
+    if (allToolCalls.length > 0) {
+      span.setAttributes({
+        [GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE]: JSON.stringify(allToolCalls),
       });
     }
 

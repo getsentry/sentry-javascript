@@ -5,6 +5,7 @@ import { startSpan, startSpanManual } from '../../tracing/trace';
 import type { Span, SpanAttributeValue } from '../../types-hoist/span';
 import {
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
+  GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE,
   GEN_AI_REQUEST_FREQUENCY_PENALTY_ATTRIBUTE,
   GEN_AI_REQUEST_MESSAGES_ATTRIBUTE,
   GEN_AI_REQUEST_MODEL_ATTRIBUTE,
@@ -14,6 +15,7 @@ import {
   GEN_AI_REQUEST_TOP_P_ATTRIBUTE,
   GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE,
   GEN_AI_RESPONSE_TEXT_ATTRIBUTE,
+  GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
   GEN_AI_SYSTEM_ATTRIBUTE,
 } from '../gen-ai-attributes';
 import { OPENAI_INTEGRATION_NAME } from './constants';
@@ -50,6 +52,24 @@ function extractRequestAttributes(args: unknown[], methodPath: string): Record<s
     [GEN_AI_OPERATION_NAME_ATTRIBUTE]: getOperationName(methodPath),
   };
 
+  // Chat completion API accepts web_search_options and tools as parameters
+  // we append web search options to the available tools to capture all tool calls
+  if (args.length > 0 && typeof args[0] === 'object' && args[0] !== null) {
+    const params = args[0] as Record<string, unknown>;
+
+    const tools = Array.isArray(params.tools) ? params.tools : [];
+    const hasWebSearchOptions = params.web_search_options && typeof params.web_search_options === 'object';
+    const webSearchOptions = hasWebSearchOptions
+      ? [{ type: 'web_search_options', ...(params.web_search_options as Record<string, unknown>) }]
+      : [];
+
+    const availableTools = [...tools, ...webSearchOptions];
+
+    if (availableTools.length > 0) {
+      attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE] = JSON.stringify(availableTools);
+    }
+  }
+
   if (args.length > 0 && typeof args[0] === 'object' && args[0] !== null) {
     const params = args[0] as Record<string, unknown>;
 
@@ -70,7 +90,7 @@ function extractRequestAttributes(args: unknown[], methodPath: string): Record<s
 /**
  * Add attributes for Chat Completion responses
  */
-function addChatCompletionAttributes(span: Span, response: OpenAiChatCompletionObject): void {
+function addChatCompletionAttributes(span: Span, response: OpenAiChatCompletionObject, recordOutputs?: boolean): void {
   setCommonResponseAttributes(span, response.id, response.model, response.created);
   if (response.usage) {
     setTokenUsageAttributes(
@@ -89,13 +109,27 @@ function addChatCompletionAttributes(span: Span, response: OpenAiChatCompletionO
         [GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]: JSON.stringify(finishReasons),
       });
     }
+
+    // Extract tool calls from all choices (only if recordOutputs is true)
+    if (recordOutputs) {
+      const toolCalls = response.choices
+        .map(choice => choice.message?.tool_calls)
+        .filter(calls => Array.isArray(calls) && calls.length > 0)
+        .flat();
+
+      if (toolCalls.length > 0) {
+        span.setAttributes({
+          [GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE]: JSON.stringify(toolCalls),
+        });
+      }
+    }
   }
 }
 
 /**
  * Add attributes for Responses API responses
  */
-function addResponsesApiAttributes(span: Span, response: OpenAIResponseObject): void {
+function addResponsesApiAttributes(span: Span, response: OpenAIResponseObject, recordOutputs?: boolean): void {
   setCommonResponseAttributes(span, response.id, response.model, response.created_at);
   if (response.status) {
     span.setAttributes({
@@ -110,6 +144,24 @@ function addResponsesApiAttributes(span: Span, response: OpenAIResponseObject): 
       response.usage.total_tokens,
     );
   }
+
+  // Extract function calls from output (only if recordOutputs is true)
+  if (recordOutputs) {
+    const responseWithOutput = response as OpenAIResponseObject & { output?: unknown[] };
+    if (Array.isArray(responseWithOutput.output) && responseWithOutput.output.length > 0) {
+      // Filter for function_call type objects in the output array
+      const functionCalls = responseWithOutput.output.filter(
+        (item): unknown =>
+          typeof item === 'object' && item !== null && (item as Record<string, unknown>).type === 'function_call',
+      );
+
+      if (functionCalls.length > 0) {
+        span.setAttributes({
+          [GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE]: JSON.stringify(functionCalls),
+        });
+      }
+    }
+  }
 }
 
 /**
@@ -122,13 +174,13 @@ function addResponseAttributes(span: Span, result: unknown, recordOutputs?: bool
   const response = result as OpenAiResponse;
 
   if (isChatCompletionResponse(response)) {
-    addChatCompletionAttributes(span, response);
+    addChatCompletionAttributes(span, response, recordOutputs);
     if (recordOutputs && response.choices?.length) {
       const responseTexts = response.choices.map(choice => choice.message?.content || '');
       span.setAttributes({ [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: JSON.stringify(responseTexts) });
     }
   } else if (isResponsesApiResponse(response)) {
-    addResponsesApiAttributes(span, response);
+    addResponsesApiAttributes(span, response, recordOutputs);
     if (recordOutputs && response.output_text) {
       span.setAttributes({ [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: response.output_text });
     }
