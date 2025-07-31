@@ -13,6 +13,7 @@ export type Location = {
 export interface NonIndexRouteObject {
   caseSensitive?: boolean;
   children?: RouteObject[];
+  handle?: Record<string, any>;
   element?: React.ReactNode | null;
   errorElement?: React.ReactNode | null;
   index?: any;
@@ -22,6 +23,7 @@ export interface NonIndexRouteObject {
 export interface IndexRouteObject {
   caseSensitive?: boolean;
   children?: undefined;
+  handle?: Record<string, any>;
   element?: React.ReactNode | null;
   errorElement?: React.ReactNode | null;
   index: any;
