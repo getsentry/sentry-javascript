@@ -13,7 +13,7 @@ sentryTest('Instrumentation should capture errors in setInterval', async ({ getL
     type: 'Error',
     value: 'setInterval_error',
     mechanism: {
-      type: 'instrument',
+      type: 'browserApiErrors',
       handled: false,
     },
     stacktrace: {

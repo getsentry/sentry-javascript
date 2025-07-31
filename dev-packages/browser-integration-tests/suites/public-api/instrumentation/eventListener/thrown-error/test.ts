@@ -15,7 +15,7 @@ sentryTest(
       type: 'Error',
       value: 'event_listener_error',
       mechanism: {
-        type: 'instrument',
+        type: 'browserApiErrors',
         handled: false,
         data: {
           function: 'addEventListener',

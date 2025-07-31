@@ -13,7 +13,7 @@ sentryTest('should capture built-in handlers fn name in mechanism data', async (
     type: 'Error',
     value: 'event_listener_error',
     mechanism: {
-      type: 'instrument',
+      type: 'browserApiErrors',
       handled: false,
       data: {
         function: 'addEventListener',
