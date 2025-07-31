@@ -28,16 +28,15 @@ describe('createSentryHandleError', () => {
     mockConsoleError.mockClear();
   });
 
-  // Helper function to create mock args with proper Request structure
   const createMockArgs = (aborted: boolean): LoaderFunctionArgs => {
     const controller = new AbortController();
     if (aborted) {
       controller.abort();
     }
 
-    const request = new Request('http://test.com', {
+    const request = {
       signal: controller.signal,
-    });
+    } as Request;
 
     return { request } as LoaderFunctionArgs;
   };
@@ -160,23 +159,19 @@ describe('createSentryHandleError', () => {
     it('should wait for flushIfServerless to complete', async () => {
       const handleError = createSentryHandleError({});
 
-      // Create a promise that resolves after 10ms
       let resolveFlush: () => void;
       const flushPromise = new Promise<void>(resolve => {
         resolveFlush = resolve;
       });
 
-      // Mock flushIfServerless to return our controlled promise
       mockFlushIfServerless.mockReturnValueOnce(flushPromise);
 
       const mockArgs = createMockArgs(false);
 
       const startTime = Date.now();
 
-      // Start the handleError call
       const handleErrorPromise = handleError(mockError, mockArgs);
 
-      // Resolve the flush after 10ms
       setTimeout(() => resolveFlush(), 10);
 
       await handleErrorPromise;
@@ -190,12 +185,10 @@ describe('createSentryHandleError', () => {
     it('should handle flushIfServerless rejection gracefully', async () => {
       const handleError = createSentryHandleError({});
 
-      // Make flushIfServerless reject
       mockFlushIfServerless.mockRejectedValueOnce(new Error('Flush failed'));
 
       const mockArgs = createMockArgs(false);
 
-      // This should not throw
       await expect(handleError(mockError, mockArgs)).resolves.toBeUndefined();
 
       expect(mockCaptureException).toHaveBeenCalledWith(mockError, { mechanism });
