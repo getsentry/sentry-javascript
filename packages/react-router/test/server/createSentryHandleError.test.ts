@@ -8,6 +8,11 @@ vi.mock('@sentry/core', () => ({
   flushIfServerless: vi.fn().mockResolvedValue(undefined),
 }));
 
+const mechanism = {
+  handled: false,
+  type: 'react-router',
+};
+
 describe('createSentryHandleError', () => {
   const mockCaptureException = vi.mocked(core.captureException);
   const mockFlushIfServerless = vi.mocked(core.flushIfServerless);
@@ -50,7 +55,7 @@ describe('createSentryHandleError', () => {
 
       await handleError(mockError, mockArgs);
 
-      expect(mockCaptureException).toHaveBeenCalledWith(mockError);
+      expect(mockCaptureException).toHaveBeenCalledWith(mockError, { mechanism });
       expect(mockFlushIfServerless).toHaveBeenCalled();
       expect(mockConsoleError).not.toHaveBeenCalled();
     });
@@ -74,7 +79,7 @@ describe('createSentryHandleError', () => {
 
       await handleError(mockError, mockArgs);
 
-      expect(mockCaptureException).toHaveBeenCalledWith(mockError);
+      expect(mockCaptureException).toHaveBeenCalledWith(mockError, { mechanism });
       expect(mockFlushIfServerless).toHaveBeenCalled();
       expect(mockConsoleError).toHaveBeenCalledWith(mockError);
     });
@@ -98,7 +103,7 @@ describe('createSentryHandleError', () => {
 
       await handleError(mockError, mockArgs);
 
-      expect(mockCaptureException).toHaveBeenCalledWith(mockError);
+      expect(mockCaptureException).toHaveBeenCalledWith(mockError, { mechanism });
       expect(mockFlushIfServerless).toHaveBeenCalled();
       expect(mockConsoleError).not.toHaveBeenCalled();
     });
@@ -112,7 +117,7 @@ describe('createSentryHandleError', () => {
 
       await handleError(stringError, mockArgs);
 
-      expect(mockCaptureException).toHaveBeenCalledWith(stringError);
+      expect(mockCaptureException).toHaveBeenCalledWith(stringError, { mechanism });
       expect(mockFlushIfServerless).toHaveBeenCalled();
     });
 
@@ -122,7 +127,7 @@ describe('createSentryHandleError', () => {
 
       await handleError(null, mockArgs);
 
-      expect(mockCaptureException).toHaveBeenCalledWith(null);
+      expect(mockCaptureException).toHaveBeenCalledWith(null, { mechanism });
       expect(mockFlushIfServerless).toHaveBeenCalled();
     });
 
@@ -133,7 +138,7 @@ describe('createSentryHandleError', () => {
 
       await handleError(customError, mockArgs);
 
-      expect(mockCaptureException).toHaveBeenCalledWith(customError);
+      expect(mockCaptureException).toHaveBeenCalledWith(customError, { mechanism });
       expect(mockFlushIfServerless).toHaveBeenCalled();
     });
   });
@@ -145,7 +150,7 @@ describe('createSentryHandleError', () => {
 
       await handleError(mockError, mockArgs);
 
-      expect(mockCaptureException).toHaveBeenCalledWith(mockError);
+      expect(mockCaptureException).toHaveBeenCalledWith(mockError, { mechanism });
       expect(mockFlushIfServerless).toHaveBeenCalled();
       expect(mockConsoleError).toHaveBeenCalledWith(mockError);
     });
@@ -177,7 +182,7 @@ describe('createSentryHandleError', () => {
       await handleErrorPromise;
       const endTime = Date.now();
 
-      expect(mockCaptureException).toHaveBeenCalledWith(mockError);
+      expect(mockCaptureException).toHaveBeenCalledWith(mockError, { mechanism });
       expect(mockFlushIfServerless).toHaveBeenCalled();
       expect(endTime - startTime).toBeGreaterThanOrEqual(10);
     });
@@ -193,7 +198,7 @@ describe('createSentryHandleError', () => {
       // This should not throw
       await expect(handleError(mockError, mockArgs)).resolves.toBeUndefined();
 
-      expect(mockCaptureException).toHaveBeenCalledWith(mockError);
+      expect(mockCaptureException).toHaveBeenCalledWith(mockError, { mechanism });
       expect(mockFlushIfServerless).toHaveBeenCalled();
     });
   });

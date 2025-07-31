@@ -17,7 +17,12 @@ export function createSentryHandleError({ logErrors = false }: SentryHandleError
   ): Promise<void> {
     // React Router may abort some interrupted requests, don't report those
     if (!args.request.signal.aborted) {
-      captureException(error);
+      captureException(error, {
+        mechanism: {
+          type: 'react-router',
+          handled: false,
+        },
+      });
       if (logErrors) {
         // eslint-disable-next-line no-console
         console.error(error);
