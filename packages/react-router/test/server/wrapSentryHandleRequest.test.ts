@@ -1,6 +1,7 @@
 import { RPCType } from '@opentelemetry/core';
 import { ATTR_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
 import {
+  flushIfServerless,
   getActiveSpan,
   getRootSpan,
   getTraceMetaTags,
@@ -15,13 +16,13 @@ vi.mock('@opentelemetry/core', () => ({
   RPCType: { HTTP: 'http' },
   getRPCMetadata: vi.fn(),
 }));
-
 vi.mock('@sentry/core', () => ({
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE: 'sentry.source',
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN: 'sentry.origin',
   getActiveSpan: vi.fn(),
   getRootSpan: vi.fn(),
   getTraceMetaTags: vi.fn(),
+  flushIfServerless: vi.fn(),
 }));
 
 describe('wrapSentryHandleRequest', () => {
@@ -62,7 +63,8 @@ describe('wrapSentryHandleRequest', () => {
     (getActiveSpan as unknown as ReturnType<typeof vi.fn>).mockReturnValue(mockActiveSpan);
     (getRootSpan as unknown as ReturnType<typeof vi.fn>).mockReturnValue(mockRootSpan);
     const getRPCMetadata = vi.fn().mockReturnValue(mockRpcMetadata);
-    vi.mocked(vi.importActual('@opentelemetry/core')).getRPCMetadata = getRPCMetadata;
+    (vi.importActual('@opentelemetry/core') as unknown as { getRPCMetadata: typeof getRPCMetadata }).getRPCMetadata =
+      getRPCMetadata;
 
     const routerContext = {
       staticHandlerContext: {
@@ -110,7 +112,8 @@ describe('wrapSentryHandleRequest', () => {
     (getActiveSpan as unknown as ReturnType<typeof vi.fn>).mockReturnValue(null);
 
     const getRPCMetadata = vi.fn().mockReturnValue(mockRpcMetadata);
-    vi.mocked(vi.importActual('@opentelemetry/core')).getRPCMetadata = getRPCMetadata;
+    (vi.importActual('@opentelemetry/core') as unknown as { getRPCMetadata: typeof getRPCMetadata }).getRPCMetadata =
+      getRPCMetadata;
 
     const routerContext = {
       staticHandlerContext: {
@@ -122,6 +125,55 @@ describe('wrapSentryHandleRequest', () => {
 
     expect(getRPCMetadata).not.toHaveBeenCalled();
   });
+
+  test('should call flushIfServerless on successful execution', async () => {
+    const originalHandler = vi.fn().mockResolvedValue('success response');
+    const wrappedHandler = wrapSentryHandleRequest(originalHandler);
+
+    const request = new Request('https://example.com');
+    const responseStatusCode = 200;
+    const responseHeaders = new Headers();
+    const routerContext = { staticHandlerContext: { matches: [] } } as any;
+    const loadContext = {} as any;
+
+    await wrappedHandler(request, responseStatusCode, responseHeaders, routerContext, loadContext);
+
+    expect(flushIfServerless).toHaveBeenCalled();
+  });
+
+  test('should call flushIfServerless even when original handler throws an error', async () => {
+    const mockError = new Error('Handler failed');
+    const originalHandler = vi.fn().mockRejectedValue(mockError);
+    const wrappedHandler = wrapSentryHandleRequest(originalHandler);
+
+    const request = new Request('https://example.com');
+    const responseStatusCode = 200;
+    const responseHeaders = new Headers();
+    const routerContext = { staticHandlerContext: { matches: [] } } as any;
+    const loadContext = {} as any;
+
+    await expect(
+      wrappedHandler(request, responseStatusCode, responseHeaders, routerContext, loadContext),
+    ).rejects.toThrow('Handler failed');
+
+    expect(flushIfServerless).toHaveBeenCalled();
+  });
+
+  test('should propagate errors from original handler', async () => {
+    const mockError = new Error('Test error');
+    const originalHandler = vi.fn().mockRejectedValue(mockError);
+    const wrappedHandler = wrapSentryHandleRequest(originalHandler);
+
+    const request = new Request('https://example.com');
+    const responseStatusCode = 500;
+    const responseHeaders = new Headers();
+    const routerContext = { staticHandlerContext: { matches: [] } } as any;
+    const loadContext = {} as any;
+
+    await expect(wrappedHandler(request, responseStatusCode, responseHeaders, routerContext, loadContext)).rejects.toBe(
+      mockError,
+    );
+  });
 });
 
 describe('getMetaTagTransformer', () => {
@@ -132,68 +184,64 @@ describe('getMetaTagTransformer', () => {
     );
   });
 
-  test('should inject meta tags before closing head tag', done => {
-    const outputStream = new PassThrough();
-    const bodyStream = new PassThrough();
-    const transformer = getMetaTagTransformer(bodyStream);
+  test('should inject meta tags before closing head tag', () => {
+    return new Promise<void>(resolve => {
+      const bodyStream = new PassThrough();
+      const transformer = getMetaTagTransformer(bodyStream);
 
-    let outputData = '';
-    outputStream.on('data', chunk => {
-      outputData += chunk.toString();
+      let outputData = '';
+      bodyStream.on('data', chunk => {
+        outputData += chunk.toString();
+      });
+
+      bodyStream.on('end', () => {
+        expect(outputData).toContain('<meta name="sentry-trace" content="test-trace-id"></head>');
+        expect(outputData).not.toContain('</head></head>');
+        resolve();
+      });
+
+      transformer.write('<html><head></head><body>Test</body></html>');
+      transformer.end();
     });
-
-    outputStream.on('end', () => {
-      expect(outputData).toContain('<meta name="sentry-trace" content="test-trace-id"></head>');
-      expect(outputData).not.toContain('</head></head>');
-      done();
-    });
-
-    transformer.pipe(outputStream);
-
-    bodyStream.write('<html><head></head><body>Test</body></html>');
-    bodyStream.end();
   });
 
-  test('should not modify chunks without head closing tag', done => {
-    const outputStream = new PassThrough();
-    const bodyStream = new PassThrough();
-    const transformer = getMetaTagTransformer(bodyStream);
+  test('should not modify chunks without head closing tag', () => {
+    return new Promise<void>(resolve => {
+      const bodyStream = new PassThrough();
+      const transformer = getMetaTagTransformer(bodyStream);
 
-    let outputData = '';
-    outputStream.on('data', chunk => {
-      outputData += chunk.toString();
+      let outputData = '';
+      bodyStream.on('data', chunk => {
+        outputData += chunk.toString();
+      });
+
+      bodyStream.on('end', () => {
+        expect(outputData).toBe('<html><body>Test</body></html>');
+        resolve();
+      });
+
+      transformer.write('<html><body>Test</body></html>');
+      transformer.end();
     });
-
-    outputStream.on('end', () => {
-      expect(outputData).toBe('<html><body>Test</body></html>');
-      expect(getTraceMetaTags).toHaveBeenCalled();
-      done();
-    });
-
-    transformer.pipe(outputStream);
-
-    bodyStream.write('<html><body>Test</body></html>');
-    bodyStream.end();
   });
 
-  test('should handle buffer input', done => {
-    const outputStream = new PassThrough();
-    const bodyStream = new PassThrough();
-    const transformer = getMetaTagTransformer(bodyStream);
+  test('should handle buffer input', () => {
+    return new Promise<void>(resolve => {
+      const bodyStream = new PassThrough();
+      const transformer = getMetaTagTransformer(bodyStream);
 
-    let outputData = '';
-    outputStream.on('data', chunk => {
-      outputData += chunk.toString();
+      let outputData = '';
+      bodyStream.on('data', chunk => {
+        outputData += chunk.toString();
+      });
+
+      bodyStream.on('end', () => {
+        expect(outputData).toContain('<meta name="sentry-trace" content="test-trace-id"></head>');
+        resolve();
+      });
+
+      transformer.write(Buffer.from('<html><head></head><body>Test</body></html>'));
+      transformer.end();
     });
-
-    outputStream.on('end', () => {
-      expect(outputData).toContain('<meta name="sentry-trace" content="test-trace-id"></head>');
-      done();
-    });
-
-    transformer.pipe(outputStream);
-
-    bodyStream.write(Buffer.from('<html><head></head><body>Test</body></html>'));
-    bodyStream.end();
   });
 });

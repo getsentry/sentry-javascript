@@ -217,6 +217,15 @@ module.exports = [
     gzip: true,
     limit: '41 KB',
   },
+  // Node-Core SDK (ESM)
+  {
+    name: '@sentry/node-core',
+    path: 'packages/node-core/build/esm/index.js',
+    import: createImport('init'),
+    ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
+    gzip: true,
+    limit: '116 KB',
+  },
   // Node SDK (ESM)
   {
     name: '@sentry/node',
@@ -224,7 +233,7 @@ module.exports = [
     import: createImport('init'),
     ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
     gzip: true,
-    limit: '170 KB',
+    limit: '147 KB',
   },
   {
     name: '@sentry/node - without tracing',

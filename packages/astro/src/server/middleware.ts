@@ -1,17 +1,15 @@
 import type { RequestEventData, Scope, SpanAttributes } from '@sentry/core';
 import {
   addNonEnumerableProperty,
-  debug,
   extractQueryParamsFromUrl,
+  flushIfServerless,
   objectify,
   stripUrlQueryAndFragment,
-  vercelWaitUntil,
   winterCGRequestToRequestData,
 } from '@sentry/core';
 import {
   captureException,
   continueTrace,
-  flush,
   getActiveSpan,
   getClient,
   getCurrentScope,
@@ -22,7 +20,7 @@ import {
   startSpan,
   withIsolationScope,
 } from '@sentry/node';
-import type { APIContext, MiddlewareResponseHandler } from 'astro';
+import type { APIContext, MiddlewareResponseHandler, RoutePart } from 'astro';
 
 type MiddlewareOptions = {
   /**
@@ -128,8 +126,26 @@ async function instrumentRequest(
       }
 
       try {
-        const interpolatedRoute = interpolateRouteFromUrlAndParams(ctx.url.pathname, ctx.params);
-        const source = interpolatedRoute ? 'route' : 'url';
+        // `routePattern` is available after Astro 5
+        const contextWithRoutePattern = ctx as Parameters<MiddlewareResponseHandler>[0] & { routePattern?: string };
+        const rawRoutePattern = contextWithRoutePattern.routePattern;
+
+        // @ts-expect-error Implicit any on Symbol.for (This is available in Astro 5)
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        const routesFromManifest = ctx?.[Symbol.for('context.routes')]?.manifest?.routes;
+
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        const matchedRouteSegmentsFromManifest = routesFromManifest?.find(
+          (route: { routeData?: { route?: string } }) => route?.routeData?.route === rawRoutePattern,
+        )?.routeData?.segments;
+
+        const parametrizedRoute =
+          // Astro v5 - Joining the segments to get the correct casing of the parametrized route
+          (matchedRouteSegmentsFromManifest && joinRouteSegments(matchedRouteSegmentsFromManifest)) ||
+          // Fallback (Astro v4 and earlier)
+          interpolateRouteFromUrlAndParams(ctx.url.pathname, ctx.params);
+
+        const source = parametrizedRoute ? 'route' : 'url';
         // storing res in a variable instead of directly returning is necessary to
         // invoke the catch block if next() throws
 
@@ -148,12 +164,12 @@ async function instrumentRequest(
           attributes['http.fragment'] = ctx.url.hash;
         }
 
-        isolationScope?.setTransactionName(`${method} ${interpolatedRoute || ctx.url.pathname}`);
+        isolationScope?.setTransactionName(`${method} ${parametrizedRoute || ctx.url.pathname}`);
 
         const res = await startSpan(
           {
             attributes,
-            name: `${method} ${interpolatedRoute || ctx.url.pathname}`,
+            name: `${method} ${parametrizedRoute || ctx.url.pathname}`,
             op: 'http.server',
           },
           async span => {
@@ -202,7 +218,7 @@ async function instrumentRequest(
                   try {
                     for await (const chunk of bodyReporter()) {
                       const html = typeof chunk === 'string' ? chunk : decoder.decode(chunk, { stream: true });
-                      const modifiedHtml = addMetaTagToHead(html);
+                      const modifiedHtml = addMetaTagToHead(html, parametrizedRoute);
                       controller.enqueue(new TextEncoder().encode(modifiedHtml));
                     }
                   } catch (e) {
@@ -222,16 +238,7 @@ async function instrumentRequest(
         );
         return res;
       } finally {
-        vercelWaitUntil(
-          (async () => {
-            // Flushes pending Sentry events with a 2-second timeout and in a way that cannot create unhandled promise rejections.
-            try {
-              await flush(2000);
-            } catch (e) {
-              debug.log('Error while flushing events:\n', e);
-            }
-          })(),
-        );
+        await flushIfServerless();
       }
       // TODO: flush if serverless (first extract function)
     },
@@ -242,11 +249,13 @@ async function instrumentRequest(
  * This function optimistically assumes that the HTML coming in chunks will not be split
  * within the <head> tag. If this still happens, we simply won't replace anything.
  */
-function addMetaTagToHead(htmlChunk: string): string {
+function addMetaTagToHead(htmlChunk: string, parametrizedRoute?: string): string {
   if (typeof htmlChunk !== 'string') {
     return htmlChunk;
   }
-  const metaTags = getTraceMetaTags();
+  const metaTags = parametrizedRoute
+    ? `${getTraceMetaTags()}\n<meta name="sentry-route-name" content="${encodeURIComponent(parametrizedRoute)}"/>\n`
+    : getTraceMetaTags();
 
   if (!metaTags) {
     return htmlChunk;
@@ -306,26 +315,30 @@ export function interpolateRouteFromUrlAndParams(
     return acc.replace(key, `[${valuesToMultiSegmentParams[key]}]`);
   }, decodedUrlPathname);
 
-  return urlWithReplacedMultiSegmentParams
-    .split('/')
-    .map(segment => {
-      if (!segment) {
-        return '';
-      }
+  return (
+    urlWithReplacedMultiSegmentParams
+      .split('/')
+      .map(segment => {
+        if (!segment) {
+          return '';
+        }
 
-      if (valuesToParams[segment]) {
-        return replaceWithParamName(segment);
-      }
+        if (valuesToParams[segment]) {
+          return replaceWithParamName(segment);
+        }
 
-      // astro permits multiple params in a single path segment, e.g. /[foo]-[bar]/
-      const segmentParts = segment.split('-');
-      if (segmentParts.length > 1) {
-        return segmentParts.map(part => replaceWithParamName(part)).join('-');
-      }
+        // astro permits multiple params in a single path segment, e.g. /[foo]-[bar]/
+        const segmentParts = segment.split('-');
+        if (segmentParts.length > 1) {
+          return segmentParts.map(part => replaceWithParamName(part)).join('-');
+        }
 
-      return segment;
-    })
-    .join('/');
+        return segment;
+      })
+      .join('/')
+      // Remove trailing slash (only if it's not the only segment)
+      .replace(/^(.+?)\/$/, '$1')
+  );
 }
 
 function tryDecodeUrl(url: string): string | undefined {
@@ -347,4 +360,19 @@ function checkIsDynamicPageRequest(context: Parameters<MiddlewareResponseHandler
   } catch {
     return false;
   }
+}
+
+/**
+ * Join Astro route segments into a case-sensitive single path string.
+ *
+ * Astro lowercases the parametrized route. Joining segments manually is recommended to get the correct casing of the routes.
+ * Recommendation in comment: https://github.com/withastro/astro/issues/13885#issuecomment-2934203029
+ * Function Reference: https://github.com/joanrieu/astro-typed-links/blob/b3dc12c6fe8d672a2bc2ae2ccc57c8071bbd09fa/package/src/integration.ts#L16
+ */
+function joinRouteSegments(segments: RoutePart[][]): string {
+  const parthArray = segments.map(segment =>
+    segment.map(routePart => (routePart.dynamic ? `[${routePart.content}]` : routePart.content)).join(''),
+  );
+
+  return `/${parthArray.join('/')}`;
 }

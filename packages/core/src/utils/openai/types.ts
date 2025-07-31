@@ -50,6 +50,7 @@ export interface OpenAiChatCompletionObject {
       content: string | null;
       refusal?: string | null;
       annotations?: Array<unknown>; // Depends on whether annotations are enabled
+      tool_calls?: Array<unknown>;
     };
     logprobs?: unknown | null;
     finish_reason: string | null;
@@ -131,6 +132,188 @@ export interface OpenAIResponseObject {
 }
 
 export type OpenAiResponse = OpenAiChatCompletionObject | OpenAIResponseObject;
+
+/**
+ * Streaming event types for the Responses API
+ * @see https://platform.openai.com/docs/api-reference/responses-streaming
+ * @see https://platform.openai.com/docs/guides/streaming-responses#read-the-responses for common events
+ */
+export type ResponseStreamingEvent =
+  | ResponseCreatedEvent
+  | ResponseInProgressEvent
+  | ResponseFailedEvent
+  | ResponseCompletedEvent
+  | ResponseIncompleteEvent
+  | ResponseQueuedEvent
+  | ResponseOutputTextDeltaEvent
+  | ResponseOutputItemAddedEvent
+  | ResponseFunctionCallArgumentsDeltaEvent
+  | ResponseFunctionCallArgumentsDoneEvent
+  | ResponseOutputItemDoneEvent;
+
+interface ResponseCreatedEvent {
+  type: 'response.created';
+  response: OpenAIResponseObject;
+  sequence_number: number;
+}
+
+interface ResponseInProgressEvent {
+  type: 'response.in_progress';
+  response: OpenAIResponseObject;
+  sequence_number: number;
+}
+
+interface ResponseOutputTextDeltaEvent {
+  content_index: number;
+  delta: string;
+  item_id: string;
+  logprobs: object;
+  output_index: number;
+  sequence_number: number;
+  type: 'response.output_text.delta';
+}
+
+interface ResponseFailedEvent {
+  type: 'response.failed';
+  response: OpenAIResponseObject;
+  sequence_number: number;
+}
+
+interface ResponseIncompleteEvent {
+  type: 'response.incomplete';
+  response: OpenAIResponseObject;
+  sequence_number: number;
+}
+
+interface ResponseCompletedEvent {
+  type: 'response.completed';
+  response: OpenAIResponseObject;
+  sequence_number: number;
+}
+interface ResponseQueuedEvent {
+  type: 'response.queued';
+  response: OpenAIResponseObject;
+  sequence_number: number;
+}
+
+/**
+ * @see https://platform.openai.com/docs/api-reference/realtime-server-events/response/output_item/added
+ */
+interface ResponseOutputItemAddedEvent {
+  type: 'response.output_item.added';
+  output_index: number;
+  item: unknown;
+  event_id: string;
+  response_id: string;
+}
+
+/**
+ * @see https://platform.openai.com/docs/api-reference/realtime-server-events/response/function_call_arguments/delta
+ */
+interface ResponseFunctionCallArgumentsDeltaEvent {
+  type: 'response.function_call_arguments.delta';
+  item_id: string;
+  output_index: number;
+  delta: string;
+  call_id: string;
+  event_id: string;
+  response_id: string;
+}
+
+/**
+ * @see https://platform.openai.com/docs/api-reference/realtime-server-events/response/function_call_arguments/done
+ */
+interface ResponseFunctionCallArgumentsDoneEvent {
+  type: 'response.function_call_arguments.done';
+  response_id: string;
+  item_id: string;
+  output_index: number;
+  arguments: string;
+  call_id: string;
+  event_id: string;
+}
+
+/**
+ * @see https://platform.openai.com/docs/api-reference/realtime-server-events/response/output_item/done
+ */
+interface ResponseOutputItemDoneEvent {
+  type: 'response.output_item.done';
+  response_id: string;
+  output_index: number;
+  item: unknown;
+  event_id: string;
+}
+
+/**
+ * Tool call object for Chat Completion streaming
+ */
+export interface ChatCompletionToolCall {
+  index?: number; // Present for streaming responses
+  id: string;
+  type?: string; // Could be missing for streaming responses
+  function?: {
+    name: string;
+    arguments?: string;
+  };
+}
+
+/**
+ * Function call object for Responses API
+ */
+export interface ResponseFunctionCall {
+  type: string;
+  id: string;
+  call_id: string;
+  name: string;
+  arguments: string;
+}
+
+/**
+ * Chat Completion streaming chunk type
+ * @see https://platform.openai.com/docs/api-reference/chat-streaming/streaming
+ */
+export interface ChatCompletionChunk {
+  id: string;
+  object: 'chat.completion.chunk';
+  created: number;
+  model: string;
+  system_fingerprint: string;
+  service_tier?: string;
+  choices: Array<{
+    index: number;
+    delta: {
+      content: string | null;
+      role: string;
+      function_call?: object;
+      refusal?: string | null;
+      tool_calls?: Array<ChatCompletionToolCall>;
+    };
+    logprobs?: unknown | null;
+    finish_reason?: string | null;
+  }>;
+  usage?: {
+    prompt_tokens: number;
+    completion_tokens: number;
+    total_tokens: number;
+    completion_tokens_details: {
+      accepted_prediction_tokens: number;
+      audio_tokens: number;
+      reasoning_tokens: number;
+      rejected_prediction_tokens: number;
+    };
+    prompt_tokens_details: {
+      audio_tokens: number;
+      cached_tokens: number;
+    };
+  };
+}
+
+/**
+ * Represents a stream of events from OpenAI APIs
+ */
+export interface OpenAIStream<T> extends AsyncIterable<T> {
+  [Symbol.asyncIterator](): AsyncIterator<T>;
+}
 
 /**
  * OpenAI Integration interface for type safety

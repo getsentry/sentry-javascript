@@ -1,3 +1,4 @@
+import type { Event } from '@sentry/node';
 import * as childProcess from 'child_process';
 import * as path from 'path';
 import { afterAll, describe, expect, test } from 'vitest';
@@ -122,5 +123,59 @@ test rejection`);
       })
       .start()
       .completed();
+  });
+
+  test('handles unhandled rejection in spans', async () => {
+    let transactionEvent: Event | undefined;
+    let errorEvent: Event | undefined;
+
+    await createRunner(__dirname, 'scenario-with-span.ts')
+      .expect({
+        transaction: transaction => {
+          transactionEvent = transaction;
+        },
+      })
+      .expect({
+        event: event => {
+          errorEvent = event;
+        },
+      })
+      .start()
+      .completed();
+
+    expect(transactionEvent).toBeDefined();
+    expect(errorEvent).toBeDefined();
+
+    expect(transactionEvent!.transaction).toBe('test-span');
+
+    expect(transactionEvent!.contexts!.trace!.trace_id).toBe(errorEvent!.contexts!.trace!.trace_id);
+    expect(transactionEvent!.contexts!.trace!.span_id).toBe(errorEvent!.contexts!.trace!.span_id);
+  });
+
+  test('handles unhandled rejection in spans that are ended early', async () => {
+    let transactionEvent: Event | undefined;
+    let errorEvent: Event | undefined;
+
+    await createRunner(__dirname, 'scenario-with-span-ended.ts')
+      .expect({
+        transaction: transaction => {
+          transactionEvent = transaction;
+        },
+      })
+      .expect({
+        event: event => {
+          errorEvent = event;
+        },
+      })
+      .start()
+      .completed();
+
+    expect(transactionEvent).toBeDefined();
+    expect(errorEvent).toBeDefined();
+
+    expect(transactionEvent!.transaction).toBe('test-span');
+
+    expect(transactionEvent!.contexts!.trace!.trace_id).toBe(errorEvent!.contexts!.trace!.trace_id);
+    expect(transactionEvent!.contexts!.trace!.span_id).toBe(errorEvent!.contexts!.trace!.span_id);
   });
 });

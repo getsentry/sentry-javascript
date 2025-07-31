@@ -19,9 +19,8 @@ Sentry.init({
 
 const provider = new NodeTracerProvider({
   sampler: new CustomSampler(),
+  spanProcessors: [new SentrySpanProcessor()],
 });
-
-provider.addSpanProcessor(new SentrySpanProcessor());
 
 provider.register({
   propagator: new SentryPropagator(),

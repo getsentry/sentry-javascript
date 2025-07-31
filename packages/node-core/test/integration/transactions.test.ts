@@ -1,11 +1,9 @@
 import { context, trace, TraceFlags } from '@opentelemetry/api';
-import type { SpanProcessor } from '@opentelemetry/sdk-trace-base';
 import type { TransactionEvent } from '@sentry/core';
 import { debug, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
-import { SentrySpanProcessor } from '@sentry/opentelemetry';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import * as Sentry from '../../src';
-import { cleanupOtel, getProvider, mockSdkInit } from '../helpers/mockSdkInit';
+import { cleanupOtel, getSpanProcessor, mockSdkInit } from '../helpers/mockSdkInit';
 
 describe('Integration | Transactions', () => {
   afterEach(() => {
@@ -562,13 +560,7 @@ describe('Integration | Transactions', () => {
 
     mockSdkInit({ tracesSampleRate: 1, beforeSendTransaction });
 
-    const provider = getProvider();
-    const multiSpanProcessor = provider?.activeSpanProcessor as
-      | (SpanProcessor & { _spanProcessors?: SpanProcessor[] })
-      | undefined;
-    const spanProcessor = multiSpanProcessor?.['_spanProcessors']?.find(
-      spanProcessor => spanProcessor instanceof SentrySpanProcessor,
-    ) as SentrySpanProcessor | undefined;
+    const spanProcessor = getSpanProcessor();
 
     const exporter = spanProcessor ? spanProcessor['_exporter'] : undefined;
 

@@ -1,6 +1,25 @@
-import { OPENAI_OPERATIONS } from '../gen-ai-attributes';
+import type { Span } from '../../types-hoist/span';
+import {
+  GEN_AI_RESPONSE_ID_ATTRIBUTE,
+  GEN_AI_RESPONSE_MODEL_ATTRIBUTE,
+  GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
+  GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
+  GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
+  OPENAI_OPERATIONS,
+  OPENAI_RESPONSE_ID_ATTRIBUTE,
+  OPENAI_RESPONSE_MODEL_ATTRIBUTE,
+  OPENAI_RESPONSE_TIMESTAMP_ATTRIBUTE,
+  OPENAI_USAGE_COMPLETION_TOKENS_ATTRIBUTE,
+  OPENAI_USAGE_PROMPT_TOKENS_ATTRIBUTE,
+} from '../gen-ai-attributes';
 import { INSTRUMENTED_METHODS } from './constants';
-import type { InstrumentedMethod, OpenAiChatCompletionObject, OpenAIResponseObject } from './types';
+import type {
+  ChatCompletionChunk,
+  InstrumentedMethod,
+  OpenAiChatCompletionObject,
+  OpenAIResponseObject,
+  ResponseStreamingEvent,
+} from './types';
 
 /**
  * Maps OpenAI method paths to Sentry operation names
@@ -10,8 +29,7 @@ export function getOperationName(methodPath: string): string {
     return OPENAI_OPERATIONS.CHAT;
   }
   if (methodPath.includes('responses')) {
-    // The responses API is also a chat operation
-    return OPENAI_OPERATIONS.CHAT;
+    return OPENAI_OPERATIONS.RESPONSES;
   }
   return methodPath.split('.').pop() || 'unknown';
 }
@@ -60,4 +78,82 @@ export function isResponsesApiResponse(response: unknown): response is OpenAIRes
     'object' in response &&
     (response as Record<string, unknown>).object === 'response'
   );
+}
+
+/**
+ * Check if streaming event is from the Responses API
+ */
+export function isResponsesApiStreamEvent(event: unknown): event is ResponseStreamingEvent {
+  return (
+    event !== null &&
+    typeof event === 'object' &&
+    'type' in event &&
+    typeof (event as Record<string, unknown>).type === 'string' &&
+    ((event as Record<string, unknown>).type as string).startsWith('response.')
+  );
+}
+
+/**
+ * Check if streaming event is a chat completion chunk
+ */
+export function isChatCompletionChunk(event: unknown): event is ChatCompletionChunk {
+  return (
+    event !== null &&
+    typeof event === 'object' &&
+    'object' in event &&
+    (event as Record<string, unknown>).object === 'chat.completion.chunk'
+  );
+}
+
+/**
+ * Set token usage attributes
+ * @param span - The span to add attributes to
+ * @param promptTokens - The number of prompt tokens
+ * @param completionTokens - The number of completion tokens
+ * @param totalTokens - The number of total tokens
+ */
+export function setTokenUsageAttributes(
+  span: Span,
+  promptTokens?: number,
+  completionTokens?: number,
+  totalTokens?: number,
+): void {
+  if (promptTokens !== undefined) {
+    span.setAttributes({
+      [OPENAI_USAGE_PROMPT_TOKENS_ATTRIBUTE]: promptTokens,
+      [GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]: promptTokens,
+    });
+  }
+  if (completionTokens !== undefined) {
+    span.setAttributes({
+      [OPENAI_USAGE_COMPLETION_TOKENS_ATTRIBUTE]: completionTokens,
+      [GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]: completionTokens,
+    });
+  }
+  if (totalTokens !== undefined) {
+    span.setAttributes({
+      [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: totalTokens,
+    });
+  }
+}
+
+/**
+ * Set common response attributes
+ * @param span - The span to add attributes to
+ * @param id - The response id
+ * @param model - The response model
+ * @param timestamp - The response timestamp
+ */
+export function setCommonResponseAttributes(span: Span, id: string, model: string, timestamp: number): void {
+  span.setAttributes({
+    [OPENAI_RESPONSE_ID_ATTRIBUTE]: id,
+    [GEN_AI_RESPONSE_ID_ATTRIBUTE]: id,
+  });
+  span.setAttributes({
+    [OPENAI_RESPONSE_MODEL_ATTRIBUTE]: model,
+    [GEN_AI_RESPONSE_MODEL_ATTRIBUTE]: model,
+  });
+  span.setAttributes({
+    [OPENAI_RESPONSE_TIMESTAMP_ATTRIBUTE]: new Date(timestamp * 1000).toISOString(),
+  });
 }
