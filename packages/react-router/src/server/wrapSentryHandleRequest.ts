@@ -2,6 +2,7 @@ import { context } from '@opentelemetry/api';
 import { getRPCMetadata, RPCType } from '@opentelemetry/core';
 import { ATTR_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
 import {
+  flushIfServerless,
   getActiveSpan,
   getRootSpan,
   getTraceMetaTags,
@@ -58,10 +59,15 @@ export function wrapSentryHandleRequest(originalHandle: OriginalHandleRequest): 
       });
     }
 
-    return originalHandle(request, responseStatusCode, responseHeaders, routerContext, loadContext);
+    try {
+      return await originalHandle(request, responseStatusCode, responseHeaders, routerContext, loadContext);
+    } finally {
+      await flushIfServerless();
+    }
   };
 }
 
+// todo(v11): remove this
 /** @deprecated Use `wrapSentryHandleRequest` instead. */
 export const sentryHandleRequest = wrapSentryHandleRequest;
 
