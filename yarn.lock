@@ -7100,19 +7100,6 @@
     "@sentry/cli-win32-i686" "2.50.0"
     "@sentry/cli-win32-x64" "2.50.0"
 
-"@sentry/cloudflare@9.42.1":
-  version "9.42.1"
-  resolved "https://registry.yarnpkg.com/@sentry/cloudflare/-/cloudflare-9.42.1.tgz#8b0f74070e8c5c404e21ed0a42fe980eb5a9a5cd"
-  integrity sha512-StW3szcs/9jKxo6Yfkj/qcON5PN6XdVLVyTOCWKBj1d6U9uZ3ELibkVwrk6hG7Yj3Nk7khXS867WMOru1L1ZkQ==
-  dependencies:
-    "@opentelemetry/api" "^1.9.0"
-    "@sentry/core" "9.42.1"
-
-"@sentry/core@9.42.1":
-  version "9.42.1"
-  resolved "https://registry.yarnpkg.com/@sentry/core/-/core-9.42.1.tgz#d8f88d3b5ba7aa6f77374504041716496bb8fbb2"
-  integrity sha512-9jWgjgZ8EvIYMTL5HzG8PYRo7+/vv3qwPabPVV2EfGPOjU65GFcT7N+oitg+0rAI/fTMsLaQXC77WmKzhRBSdw==
-
 "@sentry/rollup-plugin@^3.5.0":
   version "3.5.0"
   resolved "https://registry.yarnpkg.com/@sentry/rollup-plugin/-/rollup-plugin-3.5.0.tgz#9015c48e00257f8440597167498499804371329b"
