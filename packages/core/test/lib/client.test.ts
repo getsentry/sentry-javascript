@@ -1676,12 +1676,17 @@ describe('Client', () => {
 
       client.captureEvent({ message: 'hello' }, {}, scope);
 
-      expect(TestClient.instance!.event!.exception!.values![0]).toStrictEqual({ type: 'Error', value: 'sorry' });
+      expect(TestClient.instance!.event!.exception!.values![0]).toStrictEqual({
+        type: 'Error',
+        value: 'sorry',
+        mechanism: { type: 'internal', handled: false },
+      });
       expect(captureExceptionSpy).toBeCalledWith(exception, {
         data: {
           __sentry__: true,
         },
         originalException: exception,
+        mechanism: { type: 'internal', handled: false },
       });
       expect(loggerWarnSpy).toBeCalledWith(
         `Event processing pipeline threw an error, original event will not be sent. Details have been sent as a new event.\nReason: ${exception}`,
