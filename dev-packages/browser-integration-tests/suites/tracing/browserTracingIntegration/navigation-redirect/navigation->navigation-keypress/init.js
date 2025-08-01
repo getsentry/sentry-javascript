@@ -21,3 +21,10 @@ document.getElementById('btn1').addEventListener('click', () => {
     }, 100);
   }, 400);
 });
+
+document.getElementById('btn2').addEventListener('click', () => {
+  // Trigger navigation later than click, so the last click is more than 300ms ago
+  setTimeout(() => {
+    window.history.pushState({}, '', '/sub-page-2');
+  }, 400);
+});

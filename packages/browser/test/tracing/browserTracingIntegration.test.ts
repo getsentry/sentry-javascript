@@ -154,7 +154,7 @@ describe('browserTracingIntegration', () => {
     expect(spanIsSampled(span!)).toBe(false);
   });
 
-  it('starts navigation when URL changes after > 300ms', () => {
+  it('starts navigation when URL changes after > 1.5s', () => {
     const client = new BrowserClient(
       getDefaultBrowserClientOptions({
         tracesSampleRate: 1,
@@ -187,7 +187,7 @@ describe('browserTracingIntegration', () => {
     const dom = new JSDOM(undefined, { url: 'https://example.com/test' });
     Object.defineProperty(global, 'location', { value: dom.window.document.location, writable: true });
 
-    vi.advanceTimersByTime(400);
+    vi.advanceTimersByTime(1600);
     WINDOW.history.pushState({}, '', '/test');
 
     expect(span!.isRecording()).toBe(false);

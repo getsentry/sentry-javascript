@@ -3,7 +3,7 @@ import { sentryTest } from '../../../../../utils/fixtures';
 import { envelopeRequestParser, shouldSkipTracingTest, waitForTransactionRequest } from '../../../../../utils/helpers';
 
 sentryTest(
-  'should not create a navigation.redirect span if a click happened before navigation',
+  'creates a navigation root span and redirect child span if no click happened within the last 1.5s',
   async ({ getLocalTestUrl, page }) => {
     if (shouldSkipTracingTest()) {
       sentryTest.skip();
@@ -19,15 +19,22 @@ sentryTest(
 
     await page.goto(url);
 
-    const pageloadRequest = envelopeRequestParser(await pageloadRequestPromise);
-    // Ensure a navigation span is sent, too
-    await navigationRequestPromise;
+    await pageloadRequestPromise;
 
-    const spans = pageloadRequest.spans || [];
+    // Now trigger navigation (since no span is active), and then a redirect in the navigation, with
+    await page.click('#btn1');
 
-    expect(spans).not.toContainEqual(
+    const navigationRequest = envelopeRequestParser(await navigationRequestPromise);
+
+    expect(navigationRequest.contexts?.trace?.op).toBe('navigation');
+    expect(navigationRequest.transaction).toEqual('/sub-page');
+
+    const spans = navigationRequest.spans || [];
+
+    expect(spans).toContainEqual(
       expect.objectContaining({
         op: 'navigation.redirect',
+        description: '/sub-page-redirect',
       }),
     );
   },

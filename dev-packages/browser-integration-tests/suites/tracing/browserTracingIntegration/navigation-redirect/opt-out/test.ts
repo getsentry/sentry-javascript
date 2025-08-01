@@ -3,7 +3,7 @@ import { sentryTest } from '../../../../../utils/fixtures';
 import { envelopeRequestParser, shouldSkipTracingTest, waitForTransactionRequest } from '../../../../../utils/helpers';
 
 sentryTest(
-  'should not create a navigation.redirect span if `detectRedirects` is set to false',
+  "doesn't create a navigation.redirect span if `detectRedirects` is set to false",
   async ({ getLocalTestUrl, page }) => {
     if (shouldSkipTracingTest()) {
       sentryTest.skip();
