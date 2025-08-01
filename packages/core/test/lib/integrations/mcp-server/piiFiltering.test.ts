@@ -206,15 +206,15 @@ describe('MCP Server PII Filtering', () => {
       // Client info should be filtered
       expect(result).not.toHaveProperty('client.address');
       expect(result).not.toHaveProperty('client.port');
-      
+
       // Request arguments should be filtered
       expect(result).not.toHaveProperty('mcp.request.argument.location');
       expect(result).not.toHaveProperty('mcp.request.argument.units');
-      
+
       // Specific PII content attributes should be filtered
       expect(result).not.toHaveProperty('mcp.tool.result.content');
       expect(result).not.toHaveProperty('mcp.prompt.result.description');
-      
+
       // Indexed/dynamic result attributes (not in PII_ATTRIBUTES) should remain
       expect(result).toHaveProperty('mcp.tool.result.content_count', 1);
       expect(result).toHaveProperty('mcp.prompt.result.message_count', 2);
@@ -225,7 +225,7 @@ describe('MCP Server PII Filtering', () => {
       expect(result).toHaveProperty('mcp.resource.result.content_count', 1);
       expect(result).toHaveProperty('mcp.resource.result.uri', 'file:///private/file.txt');
       expect(result).toHaveProperty('mcp.resource.result.content', 'Sensitive resource content');
-      
+
       // Other PII attributes should be filtered
       expect(result).not.toHaveProperty('mcp.logging.message');
       expect(result).not.toHaveProperty('mcp.resource.uri');

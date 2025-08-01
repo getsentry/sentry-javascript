@@ -10,10 +10,7 @@ import { startInactiveSpan, withActiveSpan } from '../../tracing';
 import { fill } from '../../utils/object';
 import { cleanupPendingSpansForTransport, completeSpanWithResults, storeSpanForRequest } from './correlation';
 import { captureError } from './errorCapture';
-import {
-  extractSessionDataFromInitializeRequest,
-  extractSessionDataFromInitializeResponse,
-} from './sessionExtraction';
+import { extractSessionDataFromInitializeRequest, extractSessionDataFromInitializeResponse } from './sessionExtraction';
 import {
   cleanupSessionDataForTransport,
   storeSessionDataForTransport,

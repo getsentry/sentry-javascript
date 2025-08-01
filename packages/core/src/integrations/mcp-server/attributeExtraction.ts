@@ -12,13 +12,7 @@ import {
   MCP_RESOURCE_URI_ATTRIBUTE,
 } from './attributes';
 import { extractTargetInfo, getRequestArguments } from './methodConfig';
-import type {
-  JsonRpcNotification,
-  JsonRpcRequest,
-  McpSpanType,
-} from './types';
-
-
+import type { JsonRpcNotification, JsonRpcRequest, McpSpanType } from './types';
 
 /**
  * Extracts additional attributes for specific notification types
@@ -95,8 +89,6 @@ export function getNotificationAttributes(
 
   return attributes;
 }
-
-
 
 /**
  * Build type-specific attributes based on message type

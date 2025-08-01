@@ -16,7 +16,11 @@ import {
   NETWORK_PROTOCOL_VERSION_ATTRIBUTE,
   NETWORK_TRANSPORT_ATTRIBUTE,
 } from './attributes';
-import { getClientInfoForTransport, getProtocolVersionForTransport, getSessionDataForTransport } from './sessionManagement';
+import {
+  getClientInfoForTransport,
+  getProtocolVersionForTransport,
+  getSessionDataForTransport,
+} from './sessionManagement';
 import type { ExtraHandlerData, JsonRpcRequest, MCPTransport, PartyInfo, SessionData } from './types';
 
 /**
