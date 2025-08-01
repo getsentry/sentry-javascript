@@ -17,11 +17,12 @@ sentryTest('makes a call to sentry.io to diagnose SDK connectivity', async ({ ge
     });
   });
 
-  let diagnoseMessage: string | undefined;
-  page.on('console', msg => {
-    if (msg.text().includes('SDK connectivity:')) {
-      diagnoseMessage = msg.text();
-    }
+  const diagnoseMessagePromise = new Promise<string>(resolve => {
+    page.on('console', msg => {
+      if (msg.text().includes('SDK connectivity:')) {
+        resolve(msg.text());
+      }
+    });
   });
 
   const url = await getLocalTestUrl({ testDir: __dirname });
@@ -30,9 +31,17 @@ sentryTest('makes a call to sentry.io to diagnose SDK connectivity', async ({ ge
   const pageLoadEvent = envelopeRequestParser(await pageloadRequestPromise);
 
   // udnefined is expected and means the request was successful
-  expect(diagnoseMessage).toEqual('SDK connectivity: undefined');
+  expect(await diagnoseMessagePromise).toEqual('SDK connectivity: undefined');
 
   // the request to sentry.io should not be traced, hence no http.client span should be sent.
   const httpClientSpans = pageLoadEvent.spans?.filter(s => s.op === 'http.client');
   expect(httpClientSpans).toHaveLength(0);
+
+  // no fetch breadcrumb should be sent (only breadcrumb for the console log)
+  expect(pageLoadEvent.breadcrumbs).toEqual([
+    expect.objectContaining({
+      category: 'console',
+      message: 'SDK connectivity: undefined',
+    }),
+  ]);
 });
