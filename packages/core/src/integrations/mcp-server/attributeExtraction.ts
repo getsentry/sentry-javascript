@@ -393,9 +393,7 @@ export function extractPromptResultAttributes(result: unknown): Record<string, s
 
   const resultObj = result as Record<string, unknown>;
   
-  if (typeof resultObj.description === 'string') {
-    attributes[MCP_PROMPT_RESULT_DESCRIPTION_ATTRIBUTE] = resultObj.description;
-  }
+  if (typeof resultObj.description === 'string') attributes[MCP_PROMPT_RESULT_DESCRIPTION_ATTRIBUTE] = resultObj.description;
   
   if (Array.isArray(resultObj.messages)) {
     attributes[MCP_PROMPT_RESULT_MESSAGE_COUNT_ATTRIBUTE] = resultObj.messages.length;
@@ -405,15 +403,11 @@ export function extractPromptResultAttributes(result: unknown): Record<string, s
       if (typeof message === 'object' && message !== null) {
         const messageObj = message as Record<string, unknown>;
         
-        if (typeof messageObj.role === 'string') {
-          attributes[MCP_PROMPT_RESULT_MESSAGE_ROLE_ATTRIBUTE] = messageObj.role;
-        }
+        if (typeof messageObj.role === 'string') attributes[MCP_PROMPT_RESULT_MESSAGE_ROLE_ATTRIBUTE] = messageObj.role;
         
         if (typeof messageObj.content === 'object' && messageObj.content !== null) {
           const content = messageObj.content as Record<string, unknown>;
-          if (typeof content.text === 'string') {
-            attributes[MCP_PROMPT_RESULT_MESSAGE_CONTENT_ATTRIBUTE] = content.text;
-          }
+          if (typeof content.text === 'string') attributes[MCP_PROMPT_RESULT_MESSAGE_CONTENT_ATTRIBUTE] = content.text;
         }
       }
     }
