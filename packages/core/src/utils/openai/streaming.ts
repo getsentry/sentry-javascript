@@ -152,7 +152,7 @@ function processResponsesApiEvent(
     captureException(streamEvent, {
       mechanism: {
         handled: false,
-        type: 'openai.stream-response',
+        type: 'auto.ai.openai.stream-response',
       },
     });
     return;
