@@ -11,6 +11,7 @@ import { setHttpStatus, SPAN_STATUS_ERROR, SPAN_STATUS_OK, startSpan } from '../
 import type { IntegrationFn } from '../types-hoist/integration';
 import { debug } from '../utils/debug-logger';
 import { isPlainObject } from '../utils/is';
+import { addExceptionMechanism } from '../utils/misc';
 
 const AUTH_OPERATIONS_TO_INSTRUMENT = [
   'reauthenticate',
@@ -410,7 +411,7 @@ function instrumentPostgRESTFilterBuilder(PostgRESTFilterBuilder: PostgRESTFilte
                       err.details = res.error.details;
                     }
 
-                    const supabaseContext: Record<string, unknown> = {};
+                    const supabaseContext: Record<string, any> = {};
                     if (queryItems.length) {
                       supabaseContext.query = queryItems;
                     }
@@ -418,14 +419,19 @@ function instrumentPostgRESTFilterBuilder(PostgRESTFilterBuilder: PostgRESTFilte
                       supabaseContext.body = body;
                     }
 
-                    captureException(err, {
-                      mechanism: {
-                        handled: false,
-                        type: 'auto.db.supabase.postgres',
-                      },
-                      contexts: {
-                        supabase: supabaseContext,
-                      },
+                    captureException(err, scope => {
+                      scope.addEventProcessor(e => {
+                        addExceptionMechanism(e, {
+                          handled: false,
+                          type: 'auto.db.supabase.postgres',
+                        });
+
+                        return e;
+                      });
+
+                      scope.setContext('supabase', supabaseContext);
+
+                      return scope;
                     });
                   }
 
