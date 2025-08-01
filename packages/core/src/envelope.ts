@@ -26,6 +26,7 @@ import {
   getSdkMetadataForEnvelopeHeader,
 } from './utils/envelope';
 import { uuid4 } from './utils/misc';
+import { shouldIgnoreSpan } from './utils/should-ignore-span';
 import { showSpanDropWarning, spanToJSON } from './utils/spanUtils';
 
 /**
@@ -122,7 +123,17 @@ export function createSpanEnvelope(spans: [SentrySpan, ...SentrySpan[]], client?
     ...(!!tunnel && dsn && { dsn: dsnToString(dsn) }),
   };
 
-  const beforeSendSpan = client?.getOptions().beforeSendSpan;
+  const { beforeSendSpan, ignoreSpans } = client?.getOptions() || {};
+
+  const filteredSpans = ignoreSpans?.length
+    ? spans.filter(span => !shouldIgnoreSpan(spanToJSON(span), ignoreSpans))
+    : spans;
+  const droppedSpans = spans.length - filteredSpans.length;
+
+  if (droppedSpans) {
+    client?.recordDroppedEvent('before_send', 'span', droppedSpans);
+  }
+
   const convertToSpanJSON = beforeSendSpan
     ? (span: SentrySpan) => {
         const spanJson = spanToJSON(span);
@@ -138,7 +149,7 @@ export function createSpanEnvelope(spans: [SentrySpan, ...SentrySpan[]], client?
     : spanToJSON;
 
   const items: SpanItem[] = [];
-  for (const span of spans) {
+  for (const span of filteredSpans) {
     const spanJson = convertToSpanJSON(span);
     if (spanJson) {
       items.push(createSpanEnvelopeItem(spanJson));
