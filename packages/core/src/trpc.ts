@@ -19,7 +19,7 @@ export interface SentryTrpcMiddlewareArguments<T> {
   getRawInput?: () => Promise<unknown>;
 }
 
-const trpcCaptureContext = { mechanism: { handled: false, type: 'trpc', data: { function: 'trpcMiddleware' } } };
+const trpcCaptureContext = { mechanism: { handled: false, type: 'auto.rpc.trpc.middleware' } };
 
 function captureIfError(nextResult: unknown): void {
   // TODO: Set span status based on what TRPCError was encountered
