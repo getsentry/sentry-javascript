@@ -1159,6 +1159,10 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
         }
 
         this.captureException(reason, {
+          mechanism: {
+            handled: false,
+            type: 'internal',
+          },
           data: {
             __sentry__: true,
           },
