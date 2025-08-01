@@ -77,19 +77,6 @@ const ViewsRoutes = () =>
     },
   ]);
 
-const LazyRoutes = () =>
-  sentryUseRoutes([
-    {
-      path: 'inner-lazy',
-      handle: {
-        lazyChildren: async () =>
-          import('./pages/InnerLazyRoutes').then(
-            (module) => module.someMoreNestedRoutes,
-          ),
-      },
-    }
-  ]);
-
 const ProjectsRoutes = () => (
   <SentryRoutes>
     <Route path="projects" element={<Outlet />}>
@@ -98,7 +85,6 @@ const ProjectsRoutes = () => (
         <Route path=":projectId/*" element={<ViewsRoutes />} />
       </Route>
     </Route>
-    <Route path="/lazy/*" element={<LazyRoutes />} />
   </SentryRoutes>
 );
 
