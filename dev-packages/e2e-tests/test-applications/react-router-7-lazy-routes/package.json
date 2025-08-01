@@ -1,5 +1,5 @@
 {
-  "name": "react-router-7-cross-usage",
+  "name": "react-router-7-lazy-routes",
   "version": "0.1.0",
   "private": true,
   "dependencies": {
