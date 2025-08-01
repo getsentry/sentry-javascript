@@ -4,7 +4,7 @@ import { wrapMcpServerWithSentry } from '../../../../src/integrations/mcp-server
 import {
   extractSessionDataFromInitializeRequest,
   extractSessionDataFromInitializeResponse,
-} from '../../../../src/integrations/mcp-server/attributeExtraction';
+} from '../../../../src/integrations/mcp-server/sessionExtraction';
 import {
   cleanupSessionDataForTransport,
   getClientInfoForTransport,

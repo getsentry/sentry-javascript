@@ -434,5 +434,77 @@ describe('MCP Server Semantic Conventions', () => {
       expect(setStatusSpy).not.toHaveBeenCalled();
       expect(endSpy).toHaveBeenCalled();
     });
+
+    it('should instrument prompt call results and complete span with enriched attributes', async () => {
+      await wrappedMcpServer.connect(mockTransport);
+
+      const setAttributesSpy = vi.fn();
+      const setStatusSpy = vi.fn();
+      const endSpy = vi.fn();
+      const mockSpan = {
+        setAttributes: setAttributesSpy,
+        setStatus: setStatusSpy,
+        end: endSpy,
+      };
+      startInactiveSpanSpy.mockReturnValueOnce(
+        mockSpan as unknown as ReturnType<typeof tracingModule.startInactiveSpan>,
+      );
+
+      const promptCallRequest = {
+        jsonrpc: '2.0',
+        method: 'prompts/get',
+        id: 'req-prompt-result',
+        params: {
+          name: 'code-review',
+          arguments: { language: 'typescript', complexity: 'high' },
+        },
+      };
+
+      mockTransport.onmessage?.(promptCallRequest, {});
+
+      expect(startInactiveSpanSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: 'prompts/get code-review',
+          op: 'mcp.server',
+          forceTransaction: true,
+          attributes: expect.objectContaining({
+            'mcp.method.name': 'prompts/get',
+            'mcp.prompt.name': 'code-review',
+            'mcp.request.id': 'req-prompt-result',
+          }),
+        }),
+      );
+
+      const promptResponse = {
+        jsonrpc: '2.0',
+        id: 'req-prompt-result',
+        result: {
+          description: 'Code review prompt for TypeScript with high complexity analysis',
+          messages: [
+            {
+              role: 'user',
+              content: {
+                type: 'text',
+                text: 'Please review this TypeScript code for complexity and best practices.',
+              },
+            },
+          ],
+        },
+      };
+
+      mockTransport.send?.(promptResponse);
+
+      expect(setAttributesSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          'mcp.prompt.result.description': 'Code review prompt for TypeScript with high complexity analysis',
+          'mcp.prompt.result.message_count': 1,
+          'mcp.prompt.result.message_role': 'user',
+          'mcp.prompt.result.message_content': 'Please review this TypeScript code for complexity and best practices.',
+        }),
+      );
+
+      expect(setStatusSpy).not.toHaveBeenCalled();
+      expect(endSpy).toHaveBeenCalled();
+    });
   });
 });
