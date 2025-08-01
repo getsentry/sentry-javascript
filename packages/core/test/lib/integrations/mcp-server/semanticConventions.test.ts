@@ -506,7 +506,5 @@ describe('MCP Server Semantic Conventions', () => {
       expect(setStatusSpy).not.toHaveBeenCalled();
       expect(endSpy).toHaveBeenCalled();
     });
-
-
   });
 });
