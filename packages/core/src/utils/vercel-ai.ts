@@ -62,9 +62,16 @@ function onVercelAiSpanStart(span: Span): void {
 
 function vercelAiEventProcessor(event: Event): Event {
   if (event.type === 'transaction' && event.spans) {
+    // First pass: process all spans normally
     for (const span of event.spans) {
       // this mutates spans in-place
       processEndedVercelAiSpan(span);
+    }
+
+    // Second pass: accumulate tokens for gen_ai.invoke_agent spans
+    // TODO: Determine how to handle token aggregation for tool call spans.
+    for (const span of event.spans) {
+      accumulateTokensFromChildSpans(span, event.spans);
     }
   }
   return event;
@@ -239,6 +246,48 @@ export function addVercelAiProcessors(client: Client): void {
   client.on('spanStart', onVercelAiSpanStart);
   // Note: We cannot do this on `spanEnd`, because the span cannot be mutated anymore at this point
   client.addEventProcessor(Object.assign(vercelAiEventProcessor, { id: 'VercelAiEventProcessor' }));
+}
+
+/**
+ * For the gen_ai.invoke_agent span, correctly iterate over child spans and aggregate:
+ * - Input tokens from client LLM child spans that include this attribute.
+ * - Output tokens from client LLM child spans that include this attribute.
+ * - Total tokens from client LLM child spans that include this attribute.
+ *
+ * Only immediate children of the invoke_agent span need to be considered,
+ * since aggregation will automatically occur for each parent span.
+ *
+ */
+function accumulateTokensFromChildSpans(spanJSON: SpanJSON, allSpans: SpanJSON[]): void {
+  if (spanJSON.op !== 'gen_ai.invoke_agent') {
+    return;
+  }
+  const childSpans = allSpans.filter(childSpan => childSpan.parent_span_id === spanJSON.span_id);
+
+  let totalInputTokens = 0;
+  let totalOutputTokens = 0;
+
+  for (const childSpan of childSpans) {
+    const inputTokens = childSpan.data[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE];
+    const outputTokens = childSpan.data[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE];
+
+    if (typeof inputTokens === 'number') {
+      totalInputTokens += inputTokens;
+    }
+    if (typeof outputTokens === 'number') {
+      totalOutputTokens += outputTokens;
+    }
+  }
+
+  if (totalInputTokens > 0) {
+    spanJSON.data[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE] = totalInputTokens;
+  }
+  if (totalOutputTokens > 0) {
+    spanJSON.data[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE] = totalOutputTokens;
+  }
+  if (totalInputTokens > 0 || totalOutputTokens > 0) {
+    spanJSON.data['gen_ai.usage.total_tokens'] = totalInputTokens + totalOutputTokens;
+  }
 }
 
 function addProviderMetadataToAttributes(attributes: SpanAttributes): void {
