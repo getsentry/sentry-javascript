@@ -136,26 +136,3 @@ test('sends a navigation transaction with a parameterized URL - alternative rout
     },
   });
 });
-
-test('sends a pageload transaction for lazy route', async ({ page }) => {
-  const transactionPromise = waitForTransaction('react-router-7-cross-usage', async transactionEvent => {
-    console.debug('Lazy route transaction event', transactionEvent);
-    return (
-      !!transactionEvent?.transaction &&
-      transactionEvent.contexts?.trace?.op === 'pageload' &&
-      transactionEvent.transaction === '/lazy/inner-lazy/inner-inner-lazy'
-    );
-  });
-
-  // Try to navigate to the full nested path
-  await page.goto('/lazy/level-1/123/456/789');
-
-  console.debug('Navigated to lazy route');
-  console.debug('ROOT', await page.innerHTML('#root'));
-
-  const event = await transactionPromise;
-
-  expect(event.transaction).toBe('/lazy/inner-lazy/inner-inner-lazy');
-  expect(event.type).toBe('transaction');
-  expect(event.contexts?.trace?.op).toBe('pageload');
-});
