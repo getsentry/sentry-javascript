@@ -9,8 +9,8 @@
 import { getClient } from '../../currentScopes';
 import { SPAN_STATUS_ERROR } from '../../tracing';
 import type { Span } from '../../types-hoist/span';
-import { extractPromptResultAttributes, extractToolResultAttributes } from './attributeExtraction';
 import { filterMcpPiiFromSpanData } from './piiFiltering';
+import { extractPromptResultAttributes, extractToolResultAttributes } from './resultExtraction';
 import type { MCPTransport, RequestId, RequestSpanMapValue } from './types';
 
 /**

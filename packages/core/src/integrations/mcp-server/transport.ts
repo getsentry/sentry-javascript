@@ -8,12 +8,12 @@
 import { getIsolationScope, withIsolationScope } from '../../currentScopes';
 import { startInactiveSpan, withActiveSpan } from '../../tracing';
 import { fill } from '../../utils/object';
+import { cleanupPendingSpansForTransport, completeSpanWithResults, storeSpanForRequest } from './correlation';
+import { captureError } from './errorCapture';
 import {
   extractSessionDataFromInitializeRequest,
   extractSessionDataFromInitializeResponse,
-} from './attributeExtraction';
-import { cleanupPendingSpansForTransport, completeSpanWithResults, storeSpanForRequest } from './correlation';
-import { captureError } from './errorCapture';
+} from './sessionExtraction';
 import {
   cleanupSessionDataForTransport,
   storeSessionDataForTransport,
