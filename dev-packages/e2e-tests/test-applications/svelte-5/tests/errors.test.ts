@@ -19,7 +19,7 @@ test('sends an error', async ({ page }) => {
           type: 'Error',
           value: 'Error thrown from Svelte 5 E2E test app',
           mechanism: {
-            type: 'browserApiErrors',
+            type: 'auto.browser.browserapierrors.addEventListener',
             handled: false,
           },
         },

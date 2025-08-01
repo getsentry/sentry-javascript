@@ -25,7 +25,7 @@ sentryTest(
       type: 'Error',
       value: 'setTimeout_error',
       mechanism: {
-        type: 'browserApiErrors',
+        type: 'auto.browser.browserapierrors.setTimeout',
         handled: false,
       },
       stacktrace: {
