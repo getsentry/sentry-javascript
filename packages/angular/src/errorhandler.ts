@@ -48,8 +48,8 @@ function extractHttpModuleError(error: HttpErrorResponse): string | Error {
     return `Server returned code ${error.status} with body "${error.error}"`;
   }
 
-  // If we don't have any detailed information, fallback to the request message itself.
-  return error.message;
+  // If we don't have any detailed information, fallback to the request itself.
+  return error;
 }
 
 type ErrorCandidate = {
