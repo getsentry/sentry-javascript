@@ -1,7 +1,7 @@
 {
   "extends": "../../tsconfig.json",
 
-  "include": ["src/**/*", "build.config.ts", "vite.config.ts"],
+  "include": ["src/**/*", "build.config.ts"],
 
   "compilerOptions": {
     // package-specific options
