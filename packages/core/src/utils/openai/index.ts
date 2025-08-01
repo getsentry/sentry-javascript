@@ -50,11 +50,7 @@ function extractRequestAttributes(args: unknown[], methodPath: string): Record<s
   const attributes: Record<string, unknown> = {
     [GEN_AI_SYSTEM_ATTRIBUTE]: 'openai',
     [GEN_AI_OPERATION_NAME_ATTRIBUTE]: getOperationName(methodPath),
-<<<<<<< HEAD
-    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.openai',
-=======
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.openai',
->>>>>>> c3e94e7d9 (update type to trace origin, set origin)
   };
 
   // Chat completion API accepts web_search_options and tools as parameters
