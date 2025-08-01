@@ -108,9 +108,8 @@ function _wrapTimeFunction(original: () => void): () => number {
     const originalCallback = args[0];
     args[0] = wrap(originalCallback, {
       mechanism: {
-        data: { function: getFunctionName(original) },
         handled: false,
-        type: 'browserApiErrors',
+        type: `auto.browser.browserapierrors.${getFunctionName(original)}`,
       },
     });
     return original.apply(this, args);
@@ -123,11 +122,10 @@ function _wrapRAF(original: () => void): (callback: () => void) => unknown {
       wrap(callback, {
         mechanism: {
           data: {
-            function: 'requestAnimationFrame',
             handler: getFunctionName(original),
           },
           handled: false,
-          type: 'browserApiErrors',
+          type: 'auto.browser.browserapierrors.requestAnimationFrame',
         },
       }),
     ]);
@@ -146,11 +144,10 @@ function _wrapXHR(originalSend: () => void): () => void {
           const wrapOptions = {
             mechanism: {
               data: {
-                function: prop,
                 handler: getFunctionName(original),
               },
               handled: false,
-              type: 'browserApiErrors',
+              type: `auto.browser.browserapierrors.xhr.${prop}`,
             },
           };
 
@@ -194,12 +191,11 @@ function _wrapEventTarget(target: string, integrationOptions: BrowserApiErrorsOp
           fn.handleEvent = wrap(fn.handleEvent, {
             mechanism: {
               data: {
-                function: 'handleEvent',
                 handler: getFunctionName(fn),
                 target,
               },
               handled: false,
-              type: 'browserApiErrors',
+              type: 'auto.browser.browserapierrors.handleEvent',
             },
           });
         }
@@ -216,12 +212,11 @@ function _wrapEventTarget(target: string, integrationOptions: BrowserApiErrorsOp
         wrap(fn, {
           mechanism: {
             data: {
-              function: 'addEventListener',
               handler: getFunctionName(fn),
               target,
             },
             handled: false,
-            type: 'browserApiErrors',
+            type: 'auto.browser.browserapierrors.addEventListener',
           },
         }),
         options,

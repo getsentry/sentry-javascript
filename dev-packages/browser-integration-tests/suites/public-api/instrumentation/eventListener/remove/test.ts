@@ -13,7 +13,7 @@ sentryTest('should transparently remove event listeners from wrapped functions',
     type: 'Error',
     value: 'foo',
     mechanism: {
-      type: 'browserApiErrors',
+      type: 'auto.browser.browserapierrors.addEventListener',
       handled: false,
     },
     stacktrace: {

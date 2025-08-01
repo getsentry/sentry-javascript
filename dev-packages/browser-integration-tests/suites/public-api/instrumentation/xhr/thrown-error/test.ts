@@ -15,11 +15,8 @@ sentryTest(
       type: 'Error',
       value: 'xhr_error',
       mechanism: {
-        type: 'browserApiErrors',
+        type: 'auto.browser.browserapierrors.xhr.onreadystatechange',
         handled: false,
-        data: {
-          function: 'onreadystatechange',
-        },
       },
       stacktrace: {
         frames: expect.any(Array),
