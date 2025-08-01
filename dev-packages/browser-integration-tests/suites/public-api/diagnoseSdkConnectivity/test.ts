@@ -3,7 +3,9 @@ import { sentryTest } from '../../../utils/fixtures';
 import { envelopeRequestParser, shouldSkipTracingTest, waitForTransactionRequest } from '../../../utils/helpers';
 
 sentryTest('makes a call to sentry.io to diagnose SDK connectivity', async ({ getLocalTestUrl, page }) => {
-  if (shouldSkipTracingTest()) {
+  const bundle = process.env.PW_BUNDLE as string | undefined;
+  if (shouldSkipTracingTest() || !!bundle) {
+    // the CDN bundle doesn't export diagnoseSdkConnectivity. So skipping the test for bundles.
     sentryTest.skip();
   }
 
