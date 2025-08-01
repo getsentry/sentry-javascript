@@ -11,4 +11,4 @@ Sentry.init({
 // trigger redirect later
 setTimeout(() => {
   window.history.pushState({}, '', '/sub-page');
-}, 400);
+}, 1550);

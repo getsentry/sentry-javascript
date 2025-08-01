@@ -3,7 +3,7 @@ import { sentryTest } from '../../../../../utils/fixtures';
 import { envelopeRequestParser, shouldSkipTracingTest, waitForTransactionRequest } from '../../../../../utils/helpers';
 
 sentryTest(
-  'should not create a navigation.redirect span if a keypress happened before navigation',
+  "doesn'T create a navigation.redirect span if redirect happened more than 1.5s after pageload",
   async ({ getLocalTestUrl, page }) => {
     if (shouldSkipTracingTest()) {
       sentryTest.skip();
@@ -18,8 +18,6 @@ sentryTest(
     );
 
     await page.goto(url);
-    await page.focus('#btn1');
-    await page.keyboard.press('Enter');
 
     const pageloadRequest = envelopeRequestParser(await pageloadRequestPromise);
     // Ensure a navigation span is sent, too
