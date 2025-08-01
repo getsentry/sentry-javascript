@@ -249,14 +249,13 @@ export function addVercelAiProcessors(client: Client): void {
 }
 
 /**
- * For the gen_ai.invoke_agent span, correctly iterate over child spans and aggregate:
- * - Input tokens from client LLM child spans that include this attribute.
- * - Output tokens from client LLM child spans that include this attribute.
- * - Total tokens from client LLM child spans that include this attribute.
+ * For the gen_ai.invoke_agent span, iterate over child spans and aggregate tokens:
+ * - Input tokens from client LLM child spans that include `gen_ai.usage.input_tokens` attribute.
+ * - Output tokens from client LLM child spans that include `gen_ai.usage.output_tokens` attribute.
+ * - Total tokens from client LLM child spans that include `gen_ai.usage.total_tokens` attribute.
  *
- * Only immediate children of the invoke_agent span need to be considered,
+ * Only immediate children of the `gen_ai.invoke_agent` span need to be considered,
  * since aggregation will automatically occur for each parent span.
- *
  */
 function accumulateTokensFromChildSpans(spanJSON: SpanJSON, allSpans: SpanJSON[]): void {
   if (spanJSON.op !== 'gen_ai.invoke_agent') {
