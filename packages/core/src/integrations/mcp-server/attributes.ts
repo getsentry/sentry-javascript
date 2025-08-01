@@ -77,6 +77,22 @@ export const MCP_TOOL_RESULT_CONTENT_COUNT_ATTRIBUTE = 'mcp.tool.result.content_
 export const MCP_TOOL_RESULT_CONTENT_ATTRIBUTE = 'mcp.tool.result.content';
 
 // =============================================================================
+// PROMPT RESULT ATTRIBUTES
+// =============================================================================
+
+/** Description of the prompt result */
+export const MCP_PROMPT_RESULT_DESCRIPTION_ATTRIBUTE = 'mcp.prompt.result.description';
+
+/** Number of messages in the prompt result */
+export const MCP_PROMPT_RESULT_MESSAGE_COUNT_ATTRIBUTE = 'mcp.prompt.result.message_count';
+
+/** Role of the prompt message (for single message prompts) */
+export const MCP_PROMPT_RESULT_MESSAGE_ROLE_ATTRIBUTE = 'mcp.prompt.result.message_role';
+
+/** Content of the prompt message (for single message prompts) */
+export const MCP_PROMPT_RESULT_MESSAGE_CONTENT_ATTRIBUTE = 'mcp.prompt.result.message_content';
+
+// =============================================================================
 // REQUEST ARGUMENT ATTRIBUTES
 // =============================================================================
 

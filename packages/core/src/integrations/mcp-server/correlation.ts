@@ -9,7 +9,7 @@
 import { getClient } from '../../currentScopes';
 import { SPAN_STATUS_ERROR } from '../../tracing';
 import type { Span } from '../../types-hoist/span';
-import { extractToolResultAttributes } from './attributeExtraction';
+import { extractPromptResultAttributes, extractToolResultAttributes } from './attributeExtraction';
 import { filterMcpPiiFromSpanData } from './piiFiltering';
 import type { MCPTransport, RequestId, RequestSpanMapValue } from './types';
 
@@ -69,6 +69,13 @@ export function completeSpanWithResults(transport: MCPTransport, requestId: Requ
       const toolAttributes = filterMcpPiiFromSpanData(rawToolAttributes, sendDefaultPii);
 
       span.setAttributes(toolAttributes);
+    } else if (method === 'prompts/get') {
+      const rawPromptAttributes = extractPromptResultAttributes(result);
+      const client = getClient();
+      const sendDefaultPii = Boolean(client?.getOptions().sendDefaultPii);
+      const promptAttributes = filterMcpPiiFromSpanData(rawPromptAttributes, sendDefaultPii);
+
+      span.setAttributes(promptAttributes);
     }
 
     span.end();

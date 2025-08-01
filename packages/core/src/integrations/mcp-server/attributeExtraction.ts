@@ -10,6 +10,10 @@ import {
   MCP_LOGGING_LEVEL_ATTRIBUTE,
   MCP_LOGGING_LOGGER_ATTRIBUTE,
   MCP_LOGGING_MESSAGE_ATTRIBUTE,
+  MCP_PROMPT_RESULT_DESCRIPTION_ATTRIBUTE,
+  MCP_PROMPT_RESULT_MESSAGE_CONTENT_ATTRIBUTE,
+  MCP_PROMPT_RESULT_MESSAGE_COUNT_ATTRIBUTE,
+  MCP_PROMPT_RESULT_MESSAGE_ROLE_ATTRIBUTE,
   MCP_PROTOCOL_VERSION_ATTRIBUTE,
   MCP_REQUEST_ID_ATTRIBUTE,
   MCP_RESOURCE_URI_ATTRIBUTE,
@@ -375,5 +379,45 @@ export function extractToolResultAttributes(result: unknown): Record<string, str
   if (Array.isArray(resultObj.content)) {
     attributes = { ...attributes, ...buildAllContentItemAttributes(resultObj.content) };
   }
+  return attributes;
+}
+
+/**
+ * Extract prompt result attributes for span instrumentation
+ * @param result - Prompt execution result
+ * @returns Attributes extracted from prompt result
+ */
+export function extractPromptResultAttributes(result: unknown): Record<string, string | number | boolean> {
+  const attributes: Record<string, string | number | boolean> = {};
+  if (typeof result !== 'object' || result === null) return attributes;
+
+  const resultObj = result as Record<string, unknown>;
+  
+  if (typeof resultObj.description === 'string') {
+    attributes[MCP_PROMPT_RESULT_DESCRIPTION_ATTRIBUTE] = resultObj.description;
+  }
+  
+  if (Array.isArray(resultObj.messages)) {
+    attributes[MCP_PROMPT_RESULT_MESSAGE_COUNT_ATTRIBUTE] = resultObj.messages.length;
+    
+    if (resultObj.messages.length > 0) {
+      const message = resultObj.messages[0];
+      if (typeof message === 'object' && message !== null) {
+        const messageObj = message as Record<string, unknown>;
+        
+        if (typeof messageObj.role === 'string') {
+          attributes[MCP_PROMPT_RESULT_MESSAGE_ROLE_ATTRIBUTE] = messageObj.role;
+        }
+        
+        if (typeof messageObj.content === 'object' && messageObj.content !== null) {
+          const content = messageObj.content as Record<string, unknown>;
+          if (typeof content.text === 'string') {
+            attributes[MCP_PROMPT_RESULT_MESSAGE_CONTENT_ATTRIBUTE] = content.text;
+          }
+        }
+      }
+    }
+  }
+  
   return attributes;
 }

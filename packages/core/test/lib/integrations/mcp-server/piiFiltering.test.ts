@@ -124,7 +124,7 @@ describe('MCP Server PII Filtering', () => {
         setAttributes: vi.fn(),
         setStatus: vi.fn(),
         end: vi.fn(),
-      } as any;
+      } as unknown as ReturnType<typeof tracingModule.startInactiveSpan>;
       startInactiveSpanSpy.mockReturnValueOnce(mockSpan);
 
       const toolCallRequest = {
@@ -163,6 +163,8 @@ describe('MCP Server PII Filtering', () => {
         'client.port': 54321,
         'mcp.request.argument.location': '"San Francisco"',
         'mcp.tool.result.content': 'Weather data: 18°C',
+        'mcp.prompt.result.description': 'Code review prompt for sensitive analysis',
+        'mcp.prompt.result.message_content': 'Please review this confidential code.',
         'mcp.logging.message': 'User requested weather',
         'mcp.resource.uri': 'file:///private/docs/secret.txt',
         'mcp.method.name': 'tools/call', // Non-PII should remain
@@ -180,6 +182,8 @@ describe('MCP Server PII Filtering', () => {
         'mcp.request.argument.location': '"San Francisco"',
         'mcp.request.argument.units': '"celsius"',
         'mcp.tool.result.content': 'Weather data: 18°C',
+        'mcp.prompt.result.description': 'Code review prompt for sensitive analysis',
+        'mcp.prompt.result.message_content': 'Please review this confidential code.',
         'mcp.logging.message': 'User requested weather',
         'mcp.resource.uri': 'file:///private/docs/secret.txt',
         'mcp.method.name': 'tools/call', // Non-PII should remain
@@ -193,6 +197,8 @@ describe('MCP Server PII Filtering', () => {
       expect(result).not.toHaveProperty('mcp.request.argument.location');
       expect(result).not.toHaveProperty('mcp.request.argument.units');
       expect(result).not.toHaveProperty('mcp.tool.result.content');
+      expect(result).not.toHaveProperty('mcp.prompt.result.description');
+      expect(result).not.toHaveProperty('mcp.prompt.result.message_content');
       expect(result).not.toHaveProperty('mcp.logging.message');
       expect(result).not.toHaveProperty('mcp.resource.uri');
 
