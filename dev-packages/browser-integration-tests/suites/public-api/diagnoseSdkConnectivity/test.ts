@@ -30,7 +30,7 @@ sentryTest('makes a call to sentry.io to diagnose SDK connectivity', async ({ ge
 
   const pageLoadEvent = envelopeRequestParser(await pageloadRequestPromise);
 
-  // udnefined is expected and means the request was successful
+  // undefined is expected and means the request was successful
   expect(await diagnoseMessagePromise).toEqual('SDK connectivity: undefined');
 
   // the request to sentry.io should not be traced, hence no http.client span should be sent.
