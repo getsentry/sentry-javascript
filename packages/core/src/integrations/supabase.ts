@@ -235,9 +235,8 @@ function instrumentAuthOperation(operation: AuthOperationFn, isAdmin = false): A
 
                 captureException(res.error, {
                   mechanism: {
-                    // assuming handled: true because users are expected to handle returned errors
-                    handled: true,
-                    type: 'supabase.auth',
+                    handled: false,
+                    type: 'auto.db.supabase.auth',
                   },
                 });
               } else {
@@ -253,9 +252,8 @@ function instrumentAuthOperation(operation: AuthOperationFn, isAdmin = false): A
 
               captureException(err, {
                 mechanism: {
-                  // assuming handled: false here because this is an unexpected error
                   handled: false,
-                  type: 'supabase.auth',
+                  type: 'auto.db.supabase.auth',
                 },
               });
 
@@ -422,9 +420,8 @@ function instrumentPostgRESTFilterBuilder(PostgRESTFilterBuilder: PostgRESTFilte
 
                     captureException(err, {
                       mechanism: {
-                        // assuming handled: true here because users are expected to handle returned errors
-                        handled: true,
-                        type: 'supabase.db',
+                        handled: false,
+                        type: 'auto.db.supabase.postgres',
                       },
                       contexts: {
                         supabase: supabaseContext,
