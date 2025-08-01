@@ -11,9 +11,7 @@ import {
   MCP_LOGGING_LOGGER_ATTRIBUTE,
   MCP_LOGGING_MESSAGE_ATTRIBUTE,
   MCP_PROMPT_RESULT_DESCRIPTION_ATTRIBUTE,
-  MCP_PROMPT_RESULT_MESSAGE_CONTENT_ATTRIBUTE,
   MCP_PROMPT_RESULT_MESSAGE_COUNT_ATTRIBUTE,
-  MCP_PROMPT_RESULT_MESSAGE_ROLE_ATTRIBUTE,
   MCP_PROTOCOL_VERSION_ATTRIBUTE,
   MCP_REQUEST_ID_ATTRIBUTE,
   MCP_RESOURCE_URI_ATTRIBUTE,
@@ -399,16 +397,28 @@ export function extractPromptResultAttributes(result: unknown): Record<string, s
   if (Array.isArray(resultObj.messages)) {
     attributes[MCP_PROMPT_RESULT_MESSAGE_COUNT_ATTRIBUTE] = resultObj.messages.length;
 
-    if (resultObj.messages.length > 0) {
-      const message = resultObj.messages[0];
-      if (typeof message === 'object' && message !== null) {
-        const messageObj = message as Record<string, unknown>;
+    // Extract attributes for each message
+    const messages = resultObj.messages;
+    for (const [i, message] of messages.entries()) {
+      if (typeof message !== 'object' || message === null) continue;
 
-        if (typeof messageObj.role === 'string') attributes[MCP_PROMPT_RESULT_MESSAGE_ROLE_ATTRIBUTE] = messageObj.role;
+      const messageObj = message as Record<string, unknown>;
+      const prefix = messages.length === 1 ? 'mcp.prompt.result' : `mcp.prompt.result.${i}`;
 
-        if (typeof messageObj.content === 'object' && messageObj.content !== null) {
-          const content = messageObj.content as Record<string, unknown>;
-          if (typeof content.text === 'string') attributes[MCP_PROMPT_RESULT_MESSAGE_CONTENT_ATTRIBUTE] = content.text;
+      const safeSet = (key: string, value: unknown): void => {
+        if (typeof value === 'string') {
+          const attrName = messages.length === 1 ? `${prefix}.message_${key}` : `${prefix}.${key}`;
+          attributes[attrName] = value;
+        }
+      };
+
+      safeSet('role', messageObj.role);
+
+      if (typeof messageObj.content === 'object' && messageObj.content !== null) {
+        const content = messageObj.content as Record<string, unknown>;
+        if (typeof content.text === 'string') {
+          const attrName = messages.length === 1 ? `${prefix}.message_content` : `${prefix}.content`;
+          attributes[attrName] = content.text;
         }
       }
     }
