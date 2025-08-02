@@ -47,7 +47,7 @@ interface SentryFetchData {
 }
 
 export interface HandlerDataFetch {
-  args: any[];
+  args: unknown[];
   fetchData: SentryFetchData; // This data is among other things dumped directly onto the fetch breadcrumb data
   startTimestamp: number;
   endTimestamp?: number;
@@ -74,7 +74,7 @@ export interface HandlerDataDom {
 
 export interface HandlerDataConsole {
   level: ConsoleLevel;
-  args: any[];
+  args: unknown[];
 }
 
 export interface HandlerDataHistory {
