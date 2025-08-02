@@ -269,7 +269,7 @@ export function buildTransportAttributes(
   transport: MCPTransport,
   extra?: ExtraHandlerData,
 ): Record<string, string | number> {
-  // PATCHED: Gracefully handle undefined sessionId during MCP initialization
+  // Gracefully handle undefined sessionId during MCP initialization
   // Respects client-provided sessions and waits for proper session establishment
   const sessionId = transport && 'sessionId' in transport ? transport.sessionId : undefined;
 
