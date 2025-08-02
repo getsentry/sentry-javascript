@@ -46,7 +46,7 @@ import type {
  */
 export function getTransportTypes(transport: MCPTransport): { mcpTransport: string; networkTransport: string } {
   // Handle undefined transport gracefully while preserving type detection
-  if (!transport || !transport.constructor) {
+  if (!transport?.constructor) {
     return { mcpTransport: 'unknown', networkTransport: 'unknown' };
   }
   const transportName = transport.constructor.name?.toLowerCase() || '';
@@ -269,9 +269,12 @@ export function buildTransportAttributes(
   transport: MCPTransport,
   extra?: ExtraHandlerData,
 ): Record<string, string | number> {
-  // Gracefully handle undefined sessionId during MCP initialization
+  // PATCHED: Gracefully handle undefined sessionId during MCP initialization
   // Respects client-provided sessions and waits for proper session establishment
   const sessionId = transport && 'sessionId' in transport ? transport.sessionId : undefined;
+
+  // Note: sessionId may be undefined during initial setup - this is expected behavior
+  // The actual session should be established by the client during the initialize flow
   const clientInfo = extra ? extractClientInfo(extra) : {};
   const { mcpTransport, networkTransport } = getTransportTypes(transport);
   const clientAttributes = getClientAttributes(transport);

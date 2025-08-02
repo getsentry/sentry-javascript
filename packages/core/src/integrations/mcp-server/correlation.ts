@@ -37,7 +37,7 @@ function getOrCreateSpanMap(transport: MCPTransport): Map<RequestId, RequestSpan
     // Return persistent fallback Map to maintain correlation across calls
     return fallbackSpanMap;
   }
-  
+
   let spanMap = transportToSpanMap.get(transport);
   if (!spanMap) {
     spanMap = new Map();

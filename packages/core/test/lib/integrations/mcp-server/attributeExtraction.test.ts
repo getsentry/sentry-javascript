@@ -27,7 +27,7 @@ describe('attributeExtraction edge cases', () => {
       const transport = {
         constructor: null,
       } as any;
-      
+
       const result = getTransportTypes(transport);
       expect(result).toEqual({
         mcpTransport: 'unknown',
@@ -39,7 +39,7 @@ describe('attributeExtraction edge cases', () => {
       const transport = {
         constructor: undefined,
       } as any;
-      
+
       const result = getTransportTypes(transport);
       expect(result).toEqual({
         mcpTransport: 'unknown',
@@ -51,10 +51,10 @@ describe('attributeExtraction edge cases', () => {
       class StreamableHTTPServerTransport {
         sessionId = 'test-session';
       }
-      
+
       const transport = new StreamableHTTPServerTransport() as MCPTransport;
       const result = getTransportTypes(transport);
-      
+
       expect(result).toEqual({
         mcpTransport: 'http',
         networkTransport: 'tcp',
@@ -65,10 +65,10 @@ describe('attributeExtraction edge cases', () => {
       class SSEServerTransport {
         sessionId = 'sse-session';
       }
-      
+
       const transport = new SSEServerTransport() as MCPTransport;
       const result = getTransportTypes(transport);
-      
+
       expect(result).toEqual({
         mcpTransport: 'sse',
         networkTransport: 'tcp',
@@ -79,10 +79,10 @@ describe('attributeExtraction edge cases', () => {
       class StdioServerTransport {
         sessionId = 'stdio-session';
       }
-      
+
       const transport = new StdioServerTransport() as MCPTransport;
       const result = getTransportTypes(transport);
-      
+
       expect(result).toEqual({
         mcpTransport: 'stdio',
         networkTransport: 'pipe',
@@ -96,9 +96,9 @@ describe('attributeExtraction edge cases', () => {
         constructor: { name: 'StreamableHTTPServerTransport' },
         // No sessionId property
       } as MCPTransport;
-      
+
       const attributes = buildTransportAttributes(transport);
-      
+
       // Should not include sessionId in attributes when undefined
       expect(attributes['mcp.session.id']).toBeUndefined();
       expect(attributes['mcp.transport']).toBe('http');
@@ -109,9 +109,9 @@ describe('attributeExtraction edge cases', () => {
         constructor: { name: 'StreamableHTTPServerTransport' },
         // sessionId property doesn't exist at all
       } as any;
-      
+
       const attributes = buildTransportAttributes(transport);
-      
+
       // Should not include sessionId in attributes
       expect(attributes['mcp.session.id']).toBeUndefined();
       expect(attributes['mcp.transport']).toBe('http');
@@ -122,9 +122,9 @@ describe('attributeExtraction edge cases', () => {
         constructor: { name: 'StreamableHTTPServerTransport' },
         sessionId: 'test-session-123',
       } as MCPTransport;
-      
+
       const attributes = buildTransportAttributes(transport);
-      
+
       expect(attributes['mcp.session.id']).toBe('test-session-123');
       expect(attributes['mcp.transport']).toBe('http');
     });
@@ -134,9 +134,9 @@ describe('attributeExtraction edge cases', () => {
         constructor: { name: 'StreamableHTTPServerTransport' },
         sessionId: null,
       } as any;
-      
+
       const attributes = buildTransportAttributes(transport);
-      
+
       // Should not include null sessionId in attributes
       expect(attributes['mcp.session.id']).toBeUndefined();
       expect(attributes['mcp.transport']).toBe('http');
@@ -147,9 +147,9 @@ describe('attributeExtraction edge cases', () => {
         constructor: { name: 'StreamableHTTPServerTransport' },
         sessionId: '',
       } as MCPTransport;
-      
+
       const attributes = buildTransportAttributes(transport);
-      
+
       // Empty string is falsy, so should not be included
       expect(attributes['mcp.session.id']).toBeUndefined();
       expect(attributes['mcp.transport']).toBe('http');
@@ -160,12 +160,12 @@ describe('attributeExtraction edge cases', () => {
         constructor: { name: 'StreamableHTTPServerTransport' },
         // No sessionId
       } as MCPTransport;
-      
+
       const attributes = buildTransportAttributes(transport, {
         clientAddress: '127.0.0.1',
         clientPort: 8080,
       });
-      
+
       expect(attributes).toMatchObject({
         'mcp.transport': 'http',
         'network.transport': 'tcp',
@@ -173,7 +173,7 @@ describe('attributeExtraction edge cases', () => {
         'client.address': '127.0.0.1',
         'client.port': 8080,
       });
-      
+
       // sessionId should not be present
       expect(attributes['mcp.session.id']).toBeUndefined();
     });
