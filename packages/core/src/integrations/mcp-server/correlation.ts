@@ -20,12 +20,24 @@ import type { MCPTransport, RequestId, RequestSpanMapValue } from './types';
 const transportToSpanMap = new WeakMap<MCPTransport, Map<RequestId, RequestSpanMapValue>>();
 
 /**
+ * Fallback span map for invalid transport objects
+ * @internal Used when transport objects cannot be used as WeakMap keys
+ */
+const fallbackSpanMap = new Map<RequestId, RequestSpanMapValue>();
+
+/**
  * Gets or creates the span map for a specific transport instance
  * @internal
  * @param transport - MCP transport instance
  * @returns Span map for the transport
  */
 function getOrCreateSpanMap(transport: MCPTransport): Map<RequestId, RequestSpanMapValue> {
+  // Handle invalid transport values for WeakMap while preserving correlation
+  if (!transport || typeof transport !== 'object') {
+    // Return persistent fallback Map to maintain correlation across calls
+    return fallbackSpanMap;
+  }
+  
   let spanMap = transportToSpanMap.get(transport);
   if (!spanMap) {
     spanMap = new Map();

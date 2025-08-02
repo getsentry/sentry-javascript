@@ -45,7 +45,11 @@ import type {
  * @returns Transport type mapping for span attributes
  */
 export function getTransportTypes(transport: MCPTransport): { mcpTransport: string; networkTransport: string } {
-  const transportName = transport.constructor?.name?.toLowerCase() || '';
+  // Handle undefined transport gracefully while preserving type detection
+  if (!transport || !transport.constructor) {
+    return { mcpTransport: 'unknown', networkTransport: 'unknown' };
+  }
+  const transportName = transport.constructor.name?.toLowerCase() || '';
 
   if (transportName.includes('stdio')) {
     return { mcpTransport: 'stdio', networkTransport: 'pipe' };
@@ -265,7 +269,9 @@ export function buildTransportAttributes(
   transport: MCPTransport,
   extra?: ExtraHandlerData,
 ): Record<string, string | number> {
-  const sessionId = transport.sessionId;
+  // Gracefully handle undefined sessionId during MCP initialization
+  // Respects client-provided sessions and waits for proper session establishment
+  const sessionId = transport && 'sessionId' in transport ? transport.sessionId : undefined;
   const clientInfo = extra ? extractClientInfo(extra) : {};
   const { mcpTransport, networkTransport } = getTransportTypes(transport);
   const clientAttributes = getClientAttributes(transport);
