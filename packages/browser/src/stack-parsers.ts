@@ -61,10 +61,21 @@ const chromeRegex =
 
 const chromeEvalRegex = /\((\S*)(?::(\d+))(?::(\d+))\)/;
 
+//  at dynamicFn (data:application/javascript,export function dynamicFn() {...
+const chromeDataUriRegex = /at (.+?) ?\(data:(.+?),/;
+
 // Chromium based browsers: Chrome, Brave, new Opera, new Edge
 // We cannot call this variable `chrome` because it can conflict with global `chrome` variable in certain environments
 // See: https://github.com/getsentry/sentry-javascript/issues/6880
 const chromeStackParserFn: StackLineParserFn = line => {
+  const dataUriMatch = line.match(chromeDataUriRegex);
+  if (dataUriMatch) {
+    return {
+      filename: `<data:${dataUriMatch[2]}>`,
+      function: dataUriMatch[1],
+    };
+  }
+
   // If the stack line has no function name, we need to parse it differently
   const noFnParts = chromeRegexNoFnName.exec(line) as null | [string, string, string, string];
 
