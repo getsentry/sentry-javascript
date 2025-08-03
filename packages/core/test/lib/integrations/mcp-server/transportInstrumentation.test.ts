@@ -2,8 +2,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as currentScopes from '../../../../src/currentScopes';
 import { wrapMcpServerWithSentry } from '../../../../src/integrations/mcp-server';
 import {
+  buildTransportAttributes,
   extractSessionDataFromInitializeRequest,
   extractSessionDataFromInitializeResponse,
+  getTransportTypes,
 } from '../../../../src/integrations/mcp-server/attributeExtraction';
 import {
   cleanupSessionDataForTransport,
@@ -214,7 +216,7 @@ describe('MCP Server Transport Instrumentation', () => {
           'mcp.tool.name': 'process-file',
           'mcp.request.id': 'req-stdio-1',
           'mcp.session.id': 'stdio-session-456',
-          'mcp.transport': 'stdio', // Should be stdio, not http
+          'mcp.transport': 'stdioservertransport',
           'network.transport': 'pipe', // Should be pipe, not tcp
           'network.protocol.version': '2.0',
           'mcp.request.argument.path': '"/tmp/data.txt"',
@@ -245,7 +247,7 @@ describe('MCP Server Transport Instrumentation', () => {
           attributes: expect.objectContaining({
             'mcp.method.name': 'notifications/message',
             'mcp.session.id': 'stdio-session-456',
-            'mcp.transport': 'stdio',
+            'mcp.transport': 'stdioservertransport',
             'network.transport': 'pipe',
             'mcp.logging.level': 'debug',
             'mcp.logging.message': 'Processing stdin input',
@@ -286,7 +288,7 @@ describe('MCP Server Transport Instrumentation', () => {
           attributes: expect.objectContaining({
             'mcp.method.name': 'resources/read',
             'mcp.resource.uri': 'https://api.example.com/data',
-            'mcp.transport': 'sse', // Deprecated but supported
+            'mcp.transport': 'sseservertransport',
             'network.transport': 'tcp',
             'mcp.session.id': 'sse-session-789',
           }),
@@ -361,7 +363,7 @@ describe('MCP Server Transport Instrumentation', () => {
           'mcp.session.id': 'test-session-direct',
           'client.address': '127.0.0.1',
           'client.port': 8080,
-          'mcp.transport': 'http',
+          'mcp.transport': 'streamablehttpservertransport',
           'network.transport': 'tcp',
           'network.protocol.version': '2.0',
           'mcp.request.argument.input': '"test"',
@@ -498,6 +500,64 @@ describe('MCP Server Transport Instrumentation', () => {
 
       storeSessionDataForTransport(transportWithoutSession, sessionData);
       expect(getSessionDataForTransport(transportWithoutSession)).toBeUndefined();
+    });
+  });
+
+  describe('Transport Type Detection', () => {
+    it('extracts HTTP transport name correctly', () => {
+      const transport = createMockTransport();
+      const result = getTransportTypes(transport);
+
+      expect(result.mcpTransport).toBe('streamablehttpservertransport');
+      expect(result.networkTransport).toBe('tcp');
+    });
+
+    it('extracts stdio transport and maps to pipe network', () => {
+      const transport = createMockStdioTransport();
+      const result = getTransportTypes(transport);
+
+      expect(result.mcpTransport).toBe('stdioservertransport');
+      expect(result.networkTransport).toBe('pipe');
+    });
+
+    it('extracts SSE transport name', () => {
+      const transport = createMockSseTransport();
+      const result = getTransportTypes(transport);
+
+      expect(result.mcpTransport).toBe('sseservertransport');
+      expect(result.networkTransport).toBe('tcp');
+    });
+
+    it('handles transport without constructor', () => {
+      const transport = Object.create(null);
+      const result = getTransportTypes(transport);
+
+      expect(result.mcpTransport).toBe('unknown');
+      expect(result.networkTransport).toBe('unknown');
+    });
+  });
+
+  describe('buildTransportAttributes sessionId handling', () => {
+    it('includes sessionId when present', () => {
+      const transport = createMockTransport();
+      const attributes = buildTransportAttributes(transport);
+
+      expect(attributes['mcp.session.id']).toBe('test-session-123');
+    });
+
+    it('excludes sessionId when undefined', () => {
+      const transport = createMockTransport();
+      transport.sessionId = undefined;
+      const attributes = buildTransportAttributes(transport);
+
+      expect(attributes['mcp.session.id']).toBeUndefined();
+    });
+
+    it('excludes sessionId when not present in transport', () => {
+      const transport = { onmessage: () => {}, send: async () => {} };
+      const attributes = buildTransportAttributes(transport);
+
+      expect(attributes['mcp.session.id']).toBeUndefined();
     });
   });
 });
