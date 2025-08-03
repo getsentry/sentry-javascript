@@ -783,13 +783,11 @@ describe('Tracekit - Chrome Tests', () => {
           {
             filename: '<data:application/javascript>',
             function: 'dynamicFn',
-          }
-        ]
+          },
+        ],
       },
       type: 'Error',
       value: 'Error from data-uri module',
     });
   });
 });
-
-
