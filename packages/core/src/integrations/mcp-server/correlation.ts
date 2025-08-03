@@ -20,24 +20,12 @@ import type { MCPTransport, RequestId, RequestSpanMapValue } from './types';
 const transportToSpanMap = new WeakMap<MCPTransport, Map<RequestId, RequestSpanMapValue>>();
 
 /**
- * Fallback span map for invalid transport objects
- * @internal Used when transport objects cannot be used as WeakMap keys
- */
-const fallbackSpanMap = new Map<RequestId, RequestSpanMapValue>();
-
-/**
  * Gets or creates the span map for a specific transport instance
  * @internal
  * @param transport - MCP transport instance
  * @returns Span map for the transport
  */
 function getOrCreateSpanMap(transport: MCPTransport): Map<RequestId, RequestSpanMapValue> {
-  // Handle invalid transport values for WeakMap while preserving correlation
-  if (!transport || typeof transport !== 'object') {
-    // Return persistent fallback Map to maintain correlation across calls
-    return fallbackSpanMap;
-  }
-
   let spanMap = transportToSpanMap.get(transport);
   if (!spanMap) {
     spanMap = new Map();
@@ -55,6 +43,7 @@ function getOrCreateSpanMap(transport: MCPTransport): Map<RequestId, RequestSpan
  */
 export function storeSpanForRequest(transport: MCPTransport, requestId: RequestId, span: Span, method: string): void {
   const spanMap = getOrCreateSpanMap(transport);
+
   spanMap.set(requestId, {
     span,
     method,
@@ -70,7 +59,7 @@ export function storeSpanForRequest(transport: MCPTransport, requestId: RequestI
  */
 export function completeSpanWithResults(transport: MCPTransport, requestId: RequestId, result: unknown): void {
   const spanMap = getOrCreateSpanMap(transport);
-  const spanData = spanMap.get(requestId);
+  const spanData = spanMap?.get(requestId);
   if (spanData) {
     const { span, method } = spanData;
 
@@ -84,29 +73,24 @@ export function completeSpanWithResults(transport: MCPTransport, requestId: Requ
     }
 
     span.end();
-    spanMap.delete(requestId);
+    spanMap?.delete(requestId);
   }
 }
 
 /**
  * Cleans up pending spans for a specific transport (when that transport closes)
  * @param transport - MCP transport instance
- * @returns Number of pending spans that were cleaned up
  */
-export function cleanupPendingSpansForTransport(transport: MCPTransport): number {
+export function cleanupPendingSpansForTransport(transport: MCPTransport): void {
   const spanMap = transportToSpanMap.get(transport);
-  if (!spanMap) return 0;
-
-  const pendingCount = spanMap.size;
-
-  for (const [, spanData] of spanMap) {
-    spanData.span.setStatus({
-      code: SPAN_STATUS_ERROR,
-      message: 'cancelled',
-    });
-    spanData.span.end();
+  if (spanMap) {
+    for (const [, spanData] of spanMap) {
+      spanData.span.setStatus({
+        code: SPAN_STATUS_ERROR,
+        message: 'cancelled',
+      });
+      spanData.span.end();
+    }
+    spanMap.clear();
   }
-
-  spanMap.clear();
-  return pendingCount;
 }
