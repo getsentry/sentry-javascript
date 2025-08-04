@@ -66,7 +66,7 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
 
             debug &&
               logger.info(
-                `[Sentry] Automatically setting \`sourceMapsUploadOptions.filesToDeleteAfterUpload: ${JSON.stringify(
+                `Automatically setting \`sourceMapsUploadOptions.filesToDeleteAfterUpload: ${JSON.stringify(
                   updatedFilesToDeleteAfterUpload,
                 )}\` to delete generated source maps after they were uploaded to Sentry.`,
               );
