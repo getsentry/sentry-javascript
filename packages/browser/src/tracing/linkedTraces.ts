@@ -193,8 +193,8 @@ export function addPreviousTraceSpanLink(
 
     // TODO: Remove this once EAP can store span links. We currently only set this attribute so that we
     // can obtain the previous trace information from the EAP store. Long-term, EAP will handle
-    // span links and then we should remove this again. Also throwing in a TODO(v10), to remind us
-    // to check this at v10 time :)
+    // span links and then we should remove this again. Also throwing in a TODO(v11), to remind us
+    // to check this at v11 time :)
     span.setAttribute(
       PREVIOUS_TRACE_TMP_SPAN_ATTRIBUTE,
       `${previousTraceSpanCtx.traceId}-${previousTraceSpanCtx.spanId}-${

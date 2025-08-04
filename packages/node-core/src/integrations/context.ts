@@ -61,7 +61,7 @@ const _nodeContextIntegration = ((options: ContextOptions = {}) => {
 
     const updatedContext = _updateContext(await cachedContext);
 
-    // TODO(v10): conditional with `sendDefaultPii` here?
+    // TODO(v11): conditional with `sendDefaultPii` here?
     event.contexts = {
       ...event.contexts,
       app: { ...updatedContext.app, ...event.contexts?.app },

@@ -21,7 +21,7 @@ type RequestDataIntegrationOptions = {
   include?: RequestDataIncludeOptions;
 };
 
-// TODO(v10): Change defaults based on `sendDefaultPii`
+// TODO(v11): Change defaults based on `sendDefaultPii`
 const DEFAULT_INCLUDE: RequestDataIncludeOptions = {
   cookies: true,
   data: true,
