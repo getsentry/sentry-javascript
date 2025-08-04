@@ -1,5 +1,5 @@
 /* eslint-disable max-lines */
-import { consoleSandbox, escapeStringForRegex, uuid4 } from '@sentry/core';
+import { escapeStringForRegex, uuid4 } from '@sentry/core';
 import { getSentryRelease } from '@sentry/node';
 import type { SentryVitePluginOptions } from '@sentry/vite-plugin';
 import { sentryVitePlugin } from '@sentry/vite-plugin';
@@ -26,6 +26,8 @@ type Sorcery = {
 // storing this in the module scope because `makeCustomSentryVitePlugin` is called multiple times
 // and we only want to generate a uuid once in case we have to fall back to it.
 const releaseName = detectSentryRelease();
+
+type FilesToDeleteAfterUpload = string | string[] | undefined;
 
 /**
  * Creates a new Vite plugin that uses the unplugin-based Sentry Vite plugin to create
@@ -60,6 +62,13 @@ export async function makeCustomSentryVitePlugins(options?: CustomSentryVitePlug
     },
   };
 
+  let _resolveFilesToDeleteAfterUpload:
+    | undefined
+    | ((value: FilesToDeleteAfterUpload | Promise<FilesToDeleteAfterUpload>) => void);
+  const filesToDeleteAfterUploadPromise = new Promise<FilesToDeleteAfterUpload>(resolve => {
+    _resolveFilesToDeleteAfterUpload = resolve;
+  });
+
   const mergedOptions = {
     ...defaultPluginOptions,
     ...options,
@@ -69,6 +78,7 @@ export async function makeCustomSentryVitePlugins(options?: CustomSentryVitePlug
     },
     sourcemaps: {
       ...options?.sourcemaps,
+      filesToDeleteAfterUpload: filesToDeleteAfterUploadPromise,
     },
   };
 
@@ -153,36 +163,26 @@ export async function makeCustomSentryVitePlugins(options?: CustomSentryVitePlug
   const filesToDeleteAfterUploadConfigPlugin: Plugin = {
     name: 'sentry-sveltekit-files-to-delete-after-upload-setting-plugin',
     apply: 'build', // only apply this plugin at build time
-    config: async (config: UserConfig) => {
-      const filesToDeleteAfterUpload = mergedOptions.sourcemaps?.filesToDeleteAfterUpload;
+    config: (config: UserConfig) => {
+      const originalFilesToDeleteAfterUpload = options?.sourcemaps?.filesToDeleteAfterUpload;
 
-      if (
-        typeof filesToDeleteAfterUpload === 'undefined' &&
-        // Only if source maps were previously not set, we update the "filesToDeleteAfterUpload" (as we override the setting with "hidden")
-        typeof config.build?.sourcemap === 'undefined'
-      ) {
+      if (typeof originalFilesToDeleteAfterUpload === 'undefined' && typeof config.build?.sourcemap === 'undefined') {
         // Including all hidden (`.*`) directories by default so that folders like .vercel,
         // .netlify, etc are also cleaned up. Additionally, we include the adapter output
         // dir which could be a non-hidden directory, like `build` for the Node adapter.
         const defaultFileDeletionGlob = ['./.*/**/*.map', `./${adapterOutputDir}/**/*.map`];
 
-        consoleSandbox(() => {
-          debug &&
-            // eslint-disable-next-line no-console
-            console.info(
-              `[Sentry] Automatically setting \`sourceMapsUploadOptions.sourcemaps.filesToDeleteAfterUpload: [${defaultFileDeletionGlob
-                .map(file => `"${file}"`)
-                .join(', ')}]\` to delete generated source maps after they were uploaded to Sentry.`,
-            );
-        });
+        debug &&
+          // eslint-disable-next-line no-console
+          console.info(
+            `[Sentry] Automatically setting \`sourceMapsUploadOptions.sourcemaps.filesToDeleteAfterUpload: [${defaultFileDeletionGlob
+              .map(file => `"${file}"`)
+              .join(', ')}]\` to delete generated source maps after they were uploaded to Sentry.`,
+          );
 
-        return {
-          ...config,
-          build: {
-            ...config.build,
-            filesToDeleteAfterUpload: defaultFileDeletionGlob,
-          },
-        };
+        _resolveFilesToDeleteAfterUpload?.(defaultFileDeletionGlob);
+      } else {
+        _resolveFilesToDeleteAfterUpload?.(originalFilesToDeleteAfterUpload);
       }
 
       return config;

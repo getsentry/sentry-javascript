@@ -2,6 +2,8 @@ import type { Plugin } from 'vite';
 import * as vite from 'vite';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { _getUpdatedSourceMapSettings, makeCustomSentryVitePlugins } from '../../src/vite/sourceMaps';
+import { ViteUserConfig } from 'vitest/config';
+import { sentryVitePlugin } from '@sentry/vite-plugin';
 
 const mockedViteDebugIdUploadPlugin = {
   name: 'sentry-vite-debug-id-upload-plugin',
@@ -18,25 +20,21 @@ const mockedFileDeletionPlugin = {
   writeBundle: vi.fn(),
 };
 
+vi.mock('@sentry/vite-plugin', async () => {
+  const original = (await vi.importActual('@sentry/vite-plugin')) as any;
+
+  return {
+    ...original,
+    sentryVitePlugin: vi.fn(),
+  };
+});
+
 vi.mock('vite', async () => {
   const original = (await vi.importActual('vite')) as any;
 
   return {
     ...original,
     loadConfigFromFile: vi.fn(),
-  };
-});
-
-vi.mock('@sentry/vite-plugin', async () => {
-  const original = (await vi.importActual('@sentry/vite-plugin')) as any;
-
-  return {
-    ...original,
-    sentryVitePlugin: () => [
-      mockedViteReleaseManagementPlugin,
-      mockedViteDebugIdUploadPlugin,
-      mockedFileDeletionPlugin,
-    ],
   };
 });
 
@@ -65,6 +63,15 @@ async function getSentryViteSubPlugin(name: string): Promise<Plugin | undefined>
 }
 
 describe('makeCustomSentryVitePlugins()', () => {
+  beforeEach(() => {
+    // @ts-expect-error - this function exists!
+    sentryVitePlugin.mockReturnValue([
+      mockedViteReleaseManagementPlugin,
+      mockedViteDebugIdUploadPlugin,
+      mockedFileDeletionPlugin,
+    ]);
+  });
+
   it('returns the custom sentry source maps plugin', async () => {
     const plugin = await getSentryViteSubPlugin('sentry-sveltekit-debug-id-upload-plugin');
 
@@ -87,6 +94,7 @@ describe('makeCustomSentryVitePlugins()', () => {
       // @ts-expect-error - this global variable is set/accessed in src/vite/sourceMaps.ts
       globalThis._sentry_sourceMapSetting = undefined;
     });
+
     it('returns the custom sentry source maps plugin', async () => {
       const plugin = await getSentryViteSubPlugin('sentry-sveltekit-update-source-map-setting-plugin');
 
@@ -117,6 +125,8 @@ describe('makeCustomSentryVitePlugins()', () => {
     });
 
     it('keeps source map generation settings when previously disabled', async () => {
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementationOnce(() => {});
+
       const originalConfig = {
         build: { sourcemap: false, assetsDir: 'assets' },
       };
@@ -138,6 +148,10 @@ describe('makeCustomSentryVitePlugins()', () => {
           sourcemap: false,
         },
       });
+
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        '[Sentry] Source map generation is disabled in your Vite configuration.',
+      );
     });
 
     it('enables source map generation with "hidden" when unset', async () => {
@@ -201,8 +215,8 @@ describe('makeCustomSentryVitePlugins()', () => {
       throw new Error('test error');
     });
 
-    const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementationOnce(() => {});
-    const consoleLogSpy = vi.spyOn(console, 'log').mockImplementationOnce(() => {});
+    const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
     const plugin = await getSentryViteSubPlugin('sentry-sveltekit-debug-id-upload-plugin');
 
@@ -394,4 +408,148 @@ describe('_getUpdatedSourceMapSettings', () => {
       );
     });
   });
+});
+
+describe('deleteFilesAfterUpload', () => {
+  it('works with defauts', async () => {
+    const viteConfig: ViteUserConfig = {};
+
+    vi.mock('@sentry/vite-plugin', async () => {
+      const original = (await vi.importActual('@sentry/vite-plugin')) as any;
+
+      return {
+        ...original,
+        sentryVitePlugin: vi.fn(original.sentryVitePlugin),
+      };
+    });
+
+    const plugins = await makeCustomSentryVitePlugins({
+      authToken: 'token',
+      org: 'org',
+      project: 'project',
+      adapter: 'other',
+    });
+
+    // @ts-expect-error this function exists!
+    const mergedOptions = sentryVitePlugin.mock.calls[0][0];
+
+    expect(mergedOptions).toEqual({
+      _metaOptions: {
+        telemetry: {
+          metaFramework: 'sveltekit',
+        },
+      },
+      authToken: 'token',
+      org: 'org',
+      project: 'project',
+      adapter: 'other',
+      release: {
+        name: expect.any(String),
+      },
+      sourcemaps: {
+        filesToDeleteAfterUpload: expect.any(Promise),
+      },
+    });
+
+    const sourceMapSettingPlugin = plugins.find(
+      plugin => plugin.name === 'sentry-sveltekit-update-source-map-setting-plugin',
+    )!;
+
+    // @ts-expect-error this function exists!
+    const sourceMapSettingConfig = await sourceMapSettingPlugin.config(viteConfig);
+    expect(sourceMapSettingConfig).toEqual({ build: { sourcemap: 'hidden' } });
+
+    const filesToDeleteAfterUploadSettingPlugin = plugins.find(
+      plugin => plugin.name === 'sentry-sveltekit-files-to-delete-after-upload-setting-plugin',
+    )!;
+
+    // call this to ensure the filesToDeleteAfterUpload setting is resolved
+    // @ts-expect-error this function exists!
+    await filesToDeleteAfterUploadSettingPlugin.config(viteConfig);
+
+    await expect(mergedOptions.sourcemaps.filesToDeleteAfterUpload).resolves.toEqual([
+      './.*/**/*.map',
+      './.svelte-kit/output/**/*.map',
+    ]);
+  });
+
+  it.each([
+    [['blub/'], undefined, 'hidden', ['blub/']],
+    [['blub/'], false, false, ['blub/']],
+    [undefined, 'hidden' as const, 'hidden', undefined],
+    [undefined, false, false, undefined],
+    [undefined, true, true, undefined],
+    [['/blub/'], true, true, ['/blub/']],
+  ])(
+    'works with filesToDeleteAfterUpload: %j & sourcemap: %s',
+    async (filesToDeleteAfterUpload, sourcemap, sourcemapExpected, filesToDeleteAfterUploadExpected) => {
+      const viteConfig: ViteUserConfig = {
+        build: {
+          sourcemap,
+        },
+      };
+
+      vi.mock('@sentry/vite-plugin', async () => {
+        const original = (await vi.importActual('@sentry/vite-plugin')) as any;
+
+        return {
+          ...original,
+          sentryVitePlugin: vi.fn(original.sentryVitePlugin),
+        };
+      });
+
+      const plugins = await makeCustomSentryVitePlugins({
+        authToken: 'token',
+        org: 'org',
+        project: 'project',
+        adapter: 'other',
+        sourcemaps: {
+          filesToDeleteAfterUpload,
+        },
+      });
+
+      // @ts-expect-error this function exists!
+      const mergedOptions = sentryVitePlugin.mock.calls[0][0];
+
+      expect(mergedOptions).toEqual({
+        _metaOptions: {
+          telemetry: {
+            metaFramework: 'sveltekit',
+          },
+        },
+        authToken: 'token',
+        org: 'org',
+        project: 'project',
+        adapter: 'other',
+        release: {
+          name: expect.any(String),
+        },
+        sourcemaps: {
+          filesToDeleteAfterUpload: expect.any(Promise),
+        },
+      });
+
+      const sourceMapSettingPlugin = plugins.find(
+        plugin => plugin.name === 'sentry-sveltekit-update-source-map-setting-plugin',
+      )!;
+
+      // @ts-expect-error this function exists!
+      const sourceMapSettingConfig = await sourceMapSettingPlugin.config(viteConfig);
+      expect(sourceMapSettingConfig).toEqual({ build: { sourcemap: sourcemapExpected } });
+
+      const filesToDeleteAfterUploadSettingPlugin = plugins.find(
+        plugin => plugin.name === 'sentry-sveltekit-files-to-delete-after-upload-setting-plugin',
+      )!;
+
+      console.log(filesToDeleteAfterUploadSettingPlugin);
+
+      // call this to ensure the filesToDeleteAfterUpload setting is resolved
+      // @ts-expect-error this function exists!
+      await filesToDeleteAfterUploadSettingPlugin.config(viteConfig);
+
+      await expect(mergedOptions.sourcemaps.filesToDeleteAfterUpload).resolves.toEqual(
+        filesToDeleteAfterUploadExpected,
+      );
+    },
+  );
 });
