@@ -45,9 +45,10 @@ export interface WrapperOptions {
    * @default false
    */
   captureAllSettledReasons: boolean;
+  // TODO(v11): Remove this option since its no longer used.
   /**
-   * @deprecated This option has no effect since OpenTelemetry always traces the handler.
-   * If you want to disable tracing, set `SENTRY_TRACES_SAMPLE_RATE` to `0.0`.
+   * @deprecated This option has no effect and will be removed in a future major version.
+   * If you want to disable tracing, set `SENTRY_TRACES_SAMPLE_RATE` to `0.0`, otherwise OpenTelemetry will automatically trace the handler.
    */
   startTrace: boolean;
 }
@@ -215,7 +216,7 @@ export function wrapHandler<TEvent, TResult>(
     consoleSandbox(() => {
       // eslint-disable-next-line no-console
       console.warn(
-        'The `startTrace` option is deprecated and has no effect since OpenTelemetry always traces the handler. If you want to disable tracing, set `SENTRY_TRACES_SAMPLE_RATE` to `0.0`.',
+        'The `startTrace` option is deprecated and will be removed in a future major version. If you want to disable tracing, set `SENTRY_TRACES_SAMPLE_RATE` to `0.0`.',
       );
     });
   }
@@ -226,7 +227,7 @@ export function wrapHandler<TEvent, TResult>(
     captureTimeoutWarning: true,
     timeoutWarningLimit: 500,
     captureAllSettledReasons: false,
-    startTrace: true,
+    startTrace: true, // TODO(v11): Remove this option. Set to true here to satisfy the type, but has no effect.
     ...wrapOptions,
   };
 
