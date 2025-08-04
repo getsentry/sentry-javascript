@@ -110,8 +110,6 @@ export default defineNuxtModule<ModuleOptions>({
       };
     });
 
-    console.log('nuxt.routeRules', nuxt.options.routeRules);
-
     nuxt.hooks.hook('nitro:init', nitro => {
       if (serverConfigFile?.includes('.server.config')) {
         if (nitro.options.dev) {
