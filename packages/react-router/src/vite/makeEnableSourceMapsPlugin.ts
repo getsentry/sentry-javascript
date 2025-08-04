@@ -15,7 +15,7 @@ export function makeEnableSourceMapsPlugin(options: SentryReactRouterBuildOption
         ...viteConfig,
         build: {
           ...viteConfig.build,
-          sourcemap: _getUpdatedSourceMapSettings(viteConfig, options),
+          sourcemap: getUpdatedSourceMapSettings(viteConfig, options),
         },
       };
     },
@@ -37,7 +37,7 @@ export function makeEnableSourceMapsPlugin(options: SentryReactRouterBuildOption
  *
  * --> only exported for testing
  */
-export function _getUpdatedSourceMapSettings(
+export function getUpdatedSourceMapSettings(
   viteConfig: UserConfig,
   sentryPluginOptions?: SentryReactRouterBuildOptions,
 ): boolean | 'inline' | 'hidden' {

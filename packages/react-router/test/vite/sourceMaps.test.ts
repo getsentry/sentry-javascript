@@ -1,6 +1,6 @@
 import type { SentryVitePluginOptions } from '@sentry/vite-plugin';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { _getUpdatedSourceMapSettings, makeEnableSourceMapsPlugin } from '../../src/vite/makeEnableSourceMapsPlugin';
+import { getUpdatedSourceMapSettings, makeEnableSourceMapsPlugin } from '../../src/vite/makeEnableSourceMapsPlugin';
 
 const mockedSentryVitePlugin = {
   name: 'sentry-vite-debug-id-upload-plugin',
@@ -33,7 +33,7 @@ describe('makeEnableSourceMapsPlugin()', () => {
   });
 });
 
-describe('_getUpdatedSourceMapSettings', () => {
+describe('getUpdatedSourceMapSettings', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.spyOn(console, 'warn').mockImplementation(() => {});
@@ -42,7 +42,7 @@ describe('_getUpdatedSourceMapSettings', () => {
 
   describe('when sourcemap is false', () => {
     it('should keep sourcemap as false and show warning', () => {
-      const result = _getUpdatedSourceMapSettings({ build: { sourcemap: false } });
+      const result = getUpdatedSourceMapSettings({ build: { sourcemap: false } });
 
       expect(result).toBe(false);
       // eslint-disable-next-line no-console
@@ -58,7 +58,7 @@ describe('_getUpdatedSourceMapSettings', () => {
       ['inline', 'inline'],
       [true, true],
     ] as ('inline' | 'hidden' | boolean)[][])('should keep sourcemap as %s when set to %s', (input, expected) => {
-      const result = _getUpdatedSourceMapSettings({ build: { sourcemap: input } }, { debug: true });
+      const result = getUpdatedSourceMapSettings({ build: { sourcemap: input } }, { debug: true });
 
       expect(result).toBe(expected);
       // eslint-disable-next-line no-console
@@ -72,7 +72,7 @@ describe('_getUpdatedSourceMapSettings', () => {
     it.each([[undefined], ['invalid'], ['something'], [null]])(
       'should set sourcemap to hidden when value is %s',
       input => {
-        const result = _getUpdatedSourceMapSettings({ build: { sourcemap: input as any } });
+        const result = getUpdatedSourceMapSettings({ build: { sourcemap: input as any } });
 
         expect(result).toBe('hidden');
         // eslint-disable-next-line no-console
@@ -85,7 +85,7 @@ describe('_getUpdatedSourceMapSettings', () => {
     );
 
     it('should set sourcemap to hidden when build config is empty', () => {
-      const result = _getUpdatedSourceMapSettings({});
+      const result = getUpdatedSourceMapSettings({});
 
       expect(result).toBe('hidden');
       // eslint-disable-next-line no-console
