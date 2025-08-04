@@ -78,7 +78,7 @@ function _wrapHttpFunction(fn: HttpFunction, options: Partial<WrapperOptions>): 
           return handleCallbackErrors(
             () => fn(req, res),
             err => {
-              captureException(err, scope => markEventUnhandled(scope, 'google-cloud-serverless.http'));
+              captureException(err, scope => markEventUnhandled(scope, 'auto.function.serverless.gcp_http'));
             },
           );
         },

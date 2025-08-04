@@ -43,7 +43,7 @@ export function proxyFunction<A extends any[], R, F extends (...args: A) => R>(
 /**
  * Marks an event as unhandled by adding a span processor to the passed scope.
  */
-export function markEventUnhandled(scope: Scope, type = 'google-cloud-serverless'): Scope {
+export function markEventUnhandled(scope: Scope, type: string): Scope {
   scope.addEventProcessor(event => {
     addExceptionMechanism(event, { handled: false, type });
     return event;

@@ -49,7 +49,7 @@ function _wrapCloudEventFunction(
 
         const newCallback = domainify((...args: unknown[]) => {
           if (args[0] !== null && args[0] !== undefined) {
-            captureException(args[0], scope => markEventUnhandled(scope, 'google-cloud-serverless.cloud_event'));
+            captureException(args[0], scope => markEventUnhandled(scope, 'auto.function.serverless.gcp_cloud_event'));
           }
           span.end();
 
@@ -69,7 +69,7 @@ function _wrapCloudEventFunction(
           return handleCallbackErrors(
             () => (fn as CloudEventFunctionWithCallback)(context, newCallback),
             err => {
-              captureException(err, scope => markEventUnhandled(scope, 'google-cloud-serverless.cloud_event'));
+              captureException(err, scope => markEventUnhandled(scope, 'auto.function.serverless.gcp_cloud_event'));
             },
           );
         }
