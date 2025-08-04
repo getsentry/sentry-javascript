@@ -3,7 +3,7 @@ import { waitForTransaction } from '@sentry-internal/test-utils';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
 
-test('Should record transactions for mcp handlers', async ({ baseURL }) => {
+test('Records transactions for mcp handlers', async ({ baseURL }) => {
   const transport = new SSEClientTransport(new URL(`${baseURL}/sse`));
 
   const client = new Client({
@@ -18,7 +18,7 @@ test('Should record transactions for mcp handlers', async ({ baseURL }) => {
       return transactionEvent.transaction === 'POST /messages';
     });
     const toolTransactionPromise = waitForTransaction('tsx-express', transactionEvent => {
-      return transactionEvent.transaction === 'mcp-server/tool:echo';
+      return transactionEvent.transaction === 'tools/call echo';
     });
 
     const toolResult = await client.callTool({
@@ -39,9 +39,12 @@ test('Should record transactions for mcp handlers', async ({ baseURL }) => {
 
     const postTransaction = await postTransactionPromise;
     expect(postTransaction).toBeDefined();
+    expect(postTransaction.contexts?.trace?.op).toEqual('http.server');
 
     const toolTransaction = await toolTransactionPromise;
     expect(toolTransaction).toBeDefined();
+    expect(toolTransaction.contexts?.trace?.op).toEqual('mcp.server');
+    expect(toolTransaction.contexts?.trace?.data?.['mcp.method.name']).toEqual('tools/call');
 
     // TODO: When https://github.com/modelcontextprotocol/typescript-sdk/pull/358 is released check for trace id equality between the post transaction and the handler transaction
   });
@@ -51,7 +54,7 @@ test('Should record transactions for mcp handlers', async ({ baseURL }) => {
       return transactionEvent.transaction === 'POST /messages';
     });
     const resourceTransactionPromise = waitForTransaction('tsx-express', transactionEvent => {
-      return transactionEvent.transaction === 'mcp-server/resource:echo';
+      return transactionEvent.transaction === 'resources/read echo://foobar';
     });
 
     const resourceResult = await client.readResource({
@@ -76,7 +79,7 @@ test('Should record transactions for mcp handlers', async ({ baseURL }) => {
       return transactionEvent.transaction === 'POST /messages';
     });
     const promptTransactionPromise = waitForTransaction('tsx-express', transactionEvent => {
-      return transactionEvent.transaction === 'mcp-server/prompt:echo';
+      return transactionEvent.transaction === 'prompts/get echo';
     });
 
     const promptResult = await client.getPrompt({

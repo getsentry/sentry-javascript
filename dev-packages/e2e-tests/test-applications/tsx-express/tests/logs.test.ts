@@ -1,8 +1,8 @@
 import { expect, test } from '@playwright/test';
 import { waitForEnvelopeItem } from '@sentry-internal/test-utils';
-import type { SerializedLog, SerializedLogContainer } from '@sentry/core';
+import type { SerializedLogContainer } from '@sentry/core';
 
-test('should send logs', async ({ baseURL }) => {
+test('Sends logs', async ({ baseURL }) => {
   const logEnvelopePromise = waitForEnvelopeItem('tsx-express', envelope => {
     return envelope[0].type === 'log' && (envelope[1] as SerializedLogContainer).items[0]?.level === 'debug';
   });

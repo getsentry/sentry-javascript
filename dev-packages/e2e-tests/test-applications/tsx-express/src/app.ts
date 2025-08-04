@@ -119,8 +119,8 @@ export const appRouter = t.router({
     .mutation(() => {
       throw new Error('I crashed in a trpc handler');
     }),
-  unauthorized: procedure.mutation(() => {
-    throw new TRPCError({ code: 'UNAUTHORIZED', cause: new Error('Unauthorized') });
+  badRequest: procedure.mutation(() => {
+    throw new TRPCError({ code: 'BAD_REQUEST', cause: new Error('Bad Request') });
   }),
 });
 

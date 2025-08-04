@@ -3,7 +3,7 @@ import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 import { createTRPCProxyClient, httpBatchLink } from '@trpc/client';
 import type { AppRouter } from '../src/app';
 
-test('Should record span for trpc query', async ({ baseURL }) => {
+test('Records span for trpc query', async ({ baseURL }) => {
   const transactionEventPromise = waitForTransaction('tsx-express', transactionEvent => {
     return (
       transactionEvent.transaction === 'GET /trpc' &&
@@ -35,7 +35,7 @@ test('Should record span for trpc query', async ({ baseURL }) => {
   );
 });
 
-test('Should record transaction for trpc mutation', async ({ baseURL }) => {
+test('Records transaction for trpc mutation', async ({ baseURL }) => {
   const transactionEventPromise = waitForTransaction('tsx-express', transactionEvent => {
     return (
       transactionEvent.transaction === 'POST /trpc' &&
@@ -67,7 +67,7 @@ test('Should record transaction for trpc mutation', async ({ baseURL }) => {
   );
 });
 
-test('Should record transaction and error for a crashing trpc handler', async ({ baseURL }) => {
+test('Records transaction and error for a crashing trpc handler', async ({ baseURL }) => {
   const transactionEventPromise = waitForTransaction('tsx-express', transactionEvent => {
     return (
       transactionEvent.transaction === 'POST /trpc' &&
@@ -105,16 +105,16 @@ test('Should record transaction and error for a crashing trpc handler', async ({
   });
 });
 
-test('Should record transaction and error for a trpc handler that returns a status code', async ({ baseURL }) => {
+test('Records transaction and error for a trpc handler that returns a status code', async ({ baseURL }) => {
   const transactionEventPromise = waitForTransaction('tsx-express', transactionEvent => {
     return (
       transactionEvent.transaction === 'POST /trpc' &&
-      !!transactionEvent.spans?.find(span => span.description === 'trpc/unauthorized')
+      !!transactionEvent.spans?.find(span => span.description === 'trpc/badRequest')
     );
   });
 
   const errorEventPromise = waitForError('tsx-express', errorEvent => {
-    return !!errorEvent?.exception?.values?.some(exception => exception.value?.includes('Unauthorized'));
+    return !!errorEvent?.exception?.values?.some(exception => exception.value?.includes('Bad Request'));
   });
 
   const trpcClient = createTRPCProxyClient<AppRouter>({
@@ -125,7 +125,7 @@ test('Should record transaction and error for a trpc handler that returns a stat
     ],
   });
 
-  await expect(trpcClient.unauthorized.mutate()).rejects.toBeDefined();
+  await expect(trpcClient.badRequest.mutate()).rejects.toBeDefined();
 
   await expect(transactionEventPromise).resolves.toBeDefined();
   await expect(errorEventPromise).resolves.toBeDefined();
