@@ -48,8 +48,8 @@ export function getTransportTypes(transport: MCPTransport): { mcpTransport: stri
   if (!transport?.constructor) {
     return { mcpTransport: 'unknown', networkTransport: 'unknown' };
   }
-  const transportName = transport.constructor.name?.toLowerCase() || 'unknown';
-
+  const transportName =
+    typeof transport.constructor?.name === 'string' ? transport.constructor.name.toLowerCase() : 'unknown';
   let networkTransport = 'unknown';
 
   if (transportName.includes('stdio')) {
