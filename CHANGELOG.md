@@ -4,6 +4,12 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 10.1.0
+
+- feat(nuxt): Align build-time options to follow bundler plugins structure ([#17255](https://github.com/getsentry/sentry-javascript/pull/17255))
+- fix(browser-utils): Ensure web vital client hooks unsubscribe correctly ([#17272](https://github.com/getsentry/sentry-javascript/pull/17272))
+- fix(browser): Ensure request from `diagnoseSdkConnectivity` doesn't create span ([#17280](https://github.com/getsentry/sentry-javascript/pull/17280))
+
 ## 10.0.0
 
 Version `10.0.0` marks a release of the Sentry JavaScript SDKs that contains breaking changes. The goal of this release is to primarily upgrade the underlying OpenTelemetry dependencies to v2 with minimal breaking changes.
