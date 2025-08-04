@@ -41,13 +41,7 @@ function buildAllContentItemAttributes(content: unknown[]): Record<string, strin
     safeSet('name', item.name);
 
     if (typeof item.text === 'string') {
-      const text = item.text;
-      const maxLength = 500;
-      if (text.length > maxLength) {
-        attributes[`${prefix}.content`] = `${text.slice(0, maxLength - 3)}...`;
-      } else {
-        attributes[`${prefix}.content`] = text;
-      }
+      attributes[`${prefix}.content`] = item.text;
     }
 
     if (typeof item.data === 'string') {
