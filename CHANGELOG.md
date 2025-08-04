@@ -6,7 +6,7 @@
 
 ## 9.44.1
 
-This release tags all packages with `v9` and has no other user-facing changes.
+- fix(replay/v9): Call sendBufferedReplayOrFlush when opening/sending feedback ([#17270](https://github.com/getsentry/sentry-javascript/pull/17270))
 
 ## 9.44.0
 
