@@ -306,11 +306,11 @@ export function wrapHandler<TEvent, TResult>(
         if (options.captureAllSettledReasons && Array.isArray(rv) && isPromiseAllSettledResult(rv)) {
           const reasons = getRejectedReasons(rv);
           reasons.forEach(exception => {
-            captureException(exception, scope => markEventUnhandled(scope));
+            captureException(exception, scope => markEventUnhandled(scope, 'auto.function.aws-serverless.promise'));
           });
         }
       } catch (e) {
-        captureException(e, scope => markEventUnhandled(scope));
+        captureException(e, scope => markEventUnhandled(scope, 'auto.function.aws-serverless.handler'));
         throw e;
       } finally {
         clearTimeout(timeoutWarningTimer);

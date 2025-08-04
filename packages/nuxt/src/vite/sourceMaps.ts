@@ -17,10 +17,20 @@ export type SourceMapSetting = boolean | 'hidden' | 'inline';
  *  Setup source maps for Sentry inside the Nuxt module during build time (in Vite for Nuxt and Rollup for Nitro).
  */
 export function setupSourceMaps(moduleOptions: SentryNuxtModuleOptions, nuxt: Nuxt): void {
+  // TODO(v11): remove deprecated options (also from SentryNuxtModuleOptions type)
+
   const isDebug = moduleOptions.debug;
 
+  // eslint-disable-next-line deprecation/deprecation
   const sourceMapsUploadOptions = moduleOptions.sourceMapsUploadOptions || {};
-  const sourceMapsEnabled = sourceMapsUploadOptions.enabled ?? true;
+
+  const sourceMapsEnabled =
+    moduleOptions.sourcemaps?.disable === true
+      ? false
+      : moduleOptions.sourcemaps?.disable === false
+        ? true
+        : // eslint-disable-next-line deprecation/deprecation
+          sourceMapsUploadOptions.enabled ?? true;
 
   // In case we overwrite the source map settings, we default to deleting the files
   let shouldDeleteFilesFallback = { client: true, server: true };
@@ -42,6 +52,8 @@ export function setupSourceMaps(moduleOptions: SentryNuxtModuleOptions, nuxt: Nu
 
       if (
         isDebug &&
+        !moduleOptions.sourcemaps?.filesToDeleteAfterUpload &&
+        // eslint-disable-next-line deprecation/deprecation
         !sourceMapsUploadOptions.sourcemaps?.filesToDeleteAfterUpload &&
         (shouldDeleteFilesFallback.client || shouldDeleteFilesFallback.server)
       ) {
@@ -134,10 +146,13 @@ function normalizePath(path: string): string {
  *
  *  Only exported for Testing purposes.
  */
+// todo(v11): This "eslint-disable" can be removed again once we remove deprecated options.
+// eslint-disable-next-line complexity
 export function getPluginOptions(
   moduleOptions: SentryNuxtModuleOptions,
   shouldDeleteFilesFallback?: { client: boolean; server: boolean },
 ): SentryVitePluginOptions | SentryRollupPluginOptions {
+  // eslint-disable-next-line deprecation/deprecation
   const sourceMapsUploadOptions = moduleOptions.sourceMapsUploadOptions || {};
 
   const shouldDeleteFilesAfterUpload = shouldDeleteFilesFallback?.client || shouldDeleteFilesFallback?.server;
@@ -148,10 +163,17 @@ export function getPluginOptions(
       : []),
   ];
 
-  if (
-    typeof sourceMapsUploadOptions.sourcemaps?.filesToDeleteAfterUpload === 'undefined' &&
-    shouldDeleteFilesAfterUpload
-  ) {
+  // Check for filesToDeleteAfterUpload in new location first, then deprecated location
+  const sourcemapsOptions = moduleOptions.sourcemaps || {};
+  // eslint-disable-next-line deprecation/deprecation
+  const deprecatedSourcemapsOptions = sourceMapsUploadOptions.sourcemaps || {};
+
+  const filesToDeleteAfterUpload =
+    sourcemapsOptions.filesToDeleteAfterUpload ??
+    // eslint-disable-next-line deprecation/deprecation
+    deprecatedSourcemapsOptions.filesToDeleteAfterUpload;
+
+  if (typeof filesToDeleteAfterUpload === 'undefined' && shouldDeleteFilesAfterUpload) {
     consoleSandbox(() => {
       // eslint-disable-next-line no-console
       console.log(
@@ -164,16 +186,28 @@ export function getPluginOptions(
   }
 
   return {
-    org: sourceMapsUploadOptions.org ?? process.env.SENTRY_ORG,
-    project: sourceMapsUploadOptions.project ?? process.env.SENTRY_PROJECT,
-    authToken: sourceMapsUploadOptions.authToken ?? process.env.SENTRY_AUTH_TOKEN,
-    telemetry: sourceMapsUploadOptions.telemetry ?? true,
-    url: sourceMapsUploadOptions.url ?? process.env.SENTRY_URL,
+    // eslint-disable-next-line deprecation/deprecation
+    org: moduleOptions.org ?? sourceMapsUploadOptions.org ?? process.env.SENTRY_ORG,
+    // eslint-disable-next-line deprecation/deprecation
+    project: moduleOptions.project ?? sourceMapsUploadOptions.project ?? process.env.SENTRY_PROJECT,
+    // eslint-disable-next-line deprecation/deprecation
+    authToken: moduleOptions.authToken ?? sourceMapsUploadOptions.authToken ?? process.env.SENTRY_AUTH_TOKEN,
+    // eslint-disable-next-line deprecation/deprecation
+    telemetry: moduleOptions.telemetry ?? sourceMapsUploadOptions.telemetry ?? true,
+    // eslint-disable-next-line deprecation/deprecation
+    url: moduleOptions.sentryUrl ?? sourceMapsUploadOptions.url ?? process.env.SENTRY_URL,
+    headers: moduleOptions.headers,
     debug: moduleOptions.debug ?? false,
-    silent: sourceMapsUploadOptions.silent ?? false,
-    errorHandler: sourceMapsUploadOptions.errorHandler,
+    // eslint-disable-next-line deprecation/deprecation
+    silent: moduleOptions.silent ?? sourceMapsUploadOptions.silent ?? false,
+    // eslint-disable-next-line deprecation/deprecation
+    errorHandler: moduleOptions.errorHandler ?? sourceMapsUploadOptions.errorHandler,
+    bundleSizeOptimizations: moduleOptions.bundleSizeOptimizations, // todo: test if this can be overridden by the user
     release: {
-      name: sourceMapsUploadOptions.release?.name,
+      // eslint-disable-next-line deprecation/deprecation
+      name: moduleOptions.release?.name ?? sourceMapsUploadOptions.release?.name,
+      // Support all release options from BuildTimeOptionsBase
+      ...moduleOptions.release,
       ...moduleOptions?.unstable_sentryBundlerPluginOptions?.release,
     },
     _metaOptions: {
@@ -184,13 +218,16 @@ export function getPluginOptions(
     ...moduleOptions?.unstable_sentryBundlerPluginOptions,
 
     sourcemaps: {
+      disable: moduleOptions.sourcemaps?.disable,
       // The server/client files are in different places depending on the nitro preset (e.g. '.output/server' or '.netlify/functions-internal/server')
       // We cannot determine automatically how the build folder looks like (depends on the preset), so we have to accept that source maps are uploaded multiple times (with the vitePlugin for Nuxt and the rollupPlugin for Nitro).
       // If we could know where the server/client assets are located, we could do something like this (based on the Nitro preset): isNitro ? ['./.output/server/**/*'] : ['./.output/public/**/*'],
-      assets: sourceMapsUploadOptions.sourcemaps?.assets ?? undefined,
-      ignore: sourceMapsUploadOptions.sourcemaps?.ignore ?? undefined,
-      filesToDeleteAfterUpload: sourceMapsUploadOptions.sourcemaps?.filesToDeleteAfterUpload
-        ? sourceMapsUploadOptions.sourcemaps?.filesToDeleteAfterUpload
+      // eslint-disable-next-line deprecation/deprecation
+      assets: sourcemapsOptions.assets ?? deprecatedSourcemapsOptions.assets ?? undefined,
+      // eslint-disable-next-line deprecation/deprecation
+      ignore: sourcemapsOptions.ignore ?? deprecatedSourcemapsOptions.ignore ?? undefined,
+      filesToDeleteAfterUpload: filesToDeleteAfterUpload
+        ? filesToDeleteAfterUpload
         : shouldDeleteFilesFallback?.server || shouldDeleteFilesFallback?.client
           ? fallbackFilesToDelete
           : undefined,

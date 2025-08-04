@@ -26,7 +26,7 @@ describe('findDefaultSdkInitFile', () => {
     'should return the server file path with .%s extension if it exists',
     ext => {
       vi.spyOn(fs, 'existsSync').mockImplementation(filePath => {
-        return !(filePath instanceof URL) && filePath.includes(`sentry.server.config.${ext}`);
+        return !(filePath instanceof URL) && filePath.toString().includes(`sentry.server.config.${ext}`);
       });
 
       const result = findDefaultSdkInitFile('server');
@@ -38,7 +38,7 @@ describe('findDefaultSdkInitFile', () => {
     'should return the client file path with .%s extension if it exists',
     ext => {
       vi.spyOn(fs, 'existsSync').mockImplementation(filePath => {
-        return !(filePath instanceof URL) && filePath.includes(`sentry.client.config.${ext}`);
+        return !(filePath instanceof URL) && filePath.toString().includes(`sentry.client.config.${ext}`);
       });
 
       const result = findDefaultSdkInitFile('client');
@@ -64,7 +64,8 @@ describe('findDefaultSdkInitFile', () => {
     vi.spyOn(fs, 'existsSync').mockImplementation(filePath => {
       return (
         !(filePath instanceof URL) &&
-        (filePath.includes('sentry.server.config.js') || filePath.includes('instrument.server.js'))
+        (filePath.toString().includes('sentry.server.config.js') ||
+          filePath.toString().includes('instrument.server.js'))
       );
     });
 
@@ -74,7 +75,7 @@ describe('findDefaultSdkInitFile', () => {
 
   it('should return the latest layer config file path if client config exists', () => {
     vi.spyOn(fs, 'existsSync').mockImplementation(filePath => {
-      return !(filePath instanceof URL) && filePath.includes('sentry.client.config.ts');
+      return !(filePath instanceof URL) && filePath.toString().includes('sentry.client.config.ts');
     });
 
     const nuxtMock = {
@@ -98,7 +99,8 @@ describe('findDefaultSdkInitFile', () => {
     vi.spyOn(fs, 'existsSync').mockImplementation(filePath => {
       return (
         !(filePath instanceof URL) &&
-        (filePath.includes('sentry.server.config.ts') || filePath.includes('instrument.server.ts'))
+        (filePath.toString().includes('sentry.server.config.ts') ||
+          filePath.toString().includes('instrument.server.ts'))
       );
     });
 
@@ -121,7 +123,7 @@ describe('findDefaultSdkInitFile', () => {
 
   it('should return the latest layer config file path if client config exists in former layer', () => {
     vi.spyOn(fs, 'existsSync').mockImplementation(filePath => {
-      return !(filePath instanceof URL) && filePath.includes('nuxt/sentry.client.config.ts');
+      return !(filePath instanceof URL) && filePath.toString().includes('nuxt/sentry.client.config.ts');
     });
 
     const nuxtMock = {
