@@ -70,7 +70,7 @@ export function makeEnableSourceMapsVitePlugin(options: SentrySolidStartPluginOp
           ...viteConfig,
           build: {
             ...viteConfig.build,
-            sourcemap: getUpdatedSourceMapSettings(viteConfig, options),
+            sourcemap: _getUpdatedSourceMapSettings(viteConfig, options),
           },
         };
       },
@@ -93,7 +93,7 @@ export function makeEnableSourceMapsVitePlugin(options: SentrySolidStartPluginOp
  *
  * --> only exported for testing
  */
-export function getUpdatedSourceMapSettings(
+export function _getUpdatedSourceMapSettings(
   viteConfig: UserConfig,
   sentryPluginOptions?: SentrySolidStartPluginOptions,
 ): boolean | 'inline' | 'hidden' {

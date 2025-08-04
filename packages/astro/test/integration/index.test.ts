@@ -1,6 +1,6 @@
-import type { AstroConfig } from 'astro';
+import type { AstroConfig, AstroIntegrationLogger } from 'astro';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { getUpdatedSourceMapSettings, sentryAstro } from '../../src/integration';
+import { _getUpdatedSourceMapSettings, sentryAstro } from '../../src/integration';
 import type { SentryOptions } from '../../src/integration/types';
 
 const sentryVitePluginSpy = vi.fn(() => 'sentryVitePlugin');
@@ -305,21 +305,25 @@ describe('sentryAstro integration', () => {
   });
 
   it('injects runtime config into client and server init scripts and warns about deprecation', async () => {
-    const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const integration = sentryAstro({
       environment: 'test',
       release: '1.0.0',
       dsn: 'https://test.sentry.io/123',
-      debug: true,
       bundleSizeOptimizations: {},
+      // this also warns when debug is not enabled
     });
+
+    const logger = {
+      warn: vi.fn(),
+      info: vi.fn(),
+    };
 
     expect(integration.hooks['astro:config:setup']).toBeDefined();
     // @ts-expect-error - the hook exists and we only need to pass what we actually use
-    await integration.hooks['astro:config:setup']({ updateConfig, injectScript, config, logger: { info: vi.fn() } });
+    await integration.hooks['astro:config:setup']({ updateConfig, injectScript, config, logger });
 
-    expect(consoleWarnSpy).toHaveBeenCalledWith(
-      '[Sentry] You passed in additional options (environment, release, dsn) to the Sentry integration. This is deprecated and will stop working in a future version. Instead, configure the Sentry SDK in your `sentry.client.config.(js|ts)` or `sentry.server.config.(js|ts)` files.',
+    expect(logger.warn).toHaveBeenCalledWith(
+      'You passed in additional options (environment, release, dsn) to the Sentry integration. This is deprecated and will stop working in a future version. Instead, configure the Sentry SDK in your `sentry.client.config.(js|ts)` or `sentry.server.config.(js|ts)` files.',
     );
 
     expect(injectScript).toHaveBeenCalledTimes(2);
@@ -490,18 +494,23 @@ describe('sentryAstro integration', () => {
   });
 });
 
-describe('getUpdatedSourceMapSettings', () => {
+describe('_getUpdatedSourceMapSettings', () => {
   let astroConfig: Omit<AstroConfig, 'vite'> & { vite: { build: { sourcemap?: any } } };
   let sentryOptions: SentryOptions;
+  let logger: AstroIntegrationLogger;
 
   beforeEach(() => {
     astroConfig = { vite: { build: {} } } as Omit<AstroConfig, 'vite'> & { vite: { build: { sourcemap?: any } } };
     sentryOptions = {};
+    logger = {
+      info: vi.fn(),
+      warn: vi.fn(),
+    } as unknown as AstroIntegrationLogger;
   });
 
   it('should keep explicitly disabled source maps disabled', () => {
     astroConfig.vite.build.sourcemap = false;
-    const result = getUpdatedSourceMapSettings(astroConfig, sentryOptions);
+    const result = _getUpdatedSourceMapSettings(astroConfig, sentryOptions, logger);
     expect(result.previousUserSourceMapSetting).toBe('disabled');
     expect(result.updatedSourceMapSetting).toBe(false);
   });
@@ -515,7 +524,7 @@ describe('getUpdatedSourceMapSettings', () => {
 
     cases.forEach(({ sourcemap, expected }) => {
       astroConfig.vite.build.sourcemap = sourcemap;
-      const result = getUpdatedSourceMapSettings(astroConfig, sentryOptions);
+      const result = _getUpdatedSourceMapSettings(astroConfig, sentryOptions, logger);
       expect(result.previousUserSourceMapSetting).toBe('enabled');
       expect(result.updatedSourceMapSetting).toBe(expected);
     });
@@ -523,26 +532,22 @@ describe('getUpdatedSourceMapSettings', () => {
 
   it('should enable "hidden" source maps when unset', () => {
     astroConfig.vite.build.sourcemap = undefined;
-    const result = getUpdatedSourceMapSettings(astroConfig, sentryOptions);
+    const result = _getUpdatedSourceMapSettings(astroConfig, sentryOptions, logger);
     expect(result.previousUserSourceMapSetting).toBe('unset');
     expect(result.updatedSourceMapSetting).toBe('hidden');
   });
 
   it('should log warnings and messages when debug is enabled', () => {
-    const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-
     sentryOptions = { debug: true };
 
     astroConfig.vite.build.sourcemap = false;
-    getUpdatedSourceMapSettings(astroConfig, sentryOptions);
-    expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('Source map generation is currently disabled'));
+    _getUpdatedSourceMapSettings(astroConfig, sentryOptions, logger);
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('Source map generation is currently disabled'));
 
     astroConfig.vite.build.sourcemap = 'hidden';
-    getUpdatedSourceMapSettings(astroConfig, sentryOptions);
-    expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('Sentry will keep this source map setting'));
-
-    consoleWarnSpy.mockRestore();
-    consoleLogSpy.mockRestore();
+    _getUpdatedSourceMapSettings(astroConfig, sentryOptions, logger);
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('Sentry will keep this source map setting'));
   });
 });
