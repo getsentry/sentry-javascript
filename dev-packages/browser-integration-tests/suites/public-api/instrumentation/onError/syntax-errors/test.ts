@@ -28,7 +28,7 @@ sentryTest('should catch syntax errors', async ({ getLocalTestUrl, page, browser
     type: 'SyntaxError',
     value: "Failed to execute 'appendChild' on 'Node': Unexpected token '{'",
     mechanism: {
-      type: 'onerror',
+      type: 'auto.browser.global_handlers.onerror',
       handled: false,
     },
     stacktrace: {
