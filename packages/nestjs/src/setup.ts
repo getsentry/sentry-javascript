@@ -104,7 +104,7 @@ class SentryGlobalFilter extends BaseExceptionFilter {
       captureException(exception, {
         mechanism: {
           handled: false,
-          type: 'nestjs.graphql',
+          type: 'auto.graphql.nestjs.global_filter',
         },
       });
       throw exception;
@@ -125,7 +125,7 @@ class SentryGlobalFilter extends BaseExceptionFilter {
           captureException(exception, {
             mechanism: {
               handled: false,
-              type: 'nestjs.rpc',
+              type: 'auto.rpc.nestjs.global_filter',
             },
           });
         }
@@ -138,7 +138,7 @@ class SentryGlobalFilter extends BaseExceptionFilter {
         captureException(exception, {
           mechanism: {
             handled: false,
-            type: 'nestjs.rpc-exception',
+            type: 'auto.rpc.nestjs.global_filter',
           },
         });
       }
@@ -157,7 +157,7 @@ class SentryGlobalFilter extends BaseExceptionFilter {
       captureException(exception, {
         mechanism: {
           handled: false,
-          type: 'nestjs.http',
+          type: 'auto.http.nestjs.global_filter',
         },
       });
     }

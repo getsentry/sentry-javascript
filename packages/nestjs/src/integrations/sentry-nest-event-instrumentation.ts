@@ -112,7 +112,7 @@ export class SentryNestEventInstrumentation extends InstrumentationBase {
                 captureException(error, {
                   mechanism: {
                     handled: false,
-                    type: 'nestjs.on-event',
+                    type: 'auto.event.nestjs',
                   },
                 });
                 throw error;
