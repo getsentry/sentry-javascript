@@ -17,7 +17,7 @@ import { isValidContentItem } from './validation';
  * @param content - Array of content items from tool result
  * @returns Attributes extracted from each content item including type, text, mime type, URI, and resource info
  */
-function buildAllContentItemAttributes(content: unknown[]): Record<string, string | number> {
+function buildAllContentItemAttributes(content: unknown[]): Record<string, string | number | boolean> {
   const attributes: Record<string, string | number> = {
     [MCP_TOOL_RESULT_CONTENT_COUNT_ATTRIBUTE]: content.length,
   };
@@ -64,17 +64,16 @@ function buildAllContentItemAttributes(content: unknown[]): Record<string, strin
  * @returns Attributes extracted from tool result content
  */
 export function extractToolResultAttributes(result: unknown): Record<string, string | number | boolean> {
-  let attributes: Record<string, string | number | boolean> = {};
   if (!isValidContentItem(result)) {
-    return attributes;
+    return {};
   }
+
+  const attributes = Array.isArray(result.content) ? buildAllContentItemAttributes(result.content) : {};
 
   if (typeof result.isError === 'boolean') {
     attributes[MCP_TOOL_RESULT_IS_ERROR_ATTRIBUTE] = result.isError;
   }
-  if (Array.isArray(result.content)) {
-    attributes = { ...attributes, ...buildAllContentItemAttributes(result.content) };
-  }
+
   return attributes;
 }
 
