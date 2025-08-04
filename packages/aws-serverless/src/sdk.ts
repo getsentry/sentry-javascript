@@ -1,5 +1,5 @@
 import type { Integration, Options, Scope } from '@sentry/core';
-import { applySdkMetadata, debug, getSDKSource } from '@sentry/core';
+import { applySdkMetadata, consoleSandbox, debug, getSDKSource } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
 import {
   captureException,
@@ -45,6 +45,11 @@ export interface WrapperOptions {
    * @default false
    */
   captureAllSettledReasons: boolean;
+  /**
+   * @deprecated This option has no effect since OpenTelemetry always traces the handler.
+   * If you want to disable tracing, set `SENTRY_TRACES_SAMPLE_RATE` to `0.0`.
+   */
+  startTrace: boolean;
 }
 
 /**
@@ -204,14 +209,27 @@ export function wrapHandler<TEvent, TResult>(
   wrapOptions: Partial<WrapperOptions> = {},
 ): Handler<TEvent, TResult> {
   const START_TIME = performance.now();
+
+  // eslint-disable-next-line deprecation/deprecation
+  if (typeof wrapOptions.startTrace !== 'undefined') {
+    consoleSandbox(() => {
+      // eslint-disable-next-line no-console
+      console.warn(
+        'The `startTrace` option is deprecated and has no effect since OpenTelemetry always traces the handler. If you want to disable tracing, set `SENTRY_TRACES_SAMPLE_RATE` to `0.0`.',
+      );
+    });
+  }
+
   const options: WrapperOptions = {
     flushTimeout: 2000,
     callbackWaitsForEmptyEventLoop: false,
     captureTimeoutWarning: true,
     timeoutWarningLimit: 500,
     captureAllSettledReasons: false,
+    startTrace: true,
     ...wrapOptions,
   };
+
   let timeoutWarningTimer: NodeJS.Timeout;
 
   // AWSLambda is like Express. It makes a distinction about handlers based on its last argument
