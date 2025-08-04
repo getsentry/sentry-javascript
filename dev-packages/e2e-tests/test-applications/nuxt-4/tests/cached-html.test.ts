@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
 test.describe('Rendering Modes with Cached HTML', () => {
@@ -47,9 +47,6 @@ test.describe('Rendering Modes with Cached HTML', () => {
     const serverTxnEvent1TraceId = serverTxnEvent1.contexts?.trace?.trace_id;
     const serverTxnEvent2TraceId = serverTxnEvent2.contexts?.trace?.trace_id;
 
-    console.log('Server Transaction 1:', serverTxnEvent1TraceId);
-    console.log('Server Transaction 2:', serverTxnEvent2TraceId);
-
     await test.step('Test distributed trace from 1. request', () => {
       expect(baggageMetaTagContent1).toContain(`sentry-trace_id=${serverTxnEvent1TraceId}`);
 
@@ -74,156 +71,107 @@ test.describe('Rendering Modes with Cached HTML', () => {
   });
 
   test('exclude tracing meta tags on SWR-cached page', async ({ page }) => {
-    // === 1. Request ===
-    const clientTxnEventPromise1 = waitForTransaction('nuxt-4', txnEvent => {
-      return txnEvent.transaction === '/rendering-modes/swr-cached-page';
-    });
-
-    // Only the 1. request creates a server transaction
-    const serverTxnEventPromise1 = waitForTransaction('nuxt-4', txnEvent => {
-      return txnEvent.transaction?.includes('GET /rendering-modes/swr-cached-page') ?? false;
-    });
-
-    const [_1, clientTxnEvent1, serverTxnEvent1] = await Promise.all([
-      page.goto(`/rendering-modes/swr-cached-page`),
-      clientTxnEventPromise1,
-      serverTxnEventPromise1,
-      expect(page.getByText(`SWR Cached Page`, { exact: true })).toBeVisible(),
-    ]);
-
-    await test.step('No baggage and sentry-trace meta tags are present on first request', async () => {
-      expect(await page.locator('meta[name="baggage"]').count()).toBe(0);
-      expect(await page.locator('meta[name="sentry-trace"]').count()).toBe(0);
-    });
-
-    // === 2. Request ===
-
-    await page.goto(`/rendering-modes/swr-cached-page`);
-
-    const clientTxnEventPromise2 = waitForTransaction('nuxt-4', txnEvent => {
-      return txnEvent.transaction === '/rendering-modes/swr-cached-page';
-    });
-
-    let serverTxnEvent2 = undefined;
-    const serverTxnEventPromise2 = Promise.race([
-      waitForTransaction('nuxt-4', txnEvent => {
-        return txnEvent.transaction?.includes('GET /rendering-modes/swr-cached-page') ?? false;
-      }),
-      new Promise((_, reject) => setTimeout(() => reject(new Error('No second server transaction expected')), 2000)),
-    ]);
-
-    try {
-      serverTxnEvent2 = await serverTxnEventPromise2;
-      throw new Error('Second server transaction should not have been sent');
-    } catch (error) {
-      expect(error.message).toBe('No second server transaction expected');
-    }
-
-    const [clientTxnEvent2] = await Promise.all([
-      clientTxnEventPromise2,
-      expect(page.getByText(`SWR Cached Page`, { exact: true })).toBeVisible(),
-    ]);
-
-    const clientTxnEvent1TraceId = clientTxnEvent1.contexts?.trace?.trace_id;
-    const clientTxnEvent2TraceId = clientTxnEvent2.contexts?.trace?.trace_id;
-
-    const serverTxnEvent1TraceId = serverTxnEvent1.contexts?.trace?.trace_id;
-    const serverTxnEvent2TraceId = serverTxnEvent2?.contexts?.trace?.trace_id;
-
-    await test.step('No baggage and sentry-trace meta tags are present on first request', async () => {
-      expect(await page.locator('meta[name="baggage"]').count()).toBe(0);
-      expect(await page.locator('meta[name="sentry-trace"]').count()).toBe(0);
-    });
-
-    await test.step('First Server Transaction and all Client Transactions are defined', () => {
-      expect(serverTxnEvent1TraceId).toBeDefined();
-      expect(clientTxnEvent1TraceId).toBeDefined();
-      expect(clientTxnEvent2TraceId).toBeDefined();
-      expect(serverTxnEvent2).toBeUndefined();
-      expect(serverTxnEvent2TraceId).toBeUndefined();
-    });
-
-    await test.step('Trace is not distributed', () => {
-      // Cannot create distributed trace as HTML Meta Tags are not added (SWR caching leads to multiple usages of the same server trace id)
-      expect(clientTxnEvent1TraceId).not.toBe(clientTxnEvent2TraceId);
-      expect(clientTxnEvent1TraceId).not.toBe(serverTxnEvent1TraceId);
-    });
+    await testExcludeTracingMetaTagsOnCachedPage(page, '/rendering-modes/swr-cached-page', 'SWR Cached Page');
   });
 
   test('exclude tracing meta tags on pre-rendered page', async ({ page }) => {
-    // === 1. Request ===
-    const clientTxnEventPromise1 = waitForTransaction('nuxt-4', txnEvent => {
-      return txnEvent.transaction === '/rendering-modes/pre-rendered-page';
-    });
+    await testExcludeTracingMetaTagsOnCachedPage(page, '/rendering-modes/pre-rendered-page', 'Pre-Rendered Page');
+  });
 
-    // Only the 1. request creates a server transaction
-    const serverTxnEventPromise1 = waitForTransaction('nuxt-4', txnEvent => {
-      return txnEvent.transaction?.includes('GET /rendering-modes/pre-rendered-page') ?? false;
-    });
-
-    const [_1, clientTxnEvent1, serverTxnEvent1] = await Promise.all([
-      page.goto(`/rendering-modes/pre-rendered-page`),
-      clientTxnEventPromise1,
-      serverTxnEventPromise1,
-      expect(page.getByText(`Pre-Rendered Page`, { exact: true })).toBeVisible(),
-    ]);
-
-    await test.step('No baggage and sentry-trace meta tags are present on first request', async () => {
-      expect(await page.locator('meta[name="baggage"]').count()).toBe(0);
-      expect(await page.locator('meta[name="sentry-trace"]').count()).toBe(0);
-    });
-
-    // === 2. Request ===
-
-    await page.goto(`/rendering-modes/pre-rendered-page`);
-
-    const clientTxnEventPromise2 = waitForTransaction('nuxt-4', txnEvent => {
-      return txnEvent.transaction === '/rendering-modes/pre-rendered-page';
-    });
-
-    let serverTxnEvent2 = undefined;
-    const serverTxnEventPromise2 = Promise.race([
-      waitForTransaction('nuxt-4', txnEvent => {
-        return txnEvent.transaction?.includes('GET /rendering-modes/pre-rendered-page') ?? false;
-      }),
-      new Promise((_, reject) => setTimeout(() => reject(new Error('No second server transaction expected')), 2000)),
-    ]);
-
-    try {
-      serverTxnEvent2 = await serverTxnEventPromise2;
-      throw new Error('Second server transaction should not have been sent');
-    } catch (error) {
-      expect(error.message).toBe('No second server transaction expected');
-    }
-
-    const [clientTxnEvent2] = await Promise.all([
-      clientTxnEventPromise2,
-      expect(page.getByText(`Pre-Rendered Page`, { exact: true })).toBeVisible(),
-    ]);
-
-    const clientTxnEvent1TraceId = clientTxnEvent1.contexts?.trace?.trace_id;
-    const clientTxnEvent2TraceId = clientTxnEvent2.contexts?.trace?.trace_id;
-
-    const serverTxnEvent1TraceId = serverTxnEvent1.contexts?.trace?.trace_id;
-    const serverTxnEvent2TraceId = serverTxnEvent2?.contexts?.trace?.trace_id;
-
-    await test.step('No baggage and sentry-trace meta tags are present on first request', async () => {
-      expect(await page.locator('meta[name="baggage"]').count()).toBe(0);
-      expect(await page.locator('meta[name="sentry-trace"]').count()).toBe(0);
-    });
-
-    await test.step('First Server Transaction and all Client Transactions are defined', () => {
-      expect(serverTxnEvent1TraceId).toBeDefined();
-      expect(clientTxnEvent1TraceId).toBeDefined();
-      expect(clientTxnEvent2TraceId).toBeDefined();
-      expect(serverTxnEvent2).toBeUndefined();
-      expect(serverTxnEvent2TraceId).toBeUndefined();
-    });
-
-    await test.step('Trace is not distributed', () => {
-      // Cannot create distributed trace as HTML Meta Tags are not added (pre-rendering leads to multiple usages of the same server trace id)
-      expect(clientTxnEvent1TraceId).not.toBe(clientTxnEvent2TraceId);
-      expect(clientTxnEvent1TraceId).not.toBe(serverTxnEvent1TraceId);
-    });
+  test('exclude tracing meta tags on SWR 1h cached page', async ({ page }) => {
+    await testExcludeTracingMetaTagsOnCachedPage(page, '/rendering-modes/swr-1h-cached-page', 'SWR 1h Cached Page');
   });
 });
+
+/**
+ * Tests that tracing meta-tags are excluded on cached pages (SWR, pre-rendered, etc.)
+ * This utility handles the common pattern of:
+ * 1. Making two requests to a cached page
+ * 2. Verifying no tracing meta-tags are present
+ * 3. Verifying only the first request creates a server transaction
+ * 4. Verifying traces are not distributed
+ *
+ * @param page - Playwright page object
+ * @param routePath - The route path to test (e.g., '/rendering-modes/swr-cached-page')
+ * @param expectedPageText - The text to verify is visible on the page (e.g., 'SWR Cached Page')
+ * @returns Object containing transaction events for additional custom assertions
+ */
+export async function testExcludeTracingMetaTagsOnCachedPage(
+  page: Page,
+  routePath: string,
+  expectedPageText: string,
+): Promise<void> {
+  // === 1. Request ===
+  const clientTxnEventPromise1 = waitForTransaction('nuxt-4', txnEvent => {
+    return txnEvent.transaction === routePath;
+  });
+
+  // Only the 1. request creates a server transaction
+  const serverTxnEventPromise1 = waitForTransaction('nuxt-4', txnEvent => {
+    return txnEvent.transaction?.includes(`GET ${routePath}`) ?? false;
+  });
+
+  const [_1, clientTxnEvent1, serverTxnEvent1] = await Promise.all([
+    page.goto(routePath),
+    clientTxnEventPromise1,
+    serverTxnEventPromise1,
+    expect(page.getByText(expectedPageText, { exact: true })).toBeVisible(),
+  ]);
+
+  // Verify no baggage and sentry-trace meta-tags are present on first request
+  expect(await page.locator('meta[name="baggage"]').count()).toBe(0);
+  expect(await page.locator('meta[name="sentry-trace"]').count()).toBe(0);
+
+  // === 2. Request ===
+
+  await page.goto(routePath);
+
+  const clientTxnEventPromise2 = waitForTransaction('nuxt-4', txnEvent => {
+    return txnEvent.transaction === routePath;
+  });
+
+  let serverTxnEvent2 = undefined;
+  const serverTxnEventPromise2 = Promise.race([
+    waitForTransaction('nuxt-4', txnEvent => {
+      return txnEvent.transaction?.includes(`GET ${routePath}`) ?? false;
+    }),
+    new Promise((_, reject) => setTimeout(() => reject(new Error('No second server transaction expected')), 2000)),
+  ]);
+
+  try {
+    serverTxnEvent2 = await serverTxnEventPromise2;
+    throw new Error('Second server transaction should not have been sent');
+  } catch (error) {
+    expect(error.message).toBe('No second server transaction expected');
+  }
+
+  const [clientTxnEvent2] = await Promise.all([
+    clientTxnEventPromise2,
+    expect(page.getByText(expectedPageText, { exact: true })).toBeVisible(),
+  ]);
+
+  const clientTxnEvent1TraceId = clientTxnEvent1.contexts?.trace?.trace_id;
+  const clientTxnEvent2TraceId = clientTxnEvent2.contexts?.trace?.trace_id;
+
+  const serverTxnEvent1TraceId = serverTxnEvent1.contexts?.trace?.trace_id;
+  const serverTxnEvent2TraceId = serverTxnEvent2?.contexts?.trace?.trace_id;
+
+  await test.step('No baggage and sentry-trace meta-tags are present on second request', async () => {
+    expect(await page.locator('meta[name="baggage"]').count()).toBe(0);
+    expect(await page.locator('meta[name="sentry-trace"]').count()).toBe(0);
+  });
+
+  await test.step('1. Server Transaction and all Client Transactions are defined', () => {
+    expect(serverTxnEvent1TraceId).toBeDefined();
+    expect(clientTxnEvent1TraceId).toBeDefined();
+    expect(clientTxnEvent2TraceId).toBeDefined();
+    expect(serverTxnEvent2).toBeUndefined();
+    expect(serverTxnEvent2TraceId).toBeUndefined();
+  });
+
+  await test.step('Trace is not distributed', () => {
+    // Cannot create distributed trace as HTML Meta Tags are not added (caching leads to multiple usages of the same server trace id)
+    expect(clientTxnEvent1TraceId).not.toBe(clientTxnEvent2TraceId);
+    expect(clientTxnEvent1TraceId).not.toBe(serverTxnEvent1TraceId);
+  });
+}
