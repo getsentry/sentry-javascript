@@ -1,7 +1,7 @@
 import type { Plugin } from 'vite';
 import * as vite from 'vite';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { getUpdatedSourceMapSetting, makeCustomSentryVitePlugins } from '../../src/vite/sourceMaps';
+import { _getUpdatedSourceMapSettings, makeCustomSentryVitePlugins } from '../../src/vite/sourceMaps';
 
 const mockedViteDebugIdUploadPlugin = {
   name: 'sentry-vite-debug-id-upload-plugin',
@@ -315,26 +315,83 @@ describe('makeCustomSentryVitePlugins()', () => {
   });
 });
 
-describe('changeViteSourceMapSettings()', () => {
-  const cases = [
-    { sourcemap: false, expectedSourcemap: false, expectedPrevious: 'disabled' },
-    { sourcemap: 'hidden' as const, expectedSourcemap: 'hidden', expectedPrevious: 'enabled' },
-    { sourcemap: 'inline' as const, expectedSourcemap: 'inline', expectedPrevious: 'enabled' },
-    { sourcemap: true, expectedSourcemap: true, expectedPrevious: 'enabled' },
-    { sourcemap: undefined, expectedSourcemap: 'hidden', expectedPrevious: 'unset' },
-  ];
+describe('_getUpdatedSourceMapSettings', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+  });
 
-  it.each(cases)(
-    'handles vite source map setting `build.sourcemap: $sourcemap`',
-    async ({ sourcemap, expectedSourcemap, expectedPrevious }) => {
-      const viteConfig = { build: { sourcemap } };
+  describe('when sourcemap is false', () => {
+    it('should keep sourcemap as false and show short warning when debug is disabled', () => {
+      const result = _getUpdatedSourceMapSettings({ build: { sourcemap: false } });
 
-      const result = getUpdatedSourceMapSetting(viteConfig);
+      expect(result).toBe(false);
+      // eslint-disable-next-line no-console
+      expect(console.warn).toHaveBeenCalledWith(
+        '[Sentry] Source map generation is disabled in your Vite configuration.',
+      );
+    });
 
-      expect(result).toEqual({
-        updatedSourceMapSetting: expectedSourcemap,
-        previousSourceMapSetting: expectedPrevious,
-      });
-    },
-  );
+    it('should keep sourcemap as false and show long warning when debug is enabled', () => {
+      const result = _getUpdatedSourceMapSettings({ build: { sourcemap: false } }, { debug: true });
+
+      expect(result).toBe(false);
+      // eslint-disable-next-line no-console
+      expect(console.warn).toHaveBeenCalledWith(
+        expect.stringContaining('[Sentry] Source map generation is currently disabled in your Vite configuration'),
+      );
+      // eslint-disable-next-line no-console
+      expect(console.warn).toHaveBeenCalledWith(
+        expect.stringContaining(
+          'This setting is either a default setting or was explicitly set in your configuration.',
+        ),
+      );
+    });
+  });
+
+  describe('when sourcemap is explicitly set to valid values', () => {
+    it.each([
+      ['hidden', 'hidden'],
+      ['inline', 'inline'],
+      [true, true],
+    ] as ('inline' | 'hidden' | boolean)[][])('should keep sourcemap as %s when set to %s', (input, expected) => {
+      const result = _getUpdatedSourceMapSettings({ build: { sourcemap: input } }, { debug: true });
+
+      expect(result).toBe(expected);
+      // eslint-disable-next-line no-console
+      expect(console.log).toHaveBeenCalledWith(
+        expect.stringContaining(`[Sentry] We discovered \`build.sourcemap\` is set to \`${input.toString()}\``),
+      );
+    });
+  });
+
+  describe('when sourcemap is undefined or invalid', () => {
+    it.each([[undefined], ['invalid'], ['something'], [null]])(
+      'should set sourcemap to hidden when value is %s',
+      input => {
+        const result = _getUpdatedSourceMapSettings({ build: { sourcemap: input as any } }, { debug: true });
+
+        expect(result).toBe('hidden');
+        // eslint-disable-next-line no-console
+        expect(console.log).toHaveBeenCalledWith(
+          expect.stringContaining(
+            "[Sentry] Enabled source map generation in the build options with `build.sourcemap: 'hidden'`",
+          ),
+        );
+      },
+    );
+
+    it('should set sourcemap to hidden when build config is empty', () => {
+      const result = _getUpdatedSourceMapSettings({}, { debug: true });
+
+      expect(result).toBe('hidden');
+      // eslint-disable-next-line no-console
+      expect(console.log).toHaveBeenCalledWith(
+        expect.stringContaining(
+          "[Sentry] Enabled source map generation in the build options with `build.sourcemap: 'hidden'`",
+        ),
+      );
+    });
+  });
 });
