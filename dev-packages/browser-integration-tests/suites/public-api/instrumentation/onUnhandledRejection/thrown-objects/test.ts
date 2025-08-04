@@ -13,7 +13,7 @@ sentryTest('should capture unhandledrejection with an object', async ({ getLocal
     type: 'UnhandledRejection',
     value: 'Object captured as promise rejection with keys: a, b, c',
     mechanism: {
-      type: 'onunhandledrejection',
+      type: 'auto.browser.global_handlers.onunhandledrejection',
       handled: false,
     },
   });
