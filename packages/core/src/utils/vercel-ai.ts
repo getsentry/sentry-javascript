@@ -60,20 +60,34 @@ function onVercelAiSpanStart(span: Span): void {
   processGenerateSpan(span, name, attributes);
 }
 
+interface TokenSummary {
+  inputTokens: number;
+  outputTokens: number;
+}
+
 function vercelAiEventProcessor(event: Event): Event {
   if (event.type === 'transaction' && event.spans) {
-    // First pass: process all spans normally
+    // Map to accumulate token data by parent span ID
+    const tokenAccumulator: Map<string, TokenSummary> = new Map();
+
+    // First pass: process all spans and accumulate token data
     for (const span of event.spans) {
-      // this mutates spans in-place
       processEndedVercelAiSpan(span);
+
+      // Accumulate token data for parent spans
+      accumulateTokensForParent(span, tokenAccumulator);
     }
 
-    // Second pass: accumulate tokens for gen_ai.invoke_agent spans
-    // TODO: Determine how to handle token aggregation for tool call spans.
+    // Second pass: apply accumulated token data to parent spans
     for (const span of event.spans) {
-      accumulateTokensFromChildSpans(span, event.spans);
+      if (span.op !== 'gen_ai.invoke_agent') {
+        continue;
+      }
+
+      applyAccumulatedTokens(span, tokenAccumulator);
     }
   }
+
   return event;
 }
 /**
@@ -249,43 +263,52 @@ export function addVercelAiProcessors(client: Client): void {
 }
 
 /**
- * For the gen_ai.invoke_agent span, iterate over child spans and aggregate tokens:
- * - Input tokens from client LLM child spans that include `gen_ai.usage.input_tokens` attribute.
- * - Output tokens from client LLM child spans that include `gen_ai.usage.output_tokens` attribute.
- * - Total tokens from client LLM child spans that include `gen_ai.usage.total_tokens` attribute.
- *
- * Only immediate children of the `gen_ai.invoke_agent` span need to be considered,
- * since aggregation will automatically occur for each parent span.
+ * Accumulates token data from a span to its parent in the token accumulator map.
+ * This function extracts token usage from the current span and adds it to the
+ * accumulated totals for its parent span.
  */
-function accumulateTokensFromChildSpans(spanJSON: SpanJSON, allSpans: SpanJSON[]): void {
-  if (spanJSON.op !== 'gen_ai.invoke_agent') {
+function accumulateTokensForParent(span: SpanJSON, tokenAccumulator: Map<string, TokenSummary>): void {
+  const parentSpanId = span.parent_span_id;
+  if (!parentSpanId) {
     return;
   }
-  const childSpans = allSpans.filter(childSpan => childSpan.parent_span_id === spanJSON.span_id);
 
-  let totalInputTokens = 0;
-  let totalOutputTokens = 0;
+  const inputTokens = span.data[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE];
+  const outputTokens = span.data[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE];
 
-  for (const childSpan of childSpans) {
-    const inputTokens = childSpan.data[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE];
-    const outputTokens = childSpan.data[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE];
+  if (typeof inputTokens === 'number' || typeof outputTokens === 'number') {
+    const existing = tokenAccumulator.get(parentSpanId) || { inputTokens: 0, outputTokens: 0 };
 
     if (typeof inputTokens === 'number') {
-      totalInputTokens += inputTokens;
+      existing.inputTokens += inputTokens;
     }
     if (typeof outputTokens === 'number') {
-      totalOutputTokens += outputTokens;
+      existing.outputTokens += outputTokens;
     }
+
+    tokenAccumulator.set(parentSpanId, existing);
+  }
+}
+
+/**
+ * Applies accumulated token data to the `gen_ai.invoke_agent` span.
+ * Only immediate children of the `gen_ai.invoke_agent` span are considered,
+ * since aggregation will automatically occur for each parent span.
+ */
+function applyAccumulatedTokens(span: SpanJSON, tokenAccumulator: Map<string, TokenSummary>): void {
+  const accumulated = tokenAccumulator.get(span.span_id);
+  if (!accumulated) {
+    return;
   }
 
-  if (totalInputTokens > 0) {
-    spanJSON.data[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE] = totalInputTokens;
+  if (accumulated.inputTokens > 0) {
+    span.data[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE] = accumulated.inputTokens;
   }
-  if (totalOutputTokens > 0) {
-    spanJSON.data[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE] = totalOutputTokens;
+  if (accumulated.outputTokens > 0) {
+    span.data[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE] = accumulated.outputTokens;
   }
-  if (totalInputTokens > 0 || totalOutputTokens > 0) {
-    spanJSON.data['gen_ai.usage.total_tokens'] = totalInputTokens + totalOutputTokens;
+  if (accumulated.inputTokens > 0 || accumulated.outputTokens > 0) {
+    span.data['gen_ai.usage.total_tokens'] = accumulated.inputTokens + accumulated.outputTokens;
   }
 }
 
