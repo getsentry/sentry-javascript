@@ -10,6 +10,7 @@ import {
   MCP_TOOL_RESULT_CONTENT_COUNT_ATTRIBUTE,
   MCP_TOOL_RESULT_IS_ERROR_ATTRIBUTE,
 } from './attributes';
+import { isValidContentItem } from './validation';
 
 /**
  * Build attributes for tool result content items
@@ -22,11 +23,10 @@ function buildAllContentItemAttributes(content: unknown[]): Record<string, strin
   };
 
   for (const [i, item] of content.entries()) {
-    if (typeof item !== 'object' || item === null) {
+    if (!isValidContentItem(item)) {
       continue;
     }
 
-    const contentItem = item as Record<string, unknown>;
     const prefix = content.length === 1 ? 'mcp.tool.result' : `mcp.tool.result.${i}`;
 
     const safeSet = (key: string, value: unknown): void => {
@@ -35,13 +35,13 @@ function buildAllContentItemAttributes(content: unknown[]): Record<string, strin
       }
     };
 
-    safeSet('content_type', contentItem.type);
-    safeSet('mime_type', contentItem.mimeType);
-    safeSet('uri', contentItem.uri);
-    safeSet('name', contentItem.name);
+    safeSet('content_type', item.type);
+    safeSet('mime_type', item.mimeType);
+    safeSet('uri', item.uri);
+    safeSet('name', item.name);
 
-    if (typeof contentItem.text === 'string') {
-      const text = contentItem.text;
+    if (typeof item.text === 'string') {
+      const text = item.text;
       const maxLength = 500;
       if (text.length > maxLength) {
         attributes[`${prefix}.content`] = `${text.slice(0, maxLength - 3)}...`;
@@ -50,15 +50,14 @@ function buildAllContentItemAttributes(content: unknown[]): Record<string, strin
       }
     }
 
-    if (typeof contentItem.data === 'string') {
-      attributes[`${prefix}.data_size`] = contentItem.data.length;
+    if (typeof item.data === 'string') {
+      attributes[`${prefix}.data_size`] = item.data.length;
     }
 
-    const resource = contentItem.resource;
-    if (typeof resource === 'object' && resource !== null) {
-      const res = resource as Record<string, unknown>;
-      safeSet('resource_uri', res.uri);
-      safeSet('resource_mime_type', res.mimeType);
+    const resource = item.resource;
+    if (isValidContentItem(resource)) {
+      safeSet('resource_uri', resource.uri);
+      safeSet('resource_mime_type', resource.mimeType);
     }
   }
 
@@ -72,16 +71,15 @@ function buildAllContentItemAttributes(content: unknown[]): Record<string, strin
  */
 export function extractToolResultAttributes(result: unknown): Record<string, string | number | boolean> {
   let attributes: Record<string, string | number | boolean> = {};
-  if (typeof result !== 'object' || result === null) {
+  if (!isValidContentItem(result)) {
     return attributes;
   }
 
-  const resultObj = result as Record<string, unknown>;
-  if (typeof resultObj.isError === 'boolean') {
-    attributes[MCP_TOOL_RESULT_IS_ERROR_ATTRIBUTE] = resultObj.isError;
+  if (typeof result.isError === 'boolean') {
+    attributes[MCP_TOOL_RESULT_IS_ERROR_ATTRIBUTE] = result.isError;
   }
-  if (Array.isArray(resultObj.content)) {
-    attributes = { ...attributes, ...buildAllContentItemAttributes(resultObj.content) };
+  if (Array.isArray(result.content)) {
+    attributes = { ...attributes, ...buildAllContentItemAttributes(result.content) };
   }
   return attributes;
 }
@@ -93,26 +91,23 @@ export function extractToolResultAttributes(result: unknown): Record<string, str
  */
 export function extractPromptResultAttributes(result: unknown): Record<string, string | number | boolean> {
   const attributes: Record<string, string | number | boolean> = {};
-  if (typeof result !== 'object' || result === null) {
+  if (!isValidContentItem(result)) {
     return attributes;
   }
 
-  const resultObj = result as Record<string, unknown>;
-
-  if (typeof resultObj.description === 'string') {
-    attributes[MCP_PROMPT_RESULT_DESCRIPTION_ATTRIBUTE] = resultObj.description;
+  if (typeof result.description === 'string') {
+    attributes[MCP_PROMPT_RESULT_DESCRIPTION_ATTRIBUTE] = result.description;
   }
 
-  if (Array.isArray(resultObj.messages)) {
-    attributes[MCP_PROMPT_RESULT_MESSAGE_COUNT_ATTRIBUTE] = resultObj.messages.length;
+  if (Array.isArray(result.messages)) {
+    attributes[MCP_PROMPT_RESULT_MESSAGE_COUNT_ATTRIBUTE] = result.messages.length;
 
-    const messages = resultObj.messages;
+    const messages = result.messages;
     for (const [i, message] of messages.entries()) {
-      if (typeof message !== 'object' || message === null) {
+      if (!isValidContentItem(message)) {
         continue;
       }
 
-      const messageObj = message as Record<string, unknown>;
       const prefix = messages.length === 1 ? 'mcp.prompt.result' : `mcp.prompt.result.${i}`;
 
       const safeSet = (key: string, value: unknown): void => {
@@ -122,10 +117,10 @@ export function extractPromptResultAttributes(result: unknown): Record<string, s
         }
       };
 
-      safeSet('role', messageObj.role);
+      safeSet('role', message.role);
 
-      if (typeof messageObj.content === 'object' && messageObj.content !== null) {
-        const content = messageObj.content as Record<string, unknown>;
+      if (isValidContentItem(message.content)) {
+        const content = message.content;
         if (typeof content.text === 'string') {
           const attrName = messages.length === 1 ? `${prefix}.message_content` : `${prefix}.content`;
           attributes[attrName] = content.text;

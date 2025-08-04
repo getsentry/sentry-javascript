@@ -22,6 +22,7 @@ import {
   getSessionDataForTransport,
 } from './sessionManagement';
 import type { ExtraHandlerData, JsonRpcRequest, MCPTransport, PartyInfo, SessionData } from './types';
+import { isValidContentItem } from './validation';
 
 /**
  * Extracts and validates PartyInfo from an unknown object
@@ -31,16 +32,15 @@ import type { ExtraHandlerData, JsonRpcRequest, MCPTransport, PartyInfo, Session
 function extractPartyInfo(obj: unknown): PartyInfo {
   const partyInfo: PartyInfo = {};
 
-  if (obj && typeof obj === 'object' && obj !== null) {
-    const source = obj as Record<string, unknown>;
-    if (typeof source.name === 'string') {
-      partyInfo.name = source.name;
+  if (isValidContentItem(obj)) {
+    if (typeof obj.name === 'string') {
+      partyInfo.name = obj.name;
     }
-    if (typeof source.title === 'string') {
-      partyInfo.title = source.title;
+    if (typeof obj.title === 'string') {
+      partyInfo.title = obj.title;
     }
-    if (typeof source.version === 'string') {
-      partyInfo.version = source.version;
+    if (typeof obj.version === 'string') {
+      partyInfo.version = obj.version;
     }
   }
 
@@ -54,13 +54,12 @@ function extractPartyInfo(obj: unknown): PartyInfo {
  */
 export function extractSessionDataFromInitializeRequest(request: JsonRpcRequest): SessionData {
   const sessionData: SessionData = {};
-  if (request.params && typeof request.params === 'object' && request.params !== null) {
-    const params = request.params as Record<string, unknown>;
-    if (typeof params.protocolVersion === 'string') {
-      sessionData.protocolVersion = params.protocolVersion;
+  if (isValidContentItem(request.params)) {
+    if (typeof request.params.protocolVersion === 'string') {
+      sessionData.protocolVersion = request.params.protocolVersion;
     }
-    if (params.clientInfo) {
-      sessionData.clientInfo = extractPartyInfo(params.clientInfo);
+    if (request.params.clientInfo) {
+      sessionData.clientInfo = extractPartyInfo(request.params.clientInfo);
     }
   }
   return sessionData;
@@ -73,13 +72,12 @@ export function extractSessionDataFromInitializeRequest(request: JsonRpcRequest)
  */
 export function extractSessionDataFromInitializeResponse(result: unknown): Partial<SessionData> {
   const sessionData: Partial<SessionData> = {};
-  if (result && typeof result === 'object') {
-    const resultObj = result as Record<string, unknown>;
-    if (typeof resultObj.protocolVersion === 'string') {
-      sessionData.protocolVersion = resultObj.protocolVersion;
+  if (isValidContentItem(result)) {
+    if (typeof result.protocolVersion === 'string') {
+      sessionData.protocolVersion = result.protocolVersion;
     }
-    if (resultObj.serverInfo) {
-      sessionData.serverInfo = extractPartyInfo(resultObj.serverInfo);
+    if (result.serverInfo) {
+      sessionData.serverInfo = extractPartyInfo(result.serverInfo);
     }
   }
   return sessionData;
