@@ -235,10 +235,14 @@ export function _getUpdatedSourceMapSettings(
     previousUserSourceMapSetting = 'disabled';
     updatedSourceMapSetting = viteSourceMap;
 
-    debug &&
+    if (debug) {
+      // Longer debug message with more details
       logger.warn(
         `Source map generation is currently disabled in your Astro configuration (\`${settingKey}: false\`). This setting is either a default setting or was explicitly set in your configuration. Sentry won't override this setting. Without source maps, code snippets on the Sentry Issues page will remain minified. To show unminified code, enable source maps in \`${settingKey}\` (e.g. by setting them to \`hidden\`).`,
       );
+    } else {
+      logger.warn('Source map generation is disabled in your Astro configuration.');
+    }
   } else if (viteSourceMap && ['hidden', 'inline', true].includes(viteSourceMap)) {
     previousUserSourceMapSetting = 'enabled';
     updatedSourceMapSetting = viteSourceMap;
