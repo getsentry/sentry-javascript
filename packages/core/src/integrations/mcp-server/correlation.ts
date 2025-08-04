@@ -43,7 +43,6 @@ function getOrCreateSpanMap(transport: MCPTransport): Map<RequestId, RequestSpan
  */
 export function storeSpanForRequest(transport: MCPTransport, requestId: RequestId, span: Span, method: string): void {
   const spanMap = getOrCreateSpanMap(transport);
-
   spanMap.set(requestId, {
     span,
     method,
@@ -59,7 +58,7 @@ export function storeSpanForRequest(transport: MCPTransport, requestId: RequestI
  */
 export function completeSpanWithResults(transport: MCPTransport, requestId: RequestId, result: unknown): void {
   const spanMap = getOrCreateSpanMap(transport);
-  const spanData = spanMap?.get(requestId);
+  const spanData = spanMap.get(requestId);
   if (spanData) {
     const { span, method } = spanData;
 
@@ -73,7 +72,7 @@ export function completeSpanWithResults(transport: MCPTransport, requestId: Requ
     }
 
     span.end();
-    spanMap?.delete(requestId);
+    spanMap.delete(requestId);
   }
 }
 
