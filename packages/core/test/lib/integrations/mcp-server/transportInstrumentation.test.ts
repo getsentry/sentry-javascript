@@ -559,6 +559,18 @@ describe('MCP Server Transport Instrumentation', () => {
       expect(result.mcpTransport).toBe('unknown');
       expect(result.networkTransport).toBe('unknown');
     });
+
+    it('returns unknown network transport for unrecognized transport types', () => {
+      const transport = {
+        constructor: { name: 'CustomTransport' },
+        onmessage: () => {},
+        send: async () => {},
+      };
+      const result = getTransportTypes(transport);
+
+      expect(result.mcpTransport).toBe('customtransport');
+      expect(result.networkTransport).toBe('unknown');
+    });
   });
 
   describe('buildTransportAttributes sessionId handling', () => {

@@ -54,7 +54,13 @@ export function getTransportTypes(transport: MCPTransport): { mcpTransport: stri
     return { mcpTransport: 'unknown', networkTransport: 'unknown' };
   }
 
-  const networkTransport = transportName.includes('stdio') ? 'pipe' : 'tcp';
+  let networkTransport = 'unknown';
+
+  if (transportName.includes('stdio')) {
+    networkTransport = 'pipe';
+  } else if (transportName.includes('http') || transportName.includes('sse')) {
+    networkTransport = 'tcp';
+  }
 
   return {
     mcpTransport: transportName,
