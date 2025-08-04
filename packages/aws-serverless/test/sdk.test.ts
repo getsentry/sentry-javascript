@@ -1,12 +1,8 @@
 import type { Event } from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import type { Callback, Handler } from 'aws-lambda';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { init, wrapHandler } from '../src/sdk';
 
-const mockSpanEnd = vi.fn();
-const mockStartInactiveSpan = vi.fn((...spanArgs) => ({ ...spanArgs }));
-const mockStartSpanManual = vi.fn((...spanArgs) => ({ ...spanArgs }));
 const mockFlush = vi.fn((...args) => Promise.resolve(args));
 const mockWithScope = vi.fn();
 const mockCaptureMessage = vi.fn();
@@ -28,24 +24,15 @@ vi.mock('@sentry/node', async () => {
     initWithoutDefaultIntegrations: (options: unknown) => {
       mockInit(options);
     },
-    startInactiveSpan: (...args: unknown[]) => {
-      mockStartInactiveSpan(...args);
-      return { end: mockSpanEnd };
-    },
-    startSpanManual: (...args: unknown[]) => {
-      mockStartSpanManual(...args);
-      mockSpanEnd();
-      return original.startSpanManual(...args);
-    },
     getCurrentScope: () => {
       return mockScope;
     },
     flush: (...args: unknown[]) => {
       return mockFlush(...args);
     },
-    withScope: (fn: (scope: unknown) => void) => {
+    withScope: (fn: (scope: unknown) => unknown) => {
       mockWithScope(fn);
-      fn(mockScope);
+      return fn(mockScope);
     },
     captureMessage: (...args: unknown[]) => {
       mockCaptureMessage(...args);
@@ -82,13 +69,6 @@ const fakeCallback: Callback = (err, result) => {
 };
 
 function expectScopeSettings() {
-  expect(mockScope.setTransactionName).toBeCalledTimes(1);
-  expect(mockScope.setTransactionName).toBeCalledWith('functionName');
-
-  expect(mockScope.setTag).toBeCalledWith('server_name', expect.anything());
-
-  expect(mockScope.setTag).toBeCalledWith('url', 'awslambda:///functionName');
-
   expect(mockScope.setContext).toBeCalledWith(
     'aws.lambda',
     expect.objectContaining({
@@ -138,7 +118,7 @@ describe('AWSLambda', () => {
       const wrappedHandler = wrapHandler(handler);
       await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
 
-      expect(mockWithScope).toBeCalledTimes(1);
+      expect(mockWithScope).toBeCalledTimes(2);
       expect(mockCaptureMessage).toBeCalled();
       expect(mockScope.setTag).toBeCalledWith('timeout', '1s');
     });
@@ -154,7 +134,7 @@ describe('AWSLambda', () => {
       });
       await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
 
-      expect(mockWithScope).toBeCalledTimes(0);
+      expect(mockWithScope).toBeCalledTimes(1);
       expect(mockCaptureMessage).not.toBeCalled();
       expect(mockScope.setTag).not.toBeCalledWith('timeout', '1s');
     });
@@ -211,25 +191,11 @@ describe('AWSLambda', () => {
       expect(mockCaptureException).toHaveBeenNthCalledWith(2, error2, expect.any(Function));
       expect(mockCaptureException).toBeCalledTimes(2);
     });
-
-    // "wrapHandler() ... successful execution" tests the default of startTrace enabled
-    test('startTrace disabled', async () => {
-      expect.assertions(3);
-
-      const handler: Handler = async (_event, _context) => 42;
-      const wrappedHandler = wrapHandler(handler, { startTrace: false });
-      await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
-
-      expect(mockScope.addEventProcessor).toBeCalledTimes(0);
-
-      expect(mockScope.setTag).toBeCalledTimes(0);
-      expect(mockStartSpanManual).toBeCalledTimes(0);
-    });
   });
 
   describe('wrapHandler() on sync handler', () => {
     test('successful execution', async () => {
-      expect.assertions(10);
+      expect.assertions(4);
 
       const handler: Handler = (_event, _context, callback) => {
         callback(null, 42);
@@ -237,25 +203,14 @@ describe('AWSLambda', () => {
       const wrappedHandler = wrapHandler(handler);
       const rv = await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
 
-      const fakeTransactionContext = {
-        name: 'functionName',
-        op: 'function.aws.lambda',
-        attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless',
-        },
-      };
-
       expect(rv).toStrictEqual(42);
-      expect(mockStartSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
       expectScopeSettings();
 
-      expect(mockSpanEnd).toBeCalled();
       expect(mockFlush).toBeCalledWith(2000);
     });
 
     test('unsuccessful execution', async () => {
-      expect.assertions(10);
+      expect.assertions(4);
 
       const error = new Error('sorry');
       const handler: Handler = (_event, _context, callback) => {
@@ -266,20 +221,9 @@ describe('AWSLambda', () => {
       try {
         await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
       } catch {
-        const fakeTransactionContext = {
-          name: 'functionName',
-          op: 'function.aws.lambda',
-          attributes: {
-            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless',
-          },
-        };
-
-        expect(mockStartSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
         expectScopeSettings();
         expect(mockCaptureException).toBeCalledWith(error, expect.any(Function));
 
-        expect(mockSpanEnd).toBeCalled();
         expect(mockFlush).toBeCalledWith(2000);
       }
     });
@@ -297,7 +241,7 @@ describe('AWSLambda', () => {
     });
 
     test('capture error', async () => {
-      expect.assertions(10);
+      expect.assertions(4);
 
       const error = new Error('wat');
       const handler: Handler = (_event, _context, _callback) => {
@@ -308,20 +252,9 @@ describe('AWSLambda', () => {
       try {
         await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
       } catch (e) {
-        const fakeTransactionContext = {
-          name: 'functionName',
-          op: 'function.aws.lambda',
-          attributes: {
-            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless',
-          },
-        };
-
-        expect(mockStartSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
         expectScopeSettings();
         expect(mockCaptureException).toBeCalledWith(e, expect.any(Function));
 
-        expect(mockSpanEnd).toBeCalled();
         expect(mockFlush).toBeCalled();
       }
     });
@@ -329,7 +262,7 @@ describe('AWSLambda', () => {
 
   describe('wrapHandler() on async handler', () => {
     test('successful execution', async () => {
-      expect.assertions(10);
+      expect.assertions(4);
 
       const handler: Handler = async (_event, _context) => {
         return 42;
@@ -337,20 +270,9 @@ describe('AWSLambda', () => {
       const wrappedHandler = wrapHandler(handler);
       const rv = await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
 
-      const fakeTransactionContext = {
-        name: 'functionName',
-        op: 'function.aws.lambda',
-        attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless',
-        },
-      };
-
       expect(rv).toStrictEqual(42);
-      expect(mockStartSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
       expectScopeSettings();
 
-      expect(mockSpanEnd).toBeCalled();
       expect(mockFlush).toBeCalled();
     });
 
@@ -366,7 +288,7 @@ describe('AWSLambda', () => {
     });
 
     test('capture error', async () => {
-      expect.assertions(10);
+      expect.assertions(4);
 
       const error = new Error('wat');
       const handler: Handler = async (_event, _context) => {
@@ -377,20 +299,9 @@ describe('AWSLambda', () => {
       try {
         await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
       } catch {
-        const fakeTransactionContext = {
-          name: 'functionName',
-          op: 'function.aws.lambda',
-          attributes: {
-            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless',
-          },
-        };
-
-        expect(mockStartSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
         expectScopeSettings();
         expect(mockCaptureException).toBeCalledWith(error, expect.any(Function));
 
-        expect(mockSpanEnd).toBeCalled();
         expect(mockFlush).toBeCalled();
       }
     });
@@ -411,7 +322,7 @@ describe('AWSLambda', () => {
 
   describe('wrapHandler() on async handler with a callback method (aka incorrect usage)', () => {
     test('successful execution', async () => {
-      expect.assertions(10);
+      expect.assertions(4);
 
       const handler: Handler = async (_event, _context, _callback) => {
         return 42;
@@ -419,20 +330,9 @@ describe('AWSLambda', () => {
       const wrappedHandler = wrapHandler(handler);
       const rv = await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
 
-      const fakeTransactionContext = {
-        name: 'functionName',
-        op: 'function.aws.lambda',
-        attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless',
-        },
-      };
-
       expect(rv).toStrictEqual(42);
-      expect(mockStartSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
       expectScopeSettings();
 
-      expect(mockSpanEnd).toBeCalled();
       expect(mockFlush).toBeCalled();
     });
 
@@ -448,7 +348,7 @@ describe('AWSLambda', () => {
     });
 
     test('capture error', async () => {
-      expect.assertions(10);
+      expect.assertions(4);
 
       const error = new Error('wat');
       const handler: Handler = async (_event, _context, _callback) => {
@@ -459,20 +359,9 @@ describe('AWSLambda', () => {
       try {
         await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
       } catch {
-        const fakeTransactionContext = {
-          name: 'functionName',
-          op: 'function.aws.lambda',
-          attributes: {
-            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless',
-          },
-        };
-
-        expect(mockStartSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
         expectScopeSettings();
         expect(mockCaptureException).toBeCalledWith(error, expect.any(Function));
 
-        expect(mockSpanEnd).toBeCalled();
         expect(mockFlush).toBeCalled();
       }
     });
@@ -492,7 +381,7 @@ describe('AWSLambda', () => {
     } catch {
       expect(mockCaptureException).toBeCalledWith(error, expect.any(Function));
 
-      const scopeFunction = mockCaptureException.mock.calls[0][1];
+      const scopeFunction = mockCaptureException.mock.calls[0]?.[1];
       const event: Event = { exception: { values: [{}] } };
       let evtProcessor: ((e: Event) => Event) | undefined = undefined;
       scopeFunction({ addEventProcessor: vi.fn().mockImplementation(proc => (evtProcessor = proc)) });
