@@ -4,6 +4,10 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 9.44.2
+
+This release is publishing the AWS Lambda Layer under `SentryNodeServerlessSDKv9`. The previous release `9.44.1` accidentally published the layer under `SentryNodeServerlessSDKv10`.
+
 ## 9.44.1
 
 - fix(replay/v9): Call sendBufferedReplayOrFlush when opening/sending feedback ([#17270](https://github.com/getsentry/sentry-javascript/pull/17270))
