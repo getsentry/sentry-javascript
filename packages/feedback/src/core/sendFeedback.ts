@@ -46,29 +46,18 @@ export const sendFeedback: SendFeedback = (
       cleanup();
 
       // Require valid status codes, otherwise can assume feedback was not sent successfully
-      if (
-        response &&
-        typeof response.statusCode === 'number' &&
-        response.statusCode >= 200 &&
-        response.statusCode < 300
-      ) {
+      if (response?.statusCode && response.statusCode >= 200 && response.statusCode < 300) {
         return resolve(eventId);
       }
 
-      if (response && typeof response.statusCode === 'number' && response.statusCode === 0) {
+      if (response?.statusCode === 403) {
         return reject(
-          'Unable to send Feedback. This is because of network issues, or because you are using an ad-blocker.',
-        );
-      }
-
-      if (response && typeof response.statusCode === 'number' && response.statusCode === 403) {
-        return reject(
-          'Unable to send Feedback. This could be because this domain is not in your list of allowed domains.',
+          'Unable to send feedback. This could be because this domain is not in your list of allowed domains.',
         );
       }
 
       return reject(
-        'Unable to send Feedback. This could be because of network issues, or because you are using an ad-blocker',
+        'Unable to send feedback. This could be because of network issues, or because you are using an ad-blocker.',
       );
     });
   });
