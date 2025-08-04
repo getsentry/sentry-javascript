@@ -73,43 +73,18 @@ function handleAsyncHandlerResult(result: unknown, route: RouteObject, handlerKe
     'then' in result &&
     typeof (result as Promise<unknown>).then === 'function'
   ) {
-    handlePromiseResult(result as Promise<unknown>, route, handlerKey);
+    (result as Promise<unknown>)
+      .then((resolvedRoutes: unknown) => {
+        if (Array.isArray(resolvedRoutes)) {
+          processResolvedRoutes(resolvedRoutes);
+        }
+      })
+      .catch((e: unknown) => {
+        DEBUG_BUILD && debug.warn(`Error resolving async handler '${handlerKey}' for route`, route, e);
+      });
   } else if (Array.isArray(result)) {
-    handleSynchronousArrayResult(result, route);
+    processResolvedRoutes(result);
   }
-}
-
-/**
- * Handles promise results from async handlers.
- */
-function handlePromiseResult(promise: Promise<unknown>, route: RouteObject, handlerKey: string): void {
-  promise
-    .then((resolvedRoutes: unknown) => {
-      if (Array.isArray(resolvedRoutes)) {
-        addResolvedRoutesToParent(resolvedRoutes, route);
-        processResolvedRoutes(resolvedRoutes);
-      }
-    })
-    .catch((e: unknown) => {
-      DEBUG_BUILD && debug.warn(`Error resolving async handler '${handlerKey}' for route`, route, e);
-    });
-}
-
-/**
- * Handles synchronous array results from handlers.
- */
-function handleSynchronousArrayResult(result: RouteObject[], route: RouteObject): void {
-  addResolvedRoutesToParent(result, route);
-  processResolvedRoutes(result);
-}
-
-/**
- * Adds resolved routes as children to the parent route.
- */
-function addResolvedRoutesToParent(resolvedRoutes: RouteObject[], parentRoute: RouteObject): void {
-  parentRoute.children = Array.isArray(parentRoute.children)
-    ? [...parentRoute.children, ...resolvedRoutes]
-    : resolvedRoutes;
 }
 
 /**
@@ -140,27 +115,18 @@ function createAsyncHandlerProxy(
 }
 
 /**
- * Sets up proxies for all function properties in a route's handle object.
- */
-function setupHandleProxies(route: RouteObject): void {
-  if (!route.handle || typeof route.handle !== 'object') {
-    return;
-  }
-
-  for (const key of Object.keys(route.handle)) {
-    const maybeFn = route.handle[key];
-    if (typeof maybeFn === 'function') {
-      route.handle[key] = createAsyncHandlerProxy(maybeFn, route, key);
-    }
-  }
-}
-
-/**
  * Recursively checks a route for async handlers and sets up Proxies to add discovered child routes to allRoutes when called.
  */
 export function checkRouteForAsyncHandler(route: RouteObject): void {
   // Set up proxies for any functions in the route's handle
-  setupHandleProxies(route);
+  if (route.handle && typeof route.handle === 'object') {
+    for (const key of Object.keys(route.handle)) {
+      const maybeFn = route.handle[key];
+      if (typeof maybeFn === 'function') {
+        route.handle[key] = createAsyncHandlerProxy(maybeFn, route, key);
+      }
+    }
+  }
 
   // Recursively check child routes
   if (Array.isArray(route.children)) {
@@ -193,14 +159,9 @@ export function createV6CompatibleWrapCreateBrowserRouter<
     addRoutesToAllRoutes(routes);
 
     // Check for async handlers that might contain sub-route declarations
-    const checkAsyncHandlers = (): void => {
-      for (const route of routes) {
-        checkRouteForAsyncHandler(route);
-      }
-    };
-
-    // Start checking async handlers
-    checkAsyncHandlers();
+    for (const route of routes) {
+      checkRouteForAsyncHandler(route);
+    }
 
     const router = createRouterFunction(routes, opts);
     const basename = opts?.basename;
