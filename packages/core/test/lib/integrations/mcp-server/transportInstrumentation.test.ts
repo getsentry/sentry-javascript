@@ -535,6 +535,30 @@ describe('MCP Server Transport Instrumentation', () => {
       expect(result.mcpTransport).toBe('unknown');
       expect(result.networkTransport).toBe('unknown');
     });
+
+    it('handles transport with null/undefined constructor name', () => {
+      const transport = {
+        constructor: { name: null },
+        onmessage: () => {},
+        send: async () => {},
+      };
+      const result = getTransportTypes(transport);
+
+      expect(result.mcpTransport).toBe('unknown');
+      expect(result.networkTransport).toBe('unknown');
+    });
+
+    it('handles transport with empty constructor name', () => {
+      const transport = {
+        constructor: { name: '' },
+        onmessage: () => {},
+        send: async () => {},
+      };
+      const result = getTransportTypes(transport);
+
+      expect(result.mcpTransport).toBe('unknown');
+      expect(result.networkTransport).toBe('unknown');
+    });
   });
 
   describe('buildTransportAttributes sessionId handling', () => {
