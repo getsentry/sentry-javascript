@@ -33,7 +33,7 @@ export default defineNitroPlugin(nitroApp => {
     } else {
       const reason = isPreRenderedPage ? 'the page was pre-rendered' : 'SWR caching is enabled for the route';
       debug.log(
-        `Not adding Sentry tracing meta tags to HTML for ${event.path} because ${reason}. This will disable distributed tracing for the page.`,
+        `Not adding Sentry tracing meta tags to HTML for ${event.path} because ${reason}. This will disable distributed tracing and prevent connecting multiple client page loads to the same server request.`,
       );
     }
   });
