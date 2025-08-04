@@ -22,13 +22,17 @@ function buildAllContentItemAttributes(content: unknown[]): Record<string, strin
   };
 
   for (const [i, item] of content.entries()) {
-    if (typeof item !== 'object' || item === null) continue;
+    if (typeof item !== 'object' || item === null) {
+      continue;
+    }
 
     const contentItem = item as Record<string, unknown>;
     const prefix = content.length === 1 ? 'mcp.tool.result' : `mcp.tool.result.${i}`;
 
     const safeSet = (key: string, value: unknown): void => {
-      if (typeof value === 'string') attributes[`${prefix}.${key}`] = value;
+      if (typeof value === 'string') {
+        attributes[`${prefix}.${key}`] = value;
+      }
     };
 
     safeSet('content_type', contentItem.type);
@@ -39,7 +43,11 @@ function buildAllContentItemAttributes(content: unknown[]): Record<string, strin
     if (typeof contentItem.text === 'string') {
       const text = contentItem.text;
       const maxLength = 500;
-      attributes[`${prefix}.content`] = text.length > maxLength ? `${text.slice(0, maxLength - 3)}...` : text;
+      if (text.length > maxLength) {
+        attributes[`${prefix}.content`] = `${text.slice(0, maxLength - 3)}...`;
+      } else {
+        attributes[`${prefix}.content`] = text;
+      }
     }
 
     if (typeof contentItem.data === 'string') {
@@ -64,7 +72,9 @@ function buildAllContentItemAttributes(content: unknown[]): Record<string, strin
  */
 export function extractToolResultAttributes(result: unknown): Record<string, string | number | boolean> {
   let attributes: Record<string, string | number | boolean> = {};
-  if (typeof result !== 'object' || result === null) return attributes;
+  if (typeof result !== 'object' || result === null) {
+    return attributes;
+  }
 
   const resultObj = result as Record<string, unknown>;
   if (typeof resultObj.isError === 'boolean') {
@@ -83,19 +93,24 @@ export function extractToolResultAttributes(result: unknown): Record<string, str
  */
 export function extractPromptResultAttributes(result: unknown): Record<string, string | number | boolean> {
   const attributes: Record<string, string | number | boolean> = {};
-  if (typeof result !== 'object' || result === null) return attributes;
+  if (typeof result !== 'object' || result === null) {
+    return attributes;
+  }
 
   const resultObj = result as Record<string, unknown>;
 
-  if (typeof resultObj.description === 'string')
+  if (typeof resultObj.description === 'string') {
     attributes[MCP_PROMPT_RESULT_DESCRIPTION_ATTRIBUTE] = resultObj.description;
+  }
 
   if (Array.isArray(resultObj.messages)) {
     attributes[MCP_PROMPT_RESULT_MESSAGE_COUNT_ATTRIBUTE] = resultObj.messages.length;
 
     const messages = resultObj.messages;
     for (const [i, message] of messages.entries()) {
-      if (typeof message !== 'object' || message === null) continue;
+      if (typeof message !== 'object' || message === null) {
+        continue;
+      }
 
       const messageObj = message as Record<string, unknown>;
       const prefix = messages.length === 1 ? 'mcp.prompt.result' : `mcp.prompt.result.${i}`;

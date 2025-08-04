@@ -90,7 +90,9 @@ export function completeSpanWithResults(transport: MCPTransport, requestId: Requ
  */
 export function cleanupPendingSpansForTransport(transport: MCPTransport): number {
   const spanMap = transportToSpanMap.get(transport);
-  if (!spanMap) return 0;
+  if (!spanMap) {
+    return 0;
+  }
 
   const pendingCount = spanMap.size;
 

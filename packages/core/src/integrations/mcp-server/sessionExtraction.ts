@@ -33,9 +33,15 @@ function extractPartyInfo(obj: unknown): PartyInfo {
 
   if (obj && typeof obj === 'object' && obj !== null) {
     const source = obj as Record<string, unknown>;
-    if (typeof source.name === 'string') partyInfo.name = source.name;
-    if (typeof source.title === 'string') partyInfo.title = source.title;
-    if (typeof source.version === 'string') partyInfo.version = source.version;
+    if (typeof source.name === 'string') {
+      partyInfo.name = source.name;
+    }
+    if (typeof source.title === 'string') {
+      partyInfo.title = source.title;
+    }
+    if (typeof source.version === 'string') {
+      partyInfo.version = source.version;
+    }
   }
 
   return partyInfo;
@@ -69,7 +75,9 @@ export function extractSessionDataFromInitializeResponse(result: unknown): Parti
   const sessionData: Partial<SessionData> = {};
   if (result && typeof result === 'object') {
     const resultObj = result as Record<string, unknown>;
-    if (typeof resultObj.protocolVersion === 'string') sessionData.protocolVersion = resultObj.protocolVersion;
+    if (typeof resultObj.protocolVersion === 'string') {
+      sessionData.protocolVersion = resultObj.protocolVersion;
+    }
     if (resultObj.serverInfo) {
       sessionData.serverInfo = extractPartyInfo(resultObj.serverInfo);
     }
