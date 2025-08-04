@@ -52,14 +52,14 @@ const nodeStackParser = createStackParser(nodeStackLineParser());
 export function getDefaultIntegrations(options: Options): Integration[] {
   return [
     dedupeIntegration(),
-    // TODO(v10): Replace with `eventFiltersIntegration` once we remove the deprecated `inboundFiltersIntegration`
+    // TODO(v11): Replace with `eventFiltersIntegration` once we remove the deprecated `inboundFiltersIntegration`
     // eslint-disable-next-line deprecation/deprecation
     inboundFiltersIntegration(),
     functionToStringIntegration(),
     linkedErrorsIntegration(),
     winterCGFetchIntegration(),
     consoleIntegration(),
-    // TODO(v10): integration can be included - but integration should not add IP address etc
+    // TODO(v11): integration can be included - but integration should not add IP address etc
     ...(options.sendDefaultPii ? [requestDataIntegration()] : []),
   ];
 }
