@@ -562,9 +562,7 @@ describe('_getUpdatedSourceMapSettings', () => {
     astroConfig.vite.build.sourcemap = false;
     _getUpdatedSourceMapSettings(astroConfig, sentryOptions, logger);
     // eslint-disable-next-line @typescript-eslint/unbound-method
-    expect(logger.warn).toHaveBeenCalledWith(
-      'Source map generation is disabled in your Astro configuration.',
-    );
+    expect(logger.warn).toHaveBeenCalledWith('Source map generation is disabled in your Astro configuration.');
 
     astroConfig.vite.build.sourcemap = 'hidden';
     _getUpdatedSourceMapSettings(astroConfig, sentryOptions, logger);
