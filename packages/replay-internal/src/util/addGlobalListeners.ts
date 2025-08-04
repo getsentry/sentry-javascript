@@ -62,14 +62,14 @@ export function addGlobalListeners(replay: ReplayContainer): void {
       if (options?.includeReplay && replay.isEnabled() && replayId && feedbackEvent.contexts?.feedback) {
         // In case the feedback is sent via API and not through our widget, we want to flush replay
         if (feedbackEvent.contexts.feedback.source === 'api') {
-          await replay.flush();
+          await replay.sendBufferedReplayOrFlush();
         }
         feedbackEvent.contexts.feedback.replay_id = replayId;
       }
     });
 
     client.on('openFeedbackWidget', async () => {
-      await replay.flush();
+      await replay.sendBufferedReplayOrFlush();
     });
   }
 }
