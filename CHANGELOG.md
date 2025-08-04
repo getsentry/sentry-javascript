@@ -4,6 +4,10 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 9.44.1
+
+This release tags all packages with `v9` and has no other user-facing changes.
+
 ## 9.44.0
 
 - feat(replay/v9): Deprecate `_experiments.autoFlushOnFeedback` ([#17219](https://github.com/getsentry/sentry-javascript/pull/17219))
