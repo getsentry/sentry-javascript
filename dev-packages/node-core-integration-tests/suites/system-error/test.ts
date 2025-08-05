@@ -21,9 +21,9 @@ describe('SystemError integration', () => {
             values: [
               {
                 type: 'Error',
-                value: 'ENOENT: no such file or directory, open ',
-              }
-            ]
+                value: 'ENOENT: no such file or directory, open',
+              },
+            ],
           },
         },
       })
@@ -40,16 +40,16 @@ describe('SystemError integration', () => {
               errno: -2,
               code: 'ENOENT',
               syscall: 'open',
-              path: 'non-existent-file.txt'
+              path: 'non-existent-file.txt',
             },
           },
           exception: {
             values: [
               {
                 type: 'Error',
-                value: 'ENOENT: no such file or directory, open ',
-              }
-            ]
+                value: 'ENOENT: no such file or directory, open',
+              },
+            ],
           },
         },
       })

@@ -55,10 +55,10 @@ export const systemErrorIntegration = defineIntegration(() => {
       for (const exception of event.exception?.values || []) {
         if (exception.value) {
           if (error.path && exception.value.includes(error.path)) {
-            exception.value = exception.value.replace(`'${error.path}'`, '');
+            exception.value = exception.value.replace(`'${error.path}'`, '').trim();
           }
           if (error.dest && exception.value.includes(error.dest)) {
-            exception.value = exception.value.replace(`'${error.dest}'`, '');
+            exception.value = exception.value.replace(`'${error.dest}'`, '').trim();
           }
         }
       }
