@@ -4,8 +4,6 @@ import { waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Creates a pageload transaction with parameterized route', async ({ page }) => {
   const transactionPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
-    console.debug('transactionEvent', transactionEvent);
-
     return (
       !!transactionEvent?.transaction &&
       transactionEvent.contexts?.trace?.op === 'pageload' &&

@@ -66,11 +66,24 @@ const allRoutes = new Set<RouteObject>();
 
 /**
  * Adds resolved routes as children to the parent route.
+ * Prevents duplicate routes by checking if they already exist.
  */
 function addResolvedRoutesToParent(resolvedRoutes: RouteObject[], parentRoute: RouteObject): void {
-  parentRoute.children = Array.isArray(parentRoute.children)
-    ? [...parentRoute.children, ...resolvedRoutes]
-    : resolvedRoutes;
+  const existingChildren = parentRoute.children || [];
+
+  const newRoutes = resolvedRoutes.filter(
+    newRoute =>
+      !existingChildren.some(
+        existing =>
+          existing === newRoute ||
+          (newRoute.path && existing.path === newRoute.path) ||
+          (newRoute.id && existing.id === newRoute.id),
+      ),
+  );
+
+  if (newRoutes.length > 0) {
+    parentRoute.children = [...existingChildren, ...newRoutes];
+  }
 }
 
 /**
