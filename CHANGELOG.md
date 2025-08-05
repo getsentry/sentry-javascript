@@ -4,6 +4,27 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+### Important Changes
+
+- **feat(core): Add `ignoreSpans` option ([#17078](https://github.com/getsentry/sentry-javascript/pull/17078))**
+
+This release adds a new top-level `Sentry.init` option, `ignoreSpans`, that can be used as follows:
+
+```js
+Sentry.init({
+  ignoreSpans: [
+    'partial match', // string matching on the span name
+    /regex/, // regex matching on the span name
+    {
+      name: 'span name',
+      op: /http.client/,
+    },
+  ],
+});
+```
+
+Spans matching the filter criteria will not be recorded. Potential child spans of filtered spans will be re-parented, if possible.
+
 ## 10.1.0
 
 - feat(nuxt): Align build-time options to follow bundler plugins structure ([#17255](https://github.com/getsentry/sentry-javascript/pull/17255))
