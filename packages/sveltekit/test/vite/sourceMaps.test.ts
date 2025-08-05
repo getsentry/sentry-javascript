@@ -1,9 +1,9 @@
+import { sentryVitePlugin } from '@sentry/vite-plugin';
 import type { Plugin } from 'vite';
 import * as vite from 'vite';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { ViteUserConfig } from 'vitest/config';
 import { _getUpdatedSourceMapSettings, makeCustomSentryVitePlugins } from '../../src/vite/sourceMaps';
-import { ViteUserConfig } from 'vitest/config';
-import { sentryVitePlugin } from '@sentry/vite-plugin';
 
 const mockedViteDebugIdUploadPlugin = {
   name: 'sentry-vite-debug-id-upload-plugin',
@@ -540,8 +540,6 @@ describe('deleteFilesAfterUpload', () => {
       const filesToDeleteAfterUploadSettingPlugin = plugins.find(
         plugin => plugin.name === 'sentry-sveltekit-files-to-delete-after-upload-setting-plugin',
       )!;
-
-      console.log(filesToDeleteAfterUploadSettingPlugin);
 
       // call this to ensure the filesToDeleteAfterUpload setting is resolved
       // @ts-expect-error this function exists!
