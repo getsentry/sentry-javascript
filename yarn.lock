@@ -7026,12 +7026,12 @@
     "@sentry/cli-win32-i686" "2.50.0"
     "@sentry/cli-win32-x64" "2.50.0"
 
-"@sentry/rollup-plugin@^4.0.0":
-  version "4.0.0"
-  resolved "https://registry.yarnpkg.com/@sentry/rollup-plugin/-/rollup-plugin-4.0.0.tgz#746112b23333d39b3cd1f0e285ca242dd753de67"
-  integrity sha512-+UVAcx/HD+emrZAYNkIt/iKPz6gVCHVBX8D4s1qt3/gDUzfqX9E2Yq8wkN3sFlf0C4Ks31OCe4vMHJ4m6YLRRQ==
+"@sentry/rollup-plugin@^4.0.2":
+  version "4.0.2"
+  resolved "https://registry.yarnpkg.com/@sentry/rollup-plugin/-/rollup-plugin-4.0.2.tgz#4fda1f2456cdbef7f7527921da93a92c35e67612"
+  integrity sha512-p8cbo34m8qcJx5LDo1hPiMlR8aSKMyVewBGBV+nGrh6cgeBUOXu8DpIVD0piOna2igon3jyUD6ydrxUtcM5/Qw==
   dependencies:
-    "@sentry/bundler-plugin-core" "4.0.0"
+    "@sentry/bundler-plugin-core" "4.0.2"
     unplugin "1.0.1"
 
 "@sentry/vite-plugin@^4.0.0":
