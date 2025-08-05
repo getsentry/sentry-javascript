@@ -31,7 +31,7 @@ test.describe('client-side errors', () => {
           {
             mechanism: {
               handled: false,
-              type: 'onerror',
+              type: 'auto.browser.global_handlers.onerror',
             },
             type: 'Error',
             value: 'client error',

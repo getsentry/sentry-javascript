@@ -60,13 +60,34 @@ function onVercelAiSpanStart(span: Span): void {
   processGenerateSpan(span, name, attributes);
 }
 
+interface TokenSummary {
+  inputTokens: number;
+  outputTokens: number;
+}
+
 function vercelAiEventProcessor(event: Event): Event {
   if (event.type === 'transaction' && event.spans) {
+    // Map to accumulate token data by parent span ID
+    const tokenAccumulator: Map<string, TokenSummary> = new Map();
+
+    // First pass: process all spans and accumulate token data
     for (const span of event.spans) {
-      // this mutates spans in-place
       processEndedVercelAiSpan(span);
+
+      // Accumulate token data for parent spans
+      accumulateTokensForParent(span, tokenAccumulator);
+    }
+
+    // Second pass: apply accumulated token data to parent spans
+    for (const span of event.spans) {
+      if (span.op !== 'gen_ai.invoke_agent') {
+        continue;
+      }
+
+      applyAccumulatedTokens(span, tokenAccumulator);
     }
   }
+
   return event;
 }
 /**
@@ -239,6 +260,56 @@ export function addVercelAiProcessors(client: Client): void {
   client.on('spanStart', onVercelAiSpanStart);
   // Note: We cannot do this on `spanEnd`, because the span cannot be mutated anymore at this point
   client.addEventProcessor(Object.assign(vercelAiEventProcessor, { id: 'VercelAiEventProcessor' }));
+}
+
+/**
+ * Accumulates token data from a span to its parent in the token accumulator map.
+ * This function extracts token usage from the current span and adds it to the
+ * accumulated totals for its parent span.
+ */
+function accumulateTokensForParent(span: SpanJSON, tokenAccumulator: Map<string, TokenSummary>): void {
+  const parentSpanId = span.parent_span_id;
+  if (!parentSpanId) {
+    return;
+  }
+
+  const inputTokens = span.data[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE];
+  const outputTokens = span.data[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE];
+
+  if (typeof inputTokens === 'number' || typeof outputTokens === 'number') {
+    const existing = tokenAccumulator.get(parentSpanId) || { inputTokens: 0, outputTokens: 0 };
+
+    if (typeof inputTokens === 'number') {
+      existing.inputTokens += inputTokens;
+    }
+    if (typeof outputTokens === 'number') {
+      existing.outputTokens += outputTokens;
+    }
+
+    tokenAccumulator.set(parentSpanId, existing);
+  }
+}
+
+/**
+ * Applies accumulated token data to the `gen_ai.invoke_agent` span.
+ * Only immediate children of the `gen_ai.invoke_agent` span are considered,
+ * since aggregation will automatically occur for each parent span.
+ */
+function applyAccumulatedTokens(span: SpanJSON, tokenAccumulator: Map<string, TokenSummary>): void {
+  const accumulated = tokenAccumulator.get(span.span_id);
+  if (!accumulated) {
+    return;
+  }
+
+  if (accumulated.inputTokens > 0) {
+    span.data[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE] = accumulated.inputTokens;
+  }
+  if (accumulated.outputTokens > 0) {
+    span.data[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE] = accumulated.outputTokens;
+  }
+  if (accumulated.inputTokens > 0 || accumulated.outputTokens > 0) {
+    span.data['gen_ai.usage.total_tokens'] = accumulated.inputTokens + accumulated.outputTokens;
+  }
 }
 
 function addProviderMetadataToAttributes(attributes: SpanAttributes): void {

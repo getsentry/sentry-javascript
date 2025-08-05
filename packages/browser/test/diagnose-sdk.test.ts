@@ -162,4 +162,18 @@ describe('diagnoseSdkConnectivity', () => {
       credentials: 'omit',
     });
   });
+
+  it('calls suppressTracing to avoid tracing the fetch call to sentry', async () => {
+    const suppressTracingSpy = vi.spyOn(sentryCore, 'suppressTracing');
+
+    const mockClient: Partial<Client> = {
+      getDsn: vi.fn().mockReturnValue('https://test@example.com/123'),
+    };
+    mockGetClient.mockReturnValue(mockClient);
+    mockFetch.mockResolvedValue(new Response('{}', { status: 200 }));
+
+    await diagnoseSdkConnectivity();
+
+    expect(suppressTracingSpy).toHaveBeenCalledTimes(1);
+  });
 });

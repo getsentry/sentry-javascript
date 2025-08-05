@@ -1,4 +1,4 @@
-import { getClient } from '@sentry/core';
+import { getClient, suppressTracing } from '@sentry/core';
 
 /**
  * A function to diagnose why the SDK might not be successfully sending data.
@@ -23,20 +23,22 @@ export async function diagnoseSdkConnectivity(): Promise<
   }
 
   try {
-    // If fetch throws, there is likely an ad blocker active or there are other connective issues.
-    await fetch(
-      // We are using the
-      // - "sentry-sdks" org with id 447951 not to pollute any actual organizations.
-      // - "diagnose-sdk-connectivity" project with id 4509632503087104
-      // - the public key of said org/project, which is disabled in the project settings
-      // => this DSN: https://c1dfb07d783ad5325c245c1fd3725390@o447951.ingest.us.sentry.io/4509632503087104 (i.e. disabled)
-      'https://o447951.ingest.sentry.io/api/4509632503087104/envelope/?sentry_version=7&sentry_key=c1dfb07d783ad5325c245c1fd3725390&sentry_client=sentry.javascript.browser%2F1.33.7',
-      {
-        body: '{}',
-        method: 'POST',
-        mode: 'cors',
-        credentials: 'omit',
-      },
+    await suppressTracing(() =>
+      // If fetch throws, there is likely an ad blocker active or there are other connective issues.
+      fetch(
+        // We are using the
+        // - "sentry-sdks" org with id 447951 not to pollute any actual organizations.
+        // - "diagnose-sdk-connectivity" project with id 4509632503087104
+        // - the public key of said org/project, which is disabled in the project settings
+        // => this DSN: https://c1dfb07d783ad5325c245c1fd3725390@o447951.ingest.us.sentry.io/4509632503087104 (i.e. disabled)
+        'https://o447951.ingest.sentry.io/api/4509632503087104/envelope/?sentry_version=7&sentry_key=c1dfb07d783ad5325c245c1fd3725390&sentry_client=sentry.javascript.browser%2F1.33.7',
+        {
+          body: '{}',
+          method: 'POST',
+          mode: 'cors',
+          credentials: 'omit',
+        },
+      ),
     );
   } catch {
     return 'sentry-unreachable';
