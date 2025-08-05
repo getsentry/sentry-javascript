@@ -96,6 +96,20 @@ export class SentryOpenAiInstrumentation extends InstrumentationBase<Instrumenta
         enumerable: true,
       });
     }
+
+    // Also wrap the default export if it points to the original constructor
+    if (exports.default === Original) {
+      try {
+        exports.default = WrappedOpenAI;
+      } catch (error) {
+        Object.defineProperty(exports, 'default', {
+          value: WrappedOpenAI,
+          writable: true,
+          configurable: true,
+          enumerable: true,
+        });
+      }
+    }
     return exports;
   }
 }
