@@ -10,6 +10,7 @@ import {
 } from '@sentry/browser';
 import type { Client, Integration, Span, TransactionSource } from '@sentry/core';
 import {
+  addNonEnumerableProperty,
   debug,
   getActiveSpan,
   getClient,
@@ -64,6 +65,15 @@ type V6CompatibleVersion = '6' | '7';
 const allRoutes = new Set<RouteObject>();
 
 /**
+ * Adds resolved routes as children to the parent route.
+ */
+function addResolvedRoutesToParent(resolvedRoutes: RouteObject[], parentRoute: RouteObject): void {
+  parentRoute.children = Array.isArray(parentRoute.children)
+    ? [...parentRoute.children, ...resolvedRoutes]
+    : resolvedRoutes;
+}
+
+/**
  * Handles the result of an async handler function call.
  */
 function handleAsyncHandlerResult(result: unknown, route: RouteObject, handlerKey: string): void {
@@ -76,25 +86,47 @@ function handleAsyncHandlerResult(result: unknown, route: RouteObject, handlerKe
     (result as Promise<unknown>)
       .then((resolvedRoutes: unknown) => {
         if (Array.isArray(resolvedRoutes)) {
-          processResolvedRoutes(resolvedRoutes);
+          processResolvedRoutes(resolvedRoutes, route);
         }
       })
       .catch((e: unknown) => {
         DEBUG_BUILD && debug.warn(`Error resolving async handler '${handlerKey}' for route`, route, e);
       });
   } else if (Array.isArray(result)) {
-    processResolvedRoutes(result);
+    processResolvedRoutes(result, route);
   }
 }
 
 /**
  * Processes resolved routes by adding them to allRoutes and checking for nested async handlers.
  */
-function processResolvedRoutes(resolvedRoutes: RouteObject[]): void {
+function processResolvedRoutes(resolvedRoutes: RouteObject[], parentRoute?: RouteObject): void {
   resolvedRoutes.forEach(child => {
     allRoutes.add(child);
     checkRouteForAsyncHandler(child);
   });
+
+  if (parentRoute) {
+    // If a parent route is provided, add the resolved routes as children to the parent route
+    addResolvedRoutesToParent(resolvedRoutes, parentRoute);
+  }
+
+  // After processing lazy routes, check if we need to update an active pageload transaction
+  const activeRootSpan = getActiveRootSpan();
+  if (activeRootSpan && spanToJSON(activeRootSpan).op === 'pageload') {
+    const location = WINDOW.location;
+    if (location) {
+      // Re-run the pageload transaction update with the newly loaded routes
+      updatePageloadTransaction(
+        activeRootSpan,
+        { pathname: location.pathname },
+        Array.from(allRoutes),
+        undefined,
+        undefined,
+        Array.from(allRoutes),
+      );
+    }
+  }
 }
 
 /**
@@ -105,13 +137,17 @@ function createAsyncHandlerProxy(
   route: RouteObject,
   handlerKey: string,
 ): (...args: unknown[]) => unknown {
-  return new Proxy(originalFunction, {
+  const proxy = new Proxy(originalFunction, {
     apply(target: (...args: unknown[]) => unknown, thisArg, argArray) {
       const result = target.apply(thisArg, argArray);
       handleAsyncHandlerResult(result, route, handlerKey);
       return result;
     },
   });
+
+  addNonEnumerableProperty(proxy, '__sentry_proxied__', true);
+
+  return proxy;
 }
 
 /**
@@ -122,7 +158,7 @@ export function checkRouteForAsyncHandler(route: RouteObject): void {
   if (route.handle && typeof route.handle === 'object') {
     for (const key of Object.keys(route.handle)) {
       const maybeFn = route.handle[key];
-      if (typeof maybeFn === 'function') {
+      if (typeof maybeFn === 'function' && !(maybeFn as { __sentry_proxied__?: boolean }).__sentry_proxied__) {
         route.handle[key] = createAsyncHandlerProxy(maybeFn, route, key);
       }
     }
@@ -620,6 +656,7 @@ function getNormalizedName(
   }
 
   let pathBuilder = '';
+
   if (branches) {
     for (const branch of branches) {
       const route = branch.route;

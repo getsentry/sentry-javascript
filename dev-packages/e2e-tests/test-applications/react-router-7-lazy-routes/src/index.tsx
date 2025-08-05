@@ -46,27 +46,22 @@ const sentryCreateBrowserRouter = Sentry.wrapCreateBrowserRouterV7(createBrowser
 const router = sentryCreateBrowserRouter(
   [
     {
+      path: '/',
       element: <Index />,
-      children: [
-        {
-          path: '/',
-          element: <Index />,
-        },
-        {
-          path: '/lazy',
-          handle: {
-            lazyChildren: () => import('./pages/InnerLazyRoutes').then(module => module.someMoreNestedRoutes),
-          },
-        },
-        {
-          path: '/static',
-          element: <>Hello World</>,
-        },
-        {
-          path: '*',
-          element: <Navigate to="/\" replace />,
-        },
-      ],
+    },
+    {
+      path: '/lazy',
+      handle: {
+        lazyChildren: () => import('./pages/InnerLazyRoutes').then(module => module.someMoreNestedRoutes),
+      },
+    },
+    {
+      path: '/static',
+      element: <>Hello World</>,
+    },
+    {
+      path: '*',
+      element: <Navigate to="/\" replace />,
     },
   ],
   {
