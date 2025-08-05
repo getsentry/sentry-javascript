@@ -61,7 +61,8 @@ const chromeRegex =
 
 const chromeEvalRegex = /\((\S*)(?::(\d+))(?::(\d+))\)/;
 
-//  at dynamicFn (data:application/javascript,export function dynamicFn() {...
+// Matches stack frames with data URIs instead of filename so we can still get the function name
+// Example: "at dynamicFn (data:application/javascript,export function dynamicFn() {..."
 const chromeDataUriRegex = /at (.+?) ?\(data:(.+?),/;
 
 // Chromium based browsers: Chrome, Brave, new Opera, new Edge
