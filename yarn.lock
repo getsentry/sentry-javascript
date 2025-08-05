@@ -6924,7 +6924,7 @@
     mitt "^3.0.0"
 
 "@sentry-internal/test-utils@link:dev-packages/test-utils":
-  version "9.40.0"
+  version "10.1.0"
   dependencies:
     express "^4.21.1"
 
@@ -6933,6 +6933,11 @@
   resolved "https://registry.yarnpkg.com/@sentry/babel-plugin-component-annotate/-/babel-plugin-component-annotate-4.0.0.tgz#2f4dfeabba28a76b5a1b32a1058386e52f32634f"
   integrity sha512-1sozj4esnQBhJ2QO4imiLMl1858StkLjUxFF1KxgX/X1uEL/QlW2MYL8CKzbLeACy1SkR9h4V8GXSZvCnci5Dw==
 
+"@sentry/babel-plugin-component-annotate@4.0.2":
+  version "4.0.2"
+  resolved "https://registry.yarnpkg.com/@sentry/babel-plugin-component-annotate/-/babel-plugin-component-annotate-4.0.2.tgz#7c8eb80a38b5e6b4c4cea4c391d07581020c91e4"
+  integrity sha512-Nr/VamvpQs6w642EI5t+qaCUGnVEro0qqk+S8XO1gc8qSdpc8kkZJFnUk7ozAr+ljYWGfVgWXrxI9lLiriLsRA==
+
 "@sentry/bundler-plugin-core@4.0.0":
   version "4.0.0"
   resolved "https://registry.yarnpkg.com/@sentry/bundler-plugin-core/-/bundler-plugin-core-4.0.0.tgz#564463cf53f869496ab5d4986e97f86618a67677"
@@ -6940,6 +6945,20 @@
   dependencies:
     "@babel/core" "^7.18.5"
     "@sentry/babel-plugin-component-annotate" "4.0.0"
+    "@sentry/cli" "^2.49.0"
+    dotenv "^16.3.1"
+    find-up "^5.0.0"
+    glob "^9.3.2"
+    magic-string "0.30.8"
+    unplugin "1.0.1"
+
+"@sentry/bundler-plugin-core@4.0.2":
+  version "4.0.2"
+  resolved "https://registry.yarnpkg.com/@sentry/bundler-plugin-core/-/bundler-plugin-core-4.0.2.tgz#2e106ac564d2e4e83e8dbc84f1e84f4eed1d6dde"
+  integrity sha512-LeARs8qHhEw19tk+KZd9DDV+Rh/UeapIH0+C09fTmff9p8Y82Cj89pEQ2a1rdUiF/oYIjQX45vnZscB7ra42yw==
+  dependencies:
+    "@babel/core" "^7.18.5"
+    "@sentry/babel-plugin-component-annotate" "4.0.2"
     "@sentry/cli" "^2.49.0"
     dotenv "^16.3.1"
     find-up "^5.0.0"
@@ -7023,12 +7042,12 @@
     "@sentry/bundler-plugin-core" "4.0.0"
     unplugin "1.0.1"
 
-"@sentry/webpack-plugin@^4.0.0":
-  version "4.0.0"
-  resolved "https://registry.yarnpkg.com/@sentry/webpack-plugin/-/webpack-plugin-4.0.0.tgz#0c32a40b63098e6db505ad40a93840c13b81faed"
-  integrity sha512-Uhfjqnuxv4eYIt0GbPAdlFPum3BtasNhQrO3OJuVQRYRq21En7ARKXISoOhZHMo4tRRiiv+3npKYmpzHTALbQg==
+"@sentry/webpack-plugin@^4.0.2":
+  version "4.0.2"
+  resolved "https://registry.yarnpkg.com/@sentry/webpack-plugin/-/webpack-plugin-4.0.2.tgz#be90c73145d8001bc72c73e4eab83d2b1a28d330"
+  integrity sha512-UklVtG7Iiw+AvcL0PfiiyW/u3XT+joDAMDvWbx90rFhVSU10ENW5AV5y4pC41qChqEu3P1eBFdaSxg+kdLeqvw==
   dependencies:
-    "@sentry/bundler-plugin-core" "4.0.0"
+    "@sentry/bundler-plugin-core" "4.0.2"
     unplugin "1.0.1"
     uuid "^9.0.0"
 
@@ -28548,6 +28567,7 @@ stylus@0.59.0, stylus@^0.59.0:
 
 sucrase@^3.27.0, sucrase@^3.35.0, sucrase@getsentry/sucrase#es2020-polyfills:
   version "3.36.0"
+  uid fd682f6129e507c00bb4e6319cc5d6b767e36061
   resolved "https://codeload.github.com/getsentry/sucrase/tar.gz/fd682f6129e507c00bb4e6319cc5d6b767e36061"
   dependencies:
     "@jridgewell/gen-mapping" "^0.3.2"
