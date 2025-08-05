@@ -32,6 +32,7 @@ import { onUncaughtExceptionIntegration } from '../integrations/onuncaughtexcept
 import { onUnhandledRejectionIntegration } from '../integrations/onunhandledrejection';
 import { processSessionIntegration } from '../integrations/processSession';
 import { INTEGRATION_NAME as SPOTLIGHT_INTEGRATION_NAME, spotlightIntegration } from '../integrations/spotlight';
+import { systemErrorIntegration } from '../integrations/systemError';
 import { makeNodeTransport } from '../transports';
 import type { NodeClientOptions, NodeOptions } from '../types';
 import { isCjs } from '../utils/commonjs';
@@ -52,6 +53,7 @@ export function getDefaultIntegrations(): Integration[] {
     functionToStringIntegration(),
     linkedErrorsIntegration(),
     requestDataIntegration(),
+    systemErrorIntegration(),
     // Native Wrappers
     consoleIntegration(),
     httpIntegration(),
