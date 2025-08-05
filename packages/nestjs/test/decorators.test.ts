@@ -39,6 +39,10 @@ describe('SentryTraced decorator', () => {
       {
         op: 'test-operation',
         name: 'testMethod',
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nestjs.sentry_traced',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'test-operation',
+        },
       },
       expect.any(Function),
     );
@@ -68,6 +72,10 @@ describe('SentryTraced decorator', () => {
       {
         op: 'function', // default value
         name: 'testDefaultOp',
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nestjs.sentry_traced',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function',
+        },
       },
       expect.any(Function),
     );
