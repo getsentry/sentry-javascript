@@ -215,13 +215,16 @@ describe('MCP Server PII Filtering', () => {
       expect(result).not.toHaveProperty('mcp.tool.result.content');
       expect(result).not.toHaveProperty('mcp.prompt.result.description');
 
-      // Indexed/dynamic result attributes (not in PII_ATTRIBUTES) should remain
+      // Count attributes should remain as they don't contain sensitive content
       expect(result).toHaveProperty('mcp.tool.result.content_count', 1);
       expect(result).toHaveProperty('mcp.prompt.result.message_count', 2);
-      expect(result).toHaveProperty('mcp.prompt.result.0.role', 'user');
-      expect(result).toHaveProperty('mcp.prompt.result.0.content', 'Sensitive prompt content');
-      expect(result).toHaveProperty('mcp.prompt.result.1.role', 'assistant');
-      expect(result).toHaveProperty('mcp.prompt.result.1.content', 'Another sensitive response');
+
+      // All tool and prompt result content should be filtered (including indexed attributes)
+      expect(result).not.toHaveProperty('mcp.prompt.result.0.role');
+      expect(result).not.toHaveProperty('mcp.prompt.result.0.content');
+      expect(result).not.toHaveProperty('mcp.prompt.result.1.role');
+      expect(result).not.toHaveProperty('mcp.prompt.result.1.content');
+
       expect(result).toHaveProperty('mcp.resource.result.content_count', 1);
       expect(result).toHaveProperty('mcp.resource.result.uri', 'file:///private/file.txt');
       expect(result).toHaveProperty('mcp.resource.result.content', 'Sensitive resource content');
