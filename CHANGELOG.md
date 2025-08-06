@@ -4,6 +4,8 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 10.2.0
+
 ### Important Changes
 
 - **feat(core): Add `ignoreSpans` option ([#17078](https://github.com/getsentry/sentry-javascript/pull/17078))**
@@ -40,6 +42,28 @@ const client = Sentry.instrumentOpenAiClient(openai, { recordInputs: true, recor
 
 // use the wrapped client
 ```
+
+- **ref(aws): Remove manual span creation ([#17310](https://github.com/getsentry/sentry-javascript/pull/17310))**
+
+The `startTrace` option is deprecated and will be removed in a future major version. If you want to disable tracing, set `SENTRY_TRACES_SAMPLE_RATE` to `0.0`. instead. As of today, the flag does not affect traces anymore.
+
+### Other Changes
+
+- feat(astro): Streamline build logs ([#17301](https://github.com/getsentry/sentry-javascript/pull/17301))
+- feat(browser): Handles data URIs in chrome stack frames ([#17292](https://github.com/getsentry/sentry-javascript/pull/17292))
+- feat(core): Accumulate tokens for `gen_ai.invoke_agent` spans from child LLM calls ([#17281](https://github.com/getsentry/sentry-javascript/pull/17281))
+- feat(deps): Bump @prisma/instrumentation from 6.12.0 to 6.13.0 ([#17315](https://github.com/getsentry/sentry-javascript/pull/17315))
+- feat(deps): Bump @sentry/cli from 2.50.0 to 2.50.2 ([#17316](https://github.com/getsentry/sentry-javascript/pull/17316))
+- feat(deps): Bump @sentry/rollup-plugin from 4.0.0 to 4.0.2 ([#17317](https://github.com/getsentry/sentry-javascript/pull/17317))
+- feat(deps): Bump @sentry/webpack-plugin from 4.0.0 to 4.0.2 ([#17314](https://github.com/getsentry/sentry-javascript/pull/17314))
+- feat(nuxt): Do not inject trace meta-tags on cached HTML pages ([#17305](https://github.com/getsentry/sentry-javascript/pull/17305))
+- feat(nuxt): Streamline build logs ([#17308](https://github.com/getsentry/sentry-javascript/pull/17308))
+- feat(react-router): Add support for Hydrogen with RR7 ([#17145](https://github.com/getsentry/sentry-javascript/pull/17145))
+- feat(react-router): Streamline build logs ([#17303](https://github.com/getsentry/sentry-javascript/pull/17303))
+- feat(solidstart): Streamline build logs ([#17304](https://github.com/getsentry/sentry-javascript/pull/17304))
+- fix(nestjs): Add missing `sentry.origin` span attribute to `SentryTraced` decorator ([#17318](https://github.com/getsentry/sentry-javascript/pull/17318))
+- fix(node): Assign default export of `openai` to the instrumented fn ([#17320](https://github.com/getsentry/sentry-javascript/pull/17320))
+- fix(replay): Call `sendBufferedReplayOrFlush` when opening/sending feedback ([#17236](https://github.com/getsentry/sentry-javascript/pull/17236))
 
 ## 10.1.0
 
