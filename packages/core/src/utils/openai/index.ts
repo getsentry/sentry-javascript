@@ -17,7 +17,7 @@ import {
   GEN_AI_RESPONSE_TEXT_ATTRIBUTE,
   GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
   GEN_AI_SYSTEM_ATTRIBUTE,
-} from '../gen-ai-attributes';
+} from '../ai/gen-ai-attributes';
 import { OPENAI_INTEGRATION_NAME } from './constants';
 import { instrumentStream } from './streaming';
 import type {

@@ -1,6 +1,7 @@
 import type { Integration } from '@sentry/core';
 import { instrumentOtelHttp } from '../http';
 import { amqplibIntegration, instrumentAmqplib } from './amqplib';
+import { anthropicAIIntegration } from './anthropic-ai';
 import { connectIntegration, instrumentConnect } from './connect';
 import { expressIntegration, instrumentExpress } from './express';
 import { fastifyIntegration, instrumentFastify, instrumentFastifyV3 } from './fastify';
@@ -50,6 +51,7 @@ export function getAutoPerformanceIntegrations(): Integration[] {
     openAIIntegration(),
     postgresJsIntegration(),
     firebaseIntegration(),
+    anthropicAIIntegration(),
   ];
 }
 
