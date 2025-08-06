@@ -125,6 +125,19 @@ describe('GCPFunction', () => {
 
       expect(mockStartSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
       expect(mockCaptureException).toBeCalledWith(error, expect.any(Function));
+
+      const scopeFunction = mockCaptureException.mock.calls[0][1];
+      const event: Event = { exception: { values: [{}] } };
+      let evtProcessor: ((e: Event) => Event) | undefined = undefined;
+      scopeFunction({ addEventProcessor: vi.fn().mockImplementation(proc => (evtProcessor = proc)) });
+
+      expect(evtProcessor).toBeInstanceOf(Function);
+      // @ts-expect-error just mocking around...
+      expect(evtProcessor(event).exception.values[0]?.mechanism).toEqual({
+        handled: false,
+        type: 'auto.function.serverless.gcp_http',
+      });
+
       expect(mockSpan.end).toBeCalled();
       expect(mockFlush).toBeCalled();
     });
