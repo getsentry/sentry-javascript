@@ -1,6 +1,11 @@
 import { expect, it } from 'vitest';
 import { createRunner } from '../../../runner';
 
+// These tests are not exhaustive because the instrumentation is
+// already tested in the node integration tests and we merely
+// want to test that the instrumentation does not break in our
+// cloudflare SDK.
+
 it('traces a basic chat completion request', async () => {
   const runner = createRunner(__dirname)
     .ignore('event')

@@ -1,8 +1,8 @@
 import type { OpenAiClient } from '@sentry/core';
 
 export class MockOpenAi implements OpenAiClient {
-  public chat?: Record<string, unknown> | undefined;
-  public responses?: {
+  public chat: Record<string, unknown>;
+  public responses: {
     create: (...args: unknown[]) => Promise<unknown>;
   };
 
