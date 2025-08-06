@@ -45,7 +45,11 @@ export class SentryAnthropicAiInstrumentation extends InstrumentationBase<Instru
    * Initializes the instrumentation by defining the modules to be patched.
    */
   public init(): InstrumentationModuleDefinition {
-    const module = new InstrumentationNodeModuleDefinition('anthropic', supportedVersions, this._patch.bind(this));
+    const module = new InstrumentationNodeModuleDefinition(
+      '@anthropic-ai/sdk',
+      supportedVersions,
+      this._patch.bind(this),
+    );
     return module;
   }
 
