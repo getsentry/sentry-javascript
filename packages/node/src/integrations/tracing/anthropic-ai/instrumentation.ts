@@ -58,8 +58,6 @@ export class SentryAnthropicAiInstrumentation extends InstrumentationBase<Instru
    */
   private _patch(exports: PatchedModuleExports): PatchedModuleExports | void {
     const Original = exports.Anthropic;
-    // eslint-disable-next-line no-console
-    console.log('Original ----->>>>', Original);
 
     const WrappedAnthropic = function (this: unknown, ...args: unknown[]) {
       const instance = Reflect.construct(Original, args);

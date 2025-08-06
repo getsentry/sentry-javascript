@@ -20,7 +20,8 @@ export type AnthropicAiResponse = {
   [key: string]: unknown; // Allow for additional unknown properties
   id: string;
   model: string;
-  created: number;
+  created?: number;
+  created_at?: number; // Available for Models.retrieve
   messages?: Array<Message>;
   content?: string; // Available for Messages.create
   completion?: string; // Available for Completions.create
