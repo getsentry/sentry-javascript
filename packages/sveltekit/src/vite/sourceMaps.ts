@@ -105,6 +105,9 @@ export async function makeCustomSentryVitePlugins(options?: CustomSentryVitePlug
         'sentry-vite-debug-id-upload-plugin not found in sentryPlugins! Cannot modify plugin - returning default Sentry Vite plugins',
       );
 
+    // resolving filesToDeleteAfterUpload here, because we return the original deletion plugin which awaits the promise
+    _resolveFilesToDeleteAfterUpload?.(undefined);
+
     return sentryPlugins;
   }
 
@@ -115,6 +118,9 @@ export async function makeCustomSentryVitePlugins(options?: CustomSentryVitePlug
         'sentry-file-deletion-plugin not found in sentryPlugins! Cannot modify plugin - returning default Sentry Vite plugins',
       );
 
+    // resolving filesToDeleteAfterUpload here, because we return the original deletion plugin which awaits the promise
+    _resolveFilesToDeleteAfterUpload?.(undefined);
+
     return sentryPlugins;
   }
 
@@ -124,6 +130,9 @@ export async function makeCustomSentryVitePlugins(options?: CustomSentryVitePlug
       console.warn(
         'sentry-release-management-plugin not found in sentryPlugins! Cannot modify plugin - returning default Sentry Vite plugins',
       );
+
+    // resolving filesToDeleteAfterUpload here, because we return the original deletion plugin which awaits the promise
+    _resolveFilesToDeleteAfterUpload?.(undefined);
 
     return sentryPlugins;
   }
@@ -369,7 +378,6 @@ export async function makeCustomSentryVitePlugins(options?: CustomSentryVitePlug
     customFileDeletionPlugin,
   ];
 }
-
 
 /** There are 3 ways to set up source map generation (https://github.com/getsentry/sentry-j avascript/issues/13993)
  *
