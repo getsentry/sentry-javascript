@@ -370,21 +370,6 @@ export async function makeCustomSentryVitePlugins(options?: CustomSentryVitePlug
   ];
 }
 
-/** There are 3 ways to set up source map generation (https://github.com/getsentry/sentry-javascript/issues/13993)
- *
- *     1. User explicitly disabled source maps
- *       - keep this setting (emit a warning that errors won't be unminified in Sentry)
- *       - We won't upload anything
- *
- *     2. Users enabled source map generation (true, 'hidden', 'inline').
- *       - keep this setting (don't do anything - like deletion - besides uploading)
- *
- *     3. Users didn't set source maps generation
- *       - we enable 'hidden' source maps generation
- *       - configure `filesToDeleteAfterUpload` to delete all .map files (we emit a log about this)
- *
- * --> only exported for testing
- */
 
 /** There are 3 ways to set up source map generation (https://github.com/getsentry/sentry-j avascript/issues/13993)
  *
