@@ -16,6 +16,7 @@
     "@sentry/cloudflare": "10.1.0"
   },
   "devDependencies": {
+    "@sentry/core": "10.0.0",
     "@cloudflare/workers-types": "^4.20250708.0",
     "@sentry-internal/test-utils": "link:../test-utils",
     "vitest": "^3.2.4",
