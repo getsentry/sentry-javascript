@@ -98,9 +98,11 @@ function addResponseAttributes(span: Span, response: AnthropicAiResponse, record
   span.setAttributes({
     [GEN_AI_RESPONSE_MODEL_ATTRIBUTE]: response.model,
   });
-  span.setAttributes({
-    [ANTHROPIC_AI_RESPONSE_TIMESTAMP_ATTRIBUTE]: new Date(response.created * 1000).toISOString(),
-  });
+  if ('created' in response && typeof response.created === 'number') {
+    span.setAttributes({
+      [ANTHROPIC_AI_RESPONSE_TIMESTAMP_ATTRIBUTE]: new Date(response.created * 1000).toISOString(),
+    });
+  }
 
   if (response.usage) {
     setTokenUsageAttributes(
@@ -178,8 +180,6 @@ function createDeepProxy<T extends AnthropicAiClient>(target: T, currentPath = '
     get(obj: object, prop: string): unknown {
       const value = (obj as Record<string, unknown>)[prop];
       const methodPath = buildMethodPath(currentPath, String(prop));
-      // eslint-disable-next-line no-console
-      console.log('value ----->>>>', value);
 
       if (typeof value === 'function' && shouldInstrument(methodPath)) {
         return instrumentMethod(value as (...args: unknown[]) => Promise<unknown>, methodPath, obj, options);

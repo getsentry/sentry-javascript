@@ -11,7 +11,7 @@ import {
  * Maps AI method paths to Sentry operation name
  */
 export function getFinalOperationName(methodPath: string): string {
-  return `gen_ai.${methodPath.split('.').pop() || 'unknown'}`;
+  return methodPath.split('.').pop() || 'unknown';
 }
 
 /**
