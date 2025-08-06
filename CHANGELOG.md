@@ -25,6 +25,22 @@ Sentry.init({
 
 Spans matching the filter criteria will not be recorded. Potential child spans of filtered spans will be re-parented, if possible.
 
+- **feat(cloudflare,vercel-edge): Add support for OpenAI instrumentation ([#17338](https://github.com/getsentry/sentry-javascript/pull/17338))**
+
+Adds support for OpenAI manual instrumentation in `@sentry/cloudflare` and `@sentry/vercel-edge`.
+
+To instrument the OpenAI client, wrap it with `Sentry.instrumentOpenAiClient` and set recording settings.
+
+```js
+import * as Sentry from '@sentry/cloudflare';
+import OpenAI from 'openai';
+
+const openai = new OpenAI();
+const client = Sentry.instrumentOpenAiClient(openai, { recordInputs: true, recordOutputs: true });
+
+// use the wrapped client
+```
+
 ## 10.1.0
 
 - feat(nuxt): Align build-time options to follow bundler plugins structure ([#17255](https://github.com/getsentry/sentry-javascript/pull/17255))
