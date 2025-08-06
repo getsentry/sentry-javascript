@@ -25,10 +25,10 @@ export interface OpenAiOptions {
 }
 
 export interface OpenAiClient {
-  responses: {
+  responses?: {
     create: (...args: unknown[]) => Promise<unknown>;
   };
-  chat: {
+  chat?: {
     completions?: {
       create: (...args: unknown[]) => Promise<unknown>;
     };
