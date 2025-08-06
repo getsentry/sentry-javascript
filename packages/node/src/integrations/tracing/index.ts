@@ -1,7 +1,7 @@
 import type { Integration } from '@sentry/core';
 import { instrumentOtelHttp } from '../http';
 import { amqplibIntegration, instrumentAmqplib } from './amqplib';
-import { anthropicAIIntegration } from './anthropic-ai';
+import { anthropicAIIntegration, instrumentAnthropicAi } from './anthropic-ai';
 import { connectIntegration, instrumentConnect } from './connect';
 import { expressIntegration, instrumentExpress } from './express';
 import { fastifyIntegration, instrumentFastify, instrumentFastifyV3 } from './fastify';
@@ -85,5 +85,6 @@ export function getOpenTelemetryInstrumentationToPreload(): (((options?: any) =>
     instrumentOpenAi,
     instrumentPostgresJs,
     instrumentFirebase,
+    instrumentAnthropicAi,
   ];
 }

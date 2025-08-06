@@ -1,5 +1,4 @@
-import ai from 'ai';
-ai.generateText
+import { generateText } from 'ai';
 import { MockLanguageModelV1 } from 'ai/test';
 import { z } from 'zod';
 import * as Sentry from '@sentry/nextjs';
