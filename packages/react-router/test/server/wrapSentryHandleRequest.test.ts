@@ -1,3 +1,4 @@
+import { PassThrough } from 'node:stream';
 import { RPCType } from '@opentelemetry/core';
 import { ATTR_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
 import {
@@ -8,9 +9,9 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '@sentry/core';
-import { PassThrough } from 'stream';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-import { getMetaTagTransformer, wrapSentryHandleRequest } from '../../src/server/wrapSentryHandleRequest';
+import { getMetaTagTransformer } from '../../src/server/getMetaTagTransformer';
+import { wrapSentryHandleRequest } from '../../src/server/wrapSentryHandleRequest';
 
 vi.mock('@opentelemetry/core', () => ({
   RPCType: { HTTP: 'http' },

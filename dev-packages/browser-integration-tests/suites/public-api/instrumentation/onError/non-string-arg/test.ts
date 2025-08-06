@@ -33,7 +33,7 @@ sentryTest(
       type: 'Error',
       value: 'Object captured as exception with keys: otherKey, type',
       mechanism: {
-        type: 'onerror',
+        type: 'auto.browser.global_handlers.onerror',
         handled: false,
       },
       stacktrace: {

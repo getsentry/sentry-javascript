@@ -10,6 +10,32 @@ import type { StackLineParser, StackParser } from './stacktrace';
 import type { TracePropagationTargets } from './tracing';
 import type { BaseTransportOptions, Transport } from './transport';
 
+/**
+ * A filter object for ignoring spans.
+ * At least one of the properties (`op` or `name`) must be set.
+ */
+type IgnoreSpanFilter =
+  | {
+      /**
+       * Spans with a name matching this pattern will be ignored.
+       */
+      name: string | RegExp;
+      /**
+       * Spans with an op matching this pattern will be ignored.
+       */
+      op?: string | RegExp;
+    }
+  | {
+      /**
+       * Spans with a name matching this pattern will be ignored.
+       */
+      name?: string | RegExp;
+      /**
+       * Spans with an op matching this pattern will be ignored.
+       */
+      op: string | RegExp;
+    };
+
 export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOptions> {
   /**
    * Enable debug functionality in the SDK itself. If `debug` is set to `true` the SDK will attempt
@@ -207,6 +233,16 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    * @default []
    */
   ignoreTransactions?: Array<string | RegExp>;
+
+  /**
+   * A list of span names or patterns to ignore.
+   *
+   * If you specify a pattern {@link IgnoreSpanFilter}, at least one
+   * of the properties (`op` or `name`) must be set.
+   *
+   * @default []
+   */
+  ignoreSpans?: (string | RegExp | IgnoreSpanFilter)[];
 
   /**
    * A URL to an envelope tunnel endpoint. An envelope tunnel is an HTTP endpoint

@@ -43,7 +43,7 @@ test('AWS Serverless SDK sends events in ESM mode', async ({ request }) => {
     trace_id: expect.stringMatching(/[a-f0-9]{32}/),
   });
 
-  expect(transactionEvent.spans).toHaveLength(3);
+  expect(transactionEvent.spans).toHaveLength(2);
 
   // shows that the Otel Http instrumentation is working
   expect(transactionEvent.spans).toContainEqual(
@@ -55,19 +55,6 @@ test('AWS Serverless SDK sends events in ESM mode', async ({ request }) => {
       }),
       description: 'GET http://example.com/',
       op: 'http.client',
-    }),
-  );
-
-  expect(transactionEvent.spans).toContainEqual(
-    expect.objectContaining({
-      data: {
-        'sentry.op': 'function.aws.lambda',
-        'sentry.origin': 'auto.function.serverless',
-        'sentry.source': 'component',
-      },
-      description: 'my-lambda',
-      op: 'function.aws.lambda',
-      origin: 'auto.function.serverless',
     }),
   );
 

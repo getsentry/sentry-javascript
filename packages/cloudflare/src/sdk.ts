@@ -25,13 +25,13 @@ export function getDefaultIntegrations(options: CloudflareOptions): Integration[
     // The Dedupe integration should not be used in workflows because we want to
     // capture all step failures, even if they are the same error.
     ...(options.enableDedupe === false ? [] : [dedupeIntegration()]),
-    // TODO(v10): Replace with `eventFiltersIntegration` once we remove the deprecated `inboundFiltersIntegration`
+    // TODO(v11): Replace with `eventFiltersIntegration` once we remove the deprecated `inboundFiltersIntegration`
     // eslint-disable-next-line deprecation/deprecation
     inboundFiltersIntegration(),
     functionToStringIntegration(),
     linkedErrorsIntegration(),
     fetchIntegration(),
-    // TODO(v10): the `include` object should be defined directly in the integration based on `sendDefaultPii`
+    // TODO(v11): the `include` object should be defined directly in the integration based on `sendDefaultPii`
     requestDataIntegration(sendDefaultPii ? undefined : { include: { cookies: false } }),
     consoleIntegration(),
   ];

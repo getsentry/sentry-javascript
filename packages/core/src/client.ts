@@ -42,6 +42,7 @@ import { merge } from './utils/merge';
 import { checkOrSetAlreadyCaught, uuid4 } from './utils/misc';
 import { parseSampleRate } from './utils/parseSampleRate';
 import { prepareEvent } from './utils/prepareEvent';
+import { reparentChildSpans, shouldIgnoreSpan } from './utils/should-ignore-span';
 import { getActiveSpan, showSpanDropWarning, spanToTraceContext } from './utils/spanUtils';
 import { rejectedSyncPromise, resolvedSyncPromise, SyncPromise } from './utils/syncpromise';
 import { convertSpanJsonToTransactionEvent, convertTransactionEventToSpanJson } from './utils/transactionEvent';
@@ -1159,6 +1160,10 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
         }
 
         this.captureException(reason, {
+          mechanism: {
+            handled: false,
+            type: 'internal',
+          },
           data: {
             __sentry__: true,
           },
@@ -1281,7 +1286,7 @@ function processBeforeSend(
   event: Event,
   hint: EventHint,
 ): PromiseLike<Event | null> | Event | null {
-  const { beforeSend, beforeSendTransaction, beforeSendSpan } = options;
+  const { beforeSend, beforeSendTransaction, beforeSendSpan, ignoreSpans } = options;
   let processedEvent = event;
 
   if (isErrorEvent(processedEvent) && beforeSend) {
@@ -1289,27 +1294,58 @@ function processBeforeSend(
   }
 
   if (isTransactionEvent(processedEvent)) {
-    if (beforeSendSpan) {
-      // process root span
-      const processedRootSpanJson = beforeSendSpan(convertTransactionEventToSpanJson(processedEvent));
-      if (!processedRootSpanJson) {
-        showSpanDropWarning();
-      } else {
-        // update event with processed root span values
-        processedEvent = merge(event, convertSpanJsonToTransactionEvent(processedRootSpanJson));
+    // Avoid processing if we don't have to
+    if (beforeSendSpan || ignoreSpans) {
+      // 1. Process root span
+      const rootSpanJson = convertTransactionEventToSpanJson(processedEvent);
+
+      // 1.1 If the root span should be ignored, drop the whole transaction
+      if (ignoreSpans?.length && shouldIgnoreSpan(rootSpanJson, ignoreSpans)) {
+        // dropping the whole transaction!
+        return null;
       }
 
-      // process child spans
+      // 1.2 If a `beforeSendSpan` callback is defined, process the root span
+      if (beforeSendSpan) {
+        const processedRootSpanJson = beforeSendSpan(rootSpanJson);
+        if (!processedRootSpanJson) {
+          showSpanDropWarning();
+        } else {
+          // update event with processed root span values
+          processedEvent = merge(event, convertSpanJsonToTransactionEvent(processedRootSpanJson));
+        }
+      }
+
+      // 2. Process child spans
       if (processedEvent.spans) {
         const processedSpans: SpanJSON[] = [];
-        for (const span of processedEvent.spans) {
-          const processedSpan = beforeSendSpan(span);
-          if (!processedSpan) {
-            showSpanDropWarning();
-            processedSpans.push(span);
-          } else {
-            processedSpans.push(processedSpan);
+
+        const initialSpans = processedEvent.spans;
+
+        for (const span of initialSpans) {
+          // 2.a If the child span should be ignored, reparent it to the root span
+          if (ignoreSpans?.length && shouldIgnoreSpan(span, ignoreSpans)) {
+            reparentChildSpans(initialSpans, span);
+            continue;
           }
+
+          // 2.b If a `beforeSendSpan` callback is defined, process the child span
+          if (beforeSendSpan) {
+            const processedSpan = beforeSendSpan(span);
+            if (!processedSpan) {
+              showSpanDropWarning();
+              processedSpans.push(span);
+            } else {
+              processedSpans.push(processedSpan);
+            }
+          } else {
+            processedSpans.push(span);
+          }
+        }
+
+        const droppedSpans = processedEvent.spans.length - processedSpans.length;
+        if (droppedSpans) {
+          client.recordDroppedEvent('before_send', 'span', droppedSpans);
         }
         processedEvent.spans = processedSpans;
       }

@@ -1,33 +1,24 @@
-import type { Integration, Options, Scope, Span } from '@sentry/core';
-import {
-  applySdkMetadata,
-  debug,
-  getSDKSource,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-} from '@sentry/core';
+import type { Integration, Options, Scope } from '@sentry/core';
+import { applySdkMetadata, consoleSandbox, debug, getSDKSource } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
 import {
   captureException,
   captureMessage,
-  continueTrace,
   flush,
   getCurrentScope,
   getDefaultIntegrationsWithoutPerformance,
   initWithoutDefaultIntegrations,
-  startSpanManual,
   withScope,
 } from '@sentry/node';
 import type { Context, Handler } from 'aws-lambda';
 import { existsSync } from 'fs';
-import { hostname } from 'os';
 import { basename, resolve } from 'path';
 import { performance } from 'perf_hooks';
 import { types } from 'util';
 import { DEBUG_BUILD } from './debug-build';
 import { awsIntegration } from './integration/aws';
 import { awsLambdaIntegration } from './integration/awslambda';
-import { getAwsTraceData, markEventUnhandled } from './utils';
+import { markEventUnhandled } from './utils';
 
 const { isPromise } = types;
 
@@ -54,10 +45,10 @@ export interface WrapperOptions {
    * @default false
    */
   captureAllSettledReasons: boolean;
+  // TODO(v11): Remove this option since its no longer used.
   /**
-   * Automatically trace all handler invocations.
-   * You may want to disable this if you use express within Lambda.
-   * @default true
+   * @deprecated This option has no effect and will be removed in a future major version.
+   * If you want to disable tracing, set `SENTRY_TRACES_SAMPLE_RATE` to `0.0`, otherwise OpenTelemetry will automatically trace the handler.
    */
   startTrace: boolean;
 }
@@ -208,18 +199,6 @@ function enhanceScopeWithEnvironmentData(scope: Scope, context: Context, startTi
 }
 
 /**
- * Adds additional transaction-related information from the environment and AWS Context to the Sentry Scope.
- *
- * @param scope Scope that should be enhanced
- * @param context AWS Lambda context that will be used to extract some part of the data
- */
-function enhanceScopeWithTransactionData(scope: Scope, context: Context): void {
-  scope.setTransactionName(context.functionName);
-  scope.setTag('server_name', process.env._AWS_XRAY_DAEMON_ADDRESS || process.env.SENTRY_NAME || hostname());
-  scope.setTag('url', `awslambda:///${context.functionName}`);
-}
-
-/**
  * Wraps a lambda handler adding it error capture and tracing capabilities.
  *
  * @param handler Handler
@@ -231,15 +210,27 @@ export function wrapHandler<TEvent, TResult>(
   wrapOptions: Partial<WrapperOptions> = {},
 ): Handler<TEvent, TResult> {
   const START_TIME = performance.now();
+
+  // eslint-disable-next-line deprecation/deprecation
+  if (typeof wrapOptions.startTrace !== 'undefined') {
+    consoleSandbox(() => {
+      // eslint-disable-next-line no-console
+      console.warn(
+        'The `startTrace` option is deprecated and will be removed in a future major version. If you want to disable tracing, set `SENTRY_TRACES_SAMPLE_RATE` to `0.0`.',
+      );
+    });
+  }
+
   const options: WrapperOptions = {
     flushTimeout: 2000,
     callbackWaitsForEmptyEventLoop: false,
     captureTimeoutWarning: true,
     timeoutWarningLimit: 500,
     captureAllSettledReasons: false,
-    startTrace: true,
+    startTrace: true, // TODO(v11): Remove this option. Set to true here to satisfy the type, but has no effect.
     ...wrapOptions,
   };
+
   let timeoutWarningTimer: NodeJS.Timeout;
 
   // AWSLambda is like Express. It makes a distinction about handlers based on its last argument
@@ -293,7 +284,7 @@ export function wrapHandler<TEvent, TResult>(
       }, timeoutWarningDelay) as unknown as NodeJS.Timeout;
     }
 
-    async function processResult(span?: Span): Promise<TResult> {
+    async function processResult(): Promise<TResult> {
       const scope = getCurrentScope();
 
       let rv: TResult;
@@ -314,9 +305,6 @@ export function wrapHandler<TEvent, TResult>(
         throw e;
       } finally {
         clearTimeout(timeoutWarningTimer);
-        if (span?.isRecording()) {
-          span.end();
-        }
         await flush(options.flushTimeout).catch(e => {
           DEBUG_BUILD && debug.error(e);
         });
@@ -324,50 +312,8 @@ export function wrapHandler<TEvent, TResult>(
       return rv;
     }
 
-    // Only start a trace and root span if the handler is not already wrapped by Otel instrumentation
-    // Otherwise, we create two root spans (one from otel, one from our wrapper).
-    // If Otel instrumentation didn't work or was filtered by users, we still want to trace the handler.
-    // TODO: Since bumping the OTEL Instrumentation, this is likely not needed anymore, we can possibly remove this (can be done whenever since it would be non-breaking)
-    if (options.startTrace && !isWrappedByOtel(handler)) {
-      const traceData = getAwsTraceData(event as { headers?: Record<string, string> }, context);
-
-      return continueTrace({ sentryTrace: traceData['sentry-trace'], baggage: traceData.baggage }, () => {
-        return startSpanManual(
-          {
-            name: context.functionName,
-            op: 'function.aws.lambda',
-            attributes: {
-              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
-              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless',
-            },
-          },
-          span => {
-            enhanceScopeWithTransactionData(getCurrentScope(), context);
-
-            return processResult(span);
-          },
-        );
-      });
-    }
-
     return withScope(async () => {
-      return processResult(undefined);
+      return processResult();
     });
   };
-}
-
-/**
- * Checks if Otel's AWSLambda instrumentation successfully wrapped the handler.
- * Check taken from @opentelemetry/core
- */
-function isWrappedByOtel(
-  // eslint-disable-next-line @typescript-eslint/ban-types
-  handler: Function & { __original?: unknown; __unwrap?: unknown; __wrapped?: boolean },
-): boolean {
-  return (
-    typeof handler === 'function' &&
-    typeof handler.__original === 'function' &&
-    typeof handler.__unwrap === 'function' &&
-    handler.__wrapped === true
-  );
 }

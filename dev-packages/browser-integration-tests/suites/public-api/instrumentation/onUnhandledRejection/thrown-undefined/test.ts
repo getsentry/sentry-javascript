@@ -13,7 +13,7 @@ sentryTest('should catch thrown strings', async ({ getLocalTestUrl, page }) => {
     type: 'UnhandledRejection',
     value: 'Non-Error promise rejection captured with value: undefined',
     mechanism: {
-      type: 'onunhandledrejection',
+      type: 'auto.browser.global_handlers.onunhandledrejection',
       handled: false,
     },
   });

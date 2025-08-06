@@ -72,7 +72,7 @@ function _installGlobalOnErrorHandler(client: Client): void {
       originalException: error,
       mechanism: {
         handled: false,
-        type: 'onerror',
+        type: 'auto.browser.global_handlers.onerror',
       },
     });
   });
@@ -98,7 +98,7 @@ function _installGlobalOnUnhandledRejectionHandler(client: Client): void {
       originalException: error,
       mechanism: {
         handled: false,
-        type: 'onunhandledrejection',
+        type: 'auto.browser.global_handlers.onunhandledrejection',
       },
     });
   });
