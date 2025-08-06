@@ -47,6 +47,7 @@ let _useNavigationType: UseNavigationType;
 let _createRoutesFromChildren: CreateRoutesFromChildren;
 let _matchRoutes: MatchRoutes;
 let _stripBasename: boolean = false;
+let _enableAsyncRouteHandlers: boolean = false;
 
 const CLIENTS_WITH_INSTRUMENT_NAVIGATION = new WeakSet<Client>();
 
@@ -57,6 +58,7 @@ export interface ReactRouterOptions {
   createRoutesFromChildren: CreateRoutesFromChildren;
   matchRoutes: MatchRoutes;
   stripBasename?: boolean;
+  enableAsyncRouteHandlers?: boolean;
 }
 
 type V6CompatibleVersion = '6' | '7';
@@ -116,7 +118,10 @@ function handleAsyncHandlerResult(result: unknown, route: RouteObject, handlerKe
 function processResolvedRoutes(resolvedRoutes: RouteObject[], parentRoute?: RouteObject): void {
   resolvedRoutes.forEach(child => {
     allRoutes.add(child);
-    checkRouteForAsyncHandler(child);
+    // Only check for async handlers if the feature is enabled
+    if (_enableAsyncRouteHandlers) {
+      checkRouteForAsyncHandler(child);
+    }
   });
 
   if (parentRoute) {
@@ -207,9 +212,11 @@ export function createV6CompatibleWrapCreateBrowserRouter<
   return function (routes: RouteObject[], opts?: Record<string, unknown> & { basename?: string }): TRouter {
     addRoutesToAllRoutes(routes);
 
-    // Check for async handlers that might contain sub-route declarations
-    for (const route of routes) {
-      checkRouteForAsyncHandler(route);
+    // Check for async handlers that might contain sub-route declarations (only if enabled)
+    if (_enableAsyncRouteHandlers) {
+      for (const route of routes) {
+        checkRouteForAsyncHandler(route);
+      }
     }
 
     const router = createRouterFunction(routes, opts);
@@ -291,6 +298,13 @@ export function createV6CompatibleWrapCreateMemoryRouter<
   ): TRouter {
     addRoutesToAllRoutes(routes);
 
+    // Check for async handlers that might contain sub-route declarations (only if enabled)
+    if (_enableAsyncRouteHandlers) {
+      for (const route of routes) {
+        checkRouteForAsyncHandler(route);
+      }
+    }
+
     const router = createRouterFunction(routes, opts);
     const basename = opts?.basename;
 
@@ -357,6 +371,7 @@ export function createReactRouterV6CompatibleTracingIntegration(
     createRoutesFromChildren,
     matchRoutes,
     stripBasename,
+    enableAsyncRouteHandlers = false,
     instrumentPageLoad = true,
     instrumentNavigation = true,
   } = options;
@@ -372,6 +387,7 @@ export function createReactRouterV6CompatibleTracingIntegration(
       _matchRoutes = matchRoutes;
       _createRoutesFromChildren = createRoutesFromChildren;
       _stripBasename = stripBasename || false;
+      _enableAsyncRouteHandlers = enableAsyncRouteHandlers;
     },
     afterAllSetup(client) {
       integration.afterAllSetup(client);
