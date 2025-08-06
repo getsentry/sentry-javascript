@@ -216,7 +216,7 @@ describe('MCP Server Transport Instrumentation', () => {
           'mcp.tool.name': 'process-file',
           'mcp.request.id': 'req-stdio-1',
           'mcp.session.id': 'stdio-session-456',
-          'mcp.transport': 'stdioservertransport',
+          'mcp.transport': 'StdioServerTransport',
           'network.transport': 'pipe', // Should be pipe, not tcp
           'network.protocol.version': '2.0',
           'mcp.request.argument.path': '"/tmp/data.txt"',
@@ -247,7 +247,7 @@ describe('MCP Server Transport Instrumentation', () => {
           attributes: expect.objectContaining({
             'mcp.method.name': 'notifications/message',
             'mcp.session.id': 'stdio-session-456',
-            'mcp.transport': 'stdioservertransport',
+            'mcp.transport': 'StdioServerTransport',
             'network.transport': 'pipe',
             'mcp.logging.level': 'debug',
             'mcp.logging.message': 'Processing stdin input',
@@ -288,7 +288,7 @@ describe('MCP Server Transport Instrumentation', () => {
           attributes: expect.objectContaining({
             'mcp.method.name': 'resources/read',
             'mcp.resource.uri': 'https://api.example.com/data',
-            'mcp.transport': 'sseservertransport',
+            'mcp.transport': 'SSEServerTransport',
             'network.transport': 'tcp',
             'mcp.session.id': 'sse-session-789',
           }),
@@ -363,7 +363,7 @@ describe('MCP Server Transport Instrumentation', () => {
           'mcp.session.id': 'test-session-direct',
           'client.address': '127.0.0.1',
           'client.port': 8080,
-          'mcp.transport': 'streamablehttpservertransport',
+          'mcp.transport': 'StreamableHTTPServerTransport',
           'network.transport': 'tcp',
           'network.protocol.version': '2.0',
           'mcp.request.argument.input': '"test"',
@@ -508,7 +508,7 @@ describe('MCP Server Transport Instrumentation', () => {
       const transport = createMockTransport();
       const result = getTransportTypes(transport);
 
-      expect(result.mcpTransport).toBe('streamablehttpservertransport');
+      expect(result.mcpTransport).toBe('StreamableHTTPServerTransport');
       expect(result.networkTransport).toBe('tcp');
     });
 
@@ -516,7 +516,7 @@ describe('MCP Server Transport Instrumentation', () => {
       const transport = createMockStdioTransport();
       const result = getTransportTypes(transport);
 
-      expect(result.mcpTransport).toBe('stdioservertransport');
+      expect(result.mcpTransport).toBe('StdioServerTransport');
       expect(result.networkTransport).toBe('pipe');
     });
 
@@ -524,7 +524,7 @@ describe('MCP Server Transport Instrumentation', () => {
       const transport = createMockSseTransport();
       const result = getTransportTypes(transport);
 
-      expect(result.mcpTransport).toBe('sseservertransport');
+      expect(result.mcpTransport).toBe('SSEServerTransport');
       expect(result.networkTransport).toBe('tcp');
     });
 
@@ -556,7 +556,7 @@ describe('MCP Server Transport Instrumentation', () => {
       };
       const result = getTransportTypes(transport);
 
-      expect(result.mcpTransport).toBe('customtransport');
+      expect(result.mcpTransport).toBe('CustomTransport');
       expect(result.networkTransport).toBe('unknown');
     });
   });

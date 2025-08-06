@@ -48,13 +48,13 @@ export function getTransportTypes(transport: MCPTransport): { mcpTransport: stri
   if (!transport?.constructor) {
     return { mcpTransport: 'unknown', networkTransport: 'unknown' };
   }
-  const transportName =
-    typeof transport.constructor?.name === 'string' ? transport.constructor.name.toLowerCase() : 'unknown';
+  const transportName = typeof transport.constructor?.name === 'string' ? transport.constructor.name : 'unknown';
   let networkTransport = 'unknown';
 
-  if (transportName.includes('stdio')) {
+  const lowerTransportName = transportName.toLowerCase();
+  if (lowerTransportName.includes('stdio')) {
     networkTransport = 'pipe';
-  } else if (transportName.includes('http') || transportName.includes('sse')) {
+  } else if (lowerTransportName.includes('http') || lowerTransportName.includes('sse')) {
     networkTransport = 'tcp';
   }
 

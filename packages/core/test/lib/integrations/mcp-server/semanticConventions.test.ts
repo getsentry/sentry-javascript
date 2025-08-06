@@ -61,7 +61,7 @@ describe('MCP Server Semantic Conventions', () => {
           'mcp.session.id': 'test-session-123',
           'client.address': '192.168.1.100',
           'client.port': 54321,
-          'mcp.transport': 'streamablehttpservertransport',
+          'mcp.transport': 'StreamableHTTPServerTransport',
           'network.transport': 'tcp',
           'network.protocol.version': '2.0',
           'mcp.request.argument.location': '"Seattle, WA"',
@@ -93,7 +93,7 @@ describe('MCP Server Semantic Conventions', () => {
           'mcp.resource.uri': 'file:///docs/api.md',
           'mcp.request.id': 'req-2',
           'mcp.session.id': 'test-session-123',
-          'mcp.transport': 'streamablehttpservertransport',
+          'mcp.transport': 'StreamableHTTPServerTransport',
           'network.transport': 'tcp',
           'network.protocol.version': '2.0',
           'mcp.request.argument.uri': '"file:///docs/api.md"',
@@ -125,7 +125,7 @@ describe('MCP Server Semantic Conventions', () => {
           'mcp.prompt.name': 'analyze-code',
           'mcp.request.id': 'req-3',
           'mcp.session.id': 'test-session-123',
-          'mcp.transport': 'streamablehttpservertransport',
+          'mcp.transport': 'StreamableHTTPServerTransport',
           'network.transport': 'tcp',
           'network.protocol.version': '2.0',
           'mcp.request.argument.name': '"analyze-code"',
@@ -154,7 +154,7 @@ describe('MCP Server Semantic Conventions', () => {
           attributes: {
             'mcp.method.name': 'notifications/tools/list_changed',
             'mcp.session.id': 'test-session-123',
-            'mcp.transport': 'streamablehttpservertransport',
+            'mcp.transport': 'StreamableHTTPServerTransport',
             'network.transport': 'tcp',
             'network.protocol.version': '2.0',
             'sentry.op': 'mcp.notification.client_to_server',
@@ -193,7 +193,7 @@ describe('MCP Server Semantic Conventions', () => {
             'mcp.request.id': 'req-4',
             'mcp.session.id': 'test-session-123',
             // Transport attributes
-            'mcp.transport': 'streamablehttpservertransport',
+            'mcp.transport': 'StreamableHTTPServerTransport',
             'network.transport': 'tcp',
             'network.protocol.version': '2.0',
             // Sentry-specific
@@ -227,7 +227,7 @@ describe('MCP Server Semantic Conventions', () => {
           attributes: {
             'mcp.method.name': 'notifications/message',
             'mcp.session.id': 'test-session-123',
-            'mcp.transport': 'streamablehttpservertransport',
+            'mcp.transport': 'StreamableHTTPServerTransport',
             'network.transport': 'tcp',
             'network.protocol.version': '2.0',
             'mcp.logging.level': 'info',
