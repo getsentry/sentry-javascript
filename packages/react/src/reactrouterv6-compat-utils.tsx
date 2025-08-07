@@ -57,7 +57,19 @@ export interface ReactRouterOptions {
   useNavigationType: UseNavigationType;
   createRoutesFromChildren: CreateRoutesFromChildren;
   matchRoutes: MatchRoutes;
+  /**
+   * Whether to strip the basename from the pathname when creating transactions.
+   *
+   * This is useful for applications that use a basename in their routing setup.
+   * @default false
+   */
   stripBasename?: boolean;
+  /**
+   * Enables support for async route handlers.
+   *
+   * This allows Sentry to track and instrument routes dynamically resolved from async handlers.
+   * @default false
+   */
   enableAsyncRouteHandlers?: boolean;
 }
 
