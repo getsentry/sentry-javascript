@@ -11,6 +11,21 @@ import {
  * Maps AI method paths to Sentry operation name
  */
 export function getFinalOperationName(methodPath: string): string {
+  if (methodPath.includes('messages.create')) {
+    return 'messages.create';
+  }
+  if (methodPath.includes('messages.countTokens')) {
+    return 'messages.countTokens';
+  }
+  if (methodPath.includes('completions.create')) {
+    return 'completions.create';
+  }
+  if (methodPath.includes('models.list')) {
+    return 'models.list';
+  }
+  if (methodPath.includes('models.get')) {
+    return 'models.get';
+  }
   return methodPath.split('.').pop() || 'unknown';
 }
 

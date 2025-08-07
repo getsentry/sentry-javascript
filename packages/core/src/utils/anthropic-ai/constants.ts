@@ -5,7 +5,7 @@ export const ANTHROPIC_AI_INTEGRATION_NAME = 'Anthropic_AI';
 export const ANTHROPIC_AI_INSTRUMENTED_METHODS = [
   'messages.create',
   'messages.countTokens',
-  'models.list',
   'models.get',
   'completions.create',
+  'models.retrieve',
 ] as const;

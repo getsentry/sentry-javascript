@@ -1,5 +1,6 @@
 import { getCurrentScope } from '../../currentScopes';
 import { captureException } from '../../exports';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import { startSpan } from '../../tracing/trace';
 import type { Span, SpanAttributeValue } from '../../types-hoist/span';
 import {
@@ -7,6 +8,7 @@ import {
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
   GEN_AI_PROMPT_ATTRIBUTE,
   GEN_AI_REQUEST_FREQUENCY_PENALTY_ATTRIBUTE,
+  GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE,
   GEN_AI_REQUEST_MESSAGES_ATTRIBUTE,
   GEN_AI_REQUEST_MODEL_ATTRIBUTE,
   GEN_AI_REQUEST_STREAM_ATTRIBUTE,
@@ -28,7 +30,6 @@ import type {
   AnthropicAiResponse,
 } from './types';
 import { shouldInstrument } from './utils';
-
 /**
  * Extract request attributes from method arguments
  */
@@ -36,6 +37,7 @@ function extractRequestAttributes(args: unknown[], methodPath: string): Record<s
   const attributes: Record<string, unknown> = {
     [GEN_AI_SYSTEM_ATTRIBUTE]: 'anthropic',
     [GEN_AI_OPERATION_NAME_ATTRIBUTE]: getFinalOperationName(methodPath),
+    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.anthropic',
   };
 
   if (args.length > 0 && typeof args[0] === 'object' && args[0] !== null) {
@@ -47,8 +49,14 @@ function extractRequestAttributes(args: unknown[], methodPath: string): Record<s
     if ('stream' in params) attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE] = params.stream;
     if ('top_k' in params) attributes[GEN_AI_REQUEST_TOP_K_ATTRIBUTE] = params.top_k;
     attributes[GEN_AI_REQUEST_FREQUENCY_PENALTY_ATTRIBUTE] = params.frequency_penalty;
+    attributes[GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE] = params.max_tokens;
   } else {
-    attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] = 'unknown';
+    if (methodPath === 'models.retrieve' || methodPath === 'models.get') {
+      // models.retrieve(model-id) and models.get(model-id)
+      attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] = args[0];
+    } else {
+      attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] = 'unknown';
+    }
   }
 
   return attributes;
@@ -80,7 +88,11 @@ function addResponseAttributes(span: Span, response: AnthropicAiResponse, record
   if (recordOutputs) {
     // Messages.create
     if ('content' in response) {
-      span.setAttributes({ [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: response.content });
+      if (Array.isArray(response.content)) {
+        span.setAttributes({
+          [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: response.content.map((item: { text: string }) => item.text).join(''),
+        });
+      }
     }
     // Completions.create
     if ('completion' in response) {
@@ -102,6 +114,11 @@ function addResponseAttributes(span: Span, response: AnthropicAiResponse, record
     span.setAttributes({
       [ANTHROPIC_AI_RESPONSE_TIMESTAMP_ATTRIBUTE]: new Date(response.created * 1000).toISOString(),
     });
+    if ('created_at' in response && typeof response.created_at === 'number') {
+      span.setAttributes({
+        [ANTHROPIC_AI_RESPONSE_TIMESTAMP_ATTRIBUTE]: new Date(response.created_at * 1000).toISOString(),
+      });
+    }
   }
 
   if (response.usage) {
@@ -164,7 +181,15 @@ function instrumentMethod<T extends unknown[], R>(
           addResponseAttributes(span, result, finalOptions.recordOutputs);
           return result;
         } catch (error) {
-          captureException(error);
+          captureException(error, {
+            mechanism: {
+              handled: false,
+              type: 'auto.ai.anthropic',
+              data: {
+                function: methodPath,
+              },
+            },
+          });
           throw error;
         }
       },
@@ -187,7 +212,6 @@ function createDeepProxy<T extends AnthropicAiClient>(target: T, currentPath = '
 
       if (typeof value === 'function') {
         // Bind non-instrumented functions to preserve the original `this` context,
-        // which is required for accessing private class fields (e.g. #baseURL) in OpenAI SDK v5.
         return value.bind(obj);
       }
 
