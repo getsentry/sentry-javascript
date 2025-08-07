@@ -15,11 +15,11 @@ export type AttributeValue =
 
 export interface OpenAiOptions {
   /**
-   * Enable or disable input recording. Enabled if `sendDefaultPii` is `true`
+   * Enable or disable input recording.
    */
   recordInputs?: boolean;
   /**
-   * Enable or disable output recording. Enabled if `sendDefaultPii` is `true`
+   * Enable or disable output recording.
    */
   recordOutputs?: boolean;
 }

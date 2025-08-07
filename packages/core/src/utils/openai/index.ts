@@ -24,7 +24,6 @@ import type {
   ChatCompletionChunk,
   InstrumentedMethod,
   OpenAiChatCompletionObject,
-  OpenAiClient,
   OpenAiIntegration,
   OpenAiOptions,
   OpenAiResponse,
@@ -294,7 +293,7 @@ function instrumentMethod<T extends unknown[], R>(
 /**
  * Create a deep proxy for OpenAI client instrumentation
  */
-function createDeepProxy(target: object, currentPath = '', options?: OpenAiOptions): OpenAiClient {
+function createDeepProxy<T extends object>(target: T, currentPath = '', options?: OpenAiOptions): T {
   return new Proxy(target, {
     get(obj: object, prop: string): unknown {
       const value = (obj as Record<string, unknown>)[prop];
@@ -316,13 +315,13 @@ function createDeepProxy(target: object, currentPath = '', options?: OpenAiOptio
 
       return value;
     },
-  });
+  }) as T;
 }
 
 /**
  * Instrument an OpenAI client with Sentry tracing
  * Can be used across Node.js, Cloudflare Workers, and Vercel Edge
  */
-export function instrumentOpenAiClient(client: OpenAiClient, options?: OpenAiOptions): OpenAiClient {
+export function instrumentOpenAiClient<T extends object>(client: T, options?: OpenAiOptions): T {
   return createDeepProxy(client, '', options);
 }

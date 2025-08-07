@@ -3,7 +3,7 @@ import { execSync } from 'child_process';
 function run(): void {
   const commits = execSync('git log --format="- %s"').toString().split('\n');
 
-  const lastReleasePos = commits.findIndex(commit => /- meta(.*)changelog/i.test(commit));
+  const lastReleasePos = commits.findIndex(commit => /- meta\(changelog\)/i.test(commit));
 
   const newCommits = commits.splice(0, lastReleasePos).filter(commit => {
     // Filter out merge commits
