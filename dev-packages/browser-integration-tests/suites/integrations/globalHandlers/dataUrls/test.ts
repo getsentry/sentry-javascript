@@ -2,6 +2,11 @@ import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
 import { envelopeRequestParser, waitForErrorRequest } from '../../../../utils/helpers';
 
+/**
+ * Tests a special case where the `globalHandlersIntegration` itself creates a stack frame instead of using
+ * stack parsers. This is necessary because we don't always get an `error` object passed to `window.onerror`.
+ * @see `globalhandlers.ts#_enhanceEventWithInitialFrame`
+ */
 sentryTest('detects and handles data urls on first stack frame', async ({ getLocalTestUrl, page }) => {
   const url = await getLocalTestUrl({ testDir: __dirname });
 
