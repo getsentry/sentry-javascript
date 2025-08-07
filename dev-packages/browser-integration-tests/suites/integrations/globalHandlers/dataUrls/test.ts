@@ -27,7 +27,7 @@ sentryTest('detects and handles data urls on first stack frame', async ({ getLoc
     stacktrace: {
       frames: [
         {
-          colno: 13,
+          colno: expect.any(Number), // webkit reports different colno than chromium
           filename: '<data:text/javascript,base64>',
           function: '?',
           in_app: true,
@@ -36,6 +36,6 @@ sentryTest('detects and handles data urls on first stack frame', async ({ getLoc
       ],
     },
     type: 'Error',
-    value: 'Uncaught Error: Error thrown in worker',
+    value: expect.stringMatching(/(Uncaught )?Error: Error thrown in worker/), // webikt throws without "Uncaught "
   });
 });
