@@ -3,7 +3,7 @@ import { sentryTest } from '../../../../../utils/fixtures';
 import { envelopeRequestParser, shouldSkipTracingTest, waitForTransactionRequest } from '../../../../../utils/helpers';
 
 sentryTest(
-  'should not create a navigation.redirect span if a click happened before navigation',
+  "doesn't create a navigation.redirect span if redirect happened more than 1.5s after pageload",
   async ({ getLocalTestUrl, page }) => {
     if (shouldSkipTracingTest()) {
       sentryTest.skip();
