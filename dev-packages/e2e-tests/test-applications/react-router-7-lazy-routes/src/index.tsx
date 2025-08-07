@@ -56,7 +56,7 @@ const router = sentryCreateBrowserRouter(
     },
     {
       path: '*',
-      element: <Navigate to="/\" replace />,
+      element: <Navigate to="/" replace />,
     },
   ],
   {
