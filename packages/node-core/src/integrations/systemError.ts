@@ -1,5 +1,5 @@
+import { getSystemErrorMap } from 'node:util';
 import { defineIntegration } from '@sentry/core';
-import { getSystemErrorMap } from 'util';
 
 const INTEGRATION_NAME = 'NodeSystemError';
 
@@ -25,10 +25,17 @@ function isSystemError(error: unknown): error is SystemError {
   return getSystemErrorMap().has(error.errno);
 }
 
+type Options = {
+  /**
+   * If true, includes the `path` and `dest` properties in the error context.
+   */
+  includePaths?: boolean;
+}
+
 /**
  * Captures context for Node.js SystemError errors.
  */
-export const systemErrorIntegration = defineIntegration(() => {
+export const systemErrorIntegration = defineIntegration((options: Options = {}) => {
   return {
     name: INTEGRATION_NAME,
     processEvent: (event, hint, client) => {
@@ -42,7 +49,7 @@ export const systemErrorIntegration = defineIntegration(() => {
         ...error,
       };
 
-      if (!client.getOptions().sendDefaultPii) {
+      if (!client.getOptions().sendDefaultPii && options.includePaths !== true) {
         delete errorContext.path;
         delete errorContext.dest;
       }
