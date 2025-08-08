@@ -1,6 +1,6 @@
 {
   "name": "@sentry/react",
-  "version": "9.44.2",
+  "version": "9.45.0",
   "description": "Official Sentry SDK for React.js",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/react",
@@ -40,8 +40,8 @@
     "tag": "v9"
   },
   "dependencies": {
-    "@sentry/browser": "9.44.2",
-    "@sentry/core": "9.44.2",
+    "@sentry/browser": "9.45.0",
+    "@sentry/core": "9.45.0",
     "hoist-non-react-statics": "^3.3.2"
   },
   "peerDependencies": {
