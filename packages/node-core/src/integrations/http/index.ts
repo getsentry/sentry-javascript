@@ -117,6 +117,7 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
         ...options,
         extractIncomingTraceFromHeader: true,
         propagateTraceInOutgoingRequests: true,
+        createSpansForOutgoingRequests: true,
       });
     },
     processEvent(event) {
