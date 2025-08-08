@@ -43,10 +43,13 @@ function enhanceEventWithSdkInfo(event: Event, sdkInfo?: SdkInfo): Event {
     ...sdkInfo,
     integrations: [...(event.sdk?.integrations || []), ...(sdkInfo.integrations || [])],
     packages: [...(event.sdk?.packages || []), ...(sdkInfo.packages || [])],
-    settings: {
-      ...event.sdk?.settings,
-      ...sdkInfo.settings,
-    },
+    settings:
+      event.sdk?.settings || sdkInfo.settings
+        ? {
+            ...event.sdk?.settings,
+            ...sdkInfo.settings,
+          }
+        : undefined,
   };
 
   return event;
