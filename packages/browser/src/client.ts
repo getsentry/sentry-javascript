@@ -12,7 +12,6 @@ import type {
 import {
   _INTERNAL_flushLogsBuffer,
   addAutoIpAddressToSession,
-  addAutoIpAddressToUser,
   applySdkMetadata,
   Client,
   getSDKSource,
