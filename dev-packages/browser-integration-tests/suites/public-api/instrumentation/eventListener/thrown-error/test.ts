@@ -15,10 +15,9 @@ sentryTest(
       type: 'Error',
       value: 'event_listener_error',
       mechanism: {
-        type: 'instrument',
+        type: 'auto.browser.browserapierrors.addEventListener',
         handled: false,
         data: {
-          function: 'addEventListener',
           handler: '<anonymous>',
           target: 'EventTarget',
         },

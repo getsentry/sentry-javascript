@@ -20,7 +20,7 @@ test('should report a manually captured message on click with the correct stackt
       type: 'Error',
       value: 'ClickError',
       stacktrace: { frames: expect.any(Array) },
-      mechanism: { type: 'instrument', handled: false },
+      mechanism: { type: 'auto.browser.browserapierrors.addEventListener', handled: false },
     },
   ]);
 
