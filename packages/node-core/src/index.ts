@@ -21,6 +21,7 @@ export { onUnhandledRejectionIntegration } from './integrations/onunhandledrejec
 export { anrIntegration, disableAnrDetectionForCallback } from './integrations/anr';
 
 export { spotlightIntegration } from './integrations/spotlight';
+export { systemErrorIntegration } from './integrations/systemError';
 export { childProcessIntegration } from './integrations/childProcess';
 export { createSentryWinstonTransport } from './integrations/winston';
 
