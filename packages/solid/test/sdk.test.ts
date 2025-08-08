@@ -21,9 +21,9 @@ describe('Initialize Solid SDK', () => {
           name: 'sentry.javascript.solid',
           packages: [{ name: 'npm:@sentry/solid', version: SDK_VERSION }],
           version: SDK_VERSION,
-        },
-        settings: {
-          infer_ip: 'never',
+          settings: {
+            infer_ip: 'never',
+          },
         },
       },
     };
