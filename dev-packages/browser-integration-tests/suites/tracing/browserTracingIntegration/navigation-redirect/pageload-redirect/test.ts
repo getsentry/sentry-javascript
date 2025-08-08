@@ -8,7 +8,7 @@ import {
 import { sentryTest } from '../../../../../utils/fixtures';
 import { envelopeRequestParser, shouldSkipTracingTest, waitForTransactionRequest } from '../../../../../utils/helpers';
 
-sentryTest('should create a pageload transaction with navigation.redirect span', async ({ getLocalTestUrl, page }) => {
+sentryTest('creates a pageload root span with navigation.redirect childspan', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
     sentryTest.skip();
   }
@@ -46,9 +46,9 @@ sentryTest('should create a pageload transaction with navigation.redirect span',
     }),
   );
 
-  const navigationSpan = spans.find(span => span.op === 'navigation.redirect');
-  expect(navigationSpan?.timestamp).toEqual(navigationSpan?.start_timestamp);
-  expect(navigationSpan).toEqual({
+  const redirectSpan = spans.find(span => span.op === 'navigation.redirect');
+  expect(redirectSpan?.timestamp).toEqual(redirectSpan?.start_timestamp);
+  expect(redirectSpan).toEqual({
     data: {
       'sentry.op': 'navigation.redirect',
       'sentry.origin': 'auto.navigation.browser',
