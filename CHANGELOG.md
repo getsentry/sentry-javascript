@@ -4,6 +4,16 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+### Important Changes
+
+- **feat(node)**: Update `httpIntegration` handling of incoming requests
+
+This version updates the handling of the Node SDK of incoming requests. Instead of relying on @opentelemetry/instrumentation-http for this, we now handle this internally, ensuring that we can optimize performance as much as possible and avoid interop problems.
+
+This change should not affect users, unless they are relying on very in-depth implementation details. Importantly, this also drops the `_experimentalConfig` option of the integration - this will no longer do anything.
+Finally, you can still pass `instrumentation.{requestHook,responseHook,applyCustomAttributesOnSpan}` options, but they are deprecated and will be removed in v11. Instead, you can use the new `incomingRequestSpanHook` configuration option if you want to adjust the incoming request span.
+
+
 ## 10.8.0
 
 ### Important Changes
@@ -174,33 +184,6 @@ However, after updating the SDK, events (errors, traces, replays, etc.) sent fro
 user IP addresses, if you set `sendDefaultPii: true` in your `Sentry.init` options.
 
 We apologize for any inconvenience caused!
-
-- **feat(node): Add `ignoreStaticAssets` ([#17370](https://github.com/getsentry/sentry-javascript/pull/17370))**
-
-This release adds a new option to `httpIntegration` to ignore requests for static assets (e.g. `favicon.xml` or `robots.txt`). The option defaults to `true`, meaning that going forward, such requests will not be traced by default. You can still enable tracing for these requests by setting the option to `false`:
-
-```js
-Sentry.init({
-  integrations: [
-    Sentry.httpIntegration({
-      // defaults to true, set to false to enable traces for static assets
-      ignoreStaticAssets: false,
-    }),
-  ],
-});
-```
-
-### Other Changes
-
-- fix(nuxt): Do not drop parametrized routes ([#17357](https://github.com/getsentry/sentry-javascript/pull/17357))
-
-<details>
-  <summary> <strong>Internal Changes</strong> </summary>
-
-- ref(node): Split up incoming & outgoing http handling ([#17358](https://github.com/getsentry/sentry-javascript/pull/17358))
-- test(node): Enable additionalDependencies in integration runner ([#17361](https://github.com/getsentry/sentry-javascript/pull/17361))
-
-</details>
 
 ## 10.3.0
 

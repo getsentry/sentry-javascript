@@ -50,6 +50,38 @@ describe('httpIntegration', () => {
         runner.makeRequest('get', '/test');
         await runner.completed();
       });
+
+      test('allows to configure incomingRequestSpanHook', async () => {
+        const runner = createRunner()
+          .expect({
+            transaction: {
+              contexts: {
+                trace: {
+                  span_id: expect.stringMatching(/[a-f0-9]{16}/),
+                  trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+                  data: {
+                    url: expect.stringMatching(/\/test$/),
+                    'http.response.status_code': 200,
+                    incomingRequestSpanHook: 'yes',
+                  },
+                  op: 'http.server',
+                  status: 'ok',
+                },
+              },
+              extra: expect.objectContaining({
+                incomingRequestSpanHookCalled: {
+                  reqUrl: expect.stringMatching(/\/test$/),
+                  reqMethod: 'GET',
+                  resUrl: expect.stringMatching(/\/test$/),
+                  resMethod: 'GET',
+                },
+              }),
+            },
+          })
+          .start();
+        runner.makeRequest('get', '/test');
+        await runner.completed();
+      });
     });
   });
 
@@ -136,30 +168,6 @@ describe('httpIntegration', () => {
         await runner.completed();
       });
     });
-  });
-
-  test('allows to pass experimental config through to integration', async () => {
-    const runner = createRunner(__dirname, 'server-experimental.js')
-      .expect({
-        transaction: {
-          contexts: {
-            trace: {
-              span_id: expect.stringMatching(/[a-f0-9]{16}/),
-              trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-              data: {
-                url: expect.stringMatching(/\/test$/),
-                'http.response.status_code': 200,
-                'http.server_name': 'sentry-test-server-name',
-              },
-              op: 'http.server',
-              status: 'ok',
-            },
-          },
-        },
-      })
-      .start();
-    runner.makeRequest('get', '/test');
-    await runner.completed();
   });
 
   describe("doesn't create a root span for incoming requests ignored via `ignoreIncomingRequests`", () => {
