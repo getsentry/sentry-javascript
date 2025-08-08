@@ -7,7 +7,7 @@ import {
 } from '../../../../utils/helpers';
 
 sentryTest(
-  'should default user to {{auto}} on transactions when sendDefaultPii: true',
+  'sets user.ip_address to "auto" on transactions when sendDefaultPii: true',
   async ({ getLocalTestUrl, page }) => {
     if (shouldSkipTracingTest()) {
       sentryTest.skip();
@@ -16,6 +16,6 @@ sentryTest(
     const url = await getLocalTestUrl({ testDir: __dirname });
     const req = await waitForTransactionRequestOnUrl(page, url);
     const transaction = envelopeRequestParser(req);
-    expect(transaction.user?.ip_address).toBe('{{auto}}');
+    expect(transaction.sdk?.settings?.infer_ip).toBe('auto');
   },
 );
