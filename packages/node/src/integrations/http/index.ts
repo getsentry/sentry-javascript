@@ -4,9 +4,8 @@ import type { HttpInstrumentationConfig } from '@opentelemetry/instrumentation-h
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
 import type { Span } from '@sentry/core';
 import { defineIntegration, getClient, hasSpansEnabled } from '@sentry/core';
-import type { HTTPModuleRequestIncomingMessage, NodeClient } from '@sentry/node-core';
+import type { HTTPModuleRequestIncomingMessage, NodeClient, SentryHttpInstrumentationOptions } from '@sentry/node-core';
 import {
-  type SentryHttpInstrumentationOptions,
   addOriginToSpan,
   generateInstrumentOnce,
   getRequestUrl,
@@ -18,6 +17,8 @@ import type { NodeClientOptions } from '../../types';
 const INTEGRATION_NAME = 'Http';
 
 const INSTRUMENTATION_NAME = '@opentelemetry_sentry-patched/instrumentation-http';
+
+const FULLY_SUPPORTS_HTTP_DIAGNOSTICS_CHANNEL = NODE_VERSION.major >= 22;
 
 interface HttpOptions {
   /**
@@ -200,9 +201,9 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
         // If spans are not instrumented, it means the HttpInstrumentation has not been added
         // In that case, we want to handle incoming trace extraction ourselves
         extractIncomingTraceFromHeader: !instrumentSpans,
-        // If spans are not instrumented, it means the HttpInstrumentation has not been added
-        // In that case, we want to handle trace propagation ourselves
-        propagateTraceInOutgoingRequests: !instrumentSpans,
+        // on older versions, this is handled by the Otel instrumentation
+        propagateTraceInOutgoingRequests: FULLY_SUPPORTS_HTTP_DIAGNOSTICS_CHANNEL,
+        createSpansForOutgoingRequests: FULLY_SUPPORTS_HTTP_DIAGNOSTICS_CHANNEL,
       });
 
       // This is the "regular" OTEL instrumentation that emits spans
@@ -257,6 +258,8 @@ function getConfigWithDefaults(options: Partial<HttpOptions> = {}): HttpInstrume
     ...options.instrumentation?._experimentalConfig,
 
     disableIncomingRequestInstrumentation: options.disableIncomingRequestSpans,
+    // This is handled by the SentryHttpInstrumentation on Node 22+
+    disableOutgoingRequestInstrumentation: FULLY_SUPPORTS_HTTP_DIAGNOSTICS_CHANNEL,
 
     ignoreOutgoingRequestHook: request => {
       const url = getRequestUrl(request);
