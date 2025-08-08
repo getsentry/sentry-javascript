@@ -19,6 +19,7 @@ it('traces a basic chat completion request', async () => {
             data: expect.objectContaining({
               'gen_ai.operation.name': 'chat',
               'sentry.op': 'gen_ai.chat',
+              'sentry.origin': 'auto.ai.openai',
               'gen_ai.system': 'openai',
               'gen_ai.request.model': 'gpt-3.5-turbo',
               'gen_ai.request.temperature': 0.7,
@@ -31,7 +32,7 @@ it('traces a basic chat completion request', async () => {
             }),
             description: 'chat gpt-3.5-turbo',
             op: 'gen_ai.chat',
-            origin: 'manual',
+            origin: 'auto.ai.openai',
           }),
         ]),
       );

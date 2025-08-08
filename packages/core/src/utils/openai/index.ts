@@ -1,5 +1,6 @@
 import { getCurrentScope } from '../../currentScopes';
 import { captureException } from '../../exports';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import { SPAN_STATUS_ERROR } from '../../tracing';
 import { startSpan, startSpanManual } from '../../tracing/trace';
 import type { Span, SpanAttributeValue } from '../../types-hoist/span';
@@ -49,6 +50,7 @@ function extractRequestAttributes(args: unknown[], methodPath: string): Record<s
   const attributes: Record<string, unknown> = {
     [GEN_AI_SYSTEM_ATTRIBUTE]: 'openai',
     [GEN_AI_OPERATION_NAME_ATTRIBUTE]: getOperationName(methodPath),
+    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.openai',
   };
 
   // Chat completion API accepts web_search_options and tools as parameters
@@ -256,6 +258,10 @@ function instrumentMethod<T extends unknown[], R>(
             captureException(error, {
               mechanism: {
                 handled: false,
+                type: 'auto.ai.openai.stream',
+                data: {
+                  function: methodPath,
+                },
               },
             });
             span.end();
@@ -281,7 +287,15 @@ function instrumentMethod<T extends unknown[], R>(
             addResponseAttributes(span, result, finalOptions.recordOutputs);
             return result;
           } catch (error) {
-            captureException(error);
+            captureException(error, {
+              mechanism: {
+                handled: false,
+                type: 'auto.ai.openai',
+                data: {
+                  function: methodPath,
+                },
+              },
+            });
             throw error;
           }
         },
