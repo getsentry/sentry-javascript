@@ -4,7 +4,7 @@ import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration, getClient, hasSpansEnabled, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import type { NodeClient } from '@sentry/node-core';
 import { generateInstrumentOnce, SentryNodeFetchInstrumentation } from '@sentry/node-core';
-import type { NodeClientOptions } from '../../types';
+import type { NodeClientOptions } from '../types';
 
 const INTEGRATION_NAME = 'NodeFetch';
 
