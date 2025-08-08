@@ -4,6 +4,16 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 10.3.0
+
+- feat(core): MCP Server - Capture prompt results from prompt function calls (#17284)
+- feat(bun): Export `skipOpenTelemetrySetup` option ([#17349](https://github.com/getsentry/sentry-javascript/pull/17349))
+- feat(sveltekit): Streamline build logs ([#17306](https://github.com/getsentry/sentry-javascript/pull/17306))
+- fix(browser): Handle data urls in errors caught by `globalHandlersIntegration` ([#17216](https://github.com/getsentry/sentry-javascript/pull/17216))
+- fix(browser): Improve navigation vs. redirect detection ([#17275](https://github.com/getsentry/sentry-javascript/pull/17275))
+- fix(react-router): Ensure source map upload fails silently if Sentry CLI fails ([#17081](https://github.com/getsentry/sentry-javascript/pull/17081))
+- fix(react): Add support for React Router sub-routes from `handle` ([#17277](https://github.com/getsentry/sentry-javascript/pull/17277))
+
 ## 10.2.0
 
 ### Important Changes
