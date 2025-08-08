@@ -65,6 +65,9 @@ describe('Client init()', () => {
                 version: expect.any(String),
               },
             ],
+            settings: {
+              infer_ip: 'never',
+            },
           },
         },
         environment: 'test',
