@@ -5,6 +5,7 @@ import { getSentryRelease } from '@sentry/node';
 import * as childProcess from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
+import { handleRunAfterProductionCompile } from './handleRunAfterProductionCompile';
 import { createRouteManifest } from './manifest/createRouteManifest';
 import type { RouteManifest } from './manifest/types';
 import { constructTurbopackConfig } from './turbopack';
@@ -14,7 +15,7 @@ import type {
   NextConfigObject,
   SentryBuildOptions,
 } from './types';
-import { getNextjsVersion } from './util';
+import { getNextjsVersion, supportsProductionCompileHook } from './util';
 import { constructWebpackConfigFunction } from './webpack';
 
 let showedExportModeTunnelWarning = false;
@@ -290,6 +291,37 @@ function getFinalConfigObject(
           `[@sentry/nextjs] WARNING: You are using the Sentry SDK with Turbopack (\`next build --turbo\`). The Sentry SDK is compatible with Turbopack on Next.js version 15.3.0 or later. You are currently on ${nextJsVersion}. Please upgrade to a newer Next.js version to use the Sentry SDK with Turbopack. Note that as Turbopack is still experimental for production builds, some of the Sentry SDK features like source maps will not work. Follow this issue for progress on Sentry + Turbopack: https://github.com/getsentry/sentry-javascript/issues/8105.`,
         );
       }
+    }
+  }
+
+  if (userSentryOptions.useRunAfterProductionCompileHook === true && supportsProductionCompileHook()) {
+    if (incomingUserNextConfigObject?.compiler?.runAfterProductionCompile === undefined) {
+      incomingUserNextConfigObject.compiler ??= {};
+      incomingUserNextConfigObject.compiler.runAfterProductionCompile = async ({ distDir }) => {
+        await handleRunAfterProductionCompile(
+          { releaseName, distDir, buildTool: isTurbopack ? 'turbopack' : 'webpack' },
+          userSentryOptions,
+        );
+      };
+    } else if (typeof incomingUserNextConfigObject.compiler.runAfterProductionCompile === 'function') {
+      incomingUserNextConfigObject.compiler.runAfterProductionCompile = new Proxy(
+        incomingUserNextConfigObject.compiler.runAfterProductionCompile,
+        {
+          async apply(target, thisArg, argArray) {
+            const { distDir }: { distDir: string } = argArray[0] ?? { distDir: '.next' };
+            await target.apply(thisArg, argArray);
+            await handleRunAfterProductionCompile(
+              { releaseName, distDir, buildTool: isTurbopack ? 'turbopack' : 'webpack' },
+              userSentryOptions,
+            );
+          },
+        },
+      );
+    } else {
+      // eslint-disable-next-line no-console
+      console.warn(
+        '[@sentry/nextjs] The configured `compiler.runAfterProductionCompile` option is not a function. Will not run source map and release management logic.',
+      );
     }
   }
 
