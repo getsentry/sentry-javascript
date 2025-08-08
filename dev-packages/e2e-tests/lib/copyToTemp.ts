@@ -16,6 +16,7 @@ function fixPackageJson(cwd: string): void {
     dependencies?: Record<string, string>;
     devDependencies?: Record<string, string>;
     volta?: Record<string, unknown>;
+    scripts?: Record<string, string>;
   };
 
   // 1. Fix file dependencies
@@ -40,6 +41,18 @@ function fixPackageJson(cwd: string): void {
     console.log(`Fixed volta.extends to ${newPath}`);
   } else {
     console.log('No volta.extends found');
+  }
+
+  // 3. Fix copy:layer script path
+  if (packageJson.scripts?.['copy:layer']) {
+    const originalScript = packageJson.scripts['copy:layer'];
+    if (originalScript.includes('../../../../packages/aws-serverless/build/aws/dist-serverless/')) {
+      const relativePath = '../../../../packages/aws-serverless/build/aws/dist-serverless/';
+      const newPath = join(__dirname, 'virtual-dir/', relativePath);
+      const newScript = originalScript.replace(relativePath, newPath);
+      packageJson.scripts['copy:layer'] = newScript;
+      console.log(`Fixed copy:layer script path to ${newScript}`);
+    }
   }
 
   writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));

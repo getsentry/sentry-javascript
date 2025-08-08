@@ -1,0 +1,29 @@
+{
+  "name": "aws-lambda-sam",
+  "version": "1.0.0",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "test": "playwright test",
+    "clean": "npx rimraf node_modules pnpm-lock.yaml",
+    "copy:layer": "cp ../../../../packages/aws-serverless/build/aws/dist-serverless/sentry-node-serverless-*.zip .",
+    "test:build": "pnpm install && pnpm copy:layer",
+    "test:assert": "pnpm test"
+  },
+  "dependencies": {
+    "@sentry/aws-serverless": "* || latest"
+  },
+  "devDependencies": {
+    "@aws-sdk/client-lambda": "^3.863.0",
+    "@playwright/test": "~1.53.2",
+    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "aws-cdk-lib": "^2.210.0",
+    "constructs": "^10.4.2"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  },
+  "sentryTest": {
+    "optional": true
+  }
+}
