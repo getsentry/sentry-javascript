@@ -2,6 +2,7 @@ import type { ChannelListener } from 'node:diagnostics_channel';
 import { subscribe, unsubscribe } from 'node:diagnostics_channel';
 import type * as http from 'node:http';
 import type * as https from 'node:https';
+import type { Span } from '@opentelemetry/api';
 import { context } from '@opentelemetry/api';
 import { isTracingSuppressed } from '@opentelemetry/core';
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
@@ -29,11 +30,21 @@ export type SentryHttpInstrumentationOptions = InstrumentationConfig & {
   breadcrumbs?: boolean;
 
   /**
+   * Whether to create spans for requests or not.
+   * As of now, creates spans for incoming requests, but not outgoing requests.
+   *
+   * @default `true`
+   */
+  spans?: boolean;
+
+  /**
    * Whether to extract the trace ID from the `sentry-trace` header for incoming requests.
    * By default this is done by the HttpInstrumentation, but if that is not added (e.g. because tracing is disabled, ...)
    * then this instrumentation can take over.
    *
-   * @default `false`
+   * @deprecated This is always true and the option will be removed in the future.
+   *
+   * @default `true`
    */
   extractIncomingTraceFromHeader?: boolean;
 
@@ -47,6 +58,20 @@ export type SentryHttpInstrumentationOptions = InstrumentationConfig & {
   propagateTraceInOutgoingRequests?: boolean;
 
   /**
+   * Whether to automatically ignore common static asset requests like favicon.ico, robots.txt, etc.
+   * This helps reduce noise in your transactions.
+   *
+   * @default `true`
+   */
+  ignoreStaticAssets?: boolean;
+
+  /**
+   * If true, do not generate spans for incoming requests at all.
+   * This is used by Remix to avoid generating spans for incoming requests, as it generates its own spans.
+   */
+  disableIncomingRequestSpans?: boolean;
+
+  /**
    * Do not capture breadcrumbs for outgoing HTTP requests to URLs where the given callback returns `true`.
    * For the scope of this instrumentation, this callback only controls breadcrumb creation.
    * The same option can be passed to the top-level httpIntegration where it controls both, breadcrumb and
@@ -58,6 +83,14 @@ export type SentryHttpInstrumentationOptions = InstrumentationConfig & {
   ignoreOutgoingRequests?: (url: string, request: http.RequestOptions) => boolean;
 
   /**
+   * Do not capture spans for incoming HTTP requests to URLs where the given callback returns `true`.
+   *
+   * @param urlPath Contains the URL path and query string (if any) of the incoming request.
+   * @param request Contains the {@type IncomingMessage} object of the incoming request.
+   */
+  ignoreSpansForIncomingRequests?: (urlPath: string, request: http.IncomingMessage) => boolean;
+
+  /**
    * Do not capture the request body for incoming HTTP requests to URLs where the given callback returns `true`.
    * This can be useful for long running requests where the body is not needed and we want to avoid capturing it.
    *
@@ -65,6 +98,12 @@ export type SentryHttpInstrumentationOptions = InstrumentationConfig & {
    * @param request Contains the {@type RequestOptions} object used to make the incoming request.
    */
   ignoreIncomingRequestBody?: (url: string, request: http.RequestOptions) => boolean;
+
+  /**
+   * A hook that can be used to mutate the span for incoming requests.
+   * This is triggered after the span is created, but before it is recorded.
+   */
+  incomingRequestSpanHook?: (span: Span, request: http.IncomingMessage, response: http.ServerResponse) => void;
 
   /**
    * Controls the maximum size of incoming HTTP request bodies attached to events.
@@ -89,6 +128,19 @@ export type SentryHttpInstrumentationOptions = InstrumentationConfig & {
    * Defaults to `true`.
    */
   trackIncomingRequestsAsSessions?: boolean;
+
+  /**
+   * @deprecated This is deprecated in favor of `incomingRequestSpanHook`.
+   */
+  instrumentation?: {
+    requestHook?: (span: Span, req: http.ClientRequest | http.IncomingMessage) => void;
+    responseHook?: (span: Span, response: http.IncomingMessage | http.ServerResponse) => void;
+    applyCustomAttributesOnSpan?: (
+      span: Span,
+      request: http.ClientRequest | http.IncomingMessage,
+      response: http.IncomingMessage | http.ServerResponse,
+    ) => void;
+  };
 
   /**
    * Number of milliseconds until sessions tracked with `trackIncomingRequestsAsSessions` will be flushed as a session aggregate.
@@ -128,13 +180,21 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
     // but we only want to register them once, whichever is loaded first
     let hasRegisteredHandlers = false;
 
+    const spansEnabled = this.getConfig().spans ?? true;
+
     const onHttpServerRequestStart = ((_data: unknown) => {
       const data = _data as { server: http.Server };
       instrumentServer(data.server, {
+        // eslint-disable-next-line deprecation/deprecation
+        instrumentation: this.getConfig().instrumentation,
         ignoreIncomingRequestBody: this.getConfig().ignoreIncomingRequestBody,
+        ignoreSpansForIncomingRequests: this.getConfig().ignoreSpansForIncomingRequests,
+        incomingRequestSpanHook: this.getConfig().incomingRequestSpanHook,
         maxIncomingRequestBodySize: this.getConfig().maxIncomingRequestBodySize,
         trackIncomingRequestsAsSessions: this.getConfig().trackIncomingRequestsAsSessions,
         sessionFlushingDelayMS: this.getConfig().sessionFlushingDelayMS ?? 60_000,
+        ignoreStaticAssets: this.getConfig().ignoreStaticAssets,
+        spans: spansEnabled && !this.getConfig().disableIncomingRequestSpans,
       });
     }) satisfies ChannelListener;
 
