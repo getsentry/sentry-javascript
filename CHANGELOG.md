@@ -4,6 +4,11 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 9.45.0
+
+- feat(v9/nuxt): Do not inject trace meta-tags on cached HTML pages ([#17305](https://github.com/getsentry/sentry-javascript/pull/17305)) (#17319)
+- fix(v9/node): Assign default export of `openai` to the instrumented fn ([#17353](https://github.com/getsentry/sentry-javascript/pull/17353))
+
 ## 9.44.2
 
 This release is publishing the AWS Lambda Layer under `SentryNodeServerlessSDKv9`. The previous release `9.44.1` accidentally published the layer under `SentryNodeServerlessSDKv10`.
