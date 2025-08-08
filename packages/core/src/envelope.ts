@@ -37,11 +37,18 @@ function enhanceEventWithSdkInfo(event: Event, sdkInfo?: SdkInfo): Event {
   if (!sdkInfo) {
     return event;
   }
-  event.sdk = event.sdk || {};
-  event.sdk.name = event.sdk.name || sdkInfo.name;
-  event.sdk.version = event.sdk.version || sdkInfo.version;
-  event.sdk.integrations = [...(event.sdk.integrations || []), ...(sdkInfo.integrations || [])];
-  event.sdk.packages = [...(event.sdk.packages || []), ...(sdkInfo.packages || [])];
+
+  event.sdk = {
+    ...event.sdk,
+    ...sdkInfo,
+    integrations: [...(event.sdk?.integrations || []), ...(sdkInfo.integrations || [])],
+    packages: [...(event.sdk?.packages || []), ...(sdkInfo.packages || [])],
+    settings: {
+      ...event.sdk?.settings,
+      ...sdkInfo.settings,
+    },
+  };
+
   return event;
 }
 

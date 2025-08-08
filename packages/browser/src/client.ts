@@ -83,6 +83,15 @@ export class BrowserClient extends Client<BrowserClientOptions> {
     const sdkSource = WINDOW.SENTRY_SDK_SOURCE || getSDKSource();
     applySdkMetadata(opts, 'browser', ['browser'], sdkSource);
 
+    // Only allow IP inferral by Relay if sendDefaultPii is true
+    if (opts._metadata?.sdk) {
+      opts._metadata.sdk.settings = {
+        infer_ip: opts.sendDefaultPii ? 'auto' : 'never',
+        // purposefully allowing already passed settings to override the default
+        ...opts._metadata.sdk.settings,
+      };
+    }
+
     super(opts);
 
     const { sendDefaultPii, sendClientReports, enableLogs } = this._options;
@@ -117,7 +126,6 @@ export class BrowserClient extends Client<BrowserClientOptions> {
     }
 
     if (sendDefaultPii) {
-      this.on('postprocessEvent', addAutoIpAddressToUser);
       this.on('beforeSendSession', addAutoIpAddressToSession);
     }
   }
