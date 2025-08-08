@@ -14,10 +14,10 @@ import type {
 import { normalize } from '@sentry/core';
 import { createBasicSentryServer } from '@sentry-internal/test-utils';
 import { execSync, spawn, spawnSync } from 'child_process';
-import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'fs';
-import { join } from 'path';
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'fs';
+import { basename, join } from 'path';
 import { inspect } from 'util';
-import { afterAll, beforeAll, describe, test } from 'vitest';
+import { afterAll, describe, test } from 'vitest';
 import {
   assertEnvelopeHeader,
   assertSentryCheckIn,
@@ -174,7 +174,7 @@ export function createEsmAndCjsTests(
     testFn: typeof test | typeof test.fails,
     mode: 'esm' | 'cjs',
   ) => void,
-  options?: { failsOnCjs?: boolean; failsOnEsm?: boolean },
+  options?: { failsOnCjs?: boolean; failsOnEsm?: boolean; additionalDependencies?: Record<string, string> },
 ): void {
   const mjsScenarioPath = join(cwd, scenarioPath);
   const mjsInstrumentPath = join(cwd, instrumentPath);
@@ -187,31 +187,97 @@ export function createEsmAndCjsTests(
     throw new Error(`Instrument file not found: ${mjsInstrumentPath}`);
   }
 
-  const cjsScenarioPath = join(cwd, `tmp_${scenarioPath.replace('.mjs', '.cjs')}`);
-  const cjsInstrumentPath = join(cwd, `tmp_${instrumentPath.replace('.mjs', '.cjs')}`);
+  // Create a dedicated tmp directory that includes copied ESM & CJS scenario/instrument files.
+  // If additionalDependencies are provided, we also create a nested package.json and install them there.
+  const uniqueId = `${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+  const tmpDirPath = join(cwd, `tmp_${uniqueId}`);
+  mkdirSync(tmpDirPath);
+
+  // Copy ESM files as-is into tmp dir
+  const esmScenarioBasename = basename(scenarioPath);
+  const esmInstrumentBasename = basename(instrumentPath);
+  const esmScenarioPathForRun = join(tmpDirPath, esmScenarioBasename);
+  const esmInstrumentPathForRun = join(tmpDirPath, esmInstrumentBasename);
+  writeFileSync(esmScenarioPathForRun, readFileSync(mjsScenarioPath, 'utf8'));
+  writeFileSync(esmInstrumentPathForRun, readFileSync(mjsInstrumentPath, 'utf8'));
+
+  // Pre-create CJS converted files inside tmp dir
+  const cjsScenarioPath = join(tmpDirPath, esmScenarioBasename.replace('.mjs', '.cjs'));
+  const cjsInstrumentPath = join(tmpDirPath, esmInstrumentBasename.replace('.mjs', '.cjs'));
+  convertEsmFileToCjs(esmScenarioPathForRun, cjsScenarioPath);
+  convertEsmFileToCjs(esmInstrumentPathForRun, cjsInstrumentPath);
+
+  // Create a minimal package.json with requested dependencies (if any) and install them
+  const additionalDependencies = options?.additionalDependencies ?? {};
+  if (Object.keys(additionalDependencies).length > 0) {
+    const packageJson = {
+      name: 'tmp-integration-test',
+      private: true,
+      version: '0.0.0',
+      dependencies: additionalDependencies,
+    } as const;
+
+    writeFileSync(join(tmpDirPath, 'package.json'), JSON.stringify(packageJson, null, 2));
+
+    try {
+      const deps = Object.entries(additionalDependencies).map(([name, range]) => {
+        if (!range || typeof range !== 'string') {
+          throw new Error(`Invalid version range for "${name}": ${String(range)}`);
+        }
+        return `${name}@${range}`;
+      });
+
+      if (deps.length > 0) {
+        // --ignore-engines is needed to avoid engine mismatches when installing deps in the tmp dir
+        // (e.g. Vercel AI v5 requires a package that requires Node >= 20 while the system Node is 18)
+        // https://github.com/vercel/ai/issues/7777
+        const result = spawnSync('yarn', ['add', '--non-interactive', '--ignore-engines', ...deps], {
+          cwd: tmpDirPath,
+          encoding: 'utf8',
+        });
+
+        if (process.env.DEBUG) {
+          // eslint-disable-next-line no-console
+          console.log('[additionalDependencies]', deps.join(' '));
+          // eslint-disable-next-line no-console
+          console.log('[yarn stdout]', result.stdout);
+          // eslint-disable-next-line no-console
+          console.log('[yarn stderr]', result.stderr);
+        }
+
+        if (result.error) {
+          throw new Error(`Failed to install additionalDependencies in tmp dir ${tmpDirPath}: ${result.error.message}`);
+        }
+        if (typeof result.status === 'number' && result.status !== 0) {
+          throw new Error(
+            `Failed to install additionalDependencies in tmp dir ${tmpDirPath} (exit ${result.status}):\n${
+              result.stderr || result.stdout || '(no output)'
+            }`,
+          );
+        }
+      }
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error('Failed to install additionalDependencies:', e);
+      throw e;
+    }
+  }
 
   describe('esm', () => {
     const testFn = options?.failsOnEsm ? test.fails : test;
-    callback(() => createRunner(mjsScenarioPath).withFlags('--import', mjsInstrumentPath), testFn, 'esm');
+    callback(() => createRunner(esmScenarioPathForRun).withFlags('--import', esmInstrumentPathForRun), testFn, 'esm');
   });
 
   describe('cjs', () => {
-    beforeAll(() => {
-      // For the CJS runner, we create some temporary files...
-      convertEsmFileToCjs(mjsScenarioPath, cjsScenarioPath);
-      convertEsmFileToCjs(mjsInstrumentPath, cjsInstrumentPath);
-    });
-
+    // Clean up the tmp directory once CJS tests are finished
     afterAll(() => {
       try {
-        unlinkSync(cjsInstrumentPath);
+        rmSync(tmpDirPath, { recursive: true, force: true });
       } catch {
-        // Ignore errors here
-      }
-      try {
-        unlinkSync(cjsScenarioPath);
-      } catch {
-        // Ignore errors here
+        if (process.env.DEBUG) {
+          // eslint-disable-next-line no-console
+          console.error(`Failed to remove tmp dir: ${tmpDirPath}`);
+        }
       }
     });
 
