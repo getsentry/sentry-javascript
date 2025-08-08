@@ -119,6 +119,7 @@ export {
   zodErrorsIntegration,
   profiler,
   amqplibIntegration,
+  anthropicAIIntegration,
   childProcessIntegration,
   createSentryWinstonTransport,
   vercelAIIntegration,

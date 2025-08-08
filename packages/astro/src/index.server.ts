@@ -12,6 +12,7 @@ export {
   addEventProcessor,
   addIntegration,
   amqplibIntegration,
+  anthropicAIIntegration,
   // eslint-disable-next-line deprecation/deprecation
   anrIntegration,
   // eslint-disable-next-line deprecation/deprecation
