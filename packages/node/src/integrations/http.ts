@@ -20,6 +20,8 @@ const INTEGRATION_NAME = 'Http';
 
 const INSTRUMENTATION_NAME = '@opentelemetry_sentry-patched/instrumentation-http';
 
+const FULLY_SUPPORTS_HTTP_DIAGNOSTICS_CHANNEL = NODE_VERSION.major >= 22;
+
 interface HttpOptions {
   /**
    * Whether breadcrumbs should be recorded for outgoing requests.
@@ -240,7 +242,9 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
 
       const sentryHttpInstrumentationOptions = {
         breadcrumbs: options.breadcrumbs,
-        propagateTraceInOutgoingRequests: !useOtelHttpInstrumentation,
+        propagateTraceInOutgoingRequests: FULLY_SUPPORTS_HTTP_DIAGNOSTICS_CHANNEL || !useOtelHttpInstrumentation,
+        createSpansForOutgoingRequests: FULLY_SUPPORTS_HTTP_DIAGNOSTICS_CHANNEL,
+        spans: options.spans,
         ignoreOutgoingRequests: options.ignoreOutgoingRequests,
       } satisfies SentryHttpInstrumentationOptions;
 
@@ -263,6 +267,9 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
 
 function getConfigWithDefaults(options: Partial<HttpOptions> = {}): HttpInstrumentationConfig {
   const instrumentationConfig = {
+    // This is handled by the SentryHttpInstrumentation on Node 22+
+    disableOutgoingRequestInstrumentation: FULLY_SUPPORTS_HTTP_DIAGNOSTICS_CHANNEL,
+
     ignoreOutgoingRequestHook: request => {
       const url = getRequestUrl(request);
 
