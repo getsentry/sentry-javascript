@@ -4,7 +4,7 @@ import type { QueryParams } from './request';
  * Data extracted from an incoming request to a node server
  */
 export interface ExtractedNodeRequestData {
-  [key: string]: any;
+  [key: string]: unknown;
 
   /** Specific headers from the request */
   headers?: { [key: string]: string };
