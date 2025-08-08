@@ -9,6 +9,6 @@ export interface SdkInfo {
   integrations?: string[];
   packages?: Package[];
   settings?: {
-    infer_ip?: 'auto' | 'never' | 'legacy';
+    infer_ip?: 'auto' | 'never';
   };
 }

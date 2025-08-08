@@ -13,8 +13,6 @@ import { SDK_VERSION } from '../utils/version';
  *
  * @param options SDK options object that gets mutated
  * @param names list of package names
- * @param source source of the SDK (npm, cdn, etc)
- * @param setInferIp whether to set the ip inferral setting on the SDK metadata object
  */
 export function applySdkMetadata(options: Options, name: string, names = [name], source = 'npm'): void {
   const metadata = options._metadata || {};
