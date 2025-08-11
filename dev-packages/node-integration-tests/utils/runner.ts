@@ -196,18 +196,6 @@ export function createEsmAndCjsTests(
   const tmpDirPath = join(cwd, `tmp_${uniqueId}`);
   mkdirSync(tmpDirPath);
 
-  // Ensure tmp dir is removed on process exit as a fallback
-  CLEANUP_STEPS.add(() => {
-    try {
-      rmSync(tmpDirPath, { recursive: true, force: true });
-    } catch {
-      if (process.env.DEBUG) {
-        // eslint-disable-next-line no-console
-        console.error(`Failed to remove tmp dir: ${tmpDirPath}`);
-      }
-    }
-  });
-
   // Copy ESM files as-is into tmp dir
   const esmScenarioBasename = basename(scenarioPath);
   const esmInstrumentBasename = basename(instrumentPath);
