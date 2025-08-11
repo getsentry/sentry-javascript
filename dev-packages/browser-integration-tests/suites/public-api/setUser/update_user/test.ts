@@ -13,10 +13,11 @@ sentryTest('should update user', async ({ getLocalTestUrl, page }) => {
     id: 'foo',
     ip_address: 'bar',
   });
+  expect(eventData[0].sdk?.settings?.infer_ip).toBe('auto');
 
   expect(eventData[1].message).toBe('second_user');
   expect(eventData[1].user).toEqual({
     id: 'baz',
-    ip_address: '{{auto}}',
   });
+  expect(eventData[1].sdk?.settings?.infer_ip).toBe('auto');
 });
