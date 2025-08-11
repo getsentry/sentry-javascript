@@ -14,9 +14,11 @@ import type { NextConfigObject, TurbopackOptions, TurbopackRuleConfigItemOrShort
 export function constructTurbopackConfig({
   userNextConfig,
   routeManifest,
+  nextJsVersion,
 }: {
   userNextConfig: NextConfigObject;
   routeManifest?: RouteManifest;
+  nextJsVersion?: string;
 }): TurbopackOptions {
   const newConfig: TurbopackOptions = {
     ...userNextConfig.turbopack,
@@ -32,6 +34,24 @@ export function constructTurbopackConfig({
             options: {
               values: {
                 _sentryRouteManifest: JSON.stringify(routeManifest),
+              },
+            },
+          },
+        ],
+      },
+    });
+  }
+
+  if (nextJsVersion) {
+    newConfig.rules = safelyAddTurbopackRule(newConfig.rules, {
+      matcher: '**/instrumentation.*',
+      rule: {
+        loaders: [
+          {
+            loader: path.resolve(__dirname, '..', 'loaders', 'valueInjectionLoader.js'),
+            options: {
+              values: {
+                _sentryNextJsVersion: nextJsVersion,
               },
             },
           },

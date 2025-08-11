@@ -45,6 +45,7 @@ export function constructWebpackConfigFunction(
   userSentryOptions: SentryBuildOptions = {},
   releaseName: string | undefined,
   routeManifest: RouteManifest | undefined,
+  nextJsVersion: string | undefined,
 ): WebpackConfigFunction {
   // Will be called by nextjs and passed its default webpack configuration and context data about the build (whether
   // we're building server or client, whether we're in dev, what version of webpack we're using, etc). Note that
@@ -90,7 +91,15 @@ export function constructWebpackConfigFunction(
     const newConfig = setUpModuleRules(rawNewConfig);
 
     // Add a loader which will inject code that sets global values
-    addValueInjectionLoader(newConfig, userNextConfig, userSentryOptions, buildContext, releaseName, routeManifest);
+    addValueInjectionLoader({
+      newConfig,
+      userNextConfig,
+      userSentryOptions,
+      buildContext,
+      releaseName,
+      routeManifest,
+      nextJsVersion,
+    });
 
     addOtelWarningIgnoreRule(newConfig);
 
@@ -682,14 +691,23 @@ function setUpModuleRules(newConfig: WebpackConfigObject): WebpackConfigObjectWi
  */
 // TODO: Remove this loader and replace it with a nextConfig.env (https://web.archive.org/web/20240917153554/https://nextjs.org/docs/app/api-reference/next-config-js/env) or define based (https://github.com/vercel/next.js/discussions/71476) approach.
 // In order to remove this loader though we need to make sure the minimum supported Next.js version includes this PR (https://github.com/vercel/next.js/pull/61194), otherwise the nextConfig.env based approach will not work, as our SDK code is not processed by Next.js.
-function addValueInjectionLoader(
-  newConfig: WebpackConfigObjectWithModuleRules,
-  userNextConfig: NextConfigObject,
-  userSentryOptions: SentryBuildOptions,
-  buildContext: BuildContext,
-  releaseName: string | undefined,
-  routeManifest: RouteManifest | undefined,
-): void {
+function addValueInjectionLoader({
+  newConfig,
+  userNextConfig,
+  userSentryOptions,
+  buildContext,
+  releaseName,
+  routeManifest,
+  nextJsVersion,
+}: {
+  newConfig: WebpackConfigObjectWithModuleRules;
+  userNextConfig: NextConfigObject;
+  userSentryOptions: SentryBuildOptions;
+  buildContext: BuildContext;
+  releaseName: string | undefined;
+  routeManifest: RouteManifest | undefined;
+  nextJsVersion: string | undefined;
+}): void {
   const assetPrefix = userNextConfig.assetPrefix || userNextConfig.basePath || '';
 
   // Check if release creation is disabled to prevent injection that breaks build determinism
@@ -717,6 +735,7 @@ function addValueInjectionLoader(
     // Make sure that if we have a windows path, the backslashes are interpreted as such (rather than as escape
     // characters)
     _sentryRewriteFramesDistDir: userNextConfig.distDir?.replace(/\\/g, '\\\\') || '.next',
+    _sentryNextJsVersion: nextJsVersion || '0.0.0',
   };
 
   const clientValues = {

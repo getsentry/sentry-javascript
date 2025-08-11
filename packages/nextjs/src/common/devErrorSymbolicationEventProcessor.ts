@@ -12,9 +12,7 @@ type OriginalStackFrameResponse = {
 
 const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   _sentryBasePath?: string;
-  next?: {
-    version?: string;
-  };
+  _sentryNextJsVersion: string | undefined;
 };
 
 /**
@@ -39,9 +37,15 @@ export async function devErrorSymbolicationEventProcessor(event: Event, hint: Ev
   try {
     if (hint.originalException && hint.originalException instanceof Error && hint.originalException.stack) {
       const frames = stackTraceParser.parse(hint.originalException.stack);
+      const nextJsVersion = globalWithInjectedValues._sentryNextJsVersion;
 
-      const nextjsVersion = globalWithInjectedValues.next?.version || '0.0.0';
-      const parsedNextjsVersion = nextjsVersion ? parseSemver(nextjsVersion) : {};
+      // If we for whatever reason don't have a Next.js version,
+      // we don't want to symbolicate as this previously lead to infinite loops
+      if (!nextJsVersion) {
+        return event;
+      }
+
+      const parsedNextjsVersion = parseSemver(nextJsVersion);
 
       let resolvedFrames: ({
         originalCodeFrame: string | null;
