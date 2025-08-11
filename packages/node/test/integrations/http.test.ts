@@ -47,6 +47,9 @@ describe('httpIntegration', () => {
       ['/browserconfig.xml', true],
       // non-static routes
       ['/api/users', false],
+      ['/some-json.json', false],
+      ['/some-xml.xml', false],
+      ['/some-txt.txt', false],
       ['/users', false],
       ['/graphql', false],
       ['/', false],
