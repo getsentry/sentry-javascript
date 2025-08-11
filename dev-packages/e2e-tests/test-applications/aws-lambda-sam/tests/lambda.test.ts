@@ -1,4 +1,4 @@
-import { test as base } from '@playwright/test';
+import { test as base, expect } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 import { App } from 'aws-cdk-lib';
 import { LocalLambdaStack, SAM_PORT, getHostIp } from '../stack.js';
@@ -83,38 +83,94 @@ const test = base.extend<{ testEnvironment: LocalLambdaStack; lambdaClient: Lamb
   },
 });
 
-test('basic no exception', async ({ lambdaClient }) => {
-  const transactionEventPromise = waitForTransaction('aws-serverless-lambda-sam', transactionEvent => {
-    return transactionEvent?.transaction === 'basic';
+test.describe('Lambda layer', () => {
+  test('CJS', async ({ lambdaClient }) => {
+    const transactionEventPromise = waitForTransaction('aws-serverless-lambda-sam', transactionEvent => {
+      return transactionEvent?.transaction === 'CjsLayer';
+    });
+
+    await lambdaClient.send(
+      new InvokeCommand({
+        FunctionName: 'CjsLayer',
+        Payload: JSON.stringify({}),
+      }),
+    );
+
+    const transactionEvent = await transactionEventPromise;
+
+    expect(transactionEvent.type).toEqual('transaction');
+    expect(transactionEvent.transaction).toEqual('CjsLayer');
+    expect(transactionEvent.sdk?.name).toEqual('sentry.javascript.aws-serverless');
+    expect(transactionEvent.contexts?.trace?.origin).toEqual('auto.otel.aws-lambda');
+    expect(transactionEvent.contexts?.trace?.op).toEqual('function.aws.lambda');
+    expect(transactionEvent.spans).toHaveLength(0);
   });
 
-  await lambdaClient.send(
-    new InvokeCommand({
-      FunctionName: 'basic',
-      Payload: JSON.stringify({}),
-    }),
-  );
+  test('ESM', async ({ lambdaClient }) => {
+    const transactionEventPromise = waitForTransaction('aws-serverless-lambda-sam', transactionEvent => {
+      return transactionEvent?.transaction === 'EsmLayer';
+    });
 
-  const transactionEvent = await transactionEventPromise;
+    await lambdaClient.send(
+      new InvokeCommand({
+        FunctionName: 'EsmLayer',
+        Payload: JSON.stringify({}),
+      }),
+    );
 
-  console.log('Transaction event received');
+    const transactionEvent = await transactionEventPromise;
 
-  console.log(transactionEvent);
+    expect(transactionEvent.type).toEqual('transaction');
+    expect(transactionEvent.transaction).toEqual('EsmLayer');
+    expect(transactionEvent.sdk?.name).toEqual('sentry.javascript.aws-serverless');
+    expect(transactionEvent.contexts?.trace?.origin).toEqual('auto.otel.aws-lambda');
+    expect(transactionEvent.contexts?.trace?.op).toEqual('function.aws.lambda');
+    expect(transactionEvent.spans).toHaveLength(0);
+  });
 });
 
-test('esm', async ({ lambdaClient }) => {
-  const transactionEventPromise = waitForTransaction('aws-serverless-lambda-sam', transactionEvent => {
-    return transactionEvent?.transaction === 'esm';
+test.describe('NPM package', () => {
+  test('CJS', async ({ lambdaClient }) => {
+    const transactionEventPromise = waitForTransaction('aws-serverless-lambda-sam', transactionEvent => {
+      return transactionEvent?.transaction === 'CjsNpm';
+    });
+
+    await lambdaClient.send(
+      new InvokeCommand({
+        FunctionName: 'CjsNpm',
+        Payload: JSON.stringify({}),
+      }),
+    );
+
+    const transactionEvent = await transactionEventPromise;
+
+    expect(transactionEvent.type).toEqual('transaction');
+    expect(transactionEvent.transaction).toEqual('CjsNpm');
+    expect(transactionEvent.sdk?.name).toEqual('sentry.javascript.aws-serverless');
+    expect(transactionEvent.contexts?.trace?.origin).toEqual('auto.otel.aws-lambda');
+    expect(transactionEvent.contexts?.trace?.op).toEqual('function.aws.lambda');
+    expect(transactionEvent.spans).toHaveLength(0);
   });
 
-  await lambdaClient.send(
-    new InvokeCommand({
-      FunctionName: 'esm',
-      Payload: JSON.stringify({}),
-    }),
-  );
+  test('ESM', async ({ lambdaClient }) => {
+    const transactionEventPromise = waitForTransaction('aws-serverless-lambda-sam', transactionEvent => {
+      return transactionEvent?.transaction === 'EsmNpm';
+    });
 
-  const transactionEvent = await transactionEventPromise;
+    await lambdaClient.send(
+      new InvokeCommand({
+        FunctionName: 'EsmNpm',
+        Payload: JSON.stringify({}),
+      }),
+    );
 
-  console.log(transactionEvent);
+    const transactionEvent = await transactionEventPromise;
+
+    expect(transactionEvent.type).toEqual('transaction');
+    expect(transactionEvent.transaction).toEqual('EsmNpm');
+    expect(transactionEvent.sdk?.name).toEqual('sentry.javascript.aws-serverless');
+    expect(transactionEvent.contexts?.trace?.origin).toEqual('auto.otel.aws-lambda');
+    expect(transactionEvent.contexts?.trace?.op).toEqual('function.aws.lambda');
+    expect(transactionEvent.spans).toHaveLength(0);
+  });
 });

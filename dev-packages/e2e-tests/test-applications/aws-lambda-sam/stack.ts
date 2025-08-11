@@ -6,10 +6,12 @@ import * as os from 'node:os';
 import * as dns from 'node:dns/promises';
 import { platform } from 'node:process';
 import { globSync } from 'glob';
+import { execSync } from 'node:child_process';
 
-const LAMBDA_FUNCTION_DIR = './lambda-functions';
+const LAMBDA_FUNCTIONS_WITH_LAYER_DIR = './lambda-functions-layer';
+const LAMBDA_FUNCTIONS_WITH_NPM_DIR = './lambda-functions-npm';
 const LAMBDA_FUNCTION_TIMEOUT = 10;
-const LAYER_DIR = './node_modules/@sentry/aws-serverless-layer/';
+const LAYER_DIR = './node_modules/@sentry/aws-serverless/';
 export const SAM_PORT = 3001;
 const NODE_RUNTIME = `nodejs${process.version.split('.').at(0)?.replace('v', '')}.x`;
 
@@ -42,27 +44,45 @@ export class LocalLambdaStack extends Stack {
     const dsn = `http://public@${hostIp}:3031/1337`;
     console.log(`[LocalLambdaStack] Using Sentry DSN: ${dsn}`);
 
-    console.log('[LocalLambdaStack] Add all Lambda function defined in ./lambda-functions/ to the SAM stack');
+    this.addLambdaFunctions({ functionsDir: LAMBDA_FUNCTIONS_WITH_LAYER_DIR, dsn, addLayer: true });
+    this.addLambdaFunctions({ functionsDir: LAMBDA_FUNCTIONS_WITH_NPM_DIR, dsn, addLayer: false });
+  }
+
+  private addLambdaFunctions({
+    functionsDir,
+    dsn,
+    addLayer,
+  }: {
+    functionsDir: string;
+    dsn: string;
+    addLayer: boolean;
+  }) {
+    console.log(`[LocalLambdaStack] Add all Lambda functions defined in ${functionsDir} to the SAM stack`);
 
     const lambdaDirs = fs
-      .readdirSync(LAMBDA_FUNCTION_DIR)
-      .filter(dir => fs.statSync(path.join(LAMBDA_FUNCTION_DIR, dir)).isDirectory());
+      .readdirSync(functionsDir)
+      .filter(dir => fs.statSync(path.join(functionsDir, dir)).isDirectory());
 
     for (const lambdaDir of lambdaDirs) {
-      const isEsm = fs.existsSync(path.join(LAMBDA_FUNCTION_DIR, lambdaDir, 'index.mjs'));
+      const functionName = `${lambdaDir}${addLayer ? 'Layer' : 'Npm'}`;
 
-      new CfnResource(this, lambdaDir, {
+      if (!addLayer) {
+        console.log(`[LocalLambdaStack] Install dependencies for ${functionName}`);
+        const packageJson = { dependencies: { '@sentry/aws-serverless': '* || latest' } };
+        fs.writeFileSync(path.join(functionsDir, lambdaDir, 'package.json'), JSON.stringify(packageJson, null, 2));
+        execSync(`npm install --prefix ${path.join(functionsDir, lambdaDir)}`);
+      }
+
+      const isEsm = fs.existsSync(path.join(functionsDir, lambdaDir, 'index.mjs'));
+
+      new CfnResource(this, functionName, {
         type: 'AWS::Serverless::Function',
         properties: {
-          CodeUri: path.join(LAMBDA_FUNCTION_DIR, lambdaDir),
+          CodeUri: path.join(functionsDir, lambdaDir),
           Handler: 'index.handler',
           Runtime: NODE_RUNTIME,
           Timeout: LAMBDA_FUNCTION_TIMEOUT,
-          Layers: [
-            {
-              Ref: this.sentryLayer.logicalId,
-            },
-          ],
+          Layers: addLayer ? [{ Ref: this.sentryLayer.logicalId }] : undefined,
           Environment: {
             Variables: {
               SENTRY_DSN: dsn,
@@ -74,7 +94,7 @@ export class LocalLambdaStack extends Stack {
         },
       });
 
-      console.log(`[LocalLambdaStack] Added Lambda function: ${lambdaDir}`);
+      console.log(`[LocalLambdaStack] Added Lambda function: ${functionName}`);
     }
   }
 

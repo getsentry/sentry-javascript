@@ -6,18 +6,15 @@
   "scripts": {
     "test": "playwright test",
     "clean": "npx rimraf node_modules pnpm-lock.yaml",
-    "test:build": "pnpm install && npx rimraf node_modules/@sentry/aws-serverless-layer/nodejs",
+    "test:build": "pnpm install && npx rimraf node_modules/@sentry/aws-serverless/nodejs",
     "test:assert": "pnpm test"
   },
-  "dependencies": {
-    "@sentry/aws-serverless": "* || latest"
-  },
-  "//": "@sentry/aws-serverless-layer is not a package, but we use it to copy the layer zip file to the test app",
+  "//": "We just need the AWS layer zip file, not the NPM package",
   "devDependencies": {
+    "@sentry/aws-serverless": "link:../../../../packages/aws-serverless/build/aws/dist-serverless/",
     "@aws-sdk/client-lambda": "^3.863.0",
     "@playwright/test": "~1.53.2",
     "@sentry-internal/test-utils": "link:../../../test-utils",
-    "@sentry/aws-serverless-layer": "link:../../../../packages/aws-serverless/build/aws/dist-serverless/",
     "aws-cdk-lib": "^2.210.0",
     "constructs": "^10.4.2",
     "glob": "^11.0.3"
