@@ -5,10 +5,7 @@ import { HonoInstrumentation } from './instrumentation';
 
 const INTEGRATION_NAME = 'Hono';
 
-export const instrumentHono = generateInstrumentOnce(
-  INTEGRATION_NAME,
-  () => new HonoInstrumentation(),
-);
+export const instrumentHono = generateInstrumentOnce(INTEGRATION_NAME, () => new HonoInstrumentation());
 
 const _honoIntegration = (() => {
   return {

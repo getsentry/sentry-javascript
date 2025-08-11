@@ -1,4 +1,4 @@
-import { InstrumentationBase,InstrumentationNodeModuleDefinition  } from '@opentelemetry/instrumentation';
+import { InstrumentationBase, InstrumentationNodeModuleDefinition } from '@opentelemetry/instrumentation';
 import type { HandlerInterface, Hono, HonoInstance, MiddlewareHandlerInterface, OnHandlerInterface } from './types';
 
 const PACKAGE_NAME = '@sentry/instrumentation-hono';
@@ -17,11 +17,7 @@ export class HonoInstrumentation extends InstrumentationBase {
    */
   public init(): InstrumentationNodeModuleDefinition[] {
     return [
-      new InstrumentationNodeModuleDefinition(
-        'hono',
-        ['>=4.0.0 <5'],
-        moduleExports => this._patch(moduleExports),
-      ),
+      new InstrumentationNodeModuleDefinition('hono', ['>=4.0.0 <5'], moduleExports => this._patch(moduleExports)),
     ];
   }
 
@@ -54,7 +50,7 @@ export class HonoInstrumentation extends InstrumentationBase {
    * Patches the route handler to instrument it.
    */
   private _patchHandler(): (original: HandlerInterface) => HandlerInterface {
-    return function(original: HandlerInterface) {
+    return function (original: HandlerInterface) {
       return function wrappedHandler(this: HonoInstance, ...args: unknown[]) {
         // TODO: Add OpenTelemetry tracing logic here
         return original.apply(this, args);
@@ -66,7 +62,7 @@ export class HonoInstrumentation extends InstrumentationBase {
    * Patches the 'on' handler to instrument it.
    */
   private _patchOnHandler(): (original: OnHandlerInterface) => OnHandlerInterface {
-    return function(original: OnHandlerInterface) {
+    return function (original: OnHandlerInterface) {
       return function wrappedHandler(this: HonoInstance, ...args: unknown[]) {
         // TODO: Add OpenTelemetry tracing logic here
         return original.apply(this, args);
@@ -78,7 +74,7 @@ export class HonoInstrumentation extends InstrumentationBase {
    * Patches the middleware handler to instrument it.
    */
   private _patchMiddlewareHandler(): (original: MiddlewareHandlerInterface) => MiddlewareHandlerInterface {
-    return function(original: MiddlewareHandlerInterface) {
+    return function (original: MiddlewareHandlerInterface) {
       return function wrappedHandler(this: HonoInstance, ...args: unknown[]) {
         // TODO: Add OpenTelemetry tracing logic here
         return original.apply(this, args);

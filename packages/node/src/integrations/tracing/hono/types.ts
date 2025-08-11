@@ -40,8 +40,8 @@ export interface HonoInstance {
   post: HandlerInterface;
   put: HandlerInterface;
   delete: HandlerInterface;
-  options:HandlerInterface;
-  patch:HandlerInterface;
+  options: HandlerInterface;
+  patch: HandlerInterface;
   all: HandlerInterface;
   on: OnHandlerInterface;
   use: MiddlewareHandlerInterface;
