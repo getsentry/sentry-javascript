@@ -33,8 +33,7 @@ export class HonoInstrumentation extends InstrumentationBase {
     const instrumentation = this;
 
     moduleExports.Hono = class HonoWrapper extends moduleExports.Hono {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      public constructor(...args: any[]) {
+      public constructor(...args: unknown[]) {
         super(...args);
 
         instrumentation._wrap(this, 'get', instrumentation._patchHandler());
@@ -56,8 +55,7 @@ export class HonoInstrumentation extends InstrumentationBase {
    */
   private _patchHandler(): (original: HandlerInterface) => HandlerInterface {
     return function(original: HandlerInterface) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return function wrappedHandler(this: HonoInstance, ...args: any) {
+      return function wrappedHandler(this: HonoInstance, ...args: unknown[]) {
         // TODO: Add OpenTelemetry tracing logic here
         return original.apply(this, args);
       };
@@ -69,8 +67,7 @@ export class HonoInstrumentation extends InstrumentationBase {
    */
   private _patchOnHandler(): (original: OnHandlerInterface) => OnHandlerInterface {
     return function(original: OnHandlerInterface) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return function wrappedHandler(this: HonoInstance, ...args: any) {
+      return function wrappedHandler(this: HonoInstance, ...args: unknown[]) {
         // TODO: Add OpenTelemetry tracing logic here
         return original.apply(this, args);
       };
@@ -82,8 +79,7 @@ export class HonoInstrumentation extends InstrumentationBase {
    */
   private _patchMiddlewareHandler(): (original: MiddlewareHandlerInterface) => MiddlewareHandlerInterface {
     return function(original: MiddlewareHandlerInterface) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return function wrappedHandler(this: HonoInstance, ...args: any) {
+      return function wrappedHandler(this: HonoInstance, ...args: unknown[]) {
         // TODO: Add OpenTelemetry tracing logic here
         return original.apply(this, args);
       };
