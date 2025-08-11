@@ -3,7 +3,7 @@ import { diag } from '@opentelemetry/api';
 import type { HttpInstrumentationConfig } from '@opentelemetry/instrumentation-http';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
 import type { Span } from '@sentry/core';
-import { defineIntegration, getClient, hasSpansEnabled } from '@sentry/core';
+import { defineIntegration, getClient, hasSpansEnabled, stripUrlQueryAndFragment } from '@sentry/core';
 import type { HTTPModuleRequestIncomingMessage, NodeClient } from '@sentry/node-core';
 import {
   type SentryHttpInstrumentationOptions,
@@ -336,17 +336,14 @@ function getConfigWithDefaults(options: Partial<HttpOptions> = {}): HttpInstrume
  * Only exported for tests.
  */
 export function isStaticAssetRequest(urlPath: string): boolean {
-  if (urlPath === '/favicon.ico' || urlPath.startsWith('/favicon')) {
-    return true;
-  }
-
+  const path = stripUrlQueryAndFragment(urlPath);
   // Common static file extensions
-  if (urlPath.match(/\.(ico|png|jpg|jpeg|gif|svg|css|js|woff|woff2|ttf|eot|webp|avif)$/)) {
+  if (path.match(/\.(ico|png|jpg|jpeg|gif|svg|css|js|woff|woff2|ttf|eot|webp|avif)$/)) {
     return true;
   }
 
   // Common metadata files
-  if (urlPath.match(/^\/(robots\.txt|sitemap\.xml|manifest\.json|browserconfig\.xml)$/)) {
+  if (path.match(/^\/(robots\.txt|sitemap\.xml|manifest\.json|browserconfig\.xml)$/)) {
     return true;
   }
 

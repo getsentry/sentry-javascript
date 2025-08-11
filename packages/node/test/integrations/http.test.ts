@@ -38,6 +38,7 @@ describe('httpIntegration', () => {
       ['/images/logo.svg', true],
       ['/img/photo.jpeg', true],
       ['/img/photo.jpg', true],
+      ['/img/photo.jpg?v=123', true],
       ['/img/photo.webp', true],
       ['/font/font.ttf', true],
       ['/robots.txt', true],
