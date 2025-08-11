@@ -2,7 +2,7 @@ import type { Client } from '@sentry/core';
 import { createTransport, Scope, ServerRuntimeClient, withScope } from '@sentry/core';
 import { EventEmitter } from 'stream';
 import { describe, expect, it, vi } from 'vitest';
-import { recordRequestSession } from '../../src/integrations/http/SentryHttpInstrumentation';
+import { recordRequestSession } from '../../src/integrations/http/incoming-requests';
 
 vi.useFakeTimers();
 

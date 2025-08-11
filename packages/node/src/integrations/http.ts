@@ -13,7 +13,7 @@ import {
   NODE_VERSION,
   SentryHttpInstrumentation,
 } from '@sentry/node-core';
-import type { NodeClientOptions } from '../../types';
+import type { NodeClientOptions } from '../types';
 
 const INTEGRATION_NAME = 'Http';
 
