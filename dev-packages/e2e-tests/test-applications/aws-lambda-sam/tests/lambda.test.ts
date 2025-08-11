@@ -1,10 +1,9 @@
 import { test as base, expect } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 import { App } from 'aws-cdk-lib';
+import * as tmp from 'tmp';
 import { LocalLambdaStack, SAM_PORT, getHostIp } from '../stack.js';
-import { writeFileSync, openSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import * as path from 'node:path';
+import { writeFileSync } from 'node:fs';
 import { spawn, execSync } from 'node:child_process';
 import { InvokeCommand, LambdaClient } from '@aws-sdk/client-lambda';
 
@@ -26,9 +25,8 @@ const test = base.extend<{ testEnvironment: LocalLambdaStack; lambdaClient: Lamb
       const template = app.synth().getStackByName('LocalLambdaStack').template;
       writeFileSync(SAM_TEMPLATE_FILE, JSON.stringify(template, null, 2));
 
-      const debugLogFile = path.join(tmpdir(), 'sentry_aws_lambda_tests_sam_debug.log');
-      const debugLogFd = openSync(debugLogFile, 'w');
-      console.log(`[test_environment fixture] Writing SAM debug log to: ${debugLogFile}`);
+      const debugLog = tmp.fileSync({ prefix: 'sentry_aws_lambda_tests_sam_debug_', postfix: '.log' });
+      console.log(`[test_environment fixture] Writing SAM debug log to: ${debugLog.name}`);
 
       const process = spawn(
         'sam',
@@ -44,7 +42,7 @@ const test = base.extend<{ testEnvironment: LocalLambdaStack; lambdaClient: Lamb
           DOCKER_NETWORK_NAME,
         ],
         {
-          stdio: ['ignore', debugLogFd, debugLogFd],
+          stdio: ['ignore', debugLog.fd, debugLog.fd],
         },
       );
 

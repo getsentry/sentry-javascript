@@ -6,7 +6,7 @@ import * as os from 'node:os';
 import * as dns from 'node:dns/promises';
 import { platform } from 'node:process';
 import { globSync } from 'glob';
-import { execSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 
 const LAMBDA_FUNCTIONS_WITH_LAYER_DIR = './lambda-functions-layer';
 const LAMBDA_FUNCTIONS_WITH_NPM_DIR = './lambda-functions-npm';
@@ -70,7 +70,7 @@ export class LocalLambdaStack extends Stack {
         console.log(`[LocalLambdaStack] Install dependencies for ${functionName}`);
         const packageJson = { dependencies: { '@sentry/aws-serverless': '* || latest' } };
         fs.writeFileSync(path.join(functionsDir, lambdaDir, 'package.json'), JSON.stringify(packageJson, null, 2));
-        execSync(`npm install --prefix ${path.join(functionsDir, lambdaDir)}`);
+        execFileSync('npm', ['install', '--prefix', path.join(functionsDir, lambdaDir)], { stdio: 'inherit' });
       }
 
       const isEsm = fs.existsSync(path.join(functionsDir, lambdaDir, 'index.mjs'));

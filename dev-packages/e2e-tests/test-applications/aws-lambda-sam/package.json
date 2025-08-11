@@ -11,13 +11,15 @@
   },
   "//": "We just need the AWS layer zip file, not the NPM package",
   "devDependencies": {
-    "@sentry/aws-serverless": "link:../../../../packages/aws-serverless/build/aws/dist-serverless/",
     "@aws-sdk/client-lambda": "^3.863.0",
     "@playwright/test": "~1.53.2",
     "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@sentry/aws-serverless": "link:../../../../packages/aws-serverless/build/aws/dist-serverless/",
+    "@types/tmp": "^0.2.6",
     "aws-cdk-lib": "^2.210.0",
     "constructs": "^10.4.2",
-    "glob": "^11.0.3"
+    "glob": "^11.0.3",
+    "tmp": "^0.2.5"
   },
   "volta": {
     "extends": "../../package.json"
