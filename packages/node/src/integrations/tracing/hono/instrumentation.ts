@@ -32,24 +32,22 @@ export class HonoInstrumentation extends InstrumentationBase {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const instrumentation = this;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    function Hono(this: HonoInstance, ...args: any): HonoInstance {
-      const app: HonoInstance = moduleExports.Hono.apply(this, args);
+    moduleExports.Hono = class HonoWrapper extends moduleExports.Hono {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      public constructor(...args: any[]) {
+        super(...args);
 
-      instrumentation._wrap(app, 'get', instrumentation._patchHandler());
-      instrumentation._wrap(app, 'post', instrumentation._patchHandler());
-      instrumentation._wrap(app, 'put', instrumentation._patchHandler());
-      instrumentation._wrap(app, 'delete', instrumentation._patchHandler());
-      instrumentation._wrap(app, 'options', instrumentation._patchHandler());
-      instrumentation._wrap(app, 'patch', instrumentation._patchHandler());
-      instrumentation._wrap(app, 'all', instrumentation._patchHandler());
-      instrumentation._wrap(app, 'on', instrumentation._patchOnHandler());
-      instrumentation._wrap(app, 'use', instrumentation._patchMiddlewareHandler());
-
-      return app;
-    }
-
-    moduleExports.Hono = Hono;
+        instrumentation._wrap(this, 'get', instrumentation._patchHandler());
+        instrumentation._wrap(this, 'post', instrumentation._patchHandler());
+        instrumentation._wrap(this, 'put', instrumentation._patchHandler());
+        instrumentation._wrap(this, 'delete', instrumentation._patchHandler());
+        instrumentation._wrap(this, 'options', instrumentation._patchHandler());
+        instrumentation._wrap(this, 'patch', instrumentation._patchHandler());
+        instrumentation._wrap(this, 'all', instrumentation._patchHandler());
+        instrumentation._wrap(this, 'on', instrumentation._patchOnHandler());
+        instrumentation._wrap(this, 'use', instrumentation._patchMiddlewareHandler());
+      }
+    };
     return moduleExports;
   }
 

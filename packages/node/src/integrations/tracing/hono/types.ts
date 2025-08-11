@@ -47,4 +47,5 @@ export interface HonoInstance {
   use: MiddlewareHandlerInterface;
 }
 
-export type Hono = () => HonoInstance;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type Hono = new (...args: any[]) => HonoInstance;
