@@ -87,7 +87,9 @@ export async function devErrorSymbolicationEventProcessor(event: Event, hint: Ev
               context_line: contextLine,
               post_context: postContextLines,
               function: resolvedFrame.originalStackFrame.methodName,
-              filename: resolvedFrame.originalStackFrame.file || undefined,
+              filename: resolvedFrame.originalStackFrame.file
+                ? stripWebpackInternalPrefix(resolvedFrame.originalStackFrame.file)
+                : undefined,
               lineno:
                 resolvedFrame.originalStackFrame.lineNumber || resolvedFrame.originalStackFrame.line1 || undefined,
               colno: resolvedFrame.originalStackFrame.column || resolvedFrame.originalStackFrame.column1 || undefined,
@@ -284,4 +286,22 @@ function parseOriginalCodeFrame(codeFrame: string): {
     preContextLines,
     postContextLines,
   };
+}
+
+/**
+ * Strips webpack-internal prefixes from filenames to clean up stack traces.
+ *
+ * Examples:
+ * - "webpack-internal:///./components/file.tsx" -> "./components/file.tsx"
+ * - "webpack-internal:///(app-pages-browser)/./components/file.tsx" -> "./components/file.tsx"
+ */
+function stripWebpackInternalPrefix(filename: string): string | undefined {
+  if (!filename) {
+    return filename;
+  }
+
+  const webpackInternalRegex = /^webpack-internal:(?:\/+)?(?:\([^)]*\)\/)?(.+)$/;
+  const match = filename.match(webpackInternalRegex);
+
+  return match ? match[1] : filename;
 }
