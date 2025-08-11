@@ -3,14 +3,18 @@ import type { EntryContext } from 'react-router';
 import { PassThrough } from 'stream';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createSentryHandleRequest } from '../../src/server/createSentryHandleRequest';
+import * as getMetaTagTransformerModule from '../../src/server/getMetaTagTransformer';
 import * as wrapSentryHandleRequestModule from '../../src/server/wrapSentryHandleRequest';
 
 vi.mock('../../src/server/wrapSentryHandleRequest', () => ({
   wrapSentryHandleRequest: vi.fn(fn => fn),
-  getMetaTagTransformer: vi.fn(body => {
-    const transform = new PassThrough();
-    transform.pipe(body);
-    return transform;
+}));
+
+vi.mock('../../src/server/getMetaTagTransformer', () => ({
+  getMetaTagTransformer: vi.fn(bodyStream => {
+    const transformer = new PassThrough();
+    bodyStream.pipe(transformer);
+    return transformer;
   }),
 }));
 
@@ -247,7 +251,7 @@ describe('createSentryHandleRequest', () => {
   });
 
   it('should pipe to the meta tag transformer', async () => {
-    const getMetaTagTransformerSpy = vi.spyOn(wrapSentryHandleRequestModule, 'getMetaTagTransformer');
+    const getMetaTagTransformerSpy = vi.spyOn(getMetaTagTransformerModule, 'getMetaTagTransformer');
 
     const pipeSpy = vi.fn();
 

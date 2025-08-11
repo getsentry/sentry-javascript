@@ -124,7 +124,7 @@ describe('MCP Server PII Filtering', () => {
         setAttributes: vi.fn(),
         setStatus: vi.fn(),
         end: vi.fn(),
-      } as any;
+      } as unknown as ReturnType<typeof tracingModule.startInactiveSpan>;
       startInactiveSpanSpy.mockReturnValueOnce(mockSpan);
 
       const toolCallRequest = {
@@ -147,7 +147,7 @@ describe('MCP Server PII Filtering', () => {
 
       mockTransport.send?.(toolResponse);
 
-      // Tool result content should be filtered out
+      // Tool result content should be filtered out, but metadata should remain
       const setAttributesCall = mockSpan.setAttributes.mock.calls[0]?.[0];
       expect(setAttributesCall).toBeDefined();
       expect(setAttributesCall).not.toHaveProperty('mcp.tool.result.content');
@@ -163,6 +163,11 @@ describe('MCP Server PII Filtering', () => {
         'client.port': 54321,
         'mcp.request.argument.location': '"San Francisco"',
         'mcp.tool.result.content': 'Weather data: 18°C',
+        'mcp.tool.result.content_count': 1,
+        'mcp.prompt.result.description': 'Code review prompt for sensitive analysis',
+        'mcp.prompt.result.message_content': 'Please review this confidential code.',
+        'mcp.prompt.result.message_count': 1,
+        'mcp.resource.result.content': 'Sensitive resource content',
         'mcp.logging.message': 'User requested weather',
         'mcp.resource.uri': 'file:///private/docs/secret.txt',
         'mcp.method.name': 'tools/call', // Non-PII should remain
@@ -180,6 +185,16 @@ describe('MCP Server PII Filtering', () => {
         'mcp.request.argument.location': '"San Francisco"',
         'mcp.request.argument.units': '"celsius"',
         'mcp.tool.result.content': 'Weather data: 18°C',
+        'mcp.tool.result.content_count': 1,
+        'mcp.prompt.result.description': 'Code review prompt for sensitive analysis',
+        'mcp.prompt.result.message_count': 2,
+        'mcp.prompt.result.0.role': 'user',
+        'mcp.prompt.result.0.content': 'Sensitive prompt content',
+        'mcp.prompt.result.1.role': 'assistant',
+        'mcp.prompt.result.1.content': 'Another sensitive response',
+        'mcp.resource.result.content_count': 1,
+        'mcp.resource.result.uri': 'file:///private/file.txt',
+        'mcp.resource.result.content': 'Sensitive resource content',
         'mcp.logging.message': 'User requested weather',
         'mcp.resource.uri': 'file:///private/docs/secret.txt',
         'mcp.method.name': 'tools/call', // Non-PII should remain
@@ -188,14 +203,37 @@ describe('MCP Server PII Filtering', () => {
 
       const result = filterMcpPiiFromSpanData(spanData, false);
 
+      // Client info should be filtered
       expect(result).not.toHaveProperty('client.address');
       expect(result).not.toHaveProperty('client.port');
+
+      // Request arguments should be filtered
       expect(result).not.toHaveProperty('mcp.request.argument.location');
       expect(result).not.toHaveProperty('mcp.request.argument.units');
+
+      // Specific PII content attributes should be filtered
       expect(result).not.toHaveProperty('mcp.tool.result.content');
+      expect(result).not.toHaveProperty('mcp.prompt.result.description');
+
+      // Count attributes should remain as they don't contain sensitive content
+      expect(result).toHaveProperty('mcp.tool.result.content_count', 1);
+      expect(result).toHaveProperty('mcp.prompt.result.message_count', 2);
+
+      // All tool and prompt result content should be filtered (including indexed attributes)
+      expect(result).not.toHaveProperty('mcp.prompt.result.0.role');
+      expect(result).not.toHaveProperty('mcp.prompt.result.0.content');
+      expect(result).not.toHaveProperty('mcp.prompt.result.1.role');
+      expect(result).not.toHaveProperty('mcp.prompt.result.1.content');
+
+      expect(result).toHaveProperty('mcp.resource.result.content_count', 1);
+      expect(result).toHaveProperty('mcp.resource.result.uri', 'file:///private/file.txt');
+      expect(result).toHaveProperty('mcp.resource.result.content', 'Sensitive resource content');
+
+      // Other PII attributes should be filtered
       expect(result).not.toHaveProperty('mcp.logging.message');
       expect(result).not.toHaveProperty('mcp.resource.uri');
 
+      // Non-PII attributes should remain
       expect(result).toHaveProperty('mcp.method.name', 'tools/call');
       expect(result).toHaveProperty('mcp.session.id', 'test-session-123');
     });
