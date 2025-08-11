@@ -45,7 +45,7 @@ These have also been documented via [Cursor Rules](../.cursor/rules/publishing-r
 2. Create a new section in the changelog with the previously determined version number.
 3. Paste in the logs you copied earlier.
 4. If there are any important features or fixes, highlight them under the `Important Changes` subheading. If there are no important changes, don't include this section. If the `Important Changes` subheading is used, put all other user-facing changes under the `Other Changes` subheading.
-5. Any changes that are purely internal (e.g. internal refactors `ref` without user-facing changes, tests, chores, etc) should be put under a `<details>` block, where the `<summary>` heading is "Internal Changes" (see example).
+5. Any changes that are purely internal (e.g. internal refactors (`ref`) without user-facing changes, tests, chores, etc) should be put under a `<details>` block, where the `<summary>` heading is "Internal Changes" (see example).
 6. Make sure the changelog entries are ordered alphabetically.
 7. If any of the PRs are from external contributors, include underneath the commits
    `Work in this release contributed by <list of external contributors' GitHub usernames>. Thank you for your contributions!`.
