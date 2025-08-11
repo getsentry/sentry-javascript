@@ -9,7 +9,7 @@
     "test:build": "pnpm install && npx rimraf node_modules/@sentry/aws-serverless/nodejs",
     "test:assert": "pnpm test"
   },
-  "//": "We just need the AWS layer zip file, not the NPM package",
+  "//": "We just need the @sentry/aws-serverless layer zip file, not the NPM package",
   "devDependencies": {
     "@aws-sdk/client-lambda": "^3.863.0",
     "@playwright/test": "~1.53.2",
@@ -23,8 +23,5 @@
   },
   "volta": {
     "extends": "../../package.json"
-  },
-  "sentryTest": {
-    "optional": true
   }
 }

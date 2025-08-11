@@ -8,8 +8,8 @@ import { platform } from 'node:process';
 import { globSync } from 'glob';
 import { execFileSync } from 'node:child_process';
 
-const LAMBDA_FUNCTIONS_WITH_LAYER_DIR = './lambda-functions-layer';
-const LAMBDA_FUNCTIONS_WITH_NPM_DIR = './lambda-functions-npm';
+const LAMBDA_FUNCTIONS_WITH_LAYER_DIR = './src/lambda-functions-layer';
+const LAMBDA_FUNCTIONS_WITH_NPM_DIR = './src/lambda-functions-npm';
 const LAMBDA_FUNCTION_TIMEOUT = 10;
 const LAYER_DIR = './node_modules/@sentry/aws-serverless/';
 export const SAM_PORT = 3001;
@@ -64,7 +64,7 @@ export class LocalLambdaStack extends Stack {
       .filter(dir => fs.statSync(path.join(functionsDir, dir)).isDirectory());
 
     for (const lambdaDir of lambdaDirs) {
-      const functionName = `${lambdaDir}${addLayer ? 'Layer' : 'Npm'}`;
+      const functionName = `${addLayer ? 'Layer' : 'Npm'}${lambdaDir}`;
 
       if (!addLayer) {
         console.log(`[LocalLambdaStack] Install dependencies for ${functionName}`);
