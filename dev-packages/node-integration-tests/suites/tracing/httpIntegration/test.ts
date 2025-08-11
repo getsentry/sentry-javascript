@@ -185,4 +185,44 @@ describe('httpIntegration', () => {
       closeTestServer();
     });
   });
+
+  test('ignores static asset requests by default', async () => {
+    const runner = createRunner(__dirname, 'server-ignoreStaticAssets.js')
+      .expect({
+        transaction: event => {
+          expect(event.transaction).toBe('GET /test');
+          expect(event.contexts?.trace?.data?.url).toMatch(/\/test$/);
+          expect(event.contexts?.trace?.op).toBe('http.server');
+          expect(event.contexts?.trace?.status).toBe('ok');
+        },
+      })
+      .start();
+
+    // These should be ignored by default
+    await runner.makeRequest('get', '/favicon.ico');
+    await runner.makeRequest('get', '/robots.txt');
+    await runner.makeRequest('get', '/assets/app.js');
+
+    // This one should be traced
+    await runner.makeRequest('get', '/test');
+
+    await runner.completed();
+  });
+
+  test('traces static asset requests when ignoreStaticAssets is false', async () => {
+    const runner = createRunner(__dirname, 'server-traceStaticAssets.js')
+      .expect({
+        transaction: event => {
+          expect(event.transaction).toBe('GET /favicon.ico');
+          expect(event.contexts?.trace?.data?.url).toMatch(/\/favicon.ico$/);
+          expect(event.contexts?.trace?.op).toBe('http.server');
+          expect(event.contexts?.trace?.status).toBe('ok');
+        },
+      })
+      .start();
+
+    await runner.makeRequest('get', '/favicon.ico');
+
+    await runner.completed();
+  });
 });

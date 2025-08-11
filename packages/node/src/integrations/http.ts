@@ -3,7 +3,7 @@ import { diag } from '@opentelemetry/api';
 import type { HttpInstrumentationConfig } from '@opentelemetry/instrumentation-http';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
 import type { Span } from '@sentry/core';
-import { defineIntegration, getClient, hasSpansEnabled } from '@sentry/core';
+import { defineIntegration, getClient, hasSpansEnabled, stripUrlQueryAndFragment } from '@sentry/core';
 import type { HTTPModuleRequestIncomingMessage, NodeClient } from '@sentry/node-core';
 import {
   type SentryHttpInstrumentationOptions,
@@ -13,7 +13,7 @@ import {
   NODE_VERSION,
   SentryHttpInstrumentation,
 } from '@sentry/node-core';
-import type { NodeClientOptions } from '../../types';
+import type { NodeClientOptions } from '../types';
 
 const INTEGRATION_NAME = 'Http';
 
@@ -73,6 +73,14 @@ interface HttpOptions {
    * You can use it to filter on additional properties like method, headers, etc.
    */
   ignoreIncomingRequests?: (urlPath: string, request: IncomingMessage) => boolean;
+
+  /**
+   * Whether to automatically ignore common static asset requests like favicon.ico, robots.txt, etc.
+   * This helps reduce noise in your transactions.
+   *
+   * @default `true`
+   */
+  ignoreStaticAssets?: boolean;
 
   /**
    * Do not capture spans for incoming HTTP requests with the given status codes.
@@ -284,6 +292,11 @@ function getConfigWithDefaults(options: Partial<HttpOptions> = {}): HttpInstrume
         return true;
       }
 
+      // Default static asset filtering
+      if (options.ignoreStaticAssets !== false && method === 'GET' && urlPath && isStaticAssetRequest(urlPath)) {
+        return true;
+      }
+
       const _ignoreIncomingRequests = options.ignoreIncomingRequests;
       if (urlPath && _ignoreIncomingRequests?.(urlPath, request)) {
         return true;
@@ -315,4 +328,24 @@ function getConfigWithDefaults(options: Partial<HttpOptions> = {}): HttpInstrume
   } satisfies HttpInstrumentationConfig;
 
   return instrumentationConfig;
+}
+
+/**
+ * Check if a request is for a common static asset that should be ignored by default.
+ *
+ * Only exported for tests.
+ */
+export function isStaticAssetRequest(urlPath: string): boolean {
+  const path = stripUrlQueryAndFragment(urlPath);
+  // Common static file extensions
+  if (path.match(/\.(ico|png|jpg|jpeg|gif|svg|css|js|woff|woff2|ttf|eot|webp|avif)$/)) {
+    return true;
+  }
+
+  // Common metadata files
+  if (path.match(/^\/(robots\.txt|sitemap\.xml|manifest\.json|browserconfig\.xml)$/)) {
+    return true;
+  }
+
+  return false;
 }

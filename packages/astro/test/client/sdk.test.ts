@@ -41,6 +41,9 @@ describe('Sentry client SDK', () => {
                 { name: 'npm:@sentry/astro', version: SDK_VERSION },
                 { name: 'npm:@sentry/browser', version: SDK_VERSION },
               ],
+              settings: {
+                infer_ip: 'never',
+              },
             },
           },
         }),
