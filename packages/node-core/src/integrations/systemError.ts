@@ -1,4 +1,4 @@
-import { getSystemErrorMap } from 'node:util';
+import * as util from 'node:util';
 import { defineIntegration } from '@sentry/core';
 
 const INTEGRATION_NAME = 'NodeSystemError';
@@ -22,7 +22,7 @@ function isSystemError(error: unknown): error is SystemError {
 
   // Appears this is the recommended way to check for Node.js SystemError
   // https://github.com/nodejs/node/issues/46869
-  return getSystemErrorMap().has(error.errno);
+  return util.getSystemErrorMap().has(error.errno);
 }
 
 type Options = {
