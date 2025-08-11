@@ -174,6 +174,9 @@ export function createEsmAndCjsTests(
     testFn: typeof test | typeof test.fails,
     mode: 'esm' | 'cjs',
   ) => void,
+  // `additionalDependencies` to install in a tmp dir for the esm and cjs tests
+  // This could be used to override packages that live in the parent package.json for the specific run of the test
+  // e.g. `{ ai: '^5.0.0' }` to test Vercel AI v5
   options?: { failsOnCjs?: boolean; failsOnEsm?: boolean; additionalDependencies?: Record<string, string> },
 ): void {
   const mjsScenarioPath = join(cwd, scenarioPath);
@@ -192,6 +195,18 @@ export function createEsmAndCjsTests(
   const uniqueId = `${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
   const tmpDirPath = join(cwd, `tmp_${uniqueId}`);
   mkdirSync(tmpDirPath);
+
+  // Ensure tmp dir is removed on process exit as a fallback
+  CLEANUP_STEPS.add(() => {
+    try {
+      rmSync(tmpDirPath, { recursive: true, force: true });
+    } catch {
+      if (process.env.DEBUG) {
+        // eslint-disable-next-line no-console
+        console.error(`Failed to remove tmp dir: ${tmpDirPath}`);
+      }
+    }
+  });
 
   // Copy ESM files as-is into tmp dir
   const esmScenarioBasename = basename(scenarioPath);
@@ -228,21 +243,20 @@ export function createEsmAndCjsTests(
       });
 
       if (deps.length > 0) {
-        // --ignore-engines is needed to avoid engine mismatches when installing deps in the tmp dir
-        // (e.g. Vercel AI v5 requires a package that requires Node >= 20 while the system Node is 18)
-        // https://github.com/vercel/ai/issues/7777
-        const result = spawnSync('yarn', ['add', '--non-interactive', '--ignore-engines', ...deps], {
+        // Prefer npm for temp installs to avoid Yarn engine strictness; see https://github.com/vercel/ai/issues/7777
+        // We rely on the generated package.json dependencies and run a plain install.
+        const result = spawnSync('npm', ['install', '--silent', '--no-audit', '--no-fund'], {
           cwd: tmpDirPath,
           encoding: 'utf8',
         });
 
         if (process.env.DEBUG) {
           // eslint-disable-next-line no-console
-          console.log('[additionalDependencies]', deps.join(' '));
+          console.log('[additionalDependencies via npm]', deps.join(' '));
           // eslint-disable-next-line no-console
-          console.log('[yarn stdout]', result.stdout);
+          console.log('[npm stdout]', result.stdout);
           // eslint-disable-next-line no-console
-          console.log('[yarn stderr]', result.stderr);
+          console.log('[npm stderr]', result.stderr);
         }
 
         if (result.error) {
@@ -263,13 +277,22 @@ export function createEsmAndCjsTests(
     }
   }
 
-  describe('esm', () => {
-    const testFn = options?.failsOnEsm ? test.fails : test;
-    callback(() => createRunner(esmScenarioPathForRun).withFlags('--import', esmInstrumentPathForRun), testFn, 'esm');
-  });
+  describe('esm/cjs', () => {
+    const esmTestFn = options?.failsOnEsm ? test.fails : test;
+    describe('esm', () => {
+      callback(
+        () => createRunner(esmScenarioPathForRun).withFlags('--import', esmInstrumentPathForRun),
+        esmTestFn,
+        'esm',
+      );
+    });
 
-  describe('cjs', () => {
-    // Clean up the tmp directory once CJS tests are finished
+    const cjsTestFn = options?.failsOnCjs ? test.fails : test;
+    describe('cjs', () => {
+      callback(() => createRunner(cjsScenarioPath).withFlags('--require', cjsInstrumentPath), cjsTestFn, 'cjs');
+    });
+
+    // Clean up the tmp directory after both esm and cjs suites have run
     afterAll(() => {
       try {
         rmSync(tmpDirPath, { recursive: true, force: true });
@@ -280,9 +303,6 @@ export function createEsmAndCjsTests(
         }
       }
     });
-
-    const testFn = options?.failsOnCjs ? test.fails : test;
-    callback(() => createRunner(cjsScenarioPath).withFlags('--require', cjsInstrumentPath), testFn, 'cjs');
   });
 }
 
