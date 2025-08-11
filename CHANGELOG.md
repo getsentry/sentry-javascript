@@ -4,6 +4,24 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## Unreleased
+
+### Important Changes
+
+- **fix(browser): Ensure IP address is only inferred by Relay if `sendDefaultPii` is `true`**
+
+This release includes a fix for a [behaviour change](https://docs.sentry.io/platforms/javascript/migration/v8-to-v9/#behavior-changes)
+that was originally introduced with v9 of the SDK: User IP Addresses should only be added to Sentry events automatically,
+if `sendDefaultPii` was set to `true`.
+
+However, the change in v9 required further internal adjustment, which should have been included in v10 of the SDK.
+Unfortunately, the change did not make it into the initial v10 version but is now applied with `10.4.0`.
+There is _no API_ breakage involved and hence it is safe to update.
+However, after updating the SDK, events (errors, traces, replays, etc.) sent from the browser, will only include
+user IP addresses, if you set `sendDefaultPii: true` in your `Sentry.init` options.
+
+We apologize for any inconvenience caused!
+
 ## 10.3.0
 
 - feat(core): MCP Server - Capture prompt results from prompt function calls (#17284)
