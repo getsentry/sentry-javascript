@@ -1,8 +1,8 @@
 import { debug } from '@sentry/core';
 import * as chalk from 'chalk';
-import * as path from 'path';
 import type { RouteManifest } from '../manifest/types';
-import type { NextConfigObject, TurbopackOptions, TurbopackRuleConfigItemOrShortcut } from '../types';
+import type { NextConfigObject, TurbopackMatcherWithRule, TurbopackOptions } from '../types';
+import { generateValueInjectionRules } from './generateValueInjectionRules';
 
 /**
  * Construct a Turbopack config object from a Next.js config object and a Turbopack options object.
@@ -24,48 +24,14 @@ export function constructTurbopackConfig({
     ...userNextConfig.turbopack,
   };
 
-  const isomorphicValues = {
-    _sentryNextJsVersion: nextJsVersion || '',
-  };
-
-  const clientValues = {
-    ...isomorphicValues,
-    _sentryRouteManifest: JSON.stringify(routeManifest),
-  };
-
-  const serverValues = {
-    ...isomorphicValues,
-  };
-
-  // Client value injection
-  newConfig.rules = safelyAddTurbopackRule(newConfig.rules, {
-    matcher: '**/instrumentation-client.*',
-    rule: {
-      loaders: [
-        {
-          loader: path.resolve(__dirname, '..', 'loaders', 'valueInjectionLoader.js'),
-          options: {
-            ...clientValues,
-          },
-        },
-      ],
-    },
+  const valueInjectionRules = generateValueInjectionRules({
+    routeManifest,
+    nextJsVersion,
   });
 
-  // Server value injection
-  newConfig.rules = safelyAddTurbopackRule(newConfig.rules, {
-    matcher: '**/instrumentation.*',
-    rule: {
-      loaders: [
-        {
-          loader: path.resolve(__dirname, '..', 'loaders', 'valueInjectionLoader.js'),
-          options: {
-            ...serverValues,
-          },
-        },
-      ],
-    },
-  });
+  for (const { matcher, rule } of valueInjectionRules) {
+    newConfig.rules = safelyAddTurbopackRule(newConfig.rules, { matcher, rule });
+  }
 
   return newConfig;
 }
@@ -80,7 +46,7 @@ export function constructTurbopackConfig({
  */
 export function safelyAddTurbopackRule(
   existingRules: TurbopackOptions['rules'],
-  { matcher, rule }: { matcher: string; rule: TurbopackRuleConfigItemOrShortcut },
+  { matcher, rule }: TurbopackMatcherWithRule,
 ): TurbopackOptions['rules'] {
   if (!existingRules) {
     return {
