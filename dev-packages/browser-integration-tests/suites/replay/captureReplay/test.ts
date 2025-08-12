@@ -47,6 +47,9 @@ sentryTest('should capture replays (@sentry/browser export)', async ({ getLocalT
       ]),
       version: SDK_VERSION,
       name: 'sentry.javascript.browser',
+      settings: {
+        infer_ip: 'never',
+      },
     },
     request: {
       url: `${TEST_HOST}/index.html`,
@@ -85,6 +88,9 @@ sentryTest('should capture replays (@sentry/browser export)', async ({ getLocalT
       ]),
       version: SDK_VERSION,
       name: 'sentry.javascript.browser',
+      settings: {
+        infer_ip: 'never',
+      },
     },
     request: {
       url: `${TEST_HOST}/index.html`,

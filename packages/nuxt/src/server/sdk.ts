@@ -43,6 +43,14 @@ export function lowQualityTransactionsFilter(options: SentryNuxtServerOptions): 
       if (event.type !== 'transaction' || !event.transaction) {
         return event;
       }
+
+      // Check if this looks like a parametrized route (contains :param or :param() patterns)
+      const hasRouteParameters = /\/:[^(/\s]*(\([^)]*\))?[^/\s]*/.test(event.transaction);
+
+      if (hasRouteParameters) {
+        return event;
+      }
+
       // We don't want to send transaction for file requests, so everything ending with a *.someExtension should be filtered out
       // path.extname will return an empty string for normal page requests
       if (path.extname(event.transaction)) {
