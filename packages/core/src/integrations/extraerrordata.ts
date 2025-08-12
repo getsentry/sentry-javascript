@@ -116,8 +116,8 @@ function _extractErrorData(
     // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Error/cause
     if (captureErrorCause && error.cause !== undefined) {
       if (isError(error.cause)) {
-        const causeName = error.cause.name || error.cause.constructor.name;
-        extraErrorInfo.cause = { [causeName]: _extractErrorData(error.cause as ExtendedError, false, maxValueLength) };
+        const errorName = error.cause.name || error.cause.constructor.name;
+        extraErrorInfo.cause = { [errorName]: _extractErrorData(error.cause as ExtendedError, false, maxValueLength) };
       } else {
         extraErrorInfo.cause = error.cause;
       }
