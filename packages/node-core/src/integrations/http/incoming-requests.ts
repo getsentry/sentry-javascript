@@ -1,6 +1,6 @@
 /* eslint-disable max-lines */
 import type { Span } from '@opentelemetry/api';
-import { context, propagation, SpanKind, trace } from '@opentelemetry/api';
+import { context, createContextKey , propagation, SpanKind, trace } from '@opentelemetry/api';
 import type { RPCMetadata } from '@opentelemetry/core';
 import { getRPCMetadata, isTracingSuppressed, RPCType, setRPCMetadata } from '@opentelemetry/core';
 import {
@@ -32,9 +32,17 @@ import type EventEmitter from 'events';
 import { errorMonitor } from 'events';
 import type { ClientRequest, IncomingHttpHeaders, IncomingMessage, Server, ServerResponse } from 'http';
 import type { Socket } from 'net';
+import { isProxy } from 'util/types';
 import { DEBUG_BUILD } from '../../debug-build';
 import type { NodeClient } from '../../sdk/client';
 import { INSTRUMENTATION_NAME, MAX_BODY_BYTE_LENGTH } from './constants';
+
+type Emit = typeof Server.prototype.emit & {
+  __sentry_patched__?: boolean;
+  __sentryOriginalFn__?: typeof Server.prototype.emit;
+};
+
+const HTTP_SERVER_INSTRUMENTED_KEY = createContextKey('sentry_http_server_instrumented');
 
 const clientToRequestSessionAggregatesMap = new Map<
   Client,
@@ -79,11 +87,14 @@ export function instrumentServer(
     };
   },
 ): void {
-  // eslint-disable-next-line @typescript-eslint/unbound-method
-  const originalEmit = server.emit;
+  type Emit = typeof server.emit & { __sentryOriginalFn__?: typeof server.emit };
 
-  // This means it was already patched, do nothing
-  if ((originalEmit as { __sentry_patched__?: boolean }).__sentry_patched__) {
+  // eslint-disable-next-line @typescript-eslint/unbound-method
+  const originalEmit: Emit = server.emit;
+
+  if (isEmitInstrumented(originalEmit)) {
+    DEBUG_BUILD &&
+      debug.log(INSTRUMENTATION_NAME, 'Incoming requests already instrumented, not instrumenting again...');
     return;
   }
 
@@ -120,6 +131,11 @@ export function instrumentServer(
     apply(target, thisArg, args: [event: string, ...args: unknown[]]) {
       // Only traces request events
       if (args[0] !== 'request') {
+        return target.apply(thisArg, args);
+      }
+
+      // Make sure we do not double wrap this, for edge cases...
+      if (context.active().getValue(HTTP_SERVER_INSTRUMENTED_KEY)) {
         return target.apply(thisArg, args);
       }
 
@@ -167,11 +183,14 @@ export function instrumentServer(
         // This way we can save an "unnecessary" `withScope()` invocation
         getCurrentScope().getPropagationContext().propagationSpanId = generateSpanId();
 
-        const ctx = propagation.extract(context.active(), normalizedRequest.headers);
+        const ctx = propagation
+          .extract(context.active(), normalizedRequest.headers)
+          .setValue(HTTP_SERVER_INSTRUMENTED_KEY, true);
 
         return context.with(ctx, () => {
           // if opting out of span creation, we can end here
           if (!spans || shouldIgnoreSpansForIncomingRequest(request) || !client) {
+            DEBUG_BUILD && debug.log(INSTRUMENTATION_NAME, 'Skipping span creation for incoming request');
             return target.apply(thisArg, args);
           }
 
@@ -263,7 +282,6 @@ export function instrumentServer(
   });
 
   addNonEnumerableProperty(newEmit, '__sentry_patched__', true);
-
   server.emit = newEmit;
 }
 
@@ -551,4 +569,20 @@ export function isStaticAssetRequest(urlPath: string): boolean {
   }
 
   return false;
+}
+
+function isEmitInstrumented(emit: Emit): boolean {
+  // Easy: it does not have a __sentry_patched__ property? def. not instrumented
+  if (!('__sentry_patched__' in emit)) {
+    return false;
+  }
+
+  // In weird cases with eventemitter2, it can _still_ be un-patched even if this propery is set :sad:
+  // In this case, emit is not a proxy, which means it is not what we set it to
+  // We'll wrap emit again in this case - but we also have code to ensure we do not double run our code inside of the wrapped emit
+  if (!isProxy(emit)) {
+    return false;
+  }
+
+  return true;
 }
