@@ -147,5 +147,6 @@ export {
 export { awsIntegration } from './integration/aws';
 export { awsLambdaIntegration } from './integration/awslambda';
 
-export { getDefaultIntegrations, init, tryPatchHandler, wrapHandler } from './sdk';
+export { getDefaultIntegrations, init } from './init';
+export { wrapHandler } from './sdk';
 export type { WrapperOptions } from './sdk';
