@@ -17,7 +17,7 @@ import { execSync, spawn, spawnSync } from 'child_process';
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'fs';
 import { basename, join } from 'path';
 import { inspect } from 'util';
-import { afterAll, describe, test } from 'vitest';
+import { afterAll, beforeAll, describe, test } from 'vitest';
 import {
   assertEnvelopeHeader,
   assertSentryCheckIn,
@@ -195,74 +195,79 @@ export function createEsmAndCjsTests(
   // If additionalDependencies are provided, we also create a nested package.json and install them there.
   const uniqueId = `${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
   const tmpDirPath = join(cwd, `tmp_${uniqueId}`);
-  mkdirSync(tmpDirPath);
-
-  // Copy ESM files as-is into tmp dir
   const esmScenarioBasename = basename(scenarioPath);
   const esmInstrumentBasename = basename(instrumentPath);
   const esmScenarioPathForRun = join(tmpDirPath, esmScenarioBasename);
   const esmInstrumentPathForRun = join(tmpDirPath, esmInstrumentBasename);
-  writeFileSync(esmScenarioPathForRun, readFileSync(mjsScenarioPath, 'utf8'));
-  writeFileSync(esmInstrumentPathForRun, readFileSync(mjsInstrumentPath, 'utf8'));
-
-  // Pre-create CJS converted files inside tmp dir
   const cjsScenarioPath = join(tmpDirPath, esmScenarioBasename.replace('.mjs', '.cjs'));
   const cjsInstrumentPath = join(tmpDirPath, esmInstrumentBasename.replace('.mjs', '.cjs'));
-  convertEsmFileToCjs(esmScenarioPathForRun, cjsScenarioPath);
-  convertEsmFileToCjs(esmInstrumentPathForRun, cjsInstrumentPath);
 
-  // Create a minimal package.json with requested dependencies (if any) and install them
-  const additionalDependencies = options?.additionalDependencies ?? {};
-  if (Object.keys(additionalDependencies).length > 0) {
-    const packageJson = {
-      name: 'tmp-integration-test',
-      private: true,
-      version: '0.0.0',
-      dependencies: additionalDependencies,
-    } as const;
+  function createTmpDir(): void {
+    mkdirSync(tmpDirPath);
 
-    writeFileSync(join(tmpDirPath, 'package.json'), JSON.stringify(packageJson, null, 2));
+    // Copy ESM files as-is into tmp dir
+    writeFileSync(esmScenarioPathForRun, readFileSync(mjsScenarioPath, 'utf8'));
+    writeFileSync(esmInstrumentPathForRun, readFileSync(mjsInstrumentPath, 'utf8'));
 
-    try {
-      const deps = Object.entries(additionalDependencies).map(([name, range]) => {
-        if (!range || typeof range !== 'string') {
-          throw new Error(`Invalid version range for "${name}": ${String(range)}`);
-        }
-        return `${name}@${range}`;
-      });
+    // Pre-create CJS converted files inside tmp dir
+    convertEsmFileToCjs(esmScenarioPathForRun, cjsScenarioPath);
+    convertEsmFileToCjs(esmInstrumentPathForRun, cjsInstrumentPath);
 
-      if (deps.length > 0) {
-        // Prefer npm for temp installs to avoid Yarn engine strictness; see https://github.com/vercel/ai/issues/7777
-        // We rely on the generated package.json dependencies and run a plain install.
-        const result = spawnSync('npm', ['install', '--silent', '--no-audit', '--no-fund'], {
-          cwd: tmpDirPath,
-          encoding: 'utf8',
+    // Create a minimal package.json with requested dependencies (if any) and install them
+    const additionalDependencies = options?.additionalDependencies ?? {};
+    if (Object.keys(additionalDependencies).length > 0) {
+      const packageJson = {
+        name: 'tmp-integration-test',
+        private: true,
+        version: '0.0.0',
+        dependencies: additionalDependencies,
+      } as const;
+
+      writeFileSync(join(tmpDirPath, 'package.json'), JSON.stringify(packageJson, null, 2));
+
+      try {
+        const deps = Object.entries(additionalDependencies).map(([name, range]) => {
+          if (!range || typeof range !== 'string') {
+            throw new Error(`Invalid version range for "${name}": ${String(range)}`);
+          }
+          return `${name}@${range}`;
         });
 
-        if (process.env.DEBUG) {
-          // eslint-disable-next-line no-console
-          console.log('[additionalDependencies via npm]', deps.join(' '));
-          // eslint-disable-next-line no-console
-          console.log('[npm stdout]', result.stdout);
-          // eslint-disable-next-line no-console
-          console.log('[npm stderr]', result.stderr);
-        }
+        if (deps.length > 0) {
+          // Prefer npm for temp installs to avoid Yarn engine strictness; see https://github.com/vercel/ai/issues/7777
+          // We rely on the generated package.json dependencies and run a plain install.
+          const result = spawnSync('npm', ['install', '--silent', '--no-audit', '--no-fund'], {
+            cwd: tmpDirPath,
+            encoding: 'utf8',
+          });
 
-        if (result.error) {
-          throw new Error(`Failed to install additionalDependencies in tmp dir ${tmpDirPath}: ${result.error.message}`);
+          if (process.env.DEBUG) {
+            // eslint-disable-next-line no-console
+            console.log('[additionalDependencies via npm]', deps.join(' '));
+            // eslint-disable-next-line no-console
+            console.log('[npm stdout]', result.stdout);
+            // eslint-disable-next-line no-console
+            console.log('[npm stderr]', result.stderr);
+          }
+
+          if (result.error) {
+            throw new Error(
+              `Failed to install additionalDependencies in tmp dir ${tmpDirPath}: ${result.error.message}`,
+            );
+          }
+          if (typeof result.status === 'number' && result.status !== 0) {
+            throw new Error(
+              `Failed to install additionalDependencies in tmp dir ${tmpDirPath} (exit ${result.status}):\n${
+                result.stderr || result.stdout || '(no output)'
+              }`,
+            );
+          }
         }
-        if (typeof result.status === 'number' && result.status !== 0) {
-          throw new Error(
-            `Failed to install additionalDependencies in tmp dir ${tmpDirPath} (exit ${result.status}):\n${
-              result.stderr || result.stdout || '(no output)'
-            }`,
-          );
-        }
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.error('Failed to install additionalDependencies:', e);
+        throw e;
       }
-    } catch (e) {
-      // eslint-disable-next-line no-console
-      console.error('Failed to install additionalDependencies:', e);
-      throw e;
     }
   }
 
@@ -279,6 +284,11 @@ export function createEsmAndCjsTests(
     const cjsTestFn = options?.failsOnCjs ? test.fails : test;
     describe('cjs', () => {
       callback(() => createRunner(cjsScenarioPath).withFlags('--require', cjsInstrumentPath), cjsTestFn, 'cjs');
+    });
+
+    // Create tmp directory
+    beforeAll(() => {
+      createTmpDir();
     });
 
     // Clean up the tmp directory after both esm and cjs suites have run
