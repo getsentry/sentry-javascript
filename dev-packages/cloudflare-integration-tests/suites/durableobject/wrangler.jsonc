@@ -1,0 +1,24 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "demo",
+  "main": "index.ts",
+  "compatibility_date": "2025-08-03",
+  "migrations": [
+    {
+      "new_sqlite_classes": ["TestDurableObject"],
+      "tag": "v1"
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "class_name": "TestDurableObject",
+        "name": "TEST_DURABLE_OBJECT"
+      }
+    ]
+  },
+  "observability": {
+    "enabled": true
+  },
+  "compatibility_flags": ["nodejs_als"]
+}
