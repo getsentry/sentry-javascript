@@ -168,6 +168,246 @@ describe('httpIntegration', () => {
         await runner.completed();
       });
     });
+
+    describe('custom server.emit', () => {
+      createEsmAndCjsTests(
+        __dirname,
+        'scenario-overwrite-server-emit.mjs',
+        'instrument-overwrite-server-emit.mjs',
+        (createRunner, test) => {
+          test('handles server.emit being overwritten via classic monkey patching', async () => {
+            const runner = createRunner()
+              .expect({
+                transaction: {
+                  transaction: 'GET /test1',
+                  contexts: {
+                    trace: {
+                      span_id: expect.stringMatching(/[a-f0-9]{16}/),
+                      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+                      data: {
+                        'http.response.status_code': 200,
+                        'sentry.op': 'http.server',
+                      },
+                    },
+                  },
+                  spans: [],
+                },
+              })
+              .expect({
+                transaction: {
+                  transaction: 'GET /test2',
+                  contexts: {
+                    trace: {
+                      span_id: expect.stringMatching(/[a-f0-9]{16}/),
+                      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+                      data: {
+                        'http.response.status_code': 200,
+                        'sentry.op': 'http.server',
+                      },
+                    },
+                  },
+                  spans: [],
+                },
+              })
+              .expect({
+                transaction: {
+                  transaction: 'GET /test3',
+                  contexts: {
+                    trace: {
+                      span_id: expect.stringMatching(/[a-f0-9]{16}/),
+                      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+                      data: {
+                        'http.response.status_code': 200,
+                        'sentry.op': 'http.server',
+                      },
+                    },
+                  },
+                  spans: [],
+                },
+              })
+              .start();
+
+            await runner.makeRequest('get', '/test1');
+            await runner.makeRequest('get', '/test2');
+            await runner.makeRequest('get', '/test3');
+            await runner.completed();
+          });
+
+          test('handles server.emit being overwritten via proxy', async () => {
+            const runner = createRunner()
+              .expect({
+                transaction: {
+                  transaction: 'GET /test1-proxy',
+                  contexts: {
+                    trace: {
+                      span_id: expect.stringMatching(/[a-f0-9]{16}/),
+                      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+                      data: {
+                        'http.response.status_code': 200,
+                        'sentry.op': 'http.server',
+                      },
+                    },
+                  },
+                  spans: [],
+                },
+              })
+              .expect({
+                transaction: {
+                  transaction: 'GET /test2-proxy',
+                  contexts: {
+                    trace: {
+                      span_id: expect.stringMatching(/[a-f0-9]{16}/),
+                      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+                      data: {
+                        'http.response.status_code': 200,
+                        'sentry.op': 'http.server',
+                      },
+                    },
+                  },
+                  spans: [],
+                },
+              })
+              .expect({
+                transaction: {
+                  transaction: 'GET /test3-proxy',
+                  contexts: {
+                    trace: {
+                      span_id: expect.stringMatching(/[a-f0-9]{16}/),
+                      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+                      data: {
+                        'http.response.status_code': 200,
+                        'sentry.op': 'http.server',
+                      },
+                    },
+                  },
+                },
+              })
+              .start();
+
+            await runner.makeRequest('get', '/test1-proxy');
+            await runner.makeRequest('get', '/test2-proxy');
+            await runner.makeRequest('get', '/test3-proxy');
+            await runner.completed();
+          });
+
+          test('handles server.emit being overwritten via classic monkey patching, using initial server.emit', async () => {
+            const runner = createRunner()
+              .expect({
+                transaction: {
+                  transaction: 'GET /test1-original',
+                  contexts: {
+                    trace: {
+                      span_id: expect.stringMatching(/[a-f0-9]{16}/),
+                      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+                      data: {
+                        'http.response.status_code': 200,
+                        'sentry.op': 'http.server',
+                      },
+                    },
+                  },
+                  spans: [],
+                },
+              })
+              .expect({
+                transaction: {
+                  transaction: 'GET /test2-original',
+                  contexts: {
+                    trace: {
+                      span_id: expect.stringMatching(/[a-f0-9]{16}/),
+                      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+                      data: {
+                        'http.response.status_code': 200,
+                        'sentry.op': 'http.server',
+                      },
+                    },
+                  },
+                  spans: [],
+                },
+              })
+              .expect({
+                transaction: {
+                  transaction: 'GET /test3-original',
+                  contexts: {
+                    trace: {
+                      span_id: expect.stringMatching(/[a-f0-9]{16}/),
+                      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+                      data: {
+                        'http.response.status_code': 200,
+                        'sentry.op': 'http.server',
+                      },
+                    },
+                  },
+                  spans: [],
+                },
+              })
+              .start();
+
+            await runner.makeRequest('get', '/test1-original');
+            await runner.makeRequest('get', '/test2-original');
+            await runner.makeRequest('get', '/test3-original');
+            await runner.completed();
+          });
+
+          test('handles server.emit being overwritten via proxy, using initial server.emit', async () => {
+            const runner = createRunner()
+              .expect({
+                transaction: {
+                  transaction: 'GET /test1-proxy-original',
+                  contexts: {
+                    trace: {
+                      span_id: expect.stringMatching(/[a-f0-9]{16}/),
+                      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+                      data: {
+                        'http.response.status_code': 200,
+                        'sentry.op': 'http.server',
+                      },
+                    },
+                  },
+                  spans: [],
+                },
+              })
+              .expect({
+                transaction: {
+                  transaction: 'GET /test2-proxy-original',
+                  contexts: {
+                    trace: {
+                      span_id: expect.stringMatching(/[a-f0-9]{16}/),
+                      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+                      data: {
+                        'http.response.status_code': 200,
+                        'sentry.op': 'http.server',
+                      },
+                    },
+                  },
+                  spans: [],
+                },
+              })
+              .expect({
+                transaction: {
+                  transaction: 'GET /test3-proxy-original',
+                  contexts: {
+                    trace: {
+                      span_id: expect.stringMatching(/[a-f0-9]{16}/),
+                      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+                      data: {
+                        'http.response.status_code': 200,
+                        'sentry.op': 'http.server',
+                      },
+                    },
+                  },
+                  spans: [],
+                },
+              })
+              .start();
+
+            await runner.makeRequest('get', '/test1-proxy-original');
+            await runner.makeRequest('get', '/test2-proxy-original');
+            await runner.makeRequest('get', '/test3-proxy-original');
+            await runner.completed();
+          });
+        },
+      );
+    });
   });
 
   describe("doesn't create a root span for incoming requests ignored via `ignoreIncomingRequests`", () => {
