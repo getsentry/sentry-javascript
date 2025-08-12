@@ -43,7 +43,7 @@ export async function handleRunAfterProductionCompile(
     },
   );
 
-  const buildArtifactsPromise = glob(
+  const buildArtifacts = await glob(
     ['/**/*.js', '/**/*.mjs', '/**/*.cjs', '/**/*.js.map', '/**/*.mjs.map', '/**/*.cjs.map'].map(
       q => `${q}?(\\?*)?(#*)`, // We want to allow query and hashes strings at the end of files
     ),
@@ -56,7 +56,7 @@ export async function handleRunAfterProductionCompile(
 
   await sentryBuildPluginManager.telemetry.emitBundlerPluginExecutionSignal();
   await sentryBuildPluginManager.createRelease();
-  // 🔜 await sentryBuildPluginManager.injectDebugIds();
-  await sentryBuildPluginManager.uploadSourcemaps(await buildArtifactsPromise);
+  await sentryBuildPluginManager.injectDebugIds(buildArtifacts);
+  await sentryBuildPluginManager.uploadSourcemaps(buildArtifacts);
   await sentryBuildPluginManager.deleteArtifacts();
 }
