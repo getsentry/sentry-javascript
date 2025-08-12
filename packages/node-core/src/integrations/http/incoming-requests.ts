@@ -1,6 +1,6 @@
 /* eslint-disable max-lines */
 import type { Span } from '@opentelemetry/api';
-import { context, createContextKey , propagation, SpanKind, trace } from '@opentelemetry/api';
+import { context, createContextKey, propagation, SpanKind, trace } from '@opentelemetry/api';
 import type { RPCMetadata } from '@opentelemetry/core';
 import { getRPCMetadata, isTracingSuppressed, RPCType, setRPCMetadata } from '@opentelemetry/core';
 import {
@@ -13,7 +13,6 @@ import {
 } from '@opentelemetry/semantic-conventions';
 import type { AggregationCounts, Client, Scope, SpanAttributes } from '@sentry/core';
 import {
-  addNonEnumerableProperty,
   debug,
   generateSpanId,
   getClient,
@@ -32,7 +31,6 @@ import type EventEmitter from 'events';
 import { errorMonitor } from 'events';
 import type { ClientRequest, IncomingHttpHeaders, IncomingMessage, Server, ServerResponse } from 'http';
 import type { Socket } from 'net';
-import { isProxy } from 'util/types';
 import { DEBUG_BUILD } from '../../debug-build';
 import type { NodeClient } from '../../sdk/client';
 import { INSTRUMENTATION_NAME, MAX_BODY_BYTE_LENGTH } from './constants';
@@ -48,6 +46,11 @@ const clientToRequestSessionAggregatesMap = new Map<
   Client,
   { [timestampRoundedToSeconds: string]: { exited: number; crashed: number; errored: number } }
 >();
+
+// We keep track of emit functions we wrapped, to avoid double wrapping
+// We do this instead of putting a non-enumerable property on the function, because
+// sometimes the property seems to be migrated to forks of the emit function, which we do not want to happen
+const wrappedEmitFns = new WeakSet<Emit>();
 
 /**
  * Instrument a server to capture incoming requests.
@@ -92,7 +95,7 @@ export function instrumentServer(
   // eslint-disable-next-line @typescript-eslint/unbound-method
   const originalEmit: Emit = server.emit;
 
-  if (isEmitInstrumented(originalEmit)) {
+  if (wrappedEmitFns.has(originalEmit)) {
     DEBUG_BUILD &&
       debug.log(INSTRUMENTATION_NAME, 'Incoming requests already instrumented, not instrumenting again...');
     return;
@@ -134,7 +137,8 @@ export function instrumentServer(
         return target.apply(thisArg, args);
       }
 
-      // Make sure we do not double wrap this, for edge cases...
+      // Make sure we do not double execute our wrapper code, for edge cases...
+      // Without this check, if we double-wrap emit, for whatever reason, you'd get to http.server spans (one the children of the other)
       if (context.active().getValue(HTTP_SERVER_INSTRUMENTED_KEY)) {
         return target.apply(thisArg, args);
       }
@@ -281,7 +285,7 @@ export function instrumentServer(
     },
   });
 
-  addNonEnumerableProperty(newEmit, '__sentry_patched__', true);
+  wrappedEmitFns.add(newEmit);
   server.emit = newEmit;
 }
 
@@ -569,20 +573,4 @@ export function isStaticAssetRequest(urlPath: string): boolean {
   }
 
   return false;
-}
-
-function isEmitInstrumented(emit: Emit): boolean {
-  // Easy: it does not have a __sentry_patched__ property? def. not instrumented
-  if (!('__sentry_patched__' in emit)) {
-    return false;
-  }
-
-  // In weird cases with eventemitter2, it can _still_ be un-patched even if this propery is set :sad:
-  // In this case, emit is not a proxy, which means it is not what we set it to
-  // We'll wrap emit again in this case - but we also have code to ensure we do not double run our code inside of the wrapped emit
-  if (!isProxy(emit)) {
-    return false;
-  }
-
-  return true;
 }
