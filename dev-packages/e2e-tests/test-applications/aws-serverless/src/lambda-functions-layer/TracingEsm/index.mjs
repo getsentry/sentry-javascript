@@ -1,8 +1,8 @@
-const Sentry = require('@sentry/aws-serverless');
+import * as Sentry from '@sentry/aws-serverless';
 
-const http = require('http');
+import * as http from 'node:http';
 
-async function handle() {
+export const handler = Sentry.wrapHandler(async () => {
   await Sentry.startSpan({ name: 'manual-span', op: 'test' }, async () => {
     await new Promise(resolve => {
       http.get('http://example.com', res => {
@@ -16,6 +16,4 @@ async function handle() {
       });
     });
   });
-}
-
-module.exports = { handle };
+});

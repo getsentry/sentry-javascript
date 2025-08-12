@@ -1,7 +1,7 @@
 import * as http from 'node:http';
 import * as Sentry from '@sentry/aws-serverless';
 
-const handler = Sentry.wrapHandler(async () => {
+export const handler = Sentry.wrapHandler(async () => {
   await new Promise(resolve => {
     const req = http.request(
       {
@@ -22,5 +22,3 @@ const handler = Sentry.wrapHandler(async () => {
 
   Sentry.startSpan({ name: 'manual-span', op: 'manual' }, () => {});
 });
-
-export { handler };
