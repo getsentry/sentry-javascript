@@ -7061,6 +7061,14 @@
     "@sentry/bundler-plugin-core" "4.0.0"
     unplugin "1.0.1"
 
+"@sentry/vite-plugin@^4.1.0":
+  version "4.1.0"
+  resolved "https://registry.yarnpkg.com/@sentry/vite-plugin/-/vite-plugin-4.1.0.tgz#a94eaf2a294b9f16dec99b088cb05d37b364dcf5"
+  integrity sha512-uLZxOAW79sOQH77yWiQct8f3i+LUi36wn2fK62cejZfrGaHu5P+9R4f0Es1L70I3MrsPXOvJ0A6r5PkVS9562g==
+  dependencies:
+    "@sentry/bundler-plugin-core" "4.1.0"
+    unplugin "1.0.1"
+
 "@sentry/webpack-plugin@^4.0.2":
   version "4.0.2"
   resolved "https://registry.yarnpkg.com/@sentry/webpack-plugin/-/webpack-plugin-4.0.2.tgz#be90c73145d8001bc72c73e4eab83d2b1a28d330"
@@ -28586,7 +28594,6 @@ stylus@0.59.0, stylus@^0.59.0:
 
 sucrase@^3.27.0, sucrase@^3.35.0, sucrase@getsentry/sucrase#es2020-polyfills:
   version "3.36.0"
-  uid fd682f6129e507c00bb4e6319cc5d6b767e36061
   resolved "https://codeload.github.com/getsentry/sucrase/tar.gz/fd682f6129e507c00bb4e6319cc5d6b767e36061"
   dependencies:
     "@jridgewell/gen-mapping" "^0.3.2"
