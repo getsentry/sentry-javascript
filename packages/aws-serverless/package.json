@@ -67,8 +67,8 @@
   "dependencies": {
     "@opentelemetry/api": "^1.9.0",
     "@opentelemetry/instrumentation": "^0.203.0",
-    "@opentelemetry/instrumentation-aws-lambda": "0.54.0",
     "@opentelemetry/instrumentation-aws-sdk": "0.56.0",
+    "@opentelemetry/semantic-conventions": "^1.36.0",
     "@sentry/core": "10.5.0",
     "@sentry/node": "10.5.0",
     "@types/aws-lambda": "^8.10.62"

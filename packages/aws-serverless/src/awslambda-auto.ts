@@ -22,10 +22,6 @@ if (lambdaTaskRoot) {
         : {},
     ),
   });
-
-  if (typeof require !== 'undefined') {
-    Sentry.tryPatchHandler(lambdaTaskRoot, handlerString);
-  }
 } else {
   throw Error('LAMBDA_TASK_ROOT environment variable is not set');
 }

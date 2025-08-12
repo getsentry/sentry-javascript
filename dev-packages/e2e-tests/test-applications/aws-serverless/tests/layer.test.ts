@@ -160,7 +160,35 @@ test.describe('Lambda layer', () => {
         type: 'Error',
         value: 'test',
         mechanism: {
-          type: 'auto.function.aws-serverless.handler',
+          type: 'auto.function.aws-serverless.otel',
+          handled: false,
+        },
+      }),
+    );
+  });
+
+  test('capturing errors works in ESM', async ({ lambdaClient }) => {
+    const errorEventPromise = waitForError('aws-serverless-lambda-sam', errorEvent => {
+      return errorEvent?.exception?.values?.[0]?.value === 'test esm';
+    });
+
+    await lambdaClient.send(
+      new InvokeCommand({
+        FunctionName: 'LayerErrorEsm',
+        Payload: JSON.stringify({}),
+      }),
+    );
+
+    const errorEvent = await errorEventPromise;
+
+    // shows the SDK sent an error event
+    expect(errorEvent.exception?.values).toHaveLength(1);
+    expect(errorEvent.exception?.values?.[0]).toEqual(
+      expect.objectContaining({
+        type: 'Error',
+        value: 'test esm',
+        mechanism: {
+          type: 'auto.function.aws-serverless.otel',
           handled: false,
         },
       }),
