@@ -80,6 +80,18 @@ The removal entails **no breaking API changes**. However, in rare cases, you mig
 - If you set up Sentry Alerts that depend on FID, be aware that these could trigger once you upgrade the SDK, due to a lack of new values.
   To replace them, adjust your alerts (or dashbaords) to use INP.
 
+### Update: User IP Address collection gated by `sendDefaultPii`
+
+Version `10.4.0` introduced a change that should have ideally been introduced with `10.0.0` of the SDK.
+Originally destined for [version `9.0.0`](https://docs.sentry.io/platforms/javascript/migration/v8-to-v9/#behavior-changes), but having not the desired effect until v10,
+SDKs will now control IP address inference of user IP addresses depending on the value of the top level `sendDefaultPii` init option.
+
+- If `sendDefaultPii` is `true`, Sentry will infer the IP address of users' devices to events (errors, traces, replays, etc) in all browser-based SDKs.
+- If `sendDefaultPii` is `false` or not set, Sentry will not infer or collect IP address data.
+
+Given that this was already the advertised behaviour since v9, we classify the change [as a fix](https://github.com/getsentry/sentry-javascript/pull/17364),
+though we recognize the potential impact of it. We apologize for any inconvenience caused.
+
 ## No Version Support Timeline
 
 Version support timelines are stressful for everybody using the SDK, so we won't be defining one.

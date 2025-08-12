@@ -41,6 +41,9 @@ sentryTest('allows to setup a client manually & capture exceptions', async ({ ge
       name: 'sentry.javascript.browser',
       version: expect.any(String),
       packages: [{ name: expect.any(String), version: expect.any(String) }],
+      settings: {
+        infer_ip: 'never',
+      },
     },
     contexts: {
       trace: { trace_id: expect.stringMatching(/[a-f0-9]{32}/), span_id: expect.stringMatching(/[a-f0-9]{16}/) },

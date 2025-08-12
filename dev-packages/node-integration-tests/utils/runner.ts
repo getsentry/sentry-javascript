@@ -158,6 +158,7 @@ type StartResult = {
   completed(): Promise<void>;
   childHasExited(): boolean;
   getLogs(): string[];
+  getPort(): number | undefined;
   makeRequest<T>(
     method: 'get' | 'post',
     path: string,
@@ -616,6 +617,9 @@ export function createRunner(...paths: string[]) {
         },
         getLogs(): string[] {
           return logs;
+        },
+        getPort(): number | undefined {
+          return scenarioServerPort;
         },
         makeRequest: async function <T>(
           method: 'get' | 'post',
