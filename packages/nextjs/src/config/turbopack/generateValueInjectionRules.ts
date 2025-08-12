@@ -18,6 +18,7 @@ export function generateValueInjectionRules({
   let serverValues: Record<string, JSONValue> = {};
 
   if (nextJsVersion) {
+    // This is used to determine version-based dev-symbolication behavior
     isomorphicValues._sentryNextJsVersion = nextJsVersion;
   }
 

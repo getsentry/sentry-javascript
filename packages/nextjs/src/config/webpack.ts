@@ -728,6 +728,7 @@ function addValueInjectionLoader({
     // Only inject if release creation is not explicitly disabled (to maintain build determinism)
     SENTRY_RELEASE: releaseToInject && !buildContext.dev ? { id: releaseToInject } : undefined,
     _sentryBasePath: buildContext.dev ? userNextConfig.basePath : undefined,
+    // This is used to determine version-based dev-symbolication behavior
     _sentryNextJsVersion: nextJsVersion,
   };
 
