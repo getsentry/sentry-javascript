@@ -6928,29 +6928,15 @@
   dependencies:
     express "^4.21.1"
 
-"@sentry/babel-plugin-component-annotate@4.0.0":
-  version "4.0.0"
-  resolved "https://registry.yarnpkg.com/@sentry/babel-plugin-component-annotate/-/babel-plugin-component-annotate-4.0.0.tgz#2f4dfeabba28a76b5a1b32a1058386e52f32634f"
-  integrity sha512-1sozj4esnQBhJ2QO4imiLMl1858StkLjUxFF1KxgX/X1uEL/QlW2MYL8CKzbLeACy1SkR9h4V8GXSZvCnci5Dw==
-
 "@sentry/babel-plugin-component-annotate@4.0.2":
   version "4.0.2"
   resolved "https://registry.yarnpkg.com/@sentry/babel-plugin-component-annotate/-/babel-plugin-component-annotate-4.0.2.tgz#7c8eb80a38b5e6b4c4cea4c391d07581020c91e4"
   integrity sha512-Nr/VamvpQs6w642EI5t+qaCUGnVEro0qqk+S8XO1gc8qSdpc8kkZJFnUk7ozAr+ljYWGfVgWXrxI9lLiriLsRA==
 
-"@sentry/bundler-plugin-core@4.0.0":
-  version "4.0.0"
-  resolved "https://registry.yarnpkg.com/@sentry/bundler-plugin-core/-/bundler-plugin-core-4.0.0.tgz#564463cf53f869496ab5d4986e97f86618a67677"
-  integrity sha512-dTdbcctT5MJUwdbttZm2zomO+ui1F062ZIkogHeHqlA938Fwd1+9JIJ328+XL4XdcUG2yiFAZBWUPW3bYwoN9A==
-  dependencies:
-    "@babel/core" "^7.18.5"
-    "@sentry/babel-plugin-component-annotate" "4.0.0"
-    "@sentry/cli" "^2.49.0"
-    dotenv "^16.3.1"
-    find-up "^5.0.0"
-    glob "^9.3.2"
-    magic-string "0.30.8"
-    unplugin "1.0.1"
+"@sentry/babel-plugin-component-annotate@4.1.0":
+  version "4.1.0"
+  resolved "https://registry.yarnpkg.com/@sentry/babel-plugin-component-annotate/-/babel-plugin-component-annotate-4.1.0.tgz#6e7168f5fa59f53ac4b68e3f79c5fd54adc13f2e"
+  integrity sha512-UkcnqC7Bp9ODyoBN7BKcRotd1jz/I2vyruE/qjNfRC7UnP+jIRItUWYaXxQPON1fTw+N+egKdByk0M1y2OPv/Q==
 
 "@sentry/bundler-plugin-core@4.0.2":
   version "4.0.2"
@@ -6960,6 +6946,20 @@
     "@babel/core" "^7.18.5"
     "@sentry/babel-plugin-component-annotate" "4.0.2"
     "@sentry/cli" "^2.49.0"
+    dotenv "^16.3.1"
+    find-up "^5.0.0"
+    glob "^9.3.2"
+    magic-string "0.30.8"
+    unplugin "1.0.1"
+
+"@sentry/bundler-plugin-core@4.1.0":
+  version "4.1.0"
+  resolved "https://registry.yarnpkg.com/@sentry/bundler-plugin-core/-/bundler-plugin-core-4.1.0.tgz#c1b2f7a890a44e5ac5decc984a133aacf6147dd4"
+  integrity sha512-/5XBtCF6M+9frEXrrvfSWOdOC2q6I1L7oY7qbUVegNkp3kYVGihNZZnJIXGzo9rmwnA0IV7jI3o0pF/HDRqPeA==
+  dependencies:
+    "@babel/core" "^7.18.5"
+    "@sentry/babel-plugin-component-annotate" "4.1.0"
+    "@sentry/cli" "^2.51.0"
     dotenv "^16.3.1"
     find-up "^5.0.0"
     glob "^9.3.2"
@@ -7006,7 +7006,7 @@
   resolved "https://registry.yarnpkg.com/@sentry/cli-win32-x64/-/cli-win32-x64-2.51.1.tgz#d361e37146c9269d40c37459271a6c2cfa1fa8a6"
   integrity sha512-v2hreYUPPTNK1/N7+DeX7XBN/zb7p539k+2Osf0HFyVBaoUC3Y3+KBwSf4ASsnmgTAK7HCGR+X0NH1vP+icw4w==
 
-"@sentry/cli@^2.49.0", "@sentry/cli@^2.51.1":
+"@sentry/cli@^2.49.0", "@sentry/cli@^2.51.0", "@sentry/cli@^2.51.1":
   version "2.51.1"
   resolved "https://registry.yarnpkg.com/@sentry/cli/-/cli-2.51.1.tgz#c6bdc6025e8f600e44fc76f8274c369aeb5d4df4"
   integrity sha512-FU+54kNcKJABU0+ekvtnoXHM9zVrDe1zXVFbQT7mS0On0m1P0zFRGdzbnWe2XzpzuEAJXtK6aog/W+esRU9AIA==
@@ -7026,20 +7026,20 @@
     "@sentry/cli-win32-i686" "2.51.1"
     "@sentry/cli-win32-x64" "2.51.1"
 
-"@sentry/rollup-plugin@^4.0.2":
-  version "4.0.2"
-  resolved "https://registry.yarnpkg.com/@sentry/rollup-plugin/-/rollup-plugin-4.0.2.tgz#4fda1f2456cdbef7f7527921da93a92c35e67612"
-  integrity sha512-p8cbo34m8qcJx5LDo1hPiMlR8aSKMyVewBGBV+nGrh6cgeBUOXu8DpIVD0piOna2igon3jyUD6ydrxUtcM5/Qw==
+"@sentry/rollup-plugin@^4.1.0":
+  version "4.1.0"
+  resolved "https://registry.yarnpkg.com/@sentry/rollup-plugin/-/rollup-plugin-4.1.0.tgz#3948d067bd7cf8a61904b4042190dc9f6888bceb"
+  integrity sha512-HDwWgQRH7JhG15N1Y4XmPik/Qk03TGbiupDkZ8WL+8257BuyQE+s6feJJGCEUoWwROED+jvsFNvWvT2tqnILrw==
   dependencies:
-    "@sentry/bundler-plugin-core" "4.0.2"
+    "@sentry/bundler-plugin-core" "4.1.0"
     unplugin "1.0.1"
 
-"@sentry/vite-plugin@^4.0.0":
-  version "4.0.0"
-  resolved "https://registry.yarnpkg.com/@sentry/vite-plugin/-/vite-plugin-4.0.0.tgz#ac2780e1d2d88371b0a4a6dc834eadc8bc92d8ea"
-  integrity sha512-JX5irzvyoOSKto0U0eXDqigsTXdXnPRQaAms/kcU6A6Bf+WaPfCTE5NrJWg6ZeLvi7GiPWch11OO+TB6ZN8RKA==
+"@sentry/vite-plugin@^4.1.0":
+  version "4.1.0"
+  resolved "https://registry.yarnpkg.com/@sentry/vite-plugin/-/vite-plugin-4.1.0.tgz#a94eaf2a294b9f16dec99b088cb05d37b364dcf5"
+  integrity sha512-uLZxOAW79sOQH77yWiQct8f3i+LUi36wn2fK62cejZfrGaHu5P+9R4f0Es1L70I3MrsPXOvJ0A6r5PkVS9562g==
   dependencies:
-    "@sentry/bundler-plugin-core" "4.0.0"
+    "@sentry/bundler-plugin-core" "4.1.0"
     unplugin "1.0.1"
 
 "@sentry/webpack-plugin@^4.0.2":
@@ -28567,7 +28567,6 @@ stylus@0.59.0, stylus@^0.59.0:
 
 sucrase@^3.27.0, sucrase@^3.35.0, sucrase@getsentry/sucrase#es2020-polyfills:
   version "3.36.0"
-  uid fd682f6129e507c00bb4e6319cc5d6b767e36061
   resolved "https://codeload.github.com/getsentry/sucrase/tar.gz/fd682f6129e507c00bb4e6319cc5d6b767e36061"
   dependencies:
     "@jridgewell/gen-mapping" "^0.3.2"
