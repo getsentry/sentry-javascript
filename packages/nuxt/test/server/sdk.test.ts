@@ -42,7 +42,7 @@ describe('Nuxt Server SDK', () => {
       expect(init({})).not.toBeUndefined();
     });
 
-    describe('low quality transactions filter (%s)', () => {
+    describe('lowQualityTransactionsFilter (%s)', () => {
       const beforeSendEvent = vi.fn(event => event);
       const client = init({
         dsn: 'https://public@dsn.ingest.sentry.io/1337',
@@ -63,7 +63,8 @@ describe('Nuxt Server SDK', () => {
         expect(beforeSendEvent).not.toHaveBeenCalled();
       });
 
-      it.each(['GET /', 'POST /_server'])(
+      // Nuxt parametrizes routes sometimes in a special way - especially catchAll o.O
+      it.each(['GET /', 'POST /_server', 'GET /catchAll/:id(.*)*', 'GET /article/:slug()', 'GET /user/:id'])(
         'does not filter out high quality or route transactions (%s)',
         async transaction => {
           client.captureEvent({ type: 'transaction', transaction });

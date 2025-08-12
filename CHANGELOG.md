@@ -4,6 +4,61 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 10.4.0
+
+### Important Changes
+
+- **fix(browser): Ensure IP address is only inferred by Relay if `sendDefaultPii` is `true`**
+
+This release includes a fix for a [behaviour change](https://docs.sentry.io/platforms/javascript/migration/v8-to-v9/#behavior-changes)
+that was originally introduced with v9 of the SDK: User IP Addresses should only be added to Sentry events automatically,
+if `sendDefaultPii` was set to `true`.
+
+However, the change in v9 required further internal adjustment, which should have been included in v10 of the SDK.
+Unfortunately, the change did not make it into the initial v10 version but is now applied with `10.4.0`.
+There is _no API_ breakage involved and hence it is safe to update.
+However, after updating the SDK, events (errors, traces, replays, etc.) sent from the browser, will only include
+user IP addresses, if you set `sendDefaultPii: true` in your `Sentry.init` options.
+
+We apologize for any inconvenience caused!
+
+- **feat(node): Add `ignoreStaticAssets` ([#17370](https://github.com/getsentry/sentry-javascript/pull/17370))**
+
+This release adds a new option to `httpIntegration` to ignore requests for static assets (e.g. `favicon.xml` or `robots.txt`). The option defaults to `true`, meaning that going forward, such requests will not be traced by default. You can still enable tracing for these requests by setting the option to `false`:
+
+```js
+Sentry.init({
+  integrations: [
+    Sentry.httpIntegration({
+      // defaults to true, set to false to enable traces for static assets
+      ignoreStaticAssets: false,
+    }),
+  ],
+});
+```
+
+### Other Changes
+
+- fix(nuxt): Do not drop parametrized routes ([#17357](https://github.com/getsentry/sentry-javascript/pull/17357))
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+
+- ref(node): Split up incoming & outgoing http handling ([#17358](https://github.com/getsentry/sentry-javascript/pull/17358))
+- test(node): Enable additionalDependencies in integration runner ([#17361](https://github.com/getsentry/sentry-javascript/pull/17361))
+
+</details>
+
+## 10.3.0
+
+- feat(core): MCP Server - Capture prompt results from prompt function calls (#17284)
+- feat(bun): Export `skipOpenTelemetrySetup` option ([#17349](https://github.com/getsentry/sentry-javascript/pull/17349))
+- feat(sveltekit): Streamline build logs ([#17306](https://github.com/getsentry/sentry-javascript/pull/17306))
+- fix(browser): Handle data urls in errors caught by `globalHandlersIntegration` ([#17216](https://github.com/getsentry/sentry-javascript/pull/17216))
+- fix(browser): Improve navigation vs. redirect detection ([#17275](https://github.com/getsentry/sentry-javascript/pull/17275))
+- fix(react-router): Ensure source map upload fails silently if Sentry CLI fails ([#17081](https://github.com/getsentry/sentry-javascript/pull/17081))
+- fix(react): Add support for React Router sub-routes from `handle` ([#17277](https://github.com/getsentry/sentry-javascript/pull/17277))
+
 ## 10.2.0
 
 ### Important Changes

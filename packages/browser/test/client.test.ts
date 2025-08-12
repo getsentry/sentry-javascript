@@ -184,3 +184,93 @@ describe('applyDefaultOptions', () => {
     WINDOW.SENTRY_RELEASE = releaseBefore;
   });
 });
+
+describe('SDK metadata', () => {
+  describe('sdk.settings', () => {
+    it('sets infer_ipto "never" by default', () => {
+      const options = getDefaultBrowserClientOptions({});
+      const client = new BrowserClient(options);
+
+      expect(client.getOptions()._metadata?.sdk?.settings?.infer_ip).toBe('never');
+    });
+
+    it('sets infer_ip to "never" if sendDefaultPii is false', () => {
+      const options = getDefaultBrowserClientOptions({
+        sendDefaultPii: false,
+      });
+      const client = new BrowserClient(options);
+
+      expect(client.getOptions()._metadata?.sdk?.settings?.infer_ip).toBe('never');
+    });
+
+    it('sets infer_ip to "auto" if sendDefaultPii is true', () => {
+      const options = getDefaultBrowserClientOptions({
+        sendDefaultPii: true,
+      });
+      const client = new BrowserClient(options);
+
+      expect(client.getOptions()._metadata?.sdk?.settings?.infer_ip).toBe('auto');
+    });
+
+    it("doesn't override already set sdk metadata settings", () => {
+      const options = getDefaultBrowserClientOptions({
+        sendDefaultPii: true,
+        _metadata: {
+          sdk: {
+            settings: {
+              infer_ip: 'never',
+              // @ts-expect-error -- not typed but let's test anyway
+              other_random_setting: 'some value',
+            },
+          },
+        },
+      });
+      const client = new BrowserClient(options);
+
+      expect(client.getOptions()._metadata?.sdk?.settings).toEqual({
+        infer_ip: 'never',
+        other_random_setting: 'some value',
+      });
+    });
+
+    it('still sets infer_ip if other SDK metadata was already passed in', () => {
+      const options = getDefaultBrowserClientOptions({
+        _metadata: {
+          sdk: {
+            name: 'sentry.javascript.angular',
+          },
+        },
+      });
+      const client = new BrowserClient(options);
+
+      expect(client.getOptions()._metadata?.sdk).toEqual({
+        name: 'sentry.javascript.angular',
+        settings: {
+          infer_ip: 'never',
+        },
+      });
+    });
+  });
+
+  describe('sdk data', () => {
+    it('sets sdk.name to "sentry.javascript.browser" by default', () => {
+      const options = getDefaultBrowserClientOptions({});
+      const client = new BrowserClient(options);
+
+      expect(client.getOptions()._metadata?.sdk?.name).toBe('sentry.javascript.browser');
+    });
+
+    it("doesn't override already set sdk metadata", () => {
+      const options = getDefaultBrowserClientOptions({
+        _metadata: {
+          sdk: {
+            name: 'sentry.javascript.angular',
+          },
+        },
+      });
+      const client = new BrowserClient(options);
+
+      expect(client.getOptions()._metadata?.sdk?.name).toBe('sentry.javascript.angular');
+    });
+  });
+});

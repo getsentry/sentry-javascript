@@ -1,10 +1,12 @@
 import { expect } from '@playwright/test';
-import type { Event } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
-import { getFirstSentryEnvelopeRequest } from '../../../../utils/helpers';
+import { envelopeRequestParser, waitForErrorRequestOnUrl } from '../../../../utils/helpers';
 
-sentryTest('should default user to {{auto}} on errors when sendDefaultPii: true', async ({ getLocalTestUrl, page }) => {
-  const url = await getLocalTestUrl({ testDir: __dirname });
-  const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
-  expect(eventData.user?.ip_address).toBe('{{auto}}');
-});
+sentryTest(
+  'sets sdk.settings.infer_ip to "auto" on errors when sendDefaultPii: true',
+  async ({ getLocalTestUrl, page }) => {
+    const url = await getLocalTestUrl({ testDir: __dirname });
+    const eventData = await envelopeRequestParser(await waitForErrorRequestOnUrl(page, url));
+    expect(eventData.sdk?.settings?.infer_ip).toBe('auto');
+  },
+);
