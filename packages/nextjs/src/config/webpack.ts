@@ -728,6 +728,7 @@ function addValueInjectionLoader({
     // Only inject if release creation is not explicitly disabled (to maintain build determinism)
     SENTRY_RELEASE: releaseToInject && !buildContext.dev ? { id: releaseToInject } : undefined,
     _sentryBasePath: buildContext.dev ? userNextConfig.basePath : undefined,
+    _sentryNextJsVersion: nextJsVersion,
   };
 
   const serverValues = {
@@ -735,7 +736,6 @@ function addValueInjectionLoader({
     // Make sure that if we have a windows path, the backslashes are interpreted as such (rather than as escape
     // characters)
     _sentryRewriteFramesDistDir: userNextConfig.distDir?.replace(/\\/g, '\\\\') || '.next',
-    _sentryNextJsVersion: nextJsVersion || '0.0.0',
   };
 
   const clientValues = {

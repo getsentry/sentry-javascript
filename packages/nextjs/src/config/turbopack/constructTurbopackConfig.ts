@@ -24,41 +24,48 @@ export function constructTurbopackConfig({
     ...userNextConfig.turbopack,
   };
 
-  if (routeManifest) {
-    newConfig.rules = safelyAddTurbopackRule(newConfig.rules, {
-      matcher: '**/instrumentation-client.*',
-      rule: {
-        loaders: [
-          {
-            loader: path.resolve(__dirname, '..', 'loaders', 'valueInjectionLoader.js'),
-            options: {
-              values: {
-                _sentryRouteManifest: JSON.stringify(routeManifest),
-              },
-            },
-          },
-        ],
-      },
-    });
-  }
+  const isomorphicValues = {
+    _sentryNextJsVersion: nextJsVersion || '',
+  };
 
-  if (nextJsVersion) {
-    newConfig.rules = safelyAddTurbopackRule(newConfig.rules, {
-      matcher: '**/instrumentation.*',
-      rule: {
-        loaders: [
-          {
-            loader: path.resolve(__dirname, '..', 'loaders', 'valueInjectionLoader.js'),
-            options: {
-              values: {
-                _sentryNextJsVersion: nextJsVersion,
-              },
-            },
+  const clientValues = {
+    ...isomorphicValues,
+    _sentryRouteManifest: JSON.stringify(routeManifest),
+  };
+
+  const serverValues = {
+    ...isomorphicValues,
+  };
+
+  // Client value injection
+  newConfig.rules = safelyAddTurbopackRule(newConfig.rules, {
+    matcher: '**/instrumentation-client.*',
+    rule: {
+      loaders: [
+        {
+          loader: path.resolve(__dirname, '..', 'loaders', 'valueInjectionLoader.js'),
+          options: {
+            ...clientValues,
           },
-        ],
-      },
-    });
-  }
+        },
+      ],
+    },
+  });
+
+  // Server value injection
+  newConfig.rules = safelyAddTurbopackRule(newConfig.rules, {
+    matcher: '**/instrumentation.*',
+    rule: {
+      loaders: [
+        {
+          loader: path.resolve(__dirname, '..', 'loaders', 'valueInjectionLoader.js'),
+          options: {
+            ...serverValues,
+          },
+        },
+      ],
+    },
+  });
 
   return newConfig;
 }

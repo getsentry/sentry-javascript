@@ -33,7 +33,31 @@ describe('constructTurbopackConfig', () => {
         userNextConfig,
       });
 
-      expect(result).toEqual({});
+      expect(result).toEqual({
+        rules: {
+          '**/instrumentation-client.*': {
+            loaders: [
+              {
+                loader: '/mocked/path/to/valueInjectionLoader.js',
+                options: {
+                  _sentryNextJsVersion: '',
+                  _sentryRouteManifest: undefined,
+                },
+              },
+            ],
+          },
+          '**/instrumentation.*': {
+            loaders: [
+              {
+                loader: '/mocked/path/to/valueInjectionLoader.js',
+                options: {
+                  _sentryNextJsVersion: '',
+                },
+              },
+            ],
+          },
+        },
+      });
     });
 
     it('should create turbopack config with instrumentation rule when manifest is provided', () => {
@@ -51,9 +75,18 @@ describe('constructTurbopackConfig', () => {
               {
                 loader: '/mocked/path/to/valueInjectionLoader.js',
                 options: {
-                  values: {
-                    _sentryRouteManifest: JSON.stringify(mockRouteManifest),
-                  },
+                  _sentryNextJsVersion: '',
+                  _sentryRouteManifest: JSON.stringify(mockRouteManifest),
+                },
+              },
+            ],
+          },
+          '**/instrumentation.*': {
+            loaders: [
+              {
+                loader: '/mocked/path/to/valueInjectionLoader.js',
+                options: {
+                  _sentryNextJsVersion: '',
                 },
               },
             ],
@@ -100,8 +133,8 @@ describe('constructTurbopackConfig', () => {
       const loader = ruleWithLoaders.loaders[0]!;
       expect(loader).toHaveProperty('loader');
       expect(loader).toHaveProperty('options');
-      expect(loader.options).toHaveProperty('values');
-      expect(loader.options.values).toHaveProperty('_sentryRouteManifest');
+      expect(loader.options).toHaveProperty('_sentryNextJsVersion');
+      expect(loader.options).toHaveProperty('_sentryRouteManifest');
       expect(loader.loader).toBe(windowsLoaderPath);
       expect(pathResolveSpy).toHaveBeenCalledWith(expect.any(String), '..', 'loaders', 'valueInjectionLoader.js');
 
@@ -133,6 +166,27 @@ describe('constructTurbopackConfig', () => {
         },
         rules: {
           '*.test.js': ['jest-loader'],
+          '**/instrumentation-client.*': {
+            loaders: [
+              {
+                loader: '/mocked/path/to/valueInjectionLoader.js',
+                options: {
+                  _sentryNextJsVersion: '',
+                  _sentryRouteManifest: undefined,
+                },
+              },
+            ],
+          },
+          '**/instrumentation.*': {
+            loaders: [
+              {
+                loader: '/mocked/path/to/valueInjectionLoader.js',
+                options: {
+                  _sentryNextJsVersion: '',
+                },
+              },
+            ],
+          },
         },
       });
     });
@@ -165,9 +219,18 @@ describe('constructTurbopackConfig', () => {
               {
                 loader: '/mocked/path/to/valueInjectionLoader.js',
                 options: {
-                  values: {
-                    _sentryRouteManifest: JSON.stringify(mockRouteManifest),
-                  },
+                  _sentryNextJsVersion: '',
+                  _sentryRouteManifest: JSON.stringify(mockRouteManifest),
+                },
+              },
+            ],
+          },
+          '**/instrumentation.*': {
+            loaders: [
+              {
+                loader: '/mocked/path/to/valueInjectionLoader.js',
+                options: {
+                  _sentryNextJsVersion: '',
                 },
               },
             ],
@@ -202,6 +265,16 @@ describe('constructTurbopackConfig', () => {
       expect(result).toEqual({
         rules: {
           '**/instrumentation-client.*': existingRule,
+          '**/instrumentation.*': {
+            loaders: [
+              {
+                loader: '/mocked/path/to/valueInjectionLoader.js',
+                options: {
+                  _sentryNextJsVersion: '',
+                },
+              },
+            ],
+          },
         },
       });
     });
@@ -224,9 +297,18 @@ describe('constructTurbopackConfig', () => {
               {
                 loader: '/mocked/path/to/valueInjectionLoader.js',
                 options: {
-                  values: {
-                    _sentryRouteManifest: JSON.stringify(emptyManifest),
-                  },
+                  _sentryNextJsVersion: '',
+                  _sentryRouteManifest: JSON.stringify(emptyManifest),
+                },
+              },
+            ],
+          },
+          '**/instrumentation.*': {
+            loaders: [
+              {
+                loader: '/mocked/path/to/valueInjectionLoader.js',
+                options: {
+                  _sentryNextJsVersion: '',
                 },
               },
             ],
@@ -257,9 +339,18 @@ describe('constructTurbopackConfig', () => {
               {
                 loader: '/mocked/path/to/valueInjectionLoader.js',
                 options: {
-                  values: {
-                    _sentryRouteManifest: JSON.stringify(complexManifest),
-                  },
+                  _sentryNextJsVersion: '',
+                  _sentryRouteManifest: JSON.stringify(complexManifest),
+                },
+              },
+            ],
+          },
+          '**/instrumentation.*': {
+            loaders: [
+              {
+                loader: '/mocked/path/to/valueInjectionLoader.js',
+                options: {
+                  _sentryNextJsVersion: '',
                 },
               },
             ],
@@ -281,14 +372,23 @@ describe('constructTurbopackConfig', () => {
 
       expect(result).toEqual({
         rules: {
+          '**/instrumentation-client.*': {
+            loaders: [
+              {
+                loader: '/mocked/path/to/valueInjectionLoader.js',
+                options: {
+                  _sentryNextJsVersion: nextJsVersion,
+                  _sentryRouteManifest: undefined,
+                },
+              },
+            ],
+          },
           '**/instrumentation.*': {
             loaders: [
               {
                 loader: '/mocked/path/to/valueInjectionLoader.js',
                 options: {
-                  values: {
-                    _sentryNextJsVersion: nextJsVersion,
-                  },
+                  _sentryNextJsVersion: nextJsVersion,
                 },
               },
             ],
@@ -314,9 +414,8 @@ describe('constructTurbopackConfig', () => {
               {
                 loader: '/mocked/path/to/valueInjectionLoader.js',
                 options: {
-                  values: {
-                    _sentryRouteManifest: JSON.stringify(mockRouteManifest),
-                  },
+                  _sentryNextJsVersion: nextJsVersion,
+                  _sentryRouteManifest: JSON.stringify(mockRouteManifest),
                 },
               },
             ],
@@ -326,9 +425,7 @@ describe('constructTurbopackConfig', () => {
               {
                 loader: '/mocked/path/to/valueInjectionLoader.js',
                 options: {
-                  values: {
-                    _sentryNextJsVersion: nextJsVersion,
-                  },
+                  _sentryNextJsVersion: nextJsVersion,
                 },
               },
             ],
@@ -361,14 +458,23 @@ describe('constructTurbopackConfig', () => {
         },
         rules: {
           '*.test.js': ['jest-loader'],
+          '**/instrumentation-client.*': {
+            loaders: [
+              {
+                loader: '/mocked/path/to/valueInjectionLoader.js',
+                options: {
+                  _sentryNextJsVersion: nextJsVersion,
+                  _sentryRouteManifest: undefined,
+                },
+              },
+            ],
+          },
           '**/instrumentation.*': {
             loaders: [
               {
                 loader: '/mocked/path/to/valueInjectionLoader.js',
                 options: {
-                  values: {
-                    _sentryNextJsVersion: nextJsVersion,
-                  },
+                  _sentryNextJsVersion: nextJsVersion,
                 },
               },
             ],
@@ -392,7 +498,7 @@ describe('constructTurbopackConfig', () => {
 
         const rule = result.rules!['**/instrumentation.*'];
         const ruleWithLoaders = rule as { loaders: Array<{ loader: string; options: any }> };
-        expect(ruleWithLoaders.loaders[0]!.options.values._sentryNextJsVersion).toBe(version);
+        expect(ruleWithLoaders.loaders[0]!.options._sentryNextJsVersion).toBe(version);
       });
     });
 
@@ -404,8 +510,32 @@ describe('constructTurbopackConfig', () => {
         nextJsVersion: undefined,
       });
 
-      expect(result).toEqual({});
-      expect(result.rules).toBeUndefined();
+      expect(result).toEqual({
+        rules: {
+          '**/instrumentation-client.*': {
+            loaders: [
+              {
+                loader: '/mocked/path/to/valueInjectionLoader.js',
+                options: {
+                  _sentryNextJsVersion: '',
+                  _sentryRouteManifest: undefined,
+                },
+              },
+            ],
+          },
+          '**/instrumentation.*': {
+            loaders: [
+              {
+                loader: '/mocked/path/to/valueInjectionLoader.js',
+                options: {
+                  _sentryNextJsVersion: '',
+                },
+              },
+            ],
+          },
+        },
+      });
+      expect(result.rules).toBeDefined();
     });
 
     it('should not create Next.js version rule when nextJsVersion is empty string', () => {
@@ -416,8 +546,32 @@ describe('constructTurbopackConfig', () => {
         nextJsVersion: '',
       });
 
-      expect(result).toEqual({});
-      expect(result.rules).toBeUndefined();
+      expect(result).toEqual({
+        rules: {
+          '**/instrumentation-client.*': {
+            loaders: [
+              {
+                loader: '/mocked/path/to/valueInjectionLoader.js',
+                options: {
+                  _sentryNextJsVersion: '',
+                  _sentryRouteManifest: undefined,
+                },
+              },
+            ],
+          },
+          '**/instrumentation.*': {
+            loaders: [
+              {
+                loader: '/mocked/path/to/valueInjectionLoader.js',
+                options: {
+                  _sentryNextJsVersion: '',
+                },
+              },
+            ],
+          },
+        },
+      });
+      expect(result.rules).toBeDefined();
     });
 
     it('should not override existing instrumentation rule when nextJsVersion is provided', () => {
@@ -446,6 +600,17 @@ describe('constructTurbopackConfig', () => {
 
       expect(result).toEqual({
         rules: {
+          '**/instrumentation-client.*': {
+            loaders: [
+              {
+                loader: '/mocked/path/to/valueInjectionLoader.js',
+                options: {
+                  _sentryNextJsVersion: nextJsVersion,
+                  _sentryRouteManifest: undefined,
+                },
+              },
+            ],
+          },
           '**/instrumentation.*': existingRule,
         },
       });
@@ -481,9 +646,8 @@ describe('constructTurbopackConfig', () => {
               {
                 loader: '/mocked/path/to/valueInjectionLoader.js',
                 options: {
-                  values: {
-                    _sentryRouteManifest: JSON.stringify(mockRouteManifest),
-                  },
+                  _sentryNextJsVersion: nextJsVersion,
+                  _sentryRouteManifest: JSON.stringify(mockRouteManifest),
                 },
               },
             ],
@@ -493,9 +657,7 @@ describe('constructTurbopackConfig', () => {
               {
                 loader: '/mocked/path/to/valueInjectionLoader.js',
                 options: {
-                  values: {
-                    _sentryNextJsVersion: nextJsVersion,
-                  },
+                  _sentryNextJsVersion: nextJsVersion,
                 },
               },
             ],
