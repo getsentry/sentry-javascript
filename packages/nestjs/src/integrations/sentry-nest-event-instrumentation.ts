@@ -5,7 +5,7 @@ import {
   InstrumentationNodeModuleFile,
   isWrapped,
 } from '@opentelemetry/instrumentation';
-import { captureException, handleCallbackErrors, SDK_VERSION, startSpan } from '@sentry/core';
+import { captureException, SDK_VERSION, startSpan } from '@sentry/core';
 import { getEventSpanOptions } from './helpers';
 import type { OnEventTarget } from './types';
 
@@ -64,10 +64,9 @@ export class SentryNestEventInstrumentation extends InstrumentationBase {
 
         // Return a new decorator function that wraps the handler
         return (target: OnEventTarget, propertyKey: string | symbol, descriptor: PropertyDescriptor) => {
-          const originalHandler = descriptor.value;
-
           if (
-            !descriptorValueIsFunction(originalHandler) ||
+            !descriptor.value ||
+            typeof descriptor.value !== 'function' ||
             target.__SENTRY_INTERNAL__ ||
             // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
             descriptor.value.__SENTRY_INSTRUMENTED__
@@ -75,45 +74,55 @@ export class SentryNestEventInstrumentation extends InstrumentationBase {
             return decoratorResult(target, propertyKey, descriptor);
           }
 
+          const originalHandler = descriptor.value;
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          const handlerName = originalHandler.name || propertyKey;
           let eventName = typeof event === 'string' ? event : String(event);
 
           // Instrument the actual handler
-          descriptor.value = new Proxy(originalHandler, {
-            apply: async function (target, thisArg, args) {
-              // When multiple @OnEvent decorators are used on a single method, we need to get all event names
-              // from the reflector metadata as there is no information during execution which event triggered it
+          descriptor.value = async function (...args: unknown[]) {
+            // When multiple @OnEvent decorators are used on a single method, we need to get all event names
+            // from the reflector metadata as there is no information during execution which event triggered it
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore - reflect-metadata of nestjs adds these methods to Reflect
+            if (Reflect.getMetadataKeys(descriptor.value).includes('EVENT_LISTENER_METADATA')) {
               // eslint-disable-next-line @typescript-eslint/ban-ts-comment
               // @ts-ignore - reflect-metadata of nestjs adds these methods to Reflect
-              if (Reflect.getMetadataKeys(descriptor.value).includes('EVENT_LISTENER_METADATA')) {
-                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                // @ts-ignore - reflect-metadata of nestjs adds these methods to Reflect
-                const eventData = Reflect.getMetadata('EVENT_LISTENER_METADATA', descriptor.value);
-                if (Array.isArray(eventData)) {
-                  eventName = eventData
-                    .map((data: unknown) => {
-                      if (data && typeof data === 'object' && 'event' in data && data.event) {
-                        return data.event;
-                      }
-                      return '';
-                    })
-                    .reverse() // decorators are evaluated bottom to top
-                    .join('|');
-                }
+              const eventData = Reflect.getMetadata('EVENT_LISTENER_METADATA', descriptor.value);
+              if (Array.isArray(eventData)) {
+                eventName = eventData
+                  .map((data: unknown) => {
+                    if (data && typeof data === 'object' && 'event' in data && data.event) {
+                      return data.event;
+                    }
+                    return '';
+                  })
+                  .reverse() // decorators are evaluated bottom to top
+                  .join('|');
               }
+            }
 
-              return startSpan(getEventSpanOptions(eventName), () => {
-                return handleCallbackErrors(
-                  () => target.apply(thisArg, args),
-                  error => {
-                    captureException(error);
-                  },
-                );
-              });
-            },
-          });
+            return startSpan(getEventSpanOptions(eventName), async () => {
+              try {
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+                const result = await originalHandler.apply(this, args);
+                return result;
+              } catch (error) {
+                // exceptions from event handlers are not caught by global error filter
+                captureException(error);
+                throw error;
+              }
+            });
+          };
 
           // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
           descriptor.value.__SENTRY_INSTRUMENTED__ = true;
+
+          // Preserve the original function name
+          Object.defineProperty(descriptor.value, 'name', {
+            value: handlerName,
+            configurable: true,
+          });
 
           // Apply the original decorator
           return decoratorResult(target, propertyKey, descriptor);
@@ -121,11 +130,4 @@ export class SentryNestEventInstrumentation extends InstrumentationBase {
       };
     };
   }
-}
-
-function descriptorValueIsFunction(
-  value: unknown,
-  // eslint-disable-next-line @typescript-eslint/ban-types
-): value is Function & { __SENTRY_INSTRUMENTED__?: boolean; name?: string } {
-  return !!value && typeof value === 'function';
 }
