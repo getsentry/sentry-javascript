@@ -1,7 +1,7 @@
 import { test as base, expect } from '@playwright/test';
 import { App } from 'aws-cdk-lib';
 import * as tmp from 'tmp';
-import { LocalLambdaStack, SAM_PORT, getHostIp } from '../src/stack.js';
+import { LocalLambdaStack, SAM_PORT, getHostIp } from '../src/stack';
 import { writeFileSync } from 'node:fs';
 import { spawn, execSync } from 'node:child_process';
 import { LambdaClient } from '@aws-sdk/client-lambda';

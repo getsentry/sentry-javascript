@@ -1,6 +1,6 @@
 import { waitForTransaction, waitForError } from '@sentry-internal/test-utils';
 import { InvokeCommand } from '@aws-sdk/client-lambda';
-import { test, expect } from './lambda-fixtures.js';
+import { test, expect } from './lambda-fixtures';
 
 test.describe('Lambda layer', () => {
   test('tracing in CJS works', async ({ lambdaClient }) => {
