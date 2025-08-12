@@ -22,7 +22,7 @@ export function generateValueInjectionRules({
   }
 
   if (routeManifest) {
-    serverValues._sentryRouteManifest = routeManifest;
+    clientValues._sentryRouteManifest = JSON.stringify(routeManifest);
   }
 
   if (Object.keys(isomorphicValues).length > 0) {

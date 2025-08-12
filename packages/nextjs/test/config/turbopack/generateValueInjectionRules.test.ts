@@ -81,32 +81,32 @@ describe('generateValueInjectionRules', () => {
   });
 
   describe('with routeManifest only', () => {
-    it('should generate only server rule when routeManifest is provided', () => {
+    it('should generate only client rule when routeManifest is provided', () => {
       const result = generateValueInjectionRules({
         routeManifest: mockRouteManifest,
       });
 
       expect(result).toHaveLength(1);
 
-      // Only server rule should exist
-      const serverRule = result.find(rule => rule.matcher === '**/instrumentation.*');
-      expect(serverRule).toBeDefined();
-      expect(serverRule?.rule).toEqual({
+      // Only client rule should exist
+      const clientRule = result.find(rule => rule.matcher === '**/instrumentation-client.*');
+      expect(clientRule).toBeDefined();
+      expect(clientRule?.rule).toEqual({
         loaders: [
           {
             loader: '/mocked/path/to/valueInjectionLoader.js',
             options: {
               values: {
-                _sentryRouteManifest: mockRouteManifest,
+                _sentryRouteManifest: JSON.stringify(mockRouteManifest),
               },
             },
           },
         ],
       });
 
-      // Client rule should not exist
-      const clientRule = result.find(rule => rule.matcher === '**/instrumentation-client.*');
-      expect(clientRule).toBeUndefined();
+      // Server rule should not exist
+      const serverRule = result.find(rule => rule.matcher === '**/instrumentation.*');
+      expect(serverRule).toBeUndefined();
     });
 
     it('should handle empty route manifest', () => {
@@ -121,13 +121,13 @@ describe('generateValueInjectionRules', () => {
 
       expect(result).toHaveLength(1);
 
-      const serverRule = result.find(rule => rule.matcher === '**/instrumentation.*');
-      expect(serverRule?.rule).toMatchObject({
+      const clientRule = result.find(rule => rule.matcher === '**/instrumentation-client.*');
+      expect(clientRule?.rule).toMatchObject({
         loaders: [
           {
             options: {
               values: {
-                _sentryRouteManifest: emptyManifest,
+                _sentryRouteManifest: JSON.stringify(emptyManifest),
               },
             },
           },
@@ -156,13 +156,13 @@ describe('generateValueInjectionRules', () => {
 
       expect(result).toHaveLength(1);
 
-      const serverRule = result.find(rule => rule.matcher === '**/instrumentation.*');
-      expect(serverRule?.rule).toMatchObject({
+      const clientRule = result.find(rule => rule.matcher === '**/instrumentation-client.*');
+      expect(clientRule?.rule).toMatchObject({
         loaders: [
           {
             options: {
               values: {
-                _sentryRouteManifest: complexManifest,
+                _sentryRouteManifest: JSON.stringify(complexManifest),
               },
             },
           },
@@ -190,13 +190,14 @@ describe('generateValueInjectionRules', () => {
             options: {
               values: {
                 _sentryNextJsVersion: '14.0.0',
+                _sentryRouteManifest: JSON.stringify(mockRouteManifest),
               },
             },
           },
         ],
       });
 
-      // Server rule should have both values
+      // Server rule should have only nextJsVersion
       const serverRule = result.find(rule => rule.matcher === '**/instrumentation.*');
       expect(serverRule).toBeDefined();
       expect(serverRule?.rule).toEqual({
@@ -206,7 +207,6 @@ describe('generateValueInjectionRules', () => {
             options: {
               values: {
                 _sentryNextJsVersion: '14.0.0',
-                _sentryRouteManifest: mockRouteManifest,
               },
             },
           },
