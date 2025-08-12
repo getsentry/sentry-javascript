@@ -115,7 +115,12 @@ function _extractErrorData(
     // Error.cause is a standard property that is non enumerable, we therefore need to access it separately.
     // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Error/cause
     if (captureErrorCause && error.cause !== undefined) {
-      extraErrorInfo.cause = isError(error.cause) ? error.cause.toString() : error.cause;
+      if (isError(error.cause)) {
+        const causeName = error.cause.name || error.cause.constructor.name;
+        extraErrorInfo.cause = { [causeName]: _extractErrorData(error.cause as ExtendedError, false, maxValueLength) };
+      } else {
+        extraErrorInfo.cause = error.cause;
+      }
     }
 
     // Check if someone attached `toJSON` method to grab even more properties (eg. axios is doing that)
