@@ -176,12 +176,13 @@ export function getTransportTypes(transport: MCPTransport): { mcpTransport: stri
  * @param transport - MCP transport instance
  * @param extra - Optional extra handler data
  * @returns Transport attributes for span instrumentation
+ * @note sessionId may be undefined during initial setup - session should be established by client during initialize flow
  */
 export function buildTransportAttributes(
   transport: MCPTransport,
   extra?: ExtraHandlerData,
 ): Record<string, string | number> {
-  const sessionId = transport.sessionId;
+  const sessionId = transport && 'sessionId' in transport ? transport.sessionId : undefined;
   const clientInfo = extra ? extractClientInfo(extra) : {};
   const { mcpTransport, networkTransport } = getTransportTypes(transport);
   const clientAttributes = getClientAttributes(transport);
