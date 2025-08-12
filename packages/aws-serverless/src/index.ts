@@ -114,6 +114,7 @@ export {
   spanToJSON,
   spanToTraceHeader,
   spanToBaggageHeader,
+  systemErrorIntegration,
   trpcMiddleware,
   updateSpanName,
   supabaseIntegration,
