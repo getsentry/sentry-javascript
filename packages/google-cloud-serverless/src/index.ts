@@ -114,6 +114,7 @@ export {
   trpcMiddleware,
   updateSpanName,
   supabaseIntegration,
+  systemErrorIntegration,
   instrumentSupabaseClient,
   zodErrorsIntegration,
   profiler,
