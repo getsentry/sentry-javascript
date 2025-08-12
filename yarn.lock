@@ -6928,11 +6928,6 @@
   dependencies:
     express "^4.21.1"
 
-"@sentry/babel-plugin-component-annotate@4.0.0":
-  version "4.0.0"
-  resolved "https://registry.yarnpkg.com/@sentry/babel-plugin-component-annotate/-/babel-plugin-component-annotate-4.0.0.tgz#2f4dfeabba28a76b5a1b32a1058386e52f32634f"
-  integrity sha512-1sozj4esnQBhJ2QO4imiLMl1858StkLjUxFF1KxgX/X1uEL/QlW2MYL8CKzbLeACy1SkR9h4V8GXSZvCnci5Dw==
-
 "@sentry/babel-plugin-component-annotate@4.0.2":
   version "4.0.2"
   resolved "https://registry.yarnpkg.com/@sentry/babel-plugin-component-annotate/-/babel-plugin-component-annotate-4.0.2.tgz#7c8eb80a38b5e6b4c4cea4c391d07581020c91e4"
@@ -6942,20 +6937,6 @@
   version "4.1.0"
   resolved "https://registry.yarnpkg.com/@sentry/babel-plugin-component-annotate/-/babel-plugin-component-annotate-4.1.0.tgz#6e7168f5fa59f53ac4b68e3f79c5fd54adc13f2e"
   integrity sha512-UkcnqC7Bp9ODyoBN7BKcRotd1jz/I2vyruE/qjNfRC7UnP+jIRItUWYaXxQPON1fTw+N+egKdByk0M1y2OPv/Q==
-
-"@sentry/bundler-plugin-core@4.0.0":
-  version "4.0.0"
-  resolved "https://registry.yarnpkg.com/@sentry/bundler-plugin-core/-/bundler-plugin-core-4.0.0.tgz#564463cf53f869496ab5d4986e97f86618a67677"
-  integrity sha512-dTdbcctT5MJUwdbttZm2zomO+ui1F062ZIkogHeHqlA938Fwd1+9JIJ328+XL4XdcUG2yiFAZBWUPW3bYwoN9A==
-  dependencies:
-    "@babel/core" "^7.18.5"
-    "@sentry/babel-plugin-component-annotate" "4.0.0"
-    "@sentry/cli" "^2.49.0"
-    dotenv "^16.3.1"
-    find-up "^5.0.0"
-    glob "^9.3.2"
-    magic-string "0.30.8"
-    unplugin "1.0.1"
 
 "@sentry/bundler-plugin-core@4.0.2":
   version "4.0.2"
@@ -7051,14 +7032,6 @@
   integrity sha512-HDwWgQRH7JhG15N1Y4XmPik/Qk03TGbiupDkZ8WL+8257BuyQE+s6feJJGCEUoWwROED+jvsFNvWvT2tqnILrw==
   dependencies:
     "@sentry/bundler-plugin-core" "4.1.0"
-    unplugin "1.0.1"
-
-"@sentry/vite-plugin@^4.0.0":
-  version "4.0.0"
-  resolved "https://registry.yarnpkg.com/@sentry/vite-plugin/-/vite-plugin-4.0.0.tgz#ac2780e1d2d88371b0a4a6dc834eadc8bc92d8ea"
-  integrity sha512-JX5irzvyoOSKto0U0eXDqigsTXdXnPRQaAms/kcU6A6Bf+WaPfCTE5NrJWg6ZeLvi7GiPWch11OO+TB6ZN8RKA==
-  dependencies:
-    "@sentry/bundler-plugin-core" "4.0.0"
     unplugin "1.0.1"
 
 "@sentry/vite-plugin@^4.1.0":
