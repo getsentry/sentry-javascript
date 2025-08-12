@@ -25,6 +25,9 @@ describe('Initialize Svelte SDk', () => {
           name: 'sentry.javascript.svelte',
           packages: [{ name: 'npm:@sentry/svelte', version: SDK_VERSION }],
           version: SDK_VERSION,
+          settings: {
+            infer_ip: 'never',
+          },
         },
       },
     };
@@ -44,6 +47,9 @@ describe('Initialize Svelte SDk', () => {
             { name: 'npm:@sentry/sveltekit', version: SDK_VERSION },
             { name: 'npm:@sentry/svelte', version: SDK_VERSION },
           ],
+          settings: {
+            infer_ip: 'never',
+          },
         },
       },
     });
@@ -59,6 +65,9 @@ describe('Initialize Svelte SDk', () => {
               { name: 'npm:@sentry/sveltekit', version: SDK_VERSION },
               { name: 'npm:@sentry/svelte', version: SDK_VERSION },
             ],
+            settings: {
+              infer_ip: 'never',
+            },
           },
         },
       }),

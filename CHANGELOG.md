@@ -4,6 +4,63 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 10.4.0
+
+### Important Changes
+
+- **fix(browser): Ensure IP address is only inferred by Relay if `sendDefaultPii` is `true`**
+
+This release includes a fix for a [behaviour change](https://docs.sentry.io/platforms/javascript/migration/v8-to-v9/#behavior-changes)
+that was originally introduced with v9 of the SDK: User IP Addresses should only be added to Sentry events automatically,
+if `sendDefaultPii` was set to `true`.
+
+However, the change in v9 required further internal adjustment, which should have been included in v10 of the SDK.
+Unfortunately, the change did not make it into the initial v10 version but is now applied with `10.4.0`.
+There is _no API_ breakage involved and hence it is safe to update.
+However, after updating the SDK, events (errors, traces, replays, etc.) sent from the browser, will only include
+user IP addresses, if you set `sendDefaultPii: true` in your `Sentry.init` options.
+
+We apologize for any inconvenience caused!
+
+- **feat(node): Add `ignoreStaticAssets` ([#17370](https://github.com/getsentry/sentry-javascript/pull/17370))**
+
+This release adds a new option to `httpIntegration` to ignore requests for static assets (e.g. `favicon.xml` or `robots.txt`). The option defaults to `true`, meaning that going forward, such requests will not be traced by default. You can still enable tracing for these requests by setting the option to `false`:
+
+```js
+Sentry.init({
+  integrations: [
+    Sentry.httpIntegration({
+      // defaults to true, set to false to enable traces for static assets
+      ignoreStaticAssets: false,
+    }),
+  ],
+});
+```
+
+### Other Changes
+
+- fix(nuxt): Do not drop parametrized routes ([#17357](https://github.com/getsentry/sentry-javascript/pull/17357))
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+
+- ref(node): Split up incoming & outgoing http handling ([#17358](https://github.com/getsentry/sentry-javascript/pull/17358))
+- test(node): Enable additionalDependencies in integration runner ([#17361](https://github.com/getsentry/sentry-javascript/pull/17361))
+
+</details>
+
+## 10.3.0
+
+- feat(core): MCP Server - Capture prompt results from prompt function calls (#17284)
+- feat(bun): Export `skipOpenTelemetrySetup` option ([#17349](https://github.com/getsentry/sentry-javascript/pull/17349))
+- feat(sveltekit): Streamline build logs ([#17306](https://github.com/getsentry/sentry-javascript/pull/17306))
+- fix(browser): Handle data urls in errors caught by `globalHandlersIntegration` ([#17216](https://github.com/getsentry/sentry-javascript/pull/17216))
+- fix(browser): Improve navigation vs. redirect detection ([#17275](https://github.com/getsentry/sentry-javascript/pull/17275))
+- fix(react-router): Ensure source map upload fails silently if Sentry CLI fails ([#17081](https://github.com/getsentry/sentry-javascript/pull/17081))
+- fix(react): Add support for React Router sub-routes from `handle` ([#17277](https://github.com/getsentry/sentry-javascript/pull/17277))
+
+## 10.2.0
+
 ### Important Changes
 
 - **feat(core): Add `ignoreSpans` option ([#17078](https://github.com/getsentry/sentry-javascript/pull/17078))**
@@ -24,6 +81,44 @@ Sentry.init({
 ```
 
 Spans matching the filter criteria will not be recorded. Potential child spans of filtered spans will be re-parented, if possible.
+
+- **feat(cloudflare,vercel-edge): Add support for OpenAI instrumentation ([#17338](https://github.com/getsentry/sentry-javascript/pull/17338))**
+
+Adds support for OpenAI manual instrumentation in `@sentry/cloudflare` and `@sentry/vercel-edge`.
+
+To instrument the OpenAI client, wrap it with `Sentry.instrumentOpenAiClient` and set recording settings.
+
+```js
+import * as Sentry from '@sentry/cloudflare';
+import OpenAI from 'openai';
+
+const openai = new OpenAI();
+const client = Sentry.instrumentOpenAiClient(openai, { recordInputs: true, recordOutputs: true });
+
+// use the wrapped client
+```
+
+- **ref(aws): Remove manual span creation ([#17310](https://github.com/getsentry/sentry-javascript/pull/17310))**
+
+The `startTrace` option is deprecated and will be removed in a future major version. If you want to disable tracing, set `SENTRY_TRACES_SAMPLE_RATE` to `0.0`. instead. As of today, the flag does not affect traces anymore.
+
+### Other Changes
+
+- feat(astro): Streamline build logs ([#17301](https://github.com/getsentry/sentry-javascript/pull/17301))
+- feat(browser): Handles data URIs in chrome stack frames ([#17292](https://github.com/getsentry/sentry-javascript/pull/17292))
+- feat(core): Accumulate tokens for `gen_ai.invoke_agent` spans from child LLM calls ([#17281](https://github.com/getsentry/sentry-javascript/pull/17281))
+- feat(deps): Bump @prisma/instrumentation from 6.12.0 to 6.13.0 ([#17315](https://github.com/getsentry/sentry-javascript/pull/17315))
+- feat(deps): Bump @sentry/cli from 2.50.0 to 2.50.2 ([#17316](https://github.com/getsentry/sentry-javascript/pull/17316))
+- feat(deps): Bump @sentry/rollup-plugin from 4.0.0 to 4.0.2 ([#17317](https://github.com/getsentry/sentry-javascript/pull/17317))
+- feat(deps): Bump @sentry/webpack-plugin from 4.0.0 to 4.0.2 ([#17314](https://github.com/getsentry/sentry-javascript/pull/17314))
+- feat(nuxt): Do not inject trace meta-tags on cached HTML pages ([#17305](https://github.com/getsentry/sentry-javascript/pull/17305))
+- feat(nuxt): Streamline build logs ([#17308](https://github.com/getsentry/sentry-javascript/pull/17308))
+- feat(react-router): Add support for Hydrogen with RR7 ([#17145](https://github.com/getsentry/sentry-javascript/pull/17145))
+- feat(react-router): Streamline build logs ([#17303](https://github.com/getsentry/sentry-javascript/pull/17303))
+- feat(solidstart): Streamline build logs ([#17304](https://github.com/getsentry/sentry-javascript/pull/17304))
+- fix(nestjs): Add missing `sentry.origin` span attribute to `SentryTraced` decorator ([#17318](https://github.com/getsentry/sentry-javascript/pull/17318))
+- fix(node): Assign default export of `openai` to the instrumented fn ([#17320](https://github.com/getsentry/sentry-javascript/pull/17320))
+- fix(replay): Call `sendBufferedReplayOrFlush` when opening/sending feedback ([#17236](https://github.com/getsentry/sentry-javascript/pull/17236))
 
 ## 10.1.0
 

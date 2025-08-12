@@ -44,8 +44,8 @@ These have also been documented via [Cursor Rules](../.cursor/rules/publishing-r
 1. Run `yarn changelog` and copy everything.
 2. Create a new section in the changelog with the previously determined version number.
 3. Paste in the logs you copied earlier.
-4. Delete any which aren't user-facing changes (such as docs or tests).
-5. If there are any important features or fixes, highlight them under the `Important Changes` subheading. If there are no important changes, don't include this section. If the `Important Changes` subheading is used, put all other changes under the `Other Changes` subheading.
+4. If there are any important features or fixes, highlight them under the `Important Changes` subheading. If there are no important changes, don't include this section. If the `Important Changes` subheading is used, put all other user-facing changes under the `Other Changes` subheading.
+5. Any changes that are purely internal (e.g. internal refactors (`ref`) without user-facing changes, tests, chores, etc) should be put under a `<details>` block, where the `<summary>` heading is "Internal Changes" (see example).
 6. Make sure the changelog entries are ordered alphabetically.
 7. If any of the PRs are from external contributors, include underneath the commits
    `Work in this release contributed by <list of external contributors' GitHub usernames>. Thank you for your contributions!`.
@@ -77,6 +77,14 @@ This feature ships updates to the span names and ops to better match OpenTelemet
 ### Other Changes
 
 - fix(sveltekit): Export `vercelAIIntegration` from `@sentry/node` ([#16496](https://github.com/getsentry/sentry-javascript/pull/16496))
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+
+- ref(node): Split up incoming & outgoing http handling ([#17358](https://github.com/getsentry/sentry-javascript/pull/17358))
+- test(node): Enable additionalDependencies in integration runner ([#17361](https://github.com/getsentry/sentry-javascript/pull/17361))
+
+</details>
 
 Work in this release was contributed by @agrattan0820. Thank you for your contribution!
 ```

@@ -55,9 +55,11 @@ describe('ExtraErrorData()', () => {
     });
   });
 
-  it('doesnt choke on linked errors and stringify names instead', () => {
+  it('should extract error data from the error cause with the same policy', () => {
     const error = new TypeError('foo') as ExtendedError;
-    error.cause = new SyntaxError('bar');
+    error.cause = new SyntaxError('bar') as ExtendedError;
+    error.cause.baz = 42;
+    error.cause.foo = 'a'.repeat(300);
 
     const enhancedEvent = extraErrorData.processEvent?.(
       event,
@@ -69,7 +71,12 @@ describe('ExtraErrorData()', () => {
 
     expect(enhancedEvent.contexts).toEqual({
       TypeError: {
-        cause: 'SyntaxError: bar',
+        cause: {
+          SyntaxError: {
+            baz: 42,
+            foo: `${'a'.repeat(250)}...`,
+          },
+        },
       },
     });
   });

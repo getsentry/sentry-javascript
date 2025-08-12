@@ -32,16 +32,31 @@ import { showSpanDropWarning, spanToJSON } from './utils/spanUtils';
 /**
  * Apply SdkInfo (name, version, packages, integrations) to the corresponding event key.
  * Merge with existing data if any.
+ *
+ * @internal, exported only for testing
  **/
-function enhanceEventWithSdkInfo(event: Event, sdkInfo?: SdkInfo): Event {
-  if (!sdkInfo) {
+export function _enhanceEventWithSdkInfo(event: Event, newSdkInfo?: SdkInfo): Event {
+  if (!newSdkInfo) {
     return event;
   }
-  event.sdk = event.sdk || {};
-  event.sdk.name = event.sdk.name || sdkInfo.name;
-  event.sdk.version = event.sdk.version || sdkInfo.version;
-  event.sdk.integrations = [...(event.sdk.integrations || []), ...(sdkInfo.integrations || [])];
-  event.sdk.packages = [...(event.sdk.packages || []), ...(sdkInfo.packages || [])];
+
+  const eventSdkInfo = event.sdk || {};
+
+  event.sdk = {
+    ...eventSdkInfo,
+    name: eventSdkInfo.name || newSdkInfo.name,
+    version: eventSdkInfo.version || newSdkInfo.version,
+    integrations: [...(event.sdk?.integrations || []), ...(newSdkInfo.integrations || [])],
+    packages: [...(event.sdk?.packages || []), ...(newSdkInfo.packages || [])],
+    settings:
+      event.sdk?.settings || newSdkInfo.settings
+        ? {
+            ...event.sdk?.settings,
+            ...newSdkInfo.settings,
+          }
+        : undefined,
+  };
+
   return event;
 }
 
@@ -85,7 +100,7 @@ export function createEventEnvelope(
   */
   const eventType = event.type && event.type !== 'replay_event' ? event.type : 'event';
 
-  enhanceEventWithSdkInfo(event, metadata?.sdk);
+  _enhanceEventWithSdkInfo(event, metadata?.sdk);
 
   const envelopeHeaders = createEventEnvelopeHeaders(event, sdkInfo, tunnel, dsn);
 

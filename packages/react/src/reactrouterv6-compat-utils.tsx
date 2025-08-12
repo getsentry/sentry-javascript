@@ -10,6 +10,7 @@ import {
 } from '@sentry/browser';
 import type { Client, Integration, Span, TransactionSource } from '@sentry/core';
 import {
+  addNonEnumerableProperty,
   debug,
   getActiveSpan,
   getClient,
@@ -46,6 +47,7 @@ let _useNavigationType: UseNavigationType;
 let _createRoutesFromChildren: CreateRoutesFromChildren;
 let _matchRoutes: MatchRoutes;
 let _stripBasename: boolean = false;
+let _enableAsyncRouteHandlers: boolean = false;
 
 const CLIENTS_WITH_INSTRUMENT_NAVIGATION = new WeakSet<Client>();
 
@@ -55,13 +57,150 @@ export interface ReactRouterOptions {
   useNavigationType: UseNavigationType;
   createRoutesFromChildren: CreateRoutesFromChildren;
   matchRoutes: MatchRoutes;
+  /**
+   * Whether to strip the basename from the pathname when creating transactions.
+   *
+   * This is useful for applications that use a basename in their routing setup.
+   * @default false
+   */
   stripBasename?: boolean;
+  /**
+   * Enables support for async route handlers.
+   *
+   * This allows Sentry to track and instrument routes dynamically resolved from async handlers.
+   * @default false
+   */
+  enableAsyncRouteHandlers?: boolean;
 }
 
 type V6CompatibleVersion = '6' | '7';
 
 // Keeping as a global variable for cross-usage in multiple functions
 const allRoutes = new Set<RouteObject>();
+
+/**
+ * Adds resolved routes as children to the parent route.
+ * Prevents duplicate routes by checking if they already exist.
+ */
+function addResolvedRoutesToParent(resolvedRoutes: RouteObject[], parentRoute: RouteObject): void {
+  const existingChildren = parentRoute.children || [];
+
+  const newRoutes = resolvedRoutes.filter(
+    newRoute =>
+      !existingChildren.some(
+        existing =>
+          existing === newRoute ||
+          (newRoute.path && existing.path === newRoute.path) ||
+          (newRoute.id && existing.id === newRoute.id),
+      ),
+  );
+
+  if (newRoutes.length > 0) {
+    parentRoute.children = [...existingChildren, ...newRoutes];
+  }
+}
+
+/**
+ * Handles the result of an async handler function call.
+ */
+function handleAsyncHandlerResult(result: unknown, route: RouteObject, handlerKey: string): void {
+  if (
+    result &&
+    typeof result === 'object' &&
+    'then' in result &&
+    typeof (result as Promise<unknown>).then === 'function'
+  ) {
+    (result as Promise<unknown>)
+      .then((resolvedRoutes: unknown) => {
+        if (Array.isArray(resolvedRoutes)) {
+          processResolvedRoutes(resolvedRoutes, route);
+        }
+      })
+      .catch((e: unknown) => {
+        DEBUG_BUILD && debug.warn(`Error resolving async handler '${handlerKey}' for route`, route, e);
+      });
+  } else if (Array.isArray(result)) {
+    processResolvedRoutes(result, route);
+  }
+}
+
+/**
+ * Processes resolved routes by adding them to allRoutes and checking for nested async handlers.
+ */
+function processResolvedRoutes(resolvedRoutes: RouteObject[], parentRoute?: RouteObject): void {
+  resolvedRoutes.forEach(child => {
+    allRoutes.add(child);
+    // Only check for async handlers if the feature is enabled
+    if (_enableAsyncRouteHandlers) {
+      checkRouteForAsyncHandler(child);
+    }
+  });
+
+  if (parentRoute) {
+    // If a parent route is provided, add the resolved routes as children to the parent route
+    addResolvedRoutesToParent(resolvedRoutes, parentRoute);
+  }
+
+  // After processing lazy routes, check if we need to update an active pageload transaction
+  const activeRootSpan = getActiveRootSpan();
+  if (activeRootSpan && spanToJSON(activeRootSpan).op === 'pageload') {
+    const location = WINDOW.location;
+    if (location) {
+      // Re-run the pageload transaction update with the newly loaded routes
+      updatePageloadTransaction(
+        activeRootSpan,
+        { pathname: location.pathname },
+        Array.from(allRoutes),
+        undefined,
+        undefined,
+        Array.from(allRoutes),
+      );
+    }
+  }
+}
+
+/**
+ * Creates a proxy wrapper for an async handler function.
+ */
+function createAsyncHandlerProxy(
+  originalFunction: (...args: unknown[]) => unknown,
+  route: RouteObject,
+  handlerKey: string,
+): (...args: unknown[]) => unknown {
+  const proxy = new Proxy(originalFunction, {
+    apply(target: (...args: unknown[]) => unknown, thisArg, argArray) {
+      const result = target.apply(thisArg, argArray);
+      handleAsyncHandlerResult(result, route, handlerKey);
+      return result;
+    },
+  });
+
+  addNonEnumerableProperty(proxy, '__sentry_proxied__', true);
+
+  return proxy;
+}
+
+/**
+ * Recursively checks a route for async handlers and sets up Proxies to add discovered child routes to allRoutes when called.
+ */
+export function checkRouteForAsyncHandler(route: RouteObject): void {
+  // Set up proxies for any functions in the route's handle
+  if (route.handle && typeof route.handle === 'object') {
+    for (const key of Object.keys(route.handle)) {
+      const maybeFn = route.handle[key];
+      if (typeof maybeFn === 'function' && !(maybeFn as { __sentry_proxied__?: boolean }).__sentry_proxied__) {
+        route.handle[key] = createAsyncHandlerProxy(maybeFn, route, key);
+      }
+    }
+  }
+
+  // Recursively check child routes
+  if (Array.isArray(route.children)) {
+    for (const child of route.children) {
+      checkRouteForAsyncHandler(child);
+    }
+  }
+}
 
 /**
  * Creates a wrapCreateBrowserRouter function that can be used with all React Router v6 compatible versions.
@@ -84,6 +223,13 @@ export function createV6CompatibleWrapCreateBrowserRouter<
 
   return function (routes: RouteObject[], opts?: Record<string, unknown> & { basename?: string }): TRouter {
     addRoutesToAllRoutes(routes);
+
+    // Check for async handlers that might contain sub-route declarations (only if enabled)
+    if (_enableAsyncRouteHandlers) {
+      for (const route of routes) {
+        checkRouteForAsyncHandler(route);
+      }
+    }
 
     const router = createRouterFunction(routes, opts);
     const basename = opts?.basename;
@@ -164,6 +310,13 @@ export function createV6CompatibleWrapCreateMemoryRouter<
   ): TRouter {
     addRoutesToAllRoutes(routes);
 
+    // Check for async handlers that might contain sub-route declarations (only if enabled)
+    if (_enableAsyncRouteHandlers) {
+      for (const route of routes) {
+        checkRouteForAsyncHandler(route);
+      }
+    }
+
     const router = createRouterFunction(routes, opts);
     const basename = opts?.basename;
 
@@ -230,6 +383,7 @@ export function createReactRouterV6CompatibleTracingIntegration(
     createRoutesFromChildren,
     matchRoutes,
     stripBasename,
+    enableAsyncRouteHandlers = false,
     instrumentPageLoad = true,
     instrumentNavigation = true,
   } = options;
@@ -245,6 +399,7 @@ export function createReactRouterV6CompatibleTracingIntegration(
       _matchRoutes = matchRoutes;
       _createRoutesFromChildren = createRoutesFromChildren;
       _stripBasename = stripBasename || false;
+      _enableAsyncRouteHandlers = enableAsyncRouteHandlers;
     },
     afterAllSetup(client) {
       integration.afterAllSetup(client);
@@ -542,6 +697,7 @@ function getNormalizedName(
   }
 
   let pathBuilder = '';
+
   if (branches) {
     for (const branch of branches) {
       const route = branch.route;

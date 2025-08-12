@@ -504,6 +504,11 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
           return;
         }
 
+        // Reset the last interaction timestamp since we now start a new navigation.
+        // Any subsequent navigation span starts could again be a redirect, so we
+        // should reset our heuristic detectors.
+        lastInteractionTimestamp = undefined;
+
         maybeEndActiveSpan();
 
         getIsolationScope().setPropagationContext({ traceId: generateTraceId(), sampleRand: Math.random() });
@@ -590,6 +595,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
             const activeSpan = getActiveIdleSpan(client);
             const navigationIsRedirect =
               activeSpan && detectRedirects && isRedirect(activeSpan, lastInteractionTimestamp);
+
             startBrowserTracingNavigationSpan(
               client,
               {
@@ -767,21 +773,21 @@ function setActiveIdleSpan(client: Client, span: Span | undefined): void {
 }
 
 // The max. time in seconds between two pageload/navigation spans that makes us consider the second one a redirect
-const REDIRECT_THRESHOLD = 0.3;
+const REDIRECT_THRESHOLD = 1.5;
 
 function isRedirect(activeSpan: Span, lastInteractionTimestamp: number | undefined): boolean {
   const spanData = spanToJSON(activeSpan);
 
   const now = dateTimestampInSeconds();
 
-  // More than 300ms since last navigation/pageload span?
+  // More than REDIRECT_THRESHOLD seconds since last navigation/pageload span?
   // --> never consider this a redirect
   const startTimestamp = spanData.start_timestamp;
   if (now - startTimestamp > REDIRECT_THRESHOLD) {
     return false;
   }
 
-  // A click happened in the last 300ms?
+  // A click happened in the last REDIRECT_THRESHOLD seconds?
   // --> never consider this a redirect
   if (lastInteractionTimestamp && now - lastInteractionTimestamp <= REDIRECT_THRESHOLD) {
     return false;

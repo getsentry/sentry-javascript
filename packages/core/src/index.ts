@@ -63,7 +63,10 @@ export { hasSpansEnabled } from './utils/hasSpansEnabled';
 export { isSentryRequestUrl } from './utils/isSentryRequestUrl';
 export { handleCallbackErrors } from './utils/handleCallbackErrors';
 export { parameterize, fmt } from './utils/parameterize';
-export { addAutoIpAddressToSession, addAutoIpAddressToUser } from './utils/ipAddress';
+
+export { addAutoIpAddressToSession } from './utils/ipAddress';
+// eslint-disable-next-line deprecation/deprecation
+export { addAutoIpAddressToUser } from './utils/ipAddress';
 export {
   convertSpanLinksForEnvelope,
   spanToTraceHeader,
