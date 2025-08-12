@@ -24,7 +24,7 @@ sentryTest('handles fetch network errors @firefox', async ({ getLocalTestUrl, pa
     value: error,
     mechanism: {
       handled: false,
-      type: 'onunhandledrejection',
+      type: 'auto.browser.global_handlers.onunhandledrejection',
     },
   });
 });
@@ -51,7 +51,7 @@ sentryTest('handles fetch network errors on subdomains @firefox', async ({ getLo
     value: error,
     mechanism: {
       handled: false,
-      type: 'onunhandledrejection',
+      type: 'auto.browser.global_handlers.onunhandledrejection',
     },
   });
 });
@@ -78,7 +78,7 @@ sentryTest('handles fetch invalid header name errors @firefox', async ({ getLoca
     value: error,
     mechanism: {
       handled: false,
-      type: 'onunhandledrejection',
+      type: 'auto.browser.global_handlers.onunhandledrejection',
     },
     stacktrace: {
       frames: expect.any(Array),
@@ -110,7 +110,7 @@ sentryTest('handles fetch invalid header value errors @firefox', async ({ getLoc
     value: error,
     mechanism: {
       handled: false,
-      type: 'onunhandledrejection',
+      type: 'auto.browser.global_handlers.onunhandledrejection',
     },
     stacktrace: {
       frames: expect.any(Array),
@@ -152,7 +152,7 @@ sentryTest('handles fetch invalid URL scheme errors @firefox', async ({ getLocal
     value: error,
     mechanism: {
       handled: false,
-      type: 'onunhandledrejection',
+      type: 'auto.browser.global_handlers.onunhandledrejection',
     },
     stacktrace: {
       frames: expect.any(Array),
@@ -184,7 +184,7 @@ sentryTest('handles fetch credentials in url errors @firefox', async ({ getLocal
     value: error,
     mechanism: {
       handled: false,
-      type: 'onunhandledrejection',
+      type: 'auto.browser.global_handlers.onunhandledrejection',
     },
     stacktrace: {
       frames: expect.any(Array),
@@ -215,7 +215,7 @@ sentryTest('handles fetch invalid mode errors @firefox', async ({ getLocalTestUr
     value: error,
     mechanism: {
       handled: false,
-      type: 'onunhandledrejection',
+      type: 'auto.browser.global_handlers.onunhandledrejection',
     },
     stacktrace: {
       frames: expect.any(Array),
@@ -245,7 +245,7 @@ sentryTest('handles fetch invalid request method errors @firefox', async ({ getL
     value: error,
     mechanism: {
       handled: false,
-      type: 'onunhandledrejection',
+      type: 'auto.browser.global_handlers.onunhandledrejection',
     },
     stacktrace: {
       frames: expect.any(Array),
@@ -277,7 +277,7 @@ sentryTest(
       value: error,
       mechanism: {
         handled: false,
-        type: 'onunhandledrejection',
+        type: 'auto.browser.global_handlers.onunhandledrejection',
       },
       stacktrace: {
         frames: expect.any(Array),

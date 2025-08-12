@@ -22,6 +22,12 @@ export default defineConfig({
     // already run in their own processes. We use threads instead because the
     // overhead is significantly less.
     pool: 'threads',
+    // Run tests sequentially to avoid port conflicts with wrangler dev processes
+    poolOptions: {
+      threads: {
+        singleThread: true,
+      },
+    },
     reporters: process.env.DEBUG
       ? ['default', { summary: false }]
       : process.env.GITHUB_ACTIONS

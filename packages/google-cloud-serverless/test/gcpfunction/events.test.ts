@@ -245,7 +245,7 @@ describe('wrapEventFunction', () => {
     // @ts-expect-error just mocking around...
     expect(evtProcessor(event).exception.values[0]?.mechanism).toEqual({
       handled: false,
-      type: 'generic',
+      type: 'auto.function.serverless.gcp_event',
     });
   });
 

@@ -8,12 +8,9 @@
 import { getIsolationScope, withIsolationScope } from '../../currentScopes';
 import { startInactiveSpan, withActiveSpan } from '../../tracing';
 import { fill } from '../../utils/object';
-import {
-  extractSessionDataFromInitializeRequest,
-  extractSessionDataFromInitializeResponse,
-} from './attributeExtraction';
 import { cleanupPendingSpansForTransport, completeSpanWithResults, storeSpanForRequest } from './correlation';
 import { captureError } from './errorCapture';
+import { extractSessionDataFromInitializeRequest, extractSessionDataFromInitializeResponse } from './sessionExtraction';
 import {
   cleanupSessionDataForTransport,
   storeSessionDataForTransport,
@@ -21,7 +18,7 @@ import {
 } from './sessionManagement';
 import { buildMcpServerSpanConfig, createMcpNotificationSpan, createMcpOutgoingNotificationSpan } from './spans';
 import type { ExtraHandlerData, MCPTransport } from './types';
-import { isJsonRpcNotification, isJsonRpcRequest, isJsonRpcResponse } from './validation';
+import { isJsonRpcNotification, isJsonRpcRequest, isJsonRpcResponse, isValidContentItem } from './validation';
 
 /**
  * Wraps transport.onmessage to create spans for incoming messages.
@@ -93,9 +90,8 @@ export function wrapTransportSend(transport: MCPTransport): void {
               captureJsonRpcErrorResponse(message.error);
             }
 
-            if (message.result && typeof message.result === 'object') {
-              const result = message.result as Record<string, unknown>;
-              if (result.protocolVersion || result.serverInfo) {
+            if (isValidContentItem(message.result)) {
+              if (message.result.protocolVersion || message.result.serverInfo) {
                 try {
                   const serverData = extractSessionDataFromInitializeResponse(message.result);
                   updateSessionDataForTransport(this, serverData);

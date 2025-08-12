@@ -13,7 +13,7 @@ sentryTest('should catch thrown errors', async ({ getLocalTestUrl, page }) => {
     type: 'Error',
     value: 'promiseError',
     mechanism: {
-      type: 'onunhandledrejection',
+      type: 'auto.browser.global_handlers.onunhandledrejection',
       handled: false,
     },
     stacktrace: {

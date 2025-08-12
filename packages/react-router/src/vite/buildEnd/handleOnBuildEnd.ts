@@ -59,7 +59,10 @@ export const sentryOnBuildEnd: BuildEndHook = async ({ reactRouterConfig, viteCo
   if (sourceMapsUploadOptions?.enabled ?? (true && viteConfig.build.sourcemap !== false)) {
     // inject debugIds
     try {
-      await cliInstance.execute(['sourcemaps', 'inject', reactRouterConfig.buildDirectory], debug);
+      await cliInstance.execute(
+        ['sourcemaps', 'inject', reactRouterConfig.buildDirectory],
+        debug ? 'rejectOnError' : false,
+      );
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error('[Sentry] Could not inject debug ids', error);
@@ -73,6 +76,7 @@ export const sentryOnBuildEnd: BuildEndHook = async ({ reactRouterConfig, viteCo
             paths: [reactRouterConfig.buildDirectory],
           },
         ],
+        live: 'rejectOnError',
       });
     } catch (error) {
       // eslint-disable-next-line no-console
@@ -84,14 +88,13 @@ export const sentryOnBuildEnd: BuildEndHook = async ({ reactRouterConfig, viteCo
   // set a default value no option was set
   if (typeof sourceMapsUploadOptions?.filesToDeleteAfterUpload === 'undefined') {
     updatedFilesToDeleteAfterUpload = [`${reactRouterConfig.buildDirectory}/**/*.map`];
-    if (debug) {
+    debug &&
       // eslint-disable-next-line no-console
       console.info(
         `[Sentry] Automatically setting \`sourceMapsUploadOptions.filesToDeleteAfterUpload: ${JSON.stringify(
           updatedFilesToDeleteAfterUpload,
         )}\` to delete generated source maps after they were uploaded to Sentry.`,
       );
-    }
   }
   if (updatedFilesToDeleteAfterUpload) {
     try {
@@ -108,11 +111,10 @@ export const sentryOnBuildEnd: BuildEndHook = async ({ reactRouterConfig, viteCo
       await Promise.all(
         filePathsToDelete.map(filePathToDelete =>
           rm(filePathToDelete, { force: true }).catch((e: unknown) => {
-            if (debug) {
-              // This is allowed to fail - we just don't do anything
+            // This is allowed to fail - we just don't do anything
+            debug &&
               // eslint-disable-next-line no-console
               console.debug(`An error occurred while attempting to delete asset: ${filePathToDelete}`, e);
-            }
           }),
         ),
       );

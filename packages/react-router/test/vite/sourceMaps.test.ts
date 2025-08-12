@@ -41,13 +41,29 @@ describe('getUpdatedSourceMapSettings', () => {
   });
 
   describe('when sourcemap is false', () => {
-    it('should keep sourcemap as false and show warning', () => {
+    it('should keep sourcemap as false and show short warning when debug is disabled', () => {
       const result = getUpdatedSourceMapSettings({ build: { sourcemap: false } });
 
       expect(result).toBe(false);
       // eslint-disable-next-line no-console
       expect(console.warn).toHaveBeenCalledWith(
-        expect.stringContaining('[Sentry] Source map generation is currently disabled'),
+        '[Sentry] Source map generation is disabled in your Vite configuration.',
+      );
+    });
+
+    it('should keep sourcemap as false and show long warning when debug is enabled', () => {
+      const result = getUpdatedSourceMapSettings({ build: { sourcemap: false } }, { debug: true });
+
+      expect(result).toBe(false);
+      // eslint-disable-next-line no-console
+      expect(console.warn).toHaveBeenCalledWith(
+        expect.stringContaining('[Sentry] Source map generation is currently disabled in your Vite configuration'),
+      );
+      // eslint-disable-next-line no-console
+      expect(console.warn).toHaveBeenCalledWith(
+        expect.stringContaining(
+          'This setting is either a default setting or was explicitly set in your configuration.',
+        ),
       );
     });
   });
@@ -72,7 +88,7 @@ describe('getUpdatedSourceMapSettings', () => {
     it.each([[undefined], ['invalid'], ['something'], [null]])(
       'should set sourcemap to hidden when value is %s',
       input => {
-        const result = getUpdatedSourceMapSettings({ build: { sourcemap: input as any } });
+        const result = getUpdatedSourceMapSettings({ build: { sourcemap: input as any } }, { debug: true });
 
         expect(result).toBe('hidden');
         // eslint-disable-next-line no-console
@@ -85,7 +101,7 @@ describe('getUpdatedSourceMapSettings', () => {
     );
 
     it('should set sourcemap to hidden when build config is empty', () => {
-      const result = getUpdatedSourceMapSettings({});
+      const result = getUpdatedSourceMapSettings({}, { debug: true });
 
       expect(result).toBe('hidden');
       // eslint-disable-next-line no-console

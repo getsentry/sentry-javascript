@@ -19,7 +19,7 @@ export default defineConfig({
         'vite.config.*',
       ],
     },
-    reporters: ['default', ...(process.env.CI ? [['junit', { classnameTemplate: '{filepath}' }]] : [])],
+    reporters: process.env.CI ? ['default', ['junit', { classnameTemplate: '{filepath}' }]] : ['default'],
     outputFile: {
       junit: 'vitest.junit.xml',
     },

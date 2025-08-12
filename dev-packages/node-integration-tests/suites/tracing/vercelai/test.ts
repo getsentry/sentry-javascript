@@ -197,6 +197,73 @@ describe('Vercel AI integration', () => {
     ]),
   };
 
+  // Todo: Add missing attribute spans for v5
+  // Right now only second span is recorded as it's manually opted in via explicit telemetry option
+  const EXPECTED_TRANSACTION_DEFAULT_PII_FALSE_V5 = {
+    transaction: 'main',
+    spans: expect.arrayContaining([
+      expect.objectContaining({
+        data: {
+          'vercel.ai.model.id': 'mock-model-id',
+          'vercel.ai.model.provider': 'mock-provider',
+          'vercel.ai.operationId': 'ai.generateText',
+          'vercel.ai.pipeline.name': 'generateText',
+          'vercel.ai.prompt': '{"prompt":"Where is the second span?"}',
+          'vercel.ai.response.finishReason': 'stop',
+          'gen_ai.response.text': expect.any(String),
+          'vercel.ai.settings.maxRetries': 2,
+          // 'vercel.ai.settings.maxSteps': 1,
+          'vercel.ai.streaming': false,
+          'gen_ai.prompt': '{"prompt":"Where is the second span?"}',
+          'gen_ai.response.model': 'mock-model-id',
+          'gen_ai.usage.input_tokens': 10,
+          'gen_ai.usage.output_tokens': 20,
+          'gen_ai.usage.total_tokens': 30,
+          'operation.name': 'ai.generateText',
+          'sentry.op': 'gen_ai.invoke_agent',
+          'sentry.origin': 'auto.vercelai.otel',
+        },
+        description: 'generateText',
+        op: 'gen_ai.invoke_agent',
+        origin: 'auto.vercelai.otel',
+        status: 'ok',
+      }),
+      // doGenerate
+      expect.objectContaining({
+        data: {
+          'sentry.origin': 'auto.vercelai.otel',
+          'sentry.op': 'gen_ai.generate_text',
+          'operation.name': 'ai.generateText.doGenerate',
+          'vercel.ai.operationId': 'ai.generateText.doGenerate',
+          'vercel.ai.model.provider': 'mock-provider',
+          'vercel.ai.model.id': 'mock-model-id',
+          'vercel.ai.settings.maxRetries': 2,
+          'gen_ai.system': 'mock-provider',
+          'gen_ai.request.model': 'mock-model-id',
+          'vercel.ai.pipeline.name': 'generateText.doGenerate',
+          'vercel.ai.streaming': false,
+          'vercel.ai.response.finishReason': 'stop',
+          'vercel.ai.response.model': 'mock-model-id',
+          'vercel.ai.response.id': expect.any(String),
+          'gen_ai.response.text': 'Second span here!',
+          'vercel.ai.response.timestamp': expect.any(String),
+          // 'vercel.ai.prompt.format': expect.any(String),
+          'gen_ai.request.messages': expect.any(String),
+          'gen_ai.response.finish_reasons': ['stop'],
+          'gen_ai.usage.input_tokens': 10,
+          'gen_ai.usage.output_tokens': 20,
+          'gen_ai.response.id': expect.any(String),
+          'gen_ai.response.model': 'mock-model-id',
+          'gen_ai.usage.total_tokens': 30,
+        },
+        description: 'generate_text mock-model-id',
+        op: 'gen_ai.generate_text',
+        origin: 'auto.vercelai.otel',
+        status: 'ok',
+      }),
+    ]),
+  };
+
   const EXPECTED_TRANSACTION_DEFAULT_PII_TRUE = {
     transaction: 'main',
     spans: expect.arrayContaining([
@@ -432,6 +499,9 @@ describe('Vercel AI integration', () => {
               'vercel.ai.settings.maxSteps': 1,
               'vercel.ai.streaming': false,
               'gen_ai.response.model': 'mock-model-id',
+              'gen_ai.usage.input_tokens': 15,
+              'gen_ai.usage.output_tokens': 25,
+              'gen_ai.usage.total_tokens': 40,
               'operation.name': 'ai.generateText',
               'sentry.op': 'gen_ai.invoke_agent',
               'sentry.origin': 'auto.vercelai.otel',
@@ -535,6 +605,23 @@ describe('Vercel AI integration', () => {
     });
   });
 
+  // Test with specific Vercel AI v5 version
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-v5.mjs',
+    'instrument.mjs',
+    (createRunner, test) => {
+      test('creates ai related spans with v5', async () => {
+        await createRunner().expect({ transaction: EXPECTED_TRANSACTION_DEFAULT_PII_FALSE_V5 }).start().completed();
+      });
+    },
+    {
+      additionalDependencies: {
+        ai: '^5.0.0',
+      },
+    },
+  );
+
   createEsmAndCjsTests(__dirname, 'scenario-error-in-tool-express.mjs', 'instrument.mjs', (createRunner, test) => {
     test('captures error in tool in express server', async () => {
       const expectedTransaction = {
@@ -550,6 +637,9 @@ describe('Vercel AI integration', () => {
               'vercel.ai.settings.maxSteps': 1,
               'vercel.ai.streaming': false,
               'gen_ai.response.model': 'mock-model-id',
+              'gen_ai.usage.input_tokens': 15,
+              'gen_ai.usage.output_tokens': 25,
+              'gen_ai.usage.total_tokens': 40,
               'operation.name': 'ai.generateText',
               'sentry.op': 'gen_ai.invoke_agent',
               'sentry.origin': 'auto.vercelai.otel',

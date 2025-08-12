@@ -29,7 +29,7 @@ test('errors on frontend and backend are connected by the same trace', async ({ 
         {
           mechanism: {
             handled: false,
-            type: 'onunhandledrejection',
+            type: 'auto.browser.global_handlers.onunhandledrejection',
           },
           stacktrace: expect.any(Object),
           type: 'Error',

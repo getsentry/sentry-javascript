@@ -72,7 +72,7 @@ function _installGlobalOnErrorHandler(client: Client): void {
       originalException: error,
       mechanism: {
         handled: false,
-        type: 'onerror',
+        type: 'auto.browser.global_handlers.onerror',
       },
     });
   });
@@ -98,7 +98,7 @@ function _installGlobalOnUnhandledRejectionHandler(client: Client): void {
       originalException: error,
       mechanism: {
         handled: false,
-        type: 'onunhandledrejection',
+        type: 'auto.browser.global_handlers.onunhandledrejection',
       },
     });
   });
@@ -171,7 +171,7 @@ function _enhanceEventWithInitialFrame(
 
   const colno = column;
   const lineno = line;
-  const filename = isString(url) && url.length > 0 ? url : getLocationHref();
+  const filename = getFilenameFromUrl(url) ?? getLocationHref();
 
   // event.exception.values[0].stacktrace.frames
   if (ev0sf.length === 0) {
@@ -198,4 +198,21 @@ function getOptions(): { stackParser: StackParser; attachStacktrace?: boolean } 
     attachStacktrace: false,
   };
   return options;
+}
+
+function getFilenameFromUrl(url: string | undefined): string | undefined {
+  if (!isString(url) || url.length === 0) {
+    return undefined;
+  }
+
+  // stack frame urls can be data urls, for example when initializing a Worker with a base64 encoded script
+  // in this case we just show the data prefix and mime type to avoid too long raw data urls
+  if (url.startsWith('data:')) {
+    const match = url.match(/^data:([^;]+)/);
+    const mimeType = match ? match[1] : 'text/javascript';
+    const isBase64 = url.includes('base64,');
+    return `<data:${mimeType}${isBase64 ? ',base64' : ''}>`;
+  }
+
+  return url.slice(0, 1024);
 }

@@ -42,7 +42,7 @@ describe('sentrySvelteKit()', () => {
 
     expect(plugins).toBeInstanceOf(Array);
     // 1 auto instrument plugin + 5 source maps plugins
-    expect(plugins).toHaveLength(8);
+    expect(plugins).toHaveLength(9);
   });
 
   it('returns the custom sentry source maps upload plugin, unmodified sourcemaps plugins and the auto-instrument plugin by default', async () => {
@@ -56,6 +56,7 @@ describe('sentrySvelteKit()', () => {
       'sentry-vite-release-injection-plugin',
       'sentry-vite-debug-id-injection-plugin',
       'sentry-sveltekit-update-source-map-setting-plugin',
+      'sentry-sveltekit-files-to-delete-after-upload-setting-plugin',
       // custom release plugin:
       'sentry-sveltekit-release-management-plugin',
       // custom source maps plugin:
@@ -86,7 +87,7 @@ describe('sentrySvelteKit()', () => {
   it("doesn't return the auto instrument plugin if autoInstrument is `false`", async () => {
     const plugins = await getSentrySvelteKitPlugins({ autoInstrument: false });
     const pluginNames = plugins.map(plugin => plugin.name);
-    expect(plugins).toHaveLength(7);
+    expect(plugins).toHaveLength(8);
     expect(pluginNames).not.toContain('sentry-upload-source-maps');
   });
 
@@ -184,7 +185,7 @@ describe('sentrySvelteKit()', () => {
       // just to ignore the source maps plugin:
       autoUploadSourceMaps: false,
     });
-    const plugin = plugins[0];
+    const plugin = plugins[0]!;
 
     expect(plugin.name).toEqual('sentry-auto-instrumentation');
     expect(makePluginSpy).toHaveBeenCalledWith({

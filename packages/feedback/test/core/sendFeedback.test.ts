@@ -280,7 +280,7 @@ describe('sendFeedback', () => {
         message: 'mi',
       }),
     ).rejects.toMatch(
-      'Unable to send Feedback. This could be because of network issues, or because you are using an ad-blocker',
+      'Unable to send feedback. This could be because of network issues, or because you are using an ad-blocker.',
     );
   });
 
@@ -297,7 +297,24 @@ describe('sendFeedback', () => {
         message: 'mi',
       }),
     ).rejects.toMatch(
-      'Unable to send Feedback. This is because of network issues, or because you are using an ad-blocker.',
+      'Unable to send feedback. This could be because of network issues, or because you are using an ad-blocker.',
+    );
+  });
+
+  it('handles 403 transport error', async () => {
+    mockSdk();
+    vi.spyOn(getClient()!.getTransport()!, 'send').mockImplementation(() => {
+      return Promise.resolve({ statusCode: 403 });
+    });
+
+    await expect(
+      sendFeedback({
+        name: 'doe',
+        email: 're@example.org',
+        message: 'mi',
+      }),
+    ).rejects.toMatch(
+      'Unable to send feedback. This could be because this domain is not in your list of allowed domains.',
     );
   });
 

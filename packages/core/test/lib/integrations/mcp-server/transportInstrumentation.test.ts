@@ -6,7 +6,7 @@ import {
   extractSessionDataFromInitializeRequest,
   extractSessionDataFromInitializeResponse,
   getTransportTypes,
-} from '../../../../src/integrations/mcp-server/attributeExtraction';
+} from '../../../../src/integrations/mcp-server/sessionExtraction';
 import {
   cleanupSessionDataForTransport,
   getClientInfoForTransport,

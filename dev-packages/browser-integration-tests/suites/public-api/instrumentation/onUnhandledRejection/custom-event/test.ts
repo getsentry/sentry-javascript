@@ -20,7 +20,7 @@ sentryTest(
       type: 'Error',
       value: 'promiseError',
       mechanism: {
-        type: 'onunhandledrejection',
+        type: 'auto.browser.global_handlers.onunhandledrejection',
         handled: false,
       },
       stacktrace: {
