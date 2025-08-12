@@ -4,6 +4,27 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 10.5.0
+
+- feat(core): better cause data extraction ([#17375](https://github.com/getsentry/sentry-javascript/pull/17375))
+- feat(deps): Bump @sentry/cli from 2.50.2 to 2.51.1 ([#17382](https://github.com/getsentry/sentry-javascript/pull/17382))
+- feat(deps): Bump @sentry/rollup-plugin and @sentry/vite-plugin from 4.0.2 to 4.1.0 ([#17383](https://github.com/getsentry/sentry-javascript/pull/17383))
+- feat(deps): Bump @sentry/webpack-plugin from 4.0.2 to 4.1.0 ([#17381](https://github.com/getsentry/sentry-javascript/pull/17381))
+- feat(node): Capture `SystemError` context and remove paths from message ([#17331](https://github.com/getsentry/sentry-javascript/pull/17331))
+- fix(nextjs): Inject Next.js version for dev symbolication ([#17379](https://github.com/getsentry/sentry-javascript/pull/17379))
+- fix(mcp-server): Add defensive patches for Transport edge cases ([#17291](https://github.com/getsentry/sentry-javascript/pull/17291))
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+
+- chore(repo): Adjust "Publishing a Release" document to include internal changes section in changelog ([#17374](https://github.com/getsentry/sentry-javascript/pull/17374))
+- test(aws): Run E2E tests with AWS SAM ([#17367](https://github.com/getsentry/sentry-javascript/pull/17367))
+- test(node): Add tests for full http.server span attribute coverage ([#17373](https://github.com/getsentry/sentry-javascript/pull/17373))
+
+</details>
+
+Work in this release was contributed by @ha1fstack. Thank you for your contribution!
+
 ## 10.4.0
 
 ### Important Changes
