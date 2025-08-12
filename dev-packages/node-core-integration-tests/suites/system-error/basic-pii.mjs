@@ -1,9 +1,11 @@
-import * as Sentry from '@sentry/node';
+import * as Sentry from '@sentry/node-core';
 import { loggingTransport } from '@sentry-internal/node-integration-tests';
+import { readFileSync } from 'fs';
 
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
-  release: '1.0',
-  tracesSampleRate: 1.0,
   transport: loggingTransport,
+  sendDefaultPii: true,
 });
+
+readFileSync('non-existent-file.txt');
