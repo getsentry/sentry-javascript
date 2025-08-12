@@ -152,21 +152,23 @@ export function extractClientInfo(extra: ExtraHandlerData): {
  * @returns Transport type mapping for span attributes
  */
 export function getTransportTypes(transport: MCPTransport): { mcpTransport: string; networkTransport: string } {
-  const transportName = transport.constructor?.name?.toLowerCase() || '';
+  if (!transport?.constructor) {
+    return { mcpTransport: 'unknown', networkTransport: 'unknown' };
+  }
+  const transportName = typeof transport.constructor?.name === 'string' ? transport.constructor.name : 'unknown';
+  let networkTransport = 'unknown';
 
-  if (transportName.includes('stdio')) {
-    return { mcpTransport: 'stdio', networkTransport: 'pipe' };
+  const lowerTransportName = transportName.toLowerCase();
+  if (lowerTransportName.includes('stdio')) {
+    networkTransport = 'pipe';
+  } else if (lowerTransportName.includes('http') || lowerTransportName.includes('sse')) {
+    networkTransport = 'tcp';
   }
 
-  if (transportName.includes('streamablehttp') || transportName.includes('streamable')) {
-    return { mcpTransport: 'http', networkTransport: 'tcp' };
-  }
-
-  if (transportName.includes('sse')) {
-    return { mcpTransport: 'sse', networkTransport: 'tcp' };
-  }
-
-  return { mcpTransport: 'unknown', networkTransport: 'unknown' };
+  return {
+    mcpTransport: transportName,
+    networkTransport,
+  };
 }
 
 /**
@@ -174,12 +176,13 @@ export function getTransportTypes(transport: MCPTransport): { mcpTransport: stri
  * @param transport - MCP transport instance
  * @param extra - Optional extra handler data
  * @returns Transport attributes for span instrumentation
+ * @note sessionId may be undefined during initial setup - session should be established by client during initialize flow
  */
 export function buildTransportAttributes(
   transport: MCPTransport,
   extra?: ExtraHandlerData,
 ): Record<string, string | number> {
-  const sessionId = transport.sessionId;
+  const sessionId = transport && 'sessionId' in transport ? transport.sessionId : undefined;
   const clientInfo = extra ? extractClientInfo(extra) : {};
   const { mcpTransport, networkTransport } = getTransportTypes(transport);
   const clientAttributes = getClientAttributes(transport);

@@ -86,24 +86,17 @@ export function completeSpanWithResults(transport: MCPTransport, requestId: Requ
 /**
  * Cleans up pending spans for a specific transport (when that transport closes)
  * @param transport - MCP transport instance
- * @returns Number of pending spans that were cleaned up
  */
-export function cleanupPendingSpansForTransport(transport: MCPTransport): number {
+export function cleanupPendingSpansForTransport(transport: MCPTransport): void {
   const spanMap = transportToSpanMap.get(transport);
-  if (!spanMap) {
-    return 0;
+  if (spanMap) {
+    for (const [, spanData] of spanMap) {
+      spanData.span.setStatus({
+        code: SPAN_STATUS_ERROR,
+        message: 'cancelled',
+      });
+      spanData.span.end();
+    }
+    spanMap.clear();
   }
-
-  const pendingCount = spanMap.size;
-
-  for (const [, spanData] of spanMap) {
-    spanData.span.setStatus({
-      code: SPAN_STATUS_ERROR,
-      message: 'cancelled',
-    });
-    spanData.span.end();
-  }
-
-  spanMap.clear();
-  return pendingCount;
 }
