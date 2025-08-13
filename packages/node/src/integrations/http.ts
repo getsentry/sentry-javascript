@@ -144,7 +144,11 @@ const instrumentSentryHttp = generateInstrumentOnce<SentryHttpInstrumentationOpt
 );
 
 export const instrumentOtelHttp = generateInstrumentOnce<HttpInstrumentationConfig>(INTEGRATION_NAME, config => {
-  const instrumentation = new HttpInstrumentation(config);
+  const instrumentation = new HttpInstrumentation({
+    ...config,
+    // This is hard-coded and can never be overridden by the user
+    disableIncomingRequestInstrumentation: true,
+  });
 
   // We want to update the logger namespace so we can better identify what is happening here
   try {
@@ -243,8 +247,6 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
 
 function getConfigWithDefaults(options: Partial<HttpOptions> = {}): HttpInstrumentationConfig {
   const instrumentationConfig = {
-    disableIncomingRequestInstrumentation: true,
-
     ignoreOutgoingRequestHook: request => {
       const url = getRequestUrl(request);
 
