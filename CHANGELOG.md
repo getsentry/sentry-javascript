@@ -8,7 +8,7 @@
 
 - **feat(node)**: Update `httpIntegration` handling of incoming requests
 
-This version updates the handling of the Node SDK of incoming requests. Instead of relying on @opentelemetry/instrumentation-http for this, we now handle this internally, ensuring that we can optimize performance as much as possible and avoid interop problems.
+This version updates the handling of the Node SDK of incoming requests. Instead of relying on @opentelemetry/instrumentation-http, we now handle incoming request instrumentation internally, ensuring that we can optimize performance as much as possible and avoid interop problems.
 
 This change should not affect users, unless they are relying on very in-depth implementation details. Importantly, this also drops the `_experimentalConfig` option of the integration - this will no longer do anything.
 Finally, you can still pass `instrumentation.{requestHook,responseHook,applyCustomAttributesOnSpan}` options, but they are deprecated and will be removed in v11. Instead, you can use the new `incomingRequestSpanHook` configuration option if you want to adjust the incoming request span.
