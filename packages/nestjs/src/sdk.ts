@@ -7,6 +7,7 @@ import {
 } from '@sentry/core';
 import type { NodeClient, NodeOptions, Span } from '@sentry/node';
 import { getDefaultIntegrations as getDefaultNodeIntegrations, init as nodeInit } from '@sentry/node';
+import { contextLinesIntegration } from './integrations/contextlines';
 import { nestIntegration } from './integrations/nest';
 
 /**
@@ -34,7 +35,12 @@ export function init(options: NodeOptions | undefined = {}): NodeClient | undefi
 
 /** Get the default integrations for the NestJS SDK. */
 export function getDefaultIntegrations(options: NodeOptions): Integration[] | undefined {
-  return [nestIntegration(), ...getDefaultNodeIntegrations(options)];
+  return [
+    nestIntegration(),
+    ...getDefaultNodeIntegrations(options).filter(i => i.name !== 'ContextLines'),
+    // Custom variant for Nest.js
+    contextLinesIntegration(),
+  ];
 }
 
 function addNestSpanAttributes(span: Span): void {

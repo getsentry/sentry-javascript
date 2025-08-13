@@ -220,6 +220,11 @@ describe('init()', () => {
 });
 
 describe('validateOpenTelemetrySetup', () => {
+  beforeEach(() => {
+    // just swallowing these
+    vi.spyOn(debug, 'log').mockImplementation(() => {});
+  });
+
   afterEach(() => {
     global.__SENTRY__ = {};
     cleanupOtel();

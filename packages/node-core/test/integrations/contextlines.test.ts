@@ -232,4 +232,114 @@ describe('ContextLines', () => {
       expect(readStreamSpy).not.toHaveBeenCalled();
     });
   });
+
+  describe('hasSourceMaps', () => {
+    let _argv: string[];
+    let _env: any;
+
+    beforeEach(() => {
+      _argv = process.argv;
+      _env = process.env;
+    });
+
+    afterEach(() => {
+      process.argv = _argv;
+      process.env = _env;
+    });
+
+    test.each([
+      [undefined, 'file:///var/task/hasSourceMaps/index1a.ts', true],
+      [true, 'file:///var/task/hasSourceMaps/index1b.ts', true],
+      [false, 'file:///var/task/hasSourceMaps/index1c.ts', false],
+      [undefined, 'file:///var/task/hasSourceMaps/index1d.js', true],
+      [true, 'file:///var/task/hasSourceMaps/index1e.js', true],
+      [false, 'file:///var/task/hasSourceMaps/index1f.js', true],
+    ])('handles in_app=%s, filename=%s', async (in_app, filename, hasBeenCalled) => {
+      contextLines = _contextLinesIntegration({ hasSourceMaps: true });
+      const readStreamSpy = vi.spyOn(fs, 'createReadStream');
+
+      const frames: StackFrame[] = [
+        {
+          colno: 1,
+          filename,
+          lineno: 1,
+          function: 'fxn1',
+          in_app,
+        },
+      ];
+
+      await addContext(frames);
+
+      expect(readStreamSpy).toHaveBeenCalledTimes(hasBeenCalled ? 1 : 0);
+    });
+
+    test('infer hasSourceMaps from NODE_OPTIONS', async () => {
+      process.env = {
+        ..._env,
+        NODE_OPTIONS: '--enable-source-maps --other-option',
+      };
+
+      contextLines = _contextLinesIntegration();
+      const readStreamSpy = vi.spyOn(fs, 'createReadStream');
+
+      const frames: StackFrame[] = [
+        {
+          colno: 1,
+          filename: 'file:///var/task/hasSourceMaps/index-infer1.ts',
+          lineno: 1,
+          function: 'fxn1',
+          in_app: false,
+        },
+      ];
+
+      await addContext(frames);
+
+      expect(readStreamSpy).toHaveBeenCalledTimes(0);
+    });
+
+    test('infer hasSourceMaps from process.argv', async () => {
+      process.argv = [..._argv, '--enable-source-maps', '--other-option'];
+
+      contextLines = _contextLinesIntegration();
+      const readStreamSpy = vi.spyOn(fs, 'createReadStream');
+
+      const frames: StackFrame[] = [
+        {
+          colno: 1,
+          filename: 'file:///var/task/hasSourceMaps/index-infer2.ts',
+          lineno: 1,
+          function: 'fxn1',
+          in_app: false,
+        },
+      ];
+
+      await addContext(frames);
+
+      expect(readStreamSpy).toHaveBeenCalledTimes(0);
+    });
+
+    test('does not infer hasSourceMaps if hasSourceMaps is set', async () => {
+      process.env = {
+        ..._env,
+        NODE_OPTIONS: '--enable-source-maps --other-option',
+      };
+
+      contextLines = _contextLinesIntegration({ hasSourceMaps: false });
+      const readStreamSpy = vi.spyOn(fs, 'createReadStream');
+
+      const frames: StackFrame[] = [
+        {
+          colno: 1,
+          filename: 'file:///var/task/hasSourceMaps/index-infer3.ts',
+          lineno: 1,
+          function: 'fxn1',
+          in_app: false,
+        },
+      ];
+
+      await addContext(frames);
+
+      expect(readStreamSpy).toHaveBeenCalledTimes(1);
+    });
+  });
 });

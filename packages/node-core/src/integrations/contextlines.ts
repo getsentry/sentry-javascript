@@ -22,6 +22,14 @@ interface ContextLinesOptions {
    * Set to 0 to disable loading and inclusion of source files.
    **/
   frameContextLines?: number;
+
+  /**
+   * If error stacktraces are already sourcemapped.
+   * In this case, we can skip the sourcemap lookup for certain cases.
+   * This is the case e.g. if the node process is run with `node --enable-source-maps`.
+   * If this is undefined, the SDK tries to infer it from the environment.
+   */
+  hasSourceMaps?: boolean;
 }
 
 /**
@@ -59,6 +67,19 @@ function shouldSkipContextLinesForFile(path: string): boolean {
   if (path.endsWith('.min.cjs')) return true;
   if (path.endsWith('.min.mjs')) return true;
   if (path.startsWith('data:')) return true;
+  return false;
+}
+
+/**
+ * Skip frames that we determine to already have been sourcemapped.
+ */
+function shouldSkipContextLinesThatAreAlreadySourceMapped(path: string, frame: StackFrame): boolean {
+  // For non-in-app frames, we skip context lines when we are reasonably certain that the path is already sourcemapped.
+  // For now, we only consider .ts files because they can never appear otherwise in a stackframe, if not already sourcemapped.
+  if (frame.in_app === false && path.endsWith('.ts')) {
+    return true;
+  }
+
   return false;
 }
 
@@ -164,10 +185,11 @@ function getContextLinesFromFile(path: string, ranges: ReadlineRange[], output: 
 
     // We use this inside Promise.all, so we need to resolve the promise even if there is an error
     // to prevent Promise.all from short circuiting the rest.
-    function onStreamError(e: Error): void {
+    function onStreamError(): void {
       // Mark file path as failed to read and prevent multiple read attempts.
       LRU_FILE_CONTENTS_FS_READ_FAILED.set(path, 1);
-      DEBUG_BUILD && debug.error(`Failed to read file: ${path}. Error: ${e}`);
+      DEBUG_BUILD &&
+        debug.warn(`ContextLines: Failed to read file: ${path}. Skipping context line extraction for this file.`);
       lineReaded.close();
       lineReaded.removeAllListeners();
       destroyStreamAndResolve();
@@ -215,7 +237,10 @@ function getContextLinesFromFile(path: string, ranges: ReadlineRange[], output: 
  * failing reads from happening.
  */
 /* eslint-disable complexity */
-async function addSourceContext(event: Event, contextLines: number): Promise<Event> {
+async function addSourceContext(
+  event: Event,
+  { contextLines, hasSourceMaps }: { contextLines: number; hasSourceMaps: boolean },
+): Promise<Event> {
   // keep a lookup map of which files we've already enqueued to read,
   // so we don't enqueue the same file multiple times which would cause multiple i/o reads
   const filesToLines: Record<string, number[]> = {};
@@ -239,6 +264,10 @@ async function addSourceContext(event: Event, contextLines: number): Promise<Eve
           shouldSkipContextLinesForFile(filename) ||
           shouldSkipContextLinesForFrame(frame)
         ) {
+          continue;
+        }
+
+        if (hasSourceMaps && shouldSkipContextLinesThatAreAlreadySourceMapped(filename, frame)) {
           continue;
         }
 
@@ -399,11 +428,12 @@ function makeContextRange(line: number, linecontext: number): [start: number, en
 /** Exported only for tests, as a type-safe variant. */
 export const _contextLinesIntegration = ((options: ContextLinesOptions = {}) => {
   const contextLines = options.frameContextLines !== undefined ? options.frameContextLines : DEFAULT_LINES_OF_CONTEXT;
+  const hasSourceMaps = options.hasSourceMaps ?? inferHasSourceMaps();
 
   return {
     name: INTEGRATION_NAME,
     processEvent(event) {
-      return addSourceContext(event, contextLines);
+      return addSourceContext(event, { contextLines, hasSourceMaps });
     },
   };
 }) satisfies IntegrationFn;
@@ -412,3 +442,10 @@ export const _contextLinesIntegration = ((options: ContextLinesOptions = {}) => 
  * Capture the lines before and after the frame's context.
  */
 export const contextLinesIntegration = defineIntegration(_contextLinesIntegration);
+
+function inferHasSourceMaps(): boolean {
+  return (
+    (process.env.NODE_OPTIONS?.includes('--enable-source-maps') || process.argv.includes('--enable-source-maps')) ??
+    false
+  );
+}
