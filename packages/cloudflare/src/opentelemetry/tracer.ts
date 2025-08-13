@@ -47,14 +47,15 @@ class SentryCloudflareTracer implements Tracer {
     if (!topSpan) {
       return sentrySpan;
     }
+    const _proxied = new WeakMap<CallableFunction, CallableFunction>();
     return new Proxy(sentrySpan, {
       set: (target, p, newValue, receiver) => {
         try {
-          Reflect.set(topSpan, p, newValue, receiver);
+          Reflect.set(topSpan, p, newValue);
         } catch {
           //
         }
-        return Reflect.set(target, p, newValue);
+        return Reflect.set(target, p, newValue, receiver);
       },
       get: (target, p) => {
         const propertyValue = Reflect.get(target, p);
@@ -65,7 +66,10 @@ class SentryCloudflareTracer implements Tracer {
         if (typeof proxyTo !== 'function') {
           return propertyValue;
         }
-        return new Proxy(propertyValue, {
+        if (_proxied.has(propertyValue)) {
+          return _proxied.get(propertyValue);
+        }
+        const proxy = new Proxy(propertyValue, {
           apply: (target, thisArg, argArray) => {
             try {
               Reflect.apply(proxyTo, topSpan, argArray);
@@ -75,6 +79,8 @@ class SentryCloudflareTracer implements Tracer {
             return Reflect.apply(target, thisArg, argArray);
           },
         });
+        _proxied.set(propertyValue, proxy);
+        return proxy;
       },
     });
   }
