@@ -145,7 +145,7 @@ export default defineNuxtModule<ModuleOptions>({
             consoleSandbox(() => {
               // eslint-disable-next-line no-console
               console.log(
-                `[Sentry] Using \`${serverConfigFile}\` for server-side Sentry configuration. To activate the Sentry on the Nuxt server-side, this file must be preloaded when starting your application. Make sure to add this where you deploy and/or run your application. Read more here: https://docs.sentry.io/platforms/javascript/guides/nuxt/install/.`,
+                `[Sentry] Using \`${serverConfigFile}\` for server-side Sentry configuration. To activate Sentry on the Nuxt server-side, this file must be preloaded when starting your application. Make sure to add this where you deploy and/or run your application. Read more here: https://docs.sentry.io/platforms/javascript/guides/nuxt/install/.`,
               );
 
               if (nitro.options.dev) {
