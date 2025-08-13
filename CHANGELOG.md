@@ -4,6 +4,12 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 9.46.0
+
+- feat(v9/node): Capture `SystemError` context and remove paths from message ([#17394](https://github.com/getsentry/sentry-javascript/pull/17394))
+- fix(v9/mcp): capture prompt results and add defensive edge cases for transport instrumentation ([#17401](https://github.com/getsentry/sentry-javascript/pull/17401))
+- fix(v9/nuxt): Do not drop parametrized routes ([#17357](https://github.com/getsentry/sentry-javascript/pull/17357)) (#17359)
+
 ## 9.45.0
 
 - feat(v9/nuxt): Do not inject trace meta-tags on cached HTML pages ([#17305](https://github.com/getsentry/sentry-javascript/pull/17305)) (#17319)
