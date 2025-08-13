@@ -40,3 +40,4 @@ Do not flag the issues below if they appear in tests.
     - If there's no direct span that's wrapping the captured exception, apply a proper `type` value, following the same naming
       convention as the `SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN` value.
 - When calling `startSpan`, check if error cases are handled. If flag that it might make sense to try/catch and call `captureException`.
+- When calling `generateInstrumentationOnce`, the passed in name MUST match the name of the integration that uses it. If there are more than one instrumentations, they need to follow the pattern `${INSTRUMENTATION_NAME}.some-suffix`.
