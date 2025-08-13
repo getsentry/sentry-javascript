@@ -1,5 +1,5 @@
-import type { Context, Span, SpanOptions, Tracer, TracerProvider } from '@opentelemetry/api';
-import { ProxyTracerProvider, trace } from '@opentelemetry/api';
+import type { Context, ProxyTracerProvider, Span, SpanOptions, Tracer, TracerProvider } from '@opentelemetry/api';
+import { trace } from '@opentelemetry/api';
 import { startInactiveSpan, startSpanManual } from '@sentry/core';
 
 /**
@@ -7,20 +7,23 @@ import { startInactiveSpan, startSpanManual } from '@sentry/core';
  * This is not perfect but handles easy/common use cases.
  */
 export function setupOpenTelemetryTracer(): void {
-  const current = trace.getTracerProvider();
-  const delegate = current instanceof ProxyTracerProvider ? current.getDelegate() : current;
-  trace.setGlobalTracerProvider(new SentryCloudflareTraceProvider(delegate));
+  const result = trace.setGlobalTracerProvider(new SentryCloudflareTraceProvider());
+  if (result) {
+    return;
+  }
+  const current = trace.getTracerProvider() as ProxyTracerProvider;
+  current.setDelegate(new SentryCloudflareTraceProvider(current.getDelegate()));
 }
 
 class SentryCloudflareTraceProvider implements TracerProvider {
   private readonly _tracers: Map<string, Tracer> = new Map();
 
-  public constructor(private readonly _provider: TracerProvider) {}
+  public constructor(private readonly _provider?: TracerProvider) {}
 
   public getTracer(name: string, version?: string, options?: { schemaUrl?: string }): Tracer {
     const key = `${name}@${version || ''}:${options?.schemaUrl || ''}`;
     if (!this._tracers.has(key)) {
-      const tracer = this._provider.getTracer(key, version, options);
+      const tracer = this._provider?.getTracer?.(key, version, options);
       this._tracers.set(key, new SentryCloudflareTracer(tracer));
     }
 
@@ -30,9 +33,9 @@ class SentryCloudflareTraceProvider implements TracerProvider {
 }
 
 class SentryCloudflareTracer implements Tracer {
-  public constructor(private readonly _tracer: Tracer) {}
+  public constructor(private readonly _tracer?: Tracer) {}
   public startSpan(name: string, options?: SpanOptions): Span {
-    const topSpan = this._tracer.startSpan(name, options);
+    const topSpan = this._tracer?.startSpan?.(name, options);
     const sentrySpan = startInactiveSpan({
       name,
       ...options,
@@ -41,7 +44,18 @@ class SentryCloudflareTracer implements Tracer {
         'sentry.cloudflare_tracer': true,
       },
     });
+    if (!topSpan) {
+      return sentrySpan;
+    }
     return new Proxy(sentrySpan, {
+      set: (target, p, newValue, receiver) => {
+        try {
+          Reflect.set(topSpan, p, newValue, receiver);
+        } catch {
+          //
+        }
+        return Reflect.set(target, p, newValue);
+      },
       get: (target, p) => {
         const propertyValue = Reflect.get(target, p);
         if (typeof propertyValue !== 'function') {
@@ -55,7 +69,7 @@ class SentryCloudflareTracer implements Tracer {
           apply: (target, thisArg, argArray) => {
             try {
               Reflect.apply(proxyTo, topSpan, argArray);
-            } catch (e) {
+            } catch {
               //
             }
             return Reflect.apply(target, thisArg, argArray);
