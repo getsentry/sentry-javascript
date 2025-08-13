@@ -1,5 +1,5 @@
 import type { Context, Span, SpanOptions, Tracer, TracerProvider } from '@opentelemetry/api';
-import { trace } from '@opentelemetry/api';
+import { ProxyTracerProvider, trace } from '@opentelemetry/api';
 import { startInactiveSpan, startSpanManual } from '@sentry/core';
 
 /**
@@ -8,7 +8,8 @@ import { startInactiveSpan, startSpanManual } from '@sentry/core';
  */
 export function setupOpenTelemetryTracer(): void {
   const current = trace.getTracerProvider();
-  trace.setGlobalTracerProvider(new SentryCloudflareTraceProvider(current));
+  const delegate = current instanceof ProxyTracerProvider ? current.getDelegate() : current;
+  trace.setGlobalTracerProvider(new SentryCloudflareTraceProvider(delegate));
 }
 
 class SentryCloudflareTraceProvider implements TracerProvider {
@@ -43,22 +44,23 @@ class SentryCloudflareTracer implements Tracer {
     return new Proxy(sentrySpan, {
       get: (target, p) => {
         const propertyValue = Reflect.get(target, p);
-        if (typeof propertyValue === 'function') {
-          const proxyTo = Reflect.get(topSpan, p);
-          if (typeof proxyTo !== 'function') {
-            return propertyValue;
-          }
-          return new Proxy(propertyValue, {
-            apply: (target, thisArg, argArray) => {
-              try {
-                Reflect.apply(proxyTo, topSpan, argArray);
-              } catch (e) {
-                //
-              }
-              return Reflect.apply(target, thisArg, argArray);
-            },
-          });
+        if (typeof propertyValue !== 'function') {
+          return propertyValue;
         }
+        const proxyTo = Reflect.get(topSpan, p);
+        if (typeof proxyTo !== 'function') {
+          return propertyValue;
+        }
+        return new Proxy(propertyValue, {
+          apply: (target, thisArg, argArray) => {
+            try {
+              Reflect.apply(proxyTo, topSpan, argArray);
+            } catch (e) {
+              //
+            }
+            return Reflect.apply(target, thisArg, argArray);
+          },
+        });
       },
     });
   }
