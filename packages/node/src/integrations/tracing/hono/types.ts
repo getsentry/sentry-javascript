@@ -15,7 +15,7 @@ export type Next = () => Promise<void>;
 export type Handler = (c: Context, next: Next) => Promise<Response> | Response;
 
 // Vendored from: https://github.com/honojs/hono/blob/855e5b1adbf685bf4b3e6b76573aa7cb0a108d04/src/types.ts#L80
-export type MiddlewareHandler = (c: Context, next: Next) => Promise<Response | void> | Response | void;
+export type MiddlewareHandler = (c: Context, next: Next) => Promise<Response | void>;
 
 // Vendored from: https://github.com/honojs/hono/blob/855e5b1adbf685bf4b3e6b76573aa7cb0a108d04/src/types.ts#L109
 export type HandlerInterface = {
