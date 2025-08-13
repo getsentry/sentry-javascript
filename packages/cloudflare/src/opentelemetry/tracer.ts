@@ -31,18 +31,36 @@ class SentryCloudflareTraceProvider implements TracerProvider {
 class SentryCloudflareTracer implements Tracer {
   public constructor(private readonly _tracer: Tracer) {}
   public startSpan(name: string, options?: SpanOptions): Span {
-    try {
-      return startInactiveSpan({
-        name,
-        ...options,
-        attributes: {
-          ...options?.attributes,
-          'sentry.cloudflare_tracer': true,
-        },
-      });
-    } finally {
-      this._tracer.startSpan(name, options);
-    }
+    const topSpan = this._tracer.startSpan(name, options);
+    const sentrySpan = startInactiveSpan({
+      name,
+      ...options,
+      attributes: {
+        ...options?.attributes,
+        'sentry.cloudflare_tracer': true,
+      },
+    });
+    return new Proxy(sentrySpan, {
+      get: (target, p) => {
+        const propertyValue = Reflect.get(target, p);
+        if (typeof propertyValue === 'function') {
+          const proxyTo = Reflect.get(topSpan, p);
+          if (typeof proxyTo !== 'function') {
+            return propertyValue;
+          }
+          return new Proxy(propertyValue, {
+            apply: (target, thisArg, argArray) => {
+              try {
+                Reflect.apply(proxyTo, topSpan, argArray);
+              } catch (e) {
+                //
+              }
+              return Reflect.apply(target, thisArg, argArray);
+            },
+          });
+        }
+      },
+    });
   }
 
   /**
