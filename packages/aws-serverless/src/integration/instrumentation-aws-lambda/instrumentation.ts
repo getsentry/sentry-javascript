@@ -1,4 +1,8 @@
-// Vendored from: https://github.com/open-telemetry/opentelemetry-js-contrib/blob/cc7eff47e2e7bad7678241b766753d5bd6dbc85f/packages/instrumentation-aws-lambda/src/instrumentation.ts
+// Vendored and modified from: https://github.com/open-telemetry/opentelemetry-js-contrib/blob/cc7eff47e2e7bad7678241b766753d5bd6dbc85f/packages/instrumentation-aws-lambda/src/instrumentation.ts
+// Modifications:
+// - Added Sentry `wrapHandler` around the OTel patch handler.
+// - Cancel init when handler string is invalid (TS)
+// - Hardcoded package version and name
 /* eslint-disable */
 /*
  * Copyright The OpenTelemetry Authors
@@ -52,9 +56,10 @@ import * as path from 'path';
 import type { LambdaModule } from './internal-types';
 import { ATTR_FAAS_COLDSTART } from './semconv';
 import type { AwsLambdaInstrumentationConfig, EventContextExtractor } from './types';
-/** @knipignore */
-import { PACKAGE_NAME, PACKAGE_VERSION } from './version';
 import { wrapHandler } from '../../sdk';
+
+const PACKAGE_VERSION = '0.54.0';
+const PACKAGE_NAME = '@opentelemetry/instrumentation-aws-lambda';
 
 const headerGetter: TextMapGetter<APIGatewayProxyEventHeaders> = {
   keys(carrier): string[] {
@@ -100,7 +105,12 @@ export class AwsLambdaInstrumentation extends InstrumentationBase<AwsLambdaInstr
     const [module, functionName] = handler.split('.', 2);
 
     if (!module || !functionName) {
-      throw new Error('Invalid handler definition');
+      this._diag.warn('Invalid handler definition', {
+        handler,
+        moduleRoot,
+        module,
+      });
+      return [];
     }
 
     // Lambda loads user function using an absolute path.
