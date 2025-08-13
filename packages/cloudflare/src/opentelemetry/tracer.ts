@@ -7,16 +7,20 @@ import { startInactiveSpan, startSpanManual } from '@sentry/core';
  * This is not perfect but handles easy/common use cases.
  */
 export function setupOpenTelemetryTracer(): void {
-  trace.setGlobalTracerProvider(new SentryCloudflareTraceProvider());
+  const current = trace.getTracerProvider();
+  trace.setGlobalTracerProvider(new SentryCloudflareTraceProvider(current));
 }
 
 class SentryCloudflareTraceProvider implements TracerProvider {
   private readonly _tracers: Map<string, Tracer> = new Map();
 
+  public constructor(private readonly _provider: TracerProvider) {}
+
   public getTracer(name: string, version?: string, options?: { schemaUrl?: string }): Tracer {
     const key = `${name}@${version || ''}:${options?.schemaUrl || ''}`;
     if (!this._tracers.has(key)) {
-      this._tracers.set(key, new SentryCloudflareTracer());
+      const tracer = this._provider.getTracer(key, version, options);
+      this._tracers.set(key, new SentryCloudflareTracer(tracer));
     }
 
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -25,15 +29,20 @@ class SentryCloudflareTraceProvider implements TracerProvider {
 }
 
 class SentryCloudflareTracer implements Tracer {
+  public constructor(private readonly _tracer: Tracer) {}
   public startSpan(name: string, options?: SpanOptions): Span {
-    return startInactiveSpan({
-      name,
-      ...options,
-      attributes: {
-        ...options?.attributes,
-        'sentry.cloudflare_tracer': true,
-      },
-    });
+    try {
+      return startInactiveSpan({
+        name,
+        ...options,
+        attributes: {
+          ...options?.attributes,
+          'sentry.cloudflare_tracer': true,
+        },
+      });
+    } finally {
+      this._tracer.startSpan(name, options);
+    }
   }
 
   /**
