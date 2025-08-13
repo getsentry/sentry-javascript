@@ -114,25 +114,6 @@ export const _replayCanvasIntegration = ((options: Partial<ReplayCanvasOptions> 
       const canvasManager = await _canvasManager;
 
       canvasManager.snapshot(canvasElement, options);
-      // createImageBitmap(canvasElement).then(async imageBitmap => {
-      //   // debug
-      //   const canvas = document.getElementById('test');
-      //   canvas.height = imageBitmap.height;
-      //   canvas.width = imageBitmap.width;
-      //   // temp1.getContext("2d").drawImage(bitmap, 0, 0);
-      //   // const canvas = new OffscreenCanvas(imageBitmap.width, imageBitmap.height);
-      //   const ctx = canvas.getContext('2d');
-      //
-      //   // Draw the ImageBitmap onto the canvas
-      //   ctx.drawImage(imageBitmap, 0, 0);
-      //
-      //   // Convert the canvas content to a data URL (Base64 encoded PNG by default)
-      //   const dataURL = await canvas.toDataURL('image/webp'); // Specify format if needed
-      //
-      //   console.log(dataURL);
-      //   canvasManager.snapshotBitmap(canvasElement, imageBitmap);
-      //   imageBitmap.close();
-      // });
     },
   };
 }) satisfies IntegrationFn<ReplayCanvasIntegration>;
