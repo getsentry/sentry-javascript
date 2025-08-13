@@ -136,7 +136,7 @@ interface HttpOptions {
   };
 }
 
-const instrumentSentryHttp = generateInstrumentOnce<SentryHttpInstrumentationOptions>(
+export const instrumentSentryHttp = generateInstrumentOnce<SentryHttpInstrumentationOptions>(
   `${INTEGRATION_NAME}.sentry`,
   options => {
     return new SentryHttpInstrumentation(options);
