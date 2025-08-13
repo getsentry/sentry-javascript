@@ -185,6 +185,33 @@ user IP addresses, if you set `sendDefaultPii: true` in your `Sentry.init` optio
 
 We apologize for any inconvenience caused!
 
+- **feat(node): Add `ignoreStaticAssets` ([#17370](https://github.com/getsentry/sentry-javascript/pull/17370))**
+
+This release adds a new option to `httpIntegration` to ignore requests for static assets (e.g. `favicon.xml` or `robots.txt`). The option defaults to `true`, meaning that going forward, such requests will not be traced by default. You can still enable tracing for these requests by setting the option to `false`:
+
+```js
+Sentry.init({
+  integrations: [
+    Sentry.httpIntegration({
+      // defaults to true, set to false to enable traces for static assets
+      ignoreStaticAssets: false,
+    }),
+  ],
+});
+```
+
+### Other Changes
+
+- fix(nuxt): Do not drop parametrized routes ([#17357](https://github.com/getsentry/sentry-javascript/pull/17357))
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+
+- ref(node): Split up incoming & outgoing http handling ([#17358](https://github.com/getsentry/sentry-javascript/pull/17358))
+- test(node): Enable additionalDependencies in integration runner ([#17361](https://github.com/getsentry/sentry-javascript/pull/17361))
+
+</details>
+
 ## 10.3.0
 
 - feat(core): MCP Server - Capture prompt results from prompt function calls (#17284)
