@@ -76,6 +76,28 @@ export const MCP_TOOL_RESULT_CONTENT_COUNT_ATTRIBUTE = 'mcp.tool.result.content_
 /** Serialized content of the tool result */
 export const MCP_TOOL_RESULT_CONTENT_ATTRIBUTE = 'mcp.tool.result.content';
 
+/** Prefix for tool result attributes that contain sensitive content */
+export const MCP_TOOL_RESULT_PREFIX = 'mcp.tool.result';
+
+// =============================================================================
+// PROMPT RESULT ATTRIBUTES
+// =============================================================================
+
+/** Description of the prompt result */
+export const MCP_PROMPT_RESULT_DESCRIPTION_ATTRIBUTE = 'mcp.prompt.result.description';
+
+/** Number of messages in the prompt result */
+export const MCP_PROMPT_RESULT_MESSAGE_COUNT_ATTRIBUTE = 'mcp.prompt.result.message_count';
+
+/** Role of the message in the prompt result (for single message results) */
+export const MCP_PROMPT_RESULT_MESSAGE_ROLE_ATTRIBUTE = 'mcp.prompt.result.message_role';
+
+/** Content of the message in the prompt result (for single message results) */
+export const MCP_PROMPT_RESULT_MESSAGE_CONTENT_ATTRIBUTE = 'mcp.prompt.result.message_content';
+
+/** Prefix for prompt result attributes that contain sensitive content */
+export const MCP_PROMPT_RESULT_PREFIX = 'mcp.prompt.result';
+
 // =============================================================================
 // REQUEST ARGUMENT ATTRIBUTES
 // =============================================================================
