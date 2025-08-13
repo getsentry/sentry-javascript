@@ -11,7 +11,7 @@ import {
   SEMATTRS_NET_HOST_PORT,
   SEMATTRS_NET_PEER_IP,
 } from '@opentelemetry/semantic-conventions';
-import type { AggregationCounts, Client, Scope, SpanAttributes } from '@sentry/core';
+import type { AggregationCounts, Client, Scope, SpanAttributes, SpanStatus } from '@sentry/core';
 import {
   debug,
   generateSpanId,
@@ -251,31 +251,33 @@ export function instrumentServer(
 
             // After 'error', no further events other than 'close' should be emitted.
             let isEnded = false;
-            response.on('close', () => {
+            function endSpan(status: SpanStatus): void {
               if (isEnded) {
                 return;
               }
 
               isEnded = true;
+
               const newAttributes = getIncomingRequestAttributesOnResponse(request, response);
               span.setAttributes(newAttributes);
-              span.setStatus(getSpanStatusFromHttpCode(response.statusCode));
-
+              span.setStatus(status);
               span.end();
+
+              // Update the transaction name if the route has changed
+              if (newAttributes['http.route']) {
+                getIsolationScope().setTransactionName(
+                  `${request.method?.toUpperCase() || 'GET'} ${newAttributes['http.route']}`,
+                );
+              }
+            }
+
+            response.on('close', () => {
+              endSpan(getSpanStatusFromHttpCode(response.statusCode));
             });
             response.on(errorMonitor, () => {
-              if (isEnded) {
-                return;
-              }
-
-              isEnded = true;
-              const newAttributes = getIncomingRequestAttributesOnResponse(request, response);
-              span.setAttributes(newAttributes);
-
-              const status = getSpanStatusFromHttpCode(response.statusCode);
-
-              span.setStatus(status.code === SPAN_STATUS_ERROR ? status : { code: SPAN_STATUS_ERROR });
-              span.end();
+              const httpStatus = getSpanStatusFromHttpCode(response.statusCode);
+              // Ensure we def. have an error status here
+              endSpan(httpStatus.code === SPAN_STATUS_ERROR ? httpStatus : { code: SPAN_STATUS_ERROR });
             });
 
             return target.apply(thisArg, args);
@@ -544,7 +546,8 @@ function getIncomingRequestAttributesOnResponse(request: IncomingMessage, respon
   newAttributes['http.status_text'] = (statusMessage || '').toUpperCase();
 
   if (rpcMetadata?.type === RPCType.HTTP && rpcMetadata.route !== undefined) {
-    newAttributes[ATTR_HTTP_ROUTE] = rpcMetadata.route;
+    const routeName = rpcMetadata.route;
+    newAttributes[ATTR_HTTP_ROUTE] = routeName;
   }
 
   return newAttributes;
