@@ -2,7 +2,6 @@ import { captureException } from '../../exports';
 import { SPAN_STATUS_ERROR } from '../../tracing';
 import type { Span } from '../../types-hoist/span';
 import {
-  ANTHROPIC_AI_RESPONSE_TIMESTAMP_ATTRIBUTE,
   GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE,
   GEN_AI_RESPONSE_ID_ATTRIBUTE,
   GEN_AI_RESPONSE_MODEL_ATTRIBUTE,
@@ -17,8 +16,6 @@ import type { AnthropicAiStreamingEvent } from './types';
  */
 
 interface StreamingState {
-  /** Types of events encountered in the stream. */
-  eventTypes: string[];
   /** Collected response text fragments (for output recording). */
   responseTexts: string[];
   /** Reasons for finishing the response, as reported by the API. */
@@ -27,8 +24,6 @@ interface StreamingState {
   responseId: string;
   /** The model name. */
   responseModel: string;
-  /** The timestamp of the response. */
-  responseTimestamp: number;
   /** Number of prompt/input tokens used. */
   promptTokens: number | undefined;
   /** Number of completion/output tokens used. */
@@ -55,8 +50,6 @@ function isErrorEvent(
   span: Span,
 ): boolean {
   if ('type' in event && typeof event.type === 'string') {
-    state.eventTypes.push(event.type);
-
     // If the event is an error, set the span status and capture the error
     // These error events are not rejected by the API by default, but are sent as metadata of the response
     if (event.type === 'error') {
@@ -78,7 +71,7 @@ function isErrorEvent(
     }
 
     if (recordOutputs && event.type === 'content_block_delta') {
-      const text = event.delta?.text ?? '';
+      const text = event.delta?.text;
       if (text) state.responseTexts.push(text);
     }
   }
@@ -132,7 +125,6 @@ function processEvent(
   span: Span,
 ): void {
   if (!(event && typeof event === 'object')) {
-    state.eventTypes.push('unknown:non-object');
     return;
   }
 
@@ -153,12 +145,10 @@ export async function* instrumentStream(
   recordOutputs: boolean,
 ): AsyncGenerator<AnthropicAiStreamingEvent, void, unknown> {
   const state: StreamingState = {
-    eventTypes: [],
     responseTexts: [],
     finishReasons: [],
     responseId: '',
     responseModel: '',
-    responseTimestamp: 0,
     promptTokens: undefined,
     completionTokens: undefined,
     cacheCreationInputTokens: undefined,
@@ -180,11 +170,6 @@ export async function* instrumentStream(
     if (state.responseModel) {
       span.setAttributes({
         [GEN_AI_RESPONSE_MODEL_ATTRIBUTE]: state.responseModel,
-      });
-    }
-    if (state.responseTimestamp) {
-      span.setAttributes({
-        [ANTHROPIC_AI_RESPONSE_TIMESTAMP_ATTRIBUTE]: new Date(state.responseTimestamp * 1000).toISOString(),
       });
     }
 

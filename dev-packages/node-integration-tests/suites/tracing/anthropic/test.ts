@@ -218,4 +218,79 @@ describe('Anthropic integration', () => {
         .completed();
     });
   });
+
+  const EXPECTED_STREAM_SPANS_PII_FALSE = {
+    transaction: 'main',
+    spans: expect.arrayContaining([
+      // messages.create with stream: true
+      expect.objectContaining({
+        description: 'messages claude-3-haiku-20240307 stream-response',
+        op: 'gen_ai.messages',
+        data: expect.objectContaining({
+          'gen_ai.system': 'anthropic',
+          'gen_ai.operation.name': 'messages',
+          'gen_ai.request.model': 'claude-3-haiku-20240307',
+          'gen_ai.request.stream': true,
+          'gen_ai.response.streaming': true,
+          'gen_ai.response.model': 'claude-3-haiku-20240307',
+          'gen_ai.response.id': 'msg_stream_1',
+          'gen_ai.usage.input_tokens': 10,
+          'gen_ai.usage.output_tokens': 15,
+          'gen_ai.usage.total_tokens': 25,
+          'gen_ai.response.finish_reasons': '["end_turn"]',
+        }),
+      }),
+      // messages.stream
+      expect.objectContaining({
+        description: 'messages claude-3-haiku-20240307 stream-response',
+        op: 'gen_ai.messages',
+        data: expect.objectContaining({
+          'gen_ai.system': 'anthropic',
+          'gen_ai.operation.name': 'messages',
+          'gen_ai.request.model': 'claude-3-haiku-20240307',
+          'gen_ai.response.streaming': true,
+          'gen_ai.response.model': 'claude-3-haiku-20240307',
+          'gen_ai.response.id': 'msg_stream_1',
+          'gen_ai.usage.input_tokens': 10,
+          'gen_ai.usage.output_tokens': 15,
+          'gen_ai.usage.total_tokens': 25,
+        }),
+      }),
+    ]),
+  };
+
+  const EXPECTED_STREAM_SPANS_PII_TRUE = {
+    transaction: 'main',
+    spans: expect.arrayContaining([
+      expect.objectContaining({
+        description: 'messages claude-3-haiku-20240307 stream-response',
+        op: 'gen_ai.messages',
+        data: expect.objectContaining({
+          'gen_ai.response.streaming': true,
+          // streamed text concatenated
+          'gen_ai.response.text': 'Hello from stream!',
+        }),
+      }),
+      expect.objectContaining({
+        description: 'messages claude-3-haiku-20240307 stream-response',
+        op: 'gen_ai.messages',
+        data: expect.objectContaining({
+          'gen_ai.response.streaming': true,
+          'gen_ai.response.text': 'Hello from stream!',
+        }),
+      }),
+    ]),
+  };
+
+  createEsmAndCjsTests(__dirname, 'scenario-stream.mjs', 'instrument.mjs', (createRunner, test) => {
+    test('streams produce spans with token usage and metadata (PII false)', async () => {
+      await createRunner().ignore('event').expect({ transaction: EXPECTED_STREAM_SPANS_PII_FALSE }).start().completed();
+    });
+  });
+
+  createEsmAndCjsTests(__dirname, 'scenario-stream.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
+    test('streams record response text when PII true', async () => {
+      await createRunner().ignore('event').expect({ transaction: EXPECTED_STREAM_SPANS_PII_TRUE }).start().completed();
+    });
+  });
 });
