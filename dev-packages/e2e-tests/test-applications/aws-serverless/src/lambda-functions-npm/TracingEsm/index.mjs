@@ -20,5 +20,5 @@ export const handler = Sentry.wrapHandler(async () => {
     req.end();
   });
 
-  Sentry.startSpan({ name: 'manual-span', op: 'manual' }, () => {});
+  Sentry.startSpan({ name: 'manual-span', op: process.version }, () => {});
 });
