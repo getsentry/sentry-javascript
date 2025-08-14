@@ -1,0 +1,23 @@
+{
+  "name": "worker-name",
+  "main": "index.ts",
+  "compatibility_date": "2025-06-17",
+  "migrations": [
+    {
+      "new_sqlite_classes": ["TestDurableObject"],
+      "tag": "v1"
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "class_name": "TestDurableObject",
+        "name": "TEST_DURABLE_OBJECT"
+      }
+    ]
+  },
+  "compatibility_flags": ["nodejs_als"],
+  "vars": {
+    "SENTRY_DSN": "https://932e620ee3921c3b4a61c72558ad88ce@o447951.ingest.us.sentry.io/4509553159831552"
+  }
+}
