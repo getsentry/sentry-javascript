@@ -99,7 +99,8 @@
     "dev-packages/size-limit-gh-action",
     "dev-packages/clear-cache-gh-action",
     "dev-packages/external-contributor-gh-action",
-    "dev-packages/rollup-utils"
+    "dev-packages/rollup-utils",
+    "dev-packages/node-overhead-gh-action"
   ],
   "devDependencies": {
     "@rollup/plugin-commonjs": "^25.0.7",

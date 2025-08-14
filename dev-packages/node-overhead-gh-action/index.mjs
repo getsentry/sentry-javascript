@@ -1,4 +1,3 @@
-/* eslint-disable complexity */
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -9,12 +8,13 @@ import { context, getOctokit } from '@actions/github';
 import * as glob from '@actions/glob';
 import * as io from '@actions/io';
 import { markdownTable } from 'markdown-table';
-import { getArtifactsForBranchAndWorkflow } from './utils/getArtifactsForBranchAndWorkflow.mjs';
-import { SizeLimitFormatter } from './utils/SizeLimitFormatter.mjs';
+import { getArtifactsForBranchAndWorkflow } from './lib/getArtifactsForBranchAndWorkflow.mjs';
+import { getOverheadMeasurements } from './lib/getOverheadMeasurements.mjs';
+import { formatResults, hasChanges } from './lib/markdown-table-formatter.mjs';
 
-const SIZE_LIMIT_HEADING = '## size-limit report 📦 ';
-const ARTIFACT_NAME = 'size-limit-action';
-const RESULTS_FILE = 'size-limit-results.json';
+const NODE_OVERHEAD_HEADING = '## node-overhead report 🧳';
+const ARTIFACT_NAME = 'node-overhead-action';
+const RESULTS_FILE = 'node-overhead-results.json';
 
 function getResultsFilePath() {
   const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -29,25 +29,8 @@ async function fetchPreviousComment(octokit, repo, pr) {
     issue_number: pr.number,
   });
 
-  const sizeLimitComment = commentList.find(comment => comment.body.startsWith(SIZE_LIMIT_HEADING));
+  const sizeLimitComment = commentList.find(comment => comment.body.startsWith(NODE_OVERHEAD_HEADING));
   return !sizeLimitComment ? null : sizeLimitComment;
-}
-
-async function execSizeLimit() {
-  let output = '';
-
-  const status = await exec('yarn run --silent size-limit --json', [], {
-    windowsVerbatimArguments: false,
-    ignoreReturnCode: true,
-    cwd: process.cwd(),
-    listeners: {
-      stdout: data => {
-        output += data.toString();
-      },
-    },
-  });
-
-  return { status, output };
 }
 
 async function run() {
@@ -59,19 +42,18 @@ async function run() {
 
     const comparisonBranch = getInput('comparison_branch');
     const githubToken = getInput('github_token');
-    const threshold = getInput('threshold') || 0.05;
+    const threshold = getInput('threshold') || 1;
 
     if (comparisonBranch && !pr) {
       throw new Error('No PR found. Only pull_request workflows are supported.');
     }
 
     const octokit = getOctokit(githubToken);
-    const limit = new SizeLimitFormatter();
     const resultsFilePath = getResultsFilePath();
 
     // If we have no comparison branch, we just run size limit & store the result as artifact
     if (!comparisonBranch) {
-      return runSizeLimitOnComparisonBranch();
+      return runNodeOverheadOnComparisonBranch();
     }
 
     // Else, we run size limit for the current branch, AND fetch it for the comparison branch
@@ -116,27 +98,32 @@ async function run() {
       core.endGroup();
     }
 
-    const { status, output } = await execSizeLimit();
+    core.startGroup('Getting current overhead measurements');
     try {
-      current = limit.parseResults(output);
+      current = await getOverheadMeasurements();
     } catch (error) {
-      core.error('Error parsing size-limit output. The output should be a json.');
+      core.error('Error getting current overhead measurements');
+      core.endGroup();
       throw error;
     }
+    core.debug(`Current overhead measurements: ${JSON.stringify(current, null, 2)}`);
+    core.endGroup();
 
     const thresholdNumber = Number(threshold);
 
-    const sizeLimitComment = await fetchPreviousComment(octokit, repo, pr);
+    const nodeOverheadComment = await fetchPreviousComment(octokit, repo, pr);
 
-    if (sizeLimitComment) {
-      core.debug('Found existing size limit comment, updating it instead of creating a new one...');
+    if (nodeOverheadComment) {
+      core.debug('Found existing node overhead comment, updating it instead of creating a new one...');
     }
 
-    const shouldComment =
-      isNaN(thresholdNumber) || limit.hasSizeChanges(base, current, thresholdNumber) || sizeLimitComment;
+    const shouldComment = isNaN(thresholdNumber) || hasChanges(base, current, thresholdNumber) || nodeOverheadComment;
 
     if (shouldComment) {
-      const bodyParts = [SIZE_LIMIT_HEADING];
+      const bodyParts = [
+        NODE_OVERHEAD_HEADING,
+        'Note: This is a synthetic benchmark with a minimal express app and does not necessarily reflect the real-world performance impact in an application.',
+      ];
 
       if (baseIsNotLatest) {
         bodyParts.push(
@@ -144,10 +131,10 @@ async function run() {
         );
       }
       try {
-        bodyParts.push(markdownTable(limit.formatResults(base, current)));
+        bodyParts.push(markdownTable(formatResults(base, current)));
       } catch (error) {
         core.error('Error generating markdown table');
-        core.error(error);
+        throw error;
       }
 
       if (baseWorkflowRun) {
@@ -158,7 +145,7 @@ async function run() {
       const body = bodyParts.join('\r\n');
 
       try {
-        if (!sizeLimitComment) {
+        if (!nodeOverheadComment) {
           await octokit.rest.issues.createComment({
             ...repo,
             issue_number: pr.number,
@@ -167,7 +154,7 @@ async function run() {
         } else {
           await octokit.rest.issues.updateComment({
             ...repo,
-            comment_id: sizeLimitComment.id,
+            comment_id: nodeOverheadComment.id,
             body,
           });
         }
@@ -179,48 +166,24 @@ async function run() {
     } else {
       core.debug('Skipping comment because there are no changes.');
     }
-
-    if (status > 0) {
-      try {
-        const results = limit.parseResults(output);
-        const failedResults = results
-          .filter(result => result.passed || false)
-          .map(result => ({
-            name: result.name,
-            size: +result.size,
-            sizeLimit: +result.sizeLimit,
-          }));
-
-        if (failedResults.length > 0) {
-          // eslint-disable-next-line no-console
-          console.log('Exceeded size-limits:', failedResults);
-        }
-      } catch {
-        // noop
-      }
-
-      setFailed('Size limit has been exceeded.');
-    }
   } catch (error) {
     core.error(error);
     setFailed(error.message);
   }
 }
 
-async function runSizeLimitOnComparisonBranch() {
+async function runNodeOverheadOnComparisonBranch() {
   const __dirname = path.dirname(fileURLToPath(import.meta.url));
   const resultsFilePath = getResultsFilePath();
 
-  const limit = new SizeLimitFormatter();
   const artifactClient = new DefaultArtifactClient();
 
-  const { output: baseOutput } = await execSizeLimit();
+  const result = await getOverheadMeasurements();
 
   try {
-    const base = limit.parseResults(baseOutput);
-    await fs.writeFile(resultsFilePath, JSON.stringify(base), 'utf8');
+    await fs.writeFile(resultsFilePath, JSON.stringify(result), 'utf8');
   } catch (error) {
-    core.error('Error parsing size-limit output. The output should be a json.');
+    core.error('Error parsing node overhead output. The output should be a json.');
     throw error;
   }
 
