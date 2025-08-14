@@ -139,7 +139,7 @@ function addResponseAttributes(span: Span, response: AnthropicAiResponse, record
 /**
  * Get record options from the integration
  */
-function getOptionsFromIntegration(): AnthropicAiOptions {
+function getRecordingOptionsFromIntegration(): AnthropicAiOptions {
   const scope = getCurrentScope();
   const client = scope.getClient();
   const integration = client?.getIntegrationByName(ANTHROPIC_AI_INTEGRATION_NAME) as AnthropicAiIntegration | undefined;
@@ -163,7 +163,7 @@ function instrumentMethod<T extends unknown[], R>(
   options?: AnthropicAiOptions,
 ): (...args: T) => Promise<R> {
   return async function instrumentedMethod(...args: T): Promise<R> {
-    const finalOptions = options || getOptionsFromIntegration();
+    const finalOptions = options || getRecordingOptionsFromIntegration();
     const requestAttributes = extractRequestAttributes(args, methodPath);
     const model = requestAttributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] ?? 'unknown';
     const operationName = getFinalOperationName(methodPath);
