@@ -88,11 +88,32 @@ export function isFetchProxyRequired(version: string): boolean {
   return true;
 }
 
+interface BackwardsForwardsCompatibleEvent {
+  /**
+   * For now taken from: https://github.com/sveltejs/kit/pull/13899
+   * Access to spans for tracing. If tracing is not enabled or the function is being run in the browser, these spans will do nothing.
+   * @since 2.30.0
+   */
+  tracing?: {
+    /** Whether tracing is enabled. */
+    enabled: boolean;
+    // omitting other properties for now, since we don't use them.
+  };
+}
+
 async function instrumentHandle(
-  { event, resolve }: Parameters<Handle>[0],
+  {
+    event,
+    resolve,
+  }: {
+    event: Parameters<Handle>[0]['event'] & BackwardsForwardsCompatibleEvent;
+    resolve: Parameters<Handle>[0]['resolve'];
+  },
   options: SentryHandleOptions,
 ): Promise<Response> {
-  if (!event.route?.id && !options.handleUnknownRoutes) {
+  const routeId = event.route?.id;
+
+  if (!routeId && !options.handleUnknownRoutes) {
     return resolve(event);
   }
 
@@ -108,7 +129,7 @@ async function instrumentHandle(
     }
   }
 
-  const routeName = `${event.request.method} ${event.route?.id || event.url.pathname}`;
+  const routeName = `${event.request.method} ${routeId || event.url.pathname}`;
 
   if (getIsolationScope() !== getDefaultIsolationScope()) {
     getIsolationScope().setTransactionName(routeName);
@@ -116,34 +137,45 @@ async function instrumentHandle(
     DEBUG_BUILD && debug.warn('Isolation scope is default isolation scope - skipping setting transactionName');
   }
 
+  // We only start a span if SvelteKit's native tracing is not enabled. Two reasons:
+  // - Used Kit version doesn't yet support tracing
+  // - Users didn't enable tracing
+  const shouldStartSpan = !event.tracing?.enabled;
+
   try {
-    const resolveResult = await startSpan(
-      {
-        op: 'http.server',
-        attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.sveltekit',
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: event.route?.id ? 'route' : 'url',
-          'http.method': event.request.method,
-        },
-        name: routeName,
-      },
-      async (span?: Span) => {
-        getCurrentScope().setSDKProcessingMetadata({
-          // We specifically avoid cloning the request here to avoid double read errors.
-          // We only read request headers so we're not consuming the body anyway.
-          // Note to future readers: This sounds counter-intuitive but please read
-          // https://github.com/getsentry/sentry-javascript/issues/14583
-          normalizedRequest: winterCGRequestToRequestData(event.request),
-        });
-        const res = await resolve(event, {
-          transformPageChunk: addSentryCodeToPage({ injectFetchProxyScript: options.injectFetchProxyScript ?? true }),
-        });
-        if (span) {
-          setHttpStatus(span, res.status);
-        }
-        return res;
-      },
-    );
+    const resolveWithSentry: (span?: Span) => Promise<Response> = async (span?: Span) => {
+      getCurrentScope().setSDKProcessingMetadata({
+        // We specifically avoid cloning the request here to avoid double read errors.
+        // We only read request headers so we're not consuming the body anyway.
+        // Note to future readers: This sounds counter-intuitive but please read
+        // https://github.com/getsentry/sentry-javascript/issues/14583
+        normalizedRequest: winterCGRequestToRequestData(event.request),
+      });
+      const res = await resolve(event, {
+        transformPageChunk: addSentryCodeToPage({
+          injectFetchProxyScript: options.injectFetchProxyScript ?? true,
+        }),
+      });
+      if (span) {
+        setHttpStatus(span, res.status);
+      }
+      return res;
+    };
+
+    const resolveResult = shouldStartSpan
+      ? await startSpan(
+          {
+            op: 'http.server',
+            attributes: {
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.sveltekit',
+              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: routeId ? 'route' : 'url',
+              'http.method': event.request.method,
+            },
+            name: routeName,
+          },
+          resolveWithSentry,
+        )
+      : await resolveWithSentry();
     return resolveResult;
   } catch (e: unknown) {
     sendErrorToSentry(e, 'handle');
@@ -176,9 +208,12 @@ export function sentryHandle(handlerOptions?: SentryHandleOptions): Handle {
   };
 
   const sentryRequestHandler: Handle = input => {
+    const backwardsForwardsCompatibleEvent = input.event as typeof input.event & BackwardsForwardsCompatibleEvent;
+
     // Escape hatch to suppress request isolation and trace continuation (see initCloudflareSentryHandle)
     const skipIsolation =
-      '_sentrySkipRequestIsolation' in input.event.locals && input.event.locals._sentrySkipRequestIsolation;
+      '_sentrySkipRequestIsolation' in backwardsForwardsCompatibleEvent.locals &&
+      backwardsForwardsCompatibleEvent.locals._sentrySkipRequestIsolation;
 
     // In case of a same-origin `fetch` call within a server`load` function,
     // SvelteKit will actually just re-enter the `handle` function and set `isSubRequest`
@@ -187,7 +222,9 @@ export function sentryHandle(handlerOptions?: SentryHandleOptions): Handle {
     // currently active span instead of a new root span to correctly reflect this
     // behavior.
     if (skipIsolation || input.event.isSubRequest) {
-      return instrumentHandle(input, options);
+      return instrumentHandle(input, {
+        ...options,
+      });
     }
 
     return withIsolationScope(isolationScope => {
@@ -200,7 +237,11 @@ export function sentryHandle(handlerOptions?: SentryHandleOptions): Handle {
         // https://github.com/getsentry/sentry-javascript/issues/14583
         normalizedRequest: winterCGRequestToRequestData(input.event.request),
       });
-      return continueTrace(getTracePropagationData(input.event), () => instrumentHandle(input, options));
+      return continueTrace(getTracePropagationData(input.event), () =>
+        instrumentHandle(input, {
+          ...options,
+        }),
+      );
     });
   };
 
