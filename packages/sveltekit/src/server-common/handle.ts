@@ -88,15 +88,28 @@ export function isFetchProxyRequired(version: string): boolean {
   return true;
 }
 
+interface BackwardsForwardsCompatibleEvent {
+  /**
+   * For now taken from: https://github.com/sveltejs/kit/pull/13899
+   * Access to spans for tracing. If tracing is not enabled or the function is being run in the browser, these spans will do nothing.
+   * @since 2.30.0
+   */
+  tracing?: {
+    /** Whether tracing is enabled. */
+    enabled: boolean;
+    // omitting other properties for now, since we don't use them.
+  };
+}
+
 async function instrumentHandle(
   {
     event,
     resolve,
   }: {
-    event: Parameters<Handle>[0]['event'];
+    event: Parameters<Handle>[0]['event'] & BackwardsForwardsCompatibleEvent;
     resolve: Parameters<Handle>[0]['resolve'];
   },
-  options: SentryHandleOptions & { svelteKitTracingEnabled: boolean },
+  options: SentryHandleOptions,
 ): Promise<Response> {
   const routeId = event.route?.id;
 
@@ -127,7 +140,7 @@ async function instrumentHandle(
   // We only start a span if SvelteKit's native tracing is not enabled. Two reasons:
   // - Used Kit version doesn't yet support tracing
   // - Users didn't enable tracing
-  const shouldStartSpan = !options.svelteKitTracingEnabled;
+  const shouldStartSpan = !event.tracing?.enabled;
 
   try {
     const resolveWithSentry: (span?: Span) => Promise<Response> = async (span?: Span) => {
@@ -172,19 +185,6 @@ async function instrumentHandle(
   }
 }
 
-interface BackwardsForwardsCompatibleEvent {
-  /**
-   * For now taken from: https://github.com/sveltejs/kit/pull/13899
-   * Access to spans for tracing. If tracing is not enabled or the function is being run in the browser, these spans will do nothing.
-   * @since 2.30.0
-   */
-  tracing?: {
-    /** Whether tracing is enabled. */
-    enabled: boolean;
-    // omitting other properties for now, since we don't use them.
-  };
-}
-
 /**
  * A SvelteKit handle function that wraps the request for Sentry error and
  * performance monitoring.
@@ -215,18 +215,15 @@ export function sentryHandle(handlerOptions?: SentryHandleOptions): Handle {
       '_sentrySkipRequestIsolation' in backwardsForwardsCompatibleEvent.locals &&
       backwardsForwardsCompatibleEvent.locals._sentrySkipRequestIsolation;
 
-    const svelteKitTracingEnabled = !!backwardsForwardsCompatibleEvent.tracing?.enabled;
-
     // In case of a same-origin `fetch` call within a server`load` function,
     // SvelteKit will actually just re-enter the `handle` function and set `isSubRequest`
     // to `true` so that no additional network call is made.
     // We want the `http.server` span of that nested call to be a child span of the
     // currently active span instead of a new root span to correctly reflect this
     // behavior.
-    if (skipIsolation || input.event.isSubRequest || svelteKitTracingEnabled) {
+    if (skipIsolation || input.event.isSubRequest) {
       return instrumentHandle(input, {
         ...options,
-        svelteKitTracingEnabled,
       });
     }
 
@@ -243,7 +240,6 @@ export function sentryHandle(handlerOptions?: SentryHandleOptions): Handle {
       return continueTrace(getTracePropagationData(input.event), () =>
         instrumentHandle(input, {
           ...options,
-          svelteKitTracingEnabled,
         }),
       );
     });
