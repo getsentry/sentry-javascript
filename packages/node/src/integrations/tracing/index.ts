@@ -1,5 +1,5 @@
 import type { Integration } from '@sentry/core';
-import { instrumentOtelHttp } from '../http';
+import { instrumentOtelHttp, instrumentSentryHttp } from '../http';
 import { amqplibIntegration, instrumentAmqplib } from './amqplib';
 import { connectIntegration, instrumentConnect } from './connect';
 import { expressIntegration, instrumentExpress } from './express';
@@ -59,6 +59,7 @@ export function getAutoPerformanceIntegrations(): Integration[] {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function getOpenTelemetryInstrumentationToPreload(): (((options?: any) => void) & { id: string })[] {
   return [
+    instrumentSentryHttp,
     instrumentOtelHttp,
     instrumentExpress,
     instrumentConnect,
