@@ -1,11 +1,16 @@
 import type { InstrumentationConfig, InstrumentationModuleDefinition } from '@opentelemetry/instrumentation';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition } from '@opentelemetry/instrumentation';
+import type { Span } from '@sentry/core';
 import {
   addNonEnumerableProperty,
+  captureException,
+  cleanupToolCallSpan,
   getActiveSpan,
   getCurrentScope,
+  getSpanForToolCallId,
   handleCallbackErrors,
   SDK_VERSION,
+  withScope,
 } from '@sentry/core';
 import { INTEGRATION_NAME } from './constants';
 import type { TelemetrySettings, VercelAiIntegration } from './types';
@@ -33,6 +38,101 @@ type PatchedModuleExports = Record<(typeof INSTRUMENTED_METHODS)[number], (...ar
 interface RecordingOptions {
   recordInputs?: boolean;
   recordOutputs?: boolean;
+}
+
+interface ToolError {
+  type: 'tool-error' | 'tool-result' | 'tool-call';
+  toolCallId: string;
+  toolName: string;
+  input?: {
+    [key: string]: unknown;
+  };
+  error: Error;
+  dynamic?: boolean;
+}
+
+function isToolError(obj: unknown): obj is ToolError {
+  if (typeof obj !== 'object' || obj === null) {
+    return false;
+  }
+
+  const candidate = obj as Record<string, unknown>;
+  return (
+    'type' in candidate &&
+    'error' in candidate &&
+    'toolName' in candidate &&
+    'toolCallId' in candidate &&
+    candidate.type === 'tool-error' &&
+    candidate.error instanceof Error
+  );
+}
+
+/**
+ * Check for tool errors in the result and capture them
+ * Tool errors are not rejected in Vercel V5, it is added as metadata to the result content
+ */
+function checkResultForToolErrors(result: unknown | Promise<unknown>): void {
+  if (typeof result !== 'object' || result === null || !('content' in result)) {
+    return;
+  }
+
+  const resultObj = result as { content: Array<object> };
+  if (!Array.isArray(resultObj.content)) {
+    return;
+  }
+
+  for (const item of resultObj.content) {
+    if (isToolError(item)) {
+      // Try to get the span associated with this tool call ID
+      const associatedSpan = getSpanForToolCallId(item.toolCallId) as Span;
+
+      if (associatedSpan) {
+        // We have the span, so link the error using span and trace IDs from the span
+        const spanContext = associatedSpan.spanContext();
+
+        withScope(scope => {
+          // Set the span and trace context for proper linking
+          scope.setContext('trace', {
+            trace_id: spanContext.traceId,
+            span_id: spanContext.spanId,
+          });
+
+          // Add tool-specific tags
+          scope.setTag('vercel.ai.tool.name', item.toolName);
+          scope.setTag('vercel.ai.tool.callId', item.toolCallId);
+          scope.setTag('vercel.ai.tool.span.id', spanContext.spanId);
+          scope.setTag('vercel.ai.tool.trace.id', spanContext.traceId);
+
+          scope.setLevel('error');
+
+          captureException(item.error, {
+            mechanism: {
+              type: 'auto.vercelai.otel',
+              handled: false,
+            },
+          });
+        });
+
+        // Clean up the span mapping since we've processed this tool error
+        // We won't get multiple { type: 'tool-error' } parts for the same toolCallId.
+        cleanupToolCallSpan(item.toolCallId);
+      } else {
+        // Fallback: capture without span linking
+        withScope(scope => {
+          scope.setTag('vercel.ai.tool.name', item.toolName);
+          scope.setTag('vercel.ai.tool.callId', item.toolCallId);
+          scope.setLevel('error');
+
+          captureException(item.error, {
+            mechanism: {
+              type: 'auto.vercelai.otel',
+              handled: false,
+            },
+          });
+        });
+      }
+    }
+  }
 }
 
 /**
@@ -89,7 +189,7 @@ export class SentryVercelAiInstrumentation extends InstrumentationBase {
    * Initializes the instrumentation by defining the modules to be patched.
    */
   public init(): InstrumentationModuleDefinition {
-    const module = new InstrumentationNodeModuleDefinition('ai', ['>=3.0.0 <5'], this._patch.bind(this));
+    const module = new InstrumentationNodeModuleDefinition('ai', ['>=3.0.0 <6'], this._patch.bind(this));
     return module;
   }
 
@@ -139,9 +239,14 @@ export class SentryVercelAiInstrumentation extends InstrumentationBase {
         };
 
         return handleCallbackErrors(
-          () => {
+          async () => {
             // @ts-expect-error we know that the method exists
-            return originalMethod.apply(this, args);
+            const result = await originalMethod.apply(this, args);
+
+            // Tool errors are not rejected in Vercel V5, it is added as metadata to the result content
+            checkResultForToolErrors(result);
+
+            return result;
           },
           error => {
             // This error bubbles up to unhandledrejection handler (if not handled before),

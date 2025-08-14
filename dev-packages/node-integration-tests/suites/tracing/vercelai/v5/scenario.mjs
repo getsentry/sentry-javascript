@@ -1,5 +1,5 @@
 import * as Sentry from '@sentry/node';
-import { generateText } from 'ai';
+import { generateText, tool } from 'ai';
 import { MockLanguageModelV2 } from 'ai/test';
 import { z } from 'zod';
 
@@ -35,24 +35,21 @@ async function run() {
         doGenerate: async () => ({
           finishReason: 'tool-calls',
           usage: { inputTokens: 15, outputTokens: 25, totalTokens: 40 },
-          content: [{ type: 'text', text: 'Tool call completed!' }],
-          toolCalls: [
+          content: [
             {
-              toolCallType: 'function',
+              type: 'tool-call',
               toolCallId: 'call-1',
               toolName: 'getWeather',
-              args: '{ "location": "San Francisco" }',
+              input: JSON.stringify({ location: 'San Francisco' }),
             },
           ],
         }),
       }),
       tools: {
-        getWeather: {
-          parameters: z.object({ location: z.string() }),
-          execute: async args => {
-            return `Weather in ${args.location}: Sunny, 72°F`;
-          },
-        },
+        getWeather: tool({
+          inputSchema: z.object({ location: z.string() }),
+          execute: async ({ location }) => `Weather in ${location}: Sunny, 72°F`,
+        }),
       },
       prompt: 'What is the weather in San Francisco?',
     });
