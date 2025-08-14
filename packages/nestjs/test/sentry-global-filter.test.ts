@@ -133,7 +133,12 @@ describe('SentryGlobalFilter', () => {
         filter.catch(error, mockArgumentsHost);
       }).toThrow(error);
 
-      expect(mockCaptureException).toHaveBeenCalledWith(error);
+      expect(mockCaptureException).toHaveBeenCalledWith(error, {
+        mechanism: {
+          handled: false,
+          type: 'auto.graphql.nestjs.global_filter',
+        },
+      });
       expect(mockLoggerError).toHaveBeenCalledWith(error.message, error.stack);
     });
   });
