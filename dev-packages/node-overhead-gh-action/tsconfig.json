@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.json",
+
+  "include": ["src/**/*.mjs"],
+
+  "compilerOptions": {
+    "lib": ["ES2018"],
+    // package-specific options
+    "esModuleInterop": true,
+    "types": ["node"]
+  }
+}
