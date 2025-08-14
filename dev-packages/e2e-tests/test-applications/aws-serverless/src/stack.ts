@@ -13,7 +13,6 @@ const LAMBDA_FUNCTIONS_WITH_NPM_DIR = './src/lambda-functions-npm';
 const LAMBDA_FUNCTION_TIMEOUT = 10;
 const LAYER_DIR = './node_modules/@sentry/aws-serverless/';
 export const SAM_PORT = 3001;
-const NODE_RUNTIME = `nodejs${process.version.split('.').at(0)?.replace('v', '')}.x`;
 
 export class LocalLambdaStack extends Stack {
   sentryLayer: CfnResource;
@@ -80,7 +79,7 @@ export class LocalLambdaStack extends Stack {
         properties: {
           CodeUri: path.join(functionsDir, lambdaDir),
           Handler: 'index.handler',
-          Runtime: NODE_RUNTIME,
+          Runtime: `nodejs${process.env.NODE_VERSION ?? '22'}.x`,
           Timeout: LAMBDA_FUNCTION_TIMEOUT,
           Layers: addLayer ? [{ Ref: this.sentryLayer.logicalId }] : undefined,
           Environment: {
