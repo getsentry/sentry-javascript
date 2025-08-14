@@ -191,7 +191,7 @@ function instrumentMethod<T extends unknown[], R>(
 
             const result = await originalMethod.apply(context, args);
             return instrumentStream(
-              result as unknown as AsyncIterable<AnthropicAiStreamingEvent>,
+              result as AsyncIterable<AnthropicAiStreamingEvent>,
               span,
               finalOptions.recordOutputs ?? false,
             ) as unknown as R;

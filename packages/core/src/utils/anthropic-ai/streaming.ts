@@ -2,7 +2,6 @@ import { captureException } from '../../exports';
 import { SPAN_STATUS_ERROR } from '../../tracing';
 import type { Span } from '../../types-hoist/span';
 import {
-  ANTHROPIC_AI_RESPONSE_TIMESTAMP_ATTRIBUTE,
   GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE,
   GEN_AI_RESPONSE_ID_ATTRIBUTE,
   GEN_AI_RESPONSE_MODEL_ATTRIBUTE,
@@ -27,8 +26,6 @@ interface StreamingState {
   responseId: string;
   /** The model name. */
   responseModel: string;
-  /** The timestamp of the response. */
-  responseTimestamp: number;
   /** Number of prompt/input tokens used. */
   promptTokens: number | undefined;
   /** Number of completion/output tokens used. */
@@ -158,7 +155,6 @@ export async function* instrumentStream(
     finishReasons: [],
     responseId: '',
     responseModel: '',
-    responseTimestamp: 0,
     promptTokens: undefined,
     completionTokens: undefined,
     cacheCreationInputTokens: undefined,
@@ -180,11 +176,6 @@ export async function* instrumentStream(
     if (state.responseModel) {
       span.setAttributes({
         [GEN_AI_RESPONSE_MODEL_ATTRIBUTE]: state.responseModel,
-      });
-    }
-    if (state.responseTimestamp) {
-      span.setAttributes({
-        [ANTHROPIC_AI_RESPONSE_TIMESTAMP_ATTRIBUTE]: new Date(state.responseTimestamp * 1000).toISOString(),
       });
     }
 
