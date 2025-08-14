@@ -21,7 +21,12 @@ function checkTunnel(url: string, tunnel: string | undefined): boolean {
 }
 
 function checkDsn(url: string, dsn: DsnComponents | undefined): boolean {
-  return dsn ? url.includes(dsn.host) : false;
+  // Requests to Sentry's ingest endpoint must have a `sentry_key` in the query string
+  // This is equivalent to the public_key which is required in the DSN
+  // see https://develop.sentry.dev/sdk/overview/#parsing-the-dsn
+  // Therefore a request to the same host and with a `sentry_key` in the query string
+  // can be considered a request to the ingest endpoint
+  return dsn ? url.includes(dsn.host) && !!url.match(/sentry_key/) : false;
 }
 
 function removeTrailingSlash(str: string): string {
