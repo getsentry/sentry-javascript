@@ -254,7 +254,7 @@ jobs:
           comparison_branch: ${{ (github.event_name == 'pull_request' && github.base_ref) ||  ''}}
 
   job_node_overhead_check:
-    name: Node Overhead
+    name: Node Overhead Check
     needs: [job_get_metadata, job_build]
     timeout-minutes: 15
     runs-on: ubuntu-24.04
