@@ -23,5 +23,19 @@
   },
   "volta": {
     "extends": "../../package.json"
+  },
+  "sentryTest": {
+    "variants": [
+      {
+        "build-command": "NODE_VERSION=20 ./pull-sam-image.sh && pnpm test:build",
+        "assert-command": "NODE_VERSION=20 pnpm test:assert",
+        "label": "aws-serverless (Node 20)"
+      },
+      {
+        "build-command": "NODE_VERSION=18 ./pull-sam-image.sh && pnpm test:build",
+        "assert-command": "NODE_VERSION=18 pnpm test:assert",
+        "label": "aws-serverless (Node 18)"
+      }
+    ]
   }
 }
