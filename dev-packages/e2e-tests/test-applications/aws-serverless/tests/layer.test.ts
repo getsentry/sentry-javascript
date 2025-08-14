@@ -40,6 +40,8 @@ test.describe('Lambda layer', () => {
 
     expect(transactionEvent.spans).toHaveLength(2);
 
+    console.log(transactionEvent.spans);
+
     // shows that the Otel Http instrumentation is working
     expect(transactionEvent.spans).toContainEqual(
       expect.objectContaining({
