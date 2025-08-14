@@ -16,8 +16,6 @@ import type { AnthropicAiStreamingEvent } from './types';
  */
 
 interface StreamingState {
-  /** Types of events encountered in the stream. */
-  eventTypes: string[];
   /** Collected response text fragments (for output recording). */
   responseTexts: string[];
   /** Reasons for finishing the response, as reported by the API. */
@@ -52,8 +50,6 @@ function isErrorEvent(
   span: Span,
 ): boolean {
   if ('type' in event && typeof event.type === 'string') {
-    state.eventTypes.push(event.type);
-
     // If the event is an error, set the span status and capture the error
     // These error events are not rejected by the API by default, but are sent as metadata of the response
     if (event.type === 'error') {
@@ -129,7 +125,6 @@ function processEvent(
   span: Span,
 ): void {
   if (!(event && typeof event === 'object')) {
-    state.eventTypes.push('unknown:non-object');
     return;
   }
 
@@ -150,7 +145,6 @@ export async function* instrumentStream(
   recordOutputs: boolean,
 ): AsyncGenerator<AnthropicAiStreamingEvent, void, unknown> {
   const state: StreamingState = {
-    eventTypes: [],
     responseTexts: [],
     finishReasons: [],
     responseId: '',
