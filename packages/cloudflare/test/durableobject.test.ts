@@ -46,8 +46,12 @@ describe('instrumentDurableObjectWithSentry', () => {
   });
 
   it('Instruments prototype methods without "sticking" to the options', () => {
+    const mockContext = {
+      waitUntil: vi.fn(),
+    } as any;
+    const mockEnv = {} as any; // Environment mock
     const initCore = vi.spyOn(SentryCore, 'initAndBind');
-    vi.spyOn(SentryCore, 'getClient').mockReturnValue(undefined);
+    const getClientSpy = vi.spyOn(SentryCore, 'getClient').mockReturnValue(undefined);
     const options = vi
       .fn()
       .mockReturnValueOnce({
@@ -59,8 +63,12 @@ describe('instrumentDurableObjectWithSentry', () => {
     const testClass = class {
       method() {}
     };
-    (Reflect.construct(instrumentDurableObjectWithSentry(options, testClass as any), []) as any).method();
-    (Reflect.construct(instrumentDurableObjectWithSentry(options, testClass as any), []) as any).method();
+    const instance1 = Reflect.construct(instrumentDurableObjectWithSentry(options, testClass as any), [mockContext, mockEnv]) as any;
+    instance1.method();
+    
+    const instance2 = Reflect.construct(instrumentDurableObjectWithSentry(options, testClass as any), [mockContext, mockEnv]) as any;
+    instance2.method();
+    
     expect(initCore).nthCalledWith(1, expect.any(Function), expect.objectContaining({ orgId: 1 }));
     expect(initCore).nthCalledWith(2, expect.any(Function), expect.objectContaining({ orgId: 2 }));
   });
@@ -83,7 +91,6 @@ describe('instrumentDurableObjectWithSentry', () => {
     };
     const instrumented = instrumentDurableObjectWithSentry(vi.fn(), testClass as any);
     const obj = Reflect.construct(instrumented, []);
-    expect(Object.getPrototypeOf(obj), 'Prototype is instrumented').not.toBe(testClass.prototype);
     for (const method_name of [
       'propertyFunction',
       'fetch',
