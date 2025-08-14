@@ -35,10 +35,7 @@ import { DEBUG_BUILD } from '../../debug-build';
 import type { NodeClient } from '../../sdk/client';
 import { INSTRUMENTATION_NAME, MAX_BODY_BYTE_LENGTH } from './constants';
 
-type Emit = typeof Server.prototype.emit & {
-  __sentry_patched__?: boolean;
-  __sentryOriginalFn__?: typeof Server.prototype.emit;
-};
+type ServerEmit = typeof Server.prototype.emit;
 
 const HTTP_SERVER_INSTRUMENTED_KEY = createContextKey('sentry_http_server_instrumented');
 
@@ -50,7 +47,8 @@ const clientToRequestSessionAggregatesMap = new Map<
 // We keep track of emit functions we wrapped, to avoid double wrapping
 // We do this instead of putting a non-enumerable property on the function, because
 // sometimes the property seems to be migrated to forks of the emit function, which we do not want to happen
-const wrappedEmitFns = new WeakSet<Emit>();
+// This was the case in the nestjs-distributed-tracing E2E test
+const wrappedEmitFns = new WeakSet<ServerEmit>();
 
 /**
  * Instrument a server to capture incoming requests.
@@ -90,10 +88,8 @@ export function instrumentServer(
     };
   },
 ): void {
-  type Emit = typeof server.emit & { __sentryOriginalFn__?: typeof server.emit };
-
   // eslint-disable-next-line @typescript-eslint/unbound-method
-  const originalEmit: Emit = server.emit;
+  const originalEmit: ServerEmit = server.emit;
 
   if (wrappedEmitFns.has(originalEmit)) {
     DEBUG_BUILD &&
@@ -103,33 +99,6 @@ export function instrumentServer(
 
   const { requestHook, responseHook, applyCustomAttributesOnSpan } = instrumentation ?? {};
 
-  function shouldIgnoreSpansForIncomingRequest(request: IncomingMessage): boolean {
-    if (isTracingSuppressed(context.active())) {
-      return true;
-    }
-
-    // request.url is the only property that holds any information about the url
-    // it only consists of the URL path and query string (if any)
-    const urlPath = request.url;
-
-    const method = request.method?.toUpperCase();
-    // We do not capture OPTIONS/HEAD requests as spans
-    if (method === 'OPTIONS' || method === 'HEAD' || !urlPath) {
-      return true;
-    }
-
-    // Default static asset filtering
-    if (ignoreStaticAssets && method === 'GET' && isStaticAssetRequest(urlPath)) {
-      return true;
-    }
-
-    if (ignoreSpansForIncomingRequests?.(urlPath, request)) {
-      return true;
-    }
-
-    return false;
-  }
-
   const newEmit = new Proxy(originalEmit, {
     apply(target, thisArg, args: [event: string, ...args: unknown[]]) {
       // Only traces request events
@@ -138,7 +107,7 @@ export function instrumentServer(
       }
 
       // Make sure we do not double execute our wrapper code, for edge cases...
-      // Without this check, if we double-wrap emit, for whatever reason, you'd get to http.server spans (one the children of the other)
+      // Without this check, if we double-wrap emit, for whatever reason, you'd get two http.server spans (one the children of the other)
       if (context.active().getValue(HTTP_SERVER_INSTRUMENTED_KEY)) {
         return target.apply(thisArg, args);
       }
@@ -193,7 +162,14 @@ export function instrumentServer(
 
         return context.with(ctx, () => {
           // if opting out of span creation, we can end here
-          if (!spans || shouldIgnoreSpansForIncomingRequest(request) || !client) {
+          if (
+            !spans ||
+            !client ||
+            shouldIgnoreSpansForIncomingRequest(request, {
+              ignoreStaticAssets,
+              ignoreSpansForIncomingRequests,
+            })
+          ) {
             DEBUG_BUILD && debug.log(INSTRUMENTATION_NAME, 'Skipping span creation for incoming request');
             return target.apply(thisArg, args);
           }
@@ -249,7 +225,8 @@ export function instrumentServer(
             context.bind(context.active(), request);
             context.bind(context.active(), response);
 
-            // After 'error', no further events other than 'close' should be emitted.
+            // Ensure we only end the span once
+            // E.g. error can be emitted before close is emitted
             let isEnded = false;
             function endSpan(status: SpanStatus): void {
               if (isEnded) {
@@ -264,10 +241,9 @@ export function instrumentServer(
               span.end();
 
               // Update the transaction name if the route has changed
-              if (newAttributes['http.route']) {
-                getIsolationScope().setTransactionName(
-                  `${request.method?.toUpperCase() || 'GET'} ${newAttributes['http.route']}`,
-                );
+              const route = newAttributes['http.route'];
+              if (route) {
+                getIsolationScope().setTransactionName(`${request.method?.toUpperCase() || 'GET'} ${route}`);
               }
             }
 
@@ -572,6 +548,42 @@ export function isStaticAssetRequest(urlPath: string): boolean {
 
   // Common metadata files
   if (path.match(/^\/(robots\.txt|sitemap\.xml|manifest\.json|browserconfig\.xml)$/)) {
+    return true;
+  }
+
+  return false;
+}
+
+function shouldIgnoreSpansForIncomingRequest(
+  request: IncomingMessage,
+  {
+    ignoreStaticAssets,
+    ignoreSpansForIncomingRequests,
+  }: {
+    ignoreStaticAssets?: boolean;
+    ignoreSpansForIncomingRequests?: (urlPath: string, request: IncomingMessage) => boolean;
+  },
+): boolean {
+  if (isTracingSuppressed(context.active())) {
+    return true;
+  }
+
+  // request.url is the only property that holds any information about the url
+  // it only consists of the URL path and query string (if any)
+  const urlPath = request.url;
+
+  const method = request.method?.toUpperCase();
+  // We do not capture OPTIONS/HEAD requests as spans
+  if (method === 'OPTIONS' || method === 'HEAD' || !urlPath) {
+    return true;
+  }
+
+  // Default static asset filtering
+  if (ignoreStaticAssets && method === 'GET' && isStaticAssetRequest(urlPath)) {
+    return true;
+  }
+
+  if (ignoreSpansForIncomingRequests?.(urlPath, request)) {
     return true;
   }
 
