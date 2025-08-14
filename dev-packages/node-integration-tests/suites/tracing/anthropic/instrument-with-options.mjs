@@ -1,0 +1,18 @@
+import * as Sentry from '@sentry/node';
+import { nodeContextIntegration } from '@sentry/node-core';
+import { loggingTransport } from '@sentry-internal/node-integration-tests';
+
+Sentry.init({
+  dsn: 'https://public@dsn.ingest.sentry.io/1337',
+  release: '1.0',
+  tracesSampleRate: 1.0,
+  sendDefaultPii: false,
+  transport: loggingTransport,
+  integrations: [
+    Sentry.anthropicAIIntegration({
+      recordInputs: true,
+      recordOutputs: true,
+    }),
+    nodeContextIntegration(),
+  ],
+});

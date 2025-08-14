@@ -24,6 +24,7 @@ export { dataloaderIntegration } from './integrations/tracing/dataloader';
 export { amqplibIntegration } from './integrations/tracing/amqplib';
 export { vercelAIIntegration } from './integrations/tracing/vercelai';
 export { openAIIntegration } from './integrations/tracing/openai';
+export { anthropicAIIntegration } from './integrations/tracing/anthropic-ai';
 export {
   launchDarklyIntegration,
   buildLaunchDarklyFlagUsedHandler,
