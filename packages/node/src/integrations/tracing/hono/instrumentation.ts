@@ -41,7 +41,7 @@ export class HonoInstrumentation extends InstrumentationBase {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const instrumentation = this;
 
-    moduleExports.Hono = class HonoWrapper extends moduleExports.Hono {
+    class WrappedHono extends moduleExports.Hono {
       public constructor(...args: unknown[]) {
         super(...args);
 
@@ -55,7 +55,15 @@ export class HonoInstrumentation extends InstrumentationBase {
         instrumentation._wrap(this, 'on', instrumentation._patchOnHandler());
         instrumentation._wrap(this, 'use', instrumentation._patchMiddlewareHandler());
       }
-    };
+    }
+
+    try {
+      moduleExports.Hono = WrappedHono;
+    } catch {
+      // This is a workaround for environments where direct assignment is not allowed.
+      return { ...moduleExports, Hono: WrappedHono };
+    }
+
     return moduleExports;
   }
 
