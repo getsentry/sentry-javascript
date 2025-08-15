@@ -92,7 +92,7 @@ interface BackwardsForwardsCompatibleEvent {
   /**
    * For now taken from: https://github.com/sveltejs/kit/pull/13899
    * Access to spans for tracing. If tracing is not enabled or the function is being run in the browser, these spans will do nothing.
-   * @since 2.30.0
+   * @since 2.31.0
    */
   tracing?: {
     /** Whether tracing is enabled. */
