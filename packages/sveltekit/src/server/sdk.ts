@@ -1,6 +1,7 @@
 import { applySdkMetadata } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
 import { getDefaultIntegrations as getDefaultNodeIntegrations, init as initNodeSdk } from '@sentry/node';
+import { svelteKitSpansIntegration } from '../server-common/processKitSpans';
 import { rewriteFramesIntegration } from '../server-common/rewriteFramesIntegration';
 
 /**
@@ -9,7 +10,11 @@ import { rewriteFramesIntegration } from '../server-common/rewriteFramesIntegrat
  */
 export function init(options: NodeOptions): NodeClient | undefined {
   const opts = {
-    defaultIntegrations: [...getDefaultNodeIntegrations(options), rewriteFramesIntegration()],
+    defaultIntegrations: [
+      ...getDefaultNodeIntegrations(options),
+      rewriteFramesIntegration(),
+      svelteKitSpansIntegration(),
+    ],
     ...options,
   };
 

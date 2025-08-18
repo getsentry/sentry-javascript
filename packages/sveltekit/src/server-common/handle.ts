@@ -7,10 +7,13 @@ import {
   getDefaultIsolationScope,
   getIsolationScope,
   getTraceMetaTags,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setHttpStatus,
+  spanToJSON,
   startSpan,
+  updateSpanName,
   winterCGRequestToRequestData,
   withIsolationScope,
 } from '@sentry/core';
@@ -97,7 +100,8 @@ interface BackwardsForwardsCompatibleEvent {
   tracing?: {
     /** Whether tracing is enabled. */
     enabled: boolean;
-    // omitting other properties for now, since we don't use them.
+    current: Span;
+    root: Span;
   };
 }
 
@@ -140,10 +144,10 @@ async function instrumentHandle(
   // We only start a span if SvelteKit's native tracing is not enabled. Two reasons:
   // - Used Kit version doesn't yet support tracing
   // - Users didn't enable tracing
-  const shouldStartSpan = !event.tracing?.enabled;
+  const kitTracingEnabled = event.tracing?.enabled;
 
   try {
-    const resolveWithSentry: (span?: Span) => Promise<Response> = async (span?: Span) => {
+    const resolveWithSentry: (sentrySpan?: Span) => Promise<Response> = async (sentrySpan?: Span) => {
       getCurrentScope().setSDKProcessingMetadata({
         // We specifically avoid cloning the request here to avoid double read errors.
         // We only read request headers so we're not consuming the body anyway.
@@ -151,19 +155,45 @@ async function instrumentHandle(
         // https://github.com/getsentry/sentry-javascript/issues/14583
         normalizedRequest: winterCGRequestToRequestData(event.request),
       });
+
       const res = await resolve(event, {
         transformPageChunk: addSentryCodeToPage({
           injectFetchProxyScript: options.injectFetchProxyScript ?? true,
         }),
       });
-      if (span) {
-        setHttpStatus(span, res.status);
+
+      const kitRootSpan = event.tracing?.root;
+
+      if (sentrySpan) {
+        setHttpStatus(sentrySpan, res.status);
+      } else if (kitRootSpan) {
+        // Update the root span emitted from SvelteKit to resemble a `http.server` span
+        // We're doing this here instead of an event processor to ensure we update the
+        // span name as early as possible (for dynamic sampling, et al.)
+        // Other spans are enhanced in the `processKitSpans` function.
+        const spanJson = spanToJSON(kitRootSpan);
+        const kitRootSpanAttributes = spanJson.data;
+        const originalName = spanJson.description;
+
+        const routeName = kitRootSpanAttributes['http.route'];
+        if (routeName && typeof routeName === 'string') {
+          updateSpanName(kitRootSpan, routeName);
+        }
+
+        kitRootSpan.setAttributes({
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.sveltejs.kit',
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: routeId ? 'route' : 'url',
+          'sveltekit.tracing.original_name': originalName,
+        });
       }
+
       return res;
     };
 
-    const resolveResult = shouldStartSpan
-      ? await startSpan(
+    const resolveResult = kitTracingEnabled
+      ? await resolveWithSentry()
+      : await startSpan(
           {
             op: 'http.server',
             attributes: {
@@ -174,8 +204,8 @@ async function instrumentHandle(
             name: routeName,
           },
           resolveWithSentry,
-        )
-      : await resolveWithSentry();
+        );
+
     return resolveResult;
   } catch (e: unknown) {
     sendErrorToSentry(e, 'handle');
@@ -237,11 +267,14 @@ export function sentryHandle(handlerOptions?: SentryHandleOptions): Handle {
         // https://github.com/getsentry/sentry-javascript/issues/14583
         normalizedRequest: winterCGRequestToRequestData(input.event.request),
       });
-      return continueTrace(getTracePropagationData(input.event), () =>
-        instrumentHandle(input, {
-          ...options,
-        }),
-      );
+
+      if (backwardsForwardsCompatibleEvent.tracing?.enabled) {
+        // if sveltekit tracing is enabled (since 2.31.0), trace continuation is handled by
+        // kit before our hook is executed. No noeed to call `continueTrace` from our end
+        return instrumentHandle(input, options);
+      }
+
+      return continueTrace(getTracePropagationData(input.event), () => instrumentHandle(input, options));
     });
   };
 
