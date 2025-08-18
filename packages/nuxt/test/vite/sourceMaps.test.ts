@@ -482,10 +482,10 @@ describe('change Nuxt source map settings', () => {
       );
     });
 
-    it('should log a message when debug is false and one of the source maps are unset', () => {
+    it('should log a message when one of the source maps are unset', () => {
       nuxt.options.sourcemap.server = true;
 
-      const { client, server } = changeNuxtSourceMapSettings(nuxt as Nuxt, { debug: false });
+      const { client, server } = changeNuxtSourceMapSettings(nuxt as Nuxt, { debug: true });
 
       expect(client).toBe('unset');
       expect(server).toBe('enabled');
@@ -495,7 +495,7 @@ describe('change Nuxt source map settings', () => {
       );
     });
 
-    it('should not log a message when debug is false and client/server source maps are defined', () => {
+    it('should not log a message when client/server source maps are defined and debug is false', () => {
       nuxt.options.sourcemap.client = false;
       nuxt.options.sourcemap.server = true;
 

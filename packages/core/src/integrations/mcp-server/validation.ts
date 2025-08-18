@@ -75,3 +75,12 @@ export function validateMcpServerInstance(instance: unknown): boolean {
   DEBUG_BUILD && debug.warn('Did not patch MCP server. Interface is incompatible.');
   return false;
 }
+
+/**
+ * Check if the item is a valid content item
+ * @param item - The item to check
+ * @returns True if the item is a valid content item, false otherwise
+ */
+export function isValidContentItem(item: unknown): item is Record<string, unknown> {
+  return item != null && typeof item === 'object';
+}

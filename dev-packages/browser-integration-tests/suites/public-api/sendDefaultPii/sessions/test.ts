@@ -3,7 +3,7 @@ import { sentryTest } from '../../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest } from '../../../../utils/helpers';
 
 sentryTest(
-  'should default user to {{auto}} on sessions when sendDefaultPii: true',
+  'sets attrs.ip_address user to {{auto}} on sessions when sendDefaultPii: true',
   async ({ getLocalTestUrl, page }) => {
     const url = await getLocalTestUrl({ testDir: __dirname });
     const session = await getFirstSentryEnvelopeRequest(page, url);

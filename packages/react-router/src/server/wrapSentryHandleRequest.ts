@@ -5,13 +5,10 @@ import {
   flushIfServerless,
   getActiveSpan,
   getRootSpan,
-  getTraceMetaTags,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '@sentry/core';
 import type { AppLoadContext, EntryContext } from 'react-router';
-import type { PassThrough } from 'stream';
-import { Transform } from 'stream';
 
 type OriginalHandleRequest = (
   request: Request,
@@ -70,26 +67,3 @@ export function wrapSentryHandleRequest(originalHandle: OriginalHandleRequest): 
 // todo(v11): remove this
 /** @deprecated Use `wrapSentryHandleRequest` instead. */
 export const sentryHandleRequest = wrapSentryHandleRequest;
-
-/**
- * Injects Sentry trace meta tags into the HTML response by piping through a transform stream.
- * This enables distributed tracing by adding trace context to the HTML document head.
- *
- * @param body - PassThrough stream containing the HTML response body to modify
- */
-export function getMetaTagTransformer(body: PassThrough): Transform {
-  const headClosingTag = '</head>';
-  const htmlMetaTagTransformer = new Transform({
-    transform(chunk, _encoding, callback) {
-      const html = Buffer.isBuffer(chunk) ? chunk.toString() : String(chunk);
-      if (html.includes(headClosingTag)) {
-        const modifiedHtml = html.replace(headClosingTag, `${getTraceMetaTags()}${headClosingTag}`);
-        callback(null, modifiedHtml);
-        return;
-      }
-      callback(null, chunk);
-    },
-  });
-  htmlMetaTagTransformer.pipe(body);
-  return htmlMetaTagTransformer;
-}

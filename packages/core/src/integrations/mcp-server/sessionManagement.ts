@@ -16,7 +16,9 @@ const transportToSessionData = new WeakMap<MCPTransport, SessionData>();
  * @param sessionData - Session data to store
  */
 export function storeSessionDataForTransport(transport: MCPTransport, sessionData: SessionData): void {
-  if (transport.sessionId) transportToSessionData.set(transport, sessionData);
+  if (transport.sessionId) {
+    transportToSessionData.set(transport, sessionData);
+  }
 }
 
 /**

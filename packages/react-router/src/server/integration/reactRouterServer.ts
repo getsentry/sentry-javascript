@@ -5,7 +5,7 @@ import { ReactRouterInstrumentation } from '../instrumentation/reactRouter';
 
 const INTEGRATION_NAME = 'ReactRouterServer';
 
-const instrumentReactRouter = generateInstrumentOnce('React-Router-Server', () => {
+const instrumentReactRouter = generateInstrumentOnce(INTEGRATION_NAME, () => {
   return new ReactRouterInstrumentation();
 });
 

@@ -3,7 +3,8 @@ import type { ReactNode } from 'react';
 import React from 'react';
 import type { AppLoadContext, EntryContext, ServerRouter } from 'react-router';
 import { PassThrough } from 'stream';
-import { getMetaTagTransformer, wrapSentryHandleRequest } from './wrapSentryHandleRequest';
+import { getMetaTagTransformer } from './getMetaTagTransformer';
+import { wrapSentryHandleRequest } from './wrapSentryHandleRequest';
 
 type RenderToPipeableStreamOptions = {
   [key: string]: unknown;

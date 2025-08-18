@@ -1,0 +1,14 @@
+import * as React from 'react';
+import { Link } from 'react-router-dom';
+
+const Index = () => {
+  return (
+    <>
+      <Link to="/lazy/inner/123/456/789" id="navigation">
+        navigate
+      </Link>
+    </>
+  );
+};
+
+export default Index;

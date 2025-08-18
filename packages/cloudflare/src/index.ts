@@ -69,6 +69,7 @@ export {
   functionToStringIntegration,
   // eslint-disable-next-line deprecation/deprecation
   inboundFiltersIntegration,
+  instrumentOpenAiClient,
   eventFiltersIntegration,
   linkedErrorsIntegration,
   requestDataIntegration,

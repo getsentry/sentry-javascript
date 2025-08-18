@@ -59,7 +59,10 @@ export const sentryOnBuildEnd: BuildEndHook = async ({ reactRouterConfig, viteCo
   if (sourceMapsUploadOptions?.enabled ?? (true && viteConfig.build.sourcemap !== false)) {
     // inject debugIds
     try {
-      await cliInstance.execute(['sourcemaps', 'inject', reactRouterConfig.buildDirectory], debug);
+      await cliInstance.execute(
+        ['sourcemaps', 'inject', reactRouterConfig.buildDirectory],
+        debug ? 'rejectOnError' : false,
+      );
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error('[Sentry] Could not inject debug ids', error);
@@ -73,6 +76,7 @@ export const sentryOnBuildEnd: BuildEndHook = async ({ reactRouterConfig, viteCo
             paths: [reactRouterConfig.buildDirectory],
           },
         ],
+        live: 'rejectOnError',
       });
     } catch (error) {
       // eslint-disable-next-line no-console

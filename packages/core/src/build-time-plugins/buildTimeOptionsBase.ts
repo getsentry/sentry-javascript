@@ -205,9 +205,12 @@ interface SourceMapsOptions {
    *
    * By default (`false`), the plugin automatically uploads source maps during a production build if a Sentry auth token is detected.
    *
+   * If set to `"disable-upload"`, the plugin will not upload source maps to Sentry, but will inject debug IDs into the build artifacts.
+   * This is useful if you want to manually upload source maps to Sentry at a later point in time.
+   *
    * @default false
    */
-  disable?: boolean;
+  disable?: boolean | 'disable-upload';
 
   /**
    * A glob or an array of globs that specify the build artifacts and source maps that will be uploaded to Sentry.

@@ -61,7 +61,7 @@ describe('MCP Server Semantic Conventions', () => {
           'mcp.session.id': 'test-session-123',
           'client.address': '192.168.1.100',
           'client.port': 54321,
-          'mcp.transport': 'http',
+          'mcp.transport': 'StreamableHTTPServerTransport',
           'network.transport': 'tcp',
           'network.protocol.version': '2.0',
           'mcp.request.argument.location': '"Seattle, WA"',
@@ -93,7 +93,7 @@ describe('MCP Server Semantic Conventions', () => {
           'mcp.resource.uri': 'file:///docs/api.md',
           'mcp.request.id': 'req-2',
           'mcp.session.id': 'test-session-123',
-          'mcp.transport': 'http',
+          'mcp.transport': 'StreamableHTTPServerTransport',
           'network.transport': 'tcp',
           'network.protocol.version': '2.0',
           'mcp.request.argument.uri': '"file:///docs/api.md"',
@@ -125,7 +125,7 @@ describe('MCP Server Semantic Conventions', () => {
           'mcp.prompt.name': 'analyze-code',
           'mcp.request.id': 'req-3',
           'mcp.session.id': 'test-session-123',
-          'mcp.transport': 'http',
+          'mcp.transport': 'StreamableHTTPServerTransport',
           'network.transport': 'tcp',
           'network.protocol.version': '2.0',
           'mcp.request.argument.name': '"analyze-code"',
@@ -154,7 +154,7 @@ describe('MCP Server Semantic Conventions', () => {
           attributes: {
             'mcp.method.name': 'notifications/tools/list_changed',
             'mcp.session.id': 'test-session-123',
-            'mcp.transport': 'http',
+            'mcp.transport': 'StreamableHTTPServerTransport',
             'network.transport': 'tcp',
             'network.protocol.version': '2.0',
             'sentry.op': 'mcp.notification.client_to_server',
@@ -193,7 +193,7 @@ describe('MCP Server Semantic Conventions', () => {
             'mcp.request.id': 'req-4',
             'mcp.session.id': 'test-session-123',
             // Transport attributes
-            'mcp.transport': 'http',
+            'mcp.transport': 'StreamableHTTPServerTransport',
             'network.transport': 'tcp',
             'network.protocol.version': '2.0',
             // Sentry-specific
@@ -227,7 +227,7 @@ describe('MCP Server Semantic Conventions', () => {
           attributes: {
             'mcp.method.name': 'notifications/message',
             'mcp.session.id': 'test-session-123',
-            'mcp.transport': 'http',
+            'mcp.transport': 'StreamableHTTPServerTransport',
             'network.transport': 'tcp',
             'network.protocol.version': '2.0',
             'mcp.logging.level': 'info',
@@ -431,6 +431,78 @@ describe('MCP Server Semantic Conventions', () => {
       );
 
       // Verify span was completed successfully (no error status set)
+      expect(setStatusSpy).not.toHaveBeenCalled();
+      expect(endSpy).toHaveBeenCalled();
+    });
+
+    it('should instrument prompt call results and complete span with enriched attributes', async () => {
+      await wrappedMcpServer.connect(mockTransport);
+
+      const setAttributesSpy = vi.fn();
+      const setStatusSpy = vi.fn();
+      const endSpy = vi.fn();
+      const mockSpan = {
+        setAttributes: setAttributesSpy,
+        setStatus: setStatusSpy,
+        end: endSpy,
+      };
+      startInactiveSpanSpy.mockReturnValueOnce(
+        mockSpan as unknown as ReturnType<typeof tracingModule.startInactiveSpan>,
+      );
+
+      const promptCallRequest = {
+        jsonrpc: '2.0',
+        method: 'prompts/get',
+        id: 'req-prompt-result',
+        params: {
+          name: 'code-review',
+          arguments: { language: 'typescript', complexity: 'high' },
+        },
+      };
+
+      mockTransport.onmessage?.(promptCallRequest, {});
+
+      expect(startInactiveSpanSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: 'prompts/get code-review',
+          op: 'mcp.server',
+          forceTransaction: true,
+          attributes: expect.objectContaining({
+            'mcp.method.name': 'prompts/get',
+            'mcp.prompt.name': 'code-review',
+            'mcp.request.id': 'req-prompt-result',
+          }),
+        }),
+      );
+
+      const promptResponse = {
+        jsonrpc: '2.0',
+        id: 'req-prompt-result',
+        result: {
+          description: 'Code review prompt for TypeScript with high complexity analysis',
+          messages: [
+            {
+              role: 'user',
+              content: {
+                type: 'text',
+                text: 'Please review this TypeScript code for complexity and best practices.',
+              },
+            },
+          ],
+        },
+      };
+
+      mockTransport.send?.(promptResponse);
+
+      expect(setAttributesSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          'mcp.prompt.result.description': 'Code review prompt for TypeScript with high complexity analysis',
+          'mcp.prompt.result.message_count': 1,
+          'mcp.prompt.result.message_role': 'user',
+          'mcp.prompt.result.message_content': 'Please review this TypeScript code for complexity and best practices.',
+        }),
+      );
+
       expect(setStatusSpy).not.toHaveBeenCalled();
       expect(endSpy).toHaveBeenCalled();
     });

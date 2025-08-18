@@ -61,6 +61,9 @@ sentryTest('should capture feedback with custom button', async ({ getLocalTestUr
       version: expect.any(String),
       name: 'sentry.javascript.browser',
       packages: expect.anything(),
+      settings: {
+        infer_ip: 'never',
+      },
     },
     request: {
       url: `${TEST_HOST}/index.html`,

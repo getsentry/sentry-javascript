@@ -910,6 +910,12 @@ jobs:
       - name: Set up Bun
         if: matrix.test-application == 'node-exports-test-app'
         uses: oven-sh/setup-bun@v2
+      - name: Set up AWS SAM
+        if: matrix.test-application == 'aws-serverless'
+        uses: aws-actions/setup-sam@v2
+        with:
+          use-installer: true
+          token: ${{ secrets.GITHUB_TOKEN }}
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         with:

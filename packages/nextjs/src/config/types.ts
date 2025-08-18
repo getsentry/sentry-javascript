@@ -621,7 +621,7 @@ export type EnhancedGlobal = typeof GLOBAL_OBJ & {
   SENTRY_RELEASES?: { [key: string]: { id: string } };
 };
 
-type JSONValue = string | number | boolean | JSONValue[] | { [k: string]: JSONValue };
+export type JSONValue = string | number | boolean | JSONValue[] | { [k: string]: JSONValue };
 
 type TurbopackLoaderItem =
   | string
@@ -636,6 +636,11 @@ type TurbopackRuleCondition = {
 };
 
 export type TurbopackRuleConfigItemOrShortcut = TurbopackLoaderItem[] | TurbopackRuleConfigItem;
+
+export type TurbopackMatcherWithRule = {
+  matcher: string;
+  rule: TurbopackRuleConfigItemOrShortcut;
+};
 
 type TurbopackRuleConfigItemOptions = {
   loaders: TurbopackLoaderItem[];

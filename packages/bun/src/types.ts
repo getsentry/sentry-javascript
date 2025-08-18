@@ -23,6 +23,18 @@ export interface BaseBunOptions {
   /** Sets an optional server name (device name) */
   serverName?: string;
 
+  /**
+   * If this is set to true, the SDK will not set up OpenTelemetry automatically.
+   * In this case, you _have_ to ensure to set it up correctly yourself, including:
+   * * The `SentrySpanProcessor`
+   * * The `SentryPropagator`
+   * * The `SentryContextManager`
+   * * The `SentrySampler`
+   *
+   * If you are registering your own OpenTelemetry Loader Hooks (or `import-in-the-middle` hooks), it is also recommended to set the `registerEsmLoaderHooks` option to false.
+   */
+  skipOpenTelemetrySetup?: boolean;
+
   /** Callback that is executed when a fatal global error occurs. */
   onFatalError?(this: void, error: Error): void;
 }

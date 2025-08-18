@@ -3,7 +3,7 @@ import { sentryTest } from '../../../../utils/fixtures';
 import { getReplayEvent, shouldSkipReplayTest, waitForReplayRequest } from '../../../../utils/replayHelpers';
 
 sentryTest(
-  'replay recording should contain default performance spans',
+  'sets sdk.settings.infer_ip to "auto" on replay events when sendDefaultPii: true',
   async ({ getLocalTestUrl, page, browserName }) => {
     // We only test this against the NPM package and replay bundles
     // and only on chromium as most performance entries are only available in chromium
@@ -18,6 +18,6 @@ sentryTest(
     await page.goto(url);
     const replayEvent = getReplayEvent(await reqPromise0);
 
-    expect(replayEvent.user?.ip_address).toBe('{{auto}}');
+    expect(replayEvent.sdk?.settings?.infer_ip).toBe('auto');
   },
 );

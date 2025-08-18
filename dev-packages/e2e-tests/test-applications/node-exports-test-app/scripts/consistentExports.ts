@@ -52,6 +52,7 @@ const DEPENDENTS: Dependent[] = [
       'NodeClient',
       'NODE_VERSION',
       'childProcessIntegration',
+      'systemErrorIntegration',
     ],
   },
   {

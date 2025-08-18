@@ -90,10 +90,11 @@ interface FastifyHandlerOptions {
 }
 
 const INTEGRATION_NAME = 'Fastify';
-const INTEGRATION_NAME_V5 = 'Fastify-V5';
-const INTEGRATION_NAME_V3 = 'Fastify-V3';
 
-export const instrumentFastifyV3 = generateInstrumentOnce(INTEGRATION_NAME_V3, () => new FastifyInstrumentationV3());
+export const instrumentFastifyV3 = generateInstrumentOnce(
+  `${INTEGRATION_NAME}.v3`,
+  () => new FastifyInstrumentationV3(),
+);
 
 function getFastifyIntegration(): ReturnType<typeof _fastifyIntegration> | undefined {
   const client = getClient();
@@ -135,7 +136,7 @@ function handleFastifyError(
   }
 }
 
-export const instrumentFastify = generateInstrumentOnce(INTEGRATION_NAME_V5, () => {
+export const instrumentFastify = generateInstrumentOnce(`${INTEGRATION_NAME}.v5`, () => {
   const fastifyOtelInstrumentationInstance = new FastifyOtelInstrumentation();
   const plugin = fastifyOtelInstrumentationInstance.plugin();
 

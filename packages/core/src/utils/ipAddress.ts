@@ -7,6 +7,7 @@ import type { User } from '../types-hoist/user';
 
 /**
  * @internal
+ * @deprecated -- set ip inferral via via SDK metadata options on client instead.
  */
 export function addAutoIpAddressToUser(objWithMaybeUser: { user?: User | null }): void {
   if (objWithMaybeUser.user?.ip_address === undefined) {

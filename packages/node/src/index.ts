@@ -166,6 +166,7 @@ export {
   childProcessIntegration,
   createSentryWinstonTransport,
   SentryContextManager,
+  systemErrorIntegration,
   generateInstrumentOnce,
   getSentryRelease,
   defaultStackParser,
