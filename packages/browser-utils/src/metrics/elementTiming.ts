@@ -72,8 +72,8 @@ export const _onElementTiming = ({ entries }: { entries: PerformanceEntry[] }): 
     const [spanStartTime, spanStartTimeSource] = loadTime
       ? [msToSec(loadTime), 'load-time']
       : renderTime
-        ? [msToSec(renderTime), 'render-time']
-        : [timestampInSeconds(), 'entry-emission'];
+      ? [msToSec(renderTime), 'render-time']
+      : [timestampInSeconds(), 'entry-emission'];
 
     const duration =
       paintType === 'image-paint'

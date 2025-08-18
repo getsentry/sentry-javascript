@@ -642,21 +642,15 @@ describe('Integration | Transactions', () => {
 
       Sentry.startSpanManual({ name: 'inner span 2' }, innerSpan => {
         // Child span ends after 10 min
-        setTimeout(
-          () => {
-            innerSpan.end();
-          },
-          10 * 60 * 1_000,
-        );
+        setTimeout(() => {
+          innerSpan.end();
+        }, 10 * 60 * 1_000);
       });
 
       // root span ends after 99 min
-      setTimeout(
-        () => {
-          rootSpan.end();
-        },
-        99 * 10 * 1_000,
-      );
+      setTimeout(() => {
+        rootSpan.end();
+      }, 99 * 10 * 1_000);
     });
 
     // Now wait for 100 mins

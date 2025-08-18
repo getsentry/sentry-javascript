@@ -2,6 +2,7 @@ import type { Integration } from '@sentry/core';
 import { instrumentOtelHttp } from '../http';
 import { amqplibIntegration, instrumentAmqplib } from './amqplib';
 import { connectIntegration, instrumentConnect } from './connect';
+import { effectIntegration, instrumentEffect } from './effect';
 import { expressIntegration, instrumentExpress } from './express';
 import { fastifyIntegration, instrumentFastify, instrumentFastifyV3 } from './fastify';
 import { firebaseIntegration, instrumentFirebase } from './firebase';
@@ -50,6 +51,7 @@ export function getAutoPerformanceIntegrations(): Integration[] {
     openAIIntegration(),
     postgresJsIntegration(),
     firebaseIntegration(),
+    effectIntegration(),
   ];
 }
 
@@ -83,5 +85,6 @@ export function getOpenTelemetryInstrumentationToPreload(): (((options?: any) =>
     instrumentOpenAi,
     instrumentPostgresJs,
     instrumentFirebase,
+    instrumentEffect,
   ];
 }

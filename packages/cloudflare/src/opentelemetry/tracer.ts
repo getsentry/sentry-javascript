@@ -68,10 +68,10 @@ class SentryCloudflareTracer implements Tracer {
       typeof options === 'function'
         ? options
         : typeof context === 'function'
-          ? context
-          : typeof fn === 'function'
-            ? fn
-            : () => {}
+        ? context
+        : typeof fn === 'function'
+        ? fn
+        : () => {}
     ) as F;
 
     // In OTEL the semantic matches `startSpanManual` because spans are not auto-ended

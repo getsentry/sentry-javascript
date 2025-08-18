@@ -179,8 +179,8 @@ export function createV6CompatibleWrapCreateMemoryRouter<
     initialEntry = hasOnlyOneInitialEntry
       ? initialEntries[0]
       : hasIndexedEntry
-        ? initialEntries[initialIndex]
-        : undefined;
+      ? initialEntries[initialIndex]
+      : undefined;
 
     const location = initialEntry
       ? typeof initialEntry === 'string'
@@ -417,9 +417,9 @@ function sendIndexPath(pathBuilder: string, pathname: string, basename: string):
     reconstructedPath[reconstructedPath.length - 1] === '/'
       ? reconstructedPath.slice(0, -1)
       : // If the path ends with a wildcard, remove it
-        reconstructedPath.slice(-2) === '/*'
-        ? reconstructedPath.slice(0, -1)
-        : reconstructedPath;
+      reconstructedPath.slice(-2) === '/*'
+      ? reconstructedPath.slice(0, -1)
+      : reconstructedPath;
 
   return [formattedPath, 'route'];
 }

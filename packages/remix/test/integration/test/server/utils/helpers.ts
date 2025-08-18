@@ -54,10 +54,7 @@ class TestEnv {
   private _axiosConfig: AxiosRequestConfig | undefined = undefined;
   private _terminator: HttpTerminator;
 
-  public constructor(
-    public readonly server: http.Server,
-    public readonly url: string,
-  ) {
+  public constructor(public readonly server: http.Server, public readonly url: string) {
     this.server = server;
     this.url = url;
     this._terminator = createHttpTerminator({ server: this.server, gracefulTerminationTimeout: 0 });
@@ -258,10 +255,7 @@ class TestEnv {
 }
 
 export class RemixTestEnv extends TestEnv {
-  private constructor(
-    public readonly server: http.Server,
-    public readonly url: string,
-  ) {
+  private constructor(public readonly server: http.Server, public readonly url: string) {
     super(server, url);
   }
 

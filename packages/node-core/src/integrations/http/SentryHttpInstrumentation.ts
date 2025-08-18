@@ -480,8 +480,8 @@ function patchRequestToCaptureBody(
     maxIncomingRequestBodySize === 'small'
       ? 1_000
       : maxIncomingRequestBodySize === 'medium'
-        ? 10_000
-        : MAX_BODY_BYTE_LENGTH;
+      ? 10_000
+      : MAX_BODY_BYTE_LENGTH;
 
   try {
     // eslint-disable-next-line @typescript-eslint/unbound-method

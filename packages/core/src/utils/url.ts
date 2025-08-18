@@ -129,10 +129,10 @@ function getHttpSpanNameFromUrlObject(
   const route = routeName
     ? routeName
     : urlObject
-      ? kind === 'client'
-        ? getSanitizedUrlStringFromUrlObject(urlObject)
-        : urlObject.pathname
-      : '/';
+    ? kind === 'client'
+      ? getSanitizedUrlStringFromUrlObject(urlObject)
+      : urlObject.pathname
+    : '/';
 
   return `${method} ${route}`;
 }

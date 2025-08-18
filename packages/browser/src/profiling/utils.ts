@@ -149,8 +149,8 @@ export function createProfilePayload(
   const transactionStartMs = start_timestamp
     ? start_timestamp
     : typeof event.start_timestamp === 'number'
-      ? event.start_timestamp * 1000
-      : timestampInSeconds() * 1000;
+    ? event.start_timestamp * 1000
+    : timestampInSeconds() * 1000;
   const transactionEndMs = typeof event.timestamp === 'number' ? event.timestamp * 1000 : timestampInSeconds() * 1000;
 
   const profile: Profile = {

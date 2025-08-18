@@ -52,8 +52,8 @@ type SingleLevelZodIssue<T extends ZodIssue> = {
   [P in keyof T]: T[P] extends string | number | undefined
     ? T[P]
     : T[P] extends unknown[]
-      ? string | undefined
-      : unknown;
+    ? string | undefined
+    : unknown;
 };
 
 /**

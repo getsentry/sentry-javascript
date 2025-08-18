@@ -172,8 +172,8 @@ export function startInactiveSpan(options: StartSpanOptions): Span {
   const wrapper = options.scope
     ? (callback: () => Span) => withScope(options.scope, callback)
     : customParentSpan !== undefined
-      ? (callback: () => Span) => withActiveSpan(customParentSpan, callback)
-      : (callback: () => Span) => callback();
+    ? (callback: () => Span) => withActiveSpan(customParentSpan, callback)
+    : (callback: () => Span) => callback();
 
   return wrapper(() => {
     const scope = getCurrentScope();
