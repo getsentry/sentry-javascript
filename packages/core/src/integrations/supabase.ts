@@ -277,6 +277,16 @@ function extractTraceAndBaggageFromMessage(message: { _sentry?: { sentry_trace?:
   return {};
 }
 
+/**
+ * Instruments the RPC consumer methods of a Supabase client.
+ *
+ * A span is only created when we can match the consumer operation to its corresponding producer span.
+ *
+ * @param target - The original function to instrument.
+ * @param thisArg - The context to bind the function to.
+ * @param argumentsList - The arguments to pass to the function.
+ * @returns A promise that resolves with the result of the original function.
+ */
 const instrumentRpcConsumer = (target: any, thisArg: any, argumentsList: any[]): Promise<unknown> => {
   const [operationName, queueParams] = argumentsList as [
     'pop',
@@ -292,102 +302,136 @@ const instrumentRpcConsumer = (target: any, thisArg: any, argumentsList: any[]):
     return Reflect.apply(target, thisArg, argumentsList); // Not a consumer operation
   }
 
-  return (Reflect.apply(target, thisArg, argumentsList) as Promise<SupabaseResponse>).then((res: SupabaseResponse) => {
-    const latency = res.data?.[0]?.enqueued_at ? Date.now() - Date.parse(res.data?.[0]?.enqueued_at) : undefined;
-
-    const { sentryTrace, baggage } = extractTraceAndBaggageFromMessage(res.data?.[0]?.message || {});
-
-    // Remove Sentry metadata from the returned message
-    delete res.data?.[0]?.message?._sentry;
-
-    return continueTrace(
-      {
-        sentryTrace,
-        baggage,
+  return startSpan(
+    {
+      name: 'supabase.queue.receive',
+      op: 'queue.process',
+      attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'queue.process',
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.supabase',
+        'messaging.system': 'supabase',
       },
-      () => {
-        return startSpan(
-          {
-            name: 'supabase.db.rpc',
-            attributes: {
-              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'queue.process',
-              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.supabase',
-              'messaging.system': 'supabase',
+    },
+    async (span) => {
+      try {
+        // Call the original function
+        const res = await Reflect.apply(target, thisArg, argumentsList) as SupabaseResponse;
+
+        // Calculate latency if possible
+        const latency = res.data?.[0]?.enqueued_at ? Date.now() - Date.parse(res.data?.[0]?.enqueued_at) : undefined;
+
+        // Extract trace context
+        const { sentryTrace, baggage } = extractTraceAndBaggageFromMessage(res.data?.[0]?.message || {});
+
+        // Remove Sentry metadata from the returned message
+        delete res.data?.[0]?.message?._sentry;
+
+        // Get message ID if available
+        const messageId = res?.data?.map(item => (typeof item === 'number' ? item : item.msg_id)).join(',') || undefined;
+
+        // Set span attributes
+        if (messageId) {
+          span.setAttribute('messaging.message.id', messageId);
+        }
+
+        if (queueName) {
+          span.setAttribute('messaging.destination.name', queueName);
+        }
+
+        if (latency) {
+          span.setAttribute('messaging.message.receive.latency', latency);
+        }
+
+        // Add breadcrumb for monitoring
+        const breadcrumb: SupabaseBreadcrumb = {
+          type: 'supabase',
+          category: `db.rpc.${argumentsList[0]}`,
+          message: `rpc(${argumentsList[0]})`,
+        };
+
+        const data: Record<string, unknown> = {};
+        if (messageId) data['messaging.message.id'] = messageId;
+        if (queueName) data['messaging.destination.name'] = queueName;
+        if (Object.keys(data).length) breadcrumb.data = data;
+
+        addBreadcrumb(breadcrumb);
+
+        // Handle errors in the response
+        if (res.error) {
+          const err = new Error(res.error.message) as SupabaseError;
+          if (res.error.code) err.code = res.error.code;
+          if (res.error.details) err.details = res.error.details;
+
+          captureException(err, {
+            contexts: {
+              supabase: { queueName, messageId },
             },
-          },
-          span => {
-            const messageId =
-              res?.data?.map(item => (typeof item === 'number' ? item : item.msg_id)).join(',') || undefined;
+          });
 
-            if (messageId) {
-              span.setAttribute('messaging.message.id', messageId);
-            }
+          span.setStatus({ code: SPAN_STATUS_ERROR });
+        } else {
+          span.setStatus({ code: SPAN_STATUS_OK });
+        }
 
-            if (queueName) {
-              span.setAttribute('messaging.destination.name', queueName);
-            }
-
-            if (latency) {
-              span.setAttribute('messaging.message.receive.latency', latency);
-            }
-
-            const breadcrumb: SupabaseBreadcrumb = {
-              type: 'supabase',
-              category: `db.rpc.${argumentsList[0]}`,
-              message: `rpc(${argumentsList[0]})`,
-            };
-
-            const data: Record<string, unknown> = {};
-
-            if (messageId) {
-              data['messaging.message.id'] = messageId;
-            }
-
-            if (queueName) {
-              data['messaging.destination.name'] = queueName;
-            }
-
-            if (Object.keys(data).length) {
-              breadcrumb.data = data;
-            }
-
-            addBreadcrumb(breadcrumb);
-
-            if (res.error) {
-              const err = new Error(res.error.message) as SupabaseError;
-
-              if (res.error.code) {
-                err.code = res.error.code;
-              }
-
-              if (res.error.details) {
-                err.details = res.error.details;
-              }
-
-              captureException(err, {
-                contexts: {
-                  supabase: {
-                    queueName,
-                    messageId,
-                  },
+        // Continue trace if we have the trace context
+        if (sentryTrace || baggage) {
+          return continueTrace(
+            { sentryTrace, baggage },
+            () => startSpan(
+              {
+                name: 'supabase.db.rpc',
+                op: 'queue.process',
+                attributes: {
+                  [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'queue.process',
+                  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.supabase',
+                  'messaging.system': 'supabase',
                 },
-              });
+              },
+              processSpan => {
+                if (messageId) {
+                  processSpan.setAttribute('messaging.message.id', messageId);
+                }
 
-              span.setStatus({ code: SPAN_STATUS_ERROR });
-            } else {
-              span.setStatus({ code: SPAN_STATUS_OK });
-            }
+                if (queueName) {
+                  processSpan.setAttribute('messaging.destination.name', queueName);
+                }
 
-            span.end();
+                if (latency) {
+                  processSpan.setAttribute('messaging.message.receive.latency', latency);
+                }
 
-            return res;
-          },
-        );
-      },
-    );
-  });
+                if (res.error) {
+                  processSpan.setStatus({ code: SPAN_STATUS_ERROR });
+                } else {
+                  processSpan.setStatus({ code: SPAN_STATUS_OK });
+                }
+
+                processSpan.end();
+                return res;
+              }
+            )
+          );
+        }
+
+        return res;
+      } catch (error) {
+        span.setStatus({ code: SPAN_STATUS_ERROR });
+        throw error;
+      } finally {
+        span.end();
+      }
+    }
+  );
 };
 
+/**
+ * Instruments the RPC producer methods of a Supabase client.
+ *
+ * @param target - The original function to instrument.
+ * @param thisArg - The context to bind the function to.
+ * @param argumentsList - The arguments to pass to the function.
+ * @returns A promise that resolves with the result of the original function.
+ */
 function instrumentRpcProducer(target: any, thisArg: any, argumentsList: any[]): Promise<unknown> {
   const maybeQueueParams = argumentsList[1];
 
@@ -507,6 +551,11 @@ function instrumentRpcProducer(target: any, thisArg: any, argumentsList: any[]):
   );
 }
 
+/**
+ * Instruments the RPC methods of a Supabase client.
+ *
+ * @param SupabaseClient - The Supabase client instance to instrument.
+ */
 function instrumentRpc(SupabaseClient: unknown): void {
   (SupabaseClient as unknown as SupabaseClientInstance).rpc = new Proxy(
     (SupabaseClient as unknown as SupabaseClientInstance).rpc,
@@ -514,6 +563,7 @@ function instrumentRpc(SupabaseClient: unknown): void {
       apply(target, thisArg, argumentsList) {
         let result: Promise<unknown>;
 
+        // Check if the first argument is 'send', 'send_batch', or 'pop' to determine if it's a producer or consumer operation
         if (argumentsList[0] === 'send' || argumentsList[0] === 'send_batch') {
           result = instrumentRpcProducer(target, thisArg, argumentsList);
         } else if (argumentsList[0] === 'pop') {
