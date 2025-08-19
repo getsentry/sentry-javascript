@@ -11,7 +11,7 @@ import type { Plugin, UserConfig } from 'vite';
 import { WRAPPED_MODULE_SUFFIX } from '../common/utils';
 import type { GlobalSentryValues } from './injectGlobalValues';
 import { getGlobalValueInjectionCode, VIRTUAL_GLOBAL_VALUES_FILE } from './injectGlobalValues';
-import { getAdapterOutputDir, getHooksFileName, loadSvelteConfig } from './svelteConfig';
+import { getAdapterOutputDir, getHooksFileName, getTracingConfig, loadSvelteConfig } from './svelteConfig';
 import type { CustomSentryVitePluginOptions } from './types';
 
 // sorcery has no types, so these are some basic type definitions:
@@ -153,7 +153,10 @@ export async function makeCustomSentryVitePlugins(options?: CustomSentryVitePlug
 
   const globalSentryValues: GlobalSentryValues = {
     __sentry_sveltekit_output_dir: adapterOutputDir,
+    __sentry_sveltekit_tracing_config: getTracingConfig(svelteConfig),
   };
+
+  console.log('xx globalSentryValues', globalSentryValues);
 
   const sourceMapSettingsPlugin: Plugin = {
     name: 'sentry-sveltekit-update-source-map-setting-plugin',
@@ -235,8 +238,10 @@ export async function makeCustomSentryVitePlugins(options?: CustomSentryVitePlug
     transform: async (code, id) => {
       // eslint-disable-next-line @sentry-internal/sdk/no-regexp-constructor -- not end user input + escaped anyway
       const isServerHooksFile = new RegExp(`/${escapeStringForRegex(serverHooksFile)}(.(js|ts|mjs|mts))?`).test(id);
+      const isInstrumentationServerFile = /instrumentation\.server\./.test(id);
 
-      if (isServerHooksFile) {
+      if (isServerHooksFile || isInstrumentationServerFile) {
+        console.log('xx inject global values', id);
         const ms = new MagicString(code);
         ms.append(`\n; import "${VIRTUAL_GLOBAL_VALUES_FILE}";\n`);
         return {
