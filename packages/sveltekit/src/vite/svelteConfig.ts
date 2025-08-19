@@ -4,12 +4,31 @@ import * as path from 'path';
 import * as url from 'url';
 import type { SupportedSvelteKitAdapters } from './detectAdapter';
 
+export type SvelteKitTracingConfig = {
+  tracing?: {
+    server: boolean;
+  };
+  instrumentation?: {
+    server: boolean;
+  };
+};
+
+/**
+ * Experimental tracing and instrumentation config is available
+ * @since 2.31.0
+ */
+type BackwardsForwardsCompatibleKitConfig = Config['kit'] & { experimental?: SvelteKitTracingConfig };
+
+interface BackwardsForwardsCompatibleSvelteConfig extends Config {
+  kit?: BackwardsForwardsCompatibleKitConfig;
+}
+
 /**
  * Imports the svelte.config.js file and returns the config object.
  * The sveltekit plugins import the config in the same way.
  * See: https://github.com/sveltejs/kit/blob/master/packages/kit/src/core/config/index.js#L63
  */
-export async function loadSvelteConfig(): Promise<Config> {
+export async function loadSvelteConfig(): Promise<BackwardsForwardsCompatibleSvelteConfig> {
   // This can only be .js (see https://github.com/sveltejs/kit/pull/4031#issuecomment-1049475388)
   const SVELTE_CONFIG_FILE = 'svelte.config.js';
 
@@ -23,7 +42,7 @@ export async function loadSvelteConfig(): Promise<Config> {
     const svelteConfigModule = await import(`${url.pathToFileURL(configFile).href}`);
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    return (svelteConfigModule?.default as Config) || {};
+    return (svelteConfigModule?.default as BackwardsForwardsCompatibleSvelteConfig) || {};
   } catch (e) {
     // eslint-disable-next-line no-console
     console.warn("[Source Maps Plugin] Couldn't load svelte.config.js:");
@@ -109,4 +128,22 @@ async function getNodeAdapterOutputDir(svelteConfig: Config): Promise<string> {
   }
 
   return outputDir;
+}
+
+/**
+ * Returns the Sveltekit tracing config users can enable in svelte.config.js.
+ * Available in Kit @since 2.31.0
+ */
+export function getTracingConfig(
+  svelteConfig: BackwardsForwardsCompatibleSvelteConfig,
+): BackwardsForwardsCompatibleKitConfig['experimental'] {
+  const experimentalConfig = svelteConfig.kit?.experimental;
+  return {
+    instrumentation: {
+      server: experimentalConfig?.instrumentation?.server ?? false,
+    },
+    tracing: {
+      server: experimentalConfig?.tracing?.server ?? false,
+    },
+  };
 }

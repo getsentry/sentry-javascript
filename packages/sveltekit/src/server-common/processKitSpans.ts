@@ -9,6 +9,8 @@ import { type SpanJSON, SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_
 export function svelteKitSpansIntegration(): Integration {
   return {
     name: 'SvelteKitSpansEnhancment',
+    // Using preprocessEvent to ensure the processing happens before user-configured
+    // event processors are executed
     preprocessEvent(event) {
       if (event.type === 'transaction') {
         event.spans?.forEach(_enhanceKitSpan);

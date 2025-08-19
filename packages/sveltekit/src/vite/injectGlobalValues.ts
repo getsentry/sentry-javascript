@@ -1,7 +1,9 @@
 import type { InternalGlobal } from '@sentry/core';
+import type { SvelteKitTracingConfig } from './svelteConfig';
 
 export type GlobalSentryValues = {
   __sentry_sveltekit_output_dir?: string;
+  __sentry_sveltekit_tracing_config?: SvelteKitTracingConfig;
 };
 
 /**
