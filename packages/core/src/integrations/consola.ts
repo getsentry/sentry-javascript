@@ -189,8 +189,14 @@ export function createConsolaReporter(options: ConsolaReporterOptions = {}): Con
       const { normalizeDepth = 3, normalizeMaxBreadth = 1_000 } = client.getOptions();
 
       // Format the log message using the same approach as consola's basic reporter
-      const message =
-        consolaMessage || (args && args.length > 0 ? formatConsoleArgs(args, normalizeDepth, normalizeMaxBreadth) : '');
+      const messageParts = [];
+      if (consolaMessage) {
+        messageParts.push(consolaMessage);
+      }
+      if (args && args.length > 0) {
+        messageParts.push(formatConsoleArgs(args, normalizeDepth, normalizeMaxBreadth));
+      }
+      const message = messageParts.join(' ');
 
       // Build attributes
       const attributes: Record<string, unknown> = {
@@ -210,7 +216,6 @@ export function createConsolaReporter(options: ConsolaReporterOptions = {}): Con
         attributes['consola.level'] = level;
       }
 
-      // Capture the log
       _INTERNAL_captureLog({
         level: logSeverityLevel,
         message,
@@ -244,7 +249,7 @@ const CONSOLA_TYPE_TO_LOG_SEVERITY_LEVEL_MAP: Record<string, LogSeverityLevel> =
 
 // Mapping from consola log levels (numbers) to Sentry log severity levels
 const CONSOLA_LEVEL_TO_LOG_SEVERITY_LEVEL_MAP: Record<number, LogSeverityLevel> = {
-  0: 'error', // Fatal and Error
+  0: 'fatal', // Fatal and Error
   1: 'warn', // Warnings
   2: 'info', // Normal logs
   3: 'info', // Informational logs, success, fail, ready, start, ...
