@@ -30,7 +30,7 @@ export function formatConsoleArgs(values: unknown[], normalizeDepth: number, nor
  * @param normalizeMaxBreadth - The max breadth to normalize the values.
  * @returns The joined string.
  */
-function safeJoinConsoleArgs(values: unknown[], normalizeDepth: number, normalizeMaxBreadth: number): string {
+export function safeJoinConsoleArgs(values: unknown[], normalizeDepth: number, normalizeMaxBreadth: number): string {
   return values
     .map(value =>
       isPrimitive(value) ? String(value) : JSON.stringify(normalize(value, normalizeDepth, normalizeMaxBreadth)),

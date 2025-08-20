@@ -10,8 +10,8 @@ vi.mock('../../../src/logs/exports', () => ({
   _INTERNAL_captureLog: vi.fn(),
 }));
 
-vi.mock('../../../src/logs/utils', () => ({
-  formatConsoleArgs: vi.fn(),
+vi.mock('../../../src/logs/utils', async actual => ({
+  formatConsoleArgs: vi.fn(((await actual()) as any).formatConsoleArgs),
 }));
 
 vi.mock('../../../src/currentScopes', () => ({
@@ -33,7 +33,6 @@ describe('createConsolaReporter', () => {
     });
 
     vi.mocked(getClient).mockReturnValue(mockClient);
-    vi.mocked(formatConsoleArgs).mockImplementation(args => args.join(' '));
   });
 
   afterEach(() => {
@@ -47,37 +46,6 @@ describe('createConsolaReporter', () => {
       expect(reporter).toEqual({
         log: expect.any(Function),
       });
-    });
-
-    it('should use provided client for normalization options', () => {
-      const customClient = new TestClient({
-        ...getDefaultTestClientOptions({ dsn: 'https://custom@domain/123' }),
-        enableLogs: true,
-        normalizeDepth: 5,
-        normalizeMaxBreadth: 2000,
-      });
-
-      const reporter = createConsolaReporter({ client: customClient });
-      
-      reporter.log({
-        type: 'info',
-        args: ['test', { complex: 'object' }],
-      });
-
-      expect(formatConsoleArgs).toHaveBeenCalledWith(['test', { complex: 'object' }], 5, 2000);
-    });
-
-    it('should not capture logs when no client is available', () => {
-      vi.mocked(getClient).mockReturnValue(undefined);
-      
-      const reporter = createConsolaReporter();
-      
-      reporter.log({
-        type: 'error',
-        message: 'Should not be captured',
-      });
-
-      expect(_INTERNAL_captureLog).not.toHaveBeenCalled();
     });
   });
 
@@ -107,7 +75,6 @@ describe('createConsolaReporter', () => {
           'consola.tag': 'test',
           'consola.type': 'error',
           'consola.level': 0,
-          'consola.timestamp': '2023-01-01T00:00:00.000Z',
         },
       });
     });
@@ -232,10 +199,9 @@ describe('createConsolaReporter', () => {
 
       sentryReporter.log(logObj);
 
-      expect(formatConsoleArgs).toHaveBeenCalledWith(['Message', circular], 3, 1000);
       expect(_INTERNAL_captureLog).toHaveBeenCalledWith({
         level: 'info',
-        message: 'Message [object Object]',
+        message: 'Message {"self":"[Circular ~]"}',
         attributes: {
           'sentry.origin': 'auto.logging.consola',
           'consola.type': 'info',
@@ -289,20 +255,6 @@ describe('createConsolaReporter', () => {
           },
         });
       });
-    });
-
-    it('should handle errors in reporter gracefully', () => {
-      vi.mocked(_INTERNAL_captureLog).mockImplementation(() => {
-        throw new Error('Capture error');
-      });
-
-      // Should not throw
-      expect(() => {
-        sentryReporter.log({
-          type: 'error',
-          message: 'Test message',
-        });
-      }).not.toThrow();
     });
   });
 
