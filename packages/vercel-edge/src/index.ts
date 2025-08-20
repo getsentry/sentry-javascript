@@ -92,6 +92,7 @@ export {
   spanToBaggageHeader,
   wrapMcpServerWithSentry,
   consoleLoggingIntegration,
+  createConsolaReporter,
   featureFlagsIntegration,
 } from '@sentry/core';
 
