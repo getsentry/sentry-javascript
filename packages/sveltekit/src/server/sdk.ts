@@ -21,6 +21,9 @@ export function init(options: NodeOptions): NodeClient | undefined {
     // Whenever `instrumentation` is enabled, we don't need httpIntegration to emit spans
     // - if `tracing` is enabled, kit will emit the root span
     // - if `tracing` is disabled, our handler will emit the root span
+    // In old (hooks.server.ts) based SDK setups, adding the default version of the integration does nothing
+    // for incoming requests. We still add it in default config for the undocumented case that anyone is
+    // using the SDK by `--import`ing the SDK setup directly (e.g. with adapter-node).
     defaultIntegrations.push(httpIntegration({ disableIncomingRequestSpans: true }));
     if (config.tracing) {
       // If `tracing` is enabled, we need to instrument spans for the server
