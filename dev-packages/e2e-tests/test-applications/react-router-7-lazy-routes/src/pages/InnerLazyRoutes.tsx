@@ -1,5 +1,3 @@
-import React from 'react';
-
 export const someMoreNestedRoutes = [
   {
     path: 'inner',
@@ -24,9 +22,7 @@ export const someMoreNestedRoutes = [
               },
               {
                 path: ':someAnotherId',
-                element: <div id="innermost-lazy-route">
-                  Rendered
-                </div>,
+                element: <div id="innermost-lazy-route">Rendered</div>,
               },
             ],
           },

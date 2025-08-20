@@ -10,10 +10,10 @@ import {
 } from '@sentry/browser';
 import type { Client, Integration, Span, TransactionSource } from '@sentry/core';
 import {
-  addNonEnumerableProperty,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  addNonEnumerableProperty,
   getActiveSpan,
   getClient,
   getCurrentScope,
