@@ -143,6 +143,7 @@ export {
   vercelAIIntegration,
   logger,
   consoleLoggingIntegration,
+  createConsolaReporter,
   createSentryWinstonTransport,
   wrapMcpServerWithSentry,
   featureFlagsIntegration,

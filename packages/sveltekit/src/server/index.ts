@@ -126,6 +126,7 @@ export {
   zodErrorsIntegration,
   logger,
   consoleLoggingIntegration,
+  createConsolaReporter,
   createSentryWinstonTransport,
   vercelAIIntegration,
 } from '@sentry/node';

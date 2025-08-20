@@ -120,6 +120,7 @@ export { captureFeedback } from './feedback';
 export type { ReportDialogOptions } from './report-dialog';
 export { _INTERNAL_captureLog, _INTERNAL_flushLogsBuffer, _INTERNAL_captureSerializedLog } from './logs/exports';
 export { consoleLoggingIntegration } from './logs/console-integration';
+export { createConsolaReporter } from './integrations/consola';
 export { addVercelAiProcessors } from './utils/vercel-ai';
 export { instrumentOpenAiClient } from './utils/openai';
 export { OPENAI_INTEGRATION_NAME } from './utils/openai/constants';

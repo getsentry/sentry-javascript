@@ -124,6 +124,7 @@ export {
   zodErrorsIntegration,
   profiler,
   consoleLoggingIntegration,
+  createConsolaReporter,
   consoleIntegration,
   wrapMcpServerWithSentry,
   featureFlagsIntegration,
