@@ -15,5 +15,3 @@ export const growthbookIntegrationShim = defineIntegration((_options?: unknown) 
     name: 'GrowthBook',
   };
 });
-
-
