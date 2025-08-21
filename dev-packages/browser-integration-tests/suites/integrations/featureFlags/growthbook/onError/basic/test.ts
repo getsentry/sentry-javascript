@@ -7,7 +7,7 @@ import {
   waitForErrorRequest,
 } from '../../../../../../utils/helpers';
 
-sentryTest('GrowthBook onError: basic eviction/update and mixed values', async ({ getLocalTestUrl, page }) => {
+sentryTest('GrowthBook onError: basic eviction/update and no async tasks', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipFeatureFlagsTest()) {
     sentryTest.skip();
   }
@@ -27,21 +27,10 @@ sentryTest('GrowthBook onError: basic eviction/update and mixed values', async (
     }
 
     gb.__setOn(`feat${bufferSize + 1}`, true);
-    gb.isOn(`feat${bufferSize + 1}`);
-    gb.isOn('feat3');
+    gb.isOn(`feat${bufferSize + 1}`); // eviction
 
-    // Add typed flags at the end so they are not evicted
-    gb.__setOn('onTrue', true);
-    gb.__setOn('onFalse', false);
-    gb.__setFeatureValue('strVal', 'hello');
-    gb.__setFeatureValue('numVal', 42);
-    gb.__setFeatureValue('objVal', { a: 1, b: 'c' });
-
-    gb.isOn('onTrue');
-    gb.isOn('onFalse');
-    gb.getFeatureValue('strVal', '');
-    gb.getFeatureValue('numVal', 0);
-    gb.getFeatureValue('objVal', {});
+    gb.__setOn('feat3', true);
+    gb.isOn('feat3'); // update
   }, FLAG_BUFFER_SIZE);
 
   const reqPromise = waitForErrorRequest(page);
@@ -50,12 +39,12 @@ sentryTest('GrowthBook onError: basic eviction/update and mixed values', async (
   const event = envelopeRequestParser(req);
 
   const values = event.contexts?.flags?.values || [];
-  // Only assert presence when buffer wasn't fully overwritten by filler flags
-  // just check capture of some typed values.
-  expect(values).toEqual(
-    expect.arrayContaining([
-      { flag: 'onTrue', result: true },
-      { flag: 'onFalse', result: false },
-    ]),
-  );
+  const expectedFlags = [{ flag: 'feat2', result: false }];
+  for (let i = 4; i <= FLAG_BUFFER_SIZE; i++) {
+    expectedFlags.push({ flag: `feat${i}`, result: false });
+  }
+  expectedFlags.push({ flag: `feat${FLAG_BUFFER_SIZE + 1}`, result: true });
+  expectedFlags.push({ flag: 'feat3', result: true });
+
+  expect(values).toEqual(expectedFlags);
 });
