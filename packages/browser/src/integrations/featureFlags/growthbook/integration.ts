@@ -37,6 +37,10 @@ export const growthbookIntegration = defineIntegration(({ growthbookClass }: { g
       const proto = growthbookClass.prototype as GrowthBook;
       fill(proto, 'isOn', _wrapBooleanReturningMethod);
       fill(proto, 'getFeatureValue', _wrapBooleanReturningMethod);
+      // Also capture evalFeature when present. Not all versions have it, so guard.
+      if (typeof (proto as unknown as Record<string, unknown>).evalFeature === 'function') {
+        fill(proto as any, 'evalFeature', _wrapBooleanReturningMethod as any);
+      }
     },
 
     processEvent(event: Event, _hint: EventHint, _client: Client): Event {
