@@ -5,5 +5,3 @@ export interface GrowthBook {
 
 // We only depend on the surface we wrap; constructor args are irrelevant here.
 export type GrowthBookClass = new (...args: unknown[]) => GrowthBook;
-
-

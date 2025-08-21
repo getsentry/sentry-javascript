@@ -6,7 +6,6 @@ import {
   defineIntegration,
   fill,
 } from '@sentry/core';
-
 import type { GrowthBook, GrowthBookClass } from './types';
 
 /**
@@ -69,5 +68,3 @@ function _wrapBooleanReturningMethod(
     return result;
   };
 }
-
-
