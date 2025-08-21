@@ -518,27 +518,28 @@ export function handleNavigation(opts: {
     }
 
     const activeSpan = getActiveSpan();
-    const rootSpan = activeSpan ? getRootSpan(activeSpan) : undefined;
-    const isAlreadyInNavigationSpan = rootSpan && spanToJSON(rootSpan).op === 'navigation';
+    const isAlreadyInNavigationSpan = activeSpan && spanToJSON(activeSpan).op === 'navigation';
 
     // Cross usage can result in multiple navigation spans being created without this check
     if (isAlreadyInNavigationSpan) {
       // Check if we've already set the name for this span using a custom property
       const hasBeenNamed = (
-        rootSpan as {
+        activeSpan as {
           __sentry_navigation_name_set__?: boolean;
         }
       )?.__sentry_navigation_name_set__;
       if (!hasBeenNamed) {
         // This is the first time we're setting the name for this span
-        const spanJson = spanToJSON(rootSpan);
+        const spanJson = spanToJSON(activeSpan);
         if (!spanJson.timestamp) {
-          rootSpan?.updateName(name);
-          rootSpan?.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
+          activeSpan?.updateName(name);
         }
+
         // Mark this span as having its name set to prevent future updates
-        addNonEnumerableProperty(rootSpan, '__sentry_navigation_name_set__', true);
+        addNonEnumerableProperty(activeSpan, '__sentry_navigation_name_set__', true);
       }
+
+      activeSpan?.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
       // If we already have a name for this span, don't update it
     } else {
       const span = startBrowserTracingNavigationSpan(client, {
