@@ -1,7 +1,6 @@
 import { assertEquals } from 'https://deno.land/std@0.212.0/assert/mod.ts';
-import { context, propagation,trace } from 'npm:@opentelemetry/api@1';
-import type {
-  DenoClient} from '../build/esm/index.js';
+import { context, propagation, trace } from 'npm:@opentelemetry/api@1';
+import type { DenoClient } from '../build/esm/index.js';
 import {
   flush,
   getCurrentScope,
