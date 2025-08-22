@@ -1,4 +1,4 @@
-import type { Span, TransactionSource } from '@sentry/core';
+import type { Span } from '@sentry/core';
 import { addNonEnumerableProperty, debug, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, spanToJSON } from '@sentry/core';
 import { DEBUG_BUILD } from './debug-build';
 import { resolveRouteNameAndSource } from './reactrouterv6-compat-utils';
@@ -13,15 +13,6 @@ export function updateNavigationSpanWithLazyRoutes(
   allRoutes: RouteObject[],
   forceUpdate = false,
   matchRoutes: MatchRoutes,
-  rebuildRoutePathFromAllRoutes: (allRoutes: RouteObject[], location: Location) => string,
-  locationIsInsideDescendantRoute: (location: Location, routes: RouteObject[]) => boolean,
-  getNormalizedName: (
-    routes: RouteObject[],
-    location: Location,
-    branches: RouteMatch[],
-    basename?: string,
-  ) => [string, TransactionSource],
-  prefixWithSlash: (path: string) => string,
 ): void {
   // Check if this span has already been named to avoid multiple updates
   // But allow updates if this is a forced update (e.g., when lazy routes are loaded)
@@ -42,10 +33,6 @@ export function updateNavigationSpanWithLazyRoutes(
       allRoutes,
       (currentBranches as RouteMatch[]) || [],
       '',
-      locationIsInsideDescendantRoute,
-      rebuildRoutePathFromAllRoutes,
-      getNormalizedName,
-      prefixWithSlash,
     );
 
     // Only update if we have a valid name and the span hasn't finished
