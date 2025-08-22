@@ -1,8 +1,8 @@
 import type { Span } from '@sentry/core';
 import { addNonEnumerableProperty, debug, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, spanToJSON } from '@sentry/core';
-import { DEBUG_BUILD } from './debug-build';
-import { resolveRouteNameAndSource } from './reactrouterv6-compat-utils';
-import type { Location, MatchRoutes, RouteMatch, RouteObject } from './types';
+import { DEBUG_BUILD } from '../debug-build';
+import type { Location, MatchRoutes, RouteMatch, RouteObject } from '../types';
+import { resolveRouteNameAndSource } from './utils';
 
 /**
  * Updates a navigation span with the correct route name after lazy routes have been loaded.

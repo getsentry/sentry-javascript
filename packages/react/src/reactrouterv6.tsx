@@ -1,13 +1,13 @@
 import type { browserTracingIntegration } from '@sentry/browser';
 import type { Integration } from '@sentry/core';
-import type { ReactRouterOptions } from './reactrouterv6-compat-utils';
+import type { ReactRouterOptions } from './reactrouter-compat-utils';
 import {
   createReactRouterV6CompatibleTracingIntegration,
   createV6CompatibleWithSentryReactRouterRouting,
   createV6CompatibleWrapCreateBrowserRouter,
   createV6CompatibleWrapCreateMemoryRouter,
   createV6CompatibleWrapUseRoutes,
-} from './reactrouterv6-compat-utils';
+} from './reactrouter-compat-utils';
 import type { CreateRouterFunction, Router, RouterState, UseRoutes } from './types';
 
 /**

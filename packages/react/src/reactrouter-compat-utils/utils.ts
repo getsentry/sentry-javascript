@@ -1,5 +1,5 @@
 import type { TransactionSource } from '@sentry/core';
-import type { Location, MatchRoutes, RouteMatch, RouteObject } from './types';
+import type { Location, MatchRoutes, RouteMatch, RouteObject } from '../types';
 
 // Global variables that these utilities depend on
 let _matchRoutes: MatchRoutes;
@@ -31,11 +31,17 @@ function trimSlash(path: string): string {
   return path[path.length - 1] === '/' ? path.slice(0, -1) : path;
 }
 
-function pathEndsWithWildcard(path: string): boolean {
+/**
+ * Checks if a path ends with a wildcard character (*).
+ */
+export function pathEndsWithWildcard(path: string): boolean {
   return path.endsWith('*');
 }
 
-function pathIsWildcardAndHasChildren(path: string, branch: RouteMatch<string>): boolean {
+/**
+ * Checks if a path is a wildcard and has child routes.
+ */
+export function pathIsWildcardAndHasChildren(path: string, branch: RouteMatch<string>): boolean {
   return (pathEndsWithWildcard(path) && !!branch.route.children?.length) || false;
 }
 
@@ -212,4 +218,31 @@ export function getNormalizedName(
     : location.pathname;
 
   return [fallbackTransactionName, 'url'];
+}
+
+/**
+ * Shared helper function to resolve route name and source
+ */
+export function resolveRouteNameAndSource(
+  location: Location,
+  routes: RouteObject[],
+  allRoutes: RouteObject[],
+  branches: RouteMatch[],
+  basename: string = '',
+): [string, TransactionSource] {
+  let name: string | undefined;
+  let source: TransactionSource = 'url';
+
+  const isInDescendantRoute = locationIsInsideDescendantRoute(location, allRoutes);
+
+  if (isInDescendantRoute) {
+    name = prefixWithSlash(rebuildRoutePathFromAllRoutes(allRoutes, location));
+    source = 'route';
+  }
+
+  if (!isInDescendantRoute || !name) {
+    [name, source] = getNormalizedName(routes, location, branches, basename);
+  }
+
+  return [name || location.pathname, source];
 }
