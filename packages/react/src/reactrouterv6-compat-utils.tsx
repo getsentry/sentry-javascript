@@ -6,7 +6,6 @@ import {
   browserTracingIntegration,
   startBrowserTracingNavigationSpan,
   startBrowserTracingPageLoadSpan,
-  WINDOW,
 } from '@sentry/browser';
 import type { Client, Integration, Span, TransactionSource } from '@sentry/core';
 import {
@@ -16,6 +15,7 @@ import {
   getClient,
   getCurrentScope,
   getRootSpan,
+  GLOBAL_OBJ,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
@@ -24,6 +24,7 @@ import {
 import * as React from 'react';
 import { DEBUG_BUILD } from './debug-build';
 import { hoistNonReactStatics } from './hoist-non-react-statics';
+import { checkRouteForAsyncHandler, updateNavigationSpanWithLazyRoutes } from './lazy-route-utils';
 import type {
   Action,
   AgnosticDataRouteMatch,
@@ -50,6 +51,31 @@ let _stripBasename: boolean = false;
 let _enableAsyncRouteHandlers: boolean = false;
 
 const CLIENTS_WITH_INSTRUMENT_NAVIGATION = new WeakSet<Client>();
+
+/**
+ * Gets the current location from the global object (window in browser environments).
+ * Returns undefined if global location is not available.
+ */
+function getGlobalLocation(): Location | undefined {
+  if (typeof GLOBAL_OBJ !== 'undefined') {
+    const globalLocation = (GLOBAL_OBJ as typeof GLOBAL_OBJ & Window).location;
+    if (globalLocation) {
+      return { pathname: globalLocation.pathname };
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Gets the pathname from the global object (window in browser environments).
+ * Returns undefined if global location is not available.
+ */
+function getGlobalPathname(): string | undefined {
+  if (typeof GLOBAL_OBJ !== 'undefined') {
+    return (GLOBAL_OBJ as typeof GLOBAL_OBJ & Window).location?.pathname;
+  }
+  return undefined;
+}
 
 export interface ReactRouterOptions {
   useEffect: UseEffect;
@@ -79,60 +105,18 @@ type V6CompatibleVersion = '6' | '7';
 const allRoutes = new Set<RouteObject>();
 
 /**
- * Adds resolved routes as children to the parent route.
- * Prevents duplicate routes by checking if they already exist.
- */
-function addResolvedRoutesToParent(resolvedRoutes: RouteObject[], parentRoute: RouteObject): void {
-  const existingChildren = parentRoute.children || [];
-
-  const newRoutes = resolvedRoutes.filter(
-    newRoute =>
-      !existingChildren.some(
-        existing =>
-          existing === newRoute ||
-          (newRoute.path && existing.path === newRoute.path) ||
-          (newRoute.id && existing.id === newRoute.id),
-      ),
-  );
-
-  if (newRoutes.length > 0) {
-    parentRoute.children = [...existingChildren, ...newRoutes];
-  }
-}
-
-/**
- * Handles the result of an async handler function call.
- */
-function handleAsyncHandlerResult(result: unknown, route: RouteObject, handlerKey: string): void {
-  if (
-    result &&
-    typeof result === 'object' &&
-    'then' in result &&
-    typeof (result as Promise<unknown>).then === 'function'
-  ) {
-    (result as Promise<unknown>)
-      .then((resolvedRoutes: unknown) => {
-        if (Array.isArray(resolvedRoutes)) {
-          processResolvedRoutes(resolvedRoutes, route);
-        }
-      })
-      .catch((e: unknown) => {
-        DEBUG_BUILD && debug.warn(`Error resolving async handler '${handlerKey}' for route`, route, e);
-      });
-  } else if (Array.isArray(result)) {
-    processResolvedRoutes(result, route);
-  }
-}
-
-/**
  * Processes resolved routes by adding them to allRoutes and checking for nested async handlers.
  */
-function processResolvedRoutes(resolvedRoutes: RouteObject[], parentRoute?: RouteObject): void {
+function processResolvedRoutes(
+  resolvedRoutes: RouteObject[],
+  parentRoute?: RouteObject,
+  currentLocation?: Location,
+): void {
   resolvedRoutes.forEach(child => {
     allRoutes.add(child);
     // Only check for async handlers if the feature is enabled
     if (_enableAsyncRouteHandlers) {
-      checkRouteForAsyncHandler(child);
+      checkRouteForAsyncHandler(child, processResolvedRoutes);
     }
   });
 
@@ -141,65 +125,127 @@ function processResolvedRoutes(resolvedRoutes: RouteObject[], parentRoute?: Rout
     addResolvedRoutesToParent(resolvedRoutes, parentRoute);
   }
 
-  // After processing lazy routes, check if we need to update an active pageload transaction
+  // After processing lazy routes, check if we need to update an active transaction
   const activeRootSpan = getActiveRootSpan();
-  if (activeRootSpan && spanToJSON(activeRootSpan).op === 'pageload') {
-    const location = WINDOW.location;
-    if (location) {
-      // Re-run the pageload transaction update with the newly loaded routes
-      updatePageloadTransaction(
-        activeRootSpan,
-        { pathname: location.pathname },
-        Array.from(allRoutes),
-        undefined,
-        undefined,
-        Array.from(allRoutes),
-      );
+  if (activeRootSpan) {
+    const spanOp = spanToJSON(activeRootSpan).op;
+
+    // Try to use the provided location first, then fall back to global window location if needed
+    let location = currentLocation;
+    if (!location) {
+      location = getGlobalLocation();
     }
-  }
-}
 
-/**
- * Creates a proxy wrapper for an async handler function.
- */
-function createAsyncHandlerProxy(
-  originalFunction: (...args: unknown[]) => unknown,
-  route: RouteObject,
-  handlerKey: string,
-): (...args: unknown[]) => unknown {
-  const proxy = new Proxy(originalFunction, {
-    apply(target: (...args: unknown[]) => unknown, thisArg, argArray) {
-      const result = target.apply(thisArg, argArray);
-      handleAsyncHandlerResult(result, route, handlerKey);
-      return result;
-    },
-  });
-
-  addNonEnumerableProperty(proxy, '__sentry_proxied__', true);
-
-  return proxy;
-}
-
-/**
- * Recursively checks a route for async handlers and sets up Proxies to add discovered child routes to allRoutes when called.
- */
-export function checkRouteForAsyncHandler(route: RouteObject): void {
-  // Set up proxies for any functions in the route's handle
-  if (route.handle && typeof route.handle === 'object') {
-    for (const key of Object.keys(route.handle)) {
-      const maybeFn = route.handle[key];
-      if (typeof maybeFn === 'function' && !(maybeFn as { __sentry_proxied__?: boolean }).__sentry_proxied__) {
-        route.handle[key] = createAsyncHandlerProxy(maybeFn, route, key);
+    if (location) {
+      if (spanOp === 'pageload') {
+        // Re-run the pageload transaction update with the newly loaded routes
+        updatePageloadTransaction(
+          activeRootSpan,
+          { pathname: location.pathname },
+          Array.from(allRoutes),
+          undefined,
+          undefined,
+          Array.from(allRoutes),
+        );
+      } else if (spanOp === 'navigation') {
+        // For navigation spans, update the name with the newly loaded routes
+        updateNavigationSpanWithLazyRoutesLocal(activeRootSpan, location, Array.from(allRoutes));
       }
     }
   }
+}
 
-  // Recursively check child routes
-  if (Array.isArray(route.children)) {
-    for (const child of route.children) {
-      checkRouteForAsyncHandler(child);
-    }
+/**
+ * Local wrapper for updateNavigationSpanWithLazyRoutes that provides dependencies.
+ */
+function updateNavigationSpanWithLazyRoutesLocal(
+  activeRootSpan: Span,
+  location: Location,
+  allRoutes: RouteObject[],
+  forceUpdate = false,
+): void {
+  updateNavigationSpanWithLazyRoutes(
+    activeRootSpan,
+    location,
+    allRoutes,
+    forceUpdate,
+    _matchRoutes,
+    rebuildRoutePathFromAllRoutes,
+    locationIsInsideDescendantRoute,
+    getNormalizedName,
+    prefixWithSlash,
+  );
+}
+
+function wrapPatchRoutesOnNavigationLocal(
+  opts: Record<string, unknown> | undefined,
+  isMemoryRouter = false,
+): Record<string, unknown> {
+  if (!opts || !('patchRoutesOnNavigation' in opts) || typeof opts.patchRoutesOnNavigation !== 'function') {
+    return opts || {};
   }
+
+  const originalPatchRoutes = opts.patchRoutesOnNavigation;
+  return {
+    ...opts,
+    patchRoutesOnNavigation: async (args: unknown) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const targetPath = (args as any)?.path;
+
+      // For browser router, wrap the patch function to update span during patching
+      if (!isMemoryRouter) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        const originalPatch = (args as any)?.patch;
+        if (originalPatch) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+          (args as any).patch = (routeId: string, children: RouteObject[]) => {
+            addRoutesToAllRoutes(children);
+            const activeRootSpan = getActiveRootSpan();
+            if (activeRootSpan && (spanToJSON(activeRootSpan) as { op?: string }).op === 'navigation') {
+              updateNavigationSpanWithLazyRoutesLocal(
+                activeRootSpan,
+                {
+                  pathname: targetPath,
+                  search: '',
+                  hash: '',
+                  state: null,
+                  key: 'default',
+                },
+                Array.from(allRoutes),
+                true,
+              );
+            }
+            return originalPatch(routeId, children);
+          };
+        }
+      }
+
+      const result = await originalPatchRoutes(args);
+
+      // Update navigation span after routes are patched
+      const activeRootSpan = getActiveRootSpan();
+      if (activeRootSpan && (spanToJSON(activeRootSpan) as { op?: string }).op === 'navigation') {
+        // For memory routers, we don't have a reliable way to get the current pathname
+        // without accessing window.location, so we'll use targetPath for both cases
+        const pathname = targetPath || (isMemoryRouter ? getGlobalPathname() : undefined);
+        if (pathname) {
+          updateNavigationSpanWithLazyRoutesLocal(
+            activeRootSpan,
+            {
+              pathname,
+              search: '',
+              hash: '',
+              state: null,
+              key: 'default',
+            },
+            Array.from(allRoutes),
+          );
+        }
+      }
+
+      return result;
+    },
+  };
 }
 
 /**
@@ -227,11 +273,14 @@ export function createV6CompatibleWrapCreateBrowserRouter<
     // Check for async handlers that might contain sub-route declarations (only if enabled)
     if (_enableAsyncRouteHandlers) {
       for (const route of routes) {
-        checkRouteForAsyncHandler(route);
+        checkRouteForAsyncHandler(route, processResolvedRoutes);
       }
     }
 
-    const router = createRouterFunction(routes, opts);
+    // Wrap patchRoutesOnNavigation to detect when lazy routes are loaded
+    const wrappedOpts = wrapPatchRoutesOnNavigationLocal(opts);
+
+    const router = createRouterFunction(routes, wrappedOpts);
     const basename = opts?.basename;
 
     const activeRootSpan = getActiveRootSpan();
@@ -313,11 +362,14 @@ export function createV6CompatibleWrapCreateMemoryRouter<
     // Check for async handlers that might contain sub-route declarations (only if enabled)
     if (_enableAsyncRouteHandlers) {
       for (const route of routes) {
-        checkRouteForAsyncHandler(route);
+        checkRouteForAsyncHandler(route, processResolvedRoutes);
       }
     }
 
-    const router = createRouterFunction(routes, opts);
+    // Wrap patchRoutesOnNavigation to detect when lazy routes are loaded
+    const wrappedOpts = wrapPatchRoutesOnNavigationLocal(opts, true);
+
+    const router = createRouterFunction(routes, wrappedOpts);
     const basename = opts?.basename;
 
     const activeRootSpan = getActiveRootSpan();
@@ -404,7 +456,7 @@ export function createReactRouterV6CompatibleTracingIntegration(
     afterAllSetup(client) {
       integration.afterAllSetup(client);
 
-      const initPathName = WINDOW.location?.pathname;
+      const initPathName = getGlobalPathname();
       if (instrumentPageLoad && initPathName) {
         startBrowserTracingPageLoadSpan(client, {
           name: initPathName,
@@ -504,57 +556,27 @@ export function handleNavigation(opts: {
   }
 
   if ((navigationType === 'PUSH' || navigationType === 'POP') && branches) {
-    let name,
-      source: TransactionSource = 'url';
-    const isInDescendantRoute = locationIsInsideDescendantRoute(location, allRoutes || routes);
-
-    if (isInDescendantRoute) {
-      name = prefixWithSlash(rebuildRoutePathFromAllRoutes(allRoutes || routes, location));
-      source = 'route';
-    }
-
-    if (!isInDescendantRoute || !name) {
-      [name, source] = getNormalizedName(routes, location, branches, basename);
-    }
+    const [name, source, isLikelyLazyRoute] = resolveRouteName(
+      location,
+      routes,
+      allRoutes || routes,
+      branches,
+      basename,
+      locationIsInsideDescendantRoute,
+      rebuildRoutePathFromAllRoutes,
+      getNormalizedName,
+      prefixWithSlash,
+    );
 
     const activeSpan = getActiveSpan();
-    const isAlreadyInNavigationSpan = activeSpan && spanToJSON(activeSpan).op === 'navigation';
+    const spanJson = activeSpan && spanToJSON(activeSpan);
+    const isAlreadyInNavigationSpan = spanJson?.op === 'navigation';
 
     // Cross usage can result in multiple navigation spans being created without this check
-    if (isAlreadyInNavigationSpan) {
-      // Check if we've already set the name for this span using a custom property
-      const hasBeenNamed = (
-        activeSpan as {
-          __sentry_navigation_name_set__?: boolean;
-        }
-      )?.__sentry_navigation_name_set__;
-      if (!hasBeenNamed) {
-        // This is the first time we're setting the name for this span
-        const spanJson = spanToJSON(activeSpan);
-        if (!spanJson.timestamp) {
-          activeSpan?.updateName(name);
-        }
-
-        // Mark this span as having its name set to prevent future updates
-        addNonEnumerableProperty(activeSpan, '__sentry_navigation_name_set__', true);
-      }
-
-      activeSpan?.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
-      // If we already have a name for this span, don't update it
+    if (isAlreadyInNavigationSpan && activeSpan && spanJson) {
+      handleExistingNavigationSpan(activeSpan, spanJson, name, source, isLikelyLazyRoute);
     } else {
-      const span = startBrowserTracingNavigationSpan(client, {
-        name,
-        attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: `auto.navigation.react.reactrouter_v${version}`,
-        },
-      });
-
-      // Mark the new span as having its name set
-      if (span) {
-        addNonEnumerableProperty(span, '__sentry_navigation_name_set__', true);
-      }
+      createNewNavigationSpan(client, name, source, version, isLikelyLazyRoute);
     }
   }
 }
@@ -871,6 +893,174 @@ function getActiveRootSpan(): Span | undefined {
 
   // Only use this root span if it is a pageload or navigation span
   return op === 'navigation' || op === 'pageload' ? rootSpan : undefined;
+}
+
+/**
+ * Shared helper function to resolve route name and source
+ */
+export function resolveRouteNameAndSource(
+  location: Location,
+  routes: RouteObject[],
+  allRoutes: RouteObject[],
+  branches: RouteMatch[],
+  basename: string = '',
+  locationIsInsideDescendantRoute: (location: Location, routes: RouteObject[]) => boolean,
+  rebuildRoutePathFromAllRoutes: (allRoutes: RouteObject[], location: Location) => string,
+  getNormalizedName: (
+    routes: RouteObject[],
+    location: Location,
+    branches: RouteMatch[],
+    basename?: string,
+  ) => [string, TransactionSource],
+  prefixWithSlash: (path: string) => string,
+): [string, TransactionSource] {
+  let name: string | undefined;
+  let source: TransactionSource = 'url';
+
+  const isInDescendantRoute = locationIsInsideDescendantRoute(location, allRoutes);
+
+  if (isInDescendantRoute) {
+    name = prefixWithSlash(rebuildRoutePathFromAllRoutes(allRoutes, location));
+    source = 'route';
+  }
+
+  if (!isInDescendantRoute || !name) {
+    [name, source] = getNormalizedName(routes, location, branches, basename);
+  }
+
+  return [name || location.pathname, source];
+}
+
+/**
+ * Resolves the route name and source for navigation tracking
+ */
+export function resolveRouteName(
+  location: Location,
+  routes: RouteObject[],
+  allRoutes: RouteObject[],
+  branches: unknown[],
+  basename: string | undefined,
+  locationIsInsideDescendantRoute: (location: Location, routes: RouteObject[]) => boolean,
+  rebuildRoutePathFromAllRoutes: (allRoutes: RouteObject[], location: Location) => string,
+  getNormalizedName: (
+    routes: RouteObject[],
+    location: Location,
+    branches: RouteMatch[],
+    basename?: string,
+  ) => [string, TransactionSource],
+  prefixWithSlash: (path: string) => string,
+): [string, TransactionSource, boolean] {
+  const [name, source] = resolveRouteNameAndSource(
+    location,
+    routes,
+    allRoutes || routes,
+    branches as RouteMatch[],
+    basename,
+    locationIsInsideDescendantRoute,
+    rebuildRoutePathFromAllRoutes,
+    getNormalizedName,
+    prefixWithSlash,
+  );
+
+  // If we couldn't find a good route name, it might be because we're navigating to a lazy route
+  // that hasn't been loaded yet. In this case, use the pathname as a fallback
+  const isLikelyLazyRoute = source === 'url' && (branches as unknown[]).length === 0;
+  let finalName = name;
+  let finalSource = source;
+
+  if (isLikelyLazyRoute) {
+    finalName = location.pathname;
+    finalSource = 'url';
+  }
+
+  return [finalName, finalSource, isLikelyLazyRoute];
+}
+
+/**
+ * Handles updating an existing navigation span
+ */
+export function handleExistingNavigationSpan(
+  activeSpan: Span,
+  spanJson: ReturnType<typeof spanToJSON>,
+  name: string,
+  source: TransactionSource,
+  isLikelyLazyRoute: boolean,
+): void {
+  // Check if we've already set the name for this span using a custom property
+  const hasBeenNamed = (
+    activeSpan as {
+      __sentry_navigation_name_set__?: boolean;
+    }
+  )?.__sentry_navigation_name_set__;
+
+  if (!hasBeenNamed) {
+    // This is the first time we're setting the name for this span
+    if (!spanJson.timestamp) {
+      activeSpan?.updateName(name);
+    }
+
+    // For lazy routes, don't mark as named yet so it can be updated later
+    if (!isLikelyLazyRoute) {
+      addNonEnumerableProperty(
+        activeSpan as { __sentry_navigation_name_set__?: boolean },
+        '__sentry_navigation_name_set__',
+        true,
+      );
+    }
+  }
+
+  activeSpan?.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
+}
+
+/**
+ * Creates a new navigation span
+ */
+export function createNewNavigationSpan(
+  client: Client,
+  name: string,
+  source: TransactionSource,
+  version: string,
+  isLikelyLazyRoute: boolean,
+): void {
+  const newSpan = startBrowserTracingNavigationSpan(client, {
+    name,
+    attributes: {
+      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
+      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: `auto.navigation.react.reactrouter_v${version}`,
+    },
+  });
+
+  // For lazy routes, don't mark as named yet so it can be updated later when the route loads
+  if (!isLikelyLazyRoute && newSpan) {
+    addNonEnumerableProperty(
+      newSpan as { __sentry_navigation_name_set__?: boolean },
+      '__sentry_navigation_name_set__',
+      true,
+    );
+  }
+}
+
+/**
+ * Adds resolved routes as children to the parent route.
+ * Prevents duplicate routes by checking if they already exist.
+ */
+export function addResolvedRoutesToParent(resolvedRoutes: RouteObject[], parentRoute: RouteObject): void {
+  const existingChildren = parentRoute.children || [];
+
+  const newRoutes = resolvedRoutes.filter(
+    newRoute =>
+      !existingChildren.some(
+        existing =>
+          existing === newRoute ||
+          (newRoute.path && existing.path === newRoute.path) ||
+          (newRoute.id && existing.id === newRoute.id),
+      ),
+  );
+
+  if (newRoutes.length > 0) {
+    parentRoute.children = [...existingChildren, ...newRoutes];
+  }
 }
 
 /**
