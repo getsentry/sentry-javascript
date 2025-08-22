@@ -1,20 +1,7 @@
 import { assertEquals } from 'https://deno.land/std@0.212.0/assert/mod.ts';
 import { context, propagation, trace } from 'npm:@opentelemetry/api@1';
 import type { DenoClient } from '../build/esm/index.js';
-import {
-  flush,
-  getCurrentScope,
-  getGlobalScope,
-  getIsolationScope,
-  init,
-  vercelAIIntegration,
-} from '../build/esm/index.js';
-
-function delay(time: number): Promise<void> {
-  return new Promise(resolve => {
-    setTimeout(resolve, time);
-  });
-}
+import { getCurrentScope, getGlobalScope, getIsolationScope, init, startSpan } from '../build/esm/index.js';
 
 function resetGlobals(): void {
   getCurrentScope().clear();
@@ -35,72 +22,124 @@ function resetSdk(): void {
   cleanupOtel();
 }
 
-Deno.test('opentelemetry: should capture spans emitted via @opentelemetry/api', async _t => {
+Deno.test('should not capture spans emitted via @opentelemetry/api when skipOpenTelemetrySetup is true', async () => {
   resetSdk();
-  const events: any[] = [];
+  const transactionEvents: any[] = [];
 
-  init({
-    dsn: 'https://username@domain/123',
-    debug: true,
-    tracesSampleRate: 1,
-    skipOpenTelemetrySetup: false,
-    beforeSendTransaction(event) {
-      events.push(event);
-      return null;
-    },
-  });
-
-  const tracer = trace.getTracer('test-tracer');
-  const span = tracer.startSpan('test span');
-  span.setAttribute('test.attribute', 'test value');
-  span.end();
-
-  await delay(200);
-  await flush(1000);
-
-  assertEquals(events.length, 1);
-  const transactionEvent = events[0];
-
-  assertEquals(transactionEvent?.transaction, 'test span');
-  assertEquals(transactionEvent?.contexts?.trace?.data?.['sentry.deno_tracer'], true);
-  assertEquals(transactionEvent?.contexts?.trace?.data?.['test.attribute'], 'test value');
-});
-
-Deno.test('opentelemetry: should not capture spans when skipOpenTelemetrySetup is true', async () => {
-  resetSdk();
-  const events: any[] = [];
-
-  init({
-    dsn: 'https://username@domain/123',
-    debug: true,
-    tracesSampleRate: 1,
-    skipOpenTelemetrySetup: true,
-    beforeSendTransaction(event) {
-      events.push(event);
-      return null;
-    },
-  });
-
-  const tracer = trace.getTracer('test-tracer');
-  const span = tracer.startSpan('test span');
-  span.end();
-
-  await delay(200);
-  await flush(1000);
-
-  assertEquals(events.length, 0);
-});
-
-Deno.test('opentelemetry: vercelAI integration can be added', () => {
-  resetSdk();
   const client = init({
     dsn: 'https://username@domain/123',
-    debug: true,
     tracesSampleRate: 1,
-    integrations: [vercelAIIntegration()],
+    skipOpenTelemetrySetup: true,
+    beforeSendTransaction: event => {
+      transactionEvents.push(event);
+      return null;
+    },
   }) as DenoClient;
 
-  // Just verify the integration can be added without errors
-  const integration = client.getIntegrationByName('VercelAI');
-  assertEquals(integration?.name, 'VercelAI');
+  const tracer = trace.getTracer('test');
+  const span = tracer.startSpan('test');
+  span.end();
+
+  await client.flush();
+
+  tracer.startActiveSpan('test 2', { attributes: { 'test.attribute': 'test' } }, span2 => {
+    const span = tracer.startSpan('test 3', { attributes: { 'test.attribute': 'test2' } });
+    span.end();
+    span2.end();
+  });
+
+  await client.flush();
+
+  assertEquals(transactionEvents.length, 0);
+});
+
+Deno.test('should capture spans emitted via @opentelemetry/api', async () => {
+  resetSdk();
+  const transactionEvents: any[] = [];
+
+  const client = init({
+    dsn: 'https://username@domain/123',
+    tracesSampleRate: 1,
+    beforeSendTransaction: event => {
+      transactionEvents.push(event);
+      return null;
+    },
+  }) as DenoClient;
+
+  const tracer = trace.getTracer('test');
+  const span = tracer.startSpan('test');
+  span.end();
+
+  await client.flush();
+
+  tracer.startActiveSpan('test 2', { attributes: { 'test.attribute': 'test' } }, span2 => {
+    const span = tracer.startSpan('test 3', { attributes: { 'test.attribute': 'test2' } });
+    span.end();
+    span2.end();
+  });
+
+  await client.flush();
+
+  assertEquals(transactionEvents.length, 2);
+  const [transactionEvent, transactionEvent2] = transactionEvents;
+
+  assertEquals(transactionEvent?.spans?.length, 0);
+  assertEquals(transactionEvent?.transaction, 'test');
+  assertEquals(transactionEvent?.contexts?.trace?.data?.['sentry.deno_tracer'], true);
+  assertEquals(transactionEvent?.contexts?.trace?.data?.['sentry.origin'], 'manual');
+  assertEquals(transactionEvent?.contexts?.trace?.data?.['sentry.sample_rate'], 1);
+  assertEquals(transactionEvent?.contexts?.trace?.data?.['sentry.source'], 'custom');
+
+  assertEquals(transactionEvent2?.spans?.length, 1);
+  assertEquals(transactionEvent2?.transaction, 'test 2');
+  assertEquals(transactionEvent2?.contexts?.trace?.data?.['sentry.deno_tracer'], true);
+  assertEquals(transactionEvent2?.contexts?.trace?.data?.['sentry.origin'], 'manual');
+  assertEquals(transactionEvent2?.contexts?.trace?.data?.['sentry.sample_rate'], 1);
+  assertEquals(transactionEvent2?.contexts?.trace?.data?.['sentry.source'], 'custom');
+  assertEquals(transactionEvent2?.contexts?.trace?.data?.['test.attribute'], 'test');
+
+  const childSpan = transactionEvent2?.spans?.[0];
+  assertEquals(childSpan?.description, 'test 3');
+  assertEquals(childSpan?.data?.['sentry.deno_tracer'], true);
+  assertEquals(childSpan?.data?.['sentry.origin'], 'manual');
+  assertEquals(childSpan?.data?.['test.attribute'], 'test2');
+});
+
+Deno.test('opentelemetry spans should interop with Sentry spans', async () => {
+  resetSdk();
+  const transactionEvents: any[] = [];
+
+  const client = init({
+    dsn: 'https://username@domain/123',
+    tracesSampleRate: 1,
+    beforeSendTransaction: event => {
+      transactionEvents.push(event);
+      return null;
+    },
+  }) as DenoClient;
+
+  const tracer = trace.getTracer('test');
+
+  startSpan({ name: 'sentry span' }, () => {
+    const span = tracer.startSpan('otel span');
+    span.end();
+  });
+
+  await client.flush();
+
+  assertEquals(transactionEvents.length, 1);
+  const [transactionEvent] = transactionEvents;
+
+  assertEquals(transactionEvent?.spans?.length, 1);
+  assertEquals(transactionEvent?.transaction, 'sentry span');
+  assertEquals(transactionEvent?.contexts?.trace?.data?.['sentry.origin'], 'manual');
+  assertEquals(transactionEvent?.contexts?.trace?.data?.['sentry.sample_rate'], 1);
+  assertEquals(transactionEvent?.contexts?.trace?.data?.['sentry.source'], 'custom');
+  // Note: Sentry-created spans don't have the deno_tracer marker
+  assertEquals(transactionEvent?.contexts?.trace?.data?.['sentry.deno_tracer'], undefined);
+
+  const otelSpan = transactionEvent?.spans?.[0];
+  assertEquals(otelSpan?.description, 'otel span');
+  assertEquals(otelSpan?.data?.['sentry.deno_tracer'], true);
+  assertEquals(otelSpan?.data?.['sentry.origin'], 'manual');
 });

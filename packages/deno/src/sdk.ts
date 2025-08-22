@@ -100,13 +100,8 @@ export function init(options: DenoOptions = {}): Client {
 
   const client = initAndBind(DenoClient, clientOptions);
 
-  /**
-   * The Deno SDK is not OpenTelemetry native, however, we set up some OpenTelemetry compatibility
-   * via a custom trace provider.
-   * This ensures that any spans emitted via `@opentelemetry/api` will be captured by Sentry.
-   * HOWEVER, big caveat: This does not handle custom context handling, it will always work off the current scope.
-   * This should be good enough for many, but not all integrations.
-   */
+  // Set up OpenTelemetry compatibility to capture spans from libraries using @opentelemetry/api
+  // Note: This is separate from Deno's native OTEL support and doesn't capture auto-instrumented spans
   if (!options.skipOpenTelemetrySetup) {
     setupOpenTelemetryTracer();
   }
