@@ -6,6 +6,7 @@ import {
   browserTracingIntegration,
   startBrowserTracingNavigationSpan,
   startBrowserTracingPageLoadSpan,
+  WINDOW,
 } from '@sentry/browser';
 import type { Client, Integration, Span, TransactionSource } from '@sentry/core';
 import {
@@ -15,7 +16,6 @@ import {
   getClient,
   getCurrentScope,
   getRootSpan,
-  GLOBAL_OBJ,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
@@ -25,6 +25,9 @@ import * as React from 'react';
 import { DEBUG_BUILD } from './debug-build';
 import { hoistNonReactStatics } from './hoist-non-react-statics';
 import { checkRouteForAsyncHandler, updateNavigationSpanWithLazyRoutes } from './lazy-route-utils';
+import {
+  initializeRouterUtils,
+} from './reactrouterv6-utils';
 import type {
   Action,
   AgnosticDataRouteMatch,
@@ -53,12 +56,12 @@ let _enableAsyncRouteHandlers: boolean = false;
 const CLIENTS_WITH_INSTRUMENT_NAVIGATION = new WeakSet<Client>();
 
 /**
- * Gets the current location from the global object (window in browser environments).
- * Returns undefined if global location is not available.
+ * Gets the current location from the window object in browser environments.
+ * Returns undefined if window is not available.
  */
 function getGlobalLocation(): Location | undefined {
-  if (typeof GLOBAL_OBJ !== 'undefined') {
-    const globalLocation = (GLOBAL_OBJ as typeof GLOBAL_OBJ & Window).location;
+  if (typeof WINDOW !== 'undefined') {
+    const globalLocation = WINDOW.location;
     if (globalLocation) {
       return { pathname: globalLocation.pathname };
     }
@@ -67,12 +70,12 @@ function getGlobalLocation(): Location | undefined {
 }
 
 /**
- * Gets the pathname from the global object (window in browser environments).
- * Returns undefined if global location is not available.
+ * Gets the pathname from the window object in browser environments.
+ * Returns undefined if window is not available.
  */
 function getGlobalPathname(): string | undefined {
-  if (typeof GLOBAL_OBJ !== 'undefined') {
-    return (GLOBAL_OBJ as typeof GLOBAL_OBJ & Window).location?.pathname;
+  if (typeof WINDOW !== 'undefined') {
+    return WINDOW.location?.pathname;
   }
   return undefined;
 }
@@ -149,35 +152,19 @@ function processResolvedRoutes(
         );
       } else if (spanOp === 'navigation') {
         // For navigation spans, update the name with the newly loaded routes
-        updateNavigationSpanWithLazyRoutesLocal(activeRootSpan, location, Array.from(allRoutes));
+        updateNavigationSpanWithLazyRoutes(
+          activeRootSpan,
+          location,
+          Array.from(allRoutes),
+          false,
+          _matchRoutes,
+        );
       }
     }
   }
 }
 
-/**
- * Local wrapper for updateNavigationSpanWithLazyRoutes that provides dependencies.
- */
-function updateNavigationSpanWithLazyRoutesLocal(
-  activeRootSpan: Span,
-  location: Location,
-  allRoutes: RouteObject[],
-  forceUpdate = false,
-): void {
-  updateNavigationSpanWithLazyRoutes(
-    activeRootSpan,
-    location,
-    allRoutes,
-    forceUpdate,
-    _matchRoutes,
-    rebuildRoutePathFromAllRoutes,
-    locationIsInsideDescendantRoute,
-    getNormalizedName,
-    prefixWithSlash,
-  );
-}
-
-function wrapPatchRoutesOnNavigationLocal(
+function wrapPatchRoutesOnNavigation(
   opts: Record<string, unknown> | undefined,
   isMemoryRouter = false,
 ): Record<string, unknown> {
@@ -202,7 +189,7 @@ function wrapPatchRoutesOnNavigationLocal(
             addRoutesToAllRoutes(children);
             const activeRootSpan = getActiveRootSpan();
             if (activeRootSpan && (spanToJSON(activeRootSpan) as { op?: string }).op === 'navigation') {
-              updateNavigationSpanWithLazyRoutesLocal(
+              updateNavigationSpanWithLazyRoutes(
                 activeRootSpan,
                 {
                   pathname: targetPath,
@@ -213,6 +200,7 @@ function wrapPatchRoutesOnNavigationLocal(
                 },
                 Array.from(allRoutes),
                 true,
+                _matchRoutes,
               );
             }
             return originalPatch(routeId, children);
@@ -229,7 +217,7 @@ function wrapPatchRoutesOnNavigationLocal(
         // without accessing window.location, so we'll use targetPath for both cases
         const pathname = targetPath || (isMemoryRouter ? getGlobalPathname() : undefined);
         if (pathname) {
-          updateNavigationSpanWithLazyRoutesLocal(
+          updateNavigationSpanWithLazyRoutes(
             activeRootSpan,
             {
               pathname,
@@ -239,6 +227,8 @@ function wrapPatchRoutesOnNavigationLocal(
               key: 'default',
             },
             Array.from(allRoutes),
+            false,
+            _matchRoutes,
           );
         }
       }
@@ -278,7 +268,7 @@ export function createV6CompatibleWrapCreateBrowserRouter<
     }
 
     // Wrap patchRoutesOnNavigation to detect when lazy routes are loaded
-    const wrappedOpts = wrapPatchRoutesOnNavigationLocal(opts);
+    const wrappedOpts = wrapPatchRoutesOnNavigation(opts);
 
     const router = createRouterFunction(routes, wrappedOpts);
     const basename = opts?.basename;
@@ -367,7 +357,7 @@ export function createV6CompatibleWrapCreateMemoryRouter<
     }
 
     // Wrap patchRoutesOnNavigation to detect when lazy routes are loaded
-    const wrappedOpts = wrapPatchRoutesOnNavigationLocal(opts, true);
+    const wrappedOpts = wrapPatchRoutesOnNavigation(opts, true);
 
     const router = createRouterFunction(routes, wrappedOpts);
     const basename = opts?.basename;
@@ -452,6 +442,9 @@ export function createReactRouterV6CompatibleTracingIntegration(
       _createRoutesFromChildren = createRoutesFromChildren;
       _stripBasename = stripBasename || false;
       _enableAsyncRouteHandlers = enableAsyncRouteHandlers;
+
+      // Initialize the router utils with the required dependencies
+      initializeRouterUtils(matchRoutes, stripBasename || false);
     },
     afterAllSetup(client) {
       integration.afterAllSetup(client);
@@ -556,16 +549,12 @@ export function handleNavigation(opts: {
   }
 
   if ((navigationType === 'PUSH' || navigationType === 'POP') && branches) {
-    const [name, source, isLikelyLazyRoute] = resolveRouteName(
+    const [name, source] = resolveRouteNameAndSource(
       location,
       routes,
       allRoutes || routes,
-      branches,
+      branches as RouteMatch[],
       basename,
-      locationIsInsideDescendantRoute,
-      rebuildRoutePathFromAllRoutes,
-      getNormalizedName,
-      prefixWithSlash,
     );
 
     const activeSpan = getActiveSpan();
@@ -574,9 +563,9 @@ export function handleNavigation(opts: {
 
     // Cross usage can result in multiple navigation spans being created without this check
     if (isAlreadyInNavigationSpan && activeSpan && spanJson) {
-      handleExistingNavigationSpan(activeSpan, spanJson, name, source, isLikelyLazyRoute);
+      handleExistingNavigationSpan(activeSpan, spanJson, name, source, false);
     } else {
-      createNewNavigationSpan(client, name, source, version, isLikelyLazyRoute);
+      createNewNavigationSpan(client, name, source, version, false);
     }
   }
 }
@@ -784,7 +773,7 @@ function getNormalizedName(
 
   const fallbackTransactionName = _stripBasename
     ? stripBasenameFromPathname(location.pathname, basename)
-    : location.pathname || '/';
+    : location.pathname;
 
   return [fallbackTransactionName, 'url'];
 }
@@ -904,15 +893,6 @@ export function resolveRouteNameAndSource(
   allRoutes: RouteObject[],
   branches: RouteMatch[],
   basename: string = '',
-  locationIsInsideDescendantRoute: (location: Location, routes: RouteObject[]) => boolean,
-  rebuildRoutePathFromAllRoutes: (allRoutes: RouteObject[], location: Location) => string,
-  getNormalizedName: (
-    routes: RouteObject[],
-    location: Location,
-    branches: RouteMatch[],
-    basename?: string,
-  ) => [string, TransactionSource],
-  prefixWithSlash: (path: string) => string,
 ): [string, TransactionSource] {
   let name: string | undefined;
   let source: TransactionSource = 'url';
@@ -929,51 +909,6 @@ export function resolveRouteNameAndSource(
   }
 
   return [name || location.pathname, source];
-}
-
-/**
- * Resolves the route name and source for navigation tracking
- */
-export function resolveRouteName(
-  location: Location,
-  routes: RouteObject[],
-  allRoutes: RouteObject[],
-  branches: unknown[],
-  basename: string | undefined,
-  locationIsInsideDescendantRoute: (location: Location, routes: RouteObject[]) => boolean,
-  rebuildRoutePathFromAllRoutes: (allRoutes: RouteObject[], location: Location) => string,
-  getNormalizedName: (
-    routes: RouteObject[],
-    location: Location,
-    branches: RouteMatch[],
-    basename?: string,
-  ) => [string, TransactionSource],
-  prefixWithSlash: (path: string) => string,
-): [string, TransactionSource, boolean] {
-  const [name, source] = resolveRouteNameAndSource(
-    location,
-    routes,
-    allRoutes || routes,
-    branches as RouteMatch[],
-    basename,
-    locationIsInsideDescendantRoute,
-    rebuildRoutePathFromAllRoutes,
-    getNormalizedName,
-    prefixWithSlash,
-  );
-
-  // If we couldn't find a good route name, it might be because we're navigating to a lazy route
-  // that hasn't been loaded yet. In this case, use the pathname as a fallback
-  const isLikelyLazyRoute = source === 'url' && (branches as unknown[]).length === 0;
-  let finalName = name;
-  let finalSource = source;
-
-  if (isLikelyLazyRoute) {
-    finalName = location.pathname;
-    finalSource = 'url';
-  }
-
-  return [finalName, finalSource, isLikelyLazyRoute];
 }
 
 /**
