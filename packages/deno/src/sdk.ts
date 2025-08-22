@@ -16,6 +16,7 @@ import { denoContextIntegration } from './integrations/context';
 import { contextLinesIntegration } from './integrations/contextlines';
 import { globalHandlersIntegration } from './integrations/globalhandlers';
 import { normalizePathsIntegration } from './integrations/normalizepaths';
+import { setupOpenTelemetryTracer } from './opentelemetry/tracer';
 import { makeFetchTransport } from './transports';
 import type { DenoOptions } from './types';
 
@@ -97,5 +98,18 @@ export function init(options: DenoOptions = {}): Client {
     transport: options.transport || makeFetchTransport,
   };
 
-  return initAndBind(DenoClient, clientOptions);
+  const client = initAndBind(DenoClient, clientOptions);
+
+  /**
+   * The Deno SDK is not OpenTelemetry native, however, we set up some OpenTelemetry compatibility
+   * via a custom trace provider.
+   * This ensures that any spans emitted via `@opentelemetry/api` will be captured by Sentry.
+   * HOWEVER, big caveat: This does not handle custom context handling, it will always work off the current scope.
+   * This should be good enough for many, but not all integrations.
+   */
+  if (!options.skipOpenTelemetrySetup) {
+    setupOpenTelemetryTracer();
+  }
+
+  return client;
 }
