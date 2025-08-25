@@ -1,6 +1,6 @@
 import type { TraceContext } from '../../types-hoist/context';
 import type { Span, SpanJSON } from '../../types-hoist/span';
-import { GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE, GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE } from '../gen-ai-attributes';
+import { GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE, GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE } from '../ai/gen-ai-attributes';
 import { toolCallSpanMap } from './constants';
 import type { TokenSummary } from './types';
 
