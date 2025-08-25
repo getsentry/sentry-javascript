@@ -919,7 +919,9 @@ jobs:
       - name: Pull SAM Docker images
         if: matrix.test-application == 'aws-serverless'
         run: |
-          docker pull public.ecr.aws/sam/emulation-nodejs18.x
+          docker pull public.ecr.aws/sam/build-nodejs18.x:latest
+          docker pull public.ecr.aws/sam/build-nodejs20.x:latest
+          docker pull public.ecr.aws/sam/build-nodejs22.x:latest
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         with:

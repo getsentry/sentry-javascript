@@ -29,24 +29,25 @@ export const test = base.extend<{ testEnvironment: LocalLambdaStack; lambdaClien
       const debugLog = tmp.fileSync({ prefix: 'sentry_aws_lambda_tests_sam_debug', postfix: '.log' });
       console.log(`[test_environment fixture] Writing SAM debug log to: ${debugLog.name}`);
 
-      const samProcess = spawn(
-        'sam',
-        [
-          'local',
-          'start-lambda',
-          '--debug',
-          '--template',
-          SAM_TEMPLATE_FILE,
-          '--warm-containers',
-          'EAGER',
-          '--docker-network',
-          DOCKER_NETWORK_NAME,
-          ...(process.env.NODE_VERSION === '18' ? ['--invoke-image', `public.ecr.aws/sam/emulation-nodejs18.x`] : []),
-        ],
-        {
-          stdio: ['ignore', debugLog.fd, debugLog.fd],
-        },
-      );
+      const args = [
+        'local',
+        'start-lambda',
+        '--debug',
+        '--template',
+        SAM_TEMPLATE_FILE,
+        '--warm-containers',
+        'EAGER',
+        '--docker-network',
+        DOCKER_NETWORK_NAME,
+      ];
+
+      if (process.env.NODE_VERSION) {
+        args.push('--invoke-image', `public.ecr.aws/sam/build-nodejs${process.env.NODE_VERSION}.x:latest`);
+      }
+
+      const samProcess = spawn('sam', args, {
+        stdio: ['ignore', debugLog.fd, debugLog.fd],
+      });
 
       try {
         await LocalLambdaStack.waitForStack();
