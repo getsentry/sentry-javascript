@@ -57,9 +57,11 @@ import type { LambdaModule } from './internal-types';
 import { ATTR_FAAS_COLDSTART } from './semconv';
 import type { AwsLambdaInstrumentationConfig, EventContextExtractor } from './types';
 import { wrapHandler } from '../../sdk';
+import { SDK_VERSION } from '@sentry/core';
 
-const PACKAGE_VERSION = '0.54.0';
-const PACKAGE_NAME = '@opentelemetry/instrumentation-aws-lambda';
+// OpenTelemetry package version was 0.54.0 at time of vendoring.
+const PACKAGE_VERSION = SDK_VERSION;
+const PACKAGE_NAME = '@sentry/instrumentation-aws-lambda';
 
 const headerGetter: TextMapGetter<APIGatewayProxyEventHeaders> = {
   keys(carrier): string[] {

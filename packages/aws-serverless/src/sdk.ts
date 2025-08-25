@@ -60,6 +60,17 @@ function getRejectedReasons<T>(results: PromiseSettledResult<T>[]): T[] {
 }
 
 /**
+ * TODO(v11): Remove this function
+ * @deprecated This function is no longer used and will be removed in a future major version.
+ */
+export function tryPatchHandler(_taskRoot: string, _handlerPath: string): void {
+  consoleSandbox(() => {
+    // eslint-disable-next-line no-console
+    console.warn('The `tryPatchHandler` function is deprecated and will be removed in a future major version.');
+  });
+}
+
+/**
  * Tries to invoke context.getRemainingTimeInMillis if not available returns 0
  * Some environments use AWS lambda but don't support this function
  * @param context
@@ -200,6 +211,8 @@ export function wrapHandler<TEvent, TResult>(
           });
         }
       } catch (e) {
+        // Errors should already captured in the instrumentation's `responseHook`,
+        // we capture them here just to be safe. Double captures are deduplicated by the SDK.
         captureException(e, scope => markEventUnhandled(scope, 'auto.function.aws-serverless.handler'));
         throw e;
       } finally {

@@ -148,5 +148,6 @@ export { awsIntegration } from './integration/aws';
 export { awsLambdaIntegration } from './integration/awslambda';
 
 export { getDefaultIntegrations, init } from './init';
-export { wrapHandler } from './sdk';
+// eslint-disable-next-line deprecation/deprecation
+export { tryPatchHandler, wrapHandler } from './sdk';
 export type { WrapperOptions } from './sdk';
