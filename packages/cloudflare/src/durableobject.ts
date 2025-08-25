@@ -304,7 +304,7 @@ function instrumentPrototype<T extends NewableFunction>(target: T): void {
 
   while (current && current !== Object.prototype) {
     Object.getOwnPropertyNames(current).forEach(name => {
-      if (name !== 'constructor' && typeof current[name] === 'function') {
+      if (name !== 'constructor' && typeof (current as Record<string, unknown>)[name] === 'function') {
         methodNames.add(name);
       }
     });
@@ -313,20 +313,24 @@ function instrumentPrototype<T extends NewableFunction>(target: T): void {
 
   // Instrument each method on the prototype
   methodNames.forEach(methodName => {
-    const originalMethod = proto[methodName];
+    const originalMethod = (proto as Record<string, unknown>)[methodName];
 
     if (!originalMethod || isInstrumented(originalMethod)) {
       return;
     }
 
     // Create a wrapper that gets context/options from the instance at runtime
-    const wrappedMethod = function (this: any, ...args: any[]) {
-      const instanceContext = this.__SENTRY_CONTEXT__;
-      const instanceOptions = this.__SENTRY_OPTIONS__;
+    const wrappedMethod = function (this: any, ...args: any[]): unknown {
+      const thisWithSentry = this as {
+        __SENTRY_CONTEXT__: DurableObjectState;
+        __SENTRY_OPTIONS__: CloudflareOptions;
+      };
+      const instanceContext = thisWithSentry.__SENTRY_CONTEXT__;
+      const instanceOptions = thisWithSentry.__SENTRY_OPTIONS__;
 
       if (!instanceOptions) {
         // Fallback to original method if no Sentry data found
-        return originalMethod.apply(this, args);
+        return (originalMethod as (...args: any[]) => any).apply(this, args);
       }
 
       // Use the existing wrapper but with instance-specific context/options
@@ -337,12 +341,12 @@ function instrumentPrototype<T extends NewableFunction>(target: T): void {
           spanName: methodName,
           spanOp: 'rpc',
         },
-        originalMethod,
+        originalMethod as (...args: any[]) => any,
         undefined,
         true, // noMark = true since we'll mark the prototype method
       );
 
-      return wrapper.apply(this, args);
+      return (wrapper as (...args: any[]) => any).apply(this, args);
     };
 
     markAsInstrumented(wrappedMethod);

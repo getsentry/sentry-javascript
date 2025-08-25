@@ -51,7 +51,7 @@ describe('instrumentDurableObjectWithSentry', () => {
     } as any;
     const mockEnv = {} as any; // Environment mock
     const initCore = vi.spyOn(SentryCore, 'initAndBind');
-    const getClientSpy = vi.spyOn(SentryCore, 'getClient').mockReturnValue(undefined);
+    vi.spyOn(SentryCore, 'getClient').mockReturnValue(undefined);
     const options = vi
       .fn()
       .mockReturnValueOnce({
@@ -63,12 +63,18 @@ describe('instrumentDurableObjectWithSentry', () => {
     const testClass = class {
       method() {}
     };
-    const instance1 = Reflect.construct(instrumentDurableObjectWithSentry(options, testClass as any), [mockContext, mockEnv]) as any;
+    const instance1 = Reflect.construct(instrumentDurableObjectWithSentry(options, testClass as any), [
+      mockContext,
+      mockEnv,
+    ]) as any;
     instance1.method();
-    
-    const instance2 = Reflect.construct(instrumentDurableObjectWithSentry(options, testClass as any), [mockContext, mockEnv]) as any;
+
+    const instance2 = Reflect.construct(instrumentDurableObjectWithSentry(options, testClass as any), [
+      mockContext,
+      mockEnv,
+    ]) as any;
     instance2.method();
-    
+
     expect(initCore).nthCalledWith(1, expect.any(Function), expect.objectContaining({ orgId: 1 }));
     expect(initCore).nthCalledWith(2, expect.any(Function), expect.objectContaining({ orgId: 2 }));
   });

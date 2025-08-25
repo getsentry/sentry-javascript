@@ -21,16 +21,12 @@ export const TestDurableObject = Sentry.instrumentDurableObjectWithSentry(
   (env: Env) => ({
     dsn: env.SENTRY_DSN,
     tracesSampleRate: 1.0,
-    beforeSendTransaction: transaction => {
-      console.log('beforeSendTransaction', transaction);
-      return transaction;
-    },
   }),
   TestDurableObjectBase,
 );
 
 export default {
-  async fetch(request, env): Promise<Response> {
+  async fetch(request: Request, env: Env): Promise<Response> {
     const id: DurableObjectId = env.TEST_DURABLE_OBJECT.idFromName('test');
     const stub = env.TEST_DURABLE_OBJECT.get(id) as unknown as TestDurableObjectBase;
 
