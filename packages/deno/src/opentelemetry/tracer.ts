@@ -1,6 +1,11 @@
 import type { Context, Span, SpanOptions, Tracer, TracerProvider } from '@opentelemetry/api';
-import { trace } from '@opentelemetry/api';
-import { startInactiveSpan, startSpanManual } from '@sentry/core';
+import { SpanKind, trace } from '@opentelemetry/api';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  startInactiveSpan,
+  startSpanManual,
+} from '@sentry/core';
 
 /**
  * Set up a mock OTEL tracer to allow inter-op with OpenTelemetry emitted spans.
@@ -26,11 +31,16 @@ class SentryDenoTraceProvider implements TracerProvider {
 
 class SentryDenoTracer implements Tracer {
   public startSpan(name: string, options?: SpanOptions): Span {
+    // Map OpenTelemetry SpanKind to Sentry operation
+    const op = this._mapSpanKindToOp(options?.kind);
+
     return startInactiveSpan({
       name,
       ...options,
       attributes: {
         ...options?.attributes,
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'manual',
+        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op,
         'sentry.deno_tracer': true,
       },
     });
@@ -55,11 +65,16 @@ class SentryDenoTracer implements Tracer {
   ): ReturnType<F> {
     const opts = (typeof options === 'object' && options !== null ? options : {}) as SpanOptions;
 
+    // Map OpenTelemetry SpanKind to Sentry operation
+    const op = this._mapSpanKindToOp(opts.kind);
+
     const spanOpts = {
       name,
       ...opts,
       attributes: {
         ...opts.attributes,
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'manual',
+        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op,
         'sentry.deno_tracer': true,
       },
     };
@@ -76,5 +91,20 @@ class SentryDenoTracer implements Tracer {
 
     // In OTEL the semantic matches `startSpanManual` because spans are not auto-ended
     return startSpanManual(spanOpts, callback) as ReturnType<F>;
+  }
+
+  private _mapSpanKindToOp(kind?: SpanKind): string {
+    switch (kind) {
+      case SpanKind.CLIENT:
+        return 'http.client';
+      case SpanKind.SERVER:
+        return 'http.server';
+      case SpanKind.PRODUCER:
+        return 'message.produce';
+      case SpanKind.CONSUMER:
+        return 'message.consume';
+      default:
+        return 'otel.span';
+    }
   }
 }
