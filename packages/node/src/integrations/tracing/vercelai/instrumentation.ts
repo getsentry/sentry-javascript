@@ -4,10 +4,10 @@ import type { Span } from '@sentry/core';
 import {
   addNonEnumerableProperty,
   captureException,
-  cleanupToolCallSpan,
+  _INTERNAL_cleanupToolCallSpan,
   getActiveSpan,
   getCurrentScope,
-  getSpanForToolCallId,
+  _INTERNAL_getSpanForToolCallId,
   handleCallbackErrors,
   SDK_VERSION,
   withScope,
@@ -84,7 +84,7 @@ function checkResultForToolErrors(result: unknown | Promise<unknown>): void {
   for (const item of resultObj.content) {
     if (isToolError(item)) {
       // Try to get the span associated with this tool call ID
-      const associatedSpan = getSpanForToolCallId(item.toolCallId) as Span;
+      const associatedSpan = _INTERNAL_getSpanForToolCallId(item.toolCallId) as Span;
 
       if (associatedSpan) {
         // We have the span, so link the error using span and trace IDs from the span
@@ -112,7 +112,7 @@ function checkResultForToolErrors(result: unknown | Promise<unknown>): void {
 
         // Clean up the span mapping since we've processed this tool error
         // We won't get multiple { type: 'tool-error' } parts for the same toolCallId.
-        cleanupToolCallSpan(item.toolCallId);
+        _INTERNAL_cleanupToolCallSpan(item.toolCallId);
       } else {
         // Fallback: capture without span linking
         withScope(scope => {

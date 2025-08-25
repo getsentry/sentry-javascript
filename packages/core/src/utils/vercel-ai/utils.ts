@@ -60,13 +60,13 @@ export function applyAccumulatedTokens(
 /**
  * Get the span associated with a tool call ID
  */
-export function getSpanForToolCallId(toolCallId: string): Span | undefined {
+export function _INTERNAL_getSpanForToolCallId(toolCallId: string): Span | undefined {
   return toolCallSpanMap.get(toolCallId);
 }
 
 /**
  * Clean up the span mapping for a tool call ID
  */
-export function cleanupToolCallSpan(toolCallId: string): void {
+export function _INTERNAL_cleanupToolCallSpan(toolCallId: string): void {
   toolCallSpanMap.delete(toolCallId);
 }
