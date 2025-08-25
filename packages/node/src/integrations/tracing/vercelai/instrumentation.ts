@@ -97,11 +97,8 @@ function checkResultForToolErrors(result: unknown | Promise<unknown>): void {
             span_id: spanContext.spanId,
           });
 
-          // Add tool-specific tags
           scope.setTag('vercel.ai.tool.name', item.toolName);
           scope.setTag('vercel.ai.tool.callId', item.toolCallId);
-          scope.setTag('vercel.ai.tool.span.id', spanContext.spanId);
-          scope.setTag('vercel.ai.tool.trace.id', spanContext.traceId);
 
           scope.setLevel('error');
 
