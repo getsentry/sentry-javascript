@@ -4,6 +4,8 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+Work in this release was contributed by @Karibash. Thank you for your contribution!
+
 ## 10.5.0
 
 - feat(core): better cause data extraction ([#17375](https://github.com/getsentry/sentry-javascript/pull/17375))
