@@ -18,24 +18,31 @@ export function isRedirect(error: unknown): boolean {
 }
 
 /**
+ * Filter function for low quality transactions
+ *
+ * Exported only for tests
+ */
+export function lowQualityTransactionsFilter(options: Options): EventProcessor {
+  return Object.assign(
+    (event => {
+      if (event.type !== 'transaction') {
+        return event;
+      }
+      // Filter out transactions for build assets
+      if (event.transaction?.match(/^GET \/_build\//)) {
+        options.debug && debug.log('SolidStartLowQualityTransactionsFilter filtered transaction', event.transaction);
+        return null;
+      }
+      return event;
+    }) satisfies EventProcessor,
+    { id: 'SolidStartLowQualityTransactionsFilter' },
+  );
+}
+
+/**
  * Adds an event processor to filter out low quality transactions,
  * e.g. to filter out transactions for build assets
  */
 export function filterLowQualityTransactions(options: Options): void {
-  getGlobalScope().addEventProcessor(
-    Object.assign(
-      (event => {
-        if (event.type !== 'transaction') {
-          return event;
-        }
-        // Filter out transactions for build assets
-        if (event.transaction?.match(/^GET \/_build\//)) {
-          options.debug && debug.log('SolidStartLowQualityTransactionsFilter filtered transaction', event.transaction);
-          return null;
-        }
-        return event;
-      }) satisfies EventProcessor,
-      { id: 'SolidStartLowQualityTransactionsFilter' },
-    ),
-  );
+  getGlobalScope().addEventProcessor(lowQualityTransactionsFilter(options));
 }

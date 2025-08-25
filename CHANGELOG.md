@@ -4,6 +4,72 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 10.5.0
+
+- feat(core): better cause data extraction ([#17375](https://github.com/getsentry/sentry-javascript/pull/17375))
+- feat(deps): Bump @sentry/cli from 2.50.2 to 2.51.1 ([#17382](https://github.com/getsentry/sentry-javascript/pull/17382))
+- feat(deps): Bump @sentry/rollup-plugin and @sentry/vite-plugin from 4.0.2 to 4.1.0 ([#17383](https://github.com/getsentry/sentry-javascript/pull/17383))
+- feat(deps): Bump @sentry/webpack-plugin from 4.0.2 to 4.1.0 ([#17381](https://github.com/getsentry/sentry-javascript/pull/17381))
+- feat(node): Capture `SystemError` context and remove paths from message ([#17331](https://github.com/getsentry/sentry-javascript/pull/17331))
+- fix(nextjs): Inject Next.js version for dev symbolication ([#17379](https://github.com/getsentry/sentry-javascript/pull/17379))
+- fix(mcp-server): Add defensive patches for Transport edge cases ([#17291](https://github.com/getsentry/sentry-javascript/pull/17291))
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+
+- chore(repo): Adjust "Publishing a Release" document to include internal changes section in changelog ([#17374](https://github.com/getsentry/sentry-javascript/pull/17374))
+- test(aws): Run E2E tests with AWS SAM ([#17367](https://github.com/getsentry/sentry-javascript/pull/17367))
+- test(node): Add tests for full http.server span attribute coverage ([#17373](https://github.com/getsentry/sentry-javascript/pull/17373))
+
+</details>
+
+Work in this release was contributed by @ha1fstack. Thank you for your contribution!
+
+## 10.4.0
+
+### Important Changes
+
+- **fix(browser): Ensure IP address is only inferred by Relay if `sendDefaultPii` is `true`**
+
+This release includes a fix for a [behaviour change](https://docs.sentry.io/platforms/javascript/migration/v8-to-v9/#behavior-changes)
+that was originally introduced with v9 of the SDK: User IP Addresses should only be added to Sentry events automatically,
+if `sendDefaultPii` was set to `true`.
+
+However, the change in v9 required further internal adjustment, which should have been included in v10 of the SDK.
+Unfortunately, the change did not make it into the initial v10 version but is now applied with `10.4.0`.
+There is _no API_ breakage involved and hence it is safe to update.
+However, after updating the SDK, events (errors, traces, replays, etc.) sent from the browser, will only include
+user IP addresses, if you set `sendDefaultPii: true` in your `Sentry.init` options.
+
+We apologize for any inconvenience caused!
+
+- **feat(node): Add `ignoreStaticAssets` ([#17370](https://github.com/getsentry/sentry-javascript/pull/17370))**
+
+This release adds a new option to `httpIntegration` to ignore requests for static assets (e.g. `favicon.xml` or `robots.txt`). The option defaults to `true`, meaning that going forward, such requests will not be traced by default. You can still enable tracing for these requests by setting the option to `false`:
+
+```js
+Sentry.init({
+  integrations: [
+    Sentry.httpIntegration({
+      // defaults to true, set to false to enable traces for static assets
+      ignoreStaticAssets: false,
+    }),
+  ],
+});
+```
+
+### Other Changes
+
+- fix(nuxt): Do not drop parametrized routes ([#17357](https://github.com/getsentry/sentry-javascript/pull/17357))
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+
+- ref(node): Split up incoming & outgoing http handling ([#17358](https://github.com/getsentry/sentry-javascript/pull/17358))
+- test(node): Enable additionalDependencies in integration runner ([#17361](https://github.com/getsentry/sentry-javascript/pull/17361))
+
+</details>
+
 ## 10.3.0
 
 - feat(core): MCP Server - Capture prompt results from prompt function calls (#17284)

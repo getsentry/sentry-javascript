@@ -1,10 +1,9 @@
-import type { EventProcessor } from '@sentry/core';
-import type { NodeClient } from '@sentry/node';
+import type { Event, EventProcessor } from '@sentry/core';
 import * as SentryNode from '@sentry/node';
 import { getGlobalScope, Scope, SDK_VERSION } from '@sentry/node';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { init } from '../../src/server';
-import { clientSourceMapErrorFilter } from '../../src/server/sdk';
+import { clientSourceMapErrorFilter, lowQualityTransactionsFilter } from '../../src/server/sdk';
 
 const nodeInit = vi.spyOn(SentryNode, 'init');
 
@@ -42,41 +41,43 @@ describe('Nuxt Server SDK', () => {
       expect(init({})).not.toBeUndefined();
     });
 
-    describe('lowQualityTransactionsFilter (%s)', () => {
-      const beforeSendEvent = vi.fn(event => event);
-      const client = init({
-        dsn: 'https://public@dsn.ingest.sentry.io/1337',
-      }) as NodeClient;
-      client.on('beforeSendEvent', beforeSendEvent);
+    describe('lowQualityTransactionsFilter', () => {
+      const options = { debug: false };
+      const filter = lowQualityTransactionsFilter(options);
 
-      it.each([
-        [
+      describe('filters out low quality transactions', () => {
+        it.each([
           'GET /_nuxt/some_asset.js',
           'GET _nuxt/some_asset.js',
           'GET /icons/favicon.ico',
           'GET /assets/logo.png',
           'GET /icons/zones/forest.svg',
-        ],
-      ])('filters out low quality transactions', async transaction => {
-        client.captureEvent({ type: 'transaction', transaction });
-        await client!.flush();
-        expect(beforeSendEvent).not.toHaveBeenCalled();
+        ])('filters out low quality transaction: (%s)', transaction => {
+          const event = { type: 'transaction' as const, transaction };
+          expect(filter(event, {})).toBeNull();
+        });
       });
 
-      // Nuxt parametrizes routes sometimes in a special way - especially catchAll o.O
-      it.each(['GET /', 'POST /_server', 'GET /catchAll/:id(.*)*', 'GET /article/:slug()', 'GET /user/:id'])(
-        'does not filter out high quality or route transactions (%s)',
-        async transaction => {
-          client.captureEvent({ type: 'transaction', transaction });
-          await client!.flush();
-          expect(beforeSendEvent).toHaveBeenCalledWith(
-            expect.objectContaining({
-              transaction,
-            }),
-            expect.any(Object),
-          );
-        },
-      );
+      describe('keeps high quality transactions', () => {
+        // Nuxt parametrizes routes sometimes in a special way - especially catchAll o.O
+        it.each(['GET /', 'POST /_server', 'GET /catchAll/:id(.*)*', 'GET /article/:slug()', 'GET /user/:id'])(
+          'does not filter out route transactions (%s)',
+          transaction => {
+            const event = { type: 'transaction' as const, transaction };
+            expect(filter(event, {})).toEqual(event);
+          },
+        );
+      });
+
+      it('does not filter non-transaction events', () => {
+        const event = { type: 'error' as const, transaction: 'GET /assets/image.png' } as unknown as Event;
+        expect(filter(event, {})).toEqual(event);
+      });
+
+      it('handles events without transaction property', () => {
+        const event = { type: 'transaction' as const };
+        expect(filter(event, {})).toEqual(event);
+      });
     });
 
     it('registers an event processor', async () => {

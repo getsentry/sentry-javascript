@@ -75,13 +75,13 @@ const cacheResponseHook: RedisResponseCustomAttributeFunction = (span: Span, red
   span.updateName(truncate(spanDescription, 1024));
 };
 
-const instrumentIORedis = generateInstrumentOnce('IORedis', () => {
+const instrumentIORedis = generateInstrumentOnce(`${INTEGRATION_NAME}.IORedis`, () => {
   return new IORedisInstrumentation({
     responseHook: cacheResponseHook,
   });
 });
 
-const instrumentRedisModule = generateInstrumentOnce('Redis', () => {
+const instrumentRedisModule = generateInstrumentOnce(`${INTEGRATION_NAME}.Redis`, () => {
   return new RedisInstrumentation({
     responseHook: cacheResponseHook,
   });

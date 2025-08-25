@@ -33,6 +33,9 @@ describe('Sentry client SDK', () => {
                 { name: 'npm:@sentry/sveltekit', version: SDK_VERSION },
                 { name: 'npm:@sentry/svelte', version: SDK_VERSION },
               ],
+              settings: {
+                infer_ip: 'never',
+              },
             },
           },
         }),
