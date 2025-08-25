@@ -10,7 +10,7 @@ describe('instrumentDurableObjectWithSentry', () => {
   });
 
   it('Generic functionality', () => {
-    const options = vi.fn();
+    const options = vi.fn().mockReturnValue({});
     const instrumented = instrumentDurableObjectWithSentry(options, vi.fn());
     expect(instrumented).toBeTypeOf('function');
     expect(() => Reflect.construct(instrumented, [])).not.toThrow();
@@ -23,7 +23,7 @@ describe('instrumentDurableObjectWithSentry', () => {
         return 'sync-result';
       }
     };
-    const obj = Reflect.construct(instrumentDurableObjectWithSentry(vi.fn(), testClass as any), []) as any;
+    const obj = Reflect.construct(instrumentDurableObjectWithSentry(vi.fn().mockReturnValue({}), testClass as any), []) as any;
     expect(obj.method).toBe(obj.method);
 
     const result = obj.method();
@@ -37,7 +37,7 @@ describe('instrumentDurableObjectWithSentry', () => {
         return 'async-result';
       }
     };
-    const obj = Reflect.construct(instrumentDurableObjectWithSentry(vi.fn(), testClass as any), []) as any;
+    const obj = Reflect.construct(instrumentDurableObjectWithSentry(vi.fn().mockReturnValue({}), testClass as any), []) as any;
     expect(obj.asyncMethod).toBe(obj.asyncMethod);
 
     const result = obj.asyncMethod();
@@ -56,9 +56,11 @@ describe('instrumentDurableObjectWithSentry', () => {
       .fn()
       .mockReturnValueOnce({
         orgId: 1,
+        instrumentPrototypeMethods: true,
       })
       .mockReturnValueOnce({
         orgId: 2,
+        instrumentPrototypeMethods: true,
       });
     const testClass = class {
       method() {}
@@ -79,7 +81,7 @@ describe('instrumentDurableObjectWithSentry', () => {
     expect(initCore).nthCalledWith(2, expect.any(Function), expect.objectContaining({ orgId: 2 }));
   });
 
-  it('All available durable object methods are instrumented', () => {
+  it('All available durable object methods are instrumented when instrumentPrototypeMethods is enabled', () => {
     const testClass = class {
       propertyFunction = vi.fn();
 
@@ -95,7 +97,7 @@ describe('instrumentDurableObjectWithSentry', () => {
 
       webSocketError() {}
     };
-    const instrumented = instrumentDurableObjectWithSentry(vi.fn(), testClass as any);
+    const instrumented = instrumentDurableObjectWithSentry(vi.fn().mockReturnValue({ instrumentPrototypeMethods: true }), testClass as any);
     const obj = Reflect.construct(instrumented, []);
     for (const method_name of [
       'propertyFunction',
@@ -134,5 +136,94 @@ describe('instrumentDurableObjectWithSentry', () => {
     vi.advanceTimersToNextTimer();
     await Promise.all(waitUntil.mock.calls.map(([p]) => p));
     expect(flush).toBeCalled();
+  });
+
+  describe('instrumentPrototypeMethods option', () => {
+    it('does not instrument prototype methods when option is not set', () => {
+      const testClass = class {
+        prototypeMethod() {
+          return 'prototype-result';
+        }
+      };
+      const options = vi.fn().mockReturnValue({});
+      const instrumented = instrumentDurableObjectWithSentry(options, testClass as any);
+      const obj = Reflect.construct(instrumented, []) as any;
+
+      expect(isInstrumented(obj.prototypeMethod)).toBeFalsy();
+    });
+
+    it('does not instrument prototype methods when option is false', () => {
+      const testClass = class {
+        prototypeMethod() {
+          return 'prototype-result';
+        }
+      };
+      const options = vi.fn().mockReturnValue({ instrumentPrototypeMethods: false });
+      const instrumented = instrumentDurableObjectWithSentry(options, testClass as any);
+      const obj = Reflect.construct(instrumented, []) as any;
+
+      expect(isInstrumented(obj.prototypeMethod)).toBeFalsy();
+    });
+
+    it('instruments all prototype methods when option is true', () => {
+      const testClass = class {
+        methodOne() {
+          return 'one';
+        }
+        methodTwo() {
+          return 'two';
+        }
+      };
+      const options = vi.fn().mockReturnValue({ instrumentPrototypeMethods: true });
+      const instrumented = instrumentDurableObjectWithSentry(options, testClass as any);
+      const obj = Reflect.construct(instrumented, []) as any;
+
+      expect(isInstrumented(obj.methodOne)).toBeTruthy();
+      expect(isInstrumented(obj.methodTwo)).toBeTruthy();
+    });
+
+    it('instruments only specified methods when option is array', () => {
+      const testClass = class {
+        methodOne() {
+          return 'one';
+        }
+        methodTwo() {
+          return 'two';
+        }
+        methodThree() {
+          return 'three';
+        }
+      };
+      const options = vi.fn().mockReturnValue({ instrumentPrototypeMethods: ['methodOne', 'methodThree'] });
+      const instrumented = instrumentDurableObjectWithSentry(options, testClass as any);
+      const obj = Reflect.construct(instrumented, []) as any;
+
+      expect(isInstrumented(obj.methodOne)).toBeTruthy();
+      expect(isInstrumented(obj.methodTwo)).toBeFalsy();
+      expect(isInstrumented(obj.methodThree)).toBeTruthy();
+    });
+
+    it('still instruments instance methods regardless of prototype option', () => {
+      const testClass = class {
+        propertyFunction = vi.fn();
+
+        fetch() {}
+        alarm() {}
+        webSocketMessage() {}
+        webSocketClose() {}
+        webSocketError() {}
+      };
+      const options = vi.fn().mockReturnValue({ instrumentPrototypeMethods: false });
+      const instrumented = instrumentDurableObjectWithSentry(options, testClass as any);
+      const obj = Reflect.construct(instrumented, []) as any;
+
+      // Instance methods should still be instrumented
+      expect(isInstrumented(obj.propertyFunction)).toBeTruthy();
+      expect(isInstrumented(obj.fetch)).toBeTruthy();
+      expect(isInstrumented(obj.alarm)).toBeTruthy();
+      expect(isInstrumented(obj.webSocketMessage)).toBeTruthy();
+      expect(isInstrumented(obj.webSocketClose)).toBeTruthy();
+      expect(isInstrumented(obj.webSocketError)).toBeTruthy();
+    });
   });
 });

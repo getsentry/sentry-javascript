@@ -288,14 +288,16 @@ export function instrumentDurableObjectWithSentry<
         configurable: false,
       });
 
-      instrumentPrototype(target);
+      if (options?.instrumentPrototypeMethods) {
+        instrumentPrototype(target, options.instrumentPrototypeMethods);
+      }
 
       return obj;
     },
   });
 }
 
-function instrumentPrototype<T extends NewableFunction>(target: T): void {
+function instrumentPrototype<T extends NewableFunction>(target: T, methodsToInstrument: boolean | string[]): void {
   const proto = target.prototype;
 
   // Get all methods from the prototype chain
@@ -311,11 +313,19 @@ function instrumentPrototype<T extends NewableFunction>(target: T): void {
     current = Object.getPrototypeOf(current);
   }
 
+  // Create a set for efficient lookups when methodsToInstrument is an array
+  const methodsToInstrumentSet = Array.isArray(methodsToInstrument) ? new Set(methodsToInstrument) : null;
+
   // Instrument each method on the prototype
   methodNames.forEach(methodName => {
     const originalMethod = (proto as Record<string, unknown>)[methodName];
 
     if (!originalMethod || isInstrumented(originalMethod)) {
+      return;
+    }
+
+    // If methodsToInstrument is an array, only instrument methods in that set
+    if (methodsToInstrumentSet && !methodsToInstrumentSet.has(methodName)) {
       return;
     }
 
