@@ -916,12 +916,6 @@ jobs:
         with:
           use-installer: true
           token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Pull SAM Docker images
-        if: matrix.test-application == 'aws-serverless'
-        run: |
-          docker pull public.ecr.aws/sam/build-nodejs18.x:latest
-          docker pull public.ecr.aws/sam/build-nodejs20.x:latest
-          docker pull public.ecr.aws/sam/build-nodejs22.x:latest
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         with:
@@ -967,6 +961,16 @@ jobs:
         with:
           browsers: chromium
           cwd: ${{ runner.temp }}/test-application
+
+      - name: Pull SAM Node 18 image
+        if: matrix.test-application == 'aws-serverless' && contains(matrix.assert-command, 'NODE_VERSION=18')
+        run: |
+          docker pull public.ecr.aws/sam/build-nodejs18.x:latest
+
+      - name: Pull SAM Node 20 image
+        if: matrix.test-application == 'aws-serverless' && contains(matrix.assert-command, 'NODE_VERSION=20')
+        run: |
+          docker pull public.ecr.aws/sam/build-nodejs20.x:latest
 
       - name: Run E2E test
         working-directory: ${{ runner.temp }}/test-application

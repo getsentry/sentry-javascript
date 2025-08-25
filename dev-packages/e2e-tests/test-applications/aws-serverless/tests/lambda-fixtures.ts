@@ -45,7 +45,6 @@ export const test = base.extend<{ testEnvironment: LocalLambdaStack; lambdaClien
         args.push('--invoke-image', `public.ecr.aws/sam/build-nodejs${process.env.NODE_VERSION}.x:latest`);
       }
 
-      console.log(`[testEnvironment fixture] NODE_VERSION: ${process.env.NODE_VERSION}`);
       console.log(`[testEnvironment fixture] Running SAM with args: ${args.join(' ')}`);
 
       const samProcess = spawn('sam', args, {
