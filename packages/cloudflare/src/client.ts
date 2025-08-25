@@ -68,6 +68,29 @@ interface BaseCloudflareOptions {
    * @default false
    */
   skipOpenTelemetrySetup?: boolean;
+
+  /**
+   * Enable instrumentation of prototype methods for DurableObjects.
+   *
+   * When `true`, the SDK will wrap all methods on the DurableObject prototype chain
+   * to automatically create spans and capture errors for RPC method calls.
+   *
+   * When an array of strings is provided, only the specified method names will be instrumented.
+   *
+   * This feature adds runtime overhead as it wraps methods at the prototype level.
+   * Only enable this if you need automatic instrumentation of prototype methods.
+   *
+   * @default false
+   * @example
+   * ```ts
+   * // Instrument all prototype methods
+   * instrumentPrototypeMethods: true
+   *
+   * // Instrument only specific methods
+   * instrumentPrototypeMethods: ['myMethod', 'anotherMethod']
+   * ```
+   */
+  instrumentPrototypeMethods?: boolean | string[];
 }
 
 /**
