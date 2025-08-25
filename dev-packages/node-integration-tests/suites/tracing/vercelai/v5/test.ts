@@ -529,9 +529,6 @@ describe('Vercel AI integration (V5)', () => {
           .start()
           .completed();
 
-        // eslint-disable-next-line no-console
-        console.log('expectedError', expectedError);
-
         expect(transactionEvent).toBeDefined();
         expect(transactionEvent).toMatchObject(expectedTransaction);
 
