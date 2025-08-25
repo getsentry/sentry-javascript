@@ -110,8 +110,7 @@ function wrapMethodWithSentry<T extends OriginalMethod>(
             }
           : {};
 
-        // Only create these spans if they have a parent span.
-        return startSpan({ name: wrapperOptions.spanName, attributes, onlyIfParent: true }, () => {
+        return startSpan({ name: wrapperOptions.spanName, attributes }, () => {
           try {
             const result = Reflect.apply(target, thisArg, args);
 
@@ -273,46 +272,101 @@ export function instrumentDurableObjectWithSentry<
           );
         }
       }
-      const instrumentedPrototype = instrumentPrototype(target, options, context);
-      Object.setPrototypeOf(obj, instrumentedPrototype);
+
+      // Store context and options on the instance for prototype methods to access
+      Object.defineProperty(obj, '__SENTRY_CONTEXT__', {
+        value: context,
+        enumerable: false,
+        writable: false,
+        configurable: false,
+      });
+
+      Object.defineProperty(obj, '__SENTRY_OPTIONS__', {
+        value: options,
+        enumerable: false,
+        writable: false,
+        configurable: false,
+      });
+
+      if (options?.instrumentPrototypeMethods) {
+        instrumentPrototype(target, options.instrumentPrototypeMethods);
+      }
 
       return obj;
     },
   });
 }
 
-function instrumentPrototype<T extends NewableFunction>(
-  target: T,
-  options: CloudflareOptions,
-  context: MethodWrapperOptions['context'],
-): T {
-  return new Proxy(target.prototype, {
-    get(target, prop, receiver) {
-      const value = Reflect.get(target, prop, receiver);
-      if (prop === 'constructor' || typeof value !== 'function') {
-        return value;
+function instrumentPrototype<T extends NewableFunction>(target: T, methodsToInstrument: boolean | string[]): void {
+  const proto = target.prototype;
+
+  // Get all methods from the prototype chain
+  const methodNames = new Set<string>();
+  let current = proto;
+
+  while (current && current !== Object.prototype) {
+    Object.getOwnPropertyNames(current).forEach(name => {
+      if (name !== 'constructor' && typeof (current as Record<string, unknown>)[name] === 'function') {
+        methodNames.add(name);
       }
-      const wrapped = wrapMethodWithSentry(
-        { options, context, spanName: prop.toString(), spanOp: 'rpc' },
-        value,
-        undefined,
-        true,
-      );
-      const instrumented = new Proxy(wrapped, {
-        get(target, p, receiver) {
-          if ('__SENTRY_INSTRUMENTED__' === p) {
-            return true;
-          }
-          return Reflect.get(target, p, receiver);
+    });
+    current = Object.getPrototypeOf(current);
+  }
+
+  // Create a set for efficient lookups when methodsToInstrument is an array
+  const methodsToInstrumentSet = Array.isArray(methodsToInstrument) ? new Set(methodsToInstrument) : null;
+
+  // Instrument each method on the prototype
+  methodNames.forEach(methodName => {
+    const originalMethod = (proto as Record<string, unknown>)[methodName];
+
+    if (!originalMethod || isInstrumented(originalMethod)) {
+      return;
+    }
+
+    // If methodsToInstrument is an array, only instrument methods in that set
+    if (methodsToInstrumentSet && !methodsToInstrumentSet.has(methodName)) {
+      return;
+    }
+
+    // Create a wrapper that gets context/options from the instance at runtime
+    const wrappedMethod = function (this: any, ...args: any[]): unknown {
+      const thisWithSentry = this as {
+        __SENTRY_CONTEXT__: DurableObjectState;
+        __SENTRY_OPTIONS__: CloudflareOptions;
+      };
+      const instanceContext = thisWithSentry.__SENTRY_CONTEXT__;
+      const instanceOptions = thisWithSentry.__SENTRY_OPTIONS__;
+
+      if (!instanceOptions) {
+        // Fallback to original method if no Sentry data found
+        return (originalMethod as (...args: any[]) => any).apply(this, args);
+      }
+
+      // Use the existing wrapper but with instance-specific context/options
+      const wrapper = wrapMethodWithSentry(
+        {
+          options: instanceOptions,
+          context: instanceContext,
+          spanName: methodName,
+          spanOp: 'rpc',
         },
-      });
-      Object.defineProperty(receiver, prop, {
-        value: instrumented,
-        enumerable: true,
-        writable: true,
-        configurable: true,
-      });
-      return instrumented;
-    },
+        originalMethod as (...args: any[]) => any,
+        undefined,
+        true, // noMark = true since we'll mark the prototype method
+      );
+
+      return (wrapper as (...args: any[]) => any).apply(this, args);
+    };
+
+    markAsInstrumented(wrappedMethod);
+
+    // Replace the prototype method
+    Object.defineProperty(proto, methodName, {
+      value: wrappedMethod,
+      enumerable: false,
+      writable: true,
+      configurable: true,
+    });
   });
 }
