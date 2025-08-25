@@ -126,6 +126,7 @@ export {
   vercelAIIntegration,
   logger,
   consoleLoggingIntegration,
+  createConsolaReporter,
   wrapMcpServerWithSentry,
   NODE_VERSION,
   featureFlagsIntegration,
