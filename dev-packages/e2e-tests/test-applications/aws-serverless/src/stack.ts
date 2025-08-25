@@ -72,8 +72,6 @@ export class LocalLambdaStack extends Stack {
         execFileSync('npm', ['install', '--prefix', path.join(functionsDir, lambdaDir)], { stdio: 'inherit' });
       }
 
-      const isEsm = fs.existsSync(path.join(functionsDir, lambdaDir, 'index.mjs'));
-
       new CfnResource(this, functionName, {
         type: 'AWS::Serverless::Function',
         properties: {
@@ -87,7 +85,7 @@ export class LocalLambdaStack extends Stack {
               SENTRY_DSN: dsn,
               SENTRY_TRACES_SAMPLE_RATE: 1.0,
               SENTRY_DEBUG: true,
-              NODE_OPTIONS: `--${isEsm ? 'import' : 'require'}=@sentry/aws-serverless/awslambda-auto`,
+              NODE_OPTIONS: `--import=@sentry/aws-serverless/awslambda-auto`,
             },
           },
         },
