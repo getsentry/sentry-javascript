@@ -126,8 +126,8 @@ export function constructWebpackConfigFunction(
     const middlewareLocationFolder = pagesDirPath
       ? path.join(pagesDirPath, '..')
       : appDirPath
-        ? path.join(appDirPath, '..')
-        : projectDir;
+      ? path.join(appDirPath, '..')
+      : projectDir;
 
     const staticWrappingLoaderOptions = {
       appDir: appDirPath,

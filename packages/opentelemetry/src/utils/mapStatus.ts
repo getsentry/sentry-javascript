@@ -88,8 +88,8 @@ function inferStatusFromAttributes(attributes: SpanAttributes): SpanStatus | und
     typeof httpCodeAttribute === 'number'
       ? httpCodeAttribute
       : typeof httpCodeAttribute === 'string'
-        ? parseInt(httpCodeAttribute)
-        : undefined;
+      ? parseInt(httpCodeAttribute)
+      : undefined;
 
   if (typeof numberHttpCode === 'number') {
     return getSpanStatusFromHttpCode(numberHttpCode);

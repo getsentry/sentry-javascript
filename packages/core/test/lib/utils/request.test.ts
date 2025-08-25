@@ -60,7 +60,7 @@ describe('request utils', () => {
             callbackfn('value3', 'key3');
           },
         } as any,
-        clone: () => ({}) as any,
+        clone: () => ({} as any),
       });
 
       expect(actual).toEqual({

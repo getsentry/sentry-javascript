@@ -2,10 +2,10 @@ var _sentryModuleMetadataGlobal =
   typeof window !== 'undefined'
     ? window
     : typeof global !== 'undefined'
-      ? global
-      : typeof self !== 'undefined'
-        ? self
-        : {};
+    ? global
+    : typeof self !== 'undefined'
+    ? self
+    : {};
 
 _sentryModuleMetadataGlobal._sentryModuleMetadata = _sentryModuleMetadataGlobal._sentryModuleMetadata || {};
 

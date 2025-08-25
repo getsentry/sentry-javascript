@@ -27,9 +27,9 @@ export function setupSourceMaps(moduleOptions: SentryNuxtModuleOptions, nuxt: Nu
     moduleOptions.sourcemaps?.disable === true
       ? false
       : moduleOptions.sourcemaps?.disable === false
-        ? true
-        : // eslint-disable-next-line deprecation/deprecation
-          sourceMapsUploadOptions.enabled ?? true;
+      ? true
+      : // eslint-disable-next-line deprecation/deprecation
+        sourceMapsUploadOptions.enabled ?? true;
 
   // In case we overwrite the source map settings, we default to deleting the files
   let shouldDeleteFilesFallback = { client: true, server: true };
@@ -220,8 +220,8 @@ export function getPluginOptions(
       filesToDeleteAfterUpload: filesToDeleteAfterUpload
         ? filesToDeleteAfterUpload
         : shouldDeleteFilesFallback?.server || shouldDeleteFilesFallback?.client
-          ? fallbackFilesToDelete
-          : undefined,
+        ? fallbackFilesToDelete
+        : undefined,
       rewriteSources: (source: string) => normalizePath(source),
       ...moduleOptions?.unstable_sentryBundlerPluginOptions?.sourcemaps,
     },

@@ -19,7 +19,7 @@ describe('wrapServerRouteWithSentry', () => {
       route: {
         id: '/api/users/:id',
       },
-    }) as RequestEvent;
+    } as RequestEvent);
 
   beforeEach(() => {
     vi.clearAllMocks();

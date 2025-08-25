@@ -21,8 +21,8 @@ const requestAsyncStorage: RequestAsyncStorage | undefined =
   'workUnitAsyncStorage' in asyncStorageModule
     ? asyncStorageModule.workUnitAsyncStorage
     : 'requestAsyncStorage' in asyncStorageModule
-      ? asyncStorageModule.requestAsyncStorage
-      : undefined;
+    ? asyncStorageModule.requestAsyncStorage
+    : undefined;
 
 declare const serverComponentModule: {
   default: unknown;

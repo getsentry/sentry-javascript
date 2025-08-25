@@ -78,13 +78,10 @@ export function filterMcpPiiFromSpanData(
     return spanData as Record<string, SpanAttributeValue>;
   }
 
-  return Object.entries(spanData).reduce(
-    (acc, [key, value]) => {
-      if (!isPiiAttribute(key)) {
-        acc[key] = value as SpanAttributeValue;
-      }
-      return acc;
-    },
-    {} as Record<string, SpanAttributeValue>,
-  );
+  return Object.entries(spanData).reduce((acc, [key, value]) => {
+    if (!isPiiAttribute(key)) {
+      acc[key] = value as SpanAttributeValue;
+    }
+    return acc;
+  }, {} as Record<string, SpanAttributeValue>);
 }

@@ -91,7 +91,7 @@ function attachTo(button: HTMLElement) {
       },
       onFormSubmitted: () => {
         widget.removeFromDom();
-      }
+      },
     });
     widget.appendToDom();
     widget.open();
@@ -99,8 +99,8 @@ function attachTo(button: HTMLElement) {
 
   button.addEventListener('click', handleClick);
   return () => {
-    button.removeEventListener('click', handleClick)
-  }
+    button.removeEventListener('click', handleClick);
+  };
 }
 ```
 

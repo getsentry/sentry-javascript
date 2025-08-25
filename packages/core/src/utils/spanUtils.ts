@@ -149,8 +149,8 @@ export function spanToJSON(span: Span): SpanJSON {
       'parentSpanId' in span
         ? span.parentSpanId
         : 'parentSpanContext' in span
-          ? (span.parentSpanContext as { spanId?: string } | undefined)?.spanId
-          : undefined;
+        ? (span.parentSpanContext as { spanId?: string } | undefined)?.spanId
+        : undefined;
 
     return {
       span_id,

@@ -87,10 +87,10 @@ export function fillGrpcFunction(stub: Stub, serviceIdentifier: string, methodNa
     !funcObj.requestStream && !funcObj.responseStream
       ? 'unary call'
       : funcObj.requestStream && !funcObj.responseStream
-        ? 'client stream'
-        : !funcObj.requestStream && funcObj.responseStream
-          ? 'server stream'
-          : 'bidi stream';
+      ? 'client stream'
+      : !funcObj.requestStream && funcObj.responseStream
+      ? 'server stream'
+      : 'bidi stream';
   if (callType != 'unary call') {
     return;
   }

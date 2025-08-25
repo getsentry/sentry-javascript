@@ -151,19 +151,19 @@ export function determineRecordingSettings(
     integrationRecordingOptions?.recordInputs !== undefined
       ? integrationRecordingOptions.recordInputs
       : methodTelemetryOptions.recordInputs !== undefined
-        ? methodTelemetryOptions.recordInputs
-        : telemetryExplicitlyEnabled === true
-          ? true // When telemetry is explicitly enabled, default to recording inputs
-          : defaultRecordingEnabled;
+      ? methodTelemetryOptions.recordInputs
+      : telemetryExplicitlyEnabled === true
+      ? true // When telemetry is explicitly enabled, default to recording inputs
+      : defaultRecordingEnabled;
 
   const recordOutputs =
     integrationRecordingOptions?.recordOutputs !== undefined
       ? integrationRecordingOptions.recordOutputs
       : methodTelemetryOptions.recordOutputs !== undefined
-        ? methodTelemetryOptions.recordOutputs
-        : telemetryExplicitlyEnabled === true
-          ? true // When telemetry is explicitly enabled, default to recording inputs
-          : defaultRecordingEnabled;
+      ? methodTelemetryOptions.recordOutputs
+      : telemetryExplicitlyEnabled === true
+      ? true // When telemetry is explicitly enabled, default to recording inputs
+      : defaultRecordingEnabled;
 
   return { recordInputs, recordOutputs };
 }

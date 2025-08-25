@@ -490,7 +490,7 @@ import { Severity, SeverityLevel } from '@sentry/types';
 
 const levelA = Severity.error;
 
-const levelB: SeverityLevel = "error"
+const levelB: SeverityLevel = 'error';
 ```
 
 ```js

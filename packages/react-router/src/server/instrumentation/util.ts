@@ -7,8 +7,8 @@ export function getOpName(pathName: string, requestMethod: string): string {
   return isLoaderRequest(pathName, requestMethod)
     ? 'function.react-router.loader'
     : isActionRequest(pathName, requestMethod)
-      ? 'function.react-router.action'
-      : 'function.react-router';
+    ? 'function.react-router.action'
+    : 'function.react-router';
 }
 
 /**
@@ -20,8 +20,8 @@ export function getSpanName(pathName: string, requestMethod: string): string {
   return isLoaderRequest(pathName, requestMethod)
     ? 'Executing Server Loader'
     : isActionRequest(pathName, requestMethod)
-      ? 'Executing Server Action'
-      : 'Unknown Data Request';
+    ? 'Executing Server Action'
+    : 'Unknown Data Request';
 }
 
 /**

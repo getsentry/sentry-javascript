@@ -408,8 +408,8 @@ export class Scope {
       scopeToMerge instanceof Scope
         ? scopeToMerge.getScopeData()
         : isPlainObject(scopeToMerge)
-          ? (captureContext as ScopeContext)
-          : undefined;
+        ? (captureContext as ScopeContext)
+        : undefined;
 
     const { tags, extra, user, contexts, level, fingerprint = [], propagationContext } = scopeInstance || {};
 

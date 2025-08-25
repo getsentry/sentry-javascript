@@ -31,7 +31,7 @@ export default defineConfig({
     reporters: process.env.DEBUG
       ? ['default', { summary: false }]
       : process.env.GITHUB_ACTIONS
-        ? ['dot', 'github-actions']
-        : ['verbose'],
+      ? ['dot', 'github-actions']
+      : ['verbose'],
   },
 });

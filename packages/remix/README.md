@@ -59,16 +59,9 @@ transactions.
 ```ts
 // root.tsx
 
-import {
-  Links,
-  LiveReload,
-  Meta,
-  Outlet,
-  Scripts,
-  ScrollRestoration,
-} from "@remix-run/react";
+import { Links, LiveReload, Meta, Outlet, Scripts, ScrollRestoration } from '@remix-run/react';
 
-import { withSentry } from "@sentry/remix";
+import { withSentry } from '@sentry/remix';
 
 function App() {
   return (

@@ -542,13 +542,15 @@ Work in this release was contributed by @0xbad0c0d3 and @alSergey. Thank you for
      // server/plugins/sentry-cloudflare-setup.ts (filename does not matter)
      import { sentryCloudflareNitroPlugin } from '@sentry/nuxt/module/plugins';
 
-     export default defineNitroPlugin(sentryCloudflareNitroPlugin((nitroApp: NitroApp) => {
-       // You can access nitroApp here if needed
-       return  ({
-         dsn: 'https://dsn',
-         tracesSampleRate: 1.0,
-       })
-     }))
+     export default defineNitroPlugin(
+       sentryCloudflareNitroPlugin((nitroApp: NitroApp) => {
+         // You can access nitroApp here if needed
+         return {
+           dsn: 'https://dsn',
+           tracesSampleRate: 1.0,
+         };
+       }),
+     );
      ```
 
 ### Other Changes

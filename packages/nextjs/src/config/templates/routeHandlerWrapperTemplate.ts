@@ -21,8 +21,8 @@ const requestAsyncStorage: RequestAsyncStorage | undefined =
   'workUnitAsyncStorage' in asyncStorageModule
     ? asyncStorageModule.workUnitAsyncStorage
     : 'requestAsyncStorage' in asyncStorageModule
-      ? asyncStorageModule.requestAsyncStorage
-      : undefined;
+    ? asyncStorageModule.requestAsyncStorage
+    : undefined;
 
 function wrapHandler<T>(handler: T, method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'HEAD' | 'OPTIONS'): T {
   // Running the instrumentation code during the build phase will mark any function as "dynamic" because we're accessing
