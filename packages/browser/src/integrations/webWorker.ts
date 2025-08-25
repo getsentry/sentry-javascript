@@ -25,7 +25,7 @@ interface WebWorkerIntegration extends Integration {
  * any messages from the worker. Otherwise, your message handlers will receive
  * messages from the Sentry SDK which you need to ignore.
  *
- * This integration only has an effect, if you call `Sentry.registerWorker(self)`
+ * This integration only has an effect, if you call `Sentry.registerWebWorker(self)`
  * from within the worker(s) you're adding to the integration.
  *
  * Given that you want to initialize the SDK as early as possible, you most likely
@@ -113,8 +113,21 @@ function listenForSentryDebugIdMessages(worker: Worker): void {
   });
 }
 
+/**
+ * Minimal interface for DedicatedWorkerGlobalScope, only requiring the postMessage method.
+ * (which is the only thing we need from the worker's global object)
+ *
+ * @see https://developer.mozilla.org/en-US/docs/Web/API/DedicatedWorkerGlobalScope
+ *
+ * We can't use the actual type because it breaks everyone who doesn't have {"lib": ["WebWorker"]}
+ * but uses {"skipLibCheck": true} in their tsconfig.json.
+ */
+interface MinimalDedicatedWorkerGlobalScope {
+  postMessage: (message: unknown) => void;
+}
+
 interface RegisterWebWorkerOptions {
-  self: Worker & { _sentryDebugIds?: Record<string, string> };
+  self: MinimalDedicatedWorkerGlobalScope & { _sentryDebugIds?: Record<string, string> };
 }
 
 /**
@@ -125,7 +138,7 @@ interface RegisterWebWorkerOptions {
  * import * as Sentry from '@sentry/<your-sdk>';
  *
  * // Do this as early as possible in your worker.
- * Sentry.registerWorker({ self });
+ * Sentry.registerWebWorker({ self });
  *
  * // continue setting up your worker
  * self.postMessage(...)

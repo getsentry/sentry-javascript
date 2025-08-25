@@ -1,7 +1,8 @@
 import type { Event } from '@sentry/core';
 import type { Callback, Handler } from 'aws-lambda';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-import { init, wrapHandler } from '../src/sdk';
+import { init } from '../src/init';
+import { wrapHandler } from '../src/sdk';
 
 const mockFlush = vi.fn((...args) => Promise.resolve(args));
 const mockWithScope = vi.fn();
