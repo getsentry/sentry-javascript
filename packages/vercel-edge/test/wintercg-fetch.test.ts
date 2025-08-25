@@ -102,8 +102,8 @@ describe('WinterCGFetch instrumentation', () => {
     expect(fetchInstrumentationHandlerCallback).toBeDefined();
 
     const startHandlerData: HandlerDataFetch = {
-      fetchData: { url: 'https://dsn.ingest.sentry.io/1337', method: 'POST' },
-      args: ['https://dsn.ingest.sentry.io/1337'],
+      fetchData: { url: 'https://dsn.ingest.sentry.io/1337?sentry_key=123', method: 'POST' },
+      args: ['https://dsn.ingest.sentry.io/1337?sentry_key=123'],
       startTimestamp: Date.now(),
     };
     fetchInstrumentationHandlerCallback(startHandlerData);
