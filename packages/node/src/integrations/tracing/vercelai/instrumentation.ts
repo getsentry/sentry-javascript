@@ -2,12 +2,12 @@ import type { InstrumentationConfig, InstrumentationModuleDefinition } from '@op
 import { InstrumentationBase, InstrumentationNodeModuleDefinition } from '@opentelemetry/instrumentation';
 import type { Span } from '@sentry/core';
 import {
+  _INTERNAL_cleanupToolCallSpan,
+  _INTERNAL_getSpanForToolCallId,
   addNonEnumerableProperty,
   captureException,
-  _INTERNAL_cleanupToolCallSpan,
   getActiveSpan,
   getCurrentScope,
-  _INTERNAL_getSpanForToolCallId,
   handleCallbackErrors,
   SDK_VERSION,
   withScope,
