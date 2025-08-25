@@ -41,8 +41,7 @@ export const test = base.extend<{ testEnvironment: LocalLambdaStack; lambdaClien
           //'EAGER',
           '--docker-network',
           DOCKER_NETWORK_NAME,
-          '--invoke-image',
-          `public.ecr.aws/sam/build-nodejs${process.env.NODE_VERSION ?? '22'}.x`,
+          ...(process.env.NODE_VERSION === '18' ? ['--invoke-image', `public.ecr.aws/sam/emulation-nodejs18.x`] : []),
         ],
         {
           stdio: ['ignore', debugLog.fd, debugLog.fd],
