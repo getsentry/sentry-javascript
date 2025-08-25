@@ -35,7 +35,7 @@ export const MyDurableObject = Sentry.instrumentDurableObjectWithSentry(
 );
 ```
 
-    Work in this release was contributed by @Karibash. Thank you for your contribution!
+Work in this release was contributed by @Karibash. Thank you for your contribution!
 
 ## 10.5.0
 
