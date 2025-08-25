@@ -29,7 +29,7 @@ export const test = base.extend<{ testEnvironment: LocalLambdaStack; lambdaClien
       const debugLog = tmp.fileSync({ prefix: 'sentry_aws_lambda_tests_sam_debug', postfix: '.log' });
       console.log(`[test_environment fixture] Writing SAM debug log to: ${debugLog.name}`);
 
-      const process = spawn(
+      const samProcess = spawn(
         'sam',
         [
           'local',
@@ -37,10 +37,12 @@ export const test = base.extend<{ testEnvironment: LocalLambdaStack; lambdaClien
           '--debug',
           '--template',
           SAM_TEMPLATE_FILE,
-          '--warm-containers',
-          'EAGER',
+          //'--warm-containers',
+          //'EAGER',
           '--docker-network',
           DOCKER_NETWORK_NAME,
+          '--invoke-image',
+          `public.ecr.aws/sam/build-nodejs${process.env.NODE_VERSION ?? '22'}.x`,
         ],
         {
           stdio: ['ignore', debugLog.fd, debugLog.fd],
@@ -54,12 +56,12 @@ export const test = base.extend<{ testEnvironment: LocalLambdaStack; lambdaClien
       } finally {
         console.log('[testEnvironment fixture] Tearing down AWS Lambda test infrastructure');
 
-        process.kill('SIGTERM');
+        samProcess.kill('SIGTERM');
         await new Promise(resolve => {
-          process.once('exit', resolve);
+          samProcess.once('exit', resolve);
           setTimeout(() => {
-            if (!process.killed) {
-              process.kill('SIGKILL');
+            if (!samProcess.killed) {
+              samProcess.kill('SIGKILL');
             }
             resolve(void 0);
           }, 5000);
