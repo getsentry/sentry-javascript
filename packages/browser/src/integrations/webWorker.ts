@@ -113,8 +113,21 @@ function listenForSentryDebugIdMessages(worker: Worker): void {
   });
 }
 
+/**
+ * Minimal interface for DedicatedWorkerGlobalScope, only requiring the postMessage method.
+ * (which is the only thing we need from the worker's global object)
+ *
+ * @see https://developer.mozilla.org/en-US/docs/Web/API/DedicatedWorkerGlobalScope
+ *
+ * We can't use the actual type because it breaks everyone who doesn't have {"lib": ["WebWorker"]}
+ * but uses {"skipLibCheck": true} in their tsconfig.json.
+ */
+interface MinimalDedicatedWorkerGlobalScope {
+  postMessage: (message: unknown) => void;
+}
+
 interface RegisterWebWorkerOptions {
-  self: DedicatedWorkerGlobalScope & { _sentryDebugIds?: Record<string, string> };
+  self: MinimalDedicatedWorkerGlobalScope & { _sentryDebugIds?: Record<string, string> };
 }
 
 /**
