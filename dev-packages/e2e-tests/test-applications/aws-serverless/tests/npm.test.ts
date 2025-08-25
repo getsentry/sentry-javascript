@@ -71,7 +71,7 @@ test.describe('NPM package', () => {
     );
   });
 
-  test.only('tracing in ESM works', async ({ lambdaClient }) => {
+  test('tracing in ESM works', async ({ lambdaClient }) => {
     const transactionEventPromise = waitForTransaction('aws-serverless-lambda-sam', transactionEvent => {
       return transactionEvent?.transaction === 'NpmTracingEsm';
     });
