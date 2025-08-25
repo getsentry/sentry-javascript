@@ -23,7 +23,10 @@ describe('instrumentDurableObjectWithSentry', () => {
         return 'sync-result';
       }
     };
-    const obj = Reflect.construct(instrumentDurableObjectWithSentry(vi.fn().mockReturnValue({}), testClass as any), []) as any;
+    const obj = Reflect.construct(
+      instrumentDurableObjectWithSentry(vi.fn().mockReturnValue({}), testClass as any),
+      [],
+    ) as any;
     expect(obj.method).toBe(obj.method);
 
     const result = obj.method();
@@ -37,7 +40,10 @@ describe('instrumentDurableObjectWithSentry', () => {
         return 'async-result';
       }
     };
-    const obj = Reflect.construct(instrumentDurableObjectWithSentry(vi.fn().mockReturnValue({}), testClass as any), []) as any;
+    const obj = Reflect.construct(
+      instrumentDurableObjectWithSentry(vi.fn().mockReturnValue({}), testClass as any),
+      [],
+    ) as any;
     expect(obj.asyncMethod).toBe(obj.asyncMethod);
 
     const result = obj.asyncMethod();
@@ -97,7 +103,10 @@ describe('instrumentDurableObjectWithSentry', () => {
 
       webSocketError() {}
     };
-    const instrumented = instrumentDurableObjectWithSentry(vi.fn().mockReturnValue({ instrumentPrototypeMethods: true }), testClass as any);
+    const instrumented = instrumentDurableObjectWithSentry(
+      vi.fn().mockReturnValue({ instrumentPrototypeMethods: true }),
+      testClass as any,
+    );
     const obj = Reflect.construct(instrumented, []);
     for (const method_name of [
       'propertyFunction',

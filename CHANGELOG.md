@@ -35,6 +35,8 @@ export const MyDurableObject = Sentry.instrumentDurableObjectWithSentry(
 );
 ```
 
+<<<<<<< HEAD
+
 ## 10.6.0
 
 ### Important Changes
@@ -72,7 +74,10 @@ The Sentry Nuxt SDK is now considered stable and no longer in beta!
 
 </details>
 
-Work in this release was contributed by @Karibash. Thank you for your contribution!
+=======
+
+> > > > > > > e3ba48da5f (Formatting fix)
+> > > > > > > Work in this release was contributed by @Karibash. Thank you for your contribution!
 
 ## 10.5.0
 
