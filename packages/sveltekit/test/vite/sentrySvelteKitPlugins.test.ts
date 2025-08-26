@@ -200,6 +200,7 @@ describe('sentrySvelteKit()', () => {
       debug: true,
       load: true,
       serverLoad: false,
+      onlyInstrumentClient: false,
     });
   });
 });

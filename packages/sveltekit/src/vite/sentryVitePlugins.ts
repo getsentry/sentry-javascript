@@ -28,9 +28,13 @@ export async function sentrySvelteKit(options: SentrySvelteKitPluginOptions = {}
     adapter: options.adapter || (await detectAdapter(options.debug)),
   };
 
+  const svelteConfig = await loadSvelteConfig();
+
   const sentryPlugins: Plugin[] = [];
 
   if (mergedOptions.autoInstrument) {
+    const kitTracingEnabled = !!svelteConfig.kit?.experimental?.tracing?.server;
+
     const pluginOptions: AutoInstrumentSelection = {
       load: true,
       serverLoad: true,
@@ -41,13 +45,13 @@ export async function sentrySvelteKit(options: SentrySvelteKitPluginOptions = {}
       makeAutoInstrumentationPlugin({
         ...pluginOptions,
         debug: options.debug || false,
+        // if kit-internal tracing is enabled, we only want to instrument client-side code.
+        onlyInstrumentClient: kitTracingEnabled,
       }),
     );
   }
 
   const sentryVitePluginsOptions = generateVitePluginOptions(mergedOptions);
-
-  const svelteConfig = await loadSvelteConfig();
 
   if (mergedOptions.injectGlobalValues) {
     sentryPlugins.push(await makeGlobalValuesInjectionPlugin(svelteConfig, mergedOptions));
