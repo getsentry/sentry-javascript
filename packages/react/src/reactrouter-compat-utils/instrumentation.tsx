@@ -6,7 +6,6 @@ import {
   browserTracingIntegration,
   startBrowserTracingNavigationSpan,
   startBrowserTracingPageLoadSpan,
-  WINDOW,
 } from '@sentry/browser';
 import type { Client, Integration, Span, TransactionSource } from '@sentry/core';
 import {
@@ -42,6 +41,7 @@ import type {
 } from '../types';
 import { checkRouteForAsyncHandler, updateNavigationSpanWithLazyRoutes } from './lazy-routes';
 import {
+  getGlobalLocation,
   getNormalizedName,
   initializeRouterUtils,
   locationIsInsideDescendantRoute,
@@ -58,31 +58,6 @@ let _matchRoutes: MatchRoutes;
 let _enableAsyncRouteHandlers: boolean = false;
 
 const CLIENTS_WITH_INSTRUMENT_NAVIGATION = new WeakSet<Client>();
-
-/**
- * Gets the current location from the window object in browser environments.
- * Returns undefined if window is not available.
- */
-function getGlobalLocation(): Location | undefined {
-  if (typeof WINDOW !== 'undefined') {
-    const globalLocation = WINDOW.location;
-    if (globalLocation) {
-      return { pathname: globalLocation.pathname };
-    }
-  }
-  return undefined;
-}
-
-/**
- * Gets the pathname from the window object in browser environments.
- * Returns undefined if window is not available.
- */
-function getGlobalPathname(): string | undefined {
-  if (typeof WINDOW !== 'undefined') {
-    return WINDOW.location?.pathname;
-  }
-  return undefined;
-}
 
 export interface ReactRouterOptions {
   useEffect: UseEffect;
@@ -213,7 +188,7 @@ function wrapPatchRoutesOnNavigation(
       if (activeRootSpan && (spanToJSON(activeRootSpan) as { op?: string }).op === 'navigation') {
         // For memory routers, we don't have a reliable way to get the current pathname
         // without accessing window.location, so we'll use targetPath for both cases
-        const pathname = targetPath || (isMemoryRouter ? getGlobalPathname() : undefined);
+        const pathname = targetPath || (isMemoryRouter ? getGlobalLocation()?.pathname : undefined);
         if (pathname) {
           updateNavigationSpanWithLazyRoutes(
             activeRootSpan,
@@ -446,7 +421,7 @@ export function createReactRouterV6CompatibleTracingIntegration(
     afterAllSetup(client) {
       integration.afterAllSetup(client);
 
-      const initPathName = getGlobalPathname();
+      const initPathName = getGlobalLocation()?.pathname;
       if (instrumentPageLoad && initPathName) {
         startBrowserTracingPageLoadSpan(client, {
           name: initPathName,
