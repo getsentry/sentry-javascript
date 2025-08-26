@@ -101,7 +101,11 @@ function getPreloadMethods(integrationNames?: string[]): ((() => void) & { id: s
     return instruments;
   }
 
-  return instruments.filter(instrumentation => integrationNames.includes(instrumentation.id));
+  // We match exact matches of instrumentation, but also match prefixes, e.g. "Fastify.v5" will match "Fastify"
+  return instruments.filter(instrumentation => {
+    const id = instrumentation.id;
+    return integrationNames.some(integrationName => id === integrationName || id.startsWith(`${integrationName}.`));
+  });
 }
 
 /** Just exported for tests. */

@@ -112,15 +112,6 @@ export default defineNuxtModule<ModuleOptions>({
 
     nuxt.hooks.hook('nitro:init', nitro => {
       if (serverConfigFile?.includes('.server.config')) {
-        if (nitro.options.dev) {
-          consoleSandbox(() => {
-            // eslint-disable-next-line no-console
-            console.log(
-              '[Sentry] Your application is running in development mode. Note: @sentry/nuxt does not work as expected on the server-side (Nitro). Errors are reported, but tracing does not work.',
-            );
-          });
-        }
-
         consoleSandbox(() => {
           const serverDir = nitro.options.output.serverDir;
 
@@ -154,8 +145,20 @@ export default defineNuxtModule<ModuleOptions>({
             consoleSandbox(() => {
               // eslint-disable-next-line no-console
               console.log(
-                `[Sentry] Using your \`${serverConfigFile}\` file for the server-side Sentry configuration. Make sure to add the Node option \`import\` to the Node command where you deploy and/or run your application. This preloads the Sentry configuration at server startup. You can do this via a command-line flag (\`node --import ${serverConfigRelativePath} [...]\`) or via an environment variable (\`NODE_OPTIONS='--import ${serverConfigRelativePath}' node [...]\`).`,
+                `[Sentry] Using \`${serverConfigFile}\` for server-side Sentry configuration. To activate Sentry on the Nuxt server-side, this file must be preloaded when starting your application. Make sure to add this where you deploy and/or run your application. Read more here: https://docs.sentry.io/platforms/javascript/guides/nuxt/install/.`,
               );
+
+              if (nitro.options.dev) {
+                // eslint-disable-next-line no-console
+                console.log(
+                  `[Sentry] During development, preload Sentry with the NODE_OPTIONS environment variable: \`NODE_OPTIONS='--import ${serverConfigRelativePath}' nuxt dev\`. The file is generated in the build directory (usually '.nuxt'). If you delete the build directory, run \`nuxt dev\` to regenerate it.`,
+                );
+              } else {
+                // eslint-disable-next-line no-console
+                console.log(
+                  `[Sentry] When running your built application, preload Sentry via a command-line flag (\`node --import ${serverConfigRelativePath} [...]\`) or via an environment variable (\`NODE_OPTIONS='--import ${serverConfigRelativePath}' node [...]\`).`,
+                );
+              }
             });
           }
         }
