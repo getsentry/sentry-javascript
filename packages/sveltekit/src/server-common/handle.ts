@@ -177,13 +177,13 @@ async function instrumentHandle(
 
         const routeName = kitRootSpanAttributes['http.route'];
         if (routeName && typeof routeName === 'string') {
-          updateSpanName(kitRootSpan, routeName);
+          updateSpanName(kitRootSpan, `${event.request.method ?? 'GET'} ${routeName}`);
         }
 
         kitRootSpan.setAttributes({
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.sveltejs.kit',
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: routeId ? 'route' : 'url',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.sveltekit',
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: routeName ? 'route' : 'url',
           'sveltekit.tracing.original_name': originalName,
         });
       }

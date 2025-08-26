@@ -31,15 +31,15 @@ describe('svelteKitSpansIntegration', () => {
     svelteKitSpansIntegration().preprocessEvent?.(event, {}, {});
 
     expect(event.spans).toHaveLength(1);
-    expect(event.spans?.[0]?.op).toBe('http.sveltekit.resolve');
+    expect(event.spans?.[0]?.op).toBe('function.sveltekit.resolve');
     expect(event.spans?.[0]?.origin).toBe('auto.http.sveltekit');
-    expect(event.spans?.[0]?.data[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toBe('http.sveltekit.resolve');
+    expect(event.spans?.[0]?.data[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toBe('function.sveltekit.resolve');
     expect(event.spans?.[0]?.data[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toBe('auto.http.sveltekit');
   });
 
   describe('_enhanceKitSpan', () => {
     it.each([
-      ['sveltekit.resolve', 'http.sveltekit.resolve', 'auto.http.sveltekit'],
+      ['sveltekit.resolve', 'function.sveltekit.resolve', 'auto.http.sveltekit'],
       ['sveltekit.load', 'function.sveltekit.load', 'auto.function.sveltekit.load'],
       ['sveltekit.form_action', 'function.sveltekit.form_action', 'auto.function.sveltekit.action'],
       ['sveltekit.remote.call', 'function.sveltekit.remote', 'auto.rpc.sveltekit.remote'],
@@ -138,6 +138,25 @@ describe('svelteKitSpansIntegration', () => {
       _enhanceKitSpan(span);
 
       expect(span.origin).toBe('auto.custom.origin');
+      expect(span.data[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toBe('custom.op');
+    });
+
+    it('overwrites previously set "manual" origins on sveltekit spans', () => {
+      // for example, if users manually set this (for whatever reason)
+      const span = {
+        description: 'sveltekit.resolve',
+        origin: 'manual',
+        data: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'custom.op',
+        },
+        span_id: '123',
+        trace_id: 'abc',
+        start_timestamp: 0,
+      } as SpanJSON;
+
+      _enhanceKitSpan(span);
+
+      expect(span.origin).toBe('auto.http.sveltekit');
       expect(span.data[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toBe('custom.op');
     });
   });

@@ -29,9 +29,12 @@ export function _enhanceKitSpan(span: SpanJSON): void {
 
   const spanName = span.description;
 
+  const previousOp = span.op || span.data[SEMANTIC_ATTRIBUTE_SENTRY_OP];
+  const previousOrigin = span.origin || span.data[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN];
+
   switch (spanName) {
     case 'sveltekit.resolve':
-      op = 'http.sveltekit.resolve';
+      op = 'function.sveltekit.resolve';
       origin = 'auto.http.sveltekit';
       break;
     case 'sveltekit.load':
@@ -59,15 +62,12 @@ export function _enhanceKitSpan(span: SpanJSON): void {
     }
   }
 
-  const previousOp = span.op || span.data[SEMANTIC_ATTRIBUTE_SENTRY_OP];
-  const previousOrigin = span.origin || span.data[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN];
-
   if (!previousOp && op) {
     span.op = op;
     span.data[SEMANTIC_ATTRIBUTE_SENTRY_OP] = op;
   }
 
-  if (!previousOrigin && origin) {
+  if ((!previousOrigin || previousOrigin === 'manual') && origin) {
     span.origin = origin;
     span.data[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] = origin;
   }
