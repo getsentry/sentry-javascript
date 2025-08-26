@@ -39,9 +39,10 @@ import type {
   UseNavigationType,
   UseRoutes,
 } from '../types';
-import { checkRouteForAsyncHandler, updateNavigationSpanWithLazyRoutes } from './lazy-routes';
+import { checkRouteForAsyncHandler } from './lazy-routes';
 import {
   getGlobalLocation,
+  getGlobalPathname,
   getNormalizedName,
   initializeRouterUtils,
   locationIsInsideDescendantRoute,
@@ -58,6 +59,53 @@ let _matchRoutes: MatchRoutes;
 let _enableAsyncRouteHandlers: boolean = false;
 
 const CLIENTS_WITH_INSTRUMENT_NAVIGATION = new WeakSet<Client>();
+
+/**
+ * Updates a navigation span with the correct route name after lazy routes have been loaded.
+ */
+export function updateNavigationSpan(
+  activeRootSpan: Span,
+  location: Location,
+  allRoutes: RouteObject[],
+  forceUpdate = false,
+  matchRoutes: MatchRoutes,
+): void {
+  // Check if this span has already been named to avoid multiple updates
+  // But allow updates if this is a forced update (e.g., when lazy routes are loaded)
+  const hasBeenNamed =
+    !forceUpdate &&
+    (
+      activeRootSpan as {
+        __sentry_navigation_name_set__?: boolean;
+      }
+    )?.__sentry_navigation_name_set__;
+
+  if (!hasBeenNamed) {
+    // Get fresh branches for the current location with all loaded routes
+    const currentBranches = matchRoutes(allRoutes, location);
+    const [name, source] = resolveRouteNameAndSource(
+      location,
+      allRoutes,
+      allRoutes,
+      (currentBranches as RouteMatch[]) || [],
+      '',
+    );
+
+    // Only update if we have a valid name and the span hasn't finished
+    const spanJson = spanToJSON(activeRootSpan);
+    if (name && !spanJson.timestamp) {
+      activeRootSpan.updateName(name);
+      activeRootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
+
+      // Mark this span as having its name set to prevent future updates
+      addNonEnumerableProperty(
+        activeRootSpan as { __sentry_navigation_name_set__?: boolean },
+        '__sentry_navigation_name_set__',
+        true,
+      );
+    }
+  }
+}
 
 export interface ReactRouterOptions {
   useEffect: UseEffect;
@@ -131,7 +179,7 @@ export function processResolvedRoutes(
         );
       } else if (spanOp === 'navigation') {
         // For navigation spans, update the name with the newly loaded routes
-        updateNavigationSpanWithLazyRoutes(activeRootSpan, location, Array.from(allRoutes), false, _matchRoutes);
+        updateNavigationSpan(activeRootSpan, location, Array.from(allRoutes), false, _matchRoutes);
       }
     }
   }
@@ -162,7 +210,7 @@ function wrapPatchRoutesOnNavigation(
             addRoutesToAllRoutes(children);
             const activeRootSpan = getActiveRootSpan();
             if (activeRootSpan && (spanToJSON(activeRootSpan) as { op?: string }).op === 'navigation') {
-              updateNavigationSpanWithLazyRoutes(
+              updateNavigationSpan(
                 activeRootSpan,
                 {
                   pathname: targetPath,
@@ -188,9 +236,9 @@ function wrapPatchRoutesOnNavigation(
       if (activeRootSpan && (spanToJSON(activeRootSpan) as { op?: string }).op === 'navigation') {
         // For memory routers, we don't have a reliable way to get the current pathname
         // without accessing window.location, so we'll use targetPath for both cases
-        const pathname = targetPath || (isMemoryRouter ? getGlobalLocation()?.pathname : undefined);
+        const pathname = targetPath || (isMemoryRouter ? getGlobalPathname() : undefined);
         if (pathname) {
-          updateNavigationSpanWithLazyRoutes(
+          updateNavigationSpan(
             activeRootSpan,
             {
               pathname,
@@ -421,7 +469,7 @@ export function createReactRouterV6CompatibleTracingIntegration(
     afterAllSetup(client) {
       integration.afterAllSetup(client);
 
-      const initPathName = getGlobalLocation()?.pathname;
+      const initPathName = getGlobalPathname();
       if (instrumentPageLoad && initPathName) {
         startBrowserTracingPageLoadSpan(client, {
           name: initPathName,

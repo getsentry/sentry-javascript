@@ -29,6 +29,17 @@ export function getGlobalLocation(): Location | undefined {
   return undefined;
 }
 
+/**
+ * Gets the pathname from the window object in browser environments.
+ * Returns undefined if window is not available.
+ */
+export function getGlobalPathname(): string | undefined {
+  if (typeof WINDOW !== 'undefined') {
+    return WINDOW.location?.pathname;
+  }
+  return undefined;
+}
+
 // Helper functions
 function pickPath(match: RouteMatch): string {
   return trimWildcard(match.route.path || '');

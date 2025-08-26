@@ -1,55 +1,6 @@
-import type { Span } from '@sentry/core';
-import { addNonEnumerableProperty, debug, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, spanToJSON } from '@sentry/core';
+import { addNonEnumerableProperty, debug } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
-import type { Location, MatchRoutes, RouteMatch, RouteObject } from '../types';
-import { resolveRouteNameAndSource } from './utils';
-
-/**
- * Updates a navigation span with the correct route name after lazy routes have been loaded.
- */
-export function updateNavigationSpanWithLazyRoutes(
-  activeRootSpan: Span,
-  location: Location,
-  allRoutes: RouteObject[],
-  forceUpdate = false,
-  matchRoutes: MatchRoutes,
-): void {
-  // Check if this span has already been named to avoid multiple updates
-  // But allow updates if this is a forced update (e.g., when lazy routes are loaded)
-  const hasBeenNamed =
-    !forceUpdate &&
-    (
-      activeRootSpan as {
-        __sentry_navigation_name_set__?: boolean;
-      }
-    )?.__sentry_navigation_name_set__;
-
-  if (!hasBeenNamed) {
-    // Get fresh branches for the current location with all loaded routes
-    const currentBranches = matchRoutes(allRoutes, location);
-    const [name, source] = resolveRouteNameAndSource(
-      location,
-      allRoutes,
-      allRoutes,
-      (currentBranches as RouteMatch[]) || [],
-      '',
-    );
-
-    // Only update if we have a valid name and the span hasn't finished
-    const spanJson = spanToJSON(activeRootSpan);
-    if (name && !spanJson.timestamp) {
-      activeRootSpan.updateName(name);
-      activeRootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
-
-      // Mark this span as having its name set to prevent future updates
-      addNonEnumerableProperty(
-        activeRootSpan as { __sentry_navigation_name_set__?: boolean },
-        '__sentry_navigation_name_set__',
-        true,
-      );
-    }
-  }
-}
+import type { Location, RouteObject } from '../types';
 
 /**
  * Creates a proxy wrapper for an async handler function.

@@ -11,12 +11,14 @@ export {
   createNewNavigationSpan,
   addResolvedRoutesToParent,
   processResolvedRoutes,
+  updateNavigationSpan,
 } from './instrumentation';
 
 // Utility exports
 export {
   initializeRouterUtils,
   getGlobalLocation,
+  getGlobalPathname,
   prefixWithSlash,
   rebuildRoutePathFromAllRoutes,
   locationIsInsideDescendantRoute,
@@ -28,9 +30,4 @@ export {
 } from './utils';
 
 // Lazy route exports
-export {
-  updateNavigationSpanWithLazyRoutes,
-  createAsyncHandlerProxy,
-  handleAsyncHandlerResult,
-  checkRouteForAsyncHandler,
-} from './lazy-routes';
+export { createAsyncHandlerProxy, handleAsyncHandlerResult, checkRouteForAsyncHandler } from './lazy-routes';
