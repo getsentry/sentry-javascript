@@ -47,7 +47,7 @@
   "sentryTest": {
     "variants": [
       {
-        "build-command": "test:build-ts3.8",
+        "build-command": "pnpm test:build-ts3.8",
         "label": "create-react-app (TS 3.8)"
       }
     ]
