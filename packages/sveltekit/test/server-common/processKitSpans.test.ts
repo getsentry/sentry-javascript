@@ -1,4 +1,4 @@
-import type { EventType, SpanJSON, TransactionEvent } from '@sentry/core';
+import type { SpanJSON, TransactionEvent } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { describe, expect, it } from 'vitest';
 import { _enhanceKitSpan, svelteKitSpansIntegration } from '../../src/server-common/processKitSpans';
