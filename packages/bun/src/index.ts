@@ -140,6 +140,7 @@ export {
   zodErrorsIntegration,
   profiler,
   amqplibIntegration,
+  anthropicAIIntegration,
   vercelAIIntegration,
   logger,
   consoleLoggingIntegration,

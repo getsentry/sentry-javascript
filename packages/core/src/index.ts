@@ -121,9 +121,13 @@ export type { ReportDialogOptions } from './report-dialog';
 export { _INTERNAL_captureLog, _INTERNAL_flushLogsBuffer, _INTERNAL_captureSerializedLog } from './logs/exports';
 export { consoleLoggingIntegration } from './logs/console-integration';
 export { addVercelAiProcessors } from './utils/vercel-ai';
+export { _INTERNAL_getSpanForToolCallId, _INTERNAL_cleanupToolCallSpan } from './utils/vercel-ai/utils';
 export { instrumentOpenAiClient } from './utils/openai';
 export { OPENAI_INTEGRATION_NAME } from './utils/openai/constants';
+export { instrumentAnthropicAiClient } from './utils/anthropic-ai';
+export { ANTHROPIC_AI_INTEGRATION_NAME } from './utils/anthropic-ai/constants';
 export type { OpenAiClient, OpenAiOptions, InstrumentedMethod } from './utils/openai/types';
+export type { AnthropicAiClient, AnthropicAiOptions, AnthropicAiInstrumentedMethod } from './utils/anthropic-ai/types';
 export type { FeatureFlag } from './utils/featureFlags';
 
 export {

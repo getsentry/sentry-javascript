@@ -20,6 +20,10 @@ const injectScript = vi.fn();
 const config = {
   root: new URL('file://path/to/project'),
   outDir: new URL('file://path/to/project/out'),
+} as AstroConfig;
+
+const baseConfigHookObject = {
+  logger: { warn: vi.fn(), info: vi.fn() },
 };
 
 describe('sentryAstro integration', () => {
@@ -39,7 +43,7 @@ describe('sentryAstro integration', () => {
 
     expect(integration.hooks['astro:config:setup']).toBeDefined();
     // @ts-expect-error - the hook exists and we only need to pass what we actually use
-    await integration.hooks['astro:config:setup']({ updateConfig, injectScript, config });
+    await integration.hooks['astro:config:setup']({ ...baseConfigHookObject, updateConfig, injectScript, config });
 
     expect(updateConfig).toHaveBeenCalledTimes(1);
     expect(updateConfig).toHaveBeenCalledWith({
@@ -52,23 +56,25 @@ describe('sentryAstro integration', () => {
     });
 
     expect(sentryVitePluginSpy).toHaveBeenCalledTimes(1);
-    expect(sentryVitePluginSpy).toHaveBeenCalledWith({
-      authToken: 'my-token',
-      org: 'my-org',
-      project: 'my-project',
-      telemetry: false,
-      debug: false,
-      bundleSizeOptimizations: {},
-      sourcemaps: {
-        assets: ['out/**/*'],
-        filesToDeleteAfterUpload: ['./dist/**/client/**/*.map', './dist/**/server/**/*.map'],
-      },
-      _metaOptions: {
-        telemetry: {
-          metaFramework: 'astro',
+    expect(sentryVitePluginSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        authToken: 'my-token',
+        org: 'my-org',
+        project: 'my-project',
+        telemetry: false,
+        debug: false,
+        bundleSizeOptimizations: {},
+        sourcemaps: {
+          assets: ['out/**/*'],
+          filesToDeleteAfterUpload: ['./dist/**/client/**/*.map', './dist/**/server/**/*.map'],
         },
-      },
-    });
+        _metaOptions: {
+          telemetry: {
+            metaFramework: 'astro',
+          },
+        },
+      }),
+    );
   });
 
   it('falls back to default output dir, if out and root dir are not available', async () => {
@@ -76,26 +82,28 @@ describe('sentryAstro integration', () => {
       sourceMapsUploadOptions: { enabled: true, org: 'my-org', project: 'my-project', telemetry: false },
     });
     // @ts-expect-error - the hook exists and we only need to pass what we actually use
-    await integration.hooks['astro:config:setup']({ updateConfig, injectScript, config: {} });
+    await integration.hooks['astro:config:setup']({ ...baseConfigHookObject, updateConfig, injectScript, config: {} });
 
     expect(sentryVitePluginSpy).toHaveBeenCalledTimes(1);
-    expect(sentryVitePluginSpy).toHaveBeenCalledWith({
-      authToken: 'my-token',
-      org: 'my-org',
-      project: 'my-project',
-      telemetry: false,
-      debug: false,
-      bundleSizeOptimizations: {},
-      sourcemaps: {
-        assets: ['dist/**/*'],
-        filesToDeleteAfterUpload: ['./dist/**/client/**/*.map', './dist/**/server/**/*.map'],
-      },
-      _metaOptions: {
-        telemetry: {
-          metaFramework: 'astro',
+    expect(sentryVitePluginSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        authToken: 'my-token',
+        org: 'my-org',
+        project: 'my-project',
+        telemetry: false,
+        debug: false,
+        bundleSizeOptimizations: {},
+        sourcemaps: {
+          assets: ['dist/**/*'],
+          filesToDeleteAfterUpload: ['./dist/**/client/**/*.map', './dist/**/server/**/*.map'],
         },
-      },
-    });
+        _metaOptions: {
+          telemetry: {
+            metaFramework: 'astro',
+          },
+        },
+      }),
+    );
   });
 
   it('sets the correct assets glob for vercel if the Vercel adapter is used', async () => {
@@ -104,6 +112,7 @@ describe('sentryAstro integration', () => {
     });
     // @ts-expect-error - the hook exists and we only need to pass what we actually use
     await integration.hooks['astro:config:setup']({
+      ...baseConfigHookObject,
       updateConfig,
       injectScript,
       config: {
@@ -113,23 +122,25 @@ describe('sentryAstro integration', () => {
     });
 
     expect(sentryVitePluginSpy).toHaveBeenCalledTimes(1);
-    expect(sentryVitePluginSpy).toHaveBeenCalledWith({
-      authToken: 'my-token',
-      org: 'my-org',
-      project: 'my-project',
-      telemetry: false,
-      debug: false,
-      bundleSizeOptimizations: {},
-      sourcemaps: {
-        assets: ['{.vercel,dist}/**/*'],
-        filesToDeleteAfterUpload: ['./dist/**/client/**/*.map', './dist/**/server/**/*.map'],
-      },
-      _metaOptions: {
-        telemetry: {
-          metaFramework: 'astro',
+    expect(sentryVitePluginSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        authToken: 'my-token',
+        org: 'my-org',
+        project: 'my-project',
+        telemetry: false,
+        debug: false,
+        bundleSizeOptimizations: {},
+        sourcemaps: {
+          assets: ['{.vercel,dist}/**/*'],
+          filesToDeleteAfterUpload: ['./dist/**/client/**/*.map', './dist/**/server/**/*.map'],
         },
-      },
-    });
+        _metaOptions: {
+          telemetry: {
+            metaFramework: 'astro',
+          },
+        },
+      }),
+    );
   });
 
   it('prefers user-specified assets-globs over the default values', async () => {
@@ -143,6 +154,7 @@ describe('sentryAstro integration', () => {
     });
     // @ts-expect-error - the hook exists and we only need to pass what we actually use
     await integration.hooks['astro:config:setup']({
+      ...baseConfigHookObject,
       updateConfig,
       injectScript,
       // @ts-expect-error - only passing in partial config
@@ -152,23 +164,25 @@ describe('sentryAstro integration', () => {
     });
 
     expect(sentryVitePluginSpy).toHaveBeenCalledTimes(1);
-    expect(sentryVitePluginSpy).toHaveBeenCalledWith({
-      authToken: 'my-token',
-      org: 'my-org',
-      project: 'my-project',
-      telemetry: true,
-      debug: false,
-      bundleSizeOptimizations: {},
-      sourcemaps: {
-        assets: ['dist/server/**/*, dist/client/**/*'],
-        filesToDeleteAfterUpload: ['./dist/**/client/**/*.map', './dist/**/server/**/*.map'],
-      },
-      _metaOptions: {
-        telemetry: {
-          metaFramework: 'astro',
+    expect(sentryVitePluginSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        authToken: 'my-token',
+        org: 'my-org',
+        project: 'my-project',
+        telemetry: true,
+        debug: false,
+        bundleSizeOptimizations: {},
+        sourcemaps: {
+          assets: ['dist/server/**/*, dist/client/**/*'],
+          filesToDeleteAfterUpload: ['./dist/**/client/**/*.map', './dist/**/server/**/*.map'],
         },
-      },
-    });
+        _metaOptions: {
+          telemetry: {
+            metaFramework: 'astro',
+          },
+        },
+      }),
+    );
   });
 
   it('prefers user-specified filesToDeleteAfterUpload over the default values', async () => {
@@ -182,6 +196,7 @@ describe('sentryAstro integration', () => {
     });
     // @ts-expect-error - the hook exists, and we only need to pass what we actually use
     await integration.hooks['astro:config:setup']({
+      ...baseConfigHookObject,
       updateConfig,
       injectScript,
       // @ts-expect-error - only passing in partial config
@@ -226,6 +241,7 @@ describe('sentryAstro integration', () => {
     });
     // @ts-expect-error - the hook exists, and we only need to pass what we actually use
     await integration.hooks['astro:config:setup']({
+      ...baseConfigHookObject,
       updateConfig,
       injectScript,
       // @ts-expect-error - only passing in partial config
@@ -260,10 +276,34 @@ describe('sentryAstro integration', () => {
 
     expect(integration.hooks['astro:config:setup']).toBeDefined();
     // @ts-expect-error - the hook exists and we only need to pass what we actually use
-    await integration.hooks['astro:config:setup']({ updateConfig, injectScript, config });
+    await integration.hooks['astro:config:setup']({ ...baseConfigHookObject, updateConfig, injectScript, config });
 
     expect(updateConfig).toHaveBeenCalledTimes(0);
     expect(sentryVitePluginSpy).toHaveBeenCalledTimes(0);
+  });
+
+  it("doesn't enable source maps if `sourcemaps.disable` is `true`", async () => {
+    const integration = sentryAstro({
+      sourcemaps: { disable: true },
+    });
+
+    expect(integration.hooks['astro:config:setup']).toBeDefined();
+    // @ts-expect-error - the hook exists and we only need to pass what we actually use
+    await integration.hooks['astro:config:setup']({ ...baseConfigHookObject, updateConfig, injectScript, config });
+
+    expect(updateConfig).toHaveBeenCalledTimes(0);
+    expect(sentryVitePluginSpy).toHaveBeenCalledTimes(0);
+  });
+
+  it('enables source maps if `sourcemaps.disable` is not defined', async () => {
+    const integration = sentryAstro({});
+
+    expect(integration.hooks['astro:config:setup']).toBeDefined();
+    // @ts-expect-error - the hook exists and we only need to pass what we actually use
+    await integration.hooks['astro:config:setup']({ ...baseConfigHookObject, updateConfig, injectScript, config });
+
+    expect(updateConfig).toHaveBeenCalledTimes(1);
+    expect(sentryVitePluginSpy).toHaveBeenCalledTimes(1);
   });
 
   it("doesn't add the Vite plugin in dev mode", async () => {
@@ -273,7 +313,13 @@ describe('sentryAstro integration', () => {
 
     expect(integration.hooks['astro:config:setup']).toBeDefined();
     // @ts-expect-error - the hook exists and we only need to pass what we actually use
-    await integration.hooks['astro:config:setup']({ updateConfig, injectScript, config, command: 'dev' });
+    await integration.hooks['astro:config:setup']({
+      ...baseConfigHookObject,
+      updateConfig,
+      injectScript,
+      config,
+      command: 'dev',
+    });
 
     expect(updateConfig).toHaveBeenCalledTimes(0);
     expect(sentryVitePluginSpy).toHaveBeenCalledTimes(0);
