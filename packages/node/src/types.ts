@@ -46,16 +46,19 @@ export interface BaseNodeOptions {
   profilesSampler?: (samplingContext: SamplingContext) => number | boolean;
 
   /**
-   * Sets profiling session sample rate - only evaluated once per SDK initialization.
+   * Sets profiling session sample rate for the entire profiling session (evaluated once per SDK initialization).
+   *
    * @default 0
    */
   profileSessionSampleRate?: number;
 
   /**
-   * Set the lifecycle of the profiler.
-   *
-   * - `manual`: The profiler will be manually started and stopped.
-   * - `trace`: The profiler will be automatically started when when a span is sampled and stopped when there are no more sampled spans.
+   * Set the lifecycle mode of the profiler.
+   * - **manual**: The profiler will be manually started and stopped via `startProfiler`/`stopProfiler`.
+   *    If a session is sampled, is dependent on the `profileSessionSampleRate`.
+   * - **trace**: The profiler will be automatically started when a root span exists and stopped when there are no
+   *    more sampled root spans. Whether a session is sampled, is dependent on the `profileSessionSampleRate` and the
+   *    existing sampling configuration for tracing (`tracesSampleRate`/`tracesSampler`).
    *
    * @default 'manual'
    */
