@@ -3,6 +3,7 @@
 // - Added Sentry `wrapHandler` around the OTel patch handler.
 // - Cancel init when handler string is invalid (TS)
 // - Hardcoded package version and name
+// - Added support for streaming handlers
 /* eslint-disable */
 /*
  * Copyright The OpenTelemetry Authors
@@ -50,7 +51,7 @@ import {
   SEMRESATTRS_CLOUD_ACCOUNT_ID,
   SEMRESATTRS_FAAS_ID,
 } from '@opentelemetry/semantic-conventions';
-import type { APIGatewayProxyEventHeaders, Callback, Context, Handler } from 'aws-lambda';
+import type { APIGatewayProxyEventHeaders, Callback, Context, Handler, StreamifyHandler } from 'aws-lambda';
 import * as fs from 'fs';
 import * as path from 'path';
 import type { LambdaModule } from './internal-types';
@@ -73,6 +74,8 @@ const headerGetter: TextMapGetter<APIGatewayProxyEventHeaders> = {
 };
 
 export const lambdaMaxInitInMilliseconds = 10_000;
+const AWS_HANDLER_STREAMING_SYMBOL = Symbol.for('aws.lambda.runtime.handler.streaming');
+const AWS_HANDLER_STREAMING_RESPONSE = 'response';
 
 /**
  *
@@ -99,6 +102,18 @@ export class AwsLambdaInstrumentation extends InstrumentationBase<AwsLambdaInstr
         handlerDef,
       });
       return [];
+    }
+
+    // Provide a temporary awslambda polyfill for CommonJS modules during loading
+    // This prevents ReferenceError when modules use awslambda.streamifyResponse at load time
+    if (typeof globalThis.awslambda === 'undefined') {
+      (globalThis as any).awslambda = {
+        streamifyResponse: (handler: any) => {
+          // Add the streaming symbols that the instrumentation looks for
+          handler[AWS_HANDLER_STREAMING_SYMBOL] = AWS_HANDLER_STREAMING_RESPONSE;
+          return handler;
+        },
+      };
     }
 
     const handler = path.basename(handlerDef);
@@ -187,16 +202,32 @@ export class AwsLambdaInstrumentation extends InstrumentationBase<AwsLambdaInstr
   /**
    *
    */
-  private _getHandler(handlerLoadStartTime: number) {
-    return (original: Handler) => {
-      return wrapHandler(this._getPatchHandler(original, handlerLoadStartTime));
+  private _getHandler<T extends Handler | StreamifyHandler>(handlerLoadStartTime: number) {
+    return (original: T): T => {
+      if (this._isStreamingHandler(original)) {
+        const patchedHandler = this._getPatchHandler(original, handlerLoadStartTime);
+
+        // Streaming handlers have special symbols that we need to copy over to the patched handler.
+        for (const symbol of Object.getOwnPropertySymbols(original)) {
+          (patchedHandler as unknown as Record<symbol, unknown>)[symbol] = (
+            original as unknown as Record<symbol, unknown>
+          )[symbol];
+        }
+
+        return wrapHandler(patchedHandler) as T;
+      }
+
+      return wrapHandler(this._getPatchHandler(original, handlerLoadStartTime)) as T;
     };
   }
+
+  private _getPatchHandler(original: Handler, lambdaStartTime: number): Handler;
+  private _getPatchHandler(original: StreamifyHandler, lambdaStartTime: number): StreamifyHandler;
 
   /**
    *
    */
-  private _getPatchHandler(original: Handler, lambdaStartTime: number) {
+  private _getPatchHandler(original: Handler | StreamifyHandler, lambdaStartTime: number): Handler | StreamifyHandler {
     diag.debug('patch handler function');
     const plugin = this;
 
@@ -229,6 +260,36 @@ export class AwsLambdaInstrumentation extends InstrumentationBase<AwsLambdaInstr
       }
     }
 
+    if (this._isStreamingHandler(original)) {
+      return function patchedStreamingHandler(
+        this: never,
+        // The event can be a user type, it truly is any.
+        event: any,
+        responseStream: Parameters<StreamifyHandler>[1],
+        context: Context,
+      ) {
+        _onRequest();
+        const parent = plugin._determineParent(event, context);
+        const span = plugin._createSpanForRequest(event, context, requestIsColdStart, parent);
+        plugin._applyRequestHook(span, event, context);
+
+        return otelContext.with(trace.setSpan(parent, span), () => {
+          const maybePromise = safeExecuteInTheMiddle(
+            () => original.apply(this, [event, responseStream, context]),
+            error => {
+              if (error != null) {
+                // Exception thrown synchronously before resolving promise.
+                plugin._applyResponseHook(span, error);
+                plugin._endSpan(span, error, () => {});
+              }
+            },
+          ) as Promise<{}> | undefined;
+
+          return plugin._handlePromiseResult(span, maybePromise);
+        });
+      };
+    }
+
     return function patchedHandler(
       this: never,
       // The event can be a user type, it truly is any.
@@ -239,39 +300,10 @@ export class AwsLambdaInstrumentation extends InstrumentationBase<AwsLambdaInstr
     ) {
       _onRequest();
 
-      const config = plugin.getConfig();
-      const parent = AwsLambdaInstrumentation._determineParent(
-        event,
-        context,
-        config.eventContextExtractor || AwsLambdaInstrumentation._defaultEventContextExtractor,
-      );
+      const parent = plugin._determineParent(event, context);
 
-      const name = context.functionName;
-      const span = plugin.tracer.startSpan(
-        name,
-        {
-          kind: SpanKind.SERVER,
-          attributes: {
-            [SEMATTRS_FAAS_EXECUTION]: context.awsRequestId,
-            [SEMRESATTRS_FAAS_ID]: context.invokedFunctionArn,
-            [SEMRESATTRS_CLOUD_ACCOUNT_ID]: AwsLambdaInstrumentation._extractAccountId(context.invokedFunctionArn),
-            [ATTR_FAAS_COLDSTART]: requestIsColdStart,
-            ...AwsLambdaInstrumentation._extractOtherEventFields(event),
-          },
-        },
-        parent,
-      );
-
-      const { requestHook } = config;
-      if (requestHook) {
-        safeExecuteInTheMiddle(
-          () => requestHook(span, { event, context }),
-          e => {
-            if (e) diag.error('aws-lambda instrumentation: requestHook error', e);
-          },
-          true,
-        );
-      }
+      const span = plugin._createSpanForRequest(event, context, requestIsColdStart, parent);
+      plugin._applyRequestHook(span, event, context);
 
       return otelContext.with(trace.setSpan(parent, span), () => {
         // Lambda seems to pass a callback even if handler is of Promise form, so we wrap all the time before calling
@@ -289,21 +321,78 @@ export class AwsLambdaInstrumentation extends InstrumentationBase<AwsLambdaInstr
             }
           },
         ) as Promise<{}> | undefined;
-        if (typeof maybePromise?.then === 'function') {
-          return maybePromise.then(
-            value => {
-              plugin._applyResponseHook(span, null, value);
-              return new Promise(resolve => plugin._endSpan(span, undefined, () => resolve(value)));
-            },
-            (err: Error | string) => {
-              plugin._applyResponseHook(span, err);
-              return new Promise((resolve, reject) => plugin._endSpan(span, err, () => reject(err)));
-            },
-          );
-        }
-        return maybePromise;
+
+        return plugin._handlePromiseResult(span, maybePromise);
       });
     };
+  }
+
+  private _createSpanForRequest(event: any, context: Context, requestIsColdStart: boolean, parent: OtelContext): Span {
+    const name = context.functionName;
+    return this.tracer.startSpan(
+      name,
+      {
+        kind: SpanKind.SERVER,
+        attributes: {
+          [SEMATTRS_FAAS_EXECUTION]: context.awsRequestId,
+          [SEMRESATTRS_FAAS_ID]: context.invokedFunctionArn,
+          [SEMRESATTRS_CLOUD_ACCOUNT_ID]: AwsLambdaInstrumentation._extractAccountId(context.invokedFunctionArn),
+          [ATTR_FAAS_COLDSTART]: requestIsColdStart,
+          ...AwsLambdaInstrumentation._extractOtherEventFields(event),
+        },
+      },
+      parent,
+    );
+  }
+
+  private _applyRequestHook(span: Span, event: any, context: Context): void {
+    const { requestHook } = this.getConfig();
+    if (requestHook) {
+      safeExecuteInTheMiddle(
+        () => requestHook(span, { event, context }),
+        e => {
+          if (e) diag.error('aws-lambda instrumentation: requestHook error', e);
+        },
+        true,
+      );
+    }
+  }
+
+  private _handlePromiseResult(span: Span, maybePromise: Promise<{}> | undefined): Promise<{}> | undefined {
+    if (typeof maybePromise?.then === 'function') {
+      return maybePromise.then(
+        value => {
+          this._applyResponseHook(span, null, value);
+          return new Promise(resolve => this._endSpan(span, undefined, () => resolve(value)));
+        },
+        (err: Error | string) => {
+          this._applyResponseHook(span, err);
+          return new Promise((resolve, reject) => this._endSpan(span, err, () => reject(err)));
+        },
+      );
+    }
+
+    // Handle synchronous return values by ending the span and applying response hook
+    this._applyResponseHook(span, null, maybePromise);
+    this._endSpan(span, undefined, () => {});
+    return maybePromise;
+  }
+
+  private _determineParent(event: any, context: Context): OtelContext {
+    const config = this.getConfig();
+    return AwsLambdaInstrumentation._determineParent(
+      event,
+      context,
+      config.eventContextExtractor || AwsLambdaInstrumentation._defaultEventContextExtractor,
+    );
+  }
+
+  private _isStreamingHandler<TEvent, TResult>(
+    handler: Handler<TEvent, TResult> | StreamifyHandler<TEvent, TResult>,
+  ): handler is StreamifyHandler<TEvent, TResult> {
+    return (
+      (handler as unknown as Record<symbol, unknown>)[AWS_HANDLER_STREAMING_SYMBOL] === AWS_HANDLER_STREAMING_RESPONSE
+    );
   }
 
   /**
