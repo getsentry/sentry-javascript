@@ -1,5 +1,14 @@
-import type { InternalGlobal } from '@sentry/core';
-import type { SvelteKitTracingConfig } from './svelteConfig';
+import { type InternalGlobal, escapeStringForRegex } from '@sentry/core';
+import MagicString from 'magic-string';
+import type { Plugin } from 'vite';
+import {
+  type BackwardsForwardsCompatibleSvelteConfig,
+  type SvelteKitTracingConfig,
+  getAdapterOutputDir,
+  getHooksFileName,
+  getTracingConfig,
+} from './svelteConfig';
+import type { SentrySvelteKitPluginOptions } from './types';
 
 export type GlobalSentryValues = {
   __sentry_sveltekit_output_dir?: string;
@@ -28,4 +37,73 @@ export function getGlobalValueInjectionCode(globalSentryValues: GlobalSentryValu
     .join('\n');
 
   return `${injectedValuesCode}\n`;
+}
+
+/**
+ * Injects SvelteKit app configuration values the svelte.config.js into the
+ * server's global object so that the SDK can pick up the information at runtime
+ */
+export async function makeGlobalValuesInjectionPlugin(
+  svelteConfig: BackwardsForwardsCompatibleSvelteConfig,
+  options: Pick<SentrySvelteKitPluginOptions, 'adapter' | 'debug'>,
+): Promise<Plugin> {
+  const { adapter = 'other', debug = false } = options;
+
+  const serverHooksFile = getHooksFileName(svelteConfig, 'server');
+  const adapterOutputDir = await getAdapterOutputDir(svelteConfig, adapter);
+
+  const globalSentryValues: GlobalSentryValues = {
+    __sentry_sveltekit_output_dir: adapterOutputDir,
+    __sentry_sveltekit_tracing_config: getTracingConfig(svelteConfig),
+  };
+
+  if (debug) {
+    // eslint-disable-next-line no-console
+    console.log('[Sentry SvelteKit] Global values:', globalSentryValues);
+  }
+
+  return {
+    name: 'sentry-sveltekit-global-values-injection-plugin',
+    resolveId: (id, _importer, _ref) => {
+      if (id === VIRTUAL_GLOBAL_VALUES_FILE) {
+        return {
+          id: VIRTUAL_GLOBAL_VALUES_FILE,
+          external: false,
+          moduleSideEffects: true,
+        };
+      }
+      return null;
+    },
+
+    load: id => {
+      if (id === VIRTUAL_GLOBAL_VALUES_FILE) {
+        return {
+          code: getGlobalValueInjectionCode(globalSentryValues),
+        };
+      }
+      return null;
+    },
+
+    transform: async (code, id) => {
+      const isServerEntryFile =
+        /instrumentation\.server\./.test(id) ||
+        // eslint-disable-next-line @sentry-internal/sdk/no-regexp-constructor -- not end user input + escaped anyway
+        new RegExp(`/${escapeStringForRegex(serverHooksFile)}(.(js|ts|mjs|mts))?`).test(id);
+
+      if (isServerEntryFile) {
+        if (debug) {
+          // eslint-disable-next-line no-console
+          console.log('[Global Values Plugin] Injecting global values into', id);
+        }
+        const ms = new MagicString(code);
+        ms.append(`\n; import "${VIRTUAL_GLOBAL_VALUES_FILE}";\n`);
+        return {
+          code: ms.toString(),
+          map: ms.generateMap({ hires: true }),
+        };
+      }
+
+      return null;
+    },
+  };
 }

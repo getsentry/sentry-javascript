@@ -19,7 +19,7 @@ export type SvelteKitTracingConfig = {
  */
 type BackwardsForwardsCompatibleKitConfig = Config['kit'] & { experimental?: SvelteKitTracingConfig };
 
-interface BackwardsForwardsCompatibleSvelteConfig extends Config {
+export interface BackwardsForwardsCompatibleSvelteConfig extends Config {
   kit?: BackwardsForwardsCompatibleKitConfig;
 }
 

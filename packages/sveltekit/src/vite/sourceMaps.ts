@@ -1,17 +1,14 @@
-/* eslint-disable max-lines */
 import { escapeStringForRegex, uuid4 } from '@sentry/core';
 import { getSentryRelease } from '@sentry/node';
 import type { SentryVitePluginOptions } from '@sentry/vite-plugin';
 import { sentryVitePlugin } from '@sentry/vite-plugin';
 import * as child_process from 'child_process';
 import * as fs from 'fs';
-import MagicString from 'magic-string';
 import * as path from 'path';
 import type { Plugin, UserConfig } from 'vite';
 import { WRAPPED_MODULE_SUFFIX } from '../common/utils';
-import type { GlobalSentryValues } from './injectGlobalValues';
-import { getGlobalValueInjectionCode, VIRTUAL_GLOBAL_VALUES_FILE } from './injectGlobalValues';
-import { getAdapterOutputDir, getHooksFileName, getTracingConfig, loadSvelteConfig } from './svelteConfig';
+import type { BackwardsForwardsCompatibleSvelteConfig } from './svelteConfig';
+import { getAdapterOutputDir } from './svelteConfig';
 import type { CustomSentryVitePluginOptions } from './types';
 
 // sorcery has no types, so these are some basic type definitions:
@@ -45,9 +42,10 @@ type FilesToDeleteAfterUpload = string | string[] | undefined;
  *
  * @returns the custom Sentry Vite plugin
  */
-export async function makeCustomSentryVitePlugins(options?: CustomSentryVitePluginOptions): Promise<Plugin[]> {
-  const svelteConfig = await loadSvelteConfig();
-
+export async function makeCustomSentryVitePlugins(
+  options: CustomSentryVitePluginOptions,
+  svelteConfig: BackwardsForwardsCompatibleSvelteConfig,
+): Promise<Plugin[]> {
   const usedAdapter = options?.adapter || 'other';
   const adapterOutputDir = await getAdapterOutputDir(svelteConfig, usedAdapter);
 
@@ -149,15 +147,6 @@ export async function makeCustomSentryVitePlugins(options?: CustomSentryVitePlug
 
   let isSSRBuild = true;
 
-  const serverHooksFile = getHooksFileName(svelteConfig, 'server');
-
-  const globalSentryValues: GlobalSentryValues = {
-    __sentry_sveltekit_output_dir: adapterOutputDir,
-    __sentry_sveltekit_tracing_config: getTracingConfig(svelteConfig),
-  };
-
-  console.log('xx globalSentryValues', globalSentryValues);
-
   const sourceMapSettingsPlugin: Plugin = {
     name: 'sentry-sveltekit-update-source-map-setting-plugin',
     apply: 'build', // only apply this plugin at build time
@@ -205,26 +194,6 @@ export async function makeCustomSentryVitePlugins(options?: CustomSentryVitePlug
     name: 'sentry-sveltekit-debug-id-upload-plugin',
     apply: 'build', // only apply this plugin at build time
     enforce: 'post', // this needs to be set to post, otherwise we don't pick up the output from the SvelteKit adapter
-    resolveId: (id, _importer, _ref) => {
-      if (id === VIRTUAL_GLOBAL_VALUES_FILE) {
-        return {
-          id: VIRTUAL_GLOBAL_VALUES_FILE,
-          external: false,
-          moduleSideEffects: true,
-        };
-      }
-      return null;
-    },
-
-    load: id => {
-      if (id === VIRTUAL_GLOBAL_VALUES_FILE) {
-        return {
-          code: getGlobalValueInjectionCode(globalSentryValues),
-        };
-      }
-      return null;
-    },
-
     configResolved: config => {
       // The SvelteKit plugins trigger additional builds within the main (SSR) build.
       // We just need a mechanism to upload source maps only once.
@@ -233,24 +202,6 @@ export async function makeCustomSentryVitePlugins(options?: CustomSentryVitePlug
       if (!config.build.ssr) {
         isSSRBuild = false;
       }
-    },
-
-    transform: async (code, id) => {
-      // eslint-disable-next-line @sentry-internal/sdk/no-regexp-constructor -- not end user input + escaped anyway
-      const isServerHooksFile = new RegExp(`/${escapeStringForRegex(serverHooksFile)}(.(js|ts|mjs|mts))?`).test(id);
-      const isInstrumentationServerFile = /instrumentation\.server\./.test(id);
-
-      if (isServerHooksFile || isInstrumentationServerFile) {
-        console.log('xx inject global values', id);
-        const ms = new MagicString(code);
-        ms.append(`\n; import "${VIRTUAL_GLOBAL_VALUES_FILE}";\n`);
-        return {
-          code: ms.toString(),
-          map: ms.generateMap({ hires: true }),
-        };
-      }
-
-      return null;
     },
 
     // We need to start uploading source maps later than in the original plugin

@@ -219,8 +219,22 @@ export type SentrySvelteKitPluginOptions = {
    * @default true`.
    */
   autoUploadSourceMaps?: boolean;
+
   /**
    * Options related to source maps upload to Sentry
    */
   sourceMapsUploadOptions?: SourceMapsUploadOptions;
+
+  /**
+   * Controls whether application config values should be injected into the server's global object at runtime.
+   *
+   * The Sentry SDK needs some information about your application config at runtime, like for example
+   * the used build output directory or your Sveltekit Tracing config.
+   *
+   * Important: You most likely don't want to disable this! Only disable injection if you're suspecting any
+   * kinds of build problems to be related to Sentry.
+   *
+   * @default true
+   */
+  injectGlobalValues?: boolean;
 };

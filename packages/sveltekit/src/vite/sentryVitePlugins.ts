@@ -2,12 +2,15 @@ import type { Plugin } from 'vite';
 import type { AutoInstrumentSelection } from './autoInstrument';
 import { makeAutoInstrumentationPlugin } from './autoInstrument';
 import { detectAdapter } from './detectAdapter';
+import { makeGlobalValuesInjectionPlugin } from './injectGlobalValues';
 import { makeCustomSentryVitePlugins } from './sourceMaps';
+import { loadSvelteConfig } from './svelteConfig';
 import type { CustomSentryVitePluginOptions, SentrySvelteKitPluginOptions } from './types';
 
 const DEFAULT_PLUGIN_OPTIONS: SentrySvelteKitPluginOptions = {
   autoUploadSourceMaps: true,
   autoInstrument: true,
+  injectGlobalValues: true,
   debug: false,
 };
 
@@ -44,9 +47,14 @@ export async function sentrySvelteKit(options: SentrySvelteKitPluginOptions = {}
 
   const sentryVitePluginsOptions = generateVitePluginOptions(mergedOptions);
 
-  if (sentryVitePluginsOptions) {
-    const sentryVitePlugins = await makeCustomSentryVitePlugins(sentryVitePluginsOptions);
+  const svelteConfig = await loadSvelteConfig();
 
+  if (mergedOptions.injectGlobalValues) {
+    sentryPlugins.push(await makeGlobalValuesInjectionPlugin(svelteConfig, mergedOptions));
+  }
+
+  if (sentryVitePluginsOptions) {
+    const sentryVitePlugins = await makeCustomSentryVitePlugins(sentryVitePluginsOptions, svelteConfig);
     sentryPlugins.push(...sentryVitePlugins);
   }
 
