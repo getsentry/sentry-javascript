@@ -10,6 +10,6 @@ if [[ -z "$NODE_VERSION" ]]; then
 fi
 
 echo "Pulling SAM Node $NODE_VERSION docker image..."
-docker pull --platform linux/amd64 "public.ecr.aws/sam/build-nodejs${NODE_VERSION}.x:latest"
+docker pull "public.ecr.aws/sam/build-nodejs${NODE_VERSION}.x:latest"
 
 echo "Successfully pulled SAM Node $NODE_VERSION docker image"
