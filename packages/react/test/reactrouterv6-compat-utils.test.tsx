@@ -1,10 +1,10 @@
 import { describe, expect, it, test } from 'vitest';
-import { checkRouteForAsyncHandler } from '../src/lazy-route-utils';
-import { getNumberOfUrlSegments } from '../src/reactrouterv6-compat-utils';
+import {
+  checkRouteForAsyncHandler,
+  getNumberOfUrlSegments,
+  processResolvedRoutes,
+} from '../src/reactrouter-compat-utils';
 import type { RouteObject } from '../src/types';
-
-// Mock processResolvedRoutes function for tests
-const mockProcessResolvedRoutes = () => {};
 
 describe('getNumberOfUrlSegments', () => {
   test.each([
@@ -27,8 +27,8 @@ describe('checkRouteForAsyncHandler', () => {
       },
     };
 
-    checkRouteForAsyncHandler(route, mockProcessResolvedRoutes);
-    checkRouteForAsyncHandler(route, mockProcessResolvedRoutes);
+    checkRouteForAsyncHandler(route, processResolvedRoutes);
+    checkRouteForAsyncHandler(route, processResolvedRoutes);
 
     const proxiedHandler = route.handle?.lazyChildren;
     expect(typeof proxiedHandler).toBe('function');
@@ -45,7 +45,7 @@ describe('checkRouteForAsyncHandler', () => {
       path: '/test',
     };
 
-    expect(() => checkRouteForAsyncHandler(route, mockProcessResolvedRoutes)).not.toThrow();
+    expect(() => checkRouteForAsyncHandler(route, processResolvedRoutes)).not.toThrow();
   });
 
   it('should handle routes with non-function handle properties', () => {
@@ -56,7 +56,7 @@ describe('checkRouteForAsyncHandler', () => {
       },
     };
 
-    expect(() => checkRouteForAsyncHandler(route, mockProcessResolvedRoutes)).not.toThrow();
+    expect(() => checkRouteForAsyncHandler(route, processResolvedRoutes)).not.toThrow();
   });
 
   it('should handle routes with null/undefined handle properties', () => {
@@ -65,7 +65,7 @@ describe('checkRouteForAsyncHandler', () => {
       handle: null as any,
     };
 
-    expect(() => checkRouteForAsyncHandler(route, mockProcessResolvedRoutes)).not.toThrow();
+    expect(() => checkRouteForAsyncHandler(route, processResolvedRoutes)).not.toThrow();
   });
 
   it('should handle routes with mixed function and non-function handle properties', () => {
@@ -79,7 +79,7 @@ describe('checkRouteForAsyncHandler', () => {
       },
     };
 
-    checkRouteForAsyncHandler(route, mockProcessResolvedRoutes);
+    checkRouteForAsyncHandler(route, processResolvedRoutes);
 
     const proxiedHandler = route.handle?.lazyChildren;
     expect(typeof proxiedHandler).toBe('function');
@@ -110,7 +110,7 @@ describe('checkRouteForAsyncHandler', () => {
       ],
     };
 
-    checkRouteForAsyncHandler(route, mockProcessResolvedRoutes);
+    checkRouteForAsyncHandler(route, processResolvedRoutes);
 
     // Check parent handler is proxied
     const proxiedParentHandler = route.handle?.lazyChildren;
@@ -153,7 +153,7 @@ describe('checkRouteForAsyncHandler', () => {
       ],
     };
 
-    checkRouteForAsyncHandler(route, mockProcessResolvedRoutes);
+    checkRouteForAsyncHandler(route, processResolvedRoutes);
 
     // Check all handlers are proxied
     expect((route.handle?.lazyChildren as { __sentry_proxied__?: boolean }).__sentry_proxied__).toBe(true);
@@ -179,7 +179,7 @@ describe('checkRouteForAsyncHandler', () => {
       },
     };
 
-    checkRouteForAsyncHandler(route, mockProcessResolvedRoutes);
+    checkRouteForAsyncHandler(route, processResolvedRoutes);
 
     // Check all handlers are proxied
     expect((route.handle?.lazyChildren as { __sentry_proxied__?: boolean }).__sentry_proxied__).toBe(true);
@@ -197,13 +197,13 @@ describe('checkRouteForAsyncHandler', () => {
     };
 
     // First call should proxy the function
-    checkRouteForAsyncHandler(route, mockProcessResolvedRoutes);
+    checkRouteForAsyncHandler(route, processResolvedRoutes);
     const firstProxiedHandler = route.handle?.lazyChildren;
     expect(firstProxiedHandler).not.toBe(mockHandler);
     expect((firstProxiedHandler as { __sentry_proxied__?: boolean }).__sentry_proxied__).toBe(true);
 
     // Second call should not create a new proxy
-    checkRouteForAsyncHandler(route, mockProcessResolvedRoutes);
+    checkRouteForAsyncHandler(route, processResolvedRoutes);
     const secondProxiedHandler = route.handle?.lazyChildren;
     expect(secondProxiedHandler).toBe(firstProxiedHandler); // Should be the same proxy
     expect((secondProxiedHandler as { __sentry_proxied__?: boolean }).__sentry_proxied__).toBe(true);
@@ -215,7 +215,7 @@ describe('checkRouteForAsyncHandler', () => {
       children: [],
     };
 
-    expect(() => checkRouteForAsyncHandler(route, mockProcessResolvedRoutes)).not.toThrow();
+    expect(() => checkRouteForAsyncHandler(route, processResolvedRoutes)).not.toThrow();
   });
 
   it('should handle routes with undefined children', () => {
@@ -224,7 +224,7 @@ describe('checkRouteForAsyncHandler', () => {
       children: undefined,
     };
 
-    expect(() => checkRouteForAsyncHandler(route, mockProcessResolvedRoutes)).not.toThrow();
+    expect(() => checkRouteForAsyncHandler(route, processResolvedRoutes)).not.toThrow();
   });
 
   it('should handle routes with null children', () => {
@@ -233,7 +233,7 @@ describe('checkRouteForAsyncHandler', () => {
       children: null as any,
     };
 
-    expect(() => checkRouteForAsyncHandler(route, mockProcessResolvedRoutes)).not.toThrow();
+    expect(() => checkRouteForAsyncHandler(route, processResolvedRoutes)).not.toThrow();
   });
 
   it('should handle routes with non-array children', () => {
@@ -242,7 +242,7 @@ describe('checkRouteForAsyncHandler', () => {
       children: 'not an array' as any,
     };
 
-    expect(() => checkRouteForAsyncHandler(route, mockProcessResolvedRoutes)).not.toThrow();
+    expect(() => checkRouteForAsyncHandler(route, processResolvedRoutes)).not.toThrow();
   });
 
   it('should handle routes with handle that is not an object', () => {
@@ -251,7 +251,7 @@ describe('checkRouteForAsyncHandler', () => {
       handle: 'not an object' as any,
     };
 
-    expect(() => checkRouteForAsyncHandler(route, mockProcessResolvedRoutes)).not.toThrow();
+    expect(() => checkRouteForAsyncHandler(route, processResolvedRoutes)).not.toThrow();
   });
 
   it('should handle routes with handle that is null', () => {
@@ -260,7 +260,7 @@ describe('checkRouteForAsyncHandler', () => {
       handle: null as any,
     };
 
-    expect(() => checkRouteForAsyncHandler(route, mockProcessResolvedRoutes)).not.toThrow();
+    expect(() => checkRouteForAsyncHandler(route, processResolvedRoutes)).not.toThrow();
   });
 
   it('should handle routes with handle that is undefined', () => {
@@ -269,7 +269,7 @@ describe('checkRouteForAsyncHandler', () => {
       handle: undefined as any,
     };
 
-    expect(() => checkRouteForAsyncHandler(route, mockProcessResolvedRoutes)).not.toThrow();
+    expect(() => checkRouteForAsyncHandler(route, processResolvedRoutes)).not.toThrow();
   });
 
   it('should handle routes with handle that is a function', () => {
@@ -278,7 +278,7 @@ describe('checkRouteForAsyncHandler', () => {
       handle: (() => {}) as any,
     };
 
-    expect(() => checkRouteForAsyncHandler(route, mockProcessResolvedRoutes)).not.toThrow();
+    expect(() => checkRouteForAsyncHandler(route, processResolvedRoutes)).not.toThrow();
   });
 
   it('should handle routes with handle that is a string', () => {
@@ -287,7 +287,7 @@ describe('checkRouteForAsyncHandler', () => {
       handle: 'string handle' as any,
     };
 
-    expect(() => checkRouteForAsyncHandler(route, mockProcessResolvedRoutes)).not.toThrow();
+    expect(() => checkRouteForAsyncHandler(route, processResolvedRoutes)).not.toThrow();
   });
 
   it('should handle routes with handle that is a number', () => {
@@ -296,7 +296,7 @@ describe('checkRouteForAsyncHandler', () => {
       handle: 42 as any,
     };
 
-    expect(() => checkRouteForAsyncHandler(route, mockProcessResolvedRoutes)).not.toThrow();
+    expect(() => checkRouteForAsyncHandler(route, processResolvedRoutes)).not.toThrow();
   });
 
   it('should handle routes with handle that is a boolean', () => {
@@ -305,7 +305,7 @@ describe('checkRouteForAsyncHandler', () => {
       handle: true as any,
     };
 
-    expect(() => checkRouteForAsyncHandler(route, mockProcessResolvedRoutes)).not.toThrow();
+    expect(() => checkRouteForAsyncHandler(route, processResolvedRoutes)).not.toThrow();
   });
 
   it('should handle routes with handle that is an array', () => {
@@ -314,6 +314,6 @@ describe('checkRouteForAsyncHandler', () => {
       handle: [] as any,
     };
 
-    expect(() => checkRouteForAsyncHandler(route, mockProcessResolvedRoutes)).not.toThrow();
+    expect(() => checkRouteForAsyncHandler(route, processResolvedRoutes)).not.toThrow();
   });
 });

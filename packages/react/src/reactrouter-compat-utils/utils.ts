@@ -64,7 +64,14 @@ function sendIndexPath(pathBuilder: string, pathname: string, basename: string):
   return [formattedPath, 'route'];
 }
 
-function getNumberOfUrlSegments(url: string): number {
+/**
+ * Returns the number of URL segments in the given URL string.
+ * Splits at '/' or '\/' to handle regex URLs correctly.
+ *
+ * @param url - The URL string to segment.
+ * @returns The number of segments in the URL.
+ */
+export function getNumberOfUrlSegments(url: string): number {
   // split at '/' or at '\/' to split regex urls correctly
   return url.split(/\\?\//).filter(s => s.length > 0 && s !== ',').length;
 }

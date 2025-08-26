@@ -114,7 +114,7 @@ const allRoutes = new Set<RouteObject>();
 /**
  * Processes resolved routes by adding them to allRoutes and checking for nested async handlers.
  */
-function processResolvedRoutes(
+export function processResolvedRoutes(
   resolvedRoutes: RouteObject[],
   parentRoute?: RouteObject,
   currentLocation?: Location,

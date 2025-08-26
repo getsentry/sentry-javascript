@@ -10,6 +10,7 @@ export {
   handleExistingNavigationSpan,
   createNewNavigationSpan,
   addResolvedRoutesToParent,
+  processResolvedRoutes,
 } from './instrumentation';
 
 // Utility exports
@@ -19,6 +20,7 @@ export {
   rebuildRoutePathFromAllRoutes,
   locationIsInsideDescendantRoute,
   getNormalizedName,
+  getNumberOfUrlSegments,
   resolveRouteNameAndSource,
   pathEndsWithWildcard,
   pathIsWildcardAndHasChildren,
