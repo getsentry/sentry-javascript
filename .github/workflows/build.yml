@@ -954,7 +954,7 @@ jobs:
       - name: Build E2E app
         working-directory: ${{ runner.temp }}/test-application
         timeout-minutes: 7
-        run: pnpm ${{ matrix.build-command || 'test:build' }}
+        run: ${{ matrix.build-command || 'pnpm test:build' }}
 
       - name: Install Playwright
         uses: ./.github/actions/install-playwright
@@ -1075,7 +1075,7 @@ jobs:
       - name: Build E2E app
         working-directory: ${{ runner.temp }}/test-application
         timeout-minutes: 7
-        run: pnpm ${{ matrix.build-command || 'test:build' }}
+        run: ${{ matrix.build-command || 'pnpm test:build' }}
 
       - name: Install Playwright
         uses: ./.github/actions/install-playwright

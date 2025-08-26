@@ -31,7 +31,7 @@
   "sentryTest": {
     "variants": [
       {
-        "build-command": "test:build-13",
+        "build-command": "pnpm test:build-13",
         "label": "create-next-app (next@13)"
       }
     ]
