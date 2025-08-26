@@ -2,7 +2,7 @@ import type { Event } from '@sentry/core';
 import type { Callback, Handler } from 'aws-lambda';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { init } from '../src/init';
-import { AWS_HANDLER_STREAMING_SYMBOL, AWS_HANDLER_STREAMING_RESPONSE, wrapHandler } from '../src/sdk';
+import { AWS_HANDLER_STREAMING_RESPONSE, AWS_HANDLER_STREAMING_SYMBOL, wrapHandler } from '../src/sdk';
 
 const mockFlush = vi.fn((...args) => Promise.resolve(args));
 const mockWithScope = vi.fn();
