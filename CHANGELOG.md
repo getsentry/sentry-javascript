@@ -4,9 +4,11 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 10.7.0
+
 ### Important Changes
 
-- feat(cloudflare): Add `instrumentPrototypeMethods` option to instrument RPC methods for DurableObjects ([#17424](https://github.com/getsentry/sentry-javascript/pull/17424))
+- **feat(cloudflare): Add `instrumentPrototypeMethods` option to instrument RPC methods for DurableObjects ([#17424](https://github.com/getsentry/sentry-javascript/pull/17424))**
 
 By default, `Sentry.instrumentDurableObjectWithSentry` will not wrap any RPC methods on the prototype. To enable wrapping for RPC methods, set `instrumentPrototypeMethods` to `true` or, if performance is a concern, a list of only the methods you want to instrument:
 
@@ -34,6 +36,27 @@ export const MyDurableObject = Sentry.instrumentDurableObjectWithSentry(
   MyDurableObjectBase,
 );
 ```
+
+## Other Changes
+
+- feat(aws): Add support for streaming handlers ([#17463](https://github.com/getsentry/sentry-javascript/pull/17463))
+- feat(core): Stream responses Anthropic AI ([#17460](https://github.com/getsentry/sentry-javascript/pull/17460))
+- feat(deps): bump @opentelemetry/instrumentation-aws-sdk from 0.56.0 to 0.57.0 ([#17455](https://github.com/getsentry/sentry-javascript/pull/17455))
+- feat(deps): bump @opentelemetry/instrumentation-dataloader from 0.21.0 to 0.21.1 ([#17457](https://github.com/getsentry/sentry-javascript/pull/17457))
+- feat(deps): bump @opentelemetry/instrumentation-kafkajs from 0.12.0 to 0.13.0 ([#17469](https://github.com/getsentry/sentry-javascript/pull/17469))
+- feat(deps): bump @opentelemetry/instrumentation-mysql2 from 0.49.0 to 0.50.0 ([#17459](https://github.com/getsentry/sentry-javascript/pull/17459))
+- feat(deps): bump @prisma/instrumentation from 6.13.0 to 6.14.0 ([#17466](https://github.com/getsentry/sentry-javascript/pull/17466))
+- feat(deps): bump @sentry/cli from 2.51.1 to 2.52.0 ([#17458](https://github.com/getsentry/sentry-javascript/pull/17458))
+- feat(deps): bump @sentry/rollup-plugin from 4.1.0 to 4.1.1 ([#17456](https://github.com/getsentry/sentry-javascript/pull/17456))
+- feat(deps): bump @sentry/webpack-plugin from 4.1.0 to 4.1.1 ([#17467](https://github.com/getsentry/sentry-javascript/pull/17467))
+- feat(replay): Add option to skip `requestAnimationFrame` for canvas snapshots ([#17380](https://github.com/getsentry/sentry-javascript/pull/17380))
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+
+- test(aws): Run E2E tests in all supported Node versions ([#17446](https://github.com/getsentry/sentry-javascript/pull/17446))
+
+</details>
 
 ## 10.6.0
 
