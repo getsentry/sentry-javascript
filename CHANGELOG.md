@@ -8,7 +8,7 @@
 
 - feat(cloudflare): Add `instrumentPrototypeMethods` option to instrument RPC methods for DurableObjects ([#17424](https://github.com/getsentry/sentry-javascript/pull/17424))
 
-By default, `Sentry.instrumentDurableObjectWithSentry` will not wrap any RPC methods on the prototype. To enable wrapping for RPC methods, set `instrumentPrototypeMethods` to `true` or a list of methods you want to instrument:
+By default, `Sentry.instrumentDurableObjectWithSentry` will not wrap any RPC methods on the prototype. To enable wrapping for RPC methods, set `instrumentPrototypeMethods` to `true` or, if performance is a concern, a list of only the methods you want to instrument:
 
 ```js
 class MyDurableObjectBase extends DurableObject<Env> {
@@ -34,8 +34,6 @@ export const MyDurableObject = Sentry.instrumentDurableObjectWithSentry(
   MyDurableObjectBase,
 );
 ```
-
-<<<<<<< HEAD
 
 ## 10.6.0
 
@@ -73,11 +71,6 @@ The Sentry Nuxt SDK is now considered stable and no longer in beta!
 - test(solidstart): Don't rely on flushing for lowQualityTransactionFilter ([#17408](https://github.com/getsentry/sentry-javascript/pull/17408))
 
 </details>
-
-=======
-
-> > > > > > > e3ba48da5f (Formatting fix)
-> > > > > > > Work in this release was contributed by @Karibash. Thank you for your contribution!
 
 ## 10.5.0
 
