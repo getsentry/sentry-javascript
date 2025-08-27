@@ -149,14 +149,12 @@ export function processResolvedRoutes(
     if (location) {
       if (spanOp === 'pageload') {
         // Re-run the pageload transaction update with the newly loaded routes
-        updatePageloadTransaction(
+        updatePageloadTransaction({
           activeRootSpan,
-          { pathname: location.pathname },
-          Array.from(allRoutes),
-          undefined,
-          undefined,
-          Array.from(allRoutes),
-        );
+          location: { pathname: location.pathname },
+          routes: Array.from(allRoutes),
+          allRoutes: Array.from(allRoutes),
+        });
       } else if (spanOp === 'navigation') {
         // For navigation spans, update the name with the newly loaded routes
         updateNavigationSpan(activeRootSpan, location, Array.from(allRoutes), false, _matchRoutes);
@@ -253,14 +251,13 @@ export function createV6CompatibleWrapCreateBrowserRouter<
     // This is the earliest convenient time to update the transaction name.
     // Callbacks to `router.subscribe` are not called for the initial load.
     if (router.state.historyAction === 'POP' && activeRootSpan) {
-      updatePageloadTransaction(
+      updatePageloadTransaction({
         activeRootSpan,
-        router.state.location,
+        location: router.state.location,
         routes,
-        undefined,
         basename,
-        Array.from(allRoutes),
-      );
+        allRoutes: Array.from(allRoutes),
+      });
     }
 
     router.subscribe((state: RouterState) => {
@@ -358,7 +355,13 @@ export function createV6CompatibleWrapCreateMemoryRouter<
       : router.state.location;
 
     if (router.state.historyAction === 'POP' && activeRootSpan) {
-      updatePageloadTransaction(activeRootSpan, location, routes, undefined, basename, Array.from(allRoutes));
+      updatePageloadTransaction({
+        activeRootSpan,
+        location,
+        routes,
+        basename,
+        allRoutes: Array.from(allRoutes),
+      });
     }
 
     router.subscribe((state: RouterState) => {
@@ -475,14 +478,12 @@ export function createV6CompatibleWrapUseRoutes(origUseRoutes: UseRoutes, versio
       if (isMountRenderPass.current) {
         addRoutesToAllRoutes(routes);
 
-        updatePageloadTransaction(
-          getActiveRootSpan(),
-          normalizedLocation,
+        updatePageloadTransaction({
+          activeRootSpan: getActiveRootSpan(),
+          location: normalizedLocation,
           routes,
-          undefined,
-          undefined,
-          Array.from(allRoutes),
-        );
+          allRoutes: Array.from(allRoutes),
+        });
         isMountRenderPass.current = false;
       } else {
         handleNavigation({
@@ -647,14 +648,21 @@ function getChildRoutesRecursively(route: RouteObject, allRoutes: Set<RouteObjec
   return allRoutes;
 }
 
-function updatePageloadTransaction(
-  activeRootSpan: Span | undefined,
-  location: Location,
-  routes: RouteObject[],
-  matches?: AgnosticDataRouteMatch,
-  basename?: string,
-  allRoutes?: RouteObject[],
-): void {
+function updatePageloadTransaction({
+  activeRootSpan,
+  location,
+  routes,
+  matches,
+  basename,
+  allRoutes,
+}: {
+  activeRootSpan: Span | undefined;
+  location: Location;
+  routes: RouteObject[];
+  matches?: AgnosticDataRouteMatch;
+  basename?: string;
+  allRoutes?: RouteObject[];
+}): void {
   const branches = Array.isArray(matches)
     ? matches
     : (_matchRoutes(allRoutes || routes, location, basename) as unknown as RouteMatch[]);
@@ -710,7 +718,12 @@ export function createV6CompatibleWithSentryReactRouterRouting<P extends Record<
         if (isMountRenderPass.current) {
           addRoutesToAllRoutes(routes);
 
-          updatePageloadTransaction(getActiveRootSpan(), location, routes, undefined, undefined, Array.from(allRoutes));
+          updatePageloadTransaction({
+            activeRootSpan: getActiveRootSpan(),
+            location,
+            routes,
+            allRoutes: Array.from(allRoutes),
+          });
           isMountRenderPass.current = false;
         } else {
           handleNavigation({
