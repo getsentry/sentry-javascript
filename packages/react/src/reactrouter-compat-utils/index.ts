@@ -16,15 +16,16 @@ export {
 
 // Utility exports
 export {
+  resolveRouteNameAndSource,
+  getNormalizedName,
   initializeRouterUtils,
+  isLikelyLazyRouteContext,
+  locationIsInsideDescendantRoute,
   prefixWithSlash,
   rebuildRoutePathFromAllRoutes,
-  locationIsInsideDescendantRoute,
-  getNormalizedName,
-  getNumberOfUrlSegments,
-  resolveRouteNameAndSource,
   pathEndsWithWildcard,
   pathIsWildcardAndHasChildren,
+  getNumberOfUrlSegments,
 } from './utils';
 
 // Lazy route exports

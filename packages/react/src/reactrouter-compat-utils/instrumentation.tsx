@@ -44,6 +44,7 @@ import { checkRouteForAsyncHandler } from './lazy-routes';
 import {
   getNormalizedName,
   initializeRouterUtils,
+  isLikelyLazyRouteContext,
   locationIsInsideDescendantRoute,
   prefixWithSlash,
   rebuildRoutePathFromAllRoutes,
@@ -114,7 +115,7 @@ const allRoutes = new Set<RouteObject>();
 export function processResolvedRoutes(
   resolvedRoutes: RouteObject[],
   parentRoute?: RouteObject,
-  currentLocation?: Location,
+  currentLocation: Location | null = null,
 ): void {
   resolvedRoutes.forEach(child => {
     allRoutes.add(child);
@@ -538,7 +539,7 @@ function wrapPatchRoutesOnNavigation(
                   key: 'default',
                 },
                 Array.from(allRoutes),
-                true,
+                true, // forceUpdate = true since we're loading lazy routes
                 _matchRoutes,
               );
             }
@@ -552,9 +553,8 @@ function wrapPatchRoutesOnNavigation(
       // Update navigation span after routes are patched
       const activeRootSpan = getActiveRootSpan();
       if (activeRootSpan && (spanToJSON(activeRootSpan) as { op?: string }).op === 'navigation') {
-        // For memory routers, we don't have a reliable way to get the current pathname
-        // without accessing window.location, so we'll use targetPath for both cases
-        const pathname = targetPath || (isMemoryRouter ? WINDOW.location?.pathname : undefined);
+        // For memory routers, we should not access window.location; use targetPath only
+        const pathname = isMemoryRouter ? targetPath : targetPath || WINDOW.location?.pathname;
         if (pathname) {
           updateNavigationSpan(
             activeRootSpan,
@@ -566,7 +566,7 @@ function wrapPatchRoutesOnNavigation(
               key: 'default',
             },
             Array.from(allRoutes),
-            false,
+            false, // forceUpdate = false since this is after lazy routes are loaded
             _matchRoutes,
           );
         }
@@ -603,15 +603,18 @@ export function handleNavigation(opts: {
       basename,
     );
 
+    // Check if this might be a lazy route context
+    const isLazyRouteContext = isLikelyLazyRouteContext(allRoutes || routes, location);
+
     const activeSpan = getActiveSpan();
     const spanJson = activeSpan && spanToJSON(activeSpan);
     const isAlreadyInNavigationSpan = spanJson?.op === 'navigation';
 
     // Cross usage can result in multiple navigation spans being created without this check
     if (isAlreadyInNavigationSpan && activeSpan && spanJson) {
-      handleExistingNavigationSpan(activeSpan, spanJson, name, source, false);
+      handleExistingNavigationSpan(activeSpan, spanJson, name, source, isLazyRouteContext);
     } else {
-      createNewNavigationSpan(client, name, source, version, false);
+      createNewNavigationSpan(client, name, source, version, isLazyRouteContext);
     }
   }
 }
@@ -783,6 +786,7 @@ export function handleExistingNavigationSpan(
     }
   }
 
+  // Always set the source attribute to keep it consistent with the current route
   activeSpan?.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
 }
 
