@@ -1,3 +1,5 @@
+// These exports provide utility functions for React Router v6 compatibility (as of now v6 and v7)
+
 // Main exports from instrumentation
 export type { ReactRouterOptions } from './instrumentation';
 export {
