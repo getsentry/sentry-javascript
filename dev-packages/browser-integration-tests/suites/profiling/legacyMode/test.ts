@@ -1,9 +1,18 @@
 import { expect } from '@playwright/test';
 import type { Event, Profile } from '@sentry/core';
 import { sentryTest } from '../../../utils/fixtures';
-import { properEnvelopeRequestParser, waitForTransactionRequestOnUrl } from '../../../utils/helpers';
+import {
+  properEnvelopeRequestParser,
+  shouldSkipTracingTest,
+  waitForTransactionRequestOnUrl,
+} from '../../../utils/helpers';
 
 sentryTest('does not send profile envelope when document-policy is not set', async ({ page, getLocalTestUrl }) => {
+  if (shouldSkipTracingTest()) {
+    // Profiling only works when tracing is enabled
+    sentryTest.skip();
+  }
+
   const url = await getLocalTestUrl({ testDir: __dirname });
 
   const req = await waitForTransactionRequestOnUrl(page, url);
@@ -16,6 +25,11 @@ sentryTest('does not send profile envelope when document-policy is not set', asy
 });
 
 sentryTest('sends profile envelope in legacy mode', async ({ page, getLocalTestUrl }) => {
+  if (shouldSkipTracingTest()) {
+    // Profiling only works when tracing is enabled
+    sentryTest.skip();
+  }
+
   const url = await getLocalTestUrl({ testDir: __dirname, responseHeaders: { 'Document-Policy': 'js-profiling' } });
 
   const req = await waitForTransactionRequestOnUrl(page, url);
