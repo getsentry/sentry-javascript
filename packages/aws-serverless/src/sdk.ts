@@ -133,7 +133,7 @@ function setupTimeoutWatning(context: Context, options: WrapperOptions): NodeJS.
   return undefined;
 }
 
-export const AWS_HANDLER_HIGHWATERMARK_SYMBOL = Symbol.for('aws.lambda.runtime.handler.highWaterMark');
+export const AWS_HANDLER_HIGHWATERMARK_SYMBOL = Symbol.for('aws.lambda.runtime.handler.streaming.highWaterMark');
 export const AWS_HANDLER_STREAMING_SYMBOL = Symbol.for('aws.lambda.runtime.handler.streaming');
 export const AWS_HANDLER_STREAMING_RESPONSE = 'response';
 

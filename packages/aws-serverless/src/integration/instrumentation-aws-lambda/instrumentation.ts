@@ -75,6 +75,7 @@ const headerGetter: TextMapGetter<APIGatewayProxyEventHeaders> = {
 
 export const lambdaMaxInitInMilliseconds = 10_000;
 const AWS_HANDLER_STREAMING_SYMBOL = Symbol.for('aws.lambda.runtime.handler.streaming');
+const AWS_HANDLER_HIGHWATERMARK_SYMBOL = Symbol.for('aws.lambda.runtime.handler.streaming.highWaterMark');
 const AWS_HANDLER_STREAMING_RESPONSE = 'response';
 
 /**
@@ -106,11 +107,14 @@ export class AwsLambdaInstrumentation extends InstrumentationBase<AwsLambdaInstr
 
     // Provide a temporary awslambda polyfill for CommonJS modules during loading
     // This prevents ReferenceError when modules use awslambda.streamifyResponse at load time
+    // taken from https://github.com/aws/aws-lambda-nodejs-runtime-interface-client/blob/main/src/UserFunction.js#L205C7-L211C9
     if (typeof globalThis.awslambda === 'undefined') {
       (globalThis as any).awslambda = {
-        streamifyResponse: (handler: any) => {
-          // Add the streaming symbols that the instrumentation looks for
+        streamifyResponse: (handler: any, options: any) => {
           handler[AWS_HANDLER_STREAMING_SYMBOL] = AWS_HANDLER_STREAMING_RESPONSE;
+          if (typeof options?.highWaterMark === 'number') {
+            handler[AWS_HANDLER_HIGHWATERMARK_SYMBOL] = parseInt(options.highWaterMark);
+          }
           return handler;
         },
       };
@@ -208,11 +212,12 @@ export class AwsLambdaInstrumentation extends InstrumentationBase<AwsLambdaInstr
         const patchedHandler = this._getPatchHandler(original, handlerLoadStartTime);
 
         // Streaming handlers have special symbols that we need to copy over to the patched handler.
-        for (const symbol of Object.getOwnPropertySymbols(original)) {
-          (patchedHandler as unknown as Record<symbol, unknown>)[symbol] = (
-            original as unknown as Record<symbol, unknown>
-          )[symbol];
-        }
+        (patchedHandler as unknown as Record<symbol, unknown>)[AWS_HANDLER_STREAMING_SYMBOL] = (
+          original as unknown as Record<symbol, unknown>
+        )[AWS_HANDLER_STREAMING_SYMBOL];
+        (patchedHandler as unknown as Record<symbol, unknown>)[AWS_HANDLER_HIGHWATERMARK_SYMBOL] = (
+          original as unknown as Record<symbol, unknown>
+        )[AWS_HANDLER_HIGHWATERMARK_SYMBOL];
 
         return wrapHandler(patchedHandler) as T;
       }
