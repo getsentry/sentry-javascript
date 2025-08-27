@@ -61,3 +61,44 @@ export interface AnthropicAiIntegration {
 }
 
 export type AnthropicAiInstrumentedMethod = (typeof ANTHROPIC_AI_INSTRUMENTED_METHODS)[number];
+
+/**
+ * Message type for Anthropic AI
+ */
+export type AnthropicAiMessage = {
+  id: string;
+  type: 'message';
+  role: string;
+  model: string;
+  content: unknown[];
+  stop_reason: string | null;
+  stop_sequence: number | null;
+  usage?: {
+    input_tokens: number;
+    cache_creation_input_tokens?: number;
+    cache_read_input_tokens?: number;
+    cache_creation?: unknown;
+    output_tokens?: number; // Not final; do not treat as total. Use `message_delta.usage.output_tokens` for the final total.
+    service_tier?: string;
+  };
+};
+
+/**
+ * Streaming event type for Anthropic AI
+ */
+export type AnthropicAiStreamingEvent = {
+  type: 'message_delta' | 'content_block_start' | 'content_block_delta' | 'content_block_stop' | 'error';
+  error?: {
+    type: string;
+    message: string;
+  };
+  index?: number;
+  delta?: {
+    type: unknown;
+    text?: string;
+  };
+  usage?: {
+    output_tokens: number; // Final total output tokens; emitted on the last `message_delta` event
+  };
+  message?: AnthropicAiMessage;
+};
