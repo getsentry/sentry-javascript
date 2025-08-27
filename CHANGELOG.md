@@ -4,6 +4,43 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 10.6.0
+
+### Important Changes
+
+- **feat(node): Add Anthropic AI integration ([#17348](https://github.com/getsentry/sentry-javascript/pull/17348))**
+
+This release adds support for automatically tracing Anthropic AI SDK requests, providing better observability for AI-powered applications.
+
+- **fix(core): Instrument invoke_agent root span, and support Vercel `ai` v5 ([#17395](https://github.com/getsentry/sentry-javascript/pull/17395))**
+
+This release makes the Sentry `vercelAiIntegration` compatible with version 5 of Vercel `ai`.
+
+- **docs(nuxt): Remove beta notice ([#17400](https://github.com/getsentry/sentry-javascript/pull/17400))**
+
+The Sentry Nuxt SDK is now considered stable and no longer in beta!
+
+### Other Changes
+
+- feat(astro): Align options with shared build time options type ([#17396](https://github.com/getsentry/sentry-javascript/pull/17396))
+- feat(aws): Add support for automatic wrapping in ESM ([#17407](https://github.com/getsentry/sentry-javascript/pull/17407))
+- feat(node): Add an instrumentation interface for Hono ([#17366](https://github.com/getsentry/sentry-javascript/pull/17366))
+- fix(browser): Use `DedicatedWorkerGlobalScope` global object type in `registerWebWorker` ([#17447](https://github.com/getsentry/sentry-javascript/pull/17447))
+- fix(core): Only consider ingest endpoint requests when checking `isSentryRequestUrl` ([#17393](https://github.com/getsentry/sentry-javascript/pull/17393))
+- fix(node): Fix preloading of instrumentation ([#17403](https://github.com/getsentry/sentry-javascript/pull/17403))
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+
+- chore: Add external contributor to CHANGELOG.md ([#17449](https://github.com/getsentry/sentry-javascript/pull/17449))
+- chore(deps): bump astro from 4.16.18 to 4.16.19 in /dev-packages/e2e-tests/test-applications/astro-4 ([#17434](https://github.com/getsentry/sentry-javascript/pull/17434))
+- test(e2e/firebase): Fix firebase e2e test failing due to outdated rules file ([#17448](https://github.com/getsentry/sentry-javascript/pull/17448))
+- test(nextjs): Fix canary tests ([#17416](https://github.com/getsentry/sentry-javascript/pull/17416))
+- test(nuxt): Don't rely on flushing for lowQualityTransactionFilter ([#17406](https://github.com/getsentry/sentry-javascript/pull/17406))
+- test(solidstart): Don't rely on flushing for lowQualityTransactionFilter ([#17408](https://github.com/getsentry/sentry-javascript/pull/17408))
+
+</details>
+
 Work in this release was contributed by @Karibash. Thank you for your contribution!
 
 ## 10.5.0
