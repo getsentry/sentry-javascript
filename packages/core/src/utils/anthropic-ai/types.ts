@@ -16,6 +16,17 @@ export type Message = {
   content: string | unknown[];
 };
 
+export type ContentBlock = {
+  type: 'tool_use' | 'server_tool_use' | string;
+  text?: string;
+  /** Tool name when type is tool_use */
+  name?: string;
+  /** Tool invocation id when type is tool_use */
+  id?: string;
+  input?: Record<string, unknown>;
+  tool_use_id?: string;
+};
+
 export type AnthropicAiResponse = {
   [key: string]: unknown; // Allow for additional unknown properties
   id: string;
@@ -23,7 +34,7 @@ export type AnthropicAiResponse = {
   created?: number;
   created_at?: number; // Available for Models.retrieve
   messages?: Array<Message>;
-  content?: string; // Available for Messages.create
+  content?: string | Array<ContentBlock>; // Available for Messages.create
   completion?: string; // Available for Completions.create
   input_tokens?: number; // Available for Models.countTokens
   usage?: {
@@ -87,7 +98,14 @@ export type AnthropicAiMessage = {
  * Streaming event type for Anthropic AI
  */
 export type AnthropicAiStreamingEvent = {
-  type: 'message_delta' | 'content_block_start' | 'content_block_delta' | 'content_block_stop' | 'error';
+  type:
+    | 'message_start'
+    | 'message_delta'
+    | 'message_stop'
+    | 'content_block_start'
+    | 'content_block_delta'
+    | 'content_block_stop'
+    | 'error';
   error?: {
     type: string;
     message: string;
@@ -96,9 +114,15 @@ export type AnthropicAiStreamingEvent = {
   delta?: {
     type: unknown;
     text?: string;
+    /** Present for fine-grained tool streaming */
+    partial_json?: string;
+    stop_reason?: string;
+    stop_sequence?: number;
   };
   usage?: {
     output_tokens: number; // Final total output tokens; emitted on the last `message_delta` event
   };
   message?: AnthropicAiMessage;
+  /** Present for fine-grained tool streaming */
+  content_block?: ContentBlock;
 };
