@@ -70,7 +70,7 @@ describe('sentrySvelteKit()', () => {
 
   it("doesn't return the sentry source maps plugins if autoUploadSourcemaps is `false`", async () => {
     const plugins = await getSentrySvelteKitPlugins({ autoUploadSourceMaps: false });
-    expect(plugins).toHaveLength(2); // auto instrument + global values injection
+    expect(plugins).toHaveLength(1); // auto instrument
   });
 
   it("doesn't return the sentry source maps plugins if `NODE_ENV` is development", async () => {
