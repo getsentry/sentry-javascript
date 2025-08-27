@@ -34,11 +34,11 @@
     "optional": true,
     "optionalVariants": [
       {
-        "build-command": "test:build-canary",
+        "build-command": "pnpm test:build-canary",
         "label": "nextjs-turbo (canary)"
       },
       {
-        "build-command": "test:build-latest",
+        "build-command": "pnpm test:build-latest",
         "label": "nextjs-turbo (latest)"
       }
     ]
