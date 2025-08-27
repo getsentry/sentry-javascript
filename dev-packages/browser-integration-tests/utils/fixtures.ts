@@ -35,6 +35,7 @@ export type TestFixtures = {
     skipRouteHandler?: boolean;
     skipDsnRouteHandler?: boolean;
     handleLazyLoadedFeedback?: boolean;
+    responseHeaders?: Record<string, string>;
   }) => Promise<string>;
   forceFlushReplay: () => Promise<string>;
   enableConsole: () => void;
@@ -59,7 +60,13 @@ const sentryTest = base.extend<TestFixtures>({
 
   getLocalTestUrl: ({ page }, use) => {
     return use(
-      async ({ testDir, skipRouteHandler = false, skipDsnRouteHandler = false, handleLazyLoadedFeedback = false }) => {
+      async ({
+        testDir,
+        skipRouteHandler = false,
+        skipDsnRouteHandler = false,
+        handleLazyLoadedFeedback = false,
+        responseHeaders = {},
+      }) => {
         const pagePath = `${TEST_HOST}/index.html`;
 
         const tmpDir = path.join(testDir, 'dist', crypto.randomUUID());
@@ -86,7 +93,9 @@ const sentryTest = base.extend<TestFixtures>({
           const file = route.request().url().split('/').pop();
           const filePath = path.resolve(tmpDir, `./${file}`);
 
-          return fs.existsSync(filePath) ? route.fulfill({ path: filePath }) : route.continue();
+          return fs.existsSync(filePath)
+            ? route.fulfill({ path: filePath, headers: responseHeaders })
+            : route.continue();
         });
 
         if (handleLazyLoadedFeedback) {
