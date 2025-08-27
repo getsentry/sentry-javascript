@@ -1,7 +1,7 @@
 import type { Scope } from '@sentry/core';
 import { consoleSandbox, debug } from '@sentry/core';
 import { captureException, captureMessage, flush, getCurrentScope, withScope } from '@sentry/node';
-import type { Context, Handler } from 'aws-lambda';
+import type { Context, Handler, StreamifyHandler } from 'aws-lambda';
 import { performance } from 'perf_hooks';
 import { types } from 'util';
 import { DEBUG_BUILD } from './debug-build';
@@ -108,6 +108,51 @@ function enhanceScopeWithEnvironmentData(scope: Scope, context: Context, startTi
   });
 }
 
+function setupTimeoutWatning(context: Context, options: WrapperOptions): NodeJS.Timeout | undefined {
+  // In seconds. You cannot go any more granular than this in AWS Lambda.
+  const configuredTimeout = Math.ceil(tryGetRemainingTimeInMillis(context) / 1000);
+  const configuredTimeoutMinutes = Math.floor(configuredTimeout / 60);
+  const configuredTimeoutSeconds = configuredTimeout % 60;
+
+  const humanReadableTimeout =
+    configuredTimeoutMinutes > 0
+      ? `${configuredTimeoutMinutes}m${configuredTimeoutSeconds}s`
+      : `${configuredTimeoutSeconds}s`;
+
+  if (options.captureTimeoutWarning) {
+    const timeoutWarningDelay = tryGetRemainingTimeInMillis(context) - options.timeoutWarningLimit;
+
+    return setTimeout(() => {
+      withScope(scope => {
+        scope.setTag('timeout', humanReadableTimeout);
+        captureMessage(`Possible function timeout: ${context.functionName}`, 'warning');
+      });
+    }, timeoutWarningDelay) as unknown as NodeJS.Timeout;
+  }
+
+  return undefined;
+}
+
+export const AWS_HANDLER_HIGHWATERMARK_SYMBOL = Symbol.for('aws.lambda.runtime.handler.streaming.highWaterMark');
+export const AWS_HANDLER_STREAMING_SYMBOL = Symbol.for('aws.lambda.runtime.handler.streaming');
+export const AWS_HANDLER_STREAMING_RESPONSE = 'response';
+
+function isStreamingHandler(handler: Handler | StreamifyHandler): handler is StreamifyHandler {
+  return (
+    (handler as unknown as Record<symbol, unknown>)[AWS_HANDLER_STREAMING_SYMBOL] === AWS_HANDLER_STREAMING_RESPONSE
+  );
+}
+
+export function wrapHandler<TEvent, TResult>(
+  handler: Handler<TEvent, TResult>,
+  wrapOptions?: Partial<WrapperOptions>,
+): Handler<TEvent, TResult>;
+
+export function wrapHandler<TEvent, TResult>(
+  handler: StreamifyHandler<TEvent, TResult>,
+  wrapOptions?: Partial<WrapperOptions>,
+): StreamifyHandler<TEvent, TResult>;
+
 /**
  * Wraps a lambda handler adding it error capture and tracing capabilities.
  *
@@ -116,9 +161,9 @@ function enhanceScopeWithEnvironmentData(scope: Scope, context: Context, startTi
  * @returns Handler
  */
 export function wrapHandler<TEvent, TResult>(
-  handler: Handler<TEvent, TResult>,
+  handler: Handler<TEvent, TResult> | StreamifyHandler<TEvent, TResult>,
   wrapOptions: Partial<WrapperOptions> = {},
-): Handler<TEvent, TResult> {
+): Handler<TEvent, TResult> | StreamifyHandler<TEvent, TResult> {
   const START_TIME = performance.now();
 
   // eslint-disable-next-line deprecation/deprecation
@@ -141,18 +186,22 @@ export function wrapHandler<TEvent, TResult>(
     ...wrapOptions,
   };
 
-  let timeoutWarningTimer: NodeJS.Timeout;
+  if (isStreamingHandler(handler)) {
+    return wrapStreamingHandler(handler, options, START_TIME);
+  }
+
+  let timeoutWarningTimer: NodeJS.Timeout | undefined;
 
   // AWSLambda is like Express. It makes a distinction about handlers based on its last argument
   // async (event) => async handler
   // async (event, context) => async handler
   // (event, context, callback) => sync handler
   // Nevertheless whatever option is chosen by user, we convert it to async handler.
-  const asyncHandler: AsyncHandler<typeof handler> =
+  const asyncHandler: AsyncHandler<Handler<TEvent, TResult>> =
     handler.length > 2
       ? (event, context) =>
           new Promise((resolve, reject) => {
-            const rv = (handler as SyncHandler<typeof handler>)(event, context, (error, result) => {
+            const rv = (handler as SyncHandler<Handler<TEvent, TResult>>)(event, context, (error, result) => {
               if (error === null || error === undefined) {
                 resolve(result!); // eslint-disable-line @typescript-eslint/no-non-null-assertion
               } else {
@@ -166,33 +215,12 @@ export function wrapHandler<TEvent, TResult>(
               void (rv as Promise<NonNullable<TResult>>).then(resolve, reject);
             }
           })
-      : (handler as AsyncHandler<typeof handler>);
+      : (handler as AsyncHandler<Handler<TEvent, TResult>>);
 
-  return async (event, context) => {
+  return async (event: TEvent, context: Context) => {
     context.callbackWaitsForEmptyEventLoop = options.callbackWaitsForEmptyEventLoop;
 
-    // In seconds. You cannot go any more granular than this in AWS Lambda.
-    const configuredTimeout = Math.ceil(tryGetRemainingTimeInMillis(context) / 1000);
-    const configuredTimeoutMinutes = Math.floor(configuredTimeout / 60);
-    const configuredTimeoutSeconds = configuredTimeout % 60;
-
-    const humanReadableTimeout =
-      configuredTimeoutMinutes > 0
-        ? `${configuredTimeoutMinutes}m${configuredTimeoutSeconds}s`
-        : `${configuredTimeoutSeconds}s`;
-
-    // When `callbackWaitsForEmptyEventLoop` is set to false, which it should when using `captureTimeoutWarning`,
-    // we don't have a guarantee that this message will be delivered. Because of that, we don't flush it.
-    if (options.captureTimeoutWarning) {
-      const timeoutWarningDelay = tryGetRemainingTimeInMillis(context) - options.timeoutWarningLimit;
-
-      timeoutWarningTimer = setTimeout(() => {
-        withScope(scope => {
-          scope.setTag('timeout', humanReadableTimeout);
-          captureMessage(`Possible function timeout: ${context.functionName}`, 'warning');
-        });
-      }, timeoutWarningDelay) as unknown as NodeJS.Timeout;
-    }
+    timeoutWarningTimer = setupTimeoutWatning(context, options);
 
     async function processResult(): Promise<TResult> {
       const scope = getCurrentScope();
@@ -228,4 +256,58 @@ export function wrapHandler<TEvent, TResult>(
       return processResult();
     });
   };
+}
+
+function wrapStreamingHandler<TEvent, TResult>(
+  handler: StreamifyHandler<TEvent, TResult>,
+  options: WrapperOptions,
+  startTime: number,
+): StreamifyHandler<TEvent, TResult> {
+  let timeoutWarningTimer: NodeJS.Timeout | undefined;
+
+  const wrappedHandler = async (
+    event: TEvent,
+    responseStream: Parameters<StreamifyHandler<TEvent, TResult>>[1],
+    context: Context,
+  ): Promise<TResult> => {
+    context.callbackWaitsForEmptyEventLoop = options.callbackWaitsForEmptyEventLoop;
+
+    timeoutWarningTimer = setupTimeoutWatning(context, options);
+
+    async function processStreamingResult(): Promise<TResult> {
+      const scope = getCurrentScope();
+
+      try {
+        enhanceScopeWithEnvironmentData(scope, context, startTime);
+
+        responseStream.on('error', error => {
+          captureException(error, scope => markEventUnhandled(scope, 'auto.function.aws-serverless.stream'));
+        });
+
+        return await handler(event, responseStream, context);
+      } catch (e) {
+        // Errors should already captured in the instrumentation's `responseHook`,
+        // we capture them here just to be safe. Double captures are deduplicated by the SDK.
+        captureException(e, scope => markEventUnhandled(scope, 'auto.function.aws-serverless.handler'));
+        throw e;
+      } finally {
+        if (timeoutWarningTimer) {
+          clearTimeout(timeoutWarningTimer);
+        }
+        await flush(options.flushTimeout).catch(e => {
+          DEBUG_BUILD && debug.error(e);
+        });
+      }
+    }
+
+    return withScope(() => processStreamingResult());
+  };
+
+  const handlerWithSymbols = handler as unknown as Record<symbol, unknown>;
+  (wrappedHandler as unknown as Record<symbol, unknown>)[AWS_HANDLER_STREAMING_SYMBOL] =
+    handlerWithSymbols[AWS_HANDLER_STREAMING_SYMBOL];
+  (wrappedHandler as unknown as Record<symbol, unknown>)[AWS_HANDLER_HIGHWATERMARK_SYMBOL] =
+    handlerWithSymbols[AWS_HANDLER_HIGHWATERMARK_SYMBOL];
+
+  return wrappedHandler;
 }

@@ -219,6 +219,7 @@ export type SentrySvelteKitPluginOptions = {
    * @default true`.
    */
   autoUploadSourceMaps?: boolean;
+
   /**
    * Options related to source maps upload to Sentry
    */

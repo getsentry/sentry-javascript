@@ -2,7 +2,9 @@ import type { Plugin } from 'vite';
 import type { AutoInstrumentSelection } from './autoInstrument';
 import { makeAutoInstrumentationPlugin } from './autoInstrument';
 import { detectAdapter } from './detectAdapter';
+import { makeGlobalValuesInjectionPlugin } from './injectGlobalValues';
 import { makeCustomSentryVitePlugins } from './sourceMaps';
+import { loadSvelteConfig } from './svelteConfig';
 import type { CustomSentryVitePluginOptions, SentrySvelteKitPluginOptions } from './types';
 
 const DEFAULT_PLUGIN_OPTIONS: SentrySvelteKitPluginOptions = {
@@ -25,9 +27,14 @@ export async function sentrySvelteKit(options: SentrySvelteKitPluginOptions = {}
     adapter: options.adapter || (await detectAdapter(options.debug)),
   };
 
+  const svelteConfig = await loadSvelteConfig();
+
   const sentryPlugins: Plugin[] = [];
 
   if (mergedOptions.autoInstrument) {
+    // TODO: Once tracing is promoted stable, we need to adjust this check!
+    const kitTracingEnabled = !!svelteConfig.kit?.experimental?.tracing?.server;
+
     const pluginOptions: AutoInstrumentSelection = {
       load: true,
       serverLoad: true,
@@ -38,15 +45,26 @@ export async function sentrySvelteKit(options: SentrySvelteKitPluginOptions = {}
       makeAutoInstrumentationPlugin({
         ...pluginOptions,
         debug: options.debug || false,
+        // if kit-internal tracing is enabled, we only want to wrap and instrument client-side code.
+        onlyInstrumentClient: kitTracingEnabled,
       }),
     );
   }
 
   const sentryVitePluginsOptions = generateVitePluginOptions(mergedOptions);
 
-  if (sentryVitePluginsOptions) {
-    const sentryVitePlugins = await makeCustomSentryVitePlugins(sentryVitePluginsOptions);
+  if (mergedOptions.autoUploadSourceMaps) {
+    // When source maps are enabled, we need to inject the output directory to get a correct
+    // stack trace, by using this SDK's `rewriteFrames` integration.
+    // This integration picks up the value.
+    // TODO: I don't think this is technically correct. Either we always or never inject the output directory.
+    // Stack traces shouldn't be different, depending on source maps config. With debugIds, we might not even
+    // need to rewrite frames anymore.
+    sentryPlugins.push(await makeGlobalValuesInjectionPlugin(svelteConfig, mergedOptions));
+  }
 
+  if (sentryVitePluginsOptions) {
+    const sentryVitePlugins = await makeCustomSentryVitePlugins(sentryVitePluginsOptions, svelteConfig);
     sentryPlugins.push(...sentryVitePlugins);
   }
 

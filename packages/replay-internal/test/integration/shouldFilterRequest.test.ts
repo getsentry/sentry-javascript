@@ -20,6 +20,6 @@ describe('Integration | shouldFilterRequest', () => {
   it('should filter requests for Sentry ingest URLs', async () => {
     const { replay } = await mockSdk();
 
-    expect(shouldFilterRequest(replay, 'https://03031aa.ingest.f00.f00/api/129312/')).toBe(true);
+    expect(shouldFilterRequest(replay, 'https://03031aa.ingest.f00.f00/api/129312/?sentry_key=123')).toBe(true);
   });
 });

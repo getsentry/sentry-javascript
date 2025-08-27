@@ -9,6 +9,11 @@
 // =============================================================================
 
 /**
+ * The input messages sent to the model
+ */
+export const GEN_AI_PROMPT_ATTRIBUTE = 'gen_ai.prompt';
+
+/**
  * The Generative AI system being used
  * For OpenAI, this should always be "openai"
  */
@@ -164,3 +169,12 @@ export const OPENAI_OPERATIONS = {
   CHAT: 'chat',
   RESPONSES: 'responses',
 } as const;
+
+// =============================================================================
+// ANTHROPIC AI OPERATIONS
+// =============================================================================
+
+/**
+ * The response timestamp from Anthropic AI (ISO string)
+ */
+export const ANTHROPIC_AI_RESPONSE_TIMESTAMP_ATTRIBUTE = 'anthropic.response.timestamp';

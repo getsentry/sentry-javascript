@@ -6,7 +6,7 @@ import {
   GEN_AI_RESPONSE_STREAMING_ATTRIBUTE,
   GEN_AI_RESPONSE_TEXT_ATTRIBUTE,
   GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
-} from '../gen-ai-attributes';
+} from '../ai/gen-ai-attributes';
 import { RESPONSE_EVENT_TYPES } from './constants';
 import type { OpenAIResponseObject } from './types';
 import {

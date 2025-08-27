@@ -1,6 +1,6 @@
 {
   "name": "@sentry/aws-serverless",
-  "version": "10.5.0",
+  "version": "10.7.0",
   "description": "Official Sentry SDK for AWS Lambda and AWS Serverless Environments",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/aws-serverless",
@@ -67,10 +67,10 @@
   "dependencies": {
     "@opentelemetry/api": "^1.9.0",
     "@opentelemetry/instrumentation": "^0.203.0",
-    "@opentelemetry/instrumentation-aws-sdk": "0.56.0",
+    "@opentelemetry/instrumentation-aws-sdk": "0.57.0",
     "@opentelemetry/semantic-conventions": "^1.36.0",
-    "@sentry/core": "10.5.0",
-    "@sentry/node": "10.5.0",
+    "@sentry/core": "10.7.0",
+    "@sentry/node": "10.7.0",
     "@types/aws-lambda": "^8.10.62"
   },
   "devDependencies": {
