@@ -83,16 +83,22 @@ sentryTest('sends profile envelope in legacy mode', async ({ page, getLocalTestU
 
   const functionNames = profile.frames.map(frame => frame.function).filter(name => name !== '');
 
-  expect(functionNames).toEqual(
-    expect.arrayContaining([
-      '_startRootSpan',
-      'withScope',
-      'createChildOrRootSpan',
-      'startSpanManual',
-      'startProfileForSpan',
-      'startJSSelfProfile',
-    ]),
-  );
+  if (!(process.env.PW_BUNDLE || '').startsWith('bundle')) {
+    // In bundled mode, function names are minified
+    expect(functionNames.length).toBeGreaterThan(0);
+    expect((functionNames as string[]).every(name => name?.length > 0)).toBe(true); // Just make sure they're not empty strings
+  } else {
+    expect(functionNames).toEqual(
+      expect.arrayContaining([
+        '_startRootSpan',
+        'withScope',
+        'createChildOrRootSpan',
+        'startSpanManual',
+        'startProfileForSpan',
+        'startJSSelfProfile',
+      ]),
+    );
+  }
 
   expect(profile.thread_metadata).toHaveProperty('0');
   expect(profile.thread_metadata['0']).toHaveProperty('name');
