@@ -52,12 +52,15 @@ beforeEach(() => {
 });
 
 async function getSentryViteSubPlugin(name: string): Promise<Plugin | undefined> {
-  const plugins = await makeCustomSentryVitePlugins({
-    authToken: 'token',
-    org: 'org',
-    project: 'project',
-    adapter: 'other',
-  });
+  const plugins = await makeCustomSentryVitePlugins(
+    {
+      authToken: 'token',
+      org: 'org',
+      project: 'project',
+      adapter: 'other',
+    },
+    { kit: {} },
+  );
 
   return plugins.find(plugin => plugin.name === name);
 }
@@ -79,8 +82,8 @@ describe('makeCustomSentryVitePlugins()', () => {
     expect(plugin?.apply).toEqual('build');
     expect(plugin?.enforce).toEqual('post');
 
-    expect(plugin?.resolveId).toBeInstanceOf(Function);
-    expect(plugin?.transform).toBeInstanceOf(Function);
+    expect(plugin?.resolveId).toBeUndefined();
+    expect(plugin?.transform).toBeUndefined();
 
     expect(plugin?.configResolved).toBeInstanceOf(Function);
 
@@ -178,18 +181,10 @@ describe('makeCustomSentryVitePlugins()', () => {
     });
   });
 
-  describe('Custom debug id source maps plugin plugin', () => {
-    it('injects the output dir into the server hooks file', async () => {
-      const plugin = await getSentryViteSubPlugin('sentry-sveltekit-debug-id-upload-plugin');
-      // @ts-expect-error this function exists!
-      const transformOutput = await plugin.transform('foo', '/src/hooks.server.ts');
-      const transformedCode = transformOutput.code;
-      const transformedSourcemap = transformOutput.map;
-      const expectedTransformedCode = 'foo\n; import "\0sentry-inject-global-values-file";\n';
-      expect(transformedCode).toEqual(expectedTransformedCode);
-      expect(transformedSourcemap).toBeDefined();
-    });
+  // Note: The global values injection plugin tests are now in a separate test file
+  // since the plugin was moved to injectGlobalValues.ts
 
+  describe('Custom debug id source maps plugin plugin', () => {
     it('uploads source maps during the SSR build', async () => {
       const plugin = await getSentryViteSubPlugin('sentry-sveltekit-debug-id-upload-plugin');
       // @ts-expect-error this function exists!
@@ -423,12 +418,15 @@ describe('deleteFilesAfterUpload', () => {
       };
     });
 
-    const plugins = await makeCustomSentryVitePlugins({
-      authToken: 'token',
-      org: 'org',
-      project: 'project',
-      adapter: 'other',
-    });
+    const plugins = await makeCustomSentryVitePlugins(
+      {
+        authToken: 'token',
+        org: 'org',
+        project: 'project',
+        adapter: 'other',
+      },
+      { kit: {} },
+    );
 
     // @ts-expect-error this function exists!
     const mergedOptions = sentryVitePlugin.mock.calls[0][0];
@@ -498,15 +496,18 @@ describe('deleteFilesAfterUpload', () => {
         };
       });
 
-      const plugins = await makeCustomSentryVitePlugins({
-        authToken: 'token',
-        org: 'org',
-        project: 'project',
-        adapter: 'other',
-        sourcemaps: {
-          filesToDeleteAfterUpload,
+      const plugins = await makeCustomSentryVitePlugins(
+        {
+          authToken: 'token',
+          org: 'org',
+          project: 'project',
+          adapter: 'other',
+          sourcemaps: {
+            filesToDeleteAfterUpload,
+          },
         },
-      });
+        { kit: {} },
+      );
 
       // @ts-expect-error this function exists!
       const mergedOptions = sentryVitePlugin.mock.calls[0][0];

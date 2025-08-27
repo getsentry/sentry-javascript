@@ -82,7 +82,7 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/index.js',
     import: createImport('init', 'browserTracingIntegration', 'replayIntegration', 'feedbackIntegration'),
     gzip: true,
-    limit: '95 KB',
+    limit: '96 KB',
   },
   {
     name: '@sentry/browser (incl. Feedback)',
@@ -233,7 +233,7 @@ module.exports = [
     import: createImport('init'),
     ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
     gzip: true,
-    limit: '149 KB',
+    limit: '150 KB',
   },
   {
     name: '@sentry/node - without tracing',
