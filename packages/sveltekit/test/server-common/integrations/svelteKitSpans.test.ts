@@ -11,9 +11,18 @@ describe('svelteKitSpansIntegration', () => {
     expect(typeof integration.preprocessEvent).toBe('function');
   });
 
-  it('enhances spans from SvelteKit', () => {
+  it('enhances spans from SvelteKit, if root span was emitted by SvelteKit', () => {
     const event: TransactionEvent = {
       type: 'transaction',
+      contexts: {
+        trace: {
+          span_id: '123',
+          trace_id: 'abc',
+          data: {
+            'sveltekit.tracing.original_name': 'sveltekit.handle.root',
+          },
+        },
+      },
       spans: [
         {
           description: 'sveltekit.resolve',
@@ -35,6 +44,39 @@ describe('svelteKitSpansIntegration', () => {
     expect(event.spans?.[0]?.origin).toBe('auto.http.sveltekit');
     expect(event.spans?.[0]?.data[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toBe('function.sveltekit.resolve');
     expect(event.spans?.[0]?.data[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toBe('auto.http.sveltekit');
+  });
+
+  it('does not enhance spans from SvelteKit, if root span was not emitted by SvelteKit', () => {
+    const event: TransactionEvent = {
+      type: 'transaction',
+      contexts: {
+        trace: {
+          span_id: '123',
+          trace_id: 'abc',
+          data: {},
+        },
+      },
+      spans: [
+        {
+          description: 'sveltekit.resolve',
+          data: {
+            someAttribute: 'someValue',
+          },
+          span_id: '123',
+          trace_id: 'abc',
+          start_timestamp: 0,
+        },
+      ],
+    };
+
+    // @ts-expect-error -- passing in an empty option for client but it is unused in the integration
+    svelteKitSpansIntegration().preprocessEvent?.(event, {}, {});
+
+    expect(event.spans).toHaveLength(1);
+    expect(event.spans?.[0]?.op).toBeUndefined();
+    expect(event.spans?.[0]?.origin).toBeUndefined();
+    expect(event.spans?.[0]?.data[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toBeUndefined();
+    expect(event.spans?.[0]?.data[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toBeUndefined();
   });
 
   describe('_enhanceKitSpan', () => {

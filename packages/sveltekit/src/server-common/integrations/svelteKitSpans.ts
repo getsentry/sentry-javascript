@@ -12,7 +12,8 @@ export function svelteKitSpansIntegration(): Integration {
     // Using preprocessEvent to ensure the processing happens before user-configured
     // event processors are executed
     preprocessEvent(event) {
-      if (event.type === 'transaction') {
+      // only iterate over the spans if the root span was emitted by SvelteKit
+      if (event.type === 'transaction' && event.contexts?.trace?.data?.['sveltekit.tracing.original_name']) {
         event.spans?.forEach(_enhanceKitSpan);
       }
     },

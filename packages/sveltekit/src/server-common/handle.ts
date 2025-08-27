@@ -162,7 +162,7 @@ async function instrumentHandle(
         }),
       });
 
-      const kitRootSpan = event.tracing?.root;
+      const kitRootSpan = event.tracing?.enabled ? event.tracing?.root : undefined;
 
       if (sentrySpan) {
         setHttpStatus(sentrySpan, res.status);
