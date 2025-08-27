@@ -11,7 +11,7 @@
  * Learn more at https://developers.cloudflare.com/workers/
  */
 import * as Sentry from '@sentry/cloudflare';
-import { DurableObject } from "cloudflare:workers";
+import { DurableObject } from 'cloudflare:workers';
 
 class MyDurableObjectBase extends DurableObject<Env> {
 	private throwOnExit = new WeakMap<WebSocket, Error>();
@@ -44,7 +44,7 @@ class MyDurableObjectBase extends DurableObject<Env> {
 	}
 
 	webSocketClose(ws: WebSocket): void | Promise<void> {
-    if (this.throwOnExit.has(ws)) {
+		if (this.throwOnExit.has(ws)) {
 			const error = this.throwOnExit.get(ws)!;
 			this.throwOnExit.delete(ws);
 			throw error;
@@ -53,36 +53,37 @@ class MyDurableObjectBase extends DurableObject<Env> {
 }
 
 export const MyDurableObject = Sentry.instrumentDurableObjectWithSentry(
-  (env: Env) => ({
-    dsn: env.E2E_TEST_DSN,
-    environment: 'qa', // dynamic sampling bias to keep transactions
-    tunnel: `http://localhost:3031/`, // proxy server
-    tracesSampleRate: 1.0,
-    sendDefaultPii: true,
-    transportOptions: {
-      // We are doing a lot of events at once in this test
-      bufferSize: 1000,
-    },
-  }),
-  MyDurableObjectBase,
+	(env: Env) => ({
+		dsn: env.E2E_TEST_DSN,
+		environment: 'qa', // dynamic sampling bias to keep transactions
+		tunnel: `http://localhost:3031/`, // proxy server
+		tracesSampleRate: 1.0,
+		sendDefaultPii: true,
+		transportOptions: {
+			// We are doing a lot of events at once in this test
+			bufferSize: 1000,
+		},
+		instrumentPrototypeMethods: true,
+	}),
+	MyDurableObjectBase,
 );
 
 export default Sentry.withSentry(
-  (env: Env) => ({
-    dsn: env.E2E_TEST_DSN,
-    environment: 'qa', // dynamic sampling bias to keep transactions
-    tunnel: `http://localhost:3031/`, // proxy server
-    tracesSampleRate: 1.0,
-    sendDefaultPii: true,
-    transportOptions: {
-      // We are doing a lot of events at once in this test
-      bufferSize: 1000,
-    },
-  }),
-  {
-    async fetch(request, env) {
-      const url = new URL(request.url);
-      switch (url.pathname) {
+	(env: Env) => ({
+		dsn: env.E2E_TEST_DSN,
+		environment: 'qa', // dynamic sampling bias to keep transactions
+		tunnel: `http://localhost:3031/`, // proxy server
+		tracesSampleRate: 1.0,
+		sendDefaultPii: true,
+		transportOptions: {
+			// We are doing a lot of events at once in this test
+			bufferSize: 1000,
+		},
+	}),
+	{
+		async fetch(request, env) {
+			const url = new URL(request.url);
+			switch (url.pathname) {
 				case '/rpc/throwException':
 					{
 						const id = env.MY_DURABLE_OBJECT.idFromName('foo');
@@ -105,7 +106,7 @@ export default Sentry.withSentry(
 						return stub.fetch(new Request(url, request));
 					}
 			}
-      return new Response('Hello World!');
-    },
-  } satisfies ExportedHandler<Env>,
+			return new Response('Hello World!');
+		},
+	} satisfies ExportedHandler<Env>,
 );
