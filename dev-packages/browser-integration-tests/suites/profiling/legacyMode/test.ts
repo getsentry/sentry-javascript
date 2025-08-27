@@ -22,10 +22,9 @@ sentryTest('sends profile envelope in legacy mode', async ({ page, getLocalTestU
 
   const req = await waitForTransactionRequestOnUrl(page, url);
   const profileEvent = properEnvelopeRequestParser<Profile>(req, 1);
+  expect(profileEvent).toBeDefined();
 
   const profile = profileEvent.profile;
-
-  expect(profileEvent).toBeDefined();
   expect(profileEvent.profile).toBeDefined();
 
   expect(profile.samples).toBeDefined();
