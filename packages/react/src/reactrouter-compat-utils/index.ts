@@ -17,8 +17,6 @@ export {
 // Utility exports
 export {
   initializeRouterUtils,
-  getGlobalLocation,
-  getGlobalPathname,
   prefixWithSlash,
   rebuildRoutePathFromAllRoutes,
   locationIsInsideDescendantRoute,

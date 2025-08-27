@@ -1,7 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  getGlobalLocation,
-  getGlobalPathname,
   getNormalizedName,
   getNumberOfUrlSegments,
   initializeRouterUtils,
@@ -56,20 +54,6 @@ describe('reactrouter-compat-utils/utils', () => {
       expect(() => {
         initializeRouterUtils(customMatchRoutes as MatchRoutes);
       }).not.toThrow();
-    });
-  });
-
-  describe('getGlobalLocation', () => {
-    it('should return location with pathname when WINDOW is available', () => {
-      const result = getGlobalLocation();
-      expect(result).toEqual({ pathname: '/test/path' });
-    });
-  });
-
-  describe('getGlobalPathname', () => {
-    it('should return pathname when WINDOW is available', () => {
-      const result = getGlobalPathname();
-      expect(result).toBe('/test/path');
     });
   });
 

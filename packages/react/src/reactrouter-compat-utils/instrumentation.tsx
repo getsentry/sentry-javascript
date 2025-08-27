@@ -6,6 +6,7 @@ import {
   browserTracingIntegration,
   startBrowserTracingNavigationSpan,
   startBrowserTracingPageLoadSpan,
+  WINDOW,
 } from '@sentry/browser';
 import type { Client, Integration, Span, TransactionSource } from '@sentry/core';
 import {
@@ -41,8 +42,6 @@ import type {
 } from '../types';
 import { checkRouteForAsyncHandler } from './lazy-routes';
 import {
-  getGlobalLocation,
-  getGlobalPathname,
   getNormalizedName,
   initializeRouterUtils,
   locationIsInsideDescendantRoute,
@@ -138,7 +137,12 @@ export function processResolvedRoutes(
     // Try to use the provided location first, then fall back to global window location if needed
     let location = currentLocation;
     if (!location) {
-      location = getGlobalLocation();
+      if (typeof WINDOW !== 'undefined') {
+        const globalLocation = WINDOW.location;
+        if (globalLocation) {
+          location = { pathname: globalLocation.pathname };
+        }
+      }
     }
 
     if (location) {
@@ -417,7 +421,7 @@ export function createReactRouterV6CompatibleTracingIntegration(
     afterAllSetup(client) {
       integration.afterAllSetup(client);
 
-      const initPathName = getGlobalPathname();
+      const initPathName = WINDOW.location?.pathname;
       if (instrumentPageLoad && initPathName) {
         startBrowserTracingPageLoadSpan(client, {
           name: initPathName,
@@ -550,7 +554,7 @@ function wrapPatchRoutesOnNavigation(
       if (activeRootSpan && (spanToJSON(activeRootSpan) as { op?: string }).op === 'navigation') {
         // For memory routers, we don't have a reliable way to get the current pathname
         // without accessing window.location, so we'll use targetPath for both cases
-        const pathname = targetPath || (isMemoryRouter ? getGlobalPathname() : undefined);
+        const pathname = targetPath || (isMemoryRouter ? WINDOW.location?.pathname : undefined);
         if (pathname) {
           updateNavigationSpan(
             activeRootSpan,

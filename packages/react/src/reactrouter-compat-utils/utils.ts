@@ -1,4 +1,3 @@
-import { WINDOW } from '@sentry/browser';
 import type { TransactionSource } from '@sentry/core';
 import type { Location, MatchRoutes, RouteMatch, RouteObject } from '../types';
 
@@ -13,31 +12,6 @@ let _stripBasename: boolean = false;
 export function initializeRouterUtils(matchRoutes: MatchRoutes, stripBasename: boolean = false): void {
   _matchRoutes = matchRoutes;
   _stripBasename = stripBasename;
-}
-
-/**
- * Gets the current location from the window object in browser environments.
- * Returns undefined if window is not available.
- */
-export function getGlobalLocation(): Location | undefined {
-  if (typeof WINDOW !== 'undefined') {
-    const globalLocation = WINDOW.location;
-    if (globalLocation) {
-      return { pathname: globalLocation.pathname };
-    }
-  }
-  return undefined;
-}
-
-/**
- * Gets the pathname from the window object in browser environments.
- * Returns undefined if window is not available.
- */
-export function getGlobalPathname(): string | undefined {
-  if (typeof WINDOW !== 'undefined') {
-    return WINDOW.location?.pathname;
-  }
-  return undefined;
 }
 
 // Helper functions
