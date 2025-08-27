@@ -33,7 +33,6 @@ export async function sentrySvelteKit(options: SentrySvelteKitPluginOptions = {}
 
   if (mergedOptions.autoInstrument) {
     // TODO: Once tracing is promoted stable, we need to adjust this check!
-    // We probably need to make a instrumentation.server.ts|js file lookup instead.
     const kitTracingEnabled = !!svelteConfig.kit?.experimental?.tracing?.server;
 
     const pluginOptions: AutoInstrumentSelection = {
@@ -55,6 +54,12 @@ export async function sentrySvelteKit(options: SentrySvelteKitPluginOptions = {}
   const sentryVitePluginsOptions = generateVitePluginOptions(mergedOptions);
 
   if (mergedOptions.autoUploadSourceMaps) {
+    // When source maps are enabled, we need to inject the output directory to get a correct
+    // stack trace, by using this SDK's `rewriteFrames` integration.
+    // This integration picks up the value.
+    // TODO: I don't think this is technically correct. Either we always or never inject the output directory.
+    // Stack traces shouldn't be different, depending on source maps config. With debugIds, we might not even
+    // need to rewrite frames anymore.
     sentryPlugins.push(await makeGlobalValuesInjectionPlugin(svelteConfig, mergedOptions));
   }
 

@@ -155,18 +155,9 @@ async function instrumentHandle(
         // https://github.com/getsentry/sentry-javascript/issues/14583
         normalizedRequest: winterCGRequestToRequestData(event.request),
       });
-
-      const res = await resolve(event, {
-        transformPageChunk: addSentryCodeToPage({
-          injectFetchProxyScript: options.injectFetchProxyScript ?? true,
-        }),
-      });
-
       const kitRootSpan = event.tracing?.enabled ? event.tracing?.root : undefined;
 
-      if (sentrySpan) {
-        setHttpStatus(sentrySpan, res.status);
-      } else if (kitRootSpan) {
+      if (kitRootSpan) {
         // Update the root span emitted from SvelteKit to resemble a `http.server` span
         // We're doing this here instead of an event processor to ensure we update the
         // span name as early as possible (for dynamic sampling, et al.)
@@ -186,6 +177,16 @@ async function instrumentHandle(
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: routeName ? 'route' : 'url',
           'sveltekit.tracing.original_name': originalName,
         });
+      }
+
+      const res = await resolve(event, {
+        transformPageChunk: addSentryCodeToPage({
+          injectFetchProxyScript: options.injectFetchProxyScript ?? true,
+        }),
+      });
+
+      if (sentrySpan) {
+        setHttpStatus(sentrySpan, res.status);
       }
 
       return res;

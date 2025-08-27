@@ -8,12 +8,15 @@ import { type SpanJSON, SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_
  */
 export function svelteKitSpansIntegration(): Integration {
   return {
-    name: 'SvelteKitSpansEnhancment',
+    name: 'SvelteKitSpansEnhancement',
     // Using preprocessEvent to ensure the processing happens before user-configured
     // event processors are executed
     preprocessEvent(event) {
       // only iterate over the spans if the root span was emitted by SvelteKit
-      if (event.type === 'transaction' && event.contexts?.trace?.data?.['sveltekit.tracing.original_name']) {
+      // TODO: Right now, we can't optimize this to only check traces with a kit-emitted root span
+      // this is because in Cloudflare, the kit-emitted root span is missing but our cloudflare
+      // SDK emits the http.server span.
+      if (event.type === 'transaction') {
         event.spans?.forEach(_enhanceKitSpan);
       }
     },
