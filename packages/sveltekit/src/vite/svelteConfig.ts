@@ -8,14 +8,15 @@ export type SvelteKitTracingConfig = {
   tracing?: {
     server: boolean;
   };
+  // TODO: Once instrumentation is promoted stable, this will be removed!
   instrumentation?: {
     server: boolean;
   };
 };
 
 /**
- * Experimental tracing and instrumentation config is available
- * @since 2.31.0
+ * Experimental tracing and instrumentation config is available @since 2.31.0
+ * // TODO: Once instrumentation and tracing is promoted stable, adjust this type!s
  */
 type BackwardsForwardsCompatibleKitConfig = Config['kit'] & { experimental?: SvelteKitTracingConfig };
 
@@ -128,22 +129,4 @@ async function getNodeAdapterOutputDir(svelteConfig: Config): Promise<string> {
   }
 
   return outputDir;
-}
-
-/**
- * Returns the Sveltekit tracing config users can enable in svelte.config.js.
- * Available in Kit @since 2.31.0
- */
-export function getTracingConfig(
-  svelteConfig: BackwardsForwardsCompatibleSvelteConfig,
-): BackwardsForwardsCompatibleKitConfig['experimental'] {
-  const experimentalConfig = svelteConfig.kit?.experimental;
-  return {
-    instrumentation: {
-      server: experimentalConfig?.instrumentation?.server ?? false,
-    },
-    tracing: {
-      server: experimentalConfig?.tracing?.server ?? false,
-    },
-  };
 }

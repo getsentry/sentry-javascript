@@ -71,7 +71,7 @@ test.describe('server-side errors', () => {
 
     expect(errorEventFrames?.[errorEventFrames?.length - 1]).toEqual(
       expect.objectContaining({
-        filename: expect.stringMatching(/app:\/\/\/chunks\/_server.ts-.+.js/),
+        filename: expect.stringMatching(/app:\/\/\/_server.ts-.+.js/),
         function: 'GET',
         in_app: true,
       }),

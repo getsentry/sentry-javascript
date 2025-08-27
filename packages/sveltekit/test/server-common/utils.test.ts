@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, it } from 'vitest';
-import { getKitTracingConfig, getTracePropagationData } from '../../src/server-common/utils';
+import { describe, expect, it } from 'vitest';
+import { getTracePropagationData } from '../../src/server-common/utils';
 
 const MOCK_REQUEST_EVENT: any = {
   request: {
@@ -46,37 +46,5 @@ describe('getTracePropagationData', () => {
 
     expect(sentryTrace).toBe('');
     expect(baggage).toBeUndefined();
-  });
-});
-
-describe('getKitTracingConfig', () => {
-  beforeEach(() => {
-    delete globalThis.__sentry_sveltekit_tracing_config;
-  });
-
-  it('returns the tracing config from the global object', () => {
-    globalThis.__sentry_sveltekit_tracing_config = {
-      instrumentation: {
-        server: true,
-      },
-      tracing: {
-        server: false,
-      },
-    };
-
-    const config = getKitTracingConfig();
-
-    expect(config).toEqual({
-      instrumentation: true,
-      tracing: false,
-    });
-  });
-
-  it('returns instrumentation and tracing being disabled by default', () => {
-    const config = getKitTracingConfig();
-    expect(config).toEqual({
-      instrumentation: false,
-      tracing: false,
-    });
   });
 });

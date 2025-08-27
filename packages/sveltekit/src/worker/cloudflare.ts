@@ -6,8 +6,8 @@ import {
 } from '@sentry/cloudflare';
 import { addNonEnumerableProperty } from '@sentry/core';
 import type { Handle } from '@sveltejs/kit';
-import { svelteKitSpansIntegration } from '../server-common/processKitSpans';
-import { rewriteFramesIntegration } from '../server-common/rewriteFramesIntegration';
+import { rewriteFramesIntegration } from '../server-common/integrations/rewriteFramesIntegration';
+import { svelteKitSpansIntegration } from '../server-common/integrations/svelteKitSpans';
 
 /**
  *  Initializes Sentry SvelteKit Cloudflare SDK

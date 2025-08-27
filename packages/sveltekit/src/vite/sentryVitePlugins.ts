@@ -10,7 +10,6 @@ import type { CustomSentryVitePluginOptions, SentrySvelteKitPluginOptions } from
 const DEFAULT_PLUGIN_OPTIONS: SentrySvelteKitPluginOptions = {
   autoUploadSourceMaps: true,
   autoInstrument: true,
-  injectGlobalValues: true,
   debug: false,
 };
 
@@ -33,6 +32,8 @@ export async function sentrySvelteKit(options: SentrySvelteKitPluginOptions = {}
   const sentryPlugins: Plugin[] = [];
 
   if (mergedOptions.autoInstrument) {
+    // TODO: Once tracing is promoted stable, we need to adjust this check!
+    // We probably need to make a instrumentation.server.ts|js file lookup instead.
     const kitTracingEnabled = !!svelteConfig.kit?.experimental?.tracing?.server;
 
     const pluginOptions: AutoInstrumentSelection = {
@@ -45,7 +46,7 @@ export async function sentrySvelteKit(options: SentrySvelteKitPluginOptions = {}
       makeAutoInstrumentationPlugin({
         ...pluginOptions,
         debug: options.debug || false,
-        // if kit-internal tracing is enabled, we only want to instrument client-side code.
+        // if kit-internal tracing is enabled, we only want to wrap and instrument client-side code.
         onlyInstrumentClient: kitTracingEnabled,
       }),
     );
@@ -53,7 +54,7 @@ export async function sentrySvelteKit(options: SentrySvelteKitPluginOptions = {}
 
   const sentryVitePluginsOptions = generateVitePluginOptions(mergedOptions);
 
-  if (mergedOptions.injectGlobalValues) {
+  if (mergedOptions.autoUploadSourceMaps) {
     sentryPlugins.push(await makeGlobalValuesInjectionPlugin(svelteConfig, mergedOptions));
   }
 

@@ -1,18 +1,11 @@
 import { type InternalGlobal, escapeStringForRegex } from '@sentry/core';
 import MagicString from 'magic-string';
 import type { Plugin } from 'vite';
-import {
-  type BackwardsForwardsCompatibleSvelteConfig,
-  type SvelteKitTracingConfig,
-  getAdapterOutputDir,
-  getHooksFileName,
-  getTracingConfig,
-} from './svelteConfig';
+import { type BackwardsForwardsCompatibleSvelteConfig, getAdapterOutputDir, getHooksFileName } from './svelteConfig';
 import type { SentrySvelteKitPluginOptions } from './types';
 
 export type GlobalSentryValues = {
   __sentry_sveltekit_output_dir?: string;
-  __sentry_sveltekit_tracing_config?: SvelteKitTracingConfig;
 };
 
 /**
@@ -54,13 +47,15 @@ export async function makeGlobalValuesInjectionPlugin(
 
   const globalSentryValues: GlobalSentryValues = {
     __sentry_sveltekit_output_dir: adapterOutputDir,
-    __sentry_sveltekit_tracing_config: getTracingConfig(svelteConfig),
   };
 
   if (debug) {
     // eslint-disable-next-line no-console
     console.log('[Sentry SvelteKit] Global values:', globalSentryValues);
   }
+
+  // eslint-disable-next-line @sentry-internal/sdk/no-regexp-constructor -- not end user input + escaped anyway
+  const hooksFileRegexp = new RegExp(`/${escapeStringForRegex(serverHooksFile)}(.(js|ts|mjs|mts))?`);
 
   return {
     name: 'sentry-sveltekit-global-values-injection-plugin',
@@ -85,10 +80,7 @@ export async function makeGlobalValuesInjectionPlugin(
     },
 
     transform: async (code, id) => {
-      const isServerEntryFile =
-        /instrumentation\.server\./.test(id) ||
-        // eslint-disable-next-line @sentry-internal/sdk/no-regexp-constructor -- not end user input + escaped anyway
-        new RegExp(`/${escapeStringForRegex(serverHooksFile)}(.(js|ts|mjs|mts))?`).test(id);
+      const isServerEntryFile = /instrumentation\.server\./.test(id) || hooksFileRegexp.test(id);
 
       if (isServerEntryFile) {
         if (debug) {

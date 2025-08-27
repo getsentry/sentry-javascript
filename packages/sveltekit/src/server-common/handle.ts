@@ -170,7 +170,7 @@ async function instrumentHandle(
         // Update the root span emitted from SvelteKit to resemble a `http.server` span
         // We're doing this here instead of an event processor to ensure we update the
         // span name as early as possible (for dynamic sampling, et al.)
-        // Other spans are enhanced in the `processKitSpans` function.
+        // Other spans are enhanced in the `processKitSpans` integration.
         const spanJson = spanToJSON(kitRootSpan);
         const kitRootSpanAttributes = spanJson.data;
         const originalName = spanJson.description;

@@ -53,17 +53,3 @@ export function sendErrorToSentry(e: unknown, handlerFn: 'handle' | 'load' | 'se
 
   return objectifiedErr;
 }
-
-/**
- * During build, we inject the SvelteKit tracing config into the global object of the server.
- * @returns tracing config (available since 2.31.0)
- */
-export function getKitTracingConfig(): { instrumentation: boolean; tracing: boolean } {
-  const globalWithSentryValues: GlobalWithSentryValues = GLOBAL_OBJ;
-  const kitTracingConfig = globalWithSentryValues.__sentry_sveltekit_tracing_config;
-
-  return {
-    instrumentation: kitTracingConfig?.instrumentation?.server ?? false,
-    tracing: kitTracingConfig?.tracing?.server ?? false,
-  };
-}
