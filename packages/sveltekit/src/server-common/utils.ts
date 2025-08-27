@@ -1,7 +1,6 @@
-import { captureException, GLOBAL_OBJ, objectify } from '@sentry/core';
+import { captureException, objectify } from '@sentry/core';
 import type { RequestEvent } from '@sveltejs/kit';
 import { isHttpError, isRedirect } from '../common/utils';
-import type { GlobalWithSentryValues } from '../vite/injectGlobalValues';
 
 /**
  * Takes a request event and extracts traceparent and DSC data
