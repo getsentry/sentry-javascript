@@ -61,49 +61,24 @@ let _enableAsyncRouteHandlers: boolean = false;
 const CLIENTS_WITH_INSTRUMENT_NAVIGATION = new WeakSet<Client>();
 
 /**
- * Updates a navigation span with the correct route name after lazy routes have been loaded.
+ * Adds resolved routes as children to the parent route.
+ * Prevents duplicate routes by checking if they already exist.
  */
-export function updateNavigationSpan(
-  activeRootSpan: Span,
-  location: Location,
-  allRoutes: RouteObject[],
-  forceUpdate = false,
-  matchRoutes: MatchRoutes,
-): void {
-  // Check if this span has already been named to avoid multiple updates
-  // But allow updates if this is a forced update (e.g., when lazy routes are loaded)
-  const hasBeenNamed =
-    !forceUpdate &&
-    (
-      activeRootSpan as {
-        __sentry_navigation_name_set__?: boolean;
-      }
-    )?.__sentry_navigation_name_set__;
+export function addResolvedRoutesToParent(resolvedRoutes: RouteObject[], parentRoute: RouteObject): void {
+  const existingChildren = parentRoute.children || [];
 
-  if (!hasBeenNamed) {
-    // Get fresh branches for the current location with all loaded routes
-    const currentBranches = matchRoutes(allRoutes, location);
-    const [name, source] = resolveRouteNameAndSource(
-      location,
-      allRoutes,
-      allRoutes,
-      (currentBranches as RouteMatch[]) || [],
-      '',
-    );
+  const newRoutes = resolvedRoutes.filter(
+    newRoute =>
+      !existingChildren.some(
+        existing =>
+          existing === newRoute ||
+          (newRoute.path && existing.path === newRoute.path) ||
+          (newRoute.id && existing.id === newRoute.id),
+      ),
+  );
 
-    // Only update if we have a valid name and the span hasn't finished
-    const spanJson = spanToJSON(activeRootSpan);
-    if (name && !spanJson.timestamp) {
-      activeRootSpan.updateName(name);
-      activeRootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
-
-      // Mark this span as having its name set to prevent future updates
-      addNonEnumerableProperty(
-        activeRootSpan as { __sentry_navigation_name_set__?: boolean },
-        '__sentry_navigation_name_set__',
-        true,
-      );
-    }
+  if (newRoutes.length > 0) {
+    parentRoute.children = [...existingChildren, ...newRoutes];
   }
 }
 
@@ -185,78 +160,51 @@ export function processResolvedRoutes(
   }
 }
 
-function wrapPatchRoutesOnNavigation(
-  opts: Record<string, unknown> | undefined,
-  isMemoryRouter = false,
-): Record<string, unknown> {
-  if (!opts || !('patchRoutesOnNavigation' in opts) || typeof opts.patchRoutesOnNavigation !== 'function') {
-    return opts || {};
+/**
+ * Updates a navigation span with the correct route name after lazy routes have been loaded.
+ */
+export function updateNavigationSpan(
+  activeRootSpan: Span,
+  location: Location,
+  allRoutes: RouteObject[],
+  forceUpdate = false,
+  matchRoutes: MatchRoutes,
+): void {
+  // Check if this span has already been named to avoid multiple updates
+  // But allow updates if this is a forced update (e.g., when lazy routes are loaded)
+  const hasBeenNamed =
+    !forceUpdate &&
+    (
+      activeRootSpan as {
+        __sentry_navigation_name_set__?: boolean;
+      }
+    )?.__sentry_navigation_name_set__;
+
+  if (!hasBeenNamed) {
+    // Get fresh branches for the current location with all loaded routes
+    const currentBranches = matchRoutes(allRoutes, location);
+    const [name, source] = resolveRouteNameAndSource(
+      location,
+      allRoutes,
+      allRoutes,
+      (currentBranches as RouteMatch[]) || [],
+      '',
+    );
+
+    // Only update if we have a valid name and the span hasn't finished
+    const spanJson = spanToJSON(activeRootSpan);
+    if (name && !spanJson.timestamp) {
+      activeRootSpan.updateName(name);
+      activeRootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
+
+      // Mark this span as having its name set to prevent future updates
+      addNonEnumerableProperty(
+        activeRootSpan as { __sentry_navigation_name_set__?: boolean },
+        '__sentry_navigation_name_set__',
+        true,
+      );
+    }
   }
-
-  const originalPatchRoutes = opts.patchRoutesOnNavigation;
-  return {
-    ...opts,
-    patchRoutesOnNavigation: async (args: unknown) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      const targetPath = (args as any)?.path;
-
-      // For browser router, wrap the patch function to update span during patching
-      if (!isMemoryRouter) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-        const originalPatch = (args as any)?.patch;
-        if (originalPatch) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-          (args as any).patch = (routeId: string, children: RouteObject[]) => {
-            addRoutesToAllRoutes(children);
-            const activeRootSpan = getActiveRootSpan();
-            if (activeRootSpan && (spanToJSON(activeRootSpan) as { op?: string }).op === 'navigation') {
-              updateNavigationSpan(
-                activeRootSpan,
-                {
-                  pathname: targetPath,
-                  search: '',
-                  hash: '',
-                  state: null,
-                  key: 'default',
-                },
-                Array.from(allRoutes),
-                true,
-                _matchRoutes,
-              );
-            }
-            return originalPatch(routeId, children);
-          };
-        }
-      }
-
-      const result = await originalPatchRoutes(args);
-
-      // Update navigation span after routes are patched
-      const activeRootSpan = getActiveRootSpan();
-      if (activeRootSpan && (spanToJSON(activeRootSpan) as { op?: string }).op === 'navigation') {
-        // For memory routers, we don't have a reliable way to get the current pathname
-        // without accessing window.location, so we'll use targetPath for both cases
-        const pathname = targetPath || (isMemoryRouter ? getGlobalPathname() : undefined);
-        if (pathname) {
-          updateNavigationSpan(
-            activeRootSpan,
-            {
-              pathname,
-              search: '',
-              hash: '',
-              state: null,
-              key: 'default',
-            },
-            Array.from(allRoutes),
-            false,
-            _matchRoutes,
-          );
-        }
-      }
-
-      return result;
-    },
-  };
 }
 
 /**
@@ -551,6 +499,80 @@ export function createV6CompatibleWrapUseRoutes(origUseRoutes: UseRoutes, versio
   };
 }
 
+function wrapPatchRoutesOnNavigation(
+  opts: Record<string, unknown> | undefined,
+  isMemoryRouter = false,
+): Record<string, unknown> {
+  if (!opts || !('patchRoutesOnNavigation' in opts) || typeof opts.patchRoutesOnNavigation !== 'function') {
+    return opts || {};
+  }
+
+  const originalPatchRoutes = opts.patchRoutesOnNavigation;
+  return {
+    ...opts,
+    patchRoutesOnNavigation: async (args: unknown) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      const targetPath = (args as any)?.path;
+
+      // For browser router, wrap the patch function to update span during patching
+      if (!isMemoryRouter) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        const originalPatch = (args as any)?.patch;
+        if (originalPatch) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+          (args as any).patch = (routeId: string, children: RouteObject[]) => {
+            addRoutesToAllRoutes(children);
+            const activeRootSpan = getActiveRootSpan();
+            if (activeRootSpan && (spanToJSON(activeRootSpan) as { op?: string }).op === 'navigation') {
+              updateNavigationSpan(
+                activeRootSpan,
+                {
+                  pathname: targetPath,
+                  search: '',
+                  hash: '',
+                  state: null,
+                  key: 'default',
+                },
+                Array.from(allRoutes),
+                true,
+                _matchRoutes,
+              );
+            }
+            return originalPatch(routeId, children);
+          };
+        }
+      }
+
+      const result = await originalPatchRoutes(args);
+
+      // Update navigation span after routes are patched
+      const activeRootSpan = getActiveRootSpan();
+      if (activeRootSpan && (spanToJSON(activeRootSpan) as { op?: string }).op === 'navigation') {
+        // For memory routers, we don't have a reliable way to get the current pathname
+        // without accessing window.location, so we'll use targetPath for both cases
+        const pathname = targetPath || (isMemoryRouter ? getGlobalPathname() : undefined);
+        if (pathname) {
+          updateNavigationSpan(
+            activeRootSpan,
+            {
+              pathname,
+              search: '',
+              hash: '',
+              state: null,
+              key: 'default',
+            },
+            Array.from(allRoutes),
+            false,
+            _matchRoutes,
+          );
+        }
+      }
+
+      return result;
+    },
+  };
+}
+
 export function handleNavigation(opts: {
   location: Location;
   routes: RouteObject[];
@@ -786,27 +808,5 @@ export function createNewNavigationSpan(
       '__sentry_navigation_name_set__',
       true,
     );
-  }
-}
-
-/**
- * Adds resolved routes as children to the parent route.
- * Prevents duplicate routes by checking if they already exist.
- */
-export function addResolvedRoutesToParent(resolvedRoutes: RouteObject[], parentRoute: RouteObject): void {
-  const existingChildren = parentRoute.children || [];
-
-  const newRoutes = resolvedRoutes.filter(
-    newRoute =>
-      !existingChildren.some(
-        existing =>
-          existing === newRoute ||
-          (newRoute.path && existing.path === newRoute.path) ||
-          (newRoute.id && existing.id === newRoute.id),
-      ),
-  );
-
-  if (newRoutes.length > 0) {
-    parentRoute.children = [...existingChildren, ...newRoutes];
   }
 }
