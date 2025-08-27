@@ -5,7 +5,6 @@ import { properEnvelopeRequestParser, waitForTransactionRequestOnUrl } from '../
 
 sentryTest('does not send profile envelope when document-policy is not set', async ({ page, getLocalTestUrl }) => {
   const url = await getLocalTestUrl({ testDir: __dirname });
-  await page.goto(url);
 
   const req = await waitForTransactionRequestOnUrl(page, url);
   const transactionEvent = properEnvelopeRequestParser<Event>(req, 0);
@@ -18,7 +17,6 @@ sentryTest('does not send profile envelope when document-policy is not set', asy
 
 sentryTest('sends profile envelope in legacy mode', async ({ page, getLocalTestUrl }) => {
   const url = await getLocalTestUrl({ testDir: __dirname, responseHeaders: { 'Document-Policy': 'js-profiling' } });
-  await page.goto(url);
 
   const req = await waitForTransactionRequestOnUrl(page, url);
   const profileEvent = properEnvelopeRequestParser<Profile>(req, 1);
