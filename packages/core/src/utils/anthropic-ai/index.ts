@@ -1,7 +1,8 @@
 import { getCurrentScope } from '../../currentScopes';
 import { captureException } from '../../exports';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
-import { startSpan } from '../../tracing/trace';
+import { SPAN_STATUS_ERROR } from '../../tracing';
+import { startSpan, startSpanManual } from '../../tracing/trace';
 import type { Span, SpanAttributeValue } from '../../types-hoist/span';
 import {
   ANTHROPIC_AI_RESPONSE_TIMESTAMP_ATTRIBUTE,
@@ -22,14 +23,17 @@ import {
 } from '../ai/gen-ai-attributes';
 import { buildMethodPath, getFinalOperationName, getSpanOperation, setTokenUsageAttributes } from '../ai/utils';
 import { ANTHROPIC_AI_INTEGRATION_NAME } from './constants';
+import { instrumentStream } from './streaming';
 import type {
   AnthropicAiClient,
   AnthropicAiInstrumentedMethod,
   AnthropicAiIntegration,
   AnthropicAiOptions,
   AnthropicAiResponse,
+  AnthropicAiStreamingEvent,
 } from './types';
 import { shouldInstrument } from './utils';
+
 /**
  * Extract request attributes from method arguments
  */
@@ -168,7 +172,47 @@ function instrumentMethod<T extends unknown[], R>(
     const model = requestAttributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] ?? 'unknown';
     const operationName = getFinalOperationName(methodPath);
 
-    // TODO: Handle streaming responses
+    const params = typeof args[0] === 'object' ? (args[0] as Record<string, unknown>) : undefined;
+    const isStreamRequested = Boolean(params?.stream);
+    const isStreamingMethod = methodPath === 'messages.stream';
+
+    if (isStreamRequested || isStreamingMethod) {
+      return startSpanManual(
+        {
+          name: `${operationName} ${model} stream-response`,
+          op: getSpanOperation(methodPath),
+          attributes: requestAttributes as Record<string, SpanAttributeValue>,
+        },
+        async (span: Span) => {
+          try {
+            if (finalOptions.recordInputs && params) {
+              addPrivateRequestAttributes(span, params);
+            }
+
+            const result = await originalMethod.apply(context, args);
+            return instrumentStream(
+              result as AsyncIterable<AnthropicAiStreamingEvent>,
+              span,
+              finalOptions.recordOutputs ?? false,
+            ) as unknown as R;
+          } catch (error) {
+            span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+            captureException(error, {
+              mechanism: {
+                handled: false,
+                type: 'auto.ai.anthropic',
+                data: {
+                  function: methodPath,
+                },
+              },
+            });
+            span.end();
+            throw error;
+          }
+        },
+      );
+    }
+
     return startSpan(
       {
         name: `${operationName} ${model}`,
