@@ -1,4 +1,4 @@
-import { addNonEnumerableProperty, debug } from '@sentry/core';
+import { addNonEnumerableProperty, debug, isThenable } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import type { Location, RouteObject } from '../types';
 
@@ -33,12 +33,7 @@ export function handleAsyncHandlerResult(
   handlerKey: string,
   processResolvedRoutes: (resolvedRoutes: RouteObject[], parentRoute?: RouteObject, currentLocation?: Location) => void,
 ): void {
-  if (
-    result &&
-    typeof result === 'object' &&
-    'then' in result &&
-    typeof (result as Promise<unknown>).then === 'function'
-  ) {
+  if (isThenable(result)) {
     (result as Promise<unknown>)
       .then((resolvedRoutes: unknown) => {
         if (Array.isArray(resolvedRoutes)) {
