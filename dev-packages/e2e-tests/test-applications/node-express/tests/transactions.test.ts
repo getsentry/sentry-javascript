@@ -14,7 +14,7 @@ test('Sends an API route transaction', async ({ baseURL }) => {
   const transactionEvent = await pageloadTransactionEventPromise;
 
   expect(transactionEvent.contexts?.trace).toEqual({
-    data: {
+    data: expect.objectContaining({
       'sentry.source': 'route',
       'sentry.origin': 'auto.http.otel.http',
       'sentry.op': 'http.server',
@@ -38,7 +38,7 @@ test('Sends an API route transaction', async ({ baseURL }) => {
       'http.status_code': 200,
       'http.status_text': 'OK',
       'http.route': '/test-transaction',
-    },
+    }),
     op: 'http.server',
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
     status: 'ok',

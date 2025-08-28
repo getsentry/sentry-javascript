@@ -129,7 +129,7 @@ function getAbsoluteUrl({
 }
 
 /**
- * Converts HTTP request headers to OpenTelemetry span attributes following semantic conventions.
+ * Converts incoming HTTP request headers to OpenTelemetry span attributes following semantic conventions.
  * Header names are converted to the format: http.request.header.<key>
  * where <key> is the header name in lowercase with dashes converted to underscores.
  *
