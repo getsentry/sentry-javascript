@@ -85,8 +85,8 @@ sentryTest('sends profile envelope in legacy mode', async ({ page, getLocalTestU
 
   const functionNames = profile.frames.map(frame => frame.function).filter(name => name !== '');
 
-  if (!(process.env.PW_BUNDLE || '').startsWith('bundle')) {
-    // In bundled mode, function names are minified
+  if ((process.env.PW_BUNDLE || '').endsWith('min')) {
+    // Function names are minified in minified bundles
     expect(functionNames.length).toBeGreaterThan(0);
     expect((functionNames as string[]).every(name => name?.length > 0)).toBe(true); // Just make sure they're not empty strings
   } else {
