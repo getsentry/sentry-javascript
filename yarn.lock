@@ -5896,10 +5896,10 @@
     "@opentelemetry/semantic-conventions" "^1.27.0"
     "@types/connect" "3.4.38"
 
-"@opentelemetry/instrumentation-dataloader@0.21.0":
-  version "0.21.0"
-  resolved "https://registry.yarnpkg.com/@opentelemetry/instrumentation-dataloader/-/instrumentation-dataloader-0.21.0.tgz#19202a85000cae9612f74bc689005ed3164e30a4"
-  integrity sha512-Xu4CZ1bfhdkV3G6iVHFgKTgHx8GbKSqrTU01kcIJRGHpowVnyOPEv1CW5ow+9GU2X4Eki8zoNuVUenFc3RluxQ==
+"@opentelemetry/instrumentation-dataloader@0.21.1":
+  version "0.21.1"
+  resolved "https://registry.yarnpkg.com/@opentelemetry/instrumentation-dataloader/-/instrumentation-dataloader-0.21.1.tgz#46fbbe59d9d6796980707768cf733225d43adea5"
+  integrity sha512-hNAm/bwGawLM8VDjKR0ZUDJ/D/qKR3s6lA5NV+btNaPVm2acqhPcT47l2uCVi+70lng2mywfQncor9v8/ykuyw==
   dependencies:
     "@opentelemetry/instrumentation" "^0.203.0"
 
@@ -5962,10 +5962,10 @@
     "@opentelemetry/redis-common" "^0.38.0"
     "@opentelemetry/semantic-conventions" "^1.27.0"
 
-"@opentelemetry/instrumentation-kafkajs@0.12.0":
-  version "0.12.0"
-  resolved "https://registry.yarnpkg.com/@opentelemetry/instrumentation-kafkajs/-/instrumentation-kafkajs-0.12.0.tgz#231e6cc8a2a70d06162ed7e4ebe2ab5baa3a6670"
-  integrity sha512-bIe4aSAAxytp88nzBstgr6M7ZiEpW6/D1/SuKXdxxuprf18taVvFL2H5BDNGZ7A14K27haHqzYqtCTqFXHZOYg==
+"@opentelemetry/instrumentation-kafkajs@0.13.0":
+  version "0.13.0"
+  resolved "https://registry.yarnpkg.com/@opentelemetry/instrumentation-kafkajs/-/instrumentation-kafkajs-0.13.0.tgz#f959fecd0a9d53bed2fd662e41a5c155295ffbc8"
+  integrity sha512-FPQyJsREOaGH64hcxlzTsIEQC4DYANgTwHjiB7z9lldmvua1LRMVn3/FfBlzXoqF179B0VGYviz6rn75E9wsDw==
   dependencies:
     "@opentelemetry/instrumentation" "^0.203.0"
     "@opentelemetry/semantic-conventions" "^1.30.0"
@@ -6853,22 +6853,22 @@
   dependencies:
     "@sentry-internal/rrweb-snapshot" "2.34.0"
 
-"@sentry-internal/rrdom@2.35.0":
-  version "2.35.0"
-  resolved "https://registry.yarnpkg.com/@sentry-internal/rrdom/-/rrdom-2.35.0.tgz#27dbdfe3249afb65a31f3b680cd0cc92ed2001dd"
-  integrity sha512-sWZjJpv7/Fu1po5ibzGUojWLMGn/GgqsayE8dqbwI6F2x5gMVYL0/yIk+9Qii0ei3Su3BybWHfftZs+5r2Bong==
+"@sentry-internal/rrdom@2.37.0":
+  version "2.37.0"
+  resolved "https://registry.yarnpkg.com/@sentry-internal/rrdom/-/rrdom-2.37.0.tgz#1aaf382eb7b543d7c256d31b73868e81e6649fbb"
+  integrity sha512-Wj6W4HP6kVYL1oenYq+Ec7QKtsq1Btk/acFLfZ/O7fygLVeAM0KZ4JZirPWdJmpeNNIk1YN7a8C7CfCiM014Ag==
   dependencies:
-    "@sentry-internal/rrweb-snapshot" "2.35.0"
+    "@sentry-internal/rrweb-snapshot" "2.37.0"
 
 "@sentry-internal/rrweb-snapshot@2.34.0":
   version "2.34.0"
   resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb-snapshot/-/rrweb-snapshot-2.34.0.tgz#79c2049b6c887e3c128d5fa80d6f745a61dd0e68"
   integrity sha512-9Tb8jwVufn5GLV0d/CTuoZWo2O06ZB+xWeTJdEkbtJ6PAmO/Q7GQI3uNIx0pfFEnXP+0Km8CKKxpwkEM0z2m6w==
 
-"@sentry-internal/rrweb-snapshot@2.35.0":
-  version "2.35.0"
-  resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb-snapshot/-/rrweb-snapshot-2.35.0.tgz#656f4716e3bdda151f122868f6f92d5f4224967c"
-  integrity sha512-CyERHnGWIkuCtw4xYJMoyDUv+5vj38HBd0upeEhKyYzjZ8rOttwsFjfZUBdotsP8O0/RVt9KIPRbSRESC1qSJw==
+"@sentry-internal/rrweb-snapshot@2.37.0":
+  version "2.37.0"
+  resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb-snapshot/-/rrweb-snapshot-2.37.0.tgz#2081d1827a108a08cab219234952744e6e79c06b"
+  integrity sha512-fu2/Fd5J5gJrAgQgl9WykVPQkMjo+9MVFy4Y88STTP3WWsLu1u75YAQM6Lr1/tLEykoQ4NecmNDdcz/DiB/nNg==
 
 "@sentry-internal/rrweb-types@2.34.0":
   version "2.34.0"
@@ -6878,12 +6878,12 @@
     "@sentry-internal/rrweb-snapshot" "2.34.0"
     "@types/css-font-loading-module" "0.0.7"
 
-"@sentry-internal/rrweb-types@2.35.0":
-  version "2.35.0"
-  resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb-types/-/rrweb-types-2.35.0.tgz#b2e63879a23593505fc3e28aa811e718de71f15f"
-  integrity sha512-D0mu2bgtvYD8MGijZDSD+q3FC8fDVRvNJD4canKvI3Wy9/LHTPbJ6F4U544vp5VrdBGCYIf/cxuJwmyZDfl5RQ==
+"@sentry-internal/rrweb-types@2.37.0":
+  version "2.37.0"
+  resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb-types/-/rrweb-types-2.37.0.tgz#edc91ee032896788fa9a6f96c76f1f6dd7c9f538"
+  integrity sha512-ydtHzfGFO6Tyw4n7yOLUrdaNKmRdyaVfqNgObEbEgO/qobzxBV5zf8eNApTayy6SOji3NrF8PpJzm55OX/ChNA==
   dependencies:
-    "@sentry-internal/rrweb-snapshot" "2.35.0"
+    "@sentry-internal/rrweb-snapshot" "2.37.0"
     "@types/css-font-loading-module" "0.0.7"
 
 "@sentry-internal/rrweb@2.34.0":
@@ -6900,14 +6900,14 @@
     fflate "^0.4.4"
     mitt "^3.0.0"
 
-"@sentry-internal/rrweb@2.35.0":
-  version "2.35.0"
-  resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb/-/rrweb-2.35.0.tgz#ae10b9aaf3ee379164ec52f1186ee053d369b0a3"
-  integrity sha512-Zy3bnzL9GY6SFTZ5x5YNxtkmIUiaLSppLA41xn6zc4UWSYI4DcA+M8OGxI4TiHkQVJhhjwBG1CevrLyrBxyEgA==
+"@sentry-internal/rrweb@2.37.0":
+  version "2.37.0"
+  resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb/-/rrweb-2.37.0.tgz#8ea0eb906e194060c60f4a6af4a0d3a16d52cdec"
+  integrity sha512-erN53M1WSPGpsMw+iVX6qWhI4id41+2AXcnALoB2JIyL/Q1W8f2loq/a4PxWkhaaq7mtGiHTmNTbks8Qgrsl9g==
   dependencies:
-    "@sentry-internal/rrdom" "2.35.0"
-    "@sentry-internal/rrweb-snapshot" "2.35.0"
-    "@sentry-internal/rrweb-types" "2.35.0"
+    "@sentry-internal/rrdom" "2.37.0"
+    "@sentry-internal/rrweb-snapshot" "2.37.0"
+    "@sentry-internal/rrweb-types" "2.37.0"
     "@types/css-font-loading-module" "0.0.7"
     "@xstate/fsm" "^1.4.0"
     base64-arraybuffer "^1.0.1"
@@ -6915,7 +6915,7 @@
     mitt "^3.0.0"
 
 "@sentry-internal/test-utils@link:dev-packages/test-utils":
-  version "10.5.0"
+  version "10.6.0"
   dependencies:
     express "^4.21.1"
 
@@ -6924,6 +6924,11 @@
   resolved "https://registry.yarnpkg.com/@sentry/babel-plugin-component-annotate/-/babel-plugin-component-annotate-4.1.0.tgz#6e7168f5fa59f53ac4b68e3f79c5fd54adc13f2e"
   integrity sha512-UkcnqC7Bp9ODyoBN7BKcRotd1jz/I2vyruE/qjNfRC7UnP+jIRItUWYaXxQPON1fTw+N+egKdByk0M1y2OPv/Q==
 
+"@sentry/babel-plugin-component-annotate@4.1.1":
+  version "4.1.1"
+  resolved "https://registry.yarnpkg.com/@sentry/babel-plugin-component-annotate/-/babel-plugin-component-annotate-4.1.1.tgz#371415afc602f6b2ba0987b51123bd34d1603193"
+  integrity sha512-HUpqrCK7zDVojTV6KL6BO9ZZiYrEYQqvYQrscyMsq04z+WCupXaH6YEliiNRvreR8DBJgdsG3lBRpebhUGmvfA==
+
 "@sentry/bundler-plugin-core@4.1.0":
   version "4.1.0"
   resolved "https://registry.yarnpkg.com/@sentry/bundler-plugin-core/-/bundler-plugin-core-4.1.0.tgz#c1b2f7a890a44e5ac5decc984a133aacf6147dd4"
@@ -6931,6 +6936,20 @@
   dependencies:
     "@babel/core" "^7.18.5"
     "@sentry/babel-plugin-component-annotate" "4.1.0"
+    "@sentry/cli" "^2.51.0"
+    dotenv "^16.3.1"
+    find-up "^5.0.0"
+    glob "^9.3.2"
+    magic-string "0.30.8"
+    unplugin "1.0.1"
+
+"@sentry/bundler-plugin-core@4.1.1":
+  version "4.1.1"
+  resolved "https://registry.yarnpkg.com/@sentry/bundler-plugin-core/-/bundler-plugin-core-4.1.1.tgz#7e273b83cc8b44f4067f05ab9ed5a7ec7ac6d625"
+  integrity sha512-Hx9RgXaD1HEYmL5aYoWwCKkVvPp4iklwfD9mvmdpQtcwLg6b6oLnPVDQaOry1ak6Pxt8smlrWcKy4IiKASlvig==
+  dependencies:
+    "@babel/core" "^7.18.5"
+    "@sentry/babel-plugin-component-annotate" "4.1.1"
     "@sentry/cli" "^2.51.0"
     dotenv "^16.3.1"
     find-up "^5.0.0"
@@ -6998,12 +7017,12 @@
     "@sentry/cli-win32-i686" "2.52.0"
     "@sentry/cli-win32-x64" "2.52.0"
 
-"@sentry/rollup-plugin@^4.1.0":
-  version "4.1.0"
-  resolved "https://registry.yarnpkg.com/@sentry/rollup-plugin/-/rollup-plugin-4.1.0.tgz#3948d067bd7cf8a61904b4042190dc9f6888bceb"
-  integrity sha512-HDwWgQRH7JhG15N1Y4XmPik/Qk03TGbiupDkZ8WL+8257BuyQE+s6feJJGCEUoWwROED+jvsFNvWvT2tqnILrw==
+"@sentry/rollup-plugin@^4.1.1":
+  version "4.1.1"
+  resolved "https://registry.yarnpkg.com/@sentry/rollup-plugin/-/rollup-plugin-4.1.1.tgz#ece90c337d1f78a2a445d3986b63321877fd4e41"
+  integrity sha512-AAZ9OzR2gsJRxgKN2k5jB+MxT13Uj2GJeSofi0EHbgu/yUdod8zTGX+4NRB90aXZIEOAc0Xrwnw1sm8nZYvaFw==
   dependencies:
-    "@sentry/bundler-plugin-core" "4.1.0"
+    "@sentry/bundler-plugin-core" "4.1.1"
     unplugin "1.0.1"
 
 "@sentry/vite-plugin@^4.1.0":
@@ -7014,12 +7033,12 @@
     "@sentry/bundler-plugin-core" "4.1.0"
     unplugin "1.0.1"
 
-"@sentry/webpack-plugin@^4.1.0":
-  version "4.1.0"
-  resolved "https://registry.yarnpkg.com/@sentry/webpack-plugin/-/webpack-plugin-4.1.0.tgz#e95e2dcd10e71dc8c3a16ba5cad9153f5e78c3bc"
-  integrity sha512-YqfDfyGAuT/9YW1kgAPfD7kGUKQCh1E5co+qMdToxi/Mz4xsWJY02rFS5GrJixYktYJfSMze8NiRr89yJMxYHw==
+"@sentry/webpack-plugin@^4.1.1":
+  version "4.1.1"
+  resolved "https://registry.yarnpkg.com/@sentry/webpack-plugin/-/webpack-plugin-4.1.1.tgz#638c6b65cbc19b5027ffbb6bcd68094e0b0f82c6"
+  integrity sha512-2gFWcQMW1HdJDo/7rADeFs9crkH02l+mW4O1ORbxSjuegauyp1W8SBe7EfPoXbUmLdA3zwnpIxEXjjQpP5Etzg==
   dependencies:
-    "@sentry/bundler-plugin-core" "4.1.0"
+    "@sentry/bundler-plugin-core" "4.1.1"
     unplugin "1.0.1"
     uuid "^9.0.0"
 
