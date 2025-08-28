@@ -8,8 +8,5 @@ Sentry.init({
   tracesSampleRate: 1.0,
   sendDefaultPii: true,
   transport: loggingTransport,
-  integrations: [
-    Sentry.anthropicAIIntegration(),
-    nodeContextIntegration(),
-  ],
+  integrations: [Sentry.anthropicAIIntegration(), nodeContextIntegration()],
 });

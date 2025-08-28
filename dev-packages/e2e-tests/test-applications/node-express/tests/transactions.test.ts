@@ -208,3 +208,34 @@ test('Sends an API route transaction for an errored route', async ({ baseURL }) 
     measurements: {},
   });
 });
+
+test('Extracts HTTP request headers as span attributes', async ({ baseURL }) => {
+  const transactionEventPromise = waitForTransaction('node-express', transactionEvent => {
+    return (
+      transactionEvent?.contexts?.trace?.op === 'http.server' &&
+      transactionEvent?.transaction === 'GET /test-transaction'
+    );
+  });
+
+  await fetch(`${baseURL}/test-transaction`, {
+    headers: {
+      'User-Agent': 'Custom-Agent/1.0 (Test)',
+      'Content-Type': 'application/json',
+      'X-Custom-Header': 'test-value',
+      Accept: 'application/json, text/plain',
+      Authorization: 'Bearer test-token-123',
+    },
+  });
+
+  const transactionEvent = await transactionEventPromise;
+
+  expect(transactionEvent.contexts?.trace?.data).toEqual(
+    expect.objectContaining({
+      'http.request.header.user_agent': ['Custom-Agent/1.0 (Test)'],
+      'http.request.header.content_type': ['application/json'],
+      'http.request.header.x_custom_header': ['test-value'],
+      'http.request.header.accept': ['application/json, text/plain'],
+      'http.request.header.authorization': ['Bearer test-token-123'],
+    }),
+  );
+});

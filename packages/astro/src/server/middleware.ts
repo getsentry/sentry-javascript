@@ -14,10 +14,12 @@ import {
   getClient,
   getCurrentScope,
   getTraceMetaTags,
+  httpHeadersToSpanAttributes,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setHttpStatus,
   startSpan,
+  winterCGHeadersToDict,
   withIsolationScope,
 } from '@sentry/node';
 import type { APIContext, MiddlewareResponseHandler, RoutePart } from 'astro';
@@ -154,6 +156,7 @@ async function instrumentRequest(
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
           method,
           url: stripUrlQueryAndFragment(ctx.url.href),
+          ...httpHeadersToSpanAttributes(winterCGHeadersToDict(request.headers)),
         };
 
         if (ctx.url.search) {

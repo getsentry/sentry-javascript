@@ -8,7 +8,7 @@ class MockAnthropic {
     // Create messages object with create and countTokens methods
     this.messages = {
       create: this._messagesCreate.bind(this),
-      countTokens: this._messagesCountTokens.bind(this)
+      countTokens: this._messagesCountTokens.bind(this),
     };
 
     this.models = {
@@ -56,8 +56,8 @@ class MockAnthropic {
 
     // For countTokens, just return input_tokens
     return {
-        input_tokens: 15
-      }
+      input_tokens: 15,
+    };
   }
 
   async _modelsRetrieve(modelId) {
@@ -69,7 +69,7 @@ class MockAnthropic {
       id: modelId,
       name: modelId,
       created_at: 1715145600,
-      model: modelId,  // Add model field to match the check in addResponseAttributes
+      model: modelId, // Add model field to match the check in addResponseAttributes
     };
   }
 }
@@ -86,9 +86,7 @@ async function run() {
     await client.messages.create({
       model: 'claude-3-haiku-20240307',
       system: 'You are a helpful assistant.',
-      messages: [
-        { role: 'user', content: 'What is the capital of France?' },
-      ],
+      messages: [{ role: 'user', content: 'What is the capital of France?' }],
       temperature: 0.7,
       max_tokens: 100,
     });
@@ -106,9 +104,7 @@ async function run() {
     // Third test: count tokens with cached tokens
     await client.messages.countTokens({
       model: 'claude-3-haiku-20240307',
-      messages: [
-        { role: 'user', content: 'What is the capital of France?' },
-      ],
+      messages: [{ role: 'user', content: 'What is the capital of France?' }],
     });
 
     // Fourth test: models.retrieve

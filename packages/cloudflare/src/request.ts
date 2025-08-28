@@ -4,10 +4,12 @@ import {
   continueTrace,
   flush,
   getHttpSpanDetailsFromUrlObject,
+  httpHeadersToSpanAttributes,
   parseStringToURLObject,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   setHttpStatus,
   startSpan,
+  winterCGHeadersToDict,
   withIsolationScope,
 } from '@sentry/core';
 import type { CloudflareOptions } from './client';
@@ -63,6 +65,8 @@ export function wrapRequestHandler(
     if (userAgentHeader) {
       attributes['user_agent.original'] = userAgentHeader;
     }
+
+    Object.assign(attributes, httpHeadersToSpanAttributes(winterCGHeadersToDict(request.headers)));
 
     attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] = 'http.server';
 

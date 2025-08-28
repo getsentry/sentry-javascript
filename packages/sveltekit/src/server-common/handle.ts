@@ -7,6 +7,7 @@ import {
   getDefaultIsolationScope,
   getIsolationScope,
   getTraceMetaTags,
+  httpHeadersToSpanAttributes,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
@@ -14,6 +15,7 @@ import {
   spanToJSON,
   startSpan,
   updateSpanName,
+  winterCGHeadersToDict,
   winterCGRequestToRequestData,
   withIsolationScope,
 } from '@sentry/core';
@@ -176,6 +178,7 @@ async function instrumentHandle(
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.sveltekit',
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: routeName ? 'route' : 'url',
           'sveltekit.tracing.original_name': originalName,
+          ...httpHeadersToSpanAttributes(winterCGHeadersToDict(event.request.headers)),
         });
       }
 
@@ -201,6 +204,7 @@ async function instrumentHandle(
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.sveltekit',
               [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: routeId ? 'route' : 'url',
               'http.method': event.request.method,
+              ...httpHeadersToSpanAttributes(winterCGHeadersToDict(event.request.headers)),
             },
             name: routeName,
           },

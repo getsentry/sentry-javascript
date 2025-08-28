@@ -128,6 +128,56 @@ describe('Bun Serve Integration', () => {
     expect(startSpanSpy).toHaveBeenCalledTimes(1);
   });
 
+  test('includes HTTP request headers as span attributes', async () => {
+    const server = Bun.serve({
+      async fetch(_req) {
+        return new Response('Headers test!');
+      },
+      port,
+    });
+
+    // Make request with custom headers
+    await fetch(`http://localhost:${port}/api/test`, {
+      method: 'POST',
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Content-Type': 'application/json',
+        'X-Custom-Header': 'custom-value',
+        Accept: 'application/json, text/plain',
+        Authorization: 'Bearer token123',
+      },
+      body: JSON.stringify({ test: 'data' }),
+    });
+
+    await server.stop();
+
+    // Verify span was created with header attributes
+    expect(startSpanSpy).toHaveBeenCalledTimes(1);
+    expect(startSpanSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        attributes: expect.objectContaining({
+          'sentry.origin': 'auto.http.bun.serve',
+          'http.request.method': 'POST',
+          'sentry.source': 'url',
+          'url.path': '/api/test',
+          'url.full': `http://localhost:${port}/api/test`,
+          'url.port': port.toString(),
+          'url.scheme': 'http:',
+          'url.domain': 'localhost',
+          // HTTP headers as span attributes following OpenTelemetry semantic conventions
+          'http.request.header.user_agent': ['Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'],
+          'http.request.header.content_type': ['application/json'],
+          'http.request.header.x_custom_header': ['custom-value'],
+          'http.request.header.accept': ['application/json, text/plain'],
+          'http.request.header.authorization': ['Bearer token123'],
+        }),
+        op: 'http.server',
+        name: 'POST /api/test',
+      }),
+      expect.any(Function),
+    );
+  });
+
   test('skips span creation for OPTIONS and HEAD requests', async () => {
     const server = Bun.serve({
       async fetch(_req) {

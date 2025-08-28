@@ -92,6 +92,7 @@ export {
   httpRequestToRequestData,
   extractQueryParamsFromUrl,
   headersToDict,
+  httpHeadersToSpanAttributes,
 } from './utils/request';
 export { DEFAULT_ENVIRONMENT } from './constants';
 export { addBreadcrumb } from './breadcrumbs';

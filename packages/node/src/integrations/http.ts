@@ -3,7 +3,13 @@ import { diag } from '@opentelemetry/api';
 import type { HttpInstrumentationConfig } from '@opentelemetry/instrumentation-http';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
 import type { Span } from '@sentry/core';
-import { defineIntegration, getClient, hasSpansEnabled, stripUrlQueryAndFragment } from '@sentry/core';
+import {
+  defineIntegration,
+  getClient,
+  hasSpansEnabled,
+  httpHeadersToSpanAttributes,
+  stripUrlQueryAndFragment,
+} from '@sentry/core';
 import type { HTTPModuleRequestIncomingMessage, NodeClient } from '@sentry/node-core';
 import {
   type SentryHttpInstrumentationOptions,
@@ -311,6 +317,12 @@ function getConfigWithDefaults(options: Partial<HttpOptions> = {}): HttpInstrume
       addOriginToSpan(span, 'auto.http.otel.http');
       if (!_isClientRequest(req) && isKnownPrefetchRequest(req)) {
         span.setAttribute('sentry.http.prefetch', true);
+      }
+
+      // Extract headers for incoming requests
+      if (!_isClientRequest(req)) {
+        const headerAttributes = httpHeadersToSpanAttributes(req.headers);
+        span.setAttributes(headerAttributes);
       }
 
       options.instrumentation?.requestHook?.(span, req);
