@@ -2,8 +2,8 @@ import { rewriteFramesIntegration } from '@sentry/browser';
 import type { Event, StackFrame } from '@sentry/core';
 import { basename } from '@sentry/core';
 import { describe, expect, it } from 'vitest';
-import { rewriteFramesIteratee } from '../../src/server-common/rewriteFramesIntegration';
-import type { GlobalWithSentryValues } from '../../src/vite/injectGlobalValues';
+import { rewriteFramesIteratee } from '../../../src/server-common/integrations/rewriteFramesIntegration';
+import type { GlobalWithSentryValues } from '../../../src/vite/injectGlobalValues';
 
 describe('rewriteFramesIteratee', () => {
   it('removes the module property from the frame', () => {

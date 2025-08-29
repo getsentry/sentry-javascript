@@ -51,6 +51,12 @@ const router = sentryCreateBrowserRouter(
       },
     },
     {
+      path: '/another-lazy',
+      handle: {
+        lazyChildren: () => import('./pages/AnotherLazyRoutes').then(module => module.anotherNestedRoutes),
+      },
+    },
+    {
       path: '/static',
       element: <>Hello World</>,
     },
