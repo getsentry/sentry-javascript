@@ -14,6 +14,14 @@ interface HttpOptions {
   breadcrumbs?: boolean;
 
   /**
+   * Whether to create spans for requests or not.
+   * As of now, creates spans for incoming requests, but not outgoing requests.
+   *
+   * @default `true`
+   */
+  spans?: boolean;
+
+  /**
    * Whether the integration should create [Sessions](https://docs.sentry.io/product/releases/health/#sessions) for incoming requests to track the health and crash-free rate of your releases in Sentry.
    * Read more about Release Health: https://docs.sentry.io/product/releases/health/
    *
@@ -93,7 +101,7 @@ interface HttpOptions {
   disableIncomingRequestSpans?: boolean;
 }
 
-const instrumentSentryHttp = generateInstrumentOnce<SentryHttpInstrumentationOptions>(
+export const instrumentSentryHttp = generateInstrumentOnce<SentryHttpInstrumentationOptions>(
   `${INTEGRATION_NAME}.sentry`,
   options => {
     return new SentryHttpInstrumentation(options);
@@ -115,7 +123,9 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
     setupOnce() {
       instrumentSentryHttp({
         ...options,
-        extractIncomingTraceFromHeader: true,
+        ignoreSpansForIncomingRequests: options.ignoreIncomingRequests,
+        // TODO(v11): Rethink this, for now this is for backwards compatibility
+        disableIncomingRequestSpans: true,
         propagateTraceInOutgoingRequests: true,
       });
     },
