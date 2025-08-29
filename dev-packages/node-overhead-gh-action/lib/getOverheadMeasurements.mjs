@@ -13,7 +13,7 @@ async function getMeasurements(instrumentFile) {
 
   log(`Getting measurements for "${cmd}"`);
 
-  const appProcess = spawn(cmd, { shell: 'bash' });
+  const appProcess = spawn(cmd, { shell: true });
 
   await new Promise(resolve => {
     appProcess.stdout.on('data', data => {
@@ -24,7 +24,7 @@ async function getMeasurements(instrumentFile) {
   });
 
   const autocannon = spawn('yarn test', {
-    shell: 'bash',
+    shell: true,
   });
 
   let lastJson = undefined;
