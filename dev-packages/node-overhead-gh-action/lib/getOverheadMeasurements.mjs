@@ -9,9 +9,11 @@ async function getMeasurements(instrumentFile) {
     args.unshift('--import', instrumentFile);
   }
 
-  log(`Getting arguments for instrumentFile=${instrumentFile}`);
+  const cmd = `node ${args.join(' ')}`;
 
-  const appProcess = spawn('node', args, { shell: 'bash' });
+  log(`Getting measurements for "${cmd}"`);
+
+  const appProcess = spawn(cmd, { shell: 'bash' });
 
   await new Promise(resolve => {
     appProcess.stdout.on('data', data => {
