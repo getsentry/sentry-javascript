@@ -15,13 +15,18 @@ async function getMeasurements(instrumentFile) {
 
   const appProcess = spawn(cmd, { shell: true });
 
+  log('Child process started, waiting for example app...');
+
   await new Promise(resolve => {
     appProcess.stdout.on('data', data => {
-      if (data.includes('Example app listening on port')) {
+      log(`appProcess: ${data}`);
+      if (`${data}`.includes('Example app listening on port')) {
         resolve();
       }
     });
   });
+
+  log('Example app listening, running autocannon...');
 
   const autocannon = spawn('yarn test', {
     shell: true,
