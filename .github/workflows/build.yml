@@ -280,6 +280,8 @@ jobs:
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Check node overhead
         uses: ./dev-packages/node-overhead-gh-action
+        env:
+          DEBUG: '1'
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           # Only run comparison against develop if this is a PR

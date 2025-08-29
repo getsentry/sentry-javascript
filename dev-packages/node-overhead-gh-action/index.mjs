@@ -101,7 +101,12 @@ async function run() {
     }
 
     core.startGroup('Getting current overhead measurements');
-    current = await getOverheadMeasurements();
+    try {
+      current = await getOverheadMeasurements();
+    } catch (error) {
+      core.error('Error getting current overhead measurements');
+      core.error(error);
+    }
     core.debug(`Current overhead measurements: ${JSON.stringify(current, null, 2)}`);
     core.endGroup();
 
