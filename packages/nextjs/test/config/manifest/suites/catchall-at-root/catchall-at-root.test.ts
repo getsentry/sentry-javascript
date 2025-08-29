@@ -11,7 +11,7 @@ describe('catchall', () => {
       dynamicRoutes: [
         {
           path: '/:path*?',
-          regex: '^/.*$',
+          regex: '^/(.*)$',
           paramNames: ['path'],
         },
       ],
