@@ -92,6 +92,8 @@ export {
   getIsolationScope,
   getTraceData,
   getTraceMetaTags,
+  httpHeadersToSpanAttributes,
+  winterCGHeadersToDict,
   continueTrace,
   withScope,
   withIsolationScope,

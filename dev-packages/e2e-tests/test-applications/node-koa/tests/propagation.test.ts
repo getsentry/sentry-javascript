@@ -50,7 +50,7 @@ test('Propagates trace for outgoing http requests', async ({ baseURL }) => {
   );
 
   expect(outboundTransaction.contexts?.trace).toEqual({
-    data: {
+    data: expect.objectContaining({
       'sentry.source': 'route',
       'sentry.origin': 'auto.http.otel.http',
       'sentry.op': 'http.server',
@@ -74,7 +74,7 @@ test('Propagates trace for outgoing http requests', async ({ baseURL }) => {
       'http.status_code': 200,
       'http.status_text': 'OK',
       'http.route': '/test-outgoing-http/:id',
-    },
+    }),
     op: 'http.server',
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
     status: 'ok',
@@ -83,7 +83,7 @@ test('Propagates trace for outgoing http requests', async ({ baseURL }) => {
   });
 
   expect(inboundTransaction.contexts?.trace).toEqual({
-    data: {
+    data: expect.objectContaining({
       'sentry.source': 'route',
       'sentry.origin': 'auto.http.otel.http',
       'sentry.op': 'http.server',
@@ -105,7 +105,7 @@ test('Propagates trace for outgoing http requests', async ({ baseURL }) => {
       'http.status_code': 200,
       'http.status_text': 'OK',
       'http.route': '/test-inbound-headers/:id',
-    },
+    }),
     op: 'http.server',
     parent_span_id: outgoingHttpSpanId,
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
@@ -164,7 +164,7 @@ test('Propagates trace for outgoing fetch requests', async ({ baseURL }) => {
   );
 
   expect(outboundTransaction.contexts?.trace).toEqual({
-    data: {
+    data: expect.objectContaining({
       'sentry.source': 'route',
       'sentry.origin': 'auto.http.otel.http',
       'sentry.op': 'http.server',
@@ -188,7 +188,7 @@ test('Propagates trace for outgoing fetch requests', async ({ baseURL }) => {
       'http.status_code': 200,
       'http.status_text': 'OK',
       'http.route': '/test-outgoing-fetch/:id',
-    },
+    }),
     op: 'http.server',
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
     status: 'ok',
