@@ -77,10 +77,16 @@ function buildRegexForDynamicRoute(routePath: string): { regex: string; paramNam
 
   let pattern: string;
   if (hasOptionalCatchall) {
-    // For optional catchall, make the trailing slash and segments optional
-    // This allows matching both /catchall and /catchall/anything
-    const staticParts = regexSegments.join('/');
-    pattern = `^/${staticParts}(?:/(.*))?$`;
+    if (regexSegments.length == 0) {
+      // If the optional catchall happens at the root, accept any path starting
+      // with a slash.
+      pattern = '^/.*$';
+    } else {
+      // For optional catchall, make the trailing slash and segments optional
+      // This allows matching both /catchall and /catchall/anything
+      const staticParts = regexSegments.join('/');
+      pattern = `^/${staticParts}(?:/(.*))?$`;
+    }
   } else {
     pattern = `^/${regexSegments.join('/')}$`;
   }
