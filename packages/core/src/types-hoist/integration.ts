@@ -47,4 +47,5 @@ export interface Integration {
  * An integration in function form.
  * This is expected to return an integration.
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type IntegrationFn<IntegrationType = Integration> = (...rest: any[]) => IntegrationType;
