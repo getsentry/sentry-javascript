@@ -1,5 +1,4 @@
 import * as core from '@actions/core';
-import bytes from 'bytes-iec';
 
 const NODE_OVERHEAD_RESULTS_HEADER = ['Scenario', 'Prev Requests/s', 'New Requests/s', 'Change %'];
 

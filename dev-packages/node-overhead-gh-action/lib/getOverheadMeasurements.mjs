@@ -69,7 +69,6 @@ export async function getOverheadMeasurements() {
   };
 }
 
-
 function log(message) {
   if (DEBUG) {
     // eslint-disable-next-line no-console

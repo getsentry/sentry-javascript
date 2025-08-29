@@ -100,7 +100,11 @@ async function run() {
       core.endGroup();
     }
 
+    core.startGroup('Getting current overhead measurements');
     current = await getOverheadMeasurements();
+    core.debug(`Current overhead measurements: ${JSON.stringify(current, null, 2)}`);
+    core.endGroup();
+
     const thresholdNumber = Number(threshold);
 
     const nodeOverheadComment = await fetchPreviousComment(octokit, repo, pr);
