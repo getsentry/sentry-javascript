@@ -17,6 +17,14 @@ async function getMeasurements(instrumentFile) {
 
   log('Child process started, waiting for example app...');
 
+  appProcess.stderr.on('data', data => {
+    log(`appProcess stderr: ${data}`);
+  });
+
+  appProcess.on('exit', code => {
+    log(`appProcess exited with code ${code}`);
+  });
+
   await new Promise(resolve => {
     appProcess.stdout.on('data', data => {
       log(`appProcess: ${data}`);
