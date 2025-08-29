@@ -200,6 +200,9 @@ jobs:
       changed_node:
         ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected,
         '@sentry/node') }}
+      changed_node_overhead_action:
+        ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected,
+        '@sentry-internal/node-overhead-gh-action') }}
       changed_deno:
         ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected,
         '@sentry/deno') }}
@@ -260,6 +263,7 @@ jobs:
     runs-on: ubuntu-24.04
     if:
       (needs.job_build.outputs.changed_node == 'true' && github.event_name == 'pull_request') ||
+      (needs.job_build.outputs.changed_node_overhead_action == 'true' && github.event_name == 'pull_request') ||
       needs.job_get_metadata.outputs.is_base_branch == 'true' || needs.job_get_metadata.outputs.is_release == 'true'
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
