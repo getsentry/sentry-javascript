@@ -10,6 +10,7 @@ import * as glob from '@actions/glob';
 import * as io from '@actions/io';
 import { markdownTable } from 'markdown-table';
 import { getOverheadMeasurements } from './lib/getOverheadMeasurements.mjs';
+import { getArtifactsForBranchAndWorkflow } from './lib/getArtifactsForBranchAndWorkflow.mjs';
 import { Formatter } from './lib/Formatter.mjs';
 
 const NODE_OVERHEAD_HEADING = '## node-overhead report 📦 ';
