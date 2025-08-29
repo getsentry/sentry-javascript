@@ -14,6 +14,11 @@ test('Sends exception to Sentry', async ({ baseURL }) => {
   expect(errorEvent.exception?.values).toHaveLength(1);
   expect(errorEvent.exception?.values?.[0]?.value).toBe('This is an exception with id 123');
 
+  expect(errorEvent.exception?.values?.[0]?.mechanism).toEqual({
+    handled: false,
+    type: 'auto.http.nestjs.global_filter',
+  });
+
   expect(errorEvent.request).toEqual({
     method: 'GET',
     cookies: {},

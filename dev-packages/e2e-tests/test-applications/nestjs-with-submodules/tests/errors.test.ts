@@ -14,6 +14,11 @@ test('Sends unexpected exception to Sentry if thrown in module with global filte
   expect(errorEvent.exception?.values).toHaveLength(1);
   expect(errorEvent.exception?.values?.[0]?.value).toBe('This is an uncaught exception!');
 
+  expect(errorEvent.exception?.values?.[0]?.mechanism).toEqual({
+    handled: false,
+    type: 'auto.http.nestjs.global_filter',
+  });
+
   expect(errorEvent.request).toEqual({
     method: 'GET',
     cookies: {},
@@ -42,6 +47,11 @@ test('Sends unexpected exception to Sentry if thrown in module with local filter
 
   expect(errorEvent.exception?.values).toHaveLength(1);
   expect(errorEvent.exception?.values?.[0]?.value).toBe('This is an uncaught exception!');
+
+  expect(errorEvent.exception?.values?.[0]?.mechanism).toEqual({
+    handled: false,
+    type: 'auto.http.nestjs.global_filter',
+  });
 
   expect(errorEvent.request).toEqual({
     method: 'GET',
@@ -73,6 +83,11 @@ test('Sends unexpected exception to Sentry if thrown in module that was register
 
   expect(errorEvent.exception?.values).toHaveLength(1);
   expect(errorEvent.exception?.values?.[0]?.value).toBe('This is an uncaught exception!');
+
+  expect(errorEvent.exception?.values?.[0]?.mechanism).toEqual({
+    handled: false,
+    type: 'auto.http.nestjs.global_filter',
+  });
 
   expect(errorEvent.request).toEqual({
     method: 'GET',

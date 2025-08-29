@@ -97,7 +97,12 @@ describe('Nest', () => {
         decorated(mockTarget, 'testMethod', descriptor);
 
         await expect(descriptor.value()).rejects.toThrow(error);
-        expect(core.captureException).toHaveBeenCalledWith(error);
+        expect(core.captureException).toHaveBeenCalledWith(error, {
+          mechanism: {
+            handled: false,
+            type: 'auto.event.nestjs',
+          },
+        });
       });
 
       it('should skip wrapping for internal Sentry handlers', () => {

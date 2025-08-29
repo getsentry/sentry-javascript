@@ -288,7 +288,12 @@ describe('SentryExceptionCaptured decorator', () => {
     decoratedMethod(exception, host);
 
     expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
-    expect(captureExceptionSpy).toHaveBeenCalledWith(exception);
+    expect(captureExceptionSpy).toHaveBeenCalledWith(exception, {
+      mechanism: {
+        handled: false,
+        type: 'auto.function.nestjs.exception_captured',
+      },
+    });
     expect(originalCatch).toHaveBeenCalledWith(exception, host);
 
     isExpectedErrorSpy.mockRestore();
