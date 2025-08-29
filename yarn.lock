@@ -6932,7 +6932,7 @@
     mitt "^3.0.0"
 
 "@sentry-internal/test-utils@link:dev-packages/test-utils":
-  version "10.6.0"
+  version "10.7.0"
   dependencies:
     express "^4.21.1"
 
