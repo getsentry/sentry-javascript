@@ -93,6 +93,7 @@ function _fetchResponseHandler(
       requestCookies,
       responseCookies,
       error,
+      type: 'fetch',
     });
 
     captureEvent(event);
@@ -165,6 +166,7 @@ function _xhrResponseHandler(
       responseHeaders,
       responseCookies,
       error,
+      type: 'xhr',
     });
 
     captureEvent(event);
@@ -362,6 +364,7 @@ function _createEvent(data: {
   url: string;
   method: string;
   status: number;
+  type: 'fetch' | 'xhr';
   responseHeaders?: Record<string, string>;
   responseCookies?: Record<string, string>;
   requestHeaders?: Record<string, string>;
@@ -402,7 +405,7 @@ function _createEvent(data: {
   };
 
   addExceptionMechanism(event, {
-    type: 'http.client',
+    type: `http.client.${data.type}`,
     handled: false,
   });
 
