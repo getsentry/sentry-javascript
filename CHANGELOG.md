@@ -4,6 +4,48 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 10.8.0
+
+### Important Changes
+
+- **feat(sveltekit): Add Compatibility for builtin SvelteKit Tracing ([#17423](https://github.com/getsentry/sentry-javascript/pull/17423))**
+
+  This release makes the `@sentry/sveltekit` SDK compatible with SvelteKit's native [observability support](https://svelte.dev/docs/kit/observability) introduced in SvelteKit version `2.31.0`.
+  If you enable both, instrumentation and tracing, the SDK will now initialize early enough to set up additional instrumentation like database queries and it will pick up spans emitted from SvelteKit.
+
+  We will follow up with docs how to set up the SDK soon.
+  For now, If you're on SvelteKit version `2.31.0` or newer, you can easily opt into the new feature:
+
+  1. Enable [experimental tracing and instrumentation support](https://svelte.dev/docs/kit/observability) in `svelte.config.js`:
+  2. Move your `Sentry.init()` call from `src/hooks.server.(js|ts)` to the new `instrumentation.server.(js|ts)` file:
+
+     ```ts
+     // instrumentation.server.ts
+     import * as Sentry from '@sentry/sveltekit';
+
+     Sentry.init({
+       dsn: '...',
+       // rest of your config
+     });
+     ```
+
+     The rest of your Sentry config in `hooks.server.ts` (`sentryHandle` and `handleErrorWithSentry`) should stay the same.
+
+  If you prefer to stay on the hooks-file based config for now, the SDK will continue to work as previously.
+
+  Thanks to the Svelte team and @elliott-with-the-longest-name-on-github for implementing observability support and for reviewing our PR!
+
+### Other Changes
+
+- fix(react): Avoid multiple name updates on navigation spans ([#17438](https://github.com/getsentry/sentry-javascript/pull/17438))
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+
+- test(profiling): Add tests for current state of profiling ([#17470](https://github.com/getsentry/sentry-javascript/pull/17470))
+
+</details>
+
 ## 10.7.0
 
 ### Important Changes
