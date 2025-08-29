@@ -1,7 +1,8 @@
 import type { Event } from '@sentry/core';
 import type { Callback, Handler } from 'aws-lambda';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-import { init, wrapHandler } from '../src/sdk';
+import { init } from '../src/init';
+import { AWS_HANDLER_STREAMING_RESPONSE, AWS_HANDLER_STREAMING_SYMBOL, wrapHandler } from '../src/sdk';
 
 const mockFlush = vi.fn((...args) => Promise.resolve(args));
 const mockWithScope = vi.fn();
@@ -364,6 +365,191 @@ describe('AWSLambda', () => {
 
         expect(mockFlush).toBeCalled();
       }
+    });
+  });
+
+  describe('wrapHandler() on streaming handlers', () => {
+    // Mock response stream with common stream interface
+    const mockResponseStream = {
+      write: vi.fn(),
+      end: vi.fn(),
+      destroy: vi.fn(),
+      on: vi.fn(),
+      setContentType: vi.fn(),
+      writable: true,
+      writableEnded: false,
+      writableFinished: false,
+    };
+
+    beforeEach(() => {
+      vi.clearAllMocks();
+      mockResponseStream.write.mockClear();
+      mockResponseStream.end.mockClear();
+      mockResponseStream.destroy.mockClear();
+      mockResponseStream.on.mockClear();
+    });
+
+    test('successful execution', async () => {
+      expect.assertions(5);
+
+      const streamingHandler = vi.fn(async (_event, _responseStream, _context) => {
+        return 42;
+      });
+      // Add the streaming symbol to mark it as a streaming handler
+      (streamingHandler as any)[AWS_HANDLER_STREAMING_SYMBOL] = AWS_HANDLER_STREAMING_RESPONSE;
+
+      const wrappedHandler = wrapHandler(streamingHandler);
+      const rv = await (wrappedHandler as any)(fakeEvent, mockResponseStream, fakeContext);
+
+      expect(rv).toStrictEqual(42);
+      expectScopeSettings();
+      expect(streamingHandler).toHaveBeenCalledWith(fakeEvent, mockResponseStream, fakeContext);
+      expect(mockFlush).toBeCalledWith(2000);
+    });
+
+    test('preserves streaming symbol on wrapped handler', () => {
+      const streamingHandler = vi.fn(async (_event, _responseStream, _context) => {
+        return 42;
+      });
+      (streamingHandler as any)[AWS_HANDLER_STREAMING_SYMBOL] = AWS_HANDLER_STREAMING_RESPONSE;
+
+      const wrappedHandler = wrapHandler(streamingHandler);
+
+      expect((wrappedHandler as any)[AWS_HANDLER_STREAMING_SYMBOL]).toBe(AWS_HANDLER_STREAMING_RESPONSE);
+    });
+
+    test('event, responseStream and context are correctly passed along', async () => {
+      expect.assertions(3);
+
+      const streamingHandler = vi.fn(async (event, responseStream, context) => {
+        expect(event).toHaveProperty('fortySix');
+        expect(responseStream).toBe(mockResponseStream);
+        expect(context).toHaveProperty('ytho');
+        return 'success';
+      });
+      (streamingHandler as any)[AWS_HANDLER_STREAMING_SYMBOL] = AWS_HANDLER_STREAMING_RESPONSE;
+
+      const wrappedHandler = wrapHandler(streamingHandler);
+      await (wrappedHandler as any)(fakeEvent, mockResponseStream, fakeContext);
+    });
+
+    test('capture error from handler execution', async () => {
+      expect.assertions(4);
+
+      const error = new Error('streaming handler error');
+      const streamingHandler = vi.fn(async (_event, _responseStream, _context) => {
+        throw error;
+      });
+      (streamingHandler as any)[AWS_HANDLER_STREAMING_SYMBOL] = AWS_HANDLER_STREAMING_RESPONSE;
+
+      const wrappedHandler = wrapHandler(streamingHandler);
+
+      try {
+        await (wrappedHandler as any)(fakeEvent, mockResponseStream, fakeContext);
+      } catch {
+        expectScopeSettings();
+        expect(mockCaptureException).toBeCalledWith(error, expect.any(Function));
+        expect(mockFlush).toBeCalled();
+      }
+    });
+
+    test('capture stream errors', async () => {
+      expect.assertions(3);
+
+      const streamError = new Error('stream error');
+      const streamingHandler = vi.fn(async (_event, responseStream, _context) => {
+        // Simulate stream error by calling the error listener
+        const errorListener = (responseStream.on as any).mock.calls.find((call: any[]) => call[0] === 'error')?.[1];
+        if (errorListener) {
+          errorListener(streamError);
+        }
+        return 'success';
+      });
+      (streamingHandler as any)[AWS_HANDLER_STREAMING_SYMBOL] = AWS_HANDLER_STREAMING_RESPONSE;
+
+      const wrappedHandler = wrapHandler(streamingHandler);
+      await (wrappedHandler as any)(fakeEvent, mockResponseStream, fakeContext);
+
+      expect(mockResponseStream.on).toHaveBeenCalledWith('error', expect.any(Function));
+      expect(mockCaptureException).toHaveBeenCalledWith(streamError, expect.any(Function));
+      expect(streamingHandler).toHaveBeenCalledWith(fakeEvent, mockResponseStream, fakeContext);
+    });
+
+    test('streaming handler with flushTimeout option', async () => {
+      expect.assertions(2);
+
+      const streamingHandler = vi.fn(async (_event, _responseStream, _context) => {
+        return 'flushed';
+      });
+      (streamingHandler as any)[AWS_HANDLER_STREAMING_SYMBOL] = AWS_HANDLER_STREAMING_RESPONSE;
+
+      const wrappedHandler = wrapHandler(streamingHandler, { flushTimeout: 5000 });
+      const result = await (wrappedHandler as any)(fakeEvent, mockResponseStream, fakeContext);
+
+      expect(result).toBe('flushed');
+      expect(mockFlush).toBeCalledWith(5000);
+    });
+
+    test('streaming handler with captureTimeoutWarning enabled', async () => {
+      const streamingHandler = vi.fn(async (_event, _responseStream, _context) => {
+        // Simulate some delay to trigger timeout warning
+        await new Promise(resolve => setTimeout(resolve, DEFAULT_EXECUTION_TIME));
+        return 'completed';
+      });
+      (streamingHandler as any)[AWS_HANDLER_STREAMING_SYMBOL] = AWS_HANDLER_STREAMING_RESPONSE;
+
+      const wrappedHandler = wrapHandler(streamingHandler);
+      await (wrappedHandler as any)(fakeEvent, mockResponseStream, fakeContext);
+
+      expect(mockWithScope).toBeCalledTimes(2);
+      expect(mockCaptureMessage).toBeCalled();
+      expect(mockScope.setTag).toBeCalledWith('timeout', '1s');
+    });
+
+    test('marks streaming handler captured errors as unhandled', async () => {
+      expect.assertions(3);
+
+      const error = new Error('streaming error');
+      const streamingHandler = vi.fn(async (_event, _responseStream, _context) => {
+        throw error;
+      });
+      (streamingHandler as any)[AWS_HANDLER_STREAMING_SYMBOL] = AWS_HANDLER_STREAMING_RESPONSE;
+
+      const wrappedHandler = wrapHandler(streamingHandler);
+
+      try {
+        await (wrappedHandler as any)(fakeEvent, mockResponseStream, fakeContext);
+      } catch {
+        expect(mockCaptureException).toBeCalledWith(error, expect.any(Function));
+
+        const scopeFunction = mockCaptureException.mock.calls[0]?.[1];
+        const event: Event = { exception: { values: [{}] } };
+        let evtProcessor: ((e: Event) => Event) | undefined = undefined;
+        if (scopeFunction) {
+          scopeFunction({ addEventProcessor: vi.fn().mockImplementation(proc => (evtProcessor = proc)) });
+        }
+
+        expect(evtProcessor).toBeInstanceOf(Function);
+        // @ts-expect-error just mocking around...
+        expect(evtProcessor!(event).exception.values[0]?.mechanism).toEqual({
+          handled: false,
+          type: 'auto.function.aws-serverless.handler',
+        });
+      }
+    });
+
+    test('should not throw when flush rejects with streaming handler', async () => {
+      const streamingHandler = vi.fn(async (_event, _responseStream, _context) => {
+        return 'flush-error-test';
+      });
+      (streamingHandler as any)[AWS_HANDLER_STREAMING_SYMBOL] = AWS_HANDLER_STREAMING_RESPONSE;
+
+      const wrappedHandler = wrapHandler(streamingHandler);
+      mockFlush.mockImplementationOnce(() => Promise.reject(new Error('flush failed')));
+
+      await expect((wrappedHandler as any)(fakeEvent, mockResponseStream, fakeContext)).resolves.toBe(
+        'flush-error-test',
+      );
     });
   });
 

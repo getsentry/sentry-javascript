@@ -1,8 +1,6 @@
 import * as Sentry from '@sentry/browser';
 
-// type cast necessary because TS thinks this file is part of the main
-// thread where self is of type `Window` instead of `Worker`
-Sentry.registerWebWorker({ self: self as unknown as Worker });
+Sentry.registerWebWorker({ self });
 
 // Let the main thread know the worker is ready
 self.postMessage({

@@ -1,6 +1,6 @@
 {
   "name": "@sentry/solid",
-  "version": "10.5.0",
+  "version": "10.7.0",
   "description": "Official Sentry SDK for Solid",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/solid",
@@ -44,8 +44,8 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/browser": "10.5.0",
-    "@sentry/core": "10.5.0"
+    "@sentry/browser": "10.7.0",
+    "@sentry/core": "10.7.0"
   },
   "peerDependencies": {
     "@solidjs/router": "^0.13.4",
