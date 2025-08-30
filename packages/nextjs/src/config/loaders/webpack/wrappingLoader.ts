@@ -14,13 +14,13 @@ const SENTRY_WRAPPER_MODULE_NAME = 'sentry-wrapper-module';
 // Needs to end in .cjs in order for the `commonjs` plugin to pick it up
 const WRAPPING_TARGET_MODULE_NAME = '__SENTRY_WRAPPING_TARGET_FILE__.cjs';
 
-const apiWrapperTemplatePath = path.resolve(__dirname, '..', 'templates', 'apiWrapperTemplate.js');
+const apiWrapperTemplatePath = path.resolve(__dirname, '..', '..', 'templates', 'apiWrapperTemplate.js');
 const apiWrapperTemplateCode = fs.readFileSync(apiWrapperTemplatePath, { encoding: 'utf8' });
 
-const pageWrapperTemplatePath = path.resolve(__dirname, '..', 'templates', 'pageWrapperTemplate.js');
+const pageWrapperTemplatePath = path.resolve(__dirname, '..', '..', 'templates', 'pageWrapperTemplate.js');
 const pageWrapperTemplateCode = fs.readFileSync(pageWrapperTemplatePath, { encoding: 'utf8' });
 
-const middlewareWrapperTemplatePath = path.resolve(__dirname, '..', 'templates', 'middlewareWrapperTemplate.js');
+const middlewareWrapperTemplatePath = path.resolve(__dirname, '..', '..', 'templates', 'middlewareWrapperTemplate.js');
 const middlewareWrapperTemplateCode = fs.readFileSync(middlewareWrapperTemplatePath, { encoding: 'utf8' });
 
 let showedMissingAsyncStorageModuleWarning = false;
@@ -28,12 +28,19 @@ let showedMissingAsyncStorageModuleWarning = false;
 const serverComponentWrapperTemplatePath = path.resolve(
   __dirname,
   '..',
+  '..',
   'templates',
   'serverComponentWrapperTemplate.js',
 );
 const serverComponentWrapperTemplateCode = fs.readFileSync(serverComponentWrapperTemplatePath, { encoding: 'utf8' });
 
-const routeHandlerWrapperTemplatePath = path.resolve(__dirname, '..', 'templates', 'routeHandlerWrapperTemplate.js');
+const routeHandlerWrapperTemplatePath = path.resolve(
+  __dirname,
+  '..',
+  '..',
+  'templates',
+  'routeHandlerWrapperTemplate.js',
+);
 const routeHandlerWrapperTemplateCode = fs.readFileSync(routeHandlerWrapperTemplatePath, { encoding: 'utf8' });
 
 export type WrappingLoaderOptions = {
