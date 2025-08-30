@@ -8,6 +8,7 @@ import {
   ANTHROPIC_AI_RESPONSE_TIMESTAMP_ATTRIBUTE,
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
   GEN_AI_PROMPT_ATTRIBUTE,
+  GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE,
   GEN_AI_REQUEST_FREQUENCY_PENALTY_ATTRIBUTE,
   GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE,
   GEN_AI_REQUEST_MESSAGES_ATTRIBUTE,
@@ -19,6 +20,7 @@ import {
   GEN_AI_RESPONSE_ID_ATTRIBUTE,
   GEN_AI_RESPONSE_MODEL_ATTRIBUTE,
   GEN_AI_RESPONSE_TEXT_ATTRIBUTE,
+  GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
   GEN_AI_SYSTEM_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
 import { buildMethodPath, getFinalOperationName, getSpanOperation, setTokenUsageAttributes } from '../ai/utils';
@@ -31,6 +33,7 @@ import type {
   AnthropicAiOptions,
   AnthropicAiResponse,
   AnthropicAiStreamingEvent,
+  ContentBlock,
 } from './types';
 import { shouldInstrument } from './utils';
 
@@ -46,6 +49,9 @@ function extractRequestAttributes(args: unknown[], methodPath: string): Record<s
 
   if (args.length > 0 && typeof args[0] === 'object' && args[0] !== null) {
     const params = args[0] as Record<string, unknown>;
+    if (params.tools && Array.isArray(params.tools)) {
+      attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE] = JSON.stringify(params.tools);
+    }
 
     attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] = params.model ?? 'unknown';
     if ('temperature' in params) attributes[GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE] = params.temperature;
@@ -96,10 +102,21 @@ function addResponseAttributes(span: Span, response: AnthropicAiResponse, record
       if (Array.isArray(response.content)) {
         span.setAttributes({
           [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: response.content
-            .map((item: { text: string | undefined }) => item.text)
-            .filter((text): text is string => text !== undefined)
+            .map((item: ContentBlock) => item.text)
+            .filter(text => !!text)
             .join(''),
         });
+
+        const toolCalls: Array<ContentBlock> = [];
+
+        for (const item of response.content) {
+          if (item.type === 'tool_use' || item.type === 'server_tool_use') {
+            toolCalls.push(item);
+          }
+        }
+        if (toolCalls.length > 0) {
+          span.setAttributes({ [GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE]: JSON.stringify(toolCalls) });
+        }
       }
     }
     // Completions.create

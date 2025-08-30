@@ -293,4 +293,59 @@ describe('Anthropic integration', () => {
       await createRunner().ignore('event').expect({ transaction: EXPECTED_STREAM_SPANS_PII_TRUE }).start().completed();
     });
   });
+
+  // Non-streaming tool calls + available tools (PII true)
+  createEsmAndCjsTests(__dirname, 'scenario-tools.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
+    test('non-streaming sets available tools and tool calls with PII', async () => {
+      const EXPECTED_TOOLS_JSON =
+        '[{"name":"weather","description":"Get the weather by city","input_schema":{"type":"object","properties":{"city":{"type":"string"}},"required":["city"]}}]';
+      const EXPECTED_TOOL_CALLS_JSON =
+        '[{"type":"tool_use","id":"tool_weather_1","name":"weather","input":{"city":"Paris"}}]';
+      await createRunner()
+        .ignore('event')
+        .expect({
+          transaction: {
+            spans: expect.arrayContaining([
+              expect.objectContaining({
+                op: 'gen_ai.messages',
+                data: expect.objectContaining({
+                  'gen_ai.request.available_tools': EXPECTED_TOOLS_JSON,
+                  'gen_ai.response.tool_calls': EXPECTED_TOOL_CALLS_JSON,
+                }),
+              }),
+            ]),
+          },
+        })
+        .start()
+        .completed();
+    });
+  });
+
+  // Streaming tool calls + available tools (PII true)
+  createEsmAndCjsTests(__dirname, 'scenario-stream-tools.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
+    test('streaming sets available tools and tool calls with PII', async () => {
+      const EXPECTED_TOOLS_JSON =
+        '[{"name":"weather","description":"Get weather","input_schema":{"type":"object","properties":{"city":{"type":"string"}},"required":["city"]}}]';
+      const EXPECTED_TOOL_CALLS_JSON =
+        '[{"type":"tool_use","id":"tool_weather_2","name":"weather","input":{"city":"Paris"}}]';
+      await createRunner()
+        .ignore('event')
+        .expect({
+          transaction: {
+            spans: expect.arrayContaining([
+              expect.objectContaining({
+                description: expect.stringContaining('stream-response'),
+                op: 'gen_ai.messages',
+                data: expect.objectContaining({
+                  'gen_ai.request.available_tools': EXPECTED_TOOLS_JSON,
+                  'gen_ai.response.tool_calls': EXPECTED_TOOL_CALLS_JSON,
+                }),
+              }),
+            ]),
+          },
+        })
+        .start()
+        .completed();
+    });
+  });
 });
