@@ -5,8 +5,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import type { RollupBuild, RollupError } from 'rollup';
 import { rollup } from 'rollup';
-import type { ServerComponentContext, VercelCronsConfig } from '../../common/types';
-import type { LoaderThis } from './types';
+import type { ServerComponentContext, VercelCronsConfig } from '../../../common/types';
+import type { LoaderThis } from '../types';
 
 // Just a simple placeholder to make referencing module consistent
 const SENTRY_WRAPPER_MODULE_NAME = 'sentry-wrapper-module';

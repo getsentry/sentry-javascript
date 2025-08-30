@@ -1,7 +1,7 @@
 // Rollup doesn't like if we put the directive regex as a literal (?). No idea why.
 /* eslint-disable @sentry-internal/sdk/no-regexp-constructor */
 
-import type { LoaderThis } from './types';
+import type { LoaderThis } from '../types';
 
 export type ValueInjectionLoaderOptions = {
   values: Record<string, unknown>;
