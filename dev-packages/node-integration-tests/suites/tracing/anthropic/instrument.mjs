@@ -9,8 +9,5 @@ Sentry.init({
   sendDefaultPii: false,
   transport: loggingTransport,
   // Force include the integration
-  integrations: [
-    Sentry.anthropicAIIntegration(),
-    nodeContextIntegration(),
-  ],
+  integrations: [Sentry.anthropicAIIntegration(), nodeContextIntegration()],
 });
