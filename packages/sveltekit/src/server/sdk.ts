@@ -24,15 +24,5 @@ export function init(options: NodeOptions): NodeClient | undefined {
 
   applySdkMetadata(opts, 'sveltekit', ['sveltekit', 'node']);
 
-  const client = initNodeSdk(opts);
-
-  if (typeof process !== 'undefined') {
-    process.on('sveltekit:shutdown', async () => {
-      if (client) {
-        await client.close(2000);
-      }
-    });
-  }
-
-  return client;
+  return initNodeSdk(opts);
 }
