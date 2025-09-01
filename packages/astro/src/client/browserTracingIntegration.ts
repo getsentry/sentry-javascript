@@ -1,6 +1,15 @@
-import { browserTracingIntegration as originalBrowserTracingIntegration, startBrowserTracingPageLoadSpan, WINDOW } from '@sentry/browser';
+import {
+  browserTracingIntegration as originalBrowserTracingIntegration,
+  startBrowserTracingPageLoadSpan,
+  WINDOW,
+} from '@sentry/browser';
 import type { Integration, TransactionSource } from '@sentry/core';
-import { browserPerformanceTimeOrigin, debug, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
+import {
+  browserPerformanceTimeOrigin,
+  debug,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+} from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 
 /**
@@ -18,7 +27,7 @@ function getMetaContent(metaName: string): string | undefined {
 export function browserTracingIntegration(
   options: Parameters<typeof originalBrowserTracingIntegration>[0] = {},
 ): Integration {
-  const integration = originalBrowserTracingIntegration({...options, instrumentPageLoad: false});
+  const integration = originalBrowserTracingIntegration({ ...options, instrumentPageLoad: false });
 
   return {
     ...integration,
@@ -43,11 +52,11 @@ export function browserTracingIntegration(
           });
         }
       }
-    }
+    },
   };
 }
 
-function getPageloadSpanName(): {name: string, source: TransactionSource} {
+function getPageloadSpanName(): { name: string; source: TransactionSource } {
   try {
     const routeNameFromMetaTags = getMetaContent('sentry-route-name');
     if (routeNameFromMetaTags) {

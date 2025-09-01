@@ -12,10 +12,10 @@ Sentry.init({
           return {
             ...opts,
             name: window.location.pathname,
-          }
+          };
         }
         return opts;
-      }
-    })
+      },
+    }),
   ],
 });
