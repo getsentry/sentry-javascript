@@ -541,14 +541,14 @@ describe('request utils', () => {
 
     it('handles multiple values for the same header', () => {
       const headers = {
-        Cookie: ['session=abc123', 'preferences=dark-mode'],
+        'x-random-header': ['test=abc123', 'preferences=dark-mode', 'number=three'],
         Accept: ['application/json', 'text/html'],
       };
 
       const result = httpHeadersToSpanAttributes(headers);
 
       expect(result).toEqual({
-        'http.request.header.cookie': ['session=abc123', 'preferences=dark-mode'],
+        'http.request.header.x_random_header': ['test=abc123', 'preferences=dark-mode', 'number=three'],
         'http.request.header.accept': ['application/json', 'text/html'],
       });
     });
@@ -629,6 +629,7 @@ describe('request utils', () => {
         expect(result).toEqual({
           'http.request.header.content_type': ['application/json'],
           'http.request.header.user_agent': ['test-agent'],
+          'http.request.header.authorization': ['Bearer secret-token'],
           'http.request.header.cookie': ['session=abc123'],
           'http.request.header.x_api_key': ['api-key-123'],
         });
