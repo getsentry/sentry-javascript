@@ -18,7 +18,6 @@ import {
   getIsolationScope,
   getRootSpan,
   GLOBAL_OBJ,
-  httpHeadersToSpanAttributes,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
