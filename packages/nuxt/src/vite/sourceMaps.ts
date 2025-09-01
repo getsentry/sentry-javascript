@@ -29,7 +29,7 @@ export function setupSourceMaps(moduleOptions: SentryNuxtModuleOptions, nuxt: Nu
       : moduleOptions.sourcemaps?.disable === false
         ? true
         : // eslint-disable-next-line deprecation/deprecation
-          sourceMapsUploadOptions.enabled ?? true;
+          (sourceMapsUploadOptions.enabled ?? true);
 
   // In case we overwrite the source map settings, we default to deleting the files
   let shouldDeleteFilesFallback = { client: true, server: true };

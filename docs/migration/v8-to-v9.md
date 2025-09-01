@@ -149,7 +149,6 @@ The ARN will be published in the [Sentry docs](https://docs.sentry.io/platforms/
 - The Prisma integration no longer supports Prisma v5 and supports Prisma v6 by default. As per Prisma v6, the `previewFeatures = ["tracing"]` client generator option in your Prisma Schema is no longer required to use tracing with the Prisma integration.
 
   For performance instrumentation using other/older Prisma versions:
-
   1. Install the `@prisma/instrumentation` package with the desired version.
   1. Pass a `new PrismaInstrumentation()` instance as exported from `@prisma/instrumentation` to the `prismaInstrumentation` option of this integration:
 
@@ -337,12 +336,10 @@ All exports and APIs of `@sentry/utils` and `@sentry/types` (except for the ones
   Use the `@SentryExceptionCaptured` decorator as a drop-in replacement.
 
 - Removed `SentryService`.
-
   - If you are using `@sentry/nestjs` you can safely remove any references to the `SentryService`.
   - If you are using another package migrate to `@sentry/nestjs` and remove the `SentryService` afterward.
 
 - Removed `SentryTracingInterceptor`.
-
   - If you are using `@sentry/nestjs` you can safely remove any references to the `SentryTracingInterceptor`.
   - If you are using another package migrate to `@sentry/nestjs` and remove the `SentryTracingInterceptor` afterward.
 
@@ -453,7 +450,6 @@ All exports and APIs of `@sentry/utils` and `@sentry/types` (except for the ones
   Instead, use `Integration` or `IntegrationFn`.
 
 - The following exports have been removed without replacement:
-
   - `getNumberOfUrlSegments`
   - `validSeverityLevels`
   - `makeFifoCache`
@@ -468,7 +464,6 @@ All exports and APIs of `@sentry/utils` and `@sentry/types` (except for the ones
   - `SessionFlusher`
 
 - The following types have been removed without replacement:
-
   - `Request`
     `RequestEventData`
   - `TransactionNamingScheme`

@@ -95,7 +95,6 @@ occur while writing tests for Sentry Browser SDK.
 
   Before running, a page for each test case is built under the case folder inside `dist`. If a page build is failed,
   it's recommended to check:
-
   - If both default `template.hbs` and `init.js` are defined for the test group.
   - If a `subject.js` is defined for the test case.
   - If either of `init.js` or `subject.js` contain non-browser code.
