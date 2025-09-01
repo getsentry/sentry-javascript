@@ -146,7 +146,7 @@ export function httpHeadersToSpanAttributes(
 
   try {
     Object.entries(headers).forEach(([key, value]) => {
-      if (value !== undefined) {
+      if (value) {
         const lowerCasedKey = key.toLowerCase();
 
         if (!sendDefaultPii && SENSITIVE_HEADER_SNIPPETS.some(snippet => lowerCasedKey.includes(snippet))) {
