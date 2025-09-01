@@ -201,15 +201,6 @@ export function init(options: NodeOptions): NodeClient | undefined {
       }
 
       setCapturedScopesOnSpan(span, scope, isolationScope);
-
-      const sendDefaultPii = opts.sendDefaultPii ?? false;
-      const sdkProcessingMetadata = isolationScope.getScopeData().sdkProcessingMetadata;
-      const normalizedRequest = sdkProcessingMetadata?.normalizedRequest;
-
-      if (normalizedRequest?.headers) {
-        const headerAttributes = httpHeadersToSpanAttributes(normalizedRequest.headers, sendDefaultPii);
-        span.setAttributes(headerAttributes);
-      }
     }
   });
 

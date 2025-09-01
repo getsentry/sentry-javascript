@@ -7,6 +7,7 @@ import {
   getClient,
   getCurrentScope,
   getIsolationScope,
+  httpHeadersToSpanAttributes,
   httpRequestToRequestData,
   stripUrlQueryAndFragment,
   withIsolationScope,
@@ -70,8 +71,13 @@ export function instrumentServer(
         patchRequestToCaptureBody(request, isolationScope, maxIncomingRequestBodySize);
       }
 
+      // Extract HTTP request headers as span attributes
+      const client = getClient();
+      const sendDefaultPii = client?.getOptions().sendDefaultPii ?? false;
+      const httpHeaderAttributes = httpHeadersToSpanAttributes(normalizedRequest.headers || {}, sendDefaultPii);
+
       // Update the isolation scope, isolate this request
-      isolationScope.setSDKProcessingMetadata({ normalizedRequest, ipAddress });
+      isolationScope.setSDKProcessingMetadata({ normalizedRequest, ipAddress, httpHeaderAttributes });
 
       // attempt to update the scope's `transactionName` based on the request URL
       // Ideally, framework instrumentations coming after the HttpInstrumentation
