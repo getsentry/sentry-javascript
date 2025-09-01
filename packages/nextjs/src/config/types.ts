@@ -501,22 +501,22 @@ export type SentryBuildOptions = {
    */
   disableSentryWebpackConfig?: boolean;
 
-  /**
-   * When true (and Next.js >= 15), use the runAfterProductionCompile hook to consolidate sourcemap uploads
-   * into a single operation after all webpack/turbopack builds complete, reducing build time.
-   *
-   * When false, use the traditional approach of uploading sourcemaps during each webpack build.
-   *
-   * @default false
-   */
-  useRunAfterProductionCompileHook?: boolean;
 
   /**
    * Contains a set of experimental flags that might change in future releases. These flags enable
    * features that are still in development and may be modified, renamed, or removed without notice.
    * Use with caution in production environments.
-   */
-  _experimental?: Partial<{
+  */
+ _experimental?: Partial<{
+    /**
+     * When true (and Next.js >= 15), use the runAfterProductionCompile hook to consolidate sourcemap uploads
+     * into a single operation after all webpack/turbopack builds complete, reducing build time.
+     *
+     * When false, use the traditional approach of uploading sourcemaps during each webpack build.
+     *
+     * @default false
+     */
+    useRunAfterProductionCompileHook?: boolean;
     thirdPartyOriginStackFrames: boolean;
   }>;
 };

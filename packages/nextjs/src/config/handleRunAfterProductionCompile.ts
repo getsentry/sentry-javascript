@@ -17,6 +17,12 @@ export async function handleRunAfterProductionCompile(
     console.debug('[@sentry/nextjs] Running runAfterProductionCompile logic.');
   }
 
+  // We don't want to do anything for webpack at this point because the plugin already handles this
+  // TODO: Actually implement this for webpack as well
+  if (buildTool === 'webpack') {
+    return;
+  }
+
   const { createSentryBuildPluginManager } =
     loadModule<{ createSentryBuildPluginManager: typeof createSentryBuildPluginManagerType }>(
       '@sentry/bundler-plugin-core',
@@ -57,6 +63,9 @@ export async function handleRunAfterProductionCompile(
   await sentryBuildPluginManager.telemetry.emitBundlerPluginExecutionSignal();
   await sentryBuildPluginManager.createRelease();
   await sentryBuildPluginManager.injectDebugIds(buildArtifacts);
-  await sentryBuildPluginManager.uploadSourcemaps(buildArtifacts);
+  await sentryBuildPluginManager.uploadSourcemaps(buildArtifacts, {
+    // We don't want to prepare the artifacts because we injected debug ids manually before
+    prepareArtifacts: true,
+  });
   await sentryBuildPluginManager.deleteArtifacts();
 }

@@ -70,10 +70,7 @@ export function getWebpackPluginOptions(
     silent: sentryBuildOptions.silent,
     url: sentryBuildOptions.sentryUrl,
     sourcemaps: {
-      // if the user has enabled the runAfterProductionCompileHook, we handle sourcemap uploads a later step
-      disable: sentryBuildOptions.useRunAfterProductionCompileHook
-        ? 'disable-upload'
-        : sentryBuildOptions.sourcemaps?.disable,
+      disable: sentryBuildOptions.sourcemaps?.disable,
       rewriteSources(source) {
         if (source.startsWith('webpack://_N_E/')) {
           return source.replace('webpack://_N_E/', '');
@@ -98,8 +95,7 @@ export function getWebpackPluginOptions(
       ...sentryBuildOptions.unstable_sentryWebpackPluginOptions?.sourcemaps,
     },
     release:
-      // if the user has enabled the runAfterProductionCompileHook, we handle release creation a later step
-      releaseName !== undefined && !sentryBuildOptions.useRunAfterProductionCompileHook
+      releaseName !== undefined
         ? {
             inject: false, // The webpack plugin's release injection breaks the `app` directory - we inject the release manually with the value injection loader instead.
             name: releaseName,

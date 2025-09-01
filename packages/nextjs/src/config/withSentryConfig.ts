@@ -294,7 +294,7 @@ function getFinalConfigObject(
     }
   }
 
-  if (userSentryOptions.useRunAfterProductionCompileHook === true && supportsProductionCompileHook()) {
+  if (userSentryOptions?._experimental?.useRunAfterProductionCompileHook === true && supportsProductionCompileHook()) {
     if (incomingUserNextConfigObject?.compiler?.runAfterProductionCompile === undefined) {
       incomingUserNextConfigObject.compiler ??= {};
       incomingUserNextConfigObject.compiler.runAfterProductionCompile = async ({ distDir }) => {
