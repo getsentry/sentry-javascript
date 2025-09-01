@@ -1,4 +1,4 @@
-import { defineWorkersProject } from '@cloudflare/vitest-pool-workers/config'
+import { defineWorkersProject } from '@cloudflare/vitest-pool-workers/config';
 
 export default defineWorkersProject(() => {
   return {
@@ -8,5 +8,5 @@ export default defineWorkersProject(() => {
         workers: { wrangler: { configPath: './wrangler.toml' } },
       },
     },
-  }
-})
+  };
+});

@@ -85,9 +85,7 @@ test('Aborts when stream takes longer than 5s, by not updating the span duration
 
   const rootSpan = await transactionPromise;
   const sseFetchCall = rootSpan.spans?.filter(span => span.description === 'sse fetch call')[0]!;
-  const httpGet = rootSpan.spans?.filter(
-    span => span.description === 'GET http://localhost:8080/sse-timeout',
-  )[0]!;
+  const httpGet = rootSpan.spans?.filter(span => span.description === 'GET http://localhost:8080/sse-timeout')[0]!;
 
   expect(sseFetchCall).toBeDefined();
   expect(httpGet).toBeDefined();

@@ -1,3 +1,4 @@
 packages/browser/test/loader.js
 packages/replay-worker/examples/worker.min.js
 dev-packages/browser-integration-tests/fixtures
+**/test.ts-snapshots/**

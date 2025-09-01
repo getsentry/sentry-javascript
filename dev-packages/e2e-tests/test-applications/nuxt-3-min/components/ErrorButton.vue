@@ -4,13 +4,13 @@ import { defineProps } from 'vue';
 const props = defineProps({
   errorText: {
     type: String,
-    required: true
+    required: true,
   },
   id: {
     type: String,
-    required: true
-  }
-})
+    required: true,
+  },
+});
 
 const triggerError = () => {
   throw new Error(props.errorText);

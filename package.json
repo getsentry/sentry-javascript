@@ -22,12 +22,10 @@
     "clean:all": "run-s clean:build clean:tarballs clean:caches clean:deps clean:watchman",
     "fix": "run-s fix:prettier fix:lerna",
     "fix:lerna": "lerna run fix",
-    "fix:prettier": "prettier \"**/*.{md,css,yml,yaml,mdc}\" \"packages/**/**.{ts,js,mjs,cjs,mts,cts,jsx,tsx,astro,vue}\" \"dev-packages/!(e2e-tests)/**/**.{ts,js,mjs,cjs,mts,cts,jsx,tsx,astro,vue}\" --write",
-    "changelog": "ts-node ./scripts/get-commit-list.ts",
-    "link:yarn": "lerna exec yarn link",
+    "fix:prettier": "prettier \"**/*.{md,css,yml,yaml,mdc,json,ts,js,mjs,cjs,mts,cts,jsx,tsx,astro,vue}\" --write",
     "lint": "run-s lint:prettier lint:lerna",
     "lint:lerna": "lerna run lint",
-    "lint:prettier": "prettier \"**/*.{md,css,yml,yaml,mdc}\" \"packages/**/**.{ts,js,mjs,cjs,mts,cts,jsx,tsx,astro,vue}\" --check",
+    "lint:prettier": "prettier \"**/*.{md,css,yml,yaml,mdc,json,ts,js,mjs,cjs,mts,cts,jsx,tsx,astro,vue}\" --check",
     "lint:es-compatibility": "lerna run lint:es-compatibility",
     "dedupe-deps:check": "yarn-deduplicate yarn.lock --list --fail",
     "dedupe-deps:fix": "yarn-deduplicate yarn.lock",
@@ -128,6 +126,7 @@
     "nodemon": "^2.0.16",
     "npm-run-all2": "^6.2.0",
     "prettier": "^3.1.1",
+    "prettier-plugin-astro": "^0.14.1",
     "rimraf": "^5.0.10",
     "rollup": "^4.35.0",
     "rollup-plugin-cleanup": "^3.2.1",
@@ -159,6 +158,9 @@
     "proseWrap": "always",
     "singleQuote": true,
     "trailingComma": "all",
+    "plugins": [
+      "prettier-plugin-astro"
+    ],
     "overrides": [
       {
         "files": "*.md",
@@ -171,6 +173,12 @@
         "options": {
           "parser": "markdown",
           "proseWrap": "preserve"
+        }
+      },
+      {
+        "files": "*.astro",
+        "options": {
+          "parser": "astro"
         }
       }
     ]
