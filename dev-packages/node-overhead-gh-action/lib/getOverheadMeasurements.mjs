@@ -138,7 +138,7 @@ async function getOverheadMeasurements() {
 
 export async function getAveragedOverheadMeasurements() {
   const results = [];
-  for (let i = 0; i < 3; i++) {
+  for (let i = 0; i < 2; i++) {
     const result = await getOverheadMeasurements();
     results.push(result);
   }
