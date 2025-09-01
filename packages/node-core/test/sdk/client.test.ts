@@ -375,8 +375,6 @@ describe('NodeClient', () => {
 
       const client = new NodeClient(getDefaultNodeClientOptions({ enableLogs: true }));
 
-      client.startClientReportTracking();
-
       const result = await client.close();
 
       expect(result).toBe(true);
