@@ -66,7 +66,8 @@ export function wrapRequestHandler(
       attributes['user_agent.original'] = userAgentHeader;
     }
 
-    Object.assign(attributes, httpHeadersToSpanAttributes(winterCGHeadersToDict(request.headers)));
+    const sendDefaultPii = options.sendDefaultPii ?? false;
+    Object.assign(attributes, httpHeadersToSpanAttributes(winterCGHeadersToDict(request.headers), sendDefaultPii));
 
     attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] = 'http.server';
 

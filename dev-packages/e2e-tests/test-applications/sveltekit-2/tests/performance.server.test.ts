@@ -45,6 +45,7 @@ test('extracts HTTP request headers as span attributes', async ({ page, baseURL 
       'X-Test-Header': 'sveltekit-test-value',
       Accept: 'application/json',
       'X-Framework': 'SvelteKit',
+      'X-Request-ID': 'sveltekit-123',
     },
   });
 
@@ -57,6 +58,7 @@ test('extracts HTTP request headers as span attributes', async ({ page, baseURL 
       'http.request.header.x_test_header': ['sveltekit-test-value'],
       'http.request.header.accept': ['application/json'],
       'http.request.header.x_framework': ['SvelteKit'],
+      'http.request.header.x_request_id': ['sveltekit-123'],
     }),
   );
 });

@@ -156,7 +156,7 @@ async function instrumentRequest(
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
           method,
           url: stripUrlQueryAndFragment(ctx.url.href),
-          ...httpHeadersToSpanAttributes(winterCGHeadersToDict(request.headers)),
+          ...httpHeadersToSpanAttributes(winterCGHeadersToDict(request.headers), getClient()?.getOptions().sendDefaultPii ?? false),
         };
 
         if (ctx.url.search) {

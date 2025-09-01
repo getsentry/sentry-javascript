@@ -128,6 +128,9 @@ function getAbsoluteUrl({
   return undefined;
 }
 
+// "-user" because otherwise it would match "user-agent"
+const SENSITIVE_HEADER_SNIPPETS = ['auth', 'token', 'secret', 'cookie', '-user', 'password', 'key'];
+
 /**
  * Converts incoming HTTP request headers to OpenTelemetry span attributes following semantic conventions.
  * Header names are converted to the format: http.request.header.<key>
@@ -137,13 +140,20 @@ function getAbsoluteUrl({
  */
 export function httpHeadersToSpanAttributes(
   headers: Record<string, string | string[] | undefined>,
+  sendDefaultPii: boolean = false,
 ): Record<string, string[]> {
   const spanAttributes: Record<string, string[]> = {};
 
   try {
     Object.entries(headers).forEach(([key, value]) => {
       if (value !== undefined) {
-        const normalizedKey = `http.request.header.${key.toLowerCase().replace(/-/g, '_')}`;
+        const lowerCasedKey = key.toLowerCase();
+
+        if (!sendDefaultPii && SENSITIVE_HEADER_SNIPPETS.some(snippet => lowerCasedKey.includes(snippet))) {
+          return;
+        }
+
+        const normalizedKey = `http.request.header.${lowerCasedKey.replace(/-/g, '_')}`;
 
         if (Array.isArray(value)) {
           const stringValues = value.filter((v): v is string => typeof v === 'string');

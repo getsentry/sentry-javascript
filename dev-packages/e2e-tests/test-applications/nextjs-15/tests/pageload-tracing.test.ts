@@ -35,6 +35,7 @@ test('extracts HTTP request headers as span attributes', async ({ baseURL }) => 
       'X-NextJS-Test': 'nextjs-header-value',
       Accept: 'text/html, application/xhtml+xml',
       'X-Framework': 'Next.js',
+      'X-Request-ID': 'nextjs-789',
     },
   });
 
@@ -47,6 +48,7 @@ test('extracts HTTP request headers as span attributes', async ({ baseURL }) => 
       'http.request.header.x_nextjs_test': ['nextjs-header-value'],
       'http.request.header.accept': ['text/html, application/xhtml+xml'],
       'http.request.header.x_framework': ['Next.js'],
+      'http.request.header.x_request_id': ['nextjs-789'],
     }),
   );
 });

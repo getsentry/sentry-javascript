@@ -56,6 +56,7 @@ test('extracts HTTP request headers as span attributes', async ({ baseURL }) => 
       'X-Nuxt-Test': 'nuxt-header-value',
       Accept: 'application/json, text/html',
       'X-Framework': 'Nuxt',
+      'X-Request-ID': 'nuxt-456',
     },
   });
 
@@ -68,6 +69,7 @@ test('extracts HTTP request headers as span attributes', async ({ baseURL }) => 
       'http.request.header.x_nuxt_test': ['nuxt-header-value'],
       'http.request.header.accept': ['application/json, text/html'],
       'http.request.header.x_framework': ['Nuxt'],
+      'http.request.header.x_request_id': ['nuxt-456'],
     }),
   );
 });

@@ -223,7 +223,7 @@ test('Extracts HTTP request headers as span attributes', async ({ baseURL }) => 
       'Content-Type': 'application/json',
       'X-Custom-Header': 'test-value',
       Accept: 'application/json, text/plain',
-      Authorization: 'Bearer test-token-123',
+      'X-Request-ID': 'req-123',
     },
   });
 
@@ -235,7 +235,7 @@ test('Extracts HTTP request headers as span attributes', async ({ baseURL }) => 
       'http.request.header.content_type': ['application/json'],
       'http.request.header.x_custom_header': ['test-value'],
       'http.request.header.accept': ['application/json, text/plain'],
-      'http.request.header.authorization': ['Bearer test-token-123'],
+      'http.request.header.x_request_id': ['req-123'],
     }),
   );
 });

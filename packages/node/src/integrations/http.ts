@@ -321,7 +321,9 @@ function getConfigWithDefaults(options: Partial<HttpOptions> = {}): HttpInstrume
 
       // Extract headers for incoming requests
       if (!_isClientRequest(req)) {
-        const headerAttributes = httpHeadersToSpanAttributes(req.headers);
+        const client = getClient();
+        const sendDefaultPii = client?.getOptions().sendDefaultPii ?? false;
+        const headerAttributes = httpHeadersToSpanAttributes(req.headers, sendDefaultPii);
         span.setAttributes(headerAttributes);
       }
 
