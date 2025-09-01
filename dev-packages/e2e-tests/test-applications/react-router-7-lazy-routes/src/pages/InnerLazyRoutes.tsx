@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom';
+
 export const someMoreNestedRoutes = [
   {
     path: 'inner',
@@ -22,7 +24,15 @@ export const someMoreNestedRoutes = [
               },
               {
                 path: ':someAnotherId',
-                element: <div id="innermost-lazy-route">Rendered</div>,
+                element: (
+                  <div id="innermost-lazy-route">
+                    Rendered
+                    <br />
+                    <Link to="/another-lazy/sub/888/999" id="navigate-to-another-from-inner">
+                      Navigate to Another Lazy Route
+                    </Link>
+                  </div>
+                ),
               },
             ],
           },

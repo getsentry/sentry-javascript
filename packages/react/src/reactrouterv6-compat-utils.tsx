@@ -529,14 +529,41 @@ export function handleNavigation(opts: {
       [name, source] = getNormalizedName(routes, location, branches, basename);
     }
 
-    startBrowserTracingNavigationSpan(client, {
-      name,
-      attributes: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: `auto.navigation.react.reactrouter_v${version}`,
-      },
-    });
+    // Avoid updating navigation span name multiple times when cross-usage occurs
+    const activeSpan = getActiveSpan();
+    const spanJson = activeSpan ? spanToJSON(activeSpan) : undefined;
+    const isAlreadyInNavigationSpan = spanJson && spanJson.op === 'navigation';
+
+    if (isAlreadyInNavigationSpan && activeSpan) {
+      // Only update the span name once. Use a non-enumerable property to mark
+      // that we've already set the navigation name to avoid repeated updates.
+      const hasBeenNamed = (
+        activeSpan as {
+          __sentry_navigation_name_set__?: boolean;
+        }
+      ).__sentry_navigation_name_set__;
+
+      if (!hasBeenNamed) {
+        // If the span hasn't finished (no timestamp), update the name.
+        if (!spanJson.timestamp) {
+          activeSpan.updateName(name);
+        }
+        // Mark as named so subsequent navigations won't rename it.
+        addNonEnumerableProperty(activeSpan as any, '__sentry_navigation_name_set__', true);
+      }
+
+      // Always keep the source attribute up to date.
+      activeSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
+    } else {
+      startBrowserTracingNavigationSpan(client, {
+        name,
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: `auto.navigation.react.reactrouter_v${version}`,
+        },
+      });
+    }
   }
 }
 
