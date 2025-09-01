@@ -51,7 +51,7 @@ export function hasChanges(baseScenarios, currentScenarios, threshold = 0) {
         return true;
       }
 
-      return Math.abs((currentResult.size - baseResult.size) / baseResult.size) * 100 > threshold;
+      return Math.abs((currentResult - baseResult) / baseResult) * 100 > threshold;
     });
   });
 }

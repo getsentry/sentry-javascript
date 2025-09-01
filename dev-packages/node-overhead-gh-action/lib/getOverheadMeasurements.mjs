@@ -120,8 +120,8 @@ async function startAutocannonProcess(autocannonCommand) {
 export async function getOverheadMeasurements() {
   const GET = {
     baseline: await getMeasurements(undefined, 'yarn test:get'),
-    withInstrument: await getMeasurements('./src/instrument.mjs', 'yarn test:post'),
-    withInstrumentErrorOnly: await getMeasurements('./src/instrument-error-only.mjs', 'yarn test:post'),
+    withInstrument: await getMeasurements('./src/instrument.mjs', 'yarn test:get'),
+    withInstrumentErrorOnly: await getMeasurements('./src/instrument-error-only.mjs', 'yarn test:get'),
   };
 
   const POST = {
