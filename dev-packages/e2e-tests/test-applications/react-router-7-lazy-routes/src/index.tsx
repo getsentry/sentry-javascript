@@ -13,7 +13,6 @@ import {
 } from 'react-router-dom';
 import Index from './pages/Index';
 
-
 Sentry.init({
   environment: 'qa', // dynamic sampling bias to keep transactions
   dsn: process.env.REACT_APP_E2E_TEST_DSN,
@@ -48,6 +47,12 @@ const router = sentryCreateBrowserRouter(
       path: '/lazy',
       handle: {
         lazyChildren: () => import('./pages/InnerLazyRoutes').then(module => module.someMoreNestedRoutes),
+      },
+    },
+    {
+      path: '/another-lazy',
+      handle: {
+        lazyChildren: () => import('./pages/AnotherLazyRoutes').then(module => module.anotherNestedRoutes),
       },
     },
     {

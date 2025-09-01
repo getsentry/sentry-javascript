@@ -11,7 +11,7 @@ import {
   OPENAI_RESPONSE_TIMESTAMP_ATTRIBUTE,
   OPENAI_USAGE_COMPLETION_TOKENS_ATTRIBUTE,
   OPENAI_USAGE_PROMPT_TOKENS_ATTRIBUTE,
-} from '../gen-ai-attributes';
+} from '../ai/gen-ai-attributes';
 import { INSTRUMENTED_METHODS } from './constants';
 import type {
   ChatCompletionChunk,

@@ -29,6 +29,7 @@ export const envelopeParser = (request: Request | null): unknown[] => {
   });
 };
 
+// Rather use the `properEnvelopeRequestParser`, as the `envelopeParser` does not follow the envelope spec.
 export const envelopeRequestParser = <T = SentryEvent>(request: Request | null, envelopeIndex = 2): T => {
   return envelopeParser(request)[envelopeIndex] as T;
 };
@@ -79,8 +80,12 @@ function getEventAndTraceHeader(envelope: EventEnvelope): EventAndTraceHeader {
   return [event, trace];
 }
 
-export const properEnvelopeRequestParser = <T = SentryEvent>(request: Request | null, envelopeIndex = 1): T => {
-  return properEnvelopeParser(request)[0]?.[envelopeIndex] as T;
+export const properEnvelopeRequestParser = <T = SentryEvent>(
+  request: Request | null,
+  envelopeItemIndex: number,
+  envelopeIndex = 1, // 1 is usually the payload of the envelope (0 is the header)
+): T => {
+  return properEnvelopeParser(request)[envelopeItemIndex]?.[envelopeIndex] as T;
 };
 
 export const properFullEnvelopeRequestParser = <T extends Envelope>(request: Request | null): T => {
@@ -137,13 +142,10 @@ export const countEnvelopes = async (
 
     page.on('request', requestHandler);
 
-    setTimeout(
-      () => {
-        page.off('request', requestHandler);
-        resolve(reqCount);
-      },
-      options?.timeout || 1000,
-    );
+    setTimeout(() => {
+      page.off('request', requestHandler);
+      resolve(reqCount);
+    }, options?.timeout || 1000);
   });
 
   if (options?.url) {

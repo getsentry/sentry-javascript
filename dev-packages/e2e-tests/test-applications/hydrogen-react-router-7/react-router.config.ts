@@ -1,4 +1,4 @@
-import type {Config} from '@react-router/dev/config';
+import type { Config } from '@react-router/dev/config';
 import { sentryOnBuildEnd } from '@sentry/react-router';
 
 export default {
@@ -8,7 +8,6 @@ export default {
   buildEnd: async ({ viteConfig, reactRouterConfig, buildManifest }) => {
     // ...
     // Call this at the end of the hook
-    (await sentryOnBuildEnd({ viteConfig, reactRouterConfig, buildManifest }));
-  }
+    await sentryOnBuildEnd({ viteConfig, reactRouterConfig, buildManifest });
+  },
 } satisfies Config;
-

@@ -102,7 +102,7 @@ function getFinalConfigObject(
   // This prevents injection of Git commit hashes that break build determinism
   const shouldCreateRelease = userSentryOptions.release?.create !== false;
   const releaseName = shouldCreateRelease
-    ? userSentryOptions.release?.name ?? getSentryRelease() ?? getGitRevision()
+    ? (userSentryOptions.release?.name ?? getSentryRelease() ?? getGitRevision())
     : userSentryOptions.release?.name;
 
   if (userSentryOptions?.tunnelRoute) {

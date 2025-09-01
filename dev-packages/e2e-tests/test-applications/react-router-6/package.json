@@ -55,7 +55,7 @@
   "sentryTest": {
     "variants": [
       {
-        "build-command": "test:build-ts3.8",
+        "build-command": "pnpm test:build-ts3.8",
         "label": "react-router-6 (TS 3.8)"
       }
     ]

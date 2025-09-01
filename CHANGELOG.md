@@ -4,6 +4,138 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 10.8.0
+
+### Important Changes
+
+- **feat(sveltekit): Add Compatibility for builtin SvelteKit Tracing ([#17423](https://github.com/getsentry/sentry-javascript/pull/17423))**
+
+  This release makes the `@sentry/sveltekit` SDK compatible with SvelteKit's native [observability support](https://svelte.dev/docs/kit/observability) introduced in SvelteKit version `2.31.0`.
+  If you enable both, instrumentation and tracing, the SDK will now initialize early enough to set up additional instrumentation like database queries and it will pick up spans emitted from SvelteKit.
+
+  We will follow up with docs how to set up the SDK soon.
+  For now, If you're on SvelteKit version `2.31.0` or newer, you can easily opt into the new feature:
+  1. Enable [experimental tracing and instrumentation support](https://svelte.dev/docs/kit/observability) in `svelte.config.js`:
+  2. Move your `Sentry.init()` call from `src/hooks.server.(js|ts)` to the new `instrumentation.server.(js|ts)` file:
+
+     ```ts
+     // instrumentation.server.ts
+     import * as Sentry from '@sentry/sveltekit';
+
+     Sentry.init({
+       dsn: '...',
+       // rest of your config
+     });
+     ```
+
+     The rest of your Sentry config in `hooks.server.ts` (`sentryHandle` and `handleErrorWithSentry`) should stay the same.
+
+  If you prefer to stay on the hooks-file based config for now, the SDK will continue to work as previously.
+
+  Thanks to the Svelte team and @elliott-with-the-longest-name-on-github for implementing observability support and for reviewing our PR!
+
+### Other Changes
+
+- fix(react): Avoid multiple name updates on navigation spans ([#17438](https://github.com/getsentry/sentry-javascript/pull/17438))
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+
+- test(profiling): Add tests for current state of profiling ([#17470](https://github.com/getsentry/sentry-javascript/pull/17470))
+
+</details>
+
+## 10.7.0
+
+### Important Changes
+
+- **feat(cloudflare): Add `instrumentPrototypeMethods` option to instrument RPC methods for DurableObjects ([#17424](https://github.com/getsentry/sentry-javascript/pull/17424))**
+
+By default, `Sentry.instrumentDurableObjectWithSentry` will not wrap any RPC methods on the prototype. To enable wrapping for RPC methods, set `instrumentPrototypeMethods` to `true` or, if performance is a concern, a list of only the methods you want to instrument:
+
+```js
+class MyDurableObjectBase extends DurableObject<Env> {
+  method1() {
+    // ...
+  }
+
+  method2() {
+    // ...
+  }
+
+  method3() {
+    // ...
+  }
+}
+// Export your named class as defined in your wrangler config
+export const MyDurableObject = Sentry.instrumentDurableObjectWithSentry(
+  (env: Env) => ({
+    dsn: "https://ac49b7af3017c458bd12dab9b3328bfc@o4508482761982032.ingest.de.sentry.io/4508482780987481",
+    tracesSampleRate: 1.0,
+    instrumentPrototypeMethods: ['method1', 'method3'],
+  }),
+  MyDurableObjectBase,
+);
+```
+
+## Other Changes
+
+- feat(aws): Add support for streaming handlers ([#17463](https://github.com/getsentry/sentry-javascript/pull/17463))
+- feat(core): Stream responses Anthropic AI ([#17460](https://github.com/getsentry/sentry-javascript/pull/17460))
+- feat(deps): bump @opentelemetry/instrumentation-aws-sdk from 0.56.0 to 0.57.0 ([#17455](https://github.com/getsentry/sentry-javascript/pull/17455))
+- feat(deps): bump @opentelemetry/instrumentation-dataloader from 0.21.0 to 0.21.1 ([#17457](https://github.com/getsentry/sentry-javascript/pull/17457))
+- feat(deps): bump @opentelemetry/instrumentation-kafkajs from 0.12.0 to 0.13.0 ([#17469](https://github.com/getsentry/sentry-javascript/pull/17469))
+- feat(deps): bump @opentelemetry/instrumentation-mysql2 from 0.49.0 to 0.50.0 ([#17459](https://github.com/getsentry/sentry-javascript/pull/17459))
+- feat(deps): bump @prisma/instrumentation from 6.13.0 to 6.14.0 ([#17466](https://github.com/getsentry/sentry-javascript/pull/17466))
+- feat(deps): bump @sentry/cli from 2.51.1 to 2.52.0 ([#17458](https://github.com/getsentry/sentry-javascript/pull/17458))
+- feat(deps): bump @sentry/rollup-plugin from 4.1.0 to 4.1.1 ([#17456](https://github.com/getsentry/sentry-javascript/pull/17456))
+- feat(deps): bump @sentry/webpack-plugin from 4.1.0 to 4.1.1 ([#17467](https://github.com/getsentry/sentry-javascript/pull/17467))
+- feat(replay): Add option to skip `requestAnimationFrame` for canvas snapshots ([#17380](https://github.com/getsentry/sentry-javascript/pull/17380))
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+
+- test(aws): Run E2E tests in all supported Node versions ([#17446](https://github.com/getsentry/sentry-javascript/pull/17446))
+
+</details>
+
+## 10.6.0
+
+### Important Changes
+
+- **feat(node): Add Anthropic AI integration ([#17348](https://github.com/getsentry/sentry-javascript/pull/17348))**
+
+This release adds support for automatically tracing Anthropic AI SDK requests, providing better observability for AI-powered applications.
+
+- **fix(core): Instrument invoke_agent root span, and support Vercel `ai` v5 ([#17395](https://github.com/getsentry/sentry-javascript/pull/17395))**
+
+This release makes the Sentry `vercelAiIntegration` compatible with version 5 of Vercel `ai`.
+
+- **docs(nuxt): Remove beta notice ([#17400](https://github.com/getsentry/sentry-javascript/pull/17400))**
+
+The Sentry Nuxt SDK is now considered stable and no longer in beta!
+
+### Other Changes
+
+- feat(astro): Align options with shared build time options type ([#17396](https://github.com/getsentry/sentry-javascript/pull/17396))
+- feat(aws): Add support for automatic wrapping in ESM ([#17407](https://github.com/getsentry/sentry-javascript/pull/17407))
+- feat(node): Add an instrumentation interface for Hono ([#17366](https://github.com/getsentry/sentry-javascript/pull/17366))
+- fix(browser): Use `DedicatedWorkerGlobalScope` global object type in `registerWebWorker` ([#17447](https://github.com/getsentry/sentry-javascript/pull/17447))
+- fix(core): Only consider ingest endpoint requests when checking `isSentryRequestUrl` ([#17393](https://github.com/getsentry/sentry-javascript/pull/17393))
+- fix(node): Fix preloading of instrumentation ([#17403](https://github.com/getsentry/sentry-javascript/pull/17403))
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+
+- chore: Add external contributor to CHANGELOG.md ([#17449](https://github.com/getsentry/sentry-javascript/pull/17449))
+- chore(deps): bump astro from 4.16.18 to 4.16.19 in /dev-packages/e2e-tests/test-applications/astro-4 ([#17434](https://github.com/getsentry/sentry-javascript/pull/17434))
+- test(e2e/firebase): Fix firebase e2e test failing due to outdated rules file ([#17448](https://github.com/getsentry/sentry-javascript/pull/17448))
+- test(nextjs): Fix canary tests ([#17416](https://github.com/getsentry/sentry-javascript/pull/17416))
+- test(nuxt): Don't rely on flushing for lowQualityTransactionFilter ([#17406](https://github.com/getsentry/sentry-javascript/pull/17406))
+- test(solidstart): Don't rely on flushing for lowQualityTransactionFilter ([#17408](https://github.com/getsentry/sentry-javascript/pull/17408))
+
+</details>
+
 ## 10.5.0
 
 - feat(core): better cause data extraction ([#17375](https://github.com/getsentry/sentry-javascript/pull/17375))
@@ -517,7 +649,6 @@ Work in this release was contributed by @0xbad0c0d3 and @alSergey. Thank you for
 - **feat(nuxt): Add Cloudflare Nitro plugin ([#15597](https://github.com/getsentry/sentry-javascript/pull/15597))**
 
   A Nitro plugin for `@sentry/nuxt` which initializes Sentry when deployed to Cloudflare (`cloudflare-pages` preset).
-
   1. Remove the previous server config file: `sentry.server.config.ts`
   2. Add a plugin in `server/plugins` (e.g. `server/plugins/sentry-cloudflare-setup.ts`)
   3. Add this code in your plugin file
@@ -1082,7 +1213,6 @@ This PR adds trace propagation to `@sentry/react-router` by providing utilities 
 - **Logging Improvements**
 
   Sentry is adding support for [structured logging](https://github.com/getsentry/sentry-javascript/discussions/15916). In this release we've made a variety of improvements to logging functionality in the Sentry SDKs.
-
   - feat(node): Add server.address to nodejs logs ([#16006](https://github.com/getsentry/sentry-javascript/pull/16006))
   - feat(core): Add sdk name and version to logs ([#16005](https://github.com/getsentry/sentry-javascript/pull/16005))
   - feat(core): Add sentry origin attribute to console logs integration ([#15998](https://github.com/getsentry/sentry-javascript/pull/15998))
@@ -1131,7 +1261,6 @@ Work in this release was contributed by @Page- and @Fryuni. Thank you for your c
 ### Important Changes
 
 - **feat: Add support for logs**
-
   - feat(node): Add logging public APIs to Node SDKs ([#15764](https://github.com/getsentry/sentry-javascript/pull/15764))
   - feat(core): Add support for `beforeSendLog` ([#15814](https://github.com/getsentry/sentry-javascript/pull/15814))
   - feat(core): Add support for parameterizing logs ([#15812](https://github.com/getsentry/sentry-javascript/pull/15812))
@@ -1181,13 +1310,11 @@ Work in this release was contributed by @Page- and @Fryuni. Thank you for your c
   ```
 
   The result will be an object with the following properties:
-
   - `"no-client-active"`: There was no active client when the function was called. This possibly means that the SDK was not initialized yet.
   - `"sentry-unreachable"`: The Sentry SaaS servers were not reachable. This likely means that there is an ad blocker active on the page or that there are other connection issues.
   - `undefined`: The SDK is working as expected.
 
 - **SDK Tracing Performance Improvements for Node SDKs**
-
   - feat: Stop using `dropUndefinedKeys` ([#15796](https://github.com/getsentry/sentry-javascript/pull/15796))
   - feat(node): Only add span listeners for instrumentation when used ([#15802](https://github.com/getsentry/sentry-javascript/pull/15802))
   - ref: Avoid `dropUndefinedKeys` for `spanToJSON` calls ([#15792](https://github.com/getsentry/sentry-javascript/pull/15792))

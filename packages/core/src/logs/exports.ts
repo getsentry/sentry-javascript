@@ -153,7 +153,9 @@ export function _INTERNAL_captureLog(
   const beforeLogMessage = beforeLog.message;
   if (isParameterizedString(beforeLogMessage)) {
     const { __sentry_template_string__, __sentry_template_values__ = [] } = beforeLogMessage;
-    processedLogAttributes['sentry.message.template'] = __sentry_template_string__;
+    if (__sentry_template_values__?.length) {
+      processedLogAttributes['sentry.message.template'] = __sentry_template_string__;
+    }
     __sentry_template_values__.forEach((param, index) => {
       processedLogAttributes[`sentry.message.parameter.${index}`] = param;
     });

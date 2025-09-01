@@ -27,7 +27,7 @@
   "sentryTest": {
     "optionalVariants": [
       {
-        "build-command": "test:build-canary",
+        "build-command": "pnpm test:build-canary",
         "label": "nuxt-3 (canary)"
       }
     ]

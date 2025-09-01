@@ -26,16 +26,15 @@ sentryTest('allows to ignore mutations via `ignoreMutations` option', async ({ g
   const requests = await requestsPromise;
 
   // All transform mutatinos are ignored and not captured
-  const transformMutations = requests.replayRecordingSnapshots.filter(
-    item =>
-      (item.data as mutationData)?.attributes?.some(
-        attr => attr.attributes['style'] && attr.attributes['class'] !== 'moved',
-      ),
+  const transformMutations = requests.replayRecordingSnapshots.filter(item =>
+    (item.data as mutationData)?.attributes?.some(
+      attr => attr.attributes['style'] && attr.attributes['class'] !== 'moved',
+    ),
   );
 
   // Should capture the final class mutation
-  const classMutations = requests.replayRecordingSnapshots.filter(
-    item => (item.data as mutationData)?.attributes?.some(attr => attr.attributes['class']),
+  const classMutations = requests.replayRecordingSnapshots.filter(item =>
+    (item.data as mutationData)?.attributes?.some(attr => attr.attributes['class']),
   );
 
   expect(transformMutations).toEqual([]);

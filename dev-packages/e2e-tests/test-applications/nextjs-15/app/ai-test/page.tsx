@@ -54,7 +54,7 @@ async function runAITest() {
     tools: {
       getWeather: {
         parameters: z.object({ location: z.string() }),
-        execute: async (args) => {
+        execute: async args => {
           return `Weather in ${args.location}: Sunny, 72°F`;
         },
       },
@@ -85,12 +85,9 @@ async function runAITest() {
 }
 
 export default async function Page() {
-  const results = await Sentry.startSpan(
-    { op: 'function', name: 'ai-test' },
-    async () => {
-      return await runAITest();
-    }
-  );
+  const results = await Sentry.startSpan({ op: 'function', name: 'ai-test' }, async () => {
+    return await runAITest();
+  });
 
   return (
     <div>

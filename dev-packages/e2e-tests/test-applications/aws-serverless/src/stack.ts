@@ -12,8 +12,8 @@ const LAMBDA_FUNCTIONS_WITH_LAYER_DIR = './src/lambda-functions-layer';
 const LAMBDA_FUNCTIONS_WITH_NPM_DIR = './src/lambda-functions-npm';
 const LAMBDA_FUNCTION_TIMEOUT = 10;
 const LAYER_DIR = './node_modules/@sentry/aws-serverless/';
+const DEFAULT_NODE_VERSION = '22';
 export const SAM_PORT = 3001;
-const NODE_RUNTIME = `nodejs${process.version.split('.').at(0)?.replace('v', '')}.x`;
 
 export class LocalLambdaStack extends Stack {
   sentryLayer: CfnResource;
@@ -73,14 +73,12 @@ export class LocalLambdaStack extends Stack {
         execFileSync('npm', ['install', '--prefix', path.join(functionsDir, lambdaDir)], { stdio: 'inherit' });
       }
 
-      const isEsm = fs.existsSync(path.join(functionsDir, lambdaDir, 'index.mjs'));
-
       new CfnResource(this, functionName, {
         type: 'AWS::Serverless::Function',
         properties: {
           CodeUri: path.join(functionsDir, lambdaDir),
           Handler: 'index.handler',
-          Runtime: NODE_RUNTIME,
+          Runtime: `nodejs${process.env.NODE_VERSION ?? DEFAULT_NODE_VERSION}.x`,
           Timeout: LAMBDA_FUNCTION_TIMEOUT,
           Layers: addLayer ? [{ Ref: this.sentryLayer.logicalId }] : undefined,
           Environment: {
@@ -88,7 +86,7 @@ export class LocalLambdaStack extends Stack {
               SENTRY_DSN: dsn,
               SENTRY_TRACES_SAMPLE_RATE: 1.0,
               SENTRY_DEBUG: true,
-              NODE_OPTIONS: `--${isEsm ? 'import' : 'require'}=@sentry/aws-serverless/awslambda-auto`,
+              NODE_OPTIONS: `--import=@sentry/aws-serverless/awslambda-auto`,
             },
           },
         },

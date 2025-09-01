@@ -37,15 +37,15 @@
   "sentryTest": {
     "optionalVariants": [
       {
-        "build-command": "test:build-canary",
+        "build-command": "pnpm test:build-canary",
         "label": "nextjs-15 (canary)"
       },
       {
-        "build-command": "test:build-latest",
+        "build-command": "pnpm test:build-latest",
         "label": "nextjs-15 (latest)"
       },
       {
-        "build-command": "test:build-turbo",
+        "build-command": "pnpm test:build-turbo",
         "assert-command": "pnpm test:prod && pnpm test:dev-turbo",
         "label": "nextjs-15 (turbo)"
       }
