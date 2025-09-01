@@ -29,8 +29,7 @@ async function fetchPreviousComment(octokit, repo, pr) {
     issue_number: pr.number,
   });
 
-  const sizeLimitComment = commentList.find(comment => comment.body.startsWith(NODE_OVERHEAD_HEADING));
-  return !sizeLimitComment ? null : sizeLimitComment;
+  return commentList.find(comment => comment.body.startsWith(NODE_OVERHEAD_HEADING));
 }
 
 async function run() {
@@ -51,12 +50,12 @@ async function run() {
     const octokit = getOctokit(githubToken);
     const resultsFilePath = getResultsFilePath();
 
-    // If we have no comparison branch, we just run size limit & store the result as artifact
+    // If we have no comparison branch, we just run overhead check & store the result as artifact
     if (!comparisonBranch) {
       return runNodeOverheadOnComparisonBranch();
     }
 
-    // Else, we run size limit for the current branch, AND fetch it for the comparison branch
+    // Else, we run overhead check for the current branch, AND fetch it for the comparison branch
     let base;
     let current;
     let baseIsNotLatest = false;
