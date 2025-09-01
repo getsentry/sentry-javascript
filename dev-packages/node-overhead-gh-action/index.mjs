@@ -9,7 +9,7 @@ import * as glob from '@actions/glob';
 import * as io from '@actions/io';
 import { markdownTable } from 'markdown-table';
 import { getArtifactsForBranchAndWorkflow } from './lib/getArtifactsForBranchAndWorkflow.mjs';
-import { getOverheadMeasurements } from './lib/getOverheadMeasurements.mjs';
+import { getAveragedOverheadMeasurements } from './lib/getOverheadMeasurements.mjs';
 import { formatResults, hasChanges } from './lib/markdown-table-formatter.mjs';
 
 const NODE_OVERHEAD_HEADING = '## node-overhead report 🧳';
@@ -100,7 +100,7 @@ async function run() {
 
     core.startGroup('Getting current overhead measurements');
     try {
-      current = await getOverheadMeasurements();
+      current = await getAveragedOverheadMeasurements();
     } catch (error) {
       core.error('Error getting current overhead measurements');
       core.endGroup();
@@ -178,7 +178,7 @@ async function runNodeOverheadOnComparisonBranch() {
 
   const artifactClient = new DefaultArtifactClient();
 
-  const result = await getOverheadMeasurements();
+  const result = await getAveragedOverheadMeasurements();
 
   try {
     await fs.writeFile(resultsFilePath, JSON.stringify(result), 'utf8');

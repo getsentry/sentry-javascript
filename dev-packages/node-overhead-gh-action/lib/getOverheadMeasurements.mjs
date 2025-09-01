@@ -117,7 +117,7 @@ async function startAutocannonProcess(autocannonCommand) {
   });
 }
 
-export async function getOverheadMeasurements() {
+async function getOverheadMeasurements() {
   const GET = {
     baseline: await getMeasurements(undefined, 'yarn test:get'),
     withInstrument: await getMeasurements('./src/instrument.mjs', 'yarn test:get'),
@@ -134,6 +134,34 @@ export async function getOverheadMeasurements() {
     GET,
     POST,
   };
+}
+
+export async function getAveragedOverheadMeasurements() {
+  const results = [];
+  for (let i = 0; i < 3; i++) {
+    const result = await getOverheadMeasurements();
+    results.push(result);
+  }
+
+  // Calculate averages for each scenario
+  const averaged = {
+    GET: {
+      baseline: Math.floor(results.reduce((sum, r) => sum + r.GET.baseline, 0) / results.length),
+      withInstrument: Math.floor(results.reduce((sum, r) => sum + r.GET.withInstrument, 0) / results.length),
+      withInstrumentErrorOnly: Math.floor(
+        results.reduce((sum, r) => sum + r.GET.withInstrumentErrorOnly, 0) / results.length,
+      ),
+    },
+    POST: {
+      baseline: Math.floor(results.reduce((sum, r) => sum + r.POST.baseline, 0) / results.length),
+      withInstrument: Math.floor(results.reduce((sum, r) => sum + r.POST.withInstrument, 0) / results.length),
+      withInstrumentErrorOnly: Math.floor(
+        results.reduce((sum, r) => sum + r.POST.withInstrumentErrorOnly, 0) / results.length,
+      ),
+    },
+  };
+
+  return averaged;
 }
 
 function log(message) {
