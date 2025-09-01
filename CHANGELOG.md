@@ -15,7 +15,6 @@
 
   We will follow up with docs how to set up the SDK soon.
   For now, If you're on SvelteKit version `2.31.0` or newer, you can easily opt into the new feature:
-
   1. Enable [experimental tracing and instrumentation support](https://svelte.dev/docs/kit/observability) in `svelte.config.js`:
   2. Move your `Sentry.init()` call from `src/hooks.server.(js|ts)` to the new `instrumentation.server.(js|ts)` file:
 
@@ -650,7 +649,6 @@ Work in this release was contributed by @0xbad0c0d3 and @alSergey. Thank you for
 - **feat(nuxt): Add Cloudflare Nitro plugin ([#15597](https://github.com/getsentry/sentry-javascript/pull/15597))**
 
   A Nitro plugin for `@sentry/nuxt` which initializes Sentry when deployed to Cloudflare (`cloudflare-pages` preset).
-
   1. Remove the previous server config file: `sentry.server.config.ts`
   2. Add a plugin in `server/plugins` (e.g. `server/plugins/sentry-cloudflare-setup.ts`)
   3. Add this code in your plugin file
@@ -1215,7 +1213,6 @@ This PR adds trace propagation to `@sentry/react-router` by providing utilities 
 - **Logging Improvements**
 
   Sentry is adding support for [structured logging](https://github.com/getsentry/sentry-javascript/discussions/15916). In this release we've made a variety of improvements to logging functionality in the Sentry SDKs.
-
   - feat(node): Add server.address to nodejs logs ([#16006](https://github.com/getsentry/sentry-javascript/pull/16006))
   - feat(core): Add sdk name and version to logs ([#16005](https://github.com/getsentry/sentry-javascript/pull/16005))
   - feat(core): Add sentry origin attribute to console logs integration ([#15998](https://github.com/getsentry/sentry-javascript/pull/15998))
@@ -1264,7 +1261,6 @@ Work in this release was contributed by @Page- and @Fryuni. Thank you for your c
 ### Important Changes
 
 - **feat: Add support for logs**
-
   - feat(node): Add logging public APIs to Node SDKs ([#15764](https://github.com/getsentry/sentry-javascript/pull/15764))
   - feat(core): Add support for `beforeSendLog` ([#15814](https://github.com/getsentry/sentry-javascript/pull/15814))
   - feat(core): Add support for parameterizing logs ([#15812](https://github.com/getsentry/sentry-javascript/pull/15812))
@@ -1314,13 +1310,11 @@ Work in this release was contributed by @Page- and @Fryuni. Thank you for your c
   ```
 
   The result will be an object with the following properties:
-
   - `"no-client-active"`: There was no active client when the function was called. This possibly means that the SDK was not initialized yet.
   - `"sentry-unreachable"`: The Sentry SaaS servers were not reachable. This likely means that there is an ad blocker active on the page or that there are other connection issues.
   - `undefined`: The SDK is working as expected.
 
 - **SDK Tracing Performance Improvements for Node SDKs**
-
   - feat: Stop using `dropUndefinedKeys` ([#15796](https://github.com/getsentry/sentry-javascript/pull/15796))
   - feat(node): Only add span listeners for instrumentation when used ([#15802](https://github.com/getsentry/sentry-javascript/pull/15802))
   - ref: Avoid `dropUndefinedKeys` for `spanToJSON` calls ([#15792](https://github.com/getsentry/sentry-javascript/pull/15792))
