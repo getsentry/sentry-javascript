@@ -54,7 +54,7 @@ function onSpanStart(span: Span, parentContext: Context): void {
     // Add HTTP request headers as span attributes for HTTP server spans
     if (spanData.op === 'http.server' || (spanData.data && 'http.method' in spanData.data)) {
       const sdkProcessingMetadata = scopes.isolationScope.getScopeData().sdkProcessingMetadata;
-      const httpHeaderAttributes = sdkProcessingMetadata?.httpHeaderAttributes as Record<string, string[]>;
+      const httpHeaderAttributes = sdkProcessingMetadata?.httpHeaderAttributes as Record<string, string>;
 
       // Those httpHeaderAttributes are set in @sentry/node-core for the incoming request
       if (httpHeaderAttributes && typeof httpHeaderAttributes === 'object') {
