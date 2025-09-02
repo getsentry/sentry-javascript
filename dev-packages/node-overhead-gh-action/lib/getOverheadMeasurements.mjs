@@ -1,4 +1,4 @@
-import { spawn } from 'child_process';
+import { execSync, spawn } from 'child_process';
 import { dirname, join } from 'path';
 import treeKill from 'tree-kill';
 import { fileURLToPath } from 'url';
@@ -117,6 +117,47 @@ async function startAutocannonProcess(autocannonCommand) {
   });
 }
 
+function startDb() {
+  const closeDb = () => {
+    execSync('yarn db:down', {
+      shell: true,
+      cwd: packageRoot,
+    });
+  };
+
+  // Ensure eventually open DB is closed fist
+  closeDb();
+
+  return new Promise((resolve, reject) => {
+    const child = spawn('yarn db:up', {
+      shell: true,
+      cwd: packageRoot,
+    });
+
+    const timeout = setTimeout(() => {
+      closeDb();
+      reject(new Error('Timed out waiting for docker-compose'));
+    }, 60000);
+
+    const readyMatch = 'port: 3306';
+
+    function newData(data) {
+      const text = data.toString('utf8');
+      log(text);
+
+      if (text.includes(readyMatch)) {
+        child.stdout.removeAllListeners();
+        child.stderr.removeAllListeners();
+        clearTimeout(timeout);
+        resolve(closeDb);
+      }
+    }
+
+    child.stdout.on('data', newData);
+    child.stderr.on('data', newData);
+  });
+}
+
 async function getOverheadMeasurements() {
   const GET = {
     baseline: await getMeasurements(undefined, 'yarn test:get'),
@@ -130,18 +171,30 @@ async function getOverheadMeasurements() {
     withInstrumentErrorOnly: await getMeasurements('./src/instrument-error-only.mjs', 'yarn test:post'),
   };
 
+  const MYSQL = {
+    baseline: await getMeasurements(undefined, 'yarn test:mysql'),
+    withInstrument: await getMeasurements('./src/instrument.mjs', 'yarn test:mysql'),
+    withInstrumentErrorOnly: await getMeasurements('./src/instrument-error-only.mjs', 'yarn test:mysql'),
+  };
+
   return {
     GET,
     POST,
+    MYSQL,
   };
 }
 
 export async function getAveragedOverheadMeasurements() {
+  const closeDb = await startDb();
+  const repeat = process.env.REPEAT ? parseInt(process.env.REPEAT) : 1;
+
   const results = [];
-  for (let i = 0; i < 2; i++) {
+  for (let i = 0; i < repeat; i++) {
     const result = await getOverheadMeasurements();
     results.push(result);
   }
+
+  closeDb();
 
   // Calculate averages for each scenario
   const averaged = {
@@ -157,6 +210,13 @@ export async function getAveragedOverheadMeasurements() {
       withInstrument: Math.floor(results.reduce((sum, r) => sum + r.POST.withInstrument, 0) / results.length),
       withInstrumentErrorOnly: Math.floor(
         results.reduce((sum, r) => sum + r.POST.withInstrumentErrorOnly, 0) / results.length,
+      ),
+    },
+    MYSQL: {
+      baseline: Math.floor(results.reduce((sum, r) => sum + r.MYSQL.baseline, 0) / results.length),
+      withInstrument: Math.floor(results.reduce((sum, r) => sum + r.MYSQL.withInstrument, 0) / results.length),
+      withInstrumentErrorOnly: Math.floor(
+        results.reduce((sum, r) => sum + r.MYSQL.withInstrumentErrorOnly, 0) / results.length,
       ),
     },
   };
