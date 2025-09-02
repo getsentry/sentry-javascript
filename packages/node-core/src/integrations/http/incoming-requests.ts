@@ -75,8 +75,8 @@ export function instrumentServer(
       const client = getClient();
       const sendDefaultPii = client?.getOptions().sendDefaultPii ?? false;
       const httpHeaderAttributes: Record<string, string> = {
-        // fixme: adding the attributes here will add them to spans in node-core OTel setups (e.g. E2E test node-core-express-otel-v1)
-        // However, adding this here will also add the span attributes to http.client spans in koa
+        // Adding the attributes here will add them to spans in node-core OTel setups (e.g. E2E test node-core-express-otel-v1)
+        // fixme: However, adding this here will also add the span attributes to http.client spans in koa and fastify-5
         ...httpHeadersToSpanAttributes(normalizedRequest.headers || {}, sendDefaultPii),
       };
 
