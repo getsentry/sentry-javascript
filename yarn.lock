@@ -7064,16 +7064,7 @@
     "@sentry/bundler-plugin-core" "4.1.0"
     unplugin "1.0.1"
 
-"@sentry/webpack-plugin@^4.1.1":
-  version "4.1.1"
-  resolved "https://registry.yarnpkg.com/@sentry/webpack-plugin/-/webpack-plugin-4.1.1.tgz#638c6b65cbc19b5027ffbb6bcd68094e0b0f82c6"
-  integrity sha512-2gFWcQMW1HdJDo/7rADeFs9crkH02l+mW4O1ORbxSjuegauyp1W8SBe7EfPoXbUmLdA3zwnpIxEXjjQpP5Etzg==
-  dependencies:
-    "@sentry/bundler-plugin-core" "4.1.1"
-    unplugin "1.0.1"
-    uuid "^9.0.0"
-
-"@sentry/webpack-plugin@^4.2.0":
+"@sentry/webpack-plugin@^4.1.1", "@sentry/webpack-plugin@^4.2.0":
   version "4.2.0"
   resolved "https://registry.yarnpkg.com/@sentry/webpack-plugin/-/webpack-plugin-4.2.0.tgz#00b89aeb1261ae15f7bc81ee9e5b5a23ca3d2dbf"
   integrity sha512-2lPuvJhbiEOd/NAQv5EL8at9QVKchkEmWFDioDsOG6csFqbZ8hdWtTcbsXnhzH9j+CM1LmdeDNVjIF+SMoxCNg==
