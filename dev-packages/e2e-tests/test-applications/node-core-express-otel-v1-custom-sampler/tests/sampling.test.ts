@@ -39,7 +39,7 @@ test('Sends a sampled API route transaction', async ({ baseURL }) => {
       'http.request.header.accept_encoding': ['gzip, deflate'],
       'http.request.header.accept_language': ['*'],
       'http.request.header.connection': ['keep-alive'],
-      'http.request.header.host': ['localhost:3030'],
+      'http.request.header.host': [expect.any(String)],
       'http.request.header.sec_fetch_mode': ['cors'],
       'http.request.header.user_agent': ['node'],
     },

@@ -74,7 +74,11 @@ export function instrumentServer(
       // Extract HTTP request headers as span attributes
       const client = getClient();
       const sendDefaultPii = client?.getOptions().sendDefaultPii ?? false;
-      const httpHeaderAttributes = httpHeadersToSpanAttributes(normalizedRequest.headers || {}, sendDefaultPii);
+      const httpHeaderAttributes: Record<string, string[]> = {
+        // fixme: adding the attributes here will add them to spans in node-core OTel setups (e.g. E2E test node-core-express-otel-v1)
+        // However, adding this here will also add the span attributes to http.client spans in koa
+        ...httpHeadersToSpanAttributes(normalizedRequest.headers || {}, sendDefaultPii),
+      };
 
       // Update the isolation scope, isolate this request
       isolationScope.setSDKProcessingMetadata({ normalizedRequest, ipAddress, httpHeaderAttributes });

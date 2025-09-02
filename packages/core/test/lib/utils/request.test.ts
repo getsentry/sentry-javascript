@@ -455,21 +455,9 @@ describe('request utils', () => {
       });
     });
 
-    it('filters out undefined values from arrays', () => {
+    it('keeps undefined values', () => {
       const headers = {
-        'mixed-header': ['value1', undefined, 'value2'],
-      } as any;
-
-      const result = httpHeadersToSpanAttributes(headers);
-
-      expect(result).toEqual({
-        'http.request.header.mixed_header': ['value1', 'value2'],
-      });
-    });
-
-    it('ignores empty arrays after filtering undefined values', () => {
-      const headers = {
-        'empty-after-filter': [undefined, undefined],
+        'undefined-values': [undefined, undefined],
         'valid-header': 'valid-value',
       } as any;
 
@@ -477,6 +465,7 @@ describe('request utils', () => {
 
       expect(result).toEqual({
         'http.request.header.valid_header': ['valid-value'],
+        'http.request.header.undefined_values': [undefined, undefined],
       });
     });
 
@@ -489,6 +478,20 @@ describe('request utils', () => {
       const result = httpHeadersToSpanAttributes(headers);
 
       expect(result).toEqual({
+        'http.request.header.valid_header': ['valid-value'],
+      });
+    });
+
+    it('adds empty array headers', () => {
+      const headers = {
+        'empty-header': [],
+        'valid-header': 'valid-value',
+      } as any;
+
+      const result = httpHeadersToSpanAttributes(headers);
+
+      expect(result).toEqual({
+        'http.request.header.empty_header': [],
         'http.request.header.valid_header': ['valid-value'],
       });
     });
@@ -553,6 +556,20 @@ describe('request utils', () => {
       });
     });
 
+    it('handles headers with empty string values', () => {
+      const headers = {
+        'empty-header': '',
+        'valid-header': 'valid-value',
+      };
+
+      const result = httpHeadersToSpanAttributes(headers);
+
+      expect(result).toEqual({
+        'http.request.header.empty_header': [''],
+        'http.request.header.valid_header': ['valid-value'],
+      });
+    });
+
     it('returns empty object when processing invalid headers throws error', () => {
       // Create a headers object that will throw an error when iterated
       const headers = {};
@@ -567,7 +584,7 @@ describe('request utils', () => {
       expect(result).toEqual({});
     });
 
-    it('ignores non-string values in arrays', () => {
+    it('stringifies non-string values (except null` in arrays', () => {
       const headers = {
         'mixed-types': ['string-value', 123, true, null],
       } as any;
@@ -575,7 +592,7 @@ describe('request utils', () => {
       const result = httpHeadersToSpanAttributes(headers);
 
       expect(result).toEqual({
-        'http.request.header.mixed_types': ['string-value'],
+        'http.request.header.mixed_types': ['string-value', '123', 'true', null],
       });
     });
 

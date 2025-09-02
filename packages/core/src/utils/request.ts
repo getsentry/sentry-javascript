@@ -146,7 +146,7 @@ export function httpHeadersToSpanAttributes(
 
   try {
     Object.entries(headers).forEach(([key, value]) => {
-      if (value) {
+      if (value !== undefined) {
         const lowerCasedKey = key.toLowerCase();
 
         if (!sendDefaultPii && SENSITIVE_HEADER_SNIPPETS.some(snippet => lowerCasedKey.includes(snippet))) {
@@ -156,11 +156,7 @@ export function httpHeadersToSpanAttributes(
         const normalizedKey = `http.request.header.${lowerCasedKey.replace(/-/g, '_')}`;
 
         if (Array.isArray(value)) {
-          const stringValues = value.filter((v): v is string => typeof v === 'string');
-
-          if (stringValues.length > 0) {
-            spanAttributes[normalizedKey] = stringValues;
-          }
+          spanAttributes[normalizedKey] = value.map(v => (v !== null && v !== undefined ? String(v) : v));
         } else if (typeof value === 'string') {
           spanAttributes[normalizedKey] = [value];
         }

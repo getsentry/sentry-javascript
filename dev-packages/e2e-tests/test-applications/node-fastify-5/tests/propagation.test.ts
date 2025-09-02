@@ -32,6 +32,10 @@ test('Propagates trace for outgoing http requests', async ({ baseURL }) => {
 
   const outgoingHttpSpanId = outgoingHttpSpan?.span_id;
 
+  const outgoingHttpSpanData = outgoingHttpSpan?.data || {};
+  // Outgoing span (`http.client`) does not include headers as attributes
+  expect(Object.keys(outgoingHttpSpanData).some(key => key.startsWith('http.request.header.'))).toBe(false);
+
   expect(traceId).toEqual(expect.any(String));
 
   // data is passed through from the inbound request, to verify we have the correct headers set
@@ -51,7 +55,7 @@ test('Propagates trace for outgoing http requests', async ({ baseURL }) => {
   );
 
   expect(outboundTransaction.contexts?.trace).toEqual({
-    data: expect.objectContaining({
+    data: {
       'sentry.source': 'route',
       'sentry.origin': 'auto.http.otel.http',
       'sentry.op': 'http.server',
@@ -82,7 +86,7 @@ test('Propagates trace for outgoing http requests', async ({ baseURL }) => {
       'http.request.header.host': ['localhost:3030'],
       'http.request.header.sec_fetch_mode': ['cors'],
       'http.request.header.user_agent': ['node'],
-    }),
+    },
     op: 'http.server',
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
     status: 'ok',
@@ -91,7 +95,7 @@ test('Propagates trace for outgoing http requests', async ({ baseURL }) => {
   });
 
   expect(inboundTransaction.contexts?.trace).toEqual({
-    data: expect.objectContaining({
+    data: {
       'sentry.source': 'route',
       'sentry.origin': 'auto.http.otel.http',
       'sentry.op': 'http.server',
@@ -113,7 +117,7 @@ test('Propagates trace for outgoing http requests', async ({ baseURL }) => {
       'http.status_code': 200,
       'http.status_text': 'OK',
       'http.route': '/test-inbound-headers/:id',
-    }),
+    },
     op: 'http.server',
     parent_span_id: outgoingHttpSpanId,
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
@@ -153,6 +157,10 @@ test('Propagates trace for outgoing fetch requests', async ({ baseURL }) => {
 
   const outgoingHttpSpanId = outgoingHttpSpan?.span_id;
 
+  const outgoingHttpSpanData = outgoingHttpSpan?.data || {};
+  // Outgoing span (`http.client`) does not include headers as attributes
+  expect(Object.keys(outgoingHttpSpanData).some(key => key.startsWith('http.request.header.'))).toBe(false);
+
   expect(traceId).toEqual(expect.any(String));
 
   // data is passed through from the inbound request, to verify we have the correct headers set
@@ -172,7 +180,7 @@ test('Propagates trace for outgoing fetch requests', async ({ baseURL }) => {
   );
 
   expect(outboundTransaction.contexts?.trace).toEqual({
-    data: expect.objectContaining({
+    data: {
       'sentry.source': 'route',
       'sentry.origin': 'auto.http.otel.http',
       'sentry.op': 'http.server',
@@ -196,7 +204,7 @@ test('Propagates trace for outgoing fetch requests', async ({ baseURL }) => {
       'http.status_code': 200,
       'http.status_text': 'OK',
       'http.route': '/test-outgoing-fetch/:id',
-    }),
+    },
     op: 'http.server',
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
     status: 'ok',
@@ -205,7 +213,7 @@ test('Propagates trace for outgoing fetch requests', async ({ baseURL }) => {
   });
 
   expect(inboundTransaction.contexts?.trace).toEqual({
-    data: expect.objectContaining({
+    data: {
       'sentry.source': 'route',
       'sentry.origin': 'auto.http.otel.http',
       'sentry.op': 'http.server',
@@ -227,7 +235,7 @@ test('Propagates trace for outgoing fetch requests', async ({ baseURL }) => {
       'http.status_code': 200,
       'http.status_text': 'OK',
       'http.route': '/test-inbound-headers/:id',
-    }),
+    },
     op: 'http.server',
     parent_span_id: outgoingHttpSpanId,
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
