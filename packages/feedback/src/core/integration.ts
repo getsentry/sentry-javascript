@@ -1,3 +1,5 @@
+/* eslint-disable max-lines */
+
 import type {
   FeedbackInternalOptions,
   FeedbackModalIntegration,

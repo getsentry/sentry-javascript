@@ -1,6 +1,6 @@
+import type { FeedbackInternalOptions } from '@sentry/core';
 import type { h as hType, VNode } from 'preact';
 import type * as Hooks from 'preact/hooks';
-import type { FeedbackInternalOptions } from '@sentry/core';
 
 interface FactoryParams {
   h: typeof hType;
