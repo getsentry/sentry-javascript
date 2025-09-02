@@ -17,7 +17,7 @@ import type { SpanStatus } from '../types-hoist/spanStatus';
 import { addNonEnumerableProperty } from '../utils/object';
 import { generateSpanId } from '../utils/propagationContext';
 import { timestampInSeconds } from '../utils/time';
-import { generateSentryTraceHeader, generateTraceParentHeader } from '../utils/tracing';
+import { generateSentryTraceHeader } from '../utils/tracing';
 import { consoleSandbox } from './debug-logger';
 import { _getSpanForScope } from './spanOnScope';
 
