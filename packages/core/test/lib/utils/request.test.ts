@@ -427,7 +427,7 @@ describe('request utils', () => {
       expect(httpHeadersToSpanAttributes({})).toEqual({});
     });
 
-    it('converts single string header values to arrays', () => {
+    it('converts single string header values to strings', () => {
       const headers = {
         'Content-Type': 'application/json',
         'user-agent': 'test-agent',
@@ -436,12 +436,12 @@ describe('request utils', () => {
       const result = httpHeadersToSpanAttributes(headers);
 
       expect(result).toEqual({
-        'http.request.header.content_type': ['application/json'],
-        'http.request.header.user_agent': ['test-agent'],
+        'http.request.header.content_type': 'application/json',
+        'http.request.header.user_agent': 'test-agent',
       });
     });
 
-    it('handles array header values', () => {
+    it('handles array header values by joining with semicolons', () => {
       const headers = {
         'custom-header': ['value1', 'value2'],
         accept: ['application/json', 'text/html'],
@@ -450,12 +450,12 @@ describe('request utils', () => {
       const result = httpHeadersToSpanAttributes(headers);
 
       expect(result).toEqual({
-        'http.request.header.custom_header': ['value1', 'value2'],
-        'http.request.header.accept': ['application/json', 'text/html'],
+        'http.request.header.custom_header': 'value1;value2',
+        'http.request.header.accept': 'application/json;text/html',
       });
     });
 
-    it('keeps undefined values', () => {
+    it('filters undefined values in arrays when joining', () => {
       const headers = {
         'undefined-values': [undefined, undefined],
         'valid-header': 'valid-value',
@@ -464,8 +464,8 @@ describe('request utils', () => {
       const result = httpHeadersToSpanAttributes(headers);
 
       expect(result).toEqual({
-        'http.request.header.valid_header': ['valid-value'],
-        'http.request.header.undefined_values': [undefined, undefined],
+        'http.request.header.valid_header': 'valid-value',
+        'http.request.header.undefined_values': ';',
       });
     });
 
@@ -478,11 +478,11 @@ describe('request utils', () => {
       const result = httpHeadersToSpanAttributes(headers);
 
       expect(result).toEqual({
-        'http.request.header.valid_header': ['valid-value'],
+        'http.request.header.valid_header': 'valid-value',
       });
     });
 
-    it('adds empty array headers', () => {
+    it('adds empty array headers as empty string', () => {
       const headers = {
         'empty-header': [],
         'valid-header': 'valid-value',
@@ -491,8 +491,8 @@ describe('request utils', () => {
       const result = httpHeadersToSpanAttributes(headers);
 
       expect(result).toEqual({
-        'http.request.header.empty_header': [],
-        'http.request.header.valid_header': ['valid-value'],
+        'http.request.header.empty_header': '',
+        'http.request.header.valid_header': 'valid-value',
       });
     });
 
@@ -507,10 +507,10 @@ describe('request utils', () => {
       const result = httpHeadersToSpanAttributes(headers);
 
       expect(result).toEqual({
-        'http.request.header.content_type': ['application/json'],
-        'http.request.header.x_custom_header': ['custom-value'],
-        'http.request.header.user_agent': ['test-agent'],
-        'http.request.header.accept': ['text/html'],
+        'http.request.header.content_type': 'application/json',
+        'http.request.header.x_custom_header': 'custom-value',
+        'http.request.header.user_agent': 'test-agent',
+        'http.request.header.accept': 'text/html',
       });
     });
 
@@ -530,19 +530,19 @@ describe('request utils', () => {
       const result = httpHeadersToSpanAttributes(headers);
 
       expect(result).toEqual({
-        'http.request.header.host': ['example.com'],
-        'http.request.header.user_agent': ['Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'],
-        'http.request.header.accept': ['text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'],
-        'http.request.header.accept_language': ['en-US,en;q=0.5'],
-        'http.request.header.accept_encoding': ['gzip, deflate'],
-        'http.request.header.connection': ['keep-alive'],
-        'http.request.header.upgrade_insecure_requests': ['1'],
-        'http.request.header.cache_control': ['no-cache'],
-        'http.request.header.x_forwarded_for': ['192.168.1.1'],
+        'http.request.header.host': 'example.com',
+        'http.request.header.user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'http.request.header.accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'http.request.header.accept_language': 'en-US,en;q=0.5',
+        'http.request.header.accept_encoding': 'gzip, deflate',
+        'http.request.header.connection': 'keep-alive',
+        'http.request.header.upgrade_insecure_requests': '1',
+        'http.request.header.cache_control': 'no-cache',
+        'http.request.header.x_forwarded_for': '192.168.1.1',
       });
     });
 
-    it('handles multiple values for the same header', () => {
+    it('handles multiple values for the same header by joining with semicolons', () => {
       const headers = {
         'x-random-header': ['test=abc123', 'preferences=dark-mode', 'number=three'],
         Accept: ['application/json', 'text/html'],
@@ -551,8 +551,8 @@ describe('request utils', () => {
       const result = httpHeadersToSpanAttributes(headers);
 
       expect(result).toEqual({
-        'http.request.header.x_random_header': ['test=abc123', 'preferences=dark-mode', 'number=three'],
-        'http.request.header.accept': ['application/json', 'text/html'],
+        'http.request.header.x_random_header': 'test=abc123;preferences=dark-mode;number=three',
+        'http.request.header.accept': 'application/json;text/html',
       });
     });
 
@@ -565,8 +565,8 @@ describe('request utils', () => {
       const result = httpHeadersToSpanAttributes(headers);
 
       expect(result).toEqual({
-        'http.request.header.empty_header': [''],
-        'http.request.header.valid_header': ['valid-value'],
+        'http.request.header.empty_header': '',
+        'http.request.header.valid_header': 'valid-value',
       });
     });
 
@@ -584,7 +584,7 @@ describe('request utils', () => {
       expect(result).toEqual({});
     });
 
-    it('stringifies non-string values (except null` in arrays', () => {
+    it('stringifies non-string values (except null) in arrays and joins them', () => {
       const headers = {
         'mixed-types': ['string-value', 123, true, null],
       } as any;
@@ -592,7 +592,7 @@ describe('request utils', () => {
       const result = httpHeadersToSpanAttributes(headers);
 
       expect(result).toEqual({
-        'http.request.header.mixed_types': ['string-value', '123', 'true', null],
+        'http.request.header.mixed_types': 'string-value;123;true;',
       });
     });
 
@@ -608,7 +608,7 @@ describe('request utils', () => {
       const result = httpHeadersToSpanAttributes(headers);
 
       expect(result).toEqual({
-        'http.request.header.string_header': ['valid-value'],
+        'http.request.header.string_header': 'valid-value',
       });
     });
 
@@ -626,8 +626,8 @@ describe('request utils', () => {
         const result = httpHeadersToSpanAttributes(headers, false);
 
         expect(result).toEqual({
-          'http.request.header.content_type': ['application/json'],
-          'http.request.header.user_agent': ['test-agent'],
+          'http.request.header.content_type': 'application/json',
+          'http.request.header.user_agent': 'test-agent',
           // Sensitive headers should be filtered out
         });
       });
@@ -644,11 +644,11 @@ describe('request utils', () => {
         const result = httpHeadersToSpanAttributes(headers, true);
 
         expect(result).toEqual({
-          'http.request.header.content_type': ['application/json'],
-          'http.request.header.user_agent': ['test-agent'],
-          'http.request.header.authorization': ['Bearer secret-token'],
-          'http.request.header.cookie': ['session=abc123'],
-          'http.request.header.x_api_key': ['api-key-123'],
+          'http.request.header.content_type': 'application/json',
+          'http.request.header.user_agent': 'test-agent',
+          'http.request.header.authorization': 'Bearer secret-token',
+          'http.request.header.cookie': 'session=abc123',
+          'http.request.header.x_api_key': 'api-key-123',
         });
       });
 
@@ -663,7 +663,7 @@ describe('request utils', () => {
         const result = httpHeadersToSpanAttributes(headers, false);
 
         expect(result).toEqual({
-          'http.request.header.content_type': ['application/json'],
+          'http.request.header.content_type': 'application/json',
         });
       });
 
@@ -697,10 +697,10 @@ describe('request utils', () => {
         const result = httpHeadersToSpanAttributes(headers, false);
 
         expect(result).toEqual({
-          'http.request.header.content_type': ['application/json'],
-          'http.request.header.user_agent': ['test-agent'],
-          'http.request.header.accept': ['application/json'],
-          'http.request.header.host': ['example.com'],
+          'http.request.header.content_type': 'application/json',
+          'http.request.header.user_agent': 'test-agent',
+          'http.request.header.accept': 'application/json',
+          'http.request.header.host': 'example.com',
         });
       });
     });

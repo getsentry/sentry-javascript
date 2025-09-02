@@ -32,7 +32,7 @@ export function wrapApiHandlerWithSentry<H extends EdgeRouteHandler>(
         const req: unknown = args[0];
         const currentScope = getCurrentScope();
 
-        let headerAttributes: Record<string, string[]> = {};
+        let headerAttributes: Record<string, string> = {};
 
         if (req instanceof Request) {
           isolationScope.setSDKProcessingMetadata({

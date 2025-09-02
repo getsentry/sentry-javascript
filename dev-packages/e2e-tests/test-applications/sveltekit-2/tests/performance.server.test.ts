@@ -53,12 +53,12 @@ test('extracts HTTP request headers as span attributes', async ({ page, baseURL 
 
   expect(serverTxnEvent.contexts?.trace?.data).toEqual(
     expect.objectContaining({
-      'http.request.header.user_agent': ['Custom-SvelteKit-Agent/1.0'],
-      'http.request.header.content_type': ['application/json'],
-      'http.request.header.x_test_header': ['sveltekit-test-value'],
-      'http.request.header.accept': ['application/json'],
-      'http.request.header.x_framework': ['SvelteKit'],
-      'http.request.header.x_request_id': ['sveltekit-123'],
+      'http.request.header.user_agent': 'Custom-SvelteKit-Agent/1.0',
+      'http.request.header.content_type': 'application/json',
+      'http.request.header.x_test_header': 'sveltekit-test-value',
+      'http.request.header.accept': 'application/json',
+      'http.request.header.x_framework': 'SvelteKit',
+      'http.request.header.x_request_id': 'sveltekit-123',
     }),
   );
 });

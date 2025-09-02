@@ -7,7 +7,7 @@ import { getClient, httpHeadersToSpanAttributes, winterCGHeadersToDict } from '@
 export function addHeadersAsAttributes(
   headers: WebFetchHeaders | Headers | Record<string, string | string[] | undefined> | undefined,
   span?: Span,
-): Record<string, string[]> {
+): Record<string, string> {
   if (!headers) {
     return {};
   }

@@ -64,12 +64,12 @@ test('extracts HTTP request headers as span attributes', async ({ baseURL }) => 
 
   expect(transaction.contexts?.trace?.data).toEqual(
     expect.objectContaining({
-      'http.request.header.user_agent': ['Custom-Nuxt-Agent/3.0'],
-      'http.request.header.content_type': ['application/json'],
-      'http.request.header.x_nuxt_test': ['nuxt-header-value'],
-      'http.request.header.accept': ['application/json, text/html'],
-      'http.request.header.x_framework': ['Nuxt'],
-      'http.request.header.x_request_id': ['nuxt-456'],
+      'http.request.header.user_agent': 'Custom-Nuxt-Agent/3.0',
+      'http.request.header.content_type': 'application/json',
+      'http.request.header.x_nuxt_test': 'nuxt-header-value',
+      'http.request.header.accept': 'application/json, text/html',
+      'http.request.header.x_framework': 'Nuxt',
+      'http.request.header.x_request_id': 'nuxt-456',
     }),
   );
 });

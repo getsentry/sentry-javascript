@@ -319,7 +319,7 @@ describe('withSentry', () => {
           'sentry.sample_rate': 1,
           'http.response.status_code': 200,
           'http.request.body.size': 10,
-          'http.request.header.content_length': ['10'],
+          'http.request.header.content_length': '10',
         },
         op: 'http.server',
         origin: 'auto.http.cloudflare',

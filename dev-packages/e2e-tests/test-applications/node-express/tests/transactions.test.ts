@@ -38,13 +38,13 @@ test('Sends an API route transaction', async ({ baseURL }) => {
       'http.status_code': 200,
       'http.status_text': 'OK',
       'http.route': '/test-transaction',
-      'http.request.header.accept': ['*/*'],
-      'http.request.header.accept_encoding': ['gzip, deflate'],
-      'http.request.header.accept_language': ['*'],
-      'http.request.header.connection': ['keep-alive'],
-      'http.request.header.host': [expect.any(String)],
-      'http.request.header.sec_fetch_mode': ['cors'],
-      'http.request.header.user_agent': ['node'],
+      'http.request.header.accept': '*/*',
+      'http.request.header.accept_encoding': 'gzip, deflate',
+      'http.request.header.accept_language': '*',
+      'http.request.header.connection': 'keep-alive',
+      'http.request.header.host': expect.any(String),
+      'http.request.header.sec_fetch_mode': 'cors',
+      'http.request.header.user_agent': 'node',
     },
     op: 'http.server',
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
@@ -238,11 +238,11 @@ test('Extracts HTTP request headers as span attributes', async ({ baseURL }) => 
 
   expect(transactionEvent.contexts?.trace?.data).toEqual(
     expect.objectContaining({
-      'http.request.header.user_agent': ['Custom-Agent/1.0 (Test)'],
-      'http.request.header.content_type': ['application/json'],
-      'http.request.header.x_custom_header': ['test-value'],
-      'http.request.header.accept': ['application/json, text/plain'],
-      'http.request.header.x_request_id': ['req-123'],
+      'http.request.header.user_agent': 'Custom-Agent/1.0 (Test)',
+      'http.request.header.content_type': 'application/json',
+      'http.request.header.x_custom_header': 'test-value',
+      'http.request.header.accept': 'application/json, text/plain',
+      'http.request.header.x_request_id': 'req-123',
     }),
   );
 });

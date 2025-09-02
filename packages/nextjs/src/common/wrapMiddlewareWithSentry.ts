@@ -60,7 +60,7 @@ export function wrapMiddlewareWithSentry<H extends EdgeRouteHandler>(
 
         let spanName: string;
         let spanSource: TransactionSource;
-        let headerAttributes: Record<string, string[]> = {};
+        let headerAttributes: Record<string, string> = {};
 
         if (req instanceof Request) {
           isolationScope.setSDKProcessingMetadata({

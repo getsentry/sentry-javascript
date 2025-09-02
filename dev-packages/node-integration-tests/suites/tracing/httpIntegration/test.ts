@@ -4,13 +4,13 @@ import { createTestServer } from '../../../utils/server';
 
 function getCommonHttpRequestHeaders(): Record<string, unknown> {
   return {
-    'http.request.header.accept': ['*/*'],
-    'http.request.header.accept_encoding': ['gzip, deflate'],
-    'http.request.header.accept_language': ['*'],
-    'http.request.header.connection': ['keep-alive'],
-    'http.request.header.host': [expect.any(String)],
-    'http.request.header.sec_fetch_mode': ['cors'],
-    'http.request.header.user_agent': ['node'],
+    'http.request.header.accept': '*/*',
+    'http.request.header.accept_encoding': 'gzip, deflate',
+    'http.request.header.accept_language': '*',
+    'http.request.header.connection': 'keep-alive',
+    'http.request.header.host': expect.any(String),
+    'http.request.header.sec_fetch_mode': 'cors',
+    'http.request.header.user_agent': 'node',
   };
 }
 
@@ -140,8 +140,8 @@ describe('httpIntegration', () => {
                 'sentry.sample_rate': 1,
                 'sentry.source': 'route',
                 url: `http://localhost:${port}/test`,
-                'http.request.header.content_length': ['9'],
-                'http.request.header.content_type': ['text/plain;charset=UTF-8'],
+                'http.request.header.content_length': '9',
+                'http.request.header.content_type': 'text/plain;charset=UTF-8',
                 ...getCommonHttpRequestHeaders(),
               });
             },
