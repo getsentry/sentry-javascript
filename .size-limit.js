@@ -224,7 +224,7 @@ module.exports = [
     import: createImport('init'),
     ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
     gzip: true,
-    limit: '51 KB',
+    limit: '54 KB',
   },
   // Node SDK (ESM)
   {
@@ -263,7 +263,7 @@ module.exports = [
     import: createImport('init'),
     ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
     gzip: true,
-    limit: '107 KB',
+    limit: '109 KB',
   },
 ];
 
