@@ -36,6 +36,9 @@ import { DEBUG_BUILD } from '../../debug-build';
 import type { NodeClient } from '../../sdk/client';
 import { INSTRUMENTATION_NAME, MAX_BODY_BYTE_LENGTH } from './constants';
 
+// Tree-shakable guard to remove all code related to tracing
+declare const __SENTRY_TRACING__: boolean;
+
 type ServerEmit = typeof Server.prototype.emit;
 
 const HTTP_SERVER_INSTRUMENTED_KEY = createContextKey('sentry_http_server_instrumented');
@@ -164,6 +167,7 @@ export function instrumentServer(
         return context.with(ctx, () => {
           // if opting out of span creation, we can end here
           if (
+            (typeof __SENTRY_TRACING__ !== 'undefined' && !__SENTRY_TRACING__) ||
             !spans ||
             !client ||
             shouldIgnoreSpansForIncomingRequest(request, {
