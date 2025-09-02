@@ -1,6 +1,6 @@
 import type { createSentryBuildPluginManager as createSentryBuildPluginManagerType } from '@sentry/bundler-plugin-core';
 import { loadModule } from '@sentry/core';
-import { glob } from 'glob';
+// import { glob } from 'glob';
 import { getBuildPluginOptions } from './getBuildPluginOptions';
 import type { SentryBuildOptions } from './types';
 
@@ -49,23 +49,12 @@ export async function handleRunAfterProductionCompile(
     },
   );
 
-  const buildArtifacts = await glob(
-    ['/**/*.js', '/**/*.mjs', '/**/*.cjs', '/**/*.js.map', '/**/*.mjs.map', '/**/*.cjs.map'].map(
-      q => `${q}?(\\?*)?(#*)`, // We want to allow query and hashes strings at the end of files
-    ),
-    {
-      root: distDir,
-      absolute: true,
-      nodir: true,
-    },
-  );
-
   await sentryBuildPluginManager.telemetry.emitBundlerPluginExecutionSignal();
   await sentryBuildPluginManager.createRelease();
-  await sentryBuildPluginManager.injectDebugIds(buildArtifacts);
-  await sentryBuildPluginManager.uploadSourcemaps(buildArtifacts, {
+  await sentryBuildPluginManager.injectDebugIds([distDir]);
+  await sentryBuildPluginManager.uploadSourcemaps([distDir], {
     // We don't want to prepare the artifacts because we injected debug ids manually before
-    prepareArtifacts: true,
+    prepareArtifacts: false,
   });
   await sentryBuildPluginManager.deleteArtifacts();
 }
