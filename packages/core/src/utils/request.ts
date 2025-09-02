@@ -128,6 +128,47 @@ function getAbsoluteUrl({
   return undefined;
 }
 
+// "-user" because otherwise it would match "user-agent"
+const SENSITIVE_HEADER_SNIPPETS = ['auth', 'token', 'secret', 'cookie', '-user', 'password', 'key'];
+
+/**
+ * Converts incoming HTTP request headers to OpenTelemetry span attributes following semantic conventions.
+ * Header names are converted to the format: http.request.header.<key>
+ * where <key> is the header name in lowercase with dashes converted to underscores.
+ *
+ * @see https://opentelemetry.io/docs/specs/semconv/registry/attributes/http/#http-request-header
+ */
+export function httpHeadersToSpanAttributes(
+  headers: Record<string, string | string[] | undefined>,
+  sendDefaultPii: boolean = false,
+): Record<string, string> {
+  const spanAttributes: Record<string, string> = {};
+
+  try {
+    Object.entries(headers).forEach(([key, value]) => {
+      if (value !== undefined) {
+        const lowerCasedKey = key.toLowerCase();
+
+        if (!sendDefaultPii && SENSITIVE_HEADER_SNIPPETS.some(snippet => lowerCasedKey.includes(snippet))) {
+          return;
+        }
+
+        const normalizedKey = `http.request.header.${lowerCasedKey.replace(/-/g, '_')}`;
+
+        if (Array.isArray(value)) {
+          spanAttributes[normalizedKey] = value.map(v => (v !== null && v !== undefined ? String(v) : v)).join(';');
+        } else if (typeof value === 'string') {
+          spanAttributes[normalizedKey] = value;
+        }
+      }
+    });
+  } catch {
+    // Return empty object if there's an error
+  }
+
+  return spanAttributes;
+}
+
 /** Extract the query params from an URL. */
 export function extractQueryParamsFromUrl(url: string): string | undefined {
   // url is path and query string

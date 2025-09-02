@@ -15,6 +15,7 @@ import {
 } from '@sentry/core';
 import type { NextApiRequest } from 'next';
 import type { AugmentedNextApiResponse, NextApiHandler } from '../types';
+import { addHeadersAsAttributes } from '../utils/headersToAttributes';
 import { flushSafelyWithTimeout } from '../utils/responseEnd';
 import { dropNextjsRootContext, escapeNextjsTracing } from '../utils/tracingUtils';
 
@@ -87,6 +88,7 @@ export function wrapApiHandlerWithSentry(apiHandler: NextApiHandler, parameteriz
                   attributes: {
                     [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
                     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.nextjs',
+                    ...addHeadersAsAttributes(normalizedRequest.headers || {}),
                   },
                 },
                 async span => {

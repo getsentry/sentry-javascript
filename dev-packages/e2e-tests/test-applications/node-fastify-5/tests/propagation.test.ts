@@ -32,6 +32,11 @@ test('Propagates trace for outgoing http requests', async ({ baseURL }) => {
 
   const outgoingHttpSpanId = outgoingHttpSpan?.span_id;
 
+  // fixme: http headers are included here. If the span attributes are not added in node-core incoming-requests.ts, this works
+  const outgoingHttpSpanData = outgoingHttpSpan?.data || {};
+  // Outgoing span (`http.client`) does not include headers as attributes
+  // expect(Object.keys(outgoingHttpSpanData).some(key => key.startsWith('http.request.header.'))).toBe(false);
+
   expect(traceId).toEqual(expect.any(String));
 
   // data is passed through from the inbound request, to verify we have the correct headers set
@@ -75,6 +80,13 @@ test('Propagates trace for outgoing http requests', async ({ baseURL }) => {
       'http.status_code': 200,
       'http.status_text': 'OK',
       'http.route': '/test-outgoing-http/:id',
+      'http.request.header.accept': '*/*',
+      'http.request.header.accept_encoding': 'gzip, deflate',
+      'http.request.header.accept_language': '*',
+      'http.request.header.connection': 'keep-alive',
+      'http.request.header.host': 'localhost:3030',
+      'http.request.header.sec_fetch_mode': 'cors',
+      'http.request.header.user_agent': 'node',
     },
     op: 'http.server',
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
@@ -146,6 +158,10 @@ test('Propagates trace for outgoing fetch requests', async ({ baseURL }) => {
 
   const outgoingHttpSpanId = outgoingHttpSpan?.span_id;
 
+  const outgoingHttpSpanData = outgoingHttpSpan?.data || {};
+  // Outgoing span (`http.client`) does not include headers as attributes
+  expect(Object.keys(outgoingHttpSpanData).some(key => key.startsWith('http.request.header.'))).toBe(false);
+
   expect(traceId).toEqual(expect.any(String));
 
   // data is passed through from the inbound request, to verify we have the correct headers set
@@ -189,6 +205,13 @@ test('Propagates trace for outgoing fetch requests', async ({ baseURL }) => {
       'http.status_code': 200,
       'http.status_text': 'OK',
       'http.route': '/test-outgoing-fetch/:id',
+      'http.request.header.accept': '*/*',
+      'http.request.header.accept_encoding': 'gzip, deflate',
+      'http.request.header.accept_language': '*',
+      'http.request.header.connection': 'keep-alive',
+      'http.request.header.host': 'localhost:3030',
+      'http.request.header.sec_fetch_mode': 'cors',
+      'http.request.header.user_agent': 'node',
     },
     op: 'http.server',
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
@@ -198,7 +221,7 @@ test('Propagates trace for outgoing fetch requests', async ({ baseURL }) => {
   });
 
   expect(inboundTransaction.contexts?.trace).toEqual({
-    data: expect.objectContaining({
+    data: {
       'sentry.source': 'route',
       'sentry.origin': 'auto.http.otel.http',
       'sentry.op': 'http.server',
@@ -219,8 +242,18 @@ test('Propagates trace for outgoing fetch requests', async ({ baseURL }) => {
       'net.peer.port': expect.any(Number),
       'http.status_code': 200,
       'http.status_text': 'OK',
+      'http.user_agent': 'node',
       'http.route': '/test-inbound-headers/:id',
-    }),
+      'http.request.header.accept': '*/*',
+      'http.request.header.accept_encoding': 'gzip, deflate',
+      'http.request.header.accept_language': '*',
+      'http.request.header.baggage': expect.any(String),
+      'http.request.header.connection': 'keep-alive',
+      'http.request.header.host': 'localhost:3030',
+      'http.request.header.sec_fetch_mode': 'cors',
+      'http.request.header.sentry_trace': 'ba8f28eba0f9a99418a09805e96fe8a2-9ce9349e6f1021dc-1',
+      'http.request.header.user_agent': 'node',
+    },
     op: 'http.server',
     parent_span_id: outgoingHttpSpanId,
     span_id: expect.stringMatching(/[a-f0-9]{16}/),

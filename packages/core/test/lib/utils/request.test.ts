@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   extractQueryParamsFromUrl,
   headersToDict,
+  httpHeadersToSpanAttributes,
   httpRequestToRequestData,
   winterCGHeadersToDict,
   winterCGRequestToRequestData,
@@ -418,6 +419,290 @@ describe('request utils', () => {
       ['http://example.com/sub-path?xx=a&yy=z', 'xx=a&yy=z'],
     ])('works with %s', (url, expected) => {
       expect(extractQueryParamsFromUrl(url)).toEqual(expected);
+    });
+  });
+
+  describe('httpHeadersToSpanAttributes', () => {
+    it('works with empty headers object', () => {
+      expect(httpHeadersToSpanAttributes({})).toEqual({});
+    });
+
+    it('converts single string header values to strings', () => {
+      const headers = {
+        'Content-Type': 'application/json',
+        'user-agent': 'test-agent',
+      };
+
+      const result = httpHeadersToSpanAttributes(headers);
+
+      expect(result).toEqual({
+        'http.request.header.content_type': 'application/json',
+        'http.request.header.user_agent': 'test-agent',
+      });
+    });
+
+    it('handles array header values by joining with semicolons', () => {
+      const headers = {
+        'custom-header': ['value1', 'value2'],
+        accept: ['application/json', 'text/html'],
+      };
+
+      const result = httpHeadersToSpanAttributes(headers);
+
+      expect(result).toEqual({
+        'http.request.header.custom_header': 'value1;value2',
+        'http.request.header.accept': 'application/json;text/html',
+      });
+    });
+
+    it('filters undefined values in arrays when joining', () => {
+      const headers = {
+        'undefined-values': [undefined, undefined],
+        'valid-header': 'valid-value',
+      } as any;
+
+      const result = httpHeadersToSpanAttributes(headers);
+
+      expect(result).toEqual({
+        'http.request.header.valid_header': 'valid-value',
+        'http.request.header.undefined_values': ';',
+      });
+    });
+
+    it('ignores undefined header values', () => {
+      const headers = {
+        'valid-header': 'valid-value',
+        'undefined-header': undefined,
+      };
+
+      const result = httpHeadersToSpanAttributes(headers);
+
+      expect(result).toEqual({
+        'http.request.header.valid_header': 'valid-value',
+      });
+    });
+
+    it('adds empty array headers as empty string', () => {
+      const headers = {
+        'empty-header': [],
+        'valid-header': 'valid-value',
+      } as any;
+
+      const result = httpHeadersToSpanAttributes(headers);
+
+      expect(result).toEqual({
+        'http.request.header.empty_header': '',
+        'http.request.header.valid_header': 'valid-value',
+      });
+    });
+
+    it('converts header names to lowercase and replaces dashes with underscores', () => {
+      const headers = {
+        'Content-Type': 'application/json',
+        'X-CUSTOM-HEADER': 'custom-value',
+        'user-Agent': 'test-agent',
+        ACCEPT: 'text/html',
+      };
+
+      const result = httpHeadersToSpanAttributes(headers);
+
+      expect(result).toEqual({
+        'http.request.header.content_type': 'application/json',
+        'http.request.header.x_custom_header': 'custom-value',
+        'http.request.header.user_agent': 'test-agent',
+        'http.request.header.accept': 'text/html',
+      });
+    });
+
+    it('handles real-world headers', () => {
+      const headers = {
+        Host: 'example.com',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
+        'Accept-Encoding': 'gzip, deflate',
+        Connection: 'keep-alive',
+        'Upgrade-Insecure-Requests': '1',
+        'Cache-Control': 'no-cache',
+        'X-Forwarded-For': '192.168.1.1',
+      };
+
+      const result = httpHeadersToSpanAttributes(headers);
+
+      expect(result).toEqual({
+        'http.request.header.host': 'example.com',
+        'http.request.header.user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'http.request.header.accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'http.request.header.accept_language': 'en-US,en;q=0.5',
+        'http.request.header.accept_encoding': 'gzip, deflate',
+        'http.request.header.connection': 'keep-alive',
+        'http.request.header.upgrade_insecure_requests': '1',
+        'http.request.header.cache_control': 'no-cache',
+        'http.request.header.x_forwarded_for': '192.168.1.1',
+      });
+    });
+
+    it('handles multiple values for the same header by joining with semicolons', () => {
+      const headers = {
+        'x-random-header': ['test=abc123', 'preferences=dark-mode', 'number=three'],
+        Accept: ['application/json', 'text/html'],
+      };
+
+      const result = httpHeadersToSpanAttributes(headers);
+
+      expect(result).toEqual({
+        'http.request.header.x_random_header': 'test=abc123;preferences=dark-mode;number=three',
+        'http.request.header.accept': 'application/json;text/html',
+      });
+    });
+
+    it('handles headers with empty string values', () => {
+      const headers = {
+        'empty-header': '',
+        'valid-header': 'valid-value',
+      };
+
+      const result = httpHeadersToSpanAttributes(headers);
+
+      expect(result).toEqual({
+        'http.request.header.empty_header': '',
+        'http.request.header.valid_header': 'valid-value',
+      });
+    });
+
+    it('returns empty object when processing invalid headers throws error', () => {
+      // Create a headers object that will throw an error when iterated
+      const headers = {};
+      Object.defineProperty(headers, Symbol.iterator, {
+        get() {
+          throw new Error('Test error');
+        },
+      });
+
+      const result = httpHeadersToSpanAttributes(headers);
+
+      expect(result).toEqual({});
+    });
+
+    it('stringifies non-string values (except null) in arrays and joins them', () => {
+      const headers = {
+        'mixed-types': ['string-value', 123, true, null],
+      } as any;
+
+      const result = httpHeadersToSpanAttributes(headers);
+
+      expect(result).toEqual({
+        'http.request.header.mixed_types': 'string-value;123;true;',
+      });
+    });
+
+    it('ignores non-string and non-array header values', () => {
+      const headers = {
+        'string-header': 'valid-value',
+        'number-header': 123,
+        'boolean-header': true,
+        'null-header': null,
+        'object-header': { key: 'value' },
+      } as any;
+
+      const result = httpHeadersToSpanAttributes(headers);
+
+      expect(result).toEqual({
+        'http.request.header.string_header': 'valid-value',
+      });
+    });
+
+    describe('PII filtering', () => {
+      it('filters out sensitive headers when sendDefaultPii is false (default)', () => {
+        const headers = {
+          'Content-Type': 'application/json',
+          'User-Agent': 'test-agent',
+          Authorization: 'Bearer secret-token',
+          Cookie: 'session=abc123',
+          'X-API-Key': 'api-key-123',
+          'X-Auth-Token': 'auth-token-456',
+        };
+
+        const result = httpHeadersToSpanAttributes(headers, false);
+
+        expect(result).toEqual({
+          'http.request.header.content_type': 'application/json',
+          'http.request.header.user_agent': 'test-agent',
+          // Sensitive headers should be filtered out
+        });
+      });
+
+      it('includes sensitive headers when sendDefaultPii is true', () => {
+        const headers = {
+          'Content-Type': 'application/json',
+          'User-Agent': 'test-agent',
+          Authorization: 'Bearer secret-token',
+          Cookie: 'session=abc123',
+          'X-API-Key': 'api-key-123',
+        };
+
+        const result = httpHeadersToSpanAttributes(headers, true);
+
+        expect(result).toEqual({
+          'http.request.header.content_type': 'application/json',
+          'http.request.header.user_agent': 'test-agent',
+          'http.request.header.authorization': 'Bearer secret-token',
+          'http.request.header.cookie': 'session=abc123',
+          'http.request.header.x_api_key': 'api-key-123',
+        });
+      });
+
+      it('filters sensitive headers case-insensitively', () => {
+        const headers = {
+          AUTHORIZATION: 'Bearer secret-token',
+          Cookie: 'session=abc123',
+          'x-api-key': 'key-123',
+          'Content-Type': 'application/json',
+        };
+
+        const result = httpHeadersToSpanAttributes(headers, false);
+
+        expect(result).toEqual({
+          'http.request.header.content_type': 'application/json',
+        });
+      });
+
+      it('filters comprehensive list of sensitive headers', () => {
+        const headers = {
+          'Content-Type': 'application/json',
+          'User-Agent': 'test-agent',
+          Accept: 'application/json',
+          Host: 'example.com',
+
+          // Should be filtered
+          Authorization: 'Bearer token',
+          Cookie: 'session=123',
+          'Set-Cookie': 'session=456',
+          'X-API-Key': 'key',
+          'X-Auth-Token': 'token',
+          'X-Secret': 'secret',
+          'x-secret-key': 'another-secret',
+          'WWW-Authenticate': 'Basic',
+          'Proxy-Authorization': 'Basic auth',
+          'X-Access-Token': 'access',
+          'X-CSRF-Token': 'csrf',
+          'X-XSRF-Token': 'xsrf',
+          'X-Session-Token': 'session',
+          'X-Password': 'password',
+          'X-Private-Key': 'private',
+          'X-Forwarded-user': 'user',
+          'X-Forwarded-authorization': 'auth',
+        };
+
+        const result = httpHeadersToSpanAttributes(headers, false);
+
+        expect(result).toEqual({
+          'http.request.header.content_type': 'application/json',
+          'http.request.header.user_agent': 'test-agent',
+          'http.request.header.accept': 'application/json',
+          'http.request.header.host': 'example.com',
+        });
+      });
     });
   });
 });

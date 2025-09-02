@@ -3,6 +3,8 @@ import {
   captureException,
   continueTrace,
   defineIntegration,
+  getClient,
+  httpHeadersToSpanAttributes,
   isURLObjectRelative,
   parseStringToURLObject,
   SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD,
@@ -204,6 +206,10 @@ function wrapRequestHandler<T extends RouteHandler = RouteHandler>(
       attributes['url.template'] = route;
       routeName = route;
     }
+
+    const client = getClient();
+    const sendDefaultPii = client?.getOptions().sendDefaultPii ?? false;
+    Object.assign(attributes, httpHeadersToSpanAttributes(request.headers.toJSON(), sendDefaultPii));
 
     isolationScope.setSDKProcessingMetadata({
       normalizedRequest: {
