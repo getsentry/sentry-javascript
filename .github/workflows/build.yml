@@ -200,6 +200,9 @@ jobs:
       changed_node:
         ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected,
         '@sentry/node') }}
+      changed_node_overhead_action:
+        ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected,
+        '@sentry-internal/node-overhead-gh-action') }}
       changed_deno:
         ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected,
         '@sentry/deno') }}
@@ -248,6 +251,37 @@ jobs:
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Check bundle sizes
         uses: ./dev-packages/size-limit-gh-action
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          # Only run comparison against develop if this is a PR
+          comparison_branch: ${{ (github.event_name == 'pull_request' && github.base_ref) ||  ''}}
+
+  job_node_overhead_check:
+    name: Node Overhead Check
+    needs: [job_get_metadata, job_build]
+    timeout-minutes: 15
+    runs-on: ubuntu-24.04
+    if:
+      (needs.job_build.outputs.changed_node == 'true' && github.event_name == 'pull_request') ||
+      (needs.job_build.outputs.changed_node_overhead_action == 'true' && github.event_name == 'pull_request') ||
+      needs.job_get_metadata.outputs.is_base_branch == 'true' || needs.job_get_metadata.outputs.is_release == 'true'
+    steps:
+      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.HEAD_COMMIT }}
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: 'package.json'
+      - name: Restore caches
+        uses: ./.github/actions/restore-cache
+        with:
+          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
+      - name: Check node overhead
+        uses: ./dev-packages/node-overhead-gh-action
+        env:
+          DEBUG: '1'
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           # Only run comparison against develop if this is a PR
