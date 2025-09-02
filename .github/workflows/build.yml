@@ -1137,6 +1137,6 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Check for failures
-        if: contains(needs.*.result, 'failure')
+        if: cancelled() || contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
         run: |
           echo "One of the dependent jobs have failed. You may need to re-run it." && exit 1
