@@ -23,7 +23,7 @@ jobs:
       contents: write
     steps:
       - name: git checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       # https://github.com/marketplace/actions/github-pull-request-action
       - name: Create Pull Request
