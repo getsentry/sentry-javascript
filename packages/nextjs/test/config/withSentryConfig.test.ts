@@ -269,6 +269,371 @@ describe('withSentryConfig', () => {
     });
   });
 
+  describe('turbopack sourcemap configuration', () => {
+    const originalTurbopack = process.env.TURBOPACK;
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+      process.env.TURBOPACK = originalTurbopack;
+    });
+
+    it('enables productionBrowserSourceMaps for supported turbopack builds when sourcemaps are not disabled', () => {
+      process.env.TURBOPACK = '1';
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.3.0');
+
+      const finalConfig = materializeFinalNextConfig(exportedNextConfig);
+
+      expect(finalConfig.productionBrowserSourceMaps).toBe(true);
+    });
+
+    it('does not enable productionBrowserSourceMaps when sourcemaps are disabled', () => {
+      process.env.TURBOPACK = '1';
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.3.0');
+
+      const cleanConfig = { ...exportedNextConfig };
+      delete cleanConfig.productionBrowserSourceMaps;
+
+      const sentryOptions = {
+        sourcemaps: {
+          disable: true,
+        },
+      };
+
+      const finalConfig = materializeFinalNextConfig(cleanConfig, undefined, sentryOptions);
+
+      expect(finalConfig.productionBrowserSourceMaps).toBeUndefined();
+    });
+
+    it('does not enable productionBrowserSourceMaps when turbopack is not enabled', () => {
+      delete process.env.TURBOPACK;
+
+      const cleanConfig = { ...exportedNextConfig };
+      delete cleanConfig.productionBrowserSourceMaps;
+
+      const finalConfig = materializeFinalNextConfig(cleanConfig);
+
+      expect(finalConfig.productionBrowserSourceMaps).toBeUndefined();
+    });
+
+    it('does not enable productionBrowserSourceMaps when turbopack version is not supported', () => {
+      process.env.TURBOPACK = '1';
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.2.0'); // unsupported version
+
+      const cleanConfig = { ...exportedNextConfig };
+      delete cleanConfig.productionBrowserSourceMaps;
+
+      const finalConfig = materializeFinalNextConfig(cleanConfig);
+
+      expect(finalConfig.productionBrowserSourceMaps).toBeUndefined();
+    });
+
+    it('preserves user-configured productionBrowserSourceMaps setting', () => {
+      process.env.TURBOPACK = '1';
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.3.0');
+
+      const configWithSourceMaps = {
+        ...exportedNextConfig,
+        productionBrowserSourceMaps: false, // user explicitly disabled
+      };
+
+      const finalConfig = materializeFinalNextConfig(configWithSourceMaps);
+
+      expect(finalConfig.productionBrowserSourceMaps).toBe(false);
+    });
+
+    it('preserves user-configured productionBrowserSourceMaps: true setting', () => {
+      process.env.TURBOPACK = '1';
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.3.0');
+
+      const configWithSourceMaps = {
+        ...exportedNextConfig,
+        productionBrowserSourceMaps: true, // user explicitly enabled
+      };
+
+      const sentryOptions = {
+        sourcemaps: {
+          disable: true, // Sentry disabled, but user wants Next.js sourcemaps
+        },
+      };
+
+      const finalConfig = materializeFinalNextConfig(configWithSourceMaps, undefined, sentryOptions);
+
+      expect(finalConfig.productionBrowserSourceMaps).toBe(true);
+    });
+
+    it('automatically enables deleteSourcemapsAfterUpload for turbopack builds when not explicitly set', () => {
+      process.env.TURBOPACK = '1';
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.3.0');
+
+      const sentryOptions = {
+        sourcemaps: {}, // no deleteSourcemapsAfterUpload setting
+      };
+
+      materializeFinalNextConfig(exportedNextConfig, undefined, sentryOptions);
+
+      expect(sentryOptions.sourcemaps).toHaveProperty('deleteSourcemapsAfterUpload', true);
+    });
+
+    it('preserves explicitly configured deleteSourcemapsAfterUpload setting', () => {
+      process.env.TURBOPACK = '1';
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.3.0');
+
+      const sentryOptions = {
+        sourcemaps: {
+          deleteSourcemapsAfterUpload: false, // user wants to keep sourcemaps
+        },
+      };
+
+      materializeFinalNextConfig(exportedNextConfig, undefined, sentryOptions);
+
+      expect(sentryOptions.sourcemaps.deleteSourcemapsAfterUpload).toBe(false);
+    });
+
+    it('does not modify deleteSourcemapsAfterUpload when sourcemaps are disabled', () => {
+      process.env.TURBOPACK = '1';
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.3.0');
+
+      const sentryOptions = {
+        sourcemaps: {
+          disable: true,
+        },
+      };
+
+      materializeFinalNextConfig(exportedNextConfig, undefined, sentryOptions);
+
+      expect(sentryOptions.sourcemaps).not.toHaveProperty('deleteSourcemapsAfterUpload');
+    });
+
+    it('logs correct message when enabling sourcemaps for turbopack', () => {
+      process.env.TURBOPACK = '1';
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.3.0');
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      const cleanConfig = { ...exportedNextConfig };
+      delete cleanConfig.productionBrowserSourceMaps;
+
+      materializeFinalNextConfig(cleanConfig);
+
+      expect(consoleSpy).toHaveBeenCalledWith(
+        '[@sentry/nextjs] Automatically enabling browser source map generation for turbopack build.',
+      );
+
+      consoleSpy.mockRestore();
+    });
+
+    it('warns about automatic sourcemap deletion for turbopack builds', () => {
+      process.env.TURBOPACK = '1';
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.3.0');
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      const sentryOptions = {
+        sourcemaps: {}, // triggers automatic deletion
+      };
+
+      materializeFinalNextConfig(exportedNextConfig, undefined, sentryOptions);
+
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        '[@sentry/nextjs] Source maps will be automatically deleted after being uploaded to Sentry. If you want to keep the source maps, set the `sourcemaps.deleteSourcemapsAfterUpload` option to false in `withSentryConfig()`. If you do not want to generate and upload sourcemaps at all, set the `sourcemaps.disable` option to true.',
+      );
+
+      consoleWarnSpy.mockRestore();
+    });
+
+    describe('version compatibility', () => {
+      it('enables sourcemaps for Next.js 15.3.0', () => {
+        process.env.TURBOPACK = '1';
+        vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.3.0');
+
+        const finalConfig = materializeFinalNextConfig(exportedNextConfig);
+
+        expect(finalConfig.productionBrowserSourceMaps).toBe(true);
+      });
+
+      it('enables sourcemaps for Next.js 15.4.0', () => {
+        process.env.TURBOPACK = '1';
+        vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.4.0');
+
+        const finalConfig = materializeFinalNextConfig(exportedNextConfig);
+
+        expect(finalConfig.productionBrowserSourceMaps).toBe(true);
+      });
+
+      it('enables sourcemaps for Next.js 16.0.0', () => {
+        process.env.TURBOPACK = '1';
+        vi.spyOn(util, 'getNextjsVersion').mockReturnValue('16.0.0');
+
+        const finalConfig = materializeFinalNextConfig(exportedNextConfig);
+
+        expect(finalConfig.productionBrowserSourceMaps).toBe(true);
+      });
+
+      it('does not enable sourcemaps for Next.js 15.2.9', () => {
+        process.env.TURBOPACK = '1';
+        vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.2.9');
+
+        const cleanConfig = { ...exportedNextConfig };
+        delete cleanConfig.productionBrowserSourceMaps;
+
+        const finalConfig = materializeFinalNextConfig(cleanConfig);
+
+        expect(finalConfig.productionBrowserSourceMaps).toBeUndefined();
+      });
+
+      it('enables sourcemaps for supported canary versions', () => {
+        process.env.TURBOPACK = '1';
+        vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.3.0-canary.28');
+
+        const finalConfig = materializeFinalNextConfig(exportedNextConfig);
+
+        expect(finalConfig.productionBrowserSourceMaps).toBe(true);
+      });
+
+      it('does not enable sourcemaps for unsupported canary versions', () => {
+        process.env.TURBOPACK = '1';
+        vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.3.0-canary.27');
+
+        const cleanConfig = { ...exportedNextConfig };
+        delete cleanConfig.productionBrowserSourceMaps;
+
+        const finalConfig = materializeFinalNextConfig(cleanConfig);
+
+        expect(finalConfig.productionBrowserSourceMaps).toBeUndefined();
+      });
+    });
+
+    describe('edge cases', () => {
+      it('handles undefined sourcemaps option', () => {
+        process.env.TURBOPACK = '1';
+        vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.3.0');
+
+        const sentryOptions = {}; // no sourcemaps property
+
+        const finalConfig = materializeFinalNextConfig(exportedNextConfig, undefined, sentryOptions);
+
+        expect(finalConfig.productionBrowserSourceMaps).toBe(true);
+      });
+
+      it('handles empty sourcemaps object', () => {
+        process.env.TURBOPACK = '1';
+        vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.3.0');
+
+        const sentryOptions = {
+          sourcemaps: {}, // empty object
+        };
+
+        materializeFinalNextConfig(exportedNextConfig, undefined, sentryOptions);
+
+        expect(sentryOptions.sourcemaps).toHaveProperty('deleteSourcemapsAfterUpload', true);
+      });
+
+      it('works when TURBOPACK env var is truthy string', () => {
+        process.env.TURBOPACK = 'true';
+        vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.3.0');
+
+        const finalConfig = materializeFinalNextConfig(exportedNextConfig);
+
+        expect(finalConfig.productionBrowserSourceMaps).toBe(true);
+      });
+
+      it('does not enable sourcemaps when TURBOPACK env var is falsy', () => {
+        process.env.TURBOPACK = '';
+        vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.3.0');
+
+        const cleanConfig = { ...exportedNextConfig };
+        delete cleanConfig.productionBrowserSourceMaps;
+
+        const finalConfig = materializeFinalNextConfig(cleanConfig);
+
+        expect(finalConfig.productionBrowserSourceMaps).toBeUndefined();
+      });
+
+      it('works correctly with tunnel route configuration', () => {
+        process.env.TURBOPACK = '1';
+        vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.3.0');
+
+        const sentryOptions = {
+          tunnelRoute: '/custom-tunnel',
+          sourcemaps: {},
+        };
+
+        const finalConfig = materializeFinalNextConfig(exportedNextConfig, undefined, sentryOptions);
+
+        expect(finalConfig.productionBrowserSourceMaps).toBe(true);
+        expect(sentryOptions.sourcemaps).toHaveProperty('deleteSourcemapsAfterUpload', true);
+        expect(finalConfig.rewrites).toBeInstanceOf(Function);
+      });
+
+      it('works correctly with custom release configuration', () => {
+        process.env.TURBOPACK = '1';
+        vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.3.0');
+
+        // Clear environment variable to test custom release name
+        const originalSentryRelease = process.env.SENTRY_RELEASE;
+        delete process.env.SENTRY_RELEASE;
+
+        const cleanConfig = { ...exportedNextConfig };
+        delete cleanConfig.env;
+
+        const sentryOptions = {
+          release: {
+            name: 'custom-release-1.0.0',
+          },
+          sourcemaps: {},
+        };
+
+        const finalConfig = materializeFinalNextConfig(cleanConfig, undefined, sentryOptions);
+
+        expect(finalConfig.productionBrowserSourceMaps).toBe(true);
+        expect(sentryOptions.sourcemaps).toHaveProperty('deleteSourcemapsAfterUpload', true);
+        expect(finalConfig.env).toHaveProperty('_sentryRelease', 'custom-release-1.0.0');
+
+        // Restore original env var
+        if (originalSentryRelease) {
+          process.env.SENTRY_RELEASE = originalSentryRelease;
+        }
+      });
+
+      it('does not interfere with other Next.js configuration options', () => {
+        process.env.TURBOPACK = '1';
+        vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.3.0');
+
+        const configWithOtherOptions = {
+          ...exportedNextConfig,
+          assetPrefix: 'https://cdn.example.com',
+          basePath: '/app',
+          distDir: 'custom-dist',
+        };
+
+        const finalConfig = materializeFinalNextConfig(configWithOtherOptions);
+
+        expect(finalConfig.productionBrowserSourceMaps).toBe(true);
+        expect(finalConfig.assetPrefix).toBe('https://cdn.example.com');
+        expect(finalConfig.basePath).toBe('/app');
+        expect(finalConfig.distDir).toBe('custom-dist');
+      });
+
+      it('works correctly when turbopack config already exists', () => {
+        process.env.TURBOPACK = '1';
+        vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.3.0');
+
+        const configWithTurbopack = {
+          ...exportedNextConfig,
+          turbopack: {
+            resolveAlias: {
+              '@': './src',
+            },
+          },
+        };
+
+        const finalConfig = materializeFinalNextConfig(configWithTurbopack);
+
+        expect(finalConfig.productionBrowserSourceMaps).toBe(true);
+        expect(finalConfig.turbopack).toBeDefined();
+        expect(finalConfig.turbopack?.resolveAlias).toEqual({ '@': './src' });
+      });
+    });
+  });
+
   describe('release injection behavior', () => {
     afterEach(() => {
       vi.restoreAllMocks();
