@@ -47,7 +47,7 @@ app.listen(port, () => {
 // This is complicated on purpose to simulate a real-world response
 function generateResponse(body) {
   const bodyStr = JSON.stringify(body);
-  const RES_BODY_SIZE = 1000;
+  const RES_BODY_SIZE = 10000;
 
   const bodyLen = bodyStr.length;
   let resBody = '';
