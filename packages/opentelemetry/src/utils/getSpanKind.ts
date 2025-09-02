@@ -1,6 +1,6 @@
 import { SpanKind } from '@opentelemetry/api';
 import type { AbstractSpan } from '../types';
-import { spanHasKind } from './spanTypes';
+import { spanHasAttributes, spanHasKind } from './spanTypes';
 
 /**
  * Get the span kind from a span.
@@ -11,6 +11,13 @@ import { spanHasKind } from './spanTypes';
 export function getSpanKind(span: AbstractSpan): SpanKind {
   if (spanHasKind(span)) {
     return span.kind;
+  }
+
+  if (spanHasAttributes(span)) {
+    const kind = span.attributes['otel.kind'];
+    if (typeof kind === 'string' && SpanKind[kind as keyof typeof SpanKind]) {
+      return SpanKind[kind as keyof typeof SpanKind];
+    }
   }
 
   return SpanKind.INTERNAL;

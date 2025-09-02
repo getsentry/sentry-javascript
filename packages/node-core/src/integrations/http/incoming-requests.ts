@@ -1,6 +1,6 @@
 /* eslint-disable max-lines */
 import type { Span } from '@opentelemetry/api';
-import { context, createContextKey, propagation, SpanKind, trace } from '@opentelemetry/api';
+import { context, createContextKey, propagation, trace } from '@opentelemetry/api';
 import type { RPCMetadata } from '@opentelemetry/core';
 import { getRPCMetadata, isTracingSuppressed, RPCType, setRPCMetadata } from '@opentelemetry/core';
 import {
@@ -24,6 +24,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
+  startInactiveSpan,
   stripUrlQueryAndFragment,
   withIsolationScope,
 } from '@sentry/core';
@@ -184,13 +185,12 @@ export function instrumentServer(
           const host = headers.host;
           const hostname = host?.replace(/^(.*)(:[0-9]{1,5})/, '$1') || 'localhost';
 
-          const tracer = client.tracer;
           const scheme = fullUrl.startsWith('https') ? 'https' : 'http';
 
-          // We use the plain tracer.startSpan here so we can pass the span kind
-          const span = tracer.startSpan(bestEffortTransactionName, {
-            kind: SpanKind.SERVER,
+          const span = startInactiveSpan({
+            name: bestEffortTransactionName,
             attributes: {
+              'otel.kind': 'SERVER',
               // Sentry specific attributes
               [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.otel.http',
