@@ -13,7 +13,6 @@ This version updates the handling of the Node SDK of incoming requests. Instead 
 This change should not affect users, unless they are relying on very in-depth implementation details. Importantly, this also drops the `_experimentalConfig` option of the integration - this will no longer do anything.
 Finally, you can still pass `instrumentation.{requestHook,responseHook,applyCustomAttributesOnSpan}` options, but they are deprecated and will be removed in v11. Instead, you can use the new `incomingRequestSpanHook` configuration option if you want to adjust the incoming request span.
 
-
 ## 10.8.0
 
 ### Important Changes
