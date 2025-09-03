@@ -75,7 +75,7 @@ sentryTest('attaches `sentry-trace` and `baggage` headers to fetch requests', as
     baggage: expect.any(String),
     'x-test-header': 'existing-header',
   });
-  expect(requestHeaders1).not.toHaveProperty('traceparent');
+  expect(requestHeaders2).not.toHaveProperty('traceparent');
 
   const request3 = requests[2];
   const requestHeaders3 = request3.headers();
@@ -83,5 +83,5 @@ sentryTest('attaches `sentry-trace` and `baggage` headers to fetch requests', as
     'sentry-trace': expect.stringMatching(/^([a-f0-9]{32})-([a-f0-9]{16})-1$/),
     baggage: expect.any(String),
   });
-  expect(requestHeaders1).not.toHaveProperty('traceparent');
+  expect(requestHeaders3).not.toHaveProperty('traceparent');
 });
