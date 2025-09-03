@@ -11,7 +11,15 @@ import {
   SEMATTRS_NET_HOST_PORT,
   SEMATTRS_NET_PEER_IP,
 } from '@opentelemetry/semantic-conventions';
-import type { Event, Integration, IntegrationFn, RequestEventData, Span, SpanAttributes, SpanStatus } from '@sentry/core';
+import type {
+  Event,
+  Integration,
+  IntegrationFn,
+  RequestEventData,
+  Span,
+  SpanAttributes,
+  SpanStatus,
+} from '@sentry/core';
 import {
   debug,
   getIsolationScope,
@@ -80,8 +88,7 @@ export interface HttpServerSpansIntegrationOptions {
   onSpanCreated?: (span: Span, request: IncomingMessage, response: ServerResponse) => void;
 }
 
-/** Exported for direct, type-safe use in Http integration. */
-export const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions = {}) => {
+const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions = {}) => {
   const ignoreStaticAssets = options.ignoreStaticAssets ?? true;
   const ignoreIncomingRequests = options.ignoreIncomingRequests;
   const ignoreStatusCodes = options.ignoreStatusCodes ?? [
@@ -246,7 +253,9 @@ export const _httpServerSpansIntegration = ((options: HttpServerSpansIntegration
  * This integration emits spans for incoming requests handled via the node `http` module.
  * It requires the `httpServerIntegration` to be present.
  */
-export const httpServerSpansIntegration = _httpServerSpansIntegration as (options?: HttpServerSpansIntegrationOptions) => Integration & {
+export const httpServerSpansIntegration = _httpServerSpansIntegration as (
+  options?: HttpServerSpansIntegrationOptions,
+) => Integration & {
   name: 'HttpServerSpans';
   setup: (client: NodeClient) => void;
   processEvent: (event: Event) => Event | null;

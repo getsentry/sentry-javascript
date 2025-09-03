@@ -86,8 +86,7 @@ export interface HttpServerIntegrationOptions {
   maxRequestBodySize?: 'none' | 'small' | 'medium' | 'always';
 }
 
-/** Exported for direct, type-safe use in Http integration. */
-export const _httpServerIntegration = ((options: HttpServerIntegrationOptions = {}) => {
+const _httpServerIntegration = ((options: HttpServerIntegrationOptions = {}) => {
   const _options = {
     sessions: options.sessions ?? true,
     sessionFlushingDelayMS: options.sessionFlushingDelayMS ?? 60_000,
@@ -118,10 +117,12 @@ export const _httpServerIntegration = ((options: HttpServerIntegrationOptions = 
 }) satisfies IntegrationFn;
 
 /**
- * This integration emits spans for incoming requests handled via the node `http` module.
- * It requires the `httpServerIntegration` to be present.
+ * This integration handles request isolation, trace continuation and other core Sentry functionality around incoming http requests
+ * handled via the node `http` module.
  */
-export const httpServerIntegration = _httpServerIntegration as (options?: HttpServerIntegrationOptions) => Integration & {
+export const httpServerIntegration = _httpServerIntegration as (
+  options?: HttpServerIntegrationOptions,
+) => Integration & {
   name: 'HttpServer';
   setupOnce: () => void;
 };
