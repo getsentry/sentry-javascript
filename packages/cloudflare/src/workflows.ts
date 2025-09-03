@@ -1,3 +1,4 @@
+import type { ExecutionContext, Rpc } from '@cloudflare/workers-types';
 import type { PropagationContext } from '@sentry/core';
 import {
   captureException,
@@ -8,6 +9,10 @@ import {
   withIsolationScope,
   withScope,
 } from '@sentry/core';
+import { setAsyncLocalStorageAsyncContextStrategy } from './async';
+import type { CloudflareOptions } from './client';
+import { addCloudResourceContext } from './scope-utils';
+import { init } from './sdk';
 import type {
   WorkflowEntrypoint,
   WorkflowEvent,
@@ -16,11 +21,7 @@ import type {
   WorkflowStepConfig,
   WorkflowStepEvent,
   WorkflowTimeoutDuration,
-} from 'cloudflare:workers';
-import { setAsyncLocalStorageAsyncContextStrategy } from './async';
-import type { CloudflareOptions } from './client';
-import { addCloudResourceContext } from './scope-utils';
-import { init } from './sdk';
+} from './vendor/workflow';
 
 const UUID_REGEX = /^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$/i;
 
