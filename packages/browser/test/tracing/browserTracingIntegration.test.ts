@@ -446,7 +446,44 @@ describe('browserTracingIntegration', () => {
     setCurrentClient(client);
     client.init();
 
-    startBrowserTracingPageLoadSpan(client, { name: 'test span' });
+    startBrowserTracingPageLoadSpan(client, {
+      name: 'test span',
+      attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+      },
+    });
+
+    const pageloadSpan = getActiveSpan();
+
+    expect(spanToJSON(pageloadSpan!).description).toBe('changed');
+    expect(spanToJSON(pageloadSpan!).data[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toBe('custom');
+  });
+
+  it('sets source to "custom" if name is changed in-place in beforeStartSpan', () => {
+    const client = new BrowserClient(
+      getDefaultBrowserClientOptions({
+        tracesSampleRate: 0,
+        integrations: [
+          browserTracingIntegration({
+            instrumentPageLoad: false,
+            instrumentNavigation: false,
+            beforeStartSpan: opts => {
+              opts.name = 'changed';
+              return opts;
+            },
+          }),
+        ],
+      }),
+    );
+    setCurrentClient(client);
+    client.init();
+
+    startBrowserTracingPageLoadSpan(client, {
+      name: 'test span',
+      attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+      },
+    });
 
     const pageloadSpan = getActiveSpan();
 

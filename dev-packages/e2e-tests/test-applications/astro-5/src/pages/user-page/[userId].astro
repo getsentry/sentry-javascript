@@ -5,9 +5,8 @@ export const prerender = false;
 
 const { userId } = Astro.params;
 
-const response = await fetch(Astro.url.origin + `/api/user/${userId}.json`)
+const response = await fetch(Astro.url.origin + `/api/user/${userId}.json`);
 const data = await response.json();
-
 ---
 
 <Layout title="Dynamic SSR page">

@@ -18,15 +18,17 @@ async function handleRequest(
     ],
   });
 
-  const body = Sentry.injectTraceMetaTags(await renderToReadableStream(
-    <NonceProvider>
-      <ServerRouter context={reactRouterContext} url={request.url} nonce={nonce} />
-    </NonceProvider>,
-    {
-      nonce,
-      signal: request.signal,
-    },
-  ));
+  const body = Sentry.injectTraceMetaTags(
+    await renderToReadableStream(
+      <NonceProvider>
+        <ServerRouter context={reactRouterContext} url={request.url} nonce={nonce} />
+      </NonceProvider>,
+      {
+        nonce,
+        signal: request.signal,
+      },
+    ),
+  );
 
   responseHeaders.set('Content-Type', 'text/html');
   responseHeaders.set('Content-Security-Policy', header);
@@ -49,6 +51,5 @@ export const handleError: HandleErrorFunction = (error, { request }) => {
     console.error(error);
   }
 };
-
 
 export default Sentry.wrapSentryHandleRequest(handleRequest);
