@@ -723,23 +723,28 @@ describe('browserTracingIntegration', () => {
 
       expect(oldCurrentScopePropCtx).toEqual({
         traceId: expect.stringMatching(/[a-f0-9]{32}/),
+        propagationSpanId: expect.stringMatching(/[a-f0-9]{16}/),
         sampleRand: expect.any(Number),
       });
       expect(oldIsolationScopePropCtx).toEqual({
         traceId: expect.stringMatching(/[a-f0-9]{32}/),
+        propagationSpanId: expect.stringMatching(/[a-f0-9]{16}/),
         sampleRand: expect.any(Number),
       });
       expect(newCurrentScopePropCtx).toEqual({
         traceId: expect.stringMatching(/[a-f0-9]{32}/),
+        propagationSpanId: expect.stringMatching(/[a-f0-9]{16}/),
         sampleRand: expect.any(Number),
       });
       expect(newIsolationScopePropCtx).toEqual({
         traceId: expect.stringMatching(/[a-f0-9]{32}/),
+        propagationSpanId: expect.stringMatching(/[a-f0-9]{16}/),
         sampleRand: expect.any(Number),
       });
 
       expect(newIsolationScopePropCtx.traceId).not.toEqual(oldIsolationScopePropCtx.traceId);
       expect(newCurrentScopePropCtx.traceId).not.toEqual(oldCurrentScopePropCtx.traceId);
+      expect(newIsolationScopePropCtx.propagationSpanId).not.toEqual(oldIsolationScopePropCtx.propagationSpanId);
     });
 
     it("saves the span's positive sampling decision and its DSC on the propagationContext when the span finishes", () => {
@@ -761,6 +766,7 @@ describe('browserTracingIntegration', () => {
       expect(propCtxBeforeEnd).toStrictEqual({
         sampleRand: expect.any(Number),
         traceId: expect.stringMatching(/[a-f0-9]{32}/),
+        propagationSpanId: expect.stringMatching(/[a-f0-9]{16}/),
       });
 
       navigationSpan!.end();
@@ -770,6 +776,7 @@ describe('browserTracingIntegration', () => {
         traceId: propCtxBeforeEnd.traceId,
         sampled: true,
         sampleRand: expect.any(Number),
+        propagationSpanId: expect.stringMatching(/[a-f0-9]{16}/),
         dsc: {
           release: undefined,
           org_id: undefined,
@@ -803,6 +810,7 @@ describe('browserTracingIntegration', () => {
       expect(propCtxBeforeEnd).toStrictEqual({
         traceId: expect.stringMatching(/[a-f0-9]{32}/),
         sampleRand: expect.any(Number),
+        propagationSpanId: expect.stringMatching(/[a-f0-9]{16}/),
       });
 
       navigationSpan!.end();
@@ -812,6 +820,7 @@ describe('browserTracingIntegration', () => {
         traceId: propCtxBeforeEnd.traceId,
         sampled: false,
         sampleRand: expect.any(Number),
+        propagationSpanId: expect.stringMatching(/[a-f0-9]{16}/),
         dsc: {
           release: undefined,
           org_id: undefined,
