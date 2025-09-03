@@ -310,7 +310,7 @@ export function ScreenshotEditorFactory({
                   }}
                 >
                   <button
-                    aria-label="Remove"
+                    aria-label={options.removeHighlightText}
                     onClick={deleteRect(index)}
                     onMouseDown={handleStopPropagation}
                     onMouseUp={handleStopPropagation}
@@ -323,7 +323,7 @@ export function ScreenshotEditorFactory({
             </div>
           </div>
         </div>
-        <Toolbar action={action} setAction={setAction} />
+        <Toolbar options={options} action={action} setAction={setAction} />
       </div>
     );
   };

@@ -176,6 +176,21 @@ export interface FeedbackTextConfiguration {
    * The label for the button that removes a screenshot and hides the image editor
    */
   removeScreenshotButtonLabel: string;
+
+  /**
+   * The label for the button that highlights portions ofthe screenshot
+   */
+  highlightToolText: string;
+
+  /**
+   * The label for the button that hides portions of the screenshot
+   */
+  hideToolText: string;
+
+  /**
+   * The label for the button that removed a highlight/hidden section of the screenshot.
+   */
+  removeHighlightText: string;
 }
 
 /**
