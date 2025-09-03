@@ -11,15 +11,15 @@ export async function handleRunAfterProductionCompile(
   { releaseName, distDir, buildTool }: { releaseName?: string; distDir: string; buildTool: 'webpack' | 'turbopack' },
   sentryBuildOptions: SentryBuildOptions,
 ): Promise<void> {
-  if (sentryBuildOptions.debug) {
-    // eslint-disable-next-line no-console
-    console.debug('[@sentry/nextjs] Running runAfterProductionCompile logic.');
-  }
-
   // We don't want to do anything for webpack at this point because the plugin already handles this
   // TODO: Actually implement this for webpack as well
   if (buildTool === 'webpack') {
     return;
+  }
+
+  if (sentryBuildOptions.debug) {
+    // eslint-disable-next-line no-console
+    console.debug('[@sentry/nextjs] Running runAfterProductionCompile logic.');
   }
 
   const { createSentryBuildPluginManager } =
