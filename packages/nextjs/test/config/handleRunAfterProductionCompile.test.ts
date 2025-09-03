@@ -122,7 +122,7 @@ describe('handleRunAfterProductionCompile', () => {
       expect(mockCreateSentryBuildPluginManager).not.toHaveBeenCalled();
     });
 
-    it('logs debug message even for webpack builds when debug is enabled', async () => {
+    it('does not log debug message for webpack builds when debug is enabled', async () => {
       const consoleSpy = vi.spyOn(console, 'debug').mockImplementation(() => {});
 
       const debugOptions = {
@@ -139,7 +139,7 @@ describe('handleRunAfterProductionCompile', () => {
         debugOptions,
       );
 
-      expect(consoleSpy).toHaveBeenCalledWith('[@sentry/nextjs] Running runAfterProductionCompile logic.');
+      expect(consoleSpy).not.toHaveBeenCalledWith('[@sentry/nextjs] Running runAfterProductionCompile logic.');
 
       consoleSpy.mockRestore();
     });
