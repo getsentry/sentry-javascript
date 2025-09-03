@@ -152,6 +152,8 @@ export type {
 
 export {
   logger,
+  httpServerIntegration,
+  httpServerSpansIntegration,
   nodeContextIntegration,
   contextLinesIntegration,
   localVariablesIntegration,
