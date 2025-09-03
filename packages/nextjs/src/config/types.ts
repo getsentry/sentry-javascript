@@ -509,7 +509,7 @@ export type SentryBuildOptions = {
   _experimental?: Partial<{
     /**
      * When true (and Next.js >= 15), use the runAfterProductionCompile hook to consolidate sourcemap uploads
-     * into a single operation after all webpack/turbopack builds complete, reducing build time.
+     * into a single operation after turbopack builds complete, reducing build time.
      *
      * When false, use the traditional approach of uploading sourcemaps during each webpack build.
      *
