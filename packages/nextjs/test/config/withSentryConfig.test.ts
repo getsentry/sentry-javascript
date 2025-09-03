@@ -365,12 +365,18 @@ describe('withSentryConfig', () => {
       process.env.TURBOPACK = '1';
       vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.3.0');
 
+      // Use a clean config without productionBrowserSourceMaps to ensure it gets auto-enabled
+      const cleanConfig = { ...exportedNextConfig };
+      delete cleanConfig.productionBrowserSourceMaps;
+
       const sentryOptions = {
         sourcemaps: {}, // no deleteSourcemapsAfterUpload setting
       };
 
-      materializeFinalNextConfig(exportedNextConfig, undefined, sentryOptions);
+      const finalConfig = materializeFinalNextConfig(cleanConfig, undefined, sentryOptions);
 
+      // Both productionBrowserSourceMaps and deleteSourcemapsAfterUpload should be enabled
+      expect(finalConfig.productionBrowserSourceMaps).toBe(true);
       expect(sentryOptions.sourcemaps).toHaveProperty('deleteSourcemapsAfterUpload', true);
     });
 
@@ -404,6 +410,45 @@ describe('withSentryConfig', () => {
       expect(sentryOptions.sourcemaps).not.toHaveProperty('deleteSourcemapsAfterUpload');
     });
 
+    it('does not enable deleteSourcemapsAfterUpload when user pre-configured productionBrowserSourceMaps: true', () => {
+      process.env.TURBOPACK = '1';
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.3.0');
+
+      const configWithSourceMapsPreEnabled = {
+        ...exportedNextConfig,
+        productionBrowserSourceMaps: true, // User already enabled
+      };
+
+      const sentryOptions = {
+        sourcemaps: {}, // no explicit deleteSourcemapsAfterUpload setting
+      };
+
+      materializeFinalNextConfig(configWithSourceMapsPreEnabled, undefined, sentryOptions);
+
+      // Should NOT automatically enable deletion because productionBrowserSourceMaps was already set by user
+      expect(sentryOptions.sourcemaps).not.toHaveProperty('deleteSourcemapsAfterUpload');
+    });
+
+    it('does not enable sourcemaps or deletion when user explicitly sets productionBrowserSourceMaps: false', () => {
+      process.env.TURBOPACK = '1';
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.3.0');
+
+      const configWithSourceMapsDisabled = {
+        ...exportedNextConfig,
+        productionBrowserSourceMaps: false, // User explicitly disabled
+      };
+
+      const sentryOptions = {
+        sourcemaps: {}, // no explicit deleteSourcemapsAfterUpload setting
+      };
+
+      const finalConfig = materializeFinalNextConfig(configWithSourceMapsDisabled, undefined, sentryOptions);
+
+      // Should NOT modify productionBrowserSourceMaps or enable deletion when user explicitly set to false
+      expect(finalConfig.productionBrowserSourceMaps).toBe(false);
+      expect(sentryOptions.sourcemaps).not.toHaveProperty('deleteSourcemapsAfterUpload');
+    });
+
     it('logs correct message when enabling sourcemaps for turbopack', () => {
       process.env.TURBOPACK = '1';
       vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.3.0');
@@ -426,11 +471,15 @@ describe('withSentryConfig', () => {
       vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.3.0');
       const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
+      // Use a clean config without productionBrowserSourceMaps to trigger automatic enablement
+      const cleanConfig = { ...exportedNextConfig };
+      delete cleanConfig.productionBrowserSourceMaps;
+
       const sentryOptions = {
         sourcemaps: {}, // triggers automatic deletion
       };
 
-      materializeFinalNextConfig(exportedNextConfig, undefined, sentryOptions);
+      materializeFinalNextConfig(cleanConfig, undefined, sentryOptions);
 
       expect(consoleWarnSpy).toHaveBeenCalledWith(
         '[@sentry/nextjs] Source maps will be automatically deleted after being uploaded to Sentry. If you want to keep the source maps, set the `sourcemaps.deleteSourcemapsAfterUpload` option to false in `withSentryConfig()`. If you do not want to generate and upload sourcemaps at all, set the `sourcemaps.disable` option to true.',
@@ -517,11 +566,15 @@ describe('withSentryConfig', () => {
         process.env.TURBOPACK = '1';
         vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.3.0');
 
+        // Use a clean config without productionBrowserSourceMaps to trigger automatic enablement
+        const cleanConfig = { ...exportedNextConfig };
+        delete cleanConfig.productionBrowserSourceMaps;
+
         const sentryOptions = {
           sourcemaps: {}, // empty object
         };
 
-        materializeFinalNextConfig(exportedNextConfig, undefined, sentryOptions);
+        materializeFinalNextConfig(cleanConfig, undefined, sentryOptions);
 
         expect(sentryOptions.sourcemaps).toHaveProperty('deleteSourcemapsAfterUpload', true);
       });
@@ -551,12 +604,16 @@ describe('withSentryConfig', () => {
         process.env.TURBOPACK = '1';
         vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.3.0');
 
+        // Use a clean config without productionBrowserSourceMaps to trigger automatic enablement
+        const cleanConfig = { ...exportedNextConfig };
+        delete cleanConfig.productionBrowserSourceMaps;
+
         const sentryOptions = {
           tunnelRoute: '/custom-tunnel',
           sourcemaps: {},
         };
 
-        const finalConfig = materializeFinalNextConfig(exportedNextConfig, undefined, sentryOptions);
+        const finalConfig = materializeFinalNextConfig(cleanConfig, undefined, sentryOptions);
 
         expect(finalConfig.productionBrowserSourceMaps).toBe(true);
         expect(sentryOptions.sourcemaps).toHaveProperty('deleteSourcemapsAfterUpload', true);
@@ -573,6 +630,7 @@ describe('withSentryConfig', () => {
 
         const cleanConfig = { ...exportedNextConfig };
         delete cleanConfig.env;
+        delete cleanConfig.productionBrowserSourceMaps; // Ensure it gets auto-enabled
 
         const sentryOptions = {
           release: {
