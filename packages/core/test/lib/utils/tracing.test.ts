@@ -1,10 +1,5 @@
 import { describe, expect, it, test } from 'vitest';
-import {
-  extractTraceparentData,
-  generateTraceParentHeader,
-  propagationContextFromHeaders,
-  shouldContinueTrace,
-} from '../../../src/utils/tracing';
+import { extractTraceparentData, propagationContextFromHeaders, shouldContinueTrace } from '../../../src/utils/tracing';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
 
 const EXAMPLE_SENTRY_TRACE = '12312012123120121231201212312012-1121201211212012-1';

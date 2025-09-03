@@ -15,9 +15,9 @@ import {
 import { getAsyncContextStrategy } from '../../../src/asyncContext';
 import { freezeDscOnSpan } from '../../../src/tracing/dynamicSamplingContext';
 import type { Span } from '../../../src/types-hoist/span';
+import { _sentryTraceToTraceParentHeader } from '../../../src/utils/traceData';
 import type { TestClientOptions } from '../../mocks/client';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
-import { _sentryTraceToTraceParentHeader } from '../../../src/utils/traceData';
 
 const dsn = 'https://123@sentry.io/42';
 
