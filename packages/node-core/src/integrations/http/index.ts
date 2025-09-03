@@ -1,8 +1,11 @@
 import type { IncomingMessage, RequestOptions } from 'node:http';
 import { defineIntegration } from '@sentry/core';
 import { generateInstrumentOnce } from '../../otel/instrument';
-import type {HttpServerIntegrationOptions } from './httpServerIntegration';
-import { _httpServerIntegration, httpServerIntegration } from './httpServerIntegration';
+import type { NodeClient } from '../../sdk/client';
+import type { HttpServerIntegrationOptions } from './httpServerIntegration';
+import { _httpServerIntegration } from './httpServerIntegration';
+import type { HttpServerSpansIntegrationOptions } from './httpServerSpansIntegration';
+import { _httpServerSpansIntegration } from './httpServerSpansIntegration';
 import type { SentryHttpInstrumentationOptions } from './SentryHttpInstrumentation';
 import { SentryHttpInstrumentation } from './SentryHttpInstrumentation';
 
@@ -124,33 +127,52 @@ export const instrumentSentryHttp = generateInstrumentOnce<SentryHttpInstrumenta
  */
 export const httpIntegration = defineIntegration((options: HttpOptions = {}) => {
   const serverOptions: HttpServerIntegrationOptions = {
-    spans: options.spans ?? options.disableIncomingRequestSpans,
     sessions: options.trackIncomingRequestsAsSessions,
     sessionFlushingDelayMS: options.sessionFlushingDelayMS,
-    ignoreIncomingRequests: options.ignoreIncomingRequests,
-    ignoreStaticAssets: options.ignoreStaticAssets,
-    dropSpansForStatusCodes: options.dropSpansForIncomingRequestStatusCodes,
     ignoreRequestBody: options.ignoreIncomingRequestBody,
     maxRequestBodySize: options.maxIncomingRequestBodySize,
   };
 
+  const serverSpansOptions: HttpServerSpansIntegrationOptions = {
+    ignoreIncomingRequests: options.ignoreIncomingRequests,
+    ignoreStaticAssets: options.ignoreStaticAssets,
+    ignoreStatusCodes: options.dropSpansForIncomingRequestStatusCodes,
+  };
+
+  const httpInstrumentationOptions: SentryHttpInstrumentationOptions = {
+    breadcrumbs: options.breadcrumbs,
+    propagateTraceInOutgoingRequests: true,
+    ignoreOutgoingRequests: options.ignoreOutgoingRequests,
+  };
+
   const server = _httpServerIntegration(serverOptions);
+  const serverSpans = _httpServerSpansIntegration(serverSpansOptions);
+
+  const spans = options.spans ?? true;
+  // In node-core, for now by default we disable incoming requests spans
+  // we may revisit this in a future release
+  const disableIncomingRequestSpans = options.disableIncomingRequestSpans ?? false;
+  const enabledServerSpans = spans && !disableIncomingRequestSpans;
 
   return {
     name: INTEGRATION_NAME,
+
+    setup(client: NodeClient) {
+      if (enabledServerSpans) {
+        serverSpans.setup(client);
+      }
+    },
+
     setupOnce() {
       server.setupOnce();
 
-      instrumentSentryHttp({
-        ...options,
-        ignoreSpansForIncomingRequests: options.ignoreIncomingRequests,
-        // TODO(v11): Rethink this, for now this is for backwards compatibility
-        disableIncomingRequestSpans: true,
-        propagateTraceInOutgoingRequests: true,
-      });
+      instrumentSentryHttp(httpInstrumentationOptions);
     },
     processEvent(event) {
-      return server.processEvent(event);
+      if (enabledServerSpans) {
+        return serverSpans.processEvent(event);
+      }
+      return event;
     },
   };
 });
