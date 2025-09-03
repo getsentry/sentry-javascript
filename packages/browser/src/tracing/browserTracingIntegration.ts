@@ -553,6 +553,9 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         const scope = getCurrentScope();
         scope.setPropagationContext(propagationContext);
         if (!hasSpansEnabled()) {
+          // for browser, we wanna keep the spanIds consistent during the entire lifetime of the trace
+          // this works by setting the propagationSpanId to a random spanId so that we have a consistent
+          // span id to propagate in TwP mode (!hasSpansEnabled())
           scope.getPropagationContext().propagationSpanId = generateSpanId();
         }
 
