@@ -31,7 +31,7 @@ it('traces a basic chat completion request', async () => {
             }),
             description: 'chat gpt-3.5-turbo',
             op: 'gen_ai.chat',
-            origin: 'manual',
+            origin: 'auto.function.openai',
           }),
         ]),
       );
