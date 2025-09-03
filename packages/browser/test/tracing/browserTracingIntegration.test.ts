@@ -728,7 +728,6 @@ describe('browserTracingIntegration', () => {
       });
       expect(oldIsolationScopePropCtx).toEqual({
         traceId: expect.stringMatching(/[a-f0-9]{32}/),
-        propagationSpanId: expect.stringMatching(/[a-f0-9]{16}/),
         sampleRand: expect.any(Number),
       });
       expect(newCurrentScopePropCtx).toEqual({
@@ -763,20 +762,18 @@ describe('browserTracingIntegration', () => {
       });
 
       const propCtxBeforeEnd = getCurrentScope().getPropagationContext();
-      expect(propCtxBeforeEnd).toStrictEqual({
+      expect(propCtxBeforeEnd).toEqual({
         sampleRand: expect.any(Number),
         traceId: expect.stringMatching(/[a-f0-9]{32}/),
-        propagationSpanId: expect.stringMatching(/[a-f0-9]{16}/),
       });
 
       navigationSpan!.end();
 
       const propCtxAfterEnd = getCurrentScope().getPropagationContext();
-      expect(propCtxAfterEnd).toStrictEqual({
+      expect(propCtxAfterEnd).toEqual({
         traceId: propCtxBeforeEnd.traceId,
         sampled: true,
         sampleRand: expect.any(Number),
-        propagationSpanId: expect.stringMatching(/[a-f0-9]{16}/),
         dsc: {
           release: undefined,
           org_id: undefined,
@@ -807,20 +804,18 @@ describe('browserTracingIntegration', () => {
       });
 
       const propCtxBeforeEnd = getCurrentScope().getPropagationContext();
-      expect(propCtxBeforeEnd).toStrictEqual({
+      expect(propCtxBeforeEnd).toEqual({
         traceId: expect.stringMatching(/[a-f0-9]{32}/),
         sampleRand: expect.any(Number),
-        propagationSpanId: expect.stringMatching(/[a-f0-9]{16}/),
       });
 
       navigationSpan!.end();
 
       const propCtxAfterEnd = getCurrentScope().getPropagationContext();
-      expect(propCtxAfterEnd).toStrictEqual({
+      expect(propCtxAfterEnd).toEqual({
         traceId: propCtxBeforeEnd.traceId,
         sampled: false,
         sampleRand: expect.any(Number),
-        propagationSpanId: expect.stringMatching(/[a-f0-9]{16}/),
         dsc: {
           release: undefined,
           org_id: undefined,
