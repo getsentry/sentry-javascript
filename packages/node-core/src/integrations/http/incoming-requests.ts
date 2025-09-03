@@ -60,25 +60,25 @@ const wrappedEmitFns = new WeakSet<ServerEmit>();
 export function instrumentServer(
   server: Server,
   {
-    ignoreIncomingRequestBody,
-    ignoreSpansForIncomingRequests,
-    maxIncomingRequestBodySize = 'medium',
-    trackIncomingRequestsAsSessions = true,
+    ignoreRequestBody,
+    maxRequestBodySize,
+    sessions,
+    ignoreIncomingRequests,
     spans,
-    ignoreStaticAssets = true,
+    ignoreStaticAssets,
     sessionFlushingDelayMS,
     // eslint-disable-next-line deprecation/deprecation
     instrumentation,
-    incomingRequestSpanHook,
+    onSpanCreated,
   }: {
-    ignoreIncomingRequestBody?: (url: string, request: IncomingMessage) => boolean;
-    ignoreSpansForIncomingRequests?: (urlPath: string, request: IncomingMessage) => boolean;
-    maxIncomingRequestBodySize?: 'small' | 'medium' | 'always' | 'none';
-    trackIncomingRequestsAsSessions?: boolean;
+    ignoreRequestBody?: (url: string, request: IncomingMessage) => boolean;
+    ignoreIncomingRequests?: (urlPath: string, request: IncomingMessage) => boolean;
+    maxRequestBodySize: 'small' | 'medium' | 'always' | 'none';
+    sessions: boolean;
     sessionFlushingDelayMS: number;
     spans: boolean;
-    ignoreStaticAssets?: boolean;
-    incomingRequestSpanHook?: (span: Span, request: IncomingMessage, response: ServerResponse) => void;
+    ignoreStaticAssets: boolean;
+    onSpanCreated?: (span: Span, request: IncomingMessage, response: ServerResponse) => void;
     /** @deprecated Use `incomingRequestSpanHook` instead. */
     instrumentation?: {
       requestHook?: (span: Span, req: IncomingMessage | ClientRequest) => void;
@@ -128,8 +128,8 @@ export function instrumentServer(
       const ipAddress = (request as { ip?: string }).ip || request.socket?.remoteAddress;
 
       const url = request.url || '/';
-      if (maxIncomingRequestBodySize !== 'none' && !ignoreIncomingRequestBody?.(url, request)) {
-        patchRequestToCaptureBody(request, isolationScope, maxIncomingRequestBodySize);
+      if (maxRequestBodySize !== 'none' && !ignoreRequestBody?.(url, request)) {
+        patchRequestToCaptureBody(request, isolationScope, maxRequestBodySize);
       }
 
       // Update the isolation scope, isolate this request
@@ -145,7 +145,7 @@ export function instrumentServer(
 
       isolationScope.setTransactionName(bestEffortTransactionName);
 
-      if (trackIncomingRequestsAsSessions !== false) {
+      if (sessions) {
         recordRequestSession({
           requestIsolationScope: isolationScope,
           response,
@@ -171,7 +171,7 @@ export function instrumentServer(
             !client ||
             shouldIgnoreSpansForIncomingRequest(request, {
               ignoreStaticAssets,
-              ignoreSpansForIncomingRequests,
+              ignoreIncomingRequests,
             })
           ) {
             DEBUG_BUILD && debug.log(INSTRUMENTATION_NAME, 'Skipping span creation for incoming request');
@@ -218,7 +218,7 @@ export function instrumentServer(
           requestHook?.(span, request);
           responseHook?.(span, response);
           applyCustomAttributesOnSpan?.(span, request, response);
-          incomingRequestSpanHook?.(span, request, response);
+          onSpanCreated?.(span, request, response);
 
           const rpcMetadata: RPCMetadata = {
             type: RPCType.HTTP,
@@ -562,10 +562,10 @@ function shouldIgnoreSpansForIncomingRequest(
   request: IncomingMessage,
   {
     ignoreStaticAssets,
-    ignoreSpansForIncomingRequests,
+    ignoreIncomingRequests,
   }: {
     ignoreStaticAssets?: boolean;
-    ignoreSpansForIncomingRequests?: (urlPath: string, request: IncomingMessage) => boolean;
+    ignoreIncomingRequests?: (urlPath: string, request: IncomingMessage) => boolean;
   },
 ): boolean {
   if (isTracingSuppressed(context.active())) {
@@ -587,7 +587,7 @@ function shouldIgnoreSpansForIncomingRequest(
     return true;
   }
 
-  if (ignoreSpansForIncomingRequests?.(urlPath, request)) {
+  if (ignoreIncomingRequests?.(urlPath, request)) {
     return true;
   }
 

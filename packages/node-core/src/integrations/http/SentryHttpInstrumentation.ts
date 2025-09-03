@@ -11,7 +11,6 @@ import { debug, LRUMap, SDK_VERSION } from '@sentry/core';
 import { DEBUG_BUILD } from '../../debug-build';
 import { getRequestUrl } from '../../utils/getRequestUrl';
 import { INSTRUMENTATION_NAME } from './constants';
-import { instrumentServer } from './incoming-requests';
 import {
   addRequestBreadcrumb,
   addTracePropagationHeadersToOutgoingRequest,
@@ -180,24 +179,6 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
     // but we only want to register them once, whichever is loaded first
     let hasRegisteredHandlers = false;
 
-    const spansEnabled = this.getConfig().spans ?? true;
-
-    const onHttpServerRequestStart = ((_data: unknown) => {
-      const data = _data as { server: http.Server };
-      instrumentServer(data.server, {
-        // eslint-disable-next-line deprecation/deprecation
-        instrumentation: this.getConfig().instrumentation,
-        ignoreIncomingRequestBody: this.getConfig().ignoreIncomingRequestBody,
-        ignoreSpansForIncomingRequests: this.getConfig().ignoreSpansForIncomingRequests,
-        incomingRequestSpanHook: this.getConfig().incomingRequestSpanHook,
-        maxIncomingRequestBodySize: this.getConfig().maxIncomingRequestBodySize,
-        trackIncomingRequestsAsSessions: this.getConfig().trackIncomingRequestsAsSessions,
-        sessionFlushingDelayMS: this.getConfig().sessionFlushingDelayMS ?? 60_000,
-        ignoreStaticAssets: this.getConfig().ignoreStaticAssets,
-        spans: spansEnabled && !this.getConfig().disableIncomingRequestSpans,
-      });
-    }) satisfies ChannelListener;
-
     const onHttpClientResponseFinish = ((_data: unknown) => {
       const data = _data as { request: http.ClientRequest; response: http.IncomingMessage };
       this._onOutgoingRequestFinish(data.request, data.response);
@@ -220,7 +201,6 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
 
       hasRegisteredHandlers = true;
 
-      subscribe('http.server.request.start', onHttpServerRequestStart);
       subscribe('http.client.response.finish', onHttpClientResponseFinish);
 
       // When an error happens, we still want to have a breadcrumb
@@ -238,7 +218,6 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
     };
 
     const unwrap = (): void => {
-      unsubscribe('http.server.request.start', onHttpServerRequestStart);
       unsubscribe('http.client.response.finish', onHttpClientResponseFinish);
       unsubscribe('http.client.request.error', onHttpClientRequestError);
       unsubscribe('http.client.request.created', onHttpClientRequestCreated);

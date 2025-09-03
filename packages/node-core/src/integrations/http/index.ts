@@ -1,6 +1,8 @@
 import type { IncomingMessage, RequestOptions } from 'node:http';
 import { defineIntegration } from '@sentry/core';
 import { generateInstrumentOnce } from '../../otel/instrument';
+import type {HttpServerIntegrationOptions } from './httpServerIntegration';
+import { _httpServerIntegration, httpServerIntegration } from './httpServerIntegration';
 import type { SentryHttpInstrumentationOptions } from './SentryHttpInstrumentation';
 import { SentryHttpInstrumentation } from './SentryHttpInstrumentation';
 
@@ -79,6 +81,14 @@ interface HttpOptions {
   ignoreIncomingRequestBody?: (url: string, request: RequestOptions) => boolean;
 
   /**
+   * Whether to automatically ignore common static asset requests like favicon.ico, robots.txt, etc.
+   * This helps reduce noise in your transactions.
+   *
+   * @default `true`
+   */
+  ignoreStaticAssets?: boolean;
+
+  /**
    * Controls the maximum size of incoming HTTP request bodies attached to events.
    *
    * Available options:
@@ -113,14 +123,24 @@ export const instrumentSentryHttp = generateInstrumentOnce<SentryHttpInstrumenta
  * It creates breadcrumbs for outgoing HTTP requests which will be attached to the currently active span.
  */
 export const httpIntegration = defineIntegration((options: HttpOptions = {}) => {
-  const dropSpansForIncomingRequestStatusCodes = options.dropSpansForIncomingRequestStatusCodes ?? [
-    [401, 404],
-    [300, 399],
-  ];
+  const serverOptions: HttpServerIntegrationOptions = {
+    spans: options.spans ?? options.disableIncomingRequestSpans,
+    sessions: options.trackIncomingRequestsAsSessions,
+    sessionFlushingDelayMS: options.sessionFlushingDelayMS,
+    ignoreIncomingRequests: options.ignoreIncomingRequests,
+    ignoreStaticAssets: options.ignoreStaticAssets,
+    dropSpansForStatusCodes: options.dropSpansForIncomingRequestStatusCodes,
+    ignoreRequestBody: options.ignoreIncomingRequestBody,
+    maxRequestBodySize: options.maxIncomingRequestBodySize,
+  };
+
+  const server = _httpServerIntegration(serverOptions);
 
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
+      server.setupOnce();
+
       instrumentSentryHttp({
         ...options,
         ignoreSpansForIncomingRequests: options.ignoreIncomingRequests,
@@ -130,25 +150,7 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
       });
     },
     processEvent(event) {
-      // Drop transaction if it has a status code that should be ignored
-      if (event.type === 'transaction') {
-        const statusCode = event.contexts?.trace?.data?.['http.response.status_code'];
-        if (
-          typeof statusCode === 'number' &&
-          dropSpansForIncomingRequestStatusCodes.some(code => {
-            if (typeof code === 'number') {
-              return code === statusCode;
-            }
-
-            const [min, max] = code;
-            return statusCode >= min && statusCode <= max;
-          })
-        ) {
-          return null;
-        }
-      }
-
-      return event;
+      return server.processEvent(event);
     },
   };
 });
