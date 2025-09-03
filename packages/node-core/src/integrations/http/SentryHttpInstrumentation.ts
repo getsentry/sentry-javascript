@@ -6,6 +6,7 @@ import { context } from '@opentelemetry/api';
 import { isTracingSuppressed } from '@opentelemetry/core';
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition } from '@opentelemetry/instrumentation';
+import type { Span } from '@sentry/core';
 import { debug, LRUMap, SDK_VERSION } from '@sentry/core';
 import { DEBUG_BUILD } from '../../debug-build';
 import { getRequestUrl } from '../../utils/getRequestUrl';
@@ -46,6 +47,73 @@ export type SentryHttpInstrumentationOptions = InstrumentationConfig & {
    * @param request Contains the {@type RequestOptions} object used to make the outgoing request.
    */
   ignoreOutgoingRequests?: (url: string, request: http.RequestOptions) => boolean;
+
+  // All options below do not do anything anymore in this instrumentation, and will be removed in the future.
+  // They are only kept here for backwards compatibility - the respective functionality is now handled by the httpServerIntegration/httpServerSpansIntegration.
+
+  /**
+   * @deprecated This no longer does anything.
+   */
+  spans?: boolean;
+
+  /**
+   * @depreacted This no longer does anything.
+   */
+  extractIncomingTraceFromHeader?: boolean;
+
+  /**
+   * @deprecated This no longer does anything.
+   */
+  ignoreStaticAssets?: boolean;
+
+  /**
+   * @deprecated This no longer does anything.
+   */
+  disableIncomingRequestSpans?: boolean;
+
+  /**
+   * @deprecated This no longer does anything.
+   */
+  ignoreSpansForIncomingRequests?: (urlPath: string, request: http.IncomingMessage) => boolean;
+
+  /**
+   * @deprecated This no longer does anything.
+   */
+  ignoreIncomingRequestBody?: (url: string, request: http.RequestOptions) => boolean;
+
+  /**
+   * A hook that can be used to mutate the span for incoming requests.
+   * This is triggered after the span is created, but before it is recorded.
+   */
+  incomingRequestSpanHook?: (span: Span, request: http.IncomingMessage, response: http.ServerResponse) => void;
+
+  /**
+   * @deprecated This no longer does anything.
+   */
+  maxIncomingRequestBodySize?: 'none' | 'small' | 'medium' | 'always';
+
+  /**
+   * @deprecated This no longer does anything.
+   */
+  trackIncomingRequestsAsSessions?: boolean;
+
+  /**
+   * @deprecated This no longer does anything.
+   */
+  instrumentation?: {
+    requestHook?: (span: Span, req: http.ClientRequest | http.IncomingMessage) => void;
+    responseHook?: (span: Span, response: http.IncomingMessage | http.ServerResponse) => void;
+    applyCustomAttributesOnSpan?: (
+      span: Span,
+      request: http.ClientRequest | http.IncomingMessage,
+      response: http.IncomingMessage | http.ServerResponse,
+    ) => void;
+  };
+
+  /**
+   * @deprecated This no longer does anything.
+   */
+  sessionFlushingDelayMS?: number;
 };
 
 /**
