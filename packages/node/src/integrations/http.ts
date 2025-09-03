@@ -200,24 +200,25 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
   const useOtelHttpInstrumentation = _shouldUseOtelHttpInstrumentation(options, clientOptions);
   const disableIncomingRequestSpans = options.disableIncomingRequestSpans ?? !hasSpansEnabled(clientOptions);
 
-  const serverOptions: Parameters<typeof httpServerIntegration>[0] = {
+  const serverOptions = {
     sessions: options.trackIncomingRequestsAsSessions,
     sessionFlushingDelayMS: options.sessionFlushingDelayMS,
     ignoreRequestBody: options.ignoreIncomingRequestBody,
     maxRequestBodySize: options.maxIncomingRequestBodySize,
-  };
+  } satisfies Parameters<typeof httpServerIntegration>[0];
 
-  const serverSpansOptions: Parameters<typeof httpServerSpansIntegration>[0] = {
+  const serverSpansOptions = {
     ignoreIncomingRequests: options.ignoreIncomingRequests,
     ignoreStaticAssets: options.ignoreStaticAssets,
     ignoreStatusCodes: options.dropSpansForIncomingRequestStatusCodes,
-  };
+    instrumentation: options.instrumentation,
+  } satisfies Parameters<typeof httpServerSpansIntegration>[0];
 
-  const sentryHttpInstrumentationOptions: SentryHttpInstrumentationOptions = {
+  const sentryHttpInstrumentationOptions = {
     breadcrumbs: options.breadcrumbs,
     propagateTraceInOutgoingRequests: !useOtelHttpInstrumentation,
     ignoreOutgoingRequests: options.ignoreOutgoingRequests,
-  };
+  } satisfies SentryHttpInstrumentationOptions;
 
   const server = httpServerIntegration(serverOptions);
   const serverSpans = httpServerSpansIntegration(serverSpansOptions);

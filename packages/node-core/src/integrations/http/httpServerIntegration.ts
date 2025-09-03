@@ -3,7 +3,7 @@ import type { ChannelListener } from 'node:diagnostics_channel';
 import { subscribe } from 'node:diagnostics_channel';
 import type { RequestOptions, Server } from 'node:http';
 import { context, createContextKey, propagation } from '@opentelemetry/api';
-import type { AggregationCounts, Client, IntegrationFn, RequestEventData, Scope } from '@sentry/core';
+import type { AggregationCounts, Client, Integration, IntegrationFn, RequestEventData, Scope } from '@sentry/core';
 import {
   debug,
   generateSpanId,
@@ -121,10 +121,10 @@ export const _httpServerIntegration = ((options: HttpServerIntegrationOptions = 
  * This integration emits spans for incoming requests handled via the node `http` module.
  * It requires the `httpServerIntegration` to be present.
  */
-export const httpServerIntegration = _httpServerIntegration as IntegrationFn<{
+export const httpServerIntegration = _httpServerIntegration as (options?: HttpServerIntegrationOptions) => Integration & {
   name: 'HttpServer';
   setupOnce: () => void;
-}>;
+};
 
 /**
  * Instrument a server to capture incoming requests.
