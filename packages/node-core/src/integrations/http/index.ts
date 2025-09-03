@@ -3,9 +3,9 @@ import { defineIntegration } from '@sentry/core';
 import { generateInstrumentOnce } from '../../otel/instrument';
 import type { NodeClient } from '../../sdk/client';
 import type { HttpServerIntegrationOptions } from './httpServerIntegration';
-import { _httpServerIntegration } from './httpServerIntegration';
+import { _httpServerIntegration, httpServerIntegration } from './httpServerIntegration';
 import type { HttpServerSpansIntegrationOptions } from './httpServerSpansIntegration';
-import { _httpServerSpansIntegration } from './httpServerSpansIntegration';
+import { _httpServerSpansIntegration, httpServerSpansIntegration } from './httpServerSpansIntegration';
 import type { SentryHttpInstrumentationOptions } from './SentryHttpInstrumentation';
 import { SentryHttpInstrumentation } from './SentryHttpInstrumentation';
 
@@ -145,8 +145,8 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
     ignoreOutgoingRequests: options.ignoreOutgoingRequests,
   };
 
-  const server = _httpServerIntegration(serverOptions);
-  const serverSpans = _httpServerSpansIntegration(serverSpansOptions);
+  const server = httpServerIntegration(serverOptions);
+  const serverSpans = httpServerSpansIntegration(serverSpansOptions);
 
   const spans = options.spans ?? true;
   // In node-core, for now by default we disable incoming requests spans

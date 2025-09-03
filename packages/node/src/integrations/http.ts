@@ -10,6 +10,8 @@ import {
   addOriginToSpan,
   generateInstrumentOnce,
   getRequestUrl,
+  httpServerIntegration,
+  httpServerSpansIntegration,
   NODE_VERSION,
   SentryHttpInstrumentation,
 } from '@sentry/node-core';
@@ -193,53 +195,60 @@ export function _shouldUseOtelHttpInstrumentation(
  * It creates breadcrumbs and spans for outgoing HTTP requests which will be attached to the currently active span.
  */
 export const httpIntegration = defineIntegration((options: HttpOptions = {}) => {
-  const dropSpansForIncomingRequestStatusCodes = options.dropSpansForIncomingRequestStatusCodes ?? [
-    [401, 404],
-    [300, 399],
-  ];
+  const spans = options.spans ?? true;
+  const clientOptions = (getClient<NodeClient>()?.getOptions() || {}) as Partial<NodeClientOptions>;
+  const useOtelHttpInstrumentation = _shouldUseOtelHttpInstrumentation(options, clientOptions);
+  const disableIncomingRequestSpans = options.disableIncomingRequestSpans ?? !hasSpansEnabled(clientOptions);
+
+  const serverOptions: Parameters<typeof httpServerIntegration>[0] = {
+    sessions: options.trackIncomingRequestsAsSessions,
+    sessionFlushingDelayMS: options.sessionFlushingDelayMS,
+    ignoreRequestBody: options.ignoreIncomingRequestBody,
+    maxRequestBodySize: options.maxIncomingRequestBodySize,
+  };
+
+  const serverSpansOptions: Parameters<typeof httpServerSpansIntegration>[0] = {
+    ignoreIncomingRequests: options.ignoreIncomingRequests,
+    ignoreStaticAssets: options.ignoreStaticAssets,
+    ignoreStatusCodes: options.dropSpansForIncomingRequestStatusCodes,
+  };
+
+  const sentryHttpInstrumentationOptions: SentryHttpInstrumentationOptions = {
+    breadcrumbs: options.breadcrumbs,
+    propagateTraceInOutgoingRequests: !useOtelHttpInstrumentation,
+    ignoreOutgoingRequests: options.ignoreOutgoingRequests,
+  };
+
+  const server = httpServerIntegration(serverOptions);
+  const serverSpans = httpServerSpansIntegration(serverSpansOptions);
+
+  const enabledServerSpans = spans && !disableIncomingRequestSpans;
 
   return {
     name: INTEGRATION_NAME,
+
+    setup(client: NodeClient) {
+      if (enabledServerSpans) {
+        serverSpans.setup(client);
+      }
+    },
+
     setupOnce() {
-      const clientOptions = (getClient<NodeClient>()?.getOptions() || {}) as Partial<NodeClientOptions>;
-      const useOtelHttpInstrumentation = _shouldUseOtelHttpInstrumentation(options, clientOptions);
-      const disableIncomingRequestSpans = options.disableIncomingRequestSpans ?? !hasSpansEnabled(clientOptions);
+      server.setupOnce();
 
-      // This is Sentry-specific instrumentation for request isolation and breadcrumbs
-      instrumentSentryHttp({
-        ...options,
-        disableIncomingRequestSpans,
-        ignoreSpansForIncomingRequests: options.ignoreIncomingRequests,
-        // If spans are not instrumented, it means the HttpInstrumentation has not been added
-        // In that case, we want to handle trace propagation ourselves
-        propagateTraceInOutgoingRequests: !useOtelHttpInstrumentation,
-      });
+      // This is Sentry-specific instrumentation for outgoing request breadcrumbs & trace propagation
+      instrumentSentryHttp(sentryHttpInstrumentationOptions);
 
-      // This is the "regular" OTEL instrumentation that emits spans
+      // This is the "regular" OTEL instrumentation that emits outgoing request spans
       if (useOtelHttpInstrumentation) {
         const instrumentationConfig = getConfigWithDefaults(options);
         instrumentOtelHttp(instrumentationConfig);
       }
     },
     processEvent(event) {
-      // Drop transaction if it has a status code that should be ignored
-      if (event.type === 'transaction') {
-        const statusCode = event.contexts?.trace?.data?.['http.response.status_code'];
-        if (
-          typeof statusCode === 'number' &&
-          dropSpansForIncomingRequestStatusCodes.some(code => {
-            if (typeof code === 'number') {
-              return code === statusCode;
-            }
-
-            const [min, max] = code;
-            return statusCode >= min && statusCode <= max;
-          })
-        ) {
-          return null;
-        }
+      if (enabledServerSpans) {
+        return serverSpans.processEvent(event);
       }
-
       return event;
     },
   };

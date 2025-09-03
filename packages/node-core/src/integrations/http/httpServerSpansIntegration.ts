@@ -11,10 +11,9 @@ import {
   SEMATTRS_NET_HOST_PORT,
   SEMATTRS_NET_PEER_IP,
 } from '@opentelemetry/semantic-conventions';
-import type { IntegrationFn, RequestEventData, Span, SpanAttributes, SpanStatus } from '@sentry/core';
+import type { Event, IntegrationFn, RequestEventData, Span, SpanAttributes, SpanStatus } from '@sentry/core';
 import {
   debug,
-  defineIntegration,
   getIsolationScope,
   getSpanStatusFromHttpCode,
   parseStringToURLObject,
@@ -243,7 +242,15 @@ export const _httpServerSpansIntegration = ((options: HttpServerSpansIntegration
   };
 }) satisfies IntegrationFn;
 
-export const httpServerSpansIntegration = defineIntegration(_httpServerSpansIntegration);
+/**
+ * This integration emits spans for incoming requests handled via the node `http` module.
+ * It requires the `httpServerIntegration` to be present.
+ */
+export const httpServerSpansIntegration = _httpServerSpansIntegration as IntegrationFn<{
+  name: 'HttpServerSpans';
+  setup: (client: NodeClient) => void;
+  processEvent: (event: Event) => Event | null;
+}>;
 
 function isKnownPrefetchRequest(req: IncomingMessage): boolean {
   // Currently only handles Next.js prefetch requests but may check other frameworks in the future.
