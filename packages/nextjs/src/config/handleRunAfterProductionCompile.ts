@@ -1,6 +1,5 @@
 import type { createSentryBuildPluginManager as createSentryBuildPluginManagerType } from '@sentry/bundler-plugin-core';
 import { loadModule } from '@sentry/core';
-// import { glob } from 'glob';
 import { getBuildPluginOptions } from './getBuildPluginOptions';
 import type { SentryBuildOptions } from './types';
 
