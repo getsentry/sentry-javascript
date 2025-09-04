@@ -80,9 +80,7 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
   // Eslint ignore explanation: This is already documented in super.
   // eslint-disable-next-line jsdoc/require-jsdoc
   public async flush(timeout?: number): Promise<boolean> {
-    const provider = this.traceProvider;
-
-    await provider?.forceFlush();
+    await this.traceProvider?.forceFlush();
 
     if (this.getOptions().sendClientReports) {
       this._flushOutcomes();
@@ -106,7 +104,11 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
       process.off('beforeExit', this._logOnExitFlushListener);
     }
 
-    return super.close(timeout);
+    return super
+      .close(timeout)
+      .then(allEventsSent =>
+        this.traceProvider ? this.traceProvider.shutdown().then(() => allEventsSent) : allEventsSent,
+      );
   }
 
   /**

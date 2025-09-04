@@ -369,4 +369,18 @@ test.describe('parametrized vs static paths', () => {
       request: { url: expect.stringContaining('/user-page/settings') },
     });
   });
+
+  test('allows for span name override via beforeStartSpan', async ({ page }) => {
+    const clientPageloadTxnPromise = waitForTransaction('astro-5', txnEvent => {
+      return txnEvent?.transaction?.startsWith('/blog/') ?? false;
+    });
+
+    await page.goto('/blog/my-post');
+
+    const clientPageloadTxn = await clientPageloadTxnPromise;
+    expect(clientPageloadTxn).toMatchObject({
+      transaction: '/blog/my-post',
+      transaction_info: { source: 'custom' },
+    });
+  });
 });

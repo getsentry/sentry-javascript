@@ -356,6 +356,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
   function _createRouteSpan(client: Client, startSpanOptions: StartSpanOptions, makeActive = true): void {
     const isPageloadTransaction = startSpanOptions.op === 'pageload';
 
+    const initialSpanName = startSpanOptions.name;
     const finalStartSpanOptions: StartSpanOptions = beforeStartSpan
       ? beforeStartSpan(startSpanOptions)
       : startSpanOptions;
@@ -364,7 +365,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
 
     // If `finalStartSpanOptions.name` is different than `startSpanOptions.name`
     // it is because `beforeStartSpan` set a custom name. Therefore we set the source to 'custom'.
-    if (startSpanOptions.name !== finalStartSpanOptions.name) {
+    if (initialSpanName !== finalStartSpanOptions.name) {
       attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] = 'custom';
       finalStartSpanOptions.attributes = attributes;
     }
