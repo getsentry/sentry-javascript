@@ -1,25 +1,57 @@
-import { context, propagation } from '@opentelemetry/api';
-import type { AggregationCounts, Client, Scope } from '@sentry/core';
+/* eslint-disable max-lines */
+import type { Span } from '@opentelemetry/api';
+import { context, createContextKey, propagation, SpanKind, trace } from '@opentelemetry/api';
+import type { RPCMetadata } from '@opentelemetry/core';
+import { getRPCMetadata, isTracingSuppressed, RPCType, setRPCMetadata } from '@opentelemetry/core';
 import {
-  addNonEnumerableProperty,
+  ATTR_HTTP_RESPONSE_STATUS_CODE,
+  ATTR_HTTP_ROUTE,
+  SEMATTRS_HTTP_STATUS_CODE,
+  SEMATTRS_NET_HOST_IP,
+  SEMATTRS_NET_HOST_PORT,
+  SEMATTRS_NET_PEER_IP,
+} from '@opentelemetry/semantic-conventions';
+import type { AggregationCounts, Client, Scope, SpanAttributes, SpanStatus } from '@sentry/core';
+import {
   debug,
   generateSpanId,
   getClient,
   getCurrentScope,
   getIsolationScope,
+  getSpanStatusFromHttpCode,
   httpRequestToRequestData,
+  parseStringToURLObject,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SPAN_STATUS_ERROR,
   stripUrlQueryAndFragment,
   withIsolationScope,
 } from '@sentry/core';
 import type EventEmitter from 'events';
-import type { IncomingMessage, OutgoingMessage, Server } from 'http';
+import { errorMonitor } from 'events';
+import type { ClientRequest, IncomingHttpHeaders, IncomingMessage, Server, ServerResponse } from 'http';
+import type { Socket } from 'net';
 import { DEBUG_BUILD } from '../../debug-build';
+import type { NodeClient } from '../../sdk/client';
 import { INSTRUMENTATION_NAME, MAX_BODY_BYTE_LENGTH } from './constants';
+
+// Tree-shakable guard to remove all code related to tracing
+declare const __SENTRY_TRACING__: boolean;
+
+type ServerEmit = typeof Server.prototype.emit;
+
+const HTTP_SERVER_INSTRUMENTED_KEY = createContextKey('sentry_http_server_instrumented');
 
 const clientToRequestSessionAggregatesMap = new Map<
   Client,
   { [timestampRoundedToSeconds: string]: { exited: number; crashed: number; errored: number } }
 >();
+
+// We keep track of emit functions we wrapped, to avoid double wrapping
+// We do this instead of putting a non-enumerable property on the function, because
+// sometimes the property seems to be migrated to forks of the emit function, which we do not want to happen
+// This was the case in the nestjs-distributed-tracing E2E test
+const wrappedEmitFns = new WeakSet<ServerEmit>();
 
 /**
  * Instrument a server to capture incoming requests.
@@ -29,23 +61,46 @@ export function instrumentServer(
   server: Server,
   {
     ignoreIncomingRequestBody,
+    ignoreSpansForIncomingRequests,
     maxIncomingRequestBodySize = 'medium',
     trackIncomingRequestsAsSessions = true,
+    spans,
+    ignoreStaticAssets = true,
     sessionFlushingDelayMS,
+    // eslint-disable-next-line deprecation/deprecation
+    instrumentation,
+    incomingRequestSpanHook,
   }: {
     ignoreIncomingRequestBody?: (url: string, request: IncomingMessage) => boolean;
+    ignoreSpansForIncomingRequests?: (urlPath: string, request: IncomingMessage) => boolean;
     maxIncomingRequestBodySize?: 'small' | 'medium' | 'always' | 'none';
     trackIncomingRequestsAsSessions?: boolean;
     sessionFlushingDelayMS: number;
+    spans: boolean;
+    ignoreStaticAssets?: boolean;
+    incomingRequestSpanHook?: (span: Span, request: IncomingMessage, response: ServerResponse) => void;
+    /** @deprecated Use `incomingRequestSpanHook` instead. */
+    instrumentation?: {
+      requestHook?: (span: Span, req: IncomingMessage | ClientRequest) => void;
+      responseHook?: (span: Span, response: ServerResponse | IncomingMessage) => void;
+      applyCustomAttributesOnSpan?: (
+        span: Span,
+        request: IncomingMessage | ClientRequest,
+        response: ServerResponse | IncomingMessage,
+      ) => void;
+    };
   },
 ): void {
   // eslint-disable-next-line @typescript-eslint/unbound-method
-  const originalEmit = server.emit;
+  const originalEmit: ServerEmit = server.emit;
 
-  // This means it was already patched, do nothing
-  if ((originalEmit as { __sentry_patched__?: boolean }).__sentry_patched__) {
+  if (wrappedEmitFns.has(originalEmit)) {
+    DEBUG_BUILD &&
+      debug.log(INSTRUMENTATION_NAME, 'Incoming requests already instrumented, not instrumenting again...');
     return;
   }
+
+  const { requestHook, responseHook, applyCustomAttributesOnSpan } = instrumentation ?? {};
 
   const newEmit = new Proxy(originalEmit, {
     apply(target, thisArg, args: [event: string, ...args: unknown[]]) {
@@ -54,11 +109,18 @@ export function instrumentServer(
         return target.apply(thisArg, args);
       }
 
+      // Make sure we do not double execute our wrapper code, for edge cases...
+      // Without this check, if we double-wrap emit, for whatever reason, you'd get two http.server spans (one the children of the other)
+      if (context.active().getValue(HTTP_SERVER_INSTRUMENTED_KEY)) {
+        return target.apply(thisArg, args);
+      }
+
       DEBUG_BUILD && debug.log(INSTRUMENTATION_NAME, 'Handling incoming request');
 
+      const client = getClient<NodeClient>();
       const isolationScope = getIsolationScope().clone();
       const request = args[1] as IncomingMessage;
-      const response = args[2] as OutgoingMessage;
+      const response = args[2] as ServerResponse & { socket: Socket };
 
       const normalizedRequest = httpRequestToRequestData(request);
 
@@ -66,7 +128,7 @@ export function instrumentServer(
       const ipAddress = (request as { ip?: string }).ip || request.socket?.remoteAddress;
 
       const url = request.url || '/';
-      if (!ignoreIncomingRequestBody?.(url, request) && maxIncomingRequestBodySize !== 'none') {
+      if (maxIncomingRequestBodySize !== 'none' && !ignoreIncomingRequestBody?.(url, request)) {
         patchRequestToCaptureBody(request, isolationScope, maxIncomingRequestBodySize);
       }
 
@@ -77,9 +139,9 @@ export function instrumentServer(
       // Ideally, framework instrumentations coming after the HttpInstrumentation
       // update the transactionName once we get a parameterized route.
       const httpMethod = (request.method || 'GET').toUpperCase();
-      const httpTarget = stripUrlQueryAndFragment(url);
+      const httpTargetWithoutQueryFragment = stripUrlQueryAndFragment(url);
 
-      const bestEffortTransactionName = `${httpMethod} ${httpTarget}`;
+      const bestEffortTransactionName = `${httpMethod} ${httpTargetWithoutQueryFragment}`;
 
       isolationScope.setTransactionName(bestEffortTransactionName);
 
@@ -97,16 +159,115 @@ export function instrumentServer(
         // This way we can save an "unnecessary" `withScope()` invocation
         getCurrentScope().getPropagationContext().propagationSpanId = generateSpanId();
 
-        const ctx = propagation.extract(context.active(), normalizedRequest.headers);
+        const ctx = propagation
+          .extract(context.active(), normalizedRequest.headers)
+          .setValue(HTTP_SERVER_INSTRUMENTED_KEY, true);
+
         return context.with(ctx, () => {
-          return target.apply(thisArg, args);
+          // if opting out of span creation, we can end here
+          if (
+            (typeof __SENTRY_TRACING__ !== 'undefined' && !__SENTRY_TRACING__) ||
+            !spans ||
+            !client ||
+            shouldIgnoreSpansForIncomingRequest(request, {
+              ignoreStaticAssets,
+              ignoreSpansForIncomingRequests,
+            })
+          ) {
+            DEBUG_BUILD && debug.log(INSTRUMENTATION_NAME, 'Skipping span creation for incoming request');
+            return target.apply(thisArg, args);
+          }
+
+          const fullUrl = normalizedRequest.url || url;
+          const urlObj = parseStringToURLObject(fullUrl);
+
+          const headers = request.headers;
+          const userAgent = headers['user-agent'];
+          const ips = headers['x-forwarded-for'];
+          const httpVersion = request.httpVersion;
+          const host = headers.host;
+          const hostname = host?.replace(/^(.*)(:[0-9]{1,5})/, '$1') || 'localhost';
+
+          const tracer = client.tracer;
+          const scheme = fullUrl.startsWith('https') ? 'https' : 'http';
+
+          // We use the plain tracer.startSpan here so we can pass the span kind
+          const span = tracer.startSpan(bestEffortTransactionName, {
+            kind: SpanKind.SERVER,
+            attributes: {
+              // Sentry specific attributes
+              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.otel.http',
+              'sentry.http.prefetch': isKnownPrefetchRequest(request) || undefined,
+              // Old Semantic Conventions attributes - added for compatibility with what `@opentelemetry/instrumentation-http` output before
+              'http.url': fullUrl,
+              'http.method': httpMethod,
+              'http.target': urlObj ? `${urlObj.pathname}${urlObj.search}` : httpTargetWithoutQueryFragment,
+              'http.host': host,
+              'net.host.name': hostname,
+              'http.client_ip': typeof ips === 'string' ? ips.split(',')[0] : undefined,
+              'http.user_agent': userAgent,
+              'http.scheme': scheme,
+              'http.flavor': httpVersion,
+              'net.transport': httpVersion?.toUpperCase() === 'QUIC' ? 'ip_udp' : 'ip_tcp',
+              ...getRequestContentLengthAttribute(request),
+            },
+          });
+
+          // TODO v11: Remove the following three hooks, only incomingRequestSpanHook should remain
+          requestHook?.(span, request);
+          responseHook?.(span, response);
+          applyCustomAttributesOnSpan?.(span, request, response);
+          incomingRequestSpanHook?.(span, request, response);
+
+          const rpcMetadata: RPCMetadata = {
+            type: RPCType.HTTP,
+            span,
+          };
+
+          context.with(setRPCMetadata(trace.setSpan(context.active(), span), rpcMetadata), () => {
+            context.bind(context.active(), request);
+            context.bind(context.active(), response);
+
+            // Ensure we only end the span once
+            // E.g. error can be emitted before close is emitted
+            let isEnded = false;
+            function endSpan(status: SpanStatus): void {
+              if (isEnded) {
+                return;
+              }
+
+              isEnded = true;
+
+              const newAttributes = getIncomingRequestAttributesOnResponse(request, response);
+              span.setAttributes(newAttributes);
+              span.setStatus(status);
+              span.end();
+
+              // Update the transaction name if the route has changed
+              const route = newAttributes['http.route'];
+              if (route) {
+                getIsolationScope().setTransactionName(`${request.method?.toUpperCase() || 'GET'} ${route}`);
+              }
+            }
+
+            response.on('close', () => {
+              endSpan(getSpanStatusFromHttpCode(response.statusCode));
+            });
+            response.on(errorMonitor, () => {
+              const httpStatus = getSpanStatusFromHttpCode(response.statusCode);
+              // Ensure we def. have an error status here
+              endSpan(httpStatus.code === SPAN_STATUS_ERROR ? httpStatus : { code: SPAN_STATUS_ERROR });
+            });
+
+            return target.apply(thisArg, args);
+          });
         });
       });
     },
   });
 
-  addNonEnumerableProperty(newEmit, '__sentry_patched__', true);
-
+  wrappedEmitFns.add(newEmit);
   server.emit = newEmit;
 }
 
@@ -301,4 +462,134 @@ function patchRequestToCaptureBody(
       debug.error(INSTRUMENTATION_NAME, 'Error patching request to capture body', error);
     }
   }
+}
+
+function getRequestContentLengthAttribute(request: IncomingMessage): SpanAttributes {
+  const length = getContentLength(request.headers);
+  if (length == null) {
+    return {};
+  }
+
+  if (isCompressed(request.headers)) {
+    return {
+      ['http.request_content_length']: length,
+    };
+  } else {
+    return {
+      ['http.request_content_length_uncompressed']: length,
+    };
+  }
+}
+
+function getContentLength(headers: IncomingHttpHeaders): number | null {
+  const contentLengthHeader = headers['content-length'];
+  if (contentLengthHeader === undefined) return null;
+
+  const contentLength = parseInt(contentLengthHeader as string, 10);
+  if (isNaN(contentLength)) return null;
+
+  return contentLength;
+}
+
+function isCompressed(headers: IncomingHttpHeaders): boolean {
+  const encoding = headers['content-encoding'];
+
+  return !!encoding && encoding !== 'identity';
+}
+
+function getIncomingRequestAttributesOnResponse(request: IncomingMessage, response: ServerResponse): SpanAttributes {
+  // take socket from the request,
+  // since it may be detached from the response object in keep-alive mode
+  const { socket } = request;
+  const { statusCode, statusMessage } = response;
+
+  const newAttributes: SpanAttributes = {
+    [ATTR_HTTP_RESPONSE_STATUS_CODE]: statusCode,
+    // eslint-disable-next-line deprecation/deprecation
+    [SEMATTRS_HTTP_STATUS_CODE]: statusCode,
+    'http.status_text': statusMessage?.toUpperCase(),
+  };
+
+  const rpcMetadata = getRPCMetadata(context.active());
+  if (socket) {
+    const { localAddress, localPort, remoteAddress, remotePort } = socket;
+    // eslint-disable-next-line deprecation/deprecation
+    newAttributes[SEMATTRS_NET_HOST_IP] = localAddress;
+    // eslint-disable-next-line deprecation/deprecation
+    newAttributes[SEMATTRS_NET_HOST_PORT] = localPort;
+    // eslint-disable-next-line deprecation/deprecation
+    newAttributes[SEMATTRS_NET_PEER_IP] = remoteAddress;
+    newAttributes['net.peer.port'] = remotePort;
+  }
+  // eslint-disable-next-line deprecation/deprecation
+  newAttributes[SEMATTRS_HTTP_STATUS_CODE] = statusCode;
+  newAttributes['http.status_text'] = (statusMessage || '').toUpperCase();
+
+  if (rpcMetadata?.type === RPCType.HTTP && rpcMetadata.route !== undefined) {
+    const routeName = rpcMetadata.route;
+    newAttributes[ATTR_HTTP_ROUTE] = routeName;
+  }
+
+  return newAttributes;
+}
+
+function isKnownPrefetchRequest(req: IncomingMessage): boolean {
+  // Currently only handles Next.js prefetch requests but may check other frameworks in the future.
+  return req.headers['next-router-prefetch'] === '1';
+}
+
+/**
+ * Check if a request is for a common static asset that should be ignored by default.
+ *
+ * Only exported for tests.
+ */
+export function isStaticAssetRequest(urlPath: string): boolean {
+  const path = stripUrlQueryAndFragment(urlPath);
+  // Common static file extensions
+  if (path.match(/\.(ico|png|jpg|jpeg|gif|svg|css|js|woff|woff2|ttf|eot|webp|avif)$/)) {
+    return true;
+  }
+
+  // Common metadata files
+  if (path.match(/^\/(robots\.txt|sitemap\.xml|manifest\.json|browserconfig\.xml)$/)) {
+    return true;
+  }
+
+  return false;
+}
+
+function shouldIgnoreSpansForIncomingRequest(
+  request: IncomingMessage,
+  {
+    ignoreStaticAssets,
+    ignoreSpansForIncomingRequests,
+  }: {
+    ignoreStaticAssets?: boolean;
+    ignoreSpansForIncomingRequests?: (urlPath: string, request: IncomingMessage) => boolean;
+  },
+): boolean {
+  if (isTracingSuppressed(context.active())) {
+    return true;
+  }
+
+  // request.url is the only property that holds any information about the url
+  // it only consists of the URL path and query string (if any)
+  const urlPath = request.url;
+
+  const method = request.method?.toUpperCase();
+  // We do not capture OPTIONS/HEAD requests as spans
+  if (method === 'OPTIONS' || method === 'HEAD' || !urlPath) {
+    return true;
+  }
+
+  // Default static asset filtering
+  if (ignoreStaticAssets && method === 'GET' && isStaticAssetRequest(urlPath)) {
+    return true;
+  }
+
+  if (ignoreSpansForIncomingRequests?.(urlPath, request)) {
+    return true;
+  }
+
+  return false;
 }

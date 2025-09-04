@@ -6,14 +6,13 @@ import tsconfigPaths from 'vite-tsconfig-paths';
 import { sentryReactRouter, type SentryReactRouterBuildOptions } from '@sentry/react-router';
 
 const sentryConfig: SentryReactRouterBuildOptions = {
-  org: "example-org",
-  project: "example-project",
+  org: 'example-org',
+  project: 'example-project',
   // An auth token is required for uploading source maps;
   // store it in an environment variable to keep it secure.
   authToken: process.env.SENTRY_AUTH_TOKEN,
   // ...
 };
-
 
 export default defineConfig(config => ({
   plugins: [

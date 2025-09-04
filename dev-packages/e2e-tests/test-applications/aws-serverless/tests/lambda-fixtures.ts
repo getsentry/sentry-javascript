@@ -27,7 +27,9 @@ export const test = base.extend<{ testEnvironment: LocalLambdaStack; lambdaClien
       writeFileSync(SAM_TEMPLATE_FILE, JSON.stringify(template, null, 2));
 
       const debugLog = tmp.fileSync({ prefix: 'sentry_aws_lambda_tests_sam_debug', postfix: '.log' });
-      console.log(`[test_environment fixture] Writing SAM debug log to: ${debugLog.name}`);
+      if (!process.env.CI) {
+        console.log(`[test_environment fixture] Writing SAM debug log to: ${debugLog.name}`);
+      }
 
       const args = [
         'local',
@@ -39,16 +41,17 @@ export const test = base.extend<{ testEnvironment: LocalLambdaStack; lambdaClien
         'EAGER',
         '--docker-network',
         DOCKER_NETWORK_NAME,
+        '--skip-pull-image',
       ];
 
       if (process.env.NODE_VERSION) {
-        args.push('--invoke-image', `public.ecr.aws/sam/build-nodejs${process.env.NODE_VERSION}.x:latest`);
+        args.push('--invoke-image', `public.ecr.aws/lambda/nodejs:${process.env.NODE_VERSION}`);
       }
 
       console.log(`[testEnvironment fixture] Running SAM with args: ${args.join(' ')}`);
 
       const samProcess = spawn('sam', args, {
-        stdio: ['ignore', debugLog.fd, debugLog.fd],
+        stdio: process.env.CI ? 'inherit' : ['ignore', debugLog.fd, debugLog.fd],
       });
 
       try {

@@ -27,9 +27,9 @@ Then either set the `nodejs_als` or `nodejs_compat` compatibility flags in your 
 ```jsonc {tabTitle:JSON} {filename:wrangler.jsonc}
 {
   "compatibility_flags": [
-    "nodejs_als"
+    "nodejs_als",
     // "nodejs_compat"
-  ]
+  ],
 }
 ```
 

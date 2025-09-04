@@ -64,7 +64,9 @@ export default function TodoList({ session }: { session: Session }) {
             setNewTaskText(e.target.value);
           }}
         />
-        <button id="add-task" type="submit">Add</button>
+        <button id="add-task" type="submit">
+          Add
+        </button>
       </form>
       {!!errorText && <Alert text={errorText} />}
       <ul>

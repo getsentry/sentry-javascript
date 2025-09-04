@@ -1,5 +1,6 @@
 import { ProxyTracer } from '@opentelemetry/api';
 import * as opentelemetryInstrumentationPackage from '@opentelemetry/instrumentation';
+import type { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import type { Event, EventHint, Log } from '@sentry/core';
 import { getCurrentScope, getGlobalScope, getIsolationScope, Scope, SDK_VERSION } from '@sentry/core';
 import { setOpenTelemetryContextAsyncContextStrategy } from '@sentry/opentelemetry';
@@ -319,6 +320,67 @@ describe('NodeClient', () => {
         'existing.attr': 'value',
         'server.address': serverName,
       });
+    });
+  });
+
+  describe('close', () => {
+    beforeEach(() => {
+      vi.clearAllMocks();
+    });
+
+    it('shuts down the OTel trace provider', async () => {
+      const shutdownSpy = vi.fn().mockResolvedValue(true);
+      const forceFlushSpy = vi.fn().mockResolvedValue(undefined);
+
+      const client = new NodeClient(getDefaultNodeClientOptions());
+
+      client.traceProvider = {
+        shutdown: shutdownSpy,
+        forceFlush: forceFlushSpy,
+      } as unknown as BasicTracerProvider;
+
+      const result = await client.close();
+
+      // ensure we return the flush result rather than void from the traceProvider shutdown
+      expect(result).toBe(true);
+
+      expect(shutdownSpy).toHaveBeenCalledTimes(1);
+
+      // close calls flush and flush force-flushes the traceProvider
+      expect(forceFlushSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('stops client report tracking if it was started', async () => {
+      const processOffSpy = vi.spyOn(process, 'off');
+      const clearIntervalSpy = vi.spyOn(globalThis, 'clearInterval');
+
+      const client = new NodeClient(getDefaultNodeClientOptions({ sendClientReports: true }));
+
+      client.startClientReportTracking();
+
+      const result = await client.close();
+
+      expect(result).toBe(true);
+
+      // once call directly in close to stop client reports,
+      // the other in core client `_isClientDoneProcessing`
+      expect(clearIntervalSpy).toHaveBeenCalledTimes(2);
+
+      // removes `_clientReportOnExitFlushListener`
+      expect(processOffSpy).toHaveBeenNthCalledWith(1, 'beforeExit', expect.any(Function));
+    });
+
+    it('stops log capture if it was started', async () => {
+      const processOffSpy = vi.spyOn(process, 'off');
+
+      const client = new NodeClient(getDefaultNodeClientOptions({ enableLogs: true }));
+
+      const result = await client.close();
+
+      expect(result).toBe(true);
+
+      // removes `_logOnExitFlushListener`
+      expect(processOffSpy).toHaveBeenNthCalledWith(1, 'beforeExit', expect.any(Function));
     });
   });
 });
