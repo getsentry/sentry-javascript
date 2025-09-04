@@ -310,7 +310,7 @@ export function shouldAttachHeaders(
  *
  * @returns Span if a span was created, otherwise void.
  */
-export function xhrCallback(
+function xhrCallback(
   handlerData: HandlerDataXhr,
   shouldCreateSpan: (url: string) => boolean,
   shouldAttachHeaders: (url: string) => boolean,
