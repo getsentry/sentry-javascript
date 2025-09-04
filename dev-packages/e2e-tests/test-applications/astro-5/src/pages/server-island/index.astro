@@ -4,13 +4,11 @@ import Layout from '../../layouts/Layout.astro';
 
 export const prerender = true;
 ---
-<Layout title="Server Island Page">
 
+<Layout title="Server Island Page">
   <p>This page is static, except for the avatar which is loaded dynamically from the server</p>
 
   <Avatar server:defer>
     <p slot="fallback">Fallback</p>
   </Avatar>
-
 </Layout>
-

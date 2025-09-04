@@ -82,8 +82,8 @@ const AWS_HANDLER_STREAMING_RESPONSE = 'response';
  *
  */
 export class AwsLambdaInstrumentation extends InstrumentationBase<AwsLambdaInstrumentationConfig> {
-  private declare _traceForceFlusher?: () => Promise<void>;
-  private declare _metricForceFlusher?: () => Promise<void>;
+  declare private _traceForceFlusher?: () => Promise<void>;
+  declare private _metricForceFlusher?: () => Promise<void>;
 
   constructor(config: AwsLambdaInstrumentationConfig = {}) {
     super(PACKAGE_NAME, PACKAGE_VERSION, config);

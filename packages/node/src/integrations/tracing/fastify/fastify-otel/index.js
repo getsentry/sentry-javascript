@@ -433,7 +433,7 @@ export class FastifyOtelInstrumentation extends InstrumentationBase {
             `handler - ${
               handler.name?.length > 0
                 ? handler.name
-                : this.pluginName /* c8 ignore next */ ?? ANONYMOUS_FUNCTION_NAME /* c8 ignore next */
+                : (this.pluginName /* c8 ignore next */ ?? ANONYMOUS_FUNCTION_NAME) /* c8 ignore next */
             }`,
             {
               attributes: spanAttributes,

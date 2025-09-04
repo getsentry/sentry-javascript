@@ -48,8 +48,8 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
         }
 
         const sdkEnabled = {
-          client: typeof enabled === 'boolean' ? enabled : enabled?.client ?? true,
-          server: typeof enabled === 'boolean' ? enabled : enabled?.server ?? true,
+          client: typeof enabled === 'boolean' ? enabled : (enabled?.client ?? true),
+          server: typeof enabled === 'boolean' ? enabled : (enabled?.server ?? true),
         };
 
         const sourceMapsNeeded = sdkEnabled.client || sdkEnabled.server;

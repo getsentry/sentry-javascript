@@ -1,0 +1,11 @@
+---
+import Layout from '../../layouts/Layout.astro';
+
+export const prerender = false;
+
+const { slug } = Astro.params;
+---
+
+<Layout title="Dynamic SSR page">
+  <h1>Blog post: {slug}</h1>
+</Layout>

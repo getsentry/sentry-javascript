@@ -4,6 +4,83 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 10.9.0
+
+### Important Changes
+
+- **feat(node): Update `httpIntegration` handling of incoming requests ([#17371](https://github.com/getsentry/sentry-javascript/pull/17371))**
+
+This version updates the handling of the Node SDK of incoming requests. Instead of relying on @opentelemetry/instrumentation-http, we now handle incoming request instrumentation internally, ensuring that we can optimize performance as much as possible and avoid interop problems.
+
+This change should not affect you, unless you're relying on very in-depth implementation details. Importantly, this also drops the `_experimentalConfig` option of the integration - this will no longer do anything.
+Finally, you can still pass `instrumentation.{requestHook,responseHook,applyCustomAttributesOnSpan}` options, but they are deprecated and will be removed in v11. Instead, you can use the new `incomingRequestSpanHook` configuration option if you want to adjust the incoming request span.
+
+### Other Changes
+
+- feat(browser): Add replay.feedback CDN bundle ([#17496](https://github.com/getsentry/sentry-javascript/pull/17496))
+- feat(browser): Export `sendFeedback` from CDN bundles ([#17495](https://github.com/getsentry/sentry-javascript/pull/17495))
+- fix(astro): Ensure span name from `beforeStartSpan` isn't overwritten ([#17500](https://github.com/getsentry/sentry-javascript/pull/17500))
+- fix(browser): Ensure source is set correctly when updating span name in-place in `beforeStartSpan` ([#17501](https://github.com/getsentry/sentry-javascript/pull/17501))
+- fix(core): Only set template attributes on logs if parameters exist ([#17480](https://github.com/getsentry/sentry-javascript/pull/17480))
+- fix(nextjs): Fix parameterization for root catchall routes ([#17489](https://github.com/getsentry/sentry-javascript/pull/17489))
+- fix(node-core): Shut down OTel TraceProvider when calling `Sentry.close()` ([#17499](https://github.com/getsentry/sentry-javascript/pull/17499))
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+
+- chore: Add `changelog` script back to package.json ([#17517](https://github.com/getsentry/sentry-javascript/pull/17517))
+- chore: Ensure prettier is run on all files ([#17497](https://github.com/getsentry/sentry-javascript/pull/17497))
+- chore: Ignore prettier commit for git blame ([#17498](https://github.com/getsentry/sentry-javascript/pull/17498))
+- chore: Remove experimental from Nuxt SDK package description ([#17483](https://github.com/getsentry/sentry-javascript/pull/17483))
+- ci: Capture overhead in node app ([#17420](https://github.com/getsentry/sentry-javascript/pull/17420))
+- ci: Ensure we fail on cancelled jobs ([#17506](https://github.com/getsentry/sentry-javascript/pull/17506))
+- ci(deps): bump actions/checkout from 4 to 5 ([#17505](https://github.com/getsentry/sentry-javascript/pull/17505))
+- ci(deps): bump actions/create-github-app-token from 2.0.6 to 2.1.1 ([#17504](https://github.com/getsentry/sentry-javascript/pull/17504))
+- test(aws): Improve reliability on CI ([#17502](https://github.com/getsentry/sentry-javascript/pull/17502))
+
+</details>
+
+## 10.8.0
+
+### Important Changes
+
+- **feat(sveltekit): Add Compatibility for builtin SvelteKit Tracing ([#17423](https://github.com/getsentry/sentry-javascript/pull/17423))**
+
+  This release makes the `@sentry/sveltekit` SDK compatible with SvelteKit's native [observability support](https://svelte.dev/docs/kit/observability) introduced in SvelteKit version `2.31.0`.
+  If you enable both, instrumentation and tracing, the SDK will now initialize early enough to set up additional instrumentation like database queries and it will pick up spans emitted from SvelteKit.
+
+  We will follow up with docs how to set up the SDK soon.
+  For now, If you're on SvelteKit version `2.31.0` or newer, you can easily opt into the new feature:
+  1. Enable [experimental tracing and instrumentation support](https://svelte.dev/docs/kit/observability) in `svelte.config.js`:
+  2. Move your `Sentry.init()` call from `src/hooks.server.(js|ts)` to the new `instrumentation.server.(js|ts)` file:
+
+     ```ts
+     // instrumentation.server.ts
+     import * as Sentry from '@sentry/sveltekit';
+
+     Sentry.init({
+       dsn: '...',
+       // rest of your config
+     });
+     ```
+
+     The rest of your Sentry config in `hooks.server.ts` (`sentryHandle` and `handleErrorWithSentry`) should stay the same.
+
+  If you prefer to stay on the hooks-file based config for now, the SDK will continue to work as previously.
+
+  Thanks to the Svelte team and @elliott-with-the-longest-name-on-github for implementing observability support and for reviewing our PR!
+
+### Other Changes
+
+- fix(react): Avoid multiple name updates on navigation spans ([#17438](https://github.com/getsentry/sentry-javascript/pull/17438))
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+
+- test(profiling): Add tests for current state of profiling ([#17470](https://github.com/getsentry/sentry-javascript/pull/17470))
+
+</details>
+
 ## 10.7.0
 
 ### Important Changes
@@ -608,7 +685,6 @@ Work in this release was contributed by @0xbad0c0d3 and @alSergey. Thank you for
 - **feat(nuxt): Add Cloudflare Nitro plugin ([#15597](https://github.com/getsentry/sentry-javascript/pull/15597))**
 
   A Nitro plugin for `@sentry/nuxt` which initializes Sentry when deployed to Cloudflare (`cloudflare-pages` preset).
-
   1. Remove the previous server config file: `sentry.server.config.ts`
   2. Add a plugin in `server/plugins` (e.g. `server/plugins/sentry-cloudflare-setup.ts`)
   3. Add this code in your plugin file
@@ -1173,7 +1249,6 @@ This PR adds trace propagation to `@sentry/react-router` by providing utilities 
 - **Logging Improvements**
 
   Sentry is adding support for [structured logging](https://github.com/getsentry/sentry-javascript/discussions/15916). In this release we've made a variety of improvements to logging functionality in the Sentry SDKs.
-
   - feat(node): Add server.address to nodejs logs ([#16006](https://github.com/getsentry/sentry-javascript/pull/16006))
   - feat(core): Add sdk name and version to logs ([#16005](https://github.com/getsentry/sentry-javascript/pull/16005))
   - feat(core): Add sentry origin attribute to console logs integration ([#15998](https://github.com/getsentry/sentry-javascript/pull/15998))
@@ -1222,7 +1297,6 @@ Work in this release was contributed by @Page- and @Fryuni. Thank you for your c
 ### Important Changes
 
 - **feat: Add support for logs**
-
   - feat(node): Add logging public APIs to Node SDKs ([#15764](https://github.com/getsentry/sentry-javascript/pull/15764))
   - feat(core): Add support for `beforeSendLog` ([#15814](https://github.com/getsentry/sentry-javascript/pull/15814))
   - feat(core): Add support for parameterizing logs ([#15812](https://github.com/getsentry/sentry-javascript/pull/15812))
@@ -1272,13 +1346,11 @@ Work in this release was contributed by @Page- and @Fryuni. Thank you for your c
   ```
 
   The result will be an object with the following properties:
-
   - `"no-client-active"`: There was no active client when the function was called. This possibly means that the SDK was not initialized yet.
   - `"sentry-unreachable"`: The Sentry SaaS servers were not reachable. This likely means that there is an ad blocker active on the page or that there are other connection issues.
   - `undefined`: The SDK is working as expected.
 
 - **SDK Tracing Performance Improvements for Node SDKs**
-
   - feat: Stop using `dropUndefinedKeys` ([#15796](https://github.com/getsentry/sentry-javascript/pull/15796))
   - feat(node): Only add span listeners for instrumentation when used ([#15802](https://github.com/getsentry/sentry-javascript/pull/15802))
   - ref: Avoid `dropUndefinedKeys` for `spanToJSON` calls ([#15792](https://github.com/getsentry/sentry-javascript/pull/15792))

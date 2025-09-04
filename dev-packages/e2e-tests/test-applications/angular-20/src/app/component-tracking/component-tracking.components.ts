@@ -9,7 +9,7 @@ import { SampleComponent } from '../sample-component/sample-component.components
   template: `
     <app-sample-component trace="sample-component"></app-sample-component>
     <app-sample-component trace></app-sample-component>
-    `,
+  `,
 })
 @TraceClass({ name: 'ComponentTrackingComponent' })
 export class ComponentTrackingComponent implements OnInit, AfterViewInit {

@@ -1,7 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
-
 test('Creates a pageload transaction with parameterized route', async ({ page }) => {
   const transactionPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
     return (
@@ -13,7 +12,6 @@ test('Creates a pageload transaction with parameterized route', async ({ page })
 
   await page.goto('/lazy/inner/1/2/3');
   const event = await transactionPromise;
-
 
   const lazyRouteContent = page.locator('id=innermost-lazy-route');
 

@@ -1,6 +1,5 @@
 import type { Route } from './+types/dynamic-param';
 
-
 export default function DynamicParamPage({ params }: Route.ComponentProps) {
   const { param } = params;
 

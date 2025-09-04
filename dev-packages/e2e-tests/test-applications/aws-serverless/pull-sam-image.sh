@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Script to pull the correct SAM docker image based on the NODE_VERSION environment variable.
+# Script to pull the correct Lambda docker image based on the NODE_VERSION environment variable.
 
 set -e
 
@@ -9,7 +9,7 @@ if [[ -z "$NODE_VERSION" ]]; then
     exit 1
 fi
 
-echo "Pulling SAM Node $NODE_VERSION docker image..."
-docker pull "public.ecr.aws/sam/build-nodejs${NODE_VERSION}.x:latest"
+echo "Pulling Lambda Node $NODE_VERSION docker image..."
+docker pull "public.ecr.aws/lambda/nodejs:${NODE_VERSION}"
 
-echo "Successfully pulled SAM Node $NODE_VERSION docker image"
+echo "Successfully pulled Lambda Node $NODE_VERSION docker image"
