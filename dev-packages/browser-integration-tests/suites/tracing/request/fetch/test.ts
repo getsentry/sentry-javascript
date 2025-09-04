@@ -41,7 +41,7 @@ sentryTest('should create spans for fetch requests', async ({ getLocalTestUrl, p
   );
 });
 
-sentryTest('should attach `sentry-trace` header to fetch requests', async ({ getLocalTestUrl, page }) => {
+sentryTest('attaches `sentry-trace` and `baggage` headers to fetch requests', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
     sentryTest.skip();
   }
@@ -65,6 +65,8 @@ sentryTest('should attach `sentry-trace` header to fetch requests', async ({ get
     'sentry-trace': expect.stringMatching(/^([a-f0-9]{32})-([a-f0-9]{16})-1$/),
     baggage: expect.any(String),
   });
+  // traceparent must only be attached if propagateTraceparent is `true`
+  expect(requestHeaders1).not.toHaveProperty('traceparent');
 
   const request2 = requests[1];
   const requestHeaders2 = request2.headers();
@@ -73,6 +75,7 @@ sentryTest('should attach `sentry-trace` header to fetch requests', async ({ get
     baggage: expect.any(String),
     'x-test-header': 'existing-header',
   });
+  expect(requestHeaders2).not.toHaveProperty('traceparent');
 
   const request3 = requests[2];
   const requestHeaders3 = request3.headers();
@@ -80,4 +83,5 @@ sentryTest('should attach `sentry-trace` header to fetch requests', async ({ get
     'sentry-trace': expect.stringMatching(/^([a-f0-9]{32})-([a-f0-9]{16})-1$/),
     baggage: expect.any(String),
   });
+  expect(requestHeaders3).not.toHaveProperty('traceparent');
 });
