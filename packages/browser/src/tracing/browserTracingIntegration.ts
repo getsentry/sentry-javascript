@@ -4,6 +4,7 @@ import {
   addNonEnumerableProperty,
   browserPerformanceTimeOrigin,
   dateTimestampInSeconds,
+  debug,
   generateTraceId,
   getClient,
   getCurrentScope,
@@ -11,7 +12,6 @@ import {
   getIsolationScope,
   getLocationHref,
   GLOBAL_OBJ,
-  logger,
   parseStringToURLObject,
   propagationContextFromHeaders,
   registerSpanErrorInstrumentation,
@@ -356,6 +356,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
   function _createRouteSpan(client: Client, startSpanOptions: StartSpanOptions, makeActive = true): void {
     const isPageloadTransaction = startSpanOptions.op === 'pageload';
 
+    const initialSpanName = startSpanOptions.name;
     const finalStartSpanOptions: StartSpanOptions = beforeStartSpan
       ? beforeStartSpan(startSpanOptions)
       : startSpanOptions;
@@ -364,7 +365,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
 
     // If `finalStartSpanOptions.name` is different than `startSpanOptions.name`
     // it is because `beforeStartSpan` set a custom name. Therefore we set the source to 'custom'.
-    if (startSpanOptions.name !== finalStartSpanOptions.name) {
+    if (initialSpanName !== finalStartSpanOptions.name) {
       attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] = 'custom';
       finalStartSpanOptions.attributes = attributes;
     }
@@ -478,7 +479,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         const activeSpan = getActiveIdleSpan(client);
 
         if (activeSpan && !spanToJSON(activeSpan).timestamp) {
-          DEBUG_BUILD && logger.log(`[Tracing] Finishing current active span with op: ${spanToJSON(activeSpan).op}`);
+          DEBUG_BUILD && debug.log(`[Tracing] Finishing current active span with op: ${spanToJSON(activeSpan).op}`);
           // If there's an open active span, we need to finish it before creating an new one.
           activeSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON, 'cancelled');
           activeSpan.end();
@@ -492,7 +493,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
 
         if (navigationOptions?.isRedirect) {
           DEBUG_BUILD &&
-            logger.warn('[Tracing] Detected redirect, navigation span will not be the root span, but a child span.');
+            debug.warn('[Tracing] Detected redirect, navigation span will not be the root span, but a child span.');
           _createRouteSpan(
             client,
             {
@@ -503,6 +504,11 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
           );
           return;
         }
+
+        // Reset the last interaction timestamp since we now start a new navigation.
+        // Any subsequent navigation span starts could again be a redirect, so we
+        // should reset our heuristic detectors.
+        lastInteractionTimestamp = undefined;
 
         maybeEndActiveSpan();
 
@@ -590,6 +596,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
             const activeSpan = getActiveIdleSpan(client);
             const navigationIsRedirect =
               activeSpan && detectRedirects && isRedirect(activeSpan, lastInteractionTimestamp);
+
             startBrowserTracingNavigationSpan(
               client,
               {
@@ -719,7 +726,7 @@ function registerInteractionListener(
       const currentRootSpanOp = spanToJSON(activeIdleSpan).op;
       if (['navigation', 'pageload'].includes(currentRootSpanOp as string)) {
         DEBUG_BUILD &&
-          logger.warn(`[Tracing] Did not create ${op} span because a pageload or navigation span is in progress.`);
+          debug.warn(`[Tracing] Did not create ${op} span because a pageload or navigation span is in progress.`);
         return undefined;
       }
     }
@@ -731,7 +738,7 @@ function registerInteractionListener(
     }
 
     if (!latestRoute.name) {
-      DEBUG_BUILD && logger.warn(`[Tracing] Did not create ${op} transaction because _latestRouteName is missing.`);
+      DEBUG_BUILD && debug.warn(`[Tracing] Did not create ${op} transaction because _latestRouteName is missing.`);
       return undefined;
     }
 
@@ -767,21 +774,21 @@ function setActiveIdleSpan(client: Client, span: Span | undefined): void {
 }
 
 // The max. time in seconds between two pageload/navigation spans that makes us consider the second one a redirect
-const REDIRECT_THRESHOLD = 0.3;
+const REDIRECT_THRESHOLD = 1.5;
 
 function isRedirect(activeSpan: Span, lastInteractionTimestamp: number | undefined): boolean {
   const spanData = spanToJSON(activeSpan);
 
   const now = dateTimestampInSeconds();
 
-  // More than 300ms since last navigation/pageload span?
+  // More than REDIRECT_THRESHOLD seconds since last navigation/pageload span?
   // --> never consider this a redirect
   const startTimestamp = spanData.start_timestamp;
   if (now - startTimestamp > REDIRECT_THRESHOLD) {
     return false;
   }
 
-  // A click happened in the last 300ms?
+  // A click happened in the last REDIRECT_THRESHOLD seconds?
   // --> never consider this a redirect
   if (lastInteractionTimestamp && now - lastInteractionTimestamp <= REDIRECT_THRESHOLD) {
     return false;

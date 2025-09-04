@@ -4,7 +4,7 @@ import type {
   ClientOptions,
   Event,
   EventHint,
-  Options,
+  Options as CoreOptions,
   ParameterizedString,
   Scope,
   SeverityLevel,
@@ -12,7 +12,6 @@ import type {
 import {
   _INTERNAL_flushLogsBuffer,
   addAutoIpAddressToSession,
-  addAutoIpAddressToUser,
   applySdkMetadata,
   Client,
   getSDKSource,
@@ -32,13 +31,7 @@ type BrowserSpecificOptions = BrowserClientReplayOptions &
   BrowserClientProfilingOptions & {
     /** If configured, this URL will be used as base URL for lazy loading integration. */
     cdnBaseUrl?: string;
-  };
-/**
- * Configuration options for the Sentry Browser SDK.
- * @see @sentry/core Options for more information.
- */
-export type BrowserOptions = Options<BrowserTransportOptions> &
-  BrowserSpecificOptions & {
+
     /**
      * Important: Only set this option if you know what you are doing!
      *
@@ -57,7 +50,26 @@ export type BrowserOptions = Options<BrowserTransportOptions> &
      * @default false
      */
     skipBrowserExtensionCheck?: boolean;
+
+    /**
+     * If set to `true`, the SDK propagates the W3C `traceparent` header to any outgoing requests,
+     * in addition to the `sentry-trace` and `baggage` headers. Use the {@link CoreOptions.tracePropagationTargets}
+     * option to control to which outgoing requests the header will be attached.
+     *
+     * **Important:** If you set this option to `true`, make sure that you configured your servers'
+     * CORS settings to allow the `traceparent` header. Otherwise, requests might get blocked.
+     *
+     * @see https://www.w3.org/TR/trace-context/
+     *
+     * @default false
+     */
+    propagateTraceparent?: boolean;
   };
+/**
+ * Configuration options for the Sentry Browser SDK.
+ * @see @sentry/core Options for more information.
+ */
+export type BrowserOptions = CoreOptions<BrowserTransportOptions> & BrowserSpecificOptions;
 
 /**
  * Configuration options for the Sentry Browser SDK Client class
@@ -83,10 +95,18 @@ export class BrowserClient extends Client<BrowserClientOptions> {
     const sdkSource = WINDOW.SENTRY_SDK_SOURCE || getSDKSource();
     applySdkMetadata(opts, 'browser', ['browser'], sdkSource);
 
+    // Only allow IP inferral by Relay if sendDefaultPii is true
+    if (opts._metadata?.sdk) {
+      opts._metadata.sdk.settings = {
+        infer_ip: opts.sendDefaultPii ? 'auto' : 'never',
+        // purposefully allowing already passed settings to override the default
+        ...opts._metadata.sdk.settings,
+      };
+    }
+
     super(opts);
 
-    const { sendDefaultPii, sendClientReports, _experiments } = this._options;
-    const enableLogs = _experiments?.enableLogs;
+    const { sendDefaultPii, sendClientReports, enableLogs } = this._options;
 
     if (WINDOW.document && (sendClientReports || enableLogs)) {
       WINDOW.document.addEventListener('visibilitychange', () => {
@@ -118,7 +138,6 @@ export class BrowserClient extends Client<BrowserClientOptions> {
     }
 
     if (sendDefaultPii) {
-      this.on('postprocessEvent', addAutoIpAddressToUser);
       this.on('beforeSendSession', addAutoIpAddressToSession);
     }
   }

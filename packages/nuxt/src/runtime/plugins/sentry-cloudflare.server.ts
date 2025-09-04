@@ -1,7 +1,7 @@
 import type { ExecutionContext, IncomingRequestCfProperties } from '@cloudflare/workers-types';
 import type { CloudflareOptions } from '@sentry/cloudflare';
 import { setAsyncLocalStorageAsyncContextStrategy, wrapRequestHandler } from '@sentry/cloudflare';
-import { getDefaultIsolationScope, getIsolationScope, getTraceData, logger } from '@sentry/core';
+import { debug, getDefaultIsolationScope, getIsolationScope, getTraceData } from '@sentry/core';
 import type { H3Event } from 'h3';
 import type { NitroApp, NitroAppPlugin } from 'nitropack';
 import type { NuxtRenderHTMLContext } from 'nuxt/app';
@@ -99,7 +99,7 @@ export const sentryCloudflareNitroPlugin =
         const event = handlerArgs[1];
 
         if (!isEventType(event)) {
-          logger.log("Nitro Cloudflare plugin did not detect a Cloudflare event type. Won't patch Cloudflare handler.");
+          debug.log("Nitro Cloudflare plugin did not detect a Cloudflare event type. Won't patch Cloudflare handler.");
           return handlerTarget.apply(handlerThisArg, handlerArgs);
         } else {
           // Usually, the protocol already includes ":"
@@ -125,10 +125,10 @@ export const sentryCloudflareNitroPlugin =
             if (traceData && Object.keys(traceData).length > 0) {
               // Storing trace data in the WeakMap using event.context.cf as key for later use in HTML meta-tags
               traceDataMap.set(event.context.cf, traceData);
-              logger.log('Stored trace data for later use in HTML meta-tags: ', traceData);
+              debug.log('Stored trace data for later use in HTML meta-tags: ', traceData);
             }
 
-            logger.log(
+            debug.log(
               `Patched Cloudflare handler (\`nitroApp.localFetch\`). ${
                 isolationScope === newIsolationScope ? 'Using existing' : 'Created new'
               } isolation scope.`,
@@ -147,7 +147,7 @@ export const sentryCloudflareNitroPlugin =
       const storedTraceData = event?.context?.cf ? traceDataMap.get(event.context.cf) : undefined;
 
       if (storedTraceData && Object.keys(storedTraceData).length > 0) {
-        logger.log('Using stored trace data for HTML meta-tags: ', storedTraceData);
+        debug.log('Using stored trace data for HTML meta-tags: ', storedTraceData);
         addSentryTracingMetaTags(html.head, storedTraceData);
       } else {
         addSentryTracingMetaTags(html.head);

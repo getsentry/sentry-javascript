@@ -3,8 +3,12 @@ import { defineIntegration } from '@sentry/core';
 import type { CanvasManagerInterface, CanvasManagerOptions } from '@sentry-internal/replay';
 import { CanvasManager } from '@sentry-internal/rrweb';
 
+interface SnapshotOptions {
+  skipRequestAnimationFrame?: boolean;
+}
+
 interface ReplayCanvasIntegration extends Integration {
-  snapshot: (canvasElement?: HTMLCanvasElement) => Promise<void>;
+  snapshot: (canvasElement?: HTMLCanvasElement, options?: SnapshotOptions) => Promise<void>;
 }
 
 interface ReplayCanvasOptions {
@@ -94,7 +98,7 @@ export const _replayCanvasIntegration = ((options: Partial<ReplayCanvasOptions> 
                 if (typeof err === 'object') {
                   (err as Error & { __rrweb__?: boolean }).__rrweb__ = true;
                 }
-              } catch (error) {
+              } catch {
                 // ignore errors here
                 // this can happen if the error is frozen or does not allow mutation for other reasons
               }
@@ -106,9 +110,10 @@ export const _replayCanvasIntegration = ((options: Partial<ReplayCanvasOptions> 
         ...(CANVAS_QUALITY[quality || 'medium'] || CANVAS_QUALITY.medium),
       };
     },
-    async snapshot(canvasElement?: HTMLCanvasElement) {
+    async snapshot(canvasElement?: HTMLCanvasElement, options?: SnapshotOptions) {
       const canvasManager = await _canvasManager;
-      canvasManager.snapshot(canvasElement);
+
+      canvasManager.snapshot(canvasElement, options);
     },
   };
 }) satisfies IntegrationFn<ReplayCanvasIntegration>;

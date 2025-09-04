@@ -6,8 +6,8 @@ import { DEBUG_BUILD } from '../debug-build';
 import type { Scope, ScopeData } from '../scope';
 import type { Log, SerializedLog, SerializedLogAttributeValue } from '../types-hoist/log';
 import { mergeScopeData } from '../utils/applyScopeDataToEvent';
+import { consoleSandbox, debug } from '../utils/debug-logger';
 import { isParameterizedString } from '../utils/is';
-import { consoleSandbox, debug } from '../utils/logger';
 import { _getSpanForScope } from '../utils/spanOnScope';
 import { timestampInSeconds } from '../utils/time';
 import { SEVERITY_TEXT_TO_SEVERITY_NUMBER } from './constants';
@@ -124,8 +124,7 @@ export function _INTERNAL_captureLog(
     return;
   }
 
-  const { _experiments, release, environment } = client.getOptions();
-  const { enableLogs = false, beforeSendLog } = _experiments ?? {};
+  const { release, environment, enableLogs = false, beforeSendLog } = client.getOptions();
   if (!enableLogs) {
     DEBUG_BUILD && debug.warn('logging option not enabled, log will not be captured.');
     return;
@@ -154,7 +153,9 @@ export function _INTERNAL_captureLog(
   const beforeLogMessage = beforeLog.message;
   if (isParameterizedString(beforeLogMessage)) {
     const { __sentry_template_string__, __sentry_template_values__ = [] } = beforeLogMessage;
-    processedLogAttributes['sentry.message.template'] = __sentry_template_string__;
+    if (__sentry_template_values__?.length) {
+      processedLogAttributes['sentry.message.template'] = __sentry_template_string__;
+    }
     __sentry_template_values__.forEach((param, index) => {
       processedLogAttributes[`sentry.message.parameter.${index}`] = param;
     });

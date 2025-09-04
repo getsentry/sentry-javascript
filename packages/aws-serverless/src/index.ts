@@ -51,6 +51,7 @@ export {
   nativeNodeFetchIntegration,
   onUncaughtExceptionIntegration,
   onUnhandledRejectionIntegration,
+  openAIIntegration,
   modulesIntegration,
   contextLinesIntegration,
   nodeContextIntegration,
@@ -88,6 +89,7 @@ export {
   connectIntegration,
   setupConnectErrorHandler,
   fastifyIntegration,
+  firebaseIntegration,
   fsIntegration,
   genericPoolIntegration,
   graphqlIntegration,
@@ -112,6 +114,7 @@ export {
   spanToJSON,
   spanToTraceHeader,
   spanToBaggageHeader,
+  systemErrorIntegration,
   trpcMiddleware,
   updateSpanName,
   supabaseIntegration,
@@ -119,6 +122,7 @@ export {
   zodErrorsIntegration,
   profiler,
   amqplibIntegration,
+  anthropicAIIntegration,
   vercelAIIntegration,
   logger,
   consoleLoggingIntegration,
@@ -144,5 +148,7 @@ export {
 export { awsIntegration } from './integration/aws';
 export { awsLambdaIntegration } from './integration/awslambda';
 
-export { getDefaultIntegrations, init, tryPatchHandler, wrapHandler } from './sdk';
+export { getDefaultIntegrations, init } from './init';
+// eslint-disable-next-line deprecation/deprecation
+export { tryPatchHandler, wrapHandler } from './sdk';
 export type { WrapperOptions } from './sdk';

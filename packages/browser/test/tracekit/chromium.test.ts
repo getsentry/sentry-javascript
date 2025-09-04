@@ -617,7 +617,7 @@ describe('Tracekit - Chrome Tests', () => {
     });
   });
 
-  it('should drop frames that are over 1kb', () => {
+  it('should truncate frames that are over 1kb', () => {
     const LONG_STR = 'A'.repeat(1040);
 
     const LONG_FRAME = {
@@ -637,6 +637,12 @@ describe('Tracekit - Chrome Tests', () => {
       stacktrace: {
         frames: [
           { filename: 'http://localhost:5000/', function: '?', lineno: 50, colno: 19, in_app: true },
+          {
+            filename:
+              'http://localhost:5000/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+            function: 'Foo.testMethod',
+            in_app: true,
+          },
           { filename: 'http://localhost:5000/', function: 'aha', lineno: 39, colno: 5, in_app: true },
         ],
       },
@@ -733,6 +739,55 @@ describe('Tracekit - Chrome Tests', () => {
       },
       type: 'RuntimeError',
       value: 'memory access out of bounds',
+    });
+  });
+
+  it('should correctly parse with data uris', () => {
+    const DATA_URI_ERROR = {
+      message: 'Error from data-uri module',
+      name: 'Error',
+      stack: `Error: Error from data-uri module
+                at dynamicFn (data:application/javascript,export function dynamicFn() {  throw new Error('Error from data-uri module');};:1:38)
+                at loadDodgyModule (file:///Users/tim/Documents/Repositories/data-uri-tests/index.mjs:8:5)
+                at async callSomeFunction (file:///Users/tim/Documents/Repositories/data-uri-tests/index.mjs:12:5)
+                at async file:///Users/tim/Documents/Repositories/data-uri-tests/index.mjs:16:5`,
+    };
+
+    const ex = exceptionFromError(parser, DATA_URI_ERROR);
+
+    // This is really ugly but the wasm integration should clean up these stack frames
+    expect(ex).toStrictEqual({
+      stacktrace: {
+        frames: [
+          {
+            colno: 5,
+            filename: 'file:///Users/tim/Documents/Repositories/data-uri-tests/index.mjs',
+            function: '?',
+            in_app: true,
+            lineno: 16,
+          },
+          {
+            colno: 5,
+            filename: 'file:///Users/tim/Documents/Repositories/data-uri-tests/index.mjs',
+            function: 'async callSomeFunction',
+            in_app: true,
+            lineno: 12,
+          },
+          {
+            colno: 5,
+            filename: 'file:///Users/tim/Documents/Repositories/data-uri-tests/index.mjs',
+            function: 'loadDodgyModule',
+            in_app: true,
+            lineno: 8,
+          },
+          {
+            filename: '<data:application/javascript>',
+            function: 'dynamicFn',
+          },
+        ],
+      },
+      type: 'Error',
+      value: 'Error from data-uri module',
     });
   });
 });

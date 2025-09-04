@@ -1,5 +1,5 @@
 import type { EventEnvelope, IntegrationFn, Profile, Span } from '@sentry/core';
-import { defineIntegration, getActiveSpan, getRootSpan, logger } from '@sentry/core';
+import { debug, defineIntegration, getActiveSpan, getRootSpan } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import { startProfileForSpan } from './startProfileForSpan';
 import type { ProfiledEvent } from './utils';
@@ -53,12 +53,12 @@ const _browserProfilingIntegration = (() => {
           const start_timestamp = context?.profile?.['start_timestamp'];
 
           if (typeof profile_id !== 'string') {
-            DEBUG_BUILD && logger.log('[Profiling] cannot find profile for a span without a profile context');
+            DEBUG_BUILD && debug.log('[Profiling] cannot find profile for a span without a profile context');
             continue;
           }
 
           if (!profile_id) {
-            DEBUG_BUILD && logger.log('[Profiling] cannot find profile for a span without a profile context');
+            DEBUG_BUILD && debug.log('[Profiling] cannot find profile for a span without a profile context');
             continue;
           }
 
@@ -69,7 +69,7 @@ const _browserProfilingIntegration = (() => {
 
           const profile = takeProfileFromGlobalCache(profile_id);
           if (!profile) {
-            DEBUG_BUILD && logger.log(`[Profiling] Could not retrieve profile for span: ${profile_id}`);
+            DEBUG_BUILD && debug.log(`[Profiling] Could not retrieve profile for span: ${profile_id}`);
             continue;
           }
 

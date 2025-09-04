@@ -15,6 +15,7 @@ import {
 import { getAsyncContextStrategy } from '../../../src/asyncContext';
 import { freezeDscOnSpan } from '../../../src/tracing/dynamicSamplingContext';
 import type { Span } from '../../../src/types-hoist/span';
+import { _sentryTraceToTraceParentHeader } from '../../../src/utils/traceData';
 import type { TestClientOptions } from '../../mocks/client';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
 
@@ -310,5 +311,72 @@ describe('getTraceData', () => {
     const traceData = getTraceData();
 
     expect(traceData).toEqual({});
+  });
+
+  it('returns traceparent from span if propagateTraceparent is true', () => {
+    setupClient();
+
+    const span = new SentrySpan({
+      traceId: '12345678901234567890123456789012',
+      spanId: '1234567890123456',
+      sampled: true,
+    });
+
+    withActiveSpan(span, () => {
+      const data = getTraceData({ propagateTraceparent: true });
+
+      expect(data).toEqual({
+        'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
+        baggage:
+          'sentry-environment=production,sentry-public_key=123,sentry-trace_id=12345678901234567890123456789012,sentry-sampled=true',
+        traceparent: '00-12345678901234567890123456789012-1234567890123456-01',
+      });
+    });
+  });
+
+  it('returns traceparent from scope in TwP config if propagateTraceparent is true', () => {
+    setupClient();
+
+    getCurrentScope().setPropagationContext({
+      traceId: '12345678901234567890123456789099',
+      sampled: undefined,
+      sampleRand: 0.44,
+    });
+
+    const traceData = getTraceData({ propagateTraceparent: true });
+
+    expect(traceData.traceparent).toBeDefined();
+    expect(traceData.traceparent).toMatch(/00-12345678901234567890123456789099-[0-9a-f]{16}-00/);
+  });
+});
+
+describe('_sentryTraceToTraceParentHeader', () => {
+  it('returns positively sampled traceparent header for sentry-trace with positive sampling decision', () => {
+    const traceparent = _sentryTraceToTraceParentHeader('12345678901234567890123456789012-1234567890123456-1');
+    expect(traceparent).toBe('00-12345678901234567890123456789012-1234567890123456-01');
+  });
+
+  it('returns negatively sampled traceparent header for sentry-trace with negative sampling decision', () => {
+    const traceparent = _sentryTraceToTraceParentHeader('12345678901234567890123456789012-1234567890123456-0');
+    expect(traceparent).toBe('00-12345678901234567890123456789012-1234567890123456-00');
+  });
+
+  it('returns negatively sampled traceparent header for sentry-trace with no/deferred sampling decision', () => {
+    const traceparent = _sentryTraceToTraceParentHeader('12345678901234567890123456789012-1234567890123456');
+    expect(traceparent).toBe('00-12345678901234567890123456789012-1234567890123456-00');
+  });
+
+  it.each([
+    '12345678901234567890123456789012--0',
+    '-12345678901234567890123456789012-0',
+    '--1',
+    '0',
+    '1',
+    '',
+    '00-12345678901234567890123456789012-1234567890123456-01',
+    '00-12345678901234567890123456789012-1234567890123456-00',
+  ])('returns undefined if the sentry-trace header is invalid (%s)', sentryTrace => {
+    const traceparent = _sentryTraceToTraceParentHeader(sentryTrace);
+    expect(traceparent).toBeUndefined();
   });
 });

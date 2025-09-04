@@ -53,7 +53,6 @@ export {
   getTraceMetaTags,
   graphqlIntegration,
   hapiIntegration,
-  httpIntegration,
   // eslint-disable-next-line deprecation/deprecation
   inboundFiltersIntegration,
   eventFiltersIntegration,
@@ -113,6 +112,7 @@ export {
   startSession,
   startSpan,
   startSpanManual,
+  systemErrorIntegration,
   tediousIntegration,
   trpcMiddleware,
   updateSpanName,
@@ -140,6 +140,7 @@ export { wrapLoadWithSentry, wrapServerLoadWithSentry } from '../server-common/l
 export { sentryHandle } from '../server-common/handle';
 export { initCloudflareSentryHandle } from './handle';
 export { wrapServerRouteWithSentry } from '../server-common/serverRoute';
+export { httpIntegration } from './integrations/http';
 
 /**
  * Tracks the Svelte component's initialization and mounting operation as well as

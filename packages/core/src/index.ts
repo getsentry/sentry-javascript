@@ -49,11 +49,7 @@ export { Scope } from './scope';
 export type { CaptureContext, ScopeContext, ScopeData } from './scope';
 export { notifyEventProcessors } from './eventProcessors';
 export { getEnvelopeEndpointWithUrlEncodedAuth, getReportDialogEndpoint } from './api';
-export {
-  Client,
-  // eslint-disable-next-line deprecation/deprecation
-  BaseClient,
-} from './client';
+export { Client } from './client';
 export { ServerRuntimeClient } from './server-runtime-client';
 export { initAndBind, setCurrentClient } from './sdk';
 export { createTransport } from './transports/base';
@@ -63,13 +59,14 @@ export { getIntegrationsToSetup, addIntegration, defineIntegration } from './int
 export { applyScopeDataToEvent, mergeScopeData } from './utils/applyScopeDataToEvent';
 export { prepareEvent } from './utils/prepareEvent';
 export { createCheckInEnvelope } from './checkin';
-// eslint-disable-next-line deprecation/deprecation
-export { hasTracingEnabled } from './utils/hasSpansEnabled';
 export { hasSpansEnabled } from './utils/hasSpansEnabled';
 export { isSentryRequestUrl } from './utils/isSentryRequestUrl';
 export { handleCallbackErrors } from './utils/handleCallbackErrors';
 export { parameterize, fmt } from './utils/parameterize';
-export { addAutoIpAddressToSession, addAutoIpAddressToUser } from './utils/ipAddress';
+
+export { addAutoIpAddressToSession } from './utils/ipAddress';
+// eslint-disable-next-line deprecation/deprecation
+export { addAutoIpAddressToUser } from './utils/ipAddress';
 export {
   convertSpanLinksForEnvelope,
   spanToTraceHeader,
@@ -116,16 +113,26 @@ export { consoleIntegration } from './integrations/console';
 export { featureFlagsIntegration, type FeatureFlagsIntegration } from './integrations/featureFlags';
 
 export { profiler } from './profiling';
+// eslint thinks the entire function is deprecated (while only one overload is actually deprecated)
+// Therefore:
+// eslint-disable-next-line deprecation/deprecation
 export { instrumentFetchRequest } from './fetch';
 export { trpcMiddleware } from './trpc';
-export { wrapMcpServerWithSentry } from './mcp-server';
+export { wrapMcpServerWithSentry } from './integrations/mcp-server';
 export { captureFeedback } from './feedback';
 export type { ReportDialogOptions } from './report-dialog';
 export { _INTERNAL_captureLog, _INTERNAL_flushLogsBuffer, _INTERNAL_captureSerializedLog } from './logs/exports';
 export { consoleLoggingIntegration } from './logs/console-integration';
 export { addVercelAiProcessors } from './utils/vercel-ai';
-
+export { _INTERNAL_getSpanForToolCallId, _INTERNAL_cleanupToolCallSpan } from './utils/vercel-ai/utils';
+export { instrumentOpenAiClient } from './utils/openai';
+export { OPENAI_INTEGRATION_NAME } from './utils/openai/constants';
+export { instrumentAnthropicAiClient } from './utils/anthropic-ai';
+export { ANTHROPIC_AI_INTEGRATION_NAME } from './utils/anthropic-ai/constants';
+export type { OpenAiClient, OpenAiOptions, InstrumentedMethod } from './utils/openai/types';
+export type { AnthropicAiClient, AnthropicAiOptions, AnthropicAiInstrumentedMethod } from './utils/anthropic-ai/types';
 export type { FeatureFlag } from './utils/featureFlags';
+
 export {
   _INTERNAL_copyFlagsFromScopeToEvent,
   _INTERNAL_insertFlagToScope,
@@ -165,8 +172,8 @@ export {
   isVueViewModel,
 } from './utils/is';
 export { isBrowser } from './utils/isBrowser';
-export { CONSOLE_LEVELS, consoleSandbox, debug, logger, originalConsoleMethods } from './utils/logger';
-export type { Logger } from './utils/logger';
+export { CONSOLE_LEVELS, consoleSandbox, debug, originalConsoleMethods } from './utils/debug-logger';
+export type { SentryDebugLogger } from './utils/debug-logger';
 export {
   addContextToFrame,
   addExceptionMechanism,
@@ -223,6 +230,7 @@ export {
   extractTraceparentData,
   generateSentryTraceHeader,
   propagationContextFromHeaders,
+  shouldContinueTrace,
 } from './utils/tracing';
 export { getSDKSource, isBrowserBundle } from './utils/env';
 export type { SdkSource } from './utils/env';
@@ -271,6 +279,7 @@ export { callFrameToStackFrame, watchdogTimer } from './utils/anr';
 export { LRUMap } from './utils/lru';
 export { generateTraceId, generateSpanId } from './utils/propagationContext';
 export { vercelWaitUntil } from './utils/vercelWaitUntil';
+export { flushIfServerless } from './utils/flushIfServerless';
 export { SDK_VERSION } from './utils/version';
 export { getDebugImagesForResources, getFilenameToDebugIdMap } from './utils/debug-ids';
 export { escapeStringForRegex } from './vendor/escapeStringForRegex';
@@ -336,7 +345,7 @@ export type { Extra, Extras } from './types-hoist/extra';
 export type { Integration, IntegrationFn } from './types-hoist/integration';
 export type { Mechanism } from './types-hoist/mechanism';
 export type { ExtractedNodeRequestData, HttpHeaderValue, Primitive, WorkerLocation } from './types-hoist/misc';
-export type { ClientOptions, Options } from './types-hoist/options';
+export type { ClientOptions, CoreOptions as Options } from './types-hoist/options';
 export type { Package } from './types-hoist/package';
 export type { PolymorphicEvent, PolymorphicRequest } from './types-hoist/polymorphics';
 export type {
@@ -440,3 +449,9 @@ export type { ContinuousProfiler, ProfilingIntegration, Profiler } from './types
 export type { ViewHierarchyData, ViewHierarchyWindow } from './types-hoist/view-hierarchy';
 export type { LegacyCSPReport } from './types-hoist/csp';
 export type { SerializedLog, SerializedLogContainer } from './types-hoist/log';
+export type {
+  BuildTimeOptionsBase,
+  UnstableVitePluginOptions,
+  UnstableRollupPluginOptions,
+  UnstableWebpackPluginOptions,
+} from './build-time-plugins/buildTimeOptionsBase';

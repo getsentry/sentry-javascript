@@ -1,3 +1,4 @@
+import { parseSemver } from '@sentry/core';
 import * as fs from 'fs';
 import { sync as resolveSync } from 'resolve';
 
@@ -26,4 +27,40 @@ function resolveNextjsPackageJson(): string | undefined {
   } catch {
     return undefined;
   }
+}
+
+/**
+ * Checks if the current Next.js version supports the runAfterProductionCompile hook.
+ * This hook was introduced in Next.js 15.4.1. (https://github.com/vercel/next.js/pull/77345)
+ *
+ * @returns true if Next.js version is 15.4.1 or higher
+ */
+export function supportsProductionCompileHook(): boolean {
+  const version = getNextjsVersion();
+  if (!version) {
+    return false;
+  }
+
+  const { major, minor, patch } = parseSemver(version);
+
+  if (major === undefined || minor === undefined || patch === undefined) {
+    return false;
+  }
+
+  if (major > 15) {
+    return true;
+  }
+
+  // For major version 15, check if it's 15.4.1 or higher
+  if (major === 15) {
+    if (minor > 4) {
+      return true;
+    }
+    if (minor === 4 && patch >= 1) {
+      return true;
+    }
+    return false;
+  }
+
+  return false;
 }

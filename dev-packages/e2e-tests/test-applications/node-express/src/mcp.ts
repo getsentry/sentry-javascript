@@ -55,7 +55,7 @@ mcpRouter.post('/messages', async (req, res) => {
   const sessionId = req.query.sessionId;
   const transport = transports[sessionId as string];
   if (transport) {
-    await transport.handlePostMessage(req, res);
+    await transport.handlePostMessage(req, res, req.body);
   } else {
     res.status(400).send('No transport found for sessionId');
   }

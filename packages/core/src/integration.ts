@@ -3,8 +3,8 @@ import { getClient } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
 import type { Event, EventHint } from './types-hoist/event';
 import type { Integration, IntegrationFn } from './types-hoist/integration';
-import type { Options } from './types-hoist/options';
-import { debug } from './utils/logger';
+import type { CoreOptions } from './types-hoist/options';
+import { debug } from './utils/debug-logger';
 
 export const installedIntegrations: string[] = [];
 
@@ -42,7 +42,9 @@ function filterDuplicates(integrations: Integration[]): Integration[] {
 }
 
 /** Gets integrations to install */
-export function getIntegrationsToSetup(options: Pick<Options, 'defaultIntegrations' | 'integrations'>): Integration[] {
+export function getIntegrationsToSetup(
+  options: Pick<CoreOptions, 'defaultIntegrations' | 'integrations'>,
+): Integration[] {
   const defaultIntegrations = options.defaultIntegrations || [];
   const userIntegrations = options.integrations;
 

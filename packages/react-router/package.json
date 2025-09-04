@@ -1,6 +1,6 @@
 {
   "name": "@sentry/react-router",
-  "version": "9.38.0",
+  "version": "10.9.0",
   "description": "Official Sentry SDK for React Router (Framework)",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/react-router",
@@ -27,7 +27,18 @@
       "node": {
         "import": "./build/esm/index.server.js",
         "require": "./build/cjs/index.server.js"
+      },
+      "worker": {
+        "import": "./build/esm/cloudflare/index.js",
+        "require": "./build/cjs/cloudflare/index.js",
+        "default": "./build/esm/cloudflare/index.js"
       }
+    },
+    "./cloudflare": {
+      "import": "./build/esm/cloudflare/index.js",
+      "require": "./build/cjs/cloudflare/index.js",
+      "types": "./build/types/cloudflare/index.d.ts",
+      "default": "./build/esm/cloudflare/index.js"
     }
   },
   "publishConfig": {
@@ -35,15 +46,15 @@
   },
   "dependencies": {
     "@opentelemetry/api": "^1.9.0",
-    "@opentelemetry/core": "^1.30.1",
-    "@opentelemetry/instrumentation": "0.57.2",
+    "@opentelemetry/core": "^2.0.0",
+    "@opentelemetry/instrumentation": "^0.203.0",
     "@opentelemetry/semantic-conventions": "^1.34.0",
-    "@sentry/browser": "9.38.0",
-    "@sentry/cli": "^2.46.0",
-    "@sentry/core": "9.38.0",
-    "@sentry/node": "9.38.0",
-    "@sentry/react": "9.38.0",
-    "@sentry/vite-plugin": "^3.5.0",
+    "@sentry/browser": "10.9.0",
+    "@sentry/cli": "^2.52.0",
+    "@sentry/core": "10.9.0",
+    "@sentry/node": "10.9.0",
+    "@sentry/react": "10.9.0",
+    "@sentry/vite-plugin": "^4.1.0",
     "glob": "11.0.1"
   },
   "devDependencies": {

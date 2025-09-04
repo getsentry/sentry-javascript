@@ -4,8 +4,8 @@ import type { Contexts } from '../types-hoist/context';
 import type { ExtendedError } from '../types-hoist/error';
 import type { Event, EventHint } from '../types-hoist/event';
 import type { IntegrationFn } from '../types-hoist/integration';
+import { debug } from '../utils/debug-logger';
 import { isError, isPlainObject } from '../utils/is';
-import { debug } from '../utils/logger';
 import { normalize } from '../utils/normalize';
 import { addNonEnumerableProperty } from '../utils/object';
 import { truncate } from '../utils/string';
@@ -115,7 +115,12 @@ function _extractErrorData(
     // Error.cause is a standard property that is non enumerable, we therefore need to access it separately.
     // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Error/cause
     if (captureErrorCause && error.cause !== undefined) {
-      extraErrorInfo.cause = isError(error.cause) ? error.cause.toString() : error.cause;
+      if (isError(error.cause)) {
+        const errorName = error.cause.name || error.cause.constructor.name;
+        extraErrorInfo.cause = { [errorName]: _extractErrorData(error.cause as ExtendedError, false, maxValueLength) };
+      } else {
+        extraErrorInfo.cause = error.cause;
+      }
     }
 
     // Check if someone attached `toJSON` method to grab even more properties (eg. axios is doing that)

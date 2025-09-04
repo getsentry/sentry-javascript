@@ -32,7 +32,6 @@ export class SentryNonRecordingSpan implements Span {
   }
 
   /** @inheritdoc */
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
   public end(_timestamp?: SpanTimeInput): void {}
 
   /** @inheritdoc */

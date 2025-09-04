@@ -2,20 +2,24 @@ import type { Span } from '@sentry/core';
 import {
   continueTrace,
   debug,
+  flushIfServerless,
   getCurrentScope,
   getDefaultIsolationScope,
   getIsolationScope,
   getTraceMetaTags,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setHttpStatus,
+  spanToJSON,
   startSpan,
+  updateSpanName,
   winterCGRequestToRequestData,
   withIsolationScope,
 } from '@sentry/core';
 import type { Handle, ResolveOptions } from '@sveltejs/kit';
 import { DEBUG_BUILD } from '../common/debug-build';
-import { flushIfServerless, getTracePropagationData, sendErrorToSentry } from './utils';
+import { getTracePropagationData, sendErrorToSentry } from './utils';
 
 export type SentryHandleOptions = {
   /**
@@ -87,11 +91,33 @@ export function isFetchProxyRequired(version: string): boolean {
   return true;
 }
 
+interface BackwardsForwardsCompatibleEvent {
+  /**
+   * For now taken from: https://github.com/sveltejs/kit/pull/13899
+   * Access to spans for tracing. If tracing is not enabled or the function is being run in the browser, these spans will do nothing.
+   * @since 2.31.0
+   */
+  tracing?: {
+    /** Whether tracing is enabled. */
+    enabled: boolean;
+    current: Span;
+    root: Span;
+  };
+}
+
 async function instrumentHandle(
-  { event, resolve }: Parameters<Handle>[0],
+  {
+    event,
+    resolve,
+  }: {
+    event: Parameters<Handle>[0]['event'] & BackwardsForwardsCompatibleEvent;
+    resolve: Parameters<Handle>[0]['resolve'];
+  },
   options: SentryHandleOptions,
 ): Promise<Response> {
-  if (!event.route?.id && !options.handleUnknownRoutes) {
+  const routeId = event.route?.id;
+
+  if (!routeId && !options.handleUnknownRoutes) {
     return resolve(event);
   }
 
@@ -107,7 +133,7 @@ async function instrumentHandle(
     }
   }
 
-  const routeName = `${event.request.method} ${event.route?.id || event.url.pathname}`;
+  const routeName = `${event.request.method} ${routeId || event.url.pathname}`;
 
   if (getIsolationScope() !== getDefaultIsolationScope()) {
     getIsolationScope().setTransactionName(routeName);
@@ -115,34 +141,72 @@ async function instrumentHandle(
     DEBUG_BUILD && debug.warn('Isolation scope is default isolation scope - skipping setting transactionName');
   }
 
+  // We only start a span if SvelteKit's native tracing is not enabled. Two reasons:
+  // - Used Kit version doesn't yet support tracing
+  // - Users didn't enable tracing
+  const kitTracingEnabled = event.tracing?.enabled;
+
   try {
-    const resolveResult = await startSpan(
-      {
-        op: 'http.server',
-        attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.sveltekit',
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: event.route?.id ? 'route' : 'url',
-          'http.method': event.request.method,
-        },
-        name: routeName,
-      },
-      async (span?: Span) => {
-        getCurrentScope().setSDKProcessingMetadata({
-          // We specifically avoid cloning the request here to avoid double read errors.
-          // We only read request headers so we're not consuming the body anyway.
-          // Note to future readers: This sounds counter-intuitive but please read
-          // https://github.com/getsentry/sentry-javascript/issues/14583
-          normalizedRequest: winterCGRequestToRequestData(event.request),
-        });
-        const res = await resolve(event, {
-          transformPageChunk: addSentryCodeToPage({ injectFetchProxyScript: options.injectFetchProxyScript ?? true }),
-        });
-        if (span) {
-          setHttpStatus(span, res.status);
+    const resolveWithSentry: (sentrySpan?: Span) => Promise<Response> = async (sentrySpan?: Span) => {
+      getCurrentScope().setSDKProcessingMetadata({
+        // We specifically avoid cloning the request here to avoid double read errors.
+        // We only read request headers so we're not consuming the body anyway.
+        // Note to future readers: This sounds counter-intuitive but please read
+        // https://github.com/getsentry/sentry-javascript/issues/14583
+        normalizedRequest: winterCGRequestToRequestData(event.request),
+      });
+      const kitRootSpan = event.tracing?.enabled ? event.tracing?.root : undefined;
+
+      if (kitRootSpan) {
+        // Update the root span emitted from SvelteKit to resemble a `http.server` span
+        // We're doing this here instead of an event processor to ensure we update the
+        // span name as early as possible (for dynamic sampling, et al.)
+        // Other spans are enhanced in the `processKitSpans` integration.
+        const spanJson = spanToJSON(kitRootSpan);
+        const kitRootSpanAttributes = spanJson.data;
+        const originalName = spanJson.description;
+
+        const routeName = kitRootSpanAttributes['http.route'];
+        if (routeName && typeof routeName === 'string') {
+          updateSpanName(kitRootSpan, `${event.request.method ?? 'GET'} ${routeName}`);
         }
-        return res;
-      },
-    );
+
+        kitRootSpan.setAttributes({
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.sveltekit',
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: routeName ? 'route' : 'url',
+          'sveltekit.tracing.original_name': originalName,
+        });
+      }
+
+      const res = await resolve(event, {
+        transformPageChunk: addSentryCodeToPage({
+          injectFetchProxyScript: options.injectFetchProxyScript ?? true,
+        }),
+      });
+
+      if (sentrySpan) {
+        setHttpStatus(sentrySpan, res.status);
+      }
+
+      return res;
+    };
+
+    const resolveResult = kitTracingEnabled
+      ? await resolveWithSentry()
+      : await startSpan(
+          {
+            op: 'http.server',
+            attributes: {
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.sveltekit',
+              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: routeId ? 'route' : 'url',
+              'http.method': event.request.method,
+            },
+            name: routeName,
+          },
+          resolveWithSentry,
+        );
+
     return resolveResult;
   } catch (e: unknown) {
     sendErrorToSentry(e, 'handle');
@@ -175,9 +239,12 @@ export function sentryHandle(handlerOptions?: SentryHandleOptions): Handle {
   };
 
   const sentryRequestHandler: Handle = input => {
+    const backwardsForwardsCompatibleEvent = input.event as typeof input.event & BackwardsForwardsCompatibleEvent;
+
     // Escape hatch to suppress request isolation and trace continuation (see initCloudflareSentryHandle)
     const skipIsolation =
-      '_sentrySkipRequestIsolation' in input.event.locals && input.event.locals._sentrySkipRequestIsolation;
+      '_sentrySkipRequestIsolation' in backwardsForwardsCompatibleEvent.locals &&
+      backwardsForwardsCompatibleEvent.locals._sentrySkipRequestIsolation;
 
     // In case of a same-origin `fetch` call within a server`load` function,
     // SvelteKit will actually just re-enter the `handle` function and set `isSubRequest`
@@ -186,7 +253,9 @@ export function sentryHandle(handlerOptions?: SentryHandleOptions): Handle {
     // currently active span instead of a new root span to correctly reflect this
     // behavior.
     if (skipIsolation || input.event.isSubRequest) {
-      return instrumentHandle(input, options);
+      return instrumentHandle(input, {
+        ...options,
+      });
     }
 
     return withIsolationScope(isolationScope => {
@@ -199,6 +268,13 @@ export function sentryHandle(handlerOptions?: SentryHandleOptions): Handle {
         // https://github.com/getsentry/sentry-javascript/issues/14583
         normalizedRequest: winterCGRequestToRequestData(input.event.request),
       });
+
+      if (backwardsForwardsCompatibleEvent.tracing?.enabled) {
+        // if sveltekit tracing is enabled (since 2.31.0), trace continuation is handled by
+        // kit before our hook is executed. No noeed to call `continueTrace` from our end
+        return instrumentHandle(input, options);
+      }
+
       return continueTrace(getTracePropagationData(input.event), () => instrumentHandle(input, options));
     });
   };

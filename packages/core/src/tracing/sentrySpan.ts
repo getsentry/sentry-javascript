@@ -25,7 +25,7 @@ import type {
 import type { SpanStatus } from '../types-hoist/spanStatus';
 import type { TimedEvent } from '../types-hoist/timedEvent';
 import type { TransactionSource } from '../types-hoist/transaction';
-import { debug } from '../utils/logger';
+import { debug } from '../utils/debug-logger';
 import { generateSpanId, generateTraceId } from '../utils/propagationContext';
 import {
   convertSpanLinksForEnvelope,

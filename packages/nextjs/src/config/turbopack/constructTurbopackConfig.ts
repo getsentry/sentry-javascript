@@ -1,8 +1,8 @@
-import { logger } from '@sentry/core';
+import { debug } from '@sentry/core';
 import * as chalk from 'chalk';
-import * as path from 'path';
 import type { RouteManifest } from '../manifest/types';
-import type { NextConfigObject, TurbopackOptions, TurbopackRuleConfigItemOrShortcut } from '../types';
+import type { NextConfigObject, TurbopackMatcherWithRule, TurbopackOptions } from '../types';
+import { generateValueInjectionRules } from './generateValueInjectionRules';
 
 /**
  * Construct a Turbopack config object from a Next.js config object and a Turbopack options object.
@@ -14,30 +14,23 @@ import type { NextConfigObject, TurbopackOptions, TurbopackRuleConfigItemOrShort
 export function constructTurbopackConfig({
   userNextConfig,
   routeManifest,
+  nextJsVersion,
 }: {
   userNextConfig: NextConfigObject;
   routeManifest?: RouteManifest;
+  nextJsVersion?: string;
 }): TurbopackOptions {
   const newConfig: TurbopackOptions = {
     ...userNextConfig.turbopack,
   };
 
-  if (routeManifest) {
-    newConfig.rules = safelyAddTurbopackRule(newConfig.rules, {
-      matcher: '**/instrumentation-client.*',
-      rule: {
-        loaders: [
-          {
-            loader: path.resolve(__dirname, '..', 'loaders', 'valueInjectionLoader.js'),
-            options: {
-              values: {
-                _sentryRouteManifest: JSON.stringify(routeManifest),
-              },
-            },
-          },
-        ],
-      },
-    });
+  const valueInjectionRules = generateValueInjectionRules({
+    routeManifest,
+    nextJsVersion,
+  });
+
+  for (const { matcher, rule } of valueInjectionRules) {
+    newConfig.rules = safelyAddTurbopackRule(newConfig.rules, { matcher, rule });
   }
 
   return newConfig;
@@ -53,7 +46,7 @@ export function constructTurbopackConfig({
  */
 export function safelyAddTurbopackRule(
   existingRules: TurbopackOptions['rules'],
-  { matcher, rule }: { matcher: string; rule: TurbopackRuleConfigItemOrShortcut },
+  { matcher, rule }: TurbopackMatcherWithRule,
 ): TurbopackOptions['rules'] {
   if (!existingRules) {
     return {
@@ -63,7 +56,7 @@ export function safelyAddTurbopackRule(
 
   // If the rule already exists, we don't want to mess with it.
   if (existingRules[matcher]) {
-    logger.info(
+    debug.log(
       `${chalk.cyan(
         'info',
       )} - Turbopack rule already exists for ${matcher}. Please remove it from your Next.js config in order for Sentry to work properly.`,

@@ -23,13 +23,13 @@ export function createStackParser(...parsers: StackLineParser[]): StackParser {
     const lines = stack.split('\n');
 
     for (let i = skipFirstLines; i < lines.length; i++) {
-      const line = lines[i] as string;
-      // Ignore lines over 1kb as they are unlikely to be stack frames.
-      // Many of the regular expressions use backtracking which results in run time that increases exponentially with
-      // input size. Huge strings can result in hangs/Denial of Service:
+      let line = lines[i] as string;
+      // Truncate lines over 1kb because many of the regular expressions use
+      // backtracking which results in run time that increases exponentially
+      // with input size. Huge strings can result in hangs/Denial of Service:
       // https://github.com/getsentry/sentry-javascript/issues/2286
       if (line.length > 1024) {
-        continue;
+        line = line.slice(0, 1024);
       }
 
       // https://github.com/getsentry/sentry-javascript/issues/5459
@@ -133,7 +133,7 @@ export function getFunctionName(fn: unknown): string {
       return defaultFunctionName;
     }
     return fn.name || defaultFunctionName;
-  } catch (e) {
+  } catch {
     // Just accessing custom props in some Selenium environments
     // can cause a "Permission denied" exception (see raven-js#495).
     return defaultFunctionName;
@@ -158,7 +158,7 @@ export function getFramesFromEvent(event: Event): StackFrame[] | undefined {
         }
       });
       return frames;
-    } catch (_oO) {
+    } catch {
       return undefined;
     }
   }

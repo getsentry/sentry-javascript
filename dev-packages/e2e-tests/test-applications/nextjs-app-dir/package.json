@@ -1,5 +1,5 @@
 {
-  "name": "create-next-app",
+  "name": "nextjs-app-dir",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -36,17 +36,17 @@
   "sentryTest": {
     "variants": [
       {
-        "build-command": "test:build-13",
+        "build-command": "pnpm test:build-13",
         "label": "nextjs-app-dir (next@13)"
       }
     ],
     "optionalVariants": [
       {
-        "build-command": "test:build-canary",
+        "build-command": "pnpm test:build-canary",
         "label": "nextjs-app-dir (canary)"
       },
       {
-        "build-command": "test:build-latest",
+        "build-command": "pnpm test:build-latest",
         "label": "nextjs-app-dir (latest)"
       }
     ]

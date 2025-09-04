@@ -15,7 +15,7 @@ sentryTest('should capture a random Event with type unhandledrejection', async (
     type: 'Event',
     value: 'Event `Event` (type=unhandledrejection) captured as promise rejection',
     mechanism: {
-      type: 'onunhandledrejection',
+      type: 'auto.browser.global_handlers.onunhandledrejection',
       handled: false,
     },
   });

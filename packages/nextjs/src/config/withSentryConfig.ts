@@ -5,6 +5,7 @@ import { getSentryRelease } from '@sentry/node';
 import * as childProcess from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
+import { handleRunAfterProductionCompile } from './handleRunAfterProductionCompile';
 import { createRouteManifest } from './manifest/createRouteManifest';
 import type { RouteManifest } from './manifest/types';
 import { constructTurbopackConfig } from './turbopack';
@@ -14,7 +15,7 @@ import type {
   NextConfigObject,
   SentryBuildOptions,
 } from './types';
-import { getNextjsVersion } from './util';
+import { getNextjsVersion, supportsProductionCompileHook } from './util';
 import { constructWebpackConfigFunction } from './webpack';
 
 let showedExportModeTunnelWarning = false;
@@ -101,7 +102,7 @@ function getFinalConfigObject(
   // This prevents injection of Git commit hashes that break build determinism
   const shouldCreateRelease = userSentryOptions.release?.create !== false;
   const releaseName = shouldCreateRelease
-    ? userSentryOptions.release?.name ?? getSentryRelease() ?? getGitRevision()
+    ? (userSentryOptions.release?.name ?? getSentryRelease() ?? getGitRevision())
     : userSentryOptions.release?.name;
 
   if (userSentryOptions?.tunnelRoute) {
@@ -293,6 +294,59 @@ function getFinalConfigObject(
     }
   }
 
+  if (userSentryOptions?._experimental?.useRunAfterProductionCompileHook === true && supportsProductionCompileHook()) {
+    if (incomingUserNextConfigObject?.compiler?.runAfterProductionCompile === undefined) {
+      incomingUserNextConfigObject.compiler ??= {};
+      incomingUserNextConfigObject.compiler.runAfterProductionCompile = async ({ distDir }) => {
+        await handleRunAfterProductionCompile(
+          { releaseName, distDir, buildTool: isTurbopack ? 'turbopack' : 'webpack' },
+          userSentryOptions,
+        );
+      };
+    } else if (typeof incomingUserNextConfigObject.compiler.runAfterProductionCompile === 'function') {
+      incomingUserNextConfigObject.compiler.runAfterProductionCompile = new Proxy(
+        incomingUserNextConfigObject.compiler.runAfterProductionCompile,
+        {
+          async apply(target, thisArg, argArray) {
+            const { distDir }: { distDir: string } = argArray[0] ?? { distDir: '.next' };
+            await target.apply(thisArg, argArray);
+            await handleRunAfterProductionCompile(
+              { releaseName, distDir, buildTool: isTurbopack ? 'turbopack' : 'webpack' },
+              userSentryOptions,
+            );
+          },
+        },
+      );
+    } else {
+      // eslint-disable-next-line no-console
+      console.warn(
+        '[@sentry/nextjs] The configured `compiler.runAfterProductionCompile` option is not a function. Will not run source map and release management logic.',
+      );
+    }
+  }
+
+  // Enable source maps for turbopack builds
+  if (isTurbopackSupported && isTurbopack && !userSentryOptions.sourcemaps?.disable) {
+    // Only set if not already configured by user
+    if (incomingUserNextConfigObject.productionBrowserSourceMaps === undefined) {
+      // eslint-disable-next-line no-console
+      console.log('[@sentry/nextjs] Automatically enabling browser source map generation for turbopack build.');
+      incomingUserNextConfigObject.productionBrowserSourceMaps = true;
+
+      // Enable source map deletion if not explicitly disabled
+      if (userSentryOptions.sourcemaps?.deleteSourcemapsAfterUpload === undefined) {
+        // eslint-disable-next-line no-console
+        console.warn(
+          '[@sentry/nextjs] Source maps will be automatically deleted after being uploaded to Sentry. If you want to keep the source maps, set the `sourcemaps.deleteSourcemapsAfterUpload` option to false in `withSentryConfig()`. If you do not want to generate and upload sourcemaps at all, set the `sourcemaps.disable` option to true.',
+        );
+        userSentryOptions.sourcemaps = {
+          ...userSentryOptions.sourcemaps,
+          deleteSourcemapsAfterUpload: true,
+        };
+      }
+    }
+  }
+
   return {
     ...incomingUserNextConfigObject,
     ...(nextMajor && nextMajor >= 15
@@ -314,12 +368,19 @@ function getFinalConfigObject(
     webpack:
       isTurbopack || userSentryOptions.disableSentryWebpackConfig
         ? incomingUserNextConfigObject.webpack // just return the original webpack config
-        : constructWebpackConfigFunction(incomingUserNextConfigObject, userSentryOptions, releaseName, routeManifest),
+        : constructWebpackConfigFunction(
+            incomingUserNextConfigObject,
+            userSentryOptions,
+            releaseName,
+            routeManifest,
+            nextJsVersion,
+          ),
     ...(isTurbopackSupported && isTurbopack
       ? {
           turbopack: constructTurbopackConfig({
             userNextConfig: incomingUserNextConfigObject,
             routeManifest,
+            nextJsVersion,
           }),
         }
       : {}),
@@ -470,7 +531,7 @@ function getGitRevision(): string | undefined {
       .execSync('git rev-parse HEAD', { stdio: ['ignore', 'pipe', 'ignore'] })
       .toString()
       .trim();
-  } catch (e) {
+  } catch {
     // noop
   }
   return gitRevision;

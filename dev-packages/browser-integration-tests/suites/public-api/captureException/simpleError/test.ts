@@ -39,5 +39,8 @@ sentryTest('should capture correct SDK metadata', async ({ getLocalTestUrl, page
         version: SDK_VERSION,
       },
     ],
+    settings: {
+      infer_ip: 'never',
+    },
   });
 });

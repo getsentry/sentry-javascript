@@ -24,6 +24,7 @@ import {
   addXhrInstrumentationHandler,
   SENTRY_XHR_DATA_KEY,
 } from '@sentry-internal/browser-utils';
+import type { BrowserClient } from '../client';
 import { WINDOW } from '../helpers';
 import { resourceTimingToSpanAttributes } from './resource-timing';
 
@@ -136,6 +137,8 @@ export function instrumentOutgoingRequests(client: Client, _options?: Partial<Re
 
   const spans: Record<string, Span> = {};
 
+  const propagateTraceparent = (client as BrowserClient).getOptions().propagateTraceparent;
+
   if (traceFetch) {
     // Keeping track of http requests, whose body payloads resolved later than the initial resolved request
     // e.g. streaming using server sent events (SSE)
@@ -166,7 +169,9 @@ export function instrumentOutgoingRequests(client: Client, _options?: Partial<Re
     }
 
     addFetchInstrumentationHandler(handlerData => {
-      const createdSpan = instrumentFetchRequest(handlerData, shouldCreateSpan, shouldAttachHeadersWithTargets, spans);
+      const createdSpan = instrumentFetchRequest(handlerData, shouldCreateSpan, shouldAttachHeadersWithTargets, spans, {
+        propagateTraceparent,
+      });
 
       if (handlerData.response && handlerData.fetchData.__span) {
         responseToSpanId.set(handlerData.response, handlerData.fetchData.__span);
@@ -194,7 +199,14 @@ export function instrumentOutgoingRequests(client: Client, _options?: Partial<Re
 
   if (traceXHR) {
     addXhrInstrumentationHandler(handlerData => {
-      const createdSpan = xhrCallback(handlerData, shouldCreateSpan, shouldAttachHeadersWithTargets, spans);
+      const createdSpan = xhrCallback(
+        handlerData,
+        shouldCreateSpan,
+        shouldAttachHeadersWithTargets,
+        spans,
+        propagateTraceparent,
+      );
+
       if (createdSpan) {
         if (enableHTTPTimings) {
           addHTTPTimings(createdSpan);
@@ -277,7 +289,7 @@ export function shouldAttachHeaders(
     try {
       resolvedUrl = new URL(targetUrl, href);
       currentOrigin = new URL(href).origin;
-    } catch (e) {
+    } catch {
       return false;
     }
 
@@ -298,11 +310,12 @@ export function shouldAttachHeaders(
  *
  * @returns Span if a span was created, otherwise void.
  */
-export function xhrCallback(
+function xhrCallback(
   handlerData: HandlerDataXhr,
   shouldCreateSpan: (url: string) => boolean,
   shouldAttachHeaders: (url: string) => boolean,
   spans: Record<string, Span>,
+  propagateTraceparent?: boolean,
 ): Span | undefined {
   const xhr = handlerData.xhr;
   const sentryXhrData = xhr?.[SENTRY_XHR_DATA_KEY];
@@ -366,6 +379,7 @@ export function xhrCallback(
       // we do not want to use the span as base for the trace headers,
       // which means that the headers will be generated from the scope and the sampling decision is deferred
       hasSpansEnabled() && hasParent ? span : undefined,
+      propagateTraceparent,
     );
   }
 
@@ -377,11 +391,15 @@ export function xhrCallback(
   return span;
 }
 
-function addTracingHeadersToXhrRequest(xhr: SentryWrappedXMLHttpRequest, span?: Span): void {
-  const { 'sentry-trace': sentryTrace, baggage } = getTraceData({ span });
+function addTracingHeadersToXhrRequest(
+  xhr: SentryWrappedXMLHttpRequest,
+  span?: Span,
+  propagateTraceparent?: boolean,
+): void {
+  const { 'sentry-trace': sentryTrace, baggage, traceparent } = getTraceData({ span, propagateTraceparent });
 
   if (sentryTrace) {
-    setHeaderOnXhr(xhr, sentryTrace, baggage);
+    setHeaderOnXhr(xhr, sentryTrace, baggage, traceparent);
   }
 }
 
@@ -389,17 +407,22 @@ function setHeaderOnXhr(
   xhr: SentryWrappedXMLHttpRequest,
   sentryTraceHeader: string,
   sentryBaggageHeader: string | undefined,
+  traceparentHeader: string | undefined,
 ): void {
   const originalHeaders = xhr.__sentry_xhr_v3__?.request_headers;
 
-  if (originalHeaders?.['sentry-trace']) {
+  if (originalHeaders?.['sentry-trace'] || !xhr.setRequestHeader) {
     // bail if a sentry-trace header is already set
     return;
   }
 
   try {
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    xhr.setRequestHeader!('sentry-trace', sentryTraceHeader);
+    xhr.setRequestHeader('sentry-trace', sentryTraceHeader);
+
+    if (traceparentHeader && !originalHeaders?.['traceparent']) {
+      xhr.setRequestHeader('traceparent', traceparentHeader);
+    }
+
     if (sentryBaggageHeader) {
       // only add our headers if
       // - no pre-existing baggage header exists
@@ -409,11 +432,10 @@ function setHeaderOnXhr(
         // From MDN: "If this method is called several times with the same header, the values are merged into one single request header."
         // We can therefore simply set a baggage header without checking what was there before
         // https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/setRequestHeader
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        xhr.setRequestHeader!('baggage', sentryBaggageHeader);
+        xhr.setRequestHeader('baggage', sentryBaggageHeader);
       }
     }
-  } catch (_) {
+  } catch {
     // Error: InvalidStateError: Failed to execute 'setRequestHeader' on 'XMLHttpRequest': The object's state must be OPENED.
   }
 }

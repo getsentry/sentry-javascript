@@ -3,4 +3,5 @@
 
 interface Env {
   E2E_TEST_DSN: '';
+  MY_DURABLE_OBJECT: DurableObjectNamespace;
 }

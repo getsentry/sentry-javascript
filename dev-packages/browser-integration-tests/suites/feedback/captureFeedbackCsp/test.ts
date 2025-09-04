@@ -17,7 +17,7 @@ sentryTest('should capture feedback', async ({ getLocalTestUrl, page }) => {
 
     try {
       return getEnvelopeType(req) === 'feedback';
-    } catch (err) {
+    } catch {
       return false;
     }
   });
@@ -61,6 +61,9 @@ sentryTest('should capture feedback', async ({ getLocalTestUrl, page }) => {
       version: expect.any(String),
       name: 'sentry.javascript.browser',
       packages: expect.anything(),
+      settings: {
+        infer_ip: 'never',
+      },
     },
     request: {
       url: `${TEST_HOST}/index.html`,

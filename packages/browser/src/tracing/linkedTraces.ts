@@ -1,9 +1,9 @@
 import type { Client, PropagationContext, Span } from '@sentry/core';
 import {
   type SpanContextData,
+  debug,
   getCurrentScope,
   getRootSpan,
-  logger,
   SEMANTIC_ATTRIBUTE_SENTRY_PREVIOUS_TRACE_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE,
@@ -176,7 +176,7 @@ export function addPreviousTraceSpanLink(
   // - enable more efficient querying for previous/next traces in Sentry
   if (Date.now() / 1000 - previousTraceInfo.startTimestamp <= PREVIOUS_TRACE_MAX_DURATION) {
     if (DEBUG_BUILD) {
-      logger.info(
+      debug.log(
         `Adding previous_trace ${previousTraceSpanCtx} link to span ${{
           op: spanJson.op,
           ...span.spanContext(),
@@ -193,8 +193,8 @@ export function addPreviousTraceSpanLink(
 
     // TODO: Remove this once EAP can store span links. We currently only set this attribute so that we
     // can obtain the previous trace information from the EAP store. Long-term, EAP will handle
-    // span links and then we should remove this again. Also throwing in a TODO(v10), to remind us
-    // to check this at v10 time :)
+    // span links and then we should remove this again. Also throwing in a TODO(v11), to remind us
+    // to check this at v11 time :)
     span.setAttribute(
       PREVIOUS_TRACE_TMP_SPAN_ATTRIBUTE,
       `${previousTraceSpanCtx.traceId}-${previousTraceSpanCtx.spanId}-${
@@ -214,7 +214,7 @@ export function storePreviousTraceInSessionStorage(previousTraceInfo: PreviousTr
     WINDOW.sessionStorage.setItem(PREVIOUS_TRACE_KEY, JSON.stringify(previousTraceInfo));
   } catch (e) {
     // Ignore potential errors (e.g. if sessionStorage is not available)
-    DEBUG_BUILD && logger.warn('Could not store previous trace in sessionStorage', e);
+    DEBUG_BUILD && debug.warn('Could not store previous trace in sessionStorage', e);
   }
 }
 
@@ -226,7 +226,7 @@ export function getPreviousTraceFromSessionStorage(): PreviousTraceInfo | undefi
     const previousTraceInfo = WINDOW.sessionStorage?.getItem(PREVIOUS_TRACE_KEY);
     // @ts-expect-error - intentionally risking JSON.parse throwing when previousTraceInfo is null to save bundle size
     return JSON.parse(previousTraceInfo);
-  } catch (e) {
+  } catch {
     return undefined;
   }
 }

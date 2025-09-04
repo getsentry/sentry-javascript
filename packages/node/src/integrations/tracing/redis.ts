@@ -1,7 +1,7 @@
 import type { Span } from '@opentelemetry/api';
 import type { RedisResponseCustomAttributeFunction } from '@opentelemetry/instrumentation-ioredis';
 import { IORedisInstrumentation } from '@opentelemetry/instrumentation-ioredis';
-import { RedisInstrumentation } from '@opentelemetry/instrumentation-redis-4';
+import { RedisInstrumentation } from '@opentelemetry/instrumentation-redis';
 import type { IntegrationFn } from '@sentry/core';
 import {
   defineIntegration,
@@ -75,13 +75,13 @@ const cacheResponseHook: RedisResponseCustomAttributeFunction = (span: Span, red
   span.updateName(truncate(spanDescription, 1024));
 };
 
-const instrumentIORedis = generateInstrumentOnce('IORedis', () => {
+const instrumentIORedis = generateInstrumentOnce(`${INTEGRATION_NAME}.IORedis`, () => {
   return new IORedisInstrumentation({
     responseHook: cacheResponseHook,
   });
 });
 
-const instrumentRedis4 = generateInstrumentOnce('Redis-4', () => {
+const instrumentRedisModule = generateInstrumentOnce(`${INTEGRATION_NAME}.Redis`, () => {
   return new RedisInstrumentation({
     responseHook: cacheResponseHook,
   });
@@ -91,7 +91,7 @@ const instrumentRedis4 = generateInstrumentOnce('Redis-4', () => {
 export const instrumentRedis = Object.assign(
   (): void => {
     instrumentIORedis();
-    instrumentRedis4();
+    instrumentRedisModule();
 
     // todo: implement them gradually
     // new LegacyRedisInstrumentation({}),

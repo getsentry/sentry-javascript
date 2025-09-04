@@ -1,4 +1,4 @@
-import { GLOBAL_OBJ, logger } from '@sentry/core';
+import { debug, GLOBAL_OBJ } from '@sentry/core';
 import { DEBUG_BUILD } from '../../common/debug-build';
 import type { RouteManifest } from '../../config/manifest/types';
 
@@ -54,7 +54,7 @@ function getCompiledRegex(regexString: string): RegExp | null {
     compiledRegexCache.set(regexString, regex);
     return regex;
   } catch (error) {
-    DEBUG_BUILD && logger.warn('Could not compile regex', { regexString, error });
+    DEBUG_BUILD && debug.warn('Could not compile regex', { regexString, error });
     // Cache the failure to avoid repeated attempts by storing undefined
     return null;
   }
@@ -98,9 +98,9 @@ function getManifest(): RouteManifest | null {
     cachedManifest = manifest;
     cachedManifestString = currentManifestString;
     return manifest;
-  } catch (error) {
+  } catch {
     // Something went wrong while parsing the manifest, so we'll fallback to no parameterization
-    DEBUG_BUILD && logger.warn('Could not extract route manifest');
+    DEBUG_BUILD && debug.warn('Could not extract route manifest');
     return null;
   }
 }

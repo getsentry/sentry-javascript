@@ -12,6 +12,7 @@ export {
   addEventProcessor,
   addIntegration,
   amqplibIntegration,
+  anthropicAIIntegration,
   // eslint-disable-next-line deprecation/deprecation
   anrIntegration,
   // eslint-disable-next-line deprecation/deprecation
@@ -39,6 +40,7 @@ export {
   expressIntegration,
   extraErrorDataIntegration,
   fastifyIntegration,
+  firebaseIntegration,
   flush,
   fsIntegration,
   functionToStringIntegration,
@@ -84,6 +86,7 @@ export {
   nodeContextIntegration,
   onUncaughtExceptionIntegration,
   onUnhandledRejectionIntegration,
+  openAIIntegration,
   parameterize,
   postgresIntegration,
   postgresJsIntegration,
@@ -122,6 +125,7 @@ export {
   startSession,
   startSpan,
   startSpanManual,
+  systemErrorIntegration,
   tediousIntegration,
   trpcMiddleware,
   updateSpanName,

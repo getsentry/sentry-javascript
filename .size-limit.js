@@ -75,14 +75,14 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/index.js',
     import: createImport('init', 'browserTracingIntegration', 'replayIntegration', 'replayCanvasIntegration'),
     gzip: true,
-    limit: '83 KB',
+    limit: '84 KB',
   },
   {
     name: '@sentry/browser (incl. Tracing, Replay, Feedback)',
     path: 'packages/browser/build/npm/esm/index.js',
     import: createImport('init', 'browserTracingIntegration', 'replayIntegration', 'feedbackIntegration'),
     gzip: true,
-    limit: '95 KB',
+    limit: '96 KB',
   },
   {
     name: '@sentry/browser (incl. Feedback)',
@@ -120,7 +120,7 @@ module.exports = [
     import: createImport('init', 'ErrorBoundary', 'reactRouterV6BrowserTracingIntegration'),
     ignore: ['react/jsx-runtime'],
     gzip: true,
-    limit: '42 KB',
+    limit: '43 KB',
   },
   // Vue SDK (ESM)
   {
@@ -206,7 +206,7 @@ module.exports = [
     import: createImport('init'),
     ignore: ['next/router', 'next/constants'],
     gzip: true,
-    limit: '44 KB',
+    limit: '45 KB',
   },
   // SvelteKit SDK (ESM)
   {
@@ -217,6 +217,15 @@ module.exports = [
     gzip: true,
     limit: '41 KB',
   },
+  // Node-Core SDK (ESM)
+  {
+    name: '@sentry/node-core',
+    path: 'packages/node-core/build/esm/index.js',
+    import: createImport('init'),
+    ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
+    gzip: true,
+    limit: '51 KB',
+  },
   // Node SDK (ESM)
   {
     name: '@sentry/node',
@@ -224,14 +233,14 @@ module.exports = [
     import: createImport('init'),
     ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
     gzip: true,
-    limit: '170 KB',
+    limit: '152 KB',
   },
   {
     name: '@sentry/node - without tracing',
     path: 'packages/node/build/esm/index.js',
     import: createImport('initWithoutDefaultIntegrations', 'getDefaultIntegrationsWithoutPerformance'),
     gzip: true,
-    limit: '110 KB',
+    limit: '95 KB',
     ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
     modifyWebpackConfig: function (config) {
       const webpack = require('webpack');
@@ -254,7 +263,7 @@ module.exports = [
     import: createImport('init'),
     ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
     gzip: true,
-    limit: '135 KB',
+    limit: '107 KB',
   },
 ];
 

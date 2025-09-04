@@ -30,7 +30,7 @@ sentryTest('should catch thrown objects', async ({ getLocalTestUrl, page, browse
     type: 'Error',
     value: 'Object captured as exception with keys: error, somekey',
     mechanism: {
-      type: 'onerror',
+      type: 'auto.browser.global_handlers.onerror',
       handled: false,
     },
     stacktrace: {

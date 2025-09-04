@@ -11,6 +11,10 @@ module.exports = {
       rules: {
         'no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
       },
+      parserOptions: {
+        sourceType: 'module',
+        ecmaVersion: 2020,
+      },
     },
     {
       // Configuration for typescript files
@@ -103,6 +107,9 @@ module.exports = {
         // Be explicit about class member accessibility (public, private, protected). Turned off
         // on tests for ease of use.
         '@typescript-eslint/explicit-member-accessibility': ['error'],
+
+        // We do not care about empty functions
+        '@typescript-eslint/no-empty-function': 'off',
       },
     },
     {
@@ -174,7 +181,6 @@ module.exports = {
         '@typescript-eslint/explicit-member-accessibility': 'off',
         '@typescript-eslint/no-explicit-any': 'off',
         '@typescript-eslint/no-non-null-assertion': 'off',
-        '@typescript-eslint/no-empty-function': 'off',
         '@typescript-eslint/no-floating-promises': 'off',
         '@sentry-internal/sdk/no-focused-tests': 'error',
         '@sentry-internal/sdk/no-skipped-tests': 'error',
@@ -185,7 +191,7 @@ module.exports = {
       files: ['*.config.js', '*.config.mjs'],
       parserOptions: {
         sourceType: 'module',
-        ecmaVersion: 2018,
+        ecmaVersion: 2020,
       },
     },
     {

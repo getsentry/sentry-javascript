@@ -61,7 +61,7 @@ const _nodeContextIntegration = ((options: ContextOptions = {}) => {
 
     const updatedContext = _updateContext(await cachedContext);
 
-    // TODO(v10): conditional with `sendDefaultPii` here?
+    // TODO(v11): conditional with `sendDefaultPii` here?
     event.contexts = {
       ...event.contexts,
       app: { ...updatedContext.app, ...event.contexts?.app },
@@ -192,7 +192,7 @@ function getCultureContext(): CultureContext | undefined {
         timezone: options.timeZone,
       };
     }
-  } catch (err) {
+  } catch {
     //
   }
 
@@ -228,7 +228,7 @@ export function getDeviceContext(deviceOpt: DeviceContextOptions | true): Device
   let uptime;
   try {
     uptime = os.uptime();
-  } catch (e) {
+  } catch {
     // noop
   }
 
@@ -347,7 +347,7 @@ async function getDarwinInfo(): Promise<OsContext> {
     darwinInfo.name = matchFirst(/^ProductName:\s+(.*)$/m, output);
     darwinInfo.version = matchFirst(/^ProductVersion:\s+(.*)$/m, output);
     darwinInfo.build = matchFirst(/^BuildVersion:\s+(.*)$/m, output);
-  } catch (e) {
+  } catch {
     // ignore
   }
 
@@ -402,7 +402,7 @@ async function getLinuxInfo(): Promise<OsContext> {
     // are computed in `LINUX_VERSIONS`.
     const id = getLinuxDistroId(linuxInfo.name);
     linuxInfo.version = LINUX_VERSIONS[id]?.(contents);
-  } catch (e) {
+  } catch {
     // ignore
   }
 

@@ -4,12 +4,32 @@ import * as path from 'path';
 import * as url from 'url';
 import type { SupportedSvelteKitAdapters } from './detectAdapter';
 
+export type SvelteKitTracingConfig = {
+  tracing?: {
+    server: boolean;
+  };
+  // TODO: Once instrumentation is promoted stable, this will be removed!
+  instrumentation?: {
+    server: boolean;
+  };
+};
+
+/**
+ * Experimental tracing and instrumentation config is available @since 2.31.0
+ * // TODO: Once instrumentation and tracing is promoted stable, adjust this type!s
+ */
+type BackwardsForwardsCompatibleKitConfig = Config['kit'] & { experimental?: SvelteKitTracingConfig };
+
+export interface BackwardsForwardsCompatibleSvelteConfig extends Config {
+  kit?: BackwardsForwardsCompatibleKitConfig;
+}
+
 /**
  * Imports the svelte.config.js file and returns the config object.
  * The sveltekit plugins import the config in the same way.
  * See: https://github.com/sveltejs/kit/blob/master/packages/kit/src/core/config/index.js#L63
  */
-export async function loadSvelteConfig(): Promise<Config> {
+export async function loadSvelteConfig(): Promise<BackwardsForwardsCompatibleSvelteConfig> {
   // This can only be .js (see https://github.com/sveltejs/kit/pull/4031#issuecomment-1049475388)
   const SVELTE_CONFIG_FILE = 'svelte.config.js';
 
@@ -23,7 +43,7 @@ export async function loadSvelteConfig(): Promise<Config> {
     const svelteConfigModule = await import(`${url.pathToFileURL(configFile).href}`);
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    return (svelteConfigModule?.default as Config) || {};
+    return (svelteConfigModule?.default as BackwardsForwardsCompatibleSvelteConfig) || {};
   } catch (e) {
     // eslint-disable-next-line no-console
     console.warn("[Source Maps Plugin] Couldn't load svelte.config.js:");
@@ -86,13 +106,10 @@ async function getNodeAdapterOutputDir(svelteConfig: Config): Promise<string> {
     },
     // @ts-expect-error - No need to implement the other methods
     log: {
-      // eslint-disable-next-line @typescript-eslint/no-empty-function -- this should be a noop
       minor() {},
     },
     getBuildDirectory: () => '',
-    // eslint-disable-next-line @typescript-eslint/no-empty-function -- this should be a noop
     rimraf: () => {},
-    // eslint-disable-next-line @typescript-eslint/no-empty-function -- this should be a noop
     mkdirp: () => {},
 
     config: {
@@ -107,7 +124,7 @@ async function getNodeAdapterOutputDir(svelteConfig: Config): Promise<string> {
 
   try {
     await nodeAdapter.adapt(adapterBuilder);
-  } catch (_) {
+  } catch {
     // We expect the adapter to throw in writeClient!
   }
 

@@ -1,7 +1,10 @@
+import type { Client } from '../client';
 import type { DynamicSamplingContext } from '../types-hoist/envelope';
 import type { PropagationContext } from '../types-hoist/tracing';
 import type { TraceparentData } from '../types-hoist/transaction';
+import { debug } from '../utils/debug-logger';
 import { baggageHeaderToDynamicSamplingContext } from './baggage';
+import { extractOrgIdFromClient } from './dsn';
 import { parseSampleRate } from './parseSampleRate';
 import { generateSpanId, generateTraceId } from './propagationContext';
 
@@ -16,6 +19,9 @@ export const TRACEPARENT_REGEXP = new RegExp(
 
 /**
  * Extract transaction context data from a `sentry-trace` header.
+ *
+ * This is terrible naming but the function has nothing to do with the W3C traceparent header.
+ * It can only parse the `sentry-trace` header and extract the "trace parent" data.
  *
  * @param traceparent Traceparent string
  *
@@ -123,4 +129,39 @@ function getSampleRandFromTraceparentAndDsc(
     // If nothing applies, return a random sample rand.
     return Math.random();
   }
+}
+
+/**
+ * Determines whether a new trace should be continued based on the provided baggage org ID and the client's `strictTraceContinuation` option.
+ * If the trace should not be continued, a new trace will be started.
+ *
+ * The result is dependent on the `strictTraceContinuation` option in the client.
+ * See https://develop.sentry.dev/sdk/telemetry/traces/#stricttracecontinuation
+ */
+export function shouldContinueTrace(client: Client, baggageOrgId?: string): boolean {
+  const clientOrgId = extractOrgIdFromClient(client);
+
+  // Case: baggage orgID and Client orgID don't match - always start new trace
+  if (baggageOrgId && clientOrgId && baggageOrgId !== clientOrgId) {
+    debug.log(
+      `Won't continue trace because org IDs don't match (incoming baggage: ${baggageOrgId}, SDK options: ${clientOrgId})`,
+    );
+    return false;
+  }
+
+  const strictTraceContinuation = client.getOptions().strictTraceContinuation || false; // default for `strictTraceContinuation` is `false`
+
+  if (strictTraceContinuation) {
+    // With strict continuation enabled, don't continue trace if:
+    // - Baggage has orgID, but Client doesn't have one
+    // - Client has orgID, but baggage doesn't have one
+    if ((baggageOrgId && !clientOrgId) || (!baggageOrgId && clientOrgId)) {
+      debug.log(
+        `Starting a new trace because strict trace continuation is enabled but one org ID is missing (incoming baggage: ${baggageOrgId}, Sentry client: ${clientOrgId})`,
+      );
+      return false;
+    }
+  }
+
+  return true;
 }

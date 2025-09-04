@@ -6,12 +6,12 @@ export default defineConfig({
   plugins: [sentrySvelteKit({ autoUploadSourceMaps: false }), sveltekit()],
   build: {
     rollupOptions: {
-      external: (id) => {
+      external: id => {
         // External Node.js native modules
         if (id === 'fsevents') return true;
 
         return false;
-      }
-    }
-  }
+      },
+    },
+  },
 });

@@ -30,6 +30,9 @@ const DEFAULT_REPLAY_EVENT = {
     ]),
     version: SDK_VERSION,
     name: 'sentry.javascript.browser',
+    settings: {
+      infer_ip: 'never',
+    },
   },
   request: {
     url: expect.stringContaining('/index.html'),
@@ -145,19 +148,6 @@ export const expectedCLSPerformanceSpan = {
     attributions: expect.any(Array),
     rating: expect.any(String),
     size: expect.any(Number),
-  },
-};
-
-export const expectedFIDPerformanceSpan = {
-  op: 'web-vital',
-  description: 'first-input-delay',
-  startTimestamp: expect.any(Number),
-  endTimestamp: expect.any(Number),
-  data: {
-    value: expect.any(Number),
-    rating: expect.any(String),
-    size: expect.any(Number),
-    nodeIds: expect.any(Array),
   },
 };
 

@@ -1,4 +1,6 @@
+import type { BuildTimeOptionsBase, UnstableVitePluginOptions } from '@sentry/core';
 import type { SentryVitePluginOptions } from '@sentry/vite-plugin';
+import type { RouteData } from 'astro';
 
 type SdkInitPaths = {
   /**
@@ -22,12 +24,16 @@ type SdkInitPaths = {
   serverInitPath?: string;
 };
 
+/**
+ * @deprecated Move these options to the top-level of your Sentry configuration.
+ */
 type SourceMapsOptions = {
   /**
    * If this flag is `true`, and an auth token is detected, the Sentry integration will
    * automatically generate and upload source maps to Sentry during a production build.
    *
    * @default true
+   * @deprecated Use `sourcemaps.disable` instead (with inverted logic)
    */
   enabled?: boolean;
 
@@ -38,18 +44,24 @@ type SourceMapsOptions = {
    *
    * To create an auth token, follow this guide:
    * @see https://docs.sentry.io/product/accounts/auth-tokens/#organization-auth-tokens
+   *
+   * @deprecated Use top-level `authToken` option instead
    */
   authToken?: string;
 
   /**
    * The organization slug of your Sentry organization.
    * Instead of specifying this option, you can also set the `SENTRY_ORG` environment variable.
+   *
+   * @deprecated Use top-level `org` option instead
    */
   org?: string;
 
   /**
    * The project slug of your Sentry project.
    * Instead of specifying this option, you can also set the `SENTRY_PROJECT` environment variable.
+   *
+   * @deprecated Use top-level `project` option instead
    */
   project?: string;
 
@@ -58,6 +70,7 @@ type SourceMapsOptions = {
    * It will not collect any sensitive or user-specific data.
    *
    * @default true
+   * @deprecated Use top-level `telemetry` option instead
    */
   telemetry?: boolean;
 
@@ -70,6 +83,8 @@ type SourceMapsOptions = {
    *
    * The globbing patterns must follow the implementation of the `glob` package.
    * @see https://www.npmjs.com/package/glob#glob-primer
+   *
+   * @deprecated Use `sourcemaps.assets` instead
    */
   assets?: string | Array<string>;
 
@@ -80,6 +95,8 @@ type SourceMapsOptions = {
    * @default [] - By default no files are deleted.
    *
    * The globbing patterns follow the implementation of the glob package. (https://www.npmjs.com/package/glob)
+   *
+   * @deprecated Use `sourcemaps.filesToDeleteAfterUpload` instead
    */
   filesToDeleteAfterUpload?: string | Array<string>;
 
@@ -94,49 +111,10 @@ type SourceMapsOptions = {
    * changes can occur at any time within a major SDK version.
    *
    * Furthermore, some options are untested with Astro specifically. Use with caution.
+   *
+   * @deprecated Use top-level `unstable_sentryVitePluginOptions` instead
    */
   unstable_sentryVitePluginOptions?: Partial<SentryVitePluginOptions>;
-};
-
-type BundleSizeOptimizationOptions = {
-  /**
-   * If set to `true`, the plugin will attempt to tree-shake (remove) any debugging code within the Sentry SDK.
-   * Note that the success of this depends on tree shaking being enabled in your build tooling.
-   *
-   * Setting this option to `true` will disable features like the SDK's `debug` option.
-   */
-  excludeDebugStatements?: boolean;
-
-  /**
-   * If set to true, the plugin will try to tree-shake performance monitoring statements out.
-   * Note that the success of this depends on tree shaking generally being enabled in your build.
-   * Attention: DO NOT enable this when you're using any performance monitoring-related SDK features (e.g. Sentry.startSpan()).
-   */
-  excludeTracing?: boolean;
-
-  /**
-   * If set to `true`, the plugin will attempt to tree-shake (remove) code related to the Sentry SDK's Session Replay Shadow DOM recording functionality.
-   * Note that the success of this depends on tree shaking being enabled in your build tooling.
-   *
-   * This option is safe to be used when you do not want to capture any Shadow DOM activity via Sentry Session Replay.
-   */
-  excludeReplayShadowDom?: boolean;
-
-  /**
-   * If set to `true`, the plugin will attempt to tree-shake (remove) code related to the Sentry SDK's Session Replay `iframe` recording functionality.
-   * Note that the success of this depends on tree shaking being enabled in your build tooling.
-   *
-   * You can safely do this when you do not want to capture any `iframe` activity via Sentry Session Replay.
-   */
-  excludeReplayIframe?: boolean;
-
-  /**
-   * If set to `true`, the plugin will attempt to tree-shake (remove) code related to the Sentry SDK's Session Replay's Compression Web Worker.
-   * Note that the success of this depends on tree shaking being enabled in your build tooling.
-   *
-   * **Notice:** You should only do use this option if you manually host a compression worker and configure it in your Sentry Session Replay integration config via the `workerUrl` option.
-   */
-  excludeReplayWorker?: boolean;
 };
 
 type InstrumentationOptions = {
@@ -201,7 +179,10 @@ type DeprecatedRuntimeOptions = Record<string, unknown>;
  *
  * If you specify a dedicated init file, the SDK options passed to `sentryAstro` will be ignored.
  */
-export type SentryOptions = SdkInitPaths &
+export type SentryOptions = Omit<BuildTimeOptionsBase, 'release'> &
+  // todo(v11): `release` and `debug` need to be removed from BuildTimeOptionsBase as it is currently conflicting with `DeprecatedRuntimeOptions`
+  UnstableVitePluginOptions<SentryVitePluginOptions> &
+  SdkInitPaths &
   InstrumentationOptions &
   SdkEnabledOptions & {
     /**
@@ -209,18 +190,35 @@ export type SentryOptions = SdkInitPaths &
      *
      * These options are always read from the `sentryAstro` integration.
      * Do not define them in the `sentry.client.config.(js|ts)` or `sentry.server.config.(js|ts)` files.
-     */
-    sourceMapsUploadOptions?: SourceMapsOptions;
-    /**
-     * Options for the Sentry Vite plugin to customize bundle size optimizations.
      *
-     * These options are always read from the `sentryAstro` integration.
-     * Do not define them in the `sentry.client.config.(js|ts)` or `sentry.server.config.(js|ts)` files.
+     * @deprecated This option was deprecated. Please move the options to the top-level configuration.
+     * See the migration guide in the SourceMapsOptions type documentation.
      */
-    bundleSizeOptimizations?: BundleSizeOptimizationOptions;
-    /**
-     * If enabled, prints debug logs during the build process.
-     */
-    debug?: boolean;
+    // eslint-disable-next-line deprecation/deprecation
+    sourceMapsUploadOptions?: SourceMapsOptions;
     // eslint-disable-next-line deprecation/deprecation
   } & DeprecatedRuntimeOptions;
+
+/**
+ * Routes inside 'astro:routes:resolved' hook (Astro v5+)
+ *
+ * Inline type for official `IntegrationResolvedRoute`.
+ * The type includes more properties, but we only need some of them.
+ *
+ * @see https://github.com/withastro/astro/blob/04e60119afee668264a2ff6665c19a32150f4c91/packages/astro/src/types/public/integrations.ts#L287
+ */
+export type IntegrationResolvedRoute = {
+  isPrerendered: RouteData['prerender'];
+  pattern: RouteData['route'];
+  patternRegex: RouteData['pattern'];
+  segments: RouteData['segments'];
+};
+
+/**
+ * Internal type for Astro routes, as we store an additional `patternCaseSensitive` property alongside the
+ * lowercased parametrized `pattern` of each Astro route.
+ */
+export type ResolvedRouteWithCasedPattern = IntegrationResolvedRoute & {
+  patternRegex: string; // RegEx gets stringified
+  patternCaseSensitive: string;
+};

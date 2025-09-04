@@ -1,6 +1,6 @@
 import * as path from 'node:path';
 import type { Client, EventProcessor, Integration } from '@sentry/core';
-import { applySdkMetadata, flush, getGlobalScope, logger, vercelWaitUntil } from '@sentry/core';
+import { applySdkMetadata, debug, flush, getGlobalScope, vercelWaitUntil } from '@sentry/core';
 import {
   type NodeOptions,
   getDefaultIntegrations as getDefaultNodeIntegrations,
@@ -43,12 +43,20 @@ export function lowQualityTransactionsFilter(options: SentryNuxtServerOptions): 
       if (event.type !== 'transaction' || !event.transaction) {
         return event;
       }
+
+      // Check if this looks like a parametrized route (contains :param or :param() patterns)
+      const hasRouteParameters = /\/:[^(/\s]*(\([^)]*\))?[^/\s]*/.test(event.transaction);
+
+      if (hasRouteParameters) {
+        return event;
+      }
+
       // We don't want to send transaction for file requests, so everything ending with a *.someExtension should be filtered out
       // path.extname will return an empty string for normal page requests
       if (path.extname(event.transaction)) {
         options.debug &&
           DEBUG_BUILD &&
-          logger.log('NuxtLowQualityTransactionsFilter filtered transaction: ', event.transaction);
+          debug.log('NuxtLowQualityTransactionsFilter filtered transaction: ', event.transaction);
         return null;
       }
       return event;
@@ -67,7 +75,7 @@ export function clientSourceMapErrorFilter(options: SentryNuxtServerOptions): Ev
     (event => {
       const errorMsg = event.exception?.values?.[0]?.value;
       if (errorMsg?.match(/^ENOENT: no such file or directory, open '.*\/_nuxt\/.*\.js\.map'/)) {
-        options.debug && DEBUG_BUILD && logger.log('NuxtClientSourceMapErrorFilter filtered error: ', errorMsg);
+        options.debug && DEBUG_BUILD && debug.log('NuxtClientSourceMapErrorFilter filtered error: ', errorMsg);
         return null;
       }
       return event;
@@ -94,12 +102,12 @@ function getNuxtDefaultIntegrations(options: NodeOptions): Integration[] {
 /**
  * Flushes pending Sentry events with a 2-second timeout and in a way that cannot create unhandled promise rejections.
  */
-export async function flushSafelyWithTimeout(): Promise<void> {
+async function flushSafelyWithTimeout(): Promise<void> {
   try {
-    DEBUG_BUILD && logger.log('Flushing events...');
+    DEBUG_BUILD && debug.log('Flushing events...');
     await flush(2000);
-    DEBUG_BUILD && logger.log('Done flushing events');
+    DEBUG_BUILD && debug.log('Done flushing events');
   } catch (e) {
-    DEBUG_BUILD && logger.log('Error while flushing events:\n', e);
+    DEBUG_BUILD && debug.log('Error while flushing events:\n', e);
   }
 }

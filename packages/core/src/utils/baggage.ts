@@ -1,7 +1,7 @@
 import { DEBUG_BUILD } from '../debug-build';
 import type { DynamicSamplingContext } from '../types-hoist/envelope';
+import { debug } from './debug-logger';
 import { isString } from './is';
-import { debug } from './logger';
 
 export const SENTRY_BAGGAGE_KEY_PREFIX = 'sentry-';
 

@@ -41,8 +41,8 @@ describe('sentrySvelteKit()', () => {
     const plugins = await getSentrySvelteKitPlugins();
 
     expect(plugins).toBeInstanceOf(Array);
-    // 1 auto instrument plugin + 5 source maps plugins
-    expect(plugins).toHaveLength(8);
+    // 1 auto instrument plugin + 1 global values injection plugin + 5 source maps plugins
+    expect(plugins).toHaveLength(10);
   });
 
   it('returns the custom sentry source maps upload plugin, unmodified sourcemaps plugins and the auto-instrument plugin by default', async () => {
@@ -51,11 +51,14 @@ describe('sentrySvelteKit()', () => {
     expect(pluginNames).toEqual([
       // auto instrument plugin:
       'sentry-auto-instrumentation',
+      // global values injection plugin:
+      'sentry-sveltekit-global-values-injection-plugin',
       // default source maps plugins:
       'sentry-telemetry-plugin',
       'sentry-vite-release-injection-plugin',
       'sentry-vite-debug-id-injection-plugin',
       'sentry-sveltekit-update-source-map-setting-plugin',
+      'sentry-sveltekit-files-to-delete-after-upload-setting-plugin',
       // custom release plugin:
       'sentry-sveltekit-release-management-plugin',
       // custom source maps plugin:
@@ -67,7 +70,7 @@ describe('sentrySvelteKit()', () => {
 
   it("doesn't return the sentry source maps plugins if autoUploadSourcemaps is `false`", async () => {
     const plugins = await getSentrySvelteKitPlugins({ autoUploadSourceMaps: false });
-    expect(plugins).toHaveLength(1);
+    expect(plugins).toHaveLength(1); // auto instrument
   });
 
   it("doesn't return the sentry source maps plugins if `NODE_ENV` is development", async () => {
@@ -77,7 +80,7 @@ describe('sentrySvelteKit()', () => {
     const plugins = await getSentrySvelteKitPlugins({ autoUploadSourceMaps: true, autoInstrument: true });
     const instrumentPlugin = plugins[0];
 
-    expect(plugins).toHaveLength(1);
+    expect(plugins).toHaveLength(2); // auto instrument + global values injection
     expect(instrumentPlugin?.name).toEqual('sentry-auto-instrumentation');
 
     process.env.NODE_ENV = previousEnv;
@@ -86,8 +89,8 @@ describe('sentrySvelteKit()', () => {
   it("doesn't return the auto instrument plugin if autoInstrument is `false`", async () => {
     const plugins = await getSentrySvelteKitPlugins({ autoInstrument: false });
     const pluginNames = plugins.map(plugin => plugin.name);
-    expect(plugins).toHaveLength(7);
-    expect(pluginNames).not.toContain('sentry-upload-source-maps');
+    expect(plugins).toHaveLength(9); // global values injection + 5 source maps plugins + 3 default plugins
+    expect(pluginNames).not.toContain('sentry-auto-instrumentation');
   });
 
   it('passes user-specified vite plugin options to the custom sentry source maps plugin', async () => {
@@ -105,15 +108,18 @@ describe('sentrySvelteKit()', () => {
       adapter: 'vercel',
     });
 
-    expect(makePluginSpy).toHaveBeenCalledWith({
-      debug: true,
-      sourcemaps: {
-        assets: ['foo/*.js'],
-        ignore: ['bar/*.js'],
-        filesToDeleteAfterUpload: ['baz/*.js'],
+    expect(makePluginSpy).toHaveBeenCalledWith(
+      {
+        debug: true,
+        sourcemaps: {
+          assets: ['foo/*.js'],
+          ignore: ['bar/*.js'],
+          filesToDeleteAfterUpload: ['baz/*.js'],
+        },
+        adapter: 'vercel',
       },
-      adapter: 'vercel',
-    });
+      {},
+    );
   });
 
   it('passes user-specified vite plugin options to the custom sentry source maps plugin', async () => {
@@ -151,26 +157,29 @@ describe('sentrySvelteKit()', () => {
       adapter: 'vercel',
     });
 
-    expect(makePluginSpy).toHaveBeenCalledWith({
-      debug: true,
-      org: 'other-org',
-      sourcemaps: {
-        assets: ['foo/*.js'],
-        ignore: ['bar/*.js'],
-        filesToDeleteAfterUpload: ['baz/*.js'],
-      },
-      release: {
-        inject: false,
-        name: '3.0.0',
-        setCommits: {
-          auto: true,
+    expect(makePluginSpy).toHaveBeenCalledWith(
+      {
+        debug: true,
+        org: 'other-org',
+        sourcemaps: {
+          assets: ['foo/*.js'],
+          ignore: ['bar/*.js'],
+          filesToDeleteAfterUpload: ['baz/*.js'],
         },
+        release: {
+          inject: false,
+          name: '3.0.0',
+          setCommits: {
+            auto: true,
+          },
+        },
+        headers: {
+          'X-My-Header': 'foo',
+        },
+        adapter: 'vercel',
       },
-      headers: {
-        'X-My-Header': 'foo',
-      },
-      adapter: 'vercel',
-    });
+      {},
+    );
   });
 
   it('passes user-specified options to the auto instrument plugin', async () => {
@@ -184,34 +193,43 @@ describe('sentrySvelteKit()', () => {
       // just to ignore the source maps plugin:
       autoUploadSourceMaps: false,
     });
-    const plugin = plugins[0];
+    const plugin = plugins[0]!;
 
     expect(plugin.name).toEqual('sentry-auto-instrumentation');
     expect(makePluginSpy).toHaveBeenCalledWith({
       debug: true,
       load: true,
       serverLoad: false,
+      onlyInstrumentClient: false,
     });
   });
 });
 
 describe('generateVitePluginOptions', () => {
-  it('should return null if no relevant options are provided', () => {
+  it('returns null if no relevant options are provided', () => {
     const options: SentrySvelteKitPluginOptions = {};
     const result = generateVitePluginOptions(options);
     expect(result).toBeNull();
   });
 
-  it('should use default `debug` value if only default options are provided', () => {
+  it('uses default `debug` value if only default options are provided', () => {
+    const originalEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'production'; // Ensure we're not in development mode
+
     const options: SentrySvelteKitPluginOptions = { autoUploadSourceMaps: true, autoInstrument: true, debug: false };
     const expected: CustomSentryVitePluginOptions = {
       debug: false,
     };
     const result = generateVitePluginOptions(options);
     expect(result).toEqual(expected);
+
+    process.env.NODE_ENV = originalEnv;
   });
 
-  it('should apply user-defined sourceMapsUploadOptions', () => {
+  it('applies user-defined sourceMapsUploadOptions', () => {
+    const originalEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'production'; // Ensure we're not in development mode
+
     const options: SentrySvelteKitPluginOptions = {
       autoUploadSourceMaps: true,
       sourceMapsUploadOptions: {
@@ -233,9 +251,14 @@ describe('generateVitePluginOptions', () => {
     };
     const result = generateVitePluginOptions(options);
     expect(result).toEqual(expected);
+
+    process.env.NODE_ENV = originalEnv;
   });
 
-  it('should override options with unstable_sentryVitePluginOptions', () => {
+  it('overrides options with unstable_sentryVitePluginOptions', () => {
+    const originalEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'production'; // Ensure we're not in development mode
+
     const options: SentrySvelteKitPluginOptions = {
       autoUploadSourceMaps: true,
       sourceMapsUploadOptions: {
@@ -263,9 +286,14 @@ describe('generateVitePluginOptions', () => {
     };
     const result = generateVitePluginOptions(options);
     expect(result).toEqual(expected);
+
+    process.env.NODE_ENV = originalEnv;
   });
 
-  it('should merge release options correctly', () => {
+  it('merges release options correctly', () => {
+    const originalEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'production'; // Ensure we're not in development mode
+
     const options: SentrySvelteKitPluginOptions = {
       autoUploadSourceMaps: true,
       sourceMapsUploadOptions: {
@@ -292,9 +320,14 @@ describe('generateVitePluginOptions', () => {
     };
     const result = generateVitePluginOptions(options);
     expect(result).toEqual(expected);
+
+    process.env.NODE_ENV = originalEnv;
   });
 
-  it('should handle adapter and debug options correctly', () => {
+  it('handles adapter and debug options correctly', () => {
+    const originalEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'production'; // Ensure we're not in development mode
+
     const options: SentrySvelteKitPluginOptions = {
       autoUploadSourceMaps: true,
       adapter: 'vercel',
@@ -314,9 +347,14 @@ describe('generateVitePluginOptions', () => {
     };
     const result = generateVitePluginOptions(options);
     expect(result).toEqual(expected);
+
+    process.env.NODE_ENV = originalEnv;
   });
 
-  it('should apply bundleSizeOptimizations AND sourceMapsUploadOptions when both are set', () => {
+  it('applies bundleSizeOptimizations AND sourceMapsUploadOptions when both are set', () => {
+    const originalEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'production'; // Ensure we're not in development mode
+
     const options: SentrySvelteKitPluginOptions = {
       bundleSizeOptimizations: {
         excludeTracing: true,
@@ -348,5 +386,7 @@ describe('generateVitePluginOptions', () => {
     };
     const result = generateVitePluginOptions(options);
     expect(result).toEqual(expected);
+
+    process.env.NODE_ENV = originalEnv;
   });
 });

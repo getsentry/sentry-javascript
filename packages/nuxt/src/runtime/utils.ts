@@ -1,13 +1,5 @@
 import type { ClientOptions, Context, SerializedTraceData } from '@sentry/core';
-import {
-  captureException,
-  flush,
-  getClient,
-  getTraceMetaTags,
-  GLOBAL_OBJ,
-  logger,
-  vercelWaitUntil,
-} from '@sentry/core';
+import { captureException, debug, getClient, getTraceMetaTags } from '@sentry/core';
 import type { VueOptions } from '@sentry/vue/src/types';
 import type { CapturedErrorContext } from 'nitropack/types';
 import type { NuxtRenderHTMLContext } from 'nuxt/app';
@@ -45,14 +37,14 @@ export function addSentryTracingMetaTags(head: NuxtRenderHTMLContext['head'], tr
   const metaTags = getTraceMetaTags(traceData);
 
   if (head.some(tag => tag.includes('meta') && tag.includes('sentry-trace'))) {
-    logger.warn(
+    debug.warn(
       'Skipping addition of meta tags. Sentry tracing meta tags are already present in HTML page. Make sure to only set up Sentry once on the server-side. ',
     );
     return;
   }
 
   if (metaTags) {
-    logger.log('Adding Sentry tracing meta tags to HTML page:', metaTags);
+    debug.log('Adding Sentry tracing meta tags to HTML page:', metaTags);
     head.push(metaTags);
   }
 }
@@ -92,33 +84,4 @@ export function reportNuxtError(options: {
       mechanism: { handled: false },
     });
   });
-}
-
-async function flushWithTimeout(): Promise<void> {
-  try {
-    logger.log('Flushing events...');
-    await flush(2000);
-    logger.log('Done flushing events');
-  } catch (e) {
-    logger.log('Error while flushing events:\n', e);
-  }
-}
-
-/**
- *  Flushes if in a serverless environment
- */
-export async function flushIfServerless(): Promise<void> {
-  const isServerless =
-    !!process.env.FUNCTIONS_WORKER_RUNTIME || // Azure Functions
-    !!process.env.LAMBDA_TASK_ROOT || // AWS Lambda
-    !!process.env.CF_PAGES || // Cloudflare
-    !!process.env.VERCEL ||
-    !!process.env.NETLIFY;
-
-  // @ts-expect-error This is not typed
-  if (GLOBAL_OBJ[Symbol.for('@vercel/request-context')]) {
-    vercelWaitUntil(flushWithTimeout());
-  } else if (isServerless) {
-    await flushWithTimeout();
-  }
 }

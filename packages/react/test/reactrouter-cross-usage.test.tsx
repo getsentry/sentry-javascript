@@ -288,11 +288,6 @@ describe('React Router cross usage of wrappers', () => {
 
       // It's called 1 time from the wrapped `MemoryRouter`
       expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(1);
-
-      // It's called 3 times from the 3 `useRoutes` components
-      expect(mockNavigationSpan.updateName).toHaveBeenCalledTimes(3);
-      expect(mockNavigationSpan.updateName).toHaveBeenLastCalledWith('/second-level/:id/third-level/:id');
-
       expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
         name: '/second-level/:id/third-level/:id',
         attributes: {
@@ -459,11 +454,6 @@ describe('React Router cross usage of wrappers', () => {
 
       // It's called 1 time from the wrapped `MemoryRouter`
       expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(1);
-
-      // It's called 3 times from the 3 `useRoutes` components
-      expect(mockNavigationSpan.updateName).toHaveBeenCalledTimes(3);
-      expect(mockNavigationSpan.updateName).toHaveBeenLastCalledWith('/second-level/:id/third-level/:id');
-      expect(mockNavigationSpan.setAttribute).toHaveBeenLastCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
     });
   });
 
@@ -610,10 +600,6 @@ describe('React Router cross usage of wrappers', () => {
 
       // It's called 1 time from the wrapped `createMemoryRouter`
       expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(1);
-
-      // It's called 3 times from the 3 `SentryRoutes` components
-      expect(mockNavigationSpan.updateName).toHaveBeenCalledTimes(3);
-      expect(mockNavigationSpan.updateName).toHaveBeenLastCalledWith('/second-level/:id/third-level/:id');
 
       expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
         name: '/second-level/:id/third-level/:id',
@@ -790,11 +776,6 @@ describe('React Router cross usage of wrappers', () => {
 
       // It's called 1 time from the wrapped `MemoryRouter`
       expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(1);
-
-      // It's called 3 times from the 2 `useRoutes` components and 1 <SentryRoutes> component
-      expect(mockNavigationSpan.updateName).toHaveBeenCalledTimes(3);
-
-      expect(mockNavigationSpan.updateName).toHaveBeenLastCalledWith('/second-level/:id/third-level/:id');
       expect(mockNavigationSpan.setAttribute).toHaveBeenLastCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
     });
   });

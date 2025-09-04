@@ -53,9 +53,18 @@ export function filenameIsInApp(filename: string, isNative: boolean = false): bo
 export function node(getModule?: GetModuleFn): StackLineParserFn {
   const FILENAME_MATCH = /^\s*[-]{4,}$/;
   const FULL_MATCH = /at (?:async )?(?:(.+?)\s+\()?(?:(.+):(\d+):(\d+)?|([^)]+))\)?/;
+  const DATA_URI_MATCH = /at (?:async )?(.+?) \(data:(.*?),/;
 
   // eslint-disable-next-line complexity
   return (line: string) => {
+    const dataUriMatch = line.match(DATA_URI_MATCH);
+    if (dataUriMatch) {
+      return {
+        filename: `<data:${dataUriMatch[2]}>`,
+        function: dataUriMatch[1],
+      };
+    }
+
     const lineMatch = line.match(FULL_MATCH);
 
     if (lineMatch) {

@@ -147,8 +147,10 @@ describe('sentryOnBuildEnd', () => {
 
     await sentryOnBuildEnd(config);
 
+    expect(mockSentryCliInstance.releases.uploadSourceMaps).toHaveBeenCalledTimes(1);
     expect(mockSentryCliInstance.releases.uploadSourceMaps).toHaveBeenCalledWith('undefined', {
       include: [{ paths: ['/build'] }],
+      live: 'rejectOnError',
     });
   });
 
@@ -249,6 +251,8 @@ describe('sentryOnBuildEnd', () => {
     mockSentryCliInstance.execute.mockRejectedValueOnce(new Error('Injection failed'));
 
     await sentryOnBuildEnd(defaultConfig);
+    expect(mockSentryCliInstance.execute).toHaveBeenCalledTimes(1);
+    expect(mockSentryCliInstance.execute).toHaveBeenCalledWith(['sourcemaps', 'inject', '/build'], false);
 
     expect(consoleSpy).toHaveBeenCalledWith('[Sentry] Could not inject debug ids', expect.any(Error));
     consoleSpy.mockRestore();
@@ -282,6 +286,9 @@ describe('sentryOnBuildEnd', () => {
 
     expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('[Sentry] Automatically setting'));
     expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Deleting asset after upload:'));
+    // rejectOnError is used in debug mode to pipe debug id injection output from the CLI to this process's stdout
+    expect(mockSentryCliInstance.execute).toHaveBeenCalledWith(['sourcemaps', 'inject', '/build'], 'rejectOnError');
+
     consoleSpy.mockRestore();
   });
 

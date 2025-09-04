@@ -18,8 +18,7 @@ export function vercelWaitUntil(task: Promise<unknown>): void {
     // @ts-expect-error This is not typed
     GLOBAL_OBJ[Symbol.for('@vercel/request-context')];
 
-  const ctx =
-    vercelRequestContextGlobal?.get && vercelRequestContextGlobal.get() ? vercelRequestContextGlobal.get() : {};
+  const ctx = vercelRequestContextGlobal?.get?.();
 
   if (ctx?.waitUntil) {
     ctx.waitUntil(task);

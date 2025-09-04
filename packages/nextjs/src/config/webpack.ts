@@ -1,7 +1,7 @@
 /* eslint-disable complexity */
 /* eslint-disable max-lines */
 
-import { escapeStringForRegex, loadModule, logger, parseSemver } from '@sentry/core';
+import { debug, escapeStringForRegex, loadModule, parseSemver } from '@sentry/core';
 import * as chalk from 'chalk';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -45,6 +45,7 @@ export function constructWebpackConfigFunction(
   userSentryOptions: SentryBuildOptions = {},
   releaseName: string | undefined,
   routeManifest: RouteManifest | undefined,
+  nextJsVersion: string | undefined,
 ): WebpackConfigFunction {
   // Will be called by nextjs and passed its default webpack configuration and context data about the build (whether
   // we're building server or client, whether we're in dev, what version of webpack we're using, etc). Note that
@@ -90,7 +91,15 @@ export function constructWebpackConfigFunction(
     const newConfig = setUpModuleRules(rawNewConfig);
 
     // Add a loader which will inject code that sets global values
-    addValueInjectionLoader(newConfig, userNextConfig, userSentryOptions, buildContext, releaseName, routeManifest);
+    addValueInjectionLoader({
+      newConfig,
+      userNextConfig,
+      userSentryOptions,
+      buildContext,
+      releaseName,
+      routeManifest,
+      nextJsVersion,
+    });
 
     addOtelWarningIgnoreRule(newConfig);
 
@@ -219,7 +228,7 @@ export function constructWebpackConfigFunction(
           // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
           vercelCronsConfig = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'vercel.json'), 'utf8')).crons;
           if (vercelCronsConfig) {
-            logger.info(
+            debug.log(
               `${chalk.cyan(
                 'info',
               )} - Creating Sentry cron monitors for your Vercel Cron Jobs. You can disable this feature by setting the ${chalk.bold.cyan(
@@ -233,7 +242,7 @@ export function constructWebpackConfigFunction(
           // noop if file does not exist
         } else {
           // log but noop
-          logger.error(
+          debug.error(
             `${chalk.red(
               'error',
             )} - Sentry failed to read vercel.json for automatic cron job monitoring instrumentation`,
@@ -368,7 +377,7 @@ export function constructWebpackConfigFunction(
           // We only update this if no explicit value is set
           // (Next.js defaults to `false`: https://github.com/vercel/next.js/blob/5f4f96c133bd6b10954812cc2fef6af085b82aa5/packages/next/src/build/webpack/config/blocks/base.ts#L61)
           if (!newConfig.devtool) {
-            logger.info(`[@sentry/nextjs] Automatically enabling source map generation for ${runtime} build.`);
+            debug.log(`[@sentry/nextjs] Automatically enabling source map generation for ${runtime} build.`);
             // `hidden-source-map` produces the same sourcemaps as `source-map`, but doesn't include the `sourceMappingURL`
             // comment at the bottom. For folks who aren't publicly hosting their sourcemaps, this is helpful because then
             // the browser won't look for them and throw errors into the console when it can't find them. Because this is a
@@ -383,7 +392,7 @@ export function constructWebpackConfigFunction(
 
           // enable source map deletion if not explicitly disabled
           if (!isServer && userSentryOptions.sourcemaps?.deleteSourcemapsAfterUpload === undefined) {
-            logger.warn(
+            debug.warn(
               '[@sentry/nextjs] Source maps will be automatically deleted after being uploaded to Sentry. If you want to keep the source maps, set the `sourcemaps.deleteSourcemapsAfterUpload` option to false in `withSentryConfig()`. If you do not want to generate and upload sourcemaps at all, set the `sourcemaps.disable` option to true.',
             );
             userSentryOptions.sourcemaps = {
@@ -487,7 +496,7 @@ function getInstrumentationFile(projectDir: string, dotPrefixedExtensions: strin
   for (const pathSegments of paths) {
     try {
       return fs.readFileSync(path.resolve(projectDir, ...pathSegments), { encoding: 'utf-8' });
-    } catch (e) {
+    } catch {
       // no-op
     }
   }
@@ -643,7 +652,7 @@ function addFilesToWebpackEntryPoint(
       import: newImportValue,
     };
   }
-  // malformed entry point (use `console.error` rather than `logger.error` because it will always be printed, regardless
+  // malformed entry point (use `console.error` rather than `debug.error` because it will always be printed, regardless
   // of SDK settings)
   else {
     // eslint-disable-next-line no-console
@@ -682,14 +691,23 @@ function setUpModuleRules(newConfig: WebpackConfigObject): WebpackConfigObjectWi
  */
 // TODO: Remove this loader and replace it with a nextConfig.env (https://web.archive.org/web/20240917153554/https://nextjs.org/docs/app/api-reference/next-config-js/env) or define based (https://github.com/vercel/next.js/discussions/71476) approach.
 // In order to remove this loader though we need to make sure the minimum supported Next.js version includes this PR (https://github.com/vercel/next.js/pull/61194), otherwise the nextConfig.env based approach will not work, as our SDK code is not processed by Next.js.
-function addValueInjectionLoader(
-  newConfig: WebpackConfigObjectWithModuleRules,
-  userNextConfig: NextConfigObject,
-  userSentryOptions: SentryBuildOptions,
-  buildContext: BuildContext,
-  releaseName: string | undefined,
-  routeManifest: RouteManifest | undefined,
-): void {
+function addValueInjectionLoader({
+  newConfig,
+  userNextConfig,
+  userSentryOptions,
+  buildContext,
+  releaseName,
+  routeManifest,
+  nextJsVersion,
+}: {
+  newConfig: WebpackConfigObjectWithModuleRules;
+  userNextConfig: NextConfigObject;
+  userSentryOptions: SentryBuildOptions;
+  buildContext: BuildContext;
+  releaseName: string | undefined;
+  routeManifest: RouteManifest | undefined;
+  nextJsVersion: string | undefined;
+}): void {
   const assetPrefix = userNextConfig.assetPrefix || userNextConfig.basePath || '';
 
   // Check if release creation is disabled to prevent injection that breaks build determinism
@@ -710,6 +728,8 @@ function addValueInjectionLoader(
     // Only inject if release creation is not explicitly disabled (to maintain build determinism)
     SENTRY_RELEASE: releaseToInject && !buildContext.dev ? { id: releaseToInject } : undefined,
     _sentryBasePath: buildContext.dev ? userNextConfig.basePath : undefined,
+    // This is used to determine version-based dev-symbolication behavior
+    _sentryNextJsVersion: nextJsVersion,
   };
 
   const serverValues = {

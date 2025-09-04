@@ -5,9 +5,6 @@ window.Replay = Sentry.replayIntegration({
   flushMinDelay: 200,
   flushMaxDelay: 200,
   useCompression: false,
-  _experiments: {
-    autoFlushOnFeedback: true,
-  },
 });
 
 Sentry.init({

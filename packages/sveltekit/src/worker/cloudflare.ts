@@ -6,7 +6,8 @@ import {
 } from '@sentry/cloudflare';
 import { addNonEnumerableProperty } from '@sentry/core';
 import type { Handle } from '@sveltejs/kit';
-import { rewriteFramesIntegration } from '../server-common/rewriteFramesIntegration';
+import { rewriteFramesIntegration } from '../server-common/integrations/rewriteFramesIntegration';
+import { svelteKitSpansIntegration } from '../server-common/integrations/svelteKitSpans';
 
 /**
  *  Initializes Sentry SvelteKit Cloudflare SDK
@@ -16,7 +17,11 @@ import { rewriteFramesIntegration } from '../server-common/rewriteFramesIntegrat
  */
 export function initCloudflareSentryHandle(options: CloudflareOptions): Handle {
   const opts: CloudflareOptions = {
-    defaultIntegrations: [...getDefaultCloudflareIntegrations(options), rewriteFramesIntegration()],
+    defaultIntegrations: [
+      ...getDefaultCloudflareIntegrations(options),
+      rewriteFramesIntegration(),
+      svelteKitSpansIntegration(),
+    ],
     ...options,
   };
 

@@ -2,16 +2,14 @@
 // The config you add here will be used whenever a users loads a page in their browser.
 // https://docs.sentry.io/platforms/javascript/guides/nextjs/
 
-import * as Sentry from "@sentry/nextjs";
+import * as Sentry from '@sentry/nextjs';
 
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   environment: 'qa', // dynamic sampling bias to keep transactions
 
   // Add optional integrations for additional features
-  integrations: [
-    Sentry.replayIntegration(),
-  ],
+  integrations: [Sentry.replayIntegration()],
   tunnel: 'http://localhost:3031/', // proxy server
 
   // Define how likely traces are sampled. Adjust this value in production, or use tracesSampler for greater control.

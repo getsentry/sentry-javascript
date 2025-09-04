@@ -111,7 +111,7 @@ describe('sentryHandle', () => {
     [Type.Async, true, undefined],
     [Type.Async, false, mockResponse],
   ])('%s resolve with error %s', (type, isError, mockResponse) => {
-    it('should return a response', async () => {
+    it('returns a response', async () => {
       let response: any = undefined;
       try {
         response = await sentryHandle()({ event: mockEvent(), resolve: resolve(type, isError) });
@@ -123,7 +123,7 @@ describe('sentryHandle', () => {
       expect(response).toEqual(mockResponse);
     });
 
-    it("creates a transaction if there's no active span", async () => {
+    it("starts a span if there's no active span", async () => {
       let _span: Span | undefined = undefined;
       client.on('spanEnd', span => {
         if (span === getRootSpan(span)) {
@@ -133,7 +133,7 @@ describe('sentryHandle', () => {
 
       try {
         await sentryHandle()({ event: mockEvent(), resolve: resolve(type, isError) });
-      } catch (e) {
+      } catch {
         //
       }
 
@@ -150,7 +150,27 @@ describe('sentryHandle', () => {
       expect(spans).toHaveLength(1);
     });
 
-    it('creates a child span for nested server calls (i.e. if there is an active span)', async () => {
+    it("doesn't start a span if sveltekit tracing is enabled", async () => {
+      let _span: Span | undefined = undefined;
+      client.on('spanEnd', span => {
+        if (span === getRootSpan(span)) {
+          _span = span;
+        }
+      });
+
+      try {
+        await sentryHandle()({
+          event: mockEvent({ tracing: { enabled: true } }),
+          resolve: resolve(type, isError),
+        });
+      } catch {
+        //
+      }
+
+      expect(_span).toBeUndefined();
+    });
+
+    it('starts a child span for nested server calls (i.e. if there is an active span)', async () => {
       let _span: Span | undefined = undefined;
       let txnCount = 0;
       client.on('spanEnd', span => {
@@ -172,7 +192,7 @@ describe('sentryHandle', () => {
             return mockResponse;
           },
         });
-      } catch (e) {
+      } catch {
         //
       }
 
@@ -197,7 +217,7 @@ describe('sentryHandle', () => {
       );
     });
 
-    it("creates a transaction from sentry-trace header but doesn't populate a new DSC", async () => {
+    it("starts a span from sentry-trace header but doesn't populate a new DSC", async () => {
       const event = mockEvent({
         request: {
           headers: {
@@ -226,7 +246,7 @@ describe('sentryHandle', () => {
 
       try {
         await sentryHandle()({ event, resolve: resolve(type, isError) });
-      } catch (e) {
+      } catch {
         //
       }
 
@@ -275,7 +295,7 @@ describe('sentryHandle', () => {
 
       try {
         await sentryHandle()({ event, resolve: resolve(type, isError) });
-      } catch (e) {
+      } catch {
         //
       }
 
@@ -305,7 +325,7 @@ describe('sentryHandle', () => {
     it("doesn't send redirects in a request handler to Sentry", async () => {
       try {
         await sentryHandle()({ event: mockEvent(), resolve: resolve(type, false, 'redirect') });
-      } catch (e) {
+      } catch {
         expect(mockCaptureException).toBeCalledTimes(0);
       }
     });
@@ -313,7 +333,7 @@ describe('sentryHandle', () => {
     it("doesn't send Http 4xx errors in a request handler to Sentry", async () => {
       try {
         await sentryHandle()({ event: mockEvent(), resolve: resolve(type, false, 'http') });
-      } catch (e) {
+      } catch {
         expect(mockCaptureException).toBeCalledTimes(0);
       }
     });

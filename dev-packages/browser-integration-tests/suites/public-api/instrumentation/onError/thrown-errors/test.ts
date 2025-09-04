@@ -28,7 +28,7 @@ sentryTest('should catch thrown errors', async ({ getLocalTestUrl, page, browser
     type: 'Error',
     value: 'realError',
     mechanism: {
-      type: 'onerror',
+      type: 'auto.browser.global_handlers.onerror',
       handled: false,
     },
     stacktrace: {

@@ -22,10 +22,11 @@ import {
 } from '@sentry/core';
 import { isNotFoundNavigationError, isRedirectNavigationError } from '../common/nextNavigationErrorUtils';
 import type { ServerComponentContext } from '../common/types';
+import { flushSafelyWithTimeout } from '../common/utils/responseEnd';
 import { TRANSACTION_ATTR_SENTRY_TRACE_BACKFILL } from './span-attributes-with-logic-attached';
-import { flushSafelyWithTimeout } from './utils/responseEnd';
 import { commonObjectToIsolationScope, commonObjectToPropagationContext } from './utils/tracingUtils';
 import { getSanitizedRequestUrl } from './utils/urls';
+import { maybeExtractSynchronousParamsAndSearchParams } from './utils/wrapperUtils';
 
 /**
  * Wraps an `app` directory server component with Sentry error instrumentation.
@@ -64,10 +65,8 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
 
       if (getClient()?.getOptions().sendDefaultPii) {
         const props: unknown = args[0];
-        params =
-          props && typeof props === 'object' && 'params' in props
-            ? (props.params as Record<string, string>)
-            : undefined;
+        const { params: paramsFromProps } = maybeExtractSynchronousParamsAndSearchParams(props);
+        params = paramsFromProps;
       }
 
       isolationScope.setSDKProcessingMetadata({

@@ -154,7 +154,7 @@ describe('browserTracingIntegration', () => {
     expect(spanIsSampled(span!)).toBe(false);
   });
 
-  it('starts navigation when URL changes after > 300ms', () => {
+  it('starts navigation when URL changes after > 1.5s', () => {
     const client = new BrowserClient(
       getDefaultBrowserClientOptions({
         tracesSampleRate: 1,
@@ -187,7 +187,7 @@ describe('browserTracingIntegration', () => {
     const dom = new JSDOM(undefined, { url: 'https://example.com/test' });
     Object.defineProperty(global, 'location', { value: dom.window.document.location, writable: true });
 
-    vi.advanceTimersByTime(400);
+    vi.advanceTimersByTime(1600);
     WINDOW.history.pushState({}, '', '/test');
 
     expect(span!.isRecording()).toBe(false);
@@ -446,7 +446,44 @@ describe('browserTracingIntegration', () => {
     setCurrentClient(client);
     client.init();
 
-    startBrowserTracingPageLoadSpan(client, { name: 'test span' });
+    startBrowserTracingPageLoadSpan(client, {
+      name: 'test span',
+      attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+      },
+    });
+
+    const pageloadSpan = getActiveSpan();
+
+    expect(spanToJSON(pageloadSpan!).description).toBe('changed');
+    expect(spanToJSON(pageloadSpan!).data[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toBe('custom');
+  });
+
+  it('sets source to "custom" if name is changed in-place in beforeStartSpan', () => {
+    const client = new BrowserClient(
+      getDefaultBrowserClientOptions({
+        tracesSampleRate: 0,
+        integrations: [
+          browserTracingIntegration({
+            instrumentPageLoad: false,
+            instrumentNavigation: false,
+            beforeStartSpan: opts => {
+              opts.name = 'changed';
+              return opts;
+            },
+          }),
+        ],
+      }),
+    );
+    setCurrentClient(client);
+    client.init();
+
+    startBrowserTracingPageLoadSpan(client, {
+      name: 'test span',
+      attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+      },
+    });
 
     const pageloadSpan = getActiveSpan();
 

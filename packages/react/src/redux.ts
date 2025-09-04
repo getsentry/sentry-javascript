@@ -31,13 +31,14 @@ declare const $CombinedState: unique symbol;
 
 type CombinedState<S> = { readonly [$CombinedState]?: undefined } & S;
 
-type PreloadedState<S> = Required<S> extends {
-  [$CombinedState]: undefined;
-}
-  ? S extends CombinedState<infer S1>
-    ? { [K in keyof S1]?: S1[K] extends Record<string, unknown> ? PreloadedState<S1[K]> : S1[K] }
-    : never
-  : { [K in keyof S]: S[K] extends string | number | boolean | symbol ? S[K] : PreloadedState<S[K]> };
+type PreloadedState<S> =
+  Required<S> extends {
+    [$CombinedState]: undefined;
+  }
+    ? S extends CombinedState<infer S1>
+      ? { [K in keyof S1]?: S1[K] extends Record<string, unknown> ? PreloadedState<S1[K]> : S1[K] }
+      : never
+    : { [K in keyof S]: S[K] extends string | number | boolean | symbol ? S[K] : PreloadedState<S[K]> };
 
 type StoreEnhancerStoreCreator<Ext = Record<string, unknown>, StateExt = never> = <
   S = any,
@@ -106,7 +107,7 @@ function createReduxEnhancer(enhancerOptions?: Partial<SentryEnhancerOptions>): 
                 { filename: 'redux_state.json', data: JSON.stringify(event.contexts.state.state.value) },
               ];
             }
-          } catch (_) {
+          } catch {
             // empty
           }
           return event;

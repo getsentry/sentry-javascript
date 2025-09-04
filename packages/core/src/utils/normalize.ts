@@ -134,7 +134,7 @@ function visit(
       const jsonValue = valueWithToJSON.toJSON();
       // We need to normalize the return value of `.toJSON()` in case it has circular references
       return visit('', jsonValue, remainingDepth - 1, maxProperties, memo);
-    } catch (err) {
+    } catch {
       // pass (The built-in `toJSON` failed, but we can still try to do it ourselves)
     }
   }
@@ -296,7 +296,7 @@ export function normalizeUrlToBase(url: string, basePath: string): string {
   let newUrl = url;
   try {
     newUrl = decodeURI(url);
-  } catch (_Oo) {
+  } catch {
     // Sometime this breaks
   }
   return (

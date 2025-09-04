@@ -1,6 +1,5 @@
-import { captureException, consoleSandbox } from '@sentry/core';
+import { captureException, consoleSandbox, flushIfServerless } from '@sentry/core';
 import type { HandleServerError } from '@sveltejs/kit';
-import { flushIfServerless } from '../server-common/utils';
 
 // The SvelteKit default error handler just logs the error's stack trace to the console
 // see: https://github.com/sveltejs/kit/blob/369e7d6851f543a40c947e033bfc4a9506fdc0a8/packages/kit/src/runtime/server/index.js#L43
@@ -27,37 +26,49 @@ type SafeHandleServerErrorInput = Omit<HandleServerErrorInput, 'status' | 'messa
  *
  * @param handleError The original SvelteKit error handler.
  */
-export function handleErrorWithSentry(handleError: HandleServerError = defaultErrorHandler): HandleServerError {
-  return async (input: SafeHandleServerErrorInput): Promise<void | App.Error> => {
-    if (isNotFoundError(input)) {
-      // We're extra cautious with SafeHandleServerErrorInput - this type is not compatible with HandleServerErrorInput
-      // @ts-expect-error - we're still passing the same object, just with a different (backwards-compatible) type
-      return handleError(input);
+export function handleErrorWithSentry(handleError?: HandleServerError): HandleServerError {
+  const errorHandler = handleError ?? defaultErrorHandler;
+
+  return async (input: HandleServerErrorInput): Promise<void | App.Error> => {
+    if (is4xxError(input)) {
+      return errorHandler(input);
     }
 
     captureException(input.error, {
       mechanism: {
         type: 'sveltekit',
-        handled: false,
+        handled: !!handleError,
       },
     });
 
-    await flushIfServerless();
+    const platform = input.event.platform as {
+      context?: {
+        waitUntil?: (p: Promise<void>) => void;
+      };
+    };
 
-    // We're extra cautious with SafeHandleServerErrorInput - this type is not compatible with HandleServerErrorInput
-    // @ts-expect-error - we're still passing the same object, just with a different (backwards-compatible) type
-    return handleError(input);
+    // Cloudflare workers have a `waitUntil` method on `ctx` that we can use to flush the event queue
+    // We already call this in `wrapRequestHandler` from `sentryHandleInitCloudflare`
+    // However, `handleError` can be invoked when wrapRequestHandler already finished
+    // (e.g. when responses are streamed / returning promises from load functions)
+    if (typeof platform?.context?.waitUntil === 'function') {
+      await flushIfServerless({ cloudflareCtx: platform.context as { waitUntil(promise: Promise<void>): void } });
+    } else {
+      await flushIfServerless();
+    }
+
+    return errorHandler(input);
   };
 }
 
 /**
  * When a page request fails because the page is not found, SvelteKit throws a "Not found" error.
  */
-function isNotFoundError(input: SafeHandleServerErrorInput): boolean {
+function is4xxError(input: SafeHandleServerErrorInput): boolean {
   const { error, event, status } = input;
 
   // SvelteKit 2.0 offers a reliable way to check for a Not Found error:
-  if (status === 404) {
+  if (!!status && status >= 400 && status < 500) {
     return true;
   }
 

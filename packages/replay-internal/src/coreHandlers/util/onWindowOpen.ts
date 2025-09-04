@@ -32,7 +32,7 @@ function monkeyPatchWindowOpen(): void {
       if (handlers) {
         try {
           handlers.forEach(handler => handler());
-        } catch (e) {
+        } catch {
           // ignore errors in here
         }
       }

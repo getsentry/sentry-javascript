@@ -1,0 +1,16 @@
+---
+import Layout from '../../layouts/Layout.astro';
+
+export const prerender = false;
+
+const { userId } = Astro.params;
+
+const response = await fetch(Astro.url.origin + `/api/user/${userId}.json`);
+const data = await response.json();
+---
+
+<Layout title="Dynamic SSR page">
+  <h1>{data.greeting}</h1>
+
+  <p>data: {JSON.stringify(data)}</p>
+</Layout>
