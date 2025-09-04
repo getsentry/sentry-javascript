@@ -1,3 +1,4 @@
+import type { FeedbackInternalOptions } from '@sentry/core';
 import type { h as hType, VNode } from 'preact';
 import type * as Hooks from 'preact/hooks';
 
@@ -11,9 +12,11 @@ export default function ToolbarFactory({
   return function Toolbar({
     action,
     setAction,
+    options,
   }: {
     action: 'highlight' | 'hide' | '';
     setAction: Hooks.StateUpdater<'highlight' | 'hide' | ''>;
+    options: FeedbackInternalOptions;
   }): VNode {
     return (
       <div class="editor__tool-container">
@@ -25,7 +28,7 @@ export default function ToolbarFactory({
               setAction(action === 'highlight' ? '' : 'highlight');
             }}
           >
-            Highlight
+            {options.highlightToolText}
           </button>
           <button
             type="button"
@@ -34,7 +37,7 @@ export default function ToolbarFactory({
               setAction(action === 'hide' ? '' : 'hide');
             }}
           >
-            Hide
+            {options.hideToolText}
           </button>
         </div>
       </div>

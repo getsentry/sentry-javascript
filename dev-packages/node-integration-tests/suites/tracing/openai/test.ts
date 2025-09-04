@@ -14,7 +14,7 @@ describe('OpenAI integration', () => {
         data: {
           'gen_ai.operation.name': 'chat',
           'sentry.op': 'gen_ai.chat',
-          'sentry.origin': 'manual',
+          'sentry.origin': 'auto.function.openai',
           'gen_ai.system': 'openai',
           'gen_ai.request.model': 'gpt-3.5-turbo',
           'gen_ai.request.temperature': 0.7,
@@ -32,7 +32,7 @@ describe('OpenAI integration', () => {
         },
         description: 'chat gpt-3.5-turbo',
         op: 'gen_ai.chat',
-        origin: 'manual',
+        origin: 'auto.function.openai',
         status: 'ok',
       }),
       // Second span - responses API
@@ -40,7 +40,7 @@ describe('OpenAI integration', () => {
         data: {
           'gen_ai.operation.name': 'responses',
           'sentry.op': 'gen_ai.responses',
-          'sentry.origin': 'manual',
+          'sentry.origin': 'auto.function.openai',
           'gen_ai.system': 'openai',
           'gen_ai.request.model': 'gpt-3.5-turbo',
           'gen_ai.response.model': 'gpt-3.5-turbo',
@@ -57,7 +57,7 @@ describe('OpenAI integration', () => {
         },
         description: 'responses gpt-3.5-turbo',
         op: 'gen_ai.responses',
-        origin: 'manual',
+        origin: 'auto.function.openai',
         status: 'ok',
       }),
       // Third span - error handling
@@ -65,13 +65,13 @@ describe('OpenAI integration', () => {
         data: {
           'gen_ai.operation.name': 'chat',
           'sentry.op': 'gen_ai.chat',
-          'sentry.origin': 'manual',
+          'sentry.origin': 'auto.function.openai',
           'gen_ai.system': 'openai',
           'gen_ai.request.model': 'error-model',
         },
         description: 'chat error-model',
         op: 'gen_ai.chat',
-        origin: 'manual',
+        origin: 'auto.function.openai',
         status: 'unknown_error',
       }),
       // Fourth span - chat completions streaming
@@ -79,7 +79,7 @@ describe('OpenAI integration', () => {
         data: {
           'gen_ai.operation.name': 'chat',
           'sentry.op': 'gen_ai.chat',
-          'sentry.origin': 'manual',
+          'sentry.origin': 'auto.function.openai',
           'gen_ai.system': 'openai',
           'gen_ai.request.model': 'gpt-4',
           'gen_ai.request.temperature': 0.8,
@@ -99,7 +99,7 @@ describe('OpenAI integration', () => {
         },
         description: 'chat gpt-4 stream-response',
         op: 'gen_ai.chat',
-        origin: 'manual',
+        origin: 'auto.function.openai',
         status: 'ok',
       }),
       // Fifth span - responses API streaming
@@ -107,7 +107,7 @@ describe('OpenAI integration', () => {
         data: {
           'gen_ai.operation.name': 'responses',
           'sentry.op': 'gen_ai.responses',
-          'sentry.origin': 'manual',
+          'sentry.origin': 'auto.function.openai',
           'gen_ai.system': 'openai',
           'gen_ai.request.model': 'gpt-4',
           'gen_ai.request.stream': true,
@@ -126,7 +126,7 @@ describe('OpenAI integration', () => {
         },
         description: 'responses gpt-4 stream-response',
         op: 'gen_ai.responses',
-        origin: 'manual',
+        origin: 'auto.function.openai',
         status: 'ok',
       }),
       // Sixth span - error handling in streaming context
@@ -137,11 +137,11 @@ describe('OpenAI integration', () => {
           'gen_ai.request.stream': true,
           'gen_ai.system': 'openai',
           'sentry.op': 'gen_ai.chat',
-          'sentry.origin': 'manual',
+          'sentry.origin': 'auto.function.openai',
         },
         description: 'chat error-model stream-response',
         op: 'gen_ai.chat',
-        origin: 'manual',
+        origin: 'auto.function.openai',
         status: 'internal_error',
       }),
     ]),
@@ -155,7 +155,7 @@ describe('OpenAI integration', () => {
         data: {
           'gen_ai.operation.name': 'chat',
           'sentry.op': 'gen_ai.chat',
-          'sentry.origin': 'manual',
+          'sentry.origin': 'auto.function.openai',
           'gen_ai.system': 'openai',
           'gen_ai.request.model': 'gpt-3.5-turbo',
           'gen_ai.request.temperature': 0.7,
@@ -176,7 +176,7 @@ describe('OpenAI integration', () => {
         },
         description: 'chat gpt-3.5-turbo',
         op: 'gen_ai.chat',
-        origin: 'manual',
+        origin: 'auto.function.openai',
         status: 'ok',
       }),
       // Second span - responses API with PII
@@ -184,7 +184,7 @@ describe('OpenAI integration', () => {
         data: {
           'gen_ai.operation.name': 'responses',
           'sentry.op': 'gen_ai.responses',
-          'sentry.origin': 'manual',
+          'sentry.origin': 'auto.function.openai',
           'gen_ai.system': 'openai',
           'gen_ai.request.model': 'gpt-3.5-turbo',
           'gen_ai.request.messages': '"Translate this to French: Hello"',
@@ -203,7 +203,7 @@ describe('OpenAI integration', () => {
         },
         description: 'responses gpt-3.5-turbo',
         op: 'gen_ai.responses',
-        origin: 'manual',
+        origin: 'auto.function.openai',
         status: 'ok',
       }),
       // Third span - error handling with PII
@@ -211,14 +211,14 @@ describe('OpenAI integration', () => {
         data: {
           'gen_ai.operation.name': 'chat',
           'sentry.op': 'gen_ai.chat',
-          'sentry.origin': 'manual',
+          'sentry.origin': 'auto.function.openai',
           'gen_ai.system': 'openai',
           'gen_ai.request.model': 'error-model',
           'gen_ai.request.messages': '[{"role":"user","content":"This will fail"}]',
         },
         description: 'chat error-model',
         op: 'gen_ai.chat',
-        origin: 'manual',
+        origin: 'auto.function.openai',
         status: 'unknown_error',
       }),
       // Fourth span - chat completions streaming with PII
@@ -226,7 +226,7 @@ describe('OpenAI integration', () => {
         data: expect.objectContaining({
           'gen_ai.operation.name': 'chat',
           'sentry.op': 'gen_ai.chat',
-          'sentry.origin': 'manual',
+          'sentry.origin': 'auto.function.openai',
           'gen_ai.system': 'openai',
           'gen_ai.request.model': 'gpt-4',
           'gen_ai.request.temperature': 0.8,
@@ -249,7 +249,7 @@ describe('OpenAI integration', () => {
         }),
         description: 'chat gpt-4 stream-response',
         op: 'gen_ai.chat',
-        origin: 'manual',
+        origin: 'auto.function.openai',
         status: 'ok',
       }),
       // Fifth span - responses API streaming with PII
@@ -257,7 +257,7 @@ describe('OpenAI integration', () => {
         data: expect.objectContaining({
           'gen_ai.operation.name': 'responses',
           'sentry.op': 'gen_ai.responses',
-          'sentry.origin': 'manual',
+          'sentry.origin': 'auto.function.openai',
           'gen_ai.system': 'openai',
           'gen_ai.request.model': 'gpt-4',
           'gen_ai.request.stream': true,
@@ -278,7 +278,7 @@ describe('OpenAI integration', () => {
         }),
         description: 'responses gpt-4 stream-response',
         op: 'gen_ai.responses',
-        origin: 'manual',
+        origin: 'auto.function.openai',
         status: 'ok',
       }),
       // Sixth span - error handling in streaming context with PII
@@ -290,11 +290,11 @@ describe('OpenAI integration', () => {
           'gen_ai.request.messages': '[{"role":"user","content":"This will fail"}]',
           'gen_ai.system': 'openai',
           'sentry.op': 'gen_ai.chat',
-          'sentry.origin': 'manual',
+          'sentry.origin': 'auto.function.openai',
         },
         description: 'chat error-model stream-response',
         op: 'gen_ai.chat',
-        origin: 'manual',
+        origin: 'auto.function.openai',
         status: 'internal_error',
       }),
     ]),
@@ -346,6 +346,53 @@ describe('OpenAI integration', () => {
       await createRunner()
         .ignore('event')
         .expect({ transaction: EXPECTED_TRANSACTION_WITH_OPTIONS })
+        .start()
+        .completed();
+    });
+  });
+
+  createEsmAndCjsTests(__dirname, 'scenario-root-span.mjs', 'instrument.mjs', (createRunner, test) => {
+    test('it works without a wrapping span', async () => {
+      await createRunner()
+        // First the span that our mock express server is emitting, unrelated to this test
+        .expect({
+          transaction: {
+            transaction: 'POST /openai/chat/completions',
+          },
+        })
+        .expect({
+          transaction: {
+            transaction: 'chat gpt-3.5-turbo',
+            contexts: {
+              trace: {
+                span_id: expect.any(String),
+                trace_id: expect.any(String),
+                data: {
+                  'gen_ai.operation.name': 'chat',
+                  'sentry.op': 'gen_ai.chat',
+                  'sentry.origin': 'auto.function.openai',
+                  'gen_ai.system': 'openai',
+                  'gen_ai.request.model': 'gpt-3.5-turbo',
+                  'gen_ai.request.temperature': 0.7,
+                  'gen_ai.response.model': 'gpt-3.5-turbo',
+                  'gen_ai.response.id': 'chatcmpl-mock123',
+                  'gen_ai.response.finish_reasons': '["stop"]',
+                  'gen_ai.usage.input_tokens': 10,
+                  'gen_ai.usage.output_tokens': 15,
+                  'gen_ai.usage.total_tokens': 25,
+                  'openai.response.id': 'chatcmpl-mock123',
+                  'openai.response.model': 'gpt-3.5-turbo',
+                  'openai.response.timestamp': '2023-03-01T06:31:28.000Z',
+                  'openai.usage.completion_tokens': 15,
+                  'openai.usage.prompt_tokens': 10,
+                },
+                op: 'gen_ai.chat',
+                origin: 'auto.function.openai',
+                status: 'ok',
+              },
+            },
+          },
+        })
         .start()
         .completed();
     });

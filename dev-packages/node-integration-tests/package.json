@@ -58,6 +58,7 @@
     "nock": "^13.5.5",
     "node-cron": "^3.0.3",
     "node-schedule": "^2.1.1",
+    "openai": "5.18.1",
     "pg": "8.16.0",
     "postgres": "^3.4.7",
     "proxy": "^2.1.1",

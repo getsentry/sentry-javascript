@@ -113,6 +113,9 @@ export { consoleIntegration } from './integrations/console';
 export { featureFlagsIntegration, type FeatureFlagsIntegration } from './integrations/featureFlags';
 
 export { profiler } from './profiling';
+// eslint thinks the entire function is deprecated (while only one overload is actually deprecated)
+// Therefore:
+// eslint-disable-next-line deprecation/deprecation
 export { instrumentFetchRequest } from './fetch';
 export { trpcMiddleware } from './trpc';
 export { wrapMcpServerWithSentry } from './integrations/mcp-server';
@@ -342,7 +345,7 @@ export type { Extra, Extras } from './types-hoist/extra';
 export type { Integration, IntegrationFn } from './types-hoist/integration';
 export type { Mechanism } from './types-hoist/mechanism';
 export type { ExtractedNodeRequestData, HttpHeaderValue, Primitive, WorkerLocation } from './types-hoist/misc';
-export type { ClientOptions, Options } from './types-hoist/options';
+export type { ClientOptions, CoreOptions as Options } from './types-hoist/options';
 export type { Package } from './types-hoist/package';
 export type { PolymorphicEvent, PolymorphicRequest } from './types-hoist/polymorphics';
 export type {

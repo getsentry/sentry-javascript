@@ -17,6 +17,10 @@ class MockClient implements Partial<Client> {
     // Mock addEventProcessor function
     this.addEventProcessor = vi.fn();
   }
+  // @ts-expect-error not returning options for the test
+  public getOptions() {
+    return {};
+  }
 }
 
 describe('instrumentOutgoingRequests', () => {

@@ -1,5 +1,5 @@
 import { getClient } from '../currentScopes';
-import type { Options } from '../types-hoist/options';
+import type { CoreOptions } from '../types-hoist/options';
 
 // Treeshakable guard to remove all code related to tracing
 declare const __SENTRY_TRACING__: boolean | undefined;
@@ -21,7 +21,7 @@ declare const __SENTRY_TRACING__: boolean | undefined;
  * If this option is not provided, the function will use the current client's options.
  */
 export function hasSpansEnabled(
-  maybeOptions?: Pick<Options, 'tracesSampleRate' | 'tracesSampler'> | undefined,
+  maybeOptions?: Pick<CoreOptions, 'tracesSampleRate' | 'tracesSampler'> | undefined,
 ): boolean {
   if (typeof __SENTRY_TRACING__ === 'boolean' && !__SENTRY_TRACING__) {
     return false;

@@ -52,6 +52,9 @@ export type NextConfigObject = {
   env?: Record<string, string>;
   serverExternalPackages?: string[]; // next >= v15.0.0
   turbopack?: TurbopackOptions;
+  compiler?: {
+    runAfterProductionCompile?: (context: { distDir: string; projectDir: string }) => Promise<void> | void;
+  };
 };
 
 export type SentryBuildOptions = {
@@ -504,6 +507,15 @@ export type SentryBuildOptions = {
    * Use with caution in production environments.
    */
   _experimental?: Partial<{
+    /**
+     * When true (and Next.js >= 15), use the runAfterProductionCompile hook to consolidate sourcemap uploads
+     * into a single operation after turbopack builds complete, reducing build time.
+     *
+     * When false, use the traditional approach of uploading sourcemaps during each webpack build.
+     *
+     * @default false
+     */
+    useRunAfterProductionCompileHook?: boolean;
     thirdPartyOriginStackFrames: boolean;
   }>;
 };

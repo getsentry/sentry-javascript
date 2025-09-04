@@ -7,6 +7,7 @@ import {
   GEN_AI_RESPONSE_MODEL_ATTRIBUTE,
   GEN_AI_RESPONSE_STREAMING_ATTRIBUTE,
   GEN_AI_RESPONSE_TEXT_ATTRIBUTE,
+  GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
 import { setTokenUsageAttributes } from '../ai/utils';
 import type { AnthropicAiStreamingEvent } from './types';
@@ -32,6 +33,17 @@ interface StreamingState {
   cacheCreationInputTokens: number | undefined;
   /** Number of cache read input tokens used. */
   cacheReadInputTokens: number | undefined;
+  /** Accumulated tool calls (finalized) */
+  toolCalls: Array<Record<string, unknown>>;
+  /** In-progress tool call blocks keyed by index */
+  activeToolBlocks: Record<
+    number,
+    {
+      id?: string;
+      name?: string;
+      inputJsonParts: string[];
+    }
+  >;
 }
 
 /**
@@ -43,12 +55,7 @@ interface StreamingState {
  * @returns Whether an error occurred
  */
 
-function isErrorEvent(
-  event: AnthropicAiStreamingEvent,
-  state: StreamingState,
-  recordOutputs: boolean,
-  span: Span,
-): boolean {
+function isErrorEvent(event: AnthropicAiStreamingEvent, span: Span): boolean {
   if ('type' in event && typeof event.type === 'string') {
     // If the event is an error, set the span status and capture the error
     // These error events are not rejected by the API by default, but are sent as metadata of the response
@@ -68,11 +75,6 @@ function isErrorEvent(
         },
       });
       return true;
-    }
-
-    if (recordOutputs && event.type === 'content_block_delta') {
-      const text = event.delta?.text;
-      if (text) state.responseTexts.push(text);
     }
   }
   return false;
@@ -111,6 +113,77 @@ function handleMessageMetadata(event: AnthropicAiStreamingEvent, state: Streamin
 }
 
 /**
+ * Handle start of a content block (e.g., tool_use)
+ */
+function handleContentBlockStart(event: AnthropicAiStreamingEvent, state: StreamingState): void {
+  if (event.type !== 'content_block_start' || typeof event.index !== 'number' || !event.content_block) return;
+  if (event.content_block.type === 'tool_use' || event.content_block.type === 'server_tool_use') {
+    state.activeToolBlocks[event.index] = {
+      id: event.content_block.id,
+      name: event.content_block.name,
+      inputJsonParts: [],
+    };
+  }
+}
+
+/**
+ * Handle deltas of a content block, including input_json_delta for tool_use
+ */
+function handleContentBlockDelta(
+  event: AnthropicAiStreamingEvent,
+  state: StreamingState,
+  recordOutputs: boolean,
+): void {
+  if (event.type !== 'content_block_delta' || !event.delta) return;
+
+  // Accumulate tool_use input JSON deltas only when we have an index and an active tool block
+  if (
+    typeof event.index === 'number' &&
+    'partial_json' in event.delta &&
+    typeof event.delta.partial_json === 'string'
+  ) {
+    const active = state.activeToolBlocks[event.index];
+    if (active) {
+      active.inputJsonParts.push(event.delta.partial_json);
+    }
+  }
+
+  // Accumulate streamed response text regardless of index
+  if (recordOutputs && typeof event.delta.text === 'string') {
+    state.responseTexts.push(event.delta.text);
+  }
+}
+
+/**
+ * Handle stop of a content block; finalize tool_use entries
+ */
+function handleContentBlockStop(event: AnthropicAiStreamingEvent, state: StreamingState): void {
+  if (event.type !== 'content_block_stop' || typeof event.index !== 'number') return;
+
+  const active = state.activeToolBlocks[event.index];
+  if (!active) return;
+
+  const raw = active.inputJsonParts.join('');
+  let parsedInput: unknown;
+
+  try {
+    parsedInput = raw ? JSON.parse(raw) : {};
+  } catch {
+    parsedInput = { __unparsed: raw };
+  }
+
+  state.toolCalls.push({
+    type: 'tool_use',
+    id: active.id,
+    name: active.name,
+    input: parsedInput,
+  });
+
+  // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+  delete state.activeToolBlocks[event.index];
+}
+
+/**
  * Processes an event
  * @param event - The event to process
  * @param state - The state of the streaming process
@@ -128,10 +201,19 @@ function processEvent(
     return;
   }
 
-  const isError = isErrorEvent(event, state, recordOutputs, span);
+  const isError = isErrorEvent(event, span);
   if (isError) return;
 
   handleMessageMetadata(event, state);
+
+  // Tool call events are sent via 3 separate events:
+  // - content_block_start (start of the tool call)
+  // - content_block_delta (delta aka input of the tool call)
+  // - content_block_stop (end of the tool call)
+  // We need to handle them all to capture the full tool call.
+  handleContentBlockStart(event, state);
+  handleContentBlockDelta(event, state, recordOutputs);
+  handleContentBlockStop(event, state);
 }
 
 /**
@@ -153,6 +235,8 @@ export async function* instrumentStream(
     completionTokens: undefined,
     cacheCreationInputTokens: undefined,
     cacheReadInputTokens: undefined,
+    toolCalls: [],
+    activeToolBlocks: {},
   };
 
   try {
@@ -194,6 +278,13 @@ export async function* instrumentStream(
     if (recordOutputs && state.responseTexts.length > 0) {
       span.setAttributes({
         [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: state.responseTexts.join(''),
+      });
+    }
+
+    // Set tool calls if any were captured
+    if (recordOutputs && state.toolCalls.length > 0) {
+      span.setAttributes({
+        [GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE]: JSON.stringify(state.toolCalls),
       });
     }
 
