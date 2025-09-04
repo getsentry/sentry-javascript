@@ -91,7 +91,7 @@ const _httpServerIntegration = ((options: HttpServerIntegrationOptions = {}) => 
     sessions: options.sessions ?? true,
     sessionFlushingDelayMS: options.sessionFlushingDelayMS ?? 60_000,
     maxRequestBodySize: options.maxRequestBodySize ?? 'medium',
-    ...options,
+    ignoreRequestBody: options.ignoreRequestBody,
   };
 
   return {
