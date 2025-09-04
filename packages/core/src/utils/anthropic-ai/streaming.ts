@@ -168,7 +168,7 @@ function handleContentBlockStop(event: AnthropicAiStreamingEvent, state: Streami
 
   try {
     parsedInput = raw ? JSON.parse(raw) : {};
-  } catch (error) {
+  } catch {
     parsedInput = { __unparsed: raw };
   }
 
