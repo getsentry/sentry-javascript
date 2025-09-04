@@ -4,14 +4,41 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 10.9.0
+
 ### Important Changes
 
-- **feat(node)**: Update `httpIntegration` handling of incoming requests
+- **feat(node): Update `httpIntegration` handling of incoming requests ([#17371](https://github.com/getsentry/sentry-javascript/pull/17371))**
 
 This version updates the handling of the Node SDK of incoming requests. Instead of relying on @opentelemetry/instrumentation-http, we now handle incoming request instrumentation internally, ensuring that we can optimize performance as much as possible and avoid interop problems.
 
-This change should not affect users, unless they are relying on very in-depth implementation details. Importantly, this also drops the `_experimentalConfig` option of the integration - this will no longer do anything.
+This change should not affect you, unless you're relying on very in-depth implementation details. Importantly, this also drops the `_experimentalConfig` option of the integration - this will no longer do anything.
 Finally, you can still pass `instrumentation.{requestHook,responseHook,applyCustomAttributesOnSpan}` options, but they are deprecated and will be removed in v11. Instead, you can use the new `incomingRequestSpanHook` configuration option if you want to adjust the incoming request span.
+
+### Other Changes
+
+- feat(browser): Add replay.feedback CDN bundle ([#17496](https://github.com/getsentry/sentry-javascript/pull/17496))
+- feat(browser): Export `sendFeedback` from CDN bundles ([#17495](https://github.com/getsentry/sentry-javascript/pull/17495))
+- fix(astro): Ensure span name from `beforeStartSpan` isn't overwritten ([#17500](https://github.com/getsentry/sentry-javascript/pull/17500))
+- fix(browser): Ensure source is set correctly when updating span name in-place in `beforeStartSpan` ([#17501](https://github.com/getsentry/sentry-javascript/pull/17501))
+- fix(core): Only set template attributes on logs if parameters exist ([#17480](https://github.com/getsentry/sentry-javascript/pull/17480))
+- fix(nextjs): Fix parameterization for root catchall routes ([#17489](https://github.com/getsentry/sentry-javascript/pull/17489))
+- fix(node-core): Shut down OTel TraceProvider when calling `Sentry.close()` ([#17499](https://github.com/getsentry/sentry-javascript/pull/17499))
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+
+- chore: Add `changelog` script back to package.json ([#17517](https://github.com/getsentry/sentry-javascript/pull/17517))
+- chore: Ensure prettier is run on all files ([#17497](https://github.com/getsentry/sentry-javascript/pull/17497))
+- chore: Ignore prettier commit for git blame ([#17498](https://github.com/getsentry/sentry-javascript/pull/17498))
+- chore: Remove experimental from Nuxt SDK package description ([#17483](https://github.com/getsentry/sentry-javascript/pull/17483))
+- ci: Capture overhead in node app ([#17420](https://github.com/getsentry/sentry-javascript/pull/17420))
+- ci: Ensure we fail on cancelled jobs ([#17506](https://github.com/getsentry/sentry-javascript/pull/17506))
+- ci(deps): bump actions/checkout from 4 to 5 ([#17505](https://github.com/getsentry/sentry-javascript/pull/17505))
+- ci(deps): bump actions/create-github-app-token from 2.0.6 to 2.1.1 ([#17504](https://github.com/getsentry/sentry-javascript/pull/17504))
+- test(aws): Improve reliability on CI ([#17502](https://github.com/getsentry/sentry-javascript/pull/17502))
+
+</details>
 
 ## 10.8.0
 
