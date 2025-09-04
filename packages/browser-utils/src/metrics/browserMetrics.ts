@@ -4,10 +4,12 @@ import {
   browserPerformanceTimeOrigin,
   getActiveSpan,
   getComponentName,
+  getCurrentScope,
   htmlTreeAsString,
   isPrimitive,
   parseUrl,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE,
   setMeasurement,
   spanToJSON,
   stringMatchesSomePattern,
@@ -32,6 +34,7 @@ import {
 import { getActivationStart } from './web-vitals/lib/getActivationStart';
 import { getNavigationEntry } from './web-vitals/lib/getNavigationEntry';
 import { getVisibilityWatcher } from './web-vitals/lib/getVisibilityWatcher';
+import { TRACE_FLAG_NONE, TRACE_FLAG_SAMPLED } from '@sentry/core/build/types/utils/spanUtils';
 
 interface NavigatorNetworkInformation {
   readonly connection?: NetworkInformation;
@@ -604,6 +607,7 @@ function _addRequest(span: Span, entry: PerformanceNavigationTiming, timeOrigin:
   const responseEndTimestamp = timeOrigin + msToSec(entry.responseEnd as number);
   const responseStartTimestamp = timeOrigin + msToSec(entry.responseStart as number);
   if (entry.responseEnd) {
+    const propagationContext = getCurrentScope().getPropagationContext();
     // It is possible that we are collecting these metrics when the page hasn't finished loading yet, for example when the HTML slowly streams in.
     // In this case, ie. when the document request hasn't finished yet, `entry.responseEnd` will be 0.
     // In order not to produce faulty spans, where the end timestamp is before the start timestamp, we will only collect
@@ -614,6 +618,20 @@ function _addRequest(span: Span, entry: PerformanceNavigationTiming, timeOrigin:
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
       },
+      ...(propagationContext.ssrSpanId && {
+        links: [
+          {
+            context: {
+              traceId: propagationContext.traceId,
+              spanId: propagationContext.ssrSpanId,
+              traceFlags: propagationContext.sampled ? TRACE_FLAG_SAMPLED : TRACE_FLAG_NONE,
+            },
+            attributes: {
+              [SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE]: 'ssr_span',
+            },
+          },
+        ],
+      }),
     });
 
     startAndEndSpan(span, responseStartTimestamp, responseEndTimestamp, {

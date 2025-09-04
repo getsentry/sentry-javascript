@@ -547,7 +547,9 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         const propagationContext = propagationContextFromHeaders(sentryTrace, baggage);
 
         if (parentlessRootSpans) {
-          propagationContext.parentSpanId = undefined;
+          const ssrSpan = propagationContext.parentSpanId;
+          delete propagationContext.parentSpanId;
+          propagationContext.ssrSpanId = ssrSpan;
         }
 
         const scope = getCurrentScope();

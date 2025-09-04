@@ -4,7 +4,7 @@ type SpanLinkAttributes = {
   /**
    * Setting the link type to 'previous_trace' helps the Sentry product linking to the previous trace
    */
-  'sentry.link.type'?: string | 'previous_trace';
+  'sentry.link.type'?: string | 'previous_trace' | 'ssr_span';
 } & Record<string, SpanAttributeValue | undefined>;
 
 export interface SpanLink {
