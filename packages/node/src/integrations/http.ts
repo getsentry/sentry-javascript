@@ -196,9 +196,7 @@ export function _shouldUseOtelHttpInstrumentation(
  */
 export const httpIntegration = defineIntegration((options: HttpOptions = {}) => {
   const spans = options.spans ?? true;
-  const clientOptions = (getClient<NodeClient>()?.getOptions() || {}) as Partial<NodeClientOptions>;
-  const useOtelHttpInstrumentation = _shouldUseOtelHttpInstrumentation(options, clientOptions);
-  const disableIncomingRequestSpans = options.disableIncomingRequestSpans ?? !hasSpansEnabled(clientOptions);
+  const disableIncomingRequestSpans = options.disableIncomingRequestSpans;
 
   const serverOptions = {
     sessions: options.trackIncomingRequestsAsSessions,
@@ -214,28 +212,33 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
     instrumentation: options.instrumentation,
   } satisfies Parameters<typeof httpServerSpansIntegration>[0];
 
-  const sentryHttpInstrumentationOptions = {
-    breadcrumbs: options.breadcrumbs,
-    propagateTraceInOutgoingRequests: !useOtelHttpInstrumentation,
-    ignoreOutgoingRequests: options.ignoreOutgoingRequests,
-  } satisfies SentryHttpInstrumentationOptions;
-
   const server = httpServerIntegration(serverOptions);
   const serverSpans = httpServerSpansIntegration(serverSpansOptions);
 
-  const enabledServerSpans = spans && !disableIncomingRequestSpans;
+  const enableServerSpans = spans && !disableIncomingRequestSpans;
 
   return {
     name: INTEGRATION_NAME,
 
     setup(client: NodeClient) {
-      if (enabledServerSpans) {
+      const clientOptions = client.getOptions();
+
+      if (enableServerSpans && hasSpansEnabled(clientOptions)) {
         serverSpans.setup(client);
       }
     },
 
     setupOnce() {
+      const clientOptions = (getClient<NodeClient>()?.getOptions() || {}) satisfies Partial<NodeClientOptions>;
+      const useOtelHttpInstrumentation = _shouldUseOtelHttpInstrumentation(options, clientOptions);
+
       server.setupOnce();
+
+      const sentryHttpInstrumentationOptions = {
+        breadcrumbs: options.breadcrumbs,
+        propagateTraceInOutgoingRequests: !useOtelHttpInstrumentation,
+        ignoreOutgoingRequests: options.ignoreOutgoingRequests,
+      } satisfies SentryHttpInstrumentationOptions;
 
       // This is Sentry-specific instrumentation for outgoing request breadcrumbs & trace propagation
       instrumentSentryHttp(sentryHttpInstrumentationOptions);
@@ -247,7 +250,7 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
       }
     },
     processEvent(event) {
-      if (enabledServerSpans) {
+      if (enableServerSpans) {
         return serverSpans.processEvent(event);
       }
       return event;
