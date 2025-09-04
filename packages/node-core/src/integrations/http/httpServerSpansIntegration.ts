@@ -122,7 +122,7 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
             ignoreIncomingRequests,
           })
         ) {
-          DEBUG_BUILD && debug.log(INSTRUMENTATION_NAME, 'Skipping span creation for incoming request');
+          DEBUG_BUILD && debug.log(INSTRUMENTATION_NAME, 'Skipping span creation for incoming request', request.url);
           return fn();
         }
 
