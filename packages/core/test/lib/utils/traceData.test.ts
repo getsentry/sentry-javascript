@@ -365,4 +365,18 @@ describe('_sentryTraceToTraceParentHeader', () => {
     const traceparent = _sentryTraceToTraceParentHeader('12345678901234567890123456789012-1234567890123456');
     expect(traceparent).toBe('00-12345678901234567890123456789012-1234567890123456-00');
   });
+
+  it.each([
+    '12345678901234567890123456789012--0',
+    '-12345678901234567890123456789012-0',
+    '--1',
+    '0',
+    '1',
+    '',
+    '00-12345678901234567890123456789012-1234567890123456-01',
+    '00-12345678901234567890123456789012-1234567890123456-00',
+  ])('returns undefined if the sentry-trace header is invalid (%s)', sentryTrace => {
+    const traceparent = _sentryTraceToTraceParentHeader(sentryTrace);
+    expect(traceparent).toBeUndefined();
+  });
 });

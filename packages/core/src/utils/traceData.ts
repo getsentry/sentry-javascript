@@ -58,7 +58,10 @@ export function getTraceData(
   };
 
   if (options.propagateTraceparent) {
-    traceData.traceparent = _sentryTraceToTraceParentHeader(sentryTrace);
+    const traceparent = _sentryTraceToTraceParentHeader(sentryTrace);
+    if (traceparent) {
+      traceData.traceparent = traceparent;
+    }
   }
 
   return traceData;
@@ -84,7 +87,10 @@ function scopeToTraceHeader(scope: Scope): string {
  *
  * Exported for testing
  */
-export function _sentryTraceToTraceParentHeader(sentryTrace: string): string {
+export function _sentryTraceToTraceParentHeader(sentryTrace: string): string | undefined {
   const { traceId, parentSpanId, parentSampled } = extractTraceparentData(sentryTrace) || {};
+  if (!traceId || !parentSpanId) {
+    return undefined;
+  }
   return `00-${traceId}-${parentSpanId}-${parentSampled ? '01' : '00'}`;
 }
