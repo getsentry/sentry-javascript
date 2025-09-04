@@ -77,6 +77,12 @@ interface HttpOptions {
   ignoreIncomingRequests?: (urlPath: string, request: IncomingMessage) => boolean;
 
   /**
+   * A hook that can be used to mutate the span for incoming requests.
+   * This is triggered after the span is created, but before it is recorded.
+   */
+  incomingRequestSpanHook?: (span: Span, request: IncomingMessage, response: ServerResponse) => void;
+
+  /**
    * Whether to automatically ignore common static asset requests like favicon.ico, robots.txt, etc.
    * This helps reduce noise in your transactions.
    *
@@ -210,6 +216,7 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
     ignoreStaticAssets: options.ignoreStaticAssets,
     ignoreStatusCodes: options.dropSpansForIncomingRequestStatusCodes,
     instrumentation: options.instrumentation,
+    onSpanCreated: options.incomingRequestSpanHook,
   } satisfies Parameters<typeof httpServerSpansIntegration>[0];
 
   const server = httpServerIntegration(serverOptions);

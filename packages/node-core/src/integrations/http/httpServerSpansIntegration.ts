@@ -166,7 +166,7 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
           },
         });
 
-        // TODO v11: Remove the following three hooks, only incomingRequestSpanHook should remain
+        // TODO v11: Remove the following three hooks, only onSpanCreated should remain
         requestHook?.(span, request);
         responseHook?.(span, response);
         applyCustomAttributesOnSpan?.(span, request, response);

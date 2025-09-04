@@ -82,12 +82,6 @@ export type SentryHttpInstrumentationOptions = InstrumentationConfig & {
   ignoreIncomingRequestBody?: (url: string, request: http.RequestOptions) => boolean;
 
   /**
-   * A hook that can be used to mutate the span for incoming requests.
-   * This is triggered after the span is created, but before it is recorded.
-   */
-  incomingRequestSpanHook?: (span: Span, request: http.IncomingMessage, response: http.ServerResponse) => void;
-
-  /**
    * @deprecated This no longer does anything.
    */
   maxIncomingRequestBodySize?: 'none' | 'small' | 'medium' | 'always';

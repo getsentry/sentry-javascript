@@ -149,8 +149,6 @@ function instrumentServer(
   const originalEmit: ServerEmit = server.emit;
 
   if (wrappedEmitFns.has(originalEmit)) {
-    DEBUG_BUILD &&
-      debug.log(INSTRUMENTATION_NAME, 'Incoming requests already instrumented, not instrumenting again...');
     return;
   }
 
@@ -223,7 +221,7 @@ function instrumentServer(
             return wrapInCallbacks(
               () => target.apply(thisArg, args),
               { request, response, normalizedRequest },
-              callbacks,
+              callbacks.slice(),
             );
           } else {
             return target.apply(thisArg, args);
