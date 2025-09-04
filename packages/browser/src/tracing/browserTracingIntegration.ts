@@ -257,6 +257,13 @@ export interface BrowserTracingOptions {
     enableInteractions: boolean;
     enableStandaloneClsSpans: boolean;
     enableStandaloneLcpSpans: boolean;
+
+    /**
+     * If `true`, root spans started in the browser (pageload, navigation, ui.action.*, manual spans)
+     * will not have a parent span id, even if there was a parent SSR span propagated to the browser
+     * (via `<meta>` tags).
+     */
+    parentlessRootSpans: boolean;
   }>;
 
   /**
@@ -325,7 +332,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
     enableElementTiming,
     enableLongTask,
     enableLongAnimationFrame,
-    _experiments: { enableInteractions, enableStandaloneClsSpans, enableStandaloneLcpSpans },
+    _experiments: { enableInteractions, enableStandaloneClsSpans, enableStandaloneLcpSpans, parentlessRootSpans },
     beforeStartSpan,
     idleTimeout,
     finalTimeout,
@@ -538,6 +545,10 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         const baggage = traceOptions.baggage || getMetaContent('baggage');
 
         const propagationContext = propagationContextFromHeaders(sentryTrace, baggage);
+
+        if (parentlessRootSpans) {
+          propagationContext.parentSpanId = undefined;
+        }
 
         const scope = getCurrentScope();
         scope.setPropagationContext(propagationContext);

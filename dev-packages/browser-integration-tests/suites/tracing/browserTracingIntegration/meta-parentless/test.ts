@@ -1,0 +1,93 @@
+import { expect } from '@playwright/test';
+import type { Event, EventEnvelopeHeaders } from '@sentry/core';
+import { sentryTest } from '../../../../utils/fixtures';
+import {
+  envelopeHeaderRequestParser,
+  getFirstSentryEnvelopeRequest,
+  shouldSkipTracingTest,
+} from '../../../../utils/helpers';
+
+sentryTest(
+  'creates a pageload span based on `sentry-trace` <meta> without parent span id if parentlessRootSpans is true',
+  async ({ getLocalTestUrl, page }) => {
+    if (shouldSkipTracingTest()) {
+      sentryTest.skip();
+    }
+
+    const url = await getLocalTestUrl({ testDir: __dirname });
+
+    const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
+
+    expect(eventData.contexts?.trace).toMatchObject({
+      op: 'pageload',
+      trace_id: '12312012123120121231201212312012',
+    });
+    expect(eventData.contexts?.trace?.parent_span_id).toBeUndefined();
+
+    expect(eventData.spans?.length).toBeGreaterThan(0);
+  },
+);
+
+sentryTest(
+  'picks up `baggage` <meta> tag, propagate the content in transaction and not add own data',
+  async ({ getLocalTestUrl, page }) => {
+    if (shouldSkipTracingTest()) {
+      sentryTest.skip();
+    }
+
+    const url = await getLocalTestUrl({ testDir: __dirname });
+
+    const envHeader = await getFirstSentryEnvelopeRequest<EventEnvelopeHeaders>(page, url, envelopeHeaderRequestParser);
+
+    expect(envHeader.trace).toBeDefined();
+    expect(envHeader.trace).toEqual({
+      release: '2.1.12',
+      sample_rate: '0.3232',
+      trace_id: '123',
+      public_key: 'public',
+      sample_rand: '0.42',
+    });
+  },
+);
+
+sentryTest("creates a navigation that's not influenced by `sentry-trace` <meta>", async ({ getLocalTestUrl, page }) => {
+  if (shouldSkipTracingTest()) {
+    sentryTest.skip();
+  }
+
+  const url = await getLocalTestUrl({ testDir: __dirname });
+
+  const pageloadRequest = await getFirstSentryEnvelopeRequest<Event>(page, url);
+  const navigationRequest = await getFirstSentryEnvelopeRequest<Event>(page, `${url}#foo`);
+
+  expect(pageloadRequest.contexts?.trace).toMatchObject({
+    op: 'pageload',
+    trace_id: '12312012123120121231201212312012',
+  });
+  expect(pageloadRequest.contexts?.trace?.parent_span_id).toBeUndefined();
+
+  expect(navigationRequest.contexts?.trace?.op).toBe('navigation');
+  expect(navigationRequest.contexts?.trace?.trace_id).toBeDefined();
+  expect(navigationRequest.contexts?.trace?.trace_id).not.toBe(pageloadRequest.contexts?.trace?.trace_id);
+
+  const pageloadSpans = pageloadRequest.spans;
+  const navigationSpans = navigationRequest.spans;
+
+  const pageloadSpanId = pageloadRequest.contexts?.trace?.span_id;
+  const navigationSpanId = navigationRequest.contexts?.trace?.span_id;
+
+  expect(pageloadSpanId).toBeDefined();
+  expect(navigationSpanId).toBeDefined();
+
+  pageloadSpans?.forEach(span =>
+    expect(span).toMatchObject({
+      parent_span_id: pageloadSpanId,
+    }),
+  );
+
+  navigationSpans?.forEach(span =>
+    expect(span).toMatchObject({
+      parent_span_id: navigationSpanId,
+    }),
+  );
+});
