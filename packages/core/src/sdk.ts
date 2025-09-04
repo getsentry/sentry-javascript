@@ -25,7 +25,7 @@ export function initAndBind<F extends Client, O extends ClientOptions>(
       // use `console.warn` rather than `debug.warn` since by non-debug bundles have all `debug.x` statements stripped
       consoleSandbox(() => {
         // eslint-disable-next-line no-console
-        console.warn('[Sentry] Cannot initialize SDK with `debug` option using a non-debug bundle.');
+        console.warn('xx [Sentry] Cannot initialize SDK with `debug` option using a non-debug bundle.');
       });
     }
   }
