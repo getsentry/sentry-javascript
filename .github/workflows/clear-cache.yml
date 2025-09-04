@@ -23,7 +23,7 @@ jobs:
     name: Delete all caches
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
 
       - name: Set up Node
         uses: actions/setup-node@v4
