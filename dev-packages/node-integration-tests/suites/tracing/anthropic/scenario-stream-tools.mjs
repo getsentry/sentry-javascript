@@ -21,7 +21,11 @@ function createMockStreamEvents(model = 'claude-3-haiku-20240307') {
     yield { type: 'content_block_delta', delta: { text: 'Starting tool...' } };
 
     // tool_use streamed via partial json
-    yield { type: 'content_block_start', index: 0, content_block: { type: 'tool_use', id: 'tool_weather_2', name: 'weather' } };
+    yield {
+      type: 'content_block_start',
+      index: 0,
+      content_block: { type: 'tool_use', id: 'tool_weather_2', name: 'weather' },
+    };
     yield { type: 'content_block_delta', index: 0, delta: { partial_json: '{"city":' } };
     yield { type: 'content_block_delta', index: 0, delta: { partial_json: '"Paris"}' } };
     yield { type: 'content_block_stop', index: 0 };
