@@ -34,7 +34,6 @@ import {
 import { getActivationStart } from './web-vitals/lib/getActivationStart';
 import { getNavigationEntry } from './web-vitals/lib/getNavigationEntry';
 import { getVisibilityWatcher } from './web-vitals/lib/getVisibilityWatcher';
-import { TRACE_FLAG_NONE, TRACE_FLAG_SAMPLED } from '@sentry/core/build/types/utils/spanUtils';
 
 interface NavigatorNetworkInformation {
   readonly connection?: NetworkInformation;
@@ -624,7 +623,7 @@ function _addRequest(span: Span, entry: PerformanceNavigationTiming, timeOrigin:
             context: {
               traceId: propagationContext.traceId,
               spanId: propagationContext.ssrSpanId,
-              traceFlags: propagationContext.sampled ? TRACE_FLAG_SAMPLED : TRACE_FLAG_NONE,
+              traceFlags: propagationContext.sampled ? 0x1 : 0x0,
             },
             attributes: {
               [SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE]: 'ssr_span',
