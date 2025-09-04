@@ -56,28 +56,6 @@ test('Should record exceptions and transactions for faulty route handlers', asyn
 
   await request.get('/route-handlers/boop/error').catch(() => {});
 
-  // Expect this to timeout due to upstream Next.js issue https://github.com/vercel/next.js/issues/82612
-  // When the issue is fixed, this test should fail (because it won't timeout anymore)
-  const timeoutDuration = 25000; // Less than the 30s test timeout
-
-  try {
-    await Promise.race([
-      Promise.all([routehandlerTransactionPromise, errorEventPromise]),
-      new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Expected timeout - upstream issue still exists')), timeoutDuration),
-      ),
-    ]);
-
-    // If we get here, the upstream issue has been fixed
-    throw new Error('Test should have timed out - upstream issue may be fixed.');
-  } catch (error) {
-    // Expected timeout - test passes
-    if (error instanceof Error && error.message.includes('Expected timeout')) {
-      return;
-    }
-    throw error;
-  }
-
   const routehandlerTransaction = await routehandlerTransactionPromise;
   const routehandlerError = await errorEventPromise;
 
