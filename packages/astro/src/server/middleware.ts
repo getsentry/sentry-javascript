@@ -167,7 +167,6 @@ async function enhanceHttpServerSpan(
     await flushIfServerless();
   }
 
-  // TODO: flush if serverless (first extract function)
 }
 
 async function instrumentRequestStartHttpServerSpan(
