@@ -60,18 +60,11 @@ function isErrorEvent(event: AnthropicAiStreamingEvent, span: Span): boolean {
     // If the event is an error, set the span status and capture the error
     // These error events are not rejected by the API by default, but are sent as metadata of the response
     if (event.type === 'error') {
-      const message = event.error?.message ?? 'internal_error';
-      span.setStatus({ code: SPAN_STATUS_ERROR, message });
-      captureException(new Error(`anthropic_stream_error: ${message}`), {
+      span.setStatus({ code: SPAN_STATUS_ERROR, message: event.error?.type ?? 'unknown_error' });
+      captureException(event.error, {
         mechanism: {
           handled: false,
-          type: 'auto.ai.anthropic',
-          data: {
-            function: 'anthropic_stream_error',
-          },
-        },
-        data: {
-          function: 'anthropic_stream_error',
+          type: 'auto.ai.anthropic.anthropic_error',
         },
       });
       return true;
