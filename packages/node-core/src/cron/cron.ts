@@ -102,10 +102,7 @@ export function instrumentCron<T>(lib: T & CronJobConstructor, monitorSlug: stri
               captureException(e, {
                 mechanism: {
                   handled: false,
-                  type: 'cron.instrumentCron',
-                  data: {
-                    function: 'constructor',
-                  },
+                  type: 'auto.function.cron.instrumentCron',
                 },
               });
               throw e;
@@ -147,10 +144,7 @@ export function instrumentCron<T>(lib: T & CronJobConstructor, monitorSlug: stri
                   captureException(e, {
                     mechanism: {
                       handled: false,
-                      type: 'cron.instrumentCron.on-tick',
-                      data: {
-                        function: 'from',
-                      },
+                      type: 'auto.function.cron.instrumentCron',
                     },
                   });
                   throw e;
