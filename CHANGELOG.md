@@ -4,6 +4,31 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 10.10.0
+
+### Important Changes
+
+- **feat(browser): Add support for `propagateTraceparent` SDK option ([#17509](https://github.com/getsentry/sentry-javascript/pull/17509))**
+
+Adds support for a new browser SDK init option, `propagateTraceparent` for attaching a W3C compliant traceparent header to outgoing fetch and XHR requests, in addition to sentry-trace and baggage headers. More details can be found [here](https://develop.sentry.dev/sdk/telemetry/traces/#propagatetraceparent).
+
+- **feat(core): Add tool calls attributes for Anthropic AI ([#17478](https://github.com/getsentry/sentry-javascript/pull/17478))**
+
+Adds missing tool call attributes, we add gen_ai.response.tool_calls attribute for Anthropic AI, supporting both streaming and non-streaming requests.
+
+- **feat(nextjs): Use compiler hook for uploading turbopack sourcemaps ([#17352](https://github.com/getsentry/sentry-javascript/pull/17352))**
+
+Adds a new _experimental_ flag `_experimental.useRunAfterProductionCompileHook` to `withSentryConfig` for automatic source maps uploads when building a Next.js app with `next build --turbopack`.
+When set we:
+
+- Automatically enable source map generation for turbopack client files (if not explicitly disabled)
+- Upload generated source maps to Sentry at the end of the build by leveraging [a Next.js compiler hook](https://nextjs.org/docs/architecture/nextjs-compiler#runafterproductioncompile).
+
+### Other Changes
+
+- feat(feedback): Add more labels so people can configure Highlight and Hide labels ([#17513](https://github.com/getsentry/sentry-javascript/pull/17513))
+- fix(node): Add `origin` for OpenAI spans & test auto instrumentation ([#17519](https://github.com/getsentry/sentry-javascript/pull/17519))
+
 ## 10.9.0
 
 ### Important Changes
