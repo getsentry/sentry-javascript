@@ -50,6 +50,12 @@ export interface PropagationContext {
    * The current SDK should not modify this value!
    */
   dsc?: Partial<DynamicSamplingContext>;
+
+  /**
+   * The id of a server-side span that describe the SSR request handling lifecycle (most likely the root `http.server` span).
+   * To be used on the client for additional annotation if present.
+   */
+  ssrSpanId?: string;
 }
 
 /**
