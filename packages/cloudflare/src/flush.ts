@@ -4,22 +4,16 @@ type FlushLock = {
   readonly ready: Promise<void>;
   readonly finalize: () => Promise<void>;
 };
+type Lockable<T> = T & { [kFlushLock]?: FlushLock };
 
 const kFlushLock = Symbol.for('kFlushLock');
 
-function getInstrumentedLock<T extends object>(o: T): FlushLock | undefined {
-  const descriptor = Object.getOwnPropertyDescriptor(o, kFlushLock);
-  if (descriptor?.value) return descriptor.value as FlushLock;
-  return undefined;
+function getInstrumentedLock<T>(o: Lockable<T>): FlushLock | undefined {
+  return o[kFlushLock];
 }
 
-function storeInstrumentedLock<T extends object>(o: T, lock: FlushLock): void {
-  Object.defineProperty(o, kFlushLock, {
-    value: lock,
-    enumerable: false,
-    configurable: true,
-    writable: false,
-  });
+function storeInstrumentedLock<T>(o: Lockable<T>, lock: FlushLock): void {
+  o[kFlushLock] = lock;
 }
 
 /**
@@ -34,6 +28,7 @@ export function makeFlushLock(context: ExecutionContext): FlushLock {
   // eslint-disable-next-line @typescript-eslint/unbound-method
   let lock = getInstrumentedLock(context.waitUntil);
   if (lock) {
+    // It is fine to return the same lock multiple times because this means the context has already been instrumented.
     return lock;
   }
   let pending = 0;
