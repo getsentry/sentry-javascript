@@ -4,6 +4,17 @@ type FlushLock = {
   readonly ready: Promise<void>;
   readonly finalize: () => Promise<void>;
 };
+type Lockable<T> = T & { [kFlushLock]?: FlushLock };
+
+const kFlushLock = Symbol.for('kFlushLock');
+
+function getInstrumentedLock<T>(o: Lockable<T>): FlushLock | undefined {
+  return o[kFlushLock];
+}
+
+function storeInstrumentedLock<T>(o: Lockable<T>, lock: FlushLock): void {
+  o[kFlushLock] = lock;
+}
 
 /**
  * Enhances the given execution context by wrapping its `waitUntil` method with a proxy
@@ -14,25 +25,32 @@ type FlushLock = {
  * @return {FlushLock} Returns a flusher function if a valid context is provided, otherwise undefined.
  */
 export function makeFlushLock(context: ExecutionContext): FlushLock {
-  let resolveAllDone: () => void = () => undefined;
-  const allDone = new Promise<void>(res => {
-    resolveAllDone = res;
-  });
+  // eslint-disable-next-line @typescript-eslint/unbound-method
+  let lock = getInstrumentedLock(context.waitUntil);
+  if (lock) {
+    // It is fine to return the same lock multiple times because this means the context has already been instrumented.
+    return lock;
+  }
   let pending = 0;
   const originalWaitUntil = context.waitUntil.bind(context) as typeof context.waitUntil;
-  context.waitUntil = promise => {
+  const { promise, resolve } = Promise.withResolvers();
+  const hijackedWaitUntil: typeof originalWaitUntil = promise => {
     pending++;
     return originalWaitUntil(
       promise.finally(() => {
-        if (--pending === 0) resolveAllDone();
+        if (--pending === 0) resolve();
       }),
     );
   };
-  return Object.freeze({
-    ready: allDone,
+  lock = Object.freeze({
+    ready: promise,
     finalize: () => {
-      if (pending === 0) resolveAllDone();
-      return allDone;
+      if (pending === 0) resolve();
+      return promise;
     },
-  });
+  }) as FlushLock;
+  storeInstrumentedLock(hijackedWaitUntil, lock);
+  context.waitUntil = hijackedWaitUntil;
+
+  return lock;
 }
