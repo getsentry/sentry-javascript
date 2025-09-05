@@ -1,5 +1,5 @@
 import { applySdkMetadata } from '@sentry/core';
-import type { Event,NodeClient, NodeOptions } from '@sentry/node';
+import type { Event, NodeClient, NodeOptions } from '@sentry/node';
 import { init as initNodeSdk } from '@sentry/node';
 
 /**

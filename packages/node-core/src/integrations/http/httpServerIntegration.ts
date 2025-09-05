@@ -1,7 +1,9 @@
 /* eslint-disable max-lines */
 import type { ChannelListener } from 'node:diagnostics_channel';
 import { subscribe } from 'node:diagnostics_channel';
-import type { RequestOptions, Server } from 'node:http';
+import type { EventEmitter } from 'node:events';
+import type { IncomingMessage, RequestOptions, Server, ServerResponse } from 'node:http';
+import type { Socket } from 'node:net';
 import { context, createContextKey, propagation } from '@opentelemetry/api';
 import type { AggregationCounts, Client, Integration, IntegrationFn, RequestEventData, Scope } from '@sentry/core';
 import {
@@ -14,9 +16,6 @@ import {
   stripUrlQueryAndFragment,
   withIsolationScope,
 } from '@sentry/core';
-import type EventEmitter from 'events';
-import type { IncomingMessage, ServerResponse } from 'http';
-import type { Socket } from 'net';
 import { DEBUG_BUILD } from '../../debug-build';
 import type { NodeClient } from '../../sdk/client';
 import { INSTRUMENTATION_NAME, MAX_BODY_BYTE_LENGTH } from './constants';
