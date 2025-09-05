@@ -20,7 +20,6 @@ export {
   resolveRouteNameAndSource,
   getNormalizedName,
   initializeRouterUtils,
-  isLikelyLazyRouteContext,
   locationIsInsideDescendantRoute,
   prefixWithSlash,
   rebuildRoutePathFromAllRoutes,

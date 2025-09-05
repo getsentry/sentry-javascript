@@ -44,7 +44,6 @@ import { checkRouteForAsyncHandler } from './lazy-routes';
 import {
   getNormalizedName,
   initializeRouterUtils,
-  isLikelyLazyRouteContext,
   locationIsInsideDescendantRoute,
   prefixWithSlash,
   rebuildRoutePathFromAllRoutes,
@@ -577,16 +576,13 @@ export function handleNavigation(opts: {
       basename,
     );
 
-    // Check if this might be a lazy route context
-    const isLazyRouteContext = isLikelyLazyRouteContext(allRoutes || routes, location);
-
     const activeSpan = getActiveSpan();
     const spanJson = activeSpan && spanToJSON(activeSpan);
     const isAlreadyInNavigationSpan = spanJson?.op === 'navigation';
 
     // Cross usage can result in multiple navigation spans being created without this check
     if (!isAlreadyInNavigationSpan) {
-      createNewNavigationSpan(client, name, source, version, isLazyRouteContext);
+      createNewNavigationSpan(client, name, source, version);
     }
   }
 }
@@ -739,7 +735,6 @@ export function createNewNavigationSpan(
   name: string,
   source: TransactionSource,
   version: string,
-  isLikelyLazyRoute: boolean,
 ): void {
   const newSpan = startBrowserTracingNavigationSpan(client, {
     name,
@@ -750,8 +745,7 @@ export function createNewNavigationSpan(
     },
   });
 
-  // For lazy routes, don't mark as named yet so it can be updated later when the route loads
-  if (!isLikelyLazyRoute && newSpan) {
+  if (newSpan) {
     addNonEnumerableProperty(
       newSpan as { __sentry_navigation_name_set__?: boolean },
       '__sentry_navigation_name_set__',
