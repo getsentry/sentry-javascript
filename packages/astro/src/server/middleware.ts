@@ -146,16 +146,14 @@ async function enhanceHttpServerSpan(
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.astro',
     });
 
-    if (!parametrizedRoute) {
-      return next();
+    if (parametrizedRoute) {
+      rootSpan.setAttributes({
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+        'http.route': parametrizedRoute,
+      });
+
+      isolationScope.setTransactionName(`${method} ${parametrizedRoute}`);
     }
-
-    rootSpan.setAttributes({
-      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-      'http.route': parametrizedRoute,
-    });
-
-    isolationScope.setTransactionName(`${method} ${parametrizedRoute}`);
 
     try {
       const originalResponse = await next();
