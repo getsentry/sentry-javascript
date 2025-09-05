@@ -56,7 +56,7 @@ export function instrumentNodeCron<T>(lib: Partial<NodeCron> & T): T {
                     captureException(e, {
                       mechanism: {
                         handled: false,
-                        type: 'cron.instrumentNodeCron',
+                        type: 'auto.function.node-cron.instrumentNodeCron',
                       },
                     });
                     throw e;
