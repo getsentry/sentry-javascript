@@ -94,7 +94,6 @@ function addPrivateRequestAttributes(span: Span, params: Record<string, unknown>
  * @see https://docs.anthropic.com/en/api/errors#error-shapes
  */
 function handleResponseError(span: Span, response: AnthropicAiResponse): void {
-  // Check for standard error information in the response
   if (response.error) {
     const errorType = response.error.type || 'unknown_error';
     span.setStatus({ code: SPAN_STATUS_ERROR, message: errorType });
@@ -183,9 +182,8 @@ function addMetadataAttributes(span: Span, response: AnthropicAiResponse): void 
 
 /**
  * Add response attributes to spans
- * @internal Exported for testing
  */
-export function addResponseAttributes(span: Span, response: AnthropicAiResponse, recordOutputs?: boolean): void {
+function addResponseAttributes(span: Span, response: AnthropicAiResponse, recordOutputs?: boolean): void {
   if (!response || typeof response !== 'object') return;
 
   // capture error, do not add attributes if error (they shouldn't exist)
