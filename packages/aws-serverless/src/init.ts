@@ -36,9 +36,20 @@ export function init(options: AwsServerlessOptions = {}): NodeClient | undefined
 
   const sdkSource = getSDKSource();
 
-  if (opts._experiments?.enableLambdaExtension && sdkSource === 'aws-lambda-layer' && !opts.tunnel) {
-    DEBUG_BUILD && debug.log('Proxying Sentry events through the Sentry Lambda extension');
-    opts.tunnel = 'http://localhost:9000/envelope';
+  if (opts._experiments?.enableLambdaExtension) {
+    if (sdkSource === 'aws-lambda-layer') {
+      if (!opts.tunnel) {
+        DEBUG_BUILD && debug.log('Proxying Sentry events through the Sentry Lambda extension');
+        opts.tunnel = 'http://localhost:9000/envelope';
+      } else {
+        DEBUG_BUILD &&
+          debug.warn(
+            `Using a custom tunnel with the Sentry Lambda extension is not supported. Events will be tunnelled to ${opts.tunnel} and not through the extension.`,
+          );
+      }
+    } else {
+      DEBUG_BUILD && debug.warn('The Sentry Lambda extension is only supported when using the AWS Lambda layer.');
+    }
   }
 
   applySdkMetadata(opts, 'aws-serverless', ['aws-serverless'], sdkSource);

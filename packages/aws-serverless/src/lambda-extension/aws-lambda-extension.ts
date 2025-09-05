@@ -55,12 +55,6 @@ export class AwsLambdaExtension {
     if (!res.ok) {
       throw new Error(`Failed to advance to next event: ${await res.text()}`);
     }
-
-    const event = (await res.json()) as { eventType: string };
-
-    if (event.eventType === 'SHUTDOWN') {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-    }
   }
 
   /**
