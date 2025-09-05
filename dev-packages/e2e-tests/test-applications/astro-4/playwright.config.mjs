@@ -7,7 +7,7 @@ if (!testEnv) {
 }
 
 const config = getPlaywrightConfig({
-  startCommand: 'node ./dist/server/entry.mjs',
+  startCommand: 'pnpm start',
 });
 
 export default config;

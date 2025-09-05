@@ -21,14 +21,14 @@ test.describe('tracing in static/pre-rendered routes', () => {
     const clientPageloadTraceId = clientPageloadTxn.contexts?.trace?.trace_id;
     const clientPageloadParentSpanId = clientPageloadTxn.contexts?.trace?.parent_span_id;
 
-    const sentryTraceMetaTagContent = await page.locator('meta[name="sentry-trace"]').getAttribute('content');
-    const baggageMetaTagContent = await page.locator('meta[name="baggage"]').getAttribute('content');
+    const sentryTraceMetaTags = await page.locator('meta[name="sentry-trace"]').count();
+    expect(sentryTraceMetaTags).toBe(0);
 
-    const [metaTraceId, metaParentSpanId, metaSampled] = sentryTraceMetaTagContent?.split('-') || [];
+    const baggageMetaTags = await page.locator('meta[name="baggage"]').count();
+    expect(baggageMetaTags).toBe(0);
 
     expect(clientPageloadTraceId).toMatch(/[a-f0-9]{32}/);
-    expect(clientPageloadParentSpanId).toMatch(/[a-f0-9]{16}/);
-    expect(metaSampled).toBe('1');
+    expect(clientPageloadParentSpanId).toBeUndefined();
 
     expect(clientPageloadTxn).toMatchObject({
       contexts: {
@@ -40,9 +40,8 @@ test.describe('tracing in static/pre-rendered routes', () => {
           }),
           op: 'pageload',
           origin: 'auto.pageload.astro',
-          parent_span_id: metaParentSpanId,
           span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          trace_id: metaTraceId,
+          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
         },
       },
       platform: 'javascript',
@@ -52,9 +51,6 @@ test.describe('tracing in static/pre-rendered routes', () => {
       },
       type: 'transaction',
     });
-
-    expect(baggageMetaTagContent).toContain('sentry-transaction=GET%20%2Ftest-static'); // URL-encoded for 'GET /test-static'
-    expect(baggageMetaTagContent).toContain('sentry-sampled=true');
 
     await page.waitForTimeout(1000); // wait another sec to ensure no server transaction is sent
   });

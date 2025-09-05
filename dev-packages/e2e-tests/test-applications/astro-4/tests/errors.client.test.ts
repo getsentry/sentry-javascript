@@ -70,7 +70,6 @@ test.describe('client-side errors', () => {
       contexts: {
         trace: {
           trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
           span_id: expect.stringMatching(/[a-f0-9]{16}/),
         },
       },
