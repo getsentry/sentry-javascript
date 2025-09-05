@@ -48,7 +48,7 @@ export function wrapPageComponentWithSentry(pageComponent: FunctionComponent | C
             captureException(e, {
               mechanism: {
                 handled: false,
-                type: 'nextjs.page.class',
+                type: 'auto.function.nextjs.pageClass',
               },
             });
             throw e;
@@ -78,7 +78,7 @@ export function wrapPageComponentWithSentry(pageComponent: FunctionComponent | C
             captureException(e, {
               mechanism: {
                 handled: false,
-                type: 'nextjs.page.function',
+                type: 'auto.function.nextjs.pageFunction',
               },
             });
             throw e;

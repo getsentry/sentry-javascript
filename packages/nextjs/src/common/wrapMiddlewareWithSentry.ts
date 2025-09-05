@@ -108,7 +108,7 @@ export function wrapMiddlewareWithSentry<H extends EdgeRouteHandler>(
               error => {
                 captureException(error, {
                   mechanism: {
-                    type: 'nextjs.middleware',
+                    type: 'auto.function.nextjs.wrapMiddlewareWithSentry',
                     handled: false,
                   },
                 });
