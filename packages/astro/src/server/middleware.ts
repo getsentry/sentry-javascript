@@ -437,11 +437,10 @@ function getParametrizedRoute(
 
 function injectMetaTagsInResponse(originalResponse: Response, metaTagsStr: string): Response {
   try {
-    const client = getClient();
     const contentType = originalResponse.headers.get('content-type');
 
     const isPageloadRequest = contentType?.startsWith('text/html');
-    if (!isPageloadRequest || !client) {
+    if (!isPageloadRequest) {
       return originalResponse;
     }
 
