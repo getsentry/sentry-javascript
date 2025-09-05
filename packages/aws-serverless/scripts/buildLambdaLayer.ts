@@ -45,6 +45,11 @@ async function buildLambdaLayer(): Promise<void> {
 
   replaceSDKSource();
 
+  fsForceMkdirSync('./build/aws/dist-serverless/extensions');
+  fs.copyFileSync('./src/lambda-extension/sentry-extension', './build/aws/dist-serverless/extensions/sentry-extension');
+  fs.chmodSync('./build/aws/dist-serverless/extensions/sentry-extension', 0o755);
+  fs.chmodSync('./build/aws/dist-serverless/sentry-extension/index.mjs', 0o755);
+
   const zipFilename = `sentry-node-serverless-${version}.zip`;
   console.log(`Creating final layer zip file ${zipFilename}.`);
   // need to preserve the symlink above with -y
