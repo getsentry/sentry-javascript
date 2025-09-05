@@ -101,7 +101,7 @@ export class AwsLambdaExtension {
    */
   public startSentryTunnel(): void {
     const server = http.createServer(async (req, res) => {
-      if (req.url?.startsWith('/envelope')) {
+      if (req.method === 'POST' && req.url?.startsWith('/envelope')) {
         try {
           const buf = await buffer(req);
           // Extract the actual bytes from the Buffer by slicing its underlying ArrayBuffer
@@ -109,7 +109,7 @@ export class AwsLambdaExtension {
           const envelopeBytes = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
           const envelope = new TextDecoder().decode(envelopeBytes);
           const piece = envelope.split('\n')[0];
-          const header = JSON.parse(piece ?? '{}') as { dsn?: string };
+          const header = JSON.parse(piece || '{}') as { dsn?: string };
           if (!header.dsn) {
             throw new Error('DSN is not set');
           }
@@ -133,11 +133,19 @@ export class AwsLambdaExtension {
           res.writeHead(500, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ error: 'Error tunneling to Sentry' }));
         }
+      } else {
+        res.writeHead(404, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Not found' }));
       }
     });
 
     server.listen(9000, () => {
       DEBUG_BUILD && debug.log('Sentry proxy listening on port 9000');
+    });
+
+    server.on('error', err => {
+      DEBUG_BUILD && debug.error('Error starting Sentry proxy', err);
+      process.exit(1);
     });
   }
 }
