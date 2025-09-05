@@ -6,6 +6,7 @@ import {
   getIsolationScope,
   getRootSpan,
   objectify,
+  SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD,
   spanToJSON,
   stripUrlQueryAndFragment,
   winterCGRequestToRequestData,
@@ -166,7 +167,6 @@ async function enhanceHttpServerSpan(
   } finally {
     await flushIfServerless();
   }
-
 }
 
 async function instrumentRequestStartHttpServerSpan(
@@ -216,6 +216,8 @@ async function instrumentRequestStartHttpServerSpan(
           const attributes: SpanAttributes = {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.astro',
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
+            [SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD]: method,
+            // This is here for backwards compatibility, we used to set this here before
             method,
             url: stripUrlQueryAndFragment(ctx.url.href),
           };
