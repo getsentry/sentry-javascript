@@ -27,7 +27,17 @@ export type ContentBlock = {
   tool_use_id?: string;
 };
 
-export type AnthropicAiResponse = {
+// @see https://docs.anthropic.com/en/api/errors#error-shapes
+export type MessageError = {
+  type: 'error';
+  error: {
+    type: string;
+    message: string;
+  };
+  request_id?: string;
+};
+
+type SuccessfulResponse = {
   [key: string]: unknown; // Allow for additional unknown properties
   id: string;
   model: string;
@@ -43,7 +53,10 @@ export type AnthropicAiResponse = {
     cache_creation_input_tokens: number;
     cache_read_input_tokens: number;
   };
+  error?: never; // This should help TypeScript infer the type correctly
 };
+
+export type AnthropicAiResponse = SuccessfulResponse | MessageError;
 
 /**
  * Basic interface for Anthropic AI client with only the instrumented methods
