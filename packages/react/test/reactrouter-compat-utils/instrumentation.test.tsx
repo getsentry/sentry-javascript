@@ -10,7 +10,6 @@ import {
   addResolvedRoutesToParent,
   createNewNavigationSpan,
   createReactRouterV6CompatibleTracingIntegration,
-  handleExistingNavigationSpan,
   updateNavigationSpan,
 } from '../../src/reactrouter-compat-utils';
 import type { Location, RouteObject } from '../../src/types';
@@ -93,29 +92,6 @@ describe('reactrouter-compat-utils/instrumentation', () => {
       expect(mockUpdateName).not.toHaveBeenCalled();
     });
   });
-
-  describe('handleExistingNavigationSpan', () => {
-    it('should update span name when not already named', () => {
-      const spanJson = { op: 'navigation', data: {}, span_id: 'test', start_timestamp: 0, trace_id: 'test' };
-
-      handleExistingNavigationSpan(mockSpan, spanJson, 'Test Route', 'route', false);
-
-      expect(mockUpdateName).toHaveBeenCalledWith('Test Route');
-      expect(mockSetAttribute).toHaveBeenCalledWith('sentry.source', 'route');
-      expect(addNonEnumerableProperty).toHaveBeenCalledWith(mockSpan, '__sentry_navigation_name_set__', true);
-    });
-
-    it('should not mark as named for lazy routes', () => {
-      const spanJson = { op: 'navigation', data: {}, span_id: 'test', start_timestamp: 0, trace_id: 'test' };
-
-      handleExistingNavigationSpan(mockSpan, spanJson, 'Test Route', 'route', true);
-
-      expect(mockUpdateName).toHaveBeenCalledWith('Test Route');
-      expect(mockSetAttribute).toHaveBeenCalledWith('sentry.source', 'route');
-      expect(addNonEnumerableProperty).not.toHaveBeenCalled();
-    });
-  });
-
   describe('createNewNavigationSpan', () => {
     it('should create new navigation span with correct attributes', () => {
       createNewNavigationSpan(mockClient, 'Test Route', 'route', '6', false);
