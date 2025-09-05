@@ -193,14 +193,14 @@ export function updateNavigationSpan(
     if (name && !spanJson.timestamp) {
       activeRootSpan.updateName(name);
       activeRootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
-    }
 
-    // Mark this span as having its name set to prevent future updates
-    addNonEnumerableProperty(
-      activeRootSpan as { __sentry_navigation_name_set__?: boolean },
-      '__sentry_navigation_name_set__',
-      true,
-    );
+      // Mark this span as having its name set to prevent future updates
+      addNonEnumerableProperty(
+        activeRootSpan as { __sentry_navigation_name_set__?: boolean },
+        '__sentry_navigation_name_set__',
+        true,
+      );
+    }
   }
 }
 
@@ -582,7 +582,14 @@ export function handleNavigation(opts: {
 
     // Cross usage can result in multiple navigation spans being created without this check
     if (!isAlreadyInNavigationSpan) {
-      createNewNavigationSpan(client, name, source, version);
+      startBrowserTracingNavigationSpan(client, {
+        name,
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: `auto.navigation.react.reactrouter_v${version}`,
+        },
+      });
     }
   }
 }
@@ -725,31 +732,4 @@ function getActiveRootSpan(): Span | undefined {
 
   // Only use this root span if it is a pageload or navigation span
   return op === 'navigation' || op === 'pageload' ? rootSpan : undefined;
-}
-
-/**
- * Creates a new navigation span
- */
-export function createNewNavigationSpan(
-  client: Client,
-  name: string,
-  source: TransactionSource,
-  version: string,
-): void {
-  const newSpan = startBrowserTracingNavigationSpan(client, {
-    name,
-    attributes: {
-      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: `auto.navigation.react.reactrouter_v${version}`,
-    },
-  });
-
-  if (newSpan) {
-    addNonEnumerableProperty(
-      newSpan as { __sentry_navigation_name_set__?: boolean },
-      '__sentry_navigation_name_set__',
-      true,
-    );
-  }
 }

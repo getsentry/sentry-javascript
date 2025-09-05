@@ -1,14 +1,12 @@
 /**
  * @vitest-environment jsdom
  */
-import { startBrowserTracingNavigationSpan } from '@sentry/browser';
 import type { Client, Span } from '@sentry/core';
 import { addNonEnumerableProperty } from '@sentry/core';
 import * as React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   addResolvedRoutesToParent,
-  createNewNavigationSpan,
   createReactRouterV6CompatibleTracingIntegration,
   updateNavigationSpan,
 } from '../../src/reactrouter-compat-utils';
@@ -90,20 +88,6 @@ describe('reactrouter-compat-utils/instrumentation', () => {
       updateNavigationSpan(spanWithNameSet as any, sampleLocation, sampleRoutes, false, mockMatchRoutes);
 
       expect(mockUpdateName).not.toHaveBeenCalled();
-    });
-  });
-  describe('createNewNavigationSpan', () => {
-    it('should create new navigation span with correct attributes', () => {
-      createNewNavigationSpan(mockClient, 'Test Route', 'route', '6', false);
-
-      expect(startBrowserTracingNavigationSpan).toHaveBeenCalledWith(mockClient, {
-        name: 'Test Route',
-        attributes: {
-          'sentry.source': 'route',
-          'sentry.op': 'navigation',
-          'sentry.origin': 'auto.navigation.react.reactrouter_v6',
-        },
-      });
     });
   });
 

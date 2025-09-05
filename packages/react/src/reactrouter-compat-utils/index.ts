@@ -9,7 +9,6 @@ export {
   createV6CompatibleWrapCreateMemoryRouter,
   createV6CompatibleWrapUseRoutes,
   handleNavigation,
-  createNewNavigationSpan,
   addResolvedRoutesToParent,
   processResolvedRoutes,
   updateNavigationSpan,
