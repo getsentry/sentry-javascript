@@ -405,7 +405,7 @@ function _createEvent(data: {
   };
 
   addExceptionMechanism(event, {
-    type: `http.client.${data.type}`,
+    type: `auto.http.client.${data.type}`,
     handled: false,
   });
 
