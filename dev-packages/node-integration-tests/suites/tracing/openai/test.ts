@@ -370,7 +370,7 @@ describe('OpenAI integration', () => {
                 data: {
                   'gen_ai.operation.name': 'chat',
                   'sentry.op': 'gen_ai.chat',
-                  'sentry.origin': 'auto.function.openai',
+                  'sentry.origin': 'auto.ai.openai',
                   'gen_ai.system': 'openai',
                   'gen_ai.request.model': 'gpt-3.5-turbo',
                   'gen_ai.request.temperature': 0.7,
@@ -387,7 +387,7 @@ describe('OpenAI integration', () => {
                   'openai.usage.prompt_tokens': 10,
                 },
                 op: 'gen_ai.chat',
-                origin: 'auto.function.openai',
+                origin: 'auto.ai.openai',
                 status: 'ok',
               },
             },
