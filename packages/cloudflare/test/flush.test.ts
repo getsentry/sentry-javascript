@@ -5,10 +5,11 @@ import { makeFlushLock } from '../src/flush';
 describe('Flush buffer test', () => {
   const waitUntilPromises: Promise<void>[] = [];
   const mockExecutionContext: ExecutionContext = {
-    waitUntil: vi.fn(prmise => {
-      waitUntilPromises.push(prmise);
+    waitUntil: vi.fn(promise => {
+      waitUntilPromises.push(promise);
     }),
     passThroughOnException: vi.fn(),
+    props: null,
   };
   it('should flush buffer immediately if no waitUntil were called', async () => {
     const { finalize } = makeFlushLock(mockExecutionContext);
