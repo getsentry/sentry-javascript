@@ -82,14 +82,14 @@ async function run() {
           },
         ],
       });
-    } catch (e) {
+    } catch {
       // Error expected
     }
 
     // 2. Test model retrieval error
     try {
       await client.models.retrieve('nonexistent-model');
-    } catch (e) {
+    } catch {
       // Error expected
     }
 

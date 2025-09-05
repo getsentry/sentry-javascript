@@ -34,7 +34,7 @@ export type MessageError = {
     type: string;
     message: string;
   };
-  request_id?: string;
+  request_id: string;
 };
 
 type SuccessfulResponse = {

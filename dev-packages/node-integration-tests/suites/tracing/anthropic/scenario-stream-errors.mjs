@@ -118,7 +118,7 @@ async function run() {
         messages: [{ role: 'user', content: 'This will fail immediately' }],
         stream: true,
       });
-    } catch (e) {
+    } catch {
       // Error expected
     }
 
@@ -128,7 +128,7 @@ async function run() {
         model: 'error-stream-init',
         messages: [{ role: 'user', content: 'This will also fail immediately' }],
       });
-    } catch (e) {
+    } catch {
       // Error expected
     }
 
@@ -143,7 +143,7 @@ async function run() {
       for await (const _ of stream) {
         void _;
       }
-    } catch (e) {
+    } catch {
       // Error expected
     }
 
@@ -157,7 +157,7 @@ async function run() {
       for await (const _ of stream) {
         void _;
       }
-    } catch (e) {
+    } catch {
       // Error expected
     }
   });
