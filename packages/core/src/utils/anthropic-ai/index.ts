@@ -95,17 +95,12 @@ function addPrivateRequestAttributes(span: Span, params: Record<string, unknown>
  */
 function handleResponseError(span: Span, response: AnthropicAiResponse): void {
   if (response.error) {
-    const errorType = response.error.type || 'unknown_error';
-    span.setStatus({ code: SPAN_STATUS_ERROR, message: errorType });
+    span.setStatus({ code: SPAN_STATUS_ERROR, message: response.error.type || 'unknown_error' });
 
-    captureException(new Error(`anthropic_error: ${errorType}`), {
+    captureException(response.error, {
       mechanism: {
         handled: false,
-        type: 'auto.ai.anthropic',
-        data: {
-          function: 'anthropic_error',
-          error_message: response.error.message,
-        },
+        type: 'auto.ai.anthropic.anthropic_error',
       },
     });
   }
