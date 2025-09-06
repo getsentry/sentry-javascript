@@ -352,8 +352,7 @@ const _localVariablesSyncIntegration = ((
             const localScope = scopeChain.find(scope => scope.type === 'local');
 
             // obj.className is undefined in ESM modules
-            const fn =
-              obj.className === 'global' || !obj.className ? functionName : `${obj.className}.${functionName}`;
+            const fn = obj.className === 'global' || !obj.className ? functionName : `${obj.className}.${functionName}`;
 
             if (localScope?.object.objectId === undefined) {
               add(frames => {
@@ -372,7 +371,7 @@ const _localVariablesSyncIntegration = ((
           }
 
           next([]);
-        }
+        };
 
         const captureAll = options.captureAllExceptions !== false;
 
