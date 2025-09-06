@@ -9,4 +9,5 @@ export const ANTHROPIC_AI_INSTRUMENTED_METHODS = [
   'models.get',
   'completions.create',
   'models.retrieve',
+  'beta.messages.create',
 ] as const;

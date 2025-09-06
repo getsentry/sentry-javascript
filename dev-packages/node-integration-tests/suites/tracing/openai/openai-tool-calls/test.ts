@@ -65,7 +65,7 @@ describe('OpenAI Tool Calls integration', () => {
         data: {
           'gen_ai.operation.name': 'chat',
           'sentry.op': 'gen_ai.chat',
-          'sentry.origin': 'auto.function.openai',
+          'sentry.origin': 'auto.ai.openai',
           'gen_ai.system': 'openai',
           'gen_ai.request.model': 'gpt-4',
           'gen_ai.request.available_tools': WEATHER_TOOL_DEFINITION,
@@ -83,7 +83,7 @@ describe('OpenAI Tool Calls integration', () => {
         },
         description: 'chat gpt-4',
         op: 'gen_ai.chat',
-        origin: 'auto.function.openai',
+        origin: 'auto.ai.openai',
         status: 'ok',
       }),
       // Second span - chat completion with tools and streaming
@@ -91,7 +91,7 @@ describe('OpenAI Tool Calls integration', () => {
         data: {
           'gen_ai.operation.name': 'chat',
           'sentry.op': 'gen_ai.chat',
-          'sentry.origin': 'auto.function.openai',
+          'sentry.origin': 'auto.ai.openai',
           'gen_ai.system': 'openai',
           'gen_ai.request.model': 'gpt-4',
           'gen_ai.request.stream': true,
@@ -111,7 +111,7 @@ describe('OpenAI Tool Calls integration', () => {
         },
         description: 'chat gpt-4 stream-response',
         op: 'gen_ai.chat',
-        origin: 'auto.function.openai',
+        origin: 'auto.ai.openai',
         status: 'ok',
       }),
       // Third span - responses API with tools (non-streaming)
@@ -119,7 +119,7 @@ describe('OpenAI Tool Calls integration', () => {
         data: {
           'gen_ai.operation.name': 'responses',
           'sentry.op': 'gen_ai.responses',
-          'sentry.origin': 'auto.function.openai',
+          'sentry.origin': 'auto.ai.openai',
           'gen_ai.system': 'openai',
           'gen_ai.request.model': 'gpt-4',
           'gen_ai.request.available_tools': WEATHER_TOOL_DEFINITION,
@@ -137,7 +137,7 @@ describe('OpenAI Tool Calls integration', () => {
         },
         description: 'responses gpt-4',
         op: 'gen_ai.responses',
-        origin: 'auto.function.openai',
+        origin: 'auto.ai.openai',
         status: 'ok',
       }),
       // Fourth span - responses API with tools and streaming
@@ -145,7 +145,7 @@ describe('OpenAI Tool Calls integration', () => {
         data: {
           'gen_ai.operation.name': 'responses',
           'sentry.op': 'gen_ai.responses',
-          'sentry.origin': 'auto.function.openai',
+          'sentry.origin': 'auto.ai.openai',
           'gen_ai.system': 'openai',
           'gen_ai.request.model': 'gpt-4',
           'gen_ai.request.stream': true,
@@ -165,7 +165,7 @@ describe('OpenAI Tool Calls integration', () => {
         },
         description: 'responses gpt-4 stream-response',
         op: 'gen_ai.responses',
-        origin: 'auto.function.openai',
+        origin: 'auto.ai.openai',
         status: 'ok',
       }),
     ]),
@@ -179,7 +179,7 @@ describe('OpenAI Tool Calls integration', () => {
         data: {
           'gen_ai.operation.name': 'chat',
           'sentry.op': 'gen_ai.chat',
-          'sentry.origin': 'auto.function.openai',
+          'sentry.origin': 'auto.ai.openai',
           'gen_ai.system': 'openai',
           'gen_ai.request.model': 'gpt-4',
           'gen_ai.request.messages': '[{"role":"user","content":"What is the weather like in Paris today?"}]',
@@ -200,7 +200,7 @@ describe('OpenAI Tool Calls integration', () => {
         },
         description: 'chat gpt-4',
         op: 'gen_ai.chat',
-        origin: 'auto.function.openai',
+        origin: 'auto.ai.openai',
         status: 'ok',
       }),
       // Second span - chat completion with tools and streaming with PII
@@ -208,7 +208,7 @@ describe('OpenAI Tool Calls integration', () => {
         data: {
           'gen_ai.operation.name': 'chat',
           'sentry.op': 'gen_ai.chat',
-          'sentry.origin': 'auto.function.openai',
+          'sentry.origin': 'auto.ai.openai',
           'gen_ai.system': 'openai',
           'gen_ai.request.model': 'gpt-4',
           'gen_ai.request.stream': true,
@@ -230,7 +230,7 @@ describe('OpenAI Tool Calls integration', () => {
         },
         description: 'chat gpt-4 stream-response',
         op: 'gen_ai.chat',
-        origin: 'auto.function.openai',
+        origin: 'auto.ai.openai',
         status: 'ok',
       }),
       // Third span - responses API with tools (non-streaming) with PII
@@ -238,7 +238,7 @@ describe('OpenAI Tool Calls integration', () => {
         data: {
           'gen_ai.operation.name': 'responses',
           'sentry.op': 'gen_ai.responses',
-          'sentry.origin': 'auto.function.openai',
+          'sentry.origin': 'auto.ai.openai',
           'gen_ai.system': 'openai',
           'gen_ai.request.model': 'gpt-4',
           'gen_ai.request.messages': '[{"role":"user","content":"What is the weather like in Paris today?"}]',
@@ -258,7 +258,7 @@ describe('OpenAI Tool Calls integration', () => {
         },
         description: 'responses gpt-4',
         op: 'gen_ai.responses',
-        origin: 'auto.function.openai',
+        origin: 'auto.ai.openai',
         status: 'ok',
       }),
       // Fourth span - responses API with tools and streaming with PII
@@ -266,7 +266,7 @@ describe('OpenAI Tool Calls integration', () => {
         data: {
           'gen_ai.operation.name': 'responses',
           'sentry.op': 'gen_ai.responses',
-          'sentry.origin': 'auto.function.openai',
+          'sentry.origin': 'auto.ai.openai',
           'gen_ai.system': 'openai',
           'gen_ai.request.model': 'gpt-4',
           'gen_ai.request.stream': true,
@@ -288,7 +288,7 @@ describe('OpenAI Tool Calls integration', () => {
         },
         description: 'responses gpt-4 stream-response',
         op: 'gen_ai.responses',
-        origin: 'auto.function.openai',
+        origin: 'auto.ai.openai',
         status: 'ok',
       }),
     ]),

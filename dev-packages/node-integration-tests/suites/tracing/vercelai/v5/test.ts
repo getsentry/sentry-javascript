@@ -406,7 +406,7 @@ describe('Vercel AI integration (V5)', () => {
     },
     {
       additionalDependencies: {
-        ai: '^5.0.0',
+        ai: '5.0.30',
       },
     },
   );
@@ -422,7 +422,7 @@ describe('Vercel AI integration (V5)', () => {
     },
     {
       additionalDependencies: {
-        ai: '^5.0.0',
+        ai: '5.0.30',
       },
     },
   );
@@ -541,7 +541,7 @@ describe('Vercel AI integration (V5)', () => {
     },
     {
       additionalDependencies: {
-        ai: '^5.0.0',
+        ai: '5.0.30',
       },
     },
   );
@@ -557,7 +557,7 @@ describe('Vercel AI integration (V5)', () => {
     },
     {
       additionalDependencies: {
-        ai: '^5.0.0',
+        ai: '5.0.30',
       },
     },
   );

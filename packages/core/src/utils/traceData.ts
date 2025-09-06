@@ -10,20 +10,25 @@ import type { SerializedTraceData } from '../types-hoist/tracing';
 import { dynamicSamplingContextToSentryBaggageHeader } from './baggage';
 import { debug } from './debug-logger';
 import { getActiveSpan, spanToTraceHeader } from './spanUtils';
-import { generateSentryTraceHeader, TRACEPARENT_REGEXP } from './tracing';
+import { extractTraceparentData, generateSentryTraceHeader, TRACEPARENT_REGEXP } from './tracing';
 
 /**
  * Extracts trace propagation data from the current span or from the client's scope (via transaction or propagation
- * context) and serializes it to `sentry-trace` and `baggage` values to strings. These values can be used to propagate
+ * context) and serializes it to `sentry-trace` and `baggage` values. These values can be used to propagate
  * a trace via our tracing Http headers or Html `<meta>` tags.
  *
  * This function also applies some validation to the generated sentry-trace and baggage values to ensure that
  * only valid strings are returned.
  *
+ * If (@param options.propagateTraceparent) is `true`, the function will also generate a `traceparent` value,
+ * following the W3C traceparent header format.
+ *
  * @returns an object with the tracing data values. The object keys are the name of the tracing key to be used as header
  * or meta tag name.
  */
-export function getTraceData(options: { span?: Span; scope?: Scope; client?: Client } = {}): SerializedTraceData {
+export function getTraceData(
+  options: { span?: Span; scope?: Scope; client?: Client; propagateTraceparent?: boolean } = {},
+): SerializedTraceData {
   const client = options.client || getClient();
   if (!isEnabled() || !client) {
     return {};
@@ -47,10 +52,19 @@ export function getTraceData(options: { span?: Span; scope?: Scope; client?: Cli
     return {};
   }
 
-  return {
+  const traceData: SerializedTraceData = {
     'sentry-trace': sentryTrace,
     baggage,
   };
+
+  if (options.propagateTraceparent) {
+    const traceparent = _sentryTraceToTraceParentHeader(sentryTrace);
+    if (traceparent) {
+      traceData.traceparent = traceparent;
+    }
+  }
+
+  return traceData;
 }
 
 /**
@@ -59,4 +73,24 @@ export function getTraceData(options: { span?: Span; scope?: Scope; client?: Cli
 function scopeToTraceHeader(scope: Scope): string {
   const { traceId, sampled, propagationSpanId } = scope.getPropagationContext();
   return generateSentryTraceHeader(traceId, propagationSpanId, sampled);
+}
+
+/**
+ * Builds a W3C traceparent header from the given sentry-trace header.
+ *
+ * Why parse that header and not create traceparent from primitives?
+ * We want these two headers to always have the same ids. The easiest way to do this is to take
+ * one of them as the source of truth (sentry-trace) and derive the other from it.
+ *
+ * Most importantly, this guarantees parentSpanId consistency between sentry-trace and traceparent
+ * in tracing without performance (TwP) mode, where we always generate a random parentSpanId.
+ *
+ * Exported for testing
+ */
+export function _sentryTraceToTraceParentHeader(sentryTrace: string): string | undefined {
+  const { traceId, parentSpanId, parentSampled } = extractTraceparentData(sentryTrace) || {};
+  if (!traceId || !parentSpanId) {
+    return undefined;
+  }
+  return `00-${traceId}-${parentSpanId}-${parentSampled ? '01' : '00'}`;
 }
