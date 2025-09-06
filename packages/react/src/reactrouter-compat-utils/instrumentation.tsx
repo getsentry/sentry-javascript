@@ -44,7 +44,6 @@ import { checkRouteForAsyncHandler } from './lazy-routes';
 import {
   getNormalizedName,
   initializeRouterUtils,
-  isLikelyLazyRouteContext,
   locationIsInsideDescendantRoute,
   prefixWithSlash,
   rebuildRoutePathFromAllRoutes,
@@ -176,12 +175,7 @@ export function updateNavigationSpan(
   // Check if this span has already been named to avoid multiple updates
   // But allow updates if this is a forced update (e.g., when lazy routes are loaded)
   const hasBeenNamed =
-    !forceUpdate &&
-    (
-      activeRootSpan as {
-        __sentry_navigation_name_set__?: boolean;
-      }
-    )?.__sentry_navigation_name_set__;
+    !forceUpdate && (activeRootSpan as { __sentry_navigation_name_set__?: boolean })?.__sentry_navigation_name_set__;
 
   if (!hasBeenNamed) {
     // Get fresh branches for the current location with all loaded routes
@@ -355,13 +349,7 @@ export function createV6CompatibleWrapCreateMemoryRouter<
       : router.state.location;
 
     if (router.state.historyAction === 'POP' && activeRootSpan) {
-      updatePageloadTransaction({
-        activeRootSpan,
-        location,
-        routes,
-        basename,
-        allRoutes: Array.from(allRoutes),
-      });
+      updatePageloadTransaction({ activeRootSpan, location, routes, basename, allRoutes: Array.from(allRoutes) });
     }
 
     router.subscribe((state: RouterState) => {
@@ -389,11 +377,7 @@ export function createReactRouterV6CompatibleTracingIntegration(
   options: Parameters<typeof browserTracingIntegration>[0] & ReactRouterOptions,
   version: V6CompatibleVersion,
 ): Integration {
-  const integration = browserTracingIntegration({
-    ...options,
-    instrumentPageLoad: false,
-    instrumentNavigation: false,
-  });
+  const integration = browserTracingIntegration({ ...options, instrumentPageLoad: false, instrumentNavigation: false });
 
   const {
     useEffect,
@@ -532,13 +516,7 @@ function wrapPatchRoutesOnNavigation(
             if (activeRootSpan && (spanToJSON(activeRootSpan) as { op?: string }).op === 'navigation') {
               updateNavigationSpan(
                 activeRootSpan,
-                {
-                  pathname: targetPath,
-                  search: '',
-                  hash: '',
-                  state: null,
-                  key: 'default',
-                },
+                { pathname: targetPath, search: '', hash: '', state: null, key: 'default' },
                 Array.from(allRoutes),
                 true, // forceUpdate = true since we're loading lazy routes
                 _matchRoutes,
@@ -559,13 +537,7 @@ function wrapPatchRoutesOnNavigation(
         if (pathname) {
           updateNavigationSpan(
             activeRootSpan,
-            {
-              pathname,
-              search: '',
-              hash: '',
-              state: null,
-              key: 'default',
-            },
+            { pathname, search: '', hash: '', state: null, key: 'default' },
             Array.from(allRoutes),
             false, // forceUpdate = false since this is after lazy routes are loaded
             _matchRoutes,
@@ -604,18 +576,20 @@ export function handleNavigation(opts: {
       basename,
     );
 
-    // Check if this might be a lazy route context
-    const isLazyRouteContext = isLikelyLazyRouteContext(allRoutes || routes, location);
-
     const activeSpan = getActiveSpan();
     const spanJson = activeSpan && spanToJSON(activeSpan);
     const isAlreadyInNavigationSpan = spanJson?.op === 'navigation';
 
     // Cross usage can result in multiple navigation spans being created without this check
-    if (isAlreadyInNavigationSpan && activeSpan && spanJson) {
-      handleExistingNavigationSpan(activeSpan, spanJson, name, source, isLazyRouteContext);
-    } else {
-      createNewNavigationSpan(client, name, source, version, isLazyRouteContext);
+    if (!isAlreadyInNavigationSpan) {
+      startBrowserTracingNavigationSpan(client, {
+        name,
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: `auto.navigation.react.reactrouter_v${version}`,
+        },
+      });
     }
   }
 }
@@ -726,13 +700,7 @@ export function createV6CompatibleWithSentryReactRouterRouting<P extends Record<
           });
           isMountRenderPass.current = false;
         } else {
-          handleNavigation({
-            location,
-            routes,
-            navigationType,
-            version,
-            allRoutes: Array.from(allRoutes),
-          });
+          handleNavigation({ location, routes, navigationType, version, allRoutes: Array.from(allRoutes) });
         }
       },
       // `props.children` is purposely not included in the dependency array, because we do not want to re-run this effect
@@ -764,70 +732,4 @@ function getActiveRootSpan(): Span | undefined {
 
   // Only use this root span if it is a pageload or navigation span
   return op === 'navigation' || op === 'pageload' ? rootSpan : undefined;
-}
-
-/**
- * Handles updating an existing navigation span
- */
-export function handleExistingNavigationSpan(
-  activeSpan: Span,
-  spanJson: ReturnType<typeof spanToJSON>,
-  name: string,
-  source: TransactionSource,
-  isLikelyLazyRoute: boolean,
-): void {
-  // Check if we've already set the name for this span using a custom property
-  const hasBeenNamed = (
-    activeSpan as {
-      __sentry_navigation_name_set__?: boolean;
-    }
-  )?.__sentry_navigation_name_set__;
-
-  if (!hasBeenNamed) {
-    // This is the first time we're setting the name for this span
-    if (!spanJson.timestamp) {
-      activeSpan?.updateName(name);
-    }
-
-    // For lazy routes, don't mark as named yet so it can be updated later
-    if (!isLikelyLazyRoute) {
-      addNonEnumerableProperty(
-        activeSpan as { __sentry_navigation_name_set__?: boolean },
-        '__sentry_navigation_name_set__',
-        true,
-      );
-    }
-  }
-
-  // Always set the source attribute to keep it consistent with the current route
-  activeSpan?.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
-}
-
-/**
- * Creates a new navigation span
- */
-export function createNewNavigationSpan(
-  client: Client,
-  name: string,
-  source: TransactionSource,
-  version: string,
-  isLikelyLazyRoute: boolean,
-): void {
-  const newSpan = startBrowserTracingNavigationSpan(client, {
-    name,
-    attributes: {
-      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: `auto.navigation.react.reactrouter_v${version}`,
-    },
-  });
-
-  // For lazy routes, don't mark as named yet so it can be updated later when the route loads
-  if (!isLikelyLazyRoute && newSpan) {
-    addNonEnumerableProperty(
-      newSpan as { __sentry_navigation_name_set__?: boolean },
-      '__sentry_navigation_name_set__',
-      true,
-    );
-  }
 }

@@ -36,10 +36,7 @@ import {
 const mockStartBrowserTracingPageLoadSpan = vi.fn();
 const mockStartBrowserTracingNavigationSpan = vi.fn();
 
-const mockNavigationSpan = {
-  updateName: vi.fn(),
-  setAttribute: vi.fn(),
-};
+const mockNavigationSpan = { updateName: vi.fn(), setAttribute: vi.fn() };
 
 const mockRootSpan = {
   updateName: vi.fn(),
@@ -126,65 +123,29 @@ describe('React Router cross usage of wrappers', () => {
 
       const ThirdLevelRoutes: React.FC = () =>
         sentryUseRoutes([
-          {
-            path: '/',
-            element: <div />,
-          },
-          {
-            path: ':id',
-            element: <ThirdLevel />,
-          },
+          { path: '/', element: <div /> },
+          { path: ':id', element: <ThirdLevel /> },
         ]);
 
       const SecondLevelRoutes: React.FC = () =>
         sentryUseRoutes([
-          {
-            path: 'third-level/*',
-            element: <ThirdLevelRoutes />,
-          },
-          {
-            path: '/',
-            element: <div />,
-          },
-          {
-            path: '*',
-            element: <div />,
-          },
+          { path: 'third-level/*', element: <ThirdLevelRoutes /> },
+          { path: '/', element: <div /> },
+          { path: '*', element: <div /> },
         ]);
 
       const TopLevelRoutes: React.FC = () =>
         sentryUseRoutes([
-          {
-            path: 'second-level/:id/*',
-            element: <SecondLevelRoutes />,
-          },
-          {
-            path: '/',
-            element: <div />,
-          },
-          {
-            path: '*',
-            element: <div />,
-          },
+          { path: 'second-level/:id/*', element: <SecondLevelRoutes /> },
+          { path: '/', element: <div /> },
+          { path: '*', element: <div /> },
         ]);
 
       const createSentryMemoryRouter = wrapCreateMemoryRouterV6(createMemoryRouter);
 
-      const router = createSentryMemoryRouter(
-        [
-          {
-            children: [
-              {
-                path: '/*',
-                element: <TopLevelRoutes />,
-              },
-            ],
-          },
-        ],
-        {
-          initialEntries: ['/second-level/321/third-level/123'],
-        },
-      );
+      const router = createSentryMemoryRouter([{ children: [{ path: '/*', element: <TopLevelRoutes /> }] }], {
+        initialEntries: ['/second-level/321/third-level/123'],
+      });
 
       const { container } = render(
         <React.StrictMode>
@@ -218,42 +179,21 @@ describe('React Router cross usage of wrappers', () => {
 
       const ThirdLevelRoutes: React.FC = () =>
         sentryUseRoutes([
-          {
-            path: '/',
-            element: <div />,
-          },
-          {
-            path: ':id',
-            element: <ThirdLevel />,
-          },
+          { path: '/', element: <div /> },
+          { path: ':id', element: <ThirdLevel /> },
         ]);
 
       const SecondLevelRoutes: React.FC = () =>
         sentryUseRoutes([
-          {
-            path: 'third-level/*',
-            element: <ThirdLevelRoutes />,
-          },
-          {
-            path: '/',
-            element: <div />,
-          },
-          {
-            path: '*',
-            element: <div />,
-          },
+          { path: 'third-level/*', element: <ThirdLevelRoutes /> },
+          { path: '/', element: <div /> },
+          { path: '*', element: <div /> },
         ]);
 
       const TopLevelRoutes: React.FC = () =>
         sentryUseRoutes([
-          {
-            path: 'second-level/:id/*',
-            element: <SecondLevelRoutes />,
-          },
-          {
-            path: '*',
-            element: <div />,
-          },
+          { path: 'second-level/:id/*', element: <SecondLevelRoutes /> },
+          { path: '*', element: <div /> },
         ]);
 
       const createSentryMemoryRouter = wrapCreateMemoryRouterV6(createMemoryRouter);
@@ -262,20 +202,12 @@ describe('React Router cross usage of wrappers', () => {
         [
           {
             children: [
-              {
-                path: '/*',
-                element: <TopLevelRoutes />,
-              },
-              {
-                path: '/navigate',
-                element: <Navigate to="/second-level/321/third-level/123" />,
-              },
+              { path: '/*', element: <TopLevelRoutes /> },
+              { path: '/navigate', element: <Navigate to="/second-level/321/third-level/123" /> },
             ],
           },
         ],
-        {
-          initialEntries: ['/navigate'],
-        },
+        { initialEntries: ['/navigate'] },
       );
 
       const { container } = render(
@@ -319,46 +251,22 @@ describe('React Router cross usage of wrappers', () => {
 
       const ThirdLevelRoutes: React.FC = () =>
         sentryUseRoutes([
-          {
-            path: '/',
-            element: <div />,
-          },
-          {
-            path: ':id',
-            element: <ThirdLevel />,
-          },
+          { path: '/', element: <div /> },
+          { path: ':id', element: <ThirdLevel /> },
         ]);
 
       const SecondLevelRoutes: React.FC = () =>
         sentryUseRoutes([
-          {
-            path: 'third-level/*',
-            element: <ThirdLevelRoutes />,
-          },
-          {
-            path: '/',
-            element: <div />,
-          },
-          {
-            path: '*',
-            element: <div />,
-          },
+          { path: 'third-level/*', element: <ThirdLevelRoutes /> },
+          { path: '/', element: <div /> },
+          { path: '*', element: <div /> },
         ]);
 
       const TopLevelRoutes: React.FC = () =>
         sentryUseRoutes([
-          {
-            path: 'second-level/:id/*',
-            element: <SecondLevelRoutes />,
-          },
-          {
-            path: '/',
-            element: <div />,
-          },
-          {
-            path: '*',
-            element: <div />,
-          },
+          { path: 'second-level/:id/*', element: <SecondLevelRoutes /> },
+          { path: '/', element: <div /> },
+          { path: '*', element: <div /> },
         ]);
 
       const SentryRoutes = withSentryReactRouterV6Routing(Routes);
@@ -399,42 +307,21 @@ describe('React Router cross usage of wrappers', () => {
 
       const ThirdLevelRoutes: React.FC = () =>
         sentryUseRoutes([
-          {
-            path: '/',
-            element: <div />,
-          },
-          {
-            path: ':id',
-            element: <ThirdLevel />,
-          },
+          { path: '/', element: <div /> },
+          { path: ':id', element: <ThirdLevel /> },
         ]);
 
       const SecondLevelRoutes: React.FC = () =>
         sentryUseRoutes([
-          {
-            path: 'third-level/*',
-            element: <ThirdLevelRoutes />,
-          },
-          {
-            path: '/',
-            element: <div />,
-          },
-          {
-            path: '*',
-            element: <div />,
-          },
+          { path: 'third-level/*', element: <ThirdLevelRoutes /> },
+          { path: '/', element: <div /> },
+          { path: '*', element: <div /> },
         ]);
 
       const TopLevelRoutes: React.FC = () =>
         sentryUseRoutes([
-          {
-            path: 'second-level/:id/*',
-            element: <SecondLevelRoutes />,
-          },
-          {
-            path: '*',
-            element: <div />,
-          },
+          { path: 'second-level/:id/*', element: <SecondLevelRoutes /> },
+          { path: '*', element: <div /> },
         ]);
 
       const SentryRoutes = withSentryReactRouterV6Routing(Routes);
@@ -500,21 +387,9 @@ describe('React Router cross usage of wrappers', () => {
         </SentryRoutes>
       );
 
-      const router = createSentryMemoryRouter(
-        [
-          {
-            children: [
-              {
-                path: '/*',
-                element: <TopLevelRoutes />,
-              },
-            ],
-          },
-        ],
-        {
-          initialEntries: ['/second-level/321/third-level/123'],
-        },
-      );
+      const router = createSentryMemoryRouter([{ children: [{ path: '/*', element: <TopLevelRoutes /> }] }], {
+        initialEntries: ['/second-level/321/third-level/123'],
+      });
 
       const { container } = render(
         <React.StrictMode>
@@ -574,20 +449,12 @@ describe('React Router cross usage of wrappers', () => {
         [
           {
             children: [
-              {
-                path: '/*',
-                element: <TopLevelRoutes />,
-              },
-              {
-                path: '/navigate',
-                element: <Navigate to="/second-level/321/third-level/123" />,
-              },
+              { path: '/*', element: <TopLevelRoutes /> },
+              { path: '/navigate', element: <Navigate to="/second-level/321/third-level/123" /> },
             ],
           },
         ],
-        {
-          initialEntries: ['/navigate'],
-        },
+        { initialEntries: ['/navigate'] },
       );
 
       const { container } = render(
@@ -633,14 +500,8 @@ describe('React Router cross usage of wrappers', () => {
 
       const ThirdLevelRoutes: React.FC = () =>
         sentryUseRoutes([
-          {
-            path: '/',
-            element: <div />,
-          },
-          {
-            path: ':id',
-            element: <ThirdLevel />,
-          },
+          { path: '/', element: <div /> },
+          { path: ':id', element: <ThirdLevel /> },
         ]);
 
       const SecondLevelRoutes: React.FC = () => (
@@ -653,33 +514,15 @@ describe('React Router cross usage of wrappers', () => {
 
       const TopLevelRoutes: React.FC = () =>
         sentryUseRoutes([
-          {
-            path: 'second-level/:id/*',
-            element: <SecondLevelRoutes />,
-          },
-          {
-            path: '*',
-            element: <div />,
-          },
+          { path: 'second-level/:id/*', element: <SecondLevelRoutes /> },
+          { path: '*', element: <div /> },
         ]);
 
       const createSentryMemoryRouter = wrapCreateMemoryRouterV6(createMemoryRouter);
 
-      const router = createSentryMemoryRouter(
-        [
-          {
-            children: [
-              {
-                path: '/*',
-                element: <TopLevelRoutes />,
-              },
-            ],
-          },
-        ],
-        {
-          initialEntries: ['/second-level/321/third-level/123'],
-        },
-      );
+      const router = createSentryMemoryRouter([{ children: [{ path: '/*', element: <TopLevelRoutes /> }] }], {
+        initialEntries: ['/second-level/321/third-level/123'],
+      });
 
       const { container } = render(
         <React.StrictMode>
@@ -714,14 +557,8 @@ describe('React Router cross usage of wrappers', () => {
 
       const ThirdLevelRoutes: React.FC = () =>
         sentryUseRoutes([
-          {
-            path: '/',
-            element: <div />,
-          },
-          {
-            path: ':id',
-            element: <ThirdLevel />,
-          },
+          { path: '/', element: <div /> },
+          { path: ':id', element: <ThirdLevel /> },
         ]);
 
       const SecondLevelRoutes: React.FC = () => (
@@ -734,14 +571,8 @@ describe('React Router cross usage of wrappers', () => {
 
       const TopLevelRoutes: React.FC = () =>
         sentryUseRoutes([
-          {
-            path: 'second-level/:id/*',
-            element: <SecondLevelRoutes />,
-          },
-          {
-            path: '*',
-            element: <div />,
-          },
+          { path: 'second-level/:id/*', element: <SecondLevelRoutes /> },
+          { path: '*', element: <div /> },
         ]);
 
       const createSentryMemoryRouter = wrapCreateMemoryRouterV6(createMemoryRouter);
@@ -750,20 +581,12 @@ describe('React Router cross usage of wrappers', () => {
         [
           {
             children: [
-              {
-                path: '/*',
-                element: <TopLevelRoutes />,
-              },
-              {
-                path: '/navigate',
-                element: <Navigate to="/second-level/321/third-level/123" />,
-              },
+              { path: '/*', element: <TopLevelRoutes /> },
+              { path: '/navigate', element: <Navigate to="/second-level/321/third-level/123" /> },
             ],
           },
         ],
-        {
-          initialEntries: ['/navigate'],
-        },
+        { initialEntries: ['/navigate'] },
       );
 
       const { container } = render(
@@ -773,10 +596,15 @@ describe('React Router cross usage of wrappers', () => {
       );
 
       expect(container.innerHTML).toContain('Details');
-
-      // It's called 1 time from the wrapped `MemoryRouter`
       expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(1);
-      expect(mockNavigationSpan.setAttribute).toHaveBeenLastCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+      expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
+        name: '/second-level/:id/third-level/:id',
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
+        },
+      });
     });
   });
 });

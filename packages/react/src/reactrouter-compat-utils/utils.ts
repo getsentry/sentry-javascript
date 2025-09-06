@@ -14,37 +14,6 @@ export function initializeRouterUtils(matchRoutes: MatchRoutes, stripBasename: b
   _stripBasename = stripBasename;
 }
 
-/**
- * Checks if the given routes or location context suggests this might be a lazy route scenario.
- * This helps determine if we should delay marking navigation spans as "named" to allow for updates
- * when lazy routes are loaded.
- */
-export function isLikelyLazyRouteContext(routes: RouteObject[], location: Location): boolean {
-  // Check if any route in the current match has lazy properties
-  const hasLazyRoute = routes.some(route => {
-    return (
-      // React Router lazy() route
-      route.lazy ||
-      // Route with async handlers that might load child routes
-      (route.handle &&
-        typeof route.handle === 'object' &&
-        Object.values(route.handle).some(handler => typeof handler === 'function'))
-    );
-  });
-
-  if (hasLazyRoute) {
-    return true;
-  }
-
-  // Check if current route is unmatched, which might indicate a lazy route that hasn't loaded yet
-  const currentMatches = _matchRoutes(routes, location);
-  if (!currentMatches || currentMatches.length === 0) {
-    return true;
-  }
-
-  return false;
-}
-
 // Helper functions
 function pickPath(match: RouteMatch): string {
   return trimWildcard(match.route.path || '');
