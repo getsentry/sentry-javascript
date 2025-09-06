@@ -5,6 +5,7 @@ import {
   browserPerformanceTimeOrigin,
   dateTimestampInSeconds,
   debug,
+  generateSpanId,
   generateTraceId,
   getClient,
   getCurrentScope,
@@ -12,6 +13,7 @@ import {
   getIsolationScope,
   getLocationHref,
   GLOBAL_OBJ,
+  hasSpansEnabled,
   parseStringToURLObject,
   propagationContextFromHeaders,
   registerSpanErrorInstrumentation,
@@ -512,10 +514,19 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
 
         maybeEndActiveSpan();
 
-        getIsolationScope().setPropagationContext({ traceId: generateTraceId(), sampleRand: Math.random() });
+        getIsolationScope().setPropagationContext({
+          traceId: generateTraceId(),
+          sampleRand: Math.random(),
+          propagationSpanId: hasSpansEnabled() ? undefined : generateSpanId(),
+        });
 
         const scope = getCurrentScope();
-        scope.setPropagationContext({ traceId: generateTraceId(), sampleRand: Math.random() });
+        scope.setPropagationContext({
+          traceId: generateTraceId(),
+          sampleRand: Math.random(),
+          propagationSpanId: hasSpansEnabled() ? undefined : generateSpanId(),
+        });
+
         // We reset this to ensure we do not have lingering incorrect data here
         // places that call this hook may set this where appropriate - else, the URL at span sending time is used
         scope.setSDKProcessingMetadata({
@@ -541,6 +552,12 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
 
         const scope = getCurrentScope();
         scope.setPropagationContext(propagationContext);
+        if (!hasSpansEnabled()) {
+          // for browser, we wanna keep the spanIds consistent during the entire lifetime of the trace
+          // this works by setting the propagationSpanId to a random spanId so that we have a consistent
+          // span id to propagate in TwP mode (!hasSpansEnabled())
+          scope.getPropagationContext().propagationSpanId = generateSpanId();
+        }
 
         // We store the normalized request data on the scope, so we get the request data at time of span creation
         // otherwise, the URL etc. may already be of the following navigation, and we'd report the wrong URL

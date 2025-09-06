@@ -103,6 +103,17 @@ export function generateSentryTraceHeader(
 }
 
 /**
+ * Creates a W3C traceparent header from the given trace and span ids.
+ */
+export function generateTraceparentHeader(
+  traceId: string | undefined = generateTraceId(),
+  spanId: string | undefined = generateSpanId(),
+  sampled?: boolean,
+): string {
+  return `00-${traceId}-${spanId}-${sampled ? '01' : '00'}`;
+}
+
+/**
  * Given any combination of an incoming trace, generate a sample rand based on its defined semantics.
  *
  * Read more: https://develop.sentry.dev/sdk/telemetry/traces/#propagated-random-value

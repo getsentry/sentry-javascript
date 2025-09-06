@@ -1,5 +1,10 @@
 import { describe, expect, it, test } from 'vitest';
-import { extractTraceparentData, propagationContextFromHeaders, shouldContinueTrace } from '../../../src/utils/tracing';
+import {
+  extractTraceparentData,
+  generateTraceparentHeader,
+  propagationContextFromHeaders,
+  shouldContinueTrace,
+} from '../../../src/utils/tracing';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
 
 const EXAMPLE_SENTRY_TRACE = '12312012123120121231201212312012-1121201211212012-1';
@@ -175,5 +180,22 @@ describe('shouldContinueTrace', () => {
 
     const result = shouldContinueTrace(client, '123456');
     expect(result).toBe(false);
+  });
+});
+
+describe('generateTraceparentHeader', () => {
+  test('returns a traceparent header with the given ids and positive sampling decision', () => {
+    const traceparent = generateTraceparentHeader('12345678901234567890123456789012', '1234567890123456', true);
+    expect(traceparent).toBe('00-12345678901234567890123456789012-1234567890123456-01');
+  });
+
+  test('returns a traceparent header with the given ids and negative sampling decision', () => {
+    const traceparent = generateTraceparentHeader('12345678901234567890123456789012', '1234567890123456', false);
+    expect(traceparent).toBe('00-12345678901234567890123456789012-1234567890123456-00');
+  });
+
+  test('no sampling decision passed, creates a negatively sampled traceparent header', () => {
+    const traceparent = generateTraceparentHeader('12345678901234567890123456789012', '1234567890123456');
+    expect(traceparent).toBe('00-12345678901234567890123456789012-1234567890123456-00');
   });
 });
