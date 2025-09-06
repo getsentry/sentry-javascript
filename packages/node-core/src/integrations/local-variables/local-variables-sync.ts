@@ -270,7 +270,7 @@ const _localVariablesSyncIntegration = ((
         // We need to have vars to add
         cachedFrameVariable.vars === undefined ||
         // Only skip out-of-app frames if includeOutOfAppFrames is not true
-        (!frameVariable.in_app && !options.includeOutOfAppFrames) ||
+        (frameVariable.in_app === false && options.includeOutOfAppFrames !== true) ||
         // The function names need to match
         !functionNamesMatch(frameVariable.function, cachedFrameVariable.function)
       ) {
