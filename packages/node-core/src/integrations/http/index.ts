@@ -1,6 +1,11 @@
 import type { IncomingMessage, RequestOptions } from 'node:http';
 import { defineIntegration } from '@sentry/core';
 import { generateInstrumentOnce } from '../../otel/instrument';
+import type { NodeClient } from '../../sdk/client';
+import type { HttpServerIntegrationOptions } from './httpServerIntegration';
+import { httpServerIntegration } from './httpServerIntegration';
+import type { HttpServerSpansIntegrationOptions } from './httpServerSpansIntegration';
+import { httpServerSpansIntegration } from './httpServerSpansIntegration';
 import type { SentryHttpInstrumentationOptions } from './SentryHttpInstrumentation';
 import { SentryHttpInstrumentation } from './SentryHttpInstrumentation';
 
@@ -79,6 +84,14 @@ interface HttpOptions {
   ignoreIncomingRequestBody?: (url: string, request: RequestOptions) => boolean;
 
   /**
+   * Whether to automatically ignore common static asset requests like favicon.ico, robots.txt, etc.
+   * This helps reduce noise in your transactions.
+   *
+   * @default `true`
+   */
+  ignoreStaticAssets?: boolean;
+
+  /**
    * Controls the maximum size of incoming HTTP request bodies attached to events.
    *
    * Available options:
@@ -113,42 +126,52 @@ export const instrumentSentryHttp = generateInstrumentOnce<SentryHttpInstrumenta
  * It creates breadcrumbs for outgoing HTTP requests which will be attached to the currently active span.
  */
 export const httpIntegration = defineIntegration((options: HttpOptions = {}) => {
-  const dropSpansForIncomingRequestStatusCodes = options.dropSpansForIncomingRequestStatusCodes ?? [
-    [401, 404],
-    [300, 399],
-  ];
+  const serverOptions: HttpServerIntegrationOptions = {
+    sessions: options.trackIncomingRequestsAsSessions,
+    sessionFlushingDelayMS: options.sessionFlushingDelayMS,
+    ignoreRequestBody: options.ignoreIncomingRequestBody,
+    maxRequestBodySize: options.maxIncomingRequestBodySize,
+  };
+
+  const serverSpansOptions: HttpServerSpansIntegrationOptions = {
+    ignoreIncomingRequests: options.ignoreIncomingRequests,
+    ignoreStaticAssets: options.ignoreStaticAssets,
+    ignoreStatusCodes: options.dropSpansForIncomingRequestStatusCodes,
+  };
+
+  const httpInstrumentationOptions: SentryHttpInstrumentationOptions = {
+    breadcrumbs: options.breadcrumbs,
+    propagateTraceInOutgoingRequests: true,
+    ignoreOutgoingRequests: options.ignoreOutgoingRequests,
+  };
+
+  const server = httpServerIntegration(serverOptions);
+  const serverSpans = httpServerSpansIntegration(serverSpansOptions);
+
+  const spans = options.spans ?? true;
+  // In node-core, for now by default we disable incoming requests spans
+  // we may revisit this in a future release
+  const disableIncomingRequestSpans = options.disableIncomingRequestSpans ?? false;
+  const enabledServerSpans = spans && !disableIncomingRequestSpans;
 
   return {
     name: INTEGRATION_NAME,
+
+    setup(client: NodeClient) {
+      if (enabledServerSpans) {
+        serverSpans.setup(client);
+      }
+    },
+
     setupOnce() {
-      instrumentSentryHttp({
-        ...options,
-        ignoreSpansForIncomingRequests: options.ignoreIncomingRequests,
-        // TODO(v11): Rethink this, for now this is for backwards compatibility
-        disableIncomingRequestSpans: true,
-        propagateTraceInOutgoingRequests: true,
-      });
+      server.setupOnce();
+
+      instrumentSentryHttp(httpInstrumentationOptions);
     },
     processEvent(event) {
-      // Drop transaction if it has a status code that should be ignored
-      if (event.type === 'transaction') {
-        const statusCode = event.contexts?.trace?.data?.['http.response.status_code'];
-        if (
-          typeof statusCode === 'number' &&
-          dropSpansForIncomingRequestStatusCodes.some(code => {
-            if (typeof code === 'number') {
-              return code === statusCode;
-            }
-
-            const [min, max] = code;
-            return statusCode >= min && statusCode <= max;
-          })
-        ) {
-          return null;
-        }
-      }
-
-      return event;
+      // Note: We always run this, even if spans are disabled
+      // The reason being that e.g. the remix integration disables span creation here but still wants to use the ignore status codes option
+      return serverSpans.processEvent(event);
     },
   };
 });

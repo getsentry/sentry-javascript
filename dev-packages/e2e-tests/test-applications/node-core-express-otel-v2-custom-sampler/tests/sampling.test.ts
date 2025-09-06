@@ -16,7 +16,7 @@ test('Sends a sampled API route transaction', async ({ baseURL }) => {
     data: {
       'sentry.source': 'url',
       'sentry.op': 'http.server',
-      'sentry.origin': 'manual',
+      'sentry.origin': 'auto.http.otel.http',
       url: 'http://localhost:3030/task',
       'otel.kind': 'SERVER',
       'http.response.status_code': 200,
@@ -36,7 +36,7 @@ test('Sends a sampled API route transaction', async ({ baseURL }) => {
       'http.status_code': 200,
       'http.status_text': 'OK',
     },
-    origin: 'manual',
+    origin: 'auto.http.otel.http',
     op: 'http.server',
     status: 'ok',
   });
