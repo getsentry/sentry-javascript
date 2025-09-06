@@ -4,28 +4,27 @@ import { waitForTransaction } from '@sentry-internal/test-utils';
 test.describe('tracing in static routes with server islands', () => {
   test('only sends client pageload transaction and server island endpoint transaction', async ({ page }) => {
     const clientPageloadTxnPromise = waitForTransaction('astro-5', txnEvent => {
-      return txnEvent?.transaction === '/server-island';
+      return txnEvent.transaction === '/server-island';
     });
 
     const serverIslandEndpointTxnPromise = waitForTransaction('astro-5', evt => {
-      return !!evt.transaction?.startsWith('GET /_server-islands');
+      return evt.transaction === 'GET /_server-islands/[name]';
     });
 
     await page.goto('/server-island');
 
     const clientPageloadTxn = await clientPageloadTxnPromise;
-
     const clientPageloadTraceId = clientPageloadTxn.contexts?.trace?.trace_id;
     const clientPageloadParentSpanId = clientPageloadTxn.contexts?.trace?.parent_span_id;
 
-    const sentryTraceMetaTagContent = await page.locator('meta[name="sentry-trace"]').getAttribute('content');
-    const baggageMetaTagContent = await page.locator('meta[name="baggage"]').getAttribute('content');
+    const sentryTraceMetaTags = await page.locator('meta[name="sentry-trace"]').count();
+    expect(sentryTraceMetaTags).toBe(0);
 
-    const [metaTraceId, metaParentSpanId, metaSampled] = sentryTraceMetaTagContent?.split('-') || [];
+    const baggageMetaTags = await page.locator('meta[name="baggage"]').count();
+    expect(baggageMetaTags).toBe(0);
 
     expect(clientPageloadTraceId).toMatch(/[a-f0-9]{32}/);
-    expect(clientPageloadParentSpanId).toMatch(/[a-f0-9]{16}/);
-    expect(metaSampled).toBe('1');
+    expect(clientPageloadParentSpanId).toBeUndefined();
 
     expect(clientPageloadTxn).toMatchObject({
       contexts: {
@@ -37,9 +36,8 @@ test.describe('tracing in static routes with server islands', () => {
           }),
           op: 'pageload',
           origin: 'auto.pageload.astro',
-          parent_span_id: metaParentSpanId,
           span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          trace_id: metaTraceId,
+          trace_id: clientPageloadTraceId,
         },
       },
       platform: 'javascript',
@@ -62,9 +60,6 @@ test.describe('tracing in static routes with server islands', () => {
         }),
       ]),
     );
-
-    expect(baggageMetaTagContent).toContain('sentry-transaction=GET%20%2Fserver-island'); // URL-encoded for 'GET /server-island'
-    expect(baggageMetaTagContent).toContain('sentry-sampled=true');
 
     const serverIslandEndpointTxn = await serverIslandEndpointTxnPromise;
 
