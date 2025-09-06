@@ -6943,11 +6943,6 @@
     fflate "^0.4.4"
     mitt "^3.0.0"
 
-"@sentry-internal/test-utils@link:dev-packages/test-utils":
-  version "10.8.0"
-  dependencies:
-    express "^4.21.1"
-
 "@sentry/babel-plugin-component-annotate@4.1.0":
   version "4.1.0"
   resolved "https://registry.yarnpkg.com/@sentry/babel-plugin-component-annotate/-/babel-plugin-component-annotate-4.1.0.tgz#6e7168f5fa59f53ac4b68e3f79c5fd54adc13f2e"
@@ -6957,11 +6952,6 @@
   version "4.1.1"
   resolved "https://registry.yarnpkg.com/@sentry/babel-plugin-component-annotate/-/babel-plugin-component-annotate-4.1.1.tgz#371415afc602f6b2ba0987b51123bd34d1603193"
   integrity sha512-HUpqrCK7zDVojTV6KL6BO9ZZiYrEYQqvYQrscyMsq04z+WCupXaH6YEliiNRvreR8DBJgdsG3lBRpebhUGmvfA==
-
-"@sentry/babel-plugin-component-annotate@4.2.0":
-  version "4.2.0"
-  resolved "https://registry.yarnpkg.com/@sentry/babel-plugin-component-annotate/-/babel-plugin-component-annotate-4.2.0.tgz#6c616e6d645f49f15f83b891ef42a795ba4dbb3f"
-  integrity sha512-GFpS3REqaHuyX4LCNqlneAQZIKyHb5ePiI1802n0fhtYjk68I1DTQ3PnbzYi50od/vAsTQVCknaS5F6tidNqTQ==
 
 "@sentry/babel-plugin-component-annotate@4.3.0":
   version "4.3.0"
@@ -6989,20 +6979,6 @@
   dependencies:
     "@babel/core" "^7.18.5"
     "@sentry/babel-plugin-component-annotate" "4.1.1"
-    "@sentry/cli" "^2.51.0"
-    dotenv "^16.3.1"
-    find-up "^5.0.0"
-    glob "^9.3.2"
-    magic-string "0.30.8"
-    unplugin "1.0.1"
-
-"@sentry/bundler-plugin-core@4.2.0":
-  version "4.2.0"
-  resolved "https://registry.yarnpkg.com/@sentry/bundler-plugin-core/-/bundler-plugin-core-4.2.0.tgz#b607937f7cd0a769aa26974c4af3fca94abad63f"
-  integrity sha512-EDG6ELSEN/Dzm4KUQOynoI2suEAdPdgwaBXVN4Ww705zdrYT79OGh51rkz74KGhovt7GukaPf0Z9LJwORXUbhg==
-  dependencies:
-    "@babel/core" "^7.18.5"
-    "@sentry/babel-plugin-component-annotate" "4.2.0"
     "@sentry/cli" "^2.51.0"
     dotenv "^16.3.1"
     find-up "^5.0.0"
@@ -14255,6 +14231,9 @@ detective-scss@^5.0.1:
   version "5.0.1"
   resolved "https://registry.yarnpkg.com/detective-scss/-/detective-scss-5.0.1.tgz#6a7f792dc9c0e8cfc0d252a50ba26a6df12596a7"
   integrity sha512-MAyPYRgS6DCiS6n6AoSBJXLGVOydsr9huwXORUlJ37K3YLyiN0vYHpzs3AdJOgHobBfispokoqrEon9rbmKacg==
+  dependencies:
+    gonzales-pe "^4.3.0"
+    node-source-walk "^7.0.1"
 
 detective-stylus@^4.0.0:
   version "4.0.0"
@@ -14289,6 +14268,14 @@ detective-vue2@^2.2.0:
   version "2.2.0"
   resolved "https://registry.yarnpkg.com/detective-vue2/-/detective-vue2-2.2.0.tgz#35fd1d39e261b064aca9fcaf20e136c76877482a"
   integrity sha512-sVg/t6O2z1zna8a/UIV6xL5KUa2cMTQbdTIIvqNM0NIPswp52fe43Nwmbahzj3ww4D844u/vC2PYfiGLvD3zFA==
+  dependencies:
+    "@dependents/detective-less" "^5.0.1"
+    "@vue/compiler-sfc" "^3.5.13"
+    detective-es6 "^5.0.1"
+    detective-sass "^6.0.1"
+    detective-scss "^5.0.1"
+    detective-stylus "^5.0.1"
+    detective-typescript "^14.0.0"
 
 deterministic-object-hash@^1.3.1:
   version "1.3.1"
@@ -16820,6 +16807,9 @@ fetch-blob@^3.1.2, fetch-blob@^3.1.4:
   version "3.2.0"
   resolved "https://registry.yarnpkg.com/fetch-blob/-/fetch-blob-3.2.0.tgz#f09b8d4bbd45adc6f0c20b7e787e793e309dcce9"
   integrity sha512-7yAQpD2UMJzLi1Dqv7qFYnPbaPx7ZfFK6PiIxQ4PfkGPyNyl2Ugx+a/umUonmKqjhM4DnfbMvdX6otXq83soQQ==
+  dependencies:
+    node-domexception "^1.0.0"
+    web-streams-polyfill "^3.0.3"
 
 fflate@0.8.2, fflate@^0.8.2:
   version "0.8.2"
