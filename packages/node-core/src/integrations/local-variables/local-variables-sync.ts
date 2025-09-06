@@ -12,6 +12,7 @@ import type {
   Variables,
 } from './common';
 import { createRateLimiter, functionNamesMatch } from './common';
+import { localVariablesTestHelperMethods } from './test-helpers';
 
 /** Creates a unique hash from stack frames */
 export function hashFrames(frames: StackFrame[] | undefined): string | undefined {
@@ -268,8 +269,8 @@ const _localVariablesSyncIntegration = ((
       if (
         // We need to have vars to add
         cachedFrameVariable.vars === undefined ||
-        // We're not interested in frames that are not in_app because the vars are not relevant
-        frameVariable.in_app === false ||
+        // Only skip out-of-app frames if includeOutOfAppFrames is not true
+        (!frameVariable.in_app && !options.includeOutOfAppFrames) ||
         // The function names need to match
         !functionNamesMatch(frameVariable.function, cachedFrameVariable.function)
       ) {
@@ -287,6 +288,8 @@ const _localVariablesSyncIntegration = ((
 
     return event;
   }
+
+  const testHelperMethods = localVariablesTestHelperMethods(cachedFrames);
 
   return {
     name: INTEGRATION_NAME,
@@ -312,96 +315,95 @@ const _localVariablesSyncIntegration = ((
         return;
       }
 
-      AsyncSession.create(sessionOverride).then(
-        session => {
-          function handlePaused(
-            stackParser: StackParser,
-            { params: { reason, data, callFrames } }: InspectorNotification<PausedExceptionEvent>,
-            complete: () => void,
-          ): void {
-            if (reason !== 'exception' && reason !== 'promiseRejection') {
-              complete();
-              return;
-            }
+      try {
+        const session = await AsyncSession.create(sessionOverride);
 
-            rateLimiter?.();
+        const handlePaused = (
+          stackParser: StackParser,
+          { params: { reason, data, callFrames } }: InspectorNotification<PausedExceptionEvent>,
+          complete: () => void,
+        ): void => {
+          if (reason !== 'exception' && reason !== 'promiseRejection') {
+            complete();
+            return;
+          }
 
-            // data.description contains the original error.stack
-            const exceptionHash = hashFromStack(stackParser, data.description);
+          rateLimiter?.();
 
-            if (exceptionHash == undefined) {
-              complete();
-              return;
-            }
+          // data.description contains the original error.stack
+          const exceptionHash = hashFromStack(stackParser, data.description);
 
-            const { add, next } = createCallbackList<FrameVariables[]>(frames => {
-              cachedFrames.set(exceptionHash, frames);
-              complete();
-            });
+          if (exceptionHash == undefined) {
+            complete();
+            return;
+          }
 
-            // Because we're queuing up and making all these calls synchronously, we can potentially overflow the stack
-            // For this reason we only attempt to get local variables for the first 5 frames
-            for (let i = 0; i < Math.min(callFrames.length, 5); i++) {
-              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-              const { scopeChain, functionName, this: obj } = callFrames[i]!;
+          const { add, next } = createCallbackList<FrameVariables[]>(frames => {
+            cachedFrames.set(exceptionHash, frames);
+            complete();
+          });
 
-              const localScope = scopeChain.find(scope => scope.type === 'local');
+          // Because we're queuing up and making all these calls synchronously, we can potentially overflow the stack
+          // For this reason we only attempt to get local variables for the first 5 frames
+          for (let i = 0; i < Math.min(callFrames.length, 5); i++) {
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            const { scopeChain, functionName, this: obj } = callFrames[i]!;
 
-              // obj.className is undefined in ESM modules
-              const fn =
-                obj.className === 'global' || !obj.className ? functionName : `${obj.className}.${functionName}`;
+            const localScope = scopeChain.find(scope => scope.type === 'local');
 
-              if (localScope?.object.objectId === undefined) {
-                add(frames => {
-                  frames[i] = { function: fn };
+            // obj.className is undefined in ESM modules
+            const fn =
+              obj.className === 'global' || !obj.className ? functionName : `${obj.className}.${functionName}`;
+
+            if (localScope?.object.objectId === undefined) {
+              add(frames => {
+                frames[i] = { function: fn };
+                next(frames);
+              });
+            } else {
+              const id = localScope.object.objectId;
+              add(frames =>
+                session.getLocalVariables(id, vars => {
+                  frames[i] = { function: fn, vars };
                   next(frames);
-                });
-              } else {
-                const id = localScope.object.objectId;
-                add(frames =>
-                  session.getLocalVariables(id, vars => {
-                    frames[i] = { function: fn, vars };
-                    next(frames);
-                  }),
-                );
-              }
+                }),
+              );
             }
-
-            next([]);
           }
 
-          const captureAll = options.captureAllExceptions !== false;
+          next([]);
+        }
 
-          session.configureAndConnect(
-            (ev, complete) =>
-              handlePaused(clientOptions.stackParser, ev as InspectorNotification<PausedExceptionEvent>, complete),
-            captureAll,
+        const captureAll = options.captureAllExceptions !== false;
+
+        session.configureAndConnect(
+          (ev, complete) =>
+            handlePaused(clientOptions.stackParser, ev as InspectorNotification<PausedExceptionEvent>, complete),
+          captureAll,
+        );
+
+        if (captureAll) {
+          const max = options.maxExceptionsPerSecond || 50;
+
+          rateLimiter = createRateLimiter(
+            max,
+            () => {
+              debug.log('Local variables rate-limit lifted.');
+              session.setPauseOnExceptions(true);
+            },
+            seconds => {
+              debug.log(
+                `Local variables rate-limit exceeded. Disabling capturing of caught exceptions for ${seconds} seconds.`,
+              );
+              session.setPauseOnExceptions(false);
+            },
           );
+        }
 
-          if (captureAll) {
-            const max = options.maxExceptionsPerSecond || 50;
-
-            rateLimiter = createRateLimiter(
-              max,
-              () => {
-                debug.log('Local variables rate-limit lifted.');
-                session.setPauseOnExceptions(true);
-              },
-              seconds => {
-                debug.log(
-                  `Local variables rate-limit exceeded. Disabling capturing of caught exceptions for ${seconds} seconds.`,
-                );
-                session.setPauseOnExceptions(false);
-              },
-            );
-          }
-
-          shouldProcessEvent = true;
-        },
-        error => {
-          debug.log('The `LocalVariables` integration failed to start.', error);
-        },
-      );
+        shouldProcessEvent = true;
+      } catch (error) {
+        debug.log('The `LocalVariables` integration failed to start.', error);
+      }
     },
     processEvent(event: Event): Event {
       if (shouldProcessEvent) {
@@ -410,13 +412,7 @@ const _localVariablesSyncIntegration = ((
 
       return event;
     },
-    // These are entirely for testing
-    _getCachedFramesCount(): number {
-      return cachedFrames.size;
-    },
-    _getFirstCachedFrame(): FrameVariables[] | undefined {
-      return cachedFrames.values()[0];
-    },
+    ...testHelperMethods,
   };
 }) satisfies IntegrationFn;
 

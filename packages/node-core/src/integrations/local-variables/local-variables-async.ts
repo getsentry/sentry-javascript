@@ -39,8 +39,8 @@ export const localVariablesAsyncIntegration = defineIntegration(((
       if (
         // We need to have vars to add
         frameLocalVariables.vars === undefined ||
-        // We're not interested in frames that are not in_app because the vars are not relevant
-        frame.in_app === false ||
+        // Only skip out-of-app frames if includeOutOfAppFrames is not true
+        (frame.in_app === false && integrationOptions.includeOutOfAppFrames !== true) ||
         // The function names need to match
         !functionNamesMatch(frame.function, frameLocalVariables.function)
       ) {
