@@ -26,13 +26,13 @@ describe('LocalVariables', () => {
     const eventName = 'test-exclude-LocalVariables-out-of-app-frames';
     const event = getTestEvent(eventName);
     const integration = localVariablesSyncIntegration({}, mockSession);
-    await integration.setupOnce?.();
+    integration.setupOnce?.();
 
     const hash = hashFrames(event.exception!.values![0]!.stacktrace!.frames);
     // @ts-expect-error test helper method
     integration._setCachedFrame(hash!, [{ function: eventName, vars: { foo: 'bar' } } as FrameVariables]);
 
-    const processedEvent = integration.processEvent?.(event, {}, {} as any) as Event;
+    const processedEvent = (await integration.processEvent?.(event, {}, {} as any)) as Event;
 
     expect(processedEvent.exception?.values?.[0]?.stacktrace?.frames?.[0]?.vars).toBeUndefined();
   });
@@ -41,13 +41,13 @@ describe('LocalVariables', () => {
     const eventName = 'test-include-LocalVariables-out-of-app-frames';
     const event = getTestEvent(eventName);
     const integration = localVariablesSyncIntegration({ includeOutOfAppFrames: true }, mockSession);
-    await integration.setupOnce?.();
+    integration.setupOnce?.();
 
     const hash = hashFrames(event.exception!.values![0]!.stacktrace!.frames);
     // @ts-expect-error test helper method
     integration._setCachedFrame(hash!, [{ function: eventName, vars: { foo: 'bar' } } as FrameVariables]);
 
-    const processedEvent = integration.processEvent?.(event, {}, {} as any) as Event;
+    const processedEvent = (await integration.processEvent?.(event, {}, {} as any)) as Event;
 
     expect(processedEvent.exception?.values?.[0]?.stacktrace?.frames?.[0]?.vars).toEqual({ foo: 'bar' });
   });
