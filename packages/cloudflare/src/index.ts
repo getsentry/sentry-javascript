@@ -19,6 +19,7 @@ export type {
 } from '@sentry/core';
 
 export type { CloudflareOptions } from './client';
+export type { VercelAiOptions, VercelAiIntegration } from './integrations/tracing/vercelai-types';
 
 export {
   addEventProcessor,

@@ -10,12 +10,14 @@
 
 import type { IntegrationFn } from '@sentry/core';
 import { addVercelAiProcessors, defineIntegration } from '@sentry/core';
+import type { VercelAiOptions } from './vercelai-types';
 
 const INTEGRATION_NAME = 'VercelAI';
 
-const _vercelAIIntegration = (() => {
+const _vercelAIIntegration = ((options: VercelAiOptions = {}) => {
   return {
     name: INTEGRATION_NAME,
+    options,
     setup(client) {
       addVercelAiProcessors(client);
     },
@@ -28,7 +30,29 @@ const _vercelAIIntegration = (() => {
  *
  * For more information, see the [`ai` documentation](https://sdk.vercel.ai/docs/ai-sdk-core/telemetry).
  *
- *  You need to enable collecting spans for a specific call by setting
+ * @example
+ * ```javascript
+ * const Sentry = require('@sentry/cloudflare');
+ *
+ * Sentry.init({
+ *  integrations: [Sentry.vercelAIIntegration()],
+ * });
+ * ```
+ *
+ * You can configure the integration with options to set default recording preferences:
+ *
+ * ```javascript
+ * Sentry.init({
+ *   integrations: [
+ *     Sentry.vercelAIIntegration({
+ *       recordInputs: true,
+ *       recordOutputs: true,
+ *     }),
+ *   ],
+ * });
+ * ```
+ *
+ * You need to enable collecting spans for a specific call by setting
  * `experimental_telemetry.isEnabled` to `true` in the first argument of the function call.
  *
  * ```javascript
