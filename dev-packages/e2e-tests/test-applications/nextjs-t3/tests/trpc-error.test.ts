@@ -19,7 +19,10 @@ test('should capture error with trpc context', async ({ page }) => {
 
   expect(trpcError.exception?.values?.[0]?.mechanism).toEqual({
     handled: false,
-    type: 'auto.function.nextjs.trpc',
+    type: 'auto.rpc.trpc.middleware',
+    exception_id: 1,
+    parent_id: 0,
+    source: 'cause',
   });
 });
 
