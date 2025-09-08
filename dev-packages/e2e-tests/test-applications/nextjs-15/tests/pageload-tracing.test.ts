@@ -41,6 +41,9 @@ test('extracts HTTP request headers as span attributes', async ({ baseURL }) => 
 
   const serverTransaction = await serverTransactionPromise;
 
+  console.log('serverTransaction', serverTransaction.contexts?.trace?.data);
+
+  // FIXME: This test fails with Turbopack enabled
   expect(serverTransaction.contexts?.trace?.data).toEqual(
     expect.objectContaining({
       'http.request.header.user_agent': 'Custom-NextJS-Agent/15.0',
