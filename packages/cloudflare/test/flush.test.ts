@@ -12,6 +12,11 @@ describe('Flush buffer test', () => {
     const { finalize } = makeFlushLock(mockExecutionContext);
     await expect(finalize()).resolves.toBeUndefined();
   });
+  it('waitUntil should not be wrapped mose than once', () => {
+    expect(makeFlushLock(mockExecutionContext), 'Execution context wrapped twice').toBe(
+      makeFlushLock(mockExecutionContext),
+    );
+  });
   it('should flush buffer only after all waitUntil were finished', async () => {
     const { promise, resolve } = Promise.withResolvers();
     const lock = makeFlushLock(mockExecutionContext);
