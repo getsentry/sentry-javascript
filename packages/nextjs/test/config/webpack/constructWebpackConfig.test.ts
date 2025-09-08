@@ -7,6 +7,7 @@ import {
   CLIENT_SDK_CONFIG_FILE,
   clientBuildContext,
   clientWebpackConfig,
+  edgeBuildContext,
   exportedNextConfig,
   serverBuildContext,
   serverWebpackConfig,
@@ -183,6 +184,55 @@ describe('constructWebpackConfigFunction()', () => {
         },
         simulatorBundle: './src/simulator/index.ts',
       });
+    });
+  });
+
+  describe('edge runtime polyfills', () => {
+    it('adds polyfills only for edge runtime in dev mode', async () => {
+      // Test edge runtime in dev mode - should add polyfills
+      const edgeDevBuildContext = { ...edgeBuildContext, dev: true };
+      const edgeDevConfig = await materializeFinalWebpackConfig({
+        exportedNextConfig,
+        incomingWebpackConfig: serverWebpackConfig,
+        incomingWebpackBuildContext: edgeDevBuildContext,
+      });
+
+      const edgeProvidePlugin = edgeDevConfig.plugins?.find(plugin => plugin.constructor.name === 'ProvidePlugin');
+      expect(edgeProvidePlugin).toBeDefined();
+      expect(edgeDevConfig.resolve?.alias?.perf_hooks).toMatch(/perf_hooks\.js$/);
+
+      // Test edge runtime in prod mode - should NOT add polyfills
+      const edgeProdBuildContext = { ...edgeBuildContext, dev: false };
+      const edgeProdConfig = await materializeFinalWebpackConfig({
+        exportedNextConfig,
+        incomingWebpackConfig: serverWebpackConfig,
+        incomingWebpackBuildContext: edgeProdBuildContext,
+      });
+
+      const edgeProdProvidePlugin = edgeProdConfig.plugins?.find(plugin => plugin.constructor.name === 'ProvidePlugin');
+      expect(edgeProdProvidePlugin).toBeUndefined();
+
+      // Test server runtime in dev mode - should NOT add polyfills
+      const serverDevBuildContext = { ...serverBuildContext, dev: true };
+      const serverDevConfig = await materializeFinalWebpackConfig({
+        exportedNextConfig,
+        incomingWebpackConfig: serverWebpackConfig,
+        incomingWebpackBuildContext: serverDevBuildContext,
+      });
+
+      const serverProvidePlugin = serverDevConfig.plugins?.find(plugin => plugin.constructor.name === 'ProvidePlugin');
+      expect(serverProvidePlugin).toBeUndefined();
+
+      // Test client runtime in dev mode - should NOT add polyfills
+      const clientDevBuildContext = { ...clientBuildContext, dev: true };
+      const clientDevConfig = await materializeFinalWebpackConfig({
+        exportedNextConfig,
+        incomingWebpackConfig: clientWebpackConfig,
+        incomingWebpackBuildContext: clientDevBuildContext,
+      });
+
+      const clientProvidePlugin = clientDevConfig.plugins?.find(plugin => plugin.constructor.name === 'ProvidePlugin');
+      expect(clientProvidePlugin).toBeUndefined();
     });
   });
 });

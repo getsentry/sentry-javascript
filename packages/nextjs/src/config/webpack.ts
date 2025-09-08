@@ -871,13 +871,10 @@ function addOtelWarningIgnoreRule(newConfig: WebpackConfigObjectWithModuleRules)
 }
 
 function addEdgeRuntimePolyfills(newConfig: WebpackConfigObjectWithModuleRules, buildContext: BuildContext): void {
-  const { webpack } = buildContext;
-
   // Use ProvidePlugin to inject performance global only when accessed
   newConfig.plugins = newConfig.plugins || [];
   newConfig.plugins.push(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    new (webpack as any).ProvidePlugin({
+    new buildContext.webpack.ProvidePlugin({
       performance: [path.resolve(__dirname, 'polyfills', 'perf_hooks.js'), 'performance'],
     }),
   );
