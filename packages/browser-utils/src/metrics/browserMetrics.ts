@@ -808,7 +808,10 @@ type ExperimentalResourceTimingProperty =
   | 'firstInterimResponseStart'
   | 'finalResponseHeadersStart'
   | 'renderBlockingStatus'
-  | 'deliveryType';
+  | 'deliveryType'
+  // for some reason, TS during build things this is not a property of PerformanceResourceTiming
+  // while it actually is. Hence, we're adding it here
+  | 'responseStatus';
 
 /**
  * Use this to set any attributes we can take directly form the PerformanceResourceTiming entry.
