@@ -14,6 +14,7 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { CloudflareClient } from '../src/client';
 import { withSentry } from '../src/handler';
 import { markAsInstrumented } from '../src/instrument';
+import { createPromiseResolver } from '../src/utils/makePromiseResolver';
 
 // Custom type for hono-like apps (cloudflare handlers) that include errorHandler and onError
 type HonoLikeApp<Env = unknown, QueueHandlerMessage = unknown, CfHostMetadata = unknown> = ExportedHandler<
@@ -38,7 +39,7 @@ function makeWaitUntilAndTask<
   },
 >(): T {
   const waitUntil = vi.fn();
-  const { promise, resolve } = Promise.withResolvers();
+  const { promise, resolve } = createPromiseResolver();
   const resolver = vi.fn().mockImplementation(resolve).mockName('waitUntil.ready');
   Object.defineProperties(waitUntil, {
     ready: {

@@ -3,6 +3,7 @@ import * as SentryCore from '@sentry/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { instrumentDurableObjectWithSentry } from '../src';
 import { isInstrumented } from '../src/instrument';
+import { createPromiseResolver } from '../src/utils/makePromiseResolver';
 
 describe('instrumentDurableObjectWithSentry', () => {
   afterEach(() => {
@@ -124,7 +125,7 @@ describe('instrumentDurableObjectWithSentry', () => {
   it('flush performs after all waitUntil promises are finished', async () => {
     const flush = vi.spyOn(SentryCore.Client.prototype, 'flush');
     const waitUntil = vi.fn();
-    const { promise, resolve } = Promise.withResolvers();
+    const { promise, resolve } = createPromiseResolver();
     process.nextTick(resolve);
     const testClass = vi.fn(context => ({
       fetch: () => {

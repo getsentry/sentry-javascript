@@ -1,4 +1,5 @@
 import type { ExecutionContext } from '@cloudflare/workers-types';
+import { createPromiseResolver } from './utils/makePromiseResolver';
 
 type FlushLock = {
   readonly ready: Promise<void>;
@@ -33,7 +34,7 @@ export function makeFlushLock(context: ExecutionContext): FlushLock {
   }
   let pending = 0;
   const originalWaitUntil = context.waitUntil.bind(context) as typeof context.waitUntil;
-  const { promise, resolve } = Promise.withResolvers();
+  const { promise, resolve } = createPromiseResolver();
   const hijackedWaitUntil: typeof originalWaitUntil = promise => {
     pending++;
     return originalWaitUntil(

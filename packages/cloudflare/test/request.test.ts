@@ -9,6 +9,7 @@ import { setAsyncLocalStorageAsyncContextStrategy } from '../src/async';
 import type { CloudflareOptions } from '../src/client';
 import { CloudflareClient } from '../src/client';
 import { wrapRequestHandler } from '../src/request';
+import { createPromiseResolver } from '../src/utils/makePromiseResolver';
 
 const MOCK_OPTIONS: CloudflareOptions = {
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
@@ -72,7 +73,7 @@ describe('withSentry', () => {
       waitUntil,
     } as unknown as ExecutionContext;
 
-    const { promise, resolve } = Promise.withResolvers();
+    const { promise, resolve } = createPromiseResolver();
     const resolved = vi.fn(() => resolve());
     process.nextTick(resolved);
 

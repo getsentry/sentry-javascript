@@ -1,6 +1,7 @@
 import { type ExecutionContext } from '@cloudflare/workers-types';
 import { describe, expect, it, vi } from 'vitest';
 import { makeFlushLock } from '../src/flush';
+import { createPromiseResolver } from '../src/utils/makePromiseResolver';
 
 describe('Flush buffer test', () => {
   const mockExecutionContext: ExecutionContext = {
@@ -18,7 +19,7 @@ describe('Flush buffer test', () => {
     );
   });
   it('should flush buffer only after all waitUntil were finished', async () => {
-    const { promise, resolve } = Promise.withResolvers();
+    const { promise, resolve } = createPromiseResolver();
     const lock = makeFlushLock(mockExecutionContext);
     mockExecutionContext.waitUntil(promise);
     process.nextTick(resolve);
