@@ -39,7 +39,7 @@ export default {
         request: request as any,
         context: executionContext,
       },
-    async () => {
+      async () => {
         try {
           /**
            * Open a cache instance in the worker and a custom session instance.

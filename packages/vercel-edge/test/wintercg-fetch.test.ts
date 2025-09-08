@@ -59,7 +59,7 @@ describe('WinterCGFetch instrumentation', () => {
       expect.any(Function),
       expect.any(Function),
       expect.any(Object),
-      'auto.http.wintercg_fetch',
+      { spanOrigin: 'auto.http.wintercg_fetch' },
     );
 
     const [, shouldCreateSpan, shouldAttachTraceData] = instrumentFetchRequestSpy.mock.calls[0]!;

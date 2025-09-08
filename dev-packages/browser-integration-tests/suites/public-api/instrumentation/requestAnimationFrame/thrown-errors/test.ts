@@ -13,7 +13,7 @@ sentryTest('should capture exceptions inside callback', async ({ getLocalTestUrl
     type: 'Error',
     value: 'requestAnimationFrame_error',
     mechanism: {
-      type: 'instrument',
+      type: 'auto.browser.browserapierrors.requestAnimationFrame',
       handled: false,
     },
     stacktrace: {

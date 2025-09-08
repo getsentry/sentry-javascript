@@ -29,11 +29,11 @@ describe('express tracing', () => {
 
     // Also calling `updateName` AND setting a source doesn't change anything - Otel has no concept of source, this is sentry-internal.
     // Therefore, only the source is updated but the name is still overwritten by Otel.
-    test("calling `span.updateName` and setting attribute source doesn't update the final name in express but it updates the source", async () => {
+    test('calling `span.updateName` and setting attribute source updates the final name in express', async () => {
       const runner = createRunner(__dirname, 'server.js')
         .expect({
           transaction: {
-            transaction: 'GET /test/:id/span-updateName-source',
+            transaction: 'new-name',
             transaction_info: {
               source: 'custom',
             },

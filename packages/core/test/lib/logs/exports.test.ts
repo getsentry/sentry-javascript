@@ -281,6 +281,16 @@ describe('_INTERNAL_captureLog', () => {
     });
   });
 
+  it('does not set the template attribute if there are no parameters', () => {
+    const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableLogs: true });
+    const client = new TestClient(options);
+
+    _INTERNAL_captureLog({ level: 'debug', message: fmt`User logged in` }, client, undefined);
+
+    const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
+    expect(logAttributes).toEqual({});
+  });
+
   it('processes logs through beforeSendLog when provided', () => {
     const beforeSendLog = vi.fn().mockImplementation(log => ({
       ...log,

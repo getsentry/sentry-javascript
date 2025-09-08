@@ -19,7 +19,7 @@ test('sends an error', async ({ page }) => {
           type: 'TypeError',
           value: 'this.nonExistentFunction is not a function',
           mechanism: {
-            type: 'instrument',
+            type: 'auto.browser.browserapierrors.addEventListener',
             handled: false,
           },
         },
@@ -55,7 +55,7 @@ test('assigns the correct transaction value after a navigation', async ({ page }
           type: 'TypeError',
           value: 'this.nonExistentFunction is not a function',
           mechanism: {
-            type: 'instrument',
+            type: 'auto.browser.browserapierrors.addEventListener',
             handled: false,
           },
         },

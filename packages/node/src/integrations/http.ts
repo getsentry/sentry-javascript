@@ -3,13 +3,7 @@ import { diag } from '@opentelemetry/api';
 import type { HttpInstrumentationConfig } from '@opentelemetry/instrumentation-http';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
 import type { Span } from '@sentry/core';
-import {
-  defineIntegration,
-  getClient,
-  hasSpansEnabled,
-  httpHeadersToSpanAttributes,
-  stripUrlQueryAndFragment,
-} from '@sentry/core';
+import { defineIntegration, getClient, hasSpansEnabled, httpHeadersToSpanAttributes, stripUrlQueryAndFragment } from '@sentry/core';
 import type { HTTPModuleRequestIncomingMessage, NodeClient } from '@sentry/node-core';
 import {
   type SentryHttpInstrumentationOptions,
@@ -139,16 +133,10 @@ interface HttpOptions {
       request: ClientRequest | HTTPModuleRequestIncomingMessage,
       response: HTTPModuleRequestIncomingMessage | ServerResponse,
     ) => void;
-
-    /**
-     * You can pass any configuration through to the underlying instrumentation.
-     * Note that there are no semver guarantees for this!
-     */
-    _experimentalConfig?: ConstructorParameters<typeof HttpInstrumentation>[0];
   };
 }
 
-const instrumentSentryHttp = generateInstrumentOnce<SentryHttpInstrumentationOptions>(
+export const instrumentSentryHttp = generateInstrumentOnce<SentryHttpInstrumentationOptions>(
   `${INTEGRATION_NAME}.sentry`,
   options => {
     return new SentryHttpInstrumentation(options);
@@ -156,7 +144,11 @@ const instrumentSentryHttp = generateInstrumentOnce<SentryHttpInstrumentationOpt
 );
 
 export const instrumentOtelHttp = generateInstrumentOnce<HttpInstrumentationConfig>(INTEGRATION_NAME, config => {
-  const instrumentation = new HttpInstrumentation(config);
+  const instrumentation = new HttpInstrumentation({
+    ...config,
+    // This is hard-coded and can never be overridden by the user
+    disableIncomingRequestInstrumentation: true,
+  });
 
   // We want to update the logger namespace so we can better identify what is happening here
   try {
@@ -173,7 +165,10 @@ export const instrumentOtelHttp = generateInstrumentOnce<HttpInstrumentationConf
 });
 
 /** Exported only for tests. */
-export function _shouldInstrumentSpans(options: HttpOptions, clientOptions: Partial<NodeClientOptions> = {}): boolean {
+export function _shouldUseOtelHttpInstrumentation(
+  options: HttpOptions,
+  clientOptions: Partial<NodeClientOptions> = {},
+): boolean {
   // If `spans` is passed in, it takes precedence
   // Else, we by default emit spans, unless `skipOpenTelemetrySetup` is set to `true` or spans are not enabled
   if (typeof options.spans === 'boolean') {
@@ -206,21 +201,22 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
-      const instrumentSpans = _shouldInstrumentSpans(options, getClient<NodeClient>()?.getOptions());
+      const clientOptions = (getClient<NodeClient>()?.getOptions() || {}) as Partial<NodeClientOptions>;
+      const useOtelHttpInstrumentation = _shouldUseOtelHttpInstrumentation(options, clientOptions);
+      const disableIncomingRequestSpans = options.disableIncomingRequestSpans ?? !hasSpansEnabled(clientOptions);
 
       // This is Sentry-specific instrumentation for request isolation and breadcrumbs
       instrumentSentryHttp({
         ...options,
-        // If spans are not instrumented, it means the HttpInstrumentation has not been added
-        // In that case, we want to handle incoming trace extraction ourselves
-        extractIncomingTraceFromHeader: !instrumentSpans,
+        disableIncomingRequestSpans,
+        ignoreSpansForIncomingRequests: options.ignoreIncomingRequests,
         // If spans are not instrumented, it means the HttpInstrumentation has not been added
         // In that case, we want to handle trace propagation ourselves
-        propagateTraceInOutgoingRequests: !instrumentSpans,
+        propagateTraceInOutgoingRequests: !useOtelHttpInstrumentation,
       });
 
       // This is the "regular" OTEL instrumentation that emits spans
-      if (instrumentSpans) {
+      if (useOtelHttpInstrumentation) {
         const instrumentationConfig = getConfigWithDefaults(options);
         instrumentOtelHttp(instrumentationConfig);
       }
@@ -249,29 +245,8 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
   };
 });
 
-/**
- * Determines if @param req is a ClientRequest, meaning the request was created within the express app
- * and it's an outgoing request.
- * Checking for properties instead of using `instanceOf` to avoid importing the request classes.
- */
-function _isClientRequest(req: ClientRequest | HTTPModuleRequestIncomingMessage): req is ClientRequest {
-  return 'outputData' in req && 'outputSize' in req && !('client' in req) && !('statusCode' in req);
-}
-
-/**
- * Detects if an incoming request is a prefetch request.
- */
-function isKnownPrefetchRequest(req: HTTPModuleRequestIncomingMessage): boolean {
-  // Currently only handles Next.js prefetch requests but may check other frameworks in the future.
-  return req.headers['next-router-prefetch'] === '1';
-}
-
 function getConfigWithDefaults(options: Partial<HttpOptions> = {}): HttpInstrumentationConfig {
   const instrumentationConfig = {
-    ...options.instrumentation?._experimentalConfig,
-
-    disableIncomingRequestInstrumentation: options.disableIncomingRequestSpans,
-
     ignoreOutgoingRequestHook: request => {
       const url = getRequestUrl(request);
 
@@ -287,38 +262,11 @@ function getConfigWithDefaults(options: Partial<HttpOptions> = {}): HttpInstrume
       return false;
     },
 
-    ignoreIncomingRequestHook: request => {
-      // request.url is the only property that holds any information about the url
-      // it only consists of the URL path and query string (if any)
-      const urlPath = request.url;
-
-      const method = request.method?.toUpperCase();
-      // We do not capture OPTIONS/HEAD requests as transactions
-      if (method === 'OPTIONS' || method === 'HEAD') {
-        return true;
-      }
-
-      // Default static asset filtering
-      if (options.ignoreStaticAssets !== false && method === 'GET' && urlPath && isStaticAssetRequest(urlPath)) {
-        return true;
-      }
-
-      const _ignoreIncomingRequests = options.ignoreIncomingRequests;
-      if (urlPath && _ignoreIncomingRequests?.(urlPath, request)) {
-        return true;
-      }
-
-      return false;
-    },
-
     requireParentforOutgoingSpans: false,
-    requireParentforIncomingSpans: false,
     requestHook: (span, req) => {
       addOriginToSpan(span, 'auto.http.otel.http');
-      if (!_isClientRequest(req) && isKnownPrefetchRequest(req)) {
-        span.setAttribute('sentry.http.prefetch', true);
-      }
 
+      // todo
       // Extract headers for incoming requests
       if (!_isClientRequest(req)) {
         const client = getClient();
@@ -342,24 +290,4 @@ function getConfigWithDefaults(options: Partial<HttpOptions> = {}): HttpInstrume
   } satisfies HttpInstrumentationConfig;
 
   return instrumentationConfig;
-}
-
-/**
- * Check if a request is for a common static asset that should be ignored by default.
- *
- * Only exported for tests.
- */
-export function isStaticAssetRequest(urlPath: string): boolean {
-  const path = stripUrlQueryAndFragment(urlPath);
-  // Common static file extensions
-  if (path.match(/\.(ico|png|jpg|jpeg|gif|svg|css|js|woff|woff2|ttf|eot|webp|avif)$/)) {
-    return true;
-  }
-
-  // Common metadata files
-  if (path.match(/^\/(robots\.txt|sitemap\.xml|manifest\.json|browserconfig\.xml)$/)) {
-    return true;
-  }
-
-  return false;
 }
