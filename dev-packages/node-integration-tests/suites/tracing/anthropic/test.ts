@@ -348,4 +348,101 @@ describe('Anthropic integration', () => {
         .completed();
     });
   });
+
+  // Additional error scenarios - Streaming errors
+  const EXPECTED_STREAM_ERROR_SPANS = {
+    transaction: 'main',
+    spans: expect.arrayContaining([
+      // Error with messages.create on stream initialization
+      expect.objectContaining({
+        description: 'messages error-stream-init stream-response',
+        op: 'gen_ai.messages',
+        status: 'internal_error', // Actual status coming from the instrumentation
+        data: expect.objectContaining({
+          'gen_ai.request.model': 'error-stream-init',
+          'gen_ai.request.stream': true,
+        }),
+      }),
+      // Error with messages.stream on stream initialization
+      expect.objectContaining({
+        description: 'messages error-stream-init stream-response',
+        op: 'gen_ai.messages',
+        status: 'internal_error', // Actual status coming from the instrumentation
+        data: expect.objectContaining({
+          'gen_ai.request.model': 'error-stream-init',
+        }),
+      }),
+      // Error midway with messages.create on streaming - note: The stream is started successfully
+      // so we get a successful span with the content that was streamed before the error
+      expect.objectContaining({
+        description: 'messages error-stream-midway stream-response',
+        op: 'gen_ai.messages',
+        status: 'ok',
+        data: expect.objectContaining({
+          'gen_ai.request.model': 'error-stream-midway',
+          'gen_ai.request.stream': true,
+          'gen_ai.response.streaming': true,
+          'gen_ai.response.text': 'This stream will ', // We received some data before error
+        }),
+      }),
+      // Error midway with messages.stream - same behavior, we get a span with the streamed data
+      expect.objectContaining({
+        description: 'messages error-stream-midway stream-response',
+        op: 'gen_ai.messages',
+        status: 'ok',
+        data: expect.objectContaining({
+          'gen_ai.request.model': 'error-stream-midway',
+          'gen_ai.response.streaming': true,
+          'gen_ai.response.text': 'This stream will ', // We received some data before error
+        }),
+      }),
+    ]),
+  };
+
+  createEsmAndCjsTests(__dirname, 'scenario-stream-errors.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
+    test('handles streaming errors correctly', async () => {
+      await createRunner().ignore('event').expect({ transaction: EXPECTED_STREAM_ERROR_SPANS }).start().completed();
+    });
+  });
+
+  // Additional error scenarios - Tool errors and model retrieval errors
+  const EXPECTED_ERROR_SPANS = {
+    transaction: 'main',
+    spans: expect.arrayContaining([
+      // Invalid tool format error
+      expect.objectContaining({
+        description: 'messages invalid-format',
+        op: 'gen_ai.messages',
+        status: 'unknown_error',
+        data: expect.objectContaining({
+          'gen_ai.request.model': 'invalid-format',
+        }),
+      }),
+      // Model retrieval error
+      expect.objectContaining({
+        description: 'models nonexistent-model',
+        op: 'gen_ai.models',
+        status: 'unknown_error',
+        data: expect.objectContaining({
+          'gen_ai.request.model': 'nonexistent-model',
+        }),
+      }),
+      // Successful tool usage (for comparison)
+      expect.objectContaining({
+        description: 'messages claude-3-haiku-20240307',
+        op: 'gen_ai.messages',
+        status: 'ok',
+        data: expect.objectContaining({
+          'gen_ai.request.model': 'claude-3-haiku-20240307',
+          'gen_ai.response.tool_calls': expect.stringContaining('tool_ok_1'),
+        }),
+      }),
+    ]),
+  };
+
+  createEsmAndCjsTests(__dirname, 'scenario-errors.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
+    test('handles tool errors and model retrieval errors correctly', async () => {
+      await createRunner().ignore('event').expect({ transaction: EXPECTED_ERROR_SPANS }).start().completed();
+    });
+  });
 });

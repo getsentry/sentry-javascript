@@ -46,7 +46,7 @@ function run(): void {
     },
   });
 
-  const { base, head, optional } = values;
+  const { base, head = 'HEAD', optional } = values;
 
   const testApplications = globSync('*/package.json', {
     cwd: `${__dirname}/../test-applications`,
@@ -174,7 +174,7 @@ function getAffectedTestApplications(
 }
 
 function getChangedTestApps(base: string, head?: string): false | Set<string> {
-  const changedFiles = execSync(`git diff --name-only ${base}${head ? `..${head}` : ''} -- dev-packages/e2e-tests/`, {
+  const changedFiles = execSync(`git diff --name-only ${base}${head ? `..${head}` : ''} -- .`, {
     encoding: 'utf-8',
   })
     .toString()
