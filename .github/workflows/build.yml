@@ -718,10 +718,6 @@ jobs:
       matrix:
         node: [18, 20, 22]
         remix: [1, 2]
-        # Remix v2 only supports Node 18+, so run 16 tests separately
-        include:
-          - node: 16
-            remix: 1
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v4
