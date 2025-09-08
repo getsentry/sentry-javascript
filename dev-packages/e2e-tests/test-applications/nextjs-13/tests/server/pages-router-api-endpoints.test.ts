@@ -30,7 +30,7 @@ test('Should report an error event for errors thrown in pages router api routes'
               function: 'withSentry',
             },
             handled: false,
-            type: 'instrument',
+            type: 'auto.http.nextjs.apiHandler',
           },
           stacktrace: { frames: expect.arrayContaining([]) },
           type: 'Error',

@@ -35,4 +35,13 @@ test('Sends a client-side exception to Sentry', async ({ page }) => {
     trace_id: expect.stringMatching(/[a-f0-9]{32}/),
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
   });
+
+  expect(errorEvent.exception?.values?.[0]?.mechanism).toEqual({
+    handled: false,
+    type: 'auto.browser.browserapierrors.addEventListener',
+    data: {
+      handler: expect.stringContaining('bound uM'),
+      target: 'EventTarget',
+    },
+  });
 });
