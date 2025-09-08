@@ -64,7 +64,9 @@ test('Sends successful transaction', async ({ baseURL }) => {
 
   const spans = transactionEvent.spans || [];
 
-  expect(Object.keys(spans).some(key => key.startsWith('http.request.header.'))).toBe(false);
+  spans.forEach(span => {
+    expect(Object.keys(span.data).some(key => key.startsWith('http.request.header.'))).toBe(false);
+  });
 
   expect(spans).toEqual([
     {

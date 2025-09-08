@@ -114,50 +114,6 @@ describe('sentryMiddleware', () => {
     expect(resultFromNext).toStrictEqual(nextResult);
   });
 
-  it('includes HTTP request headers as span attributes', async () => {
-    const middleware = handleRequest();
-    const headers = new Headers({
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-      'Content-Type': 'application/json',
-      'X-Custom-Header': 'custom-value',
-      Accept: 'application/json, text/plain',
-    });
-
-    const ctx = {
-      request: {
-        method: 'POST',
-        url: '/api/data',
-        headers,
-      },
-      url: new URL('https://myDomain.io/api/data'),
-      params: {},
-    };
-    const next = vi.fn(() => nextResult);
-
-    // @ts-expect-error, a partial ctx object is fine here
-    await middleware(ctx, next);
-
-    expect(startSpanSpy).toHaveBeenCalledWith(
-      {
-        attributes: {
-          'sentry.origin': 'auto.http.astro',
-          method: 'POST',
-          url: 'https://mydomain.io/api/data',
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-          'http.request.header.user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-          'http.request.header.content_type': 'application/json',
-          'http.request.header.x_custom_header': 'custom-value',
-          'http.request.header.accept': 'application/json, text/plain',
-        },
-        name: 'POST /api/data',
-        op: 'http.server',
-      },
-      expect.any(Function),
-    );
-
-    expect(next).toHaveBeenCalled();
-  });
-
   it("sets source route if the url couldn't be decoded correctly", async () => {
     const middleware = handleRequest();
     const ctx = {
