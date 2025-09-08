@@ -4,7 +4,7 @@
 import type { ExecutionContext } from '@cloudflare/workers-types';
 import type { Event } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
-import { beforeAll, beforeEach, describe, expect, onTestFinished, test, vi } from 'vitest';
+import { beforeAll, beforeEach, describe, expect, test, vi } from 'vitest';
 import { setAsyncLocalStorageAsyncContextStrategy } from '../src/async';
 import type { CloudflareOptions } from '../src/client';
 import { CloudflareClient } from '../src/client';
@@ -13,10 +13,6 @@ import { wrapRequestHandler } from '../src/request';
 const MOCK_OPTIONS: CloudflareOptions = {
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
 };
-
-function addDelayedWaitUntil(context: ExecutionContext) {
-  context.waitUntil(new Promise<void>(resolve => setTimeout(() => resolve())));
-}
 
 describe('withSentry', () => {
   beforeAll(() => {
@@ -70,25 +66,24 @@ describe('withSentry', () => {
 
   test('flush must be called when all waitUntil are done', async () => {
     const flush = vi.spyOn(SentryCore.Client.prototype, 'flush');
-    vi.useFakeTimers();
-    onTestFinished(() => {
-      vi.useRealTimers();
-    });
-    const waits: Promise<unknown>[] = [];
-    const waitUntil = vi.fn(promise => waits.push(promise));
+    const waitUntil = vi.fn();
 
     const context = {
       waitUntil,
     } as unknown as ExecutionContext;
 
+    const { promise, resolve } = Promise.withResolvers();
+    const resolved = vi.fn(() => resolve());
+    process.nextTick(resolved);
+
     await wrapRequestHandler({ options: MOCK_OPTIONS, request: new Request('https://example.com'), context }, () => {
-      addDelayedWaitUntil(context);
+      context.waitUntil(promise);
       return new Response('test');
     });
     expect(flush).not.toBeCalled();
     expect(waitUntil).toBeCalled();
-    vi.advanceTimersToNextTimerAsync().then(() => vi.runAllTimers());
-    await Promise.all(waits);
+    await Promise.all(waitUntil.mock.calls.map(call => call[0]));
+    expect(flush).toHaveBeenCalledAfter(resolved);
     expect(flush).toHaveBeenCalledOnce();
   });
 
@@ -336,5 +331,5 @@ function createMockExecutionContext(): ExecutionContext {
   return {
     waitUntil: vi.fn(),
     passThroughOnException: vi.fn(),
-  };
+  } as unknown as ExecutionContext;
 }
