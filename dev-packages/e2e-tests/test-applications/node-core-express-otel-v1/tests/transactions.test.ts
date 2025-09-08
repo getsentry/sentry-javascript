@@ -16,7 +16,7 @@ test('Sends an API route transaction', async ({ baseURL }) => {
   expect(transactionEvent.contexts?.trace).toEqual({
     data: {
       'sentry.source': 'url',
-      'sentry.origin': 'auto.http.otel.http',
+      'sentry.origin': 'manual',
       'sentry.op': 'http.server',
       'sentry.sample_rate': 1,
       url: 'http://localhost:3030/test-transaction',
@@ -42,7 +42,7 @@ test('Sends an API route transaction', async ({ baseURL }) => {
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
     status: 'ok',
     trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-    origin: 'auto.http.otel.http',
+    origin: 'manual',
   });
 
   expect(transactionEvent.contexts?.response).toEqual({
