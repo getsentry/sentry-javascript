@@ -258,10 +258,9 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
       }
     },
     processEvent(event) {
-      if (enableServerSpans) {
-        return serverSpans.processEvent(event);
-      }
-      return event;
+      // Note: We always run this, even if spans are disabled
+      // The reason being that e.g. the remix integration disables span creation here but still wants to use the ignore status codes option
+      return serverSpans.processEvent(event);
     },
   };
 });
