@@ -149,9 +149,9 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
   const server = httpServerIntegration(serverOptions);
   const serverSpans = httpServerSpansIntegration(serverSpansOptions);
 
-  const spans = options.spans ?? true;
-  // In node-core, for now by default we disable incoming requests spans
+  // In node-core, for now we disable incoming requests spans by default
   // we may revisit this in a future release
+  const spans = options.spans ?? false;
   const disableIncomingRequestSpans = options.disableIncomingRequestSpans ?? false;
   const enabledServerSpans = spans && !disableIncomingRequestSpans;
 
