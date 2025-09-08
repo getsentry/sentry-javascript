@@ -41,7 +41,8 @@
     "ts-node": "10.9.1"
   },
   "volta": {
-    "extends": "../../package.json"
+    "extends": "../../package.json",
+    "node": "20.19.5"
   },
   "sentryTest": {
     "variants": [

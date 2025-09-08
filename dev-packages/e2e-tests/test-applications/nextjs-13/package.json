@@ -39,7 +39,7 @@
   },
   "volta": {
     "extends": "../../package.json",
-    "node": "20.9.0"
+    "node": "20.19.5"
   },
   "sentryTest": {
     "optionalVariants": [
