@@ -8,7 +8,12 @@ import {
   SEMRESATTRS_SERVICE_NAMESPACE,
 } from '@opentelemetry/semantic-conventions';
 import { debug as coreDebug, SDK_VERSION } from '@sentry/core';
-import { type NodeClient, initializeEsmLoader, SentryContextManager, setupOpenTelemetryLogger } from '@sentry/node-core';
+import {
+  type NodeClient,
+  initializeEsmLoader,
+  SentryContextManager,
+  setupOpenTelemetryLogger,
+} from '@sentry/node-core';
 import { SentryPropagator, SentrySampler, SentrySpanProcessor } from '@sentry/opentelemetry';
 import { DEBUG_BUILD } from '../debug-build';
 import { getOpenTelemetryInstrumentationToPreload } from '../integrations/tracing';
