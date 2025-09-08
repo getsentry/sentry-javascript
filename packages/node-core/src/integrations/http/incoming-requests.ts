@@ -133,18 +133,8 @@ export function instrumentServer(
         patchRequestToCaptureBody(request, isolationScope, maxIncomingRequestBodySize);
       }
 
-      // todo
-      // Extract HTTP request headers as span attributes
-      const client = getClient();
-      const sendDefaultPii = client?.getOptions().sendDefaultPii ?? false;
-      const httpHeaderAttributes: Record<string, string> = {
-        // Adding the attributes here will add them to spans in node-core OTel setups (e.g. E2E test node-core-express-otel-v1)
-        // fixme: However, adding this here will also add the span attributes to http.client spans in koa and fastify-5
-        ...httpHeadersToSpanAttributes(normalizedRequest.headers || {}, sendDefaultPii),
-      };
-
       // Update the isolation scope, isolate this request
-      isolationScope.setSDKProcessingMetadata({ normalizedRequest, ipAddress, httpHeaderAttributes });
+      isolationScope.setSDKProcessingMetadata({ normalizedRequest, ipAddress });
 
       // attempt to update the scope's `transactionName` based on the request URL
       // Ideally, framework instrumentations coming after the HttpInstrumentation
@@ -202,6 +192,8 @@ export function instrumentServer(
           const tracer = client.tracer;
           const scheme = fullUrl.startsWith('https') ? 'https' : 'http';
 
+          const shouldSendDefaultPii = client?.getOptions().sendDefaultPii ?? false;
+
           // We use the plain tracer.startSpan here so we can pass the span kind
           const span = tracer.startSpan(bestEffortTransactionName, {
             kind: SpanKind.SERVER,
@@ -222,6 +214,7 @@ export function instrumentServer(
               'http.flavor': httpVersion,
               'net.transport': httpVersion?.toUpperCase() === 'QUIC' ? 'ip_udp' : 'ip_tcp',
               ...getRequestContentLengthAttribute(request),
+              ...httpHeadersToSpanAttributes(normalizedRequest.headers || {}, shouldSendDefaultPii),
             },
           });
 

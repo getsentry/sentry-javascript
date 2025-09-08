@@ -64,6 +64,8 @@ test('Sends successful transaction', async ({ baseURL }) => {
 
   const spans = transactionEvent.spans || [];
 
+  expect(Object.keys(spans).some(key => key.startsWith('http.request.header.'))).toBe(false);
+
   expect(spans).toEqual([
     {
       data: {
@@ -72,13 +74,6 @@ test('Sends successful transaction', async ({ baseURL }) => {
         'http.route': '/test-success',
         'sentry.op': 'router.hapi',
         'sentry.origin': 'auto.http.otel.hapi',
-        'http.request.header.accept': '*/*',
-        'http.request.header.accept_encoding': 'gzip, deflate',
-        'http.request.header.accept_language': '*',
-        'http.request.header.connection': 'keep-alive',
-        'http.request.header.host': expect.any(String),
-        'http.request.header.sec_fetch_mode': 'cors',
-        'http.request.header.user_agent': 'node',
       },
       description: 'GET /test-success',
       op: 'router.hapi',

@@ -32,10 +32,9 @@ test('Propagates trace for outgoing http requests', async ({ baseURL }) => {
 
   const outgoingHttpSpanId = outgoingHttpSpan?.span_id;
 
-  // fixme: http headers are included here. If the span attributes are not added in node-core incoming-requests.ts, this works
   const outgoingHttpSpanData = outgoingHttpSpan?.data || {};
   // Outgoing span (`http.client`) does not include headers as attributes
-  // expect(Object.keys(outgoingHttpSpanData).some(key => key.startsWith('http.request.header.'))).toBe(false);
+  expect(Object.keys(outgoingHttpSpanData).some(key => key.startsWith('http.request.header.'))).toBe(false);
 
   expect(traceId).toEqual(expect.any(String));
 

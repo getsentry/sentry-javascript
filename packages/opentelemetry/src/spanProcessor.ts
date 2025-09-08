@@ -9,7 +9,6 @@ import {
   logSpanEnd,
   logSpanStart,
   setCapturedScopesOnSpan,
-  spanToJSON,
 } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_PARENT_IS_REMOTE } from './semanticAttributes';
 import { SentrySpanExporter } from './spanExporter';
@@ -47,21 +46,6 @@ function onSpanStart(span: Span, parentContext: Context): void {
   }
 
   logSpanStart(span);
-
-  if (scopes?.isolationScope) {
-    const spanData = spanToJSON(span);
-
-    // Add HTTP request headers as span attributes for HTTP server spans
-    if (spanData.op === 'http.server' || (spanData.data && 'http.method' in spanData.data)) {
-      const sdkProcessingMetadata = scopes.isolationScope.getScopeData().sdkProcessingMetadata;
-      const httpHeaderAttributes = sdkProcessingMetadata?.httpHeaderAttributes as Record<string, string>;
-
-      // Those httpHeaderAttributes are set in @sentry/node-core for the incoming request
-      if (httpHeaderAttributes && typeof httpHeaderAttributes === 'object') {
-        span.setAttributes(httpHeaderAttributes);
-      }
-    }
-  }
 
   const client = getClient();
   client?.emit('spanStart', span);

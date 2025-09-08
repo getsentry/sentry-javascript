@@ -3,7 +3,13 @@ import { diag } from '@opentelemetry/api';
 import type { HttpInstrumentationConfig } from '@opentelemetry/instrumentation-http';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
 import type { Span } from '@sentry/core';
-import { defineIntegration, getClient, hasSpansEnabled, httpHeadersToSpanAttributes, stripUrlQueryAndFragment } from '@sentry/core';
+import {
+  defineIntegration,
+  getClient,
+  hasSpansEnabled,
+  httpHeadersToSpanAttributes,
+  stripUrlQueryAndFragment,
+} from '@sentry/core';
 import type { HTTPModuleRequestIncomingMessage, NodeClient } from '@sentry/node-core';
 import {
   type SentryHttpInstrumentationOptions,
@@ -265,15 +271,6 @@ function getConfigWithDefaults(options: Partial<HttpOptions> = {}): HttpInstrume
     requireParentforOutgoingSpans: false,
     requestHook: (span, req) => {
       addOriginToSpan(span, 'auto.http.otel.http');
-
-      // todo
-      // Extract headers for incoming requests
-      if (!_isClientRequest(req)) {
-        const client = getClient();
-        const sendDefaultPii = client?.getOptions().sendDefaultPii ?? false;
-        const headerAttributes = httpHeadersToSpanAttributes(req.headers, sendDefaultPii);
-        span.setAttributes(headerAttributes);
-      }
 
       options.instrumentation?.requestHook?.(span, req);
     },
