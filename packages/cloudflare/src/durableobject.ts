@@ -18,6 +18,7 @@ import { isInstrumented, markAsInstrumented } from './instrument';
 import { getFinalOptions } from './options';
 import { wrapRequestHandler } from './request';
 import { init } from './sdk';
+import { cloneExecutionContext } from './utils/cloneExecutionContext';
 
 type MethodWrapperOptions = {
   spanName?: string;
@@ -192,8 +193,10 @@ export function instrumentDurableObjectWithSentry<
   C extends new (state: DurableObjectState, env: E) => T,
 >(optionsCallback: (env: E) => CloudflareOptions, DurableObjectClass: C): C {
   return new Proxy(DurableObjectClass, {
-    construct(target, [context, env]) {
+    construct(target, [ctx, env]) {
       setAsyncLocalStorageAsyncContextStrategy();
+
+      const context = cloneExecutionContext(ctx)
 
       const options = getFinalOptions(optionsCallback(env), env);
 
