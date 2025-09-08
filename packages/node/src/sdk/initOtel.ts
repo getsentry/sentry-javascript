@@ -7,11 +7,9 @@ import {
   ATTR_SERVICE_VERSION,
   SEMRESATTRS_SERVICE_NAMESPACE,
 } from '@opentelemetry/semantic-conventions';
-import { consoleSandbox, debug as coreDebug, GLOBAL_OBJ, SDK_VERSION } from '@sentry/core';
-import { type NodeClient, isCjs, SentryContextManager, setupOpenTelemetryLogger } from '@sentry/node-core';
+import { debug as coreDebug, SDK_VERSION } from '@sentry/core';
+import { type NodeClient, initializeEsmLoader, SentryContextManager, setupOpenTelemetryLogger } from '@sentry/node-core';
 import { SentryPropagator, SentrySampler, SentrySpanProcessor } from '@sentry/opentelemetry';
-import { createAddHookMessageChannel } from 'import-in-the-middle';
-import moduleModule from 'module';
 import { DEBUG_BUILD } from '../debug-build';
 import { getOpenTelemetryInstrumentationToPreload } from '../integrations/tracing';
 
@@ -35,34 +33,6 @@ export function initOpenTelemetry(client: NodeClient, options: AdditionalOpenTel
   client.traceProvider = provider;
 }
 
-/** Initialize the ESM loader. */
-export function maybeInitializeEsmLoader(): void {
-  const [nodeMajor = 0, nodeMinor = 0] = process.versions.node.split('.').map(Number);
-
-  // Register hook was added in v20.6.0 and v18.19.0
-  if (nodeMajor >= 21 || (nodeMajor === 20 && nodeMinor >= 6) || (nodeMajor === 18 && nodeMinor >= 19)) {
-    if (!GLOBAL_OBJ._sentryEsmLoaderHookRegistered) {
-      try {
-        const { addHookMessagePort } = createAddHookMessageChannel();
-        // @ts-expect-error register is available in these versions
-        moduleModule.register('import-in-the-middle/hook.mjs', import.meta.url, {
-          data: { addHookMessagePort, include: [] },
-          transferList: [addHookMessagePort],
-        });
-      } catch (error) {
-        coreDebug.warn('Failed to register ESM hook', error);
-      }
-    }
-  } else {
-    consoleSandbox(() => {
-      // eslint-disable-next-line no-console
-      console.warn(
-        `[Sentry] You are using Node.js v${process.versions.node} in ESM mode ("import syntax"). The Sentry Node.js SDK is not compatible with ESM in Node.js versions before 18.19.0 or before 20.6.0. Please either build your application with CommonJS ("require() syntax"), or upgrade your Node.js version.`,
-      );
-    });
-  }
-}
-
 interface NodePreloadOptions {
   debug?: boolean;
   integrations?: string[];
@@ -80,9 +50,7 @@ export function preloadOpenTelemetry(options: NodePreloadOptions = {}): void {
     coreDebug.enable();
   }
 
-  if (!isCjs()) {
-    maybeInitializeEsmLoader();
-  }
+  initializeEsmLoader();
 
   // These are all integrations that we need to pre-load to ensure they are set up before any other code runs
   getPreloadMethods(options.integrations).forEach(fn => {
