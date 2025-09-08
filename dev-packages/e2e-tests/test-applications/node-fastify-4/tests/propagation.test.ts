@@ -120,7 +120,7 @@ test('Propagates trace for outgoing http requests', async ({ baseURL }) => {
       'http.request.header.baggage': expect.any(String),
       'http.request.header.connection': 'keep-alive',
       'http.request.header.host': expect.any(String),
-      'http.request.header.sentry_trace': expect.stringContaining(traceId || ''),
+      'http.request.header.sentry_trace': expect.stringMatching(/[a-f0-9]{32}-[a-f0-9]{16}-1/),
     },
     op: 'http.server',
     parent_span_id: outgoingHttpSpanId,

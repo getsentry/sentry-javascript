@@ -219,13 +219,14 @@ async function instrumentRequestStartHttpServerSpan(
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.astro',
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
             [SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD]: method,
-            // This is here for backwards compatibility, we used to set this here beforemethod,
-          url: stripUrlQueryAndFragment(ctx.url.href),
-          ...httpHeadersToSpanAttributes(
-            winterCGHeadersToDict(request.headers),
-            getClient()?.getOptions().sendDefaultPii ?? false,
-          ),
-        };
+            // This is here for backwards compatibility, we used to set this here before
+            method,
+            url: stripUrlQueryAndFragment(ctx.url.href),
+            ...httpHeadersToSpanAttributes(
+              winterCGHeadersToDict(request.headers),
+              getClient()?.getOptions().sendDefaultPii ?? false,
+            ),
+          };
 
           if (parametrizedRoute) {
             attributes['http.route'] = parametrizedRoute;
