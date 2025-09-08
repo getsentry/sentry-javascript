@@ -103,6 +103,11 @@ export function constructWebpackConfigFunction(
 
     addOtelWarningIgnoreRule(newConfig);
 
+    // Add edge runtime polyfills when building for edge in dev mode
+    if (runtime === 'edge' && isDev) {
+      addEdgeRuntimePolyfills(newConfig, buildContext);
+    }
+
     let pagesDirPath: string | undefined;
     const maybePagesDirPath = path.join(projectDir, 'pages');
     const maybeSrcPagesDirPath = path.join(projectDir, 'src', 'pages');
@@ -863,6 +868,27 @@ function addOtelWarningIgnoreRule(newConfig: WebpackConfigObjectWithModuleRules)
   } else if (Array.isArray(newConfig.ignoreWarnings)) {
     newConfig.ignoreWarnings.push(...ignoreRules);
   }
+}
+
+function addEdgeRuntimePolyfills(newConfig: WebpackConfigObjectWithModuleRules, buildContext: BuildContext): void {
+  const { webpack } = buildContext;
+
+  // Use ProvidePlugin to inject performance global only when accessed
+  newConfig.plugins = newConfig.plugins || [];
+  newConfig.plugins.push(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    new (webpack as any).ProvidePlugin({
+      performance: [path.resolve(__dirname, 'polyfills', 'perf_hooks.js'), 'performance'],
+    }),
+  );
+
+  // Add module resolution aliases for problematic Node.js modules in edge runtime
+  newConfig.resolve = newConfig.resolve || {};
+  newConfig.resolve.alias = {
+    ...newConfig.resolve.alias,
+    // Redirect perf_hooks imports to a polyfilled version
+    perf_hooks: path.resolve(__dirname, 'polyfills', 'perf_hooks.js'),
+  };
 }
 
 function _getModules(projectDir: string): Record<string, string> {
