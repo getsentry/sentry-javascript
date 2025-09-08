@@ -1,4 +1,4 @@
-import type { Span } from '@sentry/core';
+import type { Span, SpanAttributes } from '@sentry/core';
 import {
   getClient,
   getCurrentScope,
@@ -10,7 +10,12 @@ import {
   spanToJSON,
 } from '@sentry/core';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { _addMeasureSpans, _addNavigationSpans, _addResourceSpans } from '../../src/metrics/browserMetrics';
+import {
+  _addMeasureSpans,
+  _addNavigationSpans,
+  _addResourceSpans,
+  _setResourceRequestAttributes,
+} from '../../src/metrics/browserMetrics';
 import { WINDOW } from '../../src/types';
 import { getDefaultClientOptions, TestClient } from '../utils/TestClient';
 
@@ -706,6 +711,75 @@ describe('_addNavigationSpans', () => {
         }),
       ]),
     );
+  });
+});
+
+describe('_setResourceRequestAttributes', () => {
+  it('sets resource request attributes', () => {
+    const attributes: SpanAttributes = {};
+
+    const entry = mockPerformanceResourceTiming({
+      transferSize: 0,
+      deliveryType: 'cache',
+      renderBlockingStatus: 'non-blocking',
+      responseStatus: 200,
+      redirectStart: 100,
+      responseStart: 200,
+    });
+
+    _setResourceRequestAttributes(entry, attributes, [
+      ['transferSize', 'http.response_transfer_size'],
+      ['deliveryType', 'http.response_delivery_type'],
+      ['renderBlockingStatus', 'resource.render_blocking_status'],
+      ['responseStatus', 'http.response.status_code'],
+      ['redirectStart', 'http.request.redirect_start'],
+      ['responseStart', 'http.response.start'],
+    ]);
+
+    expect(attributes).toEqual({
+      'http.response_transfer_size': 0,
+      'http.request.redirect_start': 100,
+      'http.response.start': 200,
+      'http.response.status_code': 200,
+      'http.response_delivery_type': 'cache',
+      'resource.render_blocking_status': 'non-blocking',
+    });
+  });
+
+  it("doesn't set other attributes", () => {
+    const attributes: SpanAttributes = {};
+
+    const entry = mockPerformanceResourceTiming({
+      transferSize: 0,
+      deliveryType: 'cache',
+      renderBlockingStatus: 'non-blocking',
+    });
+
+    _setResourceRequestAttributes(entry, attributes, [['transferSize', 'http.response_transfer_size']]);
+
+    expect(attributes).toEqual({
+      'http.response_transfer_size': 0,
+    });
+  });
+
+  it("doesn't set non-primitive or undefined values", () => {
+    const attributes: SpanAttributes = {};
+
+    const entry = mockPerformanceResourceTiming({
+      transferSize: undefined,
+      // @ts-expect-error null is invalid but let's test it anyway
+      deliveryType: null,
+      // @ts-expect-error object is invalid but let's test it anyway
+      renderBlockingStatus: { blocking: 'non-blocking' },
+    });
+
+    _setResourceRequestAttributes(entry, attributes, [
+      ['transferSize', 'http.response_transfer_size'],
+      ['deliveryType', 'http.response_delivery_type'],
+      ['renderBlockingStatus', 'resource.render_blocking_status'],
+    ]);
+
+    expect(attributes).toEqual({});
   });
 });
 

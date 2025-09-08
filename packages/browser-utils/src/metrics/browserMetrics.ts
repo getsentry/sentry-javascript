@@ -674,7 +674,7 @@ export function _addResourceSpans(
     attributes['network.protocol.version'] = version;
   }
 
-  setResourceRequestAttributes(entry, attributes, [
+  _setResourceRequestAttributes(entry, attributes, [
     // Resource request response status
     ['responseStatus', 'http.response.status_code'],
 
@@ -818,8 +818,8 @@ type ExperimentalResourceTimingProperty =
  * Assumes that all entry properties might be undefined for browser-specific differences.
  * Only accepts string and number values for now and also sets 0-values.
  */
-function setResourceRequestAttributes(
-  entry: Partial<PerformanceResourceTiming> & Partial<Record<ExperimentalResourceTimingProperty, number>>,
+export function _setResourceRequestAttributes(
+  entry: Partial<PerformanceResourceTiming> & Partial<Record<ExperimentalResourceTimingProperty, number | string>>,
   attributes: SpanAttributes,
   properties: [keyof PerformanceResourceTiming | ExperimentalResourceTimingProperty, string][],
 ): void {
