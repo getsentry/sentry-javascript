@@ -675,8 +675,8 @@ export function _addResourceSpans(
   }
 
   setResourceRequestAttributes(entry, attributes, [
-    // https://developer.mozilla.org/en-US/docs/Web/API/PerformanceResourceTiming/responseStatus
-    ['responseStatus', 'http.request.response_status'],
+    // Resource request response status
+    ['responseStatus', 'http.response.status_code'],
 
     // Timing attributes (request/response lifecycle)
     // https://developer.mozilla.org/en-US/docs/Web/API/PerformanceResourceTiming#timestamps
@@ -695,12 +695,13 @@ export function _addResourceSpans(
     ['connectEnd', 'http.request.connect_end'],
 
     ['requestStart', 'http.request.request_start'],
+
     ['firstInterimResponseStart', 'http.response.first_interim_response_start'],
     ['finalResponseHeadersStart', 'http.response.final_response_headers_start'],
 
-    // responseStart can also be interpreted as TTFB for resource requests: https://web.dev/articles/ttfb
-    ['responseStart', 'http.response.response_start'],
-    ['responseEnd', 'http.response.response_end'],
+    // ResponseStart can also be interpreted as TTFB for resource requests: https://web.dev/articles/ttfb
+    ['responseStart', 'http.response.start'],
+    ['responseEnd', 'http.response.end'],
 
     // Size attributes:
     // https://developer.mozilla.org/en-US/docs/Web/API/PerformanceResourceTiming/transferSize
