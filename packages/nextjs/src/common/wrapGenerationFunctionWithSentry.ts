@@ -22,7 +22,7 @@ import {
 import type { GenerationFunctionContext } from '../common/types';
 import { isNotFoundNavigationError, isRedirectNavigationError } from './nextNavigationErrorUtils';
 import { TRANSACTION_ATTR_SENTRY_TRACE_BACKFILL } from './span-attributes-with-logic-attached';
-import { addHeadersAsAttributes } from './utils/headersToAttributes';
+import { addHeadersAsAttributes } from './utils/addHeadersAsAttributes';
 import { commonObjectToIsolationScope, commonObjectToPropagationContext } from './utils/tracingUtils';
 import { getSanitizedRequestUrl } from './utils/urls';
 import { maybeExtractSynchronousParamsAndSearchParams } from './utils/wrapperUtils';

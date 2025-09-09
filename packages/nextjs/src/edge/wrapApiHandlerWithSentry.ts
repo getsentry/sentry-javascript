@@ -13,7 +13,7 @@ import {
   winterCGRequestToRequestData,
   withIsolationScope,
 } from '@sentry/core';
-import { addHeadersAsAttributes } from '../common/utils/headersToAttributes';
+import { addHeadersAsAttributes } from '../common/utils/addHeadersAsAttributes';
 import { flushSafelyWithTimeout } from '../common/utils/responseEnd';
 import type { EdgeRouteHandler } from './types';
 

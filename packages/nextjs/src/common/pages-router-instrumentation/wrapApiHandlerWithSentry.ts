@@ -15,7 +15,7 @@ import {
 } from '@sentry/core';
 import type { NextApiRequest } from 'next';
 import type { AugmentedNextApiResponse, NextApiHandler } from '../types';
-import { addHeadersAsAttributes } from '../utils/headersToAttributes';
+import { addHeadersAsAttributes } from '../utils/addHeadersAsAttributes';
 import { flushSafelyWithTimeout } from '../utils/responseEnd';
 import { dropNextjsRootContext, escapeNextjsTracing } from '../utils/tracingUtils';
 

@@ -19,7 +19,7 @@ import {
 } from '@sentry/core';
 import { isNotFoundNavigationError, isRedirectNavigationError } from './nextNavigationErrorUtils';
 import type { RouteHandlerContext } from './types';
-import { addHeadersAsAttributes } from './utils/headersToAttributes';
+import { addHeadersAsAttributes } from './utils/addHeadersAsAttributes';
 import { flushSafelyWithTimeout } from './utils/responseEnd';
 import { commonObjectToIsolationScope } from './utils/tracingUtils';
 

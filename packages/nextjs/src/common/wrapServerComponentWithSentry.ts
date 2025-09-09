@@ -24,7 +24,7 @@ import { isNotFoundNavigationError, isRedirectNavigationError } from '../common/
 import type { ServerComponentContext } from '../common/types';
 import { flushSafelyWithTimeout } from '../common/utils/responseEnd';
 import { TRANSACTION_ATTR_SENTRY_TRACE_BACKFILL } from './span-attributes-with-logic-attached';
-import { addHeadersAsAttributes } from './utils/headersToAttributes';
+import { addHeadersAsAttributes } from './utils/addHeadersAsAttributes';
 import { commonObjectToIsolationScope, commonObjectToPropagationContext } from './utils/tracingUtils';
 import { getSanitizedRequestUrl } from './utils/urls';
 import { maybeExtractSynchronousParamsAndSearchParams } from './utils/wrapperUtils';
