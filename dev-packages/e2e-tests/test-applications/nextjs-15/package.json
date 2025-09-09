@@ -6,7 +6,7 @@
     "build": "next build > .tmp_build_stdout 2> .tmp_build_stderr || (cat .tmp_build_stdout && cat .tmp_build_stderr && exit 1)",
     "clean": "npx rimraf node_modules pnpm-lock.yaml .tmp_dev_server_logs",
     "test:prod": "TEST_ENV=production playwright test",
-    "test:prod-turbo": "TEST_ENV=production-turbo playwright test",
+    "test:prod-turbo": "TEST_ENV=prod-turbopack playwright test",
     "test:dev": "TEST_ENV=development playwright test",
     "test:dev-turbo": "TEST_ENV=dev-turbopack playwright test",
     "test:build": "pnpm install && pnpm build",
