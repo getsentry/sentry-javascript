@@ -8,8 +8,6 @@
     "test:prod": "TEST_ENV=production playwright test",
     "test:dev": "TEST_ENV=development playwright test",
     "test:build": "pnpm install && pnpm build",
-    "test:build-canary": "pnpm install && pnpm add next@canary && pnpm add react@beta && pnpm add react-dom@beta && pnpm build",
-    "test:build-latest": "pnpm install && pnpm add next@latest && pnpm build",
     "test:assert": "pnpm test:prod && pnpm test:dev"
   },
   "dependencies": {
