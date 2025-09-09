@@ -68,6 +68,8 @@ export {
   disableAnrDetectionForCallback,
   consoleIntegration,
   httpIntegration,
+  httpServerIntegration,
+  httpServerSpansIntegration,
   nativeNodeFetchIntegration,
   onUncaughtExceptionIntegration,
   onUnhandledRejectionIntegration,
