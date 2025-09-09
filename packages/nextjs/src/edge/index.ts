@@ -96,7 +96,7 @@ export function init(options: VercelEdgeOptions = {}): void {
   });
 
   try {
-    if (isTurbopack) {
+    if (isTurbopack()) {
       getGlobalScope().setTag('turbopack', true);
     }
   } catch {

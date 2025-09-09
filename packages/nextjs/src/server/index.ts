@@ -369,7 +369,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
   }
 
   try {
-    if (isTurbopack) {
+    if (isTurbopack()) {
       getGlobalScope().setTag('turbopack', true);
     }
   } catch {

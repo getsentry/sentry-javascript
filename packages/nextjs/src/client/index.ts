@@ -78,7 +78,7 @@ export function init(options: BrowserOptions): Client | undefined {
   }
 
   try {
-    if (isTurbopack) {
+    if (isTurbopack()) {
       getGlobalScope().setTag('turbopack', true);
     }
   } catch {
