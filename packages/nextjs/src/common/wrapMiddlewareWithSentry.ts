@@ -13,6 +13,7 @@ import {
   winterCGRequestToRequestData,
   withIsolationScope,
 } from '@sentry/core';
+import { addHeadersAsAttributes } from '../common/utils/addHeadersAsAttributes';
 import { flushSafelyWithTimeout } from '../common/utils/responseEnd';
 import type { EdgeRouteHandler } from '../edge/types';
 
@@ -59,6 +60,7 @@ export function wrapMiddlewareWithSentry<H extends EdgeRouteHandler>(
 
         let spanName: string;
         let spanSource: TransactionSource;
+        let headerAttributes: Record<string, string> = {};
 
         if (req instanceof Request) {
           isolationScope.setSDKProcessingMetadata({
@@ -66,6 +68,8 @@ export function wrapMiddlewareWithSentry<H extends EdgeRouteHandler>(
           });
           spanName = `middleware ${req.method} ${new URL(req.url).pathname}`;
           spanSource = 'url';
+
+          headerAttributes = addHeadersAsAttributes(req.headers);
         } else {
           spanName = 'middleware';
           spanSource = 'component';
@@ -84,6 +88,7 @@ export function wrapMiddlewareWithSentry<H extends EdgeRouteHandler>(
           const rootSpan = getRootSpan(activeSpan);
           if (rootSpan) {
             setCapturedScopesOnSpan(rootSpan, currentScope, isolationScope);
+            rootSpan.setAttributes(headerAttributes);
           }
         }
 
@@ -94,6 +99,7 @@ export function wrapMiddlewareWithSentry<H extends EdgeRouteHandler>(
             attributes: {
               [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: spanSource,
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs.wrapMiddlewareWithSentry',
+              ...headerAttributes,
             },
           },
           () => {
