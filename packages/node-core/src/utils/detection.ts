@@ -1,4 +1,5 @@
 import { consoleSandbox } from '@sentry/core';
+import { NODE_MAJOR, NODE_MINOR } from '../nodeVersion';
 
 /** Detect CommonJS. */
 export function isCjs(): boolean {
@@ -19,8 +20,7 @@ export function supportsEsmLoaderHooks(): boolean {
     return false;
   }
 
-  const [nodeMajor = 0, nodeMinor = 0] = process.versions.node.split('.').map(Number);
-  if (nodeMajor >= 21 || (nodeMajor === 20 && nodeMinor >= 6) || (nodeMajor === 18 && nodeMinor >= 19)) {
+  if (NODE_MAJOR >= 21 || (NODE_MAJOR === 20 && NODE_MINOR >= 6) || (NODE_MAJOR === 18 && NODE_MINOR >= 19)) {
     return true;
   }
 
