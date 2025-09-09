@@ -1,11 +1,5 @@
 /**
  * This is a copy of the Vercel AI integration from the cloudflare SDK.
- *
- * The only difference is that it does not use `@opentelemetry/instrumentation`
- * because Deno Workers do not support it in the same way.
- *
- * Therefore, we cannot automatically patch setting `experimental_telemetry: { isEnabled: true }`
- * and users have to manually set this to get spans.
  */
 
 import type { IntegrationFn } from '@sentry/core';

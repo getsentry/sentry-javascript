@@ -1,4 +1,4 @@
-import { assertEquals } from 'https://deno.land/std@0.212.0/assert/mod.ts';
+import { assertEquals, assertNotEquals } from 'https://deno.land/std@0.212.0/assert/mod.ts';
 import { context, propagation, trace } from 'npm:@opentelemetry/api@1';
 import type { DenoClient } from '../build/esm/index.js';
 import { getCurrentScope, getGlobalScope, getIsolationScope, init, startSpan } from '../build/esm/index.js';
@@ -142,4 +142,84 @@ Deno.test('opentelemetry spans should interop with Sentry spans', async () => {
   assertEquals(otelSpan?.description, 'otel span');
   assertEquals(otelSpan?.data?.['sentry.deno_tracer'], true);
   assertEquals(otelSpan?.data?.['sentry.origin'], 'manual');
+});
+
+Deno.test('should be compatible with native Deno OpenTelemetry', async () => {
+  resetSdk();
+  
+  const providerBefore = trace.getTracerProvider();
+  
+  const client = init({
+    dsn: 'https://username@domain/123',
+    tracesSampleRate: 1,
+    beforeSendTransaction: () => null,
+  }) as DenoClient;
+  
+  const providerAfter = trace.getTracerProvider();
+  assertEquals(providerBefore, providerAfter);
+  
+  const tracer = trace.getTracer('compat-test');
+  const span = tracer.startSpan('test-span');
+  span.setAttributes({ 'test.compatibility': true });
+  span.end();
+  
+  tracer.startActiveSpan('active-span', (activeSpan) => {
+    activeSpan.end();
+  });
+  
+  const otelSpan = tracer.startSpan('post-init-span');
+  otelSpan.end();
+  
+  startSpan({ name: 'sentry-span' }, () => {
+    const nestedOtelSpan = tracer.startSpan('nested-otel-span');
+    nestedOtelSpan.end();
+  });
+  
+  await client.flush();
+});
+
+Deno.test('should verify native Deno OpenTelemetry works when enabled', async () => {
+  resetSdk();
+  
+  // Set environment variable to enable native OTel
+  const originalValue = Deno.env.get('OTEL_DENO');
+  Deno.env.set('OTEL_DENO', 'true');
+  
+  try {
+    const client = init({
+      dsn: 'https://username@domain/123',
+      tracesSampleRate: 1,
+      beforeSendTransaction: () => null,
+    }) as DenoClient;
+    
+    const provider = trace.getTracerProvider();
+    const tracer = trace.getTracer('native-verification');
+    const span = tracer.startSpan('verification-span');
+    
+    if (provider.constructor.name === 'Function') {
+      // Native OTel is active
+      assertNotEquals(span.constructor.name, 'NonRecordingSpan');
+      
+      let contextWorks = false;
+      tracer.startActiveSpan('parent-span', (parentSpan) => {
+        if (trace.getActiveSpan() === parentSpan) {
+          contextWorks = true;
+        }
+        parentSpan.end();
+      });
+      assertEquals(contextWorks, true);
+    }
+    
+    span.setAttributes({ 'test.native_otel': true });
+    span.end();
+    
+    await client.flush();
+  } finally {
+    // Restore original environment
+    if (originalValue === undefined) {
+      Deno.env.delete('OTEL_DENO');
+    } else {
+      Deno.env.set('OTEL_DENO', originalValue);
+    }
+  }
 });
