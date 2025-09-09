@@ -21,7 +21,10 @@ test('Event emitter', async () => {
         type: 'Error',
         value: 'Test error from event handler',
         stacktrace: expect.any(Object),
-        mechanism: expect.any(Object),
+        mechanism: {
+          handled: false,
+          type: 'auto.event.nestjs',
+        },
       },
     ],
   });
