@@ -675,7 +675,7 @@ export function _addResourceSpans(
   }
 
   _setResourceRequestAttributes(entry, attributes, [
-    // Resource request response status
+    // https://developer.mozilla.org/en-US/docs/Web/API/PerformanceResourceTiming/responseStatus
     ['responseStatus', 'http.response.status_code'],
 
     // Timing attributes (request/response lifecycle)
@@ -809,8 +809,10 @@ type ExperimentalResourceTimingProperty =
   | 'finalResponseHeadersStart'
   | 'renderBlockingStatus'
   | 'deliveryType'
-  // for some reason, TS during build things this is not a property of PerformanceResourceTiming
-  // while it actually is. Hence, we're adding it here
+  // For some reason, TS during build, errors on `responseStatus` not being a property of
+  // PerformanceResourceTiming while it actually is. Hence, we're adding it here.
+  // Perhaps because response status is not yet available in Webkit/Safari.
+  // https://developer.mozilla.org/en-US/docs/Web/API/PerformanceResourceTiming/responseStatus
   | 'responseStatus';
 
 /**
