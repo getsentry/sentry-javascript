@@ -137,7 +137,7 @@ export const setupKoaErrorHandler = (app: { use: (arg0: (ctx: any, next: any) =>
       captureException(error, {
         mechanism: {
           handled: false,
-          type: 'koa',
+          type: 'auto.middleware.koa',
         },
       });
       throw error;

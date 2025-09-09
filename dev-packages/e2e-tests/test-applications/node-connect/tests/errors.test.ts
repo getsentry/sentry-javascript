@@ -26,4 +26,9 @@ test('Sends correct error event', async ({ baseURL }) => {
     trace_id: expect.stringMatching(/[a-f0-9]{32}/),
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
   });
+
+  expect(errorEvent.mechanism).toEqual({
+    type: 'auto.middleware.connect',
+    handled: false,
+  });
 });

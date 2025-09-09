@@ -27,4 +27,9 @@ test('Sends correct error event', async ({ baseURL }) => {
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
     parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
   });
+
+  expect(errorEvent.mechanism).toEqual({
+    type: 'auto.middleware.koa',
+    handled: false,
+  });
 });

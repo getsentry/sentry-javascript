@@ -51,7 +51,7 @@ function connectErrorMiddleware(err: any, req: any, res: any, next: any): void {
   captureException(err, {
     mechanism: {
       handled: false,
-      type: 'connect',
+      type: 'auto.middleware.connect',
     },
   });
   next(err);
