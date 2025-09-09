@@ -22,6 +22,7 @@ import {
   addTtfbInstrumentationHandler,
 } from './instrument';
 import { trackLcpAsStandaloneSpan } from './lcp';
+import { resourceTimingToSpanAttributes } from './resourceTiming';
 import {
   extractNetworkProtocol,
   getBrowserPerformanceAPI,
@@ -666,47 +667,10 @@ export function _addResourceSpans(
 
   attributes['url.same_origin'] = resourceUrl.includes(WINDOW.location.origin);
 
-  // Checking for only `undefined` and `null` is intentional because it's
-  // valid for `nextHopProtocol` to be an empty string.
-  if (entry.nextHopProtocol != null) {
-    const { name, version } = extractNetworkProtocol(entry.nextHopProtocol);
-    attributes['network.protocol.name'] = name;
-    attributes['network.protocol.version'] = version;
-  }
-
   _setResourceRequestAttributes(entry, attributes, [
     // https://developer.mozilla.org/en-US/docs/Web/API/PerformanceResourceTiming/responseStatus
     ['responseStatus', 'http.response.status_code'],
 
-    // Timing attributes (request/response lifecycle)
-    // https://developer.mozilla.org/en-US/docs/Web/API/PerformanceResourceTiming#timestamps
-    ['redirectStart', 'http.request.redirect_start'],
-    ['redirectEnd', 'http.request.redirect_end'],
-
-    ['workerStart', 'http.request.worker_start'],
-
-    ['fetchStart', 'http.request.fetch_start'],
-
-    ['domainLookupStart', 'http.request.domain_lookup_start'],
-    ['domainLookupEnd', 'http.request.domain_lookup_end'],
-
-    ['connectStart', 'http.request.connect_start'],
-    ['secureConnectionStart', 'http.request.secure_connection_start'],
-    ['connectEnd', 'http.request.connect_end'],
-
-    ['requestStart', 'http.request.request_start'],
-
-    ['firstInterimResponseStart', 'http.response.first_interim_response_start'],
-    ['finalResponseHeadersStart', 'http.response.final_response_headers_start'],
-
-    // ResponseStart can also be interpreted as TTFB for resource requests: https://web.dev/articles/ttfb
-    ['responseStart', 'http.response.start'],
-    ['responseEnd', 'http.response.end'],
-
-    // Size attributes:
-    // https://developer.mozilla.org/en-US/docs/Web/API/PerformanceResourceTiming/transferSize
-    // https://developer.mozilla.org/en-US/docs/Web/API/PerformanceResourceTiming/encodedBodySize
-    // https://developer.mozilla.org/en-US/docs/Web/API/PerformanceResourceTiming/decodedBodySize
     ['transferSize', 'http.response_transfer_size'],
     ['encodedBodySize', 'http.response_content_length'],
     ['decodedBodySize', 'http.decoded_response_content_length'],
@@ -718,13 +682,15 @@ export function _addResourceSpans(
     ['deliveryType', 'http.response_delivery_type'],
   ]);
 
+  const attributesWithResourceTiming: SpanAttributes = { ...attributes, ...resourceTimingToSpanAttributes(entry) };
+
   const startTimestamp = timeOrigin + startTime;
   const endTimestamp = startTimestamp + duration;
 
   startAndEndSpan(span, startTimestamp, endTimestamp, {
     name: resourceUrl.replace(WINDOW.location.origin, ''),
     op,
-    attributes,
+    attributes: attributesWithResourceTiming,
   });
 }
 
