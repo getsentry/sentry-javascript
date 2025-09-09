@@ -18,10 +18,12 @@ import {
   getClient,
   getCurrentScope,
   getTraceMetaTags,
+  httpHeadersToSpanAttributes,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setHttpStatus,
   startSpan,
+  winterCGHeadersToDict,
   withIsolationScope,
 } from '@sentry/node';
 import type { APIContext, MiddlewareResponseHandler, RoutePart } from 'astro';
@@ -220,6 +222,10 @@ async function instrumentRequestStartHttpServerSpan(
             // This is here for backwards compatibility, we used to set this here before
             method,
             url: stripUrlQueryAndFragment(ctx.url.href),
+            ...httpHeadersToSpanAttributes(
+              winterCGHeadersToDict(request.headers),
+              getClient()?.getOptions().sendDefaultPii ?? false,
+            ),
           };
 
           if (parametrizedRoute) {

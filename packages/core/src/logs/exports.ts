@@ -4,6 +4,7 @@ import { _getTraceInfoFromScope } from '../client';
 import { getClient, getCurrentScope, getGlobalScope, getIsolationScope } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
 import type { Scope, ScopeData } from '../scope';
+import type { Integration } from '../types-hoist/integration';
 import type { Log, SerializedLog, SerializedLogAttributeValue } from '../types-hoist/log';
 import { mergeScopeData } from '../utils/applyScopeDataToEvent';
 import { consoleSandbox, debug } from '../utils/debug-logger';
@@ -149,6 +150,9 @@ export function _INTERNAL_captureLog(
   const { name, version } = client.getSdkMetadata()?.sdk ?? {};
   setLogAttribute(processedLogAttributes, 'sentry.sdk.name', name);
   setLogAttribute(processedLogAttributes, 'sentry.sdk.version', version);
+
+  const replay = client.getIntegrationByName<Integration & { getReplayId: () => string }>('Replay');
+  setLogAttribute(processedLogAttributes, 'sentry.replay_id', replay?.getReplayId());
 
   const beforeLogMessage = beforeLog.message;
   if (isParameterizedString(beforeLogMessage)) {
