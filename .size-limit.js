@@ -233,7 +233,11 @@ module.exports = [
     import: createImport('init'),
     ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
     gzip: true,
+<<<<<<< HEAD
     limit: '154 KB',
+=======
+    limit: '156 KB',
+>>>>>>> 4d4bd30857 (Increase size limits for node and aws-serverless)
   },
   {
     name: '@sentry/node - without tracing',
@@ -263,7 +267,7 @@ module.exports = [
     import: createImport('init'),
     ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
     gzip: true,
-    limit: '107 KB',
+    limit: '111 KB',
   },
 ];
 
