@@ -14,7 +14,7 @@ const getStartCommand = () => {
     return 'pnpm next dev -p 3030 2>&1 | tee .tmp_dev_server_logs';
   }
 
-  if (testEnv === 'production') {
+  if (testEnv === 'production' || testEnv === 'production-turbo') {
     return 'pnpm next start -p 3030';
   }
 
