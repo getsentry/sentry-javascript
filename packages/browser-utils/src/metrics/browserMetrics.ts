@@ -765,8 +765,6 @@ function _setWebVitalAttributes(span: Span, options: AddPerformanceEntriesOption
 }
 
 type ExperimentalResourceTimingProperty =
-  | 'firstInterimResponseStart'
-  | 'finalResponseHeadersStart'
   | 'renderBlockingStatus'
   | 'deliveryType'
   // For some reason, TS during build, errors on `responseStatus` not being a property of
