@@ -4,9 +4,9 @@
   "version": "0.0.1",
   "scripts": {
     "dev": "astro dev --force",
-    "start": "astro dev",
     "build": "astro check && astro build",
     "preview": "astro preview",
+    "start": "node ./dist/server/entry.mjs",
     "astro": "astro",
     "test:build": "pnpm install && pnpm build",
     "test:assert": "TEST_ENV=production playwright test"

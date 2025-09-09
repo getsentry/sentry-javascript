@@ -75,6 +75,11 @@ test('Sends exceptions to Sentry on error in async cron job', async ({ baseURL }
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
   });
 
+  expect(errorEvent.exception?.values?.[0]?.mechanism).toEqual({
+    handled: false,
+    type: 'auto.cron.nestjs.async',
+  });
+
   // kill cron so tests don't get stuck
   await fetch(`${baseURL}/kill-test-cron/test-async-cron-error`);
 });
@@ -90,6 +95,11 @@ test('Sends exceptions to Sentry on error in sync cron job', async ({ baseURL })
   expect(errorEvent.contexts?.trace).toEqual({
     trace_id: expect.stringMatching(/[a-f0-9]{32}/),
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
+  });
+
+  expect(errorEvent.exception?.values?.[0]?.mechanism).toEqual({
+    handled: false,
+    type: 'auto.cron.nestjs',
   });
 
   // kill cron so tests don't get stuck
