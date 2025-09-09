@@ -64,15 +64,15 @@ export type AnthropicAiResponse = SuccessfulResponse | MessageError;
  */
 export interface AnthropicAiClient {
   messages?: {
-    create: (...args: unknown[]) => Promise<AnthropicAiResponse>;
-    countTokens: (...args: unknown[]) => Promise<AnthropicAiResponse>;
+    create: (...args: unknown[]) => Promise<unknown>;
+    countTokens: (...args: unknown[]) => Promise<unknown>;
   };
   models?: {
-    list: (...args: unknown[]) => Promise<AnthropicAiResponse>;
-    get: (...args: unknown[]) => Promise<AnthropicAiResponse>;
+    list: (...args: unknown[]) => Promise<unknown>;
+    get: (...args: unknown[]) => Promise<unknown>;
   };
   completions?: {
-    create: (...args: unknown[]) => Promise<AnthropicAiResponse>;
+    create: (...args: unknown[]) => Promise<unknown>;
   };
 }
 
