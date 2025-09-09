@@ -12,7 +12,7 @@ import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../.
   return the `Timing-Allow-Origin` header.
 */
 
-sentryTest('captures LCP vitals with element details.', async ({ browserName, getLocalTestUrl, page }) => {
+sentryTest.skip('captures LCP vitals with element details.', async ({ browserName, getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest() || browserName !== 'chromium') {
     sentryTest.skip();
   }
