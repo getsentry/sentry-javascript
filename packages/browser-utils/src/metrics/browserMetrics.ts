@@ -23,13 +23,7 @@ import {
 } from './instrument';
 import { trackLcpAsStandaloneSpan } from './lcp';
 import { resourceTimingToSpanAttributes } from './resourceTiming';
-import {
-  extractNetworkProtocol,
-  getBrowserPerformanceAPI,
-  isMeasurementValue,
-  msToSec,
-  startAndEndSpan,
-} from './utils';
+import { getBrowserPerformanceAPI, isMeasurementValue, msToSec, startAndEndSpan } from './utils';
 import { getActivationStart } from './web-vitals/lib/getActivationStart';
 import { getNavigationEntry } from './web-vitals/lib/getNavigationEntry';
 import { getVisibilityWatcher } from './web-vitals/lib/getVisibilityWatcher';
