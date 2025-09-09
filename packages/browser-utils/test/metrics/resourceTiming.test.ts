@@ -70,10 +70,10 @@ describe('resourceTimingToSpanAttributes', () => {
       const result = resourceTimingToSpanAttributes(mockResourceTiming);
 
       expect(extractNetworkProtocolSpy).toHaveBeenCalledWith('h2');
-      expect(result).toEqual([
-        ['network.protocol.version', '2.0'],
-        ['network.protocol.name', 'http'],
-      ]);
+      expect(result).toEqual({
+        'network.protocol.version': '2.0',
+        'network.protocol.name': 'http',
+      });
 
       // Restore global performance
       global.performance = originalPerformance;
@@ -101,10 +101,10 @@ describe('resourceTimingToSpanAttributes', () => {
       const result = resourceTimingToSpanAttributes(mockResourceTiming);
 
       expect(extractNetworkProtocolSpy).toHaveBeenCalledWith('http/1.1');
-      expect(result).toEqual([
-        ['network.protocol.version', '1.1'],
-        ['network.protocol.name', 'http'],
-      ]);
+      expect(result).toEqual({
+        'network.protocol.version': '1.1',
+        'network.protocol.name': 'http',
+      });
 
       // Restore global performance
       global.performance = originalPerformance;
@@ -132,10 +132,10 @@ describe('resourceTimingToSpanAttributes', () => {
       const result = resourceTimingToSpanAttributes(mockResourceTiming);
 
       expect(extractNetworkProtocolSpy).toHaveBeenCalledWith('');
-      expect(result).toEqual([
-        ['network.protocol.version', 'unknown'],
-        ['network.protocol.name', ''],
-      ]);
+      expect(result).toEqual({
+        'network.protocol.version': 'unknown',
+        'network.protocol.name': '',
+      });
 
       // Restore global performance
       global.performance = originalPerformance;
@@ -158,7 +158,7 @@ describe('resourceTimingToSpanAttributes', () => {
       const result = resourceTimingToSpanAttributes(mockResourceTiming);
 
       expect(extractNetworkProtocolSpy).not.toHaveBeenCalled();
-      expect(result).toEqual([]);
+      expect(result).toEqual({});
 
       // Restore global performance
       global.performance = originalPerformance;
@@ -187,10 +187,10 @@ describe('resourceTimingToSpanAttributes', () => {
 
       const result = resourceTimingToSpanAttributes(mockResourceTiming);
 
-      expect(result).toEqual([
-        ['network.protocol.version', '2.0'],
-        ['network.protocol.name', 'http'],
-      ]);
+      expect(result).toEqual({
+        'network.protocol.version': '2.0',
+        'network.protocol.name': 'http',
+      });
 
       // Restore global performance
       global.performance = originalPerformance;
@@ -217,10 +217,10 @@ describe('resourceTimingToSpanAttributes', () => {
 
       const result = resourceTimingToSpanAttributes(mockResourceTiming);
 
-      expect(result).toEqual([
-        ['network.protocol.version', 'unknown'],
-        ['network.protocol.name', ''],
-      ]);
+      expect(result).toEqual({
+        'network.protocol.version': 'unknown',
+        'network.protocol.name': '',
+      });
 
       // Restore global performance
       global.performance = originalPerformance;
@@ -256,23 +256,23 @@ describe('resourceTimingToSpanAttributes', () => {
 
       const result = resourceTimingToSpanAttributes(mockResourceTiming);
 
-      expect(result).toEqual([
-        ['network.protocol.version', '2.0'],
-        ['network.protocol.name', 'http'],
-        ['http.request.redirect_start', 1000.01], // (1000000 + 10) / 1000
-        ['http.request.redirect_end', 1000.02], // (1000000 + 20) / 1000
-        ['http.request.worker_start', 1000.022], // (1000000 + 22) / 1000
-        ['http.request.fetch_start', 1000.025], // (1000000 + 25) / 1000
-        ['http.request.domain_lookup_start', 1000.03], // (1000000 + 30) / 1000
-        ['http.request.domain_lookup_end', 1000.035], // (1000000 + 35) / 1000
-        ['http.request.connect_start', 1000.04], // (1000000 + 40) / 1000
-        ['http.request.secure_connection_start', 1000.045], // (1000000 + 45) / 1000
-        ['http.request.connection_end', 1000.05], // (1000000 + 50) / 1000
-        ['http.request.request_start', 1000.055], // (1000000 + 55) / 1000
-        ['http.request.response_start', 1000.15], // (1000000 + 150) / 1000
-        ['http.request.response_end', 1000.2], // (1000000 + 200) / 1000
-        ['http.request.time_to_first_byte', 0.15], // 150 / 1000
-      ]);
+      expect(result).toEqual({
+        'network.protocol.version': '2.0',
+        'network.protocol.name': 'http',
+        'http.request.redirect_start': 1000.01, // (1000000 + 10) / 1000
+        'http.request.redirect_end': 1000.02, // (1000000 + 20) / 1000
+        'http.request.worker_start': 1000.022, // (1000000 + 22) / 1000
+        'http.request.fetch_start': 1000.025, // (1000000 + 25) / 1000
+        'http.request.domain_lookup_start': 1000.03, // (1000000 + 30) / 1000
+        'http.request.domain_lookup_end': 1000.035, // (1000000 + 35) / 1000
+        'http.request.connect_start': 1000.04, // (1000000 + 40) / 1000
+        'http.request.secure_connection_start': 1000.045, // (1000000 + 45) / 1000
+        'http.request.connection_end': 1000.05, // (1000000 + 50) / 1000
+        'http.request.request_start': 1000.055, // (1000000 + 55) / 1000
+        'http.request.response_start': 1000.15, // (1000000 + 150) / 1000
+        'http.request.response_end': 1000.2, // (1000000 + 200) / 1000
+        'http.request.time_to_first_byte': 0.15, // 150 / 1000
+      });
     });
 
     it('handles zero timing values', () => {
@@ -297,23 +297,23 @@ describe('resourceTimingToSpanAttributes', () => {
 
       const result = resourceTimingToSpanAttributes(mockResourceTiming);
 
-      expect(result).toEqual([
-        ['network.protocol.version', 'unknown'],
-        ['network.protocol.name', ''],
-        ['http.request.redirect_start', 1000], // (1000000 + 0) / 1000
-        ['http.request.redirect_end', 1000.02],
-        ['http.request.worker_start', 1000],
-        ['http.request.fetch_start', 1000],
-        ['http.request.domain_lookup_start', 1000],
-        ['http.request.domain_lookup_end', 1000],
-        ['http.request.connect_start', 1000],
-        ['http.request.secure_connection_start', 1000],
-        ['http.request.connection_end', 1000],
-        ['http.request.request_start', 1000],
-        ['http.request.response_start', 1000],
-        ['http.request.response_end', 1000],
-        ['http.request.time_to_first_byte', 0],
-      ]);
+      expect(result).toEqual({
+        'network.protocol.version': 'unknown',
+        'network.protocol.name': '',
+        'http.request.redirect_start': 1000, // (1000000 + 0) / 1000
+        'http.request.redirect_end': 1000.02,
+        'http.request.worker_start': 1000,
+        'http.request.fetch_start': 1000,
+        'http.request.domain_lookup_start': 1000,
+        'http.request.domain_lookup_end': 1000,
+        'http.request.connect_start': 1000,
+        'http.request.secure_connection_start': 1000,
+        'http.request.connection_end': 1000,
+        'http.request.request_start': 1000,
+        'http.request.response_start': 1000,
+        'http.request.response_end': 1000,
+        'http.request.time_to_first_byte': 0,
+      });
     });
 
     it('combines network protocol and timing attributes', () => {
@@ -338,23 +338,23 @@ describe('resourceTimingToSpanAttributes', () => {
 
       const result = resourceTimingToSpanAttributes(mockResourceTiming);
 
-      expect(result).toEqual([
-        ['network.protocol.version', '1.1'],
-        ['network.protocol.name', 'http'],
-        ['http.request.redirect_start', 1000.005],
-        ['http.request.redirect_end', 1000.02],
-        ['http.request.worker_start', 1000],
-        ['http.request.fetch_start', 1000.01],
-        ['http.request.domain_lookup_start', 1000.015],
-        ['http.request.domain_lookup_end', 1000.02],
-        ['http.request.connect_start', 1000.025],
-        ['http.request.secure_connection_start', 1000.03],
-        ['http.request.connection_end', 1000.035],
-        ['http.request.request_start', 1000.04],
-        ['http.request.response_start', 1000.08],
-        ['http.request.response_end', 1000.1],
-        ['http.request.time_to_first_byte', 0.08],
-      ]);
+      expect(result).toEqual({
+        'network.protocol.version': '1.1',
+        'network.protocol.name': 'http',
+        'http.request.redirect_start': 1000.005,
+        'http.request.redirect_end': 1000.02,
+        'http.request.worker_start': 1000,
+        'http.request.fetch_start': 1000.01,
+        'http.request.domain_lookup_start': 1000.015,
+        'http.request.domain_lookup_end': 1000.02,
+        'http.request.connect_start': 1000.025,
+        'http.request.secure_connection_start': 1000.03,
+        'http.request.connection_end': 1000.035,
+        'http.request.request_start': 1000.04,
+        'http.request.response_start': 1000.08,
+        'http.request.response_end': 1000.1,
+        'http.request.time_to_first_byte': 0.08,
+      });
     });
   });
 
@@ -385,10 +385,10 @@ describe('resourceTimingToSpanAttributes', () => {
       const result = resourceTimingToSpanAttributes(mockResourceTiming);
 
       // When browserPerformanceTimeOrigin returns null, function returns early with only network protocol attributes
-      expect(result).toEqual([
-        ['network.protocol.version', 'unknown'],
-        ['network.protocol.name', ''],
-      ]);
+      expect(result).toEqual({
+        'network.protocol.version': 'unknown',
+        'network.protocol.name': '',
+      });
     });
 
     it('uses performance.timeOrigin fallback in getAbsoluteTime when available', () => {
@@ -418,23 +418,23 @@ describe('resourceTimingToSpanAttributes', () => {
 
       const result = resourceTimingToSpanAttributes(mockResourceTiming);
 
-      expect(result).toEqual([
-        ['network.protocol.version', 'unknown'],
-        ['network.protocol.name', ''],
-        ['http.request.redirect_start', 500.02], // (500000 + 20) / 1000
-        ['http.request.redirect_end', 500.03], // (500000 + 30) / 1000
-        ['http.request.worker_start', 500.035], // (500000 + 35) / 1000
-        ['http.request.fetch_start', 500.04], // (500000 + 40) / 1000
-        ['http.request.domain_lookup_start', 500.06], // (500000 + 60) / 1000
-        ['http.request.domain_lookup_end', 500.08], // (500000 + 80) / 1000
-        ['http.request.connect_start', 500.1], // (500000 + 100) / 1000
-        ['http.request.secure_connection_start', 500.12], // (500000 + 120) / 1000
-        ['http.request.connection_end', 500.14], // (500000 + 140) / 1000
-        ['http.request.request_start', 500.16], // (500000 + 160) / 1000
-        ['http.request.response_start', 500.3], // (500000 + 300) / 1000
-        ['http.request.response_end', 500.4], // (500000 + 400) / 1000
-        ['http.request.time_to_first_byte', 0.3], // 300 / 1000
-      ]);
+      expect(result).toEqual({
+        'network.protocol.version': 'unknown',
+        'network.protocol.name': '',
+        'http.request.redirect_start': 500.02, // (500000 + 20) / 1000
+        'http.request.redirect_end': 500.03, // (500000 + 30) / 1000
+        'http.request.worker_start': 500.035, // (500000 + 35) / 1000
+        'http.request.fetch_start': 500.04, // (500000 + 40) / 1000
+        'http.request.domain_lookup_start': 500.06, // (500000 + 60) / 1000
+        'http.request.domain_lookup_end': 500.08, // (500000 + 80) / 1000
+        'http.request.connect_start': 500.1, // (500000 + 100) / 1000
+        'http.request.secure_connection_start': 500.12, // (500000 + 120) / 1000
+        'http.request.connection_end': 500.14, // (500000 + 140) / 1000
+        'http.request.request_start': 500.16, // (500000 + 160) / 1000
+        'http.request.response_start': 500.3, // (500000 + 300) / 1000
+        'http.request.response_end': 500.4, // (500000 + 400) / 1000
+        'http.request.time_to_first_byte': 0.3, // 300 / 1000
+      });
     });
 
     it('handles case when neither browserPerformanceTimeOrigin nor performance.timeOrigin is available', () => {
@@ -459,10 +459,10 @@ describe('resourceTimingToSpanAttributes', () => {
       const result = resourceTimingToSpanAttributes(mockResourceTiming);
 
       // When neither timing source is available, should return network protocol attributes for empty string
-      expect(result).toEqual([
-        ['network.protocol.version', 'unknown'],
-        ['network.protocol.name', ''],
-      ]);
+      expect(result).toEqual({
+        'network.protocol.version': 'unknown',
+        'network.protocol.name': '',
+      });
 
       // Restore global performance
       global.performance = originalPerformance;
@@ -495,23 +495,23 @@ describe('resourceTimingToSpanAttributes', () => {
 
       const result = resourceTimingToSpanAttributes(mockResourceTiming);
 
-      expect(result).toEqual([
-        ['network.protocol.version', 'unknown'],
-        ['network.protocol.name', ''],
-        ['http.request.redirect_start', 1000], // (1000000 + 0) / 1000
-        ['http.request.redirect_end', 1000.02],
-        ['http.request.worker_start', 1000],
-        ['http.request.fetch_start', 1000],
-        ['http.request.domain_lookup_start', 1000],
-        ['http.request.domain_lookup_end', 1000],
-        ['http.request.connect_start', 1000],
-        ['http.request.secure_connection_start', 1000],
-        ['http.request.connection_end', 1000],
-        ['http.request.request_start', 1000],
-        ['http.request.response_start', 1000],
-        ['http.request.response_end', 1000],
-        ['http.request.time_to_first_byte', 0],
-      ]);
+      expect(result).toEqual({
+        'network.protocol.version': 'unknown',
+        'network.protocol.name': '',
+        'http.request.redirect_start': 1000, // (1000000 + 0) / 1000
+        'http.request.redirect_end': 1000.02,
+        'http.request.worker_start': 1000,
+        'http.request.fetch_start': 1000,
+        'http.request.domain_lookup_start': 1000,
+        'http.request.domain_lookup_end': 1000,
+        'http.request.connect_start': 1000,
+        'http.request.secure_connection_start': 1000,
+        'http.request.connection_end': 1000,
+        'http.request.request_start': 1000,
+        'http.request.response_start': 1000,
+        'http.request.response_end': 1000,
+        'http.request.time_to_first_byte': 0,
+      });
     });
 
     it('handles very large timing values', () => {
@@ -538,23 +538,23 @@ describe('resourceTimingToSpanAttributes', () => {
 
       const result = resourceTimingToSpanAttributes(mockResourceTiming);
 
-      expect(result).toEqual([
-        ['network.protocol.version', 'unknown'],
-        ['network.protocol.name', ''],
-        ['http.request.redirect_start', 1999.999], // (1000000 + 999999) / 1000
-        ['http.request.redirect_end', 1000.02],
-        ['http.request.worker_start', 1000],
-        ['http.request.fetch_start', 1999.999],
-        ['http.request.domain_lookup_start', 1999.999],
-        ['http.request.domain_lookup_end', 1999.999],
-        ['http.request.connect_start', 1999.999],
-        ['http.request.secure_connection_start', 1999.999],
-        ['http.request.connection_end', 1999.999],
-        ['http.request.request_start', 1999.999],
-        ['http.request.response_start', 1999.999],
-        ['http.request.response_end', 1999.999],
-        ['http.request.time_to_first_byte', 999.999],
-      ]);
+      expect(result).toEqual({
+        'network.protocol.version': 'unknown',
+        'network.protocol.name': '',
+        'http.request.redirect_start': 1999.999, // (1000000 + 999999) / 1000
+        'http.request.redirect_end': 1000.02,
+        'http.request.worker_start': 1000,
+        'http.request.fetch_start': 1999.999,
+        'http.request.domain_lookup_start': 1999.999,
+        'http.request.domain_lookup_end': 1999.999,
+        'http.request.connect_start': 1999.999,
+        'http.request.secure_connection_start': 1999.999,
+        'http.request.connection_end': 1999.999,
+        'http.request.request_start': 1999.999,
+        'http.request.response_start': 1999.999,
+        'http.request.response_end': 1999.999,
+        'http.request.time_to_first_byte': 999.999,
+      });
     });
   });
 });

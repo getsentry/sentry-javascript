@@ -294,6 +294,19 @@ describe('_addResourceSpans', () => {
           ['url.same_origin']: true,
           ['network.protocol.name']: 'http',
           ['network.protocol.version']: '1.1',
+          'http.request.connect_start': expect.any(Number),
+          'http.request.connection_end': expect.any(Number),
+          'http.request.domain_lookup_end': expect.any(Number),
+          'http.request.domain_lookup_start': expect.any(Number),
+          'http.request.fetch_start': expect.any(Number),
+          'http.request.redirect_end': expect.any(Number),
+          'http.request.redirect_start': expect.any(Number),
+          'http.request.request_start': expect.any(Number),
+          'http.request.response_end': expect.any(Number),
+          'http.request.response_start': expect.any(Number),
+          'http.request.secure_connection_start': expect.any(Number),
+          'http.request.time_to_first_byte': 0,
+          'http.request.worker_start': expect.any(Number),
         },
       }),
     );
@@ -409,7 +422,7 @@ describe('_addResourceSpans', () => {
     expect(spans).toHaveLength(1);
     expect(spanToJSON(spans[0]!)).toEqual(
       expect.objectContaining({
-        data: {
+        data: expect.objectContaining({
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'resource.css',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
           ['http.decoded_response_content_length']: entry.decodedBodySize,
@@ -421,7 +434,7 @@ describe('_addResourceSpans', () => {
           ['url.same_origin']: true,
           ['network.protocol.name']: 'http',
           ['network.protocol.version']: '2',
-        },
+        }),
       }),
     );
   });
@@ -446,7 +459,7 @@ describe('_addResourceSpans', () => {
     expect(spans).toHaveLength(1);
     expect(spanToJSON(spans[0]!)).toEqual(
       expect.objectContaining({
-        data: {
+        data: expect.objectContaining({
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'resource.css',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
           'server.address': 'example.com',
@@ -454,7 +467,7 @@ describe('_addResourceSpans', () => {
           'url.scheme': 'https',
           ['network.protocol.name']: 'http',
           ['network.protocol.version']: '3',
-        },
+        }),
         description: '/assets/to/css',
         timestamp: 468,
         op: 'resource.css',
@@ -494,6 +507,19 @@ describe('_addResourceSpans', () => {
           'url.scheme': 'https',
           ['network.protocol.name']: 'http',
           ['network.protocol.version']: '3',
+          'http.request.connect_start': expect.any(Number),
+          'http.request.connection_end': expect.any(Number),
+          'http.request.domain_lookup_end': expect.any(Number),
+          'http.request.domain_lookup_start': expect.any(Number),
+          'http.request.fetch_start': expect.any(Number),
+          'http.request.redirect_end': expect.any(Number),
+          'http.request.redirect_start': expect.any(Number),
+          'http.request.request_start': expect.any(Number),
+          'http.request.response_end': expect.any(Number),
+          'http.request.response_start': expect.any(Number),
+          'http.request.secure_connection_start': expect.any(Number),
+          'http.request.time_to_first_byte': 0,
+          'http.request.worker_start': expect.any(Number),
         },
         description: '/assets/to/css',
         timestamp: 468,
