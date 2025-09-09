@@ -507,12 +507,6 @@ jobs:
         project:
           - chromium
         include:
-          # Only check all projects for full bundle
-          # We also shard the tests as they take the longest
-          - bundle: bundle_tracing_replay_feedback_min
-            project: 'webkit'
-          - bundle: bundle_tracing_replay_feedback_min
-            project: 'firefox'
           - bundle: esm
             project: chromium
             shard: 1
