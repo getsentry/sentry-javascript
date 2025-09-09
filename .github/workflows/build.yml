@@ -851,7 +851,7 @@ jobs:
           ref: ${{ env.HEAD_COMMIT }}
       - uses: pnpm/action-setup@v4
         with:
-          version: 9.4.0
+          version: 9.15.0
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
@@ -974,7 +974,7 @@ jobs:
           ref: ${{ env.HEAD_COMMIT }}
       - uses: pnpm/action-setup@v4
         with:
-          version: 9.4.0
+          version: 9.15.0
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
