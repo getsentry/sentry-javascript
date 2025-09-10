@@ -2,6 +2,7 @@ import type { PropagationContext } from '@sentry/core';
 import {
   captureException,
   flush,
+  getCurrentScope,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   startSpan,
@@ -75,6 +76,9 @@ class WrappedWorkflowStep implements WorkflowStep {
     configOrCallback: WorkflowStepConfig | (() => Promise<T>),
     maybeCallback?: () => Promise<T>,
   ): Promise<T> {
+    // Capture the current scope, so parent span (e.g., a startSpan surrounding step.do) is preserved
+    const scopeForStep = getCurrentScope();
+
     const userCallback = (maybeCallback || configOrCallback) as () => Promise<T>;
     const config = typeof configOrCallback === 'function' ? undefined : configOrCallback;
 
@@ -83,6 +87,7 @@ class WrappedWorkflowStep implements WorkflowStep {
         {
           op: 'function.step.do',
           name,
+          scope: scopeForStep,
           attributes: {
             'cloudflare.workflow.timeout': config?.timeout,
             'cloudflare.workflow.retries.backoff': config?.retries?.backoff,
@@ -158,7 +163,6 @@ export function instrumentWorkflowWithSentry<
         get(obj, prop, receiver) {
           if (prop === 'run') {
             return async function (event: WorkflowEvent<P>, step: WorkflowStep): Promise<unknown> {
-              // Ensure async context strategy is set once per workflow run
               setAsyncLocalStorageAsyncContextStrategy();
 
               return withIsolationScope(async isolationScope => {
