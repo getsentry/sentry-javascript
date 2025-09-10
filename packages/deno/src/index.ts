@@ -101,3 +101,4 @@ export { normalizePathsIntegration } from './integrations/normalizepaths';
 export { contextLinesIntegration } from './integrations/contextlines';
 export { denoCronIntegration } from './integrations/deno-cron';
 export { breadcrumbsIntegration } from './integrations/breadcrumbs';
+export { vercelAIIntegration } from './integrations/tracing/vercelai';
