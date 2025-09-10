@@ -1,16 +1,16 @@
-import type { AnthropicAiClient } from '@sentry/core';
+import type { AnthropicAiClient, AnthropicAiResponse } from '@sentry/core';
 
 export class MockAnthropic implements AnthropicAiClient {
   public messages: {
-    create: (...args: unknown[]) => Promise<unknown>;
-    countTokens: (...args: unknown[]) => Promise<unknown>;
+    create: (...args: unknown[]) => Promise<AnthropicAiResponse>;
+    countTokens: (...args: unknown[]) => Promise<AnthropicAiResponse>;
   };
   public models: {
-    list: (...args: unknown[]) => Promise<unknown>;
-    get: (...args: unknown[]) => Promise<unknown>;
+    list: (...args: unknown[]) => Promise<AnthropicAiResponse>;
+    get: (...args: unknown[]) => Promise<AnthropicAiResponse>;
   };
   public completions: {
-    create: (...args: unknown[]) => Promise<unknown>;
+    create: (...args: unknown[]) => Promise<AnthropicAiResponse>;
   };
   public apiKey: string;
 
@@ -52,17 +52,17 @@ export class MockAnthropic implements AnthropicAiClient {
           },
         };
       },
-      countTokens: async (..._args: unknown[]) => ({ input_tokens: 0 }),
+      countTokens: async (..._args: unknown[]) => ({ id: 'mock', type: 'model', model: 'mock', input_tokens: 0 }),
     };
 
     // Minimal implementations for required interface compliance
     this.models = {
-      list: async (..._args: unknown[]) => ({ data: [] }),
-      get: async (..._args: unknown[]) => ({ id: 'mock', type: 'model' }),
+      list: async (..._args: unknown[]) => ({ id: 'mock', type: 'model', model: 'mock' }),
+      get: async (..._args: unknown[]) => ({ id: 'mock', type: 'model', model: 'mock' }),
     };
 
     this.completions = {
-      create: async (..._args: unknown[]) => ({ id: 'mock', type: 'completion' }),
+      create: async (..._args: unknown[]) => ({ id: 'mock', type: 'completion', model: 'mock' }),
     };
   }
 }
