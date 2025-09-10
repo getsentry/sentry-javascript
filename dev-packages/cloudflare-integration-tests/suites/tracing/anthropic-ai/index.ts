@@ -19,7 +19,7 @@ export default Sentry.withSentry(
   }),
   {
     async fetch(_request, _env, _ctx) {
-      const response = await client.messages.create({
+      const response = await client.messages?.create({
         model: 'claude-3-haiku-20240307',
         messages: [{ role: 'user', content: 'What is the capital of France?' }],
         temperature: 0.7,

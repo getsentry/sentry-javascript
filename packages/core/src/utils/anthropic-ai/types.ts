@@ -63,15 +63,15 @@ export type AnthropicAiResponse = SuccessfulResponse | MessageError;
  * This provides type safety while being generic enough to work with different client implementations
  */
 export interface AnthropicAiClient {
-  messages: {
+  messages?: {
     create: (...args: unknown[]) => Promise<AnthropicAiResponse>;
     countTokens: (...args: unknown[]) => Promise<AnthropicAiResponse>;
   };
-  models: {
+  models?: {
     list: (...args: unknown[]) => Promise<AnthropicAiResponse>;
     get: (...args: unknown[]) => Promise<AnthropicAiResponse>;
   };
-  completions: {
+  completions?: {
     create: (...args: unknown[]) => Promise<AnthropicAiResponse>;
   };
 }
