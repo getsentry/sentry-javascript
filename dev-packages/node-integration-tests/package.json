@@ -60,6 +60,7 @@
     "node-schedule": "^2.1.1",
     "openai": "5.18.1",
     "pg": "8.16.0",
+    "pino": "^9.9.4",
     "postgres": "^3.4.7",
     "proxy": "^2.1.1",
     "redis-4": "npm:redis@^4.6.14",

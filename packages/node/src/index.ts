@@ -166,6 +166,7 @@ export {
   disableAnrDetectionForCallback,
   spotlightIntegration,
   childProcessIntegration,
+  pinoIntegration,
   createSentryWinstonTransport,
   SentryContextManager,
   systemErrorIntegration,

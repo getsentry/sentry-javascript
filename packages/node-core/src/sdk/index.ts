@@ -40,6 +40,7 @@ import { envToBool } from '../utils/envToBool';
 import { defaultStackParser, getSentryRelease } from './api';
 import { NodeClient } from './client';
 import { initializeEsmLoader } from './esmLoader';
+import { initializeInjectionLoader } from './injectLoader';
 
 /**
  * Get default integrations for the Node-Core SDK.
@@ -130,6 +131,8 @@ function _init(
   getCurrentScope().setClient(client);
 
   client.init();
+
+  initializeInjectionLoader();
 
   debug.log(`SDK initialized from ${isCjs() ? 'CommonJS' : 'ESM'}`);
 
