@@ -53,11 +53,14 @@ describe('data-fetching function wrappers should not create manual spans', () =>
 
   test('wrapped function sets route backfill attribute when called within an active span', async () => {
     const mockSetAttribute = vi.fn();
+    const mockSetAttributes = vi.fn();
     const mockGetActiveSpan = vi.spyOn(SentryCore, 'getActiveSpan').mockReturnValue({
       setAttribute: mockSetAttribute,
+      setAttributes: mockSetAttributes,
     } as any);
     const mockGetRootSpan = vi.spyOn(SentryCore, 'getRootSpan').mockReturnValue({
       setAttribute: mockSetAttribute,
+      setAttributes: mockSetAttributes,
     } as any);
 
     const origFunction = vi.fn(async () => ({ props: {} }));
@@ -72,11 +75,14 @@ describe('data-fetching function wrappers should not create manual spans', () =>
 
   test('wrapped function does not set route backfill attribute for /_error route', async () => {
     const mockSetAttribute = vi.fn();
+    const mockSetAttributes = vi.fn();
     const mockGetActiveSpan = vi.spyOn(SentryCore, 'getActiveSpan').mockReturnValue({
       setAttribute: mockSetAttribute,
+      setAttributes: mockSetAttributes,
     } as any);
     const mockGetRootSpan = vi.spyOn(SentryCore, 'getRootSpan').mockReturnValue({
       setAttribute: mockSetAttribute,
+      setAttributes: mockSetAttributes,
     } as any);
 
     const origFunction = vi.fn(async () => ({ props: {} }));

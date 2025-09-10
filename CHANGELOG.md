@@ -4,6 +4,51 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 10.11.0
+
+### Important Changes
+
+- **feat(aws): Add experimental AWS Lambda extension for tunnelling events ([#17525](https://github.com/getsentry/sentry-javascript/pull/17525))**
+
+  This release adds an experimental Sentry Lambda extension to the existing Sentry Lambda layer. Sentry events are now tunneled through the extension and then forwarded to Sentry. This has the benefit of reducing the request processing time.
+
+  To enable it, set `_experiments.enableLambdaExtension` in your Sentry config like this:
+
+  ```javascript
+  Sentry.init({
+    dsn: '<YOUR_DSN>',
+    _experiments: {
+      enableLambdaExtension: true,
+    },
+  });
+  ```
+
+### Other Changes
+
+- feat(core): Add replay id to logs ([#17563](https://github.com/getsentry/sentry-javascript/pull/17563))
+- feat(core): Improve error handling for Anthropic AI instrumentation ([#17535](https://github.com/getsentry/sentry-javascript/pull/17535))
+- feat(deps): bump @opentelemetry/instrumentation-ioredis from 0.51.0 to 0.52.0 ([#17557](https://github.com/getsentry/sentry-javascript/pull/17557))
+- feat(node): Add incoming request headers as OTel span attributes ([#17475](https://github.com/getsentry/sentry-javascript/pull/17475))
+- fix(astro): Ensure traces are correctly propagated for static routes ([#17536](https://github.com/getsentry/sentry-javascript/pull/17536))
+- fix(react): Remove `handleExistingNavigation` ([#17534](https://github.com/getsentry/sentry-javascript/pull/17534))
+- ref(browser): Add more specific `mechanism.type` to errors captured by `httpClientIntegration` ([#17254](https://github.com/getsentry/sentry-javascript/pull/17254))
+- ref(browser): Set more descriptive `mechanism.type` in `browserApiErrorsIntergation` ([#17251](https://github.com/getsentry/sentry-javascript/pull/17251))
+- ref(core): Add `mechanism.type` to `trpcMiddleware` errors ([#17287](https://github.com/getsentry/sentry-javascript/pull/17287))
+- ref(core): Add more specific event `mechanism`s and span origins to `openAiIntegration` ([#17288](https://github.com/getsentry/sentry-javascript/pull/17288))
+- ref(nestjs): Add `mechanism` to captured errors ([#17312](https://github.com/getsentry/sentry-javascript/pull/17312))
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+
+- chore: Use proper `test-utils` dependency in workspace ([#17538](https://github.com/getsentry/sentry-javascript/pull/17538))
+- chore(test): Remove `geist` font ([#17541](https://github.com/getsentry/sentry-javascript/pull/17541))
+- ci: Check for stable lockfile ([#17552](https://github.com/getsentry/sentry-javascript/pull/17552))
+- ci: Fix running of only changed E2E tests ([#17551](https://github.com/getsentry/sentry-javascript/pull/17551))
+- ci: Remove project automation workflow ([#17508](https://github.com/getsentry/sentry-javascript/pull/17508))
+- test(node-integration-tests): pin ai@5.0.30 to fix test fails ([#17542](https://github.com/getsentry/sentry-javascript/pull/17542))
+
+</details>
+
 ## 10.10.0
 
 ### Important Changes

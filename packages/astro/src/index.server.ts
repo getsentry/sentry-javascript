@@ -59,6 +59,8 @@ export {
   getSpanStatusFromHttpCode,
   getTraceData,
   getTraceMetaTags,
+  httpHeadersToSpanAttributes,
+  winterCGHeadersToDict,
   graphqlIntegration,
   hapiIntegration,
   httpIntegration,
