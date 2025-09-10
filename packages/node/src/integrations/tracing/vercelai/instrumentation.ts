@@ -242,11 +242,21 @@ export class SentryVercelAiInstrumentation extends InstrumentationBase {
 
             // Handle both sync and async results
             if (result && typeof result === 'object' && typeof (result as { then?: unknown }).then === 'function') {
-              // Result is a promise, handle it asynchronously
-              return (result as Promise<unknown>).then((resolvedResult: unknown) => {
-                checkResultForToolErrors(resolvedResult);
-                return resolvedResult;
-              });
+              // Result is a promise - we need to preserve the original promise reference
+              // but still handle errors and check for tool errors
+              const originalPromise = result as Promise<unknown>;
+
+              // Set up tool error checking when the promise resolves (but don't change the promise)
+              originalPromise
+                .then((resolvedResult: unknown) => {
+                  checkResultForToolErrors(resolvedResult);
+                })
+                .catch(() => {
+                  // Ignore errors here - they'll be handled by the original promise
+                });
+
+              // Return the original promise unchanged
+              return originalPromise;
             } else {
               // Result is synchronous, handle it directly
               checkResultForToolErrors(result);
