@@ -7,37 +7,36 @@
 ### Important Changes
 
 - **feat(deps): Update OpenTelemetry dependencies ([#17558](https://github.com/getsentry/sentry-javascript/pull/17558))**
-
-* @opentelemetry/core bumped to ^2.1.0
-* @opentelemetry/context-async-hooks bumped to ^2.1.0
-* @opentelemetry/resources bumped to ^2.1.0
-* @opentelemetry/sdk-trace-base bumped to ^2.1.0
-* @opentelemetry/semantic-conventions bumped to ^1.37.0
-* @opentelemetry/instrumentation bumped to ^0.204.0
-* @opentelemetry/instrumentation-http bumped to ^0.204.0
-* @opentelemetry/instrumentation-amqplib bumped to ^0.51.0
-* @opentelemetry/instrumentation-aws-sdk bumped to ^0.59.0
-* @opentelemetry/instrumentation-connect bumped to ^0.48.0
-* @opentelemetry/instrumentation-dataloader bumped to ^0.22.0
-* @opentelemetry/instrumentation-express bumped to ^0.53.0
-* @opentelemetry/instrumentation-fs bumped from to ^0.24.0
-* @opentelemetry/instrumentation-generic-pool bumped to ^0.48.0
-* @opentelemetry/instrumentation-graphql bumped to ^0.52.0
-* @opentelemetry/instrumentation-hapi bumped to ^0.51.0
-* @opentelemetry/instrumentation-ioredis bumped to ^0.52.0
-* @opentelemetry/instrumentation-kafkajs bumped to ^0.14.0
-* @opentelemetry/instrumentation-knex bumped to ^0.49.0
-* @opentelemetry/instrumentation-koa bumped to ^0.52.0
-* @opentelemetry/instrumentation-lru-memoizer bumped to ^0.49.0
-* @opentelemetry/instrumentation-mongodb bumped from to ^0.57.0
-* @opentelemetry/instrumentation-mongoose bumped from to ^0.51.0
-* @opentelemetry/instrumentation-mysql bumped to ^0.50.0
-* @opentelemetry/instrumentation-mysql2 bumped to ^0.51.0
-* @opentelemetry/instrumentation-nestjs-core bumped to ^0.50.0
-* @opentelemetry/instrumentation-pg bumped to ^0.57.0
-* @opentelemetry/instrumentation-redis bumped to ^0.53.0
-* @opentelemetry/instrumentation-undici bumped to ^0.15.0
-* @prisma/instrumentation bumped to 6.15.0
+  - @opentelemetry/core bumped to ^2.1.0
+  - @opentelemetry/context-async-hooks bumped to ^2.1.0
+  - @opentelemetry/resources bumped to ^2.1.0
+  - @opentelemetry/sdk-trace-base bumped to ^2.1.0
+  - @opentelemetry/semantic-conventions bumped to ^1.37.0
+  - @opentelemetry/instrumentation bumped to ^0.204.0
+  - @opentelemetry/instrumentation-http bumped to ^0.204.0
+  - @opentelemetry/instrumentation-amqplib bumped to ^0.51.0
+  - @opentelemetry/instrumentation-aws-sdk bumped to ^0.59.0
+  - @opentelemetry/instrumentation-connect bumped to ^0.48.0
+  - @opentelemetry/instrumentation-dataloader bumped to ^0.22.0
+  - @opentelemetry/instrumentation-express bumped to ^0.53.0
+  - @opentelemetry/instrumentation-fs bumped from to ^0.24.0
+  - @opentelemetry/instrumentation-generic-pool bumped to ^0.48.0
+  - @opentelemetry/instrumentation-graphql bumped to ^0.52.0
+  - @opentelemetry/instrumentation-hapi bumped to ^0.51.0
+  - @opentelemetry/instrumentation-ioredis bumped to ^0.52.0
+  - @opentelemetry/instrumentation-kafkajs bumped to ^0.14.0
+  - @opentelemetry/instrumentation-knex bumped to ^0.49.0
+  - @opentelemetry/instrumentation-koa bumped to ^0.52.0
+  - @opentelemetry/instrumentation-lru-memoizer bumped to ^0.49.0
+  - @opentelemetry/instrumentation-mongodb bumped from to ^0.57.0
+  - @opentelemetry/instrumentation-mongoose bumped from to ^0.51.0
+  - @opentelemetry/instrumentation-mysql bumped to ^0.50.0
+  - @opentelemetry/instrumentation-mysql2 bumped to ^0.51.0
+  - @opentelemetry/instrumentation-nestjs-core bumped to ^0.50.0
+  - @opentelemetry/instrumentation-pg bumped to ^0.57.0
+  - @opentelemetry/instrumentation-redis bumped to ^0.53.0
+  - @opentelemetry/instrumentation-undici bumped to ^0.15.0
+  - @prisma/instrumentation bumped to 6.15.0
 
 ## 10.11.0
 
