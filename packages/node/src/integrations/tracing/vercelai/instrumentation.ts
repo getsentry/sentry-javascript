@@ -71,7 +71,7 @@ function isToolError(obj: unknown): obj is ToolError {
  * Check for tool errors in the result and capture them
  * Tool errors are not rejected in Vercel V5, it is added as metadata to the result content
  */
-function checkResultForToolErrors(result: unknown | Promise<unknown>): void {
+function checkResultForToolErrors(result: unknown): void {
   if (typeof result !== 'object' || result === null || !('content' in result)) {
     return;
   }
@@ -236,14 +236,22 @@ export class SentryVercelAiInstrumentation extends InstrumentationBase {
         };
 
         return handleCallbackErrors(
-          async () => {
+          () => {
             // @ts-expect-error we know that the method exists
-            const result = await originalMethod.apply(this, args);
+            const result = originalMethod.apply(this, args);
 
-            // Tool errors are not rejected in Vercel V5, it is added as metadata to the result content
-            checkResultForToolErrors(result);
-
-            return result;
+            // Handle both sync and async results
+            if (result && typeof result === 'object' && typeof (result as { then?: unknown }).then === 'function') {
+              // Result is a promise, handle it asynchronously
+              return (result as Promise<unknown>).then((resolvedResult: unknown) => {
+                checkResultForToolErrors(resolvedResult);
+                return resolvedResult;
+              });
+            } else {
+              // Result is synchronous, handle it directly
+              checkResultForToolErrors(result);
+              return result;
+            }
           },
           error => {
             // This error bubbles up to unhandledrejection handler (if not handled before),
