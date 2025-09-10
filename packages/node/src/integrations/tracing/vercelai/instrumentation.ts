@@ -133,6 +133,15 @@ function checkResultForToolErrors(result: unknown): void {
 }
 
 /**
+ * Checks if the given value is a promise like object.
+ * @param value The value to check.
+ * @returns True if the value is a promise like object, false otherwise.
+ */
+function isPromiseLike<T = unknown>(value: unknown): value is PromiseLike<T> {
+  return !!value && typeof value === 'object' && typeof (value as { then?: unknown }).then === 'function';
+}
+
+/**
  * Determines whether to record inputs and outputs for Vercel AI telemetry based on the configuration hierarchy.
  *
  * The order of precedence is:
@@ -240,28 +249,15 @@ export class SentryVercelAiInstrumentation extends InstrumentationBase {
             // @ts-expect-error we know that the method exists
             const result = originalMethod.apply(this, args);
 
-            // Handle both sync and async results
-            if (result && typeof result === 'object' && typeof (result as { then?: unknown }).then === 'function') {
-              // Result is a promise - we need to preserve the original promise reference
-              // but still handle errors and check for tool errors
-              const originalPromise = result as Promise<unknown>;
-
-              // Set up tool error checking when the promise resolves (but don't change the promise)
-              originalPromise
-                .then((resolvedResult: unknown) => {
-                  checkResultForToolErrors(resolvedResult);
-                })
-                .catch(() => {
-                  // Ignore errors here - they'll be handled by the original promise
-                });
-
-              // Return the original promise unchanged
-              return originalPromise;
-            } else {
-              // Result is synchronous, handle it directly
-              checkResultForToolErrors(result);
+            if (isPromiseLike(result)) {
+              // check for tool errors when the promise resolves, keep the original promise identity
+              result.then(checkResultForToolErrors, () => {});
               return result;
             }
+
+            // check for tool errors when the result is synchronous
+            checkResultForToolErrors(result);
+            return result;
           },
           error => {
             // This error bubbles up to unhandledrejection handler (if not handled before),
