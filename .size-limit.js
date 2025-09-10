@@ -233,7 +233,7 @@ module.exports = [
     import: createImport('init'),
     ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
     gzip: true,
-    limit: '154 KB',
+    limit: '156 KB',
   },
   {
     name: '@sentry/node - without tracing',
@@ -263,7 +263,7 @@ module.exports = [
     import: createImport('init'),
     ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
     gzip: true,
-    limit: '107 KB',
+    limit: '111 KB',
   },
 ];
 
