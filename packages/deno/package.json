@@ -24,6 +24,7 @@
     "/build"
   ],
   "dependencies": {
+    "@opentelemetry/api": "^1.9.0",
     "@sentry/core": "10.11.0"
   },
   "scripts": {
@@ -42,7 +43,7 @@
     "lint:es-compatibility": "es-check es2022 ./build/esm/*.js --module",
     "install:deno": "node ./scripts/install-deno.mjs",
     "test": "run-s install:deno deno-types test:unit",
-    "test:unit": "deno test --allow-read --allow-run --no-check",
+    "test:unit": "deno test --allow-read --allow-run --allow-env --no-check",
     "test:unit:update": "deno test --allow-read --allow-write --allow-run -- --update",
     "yalc:publish": "yalc publish --push --sig"
   },
