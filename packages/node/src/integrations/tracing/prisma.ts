@@ -73,7 +73,7 @@ class SentryPrismaInteropInstrumentation extends PrismaInstrumentation {
     const prismaTracingHelper = getPrismaTracingHelper();
 
     if (isPrismaV6TracingHelper(prismaTracingHelper)) {
-      // Inspired & adjusted from https://github.dev/prisma/prisma/tree/5.22.0/packages/instrumentation
+      // Inspired & adjusted from https://github.com/prisma/prisma/tree/5.22.0/packages/instrumentation
       (prismaTracingHelper as CompatibilityLayerTraceHelper).createEngineSpan = (
         engineSpanEvent: V5EngineSpanEvent,
       ) => {
