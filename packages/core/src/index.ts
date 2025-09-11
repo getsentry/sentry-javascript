@@ -131,6 +131,8 @@ export { instrumentOpenAiClient } from './utils/openai';
 export { OPENAI_INTEGRATION_NAME } from './utils/openai/constants';
 export { instrumentAnthropicAiClient } from './utils/anthropic-ai';
 export { ANTHROPIC_AI_INTEGRATION_NAME } from './utils/anthropic-ai/constants';
+export { instrumentGoogleGenAIClient } from './utils/google-genai';
+export { GOOGLE_GENAI_INTEGRATION_NAME } from './utils/google-genai/constants';
 export type { OpenAiClient, OpenAiOptions, InstrumentedMethod } from './utils/openai/types';
 export type {
   AnthropicAiClient,
@@ -138,6 +140,12 @@ export type {
   AnthropicAiInstrumentedMethod,
   AnthropicAiResponse,
 } from './utils/anthropic-ai/types';
+export type {
+  GoogleGenAIClient,
+  GoogleGenAIChat,
+  GoogleGenAIOptions,
+  GoogleGenAIIstrumentedMethod,
+} from './utils/google-genai/types';
 export type { FeatureFlag } from './utils/featureFlags';
 
 export {
