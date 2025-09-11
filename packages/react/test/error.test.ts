@@ -32,7 +32,7 @@ describe('reactErrorHandler', () => {
 
     expect(captureException).toHaveBeenCalledTimes(1);
     expect(captureException).toHaveBeenCalledWith(error, {
-      mechanism: { handled: false, type: 'auto.function.react.error-handler' },
+      mechanism: { handled: false, type: 'auto.function.react.error_handler' },
     });
   });
 
@@ -49,7 +49,7 @@ describe('reactErrorHandler', () => {
 
     expect(captureException).toHaveBeenCalledTimes(1);
     expect(captureException).toHaveBeenCalledWith(error, {
-      mechanism: { handled: true, type: 'auto.function.react.error-handler' },
+      mechanism: { handled: true, type: 'auto.function.react.error_handler' },
     });
 
     expect(callback).toHaveBeenCalledTimes(1);

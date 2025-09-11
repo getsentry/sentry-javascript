@@ -97,7 +97,7 @@ export function reactErrorHandler(
   return (error: any, errorInfo: ErrorInfo) => {
     const hasCallback = !!callback;
     const eventId = captureReactException(error, errorInfo, {
-      mechanism: { handled: hasCallback, type: 'auto.function.react.error-handler' },
+      mechanism: { handled: hasCallback, type: 'auto.function.react.error_handler' },
     });
     if (hasCallback) {
       callback(error, errorInfo, eventId);

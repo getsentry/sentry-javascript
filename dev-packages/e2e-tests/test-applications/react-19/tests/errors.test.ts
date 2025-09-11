@@ -20,7 +20,7 @@ test('Catches errors caught by error boundary', async ({ page }) => {
   expect(errorEvent.exception?.values).toHaveLength(2);
   expect(errorEvent.exception?.values?.[0]?.value).toBe('caught error');
   expect(errorEvent.exception?.values?.[0]?.mechanism).toEqual({
-    type: 'auto.function.react.error-handler',
+    type: 'auto.function.react.error_handler',
     handled: true, // true because a callback was provided
     exception_id: 1,
     parent_id: 0,
@@ -54,7 +54,7 @@ test('Catches errors uncaught by error boundary', async ({ page }) => {
   expect(errorEvent.exception?.values).toHaveLength(2);
   expect(errorEvent.exception?.values?.[0]?.value).toBe('uncaught error');
   expect(errorEvent.exception?.values?.[0]?.mechanism).toEqual({
-    type: 'auto.function.react.error-handler',
+    type: 'auto.function.react.error_handler',
     handled: true, // true because a callback was provided
     exception_id: 1,
     parent_id: 0,
