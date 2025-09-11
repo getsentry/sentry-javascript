@@ -9,24 +9,45 @@ import { sentryCaptureErrorHook } from '../hooks/captureErrorHook';
 import { updateRouteBeforeResponse } from '../hooks/updateRouteBeforeResponse';
 import { addSentryTracingMetaTags } from '../utils';
 
-interface CfEventType {
+interface EventBase {
   protocol: string;
   host: string;
   method: string;
   headers: Record<string, string>;
+}
+
+interface MinimalCfProps {
+  httpProtocol?: string;
+  country?: string;
+  // ...other CF properties
+}
+
+interface MinimalCloudflareProps {
+  context: ExecutionContext;
+  request?: Record<string, unknown>;
+  env?: Record<string, unknown>;
+}
+
+// Direct shape: cf and cloudflare are directly on context
+interface CfEventDirect extends EventBase {
   context: {
-    cf: {
-      httpProtocol?: string;
-      country?: string;
-      // ...other CF properties
-    };
-    cloudflare: {
-      context: ExecutionContext;
-      request?: Record<string, unknown>;
-      env?: Record<string, unknown>;
+    cf: MinimalCfProps;
+    cloudflare: MinimalCloudflareProps;
+  };
+}
+
+// Nested shape: cf and cloudflare are under _platform
+// Since Nitro v2.12.0 (PR: https://github.com/nitrojs/nitro/commit/911a63bc478183acb472d05e977584dcdce61abf)
+interface CfEventPlatform extends EventBase {
+  context: {
+    _platform: {
+      cf: MinimalCfProps;
+      cloudflare: MinimalCloudflareProps;
     };
   };
 }
+
+type CfEventType = CfEventDirect | CfEventPlatform;
 
 function isEventType(event: unknown): event is CfEventType {
   if (event === null || typeof event !== 'object') return false;
