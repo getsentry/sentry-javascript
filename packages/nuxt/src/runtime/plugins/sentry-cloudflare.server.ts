@@ -8,7 +8,7 @@ import type { NuxtRenderHTMLContext } from 'nuxt/app';
 import { sentryCaptureErrorHook } from '../hooks/captureErrorHook';
 import { updateRouteBeforeResponse } from '../hooks/updateRouteBeforeResponse';
 import { addSentryTracingMetaTags } from '../utils';
-import { getCfProperties, getCloudflareProperties, isEventType } from '../utils/event-type';
+import { getCfProperties, getCloudflareProperties, isEventType } from '../utils/event-type-check';
 
 /**
  * Sentry Cloudflare Nitro plugin for when using the "cloudflare-pages" preset in Nuxt.
