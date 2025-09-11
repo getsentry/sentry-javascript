@@ -1,4 +1,4 @@
-import type { ExecutionContext, IncomingRequestCfProperties } from '@cloudflare/workers-types';
+import type { IncomingRequestCfProperties } from '@cloudflare/workers-types';
 import type { CloudflareOptions } from '@sentry/cloudflare';
 import { setAsyncLocalStorageAsyncContextStrategy, wrapRequestHandler } from '@sentry/cloudflare';
 import { debug, getDefaultIsolationScope, getIsolationScope, getTraceData } from '@sentry/core';
@@ -8,71 +8,7 @@ import type { NuxtRenderHTMLContext } from 'nuxt/app';
 import { sentryCaptureErrorHook } from '../hooks/captureErrorHook';
 import { updateRouteBeforeResponse } from '../hooks/updateRouteBeforeResponse';
 import { addSentryTracingMetaTags } from '../utils';
-
-interface EventBase {
-  protocol: string;
-  host: string;
-  method: string;
-  headers: Record<string, string>;
-}
-
-interface MinimalCfProps {
-  httpProtocol?: string;
-  country?: string;
-  // ...other CF properties
-}
-
-interface MinimalCloudflareProps {
-  context: ExecutionContext;
-  request?: Record<string, unknown>;
-  env?: Record<string, unknown>;
-}
-
-// Direct shape: cf and cloudflare are directly on context
-interface CfEventDirect extends EventBase {
-  context: {
-    cf: MinimalCfProps;
-    cloudflare: MinimalCloudflareProps;
-  };
-}
-
-// Nested shape: cf and cloudflare are under _platform
-// Since Nitro v2.12.0 (PR: https://github.com/nitrojs/nitro/commit/911a63bc478183acb472d05e977584dcdce61abf)
-interface CfEventPlatform extends EventBase {
-  context: {
-    _platform: {
-      cf: MinimalCfProps;
-      cloudflare: MinimalCloudflareProps;
-    };
-  };
-}
-
-type CfEventType = CfEventDirect | CfEventPlatform;
-
-function isEventType(event: unknown): event is CfEventType {
-  if (event === null || typeof event !== 'object') return false;
-
-  return (
-    // basic properties
-    'protocol' in event &&
-    'host' in event &&
-    typeof event.protocol === 'string' &&
-    typeof event.host === 'string' &&
-    // context property
-    'context' in event &&
-    typeof event.context === 'object' &&
-    event.context !== null &&
-    // context.cf properties
-    'cf' in event.context &&
-    typeof event.context.cf === 'object' &&
-    event.context.cf !== null &&
-    // context.cloudflare properties
-    'cloudflare' in event.context &&
-    typeof event.context.cloudflare === 'object' &&
-    event.context.cloudflare !== null &&
-    'context' in event.context.cloudflare
-  );
-}
+import { getCfProperties, getCloudflareProperties, isEventType } from '../utils/event-type';
 
 /**
  * Sentry Cloudflare Nitro plugin for when using the "cloudflare-pages" preset in Nuxt.
@@ -128,13 +64,13 @@ export const sentryCloudflareNitroPlugin =
           const request = new Request(url, {
             method: event.method,
             headers: event.headers,
-            cf: event.context.cf,
+            cf: getCfProperties(event),
           }) as Request<unknown, IncomingRequestCfProperties<unknown>>;
 
           const requestHandlerOptions = {
             options: cloudflareOptions,
             request,
-            context: event.context.cloudflare.context,
+            context: getCloudflareProperties(event).context,
           };
 
           return wrapRequestHandler(requestHandlerOptions, () => {
@@ -145,7 +81,7 @@ export const sentryCloudflareNitroPlugin =
             const traceData = getTraceData();
             if (traceData && Object.keys(traceData).length > 0) {
               // Storing trace data in the WeakMap using event.context.cf as key for later use in HTML meta-tags
-              traceDataMap.set(event.context.cf, traceData);
+              traceDataMap.set(getCfProperties(event), traceData);
               debug.log('Stored trace data for later use in HTML meta-tags: ', traceData);
             }
 
