@@ -9,6 +9,7 @@ import {
   getActiveSpan,
   getCurrentScope,
   handleCallbackErrors,
+  isThenable,
   SDK_VERSION,
   withScope,
 } from '@sentry/core';
@@ -133,15 +134,6 @@ function checkResultForToolErrors(result: unknown): void {
 }
 
 /**
- * Checks if the given value is a promise like object.
- * @param value The value to check.
- * @returns True if the value is a promise like object, false otherwise.
- */
-function isPromiseLike<T = unknown>(value: unknown): value is PromiseLike<T> {
-  return !!value && typeof value === 'object' && typeof (value as { then?: unknown }).then === 'function';
-}
-
-/**
  * Determines whether to record inputs and outputs for Vercel AI telemetry based on the configuration hierarchy.
  *
  * The order of precedence is:
@@ -249,7 +241,7 @@ export class SentryVercelAiInstrumentation extends InstrumentationBase {
             // @ts-expect-error we know that the method exists
             const result = originalMethod.apply(this, args);
 
-            if (isPromiseLike(result)) {
+            if (isThenable(result)) {
               // check for tool errors when the promise resolves, keep the original promise identity
               result.then(checkResultForToolErrors, () => {});
               return result;
