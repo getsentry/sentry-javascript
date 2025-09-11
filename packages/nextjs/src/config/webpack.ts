@@ -60,6 +60,8 @@ export function constructWebpackConfigFunction(
     const pageExtensions = userNextConfig.pageExtensions || ['tsx', 'ts', 'jsx', 'js'];
     const dotPrefixedPageExtensions = pageExtensions.map(ext => `.${ext}`);
     const pageExtensionRegex = pageExtensions.map(escapeStringForRegex).join('|');
+    const nextJsVersion = getNextjsVersion();
+    const { major } = parseSemver(nextJsVersion || '');
 
     // We add `.ts` and `.js` back in because `pageExtensions` might not be relevant to the instrumentation file
     // e.g. user's setting `.mdx`. In that case we still want to default look up
@@ -70,8 +72,6 @@ export function constructWebpackConfigFunction(
       warnAboutDeprecatedConfigFiles(projectDir, instrumentationFile, runtime);
     }
     if (runtime === 'server') {
-      const nextJsVersion = getNextjsVersion();
-      const { major } = parseSemver(nextJsVersion || '');
       // was added in v15 (https://github.com/vercel/next.js/pull/67539)
       if (major && major >= 15) {
         warnAboutMissingOnRequestErrorHandler(instrumentationFile);
@@ -104,7 +104,7 @@ export function constructWebpackConfigFunction(
     addOtelWarningIgnoreRule(newConfig);
 
     // Add edge runtime polyfills when building for edge in dev mode
-    if (runtime === 'edge' && isDev) {
+    if (major && major === 13 && runtime === 'edge' && isDev) {
       addEdgeRuntimePolyfills(newConfig, buildContext);
     }
 
