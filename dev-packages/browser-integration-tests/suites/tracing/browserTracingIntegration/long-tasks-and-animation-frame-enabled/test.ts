@@ -102,6 +102,7 @@ sentryTest(
         data: {
           'browser.script.invoker': 'BUTTON#clickme.onclick',
           'browser.script.invoker_type': 'event-listener',
+          'code.filepath': 'https://example.com/path/to/script.js',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'ui.long-animation-frame',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
         },

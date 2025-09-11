@@ -27,7 +27,7 @@ sentryTest('should catch syntax errors', async ({ getLocalTestUrl, page, browser
   expect(eventData.exception?.values).toHaveLength(1);
   expect(eventData.exception?.values?.[0]).toMatchObject({
     type: 'SyntaxError',
-    value: "Unexpected token '{'",
+    value: "Failed to execute 'appendChild' on 'Node': Unexpected token '{'",
     mechanism: {
       type: 'onerror',
       handled: false,

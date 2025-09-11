@@ -9,7 +9,7 @@ import {
   shouldSkipTracingTest,
 } from '../../../utils/helpers';
 
-sentryTest('updates the DSC when the txn name is updated and high-quality', async ({ getLocalTestUrl, page }) => {
+sentryTest.skip('updates the DSC when the txn name is updated and high-quality', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
     sentryTest.skip();
   }

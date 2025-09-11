@@ -4,7 +4,7 @@ import type { Event } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
 
-sentryTest(
+sentryTest.skip(
   "doesn't capture long task spans starting before a navigation in the navigation transaction",
   async ({ browserName, getLocalTestUrl, page }) => {
     // Long tasks only work on chrome

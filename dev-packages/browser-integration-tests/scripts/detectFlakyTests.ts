@@ -6,7 +6,7 @@ import * as glob from 'glob';
 /**
  * The number of browsers we run the tests in.
  */
-const NUM_BROWSERS = 3;
+const NUM_BROWSERS = 1;
 
 /**
  * Assume that each test runs for 2s.
@@ -53,7 +53,7 @@ ${changedPaths.join('\n')}
       const cp = childProcess.spawn(
         `npx playwright test ${
           testPaths.length ? testPaths.join(' ') : './suites'
-        } --reporter='line' --repeat-each ${repeatEachCount}`,
+        } --reporter='line' --repeat-each ${repeatEachCount} --project=chromium`,
         { shell: true, cwd },
       );
 

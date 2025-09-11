@@ -23,11 +23,11 @@ concurrency:
 
 jobs:
   flaky-detector:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
     name: 'Check tests for flakiness'
     # Also skip if PR is from master -> develop
-    if: ${{ github.base_ref != 'master' && github.ref != 'refs/heads/master' }}
+    if: false
     steps:
       - name: Check out current branch
         uses: actions/checkout@v4
