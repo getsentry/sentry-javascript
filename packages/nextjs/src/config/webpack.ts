@@ -60,6 +60,8 @@ export function constructWebpackConfigFunction(
     const pageExtensions = userNextConfig.pageExtensions || ['tsx', 'ts', 'jsx', 'js'];
     const dotPrefixedPageExtensions = pageExtensions.map(ext => `.${ext}`);
     const pageExtensionRegex = pageExtensions.map(escapeStringForRegex).join('|');
+    const nextVersion = nextJsVersion || getNextjsVersion();
+    const { major } = parseSemver(nextVersion || '');
 
     // We add `.ts` and `.js` back in because `pageExtensions` might not be relevant to the instrumentation file
     // e.g. user's setting `.mdx`. In that case we still want to default look up
@@ -70,8 +72,6 @@ export function constructWebpackConfigFunction(
       warnAboutDeprecatedConfigFiles(projectDir, instrumentationFile, runtime);
     }
     if (runtime === 'server') {
-      const nextJsVersion = getNextjsVersion();
-      const { major } = parseSemver(nextJsVersion || '');
       // was added in v15 (https://github.com/vercel/next.js/pull/67539)
       if (major && major >= 15) {
         warnAboutMissingOnRequestErrorHandler(instrumentationFile);
@@ -102,6 +102,11 @@ export function constructWebpackConfigFunction(
     });
 
     addOtelWarningIgnoreRule(newConfig);
+
+    // Add edge runtime polyfills when building for edge in dev mode
+    if (major && major === 13 && runtime === 'edge' && isDev) {
+      addEdgeRuntimePolyfills(newConfig, buildContext);
+    }
 
     let pagesDirPath: string | undefined;
     const maybePagesDirPath = path.join(projectDir, 'pages');
@@ -863,6 +868,24 @@ function addOtelWarningIgnoreRule(newConfig: WebpackConfigObjectWithModuleRules)
   } else if (Array.isArray(newConfig.ignoreWarnings)) {
     newConfig.ignoreWarnings.push(...ignoreRules);
   }
+}
+
+function addEdgeRuntimePolyfills(newConfig: WebpackConfigObjectWithModuleRules, buildContext: BuildContext): void {
+  // Use ProvidePlugin to inject performance global only when accessed
+  newConfig.plugins = newConfig.plugins || [];
+  newConfig.plugins.push(
+    new buildContext.webpack.ProvidePlugin({
+      performance: [path.resolve(__dirname, 'polyfills', 'perf_hooks.js'), 'performance'],
+    }),
+  );
+
+  // Add module resolution aliases for problematic Node.js modules in edge runtime
+  newConfig.resolve = newConfig.resolve || {};
+  newConfig.resolve.alias = {
+    ...newConfig.resolve.alias,
+    // Redirect perf_hooks imports to a polyfilled version
+    perf_hooks: path.resolve(__dirname, 'polyfills', 'perf_hooks.js'),
+  };
 }
 
 function _getModules(projectDir: string): Record<string, string> {
