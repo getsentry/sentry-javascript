@@ -22,7 +22,7 @@ interface CfEventDirect extends EventBase {
 }
 
 // Nested shape: cf and cloudflare are under _platform
-// Since Nitro v2.12.0 (PR: https://github.com/nitrojs/nitro/commit/911a63bc478183acb472d05e977584dcdce61abf)
+// Since Nitro v2.11.7 (PR: https://github.com/nitrojs/nitro/pull/3224)
 interface CfEventPlatform extends EventBase {
   context: {
     _platform: {
