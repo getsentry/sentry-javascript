@@ -38,10 +38,12 @@ test('Sends a client-side exception to Sentry', async ({ page }) => {
 
   expect(errorEvent.exception?.values?.[0]?.mechanism).toEqual({
     handled: false,
-    type: 'auto.browser.browserapierrors.addEventListener',
-    data: {
-      handler: expect.any(String), // the handler name varies in CI and locally
-      target: 'EventTarget',
-    },
+    type: nextjsMajor >= 15 ? 'auto.browser.global_handlers.onerror' : 'auto.browser.browserapierrors.addEventListener',
+    ...(nextjsMajor < 15 && {
+      data: {
+        handler: expect.any(String), // the handler name varies in CI and locally
+        target: 'EventTarget',
+      },
+    }),
   });
 });
