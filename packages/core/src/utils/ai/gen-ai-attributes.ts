@@ -178,3 +178,15 @@ export const OPENAI_OPERATIONS = {
  * The response timestamp from Anthropic AI (ISO string)
  */
 export const ANTHROPIC_AI_RESPONSE_TIMESTAMP_ATTRIBUTE = 'anthropic.response.timestamp';
+
+// =============================================================================
+// GOOGLE GENAI OPERATIONS
+// =============================================================================
+
+/**
+ * Google GenAI API operations
+ */
+export const GOOGLE_GENAI_OPERATIONS = {
+  GENERATE_CONTENT: 'generateContent',
+  STREAM_GENERATE_CONTENT: 'streamGenerateContent',
+} as const;
