@@ -37,7 +37,6 @@ import {
   TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION,
 } from '../common/span-attributes-with-logic-attached';
 import { isBuild } from '../common/utils/isBuild';
-import { isTurbopack } from '../common/utils/isTurbopack';
 import { distDirRewriteFramesIntegration } from './distDirRewriteFramesIntegration';
 
 export * from '@sentry/node';
@@ -369,7 +368,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
   }
 
   try {
-    if (isTurbopack()) {
+    if (process.env.TURBOPACK) {
       getGlobalScope().setTag('turbopack', true);
     }
   } catch {

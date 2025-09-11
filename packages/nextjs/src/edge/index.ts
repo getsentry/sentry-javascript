@@ -14,7 +14,6 @@ import {
 import type { VercelEdgeOptions } from '@sentry/vercel-edge';
 import { getDefaultIntegrations, init as vercelEdgeInit } from '@sentry/vercel-edge';
 import { isBuild } from '../common/utils/isBuild';
-import { isTurbopack } from '../common/utils/isTurbopack';
 import { flushSafelyWithTimeout } from '../common/utils/responseEnd';
 import { distDirRewriteFramesIntegration } from './distDirRewriteFramesIntegration';
 
@@ -96,7 +95,7 @@ export function init(options: VercelEdgeOptions = {}): void {
   });
 
   try {
-    if (isTurbopack()) {
+    if (process.env.TURBOPACK) {
       getGlobalScope().setTag('turbopack', true);
     }
   } catch {
