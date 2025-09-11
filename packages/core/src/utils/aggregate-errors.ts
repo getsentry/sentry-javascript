@@ -101,7 +101,7 @@ function aggregateExceptionsFromError(
 function applyExceptionGroupFieldsForParentException(exception: Exception, exceptionId: number): void {
   exception.mechanism = {
     handled: true,
-    type: 'auto.core.linkedErrors',
+    type: 'auto.core.linked_errors',
     ...exception.mechanism,
     ...(exception.type === 'AggregateError' && { is_exception_group: true }),
     exception_id: exceptionId,

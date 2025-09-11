@@ -176,7 +176,7 @@ describe('applyAggregateErrorsToEvent()', () => {
     applyAggregateErrorsToEvent(exceptionFromError, stackParser, 'cause', 100, event, eventHint);
 
     expect(event.exception?.values?.[event.exception.values.length - 1]?.mechanism?.type).toBe(
-      'auto.core.linkedErrors',
+      'auto.core.linked_errors',
     );
   });
 
