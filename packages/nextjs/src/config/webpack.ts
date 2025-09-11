@@ -60,8 +60,8 @@ export function constructWebpackConfigFunction(
     const pageExtensions = userNextConfig.pageExtensions || ['tsx', 'ts', 'jsx', 'js'];
     const dotPrefixedPageExtensions = pageExtensions.map(ext => `.${ext}`);
     const pageExtensionRegex = pageExtensions.map(escapeStringForRegex).join('|');
-    const nextJsVersion = getNextjsVersion();
-    const { major } = parseSemver(nextJsVersion || '');
+    const nextVersion = nextJsVersion || getNextjsVersion();
+    const { major } = parseSemver(nextVersion || '');
 
     // We add `.ts` and `.js` back in because `pageExtensions` might not be relevant to the instrumentation file
     // e.g. user's setting `.mdx`. In that case we still want to default look up

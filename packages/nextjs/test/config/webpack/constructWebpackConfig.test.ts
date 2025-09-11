@@ -2,6 +2,7 @@
 import '../mocks';
 import * as core from '@sentry/core';
 import { describe, expect, it, vi } from 'vitest';
+import * as util from '../../../src/config/util';
 import * as getWebpackPluginOptionsModule from '../../../src/config/webpackPluginOptions';
 import {
   CLIENT_SDK_CONFIG_FILE,
@@ -188,8 +189,11 @@ describe('constructWebpackConfigFunction()', () => {
   });
 
   describe('edge runtime polyfills', () => {
-    it('adds polyfills only for edge runtime in dev mode', async () => {
-      // Test edge runtime in dev mode - should add polyfills
+    it('adds polyfills only for edge runtime in dev mode on Next.js 13', async () => {
+      // Mock Next.js version 13 - polyfills should be added
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('13.0.0');
+
+      // Test edge runtime in dev mode with Next.js 13 - should add polyfills
       const edgeDevBuildContext = { ...edgeBuildContext, dev: true };
       const edgeDevConfig = await materializeFinalWebpackConfig({
         exportedNextConfig,
@@ -200,6 +204,13 @@ describe('constructWebpackConfigFunction()', () => {
       const edgeProvidePlugin = edgeDevConfig.plugins?.find(plugin => plugin.constructor.name === 'ProvidePlugin');
       expect(edgeProvidePlugin).toBeDefined();
       expect(edgeDevConfig.resolve?.alias?.perf_hooks).toMatch(/perf_hooks\.js$/);
+
+      vi.restoreAllMocks();
+    });
+
+    it('does NOT add polyfills for edge runtime in prod mode even on Next.js 13', async () => {
+      // Mock Next.js version 13 - but prod mode should still not add polyfills
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('13.0.0');
 
       // Test edge runtime in prod mode - should NOT add polyfills
       const edgeProdBuildContext = { ...edgeBuildContext, dev: false };
@@ -212,6 +223,13 @@ describe('constructWebpackConfigFunction()', () => {
       const edgeProdProvidePlugin = edgeProdConfig.plugins?.find(plugin => plugin.constructor.name === 'ProvidePlugin');
       expect(edgeProdProvidePlugin).toBeUndefined();
 
+      vi.restoreAllMocks();
+    });
+
+    it('does NOT add polyfills for server runtime even on Next.js 13', async () => {
+      // Mock Next.js version 13
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('13.0.0');
+
       // Test server runtime in dev mode - should NOT add polyfills
       const serverDevBuildContext = { ...serverBuildContext, dev: true };
       const serverDevConfig = await materializeFinalWebpackConfig({
@@ -223,6 +241,13 @@ describe('constructWebpackConfigFunction()', () => {
       const serverProvidePlugin = serverDevConfig.plugins?.find(plugin => plugin.constructor.name === 'ProvidePlugin');
       expect(serverProvidePlugin).toBeUndefined();
 
+      vi.restoreAllMocks();
+    });
+
+    it('does NOT add polyfills for client runtime even on Next.js 13', async () => {
+      // Mock Next.js version 13
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('13.0.0');
+
       // Test client runtime in dev mode - should NOT add polyfills
       const clientDevBuildContext = { ...clientBuildContext, dev: true };
       const clientDevConfig = await materializeFinalWebpackConfig({
@@ -233,6 +258,52 @@ describe('constructWebpackConfigFunction()', () => {
 
       const clientProvidePlugin = clientDevConfig.plugins?.find(plugin => plugin.constructor.name === 'ProvidePlugin');
       expect(clientProvidePlugin).toBeUndefined();
+
+      vi.restoreAllMocks();
+    });
+
+    it('does NOT add polyfills for edge runtime in dev mode on Next.js versions other than 13', async () => {
+      const edgeDevBuildContext = { ...edgeBuildContext, dev: true };
+
+      // Test with Next.js 12 - should NOT add polyfills
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('12.3.0');
+      const edgeConfigV12 = await materializeFinalWebpackConfig({
+        exportedNextConfig,
+        incomingWebpackConfig: serverWebpackConfig,
+        incomingWebpackBuildContext: edgeDevBuildContext,
+      });
+      expect(edgeConfigV12.plugins?.find(plugin => plugin.constructor.name === 'ProvidePlugin')).toBeUndefined();
+      vi.restoreAllMocks();
+
+      // Test with Next.js 14 - should NOT add polyfills
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('14.0.0');
+      const edgeConfigV14 = await materializeFinalWebpackConfig({
+        exportedNextConfig,
+        incomingWebpackConfig: serverWebpackConfig,
+        incomingWebpackBuildContext: edgeDevBuildContext,
+      });
+      expect(edgeConfigV14.plugins?.find(plugin => plugin.constructor.name === 'ProvidePlugin')).toBeUndefined();
+      vi.restoreAllMocks();
+
+      // Test with Next.js 15 - should NOT add polyfills
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.0.0');
+      const edgeConfigV15 = await materializeFinalWebpackConfig({
+        exportedNextConfig,
+        incomingWebpackConfig: serverWebpackConfig,
+        incomingWebpackBuildContext: edgeDevBuildContext,
+      });
+      expect(edgeConfigV15.plugins?.find(plugin => plugin.constructor.name === 'ProvidePlugin')).toBeUndefined();
+      vi.restoreAllMocks();
+
+      // Test with undefined Next.js version - should NOT add polyfills
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue(undefined);
+      const edgeConfigUndefined = await materializeFinalWebpackConfig({
+        exportedNextConfig,
+        incomingWebpackConfig: serverWebpackConfig,
+        incomingWebpackBuildContext: edgeDevBuildContext,
+      });
+      expect(edgeConfigUndefined.plugins?.find(plugin => plugin.constructor.name === 'ProvidePlugin')).toBeUndefined();
+      vi.restoreAllMocks();
     });
   });
 });
