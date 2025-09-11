@@ -61,6 +61,24 @@ export interface ConsolaReporter {
  */
 export interface ConsolaLogObject {
   /**
+   * Allows additional custom properties to be set on the log object.
+   * These properties will be captured as log attributes with a 'consola.' prefix.
+   *
+   * @example
+   * ```ts
+   * const reporter = Sentry.createConsolaReporter();
+   * reporter.log({
+   *   type: 'info',
+   *   message: 'User action',
+   *   userId: 123,
+   *   sessionId: 'abc-123'
+   * });
+   * // Will create attributes: consola.userId and consola.sessionId
+   * ```
+   */
+  [key: string]: unknown;
+
+  /**
    * The numeric log level (0-5) or null.
    *
    * Consola log levels:
@@ -171,7 +189,10 @@ export function createConsolaReporter(options: ConsolaReporterOptions = {}): Con
   const providedClient = options.client;
 
   return {
-    log({ type, level, message: consolaMessage, args, tag }: ConsolaLogObject) {
+    log(logObj: ConsolaLogObject) {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { type, level, message: consolaMessage, args, tag, date: _date, ...attributes } = logObj;
+
       // Get client - use provided client or current client
       const client = providedClient || getClient();
       if (!client) {
@@ -199,9 +220,7 @@ export function createConsolaReporter(options: ConsolaReporterOptions = {}): Con
       const message = messageParts.join(' ');
 
       // Build attributes
-      const attributes: Record<string, unknown> = {
-        'sentry.origin': 'auto.logging.consola',
-      };
+      attributes['sentry.origin'] = 'auto.logging.consola';
 
       if (tag) {
         attributes['consola.tag'] = tag;

@@ -275,11 +275,11 @@ describe('consola integration', () => {
     const runner = createRunner(__dirname, 'subject-args.ts')
       .expect({
         log: {
-          items: expect.arrayContaining([
+          items: [
             {
               timestamp: expect.any(Number),
               level: 'info',
-              body: expect.stringContaining('Message with args: hello 123'),
+              body: 'Message with args: hello 123 {"key":"value"} [1,2,3]',
               severity_number: expect.any(Number),
               trace_id: expect.any(String),
               attributes: {
@@ -295,8 +295,8 @@ describe('consola integration', () => {
             },
             {
               timestamp: expect.any(Number),
-              level: 'error',
-              body: expect.stringContaining('Error with object:'),
+              level: 'debug',
+              body: 'Debug message',
               severity_number: expect.any(Number),
               trace_id: expect.any(String),
               attributes: {
@@ -306,11 +306,23 @@ describe('consola integration', () => {
                 'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
                 'sentry.sdk.version': { value: expect.any(String), type: 'string' },
                 'server.address': { value: expect.any(String), type: 'string' },
-                'consola.type': { value: 'error', type: 'string' },
-                'consola.level': { value: 0, type: 'integer' },
+                'consola.type': { value: 'debug', type: 'string' },
+                'consola.level': { value: 2, type: 'integer' },
+                customData: {
+                  value: '{"nested":"value","count":42}',
+                  type: 'string',
+                },
+                sessionId: {
+                  value: 'abc-123-def',
+                  type: 'string',
+                },
+                userId: {
+                  value: 12345,
+                  type: 'integer',
+                },
               },
             },
-          ]),
+          ],
         },
       })
       .start();
@@ -322,7 +334,7 @@ describe('consola integration', () => {
     const runner = createRunner(__dirname, 'subject-tags.ts')
       .expect({
         log: {
-          items: expect.arrayContaining([
+          items: [
             {
               timestamp: expect.any(Number),
               level: 'info',
@@ -359,7 +371,7 @@ describe('consola integration', () => {
                 'consola.level': { value: 0, type: 'integer' },
               },
             },
-          ]),
+          ],
         },
       })
       .start();
@@ -371,7 +383,7 @@ describe('consola integration', () => {
     const runner = createRunner(__dirname, 'subject-custom-levels.ts')
       .expect({
         log: {
-          items: expect.arrayContaining([
+          items: [
             // Should capture the warn message
             {
               timestamp: expect.any(Number),
@@ -408,7 +420,7 @@ describe('consola integration', () => {
                 'consola.level': { value: 0, type: 'integer' },
               },
             },
-          ]),
+          ],
         },
       })
       .start();
@@ -420,7 +432,7 @@ describe('consola integration', () => {
     const runner = createRunner(__dirname, 'subject-levels.ts')
       .expect({
         log: {
-          items: expect.arrayContaining([
+          items: [
             {
               timestamp: expect.any(Number),
               level: 'fatal',
@@ -472,7 +484,7 @@ describe('consola integration', () => {
                 'consola.level': { value: 3, type: 'integer' },
               },
             },
-          ]),
+          ],
         },
       })
       .start();

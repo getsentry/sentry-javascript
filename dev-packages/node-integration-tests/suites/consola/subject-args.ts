@@ -22,7 +22,13 @@ async function run(): Promise<void> {
 
   // Test with arguments formatting
   consola.info('Message with args:', 'hello', 123, { key: 'value' }, [1, 2, 3]);
-  consola.error('Error with object:', new Error('Test error'));
+  consola.log({
+    type: 'debug',
+    message: 'Debug message',
+    userId: 12345,
+    sessionId: 'abc-123-def',
+    customData: { nested: 'value', count: 42 },
+  });
 
   await Sentry.flush();
 }
