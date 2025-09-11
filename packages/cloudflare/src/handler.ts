@@ -14,7 +14,7 @@ import { getFinalOptions } from './options';
 import { wrapRequestHandler } from './request';
 import { addCloudResourceContext } from './scope-utils';
 import { init } from './sdk';
-import { cloneExecutionContext } from './utils/cloneExecutionContext';
+import { copyExecutionContext } from './utils/copyExecutionContext';
 
 /**
  * Wrapper for Cloudflare handlers.
@@ -41,7 +41,7 @@ export function withSentry<Env = unknown, QueueHandlerMessage = unknown, CfHostM
           const [request, env, ctx] = args;
 
           const options = getFinalOptions(optionsCallback(env), env);
-          const context = cloneExecutionContext(ctx)
+          const context = copyExecutionContext(ctx);
           args[2] = context;
 
           return wrapRequestHandler({ options, request, context }, () => target.apply(thisArg, args));
@@ -75,7 +75,7 @@ export function withSentry<Env = unknown, QueueHandlerMessage = unknown, CfHostM
       handler.scheduled = new Proxy(handler.scheduled, {
         apply(target, thisArg, args: Parameters<ExportedHandlerScheduledHandler<Env>>) {
           const [event, env, ctx] = args;
-          const context = cloneExecutionContext(ctx)
+          const context = copyExecutionContext(ctx);
           args[2] = context;
           return withIsolationScope(isolationScope => {
             const options = getFinalOptions(optionsCallback(env), env);
@@ -120,7 +120,7 @@ export function withSentry<Env = unknown, QueueHandlerMessage = unknown, CfHostM
       handler.email = new Proxy(handler.email, {
         apply(target, thisArg, args: Parameters<EmailExportedHandler<Env>>) {
           const [emailMessage, env, ctx] = args;
-          const context = cloneExecutionContext(ctx)
+          const context = copyExecutionContext(ctx);
           args[2] = context;
           return withIsolationScope(isolationScope => {
             const options = getFinalOptions(optionsCallback(env), env);
@@ -163,7 +163,7 @@ export function withSentry<Env = unknown, QueueHandlerMessage = unknown, CfHostM
       handler.queue = new Proxy(handler.queue, {
         apply(target, thisArg, args: Parameters<ExportedHandlerQueueHandler<Env, QueueHandlerMessage>>) {
           const [batch, env, ctx] = args;
-          const context = cloneExecutionContext(ctx)
+          const context = copyExecutionContext(ctx);
           args[2] = context;
 
           return withIsolationScope(isolationScope => {
@@ -215,7 +215,7 @@ export function withSentry<Env = unknown, QueueHandlerMessage = unknown, CfHostM
       handler.tail = new Proxy(handler.tail, {
         apply(target, thisArg, args: Parameters<ExportedHandlerTailHandler<Env>>) {
           const [, env, ctx] = args;
-          const context = cloneExecutionContext(ctx)
+          const context = copyExecutionContext(ctx);
           args[2] = context;
 
           return withIsolationScope(async isolationScope => {

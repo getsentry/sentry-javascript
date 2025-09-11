@@ -1,6 +1,6 @@
 import { type ExecutionContext } from '@cloudflare/workers-types';
 import { describe, expect, it, vi } from 'vitest';
-import { makeFlushLock } from '../src/flush';
+import { makeFlushLock } from '../src/utils/flushLock';
 import { createPromiseResolver } from '../src/utils/makePromiseResolver';
 
 describe('Flush buffer test', () => {

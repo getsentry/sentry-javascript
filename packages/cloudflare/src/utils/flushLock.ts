@@ -1,25 +1,25 @@
 import type { ExecutionContext } from '@cloudflare/workers-types';
-import { createPromiseResolver } from './utils/makePromiseResolver';
+import { createPromiseResolver } from './makePromiseResolver';
 
 type FlushLock = {
   readonly ready: Promise<void>;
   readonly finalize: () => Promise<void>;
 };
-type Lockable<T> = T & { [kFlushLock]?: FlushLock };
+type MaybeLockable<T extends object> = T & { [kFlushLock]?: FlushLock };
 
 const kFlushLock = Symbol.for('kFlushLock');
 
-function getInstrumentedLock<T>(o: Lockable<T>): FlushLock | undefined {
+function getInstrumentedLock<T extends object>(o: MaybeLockable<T>): FlushLock | undefined {
   return o[kFlushLock];
 }
 
-function storeInstrumentedLock<T>(o: Lockable<T>, lock: FlushLock): void {
+function storeInstrumentedLock<T extends object>(o: MaybeLockable<T>, lock: FlushLock): void {
   o[kFlushLock] = lock;
 }
 
 /**
  * Enhances the given execution context by wrapping its `waitUntil` method with a proxy
- * to monitor pending tasks, and provides a flusher function to ensure all tasks
+ * to monitor pending tasks and provides a flusher function to ensure all tasks
  * have been completed before executing any subsequent logic.
  *
  * @param {ExecutionContext} context - The execution context to be enhanced. If no context is provided, the function returns undefined.

@@ -18,7 +18,7 @@ import { isInstrumented, markAsInstrumented } from './instrument';
 import { getFinalOptions } from './options';
 import { wrapRequestHandler } from './request';
 import { init } from './sdk';
-import { cloneExecutionContext } from './utils/cloneExecutionContext';
+import { copyExecutionContext } from './utils/copyExecutionContext';
 
 type MethodWrapperOptions = {
   spanName?: string;
@@ -196,7 +196,7 @@ export function instrumentDurableObjectWithSentry<
     construct(target, [ctx, env]) {
       setAsyncLocalStorageAsyncContextStrategy();
 
-      const context = cloneExecutionContext(ctx)
+      const context = copyExecutionContext(ctx);
 
       const options = getFinalOptions(optionsCallback(env), env);
 
