@@ -79,6 +79,12 @@ class SentryPrismaInteropInstrumentation extends PrismaInstrumentation {
       ) => {
         const tracer = trace.getTracer('prismaV5Compatibility') as TracerWithIdGenerator;
 
+        // Prisma v5 relies on being able to create spans with a specific span & trace ID
+        // this is no longer possible in OTEL v2, there is no public API to do this anymore
+        // So in order to kind of hack this possibility, we rely on the internal `_idGenerator` property
+        // This is used to generate the random IDs, and we overwrite this temporarily to generate static IDs
+        // This is flawed and may not work, e.g. if the code is bundled and the private property is renamed
+        // in such cases, these spans will not be captured and some Prisma spans will be missing
         const initialIdGenerator = tracer._idGenerator;
 
         if (!initialIdGenerator) {
