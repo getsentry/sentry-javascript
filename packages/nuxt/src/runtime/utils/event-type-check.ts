@@ -13,41 +13,54 @@ interface MinimalCloudflareProps {
   env?: Record<string, unknown>;
 }
 
+interface CloudflareContext {
+  cf: CfProperties;
+  cloudflare: MinimalCloudflareProps;
+}
+
 // Direct shape: cf and cloudflare are directly on context
 interface CfEventDirect extends EventBase {
-  context: {
-    cf: CfProperties;
-    cloudflare: MinimalCloudflareProps;
-  };
+  context: CloudflareContext;
 }
 
 // Nested shape: cf and cloudflare are under _platform
 // Since Nitro v2.11.7 (PR: https://github.com/nitrojs/nitro/pull/3224)
 interface CfEventPlatform extends EventBase {
   context: {
-    _platform: {
-      cf: CfProperties;
-      cloudflare: MinimalCloudflareProps;
-    };
+    _platform: CloudflareContext;
   };
 }
 
 export type CfEventType = CfEventDirect | CfEventPlatform;
 
-function hasCfAndCloudflare(context: unknown): boolean {
+function hasCloudflareProperty(context: unknown): boolean {
   return (
     context !== null &&
     typeof context === 'object' &&
-    // context.cf properties
-    'cf' in context &&
-    typeof context.cf === 'object' &&
-    context.cf !== null &&
     // context.cloudflare properties
     'cloudflare' in context &&
     typeof context.cloudflare === 'object' &&
     context.cloudflare !== null &&
     'context' in context.cloudflare
   );
+}
+
+/**
+ * Type guard to check if an event context object has cf properties
+ */
+export function hasCfProperty(context: unknown): context is { cf: CfProperties } {
+  return (
+    context !== null &&
+    typeof context === 'object' &&
+    // context.cf properties
+    'cf' in context &&
+    typeof context.cf === 'object' &&
+    context.cf !== null
+  );
+}
+
+function hasCfAndCloudflare(context: unknown): context is CloudflareContext {
+  return hasCfProperty(context) && hasCloudflareProperty(context);
 }
 
 /**

@@ -8,7 +8,7 @@ import type { NuxtRenderHTMLContext } from 'nuxt/app';
 import { sentryCaptureErrorHook } from '../hooks/captureErrorHook';
 import { updateRouteBeforeResponse } from '../hooks/updateRouteBeforeResponse';
 import { addSentryTracingMetaTags } from '../utils';
-import { getCfProperties, getCloudflareProperties, isEventType } from '../utils/event-type-check';
+import { getCfProperties, getCloudflareProperties, hasCfProperty, isEventType } from '../utils/event-type-check';
 
 /**
  * Sentry Cloudflare Nitro plugin for when using the "cloudflare-pages" preset in Nuxt.
@@ -101,7 +101,19 @@ export const sentryCloudflareNitroPlugin =
 
     // @ts-expect-error - 'render:html' is a valid hook name in the Nuxt context
     nitroApp.hooks.hook('render:html', (html: NuxtRenderHTMLContext, { event }: { event: H3Event }) => {
-      const storedTraceData = event?.context?.cf ? traceDataMap.get(event.context.cf) : undefined;
+      let storedTraceData: ReturnType<typeof getTraceData> | undefined = undefined;
+
+      if (
+        event?.context &&
+        '_platform' in event.context &&
+        event.context._platform &&
+        hasCfProperty(event.context._platform)
+      ) {
+        storedTraceData = traceDataMap.get(event.context._platform.cf);
+      } else if (event?.context && hasCfProperty(event.context)) {
+        // legacy support (before Nitro v2.11.7 (PR: https://github.com/nitrojs/nitro/pull/3224))
+        storedTraceData = traceDataMap.get(event.context.cf);
+      }
 
       if (storedTraceData && Object.keys(storedTraceData).length > 0) {
         debug.log('Using stored trace data for HTML meta-tags: ', storedTraceData);
