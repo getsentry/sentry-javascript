@@ -195,7 +195,7 @@ export const instrumentPrisma = generateInstrumentOnce<PrismaOptions>(INTEGRATIO
  *    }
  *    ```
  */
-export const prismaIntegration = defineIntegration((_options: PrismaOptions) => {
+export const prismaIntegration = defineIntegration((_options?: PrismaOptions) => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
