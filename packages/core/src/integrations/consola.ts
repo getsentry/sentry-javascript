@@ -160,9 +160,6 @@ const DEFAULT_CAPTURED_LEVELS: Array<LogSeverityLevel> = ['trace', 'debug', 'inf
  * @param options - Configuration options for the reporter.
  * @returns A Consola reporter that can be added to consola instances.
  *
- * @experimental This method will experience breaking changes. This is not yet part of
- * the stable Sentry SDK API and can be changed or removed without warning.
- *
  * @example
  * ```ts
  * import * as Sentry from '@sentry/node';
