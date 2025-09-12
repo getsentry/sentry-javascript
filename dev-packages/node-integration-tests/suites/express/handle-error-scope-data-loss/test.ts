@@ -22,7 +22,7 @@ test('withScope scope is NOT applied to thrown error caught by global handler', 
           values: [
             {
               mechanism: {
-                type: 'middleware',
+                type: 'auto.middleware.express',
                 handled: false,
               },
               type: 'Error',
@@ -61,7 +61,7 @@ test('http requestisolation scope is applied to thrown error caught by global ha
           values: [
             {
               mechanism: {
-                type: 'middleware',
+                type: 'auto.middleware.express',
                 handled: false,
               },
               type: 'Error',
@@ -109,7 +109,7 @@ test('withIsolationScope scope is NOT applied to thrown error caught by global h
           values: [
             {
               mechanism: {
-                type: 'middleware',
+                type: 'auto.middleware.express',
                 handled: false,
               },
               type: 'Error',
