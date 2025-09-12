@@ -39,6 +39,7 @@
     "apollo-server": "^3.11.1",
     "body-parser": "^1.20.3",
     "connect": "^3.7.0",
+    "consola": "^3.2.3",
     "cors": "^2.8.5",
     "cron": "^3.1.6",
     "dataloader": "2.2.2",
