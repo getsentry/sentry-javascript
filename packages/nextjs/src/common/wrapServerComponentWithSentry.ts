@@ -114,7 +114,7 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
               name: `${componentType} Server Component (${componentRoute})`,
               attributes: {
                 [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
-                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs',
+                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs.server_component',
                 'sentry.nextjs.ssr.function.type': componentType,
                 'sentry.nextjs.ssr.function.route': componentRoute,
               },
@@ -136,6 +136,7 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
                     captureException(error, {
                       mechanism: {
                         handled: false,
+                        type: 'auto.function.nextjs.server_component',
                       },
                     });
                   }

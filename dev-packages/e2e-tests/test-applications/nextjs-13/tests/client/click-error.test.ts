@@ -13,8 +13,18 @@ test('should send error for faulty click handlers', async ({ page }) => {
 
   expect(errorEvent).toBeDefined();
 
-  const frames = errorEvent?.exception?.values?.[0]?.stacktrace?.frames;
+  const exception = errorEvent?.exception?.values?.[0];
 
+  expect(exception?.mechanism).toEqual({
+    type: 'auto.browser.browserapierrors.addEventListener',
+    handled: false,
+    data: {
+      handler: expect.any(String), // the handler name varies in CI and locally
+      target: 'EventTarget',
+    },
+  });
+
+  const frames = exception?.stacktrace?.frames;
   await test.step('error should have a non-url-encoded top frame in route with parameter', () => {
     if (process.env.TEST_ENV === 'development') {
       // In dev mode we want to check local source mapping

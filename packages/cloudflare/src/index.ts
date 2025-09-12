@@ -94,6 +94,7 @@ export {
   updateSpanName,
   wrapMcpServerWithSentry,
   consoleLoggingIntegration,
+  createConsolaReporter,
   featureFlagsIntegration,
 } from '@sentry/core';
 

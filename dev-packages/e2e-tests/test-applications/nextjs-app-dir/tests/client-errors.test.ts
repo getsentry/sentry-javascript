@@ -35,4 +35,15 @@ test('Sends a client-side exception to Sentry', async ({ page }) => {
     trace_id: expect.stringMatching(/[a-f0-9]{32}/),
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
   });
+
+  expect(errorEvent.exception?.values?.[0]?.mechanism).toEqual({
+    handled: false,
+    type: nextjsMajor >= 15 ? 'auto.browser.global_handlers.onerror' : 'auto.browser.browserapierrors.addEventListener',
+    ...(nextjsMajor < 15 && {
+      data: {
+        handler: expect.any(String), // the handler name varies in CI and locally
+        target: 'EventTarget',
+      },
+    }),
+  });
 });

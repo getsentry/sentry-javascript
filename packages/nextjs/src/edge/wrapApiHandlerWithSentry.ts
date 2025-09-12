@@ -79,7 +79,7 @@ export function wrapApiHandlerWithSentry<H extends EdgeRouteHandler>(
             op: op,
             attributes: {
               [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs.wrapApiHandlerWithSentry',
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs.wrap_api_handler',
               ...headerAttributes,
             },
           },
@@ -89,7 +89,7 @@ export function wrapApiHandlerWithSentry<H extends EdgeRouteHandler>(
               error => {
                 captureException(error, {
                   mechanism: {
-                    type: 'instrument',
+                    type: 'auto.function.nextjs.wrap_api_handler',
                     handled: false,
                   },
                 });
