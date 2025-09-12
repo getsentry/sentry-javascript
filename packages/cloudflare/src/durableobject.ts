@@ -94,7 +94,7 @@ function wrapMethodWithSentry<T extends OriginalMethod>(
           } catch (e) {
             captureException(e, {
               mechanism: {
-                type: 'cloudflare_durableobject',
+                type: 'auto.faas.cloudflare.durable_object',
                 handled: false,
               },
             });
