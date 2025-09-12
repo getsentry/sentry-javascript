@@ -9,22 +9,25 @@ import {
   waitForTransactionRequestOnUrl,
 } from '../../../utils/helpers';
 
-sentryTest('does not send profile envelope when document-policy is not set', async ({ page, getLocalTestUrl }) => {
-  if (shouldSkipTracingTest()) {
-    // Profiling only works when tracing is enabled
-    sentryTest.skip();
-  }
+sentryTest(
+  'does not send profile envelope when document-policy is not set',
+  async ({ page, getLocalTestUrl, browserName }) => {
+    if (shouldSkipTracingTest() || browserName !== 'chromium') {
+      // Profiling only works when tracing is enabled
+      sentryTest.skip();
+    }
 
-  const url = await getLocalTestUrl({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
 
-  const req = await waitForTransactionRequestOnUrl(page, url);
-  const transactionEvent = properEnvelopeRequestParser<Event>(req, 0);
-  const profileEvent = properEnvelopeRequestParser<Profile>(req, 1);
+    const req = await waitForTransactionRequestOnUrl(page, url);
+    const transactionEvent = properEnvelopeRequestParser<Event>(req, 0);
+    const profileEvent = properEnvelopeRequestParser<Profile>(req, 1);
 
-  expect(transactionEvent).toBeDefined();
+    expect(transactionEvent).toBeDefined();
 
-  expect(profileEvent).toBeUndefined();
-});
+    expect(profileEvent).toBeUndefined();
+  },
+);
 
 sentryTest(
   'sends profile envelope in trace mode (single chunk for overlapping spans)',

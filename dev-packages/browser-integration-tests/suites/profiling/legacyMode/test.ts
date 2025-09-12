@@ -15,11 +15,6 @@ sentryTest(
       sentryTest.skip();
     }
 
-    if (shouldSkipTracingTest()) {
-      // Profiling only works when tracing is enabled
-      sentryTest.skip();
-    }
-
     const url = await getLocalTestUrl({ testDir: __dirname });
 
     const req = await waitForTransactionRequestOnUrl(page, url);

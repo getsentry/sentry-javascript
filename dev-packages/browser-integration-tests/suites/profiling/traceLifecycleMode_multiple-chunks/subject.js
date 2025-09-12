@@ -44,6 +44,5 @@ await Sentry.startSpanManual({ name: 'root-largeSum-2', parentSpan: null, forceT
   span.end();
 });
 
-// Ensure envelope flush
 const client = Sentry.getClient();
 await client?.flush(5000);
