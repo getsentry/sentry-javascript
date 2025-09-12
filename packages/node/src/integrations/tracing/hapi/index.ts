@@ -56,9 +56,6 @@ function sendErrorToSentry(errorData: object): void {
     mechanism: {
       type: 'auto.function.hapi',
       handled: false,
-      data: {
-        function: 'hapiErrorPlugin',
-      },
     },
   });
 }
