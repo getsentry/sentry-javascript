@@ -22,9 +22,7 @@ class MockGoogleGenAI {
               content: {
                 parts: [
                   {
-                    text: params.contents
-                      ? 'The capital of France is Paris.'
-                      : 'Mock response from Google GenAI!',
+                    text: params.contents ? 'The capital of France is Paris.' : 'Mock response from Google GenAI!',
                   },
                 ],
                 role: 'model',
@@ -43,9 +41,10 @@ class MockGoogleGenAI {
     };
 
     this.chats = {
-      create: () => {
-        // Return a chat instance with sendMessage method
+      create: (options) => {
+        // Return a chat instance with sendMessage method and model info
         return {
+          model: options?.model || 'unknown', // Include model from create options
           sendMessage: async () => {
             // Simulate processing time
             await new Promise(resolve => setTimeout(resolve, 10));

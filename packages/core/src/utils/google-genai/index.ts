@@ -20,14 +20,7 @@ import {
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
 import { buildMethodPath, getFinalOperationName, getSpanOperation } from '../ai/utils';
-import { isThenable } from '../is';
-import {
-  CHAT_PATH,
-  CHATS_CREATE_METHOD,
-  GOOGLE_GENAI_INTEGRATION_NAME,
-  GOOGLE_GENAI_MODEL_PROPERTY,
-  GOOGLE_GENAI_SYSTEM_NAME,
-} from './constants';
+import { CHAT_PATH, CHATS_CREATE_METHOD, GOOGLE_GENAI_INTEGRATION_NAME, GOOGLE_GENAI_SYSTEM_NAME } from './constants';
 import type {
   Candidate,
   ContentPart,
@@ -39,21 +32,26 @@ import type {
 import { shouldInstrument } from './utils';
 
 /**
- * Extract model from parameters or context
- * For chat instances, the model is stored during chat creation and retrieved from context
+ * Extract model from parameters or chat context object
+ * For chat instances, the model is available on the chat object as 'model' (older versions) or 'modelVersion' (newer versions)
  */
 export function extractModel(params: Record<string, unknown>, context?: unknown): string {
   if ('model' in params && typeof params.model === 'string') {
     return params.model;
   }
 
-  // For chat instances, try to get the model from the chat context
-  // This is because the model is set during chat creation
-  // and not passed as a parameter to the chat.sendMessage method
+  // Try to get model from chat context object (chat instance has model property)
   if (context && typeof context === 'object') {
-    const chatObj = context as Record<string, unknown>;
-    if (chatObj[GOOGLE_GENAI_MODEL_PROPERTY] && typeof chatObj[GOOGLE_GENAI_MODEL_PROPERTY] === 'string') {
-      return chatObj[GOOGLE_GENAI_MODEL_PROPERTY] as string;
+    const contextObj = context as Record<string, unknown>;
+
+    // Check for 'model' property (older versions, and streaming)
+    if ('model' in contextObj && typeof contextObj.model === 'string') {
+      return contextObj.model;
+    }
+
+    // Check for 'modelVersion' property (newer versions)
+    if ('modelVersion' in contextObj && typeof contextObj.modelVersion === 'string') {
+      return contextObj.modelVersion;
     }
   }
 
@@ -217,7 +215,7 @@ function instrumentMethod<T extends unknown[], R>(
   context: unknown,
   options?: GoogleGenAIOptions,
 ): (...args: T) => R | Promise<R> {
-  const isSyncCreate = !isThenable(originalMethod) && methodPath === CHATS_CREATE_METHOD;
+  const isSyncCreate = methodPath === CHATS_CREATE_METHOD 
 
   const run = (...args: T): R | Promise<R> => {
     const finalOptions = options || getRecordingOptionsFromIntegration();
@@ -238,13 +236,7 @@ function instrumentMethod<T extends unknown[], R>(
             if (finalOptions.recordInputs && args[0] && typeof args[0] === 'object') {
               addPrivateRequestAttributes(span, args[0] as Record<string, unknown>);
             }
-            const result = (originalMethod as (...args: T) => R).apply(context, args) as R;
-
-            if (typeof model === 'string' && model !== 'unknown' && typeof result === 'object') {
-              // We store the model in the result object so that it can be accessed later
-              // This is because the model is not passed as a parameter to the chat.sendMessage method
-              (result as Record<string, unknown>)[GOOGLE_GENAI_MODEL_PROPERTY] = model;
-            }
+            const result = (originalMethod as (...args: T) => R).apply(context, args);
 
             // No response attributes for create (returns object of chat instance, not generated content)
             return result;
@@ -255,7 +247,7 @@ function instrumentMethod<T extends unknown[], R>(
             throw error;
           }
         },
-      ) as R;
+      );
     }
 
     // Async/content-producing path
@@ -273,7 +265,7 @@ function instrumentMethod<T extends unknown[], R>(
 
           const result = await Promise.resolve((originalMethod as (...args: T) => Promise<R>).apply(context, args));
           addResponseAttributes(span, result as GoogleGenAIResponse, finalOptions.recordOutputs);
-          return result as R;
+          return result;
         } catch (error) {
           captureException(error, {
             mechanism: { handled: false, type: 'auto.ai.google_genai', data: { function: methodPath } },
@@ -281,7 +273,7 @@ function instrumentMethod<T extends unknown[], R>(
           throw error;
         }
       },
-    ) as Promise<R>;
+    );
   };
 
   return run;
