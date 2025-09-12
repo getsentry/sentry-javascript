@@ -54,7 +54,7 @@ function isErrorEvent(event: unknown): event is RequestEvent {
 function sendErrorToSentry(errorData: object): void {
   captureException(errorData, {
     mechanism: {
-      type: 'hapi',
+      type: 'auto.function.hapi',
       handled: false,
       data: {
         function: 'hapiErrorPlugin',
