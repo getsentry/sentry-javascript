@@ -11,6 +11,7 @@ import {
   timestampInSeconds,
   uuid4,
 } from '@sentry/core';
+import type { BrowserOptions } from '../client';
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';
 import type { JSSelfProfile, JSSelfProfiler, JSSelfProfilerConstructor, JSSelfProfileStack } from './jsSelfProfiling';
@@ -459,7 +460,7 @@ export function startJSSelfProfile(): JSSelfProfiler | undefined {
 /**
  * Determine if a profile should be profiled.
  */
-export function shouldProfileSpan(span: Span): boolean {
+export function shouldProfileSpanLegacy(span: Span): boolean {
   // If constructor failed once, it will always fail, so we can early return.
   if (PROFILING_CONSTRUCTOR_FAILED) {
     if (DEBUG_BUILD) {
@@ -469,9 +470,7 @@ export function shouldProfileSpan(span: Span): boolean {
   }
 
   if (!span.isRecording()) {
-    if (DEBUG_BUILD) {
-      debug.log('[Profiling] Discarding profile because transaction was not sampled.');
-    }
+    DEBUG_BUILD && debug.log('[Profiling] Discarding profile because root span was not sampled.');
     return false;
   }
 
@@ -516,6 +515,51 @@ export function shouldProfileSpan(span: Span): boolean {
   }
 
   return true;
+}
+
+/**
+ * Determine if a profile should be created for the current session (lifecycle profiling mode).
+ */
+export function shouldProfileSession(options?: BrowserOptions): boolean {
+  // If constructor failed once, it will always fail, so we can early return.
+  if (PROFILING_CONSTRUCTOR_FAILED) {
+    if (DEBUG_BUILD) {
+      debug.log('[Profiling] Profiling has been disabled for the duration of the current user session.');
+    }
+    return false;
+  }
+
+  if (!options || options.profileLifecycle !== 'trace') {
+    return false;
+  }
+
+  //  Session sampling: profileSessionSampleRate gates whether profiling is enabled for this session
+  const profileSessionSampleRate: number | boolean | undefined = (
+    options as unknown as {
+      profileSessionSampleRate?: number | boolean;
+    }
+  ).profileSessionSampleRate;
+
+  if (!isValidSampleRate(profileSessionSampleRate)) {
+    DEBUG_BUILD && debug.warn('[Profiling] Discarding profile because of invalid profileSessionSampleRate.');
+    return false;
+  }
+
+  if (!profileSessionSampleRate) {
+    DEBUG_BUILD &&
+      debug.log('[Profiling] Discarding profile because profileSessionSampleRate is not defined or set to 0');
+    return false;
+  }
+
+  return profileSessionSampleRate === true ? true : Math.random() <= profileSessionSampleRate;
+}
+
+/**
+ * Checks if legacy profiling is configured.
+ */
+export function hasLegacyProfiling(options: BrowserOptions = {} as unknown as BrowserOptions): boolean {
+  // eslint-disable-next-line deprecation/deprecation
+  return typeof (options as unknown as { profilesSampleRate?: number | boolean }).profilesSampleRate !== 'undefined';
 }
 
 /**
@@ -564,7 +608,9 @@ export function addProfileToGlobalCache(profile_id: string, profile: JSSelfProfi
   PROFILE_MAP.set(profile_id, profile);
 
   if (PROFILE_MAP.size > 30) {
-    const last: string = PROFILE_MAP.keys().next().value;
-    PROFILE_MAP.delete(last);
+    const last = PROFILE_MAP.keys().next().value;
+    if (last !== undefined) {
+      PROFILE_MAP.delete(last);
+    }
   }
 }
