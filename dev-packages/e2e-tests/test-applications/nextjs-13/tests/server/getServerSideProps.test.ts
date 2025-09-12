@@ -23,7 +23,7 @@ test('Should report an error event for errors thrown in getServerSideProps', asy
     exception: {
       values: [
         {
-          mechanism: { handled: false, type: 'generic' },
+          mechanism: { handled: false, type: 'auto.function.nextjs.wrapped' },
           type: 'Error',
           value: 'getServerSideProps Error',
           stacktrace: {
@@ -110,7 +110,7 @@ test('Should report an error event for errors thrown in getServerSideProps in pa
     exception: {
       values: [
         {
-          mechanism: { handled: false, type: 'generic' },
+          mechanism: { handled: false, type: 'auto.function.nextjs.wrapped' },
           type: 'Error',
           value: 'custom page extension error',
           stacktrace: {

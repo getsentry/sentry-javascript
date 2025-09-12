@@ -19,4 +19,10 @@ test('should capture orpc error', async ({ page }) => {
       }),
     ],
   });
+
+  // orpc errors are captured manually by the orpc middleware (user-land)
+  expect(orpcError.exception?.values?.[0]?.mechanism).toEqual({
+    handled: true,
+    type: 'generic',
+  });
 });
