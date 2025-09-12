@@ -65,7 +65,7 @@ export async function captureRemixServerException(err: unknown, name: string, re
 
     scope.addEventProcessor(event => {
       addExceptionMechanism(event, {
-        type: 'instrument',
+        type: 'auto.function.remix.server',
         handled: false,
         data: {
           function: name,
