@@ -17,6 +17,11 @@ describe('Copy of the execution context', () => {
 
       expect(copy[method]()).toBe(context);
     });
+    it('Copied method "rebind" prevention', async () => {
+      const context = makeExecutionContextMock();
+      const copy = copyExecutionContext(context);
+      expect(copy[method].bind('test')).toBe(copy[method]);
+    });
   });
 
   it('No side effects', async () => {
