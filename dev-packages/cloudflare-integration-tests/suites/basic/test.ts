@@ -15,7 +15,7 @@ it('Basic error in fetch handler', async () => {
               stacktrace: {
                 frames: expect.any(Array),
               },
-              mechanism: { type: 'cloudflare', handled: false },
+              mechanism: { type: 'auto.http.cloudflare', handled: false },
             },
           ],
         },

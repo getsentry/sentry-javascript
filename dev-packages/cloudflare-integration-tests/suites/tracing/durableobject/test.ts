@@ -12,9 +12,9 @@ it('traces a durable object method', async () => {
               op: 'rpc',
               data: expect.objectContaining({
                 'sentry.op': 'rpc',
-                'sentry.origin': 'auto.faas.cloudflare_durableobjects',
+                'sentry.origin': 'auto.faas.cloudflare.durable_object',
               }),
-              origin: 'auto.faas.cloudflare_durableobjects',
+              origin: 'auto.faas.cloudflare.durable_object',
             }),
           }),
           transaction: 'sayHello',

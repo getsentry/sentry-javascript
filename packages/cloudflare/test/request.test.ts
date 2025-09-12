@@ -192,7 +192,7 @@ describe('withSentry', () => {
 
       expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
       expect(captureExceptionSpy).toHaveBeenLastCalledWith(error, {
-        mechanism: { handled: false, type: 'cloudflare' },
+        mechanism: { handled: false, type: 'auto.http.cloudflare' },
       });
     });
 
