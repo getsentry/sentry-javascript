@@ -63,8 +63,6 @@ export const pinoIntegration = ((options: Options = { eventLevels: ['error', 'fa
     setup: () => {
       addInstrumentationConfig({
         channelName: 'pino-log',
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore https://github.com/apm-js-collab/orchestrion-js/pull/35
         module: { name: 'pino', versionRange: '>=8.0.0', filePath: 'lib/tools.js' },
         functionQuery: {
           functionName: 'asJson',

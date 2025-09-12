@@ -38,17 +38,15 @@ export function initializeInjectionLoader(): void {
       return;
     }
 
-    const packages = new Set(instrumentations.map(i => i.module.name));
-
     // Patch require to support CJS modules
-    const requirePatch = new ModulePatch({ instrumentations, packages });
+    const requirePatch = new ModulePatch({ instrumentations });
     requirePatch.patch();
 
     // Add ESM loader to support ESM modules
     try {
       // @ts-expect-error register is available in these versions
       moduleModule.register('@apm-js-collab/tracing-hooks/hook.mjs', import.meta.url, {
-        data: { instrumentations, packages },
+        data: { instrumentations },
       });
     } catch (error) {
       debug.warn("Failed to register '@apm-js-collab/tracing-hooks' hook", error);

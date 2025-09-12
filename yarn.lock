@@ -333,10 +333,15 @@
   resolved "https://registry.yarnpkg.com/@apm-js-collab/code-transformer/-/code-transformer-0.7.0.tgz#ddf2a4b5f71679af38d3bd4693ed63d13965060b"
   integrity sha512-ZusgjGSB1adwnhxNzyVPDpDqr3VcoGa+G6F/iRXihwmChA9/+hqMY4vOTSciAUJ+FS3poAH0VSC6K7D9fnyw0w==
 
-"@apm-js-collab/tracing-hooks@^0.1.1":
-  version "0.1.1"
-  resolved "https://registry.yarnpkg.com/@apm-js-collab/tracing-hooks/-/tracing-hooks-0.1.1.tgz#73f86cd18827e6d6253eda5322a6feb5753cfc58"
-  integrity sha512-4s8fUde6La3n09m10Ol3zQXUaiDZyuzFKwvdEgbZVKT/XXqycFbqaKfut+UWOAs/yyiocK87MAC9C2JV51CpKg==
+"@apm-js-collab/code-transformer@^0.7.2":
+  version "0.7.2"
+  resolved "https://registry.yarnpkg.com/@apm-js-collab/code-transformer/-/code-transformer-0.7.2.tgz#8c848f9d28f8389c92cdd08bcdae938bc681acb6"
+  integrity sha512-waZeIZFmPCf5/nD3O1gMHlHEPMRwgnaTfVTaDbkclg5OByy8IowR/dUDij5tC77VYH/ieXIujSx9vPFvhx35Fg==
+
+"@apm-js-collab/tracing-hooks@^0.2.0":
+  version "0.2.0"
+  resolved "https://registry.yarnpkg.com/@apm-js-collab/tracing-hooks/-/tracing-hooks-0.2.0.tgz#b34f0857055895400e1ff0c15be5fd98cc378530"
+  integrity sha512-tBTkPVXDRQa5wrH18UHqgGowHF33+v6B4LeixmaeBCpwOwnCjNs21lHZDlP8JAkvWLRBJ4O2zFLQnJk6B7IM+w==
   dependencies:
     "@apm-js-collab/code-transformer" "^0.7.0"
     debug "^4.4.1"
@@ -28787,7 +28792,6 @@ stylus@0.59.0, stylus@^0.59.0:
 
 sucrase@^3.27.0, sucrase@^3.35.0, sucrase@getsentry/sucrase#es2020-polyfills:
   version "3.36.0"
-  uid fd682f6129e507c00bb4e6319cc5d6b767e36061
   resolved "https://codeload.github.com/getsentry/sucrase/tar.gz/fd682f6129e507c00bb4e6319cc5d6b767e36061"
   dependencies:
     "@jridgewell/gen-mapping" "^0.3.2"
