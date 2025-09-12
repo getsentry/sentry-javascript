@@ -38,7 +38,7 @@ export function captureRequestError(error: unknown, request: RequestInfo, errorC
     captureException(error, {
       mechanism: {
         handled: false,
-        type: 'auto.function.nextjs.onRequestError',
+        type: 'auto.function.nextjs.on_request_error',
       },
     });
 

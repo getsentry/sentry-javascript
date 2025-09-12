@@ -98,7 +98,7 @@ export function wrapMiddlewareWithSentry<H extends EdgeRouteHandler>(
             op: 'http.server.middleware',
             attributes: {
               [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: spanSource,
-              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs.wrapMiddlewareWithSentry',
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs.wrap_middleware',
               ...headerAttributes,
             },
           },
@@ -108,7 +108,7 @@ export function wrapMiddlewareWithSentry<H extends EdgeRouteHandler>(
               error => {
                 captureException(error, {
                   mechanism: {
-                    type: 'auto.function.nextjs.wrapMiddlewareWithSentry',
+                    type: 'auto.function.nextjs.wrap_middleware',
                     handled: false,
                   },
                 });

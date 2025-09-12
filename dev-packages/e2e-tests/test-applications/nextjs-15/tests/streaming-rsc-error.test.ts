@@ -44,6 +44,6 @@ test('Should capture errors for crashing streaming promises in server components
 
   expect(errorEvent.exception?.values?.[0]?.mechanism).toEqual({
     handled: false,
-    type: 'auto.function.nextjs.onRequestError',
+    type: 'auto.function.nextjs.on_request_error',
   });
 });

@@ -20,7 +20,7 @@ test('Should capture an error thrown in a server component', async ({ page }) =>
     exception: {
       values: [
         {
-          mechanism: { handled: false, type: 'auto.function.nextjs.serverComponent' },
+          mechanism: { handled: false, type: 'auto.function.nextjs.server_component' },
           type: 'Error',
           value: 'RSC error',
         },

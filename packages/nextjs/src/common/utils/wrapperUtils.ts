@@ -103,7 +103,7 @@ export async function callDataFetcherTraced<F extends (...args: any[]) => Promis
   try {
     return await origFunction(...origFunctionArgs);
   } catch (e) {
-    captureException(e, { mechanism: { handled: false, type: 'auto.function.nextjs.dataFetcher' } });
+    captureException(e, { mechanism: { handled: false, type: 'auto.function.nextjs.data_fetcher' } });
     throw e;
   }
 }

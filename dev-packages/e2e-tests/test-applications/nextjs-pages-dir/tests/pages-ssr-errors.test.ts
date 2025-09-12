@@ -46,6 +46,6 @@ test('Will capture error for SSR rendering error with a connected trace (Functio
 
   expect(errorEvent.exception?.values?.[0]?.mechanism).toEqual({
     handled: false,
-    type: 'auto.function.nextjs.pageFunction',
+    type: 'auto.function.nextjs.page_function',
   });
 });

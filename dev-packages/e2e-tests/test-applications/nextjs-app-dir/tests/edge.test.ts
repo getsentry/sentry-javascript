@@ -22,7 +22,7 @@ test('Should record exceptions for faulty edge server components', async ({ page
 
   expect(errorEvent.exception?.values?.[0]?.mechanism).toEqual({
     handled: false,
-    type: 'auto.function.nextjs.serverComponent',
+    type: 'auto.function.nextjs.server_component',
   });
 });
 

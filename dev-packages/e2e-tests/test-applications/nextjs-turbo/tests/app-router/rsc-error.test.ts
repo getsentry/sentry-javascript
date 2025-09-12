@@ -13,6 +13,6 @@ test('Should capture errors from server components', async ({ page }) => {
   expect(errorEvent).toBeDefined();
   expect(errorEvent.exception?.values?.[0]?.mechanism).toEqual({
     handled: false,
-    type: 'auto.function.nextjs.onRequestError',
+    type: 'auto.function.nextjs.on_request_error',
   });
 });
