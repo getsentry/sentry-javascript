@@ -20,7 +20,7 @@ export function withSentryErrorBoundary(ErrorBoundary: Component<ErrorBoundaryPr
       captureException(error, {
         mechanism: {
           handled: true, // handled because user has to provide a fallback
-          type: 'solid.error-boundary',
+          type: 'auto.function.solid.error_boundary',
         },
       });
 
