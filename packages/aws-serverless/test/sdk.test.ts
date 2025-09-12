@@ -533,7 +533,7 @@ describe('AWSLambda', () => {
         // @ts-expect-error just mocking around...
         expect(evtProcessor!(event).exception.values[0]?.mechanism).toEqual({
           handled: false,
-          type: 'auto.function.aws-serverless.handler',
+          type: 'auto.function.aws_serverless.handler',
         });
       }
     });
@@ -576,7 +576,7 @@ describe('AWSLambda', () => {
       // @ts-expect-error just mocking around...
       expect(evtProcessor(event).exception.values[0]?.mechanism).toEqual({
         handled: false,
-        type: 'auto.function.aws-serverless.handler',
+        type: 'auto.function.aws_serverless.handler',
       });
     }
   });
