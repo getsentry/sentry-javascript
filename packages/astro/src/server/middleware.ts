@@ -50,11 +50,8 @@ function sendErrorToSentry(e: unknown): unknown {
 
   captureException(objectifiedErr, {
     mechanism: {
-      type: 'astro',
+      type: 'auto.middleware.astro',
       handled: false,
-      data: {
-        function: 'astroMiddleware',
-      },
     },
   });
 

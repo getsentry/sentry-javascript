@@ -47,11 +47,8 @@ test.describe('server-side errors', () => {
         values: [
           {
             mechanism: {
-              data: {
-                function: 'astroMiddleware',
-              },
               handled: false,
-              type: 'astro',
+              type: 'auto.middleware.astro',
             },
             stacktrace: expect.any(Object),
             type: 'TypeError',
@@ -136,11 +133,8 @@ test.describe('server-side errors', () => {
         values: [
           {
             mechanism: {
-              data: {
-                function: 'astroMiddleware',
-              },
               handled: false,
-              type: 'astro',
+              type: 'auto.middleware.astro',
             },
             stacktrace: expect.any(Object),
             type: 'Error',
