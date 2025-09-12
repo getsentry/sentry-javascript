@@ -81,7 +81,7 @@ export function reportNuxtError(options: {
   setTimeout(() => {
     captureException(error, {
       captureContext: { contexts: { nuxt: metadata } },
-      mechanism: { handled: false },
+      mechanism: { handled: false, type: `auto.function.nuxt.${instance ? 'vue' : 'app'}-error` },
     });
   });
 }

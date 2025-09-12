@@ -22,7 +22,11 @@ const cases = [
 cases.forEach(({ name, url, transactionName }) => {
   test(`Should capture transactions for routes with various shapes (${name})`, async ({ request }) => {
     const transactionEventPromise = waitForTransaction('nextjs-13', transactionEvent => {
-      return transactionEvent.transaction === transactionName && transactionEvent.contexts?.trace?.op === 'http.server';
+      return (
+        transactionEvent.transaction === transactionName &&
+        transactionEvent.contexts?.trace?.op === 'http.server' &&
+        transactionEvent.transaction_info?.source === 'route'
+      );
     });
 
     request.get(url).catch(() => {

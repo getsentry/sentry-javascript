@@ -74,7 +74,12 @@ function makeReplayDebugLogger(): ReplayDebugLogger {
       coreDebug.error(PREFIX, error);
 
       if (_capture) {
-        captureException(error);
+        captureException(error, {
+          mechanism: {
+            handled: true,
+            type: 'auto.function.replay.debug',
+          },
+        });
       } else if (_trace) {
         // No need for a breadcrumb if `_capture` is enabled since it should be
         // captured as an exception

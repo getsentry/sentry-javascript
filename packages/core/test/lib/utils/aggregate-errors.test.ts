@@ -160,6 +160,26 @@ describe('applyAggregateErrorsToEvent()', () => {
     expect(event.exception?.values?.[event.exception.values.length - 1]?.mechanism?.type).toBe('instrument');
   });
 
+  test('should assign a defualt mechanism type for the root exception', () => {
+    const fakeAggregateError = new FakeAggregateError(
+      [new Error('Nested Error 1'), new Error('Nested Error 2')],
+      'Root Error',
+    );
+
+    const exceptionFromError = (_stackParser: StackParser, ex: Error): Exception => {
+      return { value: ex.message, type: ex.name };
+    };
+
+    const event: Event = { exception: { values: [exceptionFromError(stackParser, fakeAggregateError)] } };
+    const eventHint: EventHint = { originalException: fakeAggregateError };
+
+    applyAggregateErrorsToEvent(exceptionFromError, stackParser, 'cause', 100, event, eventHint);
+
+    expect(event.exception?.values?.[event.exception.values.length - 1]?.mechanism?.type).toBe(
+      'auto.core.linked_errors',
+    );
+  });
+
   test('should recursively walk mixed errors (Aggregate errors and based on `key`)', () => {
     const chainedError: ExtendedError = new Error('Nested Error 3');
     chainedError.cause = new Error('Nested Error 4');

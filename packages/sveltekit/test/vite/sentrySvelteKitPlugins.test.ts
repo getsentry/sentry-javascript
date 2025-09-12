@@ -30,6 +30,7 @@ function getSentrySvelteKitPlugins(options?: Parameters<typeof sentrySvelteKit>[
       authToken: 'token',
       org: 'org',
       project: 'project',
+      // eslint-disable-next-line deprecation/deprecation
       ...options?.sourceMapsUploadOptions,
     },
     ...options,
@@ -388,5 +389,264 @@ describe('generateVitePluginOptions', () => {
     expect(result).toEqual(expected);
 
     process.env.NODE_ENV = originalEnv;
+  });
+
+  it.each([
+    {
+      testName: 'org setting precedence',
+      options: {
+        autoUploadSourceMaps: true,
+        org: 'root-org',
+        sourceMapsUploadOptions: {
+          org: 'deprecated-org',
+          unstable_sentryVitePluginOptions: {
+            org: 'unstable-org',
+          },
+        },
+        unstable_sentryVitePluginOptions: {
+          org: 'new-unstable-org',
+        },
+      },
+      expectedOrg: 'new-unstable-org',
+    },
+    {
+      testName: 'project setting precedence',
+      options: {
+        autoUploadSourceMaps: true,
+        project: 'root-project',
+        sourceMapsUploadOptions: {
+          project: 'deprecated-project',
+          unstable_sentryVitePluginOptions: {
+            project: 'unstable-project',
+          },
+        },
+        unstable_sentryVitePluginOptions: {
+          project: 'new-unstable-project',
+        },
+      },
+      expectedProject: 'new-unstable-project',
+    },
+    {
+      testName: 'authToken setting precedence',
+      options: {
+        autoUploadSourceMaps: true,
+        authToken: 'root-token',
+        sourceMapsUploadOptions: {
+          authToken: 'deprecated-token',
+          unstable_sentryVitePluginOptions: {
+            authToken: 'unstable-token',
+          },
+        },
+        unstable_sentryVitePluginOptions: {
+          authToken: 'new-unstable-token',
+        },
+      },
+      expectedAuthToken: 'new-unstable-token',
+    },
+    {
+      testName: 'telemetry setting precedence',
+      options: {
+        autoUploadSourceMaps: true,
+        telemetry: true,
+        sourceMapsUploadOptions: {
+          telemetry: false,
+          unstable_sentryVitePluginOptions: {
+            telemetry: true,
+          },
+        },
+        unstable_sentryVitePluginOptions: {
+          telemetry: false,
+        },
+      },
+      expectedTelemetry: false,
+    },
+    {
+      testName: 'url setting precedence',
+      options: {
+        autoUploadSourceMaps: true,
+        sentryUrl: 'https://root.sentry.io',
+        sourceMapsUploadOptions: {
+          url: 'https://deprecated.sentry.io',
+          unstable_sentryVitePluginOptions: {
+            url: 'https://unstable.sentry.io',
+          },
+        },
+        unstable_sentryVitePluginOptions: {
+          url: 'https://new-unstable.sentry.io',
+        },
+      },
+      expectedUrl: 'https://new-unstable.sentry.io',
+    },
+  ])(
+    'should use correct $testName',
+    ({ options, expectedOrg, expectedProject, expectedAuthToken, expectedTelemetry, expectedUrl }) => {
+      const result = generateVitePluginOptions(options as SentrySvelteKitPluginOptions);
+
+      if (expectedOrg !== undefined) {
+        expect(result?.org).toBe(expectedOrg);
+      }
+      if (expectedProject !== undefined) {
+        expect(result?.project).toBe(expectedProject);
+      }
+      if (expectedAuthToken !== undefined) {
+        expect(result?.authToken).toBe(expectedAuthToken);
+      }
+      if (expectedTelemetry !== undefined) {
+        expect(result?.telemetry).toBe(expectedTelemetry);
+      }
+      if (expectedUrl !== undefined) {
+        expect(result?.url).toBe(expectedUrl);
+      }
+    },
+  );
+
+  it('should handle sourcemap settings with correct order of overrides', () => {
+    const options: SentrySvelteKitPluginOptions = {
+      autoUploadSourceMaps: true,
+      sourcemaps: {
+        assets: ['root/*.js'],
+        ignore: ['root/ignore/*.js'],
+        filesToDeleteAfterUpload: ['root/delete/*.js'],
+      },
+      sourceMapsUploadOptions: {
+        sourcemaps: {
+          assets: ['deprecated/*.js'],
+          ignore: ['deprecated/ignore/*.js'],
+          filesToDeleteAfterUpload: ['deprecated/delete/*.js'],
+        },
+        unstable_sentryVitePluginOptions: {
+          sourcemaps: {
+            assets: ['unstable/*.js'],
+            ignore: ['unstable/ignore/*.js'],
+          },
+        },
+      },
+      unstable_sentryVitePluginOptions: {
+        sourcemaps: {
+          assets: ['new-unstable/*.js'],
+          filesToDeleteAfterUpload: ['new-unstable/delete/*.js'],
+        },
+      },
+    };
+
+    const result = generateVitePluginOptions(options);
+
+    expect(result?.sourcemaps).toEqual({
+      assets: ['new-unstable/*.js'], // new unstable takes precedence
+      ignore: ['unstable/ignore/*.js'], // from deprecated unstable (not overridden by new unstable)
+      filesToDeleteAfterUpload: ['new-unstable/delete/*.js'], // new unstable takes precedence
+    });
+  });
+
+  it('should handle release settings with correct order of overrides', () => {
+    const newReleaseOptions = {
+      name: 'root-release',
+      inject: true,
+    };
+    const newUnstableReleaseOptions = {
+      name: 'new-unstable-release',
+      deploy: {
+        env: 'production',
+      },
+    };
+
+    const options: SentrySvelteKitPluginOptions = {
+      autoUploadSourceMaps: true,
+      release: newReleaseOptions,
+      sourceMapsUploadOptions: {
+        release: {
+          name: 'deprecated-release',
+          inject: false,
+        },
+        unstable_sentryVitePluginOptions: {
+          release: { name: 'deprecated-unstable-release', setCommits: { auto: true } },
+        },
+      },
+      unstable_sentryVitePluginOptions: { release: newUnstableReleaseOptions },
+    };
+
+    const result = generateVitePluginOptions(options);
+
+    expect(result?.release).toEqual({
+      name: newUnstableReleaseOptions.name,
+      inject: newReleaseOptions.inject,
+      setCommits: {
+        auto: true, // from deprecated unstable (not overridden)
+      },
+      deploy: {
+        env: 'production', // from new unstable
+      },
+    });
+  });
+
+  it('should handle complex override scenario with all settings', () => {
+    const options: SentrySvelteKitPluginOptions = {
+      autoUploadSourceMaps: true,
+      org: 'root-org',
+      project: 'root-project',
+      authToken: 'root-token',
+      telemetry: true,
+      sentryUrl: 'https://root.sentry.io',
+      debug: false,
+      sourcemaps: {
+        assets: ['root/*.js'],
+      },
+      release: {
+        name: 'root-1.0.0',
+      },
+      sourceMapsUploadOptions: {
+        org: 'deprecated-org',
+        project: 'deprecated-project',
+        authToken: 'deprecated-token',
+        telemetry: false,
+        url: 'https://deprecated.sentry.io',
+        sourcemaps: {
+          assets: ['deprecated/*.js'],
+          ignore: ['deprecated/ignore/*.js'],
+        },
+        release: {
+          name: 'deprecated-1.0.0',
+          inject: false,
+        },
+        unstable_sentryVitePluginOptions: {
+          org: 'old-unstable-org',
+          sourcemaps: {
+            assets: ['old-unstable/*.js'],
+          },
+        },
+      },
+      unstable_sentryVitePluginOptions: {
+        org: 'new-unstable-org',
+        authToken: 'new-unstable-token',
+        sourcemaps: {
+          assets: ['new-unstable/*.js'],
+          filesToDeleteAfterUpload: ['new-unstable/delete/*.js'],
+        },
+        release: {
+          name: 'new-unstable-1.0.0',
+        },
+      },
+    };
+
+    const result = generateVitePluginOptions(options);
+
+    expect(result).toEqual({
+      org: 'new-unstable-org',
+      project: 'root-project',
+      authToken: 'new-unstable-token',
+      telemetry: true,
+      url: 'https://root.sentry.io',
+      sourcemaps: {
+        assets: ['new-unstable/*.js'],
+        ignore: ['deprecated/ignore/*.js'],
+        filesToDeleteAfterUpload: ['new-unstable/delete/*.js'],
+      },
+      release: {
+        name: 'new-unstable-1.0.0',
+        inject: false,
+      },
+      adapter: undefined,
+      debug: false,
+    });
   });
 });
