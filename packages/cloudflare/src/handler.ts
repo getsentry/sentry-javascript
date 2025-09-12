@@ -59,7 +59,7 @@ export function withSentry<Env = unknown, QueueHandlerMessage = unknown, CfHostM
         apply(target, thisArg, args) {
           const [err] = args;
 
-          captureException(err, { mechanism: { handled: false, type: 'cloudflare' } });
+          captureException(err, { mechanism: { handled: false, type: 'auto.faas.cloudflare.error_handler' } });
 
           return Reflect.apply(target, thisArg, args);
         },
@@ -97,7 +97,7 @@ export function withSentry<Env = unknown, QueueHandlerMessage = unknown, CfHostM
                 try {
                   return await (target.apply(thisArg, args) as ReturnType<typeof target>);
                 } catch (e) {
-                  captureException(e, { mechanism: { handled: false, type: 'cloudflare' } });
+                  captureException(e, { mechanism: { handled: false, type: 'auto.faas.cloudflare.scheduled' } });
                   throw e;
                 } finally {
                   waitUntil(flush(2000));
@@ -138,7 +138,7 @@ export function withSentry<Env = unknown, QueueHandlerMessage = unknown, CfHostM
                 try {
                   return await (target.apply(thisArg, args) as ReturnType<typeof target>);
                 } catch (e) {
-                  captureException(e, { mechanism: { handled: false, type: 'cloudflare' } });
+                  captureException(e, { mechanism: { handled: false, type: 'auto.faas.cloudflare.email' } });
                   throw e;
                 } finally {
                   waitUntil(flush(2000));
@@ -188,7 +188,7 @@ export function withSentry<Env = unknown, QueueHandlerMessage = unknown, CfHostM
                 try {
                   return await (target.apply(thisArg, args) as ReturnType<typeof target>);
                 } catch (e) {
-                  captureException(e, { mechanism: { handled: false, type: 'cloudflare' } });
+                  captureException(e, { mechanism: { handled: false, type: 'auto.faas.cloudflare.queue' } });
                   throw e;
                 } finally {
                   waitUntil(flush(2000));
@@ -220,7 +220,7 @@ export function withSentry<Env = unknown, QueueHandlerMessage = unknown, CfHostM
             try {
               return await (target.apply(thisArg, args) as ReturnType<typeof target>);
             } catch (e) {
-              captureException(e, { mechanism: { handled: false, type: 'cloudflare' } });
+              captureException(e, { mechanism: { handled: false, type: 'auto.faas.cloudflare.tail' } });
               throw e;
             } finally {
               waitUntil(flush(2000));
