@@ -14,7 +14,7 @@ test('should capture and send Express controller error if tracesSampleRate is no
           values: [
             {
               mechanism: {
-                type: 'middleware',
+                type: 'auto.middleware.express',
                 handled: false,
               },
               type: 'Error',
