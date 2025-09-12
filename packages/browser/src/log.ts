@@ -1,4 +1,4 @@
-import type { Log, LogSeverityLevel, ParameterizedString } from '@sentry/core';
+import type { Client, Log, LogSeverityLevel, ParameterizedString, Scope } from '@sentry/core';
 import { _INTERNAL_captureLog } from '@sentry/core';
 
 /**
@@ -7,15 +7,15 @@ import { _INTERNAL_captureLog } from '@sentry/core';
  * @param level - The level of the log.
  * @param message - The message to log.
  * @param attributes - Arbitrary structured data that stores information about the log - e.g., userId: 100.
- * @param severityNumber - The severity number of the log.
  */
 function captureLog(
   level: LogSeverityLevel,
   message: ParameterizedString,
   attributes?: Log['attributes'],
-  severityNumber?: Log['severityNumber'],
+  client?: Client,
+  scope?: Scope,
 ): void {
-  _INTERNAL_captureLog({ level, message, attributes, severityNumber });
+  _INTERNAL_captureLog({ level, message, attributes }, client, scope);
 }
 
 /**
@@ -43,8 +43,13 @@ function captureLog(
  * });
  * ```
  */
-export function trace(message: ParameterizedString, attributes?: Log['attributes']): void {
-  captureLog('trace', message, attributes);
+export function trace(
+  message: ParameterizedString,
+  attributes?: Log['attributes'],
+  client?: Client,
+  scope?: Scope,
+): void {
+  captureLog('trace', message, attributes, client, scope);
 }
 
 /**
@@ -73,8 +78,13 @@ export function trace(message: ParameterizedString, attributes?: Log['attributes
  * });
  * ```
  */
-export function debug(message: ParameterizedString, attributes?: Log['attributes']): void {
-  captureLog('debug', message, attributes);
+export function debug(
+  message: ParameterizedString,
+  attributes?: Log['attributes'],
+  client?: Client,
+  scope?: Scope,
+): void {
+  captureLog('debug', message, attributes, client, scope);
 }
 
 /**
@@ -103,8 +113,13 @@ export function debug(message: ParameterizedString, attributes?: Log['attributes
  * });
  * ```
  */
-export function info(message: ParameterizedString, attributes?: Log['attributes']): void {
-  captureLog('info', message, attributes);
+export function info(
+  message: ParameterizedString,
+  attributes?: Log['attributes'],
+  client?: Client,
+  scope?: Scope,
+): void {
+  captureLog('info', message, attributes, client, scope);
 }
 
 /**
@@ -134,8 +149,13 @@ export function info(message: ParameterizedString, attributes?: Log['attributes'
  * });
  * ```
  */
-export function warn(message: ParameterizedString, attributes?: Log['attributes']): void {
-  captureLog('warn', message, attributes);
+export function warn(
+  message: ParameterizedString,
+  attributes?: Log['attributes'],
+  client?: Client,
+  scope?: Scope,
+): void {
+  captureLog('warn', message, attributes, client, scope);
 }
 
 /**
@@ -166,8 +186,13 @@ export function warn(message: ParameterizedString, attributes?: Log['attributes'
  * });
  * ```
  */
-export function error(message: ParameterizedString, attributes?: Log['attributes']): void {
-  captureLog('error', message, attributes);
+export function error(
+  message: ParameterizedString,
+  attributes?: Log['attributes'],
+  client?: Client,
+  scope?: Scope,
+): void {
+  captureLog('error', message, attributes, client, scope);
 }
 
 /**
@@ -198,8 +223,13 @@ export function error(message: ParameterizedString, attributes?: Log['attributes
  * });
  * ```
  */
-export function fatal(message: ParameterizedString, attributes?: Log['attributes']): void {
-  captureLog('fatal', message, attributes);
+export function fatal(
+  message: ParameterizedString,
+  attributes?: Log['attributes'],
+  client?: Client,
+  scope?: Scope,
+): void {
+  captureLog('fatal', message, attributes, client, scope);
 }
 
 export { fmt } from '@sentry/core';
