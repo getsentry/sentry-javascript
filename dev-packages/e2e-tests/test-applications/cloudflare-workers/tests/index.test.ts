@@ -27,18 +27,21 @@ test('RPC method which throws an exception to be logged to sentry', async ({ bas
   const event = await eventWaiter;
   expect(event.exception?.values?.[0]?.value).toBe('Should be recorded in Sentry.');
 });
+
 test("Request processed by DurableObject's fetch is recorded", async ({ baseURL }) => {
+  console.log('xx Request processed by DurableObject');
   const eventWaiter = waitForError('cloudflare-workers', event => {
-    return event.exception?.values?.[0]?.mechanism?.type === 'auto.faas.cloudflare.durable_object';
+    return event.exception?.values?.[0]?.mechanism?.type === 'cloudflare_durableobject';
   });
   const response = await fetch(`${baseURL}/pass-to-object/throwException`);
   expect(response.status).toBe(500);
   const event = await eventWaiter;
   expect(event.exception?.values?.[0]?.value).toBe('Should be recorded in Sentry.');
 });
+
 test('Websocket.webSocketMessage', async ({ baseURL }) => {
   const eventWaiter = waitForError('cloudflare-workers', event => {
-    return event.exception?.values?.[0]?.mechanism?.type === 'auto.faas.cloudflare.durable_object';
+    return event.exception?.values?.[0]?.mechanism?.type === 'cloudflare_durableobject';
   });
   const url = new URL('/pass-to-object/ws', baseURL);
   url.protocol = url.protocol.replace('http', 'ws');
