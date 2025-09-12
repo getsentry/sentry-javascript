@@ -76,8 +76,8 @@ function makeReplayDebugLogger(): ReplayDebugLogger {
       if (_capture) {
         captureException(error, {
           mechanism: {
-            handled: false,
-            type: 'replay',
+            handled: true,
+            type: 'auto.function.replay.debug',
           },
         });
       } else if (_trace) {
