@@ -48,5 +48,13 @@
   },
   "volta": {
     "extends": "../../package.json"
+  },
+  "sentryTest": {
+    "optionalVariants": [
+      {
+        "build-command": "pnpm test:build-canary",
+        "label": "angular (canary)"
+      }
+    ]
   }
 }
