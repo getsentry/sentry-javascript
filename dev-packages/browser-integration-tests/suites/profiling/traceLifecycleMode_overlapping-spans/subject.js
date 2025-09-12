@@ -8,6 +8,7 @@ Sentry.init({
   integrations: [browserProfilingIntegration()],
   tracesSampleRate: 1,
   profileSessionSampleRate: 1,
+  profileLifecycle: 'trace',
 });
 
 function largeSum(amount = 1000000) {

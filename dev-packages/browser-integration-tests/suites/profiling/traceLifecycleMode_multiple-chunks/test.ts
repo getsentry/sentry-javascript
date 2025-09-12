@@ -1,12 +1,11 @@
 import { expect } from '@playwright/test';
-import type { Event, Profile, ProfileChunkEnvelope } from '@sentry/core';
+import type { ProfileChunkEnvelope } from '@sentry/core';
 import { sentryTest } from '../../../utils/fixtures';
 import {
+  countEnvelopes,
   getMultipleSentryEnvelopeRequests,
-  properEnvelopeRequestParser,
   properFullEnvelopeRequestParser,
   shouldSkipTracingTest,
-  waitForTransactionRequestOnUrl,
 } from '../../../utils/helpers';
 
 sentryTest('does not send profile envelope when document-policy is not set', async ({ page, getLocalTestUrl }) => {
@@ -17,16 +16,12 @@ sentryTest('does not send profile envelope when document-policy is not set', asy
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
-  const req = await waitForTransactionRequestOnUrl(page, url);
-  const transactionEvent = properEnvelopeRequestParser<Event>(req, 0);
-  const profileEvent = properEnvelopeRequestParser<Profile>(req, 1);
-
-  expect(transactionEvent).toBeDefined();
-
-  expect(profileEvent).toBeUndefined();
+  // Assert that no profile_chunk envelope is sent without policy header
+  const chunkCount = await countEnvelopes(page, { url, envelopeType: 'profile_chunk', timeout: 1500 });
+  expect(chunkCount).toBe(0);
 });
 
-sentryTest('sends profile envelope in trace mode', async ({ page, getLocalTestUrl, browserName }) => {
+sentryTest('sends profile_chunk envelopes in trace mode (multiple chunks)', async ({ page, getLocalTestUrl, browserName }) => {
   if (shouldSkipTracingTest() || browserName !== 'chromium') {
     // Profiling only works when tracing is enabled
     sentryTest.skip();
@@ -35,14 +30,19 @@ sentryTest('sends profile envelope in trace mode', async ({ page, getLocalTestUr
   const url = await getLocalTestUrl({ testDir: __dirname, responseHeaders: { 'Document-Policy': 'js-profiling' } });
   await page.goto(url);
 
-  const profileChunkEnvelopePromise = getMultipleSentryEnvelopeRequests<ProfileChunkEnvelope>(
+  // Expect at least 2 chunks because subject creates two separate root spans,
+  // causing the profiler to stop and emit a chunk after each root span ends.
+  const profileChunkEnvelopes = await getMultipleSentryEnvelopeRequests<ProfileChunkEnvelope>(
     page,
-    1,
-    { envelopeType: 'profile_chunk' },
+    2,
+    { envelopeType: 'profile_chunk', timeout: 5000 },
     properFullEnvelopeRequestParser,
   );
 
-  const profileChunkEnvelopeItem = (await profileChunkEnvelopePromise)[0][1][0];
+  expect(profileChunkEnvelopes.length).toBeGreaterThanOrEqual(2);
+
+  // Validate the first chunk thoroughly
+  const profileChunkEnvelopeItem = profileChunkEnvelopes[0][1][0];
   const envelopeItemHeader = profileChunkEnvelopeItem[0];
   const envelopeItemPayload = profileChunkEnvelopeItem[1];
 
@@ -137,4 +137,13 @@ sentryTest('sends profile envelope in trace mode', async ({ page, getLocalTestUr
 
   // Should be at least 20ms based on our setTimeout(21) in the test
   expect(durationMs).toBeGreaterThan(20);
+
+  // Basic sanity on the second chunk: has correct envelope type and structure
+  const secondChunkItem = profileChunkEnvelopes[1][1][0];
+  const secondHeader = secondChunkItem[0];
+  const secondPayload = secondChunkItem[1];
+  expect(secondHeader).toHaveProperty('type', 'profile_chunk');
+  expect(secondPayload.profile).toBeDefined();
+  expect(secondPayload.version).toBe('2');
+  expect(secondPayload.platform).toBe('javascript');
 });
