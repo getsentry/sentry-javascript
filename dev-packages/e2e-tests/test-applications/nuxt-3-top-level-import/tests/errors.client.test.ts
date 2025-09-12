@@ -21,6 +21,7 @@ test.describe('client-side errors', async () => {
             value: 'Error thrown from Nuxt-3 E2E test app',
             mechanism: {
               handled: false,
+              type: 'auto.function.nuxt.vue-error',
             },
           },
         ],
@@ -49,6 +50,7 @@ test.describe('client-side errors', async () => {
             value: 'Error thrown from Param Route Button',
             mechanism: {
               handled: false,
+              type: 'auto.function.nuxt.vue-error',
             },
           },
         ],
@@ -82,6 +84,7 @@ test.describe('client-side errors', async () => {
             value: 'Error thrown from Nuxt-3 E2E test app',
             mechanism: {
               handled: false,
+              type: 'auto.function.nuxt.vue-error',
             },
           },
         ],
@@ -96,6 +99,7 @@ test.describe('client-side errors', async () => {
             value: 'Another Error thrown from Nuxt-3 E2E test app',
             mechanism: {
               handled: false,
+              type: 'auto.function.nuxt.vue-error',
             },
           },
         ],

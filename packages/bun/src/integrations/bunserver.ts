@@ -246,11 +246,8 @@ function wrapRequestHandler<T extends RouteHandler = RouteHandler>(
             } catch (e) {
               captureException(e, {
                 mechanism: {
-                  type: 'bun',
+                  type: 'auto.http.bun.serve',
                   handled: false,
-                  data: {
-                    function: 'serve',
-                  },
                 },
               });
               throw e;

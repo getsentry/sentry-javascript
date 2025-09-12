@@ -53,7 +53,12 @@ export function instrumentNodeCron<T>(lib: Partial<NodeCron> & T): T {
                   try {
                     return await callback();
                   } catch (e) {
-                    captureException(e);
+                    captureException(e, {
+                      mechanism: {
+                        handled: false,
+                        type: 'auto.function.node-cron.instrumentNodeCron',
+                      },
+                    });
                     throw e;
                   }
                 },

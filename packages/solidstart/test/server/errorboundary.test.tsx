@@ -49,7 +49,12 @@ describe('withSentryErrorBoundary', () => {
     ));
 
     expect(mockCaptureException).toHaveBeenCalledTimes(1);
-    expect(mockCaptureException).toHaveBeenLastCalledWith(new ReferenceError('NonExistentComponent is not defined'));
+    expect(mockCaptureException).toHaveBeenLastCalledWith(new ReferenceError('NonExistentComponent is not defined'), {
+      mechanism: {
+        handled: true,
+        type: 'auto.function.solid.error_boundary',
+      },
+    });
   });
 
   it('renders the fallback component', async () => {
@@ -89,13 +94,23 @@ describe('withSentryErrorBoundary', () => {
     ));
 
     expect(mockCaptureException).toHaveBeenCalledTimes(1);
-    expect(mockCaptureException).toHaveBeenNthCalledWith(1, new ReferenceError('NonExistentComponent is not defined'));
+    expect(mockCaptureException).toHaveBeenNthCalledWith(1, new ReferenceError('NonExistentComponent is not defined'), {
+      mechanism: {
+        handled: true,
+        type: 'auto.function.solid.error_boundary',
+      },
+    });
 
     const button = await findByRole('button');
     await user.click(button);
 
     expect(mockCaptureException).toHaveBeenCalledTimes(2);
-    expect(mockCaptureException).toHaveBeenNthCalledWith(2, new ReferenceError('NonExistentComponent is not defined'));
+    expect(mockCaptureException).toHaveBeenNthCalledWith(2, new ReferenceError('NonExistentComponent is not defined'), {
+      mechanism: {
+        handled: true,
+        type: 'auto.function.solid.error_boundary',
+      },
+    });
   });
 
   it('renders children when there is no error', async () => {

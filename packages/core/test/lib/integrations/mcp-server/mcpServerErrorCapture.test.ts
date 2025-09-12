@@ -24,7 +24,7 @@ describe('MCP Server Error Capture', () => {
 
       expect(captureExceptionSpy).toHaveBeenCalledWith(error, {
         mechanism: {
-          type: 'mcp_server',
+          type: 'auto.ai.mcp_server',
           handled: false,
           data: {
             error_type: 'tool_execution',
@@ -40,7 +40,7 @@ describe('MCP Server Error Capture', () => {
 
       expect(captureExceptionSpy).toHaveBeenCalledWith(error, {
         mechanism: {
-          type: 'mcp_server',
+          type: 'auto.ai.mcp_server',
           handled: false,
           data: {
             error_type: 'transport',
@@ -56,7 +56,7 @@ describe('MCP Server Error Capture', () => {
 
       expect(captureExceptionSpy).toHaveBeenCalledWith(error, {
         mechanism: {
-          type: 'mcp_server',
+          type: 'auto.ai.mcp_server',
           handled: false,
           data: {
             error_type: 'protocol',
@@ -72,7 +72,7 @@ describe('MCP Server Error Capture', () => {
 
       expect(captureExceptionSpy).toHaveBeenCalledWith(error, {
         mechanism: {
-          type: 'mcp_server',
+          type: 'auto.ai.mcp_server',
           handled: false,
           data: {
             error_type: 'validation',
@@ -88,7 +88,7 @@ describe('MCP Server Error Capture', () => {
 
       expect(captureExceptionSpy).toHaveBeenCalledWith(error, {
         mechanism: {
-          type: 'mcp_server',
+          type: 'auto.ai.mcp_server',
           handled: false,
           data: {
             error_type: 'timeout',
@@ -104,7 +104,7 @@ describe('MCP Server Error Capture', () => {
 
       expect(captureExceptionSpy).toHaveBeenCalledWith(error, {
         mechanism: {
-          type: 'mcp_server',
+          type: 'auto.ai.mcp_server',
           handled: false,
           data: {
             error_type: 'tool_execution',

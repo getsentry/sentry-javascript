@@ -9,6 +9,7 @@ import {
   getActiveSpan,
   getCurrentScope,
   handleCallbackErrors,
+  isThenable,
   SDK_VERSION,
   withScope,
 } from '@sentry/core';
@@ -71,7 +72,7 @@ function isToolError(obj: unknown): obj is ToolError {
  * Check for tool errors in the result and capture them
  * Tool errors are not rejected in Vercel V5, it is added as metadata to the result content
  */
-function checkResultForToolErrors(result: unknown | Promise<unknown>): void {
+function checkResultForToolErrors(result: unknown): void {
   if (typeof result !== 'object' || result === null || !('content' in result)) {
     return;
   }
@@ -236,13 +237,18 @@ export class SentryVercelAiInstrumentation extends InstrumentationBase {
         };
 
         return handleCallbackErrors(
-          async () => {
+          () => {
             // @ts-expect-error we know that the method exists
-            const result = await originalMethod.apply(this, args);
+            const result = originalMethod.apply(this, args);
 
-            // Tool errors are not rejected in Vercel V5, it is added as metadata to the result content
+            if (isThenable(result)) {
+              // check for tool errors when the promise resolves, keep the original promise identity
+              result.then(checkResultForToolErrors, () => {});
+              return result;
+            }
+
+            // check for tool errors when the result is synchronous
             checkResultForToolErrors(result);
-
             return result;
           },
           error => {

@@ -160,7 +160,7 @@ test.describe('Lambda layer', () => {
         type: 'Error',
         value: 'test',
         mechanism: {
-          type: 'auto.function.aws-serverless.otel',
+          type: 'auto.function.aws_serverless.otel',
           handled: false,
         },
       }),
@@ -188,7 +188,7 @@ test.describe('Lambda layer', () => {
         type: 'Error',
         value: 'test esm',
         mechanism: {
-          type: 'auto.function.aws-serverless.otel',
+          type: 'auto.function.aws_serverless.otel',
           handled: false,
         },
       }),

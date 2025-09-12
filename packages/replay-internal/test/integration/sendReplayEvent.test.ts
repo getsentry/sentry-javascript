@@ -399,7 +399,12 @@ describe('Integration | sendReplayEvent', () => {
     expect(spyHandleException).toHaveBeenCalledTimes(5);
     const expectedError = new Error('Unable to send Replay - max retries exceeded');
     (expectedError as any).cause = new Error('Something bad happened');
-    expect(spyHandleException).toHaveBeenLastCalledWith(expectedError);
+    expect(spyHandleException).toHaveBeenLastCalledWith(expectedError, {
+      mechanism: {
+        handled: true,
+        type: 'auto.function.replay.debug',
+      },
+    });
 
     const spyHandleExceptionCall = spyHandleException.mock.calls;
     expect(spyHandleExceptionCall[spyHandleExceptionCall.length - 1][0]?.cause.message).toEqual(

@@ -91,31 +91,80 @@ export function generateVitePluginOptions(
     };
   }
 
+  // todo(v11): remove deprecated options (Also from options type)
+
   // Source Maps
   if (svelteKitPluginOptions.autoUploadSourceMaps && process.env.NODE_ENV !== 'development') {
-    const { unstable_sentryVitePluginOptions, ...sourceMapsUploadOptions } =
-      svelteKitPluginOptions.sourceMapsUploadOptions || {};
+    const {
+      // eslint-disable-next-line deprecation/deprecation
+      unstable_sentryVitePluginOptions: deprecated_unstableSourceMapUploadOptions,
+      ...deprecatedSourceMapUploadOptions
+      // eslint-disable-next-line deprecation/deprecation
+    } = svelteKitPluginOptions.sourceMapsUploadOptions || {};
+
+    const {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars,deprecation/deprecation
+      sourceMapsUploadOptions: _filtered1,
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      unstable_sentryVitePluginOptions: _filtered2,
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      autoUploadSourceMaps: _filtered3,
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      autoInstrument: _filtered4,
+      sentryUrl,
+      ...newSvelteKitPluginOptions
+    } = svelteKitPluginOptions;
+
+    const { unstable_sentryVitePluginOptions } = svelteKitPluginOptions;
 
     sentryVitePluginsOptions = {
       ...(sentryVitePluginsOptions ? sentryVitePluginsOptions : {}),
 
-      ...sourceMapsUploadOptions,
+      ...deprecatedSourceMapUploadOptions,
+      ...newSvelteKitPluginOptions,
+
+      url: sentryUrl,
+
+      ...deprecated_unstableSourceMapUploadOptions,
       ...unstable_sentryVitePluginOptions,
+
       adapter: svelteKitPluginOptions.adapter,
       // override the plugin's debug flag with the one from the top-level options
       debug: svelteKitPluginOptions.debug,
     };
 
-    if (sentryVitePluginsOptions.sourcemaps) {
+    // Handle sourcemaps options - merge deprecated and new, with new taking precedence
+    if (
+      // eslint-disable-next-line deprecation/deprecation
+      deprecatedSourceMapUploadOptions.sourcemaps ||
+      svelteKitPluginOptions.sourcemaps ||
+      deprecated_unstableSourceMapUploadOptions?.sourcemaps ||
+      unstable_sentryVitePluginOptions?.sourcemaps
+    ) {
       sentryVitePluginsOptions.sourcemaps = {
-        ...sourceMapsUploadOptions?.sourcemaps,
+        // eslint-disable-next-line deprecation/deprecation
+        ...deprecatedSourceMapUploadOptions.sourcemaps,
+        ...svelteKitPluginOptions.sourcemaps,
+        // Also handle nested deprecated options from unstable plugin options
+        ...deprecated_unstableSourceMapUploadOptions?.sourcemaps,
         ...unstable_sentryVitePluginOptions?.sourcemaps,
       };
     }
 
-    if (sentryVitePluginsOptions.release) {
+    // Handle release options - merge deprecated and new, with new taking precedence
+    if (
+      // eslint-disable-next-line deprecation/deprecation
+      deprecatedSourceMapUploadOptions.release ||
+      svelteKitPluginOptions.release ||
+      deprecated_unstableSourceMapUploadOptions?.release ||
+      unstable_sentryVitePluginOptions?.release
+    ) {
       sentryVitePluginsOptions.release = {
-        ...sourceMapsUploadOptions?.release,
+        // eslint-disable-next-line deprecation/deprecation
+        ...deprecatedSourceMapUploadOptions.release,
+        ...svelteKitPluginOptions.release,
+        // Also handle nested deprecated options from unstable plugin options
+        ...deprecated_unstableSourceMapUploadOptions?.release,
         ...unstable_sentryVitePluginOptions?.release,
       };
     }

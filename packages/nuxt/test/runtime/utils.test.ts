@@ -119,7 +119,7 @@ describe('reportNuxtError', () => {
 
     expect(captureException).toHaveBeenCalledWith(mockError, {
       captureContext: { contexts: { nuxt: { info: undefined } } },
-      mechanism: { handled: false },
+      mechanism: { handled: false, type: 'auto.function.nuxt.app-error' },
     });
   });
 
@@ -129,7 +129,7 @@ describe('reportNuxtError', () => {
 
     expect(captureException).toHaveBeenCalledWith(mockError, {
       captureContext: { contexts: { nuxt: { info: undefined, propsData: { foo: 'bar' } } } },
-      mechanism: { handled: false },
+      mechanism: { handled: false, type: 'auto.function.nuxt.vue-error' },
     });
   });
 
@@ -141,7 +141,7 @@ describe('reportNuxtError', () => {
 
     expect(captureException).toHaveBeenCalledWith(mockError, {
       captureContext: { contexts: { nuxt: { info: undefined } } },
-      mechanism: { handled: false },
+      mechanism: { handled: false, type: 'auto.function.nuxt.vue-error' },
     });
   });
 
@@ -151,7 +151,7 @@ describe('reportNuxtError', () => {
 
     expect(captureException).toHaveBeenCalledWith(mockError, {
       captureContext: { contexts: { nuxt: { info: 'Some info' } } },
-      mechanism: { handled: false },
+      mechanism: { handled: false, type: 'auto.function.nuxt.app-error' },
     });
   });
 });

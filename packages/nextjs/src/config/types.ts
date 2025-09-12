@@ -581,6 +581,7 @@ export type BuildContext = {
   webpack: {
     version: string;
     DefinePlugin: new (values: Record<string, string | boolean>) => WebpackPluginInstance;
+    ProvidePlugin: new (values: Record<string, string | string[]>) => WebpackPluginInstance;
   };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   defaultLoaders: any; // needed for type tests (test:types)

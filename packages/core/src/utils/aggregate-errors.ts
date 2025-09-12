@@ -99,10 +99,9 @@ function aggregateExceptionsFromError(
 }
 
 function applyExceptionGroupFieldsForParentException(exception: Exception, exceptionId: number): void {
-  // Don't know if this default makes sense. The protocol requires us to set these values so we pick *some* default.
-  exception.mechanism = exception.mechanism || { type: 'generic', handled: true };
-
   exception.mechanism = {
+    handled: true,
+    type: 'auto.core.linked_errors',
     ...exception.mechanism,
     ...(exception.type === 'AggregateError' && { is_exception_group: true }),
     exception_id: exceptionId,
@@ -115,10 +114,8 @@ function applyExceptionGroupFieldsForChildException(
   exceptionId: number,
   parentId: number | undefined,
 ): void {
-  // Don't know if this default makes sense. The protocol requires us to set these values so we pick *some* default.
-  exception.mechanism = exception.mechanism || { type: 'generic', handled: true };
-
   exception.mechanism = {
+    handled: true,
     ...exception.mechanism,
     type: 'chained',
     source,

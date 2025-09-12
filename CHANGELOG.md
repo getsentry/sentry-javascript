@@ -6,6 +6,12 @@
 
 ### Important Changes
 
+- **feat(node) Ensure `prismaIntegration` works with Prisma 5 ([#17595](https://github.com/getsentry/sentry-javascript/pull/17595))**
+
+We used to require to pass in the v5 version of `@prisma/instrumentation` into `prismaIntegration({ prismaInstrumentation: new PrismaInstrumentation() })`, if you wanted to get full instrumentation for Prisma v5. However, it turns out this does not work on v10 of the SDK anymore, because `@prisma/instrumentation@5` requires OTEL v1.
+
+With this release, we dropped the requirement to configure anything to get v5 support of Prisma. You do not need to configure anything in the integration anymore, and can remove the dependency on `@prisma/instrumentation@5` if you had it in your application. You only need to configure the `tracing` preview feature [according to our docs](https://docs.sentry.io/platforms/javascript/guides/node/configuration/integrations/prisma/).
+
 - **feat(deps): Update OpenTelemetry dependencies ([#17558](https://github.com/getsentry/sentry-javascript/pull/17558))**
   - @opentelemetry/core bumped to ^2.1.0
   - @opentelemetry/context-async-hooks bumped to ^2.1.0

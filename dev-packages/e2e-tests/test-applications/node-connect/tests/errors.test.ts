@@ -11,7 +11,13 @@ test('Sends correct error event', async ({ baseURL }) => {
   const errorEvent = await errorEventPromise;
 
   expect(errorEvent.exception?.values).toHaveLength(1);
-  expect(errorEvent.exception?.values?.[0]?.value).toBe('This is an exception');
+  const exception = errorEvent.exception?.values?.[0];
+  expect(exception?.value).toBe('This is an exception');
+
+  expect(exception?.mechanism).toEqual({
+    type: 'auto.middleware.connect',
+    handled: false,
+  });
 
   expect(errorEvent.request).toEqual({
     method: 'GET',

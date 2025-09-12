@@ -99,7 +99,13 @@ export function getBuildContext(
       distDir: '.next',
       ...materializedNextConfig,
     } as NextConfigObject,
-    webpack: { version: webpackVersion, DefinePlugin: class {} as any },
+    webpack: {
+      version: webpackVersion,
+      DefinePlugin: class {} as any,
+      ProvidePlugin: class {
+        constructor(public definitions: Record<string, any>) {}
+      } as any,
+    },
     defaultLoaders: true,
     totalPages: 2,
     isServer: buildTarget === 'server' || buildTarget === 'edge',

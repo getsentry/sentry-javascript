@@ -14,7 +14,7 @@ import type {
 import { normalize } from '@sentry/core';
 import { createBasicSentryServer } from '@sentry-internal/test-utils';
 import { execSync, spawn, spawnSync } from 'child_process';
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'fs';
+import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'fs';
 import { basename, join } from 'path';
 import { inspect } from 'util';
 import { afterAll, beforeAll, describe, test } from 'vitest';
@@ -104,7 +104,11 @@ async function runDockerCompose(options: DockerOptions): Promise<VoidFunction> {
           child.stdout.removeAllListeners();
           clearTimeout(timeout);
           if (options.setupCommand) {
-            execSync(options.setupCommand, { cwd, stdio: 'inherit' });
+            try {
+              execSync(options.setupCommand, { cwd, stdio: 'inherit' });
+            } catch (e) {
+              log('Error running docker setup command', e);
+            }
           }
           resolve(close);
         }
@@ -174,11 +178,20 @@ export function createEsmAndCjsTests(
     createTestRunner: () => ReturnType<typeof createRunner>,
     testFn: typeof test | typeof test.fails,
     mode: 'esm' | 'cjs',
+    cwd: string,
   ) => void,
-  // `additionalDependencies` to install in a tmp dir for the esm and cjs tests
-  // This could be used to override packages that live in the parent package.json for the specific run of the test
-  // e.g. `{ ai: '^5.0.0' }` to test Vercel AI v5
-  options?: { failsOnCjs?: boolean; failsOnEsm?: boolean; additionalDependencies?: Record<string, string> },
+  options?: {
+    failsOnCjs?: boolean;
+    failsOnEsm?: boolean;
+    /**
+     * `additionalDependencies` to install in a tmp dir for the esm and cjs tests
+     * This could be used to override packages that live in the parent package.json for the specific run of the test
+     * e.g. `{ ai: '^5.0.0' }` to test Vercel AI v5
+     */
+    additionalDependencies?: Record<string, string>;
+    /** Copy these files/dirs into the tmp dir. */
+    copyPaths?: string[];
+  },
 ): void {
   const mjsScenarioPath = join(cwd, scenarioPath);
   const mjsInstrumentPath = join(cwd, instrumentPath);
@@ -212,6 +225,13 @@ export function createEsmAndCjsTests(
     // Pre-create CJS converted files inside tmp dir
     convertEsmFileToCjs(esmScenarioPathForRun, cjsScenarioPath);
     convertEsmFileToCjs(esmInstrumentPathForRun, cjsInstrumentPath);
+
+    // Copy any additional files/dirs into tmp dir
+    if (options?.copyPaths) {
+      for (const path of options.copyPaths) {
+        cpSync(join(cwd, path), join(tmpDirPath, path), { recursive: true });
+      }
+    }
 
     // Create a minimal package.json with requested dependencies (if any) and install them
     const additionalDependencies = options?.additionalDependencies ?? {};
@@ -278,12 +298,18 @@ export function createEsmAndCjsTests(
         () => createRunner(esmScenarioPathForRun).withFlags('--import', esmInstrumentPathForRun),
         esmTestFn,
         'esm',
+        tmpDirPath,
       );
     });
 
     const cjsTestFn = options?.failsOnCjs ? test.fails : test;
     describe('cjs', () => {
-      callback(() => createRunner(cjsScenarioPath).withFlags('--require', cjsInstrumentPath), cjsTestFn, 'cjs');
+      callback(
+        () => createRunner(cjsScenarioPath).withFlags('--require', cjsInstrumentPath),
+        cjsTestFn,
+        'cjs',
+        tmpDirPath,
+      );
     });
 
     // Create tmp directory
@@ -293,6 +319,9 @@ export function createEsmAndCjsTests(
 
     // Clean up the tmp directory after both esm and cjs suites have run
     afterAll(() => {
+      // First do cleanup!
+      cleanupChildProcesses();
+
       try {
         rmSync(tmpDirPath, { recursive: true, force: true });
       } catch {

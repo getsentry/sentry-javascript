@@ -15,7 +15,7 @@ test('captures an exception', async ({ page }) => {
           type: 'ReferenceError',
           value: 'NonExistentComponent is not defined',
           mechanism: {
-            type: 'generic',
+            type: 'auto.function.solid.error_boundary',
             handled: true,
           },
         },
@@ -39,7 +39,7 @@ test('captures a second exception after resetting the boundary', async ({ page }
           type: 'ReferenceError',
           value: 'NonExistentComponent is not defined',
           mechanism: {
-            type: 'generic',
+            type: 'auto.function.solid.error_boundary',
             handled: true,
           },
         },
@@ -64,7 +64,7 @@ test('captures a second exception after resetting the boundary', async ({ page }
           type: 'ReferenceError',
           value: 'NonExistentComponent is not defined',
           mechanism: {
-            type: 'generic',
+            type: 'auto.function.solid.error_boundary',
             handled: true,
           },
         },
