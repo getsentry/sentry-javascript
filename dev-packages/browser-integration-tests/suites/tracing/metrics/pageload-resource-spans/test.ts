@@ -110,6 +110,12 @@ sentryTest('adds resource spans to pageload transaction', async ({ getLocalTestU
     trace_id: traceId,
   });
 
+  // range check: TTFB must be >0 (at least in this case) and it's reasonable to
+  // assume <10 seconds. This also tests that we're reporting TTFB in seconds.
+  const imgSpanTtfb = imgSpan?.data['http.request.time_to_first_byte'];
+  expect(imgSpanTtfb).toBeGreaterThan(0);
+  expect(imgSpanTtfb).toBeLessThan(10);
+
   expect(linkSpan).toEqual({
     data: {
       'http.decoded_response_content_length': expect.any(Number),
