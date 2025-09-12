@@ -3,7 +3,7 @@
  */
 
 import * as Sentry from '@sentry/browser';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('Browser Profiling v2 trace lifecycle', () => {
   afterEach(async () => {
@@ -62,5 +62,131 @@ describe('Browser Profiling v2 trace lifecycle', () => {
     expect(mockConstructor).not.toHaveBeenCalled();
     expect(send).not.toHaveBeenCalled();
     warn.mockRestore();
+  });
+
+  describe('profiling lifecycle behavior', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('starts on first sampled root span and sends a chunk on stop', async () => {
+      const { stop, mockConstructor } = mockProfiler();
+      const send = vi.fn().mockResolvedValue(undefined);
+
+      Sentry.init({
+        dsn: 'https://public@o.ingest.sentry.io/1',
+        tracesSampleRate: 1,
+        profileSessionSampleRate: 1,
+        profileLifecycle: 'trace',
+        integrations: [Sentry.browserProfilingIntegration()],
+        transport: () => ({ flush: vi.fn().mockResolvedValue(true), send }),
+      });
+
+      let spanRef: any;
+      Sentry.startSpanManual({ name: 'root-1', parentSpan: null, forceTransaction: true }, span => {
+        spanRef = span;
+      });
+
+      expect(mockConstructor).toHaveBeenCalledTimes(1);
+      // Ending the only root span should flush one chunk immediately
+      spanRef.end();
+
+      // Resolve any pending microtasks
+      await Promise.resolve();
+
+      expect(stop).toHaveBeenCalledTimes(1);
+      expect(send).toHaveBeenCalledTimes(2); // one for transaction, one for profile_chunk
+      const transactionEnvelopeHeader = send.mock.calls?.[0]?.[0]?.[1]?.[0]?.[0];
+      const profileChunkEnvelopeHeader = send.mock.calls?.[1]?.[0]?.[1]?.[0]?.[0];
+      expect(profileChunkEnvelopeHeader?.type).toBe('profile_chunk');
+      expect(transactionEnvelopeHeader?.type).toBe('transaction');
+    });
+
+    it('continues while any sampled root span is active; stops after last ends', async () => {
+      const { stop, mockConstructor } = mockProfiler();
+      const send = vi.fn().mockResolvedValue(undefined);
+
+      Sentry.init({
+        dsn: 'https://public@o.ingest.sentry.io/1',
+        tracesSampleRate: 1,
+        profileSessionSampleRate: 1,
+        profileLifecycle: 'trace',
+        integrations: [Sentry.browserProfilingIntegration()],
+        transport: () => ({ flush: vi.fn().mockResolvedValue(true), send }),
+      });
+
+      let spanA: any;
+      Sentry.startSpanManual({ name: 'root-A', parentSpan: null, forceTransaction: true }, span => {
+        spanA = span;
+      });
+
+      let spanB: any;
+      Sentry.startSpanManual({ name: 'root-B', parentSpan: null, forceTransaction: true }, span => {
+        spanB = span;
+      });
+
+      expect(mockConstructor).toHaveBeenCalledTimes(1);
+
+      // End first root span -> still one active sampled root span; no send yet
+      spanA.end();
+      await Promise.resolve();
+      expect(stop).toHaveBeenCalledTimes(0);
+      expect(send).toHaveBeenCalledTimes(1); // only transaction so far
+      const envelopeHeadersTxn = send.mock.calls?.[0]?.[0]?.[1]?.[0]?.[0];
+      expect(envelopeHeadersTxn?.type).toBe('transaction');
+
+      // End last root span -> should flush one chunk
+      spanB.end();
+      await Promise.resolve();
+      expect(stop).toHaveBeenCalledTimes(1);
+      expect(send).toHaveBeenCalledTimes(3);
+      const envelopeHeadersTxn1 = send.mock.calls?.[0]?.[0]?.[1]?.[0]?.[0];
+      const envelopeHeadersTxn2 = send.mock.calls?.[1]?.[0]?.[1]?.[0]?.[0];
+      const envelopeHeadersProfile = send.mock.calls?.[2]?.[0]?.[1]?.[0]?.[0];
+
+      expect(envelopeHeadersTxn1?.type).toBe('transaction');
+      expect(envelopeHeadersTxn2?.type).toBe('transaction');
+      expect(envelopeHeadersProfile?.type).toBe('profile_chunk');
+    });
+
+    it('sends a periodic chunk every 60s while running and restarts profiler', async () => {
+      const { stop, mockConstructor } = mockProfiler();
+      const send = vi.fn().mockResolvedValue(undefined);
+
+      Sentry.init({
+        dsn: 'https://public@o.ingest.sentry.io/1',
+        tracesSampleRate: 1,
+        profileSessionSampleRate: 1,
+        profileLifecycle: 'trace',
+        integrations: [Sentry.browserProfilingIntegration()],
+        transport: () => ({ flush: vi.fn().mockResolvedValue(true), send }),
+      });
+
+      let spanRef: any;
+      Sentry.startSpanManual({ name: 'root-interval', parentSpan: null, forceTransaction: true }, span => {
+        spanRef = span;
+      });
+
+      expect(mockConstructor).toHaveBeenCalledTimes(1);
+
+      // Advance timers by 60s to trigger scheduled chunk collection
+      vi.advanceTimersByTime(60_000);
+      await Promise.resolve();
+
+      // One chunk sent and profiler restarted (second constructor call)
+      expect(stop).toHaveBeenCalledTimes(1);
+      expect(send).toHaveBeenCalledTimes(1);
+      expect(mockConstructor).toHaveBeenCalledTimes(2);
+      const envelopeHeaders = send.mock.calls?.[0]?.[0]?.[1]?.[0]?.[0];
+      expect(envelopeHeaders?.type).toBe('profile_chunk');
+
+      // Clean up
+      spanRef.end();
+      await Promise.resolve();
+    });
   });
 });
