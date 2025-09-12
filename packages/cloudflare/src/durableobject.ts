@@ -243,7 +243,7 @@ export function instrumentDurableObjectWithSentry<
           (_, error) =>
             captureException(error, {
               mechanism: {
-                type: 'cloudflare_durableobject_websocket',
+                type: 'auto.faas.cloudflare.durable_object_websocket',
                 handled: false,
               },
             }),
