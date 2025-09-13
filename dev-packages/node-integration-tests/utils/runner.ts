@@ -164,7 +164,7 @@ type StartResult = {
   getLogs(): string[];
   getPort(): number | undefined;
   makeRequest<T>(
-    method: 'get' | 'post',
+    method: 'get' | 'post' | 'put' | 'delete' | 'patch',
     path: string,
     options?: { headers?: Record<string, string>; data?: BodyInit; expectError?: boolean },
   ): Promise<T | undefined>;
@@ -661,7 +661,7 @@ export function createRunner(...paths: string[]) {
           return scenarioServerPort;
         },
         makeRequest: async function <T>(
-          method: 'get' | 'post',
+          method: 'get' | 'post' | 'put' | 'delete' | 'patch',
           path: string,
           options: { headers?: Record<string, string>; data?: BodyInit; expectError?: boolean } = {},
         ): Promise<T | undefined> {
@@ -680,7 +680,7 @@ export function createRunner(...paths: string[]) {
           if (process.env.DEBUG) log('making request', method, url, headers, body);
 
           try {
-            const res = await fetch(url, { headers, method, body });
+            const res = await fetch(url, { headers, method: method.toUpperCase(), body });
 
             if (!res.ok) {
               if (!expectError) {
