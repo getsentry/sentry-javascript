@@ -12,7 +12,6 @@ import type {
   Variables,
 } from './common';
 import { createRateLimiter, functionNamesMatch } from './common';
-import { localVariablesTestHelperMethods } from './test-helpers';
 
 /** Creates a unique hash from stack frames */
 export function hashFrames(frames: StackFrame[] | undefined): string | undefined {
@@ -289,8 +288,6 @@ const _localVariablesSyncIntegration = ((
     return event;
   }
 
-  const testHelperMethods = localVariablesTestHelperMethods(cachedFrames);
-
   let setupPromise: Promise<void> | undefined;
 
   async function setup(): Promise<void> {
@@ -419,7 +416,13 @@ const _localVariablesSyncIntegration = ((
 
       return event;
     },
-    ...testHelperMethods,
+    // These are entirely for testing
+    _getCachedFramesCount(): number {
+      return cachedFrames.size;
+    },
+    _getFirstCachedFrame(): FrameVariables[] | undefined {
+      return cachedFrames.values()[0];
+    },
   };
 }) satisfies IntegrationFn;
 
