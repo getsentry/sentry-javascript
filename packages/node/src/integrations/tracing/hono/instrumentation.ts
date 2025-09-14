@@ -1,6 +1,7 @@
 import type { Span } from '@opentelemetry/api';
 import { context, SpanStatusCode, trace } from '@opentelemetry/api';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition } from '@opentelemetry/instrumentation';
+import { isThenable } from '@sentry/core';
 import { AttributeNames, HonoTypes } from './constants';
 import type {
   Context,
@@ -204,12 +205,7 @@ export class HonoInstrumentation extends InstrumentationBase {
     try {
       const result = execute();
 
-      if (
-        result &&
-        typeof result === 'object' &&
-        typeof Object.getOwnPropertyDescriptor(result, 'then')?.value === 'function'
-      ) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      if (isThenable(result)) {
         result.then(
           () => onSuccess(),
           (error: unknown) => onFailure(error),
