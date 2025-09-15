@@ -8,4 +8,3 @@ export const GOOGLE_GENAI_INSTRUMENTED_METHODS = ['models.generateContent', 'cha
 export const GOOGLE_GENAI_SYSTEM_NAME = 'google_genai';
 export const CHATS_CREATE_METHOD = 'chats.create';
 export const CHAT_PATH = 'chat';
-

@@ -41,7 +41,7 @@ class MockGoogleGenAI {
     };
 
     this.chats = {
-      create: (options) => {
+      create: options => {
         // Return a chat instance with sendMessage method and model info
         return {
           model: options?.model || 'unknown', // Include model from create options

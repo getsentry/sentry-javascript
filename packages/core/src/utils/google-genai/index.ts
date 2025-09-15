@@ -215,7 +215,7 @@ function instrumentMethod<T extends unknown[], R>(
   context: unknown,
   options?: GoogleGenAIOptions,
 ): (...args: T) => R | Promise<R> {
-  const isSyncCreate = methodPath === CHATS_CREATE_METHOD 
+  const isSyncCreate = methodPath === CHATS_CREATE_METHOD;
 
   const run = (...args: T): R | Promise<R> => {
     const finalOptions = options || getRecordingOptionsFromIntegration();
