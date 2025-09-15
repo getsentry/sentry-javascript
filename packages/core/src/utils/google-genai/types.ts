@@ -66,32 +66,7 @@ type Content = {
   role?: string;
 };
 
-enum MediaModality {
-  /**
-   * The modality is unspecified.
-   */
-  MODALITY_UNSPECIFIED = 'MODALITY_UNSPECIFIED',
-  /**
-   * Plain text.
-   */
-  TEXT = 'TEXT',
-  /**
-   * Images.
-   */
-  IMAGE = 'IMAGE',
-  /**
-   * Video.
-   */
-  VIDEO = 'VIDEO',
-  /**
-   * Audio.
-   */
-  AUDIO = 'AUDIO',
-  /**
-   * Document, e.g. PDF.
-   */
-  DOCUMENT = 'DOCUMENT',
-}
+type MediaModality = 'MODALITY_UNSPECIFIED' | 'TEXT' | 'IMAGE' | 'VIDEO' | 'AUDIO' | 'DOCUMENT';
 
 /**
  * Google GenAI Modality Token Count

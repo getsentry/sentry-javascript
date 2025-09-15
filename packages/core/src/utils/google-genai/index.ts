@@ -1,4 +1,4 @@
-import { getCurrentScope } from '../../currentScopes';
+import { getClient } from '../../currentScopes';
 import { captureException } from '../../exports';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import { startSpan } from '../../tracing/trace';
@@ -20,11 +20,11 @@ import {
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
 import { buildMethodPath, getFinalOperationName, getSpanOperation } from '../ai/utils';
-import { CHAT_PATH, CHATS_CREATE_METHOD, GOOGLE_GENAI_INTEGRATION_NAME, GOOGLE_GENAI_SYSTEM_NAME } from './constants';
+import { handleCallbackErrors } from '../handleCallbackErrors';
+import { CHAT_PATH, CHATS_CREATE_METHOD, GOOGLE_GENAI_SYSTEM_NAME } from './constants';
 import type {
   Candidate,
   ContentPart,
-  GoogleGenAIIntegration,
   GoogleGenAIIstrumentedMethod,
   GoogleGenAIOptions,
   GoogleGenAIResponse,
@@ -189,22 +189,6 @@ function addResponseAttributes(span: Span, response: GoogleGenAIResponse, record
 }
 
 /**
- * Get recording options from the Sentry integration configuration
- * Falls back to sendDefaultPii setting if integration options are not specified
- */
-function getRecordingOptionsFromIntegration(): GoogleGenAIOptions {
-  const scope = getCurrentScope();
-  const client = scope.getClient();
-  const integration = client?.getIntegrationByName(GOOGLE_GENAI_INTEGRATION_NAME) as GoogleGenAIIntegration | undefined;
-  const shouldRecordInputsAndOutputs = integration ? Boolean(client?.getOptions().sendDefaultPii) : false;
-
-  return {
-    recordInputs: integration?.options?.recordInputs ?? shouldRecordInputsAndOutputs,
-    recordOutputs: integration?.options?.recordOutputs ?? shouldRecordInputsAndOutputs,
-  };
-}
-
-/**
  * Instrument any async or synchronous genai method with Sentry spans
  * Handles operations like models.generateContent and chat.sendMessage and chats.create
  * @see https://docs.sentry.io/platforms/javascript/guides/node/tracing/instrumentation/ai-agents-module/#manual-instrumentation
@@ -213,65 +197,42 @@ function instrumentMethod<T extends unknown[], R>(
   originalMethod: (...args: T) => R | Promise<R>,
   methodPath: GoogleGenAIIstrumentedMethod,
   context: unknown,
-  options?: GoogleGenAIOptions,
+  options: GoogleGenAIOptions,
 ): (...args: T) => R | Promise<R> {
   const isSyncCreate = methodPath === CHATS_CREATE_METHOD;
 
   const run = (...args: T): R | Promise<R> => {
-    const finalOptions = options || getRecordingOptionsFromIntegration();
     const requestAttributes = extractRequestAttributes(args, methodPath, context);
     const model = requestAttributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] ?? 'unknown';
     const operationName = getFinalOperationName(methodPath);
 
-    if (isSyncCreate) {
-      // Preserve sync return for chats.create
-      return startSpan(
-        {
-          name: `${operationName} ${model} create`,
-          op: getSpanOperation(methodPath),
-          attributes: requestAttributes,
-        },
-        (span: Span) => {
-          try {
-            if (finalOptions.recordInputs && args[0] && typeof args[0] === 'object') {
-              addPrivateRequestAttributes(span, args[0] as Record<string, unknown>);
-            }
-            const result = (originalMethod as (...args: T) => R).apply(context, args);
-
-            // No response attributes for create (returns object of chat instance, not generated content)
-            return result;
-          } catch (error) {
-            captureException(error, {
-              mechanism: { handled: false, type: 'auto.ai.google_genai', data: { function: methodPath } },
-            });
-            throw error;
-          }
-        },
-      );
-    }
-
-    // Async/content-producing path
+    // Single span for both sync and async operations
     return startSpan(
       {
-        name: `${operationName} ${model}`,
+        name: isSyncCreate ? `${operationName} ${model} create` : `${operationName} ${model}`,
         op: getSpanOperation(methodPath),
         attributes: requestAttributes,
       },
-      async (span: Span) => {
-        try {
-          if (finalOptions.recordInputs && args[0] && typeof args[0] === 'object') {
-            addPrivateRequestAttributes(span, args[0] as Record<string, unknown>);
-          }
-
-          const result = await Promise.resolve((originalMethod as (...args: T) => Promise<R>).apply(context, args));
-          addResponseAttributes(span, result as GoogleGenAIResponse, finalOptions.recordOutputs);
-          return result;
-        } catch (error) {
-          captureException(error, {
-            mechanism: { handled: false, type: 'auto.ai.google_genai', data: { function: methodPath } },
-          });
-          throw error;
+      (span: Span) => {
+        if (options.recordInputs && args[0] && typeof args[0] === 'object') {
+          addPrivateRequestAttributes(span, args[0] as Record<string, unknown>);
         }
+
+        return handleCallbackErrors(
+          () => originalMethod.apply(context, args),
+          error => {
+            captureException(error, {
+              mechanism: { handled: false, type: 'auto.ai.google_genai', data: { function: methodPath } },
+            });
+          },
+          () => {},
+          result => {
+            // Only add response attributes for content-producing methods, not for chats.create
+            if (!isSyncCreate) {
+              addResponseAttributes(span, result, options.recordOutputs);
+            }
+          },
+        );
       },
     );
   };
@@ -283,41 +244,36 @@ function instrumentMethod<T extends unknown[], R>(
  * Create a deep proxy for Google GenAI client instrumentation
  * Recursively instruments methods and handles special cases like chats.create
  */
-function createDeepProxy<T extends object>(target: T, currentPath = '', options?: GoogleGenAIOptions): T {
+function createDeepProxy<T extends object>(target: T, currentPath = '', options: GoogleGenAIOptions): T {
   return new Proxy(target, {
-    get(obj: object, prop: string): unknown {
-      const value = (obj as Record<string, unknown>)[prop];
+    get: (t, prop, receiver) => {
+      const value = Reflect.get(t, prop, receiver);
       const methodPath = buildMethodPath(currentPath, String(prop));
 
       if (typeof value === 'function' && shouldInstrument(methodPath)) {
         // Special case: chats.create is synchronous but needs both instrumentation AND result proxying
         if (methodPath === CHATS_CREATE_METHOD) {
-          const instrumentedMethod = instrumentMethod(
-            value as (...args: unknown[]) => unknown,
-            methodPath,
-            obj,
-            options,
-          );
+          const instrumentedMethod = instrumentMethod(value as (...args: unknown[]) => unknown, methodPath, t, options);
           return function instrumentedAndProxiedCreate(...args: unknown[]): unknown {
             const result = instrumentedMethod(...args);
             // If the result is an object (like a chat instance), proxy it too
             if (result && typeof result === 'object') {
-              return createDeepProxy(result as object, CHAT_PATH, options);
+              return createDeepProxy(result, CHAT_PATH, options);
             }
             return result;
           };
         }
 
-        return instrumentMethod(value as (...args: unknown[]) => Promise<unknown>, methodPath, obj, options);
+        return instrumentMethod(value as (...args: unknown[]) => Promise<unknown>, methodPath, t, options);
       }
 
       if (typeof value === 'function') {
         // Bind non-instrumented functions to preserve the original `this` context
-        return value.bind(obj);
+        return value.bind(t);
       }
 
       if (value && typeof value === 'object') {
-        return createDeepProxy(value as object, methodPath, options);
+        return createDeepProxy(value, methodPath, options);
       }
 
       return value;
@@ -348,5 +304,12 @@ function createDeepProxy<T extends object>(target: T, currentPath = '', options?
  * ```
  */
 export function instrumentGoogleGenAIClient<T extends object>(client: T, options?: GoogleGenAIOptions): T {
-  return createDeepProxy(client, '', options);
+  const sendDefaultPii = Boolean(getClient()?.getOptions().sendDefaultPii);
+
+  const _options = {
+    recordInputs: sendDefaultPii,
+    recordOutputs: sendDefaultPii,
+    ...options,
+  };
+  return createDeepProxy(client, '', _options);
 }

@@ -215,6 +215,7 @@ export { basename, dirname, isAbsolute, join, normalizePath, relative, resolve }
 export { makePromiseBuffer, SENTRY_BUFFER_FULL_ERROR } from './utils/promisebuffer';
 export type { PromiseBuffer } from './utils/promisebuffer';
 export { severityLevelFromString } from './utils/severity';
+export { replaceExports } from './utils/exports';
 export {
   UNKNOWN_FUNCTION,
   createStackParser,

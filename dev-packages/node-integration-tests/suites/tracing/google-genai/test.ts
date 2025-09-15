@@ -34,9 +34,9 @@ describe('Google GenAI integration', () => {
           'sentry.origin': 'auto.ai.google_genai',
           'gen_ai.system': 'google_genai',
           'gen_ai.request.model': 'gemini-1.5-pro', // Should get from chat context
-          'gen_ai.usage.input_tokens': 10,
-          'gen_ai.usage.output_tokens': 15,
-          'gen_ai.usage.total_tokens': 25,
+          'gen_ai.usage.input_tokens': 8,
+          'gen_ai.usage.output_tokens': 12,
+          'gen_ai.usage.total_tokens': 20,
         },
         description: 'chat gemini-1.5-pro',
         op: 'gen_ai.chat',
@@ -111,9 +111,9 @@ describe('Google GenAI integration', () => {
           'gen_ai.request.model': 'gemini-1.5-pro',
           'gen_ai.request.messages': expect.any(String), // Should include message when recordInputs: true
           'gen_ai.response.text': expect.any(String), // Should include response when recordOutputs: true
-          'gen_ai.usage.input_tokens': 10,
-          'gen_ai.usage.output_tokens': 15,
-          'gen_ai.usage.total_tokens': 25,
+          'gen_ai.usage.input_tokens': 8,
+          'gen_ai.usage.output_tokens': 12,
+          'gen_ai.usage.total_tokens': 20,
         }),
         description: 'chat gemini-1.5-pro',
         op: 'gen_ai.chat',

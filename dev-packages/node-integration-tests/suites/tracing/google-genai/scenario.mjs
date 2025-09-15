@@ -1,89 +1,59 @@
-import { instrumentGoogleGenAIClient } from '@sentry/core';
 import * as Sentry from '@sentry/node';
+import { GoogleGenAI } from '@google/genai';
 
-class MockGoogleGenAI {
-  constructor(config) {
-    this.apiKey = config.apiKey;
+import express from 'express';
 
-    this.models = {
-      generateContent: async params => {
-        // Simulate processing time
-        await new Promise(resolve => setTimeout(resolve, 10));
+const PORT = 3333;
 
-        if (params.model === 'error-model') {
-          const error = new Error('Model not found');
-          error.status = 404;
-          throw error;
-        }
+function startMockGoogleGenAIServer() {
+  const app = express();
+  app.use(express.json());
 
-        return {
-          candidates: [
-            {
-              content: {
-                parts: [
-                  {
-                    text: params.contents ? 'The capital of France is Paris.' : 'Mock response from Google GenAI!',
-                  },
-                ],
-                role: 'model',
+  app.post('/v1beta/models/:model\\:generateContent', (req, res) => {
+    const model = req.params.model;
+
+    if (model === 'error-model') {
+      res.status(404).set('x-request-id', 'mock-request-123').end('Model not found');
+      return;
+    }
+
+    res.send({
+      candidates: [
+        {
+          content: {
+            parts: [
+              {
+                text: 'Mock response from Google GenAI!',
               },
-              finishReason: 'stop',
-              index: 0,
-            },
-          ],
-          usageMetadata: {
-            promptTokenCount: 8,
-            candidatesTokenCount: 12,
-            totalTokenCount: 20,
+            ],
+            role: 'model',
           },
-        };
+          finishReason: 'stop',
+          index: 0,
+        },
+      ],
+      usageMetadata: {
+        promptTokenCount: 8,
+        candidatesTokenCount: 12,
+        totalTokenCount: 20,
       },
-    };
+    });
+  });
 
-    this.chats = {
-      create: options => {
-        // Return a chat instance with sendMessage method and model info
-        return {
-          model: options?.model || 'unknown', // Include model from create options
-          sendMessage: async () => {
-            // Simulate processing time
-            await new Promise(resolve => setTimeout(resolve, 10));
-
-            return {
-              candidates: [
-                {
-                  content: {
-                    parts: [
-                      {
-                        text: 'Mock response from Google GenAI!',
-                      },
-                    ],
-                    role: 'model',
-                  },
-                  finishReason: 'stop',
-                  index: 0,
-                },
-              ],
-              usageMetadata: {
-                promptTokenCount: 10,
-                candidatesTokenCount: 15,
-                totalTokenCount: 25,
-              },
-            };
-          },
-        };
-      },
-    };
-  }
+  return app.listen(PORT);
 }
 
 async function run() {
-  const genAI = new MockGoogleGenAI({ apiKey: 'test-api-key' });
-  const instrumentedClient = instrumentGoogleGenAIClient(genAI);
+  const server = startMockGoogleGenAIServer();
 
-  await Sentry.startSpan({ name: 'main', op: 'function' }, async () => {
+  await Sentry.startSpan({ op: 'function', name: 'main' }, async () => {
+    const client = new GoogleGenAI({
+      apiKey: 'mock-api-key',
+      httpOptions: { baseUrl: `http://localhost:${PORT}` }
+    });
+
     // Test 1: chats.create and sendMessage flow
-    const chat = instrumentedClient.chats.create({
+    const chat = client.chats.create({
       model: 'gemini-1.5-pro',
       config: {
         temperature: 0.8,
@@ -103,7 +73,7 @@ async function run() {
     });
 
     // Test 2: models.generateContent
-    await instrumentedClient.models.generateContent({
+    await client.models.generateContent({
       model: 'gemini-1.5-flash',
       config: {
         temperature: 0.7,
@@ -120,7 +90,7 @@ async function run() {
 
     // Test 3: Error handling
     try {
-      await instrumentedClient.models.generateContent({
+      await client.models.generateContent({
         model: 'error-model',
         contents: [
           {
@@ -133,6 +103,8 @@ async function run() {
       // Expected error
     }
   });
+
+  server.close();
 }
 
 run();

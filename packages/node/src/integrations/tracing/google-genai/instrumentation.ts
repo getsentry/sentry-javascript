@@ -1,17 +1,14 @@
+import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import {
-  type InstrumentationConfig,
   type InstrumentationModuleDefinition,
   InstrumentationBase,
   InstrumentationNodeModuleDefinition,
+  InstrumentationNodeModuleFile,
 } from '@opentelemetry/instrumentation';
-import type { GoogleGenAIClient, GoogleGenAIOptions, Integration } from '@sentry/core';
-import { getCurrentScope, GOOGLE_GENAI_INTEGRATION_NAME, instrumentGoogleGenAIClient, SDK_VERSION } from '@sentry/core';
+import type { GoogleGenAIClient, GoogleGenAIOptions } from '@sentry/core';
+import { getClient, instrumentGoogleGenAIClient, replaceExports, SDK_VERSION } from '@sentry/core';
 
 const supportedVersions = ['>=0.10.0 <2'];
-
-export interface GoogleGenAIIntegration extends Integration {
-  options: GoogleGenAIOptions;
-}
 
 /**
  * Represents the patched shape of the Google GenAI module export.
@@ -21,23 +18,13 @@ interface PatchedModuleExports {
   GoogleGenAI?: unknown;
 }
 
-/**
- * Determine recording settings based on integration options and default PII setting
- */
-function determineRecordingSettings(
-  integrationOptions: GoogleGenAIOptions | undefined,
-  defaultEnabled: boolean,
-): { recordInputs: boolean; recordOutputs: boolean } {
-  const recordInputs = integrationOptions?.recordInputs ?? defaultEnabled;
-  const recordOutputs = integrationOptions?.recordOutputs ?? defaultEnabled;
-  return { recordInputs, recordOutputs };
-}
+type GoogleGenAIInstrumentationOptions = GoogleGenAIOptions & InstrumentationConfig;
 
 /**
  * Sentry Google GenAI instrumentation using OpenTelemetry.
  */
-export class SentryGoogleGenAiInstrumentation extends InstrumentationBase<InstrumentationConfig> {
-  public constructor(config: InstrumentationConfig = {}) {
+export class SentryGoogleGenAiInstrumentation extends InstrumentationBase<GoogleGenAIInstrumentationOptions> {
+  public constructor(config: GoogleGenAIInstrumentationOptions = {}) {
     super('@sentry/instrumentation-google-genai', SDK_VERSION, config);
   }
 
@@ -45,7 +32,20 @@ export class SentryGoogleGenAiInstrumentation extends InstrumentationBase<Instru
    * Initializes the instrumentation by defining the modules to be patched.
    */
   public init(): InstrumentationModuleDefinition {
-    const module = new InstrumentationNodeModuleDefinition('@google/genai', supportedVersions, this._patch.bind(this));
+    const module = new InstrumentationNodeModuleDefinition(
+      '@google/genai',
+      supportedVersions,
+      exports => this._patch(exports),
+      exports => exports,
+      [
+        new InstrumentationNodeModuleFile(
+          '@google/genai/dist/node/index.cjs',
+          supportedVersions,
+          exports => this._patch(exports),
+          exports => exports,
+        ),
+      ],
+    );
     return module;
   }
 
@@ -54,6 +54,7 @@ export class SentryGoogleGenAiInstrumentation extends InstrumentationBase<Instru
    */
   private _patch(exports: PatchedModuleExports): PatchedModuleExports | void {
     const Original = exports.GoogleGenAI;
+    const config = this.getConfig();
 
     if (typeof Original !== 'function') {
       return;
@@ -61,12 +62,14 @@ export class SentryGoogleGenAiInstrumentation extends InstrumentationBase<Instru
 
     const WrappedGoogleGenAI = function (this: unknown, ...args: unknown[]): GoogleGenAIClient {
       const instance = Reflect.construct(Original, args);
-      const scopeClient = getCurrentScope().getClient();
-      const integration = scopeClient?.getIntegrationByName<GoogleGenAIIntegration>(GOOGLE_GENAI_INTEGRATION_NAME);
-      const integrationOpts = integration?.options;
-      const defaultPii = Boolean(scopeClient?.getOptions().sendDefaultPii);
+      const client = getClient();
+      const defaultPii = Boolean(client?.getOptions().sendDefaultPii);
 
-      const { recordInputs, recordOutputs } = determineRecordingSettings(integrationOpts, defaultPii);
+      const typedConfig = config as GoogleGenAIInstrumentationOptions;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      const recordInputs = typedConfig?.recordInputs ?? defaultPii;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      const recordOutputs = typedConfig?.recordOutputs ?? defaultPii;
 
       return instrumentGoogleGenAIClient(instance, {
         recordInputs,
@@ -87,33 +90,8 @@ export class SentryGoogleGenAiInstrumentation extends InstrumentationBase<Instru
       }
     }
 
-    // Constructor replacement - handle read-only properties
-    // The GoogleGenAI property might have only a getter, so use defineProperty
-    try {
-      exports.GoogleGenAI = WrappedGoogleGenAI;
-    } catch (error) {
-      // If direct assignment fails, override the property descriptor
-      Object.defineProperty(exports, 'GoogleGenAI', {
-        value: WrappedGoogleGenAI,
-        writable: true,
-        configurable: true,
-        enumerable: true,
-      });
-    }
-
-    // Wrap the default export if it points to the original constructor
-    if (exports.default === Original) {
-      try {
-        exports.default = WrappedGoogleGenAI;
-      } catch (error) {
-        Object.defineProperty(exports, 'default', {
-          value: WrappedGoogleGenAI,
-          writable: true,
-          configurable: true,
-          enumerable: true,
-        });
-      }
-    }
+    // Replace google genai exports with the wrapped constructor
+    replaceExports(exports, 'GoogleGenAI', WrappedGoogleGenAI);
 
     return exports;
   }
