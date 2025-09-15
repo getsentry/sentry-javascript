@@ -3,6 +3,7 @@ import {
   type ProfileChunkEnvelope,
   createEnvelope,
   debug,
+  dsnToString,
   getRootSpan,
   getSdkMetadataForEnvelopeHeader,
   spanToJSON,
@@ -237,16 +238,20 @@ export class BrowserTraceLifecycleProfiler {
   private _sendProfileChunk(chunk: ProfileChunk): void {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const client = this._client!;
-    const sdkInfo = getSdkMetadataForEnvelopeHeader(client.getSdkMetadata?.());
 
-    const envelope: ProfileChunkEnvelope = createEnvelope(
+    const sdkInfo = getSdkMetadataForEnvelopeHeader(client.getSdkMetadata?.());
+    const dsn = client.getDsn();
+    const tunnel = client.getOptions().tunnel;
+
+    const envelope = createEnvelope<ProfileChunkEnvelope>(
       {
         event_id: uuid4(),
         sent_at: new Date().toISOString(),
         ...(sdkInfo && { sdk: sdkInfo }),
+        ...(!!tunnel && dsn && { dsn: dsnToString(dsn) }),
       },
       [[{ type: 'profile_chunk' }, chunk]],
-    ) as ProfileChunkEnvelope;
+    );
 
     client.sendEnvelope(envelope).then(null, reason => {
       DEBUG_BUILD && debug.error('Error while sending profile chunk envelope:', reason);
