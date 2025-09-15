@@ -11,6 +11,8 @@
   <details>
   <summary> Relevant PRs </summary>
 
+  <br/>
+
   Released in `10.12.0`:
   - ref(angular): Adjust ErrorHandler event mechanism ([#17608](https://github.com/getsentry/sentry-javascript/pull/17608))
   - ref(astro): Adjust `mechanism` on error events captured by astro middleware ([#17613](https://github.com/getsentry/sentry-javascript/pull/17613))
@@ -27,6 +29,8 @@
   - ref(remix): Adjust event mechanism of `captureRemixServerException` ([#17629](https://github.com/getsentry/sentry-javascript/pull/17629))
   - ref(replay-internal): Add mechanism to error caught by `replayIntegration` in debug mode ([#17606](https://github.com/getsentry/sentry-javascript/pull/17606))
   - ref(solid): Add `mechanism` to error captured by `withSentryErrorBoundary` ([#17607](https://github.com/getsentry/sentry-javascript/pull/17607))
+
+  <br/>
 
   Released in `10.11.0`:
   - ref(browser): Add more specific `mechanism.type` to errors captured by `httpClientIntegration` ([#17254](https://github.com/getsentry/sentry-javascript/pull/17254))
