@@ -15,6 +15,7 @@ const config = getPlaywrightConfig(
   {
     // This comes with the risk of tests leaking into each other but the tests run quite slow so we should parallelize
     workers: '100%',
+    retries: 0,
   },
 );
 

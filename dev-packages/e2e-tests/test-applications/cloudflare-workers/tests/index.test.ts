@@ -10,7 +10,7 @@ test('Index page', async ({ baseURL }) => {
 
 test("worker's withSentry", async ({ baseURL }) => {
   const eventWaiter = waitForError('cloudflare-workers', event => {
-    return event.exception?.values?.[0]?.mechanism?.type === 'cloudflare';
+    return event.exception?.values?.[0]?.mechanism?.type === 'auto.http.cloudflare';
   });
   const response = await fetch(`${baseURL}/throwException`);
   expect(response.status).toBe(500);
@@ -29,7 +29,6 @@ test('RPC method which throws an exception to be logged to sentry', async ({ bas
 });
 
 test("Request processed by DurableObject's fetch is recorded", async ({ baseURL }) => {
-  console.log('xx Request processed by DurableObject');
   const eventWaiter = waitForError('cloudflare-workers', event => {
     return event.exception?.values?.[0]?.mechanism?.type === 'auto.faas.cloudflare.durable_object';
   });
@@ -41,7 +40,7 @@ test("Request processed by DurableObject's fetch is recorded", async ({ baseURL 
 
 test('Websocket.webSocketMessage', async ({ baseURL }) => {
   const eventWaiter = waitForError('cloudflare-workers', event => {
-    return event.exception?.values?.[0]?.mechanism?.type === 'auto.faas.cloudflare.durable_object_websocket';
+    return event.exception?.values?.[0]?.mechanism?.type === 'auto.faas.cloudflare.durable_object';
   });
   const url = new URL('/pass-to-object/ws', baseURL);
   url.protocol = url.protocol.replace('http', 'ws');
@@ -56,7 +55,7 @@ test('Websocket.webSocketMessage', async ({ baseURL }) => {
 
 test('Websocket.webSocketClose', async ({ baseURL }) => {
   const eventWaiter = waitForError('cloudflare-workers', event => {
-    return event.exception?.values?.[0]?.mechanism?.type === 'auto.faas.cloudflare.durable_object_websocket';
+    return event.exception?.values?.[0]?.mechanism?.type === 'auto.faas.cloudflare.durable_object';
   });
   const url = new URL('/pass-to-object/ws', baseURL);
   url.protocol = url.protocol.replace('http', 'ws');
