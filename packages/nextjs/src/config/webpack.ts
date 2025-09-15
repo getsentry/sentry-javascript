@@ -7,6 +7,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { sync as resolveSync } from 'resolve';
 import type { VercelCronsConfig } from '../common/types';
+import { getBuildPluginOptions } from './getBuildPluginOptions';
 import type { RouteManifest } from './manifest/types';
 // Note: If you need to import a type from Webpack, do it in `types.ts` and export it from there. Otherwise, our
 // circular dependency check thinks this file is importing from itself. See https://github.com/pahen/madge/issues/306.
@@ -22,7 +23,6 @@ import type {
   WebpackEntryProperty,
 } from './types';
 import { getNextjsVersion } from './util';
-import { getWebpackPluginOptions } from './webpackPluginOptions';
 
 // Next.js runs webpack 3 times, once for the client, the server, and for edge. Because we don't want to print certain
 // warnings 3 times, we keep track of them here.
@@ -408,9 +408,21 @@ export function constructWebpackConfigFunction(
         }
 
         newConfig.plugins = newConfig.plugins || [];
+        const { config: userNextConfig, dir, nextRuntime } = buildContext;
+        const buildTool = isServer ? (nextRuntime === 'edge' ? 'webpack-edge' : 'webpack-nodejs') : 'webpack-client';
+        const projectDir = dir.replace(/\\/g, '/');
+        const distDir = (userNextConfig as NextConfigObject).distDir?.replace(/\\/g, '/') ?? '.next';
+        const distDirAbsPath = path.posix.join(projectDir, distDir);
+
         const sentryWebpackPluginInstance = sentryWebpackPlugin(
-          getWebpackPluginOptions(buildContext, userSentryOptions, releaseName),
+          getBuildPluginOptions({
+            sentryBuildOptions: userSentryOptions,
+            releaseName,
+            distDirAbsPath,
+            buildTool,
+          }),
         );
+
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         sentryWebpackPluginInstance._name = 'sentry-webpack-plugin'; // For tests and debugging. Serves no other purpose.
         newConfig.plugins.push(sentryWebpackPluginInstance);
