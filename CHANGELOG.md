@@ -6,7 +6,7 @@
 
 - **ref: Add and Adjust error event `mechanism` values**
 
-  This release includes a variety of changes aimed at setting the `mechanism` field is set on errors captured automatically by the Sentry SDKs. [The intention](https://github.com/getsentry/sentry-javascript/issues/17212) is to clearly mark which instrumentation captured an error. In addition, some instrumentations previously did not yet annotate the error as handled or unhandled which this series of PRs corrects as well.
+  This release includes a variety of changes aimed at setting the `mechanism` field on errors captured automatically by the Sentry SDKs. [The intention](https://github.com/getsentry/sentry-javascript/issues/17212) is to clearly mark which instrumentation captured an error. In addition, some instrumentations previously did not yet annotate the error as handled or unhandled which this series of PRs corrects as well.
 
   <details>
   <summary> Relevant PRs </summary>
