@@ -107,7 +107,7 @@ export { sentryPagesPlugin } from './pages-plugin';
 export { wrapRequestHandler } from './request';
 
 export { CloudflareClient } from './client';
-export { getDefaultIntegrations } from './sdk';
+export { getDefaultIntegrations, init } from './sdk';
 
 export { fetchIntegration } from './integrations/fetch';
 export { vercelAIIntegration } from './integrations/tracing/vercelai';
