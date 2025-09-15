@@ -1,5 +1,16 @@
 /* eslint-disable max-lines */
-import type { DebugImage, Envelope, Event, EventEnvelope, Profile, Span, ThreadCpuProfile } from '@sentry/core';
+import type {
+  Client,
+  ContinuousThreadCpuProfile,
+  DebugImage,
+  Envelope,
+  Event,
+  EventEnvelope,
+  Profile,
+  ProfileChunk,
+  Span,
+  ThreadCpuProfile,
+} from '@sentry/core';
 import {
   browserPerformanceTimeOrigin,
   debug,
@@ -194,6 +205,109 @@ export function createProfilePayload(
   };
 
   return profile;
+}
+
+/**
+ * Create a profile chunk envelope item
+ */
+export function createProfileChunkPayload(
+  jsSelfProfile: JSSelfProfile,
+  client: Client,
+  profilerId?: string,
+): ProfileChunk {
+  if (jsSelfProfile === undefined || jsSelfProfile === null) {
+    throw new TypeError(
+      `Cannot construct profiling event envelope without a valid profile. Got ${jsSelfProfile} instead.`,
+    );
+  }
+
+  const continuousProfile = convertToContinuousProfile(jsSelfProfile);
+
+  const options = client.getOptions();
+  const sdk = client.getSdkMetadata?.()?.sdk;
+
+  return {
+    chunk_id: uuid4(),
+    client_sdk: {
+      name: sdk?.name ?? 'sentry.javascript.browser',
+      version: sdk?.version ?? '0.0.0',
+    },
+    profiler_id: profilerId || uuid4(),
+    platform: 'javascript',
+    version: '2',
+    release: options.release ?? '',
+    environment: options.environment ?? 'production',
+    debug_meta: { images: applyDebugMetadata([]) },
+    profile: continuousProfile,
+  };
+}
+
+/**
+ * Convert from JSSelfProfile format to ContinuousThreadCpuProfile format.
+ */
+function convertToContinuousProfile(input: {
+  frames: { name: string; resourceId?: number; line?: number; column?: number }[];
+  stacks: { frameId: number; parentId?: number }[];
+  samples: { timestamp: number; stackId?: number }[];
+  resources: string[];
+}): ContinuousThreadCpuProfile {
+  // Frames map 1:1 by index; fill only when present to avoid sparse writes
+  const frames: ContinuousThreadCpuProfile['frames'] = [];
+  for (let i = 0; i < input.frames.length; i++) {
+    const frame = input.frames[i];
+    if (!frame) {
+      continue;
+    }
+    frames[i] = {
+      function: frame.name,
+      abs_path: typeof frame.resourceId === 'number' ? input.resources[frame.resourceId] : undefined,
+      lineno: frame.line,
+      colno: frame.column,
+    };
+  }
+
+  // Build stacks by following parent links, top->down order (root last)
+  const stacks: ContinuousThreadCpuProfile['stacks'] = [];
+  for (let i = 0; i < input.stacks.length; i++) {
+    const stackHead = input.stacks[i];
+    if (!stackHead) {
+      continue;
+    }
+    const list: number[] = [];
+    let current: { frameId: number; parentId?: number } | undefined = stackHead;
+    while (current) {
+      list.push(current.frameId);
+      current = current.parentId === undefined ? undefined : input.stacks[current.parentId];
+    }
+    stacks[i] = list;
+  }
+
+  // Align timestamps to SDK time origin to match span/event timelines
+  const perfOrigin = browserPerformanceTimeOrigin();
+  const origin = typeof performance.timeOrigin === 'number' ? performance.timeOrigin : perfOrigin || 0;
+  const adjustForOriginChange = origin - (perfOrigin || origin);
+
+  const samples: ContinuousThreadCpuProfile['samples'] = [];
+  for (let i = 0; i < input.samples.length; i++) {
+    const sample = input.samples[i];
+    if (!sample) {
+      continue;
+    }
+    // Convert ms to seconds epoch-based timestamp
+    const timestampSeconds = (origin + (sample.timestamp - adjustForOriginChange)) / 1000;
+    samples[i] = {
+      stack_id: sample.stackId ?? 0,
+      thread_id: THREAD_ID_STRING,
+      timestamp: timestampSeconds,
+    };
+  }
+
+  return {
+    frames,
+    stacks,
+    samples,
+    thread_metadata: { [THREAD_ID_STRING]: { name: THREAD_NAME } },
+  };
 }
 
 /**

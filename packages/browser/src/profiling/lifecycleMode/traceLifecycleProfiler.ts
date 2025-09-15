@@ -11,7 +11,7 @@ import {
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../../debug-build';
 import type { JSSelfProfiler } from '../jsSelfProfiling';
-import { applyDebugMetadata as applyDebugImages, startJSSelfProfile } from '../utils';
+import { createProfileChunkPayload, startJSSelfProfile } from '../utils';
 
 const CHUNK_INTERVAL_MS = 60_000;
 
@@ -222,8 +222,9 @@ export class BrowserTraceLifecycleProfiler {
 
     try {
       const profile = await profiler.stop();
-      const continuous = this._toContinuousProfile(profile);
-      const chunk: ProfileChunk = this._makeProfileChunk(continuous);
+
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      const chunk = createProfileChunkPayload(profile, this._client!, this._profilerId);
 
       this._sendProfileChunk(chunk);
       DEBUG_BUILD && debug.log('[Profiling] Collected browser profile chunk.');
@@ -256,89 +257,5 @@ export class BrowserTraceLifecycleProfiler {
     client.sendEnvelope(envelope).then(null, reason => {
       DEBUG_BUILD && debug.error('Error while sending profile chunk envelope:', reason);
     });
-  }
-
-  /**
-   * Convert from JSSelfProfile format to ContinuousThreadCpuProfile format.
-   */
-  private _toContinuousProfile(input: {
-    frames: { name: string; resourceId?: number; line?: number; column?: number }[];
-    stacks: { frameId: number; parentId?: number }[];
-    samples: { timestamp: number; stackId?: number }[];
-    resources: string[];
-  }): ContinuousThreadCpuProfile {
-    const frames: ContinuousThreadCpuProfile['frames'] = [];
-    for (let i = 0; i < input.frames.length; i++) {
-      const f = input.frames[i];
-      if (!f) {
-        continue;
-      }
-      frames[i] = {
-        function: f.name,
-        abs_path: typeof f.resourceId === 'number' ? input.resources[f.resourceId] : undefined,
-        lineno: f.line,
-        colno: f.column,
-      };
-    }
-
-    const stacks: ContinuousThreadCpuProfile['stacks'] = [];
-    for (let i = 0; i < input.stacks.length; i++) {
-      const s = input.stacks[i];
-      if (!s) {
-        continue;
-      }
-      const list: number[] = [];
-      let cur: { frameId: number; parentId?: number } | undefined = s;
-      while (cur) {
-        list.push(cur.frameId);
-        cur = cur.parentId === undefined ? undefined : input.stacks[cur.parentId];
-      }
-      stacks[i] = list;
-    }
-
-    const samples: ContinuousThreadCpuProfile['samples'] = [];
-    for (let i = 0; i < input.samples.length; i++) {
-      const s = input.samples[i];
-      if (!s) {
-        continue;
-      }
-      samples[i] = {
-        stack_id: s.stackId ?? 0,
-        thread_id: '0',
-        timestamp: performance.timeOrigin + s.timestamp,
-      };
-    }
-
-    return {
-      frames,
-      stacks,
-      samples,
-      thread_metadata: { '0': { name: 'main' } },
-    };
-  }
-
-  /**
-   * Create a profile chunk envelope item from a ContinuousThreadCpuProfile.
-   */
-  private _makeProfileChunk(profile: ContinuousThreadCpuProfile): ProfileChunk {
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const client = this._client!;
-    const options = client.getOptions();
-    const sdk = client.getSdkMetadata?.()?.sdk;
-
-    return {
-      chunk_id: uuid4(),
-      client_sdk: {
-        name: sdk?.name ?? 'sentry.javascript.browser',
-        version: sdk?.version ?? '0.0.0',
-      },
-      profiler_id: this._profilerId || uuid4(),
-      platform: 'javascript',
-      version: '2',
-      release: options.release ?? '',
-      environment: options.environment ?? 'production',
-      debug_meta: { images: applyDebugImages([]) },
-      profile,
-    };
   }
 }
