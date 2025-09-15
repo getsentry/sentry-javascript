@@ -24,6 +24,7 @@ import {
   debug,
   getIsolationScope,
   getSpanStatusFromHttpCode,
+  httpHeadersToSpanAttributes,
   parseStringToURLObject,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -32,8 +33,9 @@ import {
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../../debug-build';
 import type { NodeClient } from '../../sdk/client';
-import { INSTRUMENTATION_NAME } from './constants';
 import { registerServerCallback } from './httpServerIntegration';
+
+const INTEGRATION_NAME = 'Http.ServerSpans';
 
 // Tree-shakable guard to remove all code related to tracing
 declare const __SENTRY_TRACING__: boolean;
@@ -101,7 +103,7 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
   const { requestHook, responseHook, applyCustomAttributesOnSpan } = options.instrumentation ?? {};
 
   return {
-    name: 'HttpServerSpans',
+    name: INTEGRATION_NAME,
     setup(client: NodeClient) {
       // If no tracing, we can just skip everything here
       if (typeof __SENTRY_TRACING__ !== 'undefined' && !__SENTRY_TRACING__) {
@@ -122,7 +124,7 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
             ignoreIncomingRequests,
           })
         ) {
-          DEBUG_BUILD && debug.log(INSTRUMENTATION_NAME, 'Skipping span creation for incoming request', request.url);
+          DEBUG_BUILD && debug.log(INTEGRATION_NAME, 'Skipping span creation for incoming request', request.url);
           return fn();
         }
 
@@ -142,6 +144,7 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
         const method = normalizedRequest.method || request.method?.toUpperCase() || 'GET';
         const httpTargetWithoutQueryFragment = urlObj ? urlObj.pathname : stripUrlQueryAndFragment(fullUrl);
         const bestEffortTransactionName = `${method} ${httpTargetWithoutQueryFragment}`;
+        const shouldSendDefaultPii = client.getOptions().sendDefaultPii ?? false;
 
         // We use the plain tracer.startSpan here so we can pass the span kind
         const span = tracer.startSpan(bestEffortTransactionName, {
@@ -163,6 +166,7 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
             'http.flavor': httpVersion,
             'net.transport': httpVersion?.toUpperCase() === 'QUIC' ? 'ip_udp' : 'ip_tcp',
             ...getRequestContentLengthAttribute(request),
+            ...httpHeadersToSpanAttributes(normalizedRequest.headers || {}, shouldSendDefaultPii),
           },
         });
 
