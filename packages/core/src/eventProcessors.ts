@@ -36,7 +36,7 @@ function _notifyEventProcessors(
 
   const result = processor({ ...event }, hint);
 
-  DEBUG_BUILD && result === null && debug.log(`Event processor "${processor.id || `${processor.name}`}" dropped event`);
+  DEBUG_BUILD && result === null && debug.log(`Event processor "${processor.id || '?'}" dropped event`);
 
   if (isThenable(result)) {
     return result.then(final => _notifyEventProcessors(final, hint, processors, index + 1));
