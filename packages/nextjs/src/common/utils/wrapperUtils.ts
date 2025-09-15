@@ -25,7 +25,11 @@ export function withErrorInstrumentation<F extends (...args: any[]) => any>(
       return await origFunction.apply(this, origFunctionArguments);
     } catch (e) {
       // TODO: Extract error logic from `withSentry` in here or create a new wrapper with said logic or something like that.
-      captureException(e, { mechanism: { handled: false } });
+      captureException(e, {
+        // TODO: check if origFunction.name actually returns the correct name or minified garbage
+        // in this case, we can add another argument to this wrapper with the respective function name
+        mechanism: { handled: false, type: 'auto.function.nextjs.wrapped', data: { function: origFunction.name } },
+      });
       throw e;
     }
   };
@@ -99,7 +103,7 @@ export async function callDataFetcherTraced<F extends (...args: any[]) => Promis
   try {
     return await origFunction(...origFunctionArgs);
   } catch (e) {
-    captureException(e, { mechanism: { handled: false } });
+    captureException(e, { mechanism: { handled: false, type: 'auto.function.nextjs.data_fetcher' } });
     throw e;
   }
 }

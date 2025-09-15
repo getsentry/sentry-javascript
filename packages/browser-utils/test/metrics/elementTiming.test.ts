@@ -1,8 +1,8 @@
 import * as sentryCore from '@sentry/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { _onElementTiming, startTrackingElementTiming } from '../../../src/metrics/elementTiming';
-import * as browserMetricsInstrumentation from '../../../src/metrics/instrument';
-import * as browserMetricsUtils from '../../../src/metrics/utils';
+import { _onElementTiming, startTrackingElementTiming } from '../../src/metrics/elementTiming';
+import * as browserMetricsInstrumentation from '../../src/metrics/instrument';
+import * as browserMetricsUtils from '../../src/metrics/utils';
 
 describe('_onElementTiming', () => {
   const spanEndSpy = vi.fn();

@@ -1,8 +1,8 @@
 import { afterEach } from 'node:test';
 import { describe, expect, it, vi } from 'vitest';
-import { _onInp, _trackINP } from '../../../src/metrics/inp';
-import * as instrument from '../../../src/metrics/instrument';
-import * as utils from '../../../src/metrics/utils';
+import { _onInp, _trackINP } from '../../src/metrics/inp';
+import * as instrument from '../../src/metrics/instrument';
+import * as utils from '../../src/metrics/utils';
 
 describe('_trackINP', () => {
   const addInpInstrumentationHandler = vi.spyOn(instrument, 'addInpInstrumentationHandler');

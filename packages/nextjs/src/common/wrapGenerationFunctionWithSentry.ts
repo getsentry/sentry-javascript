@@ -144,6 +144,10 @@ export function wrapGenerationFunctionWithSentry<F extends (...args: any[]) => a
                     captureException(err, {
                       mechanism: {
                         handled: false,
+                        type: 'auto.function.nextjs.generation_function',
+                        data: {
+                          function: generationFunctionIdentifier,
+                        },
                       },
                     });
                   }
