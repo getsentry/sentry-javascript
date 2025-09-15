@@ -410,7 +410,11 @@ export type { Stacktrace, StackParser, StackLineParser, StackLineParserFn } from
 export type { PropagationContext, TracePropagationTargets, SerializedTraceData } from './types-hoist/tracing';
 export type { StartSpanOptions } from './types-hoist/startSpanOptions';
 export type { TraceparentData, TransactionSource } from './types-hoist/transaction';
-export type { CustomSamplingContext, SamplingContext } from './types-hoist/samplingcontext';
+export type {
+  TracesSamplerSamplingContext,
+  CustomSamplingContext,
+  SamplingContext,
+} from './types-hoist/samplingcontext';
 export type {
   DurationUnit,
   InformationUnit,

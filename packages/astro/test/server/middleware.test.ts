@@ -168,7 +168,7 @@ describe('sentryMiddleware', () => {
     await expect(async () => middleware(ctx, next)).rejects.toThrowError();
 
     expect(captureExceptionSpy).toHaveBeenCalledWith(error, {
-      mechanism: { handled: false, type: 'astro', data: { function: 'astroMiddleware' } },
+      mechanism: { handled: false, type: 'auto.middleware.astro' },
     });
   });
 
@@ -205,7 +205,7 @@ describe('sentryMiddleware', () => {
     await expect(() => resultFromNext!.text()).rejects.toThrowError();
 
     expect(captureExceptionSpy).toHaveBeenCalledWith(error, {
-      mechanism: { handled: false, type: 'astro', data: { function: 'astroMiddleware' } },
+      mechanism: { handled: false, type: 'auto.middleware.astro' },
     });
   });
 

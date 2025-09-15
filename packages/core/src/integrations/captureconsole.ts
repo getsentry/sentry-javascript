@@ -65,7 +65,7 @@ function consoleHandler(args: unknown[], level: string, handled: boolean): void 
 
       addExceptionMechanism(event, {
         handled,
-        type: 'console',
+        type: 'auto.core.capture_console',
       });
 
       return event;
