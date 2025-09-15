@@ -31,6 +31,7 @@
   - ref(remix): Adjust event mechanism of `captureRemixServerException` ([#17629](https://github.com/getsentry/sentry-javascript/pull/17629))
   - ref(replay-internal): Add mechanism to error caught by `replayIntegration` in debug mode ([#17606](https://github.com/getsentry/sentry-javascript/pull/17606))
   - ref(solid): Add `mechanism` to error captured by `withSentryErrorBoundary` ([#17607](https://github.com/getsentry/sentry-javascript/pull/17607))
+  - ref(sveltekit): Adjust `mechanism` of error events ([#17646](https://github.com/getsentry/sentry-javascript/pull/17646))
 
   <br/>
 
