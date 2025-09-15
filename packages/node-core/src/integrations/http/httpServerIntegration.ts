@@ -18,11 +18,12 @@ import {
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../../debug-build';
 import type { NodeClient } from '../../sdk/client';
-import { INSTRUMENTATION_NAME, MAX_BODY_BYTE_LENGTH } from './constants';
+import { MAX_BODY_BYTE_LENGTH } from './constants';
 
 type ServerEmit = typeof Server.prototype.emit;
 
 const HTTP_SERVER_INSTRUMENTED_KEY = createContextKey('sentry_http_server_instrumented');
+const INTEGRATION_NAME = 'Http.Server';
 
 interface ServerCallbackOptions {
   request: IncomingMessage;
@@ -94,7 +95,7 @@ const _httpServerIntegration = ((options: HttpServerIntegrationOptions = {}) => 
   };
 
   return {
-    name: 'HttpServer',
+    name: INTEGRATION_NAME,
     setupOnce() {
       const onHttpServerRequestStart = ((_data: unknown) => {
         const data = _data as { server: Server };
@@ -166,7 +167,7 @@ function instrumentServer(
         return target.apply(thisArg, args);
       }
 
-      DEBUG_BUILD && debug.log(INSTRUMENTATION_NAME, 'Handling incoming request');
+      DEBUG_BUILD && debug.log(INTEGRATION_NAME, 'Handling incoming request');
 
       const isolationScope = getIsolationScope().clone();
       const request = args[1] as IncomingMessage;
@@ -335,7 +336,7 @@ function patchRequestToCaptureBody(
   let bodyByteLength = 0;
   const chunks: Buffer[] = [];
 
-  DEBUG_BUILD && debug.log(INSTRUMENTATION_NAME, 'Patching request.on');
+  DEBUG_BUILD && debug.log(INTEGRATION_NAME, 'Patching request.on');
 
   /**
    * We need to keep track of the original callbacks, in order to be able to remove listeners again.
@@ -359,7 +360,7 @@ function patchRequestToCaptureBody(
 
         if (event === 'data') {
           DEBUG_BUILD &&
-            debug.log(INSTRUMENTATION_NAME, `Handling request.on("data") with maximum body size of ${maxBodySize}b`);
+            debug.log(INTEGRATION_NAME, `Handling request.on("data") with maximum body size of ${maxBodySize}b`);
 
           const callback = new Proxy(listener, {
             apply: (target, thisArg, args: Parameters<typeof listener>) => {
@@ -372,12 +373,12 @@ function patchRequestToCaptureBody(
                   bodyByteLength += bufferifiedChunk.byteLength;
                 } else if (DEBUG_BUILD) {
                   debug.log(
-                    INSTRUMENTATION_NAME,
+                    INTEGRATION_NAME,
                     `Dropping request body chunk because maximum body length of ${maxBodySize}b is exceeded.`,
                   );
                 }
               } catch (err) {
-                DEBUG_BUILD && debug.error(INSTRUMENTATION_NAME, 'Encountered error while storing body chunk.');
+                DEBUG_BUILD && debug.error(INTEGRATION_NAME, 'Encountered error while storing body chunk.');
               }
 
               return Reflect.apply(target, thisArg, args);
@@ -429,13 +430,13 @@ function patchRequestToCaptureBody(
         }
       } catch (error) {
         if (DEBUG_BUILD) {
-          debug.error(INSTRUMENTATION_NAME, 'Error building captured request body', error);
+          debug.error(INTEGRATION_NAME, 'Error building captured request body', error);
         }
       }
     });
   } catch (error) {
     if (DEBUG_BUILD) {
-      debug.error(INSTRUMENTATION_NAME, 'Error patching request to capture body', error);
+      debug.error(INTEGRATION_NAME, 'Error patching request to capture body', error);
     }
   }
 }
