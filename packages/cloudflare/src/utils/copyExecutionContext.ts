@@ -17,26 +17,31 @@ const defaultPropertyOptions: PropertyDescriptor = {
 export function copyExecutionContext<T extends ExecutionContext | DurableObjectState>(ctx: T): T {
   if (!ctx) return ctx;
   return Object.create(ctx, {
-    waitUntil: { ...defaultPropertyOptions, value: copyBound(ctx, 'waitUntil') },
+    waitUntil: { ...defaultPropertyOptions, value: copyAndBindMethod(ctx, 'waitUntil') },
     ...('passThroughOnException' in ctx && {
-      passThroughOnException: { ...defaultPropertyOptions, value: copyBound(ctx, 'passThroughOnException') },
+      passThroughOnException: { ...defaultPropertyOptions, value: copyAndBindMethod(ctx, 'passThroughOnException') },
     }),
   });
 }
 
-function copyBound<T, K extends keyof T>(obj: T, method: K): T[K] {
-  const method_impl = obj[method];
-  if (typeof method_impl !== 'function') return method_impl;
-  if ((method_impl as T[K] & { [kBound]?: boolean })[kBound]) return method_impl;
+/**
+ * Copies a method from the given object and ensures the copied method remains bound to the original object's context.
+ *
+ * @param {object} obj - The object containing the method to be copied and bound.
+ * @param {string|symbol} method - The key of the method within the object to be copied and bound.
+ * @return {Function} - The copied and bound method, or the original property if it is not a function.
+ */
+function copyAndBindMethod<T, K extends keyof T>(obj: T, method: K): T[K] {
+  const methodImpl = obj[method];
+  if (typeof methodImpl !== 'function') return methodImpl;
+  if ((methodImpl as T[K] & { [kBound]?: boolean })[kBound]) return methodImpl;
+  const bound = methodImpl.bind(obj);
 
-  return new Proxy(method_impl.bind(obj), {
-    get: (target, key, receiver) => {
-      if ('bind' === key) {
-        return () => receiver;
-      } else if (kBound === key) {
-        return true;
-      }
-      return Reflect.get(target, key, receiver);
+  return new Proxy(bound, {
+    get: (target, prop, receiver) => {
+      if (kBound === prop) return true;
+      if ('bind' === prop) return () => receiver;
+      return Reflect.get(target, prop, receiver);
     },
   });
 }
