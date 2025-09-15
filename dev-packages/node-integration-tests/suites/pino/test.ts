@@ -1,9 +1,10 @@
 import { join } from 'path';
-import { describe, expect, test } from 'vitest';
+import { describe, expect } from 'vitest';
+import { conditionalTest } from '../../utils';
 import { createRunner } from '../../utils/runner';
 
 describe('Pino integration', () => {
-  test('has different trace ids for logs from different spans', async () => {
+  conditionalTest({ min: 20 })('has different trace ids for logs from different spans', async () => {
     // expect.assertions(1);
     const instrumentPath = join(__dirname, 'instrument.mjs');
 
@@ -22,7 +23,7 @@ describe('Pino integration', () => {
       .completed();
   });
 
-  test('captures event and logs', async () => {
+  conditionalTest({ min: 20 })('captures event and logs', async () => {
     // expect.assertions(1);
     const instrumentPath = join(__dirname, 'instrument.mjs');
 
