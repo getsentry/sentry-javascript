@@ -6,7 +6,9 @@
 
 - **ref: Add and Adjust error event `mechanism` values**
 
-  This release includes a variety of changes to how the `mechanism` field is set on errors captured automatically by the Sentry SDKs. The intention is to clearly mark which instrumentation captured an error. In addition, some instrumentations previously did not yet annotate the error as handled or unhandled which this series of PRs corrects as well
+  This release includes a variety of changes aimed at setting the `mechanism` field is set on errors captured automatically by the Sentry SDKs. [The intention](https://github.com/getsentry/sentry-javascript/issues/17212) is to clearly mark which instrumentation captured an error. In addition, some instrumentations previously did not yet annotate the error as handled or unhandled which this series of PRs corrects as well.
+
+  Relevant PRs:
   - ref(angular): Adjust ErrorHandler event mechanism ([#17608](https://github.com/getsentry/sentry-javascript/pull/17608))
   - ref(astro): Adjust `mechanism` on error events captured by astro middleware ([#17613](https://github.com/getsentry/sentry-javascript/pull/17613))
   - ref(aws-severless): Slightly adjust aws-serverless mechanism type ([#17614](https://github.com/getsentry/sentry-javascript/pull/17614))
