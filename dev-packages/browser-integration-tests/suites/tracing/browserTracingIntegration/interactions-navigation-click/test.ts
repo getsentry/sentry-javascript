@@ -1,12 +1,6 @@
 import { expect } from '@playwright/test';
-import type { Event as SentryEvent } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
-import {
-  envelopeRequestParser,
-  getFirstSentryEnvelopeRequest,
-  shouldSkipTracingTest,
-  waitForTransactionRequest,
-} from '../../../../utils/helpers';
+import { envelopeRequestParser, shouldSkipTracingTest, waitForTransactionRequest } from '../../../../utils/helpers';
 
 sentryTest(
   'click-triggered navigation should produce a root navigation transaction',
@@ -18,7 +12,7 @@ sentryTest(
     const url = await getLocalTestUrl({ testDir: __dirname });
 
     await page.goto(url);
-    await getFirstSentryEnvelopeRequest<SentryEvent>(page);
+    await waitForTransactionRequest(page); // "pageload" root span
 
     const interactionRequestPromise = waitForTransactionRequest(
       page,
