@@ -62,6 +62,8 @@ export {
   close,
   getSentryRelease,
   createGetModuleFromFilename,
+  httpHeadersToSpanAttributes,
+  winterCGHeadersToDict,
   // eslint-disable-next-line deprecation/deprecation
   anrIntegration,
   // eslint-disable-next-line deprecation/deprecation
@@ -144,6 +146,7 @@ export {
   vercelAIIntegration,
   logger,
   consoleLoggingIntegration,
+  createConsolaReporter,
   createSentryWinstonTransport,
   wrapMcpServerWithSentry,
   featureFlagsIntegration,

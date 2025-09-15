@@ -23,7 +23,7 @@ test('captures an exception', async ({ page }) => {
           type: 'Error',
           value: 'Error 1 thrown from Sentry ErrorBoundary in Solid Start E2E test app',
           mechanism: {
-            type: 'generic',
+            type: 'auto.function.solid.error_boundary',
             handled: true,
           },
         },
@@ -53,7 +53,7 @@ test('captures a second exception after resetting the boundary', async ({ page }
           type: 'Error',
           value: 'Error 1 thrown from Sentry ErrorBoundary in Solid Start E2E test app',
           mechanism: {
-            type: 'generic',
+            type: 'auto.function.solid.error_boundary',
             handled: true,
           },
         },
@@ -81,7 +81,7 @@ test('captures a second exception after resetting the boundary', async ({ page }
           type: 'Error',
           value: 'Error 2 thrown from Sentry ErrorBoundary in Solid Start E2E test app',
           mechanism: {
-            type: 'generic',
+            type: 'auto.function.solid.error_boundary',
             handled: true,
           },
         },

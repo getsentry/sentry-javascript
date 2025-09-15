@@ -7,6 +7,7 @@
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro",
+    "start": "node ./dist/server/entry.mjs",
     "test:build": "pnpm install && pnpm build",
     "test:assert": "TEST_ENV=production playwright test"
   },

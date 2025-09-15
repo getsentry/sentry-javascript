@@ -70,6 +70,7 @@ export {
   // eslint-disable-next-line deprecation/deprecation
   inboundFiltersIntegration,
   instrumentOpenAiClient,
+  instrumentAnthropicAiClient,
   eventFiltersIntegration,
   linkedErrorsIntegration,
   requestDataIntegration,
@@ -92,6 +93,7 @@ export {
   spanToBaggageHeader,
   wrapMcpServerWithSentry,
   consoleLoggingIntegration,
+  createConsolaReporter,
   featureFlagsIntegration,
 } from '@sentry/core';
 

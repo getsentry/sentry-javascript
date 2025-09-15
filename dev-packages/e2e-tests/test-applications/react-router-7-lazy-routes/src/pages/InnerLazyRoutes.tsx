@@ -32,6 +32,9 @@ export const someMoreNestedRoutes = [
                     <Link to="/another-lazy/sub/888/999" id="navigate-to-another-from-inner">
                       Navigate to Another Lazy Route
                     </Link>
+                    <Link to="/lazy/inner/1/2/" id="navigate-to-upper">
+                      Navigate to Upper Lazy Route
+                    </Link>
                   </div>
                 ),
               },

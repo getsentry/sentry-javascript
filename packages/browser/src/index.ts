@@ -16,6 +16,7 @@ export {
   extraErrorDataIntegration,
   rewriteFramesIntegration,
   consoleLoggingIntegration,
+  createConsolaReporter,
 } from '@sentry/core';
 
 export { replayIntegration, getReplay } from '@sentry-internal/replay';

@@ -48,7 +48,12 @@ export const connectIntegration = defineIntegration(_connectIntegration);
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function connectErrorMiddleware(err: any, req: any, res: any, next: any): void {
-  captureException(err);
+  captureException(err, {
+    mechanism: {
+      handled: false,
+      type: 'auto.middleware.connect',
+    },
+  });
   next(err);
 }
 

@@ -2,7 +2,132 @@
 
 ## Unreleased
 
+### Important Changes
+
+- **ref: Add and Adjust error event `mechanism` values**
+
+  This release includes a variety of changes aimed at setting the `mechanism` field on errors captured automatically by the Sentry SDKs. [The intention](https://github.com/getsentry/sentry-javascript/issues/17212) is to clearly mark which instrumentation captured an error. In addition, some instrumentations previously did not yet annotate the error as handled or unhandled which this series of PRs corrects as well.
+
+  <details>
+  <summary> Relevant PRs </summary>
+
+  <br/>
+
+  Released in `10.12.0`:
+  - ref(angular): Adjust ErrorHandler event mechanism ([#17608](https://github.com/getsentry/sentry-javascript/pull/17608))
+  - ref(astro): Adjust `mechanism` on error events captured by astro middleware ([#17613](https://github.com/getsentry/sentry-javascript/pull/17613))
+  - ref(aws-severless): Slightly adjust aws-serverless mechanism type ([#17614](https://github.com/getsentry/sentry-javascript/pull/17614))
+  - ref(bun): Adjust `mechanism` of errors captured in Bun.serve ([#17616](https://github.com/getsentry/sentry-javascript/pull/17616))
+  - ref(core): Adjust MCP server error event `mechanism` ([#17622](https://github.com/getsentry/sentry-javascript/pull/17622))
+  - ref(core): Simplify `linkedErrors` mechanism logic ([#17600](https://github.com/getsentry/sentry-javascript/pull/17600))
+  - ref(nextjs): Set more specific event `mechanism`s ([#17543](https://github.com/getsentry/sentry-javascript/pull/17543))
+  - ref(node): Adjust mechanism of express, hapi and fastify error handlers ([#17623](https://github.com/getsentry/sentry-javascript/pull/17623))
+  - ref(node-core): Add `mechanism` to cron instrumentations ([#17544](https://github.com/getsentry/sentry-javascript/pull/17544))
+  - ref(node-core): Add more specific `mechanism.type` to worker thread errors from `childProcessIntegration` ([#17578](https://github.com/getsentry/sentry-javascript/pull/17578))
+  - ref(node): Add mechanism to errors captured via connect and koa integrations ([#17579](https://github.com/getsentry/sentry-javascript/pull/17579))
+  - ref(nuxt): Add and adjust `mechanism.type` in error events ([#17599](https://github.com/getsentry/sentry-javascript/pull/17599))
+  - ref(react): Add mechanism to `reactErrorHandler` and adjust mechanism in `ErrorBoundary` ([#17602](https://github.com/getsentry/sentry-javascript/pull/17602))
+  - ref(remix): Adjust event mechanism of `captureRemixServerException` ([#17629](https://github.com/getsentry/sentry-javascript/pull/17629))
+  - ref(replay-internal): Add mechanism to error caught by `replayIntegration` in debug mode ([#17606](https://github.com/getsentry/sentry-javascript/pull/17606))
+  - ref(solid): Add `mechanism` to error captured by `withSentryErrorBoundary` ([#17607](https://github.com/getsentry/sentry-javascript/pull/17607))
+
+  <br/>
+
+  Released in `10.11.0`:
+  - ref(browser): Add more specific `mechanism.type` to errors captured by `httpClientIntegration` ([#17254](https://github.com/getsentry/sentry-javascript/pull/17254))
+  - ref(browser): Set more descriptive `mechanism.type` in `browserApiErrorsIntergation` ([#17251](https://github.com/getsentry/sentry-javascript/pull/17251))
+  - ref(core): Add `mechanism.type` to `trpcMiddleware` errors ([#17287](https://github.com/getsentry/sentry-javascript/pull/17287))
+  - ref(core): Add more specific event `mechanism`s and span origins to `openAiIntegration` ([#17288](https://github.com/getsentry/sentry-javascript/pull/17288))
+  - ref(nestjs): Add `mechanism` to captured errors ([#17312](https://github.com/getsentry/sentry-javascript/pull/17312))
+
+</details>
+
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
+
+### Important Changes
+
+- **feat(node) Ensure `prismaIntegration` works with Prisma 5 ([#17595](https://github.com/getsentry/sentry-javascript/pull/17595))**
+
+We used to require to pass in the v5 version of `@prisma/instrumentation` into `prismaIntegration({ prismaInstrumentation: new PrismaInstrumentation() })`, if you wanted to get full instrumentation for Prisma v5. However, it turns out this does not work on v10 of the SDK anymore, because `@prisma/instrumentation@5` requires OTEL v1.
+
+With this release, we dropped the requirement to configure anything to get v5 support of Prisma. You do not need to configure anything in the integration anymore, and can remove the dependency on `@prisma/instrumentation@5` if you had it in your application. You only need to configure the `tracing` preview feature [according to our docs](https://docs.sentry.io/platforms/javascript/guides/node/configuration/integrations/prisma/).
+
+- **feat(deps): Update OpenTelemetry dependencies ([#17558](https://github.com/getsentry/sentry-javascript/pull/17558))**
+  - @opentelemetry/core bumped to ^2.1.0
+  - @opentelemetry/context-async-hooks bumped to ^2.1.0
+  - @opentelemetry/resources bumped to ^2.1.0
+  - @opentelemetry/sdk-trace-base bumped to ^2.1.0
+  - @opentelemetry/semantic-conventions bumped to ^1.37.0
+  - @opentelemetry/instrumentation bumped to ^0.204.0
+  - @opentelemetry/instrumentation-http bumped to ^0.204.0
+  - @opentelemetry/instrumentation-amqplib bumped to ^0.51.0
+  - @opentelemetry/instrumentation-aws-sdk bumped to ^0.59.0
+  - @opentelemetry/instrumentation-connect bumped to ^0.48.0
+  - @opentelemetry/instrumentation-dataloader bumped to ^0.22.0
+  - @opentelemetry/instrumentation-express bumped to ^0.53.0
+  - @opentelemetry/instrumentation-fs bumped from to ^0.24.0
+  - @opentelemetry/instrumentation-generic-pool bumped to ^0.48.0
+  - @opentelemetry/instrumentation-graphql bumped to ^0.52.0
+  - @opentelemetry/instrumentation-hapi bumped to ^0.51.0
+  - @opentelemetry/instrumentation-ioredis bumped to ^0.52.0
+  - @opentelemetry/instrumentation-kafkajs bumped to ^0.14.0
+  - @opentelemetry/instrumentation-knex bumped to ^0.49.0
+  - @opentelemetry/instrumentation-koa bumped to ^0.52.0
+  - @opentelemetry/instrumentation-lru-memoizer bumped to ^0.49.0
+  - @opentelemetry/instrumentation-mongodb bumped from to ^0.57.0
+  - @opentelemetry/instrumentation-mongoose bumped from to ^0.51.0
+  - @opentelemetry/instrumentation-mysql bumped to ^0.50.0
+  - @opentelemetry/instrumentation-mysql2 bumped to ^0.51.0
+  - @opentelemetry/instrumentation-nestjs-core bumped to ^0.50.0
+  - @opentelemetry/instrumentation-pg bumped to ^0.57.0
+  - @opentelemetry/instrumentation-redis bumped to ^0.53.0
+  - @opentelemetry/instrumentation-undici bumped to ^0.15.0
+  - @prisma/instrumentation bumped to 6.15.0
+
+## 10.11.0
+
+### Important Changes
+
+- **feat(aws): Add experimental AWS Lambda extension for tunnelling events ([#17525](https://github.com/getsentry/sentry-javascript/pull/17525))**
+
+  This release adds an experimental Sentry Lambda extension to the existing Sentry Lambda layer. Sentry events are now tunneled through the extension and then forwarded to Sentry. This has the benefit of reducing the request processing time.
+
+  To enable it, set `_experiments.enableLambdaExtension` in your Sentry config like this:
+
+  ```javascript
+  Sentry.init({
+    dsn: '<YOUR_DSN>',
+    _experiments: {
+      enableLambdaExtension: true,
+    },
+  });
+  ```
+
+### Other Changes
+
+- feat(core): Add replay id to logs ([#17563](https://github.com/getsentry/sentry-javascript/pull/17563))
+- feat(core): Improve error handling for Anthropic AI instrumentation ([#17535](https://github.com/getsentry/sentry-javascript/pull/17535))
+- feat(deps): bump @opentelemetry/instrumentation-ioredis from 0.51.0 to 0.52.0 ([#17557](https://github.com/getsentry/sentry-javascript/pull/17557))
+- feat(node): Add incoming request headers as OTel span attributes ([#17475](https://github.com/getsentry/sentry-javascript/pull/17475))
+- fix(astro): Ensure traces are correctly propagated for static routes ([#17536](https://github.com/getsentry/sentry-javascript/pull/17536))
+- fix(react): Remove `handleExistingNavigation` ([#17534](https://github.com/getsentry/sentry-javascript/pull/17534))
+- ref(browser): Add more specific `mechanism.type` to errors captured by `httpClientIntegration` ([#17254](https://github.com/getsentry/sentry-javascript/pull/17254))
+- ref(browser): Set more descriptive `mechanism.type` in `browserApiErrorsIntergation` ([#17251](https://github.com/getsentry/sentry-javascript/pull/17251))
+- ref(core): Add `mechanism.type` to `trpcMiddleware` errors ([#17287](https://github.com/getsentry/sentry-javascript/pull/17287))
+- ref(core): Add more specific event `mechanism`s and span origins to `openAiIntegration` ([#17288](https://github.com/getsentry/sentry-javascript/pull/17288))
+- ref(nestjs): Add `mechanism` to captured errors ([#17312](https://github.com/getsentry/sentry-javascript/pull/17312))
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+
+- chore: Use proper `test-utils` dependency in workspace ([#17538](https://github.com/getsentry/sentry-javascript/pull/17538))
+- chore(test): Remove `geist` font ([#17541](https://github.com/getsentry/sentry-javascript/pull/17541))
+- ci: Check for stable lockfile ([#17552](https://github.com/getsentry/sentry-javascript/pull/17552))
+- ci: Fix running of only changed E2E tests ([#17551](https://github.com/getsentry/sentry-javascript/pull/17551))
+- ci: Remove project automation workflow ([#17508](https://github.com/getsentry/sentry-javascript/pull/17508))
+- test(node-integration-tests): pin ai@5.0.30 to fix test fails ([#17542](https://github.com/getsentry/sentry-javascript/pull/17542))
+
+</details>
 
 ## 10.10.0
 

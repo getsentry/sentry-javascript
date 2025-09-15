@@ -19,6 +19,7 @@ import {
   getCurrentScope,
   getIsolationScope,
   getSpanStatusFromHttpCode,
+  httpHeadersToSpanAttributes,
   httpRequestToRequestData,
   parseStringToURLObject,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
@@ -191,6 +192,8 @@ export function instrumentServer(
           const tracer = client.tracer;
           const scheme = fullUrl.startsWith('https') ? 'https' : 'http';
 
+          const shouldSendDefaultPii = client?.getOptions().sendDefaultPii ?? false;
+
           // We use the plain tracer.startSpan here so we can pass the span kind
           const span = tracer.startSpan(bestEffortTransactionName, {
             kind: SpanKind.SERVER,
@@ -211,6 +214,7 @@ export function instrumentServer(
               'http.flavor': httpVersion,
               'net.transport': httpVersion?.toUpperCase() === 'QUIC' ? 'ip_udp' : 'ip_tcp',
               ...getRequestContentLengthAttribute(request),
+              ...httpHeadersToSpanAttributes(normalizedRequest.headers || {}, shouldSendDefaultPii),
             },
           });
 

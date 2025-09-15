@@ -29,7 +29,7 @@ export const instrumentAwsLambda = generateInstrumentOnce(
       },
       responseHook(_span, { err }) {
         if (err) {
-          captureException(err, scope => markEventUnhandled(scope, 'auto.function.aws-serverless.otel'));
+          captureException(err, scope => markEventUnhandled(scope, 'auto.function.aws_serverless.otel'));
         }
       },
     };

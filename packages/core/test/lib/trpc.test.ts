@@ -78,7 +78,7 @@ describe('trpcMiddleware', () => {
     });
 
     expect(exports.captureException).toHaveBeenCalledWith(error, {
-      mechanism: { handled: false, data: { function: 'trpcMiddleware' } },
+      mechanism: { handled: false, type: 'auto.rpc.trpc.middleware' },
     });
   });
 
@@ -115,7 +115,7 @@ describe('trpcMiddleware', () => {
     ).rejects.toThrow(error);
 
     expect(exports.captureException).toHaveBeenCalledWith(error, {
-      mechanism: { handled: false, data: { function: 'trpcMiddleware' } },
+      mechanism: { handled: false, type: 'auto.rpc.trpc.middleware' },
     });
   });
 

@@ -88,5 +88,20 @@ export default [
       },
     }),
   ),
+  ...makeNPMConfigVariants(
+    makeBaseNPMConfig({
+      entrypoints: ['src/config/polyfills/perf_hooks.js'],
+
+      packageSpecificConfig: {
+        output: {
+          // Preserve the original file structure (i.e., so that everything is still relative to `src`)
+          entryFileNames: 'config/polyfills/[name].js',
+
+          // make it so Rollup calms down about the fact that we're combining default and named exports
+          exports: 'named',
+        },
+      },
+    }),
+  ),
   ...makeOtelLoaders('./build', 'sentry-node'),
 ];
