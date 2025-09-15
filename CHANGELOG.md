@@ -18,6 +18,7 @@
   - ref(astro): Adjust `mechanism` on error events captured by astro middleware ([#17613](https://github.com/getsentry/sentry-javascript/pull/17613))
   - ref(aws-severless): Slightly adjust aws-serverless mechanism type ([#17614](https://github.com/getsentry/sentry-javascript/pull/17614))
   - ref(bun): Adjust `mechanism` of errors captured in Bun.serve ([#17616](https://github.com/getsentry/sentry-javascript/pull/17616))
+  - ref(core): Adjust `mechanism` in `captureConsoleIntegration` ([#17633](https://github.com/getsentry/sentry-javascript/pull/17633))
   - ref(core): Adjust MCP server error event `mechanism` ([#17622](https://github.com/getsentry/sentry-javascript/pull/17622))
   - ref(core): Simplify `linkedErrors` mechanism logic ([#17600](https://github.com/getsentry/sentry-javascript/pull/17600))
   - ref(nextjs): Set more specific event `mechanism`s ([#17543](https://github.com/getsentry/sentry-javascript/pull/17543))
