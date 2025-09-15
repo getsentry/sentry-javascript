@@ -20,7 +20,7 @@
   - ref(bun): Adjust `mechanism` of errors captured in Bun.serve ([#17616](https://github.com/getsentry/sentry-javascript/pull/17616))
   - ref(core): Adjust MCP server error event `mechanism` ([#17622](https://github.com/getsentry/sentry-javascript/pull/17622))
   - ref(core): Simplify `linkedErrors` mechanism logic ([#17600](https://github.com/getsentry/sentry-javascript/pull/17600))
-  - ref(deno): Adjust mechanism of errors caught by globalHandlersIntegration ([#17635](https://github.com/getsentry/sentry-javascript/pull/17635))
+  - ref(deno): Adjust `mechanism` of errors caught by `globalHandlersIntegration` ([#17635](https://github.com/getsentry/sentry-javascript/pull/17635))
   - ref(nextjs): Set more specific event `mechanism`s ([#17543](https://github.com/getsentry/sentry-javascript/pull/17543))
   - ref(node-core): Add `mechanism` to cron instrumentations ([#17544](https://github.com/getsentry/sentry-javascript/pull/17544))
   - ref(node-core): Add more specific `mechanism.type` to worker thread errors from `childProcessIntegration` ([#17578](https://github.com/getsentry/sentry-javascript/pull/17578))
