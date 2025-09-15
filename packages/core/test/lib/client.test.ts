@@ -2200,11 +2200,7 @@ describe('Client', () => {
       client.on('afterSendEvent', callback);
 
       client.sendEvent(errorEvent);
-      vi.runAllTimers();
-      // Wait for two ticks
-      // note that for whatever reason, await new Promise(resolve => setTimeout(resolve, 0)) causes the test to hang
-      await undefined;
-      await undefined;
+      await vi.runAllTimersAsync();
 
       expect(mockSend).toBeCalledTimes(1);
       expect(callback).toBeCalledTimes(1);
@@ -2228,11 +2224,7 @@ describe('Client', () => {
       client.on('afterSendEvent', callback);
 
       client.sendEvent(transactionEvent);
-      vi.runAllTimers();
-      // Wait for two ticks
-      // note that for whatever reason, await new Promise(resolve => setTimeout(resolve, 0)) causes the test to hang
-      await undefined;
-      await undefined;
+      await vi.runAllTimersAsync();
 
       expect(mockSend).toBeCalledTimes(1);
       expect(callback).toBeCalledTimes(1);
@@ -2260,11 +2252,7 @@ describe('Client', () => {
       client.on('afterSendEvent', callback);
 
       client.sendEvent(errorEvent);
-      vi.runAllTimers();
-      // Wait for two ticks
-      // note that for whatever reason, await new Promise(resolve => setTimeout(resolve, 0)) causes the test to hang
-      await undefined;
-      await undefined;
+      await vi.runAllTimersAsync();
 
       expect(mockSend).toBeCalledTimes(1);
       expect(callback).toBeCalledTimes(1);
