@@ -86,7 +86,7 @@
     "@opentelemetry/instrumentation-mongodb": "0.57.0",
     "@opentelemetry/instrumentation-mongoose": "0.51.0",
     "@opentelemetry/instrumentation-mysql": "0.50.0",
-    "@opentelemetry/instrumentation-mysql2": "0.51.0",
+    "@opentelemetry/instrumentation-mysql2": "0.52.0",
     "@opentelemetry/instrumentation-pg": "0.57.0",
     "@opentelemetry/instrumentation-redis": "0.53.0",
     "@opentelemetry/instrumentation-tedious": "0.23.0",
