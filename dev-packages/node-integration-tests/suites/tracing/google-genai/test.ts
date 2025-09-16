@@ -63,7 +63,58 @@ describe('Google GenAI integration', () => {
         origin: 'auto.ai.google_genai',
         status: 'ok',
       }),
-      // Fourth span - error handling
+      // Fourth span - models.generateContentStream (streaming)
+      expect.objectContaining({
+        data: expect.objectContaining({
+          'gen_ai.operation.name': 'models',
+          'sentry.op': 'gen_ai.models',
+          'sentry.origin': 'auto.ai.google_genai',
+          'gen_ai.system': 'google_genai',
+          'gen_ai.request.model': 'gemini-1.5-flash',
+          'gen_ai.request.temperature': 0.7,
+          'gen_ai.request.top_p': 0.9,
+          'gen_ai.request.max_tokens': 100,
+          'gen_ai.response.streaming': true,
+          'gen_ai.response.id': 'mock-response-id',
+          'gen_ai.response.model': 'gemini-1.5-pro',
+        }),
+        description: 'models gemini-1.5-flash stream-response',
+        op: 'gen_ai.models',
+        origin: 'auto.ai.google_genai',
+      }),
+      // Fifth span - chat.sendMessageStream (streaming)
+      expect.objectContaining({
+        data: expect.objectContaining({
+          'gen_ai.operation.name': 'chat',
+          'sentry.op': 'gen_ai.chat',
+          'sentry.origin': 'auto.ai.google_genai',
+          'gen_ai.system': 'google_genai',
+          'gen_ai.request.model': 'gemini-1.5-pro',
+          'gen_ai.response.streaming': true,
+          'gen_ai.response.id': 'mock-response-id',
+          'gen_ai.response.model': 'gemini-1.5-pro',
+        }),
+        description: 'chat gemini-1.5-pro stream-response',
+        op: 'gen_ai.chat',
+        origin: 'auto.ai.google_genai',
+      }),
+      // Sixth span - blocked content stream
+      expect.objectContaining({
+        data: expect.objectContaining({
+          'gen_ai.operation.name': 'models',
+          'sentry.op': 'gen_ai.models',
+          'sentry.origin': 'auto.ai.google_genai',
+          'gen_ai.system': 'google_genai',
+          'gen_ai.request.model': 'blocked-model',
+          'gen_ai.request.temperature': 0.7,
+          'gen_ai.response.streaming': true,
+        }),
+        description: 'models blocked-model stream-response',
+        op: 'gen_ai.models',
+        origin: 'auto.ai.google_genai',
+        status: 'unknown_error',
+      }),
+      // Seventh span - error handling
       expect.objectContaining({
         data: {
           'gen_ai.operation.name': 'models',
@@ -142,7 +193,57 @@ describe('Google GenAI integration', () => {
         origin: 'auto.ai.google_genai',
         status: 'ok',
       }),
-      // Fourth span - error handling with PII
+      // Fourth span - models.generateContentStream (streaming) with PII
+      expect.objectContaining({
+        data: expect.objectContaining({
+          'gen_ai.operation.name': 'models',
+          'sentry.op': 'gen_ai.models',
+          'sentry.origin': 'auto.ai.google_genai',
+          'gen_ai.system': 'google_genai',
+          'gen_ai.request.model': 'gemini-1.5-flash',
+          'gen_ai.request.messages': expect.any(String), // Should include contents when recordInputs: true
+          'gen_ai.response.streaming': true,
+          'gen_ai.response.id': 'mock-response-id',
+          'gen_ai.response.model': 'gemini-1.5-pro',
+        }),
+        description: 'models gemini-1.5-flash stream-response',
+        op: 'gen_ai.models',
+        origin: 'auto.ai.google_genai',
+      }),
+      // Fifth span - chat.sendMessageStream (streaming) with PII
+      expect.objectContaining({
+        data: expect.objectContaining({
+          'gen_ai.operation.name': 'chat',
+          'sentry.op': 'gen_ai.chat',
+          'sentry.origin': 'auto.ai.google_genai',
+          'gen_ai.system': 'google_genai',
+          'gen_ai.request.model': 'gemini-1.5-pro',
+          'gen_ai.request.messages': expect.any(String), // Should include message when recordInputs: true
+          'gen_ai.response.streaming': true,
+          'gen_ai.response.id': 'mock-response-id',
+          'gen_ai.response.model': 'gemini-1.5-pro',
+        }),
+        description: 'chat gemini-1.5-pro stream-response',
+        op: 'gen_ai.chat',
+        origin: 'auto.ai.google_genai',
+      }),
+      // Sixth span - blocked content stream with PII
+      expect.objectContaining({
+        data: expect.objectContaining({
+          'gen_ai.operation.name': 'models',
+          'sentry.op': 'gen_ai.models',
+          'sentry.origin': 'auto.ai.google_genai',
+          'gen_ai.system': 'google_genai',
+          'gen_ai.request.model': 'blocked-model',
+          'gen_ai.request.messages': expect.any(String), // Should include contents when recordInputs: true
+          'gen_ai.response.streaming': true,
+        }),
+        description: 'models blocked-model stream-response',
+        op: 'gen_ai.models',
+        origin: 'auto.ai.google_genai',
+        status: 'unknown_error',
+      }),
+      // Seventh span - error handling with PII
       expect.objectContaining({
         data: expect.objectContaining({
           'gen_ai.operation.name': 'models',
@@ -163,12 +264,22 @@ describe('Google GenAI integration', () => {
   const EXPECTED_TRANSACTION_WITH_OPTIONS = {
     transaction: 'main',
     spans: expect.arrayContaining([
-      // Check that custom options are respected
+      // Check that custom options are respected for non-streaming
       expect.objectContaining({
         data: expect.objectContaining({
           'gen_ai.request.messages': expect.any(String), // Should include messages when recordInputs: true
           'gen_ai.response.text': expect.any(String), // Should include response text when recordOutputs: true
         }),
+        description: expect.not.stringContaining('stream-response'), // Non-streaming span
+      }),
+      // Check that custom options are respected for streaming
+      expect.objectContaining({
+        data: expect.objectContaining({
+          'gen_ai.response.streaming': true,
+          'gen_ai.request.messages': expect.any(String), // Should include messages when recordInputs: true
+          'gen_ai.response.text': expect.stringContaining('streaming'), // Should include response text when recordOutputs: true
+        }),
+        description: expect.stringContaining('stream-response'),
       }),
     ]),
   };
