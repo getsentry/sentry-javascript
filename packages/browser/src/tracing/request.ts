@@ -22,11 +22,11 @@ import type { XhrHint } from '@sentry-internal/browser-utils';
 import {
   addPerformanceInstrumentationHandler,
   addXhrInstrumentationHandler,
+  resourceTimingToSpanAttributes,
   SENTRY_XHR_DATA_KEY,
 } from '@sentry-internal/browser-utils';
 import type { BrowserClient } from '../client';
 import { WINDOW } from '../helpers';
-import { resourceTimingToSpanAttributes } from './resource-timing';
 
 /** Options for Request Instrumentation */
 export interface RequestInstrumentationOptions {
@@ -249,8 +249,7 @@ function addHTTPTimings(span: Span): void {
   const cleanup = addPerformanceInstrumentationHandler('resource', ({ entries }) => {
     entries.forEach(entry => {
       if (isPerformanceResourceTiming(entry) && entry.name.endsWith(url)) {
-        const spanAttributes = resourceTimingToSpanAttributes(entry);
-        spanAttributes.forEach(attributeArray => span.setAttribute(...attributeArray));
+        span.setAttributes(resourceTimingToSpanAttributes(entry));
         // In the next tick, clean this handler up
         // We have to wait here because otherwise this cleans itself up before it is fully done
         setTimeout(cleanup);

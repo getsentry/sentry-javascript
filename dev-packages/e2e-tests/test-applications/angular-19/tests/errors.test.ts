@@ -19,7 +19,7 @@ test('sends an error', async ({ page }) => {
           type: 'Error',
           value: 'Error thrown from Angular 18 E2E test app',
           mechanism: {
-            type: 'angular',
+            type: 'auto.function.angular.error_handler',
             handled: false,
           },
         },
@@ -54,7 +54,7 @@ test('assigns the correct transaction value after a navigation', async ({ page }
           type: 'Error',
           value: 'Error thrown from user page',
           mechanism: {
-            type: 'angular',
+            type: 'auto.function.angular.error_handler',
             handled: false,
           },
         },

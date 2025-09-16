@@ -123,6 +123,7 @@ export {
   zodErrorsIntegration,
   logger,
   consoleLoggingIntegration,
+  createConsolaReporter,
   createSentryWinstonTransport,
 } from '@sentry/node';
 

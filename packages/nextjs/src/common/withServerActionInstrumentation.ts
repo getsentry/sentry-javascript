@@ -7,6 +7,7 @@ import {
   getClient,
   getIsolationScope,
   handleCallbackErrors,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SPAN_STATUS_ERROR,
   startSpan,
@@ -116,6 +117,7 @@ async function withServerActionInstrumentationImplementation<A extends (...args:
               forceTransaction: true,
               attributes: {
                 [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs.server_action',
               },
             },
             async span => {
@@ -130,6 +132,7 @@ async function withServerActionInstrumentationImplementation<A extends (...args:
                   captureException(error, {
                     mechanism: {
                       handled: false,
+                      type: 'auto.function.nextjs.server_action',
                     },
                   });
                 }

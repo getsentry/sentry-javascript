@@ -30,4 +30,6 @@ export { addXhrInstrumentationHandler, SENTRY_XHR_DATA_KEY } from './instrument/
 
 export { getBodyString, getFetchRequestArgBody, serializeFormData } from './networkUtils';
 
+export { resourceTimingToSpanAttributes } from './metrics/resourceTiming';
+
 export type { FetchHint, NetworkMetaWarning, XhrHint } from './types';

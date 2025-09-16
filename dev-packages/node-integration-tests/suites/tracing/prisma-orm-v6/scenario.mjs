@@ -1,16 +1,6 @@
-const Sentry = require('@sentry/node');
-const { loggingTransport } = require('@sentry-internal/node-integration-tests');
-
-Sentry.init({
-  dsn: 'https://public@dsn.ingest.sentry.io/1337',
-  release: '1.0',
-  tracesSampleRate: 1.0,
-  transport: loggingTransport,
-  integrations: [Sentry.prismaIntegration()],
-});
-
-const { randomBytes } = require('crypto');
-const { PrismaClient } = require('@prisma/client');
+import { PrismaClient } from '@prisma/client';
+import * as Sentry from '@sentry/node';
+import { randomBytes } from 'crypto';
 
 // Stop the process from exiting before the transaction is sent
 setInterval(() => {}, 1000);

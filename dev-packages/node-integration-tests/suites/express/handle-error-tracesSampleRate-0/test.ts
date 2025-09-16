@@ -13,7 +13,7 @@ test('should capture and send Express controller error with txn name if tracesSa
           values: [
             {
               mechanism: {
-                type: 'middleware',
+                type: 'auto.middleware.express',
                 handled: false,
               },
               type: 'Error',

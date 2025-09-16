@@ -317,7 +317,7 @@ describe('sentryHandle', () => {
       } catch (e) {
         expect(mockCaptureException).toBeCalledTimes(1);
         expect(mockCaptureException).toBeCalledWith(expect.any(Error), {
-          mechanism: { handled: false, type: 'sveltekit', data: { function: 'handle' } },
+          mechanism: { handled: false, type: 'auto.function.sveltekit.handle' },
         });
       }
     });

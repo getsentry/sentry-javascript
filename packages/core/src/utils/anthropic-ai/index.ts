@@ -27,7 +27,6 @@ import { buildMethodPath, getFinalOperationName, getSpanOperation, setTokenUsage
 import { ANTHROPIC_AI_INTEGRATION_NAME } from './constants';
 import { instrumentStream } from './streaming';
 import type {
-  AnthropicAiClient,
   AnthropicAiInstrumentedMethod,
   AnthropicAiIntegration,
   AnthropicAiOptions,
@@ -304,7 +303,7 @@ function instrumentMethod<T extends unknown[], R>(
 /**
  * Create a deep proxy for Anthropic AI client instrumentation
  */
-function createDeepProxy<T extends AnthropicAiClient>(target: T, currentPath = '', options?: AnthropicAiOptions): T {
+function createDeepProxy<T extends object>(target: T, currentPath = '', options?: AnthropicAiOptions): T {
   return new Proxy(target, {
     get(obj: object, prop: string): unknown {
       const value = (obj as Record<string, unknown>)[prop];
@@ -332,11 +331,11 @@ function createDeepProxy<T extends AnthropicAiClient>(target: T, currentPath = '
  * Instrument an Anthropic AI client with Sentry tracing
  * Can be used across Node.js, Cloudflare Workers, and Vercel Edge
  *
- * @template T - The type of the client that extends AnthropicAiClient
+ * @template T - The type of the client that extends object
  * @param client - The Anthropic AI client to instrument
  * @param options - Optional configuration for recording inputs and outputs
  * @returns The instrumented client with the same type as the input
  */
-export function instrumentAnthropicAiClient<T extends AnthropicAiClient>(client: T, options?: AnthropicAiOptions): T {
+export function instrumentAnthropicAiClient<T extends object>(client: T, options?: AnthropicAiOptions): T {
   return createDeepProxy(client, '', options);
 }
