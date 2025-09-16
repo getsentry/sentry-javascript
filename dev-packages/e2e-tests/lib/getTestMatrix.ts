@@ -50,15 +50,15 @@ function run(): void {
 
   // For GitHub Action debugging
   // eslint-disable-next-line no-console
-  console.log(`Parsed command line arguments: base=${base}, head=${head}, optional=${optional}`);
+  console.error(`Parsed command line arguments: base=${base}, head=${head}, optional=${optional}`);
 
   const testApplications = globSync('*/package.json', {
     cwd: `${__dirname}/../test-applications`,
   }).map(filePath => dirname(filePath));
 
-  // For GitHub Action debugging
+  // For GitHub Action debugging (using stderr the 'matrix=...' output is not polluted)
   // eslint-disable-next-line no-console
-  console.log(
+  console.error(
     `Discovered ${testApplications.length} test applications${
       testApplications.length > 0
         ? ` (sample: ${JSON.stringify(testApplications.slice(0, 10))}${testApplications.length > 10 ? ' …' : ''})`
@@ -166,7 +166,7 @@ function getAffectedTestApplications(
 
   // For GitHub Action debugging
   // eslint-disable-next-line no-console
-  console.log('Nx affected projects:', JSON.stringify(affectedProjects));
+  console.error(`Nx affected projects: ${JSON.stringify(affectedProjects)}`);
 
   // If something in e2e tests themselves are changed, check if only test applications were changed
   if (affectedProjects.includes('@sentry-internal/e2e-tests')) {
@@ -176,7 +176,7 @@ function getAffectedTestApplications(
       // Shared code was changed, run all tests
       if (changedTestApps === false) {
         // eslint-disable-next-line no-console
-        console.log('Shared e2e code changed. Running all test applications.');
+        console.error('Shared e2e code changed. Running all test applications.');
         return testApplications;
       }
 
@@ -184,7 +184,7 @@ function getAffectedTestApplications(
       if (changedTestApps.size > 0) {
         const selected = testApplications.filter(testApp => changedTestApps.has(testApp));
         // eslint-disable-next-line no-console
-        console.log(
+        console.error(
           `Only changed test applications will run (${selected.length}): ${JSON.stringify(Array.from(changedTestApps))}`,
         );
         return selected;
@@ -216,7 +216,7 @@ function getChangedTestApps(base: string, head?: string): false | Set<string> {
 
   // For GitHub Action debugging
   // eslint-disable-next-line no-console
-  console.log(`Changed files since ${base}${head ? `..${head}` : ''}:`, JSON.stringify(changedFiles));
+  console.error(`Changed files since ${base}${head ? `..${head}` : ''}: ${JSON.stringify(changedFiles)}`);
 
   const changedTestApps: Set<string> = new Set();
   const testAppsPrefix = 'dev-packages/e2e-tests/test-applications/';
