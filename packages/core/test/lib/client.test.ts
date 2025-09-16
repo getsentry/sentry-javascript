@@ -2268,7 +2268,7 @@ describe('Client', () => {
 
       expect(mockSend).toBeCalledTimes(1);
       expect(callback).toBeCalledTimes(1);
-      expect(callback).toBeCalledWith(errorEvent, 'send error');
+      expect(callback).toBeCalledWith(errorEvent, {});
     });
 
     it('passes the response to the hook', async () => {
