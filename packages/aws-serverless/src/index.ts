@@ -111,6 +111,8 @@ export {
   createSentryWinstonTransport,
   hapiIntegration,
   setupHapiErrorHandler,
+  honoIntegration,
+  setupHonoErrorHandler,
   spotlightIntegration,
   initOpenTelemetry,
   spanToJSON,
