@@ -1,5 +1,6 @@
 import type { Span } from '@opentelemetry/api';
 import { context, SpanStatusCode, trace } from '@opentelemetry/api';
+import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition } from '@opentelemetry/instrumentation';
 import { isThenable } from '@sentry/core';
 import { AttributeNames, HonoTypes } from './constants';
@@ -18,12 +19,21 @@ import type {
 const PACKAGE_NAME = '@sentry/instrumentation-hono';
 const PACKAGE_VERSION = '0.0.1';
 
+export interface HonoResponseHookFunction {
+  (span: Span): void;
+}
+
+export interface HonoInstrumentationConfig extends InstrumentationConfig {
+  /** Function for adding custom span attributes from the response */
+  responseHook?: HonoResponseHookFunction;
+}
+
 /**
  * Hono instrumentation for OpenTelemetry
  */
-export class HonoInstrumentation extends InstrumentationBase {
-  public constructor() {
-    super(PACKAGE_NAME, PACKAGE_VERSION, {});
+export class HonoInstrumentation extends InstrumentationBase<HonoInstrumentationConfig> {
+  public constructor(config: HonoInstrumentationConfig = {}) {
+    super(PACKAGE_NAME, PACKAGE_VERSION, config);
   }
 
   /**
@@ -86,23 +96,13 @@ export class HonoInstrumentation extends InstrumentationBase {
           const handlers = args.slice(1);
           return original.apply(this, [
             path,
-            ...handlers.map((handler, index) =>
-              instrumentation._wrapHandler(
-                index + 1 === handlers.length ? HonoTypes.REQUEST_HANDLER : HonoTypes.MIDDLEWARE,
-                handler as Handler | MiddlewareHandler,
-              ),
-            ),
+            ...handlers.map(handler => instrumentation._wrapHandler(handler as Handler | MiddlewareHandler)),
           ]);
         }
 
         return original.apply(
           this,
-          args.map((handler, index) =>
-            instrumentation._wrapHandler(
-              index + 1 === args.length ? HonoTypes.REQUEST_HANDLER : HonoTypes.MIDDLEWARE,
-              handler as Handler | MiddlewareHandler,
-            ),
-          ),
+          args.map(handler => instrumentation._wrapHandler(handler as Handler | MiddlewareHandler)),
         );
       };
     };
@@ -120,12 +120,7 @@ export class HonoInstrumentation extends InstrumentationBase {
         const handlers = args.slice(2);
         return original.apply(this, [
           ...args.slice(0, 2),
-          ...handlers.map((handler, index) =>
-            instrumentation._wrapHandler(
-              index + 1 === handlers.length ? HonoTypes.REQUEST_HANDLER : HonoTypes.MIDDLEWARE,
-              handler as Handler | MiddlewareHandler,
-            ),
-          ),
+          ...handlers.map(handler => instrumentation._wrapHandler(handler as Handler | MiddlewareHandler)),
         ]);
       };
     };
@@ -149,15 +144,13 @@ export class HonoInstrumentation extends InstrumentationBase {
           const handlers = args.slice(1);
           return original.apply(this, [
             path,
-            ...handlers.map(handler =>
-              instrumentation._wrapHandler(HonoTypes.MIDDLEWARE, handler as MiddlewareHandler),
-            ),
+            ...handlers.map(handler => instrumentation._wrapHandler(handler as MiddlewareHandler)),
           ]);
         }
 
         return original.apply(
           this,
-          args.map(handler => instrumentation._wrapHandler(HonoTypes.MIDDLEWARE, handler as MiddlewareHandler)),
+          args.map(handler => instrumentation._wrapHandler(handler as MiddlewareHandler)),
         );
       };
     };
@@ -166,7 +159,7 @@ export class HonoInstrumentation extends InstrumentationBase {
   /**
    * Wraps a handler or middleware handler to apply instrumentation.
    */
-  private _wrapHandler(type: HonoTypes, handler: Handler | MiddlewareHandler): Handler | MiddlewareHandler {
+  private _wrapHandler(handler: Handler | MiddlewareHandler): Handler | MiddlewareHandler {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const instrumentation = this;
 
@@ -176,17 +169,32 @@ export class HonoInstrumentation extends InstrumentationBase {
       }
 
       const path = c.req.path;
-      const spanName = `${type.replace('_', ' ')} - ${path}`;
-      const span = instrumentation.tracer.startSpan(spanName, {
-        attributes: {
-          [AttributeNames.HONO_TYPE]: type,
-          [AttributeNames.HONO_NAME]: type === 'request_handler' ? path : handler.name || 'anonymous',
-        },
-      });
+      const span = instrumentation.tracer.startSpan(path);
 
       return context.with(trace.setSpan(context.active(), span), () => {
         return instrumentation._safeExecute(
-          () => handler.apply(this, [c, next]),
+          () => {
+            const result = handler.apply(this, [c, next]);
+            if (isThenable(result)) {
+              return result.then(result => {
+                const type = instrumentation._determineHandlerType(result);
+                span.setAttributes({
+                  [AttributeNames.HONO_TYPE]: type,
+                  [AttributeNames.HONO_NAME]: type === HonoTypes.REQUEST_HANDLER ? path : handler.name || 'anonymous',
+                });
+                instrumentation.getConfig().responseHook?.(span);
+                return result;
+              });
+            } else {
+              const type = instrumentation._determineHandlerType(result);
+              span.setAttributes({
+                [AttributeNames.HONO_TYPE]: type,
+                [AttributeNames.HONO_NAME]: type === HonoTypes.REQUEST_HANDLER ? path : handler.name || 'anonymous',
+              });
+              instrumentation.getConfig().responseHook?.(span);
+              return result;
+            }
+          },
           () => span.end(),
           error => {
             instrumentation._handleError(span, error);
@@ -219,6 +227,15 @@ export class HonoInstrumentation extends InstrumentationBase {
       onFailure(error);
       throw error;
     }
+  }
+
+  /**
+   * Determines the handler type based on the result.
+   * @param result
+   * @private
+   */
+  private _determineHandlerType(result: unknown): HonoTypes {
+    return result === undefined ? HonoTypes.MIDDLEWARE : HonoTypes.REQUEST_HANDLER;
   }
 
   /**
