@@ -40,19 +40,19 @@ const _browserProfilingIntegration = (() => {
 
       // UI PROFILING (Profiling V2)
       if (!hasLegacyProfiling(options)) {
-        const lifecycleMode = options.profileLifecycle;
-
-        if (lifecycleMode === 'trace' && !hasSpansEnabled(options)) {
-          DEBUG_BUILD &&
-            debug.warn(
-              "[Profiling] `profileLifecycle` is 'trace' but tracing is disabled. Set a `tracesSampleRate` or `tracesSampler` to enable span tracing.",
-            );
+        const sessionSampled = shouldProfileSession(options);
+        if (!sessionSampled) {
+          DEBUG_BUILD && debug.log('[Profiling] Session not sampled. Skipping lifecycle profiler initialization.');
         }
 
-        if (lifecycleMode === 'trace' && hasSpansEnabled(options)) {
-          const sessionSampled = shouldProfileSession(options);
-          if (!sessionSampled) {
-            DEBUG_BUILD && debug.log('[Profiling] Session not sampled. Skipping lifecycle profiler initialization.');
+        const lifecycleMode = options.profileLifecycle;
+
+        if (lifecycleMode === 'trace') {
+          if (!hasSpansEnabled(options)) {
+            DEBUG_BUILD &&
+              debug.warn(
+                "[Profiling] `profileLifecycle` is 'trace' but tracing is disabled. Set a `tracesSampleRate` or `tracesSampler` to enable span tracing.",
+              );
             return;
           }
 

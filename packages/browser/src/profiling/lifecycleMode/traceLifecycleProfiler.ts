@@ -1,9 +1,10 @@
-import type { Client, ContinuousThreadCpuProfile, ProfileChunk, Span } from '@sentry/core';
+import type { Client, ContinuousThreadCpuProfile, Event, ProfileChunk, Span } from '@sentry/core';
 import {
   type ProfileChunkEnvelope,
   createEnvelope,
   debug,
   dsnToString,
+  getGlobalScope,
   getRootSpan,
   getSdkMetadataForEnvelopeHeader,
   spanToJSON,
@@ -30,8 +31,9 @@ export class BrowserTraceLifecycleProfiler {
   private _profiler: JSSelfProfiler | undefined;
   private _chunkTimer: ReturnType<typeof setTimeout> | undefined;
   private _activeRootSpanCount: number;
-  private _rootSpanIds: Set<string>;
-  private _profilerId: string | undefined;
+  // For keeping track of active root spans
+  private _activeRootSpanIds: Set<string>;
+  private _profileId: string | undefined;
   private _isRunning: boolean;
   private _sessionSampled: boolean;
 
@@ -40,8 +42,8 @@ export class BrowserTraceLifecycleProfiler {
     this._profiler = undefined;
     this._chunkTimer = undefined;
     this._activeRootSpanCount = 0;
-    this._rootSpanIds = new Set<string>();
-    this._profilerId = undefined;
+    this._activeRootSpanIds = new Set<string>();
+    this._profileId = undefined;
     this._isRunning = false;
     this._sessionSampled = false;
   }
@@ -69,18 +71,23 @@ export class BrowserTraceLifecycleProfiler {
         return;
       }
 
-      const spanId = spanToJSON(span)?.span_id as string | undefined;
+      const rootSpanJSON = spanToJSON(span);
+      const spanId = rootSpanJSON.span_id as string | undefined;
       if (!spanId) {
         return;
       }
-      if (this._rootSpanIds.has(spanId)) {
+      if (this._activeRootSpanIds.has(spanId)) {
         return;
       }
-      this._rootSpanIds.add(spanId);
+      this._activeRootSpanIds.add(spanId);
 
       const wasZero = this._activeRootSpanCount === 0;
       this._activeRootSpanCount++; // Increment before eventually starting the profiler
-      DEBUG_BUILD && debug.log('[Profiling] Root span started. Active root spans:', this._activeRootSpanCount);
+      DEBUG_BUILD &&
+        debug.log(
+          `[Profiling] Root span ${rootSpanJSON.description} started. Active root spans:`,
+          this._activeRootSpanCount,
+        );
       if (wasZero) {
         this.start();
       }
@@ -90,14 +97,19 @@ export class BrowserTraceLifecycleProfiler {
       if (!this._sessionSampled) {
         return;
       }
-      const spanId = spanToJSON(span)?.span_id as string | undefined;
-      if (!spanId || !this._rootSpanIds.has(spanId)) {
+
+      const spanJSON = spanToJSON(span);
+      const spanId = spanJSON.span_id as string | undefined;
+      if (!spanId || !this._activeRootSpanIds.has(spanId)) {
         return;
       }
 
-      this._rootSpanIds.delete(spanId);
+      this._activeRootSpanIds.delete(spanId);
       this._activeRootSpanCount = Math.max(0, this._activeRootSpanCount - 1);
-      DEBUG_BUILD && debug.log('[Profiling] Root span ended. Active root spans:', this._activeRootSpanCount);
+      DEBUG_BUILD &&
+        debug.log(
+          `[Profiling] Root span ${spanJSON.description} ended. Active root spans: ${this._activeRootSpanCount}`,
+        );
       if (this._activeRootSpanCount === 0) {
         this._collectCurrentChunk().catch(() => {
           /* no catch */
@@ -118,13 +130,13 @@ export class BrowserTraceLifecycleProfiler {
       return;
     }
     const spanId = spanToJSON(span)?.span_id;
-    if (!spanId || this._rootSpanIds.has(spanId)) {
+    if (!spanId || this._activeRootSpanIds.has(spanId)) {
       return;
     }
 
     const wasZero = this._activeRootSpanCount === 0;
 
-    this._rootSpanIds.add(spanId);
+    this._activeRootSpanIds.add(spanId);
     this._activeRootSpanCount++;
     DEBUG_BUILD &&
       debug.log(
@@ -148,9 +160,15 @@ export class BrowserTraceLifecycleProfiler {
     this._isRunning = true;
     if (!this._profilerId) {
       this._profilerId = uuid4();
+    if (!this._profileId) {
+      this._profileId = uuid4();
+
+      getGlobalScope().setContext('profile', {
+        profile_id: this._profileId,
+      });
     }
 
-    DEBUG_BUILD && debug.log('[Profiling] Started profiling with profile ID:', this._profilerId);
+    DEBUG_BUILD && debug.log('[Profiling] Started profiling with profile ID:', this._profileId);
 
     this._startProfilerInstance();
     this._scheduleNextChunk();
@@ -170,7 +188,7 @@ export class BrowserTraceLifecycleProfiler {
       /* no catch */
     });
     // Reset profiler id so a new continuous session gets a fresh id
-    this._profilerId = undefined;
+    this._profileId = undefined;
   }
 
   /**
@@ -214,17 +232,18 @@ export class BrowserTraceLifecycleProfiler {
    * Stop the current profiler, convert and send a profile chunk.
    */
   private async _collectCurrentChunk(): Promise<void> {
-    const profiler = this._profiler;
+    const prevProfiler = this._profiler;
     this._profiler = undefined;
-    if (!profiler) {
+    getGlobalScope().setContext('profile', {});
+    if (!prevProfiler) {
       return;
     }
 
     try {
-      const profile = await profiler.stop();
+      const profile = await prevProfiler.stop();
 
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      const chunk = createProfileChunkPayload(profile, this._client!, this._profilerId);
+      const chunk = createProfileChunkPayload(profile, this._client!, this._profileId);
 
       this._sendProfileChunk(chunk);
       DEBUG_BUILD && debug.log('[Profiling] Collected browser profile chunk.');

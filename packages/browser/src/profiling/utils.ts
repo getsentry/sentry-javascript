@@ -237,7 +237,10 @@ export function createProfileChunkPayload(
     version: '2',
     release: options.release ?? '',
     environment: options.environment ?? 'production',
-    debug_meta: { images: applyDebugMetadata([]) },
+    debug_meta: {
+      // function name obfuscation
+      images: applyDebugMetadata(jsSelfProfile.resources),
+    },
     profile: continuousProfile,
   };
 }
