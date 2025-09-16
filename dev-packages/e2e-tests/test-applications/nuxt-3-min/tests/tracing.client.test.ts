@@ -1,4 +1,4 @@
-import { expect, test } from '@nuxt/test-utils/playwright';
+import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 import type { Span } from '@sentry/nuxt';
 
