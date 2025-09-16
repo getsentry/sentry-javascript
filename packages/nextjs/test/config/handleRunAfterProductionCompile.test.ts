@@ -79,7 +79,7 @@ describe('handleRunAfterProductionCompile', () => {
         }),
         {
           buildTool: 'turbopack',
-          loggerPrefix: '[@sentry/nextjs]',
+          loggerPrefix: '[@sentry/nextjs - After Production Compile]',
         },
       );
     });
@@ -108,7 +108,7 @@ describe('handleRunAfterProductionCompile', () => {
   });
 
   describe('webpack builds', () => {
-    it('skips execution for webpack builds', async () => {
+    it('executes all build steps for webpack builds', async () => {
       await handleRunAfterProductionCompile(
         {
           releaseName: 'test-release',
@@ -118,11 +118,16 @@ describe('handleRunAfterProductionCompile', () => {
         mockSentryBuildOptions,
       );
 
-      expect(loadModule).not.toHaveBeenCalled();
-      expect(mockCreateSentryBuildPluginManager).not.toHaveBeenCalled();
+      expect(mockSentryBuildPluginManager.telemetry.emitBundlerPluginExecutionSignal).toHaveBeenCalledTimes(1);
+      expect(mockSentryBuildPluginManager.createRelease).toHaveBeenCalledTimes(1);
+      expect(mockSentryBuildPluginManager.injectDebugIds).toHaveBeenCalledWith(['/path/to/.next']);
+      expect(mockSentryBuildPluginManager.uploadSourcemaps).toHaveBeenCalledWith(['/path/to/.next'], {
+        prepareArtifacts: false,
+      });
+      expect(mockSentryBuildPluginManager.deleteArtifacts).toHaveBeenCalledTimes(1);
     });
 
-    it('does not log debug message for webpack builds when debug is enabled', async () => {
+    it('logs debug message for webpack builds when debug is enabled', async () => {
       const consoleSpy = vi.spyOn(console, 'debug').mockImplementation(() => {});
 
       const debugOptions = {
@@ -139,7 +144,7 @@ describe('handleRunAfterProductionCompile', () => {
         debugOptions,
       );
 
-      expect(consoleSpy).not.toHaveBeenCalledWith('[@sentry/nextjs] Running runAfterProductionCompile logic.');
+      expect(consoleSpy).toHaveBeenCalledWith('[@sentry/nextjs] Running runAfterProductionCompile logic.');
 
       consoleSpy.mockRestore();
     });
