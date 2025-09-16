@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 import type { Span } from '@sentry/nuxt';
 
-test.skip('sends a pageload root span with a parameterized URL', async ({ page }) => {
+test('sends a pageload root span with a parameterized URL', async ({ page }) => {
   const transactionPromise = waitForTransaction('nuxt-3-min', async transactionEvent => {
     return transactionEvent.transaction === '/test-param/:param()';
   });
@@ -31,7 +31,7 @@ test.skip('sends a pageload root span with a parameterized URL', async ({ page }
   });
 });
 
-test.skip('sends component tracking spans when `trackComponents` is enabled', async ({ page }) => {
+test('sends component tracking spans when `trackComponents` is enabled', async ({ page }) => {
   const transactionPromise = waitForTransaction('nuxt-3-min', async transactionEvent => {
     return transactionEvent.transaction === '/client-error';
   });
