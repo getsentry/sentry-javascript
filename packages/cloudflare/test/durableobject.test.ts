@@ -1,9 +1,8 @@
 import type { ExecutionContext } from '@cloudflare/workers-types';
 import * as SentryCore from '@sentry/core';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, onTestFinished, vi } from 'vitest';
 import { instrumentDurableObjectWithSentry } from '../src';
 import { isInstrumented } from '../src/instrument';
-import { createPromiseResolver } from '../src/utils/makePromiseResolver';
 
 describe('instrumentDurableObjectWithSentry', () => {
   afterEach(() => {
@@ -123,13 +122,15 @@ describe('instrumentDurableObjectWithSentry', () => {
   });
 
   it('flush performs after all waitUntil promises are finished', async () => {
+    vi.useFakeTimers();
+    onTestFinished(() => {
+      vi.useRealTimers();
+    });
     const flush = vi.spyOn(SentryCore.Client.prototype, 'flush');
     const waitUntil = vi.fn();
-    const { promise, resolve } = createPromiseResolver();
-    process.nextTick(resolve);
     const testClass = vi.fn(context => ({
       fetch: () => {
-        context.waitUntil(promise);
+        context.waitUntil(new Promise(res => setTimeout(res)));
         return new Response('test');
       },
     }));
@@ -141,7 +142,8 @@ describe('instrumentDurableObjectWithSentry', () => {
     expect(() => dObject.fetch(new Request('https://example.com'))).not.toThrow();
     expect(flush).not.toBeCalled();
     expect(waitUntil).toHaveBeenCalledOnce();
-    await Promise.all(waitUntil.mock.calls.map(call => call[0]));
+    vi.advanceTimersToNextTimer();
+    await Promise.all(waitUntil.mock.calls.map(([p]) => p));
     expect(flush).toBeCalled();
   });
 

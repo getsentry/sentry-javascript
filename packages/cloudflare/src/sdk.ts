@@ -12,10 +12,10 @@ import {
 } from '@sentry/core';
 import type { CloudflareClientOptions, CloudflareOptions } from './client';
 import { CloudflareClient } from './client';
+import { makeFlushLock } from './flush';
 import { fetchIntegration } from './integrations/fetch';
 import { setupOpenTelemetryTracer } from './opentelemetry/tracer';
 import { makeCloudflareTransport } from './transport';
-import { makeFlushLock } from './utils/flushLock';
 import { defaultStackParser } from './vendor/stacktrace';
 
 /** Get the default integrations for the Cloudflare SDK. */
