@@ -48,23 +48,9 @@ function run(): void {
 
   const { base, head = 'HEAD', optional } = values;
 
-  // For GitHub Action debugging
-  // eslint-disable-next-line no-console
-  console.log(`Parsed command line arguments: base=${base}, head=${head}, optional=${optional}`);
-
   const testApplications = globSync('*/package.json', {
     cwd: `${__dirname}/../test-applications`,
   }).map(filePath => dirname(filePath));
-
-  // For GitHub Action debugging
-  // eslint-disable-next-line no-console
-  console.log(
-    `Discovered ${testApplications.length} test applications${
-      testApplications.length > 0
-        ? ` (sample: ${JSON.stringify(testApplications.slice(0, 10))}${testApplications.length > 10 ? ' …' : ''})`
-        : ''
-    }`,
-  );
 
   // If `--base=xxx` is defined, we only want to get test applications changed since that base
   // Else, we take all test applications (e.g. on push)
@@ -151,22 +137,11 @@ function getAffectedTestApplications(
     additionalArgs.push(`--head=${head}`);
   }
 
-  let affectedProjects: string[] = [];
-  try {
-    affectedProjects = execSync(`yarn --silent nx show projects --affected ${additionalArgs.join(' ')}`)
-      .toString()
-      .split('\n')
-      .map(line => line.trim())
-      .filter(Boolean);
-  } catch (error) {
-    // eslint-disable-next-line no-console
-    console.warn('Failed to compute affected projects via Nx. Running all tests instead.', error);
-    return testApplications;
-  }
-
-  // For GitHub Action debugging
-  // eslint-disable-next-line no-console
-  console.log('Nx affected projects:', JSON.stringify(affectedProjects));
+  const affectedProjects = execSync(`yarn --silent nx show projects --affected ${additionalArgs.join(' ')}`)
+    .toString()
+    .split('\n')
+    .map(line => line.trim())
+    .filter(Boolean);
 
   // If something in e2e tests themselves are changed, check if only test applications were changed
   if (affectedProjects.includes('@sentry-internal/e2e-tests')) {
@@ -175,19 +150,12 @@ function getAffectedTestApplications(
 
       // Shared code was changed, run all tests
       if (changedTestApps === false) {
-        // eslint-disable-next-line no-console
-        console.log('Shared e2e code changed. Running all test applications.');
         return testApplications;
       }
 
       // Only test applications that were changed, run selectively
       if (changedTestApps.size > 0) {
-        const selected = testApplications.filter(testApp => changedTestApps.has(testApp));
-        // eslint-disable-next-line no-console
-        console.log(
-          `Only changed test applications will run (${selected.length}): ${JSON.stringify(Array.from(changedTestApps))}`,
-        );
-        return selected;
+        return testApplications.filter(testApp => changedTestApps.has(testApp));
       }
     } catch (error) {
       // eslint-disable-next-line no-console
@@ -213,10 +181,6 @@ function getChangedTestApps(base: string, head?: string): false | Set<string> {
     .split('\n')
     .map(line => line.trim())
     .filter(Boolean);
-
-  // For GitHub Action debugging
-  // eslint-disable-next-line no-console
-  console.log(`Changed files since ${base}${head ? `..${head}` : ''}:`, JSON.stringify(changedFiles));
 
   const changedTestApps: Set<string> = new Set();
   const testAppsPrefix = 'dev-packages/e2e-tests/test-applications/';
