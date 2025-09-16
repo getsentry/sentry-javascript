@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { waitForError } from '@sentry-internal/test-utils';
 
-test.describe.skip('server-side errors', async () => {
+test.describe('server-side errors', async () => {
   test('captures api fetch error (fetched on click)', async ({ page }) => {
     const errorPromise = waitForError('nuxt-3-min', async errorEvent => {
       return errorEvent?.exception?.values?.[0]?.value === 'Nuxt 3 Server error';

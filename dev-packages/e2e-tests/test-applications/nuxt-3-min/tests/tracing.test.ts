@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
-test.describe.skip('distributed tracing', () => {
+test.describe('distributed tracing', () => {
   const PARAM = 's0me-param';
 
   test('capture a distributed pageload trace', async ({ page }) => {

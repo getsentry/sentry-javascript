@@ -1,7 +1,7 @@
 import { expect, test } from '@nuxt/test-utils/playwright';
 import { waitForError } from '@sentry-internal/test-utils';
 
-test.describe.skip('client-side errors', async () => {
+test.describe('client-side errors', async () => {
   test('captures error thrown on click', async ({ page }) => {
     const errorPromise = waitForError('nuxt-3-min', async errorEvent => {
       return errorEvent?.exception?.values?.[0]?.value === 'Error thrown from Nuxt-3-min E2E test app';
