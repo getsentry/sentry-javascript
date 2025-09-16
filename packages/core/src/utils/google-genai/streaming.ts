@@ -62,25 +62,6 @@ function isErrorChunk(chunk: GoogleGenAIResponse, span: Span): boolean {
         return true;
       }
     }
-
-    // Check for blocked candidates based on finish reasons
-    if (chunk.candidates) {
-      for (const candidate of chunk.candidates) {
-        if (candidate && typeof candidate === 'object' && candidate.finishReason) {
-          span.setStatus({
-            code: SPAN_STATUS_ERROR,
-            message: `Model stopped generating tokens: ${candidate.finishReason}`,
-          });
-          captureException(`Model stopped generating tokens: ${candidate.finishReason}`, {
-            mechanism: {
-              handled: false,
-              type: 'auto.ai.google_genai',
-            },
-          });
-          return true;
-        }
-      }
-    }
   }
   return false;
 }
@@ -125,6 +106,14 @@ function handleResponseMetadata(chunk: GoogleGenAIResponse, state: StreamingStat
  * @param recordOutputs - Whether to record outputs
  */
 function handleCandidateContent(chunk: GoogleGenAIResponse, state: StreamingState, recordOutputs: boolean): void {
+  // Check for direct functionCalls getter first
+  if (chunk.functionCalls && Array.isArray(chunk.functionCalls)) {
+    const functionCalls = chunk.functionCalls;
+    for (const functionCall of functionCalls) {
+      state.toolCalls.push(functionCall);
+    }
+  }
+
   if (!chunk?.candidates) return;
 
   for (const candidate of chunk.candidates) {
@@ -147,7 +136,7 @@ function handleCandidateContent(chunk: GoogleGenAIResponse, state: StreamingStat
             state.responseTexts.push(part.text);
           }
 
-          // Extract function calls
+          // Extract function calls (fallback method)
           if (part.functionCall) {
             state.toolCalls.push({
               type: 'function',

@@ -5,6 +5,7 @@ import { startSpan } from '../../tracing/trace';
 import type { Span, SpanAttributeValue } from '../../types-hoist/span';
 import {
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
+  GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE,
   GEN_AI_REQUEST_FREQUENCY_PENALTY_ATTRIBUTE,
   GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE,
   GEN_AI_REQUEST_MESSAGES_ATTRIBUTE,
@@ -14,6 +15,7 @@ import {
   GEN_AI_REQUEST_TOP_K_ATTRIBUTE,
   GEN_AI_REQUEST_TOP_P_ATTRIBUTE,
   GEN_AI_RESPONSE_TEXT_ATTRIBUTE,
+  GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
   GEN_AI_SYSTEM_ATTRIBUTE,
   GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
@@ -108,7 +110,16 @@ function extractRequestAttributes(
 
     // Extract generation config parameters
     if ('config' in params && typeof params.config === 'object' && params.config) {
-      Object.assign(attributes, extractConfigAttributes(params.config as Record<string, unknown>));
+      const config = params.config as Record<string, unknown>;
+      Object.assign(attributes, extractConfigAttributes(config));
+
+      // Extract available tools from config
+      if ('tools' in config && Array.isArray(config.tools)) {
+        const functionDeclarations = config.tools.map(
+          (tool: { functionDeclarations: unknown[] }) => tool.functionDeclarations,
+        );
+        attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE] = JSON.stringify(functionDeclarations);
+      }
     }
   } else {
     attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] = extractModel({}, context);
@@ -183,6 +194,16 @@ function addResponseAttributes(span: Span, response: GoogleGenAIResponse, record
     if (responseTexts.length > 0) {
       span.setAttributes({
         [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: responseTexts.join(''),
+      });
+    }
+  }
+
+  // Add tool calls if recordOutputs is enabled
+  if (recordOutputs && response.functionCalls) {
+    const functionCalls = response.functionCalls;
+    if (Array.isArray(functionCalls) && functionCalls.length > 0) {
+      span.setAttributes({
+        [GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE]: JSON.stringify(functionCalls),
       });
     }
   }
