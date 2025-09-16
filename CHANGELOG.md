@@ -18,8 +18,10 @@
   - ref(astro): Adjust `mechanism` on error events captured by astro middleware ([#17613](https://github.com/getsentry/sentry-javascript/pull/17613))
   - ref(aws-severless): Slightly adjust aws-serverless mechanism type ([#17614](https://github.com/getsentry/sentry-javascript/pull/17614))
   - ref(bun): Adjust `mechanism` of errors captured in Bun.serve ([#17616](https://github.com/getsentry/sentry-javascript/pull/17616))
+  - ref(core): Adjust `mechanism` in `captureConsoleIntegration` ([#17633](https://github.com/getsentry/sentry-javascript/pull/17633))
   - ref(core): Adjust MCP server error event `mechanism` ([#17622](https://github.com/getsentry/sentry-javascript/pull/17622))
   - ref(core): Simplify `linkedErrors` mechanism logic ([#17600](https://github.com/getsentry/sentry-javascript/pull/17600))
+  - ref(deno): Adjust `mechanism` of errors caught by `globalHandlersIntegration` ([#17635](https://github.com/getsentry/sentry-javascript/pull/17635))
   - ref(nextjs): Set more specific event `mechanism`s ([#17543](https://github.com/getsentry/sentry-javascript/pull/17543))
   - ref(node): Adjust mechanism of express, hapi and fastify error handlers ([#17623](https://github.com/getsentry/sentry-javascript/pull/17623))
   - ref(node-core): Add `mechanism` to cron instrumentations ([#17544](https://github.com/getsentry/sentry-javascript/pull/17544))
@@ -31,6 +33,8 @@
   - ref(replay-internal): Add mechanism to error caught by `replayIntegration` in debug mode ([#17606](https://github.com/getsentry/sentry-javascript/pull/17606))
   - ref(solid): Add `mechanism` to error captured by `withSentryErrorBoundary` ([#17607](https://github.com/getsentry/sentry-javascript/pull/17607))
   - ref(solidstart): Adjust event mechanism in withServerActionInstrumentation ([#17637](https://github.com/getsentry/sentry-javascript/pull/17637))
+  - ref(sveltekit): Adjust `mechanism` of error events ([#17646](https://github.com/getsentry/sentry-javascript/pull/17646))
+  - ref(vue): Adjust mechanism in Vue error handler ([#17647](https://github.com/getsentry/sentry-javascript/pull/17647))
 
   <br/>
 
