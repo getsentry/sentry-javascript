@@ -415,10 +415,9 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
       env = addItemToEnvelope(env, createAttachmentEnvelopeItem(attachment));
     }
 
-    const promise = this.sendEnvelope(env);
-    if (promise) {
-      promise.then(sendResponse => this.emit('afterSendEvent', event, sendResponse), null);
-    }
+    // sendEnvelope should not throw
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
+    this.sendEnvelope(env).then(sendResponse => this.emit('afterSendEvent', event, sendResponse));
   }
 
   /**
@@ -879,12 +878,11 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     if (this._isEnabled() && this._transport) {
       return this._transport.send(envelope).then(null, reason => {
         DEBUG_BUILD && debug.error('Error while sending envelope:', reason);
-        return reason;
+        return {};
       });
     }
 
     DEBUG_BUILD && debug.error('Transport disabled');
-
     return resolvedSyncPromise({});
   }
 
