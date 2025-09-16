@@ -10,11 +10,10 @@ import type {
 } from '@cloudflare/workers-types';
 import type { Event } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
-import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { beforeEach, describe, expect, onTestFinished, test, vi } from 'vitest';
 import { CloudflareClient } from '../src/client';
 import { withSentry } from '../src/handler';
 import { markAsInstrumented } from '../src/instrument';
-import { createPromiseResolver } from '../src/utils/makePromiseResolver';
 
 // Custom type for hono-like apps (cloudflare handlers) that include errorHandler and onError
 type HonoLikeApp<Env = unknown, QueueHandlerMessage = unknown, CfHostMetadata = unknown> = ExportedHandler<
@@ -31,29 +30,8 @@ const MOCK_ENV = {
   SENTRY_RELEASE: '1.1.1',
 };
 
-function makeWaitUntilAndTask<
-  M extends ReturnType<typeof vi.fn>,
-  T extends M & {
-    readonly ready: Promise<M>;
-    readonly task: { readonly promise: Promise<void>; readonly resolve: M };
-  },
->(): T {
-  const waitUntil = vi.fn();
-  const { promise, resolve } = createPromiseResolver();
-  const resolver = vi.fn().mockImplementation(resolve).mockName('waitUntil.ready');
-  Object.defineProperties(waitUntil, {
-    ready: {
-      get: () => Promise.all(waitUntil.mock.calls.map(call => call[0])).then(() => resolver),
-      enumerable: true,
-      configurable: true,
-    },
-    task: {
-      value: { promise, resolve: resolver },
-      enumerable: true,
-      configurable: true,
-    },
-  });
-  return waitUntil as T;
+function addDelayedWaitUntil(context: ExecutionContext) {
+  context.waitUntil(new Promise<void>(resolve => setTimeout(() => resolve())));
 }
 
 describe('withSentry', () => {
@@ -157,22 +135,27 @@ describe('withSentry', () => {
 
     test('flush must be called when all waitUntil are done', async () => {
       const flush = vi.spyOn(SentryCore.Client.prototype, 'flush');
-      const waitUntil = makeWaitUntilAndTask();
-      process.nextTick(waitUntil.task.resolve);
+      vi.useFakeTimers();
+      onTestFinished(() => {
+        vi.useRealTimers();
+      });
       const handler = {
-        fetch(...args) {
-          args[2].waitUntil(waitUntil.task.promise);
+        fetch(_request, _env, _context) {
+          addDelayedWaitUntil(_context);
           return new Response('test');
         },
       } satisfies ExportedHandler<typeof MOCK_ENV>;
 
       const wrappedHandler = withSentry(vi.fn(), handler);
+      const waits: Promise<unknown>[] = [];
+      const waitUntil = vi.fn(promise => waits.push(promise));
       await wrappedHandler.fetch?.(new Request('https://example.com'), MOCK_ENV, {
         waitUntil,
       } as unknown as ExecutionContext);
       expect(flush).not.toBeCalled();
-      const ready = await waitUntil.ready;
-      expect(flush).toHaveBeenCalledAfter(ready);
+      expect(waitUntil).toBeCalled();
+      vi.advanceTimersToNextTimer().runAllTimers();
+      await Promise.all(waits);
       expect(flush).toHaveBeenCalledOnce();
     });
   });
@@ -392,23 +375,28 @@ describe('withSentry', () => {
 
     test('flush must be called when all waitUntil are done', async () => {
       const flush = vi.spyOn(SentryCore.Client.prototype, 'flush');
-      const waitUntil = makeWaitUntilAndTask();
-      process.nextTick(waitUntil.task.resolve);
+      vi.useFakeTimers();
+      onTestFinished(() => {
+        vi.useRealTimers();
+      });
       const handler = {
-        scheduled(...args) {
-          args[2].waitUntil(waitUntil.task.promise);
+        scheduled(_controller, _env, _context) {
+          addDelayedWaitUntil(_context);
           return;
         },
       } satisfies ExportedHandler<typeof MOCK_ENV>;
 
       const wrappedHandler = withSentry(vi.fn(), handler);
+      const waits: Promise<unknown>[] = [];
+      const waitUntil = vi.fn(promise => waits.push(promise));
       await wrappedHandler.scheduled?.(createMockScheduledController(), MOCK_ENV, {
         waitUntil,
       } as unknown as ExecutionContext);
       expect(flush).not.toBeCalled();
-      await waitUntil.ready;
+      expect(waitUntil).toBeCalled();
+      vi.advanceTimersToNextTimer().runAllTimers();
+      await Promise.all(waits);
       expect(flush).toHaveBeenCalledOnce();
-      expect(flush).toHaveBeenCalledAfter(waitUntil);
     });
   });
 
@@ -626,24 +614,28 @@ describe('withSentry', () => {
 
     test('flush must be called when all waitUntil are done', async () => {
       const flush = vi.spyOn(SentryCore.Client.prototype, 'flush');
-      const waitUntil = makeWaitUntilAndTask();
-
-      process.nextTick(waitUntil.task.resolve);
+      vi.useFakeTimers();
+      onTestFinished(() => {
+        vi.useRealTimers();
+      });
       const handler = {
-        email(...args) {
-          args[2].waitUntil(waitUntil.task.promise);
+        email(_controller, _env, _context) {
+          addDelayedWaitUntil(_context);
           return;
         },
       } satisfies ExportedHandler<typeof MOCK_ENV>;
 
       const wrappedHandler = withSentry(vi.fn(), handler);
+      const waits: Promise<unknown>[] = [];
+      const waitUntil = vi.fn(promise => waits.push(promise));
       await wrappedHandler.email?.(createMockEmailMessage(), MOCK_ENV, {
         waitUntil,
       } as unknown as ExecutionContext);
       expect(flush).not.toBeCalled();
-      const ready = await waitUntil.ready;
+      expect(waitUntil).toBeCalled();
+      vi.advanceTimersToNextTimer().runAllTimers();
+      await Promise.all(waits);
       expect(flush).toHaveBeenCalledOnce();
-      expect(flush).toHaveBeenCalledAfter(ready);
     });
   });
 
@@ -865,22 +857,27 @@ describe('withSentry', () => {
 
     test('flush must be called when all waitUntil are done', async () => {
       const flush = vi.spyOn(SentryCore.Client.prototype, 'flush');
-      const waitUntil = makeWaitUntilAndTask();
-      process.nextTick(waitUntil.task.resolve);
+      vi.useFakeTimers();
+      onTestFinished(() => {
+        vi.useRealTimers();
+      });
       const handler = {
-        queue(...args) {
-          args[2].waitUntil(waitUntil.task.promise);
+        queue(_controller, _env, _context) {
+          addDelayedWaitUntil(_context);
           return;
         },
       } satisfies ExportedHandler<typeof MOCK_ENV>;
 
       const wrappedHandler = withSentry(vi.fn(), handler);
+      const waits: Promise<unknown>[] = [];
+      const waitUntil = vi.fn(promise => waits.push(promise));
       await wrappedHandler.queue?.(createMockQueueBatch(), MOCK_ENV, {
         waitUntil,
       } as unknown as ExecutionContext);
       expect(flush).not.toBeCalled();
-
-      expect(flush).toHaveBeenCalledAfter(await waitUntil.ready);
+      expect(waitUntil).toBeCalled();
+      vi.advanceTimersToNextTimer().runAllTimers();
+      await Promise.all(waits);
       expect(flush).toHaveBeenCalledOnce();
     });
   });
@@ -1057,23 +1054,29 @@ describe('withSentry', () => {
 
     test('flush must be called when all waitUntil are done', async () => {
       const flush = vi.spyOn(SentryCore.Client.prototype, 'flush');
-      const waitUntil = makeWaitUntilAndTask();
-      process.nextTick(waitUntil.task.resolve);
+      vi.useFakeTimers();
+      onTestFinished(() => {
+        vi.useRealTimers();
+        flush.mockRestore();
+      });
       const handler = {
-        tail(...args) {
-          args[2].waitUntil(waitUntil.task.promise);
+        tail(_controller, _env, _context) {
+          addDelayedWaitUntil(_context);
           return;
         },
       } satisfies ExportedHandler<typeof MOCK_ENV>;
 
       const wrappedHandler = withSentry(vi.fn(), handler);
+      const waits: Promise<unknown>[] = [];
+      const waitUntil = vi.fn(promise => waits.push(promise));
       await wrappedHandler.tail?.(createMockTailEvent(), MOCK_ENV, {
         waitUntil,
       } as unknown as ExecutionContext);
       expect(flush).not.toBeCalled();
-      const ready = await waitUntil.ready;
+      expect(waitUntil).toBeCalled();
+      vi.advanceTimersToNextTimer().runAllTimers();
+      await Promise.all(waits);
       expect(flush).toHaveBeenCalledOnce();
-      expect(flush).toHaveBeenCalledAfter(ready);
     });
   });
 
