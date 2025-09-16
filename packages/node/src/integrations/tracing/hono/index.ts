@@ -4,7 +4,6 @@ import {
   captureException,
   debug,
   defineIntegration,
-  getClient,
   getDefaultIsolationScope,
   getIsolationScope,
   httpRequestToRequestData,
@@ -20,7 +19,44 @@ import type { Context, MiddlewareHandler, MiddlewareHandlerInterface, Next } fro
 
 const INTEGRATION_NAME = 'Hono';
 
-export const instrumentHono = generateInstrumentOnce(INTEGRATION_NAME, () => new HonoInstrumentation());
+function addHonoSpanAttributes(span: Span): void {
+  const attributes = spanToJSON(span).data;
+  const type = attributes[AttributeNames.HONO_TYPE];
+  if (attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] || !type) {
+    return;
+  }
+
+  span.setAttributes({
+    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.otel.hono',
+    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: `${type}.hono`,
+  });
+
+  const name = attributes[AttributeNames.HONO_NAME];
+  if (typeof name === 'string') {
+    span.updateName(name);
+  }
+
+  if (getIsolationScope() === getDefaultIsolationScope()) {
+    DEBUG_BUILD && debug.warn('Isolation scope is default isolation scope - skipping setting transactionName');
+    return;
+  }
+
+  const route = attributes[ATTR_HTTP_ROUTE];
+  const method = attributes[ATTR_HTTP_REQUEST_METHOD];
+  if (typeof route === 'string' && typeof method === 'string') {
+    getIsolationScope().setTransactionName(`${method} ${route}`);
+  }
+}
+
+export const instrumentHono = generateInstrumentOnce(
+  INTEGRATION_NAME,
+  () =>
+    new HonoInstrumentation({
+      responseHook: span => {
+        addHonoSpanAttributes(span);
+      },
+    }),
+);
 
 const _honoIntegration = (() => {
   return {
@@ -86,35 +122,6 @@ function honoErrorHandler(options?: Partial<HonoHandlerOptions>): MiddlewareHand
   };
 }
 
-function addHonoSpanAttributes(span: Span): void {
-  const attributes = spanToJSON(span).data;
-  const type = attributes[AttributeNames.HONO_TYPE];
-  if (attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] || !type) {
-    return;
-  }
-
-  span.setAttributes({
-    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.otel.hono',
-    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: `${type}.hono`,
-  });
-
-  const name = attributes[AttributeNames.HONO_NAME];
-  if (typeof name === 'string') {
-    span.updateName(name);
-  }
-
-  if (getIsolationScope() === getDefaultIsolationScope()) {
-    DEBUG_BUILD && debug.warn('Isolation scope is default isolation scope - skipping setting transactionName');
-    return;
-  }
-
-  const route = attributes[ATTR_HTTP_ROUTE];
-  const method = attributes[ATTR_HTTP_REQUEST_METHOD];
-  if (typeof route === 'string' && typeof method === 'string') {
-    getIsolationScope().setTransactionName(`${method} ${route}`);
-  }
-}
-
 /**
  * Add a Hono error handler to capture errors to Sentry.
  *
@@ -139,13 +146,5 @@ export function setupHonoErrorHandler(
 ): void {
   app.use(honoRequestHandler());
   app.use(honoErrorHandler(options));
-
-  const client = getClient();
-  if (client) {
-    client.on('spanStart', span => {
-      addHonoSpanAttributes(span);
-    });
-  }
-
   ensureIsWrapped(app.use, 'hono');
 }

@@ -137,6 +137,74 @@ describe('hono tracing', () => {
             await runner.completed();
           });
 
+          test('should handle transaction with separate middleware', async () => {
+            const runner = createRunner()
+              .expect({
+                transaction: {
+                  transaction: `${method.toUpperCase()} ${route}${path === '/' ? '' : path}/middleware/separately`,
+                  spans: expect.arrayContaining([
+                    expect.objectContaining({
+                      data: expect.objectContaining({
+                        'hono.name': 'sentryRequestMiddleware',
+                        'hono.type': 'middleware',
+                      }),
+                      description: 'sentryRequestMiddleware',
+                      op: 'middleware.hono',
+                      origin: 'auto.http.otel.hono',
+                    }),
+                    expect.objectContaining({
+                      data: expect.objectContaining({
+                        'hono.name': 'sentryErrorMiddleware',
+                        'hono.type': 'middleware',
+                      }),
+                      description: 'sentryErrorMiddleware',
+                      op: 'middleware.hono',
+                      origin: 'auto.http.otel.hono',
+                    }),
+                    expect.objectContaining({
+                      data: expect.objectContaining({
+                        'hono.name': 'global',
+                        'hono.type': 'middleware',
+                      }),
+                      description: 'global',
+                      op: 'middleware.hono',
+                      origin: 'auto.http.otel.hono',
+                    }),
+                    expect.objectContaining({
+                      data: expect.objectContaining({
+                        'hono.name': 'base',
+                        'hono.type': 'middleware',
+                      }),
+                      description: 'base',
+                      op: 'middleware.hono',
+                      origin: 'auto.http.otel.hono',
+                    }),
+                    expect.objectContaining({
+                      data: expect.objectContaining({
+                        'hono.name': 'anonymous',
+                        'hono.type': 'middleware',
+                      }),
+                      description: 'anonymous',
+                      op: 'middleware.hono',
+                      origin: 'auto.http.otel.hono',
+                    }),
+                    expect.objectContaining({
+                      data: expect.objectContaining({
+                        'hono.name': `${route}${path === '/' ? '' : path}/middleware/separately`,
+                        'hono.type': 'request_handler',
+                      }),
+                      description: `${route}${path === '/' ? '' : path}/middleware/separately`,
+                      op: 'request_handler.hono',
+                      origin: 'auto.http.otel.hono',
+                    }),
+                  ]),
+                },
+              })
+              .start();
+            runner.makeRequest(method, `${route}${path === '/' ? '' : path}/middleware/separately`);
+            await runner.completed();
+          });
+
           test('should handle returned errors for %s path', async () => {
             const runner = createRunner()
               .ignore('transaction')

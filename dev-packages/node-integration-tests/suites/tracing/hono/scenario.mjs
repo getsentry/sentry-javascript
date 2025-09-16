@@ -43,6 +43,17 @@ basePaths.forEach(basePath => {
       },
     );
 
+    // anonymous middleware
+    baseApp[method]('/middleware/separately', async (c, next) => {
+      await next();
+    });
+
+    baseApp[method]('/middleware/separately', async c => {
+      const response = c.text('response 200');
+      if (basePath === '/sync') return response;
+      return Promise.resolve(response);
+    });
+
     baseApp.all('/all', c => {
       const response = c.text('response 200');
       if (basePath === '/sync') return response;
@@ -61,6 +72,17 @@ basePaths.forEach(basePath => {
         return Promise.resolve(response);
       },
     );
+
+    // anonymous middleware
+    baseApp.all('/all/middleware/separately', async (c, next) => {
+      await next();
+    });
+
+    baseApp.all('/all/middleware/separately', async c => {
+      const response = c.text('response 200');
+      if (basePath === '/sync') return response;
+      return Promise.resolve(response);
+    });
 
     baseApp.on(method, '/on', c => {
       const response = c.text('response 200');
@@ -81,6 +103,17 @@ basePaths.forEach(basePath => {
         return Promise.resolve(response);
       },
     );
+
+    // anonymous middleware
+    baseApp.on(method, '/on/middleware/separately', async (c, next) => {
+      await next();
+    });
+
+    baseApp.on(method, '/on/middleware/separately', async c => {
+      const response = c.text('response 200');
+      if (basePath === '/sync') return response;
+      return Promise.resolve(response);
+    });
 
     baseApp[method]('/401', () => {
       const response = new HTTPException(401, { message: 'response 401' });
