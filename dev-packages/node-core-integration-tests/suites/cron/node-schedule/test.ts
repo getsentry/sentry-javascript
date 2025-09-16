@@ -74,7 +74,7 @@ test('node-schedule instrumentation', async () => {
             {
               type: 'Error',
               value: 'Error in cron job',
-              mechanism: { type: 'onunhandledrejection', handled: false },
+              mechanism: { type: 'auto.node.onunhandledrejection', handled: false },
             },
           ],
         },
