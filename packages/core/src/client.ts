@@ -875,18 +875,15 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public sendEnvelope(envelope: Envelope): PromiseLike<TransportMakeRequestResponse> {
     this.emit('beforeEnvelope', envelope);
 
-    if (!this._isEnabled() || !this._transport) {
-      DEBUG_BUILD && debug.error('Transport disabled');
-      return resolvedSyncPromise({});
-    }
-
-    return this._transport.send(envelope).then(
-      response => response,
-      reason => {
+    if (this._isEnabled() && this._transport) {
+      return this._transport.send(envelope).then(null, reason => {
         DEBUG_BUILD && debug.error('Error while sending envelope:', reason);
         return {};
-      },
-    );
+      });
+    }
+
+    DEBUG_BUILD && debug.error('Transport disabled');
+    return resolvedSyncPromise({});
   }
 
   /* eslint-enable @typescript-eslint/unified-signatures */
