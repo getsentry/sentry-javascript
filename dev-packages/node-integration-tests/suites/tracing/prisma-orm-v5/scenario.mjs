@@ -3,7 +3,7 @@ import * as Sentry from '@sentry/node';
 import { randomBytes } from 'crypto';
 
 // Stop the process from exiting before the transaction is sent
-setInterval(() => {}, 1000);
+setInterval(() => {}, 3000);
 
 async function run() {
   const client = new PrismaClient();
