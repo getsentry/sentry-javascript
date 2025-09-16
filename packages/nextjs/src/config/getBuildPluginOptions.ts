@@ -1,6 +1,6 @@
 import type { Options as SentryBuildPluginOptions } from '@sentry/bundler-plugin-core';
 import * as path from 'path';
-import type { BuildContext, NextConfigObject, SentryBuildOptions } from './types';
+import type { SentryBuildOptions } from './types';
 
 /**
  * Get Sentry Build Plugin options for both webpack and turbopack builds.
@@ -160,28 +160,4 @@ export function getBuildPluginOptions({
     },
     ...sentryBuildOptions.unstable_sentryWebpackPluginOptions,
   };
-}
-
-/**
- * Legacy function for webpack builds. Now calls the unified getBuildPluginOptions function.
- * @deprecated Use getBuildPluginOptions instead
- */
-export function getWebpackPluginOptions(
-  buildContext: BuildContext,
-  sentryBuildOptions: SentryBuildOptions,
-  releaseName: string | undefined,
-): SentryBuildPluginOptions {
-  const { isServer, config: userNextConfig, dir, nextRuntime } = buildContext;
-  const buildTool = isServer ? (nextRuntime === 'edge' ? 'webpack-edge' : 'webpack-nodejs') : 'webpack-client';
-
-  const projectDir = dir.replace(/\\/g, '/');
-  const distDir = (userNextConfig as NextConfigObject).distDir?.replace(/\\/g, '/') ?? '.next';
-  const distDirAbsPath = path.posix.join(projectDir, distDir);
-
-  return getBuildPluginOptions({
-    sentryBuildOptions,
-    releaseName,
-    distDirAbsPath,
-    buildTool,
-  });
 }
