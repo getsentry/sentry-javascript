@@ -38,7 +38,7 @@ export function handleErrorWithSentry(handleError?: HandleClientError): HandleCl
 
     captureException(input.error, {
       mechanism: {
-        type: 'sveltekit',
+        type: 'auto.function.sveltekit.handle_error',
         handled: !!handleError,
       },
     });

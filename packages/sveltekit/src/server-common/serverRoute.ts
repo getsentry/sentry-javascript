@@ -62,7 +62,7 @@ export function wrapServerRouteWithSentry<T extends RequestEvent>(
           () => wrappingTarget.apply(thisArg, args),
         );
       } catch (e) {
-        sendErrorToSentry(e, 'serverRoute');
+        sendErrorToSentry(e, 'server_route');
         throw e;
       } finally {
         await flushIfServerless();
