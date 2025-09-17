@@ -66,7 +66,7 @@ interface HttpOptions {
    * By default, spans with some 3xx and 4xx status codes are ignored (see @default).
    * Expects an array of status codes or a range of status codes, e.g. [[300,399], 404] would ignore 3xx and 404 status codes.
    *
-   * @default `[[401, 404], 301, 303, [305, 399]]`
+   * @default `[[401, 404], [301, 303], [305, 399]]`
    */
   dropSpansForIncomingRequestStatusCodes?: (number | [number, number])[];
 
