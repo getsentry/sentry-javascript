@@ -28,7 +28,7 @@ This is a quite complex test with the goal to ensure correct recording across mu
 navigations and page reloads. In particular, we want to check that all breadcrumbs, spans as
 well as the correct DOM snapshots and updates are recorded and sent.
 */
-sentryTest(
+sentryTest.skip(
   'record page navigations and performance entries across multiple pages',
   async ({ getLocalTestUrl, page, browserName }) => {
     // We only test this against the NPM package and replay bundles

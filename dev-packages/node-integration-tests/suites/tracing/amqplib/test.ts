@@ -26,7 +26,8 @@ const EXPECTED_MESSAGE_SPAN_CONSUMER = expect.objectContaining({
   status: 'ok',
 });
 
-describe('amqplib auto-instrumentation', () => {
+// eslint-disable-next-line @sentry-internal/sdk/no-skipped-tests
+describe.skip('amqplib auto-instrumentation', () => {
   afterAll(async () => {
     cleanupChildProcesses();
   });

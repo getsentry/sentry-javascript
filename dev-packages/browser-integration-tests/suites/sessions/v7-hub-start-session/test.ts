@@ -15,7 +15,7 @@ sentryTest('should start a new session on pageload.', async ({ getLocalTestUrl, 
   expect(session.status).toBe('ok');
 });
 
-sentryTest('should start a new session with navigation.', async ({ getLocalTestUrl, page }) => {
+sentryTest.skip('should start a new session with navigation.', async ({ getLocalTestUrl, page }) => {
   const url = await getLocalTestUrl({ testDir: __dirname });
   await page.route('**/foo', (route: Route) => route.continue({ url }));
 

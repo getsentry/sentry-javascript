@@ -21,11 +21,12 @@
   },
   "devDependencies": {
     "@nuxt/test-utils": "^3.14.1",
-    "@playwright/test": "^1.44.1",
+    "@playwright/test": "^1.52.0",
     "@sentry-internal/test-utils": "link:../../../test-utils"
   },
   "overrides": {
     "nitropack": "2.10.0",
-    "ofetch": "1.4.0"
+    "ofetch": "1.4.0",
+    "@vercel/nft": "^0.27.4"
   }
 }

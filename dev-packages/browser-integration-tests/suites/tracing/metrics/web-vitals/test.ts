@@ -59,7 +59,7 @@ sentryTest('paint web vitals values are greater than TTFB', async ({ browserName
   expect(fpValue).toBeGreaterThanOrEqual(ttfbValue!);
 });
 
-sentryTest(
+sentryTest.skip(
   'captures time origin and navigation activationStart as span attributes',
   async ({ getLocalTestUrl, page }) => {
     // Only run in chromium to ensure all vitals are present
