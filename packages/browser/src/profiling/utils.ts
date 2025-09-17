@@ -18,6 +18,7 @@ import {
   forEachEnvelopeItem,
   getClient,
   getDebugImagesForResources,
+  GLOBAL_OBJ,
   spanToJSON,
   timestampInSeconds,
   uuid4,
@@ -28,10 +29,12 @@ import { WINDOW } from '../helpers';
 import type { JSSelfProfile, JSSelfProfiler, JSSelfProfilerConstructor, JSSelfProfileStack } from './jsSelfProfiling';
 
 const MS_TO_NS = 1e6;
-// Use 0 as main thread id which is identical to threadId in node:worker_threads
-// where main logs 0 and workers seem to log in increments of 1
-const THREAD_ID_STRING = String(0);
-const THREAD_NAME = 'main';
+
+// Checking if we are in Main or Worker thread: `self` (not `window`) is the `globalThis` in Web Workers and `importScripts` are only available in Web Workers
+const isMainThread = 'window' in GLOBAL_OBJ && GLOBAL_OBJ.window === GLOBAL_OBJ && typeof importScripts === 'undefined';
+
+export const PROFILER_THREAD_ID_STRING = String(0); // todo: ID for Web Worker threads
+export const PROFILER_THREAD_NAME = isMainThread ? 'main' : 'worker';
 
 // We force make this optional to be on the safe side...
 const navigator = WINDOW.navigator as typeof WINDOW.navigator | undefined;
@@ -197,7 +200,7 @@ export function createProfilePayload(
         name: event.transaction || '',
         id: event.event_id || uuid4(),
         trace_id: traceId,
-        active_thread_id: THREAD_ID_STRING,
+        active_thread_id: PROFILER_THREAD_ID_STRING,
         relative_start_ns: '0',
         relative_end_ns: ((transactionEndMs - transactionStartMs) * 1e6).toFixed(0),
       },
@@ -300,7 +303,7 @@ function convertToContinuousProfile(input: {
     const timestampSeconds = (origin + (sample.timestamp - adjustForOriginChange)) / 1000;
     samples[i] = {
       stack_id: sample.stackId ?? 0,
-      thread_id: THREAD_ID_STRING,
+      thread_id: PROFILER_THREAD_ID_STRING,
       timestamp: timestampSeconds,
     };
   }
@@ -309,7 +312,7 @@ function convertToContinuousProfile(input: {
     frames,
     stacks,
     samples,
-    thread_metadata: { [THREAD_ID_STRING]: { name: THREAD_NAME } },
+    thread_metadata: { [PROFILER_THREAD_ID_STRING]: { name: PROFILER_THREAD_NAME } },
   };
 }
 
@@ -344,7 +347,7 @@ export function convertJSSelfProfileToSampledFormat(input: JSSelfProfile): Profi
     stacks: [],
     frames: [],
     thread_metadata: {
-      [THREAD_ID_STRING]: { name: THREAD_NAME },
+      [PROFILER_THREAD_ID_STRING]: { name: PROFILER_THREAD_NAME },
     },
   };
 
@@ -376,7 +379,7 @@ export function convertJSSelfProfileToSampledFormat(input: JSSelfProfile): Profi
         // convert ms timestamp to ns
         elapsed_since_start_ns: ((jsSample.timestamp + adjustForOriginChange - start) * MS_TO_NS).toFixed(0),
         stack_id: EMPTY_STACK_ID,
-        thread_id: THREAD_ID_STRING,
+        thread_id: PROFILER_THREAD_ID_STRING,
       };
       return;
     }
@@ -409,7 +412,7 @@ export function convertJSSelfProfileToSampledFormat(input: JSSelfProfile): Profi
       // convert ms timestamp to ns
       elapsed_since_start_ns: ((jsSample.timestamp + adjustForOriginChange - start) * MS_TO_NS).toFixed(0),
       stack_id: STACK_ID,
-      thread_id: THREAD_ID_STRING,
+      thread_id: PROFILER_THREAD_ID_STRING,
     };
 
     profile['stacks'][STACK_ID] = stack;
