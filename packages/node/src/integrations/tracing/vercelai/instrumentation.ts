@@ -7,7 +7,7 @@ import {
   addNonEnumerableProperty,
   captureException,
   getActiveSpan,
-  getCurrentScope,
+  getClient,
   handleCallbackErrors,
   isThenable,
   SDK_VERSION,
@@ -218,7 +218,7 @@ export class SentryVercelAiInstrumentation extends InstrumentationBase {
           const existingExperimentalTelemetry = args[0].experimental_telemetry || {};
           const isEnabled = existingExperimentalTelemetry.isEnabled;
 
-          const client = getCurrentScope().getClient();
+          const client = getClient();
           const integration = client?.getIntegrationByName<VercelAiIntegration>(INTEGRATION_NAME);
           const integrationOptions = integration?.options;
           const shouldRecordInputsAndOutputs = integration ? Boolean(client?.getOptions().sendDefaultPii) : false;
