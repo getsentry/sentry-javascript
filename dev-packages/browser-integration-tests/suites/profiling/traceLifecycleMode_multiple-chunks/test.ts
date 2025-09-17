@@ -57,6 +57,18 @@ sentryTest(
     expect(envelopeItemPayload1.version).toBe('2');
     expect(envelopeItemPayload1.platform).toBe('javascript');
 
+    // Required profile metadata (Sample Format V2)
+    expect(typeof envelopeItemPayload1.profiler_id).toBe('string');
+    expect(envelopeItemPayload1.profiler_id).toMatch(/^[a-f0-9]{32}$/);
+    expect(typeof envelopeItemPayload1.chunk_id).toBe('string');
+    expect(envelopeItemPayload1.chunk_id).toMatch(/^[a-f0-9]{32}$/);
+    expect(envelopeItemPayload1.client_sdk).toBeDefined();
+    expect(typeof envelopeItemPayload1.client_sdk.name).toBe('string');
+    expect(typeof envelopeItemPayload1.client_sdk.version).toBe('string');
+    expect(typeof envelopeItemPayload1.release).toBe('string');
+    expect(envelopeItemPayload1.debug_meta).toBeDefined();
+    expect(Array.isArray(envelopeItemPayload1?.debug_meta?.images)).toBe(true);
+
     const profile1 = envelopeItemPayload1.profile;
 
     expect(profile1.samples).toBeDefined();
@@ -135,12 +147,12 @@ sentryTest(
     expect(profile1.thread_metadata['0'].name).toBe('main');
 
     // Test that profile duration makes sense (should be > 20ms based on test setup)
-    const startTimeMs = (profile1.samples[0] as any).timestamp as number;
-    const endTimeMs = (profile1.samples[profile1.samples.length - 1] as any).timestamp as number;
-    const durationMs = endTimeMs - startTimeMs;
+    const startTimeSec = (profile1.samples[0] as any).timestamp as number;
+    const endTimeSec = (profile1.samples[profile1.samples.length - 1] as any).timestamp as number;
+    const durationSec = endTimeSec - startTimeSec;
 
     // Should be at least 20ms based on our setTimeout(21) in the test
-    expect(durationMs).toBeGreaterThan(20);
+    expect(durationSec).toBeGreaterThan(0.2);
 
     // === PROFILE CHUNK 2 ===
 
@@ -154,6 +166,19 @@ sentryTest(
     expect(envelopeItemPayload2.version).toBe('2');
     expect(envelopeItemPayload2.platform).toBe('javascript');
     expect(envelopeItemPayload2?.profile).toBeDefined();
+
+    // Required profile metadata (Sample Format V2)
+    // https://develop.sentry.dev/sdk/telemetry/profiles/sample-format-v2/
+    expect(typeof envelopeItemPayload2.profiler_id).toBe('string');
+    expect(envelopeItemPayload2.profiler_id).toMatch(/^[a-f0-9]{32}$/);
+    expect(typeof envelopeItemPayload2.chunk_id).toBe('string');
+    expect(envelopeItemPayload2.chunk_id).toMatch(/^[a-f0-9]{32}$/);
+    expect(envelopeItemPayload2.client_sdk).toBeDefined();
+    expect(typeof envelopeItemPayload2.client_sdk.name).toBe('string');
+    expect(typeof envelopeItemPayload2.client_sdk.version).toBe('string');
+    expect(typeof envelopeItemPayload2.release).toBe('string');
+    expect(envelopeItemPayload2.debug_meta).toBeDefined();
+    expect(Array.isArray(envelopeItemPayload2?.debug_meta?.images)).toBe(true);
 
     const profile2 = envelopeItemPayload2.profile;
 

@@ -189,4 +189,74 @@ describe('Browser Profiling v2 trace lifecycle', () => {
       await Promise.resolve();
     });
   });
+
+  it('sets global profile context on transaction', async () => {
+    // Use real timers to avoid interference with scheduled chunk timer
+    vi.useRealTimers();
+
+    const stop = vi.fn().mockResolvedValue({
+      frames: [{ name: 'f' }],
+      stacks: [{ frameId: 0 }],
+      samples: [{ timestamp: 0 }, { timestamp: 10 }],
+      resources: [],
+    });
+
+    class MockProfilerImpl {
+      stopped: boolean = false;
+      constructor(_opts: { sampleInterval: number; maxBufferSize: number }) {}
+      stop() {
+        this.stopped = true;
+        return stop();
+      }
+      addEventListener() {}
+    }
+
+    (window as any).Profiler = vi
+      .fn()
+      .mockImplementation((opts: { sampleInterval: number; maxBufferSize: number }) => new MockProfilerImpl(opts));
+
+    const send = vi.fn().mockResolvedValue(undefined);
+
+    Sentry.init({
+      dsn: 'https://public@o.ingest.sentry.io/1',
+      tracesSampleRate: 1,
+      profileSessionSampleRate: 1,
+      profileLifecycle: 'trace',
+      integrations: [Sentry.browserProfilingIntegration()],
+      transport: () => ({ flush: vi.fn().mockResolvedValue(true), send }),
+    });
+
+    let spanRef: any;
+    Sentry.startSpanManual({ name: 'root-for-context', parentSpan: null, forceTransaction: true }, span => {
+      spanRef = span;
+    });
+
+    // End span to trigger sending of the transaction
+    spanRef.end();
+
+    // Allow async tasks to resolve and flush queued envelopes
+    const client = Sentry.getClient();
+    await client?.flush(1000);
+
+    // Find the transaction envelope among sent envelopes
+    const calls = send.mock.calls;
+    const txnCall = calls.find(call => call?.[0]?.[1]?.[0]?.[0]?.type === 'transaction');
+    expect(txnCall).toBeDefined();
+
+    const transaction = txnCall?.[0]?.[1]?.[0]?.[1];
+
+    expect(transaction).toMatchObject({
+      contexts: {
+        trace: {
+          data: expect.objectContaining({
+            ['thread.id']: expect.any(String),
+            ['thread.name']: expect.any(String),
+          }),
+        },
+        profile: {
+          profiler_id: expect.any(String),
+        },
+      },
+    });
+  });
 });

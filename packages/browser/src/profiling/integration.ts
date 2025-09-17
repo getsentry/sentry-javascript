@@ -8,6 +8,7 @@ import { startProfileForSpan } from './startProfileForSpan';
 import type { ProfiledEvent } from './utils';
 import {
   addProfilesToEnvelope,
+  attachProfiledThreadToEvent,
   createProfilingEvent,
   findProfiledTransactionsFromEnvelope,
   getActiveProfilesCount,
@@ -73,6 +74,9 @@ const _browserProfilingIntegration = (() => {
             }
           }, 0);
         }
+
+        // Adding client hook to attach profiles to transaction events before they are sent.
+        client.on('beforeSendEvent', attachProfiledThreadToEvent);
       } else {
         // LEGACY PROFILING (v1)
         if (rootSpan && isAutomatedPageLoadSpan(rootSpan)) {

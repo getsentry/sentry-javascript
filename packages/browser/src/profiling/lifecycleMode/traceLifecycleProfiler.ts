@@ -1,4 +1,4 @@
-import type { Client, ContinuousThreadCpuProfile, Event, ProfileChunk, Span } from '@sentry/core';
+import type { Client, ProfileChunk, Span } from '@sentry/core';
 import {
   type ProfileChunkEnvelope,
   createEnvelope,
@@ -33,7 +33,7 @@ export class BrowserTraceLifecycleProfiler {
   private _activeRootSpanCount: number;
   // For keeping track of active root spans
   private _activeRootSpanIds: Set<string>;
-  private _profileId: string | undefined;
+  private _profilerId: string | undefined;
   private _isRunning: boolean;
   private _sessionSampled: boolean;
 
@@ -43,7 +43,7 @@ export class BrowserTraceLifecycleProfiler {
     this._chunkTimer = undefined;
     this._activeRootSpanCount = 0;
     this._activeRootSpanIds = new Set<string>();
-    this._profileId = undefined;
+    this._profilerId = undefined;
     this._isRunning = false;
     this._sessionSampled = false;
   }
@@ -160,15 +160,13 @@ export class BrowserTraceLifecycleProfiler {
     this._isRunning = true;
     if (!this._profilerId) {
       this._profilerId = uuid4();
-    if (!this._profileId) {
-      this._profileId = uuid4();
 
       getGlobalScope().setContext('profile', {
-        profile_id: this._profileId,
+        profiler_id: this._profilerId,
       });
     }
 
-    DEBUG_BUILD && debug.log('[Profiling] Started profiling with profile ID:', this._profileId);
+    DEBUG_BUILD && debug.log('[Profiling] Started profiling with profile ID:', this._profilerId);
 
     this._startProfilerInstance();
     this._scheduleNextChunk();
@@ -187,8 +185,16 @@ export class BrowserTraceLifecycleProfiler {
     this._collectCurrentChunk().catch(() => {
       /* no catch */
     });
-    // Reset profiler id so a new continuous session gets a fresh id
-    this._profileId = undefined;
+
+    this._resetProfilerInfo();
+  }
+
+  /**
+   * Resets profiling information from scope and class instance.
+   */
+  private _resetProfilerInfo(): void {
+    this._profilerId = undefined;
+    getGlobalScope().setContext('profile', {});
   }
 
   /**
@@ -234,7 +240,7 @@ export class BrowserTraceLifecycleProfiler {
   private async _collectCurrentChunk(): Promise<void> {
     const prevProfiler = this._profiler;
     this._profiler = undefined;
-    getGlobalScope().setContext('profile', {});
+
     if (!prevProfiler) {
       return;
     }
@@ -243,7 +249,7 @@ export class BrowserTraceLifecycleProfiler {
       const profile = await prevProfiler.stop();
 
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      const chunk = createProfileChunkPayload(profile, this._client!, this._profileId);
+      const chunk = createProfileChunkPayload(profile, this._client!, this._profilerId);
 
       this._sendProfileChunk(chunk);
       DEBUG_BUILD && debug.log('[Profiling] Collected browser profile chunk.');

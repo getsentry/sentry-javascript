@@ -57,6 +57,19 @@ sentryTest(
     expect(envelopeItemPayload.version).toBe('2');
     expect(envelopeItemPayload.platform).toBe('javascript');
 
+    // Required profile metadata (Sample Format V2)
+    // https://develop.sentry.dev/sdk/telemetry/profiles/sample-format-v2/
+    expect(typeof envelopeItemPayload.profiler_id).toBe('string');
+    expect(envelopeItemPayload.profiler_id).toMatch(/^[a-f0-9]{32}$/);
+    expect(typeof envelopeItemPayload.chunk_id).toBe('string');
+    expect(envelopeItemPayload.chunk_id).toMatch(/^[a-f0-9]{32}$/);
+    expect(envelopeItemPayload.client_sdk).toBeDefined();
+    expect(typeof envelopeItemPayload.client_sdk.name).toBe('string');
+    expect(typeof envelopeItemPayload.client_sdk.version).toBe('string');
+    expect(typeof envelopeItemPayload.release).toBe('string');
+    expect(envelopeItemPayload.debug_meta).toBeDefined();
+    expect(Array.isArray(envelopeItemPayload?.debug_meta?.images)).toBe(true);
+
     const profile = envelopeItemPayload.profile;
 
     expect(profile.samples).toBeDefined();
@@ -73,8 +86,8 @@ sentryTest(
       expect(sample.stack_id).toBeLessThan(profile.stacks.length);
 
       // In trace lifecycle mode, samples carry a numeric timestamp (ms since epoch or similar clock)
-      expect(typeof (sample as any).timestamp).toBe('number');
-      const ts = (sample as any).timestamp as number;
+      expect(typeof sample.timestamp).toBe('number');
+      const ts = sample.timestamp;
       expect(Number.isFinite(ts)).toBe(true);
       expect(ts).toBeGreaterThan(0);
       // Monotonic non-decreasing timestamps
@@ -136,11 +149,11 @@ sentryTest(
     expect(profile.thread_metadata['0'].name).toBe('main');
 
     // Test that profile duration makes sense (should be > 20ms based on test setup)
-    const startTimeMs = (profile.samples[0] as any).timestamp as number;
-    const endTimeMs = (profile.samples[profile.samples.length - 1] as any).timestamp as number;
-    const durationMs = endTimeMs - startTimeMs;
+    const startTimeSec = (profile.samples[0] as any).timestamp as number;
+    const endTimeSec = (profile.samples[profile.samples.length - 1] as any).timestamp as number;
+    const durationSec = endTimeSec - startTimeSec;
 
     // Should be at least 20ms based on our setTimeout(21) in the test
-    expect(durationMs).toBeGreaterThan(20);
+    expect(durationSec).toBeGreaterThan(0.2);
   },
 );
