@@ -9,7 +9,6 @@ import {
   getActiveSpan,
   getClient,
   handleCallbackErrors,
-  isThenable,
   SDK_VERSION,
   withScope,
 } from '@sentry/core';
@@ -238,19 +237,7 @@ export class SentryVercelAiInstrumentation extends InstrumentationBase {
           };
 
           return handleCallbackErrors(
-            () => {
-              const result = Reflect.apply(target, thisArg, args);
-
-              if (isThenable(result)) {
-                // check for tool errors when the promise resolves, keep the original promise identity
-                result.then(checkResultForToolErrors, () => {});
-                return result;
-              }
-
-              // check for tool errors when the result is synchronous
-              checkResultForToolErrors(result);
-              return result;
-            },
+            () => Reflect.apply(target, thisArg, args),
             error => {
               // This error bubbles up to unhandledrejection handler (if not handled before),
               // where we do not know the active span anymore
@@ -259,6 +246,10 @@ export class SentryVercelAiInstrumentation extends InstrumentationBase {
               if (error && typeof error === 'object') {
                 addNonEnumerableProperty(error, '_sentry_active_span', getActiveSpan());
               }
+            },
+            () => {},
+            result => {
+              checkResultForToolErrors(result);
             },
           );
         },
