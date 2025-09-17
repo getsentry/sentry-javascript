@@ -76,7 +76,9 @@ export async function materializeFinalWebpackConfig(options: {
     releaseName: options.releaseName,
     routeManifest: options.routeManifest,
     nextJsVersion: options.nextJsVersion,
-    useRunAfterProductionCompileHook: options.useRunAfterProductionCompileHook ?? options.sentryBuildTimeOptions?._experimental?.useRunAfterProductionCompileHook,
+    useRunAfterProductionCompileHook:
+      options.useRunAfterProductionCompileHook ??
+      options.sentryBuildTimeOptions?._experimental?.useRunAfterProductionCompileHook,
   });
 
   // call it to get concrete values for comparison
