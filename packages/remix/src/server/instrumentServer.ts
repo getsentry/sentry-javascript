@@ -119,22 +119,7 @@ function getTraceAndBaggage(): {
 
 function makeWrappedDocumentRequestFunction(instrumentTracing?: boolean) {
   return function (origDocumentRequestFunction: HandleDocumentRequestFunction): HandleDocumentRequestFunction {
-    return async function (
-      this: unknown,
-      request: Request,
-      responseStatusCode: number,
-      responseHeaders: Headers,
-      context: EntryContext,
-      loadContext?: Record<string, unknown>,
-    ): Promise<Response> {
-      const documentRequestContext = {
-        request,
-        responseStatusCode,
-        responseHeaders,
-        context,
-        loadContext,
-      };
-
+    return async function (this: unknown, request: Request, ...args: unknown[]): Promise<Response> {
       if (instrumentTracing) {
         const activeSpan = getActiveSpan();
         const rootSpan = activeSpan && getRootSpan(activeSpan);
@@ -155,11 +140,11 @@ function makeWrappedDocumentRequestFunction(instrumentTracing?: boolean) {
             },
           },
           () => {
-            return origDocumentRequestFunction.call(this, documentRequestContext);
+            return origDocumentRequestFunction.call(this, request, ...args);
           },
         );
       } else {
-        return origDocumentRequestFunction.call(this, documentRequestContext);
+        return origDocumentRequestFunction.call(this, request, ...args);
       }
     };
   };
