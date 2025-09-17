@@ -101,11 +101,10 @@ export function errorHandleDocumentRequestFunction(
   const { request, responseStatusCode, responseHeaders, context, loadContext } = requestContext;
 
   return handleCallbackErrors(
-    () => {
-      return origDocumentRequestFunction.call(this, request, responseStatusCode, responseHeaders, context, loadContext);
-    },
+    () => origDocumentRequestFunction.call(this, request, responseStatusCode, responseHeaders, context, loadContext),
     err => {
-      throw err;
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
+      captureRemixServerException(err, 'HandleDocumentRequestFunction', request);
     },
   );
 }
