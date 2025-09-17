@@ -251,6 +251,23 @@ export interface BrowserTracingOptions {
   consistentTraceSampling: boolean;
 
   /**
+   * If set to `true`, the pageload span will not end itself automatically, unless it
+   * runs until the {@link BrowserTracingOptions.finalTimeout} (30 seconds by default) is reached.
+   *
+   * Set this option to `true`, if you want full control over the pageload span duration.
+   * You can use `Sentry.reportPageLoaded()` to manually end the pageload span whenever convenient.
+   * Be aware that you have to ensure that this is always called, regardless of the chosen route
+   * or path in the application.
+   *
+   * @default `false`. By default, the pageload span will end itself automatically, based on
+   * the {@link BrowserTracingOptions.finalTimeout}, {@link BrowserTracingOptions.idleTimeout}
+   * and {@link BrowserTracingOptions.childSpanTimeout}. This is more convenient to use but means
+   * that the pageload duration can be arbitrary and might not be fully representative of a perceived
+   * page load time.
+   */
+  explicitPageloadEnd: boolean;
+
+  /**
    * _experiments allows the user to send options to define how this integration works.
    *
    * Default: undefined
@@ -297,6 +314,7 @@ const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
   detectRedirects: true,
   linkPreviousTrace: 'in-memory',
   consistentTraceSampling: false,
+  explicitPageloadEnd: false,
   _experiments: {},
   ...defaultRequestInstrumentationOptions,
 };
@@ -345,6 +363,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
     detectRedirects,
     linkPreviousTrace,
     consistentTraceSampling,
+    explicitPageloadEnd,
     onRequestSpanStart,
   } = {
     ...DEFAULT_BROWSER_TRACING_OPTIONS,
@@ -354,9 +373,11 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
   let _collectWebVitals: undefined | (() => void);
   let lastInteractionTimestamp: number | undefined;
 
+  let _pageloadSpan: Span | undefined;
+
   /** Create routing idle transaction. */
   function _createRouteSpan(client: Client, startSpanOptions: StartSpanOptions, makeActive = true): void {
-    const isPageloadTransaction = startSpanOptions.op === 'pageload';
+    const isPageloadSpan = startSpanOptions.op === 'pageload';
 
     const initialSpanName = startSpanOptions.name;
     const finalStartSpanOptions: StartSpanOptions = beforeStartSpan
@@ -390,7 +411,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
       finalTimeout,
       childSpanTimeout,
       // should wait for finish signal if it's a pageload transaction
-      disableAutoFinish: isPageloadTransaction,
+      disableAutoFinish: isPageloadSpan,
       beforeSpanEnd: span => {
         // This will generally always be defined here, because it is set in `setup()` of the integration
         // but technically, it is optional, so we guard here to be extra safe
@@ -418,6 +439,10 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
       },
     });
 
+    if (isPageloadSpan && explicitPageloadEnd) {
+      _pageloadSpan = idleSpan;
+    }
+
     setActiveIdleSpan(client, idleSpan);
 
     function emitFinish(): void {
@@ -426,7 +451,8 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
       }
     }
 
-    if (isPageloadTransaction && optionalWindowDocument) {
+    // Enable auto finish of the pageload span if users are not explicitly ending it
+    if (isPageloadSpan && !explicitPageloadEnd && optionalWindowDocument) {
       optionalWindowDocument.addEventListener('readystatechange', () => {
         emitFinish();
       });
@@ -574,6 +600,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         });
       });
     },
+
     afterAllSetup(client) {
       let startingUrl: string | undefined = getLocationHref();
 
@@ -654,6 +681,13 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         onRequestSpanStart,
       });
     },
+
+    endPageloadSpan() {
+      if (_pageloadSpan && explicitPageloadEnd) {
+        _pageloadSpan.end();
+        _pageloadSpan = undefined;
+      }
+    },
   };
 }) satisfies IntegrationFn;
 
@@ -721,6 +755,25 @@ export function getMetaContent(metaName: string): string | undefined {
 
   const metaTag = optionalWindowDocument?.querySelector(`meta[name=${metaName}]`);
   return metaTag?.getAttribute('content') || undefined;
+}
+
+/**
+ * Manually report the end of the page load, resulting in the SDK ending the pageload span.
+ * This only works if {@link BrowserTracingOptions.explicitPageloadEnd} is set to `true`.
+ * Otherwise, the pageload span will end itself based on the {@link BrowserTracingOptions.finalTimeout},
+ * {@link BrowserTracingOptions.idleTimeout} and {@link BrowserTracingOptions.childSpanTimeout}.
+ *
+ * @param client - The client to use. If not provided, the global client will be used.
+ */
+export function reportPageLoaded(client?: Client): void {
+  const clientToUse = client ?? getClient();
+  if (clientToUse) {
+    const browserTracing =
+      clientToUse.getIntegrationByName<ReturnType<typeof browserTracingIntegration>>('BrowserTracing');
+    if (browserTracing) {
+      browserTracing.endPageloadSpan();
+    }
+  }
 }
 
 /** Start listener for interaction transactions */
