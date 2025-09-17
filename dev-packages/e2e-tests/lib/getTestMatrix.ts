@@ -160,7 +160,7 @@ function getAffectedTestApplications(
 
   // For GitHub Action debugging
   // eslint-disable-next-line no-console
-  console.error(`Nx affected projects: ${JSON.stringify(affectedProjects)}`);
+  console.error(`Nx affected projects (${affectedProjects.length}): ${JSON.stringify(affectedProjects)}`);
 
   // If something in e2e tests themselves are changed, check if only test applications were changed
   if (affectedProjects.includes('@sentry-internal/e2e-tests')) {
