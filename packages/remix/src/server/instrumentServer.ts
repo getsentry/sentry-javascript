@@ -6,7 +6,6 @@ import type {
   ActionFunctionArgs,
   AppLoadContext,
   CreateRequestHandlerFunction,
-  EntryContext,
   HandleDocumentRequestFunction,
   LoaderFunction,
   LoaderFunctionArgs,
