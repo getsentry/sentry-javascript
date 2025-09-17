@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
+
+## 10.12.0
+
 ### Important Changes
 
 - **ref: Add and Adjust error event `mechanism` values**
@@ -49,10 +53,6 @@
 
 </details>
 
-- "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
-
-### Important Changes
-
 - **feat(node) Ensure `prismaIntegration` works with Prisma 5 ([#17595](https://github.com/getsentry/sentry-javascript/pull/17595))**
 
 We used to require to pass in the v5 version of `@prisma/instrumentation` into `prismaIntegration({ prismaInstrumentation: new PrismaInstrumentation() })`, if you wanted to get full instrumentation for Prisma v5. However, it turns out this does not work on v10 of the SDK anymore, because `@prisma/instrumentation@5` requires OTEL v1.
@@ -90,6 +90,47 @@ With this release, we dropped the requirement to configure anything to get v5 su
   - @opentelemetry/instrumentation-redis bumped to ^0.53.0
   - @opentelemetry/instrumentation-undici bumped to ^0.15.0
   - @prisma/instrumentation bumped to 6.15.0
+
+### Other Changes
+
+- feat(browser): Add timing and status atttributes to resource spans ([#17562](https://github.com/getsentry/sentry-javascript/pull/17562))
+- feat(cloudflare,vercel-edge): Add support for Anthropic AI instrumentation ([#17571](https://github.com/getsentry/sentry-javascript/pull/17571))
+- feat(core): Add Consola integration ([#17435](https://github.com/getsentry/sentry-javascript/pull/17435))
+- feat(deps): Update OpenTelemetry dependencies ([#17569](https://github.com/getsentry/sentry-javascript/pull/17569))
+- feat(core): Export `TracesSamplerSamplingContext` type ([#17523](https://github.com/getsentry/sentry-javascript/pull/17523))
+- feat(deno): Add OpenTelemetry support and vercelAI integration ([#17445](https://github.com/getsentry/sentry-javascript/pull/17445))
+- feat(node-core): Remove experimental note from winston api ([#17626](https://github.com/getsentry/sentry-javascript/pull/17626))
+- feat(node): Ensure `prismaIntegration` works with Prisma v5 ([#17595](https://github.com/getsentry/sentry-javascript/pull/17595))
+- feat(node): Tidy existing ESM loader hook ([#17566](https://github.com/getsentry/sentry-javascript/pull/17566))
+- feat(sveltekit): Align build time options with shared type ([#17413](https://github.com/getsentry/sentry-javascript/pull/17413))
+- fix(core): Fix error handling when sending envelopes ([#17662](https://github.com/getsentry/sentry-javascript/pull/17662))
+- fix(browser): Always start navigation as root span ([#17648](https://github.com/getsentry/sentry-javascript/pull/17648))
+- fix(browser): Ensure propagated `parentSpanId` stays consistent during trace in TwP mode ([#17526](https://github.com/getsentry/sentry-javascript/pull/17526))
+- fix(cloudflare): Initialize once per workflow run and preserve scope for `step.do` ([#17582](https://github.com/getsentry/sentry-javascript/pull/17582))
+- fix(nextjs): Add edge polyfills for nextjs-13 in dev mode ([#17488](https://github.com/getsentry/sentry-javascript/pull/17488))
+- fix(nitro): Support nested `_platform` properties in Nitro 2.11.7+ ([#17596](https://github.com/getsentry/sentry-javascript/pull/17596))
+- fix(node): Preserve synchronous return behavior for streamText and other methods for AI ([#17580](https://github.com/getsentry/sentry-javascript/pull/17580))
+- ref(node): Inline types imported from `shimmer` ([#17597](https://github.com/getsentry/sentry-javascript/pull/17597)) - ref(nuxt): Add and adjust `mechanism.type` in error events ([#17599](https://github.com/getsentry/sentry-javascript/pull/17599))
+- ref(browser): Improve `fetchTransport` error handling ([#17661](https://github.com/getsentry/sentry-javascript/pull/17661))
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+
+- chore: Add changelog note about mechanism changes ([#17632](https://github.com/getsentry/sentry-javascript/pull/17632))
+- chore(aws): Update README.md ([#17601](https://github.com/getsentry/sentry-javascript/pull/17601))
+- chore(deps): bump hono from 4.7.10 to 4.9.7 in /dev-packages/e2e-tests/test-applications/cloudflare-hono ([#17630](https://github.com/getsentry/sentry-javascript/pull/17630))
+- chore(deps): bump next from 14.2.25 to 14.2.32 in /dev-packages/e2e-tests/test-applications/nextjs-app-dir ([#17627](https://github.com/getsentry/sentry-javascript/pull/17627))
+- chore(deps): bump next from 14.2.25 to 14.2.32 in /dev-packages/e2e-tests/test-applications/nextjs-pages-dir ([#17620](https://github.com/getsentry/sentry-javascript/pull/17620))
+- chore(deps): bump next from 14.2.29 to 14.2.32 in /dev-packages/e2e-tests/test-applications/nextjs-orpc ([#17494](https://github.com/getsentry/sentry-javascript/pull/17494))
+- chore(deps): bump next from 14.2.30 to 14.2.32 in /dev-packages/e2e-tests/test-applications/nextjs-14 ([#17628](https://github.com/getsentry/sentry-javascript/pull/17628))
+- chore(repo): Rename `.claude/settings.local.json` to `.claude/settings.json` ([#17591](https://github.com/getsentry/sentry-javascript/pull/17591))
+- docs(issue-template): Add note about prioritization ([#17590](https://github.com/getsentry/sentry-javascript/pull/17590))
+- ref(core): Streamline event processor handling ([#17634](https://github.com/getsentry/sentry-javascript/pull/17634))
+- test(angular): Bump TS version to 5.9.0 in Angular 20 e2e test ([#17605](https://github.com/getsentry/sentry-javascript/pull/17605))
+- test(nextjs): Remove Next 13 and pin Next 14 canary and latest tests ([#17577](https://github.com/getsentry/sentry-javascript/pull/17577))
+- test(react-router): Unflake `flushIfServerless` test ([#17610](https://github.com/getsentry/sentry-javascript/pull/17610))
+
+</details>
 
 ## 10.11.0
 
