@@ -457,7 +457,11 @@ describe('withSentryConfig', () => {
       const cleanConfig = { ...exportedNextConfig };
       delete cleanConfig.productionBrowserSourceMaps;
 
-      materializeFinalNextConfig(cleanConfig);
+      const sentryOptions = {
+        debug: true,
+      };
+
+      materializeFinalNextConfig(cleanConfig, undefined, sentryOptions);
 
       expect(consoleSpy).toHaveBeenCalledWith(
         '[@sentry/nextjs] Automatically enabling browser source map generation for turbopack build.',
@@ -476,6 +480,7 @@ describe('withSentryConfig', () => {
       delete cleanConfig.productionBrowserSourceMaps;
 
       const sentryOptions = {
+        debug: true,
         sourcemaps: {}, // triggers automatic deletion
       };
 
