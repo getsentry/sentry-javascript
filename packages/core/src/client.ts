@@ -320,7 +320,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public async flush(timeout?: number): PromiseLike<boolean> {
     const transport = this._transport;
     if (!transport) {
-      return Promise.resolve(true);
+      return true;
     }
 
     this.emit('flush');
