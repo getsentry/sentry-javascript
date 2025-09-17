@@ -40,13 +40,21 @@ let showedMissingGlobalErrorWarningMsg = false;
  * @param userSentryOptions The user's SentryWebpackPlugin config, as passed to `withSentryConfig`
  * @returns The function to set as the nextjs config's `webpack` value
  */
-export function constructWebpackConfigFunction(
-  userNextConfig: NextConfigObject = {},
-  userSentryOptions: SentryBuildOptions = {},
-  releaseName: string | undefined,
-  routeManifest: RouteManifest | undefined,
-  nextJsVersion: string | undefined,
-): WebpackConfigFunction {
+export function constructWebpackConfigFunction({
+  userNextConfig = {},
+  userSentryOptions = {},
+  releaseName,
+  routeManifest,
+  nextJsVersion,
+  useRunAfterProductionCompileHook,
+}: {
+  userNextConfig: NextConfigObject;
+  userSentryOptions: SentryBuildOptions;
+  releaseName: string | undefined;
+  routeManifest: RouteManifest | undefined;
+  nextJsVersion: string | undefined;
+  useRunAfterProductionCompileHook: boolean | undefined;
+}): WebpackConfigFunction {
   // Will be called by nextjs and passed its default webpack configuration and context data about the build (whether
   // we're building server or client, whether we're in dev, what version of webpack we're using, etc). Note that
   // `incomingConfig` and `buildContext` are referred to as `config` and `options` in the nextjs docs.
@@ -420,6 +428,7 @@ export function constructWebpackConfigFunction(
             releaseName,
             distDirAbsPath,
             buildTool,
+            useRunAfterProductionCompileHook,
           }),
         );
 

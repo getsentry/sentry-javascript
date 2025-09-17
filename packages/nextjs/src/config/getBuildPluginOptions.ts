@@ -81,7 +81,8 @@ export function getBuildPluginOptions({
       );
 
       // File deletion for webpack client builds
-      if (sentryBuildOptions.sourcemaps?.deleteSourcemapsAfterUpload) {
+      // If the user has opted into using the experimental hook, we delete the source maps in the hook instead
+      if (sentryBuildOptions.sourcemaps?.deleteSourcemapsAfterUpload && !useRunAfterProductionCompileHook) {
         filesToDeleteAfterUpload.push(
           // We only care to delete client bundle source maps because they would be the ones being served.
           // Removing the server source maps crashes Vercel builds for (thus far) unknown reasons:
@@ -94,8 +95,7 @@ export function getBuildPluginOptions({
     }
   }
 
-  // If the user has opted into using the experimental hook, we skip sourcemaps and release management in the plugin
-  // to avoid double sourcemap uploads.
+  // If the user has opted into using the experimental hook, we skip sourcemap uploads in the plugin
   const shouldSkipSourcemapsUpload = useRunAfterProductionCompileHook && buildTool.startsWith('webpack');
 
   return {
@@ -116,7 +116,7 @@ export function getBuildPluginOptions({
     silent: sentryBuildOptions.silent,
     url: sentryBuildOptions.sentryUrl,
     sourcemaps: {
-      disable: sentryBuildOptions.sourcemaps?.disable || shouldSkipSourcemapsUpload,
+      disable: shouldSkipSourcemapsUpload ? true : (sentryBuildOptions.sourcemaps?.disable ?? false),
       rewriteSources(source) {
         if (source.startsWith('webpack://_N_E/')) {
           return source.replace('webpack://_N_E/', '');

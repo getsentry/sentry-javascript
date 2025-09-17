@@ -368,13 +368,14 @@ function getFinalConfigObject(
     webpack:
       isTurbopack || userSentryOptions.disableSentryWebpackConfig
         ? incomingUserNextConfigObject.webpack // just return the original webpack config
-        : constructWebpackConfigFunction(
-            incomingUserNextConfigObject,
+        : constructWebpackConfigFunction({
+            userNextConfig: incomingUserNextConfigObject,
             userSentryOptions,
             releaseName,
             routeManifest,
             nextJsVersion,
-          ),
+            useRunAfterProductionCompileHook: userSentryOptions._experimental?.useRunAfterProductionCompileHook,
+          }),
     ...(isTurbopackSupported && isTurbopack
       ? {
           turbopack: constructTurbopackConfig({

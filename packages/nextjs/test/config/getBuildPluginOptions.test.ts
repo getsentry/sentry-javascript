@@ -618,7 +618,7 @@ describe('getBuildPluginOptions', () => {
       });
 
       expect(result.sourcemaps).toMatchObject({
-        disable: undefined,
+        disable: false,
         assets: ['/path/to/.next/**'],
         ignore: [],
         filesToDeleteAfterUpload: undefined,
