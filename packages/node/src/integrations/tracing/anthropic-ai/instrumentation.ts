@@ -5,7 +5,7 @@ import {
   InstrumentationNodeModuleDefinition,
 } from '@opentelemetry/instrumentation';
 import type { AnthropicAiClient, AnthropicAiOptions, Integration } from '@sentry/core';
-import { ANTHROPIC_AI_INTEGRATION_NAME, getCurrentScope, instrumentAnthropicAiClient, SDK_VERSION } from '@sentry/core';
+import { ANTHROPIC_AI_INTEGRATION_NAME, getClient, instrumentAnthropicAiClient, SDK_VERSION } from '@sentry/core';
 
 const supportedVersions = ['>=0.19.2 <1.0.0'];
 
@@ -61,10 +61,10 @@ export class SentryAnthropicAiInstrumentation extends InstrumentationBase<Instru
 
     const WrappedAnthropic = function (this: unknown, ...args: unknown[]) {
       const instance = Reflect.construct(Original, args);
-      const scopeClient = getCurrentScope().getClient();
-      const integration = scopeClient?.getIntegrationByName<AnthropicAiIntegration>(ANTHROPIC_AI_INTEGRATION_NAME);
+      const client = getClient();
+      const integration = client?.getIntegrationByName<AnthropicAiIntegration>(ANTHROPIC_AI_INTEGRATION_NAME);
       const integrationOpts = integration?.options;
-      const defaultPii = Boolean(scopeClient?.getOptions().sendDefaultPii);
+      const defaultPii = Boolean(client?.getOptions().sendDefaultPii);
 
       const { recordInputs, recordOutputs } = determineRecordingSettings(integrationOpts, defaultPii);
 

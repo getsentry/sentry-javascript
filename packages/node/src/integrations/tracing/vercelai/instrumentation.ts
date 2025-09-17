@@ -7,7 +7,7 @@ import {
   addNonEnumerableProperty,
   captureException,
   getActiveSpan,
-  getCurrentScope,
+  getClient,
   handleCallbackErrors,
   isThenable,
   SDK_VERSION,
@@ -212,57 +212,58 @@ export class SentryVercelAiInstrumentation extends InstrumentationBase {
     this._callbacks.forEach(callback => callback());
     this._callbacks = [];
 
-    function generatePatch(originalMethod: (...args: MethodArgs) => unknown) {
-      return (...args: MethodArgs) => {
-        const existingExperimentalTelemetry = args[0].experimental_telemetry || {};
-        const isEnabled = existingExperimentalTelemetry.isEnabled;
+    const generatePatch = <T extends (...args: MethodArgs) => unknown>(originalMethod: T): T => {
+      return new Proxy(originalMethod, {
+        apply: (target, thisArg, args: MethodArgs) => {
+          const existingExperimentalTelemetry = args[0].experimental_telemetry || {};
+          const isEnabled = existingExperimentalTelemetry.isEnabled;
 
-        const client = getCurrentScope().getClient();
-        const integration = client?.getIntegrationByName<VercelAiIntegration>(INTEGRATION_NAME);
-        const integrationOptions = integration?.options;
-        const shouldRecordInputsAndOutputs = integration ? Boolean(client?.getOptions().sendDefaultPii) : false;
+          const client = getClient();
+          const integration = client?.getIntegrationByName<VercelAiIntegration>(INTEGRATION_NAME);
+          const integrationOptions = integration?.options;
+          const shouldRecordInputsAndOutputs = integration ? Boolean(client?.getOptions().sendDefaultPii) : false;
 
-        const { recordInputs, recordOutputs } = determineRecordingSettings(
-          integrationOptions,
-          existingExperimentalTelemetry,
-          isEnabled,
-          shouldRecordInputsAndOutputs,
-        );
+          const { recordInputs, recordOutputs } = determineRecordingSettings(
+            integrationOptions,
+            existingExperimentalTelemetry,
+            isEnabled,
+            shouldRecordInputsAndOutputs,
+          );
 
-        args[0].experimental_telemetry = {
-          ...existingExperimentalTelemetry,
-          isEnabled: isEnabled !== undefined ? isEnabled : true,
-          recordInputs,
-          recordOutputs,
-        };
+          args[0].experimental_telemetry = {
+            ...existingExperimentalTelemetry,
+            isEnabled: isEnabled !== undefined ? isEnabled : true,
+            recordInputs,
+            recordOutputs,
+          };
 
-        return handleCallbackErrors(
-          () => {
-            // @ts-expect-error we know that the method exists
-            const result = originalMethod.apply(this, args);
+          return handleCallbackErrors(
+            () => {
+              const result = Reflect.apply(target, thisArg, args);
 
-            if (isThenable(result)) {
-              // check for tool errors when the promise resolves, keep the original promise identity
-              result.then(checkResultForToolErrors, () => {});
+              if (isThenable(result)) {
+                // check for tool errors when the promise resolves, keep the original promise identity
+                result.then(checkResultForToolErrors, () => {});
+                return result;
+              }
+
+              // check for tool errors when the result is synchronous
+              checkResultForToolErrors(result);
               return result;
-            }
-
-            // check for tool errors when the result is synchronous
-            checkResultForToolErrors(result);
-            return result;
-          },
-          error => {
-            // This error bubbles up to unhandledrejection handler (if not handled before),
-            // where we do not know the active span anymore
-            // So to circumvent this, we set the active span on the error object
-            // which is picked up by the unhandledrejection handler
-            if (error && typeof error === 'object') {
-              addNonEnumerableProperty(error, '_sentry_active_span', getActiveSpan());
-            }
-          },
-        );
-      };
-    }
+            },
+            error => {
+              // This error bubbles up to unhandledrejection handler (if not handled before),
+              // where we do not know the active span anymore
+              // So to circumvent this, we set the active span on the error object
+              // which is picked up by the unhandledrejection handler
+              if (error && typeof error === 'object') {
+                addNonEnumerableProperty(error, '_sentry_active_span', getActiveSpan());
+              }
+            },
+          );
+        },
+      });
+    };
 
     // Is this an ESM module?
     // https://tc39.es/ecma262/#sec-module-namespace-objects
