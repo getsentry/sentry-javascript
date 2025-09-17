@@ -144,7 +144,6 @@ export const instrumentSentryHttp = generateInstrumentOnce<SentryHttpInstrumenta
   },
 );
 
-
 export const instrumentOtelHttp = generateInstrumentOnce<HttpInstrumentationConfig>(INTEGRATION_NAME, config => {
   const instrumentation = new HttpInstrumentation({
     ...config,
