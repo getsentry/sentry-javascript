@@ -305,7 +305,7 @@ describe('withSentry', () => {
 
         expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
         expect(captureExceptionSpy).toHaveBeenLastCalledWith(error, {
-          mechanism: { handled: false, type: 'cloudflare' },
+          mechanism: { handled: false, type: 'auto.faas.cloudflare.scheduled' },
         });
       });
 
@@ -545,7 +545,7 @@ describe('withSentry', () => {
 
         expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
         expect(captureExceptionSpy).toHaveBeenLastCalledWith(error, {
-          mechanism: { handled: false, type: 'cloudflare' },
+          mechanism: { handled: false, type: 'auto.faas.cloudflare.email' },
         });
       });
 
@@ -784,7 +784,7 @@ describe('withSentry', () => {
 
         expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
         expect(captureExceptionSpy).toHaveBeenLastCalledWith(error, {
-          mechanism: { handled: false, type: 'cloudflare' },
+          mechanism: { handled: false, type: 'auto.faas.cloudflare.queue' },
         });
       });
 
@@ -1027,7 +1027,7 @@ describe('withSentry', () => {
 
         expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
         expect(captureExceptionSpy).toHaveBeenLastCalledWith(error, {
-          mechanism: { handled: false, type: 'cloudflare' },
+          mechanism: { handled: false, type: 'auto.faas.cloudflare.tail' },
         });
       });
 
@@ -1102,7 +1102,7 @@ describe('withSentry', () => {
 
       expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
       expect(captureExceptionSpy).toHaveBeenLastCalledWith(error, {
-        mechanism: { handled: false, type: 'cloudflare' },
+        mechanism: { handled: false, type: 'auto.faas.cloudflare.error_handler' },
       });
       expect(errorHandlerResponse?.status).toBe(500);
     });

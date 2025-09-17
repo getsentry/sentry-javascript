@@ -19,7 +19,7 @@ test('sends an error', async ({ page }) => {
           type: 'Error',
           value: 'This is a Vue test error',
           mechanism: {
-            type: 'vue',
+            type: 'auto.function.vue.error_handler',
             handled: false,
           },
         },
@@ -47,7 +47,7 @@ test('sends an error with a parameterized transaction name', async ({ page }) =>
           type: 'Error',
           value: 'This is a Vue test error',
           mechanism: {
-            type: 'vue',
+            type: 'auto.function.vue.error_handler',
             handled: false,
           },
         },

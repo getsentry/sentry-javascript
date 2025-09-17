@@ -13,10 +13,11 @@ import type {
 } from '@sentry/core';
 import { normalize } from '@sentry/core';
 import { createBasicSentryServer } from '@sentry-internal/test-utils';
-import { execSync, spawn, spawnSync } from 'child_process';
-import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'fs';
+import { exec, execSync, spawn, spawnSync } from 'child_process';
+import { existsSync } from 'fs';
+import { cp, mkdir, readFile, rm, writeFile } from 'fs/promises';
 import { basename, join } from 'path';
-import { inspect } from 'util';
+import { inspect, promisify } from 'util';
 import { afterAll, beforeAll, describe, test } from 'vitest';
 import {
   assertEnvelopeHeader,
@@ -28,6 +29,8 @@ import {
   assertSentrySessions,
   assertSentryTransaction,
 } from './assertions';
+
+const execPromise = promisify(exec);
 
 const CLEANUP_STEPS = new Set<VoidFunction>();
 
@@ -215,21 +218,21 @@ export function createEsmAndCjsTests(
   const cjsScenarioPath = join(tmpDirPath, esmScenarioBasename.replace('.mjs', '.cjs'));
   const cjsInstrumentPath = join(tmpDirPath, esmInstrumentBasename.replace('.mjs', '.cjs'));
 
-  function createTmpDir(): void {
-    mkdirSync(tmpDirPath);
+  async function createTmpDir(): Promise<void> {
+    await mkdir(tmpDirPath);
 
     // Copy ESM files as-is into tmp dir
-    writeFileSync(esmScenarioPathForRun, readFileSync(mjsScenarioPath, 'utf8'));
-    writeFileSync(esmInstrumentPathForRun, readFileSync(mjsInstrumentPath, 'utf8'));
+    await writeFile(esmScenarioPathForRun, await readFile(mjsScenarioPath, 'utf8'));
+    await writeFile(esmInstrumentPathForRun, await readFile(mjsInstrumentPath, 'utf8'));
 
     // Pre-create CJS converted files inside tmp dir
-    convertEsmFileToCjs(esmScenarioPathForRun, cjsScenarioPath);
-    convertEsmFileToCjs(esmInstrumentPathForRun, cjsInstrumentPath);
+    await convertEsmFileToCjs(esmScenarioPathForRun, cjsScenarioPath);
+    await convertEsmFileToCjs(esmInstrumentPathForRun, cjsInstrumentPath);
 
     // Copy any additional files/dirs into tmp dir
     if (options?.copyPaths) {
       for (const path of options.copyPaths) {
-        cpSync(join(cwd, path), join(tmpDirPath, path), { recursive: true });
+        await cp(join(cwd, path), join(tmpDirPath, path), { recursive: true });
       }
     }
 
@@ -243,7 +246,7 @@ export function createEsmAndCjsTests(
         dependencies: additionalDependencies,
       } as const;
 
-      writeFileSync(join(tmpDirPath, 'package.json'), JSON.stringify(packageJson, null, 2));
+      await writeFile(join(tmpDirPath, 'package.json'), JSON.stringify(packageJson, null, 2));
 
       try {
         const deps = Object.entries(additionalDependencies).map(([name, range]) => {
@@ -254,33 +257,24 @@ export function createEsmAndCjsTests(
         });
 
         if (deps.length > 0) {
-          // Prefer npm for temp installs to avoid Yarn engine strictness; see https://github.com/vercel/ai/issues/7777
-          // We rely on the generated package.json dependencies and run a plain install.
-          const result = spawnSync('npm', ['install', '--silent', '--no-audit', '--no-fund'], {
-            cwd: tmpDirPath,
-            encoding: 'utf8',
-          });
+          try {
+            // Prefer npm for temp installs to avoid Yarn engine strictness; see https://github.com/vercel/ai/issues/7777
+            // We rely on the generated package.json dependencies and run a plain install.
+            const { stdout, stderr } = await execPromise('npm install --silent --no-audit --no-fund', {
+              cwd: tmpDirPath,
+              encoding: 'utf8',
+            });
 
-          if (process.env.DEBUG) {
-            // eslint-disable-next-line no-console
-            console.log('[additionalDependencies via npm]', deps.join(' '));
-            // eslint-disable-next-line no-console
-            console.log('[npm stdout]', result.stdout);
-            // eslint-disable-next-line no-console
-            console.log('[npm stderr]', result.stderr);
-          }
-
-          if (result.error) {
-            throw new Error(
-              `Failed to install additionalDependencies in tmp dir ${tmpDirPath}: ${result.error.message}`,
-            );
-          }
-          if (typeof result.status === 'number' && result.status !== 0) {
-            throw new Error(
-              `Failed to install additionalDependencies in tmp dir ${tmpDirPath} (exit ${result.status}):\n${
-                result.stderr || result.stdout || '(no output)'
-              }`,
-            );
+            if (process.env.DEBUG) {
+              // eslint-disable-next-line no-console
+              console.log('[additionalDependencies via npm]', deps.join(' '));
+              // eslint-disable-next-line no-console
+              console.log('[npm stdout]', stdout);
+              // eslint-disable-next-line no-console
+              console.log('[npm stderr]', stderr);
+            }
+          } catch (error) {
+            throw new Error(`Failed to install additionalDependencies in tmp dir ${tmpDirPath}: ${error}`);
           }
         }
       } catch (e) {
@@ -313,31 +307,31 @@ export function createEsmAndCjsTests(
     });
 
     // Create tmp directory
-    beforeAll(() => {
-      createTmpDir();
-    });
+    beforeAll(async () => {
+      await createTmpDir();
+    }, 60_000);
 
     // Clean up the tmp directory after both esm and cjs suites have run
-    afterAll(() => {
+    afterAll(async () => {
       // First do cleanup!
       cleanupChildProcesses();
 
       try {
-        rmSync(tmpDirPath, { recursive: true, force: true });
+        await rm(tmpDirPath, { recursive: true, force: true });
       } catch {
         if (process.env.DEBUG) {
           // eslint-disable-next-line no-console
           console.error(`Failed to remove tmp dir: ${tmpDirPath}`);
         }
       }
-    });
+    }, 30_000);
   });
 }
 
-function convertEsmFileToCjs(inputPath: string, outputPath: string): void {
-  const cjsFileContent = readFileSync(inputPath, 'utf8');
+async function convertEsmFileToCjs(inputPath: string, outputPath: string): Promise<void> {
+  const cjsFileContent = await readFile(inputPath, 'utf8');
   const cjsFileContentConverted = convertEsmToCjs(cjsFileContent);
-  writeFileSync(outputPath, cjsFileContentConverted);
+  return writeFile(outputPath, cjsFileContentConverted);
 }
 
 /** Creates a test runner */

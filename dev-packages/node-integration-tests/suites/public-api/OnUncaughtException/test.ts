@@ -1,6 +1,7 @@
 import * as childProcess from 'child_process';
 import * as path from 'path';
 import { describe, expect, test } from 'vitest';
+import { createRunner } from '../../../utils/runner';
 
 describe('OnUncaughtException integration', () => {
   test('should close process on uncaught error with no additional listeners registered', () =>
@@ -73,5 +74,31 @@ describe('OnUncaughtException integration', () => {
           done();
         });
       }));
+  });
+
+  test('sets correct event mechanism', async () => {
+    await createRunner(__dirname, 'basic.js')
+      .expect({
+        event: {
+          level: 'fatal',
+          exception: {
+            values: [
+              {
+                type: 'Error',
+                value: 'foo',
+                mechanism: {
+                  type: 'auto.node.onuncaughtexception',
+                  handled: false,
+                },
+                stacktrace: {
+                  frames: expect.any(Array),
+                },
+              },
+            ],
+          },
+        },
+      })
+      .start()
+      .completed();
   });
 });
