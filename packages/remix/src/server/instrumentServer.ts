@@ -39,7 +39,7 @@ import {
 import { DEBUG_BUILD } from '../utils/debug-build';
 import { createRoutes, getTransactionName } from '../utils/utils';
 import { extractData, isResponse, json } from '../utils/vendor/response';
-import { captureRemixServerException, errorHandleDataFunction, errorHandleDocumentRequestFunction } from './errors';
+import { captureRemixServerException, errorHandleDataFunction } from './errors';
 
 type AppData = unknown;
 type RemixRequest = Parameters<RequestHandler>[0];
@@ -155,11 +155,11 @@ function makeWrappedDocumentRequestFunction(instrumentTracing?: boolean) {
             },
           },
           () => {
-            return errorHandleDocumentRequestFunction.call(this, origDocumentRequestFunction, documentRequestContext);
+            return origDocumentRequestFunction.call(this, documentRequestContext);
           },
         );
       } else {
-        return errorHandleDocumentRequestFunction.call(this, origDocumentRequestFunction, documentRequestContext);
+        return origDocumentRequestFunction.call(this, documentRequestContext);
       }
     };
   };
