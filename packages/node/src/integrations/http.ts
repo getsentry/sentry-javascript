@@ -196,9 +196,8 @@ export function _shouldUseOtelHttpInstrumentation(
 export const httpIntegration = defineIntegration((options: HttpOptions = {}) => {
   const dropSpansForIncomingRequestStatusCodes = options.dropSpansForIncomingRequestStatusCodes ?? [
     [401, 404],
-    // 300, 302 and 304 are possibly valid status codes we do not want to filter
-    301,
-    303,
+    // 300 and 304 are possibly valid status codes we do not want to filter
+    [301, 303],
     [305, 399],
   ];
 
