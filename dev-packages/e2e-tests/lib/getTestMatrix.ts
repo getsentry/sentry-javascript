@@ -58,13 +58,7 @@ function run(): void {
 
   // For GitHub Action debugging (using stderr the 'matrix=...' output is not polluted)
   // eslint-disable-next-line no-console
-  console.error(
-    `Discovered ${testApplications.length} test applications${
-      testApplications.length > 0
-        ? ` (sample: ${JSON.stringify(testApplications.slice(0, 10))}${testApplications.length > 10 ? ' …' : ''})`
-        : ''
-    }`,
-  );
+  console.error(`Discovered ${testApplications.length} test applications: ${testApplications.join(', ')}`);
 
   // If `--base=xxx` is defined, we only want to get test applications changed since that base
   // Else, we take all test applications (e.g. on push)
@@ -160,7 +154,7 @@ function getAffectedTestApplications(
       .filter(Boolean);
   } catch (error) {
     // eslint-disable-next-line no-console
-    console.warn('Failed to compute affected projects via Nx. Running all tests instead.', error);
+    console.error('Failed to compute affected projects via Nx. Running all tests instead.', error);
     return testApplications;
   }
 
