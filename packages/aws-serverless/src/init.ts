@@ -15,12 +15,10 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
 }
 
 export interface AwsServerlessOptions extends NodeOptions {
-  _experiments?: NodeOptions['_experiments'] & {
-    /**
-     * If proxying Sentry events through the Sentry Lambda extension should be enabled.
-     */
-    enableLambdaExtension?: boolean;
-  };
+  /**
+   * If proxying Sentry events through the Sentry Lambda extension should be enabled. Defaults to `true` when using the AWS Lambda layer.
+   */
+  enableLambdaExtension?: boolean;
 }
 
 /**
@@ -29,14 +27,14 @@ export interface AwsServerlessOptions extends NodeOptions {
  * @param options Configuration options for the SDK, @see {@link AWSLambdaOptions}.
  */
 export function init(options: AwsServerlessOptions = {}): NodeClient | undefined {
+  const sdkSource = getSDKSource();
   const opts = {
     defaultIntegrations: getDefaultIntegrations(options),
+    enableLambdaExtension: sdkSource === 'aws-lambda-layer',
     ...options,
   };
 
-  const sdkSource = getSDKSource();
-
-  if (opts._experiments?.enableLambdaExtension) {
+  if (opts.enableLambdaExtension) {
     if (sdkSource === 'aws-lambda-layer') {
       if (!opts.tunnel) {
         DEBUG_BUILD && debug.log('Proxying Sentry events through the Sentry Lambda extension');
