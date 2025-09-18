@@ -33,14 +33,13 @@ sentryTest(
     }
 
     const url = await getLocalTestUrl({ testDir: __dirname, responseHeaders: { 'Document-Policy': 'js-profiling' } });
-    await page.goto(url);
 
     // Expect at least 2 chunks because subject creates two separate root spans,
     // causing the profiler to stop and emit a chunk after each root span ends.
     const profileChunkEnvelopes = await getMultipleSentryEnvelopeRequests<ProfileChunkEnvelope>(
       page,
       2,
-      { envelopeType: 'profile_chunk', timeout: 5000 },
+      { url, envelopeType: 'profile_chunk', timeout: 5000 },
       properFullEnvelopeRequestParser,
     );
 
