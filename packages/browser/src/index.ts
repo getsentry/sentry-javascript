@@ -41,6 +41,7 @@ export {
   browserTracingIntegration,
   startBrowserTracingNavigationSpan,
   startBrowserTracingPageLoadSpan,
+  reportPageLoaded,
 } from './tracing/browserTracingIntegration';
 export type { RequestInstrumentationOptions } from './tracing/request';
 export {

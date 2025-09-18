@@ -5,6 +5,7 @@ import {
   browserPerformanceTimeOrigin,
   dateTimestampInSeconds,
   debug,
+  defineIntegration,
   generateSpanId,
   generateTraceId,
   getClient,
@@ -328,7 +329,7 @@ const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
  *
  * We explicitly export the proper type here, as this has to be extended in some cases.
  */
-export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptions> = {}) => {
+export const browserTracingIntegration = ((options: Partial<BrowserTracingOptions> = {}) => {
   const latestRoute: RouteInfo = {
     name: undefined,
     source: undefined,
@@ -367,7 +368,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
     onRequestSpanStart,
   } = {
     ...DEFAULT_BROWSER_TRACING_OPTIONS,
-    ..._options,
+    ...options,
   };
 
   let _collectWebVitals: undefined | (() => void);
@@ -437,6 +438,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
           dsc: getDynamicSamplingContextFromSpan(span),
         });
       },
+      trimIdleSpanEndTimestamp: !explicitPageloadEnd,
     });
 
     if (isPageloadSpan && explicitPageloadEnd) {
@@ -599,6 +601,14 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
           ...startSpanOptions,
         });
       });
+
+      client.on('endPageloadSpan', () => {
+        if (explicitPageloadEnd && _pageloadSpan) {
+          _pageloadSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON, 'reportPageLoaded');
+          _pageloadSpan.end();
+          _pageloadSpan = undefined;
+        }
+      });
     },
 
     afterAllSetup(client) {
@@ -681,13 +691,6 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         onRequestSpanStart,
       });
     },
-
-    endPageloadSpan() {
-      if (_pageloadSpan && explicitPageloadEnd) {
-        _pageloadSpan.end();
-        _pageloadSpan = undefined;
-      }
-    },
   };
 }) satisfies IntegrationFn;
 
@@ -768,11 +771,7 @@ export function getMetaContent(metaName: string): string | undefined {
 export function reportPageLoaded(client?: Client): void {
   const clientToUse = client ?? getClient();
   if (clientToUse) {
-    const browserTracing =
-      clientToUse.getIntegrationByName<ReturnType<typeof browserTracingIntegration>>('BrowserTracing');
-    if (browserTracing) {
-      browserTracing.endPageloadSpan();
-    }
+    clientToUse.emit('endPageloadSpan');
   }
 }
 

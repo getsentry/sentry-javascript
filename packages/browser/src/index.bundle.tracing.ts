@@ -21,6 +21,7 @@ export {
   browserTracingIntegration,
   startBrowserTracingNavigationSpan,
   startBrowserTracingPageLoadSpan,
+  reportPageLoaded,
 } from './tracing/browserTracingIntegration';
 
 export {
