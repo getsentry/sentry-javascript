@@ -437,6 +437,11 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
           sampled: spanIsSampled(idleSpan),
           dsc: getDynamicSamplingContextFromSpan(span),
         });
+
+        if (isPageloadSpan) {
+          // clean up the stored pageload span on the intergration.
+          _pageloadSpan = undefined;
+        }
       },
       trimIdleSpanEndTimestamp: !explicitPageloadEnd,
     });
@@ -606,7 +611,6 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
         if (explicitPageloadEnd && _pageloadSpan) {
           _pageloadSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON, 'reportPageLoaded');
           _pageloadSpan.end();
-          _pageloadSpan = undefined;
         }
       });
     },

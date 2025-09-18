@@ -606,6 +606,10 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     ) => void,
   ): () => void;
 
+  /**
+   * A hook for the browser tracing integrations to trigger the end of a page load span.
+   * @returns {() => void} A function that, when executed, removes the registered callback.
+   */
   public on(hook: 'endPageloadSpan', callback: () => void): () => void;
 
   /**
