@@ -81,7 +81,7 @@ describe('getBuildPluginOptions', () => {
       ]);
     });
 
-    it('does not normalize paths for webpack builds', () => {
+    it('normalizes Windows paths to posix for webpack builds', () => {
       const windowsPath = 'C:\\Users\\test\\.next';
       const sentryBuildOptions: SentryBuildOptions = {
         org: 'test-org',
@@ -95,10 +95,9 @@ describe('getBuildPluginOptions', () => {
         buildTool: 'webpack-client',
       });
 
-      // Webpack builds should use the original path without normalization
       expect(result.sourcemaps?.assets).toEqual([
-        'C:\\Users\\test\\.next/static/chunks/pages/**',
-        'C:\\Users\\test\\.next/static/chunks/app/**',
+        'C:/Users/test/.next/static/chunks/pages/**',
+        'C:/Users/test/.next/static/chunks/app/**',
       ]);
     });
   });

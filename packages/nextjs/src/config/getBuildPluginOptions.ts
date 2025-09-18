@@ -70,17 +70,17 @@ export function getBuildPluginOptions({
     if (buildTool === 'webpack-nodejs' || buildTool === 'webpack-edge') {
       // Webpack server builds
       sourcemapUploadAssets.push(
-        path.posix.join(distDirAbsPath, 'server', '**'), // Standard output location for server builds
-        path.posix.join(distDirAbsPath, 'serverless', '**'), // Legacy output location for serverless Next.js
+        path.posix.join(normalizedDistDirAbsPath, 'server', '**'), // Standard output location for server builds
+        path.posix.join(normalizedDistDirAbsPath, 'serverless', '**'), // Legacy output location for serverless Next.js
       );
     } else {
       // Webpack client builds
       if (sentryBuildOptions.widenClientFileUpload) {
-        sourcemapUploadAssets.push(path.posix.join(distDirAbsPath, 'static', 'chunks', '**'));
+        sourcemapUploadAssets.push(path.posix.join(normalizedDistDirAbsPath, 'static', 'chunks', '**'));
       } else {
         sourcemapUploadAssets.push(
-          path.posix.join(distDirAbsPath, 'static', 'chunks', 'pages', '**'),
-          path.posix.join(distDirAbsPath, 'static', 'chunks', 'app', '**'),
+          path.posix.join(normalizedDistDirAbsPath, 'static', 'chunks', 'pages', '**'),
+          path.posix.join(normalizedDistDirAbsPath, 'static', 'chunks', 'app', '**'),
         );
       }
 
@@ -91,9 +91,9 @@ export function getBuildPluginOptions({
           // We only care to delete client bundle source maps because they would be the ones being served.
           // Removing the server source maps crashes Vercel builds for (thus far) unknown reasons:
           // https://github.com/getsentry/sentry-javascript/issues/13099
-          path.posix.join(distDirAbsPath, 'static', '**', '*.js.map'),
-          path.posix.join(distDirAbsPath, 'static', '**', '*.mjs.map'),
-          path.posix.join(distDirAbsPath, 'static', '**', '*.cjs.map'),
+          path.posix.join(normalizedDistDirAbsPath, 'static', '**', '*.js.map'),
+          path.posix.join(normalizedDistDirAbsPath, 'static', '**', '*.mjs.map'),
+          path.posix.join(normalizedDistDirAbsPath, 'static', '**', '*.cjs.map'),
         );
       }
     }
@@ -101,15 +101,15 @@ export function getBuildPluginOptions({
 
   // We want to include main-* files if widenClientFileUpload is true as they have proven to be useful
   if (!sentryBuildOptions.widenClientFileUpload) {
-    sourcemapUploadIgnore.push(path.posix.join(distDirAbsPath, 'static', 'chunks', 'main-*'));
+    sourcemapUploadIgnore.push(path.posix.join(normalizedDistDirAbsPath, 'static', 'chunks', 'main-*'));
   }
 
   // Always ignore framework, polyfills, and webpack files
   sourcemapUploadIgnore.push(
-    path.posix.join(distDirAbsPath, 'static', 'chunks', 'framework-*'),
-    path.posix.join(distDirAbsPath, 'static', 'chunks', 'framework.*'),
-    path.posix.join(distDirAbsPath, 'static', 'chunks', 'polyfills-*'),
-    path.posix.join(distDirAbsPath, 'static', 'chunks', 'webpack-*'),
+    path.posix.join(normalizedDistDirAbsPath, 'static', 'chunks', 'framework-*'),
+    path.posix.join(normalizedDistDirAbsPath, 'static', 'chunks', 'framework.*'),
+    path.posix.join(normalizedDistDirAbsPath, 'static', 'chunks', 'polyfills-*'),
+    path.posix.join(normalizedDistDirAbsPath, 'static', 'chunks', 'webpack-*'),
   );
 
   // If the user has opted into using the experimental hook, we skip sourcemap uploads in the plugin
