@@ -156,16 +156,17 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
 
   return {
     name: INTEGRATION_NAME,
+    setup(client: NodeClient) {
+      if (enabledServerSpans) {
+        serverSpans.setup(client);
+      }
+    },
     setupOnce() {
       server.setupOnce();
 
       instrumentSentryHttp(httpInstrumentationOptions);
     },
-    afterAllSetup(client: NodeClient) {
-      if (enabledServerSpans) {
-        serverSpans.afterAllSetup(client);
-      }
-    },
+
     processEvent(event) {
       // Note: We always run this, even if spans are disabled
       // The reason being that e.g. the remix integration disables span creation here but still wants to use the ignore status codes option

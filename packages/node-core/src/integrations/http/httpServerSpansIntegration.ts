@@ -11,15 +11,7 @@ import {
   SEMATTRS_NET_HOST_PORT,
   SEMATTRS_NET_PEER_IP,
 } from '@opentelemetry/semantic-conventions';
-import type {
-  Event,
-  Integration,
-  IntegrationFn,
-  RequestEventData,
-  Span,
-  SpanAttributes,
-  SpanStatus,
-} from '@sentry/core';
+import type { Event, Integration, IntegrationFn, Span, SpanAttributes, SpanStatus } from '@sentry/core';
 import {
   debug,
   getIsolationScope,
@@ -33,7 +25,7 @@ import {
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../../debug-build';
 import type { NodeClient } from '../../sdk/client';
-import type { httpServerIntegration } from './httpServerIntegration';
+import { addStartSpanCallback } from './httpServerIntegration';
 
 const INTEGRATION_NAME = 'Http.ServerSpans';
 
@@ -104,13 +96,124 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
   // eslint-disable-next-line deprecation/deprecation
   const { requestHook, responseHook, applyCustomAttributesOnSpan } = options.instrumentation ?? {};
 
-  // We track if setup() was called, which indicates that this integration was added directly, not called from httpIntegration
-  let _isSetupDirectly = false;
-
   return {
     name: INTEGRATION_NAME,
-    setup() {
-      _isSetupDirectly = true;
+    setup(client: NodeClient) {
+      // If no tracing, we can just skip everything here
+      if (typeof __SENTRY_TRACING__ !== 'undefined' && !__SENTRY_TRACING__) {
+        return;
+      }
+
+      client.on('httpServerRequest', (_request, _response, normalizedRequest) => {
+        // Type-casting this here because we do not want to put the node types into core
+        const request = _request as IncomingMessage;
+        const response = _response as ServerResponse;
+
+        const startSpan = (next: () => boolean): boolean => {
+          if (
+            shouldIgnoreSpansForIncomingRequest(request, {
+              ignoreStaticAssets,
+              ignoreIncomingRequests,
+            })
+          ) {
+            DEBUG_BUILD && debug.log(INTEGRATION_NAME, 'Skipping span creation for incoming request', request.url);
+            return next();
+          }
+
+          const fullUrl = normalizedRequest.url || request.url || '/';
+          const urlObj = parseStringToURLObject(fullUrl);
+
+          const headers = request.headers;
+          const userAgent = headers['user-agent'];
+          const ips = headers['x-forwarded-for'];
+          const httpVersion = request.httpVersion;
+          const host = headers.host;
+          const hostname = host?.replace(/^(.*)(:[0-9]{1,5})/, '$1') || 'localhost';
+
+          const tracer = client.tracer;
+          const scheme = fullUrl.startsWith('https') ? 'https' : 'http';
+
+          const method = normalizedRequest.method || request.method?.toUpperCase() || 'GET';
+          const httpTargetWithoutQueryFragment = urlObj ? urlObj.pathname : stripUrlQueryAndFragment(fullUrl);
+          const bestEffortTransactionName = `${method} ${httpTargetWithoutQueryFragment}`;
+          const shouldSendDefaultPii = client.getOptions().sendDefaultPii ?? false;
+
+          // We use the plain tracer.startSpan here so we can pass the span kind
+          const span = tracer.startSpan(bestEffortTransactionName, {
+            kind: SpanKind.SERVER,
+            attributes: {
+              // Sentry specific attributes
+              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.otel.http',
+              'sentry.http.prefetch': isKnownPrefetchRequest(request) || undefined,
+              // Old Semantic Conventions attributes - added for compatibility with what `@opentelemetry/instrumentation-http` output before
+              'http.url': fullUrl,
+              'http.method': normalizedRequest.method,
+              'http.target': urlObj ? `${urlObj.pathname}${urlObj.search}` : httpTargetWithoutQueryFragment,
+              'http.host': host,
+              'net.host.name': hostname,
+              'http.client_ip': typeof ips === 'string' ? ips.split(',')[0] : undefined,
+              'http.user_agent': userAgent,
+              'http.scheme': scheme,
+              'http.flavor': httpVersion,
+              'net.transport': httpVersion?.toUpperCase() === 'QUIC' ? 'ip_udp' : 'ip_tcp',
+              ...getRequestContentLengthAttribute(request),
+              ...httpHeadersToSpanAttributes(normalizedRequest.headers || {}, shouldSendDefaultPii),
+            },
+          });
+
+          // TODO v11: Remove the following three hooks, only onSpanCreated should remain
+          requestHook?.(span, request);
+          responseHook?.(span, response);
+          applyCustomAttributesOnSpan?.(span, request, response);
+          onSpanCreated?.(span, request, response);
+
+          const rpcMetadata: RPCMetadata = {
+            type: RPCType.HTTP,
+            span,
+          };
+
+          return context.with(setRPCMetadata(trace.setSpan(context.active(), span), rpcMetadata), () => {
+            context.bind(context.active(), request);
+            context.bind(context.active(), response);
+
+            // Ensure we only end the span once
+            // E.g. error can be emitted before close is emitted
+            let isEnded = false;
+            function endSpan(status: SpanStatus): void {
+              if (isEnded) {
+                return;
+              }
+
+              isEnded = true;
+
+              const newAttributes = getIncomingRequestAttributesOnResponse(request, response);
+              span.setAttributes(newAttributes);
+              span.setStatus(status);
+              span.end();
+
+              // Update the transaction name if the route has changed
+              const route = newAttributes['http.route'];
+              if (route) {
+                getIsolationScope().setTransactionName(`${request.method?.toUpperCase() || 'GET'} ${route}`);
+              }
+            }
+
+            response.on('close', () => {
+              endSpan(getSpanStatusFromHttpCode(response.statusCode));
+            });
+            response.on(errorMonitor, () => {
+              const httpStatus = getSpanStatusFromHttpCode(response.statusCode);
+              // Ensure we def. have an error status here
+              endSpan(httpStatus.code === SPAN_STATUS_ERROR ? httpStatus : { code: SPAN_STATUS_ERROR });
+            });
+
+            return next();
+          });
+        };
+
+        addStartSpanCallback(request, startSpan);
+      });
     },
     processEvent(event) {
       // Drop transaction if it has a status code that should be ignored
@@ -127,134 +230,11 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
 
       return event;
     },
-    afterAllSetup(client: NodeClient) {
-      if (DEBUG_BUILD && client.getIntegrationByName('Http') && _isSetupDirectly) {
+    afterAllSetup(client) {
+      if (DEBUG_BUILD && client.getIntegrationByName('Http')) {
         debug.warn(
           'It seems that you have manually added `httpServerSpansIntergation` while `httpIntegration` is also present. Make sure to remove `httpIntegration` when adding `httpServerSpansIntegration`.',
         );
-      }
-
-      // If no tracing, we can just skip everything here
-      if (typeof __SENTRY_TRACING__ !== 'undefined' && !__SENTRY_TRACING__) {
-        return;
-      }
-
-      function startSpan(
-        fn: () => boolean,
-        {
-          normalizedRequest,
-          request,
-          response,
-        }: { request: IncomingMessage; response: ServerResponse; normalizedRequest: RequestEventData },
-      ): boolean {
-        if (
-          shouldIgnoreSpansForIncomingRequest(request, {
-            ignoreStaticAssets,
-            ignoreIncomingRequests,
-          })
-        ) {
-          DEBUG_BUILD && debug.log(INTEGRATION_NAME, 'Skipping span creation for incoming request', request.url);
-          return fn();
-        }
-
-        const fullUrl = normalizedRequest.url || request.url || '/';
-        const urlObj = parseStringToURLObject(fullUrl);
-
-        const headers = request.headers;
-        const userAgent = headers['user-agent'];
-        const ips = headers['x-forwarded-for'];
-        const httpVersion = request.httpVersion;
-        const host = headers.host;
-        const hostname = host?.replace(/^(.*)(:[0-9]{1,5})/, '$1') || 'localhost';
-
-        const tracer = client.tracer;
-        const scheme = fullUrl.startsWith('https') ? 'https' : 'http';
-
-        const method = normalizedRequest.method || request.method?.toUpperCase() || 'GET';
-        const httpTargetWithoutQueryFragment = urlObj ? urlObj.pathname : stripUrlQueryAndFragment(fullUrl);
-        const bestEffortTransactionName = `${method} ${httpTargetWithoutQueryFragment}`;
-        const shouldSendDefaultPii = client.getOptions().sendDefaultPii ?? false;
-
-        // We use the plain tracer.startSpan here so we can pass the span kind
-        const span = tracer.startSpan(bestEffortTransactionName, {
-          kind: SpanKind.SERVER,
-          attributes: {
-            // Sentry specific attributes
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.otel.http',
-            'sentry.http.prefetch': isKnownPrefetchRequest(request) || undefined,
-            // Old Semantic Conventions attributes - added for compatibility with what `@opentelemetry/instrumentation-http` output before
-            'http.url': fullUrl,
-            'http.method': normalizedRequest.method,
-            'http.target': urlObj ? `${urlObj.pathname}${urlObj.search}` : httpTargetWithoutQueryFragment,
-            'http.host': host,
-            'net.host.name': hostname,
-            'http.client_ip': typeof ips === 'string' ? ips.split(',')[0] : undefined,
-            'http.user_agent': userAgent,
-            'http.scheme': scheme,
-            'http.flavor': httpVersion,
-            'net.transport': httpVersion?.toUpperCase() === 'QUIC' ? 'ip_udp' : 'ip_tcp',
-            ...getRequestContentLengthAttribute(request),
-            ...httpHeadersToSpanAttributes(normalizedRequest.headers || {}, shouldSendDefaultPii),
-          },
-        });
-
-        // TODO v11: Remove the following three hooks, only onSpanCreated should remain
-        requestHook?.(span, request);
-        responseHook?.(span, response);
-        applyCustomAttributesOnSpan?.(span, request, response);
-        onSpanCreated?.(span, request, response);
-
-        const rpcMetadata: RPCMetadata = {
-          type: RPCType.HTTP,
-          span,
-        };
-
-        return context.with(setRPCMetadata(trace.setSpan(context.active(), span), rpcMetadata), () => {
-          context.bind(context.active(), request);
-          context.bind(context.active(), response);
-
-          // Ensure we only end the span once
-          // E.g. error can be emitted before close is emitted
-          let isEnded = false;
-          function endSpan(status: SpanStatus): void {
-            if (isEnded) {
-              return;
-            }
-
-            isEnded = true;
-
-            const newAttributes = getIncomingRequestAttributesOnResponse(request, response);
-            span.setAttributes(newAttributes);
-            span.setStatus(status);
-            span.end();
-
-            // Update the transaction name if the route has changed
-            const route = newAttributes['http.route'];
-            if (route) {
-              getIsolationScope().setTransactionName(`${request.method?.toUpperCase() || 'GET'} ${route}`);
-            }
-          }
-
-          response.on('close', () => {
-            endSpan(getSpanStatusFromHttpCode(response.statusCode));
-          });
-          response.on(errorMonitor, () => {
-            const httpStatus = getSpanStatusFromHttpCode(response.statusCode);
-            // Ensure we def. have an error status here
-            endSpan(httpStatus.code === SPAN_STATUS_ERROR ? httpStatus : { code: SPAN_STATUS_ERROR });
-          });
-
-          return fn();
-        });
-      }
-
-      const serverIntegration = client.getIntegrationByName<ReturnType<typeof httpServerIntegration>>('HttpServer');
-      if (serverIntegration) {
-        serverIntegration.addServerCallback(startSpan);
-      } else {
-        DEBUG_BUILD &&
-          debug.warn('httpServerSpansIntegration requires the httpServerIntegration to be present. Skipping...');
       }
     },
   };
@@ -268,7 +248,7 @@ export const httpServerSpansIntegration = _httpServerSpansIntegration as (
   options?: HttpServerSpansIntegrationOptions,
 ) => Integration & {
   name: 'HttpServerSpans';
-  afterAllSetup: (client: NodeClient) => void;
+  setup: (client: NodeClient) => void;
   processEvent: (event: Event) => Event | null;
 };
 
