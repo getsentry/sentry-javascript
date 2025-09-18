@@ -226,6 +226,13 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
 
   return {
     name: INTEGRATION_NAME,
+    setup(client: NodeClient) {
+      const clientOptions = client.getOptions();
+
+      if (enableServerSpans && hasSpansEnabled(clientOptions)) {
+        serverSpans.setup(client);
+      }
+    },
     setupOnce() {
       const clientOptions = (getClient<NodeClient>()?.getOptions() || {}) satisfies Partial<NodeClientOptions>;
       const useOtelHttpInstrumentation = _shouldUseOtelHttpInstrumentation(options, clientOptions);
@@ -245,13 +252,6 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
       if (useOtelHttpInstrumentation) {
         const instrumentationConfig = getConfigWithDefaults(options);
         instrumentOtelHttp(instrumentationConfig);
-      }
-    },
-    afterAllSetup(client: NodeClient) {
-      const clientOptions = client.getOptions();
-
-      if (enableServerSpans && hasSpansEnabled(clientOptions)) {
-        serverSpans.afterAllSetup(client);
       }
     },
     processEvent(event) {
