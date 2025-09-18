@@ -23,7 +23,7 @@ describe('init', () => {
       mockGetSDKSource.mockReturnValue('aws-lambda-layer');
       const options: AwsServerlessOptions = {
         tunnel: 'https://custom-tunnel.example.com',
-        enableLambdaExtension: true,
+        useLayerExtension: true,
       };
 
       init(options);
@@ -38,7 +38,7 @@ describe('init', () => {
     test('should set default tunnel when Lambda extension is enabled and SDK source is aws-lambda-layer', () => {
       mockGetSDKSource.mockReturnValue('aws-lambda-layer');
       const options: AwsServerlessOptions = {
-        enableLambdaExtension: true,
+        useLayerExtension: true,
       };
 
       init(options);
@@ -53,7 +53,7 @@ describe('init', () => {
     test('should not set tunnel when Lambda extension is disabled', () => {
       mockGetSDKSource.mockReturnValue('aws-lambda-layer');
       const options: AwsServerlessOptions = {
-        enableLambdaExtension: false,
+        useLayerExtension: false,
       };
 
       init(options);
@@ -68,7 +68,7 @@ describe('init', () => {
     test('should not set tunnel when SDK source is not aws-lambda-layer even with Lambda extension enabled', () => {
       mockGetSDKSource.mockReturnValue('npm');
       const options: AwsServerlessOptions = {
-        enableLambdaExtension: true,
+        useLayerExtension: true,
       };
 
       init(options);
@@ -80,7 +80,7 @@ describe('init', () => {
       );
     });
 
-    test('should default enableLambdaExtension to true when SDK source is aws-lambda-layer', () => {
+    test('should default useLayerExtension to true when SDK source is aws-lambda-layer', () => {
       mockGetSDKSource.mockReturnValue('aws-lambda-layer');
       const options: AwsServerlessOptions = {};
 
@@ -88,13 +88,13 @@ describe('init', () => {
 
       expect(mockInitWithoutDefaultIntegrations).toHaveBeenCalledWith(
         expect.objectContaining({
-          enableLambdaExtension: true,
+          useLayerExtension: true,
           tunnel: 'http://localhost:9000/envelope',
         }),
       );
     });
 
-    test('should default enableLambdaExtension to false when SDK source is not aws-lambda-layer', () => {
+    test('should default useLayerExtension to false when SDK source is not aws-lambda-layer', () => {
       mockGetSDKSource.mockReturnValue('npm');
       const options: AwsServerlessOptions = {};
 
@@ -102,7 +102,7 @@ describe('init', () => {
 
       expect(mockInitWithoutDefaultIntegrations).toHaveBeenCalledWith(
         expect.objectContaining({
-          enableLambdaExtension: false,
+          useLayerExtension: false,
         }),
       );
       expect(mockInitWithoutDefaultIntegrations).toHaveBeenCalledWith(
