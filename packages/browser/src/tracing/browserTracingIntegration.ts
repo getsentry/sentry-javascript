@@ -5,7 +5,6 @@ import {
   browserPerformanceTimeOrigin,
   dateTimestampInSeconds,
   debug,
-  defineIntegration,
   generateSpanId,
   generateTraceId,
   getClient,
