@@ -53,17 +53,24 @@ export function getBuildPluginOptions({
       sourcemapUploadAssets.push(path.posix.join(normalizedDistDirAbsPath, 'static', 'chunks', '**'));
     } else {
       // Webpack client builds
-      sourcemapUploadAssets.push(
-        path.posix.join(normalizedDistDirAbsPath, 'static', 'chunks', 'pages', '**'),
-        path.posix.join(normalizedDistDirAbsPath, 'static', 'chunks', 'app', '**'),
-      );
+      if (sentryBuildOptions.widenClientFileUpload) {
+        sourcemapUploadAssets.push(path.posix.join(normalizedDistDirAbsPath, 'static', 'chunks', '**'));
+      } else {
+        sourcemapUploadAssets.push(
+          path.posix.join(normalizedDistDirAbsPath, 'static', 'chunks', 'pages', '**'),
+          path.posix.join(normalizedDistDirAbsPath, 'static', 'chunks', 'app', '**'),
+        );
+      }
     }
 
     if (sentryBuildOptions.sourcemaps?.deleteSourcemapsAfterUpload) {
       filesToDeleteAfterUpload.push(
-        path.posix.join(normalizedDistDirAbsPath, '**', '*.js.map'),
-        path.posix.join(normalizedDistDirAbsPath, '**', '*.mjs.map'),
-        path.posix.join(normalizedDistDirAbsPath, '**', '*.cjs.map'),
+        // We only care to delete client bundle source maps because they would be the ones being served.
+        // Removing the server source maps crashes Vercel builds for (thus far) unknown reasons:
+        // https://github.com/getsentry/sentry-javascript/issues/13099
+        path.posix.join(normalizedDistDirAbsPath, 'static', '**', '*.js.map'),
+        path.posix.join(normalizedDistDirAbsPath, 'static', '**', '*.mjs.map'),
+        path.posix.join(normalizedDistDirAbsPath, 'static', '**', '*.cjs.map'),
       );
     }
   } else {

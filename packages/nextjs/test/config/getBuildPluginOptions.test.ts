@@ -313,9 +313,9 @@ describe('getBuildPluginOptions', () => {
       });
 
       expect(result.sourcemaps?.filesToDeleteAfterUpload).toEqual([
-        '/path/to/.next/**/*.js.map',
-        '/path/to/.next/**/*.mjs.map',
-        '/path/to/.next/**/*.cjs.map',
+        '/path/to/.next/static/**/*.js.map',
+        '/path/to/.next/static/**/*.mjs.map',
+        '/path/to/.next/static/**/*.cjs.map',
       ]);
     });
 
@@ -336,9 +336,9 @@ describe('getBuildPluginOptions', () => {
       });
 
       expect(result.sourcemaps?.filesToDeleteAfterUpload).toEqual([
-        '/path/to/.next/**/*.js.map',
-        '/path/to/.next/**/*.mjs.map',
-        '/path/to/.next/**/*.cjs.map',
+        '/path/to/.next/static/**/*.js.map',
+        '/path/to/.next/static/**/*.mjs.map',
+        '/path/to/.next/static/**/*.cjs.map',
       ]);
     });
 
@@ -802,9 +802,9 @@ describe('getBuildPluginOptions', () => {
         `${complexPath}/static/chunks/**`,
       ]);
       expect(result.sourcemaps?.filesToDeleteAfterUpload).toEqual([
-        `${complexPath}/**/*.js.map`,
-        `${complexPath}/**/*.mjs.map`,
-        `${complexPath}/**/*.cjs.map`,
+        `${complexPath}/static/**/*.js.map`,
+        `${complexPath}/static/**/*.mjs.map`,
+        `${complexPath}/static/**/*.cjs.map`,
       ]);
     });
   });
