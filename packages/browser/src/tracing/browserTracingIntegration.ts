@@ -536,6 +536,9 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         _createRouteSpan(client, {
           op: 'navigation',
           ...startSpanOptions,
+          // Navigation starts a new trace and is NOT parented under any active interaction (e.g. ui.action.click)
+          parentSpan: null,
+          forceTransaction: true,
         });
       });
 

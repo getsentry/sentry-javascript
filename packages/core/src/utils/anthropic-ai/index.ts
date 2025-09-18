@@ -24,6 +24,7 @@ import {
   GEN_AI_SYSTEM_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
 import { buildMethodPath, getFinalOperationName, getSpanOperation, setTokenUsageAttributes } from '../ai/utils';
+import { handleCallbackErrors } from '../handleCallbackErrors';
 import { ANTHROPIC_AI_INTEGRATION_NAME } from './constants';
 import { instrumentStream } from './streaming';
 import type {
@@ -238,7 +239,7 @@ function instrumentMethod<T extends unknown[], R>(
           op: getSpanOperation(methodPath),
           attributes: requestAttributes as Record<string, SpanAttributeValue>,
         },
-        async (span: Span) => {
+        async span => {
           try {
             if (finalOptions.recordInputs && params) {
               addPrivateRequestAttributes(span, params);
@@ -274,27 +275,27 @@ function instrumentMethod<T extends unknown[], R>(
         op: getSpanOperation(methodPath),
         attributes: requestAttributes as Record<string, SpanAttributeValue>,
       },
-      async (span: Span) => {
-        try {
-          if (finalOptions.recordInputs && args[0] && typeof args[0] === 'object') {
-            addPrivateRequestAttributes(span, args[0] as Record<string, unknown>);
-          }
-
-          const result = await originalMethod.apply(context, args);
-          addResponseAttributes(span, result, finalOptions.recordOutputs);
-          return result;
-        } catch (error) {
-          captureException(error, {
-            mechanism: {
-              handled: false,
-              type: 'auto.ai.anthropic',
-              data: {
-                function: methodPath,
-              },
-            },
-          });
-          throw error;
+      span => {
+        if (finalOptions.recordInputs && params) {
+          addPrivateRequestAttributes(span, params);
         }
+
+        return handleCallbackErrors(
+          () => originalMethod.apply(context, args),
+          error => {
+            captureException(error, {
+              mechanism: {
+                handled: false,
+                type: 'auto.ai.anthropic',
+                data: {
+                  function: methodPath,
+                },
+              },
+            });
+          },
+          () => {},
+          result => addResponseAttributes(span, result as AnthropicAiResponse, finalOptions.recordOutputs),
+        );
       },
     );
   };

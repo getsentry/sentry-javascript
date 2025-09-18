@@ -30,7 +30,7 @@ export const attachErrorHandler = (app: Vue, options: VueOptions): void => {
     setTimeout(() => {
       captureException(error, {
         captureContext: { contexts: { vue: metadata } },
-        mechanism: { handled: !!originalErrorHandler, type: 'vue' },
+        mechanism: { handled: !!originalErrorHandler, type: 'auto.function.vue.error_handler' },
       });
     });
 

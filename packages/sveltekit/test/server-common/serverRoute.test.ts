@@ -85,7 +85,7 @@ describe('wrapServerRouteWithSentry', () => {
       }).rejects.toThrowError('Server Route Error');
 
       expect(captureExceptionSpy).toHaveBeenCalledWith(error, {
-        mechanism: { type: 'sveltekit', handled: false, data: { function: 'serverRoute' } },
+        mechanism: { type: 'auto.function.sveltekit.server_route', handled: false },
       });
     });
 
@@ -101,7 +101,10 @@ describe('wrapServerRouteWithSentry', () => {
       expect(captureExceptionSpy).toHaveBeenCalledWith(
         { body: { message: `error(${status}) error` }, status },
         {
-          mechanism: { type: 'sveltekit', handled: false, data: { function: 'serverRoute' } },
+          mechanism: {
+            type: 'auto.function.sveltekit.server_route',
+            handled: false,
+          },
         },
       );
     });
