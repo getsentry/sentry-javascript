@@ -5,6 +5,7 @@ import {
   addExceptionMechanism,
   captureException,
   captureMessage,
+  defineIntegration,
   severityLevelFromString,
   withScope,
 } from '@sentry/core';
@@ -24,10 +25,7 @@ type MergeObject = {
   err?: Error;
 };
 
-type PinoHookArgs = {
-  self: Pino;
-  arguments: [MergeObject, string, number];
-};
+type PinoHookArgs = [MergeObject, string, number];
 
 type Options = {
   /**
@@ -57,10 +55,14 @@ function attributesFromObject(obj: object, attr: Record<string, unknown>, key?: 
   return attr;
 }
 
-export const pinoIntegration = ((options: Options = { eventLevels: ['error', 'fatal'], handled: true }) => {
+const DEFAULT_OPTIONS: Options = { eventLevels: ['error', 'fatal'], handled: true };
+
+export const pinoIntegration = defineIntegration((options: Options = DEFAULT_OPTIONS) => {
   return {
     name: 'Pino',
-    setup: () => {
+    setup: client => {
+      const enableLogs = !!client.getOptions().enableLogs;
+
       addInstrumentationConfig({
         channelName: 'pino-log',
         // From Pino v9.10.0 a tracing channel is available directly from Pino:
@@ -73,10 +75,9 @@ export const pinoIntegration = ((options: Options = { eventLevels: ['error', 'fa
       });
 
       const injectedChannel = tracingChannel('orchestrion:pino:pino-log');
-      const integratedChannel = tracingChannel('pino_asJson');
+      const integratedChannel = tracingChannel('tracing:pino_asJson');
 
-      const onPinoStart = (data: unknown): void => {
-        const { self, arguments: args } = data as PinoHookArgs;
+      function onPinoStart(self: Pino, args: PinoHookArgs): void {
         const [obj, message, levelNumber] = args;
         const level = self?.levels?.labels?.[levelNumber] || 'info';
 
@@ -85,7 +86,9 @@ export const pinoIntegration = ((options: Options = { eventLevels: ['error', 'fa
           'sentry.pino.level': levelNumber,
         });
 
-        _INTERNAL_captureLog({ level, message, attributes });
+        if (enableLogs) {
+          _INTERNAL_captureLog({ level, message, attributes });
+        }
 
         if (options.eventLevels?.includes(level)) {
           const captureContext = {
@@ -112,10 +115,17 @@ export const pinoIntegration = ((options: Options = { eventLevels: ['error', 'fa
             captureMessage(message, captureContext);
           });
         }
-      };
+      }
 
-      injectedChannel.start.subscribe(onPinoStart);
-      integratedChannel.start.subscribe(onPinoStart);
+      injectedChannel.start.subscribe(data => {
+        const { self, arguments: args } = data as { self: Pino; arguments: PinoHookArgs };
+        onPinoStart(self, args);
+      });
+
+      integratedChannel.start.subscribe(data => {
+        const { instance, arguments: args } = data as { instance: Pino; arguments: PinoHookArgs };
+        onPinoStart(instance, args);
+      });
     },
   };
 }) satisfies IntegrationFn;
