@@ -94,7 +94,9 @@ describe('shouldIgnoreSpan', () => {
     const span = { description: 'testDescription', op: 'testOp' };
     const ignoreSpans = [/test/];
     expect(shouldIgnoreSpan(span, ignoreSpans)).toBe(true);
-    expect(debugLogSpy).toHaveBeenCalledWith('Ignoring span testOp - testDescription');
+    expect(debugLogSpy).toHaveBeenCalledWith(
+      'Ignoring span testOp - testDescription because it matches `ignoreSpans`.',
+    );
   });
 });
 

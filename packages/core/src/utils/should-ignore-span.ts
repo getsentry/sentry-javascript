@@ -5,7 +5,7 @@ import { debug } from './debug-logger';
 import { isMatchingPattern } from './string';
 
 function logIgnoredSpan(droppedSpan: Pick<SpanJSON, 'description' | 'op'>): void {
-  debug.log(`Ignoring span ${droppedSpan.op} - ${droppedSpan.description}`);
+  debug.log(`Ignoring span ${droppedSpan.op} - ${droppedSpan.description} because it matches \`ignoreSpans\`.`);
 }
 
 /**
