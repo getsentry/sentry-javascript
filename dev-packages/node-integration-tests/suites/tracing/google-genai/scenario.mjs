@@ -48,7 +48,7 @@ async function run() {
   await Sentry.startSpan({ op: 'function', name: 'main' }, async () => {
     const client = new GoogleGenAI({
       apiKey: 'mock-api-key',
-      httpOptions: { baseUrl: `http://localhost:${PORT}` }
+      httpOptions: { baseUrl: `http://localhost:${PORT}` },
     });
 
     // Test 1: chats.create and sendMessage flow
