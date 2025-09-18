@@ -81,18 +81,9 @@ export function addMetadataToStackFrames(parser: StackParser, event: Event): voi
  * Strips metadata from stack frames.
  */
 export function stripMetadataFromStackFrames(event: Event): void {
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    event.exception!.values!.forEach(exception => {
-      if (!exception.stacktrace) {
-        return;
-      }
-
-      for (const frame of exception.stacktrace.frames || []) {
-        delete frame.module_metadata;
-      }
+  event.exception?.values?.forEach(exception => {
+    exception.stacktrace?.frames?.forEach(frame => {
+      delete frame.module_metadata;
     });
-  } catch {
-    // To save bundle size we're just try catching here instead of checking for the existence of all the different objects.
-  }
+  });
 }

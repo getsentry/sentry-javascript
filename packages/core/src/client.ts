@@ -6,6 +6,7 @@ import { DEBUG_BUILD } from './debug-build';
 import { createEventEnvelope, createSessionEnvelope } from './envelope';
 import type { IntegrationIndex } from './integration';
 import { afterSetupIntegrations, setupIntegration, setupIntegrations } from './integration';
+import { stripMetadataFromStackFrames } from './metadata';
 import type { Scope } from './scope';
 import { updateSession } from './session';
 import {
@@ -1124,9 +1125,13 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
           throw _makeDoNotSendEventError(`${beforeSendLabel} returned \`null\`, will not send event.`);
         }
 
-        const session = currentScope.getSession() || isolationScope.getSession();
-        if (isError && session) {
-          this._updateSessionFromEvent(session, processedEvent);
+        if (isError) {
+          const session = currentScope.getSession() || isolationScope.getSession();
+          if (session) {
+            this._updateSessionFromEvent(session, processedEvent);
+          }
+
+          stripMetadataFromStackFrames(processedEvent);
         }
 
         if (isTransaction) {

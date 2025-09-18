@@ -1,7 +1,5 @@
 import { defineIntegration } from '../integration';
-import { addMetadataToStackFrames, stripMetadataFromStackFrames } from '../metadata';
-import type { EventItem } from '../types-hoist/envelope';
-import { forEachEnvelopeItem } from '../utils/envelope';
+import { addMetadataToStackFrames } from '../metadata';
 
 /**
  * Adds module metadata to stack frames.
@@ -16,20 +14,6 @@ export const moduleMetadataIntegration = defineIntegration(() => {
   return {
     name: 'ModuleMetadata',
     setup(client) {
-      // We need to strip metadata from stack frames before sending them to Sentry since these are client side only.
-      client.on('beforeEnvelope', envelope => {
-        forEachEnvelopeItem(envelope, (item, type) => {
-          if (type === 'event') {
-            const event = Array.isArray(item) ? (item as EventItem)[1] : undefined;
-
-            if (event) {
-              stripMetadataFromStackFrames(event);
-              item[1] = event;
-            }
-          }
-        });
-      });
-
       client.on('applyFrameMetadata', event => {
         // Only apply stack frame metadata to error events
         if (event.type) {
