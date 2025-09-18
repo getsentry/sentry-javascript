@@ -32,6 +32,19 @@ const eventWithThirdAndFirstPartyFrames: Event = {
               function: 'function',
               lineno: 2,
             },
+            // The following frames are native/built-in frames which should be ignored by the integration
+            {
+              function: 'Array.forEach',
+              filename: '<anonymous>',
+              abs_path: '<anonymous>',
+              in_app: true,
+            },
+            {
+              function: 'async Promise.all',
+              filename: 'index 1',
+              abs_path: 'index 1',
+              in_app: true,
+            },
           ],
         },
         type: 'SyntaxError',
@@ -58,6 +71,19 @@ const eventWithOnlyFirstPartyFrames: Event = {
               filename: __filename,
               function: 'function',
               lineno: 2,
+            },
+            // The following frames are native/built-in frames which should be ignored by the integration
+            {
+              function: 'Array.forEach',
+              filename: '<anonymous>',
+              abs_path: '<anonymous>',
+              in_app: true,
+            },
+            {
+              function: 'async Promise.all',
+              filename: 'index 1',
+              abs_path: 'index 1',
+              in_app: true,
             },
           ],
         },
@@ -86,6 +112,19 @@ const eventWithOnlyThirdPartyFrames: Event = {
               function: 'function',
               lineno: 2,
             },
+            // The following frames are native/built-in frames which should be ignored by the integration
+            {
+              function: 'Array.forEach',
+              filename: '<anonymous>',
+              abs_path: '<anonymous>',
+              in_app: true,
+            },
+            {
+              function: 'async Promise.all',
+              filename: 'index 1',
+              abs_path: 'index 1',
+              in_app: true,
+            },
           ],
         },
         type: 'SyntaxError',
@@ -112,7 +151,7 @@ describe('ThirdPartyErrorFilter', () => {
   });
 
   describe('drop-error-if-contains-third-party-frames', () => {
-    it('should keep event if there are exclusively first-party frames', async () => {
+    it('keeps event if there are exclusively first-party frames', async () => {
       const integration = thirdPartyErrorFilterIntegration({
         behaviour: 'drop-error-if-contains-third-party-frames',
         filterKeys: ['some-key'],
@@ -123,7 +162,7 @@ describe('ThirdPartyErrorFilter', () => {
       expect(result).toBeDefined();
     });
 
-    it('should drop event if there is at least one third-party frame', async () => {
+    it('drops event if there is at least one third-party frame', async () => {
       const integration = thirdPartyErrorFilterIntegration({
         behaviour: 'drop-error-if-contains-third-party-frames',
         filterKeys: ['some-key'],
@@ -134,7 +173,7 @@ describe('ThirdPartyErrorFilter', () => {
       expect(result).toBe(null);
     });
 
-    it('should drop event if all frames are third-party frames', async () => {
+    it('drops event if all frames are third-party frames', async () => {
       const integration = thirdPartyErrorFilterIntegration({
         behaviour: 'drop-error-if-contains-third-party-frames',
         filterKeys: ['some-key'],
@@ -147,7 +186,7 @@ describe('ThirdPartyErrorFilter', () => {
   });
 
   describe('drop-error-if-exclusively-contains-third-party-frames', () => {
-    it('should keep event if there are exclusively first-party frames', async () => {
+    it('keeps event if there are exclusively first-party frames', async () => {
       const integration = thirdPartyErrorFilterIntegration({
         behaviour: 'drop-error-if-exclusively-contains-third-party-frames',
         filterKeys: ['some-key'],
@@ -158,7 +197,7 @@ describe('ThirdPartyErrorFilter', () => {
       expect(result).toBeDefined();
     });
 
-    it('should keep event if there is at least one first-party frame', async () => {
+    it('keeps event if there is at least one first-party frame', async () => {
       const integration = thirdPartyErrorFilterIntegration({
         behaviour: 'drop-error-if-exclusively-contains-third-party-frames',
         filterKeys: ['some-key'],
@@ -169,7 +208,7 @@ describe('ThirdPartyErrorFilter', () => {
       expect(result).toBeDefined();
     });
 
-    it('should drop event if all frames are third-party frames', async () => {
+    it('drops event if all frames are third-party frames', async () => {
       const integration = thirdPartyErrorFilterIntegration({
         behaviour: 'drop-error-if-exclusively-contains-third-party-frames',
         filterKeys: ['some-key'],
@@ -182,7 +221,7 @@ describe('ThirdPartyErrorFilter', () => {
   });
 
   describe('apply-tag-if-contains-third-party-frames', () => {
-    it('should not tag event if exclusively contains first-party frames', async () => {
+    it("doesn't tag event if exclusively contains first-party frames", async () => {
       const integration = thirdPartyErrorFilterIntegration({
         behaviour: 'apply-tag-if-contains-third-party-frames',
         filterKeys: ['some-key'],
@@ -193,7 +232,7 @@ describe('ThirdPartyErrorFilter', () => {
       expect(result?.tags?.third_party_code).toBeUndefined();
     });
 
-    it('should tag event if contains at least one third-party frame', async () => {
+    it('tags event if contains at least one third-party frame', async () => {
       const integration = thirdPartyErrorFilterIntegration({
         behaviour: 'apply-tag-if-contains-third-party-frames',
         filterKeys: ['some-key'],
@@ -204,7 +243,7 @@ describe('ThirdPartyErrorFilter', () => {
       expect(result?.tags).toMatchObject({ third_party_code: true });
     });
 
-    it('should tag event if contains exclusively third-party frames', async () => {
+    it('tags event if contains exclusively third-party frames', async () => {
       const integration = thirdPartyErrorFilterIntegration({
         behaviour: 'apply-tag-if-contains-third-party-frames',
         filterKeys: ['some-key'],
@@ -217,7 +256,7 @@ describe('ThirdPartyErrorFilter', () => {
   });
 
   describe('apply-tag-if-exclusively-contains-third-party-frames', () => {
-    it('should not tag event if exclusively contains first-party frames', async () => {
+    it("doesn't tag event if exclusively contains first-party frames", async () => {
       const integration = thirdPartyErrorFilterIntegration({
         behaviour: 'apply-tag-if-exclusively-contains-third-party-frames',
         filterKeys: ['some-key'],
@@ -228,7 +267,7 @@ describe('ThirdPartyErrorFilter', () => {
       expect(result?.tags?.third_party_code).toBeUndefined();
     });
 
-    it('should not tag event if contains at least one first-party frame', async () => {
+    it("doesn't tag event if contains at least one first-party frame", async () => {
       const integration = thirdPartyErrorFilterIntegration({
         behaviour: 'apply-tag-if-exclusively-contains-third-party-frames',
         filterKeys: ['some-key'],
@@ -239,7 +278,7 @@ describe('ThirdPartyErrorFilter', () => {
       expect(result?.tags?.third_party_code).toBeUndefined();
     });
 
-    it('should tag event if contains exclusively third-party frames', async () => {
+    it('tags event if contains exclusively third-party frames', async () => {
       const integration = thirdPartyErrorFilterIntegration({
         behaviour: 'apply-tag-if-exclusively-contains-third-party-frames',
         filterKeys: ['some-key'],

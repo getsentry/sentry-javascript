@@ -108,8 +108,9 @@ function getBundleKeysForAllFramesWithFilenames(event: Event): string[][] | unde
 
   return (
     frames
-      // Exclude frames without a filename since these are likely native code or built-ins
-      .filter(frame => !!frame.filename)
+      // Exclude frames without a filename or without lineno and colno,
+      // since these are likely native code or built-ins
+      .filter(frame => !!frame.filename && (frame.lineno != null || frame.colno != null))
       .map(frame => {
         if (frame.module_metadata) {
           return Object.keys(frame.module_metadata)
