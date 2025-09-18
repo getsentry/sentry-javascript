@@ -757,4 +757,16 @@ export function attachProfiledThreadToEvent(event: Event): void {
       ['thread.name']: PROFILER_THREAD_NAME,
     },
   };
+
+  // Attach thread info to individual spans so that spans can be associated with the profiled thread on the UI even if contexts are missing.
+  if (Array.isArray(event.spans)) {
+    const spans = event.spans;
+    for (const span of spans) {
+      span.data = {
+        ...(span.data || {}),
+        ['thread.id']: PROFILER_THREAD_ID_STRING,
+        ['thread.name']: PROFILER_THREAD_NAME,
+      };
+    }
+  }
 }

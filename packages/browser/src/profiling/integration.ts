@@ -24,11 +24,13 @@ const INTEGRATION_NAME = 'BrowserProfiling';
 const _browserProfilingIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
+    // eslint-disable-next-line complexity
     setup(client) {
       const options = client.getOptions() as BrowserOptions;
 
       if (options && !hasLegacyProfiling(options) && !options.profileLifecycle) {
-        options.profileLifecycle = 'trace';
+        // Set default lifecycle mode
+        options.profileLifecycle = 'manual';
       }
 
       if (!options || (hasLegacyProfiling(options) && !options.profilesSampleRate)) {
@@ -38,6 +40,13 @@ const _browserProfilingIntegration = (() => {
 
       const activeSpan = getActiveSpan();
       const rootSpan = activeSpan && getRootSpan(activeSpan);
+
+      if (hasLegacyProfiling(options) && options.profileSessionSampleRate !== undefined) {
+        DEBUG_BUILD &&
+          debug.warn(
+            '[Profiling] Both legacy profiling (`profilesSampleRate`) and UI profiling settings are defined. `profileSessionSampleRate` has no effect when legacy profiling is enabled.',
+          );
+      }
 
       // UI PROFILING (Profiling V2)
       if (!hasLegacyProfiling(options)) {

@@ -35,6 +35,10 @@ Sentry.startSpanManual({ name: 'root-largeSum-1', parentSpan: null, forceTransac
 await Sentry.startSpanManual({ name: 'root-fibonacci-2', parentSpan: null, forceTransaction: true }, async span => {
   fibonacci(40);
 
+  Sentry.startSpan({ name: 'child-fibonacci', parentSpan: span }, childSpan => {
+    console.log('child span');
+  });
+
   // Timeout to prevent flaky tests. Integration samples every 20ms, if function is too fast it might not get sampled
   await new Promise(resolve => setTimeout(resolve, 21));
   span.end();

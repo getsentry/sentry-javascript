@@ -17,7 +17,7 @@ import { createProfileChunkPayload, startJSSelfProfile } from '../utils';
 const CHUNK_INTERVAL_MS = 60_000;
 
 /**
- * Browser trace-lifecycle profiler (v2):
+ * Browser trace-lifecycle profiler (UI Profiling / Profiling V2):
  * - Starts when the first sampled root span starts
  * - Stops when the last sampled root span ends
  * - While running, periodically stops and restarts the JS self-profiling API to collect chunks
@@ -111,9 +111,8 @@ export class BrowserTraceLifecycleProfiler {
           `[Profiling] Root span ${spanJSON.description} ended. Active root spans: ${this._activeRootSpanCount}`,
         );
       if (this._activeRootSpanCount === 0) {
-        this._collectCurrentChunk().catch(() => {
-          /* no catch */
-        });
+        this._collectCurrentChunk().catch(() => /* no catch */ {});
+
         this.stop();
       }
     });
@@ -161,6 +160,7 @@ export class BrowserTraceLifecycleProfiler {
     if (!this._profilerId) {
       this._profilerId = uuid4();
 
+      // Matching root spans with profiles
       getGlobalScope().setContext('profile', {
         profiler_id: this._profilerId,
       });
@@ -169,6 +169,14 @@ export class BrowserTraceLifecycleProfiler {
     DEBUG_BUILD && debug.log('[Profiling] Started profiling with profile ID:', this._profilerId);
 
     this._startProfilerInstance();
+
+    if (!this._profiler) {
+      DEBUG_BUILD && debug.log('[Profiling] Stopping trace lifecycle profiling.');
+      this._isRunning = false;
+      this._resetProfilerInfo();
+      return;
+    }
+
     this._scheduleNextChunk();
   }
 
@@ -176,17 +184,22 @@ export class BrowserTraceLifecycleProfiler {
    * Stop profiling; final chunk will be collected and sent.
    */
   public stop(): void {
+    if (!this._isRunning) {
+      return;
+    }
+
     this._isRunning = false;
     if (this._chunkTimer) {
       clearTimeout(this._chunkTimer);
       this._chunkTimer = undefined;
     }
 
-    this._collectCurrentChunk().catch(() => {
-      /* no catch */
-    });
-
-    this._resetProfilerInfo();
+    // Collect whatever was currently recording
+    this._collectCurrentChunk()
+      .catch(() => /* no catch */ {})
+      .finally(() => {
+        this._resetProfilerInfo();
+      });
   }
 
   /**
@@ -206,7 +219,7 @@ export class BrowserTraceLifecycleProfiler {
     }
     const profiler = startJSSelfProfile();
     if (!profiler) {
-      DEBUG_BUILD && debug.log('[Profiling] Failed to start JS self profiler in trace lifecycle.');
+      DEBUG_BUILD && debug.log('[Profiling] Failed to start JS Profiler in trace lifecycle.');
       return;
     }
     this._profiler = profiler;
@@ -223,12 +236,17 @@ export class BrowserTraceLifecycleProfiler {
     }
 
     this._chunkTimer = setTimeout(() => {
-      this._collectCurrentChunk().catch(() => {
-        /* no catch */
-      });
+      this._collectCurrentChunk().catch(() => /* no catch */ {});
 
       if (this._isRunning) {
         this._startProfilerInstance();
+
+        if (!this._profiler) {
+          // If restart failed, stop scheduling further chunks and reset context.
+          this._isRunning = false;
+          this._resetProfilerInfo();
+          return;
+        }
         this._scheduleNextChunk();
       }
     }, CHUNK_INTERVAL_MS);

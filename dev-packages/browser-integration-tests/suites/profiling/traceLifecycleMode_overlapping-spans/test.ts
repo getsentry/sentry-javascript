@@ -157,3 +157,29 @@ sentryTest(
     expect(durationSec).toBeGreaterThan(0.2);
   },
 );
+
+sentryTest('attaches thread data to child spans (trace mode)', async ({ page, getLocalTestUrl, browserName }) => {
+  if (shouldSkipTracingTest() || browserName !== 'chromium') {
+    sentryTest.skip();
+  }
+
+  const url = await getLocalTestUrl({ testDir: __dirname, responseHeaders: { 'Document-Policy': 'js-profiling' } });
+  const req = await waitForTransactionRequestOnUrl(page, url);
+  const rootSpan = properEnvelopeRequestParser<Event>(req, 0) as any;
+
+  expect(rootSpan?.type).toBe('transaction');
+  expect(rootSpan.transaction).toBe('root-fibonacci-2');
+
+  const profilerId = rootSpan?.contexts?.profile?.profiler_id as string | undefined;
+  expect(typeof profilerId).toBe('string');
+
+  expect(profilerId).toMatch(/^[a-f0-9]{32}$/);
+
+  const spans = (rootSpan?.spans ?? []) as Array<{ data?: Record<string, unknown> }>;
+  expect(spans.length).toBeGreaterThan(0);
+  for (const span of spans) {
+    expect(span.data).toBeDefined();
+    expect(span.data?.['thread.id']).toBe('0');
+    expect(span.data?.['thread.name']).toBe('main');
+  }
+});

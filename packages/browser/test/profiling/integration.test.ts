@@ -101,7 +101,7 @@ describe('BrowserProfilingIntegration', () => {
     warnSpy.mockRestore();
   });
 
-  it("auto-sets profileLifecycle to 'trace' when not specified", async () => {
+  it("auto-sets profileLifecycle to 'manual' when not specified", async () => {
     Sentry.init({
       dsn: 'https://examplePublicKey@o0.ingest.sentry.io/0',
       integrations: [Sentry.browserProfilingIntegration()],
@@ -109,6 +109,6 @@ describe('BrowserProfilingIntegration', () => {
 
     const client = Sentry.getClient<BrowserClient>();
     const lifecycle = (client?.getOptions() as any)?.profileLifecycle;
-    expect(lifecycle).toBe('trace');
+    expect(lifecycle).toBe('manual');
   });
 });
