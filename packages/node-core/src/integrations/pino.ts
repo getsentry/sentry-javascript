@@ -57,6 +57,10 @@ function attributesFromObject(obj: object, attr: Record<string, unknown>, key?: 
 
 const DEFAULT_OPTIONS: Options = { eventLevels: ['error', 'fatal'], handled: true };
 
+/**
+ * Integration for Pino logging library.
+ * Captures Pino logs as Sentry logs and optionally captures some log levels as events.
+ */
 export const pinoIntegration = defineIntegration((options: Options = DEFAULT_OPTIONS) => {
   return {
     name: 'Pino',
