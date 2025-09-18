@@ -30,7 +30,7 @@ export function init(options: AwsServerlessOptions = {}): NodeClient | undefined
   const sdkSource = getSDKSource();
   const opts = {
     defaultIntegrations: getDefaultIntegrations(options),
-    useLayerExtension: sdkSource === 'aws-lambda-layer',
+    useLayerExtension: sdkSource === 'aws-lambda-layer' && !options.tunnel,
     ...options,
   };
 

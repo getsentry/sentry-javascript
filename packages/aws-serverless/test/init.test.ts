@@ -111,5 +111,21 @@ describe('init', () => {
         }),
       );
     });
+
+    test('should default useLayerExtension to false when tunnel is provided even when SDK source is aws-lambda-layer', () => {
+      mockGetSDKSource.mockReturnValue('aws-lambda-layer');
+      const options: AwsServerlessOptions = {
+        tunnel: 'https://custom-tunnel.example.com',
+      };
+
+      init(options);
+
+      expect(mockInitWithoutDefaultIntegrations).toHaveBeenCalledWith(
+        expect.objectContaining({
+          useLayerExtension: false,
+          tunnel: 'https://custom-tunnel.example.com',
+        }),
+      );
+    });
   });
 });
