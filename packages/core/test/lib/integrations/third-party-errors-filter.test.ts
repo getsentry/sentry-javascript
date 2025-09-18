@@ -64,10 +64,8 @@ const eventWithOnlyFirstPartyFrames: Event = {
               colno: 1,
               filename: __filename,
               function: 'function',
-              lineno: 1,
             },
             {
-              colno: 2,
               filename: __filename,
               function: 'function',
               lineno: 2,
