@@ -63,10 +63,10 @@ export interface HttpServerSpansIntegrationOptions {
 
   /**
    * Do not capture spans for incoming HTTP requests with the given status codes.
-   * By default, spans with 404 status code are ignored.
+   * By default, spans with some 3xx and 4xx status codes are ignored (see @default).
    * Expects an array of status codes or a range of status codes, e.g. [[300,399], 404] would ignore 3xx and 404 status codes.
    *
-   * @default `[[401, 404], [300, 399]]`
+   * @default `[[401, 404], [301, 303], [305, 399]]`
    */
   ignoreStatusCodes?: (number | [number, number])[];
 
@@ -95,7 +95,9 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
   const ignoreIncomingRequests = options.ignoreIncomingRequests;
   const ignoreStatusCodes = options.ignoreStatusCodes ?? [
     [401, 404],
-    [300, 399],
+    // 300 and 304 are possibly valid status codes we do not want to filter
+    [301, 303],
+    [305, 399],
   ];
 
   const { onSpanCreated } = options;
@@ -226,18 +228,12 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
       // Drop transaction if it has a status code that should be ignored
       if (event.type === 'transaction') {
         const statusCode = event.contexts?.trace?.data?.['http.response.status_code'];
-        if (
-          typeof statusCode === 'number' &&
-          ignoreStatusCodes.some(code => {
-            if (typeof code === 'number') {
-              return code === statusCode;
-            }
-
-            const [min, max] = code;
-            return statusCode >= min && statusCode <= max;
-          })
-        ) {
-          return null;
+        if (typeof statusCode === 'number') {
+          const shouldDrop = shouldFilterStatusCode(statusCode, ignoreStatusCodes);
+          if (shouldDrop) {
+            DEBUG_BUILD && debug.log('Dropping transaction due to status code', statusCode);
+            return null;
+          }
         }
       }
 
@@ -393,4 +389,18 @@ function getIncomingRequestAttributesOnResponse(request: IncomingMessage, respon
   }
 
   return newAttributes;
+}
+
+/**
+ * If the given status code should be filtered for the given list of status codes/ranges.
+ */
+function shouldFilterStatusCode(statusCode: number, dropForStatusCodes: (number | [number, number])[]): boolean {
+  return dropForStatusCodes.some(code => {
+    if (typeof code === 'number') {
+      return code === statusCode;
+    }
+
+    const [min, max] = code;
+    return statusCode >= min && statusCode <= max;
+  });
 }

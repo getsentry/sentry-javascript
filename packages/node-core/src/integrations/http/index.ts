@@ -176,17 +176,3 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
     },
   };
 });
-
-/**
- * If the given status code should be filtered for the given list of status codes/ranges.
- */
-function shouldFilterStatusCode(statusCode: number, dropForStatusCodes: (number | [number, number])[]): boolean {
-  return dropForStatusCodes.some(code => {
-    if (typeof code === 'number') {
-      return code === statusCode;
-    }
-
-    const [min, max] = code;
-    return statusCode >= min && statusCode <= max;
-  });
-}

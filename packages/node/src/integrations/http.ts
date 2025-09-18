@@ -3,7 +3,7 @@ import { diag } from '@opentelemetry/api';
 import type { HttpInstrumentationConfig } from '@opentelemetry/instrumentation-http';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
 import type { Span } from '@sentry/core';
-import { debug, defineIntegration, getClient, hasSpansEnabled } from '@sentry/core';
+import { defineIntegration, getClient, hasSpansEnabled } from '@sentry/core';
 import type { HTTPModuleRequestIncomingMessage, NodeClient } from '@sentry/node-core';
 import {
   type SentryHttpInstrumentationOptions,
@@ -15,7 +15,6 @@ import {
   NODE_VERSION,
   SentryHttpInstrumentation,
 } from '@sentry/node-core';
-import { DEBUG_BUILD } from '../debug-build';
 import type { NodeClientOptions } from '../types';
 
 const INTEGRATION_NAME = 'Http';
@@ -301,18 +300,4 @@ function getConfigWithDefaults(options: Partial<HttpOptions> = {}): HttpInstrume
   } satisfies HttpInstrumentationConfig;
 
   return instrumentationConfig;
-}
-
-/**
- * If the given status code should be filtered for the given list of status codes/ranges.
- */
-function shouldFilterStatusCode(statusCode: number, dropForStatusCodes: (number | [number, number])[]): boolean {
-  return dropForStatusCodes.some(code => {
-    if (typeof code === 'number') {
-      return code === statusCode;
-    }
-
-    const [min, max] = code;
-    return statusCode >= min && statusCode <= max;
-  });
 }
