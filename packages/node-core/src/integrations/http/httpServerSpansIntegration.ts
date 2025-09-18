@@ -33,7 +33,7 @@ import {
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../../debug-build';
 import type { NodeClient } from '../../sdk/client';
-import { registerServerCallback } from './httpServerIntegration';
+import type { httpServerIntegration } from './httpServerIntegration';
 
 const INTEGRATION_NAME = 'Http.ServerSpans';
 
@@ -104,9 +104,36 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
   // eslint-disable-next-line deprecation/deprecation
   const { requestHook, responseHook, applyCustomAttributesOnSpan } = options.instrumentation ?? {};
 
+  // We track if setup() was called, which indicates that this integration was added directly, not called from httpIntegration
+  let _isSetupDirectly = false;
+
   return {
     name: INTEGRATION_NAME,
-    setup(client: NodeClient) {
+    setup() {
+      _isSetupDirectly = true;
+    },
+    processEvent(event) {
+      // Drop transaction if it has a status code that should be ignored
+      if (event.type === 'transaction') {
+        const statusCode = event.contexts?.trace?.data?.['http.response.status_code'];
+        if (typeof statusCode === 'number') {
+          const shouldDrop = shouldFilterStatusCode(statusCode, ignoreStatusCodes);
+          if (shouldDrop) {
+            DEBUG_BUILD && debug.log('Dropping transaction due to status code', statusCode);
+            return null;
+          }
+        }
+      }
+
+      return event;
+    },
+    afterAllSetup(client: NodeClient) {
+      if (DEBUG_BUILD && client.getIntegrationByName('Http') && _isSetupDirectly) {
+        debug.warn(
+          'It seems that you have manually added `httpServerSpansIntergation` while `httpIntegration` is also present. Make sure to remove `httpIntegration` when adding `httpServerSpansIntegration`.',
+        );
+      }
+
       // If no tracing, we can just skip everything here
       if (typeof __SENTRY_TRACING__ !== 'undefined' && !__SENTRY_TRACING__) {
         return;
@@ -222,28 +249,12 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
         });
       }
 
-      registerServerCallback(client, startSpan);
-    },
-    processEvent(event) {
-      // Drop transaction if it has a status code that should be ignored
-      if (event.type === 'transaction') {
-        const statusCode = event.contexts?.trace?.data?.['http.response.status_code'];
-        if (typeof statusCode === 'number') {
-          const shouldDrop = shouldFilterStatusCode(statusCode, ignoreStatusCodes);
-          if (shouldDrop) {
-            DEBUG_BUILD && debug.log('Dropping transaction due to status code', statusCode);
-            return null;
-          }
-        }
-      }
-
-      return event;
-    },
-    afterAllSetup(client) {
-      if (DEBUG_BUILD && client.getIntegrationByName('Http')) {
-        debug.warn(
-          'It seems that you have manually added `httpServerSpansIntergation` while `httpIntegration` is also present. Make sure to remove `httpIntegration` when adding `httpServerSpansIntegration`.',
-        );
+      const serverIntegration = client.getIntegrationByName<ReturnType<typeof httpServerIntegration>>('HttpServer');
+      if (serverIntegration) {
+        serverIntegration.addServerCallback(startSpan);
+      } else {
+        DEBUG_BUILD &&
+          debug.warn('httpServerSpansIntegration requires the httpServerIntegration to be present. Skipping...');
       }
     },
   };
@@ -257,7 +268,7 @@ export const httpServerSpansIntegration = _httpServerSpansIntegration as (
   options?: HttpServerSpansIntegrationOptions,
 ) => Integration & {
   name: 'HttpServerSpans';
-  setup: (client: NodeClient) => void;
+  afterAllSetup: (client: NodeClient) => void;
   processEvent: (event: Event) => Event | null;
 };
 

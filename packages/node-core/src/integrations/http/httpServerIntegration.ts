@@ -31,7 +31,7 @@ interface ServerCallbackOptions {
   normalizedRequest: RequestEventData;
 }
 
-const clientToCallbackMap = new WeakMap<Client, ((fn: () => boolean, options: ServerCallbackOptions) => boolean)[]>();
+type ServerCallback = (fn: () => boolean, options: ServerCallbackOptions) => boolean;
 
 const clientToRequestSessionAggregatesMap = new Map<
   Client,
@@ -94,18 +94,22 @@ const _httpServerIntegration = ((options: HttpServerIntegrationOptions = {}) => 
     ignoreRequestBody: options.ignoreRequestBody,
   };
 
+  const serverCallbacks: ServerCallback[] = [];
+
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
       const onHttpServerRequestStart = ((_data: unknown) => {
         const data = _data as { server: Server };
 
-        instrumentServer(data.server, _options);
+        instrumentServer(data.server, _options, serverCallbacks);
       }) satisfies ChannelListener;
 
       subscribe('http.server.request.start', onHttpServerRequestStart);
     },
-
+    addServerCallback(callback: ServerCallback) {
+      serverCallbacks.push(callback);
+    },
     afterAllSetup(client) {
       if (DEBUG_BUILD && client.getIntegrationByName('Http')) {
         debug.warn(
@@ -125,6 +129,7 @@ export const httpServerIntegration = _httpServerIntegration as (
 ) => Integration & {
   name: 'HttpServer';
   setupOnce: () => void;
+  addServerCallback: (callback: ServerCallback) => void;
 };
 
 /**
@@ -144,6 +149,7 @@ function instrumentServer(
     sessions: boolean;
     sessionFlushingDelayMS: number;
   },
+  serverCallbacks: ServerCallback[],
 ): void {
   // eslint-disable-next-line @typescript-eslint/unbound-method
   const originalEmit: ServerEmit = server.emit;
@@ -215,13 +221,11 @@ function instrumentServer(
           .setValue(HTTP_SERVER_INSTRUMENTED_KEY, true);
 
         return context.with(ctx, () => {
-          const callbacks = clientToCallbackMap.get(client);
-
-          if (callbacks?.length) {
+          if (serverCallbacks?.length) {
             return wrapInCallbacks(
               () => target.apply(thisArg, args),
               { request, response, normalizedRequest },
-              callbacks.slice(),
+              serverCallbacks.slice(),
             );
           } else {
             return target.apply(thisArg, args);
@@ -233,18 +237,6 @@ function instrumentServer(
 
   wrappedEmitFns.add(newEmit);
   server.emit = newEmit;
-}
-
-/**
- * Register a client callback that will be called when a request is received.
- */
-export function registerServerCallback(
-  client: Client,
-  callback: (fn: () => boolean, options: ServerCallbackOptions) => boolean,
-): void {
-  const callbacks = clientToCallbackMap.get(client) || [];
-  callbacks.push(callback);
-  clientToCallbackMap.set(client, callbacks);
 }
 
 /**
