@@ -4,6 +4,12 @@ import { expect } from '@playwright/test';
 import { sentryTest } from '../../../utils/fixtures';
 import { envelopeRequestParser, waitForErrorRequest } from '../../../utils/helpers';
 
+const bundle = process.env.PW_BUNDLE || '';
+// We only want to run this in non-CDN bundle mode
+if (bundle.startsWith('bundle')) {
+  sentryTest.skip();
+}
+
 sentryTest('tags event if contains at least one third-party frame', async ({ getLocalTestUrl, page }) => {
   const url = await getLocalTestUrl({ testDir: __dirname });
 
