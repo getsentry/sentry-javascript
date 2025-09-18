@@ -26,12 +26,7 @@ describe('getBuildPluginOptions', () => {
         org: 'test-org',
         project: 'test-project',
         sourcemaps: {
-          assets: [
-            '/path/to/.next/server/**',
-            '/path/to/.next/serverless/**',
-            '/path/to/.next/static/chunks/pages/**',
-            '/path/to/.next/static/chunks/app/**',
-          ],
+          assets: ['/path/to/.next/server', '/path/to/.next/static/chunks/pages', '/path/to/.next/static/chunks/app'],
           ignore: [
             '/path/to/.next/static/chunks/main-*',
             '/path/to/.next/static/chunks/framework-*',
@@ -74,10 +69,9 @@ describe('getBuildPluginOptions', () => {
       });
 
       expect(result.sourcemaps?.assets).toEqual([
-        'C:/Users/test/.next/server/**',
-        'C:/Users/test/.next/serverless/**',
-        'C:/Users/test/.next/static/chunks/pages/**',
-        'C:/Users/test/.next/static/chunks/app/**',
+        'C:/Users/test/.next/server',
+        'C:/Users/test/.next/static/chunks/pages',
+        'C:/Users/test/.next/static/chunks/app',
       ]);
     });
 
@@ -201,10 +195,9 @@ describe('getBuildPluginOptions', () => {
 
       expect(result._metaOptions?.loggerPrefixOverride).toBe('[@sentry/nextjs - After Production Compile (Webpack)]');
       expect(result.sourcemaps?.assets).toEqual([
-        '/path/to/.next/server/**',
-        '/path/to/.next/serverless/**',
-        '/path/to/.next/static/chunks/pages/**',
-        '/path/to/.next/static/chunks/app/**',
+        '/path/to/.next/server',
+        '/path/to/.next/static/chunks/pages',
+        '/path/to/.next/static/chunks/app',
       ]);
       expect(result.sourcemaps?.ignore).toEqual([
         '/path/to/.next/static/chunks/main-*',
@@ -226,9 +219,8 @@ describe('getBuildPluginOptions', () => {
 
       expect(result._metaOptions?.loggerPrefixOverride).toBe('[@sentry/nextjs - After Production Compile (Turbopack)]');
       expect(result.sourcemaps?.assets).toEqual([
-        '/path/to/.next/server/**',
-        '/path/to/.next/serverless/**',
-        '/path/to/.next/static/chunks/**', // Turbopack uses broader pattern
+        '/path/to/.next/server',
+        '/path/to/.next/static/chunks', // Turbopack uses broader pattern
       ]);
       expect(result.sourcemaps?.ignore).toEqual([
         '/path/to/.next/static/chunks/main-*',
@@ -761,12 +753,7 @@ describe('getBuildPluginOptions', () => {
 
       expect(result.sourcemaps).toMatchObject({
         disable: false,
-        assets: [
-          '/path/to/.next/server/**',
-          '/path/to/.next/serverless/**',
-          '/path/to/.next/static/chunks/pages/**',
-          '/path/to/.next/static/chunks/app/**',
-        ],
+        assets: ['/path/to/.next/server', '/path/to/.next/static/chunks/pages', '/path/to/.next/static/chunks/app'],
         ignore: [
           '/path/to/.next/static/chunks/main-*',
           '/path/to/.next/static/chunks/framework-*',
@@ -796,11 +783,7 @@ describe('getBuildPluginOptions', () => {
         buildTool: 'after-production-compile-turbopack',
       });
 
-      expect(result.sourcemaps?.assets).toEqual([
-        `${complexPath}/server/**`,
-        `${complexPath}/serverless/**`,
-        `${complexPath}/static/chunks/**`,
-      ]);
+      expect(result.sourcemaps?.assets).toEqual([`${complexPath}/server`, `${complexPath}/static/chunks`]);
       expect(result.sourcemaps?.filesToDeleteAfterUpload).toEqual([
         `${complexPath}/static/**/*.js.map`,
         `${complexPath}/static/**/*.mjs.map`,

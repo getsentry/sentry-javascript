@@ -12,11 +12,23 @@ const LOGGER_PREFIXES = {
 
 // File patterns for source map operations
 const FILE_PATTERNS = {
-  SERVER: 'server/**',
+  SERVER: {
+    GLOB: 'server/**',
+    PATH: 'server',
+  },
   SERVERLESS: 'serverless/**',
-  STATIC_CHUNKS: 'static/chunks/**',
-  STATIC_CHUNKS_PAGES: 'static/chunks/pages/**',
-  STATIC_CHUNKS_APP: 'static/chunks/app/**',
+  STATIC_CHUNKS: {
+    GLOB: 'static/chunks/**',
+    PATH: 'static/chunks',
+  },
+  STATIC_CHUNKS_PAGES: {
+    GLOB: 'static/chunks/pages/**',
+    PATH: 'static/chunks/pages',
+  },
+  STATIC_CHUNKS_APP: {
+    GLOB: 'static/chunks/app/**',
+    PATH: 'static/chunks/app',
+  },
   MAIN_CHUNKS: 'static/chunks/main-*',
   FRAMEWORK_CHUNKS: 'static/chunks/framework-*',
   FRAMEWORK_CHUNKS_DOT: 'static/chunks/framework.*',
@@ -37,6 +49,26 @@ function normalizePathForGlob(distPath: string): string {
 }
 
 /**
+ * These functions are used to get the correct pattern for the sourcemap upload based on the build tool and the usage context
+ * -> Direct CLI invocation handles file paths better than glob patterns
+ */
+function getServerPattern({ useDirectoryPath = false }: { useDirectoryPath?: boolean }): string {
+  return useDirectoryPath ? FILE_PATTERNS.SERVER.PATH : FILE_PATTERNS.SERVER.GLOB;
+}
+
+function getStaticChunksPattern({ useDirectoryPath = false }: { useDirectoryPath?: boolean }): string {
+  return useDirectoryPath ? FILE_PATTERNS.STATIC_CHUNKS.PATH : FILE_PATTERNS.STATIC_CHUNKS.GLOB;
+}
+
+function getStaticChunksPagesPattern({ useDirectoryPath = false }: { useDirectoryPath?: boolean }): string {
+  return useDirectoryPath ? FILE_PATTERNS.STATIC_CHUNKS_PAGES.PATH : FILE_PATTERNS.STATIC_CHUNKS_PAGES.GLOB;
+}
+
+function getStaticChunksAppPattern({ useDirectoryPath = false }: { useDirectoryPath?: boolean }): string {
+  return useDirectoryPath ? FILE_PATTERNS.STATIC_CHUNKS_APP.PATH : FILE_PATTERNS.STATIC_CHUNKS_APP.GLOB;
+}
+
+/**
  * Creates file patterns for source map uploads based on build tool and options
  */
 function createSourcemapUploadAssets(
@@ -47,21 +79,18 @@ function createSourcemapUploadAssets(
   const assets: string[] = [];
 
   if (buildTool.startsWith('after-production-compile')) {
-    assets.push(
-      path.posix.join(normalizedDistPath, FILE_PATTERNS.SERVER),
-      path.posix.join(normalizedDistPath, FILE_PATTERNS.SERVERLESS),
-    );
+    assets.push(path.posix.join(normalizedDistPath, getServerPattern({ useDirectoryPath: true })));
 
     if (buildTool === 'after-production-compile-turbopack') {
-      assets.push(path.posix.join(normalizedDistPath, FILE_PATTERNS.STATIC_CHUNKS));
+      assets.push(path.posix.join(normalizedDistPath, getStaticChunksPattern({ useDirectoryPath: true })));
     } else {
       // Webpack client builds in after-production-compile mode
       if (widenClientFileUpload) {
-        assets.push(path.posix.join(normalizedDistPath, FILE_PATTERNS.STATIC_CHUNKS));
+        assets.push(path.posix.join(normalizedDistPath, getStaticChunksPattern({ useDirectoryPath: true })));
       } else {
         assets.push(
-          path.posix.join(normalizedDistPath, FILE_PATTERNS.STATIC_CHUNKS_PAGES),
-          path.posix.join(normalizedDistPath, FILE_PATTERNS.STATIC_CHUNKS_APP),
+          path.posix.join(normalizedDistPath, getStaticChunksPagesPattern({ useDirectoryPath: true })),
+          path.posix.join(normalizedDistPath, getStaticChunksAppPattern({ useDirectoryPath: true })),
         );
       }
     }
@@ -69,17 +98,17 @@ function createSourcemapUploadAssets(
     if (buildTool === 'webpack-nodejs' || buildTool === 'webpack-edge') {
       // Server builds
       assets.push(
-        path.posix.join(normalizedDistPath, FILE_PATTERNS.SERVER),
+        path.posix.join(normalizedDistPath, getServerPattern({ useDirectoryPath: false })),
         path.posix.join(normalizedDistPath, FILE_PATTERNS.SERVERLESS),
       );
     } else {
       // Client builds
       if (widenClientFileUpload) {
-        assets.push(path.posix.join(normalizedDistPath, FILE_PATTERNS.STATIC_CHUNKS));
+        assets.push(path.posix.join(normalizedDistPath, getStaticChunksPattern({ useDirectoryPath: false })));
       } else {
         assets.push(
-          path.posix.join(normalizedDistPath, FILE_PATTERNS.STATIC_CHUNKS_PAGES),
-          path.posix.join(normalizedDistPath, FILE_PATTERNS.STATIC_CHUNKS_APP),
+          path.posix.join(normalizedDistPath, getStaticChunksPagesPattern({ useDirectoryPath: false })),
+          path.posix.join(normalizedDistPath, getStaticChunksAppPattern({ useDirectoryPath: false })),
         );
       }
     }
