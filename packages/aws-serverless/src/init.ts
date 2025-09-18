@@ -16,7 +16,7 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
 
 export interface AwsServerlessOptions extends NodeOptions {
   /**
-   * If Sentry events should be proxied through the Lambda extension when using the Lambda layer. Defaults to `true`.
+   * If Sentry events should be proxied through the Lambda extension when using the Lambda layer. Defaults to `true` when using the Lambda layer.
    */
   useLayerExtension?: boolean;
 }
