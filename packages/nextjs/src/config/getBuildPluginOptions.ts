@@ -11,6 +11,9 @@ const LOGGER_PREFIXES = {
 } as const;
 
 // File patterns for source map operations
+// We use both glob patterns and directory paths for the sourcemap upload and deletion
+// -> Direct CLI invocation handles file paths better than glob patterns
+// -> Webpack/Bundler needs glob patterns as this is the format that is used by the plugin
 const FILE_PATTERNS = {
   SERVER: {
     GLOB: 'server/**',
