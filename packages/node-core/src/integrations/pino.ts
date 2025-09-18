@@ -63,16 +63,19 @@ export const pinoIntegration = ((options: Options = { eventLevels: ['error', 'fa
     setup: () => {
       addInstrumentationConfig({
         channelName: 'pino-log',
-        module: { name: 'pino', versionRange: '>=8.0.0', filePath: 'lib/tools.js' },
+        module: { name: 'pino', versionRange: '>=8.0.0 < 9.19.0', filePath: 'lib/tools.js' },
         functionQuery: {
           functionName: 'asJson',
           kind: 'Sync',
         },
       });
 
-      const channel = tracingChannel('orchestrion:pino:pino-log');
+      const injectedChannel = tracingChannel('orchestrion:pino:pino-log');
+      // From Pino v9.19.0 a tracing channel is available directly from Pino:
+      // https://github.com/pinojs/pino/pull/2281
+      const integratedChannel = tracingChannel('pino_asJson');
 
-      channel.start.subscribe(data => {
+      const onPinoStart = (data: unknown): void => {
         const { self, arguments: args } = data as PinoHookArgs;
         const [obj, message, levelNumber] = args;
         const level = self?.levels?.labels?.[levelNumber] || 'info';
@@ -109,7 +112,10 @@ export const pinoIntegration = ((options: Options = { eventLevels: ['error', 'fa
             captureMessage(message, captureContext);
           });
         }
-      });
+      };
+
+      injectedChannel.start.subscribe(onPinoStart);
+      integratedChannel.start.subscribe(onPinoStart);
     },
   };
 }) satisfies IntegrationFn;
