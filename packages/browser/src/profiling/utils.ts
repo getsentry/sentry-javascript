@@ -249,6 +249,67 @@ export function createProfileChunkPayload(
 }
 
 /**
+ * Validate a profile chunk against the Sample Format V2 requirements.
+ * https://develop.sentry.dev/sdk/telemetry/profiles/sample-format-v2/
+ * - Presence of samples, stacks, frames
+ * - Required metadata fields
+ */
+export function validateProfileChunk(chunk: ProfileChunk): { valid: boolean; reason?: string } {
+  try {
+    // Required metadata
+    if (!chunk || typeof chunk !== 'object') {
+      return { valid: false, reason: 'chunk is not an object' };
+    }
+
+    // profiler_id and chunk_id must be 32 lowercase hex chars
+    const isHex32 = (val: unknown): boolean => typeof val === 'string' && /^[a-f0-9]{32}$/.test(val);
+    if (!isHex32(chunk.profiler_id)) {
+      return { valid: false, reason: 'missing or invalid profiler_id' };
+    }
+    if (!isHex32(chunk.chunk_id)) {
+      return { valid: false, reason: 'missing or invalid chunk_id' };
+    }
+
+    // client_sdk name/version are required
+    if (
+      !chunk.client_sdk ||
+      typeof chunk.client_sdk.name !== 'string' ||
+      typeof chunk.client_sdk.version !== 'string'
+    ) {
+      return { valid: false, reason: 'missing client_sdk metadata' };
+    }
+
+    if (typeof chunk.platform !== 'string') {
+      return { valid: false, reason: 'missing platform' };
+    }
+
+    if (typeof chunk.release !== 'string') {
+      return { valid: false, reason: 'missing release' };
+    }
+
+    // Profile data must have frames, stacks, samples
+    const profile = chunk.profile as { frames?: unknown[]; stacks?: unknown[]; samples?: unknown[] } | undefined;
+    if (!profile) {
+      return { valid: false, reason: 'missing profile data' };
+    }
+
+    if (!Array.isArray(profile.frames) || profile.frames.length === 0) {
+      return { valid: false, reason: 'profile has no frames' };
+    }
+    if (!Array.isArray(profile.stacks) || profile.stacks.length === 0) {
+      return { valid: false, reason: 'profile has no stacks' };
+    }
+    if (!Array.isArray(profile.samples) || profile.samples.length === 0) {
+      return { valid: false, reason: 'profile has no samples' };
+    }
+
+    return { valid: true };
+  } catch (e) {
+    return { valid: false, reason: `unknown validation error: ${e}` };
+  }
+}
+
+/**
  * Convert from JSSelfProfile format to ContinuousThreadCpuProfile format.
  */
 function convertToContinuousProfile(input: {

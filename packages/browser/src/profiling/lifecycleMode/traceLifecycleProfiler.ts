@@ -12,7 +12,7 @@ import {
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../../debug-build';
 import type { JSSelfProfiler } from '../jsSelfProfiling';
-import { createProfileChunkPayload, startJSSelfProfile } from '../utils';
+import { createProfileChunkPayload, startJSSelfProfile, validateProfileChunk } from '../utils';
 
 const CHUNK_INTERVAL_MS = 60_000;
 
@@ -269,10 +269,18 @@ export class BrowserTraceLifecycleProfiler {
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       const chunk = createProfileChunkPayload(profile, this._client!, this._profilerId);
 
+      // Validate chunk before sending
+      const { valid, reason } = validateProfileChunk(chunk);
+      if (!valid) {
+        DEBUG_BUILD &&
+          debug.log('[Profiling] Discarding invalid profile chunk (this is probably a bug in the SDK):', reason);
+        return;
+      }
+
       this._sendProfileChunk(chunk);
       DEBUG_BUILD && debug.log('[Profiling] Collected browser profile chunk.');
     } catch (e) {
-      DEBUG_BUILD && debug.log('[Profiling] Error while stopping JS self profiler for chunk:', e);
+      DEBUG_BUILD && debug.log('[Profiling] Error while stopping JS Profiler for chunk:', e);
     }
   }
 

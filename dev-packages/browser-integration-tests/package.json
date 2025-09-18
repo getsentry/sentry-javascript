@@ -16,7 +16,7 @@
     "postinstall": "yarn install-browsers",
     "pretest": "yarn clean && yarn type-check",
     "test": "yarn test:all --project='chromium'",
-    "test:all": "npx playwright test -c playwright.browser.config.ts",
+    "test:all": "npx playwright test -c playwright.browser.config.ts -g 'trace mode'",
     "test:bundle": "PW_BUNDLE=bundle yarn test",
     "test:bundle:min": "PW_BUNDLE=bundle_min yarn test",
     "test:bundle:replay": "PW_BUNDLE=bundle_replay yarn test",
