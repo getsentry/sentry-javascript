@@ -1347,6 +1347,7 @@ function processBeforeSend(
         if (droppedSpans) {
           client.recordDroppedEvent('before_send', 'span', droppedSpans);
         }
+
         processedEvent.spans = processedSpans;
       }
     }
