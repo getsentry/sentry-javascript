@@ -5,7 +5,8 @@ import { sentryTest } from '../../../utils/fixtures';
 import { envelopeRequestParser, waitForErrorRequest } from '../../../utils/helpers';
 
 const bundle = process.env.PW_BUNDLE || '';
-// We only want to run this in non-CDN bundle mode
+// We only want to run this in non-CDN bundle mode because
+// thirdPartyErrorFilterIntegration is only available in the NPM package
 if (bundle.startsWith('bundle')) {
   sentryTest.skip();
 }
