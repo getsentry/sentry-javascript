@@ -103,7 +103,7 @@ class WrappedWorkflowStep implements WorkflowStep {
             span.setStatus({ code: 1 });
             return result;
           } catch (error) {
-            captureException(error, { mechanism: { handled: true, type: 'cloudflare' } });
+            captureException(error, { mechanism: { handled: true, type: 'auto.faas.cloudflare.workflow' } });
             throw error;
           } finally {
             this._ctx.waitUntil(flush(2000));

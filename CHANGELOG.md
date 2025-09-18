@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
+
+## 10.12.0
+
 ### Important Changes
 
 - **ref: Add and Adjust error event `mechanism` values**
@@ -18,19 +22,24 @@
   - ref(astro): Adjust `mechanism` on error events captured by astro middleware ([#17613](https://github.com/getsentry/sentry-javascript/pull/17613))
   - ref(aws-severless): Slightly adjust aws-serverless mechanism type ([#17614](https://github.com/getsentry/sentry-javascript/pull/17614))
   - ref(bun): Adjust `mechanism` of errors captured in Bun.serve ([#17616](https://github.com/getsentry/sentry-javascript/pull/17616))
+  - ref(cloudflare): Adjust event `mechanisms` and durable object origin ([#17618](https://github.com/getsentry/sentry-javascript/pull/17618))
   - ref(core): Adjust `mechanism` in `captureConsoleIntegration` ([#17633](https://github.com/getsentry/sentry-javascript/pull/17633))
   - ref(core): Adjust MCP server error event `mechanism` ([#17622](https://github.com/getsentry/sentry-javascript/pull/17622))
   - ref(core): Simplify `linkedErrors` mechanism logic ([#17600](https://github.com/getsentry/sentry-javascript/pull/17600))
+  - ref(deno): Adjust `mechanism` of errors caught by `globalHandlersIntegration` ([#17635](https://github.com/getsentry/sentry-javascript/pull/17635))
   - ref(nextjs): Set more specific event `mechanism`s ([#17543](https://github.com/getsentry/sentry-javascript/pull/17543))
   - ref(node): Adjust mechanism of express, hapi and fastify error handlers ([#17623](https://github.com/getsentry/sentry-javascript/pull/17623))
   - ref(node-core): Add `mechanism` to cron instrumentations ([#17544](https://github.com/getsentry/sentry-javascript/pull/17544))
   - ref(node-core): Add more specific `mechanism.type` to worker thread errors from `childProcessIntegration` ([#17578](https://github.com/getsentry/sentry-javascript/pull/17578))
+  - ref(node-core): Adjust `mechanism` of `onUnhandledRejection` and `onUnhandledException` integrations ([#17636](https://github.com/getsentry/sentry-javascript/pull/17636))
   - ref(node): Add mechanism to errors captured via connect and koa integrations ([#17579](https://github.com/getsentry/sentry-javascript/pull/17579))
   - ref(nuxt): Add and adjust `mechanism.type` in error events ([#17599](https://github.com/getsentry/sentry-javascript/pull/17599))
   - ref(react): Add mechanism to `reactErrorHandler` and adjust mechanism in `ErrorBoundary` ([#17602](https://github.com/getsentry/sentry-javascript/pull/17602))
   - ref(remix): Adjust event mechanism of `captureRemixServerException` ([#17629](https://github.com/getsentry/sentry-javascript/pull/17629))
   - ref(replay-internal): Add mechanism to error caught by `replayIntegration` in debug mode ([#17606](https://github.com/getsentry/sentry-javascript/pull/17606))
   - ref(solid): Add `mechanism` to error captured by `withSentryErrorBoundary` ([#17607](https://github.com/getsentry/sentry-javascript/pull/17607))
+  - ref(solidstart): Adjust event mechanism in withServerActionInstrumentation ([#17637](https://github.com/getsentry/sentry-javascript/pull/17637))
+  - ref(sveltekit): Adjust `mechanism` of error events ([#17646](https://github.com/getsentry/sentry-javascript/pull/17646))
   - ref(vue): Adjust mechanism in Vue error handler ([#17647](https://github.com/getsentry/sentry-javascript/pull/17647))
 
   <br/>
@@ -43,10 +52,6 @@
   - ref(nestjs): Add `mechanism` to captured errors ([#17312](https://github.com/getsentry/sentry-javascript/pull/17312))
 
 </details>
-
-- "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
-
-### Important Changes
 
 - **feat(node) Ensure `prismaIntegration` works with Prisma 5 ([#17595](https://github.com/getsentry/sentry-javascript/pull/17595))**
 
@@ -85,6 +90,47 @@ With this release, we dropped the requirement to configure anything to get v5 su
   - @opentelemetry/instrumentation-redis bumped to ^0.53.0
   - @opentelemetry/instrumentation-undici bumped to ^0.15.0
   - @prisma/instrumentation bumped to 6.15.0
+
+### Other Changes
+
+- feat(browser): Add timing and status atttributes to resource spans ([#17562](https://github.com/getsentry/sentry-javascript/pull/17562))
+- feat(cloudflare,vercel-edge): Add support for Anthropic AI instrumentation ([#17571](https://github.com/getsentry/sentry-javascript/pull/17571))
+- feat(core): Add Consola integration ([#17435](https://github.com/getsentry/sentry-javascript/pull/17435))
+- feat(deps): Update OpenTelemetry dependencies ([#17569](https://github.com/getsentry/sentry-javascript/pull/17569))
+- feat(core): Export `TracesSamplerSamplingContext` type ([#17523](https://github.com/getsentry/sentry-javascript/pull/17523))
+- feat(deno): Add OpenTelemetry support and vercelAI integration ([#17445](https://github.com/getsentry/sentry-javascript/pull/17445))
+- feat(node-core): Remove experimental note from winston api ([#17626](https://github.com/getsentry/sentry-javascript/pull/17626))
+- feat(node): Ensure `prismaIntegration` works with Prisma v5 ([#17595](https://github.com/getsentry/sentry-javascript/pull/17595))
+- feat(node): Tidy existing ESM loader hook ([#17566](https://github.com/getsentry/sentry-javascript/pull/17566))
+- feat(sveltekit): Align build time options with shared type ([#17413](https://github.com/getsentry/sentry-javascript/pull/17413))
+- fix(core): Fix error handling when sending envelopes ([#17662](https://github.com/getsentry/sentry-javascript/pull/17662))
+- fix(browser): Always start navigation as root span ([#17648](https://github.com/getsentry/sentry-javascript/pull/17648))
+- fix(browser): Ensure propagated `parentSpanId` stays consistent during trace in TwP mode ([#17526](https://github.com/getsentry/sentry-javascript/pull/17526))
+- fix(cloudflare): Initialize once per workflow run and preserve scope for `step.do` ([#17582](https://github.com/getsentry/sentry-javascript/pull/17582))
+- fix(nextjs): Add edge polyfills for nextjs-13 in dev mode ([#17488](https://github.com/getsentry/sentry-javascript/pull/17488))
+- fix(nitro): Support nested `_platform` properties in Nitro 2.11.7+ ([#17596](https://github.com/getsentry/sentry-javascript/pull/17596))
+- fix(node): Preserve synchronous return behavior for streamText and other methods for AI ([#17580](https://github.com/getsentry/sentry-javascript/pull/17580))
+- ref(node): Inline types imported from `shimmer` ([#17597](https://github.com/getsentry/sentry-javascript/pull/17597)) - ref(nuxt): Add and adjust `mechanism.type` in error events ([#17599](https://github.com/getsentry/sentry-javascript/pull/17599))
+- ref(browser): Improve `fetchTransport` error handling ([#17661](https://github.com/getsentry/sentry-javascript/pull/17661))
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+
+- chore: Add changelog note about mechanism changes ([#17632](https://github.com/getsentry/sentry-javascript/pull/17632))
+- chore(aws): Update README.md ([#17601](https://github.com/getsentry/sentry-javascript/pull/17601))
+- chore(deps): bump hono from 4.7.10 to 4.9.7 in /dev-packages/e2e-tests/test-applications/cloudflare-hono ([#17630](https://github.com/getsentry/sentry-javascript/pull/17630))
+- chore(deps): bump next from 14.2.25 to 14.2.32 in /dev-packages/e2e-tests/test-applications/nextjs-app-dir ([#17627](https://github.com/getsentry/sentry-javascript/pull/17627))
+- chore(deps): bump next from 14.2.25 to 14.2.32 in /dev-packages/e2e-tests/test-applications/nextjs-pages-dir ([#17620](https://github.com/getsentry/sentry-javascript/pull/17620))
+- chore(deps): bump next from 14.2.29 to 14.2.32 in /dev-packages/e2e-tests/test-applications/nextjs-orpc ([#17494](https://github.com/getsentry/sentry-javascript/pull/17494))
+- chore(deps): bump next from 14.2.30 to 14.2.32 in /dev-packages/e2e-tests/test-applications/nextjs-14 ([#17628](https://github.com/getsentry/sentry-javascript/pull/17628))
+- chore(repo): Rename `.claude/settings.local.json` to `.claude/settings.json` ([#17591](https://github.com/getsentry/sentry-javascript/pull/17591))
+- docs(issue-template): Add note about prioritization ([#17590](https://github.com/getsentry/sentry-javascript/pull/17590))
+- ref(core): Streamline event processor handling ([#17634](https://github.com/getsentry/sentry-javascript/pull/17634))
+- test(angular): Bump TS version to 5.9.0 in Angular 20 e2e test ([#17605](https://github.com/getsentry/sentry-javascript/pull/17605))
+- test(nextjs): Remove Next 13 and pin Next 14 canary and latest tests ([#17577](https://github.com/getsentry/sentry-javascript/pull/17577))
+- test(react-router): Unflake `flushIfServerless` test ([#17610](https://github.com/getsentry/sentry-javascript/pull/17610))
+
+</details>
 
 ## 10.11.0
 

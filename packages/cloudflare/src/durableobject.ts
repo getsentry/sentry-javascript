@@ -79,7 +79,7 @@ function wrapMethodWithSentry<T extends OriginalMethod>(
                 (e: unknown) => {
                   captureException(e, {
                     mechanism: {
-                      type: 'cloudflare_durableobject',
+                      type: 'auto.faas.cloudflare.durable_object',
                       handled: false,
                     },
                   });
@@ -94,7 +94,7 @@ function wrapMethodWithSentry<T extends OriginalMethod>(
           } catch (e) {
             captureException(e, {
               mechanism: {
-                type: 'cloudflare_durableobject',
+                type: 'auto.faas.cloudflare.durable_object',
                 handled: false,
               },
             });
@@ -106,7 +106,7 @@ function wrapMethodWithSentry<T extends OriginalMethod>(
         const attributes = wrapperOptions.spanOp
           ? {
               [SEMANTIC_ATTRIBUTE_SENTRY_OP]: wrapperOptions.spanOp,
-              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.faas.cloudflare_durableobjects',
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.faas.cloudflare.durable_object',
             }
           : {};
 
@@ -123,7 +123,7 @@ function wrapMethodWithSentry<T extends OriginalMethod>(
                 (e: unknown) => {
                   captureException(e, {
                     mechanism: {
-                      type: 'cloudflare_durableobject',
+                      type: 'auto.faas.cloudflare.durable_object',
                       handled: false,
                     },
                   });
@@ -138,7 +138,7 @@ function wrapMethodWithSentry<T extends OriginalMethod>(
           } catch (e) {
             captureException(e, {
               mechanism: {
-                type: 'cloudflare_durableobject',
+                type: 'auto.faas.cloudflare.durable_object',
                 handled: false,
               },
             });
@@ -243,7 +243,7 @@ export function instrumentDurableObjectWithSentry<
           (_, error) =>
             captureException(error, {
               mechanism: {
-                type: 'cloudflare_durableobject_websocket',
+                type: 'auto.faas.cloudflare.durable_object_websocket',
                 handled: false,
               },
             }),
