@@ -28,9 +28,6 @@ export function addInstrumentationConfig(config: InstrumentationConfig): void {
     GLOBAL_OBJ._sentryInjectLoaderHookRegistered = true;
 
     const instrumentations = instrumentationConfigs || [];
-    if (instrumentations.length === 0) {
-      return;
-    }
 
     // Patch require to support CJS modules
     const requirePatch = new ModulePatch({ instrumentations });
