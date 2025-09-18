@@ -1,6 +1,5 @@
-import * as Sentry from '@sentry/node';
 import { GoogleGenAI } from '@google/genai';
-
+import * as Sentry from '@sentry/node';
 import express from 'express';
 
 const PORT = 3333;
