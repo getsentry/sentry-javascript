@@ -231,9 +231,19 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
       return event;
     },
     afterAllSetup(client) {
-      if (DEBUG_BUILD && client.getIntegrationByName('Http')) {
+      if (!DEBUG_BUILD) {
+        return;
+      }
+
+      if (client.getIntegrationByName('Http')) {
         debug.warn(
           'It seems that you have manually added `httpServerSpansIntergation` while `httpIntegration` is also present. Make sure to remove `httpIntegration` when adding `httpServerSpansIntegration`.',
+        );
+      }
+
+      if (!client.getIntegrationByName('Http.Server')) {
+        debug.error(
+          'It seems that you have manually added `httpServerSpansIntergation` without adding `httpServerIntegration`. This is a requiement for spans to be created - please add the `httpServerIntegration` integration.',
         );
       }
     },
