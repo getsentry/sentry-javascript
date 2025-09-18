@@ -6,7 +6,6 @@ import { DEBUG_BUILD } from './debug-build';
 import { createEventEnvelope, createSessionEnvelope } from './envelope';
 import type { IntegrationIndex } from './integration';
 import { afterSetupIntegrations, setupIntegration, setupIntegrations } from './integration';
-import { stripMetadataFromStackFrames } from './metadata';
 import type { Scope } from './scope';
 import { updateSession } from './session';
 import {
@@ -45,7 +44,7 @@ import { parseSampleRate } from './utils/parseSampleRate';
 import { prepareEvent } from './utils/prepareEvent';
 import { reparentChildSpans, shouldIgnoreSpan } from './utils/should-ignore-span';
 import { getActiveSpan, showSpanDropWarning, spanToTraceContext } from './utils/spanUtils';
-import { rejectedSyncPromise } from './utils/syncpromise';
+import { rejectedSyncPromise, resolvedSyncPromise, SyncPromise } from './utils/syncpromise';
 import { convertSpanJsonToTransactionEvent, convertTransactionEventToSpanJson } from './utils/transactionEvent';
 
 const ALREADY_SEEN_ERROR = "Not capturing exception because it's already been captured.";
@@ -317,19 +316,16 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    * @returns A promise that will resolve with `true` if all events are sent before the timeout, or `false` if there are
    * still events in the queue when the timeout is reached.
    */
-  // @ts-expect-error - PromiseLike is a subset of Promise
-  public async flush(timeout?: number): PromiseLike<boolean> {
+  public flush(timeout?: number): PromiseLike<boolean> {
     const transport = this._transport;
-    if (!transport) {
-      return true;
+    if (transport) {
+      this.emit('flush');
+      return this._isClientDoneProcessing(timeout).then(clientFinished => {
+        return transport.flush(timeout).then(transportFlushed => clientFinished && transportFlushed);
+      });
+    } else {
+      return resolvedSyncPromise(true);
     }
-
-    this.emit('flush');
-
-    const clientFinished = await this._isClientDoneProcessing(timeout);
-    const transportFlushed = await transport.flush(timeout);
-
-    return clientFinished && transportFlushed;
   }
 
   /**
@@ -340,12 +336,12 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    * @returns {Promise<boolean>} A promise which resolves to `true` if the flush completes successfully before the timeout, or `false` if
    * it doesn't.
    */
-  // @ts-expect-error - PromiseLike is a subset of Promise
-  public async close(timeout?: number): PromiseLike<boolean> {
-    const result = await this.flush(timeout);
-    this.getOptions().enabled = false;
-    this.emit('close');
-    return result;
+  public close(timeout?: number): PromiseLike<boolean> {
+    return this.flush(timeout).then(result => {
+      this.getOptions().enabled = false;
+      this.emit('close');
+      return result;
+    });
   }
 
   /**
@@ -876,21 +872,18 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   /**
    * Send an envelope to Sentry.
    */
-  // @ts-expect-error - PromiseLike is a subset of Promise
-  public async sendEnvelope(envelope: Envelope): PromiseLike<TransportMakeRequestResponse> {
+  public sendEnvelope(envelope: Envelope): PromiseLike<TransportMakeRequestResponse> {
     this.emit('beforeEnvelope', envelope);
 
     if (this._isEnabled() && this._transport) {
-      try {
-        return await this._transport.send(envelope);
-      } catch (reason) {
+      return this._transport.send(envelope).then(null, reason => {
         DEBUG_BUILD && debug.error('Error while sending envelope:', reason);
         return {};
-      }
+      });
     }
 
     DEBUG_BUILD && debug.error('Transport disabled');
-    return {};
+    return resolvedSyncPromise({});
   }
 
   /* eslint-enable @typescript-eslint/unified-signatures */
@@ -945,20 +938,24 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    * @returns A promise which will resolve to `true` if processing is already done or finishes before the timeout, and
    * `false` otherwise
    */
-  protected async _isClientDoneProcessing(timeout?: number): Promise<boolean> {
-    let ticked = 0;
+  protected _isClientDoneProcessing(timeout?: number): PromiseLike<boolean> {
+    return new SyncPromise(resolve => {
+      let ticked: number = 0;
+      const tick: number = 1;
 
-    // if no timeout is provided, we wait "forever" until everything is processed
-    while (!timeout || ticked < timeout) {
-      await new Promise(resolve => setTimeout(resolve, 1));
-
-      if (!this._numProcessing) {
-        return true;
-      }
-      ticked++;
-    }
-
-    return false;
+      const interval = setInterval(() => {
+        if (this._numProcessing == 0) {
+          clearInterval(interval);
+          resolve(true);
+        } else {
+          ticked += tick;
+          if (timeout && ticked >= timeout) {
+            clearInterval(interval);
+            resolve(false);
+          }
+        }
+      }, tick);
+    });
   }
 
   /** Determines whether this SDK is enabled and a transport is present. */
@@ -1125,13 +1122,9 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
           throw _makeDoNotSendEventError(`${beforeSendLabel} returned \`null\`, will not send event.`);
         }
 
-        if (isError) {
-          const session = currentScope.getSession() || isolationScope.getSession();
-          if (session) {
-            this._updateSessionFromEvent(session, processedEvent);
-          }
-
-          stripMetadataFromStackFrames(processedEvent);
+        const session = currentScope.getSession() || isolationScope.getSession();
+        if (isError && session) {
+          this._updateSessionFromEvent(session, processedEvent);
         }
 
         if (isTransaction) {

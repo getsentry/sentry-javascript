@@ -53,28 +53,19 @@ export function getMetadataForUrl(parser: StackParser, filename: string): any | 
  * Metadata is injected by the Sentry bundler plugins using the `_experiments.moduleMetadata` config option.
  */
 export function addMetadataToStackFrames(parser: StackParser, event: Event): void {
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    event.exception!.values!.forEach(exception => {
-      if (!exception.stacktrace) {
+  event.exception?.values?.forEach(exception => {
+    exception.stacktrace?.frames?.forEach(frame => {
+      if (!frame.filename || frame.module_metadata) {
         return;
       }
 
-      for (const frame of exception.stacktrace.frames || []) {
-        if (!frame.filename || frame.module_metadata) {
-          continue;
-        }
+      const metadata = getMetadataForUrl(parser, frame.filename);
 
-        const metadata = getMetadataForUrl(parser, frame.filename);
-
-        if (metadata) {
-          frame.module_metadata = metadata;
-        }
+      if (metadata) {
+        frame.module_metadata = metadata;
       }
     });
-  } catch {
-    // To save bundle size we're just try catching here instead of checking for the existence of all the different objects.
-  }
+  });
 }
 
 /**
