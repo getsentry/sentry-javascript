@@ -5,31 +5,9 @@ import * as moduleModule from 'module';
 import { supportsEsmLoaderHooks } from '../utils/detection';
 
 let instrumentationConfigs: InstrumentationConfig[] | undefined;
+let setupHookFn: (() => void) | undefined;
 
-/**
- * Add an instrumentation config to be used by the injection loader.
- *
- * This should be called before `initializeInjectionLoader` is called.
- */
-export function addInstrumentationConfig(config: InstrumentationConfig): void {
-  if (!instrumentationConfigs) {
-    instrumentationConfigs = [];
-  }
-
-  instrumentationConfigs.push(config);
-}
-
-/**
- * Initialize the injection loader - This method is private and not part of the public
- * API.
- *
- * @ignore
- */
-export function initializeInjectionLoader(): void {
-  if (!supportsEsmLoaderHooks()) {
-    return;
-  }
-
+function setupHook(): void {
   if (!GLOBAL_OBJ._sentryInjectLoaderHookRegistered) {
     GLOBAL_OBJ._sentryInjectLoaderHookRegistered = true;
 
@@ -51,5 +29,37 @@ export function initializeInjectionLoader(): void {
     } catch (error) {
       debug.warn("Failed to register '@apm-js-collab/tracing-hooks' hook", error);
     }
+  }
+}
+
+/**
+ * Add an instrumentation config to be used by the injection loader.
+ *
+ * This should be called before `initializeInjectionLoader` is called.
+ */
+export function addInstrumentationConfig(config: InstrumentationConfig): void {
+  if (!instrumentationConfigs) {
+    instrumentationConfigs = [];
+  }
+
+  instrumentationConfigs.push(config);
+
+  setupHookFn = setupHook;
+}
+
+/**
+ * Initialize the injection loader - This method is private and not part of the public
+ * API.
+ *
+ * @ignore
+ */
+export function initializeInjectionLoader(): void {
+  if (!supportsEsmLoaderHooks()) {
+    return;
+  }
+
+  if (setupHookFn) {
+    setupHookFn();
+    setupHookFn = undefined;
   }
 }
