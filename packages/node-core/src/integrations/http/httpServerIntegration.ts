@@ -1,12 +1,12 @@
-/* eslint-disable max-lines */
 import type { ChannelListener } from 'node:diagnostics_channel';
 import { subscribe } from 'node:diagnostics_channel';
 import type { EventEmitter } from 'node:events';
 import type { IncomingMessage, RequestOptions, Server, ServerResponse } from 'node:http';
 import type { Socket } from 'node:net';
 import { context, createContextKey, propagation } from '@opentelemetry/api';
-import type { AggregationCounts, Client, Integration, IntegrationFn, RequestEventData, Scope } from '@sentry/core';
+import type { AggregationCounts, Client, Integration, IntegrationFn, Scope } from '@sentry/core';
 import {
+  addNonEnumerableProperty,
   debug,
   generateSpanId,
   getClient,
@@ -22,16 +22,13 @@ import { MAX_BODY_BYTE_LENGTH } from './constants';
 
 type ServerEmit = typeof Server.prototype.emit;
 
+type StartSpanCallback = (next: () => boolean) => boolean;
+type RequestWithOptionalStartSpanCallback = IncomingMessage & {
+  _startSpanCallback?: StartSpanCallback;
+};
+
 const HTTP_SERVER_INSTRUMENTED_KEY = createContextKey('sentry_http_server_instrumented');
 const INTEGRATION_NAME = 'Http.Server';
-
-interface ServerCallbackOptions {
-  request: IncomingMessage;
-  response: ServerResponse;
-  normalizedRequest: RequestEventData;
-}
-
-type ServerCallback = (fn: () => boolean, options: ServerCallbackOptions) => boolean;
 
 const clientToRequestSessionAggregatesMap = new Map<
   Client,
@@ -86,6 +83,14 @@ export interface HttpServerIntegrationOptions {
   maxRequestBodySize?: 'none' | 'small' | 'medium' | 'always';
 }
 
+/**
+ * Add a callback to the request object that will be called when the request is started.
+ * The callback will receive the next function to continue processing the request.
+ */
+export function addStartSpanCallback(request: RequestWithOptionalStartSpanCallback, callback: StartSpanCallback): void {
+  addNonEnumerableProperty(request, '_startSpanCallback', callback);
+}
+
 const _httpServerIntegration = ((options: HttpServerIntegrationOptions = {}) => {
   const _options = {
     sessions: options.sessions ?? true,
@@ -94,21 +99,16 @@ const _httpServerIntegration = ((options: HttpServerIntegrationOptions = {}) => 
     ignoreRequestBody: options.ignoreRequestBody,
   };
 
-  const serverCallbacks: ServerCallback[] = [];
-
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
       const onHttpServerRequestStart = ((_data: unknown) => {
         const data = _data as { server: Server };
 
-        instrumentServer(data.server, _options, serverCallbacks);
+        instrumentServer(data.server, _options);
       }) satisfies ChannelListener;
 
       subscribe('http.server.request.start', onHttpServerRequestStart);
-    },
-    addServerCallback(callback: ServerCallback) {
-      serverCallbacks.push(callback);
     },
     afterAllSetup(client) {
       if (DEBUG_BUILD && client.getIntegrationByName('Http')) {
@@ -129,7 +129,6 @@ export const httpServerIntegration = _httpServerIntegration as (
 ) => Integration & {
   name: 'HttpServer';
   setupOnce: () => void;
-  addServerCallback: (callback: ServerCallback) => void;
 };
 
 /**
@@ -149,7 +148,6 @@ function instrumentServer(
     sessions: boolean;
     sessionFlushingDelayMS: number;
   },
-  serverCallbacks: ServerCallback[],
 ): void {
   // eslint-disable-next-line @typescript-eslint/unbound-method
   const originalEmit: ServerEmit = server.emit;
@@ -221,15 +219,14 @@ function instrumentServer(
           .setValue(HTTP_SERVER_INSTRUMENTED_KEY, true);
 
         return context.with(ctx, () => {
-          if (serverCallbacks?.length) {
-            return wrapInCallbacks(
-              () => target.apply(thisArg, args),
-              { request, response, normalizedRequest },
-              serverCallbacks.slice(),
-            );
-          } else {
-            return target.apply(thisArg, args);
+          // This is used (optionally) by the httpServerSpansIntegration to attach _startSpanCallback to the request object
+          client.emit('httpServerRequest', request, response, normalizedRequest);
+
+          const callback = (request as RequestWithOptionalStartSpanCallback)._startSpanCallback;
+          if (callback) {
+            return callback(() => target.apply(thisArg, args));
           }
+          return target.apply(thisArg, args);
         });
       });
     },
@@ -431,19 +428,4 @@ function patchRequestToCaptureBody(
       debug.error(INTEGRATION_NAME, 'Error patching request to capture body', error);
     }
   }
-}
-
-// Wrap a fn in one or multiple callbacks
-function wrapInCallbacks(
-  fn: () => boolean,
-  options: ServerCallbackOptions,
-  callbacks: ((fn: () => boolean, options: ServerCallbackOptions) => boolean)[],
-): boolean {
-  const callback = callbacks.shift();
-
-  if (!callback) {
-    return fn();
-  }
-
-  return callback(() => wrapInCallbacks(fn, options, callbacks), options);
 }
