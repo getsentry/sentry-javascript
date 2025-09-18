@@ -63,7 +63,9 @@ export const pinoIntegration = ((options: Options = { eventLevels: ['error', 'fa
     setup: () => {
       addInstrumentationConfig({
         channelName: 'pino-log',
-        module: { name: 'pino', versionRange: '>=8.0.0 < 9.19.0', filePath: 'lib/tools.js' },
+        // From Pino v9.10.0 a tracing channel is available directly from Pino:
+        // https://github.com/pinojs/pino/pull/2281
+        module: { name: 'pino', versionRange: '>=8.0.0 < 9.10.0', filePath: 'lib/tools.js' },
         functionQuery: {
           functionName: 'asJson',
           kind: 'Sync',
@@ -71,8 +73,6 @@ export const pinoIntegration = ((options: Options = { eventLevels: ['error', 'fa
       });
 
       const injectedChannel = tracingChannel('orchestrion:pino:pino-log');
-      // From Pino v9.19.0 a tracing channel is available directly from Pino:
-      // https://github.com/pinojs/pino/pull/2281
       const integratedChannel = tracingChannel('pino_asJson');
 
       const onPinoStart = (data: unknown): void => {

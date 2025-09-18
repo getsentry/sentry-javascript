@@ -7,6 +7,7 @@ import {
   functionToStringIntegration,
   getCurrentScope,
   getIntegrationsToSetup,
+  GLOBAL_OBJ,
   hasSpansEnabled,
   inboundFiltersIntegration,
   linkedErrorsIntegration,
@@ -40,7 +41,6 @@ import { envToBool } from '../utils/envToBool';
 import { defaultStackParser, getSentryRelease } from './api';
 import { NodeClient } from './client';
 import { initializeEsmLoader } from './esmLoader';
-import { initializeInjectionLoader } from './injectLoader';
 
 /**
  * Get default integrations for the Node-Core SDK.
@@ -132,7 +132,7 @@ function _init(
 
   client.init();
 
-  initializeInjectionLoader();
+  GLOBAL_OBJ._sentryInjectLoaderHookRegister?.();
 
   debug.log(`SDK initialized from ${isCjs() ? 'CommonJS' : 'ESM'}`);
 
