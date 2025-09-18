@@ -18,7 +18,12 @@ export function getBuildPluginOptions({
   sentryBuildOptions: SentryBuildOptions;
   releaseName: string | undefined;
   distDirAbsPath: string;
-  buildTool: 'webpack-client' | 'webpack-nodejs' | 'webpack-edge' | 'after-production-compile';
+  buildTool:
+    | 'webpack-client'
+    | 'webpack-nodejs'
+    | 'webpack-edge'
+    | 'after-production-compile-webpack'
+    | 'after-production-compile-turbopack';
   useRunAfterProductionCompileHook?: boolean; // Whether the user has opted into using the experimental hook
 }): SentryBuildPluginOptions {
   const sourcemapUploadAssets: string[] = [];
@@ -34,14 +39,25 @@ export function getBuildPluginOptions({
     'webpack-nodejs': '[@sentry/nextjs - Node.js]',
     'webpack-edge': '[@sentry/nextjs - Edge]',
     'webpack-client': '[@sentry/nextjs - Client]',
-    'after-production-compile': '[@sentry/nextjs - After Production Compile]',
+    'after-production-compile-webpack': '[@sentry/nextjs - After Production Compile (Webpack)]',
+    'after-production-compile-turbopack': '[@sentry/nextjs - After Production Compile (Turbopack)]',
   }[buildTool];
 
-  if (buildTool === 'after-production-compile') {
-    // Turbopack builds
+  if (buildTool.startsWith('after-production-compile')) {
     sourcemapUploadAssets.push(
-      path.posix.join(normalizedDistDirAbsPath, '**'), // Next.js build output
+      path.posix.join(normalizedDistDirAbsPath, 'server', '**'), // Standard output location for server builds
+      path.posix.join(normalizedDistDirAbsPath, 'serverless', '**'), // Legacy output location for serverless Next.js
     );
+
+    if (buildTool === 'after-production-compile-turbopack') {
+      sourcemapUploadAssets.push(path.posix.join(normalizedDistDirAbsPath, 'static', 'chunks', '**'));
+    } else {
+      // Webpack client builds
+      sourcemapUploadAssets.push(
+        path.posix.join(normalizedDistDirAbsPath, 'static', 'chunks', 'pages', '**'),
+        path.posix.join(normalizedDistDirAbsPath, 'static', 'chunks', 'app', '**'),
+      );
+    }
 
     if (sentryBuildOptions.sourcemaps?.deleteSourcemapsAfterUpload) {
       filesToDeleteAfterUpload.push(
@@ -52,12 +68,13 @@ export function getBuildPluginOptions({
     }
   } else {
     if (buildTool === 'webpack-nodejs' || buildTool === 'webpack-edge') {
+      // Webpack server builds
       sourcemapUploadAssets.push(
         path.posix.join(distDirAbsPath, 'server', '**'), // Standard output location for server builds
         path.posix.join(distDirAbsPath, 'serverless', '**'), // Legacy output location for serverless Next.js
       );
     } else {
-      // Client builds
+      // Webpack client builds
       if (sentryBuildOptions.widenClientFileUpload) {
         sourcemapUploadAssets.push(path.posix.join(distDirAbsPath, 'static', 'chunks', '**'));
       } else {
@@ -66,19 +83,6 @@ export function getBuildPluginOptions({
           path.posix.join(distDirAbsPath, 'static', 'chunks', 'app', '**'),
         );
       }
-
-      // We want to include main-* files if widenClientFileUpload is true as they have proven to be useful
-      if (!sentryBuildOptions.widenClientFileUpload) {
-        sourcemapUploadIgnore.push(path.posix.join(distDirAbsPath, 'static', 'chunks', 'main-*'));
-      }
-
-      // Always ignore framework, polyfills, and webpack files
-      sourcemapUploadIgnore.push(
-        path.posix.join(distDirAbsPath, 'static', 'chunks', 'framework-*'),
-        path.posix.join(distDirAbsPath, 'static', 'chunks', 'framework.*'),
-        path.posix.join(distDirAbsPath, 'static', 'chunks', 'polyfills-*'),
-        path.posix.join(distDirAbsPath, 'static', 'chunks', 'webpack-*'),
-      );
 
       // File deletion for webpack client builds
       // If the user has opted into using the experimental hook, we delete the source maps in the hook instead
@@ -95,6 +99,19 @@ export function getBuildPluginOptions({
     }
   }
 
+  // We want to include main-* files if widenClientFileUpload is true as they have proven to be useful
+  if (!sentryBuildOptions.widenClientFileUpload) {
+    sourcemapUploadIgnore.push(path.posix.join(distDirAbsPath, 'static', 'chunks', 'main-*'));
+  }
+
+  // Always ignore framework, polyfills, and webpack files
+  sourcemapUploadIgnore.push(
+    path.posix.join(distDirAbsPath, 'static', 'chunks', 'framework-*'),
+    path.posix.join(distDirAbsPath, 'static', 'chunks', 'framework.*'),
+    path.posix.join(distDirAbsPath, 'static', 'chunks', 'polyfills-*'),
+    path.posix.join(distDirAbsPath, 'static', 'chunks', 'webpack-*'),
+  );
+
   // If the user has opted into using the experimental hook, we skip sourcemap uploads in the plugin
   const shouldSkipSourcemapsUpload = useRunAfterProductionCompileHook && buildTool.startsWith('webpack');
 
@@ -106,13 +123,12 @@ export function getBuildPluginOptions({
     telemetry: sentryBuildOptions.telemetry,
     debug: sentryBuildOptions.debug,
     errorHandler: sentryBuildOptions.errorHandler,
-    reactComponentAnnotation:
-      buildTool === 'after-production-compile'
-        ? undefined
-        : {
-            ...sentryBuildOptions.reactComponentAnnotation,
-            ...sentryBuildOptions.unstable_sentryWebpackPluginOptions?.reactComponentAnnotation,
-          },
+    reactComponentAnnotation: buildTool.startsWith('after-production-compile')
+      ? undefined
+      : {
+          ...sentryBuildOptions.reactComponentAnnotation,
+          ...sentryBuildOptions.unstable_sentryWebpackPluginOptions?.reactComponentAnnotation,
+        },
     silent: sentryBuildOptions.silent,
     url: sentryBuildOptions.sentryUrl,
     sourcemaps: {

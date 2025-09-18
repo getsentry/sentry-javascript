@@ -34,7 +34,7 @@ export async function handleRunAfterProductionCompile(
     sentryBuildOptions,
     releaseName,
     distDirAbsPath: distDir,
-    buildTool: 'after-production-compile',
+    buildTool: `after-production-compile-${buildTool}`,
   });
 
   const sentryBuildPluginManager = createSentryBuildPluginManager(options, {
