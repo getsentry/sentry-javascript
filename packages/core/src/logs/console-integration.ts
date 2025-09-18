@@ -6,7 +6,7 @@ import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
 import type { ConsoleLevel } from '../types-hoist/instrument';
 import type { IntegrationFn } from '../types-hoist/integration';
 import { CONSOLE_LEVELS, debug } from '../utils/debug-logger';
-import { _INTERNAL_captureLog } from './exports';
+import { _INTERNAL_captureLog } from './internal';
 import { formatConsoleArgs } from './utils';
 
 interface CaptureConsoleOptions {
