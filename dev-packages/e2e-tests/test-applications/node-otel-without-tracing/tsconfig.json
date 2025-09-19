@@ -2,7 +2,7 @@
   "compilerOptions": {
     "types": ["node"],
     "esModuleInterop": true,
-    "lib": ["es2018", "dom"],
+    "lib": ["es2020", "dom"],
     "strict": true,
     "outDir": "dist",
     "skipLibCheck": true

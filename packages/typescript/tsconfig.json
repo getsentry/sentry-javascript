@@ -7,7 +7,7 @@
     "importHelpers": true,
     "inlineSources": true,
     "isolatedModules": true,
-    "lib": ["ES2018"],
+    "lib": ["es2020"],
     "moduleResolution": "node",
     "noErrorTruncation": true,
     "noFallthroughCasesInSwitch": true,
@@ -18,7 +18,7 @@
     "sourceMap": true,
     "strict": true,
     "strictBindCallApply": false,
-    "target": "es2018",
+    "target": "es2020",
     "noUncheckedIndexedAccess": true
   }
 }

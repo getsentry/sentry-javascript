@@ -4,6 +4,6 @@
   "include": ["src/**/*"],
 
   "compilerOptions": {
-    "lib": ["es2018"]
+    "lib": ["es2020"]
   }
 }
