@@ -24,7 +24,7 @@ type ServerEmit = typeof Server.prototype.emit;
 
 type StartSpanCallback = (next: () => boolean) => boolean;
 type RequestWithOptionalStartSpanCallback = IncomingMessage & {
-  _startSpanCallback?: StartSpanCallback;
+  _startSpanCallback?: WeakRef<StartSpanCallback>;
 };
 
 const HTTP_SERVER_INSTRUMENTED_KEY = createContextKey('sentry_http_server_instrumented');
@@ -88,7 +88,7 @@ export interface HttpServerIntegrationOptions {
  * The callback will receive the next function to continue processing the request.
  */
 export function addStartSpanCallback(request: RequestWithOptionalStartSpanCallback, callback: StartSpanCallback): void {
-  addNonEnumerableProperty(request, '_startSpanCallback', callback);
+  addNonEnumerableProperty(request, '_startSpanCallback', new WeakRef(callback));
 }
 
 const _httpServerIntegration = ((options: HttpServerIntegrationOptions = {}) => {
@@ -222,7 +222,7 @@ function instrumentServer(
           // This is used (optionally) by the httpServerSpansIntegration to attach _startSpanCallback to the request object
           client.emit('httpServerRequest', request, response, normalizedRequest);
 
-          const callback = (request as RequestWithOptionalStartSpanCallback)._startSpanCallback;
+          const callback = (request as RequestWithOptionalStartSpanCallback)._startSpanCallback?.deref();
           if (callback) {
             return callback(() => target.apply(thisArg, args));
           }
