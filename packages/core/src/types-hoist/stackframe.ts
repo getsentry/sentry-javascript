@@ -13,7 +13,7 @@ export interface StackFrame {
   in_app?: boolean;
   instruction_addr?: string;
   addr_mode?: string;
-  vars?: { [key: string]: any };
+  vars?: { [key: string]: unknown };
   debug_id?: string;
-  module_metadata?: any;
+  module_metadata?: unknown;
 }

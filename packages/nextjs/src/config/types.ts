@@ -11,7 +11,8 @@ type NextRewrite = {
 };
 
 interface WebpackPluginInstance {
-  [index: string]: any;
+  [index: string]: unknown;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   apply: (compiler: any) => void;
 }
 
