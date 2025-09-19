@@ -22,6 +22,7 @@ export {
   startBrowserTracingNavigationSpan,
   startBrowserTracingPageLoadSpan,
 } from './tracing/browserTracingIntegration';
+export { setSpanActive } from './tracing/setSpanActive';
 
 export { getFeedback, sendFeedback } from '@sentry-internal/feedback';
 

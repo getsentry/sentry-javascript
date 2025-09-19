@@ -42,6 +42,8 @@ export {
   startBrowserTracingNavigationSpan,
   startBrowserTracingPageLoadSpan,
 } from './tracing/browserTracingIntegration';
+export { setSpanActive } from './tracing/setSpanActive';
+
 export type { RequestInstrumentationOptions } from './tracing/request';
 export {
   registerSpanErrorInstrumentation,
