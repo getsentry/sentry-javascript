@@ -42,7 +42,6 @@ export const thirdPartyErrorFilterIntegration = defineIntegration((options: Opti
     name: 'ThirdPartyErrorsFilter',
     setup(client) {
       // We need to strip metadata from stack frames before sending them to Sentry since these are client side only.
-      // TODO(lforst): Move this cleanup logic into a more central place in the SDK.
       client.on('beforeEnvelope', envelope => {
         forEachEnvelopeItem(envelope, (item, type) => {
           if (type === 'event') {
