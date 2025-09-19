@@ -47,7 +47,7 @@ type BuildTool = keyof typeof LOGGER_PREFIXES;
 /**
  * Normalizes Windows paths to POSIX format for glob patterns
  */
-function normalizePathForGlob(distPath: string): string {
+export function normalizePathForGlob(distPath: string): string {
   return distPath.replace(/\\/g, '/');
 }
 
