@@ -1445,7 +1445,7 @@ describe('Client', () => {
 
       expect(consoleWarnSpy).toHaveBeenCalledTimes(1);
       expect(consoleWarnSpy).toHaveBeenCalledWith(
-        '[Sentry] Returning null from `beforeSendSpan` is disallowed. To drop certain spans, configure the respective integrations directly.',
+        '[Sentry] Returning null from `beforeSendSpan` is disallowed. To drop certain spans, configure the respective integrations directly or use `ignoreSpans`.',
       );
       consoleWarnSpy.mockRestore();
     });
@@ -2397,10 +2397,8 @@ describe('Client', () => {
 
       client.emit('beforeEnvelope', mockEnvelope);
     });
-  });
 
-  describe('hook removal with `on`', () => {
-    it('should return a cleanup function that, when executed, unregisters a hook', async () => {
+    it('returns a cleanup function that, when executed, unregisters a hook', async () => {
       vi.useFakeTimers();
       expect.assertions(8);
 
@@ -2420,7 +2418,7 @@ describe('Client', () => {
       const callback = vi.fn();
       const removeAfterSendEventListenerFn = client.on('afterSendEvent', callback);
 
-      expect(client['_hooks']['afterSendEvent']).toEqual([callback]);
+      expect(client['_hooks']['afterSendEvent']!.size).toBe(1);
 
       client.sendEvent(errorEvent);
       vi.runAllTimers();
@@ -2435,7 +2433,7 @@ describe('Client', () => {
 
       // Should unregister `afterSendEvent` callback.
       removeAfterSendEventListenerFn();
-      expect(client['_hooks']['afterSendEvent']).toEqual([]);
+      expect(client['_hooks']['afterSendEvent']!.size).toBe(0);
 
       client.sendEvent(errorEvent);
       vi.runAllTimers();
@@ -2449,6 +2447,112 @@ describe('Client', () => {
       // because we unregistered it.
       expect(callback).toBeCalledTimes(1);
       expect(callback).toBeCalledWith(errorEvent, { statusCode: 200 });
+    });
+
+    it('allows synchronously unregistering multiple callbacks from within the callback', () => {
+      const client = new TestClient(getDefaultTestClientOptions());
+
+      const callback1 = vi.fn();
+      const callback2 = vi.fn();
+
+      const removeCallback1 = client.on('close', () => {
+        callback1();
+        removeCallback1();
+      });
+      const removeCallback2 = client.on('close', () => {
+        callback2();
+        removeCallback2();
+      });
+
+      client.emit('close');
+
+      expect(callback1).toHaveBeenCalledTimes(1);
+      expect(callback2).toHaveBeenCalledTimes(1);
+
+      callback1.mockReset();
+      callback2.mockReset();
+
+      client.emit('close');
+
+      expect(callback1).not.toHaveBeenCalled();
+      expect(callback2).not.toHaveBeenCalled();
+    });
+
+    it('allows synchronously unregistering other callbacks from within one callback', () => {
+      const client = new TestClient(getDefaultTestClientOptions());
+
+      const callback1 = vi.fn();
+      const callback2 = vi.fn();
+
+      const removeCallback1 = client.on('close', () => {
+        callback1();
+        removeCallback1();
+        removeCallback2();
+      });
+      const removeCallback2 = client.on('close', () => {
+        callback2();
+        removeCallback2();
+        removeCallback1();
+      });
+
+      client.emit('close');
+
+      expect(callback1).toHaveBeenCalledTimes(1);
+      // callback2 was already cancelled from within callback1, so it must not be called
+      expect(callback2).not.toHaveBeenCalled();
+
+      callback1.mockReset();
+      callback2.mockReset();
+
+      client.emit('close');
+
+      expect(callback1).not.toHaveBeenCalled();
+      expect(callback2).not.toHaveBeenCalled();
+    });
+
+    it('allows registering and unregistering the same callback multiple times', () => {
+      const client = new TestClient(getDefaultTestClientOptions());
+      const callback = vi.fn();
+
+      const unregister1 = client.on('close', callback);
+      const unregister2 = client.on('close', callback);
+
+      client.emit('close');
+
+      expect(callback).toHaveBeenCalledTimes(2);
+
+      unregister1();
+
+      callback.mockReset();
+
+      client.emit('close');
+
+      expect(callback).toHaveBeenCalledTimes(1);
+
+      unregister2();
+
+      callback.mockReset();
+      client.emit('close');
+
+      expect(callback).not.toHaveBeenCalled();
+    });
+
+    it('handles unregistering a callback multiple times', () => {
+      const client = new TestClient(getDefaultTestClientOptions());
+      const callback = vi.fn();
+
+      const unregister = client.on('close', callback);
+      client.emit('close');
+      expect(callback).toHaveBeenCalledTimes(1);
+
+      callback.mockReset();
+      unregister();
+      unregister();
+      unregister();
+
+      client.emit('close');
+
+      expect(callback).not.toHaveBeenCalled();
     });
   });
 

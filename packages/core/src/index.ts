@@ -101,7 +101,7 @@ export { functionToStringIntegration } from './integrations/functiontostring';
 export { inboundFiltersIntegration } from './integrations/eventFilters';
 export { eventFiltersIntegration } from './integrations/eventFilters';
 export { linkedErrorsIntegration } from './integrations/linkederrors';
-export { moduleMetadataIntegration } from './integrations/metadata';
+export { moduleMetadataIntegration } from './integrations/moduleMetadata';
 export { requestDataIntegration } from './integrations/requestdata';
 export { captureConsoleIntegration } from './integrations/captureconsole';
 export { dedupeIntegration } from './integrations/dedupe';

@@ -163,7 +163,7 @@ describe('Google GenAI integration', () => {
   const EXPECTED_TRANSACTION_WITH_OPTIONS = {
     transaction: 'main',
     spans: expect.arrayContaining([
-      // Check that custom options are respected for non-streaming
+      // Check that custom options are respected
       expect.objectContaining({
         data: expect.objectContaining({
           'gen_ai.request.messages': expect.any(String), // Should include messages when recordInputs: true
@@ -203,7 +203,7 @@ describe('Google GenAI integration', () => {
         .completed();
     });
   });
-
+  
   const EXPECTED_TRANSACTION_TOOLS = {
     transaction: 'main',
     spans: expect.arrayContaining([

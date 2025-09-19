@@ -2,8 +2,8 @@
 import '../mocks';
 import * as core from '@sentry/core';
 import { describe, expect, it, vi } from 'vitest';
+import * as getBuildPluginOptionsModule from '../../../src/config/getBuildPluginOptions';
 import * as util from '../../../src/config/util';
-import * as getWebpackPluginOptionsModule from '../../../src/config/webpackPluginOptions';
 import {
   CLIENT_SDK_CONFIG_FILE,
   clientBuildContext,
@@ -55,7 +55,7 @@ describe('constructWebpackConfigFunction()', () => {
   });
 
   it('automatically enables deleteSourcemapsAfterUpload for client builds when not explicitly set', async () => {
-    const getWebpackPluginOptionsSpy = vi.spyOn(getWebpackPluginOptionsModule, 'getWebpackPluginOptions');
+    const getBuildPluginOptionsSpy = vi.spyOn(getBuildPluginOptionsModule, 'getBuildPluginOptions');
     vi.spyOn(core, 'loadModule').mockImplementation(() => ({
       sentryWebpackPlugin: () => ({
         _name: 'sentry-webpack-plugin',
@@ -71,19 +71,100 @@ describe('constructWebpackConfigFunction()', () => {
       },
     });
 
-    expect(getWebpackPluginOptionsSpy).toHaveBeenCalledWith(
+    expect(getBuildPluginOptionsSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        isServer: false,
+        sentryBuildOptions: expect.objectContaining({
+          sourcemaps: {
+            deleteSourcemapsAfterUpload: true,
+          },
+        }),
+        buildTool: 'webpack-client',
+        distDirAbsPath: expect.any(String),
+        releaseName: undefined,
       }),
-      expect.objectContaining({
-        sourcemaps: {
-          deleteSourcemapsAfterUpload: true,
-        },
-      }),
-      undefined,
     );
 
-    getWebpackPluginOptionsSpy.mockRestore();
+    getBuildPluginOptionsSpy.mockRestore();
+  });
+
+  it('passes useRunAfterProductionCompileHook to getBuildPluginOptions when enabled', async () => {
+    const getBuildPluginOptionsSpy = vi.spyOn(getBuildPluginOptionsModule, 'getBuildPluginOptions');
+    vi.spyOn(core, 'loadModule').mockImplementation(() => ({
+      sentryWebpackPlugin: () => ({
+        _name: 'sentry-webpack-plugin',
+      }),
+    }));
+
+    await materializeFinalWebpackConfig({
+      exportedNextConfig,
+      incomingWebpackConfig: serverWebpackConfig,
+      incomingWebpackBuildContext: serverBuildContext,
+      sentryBuildTimeOptions: {
+        _experimental: {
+          useRunAfterProductionCompileHook: true,
+        },
+      },
+    });
+
+    expect(getBuildPluginOptionsSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        useRunAfterProductionCompileHook: true,
+      }),
+    );
+
+    getBuildPluginOptionsSpy.mockRestore();
+  });
+
+  it('passes useRunAfterProductionCompileHook to getBuildPluginOptions when disabled', async () => {
+    const getBuildPluginOptionsSpy = vi.spyOn(getBuildPluginOptionsModule, 'getBuildPluginOptions');
+    vi.spyOn(core, 'loadModule').mockImplementation(() => ({
+      sentryWebpackPlugin: () => ({
+        _name: 'sentry-webpack-plugin',
+      }),
+    }));
+
+    await materializeFinalWebpackConfig({
+      exportedNextConfig,
+      incomingWebpackConfig: serverWebpackConfig,
+      incomingWebpackBuildContext: serverBuildContext,
+      sentryBuildTimeOptions: {
+        _experimental: {
+          useRunAfterProductionCompileHook: false,
+        },
+      },
+    });
+
+    expect(getBuildPluginOptionsSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        useRunAfterProductionCompileHook: false,
+      }),
+    );
+
+    getBuildPluginOptionsSpy.mockRestore();
+  });
+
+  it('passes useRunAfterProductionCompileHook as undefined when not specified', async () => {
+    const getBuildPluginOptionsSpy = vi.spyOn(getBuildPluginOptionsModule, 'getBuildPluginOptions');
+    vi.spyOn(core, 'loadModule').mockImplementation(() => ({
+      sentryWebpackPlugin: () => ({
+        _name: 'sentry-webpack-plugin',
+      }),
+    }));
+
+    await materializeFinalWebpackConfig({
+      exportedNextConfig,
+      incomingWebpackConfig: serverWebpackConfig,
+      incomingWebpackBuildContext: serverBuildContext,
+      sentryBuildTimeOptions: {},
+    });
+
+    expect(getBuildPluginOptionsSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        useRunAfterProductionCompileHook: undefined,
+      }),
+    );
+
+    getBuildPluginOptionsSpy.mockRestore();
   });
 
   it('preserves unrelated webpack config options', async () => {
