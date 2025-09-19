@@ -74,7 +74,7 @@ function getStaticChunksAppPattern({ useDirectoryPath = false }: { useDirectoryP
 /**
  * Creates file patterns for source map uploads based on build tool and options
  */
-function createSourcemapUploadAssets(
+function createSourcemapUploadAssetPatterns(
   normalizedDistPath: string,
   buildTool: BuildTool,
   widenClientFileUpload: boolean = false,
@@ -85,6 +85,8 @@ function createSourcemapUploadAssets(
     assets.push(path.posix.join(normalizedDistPath, getServerPattern({ useDirectoryPath: true })));
 
     if (buildTool === 'after-production-compile-turbopack') {
+      // In turbopack we always want to upload the full static chunks directory
+      // as the build output is not split into pages|app chunks
       assets.push(path.posix.join(normalizedDistPath, getStaticChunksPattern({ useDirectoryPath: true })));
     } else {
       // Webpack client builds in after-production-compile mode
@@ -245,7 +247,11 @@ export function getBuildPluginOptions({
   const widenClientFileUpload = sentryBuildOptions.widenClientFileUpload ?? false;
   const deleteSourcemapsAfterUpload = sentryBuildOptions.sourcemaps?.deleteSourcemapsAfterUpload ?? false;
 
-  const sourcemapUploadAssets = createSourcemapUploadAssets(normalizedDistDirAbsPath, buildTool, widenClientFileUpload);
+  const sourcemapUploadAssets = createSourcemapUploadAssetPatterns(
+    normalizedDistDirAbsPath,
+    buildTool,
+    widenClientFileUpload,
+  );
 
   const sourcemapUploadIgnore = createSourcemapUploadIgnore(normalizedDistDirAbsPath, widenClientFileUpload);
 
