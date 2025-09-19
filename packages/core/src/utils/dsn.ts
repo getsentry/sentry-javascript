@@ -7,7 +7,7 @@ import { consoleSandbox, debug } from './debug-logger';
 const ORG_ID_REGEX = /^o(\d+)\./;
 
 /** Regular expression used to parse a Dsn. */
-const DSN_REGEX = /^(?:(\w+):)\/\/(?:(\w+)(?::(\w+)?)?@)([\w.-]+)(?::(\d+))?\/(.+)/;
+const DSN_REGEX = /^(?:(\w+):)\/\/(?:(\w+)(?::(\w+)?)?@)((?:\[[0-9a-fA-F:]+\]|[\w.-]+))(?::(\d+))?\/(.+)/;
 
 function isValidProtocol(protocol?: string): protocol is DsnProtocol {
   return protocol === 'http' || protocol === 'https';
