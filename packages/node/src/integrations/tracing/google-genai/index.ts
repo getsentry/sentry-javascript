@@ -1,29 +1,28 @@
-import type { AnthropicAiOptions, IntegrationFn } from '@sentry/core';
-import { ANTHROPIC_AI_INTEGRATION_NAME, defineIntegration } from '@sentry/core';
+import type { GoogleGenAIOptions, IntegrationFn } from '@sentry/core';
+import { defineIntegration, GOOGLE_GENAI_INTEGRATION_NAME } from '@sentry/core';
 import { generateInstrumentOnce } from '@sentry/node-core';
-import { SentryAnthropicAiInstrumentation } from './instrumentation';
+import { SentryGoogleGenAiInstrumentation } from './instrumentation';
 
-export const instrumentAnthropicAi = generateInstrumentOnce<AnthropicAiOptions>(
-  ANTHROPIC_AI_INTEGRATION_NAME,
-  options => new SentryAnthropicAiInstrumentation(options),
+export const instrumentGoogleGenAI = generateInstrumentOnce<GoogleGenAIOptions>(
+  GOOGLE_GENAI_INTEGRATION_NAME,
+  options => new SentryGoogleGenAiInstrumentation(options),
 );
 
-const _anthropicAIIntegration = ((options: AnthropicAiOptions = {}) => {
+const _googleGenAIIntegration = ((options: GoogleGenAIOptions = {}) => {
   return {
-    name: ANTHROPIC_AI_INTEGRATION_NAME,
-    options,
+    name: GOOGLE_GENAI_INTEGRATION_NAME,
     setupOnce() {
-      instrumentAnthropicAi(options);
+      instrumentGoogleGenAI(options);
     },
   };
 }) satisfies IntegrationFn;
 
 /**
- * Adds Sentry tracing instrumentation for the Anthropic AI SDK.
+ * Adds Sentry tracing instrumentation for the Google Generative AI SDK.
  *
  * This integration is enabled by default.
  *
- * When configured, this integration automatically instruments Anthropic AI SDK client instances
+ * When configured, this integration automatically instruments Google GenAI SDK client instances
  * to capture telemetry data following OpenTelemetry Semantic Conventions for Generative AI.
  *
  * @example
@@ -31,7 +30,7 @@ const _anthropicAIIntegration = ((options: AnthropicAiOptions = {}) => {
  * import * as Sentry from '@sentry/node';
  *
  * Sentry.init({
- *   integrations: [Sentry.anthropicAIIntegration()],
+ *   integrations: [Sentry.googleGenAiIntegration()],
  * });
  * ```
  *
@@ -51,7 +50,7 @@ const _anthropicAIIntegration = ((options: AnthropicAiOptions = {}) => {
  * // Record inputs and outputs when sendDefaultPii is false
  * Sentry.init({
  *   integrations: [
- *     Sentry.anthropicAIIntegration({
+ *     Sentry.googleGenAiIntegration({
  *       recordInputs: true,
  *       recordOutputs: true
  *     })
@@ -62,7 +61,7 @@ const _anthropicAIIntegration = ((options: AnthropicAiOptions = {}) => {
  * Sentry.init({
  *   sendDefaultPii: true,
  *   integrations: [
- *     Sentry.anthropicAIIntegration({
+ *     Sentry.googleGenAiIntegration({
  *       recordInputs: false,
  *       recordOutputs: false
  *     })
@@ -71,4 +70,4 @@ const _anthropicAIIntegration = ((options: AnthropicAiOptions = {}) => {
  * ```
  *
  */
-export const anthropicAIIntegration = defineIntegration(_anthropicAIIntegration);
+export const googleGenAIIntegration = defineIntegration(_googleGenAIIntegration);

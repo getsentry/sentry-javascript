@@ -1,4 +1,4 @@
-import { getCurrentScope } from '../../currentScopes';
+import { getClient } from '../../currentScopes';
 import { captureException } from '../../exports';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import { SPAN_STATUS_ERROR } from '../../tracing';
@@ -25,11 +25,9 @@ import {
 } from '../ai/gen-ai-attributes';
 import { buildMethodPath, getFinalOperationName, getSpanOperation, setTokenUsageAttributes } from '../ai/utils';
 import { handleCallbackErrors } from '../handleCallbackErrors';
-import { ANTHROPIC_AI_INTEGRATION_NAME } from './constants';
 import { instrumentStream } from './streaming';
 import type {
   AnthropicAiInstrumentedMethod,
-  AnthropicAiIntegration,
   AnthropicAiOptions,
   AnthropicAiResponse,
   AnthropicAiStreamingEvent,
@@ -197,21 +195,6 @@ function addResponseAttributes(span: Span, response: AnthropicAiResponse, record
 }
 
 /**
- * Get record options from the integration
- */
-function getRecordingOptionsFromIntegration(): AnthropicAiOptions {
-  const scope = getCurrentScope();
-  const client = scope.getClient();
-  const integration = client?.getIntegrationByName(ANTHROPIC_AI_INTEGRATION_NAME) as AnthropicAiIntegration | undefined;
-  const shouldRecordInputsAndOutputs = integration ? Boolean(client?.getOptions().sendDefaultPii) : false;
-
-  return {
-    recordInputs: integration?.options?.recordInputs ?? shouldRecordInputsAndOutputs,
-    recordOutputs: integration?.options?.recordOutputs ?? shouldRecordInputsAndOutputs,
-  };
-}
-
-/**
  * Instrument a method with Sentry spans
  * Following Sentry AI Agents Manual Instrumentation conventions
  * @see https://docs.sentry.io/platforms/javascript/guides/node/tracing/instrumentation/ai-agents-module/#manual-instrumentation
@@ -220,10 +203,9 @@ function instrumentMethod<T extends unknown[], R>(
   originalMethod: (...args: T) => Promise<R>,
   methodPath: AnthropicAiInstrumentedMethod,
   context: unknown,
-  options?: AnthropicAiOptions,
+  options: AnthropicAiOptions,
 ): (...args: T) => Promise<R> {
   return async function instrumentedMethod(...args: T): Promise<R> {
-    const finalOptions = options || getRecordingOptionsFromIntegration();
     const requestAttributes = extractRequestAttributes(args, methodPath);
     const model = requestAttributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] ?? 'unknown';
     const operationName = getFinalOperationName(methodPath);
@@ -241,7 +223,7 @@ function instrumentMethod<T extends unknown[], R>(
         },
         async span => {
           try {
-            if (finalOptions.recordInputs && params) {
+            if (options.recordInputs && params) {
               addPrivateRequestAttributes(span, params);
             }
 
@@ -249,7 +231,7 @@ function instrumentMethod<T extends unknown[], R>(
             return instrumentStream(
               result as AsyncIterable<AnthropicAiStreamingEvent>,
               span,
-              finalOptions.recordOutputs ?? false,
+              options.recordOutputs ?? false,
             ) as unknown as R;
           } catch (error) {
             span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
@@ -276,7 +258,7 @@ function instrumentMethod<T extends unknown[], R>(
         attributes: requestAttributes as Record<string, SpanAttributeValue>,
       },
       span => {
-        if (finalOptions.recordInputs && params) {
+        if (options.recordInputs && params) {
           addPrivateRequestAttributes(span, params);
         }
 
@@ -294,7 +276,7 @@ function instrumentMethod<T extends unknown[], R>(
             });
           },
           () => {},
-          result => addResponseAttributes(span, result as AnthropicAiResponse, finalOptions.recordOutputs),
+          result => addResponseAttributes(span, result as AnthropicAiResponse, options.recordOutputs),
         );
       },
     );
@@ -304,7 +286,7 @@ function instrumentMethod<T extends unknown[], R>(
 /**
  * Create a deep proxy for Anthropic AI client instrumentation
  */
-function createDeepProxy<T extends object>(target: T, currentPath = '', options?: AnthropicAiOptions): T {
+function createDeepProxy<T extends object>(target: T, currentPath = '', options: AnthropicAiOptions): T {
   return new Proxy(target, {
     get(obj: object, prop: string): unknown {
       const value = (obj as Record<string, unknown>)[prop];
@@ -337,6 +319,13 @@ function createDeepProxy<T extends object>(target: T, currentPath = '', options?
  * @param options - Optional configuration for recording inputs and outputs
  * @returns The instrumented client with the same type as the input
  */
-export function instrumentAnthropicAiClient<T extends object>(client: T, options?: AnthropicAiOptions): T {
-  return createDeepProxy(client, '', options);
+export function instrumentAnthropicAiClient<T extends object>(anthropicAiClient: T, options?: AnthropicAiOptions): T {
+  const sendDefaultPii = Boolean(getClient()?.getOptions().sendDefaultPii);
+
+  const _options = {
+    recordInputs: sendDefaultPii,
+    recordOutputs: sendDefaultPii,
+    ...options,
+  };
+  return createDeepProxy(anthropicAiClient, '', _options);
 }

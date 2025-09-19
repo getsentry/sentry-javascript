@@ -162,41 +162,43 @@ function getAffectedTestApplications(
   // eslint-disable-next-line no-console
   console.error(`Nx affected projects (${affectedProjects.length}): ${JSON.stringify(affectedProjects)}`);
 
-  // If something in e2e tests themselves are changed, check if only test applications were changed
+  // Run all test apps that have affected projects as dependencies
+  const testAppsToRun = new Set(
+    testApplications.filter(testApp => {
+      const sentryDependencies = getSentryDependencies(testApp);
+      return sentryDependencies.some(dep => affectedProjects.includes(dep));
+    }),
+  );
+
+  // If something in e2e tests themselves are changed, add changed test applications as well
   if (affectedProjects.includes('@sentry-internal/e2e-tests')) {
     try {
       const changedTestApps = getChangedTestApps(base, head);
 
-      // Shared code was changed, run all tests
       if (changedTestApps === false) {
+        // Shared code was changed, run all tests
         // eslint-disable-next-line no-console
         console.error('Shared e2e code changed. Running all test applications.');
-        return testApplications;
-      }
-
-      // Only test applications that were changed, run selectively
-      if (changedTestApps.size > 0) {
-        const selected = testApplications.filter(testApp => changedTestApps.has(testApp));
+        testApplications.forEach(testApp => testAppsToRun.add(testApp));
+      } else if (changedTestApps.size > 0) {
+        // Only test applications that were changed, run selectively
         // eslint-disable-next-line no-console
         console.error(
-          `Only changed test applications will run (${selected.length}): ${JSON.stringify(Array.from(changedTestApps))}`,
+          `Only changed test applications will run (${changedTestApps.size}): ${JSON.stringify(Array.from(changedTestApps))}`,
         );
-        return selected;
+        testApplications.forEach(testApp => {
+          if (changedTestApps.has(testApp)) {
+            testAppsToRun.add(testApp);
+          }
+        });
       }
     } catch (error) {
       // eslint-disable-next-line no-console
-      console.error('Failed to get changed files, running all tests:', error);
-      return testApplications;
+      console.error('Failed to get changed files:', error);
     }
-
-    // Fall back to running all tests
-    return testApplications;
   }
 
-  return testApplications.filter(testApp => {
-    const sentryDependencies = getSentryDependencies(testApp);
-    return sentryDependencies.some(dep => affectedProjects.includes(dep));
-  });
+  return Array.from(testAppsToRun);
 }
 
 function getChangedTestApps(base: string, head?: string): false | Set<string> {
