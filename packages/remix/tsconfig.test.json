@@ -8,6 +8,7 @@
     "types": ["node"],
     // Required for top-level await in tests
     "module": "Node16",
+    "moduleResolution": "Node16",
     "target": "es2020",
 
     "esModuleInterop": true
