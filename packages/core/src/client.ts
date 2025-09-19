@@ -137,7 +137,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   private _outcomes: { [key: string]: number };
 
   // eslint-disable-next-line @typescript-eslint/ban-types
-  private _hooks: Record<string, Function[]>;
+  private _hooks: Record<string, Set<Function>>;
 
   /**
    * Initializes this client instance.
@@ -685,21 +685,23 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    * Register a hook on this client.
    */
   public on(hook: string, callback: unknown): () => void {
-    const hooks = (this._hooks[hook] = this._hooks[hook] || []);
+    const hookCallbacks = (this._hooks[hook] = this._hooks[hook] || new Set());
 
-    // @ts-expect-error We assume the types are correct
-    hooks.push(callback);
+    // Wrap the callback in a function so that registering the same callback instance multiple
+    // times results in the callback being called multiple times.
+    // @ts-expect-error - The `callback` type is correct and must be a function due to the
+    // individual, specific overloads of this function.
+    // eslint-disable-next-line @typescript-eslint/ban-types
+    const uniqueCallback: Function = (...args: unknown[]) => callback(...args);
+
+    hookCallbacks.add(uniqueCallback);
 
     // This function returns a callback execution handler that, when invoked,
     // deregisters a callback. This is crucial for managing instances where callbacks
     // need to be unregistered to prevent self-referencing in callback closures,
     // ensuring proper garbage collection.
     return () => {
-      // @ts-expect-error We assume the types are correct
-      const cbIndex = hooks.indexOf(callback);
-      if (cbIndex > -1) {
-        hooks.splice(cbIndex, 1);
-      }
+      hookCallbacks.delete(uniqueCallback);
     };
   }
 
