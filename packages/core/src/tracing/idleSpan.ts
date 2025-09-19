@@ -6,6 +6,7 @@ import type { Span } from '../types-hoist/span';
 import type { StartSpanOptions } from '../types-hoist/startSpanOptions';
 import { debug } from '../utils/debug-logger';
 import { hasSpansEnabled } from '../utils/hasSpansEnabled';
+import { shouldIgnoreSpan } from '../utils/should-ignore-span';
 import { _setSpanForScope } from '../utils/spanOnScope';
 import {
   getActiveSpan,
@@ -156,10 +157,21 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
         return Reflect.apply(target, thisArg, [spanEndTimestamp, ...rest]);
       }
 
-      const childEndTimestamps = spans
-        .map(span => spanToJSON(span).timestamp)
-        .filter(timestamp => !!timestamp) as number[];
-      const latestSpanEndTimestamp = childEndTimestamps.length ? Math.max(...childEndTimestamps) : undefined;
+      const ignoreSpans = client.getOptions().ignoreSpans;
+
+      const latestSpanEndTimestamp = spans?.reduce((acc: number | undefined, current) => {
+        const currentSpanJson = spanToJSON(current);
+        if (!currentSpanJson.timestamp) {
+          return acc;
+        }
+        // Ignored spans will get dropped later (in the client) but since we already adjust
+        // the idle span end timestamp here, we can already take to-be-ignored spans out of
+        // the calculation here.
+        if (ignoreSpans && shouldIgnoreSpan(currentSpanJson, ignoreSpans)) {
+          return acc;
+        }
+        return acc ? Math.max(acc, currentSpanJson.timestamp) : currentSpanJson.timestamp;
+      }, undefined);
 
       // In reality this should always exist here, but type-wise it may be undefined...
       const spanStartTimestamp = spanToJSON(span).start_timestamp;
