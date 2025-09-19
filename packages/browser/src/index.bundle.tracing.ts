@@ -23,6 +23,8 @@ export {
   startBrowserTracingPageLoadSpan,
 } from './tracing/browserTracingIntegration';
 
+export { reportPageLoaded } from './tracing/reportPageLoaded';
+
 export {
   feedbackIntegrationShim as feedbackAsyncIntegration,
   feedbackIntegrationShim as feedbackIntegration,
