@@ -125,7 +125,10 @@ function createSourcemapUploadAssetPatterns(
 /**
  * Creates ignore patterns for source map uploads
  */
-function createSourcemapUploadIgnore(normalizedDistPath: string, widenClientFileUpload: boolean = false): string[] {
+function createSourcemapUploadIgnorePattern(
+  normalizedDistPath: string,
+  widenClientFileUpload: boolean = false,
+): string[] {
   const ignore: string[] = [];
 
   // We only add main-* files if the user has not opted into it
@@ -147,7 +150,7 @@ function createSourcemapUploadIgnore(normalizedDistPath: string, widenClientFile
 /**
  * Creates file patterns for deletion after source map upload
  */
-function createFilesToDeleteAfterUpload(
+function createFilesToDeleteAfterUploadPattern(
   normalizedDistPath: string,
   buildTool: BuildTool,
   deleteSourcemapsAfterUpload: boolean,
@@ -253,9 +256,9 @@ export function getBuildPluginOptions({
     widenClientFileUpload,
   );
 
-  const sourcemapUploadIgnore = createSourcemapUploadIgnore(normalizedDistDirAbsPath, widenClientFileUpload);
+  const sourcemapUploadIgnore = createSourcemapUploadIgnorePattern(normalizedDistDirAbsPath, widenClientFileUpload);
 
-  const filesToDeleteAfterUpload = createFilesToDeleteAfterUpload(
+  const filesToDeleteAfterUpload = createFilesToDeleteAfterUploadPattern(
     normalizedDistDirAbsPath,
     buildTool,
     deleteSourcemapsAfterUpload,
