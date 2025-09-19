@@ -106,7 +106,7 @@ function createSourcemapUploadAssetPatterns(
         path.posix.join(normalizedDistPath, getServerPattern({ useDirectoryPath: false })),
         path.posix.join(normalizedDistPath, FILE_PATTERNS.SERVERLESS),
       );
-    } else {
+    } else if (buildTool === 'webpack-client') {
       // Client builds
       if (widenClientFileUpload) {
         assets.push(path.posix.join(normalizedDistPath, getStaticChunksPattern({ useDirectoryPath: false })));
