@@ -62,6 +62,17 @@ export const DEFAULT_SERVER_EXTERNAL_PACKAGES = [
  * @returns The modified config to be exported
  */
 export function withSentryConfig<C>(nextConfig?: C, sentryBuildOptions: SentryBuildOptions = {}): C {
+  if (process.env.npm_lifecycle_event && !process.env.npm_lifecycle_event.includes('build')) {
+    if (sentryBuildOptions.debug) {
+      // eslint-disable-next-line no-console
+      console.debug(
+        '[@sentry/nextjs] Exiting withSentryConfig because of non-build npm_lifecycle_event detected:',
+        process.env.npm_lifecycle_event,
+      );
+    }
+    return nextConfig as C;
+  }
+
   const castNextConfig = (nextConfig as NextConfig) || {};
   if (typeof castNextConfig === 'function') {
     return function (this: unknown, ...webpackConfigFunctionArgs: unknown[]): ReturnType<NextConfigFunction> {
