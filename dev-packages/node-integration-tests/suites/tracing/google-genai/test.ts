@@ -203,7 +203,7 @@ describe('Google GenAI integration', () => {
         .completed();
     });
   });
-  
+
   const EXPECTED_TRANSACTION_TOOLS = {
     transaction: 'main',
     spans: expect.arrayContaining([
