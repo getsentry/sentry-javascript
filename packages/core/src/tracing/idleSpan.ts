@@ -75,8 +75,16 @@ interface IdleSpanOptions {
    * Defaults to `false`.
    */
   disableAutoFinish?: boolean;
+
   /** Allows to configure a hook that is called when the idle span is ended, before it is processed. */
   beforeSpanEnd?: (span: Span) => void;
+
+  /**
+   * If set to `true`, the idle span will be trimmed to the latest span end timestamp of its children.
+   *
+   * @default `true`.
+   */
+  trimIdleSpanEndTimestamp?: boolean;
 }
 
 /**
@@ -108,6 +116,7 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
     finalTimeout = TRACING_DEFAULTS.finalTimeout,
     childSpanTimeout = TRACING_DEFAULTS.childSpanTimeout,
     beforeSpanEnd,
+    trimIdleSpanEndTimestamp = true,
   } = options;
 
   const client = getClient();
@@ -151,8 +160,11 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
       // Ensure we end with the last span timestamp, if possible
       const spans = getSpanDescendants(span).filter(child => child !== span);
 
+      const spanJson = spanToJSON(span);
+
       // If we have no spans, we just end, nothing else to do here
-      if (!spans.length) {
+      // Likewise, if users explicitly ended the span, we simply end the span without timestamp adjustment
+      if (!spans.length || !trimIdleSpanEndTimestamp) {
         onIdleSpanEnded(spanEndTimestamp);
         return Reflect.apply(target, thisArg, [spanEndTimestamp, ...rest]);
       }
@@ -174,7 +186,7 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
       }, undefined);
 
       // In reality this should always exist here, but type-wise it may be undefined...
-      const spanStartTimestamp = spanToJSON(span).start_timestamp;
+      const spanStartTimestamp = spanJson.start_timestamp;
 
       // The final endTimestamp should:
       // * Never be before the span start timestamp

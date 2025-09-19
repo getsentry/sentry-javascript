@@ -116,10 +116,10 @@ export function _INTERNAL_captureSerializedLog(client: Client, serializedLog: Se
  */
 export function _INTERNAL_captureLog(
   beforeLog: Log,
-  client: Client | undefined = getClient(),
   currentScope = getCurrentScope(),
   captureSerializedLog: (client: Client, log: SerializedLog) => void = _INTERNAL_captureSerializedLog,
 ): void {
+  const client = currentScope?.getClient() ?? getClient();
   if (!client) {
     DEBUG_BUILD && debug.warn('No client available to capture log.');
     return;
