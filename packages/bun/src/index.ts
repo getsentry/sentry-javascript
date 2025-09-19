@@ -130,6 +130,8 @@ export {
   prismaIntegration,
   hapiIntegration,
   setupHapiErrorHandler,
+  honoIntegration,
+  setupHonoErrorHandler,
   spotlightIntegration,
   initOpenTelemetry,
   spanToJSON,
