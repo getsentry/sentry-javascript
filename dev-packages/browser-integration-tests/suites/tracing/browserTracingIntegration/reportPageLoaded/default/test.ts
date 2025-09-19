@@ -9,7 +9,7 @@ import { sentryTest } from '../../../../../utils/fixtures';
 import { envelopeRequestParser, shouldSkipTracingTest, waitForTransactionRequest } from '../../../../../utils/helpers';
 
 sentryTest(
-  'waits for Sentry.reportPageLoaded() to be called when `explicitPageloadEnd` is true',
+  'waits for Sentry.reportPageLoaded() to be called when `enableReportPageLoaded` is true',
   async ({ getLocalTestUrl, page }) => {
     if (shouldSkipTracingTest()) {
       sentryTest.skip();

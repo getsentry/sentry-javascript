@@ -265,7 +265,7 @@ export interface BrowserTracingOptions {
    * that the pageload duration can be arbitrary and might not be fully representative of a perceived
    * page load time.
    */
-  explicitPageloadEnd: boolean;
+  enableReportPageLoaded: boolean;
 
   /**
    * _experiments allows the user to send options to define how this integration works.
@@ -314,7 +314,7 @@ const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
   detectRedirects: true,
   linkPreviousTrace: 'in-memory',
   consistentTraceSampling: false,
-  explicitPageloadEnd: false,
+  enableReportPageLoaded: false,
   _experiments: {},
   ...defaultRequestInstrumentationOptions,
 };
@@ -363,7 +363,7 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
     detectRedirects,
     linkPreviousTrace,
     consistentTraceSampling,
-    explicitPageloadEnd,
+    enableReportPageLoaded,
     onRequestSpanStart,
   } = {
     ...DEFAULT_BROWSER_TRACING_OPTIONS,
@@ -442,10 +442,10 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
           _pageloadSpan = undefined;
         }
       },
-      trimIdleSpanEndTimestamp: !explicitPageloadEnd,
+      trimIdleSpanEndTimestamp: !enableReportPageLoaded,
     });
 
-    if (isPageloadSpan && explicitPageloadEnd) {
+    if (isPageloadSpan && enableReportPageLoaded) {
       _pageloadSpan = idleSpan;
     }
 
@@ -458,7 +458,7 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
     }
 
     // Enable auto finish of the pageload span if users are not explicitly ending it
-    if (isPageloadSpan && !explicitPageloadEnd && optionalWindowDocument) {
+    if (isPageloadSpan && !enableReportPageLoaded && optionalWindowDocument) {
       optionalWindowDocument.addEventListener('readystatechange', () => {
         emitFinish();
       });
@@ -607,7 +607,7 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
       });
 
       client.on('endPageloadSpan', () => {
-        if (explicitPageloadEnd && _pageloadSpan) {
+        if (enableReportPageLoaded && _pageloadSpan) {
           _pageloadSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON, 'reportPageLoaded');
           _pageloadSpan.end();
         }
@@ -765,17 +765,14 @@ export function getMetaContent(metaName: string): string | undefined {
 
 /**
  * Manually report the end of the page load, resulting in the SDK ending the pageload span.
- * This only works if {@link BrowserTracingOptions.explicitPageloadEnd} is set to `true`.
+ * This only works if {@link BrowserTracingOptions.enableReportPageLoaded} is set to `true`.
  * Otherwise, the pageload span will end itself based on the {@link BrowserTracingOptions.finalTimeout},
  * {@link BrowserTracingOptions.idleTimeout} and {@link BrowserTracingOptions.childSpanTimeout}.
  *
  * @param client - The client to use. If not provided, the global client will be used.
  */
-export function reportPageLoaded(client?: Client): void {
-  const clientToUse = client ?? getClient();
-  if (clientToUse) {
-    clientToUse.emit('endPageloadSpan');
-  }
+export function reportPageLoaded(client: Client | undefined = getClient()): void {
+  client?.emit('endPageloadSpan');
 }
 
 /** Start listener for interaction transactions */

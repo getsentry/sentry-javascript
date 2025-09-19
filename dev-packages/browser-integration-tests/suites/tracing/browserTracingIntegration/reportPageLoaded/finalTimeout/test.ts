@@ -9,7 +9,7 @@ import { sentryTest } from '../../../../../utils/fixtures';
 import { envelopeRequestParser, shouldSkipTracingTest, waitForTransactionRequest } from '../../../../../utils/helpers';
 
 sentryTest(
-  'final timeout cancels the pageload span even if `explicitPageloadEnd` is true',
+  'final timeout cancels the pageload span even if `enableReportPageLoaded` is true',
   async ({ getLocalTestUrl, page }) => {
     if (shouldSkipTracingTest()) {
       sentryTest.skip();

@@ -5,7 +5,7 @@ window._testBaseTimestamp = performance.timeOrigin / 1000;
 
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
-  integrations: [Sentry.browserTracingIntegration({ explicitPageloadEnd: true, finalTimeout: 3000 })],
+  integrations: [Sentry.browserTracingIntegration({ enableReportPageLoaded: true, finalTimeout: 3000 })],
   tracesSampleRate: 1,
   debug: true,
 });
