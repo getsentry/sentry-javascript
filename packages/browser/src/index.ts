@@ -1,10 +1,7 @@
 import { feedbackAsyncIntegration } from './feedbackAsync';
 import { feedbackSyncIntegration } from './feedbackSync';
-import * as logger from './log';
 
 export * from './exports';
-
-export { logger };
 
 export { reportingObserverIntegration } from './integrations/reportingobserver';
 export { httpClientIntegration } from './integrations/httpclient';
@@ -63,6 +60,7 @@ export {
   zodErrorsIntegration,
   thirdPartyErrorFilterIntegration,
   featureFlagsIntegration,
+  logger,
 } from '@sentry/core';
 export type { Span, FeatureFlagsIntegration } from '@sentry/core';
 export { makeBrowserOfflineTransport } from './transports/offline';

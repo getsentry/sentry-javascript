@@ -2,7 +2,7 @@ import { createCheckInEnvelope } from './checkin';
 import { _getTraceInfoFromScope, Client } from './client';
 import { getIsolationScope } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
-import { _INTERNAL_flushLogsBuffer } from './logs/exports';
+import { _INTERNAL_flushLogsBuffer } from './logs/internal';
 import type { Scope } from './scope';
 import { registerSpanErrorInstrumentation } from './tracing';
 import type { CheckIn, MonitorConfig, SerializedCheckIn } from './types-hoist/checkin';
