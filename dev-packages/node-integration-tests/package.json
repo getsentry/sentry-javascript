@@ -23,6 +23,7 @@
     "test:watch": "yarn test --watch"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "0.63.0",
     "@aws-sdk/client-s3": "^3.552.0",
     "@google/genai": "^1.20.0",
     "@hapi/hapi": "^21.3.10",
