@@ -43,23 +43,13 @@ type Options = {
   handled?: boolean;
 };
 
-function attributesFromObject(obj: object, attr: Record<string, unknown>, key?: string): Record<string, unknown> {
-  for (const [k, v] of Object.entries(obj)) {
-    const newKey = key ? `${key}.${k}` : k;
-    if (v && typeof v === 'object' && !Array.isArray(v) && !(v instanceof Error)) {
-      attributesFromObject(v as object, attr, newKey);
-    } else {
-      attr[newKey] = v;
-    }
-  }
-  return attr;
-}
-
 const DEFAULT_OPTIONS: Options = { eventLevels: ['error', 'fatal'], handled: true };
 
 /**
  * Integration for Pino logging library.
  * Captures Pino logs as Sentry logs and optionally captures some log levels as events.
+ *
+ * Requires Pino >=v8.0.0 and Node >=20.6.0 or >=18.19.0
  */
 export const pinoIntegration = defineIntegration((options: Options = DEFAULT_OPTIONS) => {
   return {
@@ -85,10 +75,11 @@ export const pinoIntegration = defineIntegration((options: Options = DEFAULT_OPT
         const [obj, message, levelNumber] = args;
         const level = self?.levels?.labels?.[levelNumber] || 'info';
 
-        const attributes = attributesFromObject(obj, {
+        const attributes = {
           'sentry.origin': 'auto.logging.pino',
           'sentry.pino.level': levelNumber,
-        });
+          ...obj,
+        };
 
         if (enableLogs) {
           _INTERNAL_captureLog({ level, message, attributes });

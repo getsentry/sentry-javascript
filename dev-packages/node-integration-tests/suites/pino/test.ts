@@ -69,8 +69,10 @@ conditionalTest({ min: 20 })('Pino integration', () => {
                 'sentry.origin': { value: 'auto.logging.pino', type: 'string' },
                 'sentry.pino.level': { value: 30, type: 'integer' },
                 user: { value: 'user-id', type: 'string' },
-                'something.more': { value: 3, type: 'integer' },
-                'something.complex': { value: 'nope', type: 'string' },
+                something: {
+                  type: 'string',
+                  value: '{"more":3,"complex":"nope"}',
+                },
                 'sentry.release': { value: '1.0', type: 'string' },
                 'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
               }),
