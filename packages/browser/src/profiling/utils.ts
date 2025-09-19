@@ -564,7 +564,9 @@ export function addProfileToGlobalCache(profile_id: string, profile: JSSelfProfi
   PROFILE_MAP.set(profile_id, profile);
 
   if (PROFILE_MAP.size > 30) {
-    const last: string = PROFILE_MAP.keys().next().value;
-    PROFILE_MAP.delete(last);
+    const last = PROFILE_MAP.keys().next().value;
+    if (last) {
+      PROFILE_MAP.delete(last);
+    }
   }
 }
