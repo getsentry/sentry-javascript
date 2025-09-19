@@ -164,6 +164,7 @@ function processChunk(chunk: GoogleGenAIResponse, state: StreamingState, recordO
   }
 
   const isError = isErrorChunk(chunk, span);
+  // No further metadata or content will be sent to process
   if (isError) return;
 
   handleResponseMetadata(chunk, state);
@@ -197,7 +198,7 @@ export async function* instrumentStream(
       yield chunk;
     }
   } finally {
-    // Set common response attributes if available
+    // Set common response attributes if available once the stream is finished
     if (state.responseId) {
       span.setAttributes({
         [GEN_AI_RESPONSE_ID_ATTRIBUTE]: state.responseId,

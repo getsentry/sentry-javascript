@@ -1,7 +1,8 @@
 import { getClient } from '../../currentScopes';
 import { captureException } from '../../exports';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
-import { startSpan } from '../../tracing/trace';
+import { SPAN_STATUS_ERROR } from '../../tracing';
+import { startSpan, startSpanManual } from '../../tracing/trace';
 import type { Span, SpanAttributeValue } from '../../types-hoist/span';
 import {
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
@@ -24,6 +25,7 @@ import {
 import { buildMethodPath, getFinalOperationName, getSpanOperation } from '../ai/utils';
 import { handleCallbackErrors } from '../handleCallbackErrors';
 import { CHAT_PATH, CHATS_CREATE_METHOD, GOOGLE_GENAI_SYSTEM_NAME } from './constants';
+import { instrumentStream } from './streaming';
 import type {
   Candidate,
   ContentPart,
@@ -31,7 +33,7 @@ import type {
   GoogleGenAIOptions,
   GoogleGenAIResponse,
 } from './types';
-import { shouldInstrument } from './utils';
+import { isStreamingMethod, shouldInstrument } from './utils';
 
 /**
  * Extract model from parameters or chat context object
@@ -93,8 +95,8 @@ function extractConfigAttributes(config: Record<string, unknown>): Record<string
  * Builds the base attributes for span creation including system info, model, and config
  */
 function extractRequestAttributes(
-  args: unknown[],
   methodPath: string,
+  params?: Record<string, unknown>,
   context?: unknown,
 ): Record<string, SpanAttributeValue> {
   const attributes: Record<string, SpanAttributeValue> = {
@@ -103,9 +105,7 @@ function extractRequestAttributes(
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.google_genai',
   };
 
-  if (args.length > 0 && typeof args[0] === 'object' && args[0] !== null) {
-    const params = args[0] as Record<string, unknown>;
-
+  if (params) {
     attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] = extractModel(params, context);
 
     // Extract generation config parameters
@@ -223,10 +223,42 @@ function instrumentMethod<T extends unknown[], R>(
   const isSyncCreate = methodPath === CHATS_CREATE_METHOD;
 
   const run = (...args: T): R | Promise<R> => {
-    const requestAttributes = extractRequestAttributes(args, methodPath, context);
+    const params = args[0] as Record<string, unknown> | undefined;
+    const requestAttributes = extractRequestAttributes(methodPath, params, context);
     const model = requestAttributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] ?? 'unknown';
     const operationName = getFinalOperationName(methodPath);
 
+    // Check if this is a streaming method
+    if (isStreamingMethod(methodPath)) {
+      // Use startSpanManual for streaming methods to control span lifecycle
+      return startSpanManual(
+        {
+          name: `${operationName} ${model} stream-response`,
+          op: getSpanOperation(methodPath),
+          attributes: requestAttributes,
+        },
+        async (span: Span) => {
+          try {
+            if (options.recordInputs && params) {
+              addPrivateRequestAttributes(span, params);
+            }
+            const stream = await originalMethod.apply(context, args);
+            return instrumentStream(stream, span, Boolean(options.recordOutputs)) as R;
+          } catch (error) {
+            span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+            captureException(error, {
+              mechanism: {
+                handled: false,
+                type: 'auto.ai.google_genai',
+                data: { function: methodPath },
+              },
+            });
+            span.end();
+            throw error;
+          }
+        },
+      );
+    }
     // Single span for both sync and async operations
     return startSpan(
       {
@@ -235,8 +267,8 @@ function instrumentMethod<T extends unknown[], R>(
         attributes: requestAttributes,
       },
       (span: Span) => {
-        if (options.recordInputs && args[0] && typeof args[0] === 'object') {
-          addPrivateRequestAttributes(span, args[0] as Record<string, unknown>);
+        if (options.recordInputs && params) {
+          addPrivateRequestAttributes(span, params);
         }
 
         return handleCallbackErrors(
