@@ -179,14 +179,6 @@ export interface GoogleGenAIChat {
   sendMessageStream: (...args: unknown[]) => Promise<AsyncGenerator<GenerateContentResponse, any, unknown>>;
 }
 
-/**
- * Google GenAI Integration interface for type safety
- */
-export interface GoogleGenAIIntegration {
-  name: string;
-  options: GoogleGenAIOptions;
-}
-
 export type GoogleGenAIIstrumentedMethod = (typeof GOOGLE_GENAI_INSTRUMENTED_METHODS)[number];
 
 // Export the response type for use in instrumentation

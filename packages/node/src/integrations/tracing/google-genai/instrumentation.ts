@@ -37,6 +37,10 @@ export class SentryGoogleGenAiInstrumentation extends InstrumentationBase<Google
       supportedVersions,
       exports => this._patch(exports),
       exports => exports,
+      // In CJS, @google/genai re-exports from (dist/node/index.cjs) file.
+      // Patching only the root module sometimes misses the real implementation or
+      // gets overwritten when that file is loaded. We add a file-level patch so that
+      // _patch runs again on the concrete implementation
       [
         new InstrumentationNodeModuleFile(
           '@google/genai/dist/node/index.cjs',
@@ -57,7 +61,7 @@ export class SentryGoogleGenAiInstrumentation extends InstrumentationBase<Google
     const config = this.getConfig();
 
     if (typeof Original !== 'function') {
-      return;
+      return exports;
     }
 
     const WrappedGoogleGenAI = function (this: unknown, ...args: unknown[]): GoogleGenAIClient {

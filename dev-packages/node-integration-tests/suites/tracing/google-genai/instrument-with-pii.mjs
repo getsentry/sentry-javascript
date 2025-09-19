@@ -7,7 +7,6 @@ Sentry.init({
   tracesSampleRate: 1.0,
   sendDefaultPii: true,
   transport: loggingTransport,
-  integrations: [Sentry.googleGenAIIntegration()],
   beforeSendTransaction: event => {
     // Filter out mock express server transactions
     if (event.transaction.includes('/v1beta/')) {
