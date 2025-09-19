@@ -9,6 +9,7 @@
 
     // require for top-level await
     "module": "Node16",
+    "moduleResolution": "Node16",
     "target": "es2020",
 
     // other package-specific, test-specific options

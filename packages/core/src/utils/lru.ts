@@ -27,7 +27,10 @@ export class LRUMap<K, V> {
   public set(key: K, value: V): void {
     if (this._cache.size >= this._maxSize) {
       // keys() returns an iterator in insertion order so keys().next() gives us the oldest key
-      this._cache.delete(this._cache.keys().next().value);
+      const nextKey = this._cache.keys().next().value;
+      if (nextKey) {
+        this._cache.delete(nextKey);
+      }
     }
     this._cache.set(key, value);
   }
