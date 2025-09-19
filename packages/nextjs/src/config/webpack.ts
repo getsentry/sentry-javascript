@@ -7,6 +7,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { sync as resolveSync } from 'resolve';
 import type { VercelCronsConfig } from '../common/types';
+import { getBuildPluginOptions, normalizePathForGlob } from './getBuildPluginOptions';
 import type { RouteManifest } from './manifest/types';
 // Note: If you need to import a type from Webpack, do it in `types.ts` and export it from there. Otherwise, our
 // circular dependency check thinks this file is importing from itself. See https://github.com/pahen/madge/issues/306.
@@ -22,7 +23,6 @@ import type {
   WebpackEntryProperty,
 } from './types';
 import { getNextjsVersion } from './util';
-import { getWebpackPluginOptions } from './webpackPluginOptions';
 
 // Next.js runs webpack 3 times, once for the client, the server, and for edge. Because we don't want to print certain
 // warnings 3 times, we keep track of them here.
@@ -40,13 +40,21 @@ let showedMissingGlobalErrorWarningMsg = false;
  * @param userSentryOptions The user's SentryWebpackPlugin config, as passed to `withSentryConfig`
  * @returns The function to set as the nextjs config's `webpack` value
  */
-export function constructWebpackConfigFunction(
-  userNextConfig: NextConfigObject = {},
-  userSentryOptions: SentryBuildOptions = {},
-  releaseName: string | undefined,
-  routeManifest: RouteManifest | undefined,
-  nextJsVersion: string | undefined,
-): WebpackConfigFunction {
+export function constructWebpackConfigFunction({
+  userNextConfig = {},
+  userSentryOptions = {},
+  releaseName,
+  routeManifest,
+  nextJsVersion,
+  useRunAfterProductionCompileHook,
+}: {
+  userNextConfig: NextConfigObject;
+  userSentryOptions: SentryBuildOptions;
+  releaseName: string | undefined;
+  routeManifest: RouteManifest | undefined;
+  nextJsVersion: string | undefined;
+  useRunAfterProductionCompileHook: boolean | undefined;
+}): WebpackConfigFunction {
   // Will be called by nextjs and passed its default webpack configuration and context data about the build (whether
   // we're building server or client, whether we're in dev, what version of webpack we're using, etc). Note that
   // `incomingConfig` and `buildContext` are referred to as `config` and `options` in the nextjs docs.
@@ -408,9 +416,22 @@ export function constructWebpackConfigFunction(
         }
 
         newConfig.plugins = newConfig.plugins || [];
+        const { config: userNextConfig, dir, nextRuntime } = buildContext;
+        const buildTool = isServer ? (nextRuntime === 'edge' ? 'webpack-edge' : 'webpack-nodejs') : 'webpack-client';
+        const projectDir = normalizePathForGlob(dir);
+        const distDir = normalizePathForGlob((userNextConfig as NextConfigObject).distDir ?? '.next');
+        const distDirAbsPath = path.posix.join(projectDir, distDir);
+
         const sentryWebpackPluginInstance = sentryWebpackPlugin(
-          getWebpackPluginOptions(buildContext, userSentryOptions, releaseName),
+          getBuildPluginOptions({
+            sentryBuildOptions: userSentryOptions,
+            releaseName,
+            distDirAbsPath,
+            buildTool,
+            useRunAfterProductionCompileHook,
+          }),
         );
+
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         sentryWebpackPluginInstance._name = 'sentry-webpack-plugin'; // For tests and debugging. Serves no other purpose.
         newConfig.plugins.push(sentryWebpackPluginInstance);

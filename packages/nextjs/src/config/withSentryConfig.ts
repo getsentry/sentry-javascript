@@ -329,16 +329,21 @@ function getFinalConfigObject(
   if (isTurbopackSupported && isTurbopack && !userSentryOptions.sourcemaps?.disable) {
     // Only set if not already configured by user
     if (incomingUserNextConfigObject.productionBrowserSourceMaps === undefined) {
-      // eslint-disable-next-line no-console
-      console.log('[@sentry/nextjs] Automatically enabling browser source map generation for turbopack build.');
+      if (userSentryOptions.debug) {
+        // eslint-disable-next-line no-console
+        console.log('[@sentry/nextjs] Automatically enabling browser source map generation for turbopack build.');
+      }
       incomingUserNextConfigObject.productionBrowserSourceMaps = true;
 
       // Enable source map deletion if not explicitly disabled
       if (userSentryOptions.sourcemaps?.deleteSourcemapsAfterUpload === undefined) {
-        // eslint-disable-next-line no-console
-        console.warn(
-          '[@sentry/nextjs] Source maps will be automatically deleted after being uploaded to Sentry. If you want to keep the source maps, set the `sourcemaps.deleteSourcemapsAfterUpload` option to false in `withSentryConfig()`. If you do not want to generate and upload sourcemaps at all, set the `sourcemaps.disable` option to true.',
-        );
+        if (userSentryOptions.debug) {
+          // eslint-disable-next-line no-console
+          console.warn(
+            '[@sentry/nextjs] Source maps will be automatically deleted after being uploaded to Sentry. If you want to keep the source maps, set the `sourcemaps.deleteSourcemapsAfterUpload` option to false in `withSentryConfig()`. If you do not want to generate and upload sourcemaps at all, set the `sourcemaps.disable` option to true.',
+          );
+        }
+
         userSentryOptions.sourcemaps = {
           ...userSentryOptions.sourcemaps,
           deleteSourcemapsAfterUpload: true,
@@ -368,13 +373,14 @@ function getFinalConfigObject(
     webpack:
       isTurbopack || userSentryOptions.disableSentryWebpackConfig
         ? incomingUserNextConfigObject.webpack // just return the original webpack config
-        : constructWebpackConfigFunction(
-            incomingUserNextConfigObject,
+        : constructWebpackConfigFunction({
+            userNextConfig: incomingUserNextConfigObject,
             userSentryOptions,
             releaseName,
             routeManifest,
             nextJsVersion,
-          ),
+            useRunAfterProductionCompileHook: userSentryOptions._experimental?.useRunAfterProductionCompileHook,
+          }),
     ...(isTurbopackSupported && isTurbopack
       ? {
           turbopack: constructTurbopackConfig({
