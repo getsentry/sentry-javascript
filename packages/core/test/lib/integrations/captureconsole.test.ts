@@ -328,7 +328,7 @@ describe('CaptureConsole setup', () => {
 
       expect(someEvent.exception?.values?.[0]?.mechanism).toEqual({
         handled: true,
-        type: 'console',
+        type: 'auto.core.capture_console',
       });
     });
 
@@ -352,7 +352,7 @@ describe('CaptureConsole setup', () => {
 
       expect(someEvent.exception?.values?.[0]?.mechanism).toEqual({
         handled: true,
-        type: 'console',
+        type: 'auto.core.capture_console',
       });
     });
 
@@ -376,7 +376,7 @@ describe('CaptureConsole setup', () => {
 
       expect(someEvent.exception?.values?.[0]?.mechanism).toEqual({
         handled: false,
-        type: 'console',
+        type: 'auto.core.capture_console',
       });
     });
   });

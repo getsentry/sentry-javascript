@@ -48,7 +48,7 @@ export async function withServerActionInstrumentation<A extends (...args: unknow
             captureException(error, {
               mechanism: {
                 handled: false,
-                type: 'solidstart',
+                type: 'auto.function.solidstart',
               },
             });
           }

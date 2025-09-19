@@ -26,7 +26,9 @@ describe('attachErrorHandler', () => {
 
         // assert
         t.expect.errorToHaveBeenCaptured().withoutProps();
-        t.expect.errorToHaveBeenCaptured().withMechanismMetadata({ handled: false, type: 'vue' });
+        t.expect
+          .errorToHaveBeenCaptured()
+          .withMechanismMetadata({ handled: false, type: 'auto.function.vue.error_handler' });
       });
     });
 
@@ -47,7 +49,9 @@ describe('attachErrorHandler', () => {
 
             // assert
             t.expect.errorToHaveBeenCaptured().withoutProps();
-            t.expect.errorToHaveBeenCaptured().withMechanismMetadata({ handled: false, type: 'vue' });
+            t.expect
+              .errorToHaveBeenCaptured()
+              .withMechanismMetadata({ handled: false, type: 'auto.function.vue.error_handler' });
           });
         });
 
@@ -146,7 +150,9 @@ describe('attachErrorHandler', () => {
         vi.runAllTimers();
 
         // assert
-        t.expect.errorToHaveBeenCaptured().withMechanismMetadata({ handled: false, type: 'vue' });
+        t.expect
+          .errorToHaveBeenCaptured()
+          .withMechanismMetadata({ handled: false, type: 'auto.function.vue.error_handler' });
       });
 
       it('should mark error as handled and properly delegate to error handler', () => {
@@ -167,7 +173,9 @@ describe('attachErrorHandler', () => {
 
         // assert
         t.expect.errorHandlerSpy.toHaveBeenCalledWith(expect.any(Error), vm, 'stub-lifecycle-hook');
-        t.expect.errorToHaveBeenCaptured().withMechanismMetadata({ handled: true, type: 'vue' });
+        t.expect
+          .errorToHaveBeenCaptured()
+          .withMechanismMetadata({ handled: true, type: 'auto.function.vue.error_handler' });
       });
     });
   });
@@ -305,7 +313,7 @@ const testHarness = ({
           withoutProps: () => {
             expect(contexts).not.toHaveProperty('vue.propsData');
           },
-          withMechanismMetadata: (mechanism: { handled: boolean; type: 'vue' }) => {
+          withMechanismMetadata: (mechanism: { handled: boolean; type: 'auto.function.vue.error_handler' }) => {
             expect(mechanismMetadata).toEqual(mechanism);
           },
         };
