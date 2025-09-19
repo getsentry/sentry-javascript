@@ -185,13 +185,7 @@ function shouldSkipSourcemapUpload(buildTool: BuildTool, useRunAfterProductionCo
  * Source rewriting function for webpack sources
  */
 function rewriteWebpackSources(source: string): string {
-  if (source.startsWith('webpack://_N_E/')) {
-    return source.replace('webpack://_N_E/', '');
-  } else if (source.startsWith('webpack://')) {
-    return source.replace('webpack://', '');
-  } else {
-    return source;
-  }
+  return source.replace(/^webpack:\/\/(?:_N_E\/)?/, '');
 }
 
 /**
