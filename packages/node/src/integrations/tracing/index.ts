@@ -7,6 +7,7 @@ import { expressIntegration, instrumentExpress } from './express';
 import { fastifyIntegration, instrumentFastify, instrumentFastifyV3 } from './fastify';
 import { firebaseIntegration, instrumentFirebase } from './firebase';
 import { genericPoolIntegration, instrumentGenericPool } from './genericPool';
+import { googleGenAIIntegration, instrumentGoogleGenAI } from './google-genai';
 import { graphqlIntegration, instrumentGraphql } from './graphql';
 import { hapiIntegration, instrumentHapi } from './hapi';
 import { instrumentKafka, kafkaIntegration } from './kafka';
@@ -52,6 +53,7 @@ export function getAutoPerformanceIntegrations(): Integration[] {
     postgresJsIntegration(),
     firebaseIntegration(),
     anthropicAIIntegration(),
+    googleGenAIIntegration(),
   ];
 }
 
@@ -87,5 +89,6 @@ export function getOpenTelemetryInstrumentationToPreload(): (((options?: any) =>
     instrumentPostgresJs,
     instrumentFirebase,
     instrumentAnthropicAi,
+    instrumentGoogleGenAI,
   ];
 }

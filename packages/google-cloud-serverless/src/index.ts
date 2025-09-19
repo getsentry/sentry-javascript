@@ -123,6 +123,7 @@ export {
   profiler,
   amqplibIntegration,
   anthropicAIIntegration,
+  googleGenAIIntegration,
   childProcessIntegration,
   createSentryWinstonTransport,
   vercelAIIntegration,
