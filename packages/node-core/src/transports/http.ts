@@ -127,7 +127,7 @@ function createRequestExecutor(
           body = body.pipe(createGzip());
         }
 
-        const hostnameIsIPv6 = hostname.startsWith("[");
+        const hostnameIsIPv6 = hostname.startsWith('[');
 
         const req = httpModule.request(
           {
