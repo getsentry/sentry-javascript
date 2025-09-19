@@ -1,6 +1,6 @@
 import { captureException } from '../../exports';
 import { SPAN_STATUS_ERROR } from '../../tracing';
-import type { Span } from '../../types-hoist/span';
+import type { Span, SpanAttributeValue } from '../../types-hoist/span';
 import {
   GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE,
   GEN_AI_RESPONSE_ID_ATTRIBUTE,
@@ -23,15 +23,15 @@ interface StreamingState {
   /** Reasons for finishing the response, as reported by the API. */
   finishReasons: string[];
   /** The response ID. */
-  responseId: string;
+  responseId?: string;
   /** The model name. */
-  responseModel: string;
+  responseModel?: string;
   /** Number of prompt/input tokens used. */
-  promptTokens: number | undefined;
+  promptTokens?: number;
   /** Number of completion/output tokens used. */
-  completionTokens: number | undefined;
+  completionTokens?: number;
   /** Number of total tokens used. */
-  totalTokens: number | undefined;
+  totalTokens?: number;
   /** Accumulated tool calls (finalized) */
   toolCalls: Array<Record<string, unknown>>;
 }
@@ -43,25 +43,14 @@ interface StreamingState {
  * @returns Whether an error occurred
  */
 function isErrorChunk(chunk: GoogleGenAIResponse, span: Span): boolean {
-  // Check for errors in the response
-  if (chunk && typeof chunk === 'object') {
-    // Google GenAI may include error information in promptFeedback
-    if (chunk.promptFeedback && typeof chunk.promptFeedback === 'object') {
-      const feedback = chunk.promptFeedback;
-      if (feedback.blockReason && typeof feedback.blockReason === 'string') {
-        // Use blockReasonMessage if available (more descriptive), otherwise use blockReason (enum)
-        const errorMessage = feedback.blockReasonMessage ? feedback.blockReasonMessage : feedback.blockReason;
-
-        span.setStatus({ code: SPAN_STATUS_ERROR, message: `Content blocked: ${errorMessage}` });
-        captureException(`Content blocked: ${errorMessage}`, {
-          mechanism: {
-            handled: false,
-            type: 'auto.ai.google_genai',
-          },
-        });
-        return true;
-      }
-    }
+  const feedback = chunk?.promptFeedback;
+  if (feedback?.blockReason) {
+    const message = feedback.blockReasonMessage ?? feedback.blockReason;
+    span.setStatus({ code: SPAN_STATUS_ERROR, message: `Content blocked: ${message}` });
+    captureException(`Content blocked: ${message}`, {
+      mechanism: { handled: false, type: 'auto.ai.google_genai' },
+    });
+    return true;
   }
   return false;
 }
@@ -72,30 +61,14 @@ function isErrorChunk(chunk: GoogleGenAIResponse, span: Span): boolean {
  * @param state - The state of the streaming process
  */
 function handleResponseMetadata(chunk: GoogleGenAIResponse, state: StreamingState): void {
-  if (!chunk || typeof chunk !== 'object') return;
+  if (typeof chunk.responseId === 'string') state.responseId = chunk.responseId;
+  if (typeof chunk.modelVersion === 'string') state.responseModel = chunk.modelVersion;
 
-  // Extract response ID
-  if (chunk.responseId && typeof chunk.responseId === 'string') {
-    state.responseId = chunk.responseId;
-  }
-
-  // Extract model version
-  if (chunk.modelVersion && typeof chunk.modelVersion === 'string') {
-    state.responseModel = chunk.modelVersion;
-  }
-
-  // Extract usage metadata
-  if (chunk.usageMetadata && typeof chunk.usageMetadata === 'object') {
-    const usage = chunk.usageMetadata;
-    if (typeof usage.promptTokenCount === 'number') {
-      state.promptTokens = usage.promptTokenCount;
-    }
-    if (typeof usage.candidatesTokenCount === 'number') {
-      state.completionTokens = usage.candidatesTokenCount;
-    }
-    if (typeof usage.totalTokenCount === 'number') {
-      state.totalTokens = usage.totalTokenCount;
-    }
+  const usage = chunk.usageMetadata;
+  if (usage) {
+    if (typeof usage.promptTokenCount === 'number') state.promptTokens = usage.promptTokenCount;
+    if (typeof usage.candidatesTokenCount === 'number') state.completionTokens = usage.candidatesTokenCount;
+    if (typeof usage.totalTokenCount === 'number') state.totalTokens = usage.totalTokenCount;
   }
 }
 
@@ -106,46 +79,24 @@ function handleResponseMetadata(chunk: GoogleGenAIResponse, state: StreamingStat
  * @param recordOutputs - Whether to record outputs
  */
 function handleCandidateContent(chunk: GoogleGenAIResponse, state: StreamingState, recordOutputs: boolean): void {
-  // Check for direct functionCalls getter first
-  if (chunk.functionCalls && Array.isArray(chunk.functionCalls)) {
-    const functionCalls = chunk.functionCalls;
-    for (const functionCall of functionCalls) {
-      state.toolCalls.push(functionCall);
-    }
+  if (Array.isArray(chunk.functionCalls)) {
+    state.toolCalls.push(...chunk.functionCalls);
   }
 
-  if (!chunk?.candidates) return;
-
-  for (const candidate of chunk.candidates) {
-    if (!candidate || typeof candidate !== 'object') continue;
-
-    // Extract finish reason
-    if (candidate.finishReason) {
-      if (!state.finishReasons.includes(candidate.finishReason)) {
-        state.finishReasons.push(candidate.finishReason);
-      }
+  for (const candidate of chunk.candidates ?? []) {
+    if (candidate?.finishReason && !state.finishReasons.includes(candidate.finishReason)) {
+      state.finishReasons.push(candidate.finishReason);
     }
 
-    // Extract content
-    if (candidate.content) {
-      const content = candidate.content;
-      if (content.parts) {
-        for (const part of content.parts) {
-          // Extract text content for output recording
-          if (recordOutputs && part.text) {
-            state.responseTexts.push(part.text);
-          }
-
-          // Extract function calls (fallback method)
-          if (part.functionCall) {
-            state.toolCalls.push({
-              type: 'function',
-              id: part.functionCall?.id,
-              name: part.functionCall?.name,
-              arguments: part.functionCall?.args,
-            });
-          }
-        }
+    for (const part of candidate?.content?.parts ?? []) {
+      if (recordOutputs && part.text) state.responseTexts.push(part.text);
+      if (part.functionCall) {
+        state.toolCalls.push({
+          type: 'function',
+          id: part.functionCall.id,
+          name: part.functionCall.name,
+          arguments: part.functionCall.args,
+        });
       }
     }
   }
@@ -159,14 +110,7 @@ function handleCandidateContent(chunk: GoogleGenAIResponse, state: StreamingStat
  * @param span - The span to update
  */
 function processChunk(chunk: GoogleGenAIResponse, state: StreamingState, recordOutputs: boolean, span: Span): void {
-  if (!chunk || typeof chunk !== 'object') {
-    return;
-  }
-
-  const isError = isErrorChunk(chunk, span);
-  // No further metadata or content will be sent to process
-  if (isError) return;
-
+  if (!chunk || isErrorChunk(chunk, span)) return;
   handleResponseMetadata(chunk, state);
   handleCandidateContent(chunk, state, recordOutputs);
 }
@@ -184,11 +128,6 @@ export async function* instrumentStream(
   const state: StreamingState = {
     responseTexts: [],
     finishReasons: [],
-    responseId: '',
-    responseModel: '',
-    promptTokens: undefined,
-    completionTokens: undefined,
-    totalTokens: undefined,
     toolCalls: [],
   };
 
@@ -198,61 +137,27 @@ export async function* instrumentStream(
       yield chunk;
     }
   } finally {
-    // Set common response attributes if available once the stream is finished
-    if (state.responseId) {
-      span.setAttributes({
-        [GEN_AI_RESPONSE_ID_ATTRIBUTE]: state.responseId,
-      });
-    }
-    if (state.responseModel) {
-      span.setAttributes({
-        [GEN_AI_RESPONSE_MODEL_ATTRIBUTE]: state.responseModel,
-      });
-    }
-
-    // Set token usage attributes
-    if (state.promptTokens !== undefined) {
-      span.setAttributes({
-        [GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]: state.promptTokens,
-      });
-    }
-    if (state.completionTokens !== undefined) {
-      span.setAttributes({
-        [GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]: state.completionTokens,
-      });
-    }
-    if (state.totalTokens !== undefined) {
-      span.setAttributes({
-        [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: state.totalTokens,
-      });
-    }
-
-    // Mark as streaming response
-    span.setAttributes({
+    const attrs: Record<string, SpanAttributeValue> = {
       [GEN_AI_RESPONSE_STREAMING_ATTRIBUTE]: true,
-    });
+    };
 
-    // Set finish reasons if available
-    if (state.finishReasons.length > 0) {
-      span.setAttributes({
-        [GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]: JSON.stringify(state.finishReasons),
-      });
+    if (state.responseId) attrs[GEN_AI_RESPONSE_ID_ATTRIBUTE] = state.responseId;
+    if (state.responseModel) attrs[GEN_AI_RESPONSE_MODEL_ATTRIBUTE] = state.responseModel;
+    if (state.promptTokens !== undefined) attrs[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE] = state.promptTokens;
+    if (state.completionTokens !== undefined) attrs[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE] = state.completionTokens;
+    if (state.totalTokens !== undefined) attrs[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE] = state.totalTokens;
+
+    if (state.finishReasons.length) {
+      attrs[GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE] = JSON.stringify(state.finishReasons);
+    }
+    if (recordOutputs && state.responseTexts.length) {
+      attrs[GEN_AI_RESPONSE_TEXT_ATTRIBUTE] = state.responseTexts.join('');
+    }
+    if (recordOutputs && state.toolCalls.length) {
+      attrs[GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE] = JSON.stringify(state.toolCalls);
     }
 
-    // Set response text if recording outputs
-    if (recordOutputs && state.responseTexts.length > 0) {
-      span.setAttributes({
-        [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: state.responseTexts.join(''),
-      });
-    }
-
-    // Set tool calls if any were captured
-    if (recordOutputs && state.toolCalls.length > 0) {
-      span.setAttributes({
-        [GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE]: JSON.stringify(state.toolCalls),
-      });
-    }
-
+    span.setAttributes(attrs);
     span.end();
   }
 }

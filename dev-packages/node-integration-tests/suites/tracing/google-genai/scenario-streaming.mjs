@@ -8,7 +8,7 @@ function startMockGoogleGenAIServer() {
   const app = express();
   app.use(express.json());
 
-  // Streaming endpoint for models.generateContentStream
+  // Streaming endpoint for models.generateContentStream and chat.sendMessageStream
   app.post('/v1beta/models/:model\\:streamGenerateContent', (req, res) => {
     const model = req.params.model;
 
@@ -16,32 +16,6 @@ function startMockGoogleGenAIServer() {
       res.status(404).set('x-request-id', 'mock-request-123').end('Model not found');
       return;
     }
-
-    // Set headers for streaming response
-    res.setHeader('Content-Type', 'application/json');
-    res.setHeader('Transfer-Encoding', 'chunked');
-
-    // Create a mock stream
-    const mockStream = createMockStream(model);
-
-    // Send chunks
-    const sendChunk = async () => {
-      const { value, done } = await mockStream.next();
-      if (done) {
-        res.end();
-        return;
-      }
-
-      res.write(`data: ${JSON.stringify(value)}\n\n`);
-      setTimeout(sendChunk, 10); // Small delay between chunks
-    };
-
-    sendChunk();
-  });
-
-  // Streaming endpoint for chat.sendMessageStream
-  app.post('/v1beta/models/:model\\:streamGenerateContent', (req, res) => {
-    const model = req.params.model;
 
     // Set headers for streaming response
     res.setHeader('Content-Type', 'application/json');

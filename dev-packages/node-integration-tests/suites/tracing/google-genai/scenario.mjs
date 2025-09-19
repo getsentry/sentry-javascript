@@ -2,7 +2,7 @@ import { GoogleGenAI } from '@google/genai';
 import * as Sentry from '@sentry/node';
 import express from 'express';
 
-const PORT = 3333;
+const PORT = 3336;
 
 function startMockGoogleGenAIServer() {
   const app = express();

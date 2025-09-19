@@ -2,7 +2,7 @@ import { GoogleGenAI } from '@google/genai';
 import * as Sentry from '@sentry/node';
 import express from 'express';
 
-const PORT = 3335; // Different port to avoid conflicts
+const PORT = 3337;
 
 function startMockGoogleGenAIServer() {
   const app = express();
@@ -91,6 +91,7 @@ function startMockGoogleGenAIServer() {
   });
 
   // Streaming endpoint for models.generateContentStream
+  // And chat.sendMessageStream
   app.post('/v1beta/models/:model\\:streamGenerateContent', (req, res) => {
     const { tools } = req.body;
 
