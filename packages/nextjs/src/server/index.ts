@@ -18,7 +18,6 @@ import {
   getIsolationScope,
   getRootSpan,
   GLOBAL_OBJ,
-  hasSpansEnabled,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
@@ -107,10 +106,10 @@ export function init(options: NodeOptions): NodeClient | undefined {
       }),
     );
 
-  // Turn off Next.js' own fetch instrumentation (only when Sentry spans are enabled, and we manage OTEL)
+  // Turn off Next.js' own fetch instrumentation (only when we manage OTEL)
   // https://github.com/lforst/nextjs-fork/blob/1994fd186defda77ad971c36dc3163db263c993f/packages/next/src/server/lib/patch-fetch.ts#L245
   // Enable with custom OTel setup: https://github.com/getsentry/sentry-javascript/issues/17581
-  if (hasSpansEnabled(options) && !options.skipOpenTelemetrySetup) {
+  if (!options.skipOpenTelemetrySetup) {
     process.env.NEXT_OTEL_FETCH_DISABLED = '1';
   }
 
