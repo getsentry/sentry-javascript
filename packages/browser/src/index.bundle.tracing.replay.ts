@@ -21,8 +21,10 @@ export {
   browserTracingIntegration,
   startBrowserTracingNavigationSpan,
   startBrowserTracingPageLoadSpan,
-  reportPageLoaded,
 } from './tracing/browserTracingIntegration';
+
+export { reportPageLoaded } from './tracing/reportPageLoaded';
+
 export { feedbackIntegrationShim as feedbackAsyncIntegration, feedbackIntegrationShim as feedbackIntegration };
 
 export { replayIntegration, getReplay } from '@sentry-internal/replay';
