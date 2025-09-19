@@ -335,17 +335,17 @@
   dependencies:
     json-schema-to-ts "^3.1.1"
 
-"@apm-js-collab/code-transformer@^0.7.0", "@apm-js-collab/code-transformer@^0.7.2":
-  version "0.7.2"
-  resolved "https://registry.yarnpkg.com/@apm-js-collab/code-transformer/-/code-transformer-0.7.2.tgz#8c848f9d28f8389c92cdd08bcdae938bc681acb6"
-  integrity sha512-waZeIZFmPCf5/nD3O1gMHlHEPMRwgnaTfVTaDbkclg5OByy8IowR/dUDij5tC77VYH/ieXIujSx9vPFvhx35Fg==
+"@apm-js-collab/code-transformer@^0.8.0":
+  version "0.8.0"
+  resolved "https://registry.yarnpkg.com/@apm-js-collab/code-transformer/-/code-transformer-0.8.0.tgz#383bffab5131f0346e90665cebd36f64a51ed44e"
+  integrity sha512-4nueg5W0cZ6HdLDOD1xVCdPqhj17Rur6RQjE1Zv3Fzp4TJJU9v6rqlWtzpq9uudq2k05VWc22P000wX+c9lVaA==
 
-"@apm-js-collab/tracing-hooks@^0.2.0":
-  version "0.2.0"
-  resolved "https://registry.yarnpkg.com/@apm-js-collab/tracing-hooks/-/tracing-hooks-0.2.0.tgz#b34f0857055895400e1ff0c15be5fd98cc378530"
-  integrity sha512-tBTkPVXDRQa5wrH18UHqgGowHF33+v6B4LeixmaeBCpwOwnCjNs21lHZDlP8JAkvWLRBJ4O2zFLQnJk6B7IM+w==
+"@apm-js-collab/tracing-hooks@^0.3.0":
+  version "0.3.0"
+  resolved "https://registry.yarnpkg.com/@apm-js-collab/tracing-hooks/-/tracing-hooks-0.3.0.tgz#78522bdef95385b0fd31bdf9b2575947e88884f9"
+  integrity sha512-YXyqZLr747VyFDd1g4UNBZlh1SSJfz8jMciVS46b+m5xb9Lnof75X5z8o7BeQfUudhhR6vtMCR9zKnBaPsmBDA==
   dependencies:
-    "@apm-js-collab/code-transformer" "^0.7.0"
+    "@apm-js-collab/code-transformer" "^0.8.0"
     debug "^4.4.1"
     module-details-from-path "^1.0.4"
 
