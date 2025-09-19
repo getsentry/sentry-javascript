@@ -1,5 +1,5 @@
 import type { Span } from '@sentry/core';
-import { _INTERNAL_setSpanForScope, getActiveSpan, getCurrentScope } from '@sentry/core';
+import { _INTERNAL_setSpanForScope, addNonEnumerableProperty, getActiveSpan, getCurrentScope } from '@sentry/core';
 
 /**
  * Sets an inactive span active on the current scope.
@@ -39,6 +39,14 @@ import { _INTERNAL_setSpanForScope, getActiveSpan, getCurrentScope } from '@sent
  */
 export function setSpanActive(span: Span): void {
   const maybePreviousActiveSpan = getActiveSpan();
+
+  // If the span is already active, there's no need to double-patch or set it again.
+  // This also guards against users (for whatever reason) calling setSpanActive on SDK-started
+  // idle spans like pageload or navigation spans. These will already be handled correctly by the SDK.
+  // For nested situations, we have to double-patch to ensure we restore the correct previous span (see tests)
+  if (maybePreviousActiveSpan === span) {
+    return;
+  }
 
   const scope = getCurrentScope();
 
