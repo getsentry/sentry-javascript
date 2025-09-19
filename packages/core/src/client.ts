@@ -44,7 +44,7 @@ import { parseSampleRate } from './utils/parseSampleRate';
 import { prepareEvent } from './utils/prepareEvent';
 import { reparentChildSpans, shouldIgnoreSpan } from './utils/should-ignore-span';
 import { getActiveSpan, showSpanDropWarning, spanToTraceContext } from './utils/spanUtils';
-import { rejectedSyncPromise, resolvedSyncPromise, SyncPromise } from './utils/syncpromise';
+import { rejectedSyncPromise } from './utils/syncpromise';
 import { convertSpanJsonToTransactionEvent, convertTransactionEventToSpanJson } from './utils/transactionEvent';
 
 const ALREADY_SEEN_ERROR = "Not capturing exception because it's already been captured.";
@@ -137,7 +137,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   private _outcomes: { [key: string]: number };
 
   // eslint-disable-next-line @typescript-eslint/ban-types
-  private _hooks: Record<string, Function[]>;
+  private _hooks: Record<string, Set<Function>>;
 
   /**
    * Initializes this client instance.
@@ -316,16 +316,19 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    * @returns A promise that will resolve with `true` if all events are sent before the timeout, or `false` if there are
    * still events in the queue when the timeout is reached.
    */
-  public flush(timeout?: number): PromiseLike<boolean> {
+  // @ts-expect-error - PromiseLike is a subset of Promise
+  public async flush(timeout?: number): PromiseLike<boolean> {
     const transport = this._transport;
-    if (transport) {
-      this.emit('flush');
-      return this._isClientDoneProcessing(timeout).then(clientFinished => {
-        return transport.flush(timeout).then(transportFlushed => clientFinished && transportFlushed);
-      });
-    } else {
-      return resolvedSyncPromise(true);
+    if (!transport) {
+      return true;
     }
+
+    this.emit('flush');
+
+    const clientFinished = await this._isClientDoneProcessing(timeout);
+    const transportFlushed = await transport.flush(timeout);
+
+    return clientFinished && transportFlushed;
   }
 
   /**
@@ -336,12 +339,12 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    * @returns {Promise<boolean>} A promise which resolves to `true` if the flush completes successfully before the timeout, or `false` if
    * it doesn't.
    */
-  public close(timeout?: number): PromiseLike<boolean> {
-    return this.flush(timeout).then(result => {
-      this.getOptions().enabled = false;
-      this.emit('close');
-      return result;
-    });
+  // @ts-expect-error - PromiseLike is a subset of Promise
+  public async close(timeout?: number): PromiseLike<boolean> {
+    const result = await this.flush(timeout);
+    this.getOptions().enabled = false;
+    this.emit('close');
+    return result;
   }
 
   /**
@@ -604,6 +607,12 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   ): () => void;
 
   /**
+   * A hook for the browser tracing integrations to trigger the end of a page load span.
+   * @returns {() => void} A function that, when executed, removes the registered callback.
+   */
+  public on(hook: 'endPageloadSpan', callback: () => void): () => void;
+
+  /**
    * A hook for the browser tracing integrations to trigger after the pageload span was started.
    * @returns {() => void} A function that, when executed, removes the registered callback.
    */
@@ -682,21 +691,23 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    * Register a hook on this client.
    */
   public on(hook: string, callback: unknown): () => void {
-    const hooks = (this._hooks[hook] = this._hooks[hook] || []);
+    const hookCallbacks = (this._hooks[hook] = this._hooks[hook] || new Set());
 
-    // @ts-expect-error We assume the types are correct
-    hooks.push(callback);
+    // Wrap the callback in a function so that registering the same callback instance multiple
+    // times results in the callback being called multiple times.
+    // @ts-expect-error - The `callback` type is correct and must be a function due to the
+    // individual, specific overloads of this function.
+    // eslint-disable-next-line @typescript-eslint/ban-types
+    const uniqueCallback: Function = (...args: unknown[]) => callback(...args);
+
+    hookCallbacks.add(uniqueCallback);
 
     // This function returns a callback execution handler that, when invoked,
     // deregisters a callback. This is crucial for managing instances where callbacks
     // need to be unregistered to prevent self-referencing in callback closures,
     // ensuring proper garbage collection.
     return () => {
-      // @ts-expect-error We assume the types are correct
-      const cbIndex = hooks.indexOf(callback);
-      if (cbIndex > -1) {
-        hooks.splice(cbIndex, 1);
-      }
+      hookCallbacks.delete(uniqueCallback);
     };
   }
 
@@ -798,6 +809,11 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   ): void;
 
   /**
+   * Emit a hook event for browser tracing integrations to trigger the end of a page load span.
+   */
+  public emit(hook: 'endPageloadSpan'): void;
+
+  /**
    * Emit a hook event for browser tracing integrations to trigger aafter the pageload span was started.
    */
   public emit(hook: 'afterStartPageLoadSpan', span: Span): void;
@@ -872,18 +888,21 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   /**
    * Send an envelope to Sentry.
    */
-  public sendEnvelope(envelope: Envelope): PromiseLike<TransportMakeRequestResponse> {
+  // @ts-expect-error - PromiseLike is a subset of Promise
+  public async sendEnvelope(envelope: Envelope): PromiseLike<TransportMakeRequestResponse> {
     this.emit('beforeEnvelope', envelope);
 
     if (this._isEnabled() && this._transport) {
-      return this._transport.send(envelope).then(null, reason => {
+      try {
+        return await this._transport.send(envelope);
+      } catch (reason) {
         DEBUG_BUILD && debug.error('Error while sending envelope:', reason);
         return {};
-      });
+      }
     }
 
     DEBUG_BUILD && debug.error('Transport disabled');
-    return resolvedSyncPromise({});
+    return {};
   }
 
   /* eslint-enable @typescript-eslint/unified-signatures */
@@ -938,24 +957,20 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    * @returns A promise which will resolve to `true` if processing is already done or finishes before the timeout, and
    * `false` otherwise
    */
-  protected _isClientDoneProcessing(timeout?: number): PromiseLike<boolean> {
-    return new SyncPromise(resolve => {
-      let ticked: number = 0;
-      const tick: number = 1;
+  protected async _isClientDoneProcessing(timeout?: number): Promise<boolean> {
+    let ticked = 0;
 
-      const interval = setInterval(() => {
-        if (this._numProcessing == 0) {
-          clearInterval(interval);
-          resolve(true);
-        } else {
-          ticked += tick;
-          if (timeout && ticked >= timeout) {
-            clearInterval(interval);
-            resolve(false);
-          }
-        }
-      }, tick);
-    });
+    // if no timeout is provided, we wait "forever" until everything is processed
+    while (!timeout || ticked < timeout) {
+      await new Promise(resolve => setTimeout(resolve, 1));
+
+      if (!this._numProcessing) {
+        return true;
+      }
+      ticked++;
+    }
+
+    return false;
   }
 
   /** Determines whether this SDK is enabled and a transport is present. */
@@ -1345,6 +1360,7 @@ function processBeforeSend(
         if (droppedSpans) {
           client.recordDroppedEvent('before_send', 'span', droppedSpans);
         }
+
         processedEvent.spans = processedSpans;
       }
     }

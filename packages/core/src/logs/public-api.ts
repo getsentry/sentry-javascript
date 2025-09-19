@@ -1,5 +1,7 @@
-import type { Log, LogSeverityLevel, ParameterizedString } from '@sentry/core';
-import { _INTERNAL_captureLog } from '@sentry/core';
+import type { Scope } from '../scope';
+import type { Log, LogSeverityLevel } from '../types-hoist/log';
+import type { ParameterizedString } from '../types-hoist/parameterize';
+import { _INTERNAL_captureLog } from './internal';
 
 /**
  * Capture a log with the given level.
@@ -7,15 +9,24 @@ import { _INTERNAL_captureLog } from '@sentry/core';
  * @param level - The level of the log.
  * @param message - The message to log.
  * @param attributes - Arbitrary structured data that stores information about the log - e.g., userId: 100.
+ * @param scope - The scope to capture the log with.
  * @param severityNumber - The severity number of the log.
  */
 function captureLog(
   level: LogSeverityLevel,
   message: ParameterizedString,
   attributes?: Log['attributes'],
+  scope?: Scope,
   severityNumber?: Log['severityNumber'],
 ): void {
-  _INTERNAL_captureLog({ level, message, attributes, severityNumber });
+  _INTERNAL_captureLog({ level, message, attributes, severityNumber }, scope);
+}
+
+/**
+ * Additional metadata to capture the log with.
+ */
+interface CaptureLogMetadata {
+  scope?: Scope;
 }
 
 /**
@@ -23,6 +34,7 @@ function captureLog(
  *
  * @param message - The message to log.
  * @param attributes - Arbitrary structured data that stores information about the log - e.g., { userId: 100, route: '/dashboard' }.
+ * @param metadata - additional metadata to capture the log with.
  *
  * @example
  *
@@ -43,8 +55,12 @@ function captureLog(
  * });
  * ```
  */
-export function trace(message: ParameterizedString, attributes?: Log['attributes']): void {
-  captureLog('trace', message, attributes);
+export function trace(
+  message: ParameterizedString,
+  attributes?: Log['attributes'],
+  { scope }: CaptureLogMetadata = {},
+): void {
+  captureLog('trace', message, attributes, scope);
 }
 
 /**
@@ -52,6 +68,7 @@ export function trace(message: ParameterizedString, attributes?: Log['attributes
  *
  * @param message - The message to log.
  * @param attributes - Arbitrary structured data that stores information about the log - e.g., { component: 'Header', state: 'loading' }.
+ * @param metadata - additional metadata to capture the log with.
  *
  * @example
  *
@@ -73,8 +90,12 @@ export function trace(message: ParameterizedString, attributes?: Log['attributes
  * });
  * ```
  */
-export function debug(message: ParameterizedString, attributes?: Log['attributes']): void {
-  captureLog('debug', message, attributes);
+export function debug(
+  message: ParameterizedString,
+  attributes?: Log['attributes'],
+  { scope }: CaptureLogMetadata = {},
+): void {
+  captureLog('debug', message, attributes, scope);
 }
 
 /**
@@ -82,6 +103,7 @@ export function debug(message: ParameterizedString, attributes?: Log['attributes
  *
  * @param message - The message to log.
  * @param attributes - Arbitrary structured data that stores information about the log - e.g., { feature: 'checkout', status: 'completed' }.
+ * @param metadata - additional metadata to capture the log with.
  *
  * @example
  *
@@ -103,8 +125,12 @@ export function debug(message: ParameterizedString, attributes?: Log['attributes
  * });
  * ```
  */
-export function info(message: ParameterizedString, attributes?: Log['attributes']): void {
-  captureLog('info', message, attributes);
+export function info(
+  message: ParameterizedString,
+  attributes?: Log['attributes'],
+  { scope }: CaptureLogMetadata = {},
+): void {
+  captureLog('info', message, attributes, scope);
 }
 
 /**
@@ -112,6 +138,7 @@ export function info(message: ParameterizedString, attributes?: Log['attributes'
  *
  * @param message - The message to log.
  * @param attributes - Arbitrary structured data that stores information about the log - e.g., { browser: 'Chrome', version: '91.0' }.
+ * @param metadata - additional metadata to capture the log with.
  *
  * @example
  *
@@ -134,8 +161,12 @@ export function info(message: ParameterizedString, attributes?: Log['attributes'
  * });
  * ```
  */
-export function warn(message: ParameterizedString, attributes?: Log['attributes']): void {
-  captureLog('warn', message, attributes);
+export function warn(
+  message: ParameterizedString,
+  attributes?: Log['attributes'],
+  { scope }: CaptureLogMetadata = {},
+): void {
+  captureLog('warn', message, attributes, scope);
 }
 
 /**
@@ -143,6 +174,7 @@ export function warn(message: ParameterizedString, attributes?: Log['attributes'
  *
  * @param message - The message to log.
  * @param attributes - Arbitrary structured data that stores information about the log - e.g., { error: 'NetworkError', url: '/api/data' }.
+ * @param metadata - additional metadata to capture the log with.
  *
  * @example
  *
@@ -166,8 +198,12 @@ export function warn(message: ParameterizedString, attributes?: Log['attributes'
  * });
  * ```
  */
-export function error(message: ParameterizedString, attributes?: Log['attributes']): void {
-  captureLog('error', message, attributes);
+export function error(
+  message: ParameterizedString,
+  attributes?: Log['attributes'],
+  { scope }: CaptureLogMetadata = {},
+): void {
+  captureLog('error', message, attributes, scope);
 }
 
 /**
@@ -175,6 +211,7 @@ export function error(message: ParameterizedString, attributes?: Log['attributes
  *
  * @param message - The message to log.
  * @param attributes - Arbitrary structured data that stores information about the log - e.g., { appState: 'corrupted', sessionId: 'abc-123' }.
+ * @param metadata - additional metadata to capture the log with.
  *
  * @example
  *
@@ -198,8 +235,12 @@ export function error(message: ParameterizedString, attributes?: Log['attributes
  * });
  * ```
  */
-export function fatal(message: ParameterizedString, attributes?: Log['attributes']): void {
-  captureLog('fatal', message, attributes);
+export function fatal(
+  message: ParameterizedString,
+  attributes?: Log['attributes'],
+  { scope }: CaptureLogMetadata = {},
+): void {
+  captureLog('fatal', message, attributes, scope);
 }
 
-export { fmt } from '@sentry/core';
+export { fmt } from '../utils/parameterize';

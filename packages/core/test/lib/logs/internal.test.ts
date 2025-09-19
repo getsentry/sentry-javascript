@@ -5,7 +5,7 @@ import {
   _INTERNAL_flushLogsBuffer,
   _INTERNAL_getLogBuffer,
   logAttributeToSerializedLogAttribute,
-} from '../../../src/logs/exports';
+} from '../../../src/logs/internal';
 import type { Log } from '../../../src/types-hoist/log';
 import * as loggerModule from '../../../src/utils/debug-logger';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
@@ -84,8 +84,10 @@ describe('_INTERNAL_captureLog', () => {
   it('captures and sends logs', () => {
     const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableLogs: true });
     const client = new TestClient(options);
+    const scope = new Scope();
+    scope.setClient(client);
 
-    _INTERNAL_captureLog({ level: 'info', message: 'test log message' }, client, undefined);
+    _INTERNAL_captureLog({ level: 'info', message: 'test log message' }, scope);
     expect(_INTERNAL_getLogBuffer(client)).toHaveLength(1);
     expect(_INTERNAL_getLogBuffer(client)?.[0]).toEqual(
       expect.objectContaining({
@@ -103,8 +105,10 @@ describe('_INTERNAL_captureLog', () => {
     const logWarnSpy = vi.spyOn(loggerModule.debug, 'warn').mockImplementation(() => undefined);
     const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
     const client = new TestClient(options);
+    const scope = new Scope();
+    scope.setClient(client);
 
-    _INTERNAL_captureLog({ level: 'info', message: 'test log message' }, client, undefined);
+    _INTERNAL_captureLog({ level: 'info', message: 'test log message' }, scope);
 
     expect(logWarnSpy).toHaveBeenCalledWith('logging option not enabled, log will not be captured.');
     expect(_INTERNAL_getLogBuffer(client)).toBeUndefined();
@@ -116,12 +120,13 @@ describe('_INTERNAL_captureLog', () => {
     const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableLogs: true });
     const client = new TestClient(options);
     const scope = new Scope();
+    scope.setClient(client);
     scope.setPropagationContext({
       traceId: '3d9355f71e9c444b81161599adac6e29',
       sampleRand: 1,
     });
 
-    _INTERNAL_captureLog({ level: 'error', message: 'test log with trace' }, client, scope);
+    _INTERNAL_captureLog({ level: 'error', message: 'test log with trace' }, scope);
 
     expect(_INTERNAL_getLogBuffer(client)?.[0]).toEqual(
       expect.objectContaining({
@@ -139,8 +144,10 @@ describe('_INTERNAL_captureLog', () => {
       environment: 'test',
     });
     const client = new TestClient(options);
+    const scope = new Scope();
+    scope.setClient(client);
 
-    _INTERNAL_captureLog({ level: 'info', message: 'test log with metadata' }, client, undefined);
+    _INTERNAL_captureLog({ level: 'info', message: 'test log with metadata' }, scope);
 
     const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
     expect(logAttributes).toEqual({
@@ -161,6 +168,8 @@ describe('_INTERNAL_captureLog', () => {
       enableLogs: true,
     });
     const client = new TestClient(options);
+    const scope = new Scope();
+    scope.setClient(client);
     // Mock getSdkMetadata to return SDK info
     vi.spyOn(client, 'getSdkMetadata').mockReturnValue({
       sdk: {
@@ -169,7 +178,7 @@ describe('_INTERNAL_captureLog', () => {
       },
     });
 
-    _INTERNAL_captureLog({ level: 'info', message: 'test log with SDK metadata' }, client, undefined);
+    _INTERNAL_captureLog({ level: 'info', message: 'test log with SDK metadata' }, scope);
 
     const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
     expect(logAttributes).toEqual({
@@ -190,10 +199,12 @@ describe('_INTERNAL_captureLog', () => {
       enableLogs: true,
     });
     const client = new TestClient(options);
+    const scope = new Scope();
+    scope.setClient(client);
     // Mock getSdkMetadata to return no SDK info
     vi.spyOn(client, 'getSdkMetadata').mockReturnValue({});
 
-    _INTERNAL_captureLog({ level: 'info', message: 'test log without SDK metadata' }, client, undefined);
+    _INTERNAL_captureLog({ level: 'info', message: 'test log without SDK metadata' }, scope);
 
     const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
     expect(logAttributes).not.toEqual(
@@ -207,6 +218,8 @@ describe('_INTERNAL_captureLog', () => {
   it('includes custom attributes in log', () => {
     const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableLogs: true });
     const client = new TestClient(options);
+    const scope = new Scope();
+    scope.setClient(client);
 
     _INTERNAL_captureLog(
       {
@@ -214,8 +227,7 @@ describe('_INTERNAL_captureLog', () => {
         message: 'test log with custom attributes',
         attributes: { userId: '123', component: 'auth' },
       },
-      client,
-      undefined,
+      scope,
     );
 
     const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
@@ -234,16 +246,18 @@ describe('_INTERNAL_captureLog', () => {
   it('flushes logs buffer when it reaches max size', () => {
     const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableLogs: true });
     const client = new TestClient(options);
+    const scope = new Scope();
+    scope.setClient(client);
 
     // Fill the buffer to max size (100 is the MAX_LOG_BUFFER_SIZE constant in client.ts)
     for (let i = 0; i < 100; i++) {
-      _INTERNAL_captureLog({ level: 'info', message: `log message ${i}` }, client, undefined);
+      _INTERNAL_captureLog({ level: 'info', message: `log message ${i}` }, scope);
     }
 
     expect(_INTERNAL_getLogBuffer(client)).toHaveLength(100);
 
     // Add one more to trigger flush
-    _INTERNAL_captureLog({ level: 'info', message: 'trigger flush' }, client, undefined);
+    _INTERNAL_captureLog({ level: 'info', message: 'trigger flush' }, scope);
 
     expect(_INTERNAL_getLogBuffer(client)).toEqual([]);
   });
@@ -251,6 +265,7 @@ describe('_INTERNAL_captureLog', () => {
   it('does not flush logs buffer when it is empty', () => {
     const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableLogs: true });
     const client = new TestClient(options);
+
     const mockSendEnvelope = vi.spyOn(client as any, 'sendEnvelope').mockImplementation(() => {});
     _INTERNAL_flushLogsBuffer(client);
     expect(mockSendEnvelope).not.toHaveBeenCalled();
@@ -259,10 +274,12 @@ describe('_INTERNAL_captureLog', () => {
   it('handles parameterized strings correctly', () => {
     const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableLogs: true });
     const client = new TestClient(options);
+    const scope = new Scope();
+    scope.setClient(client);
 
     const parameterizedMessage = fmt`Hello ${'John'}, welcome to ${'Sentry'}`;
 
-    _INTERNAL_captureLog({ level: 'info', message: parameterizedMessage }, client, undefined);
+    _INTERNAL_captureLog({ level: 'info', message: parameterizedMessage }, scope);
 
     const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
     expect(logAttributes).toEqual({
@@ -284,8 +301,10 @@ describe('_INTERNAL_captureLog', () => {
   it('does not set the template attribute if there are no parameters', () => {
     const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableLogs: true });
     const client = new TestClient(options);
+    const scope = new Scope();
+    scope.setClient(client);
 
-    _INTERNAL_captureLog({ level: 'debug', message: fmt`User logged in` }, client, undefined);
+    _INTERNAL_captureLog({ level: 'debug', message: fmt`User logged in` }, scope);
 
     const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
     expect(logAttributes).toEqual({});
@@ -304,6 +323,8 @@ describe('_INTERNAL_captureLog', () => {
       beforeSendLog,
     });
     const client = new TestClient(options);
+    const scope = new Scope();
+    scope.setClient(client);
 
     _INTERNAL_captureLog(
       {
@@ -311,8 +332,7 @@ describe('_INTERNAL_captureLog', () => {
         message: 'original message',
         attributes: { original: true },
       },
-      client,
-      undefined,
+      scope,
     );
 
     expect(beforeSendLog).toHaveBeenCalledWith({
@@ -351,14 +371,15 @@ describe('_INTERNAL_captureLog', () => {
       beforeSendLog,
     });
     const client = new TestClient(options);
+    const scope = new Scope();
+    scope.setClient(client);
 
     _INTERNAL_captureLog(
       {
         level: 'info',
         message: 'test message',
       },
-      client,
-      undefined,
+      scope,
     );
 
     expect(beforeSendLog).toHaveBeenCalled();
@@ -374,6 +395,8 @@ describe('_INTERNAL_captureLog', () => {
     const beforeCaptureLogSpy = vi.spyOn(TestClient.prototype, 'emit');
     const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableLogs: true });
     const client = new TestClient(options);
+    const scope = new Scope();
+    scope.setClient(client);
 
     const log: Log = {
       level: 'info',
@@ -381,7 +404,7 @@ describe('_INTERNAL_captureLog', () => {
       attributes: {},
     };
 
-    _INTERNAL_captureLog(log, client, undefined);
+    _INTERNAL_captureLog(log, scope);
 
     expect(beforeCaptureLogSpy).toHaveBeenCalledWith('beforeCaptureLog', log);
     expect(beforeCaptureLogSpy).toHaveBeenCalledWith('afterCaptureLog', log);
@@ -396,13 +419,14 @@ describe('_INTERNAL_captureLog', () => {
       });
       const client = new TestClient(options);
       const scope = new Scope();
+      scope.setClient(client);
       scope.setUser({
         id: '123',
         email: 'user@example.com',
         username: 'testuser',
       });
 
-      _INTERNAL_captureLog({ level: 'info', message: 'test log with user' }, client, scope);
+      _INTERNAL_captureLog({ level: 'info', message: 'test log with user' }, scope);
 
       const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
       expect(logAttributes).toEqual({
@@ -429,12 +453,13 @@ describe('_INTERNAL_captureLog', () => {
       });
       const client = new TestClient(options);
       const scope = new Scope();
+      scope.setClient(client);
       scope.setUser({
         id: '123',
         // email and username are missing
       });
 
-      _INTERNAL_captureLog({ level: 'info', message: 'test log with partial user' }, client, scope);
+      _INTERNAL_captureLog({ level: 'info', message: 'test log with partial user' }, scope);
 
       const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
       expect(logAttributes).toEqual({
@@ -453,13 +478,14 @@ describe('_INTERNAL_captureLog', () => {
       });
       const client = new TestClient(options);
       const scope = new Scope();
+      scope.setClient(client);
       scope.setUser({
         email: 'user@example.com',
         username: 'testuser',
         // id is missing
       });
 
-      _INTERNAL_captureLog({ level: 'info', message: 'test log with email and username' }, client, scope);
+      _INTERNAL_captureLog({ level: 'info', message: 'test log with email and username' }, scope);
 
       const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
       expect(logAttributes).toEqual({
@@ -482,9 +508,10 @@ describe('_INTERNAL_captureLog', () => {
       });
       const client = new TestClient(options);
       const scope = new Scope();
+      scope.setClient(client);
       scope.setUser({});
 
-      _INTERNAL_captureLog({ level: 'info', message: 'test log with empty user' }, client, scope);
+      _INTERNAL_captureLog({ level: 'info', message: 'test log with empty user' }, scope);
 
       const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
       expect(logAttributes).toEqual({});
@@ -500,6 +527,7 @@ describe('_INTERNAL_captureLog', () => {
       });
       const client = new TestClient(options);
       const scope = new Scope();
+      scope.setClient(client);
       scope.setUser({
         id: '123',
         email: 'user@example.com',
@@ -511,7 +539,6 @@ describe('_INTERNAL_captureLog', () => {
           message: 'test log with user and other attributes',
           attributes: { component: 'auth', action: 'login' },
         },
-        client,
         scope,
       );
 
@@ -552,13 +579,14 @@ describe('_INTERNAL_captureLog', () => {
       });
       const client = new TestClient(options);
       const scope = new Scope();
+      scope.setClient(client);
       scope.setUser({
         id: 123, // number instead of string
         email: 'user@example.com',
         username: undefined, // undefined value
       });
 
-      _INTERNAL_captureLog({ level: 'info', message: 'test log with non-string user values' }, client, scope);
+      _INTERNAL_captureLog({ level: 'info', message: 'test log with non-string user values' }, scope);
 
       const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
       expect(logAttributes).toEqual({
@@ -581,6 +609,7 @@ describe('_INTERNAL_captureLog', () => {
       });
       const client = new TestClient(options);
       const scope = new Scope();
+      scope.setClient(client);
       scope.setUser({
         id: '123',
         email: 'user@example.com',
@@ -595,7 +624,6 @@ describe('_INTERNAL_captureLog', () => {
             'user.custom': 'custom-value', // This should be preserved
           },
         },
-        client,
         scope,
       );
 
@@ -624,6 +652,7 @@ describe('_INTERNAL_captureLog', () => {
       });
       const client = new TestClient(options);
       const scope = new Scope();
+      scope.setClient(client);
       scope.setUser({
         id: 'scope-id',
         email: 'scope@example.com',
@@ -639,7 +668,6 @@ describe('_INTERNAL_captureLog', () => {
             'other.attr': 'value',
           },
         },
-        client,
         scope,
       );
 
@@ -673,7 +701,6 @@ describe('_INTERNAL_captureLog', () => {
       environment: 'sdk-environment',
     });
     const client = new TestClient(options);
-
     // Mock getSdkMetadata to return SDK info
     vi.spyOn(client, 'getSdkMetadata').mockReturnValue({
       sdk: {
@@ -683,6 +710,7 @@ describe('_INTERNAL_captureLog', () => {
     });
 
     const scope = new Scope();
+    scope.setClient(client);
 
     _INTERNAL_captureLog(
       {
@@ -696,7 +724,6 @@ describe('_INTERNAL_captureLog', () => {
           'user.custom': 'preserved-value',
         },
       },
-      client,
       scope,
     );
 
