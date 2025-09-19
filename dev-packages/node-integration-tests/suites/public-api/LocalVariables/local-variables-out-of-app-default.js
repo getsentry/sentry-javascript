@@ -1,8 +1,7 @@
 /* eslint-disable no-unused-vars */
 
 const Sentry = require('@sentry/node');
-// const { loggingTransport } = require('@sentry-internal/node-integration-tests'); is throwing error that package not found, so using relative path
-const { loggingTransport } = require('../../../src/index.ts');
+const { loggingTransport } = require('@sentry-internal/node-integration-tests');
 
 // make sure to create the following file with the following content:
 // function out_of_app_function() {
