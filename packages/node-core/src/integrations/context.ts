@@ -266,6 +266,8 @@ const PLATFORM_NAMES: { [platform: string]: string } = {
   openbsd: 'OpenBSD',
   sunos: 'SunOS',
   win32: 'Windows',
+  ohos: 'OpenHarmony',
+  android: 'Android',
 };
 
 /** Linux version file to check for a distribution. */
