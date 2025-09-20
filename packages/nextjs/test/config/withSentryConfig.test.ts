@@ -872,15 +872,73 @@ describe('withSentryConfig', () => {
       expect(finalConfig.compiler?.runAfterProductionCompile).toBeInstanceOf(Function);
     });
 
+    it('defaults to true for turbopack when useRunAfterProductionCompileHook is not specified', () => {
+      process.env.TURBOPACK = '1';
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.4.1');
+      vi.spyOn(util, 'supportsProductionCompileHook').mockReturnValue(true);
+
+      const sentryOptions = {}; // No useRunAfterProductionCompileHook specified
+
+      const finalConfig = materializeFinalNextConfig(exportedNextConfig, undefined, sentryOptions);
+
+      expect(finalConfig.compiler?.runAfterProductionCompile).toBeInstanceOf(Function);
+
+      delete process.env.TURBOPACK;
+    });
+
+    it('defaults to false for webpack when useRunAfterProductionCompileHook is not specified', () => {
+      delete process.env.TURBOPACK;
+      vi.spyOn(util, 'supportsProductionCompileHook').mockReturnValue(true);
+
+      const sentryOptions = {}; // No useRunAfterProductionCompileHook specified
+
+      const cleanConfig = { ...exportedNextConfig };
+      delete cleanConfig.compiler;
+
+      const finalConfig = materializeFinalNextConfig(cleanConfig, undefined, sentryOptions);
+
+      expect(finalConfig.compiler?.runAfterProductionCompile).toBeUndefined();
+    });
+
+    it('respects explicit false setting for turbopack', () => {
+      process.env.TURBOPACK = '1';
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.4.1');
+      vi.spyOn(util, 'supportsProductionCompileHook').mockReturnValue(true);
+
+      const sentryOptions = {
+        useRunAfterProductionCompileHook: false,
+      };
+
+      const cleanConfig = { ...exportedNextConfig };
+      delete cleanConfig.compiler;
+
+      const finalConfig = materializeFinalNextConfig(cleanConfig, undefined, sentryOptions);
+
+      expect(finalConfig.compiler?.runAfterProductionCompile).toBeUndefined();
+
+      delete process.env.TURBOPACK;
+    });
+
+    it('respects explicit true setting for webpack', () => {
+      delete process.env.TURBOPACK;
+      vi.spyOn(util, 'supportsProductionCompileHook').mockReturnValue(true);
+
+      const sentryOptions = {
+        useRunAfterProductionCompileHook: true,
+      };
+
+      const finalConfig = materializeFinalNextConfig(exportedNextConfig, undefined, sentryOptions);
+
+      expect(finalConfig.compiler?.runAfterProductionCompile).toBeInstanceOf(Function);
+    });
+
     it('works with turbopack builds when TURBOPACK env is set', () => {
       process.env.TURBOPACK = '1';
       vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.4.1');
       vi.spyOn(util, 'supportsProductionCompileHook').mockReturnValue(true);
 
       const sentryOptions = {
-        _experimental: {
-          useRunAfterProductionCompileHook: true,
-        },
+        useRunAfterProductionCompileHook: true,
       };
 
       const finalConfig = materializeFinalNextConfig(exportedNextConfig, undefined, sentryOptions);
@@ -895,9 +953,7 @@ describe('withSentryConfig', () => {
       vi.spyOn(util, 'supportsProductionCompileHook').mockReturnValue(true);
 
       const sentryOptions = {
-        _experimental: {
-          useRunAfterProductionCompileHook: true,
-        },
+        useRunAfterProductionCompileHook: true,
       };
 
       const finalConfig = materializeFinalNextConfig(exportedNextConfig, undefined, sentryOptions);

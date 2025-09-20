@@ -507,7 +507,7 @@ export type SentryBuildOptions = {
    *
    * When false, use the traditional approach of uploading sourcemaps during each webpack build. For Turbopack no sourcemaps will be uploaded.
    *
-   * @default false
+   * @default true for Turbopack, false for Webpack
    */
   useRunAfterProductionCompileHook?: boolean;
 
