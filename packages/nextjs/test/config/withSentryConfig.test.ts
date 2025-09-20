@@ -776,7 +776,11 @@ describe('withSentryConfig', () => {
         useRunAfterProductionCompileHook: true,
       };
 
-      const finalConfig = materializeFinalNextConfig(exportedNextConfig, undefined, sentryOptions);
+      // Use a clean copy of the config to avoid test interference
+      const cleanConfig = { ...exportedNextConfig };
+      delete cleanConfig.compiler;
+
+      const finalConfig = materializeFinalNextConfig(cleanConfig, undefined, sentryOptions);
 
       expect(finalConfig.compiler?.runAfterProductionCompile).toBeInstanceOf(Function);
     });
@@ -878,12 +882,14 @@ describe('withSentryConfig', () => {
       vi.spyOn(util, 'supportsProductionCompileHook').mockReturnValue(true);
 
       const sentryOptions = {
-        _experimental: {
-          useRunAfterProductionCompileHook: true,
-        },
+        useRunAfterProductionCompileHook: true,
       };
 
-      const finalConfig = materializeFinalNextConfig(exportedNextConfig, undefined, sentryOptions);
+      // Use a clean copy of the config to avoid test interference
+      const cleanConfig = { ...exportedNextConfig };
+      delete cleanConfig.compiler;
+
+      const finalConfig = materializeFinalNextConfig(cleanConfig, undefined, sentryOptions);
 
       expect(finalConfig.compiler?.runAfterProductionCompile).toBeInstanceOf(Function);
 
@@ -895,12 +901,14 @@ describe('withSentryConfig', () => {
       vi.spyOn(util, 'supportsProductionCompileHook').mockReturnValue(true);
 
       const sentryOptions = {
-        _experimental: {
-          useRunAfterProductionCompileHook: true,
-        },
+        useRunAfterProductionCompileHook: true,
       };
 
-      const finalConfig = materializeFinalNextConfig(exportedNextConfig, undefined, sentryOptions);
+      // Use a clean copy of the config to avoid test interference
+      const cleanConfig = { ...exportedNextConfig };
+      delete cleanConfig.compiler;
+
+      const finalConfig = materializeFinalNextConfig(cleanConfig, undefined, sentryOptions);
 
       expect(finalConfig.compiler?.runAfterProductionCompile).toBeInstanceOf(Function);
     });
