@@ -5,7 +5,6 @@ import { createRunner } from '../../utils/runner';
 
 conditionalTest({ min: 20 })('Pino integration', () => {
   test('has different trace ids for logs from different spans', async () => {
-    // expect.assertions(1);
     const instrumentPath = join(__dirname, 'instrument.mjs');
 
     await createRunner(__dirname, 'scenario.mjs')

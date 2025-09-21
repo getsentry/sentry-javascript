@@ -27,23 +27,41 @@ type MergeObject = {
 
 type PinoHookArgs = [MergeObject, string, number];
 
-type Options = {
-  /**
-   * Levels that trigger capturing of events.
-   *
-   * @default ["error", "fatal"]
-   */
-  eventLevels?: LogSeverityLevel[];
-  /**
-   * By default, Sentry will mark captured console messages as handled.
-   * Set this to `false` if you want to mark them as unhandled instead.
-   *
-   * @default true
-   */
-  handled?: boolean;
+type PinoOptions = {
+  error: {
+    /**
+     * Levels that trigger capturing of events.
+     *
+     * @default []
+     */
+    levels: LogSeverityLevel[];
+    /**
+     * By default, Sentry will mark captured errors as handled.
+     * Set this to `false` if you want to mark them as unhandled instead.
+     *
+     * @default true
+     */
+    handled: boolean;
+  };
+  log: {
+    /**
+     * Levels that trigger capturing of logs. Logs are only captured if
+     * `enableLogs` is enabled.
+     *
+     * @default ["trace", "debug", "info", "warn", "error", "fatal"]
+     */
+    levels: LogSeverityLevel[];
+  };
 };
 
-const DEFAULT_OPTIONS: Options = { eventLevels: ['error', 'fatal'], handled: true };
+const DEFAULT_OPTIONS: PinoOptions = {
+  error: { levels: [], handled: true },
+  log: { levels: ['trace', 'debug', 'info', 'warn', 'error', 'fatal'] },
+};
+
+type DeepPartial<T> = {
+  [P in keyof T]?: T[P] extends object ? Partial<T[P]> : T[P];
+};
 
 /**
  * Integration for Pino logging library.
@@ -51,7 +69,12 @@ const DEFAULT_OPTIONS: Options = { eventLevels: ['error', 'fatal'], handled: tru
  *
  * Requires Pino >=v8.0.0 and Node >=20.6.0 or >=18.19.0
  */
-export const pinoIntegration = defineIntegration((options: Options = DEFAULT_OPTIONS) => {
+export const pinoIntegration = defineIntegration((userOptions: DeepPartial<PinoOptions> = {}) => {
+  const options: PinoOptions = {
+    error: { ...DEFAULT_OPTIONS.error, ...userOptions.error },
+    log: { ...DEFAULT_OPTIONS.log, ...userOptions.log },
+  };
+
   return {
     name: 'Pino',
     setup: client => {
@@ -76,16 +99,16 @@ export const pinoIntegration = defineIntegration((options: Options = DEFAULT_OPT
         const level = self?.levels?.labels?.[levelNumber] || 'info';
 
         const attributes = {
+          ...obj,
           'sentry.origin': 'auto.logging.pino',
           'sentry.pino.level': levelNumber,
-          ...obj,
         };
 
-        if (enableLogs) {
+        if (enableLogs && options.log.levels.includes(level)) {
           _INTERNAL_captureLog({ level, message, attributes });
         }
 
-        if (options.eventLevels?.includes(level)) {
+        if (options.error.levels.includes(level)) {
           const captureContext = {
             level: severityLevelFromString(level),
           };
@@ -95,7 +118,7 @@ export const pinoIntegration = defineIntegration((options: Options = DEFAULT_OPT
               event.logger = 'pino';
 
               addExceptionMechanism(event, {
-                handled: !!options.handled,
+                handled: options.error.handled,
                 type: 'pino',
               });
 
