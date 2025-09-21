@@ -76,9 +76,9 @@ export const pinoIntegration = defineIntegration((options: Options = DEFAULT_OPT
         const level = self?.levels?.labels?.[levelNumber] || 'info';
 
         const attributes = {
+          ...obj,
           'sentry.origin': 'auto.logging.pino',
           'sentry.pino.level': levelNumber,
-          ...obj,
         };
 
         if (enableLogs) {
