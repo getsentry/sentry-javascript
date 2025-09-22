@@ -294,7 +294,7 @@ function getFinalConfigObject(
     }
   }
 
-  if (userSentryOptions?._experimental?.useRunAfterProductionCompileHook === true && supportsProductionCompileHook()) {
+  if (userSentryOptions?.useRunAfterProductionCompileHook === true && supportsProductionCompileHook()) {
     if (incomingUserNextConfigObject?.compiler?.runAfterProductionCompile === undefined) {
       incomingUserNextConfigObject.compiler ??= {};
       incomingUserNextConfigObject.compiler.runAfterProductionCompile = async ({ distDir }) => {
@@ -379,7 +379,7 @@ function getFinalConfigObject(
             releaseName,
             routeManifest,
             nextJsVersion,
-            useRunAfterProductionCompileHook: userSentryOptions._experimental?.useRunAfterProductionCompileHook,
+            useRunAfterProductionCompileHook: userSentryOptions?.useRunAfterProductionCompileHook,
           }),
     ...(isTurbopackSupported && isTurbopack
       ? {

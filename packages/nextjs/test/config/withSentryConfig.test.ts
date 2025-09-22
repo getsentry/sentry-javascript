@@ -769,27 +769,27 @@ describe('withSentryConfig', () => {
       vi.restoreAllMocks();
     });
 
-    it('sets up runAfterProductionCompile hook when experimental flag is enabled and version is supported', () => {
+    it('sets up runAfterProductionCompile hook when flag is enabled and version is supported', () => {
       vi.spyOn(util, 'supportsProductionCompileHook').mockReturnValue(true);
 
       const sentryOptions = {
-        _experimental: {
-          useRunAfterProductionCompileHook: true,
-        },
+        useRunAfterProductionCompileHook: true,
       };
 
-      const finalConfig = materializeFinalNextConfig(exportedNextConfig, undefined, sentryOptions);
+      // Use a clean copy of the config to avoid test interference
+      const cleanConfig = { ...exportedNextConfig };
+      delete cleanConfig.compiler;
+
+      const finalConfig = materializeFinalNextConfig(cleanConfig, undefined, sentryOptions);
 
       expect(finalConfig.compiler?.runAfterProductionCompile).toBeInstanceOf(Function);
     });
 
-    it('does not set up hook when experimental flag is disabled', () => {
+    it('does not set up hook when flag is disabled', () => {
       vi.spyOn(util, 'supportsProductionCompileHook').mockReturnValue(true);
 
       const sentryOptions = {
-        _experimental: {
-          useRunAfterProductionCompileHook: false,
-        },
+        useRunAfterProductionCompileHook: false,
       };
 
       const cleanConfig = { ...exportedNextConfig };
@@ -804,9 +804,7 @@ describe('withSentryConfig', () => {
       vi.spyOn(util, 'supportsProductionCompileHook').mockReturnValue(false);
 
       const sentryOptions = {
-        _experimental: {
-          useRunAfterProductionCompileHook: true,
-        },
+        useRunAfterProductionCompileHook: true,
       };
 
       const cleanConfig = { ...exportedNextConfig };
@@ -829,9 +827,7 @@ describe('withSentryConfig', () => {
       };
 
       const sentryOptions = {
-        _experimental: {
-          useRunAfterProductionCompileHook: true,
-        },
+        useRunAfterProductionCompileHook: true,
       };
 
       const finalConfig = materializeFinalNextConfig(configWithExistingHook, undefined, sentryOptions);
@@ -852,9 +848,7 @@ describe('withSentryConfig', () => {
       };
 
       const sentryOptions = {
-        _experimental: {
-          useRunAfterProductionCompileHook: true,
-        },
+        useRunAfterProductionCompileHook: true,
       };
 
       materializeFinalNextConfig(configWithInvalidHook, undefined, sentryOptions);
@@ -873,9 +867,7 @@ describe('withSentryConfig', () => {
       delete configWithoutCompiler.compiler;
 
       const sentryOptions = {
-        _experimental: {
-          useRunAfterProductionCompileHook: true,
-        },
+        useRunAfterProductionCompileHook: true,
       };
 
       const finalConfig = materializeFinalNextConfig(configWithoutCompiler, undefined, sentryOptions);
@@ -890,12 +882,14 @@ describe('withSentryConfig', () => {
       vi.spyOn(util, 'supportsProductionCompileHook').mockReturnValue(true);
 
       const sentryOptions = {
-        _experimental: {
-          useRunAfterProductionCompileHook: true,
-        },
+        useRunAfterProductionCompileHook: true,
       };
 
-      const finalConfig = materializeFinalNextConfig(exportedNextConfig, undefined, sentryOptions);
+      // Use a clean copy of the config to avoid test interference
+      const cleanConfig = { ...exportedNextConfig };
+      delete cleanConfig.compiler;
+
+      const finalConfig = materializeFinalNextConfig(cleanConfig, undefined, sentryOptions);
 
       expect(finalConfig.compiler?.runAfterProductionCompile).toBeInstanceOf(Function);
 
@@ -907,109 +901,16 @@ describe('withSentryConfig', () => {
       vi.spyOn(util, 'supportsProductionCompileHook').mockReturnValue(true);
 
       const sentryOptions = {
-        _experimental: {
-          useRunAfterProductionCompileHook: true,
-        },
+        useRunAfterProductionCompileHook: true,
       };
 
-      const finalConfig = materializeFinalNextConfig(exportedNextConfig, undefined, sentryOptions);
-
-      expect(finalConfig.compiler?.runAfterProductionCompile).toBeInstanceOf(Function);
-    });
-  });
-
-  describe('experimental flag handling', () => {
-    afterEach(() => {
-      vi.restoreAllMocks();
-    });
-
-    it('respects useRunAfterProductionCompileHook: true', () => {
-      vi.spyOn(util, 'supportsProductionCompileHook').mockReturnValue(true);
-
-      const sentryOptions = {
-        _experimental: {
-          useRunAfterProductionCompileHook: true,
-        },
-      };
-
+      // Use a clean copy of the config to avoid test interference
       const cleanConfig = { ...exportedNextConfig };
       delete cleanConfig.compiler;
 
       const finalConfig = materializeFinalNextConfig(cleanConfig, undefined, sentryOptions);
 
       expect(finalConfig.compiler?.runAfterProductionCompile).toBeInstanceOf(Function);
-    });
-
-    it('respects useRunAfterProductionCompileHook: false', () => {
-      vi.spyOn(util, 'supportsProductionCompileHook').mockReturnValue(true);
-
-      const sentryOptions = {
-        _experimental: {
-          useRunAfterProductionCompileHook: false,
-        },
-      };
-
-      const cleanConfig = { ...exportedNextConfig };
-      delete cleanConfig.compiler;
-
-      const finalConfig = materializeFinalNextConfig(cleanConfig, undefined, sentryOptions);
-
-      expect(finalConfig.compiler?.runAfterProductionCompile).toBeUndefined();
-    });
-
-    it('does not set up hook when experimental flag is undefined', () => {
-      vi.spyOn(util, 'supportsProductionCompileHook').mockReturnValue(true);
-
-      const sentryOptions = {
-        _experimental: {
-          // useRunAfterProductionCompileHook not specified
-        },
-      };
-
-      const cleanConfig = { ...exportedNextConfig };
-      delete cleanConfig.compiler;
-
-      const finalConfig = materializeFinalNextConfig(cleanConfig, undefined, sentryOptions);
-
-      expect(finalConfig.compiler?.runAfterProductionCompile).toBeUndefined();
-    });
-
-    it('does not set up hook when _experimental is undefined', () => {
-      vi.spyOn(util, 'supportsProductionCompileHook').mockReturnValue(true);
-
-      const sentryOptions = {
-        // no _experimental property
-      };
-
-      const cleanConfig = { ...exportedNextConfig };
-      delete cleanConfig.compiler;
-
-      const finalConfig = materializeFinalNextConfig(cleanConfig, undefined, sentryOptions);
-
-      expect(finalConfig.compiler?.runAfterProductionCompile).toBeUndefined();
-    });
-
-    it('combines experimental flag with other configurations correctly', () => {
-      process.env.TURBOPACK = '1';
-      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.4.1');
-      vi.spyOn(util, 'supportsProductionCompileHook').mockReturnValue(true);
-
-      const sentryOptions = {
-        _experimental: {
-          useRunAfterProductionCompileHook: true,
-        },
-        sourcemaps: {},
-        tunnelRoute: '/tunnel',
-      };
-
-      const finalConfig = materializeFinalNextConfig(exportedNextConfig, undefined, sentryOptions);
-
-      // Should have both turbopack sourcemap config AND runAfterProductionCompile hook
-      expect(finalConfig.productionBrowserSourceMaps).toBe(true);
-      expect(finalConfig.compiler?.runAfterProductionCompile).toBeInstanceOf(Function);
-      expect(finalConfig.rewrites).toBeInstanceOf(Function);
-
-      delete process.env.TURBOPACK;
     });
   });
 });
