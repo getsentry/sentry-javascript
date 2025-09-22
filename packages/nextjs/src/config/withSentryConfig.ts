@@ -254,43 +254,19 @@ function getFinalConfigObject(
 
   let nextMajor: number | undefined;
   const isTurbopack = process.env.TURBOPACK;
-  let isTurbopackSupported = false;
-  if (nextJsVersion) {
-    const { major, minor, patch, prerelease } = parseSemver(nextJsVersion);
-    nextMajor = major;
-    const isSupportedVersion =
-      major !== undefined &&
-      minor !== undefined &&
-      patch !== undefined &&
-      (major > 15 ||
-        (major === 15 && minor > 3) ||
-        (major === 15 && minor === 3 && patch === 0 && prerelease === undefined) ||
-        (major === 15 && minor === 3 && patch > 0));
-    isTurbopackSupported = isSupportedVersion;
-    const isSupportedCanary =
-      major !== undefined &&
-      minor !== undefined &&
-      patch !== undefined &&
-      prerelease !== undefined &&
-      major === 15 &&
-      minor === 3 &&
-      patch === 0 &&
-      prerelease.startsWith('canary.') &&
-      parseInt(prerelease.split('.')[1] || '', 10) >= 28;
-    const supportsClientInstrumentation = isSupportedCanary || isSupportedVersion;
+  const isTurbopackSupported = supportsProductionCompileHook();
 
-    if (!supportsClientInstrumentation && isTurbopack) {
-      if (process.env.NODE_ENV === 'development') {
-        // eslint-disable-next-line no-console
-        console.warn(
-          `[@sentry/nextjs] WARNING: You are using the Sentry SDK with Turbopack (\`next dev --turbo\`). The Sentry SDK is compatible with Turbopack on Next.js version 15.3.0 or later. You are currently on ${nextJsVersion}. Please upgrade to a newer Next.js version to use the Sentry SDK with Turbopack. Note that the SDK will continue to work for non-Turbopack production builds. This warning is only about dev-mode.`,
-        );
-      } else if (process.env.NODE_ENV === 'production') {
-        // eslint-disable-next-line no-console
-        console.warn(
-          `[@sentry/nextjs] WARNING: You are using the Sentry SDK with Turbopack (\`next build --turbo\`). The Sentry SDK is compatible with Turbopack on Next.js version 15.3.0 or later. You are currently on ${nextJsVersion}. Please upgrade to a newer Next.js version to use the Sentry SDK with Turbopack. Note that as Turbopack is still experimental for production builds, some of the Sentry SDK features like source maps will not work. Follow this issue for progress on Sentry + Turbopack: https://github.com/getsentry/sentry-javascript/issues/8105.`,
-        );
-      }
+  if (!isTurbopackSupported && isTurbopack) {
+    if (process.env.NODE_ENV === 'development') {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[@sentry/nextjs] WARNING: You are using the Sentry SDK with Turbopack (\`next dev --turbopack\`). The Sentry SDK is compatible with Turbopack on Next.js version 15.4.1 or later. You are currently on ${nextJsVersion}. Please upgrade to a newer Next.js version to use the Sentry SDK with Turbopack.`,
+      );
+    } else if (process.env.NODE_ENV === 'production') {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[@sentry/nextjs] WARNING: You are using the Sentry SDK with Turbopack (\`next build --turbopack\`). The Sentry SDK is compatible with Turbopack on Next.js version 15.4.1 or later. You are currently on ${nextJsVersion}. Please upgrade to a newer Next.js version to use the Sentry SDK with Turbopack.`,
+      );
     }
   }
 
