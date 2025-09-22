@@ -7,7 +7,7 @@ test.describe('server-side errors', async () => {
       return errorEvent?.exception?.values?.[0]?.value === 'Nuxt 4 Server error';
     });
 
-    await page.goto(`/fetch-server-error`);
+    await page.goto(`/fetch-server-routes`);
     await page.getByText('Fetch Server API Error', { exact: true }).click();
 
     const error = await errorPromise;
