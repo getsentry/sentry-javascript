@@ -29,11 +29,15 @@ function startMockOpenAiServer() {
       },
     });
   });
-  return app.listen();
+  return new Promise(resolve => {
+    app.listen(server => {
+      resolve(server);
+    });
+  });
 }
 
 async function run() {
-  const server = startMockOpenAiServer();
+  const server = await startMockOpenAiServer();
 
   const client = new OpenAI({
     baseURL: `http://localhost:${server.address().port}/openai`,

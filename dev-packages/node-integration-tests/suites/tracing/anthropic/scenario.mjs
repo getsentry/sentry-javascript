@@ -48,11 +48,16 @@ function startMockAnthropicServer() {
       },
     });
   });
-  return app.listen();
+
+  return new Promise(resolve => {
+    app.listen(server => {
+      resolve(server);
+    });
+  });
 }
 
 async function run() {
-  const server = startMockAnthropicServer();
+  const server = await startMockAnthropicServer();
 
   await Sentry.startSpan({ op: 'function', name: 'main' }, async () => {
     const client = new Anthropic({

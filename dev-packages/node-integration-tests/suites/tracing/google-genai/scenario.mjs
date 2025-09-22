@@ -37,11 +37,15 @@ function startMockGoogleGenAIServer() {
     });
   });
 
-  return app.listen();
+  return new Promise(resolve => {
+    app.listen(server => {
+      resolve(server);
+    });
+  });
 }
 
 async function run() {
-  const server = startMockGoogleGenAIServer();
+  const server = await startMockGoogleGenAIServer();
 
   await Sentry.startSpan({ op: 'function', name: 'main' }, async () => {
     const client = new GoogleGenAI({
