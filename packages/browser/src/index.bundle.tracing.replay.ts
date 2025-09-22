@@ -23,7 +23,7 @@ export {
   startBrowserTracingPageLoadSpan,
 } from './tracing/browserTracingIntegration';
 export { reportPageLoaded } from './tracing/reportPageLoaded';
-export { setActiveSpanInBrowser } from './tracing/setActiveSpanInBrowser';
+export { setActiveSpanInBrowser } from './tracing/setActiveSpan';
 
 export { feedbackIntegrationShim as feedbackAsyncIntegration, feedbackIntegrationShim as feedbackIntegration };
 

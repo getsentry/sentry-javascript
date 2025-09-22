@@ -40,7 +40,7 @@ export {
   startBrowserTracingPageLoadSpan,
 } from './tracing/browserTracingIntegration';
 export { reportPageLoaded } from './tracing/reportPageLoaded';
-export { setActiveSpanInBrowser } from './tracing/setActiveSpanInBrowser';
+export { setActiveSpanInBrowser } from './tracing/setActiveSpan';
 
 export type { RequestInstrumentationOptions } from './tracing/request';
 export {
