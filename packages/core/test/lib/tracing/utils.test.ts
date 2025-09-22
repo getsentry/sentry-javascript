@@ -44,18 +44,18 @@ describe('tracing utils', () => {
       expect(retrieved.isolationScope).toBeUndefined();
     });
 
-    it('uses WeakRef', () => {
+    it('uses WeakRef only for isolation scopes', () => {
       const span = createMockSpan();
       const scope = new Scope();
       const isolationScope = new Scope();
 
       setCapturedScopesOnSpan(span, scope, isolationScope);
 
-      // Check that WeakRef instances were stored
+      // Check that only isolation scope is wrapped with WeakRef
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const spanWithScopes = span as any;
-      expect(spanWithScopes._sentryScope).toBeInstanceOf(WeakRef);
-      expect(spanWithScopes._sentryIsolationScope).toBeInstanceOf(WeakRef);
+      expect(spanWithScopes._sentryScope).toBe(scope); // Regular scope stored directly
+      expect(spanWithScopes._sentryIsolationScope).toBeInstanceOf(WeakRef); // Isolation scope wrapped
 
       // Verify we can still retrieve the scopes
       const retrieved = getCapturedScopesOnSpan(span);
@@ -76,13 +76,13 @@ describe('tracing utils', () => {
 
         setCapturedScopesOnSpan(span, scope, isolationScope);
 
-        // Check that scopes were stored directly
+        // Check that both scopes are stored directly when WeakRef is not available
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const spanWithScopes = span as any;
-        expect(spanWithScopes._sentryScope).toBe(scope);
-        expect(spanWithScopes._sentryIsolationScope).toBe(isolationScope);
+        expect(spanWithScopes._sentryScope).toBe(scope); // Regular scope always stored directly
+        expect(spanWithScopes._sentryIsolationScope).toBe(isolationScope); // Isolation scope falls back to direct storage
 
-        // When WeakRef is available, check that stored values are not WeakRef instances
+        // When WeakRef is available, ensure regular scope is not wrapped but isolation scope would be
         if (originalWeakRef) {
           expect(spanWithScopes._sentryScope).not.toBeInstanceOf(originalWeakRef);
           expect(spanWithScopes._sentryIsolationScope).not.toBeInstanceOf(originalWeakRef);
@@ -106,37 +106,32 @@ describe('tracing utils', () => {
 
       setCapturedScopesOnSpan(span, scope, isolationScope);
 
-      // Mock WeakRef.deref to return undefined (simulating garbage collection)
+      // Mock WeakRef.deref to return undefined for isolation scope (simulating garbage collection)
+      // Regular scope is stored directly, so it should always be available
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const spanWithScopes = span as any;
-      const mockScopeWeakRef = {
-        deref: vi.fn().mockReturnValue(undefined),
-      };
       const mockIsolationScopeWeakRef = {
         deref: vi.fn().mockReturnValue(undefined),
       };
 
-      spanWithScopes._sentryScope = mockScopeWeakRef;
+      // Keep the regular scope as is (stored directly)
+      // Only replace the isolation scope with a mock WeakRef
       spanWithScopes._sentryIsolationScope = mockIsolationScopeWeakRef;
 
       const retrieved = getCapturedScopesOnSpan(span);
-      expect(retrieved.scope).toBeUndefined();
-      expect(retrieved.isolationScope).toBeUndefined();
-      expect(mockScopeWeakRef.deref).toHaveBeenCalled();
+      expect(retrieved.scope).toBe(scope); // Regular scope should still be available
+      expect(retrieved.isolationScope).toBeUndefined(); // Isolation scope should be undefined due to GC
       expect(mockIsolationScopeWeakRef.deref).toHaveBeenCalled();
     });
 
     it('handles corrupted WeakRef objects gracefully', () => {
       const span = createMockSpan();
+      const scope = new Scope();
 
-      // Simulate corrupted WeakRef objects
+      // Set up a regular scope (stored directly) and a corrupted isolation scope WeakRef
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const spanWithScopes = span as any;
-      spanWithScopes._sentryScope = {
-        deref: vi.fn().mockImplementation(() => {
-          throw new Error('WeakRef deref failed');
-        }),
-      };
+      spanWithScopes._sentryScope = scope; // Regular scope stored directly
       spanWithScopes._sentryIsolationScope = {
         deref: vi.fn().mockImplementation(() => {
           throw new Error('WeakRef deref failed');
@@ -144,8 +139,8 @@ describe('tracing utils', () => {
       };
 
       const retrieved = getCapturedScopesOnSpan(span);
-      expect(retrieved.scope).toBeUndefined();
-      expect(retrieved.isolationScope).toBeUndefined();
+      expect(retrieved.scope).toBe(scope); // Regular scope should still be available
+      expect(retrieved.isolationScope).toBeUndefined(); // Isolation scope should be undefined due to error
     });
 
     it('preserves scope data when using WeakRef', () => {
