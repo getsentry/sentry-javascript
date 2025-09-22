@@ -30,7 +30,7 @@ function startMockOpenAiServer() {
     });
   });
   return new Promise(resolve => {
-    app.listen(server => {
+    app.listen(0, server => {
       resolve(server);
     });
   });
