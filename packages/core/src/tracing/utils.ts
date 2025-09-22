@@ -52,6 +52,8 @@ export function setCapturedScopesOnSpan(span: Span | undefined, scope: Scope, is
   if (span) {
     addNonEnumerableProperty(span, ISOLATION_SCOPE_ON_START_SPAN_FIELD, wrapScopeWithWeakRef(isolationScope));
     addNonEnumerableProperty(span, SCOPE_ON_START_SPAN_FIELD, wrapScopeWithWeakRef(scope));
+    // Testing
+    setTimeout(() => [scope, isolationScope], 10_000); // keep this reference around for at least 10s
   }
 }
 
