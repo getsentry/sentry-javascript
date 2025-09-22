@@ -538,7 +538,7 @@ export function createRunner(...paths: string[]) {
         ? runDockerCompose(dockerOptions)
         : Promise.resolve(undefined);
 
-      const startup = Promise.all([dockerStartup, serverStartup]) as Promise<[DockerStartup, ServerStartup]>;
+      const startup = Promise.all([dockerStartup, serverStartup]);
 
       startup
         .then(([dockerChild, [mockServerPort, mockServerClose]]) => {

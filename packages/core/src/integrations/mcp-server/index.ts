@@ -64,5 +64,5 @@ export function wrapMcpServerWithSentry<S extends object>(mcpServerInstance: S):
   wrapAllMCPHandlers(serverInstance);
 
   wrappedMcpServerInstances.add(mcpServerInstance);
-  return mcpServerInstance as S;
+  return mcpServerInstance;
 }

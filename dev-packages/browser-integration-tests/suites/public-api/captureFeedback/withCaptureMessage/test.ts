@@ -6,11 +6,11 @@ import { getMultipleSentryEnvelopeRequests } from '../../../../utils/helpers';
 sentryTest('capture user feedback when captureMessage is called', async ({ getLocalTestUrl, page }) => {
   const url = await getLocalTestUrl({ testDir: __dirname });
 
-  const data = (await getMultipleSentryEnvelopeRequests(page, 2, { url })) as (Event | FeedbackEvent)[];
+  const data = await getMultipleSentryEnvelopeRequests<Event>(page, 2, { url });
 
   expect(data).toHaveLength(2);
 
-  const errorEvent = ('exception' in data[0] ? data[0] : data[1]) as Event;
+  const errorEvent = 'exception' in data[0] ? data[0] : data[1];
   const feedback = ('exception' in data[0] ? data[1] : data[0]) as FeedbackEvent;
 
   expect(feedback.contexts).toEqual(

@@ -21,9 +21,9 @@ export function replayIntegrationShim(_options: unknown): ReplayIntegration {
 
   return {
     name: 'Replay',
-    ...(REPLAY_INTEGRATION_METHODS.reduce((acc, method) => {
+    ...REPLAY_INTEGRATION_METHODS.reduce((acc, method) => {
       acc[method] = FAKE_FUNCTION;
       return acc;
-    }, {} as ReplaySpecificMethods) as ReplaySpecificMethods),
+    }, {} as ReplaySpecificMethods),
   };
 }
