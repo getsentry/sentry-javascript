@@ -776,7 +776,11 @@ describe('withSentryConfig', () => {
         useRunAfterProductionCompileHook: true,
       };
 
-      const finalConfig = materializeFinalNextConfig(exportedNextConfig, undefined, sentryOptions);
+      // Use a clean copy of the config to avoid test interference
+      const cleanConfig = { ...exportedNextConfig };
+      delete cleanConfig.compiler;
+
+      const finalConfig = materializeFinalNextConfig(cleanConfig, undefined, sentryOptions);
 
       expect(finalConfig.compiler?.runAfterProductionCompile).toBeInstanceOf(Function);
     });
@@ -879,7 +883,10 @@ describe('withSentryConfig', () => {
 
       const sentryOptions = {}; // No useRunAfterProductionCompileHook specified
 
-      const finalConfig = materializeFinalNextConfig(exportedNextConfig, undefined, sentryOptions);
+      const cleanConfig = { ...exportedNextConfig };
+      delete cleanConfig.compiler;
+
+      const finalConfig = materializeFinalNextConfig(cleanConfig, undefined, sentryOptions);
 
       expect(finalConfig.compiler?.runAfterProductionCompile).toBeInstanceOf(Function);
 
