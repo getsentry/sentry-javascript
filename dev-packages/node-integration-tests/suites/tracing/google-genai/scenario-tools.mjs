@@ -2,7 +2,6 @@ import { GoogleGenAI } from '@google/genai';
 import * as Sentry from '@sentry/node';
 import express from 'express';
 
-
 function startMockGoogleGenAIServer() {
   const app = express();
   app.use(express.json());
