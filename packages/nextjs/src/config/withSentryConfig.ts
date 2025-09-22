@@ -253,8 +253,13 @@ function getFinalConfigObject(
   }
 
   let nextMajor: number | undefined;
+  if (nextJsVersion) {
+    const { major } = parseSemver(nextJsVersion);
+    nextMajor = major;
+  }
+
   const isTurbopack = process.env.TURBOPACK;
-  const isTurbopackSupported = supportsProductionCompileHook();
+  const isTurbopackSupported = supportsProductionCompileHook(nextJsVersion);
 
   if (!isTurbopackSupported && isTurbopack) {
     if (process.env.NODE_ENV === 'development') {
