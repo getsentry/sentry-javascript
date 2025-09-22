@@ -98,7 +98,8 @@ export function makeUnhandledPromiseHandler(
 
     const level: SeverityLevel = options.mode === 'strict' ? 'fatal' : 'error';
 
-    // If upstream code stored an active span on the error, use it for linking.
+    // this can be set in places where we cannot reliably get access to the active span/error
+    // when the error bubbles up to this handler, we can use this to set the active span
     const activeSpanForError =
       reason && typeof reason === 'object' ? (reason as { _sentry_active_span?: Span })._sentry_active_span : undefined;
 
