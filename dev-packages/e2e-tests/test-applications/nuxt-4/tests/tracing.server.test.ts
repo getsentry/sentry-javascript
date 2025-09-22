@@ -53,11 +53,7 @@ test('captures server API calls made with Nitro $fetch', async ({ page }) => {
   await page.getByText('Fetch Nitro $fetch', { exact: true }).click();
 
   const httpServerFetchSpan = await transactionPromise;
-  const httpClientSpan = httpServerFetchSpan.spans.find(
-    span => span.description === 'GET https://ungh.cc/orgs/unjs/repos',
-  );
-
-  const error = await transactionPromise;
+  const httpClientSpan = httpServerFetchSpan.spans.find(span => span.description === 'GET https://example.com/');
 
   expect(httpServerFetchSpan.transaction).toEqual('GET /api/nitro-fetch');
   expect(httpServerFetchSpan.contexts.trace.op).toEqual('http.server');
