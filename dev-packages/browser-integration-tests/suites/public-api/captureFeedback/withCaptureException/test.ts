@@ -1,5 +1,5 @@
 import { expect } from '@playwright/test';
-import type { Event, FeedbackEvent } from '@sentry/core';
+import type { Event } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
 import { getMultipleSentryEnvelopeRequests } from '../../../../utils/helpers';
 
@@ -11,7 +11,7 @@ sentryTest('capture user feedback when captureException is called', async ({ get
   expect(data).toHaveLength(2);
 
   const errorEvent = 'exception' in data[0] ? data[0] : data[1];
-  const feedback = ('exception' in data[0] ? data[1] : data[0]) as FeedbackEvent;
+  const feedback = 'exception' in data[0] ? data[1] : data[0];
 
   expect(feedback.contexts).toEqual(
     expect.objectContaining({
