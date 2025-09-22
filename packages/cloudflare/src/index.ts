@@ -70,6 +70,7 @@ export {
   // eslint-disable-next-line deprecation/deprecation
   inboundFiltersIntegration,
   instrumentOpenAiClient,
+  instrumentGoogleGenAIClient,
   instrumentAnthropicAiClient,
   eventFiltersIntegration,
   linkedErrorsIntegration,
