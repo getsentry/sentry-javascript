@@ -1,8 +1,6 @@
 import express from 'express';
 import OpenAI from 'openai';
 
-const PORT = 3333;
-
 function startMockOpenAiServer() {
   const app = express();
   app.use(express.json());
@@ -31,14 +29,14 @@ function startMockOpenAiServer() {
       },
     });
   });
-  return app.listen(PORT);
+  return app.listen();
 }
 
 async function run() {
   const server = startMockOpenAiServer();
 
   const client = new OpenAI({
-    baseURL: `http://localhost:${PORT}/openai`,
+    baseURL: `http://localhost:${server.address().port}/openai`,
     apiKey: 'mock-api-key',
   });
 

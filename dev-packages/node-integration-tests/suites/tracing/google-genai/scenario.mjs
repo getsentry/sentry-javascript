@@ -2,8 +2,6 @@ import { GoogleGenAI } from '@google/genai';
 import * as Sentry from '@sentry/node';
 import express from 'express';
 
-const PORT = 3333;
-
 function startMockGoogleGenAIServer() {
   const app = express();
   app.use(express.json());
@@ -39,7 +37,7 @@ function startMockGoogleGenAIServer() {
     });
   });
 
-  return app.listen(PORT);
+  return app.listen();
 }
 
 async function run() {
@@ -48,7 +46,7 @@ async function run() {
   await Sentry.startSpan({ op: 'function', name: 'main' }, async () => {
     const client = new GoogleGenAI({
       apiKey: 'mock-api-key',
-      httpOptions: { baseUrl: `http://localhost:${PORT}` },
+      httpOptions: { baseUrl: `http://localhost:${server.address().port}` },
     });
 
     // Test 1: chats.create and sendMessage flow
