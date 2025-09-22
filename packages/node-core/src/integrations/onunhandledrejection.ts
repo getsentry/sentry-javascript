@@ -4,21 +4,31 @@ import { logAndExitProcess } from '../utils/errorhandling';
 
 type UnhandledRejectionMode = 'none' | 'warn' | 'strict';
 
+type IgnoreMatcher = { symbol: symbol } | { name?: string | RegExp; message?: string | RegExp };
+
 interface OnUnhandledRejectionOptions {
   /**
    * Option deciding what to do after capturing unhandledRejection,
    * that mimicks behavior of node's --unhandled-rejection flag.
    */
   mode: UnhandledRejectionMode;
+  /** Rejection Errors to ignore (don't capture or warn). */
+  ignore?: IgnoreMatcher[];
 }
 
 const INTEGRATION_NAME = 'OnUnhandledRejection';
 
+const DEFAULT_IGNORES: IgnoreMatcher[] = [
+  {
+    name: 'AI_NoOutputGeneratedError', // When stream aborts in Vercel AI SDK, flush() fails with an error
+  },
+];
+
 const _onUnhandledRejectionIntegration = ((options: Partial<OnUnhandledRejectionOptions> = {}) => {
-  const opts = {
-    mode: 'warn',
-    ...options,
-  } satisfies OnUnhandledRejectionOptions;
+  const opts: OnUnhandledRejectionOptions = {
+    mode: options.mode ?? 'warn',
+    ignore: [...DEFAULT_IGNORES, ...(options.ignore ?? [])],
+  };
 
   return {
     name: INTEGRATION_NAME,
@@ -28,31 +38,67 @@ const _onUnhandledRejectionIntegration = ((options: Partial<OnUnhandledRejection
   };
 }) satisfies IntegrationFn;
 
-/**
- * Add a global promise rejection handler.
- */
 export const onUnhandledRejectionIntegration = defineIntegration(_onUnhandledRejectionIntegration);
 
-/**
- * Send an exception with reason
- * @param reason string
- * @param promise promise
- *
- * Exported only for tests.
- */
+/** Extract error info safely */
+function extractErrorInfo(reason: unknown): { name: string; message: string; isObject: boolean } {
+  const isObject = reason !== null && typeof reason === 'object';
+  if (!isObject) {
+    return { name: '', message: String(reason ?? ''), isObject };
+  }
+
+  const errorLike = reason as Record<string, unknown>;
+  const name = typeof errorLike.name === 'string' ? errorLike.name : '';
+  const message = typeof errorLike.message === 'string' ? errorLike.message : String(reason);
+
+  return { name, message, isObject };
+}
+
+/** Check if a matcher matches the reason */
+function checkMatcher(
+  matcher: IgnoreMatcher,
+  reason: unknown,
+  errorInfo: ReturnType<typeof extractErrorInfo>,
+): boolean {
+  if ('symbol' in matcher) {
+    return errorInfo.isObject && matcher.symbol in (reason as object);
+  }
+
+  // name/message matcher
+  const nameMatches =
+    matcher.name === undefined ||
+    (typeof matcher.name === 'string' ? errorInfo.name === matcher.name : matcher.name.test(errorInfo.name));
+
+  const messageMatches =
+    matcher.message === undefined ||
+    (typeof matcher.message === 'string'
+      ? errorInfo.message.includes(matcher.message)
+      : matcher.message.test(errorInfo.message));
+
+  return nameMatches && messageMatches;
+}
+
+/** Match helper */
+function matchesIgnore(reason: unknown, list: IgnoreMatcher[]): boolean {
+  const errorInfo = extractErrorInfo(reason);
+  return list.some(matcher => checkMatcher(matcher, reason, errorInfo));
+}
+
+/** Core handler */
 export function makeUnhandledPromiseHandler(
   client: Client,
   options: OnUnhandledRejectionOptions,
 ): (reason: unknown, promise: unknown) => void {
   return function sendUnhandledPromise(reason: unknown, promise: unknown): void {
-    if (getClient() !== client) {
-      return;
-    }
+    // Only handle for the active client
+    if (getClient() !== client) return;
+
+    // Skip if configured to ignore
+    if (matchesIgnore(reason, options.ignore ?? [])) return;
 
     const level: SeverityLevel = options.mode === 'strict' ? 'fatal' : 'error';
 
-    // this can be set in places where we cannot reliably get access to the active span/error
-    // when the error bubbles up to this handler, we can use this to set the active span
+    // If upstream code stored an active span on the error, use it for linking.
     const activeSpanForError =
       reason && typeof reason === 'object' ? (reason as { _sentry_active_span?: Span })._sentry_active_span : undefined;
 

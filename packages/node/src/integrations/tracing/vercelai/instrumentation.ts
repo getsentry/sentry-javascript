@@ -202,47 +202,12 @@ export class SentryVercelAiInstrumentation extends InstrumentationBase {
     }
   }
 
-  /**
-   * Sets up global error handling for Vercel AI stream processing errors
-   */
-  private _setupGlobalErrorHandling(): void {
-    // Add a global unhandled rejection handler specifically for Vercel AI errors
-    const originalHandler = process.listeners('unhandledRejection');
-    const aiErrorHandler = (reason: unknown, promise: Promise<unknown>): void => {
-      // Check if this is a Vercel AI error
-      if (reason && typeof reason === 'object' && reason !== null && Symbol.for('vercel.ai.error') in reason) {
-        // Add Sentry context to the error
-        if (reason && typeof reason === 'object') {
-          addNonEnumerableProperty(reason, '_sentry_active_span', getActiveSpan());
-        }
-
-        // Don't re-throw the error to prevent it from becoming unhandled
-        return;
-      }
-
-      // For non-AI errors, let the original handler deal with it
-      if (originalHandler.length > 0) {
-        originalHandler.forEach(handler => {
-          if (typeof handler === 'function') {
-            handler(reason, promise);
-          }
-        });
-      }
-    };
-
-    // Remove any existing unhandled rejection handlers and add our AI-specific one
-    process.removeAllListeners('unhandledRejection');
-    process.on('unhandledRejection', aiErrorHandler);
-  }
 
   /**
    * Patches module exports to enable Vercel AI telemetry.
    */
   private _patch(moduleExports: PatchedModuleExports): unknown {
     this._isPatched = true;
-
-    // Set up global error handling for Vercel AI stream processing errors
-    this._setupGlobalErrorHandling();
 
     this._callbacks.forEach(callback => callback());
     this._callbacks = [];
