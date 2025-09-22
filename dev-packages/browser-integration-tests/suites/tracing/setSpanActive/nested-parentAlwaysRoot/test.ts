@@ -3,7 +3,7 @@ import { sentryTest } from '../../../../utils/fixtures';
 import { envelopeRequestParser, shouldSkipTracingTest, waitForTransactionRequest } from '../../../../utils/helpers';
 
 sentryTest(
-  'nested calls to setSpanActive with parentSpanIsAlwaysRootSpan=false result in correct parenting',
+  'nested calls to setActiveSpanInBrowser with parentSpanIsAlwaysRootSpan=false result in correct parenting',
   async ({ getLocalTestUrl, page }) => {
     if (shouldSkipTracingTest()) {
       sentryTest.skip();

@@ -22,7 +22,7 @@ import { _INTERNAL_setSpanForScope, getActiveSpan, getCurrentScope } from '@sent
  *
  * on('checkoutStarted', () => {
  *  checkoutSpan = Sentry.startInactiveSpan({ name: 'checkout-flow' });
- *  Sentry.setSpanActive(checkoutSpan);
+ *  Sentry.setActiveSpanInBrowser(checkoutSpan);
  * })
  *
  * // during this time, any spans started will be children of `checkoutSpan`:
@@ -37,11 +37,11 @@ import { _INTERNAL_setSpanForScope, getActiveSpan, getCurrentScope } from '@sent
  *
  * @param span - the span to set active
  */
-export function setSpanActive(span: Span): void {
+export function setActiveSpanInBrowser(span: Span): void {
   const maybePreviousActiveSpan = getActiveSpan();
 
   // If the span is already active, there's no need to double-patch or set it again.
-  // This also guards against users (for whatever reason) calling setSpanActive on SDK-started
+  // This also guards against users (for whatever reason) calling setActiveSpanInBrowser on SDK-started
   // idle spans like pageload or navigation spans. These will already be handled correctly by the SDK.
   // For nested situations, we have to double-patch to ensure we restore the correct previous span (see tests)
   if (maybePreviousActiveSpan === span) {
