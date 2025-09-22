@@ -202,7 +202,6 @@ export class SentryVercelAiInstrumentation extends InstrumentationBase {
     }
   }
 
-
   /**
    * Patches module exports to enable Vercel AI telemetry.
    */
