@@ -2,7 +2,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import * as Sentry from '@sentry/node';
 import express from 'express';
 
-const PORT = 3335;
+const PORT = 3333;
 
 function startMockAnthropicServer() {
   const app = express();
