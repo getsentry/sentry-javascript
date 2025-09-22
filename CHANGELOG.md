@@ -4,6 +4,82 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 10.13.0
+
+### Important Changes
+
+- **feat(browser): Add option to explicitly end pageload span via `reportPageLoaded()` ([#17697](https://github.com/getsentry/sentry-javascript/pull/17697))**
+
+  With this release you can take manual control of ending the pageload span. Usually this span is ended automatically by the SDK, based on a period of inactivity after the initial page was loaded in the browser. If you want full control over the pageload duration, you can tell Sentry, when your page was fully loaded:
+
+  ```js
+  Sentry.init({
+    //...
+    integrations: [
+      // 1. Enable manual pageload reporting
+      Sentry.browserTracingIntegration({ enableReportPageLoaded: true }),
+    ],
+  });
+
+  // 2. Whenever you decide the page is loaded, call:
+  Sentry.reportPageLoaded();
+  ```
+
+  Note that if `Sentry.reportPageLoaded()` is not called within 30 seconds of the initial pageload (or whatever value the `finalTimeout` option is set to), the pageload span will be ended automatically.
+
+- **feat(core,node): Add instrumentation for `GoogleGenerativeAI` ([#17625](https://github.com/getsentry/sentry-javascript/pull/17625))**
+
+  The SDK now automatically instruments the `@google/generative-ai` package to provide insights into your AI operations.
+
+- **feat(nextjs): Promote `useRunAfterProductionCompileHook` to non-experimental build option ([#17721](https://github.com/getsentry/sentry-javascript/pull/17721))**
+
+  The `useRunAfterProductionCompileHook` option is no longer experimental and is now a stable build option for Next.js projects.
+
+- **feat(nextjs): Use `afterProductionCompile` hook for webpack builds ([#17655](https://github.com/getsentry/sentry-javascript/pull/17655))**
+
+  Next.js projects using webpack can opt-in to use the `useRunAfterProductionCompileHook` hook for source map uploads.
+
+- **feat(nextjs): Flip default value for `useRunAfterProductionCompileHook` for Turbopack builds ([#17722](https://github.com/getsentry/sentry-javascript/pull/17722))**
+
+  The `useRunAfterProductionCompileHook` option is now enabled by default for Turbopack builds, enabling automated source map uploads.
+
+- **feat(node): Do not drop 300 and 304 status codes by default ([#17686](https://github.com/getsentry/sentry-javascript/pull/17686))**
+
+  HTTP transactions with 300 and 304 status codes are now captured by default, providing better visibility into redirect and caching behavior.
+
+### Other Changes
+
+- feat(core): Add logger to core and allow scope to be passed log methods ([#17698](https://github.com/getsentry/sentry-javascript/pull/17698))
+- feat(core): Allow to pass `onSuccess` to `handleCallbackErrors` ([#17679](https://github.com/getsentry/sentry-javascript/pull/17679))
+- feat(core): Create template attributes in `consoleLoggingIntegration` ([#17703](https://github.com/getsentry/sentry-javascript/pull/17703))
+- feat(deps): bump @sentry/cli from 2.52.0 to 2.53.0 ([#17652](https://github.com/getsentry/sentry-javascript/pull/17652))
+- feat(node): Add extra platforms to `os` context ([#17720](https://github.com/getsentry/sentry-javascript/pull/17720))
+- fix(browser): Ensure idle span duration is adjusted when child spans are ignored ([#17700](https://github.com/getsentry/sentry-javascript/pull/17700))
+- fix(core): Ensure builtin stack frames don't affect `thirdPartyErrorFilterIntegration` ([#17693](https://github.com/getsentry/sentry-javascript/pull/17693))
+- fix(core): Fix client hook edge cases around multiple callbacks ([#17706](https://github.com/getsentry/sentry-javascript/pull/17706))
+- fix(nextjs): Enable fetch span when OTel setup is skipped ([#17699](https://github.com/getsentry/sentry-javascript/pull/17699))
+- fix(node): Fix `this` context for vercel AI instrumentation ([#17681](https://github.com/getsentry/sentry-javascript/pull/17681))
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+
+- chore: Add external contributor to CHANGELOG.md ([#17725](https://github.com/getsentry/sentry-javascript/pull/17725))
+- chore: Add link to build and test icon in readme ([#17719](https://github.com/getsentry/sentry-javascript/pull/17719))
+- chore(nuxt): Bump Vite and Rollup plugins ([#17671](https://github.com/getsentry/sentry-javascript/pull/17671))
+- chore(repo): Add changelog entry for `reportPageLoaded` ([#17724](https://github.com/getsentry/sentry-javascript/pull/17724))
+- ci: Fix lookup of changed E2E test apps ([#17707](https://github.com/getsentry/sentry-javascript/pull/17707))
+- ci(test-matrix): Add logs for `getTestMatrix` ([#17673](https://github.com/getsentry/sentry-javascript/pull/17673))
+- ref: Avoid some usage of `SyncPromise` where not needed ([#17641](https://github.com/getsentry/sentry-javascript/pull/17641))
+- ref(core): Add debug log when dropping a span via `ignoreSpans` ([#17692](https://github.com/getsentry/sentry-javascript/pull/17692))
+- ref(core): Avoid looking up anthropic-ai integration options ([#17694](https://github.com/getsentry/sentry-javascript/pull/17694))
+- ref(core): Streamline `module_metadata` assignment and cleanup functions ([#17696](https://github.com/getsentry/sentry-javascript/pull/17696))
+- ref(remix): Avoid unnecessary error wrapping `HandleDocumentRequestFunction` ([#17680](https://github.com/getsentry/sentry-javascript/pull/17680))
+- Revert "[Gitflow] Merge master into develop"
+
+</details>
+
+Work in this release was contributed by @Olexandr88. Thank you for your contribution!
+
 ## 10.12.0
 
 ### Important Changes

@@ -125,6 +125,7 @@ export {
   profiler,
   amqplibIntegration,
   anthropicAIIntegration,
+  googleGenAIIntegration,
   vercelAIIntegration,
   logger,
   consoleLoggingIntegration,

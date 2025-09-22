@@ -23,6 +23,8 @@ export {
   startBrowserTracingPageLoadSpan,
 } from './tracing/browserTracingIntegration';
 
+export { reportPageLoaded } from './tracing/reportPageLoaded';
+
 export { getFeedback, sendFeedback } from '@sentry-internal/feedback';
 
 export { feedbackAsyncIntegration as feedbackAsyncIntegration, feedbackAsyncIntegration as feedbackIntegration };

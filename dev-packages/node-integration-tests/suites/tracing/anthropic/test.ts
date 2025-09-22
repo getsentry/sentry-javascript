@@ -189,6 +189,16 @@ describe('Anthropic integration', () => {
     ]),
   };
 
+  createEsmAndCjsTests(__dirname, 'scenario-manual-client.mjs', 'instrument.mjs', (createRunner, test) => {
+    test('creates anthropic related spans when manually insturmenting client', async () => {
+      await createRunner()
+        .ignore('event')
+        .expect({ transaction: EXPECTED_TRANSACTION_DEFAULT_PII_FALSE })
+        .start()
+        .completed();
+    });
+  });
+
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
     test('creates anthropic related spans with sendDefaultPii: false', async () => {
       await createRunner()

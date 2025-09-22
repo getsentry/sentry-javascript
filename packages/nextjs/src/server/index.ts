@@ -106,9 +106,12 @@ export function init(options: NodeOptions): NodeClient | undefined {
       }),
     );
 
-  // Turn off Next.js' own fetch instrumentation
+  // Turn off Next.js' own fetch instrumentation (only when we manage OTEL)
   // https://github.com/lforst/nextjs-fork/blob/1994fd186defda77ad971c36dc3163db263c993f/packages/next/src/server/lib/patch-fetch.ts#L245
-  process.env.NEXT_OTEL_FETCH_DISABLED = '1';
+  // Enable with custom OTel setup: https://github.com/getsentry/sentry-javascript/issues/17581
+  if (!options.skipOpenTelemetrySetup) {
+    process.env.NEXT_OTEL_FETCH_DISABLED = '1';
+  }
 
   // This value is injected at build time, based on the output directory specified in the build config. Though a default
   // is set there, we set it here as well, just in case something has gone wrong with the injection.

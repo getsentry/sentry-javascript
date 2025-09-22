@@ -95,6 +95,7 @@ export {
   consoleLoggingIntegration,
   createConsolaReporter,
   featureFlagsIntegration,
+  logger,
 } from '@sentry/core';
 
 export { VercelEdgeClient } from './client';
@@ -102,5 +103,3 @@ export { getDefaultIntegrations, init } from './sdk';
 
 export { winterCGFetchIntegration } from './integrations/wintercg-fetch';
 export { vercelAIIntegration } from './integrations/tracing/vercelai';
-
-export * as logger from './logs/exports';
