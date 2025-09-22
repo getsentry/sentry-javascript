@@ -4,6 +4,25 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+### Important Changes
+
+- **ref: feat(browser): Add option to explicitly end pageload span via `reportPageLoaded()` ([#17697](https://github.com/getsentry/sentry-javascript/issues/17212))**
+
+  With this release you can take manual control of ending the pageload span. Usually this span is ended automatically by the SDK, based on a period of inactivity after the initial page was loaded in the browser. If you want full control over the pageload duration, you can tell Sentry, when your page was fully loaded:
+
+  ```js
+  Sentry.init({
+    integrations: [
+      // 1. Enable manual pageload reporting
+      Sentry.browserTracingIntegration({ enableReportPageLoaded: true }),
+    ],
+    //...
+  });
+
+  // 2. Whenever you decide the page is loaded, call:
+  Sentry.reportPageLoaded();
+  ```
+
 ## 10.12.0
 
 ### Important Changes
