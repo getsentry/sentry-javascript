@@ -259,7 +259,7 @@ function getFinalConfigObject(
   }
 
   const isTurbopack = process.env.TURBOPACK;
-  const isTurbopackSupported = supportsProductionCompileHook(nextJsVersion);
+  const isTurbopackSupported = supportsProductionCompileHook(nextJsVersion ?? '');
 
   if (!isTurbopackSupported && isTurbopack) {
     if (process.env.NODE_ENV === 'development') {
@@ -279,7 +279,7 @@ function getFinalConfigObject(
   const shouldUseRunAfterProductionCompileHook =
     userSentryOptions?.useRunAfterProductionCompileHook ?? (isTurbopack ? true : false);
 
-  if (shouldUseRunAfterProductionCompileHook && supportsProductionCompileHook()) {
+  if (shouldUseRunAfterProductionCompileHook && supportsProductionCompileHook(nextJsVersion ?? '')) {
     if (incomingUserNextConfigObject?.compiler?.runAfterProductionCompile === undefined) {
       incomingUserNextConfigObject.compiler ??= {};
       incomingUserNextConfigObject.compiler.runAfterProductionCompile = async ({ distDir }) => {

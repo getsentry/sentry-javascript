@@ -33,11 +33,11 @@ function resolveNextjsPackageJson(): string | undefined {
  * Checks if the current Next.js version supports the runAfterProductionCompile hook.
  * This hook was introduced in Next.js 15.4.1. (https://github.com/vercel/next.js/pull/77345)
  *
- * @param version - Optional version string to check. If not provided, will call getNextjsVersion()
+ * @param version - version string to check.
  * @returns true if Next.js version is 15.4.1 or higher
  */
-export function supportsProductionCompileHook(version?: string): boolean {
-  const versionToCheck = version ?? getNextjsVersion();
+export function supportsProductionCompileHook(version: string): boolean {
+  const versionToCheck = version;
   if (!versionToCheck) {
     return false;
   }
