@@ -1,12 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { getClient } from '../../../src/currentScopes';
+import { getClient, getCurrentScope } from '../../../src/currentScopes';
 import { createConsolaReporter } from '../../../src/integrations/consola';
-import { _INTERNAL_captureLog } from '../../../src/logs/exports';
+import { _INTERNAL_captureLog } from '../../../src/logs/internal';
 import { formatConsoleArgs } from '../../../src/logs/utils';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
 
 // Mock dependencies
-vi.mock('../../../src/logs/exports', () => ({
+vi.mock('../../../src/logs/internal', () => ({
   _INTERNAL_captureLog: vi.fn(),
 }));
 
@@ -16,6 +16,7 @@ vi.mock('../../../src/logs/utils', async actual => ({
 
 vi.mock('../../../src/currentScopes', () => ({
   getClient: vi.fn(),
+  getCurrentScope: vi.fn(),
 }));
 
 describe('createConsolaReporter', () => {
@@ -32,7 +33,12 @@ describe('createConsolaReporter', () => {
       normalizeMaxBreadth: 1000,
     });
 
+    const mockScope = {
+      getClient: vi.fn().mockReturnValue(mockClient),
+    };
+
     vi.mocked(getClient).mockReturnValue(mockClient);
+    vi.mocked(getCurrentScope).mockReturnValue(mockScope as any);
   });
 
   afterEach(() => {

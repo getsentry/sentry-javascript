@@ -607,6 +607,12 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   ): () => void;
 
   /**
+   * A hook for the browser tracing integrations to trigger the end of a page load span.
+   * @returns {() => void} A function that, when executed, removes the registered callback.
+   */
+  public on(hook: 'endPageloadSpan', callback: () => void): () => void;
+
+  /**
    * A hook for the browser tracing integrations to trigger after the pageload span was started.
    * @returns {() => void} A function that, when executed, removes the registered callback.
    */
@@ -801,6 +807,11 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     options: StartSpanOptions,
     traceOptions?: { sentryTrace?: string | undefined; baggage?: string | undefined },
   ): void;
+
+  /**
+   * Emit a hook event for browser tracing integrations to trigger the end of a page load span.
+   */
+  public emit(hook: 'endPageloadSpan'): void;
 
   /**
    * Emit a hook event for browser tracing integrations to trigger aafter the pageload span was started.

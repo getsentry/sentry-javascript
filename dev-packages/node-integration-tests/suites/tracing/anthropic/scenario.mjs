@@ -2,8 +2,6 @@ import Anthropic from '@anthropic-ai/sdk';
 import * as Sentry from '@sentry/node';
 import express from 'express';
 
-const PORT = 3333;
-
 function startMockAnthropicServer() {
   const app = express();
   app.use(express.json());
@@ -50,16 +48,21 @@ function startMockAnthropicServer() {
       },
     });
   });
-  return app.listen(PORT);
+
+  return new Promise(resolve => {
+    const server = app.listen(0, () => {
+      resolve(server);
+    });
+  });
 }
 
 async function run() {
-  const server = startMockAnthropicServer();
+  const server = await startMockAnthropicServer();
 
   await Sentry.startSpan({ op: 'function', name: 'main' }, async () => {
     const client = new Anthropic({
       apiKey: 'mock-api-key',
-      baseURL: `http://localhost:${PORT}/anthropic`,
+      baseURL: `http://localhost:${server.address().port}/anthropic`,
     });
 
     // First test: basic message completion

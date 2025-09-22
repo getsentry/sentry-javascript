@@ -100,9 +100,7 @@ describe('constructWebpackConfigFunction()', () => {
       incomingWebpackConfig: serverWebpackConfig,
       incomingWebpackBuildContext: serverBuildContext,
       sentryBuildTimeOptions: {
-        _experimental: {
-          useRunAfterProductionCompileHook: true,
-        },
+        useRunAfterProductionCompileHook: true,
       },
     });
 
@@ -128,9 +126,7 @@ describe('constructWebpackConfigFunction()', () => {
       incomingWebpackConfig: serverWebpackConfig,
       incomingWebpackBuildContext: serverBuildContext,
       sentryBuildTimeOptions: {
-        _experimental: {
-          useRunAfterProductionCompileHook: false,
-        },
+        useRunAfterProductionCompileHook: false,
       },
     });
 

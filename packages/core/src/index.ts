@@ -122,7 +122,8 @@ export { trpcMiddleware } from './trpc';
 export { wrapMcpServerWithSentry } from './integrations/mcp-server';
 export { captureFeedback } from './feedback';
 export type { ReportDialogOptions } from './report-dialog';
-export { _INTERNAL_captureLog, _INTERNAL_flushLogsBuffer, _INTERNAL_captureSerializedLog } from './logs/exports';
+export { _INTERNAL_captureLog, _INTERNAL_flushLogsBuffer, _INTERNAL_captureSerializedLog } from './logs/internal';
+export * as logger from './logs/public-api';
 export { consoleLoggingIntegration } from './logs/console-integration';
 export { createConsolaReporter } from './integrations/consola';
 export { addVercelAiProcessors } from './utils/vercel-ai';
@@ -133,6 +134,7 @@ export { instrumentAnthropicAiClient } from './utils/anthropic-ai';
 export { ANTHROPIC_AI_INTEGRATION_NAME } from './utils/anthropic-ai/constants';
 export { instrumentGoogleGenAIClient } from './utils/google-genai';
 export { GOOGLE_GENAI_INTEGRATION_NAME } from './utils/google-genai/constants';
+export type { GoogleGenAIResponse } from './utils/google-genai/types';
 export type { OpenAiClient, OpenAiOptions, InstrumentedMethod } from './utils/openai/types';
 export type {
   AnthropicAiClient,
