@@ -294,7 +294,11 @@ function getFinalConfigObject(
     }
   }
 
-  if (userSentryOptions?.useRunAfterProductionCompileHook === true && supportsProductionCompileHook()) {
+  // If not explicitly set, turbopack uses the runAfterProductionCompile hook (as there are no alternatives), webpack does not.
+  const shouldUseRunAfterProductionCompileHook =
+    userSentryOptions?.useRunAfterProductionCompileHook ?? (isTurbopack ? true : false);
+
+  if (shouldUseRunAfterProductionCompileHook && supportsProductionCompileHook()) {
     if (incomingUserNextConfigObject?.compiler?.runAfterProductionCompile === undefined) {
       incomingUserNextConfigObject.compiler ??= {};
       incomingUserNextConfigObject.compiler.runAfterProductionCompile = async ({ distDir }) => {
@@ -379,7 +383,7 @@ function getFinalConfigObject(
             releaseName,
             routeManifest,
             nextJsVersion,
-            useRunAfterProductionCompileHook: userSentryOptions?.useRunAfterProductionCompileHook,
+            useRunAfterProductionCompileHook: shouldUseRunAfterProductionCompileHook,
           }),
     ...(isTurbopackSupported && isTurbopack
       ? {
