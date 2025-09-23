@@ -4,6 +4,21 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+- **feat(cloudflare): Add honoIntegration with error-filtering function ([#17743](https://github.com/getsentry/sentry-javascript/pull/17743))**
+
+  This release adds a `honoIntegration` to `@sentry/cloudflare`, which exposes a `shouldHandleError` function that lets you define which errors in `onError` should be captured.
+  By default, Sentry captures exceptions with `error.status >= 500 || error.status <= 299`.
+
+  The integration is added by default, and it's possible to modify this behavior like this:
+
+  ```js
+   integrations: [
+     honoIntegration({
+      shouldHandleError: (err) => true; // always capture exceptions in onError
+     })
+   ]
+  ```
+
 Work in this release was contributed by @Karibash. Thank you for your contribution!
 
 ## 10.14.0
