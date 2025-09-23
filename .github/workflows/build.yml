@@ -129,6 +129,9 @@ jobs:
     steps:
       - name: Check out current commit
         uses: actions/checkout@v5
+        with:
+          ref: ${{ env.HEAD_COMMIT }}
+          fetch-depth: 0
 
 
       - name: Check if master is not ahead of develop
