@@ -126,8 +126,8 @@ jobs:
   # There will often be merge conflicts when GitFlow merges master into develop.
   # To avoid this, this job checks for this and fails if it detects it.
   # Make sure to re-run this after the release is completed & GitFlow syncs master into develop
-  job_can_merge_into_develop:
-    name: Can Merge Into Develop
+  job_check_gitflow:
+    name: Check Gitflow
     needs: job_get_metadata
     runs-on: ubuntu-24.04
     # Only run this on PRs against develop, if any package.json files were changed
@@ -159,7 +159,7 @@ jobs:
             echo "✓ master is not ahead of develop"
           fi
 
-      - name: Check is prepare release PR is open
+      - name: Check if prepare release PR is open
         run: |
           if gh pr list --json headRefName | jq -r '.[].headRefName' | grep -q "^prepare-release"; then
             echo "Error: prepare release PR is open"
@@ -1217,7 +1217,7 @@ jobs:
         job_lint,
         job_check_format,
         job_circular_dep_check,
-        job_can_merge_into_develop,
+        job_check_gitflow,
       ]
     # Always run this, even if a dependent job failed
     if: always()
