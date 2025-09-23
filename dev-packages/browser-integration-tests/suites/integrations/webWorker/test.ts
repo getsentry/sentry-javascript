@@ -4,7 +4,7 @@ import { sentryTest } from '../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest } from '../../../utils/helpers';
 
 sentryTest('Assigns web worker debug IDs when using webWorkerIntegration', async ({ getLocalTestUrl, page }) => {
-  const bundle = process.env.PW_BUNDLE as string | undefined;
+  const bundle = process.env.PW_BUNDLE;
   if (bundle != null && !bundle.includes('esm') && !bundle.includes('cjs')) {
     sentryTest.skip();
   }

@@ -278,7 +278,7 @@ function createDeepProxy<T extends object>(target: T, currentPath = '', options:
 
       return value;
     },
-  }) as T;
+  });
 }
 
 /**

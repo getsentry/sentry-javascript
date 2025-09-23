@@ -302,7 +302,7 @@ function createDeepProxy<T extends object>(target: T, currentPath = '', options:
       }
 
       if (value && typeof value === 'object') {
-        return createDeepProxy(value as object, methodPath, options);
+        return createDeepProxy(value, methodPath, options);
       }
 
       return value;

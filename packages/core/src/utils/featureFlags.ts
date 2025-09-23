@@ -63,7 +63,7 @@ export function _INTERNAL_insertFlagToScope(
   if (!scopeContexts.flags) {
     scopeContexts.flags = { values: [] };
   }
-  const flags = scopeContexts.flags.values as FeatureFlag[];
+  const flags = scopeContexts.flags.values;
   _INTERNAL_insertToFlagBuffer(flags, name, value, maxSize);
 }
 

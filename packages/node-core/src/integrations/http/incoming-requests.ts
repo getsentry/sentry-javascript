@@ -489,7 +489,7 @@ function getContentLength(headers: IncomingHttpHeaders): number | null {
   const contentLengthHeader = headers['content-length'];
   if (contentLengthHeader === undefined) return null;
 
-  const contentLength = parseInt(contentLengthHeader as string, 10);
+  const contentLength = parseInt(contentLengthHeader, 10);
   if (isNaN(contentLength)) return null;
 
   return contentLength;

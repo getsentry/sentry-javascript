@@ -24,7 +24,7 @@ export const feedbackModalIntegration = ((): FeedbackModalIntegration => {
     name: 'FeedbackModal',
     setupOnce() {},
     createDialog: ({ options, screenshotIntegration, sendFeedback, shadow }) => {
-      const shadowRoot = shadow as unknown as ShadowRoot;
+      const shadowRoot = shadow as ShadowRoot;
       const userKey = options.useSentryUser;
       const user = getUser();
 

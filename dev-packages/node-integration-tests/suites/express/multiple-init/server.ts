@@ -36,7 +36,7 @@ app.get('/test/init', (_req, res) => {
     transport: loggingTransport,
   });
   // Set this on initial scope, to ensure it can be inherited
-  initialCurrentScope.setClient(Sentry.getClient()!);
+  initialCurrentScope.setClient(Sentry.getClient());
 
   Sentry.addBreadcrumb({ message: 'init breadcrumb' });
   Sentry.setTag('init', 'tag');

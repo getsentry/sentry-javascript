@@ -248,7 +248,7 @@ export function _addTracingHeadersToFetchRequest(
       baggage: string | undefined;
       traceparent?: string;
     } = {
-      ...(originalHeaders as Exclude<typeof originalHeaders, Headers>),
+      ...originalHeaders,
       'sentry-trace': (existingSentryTraceHeader as string | undefined) ?? sentryTrace,
       baggage: newBaggageHeaders.length > 0 ? newBaggageHeaders.join(',') : undefined,
     };
