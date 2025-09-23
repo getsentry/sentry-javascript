@@ -4,14 +4,12 @@ import {
   InstrumentationBase,
   InstrumentationNodeModuleDefinition,
 } from '@opentelemetry/instrumentation';
-import type { Integration, OpenAiClient, OpenAiOptions } from '@sentry/core';
-import { getClient, instrumentOpenAiClient, OPENAI_INTEGRATION_NAME, SDK_VERSION } from '@sentry/core';
+import type { OpenAiClient, OpenAiOptions } from '@sentry/core';
+import { getClient, instrumentOpenAiClient, SDK_VERSION } from '@sentry/core';
 
 const supportedVersions = ['>=4.0.0 <6'];
 
-export interface OpenAiIntegration extends Integration {
-  options: OpenAiOptions;
-}
+type OpenAiInstrumentationOptions = InstrumentationConfig & OpenAiOptions;
 
 /**
  * Represents the patched shape of the OpenAI module export.
@@ -22,22 +20,10 @@ interface PatchedModuleExports {
 }
 
 /**
- * Determines telemetry recording settings.
- */
-function determineRecordingSettings(
-  integrationOptions: OpenAiOptions | undefined,
-  defaultEnabled: boolean,
-): { recordInputs: boolean; recordOutputs: boolean } {
-  const recordInputs = integrationOptions?.recordInputs ?? defaultEnabled;
-  const recordOutputs = integrationOptions?.recordOutputs ?? defaultEnabled;
-  return { recordInputs, recordOutputs };
-}
-
-/**
  * Sentry OpenAI instrumentation using OpenTelemetry.
  */
-export class SentryOpenAiInstrumentation extends InstrumentationBase<InstrumentationConfig> {
-  public constructor(config: InstrumentationConfig = {}) {
+export class SentryOpenAiInstrumentation extends InstrumentationBase<OpenAiInstrumentationOptions> {
+  public constructor(config: OpenAiInstrumentationOptions = {}) {
     super('@sentry/instrumentation-openai', SDK_VERSION, config);
   }
 
@@ -54,15 +40,15 @@ export class SentryOpenAiInstrumentation extends InstrumentationBase<Instrumenta
    */
   private _patch(exports: PatchedModuleExports): PatchedModuleExports | void {
     const Original = exports.OpenAI;
+    const config = this.getConfig();
 
     const WrappedOpenAI = function (this: unknown, ...args: unknown[]) {
       const instance = Reflect.construct(Original, args);
       const client = getClient();
-      const integration = client?.getIntegrationByName<OpenAiIntegration>(OPENAI_INTEGRATION_NAME);
-      const integrationOpts = integration?.options;
       const defaultPii = Boolean(client?.getOptions().sendDefaultPii);
 
-      const { recordInputs, recordOutputs } = determineRecordingSettings(integrationOpts, defaultPii);
+      const recordInputs = config.recordInputs ?? defaultPii;
+      const recordOutputs = config.recordOutputs ?? defaultPii;
 
       return instrumentOpenAiClient(instance as OpenAiClient, {
         recordInputs,
