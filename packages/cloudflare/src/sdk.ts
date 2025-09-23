@@ -1,6 +1,7 @@
 import type { Integration } from '@sentry/core';
 import {
   consoleIntegration,
+  consoleLoggingIntegration,
   dedupeIntegration,
   functionToStringIntegration,
   getIntegrationsToSetup,
@@ -21,10 +22,7 @@ import { defaultStackParser } from './vendor/stacktrace';
 /** Get the default integrations for the Cloudflare SDK. */
 export function getDefaultIntegrations(options: CloudflareOptions): Integration[] {
   const sendDefaultPii = options.sendDefaultPii ?? false;
-  return [
-    // The Dedupe integration should not be used in workflows because we want to
-    // capture all step failures, even if they are the same error.
-    ...(options.enableDedupe === false ? [] : [dedupeIntegration()]),
+  const integrations = [
     // TODO(v11): Replace with `eventFiltersIntegration` once we remove the deprecated `inboundFiltersIntegration`
     // eslint-disable-next-line deprecation/deprecation
     inboundFiltersIntegration(),
@@ -35,6 +33,19 @@ export function getDefaultIntegrations(options: CloudflareOptions): Integration[
     requestDataIntegration(sendDefaultPii ? undefined : { include: { cookies: false } }),
     consoleIntegration(),
   ];
+
+  // The Dedupe integration should not be used in workflows because we want to
+  // capture all step failures, even if they are the same error.
+  if (options.enableDedupe === false) {
+    integrations.push(dedupeIntegration());
+  }
+
+  if (options.enableLogs) {
+    // TODO(v11): Remove this once we add logs to the `consoleIntegration`.
+    integrations.push(consoleLoggingIntegration());
+  }
+
+  return integrations;
 }
 
 /**
