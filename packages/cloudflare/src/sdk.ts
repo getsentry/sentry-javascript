@@ -36,7 +36,7 @@ export function getDefaultIntegrations(options: CloudflareOptions): Integration[
 
   // The Dedupe integration should not be used in workflows because we want to
   // capture all step failures, even if they are the same error.
-  if (options.enableDedupe === false) {
+  if (options.enableDedupe) {
     integrations.push(dedupeIntegration());
   }
 
