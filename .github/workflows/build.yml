@@ -97,6 +97,8 @@ jobs:
               - '.github/**'
             any_code:
               - '!**/*.md'
+            any_package_json:
+              - '**/package.json'
 
       - name: Get PR labels
         id: pr-labels
@@ -110,6 +112,7 @@ jobs:
       is_release: ${{ startsWith(github.ref, 'refs/heads/release/') }}
       changed_ci: ${{ steps.changed.outputs.workflow == 'true' }}
       changed_any_code: ${{ steps.changed.outputs.any_code == 'true' }}
+      changed_any_package_json: ${{ steps.changed.outputs.any_package_json == 'true' }}
 
       # When merging into master, or from master
       is_gitflow_sync: ${{ github.head_ref == 'master' || github.ref == 'refs/heads/master' }}
@@ -119,13 +122,14 @@ jobs:
         ${{ github.event_name == 'schedule' || (github.event_name == 'pull_request' &&
         contains(steps.pr-labels.outputs.labels, ' ci-skip-cache ')) }}
 
-
   job_can_merge_into_develop:
     name: Can Merge Into Develop
     needs: job_get_metadata
     runs-on: ubuntu-24.04
-    # Only run this on PRs against develop
-    if: github.event_name == 'pull_request' && github.base_ref == 'develop'
+    # Only run this on PRs against develop, if any package.json files were changed
+    if:
+      github.event_name == 'pull_request' && github.base_ref == 'develop' &&
+      needs.job_get_metadata.outputs.changed_any_package_json == 'true'
     steps:
       - name: Check out current commit
         uses: actions/checkout@v5
@@ -135,7 +139,7 @@ jobs:
       - name: Check if master is not ahead of develop
         run: |
           # Get commit counts: left=develop unique commits, right=master unique commits
-          COUNTS=$(git rev-list --left-right --count develop...master)
+          COUNTS=$(git rev-list --left-right --count origin/develop...origin/master)
           LEFT=$(echo "$COUNTS" | cut -f1)
           RIGHT=$(echo "$COUNTS" | cut -f2)
 
@@ -150,8 +154,6 @@ jobs:
           else
             echo "✓ master is not ahead of develop"
           fi
-
-
 
   job_build:
     name: Build
