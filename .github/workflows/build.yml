@@ -129,13 +129,12 @@ jobs:
     steps:
       - name: Check out current commit
         uses: actions/checkout@v5
-        with:
-          ref: ${{ env.HEAD_COMMIT }}
+
 
       - name: Check if master is not ahead of develop
         run: |
           # Get commit counts: left=develop unique commits, right=master unique commits
-          COUNTS=$(git rev-list --left-right --count origin/develop...origin/master)
+          COUNTS=$(git rev-list --left-right --count develop...master)
           LEFT=$(echo "$COUNTS" | cut -f1)
           RIGHT=$(echo "$COUNTS" | cut -f2)
 
