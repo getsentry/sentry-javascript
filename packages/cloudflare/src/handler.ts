@@ -10,6 +10,7 @@ import {
 import { setAsyncLocalStorageAsyncContextStrategy } from './async';
 import type { CloudflareOptions } from './client';
 import { isInstrumented, markAsInstrumented } from './instrument';
+import { getHonoIntegration } from './integrations/hono';
 import { getFinalOptions } from './options';
 import { wrapRequestHandler } from './request';
 import { addCloudResourceContext } from './scope-utils';
@@ -48,7 +49,7 @@ export function withSentry<Env = unknown, QueueHandlerMessage = unknown, CfHostM
       markAsInstrumented(handler.fetch);
     }
 
-    /* hono does not reach the catch block of the fetch handler and captureException needs to be called in the hono errorHandler */
+    /* Hono does not reach the catch block of the fetch handler and captureException needs to be called in the hono errorHandler */
     if (
       'onError' in handler &&
       'errorHandler' in handler &&
@@ -59,7 +60,7 @@ export function withSentry<Env = unknown, QueueHandlerMessage = unknown, CfHostM
         apply(target, thisArg, args) {
           const [err] = args;
 
-          captureException(err, { mechanism: { handled: false, type: 'auto.faas.cloudflare.error_handler' } });
+          getHonoIntegration()?.handleHonoException(err);
 
           return Reflect.apply(target, thisArg, args);
         },
