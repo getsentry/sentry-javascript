@@ -2,7 +2,7 @@ import type { Client } from '@sentry/core';
 import { createTransport, Scope, ServerRuntimeClient, withScope } from '@sentry/core';
 import { EventEmitter } from 'stream';
 import { describe, expect, it, vi } from 'vitest';
-import { recordRequestSession } from '../../src/integrations/http/incoming-requests';
+import { recordRequestSession } from '../../src/integrations/http/httpServerIntegration';
 
 vi.useFakeTimers();
 
@@ -124,7 +124,7 @@ function simulateRequest(client: Client, status: 'ok' | 'errored' | 'crashed') {
   const requestIsolationScope = new Scope();
   const response = new EventEmitter();
 
-  recordRequestSession({
+  recordRequestSession(client, {
     requestIsolationScope,
     response,
   });
