@@ -10,11 +10,6 @@ class FakeClient extends CloudflareClient {
   }
 }
 
-vi.mock('../../src/debug-build', () => ({
-  DEBUG_BUILD: true,
-  __DEBUG_BUILD__: true,
-}));
-
 type MockHonoIntegrationType = { handleHonoException: (err: Error) => void };
 
 describe('Hono integration', () => {
