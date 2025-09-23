@@ -148,7 +148,7 @@ jobs:
           if [ "$RIGHT" -gt 0 ]; then
             echo "Error: master is ahead of develop by $RIGHT commits"
             echo "Please merge master into develop or ensure master is not ahead"
-            exit 1
+            return 1
           else
             echo "✓ master is not ahead of develop"
           fi
