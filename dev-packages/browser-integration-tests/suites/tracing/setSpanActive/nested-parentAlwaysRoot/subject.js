@@ -1,10 +1,10 @@
 const checkoutSpan = Sentry.startInactiveSpan({ name: 'checkout-flow' });
-Sentry.setSpanActive(checkoutSpan);
+Sentry.setActiveSpanInBrowser(checkoutSpan);
 
 Sentry.startSpan({ name: 'checkout-step-1' }, () => {});
 
 const checkoutStep2 = Sentry.startInactiveSpan({ name: 'checkout-step-2' });
-Sentry.setSpanActive(checkoutStep2);
+Sentry.setActiveSpanInBrowser(checkoutStep2);
 
 Sentry.startSpan({ name: 'checkout-step-2-1' }, () => {
   // ... `
