@@ -122,6 +122,10 @@ jobs:
         ${{ github.event_name == 'schedule' || (github.event_name == 'pull_request' &&
         contains(steps.pr-labels.outputs.labels, ' ci-skip-cache ')) }}
 
+  # If you change package.json files and merge them into develop while a release is pending,
+  # There will often be merge conflicts when GitFlow merges master into develop.
+  # To avoid this, this job checks for this and fails if it detects it.
+  # Make sure to re-run this after the release is completed & GitFlow syncs master into develop
   job_can_merge_into_develop:
     name: Can Merge Into Develop
     needs: job_get_metadata
@@ -153,6 +157,15 @@ jobs:
             return 1
           else
             echo "✓ master is not ahead of develop"
+          fi
+
+      - name: Check is prepare release PR is open
+        run: |
+          if gh pr list --json headRefName | jq -r '.[].headRefName' | grep -q "^prepare-release"; then
+            echo "Error: prepare release PR is open"
+            return 1
+          else
+            echo "✓ prepare release PR is not open"
           fi
 
   job_build:
