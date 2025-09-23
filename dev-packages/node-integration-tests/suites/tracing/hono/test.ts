@@ -213,6 +213,10 @@ describe('hono tracing', () => {
                   exception: {
                     values: [
                       {
+                        mechanism: {
+                          type: 'auto.middleware.hono',
+                          handled: false,
+                        },
                         type: 'Error',
                         value: 'response 500',
                       },

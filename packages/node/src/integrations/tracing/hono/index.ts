@@ -114,7 +114,7 @@ function honoErrorHandler(options?: Partial<HonoHandlerOptions>): MiddlewareHand
     if (shouldHandleError(context)) {
       (context.res as { sentry?: string }).sentry = captureException(context.error, {
         mechanism: {
-          type: 'hono',
+          type: 'auto.middleware.hono',
           handled: false,
         },
       });
