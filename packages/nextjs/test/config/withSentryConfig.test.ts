@@ -183,14 +183,14 @@ describe('withSentryConfig', () => {
       expect(finalConfigWithoutTurbopack.webpack).toBe(originalWebpackFunction);
 
       process.env.TURBOPACK = '1';
-      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.3.0');
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.4.1');
       const finalConfigWithTurbopack = materializeFinalNextConfig(configWithWebpack, undefined, sentryOptions);
       expect(finalConfigWithTurbopack.webpack).toBe(originalWebpackFunction);
     });
 
     it('preserves original webpack config when Turbopack is enabled (ignores disableSentryWebpackConfig flag)', () => {
       process.env.TURBOPACK = '1';
-      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.3.0');
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.4.1');
 
       const originalWebpackFunction = vi.fn();
       const configWithWebpack = {
@@ -216,7 +216,7 @@ describe('withSentryConfig', () => {
 
     it('preserves original webpack config when Turbopack is enabled and disableSentryWebpackConfig is true', () => {
       process.env.TURBOPACK = '1';
-      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.3.0');
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.4.1');
 
       const sentryOptions = {
         disableSentryWebpackConfig: true,
@@ -235,7 +235,7 @@ describe('withSentryConfig', () => {
 
     it('preserves undefined webpack when Turbopack is enabled, disableSentryWebpackConfig is true, and no original webpack config exists', () => {
       process.env.TURBOPACK = '1';
-      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.3.0');
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.4.1');
 
       const sentryOptions = {
         disableSentryWebpackConfig: true,
@@ -253,7 +253,7 @@ describe('withSentryConfig', () => {
 
     it('includes turbopack config when Turbopack is supported and enabled', () => {
       process.env.TURBOPACK = '1';
-      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.3.0');
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.4.1');
 
       const finalConfig = materializeFinalNextConfig(exportedNextConfig);
 
@@ -279,7 +279,7 @@ describe('withSentryConfig', () => {
 
     it('enables productionBrowserSourceMaps for supported turbopack builds when sourcemaps are not disabled', () => {
       process.env.TURBOPACK = '1';
-      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.3.0');
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.4.1');
 
       const finalConfig = materializeFinalNextConfig(exportedNextConfig);
 
@@ -288,7 +288,7 @@ describe('withSentryConfig', () => {
 
     it('does not enable productionBrowserSourceMaps when sourcemaps are disabled', () => {
       process.env.TURBOPACK = '1';
-      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.3.0');
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.4.1');
 
       const cleanConfig = { ...exportedNextConfig };
       delete cleanConfig.productionBrowserSourceMaps;
@@ -329,7 +329,7 @@ describe('withSentryConfig', () => {
 
     it('preserves user-configured productionBrowserSourceMaps setting', () => {
       process.env.TURBOPACK = '1';
-      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.3.0');
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.4.1');
 
       const configWithSourceMaps = {
         ...exportedNextConfig,
@@ -343,7 +343,7 @@ describe('withSentryConfig', () => {
 
     it('preserves user-configured productionBrowserSourceMaps: true setting', () => {
       process.env.TURBOPACK = '1';
-      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.3.0');
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.4.1');
 
       const configWithSourceMaps = {
         ...exportedNextConfig,
@@ -363,7 +363,7 @@ describe('withSentryConfig', () => {
 
     it('automatically enables deleteSourcemapsAfterUpload for turbopack builds when not explicitly set', () => {
       process.env.TURBOPACK = '1';
-      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.3.0');
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.4.1');
 
       // Use a clean config without productionBrowserSourceMaps to ensure it gets auto-enabled
       const cleanConfig = { ...exportedNextConfig };
@@ -382,7 +382,7 @@ describe('withSentryConfig', () => {
 
     it('preserves explicitly configured deleteSourcemapsAfterUpload setting', () => {
       process.env.TURBOPACK = '1';
-      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.3.0');
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.4.1');
 
       const sentryOptions = {
         sourcemaps: {
@@ -397,7 +397,7 @@ describe('withSentryConfig', () => {
 
     it('does not modify deleteSourcemapsAfterUpload when sourcemaps are disabled', () => {
       process.env.TURBOPACK = '1';
-      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.3.0');
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.4.1');
 
       const sentryOptions = {
         sourcemaps: {
@@ -412,7 +412,7 @@ describe('withSentryConfig', () => {
 
     it('does not enable deleteSourcemapsAfterUpload when user pre-configured productionBrowserSourceMaps: true', () => {
       process.env.TURBOPACK = '1';
-      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.3.0');
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.4.1');
 
       const configWithSourceMapsPreEnabled = {
         ...exportedNextConfig,
@@ -431,7 +431,7 @@ describe('withSentryConfig', () => {
 
     it('does not enable sourcemaps or deletion when user explicitly sets productionBrowserSourceMaps: false', () => {
       process.env.TURBOPACK = '1';
-      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.3.0');
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.4.1');
 
       const configWithSourceMapsDisabled = {
         ...exportedNextConfig,
@@ -451,7 +451,7 @@ describe('withSentryConfig', () => {
 
     it('logs correct message when enabling sourcemaps for turbopack', () => {
       process.env.TURBOPACK = '1';
-      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.3.0');
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.4.1');
       const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
       const cleanConfig = { ...exportedNextConfig };
@@ -472,7 +472,7 @@ describe('withSentryConfig', () => {
 
     it('warns about automatic sourcemap deletion for turbopack builds', () => {
       process.env.TURBOPACK = '1';
-      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.3.0');
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.4.1');
       const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
       // Use a clean config without productionBrowserSourceMaps to trigger automatic enablement
@@ -494,22 +494,25 @@ describe('withSentryConfig', () => {
     });
 
     describe('version compatibility', () => {
-      it('enables sourcemaps for Next.js 15.3.0', () => {
+      it('enables sourcemaps for Next.js 15.4.1', () => {
         process.env.TURBOPACK = '1';
-        vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.3.0');
+        vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.4.1');
 
         const finalConfig = materializeFinalNextConfig(exportedNextConfig);
 
         expect(finalConfig.productionBrowserSourceMaps).toBe(true);
       });
 
-      it('enables sourcemaps for Next.js 15.4.0', () => {
+      it('does not enable sourcemaps for Next.js 15.4.0', () => {
         process.env.TURBOPACK = '1';
         vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.4.0');
 
-        const finalConfig = materializeFinalNextConfig(exportedNextConfig);
+        const cleanConfig = { ...exportedNextConfig };
+        delete cleanConfig.productionBrowserSourceMaps;
 
-        expect(finalConfig.productionBrowserSourceMaps).toBe(true);
+        const finalConfig = materializeFinalNextConfig(cleanConfig);
+
+        expect(finalConfig.productionBrowserSourceMaps).toBeUndefined();
       });
 
       it('enables sourcemaps for Next.js 16.0.0', () => {
@@ -535,7 +538,7 @@ describe('withSentryConfig', () => {
 
       it('enables sourcemaps for supported canary versions', () => {
         process.env.TURBOPACK = '1';
-        vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.3.0-canary.28');
+        vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.4.1-canary.1');
 
         const finalConfig = materializeFinalNextConfig(exportedNextConfig);
 
@@ -544,7 +547,7 @@ describe('withSentryConfig', () => {
 
       it('does not enable sourcemaps for unsupported canary versions', () => {
         process.env.TURBOPACK = '1';
-        vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.3.0-canary.27');
+        vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.4.0-canary.999');
 
         const cleanConfig = { ...exportedNextConfig };
         delete cleanConfig.productionBrowserSourceMaps;
@@ -558,7 +561,7 @@ describe('withSentryConfig', () => {
     describe('edge cases', () => {
       it('handles undefined sourcemaps option', () => {
         process.env.TURBOPACK = '1';
-        vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.3.0');
+        vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.4.1');
 
         const sentryOptions = {}; // no sourcemaps property
 
@@ -569,7 +572,7 @@ describe('withSentryConfig', () => {
 
       it('handles empty sourcemaps object', () => {
         process.env.TURBOPACK = '1';
-        vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.3.0');
+        vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.4.1');
 
         // Use a clean config without productionBrowserSourceMaps to trigger automatic enablement
         const cleanConfig = { ...exportedNextConfig };
@@ -586,7 +589,7 @@ describe('withSentryConfig', () => {
 
       it('works when TURBOPACK env var is truthy string', () => {
         process.env.TURBOPACK = 'true';
-        vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.3.0');
+        vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.4.1');
 
         const finalConfig = materializeFinalNextConfig(exportedNextConfig);
 
@@ -595,7 +598,7 @@ describe('withSentryConfig', () => {
 
       it('does not enable sourcemaps when TURBOPACK env var is falsy', () => {
         process.env.TURBOPACK = '';
-        vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.3.0');
+        vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.4.1');
 
         const cleanConfig = { ...exportedNextConfig };
         delete cleanConfig.productionBrowserSourceMaps;
@@ -607,7 +610,7 @@ describe('withSentryConfig', () => {
 
       it('works correctly with tunnel route configuration', () => {
         process.env.TURBOPACK = '1';
-        vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.3.0');
+        vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.4.1');
 
         // Use a clean config without productionBrowserSourceMaps to trigger automatic enablement
         const cleanConfig = { ...exportedNextConfig };
@@ -627,7 +630,7 @@ describe('withSentryConfig', () => {
 
       it('works correctly with custom release configuration', () => {
         process.env.TURBOPACK = '1';
-        vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.3.0');
+        vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.4.1');
 
         // Clear environment variable to test custom release name
         const originalSentryRelease = process.env.SENTRY_RELEASE;
@@ -658,7 +661,7 @@ describe('withSentryConfig', () => {
 
       it('does not interfere with other Next.js configuration options', () => {
         process.env.TURBOPACK = '1';
-        vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.3.0');
+        vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.4.1');
 
         const configWithOtherOptions = {
           ...exportedNextConfig,
@@ -677,7 +680,7 @@ describe('withSentryConfig', () => {
 
       it('works correctly when turbopack config already exists', () => {
         process.env.TURBOPACK = '1';
-        vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.3.0');
+        vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.4.1');
 
         const configWithTurbopack = {
           ...exportedNextConfig,
@@ -966,6 +969,208 @@ describe('withSentryConfig', () => {
       const finalConfig = materializeFinalNextConfig(exportedNextConfig, undefined, sentryOptions);
 
       expect(finalConfig.compiler?.runAfterProductionCompile).toBeInstanceOf(Function);
+    });
+  });
+
+  describe('turbopack version compatibility warnings', () => {
+    const originalTurbopack = process.env.TURBOPACK;
+    const originalNodeEnv = process.env.NODE_ENV;
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+      process.env.TURBOPACK = originalTurbopack;
+      // @ts-expect-error - NODE_ENV is read-only in types but we need to restore it in tests
+      process.env.NODE_ENV = originalNodeEnv;
+    });
+
+    it('warns in development mode when Turbopack is enabled with unsupported Next.js version', () => {
+      process.env.TURBOPACK = '1';
+      // @ts-expect-error - NODE_ENV is read-only in types but we need to set it for testing
+      process.env.NODE_ENV = 'development';
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.4.0');
+      vi.spyOn(util, 'supportsProductionCompileHook').mockReturnValue(false);
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      materializeFinalNextConfig(exportedNextConfig);
+
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        '[@sentry/nextjs] WARNING: You are using the Sentry SDK with Turbopack (`next dev --turbopack`). The Sentry SDK is compatible with Turbopack on Next.js version 15.4.1 or later. You are currently on 15.4.0. Please upgrade to a newer Next.js version to use the Sentry SDK with Turbopack.',
+      );
+
+      consoleWarnSpy.mockRestore();
+    });
+
+    it('warns in production mode when Turbopack is enabled with unsupported Next.js version', () => {
+      process.env.TURBOPACK = '1';
+      // @ts-expect-error - NODE_ENV is read-only in types but we need to set it for testing
+      process.env.NODE_ENV = 'production';
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.3.9');
+      vi.spyOn(util, 'supportsProductionCompileHook').mockReturnValue(false);
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      materializeFinalNextConfig(exportedNextConfig);
+
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        '[@sentry/nextjs] WARNING: You are using the Sentry SDK with Turbopack (`next build --turbopack`). The Sentry SDK is compatible with Turbopack on Next.js version 15.4.1 or later. You are currently on 15.3.9. Please upgrade to a newer Next.js version to use the Sentry SDK with Turbopack.',
+      );
+
+      consoleWarnSpy.mockRestore();
+    });
+
+    it('does not warn when Turbopack is enabled with supported Next.js version', () => {
+      process.env.TURBOPACK = '1';
+      // @ts-expect-error - NODE_ENV is read-only in types but we need to set it for testing
+      process.env.NODE_ENV = 'development';
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.4.1');
+      vi.spyOn(util, 'supportsProductionCompileHook').mockReturnValue(true);
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      materializeFinalNextConfig(exportedNextConfig);
+
+      expect(consoleWarnSpy).not.toHaveBeenCalledWith(
+        expect.stringContaining('WARNING: You are using the Sentry SDK with Turbopack'),
+      );
+
+      consoleWarnSpy.mockRestore();
+    });
+
+    it('does not warn when Turbopack is enabled with higher supported Next.js version', () => {
+      process.env.TURBOPACK = '1';
+      // @ts-expect-error - NODE_ENV is read-only in types but we need to set it for testing
+      process.env.NODE_ENV = 'production';
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.5.0');
+      vi.spyOn(util, 'supportsProductionCompileHook').mockReturnValue(true);
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      materializeFinalNextConfig(exportedNextConfig);
+
+      expect(consoleWarnSpy).not.toHaveBeenCalledWith(
+        expect.stringContaining('WARNING: You are using the Sentry SDK with Turbopack'),
+      );
+
+      consoleWarnSpy.mockRestore();
+    });
+
+    it('does not warn when Turbopack is enabled with Next.js 16+', () => {
+      process.env.TURBOPACK = '1';
+      // @ts-expect-error - NODE_ENV is read-only in types but we need to set it for testing
+      process.env.NODE_ENV = 'development';
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('16.0.0');
+      vi.spyOn(util, 'supportsProductionCompileHook').mockReturnValue(true);
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      materializeFinalNextConfig(exportedNextConfig);
+
+      expect(consoleWarnSpy).not.toHaveBeenCalledWith(
+        expect.stringContaining('WARNING: You are using the Sentry SDK with Turbopack'),
+      );
+
+      consoleWarnSpy.mockRestore();
+    });
+
+    it('does not warn when Turbopack is not enabled', () => {
+      delete process.env.TURBOPACK;
+      // @ts-expect-error - NODE_ENV is read-only in types but we need to set it for testing
+      process.env.NODE_ENV = 'development';
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.4.1');
+      vi.spyOn(util, 'supportsProductionCompileHook').mockReturnValue(false);
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      materializeFinalNextConfig(exportedNextConfig);
+
+      expect(consoleWarnSpy).not.toHaveBeenCalledWith(
+        expect.stringContaining('WARNING: You are using the Sentry SDK with Turbopack'),
+      );
+
+      consoleWarnSpy.mockRestore();
+    });
+
+    it('warns even when Next.js version cannot be determined if Turbopack is unsupported', () => {
+      process.env.TURBOPACK = '1';
+      // @ts-expect-error - NODE_ENV is read-only in types but we need to set it for testing
+      process.env.NODE_ENV = 'development';
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue(undefined);
+      vi.spyOn(util, 'supportsProductionCompileHook').mockReturnValue(false);
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      materializeFinalNextConfig(exportedNextConfig);
+
+      // Warning will still show because supportsProductionCompileHook returns false
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('WARNING: You are using the Sentry SDK with Turbopack'),
+      );
+      expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('You are currently on undefined'));
+
+      consoleWarnSpy.mockRestore();
+    });
+
+    it('warns with correct version in message for edge case versions', () => {
+      process.env.TURBOPACK = '1';
+      // @ts-expect-error - NODE_ENV is read-only in types but we need to set it for testing
+      process.env.NODE_ENV = 'development';
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.4.0-canary.15');
+      vi.spyOn(util, 'supportsProductionCompileHook').mockReturnValue(false);
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      materializeFinalNextConfig(exportedNextConfig);
+
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        '[@sentry/nextjs] WARNING: You are using the Sentry SDK with Turbopack (`next dev --turbopack`). The Sentry SDK is compatible with Turbopack on Next.js version 15.4.1 or later. You are currently on 15.4.0-canary.15. Please upgrade to a newer Next.js version to use the Sentry SDK with Turbopack.',
+      );
+
+      consoleWarnSpy.mockRestore();
+    });
+
+    it('does not warn in other environments besides development and production', () => {
+      process.env.TURBOPACK = '1';
+      // @ts-expect-error - NODE_ENV is read-only in types but we need to set it for testing
+      process.env.NODE_ENV = 'test';
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.4.1');
+      vi.spyOn(util, 'supportsProductionCompileHook').mockReturnValue(false);
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      materializeFinalNextConfig(exportedNextConfig);
+
+      expect(consoleWarnSpy).not.toHaveBeenCalledWith(
+        expect.stringContaining('WARNING: You are using the Sentry SDK with Turbopack'),
+      );
+
+      consoleWarnSpy.mockRestore();
+    });
+
+    it('handles falsy TURBOPACK environment variable', () => {
+      process.env.TURBOPACK = '';
+      // @ts-expect-error - NODE_ENV is read-only in types but we need to set it for testing
+      process.env.NODE_ENV = 'development';
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.4.1');
+      vi.spyOn(util, 'supportsProductionCompileHook').mockReturnValue(false);
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      materializeFinalNextConfig(exportedNextConfig);
+
+      expect(consoleWarnSpy).not.toHaveBeenCalledWith(
+        expect.stringContaining('WARNING: You are using the Sentry SDK with Turbopack'),
+      );
+
+      consoleWarnSpy.mockRestore();
+    });
+
+    it('warns when TURBOPACK=0 (truthy string) with unsupported version', () => {
+      process.env.TURBOPACK = '0';
+      // @ts-expect-error - NODE_ENV is read-only in types but we need to set it for testing
+      process.env.NODE_ENV = 'development';
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.4.1');
+      vi.spyOn(util, 'supportsProductionCompileHook').mockReturnValue(false);
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      materializeFinalNextConfig(exportedNextConfig);
+
+      // Note: '0' is truthy in JavaScript, so this will trigger the warning
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('WARNING: You are using the Sentry SDK with Turbopack'),
+      );
+
+      consoleWarnSpy.mockRestore();
     });
   });
 });
