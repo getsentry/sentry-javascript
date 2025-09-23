@@ -22,6 +22,7 @@ export {
   startBrowserTracingNavigationSpan,
   startBrowserTracingPageLoadSpan,
 } from './tracing/browserTracingIntegration';
+export { setActiveSpanInBrowser } from './tracing/setActiveSpan';
 
 export { reportPageLoaded } from './tracing/reportPageLoaded';
 
