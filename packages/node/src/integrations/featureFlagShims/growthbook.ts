@@ -1,17 +1,20 @@
-import { consoleSandbox, defineIntegration, isBrowser } from '@sentry/core';
+import {
+  defineIntegration,
+  growthbookIntegration as coreGrowthbookIntegration,
+  isBrowser,
+} from '@sentry/core';
 
 /**
  * Shim for the GrowthBook integration to avoid runtime errors when imported on the server.
  */
-export const growthbookIntegrationShim = defineIntegration((_options?: unknown) => {
-  if (!isBrowser()) {
-    consoleSandbox(() => {
-      // eslint-disable-next-line no-console
-      console.warn('The growthbookIntegration() can only be used in the browser.');
-    });
-  }
+export const growthbookIntegrationShim = defineIntegration(
+  (options: Parameters<typeof coreGrowthbookIntegration>[0]) => {
+    if (!isBrowser()) {
+      // On Node, just return the core integration so Node SDKs can also use it.
+      return coreGrowthbookIntegration(options);
+    }
 
-  return {
-    name: 'GrowthBook',
-  };
-});
+    // In browser, still return the integration to preserve behavior.
+    return coreGrowthbookIntegration(options);
+  },
+);
