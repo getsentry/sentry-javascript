@@ -22,31 +22,35 @@ export function getHonoIntegration(): ReturnType<typeof _honoIntegration> | unde
   if (!client) {
     return undefined;
   } else {
-    return client.getIntegrationByName(_honoIntegration.name);
+    return client.getIntegrationByName(INTEGRATION_NAME) as ReturnType<typeof _honoIntegration> | undefined;
   }
 }
 
-// todo: implement this
 function isHonoError(err: unknown): err is HonoError {
-  // @ts-ignore
-  return 'status' in err;
+  if (err instanceof Error) {
+    return true;
+  }
+  return typeof err === 'object' && err !== null && 'status' in (err as Record<string, unknown>);
 }
 
-const _honoIntegration = ((options: Partial<Options> = {}) => {
-  let _shouldHandleError: (error: Error) => boolean;
+// outside of integration to prevent resetting the variable
+let _shouldHandleError: (error: Error) => boolean;
 
+const _honoIntegration = ((options: Partial<Options> = {}) => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
       _shouldHandleError = options.shouldHandleError || defaultShouldHandleError;
     },
     handleHonoException(err: HonoError): void {
-      if (!isHonoError) {
-        DEBUG_BUILD && debug.log('Hono integration could not detect a Hono error');
+      if (!isHonoError(err)) {
+        DEBUG_BUILD && debug.log("[Hono] Won't capture exception in `onError` because it's not a Hono error.", err);
         return;
       }
       if (_shouldHandleError(err)) {
         captureException(err, { mechanism: { handled: false, type: 'auto.faas.cloudflare.error_handler' } });
+      } else {
+        DEBUG_BUILD && debug.log('[Hono] Not capturing exception because `shouldHandleError` returned `false`.', err);
       }
     },
   };
@@ -55,7 +59,14 @@ const _honoIntegration = ((options: Partial<Options> = {}) => {
 /**
  * Automatically captures exceptions caught with the `onError` handler in Hono.
  *
- * The integration is added by default.
+ * The integration is enabled by default.
+ *
+ * @example
+ * integrations: [
+ *   honoIntegration({
+ *     shouldHandleError: (err) => true; // always capture exceptions in onError
+ *   })
+ * ]
  */
 export const honoIntegration = defineIntegration(_honoIntegration);
 
@@ -65,7 +76,6 @@ export const honoIntegration = defineIntegration(_honoIntegration);
  * 3xx and 4xx errors are not sent by default.
  */
 function defaultShouldHandleError(error: HonoError): boolean {
-  // todo: add test for checking error without status
   const statusCode = error?.status;
   // 3xx and 4xx errors are not sent by default.
   return statusCode ? statusCode >= 500 || statusCode <= 299 : true;
