@@ -31,6 +31,16 @@ sentryTest('GrowthBook onError: basic eviction/update and no async tasks', async
 
     gb.__setOn('feat3', true);
     gb.isOn('feat3'); // update
+
+    // Test getFeatureValue with boolean values (should be captured)
+    gb.__setFeatureValue('bool-feat', true);
+    gb.getFeatureValue('bool-feat', false);
+
+    // Test getFeatureValue with non-boolean values (should be ignored)
+    gb.__setFeatureValue('string-feat', 'hello');
+    gb.getFeatureValue('string-feat', 'default');
+    gb.__setFeatureValue('number-feat', 42);
+    gb.getFeatureValue('number-feat', 0);
   }, FLAG_BUFFER_SIZE);
 
   const reqPromise = waitForErrorRequest(page);
@@ -45,6 +55,7 @@ sentryTest('GrowthBook onError: basic eviction/update and no async tasks', async
   }
   expectedFlags.push({ flag: `feat${FLAG_BUFFER_SIZE + 1}`, result: true });
   expectedFlags.push({ flag: 'feat3', result: true });
+  expectedFlags.push({ flag: 'bool-feat', result: true }); // Only boolean getFeatureValue should be captured
 
   expect(values).toEqual(expectedFlags);
 });
