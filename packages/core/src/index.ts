@@ -111,6 +111,7 @@ export { zodErrorsIntegration } from './integrations/zoderrors';
 export { thirdPartyErrorFilterIntegration } from './integrations/third-party-errors-filter';
 export { consoleIntegration } from './integrations/console';
 export { featureFlagsIntegration, type FeatureFlagsIntegration } from './integrations/featureFlags';
+export { growthbookIntegration } from './integrations/featureFlags';
 
 export { profiler } from './profiling';
 export { instrumentFetchRequest } from './fetch';
