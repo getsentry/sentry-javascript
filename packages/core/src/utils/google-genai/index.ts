@@ -292,10 +292,10 @@ function createDeepProxy<T extends object>(target: T, currentPath = '', options:
  *
  * @example
  * ```typescript
- * import { GoogleGenerativeAI } from '@google/genai';
+ * import { GoogleGenAI } from '@google/genai';
  * import { instrumentGoogleGenAIClient } from '@sentry/core';
  *
- * const genAI = new GoogleGenerativeAI({ apiKey: process.env.GOOGLE_GENAI_API_KEY });
+ * const genAI = new GoogleGenAI({ apiKey: process.env.GOOGLE_GENAI_API_KEY });
  * const instrumentedClient = instrumentGoogleGenAIClient(genAI);
  *
  * // Now both chats.create and sendMessage will be instrumented

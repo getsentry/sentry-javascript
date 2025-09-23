@@ -4,6 +4,27 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 10.14.0
+
+### Important Changes
+
+- **feat(cloudflare,vercel-edge): Add support for Google Gen AI instrumentation ([#17723](https://github.com/getsentry/sentry-javascript/pull/17723))**
+
+  The SDK now automatically instruments Google's Generative AI operations in Cloudflare Workers and Vercel Edge Runtime environments, providing insights into your AI operations.
+
+### Other Changes
+
+- fix(nextjs): Display updated turbopack warnings ([#17737](https://github.com/getsentry/sentry-javascript/pull/17737))
+- ref(core): Wrap isolationscope in `WeakRef` when storing it on spans ([#17712](https://github.com/getsentry/sentry-javascript/pull/17712))
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+
+- test(node): Avoid using specific port for node-integration-tests ([#17729](https://github.com/getsentry/sentry-javascript/pull/17729))
+- test(nuxt): Update Nuxt version and add Nitro $fetch test ([#17713](https://github.com/getsentry/sentry-javascript/pull/17713))
+
+</details>
+
 ## 10.13.0
 
 ### Important Changes
