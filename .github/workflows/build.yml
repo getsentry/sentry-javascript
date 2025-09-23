@@ -125,7 +125,7 @@ jobs:
     needs: job_get_metadata
     runs-on: ubuntu-24.04
     # Only run this on PRs against develop
-    if: github.event_name == 'pull_request' && github.base_ref == 'refs/heads/develop'
+    if: github.event_name == 'pull_request' && github.base_ref == 'develop'
     steps:
       - name: Check out current commit
         uses: actions/checkout@v5
