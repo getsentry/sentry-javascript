@@ -4591,6 +4591,11 @@
     "@hapi/bourne" "^3.0.0"
     "@hapi/hoek" "^11.0.2"
 
+"@hono/node-server@^1.19.4":
+  version "1.19.4"
+  resolved "https://registry.yarnpkg.com/@hono/node-server/-/node-server-1.19.4.tgz#2721cda094f7c080ee985494ac3e074f16c503eb"
+  integrity sha512-AWKQZ/YkHUBSHeL/5Ld8FWgUs6wFf4TxGYxqp9wLZxRdFuHBpXmgOq+CuDoL4vllkZLzovCf5HBJnypiy3EtHA==
+
 "@humanwhocodes/config-array@^0.5.0":
   version "0.5.0"
   resolved "https://registry.yarnpkg.com/@humanwhocodes/config-array/-/config-array-0.5.0.tgz#1407967d4c6eecd7388f83acf1eaf4d0c6e58ef9"
@@ -18598,6 +18603,11 @@ homedir-polyfill@^1.0.1:
   integrity sha512-eSmmWE5bZTK2Nou4g0AI3zZ9rswp7GRKoKXS1BLUkvPviOqs4YTN1djQIqrXy9k5gEtdLPy86JjRwsNM9tnDcA==
   dependencies:
     parse-passwd "^1.0.0"
+
+hono@^4.9.8:
+  version "4.9.8"
+  resolved "https://registry.yarnpkg.com/hono/-/hono-4.9.8.tgz#1710981135ec775fe26fab5ea6535b403e92bcc3"
+  integrity sha512-JW8Bb4RFWD9iOKxg5PbUarBYGM99IcxFl2FPBo2gSJO11jjUDqlP1Bmfyqt8Z/dGhIQ63PMA9LdcLefXyIasyg==
 
 hookable@^5.5.3:
   version "5.5.3"

@@ -9,7 +9,7 @@ import { isCjs } from './detection';
  */
 export function ensureIsWrapped(
   maybeWrappedFunction: unknown,
-  name: 'express' | 'connect' | 'fastify' | 'hapi' | 'koa',
+  name: 'express' | 'connect' | 'fastify' | 'hapi' | 'koa' | 'hono',
 ): void {
   const clientOptions = getClient<NodeClient>()?.getOptions();
   if (
