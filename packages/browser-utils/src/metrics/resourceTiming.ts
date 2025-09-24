@@ -67,6 +67,6 @@ export function resourceTimingToSpanAttributes(resourceTiming: PerformanceResour
  * In contrast to `dropUndefinedKeys` in core this funciton only works on first-level
  * key-value objects and does not recursively go into object properties or arrays.
  */
-function dropUndefinedKeysFromObject<T extends object>(attrs: T): T {
+function dropUndefinedKeysFromObject<T extends object>(attrs: T): Partial<T> {
   return Object.fromEntries(Object.entries(attrs).filter(([, value]) => value != null)) as Partial<T>;
 }
