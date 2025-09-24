@@ -195,6 +195,74 @@ function addResponseAttributes(span: Span, response: AnthropicAiResponse, record
 }
 
 /**
+ * Handle common error catching and reporting for streaming requests
+ */
+function handleStreamingError(error: unknown, span: Span, methodPath: string): never {
+  captureException(error, {
+    mechanism: { handled: false, type: 'auto.ai.anthropic', data: { function: methodPath } },
+  });
+
+  if (span.isRecording()) {
+    span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+    span.end();
+  }
+  throw error;
+}
+
+/**
+ * Handle streaming cases with common logic
+ */
+function handleStreamingRequest<T extends unknown[], R>(
+  originalMethod: (...args: T) => Promise<R>,
+  target: (...args: T) => Promise<R>,
+  context: unknown,
+  args: T,
+  requestAttributes: Record<string, unknown>,
+  operationName: string,
+  methodPath: string,
+  params: Record<string, unknown> | undefined,
+  options: AnthropicAiOptions,
+  isStreamRequested: boolean,
+): Promise<R> {
+  const model = requestAttributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] ?? 'unknown';
+  const spanConfig = {
+    name: `${operationName} ${model} stream-response`,
+    op: getSpanOperation(methodPath),
+    attributes: requestAttributes as Record<string, SpanAttributeValue>,
+  };
+
+  if (isStreamRequested) {
+    return startSpanManual(spanConfig, async span => {
+      try {
+        if (options.recordInputs && params) {
+          addPrivateRequestAttributes(span, params);
+        }
+        const result = await originalMethod.apply(context, args);
+        return instrumentAsyncIterableStream(
+          result as AsyncIterable<AnthropicAiStreamingEvent>,
+          span,
+          options.recordOutputs ?? false,
+        ) as unknown as R;
+      } catch (error) {
+        return handleStreamingError(error, span, methodPath);
+      }
+    });
+  } else {
+    return startSpanManual(spanConfig, span => {
+      try {
+        if (options.recordInputs && params) {
+          addPrivateRequestAttributes(span, params);
+        }
+        const messageStream = target.apply(context, args);
+        return instrumentMessageStream(messageStream, span, options.recordOutputs ?? false);
+      } catch (error) {
+        return handleStreamingError(error, span, methodPath);
+      }
+    });
+  }
+}
+
+/**
  * Instrument a method with Sentry spans
  * Following Sentry AI Agents Manual Instrumentation conventions
  * @see https://docs.sentry.io/platforms/javascript/guides/node/tracing/instrumentation/ai-agents-module/#manual-instrumentation
@@ -215,79 +283,18 @@ function instrumentMethod<T extends unknown[], R>(
       const isStreamRequested = Boolean(params?.stream);
       const isStreamingMethod = methodPath === 'messages.stream';
 
-      if (isStreamRequested) {
-        return startSpanManual(
-          {
-            name: `${operationName} ${model} stream-response`,
-            op: getSpanOperation(methodPath),
-            attributes: requestAttributes as Record<string, SpanAttributeValue>,
-          },
-          async span => {
-            try {
-              if (options.recordInputs && params) {
-                addPrivateRequestAttributes(span, params);
-              }
-
-              const result = await originalMethod.apply(context, args);
-              return instrumentAsyncIterableStream(
-                result as AsyncIterable<AnthropicAiStreamingEvent>,
-                span,
-                options.recordOutputs ?? false,
-              ) as unknown as R;
-            } catch (error) {
-              captureException(error, {
-                mechanism: {
-                  handled: false,
-                  type: 'auto.ai.anthropic',
-                  data: {
-                    function: methodPath,
-                  },
-                },
-              });
-
-              if (span.isRecording()) {
-                span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-                span.end();
-              }
-              throw error;
-            }
-          },
-        );
-      } else if (isStreamingMethod) {
-        // Create span for instrumentation using startSpanManual
-        return startSpanManual(
-          {
-            name: `${operationName} ${model} stream-response`,
-            op: getSpanOperation(methodPath),
-            attributes: requestAttributes as Record<string, SpanAttributeValue>,
-          },
-          span => {
-            try {
-              if (options.recordInputs && params) {
-                addPrivateRequestAttributes(span, params);
-              }
-
-              const messageStream = target.apply(context, args);
-              return instrumentMessageStream(messageStream, span, options.recordOutputs ?? false);
-            } catch (error) {
-              captureException(error, {
-                mechanism: {
-                  handled: false,
-                  type: 'auto.ai.anthropic',
-                  data: {
-                    function: methodPath,
-                  },
-                },
-              });
-
-              if (span.isRecording()) {
-                span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-                span.end();
-              }
-
-              throw error;
-            }
-          },
+      if (isStreamRequested || isStreamingMethod) {
+        return handleStreamingRequest(
+          originalMethod,
+          target,
+          context,
+          args,
+          requestAttributes,
+          operationName,
+          methodPath,
+          params,
+          options,
+          isStreamRequested,
         );
       }
 
