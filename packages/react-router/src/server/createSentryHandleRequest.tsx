@@ -1,7 +1,7 @@
 import type { createReadableStreamFromReadable } from '@react-router/node';
 import type { ReactNode } from 'react';
 import React from 'react';
-import type { AppLoadContext, EntryContext, ServerRouter } from 'react-router';
+import type { AppLoadContext, EntryContext, RouterContextProvider, ServerRouter } from 'react-router';
 import { PassThrough } from 'stream';
 import { getMetaTagTransformer } from './getMetaTagTransformer';
 import { wrapSentryHandleRequest } from './wrapSentryHandleRequest';
@@ -67,7 +67,7 @@ export function createSentryHandleRequest(
   responseStatusCode: number,
   responseHeaders: Headers,
   routerContext: EntryContext,
-  loadContext: AppLoadContext,
+  loadContext: AppLoadContext | RouterContextProvider,
 ) => Promise<unknown> {
   const {
     streamTimeout = 10000,
@@ -82,7 +82,7 @@ export function createSentryHandleRequest(
     responseStatusCode: number,
     responseHeaders: Headers,
     routerContext: EntryContext,
-    _loadContext: AppLoadContext,
+    _loadContext: AppLoadContext | RouterContextProvider,
   ): Promise<Response> {
     return new Promise((resolve, reject) => {
       let shellRendered = false;
