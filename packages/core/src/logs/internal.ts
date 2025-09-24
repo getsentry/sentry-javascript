@@ -163,7 +163,7 @@ export function _INTERNAL_captureLog(
 
   if (replayId && replay?.getRecordingMode() === 'buffer') {
     // We send this so we can identify cases where the replayId is attached but the replay itself might not have been sent to Sentry
-    setLogAttribute(processedLogAttributes, 'sentry.internal.replay_is_buffering', true);
+    setLogAttribute(processedLogAttributes, 'sentry._internal.replay_is_buffering', true);
   }
 
   const beforeLogMessage = beforeLog.message;

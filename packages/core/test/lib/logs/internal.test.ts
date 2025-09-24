@@ -496,7 +496,7 @@ describe('_INTERNAL_captureLog', () => {
           value: 'buffer-replay-id',
           type: 'string',
         },
-        'sentry.internal.replay_is_buffering': {
+        'sentry._internal.replay_is_buffering': {
           value: true,
           type: 'boolean',
         },
@@ -623,7 +623,7 @@ describe('_INTERNAL_captureLog', () => {
           value: 'buffer-replay-id',
           type: 'string',
         },
-        'sentry.internal.replay_is_buffering': {
+        'sentry._internal.replay_is_buffering': {
           value: true,
           type: 'boolean',
         },
@@ -656,7 +656,7 @@ describe('_INTERNAL_captureLog', () => {
           type: 'string',
         },
       });
-      expect(logAttributes).not.toHaveProperty('sentry.internal.replay_is_buffering');
+      expect(logAttributes).not.toHaveProperty('sentry._internal.replay_is_buffering');
     });
 
     it('does not set replay_is_buffering attribute when replay is undefined mode', () => {
@@ -685,7 +685,7 @@ describe('_INTERNAL_captureLog', () => {
           type: 'string',
         },
       });
-      expect(logAttributes).not.toHaveProperty('sentry.internal.replay_is_buffering');
+      expect(logAttributes).not.toHaveProperty('sentry._internal.replay_is_buffering');
     });
 
     it('does not set replay_is_buffering attribute when no replay ID is available', () => {
