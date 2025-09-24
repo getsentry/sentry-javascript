@@ -15,7 +15,7 @@ import type { AnthropicAiStreamingEvent } from './types';
 /**
  * State object used to accumulate information from a stream of Anthropic AI events.
  */
-export interface StreamingState {
+interface StreamingState {
   /** Collected response text fragments (for output recording). */
   responseTexts: string[];
   /** Reasons for finishing the response, as reported by the API. */
@@ -182,7 +182,7 @@ function handleContentBlockStop(event: AnthropicAiStreamingEvent, state: Streami
  * @param recordOutputs - Whether to record outputs
  * @param span - The span to update
  */
-export function processEvent(
+function processEvent(
   event: AnthropicAiStreamingEvent,
   state: StreamingState,
   recordOutputs: boolean,
@@ -210,7 +210,7 @@ export function processEvent(
 /**
  * Finalizes span attributes when stream processing completes
  */
-export function finalizeStreamSpan(state: StreamingState, span: Span, recordOutputs: boolean): void {
+function finalizeStreamSpan(state: StreamingState, span: Span, recordOutputs: boolean): void {
   // Set common response attributes if available
   if (state.responseId) {
     span.setAttributes({
