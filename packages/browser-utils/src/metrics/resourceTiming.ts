@@ -68,11 +68,5 @@ export function resourceTimingToSpanAttributes(resourceTiming: PerformanceResour
  * key-value objects and does not recursively go into object properties or arrays.
  */
 function dropUndefinedKeysFromObject<T extends object>(attrs: T): T {
-  const cleaned = {} as T;
-  Object.keys(attrs).forEach(key => {
-    if (attrs[key as keyof T] != null) {
-      cleaned[key as keyof T] = attrs[key as keyof T];
-    }
-  });
-  return cleaned;
+  return Object.fromEntries(Object.entries(attrs).filter(([, value]) => value != null)) as Partial<T>;
 }
