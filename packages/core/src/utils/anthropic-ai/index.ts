@@ -210,8 +210,6 @@ function instrumentMethod<T extends unknown[], R>(
       const isStreamingMethod = methodPath === 'messages.stream';
 
       if (isStreamRequested || isStreamingMethod) {
-        const messageStream = target.apply(context, args);
-
         // Create span for instrumentation using startSpanManual
         return startSpanManual(
           {
@@ -225,6 +223,7 @@ function instrumentMethod<T extends unknown[], R>(
                 addPrivateRequestAttributes(span, params);
               }
 
+              const messageStream = target.apply(context, args);
               return instrumentStream(messageStream, span, options.recordOutputs ?? false);
             } catch (error) {
               span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
