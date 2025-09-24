@@ -111,6 +111,7 @@ export { getDefaultIntegrations } from './sdk';
 
 export { fetchIntegration } from './integrations/fetch';
 export { vercelAIIntegration } from './integrations/tracing/vercelai';
+export { honoIntegration } from './integrations/hono';
 
 export { instrumentD1WithSentry } from './d1';
 
