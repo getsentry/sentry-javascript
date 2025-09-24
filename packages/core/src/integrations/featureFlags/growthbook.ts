@@ -51,7 +51,6 @@ export const growthbookIntegration = defineIntegration(
         if (typeof proto.getFeatureValue === 'function') {
           fill(proto, 'getFeatureValue', _wrapAndCaptureBooleanResult);
         }
-
       },
 
       processEvent(event: Event, _hint: EventHint, _client: Client): Event {
