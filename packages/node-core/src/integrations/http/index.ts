@@ -1,5 +1,6 @@
 import type { IncomingMessage, RequestOptions } from 'node:http';
-import { defineIntegration } from '@sentry/core';
+import { debug, defineIntegration } from '@sentry/core';
+import { DEBUG_BUILD } from '../../debug-build';
 import { generateInstrumentOnce } from '../../otel/instrument';
 import type { SentryHttpInstrumentationOptions } from './SentryHttpInstrumentation';
 import { SentryHttpInstrumentation } from './SentryHttpInstrumentation';
@@ -12,6 +13,14 @@ interface HttpOptions {
    * Defaults to true
    */
   breadcrumbs?: boolean;
+
+  /**
+   * Whether to create spans for requests or not.
+   * As of now, creates spans for incoming requests, but not outgoing requests.
+   *
+   * @default `true`
+   */
+  spans?: boolean;
 
   /**
    * Whether the integration should create [Sessions](https://docs.sentry.io/product/releases/health/#sessions) for incoming requests to track the health and crash-free rate of your releases in Sentry.
@@ -54,10 +63,10 @@ interface HttpOptions {
 
   /**
    * Do not capture spans for incoming HTTP requests with the given status codes.
-   * By default, spans with 404 status code are ignored.
+   * By default, spans with some 3xx and 4xx status codes are ignored (see @default).
    * Expects an array of status codes or a range of status codes, e.g. [[300,399], 404] would ignore 3xx and 404 status codes.
    *
-   * @default `[[401, 404], [300, 399]]`
+   * @default `[[401, 404], [301, 303], [305, 399]]`
    */
   dropSpansForIncomingRequestStatusCodes?: (number | [number, number])[];
 
@@ -93,7 +102,7 @@ interface HttpOptions {
   disableIncomingRequestSpans?: boolean;
 }
 
-const instrumentSentryHttp = generateInstrumentOnce<SentryHttpInstrumentationOptions>(
+export const instrumentSentryHttp = generateInstrumentOnce<SentryHttpInstrumentationOptions>(
   `${INTEGRATION_NAME}.sentry`,
   options => {
     return new SentryHttpInstrumentation(options);
@@ -107,7 +116,9 @@ const instrumentSentryHttp = generateInstrumentOnce<SentryHttpInstrumentationOpt
 export const httpIntegration = defineIntegration((options: HttpOptions = {}) => {
   const dropSpansForIncomingRequestStatusCodes = options.dropSpansForIncomingRequestStatusCodes ?? [
     [401, 404],
-    [300, 399],
+    // 300 and 304 are possibly valid status codes we do not want to filter
+    [301, 303],
+    [305, 399],
   ];
 
   return {
@@ -115,7 +126,9 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
     setupOnce() {
       instrumentSentryHttp({
         ...options,
-        extractIncomingTraceFromHeader: true,
+        ignoreSpansForIncomingRequests: options.ignoreIncomingRequests,
+        // TODO(v11): Rethink this, for now this is for backwards compatibility
+        disableIncomingRequestSpans: true,
         propagateTraceInOutgoingRequests: true,
       });
     },
@@ -123,18 +136,12 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
       // Drop transaction if it has a status code that should be ignored
       if (event.type === 'transaction') {
         const statusCode = event.contexts?.trace?.data?.['http.response.status_code'];
-        if (
-          typeof statusCode === 'number' &&
-          dropSpansForIncomingRequestStatusCodes.some(code => {
-            if (typeof code === 'number') {
-              return code === statusCode;
-            }
-
-            const [min, max] = code;
-            return statusCode >= min && statusCode <= max;
-          })
-        ) {
-          return null;
+        if (typeof statusCode === 'number') {
+          const shouldDrop = shouldFilterStatusCode(statusCode, dropSpansForIncomingRequestStatusCodes);
+          if (shouldDrop) {
+            DEBUG_BUILD && debug.log('Dropping transaction due to status code', statusCode);
+            return null;
+          }
         }
       }
 
@@ -142,3 +149,17 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
     },
   };
 });
+
+/**
+ * If the given status code should be filtered for the given list of status codes/ranges.
+ */
+function shouldFilterStatusCode(statusCode: number, dropForStatusCodes: (number | [number, number])[]): boolean {
+  return dropForStatusCodes.some(code => {
+    if (typeof code === 'number') {
+      return code === statusCode;
+    }
+
+    const [min, max] = code;
+    return statusCode >= min && statusCode <= max;
+  });
+}

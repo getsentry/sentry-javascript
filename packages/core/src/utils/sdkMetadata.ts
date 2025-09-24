@@ -1,4 +1,4 @@
-import type { Options } from '../types-hoist/options';
+import type { CoreOptions } from '../types-hoist/options';
 import { SDK_VERSION } from '../utils/version';
 
 /**
@@ -14,7 +14,7 @@ import { SDK_VERSION } from '../utils/version';
  * @param options SDK options object that gets mutated
  * @param names list of package names
  */
-export function applySdkMetadata(options: Options, name: string, names = [name], source = 'npm'): void {
+export function applySdkMetadata(options: CoreOptions, name: string, names = [name], source = 'npm'): void {
   const metadata = options._metadata || {};
 
   if (!metadata.sdk) {

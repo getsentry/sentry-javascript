@@ -98,7 +98,9 @@ const _fetchIntegration = ((options: Partial<Options> = {}) => {
           return;
         }
 
-        instrumentFetchRequest(handlerData, _shouldCreateSpan, _shouldAttachTraceData, spans, 'auto.http.fetch');
+        instrumentFetchRequest(handlerData, _shouldCreateSpan, _shouldAttachTraceData, spans, {
+          spanOrigin: 'auto.http.fetch',
+        });
 
         if (breadcrumbs) {
           createBreadcrumb(handlerData);

@@ -3,7 +3,7 @@ import { sentryTest } from '../../../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../../../utils/helpers';
 
 sentryTest(
-  'should not attach `sentry-trace` and `baggage` header to cross-origin requests when no tracePropagationTargets are defined',
+  "doesn't attach `sentry-trace` and `baggage` or `traceparent` (if `propagateTraceparent` is true) header to cross-origin requests when no tracePropagationTargets are defined",
   async ({ getLocalTestUrl, page }) => {
     if (shouldSkipTracingTest()) {
       sentryTest.skip();
@@ -25,6 +25,7 @@ sentryTest(
       expect(requestHeaders).not.toMatchObject({
         'sentry-trace': expect.any(String),
         baggage: expect.any(String),
+        traceparent: expect.any(String),
       });
     }
   },

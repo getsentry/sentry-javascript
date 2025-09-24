@@ -6,7 +6,6 @@ import type {
   ActionFunctionArgs,
   AppLoadContext,
   CreateRequestHandlerFunction,
-  EntryContext,
   HandleDocumentRequestFunction,
   LoaderFunction,
   LoaderFunctionArgs,
@@ -23,6 +22,7 @@ import {
   getRootSpan,
   getTraceData,
   hasSpansEnabled,
+  httpHeadersToSpanAttributes,
   isNodeEnv,
   loadModule,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
@@ -31,13 +31,14 @@ import {
   setHttpStatus,
   spanToJSON,
   startSpan,
+  winterCGHeadersToDict,
   winterCGRequestToRequestData,
   withIsolationScope,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../utils/debug-build';
 import { createRoutes, getTransactionName } from '../utils/utils';
 import { extractData, isResponse, json } from '../utils/vendor/response';
-import { captureRemixServerException, errorHandleDataFunction, errorHandleDocumentRequestFunction } from './errors';
+import { captureRemixServerException, errorHandleDataFunction } from './errors';
 
 type AppData = unknown;
 type RemixRequest = Parameters<RequestHandler>[0];
@@ -117,22 +118,7 @@ function getTraceAndBaggage(): {
 
 function makeWrappedDocumentRequestFunction(instrumentTracing?: boolean) {
   return function (origDocumentRequestFunction: HandleDocumentRequestFunction): HandleDocumentRequestFunction {
-    return async function (
-      this: unknown,
-      request: Request,
-      responseStatusCode: number,
-      responseHeaders: Headers,
-      context: EntryContext,
-      loadContext?: Record<string, unknown>,
-    ): Promise<Response> {
-      const documentRequestContext = {
-        request,
-        responseStatusCode,
-        responseHeaders,
-        context,
-        loadContext,
-      };
-
+    return async function (this: unknown, request: Request, ...args: unknown[]): Promise<Response> {
       if (instrumentTracing) {
         const activeSpan = getActiveSpan();
         const rootSpan = activeSpan && getRootSpan(activeSpan);
@@ -153,11 +139,11 @@ function makeWrappedDocumentRequestFunction(instrumentTracing?: boolean) {
             },
           },
           () => {
-            return errorHandleDocumentRequestFunction.call(this, origDocumentRequestFunction, documentRequestContext);
+            return origDocumentRequestFunction.call(this, request, ...args);
           },
         );
       } else {
-        return errorHandleDocumentRequestFunction.call(this, origDocumentRequestFunction, documentRequestContext);
+        return origDocumentRequestFunction.call(this, request, ...args);
       }
     };
   };
@@ -324,6 +310,10 @@ function wrapRequestHandler<T extends ServerBuild | (() => ServerBuild | Promise
                   [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
                   [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
                   method: request.method,
+                  ...httpHeadersToSpanAttributes(
+                    winterCGHeadersToDict(request.headers),
+                    clientOptions.sendDefaultPii ?? false,
+                  ),
                 },
               },
               async span => {

@@ -53,7 +53,7 @@ export function makeBaseBundleConfig(options) {
       },
     },
     context: 'window',
-    plugins: [rrwebBuildPlugin, markAsBrowserBuildPlugin],
+    plugins: [rrwebBuildPlugin, markAsBrowserBuildPlugin, licensePlugin],
   };
 
   // used by `@sentry/wasm` & pluggable integrations from core/browser (bundles which need to be combined with a stand-alone SDK bundle)
@@ -87,14 +87,23 @@ export function makeBaseBundleConfig(options) {
       // code to add after the CJS wrapper
       footer: '}(window));',
     },
-    plugins: [rrwebBuildPlugin, markAsBrowserBuildPlugin],
+    plugins: [rrwebBuildPlugin, markAsBrowserBuildPlugin, licensePlugin],
   };
 
   const workerBundleConfig = {
     output: {
       format: 'esm',
     },
-    plugins: [commonJSPlugin, makeTerserPlugin()],
+    plugins: [commonJSPlugin, makeTerserPlugin(), licensePlugin],
+    // Don't bundle any of Node's core modules
+    external: builtinModules,
+  };
+
+  const awsLambdaExtensionBundleConfig = {
+    output: {
+      format: 'esm',
+    },
+    plugins: [commonJSPlugin, makeIsDebugBuildPlugin(true), makeTerserPlugin()],
     // Don't bundle any of Node's core modules
     external: builtinModules,
   };
@@ -110,7 +119,7 @@ export function makeBaseBundleConfig(options) {
       strict: false,
       esModule: false,
     },
-    plugins: [sucrasePlugin, nodeResolvePlugin, cleanupPlugin, licensePlugin],
+    plugins: [sucrasePlugin, nodeResolvePlugin, cleanupPlugin],
     treeshake: 'smallest',
   };
 
@@ -118,6 +127,7 @@ export function makeBaseBundleConfig(options) {
     standalone: standAloneBundleConfig,
     addon: addOnBundleConfig,
     'node-worker': workerBundleConfig,
+    'lambda-extension': awsLambdaExtensionBundleConfig,
   };
 
   return deepMerge.all([sharedBundleConfig, bundleTypeConfigMap[bundleType], packageSpecificConfig || {}], {

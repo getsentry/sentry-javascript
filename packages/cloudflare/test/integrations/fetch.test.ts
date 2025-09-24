@@ -7,7 +7,7 @@ import { fetchIntegration } from '../../src/integrations/fetch';
 
 class FakeClient extends CloudflareClient {
   public getIntegrationByName<T extends Integration = Integration>(name: string): T | undefined {
-    return name === 'Fetch' ? (fetchIntegration() as Integration as T) : undefined;
+    return name === 'Fetch' ? (fetchIntegration() as T) : undefined;
   }
 }
 
@@ -58,7 +58,7 @@ describe('WinterCGFetch instrumentation', () => {
       expect.any(Function),
       expect.any(Function),
       expect.any(Object),
-      'auto.http.fetch',
+      { spanOrigin: 'auto.http.fetch' },
     );
 
     const [, shouldCreateSpan, shouldAttachTraceData] = instrumentFetchRequestSpy.mock.calls[0]!;

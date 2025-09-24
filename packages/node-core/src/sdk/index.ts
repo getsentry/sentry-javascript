@@ -35,11 +35,11 @@ import { INTEGRATION_NAME as SPOTLIGHT_INTEGRATION_NAME, spotlightIntegration } 
 import { systemErrorIntegration } from '../integrations/systemError';
 import { makeNodeTransport } from '../transports';
 import type { NodeClientOptions, NodeOptions } from '../types';
-import { isCjs } from '../utils/commonjs';
+import { isCjs } from '../utils/detection';
 import { envToBool } from '../utils/envToBool';
 import { defaultStackParser, getSentryRelease } from './api';
 import { NodeClient } from './client';
-import { maybeInitializeEsmLoader } from './esmLoader';
+import { initializeEsmLoader } from './esmLoader';
 
 /**
  * Get default integrations for the Node-Core SDK.
@@ -106,8 +106,8 @@ function _init(
     }
   }
 
-  if (!isCjs() && options.registerEsmLoaderHooks !== false) {
-    maybeInitializeEsmLoader();
+  if (options.registerEsmLoaderHooks !== false) {
+    initializeEsmLoader();
   }
 
   setOpenTelemetryContextAsyncContextStrategy();
@@ -131,7 +131,7 @@ function _init(
 
   client.init();
 
-  debug.log(`Running in ${isCjs() ? 'CommonJS' : 'ESM'} mode.`);
+  debug.log(`SDK initialized from ${isCjs() ? 'CommonJS' : 'ESM'}`);
 
   client.startClientReportTracking();
 

@@ -22,10 +22,10 @@ export const feedbackIntegrationShim = Object.assign(
 
     return {
       name: 'Feedback',
-      ...(FEEDBACK_INTEGRATION_METHODS.reduce((acc, method) => {
+      ...FEEDBACK_INTEGRATION_METHODS.reduce((acc, method) => {
         acc[method] = FAKE_FUNCTION;
         return acc;
-      }, {} as FeedbackSpecificMethods) as FeedbackSpecificMethods),
+      }, {} as FeedbackSpecificMethods),
     };
   },
   {

@@ -52,6 +52,9 @@ export type NextConfigObject = {
   env?: Record<string, string>;
   serverExternalPackages?: string[]; // next >= v15.0.0
   turbopack?: TurbopackOptions;
+  compiler?: {
+    runAfterProductionCompile?: (context: { distDir: string; projectDir: string }) => Promise<void> | void;
+  };
 };
 
 export type SentryBuildOptions = {
@@ -499,12 +502,22 @@ export type SentryBuildOptions = {
   disableSentryWebpackConfig?: boolean;
 
   /**
+   * When true (and Next.js >= 15), use the runAfterProductionCompile hook to consolidate sourcemap uploads
+   * into a single operation after builds complete, reducing build time.
+   *
+   * When false, use the traditional approach of uploading sourcemaps during each webpack build. For Turbopack no sourcemaps will be uploaded.
+   *
+   * @default true for Turbopack, false for Webpack
+   */
+  useRunAfterProductionCompileHook?: boolean;
+
+  /**
    * Contains a set of experimental flags that might change in future releases. These flags enable
    * features that are still in development and may be modified, renamed, or removed without notice.
    * Use with caution in production environments.
    */
   _experimental?: Partial<{
-    thirdPartyOriginStackFrames: boolean;
+    thirdPartyOriginStackFrames?: boolean;
   }>;
 };
 
@@ -569,6 +582,7 @@ export type BuildContext = {
   webpack: {
     version: string;
     DefinePlugin: new (values: Record<string, string | boolean>) => WebpackPluginInstance;
+    ProvidePlugin: new (values: Record<string, string | string[]>) => WebpackPluginInstance;
   };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   defaultLoaders: any; // needed for type tests (test:types)

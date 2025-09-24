@@ -1,0 +1,13 @@
+version: '3.9'
+
+services:
+  db_postgres:
+    image: postgres:13
+    restart: always
+    container_name: integration-tests-knex-postgres
+    ports:
+      - '5445:5432'
+    environment:
+      POSTGRES_USER: test
+      POSTGRES_PASSWORD: test
+      POSTGRES_DB: tests

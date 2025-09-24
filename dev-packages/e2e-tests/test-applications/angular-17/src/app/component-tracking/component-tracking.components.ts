@@ -7,8 +7,8 @@ import { SampleComponent } from '../sample-component/sample-component.components
   standalone: true,
   imports: [TraceModule, SampleComponent],
   template: `
-  <app-sample-component [trace]="'sample-component'"></app-sample-component>
-  <app-sample-component trace></app-sample-component>
+    <app-sample-component [trace]="'sample-component'"></app-sample-component>
+    <app-sample-component trace></app-sample-component>
   `,
 })
 @TraceClass({ name: 'ComponentTrackingComponent' })

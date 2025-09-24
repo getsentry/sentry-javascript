@@ -78,7 +78,7 @@ function buildSentryAttributes(type: McpSpanConfig['type']): Record<string, stri
 function createMcpSpan(config: McpSpanConfig): unknown {
   const { type, message, transport, extra, callback } = config;
   const { method } = message;
-  const params = message.params as Record<string, unknown> | undefined;
+  const params = message.params;
 
   // Determine span name based on type and OTEL conventions
   let spanName: string;
@@ -172,7 +172,7 @@ export function buildMcpServerSpanConfig(
   attributes: Record<string, string | number>;
 } {
   const { method } = jsonRpcMessage;
-  const params = jsonRpcMessage.params as Record<string, unknown> | undefined;
+  const params = jsonRpcMessage.params;
 
   const targetInfo = extractTargetInfo(method, params || {});
   const spanName = createSpanName(method, targetInfo.target);

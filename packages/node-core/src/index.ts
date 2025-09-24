@@ -35,7 +35,8 @@ export { getSentryRelease, defaultStackParser } from './sdk/api';
 export { createGetModuleFromFilename } from './utils/module';
 export { addOriginToSpan } from './utils/addOriginToSpan';
 export { getRequestUrl } from './utils/getRequestUrl';
-export { isCjs } from './utils/commonjs';
+export { initializeEsmLoader } from './sdk/esmLoader';
+export { isCjs } from './utils/detection';
 export { ensureIsWrapped } from './utils/ensureIsWrapped';
 export { createMissingInstrumentationContext } from './utils/createMissingInstrumentationContext';
 export { envToBool } from './utils/envToBool';
@@ -126,6 +127,7 @@ export {
   zodErrorsIntegration,
   profiler,
   consoleLoggingIntegration,
+  createConsolaReporter,
   consoleIntegration,
   wrapMcpServerWithSentry,
   featureFlagsIntegration,

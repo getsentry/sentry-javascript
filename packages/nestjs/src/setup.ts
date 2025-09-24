@@ -54,7 +54,7 @@ class SentryTracingInterceptor implements NestInterceptor {
     }
 
     if (context.getType() === 'http') {
-      const req = context.switchToHttp().getRequest() as FastifyRequest | ExpressRequest;
+      const req = context.switchToHttp().getRequest<FastifyRequest | ExpressRequest>();
       if ('routeOptions' in req && req.routeOptions?.url) {
         // fastify case
         getIsolationScope().setTransactionName(`${(req.method || 'GET').toUpperCase()} ${req.routeOptions.url}`);
@@ -101,7 +101,12 @@ class SentryGlobalFilter extends BaseExceptionFilter {
         this._logger.error(exception.message, exception.stack);
       }
 
-      captureException(exception);
+      captureException(exception, {
+        mechanism: {
+          handled: false,
+          type: 'auto.graphql.nestjs.global_filter',
+        },
+      });
       throw exception;
     }
 
@@ -117,7 +122,12 @@ class SentryGlobalFilter extends BaseExceptionFilter {
       // Handle any other kind of error
       if (!(exception instanceof Error)) {
         if (!isExpectedError(exception)) {
-          captureException(exception);
+          captureException(exception, {
+            mechanism: {
+              handled: false,
+              type: 'auto.rpc.nestjs.global_filter',
+            },
+          });
         }
         throw exception;
       }
@@ -125,7 +135,12 @@ class SentryGlobalFilter extends BaseExceptionFilter {
       // In this case we're likely running into an RpcException, which the user should handle with a dedicated filter
       // https://github.com/nestjs/nest/blob/master/sample/03-microservices/src/common/filters/rpc-exception.filter.ts
       if (!isExpectedError(exception)) {
-        captureException(exception);
+        captureException(exception, {
+          mechanism: {
+            handled: false,
+            type: 'auto.rpc.nestjs.global_filter',
+          },
+        });
       }
 
       this._logger.warn(
@@ -139,7 +154,12 @@ class SentryGlobalFilter extends BaseExceptionFilter {
 
     // HTTP exceptions
     if (!isExpectedError(exception)) {
-      captureException(exception);
+      captureException(exception, {
+        mechanism: {
+          handled: false,
+          type: 'auto.http.nestjs.global_filter',
+        },
+      });
     }
 
     return super.catch(exception, host);

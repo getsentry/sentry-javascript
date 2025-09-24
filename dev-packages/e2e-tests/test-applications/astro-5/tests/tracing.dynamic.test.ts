@@ -79,6 +79,11 @@ test.describe('tracing in dynamically rendered (ssr) routes', () => {
             'sentry.sample_rate': 1,
             'sentry.source': 'route',
             url: expect.stringContaining('/test-ssr'),
+            'http.request.header.accept': expect.any(String),
+            'http.request.header.accept_encoding': 'gzip, deflate, br, zstd',
+            'http.request.header.accept_language': 'en-US',
+            'http.request.header.sec_fetch_mode': 'navigate',
+            'http.request.header.user_agent': expect.any(String),
           },
           op: 'http.server',
           origin: 'auto.http.astro',
@@ -226,6 +231,11 @@ test.describe('nested SSR routes (client, server, server request)', () => {
             'sentry.origin': 'auto.http.astro',
             'sentry.source': 'route',
             url: expect.stringContaining('/user-page/myUsername123'),
+            'http.request.header.accept': expect.any(String),
+            'http.request.header.accept_encoding': 'gzip, deflate, br, zstd',
+            'http.request.header.accept_language': 'en-US',
+            'http.request.header.sec_fetch_mode': 'navigate',
+            'http.request.header.user_agent': expect.any(String),
           },
         },
       },
@@ -259,6 +269,11 @@ test.describe('nested SSR routes (client, server, server request)', () => {
             'sentry.origin': 'auto.http.astro',
             'sentry.source': 'route',
             url: expect.stringContaining('/api/user/myUsername123.json'),
+            'http.request.header.accept': expect.any(String),
+            'http.request.header.accept_encoding': 'gzip, deflate',
+            'http.request.header.accept_language': '*',
+            'http.request.header.sec_fetch_mode': 'cors',
+            'http.request.header.user_agent': expect.any(String),
           },
         },
       },
@@ -311,6 +326,11 @@ test.describe('nested SSR routes (client, server, server request)', () => {
             'sentry.origin': 'auto.http.astro',
             'sentry.source': 'route',
             url: expect.stringContaining('/catchAll/hell0/whatever-do'),
+            'http.request.header.accept': expect.any(String),
+            'http.request.header.accept_encoding': 'gzip, deflate, br, zstd',
+            'http.request.header.accept_language': 'en-US',
+            'http.request.header.sec_fetch_mode': 'navigate',
+            'http.request.header.user_agent': expect.any(String),
           },
         },
       },
@@ -363,10 +383,29 @@ test.describe('parametrized vs static paths', () => {
             'sentry.origin': 'auto.http.astro',
             'sentry.source': 'route',
             url: expect.stringContaining('/user-page/settings'),
+            'http.request.header.accept': expect.any(String),
+            'http.request.header.accept_encoding': 'gzip, deflate, br, zstd',
+            'http.request.header.accept_language': 'en-US',
+            'http.request.header.sec_fetch_mode': 'navigate',
+            'http.request.header.user_agent': expect.any(String),
           },
         },
       },
       request: { url: expect.stringContaining('/user-page/settings') },
+    });
+  });
+
+  test('allows for span name override via beforeStartSpan', async ({ page }) => {
+    const clientPageloadTxnPromise = waitForTransaction('astro-5', txnEvent => {
+      return txnEvent?.transaction?.startsWith('/blog/') ?? false;
+    });
+
+    await page.goto('/blog/my-post');
+
+    const clientPageloadTxn = await clientPageloadTxnPromise;
+    expect(clientPageloadTxn).toMatchObject({
+      transaction: '/blog/my-post',
+      transaction_info: { source: 'custom' },
     });
   });
 });

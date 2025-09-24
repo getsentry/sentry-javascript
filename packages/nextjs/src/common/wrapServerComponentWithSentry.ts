@@ -24,6 +24,7 @@ import { isNotFoundNavigationError, isRedirectNavigationError } from '../common/
 import type { ServerComponentContext } from '../common/types';
 import { flushSafelyWithTimeout } from '../common/utils/responseEnd';
 import { TRANSACTION_ATTR_SENTRY_TRACE_BACKFILL } from './span-attributes-with-logic-attached';
+import { addHeadersAsAttributes } from './utils/addHeadersAsAttributes';
 import { commonObjectToIsolationScope, commonObjectToPropagationContext } from './utils/tracingUtils';
 import { getSanitizedRequestUrl } from './utils/urls';
 import { maybeExtractSynchronousParamsAndSearchParams } from './utils/wrapperUtils';
@@ -60,6 +61,11 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
       }
 
       const headersDict = context.headers ? winterCGHeadersToDict(context.headers) : undefined;
+
+      if (activeSpan) {
+        const rootSpan = getRootSpan(activeSpan);
+        addHeadersAsAttributes(context.headers, rootSpan);
+      }
 
       let params: Record<string, string> | undefined = undefined;
 
@@ -108,7 +114,7 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
               name: `${componentType} Server Component (${componentRoute})`,
               attributes: {
                 [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
-                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs',
+                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs.server_component',
                 'sentry.nextjs.ssr.function.type': componentType,
                 'sentry.nextjs.ssr.function.route': componentRoute,
               },
@@ -130,6 +136,7 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
                     captureException(error, {
                       mechanism: {
                         handled: false,
+                        type: 'auto.function.nextjs.server_component',
                       },
                     });
                   }

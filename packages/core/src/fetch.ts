@@ -21,6 +21,25 @@ type PolymorphicRequestHeaders =
       get: (key: string) => string | null | undefined;
     };
 
+interface InstrumentFetchRequestOptions {
+  spanOrigin?: SpanOrigin;
+  propagateTraceparent?: boolean;
+}
+
+/**
+ * Create and track fetch request spans for usage in combination with `addFetchInstrumentationHandler`.
+ *
+ * @deprecated pass an options object instead of the spanOrigin parameter
+ *
+ * @returns Span if a span was created, otherwise void.
+ */
+export function instrumentFetchRequest(
+  handlerData: HandlerDataFetch,
+  shouldCreateSpan: (url: string) => boolean,
+  shouldAttachHeaders: (url: string) => boolean,
+  spans: Record<string, Span>,
+  spanOrigin: SpanOrigin,
+): Span | undefined;
 /**
  * Create and track fetch request spans for usage in combination with `addFetchInstrumentationHandler`.
  *
@@ -31,7 +50,21 @@ export function instrumentFetchRequest(
   shouldCreateSpan: (url: string) => boolean,
   shouldAttachHeaders: (url: string) => boolean,
   spans: Record<string, Span>,
-  spanOrigin: SpanOrigin = 'auto.http.browser',
+  // eslint-disable-next-line @typescript-eslint/unified-signatures -- needed because the other overload is deprecated
+  instrumentFetchRequestOptions: InstrumentFetchRequestOptions,
+): Span | undefined;
+
+/**
+ * Create and track fetch request spans for usage in combination with `addFetchInstrumentationHandler`.
+ *
+ * @returns Span if a span was created, otherwise void.
+ */
+export function instrumentFetchRequest(
+  handlerData: HandlerDataFetch,
+  shouldCreateSpan: (url: string) => boolean,
+  shouldAttachHeaders: (url: string) => boolean,
+  spans: Record<string, Span>,
+  spanOriginOrOptions?: SpanOrigin | InstrumentFetchRequestOptions,
 ): Span | undefined {
   if (!handlerData.fetchData) {
     return undefined;
@@ -55,6 +88,12 @@ export function instrumentFetchRequest(
     return undefined;
   }
 
+  // Backwards-compatible with the old signature. Needed to introduce the combined optional parameter
+  // to avoid API breakage for anyone calling this function with the optional spanOrigin parameter
+  // TODO (v11): remove this backwards-compatible code and only accept the options parameter
+  const { spanOrigin = 'auto.http.browser', propagateTraceparent = false } =
+    typeof spanOriginOrOptions === 'object' ? spanOriginOrOptions : { spanOrigin: spanOriginOrOptions };
+
   const hasParent = !!getActiveSpan();
 
   const span =
@@ -77,6 +116,7 @@ export function instrumentFetchRequest(
       // we do not want to use the span as base for the trace headers,
       // which means that the headers will be generated from the scope and the sampling decision is deferred
       hasSpansEnabled() && hasParent ? span : undefined,
+      propagateTraceparent,
     );
     if (headers) {
       // Ensure this is actually set, if no options have been passed previously
@@ -121,10 +161,12 @@ export function _addTracingHeadersToFetchRequest(
       | PolymorphicRequestHeaders;
   },
   span?: Span,
+  propagateTraceparent?: boolean,
 ): PolymorphicRequestHeaders | undefined {
-  const traceHeaders = getTraceData({ span });
+  const traceHeaders = getTraceData({ span, propagateTraceparent });
   const sentryTrace = traceHeaders['sentry-trace'];
   const baggage = traceHeaders.baggage;
+  const traceparent = traceHeaders.traceparent;
 
   // Nothing to do, when we return undefined here, the original headers will be used
   if (!sentryTrace) {
@@ -141,6 +183,10 @@ export function _addTracingHeadersToFetchRequest(
     // We don't want to override manually added sentry headers
     if (!newHeaders.get('sentry-trace')) {
       newHeaders.set('sentry-trace', sentryTrace);
+    }
+
+    if (propagateTraceparent && traceparent && !newHeaders.get('traceparent')) {
+      newHeaders.set('traceparent', traceparent);
     }
 
     if (baggage) {
@@ -161,6 +207,10 @@ export function _addTracingHeadersToFetchRequest(
       newHeaders.push(['sentry-trace', sentryTrace]);
     }
 
+    if (propagateTraceparent && traceparent && !originalHeaders.find(header => header[0] === 'traceparent')) {
+      newHeaders.push(['traceparent', traceparent]);
+    }
+
     const prevBaggageHeaderWithSentryValues = originalHeaders.find(
       header => header[0] === 'baggage' && baggageHeaderHasSentryBaggageValues(header[1]),
     );
@@ -174,8 +224,9 @@ export function _addTracingHeadersToFetchRequest(
     return newHeaders as PolymorphicRequestHeaders;
   } else {
     const existingSentryTraceHeader = 'sentry-trace' in originalHeaders ? originalHeaders['sentry-trace'] : undefined;
-
+    const existingTraceparentHeader = 'traceparent' in originalHeaders ? originalHeaders.traceparent : undefined;
     const existingBaggageHeader = 'baggage' in originalHeaders ? originalHeaders.baggage : undefined;
+
     const newBaggageHeaders: string[] = existingBaggageHeader
       ? Array.isArray(existingBaggageHeader)
         ? [...existingBaggageHeader]
@@ -192,11 +243,21 @@ export function _addTracingHeadersToFetchRequest(
       newBaggageHeaders.push(baggage);
     }
 
-    return {
-      ...(originalHeaders as Exclude<typeof originalHeaders, Headers>),
+    const newHeaders: {
+      'sentry-trace': string;
+      baggage: string | undefined;
+      traceparent?: string;
+    } = {
+      ...originalHeaders,
       'sentry-trace': (existingSentryTraceHeader as string | undefined) ?? sentryTrace,
       baggage: newBaggageHeaders.length > 0 ? newBaggageHeaders.join(',') : undefined,
     };
+
+    if (propagateTraceparent && traceparent && !existingTraceparentHeader) {
+      newHeaders.traceparent = traceparent;
+    }
+
+    return newHeaders;
   }
 }
 

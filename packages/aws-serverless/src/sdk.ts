@@ -235,13 +235,13 @@ export function wrapHandler<TEvent, TResult>(
         if (options.captureAllSettledReasons && Array.isArray(rv) && isPromiseAllSettledResult(rv)) {
           const reasons = getRejectedReasons(rv);
           reasons.forEach(exception => {
-            captureException(exception, scope => markEventUnhandled(scope, 'auto.function.aws-serverless.promise'));
+            captureException(exception, scope => markEventUnhandled(scope, 'auto.function.aws_serverless.promise'));
           });
         }
       } catch (e) {
         // Errors should already captured in the instrumentation's `responseHook`,
         // we capture them here just to be safe. Double captures are deduplicated by the SDK.
-        captureException(e, scope => markEventUnhandled(scope, 'auto.function.aws-serverless.handler'));
+        captureException(e, scope => markEventUnhandled(scope, 'auto.function.aws_serverless.handler'));
         throw e;
       } finally {
         clearTimeout(timeoutWarningTimer);
@@ -281,14 +281,14 @@ function wrapStreamingHandler<TEvent, TResult>(
         enhanceScopeWithEnvironmentData(scope, context, startTime);
 
         responseStream.on('error', error => {
-          captureException(error, scope => markEventUnhandled(scope, 'auto.function.aws-serverless.stream'));
+          captureException(error, scope => markEventUnhandled(scope, 'auto.function.aws_serverless.stream'));
         });
 
         return await handler(event, responseStream, context);
       } catch (e) {
         // Errors should already captured in the instrumentation's `responseHook`,
         // we capture them here just to be safe. Double captures are deduplicated by the SDK.
-        captureException(e, scope => markEventUnhandled(scope, 'auto.function.aws-serverless.handler'));
+        captureException(e, scope => markEventUnhandled(scope, 'auto.function.aws_serverless.handler'));
         throw e;
       } finally {
         if (timeoutWarningTimer) {

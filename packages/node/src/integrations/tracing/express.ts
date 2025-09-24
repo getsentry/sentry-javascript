@@ -130,7 +130,7 @@ export function expressErrorHandler(options?: ExpressHandlerOptions): ExpressErr
     const shouldHandleError = options?.shouldHandleError || defaultShouldHandleError;
 
     if (shouldHandleError(error)) {
-      const eventId = captureException(error, { mechanism: { type: 'middleware', handled: false } });
+      const eventId = captureException(error, { mechanism: { type: 'auto.middleware.express', handled: false } });
       (res as { sentry?: string }).sentry = eventId;
     }
 

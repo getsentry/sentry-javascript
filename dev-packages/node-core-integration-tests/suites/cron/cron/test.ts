@@ -69,7 +69,15 @@ test('cron instrumentation', async () => {
     })
     .expect({
       event: {
-        exception: { values: [{ type: 'Error', value: 'Error in cron job' }] },
+        exception: {
+          values: [
+            {
+              type: 'Error',
+              value: 'Error in cron job',
+              mechanism: { type: 'auto.function.cron.instrumentCron', handled: false },
+            },
+          ],
+        },
       },
     })
     .start()

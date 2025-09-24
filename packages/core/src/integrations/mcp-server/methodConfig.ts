@@ -56,7 +56,7 @@ export function extractTargetInfo(
   target?: string;
   attributes: Record<string, string>;
 } {
-  const config = METHOD_CONFIGS[method as keyof typeof METHOD_CONFIGS];
+  const config = METHOD_CONFIGS[method];
   if (!config) {
     return { attributes: {} };
   }
@@ -80,7 +80,7 @@ export function extractTargetInfo(
  */
 export function getRequestArguments(method: string, params: Record<string, unknown>): Record<string, string> {
   const args: Record<string, string> = {};
-  const config = METHOD_CONFIGS[method as keyof typeof METHOD_CONFIGS];
+  const config = METHOD_CONFIGS[method];
 
   if (!config) {
     return args;

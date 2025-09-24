@@ -19,6 +19,11 @@ test('Should record exceptions for faulty edge server components', async ({ page
   expect(errorEvent.tags?.['my-global-scope-isolated-tag']).not.toBeDefined();
 
   expect(errorEvent.transaction).toBe(`Page Server Component (/edge-server-components/error)`);
+
+  expect(errorEvent.exception?.values?.[0]?.mechanism).toEqual({
+    handled: false,
+    type: 'auto.function.nextjs.server_component',
+  });
 });
 
 test('Should record transaction for edge server components', async ({ page }) => {

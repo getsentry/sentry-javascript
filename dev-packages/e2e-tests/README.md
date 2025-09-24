@@ -81,11 +81,11 @@ for it to work with both regular and prerelease versions:
   "scripts": {
     "test": "echo \"Hello world!\"",
     "test:build": "pnpm install",
-    "test:assert": "pnpm test"
+    "test:assert": "pnpm test",
   },
   "dependencies": {
-    "@sentry/node": "latest || *"
-  }
+    "@sentry/node": "latest || *",
+  },
 }
 ```
 

@@ -4,10 +4,12 @@ import {
   continueTrace,
   flush,
   getHttpSpanDetailsFromUrlObject,
+  httpHeadersToSpanAttributes,
   parseStringToURLObject,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   setHttpStatus,
   startSpan,
+  winterCGHeadersToDict,
   withIsolationScope,
 } from '@sentry/core';
 import type { CloudflareOptions } from './client';
@@ -64,6 +66,9 @@ export function wrapRequestHandler(
       attributes['user_agent.original'] = userAgentHeader;
     }
 
+    const sendDefaultPii = options.sendDefaultPii ?? false;
+    Object.assign(attributes, httpHeadersToSpanAttributes(winterCGHeadersToDict(request.headers), sendDefaultPii));
+
     attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] = 'http.server';
 
     addCloudResourceContext(isolationScope);
@@ -79,7 +84,7 @@ export function wrapRequestHandler(
         return await handler();
       } catch (e) {
         if (captureErrors) {
-          captureException(e, { mechanism: { handled: false, type: 'cloudflare' } });
+          captureException(e, { mechanism: { handled: false, type: 'auto.http.cloudflare' } });
         }
         throw e;
       } finally {
@@ -105,7 +110,7 @@ export function wrapRequestHandler(
               return res;
             } catch (e) {
               if (captureErrors) {
-                captureException(e, { mechanism: { handled: false, type: 'cloudflare' } });
+                captureException(e, { mechanism: { handled: false, type: 'auto.http.cloudflare' } });
               }
               throw e;
             } finally {

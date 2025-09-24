@@ -59,4 +59,5 @@ export interface PropagationContext {
 export interface SerializedTraceData {
   'sentry-trace'?: string;
   baggage?: string;
+  traceparent?: string;
 }

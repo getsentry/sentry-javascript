@@ -1,4 +1,3 @@
-import type { Span } from '@opentelemetry/api';
 import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration, SEMANTIC_ATTRIBUTE_SENTRY_OP } from '@sentry/core';
 import { addOriginToSpan, generateInstrumentOnce } from '@sentry/node-core';
@@ -8,7 +7,7 @@ const INTEGRATION_NAME = 'Firebase';
 
 const config: FirebaseInstrumentationConfig = {
   firestoreSpanCreationHook: span => {
-    addOriginToSpan(span as Span, 'auto.firebase.otel.firestore');
+    addOriginToSpan(span, 'auto.firebase.otel.firestore');
 
     span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'db.query');
   },

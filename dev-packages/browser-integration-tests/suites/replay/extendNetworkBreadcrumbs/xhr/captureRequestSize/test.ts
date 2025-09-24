@@ -49,7 +49,7 @@ sentryTest('captures request body size when body is sent', async ({ getLocalTest
   expect(eventData.exception?.values).toHaveLength(1);
 
   expect(eventData?.breadcrumbs?.length).toBe(1);
-  expect(eventData!.breadcrumbs![0]).toEqual({
+  expect(eventData.breadcrumbs![0]).toEqual({
     timestamp: expect.any(Number),
     category: 'xhr',
     type: 'http',
@@ -131,7 +131,7 @@ sentryTest('captures request size from non-text request body', async ({ getLocal
   expect(eventData.exception?.values).toHaveLength(1);
 
   expect(eventData?.breadcrumbs?.length).toBe(1);
-  expect(eventData!.breadcrumbs![0]).toEqual({
+  expect(eventData.breadcrumbs![0]).toEqual({
     timestamp: expect.any(Number),
     category: 'xhr',
     type: 'http',

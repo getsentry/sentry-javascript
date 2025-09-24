@@ -446,7 +446,44 @@ describe('browserTracingIntegration', () => {
     setCurrentClient(client);
     client.init();
 
-    startBrowserTracingPageLoadSpan(client, { name: 'test span' });
+    startBrowserTracingPageLoadSpan(client, {
+      name: 'test span',
+      attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+      },
+    });
+
+    const pageloadSpan = getActiveSpan();
+
+    expect(spanToJSON(pageloadSpan!).description).toBe('changed');
+    expect(spanToJSON(pageloadSpan!).data[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toBe('custom');
+  });
+
+  it('sets source to "custom" if name is changed in-place in beforeStartSpan', () => {
+    const client = new BrowserClient(
+      getDefaultBrowserClientOptions({
+        tracesSampleRate: 0,
+        integrations: [
+          browserTracingIntegration({
+            instrumentPageLoad: false,
+            instrumentNavigation: false,
+            beforeStartSpan: opts => {
+              opts.name = 'changed';
+              return opts;
+            },
+          }),
+        ],
+      }),
+    );
+    setCurrentClient(client);
+    client.init();
+
+    startBrowserTracingPageLoadSpan(client, {
+      name: 'test span',
+      attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+      },
+    });
 
     const pageloadSpan = getActiveSpan();
 
@@ -686,6 +723,7 @@ describe('browserTracingIntegration', () => {
 
       expect(oldCurrentScopePropCtx).toEqual({
         traceId: expect.stringMatching(/[a-f0-9]{32}/),
+        propagationSpanId: expect.stringMatching(/[a-f0-9]{16}/),
         sampleRand: expect.any(Number),
       });
       expect(oldIsolationScopePropCtx).toEqual({
@@ -694,15 +732,18 @@ describe('browserTracingIntegration', () => {
       });
       expect(newCurrentScopePropCtx).toEqual({
         traceId: expect.stringMatching(/[a-f0-9]{32}/),
+        propagationSpanId: expect.stringMatching(/[a-f0-9]{16}/),
         sampleRand: expect.any(Number),
       });
       expect(newIsolationScopePropCtx).toEqual({
         traceId: expect.stringMatching(/[a-f0-9]{32}/),
+        propagationSpanId: expect.stringMatching(/[a-f0-9]{16}/),
         sampleRand: expect.any(Number),
       });
 
       expect(newIsolationScopePropCtx.traceId).not.toEqual(oldIsolationScopePropCtx.traceId);
       expect(newCurrentScopePropCtx.traceId).not.toEqual(oldCurrentScopePropCtx.traceId);
+      expect(newIsolationScopePropCtx.propagationSpanId).not.toEqual(oldIsolationScopePropCtx.propagationSpanId);
     });
 
     it("saves the span's positive sampling decision and its DSC on the propagationContext when the span finishes", () => {
@@ -721,7 +762,7 @@ describe('browserTracingIntegration', () => {
       });
 
       const propCtxBeforeEnd = getCurrentScope().getPropagationContext();
-      expect(propCtxBeforeEnd).toStrictEqual({
+      expect(propCtxBeforeEnd).toEqual({
         sampleRand: expect.any(Number),
         traceId: expect.stringMatching(/[a-f0-9]{32}/),
       });
@@ -729,7 +770,7 @@ describe('browserTracingIntegration', () => {
       navigationSpan!.end();
 
       const propCtxAfterEnd = getCurrentScope().getPropagationContext();
-      expect(propCtxAfterEnd).toStrictEqual({
+      expect(propCtxAfterEnd).toEqual({
         traceId: propCtxBeforeEnd.traceId,
         sampled: true,
         sampleRand: expect.any(Number),
@@ -763,7 +804,7 @@ describe('browserTracingIntegration', () => {
       });
 
       const propCtxBeforeEnd = getCurrentScope().getPropagationContext();
-      expect(propCtxBeforeEnd).toStrictEqual({
+      expect(propCtxBeforeEnd).toEqual({
         traceId: expect.stringMatching(/[a-f0-9]{32}/),
         sampleRand: expect.any(Number),
       });
@@ -771,7 +812,7 @@ describe('browserTracingIntegration', () => {
       navigationSpan!.end();
 
       const propCtxAfterEnd = getCurrentScope().getPropagationContext();
-      expect(propCtxAfterEnd).toStrictEqual({
+      expect(propCtxAfterEnd).toEqual({
         traceId: propCtxBeforeEnd.traceId,
         sampled: false,
         sampleRand: expect.any(Number),
@@ -832,7 +873,7 @@ describe('browserTracingIntegration', () => {
       const idleSpan = getActiveSpan()!;
       expect(idleSpan).toBeDefined();
 
-      const dynamicSamplingContext = getDynamicSamplingContextFromSpan(idleSpan!);
+      const dynamicSamplingContext = getDynamicSamplingContextFromSpan(idleSpan);
       const propagationContext = getCurrentScope().getPropagationContext();
 
       // Span is correct
@@ -969,7 +1010,7 @@ describe('browserTracingIntegration', () => {
       const idleSpan = getActiveSpan()!;
       expect(idleSpan).toBeDefined();
 
-      const dynamicSamplingContext = getDynamicSamplingContextFromSpan(idleSpan!);
+      const dynamicSamplingContext = getDynamicSamplingContextFromSpan(idleSpan);
       const propagationContext = getCurrentScope().getPropagationContext();
 
       // Span is correct

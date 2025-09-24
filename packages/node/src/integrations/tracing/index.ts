@@ -1,5 +1,5 @@
 import type { Integration } from '@sentry/core';
-import { instrumentOtelHttp } from '../http';
+import { instrumentOtelHttp, instrumentSentryHttp } from '../http';
 import { amqplibIntegration, instrumentAmqplib } from './amqplib';
 import { anthropicAIIntegration, instrumentAnthropicAi } from './anthropic-ai';
 import { connectIntegration, instrumentConnect } from './connect';
@@ -7,8 +7,10 @@ import { expressIntegration, instrumentExpress } from './express';
 import { fastifyIntegration, instrumentFastify, instrumentFastifyV3 } from './fastify';
 import { firebaseIntegration, instrumentFirebase } from './firebase';
 import { genericPoolIntegration, instrumentGenericPool } from './genericPool';
+import { googleGenAIIntegration, instrumentGoogleGenAI } from './google-genai';
 import { graphqlIntegration, instrumentGraphql } from './graphql';
 import { hapiIntegration, instrumentHapi } from './hapi';
+import { honoIntegration, instrumentHono } from './hono';
 import { instrumentKafka, kafkaIntegration } from './kafka';
 import { instrumentKoa, koaIntegration } from './koa';
 import { instrumentLruMemoizer, lruMemoizerIntegration } from './lrumemoizer';
@@ -32,6 +34,7 @@ export function getAutoPerformanceIntegrations(): Integration[] {
     expressIntegration(),
     fastifyIntegration(),
     graphqlIntegration(),
+    honoIntegration(),
     mongoIntegration(),
     mongooseIntegration(),
     mysqlIntegration(),
@@ -52,6 +55,7 @@ export function getAutoPerformanceIntegrations(): Integration[] {
     postgresJsIntegration(),
     firebaseIntegration(),
     anthropicAIIntegration(),
+    googleGenAIIntegration(),
   ];
 }
 
@@ -61,12 +65,14 @@ export function getAutoPerformanceIntegrations(): Integration[] {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function getOpenTelemetryInstrumentationToPreload(): (((options?: any) => void) & { id: string })[] {
   return [
+    instrumentSentryHttp,
     instrumentOtelHttp,
     instrumentExpress,
     instrumentConnect,
     instrumentFastify,
     instrumentFastifyV3,
     instrumentHapi,
+    instrumentHono,
     instrumentKafka,
     instrumentKoa,
     instrumentLruMemoizer,
@@ -86,5 +92,6 @@ export function getOpenTelemetryInstrumentationToPreload(): (((options?: any) =>
     instrumentPostgresJs,
     instrumentFirebase,
     instrumentAnthropicAi,
+    instrumentGoogleGenAI,
   ];
 }
