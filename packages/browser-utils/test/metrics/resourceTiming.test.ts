@@ -26,7 +26,7 @@ describe('resourceTimingToSpanAttributes', () => {
       duration: 200,
       initiatorType: 'fetch',
       nextHopProtocol: 'h2',
-      workerStart: 0,
+      workerStart: 1,
       redirectStart: 10,
       redirectEnd: 20,
       fetchStart: 25,
@@ -276,6 +276,13 @@ describe('resourceTimingToSpanAttributes', () => {
     });
 
     it('handles zero timing values', () => {
+      /**
+       * Most resource timing entries have a 0 value if the resource was requested from
+       * a cross-origin source which does not return a matching `Timing-Allow-Origin` header.
+       *
+       * see: https://developer.mozilla.org/en-US/docs/Web/API/Performance_API/Resource_timing#cross-origin_timing_information
+       */
+
       extractNetworkProtocolSpy.mockReturnValue({
         name: '',
         version: 'unknown',
@@ -284,15 +291,17 @@ describe('resourceTimingToSpanAttributes', () => {
       const mockResourceTiming = createMockResourceTiming({
         nextHopProtocol: '',
         redirectStart: 0,
-        fetchStart: 0,
+        redirectEnd: 0,
+        workerStart: 0,
+        fetchStart: 1000100, // fetchStart is not restricted by `Timing-Allow-Origin` header
         domainLookupStart: 0,
         domainLookupEnd: 0,
         connectStart: 0,
-        secureConnectionStart: 0,
         connectEnd: 0,
+        secureConnectionStart: 0,
         requestStart: 0,
         responseStart: 0,
-        responseEnd: 0,
+        responseEnd: 1000200, // responseEnd is not restricted by `Timing-Allow-Origin` header
       });
 
       const result = resourceTimingToSpanAttributes(mockResourceTiming);
@@ -300,18 +309,18 @@ describe('resourceTimingToSpanAttributes', () => {
       expect(result).toEqual({
         'network.protocol.version': 'unknown',
         'network.protocol.name': '',
-        'http.request.redirect_start': 1000, // (1000000 + 0) / 1000
-        'http.request.redirect_end': 1000.02,
-        'http.request.worker_start': 1000,
-        'http.request.fetch_start': 1000,
-        'http.request.domain_lookup_start': 1000,
-        'http.request.domain_lookup_end': 1000,
-        'http.request.connect_start': 1000,
-        'http.request.secure_connection_start': 1000,
-        'http.request.connection_end': 1000,
-        'http.request.request_start': 1000,
-        'http.request.response_start': 1000,
-        'http.request.response_end': 1000,
+        'http.request.redirect_start': 0,
+        'http.request.redirect_end': 0,
+        'http.request.worker_start': 0,
+        'http.request.fetch_start': 2000.1,
+        'http.request.domain_lookup_start': 0,
+        'http.request.domain_lookup_end': 0,
+        'http.request.connect_start': 0,
+        'http.request.secure_connection_start': 0,
+        'http.request.connection_end': 0,
+        'http.request.request_start': 0,
+        'http.request.response_start': 0,
+        'http.request.response_end': 2000.2,
         'http.request.time_to_first_byte': 0,
       });
     });
@@ -343,7 +352,7 @@ describe('resourceTimingToSpanAttributes', () => {
         'network.protocol.name': 'http',
         'http.request.redirect_start': 1000.005,
         'http.request.redirect_end': 1000.02,
-        'http.request.worker_start': 1000,
+        'http.request.worker_start': 1000.001,
         'http.request.fetch_start': 1000.01,
         'http.request.domain_lookup_start': 1000.015,
         'http.request.domain_lookup_end': 1000.02,
@@ -470,7 +479,7 @@ describe('resourceTimingToSpanAttributes', () => {
   });
 
   describe('edge cases', () => {
-    it('handles undefined timing values', () => {
+    it("doesn't include undefined timing values", () => {
       browserPerformanceTimeOriginSpy.mockReturnValue(1000000);
 
       extractNetworkProtocolSpy.mockReturnValue({
@@ -481,6 +490,7 @@ describe('resourceTimingToSpanAttributes', () => {
       const mockResourceTiming = createMockResourceTiming({
         nextHopProtocol: '',
         redirectStart: undefined as any,
+        redirectEnd: undefined as any,
         fetchStart: undefined as any,
         workerStart: undefined as any,
         domainLookupStart: undefined as any,
@@ -498,19 +508,6 @@ describe('resourceTimingToSpanAttributes', () => {
       expect(result).toEqual({
         'network.protocol.version': 'unknown',
         'network.protocol.name': '',
-        'http.request.redirect_start': 1000, // (1000000 + 0) / 1000
-        'http.request.redirect_end': 1000.02,
-        'http.request.worker_start': 1000,
-        'http.request.fetch_start': 1000,
-        'http.request.domain_lookup_start': 1000,
-        'http.request.domain_lookup_end': 1000,
-        'http.request.connect_start': 1000,
-        'http.request.secure_connection_start': 1000,
-        'http.request.connection_end': 1000,
-        'http.request.request_start': 1000,
-        'http.request.response_start': 1000,
-        'http.request.response_end': 1000,
-        'http.request.time_to_first_byte': 0,
       });
     });
 
@@ -534,6 +531,7 @@ describe('resourceTimingToSpanAttributes', () => {
         requestStart: 999999,
         responseStart: 999999,
         responseEnd: 999999,
+        workerStart: 999999,
       });
 
       const result = resourceTimingToSpanAttributes(mockResourceTiming);
@@ -543,7 +541,7 @@ describe('resourceTimingToSpanAttributes', () => {
         'network.protocol.name': '',
         'http.request.redirect_start': 1999.999, // (1000000 + 999999) / 1000
         'http.request.redirect_end': 1000.02,
-        'http.request.worker_start': 1000,
+        'http.request.worker_start': 1999.999,
         'http.request.fetch_start': 1999.999,
         'http.request.domain_lookup_start': 1999.999,
         'http.request.domain_lookup_end': 1999.999,
