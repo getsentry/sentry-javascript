@@ -103,9 +103,9 @@ function flatten<T>(input: NestedArray<T>): T[] {
   const flattenHelper = (input: NestedArray<T>): void => {
     input.forEach((el: T | NestedArray<T>) => {
       if (Array.isArray(el)) {
-        flattenHelper(el as NestedArray<T>);
+        flattenHelper(el);
       } else {
-        result.push(el as T);
+        result.push(el);
       }
     });
   };

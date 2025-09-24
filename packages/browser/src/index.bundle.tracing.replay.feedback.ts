@@ -22,7 +22,12 @@ export {
   startBrowserTracingNavigationSpan,
   startBrowserTracingPageLoadSpan,
 } from './tracing/browserTracingIntegration';
-export { getFeedback } from '@sentry-internal/feedback';
+export { setActiveSpanInBrowser } from './tracing/setActiveSpan';
+
+export { reportPageLoaded } from './tracing/reportPageLoaded';
+
+export { getFeedback, sendFeedback } from '@sentry-internal/feedback';
+
 export { feedbackAsyncIntegration as feedbackAsyncIntegration, feedbackAsyncIntegration as feedbackIntegration };
 
 export { replayIntegration, getReplay } from '@sentry-internal/replay';

@@ -49,7 +49,7 @@ sentryTest('captures response size from Content-Length header if available', asy
   expect(eventData.exception?.values).toHaveLength(1);
 
   expect(eventData?.breadcrumbs?.length).toBe(1);
-  expect(eventData!.breadcrumbs![0]).toEqual({
+  expect(eventData.breadcrumbs![0]).toEqual({
     timestamp: expect.any(Number),
     category: 'fetch',
     type: 'http',
@@ -131,7 +131,7 @@ sentryTest('captures response size without Content-Length header', async ({ getL
   expect(eventData.exception?.values).toHaveLength(1);
 
   expect(eventData?.breadcrumbs?.length).toBe(1);
-  expect(eventData!.breadcrumbs![0]).toEqual({
+  expect(eventData.breadcrumbs![0]).toEqual({
     timestamp: expect.any(Number),
     category: 'fetch',
     type: 'http',
@@ -213,7 +213,7 @@ sentryTest('captures response size from non-text response body', async ({ getLoc
   expect(eventData.exception?.values).toHaveLength(1);
 
   expect(eventData?.breadcrumbs?.length).toBe(1);
-  expect(eventData!.breadcrumbs![0]).toEqual({
+  expect(eventData.breadcrumbs![0]).toEqual({
     timestamp: expect.any(Number),
     category: 'fetch',
     type: 'http',

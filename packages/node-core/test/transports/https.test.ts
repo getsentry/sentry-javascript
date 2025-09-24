@@ -10,7 +10,7 @@ import testServerCerts from './test-server-certs';
 
 vi.mock('@sentry/core', async () => {
   // eslint-disable-next-line @typescript-eslint/consistent-type-imports
-  const actualCore = (await vi.importActual('@sentry/core')) as typeof import('@sentry/core');
+  const actualCore = await vi.importActual('@sentry/core');
   return {
     ...actualCore,
     createTransport: vi.fn().mockImplementation(actualCore.createTransport),

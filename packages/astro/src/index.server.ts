@@ -15,6 +15,7 @@ export {
   anthropicAIIntegration,
   // eslint-disable-next-line deprecation/deprecation
   anrIntegration,
+  googleGenAIIntegration,
   // eslint-disable-next-line deprecation/deprecation
   disableAnrDetectionForCallback,
   captureCheckIn,
@@ -59,8 +60,11 @@ export {
   getSpanStatusFromHttpCode,
   getTraceData,
   getTraceMetaTags,
+  httpHeadersToSpanAttributes,
+  winterCGHeadersToDict,
   graphqlIntegration,
   hapiIntegration,
+  honoIntegration,
   httpIntegration,
   // eslint-disable-next-line deprecation/deprecation
   inboundFiltersIntegration,
@@ -113,6 +117,7 @@ export {
   setupConnectErrorHandler,
   setupExpressErrorHandler,
   setupHapiErrorHandler,
+  setupHonoErrorHandler,
   setupKoaErrorHandler,
   setUser,
   spanToBaggageHeader,
@@ -140,6 +145,7 @@ export {
   profiler,
   logger,
   consoleLoggingIntegration,
+  createConsolaReporter,
   wrapMcpServerWithSentry,
   NODE_VERSION,
   featureFlagsIntegration,

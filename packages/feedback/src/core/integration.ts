@@ -1,3 +1,5 @@
+/* eslint-disable max-lines */
+
 import type {
   FeedbackInternalOptions,
   FeedbackModalIntegration,
@@ -14,11 +16,14 @@ import {
   EMAIL_LABEL,
   EMAIL_PLACEHOLDER,
   FORM_TITLE,
+  HIDE_TOOL_TEXT,
+  HIGHLIGHT_TOOL_TEXT,
   IS_REQUIRED_LABEL,
   MESSAGE_LABEL,
   MESSAGE_PLACEHOLDER,
   NAME_LABEL,
   NAME_PLACEHOLDER,
+  REMOVE_HIGHLIGHT_TEXT,
   REMOVE_SCREENSHOT_LABEL,
   SUBMIT_BUTTON_LABEL,
   SUCCESS_MESSAGE_TEXT,
@@ -110,6 +115,9 @@ export const buildFeedbackIntegration = ({
     successMessageText = SUCCESS_MESSAGE_TEXT,
     triggerLabel = TRIGGER_LABEL,
     triggerAriaLabel = '',
+    highlightToolText = HIGHLIGHT_TOOL_TEXT,
+    hideToolText = HIDE_TOOL_TEXT,
+    removeHighlightText = REMOVE_HIGHLIGHT_TEXT,
 
     // FeedbackCallbacks
     onFormOpen,
@@ -152,6 +160,9 @@ export const buildFeedbackIntegration = ({
       isRequiredLabel,
       addScreenshotButtonLabel,
       removeScreenshotButtonLabel,
+      highlightToolText,
+      hideToolText,
+      removeHighlightText,
 
       onFormClose,
       onFormOpen,
@@ -175,7 +186,7 @@ export const buildFeedbackIntegration = ({
         _shadow = host.attachShadow({ mode: 'open' });
         _shadow.appendChild(createMainStyles(options));
       }
-      return _shadow as ShadowRoot;
+      return _shadow;
     };
 
     const _loadAndRenderDialog = async (

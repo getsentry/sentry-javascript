@@ -69,7 +69,7 @@ export function makeUnhandledPromiseHandler(
         },
         mechanism: {
           handled: false,
-          type: 'onunhandledrejection',
+          type: 'auto.node.onunhandledrejection',
         },
       });
     });

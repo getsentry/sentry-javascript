@@ -258,6 +258,13 @@ interface ReleaseOptions {
   name?: string;
 
   /**
+   * Whether the plugin should inject release information into the build for the SDK to pick it up when sending events (recommended).
+   *
+   * @default true
+   */
+  inject?: boolean;
+
+  /**
    * Whether to create a new release.
    *
    * Note that a release may still appear in Sentry even if this value is `false`. Any Sentry event that has a release value attached

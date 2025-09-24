@@ -18,7 +18,7 @@ test.describe('server-side errors', () => {
             type: 'Error',
             value: 'Error thrown from Solid Start E2E test app server route',
             mechanism: {
-              type: 'solidstart',
+              type: 'auto.function.solidstart',
               handled: false,
             },
           },

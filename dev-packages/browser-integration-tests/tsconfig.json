@@ -2,7 +2,7 @@
   "extends": "../../tsconfig.json",
 
   "compilerOptions": {
-    "lib": ["dom", "es2019"],
+    "lib": ["dom", "ES2020"],
     "moduleResolution": "node",
     "noEmit": true,
     "strict": true,

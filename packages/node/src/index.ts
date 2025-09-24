@@ -15,6 +15,7 @@ export { postgresIntegration } from './integrations/tracing/postgres';
 export { postgresJsIntegration } from './integrations/tracing/postgresjs';
 export { prismaIntegration } from './integrations/tracing/prisma';
 export { hapiIntegration, setupHapiErrorHandler } from './integrations/tracing/hapi';
+export { honoIntegration, setupHonoErrorHandler } from './integrations/tracing/hono';
 export { koaIntegration, setupKoaErrorHandler } from './integrations/tracing/koa';
 export { connectIntegration, setupConnectErrorHandler } from './integrations/tracing/connect';
 export { knexIntegration } from './integrations/tracing/knex';
@@ -25,6 +26,7 @@ export { amqplibIntegration } from './integrations/tracing/amqplib';
 export { vercelAIIntegration } from './integrations/tracing/vercelai';
 export { openAIIntegration } from './integrations/tracing/openai';
 export { anthropicAIIntegration } from './integrations/tracing/anthropic-ai';
+export { googleGenAIIntegration } from './integrations/tracing/google-genai';
 export {
   launchDarklyIntegration,
   buildLaunchDarklyFlagUsedHandler,
@@ -92,6 +94,8 @@ export {
   getIsolationScope,
   getTraceData,
   getTraceMetaTags,
+  httpHeadersToSpanAttributes,
+  winterCGHeadersToDict,
   continueTrace,
   withScope,
   withIsolationScope,
@@ -125,6 +129,7 @@ export {
   zodErrorsIntegration,
   profiler,
   consoleLoggingIntegration,
+  createConsolaReporter,
   consoleIntegration,
   wrapMcpServerWithSentry,
   featureFlagsIntegration,

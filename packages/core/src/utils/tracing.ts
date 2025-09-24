@@ -20,6 +20,9 @@ export const TRACEPARENT_REGEXP = new RegExp(
 /**
  * Extract transaction context data from a `sentry-trace` header.
  *
+ * This is terrible naming but the function has nothing to do with the W3C traceparent header.
+ * It can only parse the `sentry-trace` header and extract the "trace parent" data.
+ *
  * @param traceparent Traceparent string
  *
  * @returns Object containing data from the header, or undefined if traceparent string is malformed
@@ -97,6 +100,17 @@ export function generateSentryTraceHeader(
     sampledString = sampled ? '-1' : '-0';
   }
   return `${traceId}-${spanId}${sampledString}`;
+}
+
+/**
+ * Creates a W3C traceparent header from the given trace and span ids.
+ */
+export function generateTraceparentHeader(
+  traceId: string | undefined = generateTraceId(),
+  spanId: string | undefined = generateSpanId(),
+  sampled?: boolean,
+): string {
+  return `00-${traceId}-${spanId}-${sampled ? '01' : '00'}`;
 }
 
 /**

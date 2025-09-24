@@ -71,7 +71,7 @@ jobs:
       pull-requests: read
     steps:
       - name: Check out current commit
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ env.HEAD_COMMIT }}
           # We need to check out not only the fake merge commit between the PR and the base branch which GH creates, but
@@ -131,13 +131,13 @@ jobs:
       (needs.job_get_metadata.outputs.is_gitflow_sync == 'false' && needs.job_get_metadata.outputs.has_gitflow_label == 'false')
     steps:
       - name: Check out base commit (${{ github.event.pull_request.base.sha }})
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         if: github.event_name == 'pull_request'
         with:
           ref: ${{ github.event.pull_request.base.sha }}
 
       - name: 'Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})'
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ env.HEAD_COMMIT }}
 
@@ -200,6 +200,9 @@ jobs:
       changed_node:
         ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected,
         '@sentry/node') }}
+      changed_node_overhead_action:
+        ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected,
+        '@sentry-internal/node-overhead-gh-action') }}
       changed_deno:
         ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected,
         '@sentry/deno') }}
@@ -235,7 +238,7 @@ jobs:
       needs.job_get_metadata.outputs.is_release == 'true'
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
@@ -253,6 +256,37 @@ jobs:
           # Only run comparison against develop if this is a PR
           comparison_branch: ${{ (github.event_name == 'pull_request' && github.base_ref) ||  ''}}
 
+  job_node_overhead_check:
+    name: Node Overhead Check
+    needs: [job_get_metadata, job_build]
+    timeout-minutes: 15
+    runs-on: ubuntu-24.04
+    if:
+      (needs.job_build.outputs.changed_node == 'true' && github.event_name == 'pull_request') ||
+      (needs.job_build.outputs.changed_node_overhead_action == 'true' && github.event_name == 'pull_request') ||
+      needs.job_get_metadata.outputs.is_base_branch == 'true' || needs.job_get_metadata.outputs.is_release == 'true'
+    steps:
+      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ env.HEAD_COMMIT }}
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: 'package.json'
+      - name: Restore caches
+        uses: ./.github/actions/restore-cache
+        with:
+          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
+      - name: Check node overhead
+        uses: ./dev-packages/node-overhead-gh-action
+        env:
+          DEBUG: '1'
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          # Only run comparison against develop if this is a PR
+          comparison_branch: ${{ (github.event_name == 'pull_request' && github.base_ref) ||  ''}}
+
   job_lint:
     name: Lint
     # Even though the linter only checks source code, not built code, it needs the built code in order check that all
@@ -262,7 +296,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
@@ -281,6 +315,9 @@ jobs:
       - name: Lint for ES compatibility
         run: yarn lint:es-compatibility
 
+      - name: Check that yarn.lock is stable
+        run: yarn && git diff --exit-code yarn.lock
+
   job_check_format:
     name: Check file formatting
     needs: [job_get_metadata]
@@ -288,7 +325,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ env.HEAD_COMMIT }}
 
@@ -311,7 +348,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
@@ -333,7 +370,7 @@ jobs:
     if: needs.job_get_metadata.outputs.is_release == 'true'
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
@@ -368,13 +405,13 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Check out base commit (${{ github.event.pull_request.base.sha }})
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         if: github.event_name == 'pull_request'
         with:
           ref: ${{ github.event.pull_request.base.sha }}
 
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
@@ -415,7 +452,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
@@ -440,7 +477,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
@@ -472,12 +509,12 @@ jobs:
         node: [18, 20, 22, 24]
     steps:
       - name: Check out base commit (${{ github.event.pull_request.base.sha }})
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         if: github.event_name == 'pull_request'
         with:
           ref: ${{ github.event.pull_request.base.sha }}
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
@@ -566,7 +603,7 @@ jobs:
 
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
@@ -630,7 +667,7 @@ jobs:
 
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
@@ -678,7 +715,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
@@ -716,7 +753,7 @@ jobs:
             typescript: '3.8'
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
@@ -752,7 +789,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
@@ -780,7 +817,7 @@ jobs:
         node: [18, 20, 22, 24]
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
@@ -827,12 +864,12 @@ jobs:
       matrix-optional: ${{ steps.matrix-optional.outputs.matrix }}
     steps:
       - name: Check out base commit (${{ github.event.pull_request.base.sha }})
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         if: github.event_name == 'pull_request'
         with:
           ref: ${{ github.event.pull_request.base.sha }}
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
@@ -897,7 +934,7 @@ jobs:
       matrix: ${{ fromJson(needs.job_e2e_prepare.outputs.matrix) }}
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - uses: pnpm/action-setup@v4
@@ -1027,7 +1064,7 @@ jobs:
 
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - uses: pnpm/action-setup@v4
@@ -1137,6 +1174,6 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Check for failures
-        if: contains(needs.*.result, 'failure')
+        if: cancelled() || contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
         run: |
           echo "One of the dependent jobs have failed. You may need to re-run it." && exit 1

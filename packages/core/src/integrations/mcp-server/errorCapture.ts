@@ -36,7 +36,7 @@ export function captureError(error: Error, errorType?: McpErrorType, extraData?:
 
     captureException(error, {
       mechanism: {
-        type: 'mcp_server',
+        type: 'auto.ai.mcp_server',
         handled: false,
         data: {
           error_type: errorType || 'handler_execution',

@@ -192,7 +192,7 @@ describe('withSentry', () => {
 
       expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
       expect(captureExceptionSpy).toHaveBeenLastCalledWith(error, {
-        mechanism: { handled: false, type: 'cloudflare' },
+        mechanism: { handled: false, type: 'auto.http.cloudflare' },
       });
     });
 
@@ -319,6 +319,7 @@ describe('withSentry', () => {
           'sentry.sample_rate': 1,
           'http.response.status_code': 200,
           'http.request.body.size': 10,
+          'http.request.header.content_length': '10',
         },
         op: 'http.server',
         origin: 'auto.http.cloudflare',

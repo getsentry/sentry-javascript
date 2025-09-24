@@ -189,6 +189,16 @@ describe('Anthropic integration', () => {
     ]),
   };
 
+  createEsmAndCjsTests(__dirname, 'scenario-manual-client.mjs', 'instrument.mjs', (createRunner, test) => {
+    test('creates anthropic related spans when manually insturmenting client', async () => {
+      await createRunner()
+        .ignore('event')
+        .expect({ transaction: EXPECTED_TRANSACTION_DEFAULT_PII_FALSE })
+        .start()
+        .completed();
+    });
+  });
+
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
     test('creates anthropic related spans with sendDefaultPii: false', async () => {
       await createRunner()
@@ -291,6 +301,158 @@ describe('Anthropic integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario-stream.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
     test('streams record response text when PII true', async () => {
       await createRunner().ignore('event').expect({ transaction: EXPECTED_STREAM_SPANS_PII_TRUE }).start().completed();
+    });
+  });
+
+  // Non-streaming tool calls + available tools (PII true)
+  createEsmAndCjsTests(__dirname, 'scenario-tools.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
+    test('non-streaming sets available tools and tool calls with PII', async () => {
+      const EXPECTED_TOOLS_JSON =
+        '[{"name":"weather","description":"Get the weather by city","input_schema":{"type":"object","properties":{"city":{"type":"string"}},"required":["city"]}}]';
+      const EXPECTED_TOOL_CALLS_JSON =
+        '[{"type":"tool_use","id":"tool_weather_1","name":"weather","input":{"city":"Paris"}}]';
+      await createRunner()
+        .ignore('event')
+        .expect({
+          transaction: {
+            spans: expect.arrayContaining([
+              expect.objectContaining({
+                op: 'gen_ai.messages',
+                data: expect.objectContaining({
+                  'gen_ai.request.available_tools': EXPECTED_TOOLS_JSON,
+                  'gen_ai.response.tool_calls': EXPECTED_TOOL_CALLS_JSON,
+                }),
+              }),
+            ]),
+          },
+        })
+        .start()
+        .completed();
+    });
+  });
+
+  // Streaming tool calls + available tools (PII true)
+  createEsmAndCjsTests(__dirname, 'scenario-stream-tools.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
+    test('streaming sets available tools and tool calls with PII', async () => {
+      const EXPECTED_TOOLS_JSON =
+        '[{"name":"weather","description":"Get weather","input_schema":{"type":"object","properties":{"city":{"type":"string"}},"required":["city"]}}]';
+      const EXPECTED_TOOL_CALLS_JSON =
+        '[{"type":"tool_use","id":"tool_weather_2","name":"weather","input":{"city":"Paris"}}]';
+      await createRunner()
+        .ignore('event')
+        .expect({
+          transaction: {
+            spans: expect.arrayContaining([
+              expect.objectContaining({
+                description: expect.stringContaining('stream-response'),
+                op: 'gen_ai.messages',
+                data: expect.objectContaining({
+                  'gen_ai.request.available_tools': EXPECTED_TOOLS_JSON,
+                  'gen_ai.response.tool_calls': EXPECTED_TOOL_CALLS_JSON,
+                }),
+              }),
+            ]),
+          },
+        })
+        .start()
+        .completed();
+    });
+  });
+
+  // Additional error scenarios - Streaming errors
+  const EXPECTED_STREAM_ERROR_SPANS = {
+    transaction: 'main',
+    spans: expect.arrayContaining([
+      // Error with messages.create on stream initialization
+      expect.objectContaining({
+        description: 'messages error-stream-init stream-response',
+        op: 'gen_ai.messages',
+        status: 'internal_error', // Actual status coming from the instrumentation
+        data: expect.objectContaining({
+          'gen_ai.request.model': 'error-stream-init',
+          'gen_ai.request.stream': true,
+        }),
+      }),
+      // Error with messages.stream on stream initialization
+      expect.objectContaining({
+        description: 'messages error-stream-init stream-response',
+        op: 'gen_ai.messages',
+        status: 'internal_error', // Actual status coming from the instrumentation
+        data: expect.objectContaining({
+          'gen_ai.request.model': 'error-stream-init',
+        }),
+      }),
+      // Error midway with messages.create on streaming - note: The stream is started successfully
+      // so we get a successful span with the content that was streamed before the error
+      expect.objectContaining({
+        description: 'messages error-stream-midway stream-response',
+        op: 'gen_ai.messages',
+        status: 'ok',
+        data: expect.objectContaining({
+          'gen_ai.request.model': 'error-stream-midway',
+          'gen_ai.request.stream': true,
+          'gen_ai.response.streaming': true,
+          'gen_ai.response.text': 'This stream will ', // We received some data before error
+        }),
+      }),
+      // Error midway with messages.stream - same behavior, we get a span with the streamed data
+      expect.objectContaining({
+        description: 'messages error-stream-midway stream-response',
+        op: 'gen_ai.messages',
+        status: 'ok',
+        data: expect.objectContaining({
+          'gen_ai.request.model': 'error-stream-midway',
+          'gen_ai.response.streaming': true,
+          'gen_ai.response.text': 'This stream will ', // We received some data before error
+        }),
+      }),
+    ]),
+  };
+
+  createEsmAndCjsTests(__dirname, 'scenario-stream-errors.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
+    test('handles streaming errors correctly', async () => {
+      await createRunner().ignore('event').expect({ transaction: EXPECTED_STREAM_ERROR_SPANS }).start().completed();
+    });
+  });
+
+  // Additional error scenarios - Tool errors and model retrieval errors
+  const EXPECTED_ERROR_SPANS = {
+    transaction: 'main',
+    spans: expect.arrayContaining([
+      // Invalid tool format error
+      expect.objectContaining({
+        description: 'messages invalid-format',
+        op: 'gen_ai.messages',
+        status: 'unknown_error',
+        data: expect.objectContaining({
+          'gen_ai.request.model': 'invalid-format',
+        }),
+      }),
+      // Model retrieval error
+      expect.objectContaining({
+        description: 'models nonexistent-model',
+        op: 'gen_ai.models',
+        status: 'unknown_error',
+        data: expect.objectContaining({
+          'gen_ai.request.model': 'nonexistent-model',
+        }),
+      }),
+      // Successful tool usage (for comparison)
+      expect.objectContaining({
+        description: 'messages claude-3-haiku-20240307',
+        op: 'gen_ai.messages',
+        status: 'ok',
+        data: expect.objectContaining({
+          'gen_ai.request.model': 'claude-3-haiku-20240307',
+          'gen_ai.response.tool_calls': expect.stringContaining('tool_ok_1'),
+        }),
+      }),
+    ]),
+  };
+
+  createEsmAndCjsTests(__dirname, 'scenario-errors.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
+    test('handles tool errors and model retrieval errors correctly', async () => {
+      await createRunner().ignore('event').expect({ transaction: EXPECTED_ERROR_SPANS }).start().completed();
     });
   });
 });

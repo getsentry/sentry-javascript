@@ -5,7 +5,7 @@ import {
   InstrumentationNodeModuleDefinition,
 } from '@opentelemetry/instrumentation';
 import type { Integration, OpenAiClient, OpenAiOptions } from '@sentry/core';
-import { getCurrentScope, instrumentOpenAiClient, OPENAI_INTEGRATION_NAME, SDK_VERSION } from '@sentry/core';
+import { getClient, instrumentOpenAiClient, OPENAI_INTEGRATION_NAME, SDK_VERSION } from '@sentry/core';
 
 const supportedVersions = ['>=4.0.0 <6'];
 
@@ -57,10 +57,10 @@ export class SentryOpenAiInstrumentation extends InstrumentationBase<Instrumenta
 
     const WrappedOpenAI = function (this: unknown, ...args: unknown[]) {
       const instance = Reflect.construct(Original, args);
-      const scopeClient = getCurrentScope().getClient();
-      const integration = scopeClient?.getIntegrationByName<OpenAiIntegration>(OPENAI_INTEGRATION_NAME);
+      const client = getClient();
+      const integration = client?.getIntegrationByName<OpenAiIntegration>(OPENAI_INTEGRATION_NAME);
       const integrationOpts = integration?.options;
-      const defaultPii = Boolean(scopeClient?.getOptions().sendDefaultPii);
+      const defaultPii = Boolean(client?.getOptions().sendDefaultPii);
 
       const { recordInputs, recordOutputs } = determineRecordingSettings(integrationOpts, defaultPii);
 

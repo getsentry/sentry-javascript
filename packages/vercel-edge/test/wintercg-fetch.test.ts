@@ -8,7 +8,7 @@ import { winterCGFetchIntegration } from '../src/integrations/wintercg-fetch';
 
 class FakeClient extends VercelEdgeClient {
   public getIntegrationByName<T extends Integration = Integration>(name: string): T | undefined {
-    return name === 'WinterCGFetch' ? (winterCGFetchIntegration() as Integration as T) : undefined;
+    return name === 'WinterCGFetch' ? (winterCGFetchIntegration() as T) : undefined;
   }
 }
 
@@ -59,7 +59,7 @@ describe('WinterCGFetch instrumentation', () => {
       expect.any(Function),
       expect.any(Function),
       expect.any(Object),
-      'auto.http.wintercg_fetch',
+      { spanOrigin: 'auto.http.wintercg_fetch' },
     );
 
     const [, shouldCreateSpan, shouldAttachTraceData] = instrumentFetchRequestSpy.mock.calls[0]!;

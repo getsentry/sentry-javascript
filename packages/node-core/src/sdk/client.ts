@@ -77,12 +77,10 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
     return tracer;
   }
 
-  // Eslint ignore explanation: This is already documented in super.
-  // eslint-disable-next-line jsdoc/require-jsdoc
-  public async flush(timeout?: number): Promise<boolean> {
-    const provider = this.traceProvider;
-
-    await provider?.forceFlush();
+  /** @inheritDoc */
+  // @ts-expect-error - PromiseLike is a subset of Promise
+  public async flush(timeout?: number): PromiseLike<boolean> {
+    await this.traceProvider?.forceFlush();
 
     if (this.getOptions().sendClientReports) {
       this._flushOutcomes();
@@ -91,9 +89,9 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
     return super.flush(timeout);
   }
 
-  // Eslint ignore explanation: This is already documented in super.
-  // eslint-disable-next-line jsdoc/require-jsdoc
-  public close(timeout?: number | undefined): PromiseLike<boolean> {
+  /** @inheritDoc */
+  // @ts-expect-error - PromiseLike is a subset of Promise
+  public async close(timeout?: number | undefined): PromiseLike<boolean> {
     if (this._clientReportInterval) {
       clearInterval(this._clientReportInterval);
     }
@@ -106,7 +104,12 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
       process.off('beforeExit', this._logOnExitFlushListener);
     }
 
-    return super.close(timeout);
+    const allEventsSent = await super.close(timeout);
+    if (this.traceProvider) {
+      await this.traceProvider.shutdown();
+    }
+
+    return allEventsSent;
   }
 
   /**

@@ -31,7 +31,7 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Check out current commit
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
@@ -82,9 +82,6 @@ jobs:
             build-command: 'test:build-latest'
             label: 'nextjs-app-dir (latest)'
           - test-application: 'nextjs-13'
-            build-command: 'test:build-canary'
-            label: 'nextjs-13 (canary)'
-          - test-application: 'nextjs-13'
             build-command: 'test:build-latest'
             label: 'nextjs-13 (latest)'
           - test-application: 'nextjs-14'
@@ -120,7 +117,7 @@ jobs:
 
     steps:
       - name: Check out current commit
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - uses: pnpm/action-setup@v4

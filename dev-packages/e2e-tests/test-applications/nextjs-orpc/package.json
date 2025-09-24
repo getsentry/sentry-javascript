@@ -19,7 +19,7 @@
     "@sentry/nextjs": "latest || *",
     "@orpc/server": "latest",
     "@orpc/client": "latest",
-    "next": "14.2.29",
+    "next": "14.2.32",
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "server-only": "^0.0.1"
@@ -36,7 +36,6 @@
     "eslint": "^8.57.0",
     "eslint-config-next": "^14.2.4",
     "postcss": "^8.4.39",
-    "prettier": "^3.3.2",
     "typescript": "^5.5.3",
     "zod": "^3.24.2"
   },

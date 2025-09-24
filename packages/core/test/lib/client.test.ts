@@ -1445,7 +1445,7 @@ describe('Client', () => {
 
       expect(consoleWarnSpy).toHaveBeenCalledTimes(1);
       expect(consoleWarnSpy).toHaveBeenCalledWith(
-        '[Sentry] Returning null from `beforeSendSpan` is disallowed. To drop certain spans, configure the respective integrations directly.',
+        '[Sentry] Returning null from `beforeSendSpan` is disallowed. To drop certain spans, configure the respective integrations directly or use `ignoreSpans`.',
       );
       consoleWarnSpy.mockRestore();
     });
@@ -1833,15 +1833,13 @@ describe('Client', () => {
       });
     });
 
-    test('event processor sends an event and logs when it crashes', () => {
-      expect.assertions(3);
-
+    test('event processor sends an event and logs when it crashes synchronously', () => {
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);
       const captureExceptionSpy = vi.spyOn(client, 'captureException');
       const loggerWarnSpy = vi.spyOn(debugLoggerModule.debug, 'warn');
       const scope = new Scope();
-      const exception = new Error('sorry');
+      const exception = new Error('sorry 1');
       scope.addEventProcessor(() => {
         throw exception;
       });
@@ -1850,7 +1848,7 @@ describe('Client', () => {
 
       expect(TestClient.instance!.event!.exception!.values![0]).toStrictEqual({
         type: 'Error',
-        value: 'sorry',
+        value: 'sorry 1',
         mechanism: { type: 'internal', handled: false },
       });
       expect(captureExceptionSpy).toBeCalledWith(exception, {
@@ -1863,6 +1861,117 @@ describe('Client', () => {
       expect(loggerWarnSpy).toBeCalledWith(
         `Event processing pipeline threw an error, original event will not be sent. Details have been sent as a new event.\nReason: ${exception}`,
       );
+    });
+
+    test('event processor sends an event and logs when it crashes asynchronously', async () => {
+      vi.useFakeTimers();
+
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
+      const client = new TestClient(options);
+      const captureExceptionSpy = vi.spyOn(client, 'captureException');
+      const loggerWarnSpy = vi.spyOn(debugLoggerModule.debug, 'warn');
+      const scope = new Scope();
+      const exception = new Error('sorry 2');
+      scope.addEventProcessor(() => {
+        return new Promise((_resolve, reject) => {
+          reject(exception);
+        });
+      });
+
+      client.captureEvent({ message: 'hello' }, {}, scope);
+
+      await vi.runOnlyPendingTimersAsync();
+
+      expect(TestClient.instance!.event!.exception!.values![0]).toStrictEqual({
+        type: 'Error',
+        value: 'sorry 2',
+        mechanism: { type: 'internal', handled: false },
+      });
+      expect(captureExceptionSpy).toBeCalledWith(exception, {
+        data: {
+          __sentry__: true,
+        },
+        originalException: exception,
+        mechanism: { type: 'internal', handled: false },
+      });
+      expect(loggerWarnSpy).toBeCalledWith(
+        `Event processing pipeline threw an error, original event will not be sent. Details have been sent as a new event.\nReason: ${exception}`,
+      );
+    });
+
+    test('event processor sends an event and logs when it crashes synchronously in processor chain', () => {
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
+      const client = new TestClient(options);
+      const captureExceptionSpy = vi.spyOn(client, 'captureException');
+      const scope = new Scope();
+      const exception = new Error('sorry 3');
+
+      const processor1 = vi.fn(event => {
+        return event;
+      });
+      const processor2 = vi.fn(() => {
+        throw exception;
+      });
+      const processor3 = vi.fn(event => {
+        return event;
+      });
+
+      scope.addEventProcessor(processor1);
+      scope.addEventProcessor(processor2);
+      scope.addEventProcessor(processor3);
+
+      client.captureEvent({ message: 'hello' }, {}, scope);
+
+      expect(processor1).toHaveBeenCalledTimes(1);
+      expect(processor2).toHaveBeenCalledTimes(1);
+      expect(processor3).toHaveBeenCalledTimes(0);
+
+      expect(captureExceptionSpy).toBeCalledWith(exception, {
+        data: {
+          __sentry__: true,
+        },
+        originalException: exception,
+        mechanism: { type: 'internal', handled: false },
+      });
+    });
+
+    test('event processor sends an event and logs when it crashes asynchronously in processor chain', async () => {
+      vi.useFakeTimers();
+
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
+      const client = new TestClient(options);
+      const captureExceptionSpy = vi.spyOn(client, 'captureException');
+      const scope = new Scope();
+      const exception = new Error('sorry 4');
+
+      const processor1 = vi.fn(async event => {
+        return event;
+      });
+      const processor2 = vi.fn(async () => {
+        throw exception;
+      });
+      const processor3 = vi.fn(event => {
+        return event;
+      });
+
+      scope.addEventProcessor(processor1);
+      scope.addEventProcessor(processor2);
+      scope.addEventProcessor(processor3);
+
+      client.captureEvent({ message: 'hello' }, {}, scope);
+      await vi.runOnlyPendingTimersAsync();
+
+      expect(processor1).toHaveBeenCalledTimes(1);
+      expect(processor2).toHaveBeenCalledTimes(1);
+      expect(processor3).toHaveBeenCalledTimes(0);
+
+      expect(captureExceptionSpy).toBeCalledWith(exception, {
+        data: {
+          __sentry__: true,
+        },
+        originalException: exception,
+        mechanism: { type: 'internal', handled: false },
+      });
     });
 
     test('records events dropped due to `sampleRate` option', () => {
@@ -2091,11 +2200,7 @@ describe('Client', () => {
       client.on('afterSendEvent', callback);
 
       client.sendEvent(errorEvent);
-      vi.runAllTimers();
-      // Wait for two ticks
-      // note that for whatever reason, await new Promise(resolve => setTimeout(resolve, 0)) causes the test to hang
-      await undefined;
-      await undefined;
+      await vi.runAllTimersAsync();
 
       expect(mockSend).toBeCalledTimes(1);
       expect(callback).toBeCalledTimes(1);
@@ -2119,11 +2224,7 @@ describe('Client', () => {
       client.on('afterSendEvent', callback);
 
       client.sendEvent(transactionEvent);
-      vi.runAllTimers();
-      // Wait for two ticks
-      // note that for whatever reason, await new Promise(resolve => setTimeout(resolve, 0)) causes the test to hang
-      await undefined;
-      await undefined;
+      await vi.runAllTimersAsync();
 
       expect(mockSend).toBeCalledTimes(1);
       expect(callback).toBeCalledTimes(1);
@@ -2151,15 +2252,11 @@ describe('Client', () => {
       client.on('afterSendEvent', callback);
 
       client.sendEvent(errorEvent);
-      vi.runAllTimers();
-      // Wait for two ticks
-      // note that for whatever reason, await new Promise(resolve => setTimeout(resolve, 0)) causes the test to hang
-      await undefined;
-      await undefined;
+      await vi.runAllTimersAsync();
 
       expect(mockSend).toBeCalledTimes(1);
       expect(callback).toBeCalledTimes(1);
-      expect(callback).toBeCalledWith(errorEvent, 'send error');
+      expect(callback).toBeCalledWith(errorEvent, {});
     });
 
     it('passes the response to the hook', async () => {
@@ -2300,10 +2397,8 @@ describe('Client', () => {
 
       client.emit('beforeEnvelope', mockEnvelope);
     });
-  });
 
-  describe('hook removal with `on`', () => {
-    it('should return a cleanup function that, when executed, unregisters a hook', async () => {
+    it('returns a cleanup function that, when executed, unregisters a hook', async () => {
       vi.useFakeTimers();
       expect.assertions(8);
 
@@ -2323,7 +2418,7 @@ describe('Client', () => {
       const callback = vi.fn();
       const removeAfterSendEventListenerFn = client.on('afterSendEvent', callback);
 
-      expect(client['_hooks']['afterSendEvent']).toEqual([callback]);
+      expect(client['_hooks']['afterSendEvent']!.size).toBe(1);
 
       client.sendEvent(errorEvent);
       vi.runAllTimers();
@@ -2338,7 +2433,7 @@ describe('Client', () => {
 
       // Should unregister `afterSendEvent` callback.
       removeAfterSendEventListenerFn();
-      expect(client['_hooks']['afterSendEvent']).toEqual([]);
+      expect(client['_hooks']['afterSendEvent']!.size).toBe(0);
 
       client.sendEvent(errorEvent);
       vi.runAllTimers();
@@ -2352,6 +2447,112 @@ describe('Client', () => {
       // because we unregistered it.
       expect(callback).toBeCalledTimes(1);
       expect(callback).toBeCalledWith(errorEvent, { statusCode: 200 });
+    });
+
+    it('allows synchronously unregistering multiple callbacks from within the callback', () => {
+      const client = new TestClient(getDefaultTestClientOptions());
+
+      const callback1 = vi.fn();
+      const callback2 = vi.fn();
+
+      const removeCallback1 = client.on('close', () => {
+        callback1();
+        removeCallback1();
+      });
+      const removeCallback2 = client.on('close', () => {
+        callback2();
+        removeCallback2();
+      });
+
+      client.emit('close');
+
+      expect(callback1).toHaveBeenCalledTimes(1);
+      expect(callback2).toHaveBeenCalledTimes(1);
+
+      callback1.mockReset();
+      callback2.mockReset();
+
+      client.emit('close');
+
+      expect(callback1).not.toHaveBeenCalled();
+      expect(callback2).not.toHaveBeenCalled();
+    });
+
+    it('allows synchronously unregistering other callbacks from within one callback', () => {
+      const client = new TestClient(getDefaultTestClientOptions());
+
+      const callback1 = vi.fn();
+      const callback2 = vi.fn();
+
+      const removeCallback1 = client.on('close', () => {
+        callback1();
+        removeCallback1();
+        removeCallback2();
+      });
+      const removeCallback2 = client.on('close', () => {
+        callback2();
+        removeCallback2();
+        removeCallback1();
+      });
+
+      client.emit('close');
+
+      expect(callback1).toHaveBeenCalledTimes(1);
+      // callback2 was already cancelled from within callback1, so it must not be called
+      expect(callback2).not.toHaveBeenCalled();
+
+      callback1.mockReset();
+      callback2.mockReset();
+
+      client.emit('close');
+
+      expect(callback1).not.toHaveBeenCalled();
+      expect(callback2).not.toHaveBeenCalled();
+    });
+
+    it('allows registering and unregistering the same callback multiple times', () => {
+      const client = new TestClient(getDefaultTestClientOptions());
+      const callback = vi.fn();
+
+      const unregister1 = client.on('close', callback);
+      const unregister2 = client.on('close', callback);
+
+      client.emit('close');
+
+      expect(callback).toHaveBeenCalledTimes(2);
+
+      unregister1();
+
+      callback.mockReset();
+
+      client.emit('close');
+
+      expect(callback).toHaveBeenCalledTimes(1);
+
+      unregister2();
+
+      callback.mockReset();
+      client.emit('close');
+
+      expect(callback).not.toHaveBeenCalled();
+    });
+
+    it('handles unregistering a callback multiple times', () => {
+      const client = new TestClient(getDefaultTestClientOptions());
+      const callback = vi.fn();
+
+      const unregister = client.on('close', callback);
+      client.emit('close');
+      expect(callback).toHaveBeenCalledTimes(1);
+
+      callback.mockReset();
+      unregister();
+      unregister();
+      unregister();
+
+      client.emit('close');
+
+      expect(callback).not.toHaveBeenCalled();
     });
   });
 

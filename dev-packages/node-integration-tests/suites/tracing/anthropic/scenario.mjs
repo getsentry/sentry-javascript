@@ -1,39 +1,38 @@
-import { instrumentAnthropicAiClient } from '@sentry/core';
+import Anthropic from '@anthropic-ai/sdk';
 import * as Sentry from '@sentry/node';
+import express from 'express';
 
-class MockAnthropic {
-  constructor(config) {
-    this.apiKey = config.apiKey;
+function startMockAnthropicServer() {
+  const app = express();
+  app.use(express.json());
 
-    // Create messages object with create and countTokens methods
-    this.messages = {
-      create: this._messagesCreate.bind(this),
-      countTokens: this._messagesCountTokens.bind(this)
-    };
+  app.post('/anthropic/v1/messages/count_tokens', (req, res) => {
+    res.send({
+      input_tokens: 15,
+    });
+  });
 
-    this.models = {
-      retrieve: this._modelsRetrieve.bind(this),
-    };
-  }
+  app.get('/anthropic/v1/models/:model', (req, res) => {
+    res.send({
+      id: req.params.model,
+      name: req.params.model,
+      created_at: 1715145600,
+      model: req.params.model,
+    });
+  });
 
-  /**
-   * Create a mock message
-   */
-  async _messagesCreate(params) {
-    // Simulate processing time
-    await new Promise(resolve => setTimeout(resolve, 10));
+  app.post('/anthropic/v1/messages', (req, res) => {
+    const model = req.body.model;
 
-    if (params.model === 'error-model') {
-      const error = new Error('Model not found');
-      error.status = 404;
-      error.headers = { 'x-request-id': 'mock-request-123' };
-      throw error;
+    if (model === 'error-model') {
+      res.status(404).set('x-request-id', 'mock-request-123').send('Model not found');
+      return;
     }
 
-    return {
+    res.send({
       id: 'msg_mock123',
       type: 'message',
-      model: params.model,
+      model,
       role: 'assistant',
       content: [
         {
@@ -47,48 +46,30 @@ class MockAnthropic {
         input_tokens: 10,
         output_tokens: 15,
       },
-    };
-  }
+    });
+  });
 
-  async _messagesCountTokens() {
-    // Simulate processing time
-    await new Promise(resolve => setTimeout(resolve, 10));
-
-    // For countTokens, just return input_tokens
-    return {
-        input_tokens: 15
-      }
-  }
-
-  async _modelsRetrieve(modelId) {
-    // Simulate processing time
-    await new Promise(resolve => setTimeout(resolve, 10));
-
-    // Match what the actual implementation would return
-    return {
-      id: modelId,
-      name: modelId,
-      created_at: 1715145600,
-      model: modelId,  // Add model field to match the check in addResponseAttributes
-    };
-  }
+  return new Promise(resolve => {
+    const server = app.listen(0, () => {
+      resolve(server);
+    });
+  });
 }
 
 async function run() {
-  await Sentry.startSpan({ op: 'function', name: 'main' }, async () => {
-    const mockClient = new MockAnthropic({
-      apiKey: 'mock-api-key',
-    });
+  const server = await startMockAnthropicServer();
 
-    const client = instrumentAnthropicAiClient(mockClient);
+  await Sentry.startSpan({ op: 'function', name: 'main' }, async () => {
+    const client = new Anthropic({
+      apiKey: 'mock-api-key',
+      baseURL: `http://localhost:${server.address().port}/anthropic`,
+    });
 
     // First test: basic message completion
     await client.messages.create({
       model: 'claude-3-haiku-20240307',
       system: 'You are a helpful assistant.',
-      messages: [
-        { role: 'user', content: 'What is the capital of France?' },
-      ],
+      messages: [{ role: 'user', content: 'What is the capital of France?' }],
       temperature: 0.7,
       max_tokens: 100,
     });
@@ -106,14 +87,14 @@ async function run() {
     // Third test: count tokens with cached tokens
     await client.messages.countTokens({
       model: 'claude-3-haiku-20240307',
-      messages: [
-        { role: 'user', content: 'What is the capital of France?' },
-      ],
+      messages: [{ role: 'user', content: 'What is the capital of France?' }],
     });
 
     // Fourth test: models.retrieve
     await client.models.retrieve('claude-3-haiku-20240307');
   });
+
+  server.close();
 }
 
 run();

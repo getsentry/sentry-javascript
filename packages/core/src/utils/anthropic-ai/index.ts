@@ -1,4 +1,4 @@
-import { getCurrentScope } from '../../currentScopes';
+import { getClient } from '../../currentScopes';
 import { captureException } from '../../exports';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import { SPAN_STATUS_ERROR } from '../../tracing';
@@ -8,6 +8,7 @@ import {
   ANTHROPIC_AI_RESPONSE_TIMESTAMP_ATTRIBUTE,
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
   GEN_AI_PROMPT_ATTRIBUTE,
+  GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE,
   GEN_AI_REQUEST_FREQUENCY_PENALTY_ATTRIBUTE,
   GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE,
   GEN_AI_REQUEST_MESSAGES_ATTRIBUTE,
@@ -19,18 +20,18 @@ import {
   GEN_AI_RESPONSE_ID_ATTRIBUTE,
   GEN_AI_RESPONSE_MODEL_ATTRIBUTE,
   GEN_AI_RESPONSE_TEXT_ATTRIBUTE,
+  GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
   GEN_AI_SYSTEM_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
 import { buildMethodPath, getFinalOperationName, getSpanOperation, setTokenUsageAttributes } from '../ai/utils';
-import { ANTHROPIC_AI_INTEGRATION_NAME } from './constants';
+import { handleCallbackErrors } from '../handleCallbackErrors';
 import { instrumentStream } from './streaming';
 import type {
-  AnthropicAiClient,
   AnthropicAiInstrumentedMethod,
-  AnthropicAiIntegration,
   AnthropicAiOptions,
   AnthropicAiResponse,
   AnthropicAiStreamingEvent,
+  ContentBlock,
 } from './types';
 import { shouldInstrument } from './utils';
 
@@ -46,6 +47,9 @@ function extractRequestAttributes(args: unknown[], methodPath: string): Record<s
 
   if (args.length > 0 && typeof args[0] === 'object' && args[0] !== null) {
     const params = args[0] as Record<string, unknown>;
+    if (params.tools && Array.isArray(params.tools)) {
+      attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE] = JSON.stringify(params.tools);
+    }
 
     attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] = params.model ?? 'unknown';
     if ('temperature' in params) attributes[GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE] = params.temperature;
@@ -84,75 +88,110 @@ function addPrivateRequestAttributes(span: Span, params: Record<string, unknown>
 }
 
 /**
+ * Capture error information from the response
+ * @see https://docs.anthropic.com/en/api/errors#error-shapes
+ */
+function handleResponseError(span: Span, response: AnthropicAiResponse): void {
+  if (response.error) {
+    span.setStatus({ code: SPAN_STATUS_ERROR, message: response.error.type || 'unknown_error' });
+
+    captureException(response.error, {
+      mechanism: {
+        handled: false,
+        type: 'auto.ai.anthropic.anthropic_error',
+      },
+    });
+  }
+}
+
+/**
+ * Add content attributes when recordOutputs is enabled
+ */
+function addContentAttributes(span: Span, response: AnthropicAiResponse): void {
+  // Messages.create
+  if ('content' in response) {
+    if (Array.isArray(response.content)) {
+      span.setAttributes({
+        [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: response.content
+          .map((item: ContentBlock) => item.text)
+          .filter(text => !!text)
+          .join(''),
+      });
+
+      const toolCalls: Array<ContentBlock> = [];
+
+      for (const item of response.content) {
+        if (item.type === 'tool_use' || item.type === 'server_tool_use') {
+          toolCalls.push(item);
+        }
+      }
+      if (toolCalls.length > 0) {
+        span.setAttributes({ [GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE]: JSON.stringify(toolCalls) });
+      }
+    }
+  }
+  // Completions.create
+  if ('completion' in response) {
+    span.setAttributes({ [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: response.completion });
+  }
+  // Models.countTokens
+  if ('input_tokens' in response) {
+    span.setAttributes({ [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: JSON.stringify(response.input_tokens) });
+  }
+}
+
+/**
+ * Add basic metadata attributes from the response
+ */
+function addMetadataAttributes(span: Span, response: AnthropicAiResponse): void {
+  if ('id' in response && 'model' in response) {
+    span.setAttributes({
+      [GEN_AI_RESPONSE_ID_ATTRIBUTE]: response.id,
+      [GEN_AI_RESPONSE_MODEL_ATTRIBUTE]: response.model,
+    });
+
+    if ('created' in response && typeof response.created === 'number') {
+      span.setAttributes({
+        [ANTHROPIC_AI_RESPONSE_TIMESTAMP_ATTRIBUTE]: new Date(response.created * 1000).toISOString(),
+      });
+    }
+    if ('created_at' in response && typeof response.created_at === 'number') {
+      span.setAttributes({
+        [ANTHROPIC_AI_RESPONSE_TIMESTAMP_ATTRIBUTE]: new Date(response.created_at * 1000).toISOString(),
+      });
+    }
+
+    if ('usage' in response && response.usage) {
+      setTokenUsageAttributes(
+        span,
+        response.usage.input_tokens,
+        response.usage.output_tokens,
+        response.usage.cache_creation_input_tokens,
+        response.usage.cache_read_input_tokens,
+      );
+    }
+  }
+}
+
+/**
  * Add response attributes to spans
  */
 function addResponseAttributes(span: Span, response: AnthropicAiResponse, recordOutputs?: boolean): void {
   if (!response || typeof response !== 'object') return;
 
+  // capture error, do not add attributes if error (they shouldn't exist)
+  if ('type' in response && response.type === 'error') {
+    handleResponseError(span, response);
+    return;
+  }
+
   // Private response attributes that are only recorded if recordOutputs is true.
   if (recordOutputs) {
-    // Messages.create
-    if ('content' in response) {
-      if (Array.isArray(response.content)) {
-        span.setAttributes({
-          [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: response.content
-            .map((item: { text: string | undefined }) => item.text)
-            .filter((text): text is string => text !== undefined)
-            .join(''),
-        });
-      }
-    }
-    // Completions.create
-    if ('completion' in response) {
-      span.setAttributes({ [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: response.completion });
-    }
-    // Models.countTokens
-    if ('input_tokens' in response) {
-      span.setAttributes({ [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: JSON.stringify(response.input_tokens) });
-    }
+    addContentAttributes(span, response);
   }
 
-  span.setAttributes({
-    [GEN_AI_RESPONSE_ID_ATTRIBUTE]: response.id,
-  });
-  span.setAttributes({
-    [GEN_AI_RESPONSE_MODEL_ATTRIBUTE]: response.model,
-  });
-  if ('created' in response && typeof response.created === 'number') {
-    span.setAttributes({
-      [ANTHROPIC_AI_RESPONSE_TIMESTAMP_ATTRIBUTE]: new Date(response.created * 1000).toISOString(),
-    });
-  }
-  if ('created_at' in response && typeof response.created_at === 'number') {
-    span.setAttributes({
-      [ANTHROPIC_AI_RESPONSE_TIMESTAMP_ATTRIBUTE]: new Date(response.created_at * 1000).toISOString(),
-    });
-  }
-
-  if (response.usage) {
-    setTokenUsageAttributes(
-      span,
-      response.usage.input_tokens,
-      response.usage.output_tokens,
-      response.usage.cache_creation_input_tokens,
-      response.usage.cache_read_input_tokens,
-    );
-  }
-}
-
-/**
- * Get record options from the integration
- */
-function getRecordingOptionsFromIntegration(): AnthropicAiOptions {
-  const scope = getCurrentScope();
-  const client = scope.getClient();
-  const integration = client?.getIntegrationByName(ANTHROPIC_AI_INTEGRATION_NAME) as AnthropicAiIntegration | undefined;
-  const shouldRecordInputsAndOutputs = integration ? Boolean(client?.getOptions().sendDefaultPii) : false;
-
-  return {
-    recordInputs: integration?.options?.recordInputs ?? shouldRecordInputsAndOutputs,
-    recordOutputs: integration?.options?.recordOutputs ?? shouldRecordInputsAndOutputs,
-  };
+  // Add basic metadata attributes
+  addMetadataAttributes(span, response);
 }
 
 /**
@@ -164,10 +203,9 @@ function instrumentMethod<T extends unknown[], R>(
   originalMethod: (...args: T) => Promise<R>,
   methodPath: AnthropicAiInstrumentedMethod,
   context: unknown,
-  options?: AnthropicAiOptions,
+  options: AnthropicAiOptions,
 ): (...args: T) => Promise<R> {
   return async function instrumentedMethod(...args: T): Promise<R> {
-    const finalOptions = options || getRecordingOptionsFromIntegration();
     const requestAttributes = extractRequestAttributes(args, methodPath);
     const model = requestAttributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] ?? 'unknown';
     const operationName = getFinalOperationName(methodPath);
@@ -183,9 +221,9 @@ function instrumentMethod<T extends unknown[], R>(
           op: getSpanOperation(methodPath),
           attributes: requestAttributes as Record<string, SpanAttributeValue>,
         },
-        async (span: Span) => {
+        async span => {
           try {
-            if (finalOptions.recordInputs && params) {
+            if (options.recordInputs && params) {
               addPrivateRequestAttributes(span, params);
             }
 
@@ -193,7 +231,7 @@ function instrumentMethod<T extends unknown[], R>(
             return instrumentStream(
               result as AsyncIterable<AnthropicAiStreamingEvent>,
               span,
-              finalOptions.recordOutputs ?? false,
+              options.recordOutputs ?? false,
             ) as unknown as R;
           } catch (error) {
             span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
@@ -219,27 +257,27 @@ function instrumentMethod<T extends unknown[], R>(
         op: getSpanOperation(methodPath),
         attributes: requestAttributes as Record<string, SpanAttributeValue>,
       },
-      async (span: Span) => {
-        try {
-          if (finalOptions.recordInputs && args[0] && typeof args[0] === 'object') {
-            addPrivateRequestAttributes(span, args[0] as Record<string, unknown>);
-          }
-
-          const result = await originalMethod.apply(context, args);
-          addResponseAttributes(span, result, finalOptions.recordOutputs);
-          return result;
-        } catch (error) {
-          captureException(error, {
-            mechanism: {
-              handled: false,
-              type: 'auto.ai.anthropic',
-              data: {
-                function: methodPath,
-              },
-            },
-          });
-          throw error;
+      span => {
+        if (options.recordInputs && params) {
+          addPrivateRequestAttributes(span, params);
         }
+
+        return handleCallbackErrors(
+          () => originalMethod.apply(context, args),
+          error => {
+            captureException(error, {
+              mechanism: {
+                handled: false,
+                type: 'auto.ai.anthropic',
+                data: {
+                  function: methodPath,
+                },
+              },
+            });
+          },
+          () => {},
+          result => addResponseAttributes(span, result as AnthropicAiResponse, options.recordOutputs),
+        );
       },
     );
   };
@@ -248,7 +286,7 @@ function instrumentMethod<T extends unknown[], R>(
 /**
  * Create a deep proxy for Anthropic AI client instrumentation
  */
-function createDeepProxy<T extends AnthropicAiClient>(target: T, currentPath = '', options?: AnthropicAiOptions): T {
+function createDeepProxy<T extends object>(target: T, currentPath = '', options: AnthropicAiOptions): T {
   return new Proxy(target, {
     get(obj: object, prop: string): unknown {
       const value = (obj as Record<string, unknown>)[prop];
@@ -264,7 +302,7 @@ function createDeepProxy<T extends AnthropicAiClient>(target: T, currentPath = '
       }
 
       if (value && typeof value === 'object') {
-        return createDeepProxy(value as object, methodPath, options);
+        return createDeepProxy(value, methodPath, options);
       }
 
       return value;
@@ -276,11 +314,18 @@ function createDeepProxy<T extends AnthropicAiClient>(target: T, currentPath = '
  * Instrument an Anthropic AI client with Sentry tracing
  * Can be used across Node.js, Cloudflare Workers, and Vercel Edge
  *
- * @template T - The type of the client that extends AnthropicAiClient
+ * @template T - The type of the client that extends object
  * @param client - The Anthropic AI client to instrument
  * @param options - Optional configuration for recording inputs and outputs
  * @returns The instrumented client with the same type as the input
  */
-export function instrumentAnthropicAiClient<T extends AnthropicAiClient>(client: T, options?: AnthropicAiOptions): T {
-  return createDeepProxy(client, '', options);
+export function instrumentAnthropicAiClient<T extends object>(anthropicAiClient: T, options?: AnthropicAiOptions): T {
+  const sendDefaultPii = Boolean(getClient()?.getOptions().sendDefaultPii);
+
+  const _options = {
+    recordInputs: sendDefaultPii,
+    recordOutputs: sendDefaultPii,
+    ...options,
+  };
+  return createDeepProxy(anthropicAiClient, '', _options);
 }

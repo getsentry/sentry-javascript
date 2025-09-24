@@ -70,6 +70,8 @@ export {
   // eslint-disable-next-line deprecation/deprecation
   inboundFiltersIntegration,
   instrumentOpenAiClient,
+  instrumentGoogleGenAIClient,
+  instrumentAnthropicAiClient,
   eventFiltersIntegration,
   linkedErrorsIntegration,
   requestDataIntegration,
@@ -93,10 +95,10 @@ export {
   updateSpanName,
   wrapMcpServerWithSentry,
   consoleLoggingIntegration,
+  createConsolaReporter,
   featureFlagsIntegration,
+  logger,
 } from '@sentry/core';
-
-export * as logger from './logs/exports';
 
 export { withSentry } from './handler';
 export { instrumentDurableObjectWithSentry } from './durableobject';

@@ -69,7 +69,15 @@ test('node-schedule instrumentation', async () => {
     })
     .expect({
       event: {
-        exception: { values: [{ type: 'Error', value: 'Error in cron job' }] },
+        exception: {
+          values: [
+            {
+              type: 'Error',
+              value: 'Error in cron job',
+              mechanism: { type: 'auto.node.onunhandledrejection', handled: false },
+            },
+          ],
+        },
       },
     })
     .start()

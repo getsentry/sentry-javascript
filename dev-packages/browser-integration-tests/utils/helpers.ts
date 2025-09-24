@@ -142,13 +142,10 @@ export const countEnvelopes = async (
 
     page.on('request', requestHandler);
 
-    setTimeout(
-      () => {
-        page.off('request', requestHandler);
-        resolve(reqCount);
-      },
-      options?.timeout || 1000,
-    );
+    setTimeout(() => {
+      page.off('request', requestHandler);
+      resolve(reqCount);
+    }, options?.timeout || 1000);
   });
 
   if (options?.url) {
@@ -313,7 +310,7 @@ export async function waitForSession(page: Page): Promise<SessionContext> {
  * @returns `true` if we should skip the tracing test
  */
 export function shouldSkipTracingTest(): boolean {
-  const bundle = process.env.PW_BUNDLE as string | undefined;
+  const bundle = process.env.PW_BUNDLE;
   return bundle != null && !bundle.includes('tracing') && !bundle.includes('esm') && !bundle.includes('cjs');
 }
 
@@ -333,7 +330,7 @@ export function shouldSkipFeedbackTest(): boolean {
  * @returns `true` if we should skip the feature flags test
  */
 export function shouldSkipFeatureFlagsTest(): boolean {
-  const bundle = process.env.PW_BUNDLE as string | undefined;
+  const bundle = process.env.PW_BUNDLE;
   return bundle != null && !bundle.includes('esm') && !bundle.includes('cjs');
 }
 
@@ -426,7 +423,7 @@ export async function getMultipleSentryEnvelopeRequests<T>(
   },
   requestParser: (req: Request) => T = envelopeRequestParser as (req: Request) => T,
 ): Promise<T[]> {
-  return getMultipleRequests<T>(page, count, envelopeUrlRegex, requestParser, options) as Promise<T[]>;
+  return getMultipleRequests<T>(page, count, envelopeUrlRegex, requestParser, options);
 }
 
 /**
