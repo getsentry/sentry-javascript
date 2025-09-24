@@ -10,6 +10,7 @@ import { genericPoolIntegration, instrumentGenericPool } from './genericPool';
 import { googleGenAIIntegration, instrumentGoogleGenAI } from './google-genai';
 import { graphqlIntegration, instrumentGraphql } from './graphql';
 import { hapiIntegration, instrumentHapi } from './hapi';
+import { honoIntegration, instrumentHono } from './hono';
 import { instrumentKafka, kafkaIntegration } from './kafka';
 import { instrumentKoa, koaIntegration } from './koa';
 import { instrumentLruMemoizer, lruMemoizerIntegration } from './lrumemoizer';
@@ -33,6 +34,7 @@ export function getAutoPerformanceIntegrations(): Integration[] {
     expressIntegration(),
     fastifyIntegration(),
     graphqlIntegration(),
+    honoIntegration(),
     mongoIntegration(),
     mongooseIntegration(),
     mysqlIntegration(),
@@ -70,6 +72,7 @@ export function getOpenTelemetryInstrumentationToPreload(): (((options?: any) =>
     instrumentFastify,
     instrumentFastifyV3,
     instrumentHapi,
+    instrumentHono,
     instrumentKafka,
     instrumentKoa,
     instrumentLruMemoizer,

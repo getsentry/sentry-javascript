@@ -69,7 +69,7 @@ export class SentryGoogleGenAiInstrumentation extends InstrumentationBase<Google
       const client = getClient();
       const defaultPii = Boolean(client?.getOptions().sendDefaultPii);
 
-      const typedConfig = config as GoogleGenAIInstrumentationOptions;
+      const typedConfig = config;
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       const recordInputs = typedConfig?.recordInputs ?? defaultPii;
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access

@@ -18,7 +18,7 @@ function appRootFromErrorStack(error: Error): string | undefined {
           .replace(/\\/g, '/') // replace all `\` instances with `/`
           .split('/')
           .filter(seg => seg !== ''), // remove empty segments
-    ) as string[][];
+    );
 
   const firstPath = paths[0];
 

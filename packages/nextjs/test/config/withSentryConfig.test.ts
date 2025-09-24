@@ -1173,4 +1173,277 @@ describe('withSentryConfig', () => {
       consoleWarnSpy.mockRestore();
     });
   });
+
+  describe('useRunAfterProductionCompileHook warning logic', () => {
+    const originalTurbopack = process.env.TURBOPACK;
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+      process.env.TURBOPACK = originalTurbopack;
+    });
+
+    it('warns when useRunAfterProductionCompileHook is enabled with unsupported Next.js version in webpack mode', () => {
+      delete process.env.TURBOPACK; // Ensure webpack mode
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.4.0'); // Unsupported version
+      vi.spyOn(util, 'supportsProductionCompileHook').mockReturnValue(false);
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      const sentryOptions = {
+        useRunAfterProductionCompileHook: true,
+      };
+
+      materializeFinalNextConfig(exportedNextConfig, undefined, sentryOptions);
+
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        '[@sentry/nextjs] The configured `useRunAfterProductionCompileHook` option is not compatible with your current Next.js version. This option is only supported on Next.js version 15.4.1 or later. Will not run source map and release management logic.',
+      );
+
+      consoleWarnSpy.mockRestore();
+    });
+
+    it('does not warn when useRunAfterProductionCompileHook is enabled with supported Next.js version in webpack mode', () => {
+      delete process.env.TURBOPACK; // Ensure webpack mode
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.4.1'); // Supported version
+      vi.spyOn(util, 'supportsProductionCompileHook').mockReturnValue(true);
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      const sentryOptions = {
+        useRunAfterProductionCompileHook: true,
+      };
+
+      materializeFinalNextConfig(exportedNextConfig, undefined, sentryOptions);
+
+      expect(consoleWarnSpy).not.toHaveBeenCalledWith(
+        expect.stringContaining('The configured `useRunAfterProductionCompileHook` option is not compatible'),
+      );
+
+      consoleWarnSpy.mockRestore();
+    });
+
+    it('does not warn when useRunAfterProductionCompileHook is disabled with unsupported Next.js version in webpack mode', () => {
+      delete process.env.TURBOPACK; // Ensure webpack mode
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.4.0'); // Unsupported version
+      vi.spyOn(util, 'supportsProductionCompileHook').mockReturnValue(false);
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      const sentryOptions = {
+        useRunAfterProductionCompileHook: false,
+      };
+
+      materializeFinalNextConfig(exportedNextConfig, undefined, sentryOptions);
+
+      expect(consoleWarnSpy).not.toHaveBeenCalledWith(
+        expect.stringContaining('The configured `useRunAfterProductionCompileHook` option is not compatible'),
+      );
+
+      consoleWarnSpy.mockRestore();
+    });
+
+    it('does not warn when useRunAfterProductionCompileHook is undefined with unsupported Next.js version in webpack mode', () => {
+      delete process.env.TURBOPACK; // Ensure webpack mode
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.4.0'); // Unsupported version
+      vi.spyOn(util, 'supportsProductionCompileHook').mockReturnValue(false);
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      const sentryOptions = {}; // useRunAfterProductionCompileHook is undefined
+
+      materializeFinalNextConfig(exportedNextConfig, undefined, sentryOptions);
+
+      expect(consoleWarnSpy).not.toHaveBeenCalledWith(
+        expect.stringContaining('The configured `useRunAfterProductionCompileHook` option is not compatible'),
+      );
+
+      consoleWarnSpy.mockRestore();
+    });
+
+    it('does not warn when useRunAfterProductionCompileHook is enabled with unsupported Next.js version in turbopack mode', () => {
+      process.env.TURBOPACK = '1'; // Ensure turbopack mode
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.4.0'); // Unsupported version
+      vi.spyOn(util, 'supportsProductionCompileHook').mockReturnValue(false);
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      const sentryOptions = {
+        useRunAfterProductionCompileHook: true,
+      };
+
+      materializeFinalNextConfig(exportedNextConfig, undefined, sentryOptions);
+
+      // Should not warn about useRunAfterProductionCompileHook incompatibility in turbopack mode
+      // (though it may warn about turbopack version compatibility)
+      expect(consoleWarnSpy).not.toHaveBeenCalledWith(
+        expect.stringContaining('The configured `useRunAfterProductionCompileHook` option is not compatible'),
+      );
+
+      consoleWarnSpy.mockRestore();
+    });
+
+    it('warns with different unsupported Next.js versions', () => {
+      delete process.env.TURBOPACK; // Ensure webpack mode
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      const sentryOptions = {
+        useRunAfterProductionCompileHook: true,
+      };
+
+      // Test with 15.3.9
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.3.9');
+      vi.spyOn(util, 'supportsProductionCompileHook').mockReturnValue(false);
+
+      materializeFinalNextConfig(exportedNextConfig, undefined, sentryOptions);
+
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        '[@sentry/nextjs] The configured `useRunAfterProductionCompileHook` option is not compatible with your current Next.js version. This option is only supported on Next.js version 15.4.1 or later. Will not run source map and release management logic.',
+      );
+
+      consoleWarnSpy.mockClear();
+
+      // Test with 14.2.0
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('14.2.0');
+      vi.spyOn(util, 'supportsProductionCompileHook').mockReturnValue(false);
+
+      materializeFinalNextConfig(exportedNextConfig, undefined, sentryOptions);
+
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        '[@sentry/nextjs] The configured `useRunAfterProductionCompileHook` option is not compatible with your current Next.js version. This option is only supported on Next.js version 15.4.1 or later. Will not run source map and release management logic.',
+      );
+
+      consoleWarnSpy.mockClear();
+
+      // Test with canary version that's unsupported
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.4.0-canary.42');
+      vi.spyOn(util, 'supportsProductionCompileHook').mockReturnValue(false);
+
+      materializeFinalNextConfig(exportedNextConfig, undefined, sentryOptions);
+
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        '[@sentry/nextjs] The configured `useRunAfterProductionCompileHook` option is not compatible with your current Next.js version. This option is only supported on Next.js version 15.4.1 or later. Will not run source map and release management logic.',
+      );
+
+      consoleWarnSpy.mockRestore();
+    });
+
+    it('does not warn with supported Next.js versions', () => {
+      delete process.env.TURBOPACK; // Ensure webpack mode
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      const sentryOptions = {
+        useRunAfterProductionCompileHook: true,
+      };
+
+      // Test with 15.4.1
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.4.1');
+      vi.spyOn(util, 'supportsProductionCompileHook').mockReturnValue(true);
+
+      materializeFinalNextConfig(exportedNextConfig, undefined, sentryOptions);
+
+      expect(consoleWarnSpy).not.toHaveBeenCalledWith(
+        expect.stringContaining('The configured `useRunAfterProductionCompileHook` option is not compatible'),
+      );
+
+      consoleWarnSpy.mockClear();
+
+      // Test with 15.5.0
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.5.0');
+      vi.spyOn(util, 'supportsProductionCompileHook').mockReturnValue(true);
+
+      materializeFinalNextConfig(exportedNextConfig, undefined, sentryOptions);
+
+      expect(consoleWarnSpy).not.toHaveBeenCalledWith(
+        expect.stringContaining('The configured `useRunAfterProductionCompileHook` option is not compatible'),
+      );
+
+      consoleWarnSpy.mockClear();
+
+      // Test with 16.0.0
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('16.0.0');
+      vi.spyOn(util, 'supportsProductionCompileHook').mockReturnValue(true);
+
+      materializeFinalNextConfig(exportedNextConfig, undefined, sentryOptions);
+
+      expect(consoleWarnSpy).not.toHaveBeenCalledWith(
+        expect.stringContaining('The configured `useRunAfterProductionCompileHook` option is not compatible'),
+      );
+
+      consoleWarnSpy.mockClear();
+
+      // Test with supported canary version
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.4.1-canary.1');
+      vi.spyOn(util, 'supportsProductionCompileHook').mockReturnValue(true);
+
+      materializeFinalNextConfig(exportedNextConfig, undefined, sentryOptions);
+
+      expect(consoleWarnSpy).not.toHaveBeenCalledWith(
+        expect.stringContaining('The configured `useRunAfterProductionCompileHook` option is not compatible'),
+      );
+
+      consoleWarnSpy.mockRestore();
+    });
+
+    it('handles edge case when Next.js version is undefined', () => {
+      delete process.env.TURBOPACK; // Ensure webpack mode
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue(undefined);
+      vi.spyOn(util, 'supportsProductionCompileHook').mockReturnValue(false);
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      const sentryOptions = {
+        useRunAfterProductionCompileHook: true,
+      };
+
+      materializeFinalNextConfig(exportedNextConfig, undefined, sentryOptions);
+
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        '[@sentry/nextjs] The configured `useRunAfterProductionCompileHook` option is not compatible with your current Next.js version. This option is only supported on Next.js version 15.4.1 or later. Will not run source map and release management logic.',
+      );
+
+      consoleWarnSpy.mockRestore();
+    });
+
+    it('handles edge case when Next.js version is empty string', () => {
+      delete process.env.TURBOPACK; // Ensure webpack mode
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('');
+      vi.spyOn(util, 'supportsProductionCompileHook').mockReturnValue(false);
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      const sentryOptions = {
+        useRunAfterProductionCompileHook: true,
+      };
+
+      materializeFinalNextConfig(exportedNextConfig, undefined, sentryOptions);
+
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        '[@sentry/nextjs] The configured `useRunAfterProductionCompileHook` option is not compatible with your current Next.js version. This option is only supported on Next.js version 15.4.1 or later. Will not run source map and release management logic.',
+      );
+
+      consoleWarnSpy.mockRestore();
+    });
+
+    it('works correctly with other sentry options present', () => {
+      delete process.env.TURBOPACK; // Ensure webpack mode
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.4.0'); // Unsupported version
+      vi.spyOn(util, 'supportsProductionCompileHook').mockReturnValue(false);
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      const sentryOptions = {
+        useRunAfterProductionCompileHook: true,
+        debug: true,
+        sourcemaps: {
+          disable: false,
+        },
+        tunnelRoute: '/tunnel',
+      };
+
+      const finalConfig = materializeFinalNextConfig(exportedNextConfig, undefined, sentryOptions);
+
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        '[@sentry/nextjs] The configured `useRunAfterProductionCompileHook` option is not compatible with your current Next.js version. This option is only supported on Next.js version 15.4.1 or later. Will not run source map and release management logic.',
+      );
+
+      // Ensure other functionality still works (tunnel route creates rewrites function)
+      expect(finalConfig.rewrites).toBeInstanceOf(Function);
+      // Release name should be set (from git or environment)
+      expect(finalConfig.env).toHaveProperty('_sentryRelease');
+
+      consoleWarnSpy.mockRestore();
+    });
+  });
 });

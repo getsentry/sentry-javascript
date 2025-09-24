@@ -275,6 +275,18 @@ function getFinalConfigObject(
     }
   }
 
+  // webpack case
+  if (
+    userSentryOptions.useRunAfterProductionCompileHook &&
+    !supportsProductionCompileHook(nextJsVersion ?? '') &&
+    !isTurbopack
+  ) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      '[@sentry/nextjs] The configured `useRunAfterProductionCompileHook` option is not compatible with your current Next.js version. This option is only supported on Next.js version 15.4.1 or later. Will not run source map and release management logic.',
+    );
+  }
+
   // If not explicitly set, turbopack uses the runAfterProductionCompile hook (as there are no alternatives), webpack does not.
   const shouldUseRunAfterProductionCompileHook =
     userSentryOptions?.useRunAfterProductionCompileHook ?? (isTurbopack ? true : false);

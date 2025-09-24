@@ -81,6 +81,7 @@ export {
   spanTimeInputToSeconds,
   updateSpanName,
 } from './utils/spanUtils';
+export { _setSpanForScope as _INTERNAL_setSpanForScope } from './utils/spanOnScope';
 export { parseSampleRate } from './utils/parseSampleRate';
 export { applySdkMetadata } from './utils/sdkMetadata';
 export { getTraceData } from './utils/traceData';

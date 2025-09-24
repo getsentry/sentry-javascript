@@ -873,7 +873,7 @@ describe('browserTracingIntegration', () => {
       const idleSpan = getActiveSpan()!;
       expect(idleSpan).toBeDefined();
 
-      const dynamicSamplingContext = getDynamicSamplingContextFromSpan(idleSpan!);
+      const dynamicSamplingContext = getDynamicSamplingContextFromSpan(idleSpan);
       const propagationContext = getCurrentScope().getPropagationContext();
 
       // Span is correct
@@ -1010,7 +1010,7 @@ describe('browserTracingIntegration', () => {
       const idleSpan = getActiveSpan()!;
       expect(idleSpan).toBeDefined();
 
-      const dynamicSamplingContext = getDynamicSamplingContextFromSpan(idleSpan!);
+      const dynamicSamplingContext = getDynamicSamplingContextFromSpan(idleSpan);
       const propagationContext = getCurrentScope().getPropagationContext();
 
       // Span is correct
