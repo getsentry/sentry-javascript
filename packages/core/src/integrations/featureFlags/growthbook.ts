@@ -20,6 +20,19 @@ export type GrowthBookClassLike = new (...args: unknown[]) => GrowthBookLike;
  * Sentry integration for capturing feature flag evaluations from GrowthBook.
  *
  * Only boolean results are captured at this time.
+ *
+ * @example
+ * ```typescript
+ * import { GrowthBook } from '@growthbook/growthbook';
+ * import * as Sentry from '@sentry/browser'; // or '@sentry/node'
+ *
+ * Sentry.init({
+ *   dsn: 'your-dsn',
+ *   integrations: [
+ *     Sentry.growthbookIntegration({ growthbookClass: GrowthBook })
+ *   ]
+ * });
+ * ```
  */
 export const growthbookIntegration = defineIntegration(
   ({ growthbookClass }: { growthbookClass: GrowthBookClassLike }) => {
@@ -39,11 +52,6 @@ export const growthbookIntegration = defineIntegration(
           fill(proto, 'getFeatureValue', _wrapAndCaptureBooleanResult);
         }
 
-        // Type guard and wrap evalFeature if present
-        const maybeEval = (proto as unknown as Record<string, unknown>).evalFeature;
-        if (typeof maybeEval === 'function') {
-          fill(proto as unknown as Record<string, unknown>, 'evalFeature', _wrapAndCaptureBooleanResult as any);
-        }
       },
 
       processEvent(event: Event, _hint: EventHint, _client: Client): Event {
