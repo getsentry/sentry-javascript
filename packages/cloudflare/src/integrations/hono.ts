@@ -18,12 +18,7 @@ export interface Options {
 
 /** Only exported for internal use */
 export function getHonoIntegration(): ReturnType<typeof _honoIntegration> | undefined {
-  const client = getClient();
-  if (!client) {
-    return undefined;
-  } else {
-    return client.getIntegrationByName(INTEGRATION_NAME);
-  }
+  return getClient()?.getIntegrationByName(INTEGRATION_NAME);
 }
 
 function isHonoError(err: unknown): err is HonoError {
@@ -36,7 +31,6 @@ function isHonoError(err: unknown): err is HonoError {
 const _honoIntegration = ((options: Partial<Options> = {}) => {
   return {
     name: INTEGRATION_NAME,
-    setupOnce() {},
     handleHonoException(err: HonoError): void {
       const shouldHandleError = options.shouldHandleError || defaultShouldHandleError;
 
@@ -46,7 +40,7 @@ const _honoIntegration = ((options: Partial<Options> = {}) => {
       }
 
       if (shouldHandleError(err)) {
-        captureException(err, { mechanism: { handled: false, type: 'auto.faas.cloudflare.error_handler' } });
+        captureException(err, { mechanism: { handled: false, type: 'auto.faas.hono.error_handler' } });
       } else {
         DEBUG_BUILD && debug.log('[Hono] Not capturing exception because `shouldHandleError` returned `false`.', err);
       }

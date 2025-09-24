@@ -38,7 +38,7 @@ describe('Hono integration', () => {
 
     expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
     expect(captureExceptionSpy).toHaveBeenLastCalledWith(error, {
-      mechanism: { handled: false, type: 'auto.faas.cloudflare.error_handler' },
+      mechanism: { handled: false, type: 'auto.faas.hono.error_handler' },
     });
   });
 
