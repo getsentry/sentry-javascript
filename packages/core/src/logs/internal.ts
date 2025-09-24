@@ -151,8 +151,10 @@ export function _INTERNAL_captureLog(
   setLogAttribute(processedLogAttributes, 'sentry.sdk.name', name);
   setLogAttribute(processedLogAttributes, 'sentry.sdk.version', version);
 
-  const replay = client.getIntegrationByName<Integration & { getReplayId: () => string }>('Replay');
-  setLogAttribute(processedLogAttributes, 'sentry.replay_id', replay?.getReplayId());
+  const replay = client.getIntegrationByName<Integration & { getReplayId: (onlyIfSampled?: boolean) => string }>(
+    'Replay',
+  );
+  setLogAttribute(processedLogAttributes, 'sentry.replay_id', replay?.getReplayId(true));
 
   const beforeLogMessage = beforeLog.message;
   if (isParameterizedString(beforeLogMessage)) {
