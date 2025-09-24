@@ -4,6 +4,10 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 10.15.0
+
+### Important Changes
+
 - **feat(cloudflare): Add honoIntegration with error-filtering function ([#17743](https://github.com/getsentry/sentry-javascript/pull/17743))**
 
   This release adds a `honoIntegration` to `@sentry/cloudflare`, which exposes a `shouldHandleError` function that lets you define which errors in `onError` should be captured.
@@ -18,6 +22,31 @@
      })
    ]
   ```
+
+- **feat(node): Add instrumentation for hono handler ([#17428](https://github.com/getsentry/sentry-javascript/pull/17428))**
+
+This PR enhances the Hono integration by adding comprehensive handler instrumentation, error handling capabilities.
+
+- **feat(aws): Enable Lambda extension by default when using the Lamba layer ([#17684](https://github.com/getsentry/sentry-javascript/pull/17684))**
+
+- **feat(browser): Add `setActiveSpanInBrowser` to set an active span in the browser ([#17714](https://github.com/getsentry/sentry-javascript/pull/17714))**
+
+This PR adds a feature to the browser SDKs only: Making an inactive span active. We do this to enable use cases where having a span only being active in the callback is not practical.
+
+### Other Changes
+
+- fix(browser): Improve handling of `0` and `undefined` resource timing values ([#17751](https://github.com/getsentry/sentry-javascript/pull/17751))
+- ref(nextjs): Display build compatibility warning for webpack ([#17746](https://github.com/getsentry/sentry-javascript/pull/17746))
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+
+- docs: Reword changelog for google gen ai instrumentation ([#17753](https://github.com/getsentry/sentry-javascript/pull/17753))
+- build: Add `@typescript-eslint/no-unnecessary-type-assertion` rule ([#17728](https://github.com/getsentry/sentry-javascript/pull/17728))
+- build: Update TS target to `es2020` everywhere ([#17709](https://github.com/getsentry/sentry-javascript/pull/17709))
+- chore: Add external contributor to CHANGELOG.md ([#17745](https://github.com/getsentry/sentry-javascript/pull/17745))
+
+</details>
 
 Work in this release was contributed by @Karibash. Thank you for your contribution!
 
