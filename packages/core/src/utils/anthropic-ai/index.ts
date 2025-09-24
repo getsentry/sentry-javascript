@@ -226,7 +226,6 @@ function instrumentMethod<T extends unknown[], R>(
               const messageStream = target.apply(context, args);
               return instrumentStream(messageStream, span, options.recordOutputs ?? false);
             } catch (error) {
-              span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
               captureException(error, {
                 mechanism: {
                   handled: false,
@@ -236,7 +235,12 @@ function instrumentMethod<T extends unknown[], R>(
                   },
                 },
               });
-              span.end();
+
+              if (span.isRecording()) {
+                span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+                span.end();
+              }
+
               throw error;
             }
           },

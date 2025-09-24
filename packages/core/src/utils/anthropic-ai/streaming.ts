@@ -254,7 +254,9 @@ function finalizeStreamSpan(state: StreamingState, span: Span, recordOutputs: bo
     });
   }
 
-  span.end();
+  if (span.isRecording()) {
+    span.end();
+  }
 }
 
 /**
@@ -289,14 +291,17 @@ export function instrumentStream<R extends { on: (...args: unknown[]) => void }>
   });
 
   stream.on('error', (error: unknown) => {
-    span.setStatus({ code: SPAN_STATUS_ERROR, message: 'stream_error' });
     captureException(error, {
       mechanism: {
         handled: false,
         type: 'auto.ai.anthropic.stream_error',
       },
     });
-    span.end();
+
+    if (span.isRecording()) {
+      span.setStatus({ code: SPAN_STATUS_ERROR, message: 'stream_error' });
+      span.end();
+    }
   });
 
   return stream;
