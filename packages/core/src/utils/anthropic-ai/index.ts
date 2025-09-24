@@ -25,8 +25,14 @@ import {
 } from '../ai/gen-ai-attributes';
 import { buildMethodPath, getFinalOperationName, getSpanOperation, setTokenUsageAttributes } from '../ai/utils';
 import { handleCallbackErrors } from '../handleCallbackErrors';
-import { instrumentStream } from './streaming';
-import type { AnthropicAiInstrumentedMethod, AnthropicAiOptions, AnthropicAiResponse, ContentBlock } from './types';
+import { instrumentAsyncIterableStream, instrumentMessageStream } from './streaming';
+import type {
+  AnthropicAiInstrumentedMethod,
+  AnthropicAiOptions,
+  AnthropicAiResponse,
+  AnthropicAiStreamingEvent,
+  ContentBlock,
+} from './types';
 import { shouldInstrument } from './utils';
 
 /**
@@ -209,7 +215,45 @@ function instrumentMethod<T extends unknown[], R>(
       const isStreamRequested = Boolean(params?.stream);
       const isStreamingMethod = methodPath === 'messages.stream';
 
-      if (isStreamRequested || isStreamingMethod) {
+      if (isStreamRequested) {
+        return startSpanManual(
+          {
+            name: `${operationName} ${model} stream-response`,
+            op: getSpanOperation(methodPath),
+            attributes: requestAttributes as Record<string, SpanAttributeValue>,
+          },
+          async span => {
+            try {
+              if (options.recordInputs && params) {
+                addPrivateRequestAttributes(span, params);
+              }
+
+              const result = await originalMethod.apply(context, args);
+              return instrumentAsyncIterableStream(
+                result as AsyncIterable<AnthropicAiStreamingEvent>,
+                span,
+                options.recordOutputs ?? false,
+              ) as unknown as R;
+            } catch (error) {
+              captureException(error, {
+                mechanism: {
+                  handled: false,
+                  type: 'auto.ai.anthropic',
+                  data: {
+                    function: methodPath,
+                  },
+                },
+              });
+
+              if (span.isRecording()) {
+                span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+                span.end();
+              }
+              throw error;
+            }
+          },
+        );
+      } else if (isStreamingMethod) {
         // Create span for instrumentation using startSpanManual
         return startSpanManual(
           {
@@ -224,7 +268,7 @@ function instrumentMethod<T extends unknown[], R>(
               }
 
               const messageStream = target.apply(context, args);
-              return instrumentStream(messageStream, span, options.recordOutputs ?? false);
+              return instrumentMessageStream(messageStream, span, options.recordOutputs ?? false);
             } catch (error) {
               captureException(error, {
                 mechanism: {

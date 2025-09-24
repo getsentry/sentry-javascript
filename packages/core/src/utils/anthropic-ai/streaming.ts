@@ -260,9 +260,85 @@ function finalizeStreamSpan(state: StreamingState, span: Span, recordOutputs: bo
 }
 
 /**
+ * Instruments an async iterable stream of Anthropic events, updates the span with
+ * streaming attributes and (optionally) the aggregated output text, and yields
+ * each event from the input stream unchanged.
+ */
+export async function* instrumentAsyncIterableStream(
+  stream: AsyncIterable<AnthropicAiStreamingEvent>,
+  span: Span,
+  recordOutputs: boolean,
+): AsyncGenerator<AnthropicAiStreamingEvent, void, unknown> {
+  const state: StreamingState = {
+    responseTexts: [],
+    finishReasons: [],
+    responseId: '',
+    responseModel: '',
+    promptTokens: undefined,
+    completionTokens: undefined,
+    cacheCreationInputTokens: undefined,
+    cacheReadInputTokens: undefined,
+    toolCalls: [],
+    activeToolBlocks: {},
+  };
+
+  try {
+    for await (const event of stream) {
+      processEvent(event, state, recordOutputs, span);
+      yield event;
+    }
+  } finally {
+    // Set common response attributes if available
+    if (state.responseId) {
+      span.setAttributes({
+        [GEN_AI_RESPONSE_ID_ATTRIBUTE]: state.responseId,
+      });
+    }
+    if (state.responseModel) {
+      span.setAttributes({
+        [GEN_AI_RESPONSE_MODEL_ATTRIBUTE]: state.responseModel,
+      });
+    }
+
+    setTokenUsageAttributes(
+      span,
+      state.promptTokens,
+      state.completionTokens,
+      state.cacheCreationInputTokens,
+      state.cacheReadInputTokens,
+    );
+
+    span.setAttributes({
+      [GEN_AI_RESPONSE_STREAMING_ATTRIBUTE]: true,
+    });
+
+    if (state.finishReasons.length > 0) {
+      span.setAttributes({
+        [GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]: JSON.stringify(state.finishReasons),
+      });
+    }
+
+    if (recordOutputs && state.responseTexts.length > 0) {
+      span.setAttributes({
+        [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: state.responseTexts.join(''),
+      });
+    }
+
+    // Set tool calls if any were captured
+    if (recordOutputs && state.toolCalls.length > 0) {
+      span.setAttributes({
+        [GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE]: JSON.stringify(state.toolCalls),
+      });
+    }
+
+    span.end();
+  }
+}
+
+/**
  * Instruments a MessageStream by registering event handlers and preserving the original stream API.
  */
-export function instrumentStream<R extends { on: (...args: unknown[]) => void }>(
+export function instrumentMessageStream<R extends { on: (...args: unknown[]) => void }>(
   stream: R,
   span: Span,
   recordOutputs: boolean,

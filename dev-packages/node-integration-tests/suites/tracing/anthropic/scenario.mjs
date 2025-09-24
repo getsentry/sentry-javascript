@@ -29,6 +29,55 @@ function startMockAnthropicServer() {
       return;
     }
 
+    // Check if streaming is requested
+    if (req.body.stream === true) {
+      res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        Connection: 'keep-alive',
+      });
+
+      // Send streaming events
+      const events = [
+        {
+          type: 'message_start',
+          message: {
+            id: 'msg_stream123',
+            type: 'message',
+            role: 'assistant',
+            model,
+            content: [],
+            usage: { input_tokens: 10 },
+          },
+        },
+        { type: 'content_block_start', index: 0, content_block: { type: 'text', text: '' } },
+        { type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text: 'Hello ' } },
+        { type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text: 'from ' } },
+        { type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text: 'stream!' } },
+        { type: 'content_block_stop', index: 0 },
+        {
+          type: 'message_delta',
+          delta: { stop_reason: 'end_turn', stop_sequence: null },
+          usage: { output_tokens: 15 },
+        },
+        { type: 'message_stop' },
+      ];
+
+      events.forEach((event, index) => {
+        setTimeout(() => {
+          res.write(`event: ${event.type}\n`);
+          res.write(`data: ${JSON.stringify(event)}\n\n`);
+
+          if (index === events.length - 1) {
+            res.end();
+          }
+        }, index * 10); // Small delay between events
+      });
+
+      return;
+    }
+
+    // Non-streaming response
     res.send({
       id: 'msg_mock123',
       type: 'message',
@@ -92,7 +141,31 @@ async function run() {
 
     // Fourth test: models.retrieve
     await client.models.retrieve('claude-3-haiku-20240307');
+
+    // Fifth test: streaming via messages.create
+    const stream = await client.messages.create({
+      model: 'claude-3-haiku-20240307',
+      messages: [{ role: 'user', content: 'What is the capital of France?' }],
+      stream: true,
+    });
+
+    for await (const _ of stream) {
+      void _;
+    }
+
+    // Sixth test: streaming via messages.stream
+    await client.messages
+      .stream({
+        model: 'claude-3-haiku-20240307',
+        messages: [{ role: 'user', content: 'What is the capital of France?' }],
+      })
+      .on('streamEvent', () => {
+        Sentry.captureMessage('stream event from user-added event listener captured');
+      });
   });
+
+  // Wait for the stream event handler to finish
+  await Sentry.flush(2000);
 
   server.close();
 }
