@@ -25,7 +25,7 @@ import {
 } from '../ai/gen-ai-attributes';
 import { buildMethodPath, getFinalOperationName, getSpanOperation, setTokenUsageAttributes } from '../ai/utils';
 import { handleCallbackErrors } from '../handleCallbackErrors';
-import { instrumentStream } from './streaming';
+import { instrumentAsyncIterableStream, instrumentMessageStream } from './streaming';
 import type {
   AnthropicAiInstrumentedMethod,
   AnthropicAiOptions,
@@ -195,6 +195,74 @@ function addResponseAttributes(span: Span, response: AnthropicAiResponse, record
 }
 
 /**
+ * Handle common error catching and reporting for streaming requests
+ */
+function handleStreamingError(error: unknown, span: Span, methodPath: string): never {
+  captureException(error, {
+    mechanism: { handled: false, type: 'auto.ai.anthropic', data: { function: methodPath } },
+  });
+
+  if (span.isRecording()) {
+    span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+    span.end();
+  }
+  throw error;
+}
+
+/**
+ * Handle streaming cases with common logic
+ */
+function handleStreamingRequest<T extends unknown[], R>(
+  originalMethod: (...args: T) => Promise<R>,
+  target: (...args: T) => Promise<R>,
+  context: unknown,
+  args: T,
+  requestAttributes: Record<string, unknown>,
+  operationName: string,
+  methodPath: string,
+  params: Record<string, unknown> | undefined,
+  options: AnthropicAiOptions,
+  isStreamRequested: boolean,
+): Promise<R> {
+  const model = requestAttributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] ?? 'unknown';
+  const spanConfig = {
+    name: `${operationName} ${model} stream-response`,
+    op: getSpanOperation(methodPath),
+    attributes: requestAttributes as Record<string, SpanAttributeValue>,
+  };
+
+  if (isStreamRequested) {
+    return startSpanManual(spanConfig, async span => {
+      try {
+        if (options.recordInputs && params) {
+          addPrivateRequestAttributes(span, params);
+        }
+        const result = await originalMethod.apply(context, args);
+        return instrumentAsyncIterableStream(
+          result as AsyncIterable<AnthropicAiStreamingEvent>,
+          span,
+          options.recordOutputs ?? false,
+        ) as unknown as R;
+      } catch (error) {
+        return handleStreamingError(error, span, methodPath);
+      }
+    });
+  } else {
+    return startSpanManual(spanConfig, span => {
+      try {
+        if (options.recordInputs && params) {
+          addPrivateRequestAttributes(span, params);
+        }
+        const messageStream = target.apply(context, args);
+        return instrumentMessageStream(messageStream, span, options.recordOutputs ?? false);
+      } catch (error) {
+        return handleStreamingError(error, span, methodPath);
+      }
+    });
+  }
+}
+
+/**
  * Instrument a method with Sentry spans
  * Following Sentry AI Agents Manual Instrumentation conventions
  * @see https://docs.sentry.io/platforms/javascript/guides/node/tracing/instrumentation/ai-agents-module/#manual-instrumentation
@@ -205,82 +273,62 @@ function instrumentMethod<T extends unknown[], R>(
   context: unknown,
   options: AnthropicAiOptions,
 ): (...args: T) => Promise<R> {
-  return async function instrumentedMethod(...args: T): Promise<R> {
-    const requestAttributes = extractRequestAttributes(args, methodPath);
-    const model = requestAttributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] ?? 'unknown';
-    const operationName = getFinalOperationName(methodPath);
+  return new Proxy(originalMethod, {
+    apply(target, thisArg, args: T): Promise<R> {
+      const requestAttributes = extractRequestAttributes(args, methodPath);
+      const model = requestAttributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] ?? 'unknown';
+      const operationName = getFinalOperationName(methodPath);
 
-    const params = typeof args[0] === 'object' ? (args[0] as Record<string, unknown>) : undefined;
-    const isStreamRequested = Boolean(params?.stream);
-    const isStreamingMethod = methodPath === 'messages.stream';
+      const params = typeof args[0] === 'object' ? (args[0] as Record<string, unknown>) : undefined;
+      const isStreamRequested = Boolean(params?.stream);
+      const isStreamingMethod = methodPath === 'messages.stream';
 
-    if (isStreamRequested || isStreamingMethod) {
-      return startSpanManual(
+      if (isStreamRequested || isStreamingMethod) {
+        return handleStreamingRequest(
+          originalMethod,
+          target,
+          context,
+          args,
+          requestAttributes,
+          operationName,
+          methodPath,
+          params,
+          options,
+          isStreamRequested,
+        );
+      }
+
+      return startSpan(
         {
-          name: `${operationName} ${model} stream-response`,
+          name: `${operationName} ${model}`,
           op: getSpanOperation(methodPath),
           attributes: requestAttributes as Record<string, SpanAttributeValue>,
         },
-        async span => {
-          try {
-            if (options.recordInputs && params) {
-              addPrivateRequestAttributes(span, params);
-            }
-
-            const result = await originalMethod.apply(context, args);
-            return instrumentStream(
-              result as AsyncIterable<AnthropicAiStreamingEvent>,
-              span,
-              options.recordOutputs ?? false,
-            ) as unknown as R;
-          } catch (error) {
-            span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-            captureException(error, {
-              mechanism: {
-                handled: false,
-                type: 'auto.ai.anthropic',
-                data: {
-                  function: methodPath,
-                },
-              },
-            });
-            span.end();
-            throw error;
+        span => {
+          if (options.recordInputs && params) {
+            addPrivateRequestAttributes(span, params);
           }
+
+          return handleCallbackErrors(
+            () => target.apply(context, args),
+            error => {
+              captureException(error, {
+                mechanism: {
+                  handled: false,
+                  type: 'auto.ai.anthropic',
+                  data: {
+                    function: methodPath,
+                  },
+                },
+              });
+            },
+            () => {},
+            result => addResponseAttributes(span, result as AnthropicAiResponse, options.recordOutputs),
+          );
         },
       );
-    }
-
-    return startSpan(
-      {
-        name: `${operationName} ${model}`,
-        op: getSpanOperation(methodPath),
-        attributes: requestAttributes as Record<string, SpanAttributeValue>,
-      },
-      span => {
-        if (options.recordInputs && params) {
-          addPrivateRequestAttributes(span, params);
-        }
-
-        return handleCallbackErrors(
-          () => originalMethod.apply(context, args),
-          error => {
-            captureException(error, {
-              mechanism: {
-                handled: false,
-                type: 'auto.ai.anthropic',
-                data: {
-                  function: methodPath,
-                },
-              },
-            });
-          },
-          () => {},
-          result => addResponseAttributes(span, result as AnthropicAiResponse, options.recordOutputs),
-        );
-      },
-    );
-  };
+    },
+  }) as (...args: T) => Promise<R>;
 }
 
 /**
