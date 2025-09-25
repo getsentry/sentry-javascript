@@ -1,3 +1,4 @@
+/* eslint-disable deprecation/deprecation */
 import { describe, expect, test, vi } from 'vitest';
 import { rejectedSyncPromise, resolvedSyncPromise, SyncPromise } from '../../../src/utils/syncpromise';
 

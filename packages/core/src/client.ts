@@ -1079,7 +1079,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    * @param event The event to send to Sentry.
    * @param hint May contain additional information about the original exception.
    * @param currentScope A scope containing event metadata.
-   * @returns A SyncPromise that resolves with the event or rejects in case event was/will not be send.
+   * @returns A PromiseLike that resolves with the event or rejects in case event was/will not be send.
    */
   protected _processEvent(
     event: Event,

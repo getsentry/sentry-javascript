@@ -1,12 +1,12 @@
 import { describe, expect, test, vi } from 'vitest';
 import { makePromiseBuffer } from '../../../src/utils/promisebuffer';
-import { SyncPromise } from '../../../src/utils/syncpromise';
+import { makeSyncPromise } from '../../../src/utils/syncpromise';
 
 describe('PromiseBuffer', () => {
   describe('add()', () => {
     test('no limit', () => {
       const buffer = makePromiseBuffer();
-      const p = vi.fn(() => new SyncPromise(resolve => setTimeout(resolve)));
+      const p = vi.fn(() => makeSyncPromise(() => {}));
       void buffer.add(p);
       expect(buffer.$.length).toEqual(1);
     });
@@ -15,10 +15,10 @@ describe('PromiseBuffer', () => {
       const buffer = makePromiseBuffer(1);
       let task1;
       const producer1 = vi.fn(() => {
-        task1 = new SyncPromise(resolve => setTimeout(resolve));
+        task1 = makeSyncPromise(() => {});
         return task1;
       });
-      const producer2 = vi.fn(() => new SyncPromise(resolve => setTimeout(resolve)));
+      const producer2 = vi.fn(() => makeSyncPromise(() => {}));
       expect(buffer.add(producer1)).toEqual(task1);
       void expect(buffer.add(producer2)).rejects.toThrowError();
       expect(buffer.$.length).toEqual(1);
@@ -31,7 +31,7 @@ describe('PromiseBuffer', () => {
     test('without timeout', async () => {
       const buffer = makePromiseBuffer();
       for (let i = 0; i < 5; i++) {
-        void buffer.add(() => new SyncPromise(resolve => setTimeout(resolve)));
+        void buffer.add(() => makeSyncPromise(() => {}));
       }
       expect(buffer.$.length).toEqual(5);
       const result = await buffer.drain();
@@ -42,7 +42,7 @@ describe('PromiseBuffer', () => {
     test('with timeout', async () => {
       const buffer = makePromiseBuffer();
       for (let i = 0; i < 5; i++) {
-        void buffer.add(() => new SyncPromise(resolve => setTimeout(resolve, 100)));
+        void buffer.add(() => new Promise(resolve => setTimeout(resolve, 100)));
       }
       expect(buffer.$.length).toEqual(5);
       const result = await buffer.drain(50);
@@ -60,7 +60,7 @@ describe('PromiseBuffer', () => {
 
   test('resolved promises should not show up in buffer length', async () => {
     const buffer = makePromiseBuffer();
-    const producer = () => new SyncPromise(resolve => setTimeout(resolve));
+    const producer = () => makeSyncPromise(() => {});
     const task = buffer.add(producer);
     expect(buffer.$.length).toEqual(1);
     await task;
@@ -69,7 +69,10 @@ describe('PromiseBuffer', () => {
 
   test('rejected promises should not show up in buffer length', async () => {
     const buffer = makePromiseBuffer();
-    const producer = () => new SyncPromise((_, reject) => setTimeout(reject));
+    const producer = () =>
+      makeSyncPromise(() => {
+        throw new Error('whoops');
+      });
     const task = buffer.add(producer);
     expect(buffer.$.length).toEqual(1);
     try {
@@ -82,7 +85,7 @@ describe('PromiseBuffer', () => {
 
   test('resolved task should give an access to the return value', async () => {
     const buffer = makePromiseBuffer<string>();
-    const producer = () => new SyncPromise<string>(resolve => setTimeout(() => resolve('test')));
+    const producer = () => makeSyncPromise<string>(() => 'test');
     const task = buffer.add(producer);
     const result = await task;
     expect(result).toEqual('test');
@@ -91,7 +94,10 @@ describe('PromiseBuffer', () => {
   test('rejected task should give an access to the return value', async () => {
     expect.assertions(1);
     const buffer = makePromiseBuffer<string>();
-    const producer = () => new SyncPromise<string>((_, reject) => setTimeout(() => reject(new Error('whoops'))));
+    const producer = () =>
+      makeSyncPromise<string>(() => {
+        throw new Error('whoops');
+      });
     const task = buffer.add(producer);
     try {
       await task;

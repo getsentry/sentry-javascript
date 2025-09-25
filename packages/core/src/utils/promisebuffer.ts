@@ -1,4 +1,4 @@
-import { rejectedSyncPromise, resolvedSyncPromise, SyncPromise } from './syncpromise';
+import { makeSyncPromise, rejectedSyncPromise, resolvedSyncPromise } from './syncpromise';
 
 export interface PromiseBuffer<T> {
   // exposes the internal array so tests can assert on the state of it.
@@ -74,28 +74,30 @@ export function makePromiseBuffer<T>(limit?: number): PromiseBuffer<T> {
    * `false` otherwise
    */
   function drain(timeout?: number): PromiseLike<boolean> {
-    return new SyncPromise<boolean>((resolve, reject) => {
+    return makeSyncPromise<boolean>(() => {
       let counter = buffer.length;
 
       if (!counter) {
-        return resolve(true);
+        return true;
       }
 
-      // wait for `timeout` ms and then resolve to `false` (if not cancelled first)
-      const capturedSetTimeout = setTimeout(() => {
-        if (timeout && timeout > 0) {
-          resolve(false);
-        }
-      }, timeout);
-
-      // if all promises resolve in time, cancel the timer and resolve to `true`
-      buffer.forEach(item => {
-        void resolvedSyncPromise(item).then(() => {
-          if (!--counter) {
-            clearTimeout(capturedSetTimeout);
-            resolve(true);
+      return new Promise<boolean>((resolve, reject) => {
+        // wait for `timeout` ms and then resolve to `false` (if not cancelled first)
+        const capturedSetTimeout = setTimeout(() => {
+          if (timeout && timeout > 0) {
+            resolve(false);
           }
-        }, reject);
+        }, timeout);
+
+        // if all promises resolve in time, cancel the timer and resolve to `true`
+        buffer.forEach(item => {
+          void resolvedSyncPromise(item).then(() => {
+            if (!--counter) {
+              clearTimeout(capturedSetTimeout);
+              resolve(true);
+            }
+          }, reject);
+        });
       });
     });
   }

@@ -7,6 +7,28 @@ const STATE_RESOLVED = 1;
 const STATE_REJECTED = 2;
 
 type State = typeof STATE_PENDING | typeof STATE_RESOLVED | typeof STATE_REJECTED;
+type Executor<T> = (resolve: (value?: T | PromiseLike<T> | null) => void, reject: (reason?: any) => void) => void;
+type PromiseTry = <T>(executor: Executor<T>) => PromiseLike<T>;
+type PromiseWithTry = PromiseConstructor & { try: PromiseTry };
+
+/**
+ * Takes an executor and returns a promise that is executed synchronously (if the executor is synchronous) or else asynchronously.
+ * It always returns a promise.
+ *
+ * This uses the native Promise.try, if it exists, else our SyncPromise implementation.
+ */
+export function makeSyncPromise<T>(executor: Executor<T>): PromiseLike<T> {
+  if (hasPromiseTry(Promise)) {
+    return Promise.try(executor);
+  }
+
+  // eslint-disable-next-line deprecation/deprecation
+  return new SyncPromise(executor);
+}
+
+function hasPromiseTry(Promise: typeof globalThis.Promise): Promise is PromiseWithTry {
+  return 'try' in Promise && typeof Promise.try === 'function';
+}
 
 // Overloads so we can call resolvedSyncPromise without arguments and generic argument
 export function resolvedSyncPromise(): PromiseLike<void>;
@@ -19,9 +41,7 @@ export function resolvedSyncPromise<T>(value: T | PromiseLike<T>): PromiseLike<T
  * @returns the resolved sync promise
  */
 export function resolvedSyncPromise<T>(value?: T | PromiseLike<T>): PromiseLike<T> {
-  return new SyncPromise(resolve => {
-    resolve(value);
-  });
+  return makeSyncPromise(() => value);
 }
 
 /**
@@ -31,16 +51,16 @@ export function resolvedSyncPromise<T>(value?: T | PromiseLike<T>): PromiseLike<
  * @returns the rejected sync promise
  */
 export function rejectedSyncPromise<T = never>(reason?: any): PromiseLike<T> {
-  return new SyncPromise((_, reject) => {
-    reject(reason);
+  return makeSyncPromise(() => {
+    throw reason;
   });
 }
-
-type Executor<T> = (resolve: (value?: T | PromiseLike<T> | null) => void, reject: (reason?: any) => void) => void;
 
 /**
  * Thenable class that behaves like a Promise and follows it's interface
  * but is not async internally
+ *
+ * @deprecated Use makeSyncPromise instead.
  */
 export class SyncPromise<T> implements PromiseLike<T> {
   private _state: State;
@@ -59,6 +79,7 @@ export class SyncPromise<T> implements PromiseLike<T> {
     onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | null,
     onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | null,
   ): PromiseLike<TResult1 | TResult2> {
+    // eslint-disable-next-line deprecation/deprecation
     return new SyncPromise((resolve, reject) => {
       this._handlers.push([
         false,
@@ -100,6 +121,7 @@ export class SyncPromise<T> implements PromiseLike<T> {
 
   /** @inheritdoc */
   public finally<TResult>(onfinally?: (() => void) | null): PromiseLike<TResult> {
+    // eslint-disable-next-line deprecation/deprecation
     return new SyncPromise<TResult>((resolve, reject) => {
       let val: TResult | any;
       let isRejected: boolean;

@@ -8,7 +8,6 @@ import {
   makeSession,
   Scope,
   setCurrentClient,
-  SyncPromise,
   withMonitor,
 } from '../../src';
 import * as integrationModule from '../../src/integration';
@@ -2111,7 +2110,7 @@ describe('Client', () => {
       const spy = vi.spyOn(TestClient.instance!, 'eventFromMessage');
       spy.mockImplementationOnce(
         (message, level) =>
-          new SyncPromise(resolve => {
+          new Promise(resolve => {
             setTimeout(() => resolve({ message, level }), 150);
           }),
       );

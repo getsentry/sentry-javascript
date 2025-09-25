@@ -242,7 +242,13 @@ export {
   supportsReferrerPolicy,
   supportsReportingObserver,
 } from './utils/supports';
-export { SyncPromise, rejectedSyncPromise, resolvedSyncPromise } from './utils/syncpromise';
+export {
+  // eslint-disable-next-line deprecation/deprecation
+  SyncPromise,
+  rejectedSyncPromise,
+  resolvedSyncPromise,
+  makeSyncPromise,
+} from './utils/syncpromise';
 export { browserPerformanceTimeOrigin, dateTimestampInSeconds, timestampInSeconds } from './utils/time';
 export {
   TRACEPARENT_REGEXP,
