@@ -728,7 +728,7 @@ describe('_INTERNAL_captureLog', () => {
       const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
       expect(logAttributes).toEqual({});
       expect(logAttributes).not.toHaveProperty('sentry.replay_id');
-      expect(logAttributes).not.toHaveProperty('sentry.internal.replay_is_buffering');
+      expect(logAttributes).not.toHaveProperty('sentry._internal.replay_is_buffering');
     });
 
     it('combines replay_is_buffering with other replay attributes', () => {
