@@ -51,9 +51,11 @@ async function buildLambdaLayer(): Promise<void> {
   fs.chmodSync('./build/aws/dist-serverless/sentry-extension/index.mjs', 0o755);
 
   const zipFilename = `sentry-node-serverless-${version}.zip`;
+  // Only include these directories in the zip file
+  const dirsToZip = ['nodejs', 'extensions', 'sentry-extension'];
   console.log(`Creating final layer zip file ${zipFilename}.`);
   // need to preserve the symlink above with -y
-  run(`zip -r -y ${zipFilename} .`, { cwd: 'build/aws/dist-serverless' });
+  run(`zip -r -y ${zipFilename} ${dirsToZip.join(' ')}`, { cwd: 'build/aws/dist-serverless' });
 }
 
 // eslint-disable-next-line @typescript-eslint/no-floating-promises
