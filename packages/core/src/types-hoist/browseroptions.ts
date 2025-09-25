@@ -28,8 +28,8 @@ export type BrowserClientProfilingOptions = {
   /**
    * Sets profiling session sample rate for the entire profiling session.
    *
-   * A profiling session corresponds to a user session, so this rate determines what percentage of user sessions will have profiling enabled.
-   *
+   * A profiling session corresponds to a user session, meaning it is set once at integration initialization and
+   * persisted until the next page reload. This rate determines what percentage of user sessions will have profiling enabled.
    * @default 0
    */
   profileSessionSampleRate?: number;

@@ -28,12 +28,12 @@ const _browserProfilingIntegration = (() => {
     setup(client) {
       const options = client.getOptions() as BrowserOptions;
 
-      if (options && !hasLegacyProfiling(options) && !options.profileLifecycle) {
+      if (!hasLegacyProfiling(options) && !options.profileLifecycle) {
         // Set default lifecycle mode
         options.profileLifecycle = 'manual';
       }
 
-      if (!options || (hasLegacyProfiling(options) && !options.profilesSampleRate)) {
+      if (hasLegacyProfiling(options) && !options.profilesSampleRate) {
         DEBUG_BUILD && debug.log('[Profiling] Profiling disabled, no profiling options found.');
         return;
       }

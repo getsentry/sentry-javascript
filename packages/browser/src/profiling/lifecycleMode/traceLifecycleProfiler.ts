@@ -7,7 +7,6 @@ import {
   getGlobalScope,
   getRootSpan,
   getSdkMetadataForEnvelopeHeader,
-  spanToJSON,
   uuid4,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../../debug-build';
@@ -30,7 +29,6 @@ export class BrowserTraceLifecycleProfiler {
   private _client: Client | undefined;
   private _profiler: JSSelfProfiler | undefined;
   private _chunkTimer: ReturnType<typeof setTimeout> | undefined;
-  private _activeRootSpanCount: number;
   // For keeping track of active root spans
   private _activeRootSpanIds: Set<string>;
   private _profilerId: string | undefined;
@@ -41,7 +39,6 @@ export class BrowserTraceLifecycleProfiler {
     this._client = undefined;
     this._profiler = undefined;
     this._chunkTimer = undefined;
-    this._activeRootSpanCount = 0;
     this._activeRootSpanIds = new Set<string>();
     this._profilerId = undefined;
     this._isRunning = false;
@@ -58,11 +55,11 @@ export class BrowserTraceLifecycleProfiler {
     this._sessionSampled = sessionSampled;
 
     client.on('spanStart', span => {
-      if (span !== getRootSpan(span)) {
-        return;
-      }
       if (!this._sessionSampled) {
         DEBUG_BUILD && debug.log('[Profiling] Session not sampled because of negative sampling decision.');
+        return;
+      }
+      if (span !== getRootSpan(span)) {
         return;
       }
       // Only count sampled root spans
@@ -71,24 +68,23 @@ export class BrowserTraceLifecycleProfiler {
         return;
       }
 
-      const rootSpanJSON = spanToJSON(span);
-      const spanId = rootSpanJSON.span_id as string | undefined;
+      const spanId = span.spanContext().spanId;
       if (!spanId) {
         return;
       }
       if (this._activeRootSpanIds.has(spanId)) {
         return;
       }
-      this._activeRootSpanIds.add(spanId);
 
-      const wasZero = this._activeRootSpanCount === 0;
-      this._activeRootSpanCount++; // Increment before eventually starting the profiler
-      DEBUG_BUILD &&
-        debug.log(
-          `[Profiling] Root span ${rootSpanJSON.description} started. Active root spans:`,
-          this._activeRootSpanCount,
-        );
-      if (wasZero) {
+      this._activeRootSpanIds.add(spanId);
+      const rootSpanCount = this._activeRootSpanIds.size;
+
+      if (rootSpanCount === 1) {
+        DEBUG_BUILD &&
+          debug.log(
+            `[Profiling] Root span with ID ${spanId} started. Will continue profiling for as long as there are active root spans (currently: ${rootSpanCount}).`,
+          );
+
         this.start();
       }
     });
@@ -98,19 +94,19 @@ export class BrowserTraceLifecycleProfiler {
         return;
       }
 
-      const spanJSON = spanToJSON(span);
-      const spanId = spanJSON.span_id as string | undefined;
+      const spanId = span.spanContext().spanId;
       if (!spanId || !this._activeRootSpanIds.has(spanId)) {
         return;
       }
 
       this._activeRootSpanIds.delete(spanId);
-      this._activeRootSpanCount = Math.max(0, this._activeRootSpanCount - 1);
+      const rootSpanCount = this._activeRootSpanIds.size;
+
       DEBUG_BUILD &&
         debug.log(
-          `[Profiling] Root span ${spanJSON.description} ended. Active root spans: ${this._activeRootSpanCount}`,
+          `[Profiling] Root span with ID ${spanId} ended. Will continue profiling for as long as there are active root spans (currently: ${rootSpanCount}).`,
         );
-      if (this._activeRootSpanCount === 0) {
+      if (rootSpanCount === 0) {
         this._collectCurrentChunk().catch(() => /* no catch */ {});
 
         this.stop();
@@ -121,29 +117,24 @@ export class BrowserTraceLifecycleProfiler {
   /**
    * Handle an already-active root span at integration setup time.
    */
-  public notifyRootSpanActive(span: Span): void {
+  public notifyRootSpanActive(rootSpan: Span): void {
     if (!this._sessionSampled) {
       return;
     }
-    if (span !== getRootSpan(span)) {
-      return;
-    }
-    const spanId = spanToJSON(span)?.span_id;
+
+    const spanId = rootSpan.spanContext().spanId;
     if (!spanId || this._activeRootSpanIds.has(spanId)) {
       return;
     }
 
-    const wasZero = this._activeRootSpanCount === 0;
-
     this._activeRootSpanIds.add(spanId);
-    this._activeRootSpanCount++;
-    DEBUG_BUILD &&
-      debug.log(
-        '[Profiling] Detected already active root span during setup. Active root spans:',
-        this._activeRootSpanCount,
-      );
 
-    if (wasZero) {
+    const rootSpanCount = this._activeRootSpanIds.size;
+
+    if (rootSpanCount === 1) {
+      DEBUG_BUILD &&
+        debug.log('[Profiling] Detected already active root span during setup. Active root spans now:', rootSpanCount);
+
       this.start();
     }
   }

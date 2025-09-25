@@ -218,7 +218,8 @@ export function createProfileChunkPayload(
   client: Client,
   profilerId?: string,
 ): ProfileChunk {
-  if (jsSelfProfile === undefined || jsSelfProfile === null) {
+  // only == to catch null and undefined
+  if (jsSelfProfile == null) {
     throw new TypeError(
       `Cannot construct profiling event envelope without a valid profile. Got ${jsSelfProfile} instead.`,
     );
@@ -293,13 +294,13 @@ export function validateProfileChunk(chunk: ProfileChunk): { valid: boolean; rea
       return { valid: false, reason: 'missing profile data' };
     }
 
-    if (!Array.isArray(profile.frames) || profile.frames.length === 0) {
+    if (!Array.isArray(profile.frames) || !profile.frames.length) {
       return { valid: false, reason: 'profile has no frames' };
     }
-    if (!Array.isArray(profile.stacks) || profile.stacks.length === 0) {
+    if (!Array.isArray(profile.stacks) || !profile.stacks.length) {
       return { valid: false, reason: 'profile has no stacks' };
     }
-    if (!Array.isArray(profile.samples) || profile.samples.length === 0) {
+    if (!Array.isArray(profile.samples) || !profile.samples.length) {
       return { valid: false, reason: 'profile has no samples' };
     }
 
@@ -701,7 +702,7 @@ export function shouldProfileSpanLegacy(span: Span): boolean {
 /**
  * Determine if a profile should be created for the current session (lifecycle profiling mode).
  */
-export function shouldProfileSession(options?: BrowserOptions): boolean {
+export function shouldProfileSession(options: BrowserOptions): boolean {
   // If constructor failed once, it will always fail, so we can early return.
   if (PROFILING_CONSTRUCTOR_FAILED) {
     if (DEBUG_BUILD) {
@@ -710,16 +711,12 @@ export function shouldProfileSession(options?: BrowserOptions): boolean {
     return false;
   }
 
-  if (!options || options.profileLifecycle !== 'trace') {
+  if (options.profileLifecycle !== 'trace') {
     return false;
   }
 
   //  Session sampling: profileSessionSampleRate gates whether profiling is enabled for this session
-  const profileSessionSampleRate: number | boolean | undefined = (
-    options as unknown as {
-      profileSessionSampleRate?: number | boolean;
-    }
-  ).profileSessionSampleRate;
+  const profileSessionSampleRate = options.profileSessionSampleRate;
 
   if (!isValidSampleRate(profileSessionSampleRate)) {
     DEBUG_BUILD && debug.warn('[Profiling] Discarding profile because of invalid profileSessionSampleRate.');
@@ -732,15 +729,14 @@ export function shouldProfileSession(options?: BrowserOptions): boolean {
     return false;
   }
 
-  return profileSessionSampleRate === true ? true : Math.random() <= profileSessionSampleRate;
+  return Math.random() <= profileSessionSampleRate;
 }
 
 /**
  * Checks if legacy profiling is configured.
  */
-export function hasLegacyProfiling(options: BrowserOptions = {} as unknown as BrowserOptions): boolean {
-  // eslint-disable-next-line deprecation/deprecation
-  return typeof (options as unknown as { profilesSampleRate?: number | boolean }).profilesSampleRate !== 'undefined';
+export function hasLegacyProfiling(options: BrowserOptions): boolean {
+  return typeof options.profilesSampleRate !== 'undefined';
 }
 
 /**
@@ -820,14 +816,11 @@ export function attachProfiledThreadToEvent(event: Event): void {
   };
 
   // Attach thread info to individual spans so that spans can be associated with the profiled thread on the UI even if contexts are missing.
-  if (Array.isArray(event.spans)) {
-    const spans = event.spans;
-    for (const span of spans) {
-      span.data = {
-        ...(span.data || {}),
-        ['thread.id']: PROFILER_THREAD_ID_STRING,
-        ['thread.name']: PROFILER_THREAD_NAME,
-      };
-    }
-  }
+  event.spans?.forEach(span => {
+    span.data = {
+      ...(span.data || {}),
+      ['thread.id']: PROFILER_THREAD_ID_STRING,
+      ['thread.name']: PROFILER_THREAD_NAME,
+    };
+  });
 }

@@ -164,7 +164,6 @@ sentryTest(
     expect(envelopeItemPayload2.profile).toBeDefined();
     expect(envelopeItemPayload2.version).toBe('2');
     expect(envelopeItemPayload2.platform).toBe('javascript');
-    expect(envelopeItemPayload2?.profile).toBeDefined();
 
     // Required profile metadata (Sample Format V2)
     // https://develop.sentry.dev/sdk/telemetry/profiles/sample-format-v2/

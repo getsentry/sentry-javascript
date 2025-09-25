@@ -48,6 +48,5 @@ await new Promise(r => setTimeout(r, 21));
 
 firstSpan.end();
 
-// Ensure envelope flush
 const client = Sentry.getClient();
 await client?.flush(5000);
