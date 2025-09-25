@@ -77,13 +77,9 @@ async function pruneNodeModules(): Promise<void> {
     './build/aws/dist-serverless/nodejs/node_modules/@sentry/aws-serverless/build/npm/cjs/index.js',
     './build/aws/dist-serverless/nodejs/node_modules/@sentry/aws-serverless/build/npm/cjs/awslambda-auto.js',
     './build/aws/dist-serverless/nodejs/node_modules/@sentry/aws-serverless/build/npm/esm/awslambda-auto.js',
-    // Add the import-in-the-middle hook.js to the file list because NFT can't correctly track through `hook.mjs`
-    // './build/aws/dist-serverless/nodejs/node_modules/import-in-the-middle/hook.js',
   ];
 
   const { fileList } = await nodeFileTrace(entrypoints);
-
-  fs.writeFileSync('fileList.json', JSON.stringify(Array.from(fileList), null, 2));
 
   const allFiles = getAllFiles('./build/aws/dist-serverless/nodejs/node_modules');
 
