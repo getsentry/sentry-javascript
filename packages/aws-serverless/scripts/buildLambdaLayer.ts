@@ -79,7 +79,11 @@ async function pruneNodeModules(): Promise<void> {
     './build/aws/dist-serverless/nodejs/node_modules/@sentry/aws-serverless/build/npm/esm/awslambda-auto.js',
   ];
 
-  const { fileList } = await nodeFileTrace(entrypoints);
+  const { fileList } = await nodeFileTrace(entrypoints, {
+    // import-in-the-middle uses mixed require and import syntax in their `hook.mjs` file.
+    // So we need to set `mixedModules` to `true` to ensure that all modules are tracked.
+    mixedModules: true,
+  });
 
   const allFiles = getAllFiles('./build/aws/dist-serverless/nodejs/node_modules');
 
