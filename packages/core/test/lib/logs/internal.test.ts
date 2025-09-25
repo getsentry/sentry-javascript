@@ -781,7 +781,7 @@ describe('_INTERNAL_captureLog', () => {
           value: 'buffer-replay-id',
           type: 'string',
         },
-        'sentry.internal.replay_is_buffering': {
+        'sentry._internal.replay_is_buffering': {
           value: true,
           type: 'boolean',
         },
