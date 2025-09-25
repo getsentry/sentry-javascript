@@ -174,6 +174,10 @@ function buildPackageJson(): void {
     }
   }
 
+  // We temporarily have to pin import-in-the-middle to 1.14.2 because @vercel/nft currently doesn't
+  // track all modules required by `hook.mjs`.
+  // TODO: Remove this once @vercel/nft can handle import and require (createRequire) statements in one file
+  // or once IITM reverts/adjusts the require statement on their end.
   resolutions['import-in-the-middle'] = '1.14.2';
 
   const packageJson = {
