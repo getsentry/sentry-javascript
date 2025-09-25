@@ -39,13 +39,16 @@ function makeMethodDescriptor(store: OverridesStore, ctx: ContextType, method: k
     configurable: true,
     enumerable: true,
     set: newValue => {
+      if(typeof newValue !== 'function') throw new Error('Cannot override non-function')
       store.set(method, newValue);
       return true;
     },
 
     get: () => {
       if (store.has(method)) return store.get(method);
-      return Reflect.get(ctx, method).bind(ctx);
+      const methodFunction = Reflect.get(ctx, method);
+      if (typeof methodFunction !== 'function') return methodFunction;
+      return methodFunction.bind(ctx);
     },
   };
 }
