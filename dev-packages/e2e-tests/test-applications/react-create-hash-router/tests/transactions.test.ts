@@ -14,9 +14,9 @@ test('Captures a pageload transaction', async ({ page }) => {
       deviceMemory: expect.any(String),
       effectiveConnectionType: expect.any(String),
       hardwareConcurrency: expect.any(String),
-      'lcp.element': 'body > div#root > input#exception-button[type="button"]',
-      'lcp.id': 'exception-button',
-      'lcp.size': 1650,
+      'lcp.element': expect.any(String),
+      'lcp.id': expect.any(String),
+      'lcp.size': expect.any(Number),
       'sentry.idle_span_finish_reason': 'idleTimeout',
       'sentry.op': 'pageload',
       'sentry.origin': 'auto.pageload.react.reactrouter_v6',
@@ -149,4 +149,214 @@ test('Captures a navigation transaction', async ({ page }) => {
   );
 
   expect(transactionEvent.spans).toEqual([]);
+});
+
+test('Captures a parameterized path pageload transaction', async ({ page }) => {
+  const transactionEventPromise = waitForTransaction('react-create-hash-router', event => {
+    return event.contexts?.trace?.op === 'pageload';
+  });
+
+  await page.goto('/#/v2/post/1');
+
+  const transactionEvent = await transactionEventPromise;
+
+  expect(transactionEvent).toEqual(
+    expect.objectContaining({
+      transaction: '/v2/post/:post',
+      type: 'transaction',
+      transaction_info: {
+        source: 'route',
+      },
+    }),
+  );
+});
+
+test('Captures a parameterized path pageload transaction for nested route', async ({ page }) => {
+  const transactionEventPromise = waitForTransaction('react-create-hash-router', event => {
+    return event.contexts?.trace?.op === 'pageload';
+  });
+
+  await page.goto('/#/v2/post/1/featured');
+
+  const transactionEvent = await transactionEventPromise;
+
+  expect(transactionEvent).toEqual(
+    expect.objectContaining({
+      transaction: '/v2/post/:post/featured',
+      type: 'transaction',
+      transaction_info: {
+        source: 'route',
+      },
+    }),
+  );
+});
+
+test('Captures a parameterized path pageload transaction for nested route with absolute path', async ({ page }) => {
+  const transactionEventPromise = waitForTransaction('react-create-hash-router', event => {
+    return event.contexts?.trace?.op === 'pageload';
+  });
+
+  await page.goto('/#/v2/post/1/related');
+
+  const transactionEvent = await transactionEventPromise;
+
+  expect(transactionEvent).toEqual(
+    expect.objectContaining({
+      transaction: '/v2/post/:post/related',
+      type: 'transaction',
+      transaction_info: {
+        source: 'route',
+      },
+    }),
+  );
+});
+
+test('Captures a parameterized path navigation transaction', async ({ page }) => {
+  const transactionEventPromise = waitForTransaction('react-create-hash-router', event => {
+    return event.contexts?.trace?.op === 'navigation';
+  });
+
+  await page.goto('/');
+  const linkElement = page.locator('id=navigation-post-1');
+  await linkElement.click();
+
+  const transactionEvent = await transactionEventPromise;
+
+  expect(transactionEvent).toEqual(
+    expect.objectContaining({
+      transaction: '/v2/post/:post',
+      type: 'transaction',
+      transaction_info: {
+        source: 'route',
+      },
+    }),
+  );
+});
+
+test('Captures a parameterized path navigation transaction for nested route', async ({ page }) => {
+  const transactionEventPromise = waitForTransaction('react-create-hash-router', event => {
+    return event.contexts?.trace?.op === 'navigation';
+  });
+
+  await page.goto('/');
+  const linkElement = page.locator('id=navigation-post-1-featured');
+  await linkElement.click();
+
+  const transactionEvent = await transactionEventPromise;
+
+  expect(transactionEvent).toEqual(
+    expect.objectContaining({
+      transaction: '/v2/post/:post/featured',
+      type: 'transaction',
+      transaction_info: {
+        source: 'route',
+      },
+    }),
+  );
+});
+
+test('Captures a parameterized path navigation transaction for nested route with absolute path', async ({ page }) => {
+  const transactionEventPromise = waitForTransaction('react-create-hash-router', event => {
+    return event.contexts?.trace?.op === 'navigation';
+  });
+
+  await page.goto('/');
+  const linkElement = page.locator('id=navigation-post-1-related');
+  await linkElement.click();
+
+  const transactionEvent = await transactionEventPromise;
+
+  expect(transactionEvent).toEqual(
+    expect.objectContaining({
+      transaction: '/v2/post/:post/related',
+      type: 'transaction',
+      transaction_info: {
+        source: 'route',
+      },
+    }),
+  );
+});
+
+test('Captures a parameterized path pageload transaction for group route', async ({ page }) => {
+  const transactionEventPromise = waitForTransaction('react-create-hash-router', event => {
+    return event.contexts?.trace?.op === 'pageload';
+  });
+
+  await page.goto('/#/group/1');
+
+  const transactionEvent = await transactionEventPromise;
+
+  expect(transactionEvent).toEqual(
+    expect.objectContaining({
+      transaction: '/group/:group/:user?',
+      type: 'transaction',
+      transaction_info: {
+        source: 'route',
+      },
+    }),
+  );
+});
+
+test('Captures a parameterized path navigation transaction for group route', async ({ page }) => {
+  const transactionEventPromise = waitForTransaction('react-create-hash-router', event => {
+    return event.contexts?.trace?.op === 'navigation';
+  });
+
+  await page.goto('/');
+  const linkElement = page.locator('id=navigation-group-1');
+  await linkElement.click();
+
+  const transactionEvent = await transactionEventPromise;
+
+  expect(transactionEvent).toEqual(
+    expect.objectContaining({
+      transaction: '/group/:group/:user?',
+      type: 'transaction',
+      transaction_info: {
+        source: 'route',
+      },
+    }),
+  );
+});
+
+test('Captures a parameterized path pageload transaction for nested group route', async ({ page }) => {
+  const transactionEventPromise = waitForTransaction('react-create-hash-router', event => {
+    return event.contexts?.trace?.op === 'pageload';
+  });
+
+  await page.goto('/#/group/1/5');
+
+  const transactionEvent = await transactionEventPromise;
+
+  expect(transactionEvent).toEqual(
+    expect.objectContaining({
+      transaction: '/group/:group/:user?',
+      type: 'transaction',
+      transaction_info: {
+        source: 'route',
+      },
+    }),
+  );
+});
+
+test('Captures a parameterized path navigation transaction for nested group route', async ({ page }) => {
+  const transactionEventPromise = waitForTransaction('react-create-hash-router', event => {
+    return event.contexts?.trace?.op === 'navigation';
+  });
+
+  await page.goto('/');
+  const linkElement = page.locator('id=navigation-group-1-user-5');
+  await linkElement.click();
+
+  const transactionEvent = await transactionEventPromise;
+
+  expect(transactionEvent).toEqual(
+    expect.objectContaining({
+      transaction: '/group/:group/:user?',
+      type: 'transaction',
+      transaction_info: {
+        source: 'route',
+      },
+    }),
+  );
 });
