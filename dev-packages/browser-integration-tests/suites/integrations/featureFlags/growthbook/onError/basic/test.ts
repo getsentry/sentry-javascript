@@ -49,7 +49,14 @@ sentryTest('GrowthBook onError: basic eviction/update and no async tasks', async
   const event = envelopeRequestParser(req);
 
   const values = event.contexts?.flags?.values || [];
-  const expectedFlags = [{ flag: 'feat2', result: false }];
+
+  // After the sequence of operations:
+  // 1. feat1-feat100 are added (100 items)
+  // 2. feat101 is added, evicts feat1 (100 items: feat2-feat100, feat101)
+  // 3. feat3 is updated to true, moves to end (100 items: feat2, feat4-feat100, feat101, feat3)
+  // 4. bool-feat is added, evicts feat2 (100 items: feat4-feat100, feat101, feat3, bool-feat)
+
+  const expectedFlags = [];
   for (let i = 4; i <= FLAG_BUFFER_SIZE; i++) {
     expectedFlags.push({ flag: `feat${i}`, result: false });
   }
