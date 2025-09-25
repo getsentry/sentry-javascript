@@ -30,7 +30,6 @@ test.describe('server - middleware', () => {
 
     expect(pageloadTx).toBeDefined();
     expect(customMiddlewareTx).toBeDefined();
-    expect(pageloadTx).toBeDefined();
 
     // Assert that all transactions belong to the same trace
     expect(traceIds.server).toBe(traceIds.pageload);
