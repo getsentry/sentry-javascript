@@ -34,6 +34,27 @@ describe('PromiseBuffer', () => {
       expect(producer1).toHaveBeenCalled();
       expect(producer2).not.toHaveBeenCalled();
     });
+
+    test('handles multiple equivalent promises', async () => {
+      const buffer = makePromiseBuffer(10);
+
+      const promise = new Promise(resolve => setTimeout(resolve, 1));
+
+      const producer = vi.fn(() => promise);
+      const producer2 = vi.fn(() => promise);
+
+      expect(buffer.add(producer)).toEqual(promise);
+      expect(buffer.add(producer2)).toEqual(promise);
+
+      expect(buffer.$.length).toEqual(1);
+
+      expect(producer).toHaveBeenCalled();
+      expect(producer2).toHaveBeenCalled();
+
+      await buffer.drain();
+
+      expect(buffer.$.length).toEqual(0);
+    });
   });
 
   describe('drain()', () => {
