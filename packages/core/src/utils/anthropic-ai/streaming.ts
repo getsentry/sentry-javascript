@@ -211,6 +211,10 @@ function processEvent(
  * Finalizes span attributes when stream processing completes
  */
 function finalizeStreamSpan(state: StreamingState, span: Span, recordOutputs: boolean): void {
+  if (!span.isRecording()) {
+    return;
+  }
+
   // Set common response attributes if available
   if (state.responseId) {
     span.setAttributes({
@@ -254,9 +258,7 @@ function finalizeStreamSpan(state: StreamingState, span: Span, recordOutputs: bo
     });
   }
 
-  if (span.isRecording()) {
-    span.end();
-  }
+  span.end();
 }
 
 /**
