@@ -79,7 +79,11 @@ async function pruneNodeModules(): Promise<void> {
     './build/aws/dist-serverless/nodejs/node_modules/@sentry/aws-serverless/build/npm/esm/awslambda-auto.js',
   ];
 
-  const { fileList } = await nodeFileTrace(entrypoints);
+  const { fileList } = await nodeFileTrace(entrypoints, {
+    // import-in-the-middle uses mixed require and import syntax in their `hook.mjs` file.
+    // So we need to set `mixedModules` to `true` to ensure that all modules are tracked.
+    mixedModules: true,
+  });
 
   const allFiles = getAllFiles('./build/aws/dist-serverless/nodejs/node_modules');
 
@@ -173,12 +177,6 @@ function buildPackageJson(): void {
       }
     }
   }
-
-  // We temporarily have to pin import-in-the-middle to 1.14.2 because @vercel/nft currently doesn't
-  // track all modules required by `hook.mjs`.
-  // TODO: Remove this once @vercel/nft can handle import and require (createRequire) statements in one file
-  // or once IITM reverts/adjusts the require statement on their end.
-  resolutions['import-in-the-middle'] = '1.14.2';
 
   const packageJson = {
     dependencies: {
