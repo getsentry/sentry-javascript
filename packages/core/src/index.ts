@@ -247,7 +247,6 @@ export {
   SyncPromise,
   rejectedSyncPromise,
   resolvedSyncPromise,
-  makeSyncPromise,
 } from './utils/syncpromise';
 export { browserPerformanceTimeOrigin, dateTimestampInSeconds, timestampInSeconds } from './utils/time';
 export {

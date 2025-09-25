@@ -11,21 +11,6 @@ type Executor<T> = (resolve: (value?: T | PromiseLike<T> | null) => void, reject
 type PromiseTry = <T>(executor: Executor<T>) => PromiseLike<T>;
 type PromiseWithTry = PromiseConstructor & { try: PromiseTry };
 
-/**
- * Takes an executor and returns a promise that is executed synchronously (if the executor is synchronous) or else asynchronously.
- * It always returns a promise.
- *
- * This uses the native Promise.try, if it exists, else our SyncPromise implementation.
- */
-export function makeSyncPromise<T>(executor: Executor<T>): PromiseLike<T> {
-  if (hasPromiseTry(Promise)) {
-    return Promise.try(executor);
-  }
-
-  // eslint-disable-next-line deprecation/deprecation
-  return new SyncPromise(executor);
-}
-
 function hasPromiseTry(Promise: typeof globalThis.Promise): Promise is PromiseWithTry {
   return 'try' in Promise && typeof Promise.try === 'function';
 }
@@ -41,7 +26,8 @@ export function resolvedSyncPromise<T>(value: T | PromiseLike<T>): PromiseLike<T
  * @returns the resolved sync promise
  */
 export function resolvedSyncPromise<T>(value?: T | PromiseLike<T>): PromiseLike<T> {
-  return makeSyncPromise(() => value);
+  // eslint-disable-next-line deprecation/deprecation
+  return hasPromiseTry(Promise) ? Promise.try(() => value) : new SyncPromise(resolve => resolve(value));
 }
 
 /**
@@ -51,16 +37,19 @@ export function resolvedSyncPromise<T>(value?: T | PromiseLike<T>): PromiseLike<
  * @returns the rejected sync promise
  */
 export function rejectedSyncPromise<T = never>(reason?: any): PromiseLike<T> {
-  return makeSyncPromise(() => {
-    throw reason;
-  });
+  return hasPromiseTry(Promise)
+    ? Promise.try(() => {
+        throw reason;
+      })
+    : // eslint-disable-next-line deprecation/deprecation
+      new SyncPromise((_, reject) => reject(reason));
 }
 
 /**
  * Thenable class that behaves like a Promise and follows it's interface
  * but is not async internally
  *
- * @deprecated Use makeSyncPromise instead.
+ * @deprecated This export will be removed in a future version.
  */
 export class SyncPromise<T> implements PromiseLike<T> {
   private _state: State;
