@@ -97,6 +97,7 @@ export {
   consoleLoggingIntegration,
   createConsolaReporter,
   featureFlagsIntegration,
+  growthbookIntegration,
   logger,
 } from '@sentry/core';
 
