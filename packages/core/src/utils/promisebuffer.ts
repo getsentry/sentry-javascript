@@ -56,15 +56,15 @@ export function makePromiseBuffer<T>(limit: number = 100): PromiseBuffer<T> {
     return task;
   }
 
-  function drainNextSyncPromise(): PromiseLike<boolean> {
-    const item = buffer.values().next().value;
+  function _drainNextSyncPromise(): PromiseLike<boolean> {
+    const item = buffer.values().next().value as PromiseLike<T>;
 
     if (!item) {
       return resolvedSyncPromise(true);
     }
 
-    return resolvedSyncPromise(item).then(() => {
-      return drainNextSyncPromise();
+    return item.then(() => {
+      return _drainNextSyncPromise();
     });
   }
 
@@ -82,7 +82,7 @@ export function makePromiseBuffer<T>(limit: number = 100): PromiseBuffer<T> {
       return resolvedSyncPromise(true);
     }
 
-    const drainPromise = drainNextSyncPromise();
+    const drainPromise = _drainNextSyncPromise();
 
     if (!timeout) {
       return drainPromise;
