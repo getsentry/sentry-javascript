@@ -34,5 +34,10 @@
         "label": "nuxt-4 (canary)"
       }
     ]
+  },
+  "pnpm": {
+    "overrides": {
+      "import-in-the-middle": "1.14.2"
+    }
   }
 }
