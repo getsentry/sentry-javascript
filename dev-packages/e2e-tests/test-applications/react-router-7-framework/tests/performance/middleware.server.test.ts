@@ -3,7 +3,7 @@ import { waitForTransaction } from '@sentry-internal/test-utils';
 import { APP_NAME } from '../constants';
 
 test.describe('server - middleware', () => {
-  test.only('should send middleware transaction on pageload', async ({ page }) => {
+  test('should send middleware transaction on pageload', async ({ page }) => {
     const serverTxPromise = waitForTransaction(APP_NAME, async transactionEvent => {
       return transactionEvent.transaction === 'GET /performance/with-middleware';
     });
