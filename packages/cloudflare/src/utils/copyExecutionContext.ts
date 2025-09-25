@@ -1,47 +1,51 @@
 import { type DurableObjectState, type ExecutionContext } from '@cloudflare/workers-types';
 
-const kBound = Symbol.for('kBound');
-
-const defaultPropertyOptions: PropertyDescriptor = {
-  enumerable: true,
-  configurable: true,
-  writable: true,
-};
+type ContextType = ExecutionContext | DurableObjectState;
+type OverridesStore = Map<string | symbol, (...args: unknown[]) => unknown>;
 
 /**
- * Clones the given execution context by creating a shallow copy while ensuring the binding of specific methods.
+ * Creates a new copy of the given execution context, optionally overriding methods.
  *
- * @param {ExecutionContext|DurableObjectState|void} ctx - The execution context to clone. Can be void.
- * @return {ExecutionContext|DurableObjectState|void} A cloned execution context with bound methods, or the original void value if no context was provided.
+ * @param {ContextType|void} ctx - The execution context to be copied. Can be of type `ContextType` or `void`.
+ * @return {ContextType|void} A new execution context with the same properties and overridden methods if applicable.
  */
-export function copyExecutionContext<T extends ExecutionContext | DurableObjectState>(ctx: T): T {
+export function copyExecutionContext<T extends ContextType>(ctx: T): T {
   if (!ctx) return ctx;
-  return Object.create(ctx, {
-    waitUntil: { ...defaultPropertyOptions, value: copyAndBindMethod(ctx, 'waitUntil') },
-    ...('passThroughOnException' in ctx && {
-      passThroughOnException: { ...defaultPropertyOptions, value: copyAndBindMethod(ctx, 'passThroughOnException') },
-    }),
-  });
+
+  const overrides: OverridesStore = new Map();
+  const contextPrototype = Object.getPrototypeOf(ctx);
+  const descriptors = Object.getOwnPropertyNames(contextPrototype).reduce((prevDescriptors, methodName) => {
+    if (methodName === 'constructor') return prevDescriptors;
+    const pd = makeMethodDescriptor(overrides, ctx, methodName as keyof ContextType);
+    return {
+      ...prevDescriptors,
+      [methodName]: pd,
+    };
+  }, {});
+
+  return Object.create(ctx, descriptors);
 }
 
 /**
- * Copies a method from the given object and ensures the copied method remains bound to the original object's context.
+ * Creates a property descriptor for a given method on a context object, enabling custom getter and setter behavior.
  *
- * @param {object} obj - The object containing the method to be copied and bound.
- * @param {string|symbol} method - The key of the method within the object to be copied and bound.
- * @return {Function} - The copied and bound method, or the original property if it is not a function.
+ * @param store - The OverridesStore instance used to manage method overrides.
+ * @param ctx - The context object from which the method originates.
+ * @param method - The key of the method on the context object to create a descriptor for.
+ * @return A property descriptor with custom getter and setter functionalities for the specified method.
  */
-function copyAndBindMethod<T, K extends keyof T>(obj: T, method: K): T[K] {
-  const methodImpl = obj[method];
-  if (typeof methodImpl !== 'function') return methodImpl;
-  if ((methodImpl as T[K] & { [kBound]?: boolean })[kBound]) return methodImpl;
-  const bound = methodImpl.bind(obj);
-
-  return new Proxy(bound, {
-    get: (target, prop, receiver) => {
-      if (kBound === prop) return true;
-      if ('bind' === prop) return () => receiver;
-      return Reflect.get(target, prop, receiver);
+function makeMethodDescriptor(store: OverridesStore, ctx: ContextType, method: keyof ContextType): PropertyDescriptor {
+  return {
+    configurable: true,
+    enumerable: true,
+    set: newValue => {
+      store.set(method, newValue);
+      return true;
     },
-  });
+
+    get: () => {
+      if (store.has(method)) return store.get(method);
+      return Reflect.get(ctx, method).bind(ctx);
+    },
+  };
 }

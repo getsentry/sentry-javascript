@@ -1,26 +1,35 @@
-import { type ExecutionContext } from '@cloudflare/workers-types';
 import { type Mocked, describe, expect, it, vi } from 'vitest';
 import { copyExecutionContext } from '../src/utils/copyExecutionContext';
 
 describe('Copy of the execution context', () => {
-  describe.for<keyof ExecutionContext>(['waitUntil', 'passThroughOnException'])('%s', method => {
-    it('Was not bound more than once', async () => {
-      const context = makeExecutionContextMock();
+  describe.for([
+    'waitUntil',
+    'passThroughOnException',
+    'acceptWebSocket',
+    'blockConcurrencyWhile',
+    'getWebSockets',
+    'arbitraryMethod',
+    'anythingElse',
+  ])('%s', method => {
+    it('Override without changing original', async () => {
+      const context = {
+        [method]: vi.fn(),
+      } as any;
       const copy = copyExecutionContext(context);
-      const copy_of_copy = copyExecutionContext(copy);
-
-      expect(copy[method]).toBe(copy_of_copy[method]);
+      copy[method] = vi.fn();
+      expect(context[method]).not.toBe(copy[method]);
     });
-    it('Copied method is bound to the original', async () => {
-      const context = makeExecutionContextMock();
-      const copy = copyExecutionContext(context);
 
-      expect(copy[method]()).toBe(context);
-    });
-    it('Copied method "rebind" prevention', async () => {
-      const context = makeExecutionContextMock();
+    it('Overridden method was called', async () => {
+      const context = {
+        [method]: vi.fn(),
+      } as any;
       const copy = copyExecutionContext(context);
-      expect(copy[method].bind('test')).toBe(copy[method]);
+      const overridden = vi.fn();
+      copy[method] = overridden;
+      copy[method]();
+      expect(overridden).toBeCalled();
+      expect(context[method]).not.toBeCalled();
     });
   });
 
@@ -41,7 +50,7 @@ describe('Copy of the execution context', () => {
 
 function makeExecutionContextMock<T extends ExecutionContext>() {
   return {
-    waitUntil: vi.fn().mockReturnThis(),
-    passThroughOnException: vi.fn().mockReturnThis(),
+    waitUntil: vi.fn(),
+    passThroughOnException: vi.fn(),
   } as unknown as Mocked<T>;
 }
