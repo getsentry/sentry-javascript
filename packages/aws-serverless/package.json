@@ -79,7 +79,7 @@
   },
   "scripts": {
     "build": "run-p build:transpile build:types",
-    "build:layer": "rollup -c rollup.lambda-extension.config.mjs && yarn ts-node scripts/buildLambdaLayer.ts",
+    "build:layer": "rimraf build/aws && rollup -c rollup.lambda-extension.config.mjs && yarn ts-node scripts/buildLambdaLayer.ts",
     "build:dev": "run-p build:transpile build:types",
     "build:transpile": "rollup -c rollup.npm.config.mjs && yarn build:layer",
     "build:types": "run-s build:types:core build:types:downlevel",
