@@ -139,6 +139,7 @@ export {
   featureFlagsIntegration,
   type FeatureFlagsIntegration,
   launchDarklyIntegration,
+  growthbookIntegration,
   buildLaunchDarklyFlagUsedHandler,
   openFeatureIntegration,
   OpenFeatureIntegrationHook,
