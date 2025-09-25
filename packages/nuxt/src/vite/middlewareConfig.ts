@@ -4,7 +4,7 @@ import * as path from 'path';
 import type { InputPluginOption } from 'rollup';
 
 /**
- * Adds a template for the middleware instrumentation.
+ * Adds a server import for the middleware instrumentation.
  */
 export function addMiddlewareImports(): void {
   addServerImports([
@@ -34,12 +34,17 @@ export function addMiddlewareInstrumentation(nitro: Nitro): void {
   });
 }
 
+/**
+ * Creates a rollup plugin for the middleware instrumentation by transforming the middleware code.
+ *
+ * @param nitro Nitro instance
+ * @returns The rollup plugin for the middleware instrumentation.
+ */
 function middlewareInstrumentationPlugin(nitro: Nitro): InputPluginOption {
   const middlewareFiles = new Set<string>();
 
   return {
     name: 'sentry-nuxt-middleware-instrumentation',
-
     buildStart() {
       // Collect middleware files during build start
       nitro.scannedHandlers?.forEach(({ middleware, handler }) => {
@@ -48,7 +53,6 @@ function middlewareInstrumentationPlugin(nitro: Nitro): InputPluginOption {
         }
       });
     },
-
     transform(code: string, id: string) {
       // Only transform files we've identified as middleware
       if (middlewareFiles.has(id)) {
@@ -64,6 +68,14 @@ function middlewareInstrumentationPlugin(nitro: Nitro): InputPluginOption {
   };
 }
 
+/**
+ * Wraps the middleware user code to instrument it.
+ *
+ * @param originalCode The original user code of the middleware.
+ * @param fileName The name of the middleware file, used for the span name and logging.
+ *
+ * @returns The wrapped user code of the middleware.
+ */
 function wrapMiddlewareCode(originalCode: string, fileName: string): string {
   return `
 import { instrumentMiddlewareHandler } from '#imports';
