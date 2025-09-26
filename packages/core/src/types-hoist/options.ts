@@ -314,6 +314,14 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
      * @deprecated Use the top level `enableLogs` option instead.
      */
     enableLogs?: boolean;
+
+    /*
+     * DO NOT set this option manually.
+     *
+     * @internal, this option is only used and set internally.
+     * @hidden
+     */
+    _INTERNAL_spanStreaming?: boolean;
   };
 
   /**
