@@ -23,6 +23,37 @@ test('Creates a pageload transaction with parameterized route', async ({ page })
   expect(event.contexts?.trace?.op).toBe('pageload');
 });
 
+test('Does not create a navigation transaction on initial load to deep lazy route', async ({ page }) => {
+  const navigationPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'navigation';
+  });
+
+  const pageloadPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+    return (
+      !!transactionEvent?.transaction &&
+      transactionEvent.contexts?.trace?.op === 'pageload' &&
+      transactionEvent.transaction === '/lazy/inner/:id/:anotherId/:someAnotherId'
+    );
+  });
+
+  await page.goto('/lazy/inner/1/2/3');
+
+  const pageloadEvent = await pageloadPromise;
+
+  expect(pageloadEvent.transaction).toBe('/lazy/inner/:id/:anotherId/:someAnotherId');
+
+  const lazyRouteContent = page.locator('id=innermost-lazy-route');
+  await expect(lazyRouteContent).toBeVisible();
+
+  // "Race" between navigation transaction and a timeout to ensure no navigation transaction is created within the timeout period
+  const result = await Promise.race([
+    navigationPromise.then(() => 'navigation'),
+    new Promise<'timeout'>(resolve => setTimeout(() => resolve('timeout'), 1500)),
+  ]);
+
+  expect(result).toBe('timeout');
+});
+
 test('Creates a navigation transaction inside a lazy route', async ({ page }) => {
   const transactionPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
     return (

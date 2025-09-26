@@ -567,6 +567,13 @@ export function handleNavigation(opts: {
     return;
   }
 
+  // Avoid starting a navigation span on initial load when a pageload root span is active.
+  // This commonly happens when lazy routes resolve during the first render and React Router emits a POP.
+  const activeRootSpan = getActiveRootSpan();
+  if (activeRootSpan && spanToJSON(activeRootSpan).op === 'pageload' && navigationType === 'POP') {
+    return;
+  }
+
   if ((navigationType === 'PUSH' || navigationType === 'POP') && branches) {
     const [name, source] = resolveRouteNameAndSource(
       location,
