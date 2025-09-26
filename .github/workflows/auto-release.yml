@@ -13,9 +13,16 @@ jobs:
     name: 'Prepare a new version'
 
     steps:
+      - name: Get auth token
+        id: token
+        uses: actions/create-github-app-token@a8d616148505b5069dccd32f177bb87d7f39123b # v2.1.1
+        with:
+          app-id: ${{ vars.SENTRY_RELEASE_BOT_CLIENT_ID }}
+          private-key: ${{ secrets.SENTRY_RELEASE_BOT_PRIVATE_KEY }}
+
       - uses: actions/checkout@v4
         with:
-          token: ${{ secrets.GH_RELEASE_PAT }}
+          token: ${{ steps.token.outputs.token }}
           fetch-depth: 0
 
       # https://github.com/actions-ecosystem/action-regex-match
@@ -31,7 +38,7 @@ jobs:
         uses: getsentry/action-prepare-release@v1
         if: github.event.pull_request.merged == true && steps.version.outputs.match != ''
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_RELEASE_PAT }}
+          GITHUB_TOKEN: ${{ steps.token.outputs.token }}
         with:
           version: ${{ steps.version.outputs.group1 }}
           force: false
