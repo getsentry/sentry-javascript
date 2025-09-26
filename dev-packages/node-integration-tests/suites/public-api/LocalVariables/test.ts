@@ -127,4 +127,44 @@ describe('LocalVariables integration', () => {
       .start()
       .completed();
   });
+
+  test('adds local variables to out of app frames when includeOutOfAppFrames is true', async () => {
+    await createRunner(__dirname, 'local-variables-out-of-app.js')
+      .expect({
+        event: event => {
+          const frames = event.exception?.values?.[0]?.stacktrace?.frames || [];
+
+          const inAppFrame = frames.find(frame => frame.function === 'in_app_function');
+          const outOfAppFrame = frames.find(frame => frame.function === 'out_of_app_function');
+
+          expect(inAppFrame?.vars).toEqual({ inAppVar: 'in app value' });
+          expect(inAppFrame?.in_app).toEqual(true);
+
+          expect(outOfAppFrame?.vars).toEqual({ outOfAppVar: 'out of app value' });
+          expect(outOfAppFrame?.in_app).toEqual(false);
+        },
+      })
+      .start()
+      .completed();
+  });
+
+  test('does not add local variables to out of app frames by default', async () => {
+    await createRunner(__dirname, 'local-variables-out-of-app-default.js')
+      .expect({
+        event: event => {
+          const frames = event.exception?.values?.[0]?.stacktrace?.frames || [];
+
+          const inAppFrame = frames.find(frame => frame.function === 'in_app_function');
+          const outOfAppFrame = frames.find(frame => frame.function === 'out_of_app_function');
+
+          expect(inAppFrame?.vars).toEqual({ inAppVar: 'in app value' });
+          expect(inAppFrame?.in_app).toEqual(true);
+
+          expect(outOfAppFrame?.vars).toBeUndefined();
+          expect(outOfAppFrame?.in_app).toEqual(false);
+        },
+      })
+      .start()
+      .completed();
+  });
 });
