@@ -424,6 +424,7 @@ describe('_INTERNAL_captureLog', () => {
           // Simulate behavior: return ID for sampled sessions
           return onlyIfSampled ? 'sampled-replay-id' : 'any-replay-id';
         }),
+        getRecordingMode: vi.fn(() => 'session'),
       };
 
       vi.spyOn(client, 'getIntegrationByName').mockReturnValue(mockReplayIntegration as any);
@@ -480,6 +481,7 @@ describe('_INTERNAL_captureLog', () => {
           // Buffer mode should still return ID even with onlyIfSampled=true
           return 'buffer-replay-id';
         }),
+        getRecordingMode: vi.fn(() => 'buffer'),
       };
 
       vi.spyOn(client, 'getIntegrationByName').mockReturnValue(mockReplayIntegration as any);
@@ -493,6 +495,10 @@ describe('_INTERNAL_captureLog', () => {
         'sentry.replay_id': {
           value: 'buffer-replay-id',
           type: 'string',
+        },
+        'sentry._internal.replay_is_buffering': {
+          value: true,
+          type: 'boolean',
         },
       });
     });
@@ -527,6 +533,7 @@ describe('_INTERNAL_captureLog', () => {
       // Mock replay integration
       const mockReplayIntegration = {
         getReplayId: vi.fn(() => 'test-replay-id'),
+        getRecordingMode: vi.fn(() => 'session'),
       };
 
       vi.spyOn(client, 'getIntegrationByName').mockReturnValue(mockReplayIntegration as any);
@@ -588,6 +595,196 @@ describe('_INTERNAL_captureLog', () => {
         const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
         expect(logAttributes).toEqual({});
         expect(logAttributes).not.toHaveProperty('sentry.replay_id');
+      });
+    });
+
+    it('sets replay_is_buffering attribute when replay is in buffer mode', () => {
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableLogs: true });
+      const client = new TestClient(options);
+      const scope = new Scope();
+      scope.setClient(client);
+
+      // Mock replay integration with buffer mode
+      const mockReplayIntegration = {
+        getReplayId: vi.fn(() => 'buffer-replay-id'),
+        getRecordingMode: vi.fn(() => 'buffer'),
+      };
+
+      vi.spyOn(client, 'getIntegrationByName').mockReturnValue(mockReplayIntegration as any);
+
+      _INTERNAL_captureLog({ level: 'info', message: 'test log with buffered replay' }, scope);
+
+      expect(mockReplayIntegration.getReplayId).toHaveBeenCalledWith(true);
+      expect(mockReplayIntegration.getRecordingMode).toHaveBeenCalled();
+
+      const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
+      expect(logAttributes).toEqual({
+        'sentry.replay_id': {
+          value: 'buffer-replay-id',
+          type: 'string',
+        },
+        'sentry._internal.replay_is_buffering': {
+          value: true,
+          type: 'boolean',
+        },
+      });
+    });
+
+    it('does not set replay_is_buffering attribute when replay is in session mode', () => {
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableLogs: true });
+      const client = new TestClient(options);
+      const scope = new Scope();
+      scope.setClient(client);
+
+      // Mock replay integration with session mode
+      const mockReplayIntegration = {
+        getReplayId: vi.fn(() => 'session-replay-id'),
+        getRecordingMode: vi.fn(() => 'session'),
+      };
+
+      vi.spyOn(client, 'getIntegrationByName').mockReturnValue(mockReplayIntegration as any);
+
+      _INTERNAL_captureLog({ level: 'info', message: 'test log with session replay' }, scope);
+
+      expect(mockReplayIntegration.getReplayId).toHaveBeenCalledWith(true);
+      expect(mockReplayIntegration.getRecordingMode).toHaveBeenCalled();
+
+      const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
+      expect(logAttributes).toEqual({
+        'sentry.replay_id': {
+          value: 'session-replay-id',
+          type: 'string',
+        },
+      });
+      expect(logAttributes).not.toHaveProperty('sentry._internal.replay_is_buffering');
+    });
+
+    it('does not set replay_is_buffering attribute when replay is undefined mode', () => {
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableLogs: true });
+      const client = new TestClient(options);
+      const scope = new Scope();
+      scope.setClient(client);
+
+      // Mock replay integration with undefined mode (replay stopped/disabled)
+      const mockReplayIntegration = {
+        getReplayId: vi.fn(() => 'stopped-replay-id'),
+        getRecordingMode: vi.fn(() => undefined),
+      };
+
+      vi.spyOn(client, 'getIntegrationByName').mockReturnValue(mockReplayIntegration as any);
+
+      _INTERNAL_captureLog({ level: 'info', message: 'test log with stopped replay' }, scope);
+
+      expect(mockReplayIntegration.getReplayId).toHaveBeenCalledWith(true);
+      expect(mockReplayIntegration.getRecordingMode).toHaveBeenCalled();
+
+      const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
+      expect(logAttributes).toEqual({
+        'sentry.replay_id': {
+          value: 'stopped-replay-id',
+          type: 'string',
+        },
+      });
+      expect(logAttributes).not.toHaveProperty('sentry._internal.replay_is_buffering');
+    });
+
+    it('does not set replay_is_buffering attribute when no replay ID is available', () => {
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableLogs: true });
+      const client = new TestClient(options);
+      const scope = new Scope();
+      scope.setClient(client);
+
+      // Mock replay integration that returns no replay ID but has buffer mode
+      const mockReplayIntegration = {
+        getReplayId: vi.fn(() => undefined),
+        getRecordingMode: vi.fn(() => 'buffer'),
+      };
+
+      vi.spyOn(client, 'getIntegrationByName').mockReturnValue(mockReplayIntegration as any);
+
+      _INTERNAL_captureLog({ level: 'info', message: 'test log with buffer mode but no replay ID' }, scope);
+
+      expect(mockReplayIntegration.getReplayId).toHaveBeenCalledWith(true);
+      // getRecordingMode should not be called if there's no replay ID
+      expect(mockReplayIntegration.getRecordingMode).not.toHaveBeenCalled();
+
+      const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
+      expect(logAttributes).toEqual({});
+      expect(logAttributes).not.toHaveProperty('sentry.replay_id');
+      expect(logAttributes).not.toHaveProperty('sentry.internal.replay_is_buffering');
+    });
+
+    it('does not set replay_is_buffering attribute when replay integration is missing', () => {
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableLogs: true });
+      const client = new TestClient(options);
+      const scope = new Scope();
+      scope.setClient(client);
+
+      // Mock no replay integration found
+      vi.spyOn(client, 'getIntegrationByName').mockReturnValue(undefined);
+
+      _INTERNAL_captureLog({ level: 'info', message: 'test log without replay integration' }, scope);
+
+      const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
+      expect(logAttributes).toEqual({});
+      expect(logAttributes).not.toHaveProperty('sentry.replay_id');
+      expect(logAttributes).not.toHaveProperty('sentry._internal.replay_is_buffering');
+    });
+
+    it('combines replay_is_buffering with other replay attributes', () => {
+      const options = getDefaultTestClientOptions({
+        dsn: PUBLIC_DSN,
+        enableLogs: true,
+        release: '1.0.0',
+        environment: 'test',
+      });
+      const client = new TestClient(options);
+      const scope = new Scope();
+      scope.setClient(client);
+
+      // Mock replay integration with buffer mode
+      const mockReplayIntegration = {
+        getReplayId: vi.fn(() => 'buffer-replay-id'),
+        getRecordingMode: vi.fn(() => 'buffer'),
+      };
+
+      vi.spyOn(client, 'getIntegrationByName').mockReturnValue(mockReplayIntegration as any);
+
+      _INTERNAL_captureLog(
+        {
+          level: 'info',
+          message: 'test log with buffer replay and other attributes',
+          attributes: { component: 'auth', action: 'login' },
+        },
+        scope,
+      );
+
+      const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
+      expect(logAttributes).toEqual({
+        component: {
+          value: 'auth',
+          type: 'string',
+        },
+        action: {
+          value: 'login',
+          type: 'string',
+        },
+        'sentry.release': {
+          value: '1.0.0',
+          type: 'string',
+        },
+        'sentry.environment': {
+          value: 'test',
+          type: 'string',
+        },
+        'sentry.replay_id': {
+          value: 'buffer-replay-id',
+          type: 'string',
+        },
+        'sentry._internal.replay_is_buffering': {
+          value: true,
+          type: 'boolean',
+        },
       });
     });
   });
