@@ -15,12 +15,12 @@ import {
 import type { EventHandler, EventHandlerRequest, H3Event } from 'h3';
 
 /**
- * Instruments a middleware handler.
+ * Wraps a middleware handler with Sentry instrumentation.
  *
  * @param handler The middleware handler.
  * @param fileName The name of the middleware file.
  */
-export function instrumentMiddlewareHandler(handler: EventHandler, fileName: string) {
+export function wrapMiddlewareHandler(handler: EventHandler, fileName: string) {
   return async (event: H3Event<EventHandlerRequest>) => {
     const middlewarePath = event?.path || event?.node?.req?.url || 'unknown';
 

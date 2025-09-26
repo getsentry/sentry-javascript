@@ -9,8 +9,8 @@ import type { InputPluginOption } from 'rollup';
 export function addMiddlewareImports(): void {
   addServerImports([
     {
-      name: 'instrumentMiddlewareHandler',
-      from: createResolver(import.meta.url).resolve('./runtime/hooks/instrumentMiddlewareHandler'),
+      name: 'wrapMiddlewareHandler',
+      from: createResolver(import.meta.url).resolve('./runtime/hooks/wrapMiddlewareHandler'),
     },
   ]);
 }
@@ -78,18 +78,18 @@ function middlewareInstrumentationPlugin(nitro: Nitro): InputPluginOption {
  */
 function wrapMiddlewareCode(originalCode: string, fileName: string): string {
   return `
-import { instrumentMiddlewareHandler } from '#imports';
+import { wrapMiddlewareHandler } from '#imports';
 
 function defineInstrumentedEventHandler(handlerOrObject) {
   // Handle function syntax
   if (typeof handlerOrObject === 'function') {
-    return defineEventHandler(instrumentMiddlewareHandler(handlerOrObject, '${fileName}'));
+    return defineEventHandler(wrapMiddlewareHandler(handlerOrObject, '${fileName}'));
   }
 
   // Handle object syntax
   return defineEventHandler({
     ...handlerOrObject,
-    handler: instrumentMiddlewareHandler(handlerOrObject.handler, '${fileName}')
+    handler: wrapMiddlewareHandler(handlerOrObject.handler, '${fileName}')
   });
 }
 
