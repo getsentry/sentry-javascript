@@ -4,6 +4,44 @@ import { rejectedSyncPromise, resolvedSyncPromise } from '../../../src/utils/syn
 
 describe('PromiseBuffer', () => {
   describe('add()', () => {
+    test('enforces limit of promises', async () => {
+      const buffer = makePromiseBuffer(5);
+
+      const producer1 = vi.fn(() => new Promise(resolve => setTimeout(resolve, 1)));
+      const producer2 = vi.fn(() => new Promise(resolve => setTimeout(resolve, 1)));
+      const producer3 = vi.fn(() => new Promise(resolve => setTimeout(resolve, 1)));
+      const producer4 = vi.fn(() => new Promise(resolve => setTimeout(resolve, 1)));
+      const producer5 = vi.fn(() => new Promise(resolve => setTimeout(resolve, 1)));
+      const producer6 = vi.fn(() => new Promise(resolve => setTimeout(resolve, 1)));
+
+      void buffer.add(producer1);
+      void buffer.add(producer2);
+      void buffer.add(producer3);
+      void buffer.add(producer4);
+      void buffer.add(producer5);
+      void expect(buffer.add(producer6)).rejects.toThrowError();
+
+      expect(producer1).toHaveBeenCalledTimes(1);
+      expect(producer2).toHaveBeenCalledTimes(1);
+      expect(producer3).toHaveBeenCalledTimes(1);
+      expect(producer4).toHaveBeenCalledTimes(1);
+      expect(producer5).toHaveBeenCalledTimes(1);
+      expect(producer6).not.toHaveBeenCalled();
+
+      expect(buffer.$.length).toEqual(5);
+
+      await buffer.drain();
+
+      expect(buffer.$.length).toEqual(0);
+
+      expect(producer1).toHaveBeenCalledTimes(1);
+      expect(producer2).toHaveBeenCalledTimes(1);
+      expect(producer3).toHaveBeenCalledTimes(1);
+      expect(producer4).toHaveBeenCalledTimes(1);
+      expect(producer5).toHaveBeenCalledTimes(1);
+      expect(producer6).not.toHaveBeenCalled();
+    });
+
     test('sync promises', () => {
       const buffer = makePromiseBuffer(1);
       let task1;
@@ -34,6 +72,27 @@ describe('PromiseBuffer', () => {
       expect(producer1).toHaveBeenCalled();
       expect(producer2).not.toHaveBeenCalled();
     });
+
+    test('handles multiple equivalent promises', async () => {
+      const buffer = makePromiseBuffer(10);
+
+      const promise = new Promise(resolve => setTimeout(resolve, 1));
+
+      const producer = vi.fn(() => promise);
+      const producer2 = vi.fn(() => promise);
+
+      expect(buffer.add(producer)).toEqual(promise);
+      expect(buffer.add(producer2)).toEqual(promise);
+
+      expect(buffer.$.length).toEqual(1);
+
+      expect(producer).toHaveBeenCalled();
+      expect(producer2).toHaveBeenCalled();
+
+      await buffer.drain();
+
+      expect(buffer.$.length).toEqual(0);
+    });
   });
 
   describe('drain()', () => {
@@ -62,7 +121,7 @@ describe('PromiseBuffer', () => {
       expect(p5).toHaveBeenCalled();
     });
 
-    test('drains all promises with timeout xxx', async () => {
+    test('drains all promises with timeout', async () => {
       const buffer = makePromiseBuffer();
 
       const p1 = vi.fn(() => new Promise(resolve => setTimeout(resolve, 2)));

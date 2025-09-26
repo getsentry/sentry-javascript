@@ -56,18 +56,6 @@ export function makePromiseBuffer<T>(limit: number = 100): PromiseBuffer<T> {
     return task;
   }
 
-  function drainNextSyncPromise(): PromiseLike<boolean> {
-    const item = buffer.values().next().value;
-
-    if (!item) {
-      return resolvedSyncPromise(true);
-    }
-
-    return resolvedSyncPromise(item).then(() => {
-      return drainNextSyncPromise();
-    });
-  }
-
   /**
    * Wait for all promises in the queue to resolve or for timeout to expire, whichever comes first.
    *
@@ -82,7 +70,7 @@ export function makePromiseBuffer<T>(limit: number = 100): PromiseBuffer<T> {
       return resolvedSyncPromise(true);
     }
 
-    const drainPromise = drainNextSyncPromise();
+    const drainPromise = Promise.all(Array.from(buffer)).then(() => true);
 
     if (!timeout) {
       return drainPromise;
