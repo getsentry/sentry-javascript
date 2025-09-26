@@ -176,9 +176,9 @@ export function _INTERNAL_captureMetric(
 
   const serializedMetric: SerializedMetric = {
     timestamp: timestampInSeconds(),
-    name: processedMetric.name,
+    metric_name: processedMetric.name,
     value: processedMetric.value,
-    type: processedMetric.type,
+    metric_type: processedMetric.type,
     unit: processedMetric.unit,
     attributes: serializedAttributes,
     trace_id: traceId,

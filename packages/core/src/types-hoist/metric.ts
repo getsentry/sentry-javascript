@@ -42,7 +42,7 @@ export interface SerializedMetric {
   /**
    * The name of the metric.
    */
-  name: string;
+  metric_name: string;
 
   /**
    * The value of the metric.
@@ -52,7 +52,7 @@ export interface SerializedMetric {
   /**
    * The type of metric.
    */
-  type: MetricType;
+  metric_type: MetricType;
 
   /**
    * The unit of the metric value.

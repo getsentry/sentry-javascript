@@ -21,7 +21,7 @@ describe('trace metrics', () => {
     const metricItems = metricEnvelope[1][0][1].items;
 
     // Check that all metric types are captured
-    const metricNames = metricItems.map((item: any) => item.name);
+    const metricNames = metricItems.map((item: any) => item.metric_name);
     expect(metricNames).toContain('api.requests');
     expect(metricNames).toContain('items.processed');
     expect(metricNames).toContain('memory.usage');
@@ -37,11 +37,11 @@ describe('trace metrics', () => {
     expect(metricNames).toContain('user.action');
 
     // Check specific metrics
-    const apiRequestsMetric = metricItems.find((item: any) => item.name === 'api.requests');
+    const apiRequestsMetric = metricItems.find((item: any) => item.metric_name === 'api.requests');
     expect(apiRequestsMetric).toMatchObject({
-      name: 'api.requests',
+      metric_name: 'api.requests',
       value: 1,
-      type: 'counter',
+      metric_type: 'counter',
       attributes: expect.objectContaining({
         'endpoint': { value: '/api/users', type: 'string' },
         'method': { value: 'GET', type: 'string' },
@@ -49,11 +49,11 @@ describe('trace metrics', () => {
       }),
     });
 
-    const memoryUsageMetric = metricItems.find((item: any) => item.name === 'memory.usage');
+    const memoryUsageMetric = metricItems.find((item: any) => item.metric_name === 'memory.usage');
     expect(memoryUsageMetric).toMatchObject({
-      name: 'memory.usage',
+      metric_name: 'memory.usage',
       value: 1024,
-      type: 'gauge',
+      metric_type: 'gauge',
       unit: 'megabyte',
       attributes: expect.objectContaining({
         'process': { value: 'web-server', type: 'string' },
@@ -61,11 +61,11 @@ describe('trace metrics', () => {
       }),
     });
 
-    const responseTimeMetric = metricItems.find((item: any) => item.name === 'response.time');
+    const responseTimeMetric = metricItems.find((item: any) => item.metric_name === 'response.time');
     expect(responseTimeMetric).toMatchObject({
-      name: 'response.time',
+      metric_name: 'response.time',
       value: 150,
-      type: 'histogram',
+      metric_type: 'histogram',
       unit: 'millisecond',
       attributes: expect.objectContaining({
         'endpoint': { value: '/api/data', type: 'string' },
@@ -74,11 +74,11 @@ describe('trace metrics', () => {
       }),
     });
 
-    const taskDurationMetric = metricItems.find((item: any) => item.name === 'task.duration');
+    const taskDurationMetric = metricItems.find((item: any) => item.metric_name === 'task.duration');
     expect(taskDurationMetric).toMatchObject({
-      name: 'task.duration',
+      metric_name: 'task.duration',
       value: 500,
-      type: 'distribution',
+      metric_type: 'distribution',
       unit: 'millisecond',
       attributes: expect.objectContaining({
         'task': { value: 'data-processing', type: 'string' },
@@ -86,11 +86,11 @@ describe('trace metrics', () => {
       }),
     });
 
-    const uniqueUsersMetric = metricItems.find((item: any) => item.name === 'unique.users');
+    const uniqueUsersMetric = metricItems.find((item: any) => item.metric_name === 'unique.users');
     expect(uniqueUsersMetric).toMatchObject({
-      name: 'unique.users',
+      metric_name: 'unique.users',
       value: 'user-123',
-      type: 'set',
+      metric_type: 'set',
       attributes: expect.objectContaining({
         'page': { value: '/dashboard', type: 'string' },
         'action': { value: 'view', type: 'string' },
@@ -98,7 +98,7 @@ describe('trace metrics', () => {
     });
 
     // Check that user context is included
-    const userActionMetric = metricItems.find((item: any) => item.name === 'user.action');
+    const userActionMetric = metricItems.find((item: any) => item.metric_name === 'user.action');
     expect(userActionMetric.attributes).toMatchObject({
       'user.id': { value: 'user-456', type: 'string' },
       'user.email': { value: 'test@example.com', type: 'string' },
@@ -107,7 +107,7 @@ describe('trace metrics', () => {
     });
 
     // Check that metrics within spans have trace_id
-    const spanMetric = metricItems.find((item: any) => item.name === 'span.metric');
+    const spanMetric = metricItems.find((item: any) => item.metric_name === 'span.metric');
     expect(spanMetric.trace_id).toBeDefined();
     expect(spanMetric.trace_id).toMatch(/^[a-f0-9]{32}$/);
   });
@@ -141,15 +141,15 @@ describe('trace metrics', () => {
     const metricItems = metricEnvelope[1][0][1].items;
 
     // Check that filtered metrics are not present
-    const metricNames = metricItems.map((item: any) => item.name);
+    const metricNames = metricItems.map((item: any) => item.metric_name);
     expect(metricNames).not.toContain('filtered.metric');
-
+    
     // Check that modified metric has updated value
-    const modifiedMetric = metricItems.find((item: any) => item.name === 'modified.metric');
+    const modifiedMetric = metricItems.find((item: any) => item.metric_name === 'modified.metric');
     expect(modifiedMetric).toMatchObject({
-      name: 'modified.metric',
+      metric_name: 'modified.metric',
       value: 200, // Modified from 100
-      type: 'gauge',
+      metric_type: 'gauge',
     });
   });
 });
