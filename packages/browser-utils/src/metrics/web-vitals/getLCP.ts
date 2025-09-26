@@ -52,7 +52,7 @@ export const onLCP = (onReport: (metric: LCPMetric) => void, opts: ReportOpts = 
     const handleEntries = (entries: LCPMetric['entries']) => {
       // If reportAllChanges is set then call this function for each entry,
       // otherwise only consider the last one.
-      if (!opts!.reportAllChanges) {
+      if (!opts.reportAllChanges) {
         // eslint-disable-next-line no-param-reassign
         entries = entries.slice(-1);
       }

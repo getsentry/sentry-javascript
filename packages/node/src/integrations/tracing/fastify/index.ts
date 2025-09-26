@@ -101,7 +101,7 @@ function getFastifyIntegration(): ReturnType<typeof _fastifyIntegration> | undef
   if (!client) {
     return undefined;
   } else {
-    return client.getIntegrationByName(INTEGRATION_NAME) as ReturnType<typeof _fastifyIntegration> | undefined;
+    return client.getIntegrationByName(INTEGRATION_NAME);
   }
 }
 

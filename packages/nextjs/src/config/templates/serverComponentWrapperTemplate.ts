@@ -46,7 +46,7 @@ if (typeof serverComponent === 'function') {
 
       // We try-catch here just in `requestAsyncStorage` is undefined since it may not be defined
       try {
-        const requestAsyncStore = requestAsyncStorage?.getStore() as ReturnType<RequestAsyncStorage['getStore']>;
+        const requestAsyncStore = requestAsyncStorage?.getStore();
         sentryTraceHeader = requestAsyncStore?.headers.get('sentry-trace') ?? undefined;
         baggageHeader = requestAsyncStore?.headers.get('baggage') ?? undefined;
         headers = requestAsyncStore?.headers;

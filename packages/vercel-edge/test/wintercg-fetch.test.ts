@@ -8,7 +8,7 @@ import { winterCGFetchIntegration } from '../src/integrations/wintercg-fetch';
 
 class FakeClient extends VercelEdgeClient {
   public getIntegrationByName<T extends Integration = Integration>(name: string): T | undefined {
-    return name === 'WinterCGFetch' ? (winterCGFetchIntegration() as Integration as T) : undefined;
+    return name === 'WinterCGFetch' ? (winterCGFetchIntegration() as T) : undefined;
   }
 }
 

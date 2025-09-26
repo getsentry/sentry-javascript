@@ -2,8 +2,10 @@ import type { SpanAttributes } from '@sentry/core';
 import { browserPerformanceTimeOrigin } from '@sentry/core';
 import { extractNetworkProtocol, getBrowserPerformanceAPI } from './utils';
 
-function getAbsoluteTime(time = 0): number {
-  return ((browserPerformanceTimeOrigin() || performance.timeOrigin) + time) / 1000;
+function getAbsoluteTime(time: number | undefined): number | undefined {
+  // falsy values should be preserved so that we can later on drop undefined values and
+  // preserve 0 vals for cross-origin resources without proper `Timing-Allow-Origin` header.
+  return time ? ((browserPerformanceTimeOrigin() || performance.timeOrigin) + time) / 1000 : time;
 }
 
 /**
@@ -30,7 +32,7 @@ export function resourceTimingToSpanAttributes(resourceTiming: PerformanceResour
     return timingSpanData;
   }
 
-  return {
+  return dropUndefinedKeysFromObject({
     ...timingSpanData,
 
     'http.request.redirect_start': getAbsoluteTime(resourceTiming.redirectStart),
@@ -55,6 +57,16 @@ export function resourceTimingToSpanAttributes(resourceTiming: PerformanceResour
     // For TTFB we actually want the relative time from timeOrigin to responseStart
     // This way, TTFB always measures the "first page load" experience.
     // see: https://web.dev/articles/ttfb#measure-resource-requests
-    'http.request.time_to_first_byte': (resourceTiming.responseStart ?? 0) / 1000,
-  };
+    'http.request.time_to_first_byte':
+      resourceTiming.responseStart != null ? resourceTiming.responseStart / 1000 : undefined,
+  });
+}
+
+/**
+ * Remove properties with `undefined` as value from an object.
+ * In contrast to `dropUndefinedKeys` in core this funciton only works on first-level
+ * key-value objects and does not recursively go into object properties or arrays.
+ */
+function dropUndefinedKeysFromObject<T extends object>(attrs: T): Partial<T> {
+  return Object.fromEntries(Object.entries(attrs).filter(([, value]) => value != null)) as Partial<T>;
 }

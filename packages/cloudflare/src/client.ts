@@ -1,7 +1,7 @@
 import type { ClientOptions, Options, ServerRuntimeClientOptions } from '@sentry/core';
 import { applySdkMetadata, ServerRuntimeClient } from '@sentry/core';
+import type { makeFlushLock } from './flush';
 import type { CloudflareTransportOptions } from './transport';
-import type { makeFlushLock } from './utils/flushLock';
 
 /**
  * The Sentry Cloudflare SDK Client.

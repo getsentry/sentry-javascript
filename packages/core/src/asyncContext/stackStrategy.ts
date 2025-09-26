@@ -135,7 +135,7 @@ function withScope<T>(callback: (scope: Scope) => T): T {
 }
 
 function withSetScope<T>(scope: Scope, callback: (scope: Scope) => T): T {
-  const stack = getAsyncContextStack() as AsyncContextStack;
+  const stack = getAsyncContextStack();
   return stack.withScope(() => {
     stack.getStackTop().scope = scope;
     return callback(scope);

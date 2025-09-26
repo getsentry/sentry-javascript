@@ -61,5 +61,5 @@ sentryTest('captures correct timestamps', async ({ getLocalTestUrl, page, browse
   expect(endTimestamp).toEqual(expect.any(Number));
   expect(endTimestamp).toBeGreaterThan(startTimestamp);
 
-  expect(eventData!.breadcrumbs![0].timestamp).toBeGreaterThan(startTimestamp);
+  expect(eventData.breadcrumbs![0].timestamp).toBeGreaterThan(startTimestamp);
 });

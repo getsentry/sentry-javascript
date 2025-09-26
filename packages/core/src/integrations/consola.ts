@@ -1,6 +1,6 @@
 import type { Client } from '../client';
 import { getClient } from '../currentScopes';
-import { _INTERNAL_captureLog } from '../logs/exports';
+import { _INTERNAL_captureLog } from '../logs/internal';
 import { formatConsoleArgs } from '../logs/utils';
 import type { LogSeverityLevel } from '../types-hoist/log';
 

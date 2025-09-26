@@ -15,6 +15,7 @@ export {
   anthropicAIIntegration,
   // eslint-disable-next-line deprecation/deprecation
   anrIntegration,
+  googleGenAIIntegration,
   // eslint-disable-next-line deprecation/deprecation
   disableAnrDetectionForCallback,
   captureCheckIn,
@@ -63,6 +64,7 @@ export {
   winterCGHeadersToDict,
   graphqlIntegration,
   hapiIntegration,
+  honoIntegration,
   httpIntegration,
   // eslint-disable-next-line deprecation/deprecation
   inboundFiltersIntegration,
@@ -115,6 +117,7 @@ export {
   setupConnectErrorHandler,
   setupExpressErrorHandler,
   setupHapiErrorHandler,
+  setupHonoErrorHandler,
   setupKoaErrorHandler,
   setUser,
   spanToBaggageHeader,

@@ -266,6 +266,8 @@ const PLATFORM_NAMES: { [platform: string]: string } = {
   openbsd: 'OpenBSD',
   sunos: 'SunOS',
   win32: 'Windows',
+  ohos: 'OpenHarmony',
+  android: 'Android',
 };
 
 /** Linux version file to check for a distribution. */
@@ -387,7 +389,7 @@ async function getLinuxInfo(): Promise<OsContext> {
     // usually quite small, this should not allocate too much memory and we only
     // hold on to it for a very short amount of time.
     const distroPath = join('/etc', distroFile.name);
-    const contents = ((await readFileAsync(distroPath, { encoding: 'utf-8' })) as string).toLowerCase();
+    const contents = (await readFileAsync(distroPath, { encoding: 'utf-8' })).toLowerCase();
 
     // Some Linux distributions store their release information in the same file
     // (e.g. RHEL and Centos). In those cases, we scan the file for an

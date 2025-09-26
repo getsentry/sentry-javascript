@@ -42,7 +42,6 @@ export const thirdPartyErrorFilterIntegration = defineIntegration((options: Opti
     name: 'ThirdPartyErrorsFilter',
     setup(client) {
       // We need to strip metadata from stack frames before sending them to Sentry since these are client side only.
-      // TODO(lforst): Move this cleanup logic into a more central place in the SDK.
       client.on('beforeEnvelope', envelope => {
         forEachEnvelopeItem(envelope, (item, type) => {
           if (type === 'event') {
@@ -108,8 +107,9 @@ function getBundleKeysForAllFramesWithFilenames(event: Event): string[][] | unde
 
   return (
     frames
-      // Exclude frames without a filename since these are likely native code or built-ins
-      .filter(frame => !!frame.filename)
+      // Exclude frames without a filename or without lineno and colno,
+      // since these are likely native code or built-ins
+      .filter(frame => !!frame.filename && (frame.lineno ?? frame.colno) != null)
       .map(frame => {
         if (frame.module_metadata) {
           return Object.keys(frame.module_metadata)

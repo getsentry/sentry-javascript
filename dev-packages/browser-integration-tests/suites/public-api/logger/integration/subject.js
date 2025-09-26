@@ -13,4 +13,12 @@ console.log('Mixed:', 'prefix', { obj: true }, [4, 5, 6], 'suffix');
 
 console.log('');
 
+// Test console substitution patterns (should NOT generate template attributes)
+console.log('String substitution %s %d', 'test', 42);
+console.log('Object substitution %o', { key: 'value' });
+
+// Test multiple arguments without substitutions (should generate template attributes)
+console.log('first', 0, 1, 2);
+console.log('hello', true, null, undefined);
+
 Sentry.flush();

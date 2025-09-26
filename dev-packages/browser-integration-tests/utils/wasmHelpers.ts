@@ -10,6 +10,6 @@ export function shouldSkipWASMTests(browser: string): boolean {
   if (browser === 'webkit') {
     return true;
   }
-  const bundle = process.env.PW_BUNDLE as string | undefined;
+  const bundle = process.env.PW_BUNDLE;
   return bundle != null;
 }

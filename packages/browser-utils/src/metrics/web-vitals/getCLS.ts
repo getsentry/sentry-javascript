@@ -74,7 +74,7 @@ export const onCLS = (onReport: (metric: CLSMetric) => void, opts: ReportOpts = 
 
       const po = observe('layout-shift', handleEntries);
       if (po) {
-        report = bindReporter(onReport, metric, CLSThresholds, opts!.reportAllChanges);
+        report = bindReporter(onReport, metric, CLSThresholds, opts.reportAllChanges);
 
         WINDOW.document?.addEventListener('visibilitychange', () => {
           if (WINDOW.document?.visibilityState === 'hidden') {

@@ -1,6 +1,6 @@
 import { describe, expect, it, test, vi } from 'vitest';
 import { createTransport, Scope } from '../../src';
-import { _INTERNAL_captureLog, _INTERNAL_flushLogsBuffer } from '../../src/logs/exports';
+import { _INTERNAL_captureLog, _INTERNAL_flushLogsBuffer } from '../../src/logs/internal';
 import type { ServerRuntimeClientOptions } from '../../src/server-runtime-client';
 import { ServerRuntimeClient } from '../../src/server-runtime-client';
 import type { Event, EventHint } from '../../src/types-hoist/event';
@@ -214,12 +214,14 @@ describe('ServerRuntimeClient', () => {
         enableLogs: true,
       });
       client = new ServerRuntimeClient(options);
+      const scope = new Scope();
+      scope.setClient(client);
 
       const sendEnvelopeSpy = vi.spyOn(client, 'sendEnvelope');
 
       // Create a large log message that will exceed the 800KB threshold
       const largeMessage = 'x'.repeat(400_000); // 400KB string
-      _INTERNAL_captureLog({ message: largeMessage, level: 'info' }, client);
+      _INTERNAL_captureLog({ message: largeMessage, level: 'info' }, scope);
 
       expect(sendEnvelopeSpy).toHaveBeenCalledTimes(1);
       expect(client['_logWeight']).toBe(0); // Weight should be reset after flush
@@ -231,12 +233,14 @@ describe('ServerRuntimeClient', () => {
         enableLogs: true,
       });
       client = new ServerRuntimeClient(options);
+      const scope = new Scope();
+      scope.setClient(client);
 
       const sendEnvelopeSpy = vi.spyOn(client, 'sendEnvelope');
 
       // Create a log message that won't exceed the threshold
       const message = 'x'.repeat(100_000); // 100KB string
-      _INTERNAL_captureLog({ message, level: 'info' }, client);
+      _INTERNAL_captureLog({ message, level: 'info' }, scope);
 
       expect(sendEnvelopeSpy).not.toHaveBeenCalled();
       expect(client['_logWeight']).toBeGreaterThan(0);
@@ -248,12 +252,14 @@ describe('ServerRuntimeClient', () => {
         enableLogs: true,
       });
       client = new ServerRuntimeClient(options);
+      const scope = new Scope();
+      scope.setClient(client);
 
       const sendEnvelopeSpy = vi.spyOn(client, 'sendEnvelope');
 
       // Add some logs
-      _INTERNAL_captureLog({ message: 'test1', level: 'info' }, client);
-      _INTERNAL_captureLog({ message: 'test2', level: 'info' }, client);
+      _INTERNAL_captureLog({ message: 'test1', level: 'info' }, scope);
+      _INTERNAL_captureLog({ message: 'test2', level: 'info' }, scope);
 
       // Trigger flush directly
       _INTERNAL_flushLogsBuffer(client);
@@ -267,12 +273,14 @@ describe('ServerRuntimeClient', () => {
         dsn: PUBLIC_DSN,
       });
       client = new ServerRuntimeClient(options);
+      const scope = new Scope();
+      scope.setClient(client);
 
       const sendEnvelopeSpy = vi.spyOn(client, 'sendEnvelope');
 
       // Create a large log message
       const largeMessage = 'x'.repeat(400_000);
-      _INTERNAL_captureLog({ message: largeMessage, level: 'info' }, client);
+      _INTERNAL_captureLog({ message: largeMessage, level: 'info' }, scope);
 
       expect(sendEnvelopeSpy).not.toHaveBeenCalled();
       expect(client['_logWeight']).toBe(0);
@@ -284,12 +292,14 @@ describe('ServerRuntimeClient', () => {
         enableLogs: true,
       });
       client = new ServerRuntimeClient(options);
+      const scope = new Scope();
+      scope.setClient(client);
 
       const sendEnvelopeSpy = vi.spyOn(client, 'sendEnvelope');
 
       // Add some logs
-      _INTERNAL_captureLog({ message: 'test1', level: 'info' }, client);
-      _INTERNAL_captureLog({ message: 'test2', level: 'info' }, client);
+      _INTERNAL_captureLog({ message: 'test1', level: 'info' }, scope);
+      _INTERNAL_captureLog({ message: 'test2', level: 'info' }, scope);
 
       // Trigger flush event
       client.emit('flush');

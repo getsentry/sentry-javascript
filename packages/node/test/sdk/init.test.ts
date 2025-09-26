@@ -111,7 +111,7 @@ describe('init()', () => {
 
       expect(mockDefaultIntegrations[0]?.setupOnce as Mock).toHaveBeenCalledTimes(1);
       expect(mockDefaultIntegrations[1]?.setupOnce as Mock).toHaveBeenCalledTimes(0);
-      expect(newIntegration.setupOnce as Mock).toHaveBeenCalledTimes(1);
+      expect(newIntegration.setupOnce).toHaveBeenCalledTimes(1);
       expect(mockAutoPerformanceIntegrations).toHaveBeenCalledTimes(0);
     });
 
@@ -133,7 +133,7 @@ describe('init()', () => {
 
       expect(mockIntegrations[0]?.setupOnce as Mock).toHaveBeenCalledTimes(1);
       expect(mockIntegrations[1]?.setupOnce as Mock).toHaveBeenCalledTimes(1);
-      expect(autoPerformanceIntegration.setupOnce as Mock).toHaveBeenCalledTimes(1);
+      expect(autoPerformanceIntegration.setupOnce).toHaveBeenCalledTimes(1);
       expect(mockAutoPerformanceIntegrations).toHaveBeenCalledTimes(1);
 
       const client = getClient();

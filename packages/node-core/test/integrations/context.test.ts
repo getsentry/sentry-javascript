@@ -5,7 +5,7 @@ import { conditionalTest } from '../helpers/conditional';
 
 vi.mock('node:os', async () => {
   // eslint-disable-next-line @typescript-eslint/consistent-type-imports
-  const original = (await vi.importActual('node:os')) as typeof import('node:os');
+  const original = await vi.importActual('node:os');
   return {
     ...original,
     uptime: original.uptime,

@@ -31,7 +31,7 @@ describe('wrapServerRouteWithSentry', () => {
     it('assigns the route id as name if available', () => {
       const wrappedRouteHandler = wrapServerRouteWithSentry(originalRouteHandler);
 
-      wrappedRouteHandler(getRequestEventMock() as RequestEvent);
+      wrappedRouteHandler(getRequestEventMock());
 
       expect(startSpanSpy).toHaveBeenCalledWith(
         {
@@ -81,7 +81,7 @@ describe('wrapServerRouteWithSentry', () => {
       });
 
       await expect(async () => {
-        await wrappedRouteHandler(getRequestEventMock() as RequestEvent);
+        await wrappedRouteHandler(getRequestEventMock());
       }).rejects.toThrowError('Server Route Error');
 
       expect(captureExceptionSpy).toHaveBeenCalledWith(error, {
@@ -95,7 +95,7 @@ describe('wrapServerRouteWithSentry', () => {
       });
 
       await expect(async () => {
-        await wrappedRouteHandler(getRequestEventMock() as RequestEvent);
+        await wrappedRouteHandler(getRequestEventMock());
       }).rejects.toThrow();
 
       expect(captureExceptionSpy).toHaveBeenCalledWith(
@@ -115,7 +115,7 @@ describe('wrapServerRouteWithSentry', () => {
       });
 
       await expect(async () => {
-        await wrappedRouteHandler(getRequestEventMock() as RequestEvent);
+        await wrappedRouteHandler(getRequestEventMock());
       }).rejects.toThrow();
 
       expect(captureExceptionSpy).not.toHaveBeenCalled();
@@ -127,7 +127,7 @@ describe('wrapServerRouteWithSentry', () => {
       });
 
       await expect(async () => {
-        await wrappedRouteHandler(getRequestEventMock() as RequestEvent);
+        await wrappedRouteHandler(getRequestEventMock());
       }).rejects.toThrow();
 
       expect(captureExceptionSpy).not.toHaveBeenCalled();

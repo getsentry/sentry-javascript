@@ -1,6 +1,12 @@
+import { DEBUG_BUILD } from '../debug-build';
 import type { ClientOptions } from '../types-hoist/options';
 import type { SpanJSON } from '../types-hoist/span';
+import { debug } from './debug-logger';
 import { isMatchingPattern } from './string';
+
+function logIgnoredSpan(droppedSpan: Pick<SpanJSON, 'description' | 'op'>): void {
+  debug.log(`Ignoring span ${droppedSpan.op} - ${droppedSpan.description} because it matches \`ignoreSpans\`.`);
+}
 
 /**
  * Check if a span should be ignored based on the ignoreSpans configuration.
@@ -16,6 +22,7 @@ export function shouldIgnoreSpan(
   for (const pattern of ignoreSpans) {
     if (isStringOrRegExp(pattern)) {
       if (isMatchingPattern(span.description, pattern)) {
+        DEBUG_BUILD && logIgnoredSpan(span);
         return true;
       }
       continue;
@@ -33,6 +40,7 @@ export function shouldIgnoreSpan(
     // not both op and name actually have to match. This is the most efficient way to check
     // for all combinations of name and op patterns.
     if (nameMatches && opMatches) {
+      DEBUG_BUILD && logIgnoredSpan(span);
       return true;
     }
   }

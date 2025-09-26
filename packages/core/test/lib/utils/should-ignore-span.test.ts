@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { ClientOptions, SpanJSON } from '../../../src';
+import { debug } from '../../../src/utils/debug-logger';
 import { reparentChildSpans, shouldIgnoreSpan } from '../../../src/utils/should-ignore-span';
 
 describe('shouldIgnoreSpan', () => {
@@ -86,6 +87,16 @@ describe('shouldIgnoreSpan', () => {
     expect(shouldIgnoreSpan(span10, ignoreSpans)).toBe(false);
     expect(shouldIgnoreSpan(span11, ignoreSpans)).toBe(false);
     expect(shouldIgnoreSpan(span12, ignoreSpans)).toBe(false);
+  });
+
+  it('emits a debug log when a span is ignored', () => {
+    const debugLogSpy = vi.spyOn(debug, 'log');
+    const span = { description: 'testDescription', op: 'testOp' };
+    const ignoreSpans = [/test/];
+    expect(shouldIgnoreSpan(span, ignoreSpans)).toBe(true);
+    expect(debugLogSpy).toHaveBeenCalledWith(
+      'Ignoring span testOp - testDescription because it matches `ignoreSpans`.',
+    );
   });
 });
 

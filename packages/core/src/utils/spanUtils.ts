@@ -323,7 +323,7 @@ export function showSpanDropWarning(): void {
     consoleSandbox(() => {
       // eslint-disable-next-line no-console
       console.warn(
-        '[Sentry] Returning null from `beforeSendSpan` is disallowed. To drop certain spans, configure the respective integrations directly.',
+        '[Sentry] Returning null from `beforeSendSpan` is disallowed. To drop certain spans, configure the respective integrations directly or use `ignoreSpans`.',
       );
     });
     hasShownSpanDropWarning = true;

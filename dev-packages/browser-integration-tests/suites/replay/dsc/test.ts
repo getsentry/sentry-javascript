@@ -48,7 +48,7 @@ sentryTest(
 
     const req0 = await transactionReq;
 
-    const envHeader = envelopeRequestParser(req0, 0) as EventEnvelopeHeaders;
+    const envHeader = envelopeRequestParser<EventEnvelopeHeaders>(req0, 0);
     const replay = await getReplaySnapshot(page);
 
     expect(replay.session?.id).toBeDefined();
@@ -96,7 +96,7 @@ sentryTest(
 
     const req0 = await transactionReq;
 
-    const envHeader = envelopeRequestParser(req0, 0) as EventEnvelopeHeaders;
+    const envHeader = envelopeRequestParser<EventEnvelopeHeaders>(req0, 0);
     const replay = await getReplaySnapshot(page);
 
     expect(replay.session?.id).toBeDefined();
@@ -148,7 +148,7 @@ sentryTest(
 
     const req0 = await transactionReq;
 
-    const envHeader = envelopeRequestParser(req0, 0) as EventEnvelopeHeaders;
+    const envHeader = envelopeRequestParser<EventEnvelopeHeaders>(req0, 0);
     const replay = await getReplaySnapshot(page);
 
     expect(replay.session?.id).toBeDefined();
@@ -191,7 +191,7 @@ sentryTest(
 
     const req0 = await transactionReq;
 
-    const envHeader = envelopeRequestParser(req0, 0) as EventEnvelopeHeaders;
+    const envHeader = envelopeRequestParser<EventEnvelopeHeaders>(req0, 0);
 
     const replay = await getReplaySnapshot(page);
 
@@ -235,7 +235,7 @@ sentryTest('should add replay_id to error DSC while replay is active', async ({ 
 
   await page.evaluate('window._triggerError(1)');
 
-  const error1Header = envelopeRequestParser(await error1Req, 0) as EventEnvelopeHeaders;
+  const error1Header = envelopeRequestParser<EventEnvelopeHeaders>(await error1Req, 0);
   const replay = await getReplaySnapshot(page);
 
   expect(replay.session?.id).toBeDefined();
@@ -260,7 +260,7 @@ sentryTest('should add replay_id to error DSC while replay is active', async ({ 
   await page.waitForFunction('!window.Replay.getReplayId();');
   await page.evaluate('window._triggerError(2)');
 
-  const error2Header = envelopeRequestParser(await error2Req, 0) as EventEnvelopeHeaders;
+  const error2Header = envelopeRequestParser<EventEnvelopeHeaders>(await error2Req, 0);
 
   expect(error2Header.trace).toBeDefined();
   expect(error2Header.trace).toEqual({

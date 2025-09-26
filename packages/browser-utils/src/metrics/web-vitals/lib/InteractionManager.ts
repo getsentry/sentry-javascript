@@ -104,7 +104,7 @@ export class InteractionManager {
     // The least-long of the 10 longest interactions.
     const minLongestInteraction = this._longestInteractionList.at(-1);
 
-    let interaction = this._longestInteractionMap.get(entry.interactionId!);
+    let interaction = this._longestInteractionMap.get(entry.interactionId);
 
     // Only process the entry if it's possibly one of the ten longest,
     // or if it's part of an existing interaction.
@@ -126,7 +126,7 @@ export class InteractionManager {
         }
       } else {
         interaction = {
-          id: entry.interactionId!,
+          id: entry.interactionId,
           entries: [entry],
           _latency: entry.duration,
         };

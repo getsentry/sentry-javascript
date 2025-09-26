@@ -3,6 +3,7 @@
  */
 
 import * as sentryCore from '@sentry/core';
+import { Scope } from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { applyDefaultOptions, BrowserClient } from '../src/client';
 import { WINDOW } from '../src/helpers';
@@ -30,10 +31,12 @@ describe('BrowserClient', () => {
         sendClientReports: true,
       }),
     );
+    const scope = new Scope();
+    scope.setClient(client);
 
     // Add some logs
-    sentryCore._INTERNAL_captureLog({ level: 'info', message: 'test log 1' }, client);
-    sentryCore._INTERNAL_captureLog({ level: 'info', message: 'test log 2' }, client);
+    sentryCore._INTERNAL_captureLog({ level: 'info', message: 'test log 1' }, scope);
+    sentryCore._INTERNAL_captureLog({ level: 'info', message: 'test log 2' }, scope);
 
     // Simulate visibility change to hidden
     if (WINDOW.document) {
@@ -58,9 +61,12 @@ describe('BrowserClient', () => {
     it('flushes logs when page visibility changes to hidden', () => {
       const flushOutcomesSpy = vi.spyOn(client as any, '_flushOutcomes');
 
+      const scope = new Scope();
+      scope.setClient(client);
+
       // Add some logs
-      sentryCore._INTERNAL_captureLog({ level: 'info', message: 'test log 1' }, client);
-      sentryCore._INTERNAL_captureLog({ level: 'info', message: 'test log 2' }, client);
+      sentryCore._INTERNAL_captureLog({ level: 'info', message: 'test log 1' }, scope);
+      sentryCore._INTERNAL_captureLog({ level: 'info', message: 'test log 2' }, scope);
 
       // Simulate visibility change to hidden
       if (WINDOW.document) {
@@ -73,9 +79,12 @@ describe('BrowserClient', () => {
     });
 
     it('flushes logs on flush event', () => {
+      const scope = new Scope();
+      scope.setClient(client);
+
       // Add some logs
-      sentryCore._INTERNAL_captureLog({ level: 'info', message: 'test log 1' }, client);
-      sentryCore._INTERNAL_captureLog({ level: 'info', message: 'test log 2' }, client);
+      sentryCore._INTERNAL_captureLog({ level: 'info', message: 'test log 1' }, scope);
+      sentryCore._INTERNAL_captureLog({ level: 'info', message: 'test log 2' }, scope);
 
       // Trigger flush event
       client.emit('flush');
@@ -84,8 +93,11 @@ describe('BrowserClient', () => {
     });
 
     it('flushes logs after idle timeout', () => {
+      const scope = new Scope();
+      scope.setClient(client);
+
       // Add a log which will trigger afterCaptureLog event
-      sentryCore._INTERNAL_captureLog({ level: 'info', message: 'test log' }, client);
+      sentryCore._INTERNAL_captureLog({ level: 'info', message: 'test log' }, scope);
 
       // Fast forward the idle timeout
       vi.advanceTimersByTime(DEFAULT_FLUSH_INTERVAL);
@@ -94,14 +106,17 @@ describe('BrowserClient', () => {
     });
 
     it('resets idle timeout when new logs are captured', () => {
+      const scope = new Scope();
+      scope.setClient(client);
+
       // Add initial log
-      sentryCore._INTERNAL_captureLog({ level: 'info', message: 'test log 1' }, client);
+      sentryCore._INTERNAL_captureLog({ level: 'info', message: 'test log 1' }, scope);
 
       // Fast forward part of the idle timeout
       vi.advanceTimersByTime(DEFAULT_FLUSH_INTERVAL / 2);
 
       // Add another log which should reset the timeout
-      sentryCore._INTERNAL_captureLog({ level: 'info', message: 'test log 2' }, client);
+      sentryCore._INTERNAL_captureLog({ level: 'info', message: 'test log 2' }, scope);
 
       // Fast forward the remaining time
       vi.advanceTimersByTime(DEFAULT_FLUSH_INTERVAL / 2);

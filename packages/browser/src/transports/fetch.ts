@@ -1,5 +1,5 @@
 import type { Transport, TransportMakeRequestResponse, TransportRequest } from '@sentry/core';
-import { createTransport, rejectedSyncPromise } from '@sentry/core';
+import { createTransport } from '@sentry/core';
 import { clearCachedImplementation, getNativeImplementation } from '@sentry-internal/browser-utils';
 import type { WINDOW } from '../helpers';
 import type { BrowserTransportOptions } from './types';
@@ -9,12 +9,12 @@ import type { BrowserTransportOptions } from './types';
  */
 export function makeFetchTransport(
   options: BrowserTransportOptions,
-  nativeFetch: typeof WINDOW.fetch | undefined = getNativeImplementation('fetch'),
+  nativeFetch: typeof WINDOW.fetch = getNativeImplementation('fetch'),
 ): Transport {
   let pendingBodySize = 0;
   let pendingCount = 0;
 
-  function makeRequest(request: TransportRequest): PromiseLike<TransportMakeRequestResponse> {
+  async function makeRequest(request: TransportRequest): Promise<TransportMakeRequestResponse> {
     const requestSize = request.body.length;
     pendingBodySize += requestSize;
     pendingCount++;
@@ -39,29 +39,23 @@ export function makeFetchTransport(
       ...options.fetchOptions,
     };
 
-    if (!nativeFetch) {
-      clearCachedImplementation('fetch');
-      return rejectedSyncPromise('No fetch implementation available');
-    }
-
     try {
-      // Note: We do not need to suppress tracing here, becasue we are using the native fetch, instead of our wrapped one.
-      return nativeFetch(options.url, requestOptions).then(response => {
-        pendingBodySize -= requestSize;
-        pendingCount--;
-        return {
-          statusCode: response.status,
-          headers: {
-            'x-sentry-rate-limits': response.headers.get('X-Sentry-Rate-Limits'),
-            'retry-after': response.headers.get('Retry-After'),
-          },
-        };
-      });
+      // Note: We do not need to suppress tracing here, because we are using the native fetch, instead of our wrapped one.
+      const response = await nativeFetch(options.url, requestOptions);
+
+      return {
+        statusCode: response.status,
+        headers: {
+          'x-sentry-rate-limits': response.headers.get('X-Sentry-Rate-Limits'),
+          'retry-after': response.headers.get('Retry-After'),
+        },
+      };
     } catch (e) {
       clearCachedImplementation('fetch');
+      throw e;
+    } finally {
       pendingBodySize -= requestSize;
       pendingCount--;
-      return rejectedSyncPromise(e);
     }
   }
 

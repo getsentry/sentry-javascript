@@ -134,7 +134,7 @@ describe('CaptureConsole setup', () => {
 
     expect(mockScope.addEventProcessor).toHaveBeenCalledTimes(1);
 
-    const addedEventProcessor = (mockScope.addEventProcessor as Mock).mock.calls[0]?.[0];
+    const addedEventProcessor = mockScope.addEventProcessor.mock.calls[0]?.[0];
     const someEvent: Event = {};
     addedEventProcessor(someEvent);
 
@@ -315,7 +315,7 @@ describe('CaptureConsole setup', () => {
       const someError = new Error('some error');
       GLOBAL_OBJ.console.error(someError);
 
-      const addedEventProcessor = (mockScope.addEventProcessor as Mock).mock.calls[0]?.[0];
+      const addedEventProcessor = mockScope.addEventProcessor.mock.calls[0]?.[0];
       const someEvent: Event = {
         exception: {
           values: [{}],
@@ -339,7 +339,7 @@ describe('CaptureConsole setup', () => {
       const someError = new Error('some error');
       GLOBAL_OBJ.console.error(someError);
 
-      const addedEventProcessor = (mockScope.addEventProcessor as Mock).mock.calls[0]?.[0];
+      const addedEventProcessor = mockScope.addEventProcessor.mock.calls[0]?.[0];
       const someEvent: Event = {
         exception: {
           values: [{}],
@@ -363,7 +363,7 @@ describe('CaptureConsole setup', () => {
       const someError = new Error('some error');
       GLOBAL_OBJ.console.error(someError);
 
-      const addedEventProcessor = (mockScope.addEventProcessor as Mock).mock.calls[0]?.[0];
+      const addedEventProcessor = mockScope.addEventProcessor.mock.calls[0]?.[0];
       const someEvent: Event = {
         exception: {
           values: [{}],

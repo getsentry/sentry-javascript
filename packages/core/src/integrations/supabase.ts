@@ -302,12 +302,12 @@ function instrumentSupabaseAuthClient(supabaseClientInstance: SupabaseClientInst
 }
 
 function instrumentSupabaseClientConstructor(SupabaseClient: unknown): void {
-  if (isInstrumented((SupabaseClient as unknown as SupabaseClientConstructor).prototype.from)) {
+  if (isInstrumented((SupabaseClient as SupabaseClientConstructor).prototype.from)) {
     return;
   }
 
-  (SupabaseClient as unknown as SupabaseClientConstructor).prototype.from = new Proxy(
-    (SupabaseClient as unknown as SupabaseClientConstructor).prototype.from,
+  (SupabaseClient as SupabaseClientConstructor).prototype.from = new Proxy(
+    (SupabaseClient as SupabaseClientConstructor).prototype.from,
     {
       apply(target, thisArg, argumentsList) {
         const rv = Reflect.apply(target, thisArg, argumentsList);
@@ -320,7 +320,7 @@ function instrumentSupabaseClientConstructor(SupabaseClient: unknown): void {
     },
   );
 
-  markAsInstrumented((SupabaseClient as unknown as SupabaseClientConstructor).prototype.from);
+  markAsInstrumented((SupabaseClient as SupabaseClientConstructor).prototype.from);
 }
 
 function instrumentPostgRESTFilterBuilder(PostgRESTFilterBuilder: PostgRESTFilterBuilder['constructor']): void {

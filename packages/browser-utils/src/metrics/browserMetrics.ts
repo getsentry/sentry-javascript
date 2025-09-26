@@ -473,8 +473,8 @@ export function _addMeasureSpans(
   // Measurements from third parties can be off, which would create invalid spans, dropping transactions in the process.
   if (measureStartTimestamp <= measureEndTimestamp) {
     startAndEndSpan(span, measureStartTimestamp, measureEndTimestamp, {
-      name: entry.name as string,
-      op: entry.entryType as string,
+      name: entry.name,
+      op: entry.entryType,
       attributes,
     });
   }
@@ -595,9 +595,9 @@ function _getEndPropertyNameForNavigationTiming(event: StartEventName): EndEvent
 
 /** Create request and response related spans */
 function _addRequest(span: Span, entry: PerformanceNavigationTiming, timeOrigin: number): void {
-  const requestStartTimestamp = timeOrigin + msToSec(entry.requestStart as number);
-  const responseEndTimestamp = timeOrigin + msToSec(entry.responseEnd as number);
-  const responseStartTimestamp = timeOrigin + msToSec(entry.responseStart as number);
+  const requestStartTimestamp = timeOrigin + msToSec(entry.requestStart);
+  const responseEndTimestamp = timeOrigin + msToSec(entry.responseEnd);
+  const responseStartTimestamp = timeOrigin + msToSec(entry.responseStart);
   if (entry.responseEnd) {
     // It is possible that we are collecting these metrics when the page hasn't finished loading yet, for example when the HTML slowly streams in.
     // In this case, ie. when the document request hasn't finished yet, `entry.responseEnd` will be 0.

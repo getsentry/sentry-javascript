@@ -7,7 +7,7 @@ import { fetchIntegration } from '../../src/integrations/fetch';
 
 class FakeClient extends CloudflareClient {
   public getIntegrationByName<T extends Integration = Integration>(name: string): T | undefined {
-    return name === 'Fetch' ? (fetchIntegration() as Integration as T) : undefined;
+    return name === 'Fetch' ? (fetchIntegration() as T) : undefined;
   }
 }
 

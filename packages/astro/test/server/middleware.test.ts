@@ -200,9 +200,9 @@ describe('sentryMiddleware', () => {
     // @ts-expect-error, a partial ctx object is fine here
     const resultFromNext = await middleware(ctx, next);
 
+    expect(resultFromNext).toBeDefined();
     expect(resultFromNext?.headers.get('content-type')).toEqual('text/html');
-
-    await expect(() => resultFromNext!.text()).rejects.toThrowError();
+    await expect(() => resultFromNext?.text()).rejects.toThrowError();
 
     expect(captureExceptionSpy).toHaveBeenCalledWith(error, {
       mechanism: { handled: false, type: 'auto.middleware.astro' },

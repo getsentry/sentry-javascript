@@ -20,6 +20,9 @@ export function getFinalOperationName(methodPath: string): string {
   if (methodPath.includes('models')) {
     return 'models';
   }
+  if (methodPath.includes('chat')) {
+    return 'chat';
+  }
   return methodPath.split('.').pop() || 'unknown';
 }
 

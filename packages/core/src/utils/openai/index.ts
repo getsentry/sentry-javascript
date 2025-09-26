@@ -201,7 +201,7 @@ function addRequestAttributes(span: Span, params: Record<string, unknown>): void
 function getOptionsFromIntegration(): OpenAiOptions {
   const scope = getCurrentScope();
   const client = scope.getClient();
-  const integration = client?.getIntegrationByName(OPENAI_INTEGRATION_NAME) as OpenAiIntegration | undefined;
+  const integration = client?.getIntegrationByName<OpenAiIntegration>(OPENAI_INTEGRATION_NAME);
   const shouldRecordInputsAndOutputs = integration ? Boolean(client?.getOptions().sendDefaultPii) : false;
 
   return {
@@ -324,7 +324,7 @@ function createDeepProxy<T extends object>(target: T, currentPath = '', options?
       }
 
       if (value && typeof value === 'object') {
-        return createDeepProxy(value as object, methodPath, options);
+        return createDeepProxy(value, methodPath, options);
       }
 
       return value;

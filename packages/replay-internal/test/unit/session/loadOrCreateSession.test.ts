@@ -14,7 +14,7 @@ import type { SessionOptions } from '../../../src/types';
 
 vi.mock('@sentry/core', async () => {
   return {
-    ...((await vi.importActual('@sentry/core')) as { string: unknown }),
+    ...(await vi.importActual('@sentry/core')),
     uuid4: vi.fn(() => 'test_session_uuid'),
   };
 });

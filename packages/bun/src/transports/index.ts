@@ -1,5 +1,5 @@
 import type { BaseTransportOptions, Transport, TransportMakeRequestResponse, TransportRequest } from '@sentry/core';
-import { createTransport, rejectedSyncPromise, suppressTracing } from '@sentry/core';
+import { createTransport, suppressTracing } from '@sentry/core';
 
 export interface BunTransportOptions extends BaseTransportOptions {
   /** Custom headers for the transport. Used by the XHRTransport and FetchTransport */
@@ -30,7 +30,7 @@ export function makeFetchTransport(options: BunTransportOptions): Transport {
         });
       });
     } catch (e) {
-      return rejectedSyncPromise(e);
+      return Promise.reject(e);
     }
   }
 

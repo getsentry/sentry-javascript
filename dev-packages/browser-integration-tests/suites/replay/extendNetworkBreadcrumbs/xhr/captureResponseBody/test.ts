@@ -51,7 +51,7 @@ sentryTest('captures text response body', async ({ getLocalTestUrl, page, browse
   expect(eventData.exception?.values).toHaveLength(1);
 
   expect(eventData?.breadcrumbs?.length).toBe(1);
-  expect(eventData!.breadcrumbs![0]).toEqual({
+  expect(eventData.breadcrumbs![0]).toEqual({
     timestamp: expect.any(Number),
     category: 'xhr',
     type: 'http',
@@ -127,7 +127,7 @@ sentryTest('captures JSON response body', async ({ getLocalTestUrl, page, browse
   expect(eventData.exception?.values).toHaveLength(1);
 
   expect(eventData?.breadcrumbs?.length).toBe(1);
-  expect(eventData!.breadcrumbs![0]).toEqual({
+  expect(eventData.breadcrumbs![0]).toEqual({
     timestamp: expect.any(Number),
     category: 'xhr',
     type: 'http',
@@ -205,7 +205,7 @@ sentryTest('captures JSON response body when responseType=json', async ({ getLoc
   expect(eventData.exception?.values).toHaveLength(1);
 
   expect(eventData?.breadcrumbs?.length).toBe(1);
-  expect(eventData!.breadcrumbs![0]).toEqual({
+  expect(eventData.breadcrumbs![0]).toEqual({
     timestamp: expect.any(Number),
     category: 'xhr',
     type: 'http',
@@ -281,7 +281,7 @@ sentryTest('captures non-text response body', async ({ getLocalTestUrl, page, br
   expect(eventData.exception?.values).toHaveLength(1);
 
   expect(eventData?.breadcrumbs?.length).toBe(1);
-  expect(eventData!.breadcrumbs![0]).toEqual({
+  expect(eventData.breadcrumbs![0]).toEqual({
     timestamp: expect.any(Number),
     category: 'xhr',
     type: 'http',
@@ -357,7 +357,7 @@ sentryTest('does not capture response body when URL does not match', async ({ ge
   expect(eventData.exception?.values).toHaveLength(1);
 
   expect(eventData?.breadcrumbs?.length).toBe(1);
-  expect(eventData!.breadcrumbs![0]).toEqual({
+  expect(eventData.breadcrumbs![0]).toEqual({
     timestamp: expect.any(Number),
     category: 'xhr',
     type: 'http',

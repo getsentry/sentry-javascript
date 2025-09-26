@@ -10,11 +10,11 @@ import {
 import { setAsyncLocalStorageAsyncContextStrategy } from './async';
 import type { CloudflareOptions } from './client';
 import { isInstrumented, markAsInstrumented } from './instrument';
+import { getHonoIntegration } from './integrations/hono';
 import { getFinalOptions } from './options';
 import { wrapRequestHandler } from './request';
 import { addCloudResourceContext } from './scope-utils';
 import { init } from './sdk';
-import { copyExecutionContext } from './utils/copyExecutionContext';
 
 /**
  * Wrapper for Cloudflare handlers.
@@ -38,11 +38,9 @@ export function withSentry<Env = unknown, QueueHandlerMessage = unknown, CfHostM
     if ('fetch' in handler && typeof handler.fetch === 'function' && !isInstrumented(handler.fetch)) {
       handler.fetch = new Proxy(handler.fetch, {
         apply(target, thisArg, args: Parameters<ExportedHandlerFetchHandler<Env, CfHostMetadata>>) {
-          const [request, env, ctx] = args;
+          const [request, env, context] = args;
 
           const options = getFinalOptions(optionsCallback(env), env);
-          const context = copyExecutionContext(ctx);
-          args[2] = context;
 
           return wrapRequestHandler({ options, request, context }, () => target.apply(thisArg, args));
         },
@@ -51,7 +49,7 @@ export function withSentry<Env = unknown, QueueHandlerMessage = unknown, CfHostM
       markAsInstrumented(handler.fetch);
     }
 
-    /* hono does not reach the catch block of the fetch handler and captureException needs to be called in the hono errorHandler */
+    /* Hono does not reach the catch block of the fetch handler and captureException needs to be called in the hono errorHandler */
     if (
       'onError' in handler &&
       'errorHandler' in handler &&
@@ -62,7 +60,7 @@ export function withSentry<Env = unknown, QueueHandlerMessage = unknown, CfHostM
         apply(target, thisArg, args) {
           const [err] = args;
 
-          captureException(err, { mechanism: { handled: false, type: 'auto.faas.cloudflare.error_handler' } });
+          getHonoIntegration()?.handleHonoException(err);
 
           return Reflect.apply(target, thisArg, args);
         },
@@ -74,9 +72,7 @@ export function withSentry<Env = unknown, QueueHandlerMessage = unknown, CfHostM
     if ('scheduled' in handler && typeof handler.scheduled === 'function' && !isInstrumented(handler.scheduled)) {
       handler.scheduled = new Proxy(handler.scheduled, {
         apply(target, thisArg, args: Parameters<ExportedHandlerScheduledHandler<Env>>) {
-          const [event, env, ctx] = args;
-          const context = copyExecutionContext(ctx);
-          args[2] = context;
+          const [event, env, context] = args;
           return withIsolationScope(isolationScope => {
             const options = getFinalOptions(optionsCallback(env), env);
             const waitUntil = context.waitUntil.bind(context);
@@ -119,9 +115,7 @@ export function withSentry<Env = unknown, QueueHandlerMessage = unknown, CfHostM
     if ('email' in handler && typeof handler.email === 'function' && !isInstrumented(handler.email)) {
       handler.email = new Proxy(handler.email, {
         apply(target, thisArg, args: Parameters<EmailExportedHandler<Env>>) {
-          const [emailMessage, env, ctx] = args;
-          const context = copyExecutionContext(ctx);
-          args[2] = context;
+          const [emailMessage, env, context] = args;
           return withIsolationScope(isolationScope => {
             const options = getFinalOptions(optionsCallback(env), env);
             const waitUntil = context.waitUntil.bind(context);
@@ -162,9 +156,7 @@ export function withSentry<Env = unknown, QueueHandlerMessage = unknown, CfHostM
     if ('queue' in handler && typeof handler.queue === 'function' && !isInstrumented(handler.queue)) {
       handler.queue = new Proxy(handler.queue, {
         apply(target, thisArg, args: Parameters<ExportedHandlerQueueHandler<Env, QueueHandlerMessage>>) {
-          const [batch, env, ctx] = args;
-          const context = copyExecutionContext(ctx);
-          args[2] = context;
+          const [batch, env, context] = args;
 
           return withIsolationScope(isolationScope => {
             const options = getFinalOptions(optionsCallback(env), env);
@@ -214,9 +206,7 @@ export function withSentry<Env = unknown, QueueHandlerMessage = unknown, CfHostM
     if ('tail' in handler && typeof handler.tail === 'function' && !isInstrumented(handler.tail)) {
       handler.tail = new Proxy(handler.tail, {
         apply(target, thisArg, args: Parameters<ExportedHandlerTailHandler<Env>>) {
-          const [, env, ctx] = args;
-          const context = copyExecutionContext(ctx);
-          args[2] = context;
+          const [, env, context] = args;
 
           return withIsolationScope(async isolationScope => {
             const options = getFinalOptions(optionsCallback(env), env);

@@ -1,5 +1,4 @@
 import * as Sentry from '@sentry/node';
-import { nodeContextIntegration } from '@sentry/node-core';
 import { loggingTransport } from '@sentry-internal/node-integration-tests';
 
 Sentry.init({
@@ -13,6 +12,12 @@ Sentry.init({
       recordInputs: true,
       recordOutputs: true,
     }),
-    nodeContextIntegration(),
   ],
+  beforeSendTransaction: event => {
+    // Filter out mock express server transactions
+    if (event.transaction.includes('/anthropic/v1/')) {
+      return null;
+    }
+    return event;
+  },
 });

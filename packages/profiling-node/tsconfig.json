@@ -2,7 +2,7 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "module": "esnext",
-    "lib": ["es2018"],
+    "lib": ["es2020"],
     "outDir": "build",
     "types": ["node"]
   },

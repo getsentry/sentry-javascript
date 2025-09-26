@@ -117,7 +117,7 @@ describe('webWorkerIntegration', () => {
 
         // Extract the message handler from the addEventListener call
         expect(mockWorker.addEventListener.mock.calls).toBeDefined();
-        messageHandler = mockWorker.addEventListener.mock.calls![0]![1];
+        messageHandler = mockWorker.addEventListener.mock.calls[0]![1];
       });
 
       it('ignores non-Sentry messages', () => {

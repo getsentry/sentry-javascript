@@ -2,6 +2,153 @@
 
 ## Unreleased
 
+- "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
+
+## 10.15.0
+
+### Important Changes
+
+- **feat(cloudflare): Add honoIntegration with error-filtering function ([#17743](https://github.com/getsentry/sentry-javascript/pull/17743))**
+
+  This release adds a `honoIntegration` to `@sentry/cloudflare`, which exposes a `shouldHandleError` function that lets you define which errors in `onError` should be captured.
+  By default, Sentry captures exceptions with `error.status >= 500 || error.status <= 299`.
+
+  The integration is added by default, and it's possible to modify this behavior like this:
+
+  ```js
+   integrations: [
+     honoIntegration({
+      shouldHandleError: (err) => true; // always capture exceptions in onError
+     })
+   ]
+  ```
+
+- **feat(node): Add instrumentation for hono handler ([#17428](https://github.com/getsentry/sentry-javascript/pull/17428))**
+
+This PR enhances the Hono integration by adding comprehensive handler instrumentation, error handling capabilities.
+
+- **feat(aws): Enable Lambda extension by default when using the Lamba layer ([#17684](https://github.com/getsentry/sentry-javascript/pull/17684))**
+
+- **feat(browser): Add `setActiveSpanInBrowser` to set an active span in the browser ([#17714](https://github.com/getsentry/sentry-javascript/pull/17714))**
+
+This PR adds a feature to the browser SDKs only: Making an inactive span active. We do this to enable use cases where having a span only being active in the callback is not practical.
+
+### Other Changes
+
+- fix(browser): Improve handling of `0` and `undefined` resource timing values ([#17751](https://github.com/getsentry/sentry-javascript/pull/17751))
+- ref(nextjs): Display build compatibility warning for webpack ([#17746](https://github.com/getsentry/sentry-javascript/pull/17746))
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+
+- docs: Reword changelog for google gen ai instrumentation ([#17753](https://github.com/getsentry/sentry-javascript/pull/17753))
+- build: Add `@typescript-eslint/no-unnecessary-type-assertion` rule ([#17728](https://github.com/getsentry/sentry-javascript/pull/17728))
+- build: Update TS target to `es2020` everywhere ([#17709](https://github.com/getsentry/sentry-javascript/pull/17709))
+- chore: Add external contributor to CHANGELOG.md ([#17745](https://github.com/getsentry/sentry-javascript/pull/17745))
+
+</details>
+
+Work in this release was contributed by @Karibash. Thank you for your contribution!
+
+## 10.14.0
+
+### Important Changes
+
+- **feat(cloudflare,vercel-edge): Add support for Google Gen AI instrumentation ([#17723](https://github.com/getsentry/sentry-javascript/pull/17723))**
+
+  The SDK now supports manually instrumenting Google's Generative AI operations in Cloudflare Workers and Vercel Edge Runtime environments, providing insights into your AI operations. You can use `const wrappedClient = Sentry.instrumentGoogleGenAIClient(genAiClient)` to get an instrumented client.
+
+### Other Changes
+
+- fix(nextjs): Display updated turbopack warnings ([#17737](https://github.com/getsentry/sentry-javascript/pull/17737))
+- ref(core): Wrap isolationscope in `WeakRef` when storing it on spans ([#17712](https://github.com/getsentry/sentry-javascript/pull/17712))
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+
+- test(node): Avoid using specific port for node-integration-tests ([#17729](https://github.com/getsentry/sentry-javascript/pull/17729))
+- test(nuxt): Update Nuxt version and add Nitro $fetch test ([#17713](https://github.com/getsentry/sentry-javascript/pull/17713))
+
+</details>
+
+## 10.13.0
+
+### Important Changes
+
+- **feat(browser): Add option to explicitly end pageload span via `reportPageLoaded()` ([#17697](https://github.com/getsentry/sentry-javascript/pull/17697))**
+
+  With this release you can take manual control of ending the pageload span. Usually this span is ended automatically by the SDK, based on a period of inactivity after the initial page was loaded in the browser. If you want full control over the pageload duration, you can tell Sentry, when your page was fully loaded:
+
+  ```js
+  Sentry.init({
+    //...
+    integrations: [
+      // 1. Enable manual pageload reporting
+      Sentry.browserTracingIntegration({ enableReportPageLoaded: true }),
+    ],
+  });
+
+  // 2. Whenever you decide the page is loaded, call:
+  Sentry.reportPageLoaded();
+  ```
+
+  Note that if `Sentry.reportPageLoaded()` is not called within 30 seconds of the initial pageload (or whatever value the `finalTimeout` option is set to), the pageload span will be ended automatically.
+
+- **feat(core,node): Add instrumentation for `GoogleGenerativeAI` ([#17625](https://github.com/getsentry/sentry-javascript/pull/17625))**
+
+  The SDK now automatically instruments the `@google/generative-ai` package to provide insights into your AI operations.
+
+- **feat(nextjs): Promote `useRunAfterProductionCompileHook` to non-experimental build option ([#17721](https://github.com/getsentry/sentry-javascript/pull/17721))**
+
+  The `useRunAfterProductionCompileHook` option is no longer experimental and is now a stable build option for Next.js projects.
+
+- **feat(nextjs): Use `afterProductionCompile` hook for webpack builds ([#17655](https://github.com/getsentry/sentry-javascript/pull/17655))**
+
+  Next.js projects using webpack can opt-in to use the `useRunAfterProductionCompileHook` hook for source map uploads.
+
+- **feat(nextjs): Flip default value for `useRunAfterProductionCompileHook` for Turbopack builds ([#17722](https://github.com/getsentry/sentry-javascript/pull/17722))**
+
+  The `useRunAfterProductionCompileHook` option is now enabled by default for Turbopack builds, enabling automated source map uploads.
+
+- **feat(node): Do not drop 300 and 304 status codes by default ([#17686](https://github.com/getsentry/sentry-javascript/pull/17686))**
+
+  HTTP transactions with 300 and 304 status codes are now captured by default, providing better visibility into redirect and caching behavior.
+
+### Other Changes
+
+- feat(core): Add logger to core and allow scope to be passed log methods ([#17698](https://github.com/getsentry/sentry-javascript/pull/17698))
+- feat(core): Allow to pass `onSuccess` to `handleCallbackErrors` ([#17679](https://github.com/getsentry/sentry-javascript/pull/17679))
+- feat(core): Create template attributes in `consoleLoggingIntegration` ([#17703](https://github.com/getsentry/sentry-javascript/pull/17703))
+- feat(deps): bump @sentry/cli from 2.52.0 to 2.53.0 ([#17652](https://github.com/getsentry/sentry-javascript/pull/17652))
+- feat(node): Add extra platforms to `os` context ([#17720](https://github.com/getsentry/sentry-javascript/pull/17720))
+- fix(browser): Ensure idle span duration is adjusted when child spans are ignored ([#17700](https://github.com/getsentry/sentry-javascript/pull/17700))
+- fix(core): Ensure builtin stack frames don't affect `thirdPartyErrorFilterIntegration` ([#17693](https://github.com/getsentry/sentry-javascript/pull/17693))
+- fix(core): Fix client hook edge cases around multiple callbacks ([#17706](https://github.com/getsentry/sentry-javascript/pull/17706))
+- fix(nextjs): Enable fetch span when OTel setup is skipped ([#17699](https://github.com/getsentry/sentry-javascript/pull/17699))
+- fix(node): Fix `this` context for vercel AI instrumentation ([#17681](https://github.com/getsentry/sentry-javascript/pull/17681))
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+
+- chore: Add external contributor to CHANGELOG.md ([#17725](https://github.com/getsentry/sentry-javascript/pull/17725))
+- chore: Add link to build and test icon in readme ([#17719](https://github.com/getsentry/sentry-javascript/pull/17719))
+- chore(nuxt): Bump Vite and Rollup plugins ([#17671](https://github.com/getsentry/sentry-javascript/pull/17671))
+- chore(repo): Add changelog entry for `reportPageLoaded` ([#17724](https://github.com/getsentry/sentry-javascript/pull/17724))
+- ci: Fix lookup of changed E2E test apps ([#17707](https://github.com/getsentry/sentry-javascript/pull/17707))
+- ci(test-matrix): Add logs for `getTestMatrix` ([#17673](https://github.com/getsentry/sentry-javascript/pull/17673))
+- ref: Avoid some usage of `SyncPromise` where not needed ([#17641](https://github.com/getsentry/sentry-javascript/pull/17641))
+- ref(core): Add debug log when dropping a span via `ignoreSpans` ([#17692](https://github.com/getsentry/sentry-javascript/pull/17692))
+- ref(core): Avoid looking up anthropic-ai integration options ([#17694](https://github.com/getsentry/sentry-javascript/pull/17694))
+- ref(core): Streamline `module_metadata` assignment and cleanup functions ([#17696](https://github.com/getsentry/sentry-javascript/pull/17696))
+- ref(remix): Avoid unnecessary error wrapping `HandleDocumentRequestFunction` ([#17680](https://github.com/getsentry/sentry-javascript/pull/17680))
+- Revert "[Gitflow] Merge master into develop"
+
+</details>
+
+Work in this release was contributed by @Olexandr88. Thank you for your contribution!
+
+## 10.12.0
+
 ### Important Changes
 
 - **ref: Add and Adjust error event `mechanism` values**
@@ -49,10 +196,6 @@
 
 </details>
 
-- "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
-
-### Important Changes
-
 - **feat(node) Ensure `prismaIntegration` works with Prisma 5 ([#17595](https://github.com/getsentry/sentry-javascript/pull/17595))**
 
 We used to require to pass in the v5 version of `@prisma/instrumentation` into `prismaIntegration({ prismaInstrumentation: new PrismaInstrumentation() })`, if you wanted to get full instrumentation for Prisma v5. However, it turns out this does not work on v10 of the SDK anymore, because `@prisma/instrumentation@5` requires OTEL v1.
@@ -90,6 +233,47 @@ With this release, we dropped the requirement to configure anything to get v5 su
   - @opentelemetry/instrumentation-redis bumped to ^0.53.0
   - @opentelemetry/instrumentation-undici bumped to ^0.15.0
   - @prisma/instrumentation bumped to 6.15.0
+
+### Other Changes
+
+- feat(browser): Add timing and status atttributes to resource spans ([#17562](https://github.com/getsentry/sentry-javascript/pull/17562))
+- feat(cloudflare,vercel-edge): Add support for Anthropic AI instrumentation ([#17571](https://github.com/getsentry/sentry-javascript/pull/17571))
+- feat(core): Add Consola integration ([#17435](https://github.com/getsentry/sentry-javascript/pull/17435))
+- feat(deps): Update OpenTelemetry dependencies ([#17569](https://github.com/getsentry/sentry-javascript/pull/17569))
+- feat(core): Export `TracesSamplerSamplingContext` type ([#17523](https://github.com/getsentry/sentry-javascript/pull/17523))
+- feat(deno): Add OpenTelemetry support and vercelAI integration ([#17445](https://github.com/getsentry/sentry-javascript/pull/17445))
+- feat(node-core): Remove experimental note from winston api ([#17626](https://github.com/getsentry/sentry-javascript/pull/17626))
+- feat(node): Ensure `prismaIntegration` works with Prisma v5 ([#17595](https://github.com/getsentry/sentry-javascript/pull/17595))
+- feat(node): Tidy existing ESM loader hook ([#17566](https://github.com/getsentry/sentry-javascript/pull/17566))
+- feat(sveltekit): Align build time options with shared type ([#17413](https://github.com/getsentry/sentry-javascript/pull/17413))
+- fix(core): Fix error handling when sending envelopes ([#17662](https://github.com/getsentry/sentry-javascript/pull/17662))
+- fix(browser): Always start navigation as root span ([#17648](https://github.com/getsentry/sentry-javascript/pull/17648))
+- fix(browser): Ensure propagated `parentSpanId` stays consistent during trace in TwP mode ([#17526](https://github.com/getsentry/sentry-javascript/pull/17526))
+- fix(cloudflare): Initialize once per workflow run and preserve scope for `step.do` ([#17582](https://github.com/getsentry/sentry-javascript/pull/17582))
+- fix(nextjs): Add edge polyfills for nextjs-13 in dev mode ([#17488](https://github.com/getsentry/sentry-javascript/pull/17488))
+- fix(nitro): Support nested `_platform` properties in Nitro 2.11.7+ ([#17596](https://github.com/getsentry/sentry-javascript/pull/17596))
+- fix(node): Preserve synchronous return behavior for streamText and other methods for AI ([#17580](https://github.com/getsentry/sentry-javascript/pull/17580))
+- ref(node): Inline types imported from `shimmer` ([#17597](https://github.com/getsentry/sentry-javascript/pull/17597)) - ref(nuxt): Add and adjust `mechanism.type` in error events ([#17599](https://github.com/getsentry/sentry-javascript/pull/17599))
+- ref(browser): Improve `fetchTransport` error handling ([#17661](https://github.com/getsentry/sentry-javascript/pull/17661))
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+
+- chore: Add changelog note about mechanism changes ([#17632](https://github.com/getsentry/sentry-javascript/pull/17632))
+- chore(aws): Update README.md ([#17601](https://github.com/getsentry/sentry-javascript/pull/17601))
+- chore(deps): bump hono from 4.7.10 to 4.9.7 in /dev-packages/e2e-tests/test-applications/cloudflare-hono ([#17630](https://github.com/getsentry/sentry-javascript/pull/17630))
+- chore(deps): bump next from 14.2.25 to 14.2.32 in /dev-packages/e2e-tests/test-applications/nextjs-app-dir ([#17627](https://github.com/getsentry/sentry-javascript/pull/17627))
+- chore(deps): bump next from 14.2.25 to 14.2.32 in /dev-packages/e2e-tests/test-applications/nextjs-pages-dir ([#17620](https://github.com/getsentry/sentry-javascript/pull/17620))
+- chore(deps): bump next from 14.2.29 to 14.2.32 in /dev-packages/e2e-tests/test-applications/nextjs-orpc ([#17494](https://github.com/getsentry/sentry-javascript/pull/17494))
+- chore(deps): bump next from 14.2.30 to 14.2.32 in /dev-packages/e2e-tests/test-applications/nextjs-14 ([#17628](https://github.com/getsentry/sentry-javascript/pull/17628))
+- chore(repo): Rename `.claude/settings.local.json` to `.claude/settings.json` ([#17591](https://github.com/getsentry/sentry-javascript/pull/17591))
+- docs(issue-template): Add note about prioritization ([#17590](https://github.com/getsentry/sentry-javascript/pull/17590))
+- ref(core): Streamline event processor handling ([#17634](https://github.com/getsentry/sentry-javascript/pull/17634))
+- test(angular): Bump TS version to 5.9.0 in Angular 20 e2e test ([#17605](https://github.com/getsentry/sentry-javascript/pull/17605))
+- test(nextjs): Remove Next 13 and pin Next 14 canary and latest tests ([#17577](https://github.com/getsentry/sentry-javascript/pull/17577))
+- test(react-router): Unflake `flushIfServerless` test ([#17610](https://github.com/getsentry/sentry-javascript/pull/17610))
+
+</details>
 
 ## 10.11.0
 

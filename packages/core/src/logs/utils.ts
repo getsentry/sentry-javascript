@@ -37,3 +37,35 @@ export function safeJoinConsoleArgs(values: unknown[], normalizeDepth: number, n
     )
     .join(' ');
 }
+
+/**
+ * Checks if a string contains console substitution patterns like %s, %d, %i, %f, %o, %O, %c.
+ *
+ * @param str - The string to check
+ * @returns true if the string contains console substitution patterns
+ */
+export function hasConsoleSubstitutions(str: string): boolean {
+  // Match console substitution patterns: %s, %d, %i, %f, %o, %O, %c
+  return /%[sdifocO]/.test(str);
+}
+
+/**
+ * Creates template attributes for multiple console arguments.
+ *
+ * @param args - The console arguments
+ * @returns An object with template and parameter attributes
+ */
+export function createConsoleTemplateAttributes(firstArg: unknown, followingArgs: unknown[]): Record<string, unknown> {
+  const attributes: Record<string, unknown> = {};
+
+  // Create template with placeholders for each argument
+  const template = new Array(followingArgs.length).fill('{}').join(' ');
+  attributes['sentry.message.template'] = `${firstArg} ${template}`;
+
+  // Add each argument as a parameter
+  followingArgs.forEach((arg, index) => {
+    attributes[`sentry.message.parameter.${index}`] = arg;
+  });
+
+  return attributes;
+}

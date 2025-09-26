@@ -19,7 +19,7 @@ const mockScope = {
 
 vi.mock('@sentry/node', async () => {
   // eslint-disable-next-line @typescript-eslint/consistent-type-imports
-  const original = (await vi.importActual('@sentry/node')) as typeof import('@sentry/node');
+  const original = await vi.importActual('@sentry/node');
   return {
     ...original,
     initWithoutDefaultIntegrations: (options: unknown) => {
@@ -459,7 +459,7 @@ describe('AWSLambda', () => {
       const streamError = new Error('stream error');
       const streamingHandler = vi.fn(async (_event, responseStream, _context) => {
         // Simulate stream error by calling the error listener
-        const errorListener = (responseStream.on as any).mock.calls.find((call: any[]) => call[0] === 'error')?.[1];
+        const errorListener = responseStream.on.mock.calls.find((call: any[]) => call[0] === 'error')?.[1];
         if (errorListener) {
           errorListener(streamError);
         }

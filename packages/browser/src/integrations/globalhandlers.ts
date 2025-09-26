@@ -86,7 +86,7 @@ function _installGlobalOnUnhandledRejectionHandler(client: Client): void {
       return;
     }
 
-    const error = _getUnhandledRejectionError(e as unknown);
+    const error = _getUnhandledRejectionError(e);
 
     const event = isPrimitive(error)
       ? _eventFromRejectionWithPrimitive(error)

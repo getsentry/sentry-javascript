@@ -13,7 +13,7 @@ import { getError } from '../helpers/error';
 
 vi.mock('node:fs', async () => {
   // eslint-disable-next-line @typescript-eslint/consistent-type-imports
-  const original = (await vi.importActual('node:fs')) as typeof import('node:fs');
+  const original = await vi.importActual('node:fs');
   return {
     ...original,
     createReadStream: original.createReadStream,

@@ -15,13 +15,11 @@ const _denoCronIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
-      // eslint-disable-next-line deprecation/deprecation
       if (!Deno.cron) {
         // The cron API is not available in this Deno version use --unstable flag!
         return;
       }
 
-      // eslint-disable-next-line deprecation/deprecation
       Deno.cron = new Proxy(Deno.cron, {
         apply(target, thisArg, argArray: CronParams) {
           const [monitorSlug, schedule, opt1, opt2] = argArray;

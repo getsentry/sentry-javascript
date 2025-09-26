@@ -192,5 +192,5 @@ export function instrumentWorkflowWithSentry<
         },
       });
     },
-  }) as C;
+  });
 }
