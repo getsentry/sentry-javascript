@@ -86,7 +86,7 @@ export function createRunner(...paths: string[]) {
       }
       return this;
     },
-    start: function (): StartResult {
+    start: function (signal?: AbortSignal): StartResult {
       const { resolve, reject, promise: isComplete } = deferredPromise(cleanupChildProcesses);
       const expectedEnvelopeCount = expectedEnvelopes.length;
 
@@ -155,7 +155,7 @@ export function createRunner(...paths: string[]) {
               '--var',
               `SENTRY_DSN:http://public@localhost:${mockServerPort}/1337`,
             ],
-            { stdio },
+            { stdio, signal },
           );
 
           CLEANUP_STEPS.add(() => {
