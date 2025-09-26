@@ -689,6 +689,20 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public on(hook: 'flushLogs', callback: () => void): () => void;
 
   /**
+   * A hook that is called after capturing a metric. This hooks runs after `beforeSendMetric` is fired.
+   *
+   * @returns {() => void} A function that, when executed, removes the registered callback.
+   */
+  public on(hook: 'afterCaptureMetric', callback: (metric: Metric) => void): () => void;
+
+  /**
+   * A hook that is called when the client is flushing metrics
+   *
+   * @returns {() => void} A function that, when executed, removes the registered callback.
+   */
+  public on(hook: 'flushMetrics', callback: () => void): () => void;
+
+  /**
    * Register a hook on this client.
    */
   public on(hook: string, callback: unknown): () => void {
