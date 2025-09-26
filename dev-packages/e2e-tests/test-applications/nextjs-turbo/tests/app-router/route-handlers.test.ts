@@ -45,7 +45,7 @@ test('Should create a transaction for route handlers and correctly set span stat
   expect(routehandlerTransaction.contexts?.trace?.op).toBe('http.server');
 });
 
-test.only('Should record exceptions and transactions for faulty route handlers', async ({ request }) => {
+test('Should record exceptions and transactions for faulty route handlers', async ({ request }) => {
   const errorEventPromise = waitForError('nextjs-turbo', errorEvent => {
     return errorEvent?.exception?.values?.[0]?.value === 'Dynamic route handler error';
   });
