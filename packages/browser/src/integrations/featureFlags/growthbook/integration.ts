@@ -1,5 +1,5 @@
 import type { IntegrationFn } from '@sentry/core';
-import * as SentryCore from '@sentry/core';
+import { growthbookIntegration as coreGrowthbookIntegration } from '@sentry/core';
 import type { GrowthBookClass } from './types';
 
 /**
@@ -22,7 +22,5 @@ import type { GrowthBookClass } from './types';
  * Sentry.captureException(new Error('something went wrong'));
  * ```
  */
-const _coreAny = SentryCore as unknown as Record<string, any>;
-
 export const growthbookIntegration = (({ growthbookClass }: { growthbookClass: GrowthBookClass }) =>
-  _coreAny.growthbookIntegration({ growthbookClass })) satisfies IntegrationFn;
+  coreGrowthbookIntegration({ growthbookClass })) satisfies IntegrationFn;
