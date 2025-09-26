@@ -580,6 +580,14 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public on(hook: 'spanEnd', callback: (span: Span) => void): () => void;
 
   /**
+   * Register a callback for after a span is ended.
+   * NOTE: The span cannot be mutated anymore in this callback.
+   * Receives the span as argument.
+   * @returns {() => void} A function that, when executed, removes the registered callback.
+   */
+  public on(hook: 'segmentSpanEnd', callback: (span: Span) => void): () => void;
+
+  /**
    * Register a callback for when an idle span is allowed to auto-finish.
    * @returns {() => void} A function that, when executed, removes the registered callback.
    */
@@ -825,6 +833,9 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
 
   /** Fire a hook whenever a span ends. */
   public emit(hook: 'spanEnd', span: Span): void;
+
+  /** Fire a hook whenever a segment span ends. */
+  public emit(hook: 'segmentSpanEnd', span: Span): void;
 
   /**
    * Fire a hook indicating that an idle span is allowed to auto finish.
