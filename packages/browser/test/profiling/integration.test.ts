@@ -3,6 +3,7 @@
  */
 
 import * as Sentry from '@sentry/browser';
+import { debug } from '@sentry/core';
 import { describe, expect, it, vi } from 'vitest';
 import type { JSSelfProfile } from '../../src/profiling/jsSelfProfiling';
 
@@ -64,5 +65,47 @@ describe('BrowserProfilingIntegration', () => {
 
     expect(profile_timestamp_ms).toBeGreaterThan(transaction_timestamp_ms);
     expect(profile.profile.frames[0]).toMatchObject({ function: 'pageload_fn', lineno: 1, colno: 1 });
+  });
+
+  it("warns when profileLifecycle is 'trace' but tracing is disabled", async () => {
+    debug.enable();
+    const warnSpy = vi.spyOn(debug, 'warn').mockImplementation(() => {});
+
+    // @ts-expect-error mock constructor
+    window.Profiler = class {
+      stopped: boolean = false;
+      constructor(_opts: { sampleInterval: number; maxBufferSize: number }) {}
+      stop() {
+        this.stopped = true;
+        return Promise.resolve({ frames: [], stacks: [], samples: [], resources: [] });
+      }
+    };
+
+    Sentry.init({
+      dsn: 'https://examplePublicKey@o0.ingest.sentry.io/0',
+      // no tracesSampleRate and no tracesSampler → tracing disabled
+      profileLifecycle: 'trace',
+      profileSessionSampleRate: 1,
+      integrations: [Sentry.browserProfilingIntegration()],
+    });
+
+    expect(
+      warnSpy.mock.calls.some(call =>
+        String(call?.[1] ?? call?.[0]).includes("`profileLifecycle` is 'trace' but tracing is disabled"),
+      ),
+    ).toBe(true);
+
+    warnSpy.mockRestore();
+  });
+
+  it("auto-sets profileLifecycle to 'manual' when not specified", async () => {
+    Sentry.init({
+      dsn: 'https://examplePublicKey@o0.ingest.sentry.io/0',
+      integrations: [Sentry.browserProfilingIntegration()],
+    });
+
+    const client = Sentry.getClient<BrowserClient>();
+    const lifecycle = (client?.getOptions() as any)?.profileLifecycle;
+    expect(lifecycle).toBe('manual');
   });
 });
