@@ -21,7 +21,7 @@ test('GrowthBook flags are added to active span attributes on span end', async (
             origin: 'manual',
             status: 'ok',
             span_id: expect.stringMatching(/[a-f0-9]{16}/),
-            trace_id: expect.stringMatching(/[a-f0-9]{32}/)
+            trace_id: expect.stringMatching(/[a-f0-9]{32}/),
           },
         },
         spans: [],
