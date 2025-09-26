@@ -9,6 +9,7 @@ import {
 import type { Client, Integration, Options } from '@sentry/core';
 import {
   consoleIntegration,
+  consoleLoggingIntegration,
   createStackParser,
   debug,
   dedupeIntegration,
@@ -48,9 +49,9 @@ declare const process: {
 
 const nodeStackParser = createStackParser(nodeStackLineParser());
 
-/** Get the default integrations for the browser SDK. */
+/** Get the default integrations for the Vercel Edge SDK. */
 export function getDefaultIntegrations(options: Options): Integration[] {
-  return [
+  const integrations = [
     dedupeIntegration(),
     // TODO(v11): Replace with `eventFiltersIntegration` once we remove the deprecated `inboundFiltersIntegration`
     // eslint-disable-next-line deprecation/deprecation
@@ -59,9 +60,19 @@ export function getDefaultIntegrations(options: Options): Integration[] {
     linkedErrorsIntegration(),
     winterCGFetchIntegration(),
     consoleIntegration(),
-    // TODO(v11): integration can be included - but integration should not add IP address etc
-    ...(options.sendDefaultPii ? [requestDataIntegration()] : []),
   ];
+
+  if (options.enableLogs) {
+    // TODO(v11): Remove this once we add logs to the `consoleIntegration`.
+    integrations.push(consoleLoggingIntegration());
+  }
+
+  if (options.sendDefaultPii) {
+    // TODO(v11): integration can be included - but integration should not add IP address etc
+    integrations.push(requestDataIntegration());
+  }
+
+  return integrations;
 }
 
 /** Inits the Sentry NextJS SDK on the Edge Runtime. */
