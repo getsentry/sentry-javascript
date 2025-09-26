@@ -7,7 +7,6 @@ afterAll(() => {
 });
 
 test('GrowthBook flags captured on error with eviction, update, and no async tasks', async () => {
-
   const expectedFlags = [];
   for (let i = 4; i <= FLAG_BUFFER_SIZE; i++) {
     expectedFlags.push({ flag: `feat${i}`, result: false });
