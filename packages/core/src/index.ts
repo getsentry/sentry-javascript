@@ -126,6 +126,8 @@ export type { ReportDialogOptions } from './report-dialog';
 export { _INTERNAL_captureLog, _INTERNAL_flushLogsBuffer, _INTERNAL_captureSerializedLog } from './logs/internal';
 export * as logger from './logs/public-api';
 export { consoleLoggingIntegration } from './logs/console-integration';
+export { _INTERNAL_captureMetric, _INTERNAL_flushMetricsBuffer, _INTERNAL_captureSerializedMetric } from './metrics/internal';
+export * as metrics from './metrics/public-api';
 export { createConsolaReporter } from './integrations/consola';
 export { addVercelAiProcessors } from './utils/vercel-ai';
 export { _INTERNAL_getSpanForToolCallId, _INTERNAL_cleanupToolCallSpan } from './utils/vercel-ai/utils';

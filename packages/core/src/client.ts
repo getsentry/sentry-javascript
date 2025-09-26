@@ -24,6 +24,7 @@ import type { EventProcessor } from './types-hoist/eventprocessor';
 import type { FeedbackEvent } from './types-hoist/feedback';
 import type { Integration } from './types-hoist/integration';
 import type { Log } from './types-hoist/log';
+import type { Metric } from './types-hoist/metric';
 import type { ClientOptions } from './types-hoist/options';
 import type { ParameterizedString } from './types-hoist/parameterize';
 import type { SdkMetadata } from './types-hoist/sdkmetadata';
@@ -874,6 +875,16 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    * Emit a hook event for client flush logs
    */
   public emit(hook: 'flushLogs'): void;
+
+  /**
+   * Emit a hook event for client after capturing a metric.
+   */
+  public emit(hook: 'afterCaptureMetric', metric: Metric): void;
+
+  /**
+   * Emit a hook event for client flush metrics
+   */
+  public emit(hook: 'flushMetrics'): void;
 
   /**
    * Emit a hook that was previously registered via `on()`.
