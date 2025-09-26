@@ -1,7 +1,7 @@
 import { type DurableObjectState, type ExecutionContext } from '@cloudflare/workers-types';
 
 type ContextType = ExecutionContext | DurableObjectState;
-type OverridesStore = Map<string | symbol, (...args: unknown[]) => unknown>;
+type OverridesStore<T extends ContextType> = Map<keyof T, (...args: unknown[]) => unknown>;
 
 /**
  * Creates a new copy of the given execution context, optionally overriding methods.
@@ -12,14 +12,16 @@ type OverridesStore = Map<string | symbol, (...args: unknown[]) => unknown>;
 export function copyExecutionContext<T extends ContextType>(ctx: T): T {
   if (!ctx) return ctx;
 
-  const overrides: OverridesStore = new Map();
+  const overrides: OverridesStore<T> = new Map();
   const contextPrototype = Object.getPrototypeOf(ctx);
-  const descriptors = Object.getOwnPropertyNames(contextPrototype).reduce((prevDescriptors, methodName) => {
+  const methodNames = Object.getOwnPropertyNames(contextPrototype) as unknown as (keyof T)[];
+  const descriptors = methodNames.reduce((prevDescriptors, methodName) => {
     if (methodName === 'constructor') return prevDescriptors;
-    const pd = makeMethodDescriptor(overrides, ctx, methodName as keyof ContextType);
+    if (typeof ctx[methodName] !== 'function') return prevDescriptors;
+    const overridableDescriptor = makeOverridableDescriptor(overrides, ctx, methodName);
     return {
       ...prevDescriptors,
-      [methodName]: pd,
+      [methodName]: overridableDescriptor,
     };
   }, {});
 
@@ -27,19 +29,26 @@ export function copyExecutionContext<T extends ContextType>(ctx: T): T {
 }
 
 /**
- * Creates a property descriptor for a given method on a context object, enabling custom getter and setter behavior.
+ * Creates a property descriptor that allows overriding of a method on the given context object.
  *
- * @param store - The OverridesStore instance used to manage method overrides.
- * @param ctx - The context object from which the method originates.
- * @param method - The key of the method on the context object to create a descriptor for.
- * @return A property descriptor with custom getter and setter functionalities for the specified method.
+ * This descriptor supports property overriding with functions only. It delegates method calls to
+ * the provided store if an override exists or to the original method on the context otherwise.
+ *
+ * @param {OverridesStore<ContextType>} store - The storage for overridden methods specific to the context type.
+ * @param {ContextType} ctx - The context object that contains the method to be overridden.
+ * @param {keyof ContextType} method - The method on the context object to create the overridable descriptor for.
+ * @return {PropertyDescriptor} A property descriptor enabling the overriding of the specified method.
  */
-function makeMethodDescriptor(store: OverridesStore, ctx: ContextType, method: keyof ContextType): PropertyDescriptor {
+function makeOverridableDescriptor<T extends ContextType>(
+  store: OverridesStore<T>,
+  ctx: T,
+  method: keyof T,
+): PropertyDescriptor {
   return {
     configurable: true,
     enumerable: true,
     set: newValue => {
-      if(typeof newValue !== 'function') throw new Error('Cannot override non-function')
+      if (typeof newValue !== 'function') throw new Error('Cannot override non-function');
       store.set(method, newValue);
       return true;
     },
