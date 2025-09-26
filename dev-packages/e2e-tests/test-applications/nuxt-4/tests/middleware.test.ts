@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import { waitForTransaction, waitForError } from '@sentry-internal/test-utils';
 
 test.describe('Server Middleware Instrumentation', () => {
   test('should create separate spans for each server middleware', async ({ request }) => {
@@ -74,5 +74,48 @@ test.describe('Server Middleware Instrumentation', () => {
     middlewareSpans.forEach(span => {
       expect(span.parent_span_id).toBe(serverTxnEvent.contexts?.trace?.span_id);
     });
+  });
+
+  test('should capture errors thrown in middleware and associate them with the span', async ({ request }) => {
+    const serverTxnEventPromise = waitForTransaction('nuxt-4', txnEvent => {
+      return txnEvent.transaction?.includes('GET /api/middleware-test') ?? false;
+    });
+
+    const errorEventPromise = waitForError('nuxt-4', errorEvent => {
+      return errorEvent?.exception?.values?.[0]?.value === 'Auth middleware error';
+    });
+
+    // Make request with query param to trigger error in auth middleware
+    const response = await request.get('/api/middleware-test?throwError=true');
+
+    // The request should fail due to the middleware error
+    expect(response.status()).toBe(500);
+
+    const [serverTxnEvent, errorEvent] = await Promise.all([serverTxnEventPromise, errorEventPromise]);
+
+    // Find the auth middleware span
+    const authMiddlewareSpan = serverTxnEvent.spans?.find(
+      span => span.op === 'http.server.middleware' && span.data?.['nuxt.middleware.name'] === '03.auth.ts',
+    );
+
+    expect(authMiddlewareSpan).toBeDefined();
+
+    // Verify the span has error status
+    expect(authMiddlewareSpan?.status).toBe('internal_error');
+
+    // Verify the error event is associated with the correct transaction
+    expect(errorEvent.transaction).toContain('GET /api/middleware-test');
+
+    // Verify the error has the correct mechanism
+    expect(errorEvent.exception?.values?.[0]).toEqual(
+      expect.objectContaining({
+        value: 'Auth middleware error',
+        type: 'Error',
+        mechanism: expect.objectContaining({
+          handled: false,
+          type: 'auto.http.nuxt',
+        }),
+      }),
+    );
   });
 });
