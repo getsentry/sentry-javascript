@@ -154,6 +154,7 @@ export {
   wrapMcpServerWithSentry,
   featureFlagsIntegration,
   launchDarklyIntegration,
+  growthbookIntegration,
   buildLaunchDarklyFlagUsedHandler,
   openFeatureIntegration,
   OpenFeatureIntegrationHook,

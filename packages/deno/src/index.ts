@@ -89,6 +89,7 @@ export {
   updateSpanName,
   wrapMcpServerWithSentry,
   featureFlagsIntegration,
+  growthbookIntegration,
 } from '@sentry/core';
 
 export { DenoClient } from './client';
