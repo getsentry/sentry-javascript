@@ -36,7 +36,7 @@ export function wrapMiddlewareHandler(handler: EventHandler, fileName: string) {
       normalizedRequest,
     });
 
-    const attributes = getSpanAttributes(event);
+    const attributes = getSpanAttributes(event, fileName);
 
     return withIsolationScope(newIsolationScope, async () => {
       return startSpan(
@@ -89,11 +89,12 @@ function createNormalizedRequestData(event: H3Event<EventHandlerRequest>): Reque
 /**
  * Gets the span attributes for the middleware handler based on the event.
  */
-function getSpanAttributes(event: H3Event<EventHandlerRequest>): SpanAttributes {
+function getSpanAttributes(event: H3Event<EventHandlerRequest>, fileName: string): SpanAttributes {
   const attributes: SpanAttributes = {
     [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server.middleware',
     [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.nuxt',
+    'nuxt.middleware.name': fileName,
   };
 
   // Add HTTP method
