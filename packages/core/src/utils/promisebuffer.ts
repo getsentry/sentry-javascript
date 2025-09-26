@@ -70,7 +70,8 @@ export function makePromiseBuffer<T>(limit: number = 100): PromiseBuffer<T> {
       return resolvedSyncPromise(true);
     }
 
-    const drainPromise = Promise.all(Array.from(buffer)).then(() => true);
+    // We want to resolve even if one of the promises rejects
+    const drainPromise = Promise.allSettled(Array.from(buffer)).then(() => true);
 
     if (!timeout) {
       return drainPromise;

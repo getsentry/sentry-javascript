@@ -19,7 +19,7 @@ describe('PromiseBuffer', () => {
       void buffer.add(producer3);
       void buffer.add(producer4);
       void buffer.add(producer5);
-      void expect(buffer.add(producer6)).rejects.toThrowError();
+      await expect(buffer.add(producer6)).rejects.toThrowError();
 
       expect(producer1).toHaveBeenCalledTimes(1);
       expect(producer2).toHaveBeenCalledTimes(1);
@@ -42,7 +42,7 @@ describe('PromiseBuffer', () => {
       expect(producer6).not.toHaveBeenCalled();
     });
 
-    test('sync promises', () => {
+    test('sync promises', async () => {
       const buffer = makePromiseBuffer(1);
       let task1;
       const producer1 = vi.fn(() => {
@@ -51,14 +51,18 @@ describe('PromiseBuffer', () => {
       });
       const producer2 = vi.fn(() => resolvedSyncPromise());
       expect(buffer.add(producer1)).toEqual(task1);
-      void expect(buffer.add(producer2)).rejects.toThrowError();
+      const add2 = buffer.add(producer2);
+
       // This is immediately executed and removed again from the buffer
       expect(buffer.$.length).toEqual(0);
+
+      await expect(add2).resolves.toBeUndefined();
+
       expect(producer1).toHaveBeenCalled();
       expect(producer2).toHaveBeenCalled();
     });
 
-    test('async promises', () => {
+    test('async promises', async () => {
       const buffer = makePromiseBuffer(1);
       let task1;
       const producer1 = vi.fn(() => {
@@ -67,8 +71,12 @@ describe('PromiseBuffer', () => {
       });
       const producer2 = vi.fn(() => new Promise(resolve => setTimeout(resolve, 1)));
       expect(buffer.add(producer1)).toEqual(task1);
-      void expect(buffer.add(producer2)).rejects.toThrowError();
+      const add2 = buffer.add(producer2);
+
       expect(buffer.$.length).toEqual(1);
+
+      await expect(add2).rejects.toThrowError();
+
       expect(producer1).toHaveBeenCalled();
       expect(producer2).not.toHaveBeenCalled();
     });
@@ -158,6 +166,21 @@ describe('PromiseBuffer', () => {
       const result = await buffer.drain();
       expect(result).toEqual(true);
       expect(buffer.$.length).toEqual(0);
+    });
+
+    test('resolves even if one of the promises rejects', async () => {
+      const buffer = makePromiseBuffer();
+      const p1 = vi.fn(() => new Promise(resolve => setTimeout(resolve, 1)));
+      const p2 = vi.fn(() => new Promise((_, reject) => setTimeout(() => reject(new Error('whoops')), 1)));
+      void buffer.add(p1);
+      void buffer.add(p2);
+
+      const result = await buffer.drain();
+      expect(result).toEqual(true);
+      expect(buffer.$.length).toEqual(0);
+
+      expect(p1).toHaveBeenCalled();
+      expect(p2).toHaveBeenCalled();
     });
   });
 
