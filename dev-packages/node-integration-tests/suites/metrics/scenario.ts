@@ -74,7 +74,7 @@ Sentry.startSpan({ name: 'test-span', op: 'test' }, () => {
   Sentry.metrics.count('span.metric', 1, {
     operation: 'test',
   });
-  
+
   Sentry.metrics.gauge('span.gauge', 100, 'percent', {
     component: 'test-component',
   });

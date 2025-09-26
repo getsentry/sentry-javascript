@@ -143,7 +143,7 @@ describe('trace metrics', () => {
     // Check that filtered metrics are not present
     const metricNames = metricItems.map((item: any) => item.name);
     expect(metricNames).not.toContain('filtered.metric');
-    
+
     // Check that modified metric has updated value
     const modifiedMetric = metricItems.find((item: any) => item.name === 'modified.metric');
     expect(modifiedMetric).toMatchObject({

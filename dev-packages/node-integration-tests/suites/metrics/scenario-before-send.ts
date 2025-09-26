@@ -11,7 +11,7 @@ Sentry.init({
     if (metric.name === 'filtered.metric') {
       return null;
     }
-    
+
     // Modify metric value
     if (metric.name === 'modified.metric') {
       return {
@@ -19,7 +19,7 @@ Sentry.init({
         value: 200, // Change value from 100 to 200
       };
     }
-    
+
     return metric;
   },
 });

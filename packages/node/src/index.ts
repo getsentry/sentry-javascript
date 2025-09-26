@@ -133,6 +133,7 @@ export {
   consoleIntegration,
   wrapMcpServerWithSentry,
   featureFlagsIntegration,
+  metrics,
 } from '@sentry/core';
 
 export type {
@@ -147,6 +148,7 @@ export type {
   Exception,
   Session,
   SeverityLevel,
+  Metric,
   StackFrame,
   Stacktrace,
   Thread,
