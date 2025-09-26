@@ -298,6 +298,8 @@ export class SentrySpan implements Span {
       return;
     }
 
+    client?.emit('segmentSpanEnd', this);
+
     // if this is a standalone span, we send it immediately
     if (this._isStandaloneSpan) {
       if (this._sampled) {
@@ -309,6 +311,9 @@ export class SentrySpan implements Span {
           client.recordDroppedEvent('sample_rate', 'span');
         }
       }
+      return;
+    } else if (client?.getOptions()._experiments?._INTERNAL_spanStreaming) {
+      // nothing to do here; the spanStreaming integration will listen to the respective client hook.
       return;
     }
 

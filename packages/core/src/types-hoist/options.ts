@@ -282,6 +282,14 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
   _experiments?: {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     [key: string]: any;
+
+    /**
+     * DO NOT set this option manually.
+     *
+     * @internal, this option is only used and set internally.
+     * @hidden
+     */
+    _INTERNAL_spanStreaming?: boolean;
   };
 
   /**
