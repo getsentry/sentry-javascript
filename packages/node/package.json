@@ -94,7 +94,7 @@
     "@opentelemetry/resources": "^2.1.0",
     "@opentelemetry/sdk-trace-base": "^2.1.0",
     "@opentelemetry/semantic-conventions": "^1.37.0",
-    "@prisma/instrumentation": "6.15.0",
+    "@prisma/instrumentation": "6.16.2",
     "@sentry/core": "10.16.0",
     "@sentry/node-core": "10.16.0",
     "@sentry/opentelemetry": "10.16.0",
