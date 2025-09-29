@@ -5,7 +5,7 @@ import { _INTERNAL_captureLog } from '@sentry/core';
 /**
  * Additional metadata to capture the log with.
  */
-export interface CaptureLogMetadata {
+interface CaptureLogMetadata {
   scope?: Scope;
 }
 
@@ -26,25 +26,10 @@ export type CaptureLogArgs = CaptureLogArgWithTemplate | CaptureLogArgWithoutTem
 
 /**
  * Capture a log with the given level.
- */
-export function captureLog(
-  level: LogSeverityLevel,
-  message: ParameterizedString,
-  attributes?: Log['attributes'],
-  metadata?: CaptureLogMetadata,
-): void;
-/**
- * Capture a log with the given level.
- */
-export function captureLog(
-  level: LogSeverityLevel,
-  messageTemplate: string,
-  messageParams: Array<unknown>,
-  attributes?: Log['attributes'],
-  metadata?: CaptureLogMetadata,
-): void;
-/**
- * Capture a log with the given level.
+ *
+ * @param level - The level of the log.
+ * @param message - The message to log.
+ * @param attributes - Arbitrary structured data that stores information about the log - e.g., userId: 100.
  */
 export function captureLog(level: LogSeverityLevel, ...args: CaptureLogArgs): void {
   const [messageOrMessageTemplate, paramsOrAttributes, maybeAttributesOrMetadata, maybeMetadata] = args;
