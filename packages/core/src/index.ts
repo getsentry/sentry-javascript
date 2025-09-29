@@ -418,6 +418,7 @@ export type {
 } from './types-hoist/span';
 export type { SpanStatus } from './types-hoist/spanStatus';
 export type { Log, LogSeverityLevel } from './types-hoist/log';
+export type { Metric, MetricType, SerializedMetric, SerializedMetricContainer, SerializedMetricAttributeValue } from './types-hoist/metric';
 export type { TimedEvent } from './types-hoist/timedEvent';
 export type { StackFrame } from './types-hoist/stackframe';
 export type { Stacktrace, StackParser, StackLineParser, StackLineParserFn } from './types-hoist/stacktrace';

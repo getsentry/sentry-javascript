@@ -47,6 +47,7 @@ export type EnvelopeItemType =
   | 'check_in'
   | 'span'
   | 'log'
+  | 'metric'
   | 'raw_security';
 
 export type BaseEnvelopeHeaders = {

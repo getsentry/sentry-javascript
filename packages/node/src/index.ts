@@ -148,7 +148,6 @@ export type {
   Exception,
   Session,
   SeverityLevel,
-  Metric,
   StackFrame,
   Stacktrace,
   Thread,
