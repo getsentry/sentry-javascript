@@ -41,6 +41,7 @@
     "@total-typescript/ts-reset": "^0.4.2",
     "@types/eslint": "^8.4.10",
     "@types/react": "^18.2.22",
+    "@types/node": "^18.19.1",
     "@types/react-dom": "^18.2.7",
     "esbuild": "0.25.0",
     "eslint": "^9.18.0",

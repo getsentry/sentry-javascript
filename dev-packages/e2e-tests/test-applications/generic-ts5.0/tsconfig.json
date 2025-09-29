@@ -1,0 +1,11 @@
+{
+  "include": ["index.ts"],
+  "compilerOptions": {
+    "lib": ["es2018", "DOM"],
+    "skipLibCheck": false,
+    "noEmit": true,
+    "types": [],
+    "target": "es2018",
+    "moduleResolution": "node"
+  }
+}
