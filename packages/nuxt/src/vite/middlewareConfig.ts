@@ -77,20 +77,14 @@ function middlewareInstrumentationPlugin(nitro: Nitro): InputPluginOption {
  * @returns The wrapped user code of the middleware.
  */
 function wrapMiddlewareCode(originalCode: string, fileName: string): string {
+  // Remove common file extensions
+  const cleanFileName = fileName.replace(/\.(ts|js|mjs|mts|cts)$/, '');
+
   return `
 import { wrapMiddlewareHandler } from '#imports';
 
 function defineInstrumentedEventHandler(handlerOrObject) {
-  // Handle function syntax
-  if (typeof handlerOrObject === 'function') {
-    return defineEventHandler(wrapMiddlewareHandler(handlerOrObject, '${fileName}'));
-  }
-
-  // Handle object syntax
-  return defineEventHandler({
-    ...handlerOrObject,
-    handler: wrapMiddlewareHandler(handlerOrObject.handler, '${fileName}')
-  });
+  return defineEventHandler(wrapMiddlewareHandler(handlerOrObject, '${cleanFileName}'));
 }
 
 ${originalCode.replace(/defineEventHandler\(/g, 'defineInstrumentedEventHandler(')}
