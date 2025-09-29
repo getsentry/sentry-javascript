@@ -153,6 +153,7 @@ export type {
   Thread,
   User,
   Span,
+  Metric,
   FeatureFlagsIntegration,
 } from '@sentry/core';
 
