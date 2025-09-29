@@ -1,40 +1,55 @@
+import type { ClientOptions, InitSyncOptions, UserContext } from '@growthbook/growthbook';
+import { GrowthBookClient } from '@growthbook/growthbook';
 import * as Sentry from '@sentry/node';
 import { loggingTransport } from '@sentry-internal/node-integration-tests';
 
-// Minimal GrowthBook-like class that matches the real API for testing
-class GrowthBookLike {
-  private _features: Record<string, { value: unknown }> = {};
+// Wrapper class to instantiate GrowthBookClient
+class GrowthBookWrapper {
+  private _gbClient: GrowthBookClient;
+  private _userContext: UserContext = { attributes: { id: 'test-user-123' } };
 
-  public isOn(featureKey: string): boolean {
-    const feature = this._features[featureKey];
-    return feature ? !!feature.value : false;
+  public constructor(..._args: unknown[]) {
+    // Create GrowthBookClient and initialize it synchronously with payload
+    const clientOptions: ClientOptions = {
+      apiHost: 'https://cdn.growthbook.io',
+      clientKey: 'sdk-abc123'
+    };
+    this._gbClient = new GrowthBookClient(clientOptions);
+
+    // Create test features
+    const features = {
+      'feat1': { defaultValue: true },
+      'feat2': { defaultValue: false },
+      'bool-feat': { defaultValue: true },
+      'string-feat': { defaultValue: 'hello' }
+    };
+
+    // Initialize synchronously with payload
+    const initOptions: InitSyncOptions = {
+      payload: { features }
+    };
+
+    this._gbClient.initSync(initOptions);
   }
 
-  public getFeatureValue(featureKey: string, defaultValue: unknown): unknown {
-    const feature = this._features[featureKey];
-    return feature ? feature.value : defaultValue;
+  public isOn(featureKey: string, ..._rest: unknown[]): boolean {
+    return this._gbClient.isOn(featureKey, this._userContext);
   }
 
-  // Helper method to set feature values for testing
-  public setFeature(featureKey: string, value: unknown): void {
-    this._features[featureKey] = { value };
+  public getFeatureValue(featureKey: string, defaultValue: unknown, ..._rest: unknown[]): unknown {
+    return this._gbClient.getFeatureValue(featureKey, defaultValue as boolean | string | number, this._userContext);
   }
 }
+
+const gb = new GrowthBookWrapper();
 
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   sampleRate: 1.0,
   tracesSampleRate: 1.0,
   transport: loggingTransport,
-  integrations: [Sentry.growthbookIntegration({ growthbookClass: GrowthBookLike })],
+  integrations: [Sentry.growthbookIntegration({ growthbookClass: GrowthBookWrapper })],
 });
-
-const gb = new GrowthBookLike();
-
-// Set up feature flags
-gb.setFeature('feat1', true);
-gb.setFeature('feat2', false);
-gb.setFeature('bool-feat', true);
 
 Sentry.startSpan({ name: 'test-span', op: 'function' }, () => {
   // Evaluate feature flags during the span
@@ -45,6 +60,5 @@ Sentry.startSpan({ name: 'test-span', op: 'function' }, () => {
   gb.getFeatureValue('bool-feat', false);
 
   // Test getFeatureValue with non-boolean values (should NOT be captured)
-  gb.setFeature('string-feat', 'hello');
   gb.getFeatureValue('string-feat', 'default');
 });
