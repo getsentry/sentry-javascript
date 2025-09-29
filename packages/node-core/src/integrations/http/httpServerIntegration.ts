@@ -22,9 +22,14 @@ import { MAX_BODY_BYTE_LENGTH } from './constants';
 
 type ServerEmit = typeof Server.prototype.emit;
 
+// Inlining this type to not depend on newer TS types
+interface WeakRefImpl<T> {
+  deref(): T | undefined;
+}
+
 type StartSpanCallback = (next: () => boolean) => boolean;
 type RequestWithOptionalStartSpanCallback = IncomingMessage & {
-  _startSpanCallback?: WeakRef<StartSpanCallback>;
+  _startSpanCallback?: WeakRefImpl<StartSpanCallback>;
 };
 
 const HTTP_SERVER_INSTRUMENTED_KEY = createContextKey('sentry_http_server_instrumented');
