@@ -5880,6 +5880,13 @@
   dependencies:
     "@opentelemetry/api" "^1.3.0"
 
+"@opentelemetry/api-logs@0.205.0":
+  version "0.205.0"
+  resolved "https://registry.yarnpkg.com/@opentelemetry/api-logs/-/api-logs-0.205.0.tgz#7d334958c0eaa0725a1fe51aadc9b39ed7d4b6f2"
+  integrity sha512-wBlPk1nFB37Hsm+3Qy73yQSobVn28F4isnWIBvKpd5IUH/eat8bwcL02H9yzmHyyPmukeccSl2mbN5sDQZYnPg==
+  dependencies:
+    "@opentelemetry/api" "^1.3.0"
+
 "@opentelemetry/api-logs@0.57.2":
   version "0.57.2"
   resolved "https://registry.yarnpkg.com/@opentelemetry/api-logs/-/api-logs-0.57.2.tgz#d4001b9aa3580367b40fe889f3540014f766cc87"
@@ -6085,12 +6092,12 @@
     "@types/pg" "8.15.5"
     "@types/pg-pool" "2.0.6"
 
-"@opentelemetry/instrumentation-redis@0.53.0":
-  version "0.53.0"
-  resolved "https://registry.yarnpkg.com/@opentelemetry/instrumentation-redis/-/instrumentation-redis-0.53.0.tgz#826cfeacebaf7ce571bb932ad410f23caf170b9c"
-  integrity sha512-WUHV8fr+8yo5RmzyU7D5BIE1zwiaNQcTyZPwtxlfr7px6NYYx7IIpSihJK7WA60npWynfxxK1T67RAVF0Gdfjg==
+"@opentelemetry/instrumentation-redis@0.54.1":
+  version "0.54.1"
+  resolved "https://registry.yarnpkg.com/@opentelemetry/instrumentation-redis/-/instrumentation-redis-0.54.1.tgz#c300043fea8a05e45c64e4d0e1f09fbc16b85dd5"
+  integrity sha512-/hOkOa9uIpestrpKuVCNPLHYkSXY1sjsaiXZw/Srv5mzTjpybnDZs5MOCdsIADjFfaCg23sM/JmfIx6IhWgP0w==
   dependencies:
-    "@opentelemetry/instrumentation" "^0.204.0"
+    "@opentelemetry/instrumentation" "^0.205.0"
     "@opentelemetry/redis-common" "^0.38.0"
     "@opentelemetry/semantic-conventions" "^1.27.0"
 
@@ -6117,6 +6124,15 @@
   integrity sha512-vV5+WSxktzoMP8JoYWKeopChy6G3HKk4UQ2hESCRDUUTZqQ3+nM3u8noVG0LmNfRWwcFBnbZ71GKC7vaYYdJ1g==
   dependencies:
     "@opentelemetry/api-logs" "0.204.0"
+    import-in-the-middle "^1.8.1"
+    require-in-the-middle "^7.1.1"
+
+"@opentelemetry/instrumentation@^0.205.0":
+  version "0.205.0"
+  resolved "https://registry.yarnpkg.com/@opentelemetry/instrumentation/-/instrumentation-0.205.0.tgz#cf936288b14311212619ba80df96b2404d1acf14"
+  integrity sha512-cgvm7tvQdu9Qo7VurJP84wJ7ZV9F6WqDDGZpUc6rUEXwjV7/bXWs0kaYp9v+1Vh1+3TZCD3i6j/lUBcPhu8NhA==
+  dependencies:
+    "@opentelemetry/api-logs" "0.205.0"
     import-in-the-middle "^1.8.1"
     require-in-the-middle "^7.1.1"
 
@@ -28537,7 +28553,7 @@ string-template@~0.2.1:
 
 string-width@4.2.3, "string-width@^1.0.2 || 2 || 3 || 4", string-width@^4.0.0, string-width@^4.1.0, string-width@^4.2.0, string-width@^4.2.2, string-width@^4.2.3:
   version "4.2.3"
-  resolved "https://registry.npmjs.org/string-width/-/string-width-4.2.3.tgz#269c7117d27b05ad2e536830a8ec895ef9c6d010"
+  resolved "https://registry.yarnpkg.com/string-width/-/string-width-4.2.3.tgz#269c7117d27b05ad2e536830a8ec895ef9c6d010"
   integrity sha512-wKyQRQpjJ0sIp62ErSZdGsjMJWsap5oRNihHhu6G7JVO/9jIB6UyevL+tXuOqrng8j/cxKTWyWUwvSTriiZz/g==
   dependencies:
     emoji-regex "^8.0.0"
@@ -28647,7 +28663,7 @@ stringify-object@^3.2.1:
 
 strip-ansi@6.0.1, strip-ansi@^6.0.0, strip-ansi@^6.0.1:
   version "6.0.1"
-  resolved "https://registry.npmjs.org/strip-ansi/-/strip-ansi-6.0.1.tgz#9e26c63d30f53443e9489495b2105d37b67a85d9"
+  resolved "https://registry.yarnpkg.com/strip-ansi/-/strip-ansi-6.0.1.tgz#9e26c63d30f53443e9489495b2105d37b67a85d9"
   integrity sha512-Y38VPSHcqkFrCpFnQ9vuSXmquuv5oXOKpGeT6aGrr3o3Gc9AlVa6JBfUSOCnbxGGZF+/0ooI7KrPuUSztUdU5A==
   dependencies:
     ansi-regex "^5.0.1"
@@ -28824,6 +28840,7 @@ stylus@0.59.0, stylus@^0.59.0:
 
 sucrase@^3.27.0, sucrase@^3.35.0, sucrase@getsentry/sucrase#es2020-polyfills:
   version "3.36.0"
+  uid fd682f6129e507c00bb4e6319cc5d6b767e36061
   resolved "https://codeload.github.com/getsentry/sucrase/tar.gz/fd682f6129e507c00bb4e6319cc5d6b767e36061"
   dependencies:
     "@jridgewell/gen-mapping" "^0.3.2"
@@ -31716,7 +31733,7 @@ wrangler@4.22.0:
 
 wrap-ansi@7.0.0, wrap-ansi@^7.0.0:
   version "7.0.0"
-  resolved "https://registry.npmjs.org/wrap-ansi/-/wrap-ansi-7.0.0.tgz#67e145cff510a6a6984bdf1152911d69d2eb9e43"
+  resolved "https://registry.yarnpkg.com/wrap-ansi/-/wrap-ansi-7.0.0.tgz#67e145cff510a6a6984bdf1152911d69d2eb9e43"
   integrity sha512-YVGIj2kamLSTxw6NsZjoBxfSwsn0ycdesmc4p+Q21c5zPuZ1pl+NfxVdxPtdHvmNVOQ6XSYG4AUtyt/Fi7D16Q==
   dependencies:
     ansi-styles "^4.0.0"
