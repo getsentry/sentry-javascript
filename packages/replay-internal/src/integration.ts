@@ -280,13 +280,16 @@ export class Replay implements Integration {
 
   /**
    * Get the current session ID.
+   *
+   * @param onlyIfSampled - If true, will only return the session ID if the session is sampled.
+   *
    */
-  public getReplayId(): string | undefined {
+  public getReplayId(onlyIfSampled?: boolean): string | undefined {
     if (!this._replay?.isEnabled()) {
       return;
     }
 
-    return this._replay.getSessionId();
+    return this._replay.getSessionId(onlyIfSampled);
   }
 
   /**
