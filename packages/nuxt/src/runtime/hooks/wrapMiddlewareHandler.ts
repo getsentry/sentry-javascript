@@ -8,6 +8,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  SPAN_STATUS_ERROR,
   SPAN_STATUS_OK,
   startSpan,
 } from '@sentry/core';
@@ -111,6 +112,7 @@ function withSpan<TResult>(
 
         return result;
       } catch (error) {
+        span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
         captureException(error, {
           mechanism: {
             handled: false,
