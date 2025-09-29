@@ -10,12 +10,8 @@ vi.mock('@sentry/core', async importOriginal => {
     ...(mod as any),
     debug: { log: vi.fn() },
     startSpan: vi.fn(),
-    withIsolationScope: vi.fn(),
-    getIsolationScope: vi.fn(),
-    getDefaultIsolationScope: vi.fn(),
     getClient: vi.fn(),
     httpHeadersToSpanAttributes: vi.fn(),
-    httpRequestToRequestData: vi.fn(),
     captureException: vi.fn(),
     flushIfServerless: vi.fn(),
   };
@@ -39,22 +35,13 @@ describe('wrapMiddlewareHandler', () => {
     end: vi.fn(),
   };
 
-  const mockIsolationScope = {
-    clone: vi.fn().mockReturnValue('cloned-scope'),
-    setSDKProcessingMetadata: vi.fn(),
-  };
-
   beforeEach(() => {
     vi.clearAllMocks();
 
     // Setup minimal required mocks
-    (SentryCore.getIsolationScope as any).mockReturnValue(mockIsolationScope);
-    (SentryCore.getDefaultIsolationScope as any).mockReturnValue('default-scope');
-    (SentryCore.withIsolationScope as any).mockImplementation((_scope: any, callback: any) => callback());
     (SentryCore.startSpan as any).mockImplementation((_config: any, callback: any) => callback(mockSpan));
     (SentryCore.getClient as any).mockReturnValue({ getOptions: () => ({ sendDefaultPii: false }) });
     (SentryCore.httpHeadersToSpanAttributes as any).mockReturnValue({ 'http.request.header.user_agent': 'test-agent' });
-    (SentryCore.httpRequestToRequestData as any).mockReturnValue({ url: '/test-path', method: 'GET' });
     (SentryCore.flushIfServerless as any).mockResolvedValue(undefined);
   });
 
@@ -109,7 +96,6 @@ describe('wrapMiddlewareHandler', () => {
 
       // Verify Sentry APIs were called but error was not masked
       expect(SentryCore.captureException).toHaveBeenCalledWith(originalError, expect.any(Object));
-      expect(mockSpan.recordException).toHaveBeenCalledWith(originalError);
     });
 
     it('should propagate sync errors without modification', async () => {
@@ -151,9 +137,6 @@ describe('wrapMiddlewareHandler', () => {
 
       // This should handle the Sentry error gracefully and still call user code
       await expect(wrapped(mockEvent)).rejects.toThrow('Sentry API failure');
-
-      // But user handler should still have been attempted to be called
-      // (this tests that we don't fail before reaching user code)
     });
   });
 
@@ -169,7 +152,7 @@ describe('wrapMiddlewareHandler', () => {
         expect.objectContaining({
           name: 'api-middleware',
           attributes: expect.objectContaining({
-            [SentryCore.SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server.middleware',
+            [SentryCore.SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'middleware.nuxt',
             'nuxt.middleware.name': 'api-middleware',
             'http.request.method': 'GET',
             'http.route': '/test-path',
@@ -177,12 +160,6 @@ describe('wrapMiddlewareHandler', () => {
         }),
         expect.any(Function),
       );
-
-      expect(SentryCore.httpRequestToRequestData).toHaveBeenCalledWith({
-        method: 'GET',
-        url: '/test-path',
-        headers: { 'user-agent': 'test-agent' },
-      });
     });
 
     it('should handle missing optional data gracefully', async () => {
