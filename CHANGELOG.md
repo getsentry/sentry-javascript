@@ -56,7 +56,7 @@ Work in this release was contributed by @Karibash. Thank you for your contributi
 
 - **feat(cloudflare,vercel-edge): Add support for Google Gen AI instrumentation ([#17723](https://github.com/getsentry/sentry-javascript/pull/17723))**
 
-  The SDK now supports manually instrumenting Google's Generative AI operations in Cloudflare Workers and Vercel Edge Runtime environments, providing insights into your AI operations. You can use `const wrappedClient = Sentry.instrumentGoogleGenAIClient(genAiClient)` to get an instrumented client.
+  The SDK now supports manually instrumenting Google's Gen AI operations in Cloudflare Workers and Vercel Edge Runtime environments, providing insights into your AI operations. You can use `const wrappedClient = Sentry.instrumentGoogleGenAIClient(genAiClient)` to get an instrumented client.
 
 ### Other Changes
 
