@@ -59,7 +59,7 @@ export function wrapMiddlewareHandler(handler: EventHandler, fileName: string) {
  */
 function getSpanAttributes(event: H3Event<EventHandlerRequest>, fileName: string): SpanAttributes {
   const attributes: SpanAttributes = {
-    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server.middleware',
+    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'middleware.nuxt',
     [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.nuxt',
     'nuxt.middleware.name': fileName,

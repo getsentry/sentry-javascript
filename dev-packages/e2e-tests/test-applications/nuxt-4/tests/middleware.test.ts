@@ -17,7 +17,7 @@ test.describe('Server Middleware Instrumentation', () => {
     const serverTxnEvent = await serverTxnEventPromise;
 
     // Verify that we have spans for each middleware
-    const middlewareSpans = serverTxnEvent.spans?.filter(span => span.op === 'http.server.middleware') || [];
+    const middlewareSpans = serverTxnEvent.spans?.filter(span => span.op === 'middleware.nuxt') || [];
 
     expect(middlewareSpans).toHaveLength(3);
 
@@ -34,9 +34,9 @@ test.describe('Server Middleware Instrumentation', () => {
     [firstMiddlewareSpan, secondMiddlewareSpan, authMiddlewareSpan].forEach(span => {
       expect(span).toEqual(
         expect.objectContaining({
-          op: 'http.server.middleware',
+          op: 'middleware.nuxt',
           data: expect.objectContaining({
-            'sentry.op': 'http.server.middleware',
+            'sentry.op': 'middleware.nuxt',
             'sentry.origin': 'auto.http.nuxt',
             'sentry.source': 'custom',
             'http.request.method': 'GET',
@@ -68,7 +68,7 @@ test.describe('Server Middleware Instrumentation', () => {
     await request.get('/api/middleware-test');
     const serverTxnEvent = await serverTxnEventPromise;
 
-    const middlewareSpans = serverTxnEvent.spans?.filter(span => span.op === 'http.server.middleware') || [];
+    const middlewareSpans = serverTxnEvent.spans?.filter(span => span.op === 'middleware.nuxt') || [];
 
     // All middleware spans should be children of the main transaction
     middlewareSpans.forEach(span => {
@@ -95,7 +95,7 @@ test.describe('Server Middleware Instrumentation', () => {
 
     // Find the auth middleware span
     const authMiddlewareSpan = serverTxnEvent.spans?.find(
-      span => span.op === 'http.server.middleware' && span.data?.['nuxt.middleware.name'] === '03.auth.ts',
+      span => span.op === 'middleware.nuxt' && span.data?.['nuxt.middleware.name'] === '03.auth.ts',
     );
 
     expect(authMiddlewareSpan).toBeDefined();
