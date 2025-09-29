@@ -11,6 +11,7 @@ import type {
 } from '@sentry/core';
 import {
   _INTERNAL_flushLogsBuffer,
+  _INTERNAL_flushMetricsBuffer,
   addAutoIpAddressToSession,
   applySdkMetadata,
   Client,
@@ -85,6 +86,7 @@ export type BrowserClientOptions = ClientOptions<BrowserTransportOptions> & Brow
  */
 export class BrowserClient extends Client<BrowserClientOptions> {
   private _logFlushIdleTimeout: ReturnType<typeof setTimeout> | undefined;
+  private _metricFlushIdleTimeout: ReturnType<typeof setTimeout> | undefined;
   /**
    * Creates a new Browser SDK instance.
    *
@@ -106,9 +108,9 @@ export class BrowserClient extends Client<BrowserClientOptions> {
 
     super(opts);
 
-    const { sendDefaultPii, sendClientReports, enableLogs } = this._options;
+    const { sendDefaultPii, sendClientReports, enableLogs, _enableTraceMetrics } = this._options;
 
-    if (WINDOW.document && (sendClientReports || enableLogs)) {
+    if (WINDOW.document && (sendClientReports || enableLogs || _enableTraceMetrics)) {
       WINDOW.document.addEventListener('visibilitychange', () => {
         if (WINDOW.document.visibilityState === 'hidden') {
           if (sendClientReports) {
@@ -116,6 +118,9 @@ export class BrowserClient extends Client<BrowserClientOptions> {
           }
           if (enableLogs) {
             _INTERNAL_flushLogsBuffer(this);
+          }
+          if (_enableTraceMetrics) {
+            _INTERNAL_flushMetricsBuffer(this);
           }
         }
       });
@@ -133,6 +138,22 @@ export class BrowserClient extends Client<BrowserClientOptions> {
 
         this._logFlushIdleTimeout = setTimeout(() => {
           _INTERNAL_flushLogsBuffer(this);
+        }, DEFAULT_FLUSH_INTERVAL);
+      });
+    }
+
+    if (_enableTraceMetrics) {
+      this.on('flush', () => {
+        _INTERNAL_flushMetricsBuffer(this);
+      });
+
+      this.on('afterCaptureMetric', () => {
+        if (this._metricFlushIdleTimeout) {
+          clearTimeout(this._metricFlushIdleTimeout);
+        }
+
+        this._metricFlushIdleTimeout = setTimeout(() => {
+          _INTERNAL_flushMetricsBuffer(this);
         }, DEFAULT_FLUSH_INTERVAL);
       });
     }
