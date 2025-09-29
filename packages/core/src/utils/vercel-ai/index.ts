@@ -178,9 +178,10 @@ function processGenerateSpan(span: Span, name: string, attributes: SpanAttribute
   span.setAttribute('ai.pipeline.name', nameWthoutAi);
   span.updateName(nameWthoutAi);
 
-  // If a Telemetry name is set and it is a pipeline span, use that as the operation name
+  // If a telemetry name is set and the span represents a pipeline, use it as the operation name.
+  // This name can be set at the request level by adding `experimental_telemetry.functionId`.
   const functionId = attributes[AI_TELEMETRY_FUNCTION_ID_ATTRIBUTE];
-  if (functionId && typeof functionId === 'string' && name.split('.').length - 1 === 1) {
+  if (functionId && typeof functionId === 'string') {
     span.updateName(`${nameWthoutAi} ${functionId}`);
     span.setAttribute('gen_ai.function_id', functionId);
   }
