@@ -94,9 +94,9 @@ Work in this release was contributed by @Karibash. Thank you for your contributi
 
   Note that if `Sentry.reportPageLoaded()` is not called within 30 seconds of the initial pageload (or whatever value the `finalTimeout` option is set to), the pageload span will be ended automatically.
 
-- **feat(core,node): Add instrumentation for `GoogleGenerativeAI` ([#17625](https://github.com/getsentry/sentry-javascript/pull/17625))**
+- **feat(core,node): Add instrumentation for `GoogleGenAI` ([#17625](https://github.com/getsentry/sentry-javascript/pull/17625))**
 
-  The SDK now automatically instruments the `@google/generative-ai` package to provide insights into your AI operations.
+  The SDK now automatically instruments the `@google/genai` package to provide insights into your AI operations.
 
 - **feat(nextjs): Promote `useRunAfterProductionCompileHook` to non-experimental build option ([#17721](https://github.com/getsentry/sentry-javascript/pull/17721))**
 
