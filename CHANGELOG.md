@@ -4,6 +4,13 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+### Important Changes
+
+- **fix(aws-serverless): Take `http_proxy` into account when choosing
+  `useLayerExtension` default ([#17817](https://github.com/getsentry/sentry-javascript/pull/17817))**
+
+The default setting for `useLayerExtension` now considers the `http_proxy` environment variable. When `http_proxy` is set, `useLayerExtension` will be off by default. If you use a `http_proxy` but would still like to make use of the Sentry Lambda extension, exempt `localhost` in a `no_proxy` environment variable.
+
 ## 10.16.0
 
 - feat(logs): Add internal `replay_is_buffering` flag ([#17752](https://github.com/getsentry/sentry-javascript/pull/17752))
