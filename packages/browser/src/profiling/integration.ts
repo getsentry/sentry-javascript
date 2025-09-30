@@ -24,7 +24,6 @@ const INTEGRATION_NAME = 'BrowserProfiling';
 const _browserProfilingIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
-    // eslint-disable-next-line complexity
     setup(client) {
       const options = client.getOptions() as BrowserOptions;
 
@@ -83,9 +82,6 @@ const _browserProfilingIntegration = (() => {
             }
           }, 0);
         }
-
-        // Adding client hook to attach profiles to transaction events before they are sent.
-        client.on('beforeSendEvent', attachProfiledThreadToEvent);
       } else {
         // LEGACY PROFILING (v1)
         if (rootSpan && isAutomatedPageLoadSpan(rootSpan)) {
@@ -153,6 +149,9 @@ const _browserProfilingIntegration = (() => {
           addProfilesToEnvelope(envelope as EventEnvelope, profilesToAddToEnvelope);
         });
       }
+    },
+    processEvent(event) {
+      return attachProfiledThreadToEvent(event);
     },
   };
 }) satisfies IntegrationFn;

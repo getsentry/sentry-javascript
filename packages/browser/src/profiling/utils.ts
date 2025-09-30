@@ -783,13 +783,13 @@ export function addProfileToGlobalCache(profile_id: string, profile: JSSelfProfi
 /**
  * Attaches the profiled thread information to the event's trace context.
  */
-export function attachProfiledThreadToEvent(event: Event): void {
+export function attachProfiledThreadToEvent(event: Event): Event {
   if (!event?.contexts?.profile) {
-    return;
+    return event;
   }
 
   if (!event.contexts) {
-    return;
+    return event;
   }
 
   // @ts-expect-error the trace fallback value is wrong, though it should never happen
@@ -811,4 +811,6 @@ export function attachProfiledThreadToEvent(event: Event): void {
       ['thread.name']: PROFILER_THREAD_NAME,
     };
   });
+
+  return event;
 }
