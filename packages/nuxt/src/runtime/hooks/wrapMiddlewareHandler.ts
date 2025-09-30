@@ -27,7 +27,7 @@ import type {
  * @param handler The middleware handler.
  * @param fileName The name of the middleware file.
  */
-export function wrapMiddlewareHandler<THandler extends EventHandler | EventHandlerObject>(
+export function wrapMiddlewareHandlerWithSentry<THandler extends EventHandler | EventHandlerObject>(
   handler: THandler,
   fileName: string,
 ): THandler {

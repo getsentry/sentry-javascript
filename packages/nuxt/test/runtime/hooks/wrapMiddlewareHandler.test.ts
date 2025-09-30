@@ -1,7 +1,7 @@
 import * as SentryCore from '@sentry/core';
 import type { EventHandler, EventHandlerRequest, H3Event } from 'h3';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { wrapMiddlewareHandler } from '../../../src/runtime/hooks/wrapMiddlewareHandler';
+import { wrapMiddlewareHandlerWithSentry } from '../../../src/runtime/hooks/wrapMiddlewareHandler';
 
 // Only mock the Sentry APIs we need to verify
 vi.mock('@sentry/core', async importOriginal => {
@@ -17,7 +17,7 @@ vi.mock('@sentry/core', async importOriginal => {
   };
 });
 
-describe('wrapMiddlewareHandler', () => {
+describe('wrapMiddlewareHandlerWithSentry', () => {
   const mockEvent: H3Event<EventHandlerRequest> = {
     path: '/test-path',
     method: 'GET',
@@ -49,7 +49,7 @@ describe('wrapMiddlewareHandler', () => {
     it('should wrap function handlers correctly and preserve return values', async () => {
       const functionHandler: EventHandler = vi.fn().mockResolvedValue('success');
 
-      const wrapped = wrapMiddlewareHandler(functionHandler, 'test-middleware');
+      const wrapped = wrapMiddlewareHandlerWithSentry(functionHandler, 'test-middleware');
       const result = await wrapped(mockEvent);
 
       expect(functionHandler).toHaveBeenCalledWith(mockEvent);
@@ -60,7 +60,7 @@ describe('wrapMiddlewareHandler', () => {
     it('should preserve sync return values from function handlers', async () => {
       const syncHandler: EventHandler = vi.fn().mockReturnValue('sync-result');
 
-      const wrapped = wrapMiddlewareHandler(syncHandler, 'sync-middleware');
+      const wrapped = wrapMiddlewareHandlerWithSentry(syncHandler, 'sync-middleware');
       const result = await wrapped(mockEvent);
 
       expect(syncHandler).toHaveBeenCalledWith(mockEvent);
@@ -72,7 +72,7 @@ describe('wrapMiddlewareHandler', () => {
     it('should handle async function handlers', async () => {
       const asyncHandler: EventHandler = vi.fn().mockResolvedValue('async-success');
 
-      const wrapped = wrapMiddlewareHandler(asyncHandler, 'async-middleware');
+      const wrapped = wrapMiddlewareHandlerWithSentry(asyncHandler, 'async-middleware');
       const result = await wrapped(mockEvent);
 
       expect(asyncHandler).toHaveBeenCalledWith(mockEvent);
@@ -86,7 +86,7 @@ describe('wrapMiddlewareHandler', () => {
       originalError.stack = 'original-stack-trace';
       const failingHandler: EventHandler = vi.fn().mockRejectedValue(originalError);
 
-      const wrapped = wrapMiddlewareHandler(failingHandler, 'failing-middleware');
+      const wrapped = wrapMiddlewareHandlerWithSentry(failingHandler, 'failing-middleware');
 
       await expect(wrapped(mockEvent)).rejects.toThrow('Original async error');
       await expect(wrapped(mockEvent)).rejects.toMatchObject({
@@ -104,7 +104,7 @@ describe('wrapMiddlewareHandler', () => {
         throw originalError;
       });
 
-      const wrapped = wrapMiddlewareHandler(failingHandler, 'sync-failing-middleware');
+      const wrapped = wrapMiddlewareHandlerWithSentry(failingHandler, 'sync-failing-middleware');
 
       await expect(wrapped(mockEvent)).rejects.toThrow('Original sync error');
       await expect(wrapped(mockEvent)).rejects.toBe(originalError);
@@ -116,7 +116,7 @@ describe('wrapMiddlewareHandler', () => {
       const stringError = 'String error';
       const failingHandler: EventHandler = vi.fn().mockRejectedValue(stringError);
 
-      const wrapped = wrapMiddlewareHandler(failingHandler, 'string-error-middleware');
+      const wrapped = wrapMiddlewareHandlerWithSentry(failingHandler, 'string-error-middleware');
 
       await expect(wrapped(mockEvent)).rejects.toBe(stringError);
       expect(SentryCore.captureException).toHaveBeenCalledWith(stringError, expect.any(Object));
@@ -133,7 +133,7 @@ describe('wrapMiddlewareHandler', () => {
       const userHandler: EventHandler = vi.fn().mockResolvedValue('user-result');
 
       // Should not throw despite Sentry failure
-      const wrapped = wrapMiddlewareHandler(userHandler, 'isolated-middleware');
+      const wrapped = wrapMiddlewareHandlerWithSentry(userHandler, 'isolated-middleware');
 
       // This should handle the Sentry error gracefully and still call user code
       await expect(wrapped(mockEvent)).rejects.toThrow('Sentry API failure');
@@ -147,7 +147,7 @@ describe('wrapMiddlewareHandler', () => {
         handler: baseHandler,
       };
 
-      const wrapped = wrapMiddlewareHandler(handlerObject, 'object-middleware');
+      const wrapped = wrapMiddlewareHandlerWithSentry(handlerObject, 'object-middleware');
 
       // Should return an object with wrapped handler
       expect(typeof wrapped).toBe('object');
@@ -180,7 +180,7 @@ describe('wrapMiddlewareHandler', () => {
         onRequest: onRequestHandler,
       };
 
-      const wrapped = wrapMiddlewareHandler(handlerObject, 'request-middleware');
+      const wrapped = wrapMiddlewareHandlerWithSentry(handlerObject, 'request-middleware');
 
       // Should preserve onRequest handler
       expect(wrapped).toHaveProperty('onRequest');
@@ -219,7 +219,7 @@ describe('wrapMiddlewareHandler', () => {
         onRequest: [onRequestHandler1, onRequestHandler2],
       };
 
-      const wrapped = wrapMiddlewareHandler(handlerObject, 'multi-request-middleware');
+      const wrapped = wrapMiddlewareHandlerWithSentry(handlerObject, 'multi-request-middleware');
 
       // Should preserve onRequest as array
       expect(wrapped).toHaveProperty('onRequest');
@@ -266,7 +266,7 @@ describe('wrapMiddlewareHandler', () => {
         onBeforeResponse: onBeforeResponseHandler,
       };
 
-      const wrapped = wrapMiddlewareHandler(handlerObject, 'response-middleware');
+      const wrapped = wrapMiddlewareHandlerWithSentry(handlerObject, 'response-middleware');
 
       // Should preserve onBeforeResponse handler
       expect(wrapped).toHaveProperty('onBeforeResponse');
@@ -300,7 +300,7 @@ describe('wrapMiddlewareHandler', () => {
         onBeforeResponse: [onBeforeResponseHandler1, onBeforeResponseHandler2],
       };
 
-      const wrapped = wrapMiddlewareHandler(handlerObject, 'multi-response-middleware');
+      const wrapped = wrapMiddlewareHandlerWithSentry(handlerObject, 'multi-response-middleware');
 
       // Should preserve onBeforeResponse as array
       expect(wrapped).toHaveProperty('onBeforeResponse');
@@ -350,7 +350,7 @@ describe('wrapMiddlewareHandler', () => {
         onBeforeResponse: onBeforeResponseHandler,
       };
 
-      const wrapped = wrapMiddlewareHandler(handlerObject, 'complex-middleware');
+      const wrapped = wrapMiddlewareHandlerWithSentry(handlerObject, 'complex-middleware');
 
       // Should preserve all properties
       expect(wrapped).toHaveProperty('handler');
@@ -402,7 +402,7 @@ describe('wrapMiddlewareHandler', () => {
         // No onRequest or onBeforeResponse
       };
 
-      const wrapped = wrapMiddlewareHandler(handlerObject, 'minimal-object-middleware');
+      const wrapped = wrapMiddlewareHandlerWithSentry(handlerObject, 'minimal-object-middleware');
 
       // Should only have handler property
       expect(wrapped).toHaveProperty('handler');
@@ -430,7 +430,7 @@ describe('wrapMiddlewareHandler', () => {
         handler: failingHandler,
       };
 
-      const wrapped = wrapMiddlewareHandler(handlerObject, 'failing-object-middleware');
+      const wrapped = wrapMiddlewareHandlerWithSentry(handlerObject, 'failing-object-middleware');
 
       await expect(wrapped.handler(mockEvent)).rejects.toThrow('Handler error');
       expect(SentryCore.captureException).toHaveBeenCalledWith(error, expect.any(Object));
@@ -445,7 +445,7 @@ describe('wrapMiddlewareHandler', () => {
         onRequest: failingOnRequestHandler,
       };
 
-      const wrapped = wrapMiddlewareHandler(handlerObject, 'failing-request-middleware');
+      const wrapped = wrapMiddlewareHandlerWithSentry(handlerObject, 'failing-request-middleware');
 
       await expect(wrapped.onRequest(mockEvent)).rejects.toThrow('OnRequest error');
       expect(SentryCore.captureException).toHaveBeenCalledWith(error, expect.any(Object));
@@ -460,7 +460,7 @@ describe('wrapMiddlewareHandler', () => {
         onBeforeResponse: failingOnBeforeResponseHandler,
       };
 
-      const wrapped = wrapMiddlewareHandler(handlerObject, 'failing-response-middleware');
+      const wrapped = wrapMiddlewareHandlerWithSentry(handlerObject, 'failing-response-middleware');
 
       const mockResponse = { body: 'test-response' };
       await expect(wrapped.onBeforeResponse(mockEvent, mockResponse)).rejects.toThrow('OnBeforeResponse error');
@@ -472,7 +472,7 @@ describe('wrapMiddlewareHandler', () => {
     it('should call Sentry APIs with correct parameters', async () => {
       const userHandler: EventHandler = vi.fn().mockResolvedValue('api-test-result');
 
-      const wrapped = wrapMiddlewareHandler(userHandler, 'api-middleware');
+      const wrapped = wrapMiddlewareHandlerWithSentry(userHandler, 'api-middleware');
       await wrapped(mockEvent);
 
       // Verify key Sentry APIs are called correctly
@@ -494,7 +494,7 @@ describe('wrapMiddlewareHandler', () => {
       const minimalEvent = { path: '/minimal' } as H3Event<EventHandlerRequest>;
       const userHandler: EventHandler = vi.fn().mockResolvedValue('minimal-result');
 
-      const wrapped = wrapMiddlewareHandler(userHandler, 'minimal-middleware');
+      const wrapped = wrapMiddlewareHandlerWithSentry(userHandler, 'minimal-middleware');
       const result = await wrapped(minimalEvent);
 
       expect(result).toBe('minimal-result');

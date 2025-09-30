@@ -9,7 +9,7 @@ import type { InputPluginOption } from 'rollup';
 export function addMiddlewareImports(): void {
   addServerImports([
     {
-      name: 'wrapMiddlewareHandler',
+      name: 'wrapMiddlewareHandlerWithSentry',
       from: createResolver(import.meta.url).resolve('./runtime/hooks/wrapMiddlewareHandler'),
     },
   ]);
@@ -81,10 +81,10 @@ function wrapMiddlewareCode(originalCode: string, fileName: string): string {
   const cleanFileName = fileName.replace(/\.(ts|js|mjs|mts|cts)$/, '');
 
   return `
-import { wrapMiddlewareHandler } from '#imports';
+import { wrapMiddlewareHandlerWithSentry } from '#imports';
 
 function defineInstrumentedEventHandler(handlerOrObject) {
-  return defineEventHandler(wrapMiddlewareHandler(handlerOrObject, '${cleanFileName}'));
+  return defineEventHandler(wrapMiddlewareHandlerWithSentry(handlerOrObject, '${cleanFileName}'));
 }
 
 ${originalCode.replace(/defineEventHandler\(/g, 'defineInstrumentedEventHandler(')}
