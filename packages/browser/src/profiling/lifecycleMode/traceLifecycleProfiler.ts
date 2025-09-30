@@ -13,7 +13,9 @@ import { DEBUG_BUILD } from '../../debug-build';
 import type { JSSelfProfiler } from '../jsSelfProfiling';
 import { createProfileChunkPayload, startJSSelfProfile, validateProfileChunk } from '../utils';
 
-const CHUNK_INTERVAL_MS = 60_000;
+const CHUNK_INTERVAL_MS = 60_000; // 1 minute
+// Maximum length for trace lifecycle profiling per root span (e.g. if spanEnd never fires)
+const MAX_ROOT_SPAN_PROFILE_MS = 300_000; // 5 minutes
 
 /**
  * Browser trace-lifecycle profiler (UI Profiling / Profiling V2):
@@ -31,6 +33,7 @@ export class BrowserTraceLifecycleProfiler {
   private _chunkTimer: ReturnType<typeof setTimeout> | undefined;
   // For keeping track of active root spans
   private _activeRootSpanIds: Set<string>;
+  private _rootSpanTimeouts: Map<string, ReturnType<typeof setTimeout>>;
   private _profilerId: string | undefined;
   private _isRunning: boolean;
   private _sessionSampled: boolean;
@@ -40,6 +43,7 @@ export class BrowserTraceLifecycleProfiler {
     this._profiler = undefined;
     this._chunkTimer = undefined;
     this._activeRootSpanIds = new Set<string>();
+    this._rootSpanTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
     this._profilerId = undefined;
     this._isRunning = false;
     this._sessionSampled = false;
@@ -78,6 +82,11 @@ export class BrowserTraceLifecycleProfiler {
 
       this._activeRootSpanIds.add(spanId);
       const rootSpanCount = this._activeRootSpanIds.size;
+
+      const timeout = setTimeout(() => {
+        this._onRootSpanTimeout(spanId);
+      }, MAX_ROOT_SPAN_PROFILE_MS);
+      this._rootSpanTimeouts.set(spanId, timeout);
 
       if (rootSpanCount === 1) {
         DEBUG_BUILD &&
@@ -168,7 +177,7 @@ export class BrowserTraceLifecycleProfiler {
       return;
     }
 
-    this._scheduleNextChunk();
+    this._startPeriodicChunking();
   }
 
   /**
@@ -185,6 +194,8 @@ export class BrowserTraceLifecycleProfiler {
       this._chunkTimer = undefined;
     }
 
+    this._clearAllRootSpanTimeouts();
+
     // Collect whatever was currently recording
     this._collectCurrentChunk()
       .catch(() => /* no catch */ {})
@@ -199,6 +210,14 @@ export class BrowserTraceLifecycleProfiler {
   private _resetProfilerInfo(): void {
     this._profilerId = undefined;
     getGlobalScope().setContext('profile', {});
+  }
+
+  /**
+   * Clear and reset all per-root-span timeouts.
+   */
+  private _clearAllRootSpanTimeouts(): void {
+    this._rootSpanTimeouts.forEach(timeout => clearTimeout(timeout));
+    this._rootSpanTimeouts.clear();
   }
 
   /**
@@ -221,7 +240,7 @@ export class BrowserTraceLifecycleProfiler {
    * Each tick collects a chunk and restarts the profiler.
    * A chunk should be closed when there are no active root spans anymore OR when the maximum chunk interval is reached.
    */
-  private _scheduleNextChunk(): void {
+  private _startPeriodicChunking(): void {
     if (!this._isRunning) {
       return;
     }
@@ -238,9 +257,38 @@ export class BrowserTraceLifecycleProfiler {
           this._resetProfilerInfo();
           return;
         }
-        this._scheduleNextChunk();
+
+        this._startPeriodicChunking();
       }
     }, CHUNK_INTERVAL_MS);
+  }
+
+  /**
+   * Handle timeout for a specific root span ID to avoid indefinitely running profiler if `spanEnd` never fires.
+   * If this was the last active root span, collect the current chunk and stop profiling.
+   */
+  private _onRootSpanTimeout(rootSpanId: string): void {
+    // If span already ended, ignore
+    if (!this._rootSpanTimeouts.has(rootSpanId)) {
+      return;
+    }
+    this._rootSpanTimeouts.delete(rootSpanId);
+
+    if (!this._activeRootSpanIds.has(rootSpanId)) {
+      return;
+    }
+
+    DEBUG_BUILD &&
+      debug.log(
+        `[Profiling] Reached 5-minute timeout for root span ${rootSpanId}. You likely started a manual root span that never called \`.end()\`.`,
+      );
+
+    this._activeRootSpanIds.delete(rootSpanId);
+
+    const rootSpanCount = this._activeRootSpanIds.size;
+    if (rootSpanCount === 0) {
+      this.stop();
+    }
   }
 
   /**
