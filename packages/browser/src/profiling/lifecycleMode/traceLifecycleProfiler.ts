@@ -125,7 +125,9 @@ export class BrowserTraceLifecycleProfiler {
           `[Profiling] Root span with ID ${spanId} ended. Will continue profiling for as long as there are active root spans (currently: ${rootSpanCount}).`,
         );
       if (rootSpanCount === 0) {
-        this._collectCurrentChunk().catch(() => /* no catch */ {});
+        this._collectCurrentChunk().catch(e => {
+          DEBUG_BUILD && debug.error('[Profiling] Failed to collect current profile chunk on `spanEnd`:', e);
+        });
 
         this.stop();
       }
@@ -196,7 +198,9 @@ export class BrowserTraceLifecycleProfiler {
     this._clearAllRootSpanTimeouts();
 
     // Collect whatever was currently recording
-    this._collectCurrentChunk().catch(() => /* no catch */ {});
+    this._collectCurrentChunk().catch(e => {
+      DEBUG_BUILD && debug.error('[Profiling] Failed to collect current profile chunk on `stop()`:', e);
+    });
   }
 
   /**
@@ -241,7 +245,9 @@ export class BrowserTraceLifecycleProfiler {
     }
 
     this._chunkTimer = setTimeout(() => {
-      this._collectCurrentChunk().catch(() => /* no catch */ {});
+      this._collectCurrentChunk().catch(e => {
+        DEBUG_BUILD && debug.error('[Profiling] Failed to collect current profile chunk during periodic chunking:', e);
+      });
 
       if (this._isRunning) {
         this._startProfilerInstance();
