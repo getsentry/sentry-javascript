@@ -165,6 +165,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
   client?.on('spanStart', span => {
     const spanAttributes = spanToJSON(span).data;
     const rootSpan = getRootSpan(span);
+    const isRootSpan = span === rootSpan;
 
     // What we do in this glorious piece of code, is hoist any information about parameterized routes from spans emitted
     // by Next.js via the `next.route` attribute, up to the transaction by setting the http.route attribute.
@@ -192,13 +193,13 @@ export function init(options: NodeOptions): NodeClient | undefined {
 
     // Add headers to the root span if the client options allow it
     const shouldSendDefaultPii = getClient()?.getOptions().sendDefaultPii ?? false;
-    if (shouldSendDefaultPii && rootSpan) {
-      const headers = getIsolationScope().getScopeData().sdkProcessingMetadata.normalizedRequest?.headers;
+    if (shouldSendDefaultPii && isRootSpan) {
+      const headers = getIsolationScope().getScopeData().sdkProcessingMetadata?.normalizedRequest?.headers;
       addHeadersAsAttributes(headers, rootSpan);
     }
 
     // We want to fork the isolation scope for incoming requests
-    if (spanAttributes?.['next.span_type'] === 'BaseServer.handleRequest' && span === getRootSpan(span)) {
+    if (spanAttributes?.['next.span_type'] === 'BaseServer.handleRequest' && isRootSpan) {
       const scopes = getCapturedScopesOnSpan(span);
 
       const isolationScope = (scopes.isolationScope || getIsolationScope()).clone();
