@@ -13,7 +13,7 @@ class GrowthBookWrapper {
     // Create GrowthBookClient with proper configuration
     const clientOptions: ClientOptions = {
       apiHost: 'https://cdn.growthbook.io',
-      clientKey: 'sdk-abc123'
+      clientKey: 'sdk-abc123',
     };
     this._gbClient = new GrowthBookClient(clientOptions);
 
@@ -21,7 +21,7 @@ class GrowthBookWrapper {
     const features = this._createTestFeatures();
 
     this._gbClient.initSync({
-      payload: { features }
+      payload: { features },
     });
   }
 
