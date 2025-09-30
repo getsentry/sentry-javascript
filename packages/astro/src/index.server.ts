@@ -66,6 +66,8 @@ export {
   hapiIntegration,
   honoIntegration,
   httpIntegration,
+  httpServerIntegration,
+  httpServerSpansIntegration,
   // eslint-disable-next-line deprecation/deprecation
   inboundFiltersIntegration,
   eventFiltersIntegration,
