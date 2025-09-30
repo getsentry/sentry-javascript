@@ -12,21 +12,21 @@ class GrowthBookWrapper {
     // Create GrowthBookClient and initialize it synchronously with payload
     const clientOptions: ClientOptions = {
       apiHost: 'https://cdn.growthbook.io',
-      clientKey: 'sdk-abc123'
+      clientKey: 'sdk-abc123',
     };
     this._gbClient = new GrowthBookClient(clientOptions);
 
     // Create test features
     const features = {
-      'feat1': { defaultValue: true },
-      'feat2': { defaultValue: false },
+      feat1: { defaultValue: true },
+      feat2: { defaultValue: false },
       'bool-feat': { defaultValue: true },
-      'string-feat': { defaultValue: 'hello' }
+      'string-feat': { defaultValue: 'hello' },
     };
 
     // Initialize synchronously with payload
     const initOptions: InitSyncOptions = {
-      payload: { features }
+      payload: { features },
     };
 
     this._gbClient.initSync(initOptions);
