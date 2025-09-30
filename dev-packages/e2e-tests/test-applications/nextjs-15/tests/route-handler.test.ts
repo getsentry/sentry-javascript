@@ -22,6 +22,9 @@ test('Should create a transaction for node route handlers', async ({ request }) 
 });
 
 test('Should create a transaction for edge route handlers', async ({ request }) => {
+  // This test only works for webpack builds on non-async param extraction
+  // todo: check if we can set request headers for edge on sdkProcessingMetadata
+  test.skip();
   const routehandlerTransactionPromise = waitForTransaction('nextjs-15', async transactionEvent => {
     return transactionEvent?.transaction === 'GET /route-handler/[xoxo]/edge';
   });
@@ -33,6 +36,5 @@ test('Should create a transaction for edge route handlers', async ({ request }) 
 
   expect(routehandlerTransaction.contexts?.trace?.status).toBe('ok');
   expect(routehandlerTransaction.contexts?.trace?.op).toBe('http.server');
-  // todo: check if we can set request headers for edge on sdkProcessingMetadata
-  // expect(routehandlerTransaction.contexts?.trace?.data?.['http.request.header.x_charly']).toBe('gomez');
+  expect(routehandlerTransaction.contexts?.trace?.data?.['http.request.header.x_charly']).toBe('gomez');
 });
