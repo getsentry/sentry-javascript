@@ -5,6 +5,7 @@
 import * as Sentry from '@sentry/browser';
 import { debug } from '@sentry/core';
 import { describe, expect, it, vi } from 'vitest';
+import type { BrowserClient } from '../../src/index';
 import type { JSSelfProfile } from '../../src/profiling/jsSelfProfiling';
 
 describe('BrowserProfilingIntegration', () => {
@@ -105,7 +106,7 @@ describe('BrowserProfilingIntegration', () => {
     });
 
     const client = Sentry.getClient<BrowserClient>();
-    const lifecycle = (client?.getOptions() as any)?.profileLifecycle;
+    const lifecycle = client?.getOptions()?.profileLifecycle;
     expect(lifecycle).toBe('manual');
   });
 });
