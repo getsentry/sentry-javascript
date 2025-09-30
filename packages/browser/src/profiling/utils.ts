@@ -33,7 +33,8 @@ const MS_TO_NS = 1e6;
 // Checking if we are in Main or Worker thread: `self` (not `window`) is the `globalThis` in Web Workers and `importScripts` are only available in Web Workers
 const isMainThread = 'window' in GLOBAL_OBJ && GLOBAL_OBJ.window === GLOBAL_OBJ && typeof importScripts === 'undefined';
 
-export const PROFILER_THREAD_ID_STRING = String(0); // todo: ID for Web Worker threads
+// Setting ID to 0 as we cannot get an ID from Web Workers
+export const PROFILER_THREAD_ID_STRING = String(0);
 export const PROFILER_THREAD_NAME = isMainThread ? 'main' : 'worker';
 
 // We force make this optional to be on the safe side...
@@ -271,21 +272,8 @@ export function validateProfileChunk(chunk: ProfileChunk): { valid: boolean; rea
       return { valid: false, reason: 'missing or invalid chunk_id' };
     }
 
-    // client_sdk name/version are required
-    if (
-      !chunk.client_sdk ||
-      typeof chunk.client_sdk.name !== 'string' ||
-      typeof chunk.client_sdk.version !== 'string'
-    ) {
+    if (!chunk.client_sdk) {
       return { valid: false, reason: 'missing client_sdk metadata' };
-    }
-
-    if (typeof chunk.platform !== 'string') {
-      return { valid: false, reason: 'missing platform' };
-    }
-
-    if (typeof chunk.release !== 'string') {
-      return { valid: false, reason: 'missing release' };
     }
 
     // Profile data must have frames, stacks, samples
