@@ -1,6 +1,7 @@
-import { defineEventHandler, setHeader } from '#imports';
+import { eventHandler, setHeader } from '#imports';
 
-export default defineEventHandler(async event => {
+// tests out the eventHandler alias
+export default eventHandler(async event => {
   // Set a header to indicate this middleware ran
   setHeader(event, 'x-second-middleware', 'executed');
 });
