@@ -13,7 +13,6 @@ import {
   winterCGRequestToRequestData,
   withIsolationScope,
 } from '@sentry/core';
-import { addHeadersAsAttributes } from '../common/utils/addHeadersAsAttributes';
 import { flushSafelyWithTimeout } from '../common/utils/responseEnd';
 import type { EdgeRouteHandler } from '../edge/types';
 
@@ -60,7 +59,7 @@ export function wrapMiddlewareWithSentry<H extends EdgeRouteHandler>(
 
         let spanName: string;
         let spanSource: TransactionSource;
-        let headerAttributes: Record<string, string> = {};
+        const headerAttributes: Record<string, string> = {};
 
         if (req instanceof Request) {
           isolationScope.setSDKProcessingMetadata({
@@ -68,8 +67,6 @@ export function wrapMiddlewareWithSentry<H extends EdgeRouteHandler>(
           });
           spanName = `middleware ${req.method} ${new URL(req.url).pathname}`;
           spanSource = 'url';
-
-          headerAttributes = addHeadersAsAttributes(req.headers);
         } else {
           spanName = 'middleware';
           spanSource = 'component';
