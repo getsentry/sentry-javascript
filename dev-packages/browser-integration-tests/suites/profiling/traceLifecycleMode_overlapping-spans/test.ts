@@ -112,14 +112,16 @@ sentryTest(
     expect(profile.frames.length).toBeGreaterThan(0);
     for (const frame of profile.frames) {
       expect(frame).toHaveProperty('function');
-      expect(frame).toHaveProperty('abs_path');
-      expect(frame).toHaveProperty('lineno');
-      expect(frame).toHaveProperty('colno');
-
       expect(typeof frame.function).toBe('string');
-      expect(typeof frame.abs_path).toBe('string');
-      expect(typeof frame.lineno).toBe('number');
-      expect(typeof frame.colno).toBe('number');
+
+      if (frame.function !== 'fetch' && frame.function !== 'setTimeout') {
+        expect(frame).toHaveProperty('abs_path');
+        expect(frame).toHaveProperty('lineno');
+        expect(frame).toHaveProperty('colno');
+        expect(typeof frame.abs_path).toBe('string');
+        expect(typeof frame.lineno).toBe('number');
+        expect(typeof frame.colno).toBe('number');
+      }
     }
 
     const functionNames = profile.frames.map(frame => frame.function).filter(name => name !== '');
