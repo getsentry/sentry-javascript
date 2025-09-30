@@ -34,6 +34,7 @@ export class BrowserTraceLifecycleProfiler {
   // For keeping track of active root spans
   private _activeRootSpanIds: Set<string>;
   private _rootSpanTimeouts: Map<string, ReturnType<typeof setTimeout>>;
+  // ID for Profiler session
   private _profilerId: string | undefined;
   private _isRunning: boolean;
   private _sessionSampled: boolean;
@@ -53,6 +54,9 @@ export class BrowserTraceLifecycleProfiler {
    * Initialize the profiler with client and session sampling decision computed by the integration.
    */
   public initialize(client: Client, sessionSampled: boolean): void {
+    // One Profiler ID per profiling session (user session)
+    this._profilerId = uuid4();
+
     DEBUG_BUILD && debug.log("[Profiling] Initializing profiler (lifecycle='trace').");
 
     this._client = client;
@@ -71,6 +75,11 @@ export class BrowserTraceLifecycleProfiler {
         DEBUG_BUILD && debug.log('[Profiling] Discarding profile because root span was not sampled.');
         return;
       }
+
+      // Matching root spans with profiles
+      getGlobalScope().setContext('profile', {
+        profiler_id: this._profilerId,
+      });
 
       const spanId = span.spanContext().spanId;
       if (!spanId) {
@@ -155,16 +164,7 @@ export class BrowserTraceLifecycleProfiler {
     if (this._isRunning) {
       return;
     }
-
     this._isRunning = true;
-    if (!this._profilerId) {
-      this._profilerId = uuid4();
-
-      // Matching root spans with profiles
-      getGlobalScope().setContext('profile', {
-        profiler_id: this._profilerId,
-      });
-    }
 
     DEBUG_BUILD && debug.log('[Profiling] Started profiling with profile ID:', this._profilerId);
 
@@ -172,7 +172,6 @@ export class BrowserTraceLifecycleProfiler {
 
     if (!this._profiler) {
       DEBUG_BUILD && debug.log('[Profiling] Stopping trace lifecycle profiling.');
-      this._isRunning = false;
       this._resetProfilerInfo();
       return;
     }
@@ -197,18 +196,14 @@ export class BrowserTraceLifecycleProfiler {
     this._clearAllRootSpanTimeouts();
 
     // Collect whatever was currently recording
-    this._collectCurrentChunk()
-      .catch(() => /* no catch */ {})
-      .finally(() => {
-        this._resetProfilerInfo();
-      });
+    this._collectCurrentChunk().catch(() => /* no catch */ {});
   }
 
   /**
-   * Resets profiling information from scope and class instance.
+   * Resets profiling information from scope and resets running state
    */
   private _resetProfilerInfo(): void {
-    this._profilerId = undefined;
+    this._isRunning = false;
     getGlobalScope().setContext('profile', {});
   }
 
@@ -253,7 +248,6 @@ export class BrowserTraceLifecycleProfiler {
 
         if (!this._profiler) {
           // If restart failed, stop scheduling further chunks and reset context.
-          this._isRunning = false;
           this._resetProfilerInfo();
           return;
         }
@@ -317,6 +311,7 @@ export class BrowserTraceLifecycleProfiler {
       }
 
       this._sendProfileChunk(chunk);
+
       DEBUG_BUILD && debug.log('[Profiling] Collected browser profile chunk.');
     } catch (e) {
       DEBUG_BUILD && debug.log('[Profiling] Error while stopping JS Profiler for chunk:', e);

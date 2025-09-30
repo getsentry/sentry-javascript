@@ -347,73 +347,285 @@ describe('Browser Profiling v2 trace lifecycle', () => {
     });
   });
 
-  it('sets global profile context on transaction', async () => {
-    // Use real timers to avoid interference with scheduled chunk timer
-    vi.useRealTimers();
+  describe('profile context', () => {
+    it('sets global profile context on transaction', async () => {
+      vi.useRealTimers();
 
-    const stop = vi.fn().mockResolvedValue({
-      frames: [{ name: 'f' }],
-      stacks: [{ frameId: 0 }],
-      samples: [{ timestamp: 0 }, { timestamp: 10 }],
-      resources: [],
-    });
+      const stop = vi.fn().mockResolvedValue({
+        frames: [{ name: 'f' }],
+        stacks: [{ frameId: 0 }],
+        samples: [{ timestamp: 0 }, { timestamp: 10 }],
+        resources: [],
+      });
 
-    class MockProfilerImpl {
-      stopped: boolean = false;
-      constructor(_opts: { sampleInterval: number; maxBufferSize: number }) {}
-      stop() {
-        this.stopped = true;
-        return stop();
+      class MockProfilerImpl {
+        stopped: boolean = false;
+        constructor(_opts: { sampleInterval: number; maxBufferSize: number }) {}
+        stop() {
+          this.stopped = true;
+          return stop();
+        }
+        addEventListener() {}
       }
-      addEventListener() {}
-    }
 
-    (window as any).Profiler = vi
-      .fn()
-      .mockImplementation((opts: { sampleInterval: number; maxBufferSize: number }) => new MockProfilerImpl(opts));
+      (window as any).Profiler = vi
+        .fn()
+        .mockImplementation((opts: { sampleInterval: number; maxBufferSize: number }) => new MockProfilerImpl(opts));
 
-    const send = vi.fn().mockResolvedValue(undefined);
+      const send = vi.fn().mockResolvedValue(undefined);
 
-    Sentry.init({
-      dsn: 'https://public@o.ingest.sentry.io/1',
-      tracesSampleRate: 1,
-      profileSessionSampleRate: 1,
-      profileLifecycle: 'trace',
-      integrations: [Sentry.browserProfilingIntegration()],
-      transport: () => ({ flush: vi.fn().mockResolvedValue(true), send }),
+      Sentry.init({
+        dsn: 'https://public@o.ingest.sentry.io/1',
+        tracesSampleRate: 1,
+        profileSessionSampleRate: 1,
+        profileLifecycle: 'trace',
+        integrations: [Sentry.browserProfilingIntegration()],
+        transport: () => ({ flush: vi.fn().mockResolvedValue(true), send }),
+      });
+
+      Sentry.startSpan({ name: 'root-for-context', parentSpan: null, forceTransaction: true }, () => {
+        /* empty */
+      });
+
+      // Allow async tasks to resolve and flush queued envelopes
+      const client = Sentry.getClient();
+      await client?.flush(1000);
+
+      // Find the transaction envelope among sent envelopes
+      const calls = send.mock.calls;
+      const txnCall = calls.find(call => call?.[0]?.[1]?.[0]?.[0]?.type === 'transaction');
+      expect(txnCall).toBeDefined();
+
+      const transaction = txnCall?.[0]?.[1]?.[0]?.[1];
+
+      expect(transaction).toMatchObject({
+        contexts: {
+          trace: {
+            data: expect.objectContaining({
+              ['thread.id']: expect.any(String),
+              ['thread.name']: expect.any(String),
+            }),
+          },
+          profile: {
+            profiler_id: expect.any(String),
+          },
+        },
+      });
     });
 
-    let spanRef: any;
-    Sentry.startSpanManual({ name: 'root-for-context', parentSpan: null, forceTransaction: true }, span => {
-      spanRef = span;
+    it('reuses the same profiler_id across multiple root transactions within one session', async () => {
+      vi.useRealTimers();
+
+      const stop = vi.fn().mockResolvedValue({
+        frames: [{ name: 'f' }],
+        stacks: [{ frameId: 0 }],
+        samples: [{ timestamp: 0 }, { timestamp: 10 }],
+        resources: [],
+      });
+
+      class MockProfilerImpl {
+        stopped: boolean = false;
+        constructor(_opts: { sampleInterval: number; maxBufferSize: number }) {}
+        stop() {
+          this.stopped = true;
+          return stop();
+        }
+        addEventListener() {}
+      }
+
+      (window as any).Profiler = vi
+        .fn()
+        .mockImplementation((opts: { sampleInterval: number; maxBufferSize: number }) => new MockProfilerImpl(opts));
+
+      const send = vi.fn().mockResolvedValue(undefined);
+
+      Sentry.init({
+        dsn: 'https://public@o.ingest.sentry.io/1',
+        tracesSampleRate: 1,
+        profileSessionSampleRate: 1,
+        profileLifecycle: 'trace',
+        integrations: [Sentry.browserProfilingIntegration()],
+        transport: () => ({ flush: vi.fn().mockResolvedValue(true), send }),
+      });
+
+      Sentry.startSpan({ name: 'rootSpan-1', parentSpan: null, forceTransaction: true }, () => {
+        /* empty */
+      });
+      Sentry.startSpan({ name: 'rootSpan-2', parentSpan: null, forceTransaction: true }, () => {
+        /* empty */
+      });
+
+      await Sentry.getClient()?.flush(1000);
+
+      const calls = send.mock.calls;
+      const transactionEvents = calls
+        .filter(call => call?.[0]?.[1]?.[0]?.[0]?.type === 'transaction')
+        .map(call => call?.[0]?.[1]?.[0]?.[1]);
+
+      expect(transactionEvents.length).toEqual(2);
+
+      const firstProfilerId = transactionEvents[0]?.contexts?.profile?.profiler_id;
+      const secondProfilerId = transactionEvents[1]?.contexts?.profile?.profiler_id;
+
+      expect(typeof firstProfilerId).toBe('string');
+      expect(typeof secondProfilerId).toBe('string');
+      expect(firstProfilerId).toBe(secondProfilerId);
     });
 
-    // End span to trigger sending of the transaction
-    spanRef.end();
+    it('emits profile_chunk items with the same profiler_id as the transactions within a session', async () => {
+      vi.useRealTimers();
 
-    // Allow async tasks to resolve and flush queued envelopes
-    const client = Sentry.getClient();
-    await client?.flush(1000);
+      const stop = vi.fn().mockResolvedValue({
+        frames: [{ name: 'f' }],
+        stacks: [{ frameId: 0 }],
+        samples: [{ timestamp: 0 }, { timestamp: 10 }],
+        resources: [],
+      });
 
-    // Find the transaction envelope among sent envelopes
-    const calls = send.mock.calls;
-    const txnCall = calls.find(call => call?.[0]?.[1]?.[0]?.[0]?.type === 'transaction');
-    expect(txnCall).toBeDefined();
+      class MockProfilerImpl {
+        stopped: boolean = false;
+        constructor(_opts: { sampleInterval: number; maxBufferSize: number }) {}
+        stop() {
+          this.stopped = true;
+          return stop();
+        }
+        addEventListener() {}
+      }
 
-    const transaction = txnCall?.[0]?.[1]?.[0]?.[1];
+      (window as any).Profiler = vi
+        .fn()
+        .mockImplementation((opts: { sampleInterval: number; maxBufferSize: number }) => new MockProfilerImpl(opts));
 
-    expect(transaction).toMatchObject({
-      contexts: {
-        trace: {
-          data: expect.objectContaining({
-            ['thread.id']: expect.any(String),
-            ['thread.name']: expect.any(String),
-          }),
-        },
-        profile: {
-          profiler_id: expect.any(String),
-        },
-      },
+      const send = vi.fn().mockResolvedValue(undefined);
+
+      Sentry.init({
+        dsn: 'https://public@o.ingest.sentry.io/1',
+        tracesSampleRate: 1,
+        profileSessionSampleRate: 1,
+        profileLifecycle: 'trace',
+        integrations: [Sentry.browserProfilingIntegration()],
+        transport: () => ({ flush: vi.fn().mockResolvedValue(true), send }),
+      });
+
+      Sentry.startSpan({ name: 'rootSpan-chunk-1', parentSpan: null, forceTransaction: true }, () => {
+        /* empty */
+      });
+      Sentry.startSpan({ name: 'rootSpan-chunk-2', parentSpan: null, forceTransaction: true }, () => {
+        /* empty */
+      });
+
+      await Sentry.getClient()?.flush(1000);
+
+      const calls = send.mock.calls;
+      const transactionEvents = calls
+        .filter(call => call?.[0]?.[1]?.[0]?.[0]?.type === 'transaction')
+        .map(call => call?.[0]?.[1]?.[0]?.[1]);
+
+      expect(transactionEvents.length).toBe(2);
+      const expectedProfilerId = transactionEvents[0]?.contexts?.profile?.profiler_id;
+      expect(typeof expectedProfilerId).toBe('string');
+
+      const profileChunks = calls
+        .filter(call => call?.[0]?.[1]?.[0]?.[0]?.type === 'profile_chunk')
+        .map(call => call?.[0]?.[1]?.[0]?.[1]);
+
+      expect(profileChunks.length).toBe(2);
+
+      for (const chunk of profileChunks) {
+        expect(chunk?.profiler_id).toBe(expectedProfilerId);
+      }
+    });
+
+    it('changes profiler_id when a new user session starts (new SDK init)', async () => {
+      vi.useRealTimers();
+
+      const stop = vi.fn().mockResolvedValue({
+        frames: [{ name: 'f' }],
+        stacks: [{ frameId: 0 }],
+        samples: [{ timestamp: 0 }, { timestamp: 10 }],
+        resources: [],
+      });
+
+      class MockProfilerImpl {
+        stopped: boolean = false;
+        constructor(_opts: { sampleInterval: number; maxBufferSize: number }) {}
+        stop() {
+          this.stopped = true;
+          return stop();
+        }
+        addEventListener() {}
+      }
+
+      (window as any).Profiler = vi
+        .fn()
+        .mockImplementation((opts: { sampleInterval: number; maxBufferSize: number }) => new MockProfilerImpl(opts));
+
+      // Session 1
+      const send1 = vi.fn().mockResolvedValue(undefined);
+      Sentry.init({
+        dsn: 'https://public@o.ingest.sentry.io/1',
+        tracesSampleRate: 1,
+        profileSessionSampleRate: 1,
+        profileLifecycle: 'trace',
+        integrations: [Sentry.browserProfilingIntegration()],
+        transport: () => ({ flush: vi.fn().mockResolvedValue(true), send: send1 }),
+      });
+
+      Sentry.startSpan({ name: 'session-1-rootSpan', parentSpan: null, forceTransaction: true }, () => {
+        /* empty */
+      });
+
+      let client = Sentry.getClient();
+      await client?.flush(1000);
+
+      // Extract first session profiler_id from transaction and a chunk
+      const calls1 = send1.mock.calls;
+      const txnEvt1 = calls1.find(call => call?.[0]?.[1]?.[0]?.[0]?.type === 'transaction')?.[0]?.[1]?.[0]?.[1];
+      const chunks1 = calls1
+        .filter(call => call?.[0]?.[1]?.[0]?.[0]?.type === 'profile_chunk')
+        .map(call => call?.[0]?.[1]?.[0]?.[1]);
+
+      const profilerId1 = txnEvt1?.contexts?.profile?.profiler_id as string | undefined;
+      expect(typeof profilerId1).toBe('string');
+      expect(chunks1.length).toBe(1);
+      for (const chunk of chunks1) {
+        expect(chunk?.profiler_id).toBe(profilerId1);
+      }
+
+      // End Session 1
+      await client?.close();
+
+      // Session 2 (new init simulates new user session)
+      const send2 = vi.fn().mockResolvedValue(undefined);
+      Sentry.init({
+        dsn: 'https://public@o.ingest.sentry.io/1',
+        tracesSampleRate: 1,
+        profileSessionSampleRate: 1,
+        profileLifecycle: 'trace',
+        integrations: [Sentry.browserProfilingIntegration()],
+        transport: () => ({ flush: vi.fn().mockResolvedValue(true), send: send2 }),
+      });
+
+      Sentry.startSpan({ name: 'session-2-rootSpan', parentSpan: null, forceTransaction: true }, () => {
+        /* empty */
+      });
+
+      client = Sentry.getClient();
+      await client?.flush(1000);
+
+      const calls2 = send2.mock.calls;
+      const txnEvt2 = calls2.find(call => call?.[0]?.[1]?.[0]?.[0]?.type === 'transaction')?.[0]?.[1]?.[0]?.[1];
+      const chunks2 = calls2
+        .filter(call => call?.[0]?.[1]?.[0]?.[0]?.type === 'profile_chunk')
+        .map(call => call?.[0]?.[1]?.[0]?.[1]);
+
+      const profilerId2 = txnEvt2?.contexts?.profile?.profiler_id as string | undefined;
+      expect(typeof profilerId2).toBe('string');
+      expect(profilerId2).not.toBe(profilerId1);
+      expect(chunks2.length).toBe(1);
+      for (const chunk of chunks2) {
+        expect(chunk?.profiler_id).toBe(profilerId2);
+      }
     });
   });
 });
