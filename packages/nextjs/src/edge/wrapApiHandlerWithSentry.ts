@@ -13,6 +13,7 @@ import {
   winterCGRequestToRequestData,
   withIsolationScope,
 } from '@sentry/core';
+import { addHeadersAsAttributes } from '../common/utils/addHeadersAsAttributes';
 import { flushSafelyWithTimeout } from '../common/utils/responseEnd';
 import type { EdgeRouteHandler } from './types';
 
@@ -31,13 +32,14 @@ export function wrapApiHandlerWithSentry<H extends EdgeRouteHandler>(
         const req: unknown = args[0];
         const currentScope = getCurrentScope();
 
-        const headerAttributes: Record<string, string> = {};
+        let headerAttributes: Record<string, string> = {};
 
         if (req instanceof Request) {
           isolationScope.setSDKProcessingMetadata({
             normalizedRequest: winterCGRequestToRequestData(req),
           });
           currentScope.setTransactionName(`${req.method} ${parameterizedRoute}`);
+          headerAttributes = addHeadersAsAttributes(req.headers);
         } else {
           currentScope.setTransactionName(`handler (${parameterizedRoute})`);
         }
