@@ -165,13 +165,12 @@ export function init(options: NodeOptions): NodeClient | undefined {
 
   client?.on('spanStart', span => {
     const spanAttributes = spanToJSON(span).data;
+    const rootSpan = getRootSpan(span);
 
     // What we do in this glorious piece of code, is hoist any information about parameterized routes from spans emitted
     // by Next.js via the `next.route` attribute, up to the transaction by setting the http.route attribute.
     if (typeof spanAttributes?.['next.route'] === 'string') {
-      const rootSpan = getRootSpan(span);
       const rootSpanAttributes = spanToJSON(rootSpan).data;
-
       // Only hoist the http.route attribute if the transaction doesn't already have it
       if (
         // eslint-disable-next-line deprecation/deprecation
@@ -190,6 +189,13 @@ export function init(options: NodeOptions): NodeClient | undefined {
     // with patterns (e.g. http.server spans) that will produce confusing data.
     if (spanAttributes?.['next.span_type'] !== undefined) {
       span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, 'auto');
+    }
+
+    // Add headers to the root span if the client options allow it
+    const shouldSendDefaultPii = getClient()?.getOptions().sendDefaultPii ?? false;
+    if (shouldSendDefaultPii && rootSpan) {
+      const headers = getIsolationScope().getScopeData().sdkProcessingMetadata.normalizedRequest?.headers;
+      addHeadersAsAttributes(headers, rootSpan);
     }
 
     // We want to fork the isolation scope for incoming requests
@@ -306,26 +312,6 @@ export function init(options: NodeOptions): NodeClient | undefined {
         return event;
       }) satisfies EventProcessor,
       { id: 'DropReactControlFlowErrors' },
-    ),
-  );
-
-  getGlobalScope().addEventProcessor(
-    Object.assign(
-      (event => {
-        const shouldSendDefaultPii = getClient()?.getOptions().sendDefaultPii ?? false;
-        if (event.type === 'transaction' && event.sdkProcessingMetadata?.normalizedRequest && shouldSendDefaultPii) {
-          const activeSpan = getActiveSpan();
-          const rootSpan = activeSpan ? getRootSpan(activeSpan) : undefined;
-          if (rootSpan) {
-            addHeadersAsAttributes(event.sdkProcessingMetadata.normalizedRequest.headers, rootSpan);
-          }
-
-          return event;
-        }
-
-        return event;
-      }) satisfies EventProcessor,
-      { id: 'HttpRequestEnhancer' },
     ),
   );
 
