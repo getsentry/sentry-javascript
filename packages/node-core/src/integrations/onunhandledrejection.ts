@@ -20,7 +20,7 @@ const INTEGRATION_NAME = 'OnUnhandledRejection';
 
 const DEFAULT_IGNORES: IgnoreMatcher[] = [
   {
-    name: 'AI_NoOutputGeneratedError', // When stream aborts in Vercel AI SDK, flush() fails with an error
+    name: 'AI_NoOutputGeneratedError', // When stream aborts in Vercel AI SDK, Vercel flush() fails with an error
   },
 ];
 
@@ -55,7 +55,7 @@ function extractErrorInfo(reason: unknown): { name: string; message: string; isO
 }
 
 /** Check if a matcher matches the reason */
-function checkMatcher(
+function isMatchingReason(
   matcher: IgnoreMatcher,
   reason: unknown,
   errorInfo: ReturnType<typeof extractErrorInfo>,
@@ -81,7 +81,7 @@ function checkMatcher(
 /** Match helper */
 function matchesIgnore(reason: unknown, list: IgnoreMatcher[]): boolean {
   const errorInfo = extractErrorInfo(reason);
-  return list.some(matcher => checkMatcher(matcher, reason, errorInfo));
+  return list.some(matcher => isMatchingReason(matcher, reason, errorInfo));
 }
 
 /** Core handler */
