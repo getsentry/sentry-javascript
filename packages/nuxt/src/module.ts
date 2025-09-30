@@ -82,7 +82,7 @@ export default defineNuxtModule<ModuleOptions>({
         // Add type references for useRuntimeConfig in root files for nuxt v4
         // Should be relative to `root/.nuxt`
         const relativePath = path.relative(nuxt.options.buildDir, clientConfigFile);
-        options.tsConfig.include.push(`../${relativePath}`);
+        options.tsConfig.include.push(relativePath);
       });
     }
 
