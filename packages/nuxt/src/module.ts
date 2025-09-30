@@ -72,6 +72,16 @@ export default defineNuxtModule<ModuleOptions>({
         mode: 'client',
         order: 1,
       });
+
+      nuxt.hook('prepare:types', options => {
+        // Add the sentry config file to the include array
+        if (!options.tsConfig.include) {
+          options.tsConfig.include = [];
+        }
+
+        // Add type references for useRuntimeConfig in root files for nuxt v4
+        options.tsConfig.include.push('../sentry.client.config.ts');
+      });
     }
 
     const serverConfigFile = findDefaultSdkInitFile('server', nuxt);
