@@ -57,6 +57,7 @@ function makeOverridableDescriptor<T extends ContextType>(
       if (store.has(method)) return store.get(method);
       const methodFunction = Reflect.get(ctx, method);
       if (typeof methodFunction !== 'function') return methodFunction;
+      // We should do bind() to make sure that the method is bound to the context object - otherwise it will not work
       return methodFunction.bind(ctx);
     },
   };
