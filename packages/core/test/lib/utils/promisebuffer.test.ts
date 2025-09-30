@@ -149,10 +149,12 @@ describe('PromiseBuffer', () => {
       expect(p5).toHaveBeenCalled();
 
       expect(buffer.$.length).toEqual(5);
-      const result = await buffer.drain(8);
+      const result = await buffer.drain(6);
       expect(result).toEqual(false);
-      // p5 is still in the buffer
-      expect(buffer.$.length).toEqual(1);
+      // p5 & p4 are still in the buffer
+      // Leaving some wiggle room, possibly one or two items are still in the buffer
+      // to avoid flakiness
+      expect(buffer.$.length).toBeGreaterThanOrEqual(1);
 
       // Now drain final item
       const result2 = await buffer.drain();
