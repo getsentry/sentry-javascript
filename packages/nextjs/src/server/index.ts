@@ -11,6 +11,7 @@ import {
   applySdkMetadata,
   debug,
   extractTraceparentData,
+  getActiveSpan,
   getCapturedScopesOnSpan,
   getClient,
   getCurrentScope,
@@ -36,6 +37,7 @@ import {
   TRANSACTION_ATTR_SENTRY_TRACE_BACKFILL,
   TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION,
 } from '../common/span-attributes-with-logic-attached';
+import { addHeadersAsAttributes } from '../common/utils/addHeadersAsAttributes';
 import { isBuild } from '../common/utils/isBuild';
 import { distDirRewriteFramesIntegration } from './distDirRewriteFramesIntegration';
 
@@ -304,6 +306,26 @@ export function init(options: NodeOptions): NodeClient | undefined {
         return event;
       }) satisfies EventProcessor,
       { id: 'DropReactControlFlowErrors' },
+    ),
+  );
+
+  getGlobalScope().addEventProcessor(
+    Object.assign(
+      (event => {
+        const shouldSendDefaultPii = getClient()?.getOptions().sendDefaultPii ?? false;
+        if (event.type === 'transaction' && event.sdkProcessingMetadata?.normalizedRequest && shouldSendDefaultPii) {
+          const activeSpan = getActiveSpan();
+          const rootSpan = activeSpan ? getRootSpan(activeSpan) : undefined;
+          if (rootSpan) {
+            addHeadersAsAttributes(event.sdkProcessingMetadata.normalizedRequest.headers, rootSpan);
+          }
+
+          return event;
+        }
+
+        return event;
+      }) satisfies EventProcessor,
+      { id: 'HttpRequestEnhancer' },
     ),
   );
 
