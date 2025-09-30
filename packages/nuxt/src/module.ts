@@ -112,7 +112,9 @@ export default defineNuxtModule<ModuleOptions>({
     });
 
     // Preps the the middleware instrumentation module.
-    addMiddlewareImports();
+    if (serverConfigFile) {
+      addMiddlewareImports();
+    }
 
     nuxt.hooks.hook('nitro:init', nitro => {
       if (serverConfigFile) {
