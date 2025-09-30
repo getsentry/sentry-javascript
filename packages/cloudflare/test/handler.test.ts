@@ -14,6 +14,7 @@ import { beforeEach, describe, expect, onTestFinished, test, vi } from 'vitest';
 import { CloudflareClient } from '../src/client';
 import { withSentry } from '../src/handler';
 import { markAsInstrumented } from '../src/instrument';
+import * as HonoIntegration from '../src/integrations/hono';
 
 // Custom type for hono-like apps (cloudflare handlers) that include errorHandler and onError
 type HonoLikeApp<Env = unknown, QueueHandlerMessage = unknown, CfHostMetadata = unknown> = ExportedHandler<
@@ -305,7 +306,7 @@ describe('withSentry', () => {
 
         expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
         expect(captureExceptionSpy).toHaveBeenLastCalledWith(error, {
-          mechanism: { handled: false, type: 'cloudflare' },
+          mechanism: { handled: false, type: 'auto.faas.cloudflare.scheduled' },
         });
       });
 
@@ -545,7 +546,7 @@ describe('withSentry', () => {
 
         expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
         expect(captureExceptionSpy).toHaveBeenLastCalledWith(error, {
-          mechanism: { handled: false, type: 'cloudflare' },
+          mechanism: { handled: false, type: 'auto.faas.cloudflare.email' },
         });
       });
 
@@ -784,7 +785,7 @@ describe('withSentry', () => {
 
         expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
         expect(captureExceptionSpy).toHaveBeenLastCalledWith(error, {
-          mechanism: { handled: false, type: 'cloudflare' },
+          mechanism: { handled: false, type: 'auto.faas.cloudflare.queue' },
         });
       });
 
@@ -1027,7 +1028,7 @@ describe('withSentry', () => {
 
         expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
         expect(captureExceptionSpy).toHaveBeenLastCalledWith(error, {
-          mechanism: { handled: false, type: 'cloudflare' },
+          mechanism: { handled: false, type: 'auto.faas.cloudflare.tail' },
         });
       });
 
@@ -1081,9 +1082,11 @@ describe('withSentry', () => {
   });
 
   describe('hono errorHandler', () => {
-    test('captures errors handled by the errorHandler', async () => {
-      const captureExceptionSpy = vi.spyOn(SentryCore, 'captureException');
+    test('calls Hono Integration to handle error captured by the errorHandler', async () => {
       const error = new Error('test hono error');
+
+      const handleHonoException = vi.fn();
+      vi.spyOn(HonoIntegration, 'getHonoIntegration').mockReturnValue({ handleHonoException } as any);
 
       const honoApp = {
         fetch(_request, _env, _context) {
@@ -1100,10 +1103,8 @@ describe('withSentry', () => {
       // simulates hono's error handling
       const errorHandlerResponse = honoApp.errorHandler?.(error);
 
-      expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
-      expect(captureExceptionSpy).toHaveBeenLastCalledWith(error, {
-        mechanism: { handled: false, type: 'cloudflare' },
-      });
+      expect(handleHonoException).toHaveBeenCalledTimes(1);
+      expect(handleHonoException).toHaveBeenLastCalledWith(error);
       expect(errorHandlerResponse?.status).toBe(500);
     });
 

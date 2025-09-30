@@ -28,7 +28,7 @@ sentryTest(
     const imageFastSpan = elementTimingSpans?.find(({ description }) => description === 'element[image-fast]');
     const imageFastRenderTime = imageFastSpan?.data['element.render_time'];
     const imageFastLoadTime = imageFastSpan?.data['element.load_time'];
-    const duration = imageFastSpan!.timestamp! - imageFastSpan!.start_timestamp!;
+    const duration = imageFastSpan!.timestamp! - imageFastSpan!.start_timestamp;
 
     expect(imageFastSpan).toBeDefined();
     expect(imageFastSpan?.data).toEqual({
@@ -58,7 +58,7 @@ sentryTest(
     const text1Span = elementTimingSpans?.find(({ data }) => data?.['element.identifier'] === 'text1');
     const text1RenderTime = text1Span?.data['element.render_time'];
     const text1LoadTime = text1Span?.data['element.load_time'];
-    const text1Duration = text1Span!.timestamp! - text1Span!.start_timestamp!;
+    const text1Duration = text1Span!.timestamp! - text1Span!.start_timestamp;
     expect(text1Span).toBeDefined();
     expect(text1Span?.data).toEqual({
       'sentry.op': 'ui.elementtiming',
@@ -109,7 +109,7 @@ sentryTest(
     });
     const imageSlowRenderTime = imageSlowSpan?.data['element.render_time'];
     const imageSlowLoadTime = imageSlowSpan?.data['element.load_time'];
-    const imageSlowDuration = imageSlowSpan!.timestamp! - imageSlowSpan!.start_timestamp!;
+    const imageSlowDuration = imageSlowSpan!.timestamp! - imageSlowSpan!.start_timestamp;
     expect(imageSlowRenderTime).toBeGreaterThan(1400);
     expect(imageSlowRenderTime).toBeLessThan(2000);
     expect(imageSlowLoadTime).toBeGreaterThan(1400);
@@ -137,7 +137,7 @@ sentryTest(
     });
     const lazyImageRenderTime = lazyImageSpan?.data['element.render_time'];
     const lazyImageLoadTime = lazyImageSpan?.data['element.load_time'];
-    const lazyImageDuration = lazyImageSpan!.timestamp! - lazyImageSpan!.start_timestamp!;
+    const lazyImageDuration = lazyImageSpan!.timestamp! - lazyImageSpan!.start_timestamp;
     expect(lazyImageRenderTime).toBeGreaterThan(1000);
     expect(lazyImageRenderTime).toBeLessThan(1500);
     expect(lazyImageLoadTime).toBeGreaterThan(1000);
@@ -155,7 +155,7 @@ sentryTest(
     });
     const lazyTextRenderTime = lazyTextSpan?.data['element.render_time'];
     const lazyTextLoadTime = lazyTextSpan?.data['element.load_time'];
-    const lazyTextDuration = lazyTextSpan!.timestamp! - lazyTextSpan!.start_timestamp!;
+    const lazyTextDuration = lazyTextSpan!.timestamp! - lazyTextSpan!.start_timestamp;
     expect(lazyTextRenderTime).toBeGreaterThan(1000);
     expect(lazyTextRenderTime).toBeLessThan(1500);
     expect(lazyTextLoadTime).toBe(0);

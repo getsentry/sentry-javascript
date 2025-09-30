@@ -431,7 +431,7 @@ export const replayEnvelopeParser = (request: Request | null): unknown[] => {
  * @returns `true` if we should skip the replay test
  */
 export function shouldSkipReplayTest(): boolean {
-  const bundle = process.env.PW_BUNDLE as string | undefined;
+  const bundle = process.env.PW_BUNDLE;
   return bundle != null && !bundle.includes('replay') && !bundle.includes('esm') && !bundle.includes('cjs');
 }
 

@@ -81,6 +81,7 @@ export {
   spanTimeInputToSeconds,
   updateSpanName,
 } from './utils/spanUtils';
+export { _setSpanForScope as _INTERNAL_setSpanForScope } from './utils/spanOnScope';
 export { parseSampleRate } from './utils/parseSampleRate';
 export { applySdkMetadata } from './utils/sdkMetadata';
 export { getTraceData } from './utils/traceData';
@@ -101,7 +102,7 @@ export { functionToStringIntegration } from './integrations/functiontostring';
 export { inboundFiltersIntegration } from './integrations/eventFilters';
 export { eventFiltersIntegration } from './integrations/eventFilters';
 export { linkedErrorsIntegration } from './integrations/linkederrors';
-export { moduleMetadataIntegration } from './integrations/metadata';
+export { moduleMetadataIntegration } from './integrations/moduleMetadata';
 export { requestDataIntegration } from './integrations/requestdata';
 export { captureConsoleIntegration } from './integrations/captureconsole';
 export { dedupeIntegration } from './integrations/dedupe';
@@ -122,14 +123,19 @@ export { trpcMiddleware } from './trpc';
 export { wrapMcpServerWithSentry } from './integrations/mcp-server';
 export { captureFeedback } from './feedback';
 export type { ReportDialogOptions } from './report-dialog';
-export { _INTERNAL_captureLog, _INTERNAL_flushLogsBuffer, _INTERNAL_captureSerializedLog } from './logs/exports';
+export { _INTERNAL_captureLog, _INTERNAL_flushLogsBuffer, _INTERNAL_captureSerializedLog } from './logs/internal';
+export * as logger from './logs/public-api';
 export { consoleLoggingIntegration } from './logs/console-integration';
+export { createConsolaReporter } from './integrations/consola';
 export { addVercelAiProcessors } from './utils/vercel-ai';
 export { _INTERNAL_getSpanForToolCallId, _INTERNAL_cleanupToolCallSpan } from './utils/vercel-ai/utils';
 export { instrumentOpenAiClient } from './utils/openai';
 export { OPENAI_INTEGRATION_NAME } from './utils/openai/constants';
 export { instrumentAnthropicAiClient } from './utils/anthropic-ai';
 export { ANTHROPIC_AI_INTEGRATION_NAME } from './utils/anthropic-ai/constants';
+export { instrumentGoogleGenAIClient } from './utils/google-genai';
+export { GOOGLE_GENAI_INTEGRATION_NAME } from './utils/google-genai/constants';
+export type { GoogleGenAIResponse } from './utils/google-genai/types';
 export type { OpenAiClient, OpenAiOptions, InstrumentedMethod } from './utils/openai/types';
 export type {
   AnthropicAiClient,
@@ -137,6 +143,12 @@ export type {
   AnthropicAiInstrumentedMethod,
   AnthropicAiResponse,
 } from './utils/anthropic-ai/types';
+export type {
+  GoogleGenAIClient,
+  GoogleGenAIChat,
+  GoogleGenAIOptions,
+  GoogleGenAIIstrumentedMethod,
+} from './utils/google-genai/types';
 export type { FeatureFlag } from './utils/featureFlags';
 
 export {
@@ -206,6 +218,7 @@ export { basename, dirname, isAbsolute, join, normalizePath, relative, resolve }
 export { makePromiseBuffer, SENTRY_BUFFER_FULL_ERROR } from './utils/promisebuffer';
 export type { PromiseBuffer } from './utils/promisebuffer';
 export { severityLevelFromString } from './utils/severity';
+export { replaceExports } from './utils/exports';
 export {
   UNKNOWN_FUNCTION,
   createStackParser,
@@ -409,7 +422,11 @@ export type { Stacktrace, StackParser, StackLineParser, StackLineParserFn } from
 export type { PropagationContext, TracePropagationTargets, SerializedTraceData } from './types-hoist/tracing';
 export type { StartSpanOptions } from './types-hoist/startSpanOptions';
 export type { TraceparentData, TransactionSource } from './types-hoist/transaction';
-export type { CustomSamplingContext, SamplingContext } from './types-hoist/samplingcontext';
+export type {
+  TracesSamplerSamplingContext,
+  CustomSamplingContext,
+  SamplingContext,
+} from './types-hoist/samplingcontext';
 export type {
   DurationUnit,
   InformationUnit,

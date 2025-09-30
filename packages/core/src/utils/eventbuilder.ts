@@ -102,7 +102,7 @@ function getException(
 
   if (isPlainObject(exception)) {
     const normalizeDepth = client?.getOptions().normalizeDepth;
-    const extras = { ['__serialized__']: normalizeToSize(exception as Record<string, unknown>, normalizeDepth) };
+    const extras = { ['__serialized__']: normalizeToSize(exception, normalizeDepth) };
 
     const errorFromProp = getErrorPropertyFromObject(exception);
     if (errorFromProp) {

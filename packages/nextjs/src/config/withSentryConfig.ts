@@ -253,48 +253,45 @@ function getFinalConfigObject(
   }
 
   let nextMajor: number | undefined;
-  const isTurbopack = process.env.TURBOPACK;
-  let isTurbopackSupported = false;
   if (nextJsVersion) {
-    const { major, minor, patch, prerelease } = parseSemver(nextJsVersion);
+    const { major } = parseSemver(nextJsVersion);
     nextMajor = major;
-    const isSupportedVersion =
-      major !== undefined &&
-      minor !== undefined &&
-      patch !== undefined &&
-      (major > 15 ||
-        (major === 15 && minor > 3) ||
-        (major === 15 && minor === 3 && patch === 0 && prerelease === undefined) ||
-        (major === 15 && minor === 3 && patch > 0));
-    isTurbopackSupported = isSupportedVersion;
-    const isSupportedCanary =
-      major !== undefined &&
-      minor !== undefined &&
-      patch !== undefined &&
-      prerelease !== undefined &&
-      major === 15 &&
-      minor === 3 &&
-      patch === 0 &&
-      prerelease.startsWith('canary.') &&
-      parseInt(prerelease.split('.')[1] || '', 10) >= 28;
-    const supportsClientInstrumentation = isSupportedCanary || isSupportedVersion;
+  }
 
-    if (!supportsClientInstrumentation && isTurbopack) {
-      if (process.env.NODE_ENV === 'development') {
-        // eslint-disable-next-line no-console
-        console.warn(
-          `[@sentry/nextjs] WARNING: You are using the Sentry SDK with Turbopack (\`next dev --turbo\`). The Sentry SDK is compatible with Turbopack on Next.js version 15.3.0 or later. You are currently on ${nextJsVersion}. Please upgrade to a newer Next.js version to use the Sentry SDK with Turbopack. Note that the SDK will continue to work for non-Turbopack production builds. This warning is only about dev-mode.`,
-        );
-      } else if (process.env.NODE_ENV === 'production') {
-        // eslint-disable-next-line no-console
-        console.warn(
-          `[@sentry/nextjs] WARNING: You are using the Sentry SDK with Turbopack (\`next build --turbo\`). The Sentry SDK is compatible with Turbopack on Next.js version 15.3.0 or later. You are currently on ${nextJsVersion}. Please upgrade to a newer Next.js version to use the Sentry SDK with Turbopack. Note that as Turbopack is still experimental for production builds, some of the Sentry SDK features like source maps will not work. Follow this issue for progress on Sentry + Turbopack: https://github.com/getsentry/sentry-javascript/issues/8105.`,
-        );
-      }
+  const isTurbopack = process.env.TURBOPACK;
+  const isTurbopackSupported = supportsProductionCompileHook(nextJsVersion ?? '');
+
+  if (!isTurbopackSupported && isTurbopack) {
+    if (process.env.NODE_ENV === 'development') {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[@sentry/nextjs] WARNING: You are using the Sentry SDK with Turbopack (\`next dev --turbopack\`). The Sentry SDK is compatible with Turbopack on Next.js version 15.4.1 or later. You are currently on ${nextJsVersion}. Please upgrade to a newer Next.js version to use the Sentry SDK with Turbopack.`,
+      );
+    } else if (process.env.NODE_ENV === 'production') {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[@sentry/nextjs] WARNING: You are using the Sentry SDK with Turbopack (\`next build --turbopack\`). The Sentry SDK is compatible with Turbopack on Next.js version 15.4.1 or later. You are currently on ${nextJsVersion}. Please upgrade to a newer Next.js version to use the Sentry SDK with Turbopack.`,
+      );
     }
   }
 
-  if (userSentryOptions?._experimental?.useRunAfterProductionCompileHook === true && supportsProductionCompileHook()) {
+  // webpack case
+  if (
+    userSentryOptions.useRunAfterProductionCompileHook &&
+    !supportsProductionCompileHook(nextJsVersion ?? '') &&
+    !isTurbopack
+  ) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      '[@sentry/nextjs] The configured `useRunAfterProductionCompileHook` option is not compatible with your current Next.js version. This option is only supported on Next.js version 15.4.1 or later. Will not run source map and release management logic.',
+    );
+  }
+
+  // If not explicitly set, turbopack uses the runAfterProductionCompile hook (as there are no alternatives), webpack does not.
+  const shouldUseRunAfterProductionCompileHook =
+    userSentryOptions?.useRunAfterProductionCompileHook ?? (isTurbopack ? true : false);
+
+  if (shouldUseRunAfterProductionCompileHook && supportsProductionCompileHook(nextJsVersion ?? '')) {
     if (incomingUserNextConfigObject?.compiler?.runAfterProductionCompile === undefined) {
       incomingUserNextConfigObject.compiler ??= {};
       incomingUserNextConfigObject.compiler.runAfterProductionCompile = async ({ distDir }) => {
@@ -329,16 +326,21 @@ function getFinalConfigObject(
   if (isTurbopackSupported && isTurbopack && !userSentryOptions.sourcemaps?.disable) {
     // Only set if not already configured by user
     if (incomingUserNextConfigObject.productionBrowserSourceMaps === undefined) {
-      // eslint-disable-next-line no-console
-      console.log('[@sentry/nextjs] Automatically enabling browser source map generation for turbopack build.');
+      if (userSentryOptions.debug) {
+        // eslint-disable-next-line no-console
+        console.log('[@sentry/nextjs] Automatically enabling browser source map generation for turbopack build.');
+      }
       incomingUserNextConfigObject.productionBrowserSourceMaps = true;
 
       // Enable source map deletion if not explicitly disabled
       if (userSentryOptions.sourcemaps?.deleteSourcemapsAfterUpload === undefined) {
-        // eslint-disable-next-line no-console
-        console.warn(
-          '[@sentry/nextjs] Source maps will be automatically deleted after being uploaded to Sentry. If you want to keep the source maps, set the `sourcemaps.deleteSourcemapsAfterUpload` option to false in `withSentryConfig()`. If you do not want to generate and upload sourcemaps at all, set the `sourcemaps.disable` option to true.',
-        );
+        if (userSentryOptions.debug) {
+          // eslint-disable-next-line no-console
+          console.warn(
+            '[@sentry/nextjs] Source maps will be automatically deleted after being uploaded to Sentry. If you want to keep the source maps, set the `sourcemaps.deleteSourcemapsAfterUpload` option to false in `withSentryConfig()`. If you do not want to generate and upload sourcemaps at all, set the `sourcemaps.disable` option to true.',
+          );
+        }
+
         userSentryOptions.sourcemaps = {
           ...userSentryOptions.sourcemaps,
           deleteSourcemapsAfterUpload: true,
@@ -368,13 +370,14 @@ function getFinalConfigObject(
     webpack:
       isTurbopack || userSentryOptions.disableSentryWebpackConfig
         ? incomingUserNextConfigObject.webpack // just return the original webpack config
-        : constructWebpackConfigFunction(
-            incomingUserNextConfigObject,
+        : constructWebpackConfigFunction({
+            userNextConfig: incomingUserNextConfigObject,
             userSentryOptions,
             releaseName,
             routeManifest,
             nextJsVersion,
-          ),
+            useRunAfterProductionCompileHook: shouldUseRunAfterProductionCompileHook,
+          }),
     ...(isTurbopackSupported && isTurbopack
       ? {
           turbopack: constructTurbopackConfig({

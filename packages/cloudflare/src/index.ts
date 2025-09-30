@@ -70,6 +70,7 @@ export {
   // eslint-disable-next-line deprecation/deprecation
   inboundFiltersIntegration,
   instrumentOpenAiClient,
+  instrumentGoogleGenAIClient,
   instrumentAnthropicAiClient,
   eventFiltersIntegration,
   linkedErrorsIntegration,
@@ -94,10 +95,10 @@ export {
   updateSpanName,
   wrapMcpServerWithSentry,
   consoleLoggingIntegration,
+  createConsolaReporter,
   featureFlagsIntegration,
+  logger,
 } from '@sentry/core';
-
-export * as logger from './logs/exports';
 
 export { withSentry } from './handler';
 export { instrumentDurableObjectWithSentry } from './durableobject';
@@ -110,6 +111,7 @@ export { getDefaultIntegrations } from './sdk';
 
 export { fetchIntegration } from './integrations/fetch';
 export { vercelAIIntegration } from './integrations/tracing/vercelai';
+export { honoIntegration } from './integrations/hono';
 
 export { instrumentD1WithSentry } from './d1';
 

@@ -2,7 +2,6 @@
  * @vitest-environment jsdom
  */
 
-import type { BrowserClient } from '@sentry/browser';
 import * as Sentry from '@sentry/browser';
 import { debug } from '@sentry/core';
 import { describe, expect, it, vi } from 'vitest';
@@ -37,7 +36,7 @@ describe('BrowserProfilingIntegration', () => {
 
     const flush = vi.fn().mockImplementation(() => Promise.resolve(true));
     const send = vi.fn().mockImplementation(() => Promise.resolve());
-    Sentry.init({
+    const client = Sentry.init({
       tracesSampleRate: 1,
       profilesSampleRate: 1,
       environment: 'test-environment',
@@ -51,13 +50,11 @@ describe('BrowserProfilingIntegration', () => {
       integrations: [Sentry.browserTracingIntegration(), Sentry.browserProfilingIntegration()],
     });
 
-    const client = Sentry.getClient<BrowserClient>();
-
     const currentTransaction = Sentry.getActiveSpan();
     expect(currentTransaction).toBeDefined();
     expect(Sentry.spanToJSON(currentTransaction!).op).toBe('pageload');
     currentTransaction?.end();
-    await client?.flush(1000);
+    await client!.flush(1000);
 
     expect(send).toHaveBeenCalledTimes(1);
 

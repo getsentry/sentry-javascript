@@ -22,3 +22,5 @@ updates:
       prefix: feat
       prefix-development: feat
       include: scope
+    exclude-paths:
+      - 'dev-packages/e2e-tests/test-applications/'

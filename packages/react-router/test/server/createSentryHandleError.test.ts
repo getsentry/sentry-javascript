@@ -156,7 +156,8 @@ describe('createSentryHandleError', () => {
   });
 
   describe('flushIfServerless behavior', () => {
-    it('should wait for flushIfServerless to complete', async () => {
+    it('waits for flushIfServerless to complete', async () => {
+      vi.useFakeTimers();
       const handleError = createSentryHandleError({});
 
       let resolveFlush: () => void;
@@ -172,7 +173,8 @@ describe('createSentryHandleError', () => {
 
       const handleErrorPromise = handleError(mockError, mockArgs);
 
-      setTimeout(() => resolveFlush(), 10);
+      vi.advanceTimersByTime(10);
+      resolveFlush!();
 
       await handleErrorPromise;
       const endTime = Date.now();

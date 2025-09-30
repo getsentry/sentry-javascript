@@ -35,9 +35,6 @@ interface WinstonTransportOptions {
  * @param TransportClass - The Winston transport class to extend.
  * @returns The extended transport class.
  *
- * @experimental This method will experience breaking changes. This is not yet part of
- * the stable Sentry SDK API and can be changed or removed without warning.
- *
  * @example
  * ```ts
  * const winston = require('winston');

@@ -1,6 +1,9 @@
 import * as logger from './logs/exports';
 
 export { httpIntegration } from './integrations/http';
+export { httpServerSpansIntegration } from './integrations/http/httpServerSpansIntegration';
+export { httpServerIntegration } from './integrations/http/httpServerIntegration';
+
 export {
   SentryHttpInstrumentation,
   type SentryHttpInstrumentationOptions,
@@ -127,6 +130,7 @@ export {
   zodErrorsIntegration,
   profiler,
   consoleLoggingIntegration,
+  createConsolaReporter,
   consoleIntegration,
   wrapMcpServerWithSentry,
   featureFlagsIntegration,

@@ -22,7 +22,12 @@ test('Sends thrown error to Sentry', async ({ baseURL }) => {
   });
 
   expect(errorEvent.exception?.values).toHaveLength(1);
-  expect(errorEvent.exception?.values?.[0]?.value).toBe('This is an error');
+  const exception = errorEvent.exception?.values?.[0];
+  expect(exception?.value).toBe('This is an error');
+  expect(exception?.mechanism).toEqual({
+    type: 'auto.function.hapi',
+    handled: false,
+  });
 
   expect(errorEvent.request).toEqual({
     method: 'GET',

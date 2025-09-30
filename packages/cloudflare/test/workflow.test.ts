@@ -272,7 +272,7 @@ describe.skipIf(NODE_MAJOR_VERSION < 20)('workflows', () => {
                 expect.objectContaining({
                   type: 'Error',
                   value: 'Test error',
-                  mechanism: { type: 'cloudflare', handled: true },
+                  mechanism: { type: 'auto.faas.cloudflare.workflow', handled: true },
                 }),
               ],
             },
@@ -449,7 +449,7 @@ describe.skipIf(NODE_MAJOR_VERSION < 20)('workflows', () => {
     expect(mockContext.waitUntil).toHaveBeenCalledTimes(2);
     expect(mockTransport.send).toHaveBeenCalledTimes(1);
 
-    const sendArg = mockTransport.send.mock.calls[0]![0] as any;
+    const sendArg = mockTransport.send.mock.calls[0]![0];
     const items = sendArg[1] as any[];
     const rootSpanItem = items.find(i => i[0].type === 'transaction');
     expect(rootSpanItem).toBeDefined();

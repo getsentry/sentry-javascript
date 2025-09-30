@@ -86,7 +86,7 @@ sentryTest('should update breadcrumbs for GraphQL fetch requests', async ({ getL
 
   expect(eventData?.breadcrumbs?.length).toBe(1);
 
-  expect(eventData!.breadcrumbs![0]).toEqual({
+  expect(eventData.breadcrumbs![0]).toEqual({
     timestamp: expect.any(Number),
     category: 'fetch',
     type: 'http',

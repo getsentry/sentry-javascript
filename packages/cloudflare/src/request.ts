@@ -84,7 +84,7 @@ export function wrapRequestHandler(
         return await handler();
       } catch (e) {
         if (captureErrors) {
-          captureException(e, { mechanism: { handled: false, type: 'cloudflare' } });
+          captureException(e, { mechanism: { handled: false, type: 'auto.http.cloudflare' } });
         }
         throw e;
       } finally {
@@ -110,7 +110,7 @@ export function wrapRequestHandler(
               return res;
             } catch (e) {
               if (captureErrors) {
-                captureException(e, { mechanism: { handled: false, type: 'cloudflare' } });
+                captureException(e, { mechanism: { handled: false, type: 'auto.http.cloudflare' } });
               }
               throw e;
             } finally {

@@ -22,13 +22,8 @@ import {
   addTtfbInstrumentationHandler,
 } from './instrument';
 import { trackLcpAsStandaloneSpan } from './lcp';
-import {
-  extractNetworkProtocol,
-  getBrowserPerformanceAPI,
-  isMeasurementValue,
-  msToSec,
-  startAndEndSpan,
-} from './utils';
+import { resourceTimingToSpanAttributes } from './resourceTiming';
+import { getBrowserPerformanceAPI, isMeasurementValue, msToSec, startAndEndSpan } from './utils';
 import { getActivationStart } from './web-vitals/lib/getActivationStart';
 import { getNavigationEntry } from './web-vitals/lib/getNavigationEntry';
 import { getVisibilityWatcher } from './web-vitals/lib/getVisibilityWatcher';
@@ -478,8 +473,8 @@ export function _addMeasureSpans(
   // Measurements from third parties can be off, which would create invalid spans, dropping transactions in the process.
   if (measureStartTimestamp <= measureEndTimestamp) {
     startAndEndSpan(span, measureStartTimestamp, measureEndTimestamp, {
-      name: entry.name as string,
-      op: entry.entryType as string,
+      name: entry.name,
+      op: entry.entryType,
       attributes,
     });
   }
@@ -600,9 +595,9 @@ function _getEndPropertyNameForNavigationTiming(event: StartEventName): EndEvent
 
 /** Create request and response related spans */
 function _addRequest(span: Span, entry: PerformanceNavigationTiming, timeOrigin: number): void {
-  const requestStartTimestamp = timeOrigin + msToSec(entry.requestStart as number);
-  const responseEndTimestamp = timeOrigin + msToSec(entry.responseEnd as number);
-  const responseStartTimestamp = timeOrigin + msToSec(entry.responseStart as number);
+  const requestStartTimestamp = timeOrigin + msToSec(entry.requestStart);
+  const responseEndTimestamp = timeOrigin + msToSec(entry.responseEnd);
+  const responseStartTimestamp = timeOrigin + msToSec(entry.responseStart);
   if (entry.responseEnd) {
     // It is possible that we are collecting these metrics when the page hasn't finished loading yet, for example when the HTML slowly streams in.
     // In this case, ie. when the document request hasn't finished yet, `entry.responseEnd` will be 0.
@@ -637,7 +632,7 @@ export function _addResourceSpans(
   startTime: number,
   duration: number,
   timeOrigin: number,
-  ignoreResourceSpans?: Array<string>,
+  ignoredResourceSpanOps?: Array<string>,
 ): void {
   // we already instrument based on fetch and xhr, so we don't need to
   // duplicate spans here.
@@ -646,31 +641,15 @@ export function _addResourceSpans(
   }
 
   const op = entry.initiatorType ? `resource.${entry.initiatorType}` : 'resource.other';
-  if (ignoreResourceSpans?.includes(op)) {
+  if (ignoredResourceSpanOps?.includes(op)) {
     return;
   }
-
-  const parsedUrl = parseUrl(resourceUrl);
 
   const attributes: SpanAttributes = {
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
   };
-  setResourceEntrySizeData(attributes, entry, 'transferSize', 'http.response_transfer_size');
-  setResourceEntrySizeData(attributes, entry, 'encodedBodySize', 'http.response_content_length');
-  setResourceEntrySizeData(attributes, entry, 'decodedBodySize', 'http.decoded_response_content_length');
 
-  // `deliveryType` is experimental and does not exist everywhere
-  const deliveryType = (entry as { deliveryType?: 'cache' | 'navigational-prefetch' | '' }).deliveryType;
-  if (deliveryType != null) {
-    attributes['http.response_delivery_type'] = deliveryType;
-  }
-
-  // Types do not reflect this property yet
-  const renderBlockingStatus = (entry as { renderBlockingStatus?: 'render-blocking' | 'non-render-blocking' })
-    .renderBlockingStatus;
-  if (renderBlockingStatus) {
-    attributes['resource.render_blocking_status'] = renderBlockingStatus;
-  }
+  const parsedUrl = parseUrl(resourceUrl);
 
   if (parsedUrl.protocol) {
     attributes['url.scheme'] = parsedUrl.protocol.split(':').pop(); // the protocol returned by parseUrl includes a :, but OTEL spec does not, so we remove it.
@@ -682,13 +661,22 @@ export function _addResourceSpans(
 
   attributes['url.same_origin'] = resourceUrl.includes(WINDOW.location.origin);
 
-  // Checking for only `undefined` and `null` is intentional because it's
-  // valid for `nextHopProtocol` to be an empty string.
-  if (entry.nextHopProtocol != null) {
-    const { name, version } = extractNetworkProtocol(entry.nextHopProtocol);
-    attributes['network.protocol.name'] = name;
-    attributes['network.protocol.version'] = version;
-  }
+  _setResourceRequestAttributes(entry, attributes, [
+    // https://developer.mozilla.org/en-US/docs/Web/API/PerformanceResourceTiming/responseStatus
+    ['responseStatus', 'http.response.status_code'],
+
+    ['transferSize', 'http.response_transfer_size'],
+    ['encodedBodySize', 'http.response_content_length'],
+    ['decodedBodySize', 'http.decoded_response_content_length'],
+
+    // https://developer.mozilla.org/en-US/docs/Web/API/PerformanceResourceTiming/renderBlockingStatus
+    ['renderBlockingStatus', 'resource.render_blocking_status'],
+
+    // https://developer.mozilla.org/en-US/docs/Web/API/PerformanceResourceTiming/deliveryType
+    ['deliveryType', 'http.response_delivery_type'],
+  ]);
+
+  const attributesWithResourceTiming: SpanAttributes = { ...attributes, ...resourceTimingToSpanAttributes(entry) };
 
   const startTimestamp = timeOrigin + startTime;
   const endTimestamp = startTimestamp + duration;
@@ -696,7 +684,7 @@ export function _addResourceSpans(
   startAndEndSpan(span, startTimestamp, endTimestamp, {
     name: resourceUrl.replace(WINDOW.location.origin, ''),
     op,
-    attributes,
+    attributes: attributesWithResourceTiming,
   });
 }
 
@@ -776,16 +764,37 @@ function _setWebVitalAttributes(span: Span, options: AddPerformanceEntriesOption
   }
 }
 
-function setResourceEntrySizeData(
+type ExperimentalResourceTimingProperty =
+  | 'renderBlockingStatus'
+  | 'deliveryType'
+  // For some reason, TS during build, errors on `responseStatus` not being a property of
+  // PerformanceResourceTiming while it actually is. Hence, we're adding it here.
+  // Perhaps because response status is not yet available in Webkit/Safari.
+  // https://developer.mozilla.org/en-US/docs/Web/API/PerformanceResourceTiming/responseStatus
+  | 'responseStatus';
+
+/**
+ * Use this to set any attributes we can take directly form the PerformanceResourceTiming entry.
+ *
+ * This is just a mapping function for entry->attribute to keep bundle-size minimal.
+ * Experimental properties are also accepted (see {@link ExperimentalResourceTimingProperty}).
+ * Assumes that all entry properties might be undefined for browser-specific differences.
+ * Only accepts string and number values for now and also sets 0-values.
+ */
+export function _setResourceRequestAttributes(
+  entry: Partial<PerformanceResourceTiming> & Partial<Record<ExperimentalResourceTimingProperty, number | string>>,
   attributes: SpanAttributes,
-  entry: PerformanceResourceTiming,
-  key: keyof Pick<PerformanceResourceTiming, 'transferSize' | 'encodedBodySize' | 'decodedBodySize'>,
-  dataKey: 'http.response_transfer_size' | 'http.response_content_length' | 'http.decoded_response_content_length',
+  properties: [keyof PerformanceResourceTiming | ExperimentalResourceTimingProperty, string][],
 ): void {
-  const entryVal = entry[key];
-  if (entryVal != null && entryVal < MAX_INT_AS_BYTES) {
-    attributes[dataKey] = entryVal;
-  }
+  properties.forEach(([entryKey, attributeKey]) => {
+    const entryVal = entry[entryKey];
+    if (
+      entryVal != null &&
+      ((typeof entryVal === 'number' && entryVal < MAX_INT_AS_BYTES) || typeof entryVal === 'string')
+    ) {
+      attributes[attributeKey] = entryVal;
+    }
+  });
 }
 
 /**

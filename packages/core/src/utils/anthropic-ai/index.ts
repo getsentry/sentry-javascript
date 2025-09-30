@@ -1,4 +1,4 @@
-import { getCurrentScope } from '../../currentScopes';
+import { getClient } from '../../currentScopes';
 import { captureException } from '../../exports';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import { SPAN_STATUS_ERROR } from '../../tracing';
@@ -24,11 +24,10 @@ import {
   GEN_AI_SYSTEM_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
 import { buildMethodPath, getFinalOperationName, getSpanOperation, setTokenUsageAttributes } from '../ai/utils';
-import { ANTHROPIC_AI_INTEGRATION_NAME } from './constants';
-import { instrumentStream } from './streaming';
+import { handleCallbackErrors } from '../handleCallbackErrors';
+import { instrumentAsyncIterableStream, instrumentMessageStream } from './streaming';
 import type {
   AnthropicAiInstrumentedMethod,
-  AnthropicAiIntegration,
   AnthropicAiOptions,
   AnthropicAiResponse,
   AnthropicAiStreamingEvent,
@@ -196,18 +195,71 @@ function addResponseAttributes(span: Span, response: AnthropicAiResponse, record
 }
 
 /**
- * Get record options from the integration
+ * Handle common error catching and reporting for streaming requests
  */
-function getRecordingOptionsFromIntegration(): AnthropicAiOptions {
-  const scope = getCurrentScope();
-  const client = scope.getClient();
-  const integration = client?.getIntegrationByName(ANTHROPIC_AI_INTEGRATION_NAME) as AnthropicAiIntegration | undefined;
-  const shouldRecordInputsAndOutputs = integration ? Boolean(client?.getOptions().sendDefaultPii) : false;
+function handleStreamingError(error: unknown, span: Span, methodPath: string): never {
+  captureException(error, {
+    mechanism: { handled: false, type: 'auto.ai.anthropic', data: { function: methodPath } },
+  });
 
-  return {
-    recordInputs: integration?.options?.recordInputs ?? shouldRecordInputsAndOutputs,
-    recordOutputs: integration?.options?.recordOutputs ?? shouldRecordInputsAndOutputs,
+  if (span.isRecording()) {
+    span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+    span.end();
+  }
+  throw error;
+}
+
+/**
+ * Handle streaming cases with common logic
+ */
+function handleStreamingRequest<T extends unknown[], R>(
+  originalMethod: (...args: T) => Promise<R>,
+  target: (...args: T) => Promise<R>,
+  context: unknown,
+  args: T,
+  requestAttributes: Record<string, unknown>,
+  operationName: string,
+  methodPath: string,
+  params: Record<string, unknown> | undefined,
+  options: AnthropicAiOptions,
+  isStreamRequested: boolean,
+): Promise<R> {
+  const model = requestAttributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] ?? 'unknown';
+  const spanConfig = {
+    name: `${operationName} ${model} stream-response`,
+    op: getSpanOperation(methodPath),
+    attributes: requestAttributes as Record<string, SpanAttributeValue>,
   };
+
+  if (isStreamRequested) {
+    return startSpanManual(spanConfig, async span => {
+      try {
+        if (options.recordInputs && params) {
+          addPrivateRequestAttributes(span, params);
+        }
+        const result = await originalMethod.apply(context, args);
+        return instrumentAsyncIterableStream(
+          result as AsyncIterable<AnthropicAiStreamingEvent>,
+          span,
+          options.recordOutputs ?? false,
+        ) as unknown as R;
+      } catch (error) {
+        return handleStreamingError(error, span, methodPath);
+      }
+    });
+  } else {
+    return startSpanManual(spanConfig, span => {
+      try {
+        if (options.recordInputs && params) {
+          addPrivateRequestAttributes(span, params);
+        }
+        const messageStream = target.apply(context, args);
+        return instrumentMessageStream(messageStream, span, options.recordOutputs ?? false);
+      } catch (error) {
+        return handleStreamingError(error, span, methodPath);
+      }
+    });
+  }
 }
 
 /**
@@ -219,91 +271,70 @@ function instrumentMethod<T extends unknown[], R>(
   originalMethod: (...args: T) => Promise<R>,
   methodPath: AnthropicAiInstrumentedMethod,
   context: unknown,
-  options?: AnthropicAiOptions,
+  options: AnthropicAiOptions,
 ): (...args: T) => Promise<R> {
-  return async function instrumentedMethod(...args: T): Promise<R> {
-    const finalOptions = options || getRecordingOptionsFromIntegration();
-    const requestAttributes = extractRequestAttributes(args, methodPath);
-    const model = requestAttributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] ?? 'unknown';
-    const operationName = getFinalOperationName(methodPath);
+  return new Proxy(originalMethod, {
+    apply(target, thisArg, args: T): Promise<R> {
+      const requestAttributes = extractRequestAttributes(args, methodPath);
+      const model = requestAttributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] ?? 'unknown';
+      const operationName = getFinalOperationName(methodPath);
 
-    const params = typeof args[0] === 'object' ? (args[0] as Record<string, unknown>) : undefined;
-    const isStreamRequested = Boolean(params?.stream);
-    const isStreamingMethod = methodPath === 'messages.stream';
+      const params = typeof args[0] === 'object' ? (args[0] as Record<string, unknown>) : undefined;
+      const isStreamRequested = Boolean(params?.stream);
+      const isStreamingMethod = methodPath === 'messages.stream';
 
-    if (isStreamRequested || isStreamingMethod) {
-      return startSpanManual(
+      if (isStreamRequested || isStreamingMethod) {
+        return handleStreamingRequest(
+          originalMethod,
+          target,
+          context,
+          args,
+          requestAttributes,
+          operationName,
+          methodPath,
+          params,
+          options,
+          isStreamRequested,
+        );
+      }
+
+      return startSpan(
         {
-          name: `${operationName} ${model} stream-response`,
+          name: `${operationName} ${model}`,
           op: getSpanOperation(methodPath),
           attributes: requestAttributes as Record<string, SpanAttributeValue>,
         },
-        async (span: Span) => {
-          try {
-            if (finalOptions.recordInputs && params) {
-              addPrivateRequestAttributes(span, params);
-            }
-
-            const result = await originalMethod.apply(context, args);
-            return instrumentStream(
-              result as AsyncIterable<AnthropicAiStreamingEvent>,
-              span,
-              finalOptions.recordOutputs ?? false,
-            ) as unknown as R;
-          } catch (error) {
-            span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-            captureException(error, {
-              mechanism: {
-                handled: false,
-                type: 'auto.ai.anthropic',
-                data: {
-                  function: methodPath,
-                },
-              },
-            });
-            span.end();
-            throw error;
+        span => {
+          if (options.recordInputs && params) {
+            addPrivateRequestAttributes(span, params);
           }
+
+          return handleCallbackErrors(
+            () => target.apply(context, args),
+            error => {
+              captureException(error, {
+                mechanism: {
+                  handled: false,
+                  type: 'auto.ai.anthropic',
+                  data: {
+                    function: methodPath,
+                  },
+                },
+              });
+            },
+            () => {},
+            result => addResponseAttributes(span, result as AnthropicAiResponse, options.recordOutputs),
+          );
         },
       );
-    }
-
-    return startSpan(
-      {
-        name: `${operationName} ${model}`,
-        op: getSpanOperation(methodPath),
-        attributes: requestAttributes as Record<string, SpanAttributeValue>,
-      },
-      async (span: Span) => {
-        try {
-          if (finalOptions.recordInputs && args[0] && typeof args[0] === 'object') {
-            addPrivateRequestAttributes(span, args[0] as Record<string, unknown>);
-          }
-
-          const result = await originalMethod.apply(context, args);
-          addResponseAttributes(span, result, finalOptions.recordOutputs);
-          return result;
-        } catch (error) {
-          captureException(error, {
-            mechanism: {
-              handled: false,
-              type: 'auto.ai.anthropic',
-              data: {
-                function: methodPath,
-              },
-            },
-          });
-          throw error;
-        }
-      },
-    );
-  };
+    },
+  }) as (...args: T) => Promise<R>;
 }
 
 /**
  * Create a deep proxy for Anthropic AI client instrumentation
  */
-function createDeepProxy<T extends object>(target: T, currentPath = '', options?: AnthropicAiOptions): T {
+function createDeepProxy<T extends object>(target: T, currentPath = '', options: AnthropicAiOptions): T {
   return new Proxy(target, {
     get(obj: object, prop: string): unknown {
       const value = (obj as Record<string, unknown>)[prop];
@@ -319,7 +350,7 @@ function createDeepProxy<T extends object>(target: T, currentPath = '', options?
       }
 
       if (value && typeof value === 'object') {
-        return createDeepProxy(value as object, methodPath, options);
+        return createDeepProxy(value, methodPath, options);
       }
 
       return value;
@@ -336,6 +367,13 @@ function createDeepProxy<T extends object>(target: T, currentPath = '', options?
  * @param options - Optional configuration for recording inputs and outputs
  * @returns The instrumented client with the same type as the input
  */
-export function instrumentAnthropicAiClient<T extends object>(client: T, options?: AnthropicAiOptions): T {
-  return createDeepProxy(client, '', options);
+export function instrumentAnthropicAiClient<T extends object>(anthropicAiClient: T, options?: AnthropicAiOptions): T {
+  const sendDefaultPii = Boolean(getClient()?.getOptions().sendDefaultPii);
+
+  const _options = {
+    recordInputs: sendDefaultPii,
+    recordOutputs: sendDefaultPii,
+    ...options,
+  };
+  return createDeepProxy(anthropicAiClient, '', _options);
 }

@@ -74,7 +74,9 @@ describe('withServerActionInstrumentation', () => {
     await expect(res).rejects.toThrow();
 
     expect(mockCaptureException).toHaveBeenCalledTimes(1);
-    expect(mockCaptureException).toHaveBeenCalledWith(error, { mechanism: { handled: false, type: 'solidstart' } });
+    expect(mockCaptureException).toHaveBeenCalledWith(error, {
+      mechanism: { handled: false, type: 'auto.function.solidstart' },
+    });
   });
 
   it("doesn't call captureException for thrown redirects", async () => {
