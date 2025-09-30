@@ -11,7 +11,6 @@ import {
   applySdkMetadata,
   debug,
   extractTraceparentData,
-  getActiveSpan,
   getCapturedScopesOnSpan,
   getClient,
   getCurrentScope,
