@@ -81,7 +81,8 @@ export default defineNuxtModule<ModuleOptions>({
 
         // Add type references for useRuntimeConfig in root files for nuxt v4
         // Should be relative to `root/.nuxt`
-        options.tsConfig.include.push('../sentry.client.config.ts');
+        const relativePath = path.relative(nuxt.options.buildDir, clientConfigFile);
+        options.tsConfig.include.push(`../${relativePath}`);
       });
     }
 
