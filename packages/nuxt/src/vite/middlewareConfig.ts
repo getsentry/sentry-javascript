@@ -57,7 +57,6 @@ function middlewareInstrumentationPlugin(nitro: Nitro): InputPluginOption {
       // Only transform files we've identified as middleware
       if (middlewareFiles.has(id)) {
         const fileName = path.basename(id);
-
         return {
           code: wrapMiddlewareCode(code, fileName),
           map: null,
@@ -87,6 +86,8 @@ function defineInstrumentedEventHandler(handlerOrObject) {
   return defineEventHandler(wrapMiddlewareHandlerWithSentry(handlerOrObject, '${cleanFileName}'));
 }
 
-${originalCode.replace(/defineEventHandler\(/g, 'defineInstrumentedEventHandler(')}
+${originalCode
+  .replace(/defineEventHandler\(/g, 'defineInstrumentedEventHandler(')
+  .replace(/eventHandler\(/g, 'defineInstrumentedEventHandler(')}
 `;
 }
