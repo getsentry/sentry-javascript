@@ -206,18 +206,4 @@ test rejection`);
         done();
       });
     }));
-
-  test('should not warn when custom ignored error by symbol is rejected', () =>
-    new Promise<void>(done => {
-      expect.assertions(3);
-
-      const testScriptPath = path.resolve(__dirname, 'ignore-custom-symbol.js');
-
-      childProcess.execFile('node', [testScriptPath], { encoding: 'utf8' }, (err, stdout, stderr) => {
-        expect(err).toBeNull();
-        expect(stdout).toBe("I'm alive!");
-        expect(stderr).toBe(''); // No warning should be shown
-        done();
-      });
-    }));
 });

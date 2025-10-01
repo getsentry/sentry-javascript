@@ -1,10 +1,17 @@
 import type { Client, IntegrationFn, SeverityLevel, Span } from '@sentry/core';
-import { captureException, consoleSandbox, defineIntegration, getClient, withActiveSpan } from '@sentry/core';
+import {
+  captureException,
+  consoleSandbox,
+  defineIntegration,
+  getClient,
+  isMatchingPattern,
+  withActiveSpan,
+} from '@sentry/core';
 import { logAndExitProcess } from '../utils/errorhandling';
 
 type UnhandledRejectionMode = 'none' | 'warn' | 'strict';
 
-type IgnoreMatcher = { symbol: symbol } | { name?: string | RegExp; message?: string | RegExp };
+type IgnoreMatcher = { name?: string | RegExp; message?: string | RegExp };
 
 interface OnUnhandledRejectionOptions {
   /**
@@ -41,47 +48,33 @@ const _onUnhandledRejectionIntegration = ((options: Partial<OnUnhandledRejection
 export const onUnhandledRejectionIntegration = defineIntegration(_onUnhandledRejectionIntegration);
 
 /** Extract error info safely */
-function extractErrorInfo(reason: unknown): { name: string; message: string; isObject: boolean } {
-  const isObject = reason !== null && typeof reason === 'object';
-  if (!isObject) {
-    return { name: '', message: String(reason ?? ''), isObject };
+function extractErrorInfo(reason: unknown): { name: string; message: string } {
+  // Check if reason is an object (including Error instances, not just plain objects)
+  if (typeof reason !== 'object' || reason === null) {
+    return { name: '', message: String(reason ?? '') };
   }
 
   const errorLike = reason as Record<string, unknown>;
   const name = typeof errorLike.name === 'string' ? errorLike.name : '';
   const message = typeof errorLike.message === 'string' ? errorLike.message : String(reason);
 
-  return { name, message, isObject };
+  return { name, message };
 }
 
 /** Check if a matcher matches the reason */
-function isMatchingReason(
-  matcher: IgnoreMatcher,
-  reason: unknown,
-  errorInfo: ReturnType<typeof extractErrorInfo>,
-): boolean {
-  if ('symbol' in matcher) {
-    return errorInfo.isObject && matcher.symbol in (reason as object);
-  }
-
+function isMatchingReason(matcher: IgnoreMatcher, errorInfo: ReturnType<typeof extractErrorInfo>): boolean {
   // name/message matcher
-  const nameMatches =
-    matcher.name === undefined ||
-    (typeof matcher.name === 'string' ? errorInfo.name === matcher.name : matcher.name.test(errorInfo.name));
+  const nameMatches = matcher.name === undefined || isMatchingPattern(errorInfo.name, matcher.name, true);
 
-  const messageMatches =
-    matcher.message === undefined ||
-    (typeof matcher.message === 'string'
-      ? errorInfo.message.includes(matcher.message)
-      : matcher.message.test(errorInfo.message));
+  const messageMatches = matcher.message === undefined || isMatchingPattern(errorInfo.message, matcher.message);
 
   return nameMatches && messageMatches;
 }
 
 /** Match helper */
-function matchesIgnore(reason: unknown, list: IgnoreMatcher[]): boolean {
+function matchesIgnore(list: IgnoreMatcher[], reason: unknown): boolean {
   const errorInfo = extractErrorInfo(reason);
-  return list.some(matcher => isMatchingReason(matcher, reason, errorInfo));
+  return list.some(matcher => isMatchingReason(matcher, errorInfo));
 }
 
 /** Core handler */
@@ -91,10 +84,14 @@ export function makeUnhandledPromiseHandler(
 ): (reason: unknown, promise: unknown) => void {
   return function sendUnhandledPromise(reason: unknown, promise: unknown): void {
     // Only handle for the active client
-    if (getClient() !== client) return;
+    if (getClient() !== client) {
+      return;
+    }
 
     // Skip if configured to ignore
-    if (matchesIgnore(reason, options.ignore ?? [])) return;
+    if (matchesIgnore(options.ignore ?? [], reason)) {
+      return;
+    }
 
     const level: SeverityLevel = options.mode === 'strict' ? 'fatal' : 'error';
 
