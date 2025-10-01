@@ -52,6 +52,8 @@ export {
   graphqlIntegration,
   hapiIntegration,
   httpIntegration,
+  httpServerIntegration,
+  httpServerSpansIntegration,
   // eslint-disable-next-line deprecation/deprecation
   inboundFiltersIntegration,
   eventFiltersIntegration,

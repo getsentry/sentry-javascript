@@ -51,9 +51,11 @@ async function buildLambdaLayer(): Promise<void> {
   fs.chmodSync('./build/aws/dist-serverless/sentry-extension/index.mjs', 0o755);
 
   const zipFilename = `sentry-node-serverless-${version}.zip`;
+  // Only include these directories in the zip file
+  const dirsToZip = ['nodejs', 'extensions', 'sentry-extension'];
   console.log(`Creating final layer zip file ${zipFilename}.`);
   // need to preserve the symlink above with -y
-  run(`zip -r -y ${zipFilename} .`, { cwd: 'build/aws/dist-serverless' });
+  run(`zip -r -y ${zipFilename} ${dirsToZip.join(' ')}`, { cwd: 'build/aws/dist-serverless' });
 }
 
 // eslint-disable-next-line @typescript-eslint/no-floating-promises
@@ -79,7 +81,11 @@ async function pruneNodeModules(): Promise<void> {
     './build/aws/dist-serverless/nodejs/node_modules/@sentry/aws-serverless/build/npm/esm/awslambda-auto.js',
   ];
 
-  const { fileList } = await nodeFileTrace(entrypoints);
+  const { fileList } = await nodeFileTrace(entrypoints, {
+    // import-in-the-middle uses mixed require and import syntax in their `hook.mjs` file.
+    // So we need to set `mixedModules` to `true` to ensure that all modules are tracked.
+    mixedModules: true,
+  });
 
   const allFiles = getAllFiles('./build/aws/dist-serverless/nodejs/node_modules');
 

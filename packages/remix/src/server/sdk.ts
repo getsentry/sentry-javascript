@@ -18,7 +18,7 @@ export function getRemixDefaultIntegrations(options: RemixOptions): Integration[
     ...getDefaultNodeIntegrations(options as NodeOptions).filter(integration => integration.name !== 'Http'),
     httpIntegration(),
     remixIntegration(),
-  ].filter(int => int) as Integration[];
+  ].filter(int => int);
 }
 
 /** Initializes Sentry Remix SDK on Node. */

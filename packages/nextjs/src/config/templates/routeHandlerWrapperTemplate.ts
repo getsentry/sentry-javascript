@@ -41,7 +41,7 @@ function wrapHandler<T>(handler: T, method: 'GET' | 'POST' | 'PUT' | 'PATCH' | '
 
       // We try-catch here just in case the API around `requestAsyncStorage` changes unexpectedly since it is not public API
       try {
-        const requestAsyncStore = requestAsyncStorage?.getStore() as ReturnType<RequestAsyncStorage['getStore']>;
+        const requestAsyncStore = requestAsyncStorage?.getStore();
         headers = requestAsyncStore?.headers;
       } catch {
         /** empty */

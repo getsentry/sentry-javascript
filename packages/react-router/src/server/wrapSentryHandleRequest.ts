@@ -8,14 +8,14 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '@sentry/core';
-import type { AppLoadContext, EntryContext } from 'react-router';
+import type { AppLoadContext, EntryContext, RouterContextProvider } from 'react-router';
 
 type OriginalHandleRequest = (
   request: Request,
   responseStatusCode: number,
   responseHeaders: Headers,
   routerContext: EntryContext,
-  loadContext: AppLoadContext,
+  loadContext: AppLoadContext | RouterContextProvider,
 ) => Promise<unknown>;
 
 /**
@@ -30,7 +30,7 @@ export function wrapSentryHandleRequest(originalHandle: OriginalHandleRequest): 
     responseStatusCode: number,
     responseHeaders: Headers,
     routerContext: EntryContext,
-    loadContext: AppLoadContext,
+    loadContext: AppLoadContext | RouterContextProvider,
   ) {
     const parameterizedPath =
       routerContext?.staticHandlerContext?.matches?.[routerContext.staticHandlerContext.matches.length - 1]?.route.path;
