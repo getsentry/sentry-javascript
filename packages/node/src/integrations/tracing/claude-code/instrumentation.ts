@@ -1,5 +1,11 @@
 import type { Span } from '@opentelemetry/api';
-import { getClient, startSpanManual, withActiveSpan, startSpan } from '@sentry/core';
+import {
+  getClient,
+  startSpanManual,
+  withActiveSpan,
+  startSpan,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+} from '@sentry/core';
 import type { ClaudeCodeOptions } from './index';
 
 type ClaudeCodeInstrumentationOptions = ClaudeCodeOptions;
@@ -115,7 +121,7 @@ function _createInstrumentedGenerator(
           [GEN_AI_ATTRIBUTES.REQUEST_MODEL]: model,
           [GEN_AI_ATTRIBUTES.OPERATION_NAME]: 'invoke_agent',
           [GEN_AI_ATTRIBUTES.AGENT_NAME]: 'claude-code',
-          'sentry.origin': SENTRY_ORIGIN,
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: SENTRY_ORIGIN,
         },
       },
       async function* (span: Span) {
@@ -172,7 +178,7 @@ function _createInstrumentedGenerator(
                         [GEN_AI_ATTRIBUTES.SYSTEM]: 'claude-code',
                         [GEN_AI_ATTRIBUTES.REQUEST_MODEL]: model,
                         [GEN_AI_ATTRIBUTES.OPERATION_NAME]: 'chat',
-                        'sentry.origin': SENTRY_ORIGIN,
+                        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: SENTRY_ORIGIN,
                       },
                     },
                     (childSpan: Span) => {
@@ -314,7 +320,7 @@ function _createInstrumentedGenerator(
                           [GEN_AI_ATTRIBUTES.OPERATION_NAME]: 'execute_tool',
                           [GEN_AI_ATTRIBUTES.AGENT_NAME]: 'claude-code',
                           [GEN_AI_ATTRIBUTES.TOOL_NAME]: matchingTool!.name as string,
-                          'sentry.origin': SENTRY_ORIGIN,
+                          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: SENTRY_ORIGIN,
                         },
                       },
                       (toolSpan: Span) => {
