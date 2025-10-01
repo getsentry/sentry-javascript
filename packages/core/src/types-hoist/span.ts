@@ -1,4 +1,4 @@
-import { SerializedAttributes } from './attributes';
+import type { SerializedAttributes } from './attributes';
 import type { SpanLink, SpanLinkJSON } from './link';
 import type { Measurements } from './measurement';
 import type { HrTime } from './opentelemetry';
