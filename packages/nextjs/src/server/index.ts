@@ -191,9 +191,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
       span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, 'auto');
     }
 
-    // Add headers to the root span if the client options allow it
-    const shouldSendDefaultPii = getClient()?.getOptions().sendDefaultPii ?? false;
-    if (shouldSendDefaultPii && isRootSpan) {
+    if (isRootSpan) {
       const headers = getIsolationScope().getScopeData().sdkProcessingMetadata?.normalizedRequest?.headers;
       addHeadersAsAttributes(headers, rootSpan);
     }

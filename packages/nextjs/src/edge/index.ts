@@ -76,8 +76,7 @@ export function init(options: VercelEdgeOptions = {}): void {
       span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'url');
     }
 
-    const shouldSendDefaultPii = getClient()?.getOptions().sendDefaultPii ?? false;
-    if (shouldSendDefaultPii && isRootSpan) {
+    if (isRootSpan) {
       // todo: check if we can set request headers for edge on sdkProcessingMetadata
       const headers = getIsolationScope().getScopeData().sdkProcessingMetadata?.normalizedRequest?.headers;
       addHeadersAsAttributes(headers, rootSpan);
