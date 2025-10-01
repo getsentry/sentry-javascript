@@ -88,9 +88,9 @@ type CheckInItemHeaders = { type: 'check_in' };
 type ProfileItemHeaders = { type: 'profile' };
 type ProfileChunkItemHeaders = { type: 'profile_chunk' };
 type SpanItemHeaders = { type: 'span' };
-type SpanV2ItemHeaders = {
+type SpanContainerItemHeaders = {
   /**
-   * Same as v1 span item type but this envelope is distinguished by {@link SpanV2ItemHeaders.content_type}.
+   * Same as v1 span item type but this envelope is distinguished by {@link SpanContainerItemHeaders.content_type}.
    */
   type: 'span';
   /**
@@ -130,7 +130,7 @@ export type FeedbackItem = BaseEnvelopeItem<FeedbackItemHeaders, FeedbackEvent>;
 export type ProfileItem = BaseEnvelopeItem<ProfileItemHeaders, Profile>;
 export type ProfileChunkItem = BaseEnvelopeItem<ProfileChunkItemHeaders, ProfileChunk>;
 export type SpanItem = BaseEnvelopeItem<SpanItemHeaders, Partial<SpanJSON>>;
-export type SpanV2Item = BaseEnvelopeItem<SpanV2ItemHeaders, SerializedSpanContainer>;
+export type SpanContainerItem = BaseEnvelopeItem<SpanContainerItemHeaders, SerializedSpanContainer>;
 export type LogContainerItem = BaseEnvelopeItem<LogContainerItemHeaders, SerializedLogContainer>;
 export type RawSecurityItem = BaseEnvelopeItem<RawSecurityHeaders, LegacyCSPReport>;
 
@@ -140,7 +140,7 @@ type CheckInEnvelopeHeaders = { trace?: DynamicSamplingContext };
 type ClientReportEnvelopeHeaders = BaseEnvelopeHeaders;
 type ReplayEnvelopeHeaders = BaseEnvelopeHeaders;
 type SpanEnvelopeHeaders = BaseEnvelopeHeaders & { trace?: DynamicSamplingContext };
-type SpanV2EnvelopeHeaders = BaseEnvelopeHeaders & { trace: DynamicSamplingContext };
+type SpanV2EnvelopeHeaders = BaseEnvelopeHeaders & { trace?: DynamicSamplingContext };
 type LogEnvelopeHeaders = BaseEnvelopeHeaders;
 export type EventEnvelope = BaseEnvelope<
   EventEnvelopeHeaders,
@@ -151,7 +151,7 @@ export type ClientReportEnvelope = BaseEnvelope<ClientReportEnvelopeHeaders, Cli
 export type ReplayEnvelope = [ReplayEnvelopeHeaders, [ReplayEventItem, ReplayRecordingItem]];
 export type CheckInEnvelope = BaseEnvelope<CheckInEnvelopeHeaders, CheckInItem>;
 export type SpanEnvelope = BaseEnvelope<SpanEnvelopeHeaders, SpanItem>;
-export type SpanV2Envelope = BaseEnvelope<SpanV2EnvelopeHeaders, SpanV2Item>;
+export type SpanV2Envelope = BaseEnvelope<SpanV2EnvelopeHeaders, SpanContainerItem>;
 export type ProfileChunkEnvelope = BaseEnvelope<BaseEnvelopeHeaders, ProfileChunkItem>;
 export type RawSecurityEnvelope = BaseEnvelope<BaseEnvelopeHeaders, RawSecurityItem>;
 export type LogEnvelope = BaseEnvelope<LogEnvelopeHeaders, LogContainerItem>;
@@ -164,6 +164,7 @@ export type Envelope =
   | ReplayEnvelope
   | CheckInEnvelope
   | SpanEnvelope
+  | SpanV2Envelope
   | RawSecurityEnvelope
   | LogEnvelope;
 export type EnvelopeItem = Envelope[1][number];

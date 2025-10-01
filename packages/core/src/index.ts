@@ -355,6 +355,7 @@ export type {
   ProfileChunkEnvelope,
   ProfileChunkItem,
   SpanEnvelope,
+  SpanV2Envelope,
   SpanItem,
   LogEnvelope,
 } from './types-hoist/envelope';
