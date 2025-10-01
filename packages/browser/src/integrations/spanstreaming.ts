@@ -1,6 +1,13 @@
-import type { Envelope, IntegrationFn, Span, SpanV2JSON } from '@sentry/core';
-import { createEnvelope, debug, defineIntegration, isV2BeforeSendSpanCallback, spanToV2JSON } from '@sentry/core';
+import type { IntegrationFn, Span, SpanV2JSON } from '@sentry/core';
+import {
+  debug,
+  defineIntegration,
+  getDynamicSamplingContextFromSpan,
+  isV2BeforeSendSpanCallback,
+  spanToV2JSON,
+} from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
+import { createSpanV2Envelope } from '@sentry/core/build/types/envelope';
 
 export interface SpanStreamingOptions {
   batchLimit: number;
@@ -35,13 +42,14 @@ const _spanStreamingIntegration = ((userOptions?: Partial<SpanStreamingOptions>)
       const initialMessage = 'spanStreamingIntegration requires';
       const fallbackMsg = 'Falling back to static trace lifecycle.';
 
-      if (DEBUG_BUILD && clientOptions.traceLifecycle !== 'streamed') {
-        debug.warn(`${initialMessage} \`traceLifecycle\` to be set to "streamed"! ${fallbackMsg}`);
+      if (clientOptions.traceLifecycle !== 'streamed') {
+        DEBUG_BUILD && debug.warn(`${initialMessage} \`traceLifecycle\` to be set to "streamed"! ${fallbackMsg}`);
         return;
       }
 
-      if (DEBUG_BUILD && beforeSendSpan && !isV2BeforeSendSpanCallback(beforeSendSpan)) {
-        debug.warn(`${initialMessage} a beforeSendSpan callback using \`makeV2Callback\`! ${fallbackMsg}`);
+      if (beforeSendSpan && !isV2BeforeSendSpanCallback(beforeSendSpan)) {
+        DEBUG_BUILD &&
+          debug.warn(`${initialMessage} a beforeSendSpan callback using \`makeV2Callback\`! ${fallbackMsg}`);
         return;
       }
 
@@ -54,6 +62,8 @@ const _spanStreamingIntegration = ((userOptions?: Partial<SpanStreamingOptions>)
         }
       });
 
+      // For now, we send all spans on local segment (root) span end.
+      // TODO: This will change once we have more concrete ideas about a universal SDK data buffer.
       client.on('segmentSpanEnd', segmentSpan => {
         const traceId = segmentSpan.spanContext().traceId;
         const spansOfTrace = traceMap.get(traceId);
@@ -65,8 +75,7 @@ const _spanStreamingIntegration = ((userOptions?: Partial<SpanStreamingOptions>)
 
         const serializedSpans = Array.from(spansOfTrace ?? []).map(span => {
           const serializedSpan = spanToV2JSON(span);
-          const finalSpan = beforeSendSpan ? beforeSendSpan(serializedSpan) : serializedSpan;
-          return finalSpan;
+          return beforeSendSpan ? beforeSendSpan(serializedSpan) : serializedSpan;
         });
 
         const batches: SpanV2JSON[][] = [];
@@ -74,16 +83,16 @@ const _spanStreamingIntegration = ((userOptions?: Partial<SpanStreamingOptions>)
           batches.push(serializedSpans.slice(i, i + options.batchLimit));
         }
 
-        debug.log(`Sending trace ${traceId} in ${batches.length} batche${batches.length === 1 ? '' : 's'}`);
+        DEBUG_BUILD &&
+          debug.log(`Sending trace ${traceId} in ${batches.length} batche${batches.length === 1 ? '' : 's'}`);
 
         // TODO: Apply scopes to spans
-
-        // TODO: Apply beforeSendSpan to spans
-
         // TODO: Apply ignoreSpans to spans
 
+        const dsc = getDynamicSamplingContextFromSpan(segmentSpan);
+
         for (const batch of batches) {
-          const envelope = createSpanStreamEnvelope(batch);
+          const envelope = createSpanV2Envelope(batch, dsc, client);
           // no need to handle client reports for network errors,
           // buffer overflows or rate limiting here. All of this is handled
           // by client and transport.
@@ -99,7 +108,3 @@ const _spanStreamingIntegration = ((userOptions?: Partial<SpanStreamingOptions>)
 }) satisfies IntegrationFn;
 
 export const spanStreamingIntegration = defineIntegration(_spanStreamingIntegration);
-
-function createSpanStreamEnvelope(serializedSpans: StreamedSpanJSON[]): Envelope {
-  return createEnvelope<SpanEnvelope>(headers, [item]);
-}
