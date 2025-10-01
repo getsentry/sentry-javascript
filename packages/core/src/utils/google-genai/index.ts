@@ -222,75 +222,75 @@ function instrumentMethod<T extends unknown[], R>(
 ): (...args: T) => R | Promise<R> {
   const isSyncCreate = methodPath === CHATS_CREATE_METHOD;
 
-  const run = (...args: T): R | Promise<R> => {
-    const params = args[0] as Record<string, unknown> | undefined;
-    const requestAttributes = extractRequestAttributes(methodPath, params, context);
-    const model = requestAttributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] ?? 'unknown';
-    const operationName = getFinalOperationName(methodPath);
+  return new Proxy(originalMethod, {
+    apply(target, _, args: T): R | Promise<R> {
+      const params = args[0] as Record<string, unknown> | undefined;
+      const requestAttributes = extractRequestAttributes(methodPath, params, context);
+      const model = requestAttributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] ?? 'unknown';
+      const operationName = getFinalOperationName(methodPath);
 
-    // Check if this is a streaming method
-    if (isStreamingMethod(methodPath)) {
-      // Use startSpanManual for streaming methods to control span lifecycle
-      return startSpanManual(
-        {
-          name: `${operationName} ${model} stream-response`,
-          op: getSpanOperation(methodPath),
-          attributes: requestAttributes,
-        },
-        async (span: Span) => {
-          try {
-            if (options.recordInputs && params) {
-              addPrivateRequestAttributes(span, params);
-            }
-            const stream = await originalMethod.apply(context, args);
-            return instrumentStream(stream, span, Boolean(options.recordOutputs)) as R;
-          } catch (error) {
-            span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-            captureException(error, {
-              mechanism: {
-                handled: false,
-                type: 'auto.ai.google_genai',
-                data: { function: methodPath },
-              },
-            });
-            span.end();
-            throw error;
-          }
-        },
-      );
-    }
-    // Single span for both sync and async operations
-    return startSpan(
-      {
-        name: isSyncCreate ? `${operationName} ${model} create` : `${operationName} ${model}`,
-        op: getSpanOperation(methodPath),
-        attributes: requestAttributes,
-      },
-      (span: Span) => {
-        if (options.recordInputs && params) {
-          addPrivateRequestAttributes(span, params);
-        }
-
-        return handleCallbackErrors(
-          () => originalMethod.apply(context, args),
-          error => {
-            captureException(error, {
-              mechanism: { handled: false, type: 'auto.ai.google_genai', data: { function: methodPath } },
-            });
+      // Check if this is a streaming method
+      if (isStreamingMethod(methodPath)) {
+        // Use startSpanManual for streaming methods to control span lifecycle
+        return startSpanManual(
+          {
+            name: `${operationName} ${model} stream-response`,
+            op: getSpanOperation(methodPath),
+            attributes: requestAttributes,
           },
-          () => {},
-          result => {
-            // Only add response attributes for content-producing methods, not for chats.create
-            if (!isSyncCreate) {
-              addResponseAttributes(span, result, options.recordOutputs);
+          async (span: Span) => {
+            try {
+              if (options.recordInputs && params) {
+                addPrivateRequestAttributes(span, params);
+              }
+              const stream = await target.apply(context, args);
+              return instrumentStream(stream, span, Boolean(options.recordOutputs)) as R;
+            } catch (error) {
+              span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+              captureException(error, {
+                mechanism: {
+                  handled: false,
+                  type: 'auto.ai.google_genai',
+                  data: { function: methodPath },
+                },
+              });
+              span.end();
+              throw error;
             }
           },
         );
-      },
-    );
-  };
+      }
+      // Single span for both sync and async operations
+      return startSpan(
+        {
+          name: isSyncCreate ? `${operationName} ${model} create` : `${operationName} ${model}`,
+          op: getSpanOperation(methodPath),
+          attributes: requestAttributes,
+        },
+        (span: Span) => {
+          if (options.recordInputs && params) {
+            addPrivateRequestAttributes(span, params);
+          }
 
-  return run;
+          return handleCallbackErrors(
+            () => target.apply(context, args),
+            error => {
+              captureException(error, {
+                mechanism: { handled: false, type: 'auto.ai.google_genai', data: { function: methodPath } },
+              });
+            },
+            () => {},
+            result => {
+              // Only add response attributes for content-producing methods, not for chats.create
+              if (!isSyncCreate) {
+                addResponseAttributes(span, result, options.recordOutputs);
+              }
+            },
+          );
+        },
+      );
+    },
+  }) as (...args: T) => R | Promise<R>;
 }
 
 /**
