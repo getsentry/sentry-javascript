@@ -202,7 +202,7 @@ async function run() {
       for await (const _ of blockedStreamResponse) {
         void _;
       }
-    } catch (error) {
+    } catch {
       // Expected: The stream should be processed, but the span should be marked with error status
       // The error handling happens in the streaming instrumentation, not as a thrown error
     }
