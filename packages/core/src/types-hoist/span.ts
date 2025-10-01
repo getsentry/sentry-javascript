@@ -1,3 +1,4 @@
+import { SerializedAttributes } from './attributes';
 import type { SpanLink, SpanLinkJSON } from './link';
 import type { Measurements } from './measurement';
 import type { HrTime } from './opentelemetry';
@@ -33,6 +34,24 @@ export type SpanAttributes = Partial<{
 
 /** This type is aligned with the OpenTelemetry TimeInput type. */
 export type SpanTimeInput = HrTime | number | Date;
+
+export interface SpanV2JSON {
+  trace_id: string;
+  parent_span_id?: string;
+  span_id: string;
+  name: string;
+  start_timestamp: number;
+  end_timestamp: number;
+  status: 'ok' | 'error';
+  kind: 'server' | 'client' | 'internal' | 'consumer' | 'producer';
+  is_remote: boolean;
+  attributes?: SerializedAttributes;
+  links?: SpanLinkJSON<SerializedAttributes>[];
+}
+
+export type SerializedSpanContainer = {
+  items: Array<SpanV2JSON>;
+};
 
 /** A JSON representation of a span. */
 export interface SpanJSON {
