@@ -1,6 +1,5 @@
 import {
   applySdkMetadata,
-  getClient,
   getGlobalScope,
   getIsolationScope,
   getRootSpan,
