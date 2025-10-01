@@ -226,7 +226,7 @@ async function run() {
       for await (const _ of errorStreamResponse) {
         void _;
       }
-    } catch (error) {
+    } catch {
       // Expected error
     }
   });
