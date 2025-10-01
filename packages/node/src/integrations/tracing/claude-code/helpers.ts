@@ -36,8 +36,8 @@ async function ensurePatchedQuery(): Promise<void> {
       }
 
       const client = getClient();
-      const integration = client?.getIntegrationByName<ClaudeCodeOptions>(CLAUDE_CODE_INTEGRATION_NAME);
-      const options = integration?.options || {};
+      const integration = client?.getIntegrationByName(CLAUDE_CODE_INTEGRATION_NAME);
+      const options = (integration as any)?.options as ClaudeCodeOptions | undefined || {};
 
       _globalPatchedQuery = patchClaudeCodeQuery(claudeSDK.query, options);
     } catch (error) {
