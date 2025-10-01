@@ -86,6 +86,7 @@ export {
   addChildSpanToSpan,
   spanTimeInputToSeconds,
   updateSpanName,
+  spanToV2JSON,
 } from './utils/spanUtils';
 export { _setSpanForScope as _INTERNAL_setSpanForScope } from './utils/spanOnScope';
 export { parseSampleRate } from './utils/parseSampleRate';
@@ -323,6 +324,7 @@ export { flushIfServerless } from './utils/flushIfServerless';
 export { SDK_VERSION } from './utils/version';
 export { getDebugImagesForResources, getFilenameToDebugIdMap } from './utils/debug-ids';
 export { escapeStringForRegex } from './vendor/escapeStringForRegex';
+export { isV2BeforeSendSpanCallback, makeV2Callback } from './utils/beforeSendSpan';
 
 export type { Attachment } from './types-hoist/attachment';
 export type {
@@ -441,6 +443,7 @@ export type {
   SpanJSON,
   SpanContextData,
   TraceFlag,
+  SpanV2JSON,
 } from './types-hoist/span';
 export type { SpanStatus } from './types-hoist/spanStatus';
 export type { Log, LogSeverityLevel } from './types-hoist/log';
