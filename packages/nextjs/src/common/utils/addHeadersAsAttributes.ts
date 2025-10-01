@@ -15,6 +15,10 @@ export function addHeadersAsAttributes(
   const client = getClient();
   const sendDefaultPii = client?.getOptions().sendDefaultPii ?? false;
 
+  if (!sendDefaultPii) {
+    return {};
+  }
+
   const headersDict: Record<string, string | string[] | undefined> =
     headers instanceof Headers || (typeof headers === 'object' && 'get' in headers)
       ? winterCGHeadersToDict(headers as Headers)
