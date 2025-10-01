@@ -59,7 +59,6 @@ export function wrapMiddlewareWithSentry<H extends EdgeRouteHandler>(
 
         let spanName: string;
         let spanSource: TransactionSource;
-        const headerAttributes: Record<string, string> = {};
 
         if (req instanceof Request) {
           isolationScope.setSDKProcessingMetadata({
@@ -85,7 +84,6 @@ export function wrapMiddlewareWithSentry<H extends EdgeRouteHandler>(
           const rootSpan = getRootSpan(activeSpan);
           if (rootSpan) {
             setCapturedScopesOnSpan(rootSpan, currentScope, isolationScope);
-            rootSpan.setAttributes(headerAttributes);
           }
         }
 
@@ -96,7 +94,6 @@ export function wrapMiddlewareWithSentry<H extends EdgeRouteHandler>(
             attributes: {
               [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: spanSource,
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs.wrap_middleware',
-              ...headerAttributes,
             },
           },
           () => {
