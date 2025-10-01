@@ -4,7 +4,9 @@ import {
   startSpanManual,
   withActiveSpan,
   startSpan,
+  captureException,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
 } from '@sentry/core';
 import type { ClaudeCodeOptions } from './index';
 
@@ -122,6 +124,7 @@ function _createInstrumentedGenerator(
           [GEN_AI_ATTRIBUTES.OPERATION_NAME]: 'invoke_agent',
           [GEN_AI_ATTRIBUTES.AGENT_NAME]: 'claude-code',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: SENTRY_ORIGIN,
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.invoke_agent',
         },
       },
       async function* (span: Span) {
@@ -179,6 +182,7 @@ function _createInstrumentedGenerator(
                         [GEN_AI_ATTRIBUTES.REQUEST_MODEL]: model,
                         [GEN_AI_ATTRIBUTES.OPERATION_NAME]: 'chat',
                         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: SENTRY_ORIGIN,
+                        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.chat',
                       },
                     },
                     (childSpan: Span) => {
@@ -321,6 +325,7 @@ function _createInstrumentedGenerator(
                           [GEN_AI_ATTRIBUTES.AGENT_NAME]: 'claude-code',
                           [GEN_AI_ATTRIBUTES.TOOL_NAME]: matchingTool!.name as string,
                           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: SENTRY_ORIGIN,
+                          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.execute_tool',
                         },
                       },
                       (toolSpan: Span) => {
@@ -364,9 +369,28 @@ function _createInstrumentedGenerator(
 
           span.setStatus({ code: 1 });
         } catch (error) {
+          // Capture exception to Sentry with proper metadata
+          captureException(error, {
+            mechanism: {
+              type: SENTRY_ORIGIN,
+              handled: false,
+            },
+          });
+
           span.setStatus({ code: 2, message: (error as Error).message });
           throw error;
         } finally {
+          // Ensure all child spans are closed even if generator exits early
+          if (currentLLMSpan && currentLLMSpan.isRecording()) {
+            currentLLMSpan.setStatus({ code: 1 });
+            currentLLMSpan.end();
+          }
+
+          if (previousLLMSpan && previousLLMSpan.isRecording()) {
+            previousLLMSpan.setStatus({ code: 1 });
+            previousLLMSpan.end();
+          }
+
           span.end();
         }
       },
