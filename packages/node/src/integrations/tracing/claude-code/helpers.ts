@@ -41,6 +41,9 @@ async function ensurePatchedQuery(): Promise<void> {
 
       _globalPatchedQuery = patchClaudeCodeQuery(claudeSDK.query, options);
     } catch (error) {
+      // Reset state on failure to allow retry on next call
+      _initPromise = null;
+
       const errorMessage =
         error instanceof Error
           ? error.message
