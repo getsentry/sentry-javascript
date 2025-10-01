@@ -6,7 +6,7 @@ import type { Log } from './log';
 import type { Metric } from './metric';
 import type { TracesSamplerSamplingContext } from './samplingcontext';
 import type { SdkMetadata } from './sdkmetadata';
-import type { SpanJSON } from './span';
+import type { SpanJSON, SpanV2JSON } from './span';
 import type { StackLineParser, StackParser } from './stacktrace';
 import type { TracePropagationTargets } from './tracing';
 import type { BaseTransportOptions, Transport } from './transport';
@@ -383,6 +383,16 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
   strictTraceContinuation?: boolean;
 
   /**
+   * [Experimental] The trace lifecycle, determining whether spans are sent statically when the entire local span tree is complete, or
+   * in batches, following interval- and action-based triggers.
+   *
+   * @experimental this option is currently still experimental and its type, name, or entire presence is subject to break and change at any time.
+   *
+   * @default 'static'
+   */
+  traceLifecycle?: 'static' | 'streamed';
+
+  /**
    * The organization ID for your Sentry project.
    *
    * The SDK will try to extract the organization ID from the DSN. If it cannot be found, or if you need to override it,
@@ -465,7 +475,7 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    *
    * @returns The modified span payload that will be sent.
    */
-  beforeSendSpan?: (span: SpanJSON) => SpanJSON;
+  beforeSendSpan?: ((span: SpanJSON) => SpanJSON) | SpanV2CompatibleBeforeSendSpanCallback;
 
   /**
    * An event-processing callback for transaction events, guaranteed to be invoked after all other event
@@ -496,6 +506,12 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    */
   beforeBreadcrumb?: (breadcrumb: Breadcrumb, hint?: BreadcrumbHint) => Breadcrumb | null;
 }
+
+/**
+ * A callback that is known to be compatible with actually receiving and returning a span v2 JSON object.
+ * Only useful in conjunction with the {@link CoreOptions.traceLifecycle} option.
+ */
+export type SpanV2CompatibleBeforeSendSpanCallback = ((span: SpanV2JSON) => SpanV2JSON) & { _v2: true };
 
 /** Base configuration options for every SDK. */
 export interface CoreOptions<TO extends BaseTransportOptions = BaseTransportOptions>
