@@ -18,6 +18,7 @@ import type { Event } from './types-hoist/event';
 import type { SdkInfo } from './types-hoist/sdkinfo';
 import type { SdkMetadata } from './types-hoist/sdkmetadata';
 import type { Session, SessionAggregates } from './types-hoist/session';
+import { isV2BeforeSendSpanCallback } from './utils/beforeSendSpan';
 import { dsnToString } from './utils/dsn';
 import {
   createEnvelope,
@@ -138,7 +139,8 @@ export function createSpanEnvelope(spans: [SentrySpan, ...SentrySpan[]], client?
     ...(!!tunnel && dsn && { dsn: dsnToString(dsn) }),
   };
 
-  const { beforeSendSpan, ignoreSpans } = client?.getOptions() || {};
+  const options = client?.getOptions();
+  const ignoreSpans = options?.ignoreSpans;
 
   const filteredSpans = ignoreSpans?.length
     ? spans.filter(span => !shouldIgnoreSpan(spanToJSON(span), ignoreSpans))
@@ -149,10 +151,14 @@ export function createSpanEnvelope(spans: [SentrySpan, ...SentrySpan[]], client?
     client?.recordDroppedEvent('before_send', 'span', droppedSpans);
   }
 
-  const convertToSpanJSON = beforeSendSpan
+  // checking against traceLifeCycle so that TS can infer the correct type for
+  // beforeSendSpan. This is a workaround for now as most likely, this entire function
+  // will be removed in the future (once we send standalone spans as spans v2)
+  const convertToSpanJSON = options?.beforeSendSpan
     ? (span: SentrySpan) => {
         const spanJson = spanToJSON(span);
-        const processedSpan = beforeSendSpan(spanJson);
+        const processedSpan =
+          !isV2BeforeSendSpanCallback(options?.beforeSendSpan) && options?.beforeSendSpan?.(spanJson);
 
         if (!processedSpan) {
           showSpanDropWarning();

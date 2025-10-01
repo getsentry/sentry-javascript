@@ -33,6 +33,7 @@ import type { SeverityLevel } from './types-hoist/severity';
 import type { Span, SpanAttributes, SpanContextData, SpanJSON } from './types-hoist/span';
 import type { StartSpanOptions } from './types-hoist/startSpanOptions';
 import type { Transport, TransportMakeRequestResponse } from './types-hoist/transport';
+import { isV2BeforeSendSpanCallback } from './utils/beforeSendSpan';
 import { createClientReportEnvelope } from './utils/clientreport';
 import { debug } from './utils/debug-logger';
 import { dsnToString, makeDsn } from './utils/dsn';
@@ -1421,13 +1422,17 @@ function _validateBeforeSendResult(
 /**
  * Process the matching `beforeSendXXX` callback.
  */
+// eslint-disable-next-line complexity
 function processBeforeSend(
   client: Client,
   options: ClientOptions,
   event: Event,
   hint: EventHint,
 ): PromiseLike<Event | null> | Event | null {
-  const { beforeSend, beforeSendTransaction, beforeSendSpan, ignoreSpans } = options;
+  const { beforeSend, beforeSendTransaction, ignoreSpans } = options;
+
+  const beforeSendSpan = !isV2BeforeSendSpanCallback(options.beforeSendSpan) && options.beforeSendSpan;
+
   let processedEvent = event;
 
   if (isErrorEvent(processedEvent) && beforeSend) {
