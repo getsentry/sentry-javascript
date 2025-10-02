@@ -37,6 +37,9 @@ import { handleOnSpanStart } from './handleOnSpanStart';
 
 export * from '@sentry/node';
 
+// Explicit re-exports for Claude Code integration
+export { claudeCodeIntegration, createInstrumentedClaudeQuery, patchClaudeCodeQuery } from '@sentry/node';
+
 export { captureUnderscoreErrorException } from '../common/pages-router-instrumentation/_error';
 
 // Override core span methods with Next.js-specific implementations that support Cache Components
