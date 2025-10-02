@@ -83,3 +83,4 @@ export { growthbookIntegration } from './integrations/featureFlags/growthbook';
 export { statsigIntegration } from './integrations/featureFlags/statsig';
 export { diagnoseSdkConnectivity } from './diagnose-sdk';
 export { webWorkerIntegration, registerWebWorker } from './integrations/webWorker';
+export { spanStreamingIntegration } from './integrations/spanstreaming';
