@@ -25,6 +25,6 @@ const chat = client.chats.create({
   ],
 });
 
-chat.sendMessage({
+await chat.sendMessage({
   message: 'Tell me a joke',
 });

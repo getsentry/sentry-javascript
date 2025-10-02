@@ -9,7 +9,7 @@ const client = Sentry.instrumentOpenAiClient(mockClient);
 
 // Test that manual instrumentation doesn't crash the browser
 // The instrumentation automatically creates spans
-client.chat.completions.create({
+await client.chat.completions.create({
   model: 'gpt-3.5-turbo',
   messages: [
     { role: 'system', content: 'You are a helpful assistant.' },
