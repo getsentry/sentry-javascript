@@ -90,6 +90,7 @@ export default defineNuxtModule<ModuleOptions>({
 
     if (serverConfigFile) {
       addServerPlugin(moduleDirResolver.resolve('./runtime/plugins/sentry.server'));
+      addServerPlugin(moduleDirResolver.resolve('./runtime/plugins/storage.server'));
 
       addPlugin({
         src: moduleDirResolver.resolve('./runtime/plugins/route-detector.server'),
