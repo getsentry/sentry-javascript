@@ -228,7 +228,7 @@ function setCurrentRequestSessionErroredOrCrashed(eventHint?: EventHint): void {
     if (isHandledException && requestSession.status !== 'crashed') {
       requestSession.status = 'errored';
     } else if (!isHandledException) {
-      requestSession.status = 'crashed';
+      requestSession.status = 'unhandled';
     }
   }
 }

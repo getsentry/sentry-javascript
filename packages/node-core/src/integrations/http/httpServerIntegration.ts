@@ -37,7 +37,7 @@ const INTEGRATION_NAME = 'Http.Server';
 
 const clientToRequestSessionAggregatesMap = new Map<
   Client,
-  { [timestampRoundedToSeconds: string]: { exited: number; crashed: number; errored: number } }
+  { [timestampRoundedToSeconds: string]: { exited: number; crashed: number; errored: number; unhandled: number } }
 >();
 
 // We keep track of emit functions we wrapped, to avoid double wrapping
@@ -277,8 +277,12 @@ export function recordRequestSession(
       const dateBucketKey = roundedDate.toISOString();
 
       const existingClientAggregate = clientToRequestSessionAggregatesMap.get(client);
-      const bucket = existingClientAggregate?.[dateBucketKey] || { exited: 0, crashed: 0, errored: 0 };
-      bucket[({ ok: 'exited', crashed: 'crashed', errored: 'errored' } as const)[requestSession.status]]++;
+      const bucket = existingClientAggregate?.[dateBucketKey] || { exited: 0, crashed: 0, errored: 0, unhandled: 0 };
+      bucket[
+        ({ ok: 'exited', crashed: 'crashed', errored: 'errored', unhandled: 'unhandled' } as const)[
+          requestSession.status
+        ]
+      ]++;
 
       if (existingClientAggregate) {
         existingClientAggregate[dateBucketKey] = bucket;

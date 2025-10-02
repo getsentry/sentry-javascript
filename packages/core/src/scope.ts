@@ -53,7 +53,7 @@ export interface ScopeContext {
 export interface SdkProcessingMetadata {
   [key: string]: unknown;
   requestSession?: {
-    status: 'ok' | 'errored' | 'crashed';
+    status: 'ok' | 'errored' | 'crashed' | 'unhandled';
   };
   normalizedRequest?: RequestEventData;
   dynamicSamplingContext?: Partial<DynamicSamplingContext>;
