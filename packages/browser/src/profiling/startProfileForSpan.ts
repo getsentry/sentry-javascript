@@ -41,7 +41,7 @@ export function startProfileForSpan(span: Span): void {
   // event of an error or user mistake (calling span.finish multiple times), it is important that the behavior of onProfileHandler
   // is idempotent as we do not want any timings or profiles to be overridden by the last call to onProfileHandler.
   // After the original finish method is called, the event will be reported through the integration and delegated to transport.
-  const processedProfile: JSSelfProfile | null = null;
+  let processedProfile: JSSelfProfile | null = null;
 
   getCurrentScope().setContext('profile', {
     profile_id: profileId,
@@ -90,6 +90,7 @@ export function startProfileForSpan(span: Span): void {
           return;
         }
 
+        processedProfile = profile;
         addProfileToGlobalCache(profileId, profile);
       })
       .catch(error => {
