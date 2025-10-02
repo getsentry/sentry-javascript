@@ -84,11 +84,13 @@ export {
   getSpanDescendants,
   getStatusMessage,
   getRootSpan,
+  getSegmentSpan,
   getActiveSpan,
   addChildSpanToSpan,
   spanTimeInputToSeconds,
   updateSpanName,
   spanToV2JSON,
+  showSpanDropWarning,
 } from './utils/spanUtils';
 export { _setSpanForScope as _INTERNAL_setSpanForScope } from './utils/spanOnScope';
 export { parseSampleRate } from './utils/parseSampleRate';
@@ -337,6 +339,7 @@ export { getDebugImagesForResources, getFilenameToDebugIdMap } from './utils/deb
 export { getFilenameToMetadataMap } from './metadata';
 export { escapeStringForRegex } from './vendor/escapeStringForRegex';
 export { isV2BeforeSendSpanCallback, makeV2Callback } from './utils/beforeSendSpan';
+export { shouldIgnoreSpan, reparentChildSpans } from './utils/should-ignore-span';
 
 export type { Attachment } from './types-hoist/attachment';
 export type {
