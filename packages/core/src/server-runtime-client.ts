@@ -225,9 +225,15 @@ function setCurrentRequestSessionErroredOrCrashed(eventHint?: EventHint): void {
     const isHandledException = eventHint?.mechanism?.handled ?? true;
     // A request session can go from "errored" -> "crashed" but not "crashed" -> "errored".
     // Crashed (unhandled exception) is worse than errored (handled exception).
-    if (isHandledException && requestSession.status !== 'crashed') {
-      requestSession.status = 'errored';
-    } else if (!isHandledException) {
+    if (isHandledException) {
+      // If it's a handled exception, we can only downgrade from 'ok' to 'errored'.
+      // We should not downgrade from 'unhandled' or 'crashed'.
+      if (requestSession.status === 'ok') {
+        requestSession.status = 'errored';
+      }
+    } else {
+      // If it's an unhandled exception, we always set the status to 'unhandled'.
+      // 'unhandled' is the most severe status.
       requestSession.status = 'unhandled';
     }
   }
