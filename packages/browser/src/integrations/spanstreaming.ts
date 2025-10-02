@@ -1,5 +1,6 @@
 import type { IntegrationFn, Span, SpanV2JSON } from '@sentry/core';
 import {
+  createSpanV2Envelope,
   debug,
   defineIntegration,
   getDynamicSamplingContextFromSpan,
@@ -7,7 +8,6 @@ import {
   spanToV2JSON,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
-import { createSpanV2Envelope } from '@sentry/core/build/types/envelope';
 
 export interface SpanStreamingOptions {
   batchLimit: number;
