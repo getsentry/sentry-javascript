@@ -26,7 +26,14 @@ import {
   stripUrlQueryAndFragment,
 } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
-import { getDefaultIntegrations, httpIntegration, init as nodeInit } from '@sentry/node';
+import {
+  getDefaultIntegrations,
+  httpIntegration,
+  init as nodeInit,
+  claudeCodeIntegration,
+  createInstrumentedClaudeQuery,
+  patchClaudeCodeQuery,
+} from '@sentry/node';
 import { getScopesFromContext } from '@sentry/opentelemetry';
 import { DEBUG_BUILD } from '../common/debug-build';
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
@@ -44,7 +51,12 @@ import { distDirRewriteFramesIntegration } from './distDirRewriteFramesIntegrati
 export * from '@sentry/node';
 
 // Explicit re-exports for Claude Code integration
-export { claudeCodeIntegration, createInstrumentedClaudeQuery, patchClaudeCodeQuery } from '@sentry/node';
+// We re-export these explicitly to ensure rollup doesn't tree-shake them
+export { claudeCodeIntegration, createInstrumentedClaudeQuery, patchClaudeCodeQuery };
+
+// Force rollup to keep the imports by "using" them
+const _forceInclude = { claudeCodeIntegration, createInstrumentedClaudeQuery, patchClaudeCodeQuery };
+if (false as boolean) { console.log(_forceInclude); }
 
 export { captureUnderscoreErrorException } from '../common/pages-router-instrumentation/_error';
 
