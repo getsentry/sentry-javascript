@@ -301,7 +301,7 @@ export function recordRequestSession(
               started: timestamp,
               exited: value.exited,
               errored: value.errored,
-              crashed: value.crashed,
+              crashed: (value.crashed || 0) + (value.unhandled || 0),
             }),
           );
           client.sendSession({ aggregates: aggregatePayload });
