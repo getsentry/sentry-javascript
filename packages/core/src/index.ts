@@ -9,7 +9,7 @@ export type { IntegrationIndex } from './integration';
 
 export * from './tracing';
 export * from './semanticAttributes';
-export { createEventEnvelope, createSessionEnvelope, createSpanEnvelope } from './envelope';
+export { createEventEnvelope, createSessionEnvelope, createSpanEnvelope, createSpanV2Envelope } from './envelope';
 export {
   captureCheckIn,
   withMonitor,
