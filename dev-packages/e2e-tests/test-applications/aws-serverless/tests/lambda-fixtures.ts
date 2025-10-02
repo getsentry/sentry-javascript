@@ -5,6 +5,7 @@ import { LocalLambdaStack, SAM_PORT, getHostIp } from '../src/stack';
 import { writeFileSync } from 'node:fs';
 import { spawn, execSync } from 'node:child_process';
 import { LambdaClient } from '@aws-sdk/client-lambda';
+import { platform } from 'node:process';
 
 const DOCKER_NETWORK_NAME = 'lambda-test-network';
 const SAM_TEMPLATE_FILE = 'sam.template.yml';
@@ -16,7 +17,7 @@ export const test = base.extend<{ testEnvironment: LocalLambdaStack; lambdaClien
     async ({}, use) => {
       console.log('[testEnvironment fixture] Setting up AWS Lambda test infrastructure');
 
-      execSync('docker network prune -f');
+      execSync(`docker network rm -f ${DOCKER_NETWORK_NAME} || /bin/true`);
       execSync(`docker network create --driver bridge ${DOCKER_NETWORK_NAME}`);
 
       const hostIp = await getHostIp();
@@ -43,6 +44,10 @@ export const test = base.extend<{ testEnvironment: LocalLambdaStack; lambdaClien
         DOCKER_NETWORK_NAME,
         '--skip-pull-image',
       ];
+
+      if ('host.docker.internal' === hostIp && !['darwin', 'windows'].includes(platform)) {
+        args.push('--add-host', `${hostIp}:host-gateway`);
+      }
 
       if (process.env.NODE_VERSION) {
         args.push('--invoke-image', `public.ecr.aws/lambda/nodejs:${process.env.NODE_VERSION}`);
