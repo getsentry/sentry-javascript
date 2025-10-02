@@ -92,7 +92,7 @@ export const pinoIntegration = defineIntegration((userOptions: DeepPartial<PinoO
       });
 
       const injectedChannel = tracingChannel('orchestrion:pino:pino-log');
-      const integratedChannel = tracingChannel('tracing:pino_asJson');
+      const integratedChannel = tracingChannel('pino_asJson');
 
       function onPinoStart(self: Pino, args: PinoHookArgs): void {
         const [obj, message, levelNumber] = args;
