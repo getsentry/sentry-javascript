@@ -1,11 +1,6 @@
 import * as Sentry from '@sentry/browser';
 import { MockOpenAi } from './mocks.js';
 
-Sentry.init({
-  dsn: 'https://public@dsn.ingest.sentry.io/1337',
-  tracesSampleRate: 1,
-});
-
 const mockClient = new MockOpenAi({
   apiKey: 'mock-api-key',
 });
