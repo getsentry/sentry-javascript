@@ -63,6 +63,9 @@ export {
   zodErrorsIntegration,
   thirdPartyErrorFilterIntegration,
   featureFlagsIntegration,
+  instrumentAnthropicAiClient,
+  instrumentOpenAiClient,
+  instrumentGoogleGenAIClient,
   logger,
 } from '@sentry/core';
 export type { Span, FeatureFlagsIntegration } from '@sentry/core';
