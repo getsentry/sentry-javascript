@@ -30,7 +30,7 @@ export interface Session {
 
 export type SessionContext = Partial<Session>;
 
-export type SessionStatus = 'ok' | 'exited' | 'crashed' | 'abnormal';
+export type SessionStatus = 'ok' | 'exited' | 'crashed' | 'abnormal' | 'unhandled';
 
 /** JSDoc */
 export interface SessionAggregates {

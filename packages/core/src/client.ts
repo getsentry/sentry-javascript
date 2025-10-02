@@ -963,7 +963,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
 
     if (shouldUpdateAndSend) {
       updateSession(session, {
-        ...(crashed && { status: 'crashed' }),
+        ...(crashed && { status: 'unhandled' }),
         errors: session.errors || Number(errored || crashed),
       });
       this.captureSession(session);
