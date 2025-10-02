@@ -394,7 +394,12 @@ export function getSpanDescendants(span: SpanWithPotentialChildren): Span[] {
 /**
  * Returns the root span of a given span.
  */
-export function getRootSpan(span: SpanWithPotentialChildren): Span {
+export const getRootSpan = getSegmentSpan;
+
+/**
+ * Returns the segment span of a given span.
+ */
+export function getSegmentSpan(span: SpanWithPotentialChildren): Span {
   return span[ROOT_SPAN_FIELD] || span;
 }
 
