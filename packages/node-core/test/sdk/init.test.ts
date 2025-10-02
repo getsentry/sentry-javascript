@@ -101,7 +101,7 @@ describe('init()', () => {
 
       expect(mockDefaultIntegrations[0]?.setupOnce as Mock).toHaveBeenCalledTimes(1);
       expect(mockDefaultIntegrations[1]?.setupOnce as Mock).toHaveBeenCalledTimes(0);
-      expect(newIntegration.setupOnce as Mock).toHaveBeenCalledTimes(1);
+      expect(newIntegration.setupOnce).toHaveBeenCalledTimes(1);
     });
   });
 

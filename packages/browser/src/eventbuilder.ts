@@ -309,7 +309,7 @@ export function eventFromUnknownInput(
     // If it's a plain object or an instance of `Event` (the built-in JS kind, not this SDK's `Event` type), serialize
     // it manually. This will allow us to group events based on top-level keys which is much better than creating a new
     // group on any key/value change.
-    const objectException = exception as Record<string, unknown>;
+    const objectException = exception;
     event = eventFromPlainObject(stackParser, objectException, syntheticException, isUnhandledRejection);
     addExceptionMechanism(event, {
       synthetic: true,

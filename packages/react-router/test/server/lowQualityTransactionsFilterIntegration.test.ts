@@ -1,4 +1,4 @@
-import type { Event, EventType, Integration } from '@sentry/core';
+import type { Event, EventType } from '@sentry/core';
 import * as SentryCore from '@sentry/core';
 import * as SentryNode from '@sentry/node';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -20,7 +20,7 @@ describe('Low Quality Transactions Filter Integration', () => {
         ['@id/ requests', 'GET /@id/some-id'],
         ['manifest requests', 'GET /__manifest?p=%2Fperformance%2Fserver-action'],
       ])('%s', (description, transaction) => {
-        const integration = lowQualityTransactionsFilterIntegration({ debug: true }) as Integration;
+        const integration = lowQualityTransactionsFilterIntegration({ debug: true });
         const event = {
           type: 'transaction' as EventType,
           transaction,
@@ -40,7 +40,7 @@ describe('Low Quality Transactions Filter Integration', () => {
         ['API endpoints', 'POST /data'],
         ['app routes', 'GET /projects/123'],
       ])('%s', (description, transaction) => {
-        const integration = lowQualityTransactionsFilterIntegration({}) as Integration;
+        const integration = lowQualityTransactionsFilterIntegration({});
         const event = {
           type: 'transaction' as EventType,
           transaction,
@@ -53,7 +53,7 @@ describe('Low Quality Transactions Filter Integration', () => {
     });
 
     it('does not affect non-transaction events', () => {
-      const integration = lowQualityTransactionsFilterIntegration({}) as Integration;
+      const integration = lowQualityTransactionsFilterIntegration({});
       const event = {
         type: 'error' as EventType,
         transaction: 'GET /node_modules/some-package/index.js',
