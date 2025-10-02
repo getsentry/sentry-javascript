@@ -384,6 +384,7 @@ function getFinalConfigObject(
             userNextConfig: incomingUserNextConfigObject,
             routeManifest,
             nextJsVersion,
+            userSentryOptions,
           }),
         }
       : {}),
