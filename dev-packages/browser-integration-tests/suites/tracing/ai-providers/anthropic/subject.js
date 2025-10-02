@@ -1,8 +1,6 @@
 import * as Sentry from '@sentry/browser';
 import { MockAnthropic } from './mocks.js';
 
-window.Sentry = Sentry;
-
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   tracesSampleRate: 1,
@@ -22,4 +20,3 @@ client.messages.create({
   temperature: 0.7,
   max_tokens: 100,
 });
-

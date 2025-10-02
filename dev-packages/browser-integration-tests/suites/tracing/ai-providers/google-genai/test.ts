@@ -1,6 +1,6 @@
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
-import { envelopeRequestParser, shouldSkipTracingTest, waitForTransactionRequest } from '../../../../utils/helpers';
+import { envelopeRequestParser, waitForTransactionRequest } from '../../../../utils/helpers';
 
 // These tests are not exhaustive because the instrumentation is
 // already tested in the node integration tests and we merely
@@ -8,10 +8,6 @@ import { envelopeRequestParser, shouldSkipTracingTest, waitForTransactionRequest
 // and that gen_ai transactions are sent.
 
 sentryTest('manual Google GenAI instrumentation sends gen_ai transactions', async ({ getLocalTestUrl, page }) => {
-  if (shouldSkipTracingTest()) {
-    sentryTest.skip();
-  }
-
   const transactionPromise = waitForTransactionRequest(page, event => {
     return !!event.transaction?.includes('gemini-1.5-pro');
   });
