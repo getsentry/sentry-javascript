@@ -10,6 +10,10 @@ export type CreateRouteManifestOptions = {
    * By default, route groups are stripped from paths following Next.js convention.
    */
   includeRouteGroups?: boolean;
+  /**
+   * Base path for the application, if any. This will be prefixed to all routes.
+   */
+  basePath?: string;
 };
 
 let manifestCache: RouteManifest | null = null;
@@ -192,7 +196,7 @@ export function createRouteManifest(options?: CreateRouteManifestOptions): Route
     return manifestCache;
   }
 
-  const { dynamicRoutes, staticRoutes } = scanAppDirectory(targetDir, '', options?.includeRouteGroups);
+  const { dynamicRoutes, staticRoutes } = scanAppDirectory(targetDir, options?.basePath, options?.includeRouteGroups);
 
   const manifest: RouteManifest = {
     dynamicRoutes,

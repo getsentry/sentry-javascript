@@ -147,7 +147,9 @@ function getFinalConfigObject(
 
   let routeManifest: RouteManifest | undefined;
   if (!userSentryOptions.disableManifestInjection) {
-    routeManifest = createRouteManifest();
+    routeManifest = createRouteManifest({
+      basePath: incomingUserNextConfigObject.basePath,
+    });
   }
 
   setUpBuildTimeVariables(incomingUserNextConfigObject, userSentryOptions, releaseName);
