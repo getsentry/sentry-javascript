@@ -1,0 +1,25 @@
+import * as Sentry from '@sentry/browser';
+import { MockAnthropic } from './mocks.js';
+
+window.Sentry = Sentry;
+
+Sentry.init({
+  dsn: 'https://public@dsn.ingest.sentry.io/1337',
+  tracesSampleRate: 1,
+});
+
+const mockClient = new MockAnthropic({
+  apiKey: 'mock-api-key',
+});
+
+const client = Sentry.instrumentAnthropicAiClient(mockClient);
+
+// Test that manual instrumentation doesn't crash the browser
+// The instrumentation automatically creates spans
+client.messages.create({
+  model: 'claude-3-haiku-20240307',
+  messages: [{ role: 'user', content: 'What is the capital of France?' }],
+  temperature: 0.7,
+  max_tokens: 100,
+});
+
