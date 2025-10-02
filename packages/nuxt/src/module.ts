@@ -12,6 +12,7 @@ import type { SentryNuxtModuleOptions } from './common/types';
 import { addDynamicImportEntryFileWrapper, addSentryTopImport, addServerConfigToBuild } from './vite/addServerConfig';
 import { addMiddlewareImports, addMiddlewareInstrumentation } from './vite/middlewareConfig';
 import { setupSourceMaps } from './vite/sourceMaps';
+import { addStorageInstrumentation } from './vite/storageConfig';
 import { addOTelCommonJSImportAlias, findDefaultSdkInitFile } from './vite/utils';
 
 export type ModuleOptions = SentryNuxtModuleOptions;
@@ -90,7 +91,6 @@ export default defineNuxtModule<ModuleOptions>({
 
     if (serverConfigFile) {
       addServerPlugin(moduleDirResolver.resolve('./runtime/plugins/sentry.server'));
-      addServerPlugin(moduleDirResolver.resolve('./runtime/plugins/storage.server'));
 
       addPlugin({
         src: moduleDirResolver.resolve('./runtime/plugins/route-detector.server'),
@@ -127,6 +127,7 @@ export default defineNuxtModule<ModuleOptions>({
     // Preps the the middleware instrumentation module.
     if (serverConfigFile) {
       addMiddlewareImports();
+      addStorageInstrumentation(nuxt);
     }
 
     nuxt.hooks.hook('nitro:init', nitro => {

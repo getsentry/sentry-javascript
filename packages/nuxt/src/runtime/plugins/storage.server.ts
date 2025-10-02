@@ -13,6 +13,8 @@ import {
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { defineNitroPlugin, useStorage } from 'nitropack/runtime';
 import type { Driver } from 'unstorage';
+// @ts-expect-error - This is a virtual module
+import { userStorageMounts } from '#sentry/storage-config.mjs';
 
 /**
  * Creates a Nitro plugin that instruments the storage driver.
@@ -20,11 +22,8 @@ import type { Driver } from 'unstorage';
 export default defineNitroPlugin(async _nitroApp => {
   // This runs at runtime when the Nitro server starts
   const storage = useStorage();
-
-  // exclude mounts that are not relevant for instrumentation for a few reasons:
-  // Nitro mounts some development-only mount points that are not relevant for instrumentation
-  // https://nitro.build/guide/storage#development-only-mount-points
-  const excludeMounts = new Set(['build:', 'cache:', 'root:', 'data:', 'src:', 'assets:']);
+  // Mounts are suffixed with a colon, so we need to add it to the set items
+  const userMounts = new Set((userStorageMounts as string[]).map(m => `${m}:`));
 
   debug.log('[Storage Instrumentation] Starting to instrument storage drivers...');
 
@@ -32,7 +31,7 @@ export default defineNitroPlugin(async _nitroApp => {
   const mounts = storage.getMounts();
   for (const mount of mounts) {
     // Skip excluded mounts and root mount
-    if (!mount.base || excludeMounts.has(mount.base)) {
+    if (!userMounts.has(mount.base)) {
       continue;
     }
 
