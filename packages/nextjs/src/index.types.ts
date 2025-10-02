@@ -27,6 +27,11 @@ export declare const contextLinesIntegration: typeof clientSdk.contextLinesInteg
 // Different implementation in server and worker
 export declare const vercelAIIntegration: typeof serverSdk.vercelAIIntegration;
 
+// Claude Code integration (server-only)
+export declare const claudeCodeIntegration: typeof serverSdk.claudeCodeIntegration;
+export declare const createInstrumentedClaudeQuery: typeof serverSdk.createInstrumentedClaudeQuery;
+export declare const patchClaudeCodeQuery: typeof serverSdk.patchClaudeCodeQuery;
+
 export declare const getDefaultIntegrations: (options: Options) => Integration[];
 export declare const defaultStackParser: StackParser;
 
