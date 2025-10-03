@@ -76,3 +76,4 @@ export { unleashIntegration } from './integrations/featureFlags/unleash';
 export { statsigIntegration } from './integrations/featureFlags/statsig';
 export { diagnoseSdkConnectivity } from './diagnose-sdk';
 export { webWorkerIntegration, registerWebWorker } from './integrations/webWorker';
+export { spanStreamingIntegration } from './integrations/spanstreaming';
