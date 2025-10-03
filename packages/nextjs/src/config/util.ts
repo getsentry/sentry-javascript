@@ -65,3 +65,18 @@ export function supportsProductionCompileHook(version: string): boolean {
 
   return false;
 }
+
+/**
+ * Checks if the current Next.js version supports native debug ids for turbopack.
+ * This feature was first introduced in Next.js v15.6.0-canary.36
+ *
+ * @param version - version string to check.
+ * @returns true if Next.js version supports native debug ids for turbopack builds
+ */
+export function supportsNativeDebugIds(version: string): boolean {
+  // tbd
+  if (version === '15.6.0-canary.36') {
+    return true;
+  }
+  return false;
+}
