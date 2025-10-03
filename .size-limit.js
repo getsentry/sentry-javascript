@@ -48,6 +48,13 @@ module.exports = [
     limit: '48 KB',
   },
   {
+    name: '@sentry/browser (incl. Tracing with Span Streaming)',
+    path: 'packages/browser/build/npm/esm/index.js',
+    import: createImport('init', 'browserTracingIntegration', 'spanStreamingIntegration'),
+    gzip: true,
+    limit: '41.5 KB',
+  },
+  {
     name: '@sentry/browser (incl. Tracing, Replay)',
     path: 'packages/browser/build/npm/esm/prod/index.js',
     import: createImport('init', 'browserTracingIntegration', 'replayIntegration'),
