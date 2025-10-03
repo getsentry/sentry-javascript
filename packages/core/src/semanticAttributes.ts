@@ -92,3 +92,33 @@ export const SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE = 'sentry.link.type';
  * For LangGraph: configurable.thread_id
  */
 export const GEN_AI_CONVERSATION_ID_ATTRIBUTE = 'gen_ai.conversation.id';
+
+// some attributes for span streaming, put onto every v2 span:
+// @see https://develop.sentry.dev/sdk/telemetry/spans/span-protocol/#common-attribute-keys
+
+/** The release version of the application */
+export const SEMANTIC_ATTRIBUTE_SENTRY_RELEASE = 'sentry.release';
+/** The environment name (e.g., "production", "staging", "development") */
+export const SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT = 'sentry.environment';
+/** The segment name (e.g., "GET /users") */
+export const SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME = 'sentry.segment_name';
+/** The operating system name (e.g., "Linux", "Windows", "macOS") */
+export const SEMANTIC_ATTRIBUTE_OS_NAME = 'os.name';
+/** The browser name (e.g., "Chrome", "Firefox", "Safari") */
+export const SEMANTIC_ATTRIBUTE_BROWSER_VERSION = 'browser.name';
+/** The user ID (gated by sendDefaultPii) */
+export const SEMANTIC_ATTRIBUTE_USER_ID = 'user.id';
+/** The user email (gated by sendDefaultPii) */
+export const SEMANTIC_ATTRIBUTE_USER_EMAIL = 'user.email';
+/** The user IP address (gated by sendDefaultPii) */
+export const SEMANTIC_ATTRIBUTE_USER_IP_ADDRESS = 'user.ip_address';
+/** The user username (gated by sendDefaultPii) */
+export const SEMANTIC_ATTRIBUTE_USER_USERNAME = 'user.username';
+/** The thread ID */
+export const SEMANTIC_ATTRIBUTE_THREAD_ID = 'thread.id';
+/** The thread name */
+export const SEMANTIC_ATTRIBUTE_THREAD_NAME = 'thread.name';
+/** The name of the Sentry SDK (e.g., "sentry.php", "sentry.javascript") */
+export const SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME = 'sentry.sdk.name';
+/** The version of the Sentry SDK */
+export const SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION = 'sentry.sdk.version';
