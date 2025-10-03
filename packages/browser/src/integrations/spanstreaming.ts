@@ -1,12 +1,24 @@
-import type { Client, IntegrationFn, Span, SpanV2JSON } from '@sentry/core';
+import type { Client, IntegrationFn, Span, SpanAttributes, SpanAttributeValue, SpanV2JSON } from '@sentry/core';
 import {
   createSpanV2Envelope,
   debug,
   defineIntegration,
+  getCapturedScopesOnSpan,
   getDynamicSamplingContextFromSpan,
+  getGlobalScope,
   getRootSpan as getSegmentSpan,
   isV2BeforeSendSpanCallback,
+  mergeScopeData,
   reparentChildSpans,
+  SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT,
+  SEMANTIC_ATTRIBUTE_SENTRY_RELEASE,
+  SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME,
+  SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION,
+  SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME,
+  SEMANTIC_ATTRIBUTE_USER_EMAIL,
+  SEMANTIC_ATTRIBUTE_USER_ID,
+  SEMANTIC_ATTRIBUTE_USER_IP_ADDRESS,
+  SEMANTIC_ATTRIBUTE_USER_USERNAME,
   shouldIgnoreSpan,
   showSpanDropWarning,
   spanToV2JSON,
@@ -91,6 +103,9 @@ interface SpanProcessingOptions {
   beforeSendSpan: ((span: SpanV2JSON) => SpanV2JSON) | undefined;
 }
 
+/**
+ * Just the traceid alone isn't enough because there can be multiple span trees with the same traceid.
+ */
 function getSpanTreeMapKey(span: Span): string {
   return `${span.spanContext().traceId}-${getSegmentSpan(span).spanContext().spanId}`;
 }
@@ -107,13 +122,17 @@ function processAndSendSpans(
     spanTreeMap.delete(spanTreeMapKey);
     return;
   }
+  const segmentSpanJson = spanToV2JSON(segmentSpan);
+
+  for (const span of spansOfTrace) {
+    applyCommonSpanAttributes(span, segmentSpanJson, client);
+  }
+
+  // TODO: Apply scope data and contexts to segment span
 
   const { ignoreSpans } = client.getOptions();
 
-  // TODO: Apply scopes to spans
-
   // 1. Check if the entire span tree is ignored by ignoreSpans
-  const segmentSpanJson = spanToV2JSON(segmentSpan);
   if (ignoreSpans?.length && shouldIgnoreSpan(segmentSpanJson, ignoreSpans)) {
     client.recordDroppedEvent('before_send', 'span', spansOfTrace.size);
     spanTreeMap.delete(spanTreeMapKey);
@@ -166,6 +185,41 @@ function processAndSendSpans(
   spanTreeMap.delete(spanTreeMapKey);
 }
 
+function applyCommonSpanAttributes(span: Span, serializedSegmentSpan: SpanV2JSON, client: Client): void {
+  const sdk = client.getSdkMetadata();
+  const { release, environment, sendDefaultPii } = client.getOptions();
+
+  const { isolationScope: spanIsolationScope, scope: spanScope } = getCapturedScopesOnSpan(span);
+
+  const originalAttributeKeys = Object.keys(spanToV2JSON(span).attributes ?? {});
+
+  // TODO: Extract this scope data merge to a helper in core. It's used in multiple places.
+  const finalScopeData = getGlobalScope().getScopeData();
+  if (spanIsolationScope) {
+    mergeScopeData(finalScopeData, spanIsolationScope.getScopeData());
+  }
+  if (spanScope) {
+    mergeScopeData(finalScopeData, spanScope.getScopeData());
+  }
+
+  // avoid overwriting any previously set attributes (from users or potentially our SDK instrumentation)
+  setAttributesIfNotPresent(span, originalAttributeKeys, {
+    [SEMANTIC_ATTRIBUTE_SENTRY_RELEASE]: release,
+    [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: environment,
+    [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME]: serializedSegmentSpan.name,
+    [SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME]: sdk?.sdk?.name,
+    [SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION]: sdk?.sdk?.version,
+    ...(sendDefaultPii
+      ? {
+          [SEMANTIC_ATTRIBUTE_USER_ID]: finalScopeData.user?.id,
+          [SEMANTIC_ATTRIBUTE_USER_EMAIL]: finalScopeData.user?.email,
+          [SEMANTIC_ATTRIBUTE_USER_IP_ADDRESS]: finalScopeData.user?.ip_address ?? undefined,
+          [SEMANTIC_ATTRIBUTE_USER_USERNAME]: finalScopeData.user?.username,
+        }
+      : {}),
+  });
+}
+
 function applyBeforeSendSpanCallback(span: SpanV2JSON, beforeSendSpan: (span: SpanV2JSON) => SpanV2JSON): SpanV2JSON {
   const modifedSpan = beforeSendSpan(span);
   if (!modifedSpan) {
@@ -173,4 +227,12 @@ function applyBeforeSendSpanCallback(span: SpanV2JSON, beforeSendSpan: (span: Sp
     return span;
   }
   return modifedSpan;
+}
+
+function setAttributesIfNotPresent(span: Span, originalAttributeKeys: string[], newAttributes: SpanAttributes): void {
+  Object.keys(newAttributes).forEach(key => {
+    if (!originalAttributeKeys.includes(key)) {
+      span.setAttribute(key, newAttributes[key]);
+    }
+  });
 }
