@@ -76,7 +76,6 @@ function instrumentDriver(driver: MaybeInstrumentedDriver, mountBase: string): D
     'getKeys',
     'getMeta',
     'clear',
-    'dispose',
   ];
 
   for (const methodName of methodsToInstrument) {
