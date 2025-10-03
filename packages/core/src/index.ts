@@ -92,6 +92,7 @@ export {
   spanToV2JSON,
   showSpanDropWarning,
 } from './utils/spanUtils';
+export { attributesFromObject } from './utils/attributes';
 export { _setSpanForScope as _INTERNAL_setSpanForScope } from './utils/spanOnScope';
 export { parseSampleRate } from './utils/parseSampleRate';
 export { applySdkMetadata } from './utils/sdkMetadata';
