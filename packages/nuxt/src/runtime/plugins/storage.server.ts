@@ -29,7 +29,7 @@ export default defineNitroPlugin(async _nitroApp => {
   // Mounts are suffixed with a colon, so we need to add it to the set items
   const userMounts = new Set((userStorageMounts as string[]).map(m => `${m}:`));
 
-  debug.log('[Storage Instrumentation] Starting to instrument storage drivers...');
+  debug.log('[storage] Starting to instrument storage drivers...');
 
   // Get all mounted storage drivers
   const mounts = storage.getMounts();
@@ -42,7 +42,7 @@ export default defineNitroPlugin(async _nitroApp => {
     try {
       instrumentDriver(mount.driver, mount.base);
     } catch {
-      debug.error(`[Storage Instrumentation] Failed to unmount mount: "${mount.base}"`);
+      debug.error(`[storage] Failed to unmount mount: "${mount.base}"`);
     }
 
     // Wrap the mount method to instrument future mounts
@@ -56,12 +56,12 @@ export default defineNitroPlugin(async _nitroApp => {
 function instrumentDriver(driver: MaybeInstrumentedDriver, mountBase: string): Driver {
   // Already instrumented, skip...
   if (driver.__sentry_instrumented__) {
-    debug.log(`[Storage Instrumentation] Driver already instrumented: "${driver.name}". Skipping...`);
+    debug.log(`[storage] Driver already instrumented: "${driver.name}". Skipping...`);
 
     return driver;
   }
 
-  debug.log(`[Storage Instrumentation] Instrumenting driver: "${driver.name}" on mount: "${mountBase}"`);
+  debug.log(`[storage] Instrumenting driver: "${driver.name}" on mount: "${mountBase}"`);
 
   // List of driver methods to instrument
   const methodsToInstrument: (keyof Driver)[] = [
@@ -109,7 +109,7 @@ function createMethodWrapper(
     async apply(target, thisArg, args) {
       const attributes = getSpanAttributes(methodName, driverName ?? 'unknown', mountBase);
 
-      debug.log(`[Storage Instrumentation] Running method: "${methodName}" on driver: "${driverName}"`);
+      debug.log(`[storage] Running method: "${methodName}" on driver: "${driverName}"`);
 
       return startSpan(
         {
@@ -149,7 +149,7 @@ function wrapStorageMount(storage: Storage): Storage['mount'] {
   const original = storage.mount;
 
   function mountWithInstrumentation(base: string, driver: Driver): Storage {
-    debug.log(`[Storage Instrumentation] Instrumenting mount: "${base}"`);
+    debug.log(`[storage] Instrumenting mount: "${base}"`);
 
     const instrumentedDriver = instrumentDriver(driver, base);
 
