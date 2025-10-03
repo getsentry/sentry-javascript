@@ -152,6 +152,30 @@ describe('Anthropic integration', () => {
         origin: 'auto.ai.anthropic',
         status: 'ok',
       }),
+      // Fifth span - messages.create with stream: true
+      expect.objectContaining({
+        data: expect.objectContaining({
+          'gen_ai.operation.name': 'messages',
+          'gen_ai.request.model': 'claude-3-haiku-20240307',
+          'gen_ai.request.stream': true,
+        }),
+        description: 'messages claude-3-haiku-20240307 stream-response',
+        op: 'gen_ai.messages',
+        origin: 'auto.ai.anthropic',
+        status: 'ok',
+      }),
+      // Sixth span - messages.stream
+      expect.objectContaining({
+        data: expect.objectContaining({
+          'gen_ai.operation.name': 'messages',
+          'gen_ai.request.model': 'claude-3-haiku-20240307',
+          'gen_ai.request.stream': true,
+        }),
+        description: 'messages claude-3-haiku-20240307 stream-response',
+        op: 'gen_ai.messages',
+        origin: 'auto.ai.anthropic',
+        status: 'ok',
+      }),
     ]),
   };
 
@@ -189,6 +213,21 @@ describe('Anthropic integration', () => {
     ]),
   };
 
+  const EXPECTED_MODEL_ERROR = {
+    exception: {
+      values: [
+        {
+          type: 'Error',
+          value: '404 Model not found',
+        },
+      ],
+    },
+  };
+
+  const EXPECTED_STREAM_EVENT_HANDLER_MESSAGE = {
+    message: 'stream event from user-added event listener captured',
+  };
+
   createEsmAndCjsTests(__dirname, 'scenario-manual-client.mjs', 'instrument.mjs', (createRunner, test) => {
     test('creates anthropic related spans when manually insturmenting client', async () => {
       await createRunner()
@@ -202,8 +241,9 @@ describe('Anthropic integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
     test('creates anthropic related spans with sendDefaultPii: false', async () => {
       await createRunner()
-        .ignore('event')
+        .expect({ event: EXPECTED_MODEL_ERROR })
         .expect({ transaction: EXPECTED_TRANSACTION_DEFAULT_PII_FALSE })
+        .expect({ event: EXPECTED_STREAM_EVENT_HANDLER_MESSAGE })
         .start()
         .completed();
     });
@@ -212,8 +252,9 @@ describe('Anthropic integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
     test('creates anthropic related spans with sendDefaultPii: true', async () => {
       await createRunner()
-        .ignore('event')
+        .expect({ event: EXPECTED_MODEL_ERROR })
         .expect({ transaction: EXPECTED_TRANSACTION_DEFAULT_PII_TRUE })
+        .expect({ event: EXPECTED_STREAM_EVENT_HANDLER_MESSAGE })
         .start()
         .completed();
     });
@@ -222,8 +263,9 @@ describe('Anthropic integration', () => {
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-with-options.mjs', (createRunner, test) => {
     test('creates anthropic related spans with custom options', async () => {
       await createRunner()
-        .ignore('event')
+        .expect({ event: EXPECTED_MODEL_ERROR })
         .expect({ transaction: EXPECTED_TRANSACTION_WITH_OPTIONS })
+        .expect({ event: EXPECTED_STREAM_EVENT_HANDLER_MESSAGE })
         .start()
         .completed();
     });

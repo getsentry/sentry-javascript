@@ -66,6 +66,8 @@ export {
   hapiIntegration,
   honoIntegration,
   httpIntegration,
+  httpServerIntegration,
+  httpServerSpansIntegration,
   // eslint-disable-next-line deprecation/deprecation
   inboundFiltersIntegration,
   eventFiltersIntegration,
@@ -92,6 +94,7 @@ export {
   onUnhandledRejectionIntegration,
   openAIIntegration,
   parameterize,
+  pinoIntegration,
   postgresIntegration,
   postgresJsIntegration,
   prismaIntegration,

@@ -1,5 +1,4 @@
 import { debug } from '@sentry/core';
-import * as chalk from 'chalk';
 import type { RouteManifest } from '../manifest/types';
 import type { NextConfigObject, TurbopackMatcherWithRule, TurbopackOptions } from '../types';
 import { generateValueInjectionRules } from './generateValueInjectionRules';
@@ -57,9 +56,7 @@ export function safelyAddTurbopackRule(
   // If the rule already exists, we don't want to mess with it.
   if (existingRules[matcher]) {
     debug.log(
-      `${chalk.cyan(
-        'info',
-      )} - Turbopack rule already exists for ${matcher}. Please remove it from your Next.js config in order for Sentry to work properly.`,
+      `[@sentry/nextjs] - Turbopack rule already exists for ${matcher}. Please remove it from your Next.js config in order for Sentry to work properly.`,
     );
     return existingRules;
   }

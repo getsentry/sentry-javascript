@@ -24,10 +24,5 @@
   },
   "volta": {
     "extends": "../../package.json"
-  },
-  "pnpm": {
-    "overrides": {
-      "import-in-the-middle": "1.14.2"
-    }
   }
 }
