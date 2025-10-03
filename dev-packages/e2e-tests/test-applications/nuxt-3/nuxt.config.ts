@@ -11,4 +11,11 @@ export default defineNuxtConfig({
       },
     },
   },
+  nitro: {
+    storage: {
+      'test-storage': {
+        driver: 'memory',
+      },
+    },
+  },
 });
