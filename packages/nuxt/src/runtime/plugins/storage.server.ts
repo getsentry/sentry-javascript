@@ -21,10 +21,12 @@ type MaybeInstrumentedDriver = Driver & {
   __sentry_instrumented__?: boolean;
 };
 
+type DriverMethod = keyof Driver;
+
 /**
  * Methods that should have a key argument.
  */
-const KEYED_METHODS = new Set([
+const KEYED_METHODS = new Set<DriverMethod>([
   'hasItem',
   'getItem',
   'getItemRaw',
@@ -38,7 +40,7 @@ const KEYED_METHODS = new Set([
 /**
  * Methods that should have a attribute to indicate a cache hit.
  */
-const CACHE_HIT_METHODS = new Set(['hasItem', 'getItem', 'getKeys']);
+const CACHE_HIT_METHODS = new Set<DriverMethod>(['hasItem', 'getItem', 'getItemRaw', 'getKeys']);
 
 /**
  * Creates a Nitro plugin that instruments the storage driver.
@@ -85,7 +87,7 @@ function instrumentDriver(driver: MaybeInstrumentedDriver, mountBase: string): D
 
   // List of driver methods to instrument
   // get/set/remove are aliases and already use their {method}Item methods
-  const methodsToInstrument: (keyof Driver)[] = [
+  const methodsToInstrument: DriverMethod[] = [
     'hasItem',
     'getItem',
     'getItemRaw',
@@ -120,7 +122,7 @@ function instrumentDriver(driver: MaybeInstrumentedDriver, mountBase: string): D
  */
 function createMethodWrapper(
   original: (...args: unknown[]) => unknown,
-  methodName: string,
+  methodName: DriverMethod,
   driver: Driver,
   mountBase: string,
 ): (...args: unknown[]) => unknown {
