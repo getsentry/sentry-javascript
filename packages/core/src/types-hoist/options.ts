@@ -412,7 +412,7 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    *
    * @default 'static'
    */
-  traceLifecycle?: 'static' | 'streamed';
+  traceLifecycle?: 'static' | 'stream';
 
   /**
    * The organization ID for your Sentry project.
