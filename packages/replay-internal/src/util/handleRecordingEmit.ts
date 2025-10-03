@@ -72,7 +72,7 @@ export function getHandleRecordingEmit(replay: ReplayContainer): RecordingEmitCa
 
       // When in buffer mode, make sure we adjust the session started date to the current earliest event of the buffer
       // this should usually be the timestamp of the checkout event, but to be safe...
-      if (replay.recordingMode === 'buffer' && session && replay.eventBuffer) {
+      if (replay.recordingMode === 'buffer' && session && replay.eventBuffer && !session.dirty) {
         const earliestEvent = replay.eventBuffer.getEarliestTimestamp();
         if (earliestEvent) {
           DEBUG_BUILD &&

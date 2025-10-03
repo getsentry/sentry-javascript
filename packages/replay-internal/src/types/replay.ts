@@ -383,6 +383,13 @@ export interface Session {
    * Is the session sampled? `false` if not sampled, otherwise, `session` or `buffer`
    */
   sampled: Sampled;
+
+  /**
+   * Session is dirty when its id has been linked to an event (e.g. error event).
+   * This is helpful when a session is mistakenly stuck in "buffer" mode (e.g. network issues preventing it from being converted to "session" mode).
+   * The dirty flag is used to prevent updating the session start time to the earliest event in the buffer so that it can be refreshed if it's been expired.
+   */
+  dirty?: boolean;
 }
 
 export type EventBufferType = 'sync' | 'worker';

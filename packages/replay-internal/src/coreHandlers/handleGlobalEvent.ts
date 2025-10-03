@@ -71,15 +71,16 @@ export function handleGlobalEventListener(replay: ReplayContainer): (event: Even
       }
 
       // If we sampled this error in buffer mode, immediately mark the session as "sampled"
-      // by changing the sampled state from 'buffer' to 'session'. Otherwise, if the application is interrupted before `afterSendEvent` occurs, then the session would remain as "buffer" but we have an error event that is tagged with a replay id. This could end up creating replays w/ excessive durations because of the linked error.
-      if (isErrorEventSampled && replay.recordingMode === 'buffer') {
+      // by changing the sampled state from 'buffer' to 'session'. Otherwise, if the application is interrupte
+      // before `afterSendEvent` occurs, then the session would remain as "buffer" but we have an error event
+      // that is tagged with a replay id. This could end up creating replays w/ excessive durations because
+      // of the linked error.
+      if (isErrorEventSampled && replay.recordingMode === 'buffer' && replay.session?.sampled === 'buffer') {
         const session = replay.session;
-        if (session?.sampled === 'buffer') {
-          session.sampled = 'session';
-          // Save the session if sticky sessions are enabled to persist the state change
-          if (replay.getOptions().stickySession) {
-            saveSession(session);
-          }
+        session.dirty = true;
+        // Save the session if sticky sessions are enabled to persist the state change
+        if (replay.getOptions().stickySession) {
+          saveSession(session);
         }
       }
 
