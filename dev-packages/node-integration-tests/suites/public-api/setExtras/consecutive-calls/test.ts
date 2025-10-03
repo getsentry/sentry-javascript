@@ -5,8 +5,8 @@ afterAll(() => {
   cleanupChildProcesses();
 });
 
-test('should set extras from multiple consecutive calls', async () => {
-  await createRunner(__dirname, 'scenario.ts')
+test('should set extras from multiple consecutive calls', async ({ signal }) => {
+  await createRunner({ signal }, __dirname, 'scenario.ts')
     .expect({
       event: {
         message: 'consecutive_calls',

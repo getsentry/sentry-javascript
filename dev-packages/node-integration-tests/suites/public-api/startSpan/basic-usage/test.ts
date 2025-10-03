@@ -6,8 +6,8 @@ afterAll(() => {
   cleanupChildProcesses();
 });
 
-test('sends a manually started root span with source custom', async () => {
-  await createRunner(__dirname, 'scenario.ts')
+test('sends a manually started root span with source custom', async ({ signal }) => {
+  await createRunner({ signal }, __dirname, 'scenario.ts')
     .expect({
       transaction: {
         transaction: 'test_span',
@@ -25,8 +25,10 @@ test('sends a manually started root span with source custom', async () => {
     .completed();
 });
 
-test("doesn't change the name for manually started spans even if attributes triggering inference are set", async () => {
-  await createRunner(__dirname, 'scenario.ts')
+test("doesn't change the name for manually started spans even if attributes triggering inference are set", async ({
+  signal,
+}) => {
+  await createRunner({ signal }, __dirname, 'scenario.ts')
     .expect({
       transaction: {
         transaction: 'test_span',

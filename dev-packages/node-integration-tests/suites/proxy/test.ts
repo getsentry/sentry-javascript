@@ -5,8 +5,8 @@ afterAll(() => {
   cleanupChildProcesses();
 });
 
-test('proxies sentry requests', async () => {
-  await createRunner(__dirname, 'basic.js')
+test('proxies sentry requests', async ({ signal }) => {
+  await createRunner({ signal }, __dirname, 'basic.js')
     .withMockSentryServer()
     .expect({
       event: {

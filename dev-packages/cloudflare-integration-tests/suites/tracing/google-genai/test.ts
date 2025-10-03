@@ -6,8 +6,8 @@ import { createRunner } from '../../../runner';
 // want to test that the instrumentation does not break in our
 // cloudflare SDK.
 
-it('traces Google GenAI chat creation and message sending', async () => {
-  const runner = createRunner(__dirname)
+it('traces Google GenAI chat creation and message sending', async ({ signal }) => {
+  const runner = createRunner({ signal }, __dirname)
     .ignore('event')
     .expect(envelope => {
       const transactionEvent = envelope[1]?.[0]?.[1] as any;

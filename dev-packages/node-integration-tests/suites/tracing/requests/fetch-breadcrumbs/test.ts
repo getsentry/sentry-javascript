@@ -4,10 +4,10 @@ import { createTestServer } from '../../../../utils/server';
 
 describe('outgoing fetch', () => {
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('outgoing fetch requests create breadcrumbs', async () => {
-      const [SERVER_URL, closeTestServer] = await createTestServer().start();
+    test('outgoing fetch requests create breadcrumbs', async ({ signal }) => {
+      const [SERVER_URL, closeTestServer] = await createTestServer({ signal }).start();
 
-      await createRunner()
+      await createRunner({ signal })
         .withEnv({ SERVER_URL })
         .expect({
           event: {

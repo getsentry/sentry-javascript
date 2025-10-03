@@ -5,8 +5,8 @@ afterAll(() => {
   cleanupChildProcesses();
 });
 
-test('should capture and send Express controller error with txn name if tracesSampleRate is 0', async () => {
-  const runner = createRunner(__dirname, 'server.ts')
+test('should capture and send Express controller error with txn name if tracesSampleRate is 0', async ({ signal }) => {
+  const runner = createRunner({ signal }, __dirname, 'server.ts')
     .expect({
       event: {
         exception: {

@@ -6,7 +6,7 @@ describe('redis cache auto instrumentation', () => {
     cleanupChildProcesses();
   });
 
-  test('should not add cache spans when key is not prefixed', { timeout: 60_000 }, async () => {
+  test('should not add cache spans when key is not prefixed', { timeout: 60_000 }, async ({ signal }) => {
     const EXPECTED_TRANSACTION = {
       transaction: 'Test Span',
       spans: expect.arrayContaining([
@@ -37,14 +37,14 @@ describe('redis cache auto instrumentation', () => {
       ]),
     };
 
-    await createRunner(__dirname, 'scenario-ioredis.js')
+    await createRunner({ signal }, __dirname, 'scenario-ioredis.js')
       .withDockerCompose({ workingDirectory: [__dirname], readyMatches: ['port=6379'] })
       .expect({ transaction: EXPECTED_TRANSACTION })
       .start()
       .completed();
   });
 
-  test('should create cache spans for prefixed keys (ioredis)', { timeout: 60_000 }, async () => {
+  test('should create cache spans for prefixed keys (ioredis)', { timeout: 60_000 }, async ({ signal }) => {
     const EXPECTED_TRANSACTION = {
       transaction: 'Test Span',
       spans: expect.arrayContaining([
@@ -136,14 +136,14 @@ describe('redis cache auto instrumentation', () => {
       ]),
     };
 
-    await createRunner(__dirname, 'scenario-ioredis.js')
+    await createRunner({ signal }, __dirname, 'scenario-ioredis.js')
       .withDockerCompose({ workingDirectory: [__dirname], readyMatches: ['port=6379'] })
       .expect({ transaction: EXPECTED_TRANSACTION })
       .start()
       .completed();
   });
 
-  test('should create cache spans for prefixed keys (redis-4)', async () => {
+  test('should create cache spans for prefixed keys (redis-4)', async ({ signal }) => {
     const EXPECTED_REDIS_CONNECT = {
       transaction: 'redis-connect',
     };
@@ -227,7 +227,7 @@ describe('redis cache auto instrumentation', () => {
       ]),
     };
 
-    await createRunner(__dirname, 'scenario-redis-4.js')
+    await createRunner({ signal }, __dirname, 'scenario-redis-4.js')
       .withDockerCompose({ workingDirectory: [__dirname], readyMatches: ['port=6379'] })
       .expect({ transaction: EXPECTED_REDIS_CONNECT })
       .expect({ transaction: EXPECTED_TRANSACTION })

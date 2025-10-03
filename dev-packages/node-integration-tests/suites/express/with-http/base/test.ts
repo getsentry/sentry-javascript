@@ -7,8 +7,8 @@ describe('express with http import', () => {
   });
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('it works when importing the http module', async () => {
-      const runner = createRunner()
+    test('it works when importing the http module', async ({ signal }) => {
+      const runner = createRunner({ signal })
         .expect({
           transaction: {
             transaction: 'GET /test2',

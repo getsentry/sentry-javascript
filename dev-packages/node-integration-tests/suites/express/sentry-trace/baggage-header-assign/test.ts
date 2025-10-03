@@ -7,8 +7,10 @@ afterAll(() => {
   cleanupChildProcesses();
 });
 
-test('Should overwrite baggage if the incoming request already has Sentry baggage data but no sentry-trace', async () => {
-  const runner = createRunner(__dirname, '..', 'server.ts').start();
+test('Should overwrite baggage if the incoming request already has Sentry baggage data but no sentry-trace', async ({
+  signal,
+}) => {
+  const runner = createRunner({ signal }, __dirname, '..', 'server.ts').start();
 
   const response = await runner.makeRequest<TestAPIResponse>('get', '/test/express', {
     headers: {
@@ -25,8 +27,8 @@ test('Should overwrite baggage if the incoming request already has Sentry baggag
   });
 });
 
-test('Should propagate sentry trace baggage data from an incoming to an outgoing request.', async () => {
-  const runner = createRunner(__dirname, '..', 'server.ts').start();
+test('Should propagate sentry trace baggage data from an incoming to an outgoing request.', async ({ signal }) => {
+  const runner = createRunner({ signal }, __dirname, '..', 'server.ts').start();
 
   const response = await runner.makeRequest<TestAPIResponse>('get', '/test/express', {
     headers: {
@@ -44,8 +46,10 @@ test('Should propagate sentry trace baggage data from an incoming to an outgoing
   });
 });
 
-test('Should not propagate baggage data from an incoming to an outgoing request if sentry-trace is faulty.', async () => {
-  const runner = createRunner(__dirname, '..', 'server.ts').start();
+test('Should not propagate baggage data from an incoming to an outgoing request if sentry-trace is faulty.', async ({
+  signal,
+}) => {
+  const runner = createRunner({ signal }, __dirname, '..', 'server.ts').start();
 
   const response = await runner.makeRequest<TestAPIResponse>('get', '/test/express', {
     headers: {
@@ -63,8 +67,10 @@ test('Should not propagate baggage data from an incoming to an outgoing request 
   });
 });
 
-test('Should not propagate baggage if sentry-trace header is present in incoming request but no baggage header', async () => {
-  const runner = createRunner(__dirname, '..', 'server.ts').start();
+test('Should not propagate baggage if sentry-trace header is present in incoming request but no baggage header', async ({
+  signal,
+}) => {
+  const runner = createRunner({ signal }, __dirname, '..', 'server.ts').start();
 
   const response = await runner.makeRequest<TestAPIResponse>('get', '/test/express', {
     headers: {
@@ -80,8 +86,10 @@ test('Should not propagate baggage if sentry-trace header is present in incoming
   });
 });
 
-test('Should not propagate baggage and ignore original 3rd party baggage entries if sentry-trace header is present', async () => {
-  const runner = createRunner(__dirname, '..', 'server.ts').start();
+test('Should not propagate baggage and ignore original 3rd party baggage entries if sentry-trace header is present', async ({
+  signal,
+}) => {
+  const runner = createRunner({ signal }, __dirname, '..', 'server.ts').start();
 
   const response = await runner.makeRequest<TestAPIResponse>('get', '/test/express', {
     headers: {
@@ -98,8 +106,8 @@ test('Should not propagate baggage and ignore original 3rd party baggage entries
   });
 });
 
-test('Should populate and propagate sentry baggage if sentry-trace header does not exist', async () => {
-  const runner = createRunner(__dirname, '..', 'server.ts').start();
+test('Should populate and propagate sentry baggage if sentry-trace header does not exist', async ({ signal }) => {
+  const runner = createRunner({ signal }, __dirname, '..', 'server.ts').start();
 
   const response = await runner.makeRequest<TestAPIResponse>('get', '/test/express');
 
@@ -121,8 +129,10 @@ test('Should populate and propagate sentry baggage if sentry-trace header does n
   });
 });
 
-test('Should populate Sentry and ignore 3rd party content if sentry-trace header does not exist', async () => {
-  const runner = createRunner(__dirname, '..', 'server.ts').start();
+test('Should populate Sentry and ignore 3rd party content if sentry-trace header does not exist', async ({
+  signal,
+}) => {
+  const runner = createRunner({ signal }, __dirname, '..', 'server.ts').start();
 
   const response = await runner.makeRequest<TestAPIResponse>('get', '/test/express', {
     headers: {

@@ -12,8 +12,8 @@ describe('Prisma ORM v6 Tests', () => {
     'scenario.mjs',
     'instrument.mjs',
     (createRunner, test, _mode, cwd) => {
-      test('should instrument PostgreSQL queries from Prisma ORM', { timeout: 75_000 }, async () => {
-        await createRunner()
+      test('should instrument PostgreSQL queries from Prisma ORM', { timeout: 75_000 }, async ({ signal }) => {
+        await createRunner({ signal })
           .withDockerCompose({
             workingDirectory: [cwd],
             readyMatches: ['port 5432'],

@@ -5,8 +5,8 @@ afterAll(() => {
   cleanupChildProcesses();
 });
 
-test('should allow nested scoping', async () => {
-  await createRunner(__dirname, 'scenario.ts')
+test('should allow nested scoping', async ({ signal }) => {
+  await createRunner({ signal }, __dirname, 'scenario.ts')
     .expect({
       event: {
         message: 'root_before',

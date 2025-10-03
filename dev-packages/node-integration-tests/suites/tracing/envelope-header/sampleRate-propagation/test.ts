@@ -8,8 +8,8 @@ describe('tracesSampleRate propagation', () => {
 
   const traceId = '12345678123456781234567812345678';
 
-  test('uses sample rate from incoming baggage header in trace envelope item', async () => {
-    const runner = createRunner(__dirname, 'server.js')
+  test('uses sample rate from incoming baggage header in trace envelope item', async ({ signal }) => {
+    const runner = createRunner({ signal }, __dirname, 'server.js')
       .expectHeader({
         transaction: {
           trace: {

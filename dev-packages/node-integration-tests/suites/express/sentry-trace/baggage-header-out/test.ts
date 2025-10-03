@@ -6,8 +6,8 @@ afterAll(() => {
   cleanupChildProcesses();
 });
 
-test('should attach a baggage header to an outgoing request.', async () => {
-  const runner = createRunner(__dirname, 'server.ts').start();
+test('should attach a baggage header to an outgoing request.', async ({ signal }) => {
+  const runner = createRunner({ signal }, __dirname, 'server.ts').start();
 
   const response = await runner.makeRequest<TestAPIResponse>('get', '/test/express');
 

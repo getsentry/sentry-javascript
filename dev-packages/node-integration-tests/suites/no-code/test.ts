@@ -17,8 +17,8 @@ describe('no-code init', () => {
     cleanupChildProcesses();
   });
 
-  test('CJS', async () => {
-    await createRunner(__dirname, 'app.js')
+  test('CJS', async ({ signal }) => {
+    await createRunner({ signal }, __dirname, 'app.js')
       .withFlags('--require=@sentry/node/init')
       .withMockSentryServer()
       .expect({ event: EVENT })
@@ -27,8 +27,8 @@ describe('no-code init', () => {
   });
 
   describe('--import', () => {
-    test('ESM', async () => {
-      await createRunner(__dirname, 'app.mjs')
+    test('ESM', async ({ signal }) => {
+      await createRunner({ signal }, __dirname, 'app.mjs')
         .withFlags('--import=@sentry/node/init')
         .withMockSentryServer()
         .expect({ event: EVENT })

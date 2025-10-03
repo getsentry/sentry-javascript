@@ -6,10 +6,10 @@ import { createTestServer } from '../../../../utils/server';
 describe('outgoing http', () => {
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
     conditionalTest({ min: 22 })('node >=22', () => {
-      test('outgoing sampled http requests without active span are correctly instrumented', async () => {
+      test('outgoing sampled http requests without active span are correctly instrumented', async ({ signal }) => {
         expect.assertions(11);
 
-        const [SERVER_URL, closeTestServer] = await createTestServer()
+        const [SERVER_URL, closeTestServer] = await createTestServer({ signal })
           .get('/api/v0', headers => {
             expect(headers['baggage']).toEqual(expect.any(String));
             expect(headers['sentry-trace']).toEqual(expect.stringMatching(/^([a-f0-9]{32})-([a-f0-9]{16})$/));
@@ -30,7 +30,7 @@ describe('outgoing http', () => {
           })
           .start();
 
-        await createRunner()
+        await createRunner({ signal })
           .withEnv({ SERVER_URL })
           .expect({
             event: {

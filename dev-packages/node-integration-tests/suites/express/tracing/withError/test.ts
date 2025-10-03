@@ -7,8 +7,8 @@ describe('express tracing experimental', () => {
   });
 
   describe('CJS', () => {
-    test('should apply the scope transactionName to error events', async () => {
-      const runner = createRunner(__dirname, 'server.js')
+    test('should apply the scope transactionName to error events', async ({ signal }) => {
+      const runner = createRunner({ signal }, __dirname, 'server.js')
         .ignore('transaction')
         .expect({
           event: {

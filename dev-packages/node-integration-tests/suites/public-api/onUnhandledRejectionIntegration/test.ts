@@ -73,8 +73,8 @@ test rejection`);
       });
     }));
 
-  test('captures exceptions for unhandled rejections', async () => {
-    await createRunner(__dirname, 'scenario-warn.ts')
+  test('captures exceptions for unhandled rejections', async ({ signal }) => {
+    await createRunner({ signal }, __dirname, 'scenario-warn.ts')
       .expect({
         event: {
           level: 'error',
@@ -99,8 +99,8 @@ test rejection`);
       .completed();
   });
 
-  test('captures exceptions for unhandled rejections in strict mode', async () => {
-    await createRunner(__dirname, 'scenario-strict.ts')
+  test('captures exceptions for unhandled rejections in strict mode', async ({ signal }) => {
+    await createRunner({ signal }, __dirname, 'scenario-strict.ts')
       .expect({
         event: {
           level: 'fatal',
@@ -125,11 +125,11 @@ test rejection`);
       .completed();
   });
 
-  test('handles unhandled rejection in spans', async () => {
+  test('handles unhandled rejection in spans', async ({ signal }) => {
     let transactionEvent: Event | undefined;
     let errorEvent: Event | undefined;
 
-    await createRunner(__dirname, 'scenario-with-span.ts')
+    await createRunner({ signal }, __dirname, 'scenario-with-span.ts')
       .expect({
         transaction: transaction => {
           transactionEvent = transaction;
@@ -152,11 +152,11 @@ test rejection`);
     expect(transactionEvent!.contexts!.trace!.span_id).toBe(errorEvent!.contexts!.trace!.span_id);
   });
 
-  test('handles unhandled rejection in spans that are ended early', async () => {
+  test('handles unhandled rejection in spans that are ended early', async ({ signal }) => {
     let transactionEvent: Event | undefined;
     let errorEvent: Event | undefined;
 
-    await createRunner(__dirname, 'scenario-with-span-ended.ts')
+    await createRunner({ signal }, __dirname, 'scenario-with-span-ended.ts')
       .expect({
         transaction: transaction => {
           transactionEvent = transaction;

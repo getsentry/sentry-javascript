@@ -5,8 +5,8 @@ afterAll(() => {
   cleanupChildProcesses();
 });
 
-test('allows to call init multiple times', async () => {
-  const runner = createRunner(__dirname, 'server.ts')
+test('allows to call init multiple times', async ({ signal }) => {
+  const runner = createRunner({ signal }, __dirname, 'server.ts')
     .expect({
       event: {
         exception: {

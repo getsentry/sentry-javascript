@@ -6,8 +6,10 @@ afterAll(() => {
   cleanupChildProcesses();
 });
 
-test('should ignore sentry-values in `baggage` header of a third party vendor and overwrite them with incoming DSC', async () => {
-  const runner = createRunner(__dirname, 'server.ts').start();
+test('should ignore sentry-values in `baggage` header of a third party vendor and overwrite them with incoming DSC', async ({
+  signal,
+}) => {
+  const runner = createRunner({ signal }, __dirname, 'server.ts').start();
 
   const response = await runner.makeRequest<TestAPIResponse>('get', '/test/express', {
     headers: {
@@ -38,8 +40,10 @@ test('should ignore sentry-values in `baggage` header of a third party vendor an
   ]);
 });
 
-test('should ignore sentry-values in `baggage` header of a third party vendor and overwrite them with new DSC', async () => {
-  const runner = createRunner(__dirname, 'server.ts').start();
+test('should ignore sentry-values in `baggage` header of a third party vendor and overwrite them with new DSC', async ({
+  signal,
+}) => {
+  const runner = createRunner({ signal }, __dirname, 'server.ts').start();
 
   const response = await runner.makeRequest<TestAPIResponse>('get', '/test/express');
 

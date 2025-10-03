@@ -6,7 +6,7 @@ afterAll(() => {
   cleanupChildProcesses();
 });
 
-test('Flags captured on error with eviction, update, and no async tasks', async () => {
+test('Flags captured on error with eviction, update, and no async tasks', async ({ signal }) => {
   // Based on scenario.ts.
   const expectedFlags = [{ flag: 'feat2', result: false }];
   for (let i = 4; i <= FLAG_BUFFER_SIZE; i++) {
@@ -15,7 +15,7 @@ test('Flags captured on error with eviction, update, and no async tasks', async 
   expectedFlags.push({ flag: `feat${FLAG_BUFFER_SIZE + 1}`, result: true });
   expectedFlags.push({ flag: 'feat3', result: true });
 
-  await createRunner(__dirname, 'scenario.ts')
+  await createRunner({ signal }, __dirname, 'scenario.ts')
     .expect({
       event: {
         exception: { values: [{ type: 'Error', value: 'Test error' }] },

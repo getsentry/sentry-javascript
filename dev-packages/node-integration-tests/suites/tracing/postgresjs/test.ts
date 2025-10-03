@@ -5,7 +5,7 @@ const EXISTING_TEST_EMAIL = 'bar@baz.com';
 const NON_EXISTING_TEST_EMAIL = 'foo@baz.com';
 
 describe('postgresjs auto instrumentation', () => {
-  test('should auto-instrument `postgres` package', { timeout: 60_000 }, async () => {
+  test('should auto-instrument `postgres` package', { timeout: 60_000 }, async ({ signal }) => {
     const EXPECTED_TRANSACTION = {
       transaction: 'Test Transaction',
       spans: expect.arrayContaining([
@@ -215,7 +215,7 @@ describe('postgresjs auto instrumentation', () => {
       },
     };
 
-    await createRunner(__dirname, 'scenario.js')
+    await createRunner({ signal }, __dirname, 'scenario.js')
       .withDockerCompose({ workingDirectory: [__dirname], readyMatches: ['port 5432'] })
       .expect({ transaction: EXPECTED_TRANSACTION })
       .expect({ event: EXPECTED_ERROR_EVENT })
