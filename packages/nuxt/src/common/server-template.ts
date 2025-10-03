@@ -9,7 +9,7 @@ import type { NuxtTemplate } from 'nuxt/schema';
 export function addServerTemplate(template: NuxtTemplate): NuxtTemplate {
   const nuxt = useNuxt();
   if (template.filename) {
-    nuxt.options.nitro.virtual ||= {};
+    nuxt.options.nitro.virtual = nuxt.options.nitro.virtual || {};
     nuxt.options.nitro.virtual[template.filename] = template.getContents;
   }
 
