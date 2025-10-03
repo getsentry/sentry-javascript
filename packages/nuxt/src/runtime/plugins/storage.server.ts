@@ -3,9 +3,10 @@ import {
   captureException,
   debug,
   flushIfServerless,
+  SEMANTIC_ATTRIBUTE_CACHE_HIT,
+  SEMANTIC_ATTRIBUTE_CACHE_KEY,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SPAN_STATUS_ERROR,
   SPAN_STATUS_OK,
   startSpan,
@@ -19,6 +20,11 @@ import { userStorageMounts } from '#sentry/storage-config.mjs';
 type MaybeInstrumentedDriver = Driver & {
   __sentry_instrumented__?: boolean;
 };
+
+/**
+ * Methods that should have a attribute to indicate a cache hit.
+ */
+const KEYED_METHODS = new Set(['hasItem', 'getItem', 'getItemRaw', 'getItems']);
 
 /**
  * Creates a Nitro plugin that instruments the storage driver.
@@ -74,7 +80,6 @@ function instrumentDriver(driver: MaybeInstrumentedDriver, mountBase: string): D
     'setItems',
     'removeItem',
     'getKeys',
-    'getMeta',
     'clear',
   ];
 
@@ -86,7 +91,7 @@ function instrumentDriver(driver: MaybeInstrumentedDriver, mountBase: string): D
     }
 
     // Replace with instrumented
-    driver[methodName] = createMethodWrapper(original, methodName, driver.name ?? 'unknown', mountBase);
+    driver[methodName] = createMethodWrapper(original, methodName, driver, mountBase);
   }
 
   // Mark as instrumented
@@ -101,24 +106,30 @@ function instrumentDriver(driver: MaybeInstrumentedDriver, mountBase: string): D
 function createMethodWrapper(
   original: (...args: unknown[]) => unknown,
   methodName: string,
-  driverName: string,
+  driver: Driver,
   mountBase: string,
 ): (...args: unknown[]) => unknown {
   return new Proxy(original, {
     async apply(target, thisArg, args) {
-      const attributes = getSpanAttributes(methodName, driverName ?? 'unknown', mountBase);
+      const attributes = getSpanAttributes(methodName, driver, mountBase, args);
 
-      debug.log(`[storage] Running method: "${methodName}" on driver: "${driverName}"`);
+      debug.log(`[storage] Running method: "${methodName}" on driver: "${driver.name ?? 'unknown'}"`);
+
+      const spanName = KEYED_METHODS.has(methodName) ? String(args?.[0]) : `storage.${normalizeMethodName(methodName)}`;
 
       return startSpan(
         {
-          name: `storage.${methodName}`,
+          name: spanName,
           attributes,
         },
         async span => {
           try {
             const result = await target.apply(thisArg, args);
             span.setStatus({ code: SPAN_STATUS_OK });
+
+            if (KEYED_METHODS.has(methodName)) {
+              span.setAttribute(SEMANTIC_ATTRIBUTE_CACHE_HIT, true);
+            }
 
             return result;
           } catch (error) {
@@ -161,15 +172,26 @@ function wrapStorageMount(storage: Storage): Storage['mount'] {
 /**
  * Gets the span attributes for the storage method.
  */
-function getSpanAttributes(methodName: string, driverName: string, mountBase: string): SpanAttributes {
+function getSpanAttributes(methodName: string, driver: Driver, mountBase: string, args: unknown[]): SpanAttributes {
   const attributes: SpanAttributes = {
-    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'app.storage.nuxt',
-    [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
-    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.app.storage.nuxt',
+    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: `cache.${normalizeMethodName(methodName)}`,
+    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.cache.nuxt',
     'nuxt.storage.op': methodName,
-    'nuxt.storage.driver': driverName,
     'nuxt.storage.mount': mountBase,
+    'nuxt.storage.driver': driver.name ?? 'unknown',
   };
 
+  // Add the key if it's a get/set/del call
+  if (args?.[0] && typeof args[0] === 'string') {
+    attributes[SEMANTIC_ATTRIBUTE_CACHE_KEY] = `${mountBase}${args[0]}`;
+  }
+
   return attributes;
+}
+
+/**
+ * Normalizes the method name to snake_case to be used in span names or op.
+ */
+function normalizeMethodName(methodName: string): string {
+  return methodName.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
 }
