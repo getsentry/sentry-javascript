@@ -22,9 +22,23 @@ type MaybeInstrumentedDriver = Driver & {
 };
 
 /**
+ * Methods that should have a key argument.
+ */
+const KEYED_METHODS = new Set([
+  'hasItem',
+  'getItem',
+  'getItemRaw',
+  'getItems',
+  'setItem',
+  'setItemRaw',
+  'setItems',
+  'removeItem',
+]);
+
+/**
  * Methods that should have a attribute to indicate a cache hit.
  */
-const KEYED_METHODS = new Set(['hasItem', 'getItem', 'getItemRaw', 'getItems']);
+const CACHE_HIT_METHODS = new Set(['hasItem', 'getItem', 'getKeys']);
 
 /**
  * Creates a Nitro plugin that instruments the storage driver.
@@ -70,6 +84,7 @@ function instrumentDriver(driver: MaybeInstrumentedDriver, mountBase: string): D
   debug.log(`[storage] Instrumenting driver: "${driver.name}" on mount: "${mountBase}"`);
 
   // List of driver methods to instrument
+  // get/set/remove are aliases and already use their {method}Item methods
   const methodsToInstrument: (keyof Driver)[] = [
     'hasItem',
     'getItem',
@@ -115,7 +130,9 @@ function createMethodWrapper(
 
       debug.log(`[storage] Running method: "${methodName}" on driver: "${driver.name ?? 'unknown'}"`);
 
-      const spanName = KEYED_METHODS.has(methodName) ? String(args?.[0]) : `storage.${normalizeMethodName(methodName)}`;
+      const spanName = KEYED_METHODS.has(methodName)
+        ? `${mountBase}${args?.[0]}`
+        : `storage.${normalizeMethodName(methodName)}`;
 
       return startSpan(
         {
@@ -127,7 +144,7 @@ function createMethodWrapper(
             const result = await target.apply(thisArg, args);
             span.setStatus({ code: SPAN_STATUS_OK });
 
-            if (KEYED_METHODS.has(methodName)) {
+            if (CACHE_HIT_METHODS.has(methodName)) {
               span.setAttribute(SEMANTIC_ATTRIBUTE_CACHE_HIT, true);
             }
 
