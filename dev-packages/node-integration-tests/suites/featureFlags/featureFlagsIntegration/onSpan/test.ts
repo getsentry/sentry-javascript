@@ -6,14 +6,14 @@ afterAll(() => {
   cleanupChildProcesses();
 });
 
-test('Flags captured on span attributes with max limit', async () => {
+test('Flags captured on span attributes with max limit', async ({ signal }) => {
   // Based on scenario.ts.
   const expectedFlags: Record<string, boolean> = {};
   for (let i = 1; i <= MAX_FLAGS_PER_SPAN; i++) {
     expectedFlags[`flag.evaluation.feat${i}`] = i === 3;
   }
 
-  await createRunner(__dirname, 'scenario.ts')
+  await createRunner({ signal }, __dirname, 'scenario.ts')
     .expect({
       transaction: {
         spans: [

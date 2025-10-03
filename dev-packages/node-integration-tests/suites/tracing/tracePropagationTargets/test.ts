@@ -2,10 +2,12 @@ import { expect, test } from 'vitest';
 import { createRunner } from '../../../utils/runner';
 import { createTestServer } from '../../../utils/server';
 
-test('HttpIntegration should instrument correct requests when tracePropagationTargets option is provided', async () => {
+test('HttpIntegration should instrument correct requests when tracePropagationTargets option is provided', async ({
+  signal,
+}) => {
   expect.assertions(11);
 
-  const [SERVER_URL, closeTestServer] = await createTestServer()
+  const [SERVER_URL, closeTestServer] = await createTestServer({ signal })
     .get('/api/v0', headers => {
       expect(headers['baggage']).toEqual(expect.any(String));
       expect(headers['sentry-trace']).toEqual(expect.stringMatching(/^([a-f0-9]{32})-([a-f0-9]{16})-1$/));
@@ -26,7 +28,7 @@ test('HttpIntegration should instrument correct requests when tracePropagationTa
     })
     .start();
 
-  await createRunner(__dirname, 'scenario.ts')
+  await createRunner({ signal }, __dirname, 'scenario.ts')
     .withEnv({ SERVER_URL })
     .expect({
       transaction: {

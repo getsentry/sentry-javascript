@@ -18,8 +18,8 @@ describe('express with httpIntegration and not defined maxIncomingRequestBodySiz
   });
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-default.mjs', (createRunner, test) => {
-    test('captures medium request bodies with default setting (medium)', async () => {
-      const runner = createRunner()
+    test('captures medium request bodies with default setting (medium)', async ({ signal }) => {
+      const runner = createRunner({ signal })
         .expect({
           transaction: {
             transaction: 'POST /test-body-size',
@@ -38,8 +38,8 @@ describe('express with httpIntegration and not defined maxIncomingRequestBodySiz
       await runner.completed();
     });
 
-    test('truncates large request bodies with default setting (medium)', async () => {
-      const runner = createRunner()
+    test('truncates large request bodies with default setting (medium)', async ({ signal }) => {
+      const runner = createRunner({ signal })
         .expect({
           transaction: {
             transaction: 'POST /test-body-size',
@@ -70,8 +70,8 @@ describe('express with httpIntegration and maxIncomingRequestBodySize: "none"', 
     'scenario.mjs',
     'instrument-none.mjs',
     (createRunner, test) => {
-      test('does not capture any request bodies with "none" setting', async () => {
-        const runner = createRunner()
+      test('does not capture any request bodies with "none" setting', async ({ signal }) => {
+        const runner = createRunner({ signal })
           .expect({
             transaction: {
               transaction: 'POST /test-body-size',
@@ -90,8 +90,10 @@ describe('express with httpIntegration and maxIncomingRequestBodySize: "none"', 
         await runner.completed();
       });
 
-      test('does not capture any request bodies with "none" setting and "ignoreIncomingRequestBody"', async () => {
-        const runner = createRunner()
+      test('does not capture any request bodies with "none" setting and "ignoreIncomingRequestBody"', async ({
+        signal,
+      }) => {
+        const runner = createRunner({ signal })
           .expect({
             transaction: {
               transaction: 'POST /test-body-size',
@@ -137,8 +139,8 @@ describe('express with httpIntegration and maxIncomingRequestBodySize: "always"'
     'scenario.mjs',
     'instrument-always.mjs',
     (createRunner, test) => {
-      test('captures maximum allowed request body length with "always" setting', async () => {
-        const runner = createRunner()
+      test('captures maximum allowed request body length with "always" setting', async ({ signal }) => {
+        const runner = createRunner({ signal })
           .expect({
             transaction: {
               transaction: 'POST /test-body-size',
@@ -157,8 +159,10 @@ describe('express with httpIntegration and maxIncomingRequestBodySize: "always"'
         await runner.completed();
       });
 
-      test('captures large request bodies with "always" setting but respects maximum size limit', async () => {
-        const runner = createRunner()
+      test('captures large request bodies with "always" setting but respects maximum size limit', async ({
+        signal,
+      }) => {
+        const runner = createRunner({ signal })
           .expect({
             transaction: {
               transaction: 'POST /test-body-size',
@@ -191,8 +195,8 @@ describe('express with httpIntegration and maxIncomingRequestBodySize: "small"',
     'scenario.mjs',
     'instrument-small.mjs',
     (createRunner, test) => {
-      test('keeps small request bodies with "small" setting', async () => {
-        const runner = createRunner()
+      test('keeps small request bodies with "small" setting', async ({ signal }) => {
+        const runner = createRunner({ signal })
           .expect({
             transaction: {
               transaction: 'POST /test-body-size',
@@ -211,8 +215,8 @@ describe('express with httpIntegration and maxIncomingRequestBodySize: "small"',
         await runner.completed();
       });
 
-      test('truncates too large request bodies with "small" setting', async () => {
-        const runner = createRunner()
+      test('truncates too large request bodies with "small" setting', async ({ signal }) => {
+        const runner = createRunner({ signal })
           .expect({
             transaction: {
               transaction: 'POST /test-body-size',
@@ -231,8 +235,8 @@ describe('express with httpIntegration and maxIncomingRequestBodySize: "small"',
         await runner.completed();
       });
 
-      test('truncates too large non-ASCII request bodies with "small" setting', async () => {
-        const runner = createRunner()
+      test('truncates too large non-ASCII request bodies with "small" setting', async ({ signal }) => {
+        const runner = createRunner({ signal })
           .expect({
             transaction: {
               transaction: 'POST /test-body-size',
@@ -266,8 +270,8 @@ describe('express with httpIntegration and maxIncomingRequestBodySize: "medium"'
     'scenario.mjs',
     'instrument-medium.mjs',
     (createRunner, test) => {
-      test('keeps medium request bodies with "medium" setting', async () => {
-        const runner = createRunner()
+      test('keeps medium request bodies with "medium" setting', async ({ signal }) => {
+        const runner = createRunner({ signal })
           .expect({
             transaction: {
               transaction: 'POST /test-body-size',
@@ -286,8 +290,8 @@ describe('express with httpIntegration and maxIncomingRequestBodySize: "medium"'
         await runner.completed();
       });
 
-      test('truncates large request bodies with "medium" setting', async () => {
-        const runner = createRunner()
+      test('truncates large request bodies with "medium" setting', async ({ signal }) => {
+        const runner = createRunner({ signal })
           .expect({
             transaction: {
               transaction: 'POST /test-body-size',

@@ -2,7 +2,7 @@ import { describe, expect, test } from 'vitest';
 import { createRunner } from '../../../utils/runner';
 
 describe('postgres auto instrumentation', () => {
-  test('should auto-instrument `pg` package', { timeout: 90_000 }, async () => {
+  test('should auto-instrument `pg` package', { timeout: 90_000 }, async ({ signal }) => {
     const EXPECTED_TRANSACTION = {
       transaction: 'Test Transaction',
       spans: expect.arrayContaining([
@@ -46,7 +46,7 @@ describe('postgres auto instrumentation', () => {
       ]),
     };
 
-    await createRunner(__dirname, 'scenario.js')
+    await createRunner({ signal }, __dirname, 'scenario.js')
       .withDockerCompose({
         workingDirectory: [__dirname],
         readyMatches: ['port 5432'],
@@ -57,7 +57,7 @@ describe('postgres auto instrumentation', () => {
       .completed();
   });
 
-  test('should auto-instrument `pg-native` package', { timeout: 90_000 }, async () => {
+  test('should auto-instrument `pg-native` package', { timeout: 90_000 }, async ({ signal }) => {
     const EXPECTED_TRANSACTION = {
       transaction: 'Test Transaction',
       spans: expect.arrayContaining([
@@ -101,7 +101,7 @@ describe('postgres auto instrumentation', () => {
       ]),
     };
 
-    await createRunner(__dirname, 'scenario-native.js')
+    await createRunner({ signal }, __dirname, 'scenario-native.js')
       .withDockerCompose({
         workingDirectory: [__dirname],
         readyMatches: ['port 5432'],

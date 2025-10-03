@@ -5,8 +5,8 @@ afterAll(() => {
   cleanupChildProcesses();
 });
 
-test('should flush client reports automatically after the timeout interval', async () => {
-  await createRunner(__dirname, 'scenario.ts')
+test('should flush client reports automatically after the timeout interval', async ({ signal }) => {
+  await createRunner({ signal }, __dirname, 'scenario.ts')
     .unignore('client_report')
     .expect({
       client_report: {

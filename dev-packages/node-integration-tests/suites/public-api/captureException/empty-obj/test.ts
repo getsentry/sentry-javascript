@@ -5,8 +5,8 @@ afterAll(() => {
   cleanupChildProcesses();
 });
 
-test('should capture an empty object', async () => {
-  await createRunner(__dirname, 'scenario.ts')
+test('should capture an empty object', async ({ signal }) => {
+  await createRunner({ signal }, __dirname, 'scenario.ts')
     .expect({
       event: {
         exception: {

@@ -45,7 +45,10 @@ describe('Mongoose experimental Test', () => {
     ]),
   };
 
-  test('CJS - should auto-instrument `mongoose` package.', async () => {
-    await createRunner(__dirname, 'scenario.js').expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
+  test('CJS - should auto-instrument `mongoose` package.', async ({ signal }) => {
+    await createRunner({ signal }, __dirname, 'scenario.js')
+      .expect({ transaction: EXPECTED_TRANSACTION })
+      .start()
+      .completed();
   });
 });

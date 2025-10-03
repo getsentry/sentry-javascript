@@ -17,8 +17,8 @@ describe('graphqlIntegration', () => {
     cleanupChildProcesses();
   });
 
-  test('should use GraphQL operation name for root span if useOperationNameForRootSpan is set', async () => {
-    await createRunner(__dirname, 'scenario.js')
+  test('should use GraphQL operation name for root span if useOperationNameForRootSpan is set', async ({ signal }) => {
+    await createRunner({ signal }, __dirname, 'scenario.js')
       .ignore('event')
       .expect({ transaction: { transaction: 'Test Server Start (query IntrospectionQuery)' } })
       .expect({ transaction: EXPECTED_TRANSCATION })

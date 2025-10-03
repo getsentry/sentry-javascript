@@ -7,8 +7,8 @@ describe('express tracesSampler', () => {
   });
 
   describe('CJS', () => {
-    test('correctly samples & passes data to tracesSampler', async () => {
-      const runner = createRunner(__dirname, 'server.js')
+    test('correctly samples & passes data to tracesSampler', async ({ signal }) => {
+      const runner = createRunner({ signal }, __dirname, 'server.js')
         .expect({
           transaction: {
             transaction: 'GET /test/:id',
@@ -31,8 +31,8 @@ describe('express tracesSampler includes normalizedRequest data', () => {
   });
 
   describe('CJS', () => {
-    test('correctly samples & passes data to tracesSampler', async () => {
-      const runner = createRunner(__dirname, 'scenario-normalizedRequest.js')
+    test('correctly samples & passes data to tracesSampler', async ({ signal }) => {
+      const runner = createRunner({ signal }, __dirname, 'scenario-normalizedRequest.js')
         .expect({
           transaction: {
             transaction: 'GET /test-normalized-request',

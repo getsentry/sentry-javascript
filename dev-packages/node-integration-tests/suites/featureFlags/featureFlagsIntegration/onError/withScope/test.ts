@@ -5,8 +5,8 @@ afterAll(() => {
   cleanupChildProcesses();
 });
 
-test('Flags captured on error are isolated by current scope', async () => {
-  await createRunner(__dirname, 'scenario.ts')
+test('Flags captured on error are isolated by current scope', async ({ signal }) => {
+  await createRunner({ signal }, __dirname, 'scenario.ts')
     .expect({
       event: {
         exception: { values: [{ type: 'Error', value: 'Error in forked scope' }] },

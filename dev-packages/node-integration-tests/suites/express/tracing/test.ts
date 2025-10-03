@@ -8,8 +8,8 @@ describe('express tracing', () => {
   });
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('should create and send transactions for Express routes and spans for middlewares.', async () => {
-      const runner = createRunner()
+    test('should create and send transactions for Express routes and spans for middlewares.', async ({ signal }) => {
+      const runner = createRunner({ signal })
         .expect({
           transaction: {
             contexts: {
@@ -51,8 +51,8 @@ describe('express tracing', () => {
       await runner.completed();
     });
 
-    test('should set a correct transaction name for routes specified in RegEx', async () => {
-      const runner = createRunner()
+    test('should set a correct transaction name for routes specified in RegEx', async ({ signal }) => {
+      const runner = createRunner({ signal })
         .expect({
           transaction: {
             transaction: 'GET /\\/test\\/regex/',
@@ -78,8 +78,8 @@ describe('express tracing', () => {
       await runner.completed();
     });
 
-    test('handles root page correctly', async () => {
-      const runner = createRunner()
+    test('handles root page correctly', async ({ signal }) => {
+      const runner = createRunner({ signal })
         .expect({
           transaction: {
             transaction: 'GET /',
@@ -106,8 +106,8 @@ describe('express tracing', () => {
       await runner.completed();
     });
 
-    test.each(['/401', '/402', '/403', '/does-not-exist'])('ignores %s route by default', async (url: string) => {
-      const runner = createRunner()
+    test.for(['/401', '/402', '/403', '/does-not-exist'])('ignores %s route by default', async (url, { signal }) => {
+      const runner = createRunner({ signal })
         .expect({
           // No transaction is sent for the 401, 402, 403, 404 routes
           transaction: {
@@ -120,10 +120,10 @@ describe('express tracing', () => {
       await runner.completed();
     });
 
-    test.each([['array1'], ['array5']])(
+    test.for(['array1', 'array5'])(
       'should set a correct transaction name for routes consisting of arrays of routes for %p',
-      async (segment: string) => {
-        const runner = await createRunner()
+      async (segment, { signal }) => {
+        const runner = await createRunner({ signal })
           .expect({
             transaction: {
               transaction: 'GET /test/array1,/\\/test\\/array[2-9]/',
@@ -150,17 +150,17 @@ describe('express tracing', () => {
       },
     );
 
-    test.each([
-      ['arr/545'],
-      ['arr/required'],
-      ['arr/required'],
-      ['arr/requiredPath'],
-      ['arr/required/lastParam'],
-      ['arr55/required/lastParam'],
-      ['arr/requiredPath/optionalPath/'],
-      ['arr/requiredPath/optionalPath/lastParam'],
-    ])('should handle more complex regexes in route arrays correctly for %p', async (segment: string) => {
-      const runner = await createRunner()
+    test.for([
+      'arr/545',
+      'arr/required',
+      'arr/required',
+      'arr/requiredPath',
+      'arr/required/lastParam',
+      'arr55/required/lastParam',
+      'arr/requiredPath/optionalPath/',
+      'arr/requiredPath/optionalPath/lastParam',
+    ])('should handle more complex regexes in route arrays correctly for %p', async (segment, { signal }) => {
+      const runner = await createRunner({ signal })
         .expect({
           transaction: {
             transaction: 'GET /test/arr/:id,/\\/test\\/arr[0-9]*\\/required(path)?(\\/optionalPath)?\\/(lastParam)?/',
@@ -187,8 +187,8 @@ describe('express tracing', () => {
     });
 
     describe('request data', () => {
-      test('correctly captures JSON request data', async () => {
-        const runner = createRunner()
+      test('correctly captures JSON request data', async ({ signal }) => {
+        const runner = createRunner({ signal })
           .expect({
             transaction: {
               transaction: 'POST /test-post',
@@ -217,8 +217,8 @@ describe('express tracing', () => {
         await runner.completed();
       });
 
-      test('correctly captures plain text request data', async () => {
-        const runner = createRunner()
+      test('correctly captures plain text request data', async ({ signal }) => {
+        const runner = createRunner({ signal })
           .expect({
             transaction: {
               transaction: 'POST /test-post',
@@ -242,8 +242,8 @@ describe('express tracing', () => {
         await runner.completed();
       });
 
-      test('correctly captures text buffer request data', async () => {
-        const runner = createRunner()
+      test('correctly captures text buffer request data', async ({ signal }) => {
+        const runner = createRunner({ signal })
           .expect({
             transaction: {
               transaction: 'POST /test-post',
@@ -267,8 +267,8 @@ describe('express tracing', () => {
         await runner.completed();
       });
 
-      test('correctly captures non-text buffer request data', async () => {
-        const runner = createRunner()
+      test('correctly captures non-text buffer request data', async ({ signal }) => {
+        const runner = createRunner({ signal })
           .expect({
             transaction: {
               transaction: 'POST /test-post',
@@ -295,8 +295,8 @@ describe('express tracing', () => {
         await runner.completed();
       });
 
-      test('correctly ignores request data', async () => {
-        const runner = createRunner()
+      test('correctly ignores request data', async ({ signal }) => {
+        const runner = createRunner({ signal })
           .expect({
             transaction: e => {
               assertSentryTransaction(e, {
@@ -332,43 +332,40 @@ describe('express tracing', () => {
       'instrument-filterStatusCode.mjs',
       (createRunner, test) => {
         // We opt-out of the default [401, 404] filtering in order to test how these spans are handled
-        test.each([
+        test.for([
           { status_code: 401, url: '/401', status: 'unauthenticated' },
           { status_code: 402, url: '/402', status: 'invalid_argument' },
           { status_code: 403, url: '/403', status: 'permission_denied' },
           { status_code: 404, url: '/does-not-exist', status: 'not_found' },
-        ])(
-          'handles %s route correctly',
-          async ({ status_code, url, status }: { status_code: number; url: string; status: string }) => {
-            const runner = createRunner()
-              .expect({
-                transaction: {
-                  transaction: `GET ${url}`,
-                  contexts: {
-                    trace: {
-                      span_id: expect.stringMatching(/[a-f0-9]{16}/),
-                      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-                      data: {
-                        'http.response.status_code': status_code,
-                        url: expect.stringMatching(url),
-                        'http.method': 'GET',
-                        'http.url': expect.stringMatching(url),
-                        'http.target': url,
-                      },
-                      op: 'http.server',
-                      status,
+        ])('handles %s route correctly', async ({ status_code, url, status }, { signal }) => {
+          const runner = createRunner({ signal })
+            .expect({
+              transaction: {
+                transaction: `GET ${url}`,
+                contexts: {
+                  trace: {
+                    span_id: expect.stringMatching(/[a-f0-9]{16}/),
+                    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+                    data: {
+                      'http.response.status_code': status_code,
+                      url: expect.stringMatching(url),
+                      'http.method': 'GET',
+                      'http.url': expect.stringMatching(url),
+                      'http.target': url,
                     },
+                    op: 'http.server',
+                    status,
                   },
                 },
-              })
-              .start();
-            runner.makeRequest('get', url, { expectError: true });
-            await runner.completed();
-          },
-        );
+              },
+            })
+            .start();
+          runner.makeRequest('get', url, { expectError: true });
+          await runner.completed();
+        });
 
-        test('filters defined status codes', async () => {
-          const runner = createRunner()
+        test('filters defined status codes', async ({ signal }) => {
+          const runner = createRunner({ signal })
             .expect({
               transaction: {
                 transaction: 'GET /',

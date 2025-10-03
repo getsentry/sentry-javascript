@@ -5,8 +5,8 @@ afterAll(() => {
   cleanupChildProcesses();
 });
 
-test('node-cron instrumentation', async () => {
-  await createRunner(__dirname, 'scenario.ts')
+test('node-cron instrumentation', async ({ signal }) => {
+  await createRunner({ signal }, __dirname, 'scenario.ts')
     .expect({
       check_in: {
         check_in_id: expect.any(String),

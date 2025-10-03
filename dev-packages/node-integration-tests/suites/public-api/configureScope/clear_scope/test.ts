@@ -5,8 +5,8 @@ afterAll(() => {
   cleanupChildProcesses();
 });
 
-test('should clear previously set properties of a scope', async () => {
-  await createRunner(__dirname, 'scenario.ts')
+test('should clear previously set properties of a scope', async ({ signal }) => {
+  await createRunner({ signal }, __dirname, 'scenario.ts')
     .expect({
       event: {
         message: 'cleared_scope',

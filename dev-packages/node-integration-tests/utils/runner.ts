@@ -70,6 +70,11 @@ interface DockerOptions {
    * The command to run after docker compose is up
    */
   setupCommand?: string;
+
+  /**
+   * An optional AbortSignal to cancel the docker compose up command
+   */
+  signal?: AbortSignal;
 }
 
 /**
@@ -90,7 +95,9 @@ async function runDockerCompose(options: DockerOptions): Promise<VoidFunction> {
     // ensure we're starting fresh
     close();
 
-    const child = spawn('docker', ['compose', 'up'], { cwd });
+    options.signal?.addEventListener('abort', () => close());
+
+    const child = spawn('docker', ['compose', 'up'], { cwd, signal: options.signal });
 
     const timeout = setTimeout(() => {
       close();
@@ -178,7 +185,7 @@ export function createEsmAndCjsTests(
   scenarioPath: string,
   instrumentPath: string,
   callback: (
-    createTestRunner: () => ReturnType<typeof createRunner>,
+    createTestRunner: (options: { readonly signal?: AbortSignal }) => ReturnType<typeof createRunner>,
     testFn: typeof test | typeof test.fails,
     mode: 'esm' | 'cjs',
     cwd: string,
@@ -289,7 +296,7 @@ export function createEsmAndCjsTests(
     const esmTestFn = options?.failsOnEsm ? test.fails : test;
     describe('esm', () => {
       callback(
-        () => createRunner(esmScenarioPathForRun).withFlags('--import', esmInstrumentPathForRun),
+        ({ signal }) => createRunner({ signal }, esmScenarioPathForRun).withFlags('--import', esmInstrumentPathForRun),
         esmTestFn,
         'esm',
         tmpDirPath,
@@ -299,7 +306,7 @@ export function createEsmAndCjsTests(
     const cjsTestFn = options?.failsOnCjs ? test.fails : test;
     describe('cjs', () => {
       callback(
-        () => createRunner(cjsScenarioPath).withFlags('--require', cjsInstrumentPath),
+        ({ signal }) => createRunner({ signal }, cjsScenarioPath).withFlags('--require', cjsInstrumentPath),
         cjsTestFn,
         'cjs',
         tmpDirPath,
@@ -336,7 +343,7 @@ async function convertEsmFileToCjs(inputPath: string, outputPath: string): Promi
 
 /** Creates a test runner */
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-export function createRunner(...paths: string[]) {
+export function createRunner({ signal }: { readonly signal?: AbortSignal }, ...paths: string[]) {
   const testPath = join(...paths);
 
   if (!existsSync(testPath)) {
@@ -406,7 +413,7 @@ export function createRunner(...paths: string[]) {
       }
       return this;
     },
-    withDockerCompose: function (options: DockerOptions) {
+    withDockerCompose: function (options: Omit<DockerOptions, 'signal'>) {
       dockerOptions = options;
       return this;
     },
@@ -531,11 +538,11 @@ export function createRunner(...paths: string[]) {
       type DockerStartup = VoidFunction | undefined;
 
       const serverStartup: Promise<ServerStartup> = withSentryServer
-        ? createBasicSentryServer(newEnvelope)
+        ? createBasicSentryServer(newEnvelope, { signal })
         : Promise.resolve([undefined, undefined]);
 
       const dockerStartup: Promise<DockerStartup> = dockerOptions
-        ? runDockerCompose(dockerOptions)
+        ? runDockerCompose({ ...dockerOptions, signal })
         : Promise.resolve(undefined);
 
       const startup = Promise.all([dockerStartup, serverStartup]);
@@ -558,7 +565,7 @@ export function createRunner(...paths: string[]) {
 
           if (process.env.DEBUG) log('starting scenario', testPath, flags, env.SENTRY_DSN);
 
-          child = spawn('node', [...flags, testPath], { env });
+          child = spawn('node', [...flags, testPath], { env, signal });
 
           child.on('error', e => {
             // eslint-disable-next-line no-console

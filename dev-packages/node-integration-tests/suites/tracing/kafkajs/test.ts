@@ -7,8 +7,8 @@ describe('kafkajs', () => {
   });
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('traces producers and consumers', { timeout: 60_000 }, async () => {
-      await createRunner()
+    test('traces producers and consumers', { timeout: 60_000 }, async ({ signal }) => {
+      await createRunner({ signal })
         .withDockerCompose({
           workingDirectory: [__dirname],
           readyMatches: ['9092'],

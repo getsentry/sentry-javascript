@@ -5,8 +5,8 @@ afterAll(() => {
   cleanupChildProcesses();
 });
 
-test('should set different properties of a scope', async () => {
-  await createRunner(__dirname, 'scenario.ts')
+test('should set different properties of a scope', async ({ signal }) => {
+  await createRunner({ signal }, __dirname, 'scenario.ts')
     .expect({
       event: {
         message: 'configured_scope',

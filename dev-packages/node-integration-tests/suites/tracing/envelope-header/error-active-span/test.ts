@@ -1,8 +1,8 @@
 import { expect, test } from 'vitest';
 import { createRunner } from '../../../../utils/runner';
 
-test('envelope header for error event during active span is correct', async () => {
-  await createRunner(__dirname, 'scenario.ts')
+test('envelope header for error event during active span is correct', async ({ signal }) => {
+  await createRunner({ signal }, __dirname, 'scenario.ts')
     .ignore('transaction')
     .expectHeader({
       event: {

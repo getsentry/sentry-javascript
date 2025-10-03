@@ -7,7 +7,7 @@ describe('knex auto instrumentation', () => {
 
   describe('with `mysql2` client', () => {
     createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
-      test('should auto-instrument `knex` package', { timeout: 60_000 }, async () => {
+      test('should auto-instrument `knex` package', { timeout: 60_000 }, async ({ signal }) => {
         const EXPECTED_TRANSACTION = {
           transaction: 'Test Transaction',
           spans: expect.arrayContaining([
@@ -62,7 +62,7 @@ describe('knex auto instrumentation', () => {
           ]),
         };
 
-        await createRunner()
+        await createRunner({ signal })
           .withDockerCompose({ workingDirectory: [__dirname], readyMatches: ['port: 3306'] })
           .expect({ transaction: EXPECTED_TRANSACTION })
           .start()

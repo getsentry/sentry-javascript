@@ -41,20 +41,20 @@ describe('connect auto-instrumentation', () => {
     'scenario.mjs',
     'instrument.mjs',
     (createTestRunner, test) => {
-      test('should auto-instrument `connect` package.', async () => {
-        const runner = createTestRunner().expect({ transaction: EXPECTED_TRANSACTION }).start();
+      test('should auto-instrument `connect` package.', async ({ signal }) => {
+        const runner = createTestRunner({ signal }).expect({ transaction: EXPECTED_TRANSACTION }).start();
         runner.makeRequest('get', '/');
         await runner.completed();
       });
 
-      test('should capture errors in `connect` middleware.', async () => {
-        const runner = createTestRunner().ignore('transaction').expect({ event: EXPECTED_EVENT }).start();
+      test('should capture errors in `connect` middleware.', async ({ signal }) => {
+        const runner = createTestRunner({ signal }).ignore('transaction').expect({ event: EXPECTED_EVENT }).start();
         runner.makeRequest('get', '/error');
         await runner.completed();
       });
 
-      test('should report errored transactions.', async () => {
-        const runner = createTestRunner()
+      test('should report errored transactions.', async ({ signal }) => {
+        const runner = createTestRunner({ signal })
           .ignore('event')
           .expect({ transaction: { transaction: 'GET /error' } })
           .start();

@@ -5,8 +5,10 @@ afterAll(() => {
   cleanupChildProcesses();
 });
 
-test('should send manually started parallel root spans outside of root context with parentSpanId', async () => {
-  await createRunner(__dirname, 'scenario.ts')
+test('should send manually started parallel root spans outside of root context with parentSpanId', async ({
+  signal,
+}) => {
+  await createRunner({ signal }, __dirname, 'scenario.ts')
     .expect({ transaction: { transaction: 'test_span_1' } })
     .expect({
       transaction: transaction => {

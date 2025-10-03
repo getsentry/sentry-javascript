@@ -6,8 +6,8 @@ describe('winston integration', () => {
     cleanupChildProcesses();
   });
 
-  test('should capture winston logs with default levels', async () => {
-    const runner = createRunner(__dirname, 'subject.ts')
+  test('should capture winston logs with default levels', async ({ signal }) => {
+    const runner = createRunner({ signal }, __dirname, 'subject.ts')
       .expect({
         log: {
           items: [
@@ -49,8 +49,8 @@ describe('winston integration', () => {
     await runner.completed();
   });
 
-  test('should capture winston logs with custom levels', async () => {
-    const runner = createRunner(__dirname, 'subject.ts')
+  test('should capture winston logs with custom levels', async ({ signal }) => {
+    const runner = createRunner({ signal }, __dirname, 'subject.ts')
       .withEnv({ CUSTOM_LEVELS: 'true' })
       .expect({
         log: {
@@ -123,8 +123,8 @@ describe('winston integration', () => {
     await runner.completed();
   });
 
-  test('should capture winston logs with metadata', async () => {
-    const runner = createRunner(__dirname, 'subject.ts')
+  test('should capture winston logs with metadata', async ({ signal }) => {
+    const runner = createRunner({ signal }, __dirname, 'subject.ts')
       .withEnv({ WITH_METADATA: 'true' })
       .expect({
         log: {

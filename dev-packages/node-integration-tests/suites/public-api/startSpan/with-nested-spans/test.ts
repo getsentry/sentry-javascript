@@ -7,8 +7,8 @@ afterAll(() => {
   cleanupChildProcesses();
 });
 
-test('should report finished spans as children of the root transaction.', async () => {
-  await createRunner(__dirname, 'scenario.ts')
+test('should report finished spans as children of the root transaction.', async ({ signal }) => {
+  await createRunner({ signal }, __dirname, 'scenario.ts')
     .expect({
       transaction: transaction => {
         const rootSpanId = transaction.contexts?.trace?.span_id;

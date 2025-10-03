@@ -5,8 +5,8 @@ afterAll(() => {
   cleanupChildProcesses();
 });
 
-test('should apply scopes correctly', async () => {
-  await createRunner(__dirname, 'scenario.ts')
+test('should apply scopes correctly', async ({ signal }) => {
+  await createRunner({ signal }, __dirname, 'scenario.ts')
     .expect({
       event: {
         message: 'outer_before',

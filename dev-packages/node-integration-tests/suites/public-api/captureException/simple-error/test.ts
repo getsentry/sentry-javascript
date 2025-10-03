@@ -5,8 +5,8 @@ afterAll(() => {
   cleanupChildProcesses();
 });
 
-test('should capture a simple error with message', async () => {
-  await createRunner(__dirname, 'scenario.ts')
+test('should capture a simple error with message', async ({ signal }) => {
+  await createRunner({ signal }, __dirname, 'scenario.ts')
     .expect({
       event: {
         exception: {

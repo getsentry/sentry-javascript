@@ -6,8 +6,8 @@ afterAll(() => {
   cleanupChildProcesses();
 });
 
-test('updates the span name and source when calling `updateSpanName`', async () => {
-  await createRunner(__dirname, 'scenario.ts')
+test('updates the span name and source when calling `updateSpanName`', async ({ signal }) => {
+  await createRunner({ signal }, __dirname, 'scenario.ts')
     .expect({
       transaction: {
         transaction: 'new name',

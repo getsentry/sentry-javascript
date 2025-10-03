@@ -2,10 +2,10 @@ import { describe, expect, test } from 'vitest';
 import { createRunner } from '../../../utils/runner';
 
 describe('span links', () => {
-  test('should link spans by adding "links" to span options', async () => {
+  test('should link spans by adding "links" to span options', async ({ signal }) => {
     let span1_traceId: string, span1_spanId: string;
 
-    await createRunner(__dirname, 'scenario-span-options.ts')
+    await createRunner({ signal }, __dirname, 'scenario-span-options.ts')
       .expect({
         transaction: event => {
           expect(event.transaction).toBe('parent1');
@@ -33,10 +33,10 @@ describe('span links', () => {
       .completed();
   });
 
-  test('should link spans with addLink() in trace context', async () => {
+  test('should link spans with addLink() in trace context', async ({ signal }) => {
     let span1_traceId: string, span1_spanId: string;
 
-    await createRunner(__dirname, 'scenario-addLink.ts')
+    await createRunner({ signal }, __dirname, 'scenario-addLink.ts')
       .expect({
         transaction: event => {
           expect(event.transaction).toBe('span1');
@@ -66,10 +66,10 @@ describe('span links', () => {
       .completed();
   });
 
-  test('should link spans with addLinks() in trace context', async () => {
+  test('should link spans with addLinks() in trace context', async ({ signal }) => {
     let span1_traceId: string, span1_spanId: string, span2_traceId: string, span2_spanId: string;
 
-    await createRunner(__dirname, 'scenario-addLinks.ts')
+    await createRunner({ signal }, __dirname, 'scenario-addLinks.ts')
       .expect({
         transaction: event => {
           expect(event.transaction).toBe('span1');
@@ -114,8 +114,8 @@ describe('span links', () => {
       .completed();
   });
 
-  test('should link spans with addLink() in nested startSpan() calls', async () => {
-    await createRunner(__dirname, 'scenario-addLink-nested.ts')
+  test('should link spans with addLink() in nested startSpan() calls', async ({ signal }) => {
+    await createRunner({ signal }, __dirname, 'scenario-addLink-nested.ts')
       .expect({
         transaction: event => {
           expect(event.transaction).toBe('parent1');
@@ -154,8 +154,8 @@ describe('span links', () => {
       .completed();
   });
 
-  test('should link spans with addLinks() in nested startSpan() calls', async () => {
-    await createRunner(__dirname, 'scenario-addLinks-nested.ts')
+  test('should link spans with addLinks() in nested startSpan() calls', async ({ signal }) => {
+    await createRunner({ signal }, __dirname, 'scenario-addLinks-nested.ts')
       .expect({
         transaction: event => {
           expect(event.transaction).toBe('parent1');

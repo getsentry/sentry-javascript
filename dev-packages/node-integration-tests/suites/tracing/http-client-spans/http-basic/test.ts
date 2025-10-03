@@ -2,10 +2,10 @@ import { expect, test } from 'vitest';
 import { createRunner } from '../../../../utils/runner';
 import { createTestServer } from '../../../../utils/server';
 
-test('captures spans for outgoing http requests', async () => {
+test('captures spans for outgoing http requests', async ({ signal }) => {
   expect.assertions(3);
 
-  const [SERVER_URL, closeTestServer] = await createTestServer()
+  const [SERVER_URL, closeTestServer] = await createTestServer({ signal })
     .get('/api/v0', () => {
       // Just ensure we're called
       expect(true).toBe(true);
@@ -20,7 +20,7 @@ test('captures spans for outgoing http requests', async () => {
     )
     .start();
 
-  await createRunner(__dirname, 'scenario.ts')
+  await createRunner({ signal }, __dirname, 'scenario.ts')
     .withEnv({ SERVER_URL })
     .expect({
       transaction: {

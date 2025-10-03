@@ -400,8 +400,11 @@ describe('Vercel AI integration (V5)', () => {
     'scenario.mjs',
     'instrument.mjs',
     (createRunner, test) => {
-      test('creates ai related spans with sendDefaultPii: false', async () => {
-        await createRunner().expect({ transaction: EXPECTED_TRANSACTION_DEFAULT_PII_FALSE }).start().completed();
+      test('creates ai related spans with sendDefaultPii: false', async ({ signal }) => {
+        await createRunner({ signal })
+          .expect({ transaction: EXPECTED_TRANSACTION_DEFAULT_PII_FALSE })
+          .start()
+          .completed();
       });
     },
     {
@@ -416,8 +419,11 @@ describe('Vercel AI integration (V5)', () => {
     'scenario.mjs',
     'instrument-with-pii.mjs',
     (createRunner, test) => {
-      test('creates ai related spans with sendDefaultPii: true', async () => {
-        await createRunner().expect({ transaction: EXPECTED_TRANSACTION_DEFAULT_PII_TRUE }).start().completed();
+      test('creates ai related spans with sendDefaultPii: true', async ({ signal }) => {
+        await createRunner({ signal })
+          .expect({ transaction: EXPECTED_TRANSACTION_DEFAULT_PII_TRUE })
+          .start()
+          .completed();
       });
     },
     {
@@ -432,7 +438,7 @@ describe('Vercel AI integration (V5)', () => {
     'scenario-error-in-tool.mjs',
     'instrument.mjs',
     (createRunner, test) => {
-      test('captures error in tool', async () => {
+      test('captures error in tool', async ({ signal }) => {
         const expectedTransaction = {
           transaction: 'main',
           spans: expect.arrayContaining([
@@ -515,7 +521,7 @@ describe('Vercel AI integration (V5)', () => {
         let transactionEvent: Event | undefined;
         let errorEvent: Event | undefined;
 
-        await createRunner()
+        await createRunner({ signal })
           .expect({
             transaction: transaction => {
               transactionEvent = transaction;
@@ -551,8 +557,11 @@ describe('Vercel AI integration (V5)', () => {
     'scenario.mjs',
     'instrument.mjs',
     (createRunner, test) => {
-      test('creates ai related spans with v5', async () => {
-        await createRunner().expect({ transaction: EXPECTED_TRANSACTION_DEFAULT_PII_FALSE }).start().completed();
+      test('creates ai related spans with v5', async ({ signal }) => {
+        await createRunner({ signal })
+          .expect({ transaction: EXPECTED_TRANSACTION_DEFAULT_PII_FALSE })
+          .start()
+          .completed();
       });
     },
     {

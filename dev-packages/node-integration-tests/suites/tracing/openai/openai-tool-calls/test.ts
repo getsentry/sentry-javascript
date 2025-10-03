@@ -295,8 +295,8 @@ describe('OpenAI Tool Calls integration', () => {
   };
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('creates openai tool calls related spans with sendDefaultPii: false', async () => {
-      await createRunner()
+    test('creates openai tool calls related spans with sendDefaultPii: false', async ({ signal }) => {
+      await createRunner({ signal })
         .ignore('event')
         .expect({ transaction: EXPECTED_TRANSACTION_DEFAULT_PII_FALSE })
         .start()
@@ -305,8 +305,8 @@ describe('OpenAI Tool Calls integration', () => {
   });
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
-    test('creates openai tool calls related spans with sendDefaultPii: true', async () => {
-      await createRunner()
+    test('creates openai tool calls related spans with sendDefaultPii: true', async ({ signal }) => {
+      await createRunner({ signal })
         .ignore('event')
         .expect({ transaction: EXPECTED_TRANSACTION_DEFAULT_PII_TRUE })
         .start()

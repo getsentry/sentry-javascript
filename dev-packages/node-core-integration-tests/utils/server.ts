@@ -9,7 +9,10 @@ import type { AddressInfo } from 'net';
  * This does no checks on the envelope, it just calls the callback if it managed to parse an envelope from the raw POST
  * body data.
  */
-export function createBasicSentryServer(onEnvelope: (env: Envelope) => void): Promise<[number, () => void]> {
+export function createBasicSentryServer(
+  onEnvelope: (env: Envelope) => void,
+  { signal }: { readonly signal?: AbortSignal },
+): Promise<[number, () => void]> {
   const app = express();
 
   app.use(express.raw({ type: () => true, inflate: true, limit: '100mb' }));
@@ -28,6 +31,7 @@ export function createBasicSentryServer(onEnvelope: (env: Envelope) => void): Pr
   return new Promise(resolve => {
     const server = app.listen(0, () => {
       const address = server.address() as AddressInfo;
+      signal?.addEventListener('abort', () => server.close());
       resolve([
         address.port,
         () => {
@@ -42,7 +46,7 @@ type HeaderAssertCallback = (headers: Record<string, string | string[] | undefin
 
 /** Creates a test server that can be used to check headers */
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-export function createTestServer() {
+export function createTestServer({ signal }: { readonly signal?: AbortSignal }) {
   const gets: Array<[string, HeaderAssertCallback, number]> = [];
   let error: unknown | undefined;
 
@@ -69,6 +73,7 @@ export function createTestServer() {
       return new Promise(resolve => {
         const server = app.listen(0, () => {
           const address = server.address() as AddressInfo;
+          signal?.addEventListener('abort', () => server.close());
           resolve([
             `http://localhost:${address.port}`,
             () => {

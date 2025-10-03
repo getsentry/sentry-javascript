@@ -175,8 +175,8 @@ describe('Google GenAI integration', () => {
   };
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('creates google genai related spans with sendDefaultPii: false', async () => {
-      await createRunner()
+    test('creates google genai related spans with sendDefaultPii: false', async ({ signal }) => {
+      await createRunner({ signal })
         .ignore('event')
         .expect({ transaction: EXPECTED_TRANSACTION_DEFAULT_PII_FALSE })
         .start()
@@ -185,8 +185,8 @@ describe('Google GenAI integration', () => {
   });
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
-    test('creates google genai related spans with sendDefaultPii: true', async () => {
-      await createRunner()
+    test('creates google genai related spans with sendDefaultPii: true', async ({ signal }) => {
+      await createRunner({ signal })
         .ignore('event')
         .expect({ transaction: EXPECTED_TRANSACTION_DEFAULT_PII_TRUE })
         .start()
@@ -195,8 +195,8 @@ describe('Google GenAI integration', () => {
   });
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-with-options.mjs', (createRunner, test) => {
-    test('creates google genai related spans with custom options', async () => {
-      await createRunner()
+    test('creates google genai related spans with custom options', async ({ signal }) => {
+      await createRunner({ signal })
         .ignore('event')
         .expect({ transaction: EXPECTED_TRANSACTION_WITH_OPTIONS })
         .start()
@@ -275,8 +275,12 @@ describe('Google GenAI integration', () => {
   };
 
   createEsmAndCjsTests(__dirname, 'scenario-tools.mjs', 'instrument-with-options.mjs', (createRunner, test) => {
-    test('creates google genai related spans with tool calls', async () => {
-      await createRunner().ignore('event').expect({ transaction: EXPECTED_TRANSACTION_TOOLS }).start().completed();
+    test('creates google genai related spans with tool calls', async ({ signal }) => {
+      await createRunner({ signal })
+        .ignore('event')
+        .expect({ transaction: EXPECTED_TRANSACTION_TOOLS })
+        .start()
+        .completed();
     });
   });
 
@@ -472,14 +476,18 @@ describe('Google GenAI integration', () => {
   };
 
   createEsmAndCjsTests(__dirname, 'scenario-streaming.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('creates google genai streaming spans with sendDefaultPii: false', async () => {
-      await createRunner().ignore('event').expect({ transaction: EXPECTED_TRANSACTION_STREAMING }).start().completed();
+    test('creates google genai streaming spans with sendDefaultPii: false', async ({ signal }) => {
+      await createRunner({ signal })
+        .ignore('event')
+        .expect({ transaction: EXPECTED_TRANSACTION_STREAMING })
+        .start()
+        .completed();
     });
   });
 
   createEsmAndCjsTests(__dirname, 'scenario-streaming.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
-    test('creates google genai streaming spans with sendDefaultPii: true', async () => {
-      await createRunner()
+    test('creates google genai streaming spans with sendDefaultPii: true', async ({ signal }) => {
+      await createRunner({ signal })
         .ignore('event')
         .expect({ transaction: EXPECTED_TRANSACTION_STREAMING_PII_TRUE })
         .start()

@@ -30,8 +30,8 @@ describe('amqplib auto-instrumentation', () => {
   });
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createTestRunner, test) => {
-    test('should be able to send and receive messages', { timeout: 60_000 }, async () => {
-      await createTestRunner()
+    test('should be able to send and receive messages', { timeout: 60_000 }, async ({ signal }) => {
+      await createTestRunner({ signal })
         .withDockerCompose({
           workingDirectory: [__dirname],
           readyMatches: ['Time to start RabbitMQ'],
