@@ -328,8 +328,6 @@ export class SentrySpan implements Span {
       return;
     }
 
-    client?.emit('segmentSpanEnd', this);
-
     // if this is a standalone span, we send it immediately
     if (this._isStandaloneSpan) {
       if (this._sampled) {
@@ -342,8 +340,9 @@ export class SentrySpan implements Span {
         }
       }
       return;
-    } else if (client?.getOptions()._experiments?._INTERNAL_spanStreaming) {
-      // nothing to do here; the spanStreaming integration will listen to the respective client hook.
+    } else if (client?.getOptions().traceLifecycle === 'stream') {
+      // TODO (spans): Remove standalone span custom logic in favor of sending simple v2 web vital spans
+      client?.emit('segmentSpanEnd', this);
       return;
     }
 

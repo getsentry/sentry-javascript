@@ -1,5 +1,6 @@
-import type { Client, IntegrationFn, Span, SpanAttributes, SpanAttributeValue, SpanV2JSON } from '@sentry/core';
+import type { Client, IntegrationFn, Scope, ScopeData, Span, SpanAttributes, SpanV2JSON } from '@sentry/core';
 import {
+  attributesFromObject,
   createSpanV2Envelope,
   debug,
   defineIntegration,
@@ -7,14 +8,17 @@ import {
   getDynamicSamplingContextFromSpan,
   getGlobalScope,
   getRootSpan as getSegmentSpan,
+  httpHeadersToSpanAttributes,
   isV2BeforeSendSpanCallback,
   mergeScopeData,
   reparentChildSpans,
+  SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME,
   SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT,
   SEMANTIC_ATTRIBUTE_SENTRY_RELEASE,
   SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME,
   SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION,
   SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME,
+  SEMANTIC_ATTRIBUTE_URL_FULL,
   SEMANTIC_ATTRIBUTE_USER_EMAIL,
   SEMANTIC_ATTRIBUTE_USER_ID,
   SEMANTIC_ATTRIBUTE_USER_IP_ADDRESS,
@@ -24,6 +28,7 @@ import {
   spanToV2JSON,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
+import { getHttpRequestData } from '../helpers';
 
 export interface SpanStreamingOptions {
   batchLimit: number;
@@ -40,11 +45,11 @@ export const spanStreamingIntegration = defineIntegration(((userOptions?: Partia
   }
 
   const options: SpanStreamingOptions = {
+    ...userOptions,
     batchLimit:
       userOptions?.batchLimit && userOptions.batchLimit <= 1000 && userOptions.batchLimit >= 1
         ? userOptions.batchLimit
         : 1000,
-    ...userOptions,
   };
 
   // key: traceId-segmentSpanId
@@ -59,14 +64,14 @@ export const spanStreamingIntegration = defineIntegration(((userOptions?: Partia
       const initialMessage = 'spanStreamingIntegration requires';
       const fallbackMsg = 'Falling back to static trace lifecycle.';
 
-      if (clientOptions.traceLifecycle !== 'streamed') {
-        DEBUG_BUILD && debug.warn(`${initialMessage} \`traceLifecycle\` to be set to "streamed"! ${fallbackMsg}`);
+      if (clientOptions.traceLifecycle !== 'stream') {
+        DEBUG_BUILD && debug.warn(`${initialMessage} \`traceLifecycle\` to be set to "stream"! ${fallbackMsg}`);
         return;
       }
 
       if (beforeSendSpan && !isV2BeforeSendSpanCallback(beforeSendSpan)) {
-        DEBUG_BUILD &&
-          debug.warn(`${initialMessage} a beforeSendSpan callback using \`makeV2Callback\`! ${fallbackMsg}`);
+        client.getOptions().traceLifecycle = 'static';
+        debug.warn(`${initialMessage} a beforeSendSpan callback using \`makeV2Callback\`! ${fallbackMsg}`);
         return;
       }
 
@@ -82,16 +87,14 @@ export const spanStreamingIntegration = defineIntegration(((userOptions?: Partia
 
       // For now, we send all spans on local segment (root) span end.
       // TODO: This will change once we have more concrete ideas about a universal SDK data buffer.
-      client.on(
-        'segmentSpanEnd',
-        segmentSpan => () =>
-          processAndSendSpans(segmentSpan, {
-            spanTreeMap: spanTreeMap,
-            client,
-            batchLimit: options.batchLimit,
-            beforeSendSpan,
-          }),
-      );
+      client.on('segmentSpanEnd', segmentSpan => {
+        processAndSendSpans(segmentSpan, {
+          spanTreeMap: spanTreeMap,
+          client,
+          batchLimit: options.batchLimit,
+          beforeSendSpan,
+        });
+      });
     },
   };
 }) satisfies IntegrationFn);
@@ -122,11 +125,14 @@ function processAndSendSpans(
     spanTreeMap.delete(spanTreeMapKey);
     return;
   }
+
   const segmentSpanJson = spanToV2JSON(segmentSpan);
 
   for (const span of spansOfTrace) {
     applyCommonSpanAttributes(span, segmentSpanJson, client);
   }
+
+  applyScopeToSegmentSpan(segmentSpan, segmentSpanJson, client);
 
   // TODO: Apply scope data and contexts to segment span
 
@@ -139,7 +145,12 @@ function processAndSendSpans(
     return;
   }
 
-  const serializedSpans = Array.from(spansOfTrace ?? []).map(spanToV2JSON);
+  const serializedSpans = Array.from(spansOfTrace ?? []).map(s => {
+    const serialized = spanToV2JSON(s);
+    // remove internal span attributes we don't need to send.
+    delete serialized.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME];
+    return serialized;
+  });
 
   const processedSpans = [];
   let ignoredSpanCount = 0;
@@ -168,7 +179,7 @@ function processAndSendSpans(
     batches.push(processedSpans.slice(i, i + batchLimit));
   }
 
-  DEBUG_BUILD && debug.log(`Sending trace ${traceId} in ${batches.length} batche${batches.length === 1 ? '' : 's'}`);
+  DEBUG_BUILD && debug.log(`Sending trace ${traceId} in ${batches.length} batch${batches.length === 1 ? '' : 'es'}`);
 
   const dsc = getDynamicSamplingContextFromSpan(segmentSpan);
 
@@ -193,14 +204,7 @@ function applyCommonSpanAttributes(span: Span, serializedSegmentSpan: SpanV2JSON
 
   const originalAttributeKeys = Object.keys(spanToV2JSON(span).attributes ?? {});
 
-  // TODO: Extract this scope data merge to a helper in core. It's used in multiple places.
-  const finalScopeData = getGlobalScope().getScopeData();
-  if (spanIsolationScope) {
-    mergeScopeData(finalScopeData, spanIsolationScope.getScopeData());
-  }
-  if (spanScope) {
-    mergeScopeData(finalScopeData, spanScope.getScopeData());
-  }
+  const finalScopeData = getFinalScopeData(spanIsolationScope, spanScope);
 
   // avoid overwriting any previously set attributes (from users or potentially our SDK instrumentation)
   setAttributesIfNotPresent(span, originalAttributeKeys, {
@@ -220,6 +224,35 @@ function applyCommonSpanAttributes(span: Span, serializedSegmentSpan: SpanV2JSON
   });
 }
 
+/**
+ * Adds span attributes frome
+ */
+function applyScopeToSegmentSpan(segmentSpan: Span, serializedSegmentSpan: SpanV2JSON, client: Client): void {
+  const { isolationScope, scope } = getCapturedScopesOnSpan(segmentSpan);
+  const finalScopeData = getFinalScopeData(isolationScope, scope);
+
+  const browserRequestData = getHttpRequestData();
+
+  const tags = finalScopeData.tags ?? {};
+
+  let contextAttributes = {};
+  Object.keys(finalScopeData.contexts).forEach(key => {
+    if (finalScopeData.contexts[key]) {
+      contextAttributes = { ...contextAttributes, ...attributesFromObject(finalScopeData.contexts[key]) };
+    }
+  });
+
+  const extraAttributes = attributesFromObject(finalScopeData.extra);
+
+  setAttributesIfNotPresent(segmentSpan, Object.keys(serializedSegmentSpan.attributes ?? {}), {
+    [SEMANTIC_ATTRIBUTE_URL_FULL]: browserRequestData.url,
+    ...httpHeadersToSpanAttributes(browserRequestData.headers, client.getOptions().sendDefaultPii ?? false),
+    ...tags,
+    ...contextAttributes,
+    ...extraAttributes,
+  });
+}
+
 function applyBeforeSendSpanCallback(span: SpanV2JSON, beforeSendSpan: (span: SpanV2JSON) => SpanV2JSON): SpanV2JSON {
   const modifedSpan = beforeSendSpan(span);
   if (!modifedSpan) {
@@ -235,4 +268,16 @@ function setAttributesIfNotPresent(span: Span, originalAttributeKeys: string[], 
       span.setAttribute(key, newAttributes[key]);
     }
   });
+}
+
+// TODO: Extract this to a helper in core. It's used in multiple places.
+function getFinalScopeData(isolationScope: Scope | undefined, scope: Scope | undefined): ScopeData {
+  const finalScopeData = getGlobalScope().getScopeData();
+  if (isolationScope) {
+    mergeScopeData(finalScopeData, isolationScope.getScopeData());
+  }
+  if (scope) {
+    mergeScopeData(finalScopeData, scope.getScopeData());
+  }
+  return finalScopeData;
 }
