@@ -12,9 +12,13 @@ import {
 } from '@sentry/core';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { defineNitroPlugin, useStorage } from 'nitropack/runtime';
-import type { Driver } from 'unstorage';
+import type { Driver, Storage } from 'unstorage';
 // @ts-expect-error - This is a virtual module
 import { userStorageMounts } from '#sentry/storage-config.mjs';
+
+type MaybeInstrumentedDriver = Driver & {
+  __sentry_instrumented__?: boolean;
+};
 
 /**
  * Creates a Nitro plugin that instruments the storage driver.
@@ -35,24 +39,30 @@ export default defineNitroPlugin(async _nitroApp => {
       continue;
     }
 
-    debug.log(`[Storage Instrumentation] Instrumenting mount: "${mount.base}"`);
-
-    const driver = instrumentDriver(mount.driver, mount.base);
-
     try {
-      // Remount with instrumented driver
-      await storage.unmount(mount.base);
-      await storage.mount(mount.base, driver);
+      instrumentDriver(mount.driver, mount.base);
     } catch {
       debug.error(`[Storage Instrumentation] Failed to unmount mount: "${mount.base}"`);
     }
+
+    // Wrap the mount method to instrument future mounts
+    storage.mount = wrapStorageMount(storage);
   }
 });
 
 /**
  * Instruments a driver by wrapping all method calls using proxies.
  */
-function instrumentDriver(driver: Driver, mountBase: string): Driver {
+function instrumentDriver(driver: MaybeInstrumentedDriver, mountBase: string): Driver {
+  // Already instrumented, skip...
+  if (driver.__sentry_instrumented__) {
+    debug.log(`[Storage Instrumentation] Driver already instrumented: "${driver.name}". Skipping...`);
+
+    return driver;
+  }
+
+  debug.log(`[Storage Instrumentation] Instrumenting driver: "${driver.name}" on mount: "${mountBase}"`);
+
   // List of driver methods to instrument
   const methodsToInstrument: (keyof Driver)[] = [
     'hasItem',
@@ -80,6 +90,9 @@ function instrumentDriver(driver: Driver, mountBase: string): Driver {
     driver[methodName] = createMethodWrapper(original, methodName, driver.name ?? 'unknown', mountBase);
   }
 
+  // Mark as instrumented
+  driver.__sentry_instrumented__ = true;
+
   return driver;
 }
 
@@ -95,6 +108,8 @@ function createMethodWrapper(
   return new Proxy(original, {
     async apply(target, thisArg, args) {
       const attributes = getSpanAttributes(methodName, driverName ?? 'unknown', mountBase);
+
+      debug.log(`[Storage Instrumentation] Running method: "${methodName}" on driver: "${driverName}"`);
 
       return startSpan(
         {
@@ -125,6 +140,23 @@ function createMethodWrapper(
       );
     },
   });
+}
+
+/**
+ * Wraps the storage mount method to instrument the driver.
+ */
+function wrapStorageMount(storage: Storage): Storage['mount'] {
+  const original = storage.mount;
+
+  function mountWithInstrumentation(base: string, driver: Driver): Storage {
+    debug.log(`[Storage Instrumentation] Instrumenting mount: "${base}"`);
+
+    const instrumentedDriver = instrumentDriver(driver, base);
+
+    return original(base, instrumentedDriver);
+  }
+
+  return mountWithInstrumentation;
 }
 
 /**
