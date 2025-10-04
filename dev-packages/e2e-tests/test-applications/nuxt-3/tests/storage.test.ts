@@ -1,10 +1,11 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
-import { SEMANTIC_ATTRIBUTE_CACHE_HIT, SEMANTIC_ATTRIBUTE_CACHE_KEY } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/nuxt';
 
 test.describe('Storage Instrumentation', () => {
   const prefixKey = (key: string) => `test-storage:${key}`;
+  const SEMANTIC_ATTRIBUTE_CACHE_KEY = 'cache.key';
+  const SEMANTIC_ATTRIBUTE_CACHE_HIT = 'cache.hit';
 
   test('instruments all storage operations and creates spans with correct attributes', async ({ request }) => {
     const transactionPromise = waitForTransaction('nuxt-3', transactionEvent => {
