@@ -33,8 +33,8 @@ describe('dataloader auto-instrumentation', () => {
   };
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('should auto-instrument `dataloader` package.', async () => {
-      const runner = createRunner().expect({ transaction: EXPECTED_TRANSACTION }).start();
+    test('should auto-instrument `dataloader` package.', async ({ signal }) => {
+      const runner = createRunner({ signal }).expect({ transaction: EXPECTED_TRANSACTION }).start();
       runner.makeRequest('get', '/');
       await runner.completed();
     });

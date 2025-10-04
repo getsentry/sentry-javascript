@@ -6,8 +6,8 @@ describe('consola integration', () => {
     cleanupChildProcesses();
   });
 
-  test('should capture consola logs with default levels', async () => {
-    const runner = createRunner(__dirname, 'subject.ts')
+  test('should capture consola logs with default levels', async ({ signal }) => {
+    const runner = createRunner({ signal }, __dirname, 'subject.ts')
       .expect({
         log: {
           items: [
@@ -70,8 +70,8 @@ describe('consola integration', () => {
     await runner.completed();
   });
 
-  test('should capture different consola log types', async () => {
-    const runner = createRunner(__dirname, 'subject-types.ts')
+  test('should capture different consola log types', async ({ signal }) => {
+    const runner = createRunner({ signal }, __dirname, 'subject-types.ts')
       .expect({
         log: {
           items: [
@@ -271,8 +271,8 @@ describe('consola integration', () => {
     await runner.completed();
   });
 
-  test('should capture consola logs with arguments formatting', async () => {
-    const runner = createRunner(__dirname, 'subject-args.ts')
+  test('should capture consola logs with arguments formatting', async ({ signal }) => {
+    const runner = createRunner({ signal }, __dirname, 'subject-args.ts')
       .expect({
         log: {
           items: [
@@ -330,8 +330,8 @@ describe('consola integration', () => {
     await runner.completed();
   });
 
-  test('should capture consola logs with tags', async () => {
-    const runner = createRunner(__dirname, 'subject-tags.ts')
+  test('should capture consola logs with tags', async ({ signal }) => {
+    const runner = createRunner({ signal }, __dirname, 'subject-tags.ts')
       .expect({
         log: {
           items: [
@@ -379,8 +379,8 @@ describe('consola integration', () => {
     await runner.completed();
   });
 
-  test('should respect custom level filtering', async () => {
-    const runner = createRunner(__dirname, 'subject-custom-levels.ts')
+  test('should respect custom level filtering', async ({ signal }) => {
+    const runner = createRunner({ signal }, __dirname, 'subject-custom-levels.ts')
       .expect({
         log: {
           items: [
@@ -428,8 +428,8 @@ describe('consola integration', () => {
     await runner.completed();
   });
 
-  test('should capture different consola level methods', async () => {
-    const runner = createRunner(__dirname, 'subject-levels.ts')
+  test('should capture different consola level methods', async ({ signal }) => {
+    const runner = createRunner({ signal }, __dirname, 'subject-levels.ts')
       .expect({
         log: {
           items: [

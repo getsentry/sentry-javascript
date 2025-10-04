@@ -9,9 +9,13 @@ const EVENT_POLLING_TIMEOUT = 90_000;
 
 test(
   'Find symbolicated event on sentry',
-  async ({ expect }) => {
+  async ({ expect, skip }) => {
+    if (!authToken) {
+      skip('Auth token not set, skipping test');
+    }
     const eventId = childProcess.execSync(`node ${path.join(__dirname, '..', 'dist', 'app.js')}`, {
       encoding: 'utf-8',
+      timeout: 5_000,
     });
 
     console.log(`Polling for error eventId: ${eventId}`);

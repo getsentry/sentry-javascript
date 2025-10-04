@@ -1,10 +1,9 @@
-import { Stack, CfnResource, StackProps } from 'aws-cdk-lib';
+import { CfnResource, Stack, StackProps } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import * as path from 'node:path';
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as dns from 'node:dns/promises';
-import { platform } from 'node:process';
 import { globSync } from 'glob';
 import { execFileSync } from 'node:child_process';
 
@@ -123,10 +122,5 @@ export async function getHostIp() {
     return host.address;
   }
 
-  if (platform === 'darwin' || platform === 'win32') {
-    return 'host.docker.internal';
-  }
-
-  const host = await dns.lookup(os.hostname());
-  return host.address;
+  return 'host.docker.internal';
 }

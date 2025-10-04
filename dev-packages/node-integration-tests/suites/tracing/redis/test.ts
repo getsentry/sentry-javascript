@@ -9,7 +9,7 @@ describe('redis auto instrumentation', () => {
   test(
     'should auto-instrument `ioredis` package when using redis.set() and redis.get()',
     { timeout: 75_000 },
-    async () => {
+    async ({ signal }) => {
       const EXPECTED_TRANSACTION = {
         transaction: 'Test Span',
         spans: expect.arrayContaining([
@@ -42,7 +42,7 @@ describe('redis auto instrumentation', () => {
         ]),
       };
 
-      await createRunner(__dirname, 'scenario-ioredis.js')
+      await createRunner({ signal }, __dirname, 'scenario-ioredis.js')
         .withDockerCompose({ workingDirectory: [__dirname], readyMatches: ['port=6379'] })
         .expect({ transaction: EXPECTED_TRANSACTION })
         .start()

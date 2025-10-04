@@ -5,8 +5,8 @@ afterAll(() => {
   cleanupChildProcesses();
 });
 
-test('capture a simple message string with a stack trace if `attachStackTrace` is `true`', async () => {
-  await createRunner(__dirname, 'scenario.ts')
+test('capture a simple message string with a stack trace if `attachStackTrace` is `true`', async ({ signal }) => {
+  await createRunner({ signal }, __dirname, 'scenario.ts')
     .expect({
       event: {
         message: 'Message',

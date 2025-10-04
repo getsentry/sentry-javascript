@@ -45,22 +45,22 @@ describe('should capture child process events', () => {
   });
 
   conditionalTest({ min: 20 })('worker', () => {
-    test('ESM', async () => {
-      await createRunner(__dirname, 'worker.mjs').expect({ event: WORKER_EVENT }).start().completed();
+    test('ESM', async ({ signal }) => {
+      await createRunner({ signal }, __dirname, 'worker.mjs').expect({ event: WORKER_EVENT }).start().completed();
     });
 
-    test('CJS', async () => {
-      await createRunner(__dirname, 'worker.js').expect({ event: WORKER_EVENT }).start().completed();
+    test('CJS', async ({ signal }) => {
+      await createRunner({ signal }, __dirname, 'worker.js').expect({ event: WORKER_EVENT }).start().completed();
     });
   });
 
   conditionalTest({ min: 20 })('fork', () => {
-    test('ESM', async () => {
-      await createRunner(__dirname, 'fork.mjs').expect({ event: CHILD_EVENT }).start().completed();
+    test('ESM', async ({ signal }) => {
+      await createRunner({ signal }, __dirname, 'fork.mjs').expect({ event: CHILD_EVENT }).start().completed();
     });
 
-    test('CJS', async () => {
-      await createRunner(__dirname, 'fork.js').expect({ event: CHILD_EVENT }).start().completed();
+    test('CJS', async ({ signal }) => {
+      await createRunner({ signal }, __dirname, 'fork.js').expect({ event: CHILD_EVENT }).start().completed();
     });
   });
 });

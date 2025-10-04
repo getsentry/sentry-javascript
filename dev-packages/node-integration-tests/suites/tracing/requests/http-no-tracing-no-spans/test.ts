@@ -6,10 +6,10 @@ import { createTestServer } from '../../../../utils/server';
 describe('outgoing http requests with tracing & spans disabled', () => {
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
     conditionalTest({ min: 22 })('node >=22', () => {
-      test('outgoing http requests are correctly instrumented with tracing & spans disabled', async () => {
+      test('outgoing http requests are correctly instrumented with tracing & spans disabled', async ({ signal }) => {
         expect.assertions(11);
 
-        const [SERVER_URL, closeTestServer] = await createTestServer()
+        const [SERVER_URL, closeTestServer] = await createTestServer({ signal })
           .get('/api/v0', headers => {
             expect(headers['sentry-trace']).toEqual(expect.stringMatching(/^([a-f0-9]{32})-([a-f0-9]{16})$/));
             expect(headers['sentry-trace']).not.toEqual('00000000000000000000000000000000-0000000000000000');
@@ -30,7 +30,7 @@ describe('outgoing http requests with tracing & spans disabled', () => {
           })
           .start();
 
-        await createRunner()
+        await createRunner({ signal })
           .withEnv({ SERVER_URL })
           .expect({
             event: {
@@ -104,10 +104,12 @@ describe('outgoing http requests with tracing & spans disabled', () => {
     // On older node versions, outgoing requests do not get trace-headers injected, sadly
     // This is because the necessary diagnostics channel hook is not available yet
     conditionalTest({ max: 21 })('node <22', () => {
-      test('outgoing http requests generate breadcrumbs correctly with tracing & spans disabled', async () => {
+      test('outgoing http requests generate breadcrumbs correctly with tracing & spans disabled', async ({
+        signal,
+      }) => {
         expect.assertions(9);
 
-        const [SERVER_URL, closeTestServer] = await createTestServer()
+        const [SERVER_URL, closeTestServer] = await createTestServer({ signal })
           .get('/api/v0', headers => {
             // This is not instrumented, sadly
             expect(headers['baggage']).toBeUndefined();
@@ -128,7 +130,7 @@ describe('outgoing http requests with tracing & spans disabled', () => {
           })
           .start();
 
-        await createRunner()
+        await createRunner({ signal })
           .withEnv({ SERVER_URL })
           .expect({
             event: {

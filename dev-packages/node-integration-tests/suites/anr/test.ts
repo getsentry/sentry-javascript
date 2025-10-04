@@ -112,23 +112,23 @@ describe('should report ANR when event loop blocked', { timeout: 90_000 }, () =>
     cleanupChildProcesses();
   });
 
-  test('CJS', async () => {
-    await createRunner(__dirname, 'basic.js')
+  test('CJS', async ({ signal }) => {
+    await createRunner({ signal }, __dirname, 'basic.js')
       .withMockSentryServer()
       .expect({ event: ANR_EVENT_WITH_DEBUG_META })
       .start()
       .completed();
   });
 
-  test('ESM', async () => {
-    await createRunner(__dirname, 'basic.mjs')
+  test('ESM', async ({ signal }) => {
+    await createRunner({ signal }, __dirname, 'basic.mjs')
       .withMockSentryServer()
       .expect({ event: ANR_EVENT_WITH_DEBUG_META })
       .start()
       .completed();
   });
 
-  test('Custom appRootPath', async () => {
+  test('Custom appRootPath', async ({ signal }) => {
     const ANR_EVENT_WITH_SPECIFIC_DEBUG_META: Event = {
       ...ANR_EVENT_WITH_SCOPE,
       debug_meta: {
@@ -142,15 +142,15 @@ describe('should report ANR when event loop blocked', { timeout: 90_000 }, () =>
       },
     };
 
-    await createRunner(__dirname, 'app-path.mjs')
+    await createRunner({ signal }, __dirname, 'app-path.mjs')
       .withMockSentryServer()
       .expect({ event: ANR_EVENT_WITH_SPECIFIC_DEBUG_META })
       .start()
       .completed();
   });
 
-  test('multiple events via maxAnrEvents', async () => {
-    await createRunner(__dirname, 'basic-multiple.mjs')
+  test('multiple events via maxAnrEvents', async ({ signal }) => {
+    await createRunner({ signal }, __dirname, 'basic-multiple.mjs')
       .withMockSentryServer()
       .expect({ event: ANR_EVENT_WITH_DEBUG_META })
       .expect({ event: ANR_EVENT_WITH_DEBUG_META })
@@ -158,16 +158,16 @@ describe('should report ANR when event loop blocked', { timeout: 90_000 }, () =>
       .completed();
   });
 
-  test('blocked indefinitely', async () => {
-    await createRunner(__dirname, 'indefinite.mjs')
+  test('blocked indefinitely', async ({ signal }) => {
+    await createRunner({ signal }, __dirname, 'indefinite.mjs')
       .withMockSentryServer()
       .expect({ event: ANR_EVENT })
       .start()
       .completed();
   });
 
-  test("With --inspect the debugger isn't used", async () => {
-    await createRunner(__dirname, 'basic.mjs')
+  test("With --inspect the debugger isn't used", async ({ signal }) => {
+    await createRunner({ signal }, __dirname, 'basic.mjs')
       .withMockSentryServer()
       .withFlags('--inspect')
       .expect({ event: ANR_EVENT_WITHOUT_STACKTRACE })
@@ -175,24 +175,24 @@ describe('should report ANR when event loop blocked', { timeout: 90_000 }, () =>
       .completed();
   });
 
-  test('should exit', async () => {
-    const runner = createRunner(__dirname, 'should-exit.js').start();
+  test('should exit', async ({ signal }) => {
+    const runner = createRunner({ signal }, __dirname, 'should-exit.js').start();
 
     await new Promise(resolve => setTimeout(resolve, 5_000));
 
     expect(runner.childHasExited()).toBe(true);
   });
 
-  test('should exit forced', async () => {
-    const runner = createRunner(__dirname, 'should-exit-forced.js').start();
+  test('should exit forced', async ({ signal }) => {
+    const runner = createRunner({ signal }, __dirname, 'should-exit-forced.js').start();
 
     await new Promise(resolve => setTimeout(resolve, 5_000));
 
     expect(runner.childHasExited()).toBe(true);
   });
 
-  test('With session', async () => {
-    await createRunner(__dirname, 'basic-session.js')
+  test('With session', async ({ signal }) => {
+    await createRunner({ signal }, __dirname, 'basic-session.js')
       .withMockSentryServer()
       .unignore('session')
       .expect({
@@ -209,12 +209,15 @@ describe('should report ANR when event loop blocked', { timeout: 90_000 }, () =>
       .completed();
   });
 
-  test('from forked process', async () => {
-    await createRunner(__dirname, 'forker.js').expect({ event: ANR_EVENT_WITH_SCOPE }).start().completed();
+  test('from forked process', async ({ signal }) => {
+    await createRunner({ signal }, __dirname, 'forker.js').expect({ event: ANR_EVENT_WITH_SCOPE }).start().completed();
   });
 
-  test('worker can be stopped and restarted', async () => {
-    await createRunner(__dirname, 'stop-and-start.js').expect({ event: ANR_EVENT_WITH_SCOPE }).start().completed();
+  test('worker can be stopped and restarted', async ({ signal }) => {
+    await createRunner({ signal }, __dirname, 'stop-and-start.js')
+      .expect({ event: ANR_EVENT_WITH_SCOPE })
+      .start()
+      .completed();
   });
 
   const EXPECTED_ISOLATED_EVENT = {
@@ -243,8 +246,8 @@ describe('should report ANR when event loop blocked', { timeout: 90_000 }, () =>
     },
   };
 
-  test('fetches correct isolated scope', async () => {
-    await createRunner(__dirname, 'isolated.mjs')
+  test('fetches correct isolated scope', async ({ signal }) => {
+    await createRunner({ signal }, __dirname, 'isolated.mjs')
       .withMockSentryServer()
       .expect({ event: EXPECTED_ISOLATED_EVENT })
       .start()

@@ -40,8 +40,8 @@ conditionalTest({ min: 20 })('should capture process and thread breadcrumbs', ()
     cleanupChildProcesses();
   });
 
-  test('ESM', async () => {
-    await createRunner(__dirname, 'app.mjs')
+  test('ESM', async ({ signal }) => {
+    await createRunner({ signal }, __dirname, 'app.mjs')
       .withMockSentryServer()
       .expect({ event: EVENT as Event })
       .start()

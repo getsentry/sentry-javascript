@@ -5,8 +5,8 @@ afterAll(() => {
   cleanupChildProcesses();
 });
 
-test('should attach measurement to transaction', async () => {
-  await createRunner(__dirname, 'scenario.ts')
+test('should attach measurement to transaction', async ({ signal }) => {
+  await createRunner({ signal }, __dirname, 'scenario.ts')
     .expect({
       transaction: {
         transaction: 'some_transaction',

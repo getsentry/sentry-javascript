@@ -5,8 +5,8 @@ afterAll(() => {
   cleanupChildProcesses();
 });
 
-test('should capture a simple message string', async () => {
-  await createRunner(__dirname, 'scenario.ts')
+test('should capture a simple message string', async ({ signal }) => {
+  await createRunner({ signal }, __dirname, 'scenario.ts')
     .expect({
       event: {
         message: 'Message',

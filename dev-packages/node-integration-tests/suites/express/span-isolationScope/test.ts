@@ -5,8 +5,8 @@ afterAll(() => {
   cleanupChildProcesses();
 });
 
-test('correctly applies isolation scope to span', async () => {
-  const runner = createRunner(__dirname, 'server.ts')
+test('correctly applies isolation scope to span', async ({ signal }) => {
+  const runner = createRunner({ signal }, __dirname, 'server.ts')
     .expect({
       transaction: {
         transaction: 'GET /test/isolationScope',

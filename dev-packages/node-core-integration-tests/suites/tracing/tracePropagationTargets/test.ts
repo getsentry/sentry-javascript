@@ -6,10 +6,12 @@ import { createTestServer } from '../../../utils/server';
 // This test requires Node.js 22+ because it depends on the 'http.client.request.created'
 // diagnostic channel for baggage header propagation, which only exists since Node 22.12.0+ and 23.2.0+
 conditionalTest({ min: 22 })('node >=22', () => {
-  test('SentryHttpIntegration should instrument correct requests when tracePropagationTargets option is provided', async () => {
+  test('SentryHttpIntegration should instrument correct requests when tracePropagationTargets option is provided', async ({
+    signal,
+  }) => {
     expect.assertions(11);
 
-    const [SERVER_URL, closeTestServer] = await createTestServer()
+    const [SERVER_URL, closeTestServer] = await createTestServer({ signal })
       .get('/api/v0', headers => {
         expect(headers['baggage']).toEqual(expect.any(String));
         expect(headers['sentry-trace']).toEqual(expect.stringMatching(/^([a-f0-9]{32})-([a-f0-9]{16})-1$/));
@@ -30,7 +32,7 @@ conditionalTest({ min: 22 })('node >=22', () => {
       })
       .start();
 
-    await createRunner(__dirname, 'scenario.ts')
+    await createRunner({ signal }, __dirname, 'scenario.ts')
       .withEnv({ SERVER_URL })
       .expect({
         transaction: {

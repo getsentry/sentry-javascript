@@ -6,8 +6,8 @@ afterAll(() => {
 });
 
 describe('express without tracing', () => {
-  test('correctly applies isolation scope even without tracing', async () => {
-    const runner = createRunner(__dirname, 'server.ts')
+  test('correctly applies isolation scope even without tracing', async ({ signal }) => {
+    const runner = createRunner({ signal }, __dirname, 'server.ts')
       .expect({
         event: {
           transaction: 'GET /test/isolationScope/1',
@@ -33,8 +33,8 @@ describe('express without tracing', () => {
   });
 
   describe('request data', () => {
-    test('correctly captures JSON request data', async () => {
-      const runner = createRunner(__dirname, 'server.ts')
+    test('correctly captures JSON request data', async ({ signal }) => {
+      const runner = createRunner({ signal }, __dirname, 'server.ts')
         .expect({
           event: {
             transaction: 'POST /test-post',
@@ -63,8 +63,8 @@ describe('express without tracing', () => {
       await runner.completed();
     });
 
-    test('correctly captures plain text request data', async () => {
-      const runner = createRunner(__dirname, 'server.ts')
+    test('correctly captures plain text request data', async ({ signal }) => {
+      const runner = createRunner({ signal }, __dirname, 'server.ts')
         .expect({
           event: {
             transaction: 'POST /test-post',
@@ -90,8 +90,8 @@ describe('express without tracing', () => {
       await runner.completed();
     });
 
-    test('correctly captures text buffer request data', async () => {
-      const runner = createRunner(__dirname, 'server.ts')
+    test('correctly captures text buffer request data', async ({ signal }) => {
+      const runner = createRunner({ signal }, __dirname, 'server.ts')
         .expect({
           event: {
             transaction: 'POST /test-post',
@@ -115,8 +115,8 @@ describe('express without tracing', () => {
       await runner.completed();
     });
 
-    test('correctly captures non-text buffer request data', async () => {
-      const runner = createRunner(__dirname, 'server.ts')
+    test('correctly captures non-text buffer request data', async ({ signal }) => {
+      const runner = createRunner({ signal }, __dirname, 'server.ts')
         .expect({
           event: {
             transaction: 'POST /test-post',

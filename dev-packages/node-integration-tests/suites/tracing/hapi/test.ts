@@ -37,14 +37,14 @@ describe('hapi auto-instrumentation', () => {
   };
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('should auto-instrument `@hapi/hapi` package.', async () => {
-      const runner = createRunner().expect({ transaction: EXPECTED_TRANSACTION }).start();
+    test('should auto-instrument `@hapi/hapi` package.', async ({ signal }) => {
+      const runner = createRunner({ signal }).expect({ transaction: EXPECTED_TRANSACTION }).start();
       runner.makeRequest('get', '/');
       await runner.completed();
     });
 
-    test('should handle returned plain errors in routes.', async () => {
-      const runner = createRunner()
+    test('should handle returned plain errors in routes.', async ({ signal }) => {
+      const runner = createRunner({ signal })
         .expect({
           transaction: {
             transaction: 'GET /error',
@@ -56,8 +56,8 @@ describe('hapi auto-instrumentation', () => {
       await runner.completed();
     });
 
-    test('should assign parameterized transactionName to error.', async () => {
-      const runner = createRunner()
+    test('should assign parameterized transactionName to error.', async ({ signal }) => {
+      const runner = createRunner({ signal })
         .expect({
           event: {
             ...EXPECTED_ERROR_EVENT,
@@ -70,8 +70,8 @@ describe('hapi auto-instrumentation', () => {
       await runner.completed();
     });
 
-    test('should handle returned Boom errors in routes.', async () => {
-      const runner = createRunner()
+    test('should handle returned Boom errors in routes.', async ({ signal }) => {
+      const runner = createRunner({ signal })
         .expect({
           transaction: {
             transaction: 'GET /boom-error',
@@ -83,8 +83,8 @@ describe('hapi auto-instrumentation', () => {
       await runner.completed();
     });
 
-    test('should handle promise rejections in routes.', async () => {
-      const runner = createRunner()
+    test('should handle promise rejections in routes.', async ({ signal }) => {
+      const runner = createRunner({ signal })
         .expect({
           transaction: {
             transaction: 'GET /promise-error',

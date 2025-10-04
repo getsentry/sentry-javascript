@@ -2,8 +2,8 @@ import { expect, it } from 'vitest';
 import { eventEnvelope } from '../../expect';
 import { createRunner } from '../../runner';
 
-it('Basic error in fetch handler', async () => {
-  const runner = createRunner(__dirname)
+it('Basic error in fetch handler', async ({ signal }) => {
+  const runner = createRunner({ signal }, __dirname)
     .expect(
       eventEnvelope({
         level: 'error',

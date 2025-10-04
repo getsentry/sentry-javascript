@@ -7,7 +7,9 @@ afterAll(() => {
 
 // Before Node 16, parametrization is not working properly here
 describe('middle-layer-parameterized', () => {
-  test('should construct correct url with multiple parameterized routers, when param is also contain in middle layer route', async () => {
+  test('should construct correct url with multiple parameterized routers, when param is also contain in middle layer route', async ({
+    signal,
+  }) => {
     const EXPECTED_TRANSACTION = {
       transaction: 'GET /api/v1/users/:userId/posts/:postId',
       transaction_info: {
@@ -15,7 +17,7 @@ describe('middle-layer-parameterized', () => {
       },
     };
 
-    const runner = createRunner(__dirname, 'server.ts')
+    const runner = createRunner({ signal }, __dirname, 'server.ts')
       .ignore('event')
       .expect({ transaction: EXPECTED_TRANSACTION as any })
       .start();

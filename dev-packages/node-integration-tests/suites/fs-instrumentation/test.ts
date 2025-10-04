@@ -6,8 +6,8 @@ afterAll(() => {
   cleanupChildProcesses();
 });
 
-test('should create spans for fs operations that take target argument', async () => {
-  const runner = createRunner(__dirname, 'server.ts')
+test('should create spans for fs operations that take target argument', async ({ signal }) => {
+  const runner = createRunner({ signal }, __dirname, 'server.ts')
     .expect({
       transaction: {
         transaction: 'GET /readFile-error',
@@ -33,8 +33,8 @@ test('should create spans for fs operations that take target argument', async ()
   await runner.completed();
 });
 
-test('should create spans for fs operations that take one path', async () => {
-  const runner = createRunner(__dirname, 'server.ts')
+test('should create spans for fs operations that take one path', async ({ signal }) => {
+  const runner = createRunner({ signal }, __dirname, 'server.ts')
     .expect({
       transaction: {
         transaction: 'GET /readFile',
@@ -79,8 +79,8 @@ test('should create spans for fs operations that take one path', async () => {
   await runner.completed();
 });
 
-test('should create spans for fs operations that take src and dest arguments', async () => {
-  const runner = createRunner(__dirname, 'server.ts')
+test('should create spans for fs operations that take src and dest arguments', async ({ signal }) => {
+  const runner = createRunner({ signal }, __dirname, 'server.ts')
     .expect({
       transaction: {
         transaction: 'GET /copyFile',
@@ -128,8 +128,8 @@ test('should create spans for fs operations that take src and dest arguments', a
   await runner.completed();
 });
 
-test('should create spans for fs operations that take existing path and new path arguments', async () => {
-  const runner = createRunner(__dirname, 'server.ts')
+test('should create spans for fs operations that take existing path and new path arguments', async ({ signal }) => {
+  const runner = createRunner({ signal }, __dirname, 'server.ts')
     .expect({
       transaction: {
         transaction: 'GET /link',
@@ -177,8 +177,8 @@ test('should create spans for fs operations that take existing path and new path
   await runner.completed();
 });
 
-test('should create spans for fs operations that take prefix argument', async () => {
-  const runner = createRunner(__dirname, 'server.ts')
+test('should create spans for fs operations that take prefix argument', async ({ signal }) => {
+  const runner = createRunner({ signal }, __dirname, 'server.ts')
     .expect({
       transaction: {
         transaction: 'GET /mkdtemp',
@@ -223,8 +223,8 @@ test('should create spans for fs operations that take prefix argument', async ()
   await runner.completed();
 });
 
-test('should create spans for fs operations that take target argument', async () => {
-  const runner = createRunner(__dirname, 'server.ts')
+test('should create spans for fs operations that take target argument', async ({ signal }) => {
+  const runner = createRunner({ signal }, __dirname, 'server.ts')
     .expect({
       transaction: {
         transaction: 'GET /symlink',

@@ -7,7 +7,7 @@ const EXPECTED_START_SERVER_TRANSACTION = {
 };
 
 describe('GraphQL/Apollo Tests', () => {
-  test('should instrument GraphQL queries used from Apollo Server.', async () => {
+  test('should instrument GraphQL queries used from Apollo Server.', async ({ signal }) => {
     const EXPECTED_TRANSACTION = {
       transaction: 'Test Transaction (query)',
       spans: expect.arrayContaining([
@@ -24,14 +24,14 @@ describe('GraphQL/Apollo Tests', () => {
       ]),
     };
 
-    await createRunner(__dirname, 'scenario-query.js')
+    await createRunner({ signal }, __dirname, 'scenario-query.js')
       .expect({ transaction: EXPECTED_START_SERVER_TRANSACTION })
       .expect({ transaction: EXPECTED_TRANSACTION })
       .start()
       .completed();
   });
 
-  test('should instrument GraphQL mutations used from Apollo Server.', async () => {
+  test('should instrument GraphQL mutations used from Apollo Server.', async ({ signal }) => {
     const EXPECTED_TRANSACTION = {
       transaction: 'Test Transaction (mutation Mutation)',
       spans: expect.arrayContaining([
@@ -49,14 +49,14 @@ describe('GraphQL/Apollo Tests', () => {
       ]),
     };
 
-    await createRunner(__dirname, 'scenario-mutation.js')
+    await createRunner({ signal }, __dirname, 'scenario-mutation.js')
       .expect({ transaction: EXPECTED_START_SERVER_TRANSACTION })
       .expect({ transaction: EXPECTED_TRANSACTION })
       .start()
       .completed();
   });
 
-  test('should handle GraphQL errors.', async () => {
+  test('should handle GraphQL errors.', async ({ signal }) => {
     const EXPECTED_TRANSACTION = {
       transaction: 'Test Transaction (mutation Mutation)',
       spans: expect.arrayContaining([
@@ -74,7 +74,7 @@ describe('GraphQL/Apollo Tests', () => {
       ]),
     };
 
-    await createRunner(__dirname, 'scenario-error.js')
+    await createRunner({ signal }, __dirname, 'scenario-error.js')
       .expect({ transaction: EXPECTED_START_SERVER_TRANSACTION })
       .expect({ transaction: EXPECTED_TRANSACTION })
       .start()

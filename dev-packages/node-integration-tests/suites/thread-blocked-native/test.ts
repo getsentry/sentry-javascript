@@ -85,23 +85,23 @@ describe('Thread Blocked Native', { timeout: 30_000 }, () => {
     cleanupChildProcesses();
   });
 
-  test('CJS', async () => {
-    await createRunner(__dirname, 'basic.js')
+  test('CJS', async ({ signal }) => {
+    await createRunner({ signal }, __dirname, 'basic.js')
       .withMockSentryServer()
       .expect({ event: ANR_EVENT_WITH_DEBUG_META('basic') })
       .start()
       .completed();
   });
 
-  test('ESM', async () => {
-    await createRunner(__dirname, 'basic.mjs')
+  test('ESM', async ({ signal }) => {
+    await createRunner({ signal }, __dirname, 'basic.mjs')
       .withMockSentryServer()
       .expect({ event: ANR_EVENT_WITH_DEBUG_META('basic') })
       .start()
       .completed();
   });
 
-  test('Custom appRootPath', async () => {
+  test('Custom appRootPath', async ({ signal }) => {
     const ANR_EVENT_WITH_SPECIFIC_DEBUG_META: Event = {
       ...ANR_EVENT,
       debug_meta: {
@@ -115,15 +115,15 @@ describe('Thread Blocked Native', { timeout: 30_000 }, () => {
       },
     };
 
-    await createRunner(__dirname, 'app-path.mjs')
+    await createRunner({ signal }, __dirname, 'app-path.mjs')
       .withMockSentryServer()
       .expect({ event: ANR_EVENT_WITH_SPECIFIC_DEBUG_META })
       .start()
       .completed();
   });
 
-  test('multiple events via maxEventsPerHour', async () => {
-    await createRunner(__dirname, 'basic-multiple.mjs')
+  test('multiple events via maxEventsPerHour', async ({ signal }) => {
+    await createRunner({ signal }, __dirname, 'basic-multiple.mjs')
       .withMockSentryServer()
       .expect({ event: ANR_EVENT_WITH_DEBUG_META('basic-multiple') })
       .expect({ event: ANR_EVENT_WITH_DEBUG_META('basic-multiple') })
@@ -131,32 +131,32 @@ describe('Thread Blocked Native', { timeout: 30_000 }, () => {
       .completed();
   });
 
-  test('blocked indefinitely', async () => {
-    await createRunner(__dirname, 'indefinite.mjs')
+  test('blocked indefinitely', async ({ signal }) => {
+    await createRunner({ signal }, __dirname, 'indefinite.mjs')
       .withMockSentryServer()
       .expect({ event: ANR_EVENT })
       .start()
       .completed();
   });
 
-  test('should exit', async () => {
-    const runner = createRunner(__dirname, 'should-exit.js').start();
+  test('should exit', async ({ signal }) => {
+    const runner = createRunner({ signal }, __dirname, 'should-exit.js').start();
 
     await new Promise(resolve => setTimeout(resolve, 5_000));
 
     expect(runner.childHasExited()).toBe(true);
   });
 
-  test('should exit forced', async () => {
-    const runner = createRunner(__dirname, 'should-exit-forced.js').start();
+  test('should exit forced', async ({ signal }) => {
+    const runner = createRunner({ signal }, __dirname, 'should-exit-forced.js').start();
 
     await new Promise(resolve => setTimeout(resolve, 5_000));
 
     expect(runner.childHasExited()).toBe(true);
   });
 
-  test('can be disabled with disableBlockDetectionForCallback', async () => {
-    await createRunner(__dirname, 'basic-disabled.mjs')
+  test('can be disabled with disableBlockDetectionForCallback', async ({ signal }) => {
+    await createRunner({ signal }, __dirname, 'basic-disabled.mjs')
       .withMockSentryServer()
       .expect({
         event: {
@@ -168,9 +168,9 @@ describe('Thread Blocked Native', { timeout: 30_000 }, () => {
       .completed();
   });
 
-  test('worker thread', async () => {
+  test('worker thread', async ({ signal }) => {
     const instrument = join(__dirname, 'instrument.mjs');
-    await createRunner(__dirname, 'worker-main.mjs')
+    await createRunner({ signal }, __dirname, 'worker-main.mjs')
       .withMockSentryServer()
       .withFlags('--import', instrument)
       .expect({

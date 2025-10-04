@@ -76,8 +76,8 @@ describe('OnUncaughtException integration', () => {
       }));
   });
 
-  test('sets correct event mechanism', async () => {
-    await createRunner(__dirname, 'basic.js')
+  test('sets correct event mechanism', async ({ signal }) => {
+    await createRunner({ signal }, __dirname, 'basic.js')
       .expect({
         event: {
           level: 'fatal',

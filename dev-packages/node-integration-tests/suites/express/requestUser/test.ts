@@ -6,10 +6,10 @@ describe('express user handling', () => {
     cleanupChildProcesses();
   });
 
-  test('ignores user from request', async () => {
+  test('ignores user from request', async ({ signal }) => {
     expect.assertions(2);
 
-    const runner = createRunner(__dirname, 'server.js')
+    const runner = createRunner({ signal }, __dirname, 'server.js')
       .expect({
         event: event => {
           expect(event.user).toBeUndefined();
@@ -21,8 +21,8 @@ describe('express user handling', () => {
     await runner.completed();
   });
 
-  test('using setUser in middleware works', async () => {
-    const runner = createRunner(__dirname, 'server.js')
+  test('using setUser in middleware works', async ({ signal }) => {
+    const runner = createRunner({ signal }, __dirname, 'server.js')
       .expect({
         event: {
           user: {
