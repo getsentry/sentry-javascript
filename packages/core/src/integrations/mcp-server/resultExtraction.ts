@@ -10,24 +10,22 @@ import {
   MCP_TOOL_RESULT_CONTENT_COUNT_ATTRIBUTE,
   MCP_TOOL_RESULT_IS_ERROR_ATTRIBUTE,
 } from './attributes';
+import { filterMediaFromContentArray, filterMediaFromContentItem } from './mediaFiltering';
 import { isValidContentItem } from './validation';
 
-/**
- * Build attributes for tool result content items
- * @param content - Array of content items from tool result
- * @returns Attributes extracted from each content item including type, text, mime type, URI, and resource info
- */
 function buildAllContentItemAttributes(content: unknown[]): Record<string, string | number | boolean> {
+  const filteredContent = filterMediaFromContentArray(content);
+
   const attributes: Record<string, string | number> = {
-    [MCP_TOOL_RESULT_CONTENT_COUNT_ATTRIBUTE]: content.length,
+    [MCP_TOOL_RESULT_CONTENT_COUNT_ATTRIBUTE]: filteredContent.length,
   };
 
-  for (const [i, item] of content.entries()) {
+  for (const [i, item] of filteredContent.entries()) {
     if (!isValidContentItem(item)) {
       continue;
     }
 
-    const prefix = content.length === 1 ? 'mcp.tool.result' : `mcp.tool.result.${i}`;
+    const prefix = filteredContent.length === 1 ? 'mcp.tool.result' : `mcp.tool.result.${i}`;
 
     const safeSet = (key: string, value: unknown): void => {
       if (typeof value === 'string') {
@@ -93,19 +91,22 @@ export function extractPromptResultAttributes(result: unknown): Record<string, s
   }
 
   if (Array.isArray(result.messages)) {
-    attributes[MCP_PROMPT_RESULT_MESSAGE_COUNT_ATTRIBUTE] = result.messages.length;
+    const filteredMessages = result.messages
+      .map(message => filterMediaFromContentItem(message))
+      .filter(message => message !== null);
 
-    const messages = result.messages;
-    for (const [i, message] of messages.entries()) {
+    attributes[MCP_PROMPT_RESULT_MESSAGE_COUNT_ATTRIBUTE] = filteredMessages.length;
+
+    for (const [i, message] of filteredMessages.entries()) {
       if (!isValidContentItem(message)) {
         continue;
       }
 
-      const prefix = messages.length === 1 ? 'mcp.prompt.result' : `mcp.prompt.result.${i}`;
+      const prefix = filteredMessages.length === 1 ? 'mcp.prompt.result' : `mcp.prompt.result.${i}`;
 
       const safeSet = (key: string, value: unknown): void => {
         if (typeof value === 'string') {
-          const attrName = messages.length === 1 ? `${prefix}.message_${key}` : `${prefix}.${key}`;
+          const attrName = filteredMessages.length === 1 ? `${prefix}.message_${key}` : `${prefix}.${key}`;
           attributes[attrName] = value;
         }
       };
@@ -115,7 +116,7 @@ export function extractPromptResultAttributes(result: unknown): Record<string, s
       if (isValidContentItem(message.content)) {
         const content = message.content;
         if (typeof content.text === 'string') {
-          const attrName = messages.length === 1 ? `${prefix}.message_content` : `${prefix}.content`;
+          const attrName = filteredMessages.length === 1 ? `${prefix}.message_content` : `${prefix}.content`;
           attributes[attrName] = content.text;
         }
       }
