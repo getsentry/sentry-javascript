@@ -116,10 +116,10 @@ describe('util', () => {
         ['18.0.0', 'Next.js 18.0.0'],
         ['20.0.0', 'Next.js 20.0.0'],
 
-        // Next.js 15.6.0-canary.38+ (boundary case)
-        ['15.6.0-canary.38', 'Next.js 15.6.0-canary.38 (exact threshold)'],
-        ['15.6.0-canary.39', 'Next.js 15.6.0-canary.39'],
-        ['15.6.0-canary.40', 'Next.js 15.6.0-canary.40'],
+        // Next.js 15.6.0-canary.40+ (boundary case)
+        ['15.6.0-canary.40', 'Next.js 15.6.0-canary.40 (exact threshold)'],
+        ['15.6.0-canary.41', 'Next.js 15.6.0-canary.41'],
+        ['15.6.0-canary.42', 'Next.js 15.6.0-canary.42'],
         ['15.6.0-canary.100', 'Next.js 15.6.0-canary.100'],
 
         // Next.js 15.7+ canary versions
@@ -134,10 +134,10 @@ describe('util', () => {
 
     describe('returns false for versions where webpack is still default', () => {
       it.each([
-        // Next.js 15.6.0-canary.37 and below
-        ['15.6.0-canary.37', 'Next.js 15.6.0-canary.37 (just below threshold)'],
+        // Next.js 15.6.0-canary.39 and below
+        ['15.6.0-canary.39', 'Next.js 15.6.0-canary.39 (just below threshold)'],
         ['15.6.0-canary.36', 'Next.js 15.6.0-canary.36'],
-        ['15.6.0-canary.1', 'Next.js 15.6.0-canary.1'],
+        ['15.6.0-canary.38', 'Next.js 15.6.0-canary.38'],
         ['15.6.0-canary.0', 'Next.js 15.6.0-canary.0'],
 
         // Next.js 15.6.x stable releases (NOT canary)
@@ -198,12 +198,12 @@ describe('util', () => {
         expect(() => util.isTurbopackDefaultForVersion(version)).not.toThrow();
       });
 
-      it('handles canary.38 exactly (boundary)', () => {
-        expect(util.isTurbopackDefaultForVersion('15.6.0-canary.38')).toBe(true);
+      it('handles canary.40 exactly (boundary)', () => {
+        expect(util.isTurbopackDefaultForVersion('15.6.0-canary.40')).toBe(true);
       });
 
-      it('handles canary.37 exactly (boundary)', () => {
-        expect(util.isTurbopackDefaultForVersion('15.6.0-canary.37')).toBe(false);
+      it('handles canary.39 exactly (boundary)', () => {
+        expect(util.isTurbopackDefaultForVersion('15.6.0-canary.39')).toBe(false);
       });
     });
   });
@@ -238,8 +238,8 @@ describe('util', () => {
       expect(util.detectActiveBundler('17.0.0')).toBe('turbopack');
     });
 
-    it('returns turbopack for Next.js 15.6.0-canary.38+', () => {
-      expect(util.detectActiveBundler('15.6.0-canary.38')).toBe('turbopack');
+    it('returns turbopack for Next.js 15.6.0-canary.40+', () => {
+      expect(util.detectActiveBundler('15.6.0-canary.40')).toBe('turbopack');
       expect(util.detectActiveBundler('15.6.0-canary.50')).toBe('turbopack');
     });
 

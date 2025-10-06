@@ -89,14 +89,14 @@ export function isTurbopackDefaultForVersion(version: string): boolean {
     return true;
   }
 
-  // For Next.js 15, only canary versions 15.6.0-canary.38+ use turbopack by default
+  // For Next.js 15, only canary versions 15.6.0-canary.40+ use turbopack by default
   // Stable 15.x releases still use webpack by default
   if (major === 15 && minor >= 6 && prerelease && prerelease.startsWith('canary.')) {
     if (minor >= 7) {
       return true;
     }
     const canaryNumber = parseInt(prerelease.split('.')[1] || '0', 10);
-    if (canaryNumber >= 38) {
+    if (canaryNumber >= 40) {
       return true;
     }
   }

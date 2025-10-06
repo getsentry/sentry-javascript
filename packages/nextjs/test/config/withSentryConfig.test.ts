@@ -325,9 +325,9 @@ describe('withSentryConfig', () => {
       });
     });
 
-    describe('Next.js 15.6.0-canary.38+ defaults to turbopack', () => {
-      it('uses turbopack config by default for 15.6.0-canary.38', () => {
-        vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.6.0-canary.38');
+    describe('Next.js 15.6.0-canary.40+ defaults to turbopack', () => {
+      it('uses turbopack config by default for 15.6.0-canary.40', () => {
+        vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.6.0-canary.40');
 
         const finalConfig = materializeFinalNextConfig(exportedNextConfig);
 
@@ -353,8 +353,8 @@ describe('withSentryConfig', () => {
         expect(finalConfig.webpack).toBe(exportedNextConfig.webpack);
       });
 
-      it('uses webpack when --webpack flag is present on 15.6.0-canary.38', () => {
-        vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.6.0-canary.38');
+      it('uses webpack when --webpack flag is present on 15.6.0-canary.40', () => {
+        vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.6.0-canary.40');
         process.argv.push('--webpack');
 
         const finalConfig = materializeFinalNextConfig(exportedNextConfig);
