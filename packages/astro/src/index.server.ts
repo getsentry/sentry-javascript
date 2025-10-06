@@ -94,6 +94,7 @@ export {
   onUnhandledRejectionIntegration,
   openAIIntegration,
   parameterize,
+  pinoIntegration,
   postgresIntegration,
   postgresJsIntegration,
   prismaIntegration,

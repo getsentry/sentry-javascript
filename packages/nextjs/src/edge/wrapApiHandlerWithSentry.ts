@@ -39,7 +39,6 @@ export function wrapApiHandlerWithSentry<H extends EdgeRouteHandler>(
             normalizedRequest: winterCGRequestToRequestData(req),
           });
           currentScope.setTransactionName(`${req.method} ${parameterizedRoute}`);
-
           headerAttributes = addHeadersAsAttributes(req.headers);
         } else {
           currentScope.setTransactionName(`handler (${parameterizedRoute})`);
