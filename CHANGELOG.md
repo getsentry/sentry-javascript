@@ -4,6 +4,35 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 10.17.0
+
+### Important Changes
+
+- **feat(nuxt): Implement server middleware instrumentation ([#17796](https://github.com/getsentry/sentry-javascript/pull/17796))**
+
+  This release introduces instrumentation for Nuxt middleware, ensuring that all middleware handlers are automatically wrapped with tracing and error reporting functionality.
+
+- **fix(aws-serverless): Take `http_proxy` into account when choosing
+  `useLayerExtension` default ([#17817](https://github.com/getsentry/sentry-javascript/pull/17817))**
+
+  The default setting for `useLayerExtension` now considers the `http_proxy` environment variable.
+  When `http_proxy` is set, `useLayerExtension` will be off by default.
+  If you use a `http_proxy` but would still like to make use of the Sentry Lambda extension, exempt `localhost` in a `no_proxy` environment variable.
+
+### Other Changes
+
+- feat(node): Split up http integration into composable parts ([#17524](https://github.com/getsentry/sentry-javascript/pull/17524))
+- fix(core): Remove check and always respect ai.telemetry.functionId for Vercel AI gen spans ([#17811](https://github.com/getsentry/sentry-javascript/pull/17811))
+- doc(core): Fix outdated JSDoc in `beforeSendSpan` ([#17815](https://github.com/getsentry/sentry-javascript/pull/17815))
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+
+- ci: Do not run dependabot on e2e test applications ([#17813](https://github.com/getsentry/sentry-javascript/pull/17813))
+- docs: Reword changelog for google gen ai integration ([#17805](https://github.com/getsentry/sentry-javascript/pull/17805))
+
+</details>
+
 ## 10.16.0
 
 - feat(logs): Add internal `replay_is_buffering` flag ([#17752](https://github.com/getsentry/sentry-javascript/pull/17752))
