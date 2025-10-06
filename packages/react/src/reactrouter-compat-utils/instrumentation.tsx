@@ -241,6 +241,10 @@ export function createV6CompatibleWrapCreateBrowserRouter<
 
     const activeRootSpan = getActiveRootSpan();
 
+    // Track whether we've handled the initial POP to avoid creating navigation spans
+    // for POP events that occur during the initial pageload phase.
+    let hasHandledInitialPop = false;
+
     // The initial load ends when `createBrowserRouter` is called.
     // This is the earliest convenient time to update the transaction name.
     // Callbacks to `router.subscribe` are not called for the initial load.
@@ -252,23 +256,19 @@ export function createV6CompatibleWrapCreateBrowserRouter<
         basename,
         allRoutes: Array.from(allRoutes),
       });
+      hasHandledInitialPop = true;
     }
 
     router.subscribe((state: RouterState) => {
-      if (state.historyAction === 'PUSH' || state.historyAction === 'POP') {
-        // Wait for the next render if loading an unsettled route
-        if (state.navigation.state !== 'idle') {
-          requestAnimationFrame(() => {
-            handleNavigation({
-              location: state.location,
-              routes,
-              navigationType: state.historyAction,
-              version,
-              basename,
-              allRoutes: Array.from(allRoutes),
-            });
-          });
-        } else {
+      const shouldHandleNavigation =
+        state.historyAction === 'PUSH' ||
+        // Only handle POP events after the initial pageload POP has been processed.
+        // This prevents creating navigation spans for POP events during long-running pageloads,
+        // while still allowing legitimate back/forward button navigation to be tracked.
+        (state.historyAction === 'POP' && hasHandledInitialPop);
+
+      if (shouldHandleNavigation) {
+        const navigationHandler = (): void => {
           handleNavigation({
             location: state.location,
             routes,
@@ -277,6 +277,13 @@ export function createV6CompatibleWrapCreateBrowserRouter<
             basename,
             allRoutes: Array.from(allRoutes),
           });
+        };
+
+        // Wait for the next render if loading an unsettled route
+        if (state.navigation.state !== 'idle') {
+          requestAnimationFrame(navigationHandler);
+        } else {
+          navigationHandler();
         }
       }
     });
