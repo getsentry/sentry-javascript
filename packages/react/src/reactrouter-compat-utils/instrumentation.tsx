@@ -241,9 +241,9 @@ export function createV6CompatibleWrapCreateBrowserRouter<
 
     const activeRootSpan = getActiveRootSpan();
 
-    // Track whether we've handled the initial POP to avoid creating navigation spans
-    // for POP events that occur during the initial pageload phase.
-    let hasHandledInitialPop = false;
+    // Track whether we've completed the initial pageload to properly distinguish
+    // between POPs that occur during pageload vs. legitimate back/forward navigation.
+    let isPageloadComplete = false;
 
     // The initial load ends when `createBrowserRouter` is called.
     // This is the earliest convenient time to update the transaction name.
@@ -256,16 +256,23 @@ export function createV6CompatibleWrapCreateBrowserRouter<
         basename,
         allRoutes: Array.from(allRoutes),
       });
-      hasHandledInitialPop = true;
     }
 
     router.subscribe((state: RouterState) => {
+      const currentRootSpan = getActiveRootSpan();
+      const isStillInPageload = currentRootSpan && spanToJSON(currentRootSpan).op === 'pageload';
+
+      // Mark pageload as complete once we're no longer in a pageload span
+      if (!isStillInPageload && !isPageloadComplete) {
+        isPageloadComplete = true;
+      }
+
       const shouldHandleNavigation =
         state.historyAction === 'PUSH' ||
-        // Only handle POP events after the initial pageload POP has been processed.
+        // Only handle POP events after pageload is complete.
         // This prevents creating navigation spans for POP events during long-running pageloads,
         // while still allowing legitimate back/forward button navigation to be tracked.
-        (state.historyAction === 'POP' && hasHandledInitialPop);
+        (state.historyAction === 'POP' && isPageloadComplete);
 
       if (shouldHandleNavigation) {
         const navigationHandler = (): void => {
@@ -359,9 +366,28 @@ export function createV6CompatibleWrapCreateMemoryRouter<
       updatePageloadTransaction({ activeRootSpan, location, routes, basename, allRoutes: Array.from(allRoutes) });
     }
 
+    // Track whether we've completed the initial pageload to properly distinguish
+    // between POPs that occur during pageload vs. legitimate back/forward navigation.
+    let isPageloadComplete = false;
+
     router.subscribe((state: RouterState) => {
+      const currentRootSpan = getActiveRootSpan();
+      const isStillInPageload = currentRootSpan && spanToJSON(currentRootSpan).op === 'pageload';
+
+      // Mark pageload as complete once we're no longer in a pageload span
+      if (!isStillInPageload && !isPageloadComplete) {
+        isPageloadComplete = true;
+      }
+
       const location = state.location;
-      if (state.historyAction === 'PUSH' || state.historyAction === 'POP') {
+      const shouldHandleNavigation =
+        state.historyAction === 'PUSH' ||
+        // Only handle POP events after pageload is complete.
+        // This prevents creating navigation spans for POP events during long-running pageloads,
+        // while still allowing legitimate back/forward button navigation to be tracked.
+        (state.historyAction === 'POP' && isPageloadComplete);
+
+      if (shouldHandleNavigation) {
         handleNavigation({
           location,
           routes,
