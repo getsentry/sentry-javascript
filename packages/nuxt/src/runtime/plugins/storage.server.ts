@@ -40,7 +40,7 @@ const KEYED_METHODS = new Set<DriverMethod>([
 /**
  * Methods that should have a attribute to indicate a cache hit.
  */
-const CACHE_HIT_METHODS = new Set<DriverMethod>(['hasItem', 'getItem', 'getItemRaw', 'getKeys']);
+const CACHE_HIT_METHODS = new Set<DriverMethod>(['hasItem', 'getItem', 'getItemRaw']);
 
 /**
  * Creates a Nitro plugin that instruments the storage driver.
@@ -66,10 +66,10 @@ export default defineNitroPlugin(async _nitroApp => {
     } catch {
       debug.error(`[storage] Failed to unmount mount: "${mount.base}"`);
     }
-
-    // Wrap the mount method to instrument future mounts
-    storage.mount = wrapStorageMount(storage);
   }
+
+  // Wrap the mount method to instrument future mounts
+  storage.mount = wrapStorageMount(storage);
 });
 
 /**
@@ -147,7 +147,7 @@ function createMethodWrapper(
             span.setStatus({ code: SPAN_STATUS_OK });
 
             if (CACHE_HIT_METHODS.has(methodName)) {
-              span.setAttribute(SEMANTIC_ATTRIBUTE_CACHE_HIT, true);
+              span.setAttribute(SEMANTIC_ATTRIBUTE_CACHE_HIT, !isEmptyValue(result));
             }
 
             return result;
@@ -213,4 +213,11 @@ function getSpanAttributes(methodName: string, driver: Driver, mountBase: string
  */
 function normalizeMethodName(methodName: string): string {
   return methodName.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+}
+
+/**
+ * Checks if the value is empty, used for cache hit detection.
+ */
+function isEmptyValue(value: unknown): boolean {
+  return value === null || value === undefined;
 }
