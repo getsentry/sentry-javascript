@@ -10,13 +10,23 @@ import {
 } from '@sentry/core';
 import type { AppLoadContext, EntryContext, RouterContextProvider } from 'react-router';
 
-type OriginalHandleRequest = (
+type OriginalHandleRequestWithoutMiddleware = (
   request: Request,
   responseStatusCode: number,
   responseHeaders: Headers,
   routerContext: EntryContext,
-  loadContext: AppLoadContext | RouterContextProvider,
+  loadContext: AppLoadContext,
 ) => Promise<unknown>;
+
+type OriginalHandleRequestWithMiddleware = (
+  request: Request,
+  responseStatusCode: number,
+  responseHeaders: Headers,
+  routerContext: EntryContext,
+  loadContext: RouterContextProvider,
+) => Promise<unknown>;
+
+type OriginalHandleRequest = OriginalHandleRequestWithoutMiddleware | OriginalHandleRequestWithMiddleware;
 
 /**
  * Wraps the original handleRequest function to add Sentry instrumentation.
