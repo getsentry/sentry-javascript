@@ -388,14 +388,23 @@ export function createV6CompatibleWrapCreateMemoryRouter<
         (state.historyAction === 'POP' && isPageloadComplete);
 
       if (shouldHandleNavigation) {
-        handleNavigation({
-          location,
-          routes,
-          navigationType: state.historyAction,
-          version,
-          basename,
-          allRoutes: Array.from(allRoutes),
-        });
+        const navigationHandler = (): void => {
+          handleNavigation({
+            location,
+            routes,
+            navigationType: state.historyAction,
+            version,
+            basename,
+            allRoutes: Array.from(allRoutes),
+          });
+        };
+
+        // Wait for the next render if loading an unsettled route
+        if (state.navigation.state !== 'idle') {
+          requestAnimationFrame(navigationHandler);
+        } else {
+          navigationHandler();
+        }
       }
     });
 
