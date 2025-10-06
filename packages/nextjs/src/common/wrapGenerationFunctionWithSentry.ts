@@ -22,7 +22,6 @@ import {
 import type { GenerationFunctionContext } from '../common/types';
 import { isNotFoundNavigationError, isRedirectNavigationError } from './nextNavigationErrorUtils';
 import { TRANSACTION_ATTR_SENTRY_TRACE_BACKFILL } from './span-attributes-with-logic-attached';
-import { addHeadersAsAttributes } from './utils/addHeadersAsAttributes';
 import { commonObjectToIsolationScope, commonObjectToPropagationContext } from './utils/tracingUtils';
 import { getSanitizedRequestUrl } from './utils/urls';
 import { maybeExtractSynchronousParamsAndSearchParams } from './utils/wrapperUtils';
@@ -63,11 +62,6 @@ export function wrapGenerationFunctionWithSentry<F extends (...args: any[]) => a
       }
 
       const headersDict = headers ? winterCGHeadersToDict(headers) : undefined;
-
-      if (activeSpan) {
-        const rootSpan = getRootSpan(activeSpan);
-        addHeadersAsAttributes(headers, rootSpan);
-      }
 
       let data: Record<string, unknown> | undefined = undefined;
       if (getClient()?.getOptions().sendDefaultPii) {

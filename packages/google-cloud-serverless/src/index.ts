@@ -106,6 +106,7 @@ export {
   mysql2Integration,
   redisIntegration,
   tediousIntegration,
+  pinoIntegration,
   postgresIntegration,
   postgresJsIntegration,
   prismaIntegration,
