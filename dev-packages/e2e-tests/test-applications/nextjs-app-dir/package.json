@@ -8,6 +8,7 @@
     "clean": "npx rimraf node_modules pnpm-lock.yaml",
     "test:prod": "TEST_ENV=production playwright test",
     "test:dev": "TEST_ENV=development playwright test",
+    "test:dev-webpack": "TEST_ENV=development-webpack playwright test",
     "test:build": "pnpm install && pnpm build",
     "test:test-build": "pnpm ts-node --script-mode assert-build.ts",
     "test:build-canary": "pnpm install && pnpm add next@canary && pnpm add react@latest && pnpm add react-dom@latest && pnpm build:webpack",
@@ -44,7 +45,8 @@
     "optionalVariants": [
       {
         "build-command": "pnpm test:build-canary",
-        "label": "nextjs-app-dir (canary, webpack opt-in)"
+        "label": "nextjs-app-dir (canary, webpack opt-in)",
+        "assert-command": "pnpm test:prod && pnpm test:dev-webpack"
       },
       {
         "build-command": "pnpm test:build-latest",
