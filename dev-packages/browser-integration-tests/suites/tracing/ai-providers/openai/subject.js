@@ -22,5 +22,5 @@ const response = await client.chat.completions.create({
 // eslint-disable-next-line no-console
 console.log(JSON.stringify(response));
 
-
-
+// Ensure transaction is flushed in CI
+await Sentry.flush(2000);

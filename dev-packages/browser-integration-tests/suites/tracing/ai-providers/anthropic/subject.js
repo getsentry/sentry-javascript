@@ -18,3 +18,6 @@ const response = await client.messages.create({
 
 // eslint-disable-next-line no-console
 console.log(JSON.stringify(response));
+
+// Ensure transaction is flushed in CI
+await Sentry.flush(2000);

@@ -25,6 +25,12 @@ const chat = client.chats.create({
   ],
 });
 
-await chat.sendMessage({
+const response = await chat.sendMessage({
   message: 'Tell me a joke',
 });
+
+// eslint-disable-next-line no-console
+console.log(JSON.stringify(response));
+
+// Ensure transaction is flushed in CI
+await Sentry.flush(2000);
