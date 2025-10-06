@@ -994,7 +994,7 @@ describe('withSentryConfig', () => {
       materializeFinalNextConfig(exportedNextConfig);
 
       expect(consoleWarnSpy).toHaveBeenCalledWith(
-        '[@sentry/nextjs] WARNING: You are using the Sentry SDK with Turbopack (`next dev --turbopack`). The Sentry SDK is compatible with Turbopack on Next.js version 15.4.1 or later. You are currently on 15.4.0. Please upgrade to a newer Next.js version to use the Sentry SDK with Turbopack.',
+        '[@sentry/nextjs] WARNING: You are using the Sentry SDK with Turbopack. The Sentry SDK is compatible with Turbopack on Next.js version 15.4.1 or later. You are currently on 15.4.0. Please upgrade to a newer Next.js version to use the Sentry SDK with Turbopack.',
       );
 
       consoleWarnSpy.mockRestore();
@@ -1011,7 +1011,7 @@ describe('withSentryConfig', () => {
       materializeFinalNextConfig(exportedNextConfig);
 
       expect(consoleWarnSpy).toHaveBeenCalledWith(
-        '[@sentry/nextjs] WARNING: You are using the Sentry SDK with Turbopack (`next build --turbopack`). The Sentry SDK is compatible with Turbopack on Next.js version 15.4.1 or later. You are currently on 15.3.9. Please upgrade to a newer Next.js version to use the Sentry SDK with Turbopack.',
+        '[@sentry/nextjs] WARNING: You are using the Sentry SDK with Turbopack. The Sentry SDK is compatible with Turbopack on Next.js version 15.4.1 or later. You are currently on 15.3.9. Please upgrade to a newer Next.js version to use the Sentry SDK with Turbopack.',
       );
 
       consoleWarnSpy.mockRestore();
@@ -1115,24 +1115,7 @@ describe('withSentryConfig', () => {
       materializeFinalNextConfig(exportedNextConfig);
 
       expect(consoleWarnSpy).toHaveBeenCalledWith(
-        '[@sentry/nextjs] WARNING: You are using the Sentry SDK with Turbopack (`next dev --turbopack`). The Sentry SDK is compatible with Turbopack on Next.js version 15.4.1 or later. You are currently on 15.4.0-canary.15. Please upgrade to a newer Next.js version to use the Sentry SDK with Turbopack.',
-      );
-
-      consoleWarnSpy.mockRestore();
-    });
-
-    it('does not warn in other environments besides development and production', () => {
-      process.env.TURBOPACK = '1';
-      // @ts-expect-error - NODE_ENV is read-only in types but we need to set it for testing
-      process.env.NODE_ENV = 'test';
-      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.4.1');
-      vi.spyOn(util, 'supportsProductionCompileHook').mockReturnValue(false);
-      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-
-      materializeFinalNextConfig(exportedNextConfig);
-
-      expect(consoleWarnSpy).not.toHaveBeenCalledWith(
-        expect.stringContaining('WARNING: You are using the Sentry SDK with Turbopack'),
+        '[@sentry/nextjs] WARNING: You are using the Sentry SDK with Turbopack. The Sentry SDK is compatible with Turbopack on Next.js version 15.4.1 or later. You are currently on 15.4.0-canary.15. Please upgrade to a newer Next.js version to use the Sentry SDK with Turbopack.',
       );
 
       consoleWarnSpy.mockRestore();
