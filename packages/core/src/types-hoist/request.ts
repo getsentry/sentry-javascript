@@ -1,3 +1,5 @@
+import type { WebFetchHeaders } from './webfetchapi';
+
 /**
  * Request data included in an event as sent to Sentry.
  */
@@ -24,3 +26,19 @@ export type SanitizedRequestData = {
   'http.fragment'?: string;
   'http.query'?: string;
 };
+
+export interface RequestHookInfo {
+  headers?: WebFetchHeaders;
+}
+
+export interface ResponseHookInfo {
+  /**
+   * Headers from the response.
+   */
+  headers?: WebFetchHeaders;
+
+  /**
+   * Error that may have occurred during the request.
+   */
+  error?: unknown;
+}
