@@ -29,6 +29,7 @@ import type { XhrHint } from '@sentry-internal/browser-utils';
 import {
   addPerformanceInstrumentationHandler,
   addXhrInstrumentationHandler,
+  parseXhrResponseHeaders,
   resourceTimingToSpanAttributes,
   SENTRY_XHR_DATA_KEY,
 } from '@sentry-internal/browser-utils';
@@ -341,7 +342,7 @@ function xhrCallback(
       span.end();
 
       onRequestSpanEnd?.(span, {
-        headers: createHeadersSafely(sentryXhrData.request_headers),
+        headers: createHeadersSafely(parseXhrResponseHeaders(xhr as XMLHttpRequest & SentryWrappedXMLHttpRequest)),
       });
 
       // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
