@@ -36,7 +36,7 @@ sentryTest('manual OpenAI instrumentation sends gen_ai transactions', async ({ g
   const req = await transactionPromise;
   // eslint-disable-next-line no-console
   console.log('[Test] Transaction received!');
-  
+
   const eventData = envelopeRequestParser(req);
   // eslint-disable-next-line no-console
   console.log('[Test] Parsed event data:', JSON.stringify(eventData, null, 2));
