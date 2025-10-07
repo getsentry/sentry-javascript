@@ -53,6 +53,22 @@ export interface SentryHandleRequestOptions {
   botRegex?: RegExp;
 }
 
+type HandleRequestWithoutMiddleware = (
+  request: Request,
+  responseStatusCode: number,
+  responseHeaders: Headers,
+  routerContext: EntryContext,
+  loadContext: AppLoadContext,
+) => Promise<unknown>;
+
+type HandleRequestWithMiddleware = (
+  request: Request,
+  responseStatusCode: number,
+  responseHeaders: Headers,
+  routerContext: EntryContext,
+  loadContext: RouterContextProvider,
+) => Promise<unknown>;
+
 /**
  * A complete Sentry-instrumented handleRequest implementation that handles both
  * route parametrization and trace meta tag injection.
@@ -62,13 +78,7 @@ export interface SentryHandleRequestOptions {
  */
 export function createSentryHandleRequest(
   options: SentryHandleRequestOptions,
-): (
-  request: Request,
-  responseStatusCode: number,
-  responseHeaders: Headers,
-  routerContext: EntryContext,
-  loadContext: AppLoadContext | RouterContextProvider,
-) => Promise<unknown> {
+): HandleRequestWithoutMiddleware & HandleRequestWithMiddleware {
   const {
     streamTimeout = 10000,
     renderToPipeableStream,
@@ -135,5 +145,6 @@ export function createSentryHandleRequest(
   };
 
   // Wrap the handle request function for request parametrization
-  return wrapSentryHandleRequest(handleRequest);
+  return wrapSentryHandleRequest(handleRequest as HandleRequestWithoutMiddleware) as HandleRequestWithoutMiddleware &
+    HandleRequestWithMiddleware;
 }
