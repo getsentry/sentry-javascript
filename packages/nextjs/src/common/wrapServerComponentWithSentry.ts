@@ -24,7 +24,6 @@ import { isNotFoundNavigationError, isRedirectNavigationError } from '../common/
 import type { ServerComponentContext } from '../common/types';
 import { flushSafelyWithTimeout } from '../common/utils/responseEnd';
 import { TRANSACTION_ATTR_SENTRY_TRACE_BACKFILL } from './span-attributes-with-logic-attached';
-import { addHeadersAsAttributes } from './utils/addHeadersAsAttributes';
 import { commonObjectToIsolationScope, commonObjectToPropagationContext } from './utils/tracingUtils';
 import { getSanitizedRequestUrl } from './utils/urls';
 import { maybeExtractSynchronousParamsAndSearchParams } from './utils/wrapperUtils';
@@ -61,11 +60,6 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
       }
 
       const headersDict = context.headers ? winterCGHeadersToDict(context.headers) : undefined;
-
-      if (activeSpan) {
-        const rootSpan = getRootSpan(activeSpan);
-        addHeadersAsAttributes(context.headers, rootSpan);
-      }
 
       let params: Record<string, string> | undefined = undefined;
 

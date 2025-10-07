@@ -1,8 +1,17 @@
 import type { Client, IntegrationFn, SeverityLevel, Span } from '@sentry/core';
-import { captureException, consoleSandbox, defineIntegration, getClient, withActiveSpan } from '@sentry/core';
+import {
+  captureException,
+  consoleSandbox,
+  defineIntegration,
+  getClient,
+  isMatchingPattern,
+  withActiveSpan,
+} from '@sentry/core';
 import { logAndExitProcess } from '../utils/errorhandling';
 
 type UnhandledRejectionMode = 'none' | 'warn' | 'strict';
+
+type IgnoreMatcher = { name?: string | RegExp; message?: string | RegExp };
 
 interface OnUnhandledRejectionOptions {
   /**
@@ -10,15 +19,23 @@ interface OnUnhandledRejectionOptions {
    * that mimicks behavior of node's --unhandled-rejection flag.
    */
   mode: UnhandledRejectionMode;
+  /** Rejection Errors to ignore (don't capture or warn). */
+  ignore?: IgnoreMatcher[];
 }
 
 const INTEGRATION_NAME = 'OnUnhandledRejection';
 
+const DEFAULT_IGNORES: IgnoreMatcher[] = [
+  {
+    name: 'AI_NoOutputGeneratedError', // When stream aborts in Vercel AI SDK, Vercel flush() fails with an error
+  },
+];
+
 const _onUnhandledRejectionIntegration = ((options: Partial<OnUnhandledRejectionOptions> = {}) => {
-  const opts = {
-    mode: 'warn',
-    ...options,
-  } satisfies OnUnhandledRejectionOptions;
+  const opts: OnUnhandledRejectionOptions = {
+    mode: options.mode ?? 'warn',
+    ignore: [...DEFAULT_IGNORES, ...(options.ignore ?? [])],
+  };
 
   return {
     name: INTEGRATION_NAME,
@@ -28,24 +45,51 @@ const _onUnhandledRejectionIntegration = ((options: Partial<OnUnhandledRejection
   };
 }) satisfies IntegrationFn;
 
-/**
- * Add a global promise rejection handler.
- */
 export const onUnhandledRejectionIntegration = defineIntegration(_onUnhandledRejectionIntegration);
 
-/**
- * Send an exception with reason
- * @param reason string
- * @param promise promise
- *
- * Exported only for tests.
- */
+/** Extract error info safely */
+function extractErrorInfo(reason: unknown): { name: string; message: string } {
+  // Check if reason is an object (including Error instances, not just plain objects)
+  if (typeof reason !== 'object' || reason === null) {
+    return { name: '', message: String(reason ?? '') };
+  }
+
+  const errorLike = reason as Record<string, unknown>;
+  const name = typeof errorLike.name === 'string' ? errorLike.name : '';
+  const message = typeof errorLike.message === 'string' ? errorLike.message : String(reason);
+
+  return { name, message };
+}
+
+/** Check if a matcher matches the reason */
+function isMatchingReason(matcher: IgnoreMatcher, errorInfo: ReturnType<typeof extractErrorInfo>): boolean {
+  // name/message matcher
+  const nameMatches = matcher.name === undefined || isMatchingPattern(errorInfo.name, matcher.name, true);
+
+  const messageMatches = matcher.message === undefined || isMatchingPattern(errorInfo.message, matcher.message);
+
+  return nameMatches && messageMatches;
+}
+
+/** Match helper */
+function matchesIgnore(list: IgnoreMatcher[], reason: unknown): boolean {
+  const errorInfo = extractErrorInfo(reason);
+  return list.some(matcher => isMatchingReason(matcher, errorInfo));
+}
+
+/** Core handler */
 export function makeUnhandledPromiseHandler(
   client: Client,
   options: OnUnhandledRejectionOptions,
 ): (reason: unknown, promise: unknown) => void {
   return function sendUnhandledPromise(reason: unknown, promise: unknown): void {
+    // Only handle for the active client
     if (getClient() !== client) {
+      return;
+    }
+
+    // Skip if configured to ignore
+    if (matchesIgnore(options.ignore ?? [], reason)) {
       return;
     }
 

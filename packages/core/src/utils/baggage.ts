@@ -113,8 +113,15 @@ export function parseBaggageHeader(
 function baggageHeaderToObject(baggageHeader: string): Record<string, string> {
   return baggageHeader
     .split(',')
-    .map(baggageEntry =>
-      baggageEntry.split('=').map(keyOrValue => {
+    .map(baggageEntry => {
+      const eqIdx = baggageEntry.indexOf('=');
+      if (eqIdx === -1) {
+        // Likely an invalid entry
+        return [];
+      }
+      const key = baggageEntry.slice(0, eqIdx);
+      const value = baggageEntry.slice(eqIdx + 1);
+      return [key, value].map(keyOrValue => {
         try {
           return decodeURIComponent(keyOrValue.trim());
         } catch {
@@ -122,8 +129,8 @@ function baggageHeaderToObject(baggageHeader: string): Record<string, string> {
           // This will then be skipped in the next step
           return;
         }
-      }),
-    )
+      });
+    })
     .reduce<Record<string, string>>((acc, [key, value]) => {
       if (key && value) {
         acc[key] = value;

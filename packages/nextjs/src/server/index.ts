@@ -36,6 +36,7 @@ import {
   TRANSACTION_ATTR_SENTRY_TRACE_BACKFILL,
   TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION,
 } from '../common/span-attributes-with-logic-attached';
+import { addHeadersAsAttributes } from '../common/utils/addHeadersAsAttributes';
 import { isBuild } from '../common/utils/isBuild';
 import { distDirRewriteFramesIntegration } from './distDirRewriteFramesIntegration';
 
@@ -163,13 +164,13 @@ export function init(options: NodeOptions): NodeClient | undefined {
 
   client?.on('spanStart', span => {
     const spanAttributes = spanToJSON(span).data;
+    const rootSpan = getRootSpan(span);
+    const isRootSpan = span === rootSpan;
 
     // What we do in this glorious piece of code, is hoist any information about parameterized routes from spans emitted
     // by Next.js via the `next.route` attribute, up to the transaction by setting the http.route attribute.
     if (typeof spanAttributes?.['next.route'] === 'string') {
-      const rootSpan = getRootSpan(span);
       const rootSpanAttributes = spanToJSON(rootSpan).data;
-
       // Only hoist the http.route attribute if the transaction doesn't already have it
       if (
         // eslint-disable-next-line deprecation/deprecation
@@ -190,8 +191,13 @@ export function init(options: NodeOptions): NodeClient | undefined {
       span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, 'auto');
     }
 
+    if (isRootSpan) {
+      const headers = getIsolationScope().getScopeData().sdkProcessingMetadata?.normalizedRequest?.headers;
+      addHeadersAsAttributes(headers, rootSpan);
+    }
+
     // We want to fork the isolation scope for incoming requests
-    if (spanAttributes?.['next.span_type'] === 'BaseServer.handleRequest' && span === getRootSpan(span)) {
+    if (spanAttributes?.['next.span_type'] === 'BaseServer.handleRequest' && isRootSpan) {
       const scopes = getCapturedScopesOnSpan(span);
 
       const isolationScope = (scopes.isolationScope || getIsolationScope()).clone();
