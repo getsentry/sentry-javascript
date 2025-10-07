@@ -23,6 +23,7 @@ import {
   GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
   GEN_AI_SYSTEM_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
+import { filterMediaFromMessages } from '../ai/mediaFiltering';
 import { buildMethodPath, getFinalOperationName, getSpanOperation, setTokenUsageAttributes } from '../ai/utils';
 import { handleCallbackErrors } from '../handleCallbackErrors';
 import { instrumentAsyncIterableStream, instrumentMessageStream } from './streaming';
@@ -71,16 +72,14 @@ function extractRequestAttributes(args: unknown[], methodPath: string): Record<s
   return attributes;
 }
 
-/**
- * Add private request attributes to spans.
- * This is only recorded if recordInputs is true.
- */
 function addPrivateRequestAttributes(span: Span, params: Record<string, unknown>): void {
   if ('messages' in params) {
-    span.setAttributes({ [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: JSON.stringify(params.messages) });
+    const filtered = filterMediaFromMessages(params.messages);
+    span.setAttributes({ [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: JSON.stringify(filtered) });
   }
   if ('input' in params) {
-    span.setAttributes({ [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: JSON.stringify(params.input) });
+    const filtered = filterMediaFromMessages(params.input);
+    span.setAttributes({ [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: JSON.stringify(filtered) });
   }
   if ('prompt' in params) {
     span.setAttributes({ [GEN_AI_PROMPT_ATTRIBUTE]: JSON.stringify(params.prompt) });
