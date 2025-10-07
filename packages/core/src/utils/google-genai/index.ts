@@ -22,6 +22,7 @@ import {
   GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
+import { filterMediaFromMessages } from '../ai/mediaFiltering';
 import { buildMethodPath, getFinalOperationName, getSpanOperation } from '../ai/utils';
 import { handleCallbackErrors } from '../handleCallbackErrors';
 import { CHAT_PATH, CHATS_CREATE_METHOD, GOOGLE_GENAI_SYSTEM_NAME } from './constants';
@@ -128,25 +129,20 @@ function extractRequestAttributes(
   return attributes;
 }
 
-/**
- * Add private request attributes to spans.
- * This is only recorded if recordInputs is true.
- * Handles different parameter formats for different Google GenAI methods.
- */
 function addPrivateRequestAttributes(span: Span, params: Record<string, unknown>): void {
-  // For models.generateContent: ContentListUnion: Content | Content[] | PartUnion | PartUnion[]
   if ('contents' in params) {
-    span.setAttributes({ [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: JSON.stringify(params.contents) });
+    const filtered = filterMediaFromMessages(params.contents);
+    span.setAttributes({ [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: JSON.stringify(filtered) });
   }
 
-  // For chat.sendMessage: message can be string or Part[]
   if ('message' in params) {
-    span.setAttributes({ [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: JSON.stringify(params.message) });
+    const filtered = filterMediaFromMessages(params.message);
+    span.setAttributes({ [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: JSON.stringify(filtered) });
   }
 
-  // For chats.create: history contains the conversation history
   if ('history' in params) {
-    span.setAttributes({ [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: JSON.stringify(params.history) });
+    const filtered = filterMediaFromMessages(params.history);
+    span.setAttributes({ [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: JSON.stringify(filtered) });
   }
 }
 
