@@ -132,20 +132,32 @@ function extractRequestAttributes(
 function addPrivateRequestAttributes(span: Span, params: Record<string, unknown>): void {
   if ('contents' in params) {
     const contents = params.contents;
-    const truncatedContents = truncateGenAiMessages(contents as unknown[]);
-    span.setAttributes({ [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: JSON.stringify(truncatedContents) });
+    if (Array.isArray(contents)) {
+      const truncatedContents = truncateGenAiMessages(contents);
+      span.setAttributes({ [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: JSON.stringify(truncatedContents) });
+    } else {
+      span.setAttributes({ [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: JSON.stringify(contents) });
+    }
   }
 
   if ('message' in params) {
     const message = params.message;
-    const truncatedMessage = truncateGenAiMessages(message as unknown[]);
-    span.setAttributes({ [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: JSON.stringify(truncatedMessage) });
+    if (Array.isArray(message)) {
+      const truncatedMessage = truncateGenAiMessages(message);
+      span.setAttributes({ [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: JSON.stringify(truncatedMessage) });
+    } else {
+      span.setAttributes({ [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: JSON.stringify(message) });
+    }
   }
 
   if ('history' in params) {
     const history = params.history;
-    const truncatedHistory = truncateGenAiMessages(history as unknown[]);
-    span.setAttributes({ [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: JSON.stringify(truncatedHistory) });
+    if (Array.isArray(history)) {
+      const truncatedHistory = truncateGenAiMessages(history);
+      span.setAttributes({ [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: JSON.stringify(truncatedHistory) });
+    } else {
+      span.setAttributes({ [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: JSON.stringify(history) });
+    }
   }
 }
 
