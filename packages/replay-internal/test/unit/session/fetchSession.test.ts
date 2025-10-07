@@ -28,6 +28,7 @@ describe('Unit | session | fetchSession', () => {
     );
 
     expect(fetchSession()).toEqual({
+      dirty: false,
       id: 'fd09adfc4117477abc8de643e5a5798a',
       lastActivity: 1648827162658,
       segmentId: 0,
@@ -39,10 +40,11 @@ describe('Unit | session | fetchSession', () => {
   it('fetches an unsampled session', function () {
     WINDOW.sessionStorage.setItem(
       REPLAY_SESSION_KEY,
-      '{"id":"fd09adfc4117477abc8de643e5a5798a","sampled": false,"started":1648827162630,"lastActivity":1648827162658}',
+      '{"id":"fd09adfc4117477abc8de643e5a5798a","sampled": false,"started":1648827162630,"lastActivity":1648827162658,"dirty":true}',
     );
 
     expect(fetchSession()).toEqual({
+      dirty: true,
       id: 'fd09adfc4117477abc8de643e5a5798a',
       lastActivity: 1648827162658,
       segmentId: 0,
