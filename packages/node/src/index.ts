@@ -159,6 +159,8 @@ export type {
 
 export {
   logger,
+  httpServerIntegration,
+  httpServerSpansIntegration,
   nodeContextIntegration,
   contextLinesIntegration,
   localVariablesIntegration,
@@ -171,6 +173,7 @@ export {
   disableAnrDetectionForCallback,
   spotlightIntegration,
   childProcessIntegration,
+  pinoIntegration,
   createSentryWinstonTransport,
   SentryContextManager,
   systemErrorIntegration,

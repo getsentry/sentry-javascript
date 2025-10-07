@@ -54,6 +54,7 @@ async function run() {
     });
 
     // Test 1: chats.create and sendMessage flow
+    // This should generate two spans: one for chats.create and one for sendMessage
     const chat = client.chats.create({
       model: 'gemini-1.5-pro',
       config: {

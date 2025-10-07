@@ -9,6 +9,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  timestampInSeconds,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import { addClsInstrumentationHandler } from './instrument';
@@ -42,12 +43,15 @@ export function trackClsAsStandaloneSpan(client: Client): void {
   }, true);
 
   listenForWebVitalReportEvents(client, (reportEvent, pageloadSpanId) => {
-    sendStandaloneClsSpan(standaloneCLsValue, standaloneClsEntry, pageloadSpanId, reportEvent);
+    _sendStandaloneClsSpan(standaloneCLsValue, standaloneClsEntry, pageloadSpanId, reportEvent);
     cleanupClsHandler();
   });
 }
 
-function sendStandaloneClsSpan(
+/**
+ * Exported only for testing!
+ */
+export function _sendStandaloneClsSpan(
   clsValue: number,
   entry: LayoutShift | undefined,
   pageloadSpanId: string,
@@ -55,7 +59,7 @@ function sendStandaloneClsSpan(
 ) {
   DEBUG_BUILD && debug.log(`Sending CLS span (${clsValue})`);
 
-  const startTime = msToSec((browserPerformanceTimeOrigin() || 0) + (entry?.startTime || 0));
+  const startTime = entry ? msToSec((browserPerformanceTimeOrigin() || 0) + entry.startTime) : timestampInSeconds();
   const routeName = getCurrentScope().getScopeData().transactionName;
 
   const name = entry ? htmlTreeAsString(entry.sources[0]?.node) : 'Layout shift';
@@ -63,7 +67,7 @@ function sendStandaloneClsSpan(
   const attributes: SpanAttributes = {
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.browser.cls',
     [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'ui.webvital.cls',
-    [SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME]: entry?.duration || 0,
+    [SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME]: 0,
     // attach the pageload span id to the CLS span so that we can link them in the UI
     'sentry.pageload.span_id': pageloadSpanId,
     // describes what triggered the web vital to be reported

@@ -74,10 +74,18 @@ export class SentryNestEventInstrumentation extends InstrumentationBase {
             return decoratorResult(target, propertyKey, descriptor);
           }
 
+          function eventNameFromEvent(event: unknown): string {
+            if (typeof event === 'string') {
+              return event;
+            } else if (Array.isArray(event)) {
+              return event.map(eventNameFromEvent).join(',');
+            } else return String(event);
+          }
+
           const originalHandler = descriptor.value;
           // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
           const handlerName = originalHandler.name || propertyKey;
-          let eventName = typeof event === 'string' ? event : String(event);
+          let eventName = eventNameFromEvent(event);
 
           // Instrument the actual handler
           descriptor.value = async function (...args: unknown[]) {
@@ -93,7 +101,7 @@ export class SentryNestEventInstrumentation extends InstrumentationBase {
                 eventName = eventData
                   .map((data: unknown) => {
                     if (data && typeof data === 'object' && 'event' in data && data.event) {
-                      return data.event;
+                      return eventNameFromEvent(data.event);
                     }
                     return '';
                   })

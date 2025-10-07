@@ -27,6 +27,7 @@ import type { Log } from './types-hoist/log';
 import type { Metric } from './types-hoist/metric';
 import type { ClientOptions } from './types-hoist/options';
 import type { ParameterizedString } from './types-hoist/parameterize';
+import type { RequestEventData } from './types-hoist/request';
 import type { SdkMetadata } from './types-hoist/sdkmetadata';
 import type { Session, SessionAggregates } from './types-hoist/session';
 import type { SeverityLevel } from './types-hoist/severity';
@@ -703,6 +704,17 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public on(hook: 'flushMetrics', callback: () => void): () => void;
 
   /**
+   * A hook that is called when a http server request is started.
+   * This hook is called after request isolation, but before the request is processed.
+   *
+   * @returns {() => void} A function that, when executed, removes the registered callback.
+   */
+  public on(
+    hook: 'httpServerRequest',
+    callback: (request: unknown, response: unknown, normalizedRequest: RequestEventData) => void,
+  ): () => void;
+
+  /**
    * Register a hook on this client.
    */
   public on(hook: string, callback: unknown): () => void {
@@ -899,6 +911,17 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    * Emit a hook event for client flush metrics
    */
   public emit(hook: 'flushMetrics'): void;
+
+  /**
+   * Emit a hook event for client when a http server request is started.
+   * This hook is called after request isolation, but before the request is processed.
+   */
+  public emit(
+    hook: 'httpServerRequest',
+    request: unknown,
+    response: unknown,
+    normalizedRequest: RequestEventData,
+  ): void;
 
   /**
    * Emit a hook that was previously registered via `on()`.

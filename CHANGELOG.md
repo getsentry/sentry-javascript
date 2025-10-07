@@ -4,6 +4,98 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 10.18.0
+
+### Important Changes
+
+- **feat(node): `pino` integration ([#17584](https://github.com/getsentry/sentry-javascript/pull/17584))**
+
+  This release adds a new `pino` integration for Node.js, enabling Sentry to capture logs from the Pino logging library.
+
+- **feat: Remove @sentry/pino-transport package ([#17851](https://github.com/getsentry/sentry-javascript/pull/17851))**
+
+  The `@sentry/pino-transport` package has been removed. Please use the new `pino` integration in `@sentry/node` instead.
+
+- **feat(node-core): Extend onnhandledrejection with ignore errors option ([#17736](https://github.com/getsentry/sentry-javascript/pull/17736))**
+
+  Added support for selectively suppressing specific errors with configurable logging control in onnhandledrejection integration.
+
+### Other Changes
+
+- feat(core): Rename vercelai.schema to gen_ai.request.schema ([#17850](https://github.com/getsentry/sentry-javascript/pull/17850))
+- feat(core): Support stream responses and tool calls for Google GenAI ([#17664](https://github.com/getsentry/sentry-javascript/pull/17664))
+- feat(nextjs): Attach headers using client hook ([#17831](https://github.com/getsentry/sentry-javascript/pull/17831))
+- fix(core): Keep all property values in baggage header ([#17847](https://github.com/getsentry/sentry-javascript/pull/17847))
+- fix(nestjs): Add support for Symbol as event name ([#17785](https://github.com/getsentry/sentry-javascript/pull/17785))
+- fix(nuxt): include `sentry.client.config.ts` in nuxt app types ([#17830](https://github.com/getsentry/sentry-javascript/pull/17830))
+- fix(react-router): Fix type for `OriginalHandleRequest` with middleware ([#17870](https://github.com/getsentry/sentry-javascript/pull/17870))
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+
+- chore: Add external contributor to CHANGELOG.md ([#17866](https://github.com/getsentry/sentry-javascript/pull/17866))
+- chore(deps): Bump @sentry/cli from 2.53.0 to 2.56.0 ([#17819](https://github.com/getsentry/sentry-javascript/pull/17819))
+- chore(deps): Bump axios in browser integration tests ([#17839](https://github.com/getsentry/sentry-javascript/pull/17839))
+- chore(deps): Bump nestjs in integration tests ([#17840](https://github.com/getsentry/sentry-javascript/pull/17840))
+
+</details>
+
+Work in this release was contributed by @stefanvanderwolf. Thank you for your contribution!
+
+## 10.17.0
+
+### Important Changes
+
+- **feat(nuxt): Implement server middleware instrumentation ([#17796](https://github.com/getsentry/sentry-javascript/pull/17796))**
+
+  This release introduces instrumentation for Nuxt middleware, ensuring that all middleware handlers are automatically wrapped with tracing and error reporting functionality.
+
+- **fix(aws-serverless): Take `http_proxy` into account when choosing
+  `useLayerExtension` default ([#17817](https://github.com/getsentry/sentry-javascript/pull/17817))**
+
+  The default setting for `useLayerExtension` now considers the `http_proxy` environment variable.
+  When `http_proxy` is set, `useLayerExtension` will be off by default.
+  If you use a `http_proxy` but would still like to make use of the Sentry Lambda extension, exempt `localhost` in a `no_proxy` environment variable.
+
+### Other Changes
+
+- feat(node): Split up http integration into composable parts ([#17524](https://github.com/getsentry/sentry-javascript/pull/17524))
+- fix(core): Remove check and always respect ai.telemetry.functionId for Vercel AI gen spans ([#17811](https://github.com/getsentry/sentry-javascript/pull/17811))
+- doc(core): Fix outdated JSDoc in `beforeSendSpan` ([#17815](https://github.com/getsentry/sentry-javascript/pull/17815))
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+
+- ci: Do not run dependabot on e2e test applications ([#17813](https://github.com/getsentry/sentry-javascript/pull/17813))
+- docs: Reword changelog for google gen ai integration ([#17805](https://github.com/getsentry/sentry-javascript/pull/17805))
+
+</details>
+
+## 10.16.0
+
+- feat(logs): Add internal `replay_is_buffering` flag ([#17752](https://github.com/getsentry/sentry-javascript/pull/17752))
+- feat(react-router): Update loadContext type to be compatible with middleware ([#17758](https://github.com/getsentry/sentry-javascript/pull/17758))
+- feat(replay/logs): Only attach sampled replay Ids to logs ([#17750](https://github.com/getsentry/sentry-javascript/pull/17750))
+- fix(browser): Use current start timestamp for CLS span when CLS is 0 ([#17800](https://github.com/getsentry/sentry-javascript/pull/17800))
+- fix(core): Prevent `instrumentAnthropicAiClient` breaking MessageStream api ([#17754](https://github.com/getsentry/sentry-javascript/pull/17754))
+- fix(nextjs): Don't use chalk in turbopack config file ([#17806](https://github.com/getsentry/sentry-javascript/pull/17806))
+- fix(react): Do not send additional navigation span on pageload ([#17799](https://github.com/getsentry/sentry-javascript/pull/17799))
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+
+- build(aws): Ensure AWS build cache does not keep old files ([#17776](https://github.com/getsentry/sentry-javascript/pull/17776))
+- chore: Add `publish_release` command ([#17797](https://github.com/getsentry/sentry-javascript/pull/17797))
+- ref(aws-serverless): Add resolution for `import-in-the-middle` when building the Lambda layer ([#17780](https://github.com/getsentry/sentry-javascript/pull/17780))
+- ref(aws-serverless): Improve README with better examples ([#17787](https://github.com/getsentry/sentry-javascript/pull/17787))
+- ref(core): Improve promise buffer ([#17788](https://github.com/getsentry/sentry-javascript/pull/17788))
+- Revert "test(e2e): Pin `import-in-the-middle@1.14.2` due to `@vercel/nft` incompatibility ([#17777](https://github.com/getsentry/sentry-javascript/pull/17777))" (#17784)
+- test(e2e): Pin `import-in-the-middle@1.14.2` due to `@vercel/nft` incompatibility ([#17777](https://github.com/getsentry/sentry-javascript/pull/17777))
+- test(nextjs): Add route handler tests for turbopack ([#17515](https://github.com/getsentry/sentry-javascript/pull/17515))
+- test(react-router): Test v8 middleware ([#17783](https://github.com/getsentry/sentry-javascript/pull/17783))
+
+</details>
+
 ## 10.15.0
 
 ### Important Changes
@@ -56,7 +148,7 @@ Work in this release was contributed by @Karibash. Thank you for your contributi
 
 - **feat(cloudflare,vercel-edge): Add support for Google Gen AI instrumentation ([#17723](https://github.com/getsentry/sentry-javascript/pull/17723))**
 
-  The SDK now supports manually instrumenting Google's Generative AI operations in Cloudflare Workers and Vercel Edge Runtime environments, providing insights into your AI operations. You can use `const wrappedClient = Sentry.instrumentGoogleGenAIClient(genAiClient)` to get an instrumented client.
+  The SDK now supports manually instrumenting Google's Gen AI operations in Cloudflare Workers and Vercel Edge Runtime environments, providing insights into your AI operations. You can use `const wrappedClient = Sentry.instrumentGoogleGenAIClient(genAiClient)` to get an instrumented client.
 
 ### Other Changes
 
@@ -94,9 +186,9 @@ Work in this release was contributed by @Karibash. Thank you for your contributi
 
   Note that if `Sentry.reportPageLoaded()` is not called within 30 seconds of the initial pageload (or whatever value the `finalTimeout` option is set to), the pageload span will be ended automatically.
 
-- **feat(core,node): Add instrumentation for `GoogleGenerativeAI` ([#17625](https://github.com/getsentry/sentry-javascript/pull/17625))**
+- **feat(core,node): Add instrumentation for `GoogleGenAI` ([#17625](https://github.com/getsentry/sentry-javascript/pull/17625))**
 
-  The SDK now automatically instruments the `@google/generative-ai` package to provide insights into your AI operations.
+  The SDK now automatically instruments the `@google/genai` package to provide insights into your AI operations.
 
 - **feat(nextjs): Promote `useRunAfterProductionCompileHook` to non-experimental build option ([#17721](https://github.com/getsentry/sentry-javascript/pull/17721))**
 
