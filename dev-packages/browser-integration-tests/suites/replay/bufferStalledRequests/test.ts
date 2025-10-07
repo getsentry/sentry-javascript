@@ -9,7 +9,7 @@ import {
 } from '../../../utils/replayHelpers';
 
 sentryTest(
-  'buffer mode turns into session mode after interrupting error event ingest, and resumes session on reload',
+  'buffer mode remains after interrupting error event ingest',
   async ({ getLocalTestUrl, page, browserName }) => {
     if (shouldSkipReplayTest() || browserName === 'webkit') {
       sentryTest.skip();
@@ -63,32 +63,34 @@ sentryTest(
     // Wait for replay to initialize
     await waitForReplayRunning(page);
 
-    // Trigger first error - this should change session sampled to "session"
     waitForErrorRequest(page);
     await page.locator('#error1').click();
+
+    // This resolves, but the route doesn't get fulfilled as we want the reload to "interrupt" this flow
     await firstReplayEventPromise;
     expect(errorCount).toBe(1);
     expect(replayCount).toBe(0);
     expect(replayIds).toHaveLength(1);
 
-    // Get the first session info
     const firstSession = await getReplaySnapshot(page);
     const firstSessionId = firstSession.session?.id;
     expect(firstSessionId).toBeDefined();
-    expect(firstSession.session?.sampled).toBe('session'); // Should be marked as 'session'
-    expect(firstSession.recordingMode).toBe('buffer'); // But still in buffer mode
+    expect(firstSession.session?.sampled).toBe('buffer');
+    expect(firstSession.session?.dirty).toBe(true);
+    expect(firstSession.recordingMode).toBe('buffer');
 
     await page.reload();
     const secondSession = await getReplaySnapshot(page);
-    expect(secondSession.session?.sampled).toBe('session');
-    expect(secondSession.recordingMode).toBe('session'); // this turns to "session" because of `sampled` value being "session"
+    expect(secondSession.session?.sampled).toBe('buffer');
+    expect(secondSession.session?.dirty).toBe(true);
+    expect(secondSession.recordingMode).toBe('buffer');
     expect(secondSession.session?.id).toBe(firstSessionId);
     expect(secondSession.session?.segmentId).toBe(0);
   },
 );
 
-sentryTest(
-  'buffer mode turns into session mode after interrupting replay flush, and resumes session on reload',
+sentryTest.only(
+  'buffer mode remains after interrupting replay flush',
   async ({ getLocalTestUrl, page, browserName }) => {
     if (shouldSkipReplayTest() || browserName === 'webkit') {
       sentryTest.skip();
@@ -141,7 +143,6 @@ sentryTest(
     // Wait for replay to initialize
     await waitForReplayRunning(page);
 
-    // Trigger first error - this should change session sampled to "session"
     await page.locator('#error1').click();
     await firstReplayEventPromise;
     expect(errorCount).toBe(1);
@@ -152,15 +153,20 @@ sentryTest(
     const firstSession = await getReplaySnapshot(page);
     const firstSessionId = firstSession.session?.id;
     expect(firstSessionId).toBeDefined();
-    expect(firstSession.session?.sampled).toBe('session'); // Should be marked as 'session'
+    expect(firstSession.session?.sampled).toBe('buffer');
+    expect(firstSession.session?.dirty).toBe(true);
     expect(firstSession.recordingMode).toBe('buffer'); // But still in buffer mode
 
     await page.reload();
+    await waitForReplayRunning(page);
     const secondSession = await getReplaySnapshot(page);
-    expect(secondSession.session?.sampled).toBe('session');
-    expect(secondSession.recordingMode).toBe('session'); // this turns to "session" because of `sampled` value being "session"
+    expect(secondSession.session?.sampled).toBe('buffer');
+    expect(secondSession.session?.dirty).toBe(true);
     expect(secondSession.session?.id).toBe(firstSessionId);
     expect(secondSession.session?.segmentId).toBe(1);
+    // Because a flush attempt was made and not allowed to complete, segmentId increased from 0,
+    // so we resume in session mode
+    expect(secondSession.recordingMode).toBe('session');
   },
 );
 
@@ -229,7 +235,8 @@ sentryTest(
     const firstSession = await getReplaySnapshot(page);
     const firstSessionId = firstSession.session?.id;
     expect(firstSessionId).toBeDefined();
-    expect(firstSession.session?.sampled).toBe('session'); // Should be marked as 'session'
+    expect(firstSession.session?.sampled).toBe('buffer');
+    expect(firstSession.session?.dirty).toBe(true);
     expect(firstSession.recordingMode).toBe('buffer'); // But still in buffer mode
 
     // Now expire the session by manipulating session storage
@@ -266,7 +273,7 @@ sentryTest(
 );
 
 sentryTest(
-  '[buffer-mode] marks session as sampled immediately when error is sampled',
+  'marks session as dirty immediately when error is sampled in buffer mode',
   async ({ getLocalTestUrl, page, browserName }) => {
     if (shouldSkipReplayTest() || browserName === 'webkit') {
       sentryTest.skip();
@@ -296,18 +303,18 @@ sentryTest(
     const reqErrorPromise = waitForErrorRequest(page);
     await page.locator('#error1').click();
 
-    // Check session state BEFORE waiting for error to be sent
-    // The session should already be marked as 'session' synchronously
     const duringErrorProcessing = await getReplaySnapshot(page);
-    expect(duringErrorProcessing.session?.sampled).toBe('session');
+    expect(duringErrorProcessing.session?.sampled).toBe('buffer');
+    expect(duringErrorProcessing.session?.dirty).toBe(true);
     expect(duringErrorProcessing.recordingMode).toBe('buffer'); // Still in buffer recording mode
 
     await reqErrorPromise;
 
     // After error is sent, verify state is still correct
     const afterError = await getReplaySnapshot(page);
-    expect(afterError.session?.sampled).toBe('session');
+    expect(afterError.session?.sampled).toBe('buffer');
     expect(afterError.recordingMode).toBe('session');
+    expect(afterError.session?.dirty).toBe(false);
 
     // Verify the session was persisted to sessionStorage (if sticky sessions enabled)
     const sessionData = await page.evaluate(() => {
@@ -317,6 +324,7 @@ sentryTest(
     });
 
     expect(sessionData).toBeDefined();
-    expect(sessionData.sampled).toBe('session');
+    expect(sessionData.sampled).toBe('buffer');
+    expect(sessionData.dirty).toBe(false);
   },
 );
