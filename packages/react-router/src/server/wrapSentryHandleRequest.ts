@@ -10,12 +10,20 @@ import {
 } from '@sentry/core';
 import type { AppLoadContext, EntryContext, RouterContextProvider } from 'react-router';
 
-type OriginalHandleRequest = (
+type OriginalHandleRequestWithoutMiddleware = (
   request: Request,
   responseStatusCode: number,
   responseHeaders: Headers,
   routerContext: EntryContext,
-  loadContext: AppLoadContext | RouterContextProvider,
+  loadContext: AppLoadContext,
+) => Promise<unknown>;
+
+type OriginalHandleRequestWithMiddleware = (
+  request: Request,
+  responseStatusCode: number,
+  responseHeaders: Headers,
+  routerContext: EntryContext,
+  loadContext: RouterContextProvider,
 ) => Promise<unknown>;
 
 /**
@@ -24,7 +32,27 @@ type OriginalHandleRequest = (
  * @param originalHandle - The original handleRequest function to wrap
  * @returns A wrapped version of the handle request function with Sentry instrumentation
  */
-export function wrapSentryHandleRequest(originalHandle: OriginalHandleRequest): OriginalHandleRequest {
+export function wrapSentryHandleRequest(
+  originalHandle: OriginalHandleRequestWithoutMiddleware,
+): OriginalHandleRequestWithoutMiddleware;
+/**
+ * Wraps the original handleRequest function to add Sentry instrumentation.
+ *
+ * @param originalHandle - The original handleRequest function to wrap
+ * @returns A wrapped version of the handle request function with Sentry instrumentation
+ */
+export function wrapSentryHandleRequest(
+  originalHandle: OriginalHandleRequestWithMiddleware,
+): OriginalHandleRequestWithMiddleware;
+/**
+ * Wraps the original handleRequest function to add Sentry instrumentation.
+ *
+ * @param originalHandle - The original handleRequest function to wrap
+ * @returns A wrapped version of the handle request function with Sentry instrumentation
+ */
+export function wrapSentryHandleRequest(
+  originalHandle: OriginalHandleRequestWithoutMiddleware | OriginalHandleRequestWithMiddleware,
+): OriginalHandleRequestWithoutMiddleware | OriginalHandleRequestWithMiddleware {
   return async function sentryInstrumentedHandleRequest(
     request: Request,
     responseStatusCode: number,
@@ -57,9 +85,38 @@ export function wrapSentryHandleRequest(originalHandle: OriginalHandleRequest): 
     }
 
     try {
-      return await originalHandle(request, responseStatusCode, responseHeaders, routerContext, loadContext);
+      // Type guard to call the correct overload based on loadContext type
+      if (isRouterContextProvider(loadContext)) {
+        // loadContext is RouterContextProvider
+        return await (originalHandle as OriginalHandleRequestWithMiddleware)(
+          request,
+          responseStatusCode,
+          responseHeaders,
+          routerContext,
+          loadContext,
+        );
+      } else {
+        // loadContext is AppLoadContext
+        return await (originalHandle as OriginalHandleRequestWithoutMiddleware)(
+          request,
+          responseStatusCode,
+          responseHeaders,
+          routerContext,
+          loadContext,
+        );
+      }
     } finally {
       await flushIfServerless();
+    }
+
+    /**
+     * Helper type guard to determine if the context is a RouterContextProvider.
+     *
+     * @param ctx - The context to check
+     * @returns True if the context is a RouterContextProvider
+     */
+    function isRouterContextProvider(ctx: AppLoadContext | RouterContextProvider): ctx is RouterContextProvider {
+      return typeof (ctx as RouterContextProvider)?.get === 'function';
     }
   };
 }
