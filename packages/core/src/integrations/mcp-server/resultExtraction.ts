@@ -10,22 +10,19 @@ import {
   MCP_TOOL_RESULT_CONTENT_COUNT_ATTRIBUTE,
   MCP_TOOL_RESULT_IS_ERROR_ATTRIBUTE,
 } from './attributes';
-import { filterMediaFromContentArray, filterMediaFromContentItem } from './mediaFiltering';
 import { isValidContentItem } from './validation';
 
 function buildAllContentItemAttributes(content: unknown[]): Record<string, string | number | boolean> {
-  const filteredContent = filterMediaFromContentArray(content);
-
   const attributes: Record<string, string | number> = {
-    [MCP_TOOL_RESULT_CONTENT_COUNT_ATTRIBUTE]: filteredContent.length,
+    [MCP_TOOL_RESULT_CONTENT_COUNT_ATTRIBUTE]: content.length,
   };
 
-  for (const [i, item] of filteredContent.entries()) {
+  for (const [i, item] of content.entries()) {
     if (!isValidContentItem(item)) {
       continue;
     }
 
-    const prefix = filteredContent.length === 1 ? 'mcp.tool.result' : `mcp.tool.result.${i}`;
+    const prefix = content.length === 1 ? 'mcp.tool.result' : `mcp.tool.result.${i}`;
 
     const safeSet = (key: string, value: unknown): void => {
       if (typeof value === 'string') {
@@ -91,22 +88,19 @@ export function extractPromptResultAttributes(result: unknown): Record<string, s
   }
 
   if (Array.isArray(result.messages)) {
-    const filteredMessages = result.messages
-      .map(message => filterMediaFromContentItem(message))
-      .filter(message => message !== null);
+    attributes[MCP_PROMPT_RESULT_MESSAGE_COUNT_ATTRIBUTE] = result.messages.length;
 
-    attributes[MCP_PROMPT_RESULT_MESSAGE_COUNT_ATTRIBUTE] = filteredMessages.length;
-
-    for (const [i, message] of filteredMessages.entries()) {
+    const messages = result.messages;
+    for (const [i, message] of messages.entries()) {
       if (!isValidContentItem(message)) {
         continue;
       }
 
-      const prefix = filteredMessages.length === 1 ? 'mcp.prompt.result' : `mcp.prompt.result.${i}`;
+      const prefix = messages.length === 1 ? 'mcp.prompt.result' : `mcp.prompt.result.${i}`;
 
       const safeSet = (key: string, value: unknown): void => {
         if (typeof value === 'string') {
-          const attrName = filteredMessages.length === 1 ? `${prefix}.message_${key}` : `${prefix}.${key}`;
+          const attrName = messages.length === 1 ? `${prefix}.message_${key}` : `${prefix}.${key}`;
           attributes[attrName] = value;
         }
       };
