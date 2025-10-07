@@ -1,11 +1,15 @@
 // Mock OpenAI client for browser testing
 export class MockOpenAi {
   constructor(config) {
+    // eslint-disable-next-line no-console
+    console.log('[Mock OpenAI] Constructor called with config:', config);
     this.apiKey = config.apiKey;
 
     this.chat = {
       completions: {
         create: async (...args) => {
+          // eslint-disable-next-line no-console
+          console.log('[Mock OpenAI] chat.completions.create called with args:', args);
           const params = args[0];
           // Simulate processing time
           await new Promise(resolve => setTimeout(resolve, 10));
@@ -17,7 +21,7 @@ export class MockOpenAi {
             throw error;
           }
 
-          return {
+          const response = {
             id: 'chatcmpl-mock123',
             object: 'chat.completion',
             created: 1677652288,
@@ -39,6 +43,9 @@ export class MockOpenAi {
               total_tokens: 25,
             },
           };
+          // eslint-disable-next-line no-console
+          console.log('[Mock OpenAI] Returning response:', response);
+          return response;
         },
       },
     };
