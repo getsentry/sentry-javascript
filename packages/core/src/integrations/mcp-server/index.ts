@@ -16,19 +16,6 @@ const wrappedMcpServerInstances = new WeakSet();
  * Compatible with versions `^1.9.0` of the `@modelcontextprotocol/sdk` package.
  * Automatically instruments transport methods and handler functions for comprehensive monitoring.
  *
- * ## Media Content Handling
- *
- * The MCP server integration automatically filters out media content (images, videos, audio, etc.)
- * from message attributes to prevent large media from breaking instrumentation. When media content
- * is detected and dropped, it is tracked via client reports for monitoring and user awareness.
- *
- * The following content types are automatically filtered:
- * - Images: JPEG, PNG, GIF, WebP, SVG, BMP, TIFF
- * - Videos: MP4, AVI, MOV, WMV, FLV, WebM, MKV
- * - Audio: MP3, WAV, OGG, MPEG, AAC, FLAC
- * - Documents: PDF, ZIP files
- * - Large base64 encoded data that appears to be media
- *
  * @example
  * ```typescript
  * import * as Sentry from '@sentry/core';
