@@ -1,6 +1,11 @@
 import type { Breadcrumb, FetchBreadcrumbData } from '@sentry/core';
 import type { FetchHint, NetworkMetaWarning } from '@sentry-internal/browser-utils';
-import { getBodyString, getFetchRequestArgBody, setTimeout } from '@sentry-internal/browser-utils';
+import {
+  getBodyString,
+  getFetchRequestArgBody,
+  getFetchResponseHeaders,
+  setTimeout,
+} from '@sentry-internal/browser-utils';
 import { DEBUG_BUILD } from '../../debug-build';
 import type {
   ReplayContainer,
@@ -139,7 +144,7 @@ export async function _getResponseInfo(
     return buildSkippedNetworkRequestOrResponse(responseBodySize);
   }
 
-  const headers = response ? getAllHeaders(response.headers, networkResponseHeaders) : {};
+  const headers = response ? getFetchResponseHeaders(response.headers, networkResponseHeaders) : {};
 
   if (!response || (!networkCaptureBodies && responseBodySize !== undefined)) {
     return buildNetworkRequestOrResponse(headers, responseBodySize, undefined);
@@ -215,18 +220,6 @@ async function _parseFetchResponseBody(response: Response): Promise<[string | un
   }
 }
 
-function getAllHeaders(headers: Headers, allowedHeaders: string[]): Record<string, string> {
-  const allHeaders: Record<string, string> = {};
-
-  allowedHeaders.forEach(header => {
-    if (headers.get(header)) {
-      allHeaders[header] = headers.get(header) as string;
-    }
-  });
-
-  return allHeaders;
-}
-
 function getRequestHeaders(fetchArgs: unknown[], allowedHeaders: string[]): Record<string, string> {
   if (fetchArgs.length === 1 && typeof fetchArgs[0] !== 'string') {
     return getHeadersFromOptions(fetchArgs[0] as Request | RequestInit, allowedHeaders);
@@ -254,7 +247,7 @@ function getHeadersFromOptions(
   }
 
   if (headers instanceof Headers) {
-    return getAllHeaders(headers, allowedHeaders);
+    return getFetchResponseHeaders(headers, allowedHeaders);
   }
 
   // We do not support this, as it is not really documented (anymore?)

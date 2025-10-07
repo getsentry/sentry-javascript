@@ -54,3 +54,58 @@ export function getFetchRequestArgBody(fetchArgs: unknown[] = []): RequestInit['
 
   return (fetchArgs[1] as RequestInit).body;
 }
+
+/**
+ * Parses XMLHttpRequest response headers into a Record.
+ * Extracted from replay internals to be reusable.
+ */
+export function parseXhrResponseHeaders(xhr: XMLHttpRequest): Record<string, string> {
+  const headers = xhr.getAllResponseHeaders();
+
+  if (!headers) {
+    return {};
+  }
+
+  return headers.split('\r\n').reduce((acc: Record<string, string>, line: string) => {
+    const [key, value] = line.split(': ') as [string, string | undefined];
+    if (value) {
+      acc[key.toLowerCase()] = value;
+    }
+    return acc;
+  }, {});
+}
+
+/**
+ * Gets specific headers from a Headers object (Fetch API).
+ * Extracted from replay internals to be reusable.
+ */
+export function getFetchResponseHeaders(headers: Headers, allowedHeaders: string[]): Record<string, string> {
+  const allHeaders: Record<string, string> = {};
+
+  allowedHeaders.forEach(header => {
+    const value = headers.get(header);
+    if (value) {
+      allHeaders[header.toLowerCase()] = value;
+    }
+  });
+
+  return allHeaders;
+}
+
+/**
+ * Filters headers based on an allowed list.
+ * Extracted from replay internals to be reusable.
+ */
+export function filterAllowedHeaders(
+  headers: Record<string, string>,
+  allowedHeaders: string[],
+): Record<string, string> {
+  return Object.entries(headers).reduce((filteredHeaders: Record<string, string>, [key, value]) => {
+    const normalizedKey = key.toLowerCase();
+    // Avoid putting empty strings into the headers
+    if (allowedHeaders.includes(normalizedKey) && value) {
+      filteredHeaders[normalizedKey] = value;
+    }
+    return filteredHeaders;
+  }, {});
+}
