@@ -71,4 +71,16 @@ describe('parseBaggageHeader', () => {
     const actual = parseBaggageHeader(input);
     expect(actual).toStrictEqual(expectedOutput);
   });
+
+  test('should preserve property values with equal signs', () => {
+    // see https://www.w3.org/TR/baggage/#example
+    const baggageHeader = 'key1=value1;property1;property2, key2 = value2, key3=value3; propertyKey=propertyValue';
+    const result = parseBaggageHeader(baggageHeader);
+
+    expect(result).toStrictEqual({
+      key1: 'value1;property1;property2',
+      key2: 'value2',
+      key3: 'value3; propertyKey=propertyValue',
+    });
+  });
 });

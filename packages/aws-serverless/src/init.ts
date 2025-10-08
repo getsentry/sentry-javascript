@@ -5,6 +5,44 @@ import { getDefaultIntegrationsWithoutPerformance, initWithoutDefaultIntegration
 import { DEBUG_BUILD } from './debug-build';
 import { awsIntegration } from './integration/aws';
 import { awsLambdaIntegration } from './integration/awslambda';
+
+/**
+ * Checks if proxy environment variables would interfere with the layer extension.
+ * The layer extension uses localhost:9000, so we need to check if proxy settings would prevent this.
+ */
+function shouldDisableLayerExtensionForProxy(): boolean {
+  const { http_proxy, no_proxy } = process.env;
+
+  // If no http proxy is configured, no interference (https_proxy doesn't affect HTTP requests)
+  if (!http_proxy) {
+    return false;
+  }
+
+  // Check if localhost is exempted by no_proxy
+  if (no_proxy) {
+    const exemptions = no_proxy.split(',').map(exemption => exemption.trim().toLowerCase());
+
+    // Handle common localhost exemption patterns explicitly
+    // If localhost is exempted, requests to the layer extension will not be proxied
+    const localhostExemptions = ['*', 'localhost', '127.0.0.1', '::1'];
+    if (exemptions.some(exemption => localhostExemptions.includes(exemption))) {
+      return false;
+    }
+  }
+
+  // If http_proxy is set and no localhost exemption, it would interfere
+  // The layer extension uses HTTP to localhost:9000, so only http_proxy matters
+  if (http_proxy) {
+    DEBUG_BUILD &&
+      debug.log(
+        'Disabling useLayerExtension due to http_proxy environment variable. Consider adding localhost to no_proxy to re-enable.',
+      );
+    return true;
+  }
+
+  return false;
+}
+
 /**
  * Get the default integrations for the AWSLambda SDK.
  */
@@ -15,12 +53,10 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
 }
 
 export interface AwsServerlessOptions extends NodeOptions {
-  _experiments?: NodeOptions['_experiments'] & {
-    /**
-     * If proxying Sentry events through the Sentry Lambda extension should be enabled.
-     */
-    enableLambdaExtension?: boolean;
-  };
+  /**
+   * If Sentry events should be proxied through the Lambda extension when using the Lambda layer. Defaults to `true` when using the Lambda layer.
+   */
+  useLayerExtension?: boolean;
 }
 
 /**
@@ -29,14 +65,16 @@ export interface AwsServerlessOptions extends NodeOptions {
  * @param options Configuration options for the SDK, @see {@link AWSLambdaOptions}.
  */
 export function init(options: AwsServerlessOptions = {}): NodeClient | undefined {
+  const sdkSource = getSDKSource();
+  const proxyWouldInterfere = shouldDisableLayerExtensionForProxy();
+
   const opts = {
     defaultIntegrations: getDefaultIntegrations(options),
+    useLayerExtension: sdkSource === 'aws-lambda-layer' && !options.tunnel && !proxyWouldInterfere,
     ...options,
   };
 
-  const sdkSource = getSDKSource();
-
-  if (opts._experiments?.enableLambdaExtension) {
+  if (opts.useLayerExtension) {
     if (sdkSource === 'aws-lambda-layer') {
       if (!opts.tunnel) {
         DEBUG_BUILD && debug.log('Proxying Sentry events through the Sentry Lambda extension');
@@ -50,6 +88,11 @@ export function init(options: AwsServerlessOptions = {}): NodeClient | undefined
     } else {
       DEBUG_BUILD && debug.warn('The Sentry Lambda extension is only supported when using the AWS Lambda layer.');
     }
+  } else if (sdkSource === 'aws-lambda-layer' && proxyWouldInterfere) {
+    DEBUG_BUILD &&
+      debug.warn(
+        'Sentry Lambda extension disabled due to proxy environment variables (http_proxy/https_proxy). Consider adding localhost to no_proxy to re-enable.',
+      );
   }
 
   applySdkMetadata(opts, 'aws-serverless', ['aws-serverless'], sdkSource);

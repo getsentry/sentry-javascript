@@ -14,6 +14,7 @@ import type { CloudflareClientOptions, CloudflareOptions } from './client';
 import { CloudflareClient } from './client';
 import { makeFlushLock } from './flush';
 import { fetchIntegration } from './integrations/fetch';
+import { honoIntegration } from './integrations/hono';
 import { setupOpenTelemetryTracer } from './opentelemetry/tracer';
 import { makeCloudflareTransport } from './transport';
 import { defaultStackParser } from './vendor/stacktrace';
@@ -31,6 +32,7 @@ export function getDefaultIntegrations(options: CloudflareOptions): Integration[
     functionToStringIntegration(),
     linkedErrorsIntegration(),
     fetchIntegration(),
+    honoIntegration(),
     // TODO(v11): the `include` object should be defined directly in the integration based on `sendDefaultPii`
     requestDataIntegration(sendDefaultPii ? undefined : { include: { cookies: false } }),
     consoleIntegration(),

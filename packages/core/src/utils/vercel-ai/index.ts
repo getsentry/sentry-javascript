@@ -17,6 +17,7 @@ import {
   AI_RESPONSE_PROVIDER_METADATA_ATTRIBUTE,
   AI_RESPONSE_TEXT_ATTRIBUTE,
   AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
+  AI_SCHEMA_ATTRIBUTE,
   AI_TELEMETRY_FUNCTION_ID_ATTRIBUTE,
   AI_TOOL_CALL_ARGS_ATTRIBUTE,
   AI_TOOL_CALL_ID_ATTRIBUTE,
@@ -125,6 +126,8 @@ function processEndedVercelAiSpan(span: SpanJSON): void {
   renameAttributeKey(attributes, AI_TOOL_CALL_ARGS_ATTRIBUTE, 'gen_ai.tool.input');
   renameAttributeKey(attributes, AI_TOOL_CALL_RESULT_ATTRIBUTE, 'gen_ai.tool.output');
 
+  renameAttributeKey(attributes, AI_SCHEMA_ATTRIBUTE, 'gen_ai.request.schema');
+
   addProviderMetadataToAttributes(attributes);
 
   // Change attributes namespaced with `ai.X` to `vercel.ai.X`
@@ -178,9 +181,10 @@ function processGenerateSpan(span: Span, name: string, attributes: SpanAttribute
   span.setAttribute('ai.pipeline.name', nameWthoutAi);
   span.updateName(nameWthoutAi);
 
-  // If a Telemetry name is set and it is a pipeline span, use that as the operation name
+  // If a telemetry name is set and the span represents a pipeline, use it as the operation name.
+  // This name can be set at the request level by adding `experimental_telemetry.functionId`.
   const functionId = attributes[AI_TELEMETRY_FUNCTION_ID_ATTRIBUTE];
-  if (functionId && typeof functionId === 'string' && name.split('.').length - 1 === 1) {
+  if (functionId && typeof functionId === 'string') {
     span.updateName(`${nameWthoutAi} ${functionId}`);
     span.setAttribute('gen_ai.function_id', functionId);
   }

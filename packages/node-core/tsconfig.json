@@ -4,7 +4,7 @@
   "include": ["src/**/*"],
 
   "compilerOptions": {
-    "lib": ["es2020"],
+    "lib": ["ES2020", "ES2021.WeakRef"],
     "module": "Node16"
   }
 }

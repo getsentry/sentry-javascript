@@ -178,4 +178,32 @@ test rejection`);
     expect(transactionEvent!.contexts!.trace!.trace_id).toBe(errorEvent!.contexts!.trace!.trace_id);
     expect(transactionEvent!.contexts!.trace!.span_id).toBe(errorEvent!.contexts!.trace!.span_id);
   });
+
+  test('should not warn when AI_NoOutputGeneratedError is rejected (default ignore)', () =>
+    new Promise<void>(done => {
+      expect.assertions(3);
+
+      const testScriptPath = path.resolve(__dirname, 'ignore-default.js');
+
+      childProcess.execFile('node', [testScriptPath], { encoding: 'utf8' }, (err, stdout, stderr) => {
+        expect(err).toBeNull();
+        expect(stdout).toBe("I'm alive!");
+        expect(stderr).toBe(''); // No warning should be shown
+        done();
+      });
+    }));
+
+  test('should not warn when custom ignored error by name is rejected', () =>
+    new Promise<void>(done => {
+      expect.assertions(3);
+
+      const testScriptPath = path.resolve(__dirname, 'ignore-custom-name.js');
+
+      childProcess.execFile('node', [testScriptPath], { encoding: 'utf8' }, (err, stdout, stderr) => {
+        expect(err).toBeNull();
+        expect(stdout).toBe("I'm alive!");
+        expect(stderr).toBe(''); // No warning should be shown
+        done();
+      });
+    }));
 });
