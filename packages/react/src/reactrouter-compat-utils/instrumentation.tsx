@@ -259,15 +259,17 @@ export function createV6CompatibleWrapCreateBrowserRouter<
     }
 
     router.subscribe((state: RouterState) => {
-      // Mark pageload as complete on first PUSH navigation or when pageload span ends
-      if (state.historyAction === 'PUSH') {
-        isInitialPageloadComplete = true;
-      } else if (!isInitialPageloadComplete && state.navigation.state === 'idle') {
+      // Check if pageload span has ended to mark completion
+      if (!isInitialPageloadComplete) {
         const currentRootSpan = getActiveRootSpan();
         const isStillInPageload = currentRootSpan && spanToJSON(currentRootSpan).op === 'pageload';
+
         if (!isStillInPageload) {
           isInitialPageloadComplete = true;
-          return; // Don't handle the POP that completes the initial pageload
+          // Don't handle this specific callback if it's a POP that marks completion
+          if (state.historyAction === 'POP') {
+            return;
+          }
         }
       }
 
@@ -371,15 +373,17 @@ export function createV6CompatibleWrapCreateMemoryRouter<
     let isInitialPageloadComplete = false;
 
     router.subscribe((state: RouterState) => {
-      // Mark pageload as complete on first PUSH navigation or when pageload span ends
-      if (state.historyAction === 'PUSH') {
-        isInitialPageloadComplete = true;
-      } else if (!isInitialPageloadComplete && state.navigation.state === 'idle') {
+      // Check if pageload span has ended to mark completion
+      if (!isInitialPageloadComplete) {
         const currentRootSpan = getActiveRootSpan();
         const isStillInPageload = currentRootSpan && spanToJSON(currentRootSpan).op === 'pageload';
+
         if (!isStillInPageload) {
           isInitialPageloadComplete = true;
-          return; // Don't handle the POP that completes the initial pageload
+          // Don't handle this specific callback if it's a POP that marks completion
+          if (state.historyAction === 'POP') {
+            return;
+          }
         }
       }
 
