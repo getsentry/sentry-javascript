@@ -192,13 +192,21 @@ function addResponseAttributes(span: Span, result: unknown, recordOutputs?: bool
 function addRequestAttributes(span: Span, params: Record<string, unknown>): void {
   if ('messages' in params) {
     const messages = params.messages;
-    const truncatedMessages = truncateGenAiMessages(messages as unknown[]);
-    span.setAttributes({ [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: JSON.stringify(truncatedMessages) });
+    if (Array.isArray(messages)) {
+      const truncatedMessages = truncateGenAiMessages(messages);
+      span.setAttributes({ [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: JSON.stringify(truncatedMessages) });
+    } else {
+      span.setAttributes({ [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: JSON.stringify(messages) });
+    }
   }
   if ('input' in params) {
     const input = params.input;
-    const truncatedInput = truncateGenAiMessages(input as unknown[]);
-    span.setAttributes({ [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: JSON.stringify(truncatedInput) });
+    if (Array.isArray(input)) {
+      const truncatedInput = truncateGenAiMessages(input);
+      span.setAttributes({ [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: JSON.stringify(truncatedInput) });
+    } else {
+      span.setAttributes({ [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: JSON.stringify(input) });
+    }
   }
 }
 
