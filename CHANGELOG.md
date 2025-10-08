@@ -4,6 +4,44 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 10.18.0
+
+### Important Changes
+
+- **feat(node): `pino` integration ([#17584](https://github.com/getsentry/sentry-javascript/pull/17584))**
+
+  This release adds a new `pino` integration for Node.js, enabling Sentry to capture logs from the Pino logging library.
+
+- **feat: Remove @sentry/pino-transport package ([#17851](https://github.com/getsentry/sentry-javascript/pull/17851))**
+
+  The `@sentry/pino-transport` package has been removed. Please use the new `pino` integration in `@sentry/node` instead.
+
+- **feat(node-core): Extend onnhandledrejection with ignore errors option ([#17736](https://github.com/getsentry/sentry-javascript/pull/17736))**
+
+  Added support for selectively suppressing specific errors with configurable logging control in onnhandledrejection integration.
+
+### Other Changes
+
+- feat(core): Rename vercelai.schema to gen_ai.request.schema ([#17850](https://github.com/getsentry/sentry-javascript/pull/17850))
+- feat(core): Support stream responses and tool calls for Google GenAI ([#17664](https://github.com/getsentry/sentry-javascript/pull/17664))
+- feat(nextjs): Attach headers using client hook ([#17831](https://github.com/getsentry/sentry-javascript/pull/17831))
+- fix(core): Keep all property values in baggage header ([#17847](https://github.com/getsentry/sentry-javascript/pull/17847))
+- fix(nestjs): Add support for Symbol as event name ([#17785](https://github.com/getsentry/sentry-javascript/pull/17785))
+- fix(nuxt): include `sentry.client.config.ts` in nuxt app types ([#17830](https://github.com/getsentry/sentry-javascript/pull/17830))
+- fix(react-router): Fix type for `OriginalHandleRequest` with middleware ([#17870](https://github.com/getsentry/sentry-javascript/pull/17870))
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+
+- chore: Add external contributor to CHANGELOG.md ([#17866](https://github.com/getsentry/sentry-javascript/pull/17866))
+- chore(deps): Bump @sentry/cli from 2.53.0 to 2.56.0 ([#17819](https://github.com/getsentry/sentry-javascript/pull/17819))
+- chore(deps): Bump axios in browser integration tests ([#17839](https://github.com/getsentry/sentry-javascript/pull/17839))
+- chore(deps): Bump nestjs in integration tests ([#17840](https://github.com/getsentry/sentry-javascript/pull/17840))
+
+</details>
+
+Work in this release was contributed by @stefanvanderwolf. Thank you for your contribution!
+
 ## 10.17.0
 
 ### Important Changes
