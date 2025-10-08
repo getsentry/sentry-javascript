@@ -133,7 +133,6 @@ export {
   consoleIntegration,
   wrapMcpServerWithSentry,
   featureFlagsIntegration,
-  metrics,
 } from '@sentry/core';
 
 export type {
@@ -159,6 +158,7 @@ export type {
 
 export {
   logger,
+  metrics,
   httpServerIntegration,
   httpServerSpansIntegration,
   nodeContextIntegration,
