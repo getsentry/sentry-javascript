@@ -60,7 +60,13 @@ export function getFetchRequestArgBody(fetchArgs: unknown[] = []): RequestInit['
  * Extracted from replay internals to be reusable.
  */
 export function parseXhrResponseHeaders(xhr: XMLHttpRequest): Record<string, string> {
-  const headers = xhr.getAllResponseHeaders();
+  let headers: string | undefined;
+  try {
+    headers = xhr.getAllResponseHeaders();
+  } catch (error) {
+    DEBUG_BUILD && debug.exception(error, 'Failed to get xhr response headers');
+    return {};
+  }
 
   if (!headers) {
     return {};
