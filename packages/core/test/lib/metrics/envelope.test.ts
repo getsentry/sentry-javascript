@@ -30,7 +30,7 @@ describe('createMetricContainerEnvelopeItem', () => {
 
     expect(result).toHaveLength(2);
     expect(result[0]).toEqual({
-      type: 'metric',
+      type: 'trace_metric',
       item_count: 2,
       content_type: 'application/vnd.sentry.items.trace-metric+json',
     });

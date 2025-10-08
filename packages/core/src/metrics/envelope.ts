@@ -14,7 +14,7 @@ import { createEnvelope } from '../utils/envelope';
 export function createMetricContainerEnvelopeItem(items: Array<SerializedMetric>): MetricContainerItem {
   return [
     {
-      type: 'metric',
+      type: 'trace_metric',
       item_count: items.length,
       content_type: 'application/vnd.sentry.items.trace-metric+json',
     } as MetricContainerItem[0],

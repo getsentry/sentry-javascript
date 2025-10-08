@@ -48,6 +48,7 @@ export type EnvelopeItemType =
   | 'span'
   | 'log'
   | 'metric'
+  | 'trace_metric'
   | 'raw_security';
 
 export type BaseEnvelopeHeaders = {
@@ -102,14 +103,8 @@ type LogContainerItemHeaders = {
   content_type: 'application/vnd.sentry.items.log+json';
 };
 type MetricContainerItemHeaders = {
-  type: 'metric';
-  /**
-   * The number of metric items in the container. This must be the same as the number of metric items in the payload.
-   */
+  type: 'trace_metric';
   item_count: number;
-  /**
-   * The content type of the metric items. This must be `application/vnd.sentry.items.trace-metric+json`.
-   */
   content_type: 'application/vnd.sentry.items.trace-metric+json';
 };
 type RawSecurityHeaders = { type: 'raw_security'; sentry_release?: string; sentry_environment?: string };

@@ -16,7 +16,7 @@ sentryTest('should capture all metric types', async ({ getLocalTestUrl, page }) 
 
   expect(envelopeItems[0]).toEqual([
     {
-      type: 'metric',
+      type: 'trace_metric',
       item_count: 5,
       content_type: 'application/vnd.sentry.items.trace-metric+json',
     },
