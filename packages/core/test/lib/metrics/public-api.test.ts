@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { Scope } from '../../../src';
 import { _INTERNAL_getMetricBuffer } from '../../../src/metrics/internal';
 import { count, distribution, gauge } from '../../../src/metrics/public-api';
@@ -335,4 +335,3 @@ describe('Metrics Public API', () => {
     });
   });
 });
-
