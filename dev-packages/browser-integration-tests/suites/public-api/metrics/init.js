@@ -9,5 +9,7 @@ Sentry.init({
   },
   release: '1.0.0',
   environment: 'test',
-  autoSessionTracking: false, // Was causing session envelopes to be sent
+  integrations: integrations => {
+    return integrations.filter(integration => integration.name !== 'BrowserSession');
+  },
 });
