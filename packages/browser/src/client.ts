@@ -108,9 +108,9 @@ export class BrowserClient extends Client<BrowserClientOptions> {
 
     super(opts);
 
-    const { sendDefaultPii, sendClientReports, enableLogs, _enableTraceMetrics } = this._options;
+    const { sendDefaultPii, sendClientReports, enableLogs, _experiments } = this._options;
 
-    if (WINDOW.document && (sendClientReports || enableLogs || _enableTraceMetrics)) {
+    if (WINDOW.document && (sendClientReports || enableLogs || _experiments?.enableTraceMetrics)) {
       WINDOW.document.addEventListener('visibilitychange', () => {
         if (WINDOW.document.visibilityState === 'hidden') {
           if (sendClientReports) {
@@ -119,7 +119,7 @@ export class BrowserClient extends Client<BrowserClientOptions> {
           if (enableLogs) {
             _INTERNAL_flushLogsBuffer(this);
           }
-          if (_enableTraceMetrics) {
+          if (_experiments?.enableTraceMetrics) {
             _INTERNAL_flushMetricsBuffer(this);
           }
         }
@@ -142,7 +142,7 @@ export class BrowserClient extends Client<BrowserClientOptions> {
       });
     }
 
-    if (_enableTraceMetrics) {
+    if (_experiments?.enableTraceMetrics) {
       this.on('flush', () => {
         _INTERNAL_flushMetricsBuffer(this);
       });

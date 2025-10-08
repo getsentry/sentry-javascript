@@ -38,7 +38,7 @@ function captureMetric(type: MetricType, name: string, value: number | string, o
 }
 
 /**
- * @summary Increment a counter metric. Requires the `_enableTraceMetrics` option to be enabled.
+ * @summary Increment a counter metric. Requires the `_experiments.enableTraceMetrics` option to be enabled.
  *
  * @param name - The name of the counter metric.
  * @param value - The value to increment by (defaults to 1).
@@ -72,7 +72,7 @@ export function count(name: string, value: number = 1, options?: MetricOptions):
 }
 
 /**
- * @summary Set a gauge metric to a specific value. Requires the `_enableTraceMetrics` option to be enabled.
+ * @summary Set a gauge metric to a specific value. Requires the `_experiments.enableTraceMetrics` option to be enabled.
  *
  * @param name - The name of the gauge metric.
  * @param value - The current value of the gauge.
@@ -106,7 +106,7 @@ export function gauge(name: string, value: number, options?: MetricOptions): voi
 }
 
 /**
- * @summary Record a value in a distribution metric. Requires the `_enableTraceMetrics` option to be enabled.
+ * @summary Record a value in a distribution metric. Requires the `_experiments.enableTraceMetrics` option to be enabled.
  *
  * @param name - The name of the distribution metric.
  * @param value - The value to record in the distribution.

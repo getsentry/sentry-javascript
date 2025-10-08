@@ -84,7 +84,7 @@ export class ServerRuntimeClient<
       });
     }
 
-    if (this._options._enableTraceMetrics) {
+    if (this._options._experiments?.enableTraceMetrics) {
       // eslint-disable-next-line @typescript-eslint/no-this-alias
       const client = this;
 
