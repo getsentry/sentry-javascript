@@ -171,7 +171,7 @@ export function _INTERNAL_captureMetric(beforeMetric: Metric, options?: Internal
   const processedMetric = _experiments?.beforeSendMetric ? _experiments.beforeSendMetric(metric) : metric;
 
   if (!processedMetric) {
-    DEBUG_BUILD && debug.log('An event processor returned `null`, will not send metric.');
+    DEBUG_BUILD && debug.log('`beforeSendMetric` returned `null`, will not send metric.');
     return;
   }
 
