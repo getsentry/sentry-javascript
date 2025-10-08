@@ -63,11 +63,7 @@ export default defineNitroPlugin(async _nitroApp => {
       continue;
     }
 
-    try {
-      instrumentDriver(mount.driver, mount.base);
-    } catch {
-      debug.error(`[storage] Failed to unmount mount: "${mount.base}"`);
-    }
+    instrumentDriver(mount.driver, mount.base);
   }
 
   // Wrap the mount method to instrument future mounts
