@@ -42,6 +42,14 @@ export default defineNitroPlugin(async _nitroApp => {
 
   debug.log('[storage] Starting to instrument storage drivers...');
 
+  // Adds cache mount to handle Nitro's cache calls
+  // Nitro uses the mount to cache functions and event handlers
+  // https://nitro.build/guide/cache
+  userMounts.add('cache:');
+  // In production, unless the user configured a specific cache driver, Nitro will use the memory driver at root mount.
+  // Either way, we need to instrument the root mount as well.
+  userMounts.add('');
+
   // Get all mounted storage drivers
   const mounts = storage.getMounts();
   for (const mount of mounts) {
