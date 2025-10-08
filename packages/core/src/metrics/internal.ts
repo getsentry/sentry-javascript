@@ -159,8 +159,21 @@ export function _INTERNAL_captureMetric(beforeMetric: Metric, options?: Internal
   setMetricAttribute(processedMetricAttributes, 'sentry.sdk.name', name);
   setMetricAttribute(processedMetricAttributes, 'sentry.sdk.version', version);
 
-  const replay = client.getIntegrationByName<Integration & { getReplayId: () => string }>('Replay');
-  setMetricAttribute(processedMetricAttributes, 'sentry.replay_id', replay?.getReplayId());
+  const replay = client.getIntegrationByName<
+    Integration & {
+      getReplayId: (onlyIfSampled?: boolean) => string;
+      getRecordingMode: () => 'session' | 'buffer' | undefined;
+    }
+  >('Replay');
+
+  const replayId = replay?.getReplayId(true);
+
+  setMetricAttribute(processedMetricAttributes, 'sentry.replay_id', replayId);
+
+  if (replayId && replay?.getRecordingMode() === 'buffer') {
+    // We send this so we can identify cases where the replayId is attached but the replay itself might not have been sent to Sentry
+    setMetricAttribute(processedMetricAttributes, 'sentry._internal.replay_is_buffering', replayId);
+  }
 
   const metric: Metric = {
     ...beforeMetric,
