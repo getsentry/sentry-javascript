@@ -64,7 +64,7 @@ export function parseXhrResponseHeaders(xhr: XMLHttpRequest): Record<string, str
   try {
     headers = xhr.getAllResponseHeaders();
   } catch (error) {
-    DEBUG_BUILD && debug.exception(error, 'Failed to get xhr response headers');
+    DEBUG_BUILD && debug.error(error, 'Failed to get xhr response headers', xhr);
     return {};
   }
 
