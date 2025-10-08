@@ -17,9 +17,11 @@ import type { Driver, Storage } from 'unstorage';
 // @ts-expect-error - This is a virtual module
 import { userStorageMounts } from '#sentry/storage-config.mjs';
 
-type MaybeInstrumentedDriver = Driver & {
+type MaybeInstrumented<T> = T & {
   __sentry_instrumented__?: boolean;
 };
+
+type MaybeInstrumentedDriver = MaybeInstrumented<Driver>;
 
 type DriverMethod = keyof Driver;
 
@@ -175,7 +177,10 @@ function createMethodWrapper(
  * Wraps the storage mount method to instrument the driver.
  */
 function wrapStorageMount(storage: Storage): Storage['mount'] {
-  const original = storage.mount;
+  const original: MaybeInstrumented<Storage['mount']> = storage.mount;
+  if (original.__sentry_instrumented__) {
+    return original;
+  }
 
   function mountWithInstrumentation(base: string, driver: Driver): Storage {
     debug.log(`[storage] Instrumenting mount: "${base}"`);
@@ -184,6 +189,8 @@ function wrapStorageMount(storage: Storage): Storage['mount'] {
 
     return original(base, instrumentedDriver);
   }
+
+  mountWithInstrumentation.__sentry_instrumented__ = true;
 
   return mountWithInstrumentation;
 }
