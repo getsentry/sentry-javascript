@@ -7,7 +7,7 @@ describe.skip('tedious auto instrumentation', { timeout: 75_000 }, () => {
     cleanupChildProcesses();
   });
 
-  test('should auto-instrument `tedious` package', async () => {
+  test('should auto-instrument `tedious` package', async ({ signal }) => {
     const EXPECTED_TRANSACTION = {
       transaction: 'Test Transaction',
       spans: expect.arrayContaining([
@@ -42,7 +42,7 @@ describe.skip('tedious auto instrumentation', { timeout: 75_000 }, () => {
       ]),
     };
 
-    await createRunner(__dirname, 'scenario.js')
+    await createRunner({ signal }, __dirname, 'scenario.js')
       .withDockerCompose({ workingDirectory: [__dirname], readyMatches: ['1433'] })
       .expect({ transaction: EXPECTED_TRANSACTION })
       .start()

@@ -12,7 +12,10 @@ const DEFAULT_DSN = 'https://username@domain/123';
 const DEFAULT_SENTRY_ORG_SLUG = 'sentry-javascript-sdks';
 const DEFAULT_SENTRY_PROJECT = 'sentry-javascript-e2e-tests';
 
-function asyncExec(command: string, options: { env: Record<string, string | undefined>; cwd: string }): Promise<void> {
+function asyncExec(
+  command: string,
+  options: { env: Record<string, string | undefined>; cwd: string; signal: AbortSignal },
+): Promise<void> {
   return new Promise((resolve, reject) => {
     const process = spawn(command, { ...options, shell: true });
 
@@ -41,6 +44,8 @@ async function run(): Promise<void> {
   // Load environment variables from .env file locally
   dotenv.config();
 
+  const abortController = new AbortController();
+
   // Allow to run a single app only via `yarn test:run <app-name>`
   const appName = process.argv[2] || '';
 
@@ -65,11 +70,11 @@ async function run(): Promise<void> {
     console.log('');
 
     if (!process.env.SKIP_REGISTRY) {
-      registrySetup();
+      registrySetup(abortController.signal);
     }
 
-    await asyncExec('pnpm clean:test-applications', { env, cwd: __dirname });
-    await asyncExec('pnpm cache delete "@sentry/*"', { env, cwd: __dirname });
+    await asyncExec('pnpm clean:test-applications', { env, cwd: __dirname, signal: abortController.signal });
+    await asyncExec('pnpm cache delete "@sentry/*"', { env, cwd: __dirname, signal: abortController.signal });
 
     const testAppPaths = appName ? [appName.trim()] : globSync('*', { cwd: `${__dirname}/test-applications/` });
 
@@ -84,15 +89,17 @@ async function run(): Promise<void> {
       const cwd = tmpDirPath;
 
       console.log(`Building ${testAppPath} in ${tmpDirPath}...`);
-      await asyncExec('volta run pnpm test:build', { env, cwd });
+      await asyncExec('volta run pnpm test:build', { env, cwd, signal: abortController.signal });
 
       console.log(`Testing ${testAppPath}...`);
-      await asyncExec('volta run pnpm test:assert', { env, cwd });
+      await asyncExec('volta run pnpm test:assert', { env, cwd, signal: abortController.signal });
 
       // clean up (although this is tmp, still nice to do)
       await rm(tmpDirPath, { recursive: true });
     }
+    abortController.abort();
   } catch (error) {
+    abortController.abort(error);
     console.error(error);
     process.exit(1);
   }

@@ -6,7 +6,7 @@ describe('mysql auto instrumentation', () => {
     cleanupChildProcesses();
   });
 
-  test('should auto-instrument `mysql` package when using connection.connect()', async () => {
+  test('should auto-instrument `mysql` package when using connection.connect()', async ({ signal }) => {
     const EXPECTED_TRANSACTION = {
       transaction: 'Test Transaction',
       spans: expect.arrayContaining([
@@ -33,13 +33,13 @@ describe('mysql auto instrumentation', () => {
       ]),
     };
 
-    await createRunner(__dirname, 'scenario-withConnect.js')
+    await createRunner({ signal }, __dirname, 'scenario-withConnect.js')
       .expect({ transaction: EXPECTED_TRANSACTION })
       .start()
       .completed();
   });
 
-  test('should auto-instrument `mysql` package when using query without callback', async () => {
+  test('should auto-instrument `mysql` package when using query without callback', async ({ signal }) => {
     const EXPECTED_TRANSACTION = {
       transaction: 'Test Transaction',
       spans: expect.arrayContaining([
@@ -66,13 +66,13 @@ describe('mysql auto instrumentation', () => {
       ]),
     };
 
-    await createRunner(__dirname, 'scenario-withoutCallback.js')
+    await createRunner({ signal }, __dirname, 'scenario-withoutCallback.js')
       .expect({ transaction: EXPECTED_TRANSACTION })
       .start()
       .completed();
   });
 
-  test('should auto-instrument `mysql` package without connection.connect()', async () => {
+  test('should auto-instrument `mysql` package without connection.connect()', async ({ signal }) => {
     const EXPECTED_TRANSACTION = {
       transaction: 'Test Transaction',
       spans: expect.arrayContaining([
@@ -99,7 +99,7 @@ describe('mysql auto instrumentation', () => {
       ]),
     };
 
-    await createRunner(__dirname, 'scenario-withoutConnect.js')
+    await createRunner({ signal }, __dirname, 'scenario-withoutConnect.js')
       .expect({ transaction: EXPECTED_TRANSACTION })
       .start()
       .completed();

@@ -5,8 +5,8 @@ afterAll(() => {
   cleanupChildProcesses();
 });
 
-test('should unset user', async () => {
-  await createRunner(__dirname, 'scenario.ts')
+test('should unset user', async ({ signal }) => {
+  await createRunner({ signal }, __dirname, 'scenario.ts')
     .expect({ event: { message: 'no_user' } })
     .expect({
       event: {

@@ -6,8 +6,10 @@ describe('getTraceMetaTags', () => {
     cleanupChildProcesses();
   });
 
-  test('injects sentry tracing <meta> tags without sampled flag for Tracing Without Performance', async () => {
-    const runner = createRunner(__dirname, 'server.js').start();
+  test('injects sentry tracing <meta> tags without sampled flag for Tracing Without Performance', async ({
+    signal,
+  }) => {
+    const runner = createRunner({ signal }, __dirname, 'server.js').start();
 
     const response = await runner.makeRequest('get', '/test');
 

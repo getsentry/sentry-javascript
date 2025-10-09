@@ -2,17 +2,17 @@ import { expect, test } from 'vitest';
 import { createRunner } from '../../../../utils/runner';
 import { createTestServer } from '../../../../utils/server';
 
-test('strips and handles query params in spans of outgoing http requests', async () => {
+test('strips and handles query params in spans of outgoing http requests', async ({ signal }) => {
   expect.assertions(4);
 
-  const [SERVER_URL, closeTestServer] = await createTestServer()
+  const [SERVER_URL, closeTestServer] = await createTestServer({ signal })
     .get('/api/v0/users', () => {
       // Just ensure we're called
       expect(true).toBe(true);
     })
     .start();
 
-  await createRunner(__dirname, 'scenario.ts')
+  await createRunner({ signal }, __dirname, 'scenario.ts')
     .withEnv({ SERVER_URL })
     .expect({
       transaction: txn => {

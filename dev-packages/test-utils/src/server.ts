@@ -9,7 +9,10 @@ import type { AddressInfo } from 'net';
  * This does no checks on the envelope, it just calls the callback if it managed to parse an envelope from the raw POST
  * body data.
  */
-export function createBasicSentryServer(onEnvelope: (env: Envelope) => void): Promise<[number, () => void]> {
+export function createBasicSentryServer(
+  onEnvelope: (env: Envelope) => void,
+  { signal }: { readonly signal?: AbortSignal },
+): Promise<[number, () => void]> {
   const app = express();
 
   app.use(express.raw({ type: () => true, inflate: true, limit: '100mb' }));
@@ -27,6 +30,7 @@ export function createBasicSentryServer(onEnvelope: (env: Envelope) => void): Pr
 
   return new Promise(resolve => {
     const server = app.listen(0, () => {
+      signal?.addEventListener('abort', () => server.close());
       const address = server.address() as AddressInfo;
       resolve([
         address.port,

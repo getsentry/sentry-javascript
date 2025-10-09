@@ -6,11 +6,11 @@ describe('getTraceMetaTags', () => {
     cleanupChildProcesses();
   });
 
-  test('injects <meta> tags with trace from incoming headers', async () => {
+  test('injects <meta> tags with trace from incoming headers', async ({ signal }) => {
     const traceId = 'cd7ee7a6fe3ebe7ab9c3271559bc203c';
     const parentSpanId = '100ff0980e7a4ead';
 
-    const runner = createRunner(__dirname, 'server.js').start();
+    const runner = createRunner({ signal }, __dirname, 'server.js').start();
 
     const response = await runner.makeRequest<{ response: string }>('get', '/test', {
       headers: {
@@ -25,8 +25,8 @@ describe('getTraceMetaTags', () => {
     expect(html).toContain('<meta name="baggage" content="sentry-environment=production,sentry-sample_rand=0.42"/>');
   });
 
-  test('injects <meta> tags with new trace if no incoming headers', async () => {
-    const runner = createRunner(__dirname, 'server.js').start();
+  test('injects <meta> tags with new trace if no incoming headers', async ({ signal }) => {
+    const runner = createRunner({ signal }, __dirname, 'server.js').start();
 
     const response = await runner.makeRequest<{ response: string }>('get', '/test');
 
@@ -39,8 +39,8 @@ describe('getTraceMetaTags', () => {
     expect(html).toContain(`sentry-trace_id=${traceId}`);
   });
 
-  test('injects <meta> tags with negative sampling decision if tracesSampleRate is 0', async () => {
-    const runner = createRunner(__dirname, 'server-tracesSampleRate-zero.js').start();
+  test('injects <meta> tags with negative sampling decision if tracesSampleRate is 0', async ({ signal }) => {
+    const runner = createRunner({ signal }, __dirname, 'server-tracesSampleRate-zero.js').start();
 
     const response = await runner.makeRequest<{ response: string }>('get', '/test');
 
@@ -54,11 +54,11 @@ describe('getTraceMetaTags', () => {
     expect(html).toContain('sentry-sampled=false');
   });
 
-  test("doesn't inject sentry tracing <meta> tags if SDK is disabled", async () => {
+  test("doesn't inject sentry tracing <meta> tags if SDK is disabled", async ({ signal }) => {
     const traceId = 'cd7ee7a6fe3ebe7ab9c3271559bc203c';
     const parentSpanId = '100ff0980e7a4ead';
 
-    const runner = createRunner(__dirname, 'server-sdk-disabled.js').start();
+    const runner = createRunner({ signal }, __dirname, 'server-sdk-disabled.js').start();
 
     const response = await runner.makeRequest<{ response: string }>('get', '/test', {
       headers: {

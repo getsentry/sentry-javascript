@@ -4,10 +4,10 @@ import { createTestServer } from '../../../../utils/server';
 
 describe('outgoing fetch', () => {
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('outgoing fetch requests are correctly instrumented with tracing disabled', async () => {
+    test('outgoing fetch requests are correctly instrumented with tracing disabled', async ({ signal }) => {
       expect.assertions(11);
 
-      const [SERVER_URL, closeTestServer] = await createTestServer()
+      const [SERVER_URL, closeTestServer] = await createTestServer({ signal })
         .get('/api/v0', headers => {
           expect(headers['sentry-trace']).toEqual(expect.stringMatching(/^([a-f0-9]{32})-([a-f0-9]{16})$/));
           expect(headers['sentry-trace']).not.toEqual('00000000000000000000000000000000-0000000000000000');
@@ -28,7 +28,7 @@ describe('outgoing fetch', () => {
         })
         .start();
 
-      await createRunner()
+      await createRunner({ signal })
         .withEnv({ SERVER_URL })
         .expect({
           event: {

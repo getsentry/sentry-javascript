@@ -5,8 +5,8 @@ afterAll(() => {
   cleanupChildProcesses();
 });
 
-test('should record multiple contexts', async () => {
-  await createRunner(__dirname, 'scenario.ts')
+test('should record multiple contexts', async ({ signal }) => {
+  await createRunner({ signal }, __dirname, 'scenario.ts')
     .expect({
       event: {
         message: 'multiple_contexts',

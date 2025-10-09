@@ -5,8 +5,8 @@ afterAll(() => {
   cleanupChildProcesses();
 });
 
-test('should set a simple extra', async () => {
-  await createRunner(__dirname, 'scenario.ts')
+test('should set a simple extra', async ({ signal }) => {
+  await createRunner({ signal }, __dirname, 'scenario.ts')
     .expect({
       event: {
         message: 'simple_extra',

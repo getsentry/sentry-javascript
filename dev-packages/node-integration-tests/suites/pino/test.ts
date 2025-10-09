@@ -4,10 +4,10 @@ import { conditionalTest } from '../../utils';
 import { createRunner } from '../../utils/runner';
 
 conditionalTest({ min: 20 })('Pino integration', () => {
-  test('has different trace ids for logs from different spans', async () => {
+  test('has different trace ids for logs from different spans', async ({ signal }) => {
     const instrumentPath = join(__dirname, 'instrument.mjs');
 
-    await createRunner(__dirname, 'scenario.mjs')
+    await createRunner({ signal }, __dirname, 'scenario.mjs')
       .withMockSentryServer()
       .withInstrument(instrumentPath)
       .ignore('event')
@@ -22,10 +22,10 @@ conditionalTest({ min: 20 })('Pino integration', () => {
       .completed();
   });
 
-  test('captures event and logs', async () => {
+  test('captures event and logs', async ({ signal }) => {
     const instrumentPath = join(__dirname, 'instrument.mjs');
 
-    await createRunner(__dirname, 'scenario.mjs')
+    await createRunner({ signal }, __dirname, 'scenario.mjs')
       .withMockSentryServer()
       .withInstrument(instrumentPath)
       .expect({
@@ -96,10 +96,10 @@ conditionalTest({ min: 20 })('Pino integration', () => {
       .completed();
   });
 
-  test('captures with Pino integrated channel', async () => {
+  test('captures with Pino integrated channel', async ({ signal }) => {
     const instrumentPath = join(__dirname, 'instrument.mjs');
 
-    await createRunner(__dirname, 'scenario-next.mjs')
+    await createRunner({ signal }, __dirname, 'scenario-next.mjs')
       .withMockSentryServer()
       .withInstrument(instrumentPath)
       .expect({

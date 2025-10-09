@@ -1,8 +1,8 @@
 import { expect, it } from 'vitest';
 import { createRunner } from '../../../runner';
 
-it('traces a durable object method', async () => {
-  const runner = createRunner(__dirname)
+it('traces a durable object method', async ({ signal }) => {
+  const runner = createRunner({ signal }, __dirname)
     .expect(envelope => {
       const transactionEvent = envelope[1]?.[0]?.[1];
       expect(transactionEvent).toEqual(

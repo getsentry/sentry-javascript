@@ -14,8 +14,8 @@ afterAll(() => {
  *
  * This test nevertheless covers the behavior so that we're aware.
  */
-test('withScope scope is NOT applied to thrown error caught by global handler', async () => {
-  const runner = createRunner(__dirname, 'server.ts')
+test('withScope scope is NOT applied to thrown error caught by global handler', async ({ signal }) => {
+  const runner = createRunner({ signal }, __dirname, 'server.ts')
     .expect({
       event: {
         exception: {
@@ -53,8 +53,8 @@ test('withScope scope is NOT applied to thrown error caught by global handler', 
 /**
  * This test shows that the isolation scope set tags are applied correctly to the error.
  */
-test('http requestisolation scope is applied to thrown error caught by global handler', async () => {
-  const runner = createRunner(__dirname, 'server.ts')
+test('http requestisolation scope is applied to thrown error caught by global handler', async ({ signal }) => {
+  const runner = createRunner({ signal }, __dirname, 'server.ts')
     .expect({
       event: {
         exception: {
@@ -101,8 +101,8 @@ test('http requestisolation scope is applied to thrown error caught by global ha
  * a per-request basis, meaning, it's called while we're inside the isolation scope of the http request,
  * created from our `httpIntegration`.
  */
-test('withIsolationScope scope is NOT applied to thrown error caught by global handler', async () => {
-  const runner = createRunner(__dirname, 'server.ts')
+test('withIsolationScope scope is NOT applied to thrown error caught by global handler', async ({ signal }) => {
+  const runner = createRunner({ signal }, __dirname, 'server.ts')
     .expect({
       event: {
         exception: {

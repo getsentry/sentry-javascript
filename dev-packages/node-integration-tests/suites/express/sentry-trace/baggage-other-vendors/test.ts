@@ -6,8 +6,8 @@ afterAll(() => {
   cleanupChildProcesses();
 });
 
-test('should merge `baggage` header of a third party vendor with the Sentry DSC baggage items', async () => {
-  const runner = createRunner(__dirname, 'server.ts').start();
+test('should merge `baggage` header of a third party vendor with the Sentry DSC baggage items', async ({ signal }) => {
+  const runner = createRunner({ signal }, __dirname, 'server.ts').start();
 
   const response = await runner.makeRequest<TestAPIResponse>('get', '/test/express', {
     headers: {

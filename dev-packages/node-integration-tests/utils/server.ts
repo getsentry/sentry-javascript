@@ -5,7 +5,7 @@ type HeaderAssertCallback = (headers: Record<string, string | string[] | undefin
 
 /** Creates a test server that can be used to check headers */
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-export function createTestServer() {
+export function createTestServer({ signal }: { readonly signal?: AbortSignal }) {
   const gets: Array<[string, HeaderAssertCallback, number]> = [];
   let error: unknown | undefined;
 
@@ -32,6 +32,7 @@ export function createTestServer() {
       return new Promise(resolve => {
         const server = app.listen(0, () => {
           const address = server.address() as AddressInfo;
+          signal?.addEventListener('abort', () => server.close());
           resolve([
             `http://localhost:${address.port}`,
             () => {

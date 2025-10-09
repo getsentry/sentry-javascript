@@ -6,7 +6,7 @@ afterAll(() => {
 });
 
 describe('modulesIntegration', () => {
-  test('does not crash ESM setups', async () => {
-    await createRunner(__dirname, 'app.mjs').ensureNoErrorOutput().start().completed();
+  test('does not crash ESM setups', async ({ signal }) => {
+    await createRunner({ signal }, __dirname, 'app.mjs').ensureNoErrorOutput().start().completed();
   });
 });

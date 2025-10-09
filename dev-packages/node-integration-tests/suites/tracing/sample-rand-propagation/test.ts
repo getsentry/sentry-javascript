@@ -6,8 +6,8 @@ describe('sample_rand propagation', () => {
     cleanupChildProcesses();
   });
 
-  test('propagates a sample rand when there are no incoming trace headers', async () => {
-    const runner = createRunner(__dirname, 'server.js').start();
+  test('propagates a sample rand when there are no incoming trace headers', async ({ signal }) => {
+    const runner = createRunner({ signal }, __dirname, 'server.js').start();
     const response = await runner.makeRequest('get', '/check');
     expect(response).toEqual({
       propagatedData: {
@@ -16,8 +16,10 @@ describe('sample_rand propagation', () => {
     });
   });
 
-  test('propagates a sample rand when there is a sentry-trace header and incoming sentry baggage', async () => {
-    const runner = createRunner(__dirname, 'server.js').start();
+  test('propagates a sample rand when there is a sentry-trace header and incoming sentry baggage', async ({
+    signal,
+  }) => {
+    const runner = createRunner({ signal }, __dirname, 'server.js').start();
     const response = await runner.makeRequest('get', '/check', {
       headers: {
         'sentry-trace': '530699e319cc067ce440315d74acb312-414dc2a08d5d1dac-1',
@@ -31,8 +33,10 @@ describe('sample_rand propagation', () => {
     });
   });
 
-  test('propagates a sample rand when there is an incoming sentry-trace header but no baggage header', async () => {
-    const runner = createRunner(__dirname, 'server.js').start();
+  test('propagates a sample rand when there is an incoming sentry-trace header but no baggage header', async ({
+    signal,
+  }) => {
+    const runner = createRunner({ signal }, __dirname, 'server.js').start();
     const response = await runner.makeRequest('get', '/check', {
       headers: {
         'sentry-trace': '530699e319cc067ce440315d74acb312-414dc2a08d5d1dac-1',
@@ -45,8 +49,10 @@ describe('sample_rand propagation', () => {
     });
   });
 
-  test('propagates a sample_rand that would lead to a positive sampling decision when there is an incoming positive sampling decision but no sample_rand in the baggage header', async () => {
-    const runner = createRunner(__dirname, 'server.js').start();
+  test('propagates a sample_rand that would lead to a positive sampling decision when there is an incoming positive sampling decision but no sample_rand in the baggage header', async ({
+    signal,
+  }) => {
+    const runner = createRunner({ signal }, __dirname, 'server.js').start();
     const response = await runner.makeRequest('get', '/check', {
       headers: {
         'sentry-trace': '530699e319cc067ce440315d74acb312-414dc2a08d5d1dac-1',
@@ -62,8 +68,10 @@ describe('sample_rand propagation', () => {
     expect(sampleRand).toBeGreaterThanOrEqual(0);
   });
 
-  test('propagates a sample_rand that would lead to a negative sampling decision when there is an incoming negative sampling decision but no sample_rand in the baggage header', async () => {
-    const runner = createRunner(__dirname, 'server.js').start();
+  test('propagates a sample_rand that would lead to a negative sampling decision when there is an incoming negative sampling decision but no sample_rand in the baggage header', async ({
+    signal,
+  }) => {
+    const runner = createRunner({ signal }, __dirname, 'server.js').start();
     const response = await runner.makeRequest('get', '/check', {
       headers: {
         'sentry-trace': '530699e319cc067ce440315d74acb312-414dc2a08d5d1dac-0',
@@ -79,8 +87,10 @@ describe('sample_rand propagation', () => {
     expect(sampleRand).toBeLessThan(1);
   });
 
-  test('a new sample_rand when there is no sentry-trace header but a baggage header with sample_rand', async () => {
-    const runner = createRunner(__dirname, 'server.js').start();
+  test('a new sample_rand when there is no sentry-trace header but a baggage header with sample_rand', async ({
+    signal,
+  }) => {
+    const runner = createRunner({ signal }, __dirname, 'server.js').start();
     const response = await runner.makeRequest('get', '/check', {
       headers: {
         baggage: 'sentry-sample_rate=0.75,sentry-sample_rand=0.5',

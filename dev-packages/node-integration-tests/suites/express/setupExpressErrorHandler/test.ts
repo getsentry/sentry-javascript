@@ -7,8 +7,8 @@ describe('express setupExpressErrorHandler', () => {
   });
 
   describe('CJS', () => {
-    test('allows to pass options to setupExpressErrorHandler', async () => {
-      const runner = createRunner(__dirname, 'server.js')
+    test('allows to pass options to setupExpressErrorHandler', async ({ signal }) => {
+      const runner = createRunner({ signal }, __dirname, 'server.js')
         .expect({
           event: {
             exception: {

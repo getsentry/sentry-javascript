@@ -7,7 +7,7 @@ describe('genericPool auto instrumentation', () => {
   });
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('should auto-instrument `genericPool` package when calling pool.require()', async () => {
+    test('should auto-instrument `genericPool` package when calling pool.require()', async ({ signal }) => {
       const EXPECTED_TRANSACTION = {
         transaction: 'Test Transaction',
         spans: expect.arrayContaining([
@@ -31,7 +31,7 @@ describe('genericPool auto instrumentation', () => {
         ]),
       };
 
-      await createRunner().expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
+      await createRunner({ signal }).expect({ transaction: EXPECTED_TRANSACTION }).start().completed();
     });
   });
 });

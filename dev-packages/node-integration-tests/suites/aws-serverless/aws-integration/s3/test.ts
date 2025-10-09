@@ -27,8 +27,8 @@ describe('awsIntegration', () => {
     cleanupChildProcesses();
   });
 
-  test('should auto-instrument aws-sdk v2 package.', async () => {
-    await createRunner(__dirname, 'scenario.js')
+  test('should auto-instrument aws-sdk v2 package.', async ({ signal }) => {
+    await createRunner({ signal }, __dirname, 'scenario.js')
       .ignore('event')
       .expect({ transaction: EXPECTED_TRANSCATION })
       .start()
