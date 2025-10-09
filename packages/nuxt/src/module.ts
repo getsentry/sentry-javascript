@@ -10,6 +10,7 @@ import { consoleSandbox } from '@sentry/core';
 import * as path from 'path';
 import type { SentryNuxtModuleOptions } from './common/types';
 import { addDynamicImportEntryFileWrapper, addSentryTopImport, addServerConfigToBuild } from './vite/addServerConfig';
+import { addDatabaseInstrumentation } from './vite/databaseConfig';
 import { addMiddlewareImports, addMiddlewareInstrumentation } from './vite/middlewareConfig';
 import { setupSourceMaps } from './vite/sourceMaps';
 import { addStorageInstrumentation } from './vite/storageConfig';
@@ -128,6 +129,7 @@ export default defineNuxtModule<ModuleOptions>({
     if (serverConfigFile) {
       addMiddlewareImports();
       addStorageInstrumentation(nuxt);
+      addDatabaseInstrumentation(nuxt);
     }
 
     nuxt.hooks.hook('nitro:init', nitro => {
