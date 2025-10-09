@@ -160,6 +160,7 @@ export function _callOnRequestSpanEnd(
 
   onRequestSpanEnd?.(span, {
     headers: handlerData.response?.headers,
+    error: handlerData.error,
   });
 }
 
