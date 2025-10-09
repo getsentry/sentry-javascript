@@ -244,6 +244,8 @@ export function createV6CompatibleWrapCreateBrowserRouter<
     // Track whether we've completed the initial pageload to properly distinguish
     // between POPs that occur during pageload vs. legitimate back/forward navigation.
     let isInitialPageloadComplete = false;
+    let hasSeenPageloadSpan = !!activeRootSpan && spanToJSON(activeRootSpan).op === 'pageload';
+    let hasSeenPopAfterPageload = false;
 
     // The initial load ends when `createBrowserRouter` is called.
     // This is the earliest convenient time to update the transaction name.
@@ -259,17 +261,22 @@ export function createV6CompatibleWrapCreateBrowserRouter<
     }
 
     router.subscribe((state: RouterState) => {
-      // Check if pageload span has ended to mark completion
+      // Track pageload completion to distinguish POPs during pageload from legitimate back/forward navigation
       if (!isInitialPageloadComplete) {
         const currentRootSpan = getActiveRootSpan();
-        const isStillInPageload = currentRootSpan && spanToJSON(currentRootSpan).op === 'pageload';
+        const isCurrentlyInPageload = currentRootSpan && spanToJSON(currentRootSpan).op === 'pageload';
 
-        if (!isStillInPageload) {
+        if (isCurrentlyInPageload) {
+          hasSeenPageloadSpan = true;
+        } else if (!hasSeenPageloadSpan) {
+          // No pageload span detected, so we're not in initial pageload mode
           isInitialPageloadComplete = true;
-          // Don't handle this specific callback if it's a POP that marks completion
-          if (state.historyAction === 'POP') {
-            return;
-          }
+        } else if (state.historyAction === 'POP' && !hasSeenPopAfterPageload) {
+          // Pageload ended: ignore the first POP after pageload
+          hasSeenPopAfterPageload = true;
+        } else {
+          // Pageload ended: either non-POP action or subsequent POP
+          isInitialPageloadComplete = true;
         }
       }
 
@@ -343,7 +350,6 @@ export function createV6CompatibleWrapCreateMemoryRouter<
     const router = createRouterFunction(routes, wrappedOpts);
     const basename = opts?.basename;
 
-    const activeRootSpan = getActiveRootSpan();
     let initialEntry = undefined;
 
     const initialEntries = opts?.initialEntries;
@@ -364,30 +370,46 @@ export function createV6CompatibleWrapCreateMemoryRouter<
         : initialEntry
       : router.state.location;
 
-    if (router.state.historyAction === 'POP' && activeRootSpan) {
-      updatePageloadTransaction({ activeRootSpan, location, routes, basename, allRoutes: Array.from(allRoutes) });
+    const memoryActiveRootSpan = getActiveRootSpan();
+
+    if (router.state.historyAction === 'POP' && memoryActiveRootSpan) {
+      updatePageloadTransaction({
+        activeRootSpan: memoryActiveRootSpan,
+        location,
+        routes,
+        basename,
+        allRoutes: Array.from(allRoutes),
+      });
     }
 
     // Track whether we've completed the initial pageload to properly distinguish
     // between POPs that occur during pageload vs. legitimate back/forward navigation.
     let isInitialPageloadComplete = false;
+    let hasSeenPageloadSpan = !!memoryActiveRootSpan && spanToJSON(memoryActiveRootSpan).op === 'pageload';
+    let hasSeenPopAfterPageload = false;
 
     router.subscribe((state: RouterState) => {
-      // Check if pageload span has ended to mark completion
+      // Track pageload completion to distinguish POPs during pageload from legitimate back/forward navigation
       if (!isInitialPageloadComplete) {
         const currentRootSpan = getActiveRootSpan();
-        const isStillInPageload = currentRootSpan && spanToJSON(currentRootSpan).op === 'pageload';
+        const isCurrentlyInPageload = currentRootSpan && spanToJSON(currentRootSpan).op === 'pageload';
 
-        if (!isStillInPageload) {
+        if (isCurrentlyInPageload) {
+          hasSeenPageloadSpan = true;
+        } else if (!hasSeenPageloadSpan) {
+          // No pageload span detected, so we're not in initial pageload mode
           isInitialPageloadComplete = true;
-          // Don't handle this specific callback if it's a POP that marks completion
-          if (state.historyAction === 'POP') {
-            return;
-          }
+        } else if (state.historyAction === 'POP' && !hasSeenPopAfterPageload) {
+          // Pageload ended: ignore the first POP after pageload
+          hasSeenPopAfterPageload = true;
+        } else {
+          // Pageload ended: either non-POP action or subsequent POP
+          isInitialPageloadComplete = true;
         }
       }
 
       const location = state.location;
+
       const shouldHandleNavigation =
         state.historyAction === 'PUSH' || (state.historyAction === 'POP' && isInitialPageloadComplete);
 
@@ -578,8 +600,16 @@ function wrapPatchRoutesOnNavigation(
       // Update navigation span after routes are patched
       const activeRootSpan = getActiveRootSpan();
       if (activeRootSpan && (spanToJSON(activeRootSpan) as { op?: string }).op === 'navigation') {
-        // For memory routers, we should not access window.location; use targetPath only
-        const pathname = isMemoryRouter ? targetPath : targetPath || WINDOW.location?.pathname;
+        // Determine pathname based on router type
+        let pathname: string | undefined;
+        if (isMemoryRouter) {
+          // For memory routers, only use targetPath
+          pathname = targetPath;
+        } else {
+          // For browser routers, use targetPath or fall back to window.location
+          pathname = targetPath || WINDOW.location?.pathname;
+        }
+
         if (pathname) {
           updateNavigationSpan(
             activeRootSpan,
