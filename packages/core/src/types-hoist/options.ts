@@ -285,12 +285,12 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
     [key: string]: any;
 
     /**
-     * If trace metrics support should be enabled.
+     * If metrics support should be enabled.
      *
      * @default false
      * @experimental
      */
-    enableTraceMetrics?: boolean;
+    enableMetrics?: boolean;
 
     /**
      * An event-processing callback for metrics, guaranteed to be invoked after all other metric

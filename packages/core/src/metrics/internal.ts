@@ -134,8 +134,8 @@ export function _INTERNAL_captureMetric(beforeMetric: Metric, options?: Internal
   }
 
   const { release, environment, _experiments } = client.getOptions();
-  if (!_experiments?.enableTraceMetrics) {
-    DEBUG_BUILD && debug.warn('trace metrics option not enabled, metric will not be captured.');
+  if (!_experiments?.enableMetrics) {
+    DEBUG_BUILD && debug.warn('metrics option not enabled, metric will not be captured.');
     return;
   }
 

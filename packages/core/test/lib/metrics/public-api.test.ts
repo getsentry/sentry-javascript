@@ -9,7 +9,7 @@ const PUBLIC_DSN = 'https://username@domain/123';
 describe('Metrics Public API', () => {
   describe('count', () => {
     it('captures a counter metric with default value of 1', () => {
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, _experiments: { enableTraceMetrics: true } });
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, _experiments: { enableMetrics: true } });
       const client = new TestClient(options);
       const scope = new Scope();
       scope.setClient(client);
@@ -28,7 +28,7 @@ describe('Metrics Public API', () => {
     });
 
     it('captures a counter metric with custom value', () => {
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, _experiments: { enableTraceMetrics: true } });
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, _experiments: { enableMetrics: true } });
       const client = new TestClient(options);
       const scope = new Scope();
       scope.setClient(client);
@@ -47,7 +47,7 @@ describe('Metrics Public API', () => {
     });
 
     it('captures a counter metric with attributes', () => {
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, _experiments: { enableTraceMetrics: true } });
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, _experiments: { enableMetrics: true } });
       const client = new TestClient(options);
       const scope = new Scope();
       scope.setClient(client);
@@ -87,7 +87,7 @@ describe('Metrics Public API', () => {
     });
 
     it('captures a counter metric with unit', () => {
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, _experiments: { enableTraceMetrics: true } });
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, _experiments: { enableMetrics: true } });
       const client = new TestClient(options);
       const scope = new Scope();
       scope.setClient(client);
@@ -109,7 +109,7 @@ describe('Metrics Public API', () => {
       );
     });
 
-    it('does not capture counter when enableTraceMetrics is not enabled', () => {
+    it('does not capture counter when enableMetrics is not enabled', () => {
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);
       const scope = new Scope();
@@ -123,7 +123,7 @@ describe('Metrics Public API', () => {
 
   describe('gauge', () => {
     it('captures a gauge metric', () => {
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, _experiments: { enableTraceMetrics: true } });
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, _experiments: { enableMetrics: true } });
       const client = new TestClient(options);
       const scope = new Scope();
       scope.setClient(client);
@@ -142,7 +142,7 @@ describe('Metrics Public API', () => {
     });
 
     it('captures a gauge metric with unit', () => {
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, _experiments: { enableTraceMetrics: true } });
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, _experiments: { enableMetrics: true } });
       const client = new TestClient(options);
       const scope = new Scope();
       scope.setClient(client);
@@ -165,7 +165,7 @@ describe('Metrics Public API', () => {
     });
 
     it('captures a gauge metric with attributes', () => {
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, _experiments: { enableTraceMetrics: true } });
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, _experiments: { enableMetrics: true } });
       const client = new TestClient(options);
       const scope = new Scope();
       scope.setClient(client);
@@ -199,7 +199,7 @@ describe('Metrics Public API', () => {
       );
     });
 
-    it('does not capture gauge when enableTraceMetrics is not enabled', () => {
+    it('does not capture gauge when enableMetrics is not enabled', () => {
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);
       const scope = new Scope();
@@ -213,7 +213,7 @@ describe('Metrics Public API', () => {
 
   describe('distribution', () => {
     it('captures a distribution metric', () => {
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, _experiments: { enableTraceMetrics: true } });
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, _experiments: { enableMetrics: true } });
       const client = new TestClient(options);
       const scope = new Scope();
       scope.setClient(client);
@@ -232,7 +232,7 @@ describe('Metrics Public API', () => {
     });
 
     it('captures a distribution metric with unit', () => {
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, _experiments: { enableTraceMetrics: true } });
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, _experiments: { enableMetrics: true } });
       const client = new TestClient(options);
       const scope = new Scope();
       scope.setClient(client);
@@ -255,7 +255,7 @@ describe('Metrics Public API', () => {
     });
 
     it('captures a distribution metric with attributes', () => {
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, _experiments: { enableTraceMetrics: true } });
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, _experiments: { enableMetrics: true } });
       const client = new TestClient(options);
       const scope = new Scope();
       scope.setClient(client);
@@ -289,7 +289,7 @@ describe('Metrics Public API', () => {
       );
     });
 
-    it('does not capture distribution when enableTraceMetrics is not enabled', () => {
+    it('does not capture distribution when enableMetrics is not enabled', () => {
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);
       const scope = new Scope();
@@ -303,7 +303,7 @@ describe('Metrics Public API', () => {
 
   describe('mixed metric types', () => {
     it('captures multiple different metric types', () => {
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, _experiments: { enableTraceMetrics: true } });
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, _experiments: { enableMetrics: true } });
       const client = new TestClient(options);
       const scope = new Scope();
       scope.setClient(client);

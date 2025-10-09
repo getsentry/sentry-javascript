@@ -7,7 +7,7 @@ const client = Sentry.init({
   release: '1.0.0',
   environment: 'test',
   _experiments: {
-    enableTraceMetrics: true,
+    enableMetrics: true,
   },
   transport: loggingTransport,
 });
