@@ -1,12 +1,12 @@
 import { expect, test } from '@playwright/test';
-import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
+import { waitForTransaction } from '@sentry-internal/test-utils';
 
 const packageJson = require('../package.json');
 
 test('Sends a pageload transaction', async ({ page }) => {
   const nextjsVersion = packageJson.dependencies.next;
   const nextjsMajor = Number(nextjsVersion.split('.')[0]);
-  const isDevMode = process.env.TEST_ENV === 'development';
+  const isDevMode = process.env.TEST_ENV?.includes('development');
 
   const pageloadTransactionEventPromise = waitForTransaction('nextjs-pages-dir', transactionEvent => {
     return transactionEvent?.contexts?.trace?.op === 'pageload' && transactionEvent?.transaction === '/';
