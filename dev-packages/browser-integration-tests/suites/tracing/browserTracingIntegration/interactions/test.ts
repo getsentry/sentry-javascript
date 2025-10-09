@@ -7,7 +7,7 @@ import {
   shouldSkipTracingTest,
 } from '../../../../utils/helpers';
 
-sentryTest('should capture interaction transaction. @firefox', async ({ browserName, getLocalTestUrl, page }) => {
+sentryTest('captures interaction span @firefox', async ({ browserName, getLocalTestUrl, page }) => {
   const supportedBrowsers = ['chromium', 'firefox'];
 
   if (shouldSkipTracingTest() || !supportedBrowsers.includes(browserName)) {
