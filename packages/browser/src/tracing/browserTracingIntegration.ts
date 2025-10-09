@@ -1,5 +1,13 @@
 /* eslint-disable max-lines */
-import type { Client, IntegrationFn, Span, StartSpanOptions, TransactionSource, WebFetchHeaders } from '@sentry/core';
+import type {
+  Client,
+  IntegrationFn,
+  RequestHookInfo,
+  ResponseHookInfo,
+  Span,
+  StartSpanOptions,
+  TransactionSource,
+} from '@sentry/core';
 import {
   addNonEnumerableProperty,
   browserPerformanceTimeOrigin,
@@ -297,7 +305,12 @@ export interface BrowserTracingOptions {
    * You can use it to annotate the span with additional data or attributes, for example by setting
    * attributes based on the passed request headers.
    */
-  onRequestSpanStart?(span: Span, requestInformation: { headers?: WebFetchHeaders }): void;
+  onRequestSpanStart?(span: Span, requestInformation: RequestHookInfo): void;
+
+  /**
+   * Is called when spans end for outgoing requests, providing access to response headers.
+   */
+  onRequestSpanEnd?(span: Span, responseInformation: ResponseHookInfo): void;
 }
 
 const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
@@ -365,6 +378,7 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
     consistentTraceSampling,
     enableReportPageLoaded,
     onRequestSpanStart,
+    onRequestSpanEnd,
   } = {
     ...DEFAULT_BROWSER_TRACING_OPTIONS,
     ...options,
@@ -692,6 +706,7 @@ export const browserTracingIntegration = ((options: Partial<BrowserTracingOption
         shouldCreateSpanForRequest,
         enableHTTPTimings,
         onRequestSpanStart,
+        onRequestSpanEnd,
       });
     },
   };
