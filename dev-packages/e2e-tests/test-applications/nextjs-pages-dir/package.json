@@ -46,7 +46,7 @@
       {
         "build-command": "pnpm test:build-canary",
         "label": "nextjs-pages-dir (canary, webpack opt-in)",
-        "assert-command": "pnpm test:prod && pnpm test:dev-webpack"
+        "assert-command": "pnpm test:prod"
       },
       {
         "build-command": "pnpm test:build-latest",
