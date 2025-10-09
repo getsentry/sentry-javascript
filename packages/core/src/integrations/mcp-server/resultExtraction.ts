@@ -12,11 +12,6 @@ import {
 } from './attributes';
 import { isValidContentItem } from './validation';
 
-/**
- * Build attributes for tool result content items
- * @param content - Array of content items from tool result
- * @returns Attributes extracted from each content item including type, text, mime type, URI, and resource info
- */
 function buildAllContentItemAttributes(content: unknown[]): Record<string, string | number | boolean> {
   const attributes: Record<string, string | number> = {
     [MCP_TOOL_RESULT_CONTENT_COUNT_ATTRIBUTE]: content.length,
@@ -115,7 +110,7 @@ export function extractPromptResultAttributes(result: unknown): Record<string, s
       if (isValidContentItem(message.content)) {
         const content = message.content;
         if (typeof content.text === 'string') {
-          const attrName = messages.length === 1 ? `${prefix}.message_content` : `${prefix}.content`;
+          const attrName = filteredMessages.length === 1 ? `${prefix}.message_content` : `${prefix}.content`;
           attributes[attrName] = content.text;
         }
       }
