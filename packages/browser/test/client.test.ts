@@ -18,7 +18,6 @@ vi.mock('@sentry/core', async requireActual => {
 
 describe('BrowserClient', () => {
   let client: BrowserClient;
-  const DEFAULT_FLUSH_INTERVAL = 5000;
 
   afterEach(() => {
     vi.useRealTimers();
@@ -78,57 +77,24 @@ describe('BrowserClient', () => {
       expect(sentryCore._INTERNAL_flushLogsBuffer).toHaveBeenCalledWith(client);
     });
 
-    it('flushes logs on flush event', () => {
+    it('inherits log weight-based flushing from base Client', () => {
       const scope = new Scope();
       scope.setClient(client);
 
-      // Add some logs
-      sentryCore._INTERNAL_captureLog({ level: 'info', message: 'test log 1' }, scope);
-      sentryCore._INTERNAL_captureLog({ level: 'info', message: 'test log 2' }, scope);
+      // Spy on sendEnvelope to verify flushing happens
+      const sendEnvelopeSpy = vi.spyOn(client, 'sendEnvelope');
 
-      // Trigger flush event
-      client.emit('flush');
-
-      expect(sentryCore._INTERNAL_flushLogsBuffer).toHaveBeenCalledWith(client);
-    });
-
-    it('flushes logs after idle timeout', () => {
-      const scope = new Scope();
-      scope.setClient(client);
-
-      // Add a log which will trigger afterCaptureLog event
+      // Add a log and verify the base Client functionality works
       sentryCore._INTERNAL_captureLog({ level: 'info', message: 'test log' }, scope);
 
-      // Fast forward the idle timeout
-      vi.advanceTimersByTime(DEFAULT_FLUSH_INTERVAL);
+      // Verify weight tracking is active
+      expect((client as any)._logWeight).toBeGreaterThan(0);
 
-      expect(sentryCore._INTERNAL_flushLogsBuffer).toHaveBeenCalledWith(client);
-    });
+      // Trigger flush and verify it works
+      client.emit('flush');
 
-    it('resets idle timeout when new logs are captured', () => {
-      const scope = new Scope();
-      scope.setClient(client);
-
-      // Add initial log
-      sentryCore._INTERNAL_captureLog({ level: 'info', message: 'test log 1' }, scope);
-
-      // Fast forward part of the idle timeout
-      vi.advanceTimersByTime(DEFAULT_FLUSH_INTERVAL / 2);
-
-      // Add another log which should reset the timeout
-      sentryCore._INTERNAL_captureLog({ level: 'info', message: 'test log 2' }, scope);
-
-      // Fast forward the remaining time
-      vi.advanceTimersByTime(DEFAULT_FLUSH_INTERVAL / 2);
-
-      // Should not have flushed yet since timeout was reset
-      expect(sentryCore._INTERNAL_flushLogsBuffer).not.toHaveBeenCalled();
-
-      // Fast forward the full timeout
-      vi.advanceTimersByTime(DEFAULT_FLUSH_INTERVAL);
-
-      // Now should have flushed both logs
-      expect(sentryCore._INTERNAL_flushLogsBuffer).toHaveBeenCalledWith(client);
+      expect(sendEnvelopeSpy).toHaveBeenCalledTimes(1);
+      expect((client as any)._logWeight).toBe(0);
     });
   });
 });
