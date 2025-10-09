@@ -56,6 +56,12 @@ const router = sentryCreateBrowserRouter(
       },
     },
     {
+      path: '/long-running',
+      handle: {
+        lazyChildren: () => import('./pages/LongRunningLazyRoutes').then(module => module.longRunningNestedRoutes),
+      },
+    },
+    {
       path: '/static',
       element: <>Hello World</>,
     },
