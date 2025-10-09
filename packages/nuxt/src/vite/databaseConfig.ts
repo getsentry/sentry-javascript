@@ -6,7 +6,7 @@ import type { Nuxt } from 'nuxt/schema';
  * Sets up the database instrumentation.
  */
 export function addDatabaseInstrumentation(nuxt: Nuxt): void {
-  if (!nuxt.options.nitro?.database) {
+  if (!nuxt.options.nitro?.experimental?.database && !nuxt.options.nitro?.database) {
     consoleSandbox(() => {
       // eslint-disable-next-line no-console
       console.log('[Sentry] No database configuration found. Skipping database instrumentation.');
