@@ -142,6 +142,7 @@ export declare function wrapPageComponentWithSentry<C>(WrappingTarget: C): C;
 
 export { captureRequestError } from './common/captureRequestError';
 
+export declare const growthbookIntegration: typeof clientSdk.growthbookIntegration;
 export declare const launchDarklyIntegration: typeof clientSdk.launchDarklyIntegration;
 export declare const buildLaunchDarklyFlagUsedHandler: typeof clientSdk.buildLaunchDarklyFlagUsedHandler;
 export declare const openFeatureIntegration: typeof clientSdk.openFeatureIntegration;
