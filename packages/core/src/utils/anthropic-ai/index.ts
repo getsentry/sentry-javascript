@@ -34,7 +34,7 @@ import type {
   AnthropicAiStreamingEvent,
   ContentBlock,
 } from './types';
-import { shouldInstrument } from './utils';
+import { handleResponseError, shouldInstrument } from './utils';
 
 /**
  * Extract request attributes from method arguments
@@ -93,23 +93,6 @@ function addPrivateRequestAttributes(span: Span, params: Record<string, unknown>
   }
   if ('prompt' in params) {
     span.setAttributes({ [GEN_AI_PROMPT_ATTRIBUTE]: JSON.stringify(params.prompt) });
-  }
-}
-
-/**
- * Capture error information from the response
- * @see https://docs.anthropic.com/en/api/errors#error-shapes
- */
-function handleResponseError(span: Span, response: AnthropicAiResponse): void {
-  if (response.error) {
-    span.setStatus({ code: SPAN_STATUS_ERROR, message: response.error.type || 'unknown_error' });
-
-    captureException(response.error, {
-      mechanism: {
-        handled: false,
-        type: 'auto.ai.anthropic.anthropic_error',
-      },
-    });
   }
 }
 
