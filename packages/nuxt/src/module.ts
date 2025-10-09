@@ -10,6 +10,7 @@ import { consoleSandbox } from '@sentry/core';
 import * as path from 'path';
 import type { SentryNuxtModuleOptions } from './common/types';
 import { addDynamicImportEntryFileWrapper, addSentryTopImport, addServerConfigToBuild } from './vite/addServerConfig';
+import { addDatabaseInstrumentation } from './vite/databaseConfig';
 import { addMiddlewareImports, addMiddlewareInstrumentation } from './vite/middlewareConfig';
 import { setupSourceMaps } from './vite/sourceMaps';
 import { addOTelCommonJSImportAlias, findDefaultSdkInitFile } from './vite/utils';
@@ -126,6 +127,8 @@ export default defineNuxtModule<ModuleOptions>({
     // Preps the the middleware instrumentation module.
     if (serverConfigFile) {
       addMiddlewareImports();
+
+      addDatabaseInstrumentation(nuxt);
     }
 
     nuxt.hooks.hook('nitro:init', nitro => {
