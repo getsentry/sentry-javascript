@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 import { getClient, getCurrentScope } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
 import { createSpanEnvelope } from '../envelope';
@@ -21,6 +22,7 @@ import type {
   SpanJSON,
   SpanOrigin,
   SpanTimeInput,
+  SpanV2JSON,
 } from '../types-hoist/span';
 import type { SpanStatus } from '../types-hoist/spanStatus';
 import type { TimedEvent } from '../types-hoist/timedEvent';
@@ -31,6 +33,9 @@ import {
   getRootSpan,
   getSpanDescendants,
   getStatusMessage,
+  getV2Attributes,
+  getV2SpanLinks,
+  getV2StatusMessage,
   spanTimeInputToSeconds,
   spanToJSON,
   spanToTransactionTraceContext,
@@ -241,6 +246,31 @@ export class SentrySpan implements Span {
     };
   }
 
+  /**
+   * Get SpanV2JSON representation of this span.
+   *
+   * @hidden
+   * @internal This method is purely for internal purposes and should not be used outside
+   * of SDK code. If you need to get a JSON representation of a span,
+   * use `spanToV2JSON(span)` instead.
+   */
+  public getSpanV2JSON(): SpanV2JSON {
+    return {
+      name: this._name ?? '',
+      span_id: this._spanId,
+      trace_id: this._traceId,
+      parent_span_id: this._parentSpanId,
+      start_timestamp: this._startTime,
+      // just in case _endTime is not set, we use the start time (i.e. duration 0)
+      end_timestamp: this._endTime ?? this._startTime,
+      is_remote: false, // TODO: This has to be inferred from attributes SentrySpans. `false` is the default.
+      kind: 'internal', // TODO: This has to be inferred from attributes SentrySpans. `internal` is the default.
+      status: getV2StatusMessage(this._status),
+      attributes: getV2Attributes(this._attributes),
+      links: getV2SpanLinks(this._links),
+    };
+  }
+
   /** @inheritdoc */
   public isRecording(): boolean {
     return !this._endTime && !!this._sampled;
@@ -309,6 +339,10 @@ export class SentrySpan implements Span {
           client.recordDroppedEvent('sample_rate', 'span');
         }
       }
+      return;
+    } else if (client?.getOptions().traceLifecycle === 'stream') {
+      // TODO (spans): Remove standalone span custom logic in favor of sending simple v2 web vital spans
+      client?.emit('segmentSpanEnd', this);
       return;
     }
 

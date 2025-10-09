@@ -33,6 +33,7 @@ import type { SeverityLevel } from './types-hoist/severity';
 import type { Span, SpanAttributes, SpanContextData, SpanJSON } from './types-hoist/span';
 import type { StartSpanOptions } from './types-hoist/startSpanOptions';
 import type { Transport, TransportMakeRequestResponse } from './types-hoist/transport';
+import { isV2BeforeSendSpanCallback } from './utils/beforeSendSpan';
 import { createClientReportEnvelope } from './utils/clientreport';
 import { debug } from './utils/debug-logger';
 import { dsnToString, makeDsn } from './utils/dsn';
@@ -510,6 +511,14 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public on(hook: 'spanEnd', callback: (span: Span) => void): () => void;
 
   /**
+   * Register a callback for after a span is ended.
+   * NOTE: The span cannot be mutated anymore in this callback.
+   * Receives the span as argument.
+   * @returns {() => void} A function that, when executed, removes the registered callback.
+   */
+  public on(hook: 'segmentSpanEnd', callback: (span: Span) => void): () => void;
+
+  /**
    * Register a callback for when an idle span is allowed to auto-finish.
    * @returns {() => void} A function that, when executed, removes the registered callback.
    */
@@ -741,6 +750,9 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
 
   /** Fire a hook whenever a span ends. */
   public emit(hook: 'spanEnd', span: Span): void;
+
+  /** Fire a hook whenever a segment span ends. */
+  public emit(hook: 'segmentSpanEnd', span: Span): void;
 
   /**
    * Fire a hook indicating that an idle span is allowed to auto finish.
@@ -1316,13 +1328,17 @@ function _validateBeforeSendResult(
 /**
  * Process the matching `beforeSendXXX` callback.
  */
+// eslint-disable-next-line complexity
 function processBeforeSend(
   client: Client,
   options: ClientOptions,
   event: Event,
   hint: EventHint,
 ): PromiseLike<Event | null> | Event | null {
-  const { beforeSend, beforeSendTransaction, beforeSendSpan, ignoreSpans } = options;
+  const { beforeSend, beforeSendTransaction, ignoreSpans } = options;
+
+  const beforeSendSpan = !isV2BeforeSendSpanCallback(options.beforeSendSpan) && options.beforeSendSpan;
+
   let processedEvent = event;
 
   if (isErrorEvent(processedEvent) && beforeSend) {
