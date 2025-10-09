@@ -15,6 +15,7 @@
   },
   "scripts": {
     "build": "react-scripts build",
+    "dev": "react-scripts start",
     "start": "serve -s build",
     "test": "playwright test",
     "clean": "npx rimraf node_modules pnpm-lock.yaml",
