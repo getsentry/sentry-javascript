@@ -268,16 +268,17 @@ export function createV6CompatibleWrapCreateBrowserRouter<
 
         if (isCurrentlyInPageload) {
           hasSeenPageloadSpan = true;
-        } else if (!hasSeenPageloadSpan) {
-          // No pageload span detected, so we're not in initial pageload mode
-          isInitialPageloadComplete = true;
-        } else if (state.historyAction === 'POP' && !hasSeenPopAfterPageload) {
-          // Pageload ended: ignore the first POP after pageload
-          hasSeenPopAfterPageload = true;
-        } else {
-          // Pageload ended: either non-POP action or subsequent POP
-          isInitialPageloadComplete = true;
+        } else if (hasSeenPageloadSpan) {
+          // Pageload span was active but is now gone - pageload has completed
+          if (state.historyAction === 'POP' && !hasSeenPopAfterPageload) {
+            // Pageload ended: ignore the first POP after pageload
+            hasSeenPopAfterPageload = true;
+          } else {
+            // Pageload ended: either non-POP action or subsequent POP
+            isInitialPageloadComplete = true;
+          }
         }
+        // If we haven't seen a pageload span yet, keep waiting (don't mark as complete)
       }
 
       const shouldHandleNavigation =
@@ -396,16 +397,17 @@ export function createV6CompatibleWrapCreateMemoryRouter<
 
         if (isCurrentlyInPageload) {
           hasSeenPageloadSpan = true;
-        } else if (!hasSeenPageloadSpan) {
-          // No pageload span detected, so we're not in initial pageload mode
-          isInitialPageloadComplete = true;
-        } else if (state.historyAction === 'POP' && !hasSeenPopAfterPageload) {
-          // Pageload ended: ignore the first POP after pageload
-          hasSeenPopAfterPageload = true;
-        } else {
-          // Pageload ended: either non-POP action or subsequent POP
-          isInitialPageloadComplete = true;
+        } else if (hasSeenPageloadSpan) {
+          // Pageload span was active but is now gone - pageload has completed
+          if (state.historyAction === 'POP' && !hasSeenPopAfterPageload) {
+            // Pageload ended: ignore the first POP after pageload
+            hasSeenPopAfterPageload = true;
+          } else {
+            // Pageload ended: either non-POP action or subsequent POP
+            isInitialPageloadComplete = true;
+          }
         }
+        // If we haven't seen a pageload span yet, keep waiting (don't mark as complete)
       }
 
       const location = state.location;
