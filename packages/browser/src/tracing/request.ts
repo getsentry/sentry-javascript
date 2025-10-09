@@ -343,6 +343,7 @@ function xhrCallback(
 
       onRequestSpanEnd?.(span, {
         headers: createHeadersSafely(parseXhrResponseHeaders(xhr as XMLHttpRequest & SentryWrappedXMLHttpRequest)),
+        error: handlerData.error,
       });
 
       // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
