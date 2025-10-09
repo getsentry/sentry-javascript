@@ -6,7 +6,7 @@ const packageJson = require('../package.json');
 test('Sends a pageload transaction', async ({ page }) => {
   const nextjsVersion = packageJson.dependencies.next;
   const nextjsMajor = Number(nextjsVersion.split('.')[0]);
-  const isDevMode = process.env.TEST_ENV === 'development';
+  const isDevMode = process.env.TEST_ENV.includes('development');
 
   const pageloadTransactionEventPromise = waitForTransaction('nextjs-app-dir', transactionEvent => {
     return transactionEvent?.contexts?.trace?.op === 'pageload' && transactionEvent?.transaction === '/';
@@ -79,7 +79,7 @@ test('Should send a wrapped server action as a child of a nextjs transaction', a
   const nextjsVersion = packageJson.dependencies.next;
   const nextjsMajor = Number(nextjsVersion.split('.')[0]);
   test.skip(!isNaN(nextjsMajor) && nextjsMajor < 14, 'only applies to nextjs apps >= version 14');
-  test.skip(process.env.TEST_ENV === 'development', 'this magically only works in production');
+  test.skip(process.env.TEST_ENV.includes('development'), 'this magically only works in production');
 
   const nextjsPostTransactionPromise = waitForTransaction('nextjs-app-dir', async transactionEvent => {
     return (
