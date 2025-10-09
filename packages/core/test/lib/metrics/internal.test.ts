@@ -110,7 +110,7 @@ describe('_INTERNAL_captureMetric', () => {
 
     _INTERNAL_captureMetric({ type: 'counter', name: 'test.metric', value: 1 }, { scope });
 
-    expect(logWarnSpy).toHaveBeenCalledWith('trace metrics option not enabled, metric will not be captured.');
+    expect(logWarnSpy).toHaveBeenCalledWith('metrics option not enabled, metric will not be captured.');
     expect(_INTERNAL_getMetricBuffer(client)).toBeUndefined();
 
     logWarnSpy.mockRestore();

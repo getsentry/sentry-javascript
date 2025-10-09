@@ -157,7 +157,7 @@ type Expected =
       log: ExpectedLogContainer;
     }
   | {
-      metric: ExpectedMetricContainer;
+      trace_metric: ExpectedMetricContainer;
     };
 
 type ExpectedEnvelopeHeader =
@@ -525,8 +525,8 @@ export function createRunner(...paths: string[]) {
             } else if ('log' in expected) {
               expectLog(item[1] as SerializedLogContainer, expected.log);
               expectCallbackCalled();
-            } else if ('metric' in expected) {
-              expectMetric(item[1] as SerializedMetricContainer, expected.metric);
+            } else if ('trace_metric' in expected) {
+              expectMetric(item[1] as SerializedMetricContainer, expected.trace_metric);
               expectCallbackCalled();
             } else {
               throw new Error(

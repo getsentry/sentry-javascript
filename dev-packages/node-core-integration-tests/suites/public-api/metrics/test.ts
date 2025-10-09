@@ -8,9 +8,9 @@ describe('metrics', () => {
 
   test('should capture all metric types', async () => {
     const runner = createRunner(__dirname, 'scenario.ts')
-      .unignore('metric')
+      .unignore('trace_metric')
       .expect({
-        metric: {
+        trace_metric: {
           items: [
             {
               timestamp: expect.any(Number),

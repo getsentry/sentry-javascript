@@ -164,7 +164,7 @@ describe('createMetricEnvelope', () => {
       expect.anything(),
       expect.arrayContaining([
         expect.arrayContaining([
-          { type: 'metric', item_count: 2, content_type: 'application/vnd.sentry.items.trace-metric+json' },
+          { type: 'trace_metric', item_count: 2, content_type: 'application/vnd.sentry.items.trace-metric+json' },
           { items: mockMetrics },
         ]),
       ]),
