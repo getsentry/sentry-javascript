@@ -190,47 +190,47 @@ function createSpanStartOptions(
   mountBase: string,
   args: unknown[],
 ): StartSpanOptions {
-  const key = normalizeKey(args?.[0]);
+  const keys = getCacheKeys(args?.[0], mountBase);
+
   const attributes: SpanAttributes = {
     [SEMANTIC_ATTRIBUTE_SENTRY_OP]: `cache.${normalizeMethodName(methodName)}`,
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.cache.nuxt',
+    [SEMANTIC_ATTRIBUTE_CACHE_KEY]: keys.length > 1 ? keys : keys[0],
     'db.operation.name': methodName,
-    'db.collection.name	': mountBase,
+    'db.collection.name': mountBase.replace(/:$/, ''),
     'db.system.name': driver.name ?? 'unknown',
   };
 
-  if (key) {
-    attributes[SEMANTIC_ATTRIBUTE_CACHE_KEY] = key;
-  }
-
   return {
-    name: `${mountBase} ${key}`,
+    name: keys.join(', '),
     attributes,
   };
 }
 
 /**
- * Normalizes the key to a string for display purposes.
- * @param key The key to normalize.
+ * Gets a normalized array of cache keys.
  */
-function normalizeKey(key: unknown): string {
-  if (isEmptyValue(key)) {
-    return '';
+function getCacheKeys(key: unknown, prefix: string): string[] {
+  // Handles an array of keys
+  if (Array.isArray(key)) {
+    return key.map(k => normalizeKey(k, prefix));
   }
 
+  return [normalizeKey(key, prefix)];
+}
+
+/**
+ * Normalizes the key to a string for `cache.key` attribute.
+ */
+function normalizeKey(key: unknown, prefix: string): string {
   if (typeof key === 'string') {
-    return key;
+    return `${prefix}${key}`;
   }
 
   // Handles an object with a key property
   if (typeof key === 'object' && key !== null && 'key' in key) {
-    return `${key.key}`;
+    return `${prefix}${key.key}`;
   }
 
-  // Handles an array of keys
-  if (Array.isArray(key)) {
-    return key.map(k => normalizeKey(k)).join(', ');
-  }
-
-  return String(key);
+  return `${prefix}${isEmptyValue(key) ? '' : String(key)}`;
 }
