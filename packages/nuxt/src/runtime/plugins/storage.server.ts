@@ -200,11 +200,11 @@ function createSpanStartOptions(
   };
 
   if (key) {
-    attributes[SEMANTIC_ATTRIBUTE_CACHE_KEY] = `${mountBase}${key}`;
+    attributes[SEMANTIC_ATTRIBUTE_CACHE_KEY] = key;
   }
 
   return {
-    name: `${mountBase}${key}`,
+    name: `${mountBase} ${key}`,
     attributes,
   };
 }
