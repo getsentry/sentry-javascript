@@ -152,11 +152,13 @@ export type {
   Thread,
   User,
   Span,
+  Metric,
   FeatureFlagsIntegration,
 } from '@sentry/core';
 
 export {
   logger,
+  metrics,
   httpServerIntegration,
   httpServerSpansIntegration,
   nodeContextIntegration,
