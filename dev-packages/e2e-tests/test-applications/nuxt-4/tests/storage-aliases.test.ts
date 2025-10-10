@@ -32,7 +32,7 @@ test.describe('Storage Instrumentation - Aliases', () => {
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.cache.nuxt',
       [SEMANTIC_ATTRIBUTE_CACHE_KEY]: prefixKey('alias:user'),
       'db.operation.name': 'setItem',
-      'db.collection.name': 'test-storage:',
+      'db.collection.name': 'test-storage',
       'db.system.name': 'memory',
     });
     expect(setSpan?.description).toBe(prefixKey('alias:user'));
@@ -48,7 +48,7 @@ test.describe('Storage Instrumentation - Aliases', () => {
       [SEMANTIC_ATTRIBUTE_CACHE_KEY]: prefixKey('alias:user'),
       [SEMANTIC_ATTRIBUTE_CACHE_HIT]: true,
       'db.operation.name': 'getItem',
-      'db.collection.name': 'test-storage:',
+      'db.collection.name': 'test-storage',
       'db.system.name': 'memory',
     });
     expect(getSpan?.description).toBe(prefixKey('alias:user'));
@@ -64,7 +64,7 @@ test.describe('Storage Instrumentation - Aliases', () => {
       [SEMANTIC_ATTRIBUTE_CACHE_KEY]: prefixKey('alias:user'),
       [SEMANTIC_ATTRIBUTE_CACHE_HIT]: true,
       'db.operation.name': 'hasItem',
-      'db.collection.name': 'test-storage:',
+      'db.collection.name': 'test-storage',
       'db.system.name': 'memory',
     });
 
@@ -79,7 +79,7 @@ test.describe('Storage Instrumentation - Aliases', () => {
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.cache.nuxt',
       [SEMANTIC_ATTRIBUTE_CACHE_KEY]: prefixKey('alias:temp1'),
       'db.operation.name': 'removeItem',
-      'db.collection.name': 'test-storage:',
+      'db.collection.name': 'test-storage',
       'db.system.name': 'memory',
     });
     expect(delSpan?.description).toBe(prefixKey('alias:temp1'));
@@ -91,7 +91,7 @@ test.describe('Storage Instrumentation - Aliases', () => {
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.cache.nuxt',
       [SEMANTIC_ATTRIBUTE_CACHE_KEY]: prefixKey('alias:temp2'),
       'db.operation.name': 'removeItem',
-      'db.collection.name': 'test-storage:',
+      'db.collection.name': 'test-storage',
       'db.system.name': 'memory',
     });
     expect(removeSpan?.description).toBe(prefixKey('alias:temp2'));
