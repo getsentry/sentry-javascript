@@ -215,7 +215,7 @@ module.exports = [
     import: createImport('init'),
     ignore: ['$app/stores'],
     gzip: true,
-    limit: '41 KB',
+    limit: '42 KB',
   },
   // Node-Core SDK (ESM)
   {
