@@ -32,7 +32,7 @@ test.describe('Storage Instrumentation', () => {
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.cache.nuxt',
       [SEMANTIC_ATTRIBUTE_CACHE_KEY]: prefixKey('user:123'),
       'db.operation.name': 'setItem',
-      'db.collection.name': 'test-storage:',
+      'db.collection.name': 'test-storage',
       'db.system.name': 'memory',
     });
     expect(setItemSpan?.description).toBe(prefixKey('user:123'));
@@ -49,7 +49,7 @@ test.describe('Storage Instrumentation', () => {
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.cache.nuxt',
       [SEMANTIC_ATTRIBUTE_CACHE_KEY]: prefixKey('raw:data'),
       'db.operation.name': 'setItemRaw',
-      'db.collection.name': 'test-storage:',
+      'db.collection.name': 'test-storage',
       'db.system.name': 'memory',
     });
 
@@ -64,7 +64,7 @@ test.describe('Storage Instrumentation', () => {
       [SEMANTIC_ATTRIBUTE_CACHE_KEY]: prefixKey('user:123'),
       [SEMANTIC_ATTRIBUTE_CACHE_HIT]: true,
       'db.operation.name': 'hasItem',
-      'db.collection.name': 'test-storage:',
+      'db.collection.name': 'test-storage',
       'db.system.name': 'memory',
     });
 
@@ -79,7 +79,7 @@ test.describe('Storage Instrumentation', () => {
       [SEMANTIC_ATTRIBUTE_CACHE_KEY]: prefixKey('user:123'),
       [SEMANTIC_ATTRIBUTE_CACHE_HIT]: true,
       'db.operation.name': 'getItem',
-      'db.collection.name': 'test-storage:',
+      'db.collection.name': 'test-storage',
       'db.system.name': 'memory',
     });
     expect(getItemSpan?.description).toBe(prefixKey('user:123'));
@@ -97,7 +97,7 @@ test.describe('Storage Instrumentation', () => {
       [SEMANTIC_ATTRIBUTE_CACHE_KEY]: prefixKey('raw:data'),
       [SEMANTIC_ATTRIBUTE_CACHE_HIT]: true,
       'db.operation.name': 'getItemRaw',
-      'db.collection.name': 'test-storage:',
+      'db.collection.name': 'test-storage',
       'db.system.name': 'memory',
     });
 
@@ -108,7 +108,7 @@ test.describe('Storage Instrumentation', () => {
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'cache.get_keys',
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.cache.nuxt',
       'db.operation.name': 'getKeys',
-      'db.collection.name': 'test-storage:',
+      'db.collection.name': 'test-storage',
       'db.system.name': 'memory',
     });
 
@@ -124,7 +124,7 @@ test.describe('Storage Instrumentation', () => {
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.cache.nuxt',
       [SEMANTIC_ATTRIBUTE_CACHE_KEY]: prefixKey('batch:1'),
       'db.operation.name': 'removeItem',
-      'db.collection.name': 'test-storage:',
+      'db.collection.name': 'test-storage',
       'db.system.name': 'memory',
     });
 
@@ -135,7 +135,7 @@ test.describe('Storage Instrumentation', () => {
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'cache.clear',
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.cache.nuxt',
       'db.operation.name': 'clear',
-      'db.collection.name': 'test-storage:',
+      'db.collection.name': 'test-storage',
       'db.system.name': 'memory',
     });
 
