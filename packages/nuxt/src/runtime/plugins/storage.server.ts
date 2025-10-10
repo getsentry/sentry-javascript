@@ -199,9 +199,9 @@ function getSpanAttributes(methodName: string, driver: Driver, mountBase: string
   const attributes: SpanAttributes = {
     [SEMANTIC_ATTRIBUTE_SENTRY_OP]: `cache.${normalizeMethodName(methodName)}`,
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.cache.nuxt',
-    'nuxt.storage.op': methodName,
-    'nuxt.storage.mount': mountBase,
-    'nuxt.storage.driver': driver.name ?? 'unknown',
+    'db.operation.name': methodName,
+    'db.collection.name	': mountBase,
+    'db.system.name': driver.name ?? 'unknown',
   };
 
   // Add the key if it's a get/set/del call
