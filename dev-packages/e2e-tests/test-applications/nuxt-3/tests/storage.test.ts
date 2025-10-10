@@ -31,9 +31,9 @@ test.describe('Storage Instrumentation', () => {
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'cache.set_item',
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.cache.nuxt',
       [SEMANTIC_ATTRIBUTE_CACHE_KEY]: prefixKey('user:123'),
-      'nuxt.storage.op': 'setItem',
-      'nuxt.storage.mount': 'test-storage:',
-      'nuxt.storage.driver': 'memory',
+      'db.operation.name': 'setItem',
+      'db.collection.name': 'test-storage:',
+      'db.system.name': 'memory',
     });
     expect(setItemSpan?.description).toBe(prefixKey('user:123'));
 
@@ -48,9 +48,9 @@ test.describe('Storage Instrumentation', () => {
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'cache.set_item_raw',
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.cache.nuxt',
       [SEMANTIC_ATTRIBUTE_CACHE_KEY]: prefixKey('raw:data'),
-      'nuxt.storage.op': 'setItemRaw',
-      'nuxt.storage.mount': 'test-storage:',
-      'nuxt.storage.driver': 'memory',
+      'db.operation.name': 'setItemRaw',
+      'db.collection.name': 'test-storage:',
+      'db.system.name': 'memory',
     });
 
     // Test hasItem spans - should have cache hit attribute
@@ -63,9 +63,9 @@ test.describe('Storage Instrumentation', () => {
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.cache.nuxt',
       [SEMANTIC_ATTRIBUTE_CACHE_KEY]: prefixKey('user:123'),
       [SEMANTIC_ATTRIBUTE_CACHE_HIT]: true,
-      'nuxt.storage.op': 'hasItem',
-      'nuxt.storage.mount': 'test-storage:',
-      'nuxt.storage.driver': 'memory',
+      'db.operation.name': 'hasItem',
+      'db.collection.name': 'test-storage:',
+      'db.system.name': 'memory',
     });
 
     // Test getItem spans - should have cache hit attribute
@@ -78,9 +78,9 @@ test.describe('Storage Instrumentation', () => {
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.cache.nuxt',
       [SEMANTIC_ATTRIBUTE_CACHE_KEY]: prefixKey('user:123'),
       [SEMANTIC_ATTRIBUTE_CACHE_HIT]: true,
-      'nuxt.storage.op': 'getItem',
-      'nuxt.storage.mount': 'test-storage:',
-      'nuxt.storage.driver': 'memory',
+      'db.operation.name': 'getItem',
+      'db.collection.name': 'test-storage:',
+      'db.system.name': 'memory',
     });
     expect(getItemSpan?.description).toBe(prefixKey('user:123'));
 
@@ -96,9 +96,9 @@ test.describe('Storage Instrumentation', () => {
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.cache.nuxt',
       [SEMANTIC_ATTRIBUTE_CACHE_KEY]: prefixKey('raw:data'),
       [SEMANTIC_ATTRIBUTE_CACHE_HIT]: true,
-      'nuxt.storage.op': 'getItemRaw',
-      'nuxt.storage.mount': 'test-storage:',
-      'nuxt.storage.driver': 'memory',
+      'db.operation.name': 'getItemRaw',
+      'db.collection.name': 'test-storage:',
+      'db.system.name': 'memory',
     });
 
     // Test getKeys spans
@@ -107,9 +107,9 @@ test.describe('Storage Instrumentation', () => {
     expect(getKeysSpans[0]?.data).toMatchObject({
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'cache.get_keys',
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.cache.nuxt',
-      'nuxt.storage.op': 'getKeys',
-      'nuxt.storage.mount': 'test-storage:',
-      'nuxt.storage.driver': 'memory',
+      'db.operation.name': 'getKeys',
+      'db.collection.name': 'test-storage:',
+      'db.system.name': 'memory',
     });
 
     // Test removeItem spans
@@ -123,9 +123,9 @@ test.describe('Storage Instrumentation', () => {
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'cache.remove_item',
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.cache.nuxt',
       [SEMANTIC_ATTRIBUTE_CACHE_KEY]: prefixKey('batch:1'),
-      'nuxt.storage.op': 'removeItem',
-      'nuxt.storage.mount': 'test-storage:',
-      'nuxt.storage.driver': 'memory',
+      'db.operation.name': 'removeItem',
+      'db.collection.name': 'test-storage:',
+      'db.system.name': 'memory',
     });
 
     // Test clear spans
@@ -134,9 +134,9 @@ test.describe('Storage Instrumentation', () => {
     expect(clearSpans[0]?.data).toMatchObject({
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'cache.clear',
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.cache.nuxt',
-      'nuxt.storage.op': 'clear',
-      'nuxt.storage.mount': 'test-storage:',
-      'nuxt.storage.driver': 'memory',
+      'db.operation.name': 'clear',
+      'db.collection.name': 'test-storage:',
+      'db.system.name': 'memory',
     });
 
     // Verify all spans have OK status
