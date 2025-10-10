@@ -45,8 +45,8 @@ test.describe('Cache Instrumentation', () => {
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'cache.get_item',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.cache.nuxt',
         [SEMANTIC_ATTRIBUTE_CACHE_HIT]: false,
-        'nuxt.storage.op': 'getItem',
-        'nuxt.storage.mount': expect.stringMatching(/^(cache:)?$/),
+        'db.operation.name': 'getItem',
+        'db.collection.name': expect.stringMatching(/^(cache)?$/),
       });
     }
 
@@ -62,8 +62,8 @@ test.describe('Cache Instrumentation', () => {
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'cache.get_item',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.cache.nuxt',
         [SEMANTIC_ATTRIBUTE_CACHE_HIT]: true,
-        'nuxt.storage.op': 'getItem',
-        'nuxt.storage.mount': expect.stringMatching(/^(cache:)?$/),
+        'db.operation.name': 'getItem',
+        'db.collection.name': expect.stringMatching(/^(cache)?$/),
       });
     }
 
@@ -80,8 +80,8 @@ test.describe('Cache Instrumentation', () => {
       expect(cacheSetSpan.data).toMatchObject({
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'cache.set_item',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.cache.nuxt',
-        'nuxt.storage.op': 'setItem',
-        'nuxt.storage.mount': expect.stringMatching(/^(cache:)?$/),
+        'db.operation.name': 'setItem',
+        'db.collection.name': expect.stringMatching(/^(cache)?$/),
       });
     }
 
