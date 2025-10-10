@@ -31,9 +31,9 @@ test.describe('Storage Instrumentation - Aliases', () => {
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'cache.set_item',
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.cache.nuxt',
       [SEMANTIC_ATTRIBUTE_CACHE_KEY]: prefixKey('alias:user'),
-      'nuxt.storage.op': 'setItem',
-      'nuxt.storage.mount': 'test-storage:',
-      'nuxt.storage.driver': 'memory',
+      'db.operation.name': 'setItem',
+      'db.collection.name': 'test-storage:',
+      'db.system.name': 'memory',
     });
     expect(setSpan?.description).toBe(prefixKey('alias:user'));
 
@@ -47,9 +47,9 @@ test.describe('Storage Instrumentation - Aliases', () => {
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.cache.nuxt',
       [SEMANTIC_ATTRIBUTE_CACHE_KEY]: prefixKey('alias:user'),
       [SEMANTIC_ATTRIBUTE_CACHE_HIT]: true,
-      'nuxt.storage.op': 'getItem',
-      'nuxt.storage.mount': 'test-storage:',
-      'nuxt.storage.driver': 'memory',
+      'db.operation.name': 'getItem',
+      'db.collection.name': 'test-storage:',
+      'db.system.name': 'memory',
     });
     expect(getSpan?.description).toBe(prefixKey('alias:user'));
 
@@ -63,9 +63,9 @@ test.describe('Storage Instrumentation - Aliases', () => {
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.cache.nuxt',
       [SEMANTIC_ATTRIBUTE_CACHE_KEY]: prefixKey('alias:user'),
       [SEMANTIC_ATTRIBUTE_CACHE_HIT]: true,
-      'nuxt.storage.op': 'hasItem',
-      'nuxt.storage.mount': 'test-storage:',
-      'nuxt.storage.driver': 'memory',
+      'db.operation.name': 'hasItem',
+      'db.collection.name': 'test-storage:',
+      'db.system.name': 'memory',
     });
 
     // Test del and remove (both aliases for removeItem)
@@ -78,9 +78,9 @@ test.describe('Storage Instrumentation - Aliases', () => {
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'cache.remove_item',
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.cache.nuxt',
       [SEMANTIC_ATTRIBUTE_CACHE_KEY]: prefixKey('alias:temp1'),
-      'nuxt.storage.op': 'removeItem',
-      'nuxt.storage.mount': 'test-storage:',
-      'nuxt.storage.driver': 'memory',
+      'db.operation.name': 'removeItem',
+      'db.collection.name': 'test-storage:',
+      'db.system.name': 'memory',
     });
     expect(delSpan?.description).toBe(prefixKey('alias:temp1'));
 
@@ -90,9 +90,9 @@ test.describe('Storage Instrumentation - Aliases', () => {
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'cache.remove_item',
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.cache.nuxt',
       [SEMANTIC_ATTRIBUTE_CACHE_KEY]: prefixKey('alias:temp2'),
-      'nuxt.storage.op': 'removeItem',
-      'nuxt.storage.mount': 'test-storage:',
-      'nuxt.storage.driver': 'memory',
+      'db.operation.name': 'removeItem',
+      'db.collection.name': 'test-storage:',
+      'db.system.name': 'memory',
     });
     expect(removeSpan?.description).toBe(prefixKey('alias:temp2'));
 
