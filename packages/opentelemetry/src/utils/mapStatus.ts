@@ -56,7 +56,7 @@ export function mapStatus(span: AbstractSpan): SpanStatus {
       if (status.message && isStatusErrorMessageValid(status.message)) {
         return { code: SPAN_STATUS_ERROR, message: status.message };
       } else {
-        return { code: SPAN_STATUS_ERROR, message: 'internal_error' };
+        return { code: SPAN_STATUS_ERROR, message: 'unknown_error' };
       }
     }
   }
@@ -72,7 +72,7 @@ export function mapStatus(span: AbstractSpan): SpanStatus {
   if (status?.code === SpanStatusCode.UNSET) {
     return { code: SPAN_STATUS_OK };
   } else {
-    return { code: SPAN_STATUS_ERROR, message: 'internal_error' };
+    return { code: SPAN_STATUS_ERROR, message: 'unknown_error' };
   }
 }
 
@@ -96,7 +96,7 @@ function inferStatusFromAttributes(attributes: SpanAttributes): SpanStatus | und
   }
 
   if (typeof grpcCodeAttribute === 'string') {
-    return { code: SPAN_STATUS_ERROR, message: canonicalGrpcErrorCodesMap[grpcCodeAttribute] || 'internal_error' };
+    return { code: SPAN_STATUS_ERROR, message: canonicalGrpcErrorCodesMap[grpcCodeAttribute] || 'unknown_error' };
   }
 
   return undefined;
