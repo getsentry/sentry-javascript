@@ -26,8 +26,6 @@ import type { BrowserTransportOptions } from './transports/types';
  */
 declare const __SENTRY_RELEASE__: string | undefined;
 
-const DEFAULT_FLUSH_INTERVAL = 5000;
-
 type BrowserSpecificOptions = BrowserClientReplayOptions &
   BrowserClientProfilingOptions & {
     /** If configured, this URL will be used as base URL for lazy loading integration. */
@@ -85,8 +83,6 @@ export type BrowserClientOptions = ClientOptions<BrowserTransportOptions> & Brow
  * @see SentryClient for usage documentation.
  */
 export class BrowserClient extends Client<BrowserClientOptions> {
-  private _logFlushIdleTimeout: ReturnType<typeof setTimeout> | undefined;
-  private _metricFlushIdleTimeout: ReturnType<typeof setTimeout> | undefined;
   /**
    * Creates a new Browser SDK instance.
    *
@@ -110,6 +106,7 @@ export class BrowserClient extends Client<BrowserClientOptions> {
 
     const { sendDefaultPii, sendClientReports, enableLogs, _experiments } = this._options;
 
+    // Flush logs and metrics when page becomes hidden (e.g., tab switch, navigation)
     if (WINDOW.document && (sendClientReports || enableLogs || _experiments?.enableMetrics)) {
       WINDOW.document.addEventListener('visibilitychange', () => {
         if (WINDOW.document.visibilityState === 'hidden') {
@@ -123,38 +120,6 @@ export class BrowserClient extends Client<BrowserClientOptions> {
             _INTERNAL_flushMetricsBuffer(this);
           }
         }
-      });
-    }
-
-    if (enableLogs) {
-      this.on('flush', () => {
-        _INTERNAL_flushLogsBuffer(this);
-      });
-
-      this.on('afterCaptureLog', () => {
-        if (this._logFlushIdleTimeout) {
-          clearTimeout(this._logFlushIdleTimeout);
-        }
-
-        this._logFlushIdleTimeout = setTimeout(() => {
-          _INTERNAL_flushLogsBuffer(this);
-        }, DEFAULT_FLUSH_INTERVAL);
-      });
-    }
-
-    if (_experiments?.enableMetrics) {
-      this.on('flush', () => {
-        _INTERNAL_flushMetricsBuffer(this);
-      });
-
-      this.on('afterCaptureMetric', () => {
-        if (this._metricFlushIdleTimeout) {
-          clearTimeout(this._metricFlushIdleTimeout);
-        }
-
-        this._metricFlushIdleTimeout = setTimeout(() => {
-          _INTERNAL_flushMetricsBuffer(this);
-        }, DEFAULT_FLUSH_INTERVAL);
       });
     }
 

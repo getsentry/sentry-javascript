@@ -1,28 +1,20 @@
 import { createCheckInEnvelope } from './checkin';
-import { _getTraceInfoFromScope, Client } from './client';
+import { Client } from './client';
 import { getIsolationScope } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
-import { _INTERNAL_flushLogsBuffer } from './logs/internal';
-import { _INTERNAL_flushMetricsBuffer } from './metrics/internal';
 import type { Scope } from './scope';
 import { registerSpanErrorInstrumentation } from './tracing';
 import type { CheckIn, MonitorConfig, SerializedCheckIn } from './types-hoist/checkin';
 import type { Event, EventHint } from './types-hoist/event';
-import type { Log } from './types-hoist/log';
-import type { Metric } from './types-hoist/metric';
-import type { Primitive } from './types-hoist/misc';
 import type { ClientOptions } from './types-hoist/options';
 import type { ParameterizedString } from './types-hoist/parameterize';
 import type { SeverityLevel } from './types-hoist/severity';
 import type { BaseTransportOptions } from './types-hoist/transport';
 import { debug } from './utils/debug-logger';
 import { eventFromMessage, eventFromUnknownInput } from './utils/eventbuilder';
-import { isPrimitive } from './utils/is';
 import { uuid4 } from './utils/misc';
 import { resolvedSyncPromise } from './utils/syncpromise';
-
-// TODO: Make this configurable
-const DEFAULT_LOG_FLUSH_INTERVAL = 5000;
+import { _getTraceInfoFromScope } from './utils/trace-info';
 
 export interface ServerRuntimeClientOptions extends ClientOptions<BaseTransportOptions> {
   platform?: string;
@@ -36,11 +28,6 @@ export interface ServerRuntimeClientOptions extends ClientOptions<BaseTransportO
 export class ServerRuntimeClient<
   O extends ClientOptions & ServerRuntimeClientOptions = ServerRuntimeClientOptions,
 > extends Client<O> {
-  private _logFlushIdleTimeout: ReturnType<typeof setTimeout> | undefined;
-  private _logWeight: number;
-  private _metricFlushIdleTimeout: ReturnType<typeof setTimeout> | undefined;
-  private _metricWeight: number;
-
   /**
    * Creates a new Edge SDK instance.
    * @param options Configuration options for this SDK.
@@ -50,69 +37,6 @@ export class ServerRuntimeClient<
     registerSpanErrorInstrumentation();
 
     super(options);
-
-    this._logWeight = 0;
-    this._metricWeight = 0;
-
-    if (this._options.enableLogs) {
-      // eslint-disable-next-line @typescript-eslint/no-this-alias
-      const client = this;
-
-      client.on('flushLogs', () => {
-        client._logWeight = 0;
-        clearTimeout(client._logFlushIdleTimeout);
-      });
-
-      client.on('afterCaptureLog', log => {
-        client._logWeight += estimateLogSizeInBytes(log);
-
-        // We flush the logs buffer if it exceeds 0.8 MB
-        // The log weight is a rough estimate, so we flush way before
-        // the payload gets too big.
-        if (client._logWeight >= 800_000) {
-          _INTERNAL_flushLogsBuffer(client);
-        } else {
-          // start an idle timeout to flush the logs buffer if no logs are captured for a while
-          client._logFlushIdleTimeout = setTimeout(() => {
-            _INTERNAL_flushLogsBuffer(client);
-          }, DEFAULT_LOG_FLUSH_INTERVAL);
-        }
-      });
-
-      client.on('flush', () => {
-        _INTERNAL_flushLogsBuffer(client);
-      });
-    }
-
-    if (this._options._experiments?.enableMetrics) {
-      // eslint-disable-next-line @typescript-eslint/no-this-alias
-      const client = this;
-
-      client.on('flushMetrics', () => {
-        client._metricWeight = 0;
-        clearTimeout(client._metricFlushIdleTimeout);
-      });
-
-      client.on('afterCaptureMetric', metric => {
-        client._metricWeight += estimateMetricSizeInBytes(metric);
-
-        // We flush the metrics buffer if it exceeds 0.8 MB
-        // The metric weight is a rough estimate, so we flush way before
-        // the payload gets too big.
-        if (client._metricWeight >= 800_000) {
-          _INTERNAL_flushMetricsBuffer(client);
-        } else {
-          // start an idle timeout to flush the metrics buffer if no metrics are captured for a while
-          client._metricFlushIdleTimeout = setTimeout(() => {
-            _INTERNAL_flushMetricsBuffer(client);
-          }, DEFAULT_LOG_FLUSH_INTERVAL);
-        }
-      });
-
-      client.on('flush', () => {
-        _INTERNAL_flushMetricsBuffer(client);
-      });
-    }
   }
 
   /**
@@ -266,83 +190,4 @@ function setCurrentRequestSessionErroredOrCrashed(eventHint?: EventHint): void {
       requestSession.status = 'crashed';
     }
   }
-}
-
-/**
- * Estimate the size of a metric in bytes.
- *
- * @param metric - The metric to estimate the size of.
- * @returns The estimated size of the metric in bytes.
- */
-function estimateMetricSizeInBytes(metric: Metric): number {
-  let weight = 0;
-
-  // Estimate byte size of 2 bytes per character. This is a rough estimate JS strings are stored as UTF-16.
-  if (metric.name) {
-    weight += metric.name.length * 2;
-  }
-
-  // Add weight for the value
-  if (typeof metric.value === 'string') {
-    weight += metric.value.length * 2;
-  } else {
-    weight += 8; // number
-  }
-
-  if (metric.attributes) {
-    Object.values(metric.attributes).forEach(value => {
-      if (Array.isArray(value)) {
-        weight += value.length * estimatePrimitiveSizeInBytes(value[0]);
-      } else if (isPrimitive(value)) {
-        weight += estimatePrimitiveSizeInBytes(value);
-      } else {
-        // For objects values, we estimate the size of the object as 100 bytes
-        weight += 100;
-      }
-    });
-  }
-
-  return weight;
-}
-
-/**
- * Estimate the size of a log in bytes.
- *
- * @param log - The log to estimate the size of.
- * @returns The estimated size of the log in bytes.
- */
-function estimateLogSizeInBytes(log: Log): number {
-  let weight = 0;
-
-  // Estimate byte size of 2 bytes per character. This is a rough estimate JS strings are stored as UTF-16.
-  if (log.message) {
-    weight += log.message.length * 2;
-  }
-
-  if (log.attributes) {
-    Object.values(log.attributes).forEach(value => {
-      if (Array.isArray(value)) {
-        weight += value.length * estimatePrimitiveSizeInBytes(value[0]);
-      } else if (isPrimitive(value)) {
-        weight += estimatePrimitiveSizeInBytes(value);
-      } else {
-        // For objects values, we estimate the size of the object as 100 bytes
-        weight += 100;
-      }
-    });
-  }
-
-  return weight;
-}
-
-function estimatePrimitiveSizeInBytes(value: Primitive): number {
-  if (typeof value === 'string') {
-    return value.length * 2;
-  } else if (typeof value === 'number') {
-    return 8;
-  } else if (typeof value === 'boolean') {
-    return 4;
-  }
-
-  return 0;
 }
