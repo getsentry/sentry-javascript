@@ -253,14 +253,14 @@ const CACHED_FN_HANDLERS_RE = /^nitro:(functions|handlers):/i;
  * First we check if the key matches the `defineCachedFunction` or `defineCachedEventHandler` key patterns, and if so we check the cached value.
  */
 function isCacheHit(key: string, value: unknown): boolean {
-  const isEmpty = isEmptyValue(value);
-  // Empty value means no cache hit either way
-  // Or if key doesn't match the cached function or handler patterns, we can return the empty value check
-  if (isEmpty || !CACHED_FN_HANDLERS_RE.test(key)) {
-    return !isEmpty;
-  }
-
   try {
+    const isEmpty = isEmptyValue(value);
+    // Empty value means no cache hit either way
+    // Or if key doesn't match the cached function or handler patterns, we can return the empty value check
+    if (isEmpty || !CACHED_FN_HANDLERS_RE.test(key)) {
+      return !isEmpty;
+    }
+
     return validateCacheEntry(key, JSON.parse(String(value)) as CacheEntry);
   } catch (error) {
     // this is a best effort, so we return false if we can't validate the cache entry
