@@ -51,7 +51,7 @@ export function getSpanStatusFromHttpCode(httpStatus: number): SpanStatus {
     }
   }
 
-  return { code: SPAN_STATUS_ERROR, message: 'unknown_error' };
+  return { code: SPAN_STATUS_ERROR, message: 'internal_error' };
 }
 
 /**
