@@ -1,5 +1,6 @@
 import {
   type SpanAttributes,
+  type StartSpanOptions,
   captureException,
   debug,
   flushIfServerless,
@@ -25,20 +26,6 @@ type MaybeInstrumented<T> = T & {
 type MaybeInstrumentedDriver = MaybeInstrumented<Driver>;
 
 type DriverMethod = keyof Driver;
-
-/**
- * Methods that should have a key argument.
- */
-const KEYED_METHODS = new Set<DriverMethod>([
-  'hasItem',
-  'getItem',
-  'getItemRaw',
-  'getItems',
-  'setItem',
-  'setItemRaw',
-  'setItems',
-  'removeItem',
-]);
 
 /**
  * Methods that should have a attribute to indicate a cache hit.
@@ -127,45 +114,35 @@ function createMethodWrapper(
 ): (...args: unknown[]) => unknown {
   return new Proxy(original, {
     async apply(target, thisArg, args) {
-      const attributes = getSpanAttributes(methodName, driver, mountBase, args);
+      const options = createSpanStartOptions(methodName, driver, mountBase, args);
 
       DEBUG_BUILD && debug.log(`[storage] Running method: "${methodName}" on driver: "${driver.name ?? 'unknown'}"`);
 
-      const spanName = KEYED_METHODS.has(methodName)
-        ? `${mountBase}${args?.[0]}`
-        : `storage.${normalizeMethodName(methodName)}`;
+      return startSpan(options, async span => {
+        try {
+          const result = await target.apply(thisArg, args);
+          span.setStatus({ code: SPAN_STATUS_OK });
 
-      return startSpan(
-        {
-          name: spanName,
-          attributes,
-        },
-        async span => {
-          try {
-            const result = await target.apply(thisArg, args);
-            span.setStatus({ code: SPAN_STATUS_OK });
-
-            if (CACHE_HIT_METHODS.has(methodName)) {
-              span.setAttribute(SEMANTIC_ATTRIBUTE_CACHE_HIT, !isEmptyValue(result));
-            }
-
-            return result;
-          } catch (error) {
-            span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-            captureException(error, {
-              mechanism: {
-                handled: false,
-                type: attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN],
-              },
-            });
-
-            // Re-throw the error to be handled by the caller
-            throw error;
-          } finally {
-            await flushIfServerless();
+          if (CACHE_HIT_METHODS.has(methodName)) {
+            span.setAttribute(SEMANTIC_ATTRIBUTE_CACHE_HIT, !isEmptyValue(result));
           }
-        },
-      );
+
+          return result;
+        } catch (error) {
+          span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+          captureException(error, {
+            mechanism: {
+              handled: false,
+              type: options.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN],
+            },
+          });
+
+          // Re-throw the error to be handled by the caller
+          throw error;
+        } finally {
+          await flushIfServerless();
+        }
+      });
     },
   });
 }
@@ -191,27 +168,6 @@ function wrapStorageMount(storage: Storage): Storage['mount'] {
 
   return mountWithInstrumentation;
 }
-
-/**
- * Gets the span attributes for the storage method.
- */
-function getSpanAttributes(methodName: string, driver: Driver, mountBase: string, args: unknown[]): SpanAttributes {
-  const attributes: SpanAttributes = {
-    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: `cache.${normalizeMethodName(methodName)}`,
-    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.cache.nuxt',
-    'db.operation.name': methodName,
-    'db.collection.name	': mountBase,
-    'db.system.name': driver.name ?? 'unknown',
-  };
-
-  // Add the key if it's a get/set/del call
-  if (args?.[0] && typeof args[0] === 'string') {
-    attributes[SEMANTIC_ATTRIBUTE_CACHE_KEY] = `${mountBase}${args[0]}`;
-  }
-
-  return attributes;
-}
-
 /**
  * Normalizes the method name to snake_case to be used in span names or op.
  */
@@ -224,4 +180,58 @@ function normalizeMethodName(methodName: string): string {
  */
 function isEmptyValue(value: unknown): boolean {
   return value === null || value === undefined;
+}
+
+/**
+ * Creates the span start options for the storage method.
+ */
+function createSpanStartOptions(
+  methodName: keyof Driver,
+  driver: Driver,
+  mountBase: string,
+  args: unknown[],
+): StartSpanOptions {
+  const key = normalizeKey(args?.[0]);
+  const attributes: SpanAttributes = {
+    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: `cache.${normalizeMethodName(methodName)}`,
+    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.cache.nuxt',
+    'db.operation.name': methodName,
+    'db.collection.name	': mountBase,
+    'db.system.name': driver.name ?? 'unknown',
+  };
+
+  if (key) {
+    attributes[SEMANTIC_ATTRIBUTE_CACHE_KEY] = `${mountBase}${key}`;
+  }
+
+  return {
+    name: `${normalizeMethodName(methodName)} ${mountBase}${key}`,
+    attributes,
+  };
+}
+
+/**
+ * Normalizes the key to a string for display purposes.
+ * @param key The key to normalize.
+ */
+function normalizeKey(key: unknown): string {
+  if (isEmptyValue(key)) {
+    return '';
+  }
+
+  if (typeof key === 'string') {
+    return key;
+  }
+
+  // Handles an object with a key property
+  if (typeof key === 'object' && key !== null && 'key' in key) {
+    return `${key.key}`;
+  }
+
+  // Handles an array of keys
+  if (Array.isArray(key)) {
+    return key.map(k => normalizeKey(k)).join(', ');
+  }
+
+  return String(key);
 }
