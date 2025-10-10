@@ -9,7 +9,7 @@ export const SPAN_STATUS_ERROR = 2;
  * Converts a HTTP status code into a sentry status with a message.
  *
  * @param httpStatus The HTTP response status code.
- * @returns The span status or unknown_error.
+ * @returns The span status or internal_error.
  */
 // https://develop.sentry.dev/sdk/event-payloads/span/
 export function getSpanStatusFromHttpCode(httpStatus: number): SpanStatus {
