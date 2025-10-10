@@ -16,6 +16,7 @@ import { defineNitroPlugin, useStorage } from 'nitropack/runtime';
 import type { Driver, Storage } from 'unstorage';
 // @ts-expect-error - This is a virtual module
 import { userStorageMounts } from '#sentry/storage-config.mjs';
+import { DEBUG_BUILD } from '../../common/debug-build';
 
 type MaybeInstrumented<T> = T & {
   __sentry_instrumented__?: boolean;
@@ -53,7 +54,7 @@ export default defineNitroPlugin(async _nitroApp => {
   // Mounts are suffixed with a colon, so we need to add it to the set items
   const userMounts = new Set((userStorageMounts as string[]).map(m => `${m}:`));
 
-  debug.log('[storage] Starting to instrument storage drivers...');
+  DEBUG_BUILD && debug.log('[storage] Starting to instrument storage drivers...');
 
   // Get all mounted storage drivers
   const mounts = storage.getMounts();
@@ -76,12 +77,12 @@ export default defineNitroPlugin(async _nitroApp => {
 function instrumentDriver(driver: MaybeInstrumentedDriver, mountBase: string): Driver {
   // Already instrumented, skip...
   if (driver.__sentry_instrumented__) {
-    debug.log(`[storage] Driver already instrumented: "${driver.name}". Skipping...`);
+    DEBUG_BUILD && debug.log(`[storage] Driver already instrumented: "${driver.name}". Skipping...`);
 
     return driver;
   }
 
-  debug.log(`[storage] Instrumenting driver: "${driver.name}" on mount: "${mountBase}"`);
+  DEBUG_BUILD && debug.log(`[storage] Instrumenting driver: "${driver.name}" on mount: "${mountBase}"`);
 
   // List of driver methods to instrument
   // get/set/remove are aliases and already use their {method}Item methods
@@ -128,7 +129,7 @@ function createMethodWrapper(
     async apply(target, thisArg, args) {
       const attributes = getSpanAttributes(methodName, driver, mountBase, args);
 
-      debug.log(`[storage] Running method: "${methodName}" on driver: "${driver.name ?? 'unknown'}"`);
+      DEBUG_BUILD && debug.log(`[storage] Running method: "${methodName}" on driver: "${driver.name ?? 'unknown'}"`);
 
       const spanName = KEYED_METHODS.has(methodName)
         ? `${mountBase}${args?.[0]}`
@@ -179,7 +180,7 @@ function wrapStorageMount(storage: Storage): Storage['mount'] {
   }
 
   function mountWithInstrumentation(base: string, driver: Driver): Storage {
-    debug.log(`[storage] Instrumenting mount: "${base}"`);
+    DEBUG_BUILD && debug.log(`[storage] Instrumenting mount: "${base}"`);
 
     const instrumentedDriver = instrumentDriver(driver, base);
 
