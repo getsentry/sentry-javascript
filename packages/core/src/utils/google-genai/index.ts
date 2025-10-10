@@ -128,10 +128,15 @@ function extractRequestAttributes(
 
   return attributes;
 }
-
+/**
+ * Add private request attributes to spans.
+ * This is only recorded if recordInputs is true.
+ * Handles different parameter formats for different Google GenAI methods.
+ */
 function addPrivateRequestAttributes(span: Span, params: Record<string, unknown>): void {
   if ('contents' in params) {
     const contents = params.contents;
+    // For models.generateContent: ContentListUnion: Content | Content[] | PartUnion | PartUnion[]
     if (Array.isArray(contents)) {
       const truncatedContents = truncateGenAiMessages(contents);
       span.setAttributes({ [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: JSON.stringify(truncatedContents) });
