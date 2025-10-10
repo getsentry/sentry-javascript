@@ -1,6 +1,6 @@
 import { addServerPlugin, createResolver } from '@nuxt/kit';
 import type { Nuxt } from 'nuxt/schema';
-import { addServerTemplate } from '../common/server-template';
+import { addServerTemplate } from '../vendor/server-template';
 
 /**
  * Prepares the storage config export to be used in the runtime storage instrumentation.
