@@ -204,7 +204,7 @@ function createSpanStartOptions(
   }
 
   return {
-    name: `${normalizeMethodName(methodName)} ${mountBase}${key}`,
+    name: `${mountBase}${key}`,
     attributes,
   };
 }
