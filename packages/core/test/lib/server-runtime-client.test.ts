@@ -1,6 +1,5 @@
 import { describe, expect, it, test, vi } from 'vitest';
 import { createTransport, Scope } from '../../src';
-import { _INTERNAL_captureLog } from '../../src/logs/internal';
 import type { ServerRuntimeClientOptions } from '../../src/server-runtime-client';
 import { ServerRuntimeClient } from '../../src/server-runtime-client';
 import type { Event, EventHint } from '../../src/types-hoist/event';
@@ -204,32 +203,6 @@ describe('ServerRuntimeClient', () => {
           ],
         ],
       ]);
-    });
-  });
-
-  describe('log flushing', () => {
-    it('inherits log weight-based flushing from base Client', () => {
-      const options = getDefaultClientOptions({
-        dsn: PUBLIC_DSN,
-        enableLogs: true,
-      });
-      client = new ServerRuntimeClient(options);
-      const scope = new Scope();
-      scope.setClient(client);
-
-      const sendEnvelopeSpy = vi.spyOn(client, 'sendEnvelope');
-
-      // Add a log and verify the base Client functionality works
-      _INTERNAL_captureLog({ message: 'test log', level: 'info' }, scope);
-
-      // Verify weight tracking is active
-      expect(client['_logWeight']).toBeGreaterThan(0);
-
-      // Trigger flush and verify it works
-      client.emit('flush');
-
-      expect(sendEnvelopeSpy).toHaveBeenCalledTimes(1);
-      expect(client['_logWeight']).toBe(0);
     });
   });
 });

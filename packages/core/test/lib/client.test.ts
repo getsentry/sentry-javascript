@@ -2627,7 +2627,6 @@ describe('Client', () => {
       _INTERNAL_captureLog({ message: largeMessage, level: 'info' }, scope);
 
       expect(sendEnvelopeSpy).toHaveBeenCalledTimes(1);
-      expect(client['_logWeight']).toBe(0); // Weight should be reset after flush
     });
 
     it('accumulates log weight without flushing when under threshold', () => {
@@ -2646,7 +2645,6 @@ describe('Client', () => {
       _INTERNAL_captureLog({ message, level: 'info' }, scope);
 
       expect(sendEnvelopeSpy).not.toHaveBeenCalled();
-      expect(client['_logWeight']).toBeGreaterThan(0);
     });
 
     it('flushes logs after idle timeout', () => {
@@ -2669,7 +2667,6 @@ describe('Client', () => {
       vi.advanceTimersByTime(5000);
 
       expect(sendEnvelopeSpy).toHaveBeenCalledTimes(1);
-      expect(client['_logWeight']).toBe(0);
     });
 
     it('resets idle timeout when new logs are captured', () => {
@@ -2724,7 +2721,6 @@ describe('Client', () => {
       client.emit('flush');
 
       expect(sendEnvelopeSpy).toHaveBeenCalledTimes(1);
-      expect(client['_logWeight']).toBe(0); // Weight should be reset after flush
     });
 
     it('does not flush logs when logs are disabled', () => {
@@ -2742,7 +2738,6 @@ describe('Client', () => {
       _INTERNAL_captureLog({ message: largeMessage, level: 'info' }, scope);
 
       expect(sendEnvelopeSpy).not.toHaveBeenCalled();
-      expect(client['_logWeight']).toBe(0);
     });
   });
 
@@ -2771,7 +2766,6 @@ describe('Client', () => {
       _INTERNAL_captureMetric({ name: 'large_metric', value: largeValue, type: 'counter', attributes: {} }, { scope });
 
       expect(sendEnvelopeSpy).toHaveBeenCalledTimes(1);
-      expect(client['_metricWeight']).toBe(0); // Weight should be reset after flush
     });
 
     it('accumulates metric weight without flushing when under threshold', () => {
@@ -2789,7 +2783,6 @@ describe('Client', () => {
       _INTERNAL_captureMetric({ name: 'test_metric', value: 42, type: 'counter', attributes: {} }, { scope });
 
       expect(sendEnvelopeSpy).not.toHaveBeenCalled();
-      expect(client['_metricWeight']).toBeGreaterThan(0);
     });
 
     it('flushes metrics on flush event', () => {
@@ -2811,7 +2804,6 @@ describe('Client', () => {
       client.emit('flush');
 
       expect(sendEnvelopeSpy).toHaveBeenCalledTimes(1);
-      expect(client['_metricWeight']).toBe(0); // Weight should be reset after flush
     });
   });
 });

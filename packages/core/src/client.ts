@@ -95,6 +95,8 @@ function _isDoNotSendEventError(error: unknown): error is DoNotSendEventError {
  * 1. Tracking accumulated weight of items
  * 2. Flushing when weight exceeds threshold (800KB)
  * 3. Flushing after idle timeout if no new items arrive
+ *
+ * Uses closure variables to track weight and timeout state.
  */
 function setupWeightBasedFlushing<
   T,
@@ -104,28 +106,30 @@ function setupWeightBasedFlushing<
   client: Client,
   afterCaptureHook: AfterCaptureHook,
   flushHook: FlushHook,
-  weightProperty: '_logWeight' | '_metricWeight',
-  timeoutProperty: '_logFlushIdleTimeout' | '_metricFlushIdleTimeout',
   estimateSizeFn: (item: T) => number,
   flushFn: (client: Client) => void,
 ): void {
+  // Track weight and timeout in closure variables
+  let weight = 0;
+  let flushTimeout: ReturnType<typeof setTimeout> | undefined;
+
   // @ts-expect-error - TypeScript can't narrow generic hook types to match specific overloads, but we know this is type-safe
   client.on(flushHook, () => {
-    client[weightProperty] = 0;
-    clearTimeout(client[timeoutProperty]);
+    weight = 0;
+    clearTimeout(flushTimeout);
   });
 
   // @ts-expect-error - TypeScript can't narrow generic hook types to match specific overloads, but we know this is type-safe
   client.on(afterCaptureHook, (item: T) => {
-    client[weightProperty] += estimateSizeFn(item);
+    weight += estimateSizeFn(item);
 
     // We flush the buffer if it exceeds 0.8 MB
     // The weight is a rough estimate, so we flush way before the payload gets too big.
-    if (client[weightProperty] >= 800_000) {
+    if (weight >= 800_000) {
       flushFn(client);
     } else {
-      clearTimeout(client[timeoutProperty]);
-      client[timeoutProperty] = setTimeout(() => {
+      clearTimeout(flushTimeout);
+      flushTimeout = setTimeout(() => {
         flushFn(client);
       }, DEFAULT_FLUSH_INTERVAL);
     }
@@ -190,18 +194,6 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   // eslint-disable-next-line @typescript-eslint/ban-types
   private _hooks: Record<string, Set<Function>>;
 
-  /** Timeout handle for flushing logs */
-  private _logFlushIdleTimeout: ReturnType<typeof setTimeout> | undefined;
-
-  /** Current estimated weight of logs buffer in bytes */
-  private _logWeight: number;
-
-  /** Timeout handle for flushing metrics */
-  private _metricFlushIdleTimeout: ReturnType<typeof setTimeout> | undefined;
-
-  /** Current estimated weight of metrics buffer in bytes */
-  private _metricWeight: number;
-
   /**
    * Initializes this client instance.
    *
@@ -214,8 +206,6 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     this._outcomes = {};
     this._hooks = {};
     this._eventProcessors = [];
-    this._logWeight = 0;
-    this._metricWeight = 0;
 
     if (options.dsn) {
       this._dsn = makeDsn(options.dsn);
@@ -239,15 +229,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
 
     // Setup log flushing with weight and timeout tracking
     if (this._options.enableLogs) {
-      setupWeightBasedFlushing(
-        this,
-        'afterCaptureLog',
-        'flushLogs',
-        '_logWeight',
-        '_logFlushIdleTimeout',
-        estimateLogSizeInBytes,
-        _INTERNAL_flushLogsBuffer,
-      );
+      setupWeightBasedFlushing(this, 'afterCaptureLog', 'flushLogs', estimateLogSizeInBytes, _INTERNAL_flushLogsBuffer);
     }
 
     // Setup metric flushing with weight and timeout tracking
@@ -256,8 +238,6 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
         this,
         'afterCaptureMetric',
         'flushMetrics',
-        '_metricWeight',
-        '_metricFlushIdleTimeout',
         estimateMetricSizeInBytes,
         _INTERNAL_flushMetricsBuffer,
       );

@@ -76,26 +76,6 @@ describe('BrowserClient', () => {
       expect(flushOutcomesSpy).toHaveBeenCalled();
       expect(sentryCore._INTERNAL_flushLogsBuffer).toHaveBeenCalledWith(client);
     });
-
-    it('inherits log weight-based flushing from base Client', () => {
-      const scope = new Scope();
-      scope.setClient(client);
-
-      // Spy on sendEnvelope to verify flushing happens
-      const sendEnvelopeSpy = vi.spyOn(client, 'sendEnvelope');
-
-      // Add a log and verify the base Client functionality works
-      sentryCore._INTERNAL_captureLog({ level: 'info', message: 'test log' }, scope);
-
-      // Verify weight tracking is active
-      expect((client as any)._logWeight).toBeGreaterThan(0);
-
-      // Trigger flush and verify it works
-      client.emit('flush');
-
-      expect(sendEnvelopeSpy).toHaveBeenCalledTimes(1);
-      expect((client as any)._logWeight).toBe(0);
-    });
   });
 });
 
