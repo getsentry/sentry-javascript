@@ -283,11 +283,7 @@ function estimateMetricSizeInBytes(metric: Metric): number {
   }
 
   // Add weight for the value
-  if (typeof metric.value === 'string') {
-    weight += metric.value.length * 2;
-  } else {
-    weight += 8; // number
-  }
+  weight += 8; // number
 
   if (metric.attributes) {
     Object.values(metric.attributes).forEach(value => {
