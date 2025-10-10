@@ -248,7 +248,7 @@ const CACHED_FN_HANDLERS_RE = /^nitro:(functions|handlers):/i;
 
 /**
  * Since Nitro's cache may not utilize the driver's TTL, it is possible that the value is present in the cache but won't be used by Nitro.
- * The maxAge and expires values is serialized by Nitro in the cache entry. This means the value presence does not necessarily mean a cache hit.
+ * The maxAge and expires values are serialized by Nitro in the cache entry. This means the value presence does not necessarily mean a cache hit.
  * So in order to properly report cache hits for `defineCachedFunction` and `defineCachedEventHandler` we need to check the cached value ourselves.
  * First we check if the key matches the `defineCachedFunction` or `defineCachedEventHandler` key patterns, and if so we check the cached value.
  */
