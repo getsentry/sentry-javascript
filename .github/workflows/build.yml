@@ -97,6 +97,8 @@ jobs:
               - '.github/**'
             any_code:
               - '!**/*.md'
+            any_package_json:
+              - '**/package.json'
 
       - name: Get PR labels
         id: pr-labels
@@ -110,6 +112,7 @@ jobs:
       is_release: ${{ startsWith(github.ref, 'refs/heads/release/') }}
       changed_ci: ${{ steps.changed.outputs.workflow == 'true' }}
       changed_any_code: ${{ steps.changed.outputs.any_code == 'true' }}
+      changed_any_package_json: ${{ steps.changed.outputs.any_package_json == 'true' }}
 
       # When merging into master, or from master
       is_gitflow_sync: ${{ github.head_ref == 'master' || github.ref == 'refs/heads/master' }}
@@ -118,6 +121,52 @@ jobs:
       force_skip_cache:
         ${{ github.event_name == 'schedule' || (github.event_name == 'pull_request' &&
         contains(steps.pr-labels.outputs.labels, ' ci-skip-cache ')) }}
+
+  # If you change package.json files and merge them into develop while a release is pending,
+  # There will often be merge conflicts when GitFlow merges master into develop.
+  # To avoid this, this job checks for this and fails if it detects it.
+  # Make sure to re-run this after the release is completed & GitFlow syncs master into develop
+  job_check_gitflow:
+    name: Check Gitflow
+    needs: job_get_metadata
+    runs-on: ubuntu-24.04
+    # Only run this on PRs against develop, if any package.json files were changed
+    if:
+      github.event_name == 'pull_request' && github.base_ref == 'develop' &&
+      needs.job_get_metadata.outputs.changed_any_package_json == 'true'
+    steps:
+      - name: Check out current commit
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Check if master is not ahead of develop
+        run: |
+          # Get commit counts: left=develop unique commits, right=master unique commits
+          COUNTS=$(git rev-list --left-right --count origin/develop...origin/master)
+          LEFT=$(echo "$COUNTS" | cut -f1)
+          RIGHT=$(echo "$COUNTS" | cut -f2)
+
+          echo "Commits unique to develop: $LEFT"
+          echo "Commits unique to master: $RIGHT"
+
+          # Fail if master has commits that develop doesn't have (master is ahead)
+          if [ "$RIGHT" -gt 0 ]; then
+            echo "Error: master is ahead of develop by $RIGHT commits"
+            echo "Please merge master into develop or ensure master is not ahead"
+            return 1
+          else
+            echo "✓ master is not ahead of develop"
+          fi
+
+      - name: Check if prepare release PR is open
+        run: |
+          if gh pr list --json headRefName | jq -r '.[].headRefName' | grep -q "^prepare-release"; then
+            echo "Error: prepare release PR is open"
+            return 1
+          else
+            echo "✓ prepare release PR is not open"
+          fi
 
   job_build:
     name: Build
@@ -1168,6 +1217,7 @@ jobs:
         job_lint,
         job_check_format,
         job_circular_dep_check,
+        job_check_gitflow,
       ]
     # Always run this, even if a dependent job failed
     if: always()
