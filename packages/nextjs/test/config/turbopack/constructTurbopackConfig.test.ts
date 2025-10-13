@@ -603,6 +603,7 @@ describe('constructTurbopackConfig', () => {
       testVersions.forEach(version => {
         const result = constructTurbopackConfig({
           userNextConfig,
+          userSentryOptions: mockSentryOptions,
           nextJsVersion: version,
         });
 
