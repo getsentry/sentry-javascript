@@ -14,10 +14,13 @@ export function copyExecutionContext<T extends ContextType>(ctx: T): T {
 
   const overrides: OverridesStore<T> = new Map();
   const contextPrototype = Object.getPrototypeOf(ctx);
-  const methodNames = Object.getOwnPropertyNames(contextPrototype) as unknown as (keyof T)[];
-  const descriptors = methodNames.reduce((prevDescriptors, methodName) => {
-    if (methodName === 'constructor') return prevDescriptors;
+  const prototypeMethodNames = Object.getOwnPropertyNames(contextPrototype) as unknown as (keyof T)[];
+  const ownPropertyNames = Object.getOwnPropertyNames(ctx) as unknown as (keyof T)[];
+  const instrumented = new Set<unknown>(['constructor']);
+  const descriptors = [...ownPropertyNames, ...prototypeMethodNames].reduce((prevDescriptors, methodName) => {
+    if (instrumented.has(methodName)) return prevDescriptors;
     if (typeof ctx[methodName] !== 'function') return prevDescriptors;
+    instrumented.add(methodName);
     const overridableDescriptor = makeOverridableDescriptor(overrides, ctx, methodName);
     return {
       ...prevDescriptors,
@@ -48,9 +51,11 @@ function makeOverridableDescriptor<T extends ContextType>(
     configurable: true,
     enumerable: true,
     set: newValue => {
-      if (typeof newValue !== 'function') throw new Error('Cannot override non-function');
-      store.set(method, newValue);
-      return true;
+      if (typeof newValue == 'function') {
+        store.set(method, newValue);
+        return;
+      }
+      Reflect.set(ctx, method, newValue);
     },
 
     get: () => {
