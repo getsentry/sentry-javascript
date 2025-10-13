@@ -4,6 +4,8 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+Work in this release was contributed by @seoyeon9888. Thank you for your contribution!
+
 ## 10.19.0
 
 - feat(tracemetrics): Add trace metrics behind an experiments flag ([#17883](https://github.com/getsentry/sentry-javascript/pull/17883))
