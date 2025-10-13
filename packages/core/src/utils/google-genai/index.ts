@@ -22,6 +22,7 @@ import {
   GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
+import { truncateGenAiMessages } from '../ai/messageTruncation';
 import { buildMethodPath, getFinalOperationName, getSpanOperation } from '../ai/utils';
 import { handleCallbackErrors } from '../handleCallbackErrors';
 import { CHAT_PATH, CHATS_CREATE_METHOD, GOOGLE_GENAI_SYSTEM_NAME } from './constants';
@@ -136,17 +137,36 @@ function extractRequestAttributes(
 function addPrivateRequestAttributes(span: Span, params: Record<string, unknown>): void {
   // For models.generateContent: ContentListUnion: Content | Content[] | PartUnion | PartUnion[]
   if ('contents' in params) {
-    span.setAttributes({ [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: JSON.stringify(params.contents) });
+    const contents = params.contents;
+    // For models.generateContent: ContentListUnion: Content | Content[] | PartUnion | PartUnion[]
+    if (Array.isArray(contents)) {
+      const truncatedContents = truncateGenAiMessages(contents);
+      span.setAttributes({ [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: JSON.stringify(truncatedContents) });
+    } else {
+      span.setAttributes({ [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: JSON.stringify(contents) });
+    }
   }
 
   // For chat.sendMessage: message can be string or Part[]
   if ('message' in params) {
-    span.setAttributes({ [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: JSON.stringify(params.message) });
+    const message = params.message;
+    if (Array.isArray(message)) {
+      const truncatedMessage = truncateGenAiMessages(message);
+      span.setAttributes({ [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: JSON.stringify(truncatedMessage) });
+    } else {
+      span.setAttributes({ [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: JSON.stringify(message) });
+    }
   }
 
   // For chats.create: history contains the conversation history
   if ('history' in params) {
-    span.setAttributes({ [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: JSON.stringify(params.history) });
+    const history = params.history;
+    if (Array.isArray(history)) {
+      const truncatedHistory = truncateGenAiMessages(history);
+      span.setAttributes({ [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: JSON.stringify(truncatedHistory) });
+    } else {
+      span.setAttributes({ [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: JSON.stringify(history) });
+    }
   }
 }
 

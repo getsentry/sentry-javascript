@@ -2,6 +2,7 @@ import type { Client } from '../../client';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import type { Event } from '../../types-hoist/event';
 import type { Span, SpanAttributes, SpanAttributeValue, SpanJSON, SpanOrigin } from '../../types-hoist/span';
+import { truncateGenAiMessages } from '../ai/messageTruncation';
 import { spanToJSON } from '../spanUtils';
 import { toolCallSpanMap } from './constants';
 import type { TokenSummary } from './types';
@@ -190,7 +191,13 @@ function processGenerateSpan(span: Span, name: string, attributes: SpanAttribute
   }
 
   if (attributes[AI_PROMPT_ATTRIBUTE]) {
-    span.setAttribute('gen_ai.prompt', attributes[AI_PROMPT_ATTRIBUTE]);
+    const prompt = attributes[AI_PROMPT_ATTRIBUTE];
+    if (Array.isArray(prompt)) {
+      const truncatedPrompt = truncateGenAiMessages(prompt);
+      span.setAttribute('gen_ai.prompt', JSON.stringify(truncatedPrompt));
+    } else {
+      span.setAttribute('gen_ai.prompt', prompt);
+    }
   }
   if (attributes[AI_MODEL_ID_ATTRIBUTE] && !attributes[GEN_AI_RESPONSE_MODEL_ATTRIBUTE]) {
     span.setAttribute(GEN_AI_RESPONSE_MODEL_ATTRIBUTE, attributes[AI_MODEL_ID_ATTRIBUTE]);

@@ -23,6 +23,7 @@ import {
   GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
   GEN_AI_SYSTEM_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
+import { truncateGenAiMessages } from '../ai/messageTruncation';
 import { buildMethodPath, getFinalOperationName, getSpanOperation, setTokenUsageAttributes } from '../ai/utils';
 import { handleCallbackErrors } from '../handleCallbackErrors';
 import { instrumentAsyncIterableStream, instrumentMessageStream } from './streaming';
@@ -33,7 +34,7 @@ import type {
   AnthropicAiStreamingEvent,
   ContentBlock,
 } from './types';
-import { shouldInstrument } from './utils';
+import { handleResponseError, shouldInstrument } from './utils';
 
 /**
  * Extract request attributes from method arguments
@@ -77,30 +78,27 @@ function extractRequestAttributes(args: unknown[], methodPath: string): Record<s
  */
 function addPrivateRequestAttributes(span: Span, params: Record<string, unknown>): void {
   if ('messages' in params) {
-    span.setAttributes({ [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: JSON.stringify(params.messages) });
+    const messages = params.messages;
+
+    if (Array.isArray(messages)) {
+      const truncatedMessages = truncateGenAiMessages(messages);
+      span.setAttributes({ [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: JSON.stringify(truncatedMessages) });
+    } else {
+      span.setAttributes({ [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: JSON.stringify(messages) });
+    }
   }
   if ('input' in params) {
-    span.setAttributes({ [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: JSON.stringify(params.input) });
+    const input = params.input;
+    if (Array.isArray(input)) {
+      const truncatedInput = truncateGenAiMessages(input);
+      span.setAttributes({ [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: JSON.stringify(truncatedInput) });
+    } else {
+      span.setAttributes({ [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: JSON.stringify(input) });
+    }
   }
+
   if ('prompt' in params) {
     span.setAttributes({ [GEN_AI_PROMPT_ATTRIBUTE]: JSON.stringify(params.prompt) });
-  }
-}
-
-/**
- * Capture error information from the response
- * @see https://docs.anthropic.com/en/api/errors#error-shapes
- */
-function handleResponseError(span: Span, response: AnthropicAiResponse): void {
-  if (response.error) {
-    span.setStatus({ code: SPAN_STATUS_ERROR, message: response.error.type || 'unknown_error' });
-
-    captureException(response.error, {
-      mechanism: {
-        handled: false,
-        type: 'auto.ai.anthropic.anthropic_error',
-      },
-    });
   }
 }
 
