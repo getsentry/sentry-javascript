@@ -41,7 +41,7 @@ test('Creates a dynamic pageload transaction for basePath dynamic catch-all rout
   expect(await clientPageloadTransactionPromise).toBeDefined();
 });
 
-test('Creates a navigation transaction for basePath router', async ({ page }) => {
+test('Creates a navigation transaction for basePath router with prefix', async ({ page }) => {
   const navigationTransactionPromise = waitForTransaction('nextjs-15-basepath', transactionEvent => {
     return (
       transactionEvent?.transaction === '/my-app/navigation/:param/router-push' &&
@@ -57,7 +57,7 @@ test('Creates a navigation transaction for basePath router', async ({ page }) =>
   expect(await navigationTransactionPromise).toBeDefined();
 });
 
-test('Creates a navigation transaction for basePath <Link>', async ({ page }) => {
+test('Creates a navigation transaction for basePath <Link> with prefix', async ({ page }) => {
   const navigationTransactionPromise = waitForTransaction('nextjs-15-basepath', transactionEvent => {
     return (
       transactionEvent?.transaction === '/my-app/navigation/:param/link' &&
