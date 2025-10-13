@@ -13,8 +13,6 @@ import type { Database, PreparedStatement } from 'db0';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { defineNitroPlugin, useDatabase } from 'nitropack/runtime';
 
-type PreparedStatementType = 'get' | 'run' | 'all' | 'raw';
-
 /**
  * Keeps track of prepared statements that have been patched.
  */
@@ -65,8 +63,8 @@ function instrumentDatabase(db: Database): void {
   db.exec = new Proxy(db.exec, {
     apply(target, thisArg, args: Parameters<typeof db.exec>) {
       return startSpan(
-        createStartSpanOptions(args[0], db.dialect, 'run'),
-        handleSpanStart(() => target.apply(thisArg, args), { query: args[0], type: 'run' }),
+        createStartSpanOptions(args[0], db.dialect),
+        handleSpanStart(() => target.apply(thisArg, args), { query: args[0] }),
       );
     },
   });
@@ -106,8 +104,8 @@ function instrumentPreparedStatementQueries(
   statement.get = new Proxy(statement.get, {
     apply(target, thisArg, args: Parameters<typeof statement.get>) {
       return startSpan(
-        createStartSpanOptions(query, dialect, 'get'),
-        handleSpanStart(() => target.apply(thisArg, args), { query, type: 'get' }),
+        createStartSpanOptions(query, dialect),
+        handleSpanStart(() => target.apply(thisArg, args), { query }),
       );
     },
   });
@@ -116,8 +114,8 @@ function instrumentPreparedStatementQueries(
   statement.run = new Proxy(statement.run, {
     apply(target, thisArg, args: Parameters<typeof statement.run>) {
       return startSpan(
-        createStartSpanOptions(query, dialect, 'run'),
-        handleSpanStart(() => target.apply(thisArg, args), { query, type: 'run' }),
+        createStartSpanOptions(query, dialect),
+        handleSpanStart(() => target.apply(thisArg, args), { query }),
       );
     },
   });
@@ -126,8 +124,8 @@ function instrumentPreparedStatementQueries(
   statement.all = new Proxy(statement.all, {
     apply(target, thisArg, args: Parameters<typeof statement.all>) {
       return startSpan(
-        createStartSpanOptions(query, dialect, 'all'),
-        handleSpanStart(() => target.apply(thisArg, args), { query, type: 'all' }),
+        createStartSpanOptions(query, dialect),
+        handleSpanStart(() => target.apply(thisArg, args), { query }),
       );
     },
   });
@@ -140,12 +138,12 @@ function instrumentPreparedStatementQueries(
 /**
  * Creates a span start callback handler
  */
-function handleSpanStart(fn: () => unknown, breadcrumbOpts?: { query: string; type: PreparedStatementType }) {
+function handleSpanStart(fn: () => unknown, breadcrumbOpts?: { query: string }) {
   return async (span: Span) => {
     try {
       const result = await fn();
       if (breadcrumbOpts) {
-        createBreadcrumb(breadcrumbOpts.query, breadcrumbOpts.type);
+        createBreadcrumb(breadcrumbOpts.query);
       }
 
       return result;
@@ -166,12 +164,12 @@ function handleSpanStart(fn: () => unknown, breadcrumbOpts?: { query: string; ty
   };
 }
 
-function createBreadcrumb(query: string, type: PreparedStatementType): void {
+function createBreadcrumb(query: string): void {
   addBreadcrumb({
     category: 'query',
     message: query,
     data: {
-      'db.query_type': type,
+      'db.query.text': query,
     },
   });
 }
@@ -179,13 +177,13 @@ function createBreadcrumb(query: string, type: PreparedStatementType): void {
 /**
  * Creates a start span options object.
  */
-function createStartSpanOptions(query: string, dialect: string, type?: PreparedStatementType): StartSpanOptions {
+function createStartSpanOptions(query: string, dialect: string): StartSpanOptions {
   return {
     op: 'db.query',
     name: query,
     attributes: {
-      'db.system': dialect,
-      'db.query_type': type,
+      'db.system.name': dialect,
+      'db.query.text': query,
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: SENTRY_ORIGIN,
     },
   };
