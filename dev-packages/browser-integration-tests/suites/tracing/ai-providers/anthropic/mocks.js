@@ -1,15 +1,11 @@
 // Mock Anthropic client for browser testing
 export class MockAnthropic {
   constructor(config) {
-    // eslint-disable-next-line no-console
-    console.log('[Mock Anthropic] Constructor called with config:', config);
     this.apiKey = config.apiKey;
 
     // Main focus: messages.create functionality
     this.messages = {
       create: async (...args) => {
-        // eslint-disable-next-line no-console
-        console.log('[Mock Anthropic] messages.create called with args:', args);
         const params = args[0];
         // Simulate processing time
         await new Promise(resolve => setTimeout(resolve, 10));
@@ -41,8 +37,6 @@ export class MockAnthropic {
             cache_read_input_tokens: 0,
           },
         };
-        // eslint-disable-next-line no-console
-        console.log('[Mock Anthropic] Returning response:', response);
         return response;
       },
       countTokens: async (..._args) => ({ id: 'mock', type: 'model', model: 'mock', input_tokens: 0 }),
