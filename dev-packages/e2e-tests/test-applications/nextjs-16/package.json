@@ -1,0 +1,42 @@
+{
+  "name": "nextjs-16",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build > .tmp_build_stdout 2> .tmp_build_stderr || (cat .tmp_build_stdout && cat .tmp_build_stderr && exit 1)",
+    "clean": "npx rimraf node_modules pnpm-lock.yaml .tmp_dev_server_logs",
+    "dev:webpack": "next dev --webpack",
+    "build:webpack": "next build --webpack",
+    "start": "next start",
+    "lint": "eslint",
+    "test:prod": "TEST_ENV=production playwright test",
+    "test:dev": "TEST_ENV=development playwright test",
+    "test:build": "pnpm install && pnpm build",
+    "test:build-canary": "pnpm install && pnpm add next@canary && pnpm build",
+    "test:assert": "pnpm test:prod && pnpm test:dev"
+  },
+  "dependencies": {
+    "@sentry/nextjs": "latest || *",
+    "next": "beta",
+    "ai": "^3.0.0",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "zod": "^3.22.4",
+    "import-in-the-middle": "^1",
+    "require-in-the-middle": "^7"
+  },
+  "devDependencies": {
+    "@playwright/test": "~1.53.2",
+    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "canary",
+    "typescript": "^5"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  }
+}
