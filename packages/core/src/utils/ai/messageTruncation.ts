@@ -1,153 +1,289 @@
+/**
+ * Default maximum size in bytes for GenAI messages.
+ * Messages exceeding this limit will be truncated.
+ */
 export const DEFAULT_GEN_AI_MESSAGES_BYTE_LIMIT = 20000;
 
 /**
- * Calculates the UTF-8 byte size of a string.
+ * Message format used by OpenAI and Anthropic APIs.
  */
-export function getByteSize(str: string): number {
-  return new TextEncoder().encode(str).length;
-}
+type ContentMessage = { [key: string]: unknown; content: string };
 
 /**
- * Truncates a string to fit within maxBytes using binary search.
+ * Message format used by Google GenAI API.
+ * Parts can be strings or objects with a text property.
  */
-function truncateStringByBytes(str: string, maxBytes: number): string {
-  if (getByteSize(str) <= maxBytes) {
-    return str;
+type PartsMessage = { [key: string]: unknown; parts: Array<string | { text: string }> };
+
+/**
+ * A part in a Google GenAI message that contains text.
+ */
+type TextPart = string | { text: string };
+
+/**
+ * Calculate the UTF-8 byte length of a string.
+ */
+const utf8Bytes = (text: string): number => {
+  return new TextEncoder().encode(text).length;
+};
+
+/**
+ * Calculate the UTF-8 byte length of a value's JSON representation.
+ */
+const jsonBytes = (value: unknown): number => {
+  return utf8Bytes(JSON.stringify(value));
+};
+
+/**
+ * Truncate a string to fit within maxBytes when encoded as UTF-8.
+ * Uses binary search for efficiency with multi-byte characters.
+ *
+ * @param text - The string to truncate
+ * @param maxBytes - Maximum byte length (UTF-8 encoded)
+ * @returns Truncated string that fits within maxBytes
+ */
+function truncateTextByBytes(text: string, maxBytes: number): string {
+  if (utf8Bytes(text) <= maxBytes) {
+    return text;
   }
 
-  // Binary search for the longest substring that fits
-  let left = 0;
-  let right = str.length;
-  let result = '';
+  let low = 0;
+  let high = text.length;
+  let bestFit = '';
 
-  while (left <= right) {
-    const mid = Math.floor((left + right) / 2);
-    const candidate = str.slice(0, mid);
-    const candidateSize = getByteSize(candidate);
+  while (low <= high) {
+    const mid = Math.floor((low + high) / 2);
+    const candidate = text.slice(0, mid);
+    const byteSize = utf8Bytes(candidate);
 
-    if (candidateSize <= maxBytes) {
-      result = candidate;
-      left = mid + 1;
+    if (byteSize <= maxBytes) {
+      bestFit = candidate;
+      low = mid + 1;
     } else {
-      right = mid - 1;
+      high = mid - 1;
     }
   }
 
-  return result;
+  return bestFit;
 }
 
 /**
- * Attempts to truncate a single message's content to fit within maxBytes.
- * Supports both OpenAI/Anthropic format and Google GenAI format.
- * Returns the truncated message or an empty array if truncation is not possible.
+ * Extract text content from a Google GenAI message part.
+ * Parts are either plain strings or objects with a text property.
+ *
+ * @returns The text content
  */
-function truncateSingleMessageContent(message: unknown, maxBytes: number): unknown[] {
-  if (typeof message !== 'object' || message === null) {
+function getPartText(part: TextPart): string {
+  if (typeof part === 'string') {
+    return part;
+  }
+  return part.text;
+}
+
+/**
+ * Create a new part with updated text content while preserving the original structure.
+ *
+ * @param part - Original part (string or object)
+ * @param text - New text content
+ * @returns New part with updated text
+ */
+function withPartText(part: TextPart, text: string): TextPart {
+  if (typeof part === 'string') {
+    return text;
+  }
+  return { ...part, text };
+}
+
+/**
+ * Check if a message has the OpenAI/Anthropic content format.
+ */
+function isContentMessage(message: unknown): message is ContentMessage {
+  return (
+    message !== null &&
+    typeof message === 'object' &&
+    'content' in message &&
+    typeof (message as ContentMessage).content === 'string'
+  );
+}
+
+/**
+ * Check if a message has the Google GenAI parts format.
+ */
+function isPartsMessage(message: unknown): message is PartsMessage {
+  return (
+    message !== null &&
+    typeof message === 'object' &&
+    'parts' in message &&
+    Array.isArray((message as PartsMessage).parts) &&
+    (message as PartsMessage).parts.length > 0
+  );
+}
+
+/**
+ * Truncate a message with `content: string` format (OpenAI/Anthropic).
+ *
+ * @param message - Message with content property
+ * @param maxBytes - Maximum byte limit
+ * @returns Array with truncated message, or empty array if it doesn't fit
+ */
+function truncateContentMessage(message: ContentMessage, maxBytes: number): unknown[] {
+  // Calculate overhead (message structure without content)
+  const emptyMessage = { ...message, content: '' };
+  const overhead = jsonBytes(emptyMessage);
+  const availableForContent = maxBytes - overhead;
+
+  if (availableForContent <= 0) {
     return [];
   }
 
-  // Handle OpenAI/Anthropic format: { role: 'user', content: 'text' }
-  if ('content' in message && typeof (message as { content: unknown }).content === 'string') {
-    const originalContent = (message as { content: string }).content;
-    const messageWithoutContent = { ...message, content: '' };
-    const overhead = getByteSize(JSON.stringify(messageWithoutContent));
-    const availableBytes = maxBytes - overhead;
+  const truncatedContent = truncateTextByBytes(message.content, availableForContent);
+  return [{ ...message, content: truncatedContent }];
+}
 
-    if (availableBytes <= 0) {
-      return [];
-    }
+/**
+ * Truncate a message with `parts: [...]` format (Google GenAI).
+ * Keeps as many complete parts as possible, only truncating the first part if needed.
+ *
+ * @param message - Message with parts array
+ * @param maxBytes - Maximum byte limit
+ * @returns Array with truncated message, or empty array if it doesn't fit
+ */
+function truncatePartsMessage(message: PartsMessage, maxBytes: number): unknown[] {
+  const { parts } = message;
 
-    const truncatedContent = truncateStringByBytes(originalContent, availableBytes);
-    return [{ ...message, content: truncatedContent }];
+  // Calculate overhead by creating empty text parts
+  const emptyParts = parts.map(part => withPartText(part, ''));
+  const overhead = jsonBytes({ ...message, parts: emptyParts });
+  let remainingBytes = maxBytes - overhead;
+
+  if (remainingBytes <= 0) {
+    return [];
   }
 
-  // Handle Google GenAI format: { role: 'user', parts: [{ text: 'text' }] }
-  if (
-    'parts' in message &&
-    Array.isArray((message as { parts: unknown }).parts) &&
-    (message as { parts: unknown[] }).parts.length > 0
-  ) {
-    const parts = (message as { parts: { text?: unknown }[] }).parts;
-    const firstPart = parts[0];
+  // Include parts until we run out of space
+  const includedParts: TextPart[] = [];
 
-    if (firstPart && typeof firstPart === 'object' && 'text' in firstPart && typeof firstPart.text === 'string') {
-      const originalText = firstPart.text;
-      const messageWithEmptyText = { ...message, parts: [{ ...firstPart, text: '' }] };
-      const overhead = getByteSize(JSON.stringify(messageWithEmptyText));
-      const availableBytes = maxBytes - overhead;
+  for (const part of parts) {
+    const text = getPartText(part);
+    const textSize = utf8Bytes(text);
 
-      if (availableBytes <= 0) {
-        return [];
+    if (textSize <= remainingBytes) {
+      // Part fits: include it as-is
+      includedParts.push(part);
+      remainingBytes -= textSize;
+    } else if (includedParts.length === 0) {
+      // First part doesn't fit: truncate it
+      const truncated = truncateTextByBytes(text, remainingBytes);
+      if (truncated) {
+        includedParts.push(withPartText(part, truncated));
       }
-
-      const truncatedText = truncateStringByBytes(originalText, availableBytes);
-      return [{ ...message, parts: [{ ...firstPart, text: truncatedText }] }];
+      break;
+    } else {
+      // Subsequent part doesn't fit: stop here
+      break;
     }
   }
 
-  // Unknown format - cannot truncate
+  return includedParts.length > 0 ? [{ ...message, parts: includedParts }] : [];
+}
+
+/**
+ * Truncate a single message to fit within maxBytes.
+ *
+ * Supports two message formats:
+ * - OpenAI/Anthropic: `{ ..., content: string }`
+ * - Google GenAI: `{ ..., parts: Array<string | {text: string} | non-text> }`
+ *
+ * @param message - The message to truncate
+ * @param maxBytes - Maximum byte limit for the message
+ * @returns Array containing the truncated message, or empty array if truncation fails
+ */
+function truncateSingleMessage(message: unknown, maxBytes: number): unknown[] {
+  if (!message || typeof message !== 'object') {
+    return [];
+  }
+
+  if (isContentMessage(message)) {
+    return truncateContentMessage(message, maxBytes);
+  }
+
+  if (isPartsMessage(message)) {
+    return truncatePartsMessage(message, maxBytes);
+  }
+
+  // Unknown message format: cannot truncate safely
   return [];
 }
 
 /**
- * Truncates messages array using binary search to find optimal starting point.
- * Removes oldest messages first until the array fits within maxBytes.
- * If only one message remains and it's too large, truncates its content.
+ * Truncate an array of messages to fit within a byte limit.
+ *
+ * Strategy:
+ * - Keeps the newest messages (from the end of the array)
+ * - Uses O(n) algorithm: precompute sizes once, then find largest suffix under budget
+ * - If no complete messages fit, attempts to truncate the newest single message
+ *
+ * @param messages - Array of messages to truncate
+ * @param maxBytes - Maximum total byte limit for all messages
+ * @returns Truncated array of messages
+ *
+ * @example
+ * ```ts
+ * const messages = [msg1, msg2, msg3, msg4]; // newest is msg4
+ * const truncated = truncateMessagesByBytes(messages, 10000);
+ * // Returns [msg3, msg4] if they fit, or [msg4] if only it fits, etc.
+ * ```
  */
 export function truncateMessagesByBytes(messages: unknown[], maxBytes: number): unknown[] {
+  // Early return for empty or invalid input
   if (!Array.isArray(messages) || messages.length === 0) {
     return messages;
   }
 
-  const fullSize = getByteSize(JSON.stringify(messages));
-  if (fullSize <= maxBytes) {
+  // Fast path: if all messages fit, return as-is
+  const totalBytes = jsonBytes(messages);
+  if (totalBytes <= maxBytes) {
     return messages;
   }
 
-  // Binary search for the minimum startIndex where remaining messages fit
-  let left = 0;
-  let right = messages.length - 1;
-  let bestStartIndex = messages.length;
+  // Precompute each message's JSON size once for efficiency
+  const messageSizes = messages.map(jsonBytes);
 
-  while (left <= right) {
-    const mid = Math.floor((left + right) / 2);
-    const remainingMessages = messages.slice(mid);
-    const remainingSize = getByteSize(JSON.stringify(remainingMessages));
+  // Find the largest suffix (newest messages) that fits within the budget
+  let bytesUsed = 0;
+  let startIndex = messages.length; // Index where the kept suffix starts
 
-    if (remainingSize <= maxBytes) {
-      bestStartIndex = mid;
-      right = mid - 1; // Try to keep more messages
-    } else {
-      // If we're down to a single message and it doesn't fit, break and handle content truncation
-      if (remainingMessages.length === 1) {
-        bestStartIndex = mid;
-        break;
-      }
-      left = mid + 1; // Need to remove more messages
-    }
-  }
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const messageSize = messageSizes[i];
 
-  const remainingMessages = messages.slice(bestStartIndex);
-
-  // If only one message remains, check if it fits or needs content truncation
-  if (remainingMessages.length === 1) {
-    const singleMessageSize = getByteSize(JSON.stringify(remainingMessages[0]));
-
-    if (singleMessageSize <= maxBytes) {
-      return remainingMessages;
+    if (messageSize && bytesUsed + messageSize > maxBytes) {
+      // Adding this message would exceed the budget
+      break;
     }
 
-    // Single message is too large, try to truncate its content
-    return truncateSingleMessageContent(remainingMessages[0], maxBytes);
+    if (messageSize) {
+      bytesUsed += messageSize;
+    }
+    startIndex = i;
   }
 
-  // Multiple messages remain and fit within limit
-  return remainingMessages;
+  // If no complete messages fit, try truncating just the newest message
+  if (startIndex === messages.length) {
+    const newestMessage = messages[messages.length - 1];
+    return truncateSingleMessage(newestMessage, maxBytes);
+  }
+
+  // Return the suffix that fits
+  return messages.slice(startIndex);
 }
 
 /**
- * Truncates gen_ai messages to fit within the default byte limit.
- * This is a convenience wrapper around truncateMessagesByBytes.
+ * Truncate GenAI messages using the default byte limit.
+ *
+ * Convenience wrapper around `truncateMessagesByBytes` with the default limit.
+ *
+ * @param messages - Array of messages to truncate
+ * @returns Truncated array of messages
  */
 export function truncateGenAiMessages(messages: unknown[]): unknown[] {
   return truncateMessagesByBytes(messages, DEFAULT_GEN_AI_MESSAGES_BYTE_LIMIT);
