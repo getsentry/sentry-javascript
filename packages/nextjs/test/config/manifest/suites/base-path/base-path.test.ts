@@ -6,21 +6,17 @@ describe('basePath', () => {
   test('should generate routes with base path prefix', () => {
     const manifest = createRouteManifest({
       basePath: '/my-app',
-      appDirPath: path.join(__dirname, 'app')
+      appDirPath: path.join(__dirname, 'app'),
     });
 
     expect(manifest).toEqual({
-      staticRoutes: [
-        { path: '/my-app' },
-        { path: '/my-app/about' },
-        { path: '/my-app/api/test' }
-      ],
+      staticRoutes: [{ path: '/my-app' }, { path: '/my-app/about' }, { path: '/my-app/api/test' }],
       dynamicRoutes: [
         {
           path: '/my-app/users/:id',
           regex: '^/my-app/users/([^/]+)$',
           paramNames: ['id'],
-        }
+        },
       ],
     });
   });
@@ -28,7 +24,7 @@ describe('basePath', () => {
   test('should validate dynamic route regex with base path', () => {
     const manifest = createRouteManifest({
       basePath: '/my-app',
-      appDirPath: path.join(__dirname, 'app')
+      appDirPath: path.join(__dirname, 'app'),
     });
 
     const dynamicRoute = manifest.dynamicRoutes.find(route => route.path === '/my-app/users/:id');
