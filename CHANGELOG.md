@@ -4,6 +4,17 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 10.19.0
+
+- feat(tracemetrics): Add trace metrics behind an experiments flag ([#17883](https://github.com/getsentry/sentry-javascript/pull/17883))
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+
+- chore: add info latest release for the cursor release command ([#17876](https://github.com/getsentry/sentry-javascript/pull/17876))
+
+</details>
+
 ## 10.18.0
 
 ### Important Changes
