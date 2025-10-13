@@ -4,6 +4,11 @@ export default defineNuxtConfig({
   imports: {
     autoImport: false,
   },
+  nitro: {
+    experimental: {
+      database: true,
+    },
+  },
   runtimeConfig: {
     public: {
       sentry: {
