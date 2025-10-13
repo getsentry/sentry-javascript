@@ -15,6 +15,7 @@ import { browserSessionIntegration } from './integrations/browsersession';
 import { globalHandlersIntegration } from './integrations/globalhandlers';
 import { httpContextIntegration } from './integrations/httpcontext';
 import { linkedErrorsIntegration } from './integrations/linkederrors';
+import { spotlightBrowserIntegration } from './integrations/spotlight';
 import { defaultStackParser } from './stack-parsers';
 import { makeFetchTransport } from './transports/fetch';
 import { checkAndWarnIfIsEmbeddedBrowserExtension } from './utils/detectBrowserExtension';
@@ -37,6 +38,7 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
     dedupeIntegration(),
     httpContextIntegration(),
     browserSessionIntegration(),
+    spotlightBrowserIntegration(),
   ];
 }
 
