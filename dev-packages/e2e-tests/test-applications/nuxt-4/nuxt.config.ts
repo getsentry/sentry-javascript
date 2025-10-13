@@ -13,7 +13,11 @@ export default defineNuxtConfig({
   },
 
   modules: ['@pinia/nuxt', '@sentry/nuxt/module'],
-
+  nitro: {
+    experimental: {
+      database: true,
+    },
+  },
   runtimeConfig: {
     public: {
       sentry: {
