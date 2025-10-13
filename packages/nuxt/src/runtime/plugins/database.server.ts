@@ -1,4 +1,5 @@
 import {
+  type Span,
   type StartSpanOptions,
   addBreadcrumb,
   captureException,
@@ -18,6 +19,11 @@ type PreparedStatementType = 'get' | 'run' | 'all' | 'raw';
  * Keeps track of prepared statements that have been patched.
  */
 const patchedStatement = new WeakSet<PreparedStatement>();
+
+/**
+ * The Sentry origin for the database plugin.
+ */
+const SENTRY_ORIGIN = 'auto.db.nuxt';
 
 /**
  * Creates a Nitro plugin that instruments the database calls.
@@ -49,38 +55,19 @@ function instrumentDatabase(db: Database): void {
       const query = args[0]?.[0] ?? '';
       const opts = createStartSpanOptions(query, db.dialect);
 
-      return startSpan(opts, async span => {
-        try {
-          const result = await target.apply(thisArg, args);
-
-          return result;
-        } catch (error) {
-          span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-          captureException(error, {
-            mechanism: {
-              handled: false,
-              type: opts.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN],
-            },
-          });
-
-          // Re-throw the error to be handled by the caller
-          throw error;
-        } finally {
-          await flushIfServerless();
-        }
-      });
+      return startSpan(
+        opts,
+        handleSpanStart(() => target.apply(thisArg, args)),
+      );
     },
   });
 
   db.exec = new Proxy(db.exec, {
     apply(target, thisArg, args: Parameters<typeof db.exec>) {
-      return startSpan(createStartSpanOptions(args[0], db.dialect, 'run'), async () => {
-        const result = await target.apply(thisArg, args);
-
-        createBreadcrumb(args[0], 'run');
-
-        return result;
-      });
+      return startSpan(
+        createStartSpanOptions(args[0], db.dialect, 'run'),
+        handleSpanStart(() => target.apply(thisArg, args), { query: args[0], type: 'run' }),
+      );
     },
   });
 }
@@ -118,43 +105,65 @@ function instrumentPreparedStatementQueries(
   // eslint-disable-next-line @typescript-eslint/unbound-method
   statement.get = new Proxy(statement.get, {
     apply(target, thisArg, args: Parameters<typeof statement.get>) {
-      return startSpan(createStartSpanOptions(query, dialect, 'get'), async () => {
-        const result = await target.apply(thisArg, args);
-        createBreadcrumb(query, 'get');
-
-        return result;
-      });
+      return startSpan(
+        createStartSpanOptions(query, dialect, 'get'),
+        handleSpanStart(() => target.apply(thisArg, args), { query, type: 'get' }),
+      );
     },
   });
 
   // eslint-disable-next-line @typescript-eslint/unbound-method
   statement.run = new Proxy(statement.run, {
     apply(target, thisArg, args: Parameters<typeof statement.run>) {
-      return startSpan(createStartSpanOptions(query, dialect, 'run'), async () => {
-        const result = await target.apply(thisArg, args);
-        createBreadcrumb(query, 'run');
-
-        return result;
-      });
+      return startSpan(
+        createStartSpanOptions(query, dialect, 'run'),
+        handleSpanStart(() => target.apply(thisArg, args), { query, type: 'run' }),
+      );
     },
   });
 
   // eslint-disable-next-line @typescript-eslint/unbound-method
   statement.all = new Proxy(statement.all, {
     apply(target, thisArg, args: Parameters<typeof statement.all>) {
-      return startSpan(createStartSpanOptions(query, dialect, 'all'), async () => {
-        const result = await target.apply(thisArg, args);
-        // Since all has no regular shape, we can assume if it returns an array, it's a success.
-        createBreadcrumb(query, 'all');
-
-        return result;
-      });
+      return startSpan(
+        createStartSpanOptions(query, dialect, 'all'),
+        handleSpanStart(() => target.apply(thisArg, args), { query, type: 'all' }),
+      );
     },
   });
 
   patchedStatement.add(statement);
 
   return statement;
+}
+
+/**
+ * Creates a span start callback handler
+ */
+function handleSpanStart(fn: () => unknown, breadcrumbOpts?: { query: string; type: PreparedStatementType }) {
+  return async (span: Span) => {
+    try {
+      const result = await fn();
+      if (breadcrumbOpts) {
+        createBreadcrumb(breadcrumbOpts.query, breadcrumbOpts.type);
+      }
+
+      return result;
+    } catch (error) {
+      span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+      captureException(error, {
+        mechanism: {
+          handled: false,
+          type: SENTRY_ORIGIN,
+        },
+      });
+
+      // Re-throw the error to be handled by the caller
+      throw error;
+    } finally {
+      await flushIfServerless();
+    }
+  };
 }
 
 function createBreadcrumb(query: string, type: PreparedStatementType): void {
@@ -177,7 +186,7 @@ function createStartSpanOptions(query: string, dialect: string, type?: PreparedS
     attributes: {
       'db.system': dialect,
       'db.query_type': type,
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.nuxt',
+      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: SENTRY_ORIGIN,
     },
   };
 }
