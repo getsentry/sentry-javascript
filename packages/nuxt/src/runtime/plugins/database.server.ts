@@ -27,13 +27,23 @@ const SENTRY_ORIGIN = 'auto.db.nuxt';
  * Creates a Nitro plugin that instruments the database calls.
  */
 export default defineNitroPlugin(() => {
-  const db = useDatabase();
+  try {
+    debug.log('@sentry/nuxt: Instrumenting database...');
 
-  debug.log('@sentry/nuxt: Instrumenting database...');
+    const db = useDatabase();
 
-  instrumentDatabase(db);
+    instrumentDatabase(db);
 
-  debug.log('@sentry/nuxt: Database instrumented.');
+    debug.log('@sentry/nuxt: Database instrumented.');
+  } catch (error) {
+    // During build time, we can't use the useDatabase function, so we just log an error.
+    if (error instanceof Error && /Cannot access 'instances'/.test(error.message)) {
+      debug.log('@sentry/nuxt: Database instrumentation skipped during build time.');
+      return;
+    }
+
+    debug.error('@sentry/nuxt: Failed to instrument database:', error);
+  }
 });
 
 function instrumentDatabase(db: Database): void {
