@@ -1,8 +1,8 @@
 import { expect, test } from '@playwright/test';
 import { waitForError } from '@sentry-internal/test-utils';
+import { isDevMode } from './isDevMode';
 
 test('should have symbolicated dev errors', async ({ page }) => {
-  const isDevMode = !!process.env.TEST_ENV && process.env.TEST_ENV.includes('development');
   test.skip(!isDevMode, 'should be skipped for non-dev mode');
 
   await page.goto('/');
