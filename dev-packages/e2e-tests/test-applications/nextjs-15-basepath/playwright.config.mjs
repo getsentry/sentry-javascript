@@ -6,11 +6,15 @@ if (!testEnv) {
 }
 
 const getStartCommand = () => {
-  if (testEnv === 'development-webpack') {
-    return 'pnpm next dev -p 3030 --webpack';
+  if (testEnv === 'development') {
+    return 'pnpm next dev -p 3030 2>&1 | tee .tmp_dev_server_logs';
   }
 
-  return testEnv === 'development' ? 'pnpm next dev -p 3030' : 'pnpm next start -p 3030';
+  if (testEnv === 'production') {
+    return 'pnpm next start -p 3030';
+  }
+
+  throw new Error(`Unknown test env: ${testEnv}`);
 };
 
 const config = getPlaywrightConfig({

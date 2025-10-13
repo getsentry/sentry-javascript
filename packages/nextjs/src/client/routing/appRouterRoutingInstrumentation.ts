@@ -72,6 +72,10 @@ const GLOBAL_OBJ_WITH_NEXT_ROUTER = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   };
 };
 
+const globalWithInjectedBasePath = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
+  _sentryBasePath: string | undefined;
+};
+
 /*
  * The routing instrumentation needs to handle a few cases:
  * - Router operations:
@@ -87,7 +91,9 @@ const GLOBAL_OBJ_WITH_NEXT_ROUTER = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
 /** Instruments the Next.js app router for navigation. */
 export function appRouterInstrumentNavigation(client: Client): void {
   routerTransitionHandler = (href, navigationType) => {
-    const unparameterizedPathname = new URL(href, WINDOW.location.href).pathname;
+    const basePath = process.env._sentryBasePath ?? globalWithInjectedBasePath._sentryBasePath;
+    const normalizedHref = basePath && !href.startsWith(basePath) ? `${basePath}${href}` : href;
+    const unparameterizedPathname = new URL(normalizedHref, WINDOW.location.href).pathname;
     const parameterizedPathname = maybeParameterizeRoute(unparameterizedPathname);
     const pathname = parameterizedPathname ?? unparameterizedPathname;
 
@@ -206,11 +212,15 @@ function patchRouter(client: Client, router: NextRouter, currentNavigationSpanRe
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
           };
 
+          const href = argArray[0];
+          const basePath = process.env._sentryBasePath ?? globalWithInjectedBasePath._sentryBasePath;
+          const normalizedHref =
+            basePath && typeof href === 'string' && !href.startsWith(basePath) ? `${basePath}${href}` : href;
           if (routerFunctionName === 'push') {
-            transactionName = transactionNameifyRouterArgument(argArray[0]);
+            transactionName = transactionNameifyRouterArgument(normalizedHref);
             transactionAttributes['navigation.type'] = 'router.push';
           } else if (routerFunctionName === 'replace') {
-            transactionName = transactionNameifyRouterArgument(argArray[0]);
+            transactionName = transactionNameifyRouterArgument(normalizedHref);
             transactionAttributes['navigation.type'] = 'router.replace';
           } else if (routerFunctionName === 'back') {
             transactionAttributes['navigation.type'] = 'router.back';
