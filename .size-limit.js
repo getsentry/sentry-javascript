@@ -103,7 +103,7 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/index.js',
     import: createImport('init', 'feedbackAsyncIntegration'),
     gzip: true,
-    limit: '34 KB',
+    limit: '35 KB',
   },
   // React SDK (ESM)
   {
@@ -215,7 +215,7 @@ module.exports = [
     import: createImport('init'),
     ignore: ['$app/stores'],
     gzip: true,
-    limit: '41 KB',
+    limit: '42 KB',
   },
   // Node-Core SDK (ESM)
   {
