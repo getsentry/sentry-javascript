@@ -10,8 +10,7 @@
     "test:dev": "TEST_ENV=development playwright test",
     "test:dev-turbo": "TEST_ENV=dev-turbopack playwright test",
     "test:build": "pnpm install && pnpm build",
-    "test:build-canary": "pnpm install && pnpm add next@canary && pnpm add react@beta && pnpm add react-dom@beta && pnpm build",
-    "test:build-latest": "pnpm install && pnpm add next@next-15 && pnpm build",
+    "test:build-latest": "pnpm install && pnpm add next@15 && pnpm build",
     "test:build-turbo": "pnpm install && next build --turbopack",
     "test:assert": "pnpm test:prod && pnpm test:dev"
   },
