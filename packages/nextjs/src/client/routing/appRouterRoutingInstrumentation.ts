@@ -92,7 +92,7 @@ const globalWithInjectedBasePath = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
 export function appRouterInstrumentNavigation(client: Client): void {
   routerTransitionHandler = (href, navigationType) => {
     const basePath = process.env._sentryBasePath ?? globalWithInjectedBasePath._sentryBasePath;
-    const normalizedHref = basePath ? `${basePath}${href}` : href;
+    const normalizedHref = basePath && !href.startsWith(basePath) ? `${basePath}${href}` : href;
     const unparameterizedPathname = new URL(normalizedHref, WINDOW.location.href).pathname;
     const parameterizedPathname = maybeParameterizeRoute(unparameterizedPathname);
     const pathname = parameterizedPathname ?? unparameterizedPathname;
@@ -214,7 +214,8 @@ function patchRouter(client: Client, router: NextRouter, currentNavigationSpanRe
 
           const href = argArray[0];
           const basePath = process.env._sentryBasePath ?? globalWithInjectedBasePath._sentryBasePath;
-          const normalizedHref = basePath ? `${basePath}${href}` : href;
+          const normalizedHref =
+            basePath && typeof href === 'string' && !href.startsWith(basePath) ? `${basePath}${href}` : href;
           if (routerFunctionName === 'push') {
             transactionName = transactionNameifyRouterArgument(normalizedHref);
             transactionAttributes['navigation.type'] = 'router.push';
