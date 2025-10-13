@@ -27,6 +27,7 @@ export { spotlightIntegration } from './integrations/spotlight';
 export { systemErrorIntegration } from './integrations/systemError';
 export { childProcessIntegration } from './integrations/childProcess';
 export { createSentryWinstonTransport } from './integrations/winston';
+export { pinoIntegration } from './integrations/pino';
 
 export { SentryContextManager } from './otel/contextManager';
 export { setupOpenTelemetryLogger } from './otel/logger';
@@ -134,6 +135,7 @@ export {
   consoleIntegration,
   wrapMcpServerWithSentry,
   featureFlagsIntegration,
+  metrics,
 } from '@sentry/core';
 
 export type {

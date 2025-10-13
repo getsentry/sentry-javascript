@@ -24,6 +24,7 @@ import type { EventProcessor } from './types-hoist/eventprocessor';
 import type { FeedbackEvent } from './types-hoist/feedback';
 import type { Integration } from './types-hoist/integration';
 import type { Log } from './types-hoist/log';
+import type { Metric } from './types-hoist/metric';
 import type { ClientOptions } from './types-hoist/options';
 import type { ParameterizedString } from './types-hoist/parameterize';
 import type { RequestEventData } from './types-hoist/request';
@@ -689,6 +690,20 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public on(hook: 'flushLogs', callback: () => void): () => void;
 
   /**
+   * A hook that is called after capturing a metric. This hooks runs after `beforeSendMetric` is fired.
+   *
+   * @returns {() => void} A function that, when executed, removes the registered callback.
+   */
+  public on(hook: 'afterCaptureMetric', callback: (metric: Metric) => void): () => void;
+
+  /**
+   * A hook that is called when the client is flushing metrics
+   *
+   * @returns {() => void} A function that, when executed, removes the registered callback.
+   */
+  public on(hook: 'flushMetrics', callback: () => void): () => void;
+
+  /**
    * A hook that is called when a http server request is started.
    * This hook is called after request isolation, but before the request is processed.
    *
@@ -886,6 +901,16 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    * Emit a hook event for client flush logs
    */
   public emit(hook: 'flushLogs'): void;
+
+  /**
+   * Emit a hook event for client after capturing a metric.
+   */
+  public emit(hook: 'afterCaptureMetric', metric: Metric): void;
+
+  /**
+   * Emit a hook event for client flush metrics
+   */
+  public emit(hook: 'flushMetrics'): void;
 
   /**
    * Emit a hook event for client when a http server request is started.
