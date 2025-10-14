@@ -19,6 +19,7 @@ import { clearGlobalScope } from '../testutils';
 describe('applyDebugIds', () => {
   afterEach(() => {
     GLOBAL_OBJ._sentryDebugIds = undefined;
+    GLOBAL_OBJ._debugIds = undefined;
   });
 
   it("should put debug IDs into an event's stack frames", () => {
@@ -112,6 +113,139 @@ describe('applyDebugIds', () => {
     expect(event.exception?.values?.[1]?.stacktrace?.frames).toContainEqual({
       filename: 'filename2.js',
       debug_id: 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb',
+    });
+  });
+
+  it('should support native _debugIds format', () => {
+    GLOBAL_OBJ._debugIds = {
+      'filename1.js\nfilename1.js': 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaa',
+      'filename2.js\nfilename2.js': 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb',
+      'filename4.js\nfilename4.js': 'cccccccc-cccc-4ccc-cccc-cccccccccc',
+    };
+
+    const stackParser = createStackParser([0, line => ({ filename: line })]);
+
+    const event: Event = {
+      exception: {
+        values: [
+          {
+            stacktrace: {
+              frames: [
+                { filename: 'filename1.js' },
+                { filename: 'filename2.js' },
+                { filename: 'filename1.js' },
+                { filename: 'filename3.js' },
+              ],
+            },
+          },
+        ],
+      },
+    };
+
+    applyDebugIds(event, stackParser);
+
+    expect(event.exception?.values?.[0]?.stacktrace?.frames).toContainEqual({
+      filename: 'filename1.js',
+      debug_id: 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaa',
+    });
+
+    expect(event.exception?.values?.[0]?.stacktrace?.frames).toContainEqual({
+      filename: 'filename2.js',
+      debug_id: 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb',
+    });
+
+    // expect not to contain an image for the stack frame that doesn't have a corresponding debug id
+    expect(event.exception?.values?.[0]?.stacktrace?.frames).not.toContainEqual(
+      expect.objectContaining({
+        filename3: 'filename3.js',
+        debug_id: expect.any(String),
+      }),
+    );
+  });
+
+  it('should merge both _sentryDebugIds and _debugIds when both exist', () => {
+    GLOBAL_OBJ._sentryDebugIds = {
+      'filename1.js\nfilename1.js': 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaa',
+      'filename2.js\nfilename2.js': 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb',
+    };
+
+    GLOBAL_OBJ._debugIds = {
+      'filename3.js\nfilename3.js': 'cccccccc-cccc-4ccc-cccc-cccccccccc',
+      'filename4.js\nfilename4.js': 'dddddddd-dddd-4ddd-dddd-dddddddddd',
+    };
+
+    const stackParser = createStackParser([0, line => ({ filename: line })]);
+
+    const event: Event = {
+      exception: {
+        values: [
+          {
+            stacktrace: {
+              frames: [
+                { filename: 'filename1.js' },
+                { filename: 'filename2.js' },
+                { filename: 'filename3.js' },
+                { filename: 'filename4.js' },
+              ],
+            },
+          },
+        ],
+      },
+    };
+
+    applyDebugIds(event, stackParser);
+
+    // Should have debug IDs from both sources
+    expect(event.exception?.values?.[0]?.stacktrace?.frames).toContainEqual({
+      filename: 'filename1.js',
+      debug_id: 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaa',
+    });
+
+    expect(event.exception?.values?.[0]?.stacktrace?.frames).toContainEqual({
+      filename: 'filename2.js',
+      debug_id: 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb',
+    });
+
+    expect(event.exception?.values?.[0]?.stacktrace?.frames).toContainEqual({
+      filename: 'filename3.js',
+      debug_id: 'cccccccc-cccc-4ccc-cccc-cccccccccc',
+    });
+
+    expect(event.exception?.values?.[0]?.stacktrace?.frames).toContainEqual({
+      filename: 'filename4.js',
+      debug_id: 'dddddddd-dddd-4ddd-dddd-dddddddddd',
+    });
+  });
+
+  it('should prioritize _debugIds over _sentryDebugIds for the same file', () => {
+    GLOBAL_OBJ._sentryDebugIds = {
+      'filename1.js\nfilename1.js': 'old-debug-id-aaaa-aaaa-aaaa-aaaaaaaaaa',
+    };
+
+    GLOBAL_OBJ._debugIds = {
+      'filename1.js\nfilename1.js': 'new-debug-id-bbbb-bbbb-bbbb-bbbbbbbbbb',
+    };
+
+    const stackParser = createStackParser([0, line => ({ filename: line })]);
+
+    const event: Event = {
+      exception: {
+        values: [
+          {
+            stacktrace: {
+              frames: [{ filename: 'filename1.js' }],
+            },
+          },
+        ],
+      },
+    };
+
+    applyDebugIds(event, stackParser);
+
+    // Should use the newer native _debugIds format
+    expect(event.exception?.values?.[0]?.stacktrace?.frames).toContainEqual({
+      filename: 'filename1.js',
+      debug_id: 'new-debug-id-bbbb-bbbb-bbbb-bbbbbbbbbb',
     });
   });
 });

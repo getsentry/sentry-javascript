@@ -14,6 +14,7 @@ import type {
   NextConfigFunction,
   NextConfigObject,
   SentryBuildOptions,
+  TurbopackOptions,
 } from './types';
 import { detectActiveBundler, getNextjsVersion, supportsProductionCompileHook } from './util';
 import { constructWebpackConfigFunction } from './webpack';
@@ -285,6 +286,17 @@ function getFinalConfigObject(
     );
   }
 
+  let turboPackConfig: TurbopackOptions | undefined;
+
+  if (isTurbopack) {
+    turboPackConfig = constructTurbopackConfig({
+      userNextConfig: incomingUserNextConfigObject,
+      userSentryOptions,
+      routeManifest,
+      nextJsVersion,
+    });
+  }
+
   // If not explicitly set, turbopack uses the runAfterProductionCompile hook (as there are no alternatives), webpack does not.
   const shouldUseRunAfterProductionCompileHook =
     userSentryOptions?.useRunAfterProductionCompileHook ?? (isTurbopack ? true : false);
@@ -292,9 +304,15 @@ function getFinalConfigObject(
   if (shouldUseRunAfterProductionCompileHook && supportsProductionCompileHook(nextJsVersion ?? '')) {
     if (incomingUserNextConfigObject?.compiler?.runAfterProductionCompile === undefined) {
       incomingUserNextConfigObject.compiler ??= {};
+
       incomingUserNextConfigObject.compiler.runAfterProductionCompile = async ({ distDir }) => {
         await handleRunAfterProductionCompile(
-          { releaseName, distDir, buildTool: isTurbopack ? 'turbopack' : 'webpack' },
+          {
+            releaseName,
+            distDir,
+            buildTool: isTurbopack ? 'turbopack' : 'webpack',
+            usesNativeDebugIds: isTurbopack ? turboPackConfig?.debugIds : undefined,
+          },
           userSentryOptions,
         );
       };
@@ -306,7 +324,12 @@ function getFinalConfigObject(
             const { distDir }: { distDir: string } = argArray[0] ?? { distDir: '.next' };
             await target.apply(thisArg, argArray);
             await handleRunAfterProductionCompile(
-              { releaseName, distDir, buildTool: isTurbopack ? 'turbopack' : 'webpack' },
+              {
+                releaseName,
+                distDir,
+                buildTool: isTurbopack ? 'turbopack' : 'webpack',
+                usesNativeDebugIds: isTurbopack ? turboPackConfig?.debugIds : undefined,
+              },
               userSentryOptions,
             );
           },
@@ -379,11 +402,7 @@ function getFinalConfigObject(
       : {}),
     ...(isTurbopackSupported && isTurbopack
       ? {
-          turbopack: constructTurbopackConfig({
-            userNextConfig: incomingUserNextConfigObject,
-            routeManifest,
-            nextJsVersion,
-          }),
+          turbopack: turboPackConfig,
         }
       : {}),
   };

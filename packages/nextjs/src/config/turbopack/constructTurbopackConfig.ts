@@ -1,26 +1,37 @@
 import { debug } from '@sentry/core';
 import type { RouteManifest } from '../manifest/types';
-import type { NextConfigObject, TurbopackMatcherWithRule, TurbopackOptions } from '../types';
+import type { NextConfigObject, SentryBuildOptions, TurbopackMatcherWithRule, TurbopackOptions } from '../types';
+import { supportsNativeDebugIds } from '../util';
 import { generateValueInjectionRules } from './generateValueInjectionRules';
 
 /**
  * Construct a Turbopack config object from a Next.js config object and a Turbopack options object.
  *
  * @param userNextConfig - The Next.js config object.
- * @param turbopackOptions - The Turbopack options object.
+ * @param userSentryOptions - The Sentry build options object.
+ * @param routeManifest - The route manifest object.
+ * @param nextJsVersion - The Next.js version.
  * @returns The Turbopack config object.
  */
 export function constructTurbopackConfig({
   userNextConfig,
+  userSentryOptions,
   routeManifest,
   nextJsVersion,
 }: {
   userNextConfig: NextConfigObject;
+  userSentryOptions: SentryBuildOptions;
   routeManifest?: RouteManifest;
   nextJsVersion?: string;
 }): TurbopackOptions {
+  // If sourcemaps are disabled, we don't need to enable native debug ids as this will add build time.
+  const shouldEnableNativeDebugIds =
+    (supportsNativeDebugIds(nextJsVersion ?? '') && userNextConfig?.turbopack?.debugIds) ??
+    userSentryOptions.sourcemaps?.disable !== true;
+
   const newConfig: TurbopackOptions = {
     ...userNextConfig.turbopack,
+    ...(shouldEnableNativeDebugIds ? { debugIds: true } : {}),
   };
 
   const valueInjectionRules = generateValueInjectionRules({
