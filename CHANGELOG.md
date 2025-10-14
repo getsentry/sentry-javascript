@@ -887,6 +887,10 @@ Work in this release was contributed by @0xbad0c0d3. Thank you for your contribu
 
 Work in this release was contributed by @seoyeon9888, @madhuchavva and @thedanchez. Thank you for your contributions!
 
+## 10.20.0-alpha.0
+
+This release is a preview release for sending spans in browser via spanV2 instead of transaction event envelopes. All of this is experimental and subject to change. Use at your own risk. [More Details.](https://github.com/getsentry/sentry-javascript/pull/17852)
+
 ## 10.19.0
 
 - feat(tracemetrics): Add trace metrics behind an experiments flag ([#17883](https://github.com/getsentry/sentry-javascript/pull/17883))
