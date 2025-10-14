@@ -330,6 +330,5 @@ sentryTest(
     await replayRequestPromise;
     const afterReplay = await getReplaySnapshot(page);
     expect(afterReplay.recordingMode).toBe('session');
-
   },
 );
