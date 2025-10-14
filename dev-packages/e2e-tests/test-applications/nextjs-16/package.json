@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build > .tmp_build_stdout 2> .tmp_build_stderr || (cat .tmp_build_stdout && cat .tmp_build_stderr && exit 1)",
+    "build:canary": "CANARY_BUILD=true next build",
     "clean": "npx rimraf node_modules pnpm-lock.yaml .tmp_dev_server_logs",
     "dev:webpack": "next dev --webpack",
     "build:webpack": "next build --webpack",
@@ -12,19 +13,22 @@
     "lint": "eslint",
     "test:prod": "TEST_ENV=production playwright test",
     "test:dev": "TEST_ENV=development playwright test",
+    "test:prod-canary": "CANARY_BUILD=true TEST_ENV=production playwright test",
+    "test:dev-canary": "CANARY_BUILD=true playwright test",
     "test:build": "pnpm install && pnpm build",
-    "test:build-canary": "pnpm install && pnpm add next@canary && pnpm build",
-    "test:assert": "pnpm test:prod && pnpm test:dev"
+    "test:build-canary": "pnpm install && pnpm add next@canary && pnpm build:canary",
+    "test:assert": "pnpm test:prod && pnpm test:dev",
+    "test:assert-canary": "pnpm test:prod-canary && pnpm test:dev-canary"
   },
   "dependencies": {
     "@sentry/nextjs": "latest || *",
-    "next": "beta",
     "ai": "^3.0.0",
+    "import-in-the-middle": "^1",
+    "next": "16.0.0-beta.0",
     "react": "19.1.0",
     "react-dom": "19.1.0",
-    "zod": "^3.22.4",
-    "import-in-the-middle": "^1",
-    "require-in-the-middle": "^7"
+    "require-in-the-middle": "^7",
+    "zod": "^3.22.4"
   },
   "devDependencies": {
     "@playwright/test": "~1.53.2",
@@ -38,5 +42,17 @@
   },
   "volta": {
     "extends": "../../package.json"
+  },
+  "sentryTest": {
+    "optionalVariants": [
+      {
+        "build-command": "pnpm test:build-canary",
+        "label": "nextjs-16 (canary)",
+        "assert-command": "test:assert-canary"
+      },
+      {
+        "//": "todo: add latest variant once next 16 is released"
+      }
+    ]
   }
 }
