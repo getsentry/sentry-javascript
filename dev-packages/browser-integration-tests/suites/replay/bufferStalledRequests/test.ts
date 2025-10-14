@@ -5,6 +5,7 @@ import {
   getReplaySnapshot,
   isReplayEvent,
   shouldSkipReplayTest,
+  waitForReplayRequest,
   waitForReplayRunning,
 } from '../../../utils/replayHelpers';
 
@@ -284,6 +285,8 @@ sentryTest(
       });
     });
 
+    const replayRequestPromise = waitForReplayRequest(page, 0);
+
     const url = await getLocalTestUrl({ testDir: __dirname, skipDsnRouteHandler: true });
     await page.goto(url);
 
@@ -310,7 +313,6 @@ sentryTest(
     // After error is sent, verify state is still correct
     const afterError = await getReplaySnapshot(page);
     expect(afterError.session?.sampled).toBe('buffer');
-    expect(afterError.recordingMode).toBe('session');
     expect(afterError.session?.dirty).toBe(false);
 
     // Verify the session was persisted to sessionStorage (if sticky sessions enabled)
@@ -323,5 +325,11 @@ sentryTest(
     expect(sessionData).toBeDefined();
     expect(sessionData.sampled).toBe('buffer');
     expect(sessionData.dirty).toBe(false);
+
+    // Need to wait for replay request before checking `recordingMode`, otherwise it will be flakey
+    await replayRequestPromise;
+    const afterReplay = await getReplaySnapshot(page);
+    expect(afterReplay.recordingMode).toBe('session');
+
   },
 );
