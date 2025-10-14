@@ -7,14 +7,17 @@
     "build": "next build > .tmp_build_stdout 2> .tmp_build_stderr || (cat .tmp_build_stdout && cat .tmp_build_stderr && exit 1)",
     "clean": "npx rimraf node_modules pnpm-lock.yaml .tmp_dev_server_logs",
     "dev:webpack": "next dev --webpack",
-    "build:webpack": "next build --webpack",
+    "build-webpack": "next build --webpack > .tmp_build_stdout 2> .tmp_build_stderr || (cat .tmp_build_stdout && cat .tmp_build_stderr && exit 1)",
     "start": "next start",
     "lint": "eslint",
     "test:prod": "TEST_ENV=production playwright test",
     "test:dev": "TEST_ENV=development playwright test",
+    "test:dev-webpack": "TEST_ENV=development-webpack playwright test",
     "test:build": "pnpm install && pnpm build",
     "test:build-canary": "pnpm install && pnpm add next@canary && pnpm build",
-    "test:assert": "pnpm test:prod && pnpm test:dev"
+    "test:build-canary-webpack": "pnpm install && pnpm add next@canary && pnpm build:webpack",
+    "test:assert": "pnpm test:prod && pnpm test:dev",
+    "test:assert-webpack": "pnpm test:prod && pnpm test:dev-webpack"
   },
   "dependencies": {
     "@sentry/nextjs": "latest || *",
@@ -40,11 +43,23 @@
     "extends": "../../package.json"
   },
   "sentryTest": {
+    "variants": [
+      {
+        "build-command": "pnpm test:build-webpack",
+        "label": "nextjs-16 (webpack)",
+        "assert-command": "pnpm test:assert-webpack"
+      }
+    ],
     "optionalVariants": [
       {
         "build-command": "pnpm test:build-canary",
-        "label": "nextjs-16 (canary)",
+        "label": "nextjs-16 (canary, turbopack)",
         "assert-command": "pnpm test:assert"
+      },
+      {
+        "build-command": "pnpm test:build-canary-webpack",
+        "label": "nextjs-16 (canary, webpack)",
+        "assert-command": "pnpm test:assert-webpack"
       }
     ]
   }
