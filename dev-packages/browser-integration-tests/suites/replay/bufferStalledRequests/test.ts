@@ -89,7 +89,7 @@ sentryTest(
   },
 );
 
-sentryTest.only(
+sentryTest(
   'buffer mode remains after interrupting replay flush',
   async ({ getLocalTestUrl, page, browserName }) => {
     if (shouldSkipReplayTest() || browserName === 'webkit') {
