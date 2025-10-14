@@ -99,13 +99,20 @@ function buildRegexForDynamicRoute(routePath: string): {
     pattern = `^/${regexSegments.join('/')}$`;
   }
 
-  // Detect if the first parameter is a common i18n prefix segment
-  // Common patterns: locale, lang, language
-  const firstParam = paramNames[0];
-  const hasOptionalPrefix =
-    firstParam !== undefined && (firstParam === 'locale' || firstParam === 'lang' || firstParam === 'language');
+  return { regex: pattern, paramNames, hasOptionalPrefix: hasOptionalPrefix(paramNames) };
+}
 
-  return { regex: pattern, paramNames, hasOptionalPrefix };
+/**
+ * Detect if the first parameter is a common i18n prefix segment
+ * Common patterns: locale, lang, language
+ */
+function hasOptionalPrefix(paramNames: string[]): boolean {
+  const firstParam = paramNames[0];
+  if (firstParam === undefined) {
+    return false;
+  }
+
+  return firstParam === 'locale' || firstParam === 'lang' || firstParam === 'language';
 }
 
 function scanAppDirectory(
