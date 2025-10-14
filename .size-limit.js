@@ -38,7 +38,7 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/index.js',
     import: createImport('init', 'browserTracingIntegration'),
     gzip: true,
-    limit: '40.7 KB',
+    limit: '41 KB',
   },
   {
     name: '@sentry/browser (incl. Tracing, Replay)',
@@ -82,7 +82,7 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/index.js',
     import: createImport('init', 'browserTracingIntegration', 'replayIntegration', 'feedbackIntegration'),
     gzip: true,
-    limit: '96 KB',
+    limit: '97 KB',
   },
   {
     name: '@sentry/browser (incl. Feedback)',
@@ -128,7 +128,7 @@ module.exports = [
     path: 'packages/vue/build/esm/index.js',
     import: createImport('init'),
     gzip: true,
-    limit: '29 KB',
+    limit: '30 KB',
   },
   {
     name: '@sentry/vue (incl. Tracing)',

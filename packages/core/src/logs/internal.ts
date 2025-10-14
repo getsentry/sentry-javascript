@@ -1,6 +1,5 @@
 import { getGlobalSingleton } from '../carrier';
 import type { Client } from '../client';
-import { _getTraceInfoFromScope } from '../client';
 import { getClient, getCurrentScope, getGlobalScope, getIsolationScope } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
 import type { Scope, ScopeData } from '../scope';
@@ -11,6 +10,7 @@ import { consoleSandbox, debug } from '../utils/debug-logger';
 import { isParameterizedString } from '../utils/is';
 import { _getSpanForScope } from '../utils/spanOnScope';
 import { timestampInSeconds } from '../utils/time';
+import { _getTraceInfoFromScope } from '../utils/trace-info';
 import { SEVERITY_TEXT_TO_SEVERITY_NUMBER } from './constants';
 import { createLogEnvelope } from './envelope';
 
