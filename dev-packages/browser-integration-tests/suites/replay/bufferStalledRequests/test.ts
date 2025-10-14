@@ -285,7 +285,7 @@ sentryTest(
       });
     });
 
-    const replayRequestPromise = waitForReplayRequest(page, 0);
+    const replayRequestPromise = waitForReplayRequest(page, 1);
 
     const url = await getLocalTestUrl({ testDir: __dirname, skipDsnRouteHandler: true });
     await page.goto(url);
