@@ -106,6 +106,10 @@ export function wrapRequestHandler(
             try {
               const res = await handler();
               setHttpStatus(span, res.status);
+
+              // After the handler runs, the span name might have been updated by nested instrumentation
+              // (e.g., Remix parameterizing routes). The span should already have the correct name
+              // from that instrumentation, so we don't need to do anything here.
               return res;
             } catch (e) {
               if (captureErrors) {
