@@ -1,3 +1,4 @@
+import type { EventPluginContext, PagesPluginFunction } from '@cloudflare/workers-types';
 import { setAsyncLocalStorageAsyncContextStrategy } from './async';
 import type { CloudflareOptions } from './client';
 import { wrapRequestHandler } from './request';
@@ -49,8 +50,12 @@ export function sentryPagesPlugin<
   setAsyncLocalStorageAsyncContextStrategy();
   return context => {
     const options = typeof handlerOrOptions === 'function' ? handlerOrOptions(context) : handlerOrOptions;
-    return wrapRequestHandler({ options, request: context.request, context: { ...context, props: {} } }, () =>
-      context.next(),
-    );
+    return wrapRequestHandler(
+      { options, request: context.request, context: { ...context, props: {} } },
+      () => context.next() as unknown as Promise<Response>,
+      // Need to use `any` here because the return type does not work with Cloudflare's Response type.
+      // Returning `PagesPluginFunction` in the wrapper function should take care of type safety.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ) as any;
   };
 }

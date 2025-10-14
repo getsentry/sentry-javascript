@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/unbound-method */
+import type { DurableObject, DurableObjectState, ExecutionContext } from '@cloudflare/workers-types';
 import {
   type Scope,
   captureException,
@@ -11,7 +11,6 @@ import {
   withIsolationScope,
   withScope,
 } from '@sentry/core';
-import type { DurableObject } from 'cloudflare:workers';
 import { setAsyncLocalStorageAsyncContextStrategy } from './async';
 import type { CloudflareOptions } from './client';
 import { isInstrumented, markAsInstrumented } from './instrument';
@@ -188,7 +187,7 @@ function wrapMethodWithSentry<T extends OriginalMethod>(
  */
 export function instrumentDurableObjectWithSentry<
   E,
-  T extends DurableObject<E>,
+  T extends Partial<DurableObject>,
   C extends new (state: DurableObjectState, env: E) => T,
 >(optionsCallback: (env: E) => CloudflareOptions, DurableObjectClass: C): C {
   return new Proxy(DurableObjectClass, {
