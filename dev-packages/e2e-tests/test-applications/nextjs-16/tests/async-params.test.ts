@@ -1,11 +1,9 @@
 import { expect, test } from '@playwright/test';
 import fs from 'fs';
+import { isDevMode } from './isDevMode';
 
 test('should not print warning for async params', async ({ page }) => {
-  test.skip(
-    process.env.TEST_ENV !== 'development' && process.env.TEST_ENV !== 'dev-turbopack',
-    'should be skipped for non-dev mode',
-  );
+  test.skip(!isDevMode, 'should be skipped for non-dev mode');
   await page.goto('/');
 
   // If the server exits with code 1, the test will fail (see instrumentation.ts)
