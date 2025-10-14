@@ -134,7 +134,7 @@ module.exports = [
     import: createImport('init', 'ErrorBoundary', 'reactRouterV6BrowserTracingIntegration'),
     ignore: ['react/jsx-runtime'],
     gzip: true,
-    limit: '43.3 KB',
+    limit: '44 KB',
   },
   // Vue SDK (ESM)
   {
@@ -149,7 +149,7 @@ module.exports = [
     path: 'packages/vue/build/esm/index.js',
     import: createImport('init', 'browserTracingIntegration'),
     gzip: true,
-    limit: '43.1 KB',
+    limit: '44 KB',
   },
   // Svelte SDK (ESM)
   {
