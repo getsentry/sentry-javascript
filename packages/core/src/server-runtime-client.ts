@@ -4,6 +4,7 @@ import { getIsolationScope } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
 import type { Scope } from './scope';
 import { registerSpanErrorInstrumentation } from './tracing';
+import { addUserAgentToTransportHeaders } from './transports/userAgent';
 import type { CheckIn, MonitorConfig, SerializedCheckIn } from './types-hoist/checkin';
 import type { Event, EventHint } from './types-hoist/event';
 import type { ClientOptions } from './types-hoist/options';
@@ -35,6 +36,8 @@ export class ServerRuntimeClient<
   public constructor(options: O) {
     // Server clients always support tracing
     registerSpanErrorInstrumentation();
+
+    addUserAgentToTransportHeaders(options);
 
     super(options);
   }

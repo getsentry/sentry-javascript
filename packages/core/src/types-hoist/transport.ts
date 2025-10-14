@@ -30,6 +30,11 @@ export interface BaseTransportOptions extends InternalBaseTransportOptions {
   // transport does not care about dsn specific - client should take care of
   // parsing and figuring that out
   url: string;
+
+  /**
+   * Custom headers to be added to requests made by the transport.
+   */
+  headers?: { [key: string]: string };
 }
 
 export interface Transport {

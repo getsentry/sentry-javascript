@@ -3,7 +3,7 @@
  */
 
 import * as sentryCore from '@sentry/core';
-import { Scope } from '@sentry/core';
+import { Scope, SDK_VERSION } from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { applyDefaultOptions, BrowserClient } from '../src/client';
 import { WINDOW } from '../src/helpers';
@@ -232,6 +232,36 @@ describe('SDK metadata', () => {
       const client = new BrowserClient(options);
 
       expect(client.getOptions()._metadata?.sdk?.name).toBe('sentry.javascript.angular');
+    });
+  });
+});
+
+describe('user agent header', () => {
+  it('adds X-Sentry-User-Agent header to transport options', () => {
+    const options = getDefaultBrowserClientOptions({});
+    const client = new BrowserClient(options);
+
+    expect(client.getOptions().transportOptions?.headers).toEqual({
+      'x-Sentry-User-Agent': `sentry.javascript.browser/${SDK_VERSION}`,
+    });
+  });
+
+  it('respects user-passed headers', () => {
+    const options = getDefaultBrowserClientOptions({
+      transportOptions: {
+        headers: {
+          'x-custom-header': 'custom-value',
+          'x-Sentry-User-Agent': 'custom-user-agent',
+          'user-agent': 'custom-user-agent-2',
+        },
+      },
+    });
+    const client = new BrowserClient(options);
+
+    expect(client.getOptions().transportOptions?.headers).toEqual({
+      'x-custom-header': 'custom-value',
+      'x-Sentry-User-Agent': 'custom-user-agent',
+      'user-agent': 'custom-user-agent-2',
     });
   });
 });

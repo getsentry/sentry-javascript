@@ -4,6 +4,7 @@ export type { ClientClass as SentryCoreCurrentScopes } from './sdk';
 export type { AsyncContextStrategy } from './asyncContext/types';
 export type { Carrier } from './carrier';
 export type { OfflineStore, OfflineTransportOptions } from './transports/offline';
+export { addUserAgentToTransportHeaders } from './transports/userAgent';
 export type { ServerRuntimeClientOptions } from './server-runtime-client';
 export type { IntegrationIndex } from './integration';
 

@@ -9,7 +9,7 @@ export interface DenoTransportOptions extends BaseTransportOptions {
 /**
  * Creates a Transport that uses the Fetch API to send events to Sentry.
  */
-export function makeFetchTransport(options: DenoTransportOptions): Transport {
+export function makeFetchTransport(options: BaseTransportOptions): Transport {
   const url = new URL(options.url);
 
   Deno.permissions

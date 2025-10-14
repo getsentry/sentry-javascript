@@ -13,6 +13,7 @@ import {
   _INTERNAL_flushLogsBuffer,
   _INTERNAL_flushMetricsBuffer,
   addAutoIpAddressToSession,
+  addUserAgentToTransportHeaders,
   applySdkMetadata,
   Client,
   getSDKSource,
@@ -92,6 +93,8 @@ export class BrowserClient extends Client<BrowserClientOptions> {
     const opts = applyDefaultOptions(options);
     const sdkSource = WINDOW.SENTRY_SDK_SOURCE || getSDKSource();
     applySdkMetadata(opts, 'browser', ['browser'], sdkSource);
+
+    addUserAgentToTransportHeaders(opts, 'x-Sentry-User-Agent');
 
     // Only allow IP inferral by Relay if sendDefaultPii is true
     if (opts._metadata?.sdk) {
