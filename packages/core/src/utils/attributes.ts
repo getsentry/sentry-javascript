@@ -1,8 +1,6 @@
-import { normalize } from '..';
 import type { SerializedAttribute } from '../types-hoist/attributes';
-import { Primitive } from '../types-hoist/misc';
-import type { SpanAttributes, SpanAttributeValue } from '../types-hoist/span';
-import { isPrimitive } from './is';
+import type { SpanAttributes } from '../types-hoist/span';
+import { normalize } from '../utils/normalize';
 
 /**
  * Converts an attribute value to a serialized attribute value object, containing
