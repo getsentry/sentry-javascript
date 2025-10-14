@@ -49,9 +49,6 @@
         "build-command": "pnpm test:build-canary",
         "label": "nextjs-16 (canary)",
         "assert-command": "test:assert-canary"
-      },
-      {
-        "//": "todo: add latest variant once next 16 is released"
       }
     ]
   }
