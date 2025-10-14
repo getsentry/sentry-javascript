@@ -89,86 +89,83 @@ sentryTest(
   },
 );
 
-sentryTest(
-  'buffer mode remains after interrupting replay flush',
-  async ({ getLocalTestUrl, page, browserName }) => {
-    if (shouldSkipReplayTest() || browserName === 'webkit') {
-      sentryTest.skip();
+sentryTest('buffer mode remains after interrupting replay flush', async ({ getLocalTestUrl, page, browserName }) => {
+  if (shouldSkipReplayTest() || browserName === 'webkit') {
+    sentryTest.skip();
+  }
+
+  let errorCount = 0;
+  let replayCount = 0;
+  const errorEventIds: string[] = [];
+  const replayIds: string[] = [];
+  let firstReplayEventResolved: (value?: unknown) => void = () => {};
+  // Need TS 5.7 for withResolvers
+  const firstReplayEventPromise = new Promise(resolve => {
+    firstReplayEventResolved = resolve;
+  });
+
+  const url = await getLocalTestUrl({ testDir: __dirname, skipDsnRouteHandler: true });
+
+  await page.route('https://dsn.ingest.sentry.io/**/*', async route => {
+    const event = envelopeRequestParser(route.request());
+
+    // Track error events
+    if (event && !event.type && event.event_id) {
+      errorCount++;
+      errorEventIds.push(event.event_id);
+      if (event.tags?.replayId) {
+        replayIds.push(event.tags.replayId as string);
+      }
     }
 
-    let errorCount = 0;
-    let replayCount = 0;
-    const errorEventIds: string[] = [];
-    const replayIds: string[] = [];
-    let firstReplayEventResolved: (value?: unknown) => void = () => {};
-    // Need TS 5.7 for withResolvers
-    const firstReplayEventPromise = new Promise(resolve => {
-      firstReplayEventResolved = resolve;
-    });
-
-    const url = await getLocalTestUrl({ testDir: __dirname, skipDsnRouteHandler: true });
-
-    await page.route('https://dsn.ingest.sentry.io/**/*', async route => {
-      const event = envelopeRequestParser(route.request());
-
-      // Track error events
-      if (event && !event.type && event.event_id) {
-        errorCount++;
-        errorEventIds.push(event.event_id);
-        if (event.tags?.replayId) {
-          replayIds.push(event.tags.replayId as string);
-        }
+    // Track replay events and simulate failure for the first replay
+    if (event && isReplayEvent(event)) {
+      replayCount++;
+      if (replayCount === 1) {
+        firstReplayEventResolved();
+        // intentional so that it never resolves, we'll force a reload instead to interrupt the normal flow
+        await new Promise(resolve => setTimeout(resolve, 100000));
       }
+    }
 
-      // Track replay events and simulate failure for the first replay
-      if (event && isReplayEvent(event)) {
-        replayCount++;
-        if (replayCount === 1) {
-          firstReplayEventResolved();
-          // intentional so that it never resolves, we'll force a reload instead to interrupt the normal flow
-          await new Promise(resolve => setTimeout(resolve, 100000));
-        }
-      }
-
-      // Success for other requests
-      return route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ id: 'test-id' }),
-      });
+    // Success for other requests
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ id: 'test-id' }),
     });
+  });
 
-    await page.goto(url);
+  await page.goto(url);
 
-    // Wait for replay to initialize
-    await waitForReplayRunning(page);
+  // Wait for replay to initialize
+  await waitForReplayRunning(page);
 
-    await page.locator('#error1').click();
-    await firstReplayEventPromise;
-    expect(errorCount).toBe(1);
-    expect(replayCount).toBe(1);
-    expect(replayIds).toHaveLength(1);
+  await page.locator('#error1').click();
+  await firstReplayEventPromise;
+  expect(errorCount).toBe(1);
+  expect(replayCount).toBe(1);
+  expect(replayIds).toHaveLength(1);
 
-    // Get the first session info
-    const firstSession = await getReplaySnapshot(page);
-    const firstSessionId = firstSession.session?.id;
-    expect(firstSessionId).toBeDefined();
-    expect(firstSession.session?.sampled).toBe('buffer');
-    expect(firstSession.session?.dirty).toBe(true);
-    expect(firstSession.recordingMode).toBe('buffer'); // But still in buffer mode
+  // Get the first session info
+  const firstSession = await getReplaySnapshot(page);
+  const firstSessionId = firstSession.session?.id;
+  expect(firstSessionId).toBeDefined();
+  expect(firstSession.session?.sampled).toBe('buffer');
+  expect(firstSession.session?.dirty).toBe(true);
+  expect(firstSession.recordingMode).toBe('buffer'); // But still in buffer mode
 
-    await page.reload();
-    await waitForReplayRunning(page);
-    const secondSession = await getReplaySnapshot(page);
-    expect(secondSession.session?.sampled).toBe('buffer');
-    expect(secondSession.session?.dirty).toBe(true);
-    expect(secondSession.session?.id).toBe(firstSessionId);
-    expect(secondSession.session?.segmentId).toBe(1);
-    // Because a flush attempt was made and not allowed to complete, segmentId increased from 0,
-    // so we resume in session mode
-    expect(secondSession.recordingMode).toBe('session');
-  },
-);
+  await page.reload();
+  await waitForReplayRunning(page);
+  const secondSession = await getReplaySnapshot(page);
+  expect(secondSession.session?.sampled).toBe('buffer');
+  expect(secondSession.session?.dirty).toBe(true);
+  expect(secondSession.session?.id).toBe(firstSessionId);
+  expect(secondSession.session?.segmentId).toBe(1);
+  // Because a flush attempt was made and not allowed to complete, segmentId increased from 0,
+  // so we resume in session mode
+  expect(secondSession.recordingMode).toBe('session');
+});
 
 sentryTest(
   'starts a new session after interrupting replay flush and session "expires"',
