@@ -644,4 +644,261 @@ describe('maybeParameterizeRoute', () => {
       expect(maybeParameterizeRoute('/some/random/path')).toBe('/:catchall*');
     });
   });
+
+  describe('i18n routing with optional prefix', () => {
+    it('should match routes with optional locale prefix for default locale paths', () => {
+      const manifest: RouteManifest = {
+        staticRoutes: [{ path: '/' }],
+        dynamicRoutes: [
+          {
+            path: '/:locale',
+            regex: '^/([^/]+)$',
+            paramNames: ['locale'],
+            hasOptionalPrefix: true,
+          },
+          {
+            path: '/:locale/foo',
+            regex: '^/([^/]+)/foo$',
+            paramNames: ['locale'],
+            hasOptionalPrefix: true,
+          },
+          {
+            path: '/:locale/bar',
+            regex: '^/([^/]+)/bar$',
+            paramNames: ['locale'],
+            hasOptionalPrefix: true,
+          },
+          {
+            path: '/:locale/products',
+            regex: '^/([^/]+)/products$',
+            paramNames: ['locale'],
+            hasOptionalPrefix: true,
+          },
+        ],
+      };
+      globalWithInjectedManifest._sentryRouteManifest = JSON.stringify(manifest);
+
+      // Default locale paths (without prefix) should match parameterized routes
+      expect(maybeParameterizeRoute('/foo')).toBe('/:locale/foo');
+      expect(maybeParameterizeRoute('/bar')).toBe('/:locale/bar');
+      expect(maybeParameterizeRoute('/products')).toBe('/:locale/products');
+
+      // Non-default locale paths (with prefix) should also match
+      expect(maybeParameterizeRoute('/ar/foo')).toBe('/:locale/foo');
+      expect(maybeParameterizeRoute('/ar/bar')).toBe('/:locale/bar');
+      expect(maybeParameterizeRoute('/ar/products')).toBe('/:locale/products');
+      expect(maybeParameterizeRoute('/en/foo')).toBe('/:locale/foo');
+      expect(maybeParameterizeRoute('/fr/products')).toBe('/:locale/products');
+    });
+
+    it('should handle nested routes with optional locale prefix', () => {
+      const manifest: RouteManifest = {
+        staticRoutes: [],
+        dynamicRoutes: [
+          {
+            path: '/:locale/foo/:id',
+            regex: '^/([^/]+)/foo/([^/]+)$',
+            paramNames: ['locale', 'id'],
+            hasOptionalPrefix: true,
+          },
+          {
+            path: '/:locale/products/:productId',
+            regex: '^/([^/]+)/products/([^/]+)$',
+            paramNames: ['locale', 'productId'],
+            hasOptionalPrefix: true,
+          },
+        ],
+      };
+      globalWithInjectedManifest._sentryRouteManifest = JSON.stringify(manifest);
+
+      // Default locale (no prefix)
+      expect(maybeParameterizeRoute('/foo/123')).toBe('/:locale/foo/:id');
+      expect(maybeParameterizeRoute('/products/abc')).toBe('/:locale/products/:productId');
+
+      // Non-default locale (with prefix)
+      expect(maybeParameterizeRoute('/ar/foo/123')).toBe('/:locale/foo/:id');
+      expect(maybeParameterizeRoute('/ar/products/abc')).toBe('/:locale/products/:productId');
+      expect(maybeParameterizeRoute('/en/foo/456')).toBe('/:locale/foo/:id');
+    });
+
+    it('should prioritize direct matches over optional prefix matches', () => {
+      const manifest: RouteManifest = {
+        staticRoutes: [],
+        dynamicRoutes: [
+          {
+            path: '/foo/:id',
+            regex: '^/foo/([^/]+)$',
+            paramNames: ['id'],
+          },
+          {
+            path: '/:locale/foo',
+            regex: '^/([^/]+)/foo$',
+            paramNames: ['locale'],
+            hasOptionalPrefix: true,
+          },
+        ],
+      };
+      globalWithInjectedManifest._sentryRouteManifest = JSON.stringify(manifest);
+
+      // Direct match should win
+      expect(maybeParameterizeRoute('/foo/123')).toBe('/foo/:id');
+
+      // Optional prefix match when direct match isn't available
+      expect(maybeParameterizeRoute('/foo')).toBe('/:locale/foo');
+      expect(maybeParameterizeRoute('/ar/foo')).toBe('/:locale/foo');
+    });
+
+    it('should handle lang and language parameters as optional prefixes', () => {
+      const manifestWithLang: RouteManifest = {
+        staticRoutes: [],
+        dynamicRoutes: [
+          {
+            path: '/:lang/page',
+            regex: '^/([^/]+)/page$',
+            paramNames: ['lang'],
+            hasOptionalPrefix: true,
+          },
+        ],
+      };
+      globalWithInjectedManifest._sentryRouteManifest = JSON.stringify(manifestWithLang);
+      expect(maybeParameterizeRoute('/page')).toBe('/:lang/page');
+      expect(maybeParameterizeRoute('/en/page')).toBe('/:lang/page');
+
+      const manifestWithLanguage: RouteManifest = {
+        staticRoutes: [],
+        dynamicRoutes: [
+          {
+            path: '/:language/page',
+            regex: '^/([^/]+)/page$',
+            paramNames: ['language'],
+            hasOptionalPrefix: true,
+          },
+        ],
+      };
+      globalWithInjectedManifest._sentryRouteManifest = JSON.stringify(manifestWithLanguage);
+      expect(maybeParameterizeRoute('/page')).toBe('/:language/page');
+      expect(maybeParameterizeRoute('/en/page')).toBe('/:language/page');
+    });
+
+    it('should not apply optional prefix logic to non-i18n dynamic segments', () => {
+      const manifest: RouteManifest = {
+        staticRoutes: [],
+        dynamicRoutes: [
+          {
+            path: '/:userId/profile',
+            regex: '^/([^/]+)/profile$',
+            paramNames: ['userId'],
+            hasOptionalPrefix: false,
+          },
+        ],
+      };
+      globalWithInjectedManifest._sentryRouteManifest = JSON.stringify(manifest);
+
+      // Should not match without the userId segment
+      expect(maybeParameterizeRoute('/profile')).toBeUndefined();
+
+      // Should match with the userId segment
+      expect(maybeParameterizeRoute('/123/profile')).toBe('/:userId/profile');
+    });
+
+    it('should handle real-world next-intl scenario', () => {
+      const manifest: RouteManifest = {
+        staticRoutes: [{ path: '/' }],
+        dynamicRoutes: [
+          {
+            path: '/:locale',
+            regex: '^/([^/]+)$',
+            paramNames: ['locale'],
+            hasOptionalPrefix: true,
+          },
+          {
+            path: '/:locale/hola',
+            regex: '^/([^/]+)/hola$',
+            paramNames: ['locale'],
+            hasOptionalPrefix: true,
+          },
+          {
+            path: '/:locale/products',
+            regex: '^/([^/]+)/products$',
+            paramNames: ['locale'],
+            hasOptionalPrefix: true,
+          },
+        ],
+      };
+      globalWithInjectedManifest._sentryRouteManifest = JSON.stringify(manifest);
+
+      // Root should not be parameterized (it's a static route)
+      expect(maybeParameterizeRoute('/')).toBeUndefined();
+
+      // Default locale (English, no prefix) - this was the bug
+      expect(maybeParameterizeRoute('/hola')).toBe('/:locale/hola');
+      expect(maybeParameterizeRoute('/products')).toBe('/:locale/products');
+
+      // Non-default locale (Arabic, with prefix)
+      expect(maybeParameterizeRoute('/ar')).toBe('/:locale');
+      expect(maybeParameterizeRoute('/ar/hola')).toBe('/:locale/hola');
+      expect(maybeParameterizeRoute('/ar/products')).toBe('/:locale/products');
+
+      // Other locales
+      expect(maybeParameterizeRoute('/en/hola')).toBe('/:locale/hola');
+      expect(maybeParameterizeRoute('/fr/products')).toBe('/:locale/products');
+    });
+
+    it('should prefer more specific routes over optional prefix matches', () => {
+      const manifest: RouteManifest = {
+        staticRoutes: [],
+        dynamicRoutes: [
+          {
+            path: '/:locale',
+            regex: '^/([^/]+)$',
+            paramNames: ['locale'],
+            hasOptionalPrefix: true,
+          },
+          {
+            path: '/:locale/foo/:id',
+            regex: '^/([^/]+)/foo/([^/]+)$',
+            paramNames: ['locale', 'id'],
+            hasOptionalPrefix: true,
+          },
+          {
+            path: '/:locale/foo',
+            regex: '^/([^/]+)/foo$',
+            paramNames: ['locale'],
+            hasOptionalPrefix: true,
+          },
+        ],
+      };
+      globalWithInjectedManifest._sentryRouteManifest = JSON.stringify(manifest);
+
+      // More specific route should win (specificity score)
+      expect(maybeParameterizeRoute('/foo/123')).toBe('/:locale/foo/:id');
+      expect(maybeParameterizeRoute('/foo')).toBe('/:locale/foo');
+      expect(maybeParameterizeRoute('/about')).toBe('/:locale');
+    });
+
+    it('should handle deeply nested i18n routes', () => {
+      const manifest: RouteManifest = {
+        staticRoutes: [],
+        dynamicRoutes: [
+          {
+            path: '/:locale/users/:userId/posts/:postId/comments/:commentId',
+            regex: '^/([^/]+)/users/([^/]+)/posts/([^/]+)/comments/([^/]+)$',
+            paramNames: ['locale', 'userId', 'postId', 'commentId'],
+            hasOptionalPrefix: true,
+          },
+        ],
+      };
+      globalWithInjectedManifest._sentryRouteManifest = JSON.stringify(manifest);
+
+      // Without locale prefix (default locale)
+      expect(maybeParameterizeRoute('/users/123/posts/456/comments/789')).toBe(
+        '/:locale/users/:userId/posts/:postId/comments/:commentId',
+      );
+
+      // With locale prefix
+      expect(maybeParameterizeRoute('/ar/users/123/posts/456/comments/789')).toBe(
+        '/:locale/users/:userId/posts/:postId/comments/:commentId',
+      );
+    });
+  });
 });
