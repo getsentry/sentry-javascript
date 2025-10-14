@@ -47,7 +47,11 @@ function getDynamicRouteSegment(name: string): string {
   return `:${name.slice(1, -1)}`;
 }
 
-function buildRegexForDynamicRoute(routePath: string): { regex: string; paramNames: string[] } {
+function buildRegexForDynamicRoute(routePath: string): {
+  regex: string;
+  paramNames: string[];
+  hasOptionalPrefix: boolean;
+} {
   const segments = routePath.split('/').filter(Boolean);
   const regexSegments: string[] = [];
   const paramNames: string[] = [];
@@ -95,7 +99,13 @@ function buildRegexForDynamicRoute(routePath: string): { regex: string; paramNam
     pattern = `^/${regexSegments.join('/')}$`;
   }
 
-  return { regex: pattern, paramNames };
+  // Detect if the first parameter is a common i18n prefix segment
+  // Common patterns: locale, lang, language
+  const firstParam = paramNames[0];
+  const hasOptionalPrefix =
+    firstParam !== undefined && (firstParam === 'locale' || firstParam === 'lang' || firstParam === 'language');
+
+  return { regex: pattern, paramNames, hasOptionalPrefix };
 }
 
 function scanAppDirectory(
@@ -116,11 +126,12 @@ function scanAppDirectory(
       const isDynamic = routePath.includes(':');
 
       if (isDynamic) {
-        const { regex, paramNames } = buildRegexForDynamicRoute(routePath);
+        const { regex, paramNames, hasOptionalPrefix } = buildRegexForDynamicRoute(routePath);
         dynamicRoutes.push({
           path: routePath,
           regex,
           paramNames,
+          hasOptionalPrefix,
         });
       } else {
         staticRoutes.push({

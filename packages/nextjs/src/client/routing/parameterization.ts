@@ -37,6 +37,16 @@ function getRouteSpecificity(routePath: string): number {
     // Static segments add 0 to score as they are most specific
   }
 
+  if (segments.length > 0) {
+    // Add a small penalty based on inverse of segment count
+    // This ensures that routes with more segments are preferred
+    // e.g., '/:locale/foo' is more specific than '/:locale'
+    // We use a small value (1 / segments.length) so it doesn't override the main scoring
+    // but breaks ties between routes with the same number of dynamic segments
+    const segmentCountPenalty = 1 / segments.length;
+    score += segmentCountPenalty;
+  }
+
   return score;
 }
 
@@ -130,6 +140,23 @@ function findMatchingRoutes(
       const regex = getCompiledRegex(dynamicRoute.regex);
       if (regex?.test(route)) {
         matches.push(dynamicRoute.path);
+      }
+    }
+  }
+
+  // Try matching with optional prefix segments (for i18n routing patterns)
+  // This handles cases like '/foo' matching '/:locale/foo' when using next-intl with localePrefix: "as-needed"
+  // We do this regardless of whether we found direct matches, as we want the most specific match
+  if (!route.startsWith('/:')) {
+    for (const dynamicRoute of dynamicRoutes) {
+      if (dynamicRoute.hasOptionalPrefix && dynamicRoute.regex) {
+        // Prepend a placeholder segment to simulate the optional prefix
+        // e.g., '/foo' becomes '/PLACEHOLDER/foo' to match '/:locale/foo'
+        const routeWithPrefix = `/SENTRY_OPTIONAL_PREFIX${route}`;
+        const regex = getCompiledRegex(dynamicRoute.regex);
+        if (regex?.test(routeWithPrefix)) {
+          matches.push(dynamicRoute.path);
+        }
       }
     }
   }
