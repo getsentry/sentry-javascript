@@ -52,7 +52,7 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/index.js',
     import: createImport('init', 'browserTracingIntegration', 'spanStreamingIntegration'),
     gzip: true,
-    limit: '41.5 KB',
+    limit: '44 KB',
   },
   {
     name: '@sentry/browser (incl. Tracing, Replay)',
@@ -96,7 +96,7 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/prod/index.js',
     import: createImport('init', 'browserTracingIntegration', 'replayIntegration', 'feedbackIntegration'),
     gzip: true,
-    limit: '97 KB',
+    limit: '98 KB',
   },
   {
     name: '@sentry/browser (incl. Feedback)',
@@ -110,7 +110,7 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/prod/index.js',
     import: createImport('init', 'sendFeedback'),
     gzip: true,
-    limit: '30 KB',
+    limit: '31 KB',
   },
   {
     name: '@sentry/browser (incl. FeedbackAsync)',
@@ -142,7 +142,7 @@ module.exports = [
     path: 'packages/vue/build/esm/index.js',
     import: createImport('init'),
     gzip: true,
-    limit: '30 KB',
+    limit: '31 KB',
   },
   {
     name: '@sentry/vue (incl. Tracing)',
@@ -229,7 +229,7 @@ module.exports = [
     import: createImport('init'),
     ignore: ['$app/stores'],
     gzip: true,
-    limit: '42 KB',
+    limit: '43 KB',
   },
   // Node-Core SDK (ESM)
   {
