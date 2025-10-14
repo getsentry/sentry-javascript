@@ -306,14 +306,6 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
      * @deprecated Use the top level`beforeSendMetric` option instead.
      */
     beforeSendMetric?: (metric: Metric) => Metric | null;
-
-    /**
-     * DO NOT set this option manually.
-     *
-     * @internal, this option is only used and set internally.
-     * @hidden
-     */
-    _INTERNAL_spanStreaming?: boolean;
   };
 
   /**
