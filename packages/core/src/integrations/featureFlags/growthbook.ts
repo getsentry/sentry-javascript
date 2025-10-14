@@ -34,7 +34,7 @@ export type GrowthBookClassLike = new (...args: unknown[]) => GrowthBookLike;
  * });
  * ```
  */
-export const growthbookIntegration = defineIntegration(
+export const growthbookIntegration: IntegrationFn = defineIntegration(
   ({ growthbookClass }: { growthbookClass: GrowthBookClassLike }) => {
     return {
       name: 'GrowthBook',
@@ -58,7 +58,7 @@ export const growthbookIntegration = defineIntegration(
       },
     };
   },
-) satisfies IntegrationFn;
+);
 
 function _wrapAndCaptureBooleanResult(
   original: (this: GrowthBookLike, ...args: unknown[]) => unknown,
