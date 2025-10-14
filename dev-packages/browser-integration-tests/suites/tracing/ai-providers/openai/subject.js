@@ -19,4 +19,4 @@ const response = await client.chat.completions.create({
   max_tokens: 100,
 });
 
-console.log("Received response", response)
+console.log('Received response', response);

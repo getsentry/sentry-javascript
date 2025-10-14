@@ -16,4 +16,4 @@ const response = await client.messages.create({
   max_tokens: 100,
 });
 
-console.log("Received response", response)
+console.log('Received response', response);

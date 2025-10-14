@@ -29,4 +29,4 @@ const response = await chat.sendMessage({
   message: 'Tell me a joke',
 });
 
-console.log("Received response", response)
+console.log('Received response', response);
