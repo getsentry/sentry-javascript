@@ -242,7 +242,7 @@ describe('user agent header', () => {
     const client = new BrowserClient(options);
 
     expect(client.getOptions().transportOptions?.headers).toEqual({
-      'x-Sentry-User-Agent': `sentry.javascript.browser/${SDK_VERSION}`,
+      'X-Sentry-User-Agent': `sentry.javascript.browser/${SDK_VERSION}`,
     });
   });
 
@@ -251,7 +251,7 @@ describe('user agent header', () => {
       transportOptions: {
         headers: {
           'x-custom-header': 'custom-value',
-          'x-Sentry-User-Agent': 'custom-user-agent',
+          'X-Sentry-User-Agent': 'custom-user-agent',
           'user-agent': 'custom-user-agent-2',
         },
       },
@@ -260,7 +260,7 @@ describe('user agent header', () => {
 
     expect(client.getOptions().transportOptions?.headers).toEqual({
       'x-custom-header': 'custom-value',
-      'x-Sentry-User-Agent': 'custom-user-agent',
+      'X-Sentry-User-Agent': 'custom-user-agent',
       'user-agent': 'custom-user-agent-2',
     });
   });

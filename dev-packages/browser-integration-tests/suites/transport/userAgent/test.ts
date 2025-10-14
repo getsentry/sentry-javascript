@@ -24,7 +24,7 @@ sentryTest('adds X-Sentry-User-Agent header to envelope requests', async ({ getL
     'user-agent': expect.any(String),
 
     // this is the SDK's user-agent header (in browser)
-    'x-sentry-user-agent': `sentry.javascript.browser/${SDK_VERSION}`,
+    'X-Sentry-User-Agent': `sentry.javascript.browser/${SDK_VERSION}`,
 
     // this is a custom header users add via `transportOptions.headers`
     'x-custom-header': 'custom-value',

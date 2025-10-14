@@ -94,7 +94,7 @@ export class BrowserClient extends Client<BrowserClientOptions> {
     const sdkSource = WINDOW.SENTRY_SDK_SOURCE || getSDKSource();
     applySdkMetadata(opts, 'browser', ['browser'], sdkSource);
 
-    addUserAgentToTransportHeaders(opts, 'x-Sentry-User-Agent');
+    addUserAgentToTransportHeaders(opts, 'X-Sentry-User-Agent');
 
     // Only allow IP inferral by Relay if sendDefaultPii is true
     if (opts._metadata?.sdk) {
