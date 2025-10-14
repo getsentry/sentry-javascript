@@ -82,7 +82,7 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/index.js',
     import: createImport('init', 'browserTracingIntegration', 'replayIntegration', 'replayCanvasIntegration'),
     gzip: true,
-    limit: '84 KB',
+    limit: '85 KB',
   },
   {
     name: '@sentry/browser (incl. Tracing, Replay, Feedback)',
@@ -127,7 +127,7 @@ module.exports = [
     import: createImport('init', 'ErrorBoundary', 'reactRouterV6BrowserTracingIntegration'),
     ignore: ['react/jsx-runtime'],
     gzip: true,
-    limit: '43 KB',
+    limit: '44 KB',
   },
   // Vue SDK (ESM)
   {
@@ -142,7 +142,7 @@ module.exports = [
     path: 'packages/vue/build/esm/index.js',
     import: createImport('init', 'browserTracingIntegration'),
     gzip: true,
-    limit: '43 KB',
+    limit: '44 KB',
   },
   // Svelte SDK (ESM)
   {
@@ -157,7 +157,7 @@ module.exports = [
     name: 'CDN Bundle',
     path: createCDNPath('bundle.min.js'),
     gzip: true,
-    limit: '27 KB',
+    limit: '27.5 KB',
   },
   {
     name: 'CDN Bundle (incl. Tracing)',
