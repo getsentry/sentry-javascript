@@ -285,7 +285,7 @@ sentryTest(
       });
     });
 
-    const replayRequestPromise = waitForReplayRequest(page, 1);
+    const replayRequestPromise = waitForReplayRequest(page, 0);
 
     const url = await getLocalTestUrl({ testDir: __dirname, skipDsnRouteHandler: true });
     await page.goto(url);
@@ -303,17 +303,24 @@ sentryTest(
     const reqErrorPromise = waitForErrorRequest(page);
     await page.locator('#error1').click();
 
+    // await this later otherwise we have a timing issue w/ this and `getReplaySnapshot`
+    const sessionDataOnErrorPromise = page.evaluate(() => {
+      const sessionKey = 'sentryReplaySession';
+      const data = sessionStorage.getItem(sessionKey);
+      return data ? JSON.parse(data) : null;
+    });
+
     const duringErrorProcessing = await getReplaySnapshot(page);
     expect(duringErrorProcessing.session?.sampled).toBe('buffer');
     expect(duringErrorProcessing.session?.dirty).toBe(true);
     expect(duringErrorProcessing.recordingMode).toBe('buffer'); // Still in buffer recording mode
 
-    await reqErrorPromise;
+    const sessionDataOnError = await sessionDataOnErrorPromise;
+    expect(sessionDataOnError).toBeDefined();
+    expect(sessionDataOnError.sampled).toBe('buffer');
+    expect(sessionDataOnError.dirty).toBe(true);
 
-    // After error is sent, verify state is still correct
-    const afterError = await getReplaySnapshot(page);
-    expect(afterError.session?.sampled).toBe('buffer');
-    expect(afterError.session?.dirty).toBe(false);
+    await reqErrorPromise;
 
     // Verify the session was persisted to sessionStorage (if sticky sessions enabled)
     const sessionData = await page.evaluate(() => {
@@ -326,9 +333,11 @@ sentryTest(
     expect(sessionData.sampled).toBe('buffer');
     expect(sessionData.dirty).toBe(false);
 
-    // Need to wait for replay request before checking `recordingMode`, otherwise it will be flakey
+    // Need to wait for replay request before checking `recordingMode` and `dirty`,
+    // since they update after replay gets flushed
     await replayRequestPromise;
     const afterReplay = await getReplaySnapshot(page);
     expect(afterReplay.recordingMode).toBe('session');
+    expect(afterReplay.session?.dirty).toBe(false);
   },
 );
