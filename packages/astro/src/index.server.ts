@@ -159,6 +159,7 @@ export {
   OpenFeatureIntegrationHook,
   statsigIntegration,
   unleashIntegration,
+  growthbookIntegration,
 } from '@sentry/node';
 
 export { init } from './server/sdk';

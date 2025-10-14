@@ -63,6 +63,9 @@ export {
   zodErrorsIntegration,
   thirdPartyErrorFilterIntegration,
   featureFlagsIntegration,
+  instrumentAnthropicAiClient,
+  instrumentOpenAiClient,
+  instrumentGoogleGenAIClient,
   logger,
 } from '@sentry/core';
 export type { Span, FeatureFlagsIntegration } from '@sentry/core';
@@ -73,6 +76,7 @@ export { browserSessionIntegration } from './integrations/browsersession';
 export { launchDarklyIntegration, buildLaunchDarklyFlagUsedHandler } from './integrations/featureFlags/launchdarkly';
 export { openFeatureIntegration, OpenFeatureIntegrationHook } from './integrations/featureFlags/openfeature';
 export { unleashIntegration } from './integrations/featureFlags/unleash';
+export { growthbookIntegration } from './integrations/featureFlags/growthbook';
 export { statsigIntegration } from './integrations/featureFlags/statsig';
 export { diagnoseSdkConnectivity } from './diagnose-sdk';
 export { webWorkerIntegration, registerWebWorker } from './integrations/webWorker';

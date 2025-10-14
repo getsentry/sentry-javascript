@@ -1,12 +1,12 @@
 import { expect, test } from '@playwright/test';
 import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
+import { isDevMode } from './isDevMode';
 
 const packageJson = require('../package.json');
 
 test('Sends a pageload transaction', async ({ page }) => {
   const nextjsVersion = packageJson.dependencies.next;
   const nextjsMajor = Number(nextjsVersion.split('.')[0]);
-  const isDevMode = process.env.TEST_ENV === 'development';
 
   const pageloadTransactionEventPromise = waitForTransaction('nextjs-app-dir', transactionEvent => {
     return transactionEvent?.contexts?.trace?.op === 'pageload' && transactionEvent?.transaction === '/';
@@ -78,8 +78,9 @@ test('Should send a transaction for instrumented server actions', async ({ page 
 test('Should send a wrapped server action as a child of a nextjs transaction', async ({ page }) => {
   const nextjsVersion = packageJson.dependencies.next;
   const nextjsMajor = Number(nextjsVersion.split('.')[0]);
+
   test.skip(!isNaN(nextjsMajor) && nextjsMajor < 14, 'only applies to nextjs apps >= version 14');
-  test.skip(process.env.TEST_ENV === 'development', 'this magically only works in production');
+  test.skip(isDevMode, 'this magically only works in production');
 
   const nextjsPostTransactionPromise = waitForTransaction('nextjs-app-dir', async transactionEvent => {
     return (
