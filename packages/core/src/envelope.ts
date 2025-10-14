@@ -20,7 +20,7 @@ import type { Event } from './types-hoist/event';
 import type { SdkInfo } from './types-hoist/sdkinfo';
 import type { SdkMetadata } from './types-hoist/sdkmetadata';
 import type { Session, SessionAggregates } from './types-hoist/session';
-import { SpanV2JSON } from './types-hoist/span';
+import type { SpanV2JSON } from './types-hoist/span';
 import { isV2BeforeSendSpanCallback } from './utils/beforeSendSpan';
 import { dsnToString } from './utils/dsn';
 import {
