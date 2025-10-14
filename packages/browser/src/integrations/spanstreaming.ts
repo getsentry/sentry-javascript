@@ -225,7 +225,9 @@ function applyCommonSpanAttributes(span: Span, serializedSegmentSpan: SpanV2JSON
 }
 
 /**
- * Adds span attributes frome
+ * Adds span attributes from the scopes' contexts
+ * TODO: It's not set in stone yet if we actually want to flatmap contexts into span attributes.
+ * For now we do it but not yet extra or tags. It's still TBD how to proceed here.
  */
 function applyScopeToSegmentSpan(segmentSpan: Span, serializedSegmentSpan: SpanV2JSON, client: Client): void {
   const { isolationScope, scope } = getCapturedScopesOnSpan(segmentSpan);
@@ -237,8 +239,9 @@ function applyScopeToSegmentSpan(segmentSpan: Span, serializedSegmentSpan: SpanV
 
   let contextAttributes = {};
   Object.keys(finalScopeData.contexts).forEach(key => {
-    if (finalScopeData.contexts[key]) {
-      contextAttributes = { ...contextAttributes, ...attributesFromObject(finalScopeData.contexts[key]) };
+    const context = finalScopeData.contexts[key];
+    if (context) {
+      contextAttributes = { ...contextAttributes, ...attributesFromObject(context) };
     }
   });
 
