@@ -1,11 +1,11 @@
-import * as Sentry from '@sentry/browser';
+import { instrumentGoogleGenAIClient } from '@sentry/browser';
 import { MockGoogleGenAI } from './mocks.js';
 
 const mockClient = new MockGoogleGenAI({
   apiKey: 'mock-api-key',
 });
 
-const client = Sentry.instrumentGoogleGenAIClient(mockClient);
+const client = instrumentGoogleGenAIClient(mockClient);
 
 // Test that manual instrumentation doesn't crash the browser
 // The instrumentation automatically creates spans
@@ -30,6 +30,3 @@ const response = await chat.sendMessage({
 });
 
 console.log("Received response", response)
-
-// Ensure transaction is flushed in CI
-await Sentry.flush(2000);

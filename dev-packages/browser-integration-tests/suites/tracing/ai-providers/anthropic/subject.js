@@ -1,11 +1,11 @@
-import * as Sentry from '@sentry/browser';
+import { instrumentAnthropicAiClient } from '@sentry/browser';
 import { MockAnthropic } from './mocks.js';
 
 const mockClient = new MockAnthropic({
   apiKey: 'mock-api-key',
 });
 
-const client = Sentry.instrumentAnthropicAiClient(mockClient);
+const client = instrumentAnthropicAiClient(mockClient);
 
 // Test that manual instrumentation doesn't crash the browser
 // The instrumentation automatically creates spans
@@ -17,6 +17,3 @@ const response = await client.messages.create({
 });
 
 console.log("Received response", response)
-
-// Ensure transaction is flushed in CI
-await Sentry.flush(2000);

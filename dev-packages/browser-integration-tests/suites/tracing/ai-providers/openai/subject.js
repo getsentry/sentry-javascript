@@ -1,11 +1,11 @@
-import * as Sentry from '@sentry/browser';
+import { instrumentOpenAiClient } from '@sentry/browser';
 import { MockOpenAi } from './mocks.js';
 
 const mockClient = new MockOpenAi({
   apiKey: 'mock-api-key',
 });
 
-const client = Sentry.instrumentOpenAiClient(mockClient);
+const client = instrumentOpenAiClient(mockClient);
 
 // Test that manual instrumentation doesn't crash the browser
 // The instrumentation automatically creates spans
@@ -20,6 +20,3 @@ const response = await client.chat.completions.create({
 });
 
 console.log("Received response", response)
-
-// Ensure transaction is flushed in CI
-await Sentry.flush(2000);
