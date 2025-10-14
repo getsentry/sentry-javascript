@@ -34,6 +34,7 @@ export {
   OpenFeatureIntegrationHook,
   statsigIntegration,
   unleashIntegration,
+  growthbookIntegration,
 } from './integrations/featureFlagShims';
 export { firebaseIntegration } from './integrations/tracing/firebase';
 
