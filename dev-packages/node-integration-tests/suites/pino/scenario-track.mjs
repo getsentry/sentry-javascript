@@ -2,11 +2,11 @@ import * as Sentry from '@sentry/node';
 import pino from 'pino';
 
 const logger = pino({ name: 'myapp' });
+Sentry.pinoIntegration.trackLogger(logger);
 
-const ignoredLogger = pino({ name: 'ignored' });
-Sentry.pinoIntegration.untrackLogger(ignoredLogger);
+const loggerIgnore = pino({ name: 'ignore' });
 
-ignoredLogger.info('this will not be tracked');
+loggerIgnore.info('this should be ignored');
 
 Sentry.withIsolationScope(() => {
   Sentry.startSpan({ name: 'startup' }, () => {
