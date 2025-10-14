@@ -12,5 +12,5 @@ test('should not print warning for async params', async ({ page }) => {
   const devStdout = fs.readFileSync('.tmp_dev_server_logs', 'utf-8');
   expect(devStdout).not.toContain('`params` should be awaited before using its properties.');
 
-  await expect(page.getByText('Next 15 test app')).toBeVisible();
+  await expect(page.getByText('Next 16 test app')).toBeVisible();
 });
