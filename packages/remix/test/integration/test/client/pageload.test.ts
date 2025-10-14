@@ -8,5 +8,7 @@ test('should add `pageload` transaction on load.', async ({ page }) => {
   expect(envelope.contexts?.trace.op).toBe('pageload');
   expect(envelope.type).toBe('transaction');
 
-  expect(envelope.transaction).toBe('root');
+  // Static root route should use '/' (URL) since it doesn't need parameterization
+  expect(envelope.transaction).toBe('/');
+  expect(envelope.contexts?.trace?.data?.['sentry.source']).toBe('url');
 });

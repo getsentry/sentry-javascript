@@ -17,5 +17,5 @@ test('should report a manually created / finished transaction.', async ({ page }
 
   expect(pageloadEnvelope.contexts?.trace?.op).toBe('pageload');
   expect(pageloadEnvelope.type).toBe('transaction');
-  expect(pageloadEnvelope.transaction).toBe('routes/manual-tracing.$id');
+  expect(pageloadEnvelope.transaction).toBe('/manual-tracing/:id');
 });

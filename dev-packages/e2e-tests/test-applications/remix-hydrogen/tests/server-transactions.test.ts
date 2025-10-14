@@ -13,7 +13,7 @@ test('Sends parameterized transaction name to Sentry', async ({ page }) => {
   const transaction = await transactionPromise;
 
   expect(transaction).toBeDefined();
-  expect(transaction.transaction).toBe('GET /user/123');
+  expect(transaction.transaction).toBe('GET /user/:id');
 });
 
 test('Sends two linked transactions (server & client) to Sentry', async ({ page }) => {
@@ -43,7 +43,7 @@ test('Sends two linked transactions (server & client) to Sentry', async ({ page 
   const pageLoadSpanId = pageloadTransaction.contexts?.trace?.span_id;
 
   expect(httpServerTransaction.transaction).toBe('GET /');
-  expect(pageloadTransaction.transaction).toBe('routes/_index');
+  expect(pageloadTransaction.transaction).toBe('/');
 
   expect(httpServerTraceId).toBeDefined();
   expect(httpServerSpanId).toBeDefined();

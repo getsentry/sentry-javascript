@@ -13,5 +13,5 @@ test('should report a manually captured message.', async ({ page }) => {
 
   expect(pageloadEnvelope.contexts?.trace?.op).toBe('pageload');
   expect(pageloadEnvelope.type).toBe('transaction');
-  expect(pageloadEnvelope.transaction).toBe('routes/capture-message');
+  expect(pageloadEnvelope.transaction).toBe('/capture-message');
 });

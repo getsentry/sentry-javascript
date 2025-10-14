@@ -12,6 +12,7 @@ import type { BrowserClient, browserTracingIntegration as originalBrowserTracing
 import { getClient, startBrowserTracingNavigationSpan, startBrowserTracingPageLoadSpan, WINDOW } from '@sentry/react';
 import * as React from 'react';
 import { DEBUG_BUILD } from '../utils/debug-build';
+import { maybeParameterizeRemixRoute } from './remixRouteParameterization';
 
 export type Params<Key extends string = string> = {
   readonly [key in Key]: string | undefined;
@@ -62,19 +63,24 @@ export function startPageloadSpan(client: Client): void {
     return;
   }
 
+  // Try to parameterize the route using the route manifest
+  const parameterizedRoute = maybeParameterizeRemixRoute(initPathName);
+  const spanName = parameterizedRoute || initPathName;
+  const source = parameterizedRoute ? 'route' : 'url';
+
   const spanContext: StartSpanOptions = {
-    name: initPathName,
+    name: spanName,
     op: 'pageload',
     attributes: {
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.remix',
-      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
     },
   };
 
   startBrowserTracingPageLoadSpan(client, spanContext);
 }
 
-function startNavigationSpan(matches: RouteMatch<string>[]): void {
+function startNavigationSpan(matches: RouteMatch<string>[], location: ReturnType<UseLocation>): void {
   const lastMatch = matches[matches.length - 1];
 
   const client = getClient<BrowserClient>();
@@ -83,12 +89,19 @@ function startNavigationSpan(matches: RouteMatch<string>[]): void {
     return;
   }
 
+  // Try to parameterize the route using the manifest
+  const pathname = location.pathname;
+  const parameterizedRoute = pathname ? maybeParameterizeRemixRoute(pathname) : undefined;
+  const spanName = parameterizedRoute || lastMatch.id;
+  // Note: We use 'route' even when falling back to lastMatch.id because Remix route IDs are still route-based
+  const source = 'route';
+
   const spanContext: StartSpanOptions = {
-    name: lastMatch.id,
+    name: spanName,
     op: 'navigation',
     attributes: {
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.remix',
-      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
     },
   };
 
@@ -134,7 +147,15 @@ export function withSentry<P extends Record<string, unknown>, R extends React.Co
     _useEffect(() => {
       const lastMatch = matches && matches[matches.length - 1];
       if (lastMatch) {
-        const routeName = lastMatch.id;
+        // Try to parameterize the route using the manifest
+        const pathname = location.pathname;
+        const parameterizedRoute = pathname ? maybeParameterizeRemixRoute(pathname) : undefined;
+
+        // If we have a parameterized route from the manifest, use it
+        // Otherwise, fall back to the route ID for backward compatibility
+        const routeName = parameterizedRoute || lastMatch.id;
+        const source = 'route';
+
         getCurrentScope().setTransactionName(routeName);
 
         const activeRootSpan = getActiveSpan();
@@ -143,7 +164,7 @@ export function withSentry<P extends Record<string, unknown>, R extends React.Co
 
           if (transaction) {
             transaction.updateName(routeName);
-            transaction.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+            transaction.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
           }
         }
       }
@@ -167,7 +188,7 @@ export function withSentry<P extends Record<string, unknown>, R extends React.Co
           activeRootSpan.end();
         }
 
-        startNavigationSpan(matches);
+        startNavigationSpan(matches, location);
       }
     }, [location]);
 
