@@ -339,7 +339,7 @@ export { SDK_VERSION } from './utils/version';
 export { getDebugImagesForResources, getFilenameToDebugIdMap } from './utils/debug-ids';
 export { getFilenameToMetadataMap } from './metadata';
 export { escapeStringForRegex } from './vendor/escapeStringForRegex';
-export { isV2BeforeSendSpanCallback, makeV2Callback } from './utils/beforeSendSpan';
+export { isV2BeforeSendSpanCallback, withStreamSpan } from './utils/beforeSendSpan';
 export { shouldIgnoreSpan, reparentChildSpans } from './utils/should-ignore-span';
 
 export type { Attachment } from './types-hoist/attachment';

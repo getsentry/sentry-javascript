@@ -71,7 +71,7 @@ export const spanStreamingIntegration = defineIntegration(((userOptions?: Partia
 
       if (beforeSendSpan && !isV2BeforeSendSpanCallback(beforeSendSpan)) {
         client.getOptions().traceLifecycle = 'static';
-        debug.warn(`${initialMessage} a beforeSendSpan callback using \`makeV2Callback\`! ${fallbackMsg}`);
+        debug.warn(`${initialMessage} a beforeSendSpan callback using \`withStreamSpan\`! ${fallbackMsg}`);
         return;
       }
 
