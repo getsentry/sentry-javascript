@@ -172,7 +172,7 @@ export function _INTERNAL_captureMetric(beforeMetric: Metric, options?: Internal
 
   if (replayId && replay?.getRecordingMode() === 'buffer') {
     // We send this so we can identify cases where the replayId is attached but the replay itself might not have been sent to Sentry
-    setMetricAttribute(processedMetricAttributes, 'sentry._internal.replay_is_buffering', replayId);
+    setMetricAttribute(processedMetricAttributes, 'sentry._internal.replay_is_buffering', true);
   }
 
   const metric: Metric = {

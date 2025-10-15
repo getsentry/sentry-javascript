@@ -450,8 +450,8 @@ describe('_INTERNAL_captureMetric', () => {
           type: 'string',
         },
         'sentry._internal.replay_is_buffering': {
-          value: 'buffer-replay-id',
-          type: 'string',
+          value: true,
+          type: 'boolean',
         },
       });
     });
@@ -577,8 +577,8 @@ describe('_INTERNAL_captureMetric', () => {
           type: 'string',
         },
         'sentry._internal.replay_is_buffering': {
-          value: 'buffer-replay-id',
-          type: 'string',
+          value: true,
+          type: 'boolean',
         },
       });
     });
@@ -736,8 +736,8 @@ describe('_INTERNAL_captureMetric', () => {
           type: 'string',
         },
         'sentry._internal.replay_is_buffering': {
-          value: 'buffer-replay-id',
-          type: 'string',
+          value: true,
+          type: 'boolean',
         },
       });
     });
