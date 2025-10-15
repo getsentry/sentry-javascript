@@ -36,6 +36,7 @@ export const reactRouterServerIntegration = defineIntegration(() => {
         instrumentReactRouterServer();
       }
     },
+    // TODO (span-streaming): port this logic to spans via a hook or ignoreSpans default;
     processEvent(event) {
       // Express generates bogus `*` routes for data loaders, which we want to remove here
       // we cannot do this earlier because some OTEL instrumentation adds this at some unexpected point

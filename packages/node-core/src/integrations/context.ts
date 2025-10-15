@@ -107,6 +107,7 @@ const _nodeContextIntegration = ((options: ContextOptions = {}) => {
 
   return {
     name: INTEGRATION_NAME,
+    // TODO (span-streaming): we probably need to apply this to spans via a hook IF we decide to apply contexts to (segment) spans
     processEvent(event) {
       return addContext(event);
     },
