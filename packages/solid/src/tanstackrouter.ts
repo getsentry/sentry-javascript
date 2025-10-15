@@ -10,23 +10,22 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '@sentry/core';
-import type { VendoredTanstackRouter, VendoredTanstackRouterRouteMatch } from './vendor/tanstackrouter-types';
+import type { AnyRouter } from '@tanstack/solid-router';
+
+type RouteMatch = ReturnType<AnyRouter['matchRoutes']>[number];
 
 /**
  * A custom browser tracing integration for TanStack Router.
  *
- * The minimum compatible version of `@tanstack/solid-router` is `1.64.0`.
+ * The minimum compatible version of `@tanstack/solid-router` is `1.64.0
  *
  * @param router A TanStack Router `Router` instance that should be used for routing instrumentation.
  * @param options Sentry browser tracing configuration.
  */
-export function tanstackRouterBrowserTracingIntegration(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  router: any, // This is `any` because we don't want any type mismatches if TanStack Router changes their types
+export function tanstackRouterBrowserTracingIntegration<R extends AnyRouter>(
+  router: R,
   options: Parameters<typeof originalBrowserTracingIntegration>[0] = {},
 ): Integration {
-  const castRouterInstance: VendoredTanstackRouter = router;
-
   const browserTracingIntegrationInstance = originalBrowserTracingIntegration({
     ...options,
     instrumentNavigation: false,
@@ -42,9 +41,9 @@ export function tanstackRouterBrowserTracingIntegration(
 
       const initialWindowLocation = WINDOW.location;
       if (instrumentPageLoad && initialWindowLocation) {
-        const matchedRoutes = castRouterInstance.matchRoutes(
+        const matchedRoutes = router.matchRoutes(
           initialWindowLocation.pathname,
-          castRouterInstance.options.parseSearch(initialWindowLocation.search),
+          router.options.parseSearch(initialWindowLocation.search),
           { preload: false, throwOnError: false },
         );
 
@@ -63,13 +62,13 @@ export function tanstackRouterBrowserTracingIntegration(
 
       if (instrumentNavigation) {
         // The onBeforeNavigate hook is called at the very beginning of a navigation and is only called once per navigation, even when the user is redirected
-        castRouterInstance.subscribe('onBeforeNavigate', onBeforeNavigateArgs => {
+        router.subscribe('onBeforeNavigate', onBeforeNavigateArgs => {
           // onBeforeNavigate is called during pageloads. We can avoid creating navigation spans by comparing the states of the to and from arguments.
           if (onBeforeNavigateArgs.toLocation.state === onBeforeNavigateArgs.fromLocation?.state) {
             return;
           }
 
-          const onResolvedMatchedRoutes = castRouterInstance.matchRoutes(
+          const onResolvedMatchedRoutes = router.matchRoutes(
             onBeforeNavigateArgs.toLocation.pathname,
             onBeforeNavigateArgs.toLocation.search,
             { preload: false, throwOnError: false },
@@ -88,10 +87,10 @@ export function tanstackRouterBrowserTracingIntegration(
           });
 
           // In case the user is redirected during navigation we want to update the span with the right value.
-          const unsubscribeOnResolved = castRouterInstance.subscribe('onResolved', onResolvedArgs => {
+          const unsubscribeOnResolved = router.subscribe('onResolved', onResolvedArgs => {
             unsubscribeOnResolved();
             if (navigationSpan) {
-              const onResolvedMatchedRoutes = castRouterInstance.matchRoutes(
+              const onResolvedMatchedRoutes = router.matchRoutes(
                 onResolvedArgs.toLocation.pathname,
                 onResolvedArgs.toLocation.search,
                 { preload: false, throwOnError: false },
@@ -112,14 +111,13 @@ export function tanstackRouterBrowserTracingIntegration(
   };
 }
 
-function routeMatchToParamSpanAttributes(match: VendoredTanstackRouterRouteMatch | undefined): Record<string, string> {
+function routeMatchToParamSpanAttributes(match: RouteMatch | undefined): Record<string, string> {
   if (!match) {
     return {};
   }
 
   const paramAttributes: Record<string, string> = {};
-  Object.entries(match.params).forEach(([key, value]) => {
-    paramAttributes[`url.path.params.${key}`] = value; // TODO(v11): remove attribute which does not adhere to Sentry's semantic convention
+  Object.entries(match.params as Record<string, string>).forEach(([key, value]) => {
     paramAttributes[`url.path.parameter.${key}`] = value;
     paramAttributes[`params.${key}`] = value; // params.[key] is an alias
   });
