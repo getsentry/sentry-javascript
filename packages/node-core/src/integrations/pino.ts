@@ -97,7 +97,7 @@ function stripIgnoredFields(result: PinoResult): PinoResult {
 
 const _pinoIntegration = defineIntegration((userOptions: DeepPartial<PinoOptions> = {}) => {
   const options: PinoOptions = {
-    autoInstrument: 'autoInstrument' in userOptions ? !!userOptions.autoInstrument : DEFAULT_OPTIONS.autoInstrument,
+    autoInstrument: userOptions.autoInstrument === false ? userOptions.autoInstrument : DEFAULT_OPTIONS.autoInstrument,
     error: { ...DEFAULT_OPTIONS.error, ...userOptions.error },
     log: { ...DEFAULT_OPTIONS.log, ...userOptions.log },
   };
