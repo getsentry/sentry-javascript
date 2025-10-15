@@ -229,8 +229,8 @@ describe('Anthropic integration', () => {
   };
 
   createEsmAndCjsTests(__dirname, 'scenario-manual-client.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('creates anthropic related spans when manually insturmenting client', async () => {
-      await createRunner()
+    test('creates anthropic related spans when manually insturmenting client', async ({ signal }) => {
+      await createRunner({ signal })
         .ignore('event')
         .expect({ transaction: EXPECTED_TRANSACTION_DEFAULT_PII_FALSE })
         .start()
@@ -239,8 +239,8 @@ describe('Anthropic integration', () => {
   });
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('creates anthropic related spans with sendDefaultPii: false', async () => {
-      await createRunner()
+    test('creates anthropic related spans with sendDefaultPii: false', async ({ signal }) => {
+      await createRunner({ signal })
         .expect({ event: EXPECTED_MODEL_ERROR })
         .expect({ transaction: EXPECTED_TRANSACTION_DEFAULT_PII_FALSE })
         .expect({ event: EXPECTED_STREAM_EVENT_HANDLER_MESSAGE })
@@ -250,8 +250,8 @@ describe('Anthropic integration', () => {
   });
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
-    test('creates anthropic related spans with sendDefaultPii: true', async () => {
-      await createRunner()
+    test('creates anthropic related spans with sendDefaultPii: true', async ({ signal }) => {
+      await createRunner({ signal })
         .expect({ event: EXPECTED_MODEL_ERROR })
         .expect({ transaction: EXPECTED_TRANSACTION_DEFAULT_PII_TRUE })
         .expect({ event: EXPECTED_STREAM_EVENT_HANDLER_MESSAGE })
@@ -261,8 +261,8 @@ describe('Anthropic integration', () => {
   });
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-with-options.mjs', (createRunner, test) => {
-    test('creates anthropic related spans with custom options', async () => {
-      await createRunner()
+    test('creates anthropic related spans with custom options', async ({ signal }) => {
+      await createRunner({ signal })
         .expect({ event: EXPECTED_MODEL_ERROR })
         .expect({ transaction: EXPECTED_TRANSACTION_WITH_OPTIONS })
         .expect({ event: EXPECTED_STREAM_EVENT_HANDLER_MESSAGE })
@@ -335,25 +335,33 @@ describe('Anthropic integration', () => {
   };
 
   createEsmAndCjsTests(__dirname, 'scenario-stream.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('streams produce spans with token usage and metadata (PII false)', async () => {
-      await createRunner().ignore('event').expect({ transaction: EXPECTED_STREAM_SPANS_PII_FALSE }).start().completed();
+    test('streams produce spans with token usage and metadata (PII false)', async ({ signal }) => {
+      await createRunner({ signal })
+        .ignore('event')
+        .expect({ transaction: EXPECTED_STREAM_SPANS_PII_FALSE })
+        .start()
+        .completed();
     });
   });
 
   createEsmAndCjsTests(__dirname, 'scenario-stream.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
-    test('streams record response text when PII true', async () => {
-      await createRunner().ignore('event').expect({ transaction: EXPECTED_STREAM_SPANS_PII_TRUE }).start().completed();
+    test('streams record response text when PII true', async ({ signal }) => {
+      await createRunner({ signal })
+        .ignore('event')
+        .expect({ transaction: EXPECTED_STREAM_SPANS_PII_TRUE })
+        .start()
+        .completed();
     });
   });
 
   // Non-streaming tool calls + available tools (PII true)
   createEsmAndCjsTests(__dirname, 'scenario-tools.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
-    test('non-streaming sets available tools and tool calls with PII', async () => {
+    test('non-streaming sets available tools and tool calls with PII', async ({ signal }) => {
       const EXPECTED_TOOLS_JSON =
         '[{"name":"weather","description":"Get the weather by city","input_schema":{"type":"object","properties":{"city":{"type":"string"}},"required":["city"]}}]';
       const EXPECTED_TOOL_CALLS_JSON =
         '[{"type":"tool_use","id":"tool_weather_1","name":"weather","input":{"city":"Paris"}}]';
-      await createRunner()
+      await createRunner({ signal })
         .ignore('event')
         .expect({
           transaction: {
@@ -375,12 +383,12 @@ describe('Anthropic integration', () => {
 
   // Streaming tool calls + available tools (PII true)
   createEsmAndCjsTests(__dirname, 'scenario-stream-tools.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
-    test('streaming sets available tools and tool calls with PII', async () => {
+    test('streaming sets available tools and tool calls with PII', async ({ signal }) => {
       const EXPECTED_TOOLS_JSON =
         '[{"name":"weather","description":"Get weather","input_schema":{"type":"object","properties":{"city":{"type":"string"}},"required":["city"]}}]';
       const EXPECTED_TOOL_CALLS_JSON =
         '[{"type":"tool_use","id":"tool_weather_2","name":"weather","input":{"city":"Paris"}}]';
-      await createRunner()
+      await createRunner({ signal })
         .ignore('event')
         .expect({
           transaction: {
@@ -452,8 +460,12 @@ describe('Anthropic integration', () => {
   };
 
   createEsmAndCjsTests(__dirname, 'scenario-stream-errors.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
-    test('handles streaming errors correctly', async () => {
-      await createRunner().ignore('event').expect({ transaction: EXPECTED_STREAM_ERROR_SPANS }).start().completed();
+    test('handles streaming errors correctly', async ({ signal }) => {
+      await createRunner({ signal })
+        .ignore('event')
+        .expect({ transaction: EXPECTED_STREAM_ERROR_SPANS })
+        .start()
+        .completed();
     });
   });
 
@@ -493,8 +505,8 @@ describe('Anthropic integration', () => {
   };
 
   createEsmAndCjsTests(__dirname, 'scenario-errors.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
-    test('handles tool errors and model retrieval errors correctly', async () => {
-      await createRunner().ignore('event').expect({ transaction: EXPECTED_ERROR_SPANS }).start().completed();
+    test('handles tool errors and model retrieval errors correctly', async ({ signal }) => {
+      await createRunner({ signal }).ignore('event').expect({ transaction: EXPECTED_ERROR_SPANS }).start().completed();
     });
   });
 });

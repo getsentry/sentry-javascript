@@ -10,8 +10,8 @@ describe('hono tracing', () => {
     describe.each(['/sync', '/async'] as const)('when using %s route', route => {
       describe.each(['get', 'post', 'put', 'delete', 'patch'] as const)('when using %s method', method => {
         describe.each(['/', '/all', '/on'])('when using %s path', path => {
-          test('should handle transaction', async () => {
-            const runner = createRunner()
+          test('should handle transaction', async ({ signal }) => {
+            const runner = createRunner({ signal })
               .expect({
                 transaction: {
                   transaction: `${method.toUpperCase()} ${route}${path === '/' ? '' : path}`,
@@ -69,8 +69,8 @@ describe('hono tracing', () => {
             await runner.completed();
           });
 
-          test('should handle transaction with anonymous middleware', async () => {
-            const runner = createRunner()
+          test('should handle transaction with anonymous middleware', async ({ signal }) => {
+            const runner = createRunner({ signal })
               .expect({
                 transaction: {
                   transaction: `${method.toUpperCase()} ${route}${path === '/' ? '' : path}/middleware`,
@@ -137,8 +137,8 @@ describe('hono tracing', () => {
             await runner.completed();
           });
 
-          test('should handle transaction with separate middleware', async () => {
-            const runner = createRunner()
+          test('should handle transaction with separate middleware', async ({ signal }) => {
+            const runner = createRunner({ signal })
               .expect({
                 transaction: {
                   transaction: `${method.toUpperCase()} ${route}${path === '/' ? '' : path}/middleware/separately`,
@@ -205,8 +205,8 @@ describe('hono tracing', () => {
             await runner.completed();
           });
 
-          test('should handle returned errors for %s path', async () => {
-            const runner = createRunner()
+          test('should handle returned errors for %s path', async ({ signal }) => {
+            const runner = createRunner({ signal })
               .ignore('transaction')
               .expect({
                 event: {
@@ -229,10 +229,10 @@ describe('hono tracing', () => {
             await runner.completed();
           });
 
-          test.each(['/401', '/402', '/403', '/does-not-exist'])(
+          test.for(['/401', '/402', '/403', '/does-not-exist'])(
             'should ignores error %s path by default',
-            async (subPath: string) => {
-              const runner = createRunner()
+            async (subPath, { signal }) => {
+              const runner = createRunner({ signal })
                 .expect({
                   transaction: {
                     transaction: `${method.toUpperCase()} ${route}`,

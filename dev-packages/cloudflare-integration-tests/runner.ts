@@ -54,7 +54,7 @@ type StartResult = {
 
 /** Creates a test runner */
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-export function createRunner(...paths: string[]) {
+export function createRunner({ signal }: { readonly signal?: AbortSignal }, ...paths: string[]) {
   const testPath = join(...paths);
 
   if (!existsSync(testPath)) {
@@ -130,7 +130,7 @@ export function createRunner(...paths: string[]) {
         }
       }
 
-      createBasicSentryServer(newEnvelope)
+      createBasicSentryServer(newEnvelope, { signal })
         .then(([mockServerPort, mockServerClose]) => {
           if (mockServerClose) {
             CLEANUP_STEPS.add(() => {
@@ -155,7 +155,7 @@ export function createRunner(...paths: string[]) {
               '--var',
               `SENTRY_DSN:http://public@localhost:${mockServerPort}/1337`,
             ],
-            { stdio },
+            { stdio, signal },
           );
 
           CLEANUP_STEPS.add(() => {

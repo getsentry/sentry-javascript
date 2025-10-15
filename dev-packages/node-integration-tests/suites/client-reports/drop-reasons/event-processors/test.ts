@@ -5,8 +5,8 @@ afterAll(() => {
   cleanupChildProcesses();
 });
 
-test('should record client report for event processors', async () => {
-  await createRunner(__dirname, 'scenario.ts')
+test('should record client report for event processors', async ({ signal }) => {
+  await createRunner({ signal }, __dirname, 'scenario.ts')
     .unignore('client_report')
     .expect({
       client_report: {

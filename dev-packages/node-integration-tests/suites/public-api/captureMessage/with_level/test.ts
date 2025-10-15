@@ -5,8 +5,8 @@ afterAll(() => {
   cleanupChildProcesses();
 });
 
-test('should capture with different severity levels', async () => {
-  await createRunner(__dirname, 'scenario.ts')
+test('should capture with different severity levels', async ({ signal }) => {
+  await createRunner({ signal }, __dirname, 'scenario.ts')
     .expect({ event: { message: 'debug_message', level: 'debug' } })
     .expect({ event: { message: 'info_message', level: 'info' } })
     .expect({ event: { message: 'warning_message', level: 'warning' } })

@@ -6,8 +6,8 @@ afterAll(() => {
   cleanupChildProcesses();
 });
 
-test('Includes transaction in baggage if the transaction name is parameterized', async () => {
-  const runner = createRunner(__dirname, 'server.ts').start();
+test('Includes transaction in baggage if the transaction name is parameterized', async ({ signal }) => {
+  const runner = createRunner({ signal }, __dirname, 'server.ts').start();
 
   const response = await runner.makeRequest<TestAPIResponse>('get', '/test/express');
 

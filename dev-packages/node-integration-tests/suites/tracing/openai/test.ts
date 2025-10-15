@@ -322,8 +322,8 @@ describe('OpenAI integration', () => {
   };
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('creates openai related spans with sendDefaultPii: false', async () => {
-      await createRunner()
+    test('creates openai related spans with sendDefaultPii: false', async ({ signal }) => {
+      await createRunner({ signal })
         .ignore('event')
         .expect({ transaction: EXPECTED_TRANSACTION_DEFAULT_PII_FALSE })
         .start()
@@ -332,8 +332,8 @@ describe('OpenAI integration', () => {
   });
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
-    test('creates openai related spans with sendDefaultPii: true', async () => {
-      await createRunner()
+    test('creates openai related spans with sendDefaultPii: true', async ({ signal }) => {
+      await createRunner({ signal })
         .ignore('event')
         .expect({ transaction: EXPECTED_TRANSACTION_DEFAULT_PII_TRUE })
         .start()
@@ -342,8 +342,8 @@ describe('OpenAI integration', () => {
   });
 
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-with-options.mjs', (createRunner, test) => {
-    test('creates openai related spans with custom options', async () => {
-      await createRunner()
+    test('creates openai related spans with custom options', async ({ signal }) => {
+      await createRunner({ signal })
         .ignore('event')
         .expect({ transaction: EXPECTED_TRANSACTION_WITH_OPTIONS })
         .start()
@@ -352,8 +352,8 @@ describe('OpenAI integration', () => {
   });
 
   createEsmAndCjsTests(__dirname, 'scenario-root-span.mjs', 'instrument.mjs', (createRunner, test) => {
-    test('it works without a wrapping span', async () => {
-      await createRunner()
+    test('it works without a wrapping span', async ({ signal }) => {
+      await createRunner({ signal })
         // First the span that our mock express server is emitting, unrelated to this test
         .expect({
           transaction: {

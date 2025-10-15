@@ -7,8 +7,8 @@ describe('errors in TwP mode have same trace in trace context and getTraceData()
   });
 
   // In a request handler, the spanId is consistent inside of the request
-  test('in incoming request', async () => {
-    const runner = createRunner(__dirname, 'server.js')
+  test('in incoming request', async ({ signal }) => {
+    const runner = createRunner({ signal }, __dirname, 'server.js')
       .expect({
         event: event => {
           const { contexts } = event;
@@ -34,8 +34,8 @@ describe('errors in TwP mode have same trace in trace context and getTraceData()
   });
 
   // Outside of a request handler, the spanId is random
-  test('outside of a request handler', async () => {
-    await createRunner(__dirname, 'no-server.js')
+  test('outside of a request handler', async ({ signal }) => {
+    await createRunner({ signal }, __dirname, 'no-server.js')
       .expect({
         event: event => {
           const { contexts } = event;

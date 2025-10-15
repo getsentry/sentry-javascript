@@ -21,8 +21,8 @@ describe('httpIntegration', () => {
 
   describe('instrumentation options', () => {
     createEsmAndCjsTests(__dirname, 'server.mjs', 'instrument-options.mjs', (createRunner, test) => {
-      test('allows to pass instrumentation options to integration', async () => {
-        const runner = createRunner()
+      test('allows to pass instrumentation options to integration', async ({ signal }) => {
+        const runner = createRunner({ signal })
           .expect({
             transaction: {
               contexts: {
@@ -63,8 +63,8 @@ describe('httpIntegration', () => {
         await runner.completed();
       });
 
-      test('allows to configure incomingRequestSpanHook', async () => {
-        const runner = createRunner()
+      test('allows to configure incomingRequestSpanHook', async ({ signal }) => {
+        const runner = createRunner({ signal })
           .expect({
             transaction: {
               contexts: {
@@ -99,8 +99,8 @@ describe('httpIntegration', () => {
 
   describe('http.server spans', () => {
     createEsmAndCjsTests(__dirname, 'server.mjs', 'instrument.mjs', (createRunner, test) => {
-      test('captures correct attributes for GET requests', async () => {
-        const runner = createRunner()
+      test('captures correct attributes for GET requests', async ({ signal }) => {
+        const runner = createRunner({ signal })
           .expect({
             transaction: transaction => {
               const port = runner.getPort();
@@ -140,8 +140,8 @@ describe('httpIntegration', () => {
         await runner.completed();
       });
 
-      test('captures correct attributes for POST requests', async () => {
-        const runner = createRunner()
+      test('captures correct attributes for POST requests', async ({ signal }) => {
+        const runner = createRunner({ signal })
           .expect({
             transaction: transaction => {
               const port = runner.getPort();
@@ -191,8 +191,8 @@ describe('httpIntegration', () => {
         'scenario-overwrite-server-emit.mjs',
         'instrument-overwrite-server-emit.mjs',
         (createRunner, test) => {
-          test('handles server.emit being overwritten via classic monkey patching', async () => {
-            const runner = createRunner()
+          test('handles server.emit being overwritten via classic monkey patching', async ({ signal }) => {
+            const runner = createRunner({ signal })
               .expect({
                 transaction: {
                   transaction: 'GET /test1',
@@ -249,8 +249,8 @@ describe('httpIntegration', () => {
             await runner.completed();
           });
 
-          test('handles server.emit being overwritten via proxy', async () => {
-            const runner = createRunner()
+          test('handles server.emit being overwritten via proxy', async ({ signal }) => {
+            const runner = createRunner({ signal })
               .expect({
                 transaction: {
                   transaction: 'GET /test1-proxy',
@@ -306,8 +306,10 @@ describe('httpIntegration', () => {
             await runner.completed();
           });
 
-          test('handles server.emit being overwritten via classic monkey patching, using initial server.emit', async () => {
-            const runner = createRunner()
+          test('handles server.emit being overwritten via classic monkey patching, using initial server.emit', async ({
+            signal,
+          }) => {
+            const runner = createRunner({ signal })
               .expect({
                 transaction: {
                   transaction: 'GET /test1-original',
@@ -364,8 +366,8 @@ describe('httpIntegration', () => {
             await runner.completed();
           });
 
-          test('handles server.emit being overwritten via proxy, using initial server.emit', async () => {
-            const runner = createRunner()
+          test('handles server.emit being overwritten via proxy, using initial server.emit', async ({ signal }) => {
+            const runner = createRunner({ signal })
               .expect({
                 transaction: {
                   transaction: 'GET /test1-proxy-original',
@@ -427,8 +429,8 @@ describe('httpIntegration', () => {
   });
 
   describe("doesn't create a root span for incoming requests ignored via `ignoreIncomingRequests`", () => {
-    test('via the url param', async () => {
-      const runner = createRunner(__dirname, 'server-ignoreIncomingRequests.js')
+    test('via the url param', async ({ signal }) => {
+      const runner = createRunner({ signal }, __dirname, 'server-ignoreIncomingRequests.js')
         .expect({
           transaction: {
             contexts: {
@@ -453,8 +455,8 @@ describe('httpIntegration', () => {
       await runner.completed();
     });
 
-    test('via the request param', async () => {
-      const runner = createRunner(__dirname, 'server-ignoreIncomingRequests.js')
+    test('via the request param', async ({ signal }) => {
+      const runner = createRunner({ signal }, __dirname, 'server-ignoreIncomingRequests.js')
         .expect({
           transaction: {
             contexts: {
@@ -481,13 +483,13 @@ describe('httpIntegration', () => {
   });
 
   describe("doesn't create child spans or breadcrumbs for outgoing requests ignored via `ignoreOutgoingRequests`", () => {
-    test('via the url param', async () => {
-      const [SERVER_URL, closeTestServer] = await createTestServer()
+    test('via the url param', async ({ signal }) => {
+      const [SERVER_URL, closeTestServer] = await createTestServer({ signal })
         .get('/blockUrl', () => {}, 200)
         .get('/pass', () => {}, 200)
         .start();
 
-      const runner = createRunner(__dirname, 'server-ignoreOutgoingRequests.js')
+      const runner = createRunner({ signal }, __dirname, 'server-ignoreOutgoingRequests.js')
         .withEnv({ SERVER_URL })
         .expect({
           transaction: event => {
@@ -508,13 +510,13 @@ describe('httpIntegration', () => {
       closeTestServer();
     });
 
-    test('via the request param', async () => {
-      const [SERVER_URL, closeTestServer] = await createTestServer()
+    test('via the request param', async ({ signal }) => {
+      const [SERVER_URL, closeTestServer] = await createTestServer({ signal })
         .get('/blockUrl', () => {}, 200)
         .get('/pass', () => {}, 200)
         .start();
 
-      const runner = createRunner(__dirname, 'server-ignoreOutgoingRequests.js')
+      const runner = createRunner({ signal }, __dirname, 'server-ignoreOutgoingRequests.js')
         .withEnv({ SERVER_URL })
         .expect({
           transaction: event => {
@@ -537,8 +539,8 @@ describe('httpIntegration', () => {
     });
   });
 
-  test('ignores static asset requests by default', async () => {
-    const runner = createRunner(__dirname, 'server-ignoreStaticAssets.js')
+  test('ignores static asset requests by default', async ({ signal }) => {
+    const runner = createRunner({ signal }, __dirname, 'server-ignoreStaticAssets.js')
       .expect({
         transaction: event => {
           expect(event.transaction).toBe('GET /test');
@@ -560,8 +562,8 @@ describe('httpIntegration', () => {
     await runner.completed();
   });
 
-  test('traces static asset requests when ignoreStaticAssets is false', async () => {
-    const runner = createRunner(__dirname, 'server-traceStaticAssets.js')
+  test('traces static asset requests when ignoreStaticAssets is false', async ({ signal }) => {
+    const runner = createRunner({ signal }, __dirname, 'server-traceStaticAssets.js')
       .expect({
         transaction: event => {
           expect(event.transaction).toBe('GET /favicon.ico');

@@ -17,11 +17,15 @@ function groupCIOutput(groupTitle: string, fn: () => void): void {
   }
 }
 
-export function registrySetup(): void {
+export function registrySetup(signal?: AbortSignal): void {
   groupCIOutput('Test Registry Setup', () => {
     // Stop test registry container (Verdaccio) if it was already running
-    childProcess.spawnSync('docker', ['stop', TEST_REGISTRY_CONTAINER_NAME], { stdio: 'ignore' });
-    console.log('Stopped previously running test registry');
+    const stop = (): void => {
+      childProcess.spawnSync('docker', ['stop', TEST_REGISTRY_CONTAINER_NAME], { stdio: 'ignore' });
+      console.log('Stopped previously running test registry');
+    };
+    stop();
+    signal?.addEventListener('abort', () => stop());
 
     // Start test registry (Verdaccio)
     const startRegistryProcessResult = childProcess.spawnSync(
@@ -38,7 +42,7 @@ export function registrySetup(): void {
         `${__dirname}/verdaccio-config:/verdaccio/conf`,
         `verdaccio/verdaccio:${VERDACCIO_VERSION}`,
       ],
-      { encoding: 'utf8', stdio: 'inherit' },
+      { encoding: 'utf8', stdio: 'inherit', signal },
     );
 
     if (startRegistryProcessResult.status !== 0) {
@@ -60,6 +64,7 @@ export function registrySetup(): void {
       {
         encoding: 'utf8',
         stdio: 'inherit',
+        signal,
       },
     );
 
@@ -82,6 +87,7 @@ export function registrySetup(): void {
       {
         encoding: 'utf8',
         stdio: 'inherit',
+        signal,
       },
     );
 

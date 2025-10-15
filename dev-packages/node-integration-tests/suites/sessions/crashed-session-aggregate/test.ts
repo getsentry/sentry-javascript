@@ -5,8 +5,8 @@ afterAll(() => {
   cleanupChildProcesses();
 });
 
-test('should aggregate successful and crashed sessions', async () => {
-  const runner = createRunner(__dirname, '..', 'server.ts')
+test('should aggregate successful and crashed sessions', async ({ signal }) => {
+  const runner = createRunner({ signal }, __dirname, '..', 'server.ts')
     .ignore('transaction', 'event')
     .unignore('sessions')
     .expect({

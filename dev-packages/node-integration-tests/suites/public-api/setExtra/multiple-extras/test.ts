@@ -5,8 +5,8 @@ afterAll(() => {
   cleanupChildProcesses();
 });
 
-test('should record multiple extras of different types', async () => {
-  await createRunner(__dirname, 'scenario.ts')
+test('should record multiple extras of different types', async ({ signal }) => {
+  await createRunner({ signal }, __dirname, 'scenario.ts')
     .expect({
       event: {
         message: 'multiple_extras',

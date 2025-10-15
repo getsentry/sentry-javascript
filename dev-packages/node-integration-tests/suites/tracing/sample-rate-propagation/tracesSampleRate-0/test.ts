@@ -6,8 +6,8 @@ describe('parentSampleRate propagation with tracesSampleRate=0', () => {
     cleanupChildProcesses();
   });
 
-  test('should propagate incoming sample rate when inheriting a positive sampling decision', async () => {
-    const runner = createRunner(__dirname, 'server.js').start();
+  test('should propagate incoming sample rate when inheriting a positive sampling decision', async ({ signal }) => {
+    const runner = createRunner({ signal }, __dirname, 'server.js').start();
     const response = await runner.makeRequest('get', '/check', {
       headers: {
         'sentry-trace': '530699e319cc067ce440315d74acb312-414dc2a08d5d1dac-1',
@@ -18,8 +18,8 @@ describe('parentSampleRate propagation with tracesSampleRate=0', () => {
     expect((response as any).propagatedData.baggage).toMatch(/sentry-sample_rate=0\.1337/);
   });
 
-  test('should propagate incoming sample rate when inheriting a negative sampling decision', async () => {
-    const runner = createRunner(__dirname, 'server.js').start();
+  test('should propagate incoming sample rate when inheriting a negative sampling decision', async ({ signal }) => {
+    const runner = createRunner({ signal }, __dirname, 'server.js').start();
     const response = await runner.makeRequest('get', '/check', {
       headers: {
         'sentry-trace': '530699e319cc067ce440315d74acb312-414dc2a08d5d1dac-0',
@@ -30,8 +30,10 @@ describe('parentSampleRate propagation with tracesSampleRate=0', () => {
     expect((response as any).propagatedData.baggage).toMatch(/sentry-sample_rate=0\.1337/);
   });
 
-  test('should propagate configured sample rate when receiving a trace without sampling decision and sample rate', async () => {
-    const runner = createRunner(__dirname, 'server.js').start();
+  test('should propagate configured sample rate when receiving a trace without sampling decision and sample rate', async ({
+    signal,
+  }) => {
+    const runner = createRunner({ signal }, __dirname, 'server.js').start();
     const response = await runner.makeRequest('get', '/check', {
       headers: {
         'sentry-trace': '530699e319cc067ce440315d74acb312-414dc2a08d5d1dac',
@@ -42,8 +44,10 @@ describe('parentSampleRate propagation with tracesSampleRate=0', () => {
     expect((response as any).propagatedData.baggage).toMatch(/sentry-sample_rate=0/);
   });
 
-  test('should propagate configured sample rate when receiving a trace without sampling decision, but with sample rate', async () => {
-    const runner = createRunner(__dirname, 'server.js').start();
+  test('should propagate configured sample rate when receiving a trace without sampling decision, but with sample rate', async ({
+    signal,
+  }) => {
+    const runner = createRunner({ signal }, __dirname, 'server.js').start();
     const response = await runner.makeRequest('get', '/check', {
       headers: {
         'sentry-trace': '530699e319cc067ce440315d74acb312-414dc2a08d5d1dac',
@@ -54,8 +58,8 @@ describe('parentSampleRate propagation with tracesSampleRate=0', () => {
     expect((response as any).propagatedData.baggage).toMatch(/sentry-sample_rate=0/);
   });
 
-  test('should propagate configured sample rate when there is no incoming trace', async () => {
-    const runner = createRunner(__dirname, 'server.js').start();
+  test('should propagate configured sample rate when there is no incoming trace', async ({ signal }) => {
+    const runner = createRunner({ signal }, __dirname, 'server.js').start();
     const response = await runner.makeRequest('get', '/check');
     expect((response as any).propagatedData.baggage).toMatch(/sentry-sample_rate=0/);
   });

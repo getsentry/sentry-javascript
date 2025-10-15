@@ -8,8 +8,8 @@ describe('modulesIntegration', () => {
     cleanupChildProcesses();
   });
 
-  test('CJS', async () => {
-    const runner = createRunner(__dirname, 'server.js')
+  test('CJS', async ({ signal }) => {
+    const runner = createRunner({ signal }, __dirname, 'server.js')
       .withMockSentryServer()
       .expect({
         event: {
@@ -27,8 +27,8 @@ describe('modulesIntegration', () => {
     await runner.completed();
   });
 
-  test('ESM', async () => {
-    const runner = createRunner(__dirname, 'server.mjs')
+  test('ESM', async ({ signal }) => {
+    const runner = createRunner({ signal }, __dirname, 'server.mjs')
       .withInstrument(join(__dirname, 'instrument.mjs'))
       .withMockSentryServer()
       .expect({

@@ -5,8 +5,8 @@ afterAll(() => {
   cleanupChildProcesses();
 });
 
-test('should set primitive tags', async () => {
-  await createRunner(__dirname, 'scenario.ts')
+test('should set primitive tags', async ({ signal }) => {
+  await createRunner({ signal }, __dirname, 'scenario.ts')
     .expect({
       event: {
         message: 'primitive_tags',
