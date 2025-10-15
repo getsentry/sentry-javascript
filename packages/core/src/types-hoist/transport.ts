@@ -32,7 +32,7 @@ export interface BaseTransportOptions extends InternalBaseTransportOptions {
   url: string;
 
   /**
-   * Custom headers to be added to requests made by the transport.
+   * Custom HTTP headers to be added to requests made by the transport.
    */
   headers?: { [key: string]: string };
 }

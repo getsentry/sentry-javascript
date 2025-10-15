@@ -1,6 +1,5 @@
 import { describe, expect, it, test, vi } from 'vitest';
 import { applySdkMetadata, createTransport, Scope } from '../../src';
-import { _INTERNAL_captureLog, _INTERNAL_flushLogsBuffer } from '../../src/logs/internal';
 import type { ServerRuntimeClientOptions } from '../../src/server-runtime-client';
 import { ServerRuntimeClient } from '../../src/server-runtime-client';
 import type { Event, EventHint } from '../../src/types-hoist/event';
