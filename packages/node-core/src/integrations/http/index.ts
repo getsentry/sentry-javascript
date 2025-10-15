@@ -167,6 +167,7 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
       instrumentSentryHttp(httpInstrumentationOptions);
     },
 
+    // TODO (span-streaming): port this logic to spans via a hook or ignoreSpans default; check with serverSpans migration strategy
     processEvent(event) {
       // Note: We always run this, even if spans are disabled
       // The reason being that e.g. the remix integration disables span creation here but still wants to use the ignore status codes option
