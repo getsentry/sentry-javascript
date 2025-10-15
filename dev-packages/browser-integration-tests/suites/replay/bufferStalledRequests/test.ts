@@ -5,7 +5,6 @@ import {
   getReplaySnapshot,
   isReplayEvent,
   shouldSkipReplayTest,
-  waitForReplayRequest,
   waitForReplayRunning,
 } from '../../../utils/replayHelpers';
 
