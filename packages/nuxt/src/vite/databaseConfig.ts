@@ -17,7 +17,7 @@ export function addDatabaseInstrumentation(nuxt: Nuxt): void {
   }
 
   /**
-   * This is a different flag than the one in experimental.database, this configures multiple database instances.
+   * This is a different option than the one in `experimental.database`, this configures multiple database instances.
    * keys represent database names to be passed to `useDatabase(name?)`.
    * https://nitro.build/guide/database#configuration
    */
