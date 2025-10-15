@@ -152,7 +152,8 @@ function findMatchingRoutes(
       if (dynamicRoute.hasOptionalPrefix && dynamicRoute.regex) {
         // Prepend a placeholder segment to simulate the optional prefix
         // e.g., '/foo' becomes '/PLACEHOLDER/foo' to match '/:locale/foo'
-        const routeWithPrefix = `/SENTRY_OPTIONAL_PREFIX${route}`;
+        // Special case: '/' becomes '/PLACEHOLDER' (not '/PLACEHOLDER/') to match '/:locale' pattern
+        const routeWithPrefix = route === '/' ? '/SENTRY_OPTIONAL_PREFIX' : `/SENTRY_OPTIONAL_PREFIX${route}`;
         const regex = getCompiledRegex(dynamicRoute.regex);
         if (regex?.test(routeWithPrefix)) {
           matches.push(dynamicRoute.path);

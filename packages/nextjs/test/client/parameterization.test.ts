@@ -900,5 +900,37 @@ describe('maybeParameterizeRoute', () => {
         '/:locale/users/:userId/posts/:postId/comments/:commentId',
       );
     });
+
+    it('should handle root path with optional locale prefix', () => {
+      const manifest: RouteManifest = {
+        staticRoutes: [],
+        dynamicRoutes: [
+          {
+            path: '/:locale',
+            regex: '^/([^/]+)$',
+            paramNames: ['locale'],
+            hasOptionalPrefix: true,
+          },
+          {
+            path: '/:locale/about',
+            regex: '^/([^/]+)/about$',
+            paramNames: ['locale'],
+            hasOptionalPrefix: true,
+          },
+        ],
+      };
+      globalWithInjectedManifest._sentryRouteManifest = JSON.stringify(manifest);
+
+      // Root path without locale prefix (default locale)
+      expect(maybeParameterizeRoute('/')).toBe('/:locale');
+
+      // Root path with locale prefix
+      expect(maybeParameterizeRoute('/en')).toBe('/:locale');
+      expect(maybeParameterizeRoute('/ar')).toBe('/:locale');
+
+      // Nested routes still work
+      expect(maybeParameterizeRoute('/about')).toBe('/:locale/about');
+      expect(maybeParameterizeRoute('/fr/about')).toBe('/:locale/about');
+    });
   });
 });
