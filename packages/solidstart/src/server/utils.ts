@@ -44,5 +44,6 @@ export function lowQualityTransactionsFilter(options: Options): EventProcessor {
  * e.g. to filter out transactions for build assets
  */
 export function filterLowQualityTransactions(options: Options): void {
+  // TODO (span-streaming): replace with ignoreSpans defaults
   getGlobalScope().addEventProcessor(lowQualityTransactionsFilter(options));
 }

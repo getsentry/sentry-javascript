@@ -11,6 +11,7 @@ export function svelteKitSpansIntegration(): Integration {
     name: 'SvelteKitSpansEnhancement',
     // Using preprocessEvent to ensure the processing happens before user-configured
     // event processors are executed
+    // TODO (span-streaming): replace with client hook
     preprocessEvent(event) {
       // only iterate over the spans if the root span was emitted by SvelteKit
       // TODO: Right now, we can't optimize this to only check traces with a kit-emitted root span
