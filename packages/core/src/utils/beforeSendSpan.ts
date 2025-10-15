@@ -8,7 +8,7 @@ import { addNonEnumerableProperty } from './object';
  * @example
  *
  * Sentry.init({
- *   beforeSendSpan: makeV2Callback((span) => {
+ *   beforeSendSpan: withStreamSpan((span) => {
  *     return span;
  *   }),
  * });
@@ -16,7 +16,7 @@ import { addNonEnumerableProperty } from './object';
  * @param callback
  * @returns
  */
-export function makeV2Callback(callback: (span: SpanV2JSON) => SpanV2JSON): SpanV2CompatibleBeforeSendSpanCallback {
+export function withStreamSpan(callback: (span: SpanV2JSON) => SpanV2JSON): SpanV2CompatibleBeforeSendSpanCallback {
   addNonEnumerableProperty(callback, '_v2', true);
   // type-casting here because TS can't infer the type correctly
   return callback as SpanV2CompatibleBeforeSendSpanCallback;
