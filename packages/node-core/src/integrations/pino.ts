@@ -97,7 +97,7 @@ function stripIgnoredFields(result: PinoResult): PinoResult {
 
 const _pinoIntegration = defineIntegration((userOptions: DeepPartial<PinoOptions> = {}) => {
   const options: PinoOptions = {
-    autoInstrument: userOptions.autoInstrument === false ? userOptions.autoInstrument : DEFAULT_OPTIONS.autoInstrument,
+    autoInstrument: userOptions.autoInstrument !== false,
     error: { ...DEFAULT_OPTIONS.error, ...userOptions.error },
     log: { ...DEFAULT_OPTIONS.log, ...userOptions.log },
   };
@@ -203,14 +203,14 @@ interface PinoIntegrationFunction {
    *
    * @param logger A Pino logger instance.
    */
-  untrackLogger(logger: unknown): void;
+  ignoreLogger(logger: unknown): void;
 }
 
 /**
  * Integration for Pino logging library.
  * Captures Pino logs as Sentry logs and optionally captures some log levels as events.
  *
- * By default, all Pino loggers will be captured. To ignore a specific logger, use `pinoIntegration.untrackLogger(logger)`.
+ * By default, all Pino loggers will be captured. To ignore a specific logger, use `pinoIntegration.ignoreLogger(logger)`.
  *
  * If you disable automatic instrumentation with `autoInstrument: false`, you can mark specific loggers to be tracked with `pinoIntegration.trackLogger(logger)`.
  *
@@ -222,7 +222,7 @@ export const pinoIntegration = Object.assign(_pinoIntegration, {
       (logger as Pino)[SENTRY_TRACK_SYMBOL] = 'track';
     }
   },
-  untrackLogger(logger: unknown): void {
+  ignoreLogger(logger: unknown): void {
     if (logger && typeof logger === 'object' && 'levels' in logger) {
       (logger as Pino)[SENTRY_TRACK_SYMBOL] = 'ignore';
     }

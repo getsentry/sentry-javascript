@@ -16,7 +16,7 @@
 
 ## Angular Version Compatibility
 
-This SDK officially supports Angular 14 to 20.
+This SDK officially supports Angular 14 to 19.
 
 If you're using an older Angular version please check the
 [compatibility table in the docs](https://docs.sentry.io/platforms/javascript/guides/angular/#angular-version-compatibility).

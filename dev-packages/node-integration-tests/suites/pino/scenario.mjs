@@ -4,7 +4,7 @@ import pino from 'pino';
 const logger = pino({ name: 'myapp' });
 
 const ignoredLogger = pino({ name: 'ignored' });
-Sentry.pinoIntegration.untrackLogger(ignoredLogger);
+Sentry.pinoIntegration.ignoreLogger(ignoredLogger);
 
 ignoredLogger.info('this will not be tracked');
 

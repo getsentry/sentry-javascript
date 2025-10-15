@@ -195,6 +195,7 @@ conditionalTest({ min: 20 })('Pino integration', () => {
                   type: 'string',
                   value: '{"more":3,"complex":"nope"}',
                 },
+                msg: { value: 'hello world', type: 'string' },
                 'sentry.origin': { value: 'auto.logging.pino', type: 'string' },
                 'sentry.release': { value: '1.0', type: 'string' },
                 'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
@@ -208,6 +209,8 @@ conditionalTest({ min: 20 })('Pino integration', () => {
               severity_number: 17,
               attributes: {
                 name: { value: 'myapp', type: 'string' },
+                module: { value: 'authentication', type: 'string' },
+                msg: { value: 'oh no', type: 'string' },
                 'pino.logger.level': { value: 50, type: 'integer' },
                 'sentry.origin': { value: 'auto.logging.pino', type: 'string' },
                 'sentry.release': { value: '1.0', type: 'string' },
