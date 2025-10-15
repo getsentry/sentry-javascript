@@ -52,7 +52,8 @@ export default defineEventHandler(async event => {
     }
 
     case 'exec': {
-      await db.exec('CREATE TABLE IF NOT EXISTS logs (id INTEGER PRIMARY KEY, message TEXT, level TEXT)');
+      await db.exec('DROP TABLE IF EXISTS logs');
+      await db.exec('CREATE TABLE logs (id INTEGER PRIMARY KEY, message TEXT, level TEXT)');
       const result = await db.exec(`INSERT INTO logs (message, level) VALUES ('Test log', 'INFO')`);
       return { success: true, result };
     }
