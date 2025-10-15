@@ -1,5 +1,7 @@
 import {
   applySdkMetadata,
+  getCapturedScopesOnSpan,
+  getCurrentScope,
   getGlobalScope,
   getIsolationScope,
   getRootSpan,
@@ -8,6 +10,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  setCapturedScopesOnSpan,
   spanToJSON,
   stripUrlQueryAndFragment,
   vercelWaitUntil,
@@ -18,6 +21,8 @@ import { addHeadersAsAttributes } from '../common/utils/addHeadersAsAttributes';
 import { isBuild } from '../common/utils/isBuild';
 import { flushSafelyWithTimeout } from '../common/utils/responseEnd';
 import { distDirRewriteFramesIntegration } from './distDirRewriteFramesIntegration';
+import { getScopesFromContext } from '@sentry/opentelemetry';
+import { context } from '@opentelemetry/api';
 
 export * from '@sentry/vercel-edge';
 export * from '../common';
@@ -73,6 +78,19 @@ export function init(options: VercelEdgeOptions = {}): void {
     if (spanAttributes?.['next.span_type'] === 'Middleware.execute') {
       span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'http.server.middleware');
       span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'url');
+
+      if (isRootSpan) {
+        // Fork isolation scope for middleware requests
+        const scopes = getCapturedScopesOnSpan(span);
+        const isolationScope = (scopes.isolationScope || getIsolationScope()).clone();
+        const scope = scopes.scope || getCurrentScope();
+        const currentScopesPointer = getScopesFromContext(context.active());
+        if (currentScopesPointer) {
+          currentScopesPointer.isolationScope = isolationScope;
+        }
+
+        setCapturedScopesOnSpan(span, scope, isolationScope);
+      }
     }
 
     if (isRootSpan) {
