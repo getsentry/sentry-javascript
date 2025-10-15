@@ -4,8 +4,8 @@ window.Sentry = Sentry;
 
 const originalRandom = Math.random;
 
-// Force this so that the initial sampleRand is consistent
-Math.random = () => 0.45;
+// Force this so that the initial sampleRand is between 0.35 and 0.45
+Math.random = () =>  0.35 + Math.random() * 0.1;
 
 // polyfill for crypto.randomUUID if not available (e.g. in non-secure contexts)
 window.crypto = window.crypto || {};
