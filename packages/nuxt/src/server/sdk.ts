@@ -37,6 +37,7 @@ export function init(options: SentryNuxtServerOptions): Client | undefined {
  *
  * Only exported for testing
  */
+// TODO (span-streaming): replace with ignoreSpans default
 export function lowQualityTransactionsFilter(options: SentryNuxtServerOptions): EventProcessor {
   return Object.assign(
     (event => {
