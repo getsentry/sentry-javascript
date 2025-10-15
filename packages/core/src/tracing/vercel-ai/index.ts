@@ -73,6 +73,7 @@ function onVercelAiSpanStart(span: Span): void {
   processGenerateSpan(span, name, attributes);
 }
 
+// TODO (span-streaming): move to client hook. What to do about parent modifications?
 function vercelAiEventProcessor(event: Event): Event {
   if (event.type === 'transaction' && event.spans) {
     // Map to accumulate token data by parent span ID
