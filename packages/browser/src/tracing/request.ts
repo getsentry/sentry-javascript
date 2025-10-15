@@ -156,6 +156,7 @@ export function instrumentOutgoingRequests(client: Client, _options?: Partial<Re
   if (traceFetch) {
     // Keeping track of http requests, whose body payloads resolved later than the initial resolved request
     // e.g. streaming using server sent events (SSE)
+    // TODO (span-streaming): replace with client hook - do we need client.on('processSpan')?
     client.addEventProcessor(event => {
       if (event.type === 'transaction' && event.spans) {
         event.spans.forEach(span => {
