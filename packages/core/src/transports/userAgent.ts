@@ -7,7 +7,7 @@ import type { ClientOptions } from '../types-hoist/options';
  *
  * @see https://develop.sentry.dev/sdk/overview/#user-agent
  */
-export function addUserAgentToTransportHeaders(options: ClientOptions, userAgentHeaderName = 'user-agent'): void {
+export function addUserAgentToTransportHeaders(options: ClientOptions): void {
   const sdkMetadata = options._metadata?.sdk;
   const sdkUserAgent =
     sdkMetadata?.name && sdkMetadata?.version ? `${sdkMetadata?.name}/${sdkMetadata?.version}` : undefined;
@@ -15,7 +15,7 @@ export function addUserAgentToTransportHeaders(options: ClientOptions, userAgent
   options.transportOptions = {
     ...options.transportOptions,
     headers: {
-      ...(sdkUserAgent && { [userAgentHeaderName]: sdkUserAgent }),
+      ...(sdkUserAgent && { 'user-agent': sdkUserAgent }),
       ...options.transportOptions?.headers,
     },
   };

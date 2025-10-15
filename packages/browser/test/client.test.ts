@@ -235,33 +235,3 @@ describe('SDK metadata', () => {
     });
   });
 });
-
-describe('user agent header', () => {
-  it('adds X-Sentry-User-Agent header to transport options', () => {
-    const options = getDefaultBrowserClientOptions({});
-    const client = new BrowserClient(options);
-
-    expect(client.getOptions().transportOptions?.headers).toEqual({
-      'X-Sentry-User-Agent': `sentry.javascript.browser/${SDK_VERSION}`,
-    });
-  });
-
-  it('respects user-passed headers', () => {
-    const options = getDefaultBrowserClientOptions({
-      transportOptions: {
-        headers: {
-          'x-custom-header': 'custom-value',
-          'X-Sentry-User-Agent': 'custom-user-agent',
-          'user-agent': 'custom-user-agent-2',
-        },
-      },
-    });
-    const client = new BrowserClient(options);
-
-    expect(client.getOptions().transportOptions?.headers).toEqual({
-      'x-custom-header': 'custom-value',
-      'X-Sentry-User-Agent': 'custom-user-agent',
-      'user-agent': 'custom-user-agent-2',
-    });
-  });
-});
