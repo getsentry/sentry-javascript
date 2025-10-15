@@ -15,6 +15,7 @@ function _lowQualityTransactionsFilterIntegration(options: NodeOptions): {
   return {
     name: 'LowQualityTransactionsFilter',
 
+    // TODO (span-streaming): port this logic to spans via a hook or ignoreSpans default;
     processEvent(event: Event, _hint: EventHint, _client: Client): Event | null {
       if (event.type !== 'transaction' || !event.transaction) {
         return event;

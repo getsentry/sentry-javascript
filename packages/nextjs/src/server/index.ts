@@ -193,6 +193,9 @@ export function init(options: NodeOptions): NodeClient | undefined {
   client?.on('spanStart', handleOnSpanStart);
   client?.on('spanEnd', maybeCompleteCronCheckIn);
 
+  // TODO (span-streaming):
+  //   - replace with ignoreSpans default
+  //   - allow ignoreSpans to filter on arbitrary span attributes (not just op)
   getGlobalScope().addEventProcessor(
     Object.assign(
       (event => {
