@@ -5,6 +5,7 @@ import {
   captureException,
   debug,
   flushIfServerless,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
   startSpan,
@@ -193,12 +194,12 @@ function createBreadcrumb(query: string): void {
  */
 function createStartSpanOptions(query: string, dialect: string): StartSpanOptions {
   return {
-    op: 'db.query',
     name: query,
     attributes: {
       'db.system.name': dialect,
       'db.query.text': query,
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: SENTRY_ORIGIN,
+      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db.query',
     },
   };
 }
