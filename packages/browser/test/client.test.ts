@@ -3,7 +3,7 @@
  */
 
 import * as sentryCore from '@sentry/core';
-import { Scope, SDK_VERSION } from '@sentry/core';
+import { Scope } from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { applyDefaultOptions, BrowserClient } from '../src/client';
 import { WINDOW } from '../src/helpers';
