@@ -56,6 +56,7 @@ const _denoContextIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
     processEvent(event) {
+      // TODO (span-streaming): we probably need to apply this to spans via a hook IF we decide to apply contexts to (segment) spans
       return addDenoRuntimeContext(event);
     },
   };
