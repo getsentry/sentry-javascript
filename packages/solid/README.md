@@ -52,6 +52,43 @@ render(
 );
 ```
 
+### Tanstack Router
+
+The Tanstack Router instrumentation uses the Tanstack Router library to create navigation spans to ensure you collect
+meaningful performance data about the health of your page loads and associated requests.
+
+Add `tanstackRouterBrowserTracingIntegration` instead of the regular `Sentry.browserTracingIntegration`.
+
+Make sure `tanstackRouterBrowserTracingIntegration` is initialized by your `Sentry.init` call. Otherwise, the routing
+instrumentation will not work properly.
+
+Pass your router instance from `createRouter` to the integration.
+
+```js
+import * as Sentry from '@sentry/solid';
+import { tanstackRouterBrowserTracingIntegration } from '@sentry/solid/tanstackrouter';
+import { Route, Router } from '@solidjs/router';
+
+const router = createRouter({
+  // your router config
+  // ...
+});
+
+declare module '@tanstack/solid-router' {
+  interface Register {
+    router: typeof router;
+  }
+}
+
+Sentry.init({
+  dsn: '__PUBLIC_DSN__',
+  integrations: [tanstackRouterBrowserTracingIntegration(router)],
+  tracesSampleRate: 1.0, //  Capture 100% of the transactions
+});
+
+render(() => <App />, document.getElementById('root'));
+```
+
 # Solid ErrorBoundary
 
 To automatically capture exceptions from inside a component tree and render a fallback component, wrap the native Solid

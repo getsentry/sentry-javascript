@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/node';
 import pino from 'pino';
 
-const logger = pino({});
+const logger = pino({ name: 'myapp' });
 
 Sentry.withIsolationScope(() => {
   Sentry.startSpan({ name: 'startup' }, () => {
