@@ -4,11 +4,6 @@ export default defineNuxtConfig({
   imports: {
     autoImport: false,
   },
-  nitro: {
-    experimental: {
-      database: true,
-    },
-  },
   runtimeConfig: {
     public: {
       sentry: {
@@ -17,6 +12,9 @@ export default defineNuxtConfig({
     },
   },
   nitro: {
+    experimental: {
+      database: true,
+    },
     storage: {
       'test-storage': {
         driver: 'memory',

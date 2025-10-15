@@ -13,11 +13,6 @@ export default defineNuxtConfig({
   },
 
   modules: ['@pinia/nuxt', '@sentry/nuxt/module'],
-  nitro: {
-    experimental: {
-      database: true,
-    },
-  },
   runtimeConfig: {
     public: {
       sentry: {
@@ -26,6 +21,9 @@ export default defineNuxtConfig({
     },
   },
   nitro: {
+    experimental: {
+      database: true,
+    },
     storage: {
       'test-storage': {
         driver: 'memory',
