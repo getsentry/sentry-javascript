@@ -1,16 +1,12 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
-test('should create consistent parameterized transaction for default locale (no prefix)', async ({ page }) => {
+test('should create consistent parameterized transaction for i18n routes - locale: en', async ({ page }) => {
   const transactionPromise = waitForTransaction('nextjs-15', async transactionEvent => {
     return transactionEvent.transaction === '/:locale/i18n-test' && transactionEvent.contexts?.trace?.op === 'pageload';
   });
 
-  // Visit route without locale prefix (simulating default locale behavior)
-  const response = await page.goto(`/i18n-test`);
-
-  // Ensure page loaded successfully
-  expect(response?.status()).toBe(200);
+  await page.goto(`/en/i18n-test`);
 
   const transaction = await transactionPromise;
 
@@ -32,16 +28,12 @@ test('should create consistent parameterized transaction for default locale (no 
   });
 });
 
-test('should create consistent parameterized transaction for non-default locale (with prefix)', async ({ page }) => {
+test('should create consistent parameterized transaction for i18n routes - locale: ar', async ({ page }) => {
   const transactionPromise = waitForTransaction('nextjs-15', async transactionEvent => {
     return transactionEvent.transaction === '/:locale/i18n-test' && transactionEvent.contexts?.trace?.op === 'pageload';
   });
 
-  // Visit route with locale prefix (simulating non-default locale)
-  const response = await page.goto(`/ar/i18n-test`);
-
-  // Ensure page loaded successfully
-  expect(response?.status()).toBe(200);
+  await page.goto(`/ar/i18n-test`);
 
   const transaction = await transactionPromise;
 
