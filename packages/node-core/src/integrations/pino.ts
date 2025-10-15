@@ -94,17 +94,23 @@ export const pinoIntegration = defineIntegration((userOptions: DeepPartial<PinoO
       const injectedChannel = tracingChannel('orchestrion:pino:pino-log');
       const integratedChannel = tracingChannel('pino_asJson');
 
-      function onPinoStart(self: Pino, args: PinoHookArgs): void {
+      function onPinoStart(self: Pino, args: PinoHookArgs, result: string): void {
         const [obj, message, levelNumber] = args;
         const level = self?.levels?.labels?.[levelNumber] || 'info';
 
-        const attributes = {
-          ...obj,
-          'sentry.origin': 'auto.logging.pino',
-          'sentry.pino.level': levelNumber,
-        };
-
         if (enableLogs && options.log.levels.includes(level)) {
+          const attributes: Record<string, unknown> = {
+            ...obj,
+            'sentry.origin': 'auto.logging.pino',
+            'pino.logger.level': levelNumber,
+          };
+
+          const parsedResult = JSON.parse(result) as { name?: string };
+
+          if (parsedResult.name) {
+            attributes['pino.logger.name'] = parsedResult.name;
+          }
+
           _INTERNAL_captureLog({ level, message, attributes });
         }
 
@@ -135,14 +141,18 @@ export const pinoIntegration = defineIntegration((userOptions: DeepPartial<PinoO
         }
       }
 
-      injectedChannel.start.subscribe(data => {
-        const { self, arguments: args } = data as { self: Pino; arguments: PinoHookArgs };
-        onPinoStart(self, args);
+      injectedChannel.end.subscribe(data => {
+        const { self, arguments: args, result } = data as { self: Pino; arguments: PinoHookArgs; result: string };
+        onPinoStart(self, args, result);
       });
 
-      integratedChannel.start.subscribe(data => {
-        const { instance, arguments: args } = data as { instance: Pino; arguments: PinoHookArgs };
-        onPinoStart(instance, args);
+      integratedChannel.end.subscribe(data => {
+        const {
+          instance,
+          arguments: args,
+          result,
+        } = data as { instance: Pino; arguments: PinoHookArgs; result: string };
+        onPinoStart(instance, args, result);
       });
     },
   };

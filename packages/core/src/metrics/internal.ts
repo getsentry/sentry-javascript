@@ -1,15 +1,15 @@
 import { getGlobalSingleton } from '../carrier';
 import type { Client } from '../client';
-import { _getTraceInfoFromScope } from '../client';
 import { getClient, getCurrentScope, getGlobalScope, getIsolationScope } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
 import type { Scope, ScopeData } from '../scope';
 import type { Integration } from '../types-hoist/integration';
 import type { Metric, SerializedMetric, SerializedMetricAttributeValue } from '../types-hoist/metric';
 import { mergeScopeData } from '../utils/applyScopeDataToEvent';
-import { consoleSandbox, debug } from '../utils/debug-logger';
+import { debug } from '../utils/debug-logger';
 import { _getSpanForScope } from '../utils/spanOnScope';
 import { timestampInSeconds } from '../utils/time';
+import { _getTraceInfoFromScope } from '../utils/trace-info';
 import { createMetricEnvelope } from './envelope';
 
 const MAX_METRIC_BUFFER_SIZE = 100;
@@ -172,7 +172,7 @@ export function _INTERNAL_captureMetric(beforeMetric: Metric, options?: Internal
 
   if (replayId && replay?.getRecordingMode() === 'buffer') {
     // We send this so we can identify cases where the replayId is attached but the replay itself might not have been sent to Sentry
-    setMetricAttribute(processedMetricAttributes, 'sentry._internal.replay_is_buffering', replayId);
+    setMetricAttribute(processedMetricAttributes, 'sentry._internal.replay_is_buffering', true);
   }
 
   const metric: Metric = {
@@ -210,10 +210,7 @@ export function _INTERNAL_captureMetric(beforeMetric: Metric, options?: Internal
     attributes: serializedAttributes,
   };
 
-  consoleSandbox(() => {
-    // eslint-disable-next-line no-console
-    DEBUG_BUILD && console.log('[Metric]', serializedMetric);
-  });
+  DEBUG_BUILD && debug.log('[Metric]', serializedMetric);
 
   captureSerializedMetric(client, serializedMetric);
 

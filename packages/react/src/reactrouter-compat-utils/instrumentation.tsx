@@ -241,6 +241,12 @@ export function createV6CompatibleWrapCreateBrowserRouter<
 
     const activeRootSpan = getActiveRootSpan();
 
+    // Track whether we've completed the initial pageload to properly distinguish
+    // between POPs that occur during pageload vs. legitimate back/forward navigation.
+    let isInitialPageloadComplete = false;
+    let hasSeenPageloadSpan = !!activeRootSpan && spanToJSON(activeRootSpan).op === 'pageload';
+    let hasSeenPopAfterPageload = false;
+
     // The initial load ends when `createBrowserRouter` is called.
     // This is the earliest convenient time to update the transaction name.
     // Callbacks to `router.subscribe` are not called for the initial load.
@@ -255,20 +261,31 @@ export function createV6CompatibleWrapCreateBrowserRouter<
     }
 
     router.subscribe((state: RouterState) => {
-      if (state.historyAction === 'PUSH' || state.historyAction === 'POP') {
-        // Wait for the next render if loading an unsettled route
-        if (state.navigation.state !== 'idle') {
-          requestAnimationFrame(() => {
-            handleNavigation({
-              location: state.location,
-              routes,
-              navigationType: state.historyAction,
-              version,
-              basename,
-              allRoutes: Array.from(allRoutes),
-            });
-          });
-        } else {
+      // Track pageload completion to distinguish POPs during pageload from legitimate back/forward navigation
+      if (!isInitialPageloadComplete) {
+        const currentRootSpan = getActiveRootSpan();
+        const isCurrentlyInPageload = currentRootSpan && spanToJSON(currentRootSpan).op === 'pageload';
+
+        if (isCurrentlyInPageload) {
+          hasSeenPageloadSpan = true;
+        } else if (hasSeenPageloadSpan) {
+          // Pageload span was active but is now gone - pageload has completed
+          if (state.historyAction === 'POP' && !hasSeenPopAfterPageload) {
+            // Pageload ended: ignore the first POP after pageload
+            hasSeenPopAfterPageload = true;
+          } else {
+            // Pageload ended: either non-POP action or subsequent POP
+            isInitialPageloadComplete = true;
+          }
+        }
+        // If we haven't seen a pageload span yet, keep waiting (don't mark as complete)
+      }
+
+      const shouldHandleNavigation =
+        state.historyAction === 'PUSH' || (state.historyAction === 'POP' && isInitialPageloadComplete);
+
+      if (shouldHandleNavigation) {
+        const navigationHandler = (): void => {
           handleNavigation({
             location: state.location,
             routes,
@@ -277,6 +294,13 @@ export function createV6CompatibleWrapCreateBrowserRouter<
             basename,
             allRoutes: Array.from(allRoutes),
           });
+        };
+
+        // Wait for the next render if loading an unsettled route
+        if (state.navigation.state !== 'idle') {
+          requestAnimationFrame(navigationHandler);
+        } else {
+          navigationHandler();
         }
       }
     });
@@ -327,7 +351,6 @@ export function createV6CompatibleWrapCreateMemoryRouter<
     const router = createRouterFunction(routes, wrappedOpts);
     const basename = opts?.basename;
 
-    const activeRootSpan = getActiveRootSpan();
     let initialEntry = undefined;
 
     const initialEntries = opts?.initialEntries;
@@ -348,21 +371,68 @@ export function createV6CompatibleWrapCreateMemoryRouter<
         : initialEntry
       : router.state.location;
 
-    if (router.state.historyAction === 'POP' && activeRootSpan) {
-      updatePageloadTransaction({ activeRootSpan, location, routes, basename, allRoutes: Array.from(allRoutes) });
+    const memoryActiveRootSpan = getActiveRootSpan();
+
+    if (router.state.historyAction === 'POP' && memoryActiveRootSpan) {
+      updatePageloadTransaction({
+        activeRootSpan: memoryActiveRootSpan,
+        location,
+        routes,
+        basename,
+        allRoutes: Array.from(allRoutes),
+      });
     }
 
+    // Track whether we've completed the initial pageload to properly distinguish
+    // between POPs that occur during pageload vs. legitimate back/forward navigation.
+    let isInitialPageloadComplete = false;
+    let hasSeenPageloadSpan = !!memoryActiveRootSpan && spanToJSON(memoryActiveRootSpan).op === 'pageload';
+    let hasSeenPopAfterPageload = false;
+
     router.subscribe((state: RouterState) => {
+      // Track pageload completion to distinguish POPs during pageload from legitimate back/forward navigation
+      if (!isInitialPageloadComplete) {
+        const currentRootSpan = getActiveRootSpan();
+        const isCurrentlyInPageload = currentRootSpan && spanToJSON(currentRootSpan).op === 'pageload';
+
+        if (isCurrentlyInPageload) {
+          hasSeenPageloadSpan = true;
+        } else if (hasSeenPageloadSpan) {
+          // Pageload span was active but is now gone - pageload has completed
+          if (state.historyAction === 'POP' && !hasSeenPopAfterPageload) {
+            // Pageload ended: ignore the first POP after pageload
+            hasSeenPopAfterPageload = true;
+          } else {
+            // Pageload ended: either non-POP action or subsequent POP
+            isInitialPageloadComplete = true;
+          }
+        }
+        // If we haven't seen a pageload span yet, keep waiting (don't mark as complete)
+      }
+
       const location = state.location;
-      if (state.historyAction === 'PUSH' || state.historyAction === 'POP') {
-        handleNavigation({
-          location,
-          routes,
-          navigationType: state.historyAction,
-          version,
-          basename,
-          allRoutes: Array.from(allRoutes),
-        });
+
+      const shouldHandleNavigation =
+        state.historyAction === 'PUSH' || (state.historyAction === 'POP' && isInitialPageloadComplete);
+
+      if (shouldHandleNavigation) {
+        const navigationHandler = (): void => {
+          handleNavigation({
+            location,
+            routes,
+            navigationType: state.historyAction,
+            version,
+            basename,
+            allRoutes: Array.from(allRoutes),
+          });
+        };
+
+        // Wait for the next render if loading an unsettled route
+        if (state.navigation.state !== 'idle') {
+          requestAnimationFrame(navigationHandler);
+        } else {
+          navigationHandler();
+        }
       }
     });
 
@@ -532,8 +602,16 @@ function wrapPatchRoutesOnNavigation(
       // Update navigation span after routes are patched
       const activeRootSpan = getActiveRootSpan();
       if (activeRootSpan && (spanToJSON(activeRootSpan) as { op?: string }).op === 'navigation') {
-        // For memory routers, we should not access window.location; use targetPath only
-        const pathname = isMemoryRouter ? targetPath : targetPath || WINDOW.location?.pathname;
+        // Determine pathname based on router type
+        let pathname: string | undefined;
+        if (isMemoryRouter) {
+          // For memory routers, only use targetPath
+          pathname = targetPath;
+        } else {
+          // For browser routers, use targetPath or fall back to window.location
+          pathname = targetPath || WINDOW.location?.pathname;
+        }
+
         if (pathname) {
           updateNavigationSpan(
             activeRootSpan,

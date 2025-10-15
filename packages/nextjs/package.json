@@ -100,7 +100,7 @@
     "react-dom": "^18.3.1"
   },
   "peerDependencies": {
-    "next": "^13.2.0 || ^14.0 || ^15.0.0-rc.0"
+    "next": "^13.2.0 || ^14.0 || ^15.0.0-rc.0 || ^16.0.0-0"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",
