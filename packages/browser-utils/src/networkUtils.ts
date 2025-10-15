@@ -80,38 +80,3 @@ export function parseXhrResponseHeaders(xhr: XMLHttpRequest): Record<string, str
     return acc;
   }, {});
 }
-
-/**
- * Gets specific headers from a Headers object (Fetch API).
- * Extracted from replay internals to be reusable.
- */
-export function getFetchResponseHeaders(headers: Headers, allowedHeaders: string[]): Record<string, string> {
-  const allHeaders: Record<string, string> = {};
-
-  allowedHeaders.forEach(header => {
-    const value = headers.get(header);
-    if (value) {
-      allHeaders[header.toLowerCase()] = value;
-    }
-  });
-
-  return allHeaders;
-}
-
-/**
- * Filters headers based on an allowed list.
- * Extracted from replay internals to be reusable.
- */
-export function filterAllowedHeaders(
-  headers: Record<string, string>,
-  allowedHeaders: string[],
-): Record<string, string> {
-  return Object.entries(headers).reduce((filteredHeaders: Record<string, string>, [key, value]) => {
-    const normalizedKey = key.toLowerCase();
-    // Avoid putting empty strings into the headers
-    if (allowedHeaders.includes(normalizedKey) && value) {
-      filteredHeaders[normalizedKey] = value;
-    }
-    return filteredHeaders;
-  }, {});
-}

@@ -28,14 +28,7 @@ export { fetch, setTimeout, clearCachedImplementation, getNativeImplementation }
 
 export { addXhrInstrumentationHandler, SENTRY_XHR_DATA_KEY } from './instrument/xhr';
 
-export {
-  getBodyString,
-  getFetchRequestArgBody,
-  serializeFormData,
-  parseXhrResponseHeaders,
-  getFetchResponseHeaders,
-  filterAllowedHeaders,
-} from './networkUtils';
+export { getBodyString, getFetchRequestArgBody, serializeFormData, parseXhrResponseHeaders } from './networkUtils';
 
 export { resourceTimingToSpanAttributes } from './metrics/resourceTiming';
 
