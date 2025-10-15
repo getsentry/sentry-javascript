@@ -1,32 +1,32 @@
 {
-  "name": "solid-solidrouter",
-  "version": "0.0.0",
-  "description": "",
+  "name": "solid-tanstack-router",
+  "private": true,
+  "type": "module",
   "scripts": {
     "build": "vite build",
     "clean": "npx rimraf node_modules pnpm-lock.yaml dist",
     "dev": "vite",
+    "start": "vite preview",
     "preview": "vite preview",
-    "start": "vite",
     "test:prod": "TEST_ENV=production playwright test",
     "test:build": "pnpm install && pnpm build",
     "test:assert": "pnpm test:prod"
   },
-  "license": "MIT",
+  "dependencies": {
+    "@sentry/solid": "latest || *",
+    "@tailwindcss/vite": "^4.0.6",
+    "@tanstack/solid-router": "^1.132.25",
+    "@tanstack/solid-router-devtools": "^1.132.25",
+    "@tanstack/solid-start": "^1.132.25",
+    "solid-js": "^1.9.5",
+    "tailwindcss": "^4.0.6"
+  },
   "devDependencies": {
     "@playwright/test": "~1.53.2",
     "@sentry-internal/test-utils": "link:../../../test-utils",
-    "autoprefixer": "^10.4.17",
-    "postcss": "^8.4.33",
-    "solid-devtools": "^0.29.2",
-    "tailwindcss": "^3.4.1",
-    "vite": "^5.4.11",
-    "vite-plugin-solid": "^2.11.6"
-  },
-  "dependencies": {
-    "@solidjs/router": "^0.13.5",
-    "solid-js": "^1.8.18",
-    "@sentry/solid": "latest || *"
+    "typescript": "^5.7.2",
+    "vite": "^7.1.7",
+    "vite-plugin-solid": "^2.11.2"
   },
   "volta": {
     "extends": "../../package.json"

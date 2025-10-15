@@ -4,7 +4,45 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-Work in this release was contributed by @seoyeon9888 and @madhuchavva. Thank you for your contributions!
+## 10.20.0
+
+### Important Changes
+
+- **feat(flags): Add Growthbook integration ([#17440](https://github.com/getsentry/sentry-javascript/pull/17440))**
+
+  Adds a new Growthbook integration for feature flag support.
+
+- **feat(solid): Add support for TanStack Router Solid ([#17735](https://github.com/getsentry/sentry-javascript/pull/17735))**
+
+  Adds support for TanStack Router in the Solid SDK, enabling better routing instrumentation for Solid applications.
+
+- **feat(nextjs): Support native debugIds in turbopack ([#17853](https://github.com/getsentry/sentry-javascript/pull/17853))**
+
+  Adds support for native Debug IDs in Turbopack, improving source map resolution and error tracking for Next.js applications using Turbopack. Native Debug ID generation will be enabled automatically for compatible versions.
+
+### Other Changes
+
+- feat(nextjs): Prepare for next 16 bundler default ([#17868](https://github.com/getsentry/sentry-javascript/pull/17868))
+- feat(node): Capture `pino` logger name ([#17930](https://github.com/getsentry/sentry-javascript/pull/17930))
+- fix(browser): Ignore React 19.2+ component render measure entries ([#17905](https://github.com/getsentry/sentry-javascript/pull/17905))
+- fix(nextjs): Fix createRouteManifest with basePath ([#17838](https://github.com/getsentry/sentry-javascript/pull/17838))
+- fix(react): Add `POP` guard for long-running `pageload` spans ([#17867](https://github.com/getsentry/sentry-javascript/pull/17867))
+- fix(tracemetrics): Send boolean for internal replay attribute ([#17908](https://github.com/getsentry/sentry-javascript/pull/17908))
+- ref(core): Add weight tracking logic to browser logs/metrics ([#17901](https://github.com/getsentry/sentry-javascript/pull/17901))
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+- chore(nextjs): Add Next.js 16 peer dependency ([#17925](https://github.com/getsentry/sentry-javascript/pull/17925))
+- chore(ci): Update Next.js canary testing ([#17939](https://github.com/getsentry/sentry-javascript/pull/17939))
+- chore: Bump size limit ([#17941](https://github.com/getsentry/sentry-javascript/pull/17941))
+- test(nextjs): Add next@16 e2e test ([#17922](https://github.com/getsentry/sentry-javascript/pull/17922))
+- test(nextjs): Update next 15 tests ([#17919](https://github.com/getsentry/sentry-javascript/pull/17919))
+- chore: Add external contributor to CHANGELOG.md ([#17915](https://github.com/getsentry/sentry-javascript/pull/17915))
+- chore: Add external contributor to CHANGELOG.md ([#17928](https://github.com/getsentry/sentry-javascript/pull/17928))
+- chore: Add external contributor to CHANGELOG.md ([#17940](https://github.com/getsentry/sentry-javascript/pull/17940))
+</details>
+
+Work in this release was contributed by @seoyeon9888, @madhuchavva and @thedanchez . Thank you for your contributions!
 
 ## 10.19.0
 
