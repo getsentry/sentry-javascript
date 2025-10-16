@@ -54,3 +54,29 @@ export function getFetchRequestArgBody(fetchArgs: unknown[] = []): RequestInit['
 
   return (fetchArgs[1] as RequestInit).body;
 }
+
+/**
+ * Parses XMLHttpRequest response headers into a Record.
+ * Extracted from replay internals to be reusable.
+ */
+export function parseXhrResponseHeaders(xhr: XMLHttpRequest): Record<string, string> {
+  let headers: string | undefined;
+  try {
+    headers = xhr.getAllResponseHeaders();
+  } catch (error) {
+    DEBUG_BUILD && debug.error(error, 'Failed to get xhr response headers', xhr);
+    return {};
+  }
+
+  if (!headers) {
+    return {};
+  }
+
+  return headers.split('\r\n').reduce((acc: Record<string, string>, line: string) => {
+    const [key, value] = line.split(': ') as [string, string | undefined];
+    if (value) {
+      acc[key.toLowerCase()] = value;
+    }
+    return acc;
+  }, {});
+}

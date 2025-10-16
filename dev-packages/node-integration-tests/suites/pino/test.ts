@@ -64,13 +64,14 @@ conditionalTest({ min: 20 })('Pino integration', () => {
               trace_id: expect.any(String),
               severity_number: 9,
               attributes: expect.objectContaining({
-                'sentry.origin': { value: 'auto.logging.pino', type: 'string' },
-                'sentry.pino.level': { value: 30, type: 'integer' },
+                'pino.logger.name': { value: 'myapp', type: 'string' },
+                'pino.logger.level': { value: 30, type: 'integer' },
                 user: { value: 'user-id', type: 'string' },
                 something: {
                   type: 'string',
                   value: '{"more":3,"complex":"nope"}',
                 },
+                'sentry.origin': { value: 'auto.logging.pino', type: 'string' },
                 'sentry.release': { value: '1.0', type: 'string' },
                 'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
               }),
@@ -82,9 +83,10 @@ conditionalTest({ min: 20 })('Pino integration', () => {
               trace_id: expect.any(String),
               severity_number: 17,
               attributes: expect.objectContaining({
-                'sentry.origin': { value: 'auto.logging.pino', type: 'string' },
-                'sentry.pino.level': { value: 50, type: 'integer' },
+                'pino.logger.name': { value: 'myapp', type: 'string' },
+                'pino.logger.level': { value: 50, type: 'integer' },
                 err: { value: '{}', type: 'string' },
+                'sentry.origin': { value: 'auto.logging.pino', type: 'string' },
                 'sentry.release': { value: '1.0', type: 'string' },
                 'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
               }),
@@ -138,13 +140,14 @@ conditionalTest({ min: 20 })('Pino integration', () => {
               trace_id: expect.any(String),
               severity_number: 9,
               attributes: expect.objectContaining({
-                'sentry.origin': { value: 'auto.logging.pino', type: 'string' },
-                'sentry.pino.level': { value: 30, type: 'integer' },
+                'pino.logger.name': { value: 'myapp', type: 'string' },
+                'pino.logger.level': { value: 30, type: 'integer' },
                 user: { value: 'user-id', type: 'string' },
                 something: {
                   type: 'string',
                   value: '{"more":3,"complex":"nope"}',
                 },
+                'sentry.origin': { value: 'auto.logging.pino', type: 'string' },
                 'sentry.release': { value: '1.0', type: 'string' },
                 'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
               }),
@@ -156,9 +159,60 @@ conditionalTest({ min: 20 })('Pino integration', () => {
               trace_id: expect.any(String),
               severity_number: 17,
               attributes: expect.objectContaining({
-                'sentry.origin': { value: 'auto.logging.pino', type: 'string' },
-                'sentry.pino.level': { value: 50, type: 'integer' },
+                'pino.logger.name': { value: 'myapp', type: 'string' },
+                'pino.logger.level': { value: 50, type: 'integer' },
                 err: { value: '{}', type: 'string' },
+                'sentry.origin': { value: 'auto.logging.pino', type: 'string' },
+                'sentry.release': { value: '1.0', type: 'string' },
+                'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
+              }),
+            },
+          ],
+        },
+      })
+      .start()
+      .completed();
+  });
+
+  test('captures logs when autoInstrument is false and logger is tracked', async () => {
+    const instrumentPath = join(__dirname, 'instrument-auto-off.mjs');
+
+    await createRunner(__dirname, 'scenario-track.mjs')
+      .withMockSentryServer()
+      .withInstrument(instrumentPath)
+      .expect({
+        log: {
+          items: [
+            {
+              timestamp: expect.any(Number),
+              level: 'info',
+              body: 'hello world',
+              trace_id: expect.any(String),
+              severity_number: 9,
+              attributes: expect.objectContaining({
+                'pino.logger.name': { value: 'myapp', type: 'string' },
+                'pino.logger.level': { value: 30, type: 'integer' },
+                user: { value: 'user-id', type: 'string' },
+                something: {
+                  type: 'string',
+                  value: '{"more":3,"complex":"nope"}',
+                },
+                'sentry.origin': { value: 'auto.logging.pino', type: 'string' },
+                'sentry.release': { value: '1.0', type: 'string' },
+                'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
+              }),
+            },
+            {
+              timestamp: expect.any(Number),
+              level: 'error',
+              body: 'oh no',
+              trace_id: expect.any(String),
+              severity_number: 17,
+              attributes: expect.objectContaining({
+                'pino.logger.name': { value: 'myapp', type: 'string' },
+                'pino.logger.level': { value: 50, type: 'integer' },
+                err: { value: '{}', type: 'string' },
+                'sentry.origin': { value: 'auto.logging.pino', type: 'string' },
                 'sentry.release': { value: '1.0', type: 'string' },
                 'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
               }),

@@ -22,6 +22,7 @@ import { setAsyncLocalStorageAsyncContextStrategy } from './async';
 import type { CloudflareOptions } from './client';
 import { addCloudResourceContext } from './scope-utils';
 import { init } from './sdk';
+import { copyExecutionContext } from './utils/copyExecutionContext';
 
 const UUID_REGEX = /^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$/i;
 
@@ -157,6 +158,9 @@ export function instrumentWorkflowWithSentry<
   return new Proxy(WorkFlowClass, {
     construct(target: C, args: [ctx: ExecutionContext, env: E], newTarget) {
       const [ctx, env] = args;
+      const context = copyExecutionContext(ctx);
+      args[0] = context;
+
       const options = optionsCallback(env);
       const instance = Reflect.construct(target, args, newTarget) as T;
       return new Proxy(instance, {
@@ -179,10 +183,10 @@ export function instrumentWorkflowWithSentry<
                     return await obj.run.call(
                       obj,
                       event,
-                      new WrappedWorkflowStep(event.instanceId, ctx, options, step),
+                      new WrappedWorkflowStep(event.instanceId, context, options, step),
                     );
                   } finally {
-                    ctx.waitUntil(flush(2000));
+                    context.waitUntil(flush(2000));
                   }
                 });
               });
