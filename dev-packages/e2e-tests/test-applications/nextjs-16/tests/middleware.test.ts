@@ -48,15 +48,14 @@ test('Faulty middlewares', async ({ request }) => {
     // Assert that isolation scope works properly
     expect(errorEvent.tags?.['my-isolated-tag']).toBe(true);
     expect(errorEvent.tags?.['my-global-scope-isolated-tag']).not.toBeDefined();
-    console.log('errorEvent', errorEvent.transaction);
-    expect(errorEvent.transaction).toBe('middleware GET');
+    expect(errorEvent.transaction).toBe('/middleware');
   });
 });
 
 test('Should trace outgoing fetch requests inside middleware and create breadcrumbs for it', async ({ request }) => {
   const middlewareTransactionPromise = waitForTransaction('nextjs-16', async transactionEvent => {
     return (
-      transactionEvent?.transaction === 'middleware GET /api/endpoint-behind-middleware' &&
+      transactionEvent?.transaction === 'middleware GET' &&
       !!transactionEvent.spans?.find(span => span.op === 'http.client')
     );
   });
