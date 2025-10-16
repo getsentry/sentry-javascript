@@ -8,7 +8,7 @@ const runtimeFiles = glob.sync('src/runtime/**/*.ts');
 export default [
   ...makeNPMConfigVariants(
     makeBaseNPMConfig({
-      entrypoints: ['src/index.ts', ...runtimeFiles],
+      entrypoints: ['src/index.ts', 'src/plugins.ts', ...runtimeFiles],
       packageSpecificConfig: {
         external: [/^nitropack/, /^h3/, /^#sentry/, /^#nitro-internal/],
       },

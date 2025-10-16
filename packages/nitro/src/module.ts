@@ -3,7 +3,7 @@ import { addDatabaseInstrumentation } from './rollup/databaseConfig';
 import { addMiddlewareInstrumentation } from './rollup/middlewareConfig';
 import { addStorageInstrumentation } from './rollup/storageConfig';
 
-export default defineNitroModule({
+export const SentryNitroModule = defineNitroModule({
   name: '@sentry/nitro',
   setup(nitro) {
     addMiddlewareInstrumentation(nitro);

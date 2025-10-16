@@ -1,5 +1,5 @@
 import type { NitroConfig } from 'nitropack/types';
-import SentryNitroModule from './module';
+import { SentryNitroModule } from './module';
 
 /**
  * Modifies the passed in Nitro configuration with automatic build-time instrumentation.
