@@ -4,6 +4,8 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+Work in this release was contributed by @0xbad0c0d3. Thank you for your contribution!
+
 ## 10.20.0
 
 ### Important Changes
@@ -42,7 +44,7 @@
 - chore: Add external contributor to CHANGELOG.md ([#17940](https://github.com/getsentry/sentry-javascript/pull/17940))
 </details>
 
-Work in this release was contributed by @seoyeon9888, @madhuchavva and @thedanchez . Thank you for your contributions!
+Work in this release was contributed by @seoyeon9888, @madhuchavva and @thedanchez. Thank you for your contributions!
 
 ## 10.19.0
 
