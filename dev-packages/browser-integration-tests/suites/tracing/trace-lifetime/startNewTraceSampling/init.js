@@ -2,8 +2,8 @@ import * as Sentry from '@sentry/browser';
 
 window.Sentry = Sentry;
 
-// Force this so that the initial sampleRand is between 0.35 and 0.45
-Math.random = () =>  0.35 + Math.random() * 0.1;
+// Force this so that the initial sampleRand is consistent
+Math.random = () => 0.45;
 
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
