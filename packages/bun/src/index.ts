@@ -76,6 +76,7 @@ export {
   onUncaughtExceptionIntegration,
   onUnhandledRejectionIntegration,
   openAIIntegration,
+  langChainIntegration,
   modulesIntegration,
   contextLinesIntegration,
   nodeContextIntegration,

@@ -93,6 +93,7 @@ export {
   onUncaughtExceptionIntegration,
   onUnhandledRejectionIntegration,
   openAIIntegration,
+  langChainIntegration,
   parameterize,
   pinoIntegration,
   postgresIntegration,
