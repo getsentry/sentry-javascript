@@ -27,7 +27,7 @@ export function setupEntrypointInstrumentation(
     if (serverDir.includes('.netlify') || !!process.env.NETLIFY) {
       // eslint-disable-next-line no-console
       console.warn(
-        '[Sentry] Warning: The Sentry SDK detected a Netlify build. Server-side support for the Sentry Nuxt SDK on Netlify is currently unreliable due to technical limitations of serverless functions. Traces are not collected, and errors may occasionally not be reported. For more information on setting up Sentry on the Nuxt server-side, please refer to the documentation: https://docs.sentry.io/platforms/javascript/guides/nuxt/install/',
+        '[Sentry] Warning: The Sentry SDK detected a Netlify build. Server-side support for the Sentry Nitro SDK on Netlify is currently unreliable due to technical limitations of serverless functions. Traces are not collected, and errors may occasionally not be reported. For more information on setting up Sentry on the Nitro server-side, please refer to the documentation: https://docs.sentry.io/platforms/javascript/guides/nuxt/install/',
       );
     }
 
@@ -35,7 +35,7 @@ export function setupEntrypointInstrumentation(
     if (serverDir.includes('.vercel') || !!process.env.VERCEL) {
       // eslint-disable-next-line no-console
       console.warn(
-        '[Sentry] Warning: The Sentry SDK detected a Vercel build. The Sentry Nuxt SDK currently does not support tracing on Vercel. For more information on setting up Sentry on the Nuxt server-side, please refer to the documentation: https://docs.sentry.io/platforms/javascript/guides/nuxt/install/',
+        '[Sentry] Warning: The Sentry SDK detected a Vercel build. The Sentry Nitro SDK currently does not support tracing on Vercel. For more information on setting up Sentry on the Nitro server-side, please refer to the documentation: https://docs.sentry.io/platforms/javascript/guides/nuxt/install/',
       );
     }
   });
@@ -53,7 +53,7 @@ export function setupEntrypointInstrumentation(
       consoleSandbox(() => {
         // eslint-disable-next-line no-console
         console.log(
-          `[Sentry] Using \`${serverConfigFile}\` for server-side Sentry configuration. To activate Sentry on the Nuxt server-side, this file must be preloaded when starting your application. Make sure to add this where you deploy and/or run your application. Read more here: https://docs.sentry.io/platforms/javascript/guides/nuxt/install/.`,
+          `[Sentry] Using \`${serverConfigFile}\` for server-side Sentry configuration. To activate Sentry on the Nitro server-side, this file must be preloaded when starting your application. Make sure to add this where you deploy and/or run your application. Read more here: https://docs.sentry.io/platforms/javascript/guides/nuxt/install/.`,
         );
 
         if (nitro.options.dev) {

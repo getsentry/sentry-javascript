@@ -17,7 +17,14 @@ export default defineNitroPlugin(nitro => {
   nitro.hooks.hook('beforeResponse', updateRouteBeforeResponse);
   nitro.hooks.hook('error', sentryCaptureErrorHook);
 
+  // @ts-expect-error - Nitro hook type is not yet defined
+  nitro.hooks.hook('render:html', html => {
+    console.log('html', html);
+    return html;
+  });
+
   nitro.hooks.hook('render:response', (response, { event }) => {
+    console.log('response', response);
     const headers = event.node.res?.getHeaders() || {};
     const isPreRenderedPage = Object.keys(headers).includes('x-nitro-prerender');
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
@@ -25,6 +32,10 @@ export default defineNitroPlugin(nitro => {
 
     const contentType = String(headers['content-type']);
     const isPageloadRequest = contentType.startsWith('text/html');
+    console.log('isPageloadRequest', isPageloadRequest);
+    console.log('isPreRenderedPage', isPreRenderedPage);
+    console.log('isSWRCachedPage', isSWRCachedPage);
+    console.log('response', response.body);
     if (!isPageloadRequest) {
       return;
     }
