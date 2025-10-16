@@ -1,7 +1,7 @@
 import { expect, it } from 'vitest';
 import { createRunner } from '../../../runner';
 
-it('traces a durable object method', async () => {
+it('traces a durable object method', async ({ signal }) => {
   const runner = createRunner(__dirname)
     .expect(envelope => {
       const transactionEvent = envelope[1]?.[0]?.[1];
@@ -21,7 +21,7 @@ it('traces a durable object method', async () => {
         }),
       );
     })
-    .start();
+    .start(signal);
   await runner.makeRequest('get', '/hello');
   await runner.completed();
 });
