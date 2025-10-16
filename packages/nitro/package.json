@@ -24,9 +24,9 @@
       }
     },
     "./plugins": {
-      "types": "./build/types/plugins.d.ts",
-      "node": {
-        "import": "./build/esm/plugins.js"
+      "import": {
+        "types": "./build/types/plugins.d.ts",
+        "default": "./build/esm/plugins.js"
       }
     }
   },
@@ -58,7 +58,7 @@
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
     "build:tarball": "npm pack",
-    "clean": "rimraf build coverage sentry-nestjs-*.tgz ./*.d.ts ./*.d.ts.map",
+    "clean": "rimraf build coverage sentry-nitro-*.tgz",
     "fix": "eslint . --format stylish --fix",
     "lint": "eslint . --format stylish",
     "lint:es-compatibility": "es-check es2022 ./build/cjs/*.js && es-check es2022 ./build/esm/*.js --module",
