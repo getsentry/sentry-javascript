@@ -8,7 +8,10 @@ import { setupMiddlewareInstrumentation } from './rollup/middlewareConfig';
 import { setupStorageInstrumentation } from './rollup/storageConfig';
 import { findDefaultSdkInitFile } from './utils';
 
-export const createSentryNitroModule = (moduleOptions: SentryNitroOptions = {}): NitroModule => {
+export const createSentryNitroModule = (
+  moduleOptions: SentryNitroOptions = {},
+  serverConfigFile?: string,
+): NitroModule => {
   const defaultModuleOptions: SentryNitroModuleOptionsWithDefaults = {
     ...moduleOptions,
     autoInjectServerSentry: moduleOptions.autoInjectServerSentry,
@@ -22,13 +25,13 @@ export const createSentryNitroModule = (moduleOptions: SentryNitroOptions = {}):
   return defineNitroModule({
     name: '@sentry/nitro',
     setup(nitro) {
-      const serverConfigFile = findDefaultSdkInitFile('server');
-      if (!serverConfigFile) {
+      const _serverConfigFile = serverConfigFile || findDefaultSdkInitFile('server');
+      if (!_serverConfigFile) {
         debug.log('[Sentry] No server config file found. Skipping Nitro server instrumentation...');
         return;
       }
 
-      setupEntrypointInstrumentation(nitro, serverConfigFile, defaultModuleOptions);
+      setupEntrypointInstrumentation(nitro, _serverConfigFile, defaultModuleOptions);
       // setupSourceMaps(nitro, moduleOptions);
       setupMiddlewareInstrumentation(nitro);
       setupStorageInstrumentation(nitro);
