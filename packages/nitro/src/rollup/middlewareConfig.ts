@@ -1,22 +1,22 @@
-import type { Nitro, NitroConfig } from 'nitropack/types';
+import type { Nitro } from 'nitropack/types';
 import * as path from 'path';
 import type { InputPluginOption } from 'rollup';
-import { addHook, addImports, createResolver } from '../utils';
+import { addImports, createResolver } from '../utils';
 
 /**
  * Adds middleware instrumentation to the Nitro build.
  *
  * @param nitro Nitro instance
  */
-export function addMiddlewareInstrumentation(nitro: NitroConfig): void {
-  addImports(nitro, [
+export function addMiddlewareInstrumentation(nitro: Nitro): void {
+  addImports(nitro.options, [
     {
       name: 'wrapMiddlewareHandlerWithSentry',
       from: createResolver(import.meta.url).resolve('../runtime/wrapMiddlewareHandler'),
     },
   ]);
 
-  addHook(nitro, 'rollup:before', (nitro, rollupConfig) => {
+  nitro.hooks.hook('rollup:before', (nitro, rollupConfig) => {
     if (!rollupConfig.plugins) {
       rollupConfig.plugins = [];
     }

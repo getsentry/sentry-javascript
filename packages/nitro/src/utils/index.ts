@@ -1,4 +1,3 @@
-export * from './config';
 export * from './virtual';
 export * from './imports';
 export * from './resolver';
