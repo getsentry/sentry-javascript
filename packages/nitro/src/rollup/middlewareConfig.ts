@@ -8,8 +8,8 @@ import { addImports, createResolver } from '../utils';
  *
  * @param nitro Nitro instance
  */
-export function addMiddlewareInstrumentation(nitro: Nitro): void {
-  addImports(nitro.options, [
+export function setupMiddlewareInstrumentation(nitro: Nitro): void {
+  addImports(nitro, [
     {
       name: 'wrapMiddlewareHandlerWithSentry',
       from: createResolver(import.meta.url).resolve('../runtime/wrapMiddlewareHandler'),

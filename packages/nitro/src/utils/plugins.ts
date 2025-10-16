@@ -1,9 +1,9 @@
-import type { NitroConfig } from 'nitropack/types';
+import type { Nitro } from 'nitropack/types';
 
 /**
  * Adds a Nitro plugin
  */
-export function addPlugin(nitro: NitroConfig, plugin: string): void {
-  nitro.plugins = nitro.plugins || [];
-  nitro.plugins.push(plugin);
+export function addPlugin(nitro: Nitro, plugin: string): void {
+  nitro.options.plugins = nitro.options.plugins || [];
+  nitro.options.plugins.push(plugin);
 }

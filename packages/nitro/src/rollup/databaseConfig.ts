@@ -5,7 +5,7 @@ import { addPlugin, addVirtualFile, createResolver } from '../utils';
 /**
  * Sets up the database instrumentation.
  */
-export function addDatabaseInstrumentation(nitro: Nitro): void {
+export function setupDatabaseInstrumentation(nitro: Nitro): void {
   if (!nitro.options.experimental?.database) {
     consoleSandbox(() => {
       // eslint-disable-next-line no-console
@@ -23,12 +23,12 @@ export function addDatabaseInstrumentation(nitro: Nitro): void {
   const databaseInstances = Object.keys(nitro.options.database || { default: {} });
 
   // Create a virtual module to pass this data to runtime
-  addVirtualFile(nitro.options, {
+  addVirtualFile(nitro, {
     filename: '#sentry/database-config.mjs',
     getContents: () => {
       return `export const databaseInstances = ${JSON.stringify(databaseInstances)};`;
     },
   });
 
-  addPlugin(nitro.options, createResolver(import.meta.url).resolve('../runtime/plugins/database'));
+  addPlugin(nitro, createResolver(import.meta.url).resolve('../runtime/plugins/database'));
 }

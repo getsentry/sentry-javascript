@@ -55,3 +55,6 @@ export type SentryNitroOptions = BuildTimeOptionsBase & {
    */
   unstable_sentryBundlerPluginOptions?: SentryRollupPluginOptions & SentryVitePluginOptions;
 };
+
+export type SentryNitroModuleOptionsWithDefaults = Omit<SentryNitroOptions, 'experimental_entrypointWrappedFunctions'> &
+  Required<Pick<SentryNitroOptions, 'experimental_entrypointWrappedFunctions'>>;

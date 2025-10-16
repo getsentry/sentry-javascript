@@ -3,7 +3,17 @@ import { debug } from '@sentry/core';
 import type { Nitro } from 'nitropack/types';
 import type { InputPluginOption } from 'rollup';
 import type { SentryNitroOptions } from '../common/types';
-import { createResolver, getFilenameFromNodeStartCommand } from '../utils';
+import {
+  constructFunctionReExport,
+  constructWrappedFunctionExportQuery,
+  createResolver,
+  getFilenameFromNodeStartCommand,
+  QUERY_END_INDICATOR,
+  removeSentryQueryFromPath,
+  SENTRY_REEXPORTED_FUNCTIONS,
+  SENTRY_WRAPPED_ENTRY,
+  SENTRY_WRAPPED_FUNCTIONS,
+} from '../utils';
 
 const SERVER_CONFIG_FILENAME = 'sentry.server.config';
 
@@ -14,8 +24,8 @@ const SERVER_CONFIG_FILENAME = 'sentry.server.config';
  */
 export function addServerConfigToBuild(
   nitro: Nitro,
-  moduleOptions: SentryNitroOptions,
   serverConfigFile: string,
+  moduleOptions?: SentryNitroOptions,
 ): void {
   nitro.hooks.hook('rollup:before', (nitro, rollupConfig) => {
     if (rollupConfig?.plugins === null || rollupConfig?.plugins === undefined) {
@@ -25,7 +35,7 @@ export function addServerConfigToBuild(
       rollupConfig.plugins = [rollupConfig.plugins];
     }
 
-    rollupConfig.plugins.push(injectServerConfigPlugin(nitro, serverConfigFile, moduleOptions.debug));
+    rollupConfig.plugins.push(injectServerConfigPlugin(nitro, serverConfigFile, moduleOptions?.debug));
   });
 }
 
@@ -112,6 +122,127 @@ function injectServerConfigPlugin(nitro: Nitro, serverConfigFile: string, isDebu
 
         return { id: configPath };
       }
+      return null;
+    },
+  };
+}
+
+/**
+ * This function modifies the Rollup configuration to include a plugin that wraps the entry file with a dynamic import (`import()`)
+ * and adds the Sentry server config with the static `import` declaration.
+ *
+ * With this, the Sentry server config can be loaded before all other modules of the application (which is needed for import-in-the-middle).
+ * See: https://nodejs.org/api/module.html#enabling
+ */
+export function addDynamicImportEntryFileWrapper(
+  nitro: Nitro,
+  serverConfigFile: string,
+  moduleOptions: Omit<SentryNitroOptions, 'experimental_entrypointWrappedFunctions'> &
+    Required<Pick<SentryNitroOptions, 'experimental_entrypointWrappedFunctions'>>,
+): void {
+  if (!nitro.options.rollupConfig) {
+    nitro.options.rollupConfig = { output: {} };
+  }
+
+  if (nitro.options.rollupConfig?.plugins === null || nitro.options.rollupConfig?.plugins === undefined) {
+    nitro.options.rollupConfig.plugins = [];
+  } else if (!Array.isArray(nitro.options.rollupConfig.plugins)) {
+    // `rollupConfig.plugins` can be a single plugin, so we want to put it into an array so that we can push our own plugin
+    nitro.options.rollupConfig.plugins = [nitro.options.rollupConfig.plugins];
+  }
+
+  nitro.options.rollupConfig.plugins.push(
+    wrapEntryWithDynamicImport({
+      resolvedSentryConfigPath: createResolver(nitro.options.srcDir).resolve(`/${serverConfigFile}`),
+      experimental_entrypointWrappedFunctions: moduleOptions.experimental_entrypointWrappedFunctions,
+    }),
+  );
+}
+
+/**
+ * A Rollup plugin which wraps the server entry with a dynamic `import()`. This makes it possible to initialize Sentry first
+ * by using a regular `import` and load the server after that.
+ * This also works with serverless `handler` functions, as it re-exports the `handler`.
+ */
+function wrapEntryWithDynamicImport({
+  resolvedSentryConfigPath,
+  experimental_entrypointWrappedFunctions,
+  debug,
+}: {
+  resolvedSentryConfigPath: string;
+  experimental_entrypointWrappedFunctions: string[];
+  debug?: boolean;
+}): InputPluginOption {
+  // In order to correctly import the server config file
+  // and dynamically import the nitro runtime, we need to
+  // mark the resolutionId with '\0raw' to fall into the
+  // raw chunk group, c.f. https://github.com/nitrojs/nitro/commit/8b4a408231bdc222569a32ce109796a41eac4aa6#diff-e58102d2230f95ddeef2662957b48d847a6e891e354cfd0ae6e2e03ce848d1a2R142
+  const resolutionIdPrefix = '\0raw';
+
+  return {
+    name: 'sentry-wrap-entry-with-dynamic-import',
+    async resolveId(source, importer, options) {
+      if (source.includes(`/${SERVER_CONFIG_FILENAME}`)) {
+        return { id: source, moduleSideEffects: true };
+      }
+
+      if (source === 'import-in-the-middle/hook.mjs') {
+        // We are importing "import-in-the-middle" in the returned code of the `load()` function below
+        // By setting `moduleSideEffects` to `true`, the import is added to the bundle, although nothing is imported from it
+        // By importing "import-in-the-middle/hook.mjs", we can make sure this file is included, as not all node builders are including files imported with `module.register()`.
+        // Prevents the error "Failed to register ESM hook Error: Cannot find module 'import-in-the-middle/hook.mjs'"
+        return { id: source, moduleSideEffects: true, external: true };
+      }
+
+      if (options.isEntry && source.includes('.mjs') && !source.includes(`.mjs${SENTRY_WRAPPED_ENTRY}`)) {
+        const resolution = await this.resolve(source, importer, options);
+
+        // If it cannot be resolved or is external, just return it so that Rollup can display an error
+        if (!resolution || resolution?.external) return resolution;
+
+        const moduleInfo = await this.load(resolution);
+
+        moduleInfo.moduleSideEffects = true;
+
+        // The enclosing `if` already checks for the suffix in `source`, but a check in `resolution.id` is needed as well to prevent multiple attachment of the suffix
+        return resolution.id.includes(`.mjs${SENTRY_WRAPPED_ENTRY}`)
+          ? resolution.id
+          : `${resolutionIdPrefix}${resolution.id
+              // Concatenates the query params to mark the file (also attaches names of re-exports - this is needed for serverless functions to re-export the handler)
+              .concat(SENTRY_WRAPPED_ENTRY)
+              .concat(
+                constructWrappedFunctionExportQuery(
+                  moduleInfo.exportedBindings,
+                  experimental_entrypointWrappedFunctions,
+                  debug,
+                ),
+              )
+              .concat(QUERY_END_INDICATOR)}`;
+      }
+      return null;
+    },
+    load(id: string) {
+      if (id.includes(`.mjs${SENTRY_WRAPPED_ENTRY}`)) {
+        const entryId = removeSentryQueryFromPath(id).slice(resolutionIdPrefix.length);
+
+        // Mostly useful for serverless `handler` functions
+        const reExportedFunctions =
+          id.includes(SENTRY_WRAPPED_FUNCTIONS) || id.includes(SENTRY_REEXPORTED_FUNCTIONS)
+            ? constructFunctionReExport(id, entryId)
+            : '';
+
+        return (
+          // Regular `import` of the Sentry config
+          `import ${JSON.stringify(resolvedSentryConfigPath)};\n` +
+          // Dynamic `import()` for the previous, actual entry point.
+          // `import()` can be used for any code that should be run after the hooks are registered (https://nodejs.org/api/module.html#enabling)
+          `import(${JSON.stringify(entryId)});\n` +
+          // By importing "import-in-the-middle/hook.mjs", we can make sure this file wil be included, as not all node builders are including files imported with `module.register()`.
+          "import 'import-in-the-middle/hook.mjs';\n" +
+          `${reExportedFunctions}\n`
+        );
+      }
+
       return null;
     },
   };

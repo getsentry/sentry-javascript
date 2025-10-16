@@ -1,4 +1,4 @@
-import type { NitroConfig } from 'nitropack';
+import type { Nitro } from 'nitropack';
 
 interface VirtualTemplate {
   filename: string;
@@ -8,9 +8,9 @@ interface VirtualTemplate {
 /**
  * Adds a virtual file that can be used within the Nitro server plugins.
  */
-export function addVirtualFile(nitro: NitroConfig, template: VirtualTemplate): VirtualTemplate {
-  nitro.virtual = nitro.virtual || {};
-  nitro.virtual[template.filename] = template.getContents;
+export function addVirtualFile(nitro: Nitro, template: VirtualTemplate): VirtualTemplate {
+  nitro.options.virtual = nitro.options.virtual || {};
+  nitro.options.virtual[template.filename] = template.getContents;
 
   return template;
 }
