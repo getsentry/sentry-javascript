@@ -149,16 +149,16 @@ function getSpanAttributes(
   index?: number,
 ): SpanAttributes {
   const attributes: SpanAttributes = {
-    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'middleware.nuxt',
+    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'middleware.nitro',
     [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
-    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.middleware.nuxt',
-    'nuxt.middleware.name': middlewareName,
-    'nuxt.middleware.hook.name': hookName ?? 'handler',
+    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.middleware.nitro',
+    'nitro.middleware.name': middlewareName,
+    'nitro.middleware.hook.name': hookName ?? 'handler',
   };
 
   // Add index for array handlers
   if (typeof index === 'number') {
-    attributes['nuxt.middleware.hook.index'] = index;
+    attributes['nitro.middleware.hook.index'] = index;
   }
 
   // Add HTTP method

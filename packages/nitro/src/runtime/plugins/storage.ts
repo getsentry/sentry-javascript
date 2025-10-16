@@ -203,7 +203,7 @@ function createSpanStartOptions(
 
   const attributes: SpanAttributes = {
     [SEMANTIC_ATTRIBUTE_SENTRY_OP]: `cache.${normalizeMethodName(methodName)}`,
-    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.cache.nuxt',
+    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.cache.nitro',
     [SEMANTIC_ATTRIBUTE_CACHE_KEY]: keys.length > 1 ? keys : keys[0],
     'db.operation.name': methodName,
     'db.collection.name': mountBase.replace(/:$/, ''),

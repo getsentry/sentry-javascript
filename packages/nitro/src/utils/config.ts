@@ -12,33 +12,31 @@ export function addHook<THook extends keyof NitroHooks>(
     nitro.hooks = {};
   }
 
-  if (!nitro.hooks.build) {
-    nitro.hooks.build = {};
-  }
-
   const path = hook.split(':');
   let current: Record<string, any> = nitro.hooks;
 
-  for (const part of path) {
-    // If the part is the last part, we don't need to create a new object
-    if (part === path[path.length - 1]) {
-      continue;
-    }
-
+  // Navigate to the nested object, creating it if it doesn't exist
+  for (let i = 0; i < path.length - 1; i++) {
+    const part = path[i] as string;
     if (!current[part]) {
       current[part] = {};
     }
-
     current = current[part];
   }
 
-  if (typeof current[hook] !== 'function') {
-    current[hook] = callback;
+  // Use the last part of the path as the key
+  const hookKey = path[path.length - 1] as string;
+
+  // If no existing hook, just set it
+  if (typeof current[hookKey] !== 'function') {
+    current[hookKey] = callback;
     return;
   }
 
-  current[hook] = async (...args: Parameters<NitroHooks[THook]>) => {
-    await current[hook](...args);
+  // If there's an existing hook, chain them
+  const existingHook = current[hookKey];
+  current[hookKey] = async (...args: Parameters<NitroHooks[THook]>) => {
+    await existingHook(...args);
     // eslint-disable-next-line prefer-spread
     await callback.apply(null, args);
   };

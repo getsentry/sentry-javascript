@@ -24,30 +24,30 @@ const patchedStatement = new WeakSet<PreparedStatement>();
 /**
  * The Sentry origin for the database plugin.
  */
-const SENTRY_ORIGIN = 'auto.db.nuxt';
+const SENTRY_ORIGIN = 'auto.db.nitro';
 
 /**
  * Creates a Nitro plugin that instruments the database calls.
  */
 export default defineNitroPlugin(() => {
   try {
-    debug.log('@sentry/nuxt: Instrumenting databases...');
+    debug.log('@sentry/nitro: Instrumenting databases...');
 
     for (const instance of databaseInstances) {
-      debug.log('@sentry/nuxt: Instrumenting database instance:', instance);
+      debug.log('@sentry/nitro: Instrumenting database instance:', instance);
       const db = useDatabase(instance);
       instrumentDatabase(db);
     }
 
-    debug.log('@sentry/nuxt: Databases instrumented.');
+    debug.log('@sentry/nitro: Databases instrumented.');
   } catch (error) {
     // During build time, we can't use the useDatabase function, so we just log an error.
     if (error instanceof Error && /Cannot access 'instances'/.test(error.message)) {
-      debug.log('@sentry/nuxt: Database instrumentation skipped during build time.');
+      debug.log('@sentry/nitro: Database instrumentation skipped during build time.');
       return;
     }
 
-    debug.error('@sentry/nuxt: Failed to instrument database:', error);
+    debug.error('@sentry/nitro: Failed to instrument database:', error);
   }
 });
 

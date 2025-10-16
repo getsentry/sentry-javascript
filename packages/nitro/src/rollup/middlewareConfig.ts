@@ -39,7 +39,7 @@ function middlewareInstrumentationPlugin(nitro: Nitro): InputPluginOption {
   const middlewareFiles = new Set<string>();
 
   return {
-    name: 'sentry-nuxt-middleware-instrumentation',
+    name: 'sentry-nitro-middleware-instrumentation',
     buildStart() {
       // Collect middleware files during build start
       nitro.scannedHandlers?.forEach(({ middleware, handler }) => {
