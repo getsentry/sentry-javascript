@@ -399,7 +399,13 @@ export type {
   SendFeedbackParams,
   UserFeedback,
 } from './types-hoist/feedback';
-export type { QueryParams, RequestEventData, SanitizedRequestData } from './types-hoist/request';
+export type {
+  QueryParams,
+  RequestEventData,
+  RequestHookInfo,
+  ResponseHookInfo,
+  SanitizedRequestData,
+} from './types-hoist/request';
 export type { Runtime } from './types-hoist/runtime';
 export type { SdkInfo } from './types-hoist/sdkinfo';
 export type { SdkMetadata } from './types-hoist/sdkmetadata';

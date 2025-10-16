@@ -4,6 +4,7 @@ import { setHttpStatus, SPAN_STATUS_ERROR, startInactiveSpan } from './tracing';
 import { SentryNonRecordingSpan } from './tracing/sentryNonRecordingSpan';
 import type { FetchBreadcrumbHint } from './types-hoist/breadcrumb';
 import type { HandlerDataFetch } from './types-hoist/instrument';
+import type { ResponseHookInfo } from './types-hoist/request';
 import type { Span, SpanAttributes, SpanOrigin } from './types-hoist/span';
 import { SENTRY_BAGGAGE_KEY_PREFIX } from './utils/baggage';
 import { hasSpansEnabled } from './utils/hasSpansEnabled';
@@ -24,6 +25,7 @@ type PolymorphicRequestHeaders =
 interface InstrumentFetchRequestOptions {
   spanOrigin?: SpanOrigin;
   propagateTraceparent?: boolean;
+  onRequestSpanEnd?: (span: Span, responseInformation: ResponseHookInfo) => void;
 }
 
 /**
@@ -82,6 +84,8 @@ export function instrumentFetchRequest(
     if (span) {
       endSpan(span, handlerData);
 
+      _callOnRequestSpanEnd(span, handlerData, spanOriginOrOptions);
+
       // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
       delete spans[spanId];
     }
@@ -139,6 +143,25 @@ export function instrumentFetchRequest(
   }
 
   return span;
+}
+
+/**
+ * Calls the onRequestSpanEnd callback if it is defined.
+ */
+export function _callOnRequestSpanEnd(
+  span: Span,
+  handlerData: HandlerDataFetch,
+  spanOriginOrOptions?: SpanOrigin | InstrumentFetchRequestOptions,
+): void {
+  const onRequestSpanEnd =
+    typeof spanOriginOrOptions === 'object' && spanOriginOrOptions !== null
+      ? spanOriginOrOptions.onRequestSpanEnd
+      : undefined;
+
+  onRequestSpanEnd?.(span, {
+    headers: handlerData.response?.headers,
+    error: handlerData.error,
+  });
 }
 
 /**
