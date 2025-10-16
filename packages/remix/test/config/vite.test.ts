@@ -370,9 +370,9 @@ describe('sentryRemixVitePlugin', () => {
       const result = plugin.transform(code, id);
 
       expect(result).not.toBeNull();
-      expect(result?.code).toContain('global._sentryRemixRouteManifest');
+      expect(result?.code).toContain('globalThis._sentryRemixRouteManifest');
       expect(result?.code).toContain(code);
-      expect(result?.code).toContain("typeof global !== 'undefined'");
+      expect(result?.code).toContain("typeof globalThis !== 'undefined'");
     });
 
     it('should handle files with "entry.client" in path', () => {
@@ -526,7 +526,7 @@ describe('sentryRemixVitePlugin', () => {
       const result = plugin.transform(code, id);
 
       expect(result).not.toBeNull();
-      expect(result?.code).toContain('global._sentryRemixRouteManifest');
+      expect(result?.code).toContain('globalThis._sentryRemixRouteManifest');
     });
 
     it('should handle files with "entry.server" in path', () => {
@@ -550,7 +550,36 @@ describe('sentryRemixVitePlugin', () => {
       const result = plugin.transform(code, id);
 
       expect(result).not.toBeNull();
-      expect(result?.code).toContain('global._sentryRemixRouteManifest');
+      expect(result?.code).toContain('globalThis._sentryRemixRouteManifest');
+    });
+
+    it('should inject manifest into Hydrogen/Cloudflare server.ts files', () => {
+      fs.writeFileSync(path.join(routesDir, 'index.tsx'), '// index');
+
+      const plugin = sentryRemixVitePlugin() as Plugin & {
+        configResolved: (config: ResolvedConfig) => void;
+        transform: (code: string, id: string) => { code: string; map: null } | null;
+      };
+
+      const mockConfig: Partial<ResolvedConfig> = {
+        root: tempDir,
+        command: 'build',
+        mode: 'production',
+      };
+
+      plugin.configResolved(mockConfig as ResolvedConfig);
+
+      const code = 'console.log("Hydrogen server");';
+
+      // Test various server.ts paths
+      const paths = ['/app/server.ts', 'server.ts', '/Users/project/server.ts'];
+
+      paths.forEach(id => {
+        const result = plugin.transform(code, id);
+        expect(result).not.toBeNull();
+        expect(result?.code).toContain('globalThis._sentryRemixRouteManifest');
+        expect(result?.code).toContain('console.log("Hydrogen server");');
+      });
     });
   });
 });
