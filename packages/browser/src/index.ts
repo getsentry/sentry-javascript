@@ -51,6 +51,7 @@ export {
   startInactiveSpan,
   startSpanManual,
   withActiveSpan,
+  withStreamSpan,
   startNewTrace,
   getSpanDescendants,
   setMeasurement,
