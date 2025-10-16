@@ -2,7 +2,7 @@ import { expect, it } from 'vitest';
 import { eventEnvelope } from '../../expect';
 import { createRunner } from '../../runner';
 
-it('Basic error in fetch handler', async () => {
+it('Basic error in fetch handler', async ({ signal }) => {
   const runner = createRunner(__dirname)
     .expect(
       eventEnvelope({
@@ -26,7 +26,7 @@ it('Basic error in fetch handler', async () => {
         },
       }),
     )
-    .start();
+    .start(signal);
   await runner.makeRequest('get', '/', { expectError: true });
   await runner.completed();
 });

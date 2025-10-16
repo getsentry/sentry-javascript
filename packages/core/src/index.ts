@@ -113,6 +113,7 @@ export { zodErrorsIntegration } from './integrations/zoderrors';
 export { thirdPartyErrorFilterIntegration } from './integrations/third-party-errors-filter';
 export { consoleIntegration } from './integrations/console';
 export { featureFlagsIntegration, type FeatureFlagsIntegration } from './integrations/featureFlags';
+export { growthbookIntegration } from './integrations/featureFlags';
 
 export { profiler } from './profiling';
 // eslint thinks the entire function is deprecated (while only one overload is actually deprecated)
@@ -398,7 +399,13 @@ export type {
   SendFeedbackParams,
   UserFeedback,
 } from './types-hoist/feedback';
-export type { QueryParams, RequestEventData, SanitizedRequestData } from './types-hoist/request';
+export type {
+  QueryParams,
+  RequestEventData,
+  RequestHookInfo,
+  ResponseHookInfo,
+  SanitizedRequestData,
+} from './types-hoist/request';
 export type { Runtime } from './types-hoist/runtime';
 export type { SdkInfo } from './types-hoist/sdkinfo';
 export type { SdkMetadata } from './types-hoist/sdkmetadata';

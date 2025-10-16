@@ -13,6 +13,9 @@ const reexportedPluggableIntegrationFiles = [
   'modulemetadata',
   'graphqlclient',
   'spotlight',
+  'instrumentanthropicaiclient',
+  'instrumentopenaiclient',
+  'instrumentgooglegenaiclient',
 ];
 
 browserPluggableIntegrationFiles.forEach(integrationName => {
