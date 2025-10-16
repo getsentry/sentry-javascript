@@ -67,7 +67,6 @@ Pass your router instance from `createRouter` to the integration.
 ```js
 import * as Sentry from '@sentry/solid';
 import { tanstackRouterBrowserTracingIntegration } from '@sentry/solid/tanstackrouter';
-import { Route, Router } from '@solidjs/router';
 
 const router = createRouter({
   // your router config
