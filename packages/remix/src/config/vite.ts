@@ -116,12 +116,33 @@ export function sentryRemixVitePlugin(options: SentryRemixVitePluginOptions = {}
         id.includes('/entry.client.') ||
         id.includes('/entry-client.');
 
+      const isServerEntry =
+        /entry[.-]server\.[jt]sx?$/.test(id) ||
+        // Also handle Remix's default entry.server location
+        id.includes('/entry.server.') ||
+        id.includes('/entry-server.');
+
       if (isClientEntry) {
         // XSS Prevention: Double-stringify strategy (same as transformIndexHtml above)
         const injectedCode = `
 // Sentry Remix Route Manifest - Auto-injected
 if (typeof window !== 'undefined') {
   window.${MANIFEST_GLOBAL_KEY} = window.${MANIFEST_GLOBAL_KEY} || ${JSON.stringify(routeManifestJson)};
+}
+${code}`;
+
+        return {
+          code: injectedCode,
+          map: null,
+        };
+      }
+
+      if (isServerEntry) {
+        // Inject into server entry for server-side transaction naming
+        const injectedCode = `
+// Sentry Remix Route Manifest - Auto-injected
+if (typeof global !== 'undefined') {
+  global.${MANIFEST_GLOBAL_KEY} = global.${MANIFEST_GLOBAL_KEY} || ${JSON.stringify(routeManifestJson)};
 }
 ${code}`;
 

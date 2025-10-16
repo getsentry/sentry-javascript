@@ -4,7 +4,7 @@ import { waitForTransaction } from '@sentry-internal/test-utils';
 test.describe.configure({ mode: 'serial' });
 
 test('Sends parameterized transaction name to Sentry', async ({ page }) => {
-  const transactionPromise = waitForTransaction('create-remix-app-v2-legacy', transactionEvent => {
+  const transactionPromise = waitForTransaction('create-remix-app-v2-non-vite', transactionEvent => {
     return transactionEvent.contexts?.trace?.op === 'http.server';
   });
 
@@ -20,11 +20,11 @@ test('Sends two linked transactions (server & client) to Sentry', async ({ page 
   // We use this to identify the transactions
   const testTag = crypto.randomUUID();
 
-  const httpServerTransactionPromise = waitForTransaction('create-remix-app-v2-legacy', transactionEvent => {
+  const httpServerTransactionPromise = waitForTransaction('create-remix-app-v2-non-vite', transactionEvent => {
     return transactionEvent.contexts?.trace?.op === 'http.server' && transactionEvent.tags?.['sentry_test'] === testTag;
   });
 
-  const pageLoadTransactionPromise = waitForTransaction('create-remix-app-v2-legacy', transactionEvent => {
+  const pageLoadTransactionPromise = waitForTransaction('create-remix-app-v2-non-vite', transactionEvent => {
     return transactionEvent.contexts?.trace?.op === 'pageload' && transactionEvent.tags?.['sentry_test'] === testTag;
   });
 

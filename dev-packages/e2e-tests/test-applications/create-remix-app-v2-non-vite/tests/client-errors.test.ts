@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { waitForError } from '@sentry-internal/test-utils';
 
 test('Sends a client-side exception to Sentry', async ({ page }) => {
-  const errorPromise = waitForError('create-remix-app-v2-legacy', errorEvent => {
+  const errorPromise = waitForError('create-remix-app-v2-non-vite', errorEvent => {
     return errorEvent.exception?.values?.[0].value === 'I am an error!';
   });
 
@@ -17,7 +17,7 @@ test('Sends a client-side exception to Sentry', async ({ page }) => {
 });
 
 test('Sends a client-side ErrorBoundary exception to Sentry', async ({ page }) => {
-  const errorPromise = waitForError('create-remix-app-v2-legacy', errorEvent => {
+  const errorPromise = waitForError('create-remix-app-v2-non-vite', errorEvent => {
     return errorEvent.exception?.values?.[0].value === 'Sentry React Component Error';
   });
 
