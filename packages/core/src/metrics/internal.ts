@@ -199,14 +199,9 @@ export function _INTERNAL_captureMetric(beforeMetric: Metric, options?: Internal
   const traceId = span ? span.spanContext().traceId : traceContext?.trace_id;
   const spanId = span ? span.spanContext().spanId : undefined;
 
-  if (!traceId) {
-    DEBUG_BUILD && debug.warn('[Metric] No trace ID available, will not send metric.');
-    return;
-  }
-
   const serializedMetric: SerializedMetric = {
     timestamp: timestampInSeconds(),
-    trace_id: traceId,
+    trace_id: traceId ?? '',
     span_id: spanId,
     name: processedMetric.name,
     type: processedMetric.type,
