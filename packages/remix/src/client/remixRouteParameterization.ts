@@ -110,10 +110,12 @@ function findMatchingRoutes(
 ): string[] {
   const matches: string[] = [];
 
+  // Static routes don't need parameterization - return empty to keep source as 'url'
   if (staticRoutes.some(r => r.path === route)) {
     return matches;
   }
 
+  // Check dynamic routes
   for (const dynamicRoute of dynamicRoutes) {
     if (dynamicRoute.regex) {
       const regex = getCompiledRegex(dynamicRoute.regex);
@@ -124,6 +126,14 @@ function findMatchingRoutes(
   }
 
   return matches;
+}
+
+/**
+ * Check if the route manifest is available (injected by the Vite plugin).
+ * @returns True if the manifest is available, false otherwise.
+ */
+export function hasManifest(): boolean {
+  return getManifest() !== null;
 }
 
 /**

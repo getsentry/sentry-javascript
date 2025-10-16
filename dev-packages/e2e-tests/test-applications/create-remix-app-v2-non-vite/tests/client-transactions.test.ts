@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Sends a pageload transaction to Sentry', async ({ page }) => {
-  const transactionPromise = waitForTransaction('create-remix-app-v2-legacy', transactionEvent => {
+  const transactionPromise = waitForTransaction('create-remix-app-v2-non-vite', transactionEvent => {
     return transactionEvent.contexts?.trace?.op === 'pageload' && transactionEvent.transaction === 'routes/_index';
   });
 
@@ -14,8 +14,7 @@ test('Sends a pageload transaction to Sentry', async ({ page }) => {
 });
 
 test('Sends a navigation transaction to Sentry', async ({ page }) => {
-  const transactionPromise = waitForTransaction('create-remix-app-v2-legacy', transactionEvent => {
-    // Legacy Remix (classic compiler) uses 'routes/user.$id' format instead of '/user/:id'
+  const transactionPromise = waitForTransaction('create-remix-app-v2-non-vite', transactionEvent => {
     return transactionEvent.contexts?.trace?.op === 'navigation' && transactionEvent.transaction === 'routes/user.$id';
   });
 

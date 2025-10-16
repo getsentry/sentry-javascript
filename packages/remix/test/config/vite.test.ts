@@ -349,7 +349,7 @@ describe('sentryRemixVitePlugin', () => {
       expect(result).toBeNull();
     });
 
-    it('should not inject into entry.server.tsx', () => {
+    it('should inject manifest into entry.server.tsx for server-side transaction naming', () => {
       fs.writeFileSync(path.join(routesDir, 'index.tsx'), '// index');
 
       const plugin = sentryRemixVitePlugin() as Plugin & {
@@ -369,7 +369,10 @@ describe('sentryRemixVitePlugin', () => {
       const id = '/app/entry.server.tsx';
       const result = plugin.transform(code, id);
 
-      expect(result).toBeNull();
+      expect(result).not.toBeNull();
+      expect(result?.code).toContain('global._sentryRemixRouteManifest');
+      expect(result?.code).toContain(code);
+      expect(result?.code).toContain("typeof global !== 'undefined'");
     });
 
     it('should handle files with "entry.client" in path', () => {
@@ -500,6 +503,54 @@ describe('sentryRemixVitePlugin', () => {
         expect(manifest.dynamicRoutes).toHaveLength(1);
         expect(manifest.dynamicRoutes[0].path).toBe('/users/:id');
       }
+    });
+
+    it('should inject manifest into entry-server.ts file', () => {
+      fs.writeFileSync(path.join(routesDir, 'index.tsx'), '// index');
+
+      const plugin = sentryRemixVitePlugin() as Plugin & {
+        configResolved: (config: ResolvedConfig) => void;
+        transform: (code: string, id: string) => { code: string; map: null } | null;
+      };
+
+      const mockConfig: Partial<ResolvedConfig> = {
+        root: tempDir,
+        command: 'build',
+        mode: 'production',
+      };
+
+      plugin.configResolved(mockConfig as ResolvedConfig);
+
+      const code = 'console.log("entry server");';
+      const id = '/app/entry-server.ts';
+      const result = plugin.transform(code, id);
+
+      expect(result).not.toBeNull();
+      expect(result?.code).toContain('global._sentryRemixRouteManifest');
+    });
+
+    it('should handle files with "entry.server" in path', () => {
+      fs.writeFileSync(path.join(routesDir, 'index.tsx'), '// index');
+
+      const plugin = sentryRemixVitePlugin() as Plugin & {
+        configResolved: (config: ResolvedConfig) => void;
+        transform: (code: string, id: string) => { code: string; map: null } | null;
+      };
+
+      const mockConfig: Partial<ResolvedConfig> = {
+        root: tempDir,
+        command: 'build',
+        mode: 'production',
+      };
+
+      plugin.configResolved(mockConfig as ResolvedConfig);
+
+      const code = 'console.log("entry server");';
+      const id = '/some/path/entry.server.js';
+      const result = plugin.transform(code, id);
+
+      expect(result).not.toBeNull();
+      expect(result?.code).toContain('global._sentryRemixRouteManifest');
     });
   });
 });
