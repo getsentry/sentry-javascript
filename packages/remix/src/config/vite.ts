@@ -120,7 +120,9 @@ export function sentryRemixVitePlugin(options: SentryRemixVitePluginOptions = {}
         /entry[.-]server\.[jt]sx?$/.test(id) ||
         // Also handle Remix's default entry.server location
         id.includes('/entry.server.') ||
-        id.includes('/entry-server.');
+        id.includes('/entry-server.') ||
+        // Also handle Hydrogen/Cloudflare Workers server files
+        /(^|\/)server\.[jt]sx?$/.test(id);
 
       if (isClientEntry) {
         // XSS Prevention: Double-stringify strategy (same as transformIndexHtml above)
@@ -139,10 +141,11 @@ ${code}`;
 
       if (isServerEntry) {
         // Inject into server entry for server-side transaction naming
+        // Use globalThis for Cloudflare Workers/Hydrogen compatibility
         const injectedCode = `
 // Sentry Remix Route Manifest - Auto-injected
-if (typeof global !== 'undefined') {
-  global.${MANIFEST_GLOBAL_KEY} = global.${MANIFEST_GLOBAL_KEY} || ${JSON.stringify(routeManifestJson)};
+if (typeof globalThis !== 'undefined') {
+  globalThis.${MANIFEST_GLOBAL_KEY} = globalThis.${MANIFEST_GLOBAL_KEY} || ${JSON.stringify(routeManifestJson)};
 }
 ${code}`;
 
