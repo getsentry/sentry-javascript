@@ -12,7 +12,7 @@ export function addMiddlewareInstrumentation(nitro: NitroConfig): void {
   addImports(nitro, [
     {
       name: 'wrapMiddlewareHandlerWithSentry',
-      from: createResolver(import.meta.url).resolve('./runtime/wrapMiddlewareHandler'),
+      from: createResolver(import.meta.url).resolve('../runtime/wrapMiddlewareHandler'),
     },
   ]);
 
@@ -75,7 +75,7 @@ function wrapMiddlewareCode(originalCode: string, fileName: string): string {
   const cleanFileName = fileName.replace(/\.(ts|js|mjs|mts|cts)$/, '');
 
   return `
-import { wrapMiddlewareHandlerWithSentry } from '#sentry/middleware-handler';
+import { wrapMiddlewareHandlerWithSentry } from '#imports';
 
 function defineInstrumentedEventHandler(handlerOrObject) {
   return defineEventHandler(wrapMiddlewareHandlerWithSentry(handlerOrObject, '${cleanFileName}'));

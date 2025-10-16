@@ -15,5 +15,5 @@ export function addStorageInstrumentation(nitro: NitroConfig): void {
     },
   });
 
-  addPlugin(nitro, createResolver(import.meta.url).resolve('./runtime/plugins/storage'));
+  addPlugin(nitro, createResolver(import.meta.url).resolve('../runtime/plugins/storage'));
 }

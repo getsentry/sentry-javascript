@@ -30,5 +30,5 @@ export function addDatabaseInstrumentation(nitro: NitroConfig): void {
     },
   });
 
-  addPlugin(nitro, createResolver(import.meta.url).resolve('./runtime/plugins/database'));
+  addPlugin(nitro, createResolver(import.meta.url).resolve('../runtime/plugins/database'));
 }

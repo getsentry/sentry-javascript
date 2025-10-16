@@ -1,4 +1,5 @@
-import { resolve } from 'node:path';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 export interface Resolver {
   resolve(...path: string[]): string;
@@ -13,7 +14,12 @@ export interface Resolver {
  * ```
  */
 export function createResolver(base: string): Resolver {
+  let resolvedBase = base;
+  if (base.startsWith('file://')) {
+    resolvedBase = dirname(fileURLToPath(base));
+  }
+
   return {
-    resolve: (...path) => resolve(base, ...path),
+    resolve: (...path) => resolve(resolvedBase, ...path),
   };
 }
