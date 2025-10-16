@@ -3,34 +3,25 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "build": "tsc",
-    "dev": "tsc --build --watch",
+    "build": "pnpm run -r build",
+    "dev": "pnpm run -r dev",
     "proxy": "node start-event-proxy.mjs",
-    "emulate": "firebase emulators:start &",
-    "start": "node ./dist/app.js",
+    "emulate": "firebase emulators:start --project demo-functions",
+    "start": "pnpm run -r start",
     "test": "playwright test",
-    "clean": "npx rimraf node_modules pnpm-lock.yaml",
+    "clean": "npx rimraf node_modules **/node_modules pnpm-lock.yaml **/dist *-debug.log test-results",
     "test:build": "pnpm install && pnpm build",
-    "test:assert": "pnpm firebase emulators:exec 'pnpm test'"
+    "test:assert": "pnpm firebase emulators:exec --project demo-functions 'pnpm test'"
   },
   "dependencies": {
-    "@firebase/app": "^0.13.1",
-    "@sentry/node": "latest || *",
-    "@sentry/core": "latest || *",
-    "@sentry/opentelemetry": "latest || *",
-    "@types/node": "^18.19.1",
+    "@types/node": "^22.13.14",
     "dotenv": "^16.4.5",
-    "express": "^4.18.2",
-    "firebase": "^12.0.0",
-    "firebase-admin": "^12.0.0",
     "tsconfig-paths": "^4.2.0",
-    "typescript": "4.9.5"
+    "typescript": "5.9.3"
   },
   "devDependencies": {
     "@playwright/test": "~1.53.2",
-    "@sentry-internal/test-utils": "link:../../../test-utils",
-    "@types/express": "^4.17.13",
-    "firebase-tools": "^12.0.0"
+    "@sentry-internal/test-utils": "link:../../../test-utils"
   },
   "volta": {
     "extends": "../../package.json"
