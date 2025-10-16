@@ -31,23 +31,23 @@ const SENTRY_ORIGIN = 'auto.db.nuxt';
  */
 export default defineNitroPlugin(() => {
   try {
-    debug.log('@sentry/nuxt: Instrumenting databases...');
+    debug.log('[Nitro Database Plugin]: Instrumenting databases...');
 
     for (const instance of databaseInstances) {
-      debug.log('@sentry/nuxt: Instrumenting database instance:', instance);
+      debug.log('[Nitro Database Plugin]: Instrumenting database instance:', instance);
       const db = useDatabase(instance);
       instrumentDatabase(db);
     }
 
-    debug.log('@sentry/nuxt: Databases instrumented.');
+    debug.log('[Nitro Database Plugin]: Databases instrumented.');
   } catch (error) {
     // During build time, we can't use the useDatabase function, so we just log an error.
     if (error instanceof Error && /Cannot access 'instances'/.test(error.message)) {
-      debug.log('@sentry/nuxt: Database instrumentation skipped during build time.');
+      debug.log('[Nitro Database Plugin]: Database instrumentation skipped during build time.');
       return;
     }
 
-    debug.error('@sentry/nuxt: Failed to instrument database:', error);
+    debug.error('[Nitro Database Plugin]: Failed to instrument database:', error);
   }
 });
 

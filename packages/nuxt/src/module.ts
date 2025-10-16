@@ -129,7 +129,7 @@ export default defineNuxtModule<ModuleOptions>({
     if (serverConfigFile) {
       addMiddlewareImports();
       addStorageInstrumentation(nuxt);
-      addDatabaseInstrumentation(nuxt);
+      addDatabaseInstrumentation(nuxt.options.nitro);
     }
 
     nuxt.hooks.hook('nitro:init', nitro => {
