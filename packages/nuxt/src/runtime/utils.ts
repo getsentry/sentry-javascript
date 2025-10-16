@@ -1,53 +1,7 @@
-import type { ClientOptions, Context, SerializedTraceData } from '@sentry/core';
-import { captureException, debug, getClient, getTraceMetaTags } from '@sentry/core';
+import type { ClientOptions } from '@sentry/core';
+import { captureException, getClient } from '@sentry/core';
 import type { VueOptions } from '@sentry/vue/src/types';
-import type { CapturedErrorContext } from 'nitropack/types';
-import type { NuxtRenderHTMLContext } from 'nuxt/app';
 import type { ComponentPublicInstance } from 'vue';
-
-/**
- *  Extracts the relevant context information from the error context (H3Event in Nitro Error)
- *  and created a structured context object.
- */
-export function extractErrorContext(errorContext: CapturedErrorContext | undefined): Context {
-  const ctx: Context = {};
-
-  if (!errorContext) {
-    return ctx;
-  }
-
-  if (errorContext.event) {
-    ctx.method = errorContext.event._method;
-    ctx.path = errorContext.event._path;
-  }
-
-  if (Array.isArray(errorContext.tags)) {
-    ctx.tags = errorContext.tags;
-  }
-
-  return ctx;
-}
-
-/**
- * Adds Sentry tracing <meta> tags to the returned html page.
- *
- * Exported only for testing
- */
-export function addSentryTracingMetaTags(head: NuxtRenderHTMLContext['head'], traceData?: SerializedTraceData): void {
-  const metaTags = getTraceMetaTags(traceData);
-
-  if (head.some(tag => tag.includes('meta') && tag.includes('sentry-trace'))) {
-    debug.warn(
-      'Skipping addition of meta tags. Sentry tracing meta tags are already present in HTML page. Make sure to only set up Sentry once on the server-side. ',
-    );
-    return;
-  }
-
-  if (metaTags) {
-    debug.log('Adding Sentry tracing meta tags to HTML page:', metaTags);
-    head.push(metaTags);
-  }
-}
 
 /**
  *  Reports an error to Sentry. This function is similar to `attachErrorHandler` in `@sentry/vue`.

@@ -1,1 +1,1 @@
-export { sentryCloudflareNitroPlugin } from './sentry-cloudflare.server';
+export { sentryCloudflareNitroPlugin } from '@sentry/nitro/plugins';
