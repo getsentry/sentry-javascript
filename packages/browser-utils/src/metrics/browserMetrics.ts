@@ -426,6 +426,24 @@ export function addPerformanceEntries(span: Span, options: AddPerformanceEntries
 }
 
 /**
+ * React 19.2+ creates performance.measure entries for component renders.
+ * We can identify them by the `detail.devtools.track` property being set to 'Components ⚛'.
+ * see: https://react.dev/reference/dev-tools/react-performance-tracks
+ * see: https://github.com/facebook/react/blob/06fcc8f380c6a905c7bc18d94453f623cf8cbc81/packages/react-reconciler/src/ReactFiberPerformanceTrack.js#L454-L473
+ */
+function isReact19MeasureEntry(entry: PerformanceEntry | null): boolean | void {
+  if (entry?.entryType !== 'measure') {
+    return;
+  }
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    return (entry as PerformanceMeasure).detail.devtools.track === 'Components ⚛';
+  } catch {
+    return;
+  }
+}
+
+/**
  * Create measure related spans.
  * Exported only for tests.
  */
@@ -437,6 +455,10 @@ export function _addMeasureSpans(
   timeOrigin: number,
   ignorePerformanceApiSpans: AddPerformanceEntriesOptions['ignorePerformanceApiSpans'],
 ): void {
+  if (isReact19MeasureEntry(entry)) {
+    return;
+  }
+
   if (
     ['mark', 'measure'].includes(entry.entryType) &&
     stringMatchesSomePattern(entry.name, ignorePerformanceApiSpans)
@@ -445,6 +467,7 @@ export function _addMeasureSpans(
   }
 
   const navEntry = getNavigationEntry(false);
+
   const requestTime = msToSec(navEntry ? navEntry.requestStart : 0);
   // Because performance.measure accepts arbitrary timestamps it can produce
   // spans that happen before the browser even makes a request for the page.

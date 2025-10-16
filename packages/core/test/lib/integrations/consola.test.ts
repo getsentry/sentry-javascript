@@ -8,6 +8,7 @@ import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
 // Mock dependencies
 vi.mock('../../../src/logs/internal', () => ({
   _INTERNAL_captureLog: vi.fn(),
+  _INTERNAL_flushLogsBuffer: vi.fn(),
 }));
 
 vi.mock('../../../src/logs/utils', async actual => ({

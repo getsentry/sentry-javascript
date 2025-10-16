@@ -12,6 +12,8 @@ import {
   withMonitor,
 } from '../../src';
 import * as integrationModule from '../../src/integration';
+import { _INTERNAL_captureLog } from '../../src/logs/internal';
+import { _INTERNAL_captureMetric } from '../../src/metrics/internal';
 import type { Envelope } from '../../src/types-hoist/envelope';
 import type { ErrorEvent, Event, TransactionEvent } from '../../src/types-hoist/event';
 import type { SpanJSON } from '../../src/types-hoist/span';
@@ -2597,6 +2599,211 @@ describe('Client', () => {
 
       const promise = await withMonitor('test-monitor', callback);
       await expect(promise).rejects.toThrowError(error);
+    });
+  });
+
+  describe('log weight-based flushing', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('flushes logs when weight exceeds 800KB', () => {
+      const options = getDefaultTestClientOptions({
+        dsn: PUBLIC_DSN,
+        enableLogs: true,
+      });
+      const client = new TestClient(options);
+      const scope = new Scope();
+      scope.setClient(client);
+
+      const sendEnvelopeSpy = vi.spyOn(client, 'sendEnvelope');
+
+      // Create a large log message that will exceed the 800KB threshold
+      const largeMessage = 'x'.repeat(400_000); // 400KB string
+      _INTERNAL_captureLog({ message: largeMessage, level: 'info' }, scope);
+
+      expect(sendEnvelopeSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('accumulates log weight without flushing when under threshold', () => {
+      const options = getDefaultTestClientOptions({
+        dsn: PUBLIC_DSN,
+        enableLogs: true,
+      });
+      const client = new TestClient(options);
+      const scope = new Scope();
+      scope.setClient(client);
+
+      const sendEnvelopeSpy = vi.spyOn(client, 'sendEnvelope');
+
+      // Create a log message that won't exceed the threshold
+      const message = 'x'.repeat(100_000); // 100KB string
+      _INTERNAL_captureLog({ message, level: 'info' }, scope);
+
+      expect(sendEnvelopeSpy).not.toHaveBeenCalled();
+    });
+
+    it('flushes logs after idle timeout', () => {
+      const options = getDefaultTestClientOptions({
+        dsn: PUBLIC_DSN,
+        enableLogs: true,
+      });
+      const client = new TestClient(options);
+      const scope = new Scope();
+      scope.setClient(client);
+
+      const sendEnvelopeSpy = vi.spyOn(client, 'sendEnvelope');
+
+      // Add a log which will trigger afterCaptureLog event
+      _INTERNAL_captureLog({ message: 'test log', level: 'info' }, scope);
+
+      expect(sendEnvelopeSpy).not.toHaveBeenCalled();
+
+      // Fast forward the idle timeout (5 seconds)
+      vi.advanceTimersByTime(5000);
+
+      expect(sendEnvelopeSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('resets idle timeout when new logs are captured', () => {
+      const options = getDefaultTestClientOptions({
+        dsn: PUBLIC_DSN,
+        enableLogs: true,
+      });
+      const client = new TestClient(options);
+      const scope = new Scope();
+      scope.setClient(client);
+
+      const sendEnvelopeSpy = vi.spyOn(client, 'sendEnvelope');
+
+      // Add initial log
+      _INTERNAL_captureLog({ message: 'test log 1', level: 'info' }, scope);
+
+      // Fast forward part of the idle timeout
+      vi.advanceTimersByTime(2500);
+
+      // Add another log which should reset the timeout
+      _INTERNAL_captureLog({ message: 'test log 2', level: 'info' }, scope);
+
+      // Fast forward the remaining time
+      vi.advanceTimersByTime(2500);
+
+      // Should not have flushed yet since timeout was reset
+      expect(sendEnvelopeSpy).not.toHaveBeenCalled();
+
+      // Fast forward the full timeout
+      vi.advanceTimersByTime(5000);
+
+      // Now should have flushed both logs
+      expect(sendEnvelopeSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('flushes logs on flush event', () => {
+      const options = getDefaultTestClientOptions({
+        dsn: PUBLIC_DSN,
+        enableLogs: true,
+      });
+      const client = new TestClient(options);
+      const scope = new Scope();
+      scope.setClient(client);
+
+      const sendEnvelopeSpy = vi.spyOn(client, 'sendEnvelope');
+
+      // Add some logs
+      _INTERNAL_captureLog({ message: 'test1', level: 'info' }, scope);
+      _INTERNAL_captureLog({ message: 'test2', level: 'info' }, scope);
+
+      // Trigger flush event
+      client.emit('flush');
+
+      expect(sendEnvelopeSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not flush logs when logs are disabled', () => {
+      const options = getDefaultTestClientOptions({
+        dsn: PUBLIC_DSN,
+      });
+      const client = new TestClient(options);
+      const scope = new Scope();
+      scope.setClient(client);
+
+      const sendEnvelopeSpy = vi.spyOn(client, 'sendEnvelope');
+
+      // Create a large log message
+      const largeMessage = 'x'.repeat(400_000);
+      _INTERNAL_captureLog({ message: largeMessage, level: 'info' }, scope);
+
+      expect(sendEnvelopeSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('metric weight-based flushing', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('flushes metrics when weight exceeds 800KB', () => {
+      const options = getDefaultTestClientOptions({
+        dsn: PUBLIC_DSN,
+        _experiments: { enableMetrics: true },
+      });
+      const client = new TestClient(options);
+      const scope = new Scope();
+      scope.setClient(client);
+
+      const sendEnvelopeSpy = vi.spyOn(client, 'sendEnvelope');
+
+      // Create large metrics that will exceed the 800KB threshold
+      const largeValue = 'x'.repeat(400_000); // 400KB string
+      _INTERNAL_captureMetric({ name: 'large_metric', value: largeValue, type: 'counter', attributes: {} }, { scope });
+
+      expect(sendEnvelopeSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('accumulates metric weight without flushing when under threshold', () => {
+      const options = getDefaultTestClientOptions({
+        dsn: PUBLIC_DSN,
+        _experiments: { enableMetrics: true },
+      });
+      const client = new TestClient(options);
+      const scope = new Scope();
+      scope.setClient(client);
+
+      const sendEnvelopeSpy = vi.spyOn(client, 'sendEnvelope');
+
+      // Create metrics that won't exceed the threshold
+      _INTERNAL_captureMetric({ name: 'test_metric', value: 42, type: 'counter', attributes: {} }, { scope });
+
+      expect(sendEnvelopeSpy).not.toHaveBeenCalled();
+    });
+
+    it('flushes metrics on flush event', () => {
+      const options = getDefaultTestClientOptions({
+        dsn: PUBLIC_DSN,
+        _experiments: { enableMetrics: true },
+      });
+      const client = new TestClient(options);
+      const scope = new Scope();
+      scope.setClient(client);
+
+      const sendEnvelopeSpy = vi.spyOn(client, 'sendEnvelope');
+
+      // Add some metrics
+      _INTERNAL_captureMetric({ name: 'metric1', value: 1, type: 'counter', attributes: {} }, { scope });
+      _INTERNAL_captureMetric({ name: 'metric2', value: 2, type: 'counter', attributes: {} }, { scope });
+
+      // Trigger flush event
+      client.emit('flush');
+
+      expect(sendEnvelopeSpy).toHaveBeenCalledTimes(1);
     });
   });
 });

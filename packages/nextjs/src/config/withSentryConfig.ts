@@ -14,8 +14,9 @@ import type {
   NextConfigFunction,
   NextConfigObject,
   SentryBuildOptions,
+  TurbopackOptions,
 } from './types';
-import { getNextjsVersion, supportsProductionCompileHook } from './util';
+import { detectActiveBundler, getNextjsVersion, supportsProductionCompileHook } from './util';
 import { constructWebpackConfigFunction } from './webpack';
 
 let showedExportModeTunnelWarning = false;
@@ -147,7 +148,9 @@ function getFinalConfigObject(
 
   let routeManifest: RouteManifest | undefined;
   if (!userSentryOptions.disableManifestInjection) {
-    routeManifest = createRouteManifest();
+    routeManifest = createRouteManifest({
+      basePath: incomingUserNextConfigObject.basePath,
+    });
   }
 
   setUpBuildTimeVariables(incomingUserNextConfigObject, userSentryOptions, releaseName);
@@ -258,33 +261,40 @@ function getFinalConfigObject(
     nextMajor = major;
   }
 
-  const isTurbopack = process.env.TURBOPACK;
+  const activeBundler = detectActiveBundler(nextJsVersion);
+  const isTurbopack = activeBundler === 'turbopack';
+  const isWebpack = activeBundler === 'webpack';
   const isTurbopackSupported = supportsProductionCompileHook(nextJsVersion ?? '');
 
+  // Warn if using turbopack with an unsupported Next.js version
   if (!isTurbopackSupported && isTurbopack) {
-    if (process.env.NODE_ENV === 'development') {
-      // eslint-disable-next-line no-console
-      console.warn(
-        `[@sentry/nextjs] WARNING: You are using the Sentry SDK with Turbopack (\`next dev --turbopack\`). The Sentry SDK is compatible with Turbopack on Next.js version 15.4.1 or later. You are currently on ${nextJsVersion}. Please upgrade to a newer Next.js version to use the Sentry SDK with Turbopack.`,
-      );
-    } else if (process.env.NODE_ENV === 'production') {
-      // eslint-disable-next-line no-console
-      console.warn(
-        `[@sentry/nextjs] WARNING: You are using the Sentry SDK with Turbopack (\`next build --turbopack\`). The Sentry SDK is compatible with Turbopack on Next.js version 15.4.1 or later. You are currently on ${nextJsVersion}. Please upgrade to a newer Next.js version to use the Sentry SDK with Turbopack.`,
-      );
-    }
+    // eslint-disable-next-line no-console
+    console.warn(
+      `[@sentry/nextjs] WARNING: You are using the Sentry SDK with Turbopack. The Sentry SDK is compatible with Turbopack on Next.js version 15.4.1 or later. You are currently on ${nextJsVersion}. Please upgrade to a newer Next.js version to use the Sentry SDK with Turbopack.`,
+    );
   }
 
-  // webpack case
+  // Webpack case - warn if trying to use runAfterProductionCompile hook with unsupported Next.js version
   if (
     userSentryOptions.useRunAfterProductionCompileHook &&
     !supportsProductionCompileHook(nextJsVersion ?? '') &&
-    !isTurbopack
+    isWebpack
   ) {
     // eslint-disable-next-line no-console
     console.warn(
       '[@sentry/nextjs] The configured `useRunAfterProductionCompileHook` option is not compatible with your current Next.js version. This option is only supported on Next.js version 15.4.1 or later. Will not run source map and release management logic.',
     );
+  }
+
+  let turboPackConfig: TurbopackOptions | undefined;
+
+  if (isTurbopack) {
+    turboPackConfig = constructTurbopackConfig({
+      userNextConfig: incomingUserNextConfigObject,
+      userSentryOptions,
+      routeManifest,
+      nextJsVersion,
+    });
   }
 
   // If not explicitly set, turbopack uses the runAfterProductionCompile hook (as there are no alternatives), webpack does not.
@@ -294,9 +304,15 @@ function getFinalConfigObject(
   if (shouldUseRunAfterProductionCompileHook && supportsProductionCompileHook(nextJsVersion ?? '')) {
     if (incomingUserNextConfigObject?.compiler?.runAfterProductionCompile === undefined) {
       incomingUserNextConfigObject.compiler ??= {};
+
       incomingUserNextConfigObject.compiler.runAfterProductionCompile = async ({ distDir }) => {
         await handleRunAfterProductionCompile(
-          { releaseName, distDir, buildTool: isTurbopack ? 'turbopack' : 'webpack' },
+          {
+            releaseName,
+            distDir,
+            buildTool: isTurbopack ? 'turbopack' : 'webpack',
+            usesNativeDebugIds: isTurbopack ? turboPackConfig?.debugIds : undefined,
+          },
           userSentryOptions,
         );
       };
@@ -308,7 +324,12 @@ function getFinalConfigObject(
             const { distDir }: { distDir: string } = argArray[0] ?? { distDir: '.next' };
             await target.apply(thisArg, argArray);
             await handleRunAfterProductionCompile(
-              { releaseName, distDir, buildTool: isTurbopack ? 'turbopack' : 'webpack' },
+              {
+                releaseName,
+                distDir,
+                buildTool: isTurbopack ? 'turbopack' : 'webpack',
+                usesNativeDebugIds: isTurbopack ? turboPackConfig?.debugIds : undefined,
+              },
               userSentryOptions,
             );
           },
@@ -367,10 +388,9 @@ function getFinalConfigObject(
             ],
           },
         }),
-    webpack:
-      isTurbopack || userSentryOptions.disableSentryWebpackConfig
-        ? incomingUserNextConfigObject.webpack // just return the original webpack config
-        : constructWebpackConfigFunction({
+    ...(isWebpack && !userSentryOptions.disableSentryWebpackConfig
+      ? {
+          webpack: constructWebpackConfigFunction({
             userNextConfig: incomingUserNextConfigObject,
             userSentryOptions,
             releaseName,
@@ -378,13 +398,11 @@ function getFinalConfigObject(
             nextJsVersion,
             useRunAfterProductionCompileHook: shouldUseRunAfterProductionCompileHook,
           }),
+        }
+      : {}),
     ...(isTurbopackSupported && isTurbopack
       ? {
-          turbopack: constructTurbopackConfig({
-            userNextConfig: incomingUserNextConfigObject,
-            routeManifest,
-            nextJsVersion,
-          }),
+          turbopack: turboPackConfig,
         }
       : {}),
   };

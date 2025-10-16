@@ -7,6 +7,7 @@ import type {
   EventEnvelope,
   SerializedCheckIn,
   SerializedLogContainer,
+  SerializedMetricContainer,
   SerializedSession,
   SessionAggregates,
   TransactionEvent,
@@ -22,6 +23,7 @@ import {
   assertSentryClientReport,
   assertSentryEvent,
   assertSentryLogContainer,
+  assertSentryMetricContainer,
   assertSentrySession,
   assertSentrySessions,
   assertSentryTransaction,
@@ -122,6 +124,7 @@ type ExpectedSessions = Partial<SessionAggregates> | ((event: SessionAggregates)
 type ExpectedCheckIn = Partial<SerializedCheckIn> | ((event: SerializedCheckIn) => void);
 type ExpectedClientReport = Partial<ClientReport> | ((event: ClientReport) => void);
 type ExpectedLogContainer = Partial<SerializedLogContainer> | ((event: SerializedLogContainer) => void);
+type ExpectedMetricContainer = Partial<SerializedMetricContainer> | ((event: SerializedMetricContainer) => void);
 
 type Expected =
   | {
@@ -144,6 +147,9 @@ type Expected =
     }
   | {
       log: ExpectedLogContainer;
+    }
+  | {
+      trace_metric: ExpectedMetricContainer;
     };
 
 type ExpectedEnvelopeHeader =
@@ -403,6 +409,9 @@ export function createRunner(...paths: string[]) {
             } else if ('log' in expected) {
               expectLog(item[1] as SerializedLogContainer, expected.log);
               expectCallbackCalled();
+            } else if ('trace_metric' in expected) {
+              expectMetric(item[1] as SerializedMetricContainer, expected.trace_metric);
+              expectCallbackCalled();
             } else {
               throw new Error(
                 `Unhandled expected envelope item type: ${JSON.stringify(expected)}\nItem: ${JSON.stringify(item)}`,
@@ -646,6 +655,14 @@ function expectLog(item: SerializedLogContainer, expected: ExpectedLogContainer)
     expected(item);
   } else {
     assertSentryLogContainer(item, expected);
+  }
+}
+
+function expectMetric(item: SerializedMetricContainer, expected: ExpectedMetricContainer): void {
+  if (typeof expected === 'function') {
+    expected(item);
+  } else {
+    assertSentryMetricContainer(item, expected);
   }
 }
 

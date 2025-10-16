@@ -1,0 +1,1 @@
+export { growthbookIntegration } from './integration';

@@ -37,6 +37,9 @@ const IMPORTED_INTEGRATION_CDN_BUNDLE_PATHS: Record<string, string> = {
   moduleMetadataIntegration: 'modulemetadata',
   graphqlClientIntegration: 'graphqlclient',
   browserProfilingIntegration: 'browserprofiling',
+  instrumentAnthropicAiClient: 'instrumentanthropicaiclient',
+  instrumentOpenAiClient: 'instrumentopenaiclient',
+  instrumentGoogleGenAIClient: 'instrumentgooglegenaiclient',
   // technically, this is not an integration, but let's add it anyway for simplicity
   makeMultiplexedTransport: 'multiplexedtransport',
 };

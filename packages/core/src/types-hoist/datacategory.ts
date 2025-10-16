@@ -32,5 +32,7 @@ export type DataCategory =
   | 'log_item'
   // Log bytes stored (unused for rate limiting)
   | 'log_byte'
+  // Metric event
+  | 'metric'
   // Unknown data category
   | 'unknown';
