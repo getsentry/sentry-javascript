@@ -1100,6 +1100,12 @@ Work in this release was contributed by @hanseo0507. Thank you for your contribu
 
 Work in this release was contributed by @0xbad0c0d3. Thank you for your contribution!
 
+## 10.21.0-alpha.1
+
+This release is a preview release for sending spans in browser via spanV2 instead of transaction event envelopes. All of this is experimental and subject to change. Use at your own risk. [More Details.](https://github.com/getsentry/sentry-javascript/pull/17852)
+
+- export withStreamSpan from `@sentry/browser`
+
 ## 10.21.0-alpha.0
 
 This release is a preview release for sending spans in browser via spanV2 instead of transaction event envelopes. All of this is experimental and subject to change. Use at your own risk. [More Details.](https://github.com/getsentry/sentry-javascript/pull/17852)
