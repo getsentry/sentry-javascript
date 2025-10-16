@@ -98,8 +98,7 @@
     "@sentry/core": "10.20.0",
     "@sentry/node-core": "10.20.0",
     "@sentry/opentelemetry": "10.20.0",
-    "import-in-the-middle": "^1.14.2",
-    "minimatch": "^9.0.0"
+    "import-in-the-middle": "^1.14.2"
   },
   "devDependencies": {
     "@types/node": "^18.19.1"
