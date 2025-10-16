@@ -23,7 +23,7 @@ setTimeout(() => {
 
       // This child should be ignored
       const child2 = logger.child({ module: 'authentication.v2' });
-      Sentry.pinoIntegration.ignoreLogger(child2);
+      Sentry.pinoIntegration.untrackLogger(child2);
       child2.error(new Error('oh no v2'));
 
       // This should also be ignored as the parent is ignored

@@ -203,14 +203,14 @@ interface PinoIntegrationFunction {
    *
    * @param logger A Pino logger instance.
    */
-  ignoreLogger(logger: unknown): void;
+  untrackLogger(logger: unknown): void;
 }
 
 /**
  * Integration for Pino logging library.
  * Captures Pino logs as Sentry logs and optionally captures some log levels as events.
  *
- * By default, all Pino loggers will be captured. To ignore a specific logger, use `pinoIntegration.ignoreLogger(logger)`.
+ * By default, all Pino loggers will be captured. To ignore a specific logger, use `pinoIntegration.untrackLogger(logger)`.
  *
  * If you disable automatic instrumentation with `autoInstrument: false`, you can mark specific loggers to be tracked with `pinoIntegration.trackLogger(logger)`.
  *
@@ -222,7 +222,7 @@ export const pinoIntegration = Object.assign(_pinoIntegration, {
       (logger as Pino)[SENTRY_TRACK_SYMBOL] = 'track';
     }
   },
-  ignoreLogger(logger: unknown): void {
+  untrackLogger(logger: unknown): void {
     if (logger && typeof logger === 'object' && 'levels' in logger) {
       (logger as Pino)[SENTRY_TRACK_SYMBOL] = 'ignore';
     }
