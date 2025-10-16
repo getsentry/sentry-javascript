@@ -98,6 +98,7 @@
     "@sentry/core": "10.20.0",
     "@sentry/node-core": "10.20.0",
     "@sentry/opentelemetry": "10.20.0",
+    "firebase-functions": "^6.5.0",
     "import-in-the-middle": "^1.14.2",
     "minimatch": "^9.0.0"
   },

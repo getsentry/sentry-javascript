@@ -11,6 +11,11 @@ const config: FirebaseInstrumentationConfig = {
 
     span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'db.query');
   },
+  functionsSpanCreationHook: span => {
+    addOriginToSpan(span, 'auto.firebase.otel.functions');
+
+    span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'http.request');
+  },
 };
 
 export const instrumentFirebase = generateInstrumentOnce(INTEGRATION_NAME, () => new FirebaseInstrumentation(config));
