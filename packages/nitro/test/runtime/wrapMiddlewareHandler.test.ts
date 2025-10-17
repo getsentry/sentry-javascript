@@ -1,7 +1,7 @@
 import * as SentryCore from '@sentry/core';
 import type { EventHandler, EventHandlerRequest, H3Event } from 'h3';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { wrapMiddlewareHandlerWithSentry } from '../../../src/runtime/hooks/wrapMiddlewareHandler';
+import { wrapMiddlewareHandlerWithSentry } from '../../src/runtime/wrapMiddlewareHandler';
 
 // Only mock the Sentry APIs we need to verify
 vi.mock('@sentry/core', async importOriginal => {
@@ -164,8 +164,8 @@ describe('wrapMiddlewareHandlerWithSentry', () => {
         expect.objectContaining({
           name: 'object-middleware',
           attributes: expect.objectContaining({
-            [SentryCore.SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'middleware.nuxt',
-            'nuxt.middleware.name': 'object-middleware',
+            [SentryCore.SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'middleware.nitro',
+            'nitro.middleware.name': 'object-middleware',
           }),
         }),
         expect.any(Function),
@@ -195,9 +195,9 @@ describe('wrapMiddlewareHandlerWithSentry', () => {
         expect.objectContaining({
           name: 'request-middleware.onRequest',
           attributes: expect.objectContaining({
-            [SentryCore.SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'middleware.nuxt',
-            'nuxt.middleware.name': 'request-middleware',
-            'nuxt.middleware.hook.name': 'onRequest',
+            [SentryCore.SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'middleware.nitro',
+            'nitro.middleware.name': 'request-middleware',
+            'nitro.middleware.hook.name': 'onRequest',
           }),
         }),
         expect.any(Function),
@@ -205,9 +205,9 @@ describe('wrapMiddlewareHandlerWithSentry', () => {
 
       // Verify that single handlers don't have an index attribute
       const spanCall = (SentryCore.startSpan as any).mock.calls.find(
-        (call: any) => call[0]?.attributes?.['nuxt.middleware.hook.name'] === 'onRequest',
+        (call: any) => call[0]?.attributes?.['nitro.middleware.hook.name'] === 'onRequest',
       );
-      expect(spanCall[0].attributes).not.toHaveProperty('nuxt.middleware.hook.index');
+      expect(spanCall[0].attributes).not.toHaveProperty('nitro.middleware.hook.index');
     });
 
     it('should wrap EventHandlerObject.onRequest array of handlers correctly', async () => {
@@ -240,8 +240,8 @@ describe('wrapMiddlewareHandlerWithSentry', () => {
         expect.objectContaining({
           name: 'multi-request-middleware.onRequest',
           attributes: expect.objectContaining({
-            'nuxt.middleware.hook.name': 'onRequest',
-            'nuxt.middleware.hook.index': 0,
+            'nitro.middleware.hook.name': 'onRequest',
+            'nitro.middleware.hook.index': 0,
           }),
         }),
         expect.any(Function),
@@ -250,8 +250,8 @@ describe('wrapMiddlewareHandlerWithSentry', () => {
         expect.objectContaining({
           name: 'multi-request-middleware.onRequest',
           attributes: expect.objectContaining({
-            'nuxt.middleware.hook.name': 'onRequest',
-            'nuxt.middleware.hook.index': 1,
+            'nitro.middleware.hook.name': 'onRequest',
+            'nitro.middleware.hook.index': 1,
           }),
         }),
         expect.any(Function),
@@ -282,9 +282,9 @@ describe('wrapMiddlewareHandlerWithSentry', () => {
         expect.objectContaining({
           name: 'response-middleware.onBeforeResponse',
           attributes: expect.objectContaining({
-            [SentryCore.SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'middleware.nuxt',
-            'nuxt.middleware.name': 'response-middleware',
-            'nuxt.middleware.hook.name': 'onBeforeResponse',
+            [SentryCore.SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'middleware.nitro',
+            'nitro.middleware.name': 'response-middleware',
+            'nitro.middleware.hook.name': 'onBeforeResponse',
           }),
         }),
         expect.any(Function),
@@ -322,8 +322,8 @@ describe('wrapMiddlewareHandlerWithSentry', () => {
         expect.objectContaining({
           name: 'multi-response-middleware.onBeforeResponse',
           attributes: expect.objectContaining({
-            'nuxt.middleware.hook.name': 'onBeforeResponse',
-            'nuxt.middleware.hook.index': 0,
+            'nitro.middleware.hook.name': 'onBeforeResponse',
+            'nitro.middleware.hook.index': 0,
           }),
         }),
         expect.any(Function),
@@ -332,8 +332,8 @@ describe('wrapMiddlewareHandlerWithSentry', () => {
         expect.objectContaining({
           name: 'multi-response-middleware.onBeforeResponse',
           attributes: expect.objectContaining({
-            'nuxt.middleware.hook.name': 'onBeforeResponse',
-            'nuxt.middleware.hook.index': 1,
+            'nitro.middleware.hook.name': 'onBeforeResponse',
+            'nitro.middleware.hook.index': 1,
           }),
         }),
         expect.any(Function),
@@ -375,21 +375,21 @@ describe('wrapMiddlewareHandlerWithSentry', () => {
       expect(SentryCore.startSpan).toHaveBeenCalledWith(
         expect.objectContaining({
           name: 'complex-middleware',
-          attributes: expect.objectContaining({ 'nuxt.middleware.hook.name': 'handler' }),
+          attributes: expect.objectContaining({ 'nitro.middleware.hook.name': 'handler' }),
         }),
         expect.any(Function),
       );
       expect(SentryCore.startSpan).toHaveBeenCalledWith(
         expect.objectContaining({
           name: 'complex-middleware.onRequest',
-          attributes: expect.objectContaining({ 'nuxt.middleware.hook.name': 'onRequest' }),
+          attributes: expect.objectContaining({ 'nitro.middleware.hook.name': 'onRequest' }),
         }),
         expect.any(Function),
       );
       expect(SentryCore.startSpan).toHaveBeenCalledWith(
         expect.objectContaining({
           name: 'complex-middleware.onBeforeResponse',
-          attributes: expect.objectContaining({ 'nuxt.middleware.hook.name': 'onBeforeResponse' }),
+          attributes: expect.objectContaining({ 'nitro.middleware.hook.name': 'onBeforeResponse' }),
         }),
         expect.any(Function),
       );
@@ -480,8 +480,8 @@ describe('wrapMiddlewareHandlerWithSentry', () => {
         expect.objectContaining({
           name: 'api-middleware',
           attributes: expect.objectContaining({
-            [SentryCore.SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'middleware.nuxt',
-            'nuxt.middleware.name': 'api-middleware',
+            [SentryCore.SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'middleware.nitro',
+            'nitro.middleware.name': 'api-middleware',
             'http.request.method': 'GET',
             'http.route': '/test-path',
           }),
