@@ -16,6 +16,10 @@ import { defineNitroPlugin, useDatabase } from 'nitropack/runtime';
 // @ts-expect-error - This is a virtual module
 import { databaseInstances } from '#sentry/database-config.mjs';
 
+type MaybeInstrumentedDatabase = Database & {
+  __sentry_instrumented__?: boolean;
+};
+
 /**
  * Keeps track of prepared statements that have been patched.
  */
@@ -51,7 +55,12 @@ export default defineNitroPlugin(() => {
   }
 });
 
-function instrumentDatabase(db: Database): void {
+function instrumentDatabase(db: MaybeInstrumentedDatabase): void {
+  if (db.__sentry_instrumented__) {
+    debug.log('[Nitro Database Plugin]: Database already instrumented. Skipping...');
+    return;
+  }
+
   db.prepare = new Proxy(db.prepare, {
     apply(target, thisArg, args: Parameters<typeof db.prepare>) {
       const [query] = args;
@@ -83,6 +92,8 @@ function instrumentDatabase(db: Database): void {
       );
     },
   });
+
+  db.__sentry_instrumented__ = true;
 }
 
 /**
