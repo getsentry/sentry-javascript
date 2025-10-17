@@ -1,5 +1,5 @@
 import { captureException } from '../../exports';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
+import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import { SPAN_STATUS_ERROR } from '../../tracing';
 import { startSpanManual } from '../../tracing/trace';
 import type { Span, SpanAttributeValue } from '../../types-hoist/span';
@@ -97,7 +97,10 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
           {
             name: `${operationName} ${modelName}`,
             op: 'gen_ai.pipeline',
-            attributes,
+            attributes: {
+              ...attributes,
+              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.pipeline',
+            },
           },
           span => {
             spanMap.set(runId, span);
@@ -130,7 +133,10 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
           {
             name: `${operationName} ${modelName}`,
             op: 'gen_ai.chat',
-            attributes,
+            attributes: {
+              ...attributes,
+              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.chat',
+            },
           },
           span => {
             spanMap.set(runId, span);
@@ -204,7 +210,10 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
           {
             name: `chain ${chainName}`,
             op: 'gen_ai.invoke_agent',
-            attributes,
+            attributes: {
+              ...attributes,
+              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.invoke_agent',
+            },
           },
           span => {
             spanMap.set(runId, span);
@@ -273,7 +282,10 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
           {
             name: `execute_tool ${toolName}`,
             op: 'gen_ai.execute_tool',
-            attributes,
+            attributes: {
+              ...attributes,
+              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.execute_tool',
+            },
           },
           span => {
             spanMap.set(runId, span);
