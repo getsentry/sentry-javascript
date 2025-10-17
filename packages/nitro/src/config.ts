@@ -9,8 +9,21 @@ import { createSentryNitroModule } from './module';
  * @returns The modified config to be exported
  */
 export function withSentryConfig(config: NitroConfig, moduleOptions?: SentryNitroOptions): NitroConfig {
+  setupSentryNitroModule(config, moduleOptions);
+
+  return config;
+}
+
+/**
+ * Sets up the Sentry Nitro module, useful for meta framework integrations.
+ */
+export function setupSentryNitroModule(
+  config: NitroConfig,
+  moduleOptions?: SentryNitroOptions,
+  serverConfigFile?: string,
+): NitroConfig {
   config.modules = config.modules || [];
-  config.modules.push(createSentryNitroModule(moduleOptions));
+  config.modules.push(createSentryNitroModule(moduleOptions, serverConfigFile));
 
   return config;
 }
