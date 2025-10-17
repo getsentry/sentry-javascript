@@ -23,12 +23,10 @@ test('Should create a transaction for middleware', async ({ request }) => {
 
 test('Faulty middlewares', async ({ request }) => {
   const middlewareTransactionPromise = waitForTransaction('nextjs-pages-dir', async transactionEvent => {
-    console.log('transactionEvent', transactionEvent.transaction);
     return transactionEvent?.transaction === 'middleware GET';
   });
 
   const errorEventPromise = waitForError('nextjs-pages-dir', errorEvent => {
-    console.log('errorEvent', errorEvent.transaction);
     return errorEvent?.exception?.values?.[0]?.value === 'Middleware Error';
   });
 
