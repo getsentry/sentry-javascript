@@ -668,7 +668,7 @@ export function handleNavigation(opts: {
 
     // Cross usage can result in multiple navigation spans being created without this check
     if (!isAlreadyInNavigationSpan) {
-      startBrowserTracingNavigationSpan(client, {
+      const navigationSpan = startBrowserTracingNavigationSpan(client, {
         name,
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
@@ -676,6 +676,11 @@ export function handleNavigation(opts: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: `auto.navigation.react.reactrouter_v${version}`,
         },
       });
+
+      // Patch navigation span to handle early cancellation (e.g., document.hidden)
+      if (navigationSpan) {
+        patchNavigationSpanEnd(navigationSpan, location, routes, basename, allRoutes);
+      }
     }
   }
 }
@@ -729,27 +734,141 @@ function updatePageloadTransaction({
     : (_matchRoutes(allRoutes || routes, location, basename) as unknown as RouteMatch[]);
 
   if (branches) {
-    let name,
-      source: TransactionSource = 'url';
-
-    const isInDescendantRoute = locationIsInsideDescendantRoute(location, allRoutes || routes);
-
-    if (isInDescendantRoute) {
-      name = prefixWithSlash(rebuildRoutePathFromAllRoutes(allRoutes || routes, location));
-      source = 'route';
-    }
-
-    if (!isInDescendantRoute || !name) {
-      [name, source] = getNormalizedName(routes, location, branches, basename);
-    }
+    const [name, source] = getTransactionNameAndSource(location, routes, branches, basename, allRoutes);
 
     getCurrentScope().setTransactionName(name || '/');
 
     if (activeRootSpan) {
       activeRootSpan.updateName(name);
       activeRootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
+
+      // Patch span.end() to ensure we update the name one last time before the span is sent
+      patchPageloadSpanEnd(activeRootSpan, location, routes, basename, allRoutes);
     }
   }
+}
+
+/**
+ * Extracts the transaction name and source from the route information.
+ */
+function getTransactionNameAndSource(
+  location: Location,
+  routes: RouteObject[],
+  branches: RouteMatch[],
+  basename: string | undefined,
+  allRoutes: RouteObject[] | undefined,
+): [string, TransactionSource] {
+  let name: string | undefined;
+  let source: TransactionSource = 'url';
+
+  const isInDescendantRoute = locationIsInsideDescendantRoute(location, allRoutes || routes);
+
+  if (isInDescendantRoute) {
+    name = prefixWithSlash(rebuildRoutePathFromAllRoutes(allRoutes || routes, location));
+    source = 'route';
+  }
+
+  if (!isInDescendantRoute || !name) {
+    [name, source] = getNormalizedName(routes, location, branches, basename);
+  }
+
+  return [name || '/', source];
+}
+
+/**
+ * Patches the span.end() method to update the transaction name one last time before the span is sent.
+ * This handles cases where the span is cancelled early (e.g., document.hidden) before lazy routes have finished loading.
+ */
+function patchPageloadSpanEnd(
+  span: Span,
+  location: Location,
+  routes: RouteObject[],
+  basename: string | undefined,
+  allRoutes: RouteObject[] | undefined,
+): void {
+  const hasEndBeenPatched = (span as { __sentry_pageload_end_patched__?: boolean })?.__sentry_pageload_end_patched__;
+
+  if (hasEndBeenPatched || !span.end) {
+    return;
+  }
+
+  const originalEnd = span.end.bind(span);
+
+  span.end = function patchedEnd(...args) {
+    // Only update if the span source is not already 'route' (i.e., it hasn't been parameterized yet)
+    const spanJson = spanToJSON(span);
+    const currentSource = spanJson.data?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
+    if (currentSource !== 'route') {
+      // Last chance to update the transaction name with the latest route info
+      const branches = _matchRoutes(allRoutes || routes, location, basename) as unknown as RouteMatch[];
+
+      if (branches) {
+        const [latestName, latestSource] = getTransactionNameAndSource(location, routes, branches, basename, allRoutes);
+
+        span.updateName(latestName);
+        span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, latestSource);
+      }
+    }
+
+    return originalEnd(...args);
+  };
+
+  // Mark this span as having its end() method patched to prevent duplicate patching
+  addNonEnumerableProperty(
+    span as { __sentry_pageload_end_patched__?: boolean },
+    '__sentry_pageload_end_patched__',
+    true,
+  );
+}
+
+/**
+ * Patches the navigation span.end() method to update the transaction name one last time before the span is sent.
+ * This handles cases where the span is cancelled early (e.g., document.hidden) before lazy routes have finished loading.
+ */
+function patchNavigationSpanEnd(
+  span: Span,
+  location: Location,
+  routes: RouteObject[],
+  basename: string | undefined,
+  allRoutes: RouteObject[] | undefined,
+): void {
+  const hasEndBeenPatched = (span as { __sentry_navigation_end_patched__?: boolean })
+    ?.__sentry_navigation_end_patched__;
+
+  if (hasEndBeenPatched || !span.end) {
+    return;
+  }
+
+  const originalEnd = span.end.bind(span);
+
+  span.end = function patchedEnd(...args) {
+    // Only update if the span source is not already 'route' (i.e., it hasn't been parameterized yet)
+    const spanJson = spanToJSON(span);
+    const currentSource = spanJson.data?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
+    if (currentSource !== 'route') {
+      // Last chance to update the transaction name with the latest route info
+      const branches = _matchRoutes(allRoutes || routes, location, basename) as unknown as RouteMatch[];
+
+      if (branches) {
+        const [name, source] = resolveRouteNameAndSource(location, routes, allRoutes || routes, branches, basename);
+
+        // Only update if we have a valid name and the span hasn't finished
+        if (name && !spanJson.timestamp) {
+          span.updateName(name);
+          span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
+        }
+      }
+    }
+
+    return originalEnd(...args);
+  };
+
+  // Mark this span as having its end() method patched to prevent duplicate patching
+  addNonEnumerableProperty(
+    span as { __sentry_navigation_end_patched__?: boolean },
+    '__sentry_navigation_end_patched__',
+    true,
+  );
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
