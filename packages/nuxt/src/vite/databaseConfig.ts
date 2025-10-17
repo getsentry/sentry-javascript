@@ -21,15 +21,16 @@ export function addDatabaseInstrumentation(nitro: NitroConfig): void {
   /**
    * This is a different option than the one in `experimental.database`, this configures multiple database instances.
    * keys represent database names to be passed to `useDatabase(name?)`.
+   * We also use the config to populate database span attributes.
    * https://nitro.build/guide/database#configuration
    */
-  const databaseInstances = Object.keys(nitro.database || { default: {} });
+  const databaseConfig = nitro.database || { default: {} };
 
   // Create a virtual module to pass this data to runtime
   addServerTemplate({
     filename: '#sentry/database-config.mjs',
     getContents: () => {
-      return `export const databaseInstances = ${JSON.stringify(databaseInstances)};`;
+      return `export const databaseConfig = ${JSON.stringify(databaseConfig)};`;
     },
   });
 

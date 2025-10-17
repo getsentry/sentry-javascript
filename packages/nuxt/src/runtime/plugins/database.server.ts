@@ -13,12 +13,19 @@ import {
 import type { Database, PreparedStatement } from 'db0';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { defineNitroPlugin, useDatabase } from 'nitropack/runtime';
+import type { DatabaseConnectionConfig as DatabaseConfig } from 'nitropack/types';
 // @ts-expect-error - This is a virtual module
-import { databaseInstances } from '#sentry/database-config.mjs';
+import { databaseConfig } from '#sentry/database-config.mjs';
+import { getDatabaseSpanData } from '../utils/database';
 
 type MaybeInstrumentedDatabase = Database & {
   __sentry_instrumented__?: boolean;
 };
+
+interface DatabaseSpanData {
+  [key: string]: string | undefined;
+  'db.system.name': string;
+}
 
 /**
  * Keeps track of prepared statements that have been patched.
@@ -35,12 +42,14 @@ const SENTRY_ORIGIN = 'auto.db.nuxt';
  */
 export default defineNitroPlugin(() => {
   try {
+    const _databaseConfig = databaseConfig as Record<string, DatabaseConfig>;
+    const databaseInstances = Object.keys(databaseConfig);
     debug.log('[Nitro Database Plugin]: Instrumenting databases...');
 
     for (const instance of databaseInstances) {
       debug.log('[Nitro Database Plugin]: Instrumenting database instance:', instance);
       const db = useDatabase(instance);
-      instrumentDatabase(db);
+      instrumentDatabase(db, _databaseConfig[instance]);
     }
 
     debug.log('[Nitro Database Plugin]: Databases instrumented.');
@@ -55,17 +64,25 @@ export default defineNitroPlugin(() => {
   }
 });
 
-function instrumentDatabase(db: MaybeInstrumentedDatabase): void {
+/**
+ * Instruments a database instance with Sentry.
+ */
+function instrumentDatabase(db: MaybeInstrumentedDatabase, config?: DatabaseConfig): void {
   if (db.__sentry_instrumented__) {
     debug.log('[Nitro Database Plugin]: Database already instrumented. Skipping...');
     return;
   }
 
+  const metadata: DatabaseSpanData = {
+    'db.system.name': config?.connector ?? db.dialect,
+    ...getDatabaseSpanData(config),
+  };
+
   db.prepare = new Proxy(db.prepare, {
     apply(target, thisArg, args: Parameters<typeof db.prepare>) {
       const [query] = args;
 
-      return instrumentPreparedStatement(target.apply(thisArg, args), query, db.dialect);
+      return instrumentPreparedStatement(target.apply(thisArg, args), query, metadata);
     },
   });
 
@@ -75,7 +92,7 @@ function instrumentDatabase(db: MaybeInstrumentedDatabase): void {
   db.sql = new Proxy(db.sql, {
     apply(target, thisArg, args: Parameters<typeof db.sql>) {
       const query = args[0]?.[0] ?? '';
-      const opts = createStartSpanOptions(query, db.dialect);
+      const opts = createStartSpanOptions(query, metadata);
 
       return startSpan(
         opts,
@@ -87,7 +104,7 @@ function instrumentDatabase(db: MaybeInstrumentedDatabase): void {
   db.exec = new Proxy(db.exec, {
     apply(target, thisArg, args: Parameters<typeof db.exec>) {
       return startSpan(
-        createStartSpanOptions(args[0], db.dialect),
+        createStartSpanOptions(args[0], metadata),
         handleSpanStart(() => target.apply(thisArg, args), { query: args[0] }),
       );
     },
@@ -102,16 +119,20 @@ function instrumentDatabase(db: MaybeInstrumentedDatabase): void {
  * This is meant to be used as a top-level call, under the hood it calls `instrumentPreparedStatementQueries`
  * to patch the query methods. The reason for this abstraction is to ensure that the `bind` method is also patched.
  */
-function instrumentPreparedStatement(statement: PreparedStatement, query: string, dialect: string): PreparedStatement {
+function instrumentPreparedStatement(
+  statement: PreparedStatement,
+  query: string,
+  data: DatabaseSpanData,
+): PreparedStatement {
   // statement.bind() returns a new instance of D1PreparedStatement, so we have to patch it as well.
   // eslint-disable-next-line @typescript-eslint/unbound-method
   statement.bind = new Proxy(statement.bind, {
     apply(target, thisArg, args: Parameters<typeof statement.bind>) {
-      return instrumentPreparedStatementQueries(target.apply(thisArg, args), query, dialect);
+      return instrumentPreparedStatementQueries(target.apply(thisArg, args), query, data);
     },
   });
 
-  return instrumentPreparedStatementQueries(statement, query, dialect);
+  return instrumentPreparedStatementQueries(statement, query, data);
 }
 
 /**
@@ -120,7 +141,7 @@ function instrumentPreparedStatement(statement: PreparedStatement, query: string
 function instrumentPreparedStatementQueries(
   statement: PreparedStatement,
   query: string,
-  dialect: string,
+  data: DatabaseSpanData,
 ): PreparedStatement {
   if (patchedStatement.has(statement)) {
     return statement;
@@ -130,7 +151,7 @@ function instrumentPreparedStatementQueries(
   statement.get = new Proxy(statement.get, {
     apply(target, thisArg, args: Parameters<typeof statement.get>) {
       return startSpan(
-        createStartSpanOptions(query, dialect),
+        createStartSpanOptions(query, data),
         handleSpanStart(() => target.apply(thisArg, args), { query }),
       );
     },
@@ -140,7 +161,7 @@ function instrumentPreparedStatementQueries(
   statement.run = new Proxy(statement.run, {
     apply(target, thisArg, args: Parameters<typeof statement.run>) {
       return startSpan(
-        createStartSpanOptions(query, dialect),
+        createStartSpanOptions(query, data),
         handleSpanStart(() => target.apply(thisArg, args), { query }),
       );
     },
@@ -150,7 +171,7 @@ function instrumentPreparedStatementQueries(
   statement.all = new Proxy(statement.all, {
     apply(target, thisArg, args: Parameters<typeof statement.all>) {
       return startSpan(
-        createStartSpanOptions(query, dialect),
+        createStartSpanOptions(query, data),
         handleSpanStart(() => target.apply(thisArg, args), { query }),
       );
     },
@@ -203,14 +224,14 @@ function createBreadcrumb(query: string): void {
 /**
  * Creates a start span options object.
  */
-function createStartSpanOptions(query: string, dialect: string): StartSpanOptions {
+function createStartSpanOptions(query: string, data: DatabaseSpanData): StartSpanOptions {
   return {
     name: query,
     attributes: {
-      'db.system.name': dialect,
       'db.query.text': query,
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: SENTRY_ORIGIN,
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db.query',
+      ...data,
     },
   };
 }
