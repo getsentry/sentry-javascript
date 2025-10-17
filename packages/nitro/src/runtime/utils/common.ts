@@ -31,18 +31,12 @@ export function extractErrorContext(errorContext: CapturedErrorContext | undefin
  * Exported only for testing
  */
 export function addSentryTracingMetaTags(response: Partial<RenderResponse>, traceData?: SerializedTraceData): void {
-  const body = response.body as NodeJS.ReadableStream;
-  const decoder = new TextDecoder();
-  response.body = new ReadableStream({
-    start: async controller => {
-      for await (const chunk of body) {
-        const html = typeof chunk === 'string' ? chunk : decoder.decode(chunk, { stream: true });
-        const modifiedHtml = addMetaTagToHead(html, traceData);
-        controller.enqueue(new TextEncoder().encode(modifiedHtml));
-      }
-      controller.close();
-    },
-  });
+  if (typeof response.body === 'string') {
+    const html = addMetaTagToHead(response.body, traceData);
+
+    response.body = html;
+    return;
+  }
 }
 
 function addMetaTagToHead(html: string, traceData?: SerializedTraceData): string {
