@@ -16,7 +16,7 @@ import { defineNitroPlugin, useDatabase } from 'nitropack/runtime';
 import type { DatabaseConnectionConfig as DatabaseConfig } from 'nitropack/types';
 // @ts-expect-error - This is a virtual module
 import { databaseConfig } from '#sentry/database-config.mjs';
-import { getDatabaseSpanData } from '../utils/database';
+import { getDatabaseSpanData } from '../utils/database-span-data';
 
 type MaybeInstrumentedDatabase = Database & {
   __sentry_instrumented__?: boolean;
