@@ -21,7 +21,7 @@ const instrumented: { [key in InstrumentHandlerType]?: boolean } = {};
 /** Add a handler function. */
 export function addHandler(type: InstrumentHandlerType, handler: InstrumentHandlerCallback): void {
   handlers[type] = handlers[type] || [];
-  (handlers[type] as InstrumentHandlerCallback[]).push(handler);
+  handlers[type].push(handler);
 }
 
 /**

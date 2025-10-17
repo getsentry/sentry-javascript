@@ -15,6 +15,7 @@ import { getFinalOptions } from './options';
 import { wrapRequestHandler } from './request';
 import { addCloudResourceContext } from './scope-utils';
 import { init } from './sdk';
+import { copyExecutionContext } from './utils/copyExecutionContext';
 
 /**
  * Wrapper for Cloudflare handlers.
@@ -38,7 +39,9 @@ export function withSentry<Env = unknown, QueueHandlerMessage = unknown, CfHostM
     if ('fetch' in handler && typeof handler.fetch === 'function' && !isInstrumented(handler.fetch)) {
       handler.fetch = new Proxy(handler.fetch, {
         apply(target, thisArg, args: Parameters<ExportedHandlerFetchHandler<Env, CfHostMetadata>>) {
-          const [request, env, context] = args;
+          const [request, env, ctx] = args;
+          const context = copyExecutionContext(ctx);
+          args[2] = context;
 
           const options = getFinalOptions(optionsCallback(env), env);
 
@@ -72,7 +75,10 @@ export function withSentry<Env = unknown, QueueHandlerMessage = unknown, CfHostM
     if ('scheduled' in handler && typeof handler.scheduled === 'function' && !isInstrumented(handler.scheduled)) {
       handler.scheduled = new Proxy(handler.scheduled, {
         apply(target, thisArg, args: Parameters<ExportedHandlerScheduledHandler<Env>>) {
-          const [event, env, context] = args;
+          const [event, env, ctx] = args;
+          const context = copyExecutionContext(ctx);
+          args[2] = context;
+
           return withIsolationScope(isolationScope => {
             const options = getFinalOptions(optionsCallback(env), env);
             const waitUntil = context.waitUntil.bind(context);
@@ -115,7 +121,10 @@ export function withSentry<Env = unknown, QueueHandlerMessage = unknown, CfHostM
     if ('email' in handler && typeof handler.email === 'function' && !isInstrumented(handler.email)) {
       handler.email = new Proxy(handler.email, {
         apply(target, thisArg, args: Parameters<EmailExportedHandler<Env>>) {
-          const [emailMessage, env, context] = args;
+          const [emailMessage, env, ctx] = args;
+          const context = copyExecutionContext(ctx);
+          args[2] = context;
+
           return withIsolationScope(isolationScope => {
             const options = getFinalOptions(optionsCallback(env), env);
             const waitUntil = context.waitUntil.bind(context);
@@ -156,7 +165,9 @@ export function withSentry<Env = unknown, QueueHandlerMessage = unknown, CfHostM
     if ('queue' in handler && typeof handler.queue === 'function' && !isInstrumented(handler.queue)) {
       handler.queue = new Proxy(handler.queue, {
         apply(target, thisArg, args: Parameters<ExportedHandlerQueueHandler<Env, QueueHandlerMessage>>) {
-          const [batch, env, context] = args;
+          const [batch, env, ctx] = args;
+          const context = copyExecutionContext(ctx);
+          args[2] = context;
 
           return withIsolationScope(isolationScope => {
             const options = getFinalOptions(optionsCallback(env), env);
@@ -206,7 +217,9 @@ export function withSentry<Env = unknown, QueueHandlerMessage = unknown, CfHostM
     if ('tail' in handler && typeof handler.tail === 'function' && !isInstrumented(handler.tail)) {
       handler.tail = new Proxy(handler.tail, {
         apply(target, thisArg, args: Parameters<ExportedHandlerTailHandler<Env>>) {
-          const [, env, context] = args;
+          const [, env, ctx] = args;
+          const context = copyExecutionContext(ctx);
+          args[2] = context;
 
           return withIsolationScope(async isolationScope => {
             const options = getFinalOptions(optionsCallback(env), env);
