@@ -31,6 +31,7 @@ export {
   contextLinesIntegration,
   continueTrace,
   createGetModuleFromFilename,
+  createLangChainCallbackHandler,
   createTransport,
   cron,
   dataloaderIntegration,
