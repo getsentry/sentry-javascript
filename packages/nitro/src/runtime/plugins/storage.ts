@@ -34,7 +34,7 @@ const CACHE_HIT_METHODS = new Set<DriverMethod>(['hasItem', 'getItem', 'getItemR
 /**
  * Creates a Nitro plugin that instruments the storage driver.
  */
-export default defineNitroPlugin(async _nitroApp => {
+export default defineNitroPlugin(() => {
   // This runs at runtime when the Nitro server starts
   const storage = useStorage();
   // Mounts are suffixed with a colon, so we need to add it to the set items
