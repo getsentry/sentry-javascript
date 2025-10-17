@@ -1,7 +1,7 @@
 import type { ConnectorName } from 'db0';
 import type { DatabaseConnectionConfig as DatabaseConfig } from 'nitropack/types';
 import { describe, expect, it } from 'vitest';
-import { getDatabaseSpanData } from '../../../src/runtime/utils/database-span-data';
+import { getDatabaseSpanData } from '@sentry/nitro/src/runtime/utils/database-span-data';
 
 describe('getDatabaseSpanData', () => {
   describe('no config', () => {
