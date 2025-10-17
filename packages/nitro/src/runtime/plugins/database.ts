@@ -11,7 +11,6 @@ import {
   startSpan,
 } from '@sentry/core';
 import type { Database, PreparedStatement } from 'db0';
-// eslint-disable-next-line import/no-extraneous-dependencies
 import { defineNitroPlugin, useDatabase } from 'nitropack/runtime';
 import type { DatabaseConnectionConfig as DatabaseConfig } from 'nitropack/types';
 // @ts-expect-error - This is a virtual module

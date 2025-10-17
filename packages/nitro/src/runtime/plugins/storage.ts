@@ -12,7 +12,6 @@ import {
   SPAN_STATUS_OK,
   startSpan,
 } from '@sentry/core';
-// eslint-disable-next-line import/no-extraneous-dependencies
 import { defineNitroPlugin, useStorage } from 'nitropack/runtime';
 import type { CacheEntry, ResponseCacheEntry } from 'nitropack/types';
 import type { Driver, Storage } from 'unstorage';
