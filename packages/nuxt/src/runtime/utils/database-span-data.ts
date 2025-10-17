@@ -1,7 +1,7 @@
 import type { ConnectorName } from 'db0';
 import type { DatabaseConnectionConfig as DatabaseConfig } from 'nitropack/types';
 
-interface DatabaseSpanData {
+export interface DatabaseSpanData {
   [key: string]: string | number | undefined;
 }
 
