@@ -117,7 +117,7 @@ function instrumentDatabase(db: MaybeInstrumentedDatabase, config?: DatabaseConf
 function instrumentPreparedStatement(
   statement: PreparedStatement,
   query: string,
-  data: Record<string, string | undefined>,
+  data: DatabaseSpanData,
 ): PreparedStatement {
   // statement.bind() returns a new instance of D1PreparedStatement, so we have to patch it as well.
   // eslint-disable-next-line @typescript-eslint/unbound-method
