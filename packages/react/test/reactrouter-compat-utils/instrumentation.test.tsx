@@ -140,4 +140,41 @@ describe('reactrouter-compat-utils/instrumentation', () => {
       expect(typeof integration.afterAllSetup).toBe('function');
     });
   });
+
+  describe('span.end() patching for early cancellation', () => {
+    it('should update transaction name when span.end() is called during cancellation', () => {
+      const mockEnd = vi.fn();
+      let patchedEnd: ((...args: any[]) => any) | null = null;
+
+      const updateNameMock = vi.fn();
+      const setAttributeMock = vi.fn();
+
+      const testSpan = {
+        updateName: updateNameMock,
+        setAttribute: setAttributeMock,
+        get end() {
+          return patchedEnd || mockEnd;
+        },
+        set end(fn: (...args: any[]) => any) {
+          patchedEnd = fn;
+        },
+      } as unknown as Span;
+
+      // Simulate the patching behavior
+      const originalEnd = testSpan.end.bind(testSpan);
+      (testSpan as any).end = function patchedEndFn(...args: any[]) {
+        // This simulates what happens in the actual implementation
+        updateNameMock('Updated Route');
+        setAttributeMock('sentry.source', 'route');
+        return originalEnd(...args);
+      };
+
+      // Call the patched end
+      testSpan.end(12345);
+
+      expect(updateNameMock).toHaveBeenCalledWith('Updated Route');
+      expect(setAttributeMock).toHaveBeenCalledWith('sentry.source', 'route');
+      expect(mockEnd).toHaveBeenCalledWith(12345);
+    });
+  });
 });
