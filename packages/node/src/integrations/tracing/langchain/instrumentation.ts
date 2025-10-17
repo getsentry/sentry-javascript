@@ -108,7 +108,7 @@ export class SentryLangChainInstrumentation extends InstrumentationBase<LangChai
       '@langchain/openai',
       '@langchain/google-genai',
       '@langchain/mistralai',
-      '@langchain/google-vertexai ',
+      '@langchain/google-vertexai',
       '@langchain/groq',
     ];
 
