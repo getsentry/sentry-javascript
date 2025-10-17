@@ -12,6 +12,7 @@ import type { BrowserClient, browserTracingIntegration as originalBrowserTracing
 import { getClient, startBrowserTracingNavigationSpan, startBrowserTracingPageLoadSpan, WINDOW } from '@sentry/react';
 import * as React from 'react';
 import { DEBUG_BUILD } from '../utils/debug-build';
+import { hasManifest, maybeParameterizeRemixRoute } from './remixRouteParameterization';
 
 export type Params<Key extends string = string> = {
   readonly [key in Key]: string | undefined;
@@ -55,6 +56,35 @@ function getInitPathName(): string | undefined {
   return undefined;
 }
 
+/**
+ * Determines the transaction name and source for a route.
+ * Handles three cases:
+ * 1. Dynamic routes with manifest (Vite apps): Use parameterized path with source 'route'
+ * 2. Static routes with manifest (Vite apps): Use pathname with source 'url'
+ * 3. Legacy apps without manifest: Use route ID with source 'route'
+ */
+function getTransactionNameAndSource(
+  pathname: string | undefined,
+  routeId: string,
+): { name: string; source: 'route' | 'url' } {
+  const parameterizedRoute = pathname ? maybeParameterizeRemixRoute(pathname) : undefined;
+
+  if (parameterizedRoute) {
+    // We have a parameterized route from the manifest (dynamic route)
+    return { name: parameterizedRoute, source: 'route' };
+  }
+
+  if (hasManifest()) {
+    // We have a manifest but no parameterization (static route)
+    // Use the pathname with source 'url'
+    return { name: pathname || routeId, source: 'url' };
+  }
+
+  // No manifest available (legacy app without Vite plugin)
+  // Fall back to route ID for backward compatibility
+  return { name: routeId, source: 'route' };
+}
+
 export function startPageloadSpan(client: Client): void {
   const initPathName = getInitPathName();
 
@@ -62,19 +92,24 @@ export function startPageloadSpan(client: Client): void {
     return;
   }
 
+  // Try to parameterize the route using the route manifest
+  const parameterizedRoute = maybeParameterizeRemixRoute(initPathName);
+  const spanName = parameterizedRoute || initPathName;
+  const source = parameterizedRoute ? 'route' : 'url';
+
   const spanContext: StartSpanOptions = {
-    name: initPathName,
+    name: spanName,
     op: 'pageload',
     attributes: {
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.remix',
-      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
     },
   };
 
   startBrowserTracingPageLoadSpan(client, spanContext);
 }
 
-function startNavigationSpan(matches: RouteMatch<string>[]): void {
+function startNavigationSpan(matches: RouteMatch<string>[], location: ReturnType<UseLocation>): void {
   const lastMatch = matches[matches.length - 1];
 
   const client = getClient<BrowserClient>();
@@ -83,12 +118,14 @@ function startNavigationSpan(matches: RouteMatch<string>[]): void {
     return;
   }
 
+  const { name, source } = getTransactionNameAndSource(location.pathname, lastMatch.id);
+
   const spanContext: StartSpanOptions = {
-    name: lastMatch.id,
+    name,
     op: 'navigation',
     attributes: {
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.remix',
-      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
     },
   };
 
@@ -134,16 +171,17 @@ export function withSentry<P extends Record<string, unknown>, R extends React.Co
     _useEffect(() => {
       const lastMatch = matches && matches[matches.length - 1];
       if (lastMatch) {
-        const routeName = lastMatch.id;
-        getCurrentScope().setTransactionName(routeName);
+        const { name, source } = getTransactionNameAndSource(location.pathname, lastMatch.id);
+
+        getCurrentScope().setTransactionName(name);
 
         const activeRootSpan = getActiveSpan();
         if (activeRootSpan) {
           const transaction = getRootSpan(activeRootSpan);
 
           if (transaction) {
-            transaction.updateName(routeName);
-            transaction.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+            transaction.updateName(name);
+            transaction.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
           }
         }
       }
@@ -167,7 +205,7 @@ export function withSentry<P extends Record<string, unknown>, R extends React.Co
           activeRootSpan.end();
         }
 
-        startNavigationSpan(matches);
+        startNavigationSpan(matches, location);
       }
     }, [location]);
 
