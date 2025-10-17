@@ -183,8 +183,11 @@ export function constructWebpackConfigFunction({
       );
     };
 
-    const possibleMiddlewareLocations = pageExtensions.map(middlewareFileEnding => {
-      return path.join(middlewareLocationFolder, `middleware.${middlewareFileEnding}`);
+    const possibleMiddlewareLocations = pageExtensions.flatMap(middlewareFileEnding => {
+      return [
+        path.join(middlewareLocationFolder, `middleware.${middlewareFileEnding}`),
+        path.join(middlewareLocationFolder, `proxy.${middlewareFileEnding}`),
+      ];
     });
     const isMiddlewareResource = (resourcePath: string): boolean => {
       const normalizedAbsoluteResourcePath = normalizeLoaderResourcePath(resourcePath);

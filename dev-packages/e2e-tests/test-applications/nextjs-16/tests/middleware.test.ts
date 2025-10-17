@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Should create a transaction for middleware', async ({ request }) => {
-  const middlewareTransactionPromise = waitForTransaction('nextjs-pages-dir', async transactionEvent => {
+  const middlewareTransactionPromise = waitForTransaction('nextjs-16', async transactionEvent => {
     return transactionEvent?.transaction === 'middleware GET';
   });
 
@@ -22,15 +22,15 @@ test('Should create a transaction for middleware', async ({ request }) => {
 });
 
 test('Faulty middlewares', async ({ request }) => {
-  const middlewareTransactionPromise = waitForTransaction('nextjs-pages-dir', async transactionEvent => {
+  const middlewareTransactionPromise = waitForTransaction('nextjs-16', async transactionEvent => {
     return transactionEvent?.transaction === 'middleware GET';
   });
 
-  const errorEventPromise = waitForError('nextjs-pages-dir', errorEvent => {
+  const errorEventPromise = waitForError('nextjs-16', errorEvent => {
     return errorEvent?.exception?.values?.[0]?.value === 'Middleware Error';
   });
 
-  request.get('/api/endpoint-behind-faulty-middleware', { headers: { 'x-should-throw': '1' } }).catch(() => {
+  request.get('/api/endpoint-behind-middleware', { headers: { 'x-should-throw': '1' } }).catch(() => {
     // Noop
   });
 
@@ -48,12 +48,13 @@ test('Faulty middlewares', async ({ request }) => {
     // Assert that isolation scope works properly
     expect(errorEvent.tags?.['my-isolated-tag']).toBe(true);
     expect(errorEvent.tags?.['my-global-scope-isolated-tag']).not.toBeDefined();
-    expect(errorEvent.transaction).toBe('middleware GET');
+    // this differs between webpack and turbopack
+    expect(['middleware GET', '/middleware']).toContain(errorEvent.transaction);
   });
 });
 
 test('Should trace outgoing fetch requests inside middleware and create breadcrumbs for it', async ({ request }) => {
-  const middlewareTransactionPromise = waitForTransaction('nextjs-pages-dir', async transactionEvent => {
+  const middlewareTransactionPromise = waitForTransaction('nextjs-16', async transactionEvent => {
     return (
       transactionEvent?.transaction === 'middleware GET' &&
       !!transactionEvent.spans?.find(span => span.op === 'http.client')
