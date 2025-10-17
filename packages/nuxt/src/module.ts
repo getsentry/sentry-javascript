@@ -76,14 +76,16 @@ export default defineNuxtModule<ModuleOptions>({
 
       // Add the sentry config file to the include array
       nuxt.hook('prepare:types', options => {
-        if (!options.tsConfig.include) {
-          options.tsConfig.include = [];
+        const tsConfig = options.tsConfig as { include?: string[] };
+
+        if (!tsConfig.include) {
+          tsConfig.include = [];
         }
 
         // Add type references for useRuntimeConfig in root files for nuxt v4
         // Should be relative to `root/.nuxt`
         const relativePath = path.relative(nuxt.options.buildDir, clientConfigFile);
-        options.tsConfig.include.push(relativePath);
+        tsConfig.include.push(relativePath);
       });
     }
 
