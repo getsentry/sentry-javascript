@@ -21,7 +21,7 @@ export function setupDatabaseInstrumentation(nitro: Nitro): void {
    * We also use the config to populate database span attributes.
    * https://nitro.build/guide/database#configuration
    */
-  const databaseConfig = nitro.database || { default: {} };
+  const databaseConfig = nitro.options.database || { default: {} };
 
   // Create a virtual module to pass this data to runtime
   addVirtualFile(nitro, {
