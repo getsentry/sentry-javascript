@@ -1,5 +1,5 @@
 import { addPlugin, addPluginTemplate, addTemplate, createResolver, defineNuxtModule } from '@nuxt/kit';
-import { createSentryNitroModule } from '@sentry/nitro';
+import { withSentryConfig as setupSentryNitroModule } from '@sentry/nitro';
 import * as path from 'path';
 import type { SentryNuxtModuleOptions } from './common/types';
 import { setupSourceMaps } from './vite/sourceMaps';
@@ -72,9 +72,7 @@ export default defineNuxtModule<ModuleOptions>({
 
     if (serverConfigFile) {
       // Add the Nitro module to the Nitro config
-      const sentryNitroModule = createSentryNitroModule(moduleOptions, serverConfigFile);
-      nuxt.options.nitro.modules = nuxt.options.nitro.modules || [];
-      nuxt.options.nitro.modules.push(sentryNitroModule);
+      setupSentryNitroModule(nuxt.options.nitro, moduleOptions);
 
       addPlugin({
         src: moduleDirResolver.resolve('./runtime/plugins/route-detector.server'),
