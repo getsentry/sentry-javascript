@@ -1,4 +1,5 @@
-import { type SpanAttributeValue, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../..';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
+import type { SpanAttributeValue } from '../../types-hoist/span';
 import {
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
   GEN_AI_REQUEST_FREQUENCY_PENALTY_ATTRIBUTE,
