@@ -388,6 +388,9 @@ export function extractLlmResponseAttributes(
       setIfDefined(attrs, GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE, asString(finishReasons));
     }
 
+    // Tool calls metadata (names, IDs) are not PII, so capture them regardless of recordOutputs
+    addToolCallsAttributes(response.generations as LangChainMessage[][], attrs);
+
     if (recordOutputs) {
       const texts = response.generations
         .flat()
@@ -397,8 +400,6 @@ export function extractLlmResponseAttributes(
       if (texts.length > 0) {
         setIfDefined(attrs, GEN_AI_RESPONSE_TEXT_ATTRIBUTE, asString(texts));
       }
-
-      addToolCallsAttributes(response.generations as LangChainMessage[][], attrs);
     }
   }
 
