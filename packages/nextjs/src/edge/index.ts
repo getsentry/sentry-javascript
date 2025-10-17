@@ -1,3 +1,4 @@
+import { context } from '@opentelemetry/api';
 import {
   applySdkMetadata,
   getCapturedScopesOnSpan,
@@ -15,14 +16,13 @@ import {
   stripUrlQueryAndFragment,
   vercelWaitUntil,
 } from '@sentry/core';
+import { getScopesFromContext } from '@sentry/opentelemetry';
 import type { VercelEdgeOptions } from '@sentry/vercel-edge';
 import { getDefaultIntegrations, init as vercelEdgeInit } from '@sentry/vercel-edge';
 import { addHeadersAsAttributes } from '../common/utils/addHeadersAsAttributes';
 import { isBuild } from '../common/utils/isBuild';
 import { flushSafelyWithTimeout } from '../common/utils/responseEnd';
 import { distDirRewriteFramesIntegration } from './distDirRewriteFramesIntegration';
-import { getScopesFromContext } from '@sentry/opentelemetry';
-import { context } from '@opentelemetry/api';
 
 export * from '@sentry/vercel-edge';
 export * from '../common';
@@ -111,7 +111,19 @@ export function init(options: VercelEdgeOptions = {}): void {
       event.contexts?.trace?.data?.['next.span_name']
     ) {
       if (event.transaction) {
-        event.transaction = stripUrlQueryAndFragment(event.contexts.trace.data['next.span_name']);
+        // Older nextjs versions pass the full url appended to the middleware name, which results in high cardinality transaction names.
+        // We want to remove the url from the name here.
+        const spanName = event.contexts.trace.data['next.span_name'];
+
+        if (typeof spanName === 'string') {
+          const match = spanName.match(/^middleware (GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS)/);
+          if (match) {
+            const normalizedName = `middleware ${match[1]}`;
+            event.transaction = normalizedName;
+          } else {
+            event.transaction = stripUrlQueryAndFragment(event.contexts.trace.data['next.span_name']);
+          }
+        }
       }
     }
   });

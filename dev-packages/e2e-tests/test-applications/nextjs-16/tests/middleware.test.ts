@@ -48,7 +48,8 @@ test('Faulty middlewares', async ({ request }) => {
     // Assert that isolation scope works properly
     expect(errorEvent.tags?.['my-isolated-tag']).toBe(true);
     expect(errorEvent.tags?.['my-global-scope-isolated-tag']).not.toBeDefined();
-    expect(errorEvent.transaction).toBe('/middleware');
+    // this differs between webpack and turbopack
+    expect(['middleware GET', '/middleware']).toContain(errorEvent.transaction);
   });
 });
 

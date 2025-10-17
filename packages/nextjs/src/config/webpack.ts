@@ -283,9 +283,7 @@ export function constructWebpackConfigFunction({
       });
 
       // Wrap middleware
-      // if (userSentryOptions.autoInstrumentMiddleware ?? true) {
-      // eslint-disable-next-line no-constant-condition
-      if (false) {
+      if (userSentryOptions.autoInstrumentMiddleware ?? true) {
         newConfig.module.rules.unshift({
           test: isMiddlewareResource,
           use: [
