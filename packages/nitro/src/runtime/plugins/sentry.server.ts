@@ -13,16 +13,8 @@ import { updateRouteBeforeResponse } from '../hooks/updateRouteBeforeResponse';
 
 export default defineNitroPlugin(nitro => {
   nitro.h3App.handler = patchEventHandler(nitro.h3App.handler);
-
   nitro.hooks.hook('beforeResponse', updateRouteBeforeResponse);
   nitro.hooks.hook('error', sentryCaptureErrorHook);
-
-  // nitro.hooks.hook('render:response', (response, { event }) => {
-  //   console.log('response', response);
-  //   console.log('event', event);
-  //   return response;
-  // });
-
   nitro.hooks.hook('beforeResponse', injectTracingMetaTags);
 });
 
