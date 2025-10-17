@@ -159,15 +159,7 @@ export type {
   GoogleGenAIOptions,
   GoogleGenAIIstrumentedMethod,
 } from './utils/google-genai/types';
-export type {
-  LangChainOptions,
-  LangChainIntegration,
-  LangChainSerializedLLM,
-  LangChainMessage,
-  LangChainLLMResult,
-  LangChainTool,
-  LangChainDocument,
-} from './utils/langchain/types';
+export type { LangChainOptions, LangChainIntegration } from './utils/langchain/types';
 export type { FeatureFlag } from './utils/featureFlags';
 
 export {

@@ -5,17 +5,11 @@ import { startSpanManual } from '../../tracing/trace';
 import type { Span, SpanAttributeValue } from '../../types-hoist/span';
 import { GEN_AI_OPERATION_NAME_ATTRIBUTE, GEN_AI_REQUEST_MODEL_ATTRIBUTE } from '../ai/gen-ai-attributes';
 import { LANGCHAIN_ORIGIN } from './constants';
-import type {
-  LangChainLLMResult,
-  LangChainMessage,
-  LangChainOptions,
-  LangChainRunId,
-  LangChainSerializedLLM,
-} from './types';
+import type { LangChainLLMResult, LangChainMessage, LangChainOptions, LangChainSerializedLLM } from './types';
 import {
-  addLLMResponseAttributes,
   extractChatModelRequestAttributes,
   extractLLMRequestAttributes,
+  extractLlmResponseAttributes,
   getInvocationParams,
 } from './utils';
 
@@ -29,8 +23,8 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
   handleLLMStart?: (
     llm: LangChainSerializedLLM,
     prompts: string[],
-    runId: LangChainRunId,
-    parentRunId?: LangChainRunId,
+    runId: string,
+    parentRunId?: string,
     extraParams?: Record<string, unknown>,
     tags?: string[] | Record<string, unknown>,
     metadata?: Record<string, unknown>,
@@ -39,43 +33,38 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
   handleChatModelStart?: (
     llm: LangChainSerializedLLM,
     messages: LangChainMessage[][],
-    runId: LangChainRunId,
-    parentRunId?: LangChainRunId,
+    runId: string,
+    parentRunId?: string,
     extraParams?: Record<string, unknown>,
     tags?: string[] | Record<string, unknown>,
     metadata?: Record<string, unknown>,
     runName?: string | Record<string, unknown>,
   ) => void;
-  handleLLMNewToken?: (token: string, runId: LangChainRunId) => void;
-  handleLLMEnd?: (output: LangChainLLMResult, runId: LangChainRunId) => void;
-  handleLLMError?: (error: Error, runId: LangChainRunId) => void;
+  handleLLMNewToken?: (token: string, runId: string) => void;
+  handleLLMEnd?: (output: LangChainLLMResult, runId: string) => void;
+  handleLLMError?: (error: Error, runId: string) => void;
   handleChainStart?: (
     chain: { name?: string },
     inputs: Record<string, unknown>,
-    runId: LangChainRunId,
-    parentRunId?: LangChainRunId,
+    runId: string,
+    parentRunId?: string,
   ) => void;
-  handleChainEnd?: (outputs: Record<string, unknown>, runId: LangChainRunId) => void;
-  handleChainError?: (error: Error, runId: LangChainRunId) => void;
-  handleToolStart?: (
-    tool: { name?: string },
-    input: string,
-    runId: LangChainRunId,
-    parentRunId?: LangChainRunId,
-  ) => void;
-  handleToolEnd?: (output: string, runId: LangChainRunId) => void;
-  handleToolError?: (error: Error, runId: LangChainRunId) => void;
+  handleChainEnd?: (outputs: Record<string, unknown>, runId: string) => void;
+  handleChainError?: (error: Error, runId: string) => void;
+  handleToolStart?: (tool: { name?: string }, input: string, runId: string, parentRunId?: string) => void;
+  handleToolEnd?: (output: string, runId: string) => void;
+  handleToolError?: (error: Error, runId: string) => void;
 } {
   const recordInputs = options.recordInputs ?? false;
   const recordOutputs = options.recordOutputs ?? false;
 
   // Internal state - single instance tracks all spans
-  const spanMap = new Map<LangChainRunId, Span>();
+  const spanMap = new Map<string, Span>();
 
   /**
    * Exit a span and clean up
    */
-  const exitSpan = (runId: LangChainRunId): void => {
+  const exitSpan = (runId: string): void => {
     const span = spanMap.get(runId);
     if (span) {
       span.end();
@@ -91,8 +80,8 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
     handleLLMStart(
       llm: LangChainSerializedLLM,
       prompts: string[],
-      runId: LangChainRunId,
-      _parentRunId?: LangChainRunId,
+      runId: string,
+      _parentRunId?: string,
       _extraParams?: Record<string, unknown>,
       tags?: string[] | Record<string, unknown>,
       metadata?: Record<string, unknown>,
@@ -124,8 +113,8 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
     handleChatModelStart(
       llm: LangChainSerializedLLM,
       messages: LangChainMessage[][],
-      runId: LangChainRunId,
-      _parentRunId?: LangChainRunId,
+      runId: string,
+      _parentRunId?: string,
       _extraParams?: Record<string, unknown>,
       tags?: string[] | Record<string, unknown>,
       metadata?: Record<string, unknown>,
@@ -157,7 +146,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
     // LLM End Handler - note: handleLLMEnd with capital LLM (used by both LLMs and chat models!)
     handleLLMEnd(
       output: LangChainLLMResult,
-      runId: LangChainRunId,
+      runId: string,
       _parentRunId?: string,
       _tags?: string[],
       _extraParams?: Record<string, unknown>,
@@ -165,7 +154,10 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
       try {
         const span = spanMap.get(runId);
         if (span) {
-          addLLMResponseAttributes(span, output, recordOutputs);
+          const attributes = extractLlmResponseAttributes(output, recordOutputs);
+          if (attributes) {
+            span.setAttributes(attributes);
+          }
           exitSpan(runId);
         }
       } catch {
@@ -174,7 +166,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
     },
 
     // LLM Error Handler - note: handleLLMError with capital LLM
-    handleLLMError(error: Error, runId: LangChainRunId) {
+    handleLLMError(error: Error, runId: string) {
       try {
         const span = spanMap.get(runId);
         if (span) {
@@ -195,12 +187,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
     },
 
     // Chain Start Handler
-    handleChainStart(
-      chain: { name?: string },
-      inputs: Record<string, unknown>,
-      runId: LangChainRunId,
-      _parentRunId?: LangChainRunId,
-    ) {
+    handleChainStart(chain: { name?: string }, inputs: Record<string, unknown>, runId: string, _parentRunId?: string) {
       try {
         const chainName = chain.name || 'unknown_chain';
         const attributes: Record<string, SpanAttributeValue> = {
@@ -231,7 +218,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
     },
 
     // Chain End Handler
-    handleChainEnd(outputs: Record<string, unknown>, runId: LangChainRunId) {
+    handleChainEnd(outputs: Record<string, unknown>, runId: string) {
       try {
         const span = spanMap.get(runId);
         if (span) {
@@ -249,7 +236,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
     },
 
     // Chain Error Handler
-    handleChainError(error: Error, runId: LangChainRunId) {
+    handleChainError(error: Error, runId: string) {
       try {
         const span = spanMap.get(runId);
         if (span) {
@@ -269,7 +256,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
     },
 
     // Tool Start Handler
-    handleToolStart(tool: { name?: string }, input: string, runId: LangChainRunId, _parentRunId?: LangChainRunId) {
+    handleToolStart(tool: { name?: string }, input: string, runId: string, _parentRunId?: string) {
       try {
         const toolName = tool.name || 'unknown_tool';
         const attributes: Record<string, SpanAttributeValue> = {
@@ -299,7 +286,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
     },
 
     // Tool End Handler
-    handleToolEnd(output: string, runId: LangChainRunId) {
+    handleToolEnd(output: string, runId: string) {
       try {
         const span = spanMap.get(runId);
         if (span) {
@@ -317,7 +304,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
     },
 
     // Tool Error Handler
-    handleToolError(error: Error, runId: LangChainRunId) {
+    handleToolError(error: Error, runId: string) {
       try {
         const span = spanMap.get(runId);
         if (span) {

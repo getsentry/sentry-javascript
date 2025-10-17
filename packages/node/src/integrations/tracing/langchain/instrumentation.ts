@@ -171,10 +171,23 @@ export class SentryLangChainInstrumentation extends InstrumentationBase<LangChai
    * Finds a chat model class from the provider package exports and patches its prototype methods
    */
   private _patchRunnableMethods(exports: PatchedLangChainExports, sentryHandler: unknown): void {
-    // Find a chat model class in the exports (e.g., ChatAnthropic, ChatOpenAI)
-    const chatModelClass = Object.values(exports).find(
-      exp => typeof exp === 'function' && exp.name?.includes('Chat'),
-    ) as { prototype: unknown; name: string } | undefined;
+    // Known chat model class names for each provider
+    const knownChatModelNames = [
+      'ChatAnthropic',
+      'ChatOpenAI',
+      'ChatGoogleGenerativeAI',
+      'ChatMistralAI',
+      'ChatVertexAI',
+      'ChatGroq',
+    ];
+
+    // Find a chat model class in the exports by checking known class names
+    const chatModelClass = Object.values(exports).find(exp => {
+      if (typeof exp !== 'function') {
+        return false;
+      }
+      return knownChatModelNames.includes(exp.name);
+    }) as { prototype: unknown; name: string } | undefined;
 
     if (!chatModelClass) {
       return;

@@ -1,4 +1,3 @@
-import type { Span } from '../..';
 import { type SpanAttributeValue, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../..';
 import {
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
@@ -11,177 +10,232 @@ import {
   GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE,
   GEN_AI_REQUEST_TOP_P_ATTRIBUTE,
   GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE,
+  GEN_AI_RESPONSE_ID_ATTRIBUTE,
   GEN_AI_RESPONSE_MODEL_ATTRIBUTE,
+  GEN_AI_RESPONSE_STOP_REASON_ATTRIBUTE,
   GEN_AI_RESPONSE_TEXT_ATTRIBUTE,
   GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
   GEN_AI_SYSTEM_ATTRIBUTE,
+  GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS_ATTRIBUTE,
+  GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
-import { LANGCHAIN_ORIGIN } from './constants';
+import { LANGCHAIN_ORIGIN, ROLE_MAP } from './constants';
 import type { LangChainLLMResult, LangChainMessage, LangChainSerializedLLM } from './types';
 
 /**
- * Extract invocation params from tags object
- * LangChain passes runtime parameters in the tags object
+ * Assigns an attribute only when the value is neither `undefined` nor `null`.
+ *
+ * We keep this tiny helper because call sites are repetitive and easy to miswrite.
+ * It also preserves falsy-but-valid values like `0` and `""`.
  */
-export function getInvocationParams(tags?: string[] | Record<string, unknown>): Record<string, unknown> | undefined {
-  if (!tags || Array.isArray(tags)) {
-    return undefined;
+const setIfDefined = (target: Record<string, SpanAttributeValue>, key: string, value: unknown): void => {
+  if (value !== undefined && value !== null) target[key] = value as SpanAttributeValue;
+};
+
+/**
+ * Like `setIfDefined`, but converts the value with `Number()` and skips only when the
+ * result is `NaN`. This ensures numeric 0 makes it through (unlike truthy checks).
+ */
+const setNumberIfDefined = (target: Record<string, SpanAttributeValue>, key: string, value: unknown): void => {
+  const n = Number(value);
+  if (!Number.isNaN(n)) target[key] = n;
+};
+
+/**
+ * Converts a value to a string. Avoids double-quoted JSON strings where a plain
+ * string is desired, but still handles objects/arrays safely.
+ */
+function asString(v: unknown): string {
+  if (typeof v === 'string') return v;
+  try {
+    return JSON.stringify(v);
+  } catch {
+    return String(v);
   }
-  return tags.invocation_params as Record<string, unknown> | undefined;
 }
 
 /**
- * Normalize a single message role to standard gen_ai format
+ * Normalizes a single role token to our canonical set.
+ *
+ * @param role Incoming role value (free-form, any casing)
+ * @returns Canonical role: 'user' | 'assistant' | 'system' | 'function' | 'tool' | <passthrough>
  */
-export function normalizeMessageRole(role: string): string {
-  const roleMap: Record<string, string> = {
-    human: 'user',
-    ai: 'assistant',
-    system: 'system',
-    function: 'function',
-    tool: 'tool',
-  };
-
-  const normalizedRole = role.toLowerCase();
-  return roleMap[normalizedRole] || normalizedRole;
+function normalizeMessageRole(role: string): string {
+  const normalized = role.toLowerCase();
+  return ROLE_MAP[normalized] ?? normalized;
 }
 
 /**
- * Extract role from constructor name
+ * Infers a role from a LangChain message constructor name.
+ *
+ * Checks for substrings like "System", "Human", "AI", etc.
  */
-export function normalizeRoleName(roleName: string): string {
-  if (roleName.includes('System')) {
-    return 'system';
-  }
-  if (roleName.includes('Human')) {
-    return 'user';
-  }
-  if (roleName.includes('AI') || roleName.includes('Assistant')) {
-    return 'assistant';
-  }
-  if (roleName.includes('Function')) {
-    return 'function';
-  }
-  if (roleName.includes('Tool')) {
-    return 'tool';
-  }
+function normalizeRoleNameFromCtor(name: string): string {
+  if (name.includes('System')) return 'system';
+  if (name.includes('Human')) return 'user';
+  if (name.includes('AI') || name.includes('Assistant')) return 'assistant';
+  if (name.includes('Function')) return 'function';
+  if (name.includes('Tool')) return 'tool';
   return 'user';
 }
 
 /**
- * Normalize LangChain messages to simple {role, content} format
- * Handles both raw message objects and serialized LangChain message format
+ * Returns invocation params from a LangChain `tags` object.
+ *
+ * LangChain often passes runtime parameters (model, temperature, etc.) via the
+ * `tags.invocation_params` bag. If `tags` is an array (LangChain sometimes uses
+ * string tags), we return `undefined`.
+ *
+ * @param tags LangChain tags (string[] or record)
+ * @returns The `invocation_params` object, if present
+ */
+export function getInvocationParams(tags?: string[] | Record<string, unknown>): Record<string, unknown> | undefined {
+  if (!tags || Array.isArray(tags)) return undefined;
+  return tags.invocation_params as Record<string, unknown> | undefined;
+}
+
+/**
+ * Normalizes a heterogeneous set of LangChain messages to `{ role, content }`.
+ *
+ * Why so many branches? LangChain messages can arrive in several shapes:
+ *  - Message classes with `_getType()` (most reliable)
+ *  - Classes with meaningful constructor names (e.g. `SystemMessage`)
+ *  - Plain objects with `type`, or `{ role, content }`
+ *  - Serialized format with `{ lc: 1, id: [...], kwargs: { content } }`
+ * We preserve the prioritization to minimize behavioral drift.
+ *
+ * @param messages Mixed LangChain messages
+ * @returns Array of normalized `{ role, content }`
  */
 export function normalizeLangChainMessages(messages: LangChainMessage[]): Array<{ role: string; content: string }> {
   return messages.map(message => {
-    // First, try to get the message type from _getType() method (most reliable)
-    if (typeof (message as { _getType?: () => string })._getType === 'function') {
-      const messageType = (message as { _getType: () => string })._getType();
+    // 1) Prefer _getType() when present
+    const maybeGetType = (message as { _getType?: () => string })._getType;
+    if (typeof maybeGetType === 'function') {
+      const messageType = maybeGetType.call(message);
       return {
         role: normalizeMessageRole(messageType),
-        content: String((message as { content?: string }).content || ''),
+        content: asString(message.content),
       };
     }
 
-    // Check constructor name (for LangChain message objects like SystemMessage, HumanMessage, etc.)
-    const constructorName = message.constructor?.name;
-    if (constructorName) {
-      const role = normalizeRoleName(constructorName);
+    // 2) Then try constructor name (SystemMessage / HumanMessage / ...)
+    const ctor = (message as { constructor?: { name?: string } }).constructor?.name;
+    if (ctor) {
       return {
-        role: normalizeMessageRole(role),
-        content: String((message as { content?: string }).content || ''),
+        role: normalizeMessageRole(normalizeRoleNameFromCtor(ctor)),
+        content: asString(message.content),
       };
     }
 
-    // Handle message objects with type field
+    // 3) Then objects with `type`
     if (message.type) {
       const role = String(message.type).toLowerCase();
       return {
         role: normalizeMessageRole(role),
-        content: String(message.content || ''),
+        content: asString(message.content),
       };
     }
 
-    // Handle regular message objects with role and content
-    if (message.role && message.content) {
+    // 4) Then objects with `{ role, content }`
+    if (message.role) {
       return {
         role: normalizeMessageRole(String(message.role)),
-        content: String(message.content),
+        content: asString(message.content),
       };
     }
 
-    // Handle LangChain serialized format with lc: 1
+    // 5) Serialized LangChain format (lc: 1)
     if (message.lc === 1 && message.kwargs) {
-      // Extract role from the message type (e.g., HumanMessage -> user)
-      const messageType = Array.isArray(message.id) && message.id.length > 0 ? message.id[message.id.length - 1] : '';
-      const role = typeof messageType === 'string' ? normalizeRoleName(messageType) : 'user';
+      const id = message.id;
+      const messageType = Array.isArray(id) && id.length > 0 ? id[id.length - 1] : '';
+      const role = typeof messageType === 'string' ? normalizeRoleNameFromCtor(messageType) : 'user';
 
       return {
         role: normalizeMessageRole(role),
-        content: String(message.kwargs.content || ''),
+        content: asString(message.kwargs?.content),
       };
     }
 
-    // Fallback: return as-is if we can't normalize
+    // 6) Fallback: treat as user text
     return {
       role: 'user',
-      content: String(message.content || JSON.stringify(message)),
+      content: asString(message.content),
     };
   });
 }
 
 /**
- * Extract common request attributes shared by LLM and chat model requests
+ * Extracts request attributes common to both LLM and ChatModel invocations.
+ *
+ * Source precedence:
+ * 1) `invocationParams` (highest)
+ * 2) `langSmithMetadata`
+ * 3) `serialized.kwargs`
+ *
+ * Numeric values are set even when 0 (e.g. `temperature: 0`), but skipped if `NaN`.
  */
-export function extractCommonRequestAttributes(
+function extractCommonRequestAttributes(
   serialized: LangChainSerializedLLM,
   invocationParams?: Record<string, unknown>,
   langSmithMetadata?: Record<string, unknown>,
 ): Record<string, SpanAttributeValue> {
-  const attributes: Record<string, SpanAttributeValue> = {};
+  const attrs: Record<string, SpanAttributeValue> = {};
 
-  // Priority: invocationParams > LangSmith > kwargs
   const temperature =
     invocationParams?.temperature ?? langSmithMetadata?.ls_temperature ?? serialized.kwargs?.temperature;
-  if (Number(temperature)) {
-    attributes[GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE] = Number(temperature);
-  }
+  setNumberIfDefined(attrs, GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE, temperature);
 
   const maxTokens = invocationParams?.max_tokens ?? langSmithMetadata?.ls_max_tokens ?? serialized.kwargs?.max_tokens;
-  if (Number(maxTokens)) {
-    attributes[GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE] = Number(maxTokens);
-  }
+  setNumberIfDefined(attrs, GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE, maxTokens);
 
   const topP = invocationParams?.top_p ?? serialized.kwargs?.top_p;
-  if (Number(topP)) {
-    attributes[GEN_AI_REQUEST_TOP_P_ATTRIBUTE] = Number(topP);
-  }
+  setNumberIfDefined(attrs, GEN_AI_REQUEST_TOP_P_ATTRIBUTE, topP);
 
   const frequencyPenalty = invocationParams?.frequency_penalty ?? serialized.kwargs?.frequency_penalty;
-  if (Number(frequencyPenalty)) {
-    attributes[GEN_AI_REQUEST_FREQUENCY_PENALTY_ATTRIBUTE] = Number(frequencyPenalty);
-  }
+  setNumberIfDefined(attrs, GEN_AI_REQUEST_FREQUENCY_PENALTY_ATTRIBUTE, frequencyPenalty);
 
   const presencePenalty = invocationParams?.presence_penalty ?? serialized.kwargs?.presence_penalty;
-  if (Number(presencePenalty)) {
-    attributes[GEN_AI_REQUEST_PRESENCE_PENALTY_ATTRIBUTE] = Number(presencePenalty);
+  setNumberIfDefined(attrs, GEN_AI_REQUEST_PRESENCE_PENALTY_ATTRIBUTE, presencePenalty);
+
+  // LangChain uses `stream`. We only set the attribute if the key actually exists
+  // (some callbacks report `false` even on streamed requests, this stems from LangChain's callback handler).
+  if (invocationParams && 'stream' in invocationParams) {
+    setIfDefined(attrs, GEN_AI_REQUEST_STREAM_ATTRIBUTE, Boolean(invocationParams.stream));
   }
 
-  const streaming = invocationParams?.stream;
-  if (streaming !== undefined && streaming !== null) {
-    // Sometimes this is set to false even for stream requests
-    // This issue stems from LangChain's callback handler and should be investigated
-    attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE] = Boolean(streaming);
-  }
-
-  return attributes;
+  return attrs;
 }
 
 /**
- * Extract request attributes from LLM start event
+ * Small helper to assemble boilerplate attributes shared by both request extractors.
+ */
+function baseRequestAttributes(
+  system: unknown,
+  modelName: unknown,
+  operation: 'pipeline' | 'chat',
+  serialized: LangChainSerializedLLM,
+  invocationParams?: Record<string, unknown>,
+  langSmithMetadata?: Record<string, unknown>,
+): Record<string, SpanAttributeValue> {
+  return {
+    [GEN_AI_SYSTEM_ATTRIBUTE]: asString(system ?? 'langchain'),
+    [GEN_AI_OPERATION_NAME_ATTRIBUTE]: operation,
+    [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: asString(modelName),
+    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: LANGCHAIN_ORIGIN,
+    ...extractCommonRequestAttributes(serialized, invocationParams, langSmithMetadata),
+  };
+}
+
+/**
+ * Extracts attributes for plain LLM invocations (string prompts).
+ *
+ * - Operation is tagged as `pipeline` to distinguish from chat-style invocations.
+ * - When `recordInputs` is true, string prompts are wrapped into `{role:"user"}`
+ *   messages to align with the chat schema used elsewhere.
  */
 export function extractLLMRequestAttributes(
   serialized: LangChainSerializedLLM,
@@ -190,29 +244,26 @@ export function extractLLMRequestAttributes(
   invocationParams?: Record<string, unknown>,
   langSmithMetadata?: Record<string, unknown>,
 ): Record<string, SpanAttributeValue> {
-  const system = JSON.stringify(langSmithMetadata?.ls_provider);
-  const modelName = JSON.stringify(invocationParams?.model ?? langSmithMetadata?.ls_model_name ?? 'unknown');
+  const system = langSmithMetadata?.ls_provider;
+  const modelName = invocationParams?.model ?? langSmithMetadata?.ls_model_name ?? 'unknown';
 
-  const attributes: Record<string, SpanAttributeValue> = {
-    [GEN_AI_SYSTEM_ATTRIBUTE]: system,
-    [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'pipeline',
-    [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: modelName,
-    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: LANGCHAIN_ORIGIN,
-    ...extractCommonRequestAttributes(serialized, invocationParams, langSmithMetadata),
-  };
+  const attrs = baseRequestAttributes(system, modelName, 'pipeline', serialized, invocationParams, langSmithMetadata);
 
-  // Add prompts if recordInputs is enabled
-  if (recordInputs && prompts && prompts.length > 0) {
-    // Convert string prompts to message format
-    const messages = prompts.map(prompt => ({ role: 'user', content: prompt }));
-    attributes[GEN_AI_REQUEST_MESSAGES_ATTRIBUTE] = JSON.stringify(messages);
+  if (recordInputs && Array.isArray(prompts) && prompts.length > 0) {
+    const messages = prompts.map(p => ({ role: 'user', content: p }));
+    setIfDefined(attrs, GEN_AI_REQUEST_MESSAGES_ATTRIBUTE, asString(messages));
   }
 
-  return attributes;
+  return attrs;
 }
 
 /**
- * Extract request attributes from chat model start event
+ * Extracts attributes for ChatModel invocations (array-of-arrays of messages).
+ *
+ * - Operation is tagged as `chat`.
+ * - We flatten LangChain's `LangChainMessage[][]` and normalize shapes into a
+ *   consistent `{ role, content }` array when `recordInputs` is true.
+ * - Provider system value falls back to `serialized.id?.[2]`.
  */
 export function extractChatModelRequestAttributes(
   serialized: LangChainSerializedLLM,
@@ -221,68 +272,60 @@ export function extractChatModelRequestAttributes(
   invocationParams?: Record<string, unknown>,
   langSmithMetadata?: Record<string, unknown>,
 ): Record<string, SpanAttributeValue> {
-  // Provider either exists in LangSmith metadata or is the 3rd index of the id array of the serialized LLM
-  const system = JSON.stringify(langSmithMetadata?.ls_provider ?? serialized.id?.[2]);
-  const modelName = JSON.stringify(invocationParams?.model ?? langSmithMetadata?.ls_model_name ?? 'unknown');
+  const system = langSmithMetadata?.ls_provider ?? serialized.id?.[2];
+  const modelName = invocationParams?.model ?? langSmithMetadata?.ls_model_name ?? 'unknown';
 
-  const attributes: Record<string, SpanAttributeValue> = {
-    [GEN_AI_SYSTEM_ATTRIBUTE]: system,
-    [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'chat',
-    [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: modelName,
-    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: LANGCHAIN_ORIGIN,
-    ...extractCommonRequestAttributes(serialized, invocationParams, langSmithMetadata),
-  };
+  const attrs = baseRequestAttributes(system, modelName, 'chat', serialized, invocationParams, langSmithMetadata);
 
-  // Add messages if recordInputs is enabled
-  if (recordInputs && messages && messages.length > 0) {
-    // Flatten the messages array (LangChain passes array of message arrays)
-    const flatMessages = messages.flat();
-    // Normalize messages to extract content from LangChain serialized format
-    const normalizedMessages = normalizeLangChainMessages(flatMessages);
-    attributes[GEN_AI_REQUEST_MESSAGES_ATTRIBUTE] = JSON.stringify(normalizedMessages);
+  if (recordInputs && Array.isArray(messages) && messages.length > 0) {
+    const normalized = normalizeLangChainMessages(messages.flat());
+    setIfDefined(attrs, GEN_AI_REQUEST_MESSAGES_ATTRIBUTE, asString(normalized));
   }
 
-  return attributes;
+  return attrs;
 }
 
 /**
- * Extract tool calls attributes from generations
+ * Scans generations for Anthropic-style `tool_use` items and records them.
+ *
+ * LangChain represents some provider messages (e.g., Anthropic) with a `message.content`
+ * array that may include objects `{ type: 'tool_use', ... }`. We collect and attach
+ * them as a JSON array on `gen_ai.response.tool_calls` for downstream consumers.
  */
-export function extractToolCallsAttributes(generations: LangChainMessage[][], span: Span): void {
-  const toolCalls: Array<unknown> = [];
-
-  // Flatten the generations array (LangChain returns [[generation]])
+function addToolCallsAttributes(generations: LangChainMessage[][], attrs: Record<string, SpanAttributeValue>): void {
+  const toolCalls: unknown[] = [];
   const flatGenerations = generations.flat();
 
   for (const gen of flatGenerations) {
-    // Check if message has a content array (Anthropic format)
-    if (gen.message?.content && Array.isArray(gen.message.content)) {
-      for (const contentItem of gen.message.content) {
-        const typedContent = contentItem as { type?: string; id?: string; name?: string; input?: unknown };
-        if (typedContent.type === 'tool_use') {
-          toolCalls.push(typedContent);
-        }
+    const content = gen.message?.content;
+    if (Array.isArray(content)) {
+      for (const item of content) {
+        const t = item as { type: string };
+        if (t.type === 'tool_use') toolCalls.push(t);
       }
     }
   }
 
   if (toolCalls.length > 0) {
-    span.setAttributes({
-      [GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE]: JSON.stringify(toolCalls),
-    });
+    setIfDefined(attrs, GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE, asString(toolCalls));
   }
 }
 
 /**
- * Extract token usage attributes from LLM output
+ * Adds token usage attributes, supporting both OpenAI (`tokenUsage`) and Anthropic (`usage`) formats.
+ * - Preserve zero values (0 tokens) by avoiding truthy checks.
+ * - Compute a total for Anthropic when not explicitly provided.
+ * - Include cache token metrics when present.
  */
-export function extractTokenUsageAttributes(llmOutput: LangChainLLMResult['llmOutput'], span: Span): void {
+function addTokenUsageAttributes(
+  llmOutput: LangChainLLMResult['llmOutput'],
+  attrs: Record<string, SpanAttributeValue>,
+): void {
   if (!llmOutput) return;
-  // Try standard tokenUsage format (OpenAI)
+
   const tokenUsage = llmOutput.tokenUsage as
     | { promptTokens?: number; completionTokens?: number; totalTokens?: number }
     | undefined;
-  // Try Anthropic format (usage.input_tokens, etc.)
   const anthropicUsage = llmOutput.usage as
     | {
         input_tokens?: number;
@@ -293,91 +336,85 @@ export function extractTokenUsageAttributes(llmOutput: LangChainLLMResult['llmOu
     | undefined;
 
   if (tokenUsage) {
-    if (Number(tokenUsage.promptTokens)) {
-      span.setAttributes({ [GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]: tokenUsage.promptTokens });
-    }
-    if (Number(tokenUsage.completionTokens)) {
-      span.setAttributes({ [GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]: tokenUsage.completionTokens });
-    }
-    if (Number(tokenUsage.totalTokens)) {
-      span.setAttributes({ [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: tokenUsage.totalTokens });
-    }
+    setNumberIfDefined(attrs, GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE, tokenUsage.promptTokens);
+    setNumberIfDefined(attrs, GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE, tokenUsage.completionTokens);
+    setNumberIfDefined(attrs, GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE, tokenUsage.totalTokens);
   } else if (anthropicUsage) {
-    // Handle Anthropic format
-    if (Number(anthropicUsage.input_tokens)) {
-      span.setAttributes({ [GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]: anthropicUsage.input_tokens });
-    }
-    if (Number(anthropicUsage.output_tokens)) {
-      span.setAttributes({ [GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]: anthropicUsage.output_tokens });
-    }
-    // Calculate total tokens for Anthropic
-    const total = (anthropicUsage.input_tokens || 0) + (anthropicUsage.output_tokens || 0);
-    if (total > 0) {
-      span.setAttributes({ [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: total });
-    }
-    // Add cache tokens if present
-    if (anthropicUsage.cache_creation_input_tokens !== undefined) {
-      span.setAttributes({ 'gen_ai.usage.cache_creation_input_tokens': anthropicUsage.cache_creation_input_tokens });
-    }
-    if (anthropicUsage.cache_read_input_tokens !== undefined) {
-      span.setAttributes({ 'gen_ai.usage.cache_read_input_tokens': anthropicUsage.cache_read_input_tokens });
-    }
+    setNumberIfDefined(attrs, GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE, anthropicUsage.input_tokens);
+    setNumberIfDefined(attrs, GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE, anthropicUsage.output_tokens);
+
+    // Compute total when not provided by the provider.
+    const input = Number(anthropicUsage.input_tokens);
+    const output = Number(anthropicUsage.output_tokens);
+    const total = (Number.isNaN(input) ? 0 : input) + (Number.isNaN(output) ? 0 : output);
+    if (total > 0) setNumberIfDefined(attrs, GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE, total);
+
+    // Extra Anthropic cache metrics (present only when caching is enabled)
+    if (anthropicUsage.cache_creation_input_tokens !== undefined)
+      setNumberIfDefined(
+        attrs,
+        GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS_ATTRIBUTE,
+        anthropicUsage.cache_creation_input_tokens,
+      );
+    if (anthropicUsage.cache_read_input_tokens !== undefined)
+      setNumberIfDefined(attrs, GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS_ATTRIBUTE, anthropicUsage.cache_read_input_tokens);
   }
 }
 
 /**
- * Add response attributes from LLM result
+ * Extracts response-related attributes based on a `LangChainLLMResult`.
+ *
+ * - Records finish reasons when present on generations (e.g., OpenAI)
+ * - When `recordOutputs` is true, captures textual response content and any
+ *   tool calls.
+ * - Also propagates model name (`model_name` or `model`), response `id`, and
+ *   `stop_reason` (for providers that use it).
  */
-export function addLLMResponseAttributes(span: Span, response: LangChainLLMResult, recordOutputs: boolean): void {
+export function extractLlmResponseAttributes(
+  response: LangChainLLMResult,
+  recordOutputs: boolean,
+): Record<string, SpanAttributeValue> | undefined {
   if (!response) return;
 
-  // Extract finish reasons
-  if (response.generations && Array.isArray(response.generations)) {
+  const attrs: Record<string, SpanAttributeValue> = {};
+
+  if (Array.isArray(response.generations)) {
     const finishReasons = response.generations
-      .map(gen => gen.generation_info?.finish_reason)
-      .filter(reason => typeof reason === 'string');
+      .map(g => g.generation_info?.finish_reason)
+      .filter((r): r is string => typeof r === 'string');
 
     if (finishReasons.length > 0) {
-      span.setAttributes({
-        [GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]: JSON.stringify(finishReasons),
-      });
+      setIfDefined(attrs, GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE, asString(finishReasons));
     }
 
-    // Extract response text if recordOutputs is enabled
     if (recordOutputs) {
-      const responseTexts = response.generations
+      const texts = response.generations
         .flat()
-        .map(gen => gen.text || gen.message?.content)
-        .filter(text => typeof text === 'string');
+        .map(gen => gen.text ?? gen.message?.content)
+        .filter(t => typeof t === 'string');
 
-      if (responseTexts.length > 0) {
-        span.setAttributes({
-          [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: JSON.stringify(responseTexts),
-        });
+      if (texts.length > 0) {
+        setIfDefined(attrs, GEN_AI_RESPONSE_TEXT_ATTRIBUTE, asString(texts));
       }
 
-      // Extract tool calls from message content if present
-      extractToolCallsAttributes(response.generations as LangChainMessage[][], span);
+      addToolCallsAttributes(response.generations as LangChainMessage[][], attrs);
     }
   }
 
-  // Extract token usage - handle both formats (OpenAI and Anthropic)
-  extractTokenUsageAttributes(response.llmOutput, span);
+  addTokenUsageAttributes(response.llmOutput, attrs);
 
-  // Extract model name from response (handle both model_name and model fields)
-  const modelName = response.llmOutput?.model_name || response.llmOutput?.model;
+  const llmOutput = response.llmOutput as { model_name?: string; model?: string; id?: string; stop_reason?: string };
+  // Provider model identifier: `model_name` (OpenAI-style) or `model` (others)
+  const modelName = llmOutput?.model_name ?? llmOutput?.model;
+  if (modelName) setIfDefined(attrs, GEN_AI_RESPONSE_MODEL_ATTRIBUTE, modelName);
 
-  if (modelName) {
-    span.setAttributes({ [GEN_AI_RESPONSE_MODEL_ATTRIBUTE]: JSON.stringify(modelName) });
+  if (llmOutput?.id) {
+    setIfDefined(attrs, GEN_AI_RESPONSE_ID_ATTRIBUTE, llmOutput.id);
   }
 
-  // Add response ID (useful for debugging/correlation)
-  if (response.llmOutput?.id) {
-    span.setAttributes({ 'gen_ai.response.id': JSON.stringify(response.llmOutput.id) });
+  if (llmOutput?.stop_reason) {
+    setIfDefined(attrs, GEN_AI_RESPONSE_STOP_REASON_ATTRIBUTE, asString(llmOutput.stop_reason));
   }
 
-  // Add stop reason as finish reason if not already captured
-  if (response.llmOutput?.stop_reason) {
-    span.setAttributes({ 'gen_ai.response.stop_reason': JSON.stringify(response.llmOutput.stop_reason) });
-  }
+  return attrs;
 }

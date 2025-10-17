@@ -36,7 +36,6 @@ export interface LangChainSerializedLLM {
  */
 export interface LangChainMessage {
   [key: string]: unknown;
-  // Regular message format
   type?: string;
   content?: string;
   message?: {
@@ -80,39 +79,6 @@ export interface LangChainLLMResult {
     };
     model_name?: string;
   };
-}
-
-/**
- * LangChain Run ID
- */
-export type LangChainRunId = string;
-
-/**
- * LangChain span context stored per run
- */
-export interface LangChainSpanContext {
-  spanId: string;
-  traceId?: string;
-  parentSpanId?: string;
-  streamingBuffer?: string[];
-}
-
-/**
- * LangChain Tool structure
- */
-export interface LangChainTool {
-  [key: string]: unknown;
-  name: string;
-  description?: string;
-}
-
-/**
- * LangChain Document structure for retrievers
- */
-export interface LangChainDocument {
-  [key: string]: unknown;
-  pageContent: string;
-  metadata?: Record<string, unknown>;
 }
 
 /**
