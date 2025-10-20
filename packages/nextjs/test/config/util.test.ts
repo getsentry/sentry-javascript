@@ -332,6 +332,7 @@ describe('util', () => {
       process.argv = [...originalArgv];
       process.env = { ...originalEnv };
       delete process.env.TURBOPACK;
+      delete process.env.NEXT_RSPACK;
     });
 
     afterEach(() => {
@@ -346,6 +347,11 @@ describe('util', () => {
 
     it('returns webpack when --webpack flag is present', () => {
       process.argv.push('--webpack');
+      expect(util.detectActiveBundler('16.0.0')).toBe('webpack');
+    });
+
+    it('returns webpack when NEXT_RSPACK env var is set', () => {
+      process.env.NEXT_RSPACK = 'true';
       expect(util.detectActiveBundler('16.0.0')).toBe('webpack');
     });
 
@@ -386,6 +392,12 @@ describe('util', () => {
     it('prioritizes TURBOPACK env var over --webpack flag', () => {
       process.env.TURBOPACK = '1';
       process.argv.push('--webpack');
+      expect(util.detectActiveBundler('15.5.0')).toBe('turbopack');
+    });
+
+    it('prioritizes TURBOPACK env var over NEXT_RSPACK env var', () => {
+      process.env.TURBOPACK = '1';
+      process.env.NEXT_RSPACK = 'true';
       expect(util.detectActiveBundler('15.5.0')).toBe('turbopack');
     });
   });

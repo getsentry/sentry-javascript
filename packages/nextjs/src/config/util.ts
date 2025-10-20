@@ -163,6 +163,11 @@ export function detectActiveBundler(nextJsVersion: string | undefined): 'turbopa
     return 'webpack';
   }
 
+  // Explicit opt-in to webpack (using rspack) via environment variable
+  if (process.env.NEXT_RSPACK === 'true') {
+    return 'webpack';
+  }
+
   // Fallback to version-based default behavior
   if (nextJsVersion) {
     const turbopackIsDefault = isTurbopackDefaultForVersion(nextJsVersion);
