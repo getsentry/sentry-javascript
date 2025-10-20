@@ -2,10 +2,10 @@ import { debug } from '@sentry/core';
 import { defineNitroModule } from 'nitropack/kit';
 import type { NitroModule } from 'nitropack/types';
 import type { SentryNitroModuleOptionsWithDefaults, SentryNitroOptions } from './common/types';
-import { setupDatabaseInstrumentation } from './rollup/databaseConfig';
-import { setupEntrypointInstrumentation } from './rollup/entrypointConfig';
-import { setupMiddlewareInstrumentation } from './rollup/middlewareConfig';
-import { setupStorageInstrumentation } from './rollup/storageConfig';
+import { setupDatabaseInstrumentation } from './rollup/setupDatabase';
+import { setupEntrypointInstrumentation } from './rollup/setupEntrypoint';
+import { setupMiddlewareInstrumentation } from './rollup/setupMiddlewares';
+import { setupStorageInstrumentation } from './rollup/setupStorage';
 import { findDefaultSdkInitFile } from './utils';
 
 export const createSentryNitroModule = (

@@ -3,7 +3,7 @@ import { consoleSandbox } from '@sentry/core';
 import type { Nitro } from 'nitropack/types';
 import type { SentryNitroModuleOptionsWithDefaults } from '../common/types';
 import { addPlugin, createResolver } from '../utils';
-import { addDynamicImportEntryFileWrapper, addSentryTopImport, addServerConfigToBuild } from './serverConfig';
+import { addDynamicImportEntryFileWrapper, addSentryTopImport, addServerConfigToBuild } from './setupServer';
 
 /**
  * Sets up the entrypoint instrumentation for the Nitro server.
