@@ -309,10 +309,13 @@ export class BrowserTraceLifecycleProfiler {
       const chunk = createProfileChunkPayload(profile, this._client!, this._profilerId);
 
       // Validate chunk before sending
-      const { valid, reason } = validateProfileChunk(chunk);
-      if (!valid) {
+      const validationReturn = validateProfileChunk(chunk);
+      if ('reason' in validationReturn) {
         DEBUG_BUILD &&
-          debug.log('[Profiling] Discarding invalid profile chunk (this is probably a bug in the SDK):', reason);
+          debug.log(
+            '[Profiling] Discarding invalid profile chunk (this is probably a bug in the SDK):',
+            validationReturn.reason,
+          );
         return;
       }
 

@@ -256,45 +256,45 @@ export function createProfileChunkPayload(
  * - Presence of samples, stacks, frames
  * - Required metadata fields
  */
-export function validateProfileChunk(chunk: ProfileChunk): { valid: boolean; reason?: string } {
+export function validateProfileChunk(chunk: ProfileChunk): { valid: true } | { reason: string } {
   try {
     // Required metadata
     if (!chunk || typeof chunk !== 'object') {
-      return { valid: false, reason: 'chunk is not an object' };
+      return { reason: 'chunk is not an object' };
     }
 
     // profiler_id and chunk_id must be 32 lowercase hex chars
     const isHex32 = (val: unknown): boolean => typeof val === 'string' && /^[a-f0-9]{32}$/.test(val);
     if (!isHex32(chunk.profiler_id)) {
-      return { valid: false, reason: 'missing or invalid profiler_id' };
+      return { reason: 'missing or invalid profiler_id' };
     }
     if (!isHex32(chunk.chunk_id)) {
-      return { valid: false, reason: 'missing or invalid chunk_id' };
+      return { reason: 'missing or invalid chunk_id' };
     }
 
     if (!chunk.client_sdk) {
-      return { valid: false, reason: 'missing client_sdk metadata' };
+      return { reason: 'missing client_sdk metadata' };
     }
 
     // Profile data must have frames, stacks, samples
     const profile = chunk.profile as { frames?: unknown[]; stacks?: unknown[]; samples?: unknown[] } | undefined;
     if (!profile) {
-      return { valid: false, reason: 'missing profile data' };
+      return { reason: 'missing profile data' };
     }
 
     if (!Array.isArray(profile.frames) || !profile.frames.length) {
-      return { valid: false, reason: 'profile has no frames' };
+      return { reason: 'profile has no frames' };
     }
     if (!Array.isArray(profile.stacks) || !profile.stacks.length) {
-      return { valid: false, reason: 'profile has no stacks' };
+      return { reason: 'profile has no stacks' };
     }
     if (!Array.isArray(profile.samples) || !profile.samples.length) {
-      return { valid: false, reason: 'profile has no samples' };
+      return { reason: 'profile has no samples' };
     }
 
     return { valid: true };
   } catch (e) {
-    return { valid: false, reason: `unknown validation error: ${e}` };
+    return { reason: `unknown validation error: ${e}` };
   }
 }
 
