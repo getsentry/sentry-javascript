@@ -38,23 +38,23 @@ export default defineNitroPlugin(() => {
   try {
     const _databaseConfig = databaseConfig as Record<string, DatabaseConfig>;
     const databaseInstances = Object.keys(databaseConfig);
-    debug.log('[Nitro Database Plugin]: Instrumenting databases...');
+    debug.log('[Nitro] Instrumenting databases...');
 
     for (const instance of databaseInstances) {
-      debug.log('[Nitro Database Plugin]: Instrumenting database instance:', instance);
+      debug.log('[Nitro] Instrumenting database instance:', instance);
       const db = useDatabase(instance);
       instrumentDatabase(db, _databaseConfig[instance]);
     }
 
-    debug.log('[Nitro Database Plugin]: Databases instrumented.');
+    debug.log('[Nitro] Databases instrumented.');
   } catch (error) {
     // During build time, we can't use the useDatabase function, so we just log an error.
     if (error instanceof Error && /Cannot access 'instances'/.test(error.message)) {
-      debug.log('[Nitro Database Plugin]: Database instrumentation skipped during build time.');
+      debug.log('[Nitro] Database instrumentation skipped during build time.');
       return;
     }
 
-    debug.error('[Nitro Database Plugin]: Failed to instrument database:', error);
+    debug.error('[Nitro] Failed to instrument database:', error);
   }
 });
 
@@ -63,7 +63,7 @@ export default defineNitroPlugin(() => {
  */
 function instrumentDatabase(db: MaybeInstrumentedDatabase, config?: DatabaseConfig): void {
   if (db.__sentry_instrumented__) {
-    debug.log('[Nitro Database Plugin]: Database already instrumented. Skipping...');
+    debug.log('[Nitro] Database already instrumented. Skipping...');
     return;
   }
 

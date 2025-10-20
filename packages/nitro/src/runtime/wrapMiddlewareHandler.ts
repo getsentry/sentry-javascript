@@ -68,7 +68,7 @@ function wrapEventHandler(
   index?: number,
 ): EventHandler {
   return async (event: H3Event<EventHandlerRequest>) => {
-    debug.log(`Sentry middleware: ${middlewareName}${hookName ? `.${hookName}` : ''} handling ${event.path}`);
+    debug.log(`[Nitro] middleware ${middlewareName}${hookName ? `.${hookName}` : ''} handling ${event.path}`);
 
     const attributes = getSpanAttributes(event, middlewareName, hookName, index);
 
@@ -81,7 +81,7 @@ function wrapEventHandler(
  */
 function wrapResponseHandler(handler: ResponseMiddleware, middlewareName: string, index?: number): ResponseMiddleware {
   return async (event: H3Event<EventHandlerRequest>, response: EventHandlerResponse) => {
-    debug.log(`Sentry middleware: ${middlewareName}.onBeforeResponse handling ${event.path}`);
+    debug.log(`[Nitro] middleware ${middlewareName}.onBeforeResponse handling ${event.path}`);
 
     const attributes = getSpanAttributes(event, middlewareName, 'onBeforeResponse', index);
 

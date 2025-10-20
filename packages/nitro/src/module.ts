@@ -27,7 +27,7 @@ export const createSentryNitroModule = (
     setup(nitro) {
       const _serverConfigFile = serverConfigFile || findDefaultSdkInitFile('server');
       if (!_serverConfigFile) {
-        debug.log('[Sentry] No server config file found. Skipping Nitro server instrumentation...');
+        debug.log('[Nitro] No server config file found. Skipping Nitro server instrumentation...');
         return;
       }
 

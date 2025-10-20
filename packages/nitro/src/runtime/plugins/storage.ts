@@ -40,7 +40,7 @@ export default defineNitroPlugin(() => {
   // Mounts are suffixed with a colon, so we need to add it to the set items
   const userMounts = new Set((userStorageMounts as string[]).map(m => `${m}:`));
 
-  debug.log('[storage] Starting to instrument storage drivers...');
+  debug.log('[Nitro] Starting to instrument storage and cache drivers...');
 
   // Adds cache mount to handle Nitro's cache calls
   // Nitro uses the mount to cache functions and event handlers
@@ -71,12 +71,12 @@ export default defineNitroPlugin(() => {
 function instrumentDriver(driver: MaybeInstrumentedDriver, mountBase: string): Driver {
   // Already instrumented, skip...
   if (driver.__sentry_instrumented__) {
-    debug.log(`[storage] Driver already instrumented: "${driver.name}". Skipping...`);
+    debug.log(`[Nitro] Driver already instrumented: "${driver.name}". Skipping...`);
 
     return driver;
   }
 
-  debug.log(`[storage] Instrumenting driver: "${driver.name}" on mount: "${mountBase}"`);
+  debug.log(`[Nitro] Instrumenting driver: "${driver.name}" on mount: "${mountBase}"`);
 
   // List of driver methods to instrument
   // get/set/remove are aliases and already use their {method}Item methods
@@ -123,7 +123,7 @@ function createMethodWrapper(
     async apply(target, thisArg, args) {
       const options = createSpanStartOptions(methodName, driver, mountBase, args);
 
-      debug.log(`[storage] Running method: "${methodName}" on driver: "${driver.name ?? 'unknown'}"`);
+      debug.log(`[Nitro] Running method: "${methodName}" on driver: "${driver.name ?? 'unknown'}"`);
 
       return startSpan(options, async span => {
         try {
@@ -164,7 +164,7 @@ function wrapStorageMount(storage: Storage): Storage['mount'] {
   }
 
   function mountWithInstrumentation(base: string, driver: Driver): Storage {
-    debug.log(`[storage] Instrumenting mount: "${base}"`);
+    debug.log(`[Nitro] Instrumenting mount: "${base}"`);
 
     const instrumentedDriver = instrumentDriver(driver, base);
 

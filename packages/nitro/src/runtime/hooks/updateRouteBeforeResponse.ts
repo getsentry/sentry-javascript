@@ -46,6 +46,6 @@ export function updateRouteBeforeResponse(event: H3Event): void {
       });
     }
 
-    debug.log(`Updated transaction name for parametrized route: ${matchedRoutePath}`);
+    debug.log(`[Nitro] Updated transaction name for parametrized route: ${matchedRoutePath}`);
   }
 }

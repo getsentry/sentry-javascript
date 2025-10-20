@@ -102,7 +102,7 @@ function injectServerConfigPlugin(nitro: Nitro, serverConfigFile: string, isDebu
 
       if (!existsSync(configPath)) {
         if (isDebug) {
-          debug.log(`[Sentry] Sentry server config file not found: ${configPath}`);
+          debug.log(`[Nitro] Sentry server config file not found: ${configPath}`);
         }
         return;
       }
