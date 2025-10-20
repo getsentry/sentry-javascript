@@ -4,75 +4,66 @@
   </a>
 </p>
 
-# Official Sentry SDK for Nuxt
+# Official Sentry SDK for Nitro
 
-[![npm version](https://img.shields.io/npm/v/@sentry/nuxt.svg)](https://www.npmjs.com/package/@sentry/nuxt)
-[![npm dm](https://img.shields.io/npm/dm/@sentry/nuxt.svg)](https://www.npmjs.com/package/@sentry/nuxt)
-[![npm dt](https://img.shields.io/npm/dt/@sentry/nuxt.svg)](https://www.npmjs.com/package/@sentry/nuxt)
-
-This SDK is for [Nuxt](https://nuxt.com/). If you're using [Vue](https://vuejs.org/) see our
-[Vue SDK here](https://github.com/getsentry/sentry-javascript/tree/develop/packages/vue).
+[![npm version](https://img.shields.io/npm/v/@sentry/nitro.svg)](https://www.npmjs.com/package/@sentry/nitro)
+[![npm dm](https://img.shields.io/npm/dm/@sentry/nitro.svg)](https://www.npmjs.com/package/@sentry/nitro)
+[![npm dt](https://img.shields.io/npm/dt/@sentry/nitro.svg)](https://www.npmjs.com/package/@sentry/nitro)
 
 ## Links
 
-- [Official Nuxt SDK Docs](https://docs.sentry.io/platforms/javascript/guides/nuxt/)
+- [Official Nitro SDK Docs](https://docs.sentry.io/platforms/javascript/guides/nitro/)
 
 ## Compatibility
 
-The minimum supported version of Nuxt is `3.7.0` (`3.14.0+` recommended).
+The minimum supported version of Nitro is `2.10.0` (`2.12.0+` recommended).
 
 ## General
 
-This package is a wrapper around `@sentry/node` for the server and `@sentry/vue` for the client side, with added
-functionality related to Nuxt.
+This package is a wrapper around `@sentry/node` with added instrumentation for Nitro's features like:
+
+- HTTP handlers and error capturing.
+- [Middleware instrumentation](https://nitro.build/guide/routing#middleware).
+- [Database instrumentation](https://nitro.build/guide/database).
+- [KV Storage](https://nitro.build/guide/storage) and [Cache](https://nitro.build/guide/cache) instrumentation.
 
 ## Manual Setup
 
 ### 1. Prerequisites & Installation
 
-1. Install the Sentry Nuxt SDK:
+1. Install the Sentry Nitro SDK:
 
    ```bash
    # Using npm
-   npm install @sentry/nuxt
+   npm install @sentry/nitro
 
    # Using yarn
-   yarn add @sentry/nuxt
+   yarn add @sentry/nitro
    ```
 
-### 2. Nuxt Module Setup
+### 2. Nitro Config Setup
 
-The Sentry Nuxt SDK is based on [Nuxt Modules](https://nuxt.com/docs/api/kit/modules).
-
-1. Add `@sentry/nuxt/module` to the modules section of `nuxt.config.ts`:
+1. Import `withSentryConfig` from `@sentry/nitro` and call it with your Nitro config:
 
 ```javascript
-// nuxt.config.ts
-export default defineNuxtConfig({
-  modules: ['@sentry/nuxt/module'],
+// nitro.config.ts
+import { withSentryConfig } from '@sentry/nitro';
+
+const config = defineNitroConfig({
+  // ...
+});
+
+export default withSentryConfig(config, {
+  // settings
 });
 ```
 
-### 3. Client-side setup
-
-Add a `sentry.client.config.ts` file to the root of your project:
-
-```javascript
-import { useRuntimeConfig } from '#imports';
-import * as Sentry from '@sentry/nuxt';
-
-Sentry.init({
-  // If set up, you can use your runtime config here
-  dsn: useRuntimeConfig().public.sentry.dsn,
-});
-```
-
-### 4. Server-side setup
+### 3. Sentry Config Setup
 
 Add a `sentry.server.config.ts` file to the root of your project:
 
 ```javascript
-import * as Sentry from '@sentry/nuxt';
+import * as Sentry from '@sentry/nitro';
 
 // Only run `init` when process.env.SENTRY_DSN is available.
 if (process.env.SENTRY_DSN) {
@@ -82,8 +73,7 @@ if (process.env.SENTRY_DSN) {
 }
 ```
 
-Using `useRuntimeConfig` does not work in the Sentry server config file due to technical reasons (the file has to be
-loaded before Nuxt is loaded). To be able to use `process.env` you either have to add `--env-file=.env` to your node
+You can reference the `SENTRY_DSN` from `process.env` by either adding `--env-file=.env` to your node
 command
 
 ```bash
@@ -93,8 +83,9 @@ node --env-file=.env .output/server/index.mjs
 or use the `dotenv` package:
 
 ```javascript
+// sentry.server.config.ts
 import dotenv from 'dotenv';
-import * as Sentry from '@sentry/nuxt';
+import * as Sentry from '@sentry/nitro';
 
 dotenv.config();
 
@@ -105,23 +96,10 @@ Sentry.init({
 
 ## Uploading Source Maps
 
-To upload source maps, you have to enable client source maps in your `nuxt.config.ts`. Then, you add your project
-settings to `sentry` in your `nuxt.config.ts`:
+To upload source maps...
 
-```javascript
-// nuxt.config.ts
-export default defineNuxtConfig({
-  sourcemap: { client: 'hidden' },
-
-  modules: ['@sentry/nuxt/module'],
-  sentry: {
-    org: 'your-org-slug',
-    project: 'your-project-slug',
-    authToken: process.env.SENTRY_AUTH_TOKEN,
-  },
-});
-```
+<!-- TODO -->
 
 ## Troubleshoot
 
-If you encounter any issues with error tracking or integrations, refer to the official [Sentry Nuxt SDK documentation](https://docs.sentry.io/platforms/javascript/guides/nuxt/). If the documentation does not provide the necessary information, consider opening an issue on GitHub.
+If you encounter any issues with error tracking or integrations, refer to the official [Sentry Nitro SDK documentation](https://docs.sentry.io/platforms/javascript/guides/nitro/). If the documentation does not provide the necessary information, consider opening an issue on GitHub.
