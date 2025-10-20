@@ -140,6 +140,22 @@ export { _INTERNAL_getSpanForToolCallId, _INTERNAL_cleanupToolCallSpan } from '.
 export { instrumentOpenAiClient } from './utils/openai';
 export { OPENAI_INTEGRATION_NAME } from './utils/openai/constants';
 export { instrumentAnthropicAiClient } from './utils/anthropic-ai';
+export { setTokenUsageAttributes } from './utils/ai/utils';
+export {
+  GEN_AI_AGENT_NAME_ATTRIBUTE,
+  GEN_AI_OPERATION_NAME_ATTRIBUTE,
+  GEN_AI_REQUEST_MESSAGES_ATTRIBUTE,
+  GEN_AI_REQUEST_MODEL_ATTRIBUTE,
+  GEN_AI_RESPONSE_ID_ATTRIBUTE,
+  GEN_AI_RESPONSE_MODEL_ATTRIBUTE,
+  GEN_AI_RESPONSE_TEXT_ATTRIBUTE,
+  GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
+  GEN_AI_SYSTEM_ATTRIBUTE,
+  GEN_AI_TOOL_INPUT_ATTRIBUTE,
+  GEN_AI_TOOL_NAME_ATTRIBUTE,
+  GEN_AI_TOOL_OUTPUT_ATTRIBUTE,
+  GEN_AI_TOOL_TYPE_ATTRIBUTE,
+} from './utils/ai/gen-ai-attributes';
 export { ANTHROPIC_AI_INTEGRATION_NAME } from './utils/anthropic-ai/constants';
 export { instrumentGoogleGenAIClient } from './utils/google-genai';
 export { GOOGLE_GENAI_INTEGRATION_NAME } from './utils/google-genai/constants';
