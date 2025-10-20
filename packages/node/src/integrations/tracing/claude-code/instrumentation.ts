@@ -1,61 +1,71 @@
 import type { Span } from '@opentelemetry/api';
 import {
+  captureException,
   getClient,
+  GEN_AI_AGENT_NAME_ATTRIBUTE,
+  GEN_AI_OPERATION_NAME_ATTRIBUTE,
+  GEN_AI_REQUEST_MESSAGES_ATTRIBUTE,
+  GEN_AI_REQUEST_MODEL_ATTRIBUTE,
+  GEN_AI_RESPONSE_ID_ATTRIBUTE,
+  GEN_AI_RESPONSE_MODEL_ATTRIBUTE,
+  GEN_AI_RESPONSE_TEXT_ATTRIBUTE,
+  GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
+  GEN_AI_SYSTEM_ATTRIBUTE,
+  GEN_AI_TOOL_INPUT_ATTRIBUTE,
+  GEN_AI_TOOL_NAME_ATTRIBUTE,
+  GEN_AI_TOOL_OUTPUT_ATTRIBUTE,
+  GEN_AI_TOOL_TYPE_ATTRIBUTE,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  setTokenUsageAttributes,
+  startSpan,
   startSpanManual,
   withActiveSpan,
-  startSpan,
-  captureException,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
 } from '@sentry/core';
 import type { ClaudeCodeOptions } from './index';
 
-type ClaudeCodeInstrumentationOptions = ClaudeCodeOptions;
-
-const GEN_AI_ATTRIBUTES = {
-  SYSTEM: 'gen_ai.system',
-  OPERATION_NAME: 'gen_ai.operation.name',
-  REQUEST_MODEL: 'gen_ai.request.model',
-  REQUEST_MESSAGES: 'gen_ai.request.messages',
-  RESPONSE_TEXT: 'gen_ai.response.text',
-  RESPONSE_TOOL_CALLS: 'gen_ai.response.tool_calls',
-  RESPONSE_ID: 'gen_ai.response.id',
-  RESPONSE_MODEL: 'gen_ai.response.model',
-  USAGE_INPUT_TOKENS: 'gen_ai.usage.input_tokens',
-  USAGE_OUTPUT_TOKENS: 'gen_ai.usage.output_tokens',
-  USAGE_TOTAL_TOKENS: 'gen_ai.usage.total_tokens',
-  TOOL_NAME: 'gen_ai.tool.name',
-  TOOL_INPUT: 'gen_ai.tool.input',
-  TOOL_OUTPUT: 'gen_ai.tool.output',
-  AGENT_NAME: 'gen_ai.agent.name',
-} as const;
+export type ClaudeCodeInstrumentationOptions = ClaudeCodeOptions;
 
 const SENTRY_ORIGIN = 'auto.ai.claude-code';
 
-function setTokenUsageAttributes(
-  span: Span,
-  inputTokens?: number,
-  outputTokens?: number,
-  cacheCreationTokens?: number,
-  cacheReadTokens?: number,
-): void {
-  const attrs: Record<string, number> = {};
+/**
+ * Maps Claude Code tool names to OpenTelemetry tool types.
+ *
+ * @see https://opentelemetry.io/docs/specs/semconv/gen-ai/gen-ai-spans/
+ * @param toolName - The name of the tool (e.g., 'Bash', 'Read', 'WebSearch')
+ * @returns The OpenTelemetry tool type: 'function', 'extension', or 'datastore'
+ */
+function getToolType(toolName: string): 'function' | 'extension' | 'datastore' {
+  // Client-side execution tools - functions that run on the client
+  const functionTools = new Set([
+    'Bash',
+    'BashOutput',
+    'KillShell', // Shell/process tools
+    'Read',
+    'Write',
+    'Edit', // File operations
+    'Glob',
+    'Grep', // File search
+    'Task',
+    'ExitPlanMode',
+    'TodoWrite', // Agent control
+    'NotebookEdit',
+    'SlashCommand', // Specialized operations
+  ]);
 
-  if (typeof inputTokens === 'number') {
-    attrs[GEN_AI_ATTRIBUTES.USAGE_INPUT_TOKENS] = inputTokens;
-  }
-  if (typeof outputTokens === 'number') {
-    attrs[GEN_AI_ATTRIBUTES.USAGE_OUTPUT_TOKENS] = outputTokens;
-  }
+  // Agent-side API calls - external service integrations
+  const extensionTools = new Set(['WebSearch', 'WebFetch']);
 
-  const total = (inputTokens ?? 0) + (outputTokens ?? 0) + (cacheCreationTokens ?? 0) + (cacheReadTokens ?? 0);
-  if (total > 0) {
-    attrs[GEN_AI_ATTRIBUTES.USAGE_TOTAL_TOKENS] = total;
-  }
+  // Data access tools - database/structured data operations
+  // (Currently none in Claude Code, but future-proofing)
+  const datastoreTools = new Set<string>([]);
 
-  if (Object.keys(attrs).length > 0) {
-    span.setAttributes(attrs);
-  }
+  if (functionTools.has(toolName)) return 'function';
+  if (extensionTools.has(toolName)) return 'extension';
+  if (datastoreTools.has(toolName)) return 'datastore';
+
+  // Default to function for unknown tools (safest assumption)
+  return 'function';
 }
 
 /**
@@ -72,21 +82,23 @@ export function patchClaudeCodeQuery(
 
     const recordInputs = options.recordInputs ?? defaultPii;
     const recordOutputs = options.recordOutputs ?? defaultPii;
+    const agentName = options.agentName ?? 'claude-code';
 
     // Parse query arguments
     const [queryParams] = args as [Record<string, unknown>];
     const { options: queryOptions, inputMessages } = queryParams || {};
-    const model = (queryOptions as Record<string, unknown>)?.model ?? 'sonnet';
+    const model = (queryOptions as Record<string, unknown>)?.model ?? 'unknown';
 
     // Create original query instance
     const originalQueryInstance = queryFunction.apply(this, args);
 
     // Create instrumented generator
-    const instrumentedGenerator = _createInstrumentedGenerator(
-      originalQueryInstance,
-      model as string,
-      { recordInputs, recordOutputs, inputMessages },
-    );
+    const instrumentedGenerator = _createInstrumentedGenerator(originalQueryInstance, model as string, {
+      recordInputs,
+      recordOutputs,
+      inputMessages,
+      agentName,
+    });
 
     // Preserve Query interface methods
     if (typeof (originalQueryInstance as Record<string, unknown>).interrupt === 'function') {
@@ -112,22 +124,29 @@ export function patchClaudeCodeQuery(
 function _createInstrumentedGenerator(
   originalQuery: AsyncGenerator<unknown, void, unknown>,
   model: string,
-  instrumentationOptions: { recordInputs?: boolean; recordOutputs?: boolean; inputMessages?: unknown },
+  instrumentationOptions: {
+    recordInputs?: boolean;
+    recordOutputs?: boolean;
+    inputMessages?: unknown;
+    agentName?: string;
+  },
 ): AsyncGenerator<unknown, void, unknown> {
-    return startSpanManual(
-      {
-        name: `invoke_agent claude-code`,
-        op: 'gen_ai.invoke_agent',
-        attributes: {
-          [GEN_AI_ATTRIBUTES.SYSTEM]: 'claude-code',
-          [GEN_AI_ATTRIBUTES.REQUEST_MODEL]: model,
-          [GEN_AI_ATTRIBUTES.OPERATION_NAME]: 'invoke_agent',
-          [GEN_AI_ATTRIBUTES.AGENT_NAME]: 'claude-code',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: SENTRY_ORIGIN,
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.invoke_agent',
-        },
+  const agentName = instrumentationOptions.agentName ?? 'claude-code';
+
+  return startSpanManual(
+    {
+      name: `invoke_agent ${agentName}`,
+      op: 'gen_ai.invoke_agent',
+      attributes: {
+        [GEN_AI_SYSTEM_ATTRIBUTE]: agentName,
+        [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: model,
+        [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'invoke_agent',
+        [GEN_AI_AGENT_NAME_ATTRIBUTE]: agentName,
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: SENTRY_ORIGIN,
+        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.invoke_agent',
       },
-      async function* (span: Span) {
+    },
+    async function* (span: Span) {
         // State accumulation
         let sessionId: string | null = null;
         let currentLLMSpan: Span | null = null;
@@ -148,13 +167,9 @@ function _createInstrumentedGenerator(
             if (msg.type === 'system' && msg.session_id) {
               sessionId = msg.session_id as string;
 
-              if (
-                !inputMessagesCaptured &&
-                instrumentationOptions.recordInputs &&
-                msg.conversation_history
-              ) {
+              if (!inputMessagesCaptured && instrumentationOptions.recordInputs && msg.conversation_history) {
                 span.setAttributes({
-                  [GEN_AI_ATTRIBUTES.REQUEST_MESSAGES]: JSON.stringify(msg.conversation_history),
+                  [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: JSON.stringify(msg.conversation_history),
                 });
                 inputMessagesCaptured = true;
               }
@@ -178,9 +193,9 @@ function _createInstrumentedGenerator(
                       name: `chat ${model}`,
                       op: 'gen_ai.chat',
                       attributes: {
-                        [GEN_AI_ATTRIBUTES.SYSTEM]: 'claude-code',
-                        [GEN_AI_ATTRIBUTES.REQUEST_MODEL]: model,
-                        [GEN_AI_ATTRIBUTES.OPERATION_NAME]: 'chat',
+                        [GEN_AI_SYSTEM_ATTRIBUTE]: agentName,
+                        [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: model,
+                        [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'chat',
                         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: SENTRY_ORIGIN,
                         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.chat',
                       },
@@ -188,9 +203,7 @@ function _createInstrumentedGenerator(
                     (childSpan: Span) => {
                       if (instrumentationOptions.recordInputs && instrumentationOptions.inputMessages) {
                         childSpan.setAttributes({
-                          [GEN_AI_ATTRIBUTES.REQUEST_MESSAGES]: JSON.stringify(
-                            instrumentationOptions.inputMessages,
-                          ),
+                          [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: JSON.stringify(instrumentationOptions.inputMessages),
                         });
                       }
                       return childSpan;
@@ -206,14 +219,14 @@ function _createInstrumentedGenerator(
               const content = (msg.message as Record<string, unknown>)?.content as unknown[];
               if (Array.isArray(content)) {
                 const textContent = content
-                  .filter((c) => (c as Record<string, unknown>).type === 'text')
-                  .map((c) => (c as Record<string, unknown>).text as string)
+                  .filter(c => (c as Record<string, unknown>).type === 'text')
+                  .map(c => (c as Record<string, unknown>).text as string)
                   .join('');
                 if (textContent) {
                   currentTurnContent += textContent;
                 }
 
-                const tools = content.filter((c) => (c as Record<string, unknown>).type === 'tool_use');
+                const tools = content.filter(c => (c as Record<string, unknown>).type === 'tool_use');
                 if (tools.length > 0) {
                   currentTurnTools.push(...tools);
                 }
@@ -245,24 +258,24 @@ function _createInstrumentedGenerator(
               if (currentLLMSpan) {
                 if (instrumentationOptions.recordOutputs && currentTurnContent) {
                   currentLLMSpan.setAttributes({
-                    [GEN_AI_ATTRIBUTES.RESPONSE_TEXT]: currentTurnContent,
+                    [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: currentTurnContent,
                   });
                 }
 
                 if (instrumentationOptions.recordOutputs && currentTurnTools.length > 0) {
                   currentLLMSpan.setAttributes({
-                    [GEN_AI_ATTRIBUTES.RESPONSE_TOOL_CALLS]: JSON.stringify(currentTurnTools),
+                    [GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE]: JSON.stringify(currentTurnTools),
                   });
                 }
 
                 if (currentTurnId) {
                   currentLLMSpan.setAttributes({
-                    [GEN_AI_ATTRIBUTES.RESPONSE_ID]: currentTurnId,
+                    [GEN_AI_RESPONSE_ID_ATTRIBUTE]: currentTurnId,
                   });
                 }
                 if (currentTurnModel) {
                   currentLLMSpan.setAttributes({
-                    [GEN_AI_ATTRIBUTES.RESPONSE_MODEL]: currentTurnModel,
+                    [GEN_AI_RESPONSE_MODEL_ATTRIBUTE]: currentTurnModel,
                   });
                 }
 
@@ -295,35 +308,39 @@ function _createInstrumentedGenerator(
             if (msg.type === 'user' && (msg.message as Record<string, unknown>)?.content) {
               const content = (msg.message as Record<string, unknown>).content as unknown[];
               const toolResults = Array.isArray(content)
-                ? content.filter((c) => (c as Record<string, unknown>).type === 'tool_result')
+                ? content.filter(c => (c as Record<string, unknown>).type === 'tool_result')
                 : [];
 
               for (const toolResult of toolResults) {
                 const tr = toolResult as Record<string, unknown>;
-                let matchingTool = currentTurnTools.find(
-                  (t) => (t as Record<string, unknown>).id === tr.tool_use_id,
-                ) as Record<string, unknown> | undefined;
+                let matchingTool = currentTurnTools.find(t => (t as Record<string, unknown>).id === tr.tool_use_id) as
+                  | Record<string, unknown>
+                  | undefined;
                 let parentLLMSpan = currentLLMSpan;
 
                 if (!matchingTool && previousTurnTools.length > 0) {
-                  matchingTool = previousTurnTools.find(
-                    (t) => (t as Record<string, unknown>).id === tr.tool_use_id,
-                  ) as Record<string, unknown> | undefined;
+                  matchingTool = previousTurnTools.find(t => (t as Record<string, unknown>).id === tr.tool_use_id) as
+                    | Record<string, unknown>
+                    | undefined;
                   parentLLMSpan = previousLLMSpan;
                 }
 
                 if (matchingTool && parentLLMSpan) {
                   withActiveSpan(parentLLMSpan, () => {
+                    const toolName = matchingTool!.name as string;
+                    const toolType = getToolType(toolName);
+
                     startSpan(
                       {
-                        name: `execute_tool ${matchingTool!.name as string}`,
+                        name: `execute_tool ${toolName}`,
                         op: 'gen_ai.execute_tool',
                         attributes: {
-                          [GEN_AI_ATTRIBUTES.SYSTEM]: 'claude-code',
-                          [GEN_AI_ATTRIBUTES.REQUEST_MODEL]: model,
-                          [GEN_AI_ATTRIBUTES.OPERATION_NAME]: 'execute_tool',
-                          [GEN_AI_ATTRIBUTES.AGENT_NAME]: 'claude-code',
-                          [GEN_AI_ATTRIBUTES.TOOL_NAME]: matchingTool!.name as string,
+                          [GEN_AI_SYSTEM_ATTRIBUTE]: agentName,
+                          [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: model,
+                          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'execute_tool',
+                          [GEN_AI_AGENT_NAME_ATTRIBUTE]: agentName,
+                          [GEN_AI_TOOL_NAME_ATTRIBUTE]: toolName,
+                          [GEN_AI_TOOL_TYPE_ATTRIBUTE]: toolType,
                           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: SENTRY_ORIGIN,
                           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.execute_tool',
                         },
@@ -331,19 +348,22 @@ function _createInstrumentedGenerator(
                       (toolSpan: Span) => {
                         if (instrumentationOptions.recordInputs && matchingTool!.input) {
                           toolSpan.setAttributes({
-                            [GEN_AI_ATTRIBUTES.TOOL_INPUT]: JSON.stringify(matchingTool!.input),
+                            [GEN_AI_TOOL_INPUT_ATTRIBUTE]: JSON.stringify(matchingTool!.input),
                           });
                         }
 
                         if (instrumentationOptions.recordOutputs && tr.content) {
                           toolSpan.setAttributes({
-                            [GEN_AI_ATTRIBUTES.TOOL_OUTPUT]:
+                            [GEN_AI_TOOL_OUTPUT_ATTRIBUTE]:
                               typeof tr.content === 'string' ? tr.content : JSON.stringify(tr.content),
                           });
                         }
 
+                        // Set span status explicitly
                         if (tr.is_error) {
                           toolSpan.setStatus({ code: 2, message: 'Tool execution error' });
+                        } else {
+                          toolSpan.setStatus({ code: 1 }); // Explicit success status
                         }
                       },
                     );
@@ -357,13 +377,13 @@ function _createInstrumentedGenerator(
 
           if (instrumentationOptions.recordOutputs && finalResult) {
             span.setAttributes({
-              [GEN_AI_ATTRIBUTES.RESPONSE_TEXT]: finalResult,
+              [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: finalResult,
             });
           }
 
           if (sessionId) {
             span.setAttributes({
-              [GEN_AI_ATTRIBUTES.RESPONSE_ID]: sessionId,
+              [GEN_AI_RESPONSE_ID_ATTRIBUTE]: sessionId,
             });
           }
 

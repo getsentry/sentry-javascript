@@ -14,6 +14,18 @@ export interface ClaudeCodeOptions {
    * Defaults to Sentry client's `sendDefaultPii` setting.
    */
   recordOutputs?: boolean;
+
+  /**
+   * Custom agent name to use for this integration.
+   * This allows you to differentiate between multiple Claude Code agents in your application.
+   * Defaults to 'claude-code'.
+   *
+   * @example
+   * ```typescript
+   * const query = createInstrumentedClaudeQuery({ name: 'app-builder' });
+   * ```
+   */
+  agentName?: string;
 }
 
 const CLAUDE_CODE_INTEGRATION_NAME = 'ClaudeCode';
