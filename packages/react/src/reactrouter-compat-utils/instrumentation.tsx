@@ -8,7 +8,7 @@ import {
   startBrowserTracingPageLoadSpan,
   WINDOW,
 } from '@sentry/browser';
-import type { Client, Integration, Span, TransactionSource } from '@sentry/core';
+import type { Client, Integration, Span } from '@sentry/core';
 import {
   addNonEnumerableProperty,
   debug,
@@ -41,14 +41,7 @@ import type {
   UseRoutes,
 } from '../types';
 import { checkRouteForAsyncHandler } from './lazy-routes';
-import {
-  getNormalizedName,
-  initializeRouterUtils,
-  locationIsInsideDescendantRoute,
-  prefixWithSlash,
-  rebuildRoutePathFromAllRoutes,
-  resolveRouteNameAndSource,
-} from './utils';
+import { initializeRouterUtils, resolveRouteNameAndSource } from './utils';
 
 let _useEffect: UseEffect;
 let _useLocation: UseLocation;
@@ -732,7 +725,7 @@ function updatePageloadTransaction({
     : (_matchRoutes(allRoutes || routes, location, basename) as unknown as RouteMatch[]);
 
   if (branches) {
-    const [name, source] = getTransactionNameAndSource(location, routes, branches, basename, allRoutes);
+    const [name, source] = resolveRouteNameAndSource(location, routes, allRoutes || routes, branches, basename);
 
     getCurrentScope().setTransactionName(name || '/');
 
@@ -744,33 +737,6 @@ function updatePageloadTransaction({
       patchPageloadSpanEnd(activeRootSpan, location, routes, basename, allRoutes);
     }
   }
-}
-
-/**
- * Extracts the transaction name and source from the route information.
- */
-function getTransactionNameAndSource(
-  location: Location,
-  routes: RouteObject[],
-  branches: RouteMatch[],
-  basename: string | undefined,
-  allRoutes: RouteObject[] | undefined,
-): [string, TransactionSource] {
-  let name: string | undefined;
-  let source: TransactionSource = 'url';
-
-  const isInDescendantRoute = locationIsInsideDescendantRoute(location, allRoutes || routes);
-
-  if (isInDescendantRoute) {
-    name = prefixWithSlash(rebuildRoutePathFromAllRoutes(allRoutes || routes, location));
-    source = 'route';
-  }
-
-  if (!isInDescendantRoute || !name) {
-    [name, source] = getNormalizedName(routes, location, branches, basename);
-  }
-
-  return [name || '/', source];
 }
 
 /**
@@ -805,10 +771,7 @@ function patchSpanEnd(
       const branches = _matchRoutes(currentAllRoutes || routes, location, basename) as unknown as RouteMatch[];
 
       if (branches) {
-        const [name, source] =
-          spanType === 'pageload'
-            ? getTransactionNameAndSource(location, routes, branches, basename, currentAllRoutes)
-            : resolveRouteNameAndSource(location, routes, currentAllRoutes, branches, basename);
+        const [name, source] = resolveRouteNameAndSource(location, routes, currentAllRoutes, branches, basename);
 
         // Only update if we have a valid name
         if (name && (spanType === 'pageload' || !spanJson.timestamp)) {
