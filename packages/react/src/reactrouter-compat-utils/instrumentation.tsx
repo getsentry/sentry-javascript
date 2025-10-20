@@ -784,7 +784,7 @@ function patchPageloadSpanEnd(
   location: Location,
   routes: RouteObject[],
   basename: string | undefined,
-  allRoutes: RouteObject[] | undefined,
+  _allRoutes: RouteObject[] | undefined,
 ): void {
   const hasEndBeenPatched = (span as { __sentry_pageload_end_patched__?: boolean })?.__sentry_pageload_end_patched__;
 
@@ -800,10 +800,18 @@ function patchPageloadSpanEnd(
     const currentSource = spanJson.data?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
     if (currentSource !== 'route') {
       // Last chance to update the transaction name with the latest route info
-      const branches = _matchRoutes(allRoutes || routes, location, basename) as unknown as RouteMatch[];
+      // Use the live global allRoutes Set to include any lazy routes loaded after patching
+      const currentAllRoutes = Array.from(allRoutes);
+      const branches = _matchRoutes(currentAllRoutes || routes, location, basename) as unknown as RouteMatch[];
 
       if (branches) {
-        const [latestName, latestSource] = getTransactionNameAndSource(location, routes, branches, basename, allRoutes);
+        const [latestName, latestSource] = getTransactionNameAndSource(
+          location,
+          routes,
+          branches,
+          basename,
+          currentAllRoutes,
+        );
 
         span.updateName(latestName);
         span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, latestSource);
@@ -830,7 +838,7 @@ function patchNavigationSpanEnd(
   location: Location,
   routes: RouteObject[],
   basename: string | undefined,
-  allRoutes: RouteObject[] | undefined,
+  _allRoutes: RouteObject[] | undefined,
 ): void {
   const hasEndBeenPatched = (span as { __sentry_navigation_end_patched__?: boolean })
     ?.__sentry_navigation_end_patched__;
@@ -847,10 +855,12 @@ function patchNavigationSpanEnd(
     const currentSource = spanJson.data?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
     if (currentSource !== 'route') {
       // Last chance to update the transaction name with the latest route info
-      const branches = _matchRoutes(allRoutes || routes, location, basename) as unknown as RouteMatch[];
+      // Use the live global allRoutes Set to include any lazy routes loaded after patching
+      const currentAllRoutes = Array.from(allRoutes);
+      const branches = _matchRoutes(currentAllRoutes || routes, location, basename) as unknown as RouteMatch[];
 
       if (branches) {
-        const [name, source] = resolveRouteNameAndSource(location, routes, allRoutes || routes, branches, basename);
+        const [name, source] = resolveRouteNameAndSource(location, routes, currentAllRoutes, branches, basename);
 
         // Only update if we have a valid name and the span hasn't finished
         if (name && !spanJson.timestamp) {
