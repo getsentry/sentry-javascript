@@ -21,6 +21,7 @@ import { instrumentMongoose, mongooseIntegration } from './mongoose';
 import { instrumentMysql, mysqlIntegration } from './mysql';
 import { instrumentMysql2, mysql2Integration } from './mysql2';
 import { instrumentOpenAi, openAIIntegration } from './openai';
+import { openaiCodexIntegration } from './openai-codex';
 import { instrumentPostgres, postgresIntegration } from './postgres';
 import { instrumentPostgresJs, postgresJsIntegration } from './postgresjs';
 import { prismaIntegration } from './prisma';
@@ -60,6 +61,7 @@ export function getAutoPerformanceIntegrations(): Integration[] {
     googleGenAIIntegration(),
     langChainIntegration(),
     claudeCodeIntegration(),
+    openaiCodexIntegration(),
   ];
 }
 
