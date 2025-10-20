@@ -21,7 +21,7 @@ test.describe('multiple database instances', () => {
     expect(selectSpan).toBeDefined();
     expect(selectSpan?.op).toBe('db.query');
     expect(selectSpan?.data?.['db.system.name']).toBe('sqlite');
-    expect(selectSpan?.data?.['sentry.origin']).toBe('auto.db.nuxt');
+    expect(selectSpan?.data?.['sentry.origin']).toBe('auto.db.nitro');
   });
 
   test('instruments named database instance (users)', async ({ request }) => {
@@ -43,7 +43,7 @@ test.describe('multiple database instances', () => {
     expect(selectSpan).toBeDefined();
     expect(selectSpan?.op).toBe('db.query');
     expect(selectSpan?.data?.['db.system.name']).toBe('sqlite');
-    expect(selectSpan?.data?.['sentry.origin']).toBe('auto.db.nuxt');
+    expect(selectSpan?.data?.['sentry.origin']).toBe('auto.db.nitro');
   });
 
   test('instruments named database instance (analytics)', async ({ request }) => {
@@ -65,7 +65,7 @@ test.describe('multiple database instances', () => {
     expect(selectSpan).toBeDefined();
     expect(selectSpan?.op).toBe('db.query');
     expect(selectSpan?.data?.['db.system.name']).toBe('sqlite');
-    expect(selectSpan?.data?.['sentry.origin']).toBe('auto.db.nuxt');
+    expect(selectSpan?.data?.['sentry.origin']).toBe('auto.db.nitro');
   });
 
   test('instruments multiple database instances in single request', async ({ request }) => {
@@ -100,9 +100,9 @@ test.describe('multiple database instances', () => {
     expect(metricSpan?.data?.['db.system.name']).toBe('sqlite');
 
     // All should have the same origin
-    expect(sessionSpan?.data?.['sentry.origin']).toBe('auto.db.nuxt');
-    expect(accountSpan?.data?.['sentry.origin']).toBe('auto.db.nuxt');
-    expect(metricSpan?.data?.['sentry.origin']).toBe('auto.db.nuxt');
+    expect(sessionSpan?.data?.['sentry.origin']).toBe('auto.db.nitro');
+    expect(accountSpan?.data?.['sentry.origin']).toBe('auto.db.nitro');
+    expect(metricSpan?.data?.['sentry.origin']).toBe('auto.db.nitro');
   });
 
   test('instruments SQL template tag across multiple databases', async ({ request }) => {
@@ -126,12 +126,12 @@ test.describe('multiple database instances', () => {
     expect(logsInsertSpan).toBeDefined();
     expect(logsInsertSpan?.op).toBe('db.query');
     expect(logsInsertSpan?.data?.['db.system.name']).toBe('sqlite');
-    expect(logsInsertSpan?.data?.['sentry.origin']).toBe('auto.db.nuxt');
+    expect(logsInsertSpan?.data?.['sentry.origin']).toBe('auto.db.nitro');
 
     expect(auditLogsInsertSpan).toBeDefined();
     expect(auditLogsInsertSpan?.op).toBe('db.query');
     expect(auditLogsInsertSpan?.data?.['db.system.name']).toBe('sqlite');
-    expect(auditLogsInsertSpan?.data?.['sentry.origin']).toBe('auto.db.nuxt');
+    expect(auditLogsInsertSpan?.data?.['sentry.origin']).toBe('auto.db.nitro');
   });
 
   test('creates correct span count for multiple database operations', async ({ request }) => {
