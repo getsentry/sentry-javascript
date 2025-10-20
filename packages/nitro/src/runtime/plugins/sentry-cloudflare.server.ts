@@ -1,4 +1,3 @@
-import type { IncomingRequestCfProperties } from '@cloudflare/workers-types';
 import type { CloudflareOptions } from '@sentry/cloudflare';
 import { setAsyncLocalStorageAsyncContextStrategy, wrapRequestHandler } from '@sentry/cloudflare';
 import { debug, getDefaultIsolationScope, getIsolationScope, getTraceData } from '@sentry/core';
@@ -63,8 +62,9 @@ export const sentryCloudflareNitroPlugin =
           const request = new Request(url, {
             method: event.method,
             headers: event.headers,
+            // @ts-expect-error - 'cf' is a valid property in the RequestInit type for Cloudflare
             cf: getCfProperties(event),
-          }) as Request<unknown, IncomingRequestCfProperties<unknown>>;
+          });
 
           const requestHandlerOptions = {
             options: cloudflareOptions,
