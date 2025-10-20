@@ -7,13 +7,19 @@ export const DEFAULT_GEN_AI_MESSAGES_BYTE_LIMIT = 20000;
 /**
  * Message format used by OpenAI and Anthropic APIs.
  */
-type ContentMessage = { [key: string]: unknown; content: string };
+type ContentMessage = {
+  [key: string]: unknown;
+  content: string;
+};
 
 /**
  * Message format used by Google GenAI API.
  * Parts can be strings or objects with a text property.
  */
-type PartsMessage = { [key: string]: unknown; parts: Array<string | { text: string }> };
+type PartsMessage = {
+  [key: string]: unknown;
+  parts: Array<string | { text: string }>;
+};
 
 /**
  * A part in a Google GenAI message that contains text.
