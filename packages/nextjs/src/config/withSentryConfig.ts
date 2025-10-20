@@ -261,7 +261,7 @@ function getFinalConfigObject(
     nextMajor = major;
   }
 
-  const activeBundler = detectActiveBundler(nextJsVersion);
+  const activeBundler = detectActiveBundler();
   const isTurbopack = activeBundler === 'turbopack';
   const isWebpack = activeBundler === 'webpack';
   const isTurbopackSupported = supportsProductionCompileHook(nextJsVersion ?? '');
