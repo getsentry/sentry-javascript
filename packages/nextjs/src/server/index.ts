@@ -51,7 +51,9 @@ export { claudeCodeIntegration, createInstrumentedClaudeQuery, patchClaudeCodeQu
 
 // Force rollup to keep the imports by "using" them
 const _forceInclude = { claudeCodeIntegration, createInstrumentedClaudeQuery, patchClaudeCodeQuery };
-if (false as boolean) { console.log(_forceInclude); }
+if (false as boolean) {
+  console.log(_forceInclude);
+}
 
 export { captureUnderscoreErrorException } from '../common/pages-router-instrumentation/_error';
 
