@@ -130,6 +130,35 @@ export const GEN_AI_RESPONSE_STREAMING_ATTRIBUTE = 'gen_ai.response.streaming';
 export const GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE = 'gen_ai.response.tool_calls';
 
 // =============================================================================
+// AI AGENT ATTRIBUTES
+// =============================================================================
+
+/**
+ * The name of the AI agent
+ */
+export const GEN_AI_AGENT_NAME_ATTRIBUTE = 'gen_ai.agent.name';
+
+/**
+ * The name of the tool being executed
+ */
+export const GEN_AI_TOOL_NAME_ATTRIBUTE = 'gen_ai.tool.name';
+
+/**
+ * The type of the tool: 'function', 'extension', or 'datastore'
+ */
+export const GEN_AI_TOOL_TYPE_ATTRIBUTE = 'gen_ai.tool.type';
+
+/**
+ * The input parameters for a tool call
+ */
+export const GEN_AI_TOOL_INPUT_ATTRIBUTE = 'gen_ai.tool.input';
+
+/**
+ * The output/result of a tool call
+ */
+export const GEN_AI_TOOL_OUTPUT_ATTRIBUTE = 'gen_ai.tool.output';
+
+// =============================================================================
 // OPENAI-SPECIFIC ATTRIBUTES
 // =============================================================================
 
