@@ -269,7 +269,7 @@ describe('withSentryConfig', () => {
     });
   });
 
-  describe('bundler detection with version-based defaults', () => {
+  describe('bundler detection', () => {
     const originalTurbopack = process.env.TURBOPACK;
     const originalArgv = process.argv;
 
@@ -284,192 +284,107 @@ describe('withSentryConfig', () => {
       process.argv = originalArgv;
     });
 
-    describe('Next.js 16+ defaults to turbopack', () => {
-      it('uses turbopack config by default for Next.js 16.0.0', () => {
-        vi.spyOn(util, 'getNextjsVersion').mockReturnValue('16.0.0');
+    it('uses webpack config by default when TURBOPACK env var is not set', () => {
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('16.0.0');
 
-        const finalConfig = materializeFinalNextConfig(exportedNextConfig);
+      const finalConfig = materializeFinalNextConfig(exportedNextConfig);
 
-        expect(finalConfig.turbopack).toBeDefined();
-        expect(finalConfig.webpack).toBe(exportedNextConfig.webpack);
-      });
-
-      it('uses turbopack config by default for Next.js 17.0.0', () => {
-        vi.spyOn(util, 'getNextjsVersion').mockReturnValue('17.0.0');
-
-        const finalConfig = materializeFinalNextConfig(exportedNextConfig);
-
-        expect(finalConfig.turbopack).toBeDefined();
-        expect(finalConfig.webpack).toBe(exportedNextConfig.webpack);
-      });
-
-      it('uses webpack when --webpack flag is present on Next.js 16.0.0', () => {
-        vi.spyOn(util, 'getNextjsVersion').mockReturnValue('16.0.0');
-        process.argv.push('--webpack');
-
-        const finalConfig = materializeFinalNextConfig(exportedNextConfig);
-
-        expect(finalConfig.turbopack).toBeUndefined();
-        expect(finalConfig.webpack).toBeInstanceOf(Function);
-      });
-
-      it('prioritizes TURBOPACK env var over --webpack flag', () => {
-        vi.spyOn(util, 'getNextjsVersion').mockReturnValue('16.0.0');
-        process.env.TURBOPACK = '1';
-        process.argv.push('--webpack');
-
-        const finalConfig = materializeFinalNextConfig(exportedNextConfig);
-
-        expect(finalConfig.turbopack).toBeDefined();
-        expect(finalConfig.webpack).toBe(exportedNextConfig.webpack);
-      });
+      expect(finalConfig.turbopack).toBeUndefined();
+      expect(finalConfig.webpack).toBeInstanceOf(Function);
     });
 
-    describe('Next.js 15.6.0-canary.40+ defaults to turbopack', () => {
-      it('uses turbopack config by default for 15.6.0-canary.40', () => {
-        vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.6.0-canary.40');
+    it('uses turbopack config when TURBOPACK env var is set (supported version)', () => {
+      process.env.TURBOPACK = '1';
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.4.1');
 
-        const finalConfig = materializeFinalNextConfig(exportedNextConfig);
+      const finalConfig = materializeFinalNextConfig(exportedNextConfig);
 
-        expect(finalConfig.turbopack).toBeDefined();
-        expect(finalConfig.webpack).toBe(exportedNextConfig.webpack);
-      });
-
-      it('uses turbopack config by default for 15.6.0-canary.50', () => {
-        vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.6.0-canary.50');
-
-        const finalConfig = materializeFinalNextConfig(exportedNextConfig);
-
-        expect(finalConfig.turbopack).toBeDefined();
-        expect(finalConfig.webpack).toBe(exportedNextConfig.webpack);
-      });
-
-      it('uses turbopack config by default for 15.7.0-canary.1', () => {
-        vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.7.0-canary.1');
-
-        const finalConfig = materializeFinalNextConfig(exportedNextConfig);
-
-        expect(finalConfig.turbopack).toBeDefined();
-        expect(finalConfig.webpack).toBe(exportedNextConfig.webpack);
-      });
-
-      it('uses webpack when --webpack flag is present on 15.6.0-canary.40', () => {
-        vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.6.0-canary.40');
-        process.argv.push('--webpack');
-
-        const finalConfig = materializeFinalNextConfig(exportedNextConfig);
-
-        expect(finalConfig.turbopack).toBeUndefined();
-        expect(finalConfig.webpack).toBeInstanceOf(Function);
-      });
-
-      it('uses webpack when --webpack flag is present on 15.7.0-canary.1', () => {
-        vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.7.0-canary.1');
-        process.argv.push('--webpack');
-
-        const finalConfig = materializeFinalNextConfig(exportedNextConfig);
-
-        expect(finalConfig.turbopack).toBeUndefined();
-        expect(finalConfig.webpack).toBeInstanceOf(Function);
-      });
+      expect(finalConfig.turbopack).toBeDefined();
+      expect(finalConfig.webpack).toBe(exportedNextConfig.webpack);
     });
 
-    describe('Next.js 15.6.0-canary.37 and below defaults to webpack', () => {
-      it('uses webpack config by default for 15.6.0-canary.37', () => {
-        vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.6.0-canary.37');
+    it('uses turbopack config when TURBOPACK env var is set (16.0.0)', () => {
+      process.env.TURBOPACK = '1';
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('16.0.0');
 
-        const finalConfig = materializeFinalNextConfig(exportedNextConfig);
+      const finalConfig = materializeFinalNextConfig(exportedNextConfig);
 
-        expect(finalConfig.turbopack).toBeUndefined();
-        expect(finalConfig.webpack).toBeInstanceOf(Function);
-      });
-
-      it('uses webpack config by default for 15.6.0-canary.1', () => {
-        vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.6.0-canary.1');
-
-        const finalConfig = materializeFinalNextConfig(exportedNextConfig);
-
-        expect(finalConfig.turbopack).toBeUndefined();
-        expect(finalConfig.webpack).toBeInstanceOf(Function);
-      });
-
-      it('uses turbopack when TURBOPACK env var is set on 15.6.0-canary.37', () => {
-        vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.6.0-canary.37');
-        process.env.TURBOPACK = '1';
-
-        const finalConfig = materializeFinalNextConfig(exportedNextConfig);
-
-        expect(finalConfig.turbopack).toBeDefined();
-        expect(finalConfig.webpack).toBe(exportedNextConfig.webpack);
-      });
+      expect(finalConfig.turbopack).toBeDefined();
+      expect(finalConfig.webpack).toBe(exportedNextConfig.webpack);
     });
 
-    describe('Next.js 15.6.x stable releases default to webpack', () => {
-      it('uses webpack config by default for 15.6.0 stable', () => {
-        vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.6.0');
+    it('skips webpack config when TURBOPACK env var is set, even with unsupported version', () => {
+      process.env.TURBOPACK = '1';
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.0.0');
 
-        const finalConfig = materializeFinalNextConfig(exportedNextConfig);
+      const finalConfig = materializeFinalNextConfig(exportedNextConfig);
 
-        expect(finalConfig.turbopack).toBeUndefined();
-        expect(finalConfig.webpack).toBeInstanceOf(Function);
-      });
-
-      it('uses webpack config by default for 15.6.1 stable', () => {
-        vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.6.1');
-
-        const finalConfig = materializeFinalNextConfig(exportedNextConfig);
-
-        expect(finalConfig.turbopack).toBeUndefined();
-        expect(finalConfig.webpack).toBeInstanceOf(Function);
-      });
-
-      it('uses webpack config by default for 15.7.0 stable', () => {
-        vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.7.0');
-
-        const finalConfig = materializeFinalNextConfig(exportedNextConfig);
-
-        expect(finalConfig.turbopack).toBeUndefined();
-        expect(finalConfig.webpack).toBeInstanceOf(Function);
-      });
-
-      it('uses turbopack when explicitly requested via env var on 15.6.0 stable', () => {
-        vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.6.0');
-        process.env.TURBOPACK = '1';
-
-        const finalConfig = materializeFinalNextConfig(exportedNextConfig);
-
-        expect(finalConfig.turbopack).toBeDefined();
-        expect(finalConfig.webpack).toBe(exportedNextConfig.webpack);
-      });
+      // turbopack config won't be added when version is unsupported,
+      // but webpack config should still be skipped
+      expect(finalConfig.webpack).toBe(exportedNextConfig.webpack);
+      expect(finalConfig.turbopack).toBeUndefined();
     });
 
-    describe('older Next.js versions default to webpack', () => {
-      it.each([['15.5.0'], ['15.0.0'], ['14.2.0'], ['13.5.0']])(
-        'uses webpack config by default for Next.js %s',
-        version => {
-          vi.spyOn(util, 'getNextjsVersion').mockReturnValue(version);
+    it('defaults to webpack when Next.js version cannot be determined and no TURBOPACK env var', () => {
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue(undefined);
 
-          const finalConfig = materializeFinalNextConfig(exportedNextConfig);
+      const finalConfig = materializeFinalNextConfig(exportedNextConfig);
 
-          expect(finalConfig.turbopack).toBeUndefined();
-          expect(finalConfig.webpack).toBeInstanceOf(Function);
-        },
-      );
-
-      it.each([['15.5.0-canary.100'], ['15.0.0-canary.1'], ['14.2.0-canary.50']])(
-        'uses webpack config by default for Next.js %s canary',
-        version => {
-          vi.spyOn(util, 'getNextjsVersion').mockReturnValue(version);
-
-          const finalConfig = materializeFinalNextConfig(exportedNextConfig);
-
-          expect(finalConfig.turbopack).toBeUndefined();
-          expect(finalConfig.webpack).toBeInstanceOf(Function);
-        },
-      );
+      expect(finalConfig.turbopack).toBeUndefined();
+      expect(finalConfig.webpack).toBeInstanceOf(Function);
     });
 
-    describe('warnings are shown for unsupported turbopack usage', () => {
+    it('uses turbopack when TURBOPACK env var is set even when version is undefined', () => {
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue(undefined);
+      process.env.TURBOPACK = '1';
+
+      const finalConfig = materializeFinalNextConfig(exportedNextConfig);
+
+      expect(finalConfig.webpack).toBe(exportedNextConfig.webpack);
+
+      expect(finalConfig.turbopack).toBeUndefined();
+    });
+
+    it('uses turbopack when TURBOPACK env var is truthy string', () => {
+      process.env.TURBOPACK = 'true';
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.4.1');
+
+      const finalConfig = materializeFinalNextConfig(exportedNextConfig);
+
+      expect(finalConfig.turbopack).toBeDefined();
+      expect(finalConfig.webpack).toBe(exportedNextConfig.webpack);
+    });
+
+    it('uses webpack when TURBOPACK env var is empty string', () => {
+      process.env.TURBOPACK = '';
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.4.1');
+
+      const finalConfig = materializeFinalNextConfig(exportedNextConfig);
+
+      expect(finalConfig.turbopack).toBeUndefined();
+      expect(finalConfig.webpack).toBeInstanceOf(Function);
+    });
+
+    it('uses webpack when TURBOPACK env var is false string', () => {
+      process.env.TURBOPACK = 'false';
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.4.1');
+
+      const finalConfig = materializeFinalNextConfig(exportedNextConfig);
+
+      expect(finalConfig.turbopack).toBeUndefined();
+      expect(finalConfig.webpack).toBeInstanceOf(Function);
+    });
+
+    it('handles malformed version strings gracefully', () => {
+      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('not.a.version');
+
+      const finalConfig = materializeFinalNextConfig(exportedNextConfig);
+
+      expect(finalConfig.turbopack).toBeUndefined();
+      expect(finalConfig.webpack).toBeInstanceOf(Function);
+    });
+
+    describe('warnings for unsupported turbopack usage', () => {
       let consoleWarnSpy: ReturnType<typeof vi.spyOn>;
 
       beforeEach(() => {
@@ -506,39 +421,6 @@ describe('withSentryConfig', () => {
         materializeFinalNextConfig(exportedNextConfig);
 
         expect(consoleWarnSpy).not.toHaveBeenCalled();
-      });
-    });
-
-    describe('edge cases', () => {
-      it('defaults to webpack when Next.js version cannot be determined', () => {
-        vi.spyOn(util, 'getNextjsVersion').mockReturnValue(undefined);
-
-        const finalConfig = materializeFinalNextConfig(exportedNextConfig);
-
-        expect(finalConfig.turbopack).toBeUndefined();
-        expect(finalConfig.webpack).toBeInstanceOf(Function);
-      });
-
-      it('uses turbopack when TURBOPACK env var is set even when version is undefined', () => {
-        vi.spyOn(util, 'getNextjsVersion').mockReturnValue(undefined);
-        process.env.TURBOPACK = '1';
-
-        const finalConfig = materializeFinalNextConfig(exportedNextConfig);
-
-        // Note: turbopack config won't be added when version is undefined because
-        // isTurbopackSupported will be false, but webpack config should still be skipped
-        expect(finalConfig.webpack).toBe(exportedNextConfig.webpack);
-        // Turbopack config is only added when both isTurbopack AND isTurbopackSupported are true
-        expect(finalConfig.turbopack).toBeUndefined();
-      });
-
-      it('handles malformed version strings gracefully', () => {
-        vi.spyOn(util, 'getNextjsVersion').mockReturnValue('not.a.version');
-
-        const finalConfig = materializeFinalNextConfig(exportedNextConfig);
-
-        expect(finalConfig.turbopack).toBeUndefined();
-        expect(finalConfig.webpack).toBeInstanceOf(Function);
       });
     });
   });
@@ -1406,24 +1288,6 @@ describe('withSentryConfig', () => {
       materializeFinalNextConfig(exportedNextConfig);
 
       expect(consoleWarnSpy).not.toHaveBeenCalledWith(
-        expect.stringContaining('WARNING: You are using the Sentry SDK with Turbopack'),
-      );
-
-      consoleWarnSpy.mockRestore();
-    });
-
-    it('warns when TURBOPACK=0 (truthy string) with unsupported version', () => {
-      process.env.TURBOPACK = '0';
-      // @ts-expect-error - NODE_ENV is read-only in types but we need to set it for testing
-      process.env.NODE_ENV = 'development';
-      vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.4.1');
-      vi.spyOn(util, 'supportsProductionCompileHook').mockReturnValue(false);
-      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-
-      materializeFinalNextConfig(exportedNextConfig);
-
-      // Note: '0' is truthy in JavaScript, so this will trigger the warning
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
         expect.stringContaining('WARNING: You are using the Sentry SDK with Turbopack'),
       );
 

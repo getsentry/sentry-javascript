@@ -109,66 +109,20 @@ export function supportsNativeDebugIds(version: string): boolean {
 }
 
 /**
- * Checks if the current Next.js version uses Turbopack as the default bundler.
- * Starting from Next.js 15.6.0-canary.38, turbopack became the default for `next build`.
- *
- * @param version - Next.js version string to check.
- * @returns true if the version uses Turbopack by default
- */
-export function isTurbopackDefaultForVersion(version: string): boolean {
-  if (!version) {
-    return false;
-  }
-
-  const { major, minor, prerelease } = parseSemver(version);
-
-  if (major === undefined || minor === undefined) {
-    return false;
-  }
-
-  // Next.js 16+ uses turbopack by default
-  if (major >= 16) {
-    return true;
-  }
-
-  // For Next.js 15, only canary versions 15.6.0-canary.40+ use turbopack by default
-  // Stable 15.x releases still use webpack by default
-  if (major === 15 && minor >= 6 && prerelease && prerelease.startsWith('canary.')) {
-    if (minor >= 7) {
-      return true;
-    }
-    const canaryNumber = parseInt(prerelease.split('.')[1] || '0', 10);
-    if (canaryNumber >= 40) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
-/**
  * Determines which bundler is actually being used based on environment variables,
- * CLI flags, and Next.js version.
+ * and CLI flags.
  *
- * @param nextJsVersion - The Next.js version string
- * @returns 'turbopack', 'webpack', or undefined if it cannot be determined
+ * @returns 'turbopack' or 'webpack'
  */
-export function detectActiveBundler(nextJsVersion: string | undefined): 'turbopack' | 'webpack' | undefined {
-  if (process.env.TURBOPACK || process.argv.includes('--turbo')) {
-    return 'turbopack';
-  }
+export function detectActiveBundler(): 'turbopack' | 'webpack' {
+  const turbopackEnv = process.env.TURBOPACK;
 
-  // Explicit opt-in to webpack via --webpack flag
-  if (process.argv.includes('--webpack')) {
+  // Check if TURBOPACK env var is set to a truthy value (excluding falsy strings like 'false', '0', '')
+  const isTurbopackEnabled = turbopackEnv && turbopackEnv !== 'false' && turbopackEnv !== '0';
+
+  if (isTurbopackEnabled || process.argv.includes('--turbo')) {
+    return 'turbopack';
+  } else {
     return 'webpack';
   }
-
-  // Fallback to version-based default behavior
-  if (nextJsVersion) {
-    const turbopackIsDefault = isTurbopackDefaultForVersion(nextJsVersion);
-    return turbopackIsDefault ? 'turbopack' : 'webpack';
-  }
-
-  // Unlikely but at this point, we just assume webpack for older behavior
-  return 'webpack';
 }
