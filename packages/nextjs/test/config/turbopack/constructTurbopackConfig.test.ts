@@ -25,12 +25,15 @@ describe('constructTurbopackConfig', () => {
     ],
   };
 
+  const mockSentryOptions = {};
+
   describe('without existing turbopack config', () => {
     it('should create a basic turbopack config when no manifest is provided', () => {
       const userNextConfig: NextConfigObject = {};
 
       const result = constructTurbopackConfig({
         userNextConfig,
+        userSentryOptions: mockSentryOptions,
       });
 
       expect(result).toEqual({});
@@ -600,6 +603,7 @@ describe('constructTurbopackConfig', () => {
       testVersions.forEach(version => {
         const result = constructTurbopackConfig({
           userNextConfig,
+          userSentryOptions: mockSentryOptions,
           nextJsVersion: version,
         });
 

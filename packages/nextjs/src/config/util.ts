@@ -67,6 +67,48 @@ export function supportsProductionCompileHook(version: string): boolean {
 }
 
 /**
+ * Checks if the current Next.js version supports native debug ids for turbopack.
+ * This feature was first introduced in Next.js v15.6.0-canary.36 and marked stable in Next.js v16
+ *
+ * @param version - version string to check.
+ * @returns true if Next.js version supports native debug ids for turbopack builds
+ */
+export function supportsNativeDebugIds(version: string): boolean {
+  if (!version) {
+    return false;
+  }
+
+  const { major, minor, prerelease } = parseSemver(version);
+
+  if (major === undefined || minor === undefined) {
+    return false;
+  }
+
+  // Next.js 16+ supports native debug ids
+  if (major >= 16) {
+    return true;
+  }
+
+  // For Next.js 15, check if it's 15.6.0-canary.36+
+  if (major === 15 && prerelease?.startsWith('canary.')) {
+    // Any canary version 15.7+ supports native debug ids
+    if (minor > 6) {
+      return true;
+    }
+
+    // For 15.6 canary versions, check if it's canary.36 or higher
+    if (minor === 6) {
+      const canaryNumber = parseInt(prerelease.split('.')[1] || '0', 10);
+      if (canaryNumber >= 36) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+/**
  * Checks if the current Next.js version uses Turbopack as the default bundler.
  * Starting from Next.js 15.6.0-canary.38, turbopack became the default for `next build`.
  *

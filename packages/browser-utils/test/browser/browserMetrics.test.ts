@@ -186,6 +186,75 @@ describe('_addMeasureSpans', () => {
       ]),
     );
   });
+
+  it('ignores React 19.2+ measure spans', () => {
+    const pageloadSpan = new SentrySpan({ op: 'pageload', name: '/', sampled: true });
+    const spans: Span[] = [];
+
+    getClient()?.on('spanEnd', span => {
+      spans.push(span);
+    });
+
+    const entries: PerformanceMeasure[] = [
+      {
+        entryType: 'measure',
+        name: '\u200bLayout',
+        duration: 0.3,
+        startTime: 12,
+        detail: {
+          devtools: {
+            track: 'Components ⚛',
+          },
+        },
+        toJSON: () => ({ foo: 'bar' }),
+      },
+      {
+        entryType: 'measure',
+        name: '\u200bButton',
+        duration: 0.1,
+        startTime: 13,
+        detail: {
+          devtools: {
+            track: 'Components ⚛',
+          },
+        },
+        toJSON: () => ({}),
+      },
+      {
+        entryType: 'measure',
+        name: 'Unmount',
+        duration: 0.1,
+        startTime: 14,
+        detail: {
+          devtools: {
+            track: 'Components ⚛',
+          },
+        },
+        toJSON: () => ({}),
+      },
+      {
+        entryType: 'measure',
+        name: 'my-measurement',
+        duration: 0,
+        startTime: 12,
+        detail: null,
+        toJSON: () => ({}),
+      },
+    ];
+
+    const timeOrigin = 100;
+    const startTime = 23;
+    const duration = 356;
+
+    entries.forEach(e => {
+      _addMeasureSpans(pageloadSpan, e, startTime, duration, timeOrigin, []);
+    });
+
+    expect(spans).toHaveLength(1);
+    expect(spans.map(spanToJSON)).toEqual(
+      expect.arrayContaining([expect.objectContaining({ description: 'my-measurement', op: 'measure' })]),
+    );
+  });
 });
 
 describe('_addResourceSpans', () => {

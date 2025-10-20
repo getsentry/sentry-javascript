@@ -1,5 +1,5 @@
 import * as path from 'node:path';
-import type { Client, EventProcessor, Integration } from '@sentry/core';
+import type { Client, Event, EventProcessor, Integration } from '@sentry/core';
 import { applySdkMetadata, debug, flush, getGlobalScope, vercelWaitUntil } from '@sentry/core';
 import {
   type NodeOptions,
@@ -40,7 +40,7 @@ export function init(options: SentryNuxtServerOptions): Client | undefined {
 export function lowQualityTransactionsFilter(options: SentryNuxtServerOptions): EventProcessor {
   return Object.assign(
     (event => {
-      if (event.type !== 'transaction' || !event.transaction) {
+      if (event.type !== 'transaction' || !event.transaction || isCacheEvent(event)) {
         return event;
       }
 
@@ -110,4 +110,11 @@ async function flushSafelyWithTimeout(): Promise<void> {
   } catch (e) {
     DEBUG_BUILD && debug.log('Error while flushing events:\n', e);
   }
+}
+
+/**
+ * Checks if the event is a cache event.
+ */
+function isCacheEvent(e: Event): boolean {
+  return e.contexts?.trace?.origin === 'auto.cache.nuxt';
 }

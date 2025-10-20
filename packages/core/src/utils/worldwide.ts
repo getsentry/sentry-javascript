@@ -42,6 +42,12 @@ export type InternalGlobal = {
    */
   _sentryDebugIds?: Record<string, string>;
   /**
+   * Native debug IDs implementation (e.g., from Vercel).
+   * This uses the same format as _sentryDebugIds but with a different global name.
+   * Keys are `error.stack` strings, values are debug IDs.
+   */
+  _debugIds?: Record<string, string>;
+  /**
    * Raw module metadata that is injected by bundler plugins.
    *
    * Keys are `error.stack` strings, values are the metadata.
