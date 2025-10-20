@@ -39,8 +39,8 @@ export async function sentryCaptureErrorHook(error: Error, errorContext: Capture
   const structuredContext = extractErrorContext(errorContext);
 
   captureException(error, {
-    captureContext: { contexts: { nuxt: structuredContext } },
-    mechanism: { handled: false, type: 'auto.function.nuxt.nitro' },
+    captureContext: { contexts: { nitro: structuredContext } },
+    mechanism: { handled: false, type: 'auto.function.nitro' },
   });
 
   await flushIfServerless();

@@ -29,7 +29,7 @@ const patchedStatement = new WeakSet<PreparedStatement>();
 /**
  * The Sentry origin for the database plugin.
  */
-const SENTRY_ORIGIN = 'auto.db.nuxt';
+const SENTRY_ORIGIN = 'auto.db.nitro';
 
 /**
  * Creates a Nitro plugin that instruments the database calls.
