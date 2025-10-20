@@ -94,6 +94,7 @@ export {
   onUnhandledRejectionIntegration,
   openAIIntegration,
   parameterize,
+  pinoIntegration,
   postgresIntegration,
   postgresJsIntegration,
   prismaIntegration,
@@ -158,6 +159,7 @@ export {
   OpenFeatureIntegrationHook,
   statsigIntegration,
   unleashIntegration,
+  growthbookIntegration,
 } from '@sentry/node';
 
 export { init } from './server/sdk';

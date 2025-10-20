@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/browser-integration-tests",
-  "version": "10.17.0",
+  "version": "10.20.0",
   "main": "index.js",
   "license": "MIT",
   "engines": {
@@ -43,9 +43,9 @@
     "@babel/preset-typescript": "^7.16.7",
     "@playwright/test": "~1.53.2",
     "@sentry-internal/rrweb": "2.34.0",
-    "@sentry/browser": "10.17.0",
+    "@sentry/browser": "10.20.0",
     "@supabase/supabase-js": "2.49.3",
-    "axios": "1.8.2",
+    "axios": "^1.12.2",
     "babel-loader": "^8.2.2",
     "fflate": "0.8.2",
     "html-webpack-plugin": "^5.5.0",

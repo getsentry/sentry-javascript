@@ -6,56 +6,82 @@ type StackString = string;
 type CachedResult = [string, string];
 
 let parsedStackResults: Record<StackString, CachedResult> | undefined;
-let lastKeysCount: number | undefined;
+let lastSentryKeysCount: number | undefined;
+let lastNativeKeysCount: number | undefined;
 let cachedFilenameDebugIds: Record<string, string> | undefined;
 
 /**
  * Returns a map of filenames to debug identifiers.
+ * Supports both proprietary _sentryDebugIds and native _debugIds (e.g., from Vercel) formats.
  */
 export function getFilenameToDebugIdMap(stackParser: StackParser): Record<string, string> {
-  const debugIdMap = GLOBAL_OBJ._sentryDebugIds;
-  if (!debugIdMap) {
+  const sentryDebugIdMap = GLOBAL_OBJ._sentryDebugIds;
+  const nativeDebugIdMap = GLOBAL_OBJ._debugIds;
+
+  if (!sentryDebugIdMap && !nativeDebugIdMap) {
     return {};
   }
 
-  const debugIdKeys = Object.keys(debugIdMap);
+  const sentryDebugIdKeys = sentryDebugIdMap ? Object.keys(sentryDebugIdMap) : [];
+  const nativeDebugIdKeys = nativeDebugIdMap ? Object.keys(nativeDebugIdMap) : [];
 
   // If the count of registered globals hasn't changed since the last call, we
   // can just return the cached result.
-  if (cachedFilenameDebugIds && debugIdKeys.length === lastKeysCount) {
+  if (
+    cachedFilenameDebugIds &&
+    sentryDebugIdKeys.length === lastSentryKeysCount &&
+    nativeDebugIdKeys.length === lastNativeKeysCount
+  ) {
     return cachedFilenameDebugIds;
   }
 
-  lastKeysCount = debugIdKeys.length;
+  lastSentryKeysCount = sentryDebugIdKeys.length;
+  lastNativeKeysCount = nativeDebugIdKeys.length;
 
-  // Build a map of filename -> debug_id.
-  cachedFilenameDebugIds = debugIdKeys.reduce<Record<string, string>>((acc, stackKey) => {
-    if (!parsedStackResults) {
-      parsedStackResults = {};
-    }
+  // Build a map of filename -> debug_id from both sources
+  cachedFilenameDebugIds = {};
 
-    const result = parsedStackResults[stackKey];
+  if (!parsedStackResults) {
+    parsedStackResults = {};
+  }
 
-    if (result) {
-      acc[result[0]] = result[1];
-    } else {
-      const parsedStack = stackParser(stackKey);
+  const processDebugIds = (debugIdKeys: string[], debugIdMap: Record<string, string>): void => {
+    for (const key of debugIdKeys) {
+      const debugId = debugIdMap[key];
+      const result = parsedStackResults?.[key];
 
-      for (let i = parsedStack.length - 1; i >= 0; i--) {
-        const stackFrame = parsedStack[i];
-        const filename = stackFrame?.filename;
-        const debugId = debugIdMap[stackKey];
+      if (result && cachedFilenameDebugIds && debugId) {
+        // Use cached filename but update with current debug ID
+        cachedFilenameDebugIds[result[0]] = debugId;
+        // Update cached result with new debug ID
+        if (parsedStackResults) {
+          parsedStackResults[key] = [result[0], debugId];
+        }
+      } else if (debugId) {
+        const parsedStack = stackParser(key);
 
-        if (filename && debugId) {
-          acc[filename] = debugId;
-          parsedStackResults[stackKey] = [filename, debugId];
-          break;
+        for (let i = parsedStack.length - 1; i >= 0; i--) {
+          const stackFrame = parsedStack[i];
+          const filename = stackFrame?.filename;
+
+          if (filename && cachedFilenameDebugIds && parsedStackResults) {
+            cachedFilenameDebugIds[filename] = debugId;
+            parsedStackResults[key] = [filename, debugId];
+            break;
+          }
         }
       }
     }
+  };
 
-    return acc;
-  }, {});
+  if (sentryDebugIdMap) {
+    processDebugIds(sentryDebugIdKeys, sentryDebugIdMap);
+  }
+
+  // Native _debugIds will override _sentryDebugIds if same file
+  if (nativeDebugIdMap) {
+    processDebugIds(nativeDebugIdKeys, nativeDebugIdMap);
+  }
 
   return cachedFilenameDebugIds;
 }
@@ -79,7 +105,7 @@ export function getDebugImagesForResources(
       images.push({
         type: 'sourcemap',
         code_file: path,
-        debug_id: filenameDebugIdMap[path] as string,
+        debug_id: filenameDebugIdMap[path],
       });
     }
   }

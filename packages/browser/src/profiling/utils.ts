@@ -773,7 +773,8 @@ export function addProfileToGlobalCache(profile_id: string, profile: JSSelfProfi
   PROFILE_MAP.set(profile_id, profile);
 
   if (PROFILE_MAP.size > 30) {
-    const last = PROFILE_MAP.keys().next().value;
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const last = PROFILE_MAP.keys().next().value!;
     if (last !== undefined) {
       PROFILE_MAP.delete(last);
     }

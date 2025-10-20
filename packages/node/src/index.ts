@@ -34,6 +34,7 @@ export {
   OpenFeatureIntegrationHook,
   statsigIntegration,
   unleashIntegration,
+  growthbookIntegration,
 } from './integrations/featureFlagShims';
 export { firebaseIntegration } from './integrations/tracing/firebase';
 
@@ -152,11 +153,13 @@ export type {
   Thread,
   User,
   Span,
+  Metric,
   FeatureFlagsIntegration,
 } from '@sentry/core';
 
 export {
   logger,
+  metrics,
   httpServerIntegration,
   httpServerSpansIntegration,
   nodeContextIntegration,
@@ -171,6 +174,7 @@ export {
   disableAnrDetectionForCallback,
   spotlightIntegration,
   childProcessIntegration,
+  pinoIntegration,
   createSentryWinstonTransport,
   SentryContextManager,
   systemErrorIntegration,

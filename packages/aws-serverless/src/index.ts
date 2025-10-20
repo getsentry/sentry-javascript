@@ -106,6 +106,7 @@ export {
   mysql2Integration,
   redisIntegration,
   tediousIntegration,
+  pinoIntegration,
   postgresIntegration,
   postgresJsIntegration,
   prismaIntegration,
@@ -144,6 +145,7 @@ export {
   OpenFeatureIntegrationHook,
   statsigIntegration,
   unleashIntegration,
+  growthbookIntegration,
 } from '@sentry/node';
 
 export {

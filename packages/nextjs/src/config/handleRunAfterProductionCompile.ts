@@ -8,7 +8,12 @@ import type { SentryBuildOptions } from './types';
  * It is used to upload sourcemaps to Sentry.
  */
 export async function handleRunAfterProductionCompile(
-  { releaseName, distDir, buildTool }: { releaseName?: string; distDir: string; buildTool: 'webpack' | 'turbopack' },
+  {
+    releaseName,
+    distDir,
+    buildTool,
+    usesNativeDebugIds,
+  }: { releaseName?: string; distDir: string; buildTool: 'webpack' | 'turbopack'; usesNativeDebugIds?: boolean },
   sentryBuildOptions: SentryBuildOptions,
 ): Promise<void> {
   if (sentryBuildOptions.debug) {
@@ -44,7 +49,11 @@ export async function handleRunAfterProductionCompile(
 
   await sentryBuildPluginManager.telemetry.emitBundlerPluginExecutionSignal();
   await sentryBuildPluginManager.createRelease();
-  await sentryBuildPluginManager.injectDebugIds([distDir]);
+
+  if (!usesNativeDebugIds) {
+    await sentryBuildPluginManager.injectDebugIds([distDir]);
+  }
+
   await sentryBuildPluginManager.uploadSourcemaps([distDir], {
     // We don't want to prepare the artifacts because we injected debug ids manually before
     prepareArtifacts: false,

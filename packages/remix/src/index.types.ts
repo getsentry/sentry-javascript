@@ -33,6 +33,7 @@ export const close = runtime === 'client' ? clientSdk.close : serverSdk.close;
 export const flush = runtime === 'client' ? clientSdk.flush : serverSdk.flush;
 export const lastEventId = runtime === 'client' ? clientSdk.lastEventId : serverSdk.lastEventId;
 
+export declare const growthbookIntegration: typeof clientSdk.growthbookIntegration;
 export declare const launchDarklyIntegration: typeof clientSdk.launchDarklyIntegration;
 export declare const buildLaunchDarklyFlagUsedHandler: typeof clientSdk.buildLaunchDarklyFlagUsedHandler;
 export declare const openFeatureIntegration: typeof clientSdk.openFeatureIntegration;

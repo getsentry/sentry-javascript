@@ -17,6 +17,7 @@ import {
   AI_RESPONSE_PROVIDER_METADATA_ATTRIBUTE,
   AI_RESPONSE_TEXT_ATTRIBUTE,
   AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
+  AI_SCHEMA_ATTRIBUTE,
   AI_TELEMETRY_FUNCTION_ID_ATTRIBUTE,
   AI_TOOL_CALL_ARGS_ATTRIBUTE,
   AI_TOOL_CALL_ID_ATTRIBUTE,
@@ -124,6 +125,8 @@ function processEndedVercelAiSpan(span: SpanJSON): void {
 
   renameAttributeKey(attributes, AI_TOOL_CALL_ARGS_ATTRIBUTE, 'gen_ai.tool.input');
   renameAttributeKey(attributes, AI_TOOL_CALL_RESULT_ATTRIBUTE, 'gen_ai.tool.output');
+
+  renameAttributeKey(attributes, AI_SCHEMA_ATTRIBUTE, 'gen_ai.request.schema');
 
   addProviderMetadataToAttributes(attributes);
 

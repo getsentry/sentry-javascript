@@ -10,8 +10,10 @@ import { consoleSandbox } from '@sentry/core';
 import * as path from 'path';
 import type { SentryNuxtModuleOptions } from './common/types';
 import { addDynamicImportEntryFileWrapper, addSentryTopImport, addServerConfigToBuild } from './vite/addServerConfig';
+import { addDatabaseInstrumentation } from './vite/databaseConfig';
 import { addMiddlewareImports, addMiddlewareInstrumentation } from './vite/middlewareConfig';
 import { setupSourceMaps } from './vite/sourceMaps';
+import { addStorageInstrumentation } from './vite/storageConfig';
 import { addOTelCommonJSImportAlias, findDefaultSdkInitFile } from './vite/utils';
 
 export type ModuleOptions = SentryNuxtModuleOptions;
@@ -72,6 +74,20 @@ export default defineNuxtModule<ModuleOptions>({
         mode: 'client',
         order: 1,
       });
+
+      // Add the sentry config file to the include array
+      nuxt.hook('prepare:types', options => {
+        const tsConfig = options.tsConfig as { include?: string[] };
+
+        if (!tsConfig.include) {
+          tsConfig.include = [];
+        }
+
+        // Add type references for useRuntimeConfig in root files for nuxt v4
+        // Should be relative to `root/.nuxt`
+        const relativePath = path.relative(nuxt.options.buildDir, clientConfigFile);
+        tsConfig.include.push(relativePath);
+      });
     }
 
     const serverConfigFile = findDefaultSdkInitFile('server', nuxt);
@@ -114,6 +130,8 @@ export default defineNuxtModule<ModuleOptions>({
     // Preps the the middleware instrumentation module.
     if (serverConfigFile) {
       addMiddlewareImports();
+      addStorageInstrumentation(nuxt);
+      addDatabaseInstrumentation(nuxt.options.nitro);
     }
 
     nuxt.hooks.hook('nitro:init', nitro => {

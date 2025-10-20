@@ -19,7 +19,6 @@ import {
 } from '@sentry/core';
 import { isNotFoundNavigationError, isRedirectNavigationError } from './nextNavigationErrorUtils';
 import type { RouteHandlerContext } from './types';
-import { addHeadersAsAttributes } from './utils/addHeadersAsAttributes';
 import { flushSafelyWithTimeout } from './utils/responseEnd';
 import { commonObjectToIsolationScope } from './utils/tracingUtils';
 
@@ -40,10 +39,6 @@ export function wrapRouteHandlerWithSentry<F extends (...args: any[]) => any>(
       const activeSpan = getActiveSpan();
       const rootSpan = activeSpan ? getRootSpan(activeSpan) : undefined;
 
-      if (rootSpan && process.env.NEXT_RUNTIME !== 'edge') {
-        addHeadersAsAttributes(headers, rootSpan);
-      }
-
       let edgeRuntimeIsolationScopeOverride: Scope | undefined;
       if (rootSpan && process.env.NEXT_RUNTIME === 'edge') {
         const isolationScope = commonObjectToIsolationScope(headers);
@@ -55,7 +50,6 @@ export function wrapRouteHandlerWithSentry<F extends (...args: any[]) => any>(
         rootSpan.updateName(`${method} ${parameterizedRoute}`);
         rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
         rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'http.server');
-        addHeadersAsAttributes(headers, rootSpan);
       }
 
       return withIsolationScope(

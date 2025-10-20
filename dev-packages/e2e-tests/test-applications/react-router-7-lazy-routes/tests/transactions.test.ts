@@ -294,3 +294,86 @@ test('Does not send any duplicate navigation transaction names browsing between 
     '/lazy/inner/:id/:anotherId',
   ]);
 });
+
+test('Does not create premature navigation transaction during long-running lazy route pageload', async ({ page }) => {
+  const navigationPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+    return (
+      !!transactionEvent?.transaction &&
+      transactionEvent.contexts?.trace?.op === 'navigation' &&
+      transactionEvent.transaction.includes('long-running')
+    );
+  });
+
+  const pageloadPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+    return (
+      !!transactionEvent?.transaction &&
+      transactionEvent.contexts?.trace?.op === 'pageload' &&
+      transactionEvent.transaction === '/long-running/slow/:id'
+    );
+  });
+
+  await page.goto('/long-running/slow/12345');
+
+  const pageloadEvent = await pageloadPromise;
+
+  expect(pageloadEvent.transaction).toBe('/long-running/slow/:id');
+  expect(pageloadEvent.contexts?.trace?.op).toBe('pageload');
+
+  const slowLoadingContent = page.locator('id=slow-loading-content');
+  await expect(slowLoadingContent).toBeVisible({ timeout: 5000 });
+
+  const result = await Promise.race([
+    navigationPromise.then(() => 'navigation'),
+    new Promise<'timeout'>(resolve => setTimeout(() => resolve('timeout'), 2000)),
+  ]);
+
+  // Should timeout, meaning no unwanted navigation transaction was created
+  expect(result).toBe('timeout');
+});
+
+test('Allows legitimate POP navigation (back/forward) after pageload completes', async ({ page }) => {
+  await page.goto('/');
+
+  const navigationToLongRunning = page.locator('id=navigation-to-long-running');
+  await expect(navigationToLongRunning).toBeVisible();
+
+  const firstNavigationPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+    return (
+      !!transactionEvent?.transaction &&
+      transactionEvent.contexts?.trace?.op === 'navigation' &&
+      transactionEvent.transaction === '/long-running/slow/:id'
+    );
+  });
+
+  await navigationToLongRunning.click();
+
+  const slowLoadingContent = page.locator('id=slow-loading-content');
+  await expect(slowLoadingContent).toBeVisible({ timeout: 5000 });
+
+  const firstNavigationEvent = await firstNavigationPromise;
+
+  expect(firstNavigationEvent.transaction).toBe('/long-running/slow/:id');
+  expect(firstNavigationEvent.contexts?.trace?.op).toBe('navigation');
+
+  // Now navigate back using browser back button (POP event)
+  // This should create a navigation transaction since pageload is complete
+  const backNavigationPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+    return (
+      !!transactionEvent?.transaction &&
+      transactionEvent.contexts?.trace?.op === 'navigation' &&
+      transactionEvent.transaction === '/'
+    );
+  });
+
+  await page.goBack();
+
+  // Verify we're back at home
+  const homeLink = page.locator('id=navigation');
+  await expect(homeLink).toBeVisible();
+
+  const backNavigationEvent = await backNavigationPromise;
+
+  // Validate that the back navigation (POP) was properly tracked
+  expect(backNavigationEvent.transaction).toBe('/');
+  expect(backNavigationEvent.contexts?.trace?.op).toBe('navigation');
+});

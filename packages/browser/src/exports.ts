@@ -65,6 +65,7 @@ export {
   spanToTraceHeader,
   spanToBaggageHeader,
   updateSpanName,
+  metrics,
 } from '@sentry/core';
 
 export {
