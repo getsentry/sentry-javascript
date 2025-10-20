@@ -1,6 +1,6 @@
 import { getClient } from '@sentry/core';
-import { patchClaudeCodeQuery } from './instrumentation';
 import type { ClaudeCodeOptions } from './index';
+import { patchClaudeCodeQuery } from './instrumentation';
 
 const CLAUDE_CODE_INTEGRATION_NAME = 'ClaudeCode';
 
@@ -30,14 +30,14 @@ async function ensurePatchedQuery(): Promise<void> {
 
       if (!claudeSDK || typeof claudeSDK.query !== 'function') {
         throw new Error(
-          `Failed to find 'query' function in @anthropic-ai/claude-agent-sdk.\n` +
-            `Make sure you have version >=0.1.0 installed.`,
+          'Failed to find \'query\' function in @anthropic-ai/claude-agent-sdk.\n' +
+            'Make sure you have version >=0.1.0 installed.',
         );
       }
 
       const client = getClient();
       const integration = client?.getIntegrationByName(CLAUDE_CODE_INTEGRATION_NAME);
-      const options = (integration as any)?.options as ClaudeCodeOptions | undefined || {};
+      const options = ((integration as any)?.options as ClaudeCodeOptions | undefined) || {};
 
       _globalPatchedQuery = patchClaudeCodeQuery(claudeSDK.query, options);
     } catch (error) {
@@ -45,16 +45,14 @@ async function ensurePatchedQuery(): Promise<void> {
       _initPromise = null;
 
       const errorMessage =
-        error instanceof Error
-          ? error.message
-          : 'Unknown error occurred while loading @anthropic-ai/claude-agent-sdk';
+        error instanceof Error ? error.message : 'Unknown error occurred while loading @anthropic-ai/claude-agent-sdk';
 
       throw new Error(
         `Failed to instrument Claude Code SDK:\n${errorMessage}\n\n` +
-          `Make sure @anthropic-ai/claude-agent-sdk is installed:\n` +
-          `  npm install @anthropic-ai/claude-agent-sdk\n` +
-          `  # or\n` +
-          `  yarn add @anthropic-ai/claude-agent-sdk`,
+          'Make sure @anthropic-ai/claude-agent-sdk is installed:\n' +
+          '  npm install @anthropic-ai/claude-agent-sdk\n' +
+          '  # or\n' +
+          '  yarn add @anthropic-ai/claude-agent-sdk',
       );
     }
   })();
@@ -72,14 +70,20 @@ async function ensurePatchedQuery(): Promise<void> {
  * The Claude Code SDK cannot be automatically instrumented due to ESM module
  * and webpack bundling limitations.
  *
+ * @param options - Optional configuration for this specific agent instance
+ * @param options.name - Custom agent name for differentiation (defaults to 'claude-code')
  * @returns An instrumented query function ready to use
  *
  * @example
  * ```typescript
  * import { createInstrumentedClaudeQuery } from '@sentry/node';
- * import type { SDKUserMessage } from '@anthropic-ai/claude-agent-sdk';
  *
+ * // Default agent name ('claude-code')
  * const query = createInstrumentedClaudeQuery();
+ *
+ * // Custom agent name for differentiation
+ * const appBuilder = createInstrumentedClaudeQuery({ name: 'app-builder' });
+ * const chatAgent = createInstrumentedClaudeQuery({ name: 'chat-assistant' });
  *
  * // Use as normal - automatically instrumented!
  * for await (const message of query({
@@ -104,7 +108,11 @@ async function ensurePatchedQuery(): Promise<void> {
  * });
  * ```
  */
-export function createInstrumentedClaudeQuery(): (...args: unknown[]) => AsyncGenerator<unknown, void, unknown> {
+export function createInstrumentedClaudeQuery(
+  options: { name?: string } = {},
+): (...args: unknown[]) => AsyncGenerator<unknown, void, unknown> {
+  const agentName = options.name ?? 'claude-code';
+
   return async function* query(...args: unknown[]): AsyncGenerator<unknown, void, unknown> {
     await ensurePatchedQuery();
 
@@ -112,6 +120,21 @@ export function createInstrumentedClaudeQuery(): (...args: unknown[]) => AsyncGe
       throw new Error('[Sentry] Failed to initialize instrumented Claude Code query function');
     }
 
-    yield* _globalPatchedQuery(...args);
+    // Create a new patched instance with custom agent name
+    const client = getClient();
+    const integration = client?.getIntegrationByName(CLAUDE_CODE_INTEGRATION_NAME);
+    const integrationOptions = ((integration as any)?.options as ClaudeCodeOptions | undefined) || {};
+
+    // Import SDK again to get fresh query function
+    const sdkPath = '@anthropic-ai/claude-agent-sdk';
+    const claudeSDK = await import(/* webpackIgnore: true */ sdkPath);
+
+    // Patch with custom agent name
+    const customPatchedQuery = patchClaudeCodeQuery(claudeSDK.query, {
+      ...integrationOptions,
+      agentName,
+    });
+
+    yield* customPatchedQuery(...args);
   };
 }
