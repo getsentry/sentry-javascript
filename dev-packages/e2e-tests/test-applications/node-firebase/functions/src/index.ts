@@ -1,7 +1,7 @@
 import './init';
 
 import { onDocumentCreated, onDocumentCreatedWithAuthContext } from 'firebase-functions/firestore';
-import { onCall, onRequest } from 'firebase-functions/https';
+import { onRequest } from 'firebase-functions/https';
 import * as logger from 'firebase-functions/logger';
 import { setGlobalOptions } from 'firebase-functions/options';
 import * as admin from 'firebase-admin';

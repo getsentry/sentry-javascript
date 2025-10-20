@@ -66,42 +66,24 @@ export function patchFunctions(
   }
 
   const moduleFunctionsCJS = new InstrumentationNodeModuleDefinition('firebase-functions', functionsSupportedVersions);
+  const modulesToInstrument = [
+    { name: 'firebase-functions/lib/v2/providers/https.js', triggerType: 'function' },
+    { name: 'firebase-functions/lib/v2/providers/firestore.js', triggerType: 'firestore' },
+    { name: 'firebase-functions/lib/v2/providers/scheduler.js', triggerType: 'scheduler' },
+    { name: 'firebase-functions/lib/v2/storage.js', triggerType: 'storage' },
+  ] as const;
 
-  moduleFunctionsCJS.files.push(
-    new InstrumentationNodeModuleFile(
-      'firebase-functions/lib/v2/providers/https.js',
-      functionsSupportedVersions,
-      moduleExports => wrapCommonFunctions(moduleExports, wrap, unwrap, tracer, functionsSpanCreationHook, 'function'),
-      moduleExports => unwrapCommonFunctions(moduleExports, unwrap),
-    ),
-  );
-
-  moduleFunctionsCJS.files.push(
-    new InstrumentationNodeModuleFile(
-      'firebase-functions/lib/v2/providers/firestore.js',
-      functionsSupportedVersions,
-      moduleExports => wrapCommonFunctions(moduleExports, wrap, unwrap, tracer, functionsSpanCreationHook, 'firestore'),
-      moduleExports => unwrapCommonFunctions(moduleExports, unwrap),
-    ),
-  );
-
-  moduleFunctionsCJS.files.push(
-    new InstrumentationNodeModuleFile(
-      'firebase-functions/lib/v2/providers/scheduler.js',
-      functionsSupportedVersions,
-      moduleExports => wrapCommonFunctions(moduleExports, wrap, unwrap, tracer, functionsSpanCreationHook, 'scheduler'),
-      moduleExports => unwrapCommonFunctions(moduleExports, unwrap),
-    ),
-  );
-
-  moduleFunctionsCJS.files.push(
-    new InstrumentationNodeModuleFile(
-      'firebase-functions/lib/v2/storage.js',
-      functionsSupportedVersions,
-      moduleExports => wrapCommonFunctions(moduleExports, wrap, unwrap, tracer, functionsSpanCreationHook, 'storage'),
-      moduleExports => unwrapCommonFunctions(moduleExports, unwrap),
-    ),
-  );
+  modulesToInstrument.forEach(({ name, triggerType }) => {
+    moduleFunctionsCJS.files.push(
+      new InstrumentationNodeModuleFile(
+        name,
+        functionsSupportedVersions,
+        moduleExports =>
+          wrapCommonFunctions(moduleExports, wrap, unwrap, tracer, functionsSpanCreationHook, triggerType),
+        moduleExports => unwrapCommonFunctions(moduleExports, unwrap),
+      ),
+    );
+  });
 
   return moduleFunctionsCJS;
 }
@@ -190,7 +172,7 @@ export function patchV2Functions<T extends FirebaseFunctions = FirebaseFunctions
           safeExecuteInTheMiddleAsync(
             () => handler.apply(this, handlerArgs),
             err => {
-              if (err instanceof Error) {
+              if (err) {
                 span.recordException(err);
               }
 
