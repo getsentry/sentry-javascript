@@ -22,6 +22,7 @@
   },
   "dependencies": {
     "@sentry/nextjs": "latest || *",
+    "@sentry/core": "latest || *",
     "ai": "^3.0.0",
     "import-in-the-middle": "^1",
     "next": "16.0.0-beta.0",

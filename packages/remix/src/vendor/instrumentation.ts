@@ -310,11 +310,7 @@ export class RemixInstrumentation extends InstrumentationBase {
                   const { actionFormDataAttributes: actionFormAttributes } = plugin.getConfig();
 
                   formData.forEach((value: unknown, key: string) => {
-                    if (
-                      actionFormAttributes?.[key] &&
-                      actionFormAttributes[key] !== false &&
-                      typeof value === 'string'
-                    ) {
+                    if (actionFormAttributes?.[key] && typeof value === 'string') {
                       const keyName = actionFormAttributes[key] === true ? key : actionFormAttributes[key];
                       span.setAttribute(`formData.${keyName}`, value.toString());
                     }

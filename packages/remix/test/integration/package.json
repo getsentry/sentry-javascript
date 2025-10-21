@@ -21,7 +21,7 @@
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "nock": "^13.5.5",
-    "typescript": "~5.0.0"
+    "typescript": "~5.8.0"
   },
   "resolutions": {
     "@sentry/browser": "file:../../../browser",

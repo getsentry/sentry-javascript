@@ -4,6 +4,53 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 10.21.0
+
+### Important Changes
+
+- **feat(browserProfiling): Add `trace` lifecycle mode for UI profiling ([#17619](https://github.com/getsentry/sentry-javascript/pull/17619))**
+
+  Adds a new `trace` lifecycle mode for UI profiling, allowing profiles to be captured for the duration of a trace. A `manual` mode will be added in a future release.
+
+- **feat(nuxt): Instrument Database ([#17899](https://github.com/getsentry/sentry-javascript/pull/17899))**
+
+  Adds instrumentation for Nuxt database operations, enabling better performance tracking of database queries.
+
+- **feat(nuxt): Instrument server cache API ([#17886](https://github.com/getsentry/sentry-javascript/pull/17886))**
+
+  Adds instrumentation for Nuxt's server cache API, providing visibility into cache operations.
+
+- **feat(nuxt): Instrument storage API ([#17858](https://github.com/getsentry/sentry-javascript/pull/17858))**
+
+  Adds instrumentation for Nuxt's storage API, enabling tracking of storage operations.
+
+### Other Changes
+
+- feat(browser): Add `onRequestSpanEnd` hook to browser tracing integration ([#17884](https://github.com/getsentry/sentry-javascript/pull/17884))
+- feat(nextjs): Support Next.js proxy files ([#17926](https://github.com/getsentry/sentry-javascript/pull/17926))
+- feat(replay): Record outcome when event buffer size exceeded ([#17946](https://github.com/getsentry/sentry-javascript/pull/17946))
+- fix(cloudflare): copy execution context in durable objects and handlers ([#17786](https://github.com/getsentry/sentry-javascript/pull/17786))
+- fix(core): Fix and add missing cache attributes in Vercel AI ([#17982](https://github.com/getsentry/sentry-javascript/pull/17982))
+- fix(core): Improve uuid performance ([#17938](https://github.com/getsentry/sentry-javascript/pull/17938))
+- fix(ember): Use updated version for `clean-css` ([#17979](https://github.com/getsentry/sentry-javascript/pull/17979))
+- fix(nextjs): Don't set experimental instrumentation hook flag for next 16 ([#17978](https://github.com/getsentry/sentry-javascript/pull/17978))
+- fix(nextjs): Inconsistent transaction naming for i18n routing ([#17927](https://github.com/getsentry/sentry-javascript/pull/17927))
+- fix(nextjs): Update bundler detection ([#17976](https://github.com/getsentry/sentry-javascript/pull/17976))
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+
+- build: Update to typescript 5.8.0 ([#17710](https://github.com/getsentry/sentry-javascript/pull/17710))
+- chore: Add external contributor to CHANGELOG.md ([#17949](https://github.com/getsentry/sentry-javascript/pull/17949))
+- chore(build): Upgrade nodemon to 3.1.10 ([#17956](https://github.com/getsentry/sentry-javascript/pull/17956))
+- chore(ci): Fix external contributor action when multiple contributions existed ([#17950](https://github.com/getsentry/sentry-javascript/pull/17950))
+- chore(solid): Remove unnecessary import from README ([#17947](https://github.com/getsentry/sentry-javascript/pull/17947))
+- test(nextjs): Fix proxy/middleware test ([#17970](https://github.com/getsentry/sentry-javascript/pull/17970))
+
+</details>
+
+Work in this release was contributed by @0xbad0c0d3. Thank you for your contribution!
+
 ## 10.20.0
 
 ### Important Changes
@@ -42,7 +89,7 @@
 - chore: Add external contributor to CHANGELOG.md ([#17940](https://github.com/getsentry/sentry-javascript/pull/17940))
 </details>
 
-Work in this release was contributed by @seoyeon9888, @madhuchavva and @thedanchez . Thank you for your contributions!
+Work in this release was contributed by @seoyeon9888, @madhuchavva and @thedanchez. Thank you for your contributions!
 
 ## 10.19.0
 
