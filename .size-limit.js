@@ -41,6 +41,13 @@ module.exports = [
     limit: '41 KB',
   },
   {
+    name: '@sentry/browser (incl. Tracing, Profiling)',
+    path: 'packages/browser/build/npm/esm/index.js',
+    import: createImport('init', 'browserTracingIntegration', 'browserProfilingIntegration'),
+    gzip: true,
+    limit: '48 KB',
+  },
+  {
     name: '@sentry/browser (incl. Tracing, Replay)',
     path: 'packages/browser/build/npm/esm/index.js',
     import: createImport('init', 'browserTracingIntegration', 'replayIntegration'),
