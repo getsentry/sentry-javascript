@@ -14,11 +14,11 @@ import {
 } from '@sentry/core';
 import type { CacheEntry, ResponseCacheEntry } from 'nitropack/types';
 import type { Driver, Storage } from 'unstorage';
-// @ts-expect-error - This is a virtual module
-import { useStorage } from '#imports';
-// @ts-expect-error - This is a virtual module
-import { userStorageMounts } from '#sentry/storage-config.mjs';
 import { defineNitroPlugin } from '../utils/common';
+
+declare function useStorage(base?: string): Storage;
+
+declare const __SENTRY_INJECTED__: boolean;
 
 type MaybeInstrumented<T> = T & {
   __sentry_instrumented__?: boolean;
@@ -37,10 +37,15 @@ const CACHE_HIT_METHODS = new Set<DriverMethod>(['hasItem', 'getItem', 'getItemR
  * Creates a Nitro plugin that instruments the storage driver.
  */
 export default defineNitroPlugin(() => {
+  // This placeholder will be replaced by the build-time injection plugin
+  const userMounts = new Set();
+  if (typeof useStorage !== 'function' || typeof __SENTRY_INJECTED__ === 'undefined') {
+    debug.log('[Nitro] Storage instrumentation not available in dev mode. Skipping storage instrumentation.');
+    return;
+  }
+
   // This runs at runtime when the Nitro server starts
   const storage = useStorage();
-  // Mounts are suffixed with a colon, so we need to add it to the set items
-  const userMounts = new Set((userStorageMounts as string[]).map(m => `${m}:`));
 
   debug.log('[Nitro] Starting to instrument storage and cache drivers...');
 
@@ -263,7 +268,7 @@ function isCacheHit(key: string, value: unknown): boolean {
     }
 
     return validateCacheEntry(key, JSON.parse(String(value)) as CacheEntry);
-  } catch (error) {
+  } catch {
     // this is a best effort, so we return false if we can't validate the cache entry
     return false;
   }

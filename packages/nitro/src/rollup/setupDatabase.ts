@@ -1,6 +1,7 @@
 import { consoleSandbox } from '@sentry/core';
-import type { Nitro } from 'nitropack/types';
-import { addPlugin, addVirtualFile, createResolver } from '../utils';
+import type { DatabaseConnectionConfig as DatabaseConfig, Nitro } from 'nitropack/types';
+import type { InputPluginOption } from 'rollup';
+import { addPlugin, createResolver } from '../utils';
 
 /**
  * Sets up the database instrumentation.
@@ -22,14 +23,53 @@ export function setupDatabaseInstrumentation(nitro: Nitro): void {
    * https://nitro.build/guide/database#configuration
    */
   const databaseConfig = nitro.options.database || { default: {} };
+  const pluginPath = createResolver(import.meta.url).resolve('../runtime/plugins/database.js');
 
-  // Create a virtual module to pass this data to runtime
-  addVirtualFile(nitro, {
-    filename: '#sentry/database-config.mjs',
-    getContents: () => {
-      return `export const databaseConfig = ${JSON.stringify(databaseConfig)};`;
-    },
+  addPlugin(nitro, pluginPath);
+
+  // Add a Rollup plugin to inject the database config directly into the runtime plugin
+  nitro.hooks.hook('rollup:before', (_nitro, rollupConfig) => {
+    if (rollupConfig?.plugins === null || rollupConfig?.plugins === undefined) {
+      rollupConfig.plugins = [];
+    } else if (!Array.isArray(rollupConfig.plugins)) {
+      rollupConfig.plugins = [rollupConfig.plugins];
+    }
+
+    rollupConfig.plugins.push(createDatabaseConfigInjectionPlugin(databaseConfig, pluginPath));
   });
+}
 
-  addPlugin(nitro, createResolver(import.meta.url).resolve('../runtime/plugins/database'));
+/**
+ * Creates a Rollup plugin that injects the database config into the runtime plugin
+ */
+function createDatabaseConfigInjectionPlugin(
+  databaseConfig: Record<string, DatabaseConfig>,
+  pluginPath: string,
+): InputPluginOption {
+  return {
+    name: 'sentry-inject-database-config',
+    transform: {
+      filter: {
+        id: pluginPath,
+      },
+      handler(code: string) {
+        let transformedCode = code;
+
+        // Add the import statement at the top
+        transformedCode = `import { useDatabase } from '#imports';\n${transformedCode}`;
+
+        // Replace the config placeholder with the actual config
+        transformedCode = transformedCode.replace(
+          'const _databaseConfig = {}',
+          `const _databaseConfig = ${JSON.stringify(databaseConfig)};\n
+        const __SENTRY_INJECTED__ = true;`,
+        );
+
+        return {
+          code: transformedCode,
+          map: null,
+        };
+      },
+    },
+  };
 }

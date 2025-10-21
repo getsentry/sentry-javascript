@@ -12,16 +12,19 @@ import {
 } from '@sentry/core';
 import type { Database, PreparedStatement } from 'db0';
 import type { DatabaseConnectionConfig as DatabaseConfig } from 'nitropack/types';
-// @ts-expect-error - This is a virtual module
-import { useDatabase } from '#imports';
-// @ts-expect-error - This is a virtual module
-import { databaseConfig } from '#sentry/database-config.mjs';
 import { defineNitroPlugin } from '../utils/common';
 import { type DatabaseSpanData, getDatabaseSpanData } from '../utils/database-span-data';
 
 type MaybeInstrumentedDatabase = Database & {
   __sentry_instrumented__?: boolean;
 };
+
+/**
+ * Mock implementation that will be replaced by rollup plugin in production.
+ */
+declare function useDatabase(name?: string): MaybeInstrumentedDatabase;
+
+declare const __SENTRY_INJECTED__: boolean;
 
 /**
  * Keeps track of prepared statements that have been patched.
@@ -38,8 +41,14 @@ const SENTRY_ORIGIN = 'auto.db.nitro';
  */
 export default defineNitroPlugin(() => {
   try {
-    const _databaseConfig = databaseConfig as Record<string, DatabaseConfig>;
-    const databaseInstances = Object.keys(databaseConfig);
+    // This placeholder will be replaced by the build-time injection plugin
+    const _databaseConfig = {} as Record<string, DatabaseConfig>;
+    if (typeof useDatabase !== 'function' || typeof __SENTRY_INJECTED__ === 'undefined') {
+      debug.log('[Nitro] Database Instrumentation not available in dev mode. Skipping database instrumentation...');
+      return;
+    }
+
+    const databaseInstances = Object.keys(_databaseConfig);
     debug.log('[Nitro] Instrumenting databases...');
 
     for (const instance of databaseInstances) {
