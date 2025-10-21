@@ -124,7 +124,7 @@
     "jsdom": "^21.1.2",
     "lerna": "7.1.1",
     "madge": "7.0.0",
-    "nodemon": "^2.0.16",
+    "nodemon": "^3.1.10",
     "npm-run-all2": "^6.2.0",
     "prettier": "^3.6.2",
     "prettier-plugin-astro": "^0.14.1",
