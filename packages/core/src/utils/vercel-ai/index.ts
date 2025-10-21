@@ -6,7 +6,7 @@ import {
   GEN_AI_USAGE_INPUT_TOKENS_CACHE_WRITE_ATTRIBUTE,
   GEN_AI_USAGE_INPUT_TOKENS_CACHED_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
-import { truncateGenAiMessages } from '../ai/messageTruncation';
+import { getTruncatedJsonString } from '../ai/utils';
 import { spanToJSON } from '../spanUtils';
 import { toolCallSpanMap } from './constants';
 import type { TokenSummary } from './types';
@@ -197,13 +197,8 @@ function processGenerateSpan(span: Span, name: string, attributes: SpanAttribute
   }
 
   if (attributes[AI_PROMPT_ATTRIBUTE]) {
-    const prompt = attributes[AI_PROMPT_ATTRIBUTE];
-    if (Array.isArray(prompt)) {
-      const truncatedPrompt = truncateGenAiMessages(prompt);
-      span.setAttribute('gen_ai.prompt', JSON.stringify(truncatedPrompt));
-    } else {
-      span.setAttribute('gen_ai.prompt', prompt);
-    }
+    const truncatedPrompt = getTruncatedJsonString(attributes[AI_PROMPT_ATTRIBUTE] as string | string[]);
+    span.setAttribute('gen_ai.prompt', JSON.stringify(truncatedPrompt));
   }
   if (attributes[AI_MODEL_ID_ATTRIBUTE] && !attributes[GEN_AI_RESPONSE_MODEL_ATTRIBUTE]) {
     span.setAttribute(GEN_AI_RESPONSE_MODEL_ATTRIBUTE, attributes[AI_MODEL_ID_ATTRIBUTE]);

@@ -23,8 +23,13 @@ import {
   GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
   GEN_AI_SYSTEM_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
-import { truncateGenAiMessages } from '../ai/messageTruncation';
-import { buildMethodPath, getFinalOperationName, getSpanOperation, setTokenUsageAttributes } from '../ai/utils';
+import {
+  buildMethodPath,
+  getFinalOperationName,
+  getSpanOperation,
+  getTruncatedJsonString,
+  setTokenUsageAttributes,
+} from '../ai/utils';
 import { handleCallbackErrors } from '../handleCallbackErrors';
 import { instrumentAsyncIterableStream, instrumentMessageStream } from './streaming';
 import type {
@@ -78,23 +83,12 @@ function extractRequestAttributes(args: unknown[], methodPath: string): Record<s
  */
 function addPrivateRequestAttributes(span: Span, params: Record<string, unknown>): void {
   if ('messages' in params) {
-    const messages = params.messages;
-
-    if (Array.isArray(messages)) {
-      const truncatedMessages = truncateGenAiMessages(messages);
-      span.setAttributes({ [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: JSON.stringify(truncatedMessages) });
-    } else {
-      span.setAttributes({ [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: JSON.stringify(messages) });
-    }
+    const truncatedMessages = getTruncatedJsonString(params.messages);
+    span.setAttributes({ [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: truncatedMessages });
   }
   if ('input' in params) {
-    const input = params.input;
-    if (Array.isArray(input)) {
-      const truncatedInput = truncateGenAiMessages(input);
-      span.setAttributes({ [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: JSON.stringify(truncatedInput) });
-    } else {
-      span.setAttributes({ [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: JSON.stringify(input) });
-    }
+    const truncatedInput = getTruncatedJsonString(params.input);
+    span.setAttributes({ [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: truncatedInput });
   }
 
   if ('prompt' in params) {
