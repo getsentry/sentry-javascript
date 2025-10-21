@@ -93,5 +93,15 @@ export function setTokenUsageAttributes(
  * @returns The truncated JSON string
  */
 export function getTruncatedJsonString<T>(value: T | T[]): string {
-  return JSON.stringify(Array.isArray(value) ? truncateGenAiMessages(value) : value);
+  if (typeof value === 'string') {
+    // Some values are already JSON strings, so we don't need to duplicate the JSON parsing
+    return value;
+  }
+  if (Array.isArray(value)) {
+    // truncateGenAiMessages returns an array of strings, so we need to stringify it
+    const truncatedMessages = truncateGenAiMessages(value);
+    return JSON.stringify(truncatedMessages);
+  }
+  // value is an object, so we need to stringify it
+  return JSON.stringify(value);
 }

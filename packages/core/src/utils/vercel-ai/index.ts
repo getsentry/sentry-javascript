@@ -198,7 +198,7 @@ function processGenerateSpan(span: Span, name: string, attributes: SpanAttribute
 
   if (attributes[AI_PROMPT_ATTRIBUTE]) {
     const truncatedPrompt = getTruncatedJsonString(attributes[AI_PROMPT_ATTRIBUTE] as string | string[]);
-    span.setAttribute('gen_ai.prompt', JSON.stringify(truncatedPrompt));
+    span.setAttribute('gen_ai.prompt', truncatedPrompt);
   }
   if (attributes[AI_MODEL_ID_ATTRIBUTE] && !attributes[GEN_AI_RESPONSE_MODEL_ATTRIBUTE]) {
     span.setAttribute(GEN_AI_RESPONSE_MODEL_ATTRIBUTE, attributes[AI_MODEL_ID_ATTRIBUTE]);
