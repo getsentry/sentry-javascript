@@ -213,6 +213,88 @@ describe('util', () => {
     });
   });
 
+  describe('requiresInstrumentationHook', () => {
+    describe('versions that do NOT require the hook (returns false)', () => {
+      it.each([
+        // Fully supported releases (15.0.0 or higher)
+        ['15.0.0', 'Next.js 15.0.0'],
+        ['15.0.1', 'Next.js 15.0.1'],
+        ['15.1.0', 'Next.js 15.1.0'],
+        ['15.2.0', 'Next.js 15.2.0'],
+        ['16.0.0', 'Next.js 16.0.0'],
+        ['17.0.0', 'Next.js 17.0.0'],
+        ['20.0.0', 'Next.js 20.0.0'],
+
+        // Supported v15.0.0-rc.1 or higher
+        ['15.0.0-rc.1', 'Next.js 15.0.0-rc.1'],
+        ['15.0.0-rc.2', 'Next.js 15.0.0-rc.2'],
+        ['15.0.0-rc.5', 'Next.js 15.0.0-rc.5'],
+        ['15.0.0-rc.100', 'Next.js 15.0.0-rc.100'],
+
+        // Supported v15.0.0-canary.124 or higher
+        ['15.0.0-canary.124', 'Next.js 15.0.0-canary.124 (exact threshold)'],
+        ['15.0.0-canary.125', 'Next.js 15.0.0-canary.125'],
+        ['15.0.0-canary.130', 'Next.js 15.0.0-canary.130'],
+        ['15.0.0-canary.200', 'Next.js 15.0.0-canary.200'],
+
+        // Next.js 16+ prerelease versions (all supported)
+        ['16.0.0-beta.0', 'Next.js 16.0.0-beta.0'],
+        ['16.0.0-beta.1', 'Next.js 16.0.0-beta.1'],
+        ['16.0.0-rc.0', 'Next.js 16.0.0-rc.0'],
+        ['16.0.0-rc.1', 'Next.js 16.0.0-rc.1'],
+        ['16.0.0-canary.1', 'Next.js 16.0.0-canary.1'],
+        ['16.0.0-alpha.1', 'Next.js 16.0.0-alpha.1'],
+        ['17.0.0-canary.1', 'Next.js 17.0.0-canary.1'],
+      ])('returns false for %s (%s)', version => {
+        expect(util.requiresInstrumentationHook(version)).toBe(false);
+      });
+    });
+
+    describe('versions that DO require the hook (returns true)', () => {
+      it.each([
+        // Next.js 14 and below
+        ['14.2.0', 'Next.js 14.2.0'],
+        ['14.0.0', 'Next.js 14.0.0'],
+        ['13.5.0', 'Next.js 13.5.0'],
+        ['12.0.0', 'Next.js 12.0.0'],
+
+        // Unsupported v15.0.0-rc.0
+        ['15.0.0-rc.0', 'Next.js 15.0.0-rc.0'],
+
+        // Unsupported v15.0.0-canary versions below 124
+        ['15.0.0-canary.123', 'Next.js 15.0.0-canary.123'],
+        ['15.0.0-canary.100', 'Next.js 15.0.0-canary.100'],
+        ['15.0.0-canary.50', 'Next.js 15.0.0-canary.50'],
+        ['15.0.0-canary.1', 'Next.js 15.0.0-canary.1'],
+        ['15.0.0-canary.0', 'Next.js 15.0.0-canary.0'],
+
+        // Other prerelease versions
+        ['15.0.0-alpha.1', 'Next.js 15.0.0-alpha.1'],
+        ['15.0.0-beta.1', 'Next.js 15.0.0-beta.1'],
+      ])('returns true for %s (%s)', version => {
+        expect(util.requiresInstrumentationHook(version)).toBe(true);
+      });
+    });
+
+    describe('edge cases', () => {
+      it('returns true for empty string', () => {
+        expect(util.requiresInstrumentationHook('')).toBe(true);
+      });
+
+      it('returns true for invalid version strings', () => {
+        expect(util.requiresInstrumentationHook('invalid.version')).toBe(true);
+      });
+
+      it('returns true for versions missing patch number', () => {
+        expect(util.requiresInstrumentationHook('15.4')).toBe(true);
+      });
+
+      it('returns true for versions missing minor number', () => {
+        expect(util.requiresInstrumentationHook('15')).toBe(true);
+      });
+    });
+  });
+
   describe('detectActiveBundler', () => {
     const originalArgv = process.argv;
     const originalEnv = process.env;
