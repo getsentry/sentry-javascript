@@ -18,6 +18,10 @@ export const helloWorld = onRequest(async (request, response) => {
   response.send('Hello from Firebase!');
 });
 
+export const unhandeledError = onRequest(async (request, response) => {
+  throw new Error('There is an error!');
+});
+
 export const onCallSomething = onRequest(async (request, response) => {
   const data = {
     name: request.body?.name || 'Sample Document',

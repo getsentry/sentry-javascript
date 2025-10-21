@@ -6,7 +6,6 @@ import {
   InstrumentationNodeModuleFile,
   isWrapped,
   safeExecuteInTheMiddle,
-  safeExecuteInTheMiddleAsync,
 } from '@opentelemetry/instrumentation';
 import type { SpanAttributes } from '@sentry/core';
 import type {
@@ -28,7 +27,7 @@ import type {
   onObjectMetadataUpdated,
 } from 'firebase-functions/storage';
 import type { FirebaseInstrumentation } from '../firebaseInstrumentation';
-import type { FirebaseInstrumentationConfig, FunctionsSpanCreationHook } from '../types';
+import type { FirebaseInstrumentationConfig, RequestHook, ResponseHook } from '../types';
 
 /**
  * Patches Firebase Functions v2 to add OpenTelemetry instrumentation
@@ -45,15 +44,30 @@ export function patchFunctions(
   unwrap: InstrumentationBase['_unwrap'],
   config: FirebaseInstrumentationConfig,
 ): InstrumentationNodeModuleDefinition {
-  const defaultFunctionsSpanCreationHook: FunctionsSpanCreationHook = () => {};
+  let requestHook: RequestHook = () => {};
+  let responseHook: ResponseHook = () => {};
+  const errorHook = config.functions?.errorHook;
+  const configRequestHook = config.functions?.requestHook;
+  const configResponseHook = config.functions?.responseHook;
 
-  let functionsSpanCreationHook: FunctionsSpanCreationHook = defaultFunctionsSpanCreationHook;
-  const configFunctionsSpanCreationHook = config.functionsSpanCreationHook;
-
-  if (typeof configFunctionsSpanCreationHook === 'function') {
-    functionsSpanCreationHook = (span: Span) => {
+  if (typeof configResponseHook === 'function') {
+    responseHook = (span: Span, err: unknown) => {
       safeExecuteInTheMiddle(
-        () => configFunctionsSpanCreationHook(span),
+        () => configResponseHook(span, err),
+        error => {
+          if (!error) {
+            return;
+          }
+          diag.error(error?.message);
+        },
+        true,
+      );
+    };
+  }
+  if (typeof configRequestHook === 'function') {
+    requestHook = (span: Span) => {
+      safeExecuteInTheMiddle(
+        () => configRequestHook(span),
         error => {
           if (!error) {
             return;
@@ -79,7 +93,14 @@ export function patchFunctions(
         name,
         functionsSupportedVersions,
         moduleExports =>
-          wrapCommonFunctions(moduleExports, wrap, unwrap, tracer, functionsSpanCreationHook, triggerType),
+          wrapCommonFunctions(
+            moduleExports,
+            wrap,
+            unwrap,
+            tracer,
+            { requestHook, responseHook, errorHook },
+            triggerType,
+          ),
         moduleExports => unwrapCommonFunctions(moduleExports, unwrap),
       ),
     );
@@ -124,16 +145,43 @@ type AvailableFirebaseFunctions = {
 type FirebaseFunctions = AvailableFirebaseFunctions[keyof AvailableFirebaseFunctions];
 
 /**
+ * Async function to execute patched function and being able to catch errors
+ * @param execute - function to be executed
+ * @param onFinish - callback to run when execute finishes
+ */
+export async function safeExecuteInTheMiddleAsync<T>(
+  execute: () => T,
+  onFinish: (e: Error | undefined, result: T | undefined) => Promise<void> | void,
+  preventThrowingError?: boolean,
+): Promise<T> {
+  let error: Error | undefined;
+  let result: T | undefined;
+  try {
+    result = await execute();
+  } catch (e) {
+    error = e as Error;
+  } finally {
+    await onFinish?.(error, result);
+    if (error && !preventThrowingError) {
+      // eslint-disable-next-line no-unsafe-finally
+      throw error;
+    }
+    // eslint-disable-next-line no-unsafe-finally
+    return result as T;
+  }
+}
+
+/**
  * Patches Cloud Functions for Firebase (v2) to add OpenTelemetry instrumentation
  *
  * @param tracer - Opentelemetry Tracer
- * @param functionsSpanCreationHook - Function to create a span for the function
+ * @param functionsConfig - Firebase instrumentation config
  * @param triggerType - Type of trigger
  * @returns A function that patches the function
  */
 export function patchV2Functions<T extends FirebaseFunctions = FirebaseFunctions>(
   tracer: Tracer,
-  functionsSpanCreationHook: FunctionsSpanCreationHook,
+  functionsConfig: FirebaseInstrumentationConfig['functions'],
   triggerType: string,
 ): (original: T) => (...args: OverloadedParameters<T>) => ReturnType<T> {
   return function v2FunctionsWrapper(original: T): (...args: OverloadedParameters<T>) => ReturnType<T> {
@@ -166,20 +214,35 @@ export function patchV2Functions<T extends FirebaseFunctions = FirebaseFunctions
         }
 
         span.setAttributes(attributes);
-        functionsSpanCreationHook(span);
+        functionsConfig?.requestHook?.(span);
 
-        return context.with(trace.setSpan(context.active(), span), () =>
-          safeExecuteInTheMiddleAsync(
-            () => handler.apply(this, handlerArgs),
-            err => {
-              if (err) {
-                span.recordException(err);
-              }
+        // Can be changed to safeExecuteInTheMiddleAsync once following is merged and released
+        // https://github.com/open-telemetry/opentelemetry-js/pull/6032
+        return context.with(trace.setSpan(context.active(), span), async () => {
+          let error: Error | undefined;
+          let result: T | undefined;
 
-              span.end();
-            },
-          ),
-        );
+          try {
+            result = await handler.apply(this, handlerArgs);
+          } catch (e) {
+            error = e as Error;
+          }
+
+          functionsConfig?.responseHook?.(span, error);
+
+          if (error) {
+            span.recordException(error);
+          }
+
+          span.end();
+
+          if (error) {
+            await functionsConfig?.errorHook?.(span, error);
+            throw error;
+          }
+
+          return result;
+        });
       };
 
       if (documentOrOptions) {
@@ -196,86 +259,58 @@ function wrapCommonFunctions(
   wrap: InstrumentationBase<FirebaseInstrumentationConfig>['_wrap'],
   unwrap: InstrumentationBase<FirebaseInstrumentationConfig>['_unwrap'],
   tracer: Tracer,
-  functionsSpanCreationHook: FunctionsSpanCreationHook,
+  functionsConfig: FirebaseInstrumentationConfig['functions'],
   triggerType: 'function' | 'firestore' | 'scheduler' | 'storage',
 ): AvailableFirebaseFunctions {
   unwrapCommonFunctions(moduleExports, unwrap);
 
   switch (triggerType) {
     case 'function':
-      wrap(moduleExports, 'onRequest', patchV2Functions(tracer, functionsSpanCreationHook, 'http.request'));
-      wrap(moduleExports, 'onCall', patchV2Functions(tracer, functionsSpanCreationHook, 'http.call'));
+      wrap(moduleExports, 'onRequest', patchV2Functions(tracer, functionsConfig, 'http.request'));
+      wrap(moduleExports, 'onCall', patchV2Functions(tracer, functionsConfig, 'http.call'));
       break;
 
     case 'firestore':
-      wrap(
-        moduleExports,
-        'onDocumentCreated',
-        patchV2Functions(tracer, functionsSpanCreationHook, 'firestore.document.created'),
-      );
-      wrap(
-        moduleExports,
-        'onDocumentUpdated',
-        patchV2Functions(tracer, functionsSpanCreationHook, 'firestore.document.updated'),
-      );
-      wrap(
-        moduleExports,
-        'onDocumentDeleted',
-        patchV2Functions(tracer, functionsSpanCreationHook, 'firestore.document.deleted'),
-      );
-      wrap(
-        moduleExports,
-        'onDocumentWritten',
-        patchV2Functions(tracer, functionsSpanCreationHook, 'firestore.document.written'),
-      );
+      wrap(moduleExports, 'onDocumentCreated', patchV2Functions(tracer, functionsConfig, 'firestore.document.created'));
+      wrap(moduleExports, 'onDocumentUpdated', patchV2Functions(tracer, functionsConfig, 'firestore.document.updated'));
+      wrap(moduleExports, 'onDocumentDeleted', patchV2Functions(tracer, functionsConfig, 'firestore.document.deleted'));
+      wrap(moduleExports, 'onDocumentWritten', patchV2Functions(tracer, functionsConfig, 'firestore.document.written'));
       wrap(
         moduleExports,
         'onDocumentCreatedWithAuthContext',
-        patchV2Functions(tracer, functionsSpanCreationHook, 'firestore.document.created'),
+        patchV2Functions(tracer, functionsConfig, 'firestore.document.created'),
       );
       wrap(
         moduleExports,
         'onDocumentUpdatedWithAuthContext',
-        patchV2Functions(tracer, functionsSpanCreationHook, 'firestore.document.updated'),
+        patchV2Functions(tracer, functionsConfig, 'firestore.document.updated'),
       );
 
       wrap(
         moduleExports,
         'onDocumentDeletedWithAuthContext',
-        patchV2Functions(tracer, functionsSpanCreationHook, 'firestore.document.deleted'),
+        patchV2Functions(tracer, functionsConfig, 'firestore.document.deleted'),
       );
 
       wrap(
         moduleExports,
         'onDocumentWrittenWithAuthContext',
-        patchV2Functions(tracer, functionsSpanCreationHook, 'firestore.document.written'),
+        patchV2Functions(tracer, functionsConfig, 'firestore.document.written'),
       );
       break;
 
     case 'scheduler':
-      wrap(moduleExports, 'onSchedule', patchV2Functions(tracer, functionsSpanCreationHook, 'scheduler.scheduled'));
+      wrap(moduleExports, 'onSchedule', patchV2Functions(tracer, functionsConfig, 'scheduler.scheduled'));
       break;
 
     case 'storage':
-      wrap(
-        moduleExports,
-        'onObjectFinalized',
-        patchV2Functions(tracer, functionsSpanCreationHook, 'storage.object.finalized'),
-      );
-      wrap(
-        moduleExports,
-        'onObjectArchived',
-        patchV2Functions(tracer, functionsSpanCreationHook, 'storage.object.archived'),
-      );
-      wrap(
-        moduleExports,
-        'onObjectDeleted',
-        patchV2Functions(tracer, functionsSpanCreationHook, 'storage.object.deleted'),
-      );
+      wrap(moduleExports, 'onObjectFinalized', patchV2Functions(tracer, functionsConfig, 'storage.object.finalized'));
+      wrap(moduleExports, 'onObjectArchived', patchV2Functions(tracer, functionsConfig, 'storage.object.archived'));
+      wrap(moduleExports, 'onObjectDeleted', patchV2Functions(tracer, functionsConfig, 'storage.object.deleted'));
       wrap(
         moduleExports,
         'onObjectMetadataUpdated',
-        patchV2Functions(tracer, functionsSpanCreationHook, 'storage.object.metadataUpdated'),
+        patchV2Functions(tracer, functionsConfig, 'storage.object.metadataUpdated'),
       );
       break;
   }

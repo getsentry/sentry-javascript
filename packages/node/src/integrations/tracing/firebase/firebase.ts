@@ -1,5 +1,5 @@
 import type { IntegrationFn } from '@sentry/core';
-import { defineIntegration, SEMANTIC_ATTRIBUTE_SENTRY_OP } from '@sentry/core';
+import { captureException, defineIntegration, flush, SEMANTIC_ATTRIBUTE_SENTRY_OP } from '@sentry/core';
 import { addOriginToSpan, generateInstrumentOnce } from '@sentry/node-core';
 import { type FirebaseInstrumentationConfig, FirebaseInstrumentation } from './otel';
 
@@ -11,10 +11,23 @@ const config: FirebaseInstrumentationConfig = {
 
     span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'db.query');
   },
-  functionsSpanCreationHook: span => {
-    addOriginToSpan(span, 'auto.firebase.otel.functions');
+  functions: {
+    requestHook: span => {
+      addOriginToSpan(span, 'auto.firebase.otel.functions');
 
-    span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'http.request');
+      span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'http.request');
+    },
+    errorHook: async (_, error) => {
+      if (error) {
+        captureException(error, {
+          mechanism: {
+            type: 'auto.firebase.otel.functions',
+            handled: false,
+          },
+        });
+        await flush(2000);
+      }
+    },
   },
 };
 

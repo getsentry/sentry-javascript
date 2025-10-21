@@ -88,14 +88,20 @@ export interface FirestoreSettings {
  */
 export interface FirebaseInstrumentationConfig extends InstrumentationConfig {
   firestoreSpanCreationHook?: FirestoreSpanCreationHook;
-  functionsSpanCreationHook?: FunctionsSpanCreationHook;
+  functions?: FunctionsConfig;
 }
+
+export interface FunctionsConfig {
+  requestHook?: RequestHook;
+  responseHook?: ResponseHook;
+  errorHook?: ErrorHook;
+}
+
+export type RequestHook = (span: Span) => void;
+export type ResponseHook = (span: Span, error?: unknown) => void;
+export type ErrorHook = (span: Span, error?: unknown) => Promise<void> | void;
 
 export interface FirestoreSpanCreationHook {
-  (span: Span): void;
-}
-
-export interface FunctionsSpanCreationHook {
   (span: Span): void;
 }
 

@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 
 test('should only call the function once without any extra calls', async () => {
   const serverTransactionPromise = waitForTransaction('node-firebase', span => {
@@ -15,6 +15,7 @@ test('should only call the function once without any extra calls', async () => {
     expect.objectContaining({
       trace: expect.objectContaining({
         data: {
+          'cloud.project_id': 'demo-functions',
           'faas.name': 'helloWorld',
           'faas.provider': 'firebase',
           'faas.trigger': 'http.request',
@@ -32,6 +33,35 @@ test('should only call the function once without any extra calls', async () => {
       }),
     }),
   );
+});
+
+test('should send failed transaction when the function fails', async () => {
+  const errorEventPromise = waitForError('node-firebase', () => true);
+  const serverTransactionPromise = waitForTransaction('node-firebase', span => {
+    return !!span.transaction;
+  });
+
+  await fetch(`http://localhost:5001/demo-functions/default/unhandeledError`);
+
+  const transactionEvent = await serverTransactionPromise;
+  const errorEvent = await errorEventPromise;
+
+  expect(transactionEvent.transaction).toEqual('firebase.function.http.request');
+  expect(transactionEvent.contexts?.trace?.trace_id).toEqual(errorEvent.contexts?.trace?.trace_id);
+  expect(errorEvent).toMatchObject({
+    exception: {
+      values: [
+        {
+          type: 'Error',
+          value: 'There is an error!',
+          mechanism: {
+            type: 'auto.firebase.otel.functions',
+            handled: false,
+          },
+        },
+      ],
+    },
+  });
 });
 
 test('should create a document and trigger onDocumentCreated and another with authContext', async () => {
@@ -62,6 +92,7 @@ test('should create a document and trigger onDocumentCreated and another with au
   expect(transactionEvent.transaction).toEqual('firebase.function.http.request');
   expect(transactionEvent.contexts?.trace).toEqual({
     data: {
+      'cloud.project_id': 'demo-functions',
       'faas.name': 'onCallSomething',
       'faas.provider': 'firebase',
       'faas.trigger': 'http.request',
@@ -80,6 +111,7 @@ test('should create a document and trigger onDocumentCreated and another with au
   expect(transactionEvent.spans).toHaveLength(3);
   expect(transactionEventOnDocumentCreate.contexts?.trace).toEqual({
     data: {
+      'cloud.project_id': 'demo-functions',
       'faas.name': 'onDocumentCreate',
       'faas.provider': 'firebase',
       'faas.trigger': 'firestore.document.created',
@@ -98,6 +130,7 @@ test('should create a document and trigger onDocumentCreated and another with au
   expect(transactionEventOnDocumentCreate.spans).toHaveLength(2);
   expect(transactionEventOnDocumentWithAuthContextCreate.contexts?.trace).toEqual({
     data: {
+      'cloud.project_id': 'demo-functions',
       'faas.name': 'onDocumentCreateWithAuthContext',
       'faas.provider': 'firebase',
       'faas.trigger': 'firestore.document.created',
