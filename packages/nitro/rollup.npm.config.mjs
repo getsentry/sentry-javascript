@@ -10,7 +10,7 @@ export default [
     makeBaseNPMConfig({
       entrypoints: ['src/index.ts', 'src/plugins.ts', ...runtimeFiles],
       packageSpecificConfig: {
-        external: [/^nitropack/, /^h3/, /^#sentry/, /^#nitro-internal/],
+        external: [/^nitropack/, /^h3/, /^#sentry/, /^#nitro-internal/, /^#imports/],
       },
     }),
     { emitCjs: false },

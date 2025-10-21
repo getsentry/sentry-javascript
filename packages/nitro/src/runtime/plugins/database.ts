@@ -11,10 +11,12 @@ import {
   startSpan,
 } from '@sentry/core';
 import type { Database, PreparedStatement } from 'db0';
-import { defineNitroPlugin, useDatabase } from 'nitropack/runtime';
 import type { DatabaseConnectionConfig as DatabaseConfig } from 'nitropack/types';
 // @ts-expect-error - This is a virtual module
+import { useDatabase } from '#imports';
+// @ts-expect-error - This is a virtual module
 import { databaseConfig } from '#sentry/database-config.mjs';
+import { defineNitroPlugin } from '../utils/common';
 import { type DatabaseSpanData, getDatabaseSpanData } from '../utils/database-span-data';
 
 type MaybeInstrumentedDatabase = Database & {

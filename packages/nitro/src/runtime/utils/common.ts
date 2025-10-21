@@ -1,6 +1,6 @@
 import type { Context, SerializedTraceData } from '@sentry/core';
 import { getTraceMetaTags } from '@sentry/core';
-import type { CapturedErrorContext, RenderResponse } from 'nitropack/types';
+import type { CapturedErrorContext, NitroAppPlugin, RenderResponse } from 'nitropack/types';
 
 /**
  *  Extracts the relevant context information from the error context (H3Event in Nitro Error)
@@ -48,4 +48,11 @@ function addMetaTagToHead(html: string, traceData?: SerializedTraceData): string
   const content = `<head>\n${metaTags}\n`;
 
   return html.replace('<head>', content);
+}
+
+/**
+ * Defines a Nitro plugin
+ */
+export function defineNitroPlugin(plugin: NitroAppPlugin): NitroAppPlugin {
+  return plugin;
 }

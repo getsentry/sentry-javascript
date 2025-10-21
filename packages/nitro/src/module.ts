@@ -1,5 +1,4 @@
 import { debug } from '@sentry/core';
-import { defineNitroModule } from 'nitropack/kit';
 import type { NitroModule } from 'nitropack/types';
 import type { SentryNitroModuleOptionsWithDefaults, SentryNitroOptions } from './common/types';
 import { setupDatabaseInstrumentation } from './rollup/setupDatabase';
@@ -22,7 +21,7 @@ export const createSentryNitroModule = (
     ],
   };
 
-  return defineNitroModule({
+  return {
     name: '@sentry/nitro',
     setup(nitro) {
       const _serverConfigFile = serverConfigFile || findDefaultSdkInitFile('server');
@@ -37,5 +36,5 @@ export const createSentryNitroModule = (
       setupStorageInstrumentation(nitro);
       setupDatabaseInstrumentation(nitro);
     },
-  });
+  } satisfies NitroModule;
 };

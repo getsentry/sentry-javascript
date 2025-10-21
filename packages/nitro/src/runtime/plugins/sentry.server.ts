@@ -6,10 +6,10 @@ import {
   withIsolationScope,
 } from '@sentry/core';
 import type { EventHandler } from 'h3';
-import { defineNitroPlugin } from 'nitropack/runtime';
 import { sentryCaptureErrorHook } from '../hooks/captureErrorHook';
 import { injectTracingMetaTags } from '../hooks/injectTracingMetaTags';
 import { updateRouteBeforeResponse } from '../hooks/updateRouteBeforeResponse';
+import { defineNitroPlugin } from '../utils/common';
 
 export default defineNitroPlugin(nitro => {
   nitro.h3App.handler = patchEventHandler(nitro.h3App.handler);

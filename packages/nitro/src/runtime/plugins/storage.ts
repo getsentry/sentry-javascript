@@ -12,11 +12,13 @@ import {
   SPAN_STATUS_OK,
   startSpan,
 } from '@sentry/core';
-import { defineNitroPlugin, useStorage } from 'nitropack/runtime';
 import type { CacheEntry, ResponseCacheEntry } from 'nitropack/types';
 import type { Driver, Storage } from 'unstorage';
 // @ts-expect-error - This is a virtual module
+import { useStorage } from '#imports';
+// @ts-expect-error - This is a virtual module
 import { userStorageMounts } from '#sentry/storage-config.mjs';
+import { defineNitroPlugin } from '../utils/common';
 
 type MaybeInstrumented<T> = T & {
   __sentry_instrumented__?: boolean;
