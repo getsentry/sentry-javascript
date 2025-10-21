@@ -12,8 +12,10 @@ export function injectTracingMetaTags(event: H3Event, response: { body?: unknown
   if (!isPageloadRequest) {
     return;
   }
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+  const isSWRCachedPage = event?.context?.cache?.options.swr as boolean | undefined;
 
-  if (!isPreRenderedPage) {
+  if (!isPreRenderedPage && !isSWRCachedPage) {
     addSentryTracingMetaTags(response);
   } else {
     const reason = isPreRenderedPage ? 'the page was pre-rendered' : 'SWR caching is enabled for the route';
