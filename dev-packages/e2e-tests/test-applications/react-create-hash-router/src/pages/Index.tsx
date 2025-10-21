@@ -18,6 +18,9 @@ const Index = () => {
       <Link to="/v2/post/1" id="navigation-post-1">
         Post 1
       </Link>
+      <Link to="/v1/post/1/edit" id="navigation-post-1-edit">
+        Edit Post 1
+      </Link>
       <Link to="/v2/post/1/featured" id="navigation-post-1-featured">
         Post 1 featured
       </Link>

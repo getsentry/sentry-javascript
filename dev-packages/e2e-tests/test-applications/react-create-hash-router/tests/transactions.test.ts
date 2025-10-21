@@ -191,6 +191,26 @@ test('Captures a parameterized path pageload transaction for nested route', asyn
   );
 });
 
+test('Captures a parameterized path pageload transaction for deeply nested route', async ({ page }) => {
+  const transactionEventPromise = waitForTransaction('react-create-hash-router', event => {
+    return event.contexts?.trace?.op === 'pageload';
+  });
+
+  await page.goto('/#/v1/post/1/edit');
+
+  const transactionEvent = await transactionEventPromise;
+
+  expect(transactionEvent).toEqual(
+    expect.objectContaining({
+      transaction: '/v1/post/:post/edit',
+      type: 'transaction',
+      transaction_info: {
+        source: 'route',
+      },
+    }),
+  );
+});
+
 test('Captures a parameterized path pageload transaction for nested route with absolute path', async ({ page }) => {
   const transactionEventPromise = waitForTransaction('react-create-hash-router', event => {
     return event.contexts?.trace?.op === 'pageload';
@@ -247,6 +267,28 @@ test('Captures a parameterized path navigation transaction for nested route', as
   expect(transactionEvent).toEqual(
     expect.objectContaining({
       transaction: '/v2/post/:post/featured',
+      type: 'transaction',
+      transaction_info: {
+        source: 'route',
+      },
+    }),
+  );
+});
+
+test('Captures a parameterized path navigation transaction for deeply nested route', async ({ page }) => {
+  const transactionEventPromise = waitForTransaction('react-create-hash-router', event => {
+    return event.contexts?.trace?.op === 'navigation';
+  });
+
+  await page.goto('/');
+  const linkElement = page.locator('id=navigation-post-1-edit');
+  await linkElement.click();
+
+  const transactionEvent = await transactionEventPromise;
+
+  expect(transactionEvent).toEqual(
+    expect.objectContaining({
+      transaction: '/v1/post/:post/edit',
       type: 'transaction',
       transaction_info: {
         source: 'route',

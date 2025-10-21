@@ -62,18 +62,24 @@ const router = sentryCreateHashRouter([
     element: <Group />,
   },
   {
-    path: '/v2/post/:post',
-    element: <Post />,
+    path: '/v1/post/:post',
+    element: <div />,
     children: [
-      { index: true, element: <PostIndex /> },
+      { path: 'featured', element: <div /> },
+      { path: '/v1/post/:post/related', element: <div /> },
       {
-        path: 'featured',
-        element: <PostFeatured />,
+        element: <div>More Nested Children</div>,
+        children: [{ path: 'edit', element: <div>Edit Post</div> }],
       },
-      {
-        path: '/v2/post/:post/related',
-        element: <PostRelated />,
-      },
+    ],
+  },
+  {
+    path: '/v2/post/:post',
+    element: <div />,
+    children: [
+      { index: true, element: <div /> },
+      { path: 'featured', element: <div /> },
+      { path: '/v2/post/:post/related', element: <div /> },
     ],
   },
 ]);
