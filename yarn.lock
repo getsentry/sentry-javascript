@@ -8272,13 +8272,6 @@
   resolved "https://registry.yarnpkg.com/@types/cors/-/cors-2.8.12.tgz#6b2c510a7ad7039e98e7b8d3d6598f4359e5c080"
   integrity sha512-vt+kDhq/M2ayberEtJcIN/hxXy1Pk+59g2FV/ZQceeaTyCtCucjL2Q7FXlFjtWn4n15KCr1NE2lNNFhp0lEThw==
 
-"@types/cors@^2.8.5":
-  version "2.8.19"
-  resolved "https://registry.yarnpkg.com/@types/cors/-/cors-2.8.19.tgz#d93ea2673fd8c9f697367f5eeefc2bbfa94f0342"
-  integrity sha512-mFNylyeyqN93lfe/9CSxOGREz8cpzAhH+E93xJ4xWQf62V8sQ/24reV2nyzUWM6H6Xji+GGHpkbLe7pVoUEskg==
-  dependencies:
-    "@types/node" "*"
-
 "@types/css-font-loading-module@0.0.7":
   version "0.0.7"
   resolved "https://registry.yarnpkg.com/@types/css-font-loading-module/-/css-font-loading-module-0.0.7.tgz#2f98ede46acc0975de85c0b7b0ebe06041d24601"
@@ -8541,16 +8534,6 @@
     "@types/qs" "*"
     "@types/serve-static" "*"
 
-"@types/express@^4.17.21":
-  version "4.17.23"
-  resolved "https://registry.yarnpkg.com/@types/express/-/express-4.17.23.tgz#35af3193c640bfd4d7fe77191cd0ed411a433bef"
-  integrity sha512-Crp6WY9aTYP3qPi2wGDo9iUe/rceX01UMhnF1jmwDcKCFM6cx7YhGP/Mpr3y9AASpfHixIG0E6azCcL5OcDHsQ==
-  dependencies:
-    "@types/body-parser" "*"
-    "@types/express-serve-static-core" "^4.17.33"
-    "@types/qs" "*"
-    "@types/serve-static" "*"
-
 "@types/fs-extra@^5.0.5":
   version "5.1.0"
   resolved "https://registry.yarnpkg.com/@types/fs-extra/-/fs-extra-5.1.0.tgz#2a325ef97901504a3828718c390d34b8426a10a1"
@@ -8796,13 +8779,6 @@
   integrity sha512-Xxr6BBRCAOQixvonOye19wnzyDiUtTeqldOOmj3CkeblonbccA12PFwlufvRdrpjXxqnmUaeiU5EOA+7s5diUQ==
   dependencies:
     undici-types "~6.20.0"
-
-"@types/node@>=13.7.0":
-  version "24.7.2"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-24.7.2.tgz#5adf66b6e2ac5cab1d10a2ad3682e359cb652f4a"
-  integrity sha512-/NbVmcGTP+lj5oa4yiYxxeBjRivKQ5Ns1eSZeB99ExsEQ6rX5XYU1Zy/gGxY/ilqtD4Etx9mKyrPxZRetiahhA==
-  dependencies:
-    undici-types "~7.14.0"
 
 "@types/node@^10.1.0":
   version "10.17.60"
@@ -16775,43 +16751,6 @@ express@^4.10.7, express@^4.17.1, express@^4.17.3, express@^4.18.1, express@^4.2
     utils-merge "1.0.1"
     vary "~1.1.2"
 
-express@^4.21.0:
-  version "4.21.2"
-  resolved "https://registry.yarnpkg.com/express/-/express-4.21.2.tgz#cf250e48362174ead6cea4a566abef0162c1ec32"
-  integrity sha512-28HqgMZAmih1Czt9ny7qr6ek2qddF4FclbMzwhCREB6OFfH+rXAnuNCwo1/wFvrtbgsQDb4kSbX9de9lFbrXnA==
-  dependencies:
-    accepts "~1.3.8"
-    array-flatten "1.1.1"
-    body-parser "1.20.3"
-    content-disposition "0.5.4"
-    content-type "~1.0.4"
-    cookie "0.7.1"
-    cookie-signature "1.0.6"
-    debug "2.6.9"
-    depd "2.0.0"
-    encodeurl "~2.0.0"
-    escape-html "~1.0.3"
-    etag "~1.8.1"
-    finalhandler "1.3.1"
-    fresh "0.5.2"
-    http-errors "2.0.0"
-    merge-descriptors "1.0.3"
-    methods "~1.1.2"
-    on-finished "2.4.1"
-    parseurl "~1.3.3"
-    path-to-regexp "0.1.12"
-    proxy-addr "~2.0.7"
-    qs "6.13.0"
-    range-parser "~1.2.1"
-    safe-buffer "5.2.1"
-    send "0.19.0"
-    serve-static "1.16.2"
-    setprototypeof "1.2.0"
-    statuses "2.0.1"
-    type-is "~1.6.18"
-    utils-merge "1.0.1"
-    vary "~1.1.2"
-
 exsolve@^1.0.4, exsolve@^1.0.7:
   version "1.0.7"
   resolved "https://registry.yarnpkg.com/exsolve/-/exsolve-1.0.7.tgz#3b74e4c7ca5c5f9a19c3626ca857309fa99f9e9e"
@@ -17338,17 +17277,6 @@ findup-sync@^4.0.0:
     is-glob "^4.0.0"
     micromatch "^4.0.2"
     resolve-dir "^1.0.1"
-
-firebase-functions@^6.5.0:
-  version "6.5.0"
-  resolved "https://registry.yarnpkg.com/firebase-functions/-/firebase-functions-6.5.0.tgz#0324babc47afbc4e10a3a5b9b289bd0f763e6ff8"
-  integrity sha512-ffntJkq88K0pdLDq14IyetKQu99Je4vBBJBe9rkZK2X4QyeJJnmA527+v2iTKA+SwRtxf5lh7sXgxpvxGS8HtQ==
-  dependencies:
-    "@types/cors" "^2.8.5"
-    "@types/express" "^4.17.21"
-    cors "^2.8.5"
-    express "^4.21.0"
-    protobufjs "^7.2.2"
 
 fireworm@^0.7.2:
   version "0.7.2"
@@ -21402,11 +21330,6 @@ long@^4.0.0:
   resolved "https://registry.yarnpkg.com/long/-/long-4.0.0.tgz#9a7b71cfb7d361a194ea555241c92f7468d5bf28"
   integrity sha512-XsP+KhQif4bjX1kbuSiySJFNAehNxgLb6hPRGJ9QsUr8ajHkuXGdrHmFUTUUXhDwVX2R5bY4JNZEwbUiMhV+MA==
 
-long@^5.0.0:
-  version "5.3.2"
-  resolved "https://registry.yarnpkg.com/long/-/long-5.3.2.tgz#1d84463095999262d7d7b7f8bfd4a8cc55167f83"
-  integrity sha512-mNAgZ1GmyNhD7AuqnTG3/VQ26o760+ZYBPKjPvugO8+nLbYfX6TVpJPseBvopbdY+qpZ/lKUnmEc1LeZYS3QAA==
-
 long@^5.2.1:
   version "5.2.3"
   resolved "https://registry.yarnpkg.com/long/-/long-5.2.3.tgz#a3ba97f3877cf1d778eccbcb048525ebb77499e1"
@@ -24829,11 +24752,6 @@ path-to-regexp@0.1.10:
   resolved "https://registry.yarnpkg.com/path-to-regexp/-/path-to-regexp-0.1.10.tgz#67e9108c5c0551b9e5326064387de4763c4d5f8b"
   integrity sha512-7lf7qcQidTku0Gu3YDPc8DJ1q7OOucfa/BSsIwjuh56VU7katFvuM8hULfkwB3Fns/rsVF7PwPKVw1sl5KQS9w==
 
-path-to-regexp@0.1.12:
-  version "0.1.12"
-  resolved "https://registry.yarnpkg.com/path-to-regexp/-/path-to-regexp-0.1.12.tgz#d5e1a12e478a976d432ef3c58d534b9923164bb7"
-  integrity sha512-RA1GjUVMnvYFxuqovrEqZoxxW5NUZqbwKtYz/Tt7nXerk0LbLblQmrsgdeOxV5SFHf0UDggjS/bSeOZwt1pmEQ==
-
 path-to-regexp@3.3.0:
   version "3.3.0"
   resolved "https://registry.yarnpkg.com/path-to-regexp/-/path-to-regexp-3.3.0.tgz#f7f31d32e8518c2660862b644414b6d5c63a611b"
@@ -26112,24 +26030,6 @@ property-information@^6.0.0:
   version "6.3.0"
   resolved "https://registry.yarnpkg.com/property-information/-/property-information-6.3.0.tgz#ba4a06ec6b4e1e90577df9931286953cdf4282c3"
   integrity sha512-gVNZ74nqhRMiIUYWGQdosYetaKc83x8oT41a0LlV3AAFCAZwCpg4vmGkq8t34+cUhp3cnM4XDiU/7xlgK7HGrg==
-
-protobufjs@^7.2.2:
-  version "7.5.4"
-  resolved "https://registry.yarnpkg.com/protobufjs/-/protobufjs-7.5.4.tgz#885d31fe9c4b37f25d1bb600da30b1c5b37d286a"
-  integrity sha512-CvexbZtbov6jW2eXAvLukXjXUW1TzFaivC46BpWc/3BpcCysb5Vffu+B3XHMm8lVEuy2Mm4XGex8hBSg1yapPg==
-  dependencies:
-    "@protobufjs/aspromise" "^1.1.2"
-    "@protobufjs/base64" "^1.1.2"
-    "@protobufjs/codegen" "^2.0.4"
-    "@protobufjs/eventemitter" "^1.1.0"
-    "@protobufjs/fetch" "^1.1.0"
-    "@protobufjs/float" "^1.0.2"
-    "@protobufjs/inquire" "^1.1.0"
-    "@protobufjs/path" "^1.1.2"
-    "@protobufjs/pool" "^1.1.0"
-    "@protobufjs/utf8" "^1.1.0"
-    "@types/node" ">=13.7.0"
-    long "^5.0.0"
 
 protocols@^2.0.0, protocols@^2.0.1:
   version "2.0.1"
@@ -30303,11 +30203,6 @@ undici-types@~6.20.0:
   version "6.20.0"
   resolved "https://registry.yarnpkg.com/undici-types/-/undici-types-6.20.0.tgz#8171bf22c1f588d1554d55bf204bc624af388433"
   integrity sha512-Ny6QZ2Nju20vw1SRHe3d9jVu6gJ+4e3+MMpqu7pqE5HT6WsTSlce++GQmK5UXS8mzV8DSYHrQH+Xrf2jVcuKNg==
-
-undici-types@~7.14.0:
-  version "7.14.0"
-  resolved "https://registry.yarnpkg.com/undici-types/-/undici-types-7.14.0.tgz#4c037b32ca4d7d62fae042174604341588bc0840"
-  integrity sha512-QQiYxHuyZ9gQUIrmPo3IA+hUl4KYk8uSA7cHrcKd/l3p1OTpZcM0Tbp9x7FAtXdAYhlasd60ncPpgu6ihG6TOA==
 
 undici@^5.25.4, undici@^5.28.5:
   version "5.29.0"

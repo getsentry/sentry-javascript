@@ -8,26 +8,15 @@ import {
   safeExecuteInTheMiddle,
 } from '@opentelemetry/instrumentation';
 import type { SpanAttributes } from '@sentry/core';
-import type {
-  onDocumentCreated,
-  onDocumentCreatedWithAuthContext,
-  onDocumentDeleted,
-  onDocumentDeletedWithAuthContext,
-  onDocumentUpdated,
-  onDocumentUpdatedWithAuthContext,
-  onDocumentWritten,
-  onDocumentWrittenWithAuthContext,
-} from 'firebase-functions/firestore';
-import type { onCall, onRequest } from 'firebase-functions/https';
-import type { onSchedule } from 'firebase-functions/scheduler';
-import type {
-  onObjectArchived,
-  onObjectDeleted,
-  onObjectFinalized,
-  onObjectMetadataUpdated,
-} from 'firebase-functions/storage';
 import type { FirebaseInstrumentation } from '../firebaseInstrumentation';
-import type { FirebaseInstrumentationConfig, RequestHook, ResponseHook } from '../types';
+import type {
+  AvailableFirebaseFunctions,
+  FirebaseFunctions,
+  FirebaseInstrumentationConfig,
+  OverloadedParameters,
+  RequestHook,
+  ResponseHook,
+} from '../types';
 
 /**
  * Patches Firebase Functions v2 to add OpenTelemetry instrumentation
@@ -108,41 +97,6 @@ export function patchFunctions(
 
   return moduleFunctionsCJS;
 }
-
-type OverloadedParameters<T> = T extends {
-  (...args: infer A1): unknown;
-  (...args: infer A2): unknown;
-  (...args: infer A3): unknown;
-  (...args: infer A4): unknown;
-}
-  ? A1 | A2 | A3 | A4
-  : T extends { (...args: infer A1): unknown; (...args: infer A2): unknown; (...args: infer A3): unknown }
-    ? A1 | A2 | A3
-    : T extends { (...args: infer A1): unknown; (...args: infer A2): unknown }
-      ? A1 | A2
-      : T extends (...args: infer A) => unknown
-        ? A
-        : unknown;
-
-type AvailableFirebaseFunctions = {
-  onRequest: typeof onRequest;
-  onCall: typeof onCall;
-  onDocumentCreated: typeof onDocumentCreated;
-  onDocumentUpdated: typeof onDocumentUpdated;
-  onDocumentDeleted: typeof onDocumentDeleted;
-  onDocumentWritten: typeof onDocumentWritten;
-  onDocumentCreatedWithAuthContext: typeof onDocumentCreatedWithAuthContext;
-  onDocumentUpdatedWithAuthContext: typeof onDocumentUpdatedWithAuthContext;
-  onDocumentDeletedWithAuthContext: typeof onDocumentDeletedWithAuthContext;
-  onDocumentWrittenWithAuthContext: typeof onDocumentWrittenWithAuthContext;
-  onSchedule: typeof onSchedule;
-  onObjectFinalized: typeof onObjectFinalized;
-  onObjectArchived: typeof onObjectArchived;
-  onObjectDeleted: typeof onObjectDeleted;
-  onObjectMetadataUpdated: typeof onObjectMetadataUpdated;
-};
-
-type FirebaseFunctions = AvailableFirebaseFunctions[keyof AvailableFirebaseFunctions];
 
 /**
  * Async function to execute patched function and being able to catch errors

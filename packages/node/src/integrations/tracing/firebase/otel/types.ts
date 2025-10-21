@@ -128,3 +128,40 @@ export type AddDocType<AppModelType, DbModelType extends DocumentData> = (
 export type DeleteDocType<AppModelType, DbModelType extends DocumentData> = (
   reference: DocumentReference<AppModelType, DbModelType>,
 ) => Promise<void>;
+
+export type OverloadedParameters<T> = T extends {
+  (...args: infer A1): unknown;
+  (...args: infer A2): unknown;
+}
+  ? A1 | A2
+  : T extends (...args: infer A) => unknown
+    ? A
+    : unknown;
+
+/**
+ * A bare minimum of how Cloud Functions for Firebase (v2) are defined.
+ */
+export type FirebaseFunctions =
+  | ((handler: () => Promise<unknown> | unknown) => (...args: unknown[]) => Promise<unknown> | unknown)
+  | ((
+      documentOrOptions: string | string[] | Record<string, unknown>,
+      handler: () => Promise<unknown> | unknown,
+    ) => (...args: unknown[]) => Promise<unknown> | unknown);
+
+export type AvailableFirebaseFunctions = {
+  onRequest: FirebaseFunctions;
+  onCall: FirebaseFunctions;
+  onDocumentCreated: FirebaseFunctions;
+  onDocumentUpdated: FirebaseFunctions;
+  onDocumentDeleted: FirebaseFunctions;
+  onDocumentWritten: FirebaseFunctions;
+  onDocumentCreatedWithAuthContext: FirebaseFunctions;
+  onDocumentUpdatedWithAuthContext: FirebaseFunctions;
+  onDocumentDeletedWithAuthContext: FirebaseFunctions;
+  onDocumentWrittenWithAuthContext: FirebaseFunctions;
+  onSchedule: FirebaseFunctions;
+  onObjectFinalized: FirebaseFunctions;
+  onObjectArchived: FirebaseFunctions;
+  onObjectDeleted: FirebaseFunctions;
+  onObjectMetadataUpdated: FirebaseFunctions;
+};
