@@ -317,7 +317,7 @@ function addProviderMetadataToAttributes(attributes: SpanAttributes): void {
       if (providerMetadataObject.anthropic) {
         const cachedInputTokens =
           providerMetadataObject.anthropic.usage?.cache_read_input_tokens ??
-          providerMetadataObject.anthropic.cacheCreationInputTokens;
+          providerMetadataObject.anthropic.cacheReadInputTokens;
         setAttributeIfDefined(attributes, GEN_AI_USAGE_INPUT_TOKENS_CACHED_ATTRIBUTE, cachedInputTokens);
 
         const cacheWriteInputTokens =
