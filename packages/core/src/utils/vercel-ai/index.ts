@@ -2,6 +2,10 @@ import type { Client } from '../../client';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import type { Event } from '../../types-hoist/event';
 import type { Span, SpanAttributes, SpanAttributeValue, SpanJSON, SpanOrigin } from '../../types-hoist/span';
+import {
+  GEN_AI_USAGE_INPUT_TOKENS_CACHE_WRITE_ATTRIBUTE,
+  GEN_AI_USAGE_INPUT_TOKENS_CACHED_ATTRIBUTE,
+} from '../ai/gen-ai-attributes';
 import { spanToJSON } from '../spanUtils';
 import { toolCallSpanMap } from './constants';
 import type { TokenSummary } from './types';
@@ -23,6 +27,7 @@ import {
   AI_TOOL_CALL_ID_ATTRIBUTE,
   AI_TOOL_CALL_NAME_ATTRIBUTE,
   AI_TOOL_CALL_RESULT_ATTRIBUTE,
+  AI_USAGE_CACHED_INPUT_TOKENS_ATTRIBUTE,
   AI_USAGE_COMPLETION_TOKENS_ATTRIBUTE,
   AI_USAGE_PROMPT_TOKENS_ATTRIBUTE,
   GEN_AI_RESPONSE_MODEL_ATTRIBUTE,
@@ -107,6 +112,7 @@ function processEndedVercelAiSpan(span: SpanJSON): void {
 
   renameAttributeKey(attributes, AI_USAGE_COMPLETION_TOKENS_ATTRIBUTE, GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE);
   renameAttributeKey(attributes, AI_USAGE_PROMPT_TOKENS_ATTRIBUTE, GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE);
+  renameAttributeKey(attributes, AI_USAGE_CACHED_INPUT_TOKENS_ATTRIBUTE, GEN_AI_USAGE_INPUT_TOKENS_CACHED_ATTRIBUTE);
 
   if (
     typeof attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE] === 'number' &&
@@ -287,7 +293,7 @@ function addProviderMetadataToAttributes(attributes: SpanAttributes): void {
       if (providerMetadataObject.openai) {
         setAttributeIfDefined(
           attributes,
-          'gen_ai.usage.input_tokens.cached',
+          GEN_AI_USAGE_INPUT_TOKENS_CACHED_ATTRIBUTE,
           providerMetadataObject.openai.cachedPromptTokens,
         );
         setAttributeIfDefined(
@@ -309,27 +315,26 @@ function addProviderMetadataToAttributes(attributes: SpanAttributes): void {
       }
 
       if (providerMetadataObject.anthropic) {
-        setAttributeIfDefined(
-          attributes,
-          'gen_ai.usage.input_tokens.cached',
-          providerMetadataObject.anthropic.cacheReadInputTokens,
-        );
-        setAttributeIfDefined(
-          attributes,
-          'gen_ai.usage.input_tokens.cache_write',
-          providerMetadataObject.anthropic.cacheCreationInputTokens,
-        );
+        const cachedInputTokens =
+          providerMetadataObject.anthropic.usage?.cache_read_input_tokens ??
+          providerMetadataObject.anthropic.cacheCreationInputTokens;
+        setAttributeIfDefined(attributes, GEN_AI_USAGE_INPUT_TOKENS_CACHED_ATTRIBUTE, cachedInputTokens);
+
+        const cacheWriteInputTokens =
+          providerMetadataObject.anthropic.usage?.cache_creation_input_tokens ??
+          providerMetadataObject.anthropic.cacheCreationInputTokens;
+        setAttributeIfDefined(attributes, GEN_AI_USAGE_INPUT_TOKENS_CACHE_WRITE_ATTRIBUTE, cacheWriteInputTokens);
       }
 
       if (providerMetadataObject.bedrock?.usage) {
         setAttributeIfDefined(
           attributes,
-          'gen_ai.usage.input_tokens.cached',
+          GEN_AI_USAGE_INPUT_TOKENS_CACHED_ATTRIBUTE,
           providerMetadataObject.bedrock.usage.cacheReadInputTokens,
         );
         setAttributeIfDefined(
           attributes,
-          'gen_ai.usage.input_tokens.cache_write',
+          GEN_AI_USAGE_INPUT_TOKENS_CACHE_WRITE_ATTRIBUTE,
           providerMetadataObject.bedrock.usage.cacheWriteInputTokens,
         );
       }
@@ -337,7 +342,7 @@ function addProviderMetadataToAttributes(attributes: SpanAttributes): void {
       if (providerMetadataObject.deepseek) {
         setAttributeIfDefined(
           attributes,
-          'gen_ai.usage.input_tokens.cached',
+          GEN_AI_USAGE_INPUT_TOKENS_CACHED_ATTRIBUTE,
           providerMetadataObject.deepseek.promptCacheHitTokens,
         );
         setAttributeIfDefined(
