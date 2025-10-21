@@ -24,7 +24,7 @@ import {
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
 import { LANGCHAIN_ORIGIN, ROLE_MAP } from './constants';
-import type { LangChainLLMResult, LangChainMessage, LangChainSerializedLLM } from './types';
+import type { LangChainLLMResult, LangChainMessage, LangChainSerialized } from './types';
 
 /**
  * Assigns an attribute only when the value is neither `undefined` nor `null`.
@@ -175,31 +175,32 @@ export function normalizeLangChainMessages(messages: LangChainMessage[]): Array<
  * Source precedence:
  * 1) `invocationParams` (highest)
  * 2) `langSmithMetadata`
- * 3) `serialized.kwargs`
  *
  * Numeric values are set even when 0 (e.g. `temperature: 0`), but skipped if `NaN`.
  */
 function extractCommonRequestAttributes(
-  serialized: LangChainSerializedLLM,
+  serialized: LangChainSerialized,
   invocationParams?: Record<string, unknown>,
   langSmithMetadata?: Record<string, unknown>,
 ): Record<string, SpanAttributeValue> {
   const attrs: Record<string, SpanAttributeValue> = {};
 
-  const temperature =
-    invocationParams?.temperature ?? langSmithMetadata?.ls_temperature ?? serialized.kwargs?.temperature;
+  // Get kwargs if available (from constructor type)
+  const kwargs = 'kwargs' in serialized ? serialized.kwargs : undefined;
+
+  const temperature = invocationParams?.temperature ?? langSmithMetadata?.ls_temperature ?? kwargs?.temperature;
   setNumberIfDefined(attrs, GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE, temperature);
 
-  const maxTokens = invocationParams?.max_tokens ?? langSmithMetadata?.ls_max_tokens ?? serialized.kwargs?.max_tokens;
+  const maxTokens = invocationParams?.max_tokens ?? langSmithMetadata?.ls_max_tokens ?? kwargs?.max_tokens;
   setNumberIfDefined(attrs, GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE, maxTokens);
 
-  const topP = invocationParams?.top_p ?? serialized.kwargs?.top_p;
+  const topP = invocationParams?.top_p ?? kwargs?.top_p;
   setNumberIfDefined(attrs, GEN_AI_REQUEST_TOP_P_ATTRIBUTE, topP);
 
-  const frequencyPenalty = invocationParams?.frequency_penalty ?? serialized.kwargs?.frequency_penalty;
+  const frequencyPenalty = invocationParams?.frequency_penalty;
   setNumberIfDefined(attrs, GEN_AI_REQUEST_FREQUENCY_PENALTY_ATTRIBUTE, frequencyPenalty);
 
-  const presencePenalty = invocationParams?.presence_penalty ?? serialized.kwargs?.presence_penalty;
+  const presencePenalty = invocationParams?.presence_penalty;
   setNumberIfDefined(attrs, GEN_AI_REQUEST_PRESENCE_PENALTY_ATTRIBUTE, presencePenalty);
 
   // LangChain uses `stream`. We only set the attribute if the key actually exists
@@ -218,7 +219,7 @@ function baseRequestAttributes(
   system: unknown,
   modelName: unknown,
   operation: 'pipeline' | 'chat',
-  serialized: LangChainSerializedLLM,
+  serialized: LangChainSerialized,
   invocationParams?: Record<string, unknown>,
   langSmithMetadata?: Record<string, unknown>,
 ): Record<string, SpanAttributeValue> {
@@ -239,7 +240,7 @@ function baseRequestAttributes(
  *   messages to align with the chat schema used elsewhere.
  */
 export function extractLLMRequestAttributes(
-  serialized: LangChainSerializedLLM,
+  llm: LangChainSerialized,
   prompts: string[],
   recordInputs: boolean,
   invocationParams?: Record<string, unknown>,
@@ -248,7 +249,7 @@ export function extractLLMRequestAttributes(
   const system = langSmithMetadata?.ls_provider;
   const modelName = invocationParams?.model ?? langSmithMetadata?.ls_model_name ?? 'unknown';
 
-  const attrs = baseRequestAttributes(system, modelName, 'pipeline', serialized, invocationParams, langSmithMetadata);
+  const attrs = baseRequestAttributes(system, modelName, 'pipeline', llm, invocationParams, langSmithMetadata);
 
   if (recordInputs && Array.isArray(prompts) && prompts.length > 0) {
     const messages = prompts.map(p => ({ role: 'user', content: p }));
@@ -267,19 +268,19 @@ export function extractLLMRequestAttributes(
  * - Provider system value falls back to `serialized.id?.[2]`.
  */
 export function extractChatModelRequestAttributes(
-  serialized: LangChainSerializedLLM,
-  messages: LangChainMessage[][],
+  llm: LangChainSerialized,
+  langChainMessages: LangChainMessage[][],
   recordInputs: boolean,
   invocationParams?: Record<string, unknown>,
   langSmithMetadata?: Record<string, unknown>,
 ): Record<string, SpanAttributeValue> {
-  const system = langSmithMetadata?.ls_provider ?? serialized.id?.[2];
+  const system = langSmithMetadata?.ls_provider ?? llm.id?.[2];
   const modelName = invocationParams?.model ?? langSmithMetadata?.ls_model_name ?? 'unknown';
 
-  const attrs = baseRequestAttributes(system, modelName, 'chat', serialized, invocationParams, langSmithMetadata);
+  const attrs = baseRequestAttributes(system, modelName, 'chat', llm, invocationParams, langSmithMetadata);
 
-  if (recordInputs && Array.isArray(messages) && messages.length > 0) {
-    const normalized = normalizeLangChainMessages(messages.flat());
+  if (recordInputs && Array.isArray(langChainMessages) && langChainMessages.length > 0) {
+    const normalized = normalizeLangChainMessages(langChainMessages.flat());
     setIfDefined(attrs, GEN_AI_REQUEST_MESSAGES_ATTRIBUTE, asString(normalized));
   }
 
@@ -372,15 +373,16 @@ function addTokenUsageAttributes(
  *   `stop_reason` (for providers that use it).
  */
 export function extractLlmResponseAttributes(
-  response: LangChainLLMResult,
+  llmResult: LangChainLLMResult,
   recordOutputs: boolean,
 ): Record<string, SpanAttributeValue> | undefined {
-  if (!response) return;
+  if (!llmResult) return;
 
   const attrs: Record<string, SpanAttributeValue> = {};
 
-  if (Array.isArray(response.generations)) {
-    const finishReasons = response.generations
+  if (Array.isArray(llmResult.generations)) {
+    const finishReasons = llmResult.generations
+      .flat()
       .map(g => g.generation_info?.finish_reason)
       .filter((r): r is string => typeof r === 'string');
 
@@ -389,10 +391,10 @@ export function extractLlmResponseAttributes(
     }
 
     // Tool calls metadata (names, IDs) are not PII, so capture them regardless of recordOutputs
-    addToolCallsAttributes(response.generations as LangChainMessage[][], attrs);
+    addToolCallsAttributes(llmResult.generations as LangChainMessage[][], attrs);
 
     if (recordOutputs) {
-      const texts = response.generations
+      const texts = llmResult.generations
         .flat()
         .map(gen => gen.text ?? gen.message?.content)
         .filter(t => typeof t === 'string');
@@ -403,9 +405,9 @@ export function extractLlmResponseAttributes(
     }
   }
 
-  addTokenUsageAttributes(response.llmOutput, attrs);
+  addTokenUsageAttributes(llmResult.llmOutput, attrs);
 
-  const llmOutput = response.llmOutput as { model_name?: string; model?: string; id?: string; stop_reason?: string };
+  const llmOutput = llmResult.llmOutput as { model_name?: string; model?: string; id?: string; stop_reason?: string };
   // Provider model identifier: `model_name` (OpenAI-style) or `model` (others)
   const modelName = llmOutput?.model_name ?? llmOutput?.model;
   if (modelName) setIfDefined(attrs, GEN_AI_RESPONSE_MODEL_ATTRIBUTE, modelName);

@@ -47,10 +47,9 @@ const _langChainIntegration = ((options: LangChainOptions = {}) => {
  * @example
  * ```javascript
  * import * as Sentry from '@sentry/node';
- * import { createLangChainCallbackHandler } from '@sentry/core';
  * import { ChatOpenAI } from '@langchain/openai';
  *
- * const sentryHandler = createLangChainCallbackHandler({
+ * const sentryHandler = Sentry.createLangChainCallbackHandler({
  *   recordInputs: true,
  *   recordOutputs: true
  * });

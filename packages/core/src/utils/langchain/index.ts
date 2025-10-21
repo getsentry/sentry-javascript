@@ -5,7 +5,13 @@ import { startSpanManual } from '../../tracing/trace';
 import type { Span, SpanAttributeValue } from '../../types-hoist/span';
 import { GEN_AI_OPERATION_NAME_ATTRIBUTE, GEN_AI_REQUEST_MODEL_ATTRIBUTE } from '../ai/gen-ai-attributes';
 import { LANGCHAIN_ORIGIN } from './constants';
-import type { LangChainLLMResult, LangChainMessage, LangChainOptions, LangChainSerializedLLM } from './types';
+import type {
+  LangChainCallbackHandler,
+  LangChainLLMResult,
+  LangChainMessage,
+  LangChainOptions,
+  LangChainSerialized,
+} from './types';
 import {
   extractChatModelRequestAttributes,
   extractLLMRequestAttributes,
@@ -19,42 +25,7 @@ import {
  *
  * This is a stateful handler that tracks spans across multiple LangChain executions.
  */
-export function createLangChainCallbackHandler(options: LangChainOptions = {}): {
-  handleLLMStart?: (
-    llm: LangChainSerializedLLM,
-    prompts: string[],
-    runId: string,
-    parentRunId?: string,
-    extraParams?: Record<string, unknown>,
-    tags?: string[] | Record<string, unknown>,
-    metadata?: Record<string, unknown>,
-    runName?: string | Record<string, unknown>,
-  ) => void;
-  handleChatModelStart?: (
-    llm: LangChainSerializedLLM,
-    messages: LangChainMessage[][],
-    runId: string,
-    parentRunId?: string,
-    extraParams?: Record<string, unknown>,
-    tags?: string[] | Record<string, unknown>,
-    metadata?: Record<string, unknown>,
-    runName?: string | Record<string, unknown>,
-  ) => void;
-  handleLLMNewToken?: (token: string, runId: string) => void;
-  handleLLMEnd?: (output: LangChainLLMResult, runId: string) => void;
-  handleLLMError?: (error: Error, runId: string) => void;
-  handleChainStart?: (
-    chain: { name?: string },
-    inputs: Record<string, unknown>,
-    runId: string,
-    parentRunId?: string,
-  ) => void;
-  handleChainEnd?: (outputs: Record<string, unknown>, runId: string) => void;
-  handleChainError?: (error: Error, runId: string) => void;
-  handleToolStart?: (tool: { name?: string }, input: string, runId: string, parentRunId?: string) => void;
-  handleToolEnd?: (output: string, runId: string) => void;
-  handleToolError?: (error: Error, runId: string) => void;
-} {
+export function createLangChainCallbackHandler(options: LangChainOptions = {}): LangChainCallbackHandler {
   const recordInputs = options.recordInputs ?? false;
   const recordOutputs = options.recordOutputs ?? false;
 
@@ -76,20 +47,46 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
    * Handler for LLM Start
    * This handler will be called by LangChain's callback handler when an LLM event is detected.
    */
-  const handler = {
+  const handler: LangChainCallbackHandler = {
+    // Required LangChain BaseCallbackHandler properties
+    lc_serializable: false,
+    lc_namespace: ['langchain_core', 'callbacks', 'sentry'],
+    lc_secrets: undefined,
+    lc_attributes: undefined,
+    lc_aliases: undefined,
+    lc_serializable_keys: undefined,
+    lc_id: ['langchain_core', 'callbacks', 'sentry'],
+    lc_kwargs: {},
+    name: 'SentryCallbackHandler',
+
+    // BaseCallbackHandlerInput boolean flags
+    ignoreLLM: false,
+    ignoreChain: false,
+    ignoreAgent: false,
+    ignoreRetriever: false,
+    ignoreCustomEvent: false,
+    raiseError: false,
+    awaitHandlers: true,
+
     handleLLMStart(
-      llm: LangChainSerializedLLM,
+      llm: unknown,
       prompts: string[],
       runId: string,
       _parentRunId?: string,
       _extraParams?: Record<string, unknown>,
-      tags?: string[] | Record<string, unknown>,
+      tags?: string[],
       metadata?: Record<string, unknown>,
-      _runName?: string | Record<string, unknown>,
+      _runName?: string,
     ) {
       try {
         const invocationParams = getInvocationParams(tags);
-        const attributes = extractLLMRequestAttributes(llm, prompts, recordInputs, invocationParams, metadata);
+        const attributes = extractLLMRequestAttributes(
+          llm as LangChainSerialized,
+          prompts,
+          recordInputs,
+          invocationParams,
+          metadata,
+        );
         const modelName = attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE];
         const operationName = attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE];
 
@@ -114,18 +111,24 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
 
     // Chat Model Start Handler
     handleChatModelStart(
-      llm: LangChainSerializedLLM,
-      messages: LangChainMessage[][],
+      llm: unknown,
+      messages: unknown,
       runId: string,
       _parentRunId?: string,
       _extraParams?: Record<string, unknown>,
-      tags?: string[] | Record<string, unknown>,
+      tags?: string[],
       metadata?: Record<string, unknown>,
-      _runName?: string | Record<string, unknown>,
+      _runName?: string,
     ) {
       try {
         const invocationParams = getInvocationParams(tags);
-        const attributes = extractChatModelRequestAttributes(llm, messages, recordInputs, invocationParams, metadata);
+        const attributes = extractChatModelRequestAttributes(
+          llm as LangChainSerialized,
+          messages as LangChainMessage[][],
+          recordInputs,
+          invocationParams,
+          metadata,
+        );
         const modelName = attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE];
         const operationName = attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE];
 
@@ -151,7 +154,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
 
     // LLM End Handler - note: handleLLMEnd with capital LLM (used by both LLMs and chat models!)
     handleLLMEnd(
-      output: LangChainLLMResult,
+      output: unknown,
       runId: string,
       _parentRunId?: string,
       _tags?: string[],
@@ -160,7 +163,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
       try {
         const span = spanMap.get(runId);
         if (span) {
-          const attributes = extractLlmResponseAttributes(output, recordOutputs);
+          const attributes = extractLlmResponseAttributes(output as LangChainLLMResult, recordOutputs);
           if (attributes) {
             span.setAttributes(attributes);
           }
@@ -227,7 +230,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
     },
 
     // Chain End Handler
-    handleChainEnd(outputs: Record<string, unknown>, runId: string) {
+    handleChainEnd(outputs: unknown, runId: string) {
       try {
         const span = spanMap.get(runId);
         if (span) {
@@ -298,14 +301,14 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
     },
 
     // Tool End Handler
-    handleToolEnd(output: string, runId: string) {
+    handleToolEnd(output: unknown, runId: string) {
       try {
         const span = spanMap.get(runId);
         if (span) {
           // Add output if recordOutputs is enabled
           if (recordOutputs) {
             span.setAttributes({
-              'gen_ai.tool.output': output,
+              'gen_ai.tool.output': JSON.stringify(output),
             });
           }
           exitSpan(runId);
@@ -333,6 +336,27 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
       } catch {
         // silently ignore errors
       }
+    },
+
+    // LangChain BaseCallbackHandler required methods
+    copy() {
+      return handler;
+    },
+
+    toJSON() {
+      return {
+        lc: 1,
+        type: 'not_implemented',
+        id: handler.lc_id,
+      };
+    },
+
+    toJSONNotImplemented() {
+      return {
+        lc: 1,
+        type: 'not_implemented',
+        id: handler.lc_id,
+      };
     },
   };
 
