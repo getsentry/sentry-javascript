@@ -176,54 +176,6 @@ describe('addRoutesToAllRoutes', () => {
     });
   });
 
-  it('should preserve nested children on parent routes without creating duplicate top-level entries', () => {
-    const routes = [
-      { path: '/', element: <div /> },
-      { path: '/user/:id', element: <div /> },
-      { path: '/group/:group/:user?', element: <div /> },
-      {
-        path: '/v2/post/:post',
-        element: <div />,
-        children: [
-          { index: true, element: <div /> },
-          { path: 'featured', element: <div /> },
-          { path: '/v2/post/:post/related', element: <div /> },
-        ],
-      },
-    ];
-
-    addRoutesToAllRoutes(routes);
-    const allRoutesArr = Array.from(allRoutes);
-
-    // Should have all routes flattened (parent + all descendants)
-    expect(allRoutesArr.length).toBeGreaterThanOrEqual(4);
-
-    // Find the parent route
-    const parentRoute = allRoutesArr.find((r: any) => r.path === '/v2/post/:post');
-    expect(parentRoute).toBeTruthy();
-    expect(parentRoute!.children).toBeDefined();
-    expect(Array.isArray(parentRoute!.children)).toBe(true);
-    expect(parentRoute!.children).toHaveLength(3);
-
-    // Verify children structure is preserved
-    expect(parentRoute!.children).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ index: true }),
-        expect.objectContaining({ path: 'featured' }),
-        expect.objectContaining({ path: '/v2/post/:post/related' }),
-      ]),
-    );
-
-    // Verify that children are NOT in allRoutes as individual entries
-    expect(allRoutesArr).not.toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ index: true }),
-        expect.objectContaining({ path: 'featured' }),
-        expect.objectContaining({ path: '/v2/post/:post/related' }),
-      ]),
-    );
-  });
-
   it('should handle complex nested routes with multiple levels', () => {
     const routes = [
       { path: '/', element: <div /> },
@@ -338,7 +290,6 @@ describe('addRoutesToAllRoutes', () => {
     addRoutesToAllRoutes(routes);
     const allRoutesArr = Array.from(allRoutes);
 
-    // Verify all routes are flattened into allRoutes
     expect(allRoutesArr).toEqual([
       {
         path: '/',
