@@ -17,7 +17,7 @@ function fibonacci(n) {
   return fibonacci(n - 1) + fibonacci(n - 2);
 }
 
-await Sentry.startSpanManual({ name: 'root-fibonacci-2', parentSpan: null, forceTransaction: true }, async span => {
+await Sentry.startSpanManual({ name: 'root-fibonacci', parentSpan: null, forceTransaction: true }, async span => {
   fibonacci(30);
 
   // Timeout to prevent flaky tests. Integration samples every 20ms, if function is too fast it might not get sampled

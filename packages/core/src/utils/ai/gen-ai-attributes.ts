@@ -144,6 +144,16 @@ export const GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS_ATTRIBUTE = 'gen_ai.usage.
  */
 export const GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS_ATTRIBUTE = 'gen_ai.usage.cache_read_input_tokens';
 
+/**
+ * The number of cache write input tokens used
+ */
+export const GEN_AI_USAGE_INPUT_TOKENS_CACHE_WRITE_ATTRIBUTE = 'gen_ai.usage.input_tokens.cache_write';
+
+/**
+ * The number of cached input tokens that were used
+ */
+export const GEN_AI_USAGE_INPUT_TOKENS_CACHED_ATTRIBUTE = 'gen_ai.usage.input_tokens.cached';
+
 // =============================================================================
 // OPENAI-SPECIFIC ATTRIBUTES
 // =============================================================================
