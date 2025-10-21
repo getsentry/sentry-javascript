@@ -1,5 +1,5 @@
 import { captureException, getClient } from '@sentry/core';
-import { type Mock, afterEach, beforeEach, describe, expect, it, test, vi } from 'vitest';
+import { type Mock, afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import type { ComponentPublicInstance } from 'vue';
 import { reportNuxtError } from '../../src/runtime/utils';
 
