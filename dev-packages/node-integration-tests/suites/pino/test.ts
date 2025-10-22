@@ -45,7 +45,6 @@ conditionalTest({ min: 20 })('Pino integration', () => {
                       function: '?',
                       in_app: true,
                       module: 'scenario',
-                      context_line: "      logger.error(new Error('oh no'));",
                     }),
                   ]),
                 },
@@ -63,8 +62,8 @@ conditionalTest({ min: 20 })('Pino integration', () => {
               body: 'hello world',
               trace_id: expect.any(String),
               severity_number: 9,
-              attributes: expect.objectContaining({
-                'pino.logger.name': { value: 'myapp', type: 'string' },
+              attributes: {
+                name: { value: 'myapp', type: 'string' },
                 'pino.logger.level': { value: 30, type: 'integer' },
                 user: { value: 'user-id', type: 'string' },
                 something: {
@@ -74,7 +73,7 @@ conditionalTest({ min: 20 })('Pino integration', () => {
                 'sentry.origin': { value: 'auto.logging.pino', type: 'string' },
                 'sentry.release': { value: '1.0', type: 'string' },
                 'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
-              }),
+              },
             },
             {
               timestamp: expect.any(Number),
@@ -82,14 +81,14 @@ conditionalTest({ min: 20 })('Pino integration', () => {
               body: 'oh no',
               trace_id: expect.any(String),
               severity_number: 17,
-              attributes: expect.objectContaining({
-                'pino.logger.name': { value: 'myapp', type: 'string' },
+              attributes: {
+                name: { value: 'myapp', type: 'string' },
+                module: { value: 'authentication', type: 'string' },
                 'pino.logger.level': { value: 50, type: 'integer' },
-                err: { value: '{}', type: 'string' },
                 'sentry.origin': { value: 'auto.logging.pino', type: 'string' },
                 'sentry.release': { value: '1.0', type: 'string' },
                 'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
-              }),
+              },
             },
           ],
         },
@@ -139,8 +138,8 @@ conditionalTest({ min: 20 })('Pino integration', () => {
               body: 'hello world',
               trace_id: expect.any(String),
               severity_number: 9,
-              attributes: expect.objectContaining({
-                'pino.logger.name': { value: 'myapp', type: 'string' },
+              attributes: {
+                name: { value: 'myapp', type: 'string' },
                 'pino.logger.level': { value: 30, type: 'integer' },
                 user: { value: 'user-id', type: 'string' },
                 something: {
@@ -150,7 +149,7 @@ conditionalTest({ min: 20 })('Pino integration', () => {
                 'sentry.origin': { value: 'auto.logging.pino', type: 'string' },
                 'sentry.release': { value: '1.0', type: 'string' },
                 'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
-              }),
+              },
             },
             {
               timestamp: expect.any(Number),
@@ -158,14 +157,13 @@ conditionalTest({ min: 20 })('Pino integration', () => {
               body: 'oh no',
               trace_id: expect.any(String),
               severity_number: 17,
-              attributes: expect.objectContaining({
-                'pino.logger.name': { value: 'myapp', type: 'string' },
+              attributes: {
+                name: { value: 'myapp', type: 'string' },
                 'pino.logger.level': { value: 50, type: 'integer' },
-                err: { value: '{}', type: 'string' },
                 'sentry.origin': { value: 'auto.logging.pino', type: 'string' },
                 'sentry.release': { value: '1.0', type: 'string' },
                 'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
-              }),
+              },
             },
           ],
         },
@@ -189,18 +187,19 @@ conditionalTest({ min: 20 })('Pino integration', () => {
               body: 'hello world',
               trace_id: expect.any(String),
               severity_number: 9,
-              attributes: expect.objectContaining({
-                'pino.logger.name': { value: 'myapp', type: 'string' },
+              attributes: {
+                name: { value: 'myapp', type: 'string' },
                 'pino.logger.level': { value: 30, type: 'integer' },
                 user: { value: 'user-id', type: 'string' },
                 something: {
                   type: 'string',
                   value: '{"more":3,"complex":"nope"}',
                 },
+                msg: { value: 'hello world', type: 'string' },
                 'sentry.origin': { value: 'auto.logging.pino', type: 'string' },
                 'sentry.release': { value: '1.0', type: 'string' },
                 'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
-              }),
+              },
             },
             {
               timestamp: expect.any(Number),
@@ -208,14 +207,15 @@ conditionalTest({ min: 20 })('Pino integration', () => {
               body: 'oh no',
               trace_id: expect.any(String),
               severity_number: 17,
-              attributes: expect.objectContaining({
-                'pino.logger.name': { value: 'myapp', type: 'string' },
+              attributes: {
+                name: { value: 'myapp', type: 'string' },
+                module: { value: 'authentication', type: 'string' },
+                msg: { value: 'oh no', type: 'string' },
                 'pino.logger.level': { value: 50, type: 'integer' },
-                err: { value: '{}', type: 'string' },
                 'sentry.origin': { value: 'auto.logging.pino', type: 'string' },
                 'sentry.release': { value: '1.0', type: 'string' },
                 'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
-              }),
+              },
             },
           ],
         },
