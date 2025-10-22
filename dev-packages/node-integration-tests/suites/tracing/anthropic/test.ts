@@ -308,6 +308,23 @@ describe('Anthropic integration', () => {
           'gen_ai.usage.total_tokens': 25,
         }),
       }),
+      // messages.stream with redundant stream: true param
+      expect.objectContaining({
+        description: 'messages claude-3-haiku-20240307 stream-response',
+        op: 'gen_ai.messages',
+        data: expect.objectContaining({
+          'gen_ai.system': 'anthropic',
+          'gen_ai.operation.name': 'messages',
+          'gen_ai.request.model': 'claude-3-haiku-20240307',
+          'gen_ai.request.stream': true,
+          'gen_ai.response.streaming': true,
+          'gen_ai.response.model': 'claude-3-haiku-20240307',
+          'gen_ai.response.id': 'msg_stream_1',
+          'gen_ai.usage.input_tokens': 10,
+          'gen_ai.usage.output_tokens': 15,
+          'gen_ai.usage.total_tokens': 25,
+        }),
+      }),
     ]),
   };
 
@@ -320,6 +337,14 @@ describe('Anthropic integration', () => {
         data: expect.objectContaining({
           'gen_ai.response.streaming': true,
           // streamed text concatenated
+          'gen_ai.response.text': 'Hello from stream!',
+        }),
+      }),
+      expect.objectContaining({
+        description: 'messages claude-3-haiku-20240307 stream-response',
+        op: 'gen_ai.messages',
+        data: expect.objectContaining({
+          'gen_ai.response.streaming': true,
           'gen_ai.response.text': 'Hello from stream!',
         }),
       }),
