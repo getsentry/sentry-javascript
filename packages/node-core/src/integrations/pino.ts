@@ -86,12 +86,11 @@ type PinoResult = {
   time?: string;
   pid?: number;
   hostname?: string;
-  err?: Error;
 } & Record<string, unknown>;
 
 function stripIgnoredFields(result: PinoResult): PinoResult {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { level, time, pid, hostname, err, ...rest } = result;
+  const { level, time, pid, hostname, ...rest } = result;
   return rest;
 }
 
