@@ -27,6 +27,8 @@
     "@aws-sdk/client-s3": "^3.552.0",
     "@google/genai": "^1.20.0",
     "@growthbook/growthbook": "^1.6.1",
+    "@langchain/anthropic": "^0.3.10",
+    "@langchain/core": "^0.3.28",
     "@hapi/hapi": "^21.3.10",
     "@hono/node-server": "^1.19.4",
     "@nestjs/common": "^11",
