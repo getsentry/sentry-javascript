@@ -42,9 +42,9 @@
     "nitropack": ">=2.10.0"
   },
   "dependencies": {
-    "@sentry/core": "10.20.0",
-    "@sentry/node": "10.20.0",
-    "@sentry/cloudflare": "10.20.0",
+    "@sentry/core": "10.21.0",
+    "@sentry/node": "10.21.0",
+    "@sentry/cloudflare": "10.21.0",
     "@sentry/rollup-plugin": "^4.3.0",
     "@sentry/vite-plugin": "^4.3.0"
   },
