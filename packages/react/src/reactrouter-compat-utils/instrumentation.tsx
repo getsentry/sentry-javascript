@@ -657,7 +657,7 @@ export function handleNavigation(opts: {
     const [name, source] = resolveRouteNameAndSource(
       location,
       routes,
-      allRoutes?.slice(0, -3) || routes,
+      allRoutes || routes,
       branches as RouteMatch[],
       basename,
     );
