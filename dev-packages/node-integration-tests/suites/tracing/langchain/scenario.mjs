@@ -97,7 +97,7 @@ async function run() {
 
     try {
       await errorModel.invoke('This will fail');
-    } catch (error) {
+    } catch {
       // Expected error
     }
   });

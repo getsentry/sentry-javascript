@@ -33,7 +33,7 @@ import type { LangChainLLMResult, LangChainMessage, LangChainSerialized } from '
  * It also preserves falsy-but-valid values like `0` and `""`.
  */
 const setIfDefined = (target: Record<string, SpanAttributeValue>, key: string, value: unknown): void => {
-  if (value !== undefined && value !== null) target[key] = value as SpanAttributeValue;
+  if (value != null) target[key] = value as SpanAttributeValue;
 };
 
 /**
