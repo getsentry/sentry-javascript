@@ -226,7 +226,6 @@ export function createV6CompatibleWrapCreateBrowserRouter<
   }
 
   return function (routes: RouteObject[], opts?: Record<string, unknown> & { basename?: string }): TRouter {
-    console.log('createV6CompatibleWrapCreateBrowserRouter - routes::', JSON.stringify(routes));
     addRoutesToAllRoutes(routes);
 
     // Check for async handlers that might contain sub-route declarations (only if enabled)
@@ -243,8 +242,6 @@ export function createV6CompatibleWrapCreateBrowserRouter<
     const basename = opts?.basename;
 
     const activeRootSpan = getActiveRootSpan();
-
-    // console.log('activeroo', activeRootSpan);
 
     // Track whether we've completed the initial pageload to properly distinguish
     // between POPs that occur during pageload vs. legitimate back/forward navigation.
@@ -658,7 +655,6 @@ export function handleNavigation(opts: {
   }
 
   if ((navigationType === 'PUSH' || navigationType === 'POP') && branches) {
-    console.log('allRoutes::', allRoutes);
     const [name, source] = resolveRouteNameAndSource(
       location,
       routes,
@@ -670,8 +666,6 @@ export function handleNavigation(opts: {
     const activeSpan = getActiveSpan();
     const spanJson = activeSpan && spanToJSON(activeSpan);
     const isAlreadyInNavigationSpan = spanJson?.op === 'navigation';
-
-    console.log('name::', name);
 
     // Cross usage can result in multiple navigation spans being created without this check
     if (!isAlreadyInNavigationSpan) {
@@ -689,9 +683,6 @@ export function handleNavigation(opts: {
 
 /* Only exported for testing purposes */
 export function addRoutesToAllRoutes(routes: RouteObject[]): void {
-  console.log('routes to add to allRoutes::', JSON.stringify(routes));
-
-  // fixme: this maybe has a bug
   routes.forEach(route => {
     const extractedChildRoutes = getChildRoutesRecursively(route);
 
@@ -734,7 +725,6 @@ function updatePageloadTransaction({
   basename?: string;
   allRoutes?: RouteObject[];
 }): void {
-  console.log('updatePageloadTransaction::');
   const branches = Array.isArray(matches)
     ? matches
     : (_matchRoutes(allRoutes || routes, location, basename) as unknown as RouteMatch[]);
@@ -744,18 +734,14 @@ function updatePageloadTransaction({
       source: TransactionSource = 'url';
 
     const isInDescendantRoute = locationIsInsideDescendantRoute(location, allRoutes || routes);
-    console.log('isInDescendantRoute::', isInDescendantRoute);
 
     if (isInDescendantRoute) {
       name = prefixWithSlash(rebuildRoutePathFromAllRoutes(allRoutes || routes, location));
       source = 'route';
-      console.log('desc: name::', name, 'source::', source);
     }
 
     if (!isInDescendantRoute || !name) {
       [name, source] = getNormalizedName(routes, location, branches, basename);
-
-      console.log('name::', name, 'source::', source);
     }
 
     getCurrentScope().setTransactionName(name || '/');
@@ -790,8 +776,6 @@ export function createV6CompatibleWithSentryReactRouterRouting<P extends Record<
     _useEffect(
       () => {
         const routes = _createRoutesFromChildren(props.children) as RouteObject[];
-
-        console.log('routesFromChildren::', JSON.stringify(routes));
 
         if (isMountRenderPass.current) {
           addRoutesToAllRoutes(routes);

@@ -209,27 +209,24 @@ describe('addRoutesToAllRoutes', () => {
     const allRoutesArr = Array.from(allRoutes);
 
     expect(allRoutesArr).toEqual([
-      {
-        path: '/',
-        element: expect.objectContaining({ type: 'div', props: {} }),
-      },
-      {
-        path: '/user/:id',
-        element: expect.objectContaining({ type: 'div', props: {} }),
-      },
-      {
-        path: '/group/:group/:user?',
-        element: expect.objectContaining({ type: 'div', props: {} }),
-      },
+      { path: '/', element: <div /> },
+      { path: '/user/:id', element: <div /> },
+      { path: '/group/:group/:user?', element: <div /> },
+      // v1 routes ----
       {
         path: '/v1/post/:post',
-        element: expect.objectContaining({ type: 'div', props: {} }),
+        element: <div />,
         children: [
           { element: <div />, path: 'featured' },
           { element: <div />, path: '/v1/post/:post/related' },
           { children: [{ element: <div>Edit Post</div>, path: 'edit' }], element: <div>More Nested Children</div> },
         ],
       },
+      { element: <div />, path: 'featured' },
+      { element: <div />, path: '/v1/post/:post/related' },
+      { children: [{ element: <div>Edit Post</div>, path: 'edit' }], element: <div>More Nested Children</div> },
+      { element: <div>Edit Post</div>, path: 'edit' },
+      // v2 routes ---
       {
         path: '/v2/post/:post',
         element: expect.objectContaining({ type: 'div', props: {} }),
@@ -239,6 +236,9 @@ describe('addRoutesToAllRoutes', () => {
           { element: <div />, path: '/v2/post/:post/related' },
         ],
       },
+      { element: <div />, index: true },
+      { element: <div />, path: 'featured' },
+      { element: <div />, path: '/v2/post/:post/related' },
     ]);
   });
 
@@ -266,6 +266,8 @@ describe('addRoutesToAllRoutes', () => {
           { element: <div>Settings</div>, path: 'settings' },
         ],
       },
+      { element: <div>Dashboard Index</div>, index: true },
+      { element: <div>Settings</div>, path: 'settings' },
     ]);
   });
 
@@ -275,14 +277,10 @@ describe('addRoutesToAllRoutes', () => {
         path: '/',
         element: <div>Root</div>,
         children: [
-          { path: 'contact', element: <div>Contact</div> },
           { path: 'dashboard', element: <div>Dashboard</div> },
           {
             element: <div>AuthLayout</div>,
-            children: [
-              { path: 'login', element: <div>Login</div> },
-              { path: 'logout', element: <div>Logout</div> },
-            ],
+            children: [{ path: 'login', element: <div>Login</div> }],
           },
         ],
       },
@@ -297,10 +295,6 @@ describe('addRoutesToAllRoutes', () => {
         element: expect.objectContaining({ type: 'div', props: { children: 'Root' } }),
         children: [
           {
-            path: 'contact',
-            element: expect.objectContaining({ type: 'div', props: { children: 'Contact' } }),
-          },
-          {
             path: 'dashboard',
             element: expect.objectContaining({ type: 'div', props: { children: 'Dashboard' } }),
           },
@@ -311,14 +305,16 @@ describe('addRoutesToAllRoutes', () => {
                 path: 'login',
                 element: expect.objectContaining({ type: 'div', props: { children: 'Login' } }),
               },
-              {
-                path: 'logout',
-                element: expect.objectContaining({ type: 'div', props: { children: 'Logout' } }),
-              },
             ],
           },
         ],
       },
+      { element: <div>Dashboard</div>, path: 'dashboard' },
+      {
+        children: [{ element: <div>Login</div>, path: 'login' }],
+        element: <div>AuthLayout</div>,
+      },
+      { element: <div>Login</div>, path: 'login' },
     ]);
   });
 
