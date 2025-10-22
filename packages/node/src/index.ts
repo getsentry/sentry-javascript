@@ -134,6 +134,9 @@ export {
   consoleIntegration,
   wrapMcpServerWithSentry,
   featureFlagsIntegration,
+  instrumentOpenAiClient,
+  instrumentGoogleGenAIClient,
+  instrumentAnthropicAiClient,
 } from '@sentry/core';
 
 export type {
