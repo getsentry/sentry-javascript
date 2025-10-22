@@ -30,7 +30,7 @@ export function setupSourceMaps(nitro: Nitro, moduleOptions: SentryNitroOptions)
   // In case we overwrite the source map settings, we default to deleting the files
   let shouldDeleteFilesFallback = true;
 
-  nitro.hooks.hook('compiled', () => {
+  nitro.hooks.hook('build:before', () => {
     if (sourceMapsEnabled && !nitro.options.dev) {
       // Changing this setting will propagate:
       // - for client to viteConfig.build.sourceMap
@@ -179,32 +179,17 @@ export function getPluginOptions(
   };
 }
 
-/*  There are multiple ways to set up source maps (https://github.com/getsentry/sentry-javascript/issues/13993 and https://github.com/getsentry/sentry-javascript/pull/15859)
-    1. User explicitly disabled source maps
-      - keep this setting (emit a warning that errors won't be unminified in Sentry)
-      - We will not upload anything
-    2. users enabled source map generation (true, hidden, inline).
-      - keep this setting (don't do anything - like deletion - besides uploading)
-    3. users did not set source maps generation
-      - we enable 'hidden' source maps generation
-      - configure `filesToDeleteAfterUpload` to delete all .map files (we emit a log about this)
-
-    Users only have to explicitly enable client source maps. Sentry only overwrites the base Nuxt source map settings as they propagate.
+/**
+ * Changes the Nitro source map settings.
+ * Exported for testing purposes.
  */
-
-/** only exported for tests */
-export function getSourceMapSettings(nitro: Nitro): SourceMapSetting | undefined {
-  return nitro.options.sourceMap;
-}
-
-/** only exported for testing  */
 export function changeNitroSourceMapSettings(
   nitro: Nitro,
   sentryModuleOptions: SentryNitroOptions,
 ): UserSourceMapSetting {
   let previousUserSetting: UserSourceMapSetting;
 
-  const nitroSourceMap = getSourceMapSettings(nitro);
+  const nitroSourceMap = nitro.options.sourceMap;
   const isDebug = sentryModuleOptions.debug;
 
   if (
@@ -233,8 +218,6 @@ export function changeNitroSourceMapSettings(
         break;
     }
   } else {
-    // TODO: Should we do something for client?
-
     if (nitroSourceMap === false) {
       warnExplicitlyDisabledSourceMap('sourceMap', isDebug);
       previousUserSetting = 'disabled';
@@ -261,10 +244,6 @@ export function validateNitroSourceMapSettings(
   sentryModuleOptions: SentryNitroOptions,
 ): void {
   const isDebug = sentryModuleOptions.debug;
-
-  // NITRO CONFIG ---
-
-  // TODO: Frameworks using this could conflict with nitro, figure something out for them.
 
   // Check conflicts with rollup config
   const nitroSourceMap = nitroConfig.sourceMap;

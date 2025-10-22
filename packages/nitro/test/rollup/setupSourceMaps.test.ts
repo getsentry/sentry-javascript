@@ -1,12 +1,12 @@
 import type { Nitro, RollupConfig } from 'nitropack/types';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SentryNitroOptions } from '../../src/common/types';
-import type { SourceMapSetting } from '../../src/rollup/setupSourceMaps';
+import type { SourceMapSetting } from '../../src/setup/setupSourceMaps';
 import {
   changeNitroSourceMapSettings,
   getPluginOptions,
   validateNitroSourceMapSettings,
-} from '../../src/rollup/setupSourceMaps';
+} from '../../src/setup/setupSourceMaps';
 
 vi.mock('@sentry/core', () => ({
   consoleSandbox: (callback: () => void) => callback(),
