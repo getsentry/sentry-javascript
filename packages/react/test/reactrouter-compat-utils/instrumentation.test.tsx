@@ -48,6 +48,7 @@ vi.mock('../../src/reactrouter-compat-utils/utils', () => ({
   initializeRouterUtils: vi.fn(),
   getGlobalLocation: vi.fn(() => ({ pathname: '/test', search: '', hash: '' })),
   getGlobalPathname: vi.fn(() => '/test'),
+  routeIsDescendant: vi.fn(() => false),
 }));
 
 vi.mock('../../src/reactrouter-compat-utils/lazy-routes', () => ({

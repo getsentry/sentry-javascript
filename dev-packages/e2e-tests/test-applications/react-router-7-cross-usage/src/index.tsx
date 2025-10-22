@@ -90,6 +90,14 @@ const ProjectsRoutes = () => (
 
 const router = sentryCreateBrowserRouter([
   {
+    path: '/post/:post',
+    element: <div>Post</div>,
+    children: [
+      { index: true, element: <div>Post Index</div> },
+      { path: '/post/:post/related', element: <div>Related Posts</div> },
+    ],
+  },
+  {
     children: [
       {
         path: '/',
@@ -102,6 +110,8 @@ const router = sentryCreateBrowserRouter([
     ],
   },
 ]);
+
+console.log('router::', router);
 
 const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
 root.render(<RouterProvider router={router} />);

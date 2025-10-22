@@ -45,12 +45,21 @@ export function pathIsWildcardAndHasChildren(path: string, branch: RouteMatch<st
   return (pathEndsWithWildcard(path) && !!branch.route.children?.length) || false;
 }
 
-function routeIsDescendant(route: RouteObject): boolean {
+/**
+ *
+ */
+export function routeIsDescendant(route: RouteObject): boolean {
   return !!(!route.children && route.element && route.path?.endsWith('/*'));
 }
 
 function sendIndexPath(pathBuilder: string, pathname: string, basename: string): [string, TransactionSource] {
   const reconstructedPath = pathBuilder || _stripBasename ? stripBasenameFromPathname(pathname, basename) : pathname;
+
+  if (reconstructedPath === '/') {
+    // return ['/', 'route'];
+  }
+
+  console.log('reconstructedPath for index route:', reconstructedPath);
 
   const formattedPath =
     // If the path ends with a slash, remove it
@@ -60,6 +69,8 @@ function sendIndexPath(pathBuilder: string, pathname: string, basename: string):
         reconstructedPath.slice(-2) === '/*'
         ? reconstructedPath.slice(0, -1)
         : reconstructedPath;
+
+  console.log('formattedPath for index route:', formattedPath);
 
   return [formattedPath, 'route'];
 }
@@ -118,9 +129,13 @@ export function prefixWithSlash(path: string): string {
 export function rebuildRoutePathFromAllRoutes(allRoutes: RouteObject[], location: Location): string {
   const matchedRoutes = _matchRoutes(allRoutes, location) as RouteMatch[];
 
+  console.log('rebuildRoutePathFromAllRoutes matched: ', location, JSON.stringify(matchedRoutes));
+
   if (!matchedRoutes || matchedRoutes.length === 0) {
     return '';
   }
+
+  // fixme: this maybe has a bug
 
   for (const match of matchedRoutes) {
     if (match.route.path && match.route.path !== '*') {
@@ -180,12 +195,16 @@ export function getNormalizedName(
 
   let pathBuilder = '';
 
+  // console.log('branches:: ', JSON.stringify(branches, null, 2));
+
   if (branches) {
     for (const branch of branches) {
       const route = branch.route;
+      console.log('branch.route', JSON.stringify(branch.route, null, 2));
       if (route) {
         // Early return if index route
         if (route.index) {
+          console.log('index route', pathBuilder, branch.pathname, basename);
           return sendIndexPath(pathBuilder, branch.pathname, basename);
         }
         const path = route.path;

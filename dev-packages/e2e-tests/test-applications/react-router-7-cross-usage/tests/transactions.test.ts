@@ -2,6 +2,8 @@ import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
 test('sends a pageload transaction with a parameterized URL', async ({ page }) => {
+  page.on('console', msg => console.log(msg.text()));
+
   const transactionPromise = waitForTransaction('react-router-7-cross-usage', async transactionEvent => {
     return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
   });
