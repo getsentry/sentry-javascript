@@ -84,6 +84,8 @@ conditionalTest({ min: 20 })('Pino integration', () => {
               attributes: {
                 name: { value: 'myapp', type: 'string' },
                 module: { value: 'authentication', type: 'string' },
+                msg: { value: 'oh no', type: 'string' },
+                err: { value: expect.any(String), type: 'string' },
                 'pino.logger.level': { value: 50, type: 'integer' },
                 'sentry.origin': { value: 'auto.logging.pino', type: 'string' },
                 'sentry.release': { value: '1.0', type: 'string' },
@@ -159,6 +161,8 @@ conditionalTest({ min: 20 })('Pino integration', () => {
               severity_number: 17,
               attributes: {
                 name: { value: 'myapp', type: 'string' },
+                msg: { value: 'oh no', type: 'string' },
+                err: { value: expect.any(String), type: 'string' },
                 'pino.logger.level': { value: 50, type: 'integer' },
                 'sentry.origin': { value: 'auto.logging.pino', type: 'string' },
                 'sentry.release': { value: '1.0', type: 'string' },
@@ -211,6 +215,7 @@ conditionalTest({ min: 20 })('Pino integration', () => {
                 name: { value: 'myapp', type: 'string' },
                 module: { value: 'authentication', type: 'string' },
                 msg: { value: 'oh no', type: 'string' },
+                err: { value: expect.any(String), type: 'string' },
                 'pino.logger.level': { value: 50, type: 'integer' },
                 'sentry.origin': { value: 'auto.logging.pino', type: 'string' },
                 'sentry.release': { value: '1.0', type: 'string' },
