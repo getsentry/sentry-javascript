@@ -19,6 +19,7 @@ import {
   GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
   GEN_AI_SYSTEM_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
+import { getTruncatedJsonString } from '../ai/utils';
 import { OPENAI_INTEGRATION_NAME } from './constants';
 import { instrumentStream } from './streaming';
 import type {
@@ -191,10 +192,12 @@ function addResponseAttributes(span: Span, result: unknown, recordOutputs?: bool
 // Extract and record AI request inputs, if present. This is intentionally separate from response attributes.
 function addRequestAttributes(span: Span, params: Record<string, unknown>): void {
   if ('messages' in params) {
-    span.setAttributes({ [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: JSON.stringify(params.messages) });
+    const truncatedMessages = getTruncatedJsonString(params.messages);
+    span.setAttributes({ [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: truncatedMessages });
   }
   if ('input' in params) {
-    span.setAttributes({ [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: JSON.stringify(params.input) });
+    const truncatedInput = getTruncatedJsonString(params.input);
+    span.setAttributes({ [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: truncatedInput });
   }
 }
 

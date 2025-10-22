@@ -7,7 +7,6 @@ import { snipLine } from './string';
 import { GLOBAL_OBJ } from './worldwide';
 
 interface CryptoInternal {
-  getRandomValues(array: Uint8Array): Uint8Array;
   randomUUID?(): string;
 }
 
@@ -22,37 +21,34 @@ function getCrypto(): CryptoInternal | undefined {
   return gbl.crypto || gbl.msCrypto;
 }
 
+let emptyUuid: string | undefined;
+
+function getRandomByte(): number {
+  return Math.random() * 16;
+}
+
 /**
  * UUID4 generator
  * @param crypto Object that provides the crypto API.
  * @returns string Generated UUID4.
  */
 export function uuid4(crypto = getCrypto()): string {
-  let getRandomByte = (): number => Math.random() * 16;
   try {
     if (crypto?.randomUUID) {
       return crypto.randomUUID().replace(/-/g, '');
-    }
-    if (crypto?.getRandomValues) {
-      getRandomByte = () => {
-        // crypto.getRandomValues might return undefined instead of the typed array
-        // in old Chromium versions (e.g. 23.0.1235.0 (151422))
-        // However, `typedArray` is still filled in-place.
-        // @see https://developer.mozilla.org/en-US/docs/Web/API/Crypto/getRandomValues#typedarray
-        const typedArray = new Uint8Array(1);
-        crypto.getRandomValues(typedArray);
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        return typedArray[0]!;
-      };
     }
   } catch {
     // some runtimes can crash invoking crypto
     // https://github.com/getsentry/sentry-javascript/issues/8935
   }
 
-  // http://stackoverflow.com/questions/105034/how-to-create-a-guid-uuid-in-javascript/2117523#2117523
-  // Concatenating the following numbers as strings results in '10000000100040008000100000000000'
-  return (([1e7] as unknown as string) + 1e3 + 4e3 + 8e3 + 1e11).replace(/[018]/g, c =>
+  if (!emptyUuid) {
+    // http://stackoverflow.com/questions/105034/how-to-create-a-guid-uuid-in-javascript/2117523#2117523
+    // Concatenating the following numbers as strings results in '10000000100040008000100000000000'
+    emptyUuid = ([1e7] as unknown as string) + 1e3 + 4e3 + 8e3 + 1e11;
+  }
+
+  return emptyUuid.replace(/[018]/g, c =>
     // eslint-disable-next-line no-bitwise
     ((c as unknown as number) ^ ((getRandomByte() & 15) >> ((c as unknown as number) / 4))).toString(16),
   );
