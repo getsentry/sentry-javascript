@@ -1,6 +1,7 @@
 import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
-import { patchClaudeCodeQuery } from './instrumentation';
+import { generateInstrumentOnce } from '@sentry/node-core';
+import { patchClaudeCodeQuery, SentryClaudeCodeInstrumentation } from './instrumentation';
 
 export interface ClaudeCodeOptions {
   /**
@@ -30,14 +31,17 @@ export interface ClaudeCodeOptions {
 
 const CLAUDE_CODE_INTEGRATION_NAME = 'ClaudeCode';
 
+export const instrumentClaudeCode = generateInstrumentOnce<ClaudeCodeOptions>(
+  CLAUDE_CODE_INTEGRATION_NAME,
+  options => new SentryClaudeCodeInstrumentation(options),
+);
+
 const _claudeCodeIntegration = ((options: ClaudeCodeOptions = {}) => {
   return {
     name: CLAUDE_CODE_INTEGRATION_NAME,
     options,
     setupOnce() {
-      // Note: Automatic patching via require hooks doesn't work for ESM modules
-      // or webpack-bundled dependencies. Users must manually patch using patchClaudeCodeQuery()
-      // in their route files.
+      instrumentClaudeCode(options);
     },
   };
 }) satisfies IntegrationFn;
