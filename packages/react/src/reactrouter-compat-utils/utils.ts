@@ -45,9 +45,7 @@ export function pathIsWildcardAndHasChildren(path: string, branch: RouteMatch<st
   return (pathEndsWithWildcard(path) && !!branch.route.children?.length) || false;
 }
 
-/**
- *
- */
+/** Check if route is in descendant route (<Routes> within <Routes>) */
 export function routeIsDescendant(route: RouteObject): boolean {
   return !!(!route.children && route.element && route.path?.endsWith('/*'));
 }
@@ -129,8 +127,6 @@ export function rebuildRoutePathFromAllRoutes(allRoutes: RouteObject[], location
   if (!matchedRoutes || matchedRoutes.length === 0) {
     return '';
   }
-
-  // fixme: this maybe has a bug
 
   for (const match of matchedRoutes) {
     if (match.route.path && match.route.path !== '*') {

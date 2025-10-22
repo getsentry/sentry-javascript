@@ -48,7 +48,6 @@ import {
   prefixWithSlash,
   rebuildRoutePathFromAllRoutes,
   resolveRouteNameAndSource,
-  routeIsDescendant,
 } from './utils';
 
 let _useEffect: UseEffect;
