@@ -770,10 +770,20 @@ function patchSpanEnd(
       // Last chance to update the transaction name with the latest route info
       // Use the live global allRoutes Set to include any lazy routes loaded after patching
       const currentAllRoutes = Array.from(allRoutes);
-      const branches = _matchRoutes(currentAllRoutes || routes, location, basename) as unknown as RouteMatch[];
+      const branches = _matchRoutes(
+        currentAllRoutes.length > 0 ? currentAllRoutes : routes,
+        location,
+        basename,
+      ) as unknown as RouteMatch[];
 
       if (branches) {
-        const [name, source] = resolveRouteNameAndSource(location, routes, currentAllRoutes, branches, basename);
+        const [name, source] = resolveRouteNameAndSource(
+          location,
+          routes,
+          currentAllRoutes.length > 0 ? currentAllRoutes : routes,
+          branches,
+          basename,
+        );
 
         // Only update if we have a valid name
         if (name && (spanType === 'pageload' || !spanJson.timestamp)) {
