@@ -144,6 +144,9 @@ export { ANTHROPIC_AI_INTEGRATION_NAME } from './utils/anthropic-ai/constants';
 export { instrumentGoogleGenAIClient } from './utils/google-genai';
 export { GOOGLE_GENAI_INTEGRATION_NAME } from './utils/google-genai/constants';
 export type { GoogleGenAIResponse } from './utils/google-genai/types';
+export { createLangChainCallbackHandler } from './utils/langchain';
+export { LANGCHAIN_INTEGRATION_NAME } from './utils/langchain/constants';
+export type { LangChainOptions, LangChainIntegration } from './utils/langchain/types';
 export type { OpenAiClient, OpenAiOptions, InstrumentedMethod } from './utils/openai/types';
 export type {
   AnthropicAiClient,
