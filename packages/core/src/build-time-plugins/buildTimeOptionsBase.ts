@@ -243,6 +243,37 @@ interface SourceMapsOptions {
   filesToDeleteAfterUpload?: string | Array<string>;
 }
 
+type AutoSetCommitsOptions = {
+  /**
+   * Automatically sets `commit` and `previousCommit`. Sets `commit` to `HEAD`
+   * and `previousCommit` as described in the option's documentation.
+   *
+   * If you set this to `true`, manually specified `commit` and `previousCommit`
+   * options will be overridden. It is best to not specify them at all if you
+   * set this option to `true`.
+   */
+  auto: true;
+  repo?: undefined;
+  commit?: undefined;
+};
+
+type ManualSetCommitsOptions = {
+  auto?: false | undefined;
+  /**
+   * The full repo name as defined in Sentry.
+   *
+   * Required if the `auto` option is not set to `true`.
+   */
+  repo: string;
+
+  /**
+   * The current (last) commit in the release.
+   *
+   * Required if the `auto` option is not set to `true`.
+   */
+  commit: string;
+};
+
 interface ReleaseOptions {
   /**
    * Unique identifier for the release you want to create.
@@ -300,37 +331,7 @@ interface ReleaseOptions {
   /**
    * Configuration for associating the release with its commits in Sentry.
    */
-  setCommits?: (
-    | {
-        /**
-         * Automatically sets `commit` and `previousCommit`. Sets `commit` to `HEAD`
-         * and `previousCommit` as described in the option's documentation.
-         *
-         * If you set this to `true`, manually specified `commit` and `previousCommit`
-         * options will be overridden. It is best to not specify them at all if you
-         * set this option to `true`.
-         */
-        auto: true;
-        repo?: undefined;
-        commit?: undefined;
-      }
-    | {
-        auto?: false | undefined;
-        /**
-         * The full repo name as defined in Sentry.
-         *
-         * Required if the `auto` option is not set to `true`.
-         */
-        repo: string;
-
-        /**
-         * The current (last) commit in the release.
-         *
-         * Required if the `auto` option is not set to `true`.
-         */
-        commit: string;
-      }
-  ) & {
+  setCommits?: (AutoSetCommitsOptions | ManualSetCommitsOptions) & {
     /**
      * The commit before the beginning of this release (in other words,
      * the last commit of the previous release).
