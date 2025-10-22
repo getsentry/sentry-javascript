@@ -109,66 +109,75 @@ export function supportsNativeDebugIds(version: string): boolean {
 }
 
 /**
- * Checks if the current Next.js version uses Turbopack as the default bundler.
- * Starting from Next.js 15.6.0-canary.38, turbopack became the default for `next build`.
+ * Checks if the given Next.js version requires the `experimental.instrumentationHook` option.
+ * Next.js 15.0.0 and higher (including certain RC and canary versions) no longer require this option
+ * and will print a warning if it is set.
  *
- * @param version - Next.js version string to check.
- * @returns true if the version uses Turbopack by default
+ * @param version - version string to check.
+ * @returns true if the version requires the instrumentationHook option to be set
  */
-export function isTurbopackDefaultForVersion(version: string): boolean {
+export function requiresInstrumentationHook(version: string): boolean {
   if (!version) {
-    return false;
+    return true; // Default to requiring it if version cannot be determined
   }
 
-  const { major, minor, prerelease } = parseSemver(version);
+  const { major, minor, patch, prerelease } = parseSemver(version);
 
-  if (major === undefined || minor === undefined) {
-    return false;
+  if (major === undefined || minor === undefined || patch === undefined) {
+    return true; // Default to requiring it if parsing fails
   }
 
-  // Next.js 16+ uses turbopack by default
+  // Next.js 16+ never requires the hook
   if (major >= 16) {
+    return false;
+  }
+
+  // Next.js 14 and below always require the hook
+  if (major < 15) {
     return true;
   }
 
-  // For Next.js 15, only canary versions 15.6.0-canary.40+ use turbopack by default
-  // Stable 15.x releases still use webpack by default
-  if (major === 15 && minor >= 6 && prerelease && prerelease.startsWith('canary.')) {
-    if (minor >= 7) {
-      return true;
-    }
-    const canaryNumber = parseInt(prerelease.split('.')[1] || '0', 10);
-    if (canaryNumber >= 40) {
-      return true;
-    }
+  // At this point, we know it's Next.js 15.x.y
+  // Stable releases (15.0.0+) don't require the hook
+  if (!prerelease) {
+    return false;
   }
 
-  return false;
+  // Next.js 15.x.y with x > 0 or y > 0 don't require the hook
+  if (minor > 0 || patch > 0) {
+    return false;
+  }
+
+  // Check specific prerelease versions that don't require the hook
+  if (prerelease.startsWith('rc.')) {
+    const rcNumber = parseInt(prerelease.split('.')[1] || '0', 10);
+    return rcNumber === 0; // Only rc.0 requires the hook
+  }
+
+  if (prerelease.startsWith('canary.')) {
+    const canaryNumber = parseInt(prerelease.split('.')[1] || '0', 10);
+    return canaryNumber < 124; // canary.124+ doesn't require the hook
+  }
+
+  // All other 15.0.0 prerelease versions (alpha, beta, etc.) require the hook
+  return true;
 }
 
 /**
  * Determines which bundler is actually being used based on environment variables,
- * CLI flags, and Next.js version.
+ * and CLI flags.
  *
- * @param nextJsVersion - The Next.js version string
- * @returns 'turbopack', 'webpack', or undefined if it cannot be determined
+ * @returns 'turbopack' or 'webpack'
  */
-export function detectActiveBundler(nextJsVersion: string | undefined): 'turbopack' | 'webpack' | undefined {
-  if (process.env.TURBOPACK || process.argv.includes('--turbo')) {
-    return 'turbopack';
-  }
+export function detectActiveBundler(): 'turbopack' | 'webpack' {
+  const turbopackEnv = process.env.TURBOPACK;
 
-  // Explicit opt-in to webpack via --webpack flag
-  if (process.argv.includes('--webpack')) {
+  // Check if TURBOPACK env var is set to a truthy value (excluding falsy strings like 'false', '0', '')
+  const isTurbopackEnabled = turbopackEnv && turbopackEnv !== 'false' && turbopackEnv !== '0';
+
+  if (isTurbopackEnabled || process.argv.includes('--turbo')) {
+    return 'turbopack';
+  } else {
     return 'webpack';
   }
-
-  // Fallback to version-based default behavior
-  if (nextJsVersion) {
-    const turbopackIsDefault = isTurbopackDefaultForVersion(nextJsVersion);
-    return turbopackIsDefault ? 'turbopack' : 'webpack';
-  }
-
-  // Unlikely but at this point, we just assume webpack for older behavior
-  return 'webpack';
 }
