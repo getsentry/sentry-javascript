@@ -81,9 +81,22 @@ type DeepPartial<T> = {
   [P in keyof T]?: T[P] extends object ? Partial<T[P]> : T[P];
 };
 
+type PinoResult = {
+  level?: string;
+  time?: string;
+  pid?: number;
+  hostname?: string;
+} & Record<string, unknown>;
+
+function stripIgnoredFields(result: PinoResult): PinoResult {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { level, time, pid, hostname, ...rest } = result;
+  return rest;
+}
+
 const _pinoIntegration = defineIntegration((userOptions: DeepPartial<PinoOptions> = {}) => {
   const options: PinoOptions = {
-    autoInstrument: userOptions.autoInstrument === false ? userOptions.autoInstrument : DEFAULT_OPTIONS.autoInstrument,
+    autoInstrument: userOptions.autoInstrument !== false,
     error: { ...DEFAULT_OPTIONS.error, ...userOptions.error },
     log: { ...DEFAULT_OPTIONS.log, ...userOptions.log },
   };
@@ -112,26 +125,22 @@ const _pinoIntegration = defineIntegration((userOptions: DeepPartial<PinoOptions
       const injectedChannel = tracingChannel('orchestrion:pino:pino-log');
       const integratedChannel = tracingChannel('pino_asJson');
 
-      function onPinoStart(self: Pino, args: PinoHookArgs, result: string): void {
+      function onPinoStart(self: Pino, args: PinoHookArgs, result: PinoResult): void {
         if (!shouldTrackLogger(self)) {
           return;
         }
 
-        const [obj, message, levelNumber] = args;
+        const resultObj = stripIgnoredFields(result);
+
+        const [captureObj, message, levelNumber] = args;
         const level = self?.levels?.labels?.[levelNumber] || 'info';
 
         if (enableLogs && options.log.levels.includes(level)) {
           const attributes: Record<string, unknown> = {
-            ...obj,
+            ...resultObj,
             'sentry.origin': 'auto.logging.pino',
             'pino.logger.level': levelNumber,
           };
-
-          const parsedResult = JSON.parse(result) as { name?: string };
-
-          if (parsedResult.name) {
-            attributes['pino.logger.name'] = parsedResult.name;
-          }
 
           _INTERNAL_captureLog({ level, message, attributes });
         }
@@ -153,8 +162,8 @@ const _pinoIntegration = defineIntegration((userOptions: DeepPartial<PinoOptions
               return event;
             });
 
-            if (obj.err) {
-              captureException(obj.err, captureContext);
+            if (captureObj.err) {
+              captureException(captureObj.err, captureContext);
               return;
             }
 
@@ -165,7 +174,7 @@ const _pinoIntegration = defineIntegration((userOptions: DeepPartial<PinoOptions
 
       injectedChannel.end.subscribe(data => {
         const { self, arguments: args, result } = data as { self: Pino; arguments: PinoHookArgs; result: string };
-        onPinoStart(self, args, result);
+        onPinoStart(self, args, JSON.parse(result));
       });
 
       integratedChannel.end.subscribe(data => {
@@ -174,7 +183,7 @@ const _pinoIntegration = defineIntegration((userOptions: DeepPartial<PinoOptions
           arguments: args,
           result,
         } = data as { instance: Pino; arguments: PinoHookArgs; result: string };
-        onPinoStart(instance, args, result);
+        onPinoStart(instance, args, JSON.parse(result));
       });
     },
   };
