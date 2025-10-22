@@ -763,34 +763,39 @@ function patchSpanEnd(
   const originalEnd = span.end.bind(span);
 
   span.end = function patchedEnd(...args) {
-    // Only update if the span source is not already 'route' (i.e., it hasn't been parameterized yet)
-    const spanJson = spanToJSON(span);
-    const currentSource = spanJson.data?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
-    if (currentSource !== 'route') {
-      // Last chance to update the transaction name with the latest route info
-      // Use the live global allRoutes Set to include any lazy routes loaded after patching
-      const currentAllRoutes = Array.from(allRoutes);
-      const branches = _matchRoutes(
-        currentAllRoutes.length > 0 ? currentAllRoutes : routes,
-        location,
-        basename,
-      ) as unknown as RouteMatch[];
-
-      if (branches) {
-        const [name, source] = resolveRouteNameAndSource(
-          location,
-          routes,
+    try {
+      // Only update if the span source is not already 'route' (i.e., it hasn't been parameterized yet)
+      const spanJson = spanToJSON(span);
+      const currentSource = spanJson.data?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
+      if (currentSource !== 'route') {
+        // Last chance to update the transaction name with the latest route info
+        // Use the live global allRoutes Set to include any lazy routes loaded after patching
+        const currentAllRoutes = Array.from(allRoutes);
+        const branches = _matchRoutes(
           currentAllRoutes.length > 0 ? currentAllRoutes : routes,
-          branches,
+          location,
           basename,
-        );
+        ) as unknown as RouteMatch[];
 
-        // Only update if we have a valid name
-        if (name && (spanType === 'pageload' || !spanJson.timestamp)) {
-          span.updateName(name);
-          span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
+        if (branches) {
+          const [name, source] = resolveRouteNameAndSource(
+            location,
+            routes,
+            currentAllRoutes.length > 0 ? currentAllRoutes : routes,
+            branches,
+            basename,
+          );
+
+          // Only update if we have a valid name
+          if (name && (spanType === 'pageload' || !spanJson.timestamp)) {
+            span.updateName(name);
+            span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
+          }
         }
       }
+    } catch (error) {
+      // Silently catch errors to ensure span.end() is always called
+      DEBUG_BUILD && debug.warn(`Error updating span details before ending: ${error}`);
     }
 
     return originalEnd(...args);
