@@ -18,10 +18,11 @@
     "test:build-canary": "pnpm install && pnpm add next@canary && pnpm build",
     "test:build-canary-webpack": "pnpm install && pnpm add next@canary && pnpm build-webpack",
     "test:assert": "pnpm test:prod && pnpm test:dev",
-    "test:assert-webpack": "pnpm test:prod"
+    "test:assert-webpack": "pnpm test:prod && pnpm test:dev-webpack"
   },
   "dependencies": {
     "@sentry/nextjs": "latest || *",
+    "@sentry/core": "latest || *",
     "ai": "^3.0.0",
     "import-in-the-middle": "^1",
     "next": "16.0.0-beta.0",

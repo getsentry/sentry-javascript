@@ -6,5 +6,6 @@ Sentry.init({
   tunnel: `http://localhost:3031/`, // proxy server
   tracesSampleRate: 1.0,
   sendDefaultPii: true,
+  // debug: true,
   integrations: [Sentry.vercelAIIntegration()],
 });

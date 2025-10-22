@@ -41,6 +41,13 @@ module.exports = [
     limit: '41 KB',
   },
   {
+    name: '@sentry/browser (incl. Tracing, Profiling)',
+    path: 'packages/browser/build/npm/esm/index.js',
+    import: createImport('init', 'browserTracingIntegration', 'browserProfilingIntegration'),
+    gzip: true,
+    limit: '48 KB',
+  },
+  {
     name: '@sentry/browser (incl. Tracing, Replay)',
     path: 'packages/browser/build/npm/esm/index.js',
     import: createImport('init', 'browserTracingIntegration', 'replayIntegration'),
@@ -75,7 +82,7 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/index.js',
     import: createImport('init', 'browserTracingIntegration', 'replayIntegration', 'replayCanvasIntegration'),
     gzip: true,
-    limit: '84 KB',
+    limit: '85 KB',
   },
   {
     name: '@sentry/browser (incl. Tracing, Replay, Feedback)',
@@ -233,7 +240,7 @@ module.exports = [
     import: createImport('init'),
     ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
     gzip: true,
-    limit: '156 KB',
+    limit: '157 KB',
   },
   {
     name: '@sentry/node - without tracing',

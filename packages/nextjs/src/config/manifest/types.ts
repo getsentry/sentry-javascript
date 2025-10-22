@@ -14,6 +14,11 @@ export type RouteInfo = {
    * (Optional) The names of dynamic parameters in the route
    */
   paramNames?: string[];
+  /**
+   * (Optional) Indicates if the first segment is an optional prefix (e.g., for i18n routing)
+   * When true, routes like '/foo' should match '/:locale/foo' patterns
+   */
+  hasOptionalPrefix?: boolean;
 };
 
 /**

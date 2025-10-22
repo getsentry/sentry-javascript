@@ -183,8 +183,11 @@ export function constructWebpackConfigFunction({
       );
     };
 
-    const possibleMiddlewareLocations = pageExtensions.map(middlewareFileEnding => {
-      return path.join(middlewareLocationFolder, `middleware.${middlewareFileEnding}`);
+    const possibleMiddlewareLocations = pageExtensions.flatMap(middlewareFileEnding => {
+      return [
+        path.join(middlewareLocationFolder, `middleware.${middlewareFileEnding}`),
+        path.join(middlewareLocationFolder, `proxy.${middlewareFileEnding}`),
+      ];
     });
     const isMiddlewareResource = (resourcePath: string): boolean => {
       const normalizedAbsoluteResourcePath = normalizeLoaderResourcePath(resourcePath);
@@ -331,7 +334,7 @@ export function constructWebpackConfigFunction({
         .map(extension => `global-error.${extension}`)
         .some(
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-          globalErrorFile => fs.existsSync(path.join(appDirPath!, globalErrorFile)),
+          globalErrorFile => fs.existsSync(path.join(appDirPath, globalErrorFile)),
         );
 
       if (
