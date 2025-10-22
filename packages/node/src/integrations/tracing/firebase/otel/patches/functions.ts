@@ -99,33 +99,6 @@ export function patchFunctions(
 }
 
 /**
- * Async function to execute patched function and being able to catch errors
- * @param execute - function to be executed
- * @param onFinish - callback to run when execute finishes
- */
-export async function safeExecuteInTheMiddleAsync<T>(
-  execute: () => T,
-  onFinish: (e: Error | undefined, result: T | undefined) => Promise<void> | void,
-  preventThrowingError?: boolean,
-): Promise<T> {
-  let error: Error | undefined;
-  let result: T | undefined;
-  try {
-    result = await execute();
-  } catch (e) {
-    error = e as Error;
-  } finally {
-    await onFinish?.(error, result);
-    if (error && !preventThrowingError) {
-      // eslint-disable-next-line no-unsafe-finally
-      throw error;
-    }
-    // eslint-disable-next-line no-unsafe-finally
-    return result as T;
-  }
-}
-
-/**
  * Patches Cloud Functions for Firebase (v2) to add OpenTelemetry instrumentation
  *
  * @param tracer - Opentelemetry Tracer
