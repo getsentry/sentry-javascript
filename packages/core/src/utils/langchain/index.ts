@@ -37,7 +37,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
    */
   const exitSpan = (runId: string): void => {
     const span = spanMap.get(runId);
-    if (span) {
+    if (span?.isRecording()) {
       span.end();
       spanMap.delete(runId);
     }
@@ -152,7 +152,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
       _extraParams?: Record<string, unknown>,
     ) {
       const span = spanMap.get(runId);
-      if (span) {
+      if (span?.isRecording()) {
         const attributes = extractLlmResponseAttributes(output as LangChainLLMResult, recordOutputs);
         if (attributes) {
           span.setAttributes(attributes);
@@ -164,7 +164,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
     // LLM Error Handler - note: handleLLMError with capital LLM
     handleLLMError(error: Error, runId: string) {
       const span = spanMap.get(runId);
-      if (span) {
+      if (span?.isRecording()) {
         span.setStatus({ code: SPAN_STATUS_ERROR, message: 'llm_error' });
         exitSpan(runId);
       }
@@ -209,7 +209,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
     // Chain End Handler
     handleChainEnd(outputs: unknown, runId: string) {
       const span = spanMap.get(runId);
-      if (span) {
+      if (span?.isRecording()) {
         // Add outputs if recordOutputs is enabled
         if (recordOutputs) {
           span.setAttributes({
@@ -223,7 +223,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
     // Chain Error Handler
     handleChainError(error: Error, runId: string) {
       const span = spanMap.get(runId);
-      if (span) {
+      if (span?.isRecording()) {
         span.setStatus({ code: SPAN_STATUS_ERROR, message: 'chain_error' });
         exitSpan(runId);
       }
@@ -268,7 +268,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
     // Tool End Handler
     handleToolEnd(output: unknown, runId: string) {
       const span = spanMap.get(runId);
-      if (span) {
+      if (span?.isRecording()) {
         // Add output if recordOutputs is enabled
         if (recordOutputs) {
           span.setAttributes({
@@ -282,7 +282,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
     // Tool Error Handler
     handleToolError(error: Error, runId: string) {
       const span = spanMap.get(runId);
-      if (span) {
+      if (span?.isRecording()) {
         span.setStatus({ code: SPAN_STATUS_ERROR, message: 'tool_error' });
         exitSpan(runId);
       }
