@@ -25,7 +25,7 @@ test.describe('Cache Instrumentation', () => {
 
     // Test that we have cache operations from cachedFunction and cachedEventHandler
     const allCacheSpans = transaction.spans?.filter(
-      span => span.data?.[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] === 'auto.cache.nitro',
+      span => span.data?.[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] === 'auto.cache.nuxt',
     );
     expect(allCacheSpans?.length).toBeGreaterThan(0);
 
@@ -43,7 +43,7 @@ test.describe('Cache Instrumentation', () => {
     if (cacheMissSpan) {
       expect(cacheMissSpan.data).toMatchObject({
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'cache.get_item',
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.cache.nitro',
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.cache.nuxt',
         [SEMANTIC_ATTRIBUTE_CACHE_HIT]: false,
         'db.operation.name': 'getItem',
         'db.collection.name': expect.stringMatching(/^(cache)?$/),
@@ -60,7 +60,7 @@ test.describe('Cache Instrumentation', () => {
     if (cacheHitSpan) {
       expect(cacheHitSpan.data).toMatchObject({
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'cache.get_item',
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.cache.nitro',
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.cache.nuxt',
         [SEMANTIC_ATTRIBUTE_CACHE_HIT]: true,
         'db.operation.name': 'getItem',
         'db.collection.name': expect.stringMatching(/^(cache)?$/),
@@ -79,7 +79,7 @@ test.describe('Cache Instrumentation', () => {
     if (cacheSetSpan) {
       expect(cacheSetSpan.data).toMatchObject({
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'cache.set_item',
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.cache.nitro',
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.cache.nuxt',
         'db.operation.name': 'setItem',
         'db.collection.name': expect.stringMatching(/^(cache)?$/),
       });
@@ -126,7 +126,7 @@ test.describe('Cache Instrumentation', () => {
 
     // Get all cache-related spans
     const allCacheSpans = transaction1.spans?.filter(
-      span => span.data?.[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] === 'auto.cache.nitro',
+      span => span.data?.[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] === 'auto.cache.nuxt',
     );
 
     // We should have cache operations

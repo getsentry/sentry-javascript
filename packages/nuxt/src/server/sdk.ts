@@ -116,5 +116,5 @@ async function flushSafelyWithTimeout(): Promise<void> {
  * Checks if the event is a cache event.
  */
 function isCacheEvent(e: Event): boolean {
-  return e.contexts?.trace?.origin === 'auto.cache.nitro';
+  return e.contexts?.trace?.origin === 'auto.cache.nuxt';
 }

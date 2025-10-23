@@ -18,7 +18,7 @@ test.describe('database integration', () => {
     expect(dbSpan?.description).toBe('SELECT * FROM users WHERE id = ?');
     expect(dbSpan?.data?.['db.system.name']).toBe('sqlite');
     expect(dbSpan?.data?.['db.query.text']).toBe('SELECT * FROM users WHERE id = ?');
-    expect(dbSpan?.data?.['sentry.origin']).toBe('auto.db.nitro');
+    expect(dbSpan?.data?.['sentry.origin']).toBe('auto.db.nuxt');
   });
 
   test('captures db.prepare().all() span', async ({ request }) => {
@@ -39,7 +39,7 @@ test.describe('database integration', () => {
     expect(dbSpan?.description).toBe('SELECT * FROM products WHERE price > ?');
     expect(dbSpan?.data?.['db.system.name']).toBe('sqlite');
     expect(dbSpan?.data?.['db.query.text']).toBe('SELECT * FROM products WHERE price > ?');
-    expect(dbSpan?.data?.['sentry.origin']).toBe('auto.db.nitro');
+    expect(dbSpan?.data?.['sentry.origin']).toBe('auto.db.nuxt');
   });
 
   test('captures db.prepare().run() span', async ({ request }) => {
@@ -60,7 +60,7 @@ test.describe('database integration', () => {
     expect(dbSpan?.description).toBe('INSERT INTO orders (customer, amount) VALUES (?, ?)');
     expect(dbSpan?.data?.['db.system.name']).toBe('sqlite');
     expect(dbSpan?.data?.['db.query.text']).toBe('INSERT INTO orders (customer, amount) VALUES (?, ?)');
-    expect(dbSpan?.data?.['sentry.origin']).toBe('auto.db.nitro');
+    expect(dbSpan?.data?.['sentry.origin']).toBe('auto.db.nuxt');
   });
 
   test('captures db.prepare().bind().all() span', async ({ request }) => {
@@ -81,7 +81,7 @@ test.describe('database integration', () => {
     expect(dbSpan?.description).toBe('SELECT * FROM items WHERE category = ?');
     expect(dbSpan?.data?.['db.system.name']).toBe('sqlite');
     expect(dbSpan?.data?.['db.query.text']).toBe('SELECT * FROM items WHERE category = ?');
-    expect(dbSpan?.data?.['sentry.origin']).toBe('auto.db.nitro');
+    expect(dbSpan?.data?.['sentry.origin']).toBe('auto.db.nuxt');
   });
 
   test('captures db.sql template tag span', async ({ request }) => {
@@ -102,7 +102,7 @@ test.describe('database integration', () => {
     expect(dbSpan?.description).toContain('INSERT INTO messages');
     expect(dbSpan?.data?.['db.system.name']).toBe('sqlite');
     expect(dbSpan?.data?.['db.query.text']).toContain('INSERT INTO messages');
-    expect(dbSpan?.data?.['sentry.origin']).toBe('auto.db.nitro');
+    expect(dbSpan?.data?.['sentry.origin']).toBe('auto.db.nuxt');
   });
 
   test('captures db.exec() span', async ({ request }) => {
@@ -123,7 +123,7 @@ test.describe('database integration', () => {
     expect(dbSpan?.description).toBe(`INSERT INTO logs (message, level) VALUES ('Test log', 'INFO')`);
     expect(dbSpan?.data?.['db.system.name']).toBe('sqlite');
     expect(dbSpan?.data?.['db.query.text']).toBe(`INSERT INTO logs (message, level) VALUES ('Test log', 'INFO')`);
-    expect(dbSpan?.data?.['sentry.origin']).toBe('auto.db.nitro');
+    expect(dbSpan?.data?.['sentry.origin']).toBe('auto.db.nuxt');
   });
 
   test('captures database error and marks span as failed', async ({ request }) => {
@@ -145,7 +145,7 @@ test.describe('database integration', () => {
     expect(error.exception?.values?.[0]?.value).toContain('no such table');
     expect(error.exception?.values?.[0]?.mechanism).toEqual({
       handled: false,
-      type: 'auto.db.nitro',
+      type: 'auto.db.nuxt',
     });
 
     const dbSpan = transaction.spans?.find(
@@ -157,7 +157,7 @@ test.describe('database integration', () => {
     expect(dbSpan?.description).toBe('SELECT * FROM nonexistent_table WHERE invalid_column = ?');
     expect(dbSpan?.data?.['db.system.name']).toBe('sqlite');
     expect(dbSpan?.data?.['db.query.text']).toBe('SELECT * FROM nonexistent_table WHERE invalid_column = ?');
-    expect(dbSpan?.data?.['sentry.origin']).toBe('auto.db.nitro');
+    expect(dbSpan?.data?.['sentry.origin']).toBe('auto.db.nuxt');
     expect(dbSpan?.status).toBe('internal_error');
   });
 
