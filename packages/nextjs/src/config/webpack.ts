@@ -254,8 +254,7 @@ export function constructWebpackConfigFunction({
         } else {
           // log but noop
           debug.error(
-            'error',
-            'Sentry failed to read vercel.json for automatic cron job monitoring instrumentation',
+            '[@sentry/nextjs] Failed to read vercel.json for automatic cron job monitoring instrumentation',
             e,
           );
         }
