@@ -12,10 +12,6 @@ import {
 import Index from './pages/Index';
 import User from './pages/User';
 import Group from './pages/Group';
-import Post from './pages/Post';
-import PostFeatured from './pages/PostFeatured';
-import PostRelated from './pages/PostRelated';
-import PostIndex from './pages/PostIndex';
 
 const replay = Sentry.replayIntegration();
 
@@ -83,8 +79,6 @@ const router = sentryCreateHashRouter([
     ],
   },
 ]);
-
-console.log(router.routes);
 
 const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
 
