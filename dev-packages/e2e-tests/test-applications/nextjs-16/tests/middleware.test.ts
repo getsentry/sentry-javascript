@@ -23,6 +23,7 @@ test('Should create a transaction for middleware', async ({ request }) => {
 });
 
 test('Faulty middlewares', async ({ request }) => {
+  test.skip(isDevMode, 'Throwing crashes the dev server atm'); // https://github.com/vercel/next.js/issues/85261
   const middlewareTransactionPromise = waitForTransaction('nextjs-16', async transactionEvent => {
     return transactionEvent?.transaction === 'middleware GET';
   });
