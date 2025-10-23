@@ -7,6 +7,7 @@ import {
   GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
 } from './gen-ai-attributes';
+import { truncateGenAiMessages } from './messageTruncation';
 /**
  * Maps AI method paths to Sentry operation name
  */
@@ -83,4 +84,24 @@ export function setTokenUsageAttributes(
       [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: totalTokens,
     });
   }
+}
+
+/**
+ * Get the truncated JSON string for a string or array of strings.
+ *
+ * @param value - The string or array of strings to truncate
+ * @returns The truncated JSON string
+ */
+export function getTruncatedJsonString<T>(value: T | T[]): string {
+  if (typeof value === 'string') {
+    // Some values are already JSON strings, so we don't need to duplicate the JSON parsing
+    return value;
+  }
+  if (Array.isArray(value)) {
+    // truncateGenAiMessages returns an array of strings, so we need to stringify it
+    const truncatedMessages = truncateGenAiMessages(value);
+    return JSON.stringify(truncatedMessages);
+  }
+  // value is an object, so we need to stringify it
+  return JSON.stringify(value);
 }

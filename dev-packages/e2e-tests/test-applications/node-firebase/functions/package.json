@@ -1,0 +1,19 @@
+{
+  "name": "functions",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --build --watch"
+  },
+  "engines": {
+    "node": "20"
+  },
+  "main": "dist/index.js",
+  "dependencies": {
+    "firebase-admin": "^12.6.0",
+    "firebase-functions": "^6.0.1",
+    "@sentry/node": "latest || *"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3"
+  }
+}

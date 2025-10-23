@@ -1,0 +1,20 @@
+{
+  "name": "firestore-app",
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --build --watch",
+    "start": "node ./dist/app.js"
+  },
+  "dependencies": {
+    "@firebase/app": "^0.13.1",
+    "@sentry/node": "latest || *",
+    "express": "^4.18.2",
+    "firebase": "^12.0.0"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.13",
+    "@types/node": "^22.13.14",
+    "typescript": "5.9.3"
+  }
+}
