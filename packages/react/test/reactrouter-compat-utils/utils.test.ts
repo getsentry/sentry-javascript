@@ -436,7 +436,7 @@ describe('reactrouter-compat-utils/utils', () => {
       ];
 
       const result = getNormalizedName(routes, location, branches, '');
-      expect(result).toEqual(['', 'route']);
+      expect(result).toEqual(['/', 'route']);
     });
 
     it('should handle simple route path', () => {
