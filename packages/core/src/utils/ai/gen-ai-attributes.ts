@@ -81,6 +81,11 @@ export const GEN_AI_RESPONSE_MODEL_ATTRIBUTE = 'gen_ai.response.model';
 export const GEN_AI_RESPONSE_ID_ATTRIBUTE = 'gen_ai.response.id';
 
 /**
+ * The reason why the model stopped generating tokens
+ */
+export const GEN_AI_RESPONSE_STOP_REASON_ATTRIBUTE = 'gen_ai.response.stop_reason';
+
+/**
  * The number of tokens used in the prompt
  */
 export const GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE = 'gen_ai.usage.input_tokens';
@@ -128,6 +133,16 @@ export const GEN_AI_RESPONSE_STREAMING_ATTRIBUTE = 'gen_ai.response.streaming';
  * Only recorded when recordOutputs is enabled
  */
 export const GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE = 'gen_ai.response.tool_calls';
+
+/**
+ * The number of cache creation input tokens used
+ */
+export const GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS_ATTRIBUTE = 'gen_ai.usage.cache_creation_input_tokens';
+
+/**
+ * The number of cache read input tokens used
+ */
+export const GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS_ATTRIBUTE = 'gen_ai.usage.cache_read_input_tokens';
 
 /**
  * The number of cache write input tokens used

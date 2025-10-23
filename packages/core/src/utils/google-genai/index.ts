@@ -22,7 +22,7 @@ import {
   GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
-import { buildMethodPath, getFinalOperationName, getSpanOperation } from '../ai/utils';
+import { buildMethodPath, getFinalOperationName, getSpanOperation, getTruncatedJsonString } from '../ai/utils';
 import { handleCallbackErrors } from '../handleCallbackErrors';
 import { CHAT_PATH, CHATS_CREATE_METHOD, GOOGLE_GENAI_SYSTEM_NAME } from './constants';
 import { instrumentStream } from './streaming';
@@ -136,17 +136,24 @@ function extractRequestAttributes(
 function addPrivateRequestAttributes(span: Span, params: Record<string, unknown>): void {
   // For models.generateContent: ContentListUnion: Content | Content[] | PartUnion | PartUnion[]
   if ('contents' in params) {
-    span.setAttributes({ [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: JSON.stringify(params.contents) });
+    const contents = params.contents;
+    // For models.generateContent: ContentListUnion: Content | Content[] | PartUnion | PartUnion[]
+    const truncatedContents = getTruncatedJsonString(contents);
+    span.setAttributes({ [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: truncatedContents });
   }
 
   // For chat.sendMessage: message can be string or Part[]
   if ('message' in params) {
-    span.setAttributes({ [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: JSON.stringify(params.message) });
+    const message = params.message;
+    const truncatedMessage = getTruncatedJsonString(message);
+    span.setAttributes({ [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: truncatedMessage });
   }
 
   // For chats.create: history contains the conversation history
   if ('history' in params) {
-    span.setAttributes({ [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: JSON.stringify(params.history) });
+    const history = params.history;
+    const truncatedHistory = getTruncatedJsonString(history);
+    span.setAttributes({ [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: truncatedHistory });
   }
 }
 

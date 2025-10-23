@@ -90,6 +90,14 @@ const ProjectsRoutes = () => (
 
 const router = sentryCreateBrowserRouter([
   {
+    path: '/post/:post',
+    element: <div>Post</div>,
+    children: [
+      { index: true, element: <div>Post Index</div> },
+      { path: '/post/:post/related', element: <div>Related Posts</div> },
+    ],
+  },
+  {
     children: [
       {
         path: '/',

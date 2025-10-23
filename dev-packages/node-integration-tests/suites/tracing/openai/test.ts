@@ -187,7 +187,7 @@ describe('OpenAI integration', () => {
           'sentry.origin': 'auto.ai.openai',
           'gen_ai.system': 'openai',
           'gen_ai.request.model': 'gpt-3.5-turbo',
-          'gen_ai.request.messages': '"Translate this to French: Hello"',
+          'gen_ai.request.messages': 'Translate this to French: Hello',
           'gen_ai.response.text': 'Response to: Translate this to French: Hello',
           'gen_ai.response.finish_reasons': '["completed"]',
           'gen_ai.response.model': 'gpt-3.5-turbo',
@@ -261,7 +261,7 @@ describe('OpenAI integration', () => {
           'gen_ai.system': 'openai',
           'gen_ai.request.model': 'gpt-4',
           'gen_ai.request.stream': true,
-          'gen_ai.request.messages': '"Test streaming responses API"',
+          'gen_ai.request.messages': 'Test streaming responses API',
           'gen_ai.response.text': 'Streaming response to: Test streaming responses APITest streaming responses API',
           'gen_ai.response.finish_reasons': '["in_progress","completed"]',
           'gen_ai.response.id': 'resp_stream_456',
@@ -397,4 +397,40 @@ describe('OpenAI integration', () => {
         .completed();
     });
   });
+
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-message-truncation.mjs',
+    'instrument-with-pii.mjs',
+    (createRunner, test) => {
+      test('truncates messages when they exceed byte limit - keeps only last message and crops it', async () => {
+        await createRunner()
+          .ignore('event')
+          .expect({
+            transaction: {
+              transaction: 'main',
+              spans: expect.arrayContaining([
+                expect.objectContaining({
+                  data: expect.objectContaining({
+                    'gen_ai.operation.name': 'chat',
+                    'sentry.op': 'gen_ai.chat',
+                    'sentry.origin': 'auto.ai.openai',
+                    'gen_ai.system': 'openai',
+                    'gen_ai.request.model': 'gpt-3.5-turbo',
+                    // Messages should be present (truncation happened) and should be a JSON array of a single index
+                    'gen_ai.request.messages': expect.stringMatching(/^\[\{"role":"user","content":"C+"\}\]$/),
+                  }),
+                  description: 'chat gpt-3.5-turbo',
+                  op: 'gen_ai.chat',
+                  origin: 'auto.ai.openai',
+                  status: 'ok',
+                }),
+              ]),
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+  );
 });

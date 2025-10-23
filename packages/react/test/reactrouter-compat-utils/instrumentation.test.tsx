@@ -10,6 +10,7 @@ import {
   createReactRouterV6CompatibleTracingIntegration,
   updateNavigationSpan,
 } from '../../src/reactrouter-compat-utils';
+import { addRoutesToAllRoutes, allRoutes } from '../../src/reactrouter-compat-utils/instrumentation';
 import type { Location, RouteObject } from '../../src/types';
 
 const mockUpdateName = vi.fn();
@@ -47,6 +48,7 @@ vi.mock('../../src/reactrouter-compat-utils/utils', () => ({
   initializeRouterUtils: vi.fn(),
   getGlobalLocation: vi.fn(() => ({ pathname: '/test', search: '', hash: '' })),
   getGlobalPathname: vi.fn(() => '/test'),
+  routeIsDescendant: vi.fn(() => false),
 }));
 
 vi.mock('../../src/reactrouter-compat-utils/lazy-routes', () => ({
@@ -139,5 +141,232 @@ describe('reactrouter-compat-utils/instrumentation', () => {
       expect(typeof integration.setup).toBe('function');
       expect(typeof integration.afterAllSetup).toBe('function');
     });
+  });
+
+  describe('span.end() patching for early cancellation', () => {
+    it('should update transaction name when span.end() is called during cancellation', () => {
+      const mockEnd = vi.fn();
+      let patchedEnd: ((...args: any[]) => any) | null = null;
+
+      const updateNameMock = vi.fn();
+      const setAttributeMock = vi.fn();
+
+      const testSpan = {
+        updateName: updateNameMock,
+        setAttribute: setAttributeMock,
+        get end() {
+          return patchedEnd || mockEnd;
+        },
+        set end(fn: (...args: any[]) => any) {
+          patchedEnd = fn;
+        },
+      } as unknown as Span;
+
+      // Simulate the patching behavior
+      const originalEnd = testSpan.end.bind(testSpan);
+      (testSpan as any).end = function patchedEndFn(...args: any[]) {
+        // This simulates what happens in the actual implementation
+        updateNameMock('Updated Route');
+        setAttributeMock('sentry.source', 'route');
+        return originalEnd(...args);
+      };
+
+      // Call the patched end
+      testSpan.end(12345);
+
+      expect(updateNameMock).toHaveBeenCalledWith('Updated Route');
+      expect(setAttributeMock).toHaveBeenCalledWith('sentry.source', 'route');
+      expect(mockEnd).toHaveBeenCalledWith(12345);
+    });
+  });
+});
+
+describe('addRoutesToAllRoutes', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.resetModules();
+    allRoutes.clear();
+  });
+
+  it('should add simple routes without nesting', () => {
+    const routes = [
+      { path: '/', element: <div /> },
+      { path: '/user/:id', element: <div /> },
+      { path: '/group/:group/:user?', element: <div /> },
+    ];
+
+    addRoutesToAllRoutes(routes);
+    const allRoutesArr = Array.from(allRoutes);
+
+    expect(allRoutesArr).toHaveLength(3);
+    expect(allRoutesArr).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ path: '/' }),
+        expect.objectContaining({ path: '/user/:id' }),
+        expect.objectContaining({ path: '/group/:group/:user?' }),
+      ]),
+    );
+
+    // Verify exact structure matches manual testing results
+    allRoutesArr.forEach(route => {
+      expect(route).toHaveProperty('element');
+      expect(route.element).toHaveProperty('props');
+    });
+  });
+
+  it('should handle complex nested routes with multiple levels', () => {
+    const routes = [
+      { path: '/', element: <div /> },
+      { path: '/user/:id', element: <div /> },
+      { path: '/group/:group/:user?', element: <div /> },
+      {
+        path: '/v1/post/:post',
+        element: <div />,
+        children: [
+          { path: 'featured', element: <div /> },
+          { path: '/v1/post/:post/related', element: <div /> },
+          {
+            element: <div>More Nested Children</div>,
+            children: [{ path: 'edit', element: <div>Edit Post</div> }],
+          },
+        ],
+      },
+      {
+        path: '/v2/post/:post',
+        element: <div />,
+        children: [
+          { index: true, element: <div /> },
+          { path: 'featured', element: <div /> },
+          { path: '/v2/post/:post/related', element: <div /> },
+        ],
+      },
+    ];
+
+    addRoutesToAllRoutes(routes);
+    const allRoutesArr = Array.from(allRoutes);
+
+    expect(allRoutesArr).toEqual([
+      { path: '/', element: <div /> },
+      { path: '/user/:id', element: <div /> },
+      { path: '/group/:group/:user?', element: <div /> },
+      // v1 routes ----
+      {
+        path: '/v1/post/:post',
+        element: <div />,
+        children: [
+          { element: <div />, path: 'featured' },
+          { element: <div />, path: '/v1/post/:post/related' },
+          { children: [{ element: <div>Edit Post</div>, path: 'edit' }], element: <div>More Nested Children</div> },
+        ],
+      },
+      { element: <div />, path: 'featured' },
+      { element: <div />, path: '/v1/post/:post/related' },
+      { children: [{ element: <div>Edit Post</div>, path: 'edit' }], element: <div>More Nested Children</div> },
+      { element: <div>Edit Post</div>, path: 'edit' },
+      // v2 routes ---
+      {
+        path: '/v2/post/:post',
+        element: expect.objectContaining({ type: 'div', props: {} }),
+        children: [
+          { element: <div />, index: true },
+          { element: <div />, path: 'featured' },
+          { element: <div />, path: '/v2/post/:post/related' },
+        ],
+      },
+      { element: <div />, index: true },
+      { element: <div />, path: 'featured' },
+      { element: <div />, path: '/v2/post/:post/related' },
+    ]);
+  });
+
+  it('should handle routes with nested index routes', () => {
+    const routes = [
+      {
+        path: '/dashboard',
+        element: <div />,
+        children: [
+          { index: true, element: <div>Dashboard Index</div> },
+          { path: 'settings', element: <div>Settings</div> },
+        ],
+      },
+    ];
+
+    addRoutesToAllRoutes(routes);
+    const allRoutesArr = Array.from(allRoutes);
+
+    expect(allRoutesArr).toEqual([
+      {
+        path: '/dashboard',
+        element: expect.objectContaining({ type: 'div' }),
+        children: [
+          { element: <div>Dashboard Index</div>, index: true },
+          { element: <div>Settings</div>, path: 'settings' },
+        ],
+      },
+      { element: <div>Dashboard Index</div>, index: true },
+      { element: <div>Settings</div>, path: 'settings' },
+    ]);
+  });
+
+  it('should handle deeply nested routes with layout wrappers', () => {
+    const routes = [
+      {
+        path: '/',
+        element: <div>Root</div>,
+        children: [
+          { path: 'dashboard', element: <div>Dashboard</div> },
+          {
+            element: <div>AuthLayout</div>,
+            children: [{ path: 'login', element: <div>Login</div> }],
+          },
+        ],
+      },
+    ];
+
+    addRoutesToAllRoutes(routes);
+    const allRoutesArr = Array.from(allRoutes);
+
+    expect(allRoutesArr).toEqual([
+      {
+        path: '/',
+        element: expect.objectContaining({ type: 'div', props: { children: 'Root' } }),
+        children: [
+          {
+            path: 'dashboard',
+            element: expect.objectContaining({ type: 'div', props: { children: 'Dashboard' } }),
+          },
+          {
+            element: expect.objectContaining({ type: 'div', props: { children: 'AuthLayout' } }),
+            children: [
+              {
+                path: 'login',
+                element: expect.objectContaining({ type: 'div', props: { children: 'Login' } }),
+              },
+            ],
+          },
+        ],
+      },
+      { element: <div>Dashboard</div>, path: 'dashboard' },
+      {
+        children: [{ element: <div>Login</div>, path: 'login' }],
+        element: <div>AuthLayout</div>,
+      },
+      { element: <div>Login</div>, path: 'login' },
+    ]);
+  });
+
+  it('should not duplicate routes when called multiple times', () => {
+    const routes = [
+      { path: '/', element: <div /> },
+      { path: '/about', element: <div /> },
+    ];
+
+    addRoutesToAllRoutes(routes);
+    const firstCount = allRoutes.size;
+
+    addRoutesToAllRoutes(routes);
+    const secondCount = allRoutes.size;
+
+    expect(firstCount).toBe(secondCount);
   });
 });
