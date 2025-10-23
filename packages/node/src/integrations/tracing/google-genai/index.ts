@@ -1,6 +1,6 @@
 import type { GoogleGenAIOptions, IntegrationFn } from '@sentry/core';
 import { defineIntegration, GOOGLE_GENAI_INTEGRATION_NAME } from '@sentry/core';
-import { generateInstrumentOnce, isIntegrationDisabled } from '@sentry/node-core';
+import { generateInstrumentOnce } from '@sentry/node-core';
 import { SentryGoogleGenAiInstrumentation } from './instrumentation';
 
 export const instrumentGoogleGenAI = generateInstrumentOnce<GoogleGenAIOptions>(
@@ -12,10 +12,6 @@ const _googleGenAIIntegration = ((options: GoogleGenAIOptions = {}) => {
   return {
     name: GOOGLE_GENAI_INTEGRATION_NAME,
     setupOnce() {
-      // Skip instrumentation if disabled (e.g., when LangChain integration is active)
-      if (isIntegrationDisabled(GOOGLE_GENAI_INTEGRATION_NAME)) {
-        return;
-      }
       instrumentGoogleGenAI(options);
     },
   };

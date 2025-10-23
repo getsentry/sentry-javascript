@@ -32,7 +32,6 @@ export { pinoIntegration } from './integrations/pino';
 export { SentryContextManager } from './otel/contextManager';
 export { setupOpenTelemetryLogger } from './otel/logger';
 export { generateInstrumentOnce, instrumentWhenWrapped, INSTRUMENTED } from './otel/instrument';
-export { disableIntegrations, isIntegrationDisabled, enableIntegration } from './otel/disabledIntegrations';
 
 export { init, getDefaultIntegrations, initWithoutDefaultIntegrations, validateOpenTelemetrySetup } from './sdk';
 export { setIsolationScope } from './sdk/scope';
