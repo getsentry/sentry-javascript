@@ -330,8 +330,12 @@ interface ReleaseOptions {
 
   /**
    * Configuration for associating the release with its commits in Sentry.
+   *
+   * Set to `false` to disable commit association.
+   *
+   * @default { auto: true }
    */
-  setCommits?: (AutoSetCommitsOptions | ManualSetCommitsOptions) & {
+  setCommits?: false | (AutoSetCommitsOptions | ManualSetCommitsOptions) & {
     /**
      * The commit before the beginning of this release (in other words,
      * the last commit of the previous release).
@@ -362,39 +366,43 @@ interface ReleaseOptions {
 
   /**
    * Configuration for adding deployment information to the release in Sentry.
+   *
+   * Set to `false` to disable automatic deployment detection and creation.
    */
-  deploy?: {
-    /**
-     * Environment for this release. Values that make sense here would
-     * be `production` or `staging`.
-     */
-    env: string;
+  deploy?:
+    | false
+    | {
+        /**
+         * Environment for this release. Values that make sense here would
+         * be `production` or `staging`.
+         */
+        env: string;
 
-    /**
-     * Deployment start time in Unix timestamp (in seconds) or ISO 8601 format.
-     */
-    started?: number | string;
+        /**
+         * Deployment start time in Unix timestamp (in seconds) or ISO 8601 format.
+         */
+        started?: number | string;
 
-    /**
-     * Deployment finish time in Unix timestamp (in seconds) or ISO 8601 format.
-     */
-    finished?: number | string;
+        /**
+         * Deployment finish time in Unix timestamp (in seconds) or ISO 8601 format.
+         */
+        finished?: number | string;
 
-    /**
-     * Deployment duration (in seconds). Can be used instead of started and finished.
-     */
-    time?: number;
+        /**
+         * Deployment duration (in seconds). Can be used instead of started and finished.
+         */
+        time?: number;
 
-    /**
-     * Human-readable name for the deployment.
-     */
-    name?: string;
+        /**
+         * Human-readable name for the deployment.
+         */
+        name?: string;
 
-    /**
-     * URL that points to the deployment.
-     */
-    url?: string;
-  };
+        /**
+         * URL that points to the deployment.
+         */
+        url?: string;
+      };
 }
 
 interface BundleSizeOptimizationsOptions {
