@@ -335,34 +335,36 @@ interface ReleaseOptions {
    *
    * @default { auto: true }
    */
-  setCommits?: false | (AutoSetCommitsOptions | ManualSetCommitsOptions) & {
-    /**
-     * The commit before the beginning of this release (in other words,
-     * the last commit of the previous release).
-     *
-     * Defaults to the last commit of the previous release in Sentry.
-     *
-     * If there was no previous release, the last 10 commits will be used.
-     */
-    previousCommit?: string;
+  setCommits?:
+    | false
+    | ((AutoSetCommitsOptions | ManualSetCommitsOptions) & {
+        /**
+         * The commit before the beginning of this release (in other words,
+         * the last commit of the previous release).
+         *
+         * Defaults to the last commit of the previous release in Sentry.
+         *
+         * If there was no previous release, the last 10 commits will be used.
+         */
+        previousCommit?: string;
 
-    /**
-     * If the flag is to `true` and the previous release commit was not found
-     * in the repository, the plugin creates a release with the default commits
-     * count instead of failing the command.
-     *
-     * @default false
-     */
-    ignoreMissing?: boolean;
+        /**
+         * If the flag is to `true` and the previous release commit was not found
+         * in the repository, the plugin creates a release with the default commits
+         * count instead of failing the command.
+         *
+         * @default false
+         */
+        ignoreMissing?: boolean;
 
-    /**
-     * If this flag is set, the setCommits step will not fail and just exit
-     * silently if no new commits for a given release have been found.
-     *
-     * @default false
-     */
-    ignoreEmpty?: boolean;
-  };
+        /**
+         * If this flag is set, the setCommits step will not fail and just exit
+         * silently if no new commits for a given release have been found.
+         *
+         * @default false
+         */
+        ignoreEmpty?: boolean;
+      });
 
   /**
    * Configuration for adding deployment information to the release in Sentry.
