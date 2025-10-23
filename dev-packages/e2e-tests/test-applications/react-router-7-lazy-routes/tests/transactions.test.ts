@@ -377,3 +377,124 @@ test('Allows legitimate POP navigation (back/forward) after pageload completes',
   expect(backNavigationEvent.transaction).toBe('/');
   expect(backNavigationEvent.contexts?.trace?.op).toBe('navigation');
 });
+
+test('Updates pageload transaction name correctly when span is cancelled early (document.hidden simulation)', async ({
+  page,
+}) => {
+  const transactionPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+    return (
+      !!transactionEvent?.transaction &&
+      transactionEvent.contexts?.trace?.op === 'pageload' &&
+      transactionEvent.transaction === '/lazy/inner/:id/:anotherId/:someAnotherId'
+    );
+  });
+
+  // Set up the page to simulate document.hidden before navigation
+  await page.addInitScript(() => {
+    // Wait a bit for Sentry to initialize and start the pageload span
+    setTimeout(() => {
+      // Override document.hidden to simulate tab switching
+      Object.defineProperty(document, 'hidden', {
+        configurable: true,
+        get: function () {
+          return true;
+        },
+      });
+
+      // Dispatch visibilitychange event to trigger the idle span cancellation logic
+      document.dispatchEvent(new Event('visibilitychange'));
+    }, 100); // Small delay to ensure the span has started
+  });
+
+  // Navigate to the lazy route URL
+  await page.goto('/lazy/inner/1/2/3');
+
+  const event = await transactionPromise;
+
+  // Verify the lazy route content eventually loads (even though span was cancelled early)
+  const lazyRouteContent = page.locator('id=innermost-lazy-route');
+  await expect(lazyRouteContent).toBeVisible();
+
+  // Validate that the transaction event has the correct parameterized route name
+  // even though the span was cancelled early due to document.hidden
+  expect(event.transaction).toBe('/lazy/inner/:id/:anotherId/:someAnotherId');
+  expect(event.type).toBe('transaction');
+  expect(event.contexts?.trace?.op).toBe('pageload');
+
+  // Check if the span was indeed cancelled (should have idle_span_finish_reason attribute)
+  const idleSpanFinishReason = event.contexts?.trace?.data?.['sentry.idle_span_finish_reason'];
+  if (idleSpanFinishReason) {
+    // If the span was cancelled due to visibility change, verify it still got the right name
+    expect(['externalFinish', 'cancelled']).toContain(idleSpanFinishReason);
+  }
+});
+
+test('Updates navigation transaction name correctly when span is cancelled early (document.hidden simulation)', async ({
+  page,
+}) => {
+  // First go to home page
+  await page.goto('/');
+
+  const navigationPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+    return (
+      !!transactionEvent?.transaction &&
+      transactionEvent.contexts?.trace?.op === 'navigation' &&
+      transactionEvent.transaction === '/lazy/inner/:id/:anotherId/:someAnotherId'
+    );
+  });
+
+  // Set up a listener to simulate document.hidden after clicking the navigation link
+  await page.evaluate(() => {
+    // Override document.hidden to simulate tab switching
+    let hiddenValue = false;
+    Object.defineProperty(document, 'hidden', {
+      configurable: true,
+      get: function () {
+        return hiddenValue;
+      },
+    });
+
+    // Listen for clicks on the navigation link and simulate document.hidden shortly after
+    document.addEventListener(
+      'click',
+      () => {
+        setTimeout(() => {
+          hiddenValue = true;
+          // Dispatch visibilitychange event to trigger the idle span cancellation logic
+          document.dispatchEvent(new Event('visibilitychange'));
+        }, 50); // Small delay to ensure the navigation span has started
+      },
+      { once: true },
+    );
+  });
+
+  // Click the navigation link to navigate to the lazy route
+  const navigationLink = page.locator('id=navigation');
+  await expect(navigationLink).toBeVisible();
+  await navigationLink.click();
+
+  const event = await navigationPromise;
+
+  // Verify the lazy route content eventually loads (even though span was cancelled early)
+  const lazyRouteContent = page.locator('id=innermost-lazy-route');
+  await expect(lazyRouteContent).toBeVisible();
+
+  // Validate that the transaction event has the correct parameterized route name
+  // even though the span was cancelled early due to document.hidden
+  expect(event.transaction).toBe('/lazy/inner/:id/:anotherId/:someAnotherId');
+  expect(event.type).toBe('transaction');
+  expect(event.contexts?.trace?.op).toBe('navigation');
+
+  // Check if the span was indeed cancelled (should have cancellation_reason attribute or idle_span_finish_reason)
+  const cancellationReason = event.contexts?.trace?.data?.['sentry.cancellation_reason'];
+  const idleSpanFinishReason = event.contexts?.trace?.data?.['sentry.idle_span_finish_reason'];
+
+  // Verify that the span was cancelled due to document.hidden
+  if (cancellationReason) {
+    expect(cancellationReason).toBe('document.hidden');
+  }
+
+  if (idleSpanFinishReason) {
+    expect(['externalFinish', 'cancelled']).toContain(idleSpanFinishReason);
+  }
+});

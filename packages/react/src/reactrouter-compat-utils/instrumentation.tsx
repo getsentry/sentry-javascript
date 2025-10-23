@@ -8,7 +8,7 @@ import {
   startBrowserTracingPageLoadSpan,
   WINDOW,
 } from '@sentry/browser';
-import type { Client, Integration, Span, TransactionSource } from '@sentry/core';
+import type { Client, Integration, Span } from '@sentry/core';
 import {
   addNonEnumerableProperty,
   debug,
@@ -41,14 +41,7 @@ import type {
   UseRoutes,
 } from '../types';
 import { checkRouteForAsyncHandler } from './lazy-routes';
-import {
-  getNormalizedName,
-  initializeRouterUtils,
-  locationIsInsideDescendantRoute,
-  prefixWithSlash,
-  rebuildRoutePathFromAllRoutes,
-  resolveRouteNameAndSource,
-} from './utils';
+import { initializeRouterUtils, resolveRouteNameAndSource } from './utils';
 
 let _useEffect: UseEffect;
 let _useLocation: UseLocation;
@@ -668,7 +661,7 @@ export function handleNavigation(opts: {
 
     // Cross usage can result in multiple navigation spans being created without this check
     if (!isAlreadyInNavigationSpan) {
-      startBrowserTracingNavigationSpan(client, {
+      const navigationSpan = startBrowserTracingNavigationSpan(client, {
         name,
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
@@ -676,6 +669,11 @@ export function handleNavigation(opts: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: `auto.navigation.react.reactrouter_v${version}`,
         },
       });
+
+      // Patch navigation span to handle early cancellation (e.g., document.hidden)
+      if (navigationSpan) {
+        patchNavigationSpanEnd(navigationSpan, location, routes, basename, allRoutes);
+      }
     }
   }
 }
@@ -729,27 +727,102 @@ function updatePageloadTransaction({
     : (_matchRoutes(allRoutes || routes, location, basename) as unknown as RouteMatch[]);
 
   if (branches) {
-    let name,
-      source: TransactionSource = 'url';
-
-    const isInDescendantRoute = locationIsInsideDescendantRoute(location, allRoutes || routes);
-
-    if (isInDescendantRoute) {
-      name = prefixWithSlash(rebuildRoutePathFromAllRoutes(allRoutes || routes, location));
-      source = 'route';
-    }
-
-    if (!isInDescendantRoute || !name) {
-      [name, source] = getNormalizedName(routes, location, branches, basename);
-    }
+    const [name, source] = resolveRouteNameAndSource(location, routes, allRoutes || routes, branches, basename);
 
     getCurrentScope().setTransactionName(name || '/');
 
     if (activeRootSpan) {
       activeRootSpan.updateName(name);
       activeRootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
+
+      // Patch span.end() to ensure we update the name one last time before the span is sent
+      patchPageloadSpanEnd(activeRootSpan, location, routes, basename, allRoutes);
     }
   }
+}
+
+/**
+ * Patches the span.end() method to update the transaction name one last time before the span is sent.
+ * This handles cases where the span is cancelled early (e.g., document.hidden) before lazy routes have finished loading.
+ */
+function patchSpanEnd(
+  span: Span,
+  location: Location,
+  routes: RouteObject[],
+  basename: string | undefined,
+  _allRoutes: RouteObject[] | undefined,
+  spanType: 'pageload' | 'navigation',
+): void {
+  const patchedPropertyName = `__sentry_${spanType}_end_patched__` as const;
+  const hasEndBeenPatched = (span as unknown as Record<string, boolean | undefined>)?.[patchedPropertyName];
+
+  if (hasEndBeenPatched || !span.end) {
+    return;
+  }
+
+  const originalEnd = span.end.bind(span);
+
+  span.end = function patchedEnd(...args) {
+    try {
+      // Only update if the span source is not already 'route' (i.e., it hasn't been parameterized yet)
+      const spanJson = spanToJSON(span);
+      const currentSource = spanJson.data?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
+      if (currentSource !== 'route') {
+        // Last chance to update the transaction name with the latest route info
+        // Use the live global allRoutes Set to include any lazy routes loaded after patching
+        const currentAllRoutes = Array.from(allRoutes);
+        const branches = _matchRoutes(
+          currentAllRoutes.length > 0 ? currentAllRoutes : routes,
+          location,
+          basename,
+        ) as unknown as RouteMatch[];
+
+        if (branches) {
+          const [name, source] = resolveRouteNameAndSource(
+            location,
+            routes,
+            currentAllRoutes.length > 0 ? currentAllRoutes : routes,
+            branches,
+            basename,
+          );
+
+          // Only update if we have a valid name
+          if (name && (spanType === 'pageload' || !spanJson.timestamp)) {
+            span.updateName(name);
+            span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
+          }
+        }
+      }
+    } catch (error) {
+      // Silently catch errors to ensure span.end() is always called
+      DEBUG_BUILD && debug.warn(`Error updating span details before ending: ${error}`);
+    }
+
+    return originalEnd(...args);
+  };
+
+  // Mark this span as having its end() method patched to prevent duplicate patching
+  addNonEnumerableProperty(span as unknown as Record<string, boolean>, patchedPropertyName, true);
+}
+
+function patchPageloadSpanEnd(
+  span: Span,
+  location: Location,
+  routes: RouteObject[],
+  basename: string | undefined,
+  _allRoutes: RouteObject[] | undefined,
+): void {
+  patchSpanEnd(span, location, routes, basename, _allRoutes, 'pageload');
+}
+
+function patchNavigationSpanEnd(
+  span: Span,
+  location: Location,
+  routes: RouteObject[],
+  basename: string | undefined,
+  _allRoutes: RouteObject[] | undefined,
+): void {
+  patchSpanEnd(span, location, routes, basename, _allRoutes, 'navigation');
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
