@@ -1,6 +1,6 @@
 import type { IntegrationFn, OpenAiOptions } from '@sentry/core';
 import { defineIntegration, OPENAI_INTEGRATION_NAME } from '@sentry/core';
-import { generateInstrumentOnce } from '@sentry/node-core';
+import { generateInstrumentOnce, isIntegrationDisabled } from '@sentry/node-core';
 import { SentryOpenAiInstrumentation } from './instrumentation';
 
 export const instrumentOpenAi = generateInstrumentOnce(
@@ -13,6 +13,10 @@ const _openAiIntegration = ((options: OpenAiOptions = {}) => {
     name: OPENAI_INTEGRATION_NAME,
     options,
     setupOnce() {
+      // Skip instrumentation if disabled (e.g., when LangChain integration is active)
+      if (isIntegrationDisabled(OPENAI_INTEGRATION_NAME)) {
+        return;
+      }
       instrumentOpenAi();
     },
   };

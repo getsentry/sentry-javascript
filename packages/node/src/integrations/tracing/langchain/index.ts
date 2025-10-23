@@ -1,6 +1,12 @@
 import type { IntegrationFn, LangChainOptions } from '@sentry/core';
-import { defineIntegration, LANGCHAIN_INTEGRATION_NAME } from '@sentry/core';
-import { generateInstrumentOnce } from '@sentry/node-core';
+import {
+  ANTHROPIC_AI_INTEGRATION_NAME,
+  defineIntegration,
+  GOOGLE_GENAI_INTEGRATION_NAME,
+  LANGCHAIN_INTEGRATION_NAME,
+  OPENAI_INTEGRATION_NAME,
+} from '@sentry/core';
+import { disableIntegrations, generateInstrumentOnce } from '@sentry/node-core';
 import { SentryLangChainInstrumentation } from './instrumentation';
 
 export const instrumentLangChain = generateInstrumentOnce<LangChainOptions>(
@@ -12,6 +18,10 @@ const _langChainIntegration = ((options: LangChainOptions = {}) => {
   return {
     name: LANGCHAIN_INTEGRATION_NAME,
     setupOnce() {
+      // Disable AI provider integrations to prevent duplicate spans
+      // LangChain integration handles instrumentation for all underlying AI providers
+      disableIntegrations([OPENAI_INTEGRATION_NAME, ANTHROPIC_AI_INTEGRATION_NAME, GOOGLE_GENAI_INTEGRATION_NAME]);
+
       instrumentLangChain(options);
     },
   };
@@ -24,6 +34,10 @@ const _langChainIntegration = ((options: LangChainOptions = {}) => {
  *
  * When configured, this integration automatically instruments LangChain runnable instances
  * to capture telemetry data by injecting Sentry callback handlers into all LangChain calls.
+ *
+ * **Important:** This integration automatically disables the OpenAI, Anthropic, and Google GenAI
+ * integrations to prevent duplicate spans when using LangChain with these providers. LangChain
+ * handles the instrumentation for all underlying AI providers.
  *
  * @example
  * ```javascript
