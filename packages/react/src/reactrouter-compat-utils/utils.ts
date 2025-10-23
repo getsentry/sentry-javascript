@@ -45,21 +45,27 @@ export function pathIsWildcardAndHasChildren(path: string, branch: RouteMatch<st
   return (pathEndsWithWildcard(path) && !!branch.route.children?.length) || false;
 }
 
-function routeIsDescendant(route: RouteObject): boolean {
+/** Check if route is in descendant route (<Routes> within <Routes>) */
+export function routeIsDescendant(route: RouteObject): boolean {
   return !!(!route.children && route.element && route.path?.endsWith('/*'));
 }
 
 function sendIndexPath(pathBuilder: string, pathname: string, basename: string): [string, TransactionSource] {
-  const reconstructedPath = pathBuilder || _stripBasename ? stripBasenameFromPathname(pathname, basename) : pathname;
+  const reconstructedPath =
+    pathBuilder && pathBuilder.length > 0
+      ? pathBuilder
+      : _stripBasename
+        ? stripBasenameFromPathname(pathname, basename)
+        : pathname;
 
-  const formattedPath =
-    // If the path ends with a slash, remove it
-    reconstructedPath[reconstructedPath.length - 1] === '/'
-      ? reconstructedPath.slice(0, -1)
-      : // If the path ends with a wildcard, remove it
-        reconstructedPath.slice(-2) === '/*'
-        ? reconstructedPath.slice(0, -1)
-        : reconstructedPath;
+  let formattedPath =
+    // If the path ends with a wildcard suffix, remove both the slash and the asterisk
+    reconstructedPath.slice(-2) === '/*' ? reconstructedPath.slice(0, -2) : reconstructedPath;
+
+  // If the path ends with a slash, remove it (but keep single '/')
+  if (formattedPath.length > 1 && formattedPath[formattedPath.length - 1] === '/') {
+    formattedPath = formattedPath.slice(0, -1);
+  }
 
   return [formattedPath, 'route'];
 }

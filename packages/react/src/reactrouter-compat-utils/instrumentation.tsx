@@ -106,7 +106,8 @@ export interface ReactRouterOptions {
 type V6CompatibleVersion = '6' | '7';
 
 // Keeping as a global variable for cross-usage in multiple functions
-const allRoutes = new Set<RouteObject>();
+// only exported for testing purposes
+export const allRoutes = new Set<RouteObject>();
 
 /**
  * Processes resolved routes by adding them to allRoutes and checking for nested async handlers.
@@ -679,7 +680,8 @@ export function handleNavigation(opts: {
   }
 }
 
-function addRoutesToAllRoutes(routes: RouteObject[]): void {
+/* Only exported for testing purposes */
+export function addRoutesToAllRoutes(routes: RouteObject[]): void {
   routes.forEach(route => {
     const extractedChildRoutes = getChildRoutesRecursively(route);
 
