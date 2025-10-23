@@ -1,6 +1,6 @@
 import type { AnthropicAiOptions, IntegrationFn } from '@sentry/core';
 import { ANTHROPIC_AI_INTEGRATION_NAME, defineIntegration } from '@sentry/core';
-import { generateInstrumentOnce } from '@sentry/node-core';
+import { generateInstrumentOnce, isIntegrationDisabled } from '@sentry/node-core';
 import { SentryAnthropicAiInstrumentation } from './instrumentation';
 
 export const instrumentAnthropicAi = generateInstrumentOnce<AnthropicAiOptions>(
@@ -13,6 +13,10 @@ const _anthropicAIIntegration = ((options: AnthropicAiOptions = {}) => {
     name: ANTHROPIC_AI_INTEGRATION_NAME,
     options,
     setupOnce() {
+      // Skip instrumentation if disabled (e.g., when LangChain integration is active)
+      if (isIntegrationDisabled(ANTHROPIC_AI_INTEGRATION_NAME)) {
+        return;
+      }
       instrumentAnthropicAi(options);
     },
   };
