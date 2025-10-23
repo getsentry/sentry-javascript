@@ -8,7 +8,7 @@ export interface CallbackHandler {
     runId: string,
     parentRunId?: string,
     extraParams?: Record<string, unknown>,
-    tags?: string[],
+    tags?: string[] | Record<string, unknown>,
     metadata?: Record<string, unknown>,
     runName?: string,
   ) => unknown;
@@ -82,6 +82,7 @@ export class MockChatModel {
 
     // Call handleChatModelStart
     // Pass tags as a record with invocation_params for proper extraction
+    // The callback handler's getInvocationParams utility accepts both string[] and Record<string, unknown>
     for (const callback of callbacks) {
       if (callback.handleChatModelStart) {
         await callback.handleChatModelStart(
@@ -90,7 +91,7 @@ export class MockChatModel {
           runId,
           undefined,
           undefined,
-          { invocation_params: invocationParams } as unknown as string[], // LangChain can pass tags as either string[] or record
+          { invocation_params: invocationParams },
           { ls_model_name: this._model, ls_provider: 'anthropic' },
         );
       }
