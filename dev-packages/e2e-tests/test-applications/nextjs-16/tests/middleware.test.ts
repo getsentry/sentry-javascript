@@ -61,13 +61,6 @@ test('Faulty middlewares', async ({ request }) => {
 test('Should trace outgoing fetch requests inside middleware and create breadcrumbs for it', async ({ request }) => {
   test.skip(isDevMode, 'The fetch requests ends up in a separate tx in dev atm');
   const middlewareTransactionPromise = waitForTransaction('nextjs-16', async transactionEvent => {
-    console.log(64, 'transactionEvent', transactionEvent.transaction, {
-      spans: transactionEvent.spans,
-      traceId: transactionEvent.contexts?.trace?.trace_id,
-      spanId: transactionEvent.contexts?.trace?.span_id,
-      parentSpanId: transactionEvent.contexts?.trace?.parent_span_id,
-      data: transactionEvent.contexts?.trace?.data,
-    });
     return (
       transactionEvent?.transaction === 'middleware GET' &&
       !!transactionEvent.spans?.find(span => span.op === 'http.client')
