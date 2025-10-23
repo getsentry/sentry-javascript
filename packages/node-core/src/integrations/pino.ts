@@ -138,7 +138,7 @@ const _pinoIntegration = defineIntegration((userOptions: DeepPartial<PinoOptions
         if (enableLogs && options.log.levels.includes(level)) {
           const attributes: Record<string, unknown> = {
             ...resultObj,
-            'sentry.origin': 'auto.logging.pino',
+            'sentry.origin': 'auto.log.pino',
             'pino.logger.level': levelNumber,
           };
 
