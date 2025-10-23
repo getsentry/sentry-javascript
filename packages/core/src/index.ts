@@ -55,7 +55,16 @@ export { initAndBind, setCurrentClient } from './sdk';
 export { createTransport } from './transports/base';
 export { makeOfflineTransport } from './transports/offline';
 export { makeMultiplexedTransport } from './transports/multiplexed';
-export { getIntegrationsToSetup, addIntegration, defineIntegration } from './integration';
+export {
+  getIntegrationsToSetup,
+  addIntegration,
+  defineIntegration,
+  installedIntegrations,
+  disableIntegrations,
+  isIntegrationDisabled,
+  enableIntegration,
+  clearDisabledIntegrations,
+} from './integration';
 export { applyScopeDataToEvent, mergeScopeData } from './utils/applyScopeDataToEvent';
 export { prepareEvent } from './utils/prepareEvent';
 export { createCheckInEnvelope } from './checkin';

@@ -2,6 +2,7 @@ import type { IntegrationFn, LangChainOptions } from '@sentry/core';
 import {
   ANTHROPIC_AI_INTEGRATION_NAME,
   defineIntegration,
+  getClient,
   GOOGLE_GENAI_INTEGRATION_NAME,
   LANGCHAIN_INTEGRATION_NAME,
   OPENAI_INTEGRATION_NAME,
@@ -18,9 +19,21 @@ const _langChainIntegration = ((options: LangChainOptions = {}) => {
   return {
     name: LANGCHAIN_INTEGRATION_NAME,
     setupOnce() {
-      // Disable AI provider integrations to prevent duplicate spans
+      // Only disable AI provider integrations if they weren't explicitly requested by the user
       // LangChain integration handles instrumentation for all underlying AI providers
-      disableIntegrations([OPENAI_INTEGRATION_NAME, ANTHROPIC_AI_INTEGRATION_NAME, GOOGLE_GENAI_INTEGRATION_NAME]);
+      const client = getClient();
+      const clientIntegrations = client?.getOptions().integrations || [];
+      const explicitIntegrationNames = clientIntegrations.map(i => i.name);
+
+      const integrationsToDisable = [
+        OPENAI_INTEGRATION_NAME,
+        ANTHROPIC_AI_INTEGRATION_NAME,
+        GOOGLE_GENAI_INTEGRATION_NAME,
+      ].filter(name => !explicitIntegrationNames.includes(name));
+
+      if (integrationsToDisable.length > 0) {
+        disableIntegrations(integrationsToDisable);
+      }
 
       instrumentLangChain(options);
     },
