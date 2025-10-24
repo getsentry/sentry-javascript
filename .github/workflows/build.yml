@@ -609,6 +609,7 @@ jobs:
         uses: actions/checkout@v5
         with:
           ref: ${{ env.HEAD_COMMIT }}
+          set-safe-directory: ${{ github.workspace }}
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
@@ -671,6 +672,7 @@ jobs:
         uses: actions/checkout@v5
         with:
           ref: ${{ env.HEAD_COMMIT }}
+          set-safe-directory: ${{ github.workspace }}
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
@@ -819,6 +821,7 @@ jobs:
         uses: actions/checkout@v5
         with:
           ref: ${{ env.HEAD_COMMIT }}
+          set-safe-directory: ${{ github.workspace }}
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
@@ -934,6 +937,7 @@ jobs:
         uses: actions/checkout@v5
         with:
           ref: ${{ env.HEAD_COMMIT }}
+          set-safe-directory: ${{ github.workspace }}
       - uses: pnpm/action-setup@v4
         with:
           version: 9.15.9
@@ -1061,6 +1065,7 @@ jobs:
         uses: actions/checkout@v5
         with:
           ref: ${{ env.HEAD_COMMIT }}
+          set-safe-directory: ${{ github.workspace }}
       - uses: pnpm/action-setup@v4
         with:
           version: 9.15.9

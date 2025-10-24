@@ -34,6 +34,8 @@ jobs:
     steps:
       - name: Check out current branch
         uses: actions/checkout@v5
+        with:
+          set-safe-directory: ${{ github.workspace }}
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
