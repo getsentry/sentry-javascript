@@ -21,7 +21,7 @@
     "nuxt": "^4.1.2"
   },
   "devDependencies": {
-    "@playwright/test": "~1.53.2",
+    "@playwright/test": "1.53.2",
     "@sentry-internal/test-utils": "link:../../../test-utils"
   },
   "volta": {

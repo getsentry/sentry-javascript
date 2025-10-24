@@ -42,7 +42,7 @@
     ]
   },
   "devDependencies": {
-    "@playwright/test": "~1.53.2",
+    "@playwright/test": "1.53.2",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "serve": "14.0.1",
     "npm-run-all2": "^6.2.0"
