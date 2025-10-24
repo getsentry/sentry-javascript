@@ -24,7 +24,9 @@ concurrency:
 jobs:
   flaky-detector:
     runs-on: ubuntu-24.04
-    container: mcr.microsoft.com/playwright:v1.53.2-jammy
+    container:
+      image: mcr.microsoft.com/playwright:v1.53.2-jammy
+      options: --ipc=host
     timeout-minutes: 60
     name: 'Check tests for flakiness'
     # Also skip if PR is from master -> develop

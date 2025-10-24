@@ -558,7 +558,9 @@ jobs:
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_browser_integration == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-24.04-large-js
-    container: mcr.microsoft.com/playwright:v1.53.2-jammy
+    container:
+      image: mcr.microsoft.com/playwright:v1.53.2-jammy
+      options: --ipc=host
     timeout-minutes: 25
     strategy:
       fail-fast: false
@@ -648,7 +650,9 @@ jobs:
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_browser_integration == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
-    container: mcr.microsoft.com/playwright:v1.53.2-jammy
+    container:
+      image: mcr.microsoft.com/playwright:v1.53.2-jammy
+      options: --ipc=host
     timeout-minutes: 15
     strategy:
       fail-fast: false
@@ -802,7 +806,9 @@ jobs:
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_remix == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
-    container: mcr.microsoft.com/playwright:v1.53.2-jammy
+    container:
+      image: mcr.microsoft.com/playwright:v1.53.2-jammy
+      options: --ipc=host
     timeout-minutes: 10
     strategy:
       fail-fast: false
@@ -907,7 +913,9 @@ jobs:
       always() && needs.job_e2e_prepare.result == 'success' && needs.job_e2e_prepare.outputs.matrix != '{"include":[]}'
     needs: [job_get_metadata, job_build, job_e2e_prepare]
     runs-on: ubuntu-24.04
-    container: mcr.microsoft.com/playwright:v1.53.2-jammy
+    container:
+      image: mcr.microsoft.com/playwright:v1.53.2-jammy
+      options: --ipc=host
     timeout-minutes: 15
     env:
       # We just use a dummy DSN here, only send to the tunnel anyhow
@@ -1031,7 +1039,9 @@ jobs:
       github.event.pull_request.head.repo.full_name == github.repository) && github.actor != 'dependabot[bot]'
     needs: [job_get_metadata, job_build, job_e2e_prepare]
     runs-on: ubuntu-24.04
-    container: mcr.microsoft.com/playwright:v1.53.2-jammy
+    container:
+      image: mcr.microsoft.com/playwright:v1.53.2-jammy
+      options: --ipc=host
     timeout-minutes: 15
     env:
       E2E_TEST_AUTH_TOKEN: ${{ secrets.E2E_TEST_AUTH_TOKEN }}
