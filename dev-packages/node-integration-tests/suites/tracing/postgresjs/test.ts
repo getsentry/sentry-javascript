@@ -399,4 +399,156 @@ describe('postgresjs auto instrumentation', () => {
       .start()
       .completed();
   });
+
+  test('should call requestHook when provided (CJS)', { timeout: 60_000 }, async () => {
+    const EXPECTED_TRANSACTION = {
+      transaction: 'Test Transaction',
+      spans: expect.arrayContaining([
+        expect.objectContaining({
+          data: expect.objectContaining({
+            'db.namespace': 'test_db',
+            'db.system.name': 'postgres',
+            'db.operation.name': 'CREATE TABLE',
+            'db.query.text':
+              'CREATE TABLE "User" ("id" SERIAL NOT NULL,"createdAt" TIMESTAMP(?) NOT NULL DEFAULT CURRENT_TIMESTAMP,"email" TEXT NOT NULL,"name" TEXT,CONSTRAINT "User_pkey" PRIMARY KEY ("id"))',
+            'custom.requestHook': 'called',
+            'sentry.op': 'db',
+            'sentry.origin': 'auto.db.otel.postgresjs',
+            'server.address': 'localhost',
+            'server.port': 5444,
+          }),
+          description:
+            'CREATE TABLE "User" ("id" SERIAL NOT NULL,"createdAt" TIMESTAMP(?) NOT NULL DEFAULT CURRENT_TIMESTAMP,"email" TEXT NOT NULL,"name" TEXT,CONSTRAINT "User_pkey" PRIMARY KEY ("id"))',
+          op: 'db',
+          status: 'ok',
+          origin: 'auto.db.otel.postgresjs',
+        }),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            'db.namespace': 'test_db',
+            'db.system.name': 'postgres',
+            'db.operation.name': 'INSERT',
+            'db.query.text': `INSERT INTO "User" ("email", "name") VALUES ('Foo', '${EXISTING_TEST_EMAIL}')`,
+            'custom.requestHook': 'called',
+            'sentry.op': 'db',
+            'sentry.origin': 'auto.db.otel.postgresjs',
+            'server.address': 'localhost',
+            'server.port': 5444,
+          }),
+          description: `INSERT INTO "User" ("email", "name") VALUES ('Foo', '${EXISTING_TEST_EMAIL}')`,
+          op: 'db',
+          status: 'ok',
+          origin: 'auto.db.otel.postgresjs',
+        }),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            'db.namespace': 'test_db',
+            'db.system.name': 'postgres',
+            'db.operation.name': 'SELECT',
+            'db.query.text': `SELECT * FROM "User" WHERE "email" = '${EXISTING_TEST_EMAIL}'`,
+            'custom.requestHook': 'called',
+            'sentry.op': 'db',
+            'sentry.origin': 'auto.db.otel.postgresjs',
+            'server.address': 'localhost',
+            'server.port': 5444,
+          }),
+          description: `SELECT * FROM "User" WHERE "email" = '${EXISTING_TEST_EMAIL}'`,
+          op: 'db',
+          status: 'ok',
+          origin: 'auto.db.otel.postgresjs',
+        }),
+      ]),
+      extra: expect.objectContaining({
+        requestHookCalled: expect.objectContaining({
+          database: 'test_db',
+          host: 'localhost',
+          port: 5444,
+          sanitizedQuery: expect.any(String),
+        }),
+      }),
+    };
+
+    await createRunner(__dirname, 'scenario-requestHook.js')
+      .withFlags('--require', `${__dirname}/instrument-requestHook.cjs`)
+      .withDockerCompose({ workingDirectory: [__dirname], readyMatches: ['port 5432'] })
+      .expect({ transaction: EXPECTED_TRANSACTION })
+      .start()
+      .completed();
+  });
+
+  test('should call requestHook when provided (ESM)', { timeout: 60_000 }, async () => {
+    const EXPECTED_TRANSACTION = {
+      transaction: 'Test Transaction',
+      spans: expect.arrayContaining([
+        expect.objectContaining({
+          data: expect.objectContaining({
+            'db.namespace': 'test_db',
+            'db.system.name': 'postgres',
+            'db.operation.name': 'CREATE TABLE',
+            'db.query.text':
+              'CREATE TABLE "User" ("id" SERIAL NOT NULL,"createdAt" TIMESTAMP(?) NOT NULL DEFAULT CURRENT_TIMESTAMP,"email" TEXT NOT NULL,"name" TEXT,CONSTRAINT "User_pkey" PRIMARY KEY ("id"))',
+            'custom.requestHook': 'called',
+            'sentry.op': 'db',
+            'sentry.origin': 'auto.db.otel.postgresjs',
+            'server.address': 'localhost',
+            'server.port': 5444,
+          }),
+          description:
+            'CREATE TABLE "User" ("id" SERIAL NOT NULL,"createdAt" TIMESTAMP(?) NOT NULL DEFAULT CURRENT_TIMESTAMP,"email" TEXT NOT NULL,"name" TEXT,CONSTRAINT "User_pkey" PRIMARY KEY ("id"))',
+          op: 'db',
+          status: 'ok',
+          origin: 'auto.db.otel.postgresjs',
+        }),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            'db.namespace': 'test_db',
+            'db.system.name': 'postgres',
+            'db.operation.name': 'INSERT',
+            'db.query.text': `INSERT INTO "User" ("email", "name") VALUES ('Foo', '${EXISTING_TEST_EMAIL}')`,
+            'custom.requestHook': 'called',
+            'sentry.op': 'db',
+            'sentry.origin': 'auto.db.otel.postgresjs',
+            'server.address': 'localhost',
+            'server.port': 5444,
+          }),
+          description: `INSERT INTO "User" ("email", "name") VALUES ('Foo', '${EXISTING_TEST_EMAIL}')`,
+          op: 'db',
+          status: 'ok',
+          origin: 'auto.db.otel.postgresjs',
+        }),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            'db.namespace': 'test_db',
+            'db.system.name': 'postgres',
+            'db.operation.name': 'SELECT',
+            'db.query.text': `SELECT * FROM "User" WHERE "email" = '${EXISTING_TEST_EMAIL}'`,
+            'custom.requestHook': 'called',
+            'sentry.op': 'db',
+            'sentry.origin': 'auto.db.otel.postgresjs',
+            'server.address': 'localhost',
+            'server.port': 5444,
+          }),
+          description: `SELECT * FROM "User" WHERE "email" = '${EXISTING_TEST_EMAIL}'`,
+          op: 'db',
+          status: 'ok',
+          origin: 'auto.db.otel.postgresjs',
+        }),
+      ]),
+      extra: expect.objectContaining({
+        requestHookCalled: expect.objectContaining({
+          database: 'test_db',
+          host: 'localhost',
+          port: 5444,
+          sanitizedQuery: expect.any(String),
+        }),
+      }),
+    };
+
+    await createRunner(__dirname, 'scenario-requestHook.mjs')
+      .withFlags('--import', `${__dirname}/instrument-requestHook.mjs`)
+      .withDockerCompose({ workingDirectory: [__dirname], readyMatches: ['port 5432'] })
+      .expect({ transaction: EXPECTED_TRANSACTION })
+      .start()
+      .completed();
+  });
 });
