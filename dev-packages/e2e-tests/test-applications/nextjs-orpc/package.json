@@ -25,7 +25,7 @@
     "server-only": "^0.0.1"
   },
   "devDependencies": {
-    "@playwright/test": "~1.53.2",
+    "@playwright/test": "1.53.2",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "@types/eslint": "^8.56.10",
     "@types/node": "^18.19.1",

@@ -54,7 +54,7 @@ jobs:
   job_e2e_tests:
     name: E2E ${{ matrix.label }} Test
     needs: [job_e2e_prepare]
-    runs-on: ubuntu-24.04
+    runs-on: mcr.microsoft.com/playwright:v1.53.2-jammy
     timeout-minutes: 20
     env:
       # We just use a dummy DSN here, only send to the tunnel anyhow
@@ -158,12 +158,6 @@ jobs:
         working-directory: ${{ runner.temp }}/test-application
         timeout-minutes: 7
         run: yarn ${{ matrix.build-command }}
-
-      - name: Install Playwright
-        uses: ./.github/actions/install-playwright
-        with:
-          browsers: chromium
-          cwd: ${{ runner.temp }}/test-application
 
       - name: Run E2E test
         working-directory: ${{ runner.temp }}/test-application

@@ -22,7 +22,7 @@
     "vue-router": "4.2.4"
   },
   "devDependencies": {
-    "@playwright/test": "~1.53.2",
+    "@playwright/test": "1.53.2",
     "@sentry-internal/test-utils": "link:../../../test-utils"
   },
   "pnpm": {
