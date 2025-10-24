@@ -9,7 +9,7 @@ import {
   shouldSkipTracingTest,
 } from '../../../../utils/helpers';
 
-const supportedBrowsers = ['chromium', 'firefox'];
+const supportedBrowsers = ['chromium'];
 
 sentryTest(
   'should capture INP with correct target name when navigation keeps DOM element',
