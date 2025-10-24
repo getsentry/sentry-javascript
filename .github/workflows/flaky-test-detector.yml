@@ -24,6 +24,7 @@ concurrency:
 jobs:
   flaky-detector:
     runs-on: ubuntu-24.04
+    container: mcr.microsoft.com/playwright:v1.53.2-jammy
     timeout-minutes: 60
     name: 'Check tests for flakiness'
     # Also skip if PR is from master -> develop
@@ -48,11 +49,6 @@ jobs:
 
       - name: Build packages
         run: yarn build
-
-      - name: Install Playwright
-        uses: ./.github/actions/install-playwright
-        with:
-          browsers: 'chromium'
 
       - name: Determine changed tests
         uses: dorny/paths-filter@v3.0.1

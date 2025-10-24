@@ -558,6 +558,7 @@ jobs:
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_browser_integration == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-24.04-large-js
+    container: mcr.microsoft.com/playwright:v1.53.2-jammy
     timeout-minutes: 25
     strategy:
       fail-fast: false
@@ -615,11 +616,6 @@ jobs:
         with:
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
 
-      - name: Install Playwright
-        uses: ./.github/actions/install-playwright
-        with:
-          browsers: ${{ matrix.project }}
-
       - name: Run Playwright tests
         env:
           PW_BUNDLE: ${{ matrix.bundle }}
@@ -652,6 +648,7 @@ jobs:
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_browser_integration == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
+    container: mcr.microsoft.com/playwright:v1.53.2-jammy
     timeout-minutes: 15
     strategy:
       fail-fast: false
@@ -678,11 +675,6 @@ jobs:
         uses: ./.github/actions/restore-cache
         with:
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
-
-      - name: Install Playwright
-        uses: ./.github/actions/install-playwright
-        with:
-          browsers: chromium
 
       - name: Run Playwright Loader tests
         env:
@@ -810,6 +802,7 @@ jobs:
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_remix == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
+    container: mcr.microsoft.com/playwright:v1.53.2-jammy
     timeout-minutes: 10
     strategy:
       fail-fast: false
@@ -828,11 +821,6 @@ jobs:
         uses: ./.github/actions/restore-cache
         with:
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
-
-      - name: Install Playwright
-        uses: ./.github/actions/install-playwright
-        with:
-          browsers: chromium
 
       - name: Run integration tests
         env:
@@ -919,6 +907,7 @@ jobs:
       always() && needs.job_e2e_prepare.result == 'success' && needs.job_e2e_prepare.outputs.matrix != '{"include":[]}'
     needs: [job_get_metadata, job_build, job_e2e_prepare]
     runs-on: ubuntu-24.04
+    container: mcr.microsoft.com/playwright:v1.53.2-jammy
     timeout-minutes: 15
     env:
       # We just use a dummy DSN here, only send to the tunnel anyhow
@@ -993,12 +982,6 @@ jobs:
         timeout-minutes: 7
         run: ${{ matrix.build-command || 'pnpm test:build' }}
 
-      - name: Install Playwright
-        uses: ./.github/actions/install-playwright
-        with:
-          browsers: chromium
-          cwd: ${{ runner.temp }}/test-application
-
       - name: Run E2E test
         working-directory: ${{ runner.temp }}/test-application
         timeout-minutes: 10
@@ -1048,6 +1031,7 @@ jobs:
       github.event.pull_request.head.repo.full_name == github.repository) && github.actor != 'dependabot[bot]'
     needs: [job_get_metadata, job_build, job_e2e_prepare]
     runs-on: ubuntu-24.04
+    container: mcr.microsoft.com/playwright:v1.53.2-jammy
     timeout-minutes: 15
     env:
       E2E_TEST_AUTH_TOKEN: ${{ secrets.E2E_TEST_AUTH_TOKEN }}
@@ -1113,12 +1097,6 @@ jobs:
         working-directory: ${{ runner.temp }}/test-application
         timeout-minutes: 7
         run: ${{ matrix.build-command || 'pnpm test:build' }}
-
-      - name: Install Playwright
-        uses: ./.github/actions/install-playwright
-        with:
-          browsers: chromium
-          cwd: ${{ runner.temp }}/test-application
 
       - name: Run E2E test
         working-directory: ${{ runner.temp }}/test-application
