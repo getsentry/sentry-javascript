@@ -1,31 +1,9 @@
 import { getClient } from '../../currentScopes';
 
-const MEDIA_MIME_TYPES = new Set([
-  'image/jpeg',
-  'image/jpg',
-  'image/png',
-  'image/gif',
-  'image/webp',
-  'image/svg+xml',
-  'image/bmp',
-  'image/tiff',
-  'video/mp4',
-  'video/avi',
-  'video/mov',
-  'video/wmv',
-  'video/flv',
-  'video/webm',
-  'video/mkv',
-  'audio/mp3',
-  'audio/wav',
-  'audio/ogg',
-  'audio/mpeg',
-  'audio/aac',
-  'audio/flac',
-  'application/pdf',
-  'application/zip',
-  'application/x-zip-compressed',
-]);
+function isMediaMimeType(mimeType: string): boolean {
+  const type = mimeType.toLowerCase();
+  return type.startsWith('image/') || type.startsWith('video/') || type.startsWith('audio/');
+}
 
 function isMediaContent(item: unknown): boolean {
   if (typeof item !== 'object' || item === null) {
@@ -38,11 +16,11 @@ function isMediaContent(item: unknown): boolean {
     return true;
   }
 
-  if (typeof obj.mime_type === 'string' && MEDIA_MIME_TYPES.has(obj.mime_type.toLowerCase())) {
+  if (typeof obj.mime_type === 'string' && isMediaMimeType(obj.mime_type)) {
     return true;
   }
 
-  if (typeof obj.mimeType === 'string' && MEDIA_MIME_TYPES.has(obj.mimeType.toLowerCase())) {
+  if (typeof obj.mimeType === 'string' && isMediaMimeType(obj.mimeType)) {
     return true;
   }
 
