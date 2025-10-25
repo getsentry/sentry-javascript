@@ -113,6 +113,7 @@ export { zodErrorsIntegration } from './integrations/zoderrors';
 export { thirdPartyErrorFilterIntegration } from './integrations/third-party-errors-filter';
 export { consoleIntegration } from './integrations/console';
 export { featureFlagsIntegration, type FeatureFlagsIntegration } from './integrations/featureFlags';
+export { growthbookIntegration } from './integrations/featureFlags';
 
 export { profiler } from './profiling';
 // eslint thinks the entire function is deprecated (while only one overload is actually deprecated)
@@ -126,6 +127,13 @@ export type { ReportDialogOptions } from './report-dialog';
 export { _INTERNAL_captureLog, _INTERNAL_flushLogsBuffer, _INTERNAL_captureSerializedLog } from './logs/internal';
 export * as logger from './logs/public-api';
 export { consoleLoggingIntegration } from './logs/console-integration';
+export {
+  _INTERNAL_captureMetric,
+  _INTERNAL_flushMetricsBuffer,
+  _INTERNAL_captureSerializedMetric,
+} from './metrics/internal';
+export * as metrics from './metrics/public-api';
+export type { MetricOptions } from './metrics/public-api';
 export { createConsolaReporter } from './integrations/consola';
 export { addVercelAiProcessors } from './utils/vercel-ai';
 export { _INTERNAL_getSpanForToolCallId, _INTERNAL_cleanupToolCallSpan } from './utils/vercel-ai/utils';
@@ -136,6 +144,9 @@ export { ANTHROPIC_AI_INTEGRATION_NAME } from './utils/anthropic-ai/constants';
 export { instrumentGoogleGenAIClient } from './utils/google-genai';
 export { GOOGLE_GENAI_INTEGRATION_NAME } from './utils/google-genai/constants';
 export type { GoogleGenAIResponse } from './utils/google-genai/types';
+export { createLangChainCallbackHandler } from './utils/langchain';
+export { LANGCHAIN_INTEGRATION_NAME } from './utils/langchain/constants';
+export type { LangChainOptions, LangChainIntegration } from './utils/langchain/types';
 export type { OpenAiClient, OpenAiOptions, InstrumentedMethod } from './utils/openai/types';
 export type {
   AnthropicAiClient,
@@ -355,6 +366,7 @@ export type {
   SpanEnvelope,
   SpanItem,
   LogEnvelope,
+  MetricEnvelope,
 } from './types-hoist/envelope';
 export type { ExtendedError } from './types-hoist/error';
 export type { Event, EventHint, EventType, ErrorEvent, TransactionEvent } from './types-hoist/event';
@@ -390,7 +402,13 @@ export type {
   SendFeedbackParams,
   UserFeedback,
 } from './types-hoist/feedback';
-export type { QueryParams, RequestEventData, SanitizedRequestData } from './types-hoist/request';
+export type {
+  QueryParams,
+  RequestEventData,
+  RequestHookInfo,
+  ResponseHookInfo,
+  SanitizedRequestData,
+} from './types-hoist/request';
 export type { Runtime } from './types-hoist/runtime';
 export type { SdkInfo } from './types-hoist/sdkinfo';
 export type { SdkMetadata } from './types-hoist/sdkmetadata';
@@ -416,6 +434,13 @@ export type {
 } from './types-hoist/span';
 export type { SpanStatus } from './types-hoist/spanStatus';
 export type { Log, LogSeverityLevel } from './types-hoist/log';
+export type {
+  Metric,
+  MetricType,
+  SerializedMetric,
+  SerializedMetricContainer,
+  SerializedMetricAttributeValue,
+} from './types-hoist/metric';
 export type { TimedEvent } from './types-hoist/timedEvent';
 export type { StackFrame } from './types-hoist/stackframe';
 export type { Stacktrace, StackParser, StackLineParser, StackLineParserFn } from './types-hoist/stacktrace';

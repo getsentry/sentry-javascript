@@ -4,6 +4,7 @@ import type {
   Event,
   SerializedCheckIn,
   SerializedLogContainer,
+  SerializedMetricContainer,
   SerializedSession,
   SessionAggregates,
   TransactionEvent,
@@ -70,6 +71,15 @@ export function assertSentryClientReport(actual: ClientReport, expected: Partial
 export function assertSentryLogContainer(
   actual: SerializedLogContainer,
   expected: Partial<SerializedLogContainer>,
+): void {
+  expect(actual).toMatchObject({
+    ...expected,
+  });
+}
+
+export function assertSentryMetricContainer(
+  actual: SerializedMetricContainer,
+  expected: Partial<SerializedMetricContainer>,
 ): void {
   expect(actual).toMatchObject({
     ...expected,

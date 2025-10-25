@@ -23,6 +23,7 @@ describe('route-groups', () => {
             path: '/dashboard/:id',
             regex: '^/dashboard/([^/]+)$',
             paramNames: ['id'],
+            hasOptionalPrefix: false,
           },
         ],
       });
@@ -55,6 +56,7 @@ describe('route-groups', () => {
             path: '/(dashboard)/dashboard/:id',
             regex: '^/\\(dashboard\\)/dashboard/([^/]+)$',
             paramNames: ['id'],
+            hasOptionalPrefix: false,
           },
         ],
       });

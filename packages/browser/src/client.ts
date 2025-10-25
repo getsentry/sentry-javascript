@@ -11,6 +11,7 @@ import type {
 } from '@sentry/core';
 import {
   _INTERNAL_flushLogsBuffer,
+  _INTERNAL_flushMetricsBuffer,
   addAutoIpAddressToSession,
   applySdkMetadata,
   Client,
@@ -24,8 +25,6 @@ import type { BrowserTransportOptions } from './transports/types';
  * A magic string that build tooling can leverage in order to inject a release value into the SDK.
  */
 declare const __SENTRY_RELEASE__: string | undefined;
-
-const DEFAULT_FLUSH_INTERVAL = 5000;
 
 type BrowserSpecificOptions = BrowserClientReplayOptions &
   BrowserClientProfilingOptions & {
@@ -84,7 +83,6 @@ export type BrowserClientOptions = ClientOptions<BrowserTransportOptions> & Brow
  * @see SentryClient for usage documentation.
  */
 export class BrowserClient extends Client<BrowserClientOptions> {
-  private _logFlushIdleTimeout: ReturnType<typeof setTimeout> | undefined;
   /**
    * Creates a new Browser SDK instance.
    *
@@ -106,9 +104,10 @@ export class BrowserClient extends Client<BrowserClientOptions> {
 
     super(opts);
 
-    const { sendDefaultPii, sendClientReports, enableLogs } = this._options;
+    const { sendDefaultPii, sendClientReports, enableLogs, _experiments } = this._options;
 
-    if (WINDOW.document && (sendClientReports || enableLogs)) {
+    // Flush logs and metrics when page becomes hidden (e.g., tab switch, navigation)
+    if (WINDOW.document && (sendClientReports || enableLogs || _experiments?.enableMetrics)) {
       WINDOW.document.addEventListener('visibilitychange', () => {
         if (WINDOW.document.visibilityState === 'hidden') {
           if (sendClientReports) {
@@ -117,23 +116,10 @@ export class BrowserClient extends Client<BrowserClientOptions> {
           if (enableLogs) {
             _INTERNAL_flushLogsBuffer(this);
           }
+          if (_experiments?.enableMetrics) {
+            _INTERNAL_flushMetricsBuffer(this);
+          }
         }
-      });
-    }
-
-    if (enableLogs) {
-      this.on('flush', () => {
-        _INTERNAL_flushLogsBuffer(this);
-      });
-
-      this.on('afterCaptureLog', () => {
-        if (this._logFlushIdleTimeout) {
-          clearTimeout(this._logFlushIdleTimeout);
-        }
-
-        this._logFlushIdleTimeout = setTimeout(() => {
-          _INTERNAL_flushLogsBuffer(this);
-        }, DEFAULT_FLUSH_INTERVAL);
       });
     }
 

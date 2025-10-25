@@ -135,6 +135,7 @@ export {
   consoleIntegration,
   wrapMcpServerWithSentry,
   featureFlagsIntegration,
+  metrics,
 } from '@sentry/core';
 
 export type {

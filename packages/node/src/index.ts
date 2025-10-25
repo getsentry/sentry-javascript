@@ -27,6 +27,7 @@ export { vercelAIIntegration } from './integrations/tracing/vercelai';
 export { openAIIntegration } from './integrations/tracing/openai';
 export { anthropicAIIntegration } from './integrations/tracing/anthropic-ai';
 export { googleGenAIIntegration } from './integrations/tracing/google-genai';
+export { langChainIntegration } from './integrations/tracing/langchain';
 export {
   launchDarklyIntegration,
   buildLaunchDarklyFlagUsedHandler,
@@ -34,6 +35,7 @@ export {
   OpenFeatureIntegrationHook,
   statsigIntegration,
   unleashIntegration,
+  growthbookIntegration,
 } from './integrations/featureFlagShims';
 export { firebaseIntegration } from './integrations/tracing/firebase';
 
@@ -133,6 +135,7 @@ export {
   consoleIntegration,
   wrapMcpServerWithSentry,
   featureFlagsIntegration,
+  createLangChainCallbackHandler,
 } from '@sentry/core';
 
 export type {
@@ -152,11 +155,13 @@ export type {
   Thread,
   User,
   Span,
+  Metric,
   FeatureFlagsIntegration,
 } from '@sentry/core';
 
 export {
   logger,
+  metrics,
   httpServerIntegration,
   httpServerSpansIntegration,
   nodeContextIntegration,

@@ -221,6 +221,8 @@ const ITEM_TYPE_TO_DATA_CATEGORY_MAP: Record<EnvelopeItemType, DataCategory> = {
   span: 'span',
   raw_security: 'security',
   log: 'log_item',
+  metric: 'metric',
+  trace_metric: 'metric',
 };
 
 /**

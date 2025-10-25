@@ -292,28 +292,21 @@ describe('checkOrSetAlreadyCaught()', () => {
 
 describe('uuid4 generation', () => {
   const uuid4Regex = /^[0-9A-F]{12}[4][0-9A-F]{3}[89AB][0-9A-F]{15}$/i;
-  it('returns valid uuid v4 ids via Math.random', () => {
+  it('returns valid and unique uuid v4 ids via Math.random', () => {
+    const uuids = new Set<string>();
     for (let index = 0; index < 1_000; index++) {
-      expect(uuid4()).toMatch(uuid4Regex);
+      const id = uuid4();
+      expect(id).toMatch(uuid4Regex);
+      uuids.add(id);
     }
-  });
-
-  it('returns valid uuid v4 ids via crypto.getRandomValues', () => {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const cryptoMod = require('crypto');
-
-    const crypto = { getRandomValues: cryptoMod.getRandomValues };
-
-    for (let index = 0; index < 1_000; index++) {
-      expect(uuid4(crypto)).toMatch(uuid4Regex);
-    }
+    expect(uuids.size).toBe(1_000);
   });
 
   it('returns valid uuid v4 ids via crypto.randomUUID', () => {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const cryptoMod = require('crypto');
 
-    const crypto = { getRandomValues: cryptoMod.getRandomValues, randomUUID: cryptoMod.randomUUID };
+    const crypto = { randomUUID: cryptoMod.randomUUID };
 
     for (let index = 0; index < 1_000; index++) {
       expect(uuid4(crypto)).toMatch(uuid4Regex);
@@ -321,7 +314,7 @@ describe('uuid4 generation', () => {
   });
 
   it("return valid uuid v4 even if crypto doesn't exists", () => {
-    const crypto = { getRandomValues: undefined, randomUUID: undefined };
+    const crypto = { randomUUID: undefined };
 
     for (let index = 0; index < 1_000; index++) {
       expect(uuid4(crypto)).toMatch(uuid4Regex);
@@ -330,36 +323,12 @@ describe('uuid4 generation', () => {
 
   it('return valid uuid v4 even if crypto invoked causes an error', () => {
     const crypto = {
-      getRandomValues: () => {
-        throw new Error('yo');
-      },
       randomUUID: () => {
         throw new Error('yo');
       },
     };
 
     for (let index = 0; index < 1_000; index++) {
-      expect(uuid4(crypto)).toMatch(uuid4Regex);
-    }
-  });
-
-  // Corner case related to crypto.getRandomValues being only
-  // semi-implemented (e.g. Chromium 23.0.1235.0 (151422))
-  it('returns valid uuid v4 even if crypto.getRandomValues does not return a typed array', () => {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const cryptoMod = require('crypto');
-
-    const getRandomValues = (typedArray: Uint8Array) => {
-      if (cryptoMod.getRandomValues) {
-        cryptoMod.getRandomValues(typedArray);
-      }
-    };
-
-    const crypto = { getRandomValues };
-
-    for (let index = 0; index < 1_000; index++) {
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore - we are testing a corner case
       expect(uuid4(crypto)).toMatch(uuid4Regex);
     }
   });

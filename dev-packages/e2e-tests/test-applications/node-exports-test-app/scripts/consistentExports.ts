@@ -41,6 +41,8 @@ const DEPENDENTS: Dependent[] = [
     ignoreExports: [
       // Not needed for Astro
       'setupFastifyErrorHandler',
+      // Todo(metrics): Add metrics exports for beta
+      'metrics',
     ],
   },
   {
@@ -54,6 +56,8 @@ const DEPENDENTS: Dependent[] = [
       'childProcessIntegration',
       'systemErrorIntegration',
       'pinoIntegration',
+      // Todo(metrics): Add metrics exports for beta
+      'metrics',
     ],
   },
   {
@@ -75,6 +79,8 @@ const DEPENDENTS: Dependent[] = [
     ignoreExports: [
       // Not needed for Serverless
       'setupFastifyErrorHandler',
+      // Todo(metrics): Add metrics exports for beta
+      'metrics',
     ],
   },
   {
@@ -84,6 +90,8 @@ const DEPENDENTS: Dependent[] = [
     ignoreExports: [
       // Not needed for Serverless
       'setupFastifyErrorHandler',
+      // Todo(metrics): Add metrics exports for beta
+      'metrics',
     ],
   },
   {

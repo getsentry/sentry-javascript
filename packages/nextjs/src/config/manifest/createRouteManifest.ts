@@ -10,6 +10,10 @@ export type CreateRouteManifestOptions = {
    * By default, route groups are stripped from paths following Next.js convention.
    */
   includeRouteGroups?: boolean;
+  /**
+   * Base path for the application, if any. This will be prefixed to all routes.
+   */
+  basePath?: string;
 };
 
 let manifestCache: RouteManifest | null = null;
@@ -43,7 +47,11 @@ function getDynamicRouteSegment(name: string): string {
   return `:${name.slice(1, -1)}`;
 }
 
-function buildRegexForDynamicRoute(routePath: string): { regex: string; paramNames: string[] } {
+function buildRegexForDynamicRoute(routePath: string): {
+  regex: string;
+  paramNames: string[];
+  hasOptionalPrefix: boolean;
+} {
   const segments = routePath.split('/').filter(Boolean);
   const regexSegments: string[] = [];
   const paramNames: string[] = [];
@@ -91,7 +99,20 @@ function buildRegexForDynamicRoute(routePath: string): { regex: string; paramNam
     pattern = `^/${regexSegments.join('/')}$`;
   }
 
-  return { regex: pattern, paramNames };
+  return { regex: pattern, paramNames, hasOptionalPrefix: hasOptionalPrefix(paramNames) };
+}
+
+/**
+ * Detect if the first parameter is a common i18n prefix segment
+ * Common patterns: locale, lang, language
+ */
+function hasOptionalPrefix(paramNames: string[]): boolean {
+  const firstParam = paramNames[0];
+  if (firstParam === undefined) {
+    return false;
+  }
+
+  return firstParam === 'locale' || firstParam === 'lang' || firstParam === 'language';
 }
 
 function scanAppDirectory(
@@ -112,11 +133,12 @@ function scanAppDirectory(
       const isDynamic = routePath.includes(':');
 
       if (isDynamic) {
-        const { regex, paramNames } = buildRegexForDynamicRoute(routePath);
+        const { regex, paramNames, hasOptionalPrefix } = buildRegexForDynamicRoute(routePath);
         dynamicRoutes.push({
           path: routePath,
           regex,
           paramNames,
+          hasOptionalPrefix,
         });
       } else {
         staticRoutes.push({
@@ -192,7 +214,7 @@ export function createRouteManifest(options?: CreateRouteManifestOptions): Route
     return manifestCache;
   }
 
-  const { dynamicRoutes, staticRoutes } = scanAppDirectory(targetDir, '', options?.includeRouteGroups);
+  const { dynamicRoutes, staticRoutes } = scanAppDirectory(targetDir, options?.basePath, options?.includeRouteGroups);
 
   const manifest: RouteManifest = {
     dynamicRoutes,

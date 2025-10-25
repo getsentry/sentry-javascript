@@ -22,8 +22,6 @@ import {
   GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
-import { filterMediaFromMessages } from '../ai/mediaFiltering';
-import { buildMethodPath, getFinalOperationName, getSpanOperation } from '../ai/utils';
 import { handleCallbackErrors } from '../handleCallbackErrors';
 import { CHAT_PATH, CHATS_CREATE_METHOD, GOOGLE_GENAI_SYSTEM_NAME } from './constants';
 import { instrumentStream } from './streaming';
@@ -131,18 +129,12 @@ function extractRequestAttributes(
 
 function addPrivateRequestAttributes(span: Span, params: Record<string, unknown>): void {
   if ('contents' in params) {
-    const filtered = filterMediaFromMessages(params.contents);
-    span.setAttributes({ [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: JSON.stringify(filtered) });
   }
 
   if ('message' in params) {
-    const filtered = filterMediaFromMessages(params.message);
-    span.setAttributes({ [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: JSON.stringify(filtered) });
   }
 
   if ('history' in params) {
-    const filtered = filterMediaFromMessages(params.history);
-    span.setAttributes({ [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: JSON.stringify(filtered) });
   }
 }
 

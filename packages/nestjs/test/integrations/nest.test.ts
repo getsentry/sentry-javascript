@@ -75,17 +75,72 @@ describe('Nest', () => {
 
         await descriptor.value();
 
-        expect(core.startSpan).toHaveBeenCalled();
+        expect(core.startSpan).toHaveBeenCalledWith(
+          expect.objectContaining({
+            name: 'event test.event',
+          }),
+          expect.any(Function),
+        );
         expect(originalHandler).toHaveBeenCalled();
       });
 
-      it('should wrap array event handlers', async () => {
+      it('should wrap symbol event handlers', async () => {
+        const decorated = wrappedOnEvent(Symbol('test.event'));
+        decorated(mockTarget, 'testMethod', descriptor);
+
+        await descriptor.value();
+
+        expect(core.startSpan).toHaveBeenCalledWith(
+          expect.objectContaining({
+            name: 'event Symbol(test.event)',
+          }),
+          expect.any(Function),
+        );
+        expect(originalHandler).toHaveBeenCalled();
+      });
+
+      it('should wrap string array event handlers', async () => {
         const decorated = wrappedOnEvent(['test.event1', 'test.event2']);
         decorated(mockTarget, 'testMethod', descriptor);
 
         await descriptor.value();
 
-        expect(core.startSpan).toHaveBeenCalled();
+        expect(core.startSpan).toHaveBeenCalledWith(
+          expect.objectContaining({
+            name: 'event test.event1,test.event2',
+          }),
+          expect.any(Function),
+        );
+        expect(originalHandler).toHaveBeenCalled();
+      });
+
+      it('should wrap symbol array event handlers', async () => {
+        const decorated = wrappedOnEvent([Symbol('test.event1'), Symbol('test.event2')]);
+        decorated(mockTarget, 'testMethod', descriptor);
+
+        await descriptor.value();
+
+        expect(core.startSpan).toHaveBeenCalledWith(
+          expect.objectContaining({
+            name: 'event Symbol(test.event1),Symbol(test.event2)',
+          }),
+          expect.any(Function),
+        );
+        expect(originalHandler).toHaveBeenCalled();
+      });
+
+      it('should wrap mixed type array event handlers', async () => {
+        const decorated = wrappedOnEvent([Symbol('test.event1'), 'test.event2', Symbol('test.event3')]);
+        decorated(mockTarget, 'testMethod', descriptor);
+
+        await descriptor.value();
+
+        expect(core.startSpan).toHaveBeenCalledWith(
+          expect.objectContaining({
+            name: 'event Symbol(test.event1),test.event2,Symbol(test.event3)',
+          }),
+          expect.any(Function),
+        );
         expect(originalHandler).toHaveBeenCalled();
       });
 

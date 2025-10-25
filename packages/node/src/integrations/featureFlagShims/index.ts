@@ -11,3 +11,5 @@ export {
 export { statsigIntegrationShim as statsigIntegration } from './statsig';
 
 export { unleashIntegrationShim as unleashIntegration } from './unleash';
+
+export { growthbookIntegrationShim as growthbookIntegration } from './growthbook';

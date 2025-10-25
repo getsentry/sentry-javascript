@@ -23,8 +23,6 @@ import {
   GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
   GEN_AI_SYSTEM_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
-import { filterMediaFromMessages } from '../ai/mediaFiltering';
-import { buildMethodPath, getFinalOperationName, getSpanOperation, setTokenUsageAttributes } from '../ai/utils';
 import { handleCallbackErrors } from '../handleCallbackErrors';
 import { instrumentAsyncIterableStream, instrumentMessageStream } from './streaming';
 import type {
@@ -34,7 +32,7 @@ import type {
   AnthropicAiStreamingEvent,
   ContentBlock,
 } from './types';
-import { shouldInstrument } from './utils';
+import { handleResponseError, shouldInstrument } from './utils';
 
 /**
  * Extract request attributes from method arguments
@@ -74,32 +72,10 @@ function extractRequestAttributes(args: unknown[], methodPath: string): Record<s
 
 function addPrivateRequestAttributes(span: Span, params: Record<string, unknown>): void {
   if ('messages' in params) {
-    const filtered = filterMediaFromMessages(params.messages);
-    span.setAttributes({ [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: JSON.stringify(filtered) });
   }
-  if ('input' in params) {
-    const filtered = filterMediaFromMessages(params.input);
-    span.setAttributes({ [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: JSON.stringify(filtered) });
-  }
+
   if ('prompt' in params) {
     span.setAttributes({ [GEN_AI_PROMPT_ATTRIBUTE]: JSON.stringify(params.prompt) });
-  }
-}
-
-/**
- * Capture error information from the response
- * @see https://docs.anthropic.com/en/api/errors#error-shapes
- */
-function handleResponseError(span: Span, response: AnthropicAiResponse): void {
-  if (response.error) {
-    span.setStatus({ code: SPAN_STATUS_ERROR, message: response.error.type || 'unknown_error' });
-
-    captureException(response.error, {
-      mechanism: {
-        handled: false,
-        type: 'auto.ai.anthropic.anthropic_error',
-      },
-    });
   }
 }
 
@@ -212,8 +188,8 @@ function handleStreamingError(error: unknown, span: Span, methodPath: string): n
  * Handle streaming cases with common logic
  */
 function handleStreamingRequest<T extends unknown[], R>(
-  originalMethod: (...args: T) => Promise<R>,
-  target: (...args: T) => Promise<R>,
+  originalMethod: (...args: T) => R | Promise<R>,
+  target: (...args: T) => R | Promise<R>,
   context: unknown,
   args: T,
   requestAttributes: Record<string, unknown>,
@@ -222,7 +198,8 @@ function handleStreamingRequest<T extends unknown[], R>(
   params: Record<string, unknown> | undefined,
   options: AnthropicAiOptions,
   isStreamRequested: boolean,
-): Promise<R> {
+  isStreamingMethod: boolean,
+): R | Promise<R> {
   const model = requestAttributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] ?? 'unknown';
   const spanConfig = {
     name: `${operationName} ${model} stream-response`,
@@ -230,7 +207,8 @@ function handleStreamingRequest<T extends unknown[], R>(
     attributes: requestAttributes as Record<string, SpanAttributeValue>,
   };
 
-  if (isStreamRequested) {
+  // messages.stream() always returns a sync MessageStream, even with stream: true param
+  if (isStreamRequested && !isStreamingMethod) {
     return startSpanManual(spanConfig, async span => {
       try {
         if (options.recordInputs && params) {
@@ -267,13 +245,13 @@ function handleStreamingRequest<T extends unknown[], R>(
  * @see https://docs.sentry.io/platforms/javascript/guides/node/tracing/instrumentation/ai-agents-module/#manual-instrumentation
  */
 function instrumentMethod<T extends unknown[], R>(
-  originalMethod: (...args: T) => Promise<R>,
+  originalMethod: (...args: T) => R | Promise<R>,
   methodPath: AnthropicAiInstrumentedMethod,
   context: unknown,
   options: AnthropicAiOptions,
-): (...args: T) => Promise<R> {
+): (...args: T) => R | Promise<R> {
   return new Proxy(originalMethod, {
-    apply(target, thisArg, args: T): Promise<R> {
+    apply(target, thisArg, args: T): R | Promise<R> {
       const requestAttributes = extractRequestAttributes(args, methodPath);
       const model = requestAttributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] ?? 'unknown';
       const operationName = getFinalOperationName(methodPath);
@@ -294,6 +272,7 @@ function instrumentMethod<T extends unknown[], R>(
           params,
           options,
           isStreamRequested,
+          isStreamingMethod,
         );
       }
 
@@ -327,7 +306,7 @@ function instrumentMethod<T extends unknown[], R>(
         },
       );
     },
-  }) as (...args: T) => Promise<R>;
+  }) as (...args: T) => R | Promise<R>;
 }
 
 /**
@@ -340,7 +319,7 @@ function createDeepProxy<T extends object>(target: T, currentPath = '', options:
       const methodPath = buildMethodPath(currentPath, String(prop));
 
       if (typeof value === 'function' && shouldInstrument(methodPath)) {
-        return instrumentMethod(value as (...args: unknown[]) => Promise<unknown>, methodPath, obj, options);
+        return instrumentMethod(value as (...args: unknown[]) => unknown | Promise<unknown>, methodPath, obj, options);
       }
 
       if (typeof value === 'function') {

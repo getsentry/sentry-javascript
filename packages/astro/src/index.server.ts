@@ -31,6 +31,7 @@ export {
   contextLinesIntegration,
   continueTrace,
   createGetModuleFromFilename,
+  createLangChainCallbackHandler,
   createTransport,
   cron,
   dataloaderIntegration,
@@ -93,6 +94,7 @@ export {
   onUncaughtExceptionIntegration,
   onUnhandledRejectionIntegration,
   openAIIntegration,
+  langChainIntegration,
   parameterize,
   pinoIntegration,
   postgresIntegration,
@@ -159,6 +161,7 @@ export {
   OpenFeatureIntegrationHook,
   statsigIntegration,
   unleashIntegration,
+  growthbookIntegration,
 } from '@sentry/node';
 
 export { init } from './server/sdk';

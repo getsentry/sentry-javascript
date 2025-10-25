@@ -42,6 +42,7 @@ export {
   close,
   getSentryRelease,
   createGetModuleFromFilename,
+  createLangChainCallbackHandler,
   httpHeadersToSpanAttributes,
   winterCGHeadersToDict,
   // eslint-disable-next-line deprecation/deprecation
@@ -56,6 +57,7 @@ export {
   onUncaughtExceptionIntegration,
   onUnhandledRejectionIntegration,
   openAIIntegration,
+  langChainIntegration,
   modulesIntegration,
   contextLinesIntegration,
   nodeContextIntegration,
@@ -140,6 +142,7 @@ export {
   featureFlagsIntegration,
   type FeatureFlagsIntegration,
   launchDarklyIntegration,
+  growthbookIntegration,
   buildLaunchDarklyFlagUsedHandler,
   openFeatureIntegration,
   OpenFeatureIntegrationHook,
