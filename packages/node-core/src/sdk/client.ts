@@ -15,7 +15,7 @@ const DEFAULT_CLIENT_REPORT_FLUSH_INTERVAL_MS = 60_000; // 60s was chosen arbitr
 /** A client for using Sentry with Node & OpenTelemetry. */
 export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
   public traceProvider: BasicTracerProvider | undefined;
-  public asyncLocalStroageLookup: AsyncLocalStorageLookup | undefined;
+  public asyncLocalStorageLookup: AsyncLocalStorageLookup | undefined;
 
   private _tracer: Tracer | undefined;
   private _clientReportInterval: NodeJS.Timeout | undefined;

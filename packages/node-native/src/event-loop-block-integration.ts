@@ -59,11 +59,9 @@ function startPolling(
   client: NodeClient,
   integrationOptions: Partial<ThreadBlockedIntegrationOptions>,
 ): IntegrationInternal | undefined {
-  if (client.asyncLocalStroageLookup) {
-    registerThread({
-      asyncLocalStorage: client.asyncLocalStroageLookup.asyncLocalStorage,
-      stateLookup: ['_currentContext', client.asyncLocalStroageLookup.contextSymbol],
-    });
+  if (client.asyncLocalStorageLookup) {
+    const { asyncLocalStorage, contextSymbol } = client.asyncLocalStorageLookup;
+    registerThread({ asyncLocalStorage, stateLookup: ['_currentContext', contextSymbol] });
   } else {
     registerThread();
   }

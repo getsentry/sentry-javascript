@@ -39,9 +39,9 @@ export function initOpenTelemetry(client: NodeClient, options: AdditionalOpenTel
     setupOpenTelemetryLogger();
   }
 
-  const [provider, asyncLocalStroageLookup] = setupOtel(client, options);
+  const [provider, asyncLocalStorageLookup] = setupOtel(client, options);
   client.traceProvider = provider;
-  client.asyncLocalStroageLookup = asyncLocalStroageLookup;
+  client.asyncLocalStorageLookup = asyncLocalStorageLookup;
 }
 
 interface NodePreloadOptions {
