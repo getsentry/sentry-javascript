@@ -1,11 +1,32 @@
 /* eslint-disable no-console */
-import { readFileSync, writeFileSync } from 'fs';
+import { existsSync, readFileSync, writeFileSync } from 'fs';
 import { cp } from 'fs/promises';
-import { join } from 'path';
+import ignore from 'ignore';
+import { dirname, join, relative } from 'path';
 
 export async function copyToTemp(originalPath: string, tmpDirPath: string): Promise<void> {
   // copy files to tmp dir
-  await cp(originalPath, tmpDirPath, { recursive: true });
+  const ig = ignore();
+  const ignoreFileDirs = [
+    originalPath,
+    dirname(__dirname)
+  ]
+  ig.add(['.gitignore', 'node_modules', 'dist', 'build']);
+  for(const dir of ignoreFileDirs) {
+    const ignore_file = join(dir, '.gitignore');
+    if (existsSync(ignore_file)) {
+      ig.add(readFileSync(ignore_file, 'utf8'));
+    }
+  }
+
+  await cp(originalPath, tmpDirPath, {
+    recursive: true,
+    filter: src => {
+      const relPath = relative(originalPath, src);
+      if (!relPath) return true;
+      return !ig.ignores(relPath);
+    },
+  });
 
   fixPackageJson(tmpDirPath);
 }
