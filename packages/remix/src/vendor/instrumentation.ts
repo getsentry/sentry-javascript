@@ -1,6 +1,7 @@
 /* eslint-disable deprecation/deprecation */
 /* eslint-disable max-lines */
 /* eslint-disable jsdoc/require-jsdoc */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 // Vendored and modified from:
 // https://github.com/justindsmith/opentelemetry-instrumentations-js/blob/3b1e8c3e566e5cc3389e9c28cafce6a5ebb39600/packages/instrumentation-remix/src/instrumentation.ts

@@ -31,6 +31,9 @@ import { addOriginToSpan, generateInstrumentOnce } from '@sentry/node-core';
 const INTEGRATION_NAME = 'PostgresJs';
 const SUPPORTED_VERSIONS = ['>=3.0.0 <4'];
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type ResolveRejectFunction = (...args: any[]) => any;
+
 type PostgresConnectionContext = {
   ATTR_DB_NAMESPACE?: string; // Database name
   ATTR_SERVER_ADDRESS?: string; // Hostname or IP address of the database server
@@ -113,7 +116,7 @@ export class PostgresJsInstrumentation extends InstrumentationBase<PostgresJsIns
   /**
    * Patches the reject method of the Query class to set the span status and end it
    */
-  private _patchReject(rejectTarget: any, span: Span): any {
+  private _patchReject(rejectTarget: ResolveRejectFunction, span: Span): ResolveRejectFunction {
     return new Proxy(rejectTarget, {
       apply: (
         rejectTarget,
@@ -148,7 +151,7 @@ export class PostgresJsInstrumentation extends InstrumentationBase<PostgresJsIns
   /**
    * Patches the resolve method of the Query class to end the span when the query is resolved.
    */
-  private _patchResolve(resolveTarget: any, span: Span): any {
+  private _patchResolve(resolveTarget: ResolveRejectFunction, span: Span): ResolveRejectFunction {
     return new Proxy(resolveTarget, {
       apply: (resolveTarget, resolveThisArg, resolveArgs: [{ command?: string }]) => {
         const result = Reflect.apply(resolveTarget, resolveThisArg, resolveArgs);
@@ -170,16 +173,17 @@ export class PostgresJsInstrumentation extends InstrumentationBase<PostgresJsIns
   private _patchQuery(moduleExports: {
     Query: {
       prototype: {
-        handle: any;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        handle: (...args: any[]) => any;
       };
     };
-  }): any {
+  }): unknown {
     moduleExports.Query.prototype.handle = new Proxy(moduleExports.Query.prototype.handle, {
       apply: async (
         handleTarget,
         handleThisArg: {
-          resolve: any;
-          reject: any;
+          resolve: ResolveRejectFunction;
+          reject: ResolveRejectFunction;
           strings?: string[];
         },
         handleArgs,
@@ -253,7 +257,8 @@ export class PostgresJsInstrumentation extends InstrumentationBase<PostgresJsIns
    * Patches the Connection class to set the database, host, and port attributes
    * when a new connection is created.
    */
-  private _patchConnection(Connection: any): any {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private _patchConnection(Connection: (...args: any[]) => any): unknown {
     return new Proxy(Connection, {
       apply: (connectionTarget, thisArg, connectionArgs: { database: string; host: string[]; port: number[] }[]) => {
         const databaseName = connectionArgs[0]?.database || '<unknown database>';

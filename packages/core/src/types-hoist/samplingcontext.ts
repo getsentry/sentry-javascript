@@ -6,7 +6,7 @@ import type { SpanAttributes } from './span';
  * Context data passed by the user when starting a transaction, to be used by the tracesSampler method.
  */
 export interface CustomSamplingContext {
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 /**

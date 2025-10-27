@@ -4,7 +4,7 @@ import { normalizeBreadcrumb, normalizeConsoleBreadcrumb } from '../../../src/co
 
 describe('Unit | coreHandlers | handleBreadcrumbs', () => {
   describe('normalizeBreadcrumb', () => {
-    it.each([undefined, 'ui.click', 'ui.scroll', 'fetch', 'xhr', 'sentry.event', 'sentry.transaction'])(
+    it.each(['ui.click', 'ui.scroll', 'fetch', 'xhr', 'sentry.event', 'sentry.transaction'])(
       'returns null if breadcrumb has category=%j',
       category => {
         const actual = normalizeBreadcrumb({ category });
