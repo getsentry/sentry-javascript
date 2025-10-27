@@ -14,7 +14,12 @@ import {
   SentryContextManager,
   setupOpenTelemetryLogger,
 } from '@sentry/node-core';
-import { SentryPropagator, SentrySampler, SentrySpanProcessor } from '@sentry/opentelemetry';
+import {
+  type AsyncLocalStorageLookup,
+  SentryPropagator,
+  SentrySampler,
+  SentrySpanProcessor,
+} from '@sentry/opentelemetry';
 import { DEBUG_BUILD } from '../debug-build';
 import { getOpenTelemetryInstrumentationToPreload } from '../integrations/tracing';
 
@@ -34,8 +39,9 @@ export function initOpenTelemetry(client: NodeClient, options: AdditionalOpenTel
     setupOpenTelemetryLogger();
   }
 
-  const provider = setupOtel(client, options);
+  const [provider, asyncLocalStroageLookup] = setupOtel(client, options);
   client.traceProvider = provider;
+  client.asyncLocalStroageLookup = asyncLocalStroageLookup;
 }
 
 interface NodePreloadOptions {
@@ -82,7 +88,10 @@ function getPreloadMethods(integrationNames?: string[]): ((() => void) & { id: s
 }
 
 /** Just exported for tests. */
-export function setupOtel(client: NodeClient, options: AdditionalOpenTelemetryOptions = {}): BasicTracerProvider {
+export function setupOtel(
+  client: NodeClient,
+  options: AdditionalOpenTelemetryOptions = {},
+): [BasicTracerProvider, AsyncLocalStorageLookup] {
   // Create and configure NodeTracerProvider
   const provider = new BasicTracerProvider({
     sampler: new SentrySampler(client),
@@ -106,9 +115,11 @@ export function setupOtel(client: NodeClient, options: AdditionalOpenTelemetryOp
   // Register as globals
   trace.setGlobalTracerProvider(provider);
   propagation.setGlobalPropagator(new SentryPropagator());
-  context.setGlobalContextManager(new SentryContextManager());
 
-  return provider;
+  const ctxManager = new SentryContextManager();
+  context.setGlobalContextManager(ctxManager);
+
+  return [provider, ctxManager.getAsyncLocalStorageLookup()];
 }
 
 /** Just exported for tests. */
