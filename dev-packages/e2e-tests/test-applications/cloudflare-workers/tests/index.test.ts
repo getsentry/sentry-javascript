@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
-import { waitForError } from '@sentry-internal/test-utils';
+import { waitForError, waitForRequest } from '@sentry-internal/test-utils';
+import { SDK_VERSION } from '@sentry/cloudflare';
 import { WebSocket } from 'ws';
 
 test('Index page', async ({ baseURL }) => {
@@ -68,4 +69,16 @@ test('Websocket.webSocketClose', async ({ baseURL }) => {
   const event = await eventWaiter;
   expect(event.exception?.values?.[0]?.value).toBe('Should be recorded in Sentry: webSocketClose');
   expect(event.exception?.values?.[0]?.mechanism?.type).toBe('auto.faas.cloudflare.durable_object');
+});
+
+test('sends user-agent header with SDK name and version in envelope requests', async ({ baseURL }) => {
+  const requestPromise = waitForRequest('cloudflare-workers', () => true);
+
+  await fetch(`${baseURL}/throwException`);
+
+  const request = await requestPromise;
+
+  expect(request.rawProxyRequestHeaders).toMatchObject({
+    'user-agent': `sentry.javascript.cloudflare/${SDK_VERSION}`,
+  });
 });
