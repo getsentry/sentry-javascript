@@ -249,12 +249,12 @@ describe('_INTERNAL_captureMetric', () => {
     const scope = new Scope();
     scope.setClient(client);
 
-    // Fill the buffer to max size (100 is the MAX_METRIC_BUFFER_SIZE constant)
-    for (let i = 0; i < 100; i++) {
+    // Fill the buffer to max size (1000 is the MAX_METRIC_BUFFER_SIZE constant)
+    for (let i = 0; i < 1000; i++) {
       _INTERNAL_captureMetric({ type: 'counter', name: `metric.${i}`, value: i }, { scope });
     }
 
-    expect(_INTERNAL_getMetricBuffer(client)).toHaveLength(100);
+    expect(_INTERNAL_getMetricBuffer(client)).toHaveLength(1000);
 
     // Add one more to trigger flush
     _INTERNAL_captureMetric({ type: 'counter', name: 'trigger.flush', value: 999 }, { scope });
@@ -450,8 +450,8 @@ describe('_INTERNAL_captureMetric', () => {
           type: 'string',
         },
         'sentry._internal.replay_is_buffering': {
-          value: 'buffer-replay-id',
-          type: 'string',
+          value: true,
+          type: 'boolean',
         },
       });
     });
@@ -577,8 +577,8 @@ describe('_INTERNAL_captureMetric', () => {
           type: 'string',
         },
         'sentry._internal.replay_is_buffering': {
-          value: 'buffer-replay-id',
-          type: 'string',
+          value: true,
+          type: 'boolean',
         },
       });
     });
@@ -736,8 +736,8 @@ describe('_INTERNAL_captureMetric', () => {
           type: 'string',
         },
         'sentry._internal.replay_is_buffering': {
-          value: 'buffer-replay-id',
-          type: 'string',
+          value: true,
+          type: 'boolean',
         },
       });
     });

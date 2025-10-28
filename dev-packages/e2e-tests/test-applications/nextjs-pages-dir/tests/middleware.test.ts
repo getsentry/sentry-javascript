@@ -3,7 +3,7 @@ import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Should create a transaction for middleware', async ({ request }) => {
   const middlewareTransactionPromise = waitForTransaction('nextjs-pages-dir', async transactionEvent => {
-    return transactionEvent?.transaction === 'middleware GET /api/endpoint-behind-middleware';
+    return transactionEvent?.transaction === 'middleware GET';
   });
 
   const response = await request.get('/api/endpoint-behind-middleware');
@@ -23,7 +23,7 @@ test('Should create a transaction for middleware', async ({ request }) => {
 
 test('Faulty middlewares', async ({ request }) => {
   const middlewareTransactionPromise = waitForTransaction('nextjs-pages-dir', async transactionEvent => {
-    return transactionEvent?.transaction === 'middleware GET /api/endpoint-behind-faulty-middleware';
+    return transactionEvent?.transaction === 'middleware GET';
   });
 
   const errorEventPromise = waitForError('nextjs-pages-dir', errorEvent => {
@@ -48,14 +48,14 @@ test('Faulty middlewares', async ({ request }) => {
     // Assert that isolation scope works properly
     expect(errorEvent.tags?.['my-isolated-tag']).toBe(true);
     expect(errorEvent.tags?.['my-global-scope-isolated-tag']).not.toBeDefined();
-    expect(errorEvent.transaction).toBe('middleware GET /api/endpoint-behind-faulty-middleware');
+    expect(errorEvent.transaction).toBe('middleware GET');
   });
 });
 
 test('Should trace outgoing fetch requests inside middleware and create breadcrumbs for it', async ({ request }) => {
   const middlewareTransactionPromise = waitForTransaction('nextjs-pages-dir', async transactionEvent => {
     return (
-      transactionEvent?.transaction === 'middleware GET /api/endpoint-behind-middleware' &&
+      transactionEvent?.transaction === 'middleware GET' &&
       !!transactionEvent.spans?.find(span => span.op === 'http.client')
     );
   });

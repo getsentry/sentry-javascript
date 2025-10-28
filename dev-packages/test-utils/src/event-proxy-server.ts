@@ -24,6 +24,7 @@ interface EventProxyServerOptions {
 interface SentryRequestCallbackData {
   envelope: Envelope;
   rawProxyRequestBody: string;
+  rawProxyRequestHeaders: Record<string, string | string[] | undefined>;
   rawSentryResponseBody: string;
   sentryResponseStatusCode?: number;
 }
@@ -182,6 +183,7 @@ export async function startEventProxyServer(options: EventProxyServerOptions): P
     const data: SentryRequestCallbackData = {
       envelope: parseEnvelope(proxyRequestBody),
       rawProxyRequestBody: proxyRequestBody,
+      rawProxyRequestHeaders: proxyRequest.headers,
       rawSentryResponseBody: '',
       sentryResponseStatusCode: 200,
     };

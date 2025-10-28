@@ -16,6 +16,7 @@ describe('basePath', () => {
           path: '/my-app/users/:id',
           regex: '^/my-app/users/([^/]+)$',
           paramNames: ['id'],
+          hasOptionalPrefix: false,
         },
       ],
     });

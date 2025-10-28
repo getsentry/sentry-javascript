@@ -4,7 +4,142 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-Work in this release was contributed by @seoyeon9888. Thank you for your contribution!
+Work in this release was contributed by @hanseo0507. Thank you for your contribution!
+
+## 10.22.0
+
+### Important Changes
+
+- **feat(node): Instrument cloud functions for firebase v2 ([#17952](https://github.com/getsentry/sentry-javascript/pull/17952))**
+
+  We added instrumentation for Cloud Functions for Firebase v2, enabling automatic performance tracking and error monitoring. This will be added automatically if you have enabled tracing.
+
+- **feat(core): Instrument LangChain AI ([#17955](https://github.com/getsentry/sentry-javascript/pull/17955))**
+
+  Instrumentation was added for LangChain AI operations. You can configure what is recorded like this:
+
+  ```ts
+  Sentry.init({
+    integrations: [
+      Sentry.langChainIntegration({
+        recordInputs: true, // Record prompts/messages
+        recordOutputs: true, // Record responses
+      }),
+    ],
+  });
+  ```
+
+### Other Changes
+
+- feat(cloudflare,vercel-edge): Add support for LangChain instrumentation ([#17986](https://github.com/getsentry/sentry-javascript/pull/17986))
+- feat: Align sentry origin with documentation ([#17998](https://github.com/getsentry/sentry-javascript/pull/17998))
+- feat(core): Truncate request messages in AI integrations ([#17921](https://github.com/getsentry/sentry-javascript/pull/17921))
+- feat(nextjs): Support node runtime on proxy files ([#17995](https://github.com/getsentry/sentry-javascript/pull/17995))
+- feat(node): Pass requestHook and responseHook option to OTel ([#17996](https://github.com/getsentry/sentry-javascript/pull/17996))
+- fix(core): Fix wrong async types when instrumenting anthropic's stream api ([#18007](https://github.com/getsentry/sentry-javascript/pull/18007))
+- fix(nextjs): Remove usage of chalk to avoid runtime errors ([#18010](https://github.com/getsentry/sentry-javascript/pull/18010))
+- fix(node): Pino capture serialized `err` ([#17999](https://github.com/getsentry/sentry-javascript/pull/17999))
+- fix(node): Pino child loggers ([#17934](https://github.com/getsentry/sentry-javascript/pull/17934))
+- fix(react): Don't trim index route `/` when getting pathname ([#17985](https://github.com/getsentry/sentry-javascript/pull/17985))
+- fix(react): Patch `spanEnd` for potentially cancelled lazy-route transactions ([#17962](https://github.com/getsentry/sentry-javascript/pull/17962))
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+
+- chore: Add required size_check for GH Actions ([#18009](https://github.com/getsentry/sentry-javascript/pull/18009))
+- chore: Upgrade madge to v8 ([#17957](https://github.com/getsentry/sentry-javascript/pull/17957))
+- test(hono): Fix hono e2e tests ([#18000](https://github.com/getsentry/sentry-javascript/pull/18000))
+- test(react-router): Fix `getMetaTagTransformer` tests for Vitest compatibility ([#18013](https://github.com/getsentry/sentry-javascript/pull/18013))
+- test(react): Add parameterized route tests for `createHashRouter` ([#17789](https://github.com/getsentry/sentry-javascript/pull/17789))
+
+</details>
+
+## 10.21.0
+
+### Important Changes
+
+- **feat(browserProfiling): Add `trace` lifecycle mode for UI profiling ([#17619](https://github.com/getsentry/sentry-javascript/pull/17619))**
+
+  Adds a new `trace` lifecycle mode for UI profiling, allowing profiles to be captured for the duration of a trace. A `manual` mode will be added in a future release.
+
+- **feat(nuxt): Instrument Database ([#17899](https://github.com/getsentry/sentry-javascript/pull/17899))**
+
+  Adds instrumentation for Nuxt database operations, enabling better performance tracking of database queries.
+
+- **feat(nuxt): Instrument server cache API ([#17886](https://github.com/getsentry/sentry-javascript/pull/17886))**
+
+  Adds instrumentation for Nuxt's server cache API, providing visibility into cache operations.
+
+- **feat(nuxt): Instrument storage API ([#17858](https://github.com/getsentry/sentry-javascript/pull/17858))**
+
+  Adds instrumentation for Nuxt's storage API, enabling tracking of storage operations.
+
+### Other Changes
+
+- feat(browser): Add `onRequestSpanEnd` hook to browser tracing integration ([#17884](https://github.com/getsentry/sentry-javascript/pull/17884))
+- feat(nextjs): Support Next.js proxy files ([#17926](https://github.com/getsentry/sentry-javascript/pull/17926))
+- feat(replay): Record outcome when event buffer size exceeded ([#17946](https://github.com/getsentry/sentry-javascript/pull/17946))
+- fix(cloudflare): copy execution context in durable objects and handlers ([#17786](https://github.com/getsentry/sentry-javascript/pull/17786))
+- fix(core): Fix and add missing cache attributes in Vercel AI ([#17982](https://github.com/getsentry/sentry-javascript/pull/17982))
+- fix(core): Improve uuid performance ([#17938](https://github.com/getsentry/sentry-javascript/pull/17938))
+- fix(ember): Use updated version for `clean-css` ([#17979](https://github.com/getsentry/sentry-javascript/pull/17979))
+- fix(nextjs): Don't set experimental instrumentation hook flag for next 16 ([#17978](https://github.com/getsentry/sentry-javascript/pull/17978))
+- fix(nextjs): Inconsistent transaction naming for i18n routing ([#17927](https://github.com/getsentry/sentry-javascript/pull/17927))
+- fix(nextjs): Update bundler detection ([#17976](https://github.com/getsentry/sentry-javascript/pull/17976))
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+
+- build: Update to typescript 5.8.0 ([#17710](https://github.com/getsentry/sentry-javascript/pull/17710))
+- chore: Add external contributor to CHANGELOG.md ([#17949](https://github.com/getsentry/sentry-javascript/pull/17949))
+- chore(build): Upgrade nodemon to 3.1.10 ([#17956](https://github.com/getsentry/sentry-javascript/pull/17956))
+- chore(ci): Fix external contributor action when multiple contributions existed ([#17950](https://github.com/getsentry/sentry-javascript/pull/17950))
+- chore(solid): Remove unnecessary import from README ([#17947](https://github.com/getsentry/sentry-javascript/pull/17947))
+- test(nextjs): Fix proxy/middleware test ([#17970](https://github.com/getsentry/sentry-javascript/pull/17970))
+
+</details>
+
+Work in this release was contributed by @0xbad0c0d3. Thank you for your contribution!
+
+## 10.20.0
+
+### Important Changes
+
+- **feat(flags): Add Growthbook integration ([#17440](https://github.com/getsentry/sentry-javascript/pull/17440))**
+
+  Adds a new Growthbook integration for feature flag support.
+
+- **feat(solid): Add support for TanStack Router Solid ([#17735](https://github.com/getsentry/sentry-javascript/pull/17735))**
+
+  Adds support for TanStack Router in the Solid SDK, enabling better routing instrumentation for Solid applications.
+
+- **feat(nextjs): Support native debugIds in turbopack ([#17853](https://github.com/getsentry/sentry-javascript/pull/17853))**
+
+  Adds support for native Debug IDs in Turbopack, improving source map resolution and error tracking for Next.js applications using Turbopack. Native Debug ID generation will be enabled automatically for compatible versions.
+
+### Other Changes
+
+- feat(nextjs): Prepare for next 16 bundler default ([#17868](https://github.com/getsentry/sentry-javascript/pull/17868))
+- feat(node): Capture `pino` logger name ([#17930](https://github.com/getsentry/sentry-javascript/pull/17930))
+- fix(browser): Ignore React 19.2+ component render measure entries ([#17905](https://github.com/getsentry/sentry-javascript/pull/17905))
+- fix(nextjs): Fix createRouteManifest with basePath ([#17838](https://github.com/getsentry/sentry-javascript/pull/17838))
+- fix(react): Add `POP` guard for long-running `pageload` spans ([#17867](https://github.com/getsentry/sentry-javascript/pull/17867))
+- fix(tracemetrics): Send boolean for internal replay attribute ([#17908](https://github.com/getsentry/sentry-javascript/pull/17908))
+- ref(core): Add weight tracking logic to browser logs/metrics ([#17901](https://github.com/getsentry/sentry-javascript/pull/17901))
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+- chore(nextjs): Add Next.js 16 peer dependency ([#17925](https://github.com/getsentry/sentry-javascript/pull/17925))
+- chore(ci): Update Next.js canary testing ([#17939](https://github.com/getsentry/sentry-javascript/pull/17939))
+- chore: Bump size limit ([#17941](https://github.com/getsentry/sentry-javascript/pull/17941))
+- test(nextjs): Add next@16 e2e test ([#17922](https://github.com/getsentry/sentry-javascript/pull/17922))
+- test(nextjs): Update next 15 tests ([#17919](https://github.com/getsentry/sentry-javascript/pull/17919))
+- chore: Add external contributor to CHANGELOG.md ([#17915](https://github.com/getsentry/sentry-javascript/pull/17915))
+- chore: Add external contributor to CHANGELOG.md ([#17928](https://github.com/getsentry/sentry-javascript/pull/17928))
+- chore: Add external contributor to CHANGELOG.md ([#17940](https://github.com/getsentry/sentry-javascript/pull/17940))
+</details>
+
+Work in this release was contributed by @seoyeon9888, @madhuchavva and @thedanchez. Thank you for your contributions!
 
 ## 10.19.0
 

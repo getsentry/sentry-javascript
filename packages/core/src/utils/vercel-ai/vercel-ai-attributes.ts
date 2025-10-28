@@ -292,6 +292,14 @@ export const AI_SETTINGS_MAX_RETRIES_ATTRIBUTE = 'ai.settings.maxRetries';
  * Basic LLM span information
  * Multiple spans
  *
+ * The number of cached input tokens that were used
+ * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry#basic-llm-span-information
+ */
+export const AI_USAGE_CACHED_INPUT_TOKENS_ATTRIBUTE = 'ai.usage.cachedInputTokens';
+/**
+ * Basic LLM span information
+ * Multiple spans
+ *
  * The functionId that was set through `telemetry.functionId`
  * @see https://ai-sdk.dev/docs/ai-sdk-core/telemetry#basic-llm-span-information
  */
@@ -863,6 +871,21 @@ interface AnthropicProviderMetadata {
    * @see https://ai-sdk.dev/providers/ai-sdk-providers/anthropic#cache-control
    */
   cacheReadInputTokens?: number;
+
+  /**
+   * Usage metrics for the Anthropic model.
+   */
+  usage?: {
+    input_tokens: number;
+    cache_creation_input_tokens?: number;
+    cache_read_input_tokens?: number;
+    cache_creation?: {
+      ephemeral_5m_input_tokens?: number;
+      ephemeral_1h_input_tokens?: number;
+    };
+    output_tokens?: number;
+    service_tier?: string;
+  };
 }
 
 /**

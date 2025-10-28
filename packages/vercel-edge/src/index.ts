@@ -95,6 +95,7 @@ export {
   wrapMcpServerWithSentry,
   consoleLoggingIntegration,
   createConsolaReporter,
+  createLangChainCallbackHandler,
   featureFlagsIntegration,
   logger,
 } from '@sentry/core';

@@ -89,7 +89,7 @@ export function createSentryWinstonTransport<TransportStreamInstance extends obj
         if (this._levels.has(logSeverityLevel)) {
           captureLog(logSeverityLevel, message as string, {
             ...attributes,
-            'sentry.origin': 'auto.logging.winston',
+            'sentry.origin': 'auto.log.winston',
           });
         }
       } catch {

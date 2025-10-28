@@ -64,7 +64,7 @@ export function wrapMiddlewareWithSentry<H extends EdgeRouteHandler>(
           isolationScope.setSDKProcessingMetadata({
             normalizedRequest: winterCGRequestToRequestData(req),
           });
-          spanName = `middleware ${req.method} ${new URL(req.url).pathname}`;
+          spanName = `middleware ${req.method}`;
           spanSource = 'url';
         } else {
           spanName = 'middleware';

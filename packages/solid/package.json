@@ -1,6 +1,6 @@
 {
   "name": "@sentry/solid",
-  "version": "10.19.0",
+  "version": "10.22.0",
   "description": "Official Sentry SDK for Solid",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/solid",
@@ -38,27 +38,42 @@
         "types": "./solidrouter.d.ts",
         "default": "./build/cjs/solidrouter.js"
       }
+    },
+    "./tanstackrouter": {
+      "import": {
+        "types": "./tanstackrouter.d.ts",
+        "default": "./build/esm/tanstackrouter.js"
+      },
+      "require": {
+        "types": "./tanstackrouter.d.ts",
+        "default": "./build/cjs/tanstackrouter.js"
+      }
     }
   },
   "publishConfig": {
     "access": "public"
   },
   "dependencies": {
-    "@sentry/browser": "10.19.0",
-    "@sentry/core": "10.19.0"
+    "@sentry/browser": "10.22.0",
+    "@sentry/core": "10.22.0"
   },
   "peerDependencies": {
     "@solidjs/router": "^0.13.4",
+    "@tanstack/solid-router": "^1.132.27",
     "solid-js": "^1.8.4"
   },
   "peerDependenciesMeta": {
     "@solidjs/router": {
+      "optional": true
+    },
+    "@tanstack/solid-router": {
       "optional": true
     }
   },
   "devDependencies": {
     "@solidjs/router": "^0.13.4",
     "@solidjs/testing-library": "0.8.5",
+    "@tanstack/solid-router": "^1.132.27",
     "@testing-library/dom": "^7.21.4",
     "@testing-library/jest-dom": "^6.4.5",
     "@testing-library/user-event": "^14.5.2",
@@ -70,15 +85,15 @@
     "build": "run-p build:transpile build:types",
     "build:dev": "yarn build",
     "build:transpile": "rollup -c rollup.npm.config.mjs",
-    "build:types": "run-s build:types:core build:types:solidrouter",
+    "build:types": "run-s build:types:core build:types:routers",
     "build:types:core": "tsc -p tsconfig.types.json",
-    "build:types:solidrouter": "tsc -p tsconfig.solidrouter-types.json",
+    "build:types:routers": "tsc -p tsconfig.routers-types.json",
     "build:watch": "run-p build:transpile:watch build:types:watch",
     "build:dev:watch": "yarn build:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
     "build:tarball": "npm pack",
-    "circularDepCheck": "madge --circular src/index.ts && madge --circular src/solidrouter.ts",
+    "circularDepCheck": "madge --circular src/index.ts && madge --circular src/solidrouter.ts && madge --circular src/tanstackrouter.ts",
     "clean": "rimraf build coverage sentry-solid-*.tgz ./*.d.ts ./*.d.ts.map",
     "fix": "eslint . --format stylish --fix",
     "lint": "eslint . --format stylish",

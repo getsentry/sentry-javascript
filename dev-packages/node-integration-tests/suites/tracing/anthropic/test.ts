@@ -308,6 +308,23 @@ describe('Anthropic integration', () => {
           'gen_ai.usage.total_tokens': 25,
         }),
       }),
+      // messages.stream with redundant stream: true param
+      expect.objectContaining({
+        description: 'messages claude-3-haiku-20240307 stream-response',
+        op: 'gen_ai.messages',
+        data: expect.objectContaining({
+          'gen_ai.system': 'anthropic',
+          'gen_ai.operation.name': 'messages',
+          'gen_ai.request.model': 'claude-3-haiku-20240307',
+          'gen_ai.request.stream': true,
+          'gen_ai.response.streaming': true,
+          'gen_ai.response.model': 'claude-3-haiku-20240307',
+          'gen_ai.response.id': 'msg_stream_1',
+          'gen_ai.usage.input_tokens': 10,
+          'gen_ai.usage.output_tokens': 15,
+          'gen_ai.usage.total_tokens': 25,
+        }),
+      }),
     ]),
   };
 
@@ -320,6 +337,14 @@ describe('Anthropic integration', () => {
         data: expect.objectContaining({
           'gen_ai.response.streaming': true,
           // streamed text concatenated
+          'gen_ai.response.text': 'Hello from stream!',
+        }),
+      }),
+      expect.objectContaining({
+        description: 'messages claude-3-haiku-20240307 stream-response',
+        op: 'gen_ai.messages',
+        data: expect.objectContaining({
+          'gen_ai.response.streaming': true,
           'gen_ai.response.text': 'Hello from stream!',
         }),
       }),
@@ -497,4 +522,40 @@ describe('Anthropic integration', () => {
       await createRunner().ignore('event').expect({ transaction: EXPECTED_ERROR_SPANS }).start().completed();
     });
   });
+
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-message-truncation.mjs',
+    'instrument-with-pii.mjs',
+    (createRunner, test) => {
+      test('truncates messages when they exceed byte limit - keeps only last message and crops it', async () => {
+        await createRunner()
+          .ignore('event')
+          .expect({
+            transaction: {
+              transaction: 'main',
+              spans: expect.arrayContaining([
+                expect.objectContaining({
+                  data: expect.objectContaining({
+                    'gen_ai.operation.name': 'messages',
+                    'sentry.op': 'gen_ai.messages',
+                    'sentry.origin': 'auto.ai.anthropic',
+                    'gen_ai.system': 'anthropic',
+                    'gen_ai.request.model': 'claude-3-haiku-20240307',
+                    // Messages should be present (truncation happened) and should be a JSON array
+                    'gen_ai.request.messages': expect.stringMatching(/^\[\{"role":"user","content":"C+"\}\]$/),
+                  }),
+                  description: 'messages claude-3-haiku-20240307',
+                  op: 'gen_ai.messages',
+                  origin: 'auto.ai.anthropic',
+                  status: 'ok',
+                }),
+              ]),
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+  );
 });

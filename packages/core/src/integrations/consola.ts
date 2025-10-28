@@ -217,7 +217,7 @@ export function createConsolaReporter(options: ConsolaReporterOptions = {}): Con
       const message = messageParts.join(' ');
 
       // Build attributes
-      attributes['sentry.origin'] = 'auto.logging.consola';
+      attributes['sentry.origin'] = 'auto.log.consola';
 
       if (tag) {
         attributes['consola.tag'] = tag;

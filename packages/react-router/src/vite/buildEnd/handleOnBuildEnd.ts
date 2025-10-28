@@ -1,6 +1,7 @@
 import { rm } from 'node:fs/promises';
 import type { Config } from '@react-router/dev/config';
 import SentryCli from '@sentry/cli';
+import type { SentryVitePluginOptions } from '@sentry/vite-plugin';
 import { glob } from 'glob';
 import type { SentryReactRouterBuildOptions } from '../types';
 
@@ -23,17 +24,31 @@ function getSentryConfig(viteConfig: unknown): SentryReactRouterBuildOptions {
 export const sentryOnBuildEnd: BuildEndHook = async ({ reactRouterConfig, viteConfig }) => {
   const sentryConfig = getSentryConfig(viteConfig);
 
+  // todo(v11): Remove deprecated sourceMapsUploadOptions support (no need for spread/pick anymore)
+  const {
+    sourceMapsUploadOptions, // extract to exclude from rest config
+    ...sentryConfigWithoutDeprecatedSourceMapOption
+  } = sentryConfig;
+
   const {
     authToken,
     org,
     project,
     release,
-    sourceMapsUploadOptions = { enabled: true },
+    sourcemaps = { disable: false },
     debug = false,
-    unstable_sentryVitePluginOptions,
-  }: SentryReactRouterBuildOptions = {
+  }: Omit<SentryReactRouterBuildOptions, 'sourcemaps' | 'sourceMapsUploadOptions'> &
+    // Pick 'sourcemaps' from Vite plugin options as the types allow more (e.g. Promise values for `deleteFilesAfterUpload`)
+    Pick<SentryVitePluginOptions, 'sourcemaps'> = {
     ...sentryConfig.unstable_sentryVitePluginOptions,
-    ...sentryConfig,
+    ...sentryConfigWithoutDeprecatedSourceMapOption, // spread in the config without the deprecated sourceMapsUploadOptions
+    sourcemaps: {
+      ...sentryConfig.unstable_sentryVitePluginOptions?.sourcemaps,
+      ...sentryConfig.sourcemaps,
+      ...sourceMapsUploadOptions,
+      // eslint-disable-next-line deprecation/deprecation
+      disable: sourceMapsUploadOptions?.enabled === false ? true : sentryConfig.sourcemaps?.disable,
+    },
     release: {
       ...sentryConfig.unstable_sentryVitePluginOptions?.release,
       ...sentryConfig.release,
@@ -44,8 +59,9 @@ export const sentryOnBuildEnd: BuildEndHook = async ({ reactRouterConfig, viteCo
     authToken,
     org,
     project,
-    ...unstable_sentryVitePluginOptions,
+    ...sentryConfig.unstable_sentryVitePluginOptions,
   });
+
   // check if release should be created
   if (release?.name) {
     try {
@@ -56,7 +72,7 @@ export const sentryOnBuildEnd: BuildEndHook = async ({ reactRouterConfig, viteCo
     }
   }
 
-  if (sourceMapsUploadOptions?.enabled ?? (true && viteConfig.build.sourcemap !== false)) {
+  if (!sourcemaps?.disable && viteConfig.build.sourcemap !== false) {
     // inject debugIds
     try {
       await cliInstance.execute(
@@ -84,9 +100,10 @@ export const sentryOnBuildEnd: BuildEndHook = async ({ reactRouterConfig, viteCo
     }
   }
   // delete sourcemaps after upload
-  let updatedFilesToDeleteAfterUpload = sourceMapsUploadOptions?.filesToDeleteAfterUpload;
+  let updatedFilesToDeleteAfterUpload = await sourcemaps?.filesToDeleteAfterUpload;
+
   // set a default value no option was set
-  if (typeof sourceMapsUploadOptions?.filesToDeleteAfterUpload === 'undefined') {
+  if (typeof updatedFilesToDeleteAfterUpload === 'undefined') {
     updatedFilesToDeleteAfterUpload = [`${reactRouterConfig.buildDirectory}/**/*.map`];
     debug &&
       // eslint-disable-next-line no-console
