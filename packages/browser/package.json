@@ -47,7 +47,7 @@
   },
   "devDependencies": {
     "@sentry-internal/integration-shims": "10.22.0",
-    "fake-indexeddb": "^4.0.1"
+    "fake-indexeddb": "^6.2.4"
   },
   "scripts": {
     "build": "run-p build:transpile build:bundle build:types",
