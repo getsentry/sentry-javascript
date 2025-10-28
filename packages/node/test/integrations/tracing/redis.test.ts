@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { _redisOptions, cacheResponseHook } from '../../../src/integrations/tracing/redis';
 import {
   calculateCacheItemSize,
   GET_COMMANDS,
@@ -8,6 +9,82 @@ import {
 } from '../../../src/utils/redisCache';
 
 describe('Redis', () => {
+  describe('cacheResponseHook', () => {
+    let mockSpan: any;
+    let originalRedisOptions: any;
+
+    beforeEach(() => {
+      mockSpan = {
+        setAttribute: vi.fn(),
+        setAttributes: vi.fn(),
+        updateName: vi.fn(),
+        spanContext: () => ({ spanId: 'test-span-id', traceId: 'test-trace-id' }),
+      };
+
+      originalRedisOptions = { ..._redisOptions };
+    });
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+      // Reset redis options by clearing all properties first, then restoring original ones
+      Object.keys(_redisOptions).forEach(key => delete (_redisOptions as any)[key]);
+      Object.assign(_redisOptions, originalRedisOptions);
+    });
+
+    describe('early returns', () => {
+      it.each([
+        { desc: 'no args', cmd: 'get', args: [], response: 'test' },
+        { desc: 'unsupported command', cmd: 'exists', args: ['key'], response: 'test' },
+        { desc: 'no cache prefixes', cmd: 'get', args: ['key'], response: 'test', options: {} },
+        { desc: 'non-matching prefix', cmd: 'get', args: ['key'], response: 'test', options: { cachePrefixes: ['c'] } },
+      ])('should always set sentry.origin but return early when $desc', ({ cmd, args, response, options = {} }) => {
+        vi.clearAllMocks();
+        Object.assign(_redisOptions, options);
+
+        cacheResponseHook(mockSpan, cmd, args, response);
+
+        expect(mockSpan.setAttribute).toHaveBeenCalledWith('sentry.origin', 'auto.db.otel.redis');
+        expect(mockSpan.setAttributes).not.toHaveBeenCalled();
+        expect(mockSpan.updateName).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('span name truncation', () => {
+      beforeEach(() => {
+        Object.assign(_redisOptions, { cachePrefixes: ['cache:'] });
+      });
+
+      it('should not truncate span name when maxCacheKeyLength is not set', () => {
+        cacheResponseHook(
+          mockSpan,
+          'mget',
+          ['cache:very-long-key-name', 'cache:very-long-key-name-2', 'cache:very-long-key-name-3'],
+          'value',
+        );
+
+        expect(mockSpan.updateName).toHaveBeenCalledWith(
+          'cache:very-long-key-name, cache:very-long-key-name-2, cache:very-long-key-name-3',
+        );
+      });
+
+      it('should truncate span name when maxCacheKeyLength is set', () => {
+        Object.assign(_redisOptions, { maxCacheKeyLength: 10 });
+
+        cacheResponseHook(mockSpan, 'get', ['cache:very-long-key-name'], 'value');
+
+        expect(mockSpan.updateName).toHaveBeenCalledWith('cache:very...');
+      });
+
+      it('should truncate multiple keys joined with commas', () => {
+        Object.assign(_redisOptions, { maxCacheKeyLength: 20 });
+
+        cacheResponseHook(mockSpan, 'mget', ['cache:key1', 'cache:key2', 'cache:key3'], ['val1', 'val2', 'val3']);
+
+        expect(mockSpan.updateName).toHaveBeenCalledWith('cache:key1, cache:ke...');
+      });
+    });
+  });
+
   describe('getCacheKeySafely (single arg)', () => {
     it('should return an empty string if there are no command arguments', () => {
       const result = getCacheKeySafely('get', []);
@@ -26,7 +103,7 @@ describe('Redis', () => {
       expect(result).toStrictEqual(['key1']);
     });
 
-    it('should return only the key for multiple arguments', () => {
+    it('should return only the first key for commands that only accept a singe key (get)', () => {
       const cmdArgs = ['key1', 'the-value'];
       const result = getCacheKeySafely('get', cmdArgs);
       expect(result).toStrictEqual(['key1']);
