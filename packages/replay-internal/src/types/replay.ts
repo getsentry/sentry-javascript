@@ -352,7 +352,7 @@ export interface PopEventContext extends CommonEventContext {
   /**
    * List of Sentry trace ids that have occurred during a replay segment
    */
-  traceIds: Array<string>;
+  traceIds: Array<[number, string]>;
 }
 
 /**
@@ -365,9 +365,9 @@ export interface InternalEventContext extends CommonEventContext {
   errorIds: Set<string>;
 
   /**
-   * Set of Sentry trace ids that have occurred during a replay segment
+   * Set of [timestamp, trace_id] tuples for Sentry traces that have occurred during a replay segment
    */
-  traceIds: Set<string>;
+  traceIds: Set<[number, string]>;
 }
 
 export type Sampled = false | 'session' | 'buffer';

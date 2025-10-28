@@ -84,13 +84,20 @@ describe('Integration | coreHandlers | handleAfterSendEvent', () => {
     handler(transaction4, { statusCode: undefined });
 
     expect(Array.from(replay.getContext().errorIds)).toEqual([]);
-    expect(Array.from(replay.getContext().traceIds)).toEqual(['tr2']);
+    // traceIds is now a Set of [timestamp, trace_id] tuples
+    const traceIds = Array.from(replay.getContext().traceIds);
+    expect(traceIds).toHaveLength(1);
+    expect(traceIds[0][1]).toBe('tr2');
+    expect(typeof traceIds[0][0]).toBe('number');
 
     // Does not affect error session
     await vi.advanceTimersToNextTimerAsync();
 
     expect(Array.from(replay.getContext().errorIds)).toEqual([]);
-    expect(Array.from(replay.getContext().traceIds)).toEqual(['tr2']);
+    // Verify traceIds are still there after advancing timers
+    const traceIdsAfter = Array.from(replay.getContext().traceIds);
+    expect(traceIdsAfter).toHaveLength(1);
+    expect(traceIdsAfter[0][1]).toBe('tr2');
     expect(replay.isEnabled()).toBe(true);
     expect(replay.isPaused()).toBe(false);
     expect(replay.recordingMode).toBe('buffer');
@@ -141,11 +148,20 @@ describe('Integration | coreHandlers | handleAfterSendEvent', () => {
     }
 
     expect(Array.from(replay.getContext().errorIds)).toEqual([]);
-    expect(Array.from(replay.getContext().traceIds)).toEqual(
+    // traceIds is now a Set of [timestamp, trace_id] tuples
+    const traceIds = Array.from(replay.getContext().traceIds);
+    expect(traceIds).toHaveLength(100);
+    // Check that all trace IDs are present
+    expect(traceIds.map(([_timestamp, traceId]) => traceId)).toEqual(
       Array(100)
         .fill(undefined)
         .map((_, i) => `tr-${i}`),
     );
+    // Check that all tuples have timestamps
+    traceIds.forEach(([timestamp, _traceId]) => {
+      expect(typeof timestamp).toBe('number');
+      expect(timestamp).toBeGreaterThan(0);
+    });
   });
 
   it('flushes when in buffer mode', async () => {
