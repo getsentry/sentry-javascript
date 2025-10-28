@@ -7,7 +7,7 @@ important a comment is.
 
 You only need one approval from a maintainer to be able to merge. For some PRs, asking specific or multiple people for
 review might be adequate. You can either assign SDK team members directly (e.g. if you have some people in mind who are
-well suited to review a PR), or you can assign `getsentry/team-web-sdk-frontend`, which will randomly pick 2 people from
+well suited to review a PR), or you can assign `getsentry/team-javascript-sdks`, which will randomly pick 2 people from
 the team to assign.
 
 Our different types of reviews:
