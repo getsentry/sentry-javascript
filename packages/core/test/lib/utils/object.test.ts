@@ -145,29 +145,22 @@ describe('extractExceptionKeysForMessage()', () => {
     expect(extractExceptionKeysForMessage({})).toEqual('[object has no keys]');
   });
 
-  test('one key should be returned as a whole if not over the length limit', () => {
+  test('one key should be returned as a whole', () => {
     expect(extractExceptionKeysForMessage({ foo: '_' })).toEqual('foo');
     expect(extractExceptionKeysForMessage({ foobarbazx: '_' })).toEqual('foobarbazx');
   });
 
-  test('multiple keys should be sorted and joined as a whole if not over the length limit', () => {
-    expect(extractExceptionKeysForMessage({ foo: '_', bar: '_', baz: '_' })).toEqual('bar, baz, foo');
-  });
-
-  test('multiple keys should truncate first key if its too long', () => {
-    expect(extractExceptionKeysForMessage({ barbazquxfoo: '_', baz: '_', qux: '_' })).toEqual('barbazquxfoo, baz, qux');
-  });
-
-  test('sorts keys alphabetically and does not truncate multiple keys or long keys', () => {
+  test('multiple keys should be sorted and joined as a whole (without truncating)', () => {
     const exception = {
       property1: 'a',
       thisIsAnExtremelyLongPropertyNameThatExceedsFortyCharacters: 'b',
+      barbazquxfooabc: 'x',
       property3: 'c',
       property4: 'd',
       property5: 'e',
     };
     expect(extractExceptionKeysForMessage(exception)).toEqual(
-      'property1, property3, property4, property5, thisIsAnExtremelyLongPropertyNameThatExceedsFortyCharacters',
+      'barbazquxfooabc, property1, property3, property4, property5, thisIsAnExtremelyLongPropertyNameThatExceedsFortyCharacters',
     );
   });
 });
