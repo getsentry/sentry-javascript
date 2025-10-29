@@ -27,14 +27,14 @@ describe('setHttpStatus', () => {
     expect(data).toMatchObject({ 'http.response.status_code': code });
   });
 
-  it("doesn't set the status for an unknown http status code", () => {
+  it('defaults to internal_error', () => {
     const span = new SentrySpan({ name: 'test' });
 
     setHttpStatus(span, 600);
 
     const { status: spanStatus, data } = spanToJSON(span);
 
-    expect(spanStatus).toBeUndefined();
+    expect(spanStatus).toBe('internal_error');
     expect(data).toMatchObject({ 'http.response.status_code': 600 });
   });
 });
