@@ -1,5 +1,5 @@
 import type { Integration, IntegrationFn } from '@sentry/core';
-import { captureEvent, debug, defineIntegration, getClient, isPlainObject,isPrimitive } from '@sentry/core';
+import { captureEvent, debug, defineIntegration, getClient, isPlainObject, isPrimitive } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import { eventFromUnknownInput } from '../eventbuilder';
 import { WINDOW } from '../helpers';
