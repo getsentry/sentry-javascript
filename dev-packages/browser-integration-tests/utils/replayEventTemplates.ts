@@ -7,8 +7,10 @@ const DEFAULT_REPLAY_EVENT = {
   type: 'replay_event',
   timestamp: expect.any(Number),
   error_ids: [],
-  trace_ids: [],
-  traces_by_timestamp: [],
+  trace_ids: [expect.any(String)],
+  traces_by_timestamp: [
+    [expect.any(Number), expect.any(String)],
+  ],
   urls: [expect.stringContaining('/index.html')],
   replay_id: expect.stringMatching(/\w{32}/),
   replay_start_timestamp: expect.any(Number),
