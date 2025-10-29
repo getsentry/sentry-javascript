@@ -104,7 +104,10 @@ function _installGlobalOnUnhandledRejectionHandler(client: Client): void {
   });
 }
 
-function _getUnhandledRejectionError(error: unknown): unknown {
+/**
+ *
+ */
+export function _getUnhandledRejectionError(error: unknown): unknown {
   if (isPrimitive(error)) {
     return error;
   }
@@ -138,7 +141,7 @@ function _getUnhandledRejectionError(error: unknown): unknown {
  * @param reason: The `reason` property of the promise rejection
  * @returns An Event object with an appropriate `exception` value
  */
-function _eventFromRejectionWithPrimitive(reason: Primitive): Event {
+export function _eventFromRejectionWithPrimitive(reason: Primitive): Event {
   return {
     exception: {
       values: [
