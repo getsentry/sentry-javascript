@@ -182,7 +182,7 @@ function handleForwardedWorkerRejection(workerError: SerializedWorkerError): voi
  */
 interface MinimalDedicatedWorkerGlobalScope {
   postMessage: (message: unknown) => void;
-  addEventListener: (type: string, listener: (event: any) => void) => void;
+  addEventListener: (type: string, listener: (event: unknown) => void) => void;
   location?: { href?: string };
 }
 
@@ -224,7 +224,7 @@ export function registerWebWorker({ self }: RegisterWebWorkerOptions): void {
   // Set up unhandledrejection handler inside the worker
   // Following the same pattern as globalHandlers
   // unhandled rejections don't bubble to the parent thread, so we need to handle them here
-  self.addEventListener('unhandledrejection', (event: any) => {
+  self.addEventListener('unhandledrejection', (event: unknown) => {
     const reason = _getUnhandledRejectionError(event);
 
     // Forward the raw reason to parent thread
@@ -240,10 +240,10 @@ export function registerWebWorker({ self }: RegisterWebWorkerOptions): void {
       _sentryWorkerError: serializedError,
     });
 
-    DEBUG_BUILD && console.log('[Sentry Worker] Forwarding unhandled rejection to parent', serializedError);
+    DEBUG_BUILD && debug.log('[Sentry Worker] Forwarding unhandled rejection to parent', serializedError);
   });
 
-  DEBUG_BUILD && console.log('[Sentry Worker] Registered worker with unhandled rejection handling');
+  DEBUG_BUILD && debug.log('[Sentry Worker] Registered worker with unhandled rejection handling');
 }
 
 function isSentryMessage(eventData: unknown): eventData is WebWorkerMessage {
