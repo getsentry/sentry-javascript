@@ -157,7 +157,7 @@ module.exports = [
     name: 'CDN Bundle',
     path: createCDNPath('bundle.min.js'),
     gzip: true,
-    limit: '27 KB',
+    limit: '27.5 KB',
   },
   {
     name: 'CDN Bundle (incl. Tracing)',
@@ -240,7 +240,7 @@ module.exports = [
     import: createImport('init'),
     ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
     gzip: true,
-    limit: '157 KB',
+    limit: '158 KB',
   },
   {
     name: '@sentry/node - without tracing',

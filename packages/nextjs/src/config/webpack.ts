@@ -2,7 +2,6 @@
 /* eslint-disable max-lines */
 
 import { debug, escapeStringForRegex, loadModule, parseSemver } from '@sentry/core';
-import * as chalk from 'chalk';
 import * as fs from 'fs';
 import * as path from 'path';
 import { sync as resolveSync } from 'resolve';
@@ -245,11 +244,7 @@ export function constructWebpackConfigFunction({
           vercelCronsConfig = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'vercel.json'), 'utf8')).crons;
           if (vercelCronsConfig) {
             debug.log(
-              `${chalk.cyan(
-                'info',
-              )} - Creating Sentry cron monitors for your Vercel Cron Jobs. You can disable this feature by setting the ${chalk.bold.cyan(
-                'automaticVercelMonitors',
-              )} option to false in you Next.js config.`,
+              "[@sentry/nextjs] Creating Sentry cron monitors for your Vercel Cron Jobs. You can disable this feature by setting the 'automaticVercelMonitors' option to false in you Next.js config.",
             );
           }
         }
@@ -259,9 +254,7 @@ export function constructWebpackConfigFunction({
         } else {
           // log but noop
           debug.error(
-            `${chalk.red(
-              'error',
-            )} - Sentry failed to read vercel.json for automatic cron job monitoring instrumentation`,
+            '[@sentry/nextjs] Failed to read vercel.json for automatic cron job monitoring instrumentation',
             e,
           );
         }
@@ -344,11 +337,7 @@ export function constructWebpackConfigFunction({
       ) {
         // eslint-disable-next-line no-console
         console.log(
-          `${chalk.yellow(
-            'warn',
-          )}  - It seems like you don't have a global error handler set up. It is recommended that you add a ${chalk.cyan(
-            'global-error.js',
-          )} file with Sentry instrumentation so that React rendering errors are reported to Sentry. Read more: https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/#react-render-errors-in-app-router (you can suppress this warning by setting SENTRY_SUPPRESS_GLOBAL_ERROR_HANDLER_FILE_WARNING=1 as environment variable)`,
+          "[@sentry/nextjs] It seems like you don't have a global error handler set up. It is recommended that you add a 'global-error.js' file with Sentry instrumentation so that React rendering errors are reported to Sentry. Read more: https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/#react-render-errors-in-app-router (you can suppress this warning by setting SENTRY_SUPPRESS_GLOBAL_ERROR_HANDLER_FILE_WARNING=1 as environment variable)",
         );
         showedMissingGlobalErrorWarningMsg = true;
       }
@@ -541,9 +530,7 @@ function warnAboutMissingOnRequestErrorHandler(instrumentationFile: string | nul
     if (!process.env.SENTRY_SUPPRESS_INSTRUMENTATION_FILE_WARNING) {
       // eslint-disable-next-line no-console
       console.warn(
-        chalk.yellow(
-          '[@sentry/nextjs] Could not find a Next.js instrumentation file. This indicates an incomplete configuration of the Sentry SDK. An instrumentation file is required for the Sentry SDK to be initialized on the server: https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/#create-initialization-config-files (you can suppress this warning by setting SENTRY_SUPPRESS_INSTRUMENTATION_FILE_WARNING=1 as environment variable)',
-        ),
+        '[@sentry/nextjs] Could not find a Next.js instrumentation file. This indicates an incomplete configuration of the Sentry SDK. An instrumentation file is required for the Sentry SDK to be initialized on the server: https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/#create-initialization-config-files (you can suppress this warning by setting SENTRY_SUPPRESS_INSTRUMENTATION_FILE_WARNING=1 as environment variable)',
       );
     }
     return;
@@ -552,9 +539,7 @@ function warnAboutMissingOnRequestErrorHandler(instrumentationFile: string | nul
   if (!instrumentationFile.includes('onRequestError')) {
     // eslint-disable-next-line no-console
     console.warn(
-      chalk.yellow(
-        '[@sentry/nextjs] Could not find `onRequestError` hook in instrumentation file. This indicates outdated configuration of the Sentry SDK. Use `Sentry.captureRequestError` to instrument the `onRequestError` hook: https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/#errors-from-nested-react-server-components',
-      ),
+      '[@sentry/nextjs] Could not find `onRequestError` hook in instrumentation file. This indicates outdated configuration of the Sentry SDK. Use `Sentry.captureRequestError` to instrument the `onRequestError` hook: https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/#errors-from-nested-react-server-components',
     );
   }
 }

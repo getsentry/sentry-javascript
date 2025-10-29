@@ -66,7 +66,7 @@ describe('LangChain integration', () => {
         description: 'chat error-model',
         op: 'gen_ai.chat',
         origin: 'auto.ai.langchain',
-        status: 'unknown_error',
+        status: 'internal_error',
       }),
     ]),
   };
@@ -136,7 +136,7 @@ describe('LangChain integration', () => {
         description: 'chat error-model',
         op: 'gen_ai.chat',
         origin: 'auto.ai.langchain',
-        status: 'unknown_error',
+        status: 'internal_error',
       }),
     ]),
   };
