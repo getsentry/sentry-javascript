@@ -1,5 +1,5 @@
 import { describe, expect, it, test, vi } from 'vitest';
-import { createTransport, Scope } from '../../src';
+import { applySdkMetadata, createTransport, Scope } from '../../src';
 import type { ServerRuntimeClientOptions } from '../../src/server-runtime-client';
 import { ServerRuntimeClient } from '../../src/server-runtime-client';
 import type { Event, EventHint } from '../../src/types-hoist/event';
@@ -203,6 +203,37 @@ describe('ServerRuntimeClient', () => {
           ],
         ],
       ]);
+    });
+  });
+
+  describe('user-agent header', () => {
+    it('sends user-agent header with SDK name and version', () => {
+      const options = getDefaultClientOptions({ dsn: PUBLIC_DSN });
+
+      // this is done in all `init` functions of the respective SDKs:
+      applySdkMetadata(options, 'core');
+
+      client = new ServerRuntimeClient(options);
+
+      expect(client.getOptions().transportOptions?.headers).toEqual({
+        'user-agent': 'sentry.javascript.core/0.0.0-unknown.0',
+      });
+    });
+
+    it('prefers user-passed headers (including user-agent)', () => {
+      const options = getDefaultClientOptions({
+        dsn: PUBLIC_DSN,
+        transportOptions: { headers: { 'x-custom-header': 'custom-value', 'user-agent': 'custom-user-agent' } },
+      });
+
+      applySdkMetadata(options, 'core');
+
+      client = new ServerRuntimeClient(options);
+
+      expect(client.getOptions().transportOptions?.headers).toEqual({
+        'user-agent': 'custom-user-agent',
+        'x-custom-header': 'custom-value',
+      });
     });
   });
 });

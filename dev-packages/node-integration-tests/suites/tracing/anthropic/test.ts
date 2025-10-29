@@ -42,7 +42,7 @@ describe('Anthropic integration', () => {
         description: 'messages error-model',
         op: 'gen_ai.messages',
         origin: 'auto.ai.anthropic',
-        status: 'unknown_error',
+        status: 'internal_error',
       }),
       // Third span - token counting (no response.text because recordOutputs=false by default)
       expect.objectContaining({
@@ -117,7 +117,7 @@ describe('Anthropic integration', () => {
         description: 'messages error-model',
         op: 'gen_ai.messages',
         origin: 'auto.ai.anthropic',
-        status: 'unknown_error',
+        status: 'internal_error',
       }),
       // Third span - token counting with PII (response.text is present because sendDefaultPii=true enables recordOutputs)
       expect.objectContaining({
@@ -490,7 +490,7 @@ describe('Anthropic integration', () => {
       expect.objectContaining({
         description: 'messages invalid-format',
         op: 'gen_ai.messages',
-        status: 'unknown_error',
+        status: 'internal_error',
         data: expect.objectContaining({
           'gen_ai.request.model': 'invalid-format',
         }),
@@ -499,7 +499,7 @@ describe('Anthropic integration', () => {
       expect.objectContaining({
         description: 'models nonexistent-model',
         op: 'gen_ai.models',
-        status: 'unknown_error',
+        status: 'internal_error',
         data: expect.objectContaining({
           'gen_ai.request.model': 'nonexistent-model',
         }),

@@ -40,7 +40,7 @@ describe('mapStatus', () => {
     [501, undefined, { code: SPAN_STATUS_ERROR, message: 'unimplemented' }],
     [503, undefined, { code: SPAN_STATUS_ERROR, message: 'unavailable' }],
     [504, undefined, { code: SPAN_STATUS_ERROR, message: 'deadline_exceeded' }],
-    [999, undefined, { code: SPAN_STATUS_ERROR, message: 'unknown_error' }],
+    [999, undefined, { code: SPAN_STATUS_ERROR, message: 'internal_error' }],
 
     // grpc codes
     [undefined, '1', { code: SPAN_STATUS_ERROR, message: 'cancelled' }],
@@ -112,7 +112,7 @@ describe('mapStatus', () => {
   it('returns error status when span already has error status without message', () => {
     const span = createSpan('test-span');
     span.setStatus({ code: 2 }); // ERROR
-    expect(mapStatus(span)).toEqual({ code: SPAN_STATUS_ERROR, message: 'unknown_error' });
+    expect(mapStatus(span)).toEqual({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
   });
 
   it('infers error status form attributes when span already has error status without message', () => {

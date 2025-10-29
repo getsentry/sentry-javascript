@@ -68,7 +68,7 @@ describe('GraphQL/Apollo Tests', () => {
             'sentry.origin': 'auto.graphql.otel.graphql',
           },
           description: 'mutation Mutation',
-          status: 'unknown_error',
+          status: 'internal_error',
           origin: 'auto.graphql.otel.graphql',
         }),
       ]),
