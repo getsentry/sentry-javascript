@@ -5,6 +5,7 @@ import {
   getCurrentScope,
   getRootSpan,
   htmlTreeAsString,
+  isBrowser,
   SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME,
   SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_UNIT,
   SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE,
@@ -160,9 +161,11 @@ export const _onInp: InstrumentationHandlerCallback = ({ metric }) => {
 export function registerInpInteractionListener(): void {
   // Listen for all interaction events that could contribute to INP
   const interactionEvents = Object.keys(INP_ENTRY_MAP);
-  interactionEvents.forEach(eventType => {
-    WINDOW.addEventListener(eventType, captureElementFromEvent, { capture: true, passive: true });
-  });
+  if (isBrowser()) {
+    interactionEvents.forEach(eventType => {
+      WINDOW.addEventListener(eventType, captureElementFromEvent, { capture: true, passive: true });
+    });
+  }
 
   /**
    * Captures the element name from a DOM event and stores it in the ELEMENT_NAME_TIMESTAMP_MAP.
