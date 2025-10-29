@@ -4,7 +4,6 @@ import type { WrappedFunction } from '../types-hoist/wrappedfunction';
 import { htmlTreeAsString } from './browser';
 import { debug } from './debug-logger';
 import { isElement, isError, isEvent, isInstanceOf, isPrimitive } from './is';
-import { truncate } from './string';
 
 /**
  * Replace a method in an object with a wrapped version of itself.
