@@ -128,7 +128,7 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
           const ips = headers['x-forwarded-for'];
           const httpVersion = request.httpVersion;
           const host = headers.host;
-          const hostname = host?.replace(/^(.*)(:\d{1,5})/, '$1') || 'localhost';
+          const hostname = host?.replace(/^(.*):\d{1,5}/, '$1') || 'localhost';
 
           const tracer = client.tracer;
           const scheme = fullUrl.startsWith('https') ? 'https' : 'http';
@@ -275,12 +275,12 @@ function isKnownPrefetchRequest(req: IncomingMessage): boolean {
 export function isStaticAssetRequest(urlPath: string): boolean {
   const path = stripUrlQueryAndFragment(urlPath);
   // Common static file extensions
-  if (path.match(/\.(ico|png|jpg|jpeg|gif|svg|css|js|woff|woff2|ttf|eot|webp|avif)$/)) {
+  if (path.match(/\.(?:ico|png|jpg|jpeg|gif|svg|css|js|woff|woff2|ttf|eot|webp|avif)$/)) {
     return true;
   }
 
   // Common metadata files
-  if (path.match(/^\/(robots\.txt|sitemap\.xml|manifest\.json|browserconfig\.xml)$/)) {
+  if (path.match(/^\/(?:robots\.txt|sitemap\.xml|manifest\.json|browserconfig\.xml)$/)) {
     return true;
   }
 

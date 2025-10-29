@@ -115,7 +115,7 @@ export function pagesRouterInstrumentPageLoad(client: Client): void {
   if (parsedBaggage?.['sentry-transaction'] && name === '/_error') {
     name = parsedBaggage['sentry-transaction'];
     // Strip any HTTP method from the span name
-    name = name.replace(/^(GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS|TRACE|CONNECT)\s+/i, '');
+    name = name.replace(/^(?:GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS|TRACE|CONNECT)\s+/i, '');
   }
 
   const origin = browserPerformanceTimeOrigin();

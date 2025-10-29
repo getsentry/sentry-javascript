@@ -346,9 +346,9 @@ async function getDarwinInfo(): Promise<OsContext> {
       });
     });
 
-    darwinInfo.name = matchFirst(/^ProductName:\s+(.*)$/m, output);
-    darwinInfo.version = matchFirst(/^ProductVersion:\s+(.*)$/m, output);
-    darwinInfo.build = matchFirst(/^BuildVersion:\s+(.*)$/m, output);
+    darwinInfo.name = matchFirst(/^ProductName:\s+(\S.*)$/m, output);
+    darwinInfo.version = matchFirst(/^ProductVersion:\s+(\S.*)$/m, output);
+    darwinInfo.build = matchFirst(/^BuildVersion:\s+(\S.*)$/m, output);
   } catch {
     // ignore
   }

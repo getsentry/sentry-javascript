@@ -124,6 +124,7 @@ function hasScriptTag(content: string): boolean {
   // They use this regex to find matching script tags that are passed to the `script` preprocessor hook:
   // https://github.com/sveltejs/svelte/blob/bb83eddfc623437528f24e9fe210885b446e72fa/src/compiler/preprocess/index.ts#L144
   // However, we remove the first part of the regex to not match HTML comments
+  // eslint-disable-next-line regexp/no-super-linear-backtracking, regexp/no-unused-capturing-group, regexp/match-any
   const scriptTagRegex = /<script(\s[^]*?)?(?:>([^]*?)<\/script\s*>|\/>)/gi;
 
   // Regex testing is not a super safe way of checking for the presence of a <script> tag in the Svelte

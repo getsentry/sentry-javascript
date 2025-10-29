@@ -249,7 +249,7 @@ function stringifyValue(
     const objName = getConstructorName(value);
 
     // Handle HTML Elements
-    if (/^HTML(\w*)Element$/.test(objName)) {
+    if (/^HTML\w*Element$/.test(objName)) {
       return `[HTMLElement: ${objName}]`;
     }
 

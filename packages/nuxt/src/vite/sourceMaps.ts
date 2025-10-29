@@ -131,7 +131,7 @@ export function setupSourceMaps(moduleOptions: SentryNuxtModuleOptions, nuxt: Nu
  * Normalizes the beginning of a path from e.g. ../../../ to ./
  */
 function normalizePath(path: string): string {
-  return path.replace(/^(\.\.\/)+/, './');
+  return path.replace(/^(?:\.\.\/)+/, './');
 }
 
 /**

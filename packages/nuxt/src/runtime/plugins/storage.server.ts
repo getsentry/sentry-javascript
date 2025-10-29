@@ -244,7 +244,7 @@ function normalizeKey(key: unknown, prefix: string): string {
   return `${prefix}${isEmptyValue(key) ? '' : String(key)}`;
 }
 
-const CACHED_FN_HANDLERS_RE = /^nitro:(functions|handlers):/i;
+const CACHED_FN_HANDLERS_RE = /^nitro:(?:functions|handlers):/i;
 
 /**
  * Since Nitro's cache may not utilize the driver's TTL, it is possible that the value is present in the cache but won't be used by Nitro.

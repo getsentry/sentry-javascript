@@ -1,7 +1,7 @@
 import { defineIntegration, escapeStringForRegex, rewriteFramesIntegration } from '@sentry/core';
 
 export const distDirRewriteFramesIntegration = defineIntegration(({ distDirName }: { distDirName: string }) => {
-  const distDirAbsPath = distDirName.replace(/(\/|\\)$/, ''); // We strip trailing slashes because "app:///_next" also doesn't have one
+  const distDirAbsPath = distDirName.replace(/(?:\/|\\)$/, ''); // We strip trailing slashes because "app:///_next" also doesn't have one
 
   // Normally we would use `path.resolve` to obtain the absolute path we will strip from the stack frame to align with
   // the uploaded artifacts, however we don't have access to that API in edge so we need to be a bit more lax.

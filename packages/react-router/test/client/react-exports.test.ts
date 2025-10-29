@@ -38,7 +38,7 @@ describe('Re-exports from React SDK', () => {
 
       const result = captureReactException(error, errorInfo);
       expect(typeof result).toBe('string');
-      expect(result).toMatch(/^[a-f0-9]{32}$/); // assuming event ID is a 32-character hex string
+      expect(result).toMatch(/^[a-f\d]{32}$/); // assuming event ID is a 32-character hex string
     });
   });
 

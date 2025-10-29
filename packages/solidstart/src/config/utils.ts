@@ -25,9 +25,10 @@ export function extractFunctionReexportQueryParameters(query: string): { wrap: s
   // Regex matches the comma-separated params between the functions query
   // eslint-disable-next-line @sentry-internal/sdk/no-regexp-constructor
   const wrapRegex = new RegExp(
+    // eslint-disable-next-line regexp/no-unused-capturing-group
     `\\${SENTRY_WRAPPED_FUNCTIONS}(.*?)(\\${QUERY_END_INDICATOR}|\\${SENTRY_REEXPORTED_FUNCTIONS})`,
   );
-  // eslint-disable-next-line @sentry-internal/sdk/no-regexp-constructor
+  // eslint-disable-next-line @sentry-internal/sdk/no-regexp-constructor,regexp/no-unused-capturing-group
   const reexportRegex = new RegExp(`\\${SENTRY_REEXPORTED_FUNCTIONS}(.*?)(\\${QUERY_END_INDICATOR})`);
 
   const wrapMatch = query.match(wrapRegex);

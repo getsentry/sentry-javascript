@@ -216,6 +216,7 @@ export function parseUrl(url: string): PartialURL {
     return {};
   }
 
+  // eslint-disable-next-line regexp/no-unused-capturing-group,regexp/no-super-linear-backtracking
   const match = url.match(/^(([^:/?#]+):)?(\/\/([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?$/);
 
   if (!match) {
@@ -258,8 +259,8 @@ export function getSanitizedUrlString(url: PartialURL): string {
       ?.replace(/^.*@/, '[filtered]:[filtered]@')
       // Don't show standard :80 (http) and :443 (https) ports to reduce the noise
       // TODO: Use new URL global if it exists
-      .replace(/(:80)$/, '')
-      .replace(/(:443)$/, '') || '';
+      .replace(/:80$/, '')
+      .replace(/:443$/, '') || '';
 
   return `${protocol ? `${protocol}://` : ''}${filteredHost}${path}`;
 }

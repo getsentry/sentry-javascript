@@ -48,7 +48,7 @@ function maybeEndRootComponentSpan(vm: VueSentry, timestamp: number, timeout: nu
 /** Find if the current component exists in the provided `TracingOptions.trackComponents` array option. */
 export function findTrackComponent(trackComponents: string[], formattedName: string): boolean {
   function extractComponentName(name: string): string {
-    return name.replace(/^<([^\s]*)>(?: at [^\s]*)?$/, '$1');
+    return name.replace(/^<(\S*)>(?: at \S*)?$/, '$1');
   }
 
   const isMatched = trackComponents.some(compo => {

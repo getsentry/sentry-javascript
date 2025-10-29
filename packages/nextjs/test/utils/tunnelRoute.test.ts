@@ -92,7 +92,7 @@ describe('Random tunnel route generation', () => {
     applyTunnelRouteOption(options);
 
     expect(options.tunnel).toBe('/abc123def?o=2222222&p=3333333');
-    expect(options.tunnel).toMatch(/^\/[a-z0-9]+\?o=2222222&p=3333333$/);
+    expect(options.tunnel).toMatch(/^\/[a-z\d]+\?o=2222222&p=3333333$/);
   });
 
   it('Works with region DSNs when tunnelRoute is true', () => {
@@ -104,7 +104,7 @@ describe('Random tunnel route generation', () => {
     applyTunnelRouteOption(options);
 
     expect(options.tunnel).toBe('/x7h9k2m?o=2222222&p=3333333&r=eu');
-    expect(options.tunnel).toMatch(/^\/[a-z0-9]+\?o=2222222&p=3333333&r=eu$/);
+    expect(options.tunnel).toMatch(/^\/[a-z\d]+\?o=2222222&p=3333333&r=eu$/);
   });
 
   it('Does not apply tunnel when tunnelRoute is false', () => {

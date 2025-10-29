@@ -45,7 +45,7 @@ export function lowQualityTransactionsFilter(options: SentryNuxtServerOptions): 
       }
 
       // Check if this looks like a parametrized route (contains :param or :param() patterns)
-      const hasRouteParameters = /\/:[^(/\s]*(\([^)]*\))?[^/\s]*/.test(event.transaction);
+      const hasRouteParameters = /\/:[^(/\s]*(?:\([^)]*\))?[^/\s]*/.test(event.transaction);
 
       if (hasRouteParameters) {
         return event;

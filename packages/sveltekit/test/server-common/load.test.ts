@@ -263,8 +263,8 @@ describe('wrapServerLoadWithSentry calls `startSpan`', () => {
         'sentry.sample_rate': 1,
       },
       op: 'function.sveltekit.server.load',
-      span_id: expect.stringMatching(/[a-f0-9]{16}/),
-      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+      span_id: expect.stringMatching(/[a-f\d]{16}/),
+      trace_id: expect.stringMatching(/[a-f\d]{32}/),
       origin: 'auto.function.sveltekit',
     });
     expect(transaction.transaction).toEqual('/users/123');

@@ -32,7 +32,7 @@ function checkDsn(url: string, dsn: DsnComponents | undefined): boolean {
     return false;
   }
 
-  return dsn ? urlParts.host.includes(dsn.host) && /(^|&|\?)sentry_key=/.test(urlParts.search) : false;
+  return dsn ? urlParts.host.includes(dsn.host) && /(?:^|&|\?)sentry_key=/.test(urlParts.search) : false;
 }
 
 function removeTrailingSlash(str: string): string {

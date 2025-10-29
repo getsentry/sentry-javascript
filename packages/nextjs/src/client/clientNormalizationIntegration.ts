@@ -61,7 +61,7 @@ export const nextjsClientStackFrameNormalizationIntegration = defineIntegration(
 
           if (
             frame.filename?.match(
-              /\/_next\/static\/chunks\/(main-|main-app-|polyfills-|webpack-|framework-|framework\.)[0-9a-f]+\.js$/,
+              /\/_next\/static\/chunks\/(?:main-|main-app-|polyfills-|webpack-|framework-|framework\.)[\da-f]+\.js$/,
             )
           ) {
             // We don't care about these frames. It's Next.js internal code.
@@ -74,7 +74,7 @@ export const nextjsClientStackFrameNormalizationIntegration = defineIntegration(
 
           if (
             frame.filename?.match(
-              /^app:\/\/\/_next\/static\/chunks\/(main-|main-app-|polyfills-|webpack-|framework-|framework\.)[0-9a-f]+\.js$/,
+              /^app:\/\/\/_next\/static\/chunks\/(?:main-|main-app-|polyfills-|webpack-|framework-|framework\.)[\da-f]+\.js$/,
             )
           ) {
             // We don't care about these frames. It's Next.js internal code.

@@ -129,7 +129,7 @@ export default function wrappingLoader(
       // Add a slash at the beginning
       .replace(/(.*)/, '/$1')
       // Pull off the file name
-      .replace(/\/[^/]+\.(js|ts|jsx|tsx)$/, '')
+      .replace(/\/[^/]+\.(?:js|ts|jsx|tsx)$/, '')
       // In case all of the above have left us with an empty string (which will happen if we're dealing with the
       // homepage), sub back in the root route
       .replace(/^$/, '/');

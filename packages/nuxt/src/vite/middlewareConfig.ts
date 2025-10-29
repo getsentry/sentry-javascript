@@ -77,7 +77,7 @@ function middlewareInstrumentationPlugin(nitro: Nitro): InputPluginOption {
  */
 function wrapMiddlewareCode(originalCode: string, fileName: string): string {
   // Remove common file extensions
-  const cleanFileName = fileName.replace(/\.(ts|js|mjs|mts|cts)$/, '');
+  const cleanFileName = fileName.replace(/\.(?:ts|js|mjs|mts|cts)$/, '');
 
   return `
 import { wrapMiddlewareHandlerWithSentry } from '#imports';

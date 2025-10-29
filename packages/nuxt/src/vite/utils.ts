@@ -50,7 +50,7 @@ export function findDefaultSdkInitFile(type: 'server' | 'client', nuxt?: Nuxt): 
  *  Extracts the filename from a node command with a path.
  */
 export function getFilenameFromNodeStartCommand(nodeCommand: string): string | null {
-  const regex = /[^/\\]+\.[^/\\]+$/;
+  const regex = /[^/\\][^./\\]*\.[^/\\]+$/;
   const match = nodeCommand.match(regex);
   return match ? match[0] : null;
 }
@@ -82,10 +82,10 @@ export function extractFunctionReexportQueryParameters(query: string): { wrap: s
   // Regex matches the comma-separated params between the functions query
   // eslint-disable-next-line @sentry-internal/sdk/no-regexp-constructor
   const wrapRegex = new RegExp(
-    `\\${SENTRY_WRAPPED_FUNCTIONS}(.*?)(\\${QUERY_END_INDICATOR}|\\${SENTRY_REEXPORTED_FUNCTIONS})`,
+    `\\${SENTRY_WRAPPED_FUNCTIONS}(.*?)(?:\\${QUERY_END_INDICATOR}|\\${SENTRY_REEXPORTED_FUNCTIONS})`,
   );
   // eslint-disable-next-line @sentry-internal/sdk/no-regexp-constructor
-  const reexportRegex = new RegExp(`\\${SENTRY_REEXPORTED_FUNCTIONS}(.*?)(\\${QUERY_END_INDICATOR})`);
+  const reexportRegex = new RegExp(`\\${SENTRY_REEXPORTED_FUNCTIONS}(.*?)\\${QUERY_END_INDICATOR}`);
 
   const wrapMatch = query.match(wrapRegex);
   const reexportMatch = query.match(reexportRegex);

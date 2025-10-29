@@ -46,7 +46,7 @@ export async function addInstrumentationFileToBuild(nitro: Nitro): Promise<void>
         const ssrAssetsPath = path.resolve(buildDir, 'build', 'ssr', 'assets');
         const assetsBuildDir = await fs.promises.readdir(ssrAssetsPath);
         const releaseInjectionFile = assetsBuildDir.find(file =>
-          /^_sentry-release-injection-file-.*\.(js|mjs)$/.test(file),
+          /^_sentry-release-injection-file-.*\.(?:js|mjs)$/.test(file),
         );
 
         if (releaseInjectionFile) {

@@ -230,7 +230,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
           // Filter out transactions for static assets
           // This regex matches the default path to the static assets (`_next/static`) and could potentially filter out too many transactions.
           // We match `/_next/static/` anywhere in the transaction name because its location may change with the basePath setting.
-          if (event.transaction?.match(/^GET (\/.*)?\/_next\/static\//)) {
+          if (event.transaction?.match(/^GET (?:\/.*)?\/_next\/static\//)) {
             return null;
           }
 

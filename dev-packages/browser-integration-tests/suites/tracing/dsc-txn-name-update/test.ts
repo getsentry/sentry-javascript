@@ -48,7 +48,7 @@ sentryTest('updates the DSC when the txn name is updated and high-quality', asyn
     return (window as any).__traceId;
   });
 
-  expect(traceId).toMatch(/^[0-9a-f]{32}$/);
+  expect(traceId).toMatch(/^[\da-f]{32}$/);
 
   // 2
   const baggageItems = await makeRequestAndGetBaggageItems(page);
@@ -56,7 +56,7 @@ sentryTest('updates the DSC when the txn name is updated and high-quality', asyn
     'sentry-environment=production',
     'sentry-public_key=public',
     'sentry-release=1.1.1',
-    expect.stringMatching(/sentry-sample_rand=0\.[0-9]+/),
+    expect.stringMatching(/sentry-sample_rand=0\.\d+/),
     'sentry-sample_rate=1',
     'sentry-sampled=true',
     `sentry-trace_id=${traceId}`,
@@ -83,7 +83,7 @@ sentryTest('updates the DSC when the txn name is updated and high-quality', asyn
     'sentry-environment=production',
     'sentry-public_key=public',
     'sentry-release=1.1.1',
-    expect.stringMatching(/sentry-sample_rand=0\.[0-9]+/),
+    expect.stringMatching(/sentry-sample_rand=0\.\d+/),
     'sentry-sample_rate=1',
     'sentry-sampled=true',
     `sentry-trace_id=${traceId}`,
@@ -112,7 +112,7 @@ sentryTest('updates the DSC when the txn name is updated and high-quality', asyn
     'sentry-environment=production',
     'sentry-public_key=public',
     'sentry-release=1.1.1',
-    expect.stringMatching(/sentry-sample_rand=0\.[0-9]+/),
+    expect.stringMatching(/sentry-sample_rand=0\.\d+/),
     'sentry-sample_rate=1',
     'sentry-sampled=true',
     `sentry-trace_id=${traceId}`,

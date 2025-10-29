@@ -62,7 +62,7 @@ describe('Sentry.trackComponent()', () => {
       span_id: initSpanId,
       start_timestamp: expect.any(Number),
       timestamp: expect.any(Number),
-      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+      trace_id: expect.stringMatching(/[a-f\d]{32}/),
     });
   });
 
@@ -102,7 +102,7 @@ describe('Sentry.trackComponent()', () => {
       span_id: initSpanId,
       start_timestamp: expect.any(Number),
       timestamp: expect.any(Number),
-      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+      trace_id: expect.stringMatching(/[a-f\d]{32}/),
     });
 
     expect(transaction.spans![1]).toEqual({
@@ -114,10 +114,10 @@ describe('Sentry.trackComponent()', () => {
       op: 'ui.svelte.update',
       origin: 'auto.ui.svelte',
       parent_span_id: rootSpanId,
-      span_id: expect.stringMatching(/[a-f0-9]{16}/),
+      span_id: expect.stringMatching(/[a-f\d]{16}/),
       start_timestamp: expect.any(Number),
       timestamp: expect.any(Number),
-      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+      trace_id: expect.stringMatching(/[a-f\d]{32}/),
     });
 
     expect(transaction.spans![2]).toEqual({
@@ -129,10 +129,10 @@ describe('Sentry.trackComponent()', () => {
       op: 'ui.svelte.update',
       origin: 'auto.ui.svelte',
       parent_span_id: rootSpanId,
-      span_id: expect.stringMatching(/[a-f0-9]{16}/),
+      span_id: expect.stringMatching(/[a-f\d]{16}/),
       start_timestamp: expect.any(Number),
       timestamp: expect.any(Number),
-      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+      trace_id: expect.stringMatching(/[a-f\d]{32}/),
     });
   });
 

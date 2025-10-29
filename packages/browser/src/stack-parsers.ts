@@ -57,6 +57,7 @@ const chromeRegexNoFnName = /^\s*at (\S+?):(\d+):(\d+)\s*$/i;
 
 // This regex matches all the frames that have a function name.
 const chromeRegex =
+  // eslint-disable-next-line regexp/no-super-linear-backtracking
   /^\s*at (?:(.+?\)(?: \[.+\])?|.*?) ?\((?:address at )?)?(?:async )?((?:<anonymous>|[-a-z]+:|.*bundle|\/)?.*?)(?::(\d+))?(?::(\d+))?\)?\s*$/i;
 
 const chromeEvalRegex = /\((\S*):(\d+):(\d+)\)/;
@@ -117,6 +118,7 @@ export const chromeStackLineParser: StackLineParser = [CHROME_PRIORITY, chromeSt
 // generates filenames without a prefix like `file://` the filenames in the stacktrace are just 42.js
 // We need this specific case for now because we want no other regex to match.
 const geckoREgex =
+  // eslint-disable-next-line regexp/no-super-linear-backtracking,regexp/no-unused-capturing-group,regexp/no-optional-assertion
   /^\s*(.*?)(?:\((.*?)\))?(?:^|@)?([-a-z]*:\/.*?|\[native code\]|[^@]*(?:bundle|\d\.js)|\/[\w\-. /=]+)(?::(\d+))?(?::(\d+))?\s*$/i;
 const geckoEvalRegex = /(\S+) line (\d+)(?: > eval line \d+)* > eval/i;
 
@@ -161,7 +163,7 @@ const winjs: StackLineParserFn = line => {
 
 export const winjsStackLineParser: StackLineParser = [WINJS_PRIORITY, winjs];
 
-const opera10Regex = / line (\d+).*script (?:in )?(\S+)(?:: in function (\S+))?$/i;
+const opera10Regex = / line (\d).*script (?:in )?(\S+)(?:: in function (\S+))?$/i;
 
 const opera10: StackLineParserFn = line => {
   const parts = opera10Regex.exec(line) as null | [string, string, string, string];
@@ -171,6 +173,7 @@ const opera10: StackLineParserFn = line => {
 export const opera10StackLineParser: StackLineParser = [OPERA10_PRIORITY, opera10];
 
 const opera11Regex =
+  // eslint-disable-next-line regexp/no-super-linear-backtracking
   / line (\d+), column (\d+)\s*(?:in (?:<anonymous function: ([^>]+)>|([^)]+))\(.*\))? in (.*):\s*$/i;
 
 const opera11: StackLineParserFn = line => {

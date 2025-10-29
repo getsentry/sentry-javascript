@@ -113,8 +113,8 @@ test('Should populate and propagate sentry baggage if sentry-trace header does n
     'sentry-release': '1.0',
     'sentry-public_key': 'public',
     // TraceId changes, hence we only expect that the string contains the traceid key
-    'sentry-trace_id': expect.stringMatching(/[\S]*/),
-    'sentry-sample_rand': expect.stringMatching(/[\S]*/),
+    'sentry-trace_id': expect.stringMatching(/\S*/),
+    'sentry-sample_rand': expect.stringMatching(/\S*/),
     'sentry-sample_rate': '1',
     'sentry-sampled': 'true',
     'sentry-transaction': 'GET /test/express',
@@ -139,8 +139,8 @@ test('Should populate Sentry and ignore 3rd party content if sentry-trace header
     'sentry-release': '1.0',
     'sentry-public_key': 'public',
     // TraceId changes, hence we only expect that the string contains the traceid key
-    'sentry-trace_id': expect.stringMatching(/[\S]*/),
-    'sentry-sample_rand': expect.stringMatching(/[\S]*/),
+    'sentry-trace_id': expect.stringMatching(/\S*/),
+    'sentry-sample_rand': expect.stringMatching(/\S*/),
     'sentry-sample_rate': '1',
     'sentry-sampled': 'true',
     'sentry-transaction': 'GET /test/express',

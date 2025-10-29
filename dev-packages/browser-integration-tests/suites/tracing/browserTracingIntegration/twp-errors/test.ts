@@ -17,13 +17,13 @@ sentryTest('errors in TwP mode have same trace ID & span IDs', async ({ getLocal
 
   const contexts1 = event1.contexts;
   const { trace_id: traceId1, span_id: spanId1 } = contexts1?.trace || {};
-  expect(traceId1).toMatch(/^[a-f0-9]{32}$/);
-  expect(spanId1).toMatch(/^[a-f0-9]{16}$/);
+  expect(traceId1).toMatch(/^[a-f\d]{32}$/);
+  expect(spanId1).toMatch(/^[a-f\d]{16}$/);
 
   const contexts2 = event2.contexts;
   const { trace_id: traceId2, span_id: spanId2 } = contexts2?.trace || {};
-  expect(traceId2).toMatch(/^[a-f0-9]{32}$/);
-  expect(spanId2).toMatch(/^[a-f0-9]{16}$/);
+  expect(traceId2).toMatch(/^[a-f\d]{32}$/);
+  expect(spanId2).toMatch(/^[a-f\d]{16}$/);
 
   expect(traceId2).toEqual(traceId1);
   expect(spanId2).toEqual(spanId1);

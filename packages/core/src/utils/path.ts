@@ -51,6 +51,7 @@ function normalizeArray(parts: string[], allowAboveRoot?: boolean): string[] {
 
 // Split a filename into [root, dir, basename, ext], unix version
 // 'root' is just a slash, or nothing.
+// eslint-disable-next-line regexp/no-super-linear-backtracking,regexp/no-empty-alternative
 const splitPathRe = /^(\S+:\\|\/?)([\s\S]*?)((?:\.{1,2}|[^/\\]+?)?(\.[^./\\]*|))[/\\]*$/;
 /** JSDoc */
 function splitPath(filename: string): string[] {

@@ -64,7 +64,7 @@ export function makeAutoInstrumentationPlugin(options: AutoInstrumentPluginOptio
 
       const applyUniversalLoadWrapper =
         wrapLoadEnabled &&
-        /^\+(page|layout)\.(js|ts|mjs|mts)$/.test(path.basename(id)) &&
+        /^\+(?:page|layout)\.(?:js|ts|mjs|mts)$/.test(path.basename(id)) &&
         (await canWrapLoad(id, debug));
 
       if (applyUniversalLoadWrapper) {
@@ -81,7 +81,7 @@ export function makeAutoInstrumentationPlugin(options: AutoInstrumentPluginOptio
 
       const applyServerLoadWrapper =
         wrapServerLoadEnabled &&
-        /^\+(page|layout)\.server\.(js|ts|mjs|mts)$/.test(path.basename(id)) &&
+        /^\+(?:page|layout)\.server\.(?:js|ts|mjs|mts)$/.test(path.basename(id)) &&
         (await canWrapLoad(id, debug));
 
       if (applyServerLoadWrapper) {

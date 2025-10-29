@@ -35,7 +35,7 @@ const _wasmIntegration = (() => {
 
 export const wasmIntegration = defineIntegration(_wasmIntegration);
 
-const PARSER_REGEX = /^(.*?):wasm-function\[\d+\]:(0x[a-fA-F0-9]+)$/;
+const PARSER_REGEX = /^(.*?):wasm-function\[\d+\]:(0x[a-fA-F\d]+)$/;
 
 /**
  * Patches a list of stackframes with wasm data needed for server-side symbolication

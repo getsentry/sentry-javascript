@@ -10,6 +10,7 @@ import { generateSpanId, generateTraceId } from './propagationContext';
 
 // eslint-disable-next-line @sentry-internal/sdk/no-regexp-constructor -- RegExp is used for readability here
 export const TRACEPARENT_REGEXP = new RegExp(
+  // eslint-disable-next-line regexp/no-super-linear-backtracking
   '^[ \\t]*' + // whitespace
     '([\\da-f]{32})?' + // trace_id
     '-?([\\da-f]{16})?' + // span_id

@@ -286,7 +286,7 @@ export class PostgresJsInstrumentation extends InstrumentationBase<PostgresJsIns
         .replace(/\s+/g, ' ')
         .trim() // Remove extra spaces including newlines and trim
         .substring(0, 1024) // Truncate to 1024 characters
-        .replace(/--.*(\r?\n|$)/g, '') // Single line comments
+        .replace(/--.*(?:\r?\n|$)/g, '') // Single line comments
         .replace(/\/\*[\s\S]*?\*\//g, '') // Multi-line comments
         .replace(/;\s*$/, '') // Remove trailing semicolons
         .replace(/\b\d+\b/g, '?') // Replace standalone numbers
@@ -294,7 +294,7 @@ export class PostgresJsInstrumentation extends InstrumentationBase<PostgresJsIns
         .replace(/\s+/g, ' ')
         // Collapse IN and in clauses
         // eg. IN (?, ?, ?, ?) to IN (?)
-        .replace(/\bIN\b\s*\(\s*\?(?:\s*,\s*\?)*\s*\)/g, 'IN (?)')
+        .replace(/\bIN\s*\(\s*\?(?:\s*,\s*\?)*\s*\)/g, 'IN (?)')
     );
   }
 }

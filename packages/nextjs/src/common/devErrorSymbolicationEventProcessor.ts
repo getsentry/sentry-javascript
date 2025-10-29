@@ -247,7 +247,7 @@ function parseOriginalCodeFrame(codeFrame: string): {
     // Remove ASCII control characters that are used for syntax highlighting
     .replace(
       // eslint-disable-next-line no-control-regex
-      /[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, // https://stackoverflow.com/a/29497680
+      /[\u001b\u009b][[()#;?]*(?:\d{1,4}(?:;\d{0,4})*)?[\dA-ORZcf-nqry=><]/g, // https://stackoverflow.com/a/29497680
       '',
     )
     .split('\n')
@@ -300,7 +300,8 @@ function stripWebpackInternalPrefix(filename: string): string | undefined {
     return filename;
   }
 
-  const webpackInternalRegex = /^webpack-internal:(?:\/+)?(?:\([^)]*\)\/)?(.+)$/;
+  // eslint-disable-next-line regexp/no-super-linear-backtracking
+  const webpackInternalRegex = /^webpack-internal:\/*(?:\([^)]*\)\/)?(.+)$/;
   const match = filename.match(webpackInternalRegex);
 
   return match ? match[1] : filename;

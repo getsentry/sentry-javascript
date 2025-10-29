@@ -25,7 +25,7 @@ import type { ViewModel } from '../types';
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-const classifyRE = /(?:^|[-_])(\w)/g;
+const classifyRE = /(?:^|[-_])\w/g;
 const classify = (str: string): string => str.replace(classifyRE, c => c.toUpperCase()).replace(/[-_]/g, '');
 
 const ROOT_COMPONENT_NAME = '<Root>';
