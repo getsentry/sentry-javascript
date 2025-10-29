@@ -234,7 +234,7 @@ export function getStatusMessage(status: SpanStatus | undefined): string | undef
     return 'ok';
   }
 
-  return status.message || 'unknown_error';
+  return status.message || 'internal_error';
 }
 
 const CHILD_SPANS_FIELD = '_sentryChildSpans';

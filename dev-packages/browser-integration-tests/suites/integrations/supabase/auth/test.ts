@@ -143,7 +143,7 @@ sentryTest('should capture Supabase authentication errors', async ({ getLocalTes
     start_timestamp: expect.any(Number),
     timestamp: expect.any(Number),
     trace_id: transactionEvent.contexts?.trace?.trace_id,
-    status: 'unknown_error',
+    status: 'internal_error',
     data: expect.objectContaining({
       'sentry.op': 'db',
       'sentry.origin': 'auto.db.supabase',

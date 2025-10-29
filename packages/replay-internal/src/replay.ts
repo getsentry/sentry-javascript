@@ -613,6 +613,7 @@ export class ReplayContainer implements ReplayContainerInterface {
 
     // Once this session ends, we do not want to refresh it
     if (this.session) {
+      this.session.dirty = false;
       this._updateUserActivity(activityTime);
       this._updateSessionActivity(activityTime);
       this._maybeSaveSession();

@@ -75,7 +75,7 @@ describe('Google GenAI integration', () => {
         description: 'models error-model',
         op: 'gen_ai.models',
         origin: 'auto.ai.google_genai',
-        status: 'unknown_error',
+        status: 'internal_error',
       }),
     ]),
   };
@@ -155,7 +155,7 @@ describe('Google GenAI integration', () => {
         description: 'models error-model',
         op: 'gen_ai.models',
         origin: 'auto.ai.google_genai',
-        status: 'unknown_error',
+        status: 'internal_error',
       }),
     ]),
   };
@@ -351,7 +351,7 @@ describe('Google GenAI integration', () => {
         description: 'models blocked-model stream-response',
         op: 'gen_ai.models',
         origin: 'auto.ai.google_genai',
-        status: 'unknown_error',
+        status: 'internal_error',
       }),
       // Fifth span - error handling for streaming
       expect.objectContaining({
@@ -450,7 +450,7 @@ describe('Google GenAI integration', () => {
         description: 'models blocked-model stream-response',
         op: 'gen_ai.models',
         origin: 'auto.ai.google_genai',
-        status: 'unknown_error',
+        status: 'internal_error',
       }),
       // Fifth span - error handling for streaming with PII
       expect.objectContaining({
