@@ -20,13 +20,17 @@ sentryTest('should capture replays (@sentry/browser export)', async ({ getLocalT
   const replayEvent1 = getReplayEvent(await reqPromise1);
 
   expect(replayEvent0).toBeDefined();
-  expect(replayEvent0).toEqual(getExpectedReplayEvent({
-    segment_id: 0,
-  }));
+  expect(replayEvent0).toEqual(
+    getExpectedReplayEvent({
+      segment_id: 0,
+    }),
+  );
 
   expect(replayEvent1).toBeDefined();
-  expect(replayEvent1).toEqual(getExpectedReplayEvent({
-    segment_id: 1,
-    urls: [],
-  }));
+  expect(replayEvent1).toEqual(
+    getExpectedReplayEvent({
+      segment_id: 1,
+      urls: [],
+    }),
+  );
 });
