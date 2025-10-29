@@ -53,7 +53,7 @@ describe('Integration | coreHandlers | handleAfterSendEvent', () => {
     handler(error4, { statusCode: undefined });
 
     expect(Array.from(replay.getContext().errorIds)).toEqual(['err2']);
-    expect(Array.from(replay.getContext().traceIds)).toEqual([]);
+    expect(Array.from(replay.getContext().traceIds)).toEqual([[-1, expect.any(String)]]);
   });
 
   it('records traceIds from sent transaction events', async () => {
@@ -84,20 +84,16 @@ describe('Integration | coreHandlers | handleAfterSendEvent', () => {
     handler(transaction4, { statusCode: undefined });
 
     expect(Array.from(replay.getContext().errorIds)).toEqual([]);
-    // traceIds is now a Set of [timestamp, trace_id] tuples
-    const traceIds = Array.from(replay.getContext().traceIds);
-    expect(traceIds).toHaveLength(1);
-    expect(traceIds[0][1]).toBe('tr2');
-    expect(typeof traceIds[0][0]).toBe('number');
+    const traceIds = replay.getContext().traceIds;
+    expect(traceIds).toEqual([[expect.any(Number), 'tr2']]);
 
     // Does not affect error session
     await vi.advanceTimersToNextTimerAsync();
 
     expect(Array.from(replay.getContext().errorIds)).toEqual([]);
     // Verify traceIds are still there after advancing timers
-    const traceIdsAfter = Array.from(replay.getContext().traceIds);
-    expect(traceIdsAfter).toHaveLength(1);
-    expect(traceIdsAfter[0][1]).toBe('tr2');
+    const traceIdsAfter = replay.getContext().traceIds;
+    expect(traceIdsAfter).toEqual([[expect.any(Number), 'tr2']]);
     expect(replay.isEnabled()).toBe(true);
     expect(replay.isPaused()).toBe(false);
     expect(replay.recordingMode).toBe('buffer');
@@ -126,7 +122,7 @@ describe('Integration | coreHandlers | handleAfterSendEvent', () => {
         .fill(undefined)
         .map((_, i) => `err-${i}`),
     );
-    expect(Array.from(replay.getContext().traceIds)).toEqual([]);
+    expect(replay.getContext().traceIds).toEqual([[-1, expect.any(String)]]);
   });
 
   it('limits traceIds to max. 100', async () => {
