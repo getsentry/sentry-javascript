@@ -1,6 +1,13 @@
 /* eslint-disable max-lines */ // TODO: We might want to split this file up
 import type { ReplayRecordingMode, Span } from '@sentry/core';
-import { getActiveSpan, getClient, getRootSpan, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, spanToJSON } from '@sentry/core';
+import {
+  getActiveSpan,
+  getClient,
+  getCurrentScope,
+  getRootSpan,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  spanToJSON,
+} from '@sentry/core';
 import { EventType, record } from '@sentry-internal/rrweb';
 import {
   BUFFER_CHECKOUT_TIME,
@@ -192,7 +199,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     this._hasInitializedCoreListeners = false;
     this._context = {
       errorIds: new Set(),
-      traceIds: new Set(),
+      traceIds: [],
       urls: [],
       initialTimestamp: Date.now(),
       initialUrl: '',
@@ -1098,7 +1105,11 @@ export class ReplayContainer implements ReplayContainerInterface {
   private _clearContext(): void {
     // XXX: `initialTimestamp` and `initialUrl` do not get cleared
     this._context.errorIds.clear();
-    this._context.traceIds.clear();
+    // We want to preserve the most recent trace id for the next replay segment.
+    // This is so that we can associate replay events w/ the trace.
+    if (this._context.traceIds.length > 1) {
+      this._context.traceIds = this._context.traceIds.slice(-1);
+    }
     this._context.urls = [];
   }
 
@@ -1126,11 +1137,17 @@ export class ReplayContainer implements ReplayContainerInterface {
    * Return and clear _context
    */
   private _popEventContext(): PopEventContext {
+    if (this._context.traceIds.length === 0) {
+      const currentTraceId = getCurrentScope().getPropagationContext().traceId;
+      if (currentTraceId) {
+        this._context.traceIds.push([-1, currentTraceId]);
+      }
+    }
     const _context = {
       initialTimestamp: this._context.initialTimestamp,
       initialUrl: this._context.initialUrl,
       errorIds: Array.from(this._context.errorIds),
-      traceIds: Array.from(this._context.traceIds),
+      traceIds: this._context.traceIds,
       urls: this._context.urls,
     };
 

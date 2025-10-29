@@ -365,9 +365,9 @@ export interface InternalEventContext extends CommonEventContext {
   errorIds: Set<string>;
 
   /**
-   * Set of [timestamp, trace_id] tuples for Sentry traces that have occurred during a replay segment
+   * List of <timestamp, trace_id> for Sentry traces that have occurred during a replay segment
    */
-  traceIds: Set<[number, string]>;
+  traceIds: Array<[number, string]>;
 }
 
 export type Sampled = false | 'session' | 'buffer';
