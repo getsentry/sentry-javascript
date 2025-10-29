@@ -182,7 +182,7 @@ describe('getTraceData', () => {
 
     const traceData = getTraceData({ client: customClient, scope });
 
-    expect(traceData['sentry-trace']).toMatch(/^12345678901234567890123456789012-[a-f0-9]{16}$/);
+    expect(traceData['sentry-trace']).toMatch(/^12345678901234567890123456789012-[a-f\d]{16}$/);
     expect(traceData.baggage).toEqual(
       'sentry-environment=production,sentry-public_key=567,sentry-trace_id=12345678901234567890123456789012',
     );
@@ -206,7 +206,7 @@ describe('getTraceData', () => {
 
     const traceData = getTraceData();
 
-    expect(traceData['sentry-trace']).toMatch(/^12345678901234567890123456789012-[a-f0-9]{16}-1$/);
+    expect(traceData['sentry-trace']).toMatch(/^12345678901234567890123456789012-[a-f\d]{16}-1$/);
     expect(traceData.baggage).toEqual(
       'sentry-environment=staging,sentry-public_key=key,sentry-trace_id=12345678901234567890123456789012,sentry-sample_rand=0.42',
     );
@@ -345,6 +345,6 @@ describe('getTraceData', () => {
     const traceData = getTraceData({ propagateTraceparent: true });
 
     expect(traceData.traceparent).toBeDefined();
-    expect(traceData.traceparent).toMatch(/00-12345678901234567890123456789099-[0-9a-f]{16}-00/);
+    expect(traceData.traceparent).toMatch(/00-12345678901234567890123456789099-[\da-f]{16}-00/);
   });
 });

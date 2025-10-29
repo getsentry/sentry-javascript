@@ -59,7 +59,7 @@ describe('SentryPropagator', () => {
               'sentry-trace_id=d4cda95b652f4a1592b449d5929fda1b',
             ].sort(),
           );
-          expect(carrier[SENTRY_TRACE_HEADER]).toMatch(/d4cda95b652f4a1592b449d5929fda1b-[a-f0-9]{16}-1/);
+          expect(carrier[SENTRY_TRACE_HEADER]).toMatch(/d4cda95b652f4a1592b449d5929fda1b-[a-f\d]{16}-1/);
         });
       });
 
@@ -96,7 +96,7 @@ describe('SentryPropagator', () => {
               'sentry-replay_id=dsc_replay_id',
             ].sort(),
           );
-          expect(carrier[SENTRY_TRACE_HEADER]).toMatch(/d4cda95b652f4a1592b449d5929fda1b-[a-f0-9]{16}-1/);
+          expect(carrier[SENTRY_TRACE_HEADER]).toMatch(/d4cda95b652f4a1592b449d5929fda1b-[a-f\d]{16}-1/);
         });
       });
 
@@ -134,7 +134,7 @@ describe('SentryPropagator', () => {
             'sentry-sampled=true',
             'sentry-trace_id=d4cda95b652f4a1592b449d5929fda1b',
             'sentry-transaction=test',
-            expect.stringMatching(/sentry-sample_rand=0\.[0-9]+/),
+            expect.stringMatching(/sentry-sample_rand=0\.\d+/),
           ],
           'd4cda95b652f4a1592b449d5929fda1b-{{spanId}}-1',
           true,
@@ -187,7 +187,7 @@ describe('SentryPropagator', () => {
             'sentry-sampled=true',
             'sentry-trace_id=d4cda95b652f4a1592b449d5929fda1b',
             'sentry-transaction=test',
-            expect.stringMatching(/sentry-sample_rand=0\.[0-9]+/),
+            expect.stringMatching(/sentry-sample_rand=0\.\d+/),
           ],
           'd4cda95b652f4a1592b449d5929fda1b-{{spanId}}-1',
           undefined,
@@ -336,7 +336,7 @@ describe('SentryPropagator', () => {
                   'sentry-sampled=true',
                   'sentry-trace_id=d4cda95b652f4a1592b449d5929fda1b',
                   'sentry-transaction=test',
-                  expect.stringMatching(/sentry-sample_rand=0\.[0-9]+/),
+                  expect.stringMatching(/sentry-sample_rand=0\.\d+/),
                 ].forEach(item => {
                   expect(baggageToArray(carrier[SENTRY_BAGGAGE_HEADER])).toContainEqual(item);
                 });
@@ -378,7 +378,7 @@ describe('SentryPropagator', () => {
                 ].sort(),
               );
               // Used spanId is a random ID, not from the remote span
-              expect(carrier[SENTRY_TRACE_HEADER]).toMatch(/d4cda95b652f4a1592b449d5929fda1b-[a-f0-9]{16}/);
+              expect(carrier[SENTRY_TRACE_HEADER]).toMatch(/d4cda95b652f4a1592b449d5929fda1b-[a-f\d]{16}/);
               expect(carrier[SENTRY_TRACE_HEADER]).not.toBe('d4cda95b652f4a1592b449d5929fda1b-6e0c63257de34c92');
             });
           },
@@ -416,7 +416,7 @@ describe('SentryPropagator', () => {
                 ].sort(),
               );
               // Used spanId is a random ID, not from the remote span
-              expect(carrier[SENTRY_TRACE_HEADER]).toMatch(/d4cda95b652f4a1592b449d5929fda1b-[a-f0-9]{16}-0/);
+              expect(carrier[SENTRY_TRACE_HEADER]).toMatch(/d4cda95b652f4a1592b449d5929fda1b-[a-f\d]{16}-0/);
               expect(carrier[SENTRY_TRACE_HEADER]).not.toBe('d4cda95b652f4a1592b449d5929fda1b-6e0c63257de34c92-0');
             });
           },
@@ -602,7 +602,7 @@ describe('SentryPropagator', () => {
       const context = propagator.extract(ROOT_CONTEXT, carrier, defaultTextMapGetter);
       expect(trace.getSpanContext(context)).toEqual(undefined);
       expect(getCurrentScope().getPropagationContext()).toEqual({
-        traceId: expect.stringMatching(/[a-f0-9]{32}/),
+        traceId: expect.stringMatching(/[a-f\d]{32}/),
         sampleRand: expect.any(Number),
       });
     });
@@ -654,7 +654,7 @@ describe('SentryPropagator', () => {
       const context = propagator.extract(ROOT_CONTEXT, carrier, defaultTextMapGetter);
       expect(trace.getSpanContext(context)).toEqual(undefined);
       expect(getCurrentScope().getPropagationContext()).toEqual({
-        traceId: expect.stringMatching(/[a-f0-9]{32}/),
+        traceId: expect.stringMatching(/[a-f\d]{32}/),
         sampleRand: expect.any(Number),
       });
     });

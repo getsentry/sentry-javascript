@@ -72,7 +72,7 @@ describe.skipIf(NODE_MAJOR_VERSION < 20)('workflows', () => {
   });
 
   test('hashStringToUuid hashes a string to a UUID for Sentry trace ID', async () => {
-    const UUID_WITHOUT_HYPHENS_REGEX = /^[0-9a-f]{32}$/i;
+    const UUID_WITHOUT_HYPHENS_REGEX = /^[\da-f]{32}$/i;
     expect(await deterministicTraceIdFromInstanceId('s')).toMatch(UUID_WITHOUT_HYPHENS_REGEX);
     expect(await deterministicTraceIdFromInstanceId('test-string')).toMatch(UUID_WITHOUT_HYPHENS_REGEX);
     expect(await deterministicTraceIdFromInstanceId(INSTANCE_ID)).toMatch(UUID_WITHOUT_HYPHENS_REGEX);

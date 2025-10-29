@@ -68,7 +68,7 @@ describe('startIdleSpan', () => {
       public_key: '123',
       sample_rate: '0',
       sampled: 'false',
-      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+      trace_id: expect.stringMatching(/[a-f\d]{32}/),
     });
 
     // not set as active span, though

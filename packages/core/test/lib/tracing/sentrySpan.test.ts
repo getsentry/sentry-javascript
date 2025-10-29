@@ -221,8 +221,8 @@ describe('SentrySpan', () => {
               'sentry.origin': 'manual',
             },
             origin: 'manual',
-            span_id: expect.stringMatching(/^[a-f0-9]{16}$/),
-            trace_id: expect.stringMatching(/^[a-f0-9]{32}$/),
+            span_id: expect.stringMatching(/^[a-f\d]{16}$/),
+            trace_id: expect.stringMatching(/^[a-f\d]{32}$/),
           },
         },
         sdkProcessingMetadata: {
@@ -231,7 +231,7 @@ describe('SentrySpan', () => {
           dynamicSamplingContext: {
             environment: 'production',
             public_key: 'username',
-            trace_id: expect.stringMatching(/^[a-f0-9]{32}$/),
+            trace_id: expect.stringMatching(/^[a-f\d]{32}$/),
             transaction: 'test',
           },
         },

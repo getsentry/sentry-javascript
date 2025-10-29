@@ -482,8 +482,8 @@ describe('trace', () => {
           'sentry.sample_rate': 1,
           'sentry.origin': 'manual',
         },
-        span_id: expect.stringMatching(/[a-f0-9]{16}/),
-        trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+        span_id: expect.stringMatching(/[a-f\d]{16}/),
+        trace_id: expect.stringMatching(/[a-f\d]{32}/),
         origin: 'manual',
         status: 'ok',
       });
@@ -507,7 +507,7 @@ describe('trace', () => {
           'sentry.origin': 'manual',
         },
         parent_span_id: innerParentSpanId,
-        span_id: expect.stringMatching(/[a-f0-9]{16}/),
+        span_id: expect.stringMatching(/[a-f\d]{16}/),
         trace_id: outerTraceId,
         origin: 'manual',
         status: 'ok',
@@ -778,8 +778,8 @@ describe('trace', () => {
           'sentry.sample_rate': 1,
           'sentry.origin': 'manual',
         },
-        span_id: expect.stringMatching(/[a-f0-9]{16}/),
-        trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+        span_id: expect.stringMatching(/[a-f\d]{16}/),
+        trace_id: expect.stringMatching(/[a-f\d]{32}/),
         origin: 'manual',
         status: 'ok',
       });
@@ -803,7 +803,7 @@ describe('trace', () => {
           'sentry.origin': 'manual',
         },
         parent_span_id: innerParentSpanId,
-        span_id: expect.stringMatching(/[a-f0-9]{16}/),
+        span_id: expect.stringMatching(/[a-f\d]{16}/),
         trace_id: outerTraceId,
         origin: 'manual',
         status: 'ok',
@@ -1146,8 +1146,8 @@ describe('trace', () => {
           'sentry.sample_rate': 1,
           'sentry.origin': 'manual',
         },
-        span_id: expect.stringMatching(/[a-f0-9]{16}/),
-        trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+        span_id: expect.stringMatching(/[a-f\d]{16}/),
+        trace_id: expect.stringMatching(/[a-f\d]{32}/),
         origin: 'manual',
         status: 'ok',
       });
@@ -1171,7 +1171,7 @@ describe('trace', () => {
           'sentry.origin': 'manual',
         },
         parent_span_id: innerParentSpanId,
-        span_id: expect.stringMatching(/[a-f0-9]{16}/),
+        span_id: expect.stringMatching(/[a-f\d]{16}/),
         trace_id: outerTraceId,
         origin: 'manual',
         status: 'ok',
@@ -1222,7 +1222,7 @@ describe('trace', () => {
 
         expect(span).toBeDefined();
         const traceId = spanToJSON(span).trace_id;
-        expect(traceId).toMatch(/[a-f0-9]{32}/);
+        expect(traceId).toMatch(/[a-f\d]{32}/);
         expect(spanToJSON(span).parent_span_id).toBe(undefined);
         expect(spanToJSON(span).trace_id).not.toEqual(propagationContext.traceId);
 
@@ -1247,7 +1247,7 @@ describe('trace', () => {
 
         expect(span).toBeDefined();
         const traceId = spanToJSON(span).trace_id;
-        expect(traceId).toMatch(/[a-f0-9]{32}/);
+        expect(traceId).toMatch(/[a-f\d]{32}/);
         expect(spanToJSON(span).parent_span_id).toBe(undefined);
         expect(spanToJSON(span).trace_id).not.toEqual(propagationContext.traceId);
 
@@ -1707,9 +1707,9 @@ describe('trace (sampling)', () => {
       startSpan({ name: 'outer' }, span => {
         expect(span.isRecording()).toBe(true);
         expect(span.spanContext().spanId).not.toBe('INVALID');
-        expect(span.spanContext().spanId).toMatch(/[a-f0-9]{16}/);
+        expect(span.spanContext().spanId).toMatch(/[a-f\d]{16}/);
         expect(span.spanContext().traceId).not.toBe(traceId);
-        expect(span.spanContext().traceId).toMatch(/[a-f0-9]{32}/);
+        expect(span.spanContext().traceId).toMatch(/[a-f\d]{32}/);
       });
     });
   });

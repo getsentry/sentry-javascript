@@ -144,8 +144,8 @@ export function getRequestPayloadXhrOrFetch(hint: XhrHint | FetchHint): string |
  * Exported for tests only.
  */
 export function parseGraphQLQuery(query: string): GraphQLOperation {
-  const namedQueryRe = /^(?:\s*)(query|mutation|subscription)(?:\s*)(\w+)(?:\s*)[{(]/;
-  const unnamedQueryRe = /^(?:\s*)(query|mutation|subscription)(?:\s*)[{(]/;
+  const namedQueryRe = /^\s*(query|mutation|subscription)\s*(\w+)\s*[{(]/;
+  const unnamedQueryRe = /^\s*(query|mutation|subscription)\s*[{(]/;
 
   const namedMatch = query.match(namedQueryRe);
   if (namedMatch) {

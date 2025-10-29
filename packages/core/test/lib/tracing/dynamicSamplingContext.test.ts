@@ -78,7 +78,7 @@ describe('getDynamicSamplingContextFromSpan', () => {
       environment: 'production',
       sampled: 'true',
       sample_rate: '0.56',
-      trace_id: expect.stringMatching(/^[a-f0-9]{32}$/),
+      trace_id: expect.stringMatching(/^[a-f\d]{32}$/),
       transaction: 'tx',
       sample_rand: expect.any(String),
     });
@@ -98,7 +98,7 @@ describe('getDynamicSamplingContextFromSpan', () => {
       environment: 'production',
       sampled: 'true',
       sample_rate: '1',
-      trace_id: expect.stringMatching(/^[a-f0-9]{32}$/),
+      trace_id: expect.stringMatching(/^[a-f\d]{32}$/),
       transaction: 'tx',
       sample_rand: expect.any(String),
     });
@@ -123,7 +123,7 @@ describe('getDynamicSamplingContextFromSpan', () => {
       environment: 'production',
       sampled: 'true',
       sample_rate: '0.56',
-      trace_id: expect.stringMatching(/^[a-f0-9]{32}$/),
+      trace_id: expect.stringMatching(/^[a-f\d]{32}$/),
       transaction: 'tx',
       sample_rand: undefined, // this is a bit funky admittedly
     });
@@ -178,7 +178,7 @@ describe('getDynamicSamplingContextFromSpan', () => {
       org_id: undefined,
       release: '1.0.1',
       environment: 'production',
-      trace_id: expect.stringMatching(/^[a-f0-9]{32}$/),
+      trace_id: expect.stringMatching(/^[a-f\d]{32}$/),
       transaction: 'tx',
     });
   });

@@ -47,7 +47,7 @@ describe('isMatchingPattern()', () => {
   test('match using regexp test', () => {
     expect(isMatchingPattern('foobar', /^foo/)).toEqual(true);
     expect(isMatchingPattern('foobar', /foo/)).toEqual(true);
-    expect(isMatchingPattern('foobar', /b.{1}r/)).toEqual(true);
+    expect(isMatchingPattern('foobar', /b.r/)).toEqual(true);
     expect(isMatchingPattern('foobar', /^foo$/)).toEqual(false);
   });
 
@@ -92,7 +92,7 @@ describe('stringMatchesSomePattern()', () => {
   test('match using regexp test', () => {
     expect(stringMatchesSomePattern('foobar', [/^foo/, 'nope'])).toEqual(true);
     expect(stringMatchesSomePattern('foobar', [/foo/, 'nope'])).toEqual(true);
-    expect(stringMatchesSomePattern('foobar', [/b.{1}r/, 'nope'])).toEqual(true);
+    expect(stringMatchesSomePattern('foobar', [/b.r/, 'nope'])).toEqual(true);
     expect(stringMatchesSomePattern('foobar', [/^foo$/, 'nope'])).toEqual(false);
   });
 

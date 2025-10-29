@@ -141,7 +141,7 @@ describe('spanToTraceContext', () => {
 
     expect(spanToTraceContext(span)).toEqual({
       parent_span_id: '1234',
-      span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
+      span_id: expect.stringMatching(/^[\da-f]{16}$/),
       trace_id: 'ABCD',
     });
   });
@@ -156,7 +156,7 @@ describe('spanToTraceContext', () => {
 
     expect(spanToTraceContext(span)).toEqual({
       parent_span_id: '1234',
-      span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
+      span_id: expect.stringMatching(/^[\da-f]{16}$/),
       trace_id: 'ABCD',
     });
   });

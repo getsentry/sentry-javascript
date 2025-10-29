@@ -26,8 +26,8 @@ describe('createTransactionForOtelSpan', () => {
     expect(event).toEqual({
       contexts: {
         trace: {
-          span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+          span_id: expect.stringMatching(/[a-f\d]{16}/),
+          trace_id: expect.stringMatching(/[a-f\d]{32}/),
           data: {
             'sentry.source': 'custom',
             'sentry.sample_rate': 1,
@@ -74,8 +74,8 @@ describe('createTransactionForOtelSpan', () => {
     expect(event).toEqual({
       contexts: {
         trace: {
-          span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+          span_id: expect.stringMatching(/[a-f\d]{16}/),
+          trace_id: expect.stringMatching(/[a-f\d]{32}/),
           data: {
             'sentry.source': 'custom',
             'sentry.sample_rate': 1,

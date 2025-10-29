@@ -286,7 +286,7 @@ export class PostgresJsInstrumentation extends InstrumentationBase<PostgresJsIns
         .replace(/\s+/g, ' ')
         .trim() // Remove extra spaces including newlines and trim
         .substring(0, 1024) // Truncate to 1024 characters
-        .replace(/--.*?(\r?\n|$)/g, '') // Single line comments
+        .replace(/--.*(\r?\n|$)/g, '') // Single line comments
         .replace(/\/\*[\s\S]*?\*\//g, '') // Multi-line comments
         .replace(/;\s*$/, '') // Remove trailing semicolons
         .replace(/\b\d+\b/g, '?') // Replace standalone numbers

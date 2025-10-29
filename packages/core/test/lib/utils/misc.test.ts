@@ -291,7 +291,7 @@ describe('checkOrSetAlreadyCaught()', () => {
 });
 
 describe('uuid4 generation', () => {
-  const uuid4Regex = /^[0-9A-F]{12}[4][0-9A-F]{3}[89AB][0-9A-F]{15}$/i;
+  const uuid4Regex = /^[\dA-F]{12}4[\dA-F]{3}[89AB][\dA-F]{15}$/i;
   it('returns valid and unique uuid v4 ids via Math.random', () => {
     const uuids = new Set<string>();
     for (let index = 0; index < 1_000; index++) {

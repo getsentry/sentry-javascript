@@ -24,7 +24,7 @@ import { addCloudResourceContext } from './scope-utils';
 import { init } from './sdk';
 import { copyExecutionContext } from './utils/copyExecutionContext';
 
-const UUID_REGEX = /^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$/i;
+const UUID_REGEX = /^[\da-f]{8}-?[\da-f]{4}-?[\da-f]{4}-?[\da-f]{4}-?[\da-f]{12}$/i;
 
 /**
  * Hashes a string to a UUID using SHA-1.

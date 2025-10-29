@@ -11,8 +11,8 @@ import { generateSpanId, generateTraceId } from './propagationContext';
 // eslint-disable-next-line @sentry-internal/sdk/no-regexp-constructor -- RegExp is used for readability here
 export const TRACEPARENT_REGEXP = new RegExp(
   '^[ \\t]*' + // whitespace
-    '([0-9a-f]{32})?' + // trace_id
-    '-?([0-9a-f]{16})?' + // span_id
+    '([\\da-f]{32})?' + // trace_id
+    '-?([\\da-f]{16})?' + // span_id
     '-?([01])?' + // sampled
     '[ \\t]*$', // whitespace
 );

@@ -73,7 +73,7 @@ describe('getTraceData', () => {
 
     const traceData = getTraceData({ client: customClient, scope });
 
-    expect(traceData['sentry-trace']).toMatch(/^12345678901234567890123456789012-[a-f0-9]{16}$/);
+    expect(traceData['sentry-trace']).toMatch(/^12345678901234567890123456789012-[a-f\d]{16}$/);
     expect(traceData.baggage).toEqual(
       'sentry-environment=production,sentry-public_key=123,sentry-trace_id=12345678901234567890123456789012',
     );
@@ -93,7 +93,7 @@ describe('getTraceData', () => {
 
     const traceData = getTraceData();
 
-    expect(traceData['sentry-trace']).toMatch(/^12345678901234567890123456789012-[a-f0-9]{16}-1$/);
+    expect(traceData['sentry-trace']).toMatch(/^12345678901234567890123456789012-[a-f\d]{16}-1$/);
     expect(traceData.baggage).toEqual(
       'sentry-environment=staging,sentry-public_key=key,sentry-trace_id=12345678901234567890123456789012',
     );

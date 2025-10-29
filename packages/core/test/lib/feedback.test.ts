@@ -53,7 +53,7 @@ describe('captureFeedback', () => {
         trace: {
           environment: 'production',
           public_key: 'dsn',
-          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+          trace_id: expect.stringMatching(/[a-f\d]{32}/),
         },
       },
       [
@@ -63,8 +63,8 @@ describe('captureFeedback', () => {
             breadcrumbs: undefined,
             contexts: {
               trace: {
-                span_id: expect.stringMatching(/[a-f0-9]{16}/),
-                trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+                span_id: expect.stringMatching(/[a-f\d]{16}/),
+                trace_id: expect.stringMatching(/[a-f\d]{32}/),
               },
               feedback: {
                 message: 'test',
@@ -113,7 +113,7 @@ describe('captureFeedback', () => {
         trace: {
           environment: 'production',
           public_key: 'dsn',
-          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+          trace_id: expect.stringMatching(/[a-f\d]{32}/),
         },
       },
       [
@@ -123,8 +123,8 @@ describe('captureFeedback', () => {
             breadcrumbs: undefined,
             contexts: {
               trace: {
-                span_id: expect.stringMatching(/[a-f0-9]{16}/),
-                trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+                span_id: expect.stringMatching(/[a-f\d]{16}/),
+                trace_id: expect.stringMatching(/[a-f\d]{32}/),
               },
               feedback: {
                 name: 'doe',
@@ -195,7 +195,7 @@ describe('captureFeedback', () => {
         trace: {
           environment: 'production',
           public_key: 'dsn',
-          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+          trace_id: expect.stringMatching(/[a-f\d]{32}/),
         },
       },
       [
@@ -205,8 +205,8 @@ describe('captureFeedback', () => {
             breadcrumbs: undefined,
             contexts: {
               trace: {
-                span_id: expect.stringMatching(/[a-f0-9]{16}/),
-                trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+                span_id: expect.stringMatching(/[a-f\d]{16}/),
+                trace_id: expect.stringMatching(/[a-f\d]{32}/),
               },
               feedback: {
                 message: 'test',
@@ -293,7 +293,7 @@ describe('captureFeedback', () => {
               trace: {
                 trace_id: traceId,
                 parent_span_id: spanId,
-                span_id: expect.stringMatching(/[a-f0-9]{16}/),
+                span_id: expect.stringMatching(/[a-f\d]{16}/),
               },
               feedback: {
                 message: 'test',
@@ -421,7 +421,7 @@ describe('captureFeedback', () => {
         event_id: expect.any(String),
         sent_at: expect.any(String),
         trace: {
-          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+          trace_id: expect.stringMatching(/[a-f\d]{32}/),
           environment: 'production',
           public_key: 'dsn',
         },
@@ -433,8 +433,8 @@ describe('captureFeedback', () => {
             breadcrumbs: [{ message: 'test breadcrumb', timestamp: 12345 }],
             contexts: {
               trace: {
-                span_id: expect.stringMatching(/[a-f0-9]{16}/),
-                trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+                span_id: expect.stringMatching(/[a-f\d]{16}/),
+                trace_id: expect.stringMatching(/[a-f\d]{32}/),
               },
               feedback: {
                 contact_email: 're@example.org',

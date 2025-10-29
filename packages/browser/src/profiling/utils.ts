@@ -264,7 +264,7 @@ export function validateProfileChunk(chunk: ProfileChunk): { valid: true } | { r
     }
 
     // profiler_id and chunk_id must be 32 lowercase hex chars
-    const isHex32 = (val: unknown): boolean => typeof val === 'string' && /^[a-f0-9]{32}$/.test(val);
+    const isHex32 = (val: unknown): boolean => typeof val === 'string' && /^[a-f\d]{32}$/.test(val);
     if (!isHex32(chunk.profiler_id)) {
       return { reason: 'missing or invalid profiler_id' };
     }

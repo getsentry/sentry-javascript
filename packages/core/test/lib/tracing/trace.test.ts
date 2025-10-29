@@ -200,11 +200,11 @@ describe('startSpan', () => {
         },
         origin: 'auto.http.browser',
         description: 'GET users/[id]',
-        span_id: expect.stringMatching(/[a-f0-9]{16}/),
+        span_id: expect.stringMatching(/[a-f\d]{16}/),
         start_timestamp: expect.any(Number),
         status: isError ? 'internal_error' : undefined,
         timestamp: expect.any(Number),
-        trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+        trace_id: expect.stringMatching(/[a-f\d]{32}/),
       });
     });
   });
@@ -225,7 +225,7 @@ describe('startSpan', () => {
       environment: 'production',
       sample_rate: '0',
       sampled: 'false',
-      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+      trace_id: expect.stringMatching(/[a-f\d]{32}/),
       transaction: 'GET users/[id]',
     });
   });
@@ -496,8 +496,8 @@ describe('startSpan', () => {
           'sentry.sample_rate': 1,
           'sentry.origin': 'manual',
         },
-        span_id: expect.stringMatching(/[a-f0-9]{16}/),
-        trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+        span_id: expect.stringMatching(/[a-f\d]{16}/),
+        trace_id: expect.stringMatching(/[a-f\d]{32}/),
         origin: 'manual',
       },
     });
@@ -521,7 +521,7 @@ describe('startSpan', () => {
           'sentry.origin': 'manual',
         },
         parent_span_id: innerParentSpanId,
-        span_id: expect.stringMatching(/[a-f0-9]{16}/),
+        span_id: expect.stringMatching(/[a-f\d]{16}/),
         trace_id: outerTraceId,
         origin: 'manual',
       },
@@ -799,7 +799,7 @@ describe('startSpan', () => {
       const spanJson = spanToJSON(span);
       expect(spanJson.is_segment).toBe(true);
       expect(spanJson.segment_id).toBe(spanJson.span_id);
-      expect(spanJson.segment_id).toMatch(/^[a-f0-9]{16}$/);
+      expect(spanJson.segment_id).toMatch(/^[a-f\d]{16}$/);
     });
 
     it.each([undefined, false])("doesn't set segment properties if standalone is falsy (%s)", standalone => {
@@ -852,7 +852,7 @@ describe('startSpanManual', () => {
       environment: 'production',
       sample_rate: '0',
       sampled: 'false',
-      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+      trace_id: expect.stringMatching(/[a-f\d]{32}/),
       transaction: 'GET users/[id]',
     });
   });
@@ -1100,8 +1100,8 @@ describe('startSpanManual', () => {
           'sentry.sample_rate': 1,
           'sentry.origin': 'manual',
         },
-        span_id: expect.stringMatching(/[a-f0-9]{16}/),
-        trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+        span_id: expect.stringMatching(/[a-f\d]{16}/),
+        trace_id: expect.stringMatching(/[a-f\d]{32}/),
         origin: 'manual',
       },
     });
@@ -1125,7 +1125,7 @@ describe('startSpanManual', () => {
           'sentry.origin': 'manual',
         },
         parent_span_id: innerParentSpanId,
-        span_id: expect.stringMatching(/[a-f0-9]{16}/),
+        span_id: expect.stringMatching(/[a-f\d]{16}/),
         trace_id: outerTraceId,
         origin: 'manual',
       },
@@ -1346,7 +1346,7 @@ describe('startInactiveSpan', () => {
       environment: 'production',
       sample_rate: '0',
       sampled: 'false',
-      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+      trace_id: expect.stringMatching(/[a-f\d]{32}/),
       transaction: 'GET users/[id]',
     });
   });
@@ -1508,8 +1508,8 @@ describe('startInactiveSpan', () => {
           'sentry.sample_rate': 1,
           'sentry.origin': 'manual',
         },
-        span_id: expect.stringMatching(/[a-f0-9]{16}/),
-        trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+        span_id: expect.stringMatching(/[a-f\d]{16}/),
+        trace_id: expect.stringMatching(/[a-f\d]{32}/),
         origin: 'manual',
       },
     });
@@ -1533,7 +1533,7 @@ describe('startInactiveSpan', () => {
           'sentry.origin': 'manual',
         },
         parent_span_id: innerParentSpanId,
-        span_id: expect.stringMatching(/[a-f0-9]{16}/),
+        span_id: expect.stringMatching(/[a-f\d]{16}/),
         trace_id: outerTraceId,
         origin: 'manual',
       },
@@ -2311,7 +2311,7 @@ describe('startNewTrace', () => {
     startNewTrace(() => {
       const newCurrentScopeItraceId = getCurrentScope().getPropagationContext().traceId;
 
-      expect(newCurrentScopeItraceId).toMatch(/^[a-f0-9]{32}$/);
+      expect(newCurrentScopeItraceId).toMatch(/^[a-f\d]{32}$/);
       expect(newCurrentScopeItraceId).not.toEqual(oldCurrentScopeItraceId);
     });
   });
@@ -2322,7 +2322,7 @@ describe('startNewTrace', () => {
     startNewTrace(() => {
       const newIsolationScopeTraceId = getIsolationScope().getPropagationContext().traceId;
 
-      expect(newIsolationScopeTraceId).toMatch(/^[a-f0-9]{32}$/);
+      expect(newIsolationScopeTraceId).toMatch(/^[a-f\d]{32}$/);
       expect(newIsolationScopeTraceId).toEqual(oldIsolationScopeTraceId);
     });
   });

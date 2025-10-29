@@ -546,8 +546,8 @@ describe('Client', () => {
 
       expect(TestClient.instance?.event?.contexts?.trace).toEqual({
         parent_span_id: undefined,
-        span_id: expect.stringMatching(/[a-f0-9]{16}/),
-        trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+        span_id: expect.stringMatching(/[a-f\d]{16}/),
+        trace_id: expect.stringMatching(/[a-f\d]{32}/),
       });
     });
 

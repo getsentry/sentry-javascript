@@ -128,7 +128,7 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
           const ips = headers['x-forwarded-for'];
           const httpVersion = request.httpVersion;
           const host = headers.host;
-          const hostname = host?.replace(/^(.*)(:[0-9]{1,5})/, '$1') || 'localhost';
+          const hostname = host?.replace(/^(.*)(:\d{1,5})/, '$1') || 'localhost';
 
           const tracer = client.tracer;
           const scheme = fullUrl.startsWith('https') ? 'https' : 'http';

@@ -19,8 +19,8 @@ module.exports = {
     {
       // Configuration for typescript files
       files: ['*.ts', '*.tsx', '*.d.ts'],
-      extends: ['plugin:@typescript-eslint/recommended', 'plugin:deprecation/recommended'],
-      plugins: ['@typescript-eslint', 'jsdoc'],
+      extends: ['plugin:@typescript-eslint/recommended', 'plugin:deprecation/recommended', 'plugin:regexp/recommended'],
+      plugins: ['@typescript-eslint', 'jsdoc', 'regexp'],
       parser: '@typescript-eslint/parser',
       rules: {
         // We want to guard against using the equality operator with empty arrays

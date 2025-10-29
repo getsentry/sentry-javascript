@@ -36,7 +36,7 @@ export function maskAttribute({
     // type
     (key === 'value' && el.tagName === 'INPUT' && ['submit', 'button'].includes(el.getAttribute('type') || ''))
   ) {
-    return value.replace(/[\S]/g, '*');
+    return value.replace(/\S/g, '*');
   }
 
   return value;

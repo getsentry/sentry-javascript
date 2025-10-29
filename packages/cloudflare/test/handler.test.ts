@@ -368,8 +368,8 @@ describe('withSentry', () => {
           },
           op: 'faas.cron',
           origin: 'auto.faas.cloudflare.scheduled',
-          span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+          span_id: expect.stringMatching(/[a-f\d]{16}/),
+          trace_id: expect.stringMatching(/[a-f\d]{32}/),
         });
       });
     });
@@ -607,8 +607,8 @@ describe('withSentry', () => {
           },
           op: 'faas.email',
           origin: 'auto.faas.cloudflare.email',
-          span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+          span_id: expect.stringMatching(/[a-f\d]{16}/),
+          trace_id: expect.stringMatching(/[a-f\d]{32}/),
         });
       });
     });
@@ -850,8 +850,8 @@ describe('withSentry', () => {
           },
           op: 'queue.process',
           origin: 'auto.faas.cloudflare.queue',
-          span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+          span_id: expect.stringMatching(/[a-f\d]{16}/),
+          trace_id: expect.stringMatching(/[a-f\d]{32}/),
         });
       });
     });

@@ -107,9 +107,9 @@ describe('browserTracingIntegration', () => {
         [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
       },
-      span_id: expect.stringMatching(/[a-f0-9]{16}/),
+      span_id: expect.stringMatching(/[a-f\d]{16}/),
       start_timestamp: expect.any(Number),
-      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+      trace_id: expect.stringMatching(/[a-f\d]{32}/),
     });
   });
 
@@ -178,9 +178,9 @@ describe('browserTracingIntegration', () => {
         [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
       },
-      span_id: expect.stringMatching(/[a-f0-9]{16}/),
+      span_id: expect.stringMatching(/[a-f\d]{16}/),
       start_timestamp: expect.any(Number),
-      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+      trace_id: expect.stringMatching(/[a-f\d]{32}/),
     });
 
     // this is what is used to get the span name - JSDOM does not update this on it's own!
@@ -217,9 +217,9 @@ describe('browserTracingIntegration', () => {
           trace_id: span?.spanContext().traceId,
         },
       ],
-      span_id: expect.stringMatching(/[a-f0-9]{16}/),
+      span_id: expect.stringMatching(/[a-f\d]{16}/),
       start_timestamp: expect.any(Number),
-      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+      trace_id: expect.stringMatching(/[a-f\d]{32}/),
     });
 
     // this is what is used to get the span name - JSDOM does not update this on it's own!
@@ -255,9 +255,9 @@ describe('browserTracingIntegration', () => {
           trace_id: span2?.spanContext().traceId,
         },
       ],
-      span_id: expect.stringMatching(/[a-f0-9]{16}/),
+      span_id: expect.stringMatching(/[a-f\d]{16}/),
       start_timestamp: expect.any(Number),
-      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+      trace_id: expect.stringMatching(/[a-f\d]{32}/),
     });
   });
 
@@ -315,9 +315,9 @@ describe('browserTracingIntegration', () => {
           [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
         },
-        span_id: expect.stringMatching(/[a-f0-9]{16}/),
+        span_id: expect.stringMatching(/[a-f\d]{16}/),
         start_timestamp: expect.any(Number),
-        trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+        trace_id: expect.stringMatching(/[a-f\d]{32}/),
       });
       expect(spanIsSampled(span!)).toBe(true);
     });
@@ -352,9 +352,9 @@ describe('browserTracingIntegration', () => {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
           testy: 'yes',
         },
-        span_id: expect.stringMatching(/[a-f0-9]{16}/),
+        span_id: expect.stringMatching(/[a-f\d]{16}/),
         start_timestamp: expect.any(Number),
-        trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+        trace_id: expect.stringMatching(/[a-f\d]{32}/),
       });
     });
 
@@ -544,7 +544,7 @@ describe('browserTracingIntegration', () => {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'manual',
           [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
-          [PREVIOUS_TRACE_TMP_SPAN_ATTRIBUTE]: expect.stringMatching(/[a-f0-9]{32}-[a-f0-9]{16}-1/),
+          [PREVIOUS_TRACE_TMP_SPAN_ATTRIBUTE]: expect.stringMatching(/[a-f\d]{32}-[a-f\d]{16}-1/),
         },
         links: [
           {
@@ -552,13 +552,13 @@ describe('browserTracingIntegration', () => {
               'sentry.link.type': 'previous_trace',
             },
             sampled: true,
-            span_id: expect.stringMatching(/[a-f0-9]{16}/),
-            trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+            span_id: expect.stringMatching(/[a-f\d]{16}/),
+            trace_id: expect.stringMatching(/[a-f\d]{32}/),
           },
         ],
-        span_id: expect.stringMatching(/[a-f0-9]{16}/),
+        span_id: expect.stringMatching(/[a-f\d]{16}/),
         start_timestamp: expect.any(Number),
-        trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+        trace_id: expect.stringMatching(/[a-f\d]{32}/),
       });
       expect(spanIsSampled(span!)).toBe(true);
     });
@@ -599,9 +599,9 @@ describe('browserTracingIntegration', () => {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
           testy: 'yes',
         },
-        span_id: expect.stringMatching(/[a-f0-9]{16}/),
+        span_id: expect.stringMatching(/[a-f\d]{16}/),
         start_timestamp: expect.any(Number),
-        trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+        trace_id: expect.stringMatching(/[a-f\d]{32}/),
       });
     });
 
@@ -722,22 +722,22 @@ describe('browserTracingIntegration', () => {
       const newCurrentScopePropCtx = getCurrentScope().getPropagationContext();
 
       expect(oldCurrentScopePropCtx).toEqual({
-        traceId: expect.stringMatching(/[a-f0-9]{32}/),
-        propagationSpanId: expect.stringMatching(/[a-f0-9]{16}/),
+        traceId: expect.stringMatching(/[a-f\d]{32}/),
+        propagationSpanId: expect.stringMatching(/[a-f\d]{16}/),
         sampleRand: expect.any(Number),
       });
       expect(oldIsolationScopePropCtx).toEqual({
-        traceId: expect.stringMatching(/[a-f0-9]{32}/),
+        traceId: expect.stringMatching(/[a-f\d]{32}/),
         sampleRand: expect.any(Number),
       });
       expect(newCurrentScopePropCtx).toEqual({
-        traceId: expect.stringMatching(/[a-f0-9]{32}/),
-        propagationSpanId: expect.stringMatching(/[a-f0-9]{16}/),
+        traceId: expect.stringMatching(/[a-f\d]{32}/),
+        propagationSpanId: expect.stringMatching(/[a-f\d]{16}/),
         sampleRand: expect.any(Number),
       });
       expect(newIsolationScopePropCtx).toEqual({
-        traceId: expect.stringMatching(/[a-f0-9]{32}/),
-        propagationSpanId: expect.stringMatching(/[a-f0-9]{16}/),
+        traceId: expect.stringMatching(/[a-f\d]{32}/),
+        propagationSpanId: expect.stringMatching(/[a-f\d]{16}/),
         sampleRand: expect.any(Number),
       });
 
@@ -764,7 +764,7 @@ describe('browserTracingIntegration', () => {
       const propCtxBeforeEnd = getCurrentScope().getPropagationContext();
       expect(propCtxBeforeEnd).toEqual({
         sampleRand: expect.any(Number),
-        traceId: expect.stringMatching(/[a-f0-9]{32}/),
+        traceId: expect.stringMatching(/[a-f\d]{32}/),
       });
 
       navigationSpan!.end();
@@ -805,7 +805,7 @@ describe('browserTracingIntegration', () => {
 
       const propCtxBeforeEnd = getCurrentScope().getPropagationContext();
       expect(propCtxBeforeEnd).toEqual({
-        traceId: expect.stringMatching(/[a-f0-9]{32}/),
+        traceId: expect.stringMatching(/[a-f\d]{32}/),
         sampleRand: expect.any(Number),
       });
 

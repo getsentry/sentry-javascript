@@ -128,11 +128,11 @@ describe('createSpanEnvelope', () => {
       description: 'test',
       is_segment: true,
       origin: 'manual',
-      span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
+      span_id: expect.stringMatching(/^[\da-f]{16}$/),
       segment_id: spanItem?.segment_id,
       start_timestamp: 1,
       timestamp: 2,
-      trace_id: expect.stringMatching(/^[0-9a-f]{32}$/),
+      trace_id: expect.stringMatching(/^[\da-f]{32}$/),
     });
   });
 
@@ -148,7 +148,7 @@ describe('createSpanEnvelope', () => {
         environment: 'production',
         public_key: 'username',
         sampled: 'false',
-        trace_id: expect.stringMatching(/^[0-9a-f]{32}$/),
+        trace_id: expect.stringMatching(/^[\da-f]{32}$/),
         transaction: 'test',
       },
     });
@@ -218,11 +218,11 @@ describe('createSpanEnvelope', () => {
       description: 'test',
       is_segment: true,
       origin: 'manual',
-      span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
+      span_id: expect.stringMatching(/^[\da-f]{16}$/),
       segment_id: spanItem?.segment_id,
       start_timestamp: 1,
       timestamp: 2,
-      trace_id: expect.stringMatching(/^[0-9a-f]{32}$/),
+      trace_id: expect.stringMatching(/^[\da-f]{32}$/),
     });
   });
 
@@ -253,11 +253,11 @@ describe('createSpanEnvelope', () => {
       description: 'mutated description: test',
       is_segment: true,
       origin: 'manual',
-      span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
+      span_id: expect.stringMatching(/^[\da-f]{16}$/),
       segment_id: spanItem?.segment_id,
       start_timestamp: 1,
       timestamp: 2,
-      trace_id: expect.stringMatching(/^[0-9a-f]{32}$/),
+      trace_id: expect.stringMatching(/^[\da-f]{32}$/),
     });
   });
 });

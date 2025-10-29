@@ -53,13 +53,13 @@ function createFrame(filename: string, func: string, lineno?: number, colno?: nu
 // This regex matches frames that have no function name (ie. are at the top level of a module).
 // For example "at http://localhost:5000//script.js:1:126"
 // Frames _with_ function names usually look as follows: "at commitLayoutEffects (react-dom.development.js:23426:1)"
-const chromeRegexNoFnName = /^\s*at (\S+?)(?::(\d+))(?::(\d+))\s*$/i;
+const chromeRegexNoFnName = /^\s*at (\S+?):(\d+):(\d+)\s*$/i;
 
 // This regex matches all the frames that have a function name.
 const chromeRegex =
   /^\s*at (?:(.+?\)(?: \[.+\])?|.*?) ?\((?:address at )?)?(?:async )?((?:<anonymous>|[-a-z]+:|.*bundle|\/)?.*?)(?::(\d+))?(?::(\d+))?\)?\s*$/i;
 
-const chromeEvalRegex = /\((\S*)(?::(\d+))(?::(\d+))\)/;
+const chromeEvalRegex = /\((\S*):(\d+):(\d+)\)/;
 
 // Matches stack frames with data URIs instead of filename so we can still get the function name
 // Example: "at dynamicFn (data:application/javascript,export function dynamicFn() {..."
@@ -117,7 +117,7 @@ export const chromeStackLineParser: StackLineParser = [CHROME_PRIORITY, chromeSt
 // generates filenames without a prefix like `file://` the filenames in the stacktrace are just 42.js
 // We need this specific case for now because we want no other regex to match.
 const geckoREgex =
-  /^\s*(.*?)(?:\((.*?)\))?(?:^|@)?((?:[-a-z]+)?:\/.*?|\[native code\]|[^@]*(?:bundle|\d+\.js)|\/[\w\-. /=]+)(?::(\d+))?(?::(\d+))?\s*$/i;
+  /^\s*(.*?)(?:\((.*?)\))?(?:^|@)?([-a-z]*:\/.*?|\[native code\]|[^@]*(?:bundle|\d\.js)|\/[\w\-. /=]+)(?::(\d+))?(?::(\d+))?\s*$/i;
 const geckoEvalRegex = /(\S+) line (\d+)(?: > eval line \d+)* > eval/i;
 
 const gecko: StackLineParserFn = line => {
@@ -149,7 +149,7 @@ const gecko: StackLineParserFn = line => {
 
 export const geckoStackLineParser: StackLineParser = [GECKO_PRIORITY, gecko];
 
-const winjsRegex = /^\s*at (?:((?:\[object object\])?.+) )?\(?((?:[-a-z]+):.*?):(\d+)(?::(\d+))?\)?\s*$/i;
+const winjsRegex = /^\s*at (?:(.+) )?\(?([-a-z]+:.*?):(\d+)(?::(\d+))?\)?\s*$/i;
 
 const winjs: StackLineParserFn = line => {
   const parts = winjsRegex.exec(line) as null | [string, string, string, string, string];
