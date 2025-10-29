@@ -4,6 +4,10 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+### Other Changes
+
+- feat(browser): Enable Spotlight via `SENTRY_SPOTLIGHT` env var ([#18050](https://github.com/getsentry/sentry-javascript/pull/18050))
+
 Work in this release was contributed by @hanseo0507. Thank you for your contribution!
 
 ## 10.22.0
