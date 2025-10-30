@@ -201,7 +201,7 @@ export function _INTERNAL_captureMetric(beforeMetric: Metric, options?: Internal
 
   const serializedMetric: SerializedMetric = {
     timestamp: timestampInSeconds(),
-    trace_id: traceId,
+    trace_id: traceId ?? '',
     span_id: spanId,
     name: processedMetric.name,
     type: processedMetric.type,

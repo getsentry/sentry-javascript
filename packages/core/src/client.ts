@@ -1521,12 +1521,8 @@ function estimateMetricSizeInBytes(metric: Metric): number {
     weight += metric.name.length * 2;
   }
 
-  // Add weight for the value
-  if (typeof metric.value === 'string') {
-    weight += metric.value.length * 2;
-  } else {
-    weight += 8; // number
-  }
+  // Add weight for number
+  weight += 8;
 
   return weight + estimateAttributesSizeInBytes(metric.attributes);
 }
