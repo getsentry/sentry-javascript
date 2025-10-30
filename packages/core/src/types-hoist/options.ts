@@ -184,8 +184,6 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
 
   /**
    * Maximum number of chars a single value can have before it will be truncated.
-   *
-   * @default 250
    */
   maxValueLength?: number;
 
