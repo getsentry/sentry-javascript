@@ -4,6 +4,24 @@ import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 const EXISTING_TEST_EMAIL = 'bar@baz.com';
 const NON_EXISTING_TEST_EMAIL = 'foo@baz.com';
 
+// Helper function to create basic span matcher (reduces duplication in new tests)
+function createDbSpanMatcher(operationName: string, descriptionMatcher: any = expect.any(String)) {
+  return expect.objectContaining({
+    data: expect.objectContaining({
+      'db.namespace': 'test_db',
+      'db.system.name': 'postgres',
+      'db.operation.name': operationName,
+      'sentry.op': 'db',
+      'sentry.origin': 'auto.db.otel.postgres',
+      'server.address': 'localhost',
+      'server.port': 5444,
+    }),
+    description: descriptionMatcher,
+    op: 'db',
+    origin: 'auto.db.otel.postgres',
+  });
+}
+
 describe('postgresjs auto instrumentation', () => {
   afterAll(() => {
     cleanupChildProcesses();
@@ -21,7 +39,7 @@ describe('postgresjs auto instrumentation', () => {
             'db.query.text':
               'CREATE TABLE "User" ("id" SERIAL NOT NULL,"createdAt" TIMESTAMP(?) NOT NULL DEFAULT CURRENT_TIMESTAMP,"email" TEXT NOT NULL,"name" TEXT,CONSTRAINT "User_pkey" PRIMARY KEY ("id"))',
             'sentry.op': 'db',
-            'sentry.origin': 'auto.db.otel.postgresjs',
+            'sentry.origin': 'auto.db.otel.postgres',
             'server.address': 'localhost',
             'server.port': 5444,
           }),
@@ -29,7 +47,7 @@ describe('postgresjs auto instrumentation', () => {
             'CREATE TABLE "User" ("id" SERIAL NOT NULL,"createdAt" TIMESTAMP(?) NOT NULL DEFAULT CURRENT_TIMESTAMP,"email" TEXT NOT NULL,"name" TEXT,CONSTRAINT "User_pkey" PRIMARY KEY ("id"))',
           op: 'db',
           status: 'ok',
-          origin: 'auto.db.otel.postgresjs',
+          origin: 'auto.db.otel.postgres',
           parent_span_id: expect.any(String),
           span_id: expect.any(String),
           start_timestamp: expect.any(Number),
@@ -42,7 +60,7 @@ describe('postgresjs auto instrumentation', () => {
             'db.system.name': 'postgres',
             'db.operation.name': 'INSERT',
             'db.query.text': `INSERT INTO "User" ("email", "name") VALUES ('Foo', '${EXISTING_TEST_EMAIL}')`,
-            'sentry.origin': 'auto.db.otel.postgresjs',
+            'sentry.origin': 'auto.db.otel.postgres',
             'sentry.op': 'db',
             'server.address': 'localhost',
             'server.port': 5444,
@@ -50,7 +68,7 @@ describe('postgresjs auto instrumentation', () => {
           description: `INSERT INTO "User" ("email", "name") VALUES ('Foo', '${EXISTING_TEST_EMAIL}')`,
           op: 'db',
           status: 'ok',
-          origin: 'auto.db.otel.postgresjs',
+          origin: 'auto.db.otel.postgres',
           parent_span_id: expect.any(String),
           span_id: expect.any(String),
           start_timestamp: expect.any(Number),
@@ -64,14 +82,14 @@ describe('postgresjs auto instrumentation', () => {
             'db.operation.name': 'UPDATE',
             'db.query.text': `UPDATE "User" SET "name" = 'Foo' WHERE "email" = '${EXISTING_TEST_EMAIL}'`,
             'sentry.op': 'db',
-            'sentry.origin': 'auto.db.otel.postgresjs',
+            'sentry.origin': 'auto.db.otel.postgres',
             'server.address': 'localhost',
             'server.port': 5444,
           }),
           description: `UPDATE "User" SET "name" = 'Foo' WHERE "email" = '${EXISTING_TEST_EMAIL}'`,
           op: 'db',
           status: 'ok',
-          origin: 'auto.db.otel.postgresjs',
+          origin: 'auto.db.otel.postgres',
           parent_span_id: expect.any(String),
           span_id: expect.any(String),
           start_timestamp: expect.any(Number),
@@ -85,14 +103,14 @@ describe('postgresjs auto instrumentation', () => {
             'db.operation.name': 'SELECT',
             'db.query.text': `SELECT * FROM "User" WHERE "email" = '${EXISTING_TEST_EMAIL}'`,
             'sentry.op': 'db',
-            'sentry.origin': 'auto.db.otel.postgresjs',
+            'sentry.origin': 'auto.db.otel.postgres',
             'server.address': 'localhost',
             'server.port': 5444,
           }),
           description: `SELECT * FROM "User" WHERE "email" = '${EXISTING_TEST_EMAIL}'`,
           op: 'db',
           status: 'ok',
-          origin: 'auto.db.otel.postgresjs',
+          origin: 'auto.db.otel.postgres',
           parent_span_id: expect.any(String),
           span_id: expect.any(String),
           start_timestamp: expect.any(Number),
@@ -106,14 +124,14 @@ describe('postgresjs auto instrumentation', () => {
             'db.operation.name': 'SELECT',
             'db.query.text': 'SELECT * from generate_series(?,?) as x',
             'sentry.op': 'db',
-            'sentry.origin': 'auto.db.otel.postgresjs',
+            'sentry.origin': 'auto.db.otel.postgres',
             'server.address': 'localhost',
             'server.port': 5444,
           }),
           description: 'SELECT * from generate_series(?,?) as x',
           op: 'db',
           status: 'ok',
-          origin: 'auto.db.otel.postgresjs',
+          origin: 'auto.db.otel.postgres',
           parent_span_id: expect.any(String),
           span_id: expect.any(String),
           start_timestamp: expect.any(Number),
@@ -127,14 +145,14 @@ describe('postgresjs auto instrumentation', () => {
             'db.operation.name': 'DROP TABLE',
             'db.query.text': 'DROP TABLE "User"',
             'sentry.op': 'db',
-            'sentry.origin': 'auto.db.otel.postgresjs',
+            'sentry.origin': 'auto.db.otel.postgres',
             'server.address': 'localhost',
             'server.port': 5444,
           }),
           description: 'DROP TABLE "User"',
           op: 'db',
           status: 'ok',
-          origin: 'auto.db.otel.postgresjs',
+          origin: 'auto.db.otel.postgres',
           parent_span_id: expect.any(String),
           span_id: expect.any(String),
           start_timestamp: expect.any(Number),
@@ -150,14 +168,14 @@ describe('postgresjs auto instrumentation', () => {
             'error.type': 'PostgresError',
             'db.query.text': `SELECT * FROM "User" WHERE "email" = '${NON_EXISTING_TEST_EMAIL}'`,
             'sentry.op': 'db',
-            'sentry.origin': 'auto.db.otel.postgresjs',
+            'sentry.origin': 'auto.db.otel.postgres',
             'server.address': 'localhost',
             'server.port': 5444,
           }),
           description: `SELECT * FROM "User" WHERE "email" = '${NON_EXISTING_TEST_EMAIL}'`,
           op: 'db',
           status: 'unknown_error',
-          origin: 'auto.db.otel.postgresjs',
+          origin: 'auto.db.otel.postgres',
           parent_span_id: expect.any(String),
           span_id: expect.any(String),
           start_timestamp: expect.any(Number),
@@ -216,7 +234,7 @@ describe('postgresjs auto instrumentation', () => {
             'db.query.text':
               'CREATE TABLE "User" ("id" SERIAL NOT NULL,"createdAt" TIMESTAMP(?) NOT NULL DEFAULT CURRENT_TIMESTAMP,"email" TEXT NOT NULL,"name" TEXT,CONSTRAINT "User_pkey" PRIMARY KEY ("id"))',
             'sentry.op': 'db',
-            'sentry.origin': 'auto.db.otel.postgresjs',
+            'sentry.origin': 'auto.db.otel.postgres',
             'server.address': 'localhost',
             'server.port': 5444,
           }),
@@ -224,7 +242,7 @@ describe('postgresjs auto instrumentation', () => {
             'CREATE TABLE "User" ("id" SERIAL NOT NULL,"createdAt" TIMESTAMP(?) NOT NULL DEFAULT CURRENT_TIMESTAMP,"email" TEXT NOT NULL,"name" TEXT,CONSTRAINT "User_pkey" PRIMARY KEY ("id"))',
           op: 'db',
           status: 'ok',
-          origin: 'auto.db.otel.postgresjs',
+          origin: 'auto.db.otel.postgres',
           parent_span_id: expect.any(String),
           span_id: expect.any(String),
           start_timestamp: expect.any(Number),
@@ -237,7 +255,7 @@ describe('postgresjs auto instrumentation', () => {
             'db.system.name': 'postgres',
             'db.operation.name': 'INSERT',
             'db.query.text': `INSERT INTO "User" ("email", "name") VALUES ('Foo', '${EXISTING_TEST_EMAIL}')`,
-            'sentry.origin': 'auto.db.otel.postgresjs',
+            'sentry.origin': 'auto.db.otel.postgres',
             'sentry.op': 'db',
             'server.address': 'localhost',
             'server.port': 5444,
@@ -245,7 +263,7 @@ describe('postgresjs auto instrumentation', () => {
           description: `INSERT INTO "User" ("email", "name") VALUES ('Foo', '${EXISTING_TEST_EMAIL}')`,
           op: 'db',
           status: 'ok',
-          origin: 'auto.db.otel.postgresjs',
+          origin: 'auto.db.otel.postgres',
           parent_span_id: expect.any(String),
           span_id: expect.any(String),
           start_timestamp: expect.any(Number),
@@ -259,14 +277,14 @@ describe('postgresjs auto instrumentation', () => {
             'db.operation.name': 'UPDATE',
             'db.query.text': `UPDATE "User" SET "name" = 'Foo' WHERE "email" = '${EXISTING_TEST_EMAIL}'`,
             'sentry.op': 'db',
-            'sentry.origin': 'auto.db.otel.postgresjs',
+            'sentry.origin': 'auto.db.otel.postgres',
             'server.address': 'localhost',
             'server.port': 5444,
           }),
           description: `UPDATE "User" SET "name" = 'Foo' WHERE "email" = '${EXISTING_TEST_EMAIL}'`,
           op: 'db',
           status: 'ok',
-          origin: 'auto.db.otel.postgresjs',
+          origin: 'auto.db.otel.postgres',
           parent_span_id: expect.any(String),
           span_id: expect.any(String),
           start_timestamp: expect.any(Number),
@@ -280,14 +298,14 @@ describe('postgresjs auto instrumentation', () => {
             'db.operation.name': 'SELECT',
             'db.query.text': `SELECT * FROM "User" WHERE "email" = '${EXISTING_TEST_EMAIL}'`,
             'sentry.op': 'db',
-            'sentry.origin': 'auto.db.otel.postgresjs',
+            'sentry.origin': 'auto.db.otel.postgres',
             'server.address': 'localhost',
             'server.port': 5444,
           }),
           description: `SELECT * FROM "User" WHERE "email" = '${EXISTING_TEST_EMAIL}'`,
           op: 'db',
           status: 'ok',
-          origin: 'auto.db.otel.postgresjs',
+          origin: 'auto.db.otel.postgres',
           parent_span_id: expect.any(String),
           span_id: expect.any(String),
           start_timestamp: expect.any(Number),
@@ -301,14 +319,14 @@ describe('postgresjs auto instrumentation', () => {
             'db.operation.name': 'SELECT',
             'db.query.text': 'SELECT * from generate_series(?,?) as x',
             'sentry.op': 'db',
-            'sentry.origin': 'auto.db.otel.postgresjs',
+            'sentry.origin': 'auto.db.otel.postgres',
             'server.address': 'localhost',
             'server.port': 5444,
           }),
           description: 'SELECT * from generate_series(?,?) as x',
           op: 'db',
           status: 'ok',
-          origin: 'auto.db.otel.postgresjs',
+          origin: 'auto.db.otel.postgres',
           parent_span_id: expect.any(String),
           span_id: expect.any(String),
           start_timestamp: expect.any(Number),
@@ -322,14 +340,14 @@ describe('postgresjs auto instrumentation', () => {
             'db.operation.name': 'DROP TABLE',
             'db.query.text': 'DROP TABLE "User"',
             'sentry.op': 'db',
-            'sentry.origin': 'auto.db.otel.postgresjs',
+            'sentry.origin': 'auto.db.otel.postgres',
             'server.address': 'localhost',
             'server.port': 5444,
           }),
           description: 'DROP TABLE "User"',
           op: 'db',
           status: 'ok',
-          origin: 'auto.db.otel.postgresjs',
+          origin: 'auto.db.otel.postgres',
           parent_span_id: expect.any(String),
           span_id: expect.any(String),
           start_timestamp: expect.any(Number),
@@ -345,14 +363,14 @@ describe('postgresjs auto instrumentation', () => {
             'error.type': 'PostgresError',
             'db.query.text': `SELECT * FROM "User" WHERE "email" = '${NON_EXISTING_TEST_EMAIL}'`,
             'sentry.op': 'db',
-            'sentry.origin': 'auto.db.otel.postgresjs',
+            'sentry.origin': 'auto.db.otel.postgres',
             'server.address': 'localhost',
             'server.port': 5444,
           }),
           description: `SELECT * FROM "User" WHERE "email" = '${NON_EXISTING_TEST_EMAIL}'`,
           op: 'db',
           status: 'unknown_error',
-          origin: 'auto.db.otel.postgresjs',
+          origin: 'auto.db.otel.postgres',
           parent_span_id: expect.any(String),
           span_id: expect.any(String),
           start_timestamp: expect.any(Number),
@@ -413,7 +431,7 @@ describe('postgresjs auto instrumentation', () => {
               'CREATE TABLE "User" ("id" SERIAL NOT NULL,"createdAt" TIMESTAMP(?) NOT NULL DEFAULT CURRENT_TIMESTAMP,"email" TEXT NOT NULL,"name" TEXT,CONSTRAINT "User_pkey" PRIMARY KEY ("id"))',
             'custom.requestHook': 'called',
             'sentry.op': 'db',
-            'sentry.origin': 'auto.db.otel.postgresjs',
+            'sentry.origin': 'auto.db.otel.postgres',
             'server.address': 'localhost',
             'server.port': 5444,
           }),
@@ -421,7 +439,7 @@ describe('postgresjs auto instrumentation', () => {
             'CREATE TABLE "User" ("id" SERIAL NOT NULL,"createdAt" TIMESTAMP(?) NOT NULL DEFAULT CURRENT_TIMESTAMP,"email" TEXT NOT NULL,"name" TEXT,CONSTRAINT "User_pkey" PRIMARY KEY ("id"))',
           op: 'db',
           status: 'ok',
-          origin: 'auto.db.otel.postgresjs',
+          origin: 'auto.db.otel.postgres',
         }),
         expect.objectContaining({
           data: expect.objectContaining({
@@ -431,14 +449,14 @@ describe('postgresjs auto instrumentation', () => {
             'db.query.text': `INSERT INTO "User" ("email", "name") VALUES ('Foo', '${EXISTING_TEST_EMAIL}')`,
             'custom.requestHook': 'called',
             'sentry.op': 'db',
-            'sentry.origin': 'auto.db.otel.postgresjs',
+            'sentry.origin': 'auto.db.otel.postgres',
             'server.address': 'localhost',
             'server.port': 5444,
           }),
           description: `INSERT INTO "User" ("email", "name") VALUES ('Foo', '${EXISTING_TEST_EMAIL}')`,
           op: 'db',
           status: 'ok',
-          origin: 'auto.db.otel.postgresjs',
+          origin: 'auto.db.otel.postgres',
         }),
         expect.objectContaining({
           data: expect.objectContaining({
@@ -448,14 +466,14 @@ describe('postgresjs auto instrumentation', () => {
             'db.query.text': `SELECT * FROM "User" WHERE "email" = '${EXISTING_TEST_EMAIL}'`,
             'custom.requestHook': 'called',
             'sentry.op': 'db',
-            'sentry.origin': 'auto.db.otel.postgresjs',
+            'sentry.origin': 'auto.db.otel.postgres',
             'server.address': 'localhost',
             'server.port': 5444,
           }),
           description: `SELECT * FROM "User" WHERE "email" = '${EXISTING_TEST_EMAIL}'`,
           op: 'db',
           status: 'ok',
-          origin: 'auto.db.otel.postgresjs',
+          origin: 'auto.db.otel.postgres',
         }),
       ]),
       extra: expect.objectContaining({
@@ -489,7 +507,7 @@ describe('postgresjs auto instrumentation', () => {
               'CREATE TABLE "User" ("id" SERIAL NOT NULL,"createdAt" TIMESTAMP(?) NOT NULL DEFAULT CURRENT_TIMESTAMP,"email" TEXT NOT NULL,"name" TEXT,CONSTRAINT "User_pkey" PRIMARY KEY ("id"))',
             'custom.requestHook': 'called',
             'sentry.op': 'db',
-            'sentry.origin': 'auto.db.otel.postgresjs',
+            'sentry.origin': 'auto.db.otel.postgres',
             'server.address': 'localhost',
             'server.port': 5444,
           }),
@@ -497,7 +515,7 @@ describe('postgresjs auto instrumentation', () => {
             'CREATE TABLE "User" ("id" SERIAL NOT NULL,"createdAt" TIMESTAMP(?) NOT NULL DEFAULT CURRENT_TIMESTAMP,"email" TEXT NOT NULL,"name" TEXT,CONSTRAINT "User_pkey" PRIMARY KEY ("id"))',
           op: 'db',
           status: 'ok',
-          origin: 'auto.db.otel.postgresjs',
+          origin: 'auto.db.otel.postgres',
         }),
         expect.objectContaining({
           data: expect.objectContaining({
@@ -507,14 +525,14 @@ describe('postgresjs auto instrumentation', () => {
             'db.query.text': `INSERT INTO "User" ("email", "name") VALUES ('Foo', '${EXISTING_TEST_EMAIL}')`,
             'custom.requestHook': 'called',
             'sentry.op': 'db',
-            'sentry.origin': 'auto.db.otel.postgresjs',
+            'sentry.origin': 'auto.db.otel.postgres',
             'server.address': 'localhost',
             'server.port': 5444,
           }),
           description: `INSERT INTO "User" ("email", "name") VALUES ('Foo', '${EXISTING_TEST_EMAIL}')`,
           op: 'db',
           status: 'ok',
-          origin: 'auto.db.otel.postgresjs',
+          origin: 'auto.db.otel.postgres',
         }),
         expect.objectContaining({
           data: expect.objectContaining({
@@ -524,14 +542,14 @@ describe('postgresjs auto instrumentation', () => {
             'db.query.text': `SELECT * FROM "User" WHERE "email" = '${EXISTING_TEST_EMAIL}'`,
             'custom.requestHook': 'called',
             'sentry.op': 'db',
-            'sentry.origin': 'auto.db.otel.postgresjs',
+            'sentry.origin': 'auto.db.otel.postgres',
             'server.address': 'localhost',
             'server.port': 5444,
           }),
           description: `SELECT * FROM "User" WHERE "email" = '${EXISTING_TEST_EMAIL}'`,
           op: 'db',
           status: 'ok',
-          origin: 'auto.db.otel.postgresjs',
+          origin: 'auto.db.otel.postgres',
         }),
       ]),
       extra: expect.objectContaining({
@@ -546,6 +564,62 @@ describe('postgresjs auto instrumentation', () => {
 
     await createRunner(__dirname, 'scenario-requestHook.mjs')
       .withFlags('--import', `${__dirname}/instrument-requestHook.mjs`)
+      .withDockerCompose({ workingDirectory: [__dirname], readyMatches: ['port 5432'] })
+      .expect({ transaction: EXPECTED_TRANSACTION })
+      .start()
+      .completed();
+  });
+
+  // Tests for URL-based initialization pattern (regression prevention)
+  test('should instrument postgres package with URL initialization (CJS)', { timeout: 90_000 }, async () => {
+    const EXPECTED_TRANSACTION = {
+      transaction: 'Test Transaction',
+      spans: expect.arrayContaining([
+        createDbSpanMatcher('CREATE TABLE'),
+        createDbSpanMatcher('INSERT'),
+        createDbSpanMatcher('UPDATE'),
+        createDbSpanMatcher('SELECT'),
+      ]),
+    };
+
+    await createRunner(__dirname, 'scenario-url.cjs')
+      .withDockerCompose({ workingDirectory: [__dirname], readyMatches: ['port 5432'] })
+      .expect({ transaction: EXPECTED_TRANSACTION })
+      .start()
+      .completed();
+  });
+
+  test('should instrument postgres package with URL initialization (ESM)', { timeout: 90_000 }, async () => {
+    const EXPECTED_TRANSACTION = {
+      transaction: 'Test Transaction',
+      spans: expect.arrayContaining([
+        createDbSpanMatcher('CREATE TABLE'),
+        createDbSpanMatcher('INSERT'),
+        createDbSpanMatcher('SELECT'),
+        createDbSpanMatcher('DELETE'),
+      ]),
+    };
+
+    await createRunner(__dirname, 'scenario-url.mjs')
+      .withFlags('--import', `${__dirname}/instrument.mjs`)
+      .withDockerCompose({ workingDirectory: [__dirname], readyMatches: ['port 5432'] })
+      .expect({ transaction: EXPECTED_TRANSACTION })
+      .start()
+      .completed();
+  });
+
+  test('should instrument sql.unsafe() queries (CJS)', { timeout: 90_000 }, async () => {
+    const EXPECTED_TRANSACTION = {
+      transaction: 'Test Transaction',
+      spans: expect.arrayContaining([
+        createDbSpanMatcher('CREATE TABLE'),
+        createDbSpanMatcher('INSERT'),
+        createDbSpanMatcher('SELECT'),
+        createDbSpanMatcher('DROP TABLE'),
+      ]),
+    };
+
+    await createRunner(__dirname, 'scenario-unsafe.cjs')
       .withDockerCompose({ workingDirectory: [__dirname], readyMatches: ['port 5432'] })
       .expect({ transaction: EXPECTED_TRANSACTION })
       .start()

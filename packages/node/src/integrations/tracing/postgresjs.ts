@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 // Instrumentation for https://github.com/porsager/postgres
 import { context, trace } from '@opentelemetry/api';
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
@@ -13,11 +14,20 @@ import {
   ATTR_SERVER_PORT,
 } from '@opentelemetry/semantic-conventions';
 import type { IntegrationFn, Span } from '@sentry/core';
-import { defineIntegration, replaceExports, SDK_VERSION, SPAN_STATUS_ERROR, startSpanManual } from '@sentry/core';
+import {
+  debug,
+  defineIntegration,
+  replaceExports,
+  SDK_VERSION,
+  SPAN_STATUS_ERROR,
+  startSpanManual,
+} from '@sentry/core';
 import { addOriginToSpan, generateInstrumentOnce } from '@sentry/node-core';
+import { DEBUG_BUILD } from '../../debug-build';
 
 const INTEGRATION_NAME = 'PostgresJs';
 const SUPPORTED_VERSIONS = ['>=3.0.0 <4'];
+const SQL_OPERATION_REGEX = /^(SELECT|INSERT|UPDATE|DELETE|CREATE|DROP|ALTER)/i;
 
 type PostgresConnectionContext = {
   database?: string;
@@ -69,7 +79,14 @@ export class PostgresJsInstrumentation extends InstrumentationBase<PostgresJsIns
     const module = new InstrumentationNodeModuleDefinition(
       'postgres',
       SUPPORTED_VERSIONS,
-      exports => this._patchPostgres(exports),
+      exports => {
+        try {
+          return this._patchPostgres(exports);
+        } catch (e) {
+          DEBUG_BUILD && debug.error('Failed to patch postgres module:', e);
+          return exports;
+        }
+      },
       exports => exports,
     );
     return module;
@@ -86,6 +103,7 @@ export class PostgresJsInstrumentation extends InstrumentationBase<PostgresJsIns
     const Original = isFunction ? exports : exports.default;
 
     if (typeof Original !== 'function') {
+      DEBUG_BUILD && debug.warn('postgres module does not export a function. Skipping instrumentation.');
       return exports;
     }
 
@@ -94,7 +112,7 @@ export class PostgresJsInstrumentation extends InstrumentationBase<PostgresJsIns
 
     const WrappedPostgres = function (this: unknown, ...args: unknown[]): unknown {
       const sql = Reflect.construct(Original as (...args: unknown[]) => unknown, args);
-      return self._instrumentSqlInstance(sql, args[0]);
+      return self._instrumentSqlInstance(sql);
     };
 
     Object.setPrototypeOf(WrappedPostgres, Original);
@@ -120,15 +138,144 @@ export class PostgresJsInstrumentation extends InstrumentationBase<PostgresJsIns
   }
 
   /**
+   * Wraps query-returning methods (unsafe, file) to ensure their queries are instrumented.
+   */
+  private _wrapQueryMethod(
+    original: (...args: unknown[]) => unknown,
+    target: unknown,
+    proxiedSql: unknown,
+  ): (...args: unknown[]) => unknown {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    const self = this;
+    return function (this: unknown, ...args: unknown[]): unknown {
+      const query = Reflect.apply(original, target, args);
+
+      if (query && typeof query === 'object' && 'handle' in query) {
+        self._wrapSingleQueryHandle(query as { handle: unknown; strings?: string[] }, proxiedSql);
+      }
+
+      return query;
+    };
+  }
+
+  /**
+   * Wraps callback-based methods (begin, reserve) to recursively instrument Sql instances.
+   * Note: These methods can also be used as tagged templates, which we pass through unchanged.
+   *
+   * Savepoint is not wrapped to avoid complex nested transaction instrumentation issues.
+   * Queries within savepoint callbacks are still instrumented through the parent transaction's Sql instance.
+   */
+  private _wrapCallbackMethod(
+    original: (...args: unknown[]) => unknown,
+    target: unknown,
+    parentSqlInstance: unknown,
+  ): (...args: unknown[]) => unknown {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    const self = this;
+    return function (this: unknown, ...args: unknown[]): unknown {
+      // Extract parent context to propagate to child instances
+      const parentContext = (parentSqlInstance as Record<symbol, unknown>)[CONNECTION_CONTEXT_SYMBOL] as
+        | PostgresConnectionContext
+        | undefined;
+
+      // Check if this is a callback-based call by verifying the last argument is a function
+      const isCallbackBased = typeof args[args.length - 1] === 'function';
+
+      if (!isCallbackBased) {
+        // Not a callback-based call - could be tagged template or promise-based
+        const result = Reflect.apply(original, target, args);
+        // If result is a Promise (e.g., reserve() without callback), instrument the resolved Sql instance
+        if (result && typeof (result as Promise<unknown>).then === 'function') {
+          return (result as Promise<unknown>).then((sqlInstance: unknown) => {
+            return self._instrumentSqlInstance(sqlInstance, parentContext);
+          });
+        }
+        return result;
+      }
+
+      // Callback-based call: wrap the callback to instrument the Sql instance
+      const callback = (args.length === 1 ? args[0] : args[1]) as (sql: unknown) => unknown;
+      const wrappedCallback = function (sqlInstance: unknown): unknown {
+        const instrumentedSql = self._instrumentSqlInstance(sqlInstance, parentContext);
+        return callback(instrumentedSql);
+      };
+
+      const newArgs = args.length === 1 ? [wrappedCallback] : [args[0], wrappedCallback];
+      return Reflect.apply(original, target, newArgs);
+    };
+  }
+
+  /**
+   * Sets connection context attributes on a span.
+   */
+  private _setConnectionAttributes(span: Span, connectionContext: PostgresConnectionContext | undefined): void {
+    if (!connectionContext) {
+      return;
+    }
+    if (connectionContext.database) {
+      span.setAttribute(ATTR_DB_NAMESPACE, connectionContext.database);
+    }
+    if (connectionContext.host) {
+      span.setAttribute(ATTR_SERVER_ADDRESS, connectionContext.host);
+    }
+    if (connectionContext.port !== undefined) {
+      span.setAttribute(ATTR_SERVER_PORT, connectionContext.port);
+    }
+  }
+
+  /**
+   * Extracts DB operation name from SQL query and sets it on the span.
+   */
+  private _setOperationName(span: Span, sanitizedQuery: string | undefined, command?: string): void {
+    if (command) {
+      span.setAttribute(ATTR_DB_OPERATION_NAME, command);
+      return;
+    }
+    // Fallback: extract operation from the SQL query
+    const operationMatch = sanitizedQuery?.match(SQL_OPERATION_REGEX);
+    if (operationMatch?.[1]) {
+      span.setAttribute(ATTR_DB_OPERATION_NAME, operationMatch[1].toUpperCase());
+    }
+  }
+
+  /**
+   * Extracts and stores connection context from sql.options.
+   */
+  private _attachConnectionContext(sql: unknown, proxiedSql: Record<symbol, unknown>): void {
+    const sqlInstance = sql as { options?: { host?: string[]; port?: number[]; database?: string } };
+    if (!sqlInstance.options || typeof sqlInstance.options !== 'object') {
+      return;
+    }
+
+    const opts = sqlInstance.options;
+    // postgres.js stores parsed options with host and port as arrays
+    // The library defaults to 'localhost' and 5432 if not specified, but we're defensive here
+    const host = opts.host?.[0] || 'localhost';
+    const port = opts.port?.[0] || 5432;
+
+    const connectionContext: PostgresConnectionContext = {
+      database: typeof opts.database === 'string' && opts.database !== '' ? opts.database : undefined,
+      host,
+      port,
+    };
+
+    proxiedSql[CONNECTION_CONTEXT_SYMBOL] = connectionContext;
+  }
+
+  /**
    * Instruments a sql instance by wrapping its query execution methods.
    */
-  private _instrumentSqlInstance(sql: unknown, options: unknown): unknown {
+  private _instrumentSqlInstance(sql: unknown, parentConnectionContext?: PostgresConnectionContext): unknown {
+    // Check if already instrumented to prevent double-wrapping
+    if ((sql as { __sentryInstrumented?: boolean }).__sentryInstrumented) {
+      return sql;
+    }
+
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const self = this;
 
     // Wrap the sql function to intercept query creation
-    // This captures user queries but not internal queries made by postgres.js itself
-    const proxiedSql = new Proxy(sql as (...args: unknown[]) => unknown, {
+    const proxiedSql: unknown = new Proxy(sql as (...args: unknown[]) => unknown, {
       apply(target, thisArg, argumentsList: unknown[]) {
         const query = Reflect.apply(target, thisArg, argumentsList);
 
@@ -139,24 +286,35 @@ export class PostgresJsInstrumentation extends InstrumentationBase<PostgresJsIns
         return query;
       },
       get(target, prop) {
-        return (target as unknown as Record<string | symbol, unknown>)[prop];
+        const original = (target as unknown as Record<string | symbol, unknown>)[prop];
+
+        if (typeof prop !== 'string' || typeof original !== 'function') {
+          return original;
+        }
+
+        // Wrap methods that return PendingQuery objects (unsafe, file)
+        if (prop === 'unsafe' || prop === 'file') {
+          return self._wrapQueryMethod(original as (...args: unknown[]) => unknown, target, proxiedSql);
+        }
+
+        // Wrap begin and reserve (not savepoint to avoid duplicate spans)
+        if (prop === 'begin' || prop === 'reserve') {
+          return self._wrapCallbackMethod(original as (...args: unknown[]) => unknown, target, proxiedSql);
+        }
+
+        return original;
       },
     });
 
-    if (options && typeof options === 'object' && sql) {
-      const opts = options as Record<string, unknown>;
-      // postgres.js defaults host to 'localhost' and port to 5432 if not specified
-      const host = opts.host ? (Array.isArray(opts.host) ? opts.host[0] : opts.host) : 'localhost';
-      const port = opts.port ? (Array.isArray(opts.port) ? opts.port[0] : opts.port) : 5432;
-
-      const connectionContext = {
-        database: (opts.database as string) || '<unknown database>',
-        host: host as string,
-        port: port as number,
-      } as PostgresConnectionContext;
-
-      (proxiedSql as unknown as Record<symbol, unknown>)[CONNECTION_CONTEXT_SYMBOL] = connectionContext;
+    // Use provided parent context if available, otherwise extract from sql.options
+    if (parentConnectionContext) {
+      (proxiedSql as Record<symbol, unknown>)[CONNECTION_CONTEXT_SYMBOL] = parentConnectionContext;
+    } else {
+      this._attachConnectionContext(sql, proxiedSql as Record<symbol, unknown>);
     }
+
+    // Mark as instrumented to prevent double-wrapping
+    (sql as { __sentryInstrumented?: boolean }).__sentryInstrumented = true;
 
     return proxiedSql;
   }
@@ -169,7 +327,7 @@ export class PostgresJsInstrumentation extends InstrumentationBase<PostgresJsIns
     sqlInstance: unknown,
   ): void {
     // Prevent double wrapping - check if the handle itself is already wrapped
-    if ((query.handle as { __sentryWrapped?: boolean }).__sentryWrapped) {
+    if ((query.handle as { __sentryWrapped?: boolean })?.__sentryWrapped) {
       return;
     }
 
@@ -186,9 +344,10 @@ export class PostgresJsInstrumentation extends InstrumentationBase<PostgresJsIns
 
       const sanitizedSqlQuery = self._sanitizeSqlQuery(query.strings?.[0]);
 
-      let spanName = sanitizedSqlQuery;
+      let spanName = sanitizedSqlQuery?.trim() || '';
       if (!spanName) {
-        const operationMatch = query.strings?.[0]?.match(/^(SELECT|INSERT|UPDATE|DELETE|CREATE|DROP|ALTER)/i);
+        // Fallback: try to extract operation from the sanitized query
+        const operationMatch = sanitizedSqlQuery?.match(SQL_OPERATION_REGEX);
         spanName = operationMatch?.[1] ? `db.${operationMatch[1].toLowerCase()}` : 'db.query';
       }
 
@@ -198,7 +357,7 @@ export class PostgresJsInstrumentation extends InstrumentationBase<PostgresJsIns
           op: 'db',
         },
         (span: Span) => {
-          addOriginToSpan(span, 'auto.db.otel.postgresjs');
+          addOriginToSpan(span, 'auto.db.otel.postgres');
 
           span.setAttributes({
             [ATTR_DB_SYSTEM_NAME]: 'postgres',
@@ -211,17 +370,15 @@ export class PostgresJsInstrumentation extends InstrumentationBase<PostgresJsIns
                 | undefined)
             : undefined;
 
-          if (connectionContext) {
-            span.setAttributes({
-              [ATTR_DB_NAMESPACE]: connectionContext.database as string,
-              [ATTR_SERVER_ADDRESS]: connectionContext.host as string,
-              [ATTR_SERVER_PORT]: connectionContext.port as number,
-            });
-          }
+          self._setConnectionAttributes(span, connectionContext);
 
           const config = self.getConfig();
           if (config.requestHook) {
-            config.requestHook(span, sanitizedSqlQuery, connectionContext);
+            try {
+              config.requestHook(span, sanitizedSqlQuery, connectionContext);
+            } catch (e) {
+              DEBUG_BUILD && debug.error(`Error in requestHook for ${INTEGRATION_NAME} integration:`, e);
+            }
           }
 
           const queryWithCallbacks = this as {
@@ -232,10 +389,7 @@ export class PostgresJsInstrumentation extends InstrumentationBase<PostgresJsIns
           queryWithCallbacks.resolve = new Proxy(queryWithCallbacks.resolve as (...args: unknown[]) => unknown, {
             apply: (resolveTarget, resolveThisArg, resolveArgs: [{ command?: string }]) => {
               const result = Reflect.apply(resolveTarget, resolveThisArg, resolveArgs);
-              const sqlCommand = resolveArgs?.[0]?.command;
-              if (sqlCommand) {
-                span.setAttribute(ATTR_DB_OPERATION_NAME, sqlCommand);
-              }
+              self._setOperationName(span, sanitizedSqlQuery, resolveArgs?.[0]?.command);
               span.end();
               return result;
             },
@@ -248,13 +402,10 @@ export class PostgresJsInstrumentation extends InstrumentationBase<PostgresJsIns
                 message: rejectArgs?.[0]?.message || 'unknown_error',
               });
 
-              span.setAttribute(ATTR_DB_RESPONSE_STATUS_CODE, rejectArgs?.[0]?.code || 'Unknown error');
-              span.setAttribute(ATTR_ERROR_TYPE, rejectArgs?.[0]?.name || 'Unknown error');
+              span.setAttribute(ATTR_DB_RESPONSE_STATUS_CODE, rejectArgs?.[0]?.code || 'unknown');
+              span.setAttribute(ATTR_ERROR_TYPE, rejectArgs?.[0]?.name || 'unknown');
 
-              const operationMatch = sanitizedSqlQuery?.match(/^(SELECT|INSERT|UPDATE|DELETE|CREATE|DROP|ALTER)/i);
-              if (operationMatch?.[1]) {
-                span.setAttribute(ATTR_DB_OPERATION_NAME, operationMatch[1].toUpperCase());
-              }
+              self._setOperationName(span, sanitizedSqlQuery);
 
               const result = Reflect.apply(rejectTarget, rejectThisArg, rejectArgs);
               span.end();
@@ -262,7 +413,17 @@ export class PostgresJsInstrumentation extends InstrumentationBase<PostgresJsIns
             },
           });
 
-          return originalHandle.apply(this, args);
+          // Handle synchronous errors that might occur before promise is created
+          try {
+            return originalHandle.apply(this, args);
+          } catch (e) {
+            span.setStatus({
+              code: SPAN_STATUS_ERROR,
+              message: e instanceof Error ? e.message : 'unknown_error',
+            });
+            span.end();
+            throw e;
+          }
         },
       );
     };
@@ -294,17 +455,18 @@ export class PostgresJsInstrumentation extends InstrumentationBase<PostgresJsIns
     return (
       sqlQuery
         // Remove comments first (they may contain newlines and extra spaces)
-        .replace(/--.*?(\r?\n|$)/g, '') // Single line comments
+        .replace(/--.*$/gm, '') // Single line comments (multiline mode)
         .replace(/\/\*[\s\S]*?\*\//g, '') // Multi-line comments
         .replace(/;\s*$/, '') // Remove trailing semicolons
         // Collapse whitespace to a single space (after removing comments)
         .replace(/\s+/g, ' ')
         .trim() // Remove extra spaces and trim
-        .substring(0, 1024) // Truncate to 1024 characters
+        // Replace standalone numbers and parameterized queries ($1, $2, etc.) BEFORE truncation
+        .replace(/\$\d+/g, '?') // Replace PostgreSQL placeholders ($1, $2, etc.)
         .replace(/\b\d+\b/g, '?') // Replace standalone numbers
-        // Collapse IN and in clauses
-        // eg. IN (?, ?, ?, ?) to IN (?)
-        .replace(/\bIN\b\s*\(\s*\?(?:\s*,\s*\?)*\s*\)/g, 'IN (?)')
+        // Collapse IN and in clauses (eg. IN (?, ?, ?, ?) to IN (?))
+        .replace(/\bIN\b\s*\(\s*\?(?:\s*,\s*\?)*\s*\)/gi, 'IN (?)')
+        .substring(0, 1024) // Truncate to 1024 characters AFTER sanitization
     );
   }
 }
