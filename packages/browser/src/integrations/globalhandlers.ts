@@ -214,5 +214,5 @@ function getFilenameFromUrl(url: string | undefined): string | undefined {
     return `<data:${mimeType}${isBase64 ? ',base64' : ''}>`;
   }
 
-  return url.slice(0, 1024);
+  return url; // it's fine to not truncate it as it's not put in a regex (https://codeql.github.com/codeql-query-help/javascript/js-polynomial-redos)
 }
