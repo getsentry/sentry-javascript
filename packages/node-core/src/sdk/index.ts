@@ -4,6 +4,7 @@ import {
   consoleIntegration,
   consoleSandbox,
   debug,
+  envToBool,
   functionToStringIntegration,
   getCurrentScope,
   getIntegrationsToSetup,
@@ -37,7 +38,6 @@ import { systemErrorIntegration } from '../integrations/systemError';
 import { makeNodeTransport } from '../transports';
 import type { NodeClientOptions, NodeOptions } from '../types';
 import { isCjs } from '../utils/detection';
-import { envToBool } from '../utils/envToBool';
 import { defaultStackParser, getSentryRelease } from './api';
 import { NodeClient } from './client';
 import { initializeEsmLoader } from './esmLoader';

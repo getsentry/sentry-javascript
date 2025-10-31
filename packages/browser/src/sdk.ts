@@ -1,6 +1,7 @@
 import type { Client, Integration, Options } from '@sentry/core';
 import {
   dedupeIntegration,
+  envToBool,
   functionToStringIntegration,
   getIntegrationsToSetup,
   inboundFiltersIntegration,
@@ -15,6 +16,7 @@ import { browserSessionIntegration } from './integrations/browsersession';
 import { globalHandlersIntegration } from './integrations/globalhandlers';
 import { httpContextIntegration } from './integrations/httpcontext';
 import { linkedErrorsIntegration } from './integrations/linkederrors';
+import { INTEGRATION_NAME as SPOTLIGHT_INTEGRATION_NAME, spotlightBrowserIntegration } from './integrations/spotlight';
 import { defaultStackParser } from './stack-parsers';
 import { makeFetchTransport } from './transports/fetch';
 import { checkAndWarnIfIsEmbeddedBrowserExtension } from './utils/detectBrowserExtension';
@@ -90,6 +92,17 @@ export function init(options: BrowserOptions = {}): Client | undefined {
   const shouldDisableBecauseIsBrowserExtenstion =
     !options.skipBrowserExtensionCheck && checkAndWarnIfIsEmbeddedBrowserExtension();
 
+  // Read spotlight config from env var with graceful fallback
+  // This will be replaced at build time by bundlers like webpack/vite
+  let spotlightFromEnv: boolean | string | undefined;
+  if (typeof process !== 'undefined' && process.env && process.env.SENTRY_SPOTLIGHT !== undefined) {
+    const envValue = process.env.SENTRY_SPOTLIGHT;
+    const parsedEnvValue = envToBool(envValue, { strict: true });
+    spotlightFromEnv = parsedEnvValue ?? envValue;
+  }
+
+  const spotlight = options.spotlight ?? spotlightFromEnv;
+
   const clientOptions: BrowserClientOptions = {
     ...options,
     enabled: shouldDisableBecauseIsBrowserExtenstion ? false : options.enabled,
@@ -100,7 +113,18 @@ export function init(options: BrowserOptions = {}): Client | undefined {
         options.defaultIntegrations == null ? getDefaultIntegrations(options) : options.defaultIntegrations,
     }),
     transport: options.transport || makeFetchTransport,
+    spotlight,
   };
+
+  // Auto-add spotlight integration if enabled and not already present
+  if (spotlight && !clientOptions.integrations.some(({ name }) => name === SPOTLIGHT_INTEGRATION_NAME)) {
+    clientOptions.integrations.push(
+      spotlightBrowserIntegration({
+        sidecarUrl: typeof spotlight === 'string' ? spotlight : undefined,
+      }),
+    );
+  }
+
   return initAndBind(BrowserClient, clientOptions);
 }
 

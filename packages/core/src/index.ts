@@ -313,6 +313,8 @@ export { flushIfServerless } from './utils/flushIfServerless';
 export { SDK_VERSION } from './utils/version';
 export { getDebugImagesForResources, getFilenameToDebugIdMap } from './utils/debug-ids';
 export { escapeStringForRegex } from './vendor/escapeStringForRegex';
+export { envToBool, TRUTHY_ENV_VALUES, FALSY_ENV_VALUES } from './utils/envToBool';
+export type { BoolCastOptions, StrictBoolCast, LooseBoolCast } from './utils/envToBool';
 
 export type { Attachment } from './types-hoist/attachment';
 export type {

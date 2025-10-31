@@ -2,7 +2,10 @@
 
 ## Unreleased
 
-- "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
+- feat(browser): Enable Spotlight via `SENTRY_SPOTLIGHT` env var ([#18050](https://github.com/getsentry/sentry-javascript/pull/18050))
+  - Truthy values (`true`, `t`, `y`, `yes`, `on`, `1`) enable Spotlight with the default URL
+  - Any other non-falsy string value is used as a custom Spotlight Sidecar URL
+  - Falsy values (`false`, `f`, `n`, `no`, `off`, `0`) disable Spotlight
 
 Work in this release was contributed by @hanseo0507. Thank you for your contribution!
 

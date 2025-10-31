@@ -63,6 +63,18 @@ type BrowserSpecificOptions = BrowserClientReplayOptions &
      * @default false
      */
     propagateTraceparent?: boolean;
+
+    /**
+     * If you use Spotlight by Sentry during development, use
+     * this option to forward captured Sentry events to Spotlight.
+     *
+     * Either set it to true, or provide a specific Spotlight Sidecar URL.
+     *
+     * More details: https://spotlightjs.com/
+     *
+     * IMPORTANT: Only set this option to `true` while developing, not in production!
+     */
+    spotlight?: boolean | string;
   };
 /**
  * Configuration options for the Sentry Browser SDK.
