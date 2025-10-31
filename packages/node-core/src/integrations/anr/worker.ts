@@ -109,8 +109,9 @@ function applyDebugMeta(event: Event): void {
   for (const exception of event.exception?.values || []) {
     for (const frame of exception.stacktrace?.frames || []) {
       const filename = frame.abs_path || frame.filename;
-      if (filename && normalisedDebugImages[filename]) {
-        filenameToDebugId.set(filename, normalisedDebugImages[filename]);
+      const debugId = filename ? normalisedDebugImages[filename] : undefined;
+      if (filename && debugId) {
+        filenameToDebugId.set(filename, debugId);
       }
     }
   }

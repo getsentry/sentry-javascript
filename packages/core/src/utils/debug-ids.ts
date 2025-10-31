@@ -101,11 +101,12 @@ export function getDebugImagesForResources(
 
   const images: DebugImage[] = [];
   for (const path of resource_paths) {
-    if (path && filenameDebugIdMap[path]) {
+    const debugId = path ? filenameDebugIdMap[path] : undefined;
+    if (debugId) {
       images.push({
         type: 'sourcemap',
         code_file: path,
-        debug_id: filenameDebugIdMap[path],
+        debug_id: debugId,
       });
     }
   }
