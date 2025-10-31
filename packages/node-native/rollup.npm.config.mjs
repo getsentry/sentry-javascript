@@ -8,7 +8,6 @@ export default makeNPMConfigVariants(
         dir: 'build',
         // set exports to 'named' or 'auto' so that rollup doesn't warn
         exports: 'named',
-        preserveModules: true,
       },
     },
   }),

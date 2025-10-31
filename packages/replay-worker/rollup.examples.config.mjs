@@ -1,5 +1,3 @@
-import commonjs from '@rollup/plugin-commonjs';
-import resolve from '@rollup/plugin-node-resolve';
 import terser from '@rollup/plugin-terser';
 import typescript from '@rollup/plugin-typescript';
 import { defineConfig } from 'rollup';
@@ -16,9 +14,7 @@ const config = defineConfig([
     },
     treeshake: 'smallest',
     plugins: [
-      commonjs(),
       typescript({ tsconfig: './tsconfig.json', inlineSourceMap: false, sourceMap: false, inlineSources: false }),
-      resolve(),
       licensePlugin,
     ],
   },
@@ -30,9 +26,7 @@ const config = defineConfig([
     },
     treeshake: 'smallest',
     plugins: [
-      commonjs(),
       typescript({ tsconfig: './tsconfig.json', inlineSourceMap: false, sourceMap: false, inlineSources: false }),
-      resolve(),
       terser({
         mangle: {
           module: true,
