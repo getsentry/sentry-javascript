@@ -28,6 +28,7 @@ export { openAIIntegration } from './integrations/tracing/openai';
 export { anthropicAIIntegration } from './integrations/tracing/anthropic-ai';
 export { claudeCodeIntegration, patchClaudeCodeQuery } from './integrations/tracing/claude-code';
 export { createInstrumentedClaudeQuery } from './integrations/tracing/claude-code/helpers';
+export { createInstrumentedQueryForProvider } from './integrations/tracing/claude-code/ai-sdk-helpers';
 export { openaiCodexIntegration, patchCodexConstructor } from './integrations/tracing/openai-codex';
 export { createInstrumentedCodex } from './integrations/tracing/openai-codex/helpers';
 export { googleGenAIIntegration } from './integrations/tracing/google-genai';
