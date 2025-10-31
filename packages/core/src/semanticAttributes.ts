@@ -86,11 +86,7 @@ export const SEMANTIC_ATTRIBUTE_SENTRY_RELEASE = 'sentry.release';
 /** The environment name (e.g., "production", "staging", "development") */
 export const SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT = 'sentry.environment';
 /** The segment name (e.g., "GET /users") */
-export const SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME = 'sentry.segment_name';
-/** The operating system name (e.g., "Linux", "Windows", "macOS") */
-export const SEMANTIC_ATTRIBUTE_OS_NAME = 'os.name';
-/** The browser name (e.g., "Chrome", "Firefox", "Safari") */
-export const SEMANTIC_ATTRIBUTE_BROWSER_VERSION = 'browser.name';
+export const SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME = 'sentry.segment.name';
 /** The user ID (gated by sendDefaultPii) */
 export const SEMANTIC_ATTRIBUTE_USER_ID = 'user.id';
 /** The user email (gated by sendDefaultPii) */
@@ -99,10 +95,6 @@ export const SEMANTIC_ATTRIBUTE_USER_EMAIL = 'user.email';
 export const SEMANTIC_ATTRIBUTE_USER_IP_ADDRESS = 'user.ip_address';
 /** The user username (gated by sendDefaultPii) */
 export const SEMANTIC_ATTRIBUTE_USER_USERNAME = 'user.username';
-/** The thread ID */
-export const SEMANTIC_ATTRIBUTE_THREAD_ID = 'thread.id';
-/** The thread name */
-export const SEMANTIC_ATTRIBUTE_THREAD_NAME = 'thread.name';
 /** The name of the Sentry SDK (e.g., "sentry.php", "sentry.javascript") */
 export const SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME = 'sentry.sdk.name';
 /** The version of the Sentry SDK */
