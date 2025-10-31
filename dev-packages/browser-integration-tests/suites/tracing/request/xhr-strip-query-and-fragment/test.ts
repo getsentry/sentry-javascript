@@ -24,7 +24,7 @@ sentryTest('strips query params in XHR request spans', async ({ getLocalTestUrl,
   expect(requestSpan).toMatchObject({
     description: 'GET http://sentry-test-site.example/0',
     parent_span_id: transactionEvent.contexts?.trace?.span_id,
-    span_id: expect.stringMatching(/[a-f0-9]{16}/),
+    span_id: expect.stringMatching(/[a-f\d]{16}/),
     start_timestamp: expect.any(Number),
     timestamp: expect.any(Number),
     trace_id: transactionEvent.contexts?.trace?.trace_id,
@@ -66,7 +66,7 @@ sentryTest('strips hash fragment in XHR request spans', async ({ getLocalTestUrl
   expect(requestSpan).toMatchObject({
     description: 'GET http://sentry-test-site.example/1',
     parent_span_id: transactionEvent.contexts?.trace?.span_id,
-    span_id: expect.stringMatching(/[a-f0-9]{16}/),
+    span_id: expect.stringMatching(/[a-f\d]{16}/),
     start_timestamp: expect.any(Number),
     timestamp: expect.any(Number),
     trace_id: transactionEvent.contexts?.trace?.trace_id,
@@ -108,7 +108,7 @@ sentryTest('strips hash fragment and query params in XHR request spans', async (
   expect(requestSpan).toMatchObject({
     description: 'GET http://sentry-test-site.example/2',
     parent_span_id: transactionEvent.contexts?.trace?.span_id,
-    span_id: expect.stringMatching(/[a-f0-9]{16}/),
+    span_id: expect.stringMatching(/[a-f\d]{16}/),
     start_timestamp: expect.any(Number),
     timestamp: expect.any(Number),
     trace_id: transactionEvent.contexts?.trace?.trace_id,
@@ -151,7 +151,7 @@ sentryTest(
     expect(requestSpan).toMatchObject({
       description: 'GET /api/users',
       parent_span_id: transactionEvent.contexts?.trace?.span_id,
-      span_id: expect.stringMatching(/[a-f0-9]{16}/),
+      span_id: expect.stringMatching(/[a-f\d]{16}/),
       start_timestamp: expect.any(Number),
       timestamp: expect.any(Number),
       trace_id: transactionEvent.contexts?.trace?.trace_id,

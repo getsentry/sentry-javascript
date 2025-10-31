@@ -24,8 +24,8 @@ sentryTest('includes a span link to a previously negatively sampled span', async
     expect(navigationTraceContext?.op).toBe('navigation');
     expect(navigationTraceContext?.links).toEqual([
       {
-        trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-        span_id: expect.stringMatching(/[a-f0-9]{16}/),
+        trace_id: expect.stringMatching(/[a-f\d]{32}/),
+        span_id: expect.stringMatching(/[a-f\d]{16}/),
         sampled: false,
         attributes: {
           [SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE]: 'previous_trace',
@@ -34,7 +34,7 @@ sentryTest('includes a span link to a previously negatively sampled span', async
     ]);
 
     expect(navigationTraceContext?.data).toMatchObject({
-      'sentry.previous_trace': expect.stringMatching(/[a-f0-9]{32}-[a-f0-9]{16}-0/),
+      'sentry.previous_trace': expect.stringMatching(/[a-f\d]{32}-[a-f\d]{16}-0/),
     });
 
     expect(navigationTraceContext?.trace_id).not.toEqual(navigationTraceContext?.links![0].trace_id);

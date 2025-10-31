@@ -48,7 +48,7 @@ sentryTest.describe('When `consistentTraceSampling` is `true` and page contains 
 
         expect(extractTraceparentData(sentryTrace)).toEqual({
           traceId: expect.not.stringContaining(metaTagTraceIdIndex),
-          parentSpanId: expect.stringMatching(/^[0-9a-f]{16}$/),
+          parentSpanId: expect.stringMatching(/^[\da-f]{16}$/),
           parentSampled: false,
         });
 

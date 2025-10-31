@@ -30,7 +30,7 @@ describe('sample_rand propagation', () => {
     });
     expect(response).toEqual({
       propagatedData: {
-        baggage: expect.not.stringMatching(/sentry-sample_rand=0\.[0-9]+/),
+        baggage: expect.not.stringMatching(/sentry-sample_rand=0\.\d+/),
       },
     });
   });
@@ -44,7 +44,7 @@ describe('sample_rand propagation', () => {
       },
     });
 
-    const sampleRand = Number((response as any).propagatedData.baggage.match(/sentry-sample_rand=(0\.[0-9]+)/)[1]);
+    const sampleRand = Number((response as any).propagatedData.baggage.match(/sentry-sample_rand=(0\.\d+)/)[1]);
 
     expect(sampleRand).toStrictEqual(expect.any(Number));
     expect(sampleRand).not.toBeNaN();
@@ -61,7 +61,7 @@ describe('sample_rand propagation', () => {
       },
     });
 
-    const sampleRand = Number((response as any).propagatedData.baggage.match(/sentry-sample_rand=(0\.[0-9]+)/)[1]);
+    const sampleRand = Number((response as any).propagatedData.baggage.match(/sentry-sample_rand=(0\.\d+)/)[1]);
 
     expect(sampleRand).toStrictEqual(expect.any(Number));
     expect(sampleRand).not.toBeNaN();
@@ -77,6 +77,6 @@ describe('sample_rand propagation', () => {
       },
     });
 
-    expect((response as any).propagatedData.baggage).not.toMatch(/sentry-sample_rand=0\.[0-9]+/);
+    expect((response as any).propagatedData.baggage).not.toMatch(/sentry-sample_rand=0\.\d+/);
   });
 });

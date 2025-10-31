@@ -21,14 +21,14 @@ sentryTest('should attach `sentry-trace` header to unsampled fetch requests', as
   const request1 = requests[0];
   const requestHeaders1 = request1.headers();
   expect(requestHeaders1).toMatchObject({
-    'sentry-trace': expect.stringMatching(/^([a-f0-9]{32})-([a-f0-9]{16})-0$/),
+    'sentry-trace': expect.stringMatching(/^([a-f\d]{32})-([a-f\d]{16})-0$/),
     baggage: expect.any(String),
   });
 
   const request2 = requests[1];
   const requestHeaders2 = request2.headers();
   expect(requestHeaders2).toMatchObject({
-    'sentry-trace': expect.stringMatching(/^([a-f0-9]{32})-([a-f0-9]{16})-0$/),
+    'sentry-trace': expect.stringMatching(/^([a-f\d]{32})-([a-f\d]{16})-0$/),
     baggage: expect.any(String),
     'x-test-header': 'existing-header',
   });
@@ -36,7 +36,7 @@ sentryTest('should attach `sentry-trace` header to unsampled fetch requests', as
   const request3 = requests[2];
   const requestHeaders3 = request3.headers();
   expect(requestHeaders3).toMatchObject({
-    'sentry-trace': expect.stringMatching(/^([a-f0-9]{32})-([a-f0-9]{16})-0$/),
+    'sentry-trace': expect.stringMatching(/^([a-f\d]{32})-([a-f\d]{16})-0$/),
     baggage: expect.any(String),
   });
 });

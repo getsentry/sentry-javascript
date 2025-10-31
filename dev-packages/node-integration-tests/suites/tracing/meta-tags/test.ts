@@ -21,7 +21,7 @@ describe('getTraceMetaTags', () => {
 
     const html = response?.response;
 
-    expect(html).toMatch(/<meta name="sentry-trace" content="cd7ee7a6fe3ebe7ab9c3271559bc203c-[a-z0-9]{16}-1"\/>/);
+    expect(html).toMatch(/<meta name="sentry-trace" content="cd7ee7a6fe3ebe7ab9c3271559bc203c-[a-z\d]{16}-1"\/>/);
     expect(html).toContain('<meta name="baggage" content="sentry-environment=production,sentry-sample_rand=0.42"/>');
   });
 
@@ -32,7 +32,7 @@ describe('getTraceMetaTags', () => {
 
     const html = response?.response;
 
-    const traceId = html?.match(/<meta name="sentry-trace" content="([a-z0-9]{32})-[a-z0-9]{16}-1"\/>/)?.[1];
+    const traceId = html?.match(/<meta name="sentry-trace" content="([a-z\d]{32})-[a-z\d]{16}-1"\/>/)?.[1];
     expect(traceId).not.toBeUndefined();
 
     expect(html).toContain('<meta name="baggage"');
@@ -46,7 +46,7 @@ describe('getTraceMetaTags', () => {
 
     const html = response?.response;
 
-    const traceId = html?.match(/<meta name="sentry-trace" content="([a-z0-9]{32})-[a-z0-9]{16}-0"\/>/)?.[1];
+    const traceId = html?.match(/<meta name="sentry-trace" content="([a-z\d]{32})-[a-z\d]{16}-0"\/>/)?.[1];
     expect(traceId).not.toBeUndefined();
 
     expect(html).toContain('<meta name="baggage"');
