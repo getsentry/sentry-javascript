@@ -611,7 +611,7 @@ export function createRunner(...paths: string[]) {
 
           function tryParseEnvelopeFromStdoutLine(line: string): void {
             // Lines can have leading '[something] [{' which we need to remove
-            const cleanedLine = line.replace(/^.*?] \[{"/, '[{"');
+            const cleanedLine = line.replace(/^.*?\] \[\{"/, '[{"');
 
             // See if we have a port message
             if (cleanedLine.startsWith('{"port":')) {

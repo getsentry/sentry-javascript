@@ -43,7 +43,7 @@ sentryTest(
       op: 'pageload',
       trace_id: META_TAG_TRACE_ID,
       parent_span_id: META_TAG_PARENT_SPAN_ID,
-      span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
+      span_id: expect.stringMatching(/^[\da-f]{16}$/),
     });
 
     expect(pageloadTraceHeader).toEqual({
@@ -60,8 +60,8 @@ sentryTest(
     expect(navigationEvent.type).toEqual('transaction');
     expect(navigationTraceContext).toMatchObject({
       op: 'navigation',
-      trace_id: expect.stringMatching(/^[0-9a-f]{32}$/),
-      span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
+      trace_id: expect.stringMatching(/^[\da-f]{32}$/),
+      span_id: expect.stringMatching(/^[\da-f]{16}$/),
     });
     // navigation span is head of trace, so there's no parent span:
     expect(navigationTraceContext?.trace_id).not.toHaveProperty('parent_span_id');
@@ -97,7 +97,7 @@ sentryTest('error after <meta> tag pageload has pageload traceId', async ({ getL
     op: 'pageload',
     trace_id: META_TAG_TRACE_ID,
     parent_span_id: META_TAG_PARENT_SPAN_ID,
-    span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
+    span_id: expect.stringMatching(/^[\da-f]{16}$/),
   });
 
   expect(pageloadTraceHeader).toEqual({
@@ -123,7 +123,7 @@ sentryTest('error after <meta> tag pageload has pageload traceId', async ({ getL
   expect(errorEvent.contexts?.trace).toEqual({
     trace_id: META_TAG_TRACE_ID,
     parent_span_id: META_TAG_PARENT_SPAN_ID,
-    span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
+    span_id: expect.stringMatching(/^[\da-f]{16}$/),
   });
 
   expect(errorTraceHeader).toEqual({
@@ -165,7 +165,7 @@ sentryTest('error during <meta> tag pageload has pageload traceId', async ({ get
     op: 'pageload',
     trace_id: META_TAG_TRACE_ID,
     parent_span_id: META_TAG_PARENT_SPAN_ID,
-    span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
+    span_id: expect.stringMatching(/^[\da-f]{16}$/),
   });
 
   expect(pageloadTraceHeader).toEqual({
@@ -183,7 +183,7 @@ sentryTest('error during <meta> tag pageload has pageload traceId', async ({ get
   expect(errorEvent?.contexts?.trace).toEqual({
     trace_id: META_TAG_TRACE_ID,
     parent_span_id: META_TAG_PARENT_SPAN_ID,
-    span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
+    span_id: expect.stringMatching(/^[\da-f]{16}$/),
   });
 
   expect(errorTraceHeader).toEqual({
@@ -230,7 +230,7 @@ sentryTest(
       op: 'pageload',
       trace_id: META_TAG_TRACE_ID,
       parent_span_id: META_TAG_PARENT_SPAN_ID,
-      span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
+      span_id: expect.stringMatching(/^[\da-f]{16}$/),
     });
 
     expect(pageloadTraceHeader).toEqual({
@@ -284,7 +284,7 @@ sentryTest(
       op: 'pageload',
       trace_id: META_TAG_TRACE_ID,
       parent_span_id: META_TAG_PARENT_SPAN_ID,
-      span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
+      span_id: expect.stringMatching(/^[\da-f]{16}$/),
     });
 
     expect(pageloadTraceHeader).toEqual({
@@ -320,7 +320,7 @@ sentryTest('user feedback event after pageload has pageload traceId in headers',
     op: 'pageload',
     trace_id: META_TAG_TRACE_ID,
     parent_span_id: META_TAG_PARENT_SPAN_ID,
-    span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
+    span_id: expect.stringMatching(/^[\da-f]{16}$/),
   });
 
   const feedbackEventPromise = getFirstSentryEnvelopeRequest<Event>(page);
@@ -340,6 +340,6 @@ sentryTest('user feedback event after pageload has pageload traceId in headers',
   expect(feedbackTraceContext).toMatchObject({
     trace_id: META_TAG_TRACE_ID,
     parent_span_id: META_TAG_PARENT_SPAN_ID,
-    span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
+    span_id: expect.stringMatching(/^[\da-f]{16}$/),
   });
 });

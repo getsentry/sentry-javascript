@@ -53,6 +53,7 @@
   "devDependencies": {
     "@types/node-cron": "^3.0.11",
     "@types/node-schedule": "^2.1.7",
+    "eslint-plugin-regexp": "^1.15.0",
     "globby": "11"
   },
   "config": {

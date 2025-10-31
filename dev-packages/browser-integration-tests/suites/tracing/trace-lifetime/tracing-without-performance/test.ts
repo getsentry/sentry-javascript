@@ -33,7 +33,7 @@ sentryTest('error on initial page has traceId from meta tag', async ({ getLocalT
   expect(errorEvent.contexts?.trace).toEqual({
     trace_id: META_TAG_TRACE_ID,
     parent_span_id: META_TAG_PARENT_SPAN_ID,
-    span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
+    span_id: expect.stringMatching(/^[\da-f]{16}$/),
   });
 
   expect(errorTraceHeader).toEqual({
@@ -65,7 +65,7 @@ sentryTest('error has new traceId after navigation', async ({ getLocalTestUrl, p
   expect(errorEvent.contexts?.trace).toEqual({
     trace_id: META_TAG_TRACE_ID,
     parent_span_id: META_TAG_PARENT_SPAN_ID,
-    span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
+    span_id: expect.stringMatching(/^[\da-f]{16}$/),
   });
 
   expect(errorTraceHeader).toEqual({
@@ -85,8 +85,8 @@ sentryTest('error has new traceId after navigation', async ({ getLocalTestUrl, p
   const [errorEvent2, errorTraceHeader2] = await errorEventPromise2;
 
   expect(errorEvent2.contexts?.trace).toEqual({
-    trace_id: expect.stringMatching(/^[0-9a-f]{32}$/),
-    span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
+    trace_id: expect.stringMatching(/^[\da-f]{32}$/),
+    span_id: expect.stringMatching(/^[\da-f]{16}$/),
   });
 
   expect(errorTraceHeader2).toEqual({
@@ -132,10 +132,10 @@ sentryTest('outgoing fetch requests have new traceId after navigation', async ({
   const headers2 = request2.headers();
 
   // sampling decision is deferred because TwP means we didn't sample any span
-  expect(headers2['sentry-trace']).toMatch(/^[0-9a-f]{32}-[0-9a-f]{16}$/);
+  expect(headers2['sentry-trace']).toMatch(/^[\da-f]{32}-[\da-f]{16}$/);
   expect(headers2['baggage']).not.toBe(`${META_TAG_TRACE_ID}-${META_TAG_PARENT_SPAN_ID}`);
   expect(headers2['baggage']).toMatch(
-    /sentry-environment=production,sentry-public_key=public,sentry-trace_id=[0-9a-f]{32}/,
+    /sentry-environment=production,sentry-public_key=public,sentry-trace_id=[\da-f]{32}/,
   );
   expect(headers2['baggage']).not.toContain(`sentry-trace_id=${META_TAG_TRACE_ID}`);
 });
@@ -174,10 +174,10 @@ sentryTest('outgoing XHR requests have new traceId after navigation', async ({ g
   const headers2 = request2.headers();
 
   // sampling decision is deferred because TwP means we didn't sample any span
-  expect(headers2['sentry-trace']).toMatch(/^[0-9a-f]{32}-[0-9a-f]{16}$/);
+  expect(headers2['sentry-trace']).toMatch(/^[\da-f]{32}-[\da-f]{16}$/);
   expect(headers2['baggage']).not.toBe(`${META_TAG_TRACE_ID}-${META_TAG_PARENT_SPAN_ID}`);
   expect(headers2['baggage']).toMatch(
-    /sentry-environment=production,sentry-public_key=public,sentry-trace_id=[0-9a-f]{32}/,
+    /sentry-environment=production,sentry-public_key=public,sentry-trace_id=[\da-f]{32}/,
   );
   expect(headers2['baggage']).not.toContain(`sentry-trace_id=${META_TAG_TRACE_ID}`);
 });

@@ -54,6 +54,7 @@
   "devDependencies": {
     "@types/glob": "8.0.0",
     "@types/node": "^18.19.1",
+    "eslint-plugin-regexp": "^1.15.0",
     "glob": "8.0.3"
   },
   "volta": {

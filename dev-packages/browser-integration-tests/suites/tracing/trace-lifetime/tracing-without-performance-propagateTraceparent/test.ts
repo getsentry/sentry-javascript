@@ -36,7 +36,7 @@ sentryTest(
     // sampling decision is deferred because TwP means we didn't sample any span
     expect(sentryTraceParentData).toEqual({
       traceId: META_TAG_TRACE_ID,
-      parentSpanId: expect.stringMatching(/^[0-9a-f]{16}$/),
+      parentSpanId: expect.stringMatching(/^[\da-f]{16}$/),
       parentSampled: undefined,
     });
     expect(headers['baggage']).toBe(META_TAG_BAGGAGE);
@@ -69,7 +69,7 @@ sentryTest(
     });
 
     expect(headers3['baggage']).toMatch(
-      /sentry-environment=production,sentry-public_key=public,sentry-trace_id=[0-9a-f]{32}/,
+      /sentry-environment=production,sentry-public_key=public,sentry-trace_id=[\da-f]{32}/,
     );
     expect(headers3['baggage']).not.toContain(`sentry-trace_id=${META_TAG_TRACE_ID}`);
     // but traceparent propagates a negative sampling decision because it has no concept of deferred sampling
@@ -121,10 +121,10 @@ sentryTest('outgoing XHR requests have new traceId after navigation', async ({ g
   const headers2 = request2.headers();
 
   // sampling decision is deferred because TwP means we didn't sample any span
-  expect(headers2['sentry-trace']).toMatch(/^[0-9a-f]{32}-[0-9a-f]{16}$/);
+  expect(headers2['sentry-trace']).toMatch(/^[\da-f]{32}-[\da-f]{16}$/);
   expect(headers2['baggage']).not.toBe(`${META_TAG_TRACE_ID}-${META_TAG_PARENT_SPAN_ID}`);
   expect(headers2['baggage']).toMatch(
-    /sentry-environment=production,sentry-public_key=public,sentry-trace_id=[0-9a-f]{32}/,
+    /sentry-environment=production,sentry-public_key=public,sentry-trace_id=[\da-f]{32}/,
   );
   expect(headers2['baggage']).not.toContain(`sentry-trace_id=${META_TAG_TRACE_ID}`);
 });

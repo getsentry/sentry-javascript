@@ -12,6 +12,9 @@
     "acorn": "^8.7.0",
     "recast": "^0.20.5"
   },
+  "devDependencies": {
+    "eslint-plugin-regexp": "^1.15.0"
+  },
   "volta": {
     "extends": "../../package.json"
   },

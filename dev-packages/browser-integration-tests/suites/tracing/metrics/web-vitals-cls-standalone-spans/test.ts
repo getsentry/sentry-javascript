@@ -68,7 +68,7 @@ sentryTest('captures a "GOOD" CLS vital with its source as a standalone span', a
       'sentry.report_event': 'pagehide',
       transaction: expect.stringContaining('index.html'),
       'user_agent.original': expect.stringContaining('Chrome'),
-      'sentry.pageload.span_id': expect.stringMatching(/[a-f0-9]{16}/),
+      'sentry.pageload.span_id': expect.stringMatching(/[a-f\d]{16}/),
       'cls.source.1': expect.stringContaining('body > div#content > p'),
     },
     description: expect.stringContaining('body > div#content > p'),
@@ -81,12 +81,12 @@ sentryTest('captures a "GOOD" CLS vital with its source as a standalone span', a
     },
     op: 'ui.webvital.cls',
     origin: 'auto.http.browser.cls',
-    parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-    span_id: expect.stringMatching(/[a-f0-9]{16}/),
-    segment_id: expect.stringMatching(/[a-f0-9]{16}/),
+    parent_span_id: expect.stringMatching(/[a-f\d]{16}/),
+    span_id: expect.stringMatching(/[a-f\d]{16}/),
+    segment_id: expect.stringMatching(/[a-f\d]{16}/),
     start_timestamp: expect.any(Number),
     timestamp: spanEnvelopeItem.start_timestamp,
-    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+    trace_id: expect.stringMatching(/[a-f\d]{32}/),
   });
 
   // Flakey value dependent on timings -> we check for a range
@@ -138,7 +138,7 @@ sentryTest('captures a "MEH" CLS vital with its source as a standalone span', as
       'sentry.report_event': 'pagehide',
       transaction: expect.stringContaining('index.html'),
       'user_agent.original': expect.stringContaining('Chrome'),
-      'sentry.pageload.span_id': expect.stringMatching(/[a-f0-9]{16}/),
+      'sentry.pageload.span_id': expect.stringMatching(/[a-f\d]{16}/),
       'cls.source.1': expect.stringContaining('body > div#content > p'),
     },
     description: expect.stringContaining('body > div#content > p'),
@@ -151,12 +151,12 @@ sentryTest('captures a "MEH" CLS vital with its source as a standalone span', as
     },
     op: 'ui.webvital.cls',
     origin: 'auto.http.browser.cls',
-    parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-    span_id: expect.stringMatching(/[a-f0-9]{16}/),
-    segment_id: expect.stringMatching(/[a-f0-9]{16}/),
+    parent_span_id: expect.stringMatching(/[a-f\d]{16}/),
+    span_id: expect.stringMatching(/[a-f\d]{16}/),
+    segment_id: expect.stringMatching(/[a-f\d]{16}/),
     start_timestamp: expect.any(Number),
     timestamp: spanEnvelopeItem.start_timestamp,
-    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+    trace_id: expect.stringMatching(/[a-f\d]{32}/),
   });
 
   // Flakey value dependent on timings -> we check for a range
@@ -206,7 +206,7 @@ sentryTest('captures a "POOR" CLS vital with its source as a standalone span.', 
       'sentry.report_event': 'pagehide',
       transaction: expect.stringContaining('index.html'),
       'user_agent.original': expect.stringContaining('Chrome'),
-      'sentry.pageload.span_id': expect.stringMatching(/[a-f0-9]{16}/),
+      'sentry.pageload.span_id': expect.stringMatching(/[a-f\d]{16}/),
       'cls.source.1': expect.stringContaining('body > div#content > p'),
     },
     description: expect.stringContaining('body > div#content > p'),
@@ -219,12 +219,12 @@ sentryTest('captures a "POOR" CLS vital with its source as a standalone span.', 
     },
     op: 'ui.webvital.cls',
     origin: 'auto.http.browser.cls',
-    parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-    span_id: expect.stringMatching(/[a-f0-9]{16}/),
-    segment_id: expect.stringMatching(/[a-f0-9]{16}/),
+    parent_span_id: expect.stringMatching(/[a-f\d]{16}/),
+    span_id: expect.stringMatching(/[a-f\d]{16}/),
+    segment_id: expect.stringMatching(/[a-f\d]{16}/),
     start_timestamp: expect.any(Number),
     timestamp: spanEnvelopeItem.start_timestamp,
-    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+    trace_id: expect.stringMatching(/[a-f\d]{32}/),
   });
 
   // Flakey value dependent on timings -> we check for a range
@@ -275,7 +275,7 @@ sentryTest(
         'sentry.report_event': 'pagehide',
         transaction: expect.stringContaining('index.html'),
         'user_agent.original': expect.stringContaining('Chrome'),
-        'sentry.pageload.span_id': expect.stringMatching(/[a-f0-9]{16}/),
+        'sentry.pageload.span_id': expect.stringMatching(/[a-f\d]{16}/),
       },
       description: 'Layout shift',
       exclusive_time: 0,
@@ -287,12 +287,12 @@ sentryTest(
       },
       op: 'ui.webvital.cls',
       origin: 'auto.http.browser.cls',
-      parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-      span_id: expect.stringMatching(/[a-f0-9]{16}/),
-      segment_id: expect.stringMatching(/[a-f0-9]{16}/),
+      parent_span_id: expect.stringMatching(/[a-f\d]{16}/),
+      span_id: expect.stringMatching(/[a-f\d]{16}/),
+      segment_id: expect.stringMatching(/[a-f\d]{16}/),
       start_timestamp: expect.any(Number),
       timestamp: spanEnvelopeItem.start_timestamp,
-      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+      trace_id: expect.stringMatching(/[a-f\d]{32}/),
     });
 
     expect(spanEnvelopeHeaders).toEqual({
@@ -323,8 +323,8 @@ sentryTest(
     const pageloadSpanId = eventData.contexts?.trace?.span_id;
     const pageloadTraceId = eventData.contexts?.trace?.trace_id;
 
-    expect(pageloadSpanId).toMatch(/[a-f0-9]{16}/);
-    expect(pageloadTraceId).toMatch(/[a-f0-9]{32}/);
+    expect(pageloadSpanId).toMatch(/[a-f\d]{16}/);
+    expect(pageloadTraceId).toMatch(/[a-f\d]{32}/);
 
     const spanEnvelopePromise = getMultipleSentryEnvelopeRequests<SpanEnvelope>(
       page,
@@ -371,7 +371,7 @@ sentryTest('sends CLS of the initial page when soft-navigating to a new page', a
   await page.goto(`${url}#soft-navigation`);
 
   const pageloadTraceId = pageloadEventData.contexts?.trace?.trace_id;
-  expect(pageloadTraceId).toMatch(/[a-f0-9]{32}/);
+  expect(pageloadTraceId).toMatch(/[a-f\d]{32}/);
 
   const spanEnvelope = (await spanEnvelopePromise)[0];
   const spanEnvelopeItem = spanEnvelope[1][0][1];
