@@ -31,10 +31,11 @@ body:
         Add any other context here.
     validations:
       required: false
-  - type: markdown
+  - type: dropdown
     attributes:
-      value: |-
-        ## Thanks 🙏
-        Check our [triage docs](https://open.sentry.io/triage/) for what to expect next.
-        <sub>Tip: React with 👍 to help prioritize this issue. Please use comments to provide useful context, avoiding `+1` or `me too`, to help us triage it.</sub>
+      label: "Tip"
+      description: Please keep the pre-filled option, which helps us manage issue prioritization.
+      default: 0
+      options:
+        - <sub>React with 👍 to help prioritize this issue. Please use comments to provide useful context, avoiding `+1` or `me too`, to help us triage it.</sub>
 
