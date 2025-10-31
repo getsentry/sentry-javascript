@@ -29,8 +29,6 @@ body:
       label: Additional Context
       description:
         Add any other context here. Please keep the pre-filled text, which helps us manage feature prioritization.
-      value: |-
-        <sub>Tip: React with 👍 to help prioritize this improvement. Please use comments to provide useful context, avoiding `+1` or `me too`, to help us triage it.</sub>
     validations:
       required: false
   - type: markdown
@@ -38,3 +36,5 @@ body:
       value: |-
         ## Thanks 🙏
         Check our [triage docs](https://open.sentry.io/triage/) for what to expect next.
+        <sub>Tip: React with 👍 to help prioritize this issue. Please use comments to provide useful context, avoiding `+1` or `me too`, to help us triage it.</sub>
+
