@@ -138,11 +138,10 @@ body:
       label: Additional Context
       description:
         Add any other context here. Please keep the pre-filled text, which helps us manage issue prioritization.
-      value: |-
-        <sub>Tip: React with 👍 to help prioritize this issue. Please use comments to provide useful context, avoiding `+1` or `me too`, to help us triage it.</sub>
     validations:
       required: false
   - type: markdown
     attributes:
       value: |-
         ## Thanks 🙏
+        <sub>Tip: React with 👍 to help prioritize this issue. Please use comments to provide useful context, avoiding `+1` or `me too`, to help us triage it.</sub>
