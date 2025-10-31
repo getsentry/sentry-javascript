@@ -140,9 +140,8 @@ body:
         Add any other context here.
     validations:
       required: false
-  - type: markdown
-    id: "Tip"
+  - type: dropdown
     attributes:
-      value: |-
-        ## Thanks 🙏
-        <sub>React with 👍 to help prioritize this issue. Please use comments to provide useful context, avoiding `+1` or `me too`, to help us triage it.</sub>
+      label: Tip
+      options:
+        - <sub>React with 👍 to help prioritize this issue. Please use comments to provide useful context, avoiding `+1` or `me too`, to help us triage it.</sub>
