@@ -43,6 +43,8 @@ async function run(): Promise<void> {
 
   // Allow to run a single app only via `yarn test:run <app-name>`
   const appName = process.argv[2] || '';
+  // Forward any additional flags to the test command
+  const testFlags = process.argv.slice(3);
 
   const dsn = process.env.E2E_TEST_DSN || DEFAULT_DSN;
 
@@ -87,7 +89,8 @@ async function run(): Promise<void> {
       await asyncExec('volta run pnpm test:build', { env, cwd });
 
       console.log(`Testing ${testAppPath}...`);
-      await asyncExec('volta run pnpm test:assert', { env, cwd });
+      const testCommand = `volta run pnpm test:assert ${testFlags.join(' ')}`.trim();
+      await asyncExec(testCommand, { env, cwd });
 
       // clean up (although this is tmp, still nice to do)
       await rm(tmpDirPath, { recursive: true });
