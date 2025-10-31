@@ -217,6 +217,7 @@ const _httpServerSpansIntegration = ((options: HttpServerSpansIntegrationOptions
     },
     processEvent(event) {
       // Drop transaction if it has a status code that should be ignored
+      // TODO (span-streaming): port this logic to spans via a hook or ignoreSpans default
       if (event.type === 'transaction') {
         const statusCode = event.contexts?.trace?.data?.['http.response.status_code'];
         if (typeof statusCode === 'number') {

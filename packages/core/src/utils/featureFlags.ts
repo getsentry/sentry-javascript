@@ -27,6 +27,7 @@ const SPAN_FLAG_ATTRIBUTE_PREFIX = 'flag.evaluation.';
 /**
  * Copies feature flags that are in current scope context to the event context
  */
+// TODO (span-streaming): should flags be added to (segment) spans? If so, probably do this via globally applying context data to spans
 export function _INTERNAL_copyFlagsFromScopeToEvent(event: Event): Event {
   const scope = getCurrentScope();
   const flagContext = scope.getScopeData().contexts.flags;
