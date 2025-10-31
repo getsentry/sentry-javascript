@@ -1,7 +1,5 @@
 // inspired by https://justinribeiro.com/chronicle/2020/07/17/building-module-web-workers-for-cross-browser-compatibility-with-rollup/
 
-import commonjs from '@rollup/plugin-commonjs';
-import resolve from '@rollup/plugin-node-resolve';
 import terser from '@rollup/plugin-terser';
 import typescript from '@rollup/plugin-typescript';
 import { defineConfig } from 'rollup';
@@ -32,9 +30,7 @@ const config = defineConfig([
     },
     treeshake: 'smallest',
     plugins: [
-      commonjs(),
       typescript({ tsconfig: './tsconfig.json', inlineSourceMap: false, sourceMap: false, inlineSources: false }),
-      resolve(),
       terser({
         mangle: {
           module: true,
@@ -56,9 +52,7 @@ const config = defineConfig([
     },
     treeshake: 'smallest',
     plugins: [
-      commonjs(),
       typescript({ tsconfig: './tsconfig.json', inlineSourceMap: false, sourceMap: false, inlineSources: false }),
-      resolve(),
       terser({
         mangle: {
           module: true,

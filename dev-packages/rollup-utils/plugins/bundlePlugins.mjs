@@ -10,8 +10,6 @@
 
 import * as childProcess from 'child_process';
 
-import commonjs from '@rollup/plugin-commonjs';
-import { nodeResolve } from '@rollup/plugin-node-resolve';
 import replace from '@rollup/plugin-replace';
 import terser from '@rollup/plugin-terser';
 import license from 'rollup-plugin-license';
@@ -146,12 +144,3 @@ export function makeTerserPlugin() {
     },
   });
 }
-
-// We don't pass these plugins any options which need to be calculated or changed by us, so no need to wrap them in
-// another factory function, as they are themselves already factory functions.
-
-export function makeNodeResolvePlugin() {
-  return nodeResolve();
-}
-
-export { commonjs as makeCommonJSPlugin };
