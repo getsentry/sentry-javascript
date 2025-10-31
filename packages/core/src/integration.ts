@@ -8,6 +8,65 @@ import { debug } from './utils/debug-logger';
 
 export const installedIntegrations: string[] = [];
 
+/**
+ * Registry to track disabled integrations.
+ * This is used to prevent duplicate instrumentation when higher-level integrations
+ * (like LangChain) already instrument the underlying libraries (like OpenAI, Anthropic, etc.)
+ */
+const DISABLED_INTEGRATIONS = new Set<string>();
+
+/**
+ * Mark one or more integrations as disabled to prevent their instrumentation from being set up.
+ * @param integrationName The name(s) of the integration(s) to disable
+ */
+export function disableIntegrations(integrationName: string | string[]): void {
+  if (Array.isArray(integrationName)) {
+    integrationName.forEach(name => DISABLED_INTEGRATIONS.add(name));
+  } else {
+    DISABLED_INTEGRATIONS.add(integrationName);
+  }
+}
+
+/**
+ * Check if an integration has been disabled.
+ * @param integrationName The name of the integration to check
+ * @returns true if the integration is disabled
+ */
+export function isIntegrationDisabled(integrationName: string): boolean {
+  return DISABLED_INTEGRATIONS.has(integrationName);
+}
+
+/**
+ * Remove one or more integrations from the disabled list.
+ * @param integrationName The name(s) of the integration(s) to enable
+ */
+export function enableIntegration(integrationName: string | string[]): void {
+  if (Array.isArray(integrationName)) {
+    integrationName.forEach(name => DISABLED_INTEGRATIONS.delete(name));
+  } else {
+    DISABLED_INTEGRATIONS.delete(integrationName);
+  }
+}
+
+/**
+ * Clear all disabled integrations.
+ * This is automatically called during Sentry.init() to ensure a clean state.
+ *
+ * This also removes the disabled integrations from the global installedIntegrations list,
+ * allowing them to run setupOnce() again if they're included in a new client.
+ */
+export function clearDisabledIntegrations(): void {
+  // Remove disabled integrations from the installed list so they can setup again
+  DISABLED_INTEGRATIONS.forEach(integrationName => {
+    const index = installedIntegrations.indexOf(integrationName);
+    if (index !== -1) {
+      installedIntegrations.splice(index, 1);
+    }
+  });
+
+  DISABLED_INTEGRATIONS.clear();
+}
+
 /** Map of integrations assigned to a client */
 export type IntegrationIndex = {
   [key: string]: Integration;
@@ -108,8 +167,11 @@ export function setupIntegration(client: Client, integration: Integration, integ
 
   // `setupOnce` is only called the first time
   if (installedIntegrations.indexOf(integration.name) === -1 && typeof integration.setupOnce === 'function') {
-    integration.setupOnce();
-    installedIntegrations.push(integration.name);
+    // Skip setup if integration is disabled
+    if (!isIntegrationDisabled(integration.name)) {
+      integration.setupOnce();
+      installedIntegrations.push(integration.name);
+    }
   }
 
   // `setup` is run for each client

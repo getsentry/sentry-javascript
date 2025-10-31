@@ -4,7 +4,14 @@ import { trace } from '@opentelemetry/api';
 import { registerInstrumentations } from '@opentelemetry/instrumentation';
 import type { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import type { DynamicSamplingContext, Scope, ServerRuntimeClientOptions, TraceContext } from '@sentry/core';
-import { _INTERNAL_flushLogsBuffer, applySdkMetadata, debug, SDK_VERSION, ServerRuntimeClient } from '@sentry/core';
+import {
+  _INTERNAL_flushLogsBuffer,
+  applySdkMetadata,
+  clearDisabledIntegrations,
+  debug,
+  SDK_VERSION,
+  ServerRuntimeClient,
+} from '@sentry/core';
 import { getTraceContextForScope } from '@sentry/opentelemetry';
 import { isMainThread, threadId } from 'worker_threads';
 import { DEBUG_BUILD } from '../debug-build';
@@ -143,6 +150,15 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
 
       process.on('beforeExit', this._clientReportOnExitFlushListener);
     }
+  }
+
+  /** @inheritDoc */
+  protected _setupIntegrations(): void {
+    // Clear disabled integrations before setting up integrations
+    // This ensures that integrations work correctly when not all default integrations are used
+    // (e.g., when LangChain disables OpenAI, but a subsequent client doesn't use LangChain)
+    clearDisabledIntegrations();
+    super._setupIntegrations();
   }
 
   /** Custom implementation for OTEL, so we can handle scope-span linking. */
