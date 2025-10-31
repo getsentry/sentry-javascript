@@ -110,6 +110,7 @@ sentryTest('outgoing XHR requests have new traceId after navigation', async ({ g
   const headers = request.headers();
 
   // sampling decision is deferred because TwP means we didn't sample any span
+  // eslint-disable-next-line regexp/prefer-d
   expect(headers['sentry-trace']).toMatch(new RegExp(`^${META_TAG_TRACE_ID}-[0-9a-f]{16}$`));
   expect(headers['baggage']).toBe(META_TAG_BAGGAGE);
 
