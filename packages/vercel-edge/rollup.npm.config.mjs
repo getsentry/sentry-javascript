@@ -1,5 +1,5 @@
 import replace from '@rollup/plugin-replace';
-import { makeBaseNPMConfig, makeNPMConfigVariants, plugins } from '@sentry-internal/rollup-utils';
+import { makeBaseNPMConfig, makeNPMConfigVariants } from '@sentry-internal/rollup-utils';
 
 export default makeNPMConfigVariants(
   makeBaseNPMConfig({
@@ -7,12 +7,7 @@ export default makeNPMConfigVariants(
     bundledBuiltins: ['perf_hooks', 'util'],
     packageSpecificConfig: {
       context: 'globalThis',
-      output: {
-        preserveModules: false,
-      },
       plugins: [
-        plugins.makeCommonJSPlugin({ transformMixedEsModules: true }), // Needed because various modules in the OTEL toolchain use CJS (require-in-the-middle, shimmer, etc..)
-        plugins.makeJsonPlugin(), // Needed because `require-in-the-middle` imports json via require
         replace({
           preventAssignment: true,
           values: {
