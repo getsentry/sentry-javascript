@@ -301,7 +301,7 @@ function instrumentPerformanceObserver(type: InstrumentHandlerTypePerformanceObs
 
 function addHandler(type: InstrumentHandlerType, handler: InstrumentHandlerCallback): void {
   handlers[type] = handlers[type] || [];
-  handlers[type].push(handler);
+  handlers[type]?.push(handler);
 }
 
 // Get a callback which can be called to remove the instrumentation handler
