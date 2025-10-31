@@ -23,13 +23,6 @@ import {
   GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
   GEN_AI_SYSTEM_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
-import {
-  buildMethodPath,
-  getFinalOperationName,
-  getSpanOperation,
-  getTruncatedJsonString,
-  setTokenUsageAttributes,
-} from '../ai/utils';
 import { handleCallbackErrors } from '../handleCallbackErrors';
 import { instrumentAsyncIterableStream, instrumentMessageStream } from './streaming';
 import type {
@@ -77,18 +70,8 @@ function extractRequestAttributes(args: unknown[], methodPath: string): Record<s
   return attributes;
 }
 
-/**
- * Add private request attributes to spans.
- * This is only recorded if recordInputs is true.
- */
 function addPrivateRequestAttributes(span: Span, params: Record<string, unknown>): void {
   if ('messages' in params) {
-    const truncatedMessages = getTruncatedJsonString(params.messages);
-    span.setAttributes({ [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: truncatedMessages });
-  }
-  if ('input' in params) {
-    const truncatedInput = getTruncatedJsonString(params.input);
-    span.setAttributes({ [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: truncatedInput });
   }
 
   if ('prompt' in params) {
