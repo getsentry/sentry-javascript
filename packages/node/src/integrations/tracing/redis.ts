@@ -24,14 +24,32 @@ import {
 } from '../../utils/redisCache';
 
 interface RedisOptions {
+  /**
+   * Define cache prefixes for cache keys that should be captured as a cache span.
+   *
+   * Setting this to, for example, `['user:']` will capture cache keys that start with `user:`.
+   */
   cachePrefixes?: string[];
+  /**
+   * Maximum length of the cache key added to the span description. If the key exceeds this length, it will be truncated.
+   *
+   * By default, the full cache key is used.
+   */
+  maxCacheKeyLength?: number;
 }
 
 const INTEGRATION_NAME = 'Redis';
 
-let _redisOptions: RedisOptions = {};
+/* Only exported for testing purposes */
+export let _redisOptions: RedisOptions = {};
 
-const cacheResponseHook: RedisResponseCustomAttributeFunction = (span: Span, redisCommand, cmdArgs, response) => {
+/* Only exported for testing purposes */
+export const cacheResponseHook: RedisResponseCustomAttributeFunction = (
+  span: Span,
+  redisCommand,
+  cmdArgs,
+  response,
+) => {
   span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, 'auto.db.otel.redis');
 
   const safeKey = getCacheKeySafely(redisCommand, cmdArgs);
@@ -70,9 +88,12 @@ const cacheResponseHook: RedisResponseCustomAttributeFunction = (span: Span, red
     [SEMANTIC_ATTRIBUTE_CACHE_KEY]: safeKey,
   });
 
+  // todo: change to string[] once EAP supports it
   const spanDescription = safeKey.join(', ');
 
-  span.updateName(truncate(spanDescription, 1024));
+  span.updateName(
+    _redisOptions.maxCacheKeyLength ? truncate(spanDescription, _redisOptions.maxCacheKeyLength) : spanDescription,
+  );
 };
 
 const instrumentIORedis = generateInstrumentOnce(`${INTEGRATION_NAME}.IORedis`, () => {
