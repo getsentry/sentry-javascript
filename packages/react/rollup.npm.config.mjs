@@ -3,6 +3,9 @@ import { makeBaseNPMConfig, makeNPMConfigVariants } from '@sentry-internal/rollu
 export default makeNPMConfigVariants(
   makeBaseNPMConfig({
     packageSpecificConfig: {
+      output: {
+        preserveModules: true,
+      },
       external: ['react', 'react/jsx-runtime'],
     },
     sucrase: {

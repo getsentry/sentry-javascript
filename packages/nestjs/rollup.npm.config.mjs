@@ -3,5 +3,8 @@ import { makeBaseNPMConfig, makeNPMConfigVariants } from '@sentry-internal/rollu
 export default makeNPMConfigVariants(
   makeBaseNPMConfig({
     entrypoints: ['src/index.ts', 'src/setup.ts'],
+    output: {
+      preserveModules: false
+    }
   }),
 );
