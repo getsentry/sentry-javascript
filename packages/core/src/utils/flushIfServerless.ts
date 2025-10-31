@@ -51,6 +51,8 @@ export async function flushIfServerless(
     return;
   }
 
+  // Note: vercelWaitUntil only does something in Vercel Edge runtime
+  // In Node runtime, we use process.on('SIGTERM') instead
   // @ts-expect-error This is not typed
   if (GLOBAL_OBJ[Symbol.for('@vercel/request-context')]) {
     // Vercel has a waitUntil equivalent that works without execution context
