@@ -29,7 +29,7 @@
   },
   "devDependencies": {
     "@graphql-codegen/cli": "5.0.2",
-    "@playwright/test": "~1.53.2",
+    "@playwright/test": "1.53.2",
     "@react-router/dev": "7.6.0",
     "@react-router/fs-routes": "7.6.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
