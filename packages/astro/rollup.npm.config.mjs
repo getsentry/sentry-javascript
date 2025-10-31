@@ -2,7 +2,7 @@ import { makeBaseNPMConfig, makeNPMConfigVariants, makeOtelLoaders } from '@sent
 
 const variants = makeNPMConfigVariants(
   makeBaseNPMConfig({
-    entrypoints: ['src/index.server.ts', 'src/index.client.ts', 'src/integration/middleware/index.ts'],
+    entrypoints: ['src/index.server.ts', 'src/index.client.ts', 'src/integration/middleware/middleware.ts'],
     packageSpecificConfig: {
       output: {
         dynamicImportInCjs: true,

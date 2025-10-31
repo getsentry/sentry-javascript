@@ -15,6 +15,7 @@ export default [
         output: {
           // make it so Rollup calms down about the fact that we're combining default and named exports
           exports: 'named',
+          preserveModules: true,
         },
       },
       sucrase: {
