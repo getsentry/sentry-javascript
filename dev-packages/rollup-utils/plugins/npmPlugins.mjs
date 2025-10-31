@@ -38,10 +38,6 @@ export function makeSucrasePlugin(options = {}, sucraseOptions = {}) {
   );
 }
 
-export function makeJsonPlugin() {
-  return json();
-}
-
 /**
  * Create a plugin which can be used to pause the build process at the given hook.
  *
