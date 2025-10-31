@@ -31,7 +31,7 @@
     "deno-types": "node ./scripts/download-deno-types.mjs",
     "build": "run-s build:transpile build:types",
     "build:dev": "yarn build",
-    "build:transpile": "yarn deno-types && rollup -c rollup.npm.config.mjs",
+    "build:transpile": "yarn deno-types && rolldown -c rollup.npm.config.mjs",
     "build:types": "tsc -p tsconfig.types.json",
     "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.ts",
