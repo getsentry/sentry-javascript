@@ -141,7 +141,7 @@ body:
     validations:
       required: false
   - type: markdown
-    label: "Tip"
+    id: "Tip"
     attributes:
       value: |-
         ## Thanks 🙏
