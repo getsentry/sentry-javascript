@@ -3,7 +3,7 @@ import { parseSemver } from '@sentry/core';
 import type * as http from 'http';
 import { describe } from 'vitest';
 
-const NODE_VERSION = parseSemver(process.versions.node).major;
+export const NODE_VERSION = parseSemver(process.versions.node).major || 0;
 
 export type TestServerConfig = {
   url: string;
