@@ -124,7 +124,7 @@ export function makeNPMConfigVariants(baseConfig, options = {}) {
       variantSpecificConfigs.push({ output: { format: 'cjs', dir: path.join(baseConfig.output.dir, 'cjs/dev') } });
       variantSpecificConfigs.push({
         output: { format: 'cjs', dir: path.join(baseConfig.output.dir, 'cjs/prod') },
-        plugins: [makeProductionReplacePlugin()]
+        plugins: [makeProductionReplacePlugin()],
       });
     } else {
       variantSpecificConfigs.push({ output: { format: 'cjs', dir: path.join(baseConfig.output.dir, 'cjs') } });
