@@ -442,7 +442,7 @@ describe('Vercel AI integration', () => {
             description: 'generateText',
             op: 'gen_ai.invoke_agent',
             origin: 'auto.vercelai.otel',
-            status: 'unknown_error',
+            status: 'internal_error',
           }),
           expect.objectContaining({
             data: {
@@ -486,7 +486,7 @@ describe('Vercel AI integration', () => {
             description: 'execute_tool getWeather',
             op: 'gen_ai.execute_tool',
             origin: 'auto.vercelai.otel',
-            status: 'unknown_error',
+            status: 'internal_error',
           }),
         ]),
 
@@ -563,7 +563,7 @@ describe('Vercel AI integration', () => {
             description: 'generateText',
             op: 'gen_ai.invoke_agent',
             origin: 'auto.vercelai.otel',
-            status: 'unknown_error',
+            status: 'internal_error',
           }),
           expect.objectContaining({
             data: {
@@ -607,7 +607,7 @@ describe('Vercel AI integration', () => {
             description: 'execute_tool getWeather',
             op: 'gen_ai.execute_tool',
             origin: 'auto.vercelai.otel',
-            status: 'unknown_error',
+            status: 'internal_error',
           }),
         ]),
 

@@ -203,7 +203,7 @@ test('Sends an API route transaction for an errored route', async ({ baseURL }) 
     parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
     start_timestamp: expect.any(Number),
-    status: 'unknown_error',
+    status: 'internal_error',
     timestamp: expect.any(Number),
     trace_id: expect.stringMatching(/[a-f0-9]{32}/),
     measurements: {},

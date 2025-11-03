@@ -175,7 +175,7 @@ describe('postgresjs auto instrumentation', () => {
           }),
           description: `SELECT * FROM "User" WHERE "email" = '${NON_EXISTING_TEST_EMAIL}'`,
           op: 'db',
-          status: 'unknown_error',
+          status: 'internal_error',
           origin: 'auto.db.otel.postgres',
           parent_span_id: expect.any(String),
           span_id: expect.any(String),

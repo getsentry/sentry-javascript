@@ -1,5 +1,6 @@
 import type { Event, EventHint } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
+import { saveSession } from '../session/saveSession';
 import type { ReplayContainer } from '../types';
 import { isErrorEvent, isFeedbackEvent, isReplayEvent, isTransactionEvent } from '../util/eventUtils';
 import { isRrwebError } from '../util/isRrwebError';
@@ -67,6 +68,20 @@ export function handleGlobalEventListener(replay: ReplayContainer): (event: Even
 
       if (shouldTagReplayId) {
         event.tags = { ...event.tags, replayId: replay.getSessionId() };
+      }
+
+      // If we sampled this error in buffer mode, immediately mark the session as "sampled"
+      // by changing the sampled state from 'buffer' to 'session'. Otherwise, if the application is interrupte
+      // before `afterSendEvent` occurs, then the session would remain as "buffer" but we have an error event
+      // that is tagged with a replay id. This could end up creating replays w/ excessive durations because
+      // of the linked error.
+      if (isErrorEventSampled && replay.recordingMode === 'buffer' && replay.session?.sampled === 'buffer') {
+        const session = replay.session;
+        session.dirty = true;
+        // Save the session if sticky sessions are enabled to persist the state change
+        if (replay.getOptions().stickySession) {
+          saveSession(session);
+        }
       }
 
       return event;

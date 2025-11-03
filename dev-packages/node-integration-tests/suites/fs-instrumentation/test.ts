@@ -15,7 +15,7 @@ test('should create spans for fs operations that take target argument', async ()
           expect.objectContaining({
             description: 'fs.readFile',
             op: 'file',
-            status: 'unknown_error',
+            status: 'internal_error',
             data: {
               fs_error: expect.stringMatching('ENOENT: no such file or directory,'),
               path_argument: expect.stringMatching('/fixtures/some-file-that-doesnt-exist.txt'),

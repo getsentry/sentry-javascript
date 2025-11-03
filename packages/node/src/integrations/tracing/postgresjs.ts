@@ -128,7 +128,7 @@ export class PostgresJsInstrumentation extends InstrumentationBase<PostgresJsIns
           code: SPAN_STATUS_ERROR,
           // This message is the error message from the rejectArgs, when available
           // e.g "relation 'User' does not exist"
-          message: rejectArgs?.[0]?.message || 'unknown_error',
+          message: rejectArgs?.[0]?.message || 'internal_error',
         });
 
         const result = Reflect.apply(rejectTarget, rejectThisArg, rejectArgs);
