@@ -126,7 +126,7 @@ export function makeDebugBuildStatementReplacePlugin() {
 }
 
 export function makeProductionReplacePlugin() {
-  const pattern = /\/\* development-only \*\/[\s\S]*?\/\* end-development-only \*\//g;
+  const pattern = /\/\* rollup-include-development-only \*\/[\s\S]*?\/\* end-rollup-include-development-only \*\//g;
 
   function stripDevBlocks(code) {
     if (!code) return null;

@@ -38,9 +38,6 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
     dedupeIntegration(),
     httpContextIntegration(),
     browserSessionIntegration(),
-    /* development-only */
-    spotlightBrowserIntegration(),
-    /* end-development-only */
   ];
 }
 
@@ -94,14 +91,25 @@ export function init(options: BrowserOptions = {}): Client | undefined {
   const shouldDisableBecauseIsBrowserExtenstion =
     !options.skipBrowserExtensionCheck && checkAndWarnIfIsEmbeddedBrowserExtension();
 
+  let defaultIntegrations =
+    options.defaultIntegrations == null ? getDefaultIntegrations(options) : options.defaultIntegrations;
+
+  /* rollup-include-development-only */
+  if (options.spotlight) {
+    if (!defaultIntegrations) {
+      defaultIntegrations = [];
+    }
+    defaultIntegrations.push(spotlightBrowserIntegration());
+  }
+  /* end-rollup-include-development-only */
+
   const clientOptions: BrowserClientOptions = {
     ...options,
     enabled: shouldDisableBecauseIsBrowserExtenstion ? false : options.enabled,
     stackParser: stackParserFromStackParserOptions(options.stackParser || defaultStackParser),
     integrations: getIntegrationsToSetup({
       integrations: options.integrations,
-      defaultIntegrations:
-        options.defaultIntegrations == null ? getDefaultIntegrations(options) : options.defaultIntegrations,
+      defaultIntegrations,
     }),
     transport: options.transport || makeFetchTransport,
   };
