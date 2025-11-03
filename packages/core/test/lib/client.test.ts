@@ -2600,6 +2600,43 @@ describe('Client', () => {
       const promise = await withMonitor('test-monitor', callback);
       await expect(promise).rejects.toThrowError(error);
     });
+
+    test('accepts isolateTrace option without error', () => {
+      const result = 'foo';
+      const callback = vi.fn().mockReturnValue(result);
+
+      const returnedResult = withMonitor('test-monitor', callback, {
+        schedule: { type: 'crontab', value: '* * * * *' },
+        isolateTrace: true
+      });
+
+      expect(returnedResult).toBe(result);
+      expect(callback).toHaveBeenCalledTimes(1);
+    });
+
+    test('works with isolateTrace set to false', () => {
+      const result = 'foo';
+      const callback = vi.fn().mockReturnValue(result);
+
+      const returnedResult = withMonitor('test-monitor', callback, {
+        schedule: { type: 'crontab', value: '* * * * *' },
+        isolateTrace: false
+      });
+
+      expect(returnedResult).toBe(result);
+      expect(callback).toHaveBeenCalledTimes(1);
+    });
+
+    test('handles isolateTrace with asynchronous operations', async () => {
+      const result = 'foo';
+      const callback = vi.fn().mockResolvedValue(result);
+
+      const promise = withMonitor('test-monitor', callback, {
+        schedule: { type: 'crontab', value: '* * * * *' },
+        isolateTrace: true
+      });
+      await expect(promise).resolves.toEqual(result);
+    });
   });
 
   describe('log weight-based flushing', () => {
