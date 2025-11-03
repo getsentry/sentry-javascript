@@ -36,6 +36,7 @@ type PostgresConnectionContext = {
 };
 
 const CONNECTION_CONTEXT_SYMBOL = Symbol('sentryPostgresConnectionContext');
+const INSTRUMENTED_MARKER = Symbol.for('sentry.instrumented.postgresjs');
 
 type PostgresJsInstrumentationConfig = InstrumentationConfig & {
   /**
@@ -112,6 +113,13 @@ export class PostgresJsInstrumentation extends InstrumentationBase<PostgresJsIns
 
     const WrappedPostgres = function (this: unknown, ...args: unknown[]): unknown {
       const sql = Reflect.construct(Original as (...args: unknown[]) => unknown, args);
+
+      // Validate that construction succeeded and returned a valid function object
+      if (!sql || typeof sql !== 'function') {
+        DEBUG_BUILD && debug.warn('postgres() did not return a valid instance');
+        return sql;
+      }
+
       return self._instrumentSqlInstance(sql);
     };
 
@@ -267,7 +275,8 @@ export class PostgresJsInstrumentation extends InstrumentationBase<PostgresJsIns
    */
   private _instrumentSqlInstance(sql: unknown, parentConnectionContext?: PostgresConnectionContext): unknown {
     // Check if already instrumented to prevent double-wrapping
-    if ((sql as { __sentryInstrumented?: boolean }).__sentryInstrumented) {
+    // Using Symbol.for() ensures the marker survives proxying
+    if ((sql as Record<symbol, unknown>)[INSTRUMENTED_MARKER]) {
       return sql;
     }
 
@@ -313,8 +322,11 @@ export class PostgresJsInstrumentation extends InstrumentationBase<PostgresJsIns
       this._attachConnectionContext(sql, proxiedSql as Record<symbol, unknown>);
     }
 
-    // Mark as instrumented to prevent double-wrapping
-    (sql as { __sentryInstrumented?: boolean }).__sentryInstrumented = true;
+    // Mark both the original and proxy as instrumented to prevent double-wrapping
+    // The proxy might be passed to other methods, or the original
+    // might be accessed directly, so we need to mark both
+    (sql as Record<symbol, unknown>)[INSTRUMENTED_MARKER] = true;
+    (proxiedSql as Record<symbol, unknown>)[INSTRUMENTED_MARKER] = true;
 
     return proxiedSql;
   }
@@ -377,6 +389,8 @@ export class PostgresJsInstrumentation extends InstrumentationBase<PostgresJsIns
             try {
               config.requestHook(span, sanitizedSqlQuery, connectionContext);
             } catch (e) {
+              // Set attribute to indicate hook failure, making it visible in spans
+              span.setAttribute('sentry.hook.error', 'requestHook failed');
               DEBUG_BUILD && debug.error(`Error in requestHook for ${INTEGRATION_NAME} integration:`, e);
             }
           }
@@ -388,28 +402,34 @@ export class PostgresJsInstrumentation extends InstrumentationBase<PostgresJsIns
 
           queryWithCallbacks.resolve = new Proxy(queryWithCallbacks.resolve as (...args: unknown[]) => unknown, {
             apply: (resolveTarget, resolveThisArg, resolveArgs: [{ command?: string }]) => {
-              const result = Reflect.apply(resolveTarget, resolveThisArg, resolveArgs);
-              self._setOperationName(span, sanitizedSqlQuery, resolveArgs?.[0]?.command);
-              span.end();
-              return result;
+              try {
+                self._setOperationName(span, sanitizedSqlQuery, resolveArgs?.[0]?.command);
+                span.end();
+              } catch (e) {
+                DEBUG_BUILD && debug.error('Error ending span in resolve callback:', e);
+              }
+
+              return Reflect.apply(resolveTarget, resolveThisArg, resolveArgs);
             },
           });
 
           queryWithCallbacks.reject = new Proxy(queryWithCallbacks.reject as (...args: unknown[]) => unknown, {
             apply: (rejectTarget, rejectThisArg, rejectArgs: { message?: string; code?: string; name?: string }[]) => {
-              span.setStatus({
-                code: SPAN_STATUS_ERROR,
-                message: rejectArgs?.[0]?.message || 'unknown_error',
-              });
+              try {
+                span.setStatus({
+                  code: SPAN_STATUS_ERROR,
+                  message: rejectArgs?.[0]?.message || 'unknown_error',
+                });
 
-              span.setAttribute(ATTR_DB_RESPONSE_STATUS_CODE, rejectArgs?.[0]?.code || 'unknown');
-              span.setAttribute(ATTR_ERROR_TYPE, rejectArgs?.[0]?.name || 'unknown');
+                span.setAttribute(ATTR_DB_RESPONSE_STATUS_CODE, rejectArgs?.[0]?.code || 'unknown');
+                span.setAttribute(ATTR_ERROR_TYPE, rejectArgs?.[0]?.name || 'unknown');
 
-              self._setOperationName(span, sanitizedSqlQuery);
-
-              const result = Reflect.apply(rejectTarget, rejectThisArg, rejectArgs);
-              span.end();
-              return result;
+                self._setOperationName(span, sanitizedSqlQuery);
+                span.end();
+              } catch (e) {
+                DEBUG_BUILD && debug.error('Error ending span in reject callback:', e);
+              }
+              return Reflect.apply(rejectTarget, rejectThisArg, rejectArgs);
             },
           });
 
