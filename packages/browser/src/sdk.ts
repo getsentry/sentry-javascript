@@ -101,7 +101,7 @@ export function init(options: BrowserOptions = {}): Client | undefined {
     }
     defaultIntegrations.push(spotlightBrowserIntegration());
   }
-  /* end-rollup-include-development-only */
+  /* rollup-include-development-only-end */
 
   const clientOptions: BrowserClientOptions = {
     ...options,
