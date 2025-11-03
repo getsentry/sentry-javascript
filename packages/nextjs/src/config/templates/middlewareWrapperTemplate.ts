@@ -45,12 +45,14 @@ if ('middleware' in userApiModule && typeof userApiModule.middleware === 'functi
   userProvidedDefaultHandler = userApiModule;
 }
 
-export const middleware =
-  userProvidedMiddleware && userProvidedNamedHandler
-    ? Sentry.wrapMiddlewareWithSentry(userProvidedNamedHandler)
-    : undefined;
-export const proxy =
-  userProvidedProxy && userProvidedNamedHandler ? Sentry.wrapMiddlewareWithSentry(userProvidedNamedHandler) : undefined;
+// Wrap the handler that the user provided (middleware, proxy, or default)
+// We preserve the original export names so Next.js can handle its internal renaming logic
+const wrappedHandler = userProvidedNamedHandler ? Sentry.wrapMiddlewareWithSentry(userProvidedNamedHandler) : undefined;
+
+// Only export the named export that the user actually provided
+// This ensures Next.js sees the same export structure and can apply its renaming logic
+export const middleware = userProvidedMiddleware ? wrappedHandler : undefined;
+export const proxy = userProvidedProxy ? wrappedHandler : undefined;
 export default userProvidedDefaultHandler ? Sentry.wrapMiddlewareWithSentry(userProvidedDefaultHandler) : undefined;
 
 // Re-export anything exported by the page module we're wrapping. When processing this code, Rollup is smart enough to
