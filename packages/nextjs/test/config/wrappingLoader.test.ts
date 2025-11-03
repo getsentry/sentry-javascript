@@ -104,7 +104,7 @@ describe('wrappingLoader', () => {
   });
 
   describe('middleware wrapping', () => {
-    it('should only export "proxy" when user exports named "proxy" export', async () => {
+    it('should export proxy when user exports named "proxy" export', async () => {
       const callback = vi.fn();
 
       const userCode = `
@@ -141,22 +141,18 @@ describe('wrappingLoader', () => {
 
       const wrappedCode = callback.mock.calls[0][1];
 
-      // Verify both exports are present in the final export statement
+      // Verify both exports are present in export statement (Rollup bundles this way)
       expect(wrappedCode).toMatch(/export \{[^}]*\bmiddleware\b[^}]*\bproxy\b[^}]*\}/);
 
-      // Should wrap proxy (userProvidedProxy should be true)
+      // Should detect proxy export
       expect(wrappedCode).toContain('userProvidedProxy = true');
-      expect(wrappedCode).toContain('const proxy = userProvidedProxy && userProvidedNamedHandler');
 
-      // Should NOT wrap middleware (userProvidedMiddleware should remain false)
-      expect(wrappedCode).toContain('userProvidedMiddleware = false');
-      expect(wrappedCode).toContain('const middleware = userProvidedMiddleware && userProvidedNamedHandler');
-
-      // Verify wrapMiddlewareWithSentry is called in the ternary
-      expect(wrappedCode).toContain('Sentry.wrapMiddlewareWithSentry(userProvidedNamedHandler)');
+      // Proxy should be wrapped, middleware should be undefined
+      expect(wrappedCode).toMatch(/const proxy = userProvidedProxy \? wrappedHandler : undefined/);
+      expect(wrappedCode).toMatch(/const middleware = userProvidedMiddleware \? wrappedHandler : undefined/);
     });
 
-    it('should only export "middleware" when user exports named "middleware" export', async () => {
+    it('should export middleware when user exports named "middleware" export', async () => {
       const callback = vi.fn();
 
       const userCode = `
@@ -193,22 +189,18 @@ describe('wrappingLoader', () => {
 
       const wrappedCode = callback.mock.calls[0][1];
 
-      // Verify both exports are present in the final export statement
-      expect(wrappedCode).toMatch(/export \{[^}]*\bmiddleware\b[^}]*\bproxy\b[^}]*\}/);
-
-      // Should wrap middleware (userProvidedMiddleware should be true)
+      // Should detect middleware export
       expect(wrappedCode).toContain('userProvidedMiddleware = true');
-      expect(wrappedCode).toContain('const middleware = userProvidedMiddleware && userProvidedNamedHandler');
 
-      // Should NOT wrap proxy (userProvidedProxy should remain false)
+      // Should NOT detect proxy export
       expect(wrappedCode).toContain('userProvidedProxy = false');
-      expect(wrappedCode).toContain('const proxy = userProvidedProxy && userProvidedNamedHandler');
 
-      // Verify wrapMiddlewareWithSentry is called in the ternary
-      expect(wrappedCode).toContain('Sentry.wrapMiddlewareWithSentry(userProvidedNamedHandler)');
+      // Middleware should be wrapped, proxy should be undefined
+      expect(wrappedCode).toMatch(/const middleware = userProvidedMiddleware \? wrappedHandler : undefined/);
+      expect(wrappedCode).toMatch(/const proxy = userProvidedProxy \? wrappedHandler : undefined/);
     });
 
-    it('should not export named exports when user only exports default', async () => {
+    it('should export undefined middleware/proxy when user only exports default', async () => {
       const callback = vi.fn();
 
       const userCode = `
@@ -252,9 +244,9 @@ describe('wrappingLoader', () => {
       expect(wrappedCode).toContain('userProvidedMiddleware = false');
       expect(wrappedCode).toContain('userProvidedProxy = false');
 
-      // Both named exports should evaluate to undefined (false && handler = undefined)
-      expect(wrappedCode).toMatch(/const middleware = userProvidedMiddleware && userProvidedNamedHandler/);
-      expect(wrappedCode).toMatch(/const proxy = userProvidedProxy && userProvidedNamedHandler/);
+      // Both middleware and proxy should be undefined (conditionals evaluate to false)
+      expect(wrappedCode).toMatch(/const middleware = userProvidedMiddleware \? wrappedHandler : undefined/);
+      expect(wrappedCode).toMatch(/const proxy = userProvidedProxy \? wrappedHandler : undefined/);
     });
   });
 });
