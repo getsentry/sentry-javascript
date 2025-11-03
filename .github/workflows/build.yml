@@ -1008,8 +1008,12 @@ jobs:
           overwrite: true
           retention-days: 7
 
+      - name: See files
+        run: ls -la .
+
       - name: Pre-process E2E Test Dumps
         if: failure()
+        working-directory: ${{ github.workspace }}
         run: |
           node ./scripts/normalize-e2e-test-dump-transaction-events.js
 
@@ -1120,6 +1124,7 @@ jobs:
 
       - name: Pre-process E2E Test Dumps
         if: failure()
+        working-directory: ${{ github.workspace }}
         run: |
           node ./scripts/normalize-e2e-test-dump-transaction-events.js
 
