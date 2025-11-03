@@ -33,7 +33,11 @@ export function withSentry<
   Env = unknown,
   QueueHandlerMessage = unknown,
   CfHostMetadata = unknown,
-  T extends ExportedHandler<Env, QueueHandlerMessage, CfHostMetadata> = ExportedHandler<Env, QueueHandlerMessage, CfHostMetadata>,
+  T extends ExportedHandler<Env, QueueHandlerMessage, CfHostMetadata> = ExportedHandler<
+    Env,
+    QueueHandlerMessage,
+    CfHostMetadata
+  >,
 >(optionsCallback: (env: Env) => CloudflareOptions, handler: T): T {
   setAsyncLocalStorageAsyncContextStrategy();
 
