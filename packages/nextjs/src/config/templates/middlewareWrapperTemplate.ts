@@ -26,13 +26,17 @@ const userApiModule = origModule as NextApiModule;
 // the case Next.js wil crash during runtime but the Sentry SDK should definitely not crash so we need tohandle it.
 let userProvidedNamedHandler: EdgeRouteHandler | undefined = undefined;
 let userProvidedDefaultHandler: EdgeRouteHandler | undefined = undefined;
+let userProvidedMiddleware = false;
+let userProvidedProxy = false;
 
 if ('middleware' in userApiModule && typeof userApiModule.middleware === 'function') {
   // Handle when user defines via named ESM export: `export { middleware };`
   userProvidedNamedHandler = userApiModule.middleware;
+  userProvidedMiddleware = true;
 } else if ('proxy' in userApiModule && typeof userApiModule.proxy === 'function') {
   // Handle when user defines via named ESM export (Next.js 16): `export { proxy };`
   userProvidedNamedHandler = userApiModule.proxy;
+  userProvidedProxy = true;
 } else if ('default' in userApiModule && typeof userApiModule.default === 'function') {
   // Handle when user defines via ESM export: `export default myFunction;`
   userProvidedDefaultHandler = userApiModule.default;
@@ -41,10 +45,12 @@ if ('middleware' in userApiModule && typeof userApiModule.middleware === 'functi
   userProvidedDefaultHandler = userApiModule;
 }
 
-export const middleware = userProvidedNamedHandler
-  ? Sentry.wrapMiddlewareWithSentry(userProvidedNamedHandler)
-  : undefined;
-export const proxy = userProvidedNamedHandler ? Sentry.wrapMiddlewareWithSentry(userProvidedNamedHandler) : undefined;
+export const middleware =
+  userProvidedMiddleware && userProvidedNamedHandler
+    ? Sentry.wrapMiddlewareWithSentry(userProvidedNamedHandler)
+    : undefined;
+export const proxy =
+  userProvidedProxy && userProvidedNamedHandler ? Sentry.wrapMiddlewareWithSentry(userProvidedNamedHandler) : undefined;
 export default userProvidedDefaultHandler ? Sentry.wrapMiddlewareWithSentry(userProvidedDefaultHandler) : undefined;
 
 // Re-export anything exported by the page module we're wrapping. When processing this code, Rollup is smart enough to
