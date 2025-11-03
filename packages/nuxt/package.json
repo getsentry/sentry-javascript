@@ -28,7 +28,8 @@
         "import": "./build/esm/index.server.js",
         "require": "./build/cjs/index.server.js"
       },
-      "import": "./build/esm/index.server.js"
+      "import": "./build/esm/index.server.js",
+      "require": "./build/cjs/index.server.js"
     },
     "./module": {
       "types": "./build/module/types.d.ts",
