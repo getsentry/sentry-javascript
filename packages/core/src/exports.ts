@@ -15,6 +15,7 @@ import { isThenable } from './utils/is';
 import { uuid4 } from './utils/misc';
 import type { ExclusiveEventHintOrCaptureContext } from './utils/prepareEvent';
 import { parseEventHintOrCaptureContext } from './utils/prepareEvent';
+import { startSpan } from './tracing/trace';
 import { timestampInSeconds } from './utils/time';
 import { GLOBAL_OBJ } from './utils/worldwide';
 
@@ -167,6 +168,43 @@ export function withMonitor<T>(
   }
 
   return withIsolationScope(() => {
+    // If isolateTrace is enabled, start a new trace for this monitor execution
+    if (upsertMonitorConfig?.isolateTrace) {
+      return startSpan(
+        {
+          name: `monitor.${monitorSlug}`,
+          op: 'monitor',
+          forceTransaction: true,
+        },
+        () => {
+          let maybePromiseResult: T;
+          try {
+            maybePromiseResult = callback();
+          } catch (e) {
+            finishCheckIn('error');
+            throw e;
+          }
+
+          if (isThenable(maybePromiseResult)) {
+            return maybePromiseResult.then(
+              r => {
+                finishCheckIn('ok');
+                return r;
+              },
+              e => {
+                finishCheckIn('error');
+                throw e;
+              },
+            ) as T;
+          }
+          finishCheckIn('ok');
+
+          return maybePromiseResult;
+        },
+      );
+    }
+
+    // Default behavior without isolateTrace
     let maybePromiseResult: T;
     try {
       maybePromiseResult = callback();
