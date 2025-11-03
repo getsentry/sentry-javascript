@@ -163,7 +163,7 @@ describe('express tracing', () => {
       const runner = await createRunner()
         .expect({
           transaction: {
-            transaction: 'GET /test/arr/:id,/\\/test\\/arr[0-9]*\\/required(path)?(\\/optionalPath)?\\/(lastParam)?/',
+            transaction: 'GET /test/arr/:id,/\\/test\\/arr\\d*\\/required(path)?(\\/optionalPath)?\\/(lastParam)?/',
             transaction_info: {
               source: 'route',
             },
