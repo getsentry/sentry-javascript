@@ -33,7 +33,7 @@ body:
       required: false
   - type: dropdown
     attributes:
-      label: "Tip"
+      label: "Priority"
       description: Please keep the pre-filled option, which helps us manage issue prioritization.
       default: 0
       options:
