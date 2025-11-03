@@ -12,17 +12,38 @@ const DEFAULT_DSN = 'https://username@domain/123';
 const DEFAULT_SENTRY_ORG_SLUG = 'sentry-javascript-sdks';
 const DEFAULT_SENTRY_PROJECT = 'sentry-javascript-e2e-tests';
 
-function asyncExec(command: string, options: { env: Record<string, string | undefined>; cwd: string }): Promise<void> {
+function asyncExec(
+  command: string | string[],
+  options: { env: Record<string, string | undefined>; cwd: string },
+): Promise<void> {
   return new Promise((resolve, reject) => {
-    const process = spawn(command, { ...options, shell: true });
+    // If command is an array, use spawn with separate command and args (safer)
+    // If command is a string, maintain backward compatibility with shell: true
+    let process: ReturnType<typeof spawn>;
+    if (typeof command === 'string') {
+      process = spawn(command, { ...options, shell: true });
+    } else {
+      if (command.length === 0) {
+        return reject(new Error('Command array cannot be empty'));
+      }
+      const cmd = command[0];
+      if (!cmd) {
+        return reject(new Error('Command array cannot be empty'));
+      }
+      process = spawn(cmd, command.slice(1), { ...options, shell: false });
+    }
 
-    process.stdout.on('data', data => {
-      console.log(`${data}`);
-    });
+    if (process.stdout) {
+      process.stdout.on('data', data => {
+        console.log(`${data}`);
+      });
+    }
 
-    process.stderr.on('data', data => {
-      console.error(`${data}`);
-    });
+    if (process.stderr) {
+      process.stderr.on('data', data => {
+        console.error(`${data}`);
+      });
+    }
 
     process.on('error', error => {
       reject(error);
@@ -43,6 +64,8 @@ async function run(): Promise<void> {
 
   // Allow to run a single app only via `yarn test:run <app-name>`
   const appName = process.argv[2] || '';
+  // Forward any additional flags to the test command
+  const testFlags = process.argv.slice(3);
 
   const dsn = process.env.E2E_TEST_DSN || DEFAULT_DSN;
 
@@ -87,7 +110,9 @@ async function run(): Promise<void> {
       await asyncExec('volta run pnpm test:build', { env, cwd });
 
       console.log(`Testing ${testAppPath}...`);
-      await asyncExec('volta run pnpm test:assert', { env, cwd });
+      // Pass command and arguments as an array to prevent command injection
+      const testCommand = ['volta', 'run', 'pnpm', 'test:assert', ...testFlags];
+      await asyncExec(testCommand, { env, cwd });
 
       // clean up (although this is tmp, still nice to do)
       await rm(tmpDirPath, { recursive: true });
