@@ -27,6 +27,7 @@ export { vercelAIIntegration } from './integrations/tracing/vercelai';
 export { openAIIntegration } from './integrations/tracing/openai';
 export { anthropicAIIntegration } from './integrations/tracing/anthropic-ai';
 export { googleGenAIIntegration } from './integrations/tracing/google-genai';
+export { langChainIntegration } from './integrations/tracing/langchain';
 export {
   launchDarklyIntegration,
   buildLaunchDarklyFlagUsedHandler,
@@ -134,6 +135,7 @@ export {
   consoleIntegration,
   wrapMcpServerWithSentry,
   featureFlagsIntegration,
+  createLangChainCallbackHandler,
 } from '@sentry/core';
 
 export type {

@@ -80,7 +80,20 @@ describe('Integration | errorSampleRate', () => {
 
       captureException(new Error('testing'));
 
+      // session gets immediately marked as dirty since error will
+      // be linked to current session (replay) id. there's a possibility
+      // that replay never gets flushed so we must mark as dirty so we
+      // know to refresh session in the future.
+      expect(replay.recordingMode).toBe('buffer');
+      expect(replay.session?.dirty).toBe(true);
+
       await vi.advanceTimersToNextTimerAsync();
+      // need 2nd tick to wait for `saveSession` to complete in `handleGlobalEvents
+      await vi.advanceTimersToNextTimerAsync();
+
+      // dirty gets reset after replay is flushed
+      expect(replay.recordingMode).toBe('session');
+      expect(replay.session?.dirty).toBe(false);
 
       expect(replay).toHaveLastSentReplay({
         recordingPayloadHeader: { segment_id: 0 },
@@ -158,6 +171,7 @@ describe('Integration | errorSampleRate', () => {
           segmentId: 0,
           sampled: 'buffer',
           previousSessionId: 'previoussessionid',
+          dirty: false,
         }),
       }));
 
@@ -178,6 +192,8 @@ describe('Integration | errorSampleRate', () => {
       vi.advanceTimersByTime(DEFAULT_FLUSH_MIN_DELAY);
 
       captureException(new Error('testing'));
+      await vi.advanceTimersToNextTimerAsync();
+      // need 2nd tick to wait for `saveSession` to complete in `handleGlobalEvents
       await vi.advanceTimersToNextTimerAsync();
 
       // Converts to session mode
@@ -509,6 +525,8 @@ describe('Integration | errorSampleRate', () => {
       captureException(new Error('testing'));
 
       await vi.advanceTimersToNextTimerAsync();
+      // need 2nd tick to wait for `saveSession` to complete in `handleGlobalEvents
+      await vi.advanceTimersToNextTimerAsync();
 
       expect(replay).toHaveLastSentReplay({
         recordingPayloadHeader: { segment_id: 0 },
@@ -604,6 +622,8 @@ describe('Integration | errorSampleRate', () => {
       // should still react to errors later on
       captureException(new Error('testing'));
 
+      await vi.advanceTimersToNextTimerAsync();
+      // need 2nd tick to wait for `saveSession` to complete in `handleGlobalEvents
       await vi.advanceTimersToNextTimerAsync();
 
       expect(replay.session?.id).toBe(oldSessionId);
@@ -739,7 +759,8 @@ describe('Integration | errorSampleRate', () => {
       captureException(new Error('testing'));
 
       await vi.advanceTimersToNextTimerAsync();
-      // await vi.advanceTimersToNextTimerAsync();
+      // need 2nd tick to wait for `saveSession` to complete in `handleGlobalEvents
+      await vi.advanceTimersToNextTimerAsync();
 
       // This is still the timestamp from the full snapshot we took earlier
       expect(replay.session?.started).toBe(BASE_TIMESTAMP + ELAPSED);

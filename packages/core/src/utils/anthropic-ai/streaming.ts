@@ -59,7 +59,7 @@ function isErrorEvent(event: AnthropicAiStreamingEvent, span: Span): boolean {
     // If the event is an error, set the span status and capture the error
     // These error events are not rejected by the API by default, but are sent as metadata of the response
     if (event.type === 'error') {
-      span.setStatus({ code: SPAN_STATUS_ERROR, message: event.error?.type ?? 'unknown_error' });
+      span.setStatus({ code: SPAN_STATUS_ERROR, message: event.error?.type ?? 'internal_error' });
       captureException(event.error, {
         mechanism: {
           handled: false,

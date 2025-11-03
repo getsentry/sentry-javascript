@@ -13,6 +13,7 @@ import { hapiIntegration, instrumentHapi } from './hapi';
 import { honoIntegration, instrumentHono } from './hono';
 import { instrumentKafka, kafkaIntegration } from './kafka';
 import { instrumentKoa, koaIntegration } from './koa';
+import { instrumentLangChain, langChainIntegration } from './langchain';
 import { instrumentLruMemoizer, lruMemoizerIntegration } from './lrumemoizer';
 import { instrumentMongo, mongoIntegration } from './mongo';
 import { instrumentMongoose, mongooseIntegration } from './mongoose';
@@ -56,6 +57,7 @@ export function getAutoPerformanceIntegrations(): Integration[] {
     firebaseIntegration(),
     anthropicAIIntegration(),
     googleGenAIIntegration(),
+    langChainIntegration(),
   ];
 }
 
@@ -93,5 +95,6 @@ export function getOpenTelemetryInstrumentationToPreload(): (((options?: any) =>
     instrumentFirebase,
     instrumentAnthropicAi,
     instrumentGoogleGenAI,
+    instrumentLangChain,
   ];
 }

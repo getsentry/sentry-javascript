@@ -29,7 +29,7 @@ export async function storeFormDataKeys(
 
       if (formDataKeys?.[key]) {
         if (typeof formDataKeys[key] === 'string') {
-          attrKey = formDataKeys[key] as string;
+          attrKey = formDataKeys[key];
         }
 
         span.setAttribute(

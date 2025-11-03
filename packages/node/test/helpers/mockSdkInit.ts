@@ -61,7 +61,7 @@ export function getSpanProcessor(): SentrySpanProcessor | undefined {
 
   const spanProcessor = multiSpanProcessor?.['_spanProcessors']?.find(
     (spanProcessor: SpanProcessor) => spanProcessor instanceof SentrySpanProcessor,
-  ) as SentrySpanProcessor | undefined;
+  );
 
   return spanProcessor;
 }

@@ -149,7 +149,7 @@ function applyDebugMeta(event: Event, debugImages: Record<string, string>): void
     for (const frame of exception.stacktrace?.frames || []) {
       const filename = stripFileProtocol(frame.abs_path || frame.filename);
       if (filename && normalisedDebugImages[filename]) {
-        filenameToDebugId.set(filename, normalisedDebugImages[filename] as string);
+        filenameToDebugId.set(filename, normalisedDebugImages[filename]);
       }
     }
   }
@@ -158,7 +158,7 @@ function applyDebugMeta(event: Event, debugImages: Record<string, string>): void
     for (const frame of thread.stacktrace?.frames || []) {
       const filename = stripFileProtocol(frame.abs_path || frame.filename);
       if (filename && normalisedDebugImages[filename]) {
-        filenameToDebugId.set(filename, normalisedDebugImages[filename] as string);
+        filenameToDebugId.set(filename, normalisedDebugImages[filename]);
       }
     }
   }

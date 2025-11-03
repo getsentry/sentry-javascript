@@ -18,7 +18,7 @@ describe('consola integration', () => {
               severity_number: expect.any(Number),
               trace_id: expect.any(String),
               attributes: {
-                'sentry.origin': { value: 'auto.logging.consola', type: 'string' },
+                'sentry.origin': { value: 'auto.log.consola', type: 'string' },
                 'sentry.release': { value: '1.0.0', type: 'string' },
                 'sentry.environment': { value: 'test', type: 'string' },
                 'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
@@ -35,7 +35,7 @@ describe('consola integration', () => {
               severity_number: expect.any(Number),
               trace_id: expect.any(String),
               attributes: {
-                'sentry.origin': { value: 'auto.logging.consola', type: 'string' },
+                'sentry.origin': { value: 'auto.log.consola', type: 'string' },
                 'sentry.release': { value: '1.0.0', type: 'string' },
                 'sentry.environment': { value: 'test', type: 'string' },
                 'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
@@ -52,7 +52,7 @@ describe('consola integration', () => {
               severity_number: expect.any(Number),
               trace_id: expect.any(String),
               attributes: {
-                'sentry.origin': { value: 'auto.logging.consola', type: 'string' },
+                'sentry.origin': { value: 'auto.log.consola', type: 'string' },
                 'sentry.release': { value: '1.0.0', type: 'string' },
                 'sentry.environment': { value: 'test', type: 'string' },
                 'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
@@ -83,7 +83,7 @@ describe('consola integration', () => {
               severity_number: expect.any(Number),
               trace_id: expect.any(String),
               attributes: {
-                'sentry.origin': { value: 'auto.logging.consola', type: 'string' },
+                'sentry.origin': { value: 'auto.log.consola', type: 'string' },
                 'sentry.release': { value: '1.0.0', type: 'string' },
                 'sentry.environment': { value: 'test', type: 'string' },
                 'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
@@ -100,7 +100,7 @@ describe('consola integration', () => {
               severity_number: expect.any(Number),
               trace_id: expect.any(String),
               attributes: {
-                'sentry.origin': { value: 'auto.logging.consola', type: 'string' },
+                'sentry.origin': { value: 'auto.log.consola', type: 'string' },
                 'sentry.release': { value: '1.0.0', type: 'string' },
                 'sentry.environment': { value: 'test', type: 'string' },
                 'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
@@ -117,7 +117,7 @@ describe('consola integration', () => {
               severity_number: expect.any(Number),
               trace_id: expect.any(String),
               attributes: {
-                'sentry.origin': { value: 'auto.logging.consola', type: 'string' },
+                'sentry.origin': { value: 'auto.log.consola', type: 'string' },
                 'sentry.release': { value: '1.0.0', type: 'string' },
                 'sentry.environment': { value: 'test', type: 'string' },
                 'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
@@ -135,7 +135,7 @@ describe('consola integration', () => {
               severity_number: expect.any(Number),
               trace_id: expect.any(String),
               attributes: {
-                'sentry.origin': { value: 'auto.logging.consola', type: 'string' },
+                'sentry.origin': { value: 'auto.log.consola', type: 'string' },
                 'sentry.release': { value: '1.0.0', type: 'string' },
                 'sentry.environment': { value: 'test', type: 'string' },
                 'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
@@ -152,7 +152,7 @@ describe('consola integration', () => {
               severity_number: expect.any(Number),
               trace_id: expect.any(String),
               attributes: {
-                'sentry.origin': { value: 'auto.logging.consola', type: 'string' },
+                'sentry.origin': { value: 'auto.log.consola', type: 'string' },
                 'sentry.release': { value: '1.0.0', type: 'string' },
                 'sentry.environment': { value: 'test', type: 'string' },
                 'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
@@ -169,7 +169,7 @@ describe('consola integration', () => {
               severity_number: expect.any(Number),
               trace_id: expect.any(String),
               attributes: {
-                'sentry.origin': { value: 'auto.logging.consola', type: 'string' },
+                'sentry.origin': { value: 'auto.log.consola', type: 'string' },
                 'sentry.release': { value: '1.0.0', type: 'string' },
                 'sentry.environment': { value: 'test', type: 'string' },
                 'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
@@ -186,7 +186,7 @@ describe('consola integration', () => {
               severity_number: expect.any(Number),
               trace_id: expect.any(String),
               attributes: {
-                'sentry.origin': { value: 'auto.logging.consola', type: 'string' },
+                'sentry.origin': { value: 'auto.log.consola', type: 'string' },
                 'sentry.release': { value: '1.0.0', type: 'string' },
                 'sentry.environment': { value: 'test', type: 'string' },
                 'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
@@ -203,7 +203,7 @@ describe('consola integration', () => {
               severity_number: expect.any(Number),
               trace_id: expect.any(String),
               attributes: {
-                'sentry.origin': { value: 'auto.logging.consola', type: 'string' },
+                'sentry.origin': { value: 'auto.log.consola', type: 'string' },
                 'sentry.release': { value: '1.0.0', type: 'string' },
                 'sentry.environment': { value: 'test', type: 'string' },
                 'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
@@ -220,7 +220,7 @@ describe('consola integration', () => {
               severity_number: expect.any(Number),
               trace_id: expect.any(String),
               attributes: {
-                'sentry.origin': { value: 'auto.logging.consola', type: 'string' },
+                'sentry.origin': { value: 'auto.log.consola', type: 'string' },
                 'sentry.release': { value: '1.0.0', type: 'string' },
                 'sentry.environment': { value: 'test', type: 'string' },
                 'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
@@ -236,7 +236,7 @@ describe('consola integration', () => {
               severity_number: expect.any(Number),
               trace_id: expect.any(String),
               attributes: {
-                'sentry.origin': { value: 'auto.logging.consola', type: 'string' },
+                'sentry.origin': { value: 'auto.log.consola', type: 'string' },
                 'sentry.release': { value: '1.0.0', type: 'string' },
                 'sentry.environment': { value: 'test', type: 'string' },
                 'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
@@ -253,7 +253,7 @@ describe('consola integration', () => {
               severity_number: expect.any(Number),
               trace_id: expect.any(String),
               attributes: {
-                'sentry.origin': { value: 'auto.logging.consola', type: 'string' },
+                'sentry.origin': { value: 'auto.log.consola', type: 'string' },
                 'sentry.release': { value: '1.0.0', type: 'string' },
                 'sentry.environment': { value: 'test', type: 'string' },
                 'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
@@ -283,7 +283,7 @@ describe('consola integration', () => {
               severity_number: expect.any(Number),
               trace_id: expect.any(String),
               attributes: {
-                'sentry.origin': { value: 'auto.logging.consola', type: 'string' },
+                'sentry.origin': { value: 'auto.log.consola', type: 'string' },
                 'sentry.release': { value: '1.0.0', type: 'string' },
                 'sentry.environment': { value: 'test', type: 'string' },
                 'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
@@ -300,7 +300,7 @@ describe('consola integration', () => {
               severity_number: expect.any(Number),
               trace_id: expect.any(String),
               attributes: {
-                'sentry.origin': { value: 'auto.logging.consola', type: 'string' },
+                'sentry.origin': { value: 'auto.log.consola', type: 'string' },
                 'sentry.release': { value: '1.0.0', type: 'string' },
                 'sentry.environment': { value: 'test', type: 'string' },
                 'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
@@ -342,7 +342,7 @@ describe('consola integration', () => {
               severity_number: expect.any(Number),
               trace_id: expect.any(String),
               attributes: {
-                'sentry.origin': { value: 'auto.logging.consola', type: 'string' },
+                'sentry.origin': { value: 'auto.log.consola', type: 'string' },
                 'sentry.release': { value: '1.0.0', type: 'string' },
                 'sentry.environment': { value: 'test', type: 'string' },
                 'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
@@ -360,7 +360,7 @@ describe('consola integration', () => {
               severity_number: expect.any(Number),
               trace_id: expect.any(String),
               attributes: {
-                'sentry.origin': { value: 'auto.logging.consola', type: 'string' },
+                'sentry.origin': { value: 'auto.log.consola', type: 'string' },
                 'sentry.release': { value: '1.0.0', type: 'string' },
                 'sentry.environment': { value: 'test', type: 'string' },
                 'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
@@ -392,7 +392,7 @@ describe('consola integration', () => {
               severity_number: expect.any(Number),
               trace_id: expect.any(String),
               attributes: {
-                'sentry.origin': { value: 'auto.logging.consola', type: 'string' },
+                'sentry.origin': { value: 'auto.log.consola', type: 'string' },
                 'sentry.release': { value: '1.0.0', type: 'string' },
                 'sentry.environment': { value: 'test', type: 'string' },
                 'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
@@ -410,7 +410,7 @@ describe('consola integration', () => {
               severity_number: expect.any(Number),
               trace_id: expect.any(String),
               attributes: {
-                'sentry.origin': { value: 'auto.logging.consola', type: 'string' },
+                'sentry.origin': { value: 'auto.log.consola', type: 'string' },
                 'sentry.release': { value: '1.0.0', type: 'string' },
                 'sentry.environment': { value: 'test', type: 'string' },
                 'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
@@ -440,7 +440,7 @@ describe('consola integration', () => {
               severity_number: expect.any(Number),
               trace_id: expect.any(String),
               attributes: {
-                'sentry.origin': { value: 'auto.logging.consola', type: 'string' },
+                'sentry.origin': { value: 'auto.log.consola', type: 'string' },
                 'sentry.release': { value: '1.0.0', type: 'string' },
                 'sentry.environment': { value: 'test', type: 'string' },
                 'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
@@ -457,7 +457,7 @@ describe('consola integration', () => {
               severity_number: expect.any(Number),
               trace_id: expect.any(String),
               attributes: {
-                'sentry.origin': { value: 'auto.logging.consola', type: 'string' },
+                'sentry.origin': { value: 'auto.log.consola', type: 'string' },
                 'sentry.release': { value: '1.0.0', type: 'string' },
                 'sentry.environment': { value: 'test', type: 'string' },
                 'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
@@ -474,7 +474,7 @@ describe('consola integration', () => {
               severity_number: expect.any(Number),
               trace_id: expect.any(String),
               attributes: {
-                'sentry.origin': { value: 'auto.logging.consola', type: 'string' },
+                'sentry.origin': { value: 'auto.log.consola', type: 'string' },
                 'sentry.release': { value: '1.0.0', type: 'string' },
                 'sentry.environment': { value: 'test', type: 'string' },
                 'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },

@@ -29,10 +29,16 @@ import { copyExecutionContext } from './utils/copyExecutionContext';
  * @returns The wrapped handler.
  */
 // eslint-disable-next-line complexity
-export function withSentry<Env = unknown, QueueHandlerMessage = unknown, CfHostMetadata = unknown>(
-  optionsCallback: (env: Env) => CloudflareOptions,
-  handler: ExportedHandler<Env, QueueHandlerMessage, CfHostMetadata>,
-): ExportedHandler<Env, QueueHandlerMessage, CfHostMetadata> {
+export function withSentry<
+  Env = unknown,
+  QueueHandlerMessage = unknown,
+  CfHostMetadata = unknown,
+  T extends ExportedHandler<Env, QueueHandlerMessage, CfHostMetadata> = ExportedHandler<
+    Env,
+    QueueHandlerMessage,
+    CfHostMetadata
+  >,
+>(optionsCallback: (env: Env) => CloudflareOptions, handler: T): T {
   setAsyncLocalStorageAsyncContextStrategy();
 
   try {

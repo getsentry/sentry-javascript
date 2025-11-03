@@ -13,6 +13,7 @@ describe('catchall', () => {
           path: '/:path*?',
           regex: '^/(.*)$',
           paramNames: ['path'],
+          hasOptionalPrefix: false,
         },
       ],
     });

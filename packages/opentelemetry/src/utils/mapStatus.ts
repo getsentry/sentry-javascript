@@ -56,7 +56,7 @@ export function mapStatus(span: AbstractSpan): SpanStatus {
       if (status.message && isStatusErrorMessageValid(status.message)) {
         return { code: SPAN_STATUS_ERROR, message: status.message };
       } else {
-        return { code: SPAN_STATUS_ERROR, message: 'unknown_error' };
+        return { code: SPAN_STATUS_ERROR, message: 'internal_error' };
       }
     }
   }

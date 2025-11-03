@@ -5,6 +5,7 @@
 
   "compilerOptions": {
     "lib": ["es2020"],
-    "module": "Node16"
+    "module": "Node16",
+    "moduleResolution": "Node16"
   }
 }

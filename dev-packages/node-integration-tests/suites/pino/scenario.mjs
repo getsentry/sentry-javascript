@@ -17,7 +17,8 @@ Sentry.withIsolationScope(() => {
 setTimeout(() => {
   Sentry.withIsolationScope(() => {
     Sentry.startSpan({ name: 'later' }, () => {
-      logger.error(new Error('oh no'));
+      const child = logger.child({ module: 'authentication' });
+      child.error(new Error('oh no'));
     });
   });
 }, 1000);

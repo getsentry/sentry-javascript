@@ -14,6 +14,7 @@ import {
 } from '@sentry/core';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { defineNitroPlugin, useStorage } from 'nitropack/runtime';
+import type { CacheEntry, ResponseCacheEntry } from 'nitropack/types';
 import type { Driver, Storage } from 'unstorage';
 // @ts-expect-error - This is a virtual module
 import { userStorageMounts } from '#sentry/storage-config.mjs';
@@ -41,6 +42,14 @@ export default defineNitroPlugin(async _nitroApp => {
   const userMounts = new Set((userStorageMounts as string[]).map(m => `${m}:`));
 
   debug.log('[storage] Starting to instrument storage drivers...');
+
+  // Adds cache mount to handle Nitro's cache calls
+  // Nitro uses the mount to cache functions and event handlers
+  // https://nitro.build/guide/cache
+  userMounts.add('cache:');
+  // In production, unless the user configured a specific cache driver, Nitro will use the memory driver at root mount.
+  // Either way, we need to instrument the root mount as well.
+  userMounts.add('');
 
   // Get all mounted storage drivers
   const mounts = storage.getMounts();
@@ -123,7 +132,7 @@ function createMethodWrapper(
           span.setStatus({ code: SPAN_STATUS_OK });
 
           if (CACHE_HIT_METHODS.has(methodName)) {
-            span.setAttribute(SEMANTIC_ATTRIBUTE_CACHE_HIT, !isEmptyValue(result));
+            span.setAttribute(SEMANTIC_ATTRIBUTE_CACHE_HIT, isCacheHit(args[0], result));
           }
 
           return result;
@@ -177,7 +186,7 @@ function normalizeMethodName(methodName: string): string {
 /**
  * Checks if the value is empty, used for cache hit detection.
  */
-function isEmptyValue(value: unknown): boolean {
+function isEmptyValue(value: unknown): value is null | undefined {
   return value === null || value === undefined;
 }
 
@@ -233,4 +242,73 @@ function normalizeKey(key: unknown, prefix: string): string {
   }
 
   return `${prefix}${isEmptyValue(key) ? '' : String(key)}`;
+}
+
+const CACHED_FN_HANDLERS_RE = /^nitro:(functions|handlers):/i;
+
+/**
+ * Since Nitro's cache may not utilize the driver's TTL, it is possible that the value is present in the cache but won't be used by Nitro.
+ * The maxAge and expires values are serialized by Nitro in the cache entry. This means the value presence does not necessarily mean a cache hit.
+ * So in order to properly report cache hits for `defineCachedFunction` and `defineCachedEventHandler` we need to check the cached value ourselves.
+ * First we check if the key matches the `defineCachedFunction` or `defineCachedEventHandler` key patterns, and if so we check the cached value.
+ */
+function isCacheHit(key: string, value: unknown): boolean {
+  try {
+    const isEmpty = isEmptyValue(value);
+    // Empty value means no cache hit either way
+    // Or if key doesn't match the cached function or handler patterns, we can return the empty value check
+    if (isEmpty || !CACHED_FN_HANDLERS_RE.test(key)) {
+      return !isEmpty;
+    }
+
+    return validateCacheEntry(key, JSON.parse(String(value)) as CacheEntry);
+  } catch (error) {
+    // this is a best effort, so we return false if we can't validate the cache entry
+    return false;
+  }
+}
+
+/**
+ * Validates the cache entry.
+ */
+function validateCacheEntry(
+  key: string,
+  entry: CacheEntry | CacheEntry<ResponseCacheEntry & { status: number }>,
+): boolean {
+  if (isEmptyValue(entry.value)) {
+    return false;
+  }
+
+  // Date.now is used by Nitro internally, so safe to use here.
+  // https://github.com/nitrojs/nitro/blob/5508f71b77730e967fb131de817725f5aa7c4862/src/runtime/internal/cache.ts#L78
+  if (Date.now() > (entry.expires || 0)) {
+    return false;
+  }
+
+  /**
+   * Pulled from Nitro's cache entry validation
+   * https://github.com/nitrojs/nitro/blob/5508f71b77730e967fb131de817725f5aa7c4862/src/runtime/internal/cache.ts#L223-L241
+   */
+  if (isResponseCacheEntry(key, entry)) {
+    if (entry.value.status >= 400) {
+      return false;
+    }
+
+    if (entry.value.body === undefined) {
+      return false;
+    }
+
+    if (entry.value.headers.etag === 'undefined' || entry.value.headers['last-modified'] === 'undefined') {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+/**
+ * Checks if the cache entry is a response cache entry.
+ */
+function isResponseCacheEntry(key: string, _: CacheEntry): _ is CacheEntry<ResponseCacheEntry & { status: number }> {
+  return key.startsWith('nitro:handlers:');
 }

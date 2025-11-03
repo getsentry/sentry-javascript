@@ -5,6 +5,7 @@
 
   "compilerOptions": {
     "lib": ["ES2020", "ES2021.WeakRef"],
-    "module": "Node16"
+    "module": "Node16",
+    "moduleResolution": "Node16"
   }
 }

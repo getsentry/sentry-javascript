@@ -25,6 +25,17 @@ export async function sentryCaptureErrorHook(error: Error, errorContext: Capture
     if (error.statusCode >= 300 && error.statusCode < 500) {
       return;
     }
+
+    // Check if the cause (original error) was already captured by middleware instrumentation
+    // H3 wraps errors, so we need to check the cause property
+    if (
+      'cause' in error &&
+      typeof error.cause === 'object' &&
+      error.cause !== null &&
+      '__sentry_captured__' in error.cause
+    ) {
+      return;
+    }
   }
 
   const { method, path } = {

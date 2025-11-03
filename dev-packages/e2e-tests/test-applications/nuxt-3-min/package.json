@@ -27,7 +27,6 @@
   },
   "pnpm": {
     "overrides": {
-      "nitropack": "2.10.0",
       "ofetch": "1.4.0",
       "@vercel/nft": "0.29.4"
     }

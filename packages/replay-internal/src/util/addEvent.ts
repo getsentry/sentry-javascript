@@ -83,6 +83,14 @@ async function _addEvent(
   } catch (error) {
     const isExceeded = error && error instanceof EventBufferSizeExceededError;
     const reason = isExceeded ? 'addEventSizeExceeded' : 'addEvent';
+    const client = getClient();
+
+    if (client) {
+      // We are limited in the drop reasons:
+      // https://github.com/getsentry/snuba/blob/6c73be60716c2fb1c30ca627883207887c733cbd/rust_snuba/src/processors/outcomes.rs#L39
+      const dropReason = isExceeded ? 'buffer_overflow' : 'internal_sdk_error';
+      client.recordDroppedEvent(dropReason, 'replay');
+    }
 
     if (isExceeded && isBufferMode) {
       // Clear buffer and wait for next checkout
@@ -95,12 +103,6 @@ async function _addEvent(
     replay.handleException(error);
 
     await replay.stop({ reason });
-
-    const client = getClient();
-
-    if (client) {
-      client.recordDroppedEvent('internal_sdk_error', 'replay');
-    }
   }
 }
 

@@ -339,7 +339,7 @@ test('API route transaction includes nest pipe span for invalid request', async 
           parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
           start_timestamp: expect.any(Number),
           timestamp: expect.any(Number),
-          status: 'unknown_error',
+          status: 'internal_error',
           op: 'middleware.nestjs',
           origin: 'auto.middleware.nestjs',
         },

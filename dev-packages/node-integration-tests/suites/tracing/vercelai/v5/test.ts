@@ -499,7 +499,7 @@ describe('Vercel AI integration (V5)', () => {
               description: 'execute_tool getWeather',
               op: 'gen_ai.execute_tool',
               origin: 'auto.vercelai.otel',
-              status: 'unknown_error',
+              status: 'internal_error',
             }),
           ]),
         };

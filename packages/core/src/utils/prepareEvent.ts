@@ -132,7 +132,7 @@ export function prepareEvent(
  * @param event event instance to be enhanced
  */
 export function applyClientOptions(event: Event, options: ClientOptions): void {
-  const { environment, release, dist, maxValueLength = 250 } = options;
+  const { environment, release, dist, maxValueLength } = options;
 
   // empty strings do not make sense for environment, release, and dist
   // so we handle them the same as if they were not provided
@@ -148,7 +148,7 @@ export function applyClientOptions(event: Event, options: ClientOptions): void {
 
   const request = event.request;
   if (request?.url) {
-    request.url = truncate(request.url, maxValueLength);
+    request.url = maxValueLength ? truncate(request.url, maxValueLength) : request.url;
   }
 }
 

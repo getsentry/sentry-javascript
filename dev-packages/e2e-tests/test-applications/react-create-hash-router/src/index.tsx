@@ -11,6 +11,7 @@ import {
 } from 'react-router-dom';
 import Index from './pages/Index';
 import User from './pages/User';
+import Group from './pages/Group';
 
 const replay = Sentry.replayIntegration();
 
@@ -51,6 +52,31 @@ const router = sentryCreateHashRouter([
   {
     path: '/user/:id',
     element: <User />,
+  },
+  {
+    path: '/group/:group/:user?',
+    element: <Group />,
+  },
+  {
+    path: '/v1/post/:post',
+    element: <div />,
+    children: [
+      { path: 'featured', element: <div /> },
+      { path: '/v1/post/:post/related', element: <div /> },
+      {
+        element: <div>More Nested Children</div>,
+        children: [{ path: 'edit', element: <div>Edit Post</div> }],
+      },
+    ],
+  },
+  {
+    path: '/v2/post/:post',
+    element: <div />,
+    children: [
+      { index: true, element: <div /> },
+      { path: 'featured', element: <div /> },
+      { path: '/v2/post/:post/related', element: <div /> },
+    ],
   },
 ]);
 

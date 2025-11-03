@@ -110,7 +110,7 @@ function applyDebugMeta(event: Event): void {
     for (const frame of exception.stacktrace?.frames || []) {
       const filename = frame.abs_path || frame.filename;
       if (filename && normalisedDebugImages[filename]) {
-        filenameToDebugId.set(filename, normalisedDebugImages[filename] as string);
+        filenameToDebugId.set(filename, normalisedDebugImages[filename]);
       }
     }
   }

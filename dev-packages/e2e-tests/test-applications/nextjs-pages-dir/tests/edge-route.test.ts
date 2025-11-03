@@ -48,7 +48,7 @@ test('Faulty edge routes', async ({ request }) => {
   ]);
 
   test.step('should create transactions with the right fields', () => {
-    expect(edgerouteTransaction.contexts?.trace?.status).toBe('unknown_error');
+    expect(edgerouteTransaction.contexts?.trace?.status).toBe('internal_error');
     expect(edgerouteTransaction.contexts?.trace?.op).toBe('http.server');
   });
 

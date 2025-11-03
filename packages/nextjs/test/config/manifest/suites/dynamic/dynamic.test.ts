@@ -13,21 +13,25 @@ describe('dynamic', () => {
           path: '/dynamic/:id',
           regex: '^/dynamic/([^/]+)$',
           paramNames: ['id'],
+          hasOptionalPrefix: false,
         },
         {
           path: '/users/:id',
           regex: '^/users/([^/]+)$',
           paramNames: ['id'],
+          hasOptionalPrefix: false,
         },
         {
           path: '/users/:id/posts/:postId',
           regex: '^/users/([^/]+)/posts/([^/]+)$',
           paramNames: ['id', 'postId'],
+          hasOptionalPrefix: false,
         },
         {
           path: '/users/:id/settings',
           regex: '^/users/([^/]+)/settings$',
           paramNames: ['id'],
+          hasOptionalPrefix: false,
         },
       ],
     });

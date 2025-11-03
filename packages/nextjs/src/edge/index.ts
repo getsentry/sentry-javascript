@@ -1,5 +1,8 @@
+import { context } from '@opentelemetry/api';
 import {
   applySdkMetadata,
+  getCapturedScopesOnSpan,
+  getCurrentScope,
   getGlobalScope,
   getIsolationScope,
   getRootSpan,
@@ -8,10 +11,12 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  setCapturedScopesOnSpan,
   spanToJSON,
   stripUrlQueryAndFragment,
   vercelWaitUntil,
 } from '@sentry/core';
+import { getScopesFromContext } from '@sentry/opentelemetry';
 import type { VercelEdgeOptions } from '@sentry/vercel-edge';
 import { getDefaultIntegrations, init as vercelEdgeInit } from '@sentry/vercel-edge';
 import { addHeadersAsAttributes } from '../common/utils/addHeadersAsAttributes';
@@ -73,6 +78,19 @@ export function init(options: VercelEdgeOptions = {}): void {
     if (spanAttributes?.['next.span_type'] === 'Middleware.execute') {
       span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'http.server.middleware');
       span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'url');
+
+      if (isRootSpan) {
+        // Fork isolation scope for middleware requests
+        const scopes = getCapturedScopesOnSpan(span);
+        const isolationScope = (scopes.isolationScope || getIsolationScope()).clone();
+        const scope = scopes.scope || getCurrentScope();
+        const currentScopesPointer = getScopesFromContext(context.active());
+        if (currentScopesPointer) {
+          currentScopesPointer.isolationScope = isolationScope;
+        }
+
+        setCapturedScopesOnSpan(span, scope, isolationScope);
+      }
     }
 
     if (isRootSpan) {
@@ -93,7 +111,19 @@ export function init(options: VercelEdgeOptions = {}): void {
       event.contexts?.trace?.data?.['next.span_name']
     ) {
       if (event.transaction) {
-        event.transaction = stripUrlQueryAndFragment(event.contexts.trace.data['next.span_name']);
+        // Older nextjs versions pass the full url appended to the middleware name, which results in high cardinality transaction names.
+        // We want to remove the url from the name here.
+        const spanName = event.contexts.trace.data['next.span_name'];
+
+        if (typeof spanName === 'string') {
+          const match = spanName.match(/^middleware (GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS)/);
+          if (match) {
+            const normalizedName = `middleware ${match[1]}`;
+            event.transaction = normalizedName;
+          } else {
+            event.transaction = stripUrlQueryAndFragment(event.contexts.trace.data['next.span_name']);
+          }
+        }
       }
     }
   });

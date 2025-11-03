@@ -105,7 +105,7 @@ export function getDebugImagesForResources(
       images.push({
         type: 'sourcemap',
         code_file: path,
-        debug_id: filenameDebugIdMap[path] as string,
+        debug_id: filenameDebugIdMap[path],
       });
     }
   }

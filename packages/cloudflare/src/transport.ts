@@ -4,8 +4,6 @@ import { createTransport, SENTRY_BUFFER_FULL_ERROR, suppressTracing } from '@sen
 export interface CloudflareTransportOptions extends BaseTransportOptions {
   /** Fetch API init parameters. */
   fetchOptions?: RequestInit;
-  /** Custom headers for the transport. */
-  headers?: { [key: string]: string };
 }
 
 const DEFAULT_TRANSPORT_BUFFER_SIZE = 30;

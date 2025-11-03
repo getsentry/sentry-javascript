@@ -8,7 +8,7 @@ import type { NodeClientOptions } from '../types';
 
 const INTEGRATION_NAME = 'NodeFetch';
 
-interface NodeFetchOptions {
+interface NodeFetchOptions extends Pick<UndiciInstrumentationConfig, 'requestHook' | 'responseHook'> {
   /**
    * Whether breadcrumbs should be recorded for requests.
    * Defaults to true
@@ -106,6 +106,8 @@ function getConfigWithDefaults(options: Partial<NodeFetchOptions> = {}): UndiciI
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.otel.node_fetch',
       };
     },
+    requestHook: options.requestHook,
+    responseHook: options.responseHook,
   } satisfies UndiciInstrumentationConfig;
 
   return instrumentationConfig;

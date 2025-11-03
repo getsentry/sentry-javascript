@@ -16,7 +16,7 @@ interface CaptureConsoleOptions {
 const INTEGRATION_NAME = 'ConsoleLogs';
 
 const DEFAULT_ATTRIBUTES = {
-  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.console.logging',
+  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.log.console',
 };
 
 const _consoleLoggingIntegration = ((options: Partial<CaptureConsoleOptions> = {}) => {

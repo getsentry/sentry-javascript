@@ -39,7 +39,7 @@ export function initCloudflareSentryHandle(options: CloudflareOptions): Handle {
       return wrapRequestHandler(
         {
           options: opts,
-          request: event.request as Request<unknown, IncomingRequestCfProperties<unknown>>,
+          request: event.request,
           // @ts-expect-error This will exist in Cloudflare
           context: event.platform.context,
           // We don't want to capture errors here, as we want to capture them in the `sentryHandle` handler

@@ -1168,6 +1168,7 @@ jobs:
         job_lint,
         job_check_format,
         job_circular_dep_check,
+        job_size_check,
       ]
     # Always run this, even if a dependent job failed
     if: always()

@@ -75,7 +75,7 @@ describe('Google GenAI integration', () => {
         description: 'models error-model',
         op: 'gen_ai.models',
         origin: 'auto.ai.google_genai',
-        status: 'unknown_error',
+        status: 'internal_error',
       }),
     ]),
   };
@@ -155,7 +155,7 @@ describe('Google GenAI integration', () => {
         description: 'models error-model',
         op: 'gen_ai.models',
         origin: 'auto.ai.google_genai',
-        status: 'unknown_error',
+        status: 'internal_error',
       }),
     ]),
   };
@@ -351,7 +351,7 @@ describe('Google GenAI integration', () => {
         description: 'models blocked-model stream-response',
         op: 'gen_ai.models',
         origin: 'auto.ai.google_genai',
-        status: 'unknown_error',
+        status: 'internal_error',
       }),
       // Fifth span - error handling for streaming
       expect.objectContaining({
@@ -450,7 +450,7 @@ describe('Google GenAI integration', () => {
         description: 'models blocked-model stream-response',
         op: 'gen_ai.models',
         origin: 'auto.ai.google_genai',
-        status: 'unknown_error',
+        status: 'internal_error',
       }),
       // Fifth span - error handling for streaming with PII
       expect.objectContaining({
@@ -486,4 +486,42 @@ describe('Google GenAI integration', () => {
         .completed();
     });
   });
+
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-message-truncation.mjs',
+    'instrument-with-pii.mjs',
+    (createRunner, test) => {
+      test('truncates messages when they exceed byte limit - keeps only last message and crops it', async () => {
+        await createRunner()
+          .ignore('event')
+          .expect({
+            transaction: {
+              transaction: 'main',
+              spans: expect.arrayContaining([
+                expect.objectContaining({
+                  data: expect.objectContaining({
+                    'gen_ai.operation.name': 'models',
+                    'sentry.op': 'gen_ai.models',
+                    'sentry.origin': 'auto.ai.google_genai',
+                    'gen_ai.system': 'google_genai',
+                    'gen_ai.request.model': 'gemini-1.5-flash',
+                    // Messages should be present (truncation happened) and should be a JSON array with parts
+                    'gen_ai.request.messages': expect.stringMatching(
+                      /^\[\{"role":"user","parts":\[\{"text":"C+"\}\]\}\]$/,
+                    ),
+                  }),
+                  description: 'models gemini-1.5-flash',
+                  op: 'gen_ai.models',
+                  origin: 'auto.ai.google_genai',
+                  status: 'ok',
+                }),
+              ]),
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+  );
 });

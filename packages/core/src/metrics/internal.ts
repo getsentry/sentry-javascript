@@ -12,7 +12,7 @@ import { timestampInSeconds } from '../utils/time';
 import { _getTraceInfoFromScope } from '../utils/trace-info';
 import { createMetricEnvelope } from './envelope';
 
-const MAX_METRIC_BUFFER_SIZE = 100;
+const MAX_METRIC_BUFFER_SIZE = 1000;
 
 /**
  * Converts a metric attribute to a serialized metric attribute.
