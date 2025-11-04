@@ -10,7 +10,7 @@
     "test:assert": "pnpm run typecheck && pnpm run test"
   },
   "dependencies": {
-    "@playwright/test": "~1.53.2",
+    "@playwright/test": "1.53.2",
     "@sentry/node": "latest || *",
     "@sentry/profiling-node": "latest || *",
     "@types/node": "^18.19.1",

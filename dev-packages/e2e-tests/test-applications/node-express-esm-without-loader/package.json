@@ -14,7 +14,7 @@
     "express": "4.20.0"
   },
   "devDependencies": {
-    "@playwright/test": "~1.53.2",
+    "@playwright/test": "1.53.2",
     "@sentry-internal/test-utils": "link:../../../test-utils"
   },
   "volta": {

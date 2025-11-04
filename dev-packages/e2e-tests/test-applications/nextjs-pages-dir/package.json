@@ -26,7 +26,7 @@
     "typescript": "~5.0.0"
   },
   "devDependencies": {
-    "@playwright/test": "~1.53.2",
+    "@playwright/test": "1.53.2",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "ts-node": "10.9.1"
   },

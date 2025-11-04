@@ -8,7 +8,7 @@
     "test:assert": "playwright test"
   },
   "devDependencies": {
-    "@playwright/test": "~1.53.2",
+    "@playwright/test": "1.53.2",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "@sentry/browser": "latest || *",
     "webpack": "^5.91.0",
