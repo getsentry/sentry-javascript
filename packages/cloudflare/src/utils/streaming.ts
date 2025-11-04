@@ -14,15 +14,9 @@ export type StreamingGuess = {
  * Note: Probing will tee() the stream and return a new Response object.
  *
  * @param res - The Response to classify
- * @param opts.timeoutMs - Probe timeout in ms (default: 25)
  * @returns Classification result with safe-to-return Response
  */
-export async function classifyResponseStreaming(
-  res: Response,
-  opts: { timeoutMs?: number } = {},
-): Promise<StreamingGuess> {
-  const timeoutMs = opts.timeoutMs ?? 25;
-
+export async function classifyResponseStreaming(res: Response): Promise<StreamingGuess> {
   if (!res.body) {
     return { response: res, isStreaming: false };
   }
@@ -40,48 +34,27 @@ export async function classifyResponseStreaming(
     return { response: res, isStreaming: false };
   }
 
-  // Uncertain - probe the stream to determine behavior
+  // Probe the stream by trying to read first chunk immediately
   // After tee(), must use the teed stream (original is locked)
   const [probeStream, passStream] = res.body.tee();
   const reader = probeStream.getReader();
 
-  const probeResult = await Promise.race([
-    // Try to read first chunk
-    (async () => {
-      try {
-        const { value, done } = await reader.read();
-        reader.releaseLock();
+  try {
+    const { done } = await reader.read();
+    reader.releaseLock();
 
-        if (done) {
-          return { arrivedBytes: 0, done: true };
-        }
+    const teededResponse = new Response(passStream, res);
 
-        const bytes =
-          value && typeof value === 'object' && 'byteLength' in value
-            ? (value as { byteLength: number }).byteLength
-            : 0;
-        return { arrivedBytes: bytes, done: false };
-      } catch {
-        return { arrivedBytes: 0, done: false };
-      }
-    })(),
-    // Timeout if first chunk takes too long
-    new Promise<{ arrivedBytes: number; done: boolean }>(resolve =>
-      setTimeout(() => resolve({ arrivedBytes: 0, done: false }), timeoutMs),
-    ),
-  ]);
+    if (done) {
+      // Stream completed immediately - buffered (empty body)
+      return { response: teededResponse, isStreaming: false };
+    }
 
-  const teededResponse = new Response(passStream, res);
-
-  // Determine if streaming based on probe result
-  if (probeResult.done) {
-    // Stream completed immediately - buffered
-    return { response: teededResponse, isStreaming: false };
-  } else if (probeResult.arrivedBytes === 0) {
-    // Timeout waiting - definitely streaming
-    return { response: teededResponse, isStreaming: true };
-  } else {
-    // Got chunk quickly - streaming if no Content-Length
+    // Got data - treat as streaming if no Content-Length header
     return { response: teededResponse, isStreaming: contentLength == null };
+  } catch {
+    reader.releaseLock();
+    // Error reading - treat as non-streaming to be safe
+    return { response: new Response(passStream, res), isStreaming: false };
   }
 }
