@@ -72,7 +72,7 @@ describe('OpenAI integration', () => {
         description: 'chat error-model',
         op: 'gen_ai.chat',
         origin: 'auto.ai.openai',
-        status: 'unknown_error',
+        status: 'internal_error',
       }),
       // Fourth span - chat completions streaming
       expect.objectContaining({
@@ -219,7 +219,7 @@ describe('OpenAI integration', () => {
         description: 'chat error-model',
         op: 'gen_ai.chat',
         origin: 'auto.ai.openai',
-        status: 'unknown_error',
+        status: 'internal_error',
       }),
       // Fourth span - chat completions streaming with PII
       expect.objectContaining({
