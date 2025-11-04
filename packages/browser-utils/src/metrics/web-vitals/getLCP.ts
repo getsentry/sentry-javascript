@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-import { WINDOW } from '../../types';
 import { bindReporter } from './lib/bindReporter';
 import { getActivationStart } from './lib/getActivationStart';
 import { getVisibilityWatcher } from './lib/getVisibilityWatcher';
+import { addPageListener, removePageListener } from './lib/globalListeners';
 import { initMetric } from './lib/initMetric';
 import { initUnique } from './lib/initUnique';
 import { LCPEntryManager } from './lib/LCPEntryManager';
@@ -96,11 +96,9 @@ export const onLCP = (onReport: (metric: LCPMetric) => void, opts: ReportOpts = 
           // task to reduce potential INP impact.
           // https://github.com/GoogleChrome/web-vitals/issues/383
           whenIdleOrHidden(stopListening);
-          if (WINDOW.document) {
-            removeEventListener(event.type, stopListeningWrapper, {
-              capture: true,
-            });
-          }
+          removePageListener(event.type, stopListeningWrapper, {
+            capture: true,
+          });
         }
       };
 
@@ -109,11 +107,9 @@ export const onLCP = (onReport: (metric: LCPMetric) => void, opts: ReportOpts = 
       // unreliable since it can be programmatically generated.
       // See: https://github.com/GoogleChrome/web-vitals/issues/75
       for (const type of ['keydown', 'click', 'visibilitychange']) {
-        if (WINDOW.document) {
-          addEventListener(type, stopListeningWrapper, {
-            capture: true,
-          });
-        }
+        addPageListener(type, stopListeningWrapper, {
+          capture: true,
+        });
       }
     }
   });

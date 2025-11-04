@@ -16,6 +16,7 @@
 
 import { WINDOW } from '../../../types';
 import { getActivationStart } from './getActivationStart';
+import { addPageListener, removePageListener } from './globalListeners';
 
 let firstHiddenTime = -1;
 const onHiddenFunctions: Set<() => void> = new Set();
@@ -53,7 +54,7 @@ const onVisibilityUpdate = (event: Event) => {
       // We no longer need the `prerenderingchange` event listener now we've
       // set an initial init time so remove that
       // (we'll keep the visibilitychange one for onHiddenFunction above)
-      WINDOW.document?.removeEventListener('prerenderingchange', onVisibilityUpdate, true);
+      removePageListener('prerenderingchange', onVisibilityUpdate, true);
     }
   }
 };
@@ -76,17 +77,17 @@ export const getVisibilityWatcher = () => {
     // Listen for visibility changes so we can handle things like bfcache
     // restores and/or prerender without having to examine individual
     // timestamps in detail and also for onHidden function calls.
-    WINDOW.document?.addEventListener('visibilitychange', onVisibilityUpdate, true);
+    addPageListener('visibilitychange', onVisibilityUpdate, true);
 
-    // Some browsers have buggy implementations of visibilitychange,
-    // so we use pagehide in addition, just to be safe.
-    WINDOW.document?.addEventListener('pagehide', onVisibilityUpdate, true);
+    // // Some browsers have buggy implementations of visibilitychange,
+    // // so we use pagehide in addition, just to be safe.
+    // addPageListener('pagehide', onVisibilityUpdate, true);
 
     // IMPORTANT: when a page is prerendering, its `visibilityState` is
     // 'hidden', so in order to account for cases where this module checks for
     // visibility during prerendering, an additional check after prerendering
     // completes is also required.
-    WINDOW.document?.addEventListener('prerenderingchange', onVisibilityUpdate, true);
+    addPageListener('prerenderingchange', onVisibilityUpdate, true);
   }
 
   return {
