@@ -27,6 +27,7 @@ describe('Redis', () => {
     afterEach(() => {
       vi.restoreAllMocks();
       // Reset redis options by clearing all properties first, then restoring original ones
+      // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
       Object.keys(_redisOptions).forEach(key => delete (_redisOptions as any)[key]);
       Object.assign(_redisOptions, originalRedisOptions);
     });
