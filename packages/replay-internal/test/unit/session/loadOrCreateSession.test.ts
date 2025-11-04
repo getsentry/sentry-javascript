@@ -77,6 +77,7 @@ describe('Unit | session | loadOrCreateSession', () => {
         lastActivity: expect.any(Number),
         sampled: 'session',
         started: expect.any(Number),
+        dirty: false,
       });
 
       // Should not have anything in storage
@@ -104,6 +105,7 @@ describe('Unit | session | loadOrCreateSession', () => {
         lastActivity: expect.any(Number),
         sampled: 'session',
         started: expect.any(Number),
+        dirty: false,
       });
 
       // Should not have anything in storage
@@ -129,10 +131,10 @@ describe('Unit | session | loadOrCreateSession', () => {
         sampled: 'session',
         started: expect.any(Number),
         previousSessionId: 'previous_session_id',
+        dirty: false,
       });
     });
   });
-
   describe('stickySession: true', () => {
     it('creates new session if none exists', function () {
       const session = loadOrCreateSession(
@@ -151,6 +153,7 @@ describe('Unit | session | loadOrCreateSession', () => {
         lastActivity: expect.any(Number),
         sampled: 'session',
         started: expect.any(Number),
+        dirty: false,
       };
       expect(session).toEqual(expectedSession);
 
@@ -181,6 +184,7 @@ describe('Unit | session | loadOrCreateSession', () => {
         sampled: 'session',
         started: expect.any(Number),
         previousSessionId: 'test_old_session_uuid',
+        dirty: false,
       };
       expect(session).toEqual(expectedSession);
       expect(session.lastActivity).toBeGreaterThanOrEqual(now);
@@ -209,6 +213,7 @@ describe('Unit | session | loadOrCreateSession', () => {
         lastActivity: date,
         sampled: 'session',
         started: date,
+        dirty: false,
       });
     });
 
@@ -250,6 +255,7 @@ describe('Unit | session | loadOrCreateSession', () => {
         sampled: 'session',
         started: expect.any(Number),
         previousSessionId: 'previous_session_id',
+        dirty: false,
       };
       expect(session).toEqual(expectedSession);
 
@@ -347,6 +353,7 @@ describe('Unit | session | loadOrCreateSession', () => {
         segmentId: 0,
         lastActivity: expect.any(Number),
         sampled: false,
+        dirty: false,
         started: expect.any(Number),
       };
       expect(session).toEqual(expectedSession);
