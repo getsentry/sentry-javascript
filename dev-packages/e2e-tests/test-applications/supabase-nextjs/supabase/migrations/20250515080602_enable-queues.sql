@@ -78,22 +78,27 @@ comment on function pgmq_public.send_batch(queue_name text, messages jsonb[], sl
 
 create or replace function pgmq_public.archive(
     queue_name text,
-    message_id bigint
+    msg_ids bigint[]
 )
   returns boolean
   language plpgsql
   set search_path = ''
 as $$
+declare
+    msg_id bigint;
+    success boolean := true;
 begin
-    return
-    pgmq.archive(
-        queue_name := queue_name,
-        msg_id := message_id
-    );
+    foreach msg_id in array msg_ids
+    loop
+        if not pgmq.archive(queue_name := queue_name, msg_id := msg_id) then
+            success := false;
+        end if;
+    end loop;
+    return success;
 end;
 $$;
 
-comment on function pgmq_public.archive(queue_name text, message_id bigint) is 'Archives a message by moving it from the queue to a permanent archive.';
+comment on function pgmq_public.archive(queue_name text, msg_ids bigint[]) is 'Archives multiple messages by moving them from the queue to a permanent archive.';
 
 
 create or replace function pgmq_public.delete(
@@ -137,6 +142,29 @@ $$;
 
 comment on function pgmq_public.read(queue_name text, sleep_seconds integer, n integer) is 'Reads up to "n" messages from the specified queue with an optional "sleep_seconds" (visibility timeout).';
 
+-- Create receive function (alias for read with different parameter names for E2E test compatibility)
+create or replace function pgmq_public.receive(
+    queue_name text,
+    vt integer,
+    qty integer
+)
+  returns setof pgmq.message_record
+  language plpgsql
+  set search_path = ''
+as $$
+begin
+    return query
+    select *
+    from pgmq.read(
+        queue_name := queue_name,
+        vt := vt,
+        qty := qty
+    );
+end;
+$$;
+
+comment on function pgmq_public.receive(queue_name text, vt integer, qty integer) is 'Alias for read() - reads messages from the specified queue with visibility timeout.';
+
 -- Grant execute permissions on wrapper functions to roles
 grant execute on function pgmq_public.pop(text) to postgres, service_role, anon, authenticated;
 grant execute on function pgmq.pop(text) to postgres, service_role, anon, authenticated;
@@ -147,14 +175,14 @@ grant execute on function pgmq.send(text, jsonb, integer) to postgres, service_r
 grant execute on function pgmq_public.send_batch(text, jsonb[], integer) to postgres, service_role, anon, authenticated;
 grant execute on function pgmq.send_batch(text, jsonb[], integer) to postgres, service_role, anon, authenticated;
 
-grant execute on function pgmq_public.archive(text, bigint) to postgres, service_role, anon, authenticated;
-grant execute on function pgmq.archive(text, bigint) to postgres, service_role, anon, authenticated;
+grant execute on function pgmq_public.receive(text, integer, integer) to postgres, service_role, anon, authenticated;
+
+grant execute on function pgmq_public.archive(text, bigint[]) to postgres, service_role, anon, authenticated;
 
 grant execute on function pgmq_public.delete(text, bigint) to postgres, service_role, anon, authenticated;
 grant execute on function pgmq.delete(text, bigint) to postgres, service_role, anon, authenticated;
 
 grant execute on function pgmq_public.read(text, integer, integer) to postgres, service_role, anon, authenticated;
-grant execute on function pgmq.read(text, integer, integer) to postgres, service_role, anon, authenticated;
 
 -- For the service role, we want full access
 -- Grant permissions on existing tables
@@ -180,3 +208,23 @@ alter default privileges in schema pgmq
 grant usage, select, update
 on sequences
 to anon, authenticated, service_role;
+
+-- Create additional queues for E2E flow tests
+select pgmq.create('e2e-flow-queue');
+select pgmq.create('batch-flow-queue');
+select pgmq.create('error-flow-queue');
+select pgmq.create('concurrent-queue-1');
+select pgmq.create('concurrent-queue-2');
+select pgmq.create('concurrent-queue-3');
+
+-- Lightweight RPC used by tests to verify non-queue instrumentation
+create or replace function public.get_supabase_status()
+returns jsonb
+language sql
+stable
+as
+$$
+    select jsonb_build_object('status', 'ok');
+$$;
+
+grant execute on function public.get_supabase_status() to authenticated, anon;
