@@ -55,5 +55,10 @@
   "volta": {
     "extends": "../../package.json",
     "node": "20.18.2"
+  },
+  "pnpm": {
+    "overrides": {
+      "p-map": "^4.0.0"
+    }
   }
 }
