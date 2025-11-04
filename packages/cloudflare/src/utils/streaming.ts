@@ -7,9 +7,13 @@ export type StreamingGuess = {
  * Classifies a Response as streaming or non-streaming.
  *
  * Uses multiple heuristics:
+ * - No body → not streaming
  * - Content-Type: text/event-stream → streaming
  * - Content-Length header present → not streaming
- * - Otherwise: probes stream with timeout to detect behavior
+ * - Otherwise: attempts immediate read to detect behavior
+ *   - Stream empty (done) → not streaming
+ *   - Got data without Content-Length → streaming
+ *   - Got data with Content-Length → not streaming
  *
  * Note: Probing will tee() the stream and return a new Response object.
  *

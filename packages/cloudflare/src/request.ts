@@ -127,9 +127,6 @@ export function wrapRequestHandler(
             const streamMonitor = (async () => {
               const reader = monitorStream.getReader();
 
-              // Safety timeout - abort reading and end span after 5s even if stream hasn't finished
-              const timeout = setTimeout(() => reader.cancel(), 5000);
-
               try {
                 let done = false;
                 while (!done) {
@@ -139,16 +136,13 @@ export function wrapRequestHandler(
               } catch {
                 // Stream error or cancellation - will end span in finally
               } finally {
-                clearTimeout(timeout);
                 reader.releaseLock();
                 span.end();
                 waitUntil?.(flush(2000));
               }
             })();
 
-            if (waitUntil) {
-              waitUntil(streamMonitor);
-            }
+            waitUntil?.(streamMonitor);
 
             // Return response with client stream
             return new Response(clientStream, {
