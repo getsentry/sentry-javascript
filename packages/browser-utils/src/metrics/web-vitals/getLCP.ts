@@ -88,18 +88,30 @@ export const onLCP = (onReport: (metric: LCPMetric) => void, opts: ReportOpts = 
         report(true);
       });
 
+      // Need a separate wrapper to ensure the `runOnce` function above is
+      // common for all three functions
+      const stopListeningWrapper = (event: Event) => {
+        if (event.isTrusted) {
+          // Wrap the listener in an idle callback so it's run in a separate
+          // task to reduce potential INP impact.
+          // https://github.com/GoogleChrome/web-vitals/issues/383
+          whenIdleOrHidden(stopListening);
+          if (WINDOW.document) {
+            removeEventListener(event.type, stopListeningWrapper, {
+              capture: true,
+            });
+          }
+        }
+      };
+
       // Stop listening after input or visibilitychange.
       // Note: while scrolling is an input that stops LCP observation, it's
       // unreliable since it can be programmatically generated.
       // See: https://github.com/GoogleChrome/web-vitals/issues/75
       for (const type of ['keydown', 'click', 'visibilitychange']) {
-        // Wrap the listener in an idle callback so it's run in a separate
-        // task to reduce potential INP impact.
-        // https://github.com/GoogleChrome/web-vitals/issues/383
         if (WINDOW.document) {
-          addEventListener(type, () => whenIdleOrHidden(stopListening), {
+          addEventListener(type, stopListeningWrapper, {
             capture: true,
-            once: true,
           });
         }
       }
