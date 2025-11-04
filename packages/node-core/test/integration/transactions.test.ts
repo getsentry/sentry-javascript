@@ -9,6 +9,7 @@ describe('Integration | Transactions', () => {
   afterEach(() => {
     vi.restoreAllMocks();
     cleanupOtel();
+    vi.useRealTimers();
   });
 
   it('correctly creates transaction & spans', async () => {
