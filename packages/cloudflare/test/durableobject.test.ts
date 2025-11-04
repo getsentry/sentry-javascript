@@ -133,11 +133,25 @@ describe('instrumentDurableObjectWithSentry', () => {
       waitUntil,
     } as unknown as ExecutionContext;
     const dObject: any = Reflect.construct(instrumented, [context, {} as any]);
-    expect(() => dObject.fetch(new Request('https://example.com'))).not.toThrow();
-    expect(flush).not.toBeCalled();
-    expect(waitUntil).toHaveBeenCalledOnce();
+
+    // Call fetch (don't await yet)
+    const responsePromise = dObject.fetch(new Request('https://example.com'));
+
+    // Advance past classification timeout and get response
+    vi.advanceTimersByTime(30);
+    const response = await responsePromise;
+
+    // Consume response (triggers span end for buffered responses)
+    await response.text();
+
+    // The flush should now be queued in waitUntil
+    expect(waitUntil).toHaveBeenCalled();
+
+    // Advance to trigger the setTimeout in the handler's waitUntil
     vi.advanceTimersToNextTimer();
     await Promise.all(waitUntil.mock.calls.map(([p]) => p));
+
+    // Now flush should have been called
     expect(flush).toBeCalled();
   });
 
