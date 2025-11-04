@@ -18,6 +18,7 @@ import { WINDOW } from '../../../types';
 import { getActivationStart } from './getActivationStart';
 
 let firstHiddenTime = -1;
+const onHiddenFunctions: Set<() => void> = new Set();
 
 const initHiddenTime = () => {
   // If the document is hidden when this code runs, assume it was always
@@ -29,35 +30,32 @@ const initHiddenTime = () => {
 };
 
 const onVisibilityUpdate = (event: Event) => {
-  // If the document is 'hidden' and no previous hidden timestamp has been
-  // set, update it based on the current event data.
-  if (WINDOW.document!.visibilityState === 'hidden' && firstHiddenTime > -1) {
-    // If the event is a 'visibilitychange' event, it means the page was
-    // visible prior to this change, so the event timestamp is the first
-    // hidden time.
-    // However, if the event is not a 'visibilitychange' event, then it must
-    // be a 'prerenderingchange' event, and the fact that the document is
-    // still 'hidden' from the above check means the tab was activated
-    // in a background state and so has always been hidden.
-    firstHiddenTime = event.type === 'visibilitychange' ? event.timeStamp : 0;
+  // Handle changes to hidden state
+  if (isPageHidden(event) && firstHiddenTime > -1) {
+    if (event.type === 'visibilitychange') {
+      for (const onHiddenFunction of onHiddenFunctions) {
+        onHiddenFunction();
+      }
+    }
 
-    // Remove all listeners now that a `firstHiddenTime` value has been set.
-    removeChangeListeners();
+    // If the document is 'hidden' and no previous hidden timestamp has been
+    // set (so is infinity), update it based on the current event data.
+    if (!isFinite(firstHiddenTime)) {
+      // If the event is a 'visibilitychange' event, it means the page was
+      // visible prior to this change, so the event timestamp is the first
+      // hidden time.
+      // However, if the event is not a 'visibilitychange' event, then it must
+      // be a 'prerenderingchange' event, and the fact that the document is
+      // still 'hidden' from the above check means the tab was activated
+      // in a background state and so has always been hidden.
+      firstHiddenTime = event.type === 'visibilitychange' ? event.timeStamp : 0;
+
+      // We no longer need the `prerenderingchange` event listener now we've
+      // set an initial init time so remove that
+      // (we'll keep the visibilitychange one for onHiddenFunction above)
+      WINDOW.document?.removeEventListener('prerenderingchange', onVisibilityUpdate, true);
+    }
   }
-};
-
-const addChangeListeners = () => {
-  addEventListener('visibilitychange', onVisibilityUpdate, true);
-  // IMPORTANT: when a page is prerendering, its `visibilityState` is
-  // 'hidden', so in order to account for cases where this module checks for
-  // visibility during prerendering, an additional check after prerendering
-  // completes is also required.
-  addEventListener('prerenderingchange', onVisibilityUpdate, true);
-};
-
-const removeChangeListeners = () => {
-  removeEventListener('visibilitychange', onVisibilityUpdate, true);
-  removeEventListener('prerenderingchange', onVisibilityUpdate, true);
 };
 
 export const getVisibilityWatcher = () => {
@@ -75,14 +73,38 @@ export const getVisibilityWatcher = () => {
     // a perfect heuristic, but it's the best we can do until the
     // `visibility-state` performance entry becomes available in all browsers.
     firstHiddenTime = firstVisibilityStateHiddenTime ?? initHiddenTime();
-    // We're still going to listen to for changes so we can handle things like
-    // bfcache restores and/or prerender without having to examine individual
-    // timestamps in detail.
-    addChangeListeners();
+    // Listen for visibility changes so we can handle things like bfcache
+    // restores and/or prerender without having to examine individual
+    // timestamps in detail and also for onHidden function calls.
+    WINDOW.document?.addEventListener('visibilitychange', onVisibilityUpdate, true);
+
+    // Some browsers have buggy implementations of visibilitychange,
+    // so we use pagehide in addition, just to be safe.
+    WINDOW.document?.addEventListener('pagehide', onVisibilityUpdate, true);
+
+    // IMPORTANT: when a page is prerendering, its `visibilityState` is
+    // 'hidden', so in order to account for cases where this module checks for
+    // visibility during prerendering, an additional check after prerendering
+    // completes is also required.
+    WINDOW.document?.addEventListener('prerenderingchange', onVisibilityUpdate, true);
   }
+
   return {
     get firstHiddenTime() {
       return firstHiddenTime;
     },
+    onHidden(cb: () => void) {
+      onHiddenFunctions.add(cb);
+    },
   };
 };
+
+/**
+ * Check if the page is hidden, uses the `pagehide` event for older browsers support that we used to have in `onHidden` function.
+ * Some browsers we still support (Safari <14.4) don't fully support `visibilitychange`
+ * or have known bugs w.r.t the `visibilitychange` event.
+ * // TODO (v11): If we decide to drop support for Safari 14.4, we can use the logic from web-vitals 4.2.4
+ */
+function isPageHidden(event: Event) {
+  return event.type === 'pagehide' || WINDOW.document?.visibilityState === 'hidden';
+}
