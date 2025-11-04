@@ -211,11 +211,13 @@ export function _INTERNAL_captureMetric(beforeMetric: Metric, options?: Internal
     return;
   }
 
-  const { _experiments, enableMetrics = true, beforeSendMetric } = client.getOptions();
+  const { _experiments, enableMetrics, beforeSendMetric } = client.getOptions();
 
   // todo(v11): Remove the experimental flag
   // eslint-disable-next-line deprecation/deprecation
-  if (!_experiments?.enableMetrics && !enableMetrics) {
+  const metricsEnabled = enableMetrics ?? _experiments?.enableMetrics ?? true;
+
+  if (!metricsEnabled) {
     DEBUG_BUILD && debug.warn('metrics option not enabled, metric will not be captured.');
     return;
   }
