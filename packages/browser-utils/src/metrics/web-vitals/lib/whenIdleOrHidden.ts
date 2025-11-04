@@ -32,11 +32,12 @@ export const whenIdleOrHidden = (cb: () => void) => {
   } else {
     // eslint-disable-next-line no-param-reassign
     cb = runOnce(cb);
+    WINDOW.document?.addEventListener('visibilitychange', cb, { once: true, capture: true });
     rIC(() => {
       cb();
       // Remove the above event listener since no longer required.
       // See: https://github.com/GoogleChrome/web-vitals/issues/622
-      WINDOW.document?.removeEventListener('visibilitychange', cb);
+      WINDOW.document?.removeEventListener('visibilitychange', cb, { capture: true });
     });
     // sentry: we use onHidden instead of directly listening to visibilitychange
     // because some browsers we still support (Safari <14.4) don't fully support
