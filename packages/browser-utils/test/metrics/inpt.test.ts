@@ -113,4 +113,35 @@ describe('_onInp', () => {
       transaction: undefined,
     });
   });
+
+  it('uses <unknown> as element name when entry.target is null and no cached name exists', () => {
+    const startStandaloneWebVitalSpanSpy = vi.spyOn(utils, 'startStandaloneWebVitalSpan');
+
+    const metric = {
+      value: 150,
+      entries: [
+        {
+          name: 'click',
+          duration: 150,
+          interactionId: 999,
+          target: null, // Element was removed from DOM
+          startTime: 1234567,
+        },
+      ],
+    };
+    // @ts-expect-error - incomplete metric object
+    _onInp({ metric });
+
+    expect(startStandaloneWebVitalSpanSpy).toHaveBeenCalledTimes(1);
+    expect(startStandaloneWebVitalSpanSpy).toHaveBeenCalledWith({
+      attributes: {
+        'sentry.exclusive_time': 150,
+        'sentry.op': 'ui.interaction.click',
+        'sentry.origin': 'auto.http.browser.inp',
+      },
+      name: '<unknown>', // Should fall back to <unknown> when element cannot be determined
+      startTime: expect.any(Number),
+      transaction: undefined,
+    });
+  });
 });

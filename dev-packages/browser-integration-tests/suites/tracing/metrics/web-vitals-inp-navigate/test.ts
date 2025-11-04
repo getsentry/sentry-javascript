@@ -159,7 +159,7 @@ sentryTest(
           value: inpValue,
         },
       },
-      description: '<unknown>', // FIXME: currently unable to get the target name when element is removed from DOM
+      description: 'body > nav#navigation > NavigationLink',
       exclusive_time: inpValue,
       op: 'ui.interaction.click',
       origin: 'auto.http.browser.inp',
