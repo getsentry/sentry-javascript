@@ -2753,7 +2753,6 @@ describe('Client', () => {
     it('flushes metrics when weight exceeds 800KB', () => {
       const options = getDefaultTestClientOptions({
         dsn: PUBLIC_DSN,
-        _experiments: { enableMetrics: true },
       });
       const client = new TestClient(options);
       const scope = new Scope();
@@ -2771,7 +2770,6 @@ describe('Client', () => {
     it('accumulates metric weight without flushing when under threshold', () => {
       const options = getDefaultTestClientOptions({
         dsn: PUBLIC_DSN,
-        _experiments: { enableMetrics: true },
       });
       const client = new TestClient(options);
       const scope = new Scope();
@@ -2788,7 +2786,6 @@ describe('Client', () => {
     it('flushes metrics on flush event', () => {
       const options = getDefaultTestClientOptions({
         dsn: PUBLIC_DSN,
-        _experiments: { enableMetrics: true },
       });
       const client = new TestClient(options);
       const scope = new Scope();
