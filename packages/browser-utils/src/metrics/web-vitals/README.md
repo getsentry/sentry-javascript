@@ -2,10 +2,10 @@
 
 > A modular library for measuring the [Web Vitals](https://web.dev/vitals/) metrics on real users.
 
-This was vendored from: https://github.com/GoogleChrome/web-vitals: v5.0.2
+This was vendored from: https://github.com/GoogleChrome/web-vitals: v5.0.3
 
 The commit SHA used is:
-[463abbd425cda01ed65e0b5d18be9f559fe446cb](https://github.com/GoogleChrome/web-vitals/tree/463abbd425cda01ed65e0b5d18be9f559fe446cb)
+[e22d23b22c1440e69c5fc25a2f373b1a425cc940](https://github.com/GoogleChrome/web-vitals/tree/e22d23b22c1440e69c5fc25a2f373b1a425cc940)
 
 Current vendored web vitals are:
 
