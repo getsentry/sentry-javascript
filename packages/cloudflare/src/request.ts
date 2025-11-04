@@ -108,7 +108,7 @@ export function wrapRequestHandler(
             res = await handler();
             setHttpStatus(span, res.status);
           } catch (e) {
-            span.end(); // End span on error
+            span.end();
             if (captureErrors) {
               captureException(e, { mechanism: { handled: false, type: 'auto.http.cloudflare' } });
             }
@@ -119,26 +119,16 @@ export function wrapRequestHandler(
           // Classify response to detect actual streaming
           const classification = await classifyResponseStreaming(res);
 
-          if (classification.isStreaming) {
+          if (classification.isStreaming && classification.response.body) {
             // Streaming response detected - monitor consumption to keep span alive
-            if (!classification.response.body) {
-              // Shouldn't happen since isStreaming requires body, but handle gracefully
-              span.end();
-              waitUntil?.(flush(2000));
-              return classification.response;
-            }
-            
             const [clientStream, monitorStream] = classification.response.body.tee();
 
             // Monitor stream consumption and end span when complete
             const streamMonitor = (async () => {
               const reader = monitorStream.getReader();
 
-              // Safety timeout to prevent infinite loops if stream hangs
-              const timeout = setTimeout(() => {
-                span.end();
-                reader.cancel().catch(() => {});
-              }, 30000); // 30 second max
+              // Safety timeout - abort reading and end span after 5s even if stream hasn't finished
+              const timeout = setTimeout(() => reader.cancel(), 5000);
 
               try {
                 let done = false;
@@ -146,18 +136,19 @@ export function wrapRequestHandler(
                   const result = await reader.read();
                   done = result.done;
                 }
-                clearTimeout(timeout);
-                span.end();
-              } catch (err) {
-                clearTimeout(timeout);
-                span.end();
+              } catch {
+                // Stream error or cancellation - will end span in finally
               } finally {
+                clearTimeout(timeout);
                 reader.releaseLock();
+                span.end();
+                waitUntil?.(flush(2000));
               }
             })();
 
-            // Use waitUntil to keep context alive and flush after span ends
-            waitUntil?.(streamMonitor.then(() => flush(2000)));
+            if (waitUntil) {
+              waitUntil(streamMonitor);
+            }
 
             // Return response with client stream
             return new Response(clientStream, {

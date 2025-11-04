@@ -90,7 +90,7 @@ describe('withSentry', () => {
   });
 
   test('flush must be called when all waitUntil are done', async () => {
-    const flush = vi.spyOn(SentryCore.Client.prototype, 'flush');
+    const flushSpy = vi.spyOn(SentryCore.Client.prototype, 'flush');
     vi.useFakeTimers();
     onTestFinished(() => {
       vi.useRealTimers();
@@ -104,13 +104,17 @@ describe('withSentry', () => {
 
     await wrapRequestHandler({ options: MOCK_OPTIONS, request: new Request('https://example.com'), context }, () => {
       addDelayedWaitUntil(context);
-      return new Response('test');
+      const response = new Response('test');
+      // Add Content-Length to skip probing
+      response.headers.set('content-length', '4');
+      return response;
     });
-    expect(flush).not.toBeCalled();
+    expect(flushSpy).not.toBeCalled();
     expect(waitUntil).toBeCalled();
-    vi.advanceTimersToNextTimerAsync().then(() => vi.runAllTimers());
+    await vi.advanceTimersToNextTimerAsync();
+    vi.runAllTimers();
     await Promise.all(waits);
-    expect(flush).toHaveBeenCalledOnce();
+    expect(flushSpy).toHaveBeenCalledOnce();
   });
 
   describe('scope instrumentation', () => {
@@ -305,7 +309,7 @@ describe('withSentry', () => {
       mockRequest.headers.set('content-length', '10');
 
       let sentryEvent: Event = {};
-      const result = await wrapRequestHandler(
+      await wrapRequestHandler(
         {
           options: {
             ...MOCK_OPTIONS,
@@ -320,13 +324,9 @@ describe('withSentry', () => {
         },
         () => {
           SentryCore.captureMessage('sentry-trace');
-          const response = new Response('test');
-          return response;
+          return new Response('test');
         },
       );
-
-      // Consume response to trigger span end for non-streaming responses
-      await result.text();
 
       // Wait for async span end and transaction capture
       await new Promise(resolve => setTimeout(resolve, 50));
