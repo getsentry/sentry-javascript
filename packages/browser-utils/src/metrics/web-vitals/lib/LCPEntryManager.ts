@@ -17,10 +17,10 @@
 // eslint-disable-next-line jsdoc/require-jsdoc
 export class LCPEntryManager {
   // eslint-disable-next-line @typescript-eslint/explicit-member-accessibility
-  _onBeforeProcessingEntry?: (entry: LargestContentfulPaint) => void;
+  _onBeforeProcessingEntry?: (entry: LargestContentfulPaint | InteractionContentfulPaint) => void;
 
   // eslint-disable-next-line @typescript-eslint/explicit-member-accessibility, jsdoc/require-jsdoc
-  _processEntry(entry: LargestContentfulPaint) {
+  _processEntry(entry: LargestContentfulPaint | InteractionContentfulPaint) {
     this._onBeforeProcessingEntry?.(entry);
   }
 }
