@@ -99,24 +99,31 @@ function validateAndProcessSampleRate(metric: Metric, client: Client): boolean {
  *
  * @param metric - The metric containing the sample_rate.
  * @param scope - The scope containing the sampleRand.
- * @returns true if the metric should be sampled, false if it should be dropped.
+ * @returns An object with sampled (boolean) and samplingPerformed (boolean) flags.
  */
-function shouldSampleMetric(metric: Metric, scope: Scope): boolean {
+function shouldSampleMetric(metric: Metric, scope: Scope): { sampled: boolean; samplingPerformed: boolean } {
   if (metric.sample_rate === undefined) {
-    return true;
+    return { sampled: true, samplingPerformed: false };
   }
-  const sampleRand = scope.getPropagationContext().sampleRand;
-  return sampleRand < metric.sample_rate;
+
+  const propagationContext = scope.getPropagationContext();
+  if (!propagationContext || propagationContext.sampleRand === undefined) {
+    return { sampled: true, samplingPerformed: false };
+  }
+
+  const sampleRand = propagationContext.sampleRand;
+  return { sampled: sampleRand < metric.sample_rate, samplingPerformed: true };
 }
 
 /**
- * Adds the sample_rate attribute to the metric attributes if needed.
+ * Adds the sample_rate attribute to the metric attributes if sampling was actually performed.
  *
  * @param metric - The metric containing the sample_rate.
  * @param attributes - The attributes object to modify.
+ * @param samplingPerformed - Whether sampling was actually performed.
  */
-function addSampleRateAttribute(metric: Metric, attributes: Record<string, unknown>): void {
-  if (metric.sample_rate !== undefined && metric.sample_rate !== 1.0) {
+function addSampleRateAttribute(metric: Metric, attributes: Record<string, unknown>, samplingPerformed: boolean): void {
+  if (metric.sample_rate !== undefined && metric.sample_rate !== 1.0 && samplingPerformed) {
     setMetricAttribute(attributes, 'sentry.client_sample_rate', metric.sample_rate);
   }
 }
@@ -127,14 +134,15 @@ function addSampleRateAttribute(metric: Metric, attributes: Record<string, unkno
  * @param beforeMetric - The original metric.
  * @param currentScope - The current scope.
  * @param client - The client.
+ * @param samplingPerformed - Whether sampling was actually performed.
  * @returns The processed metric attributes.
  */
-function processMetricAttributes(beforeMetric: Metric, currentScope: Scope, client: Client): Record<string, unknown> {
+function processMetricAttributes(beforeMetric: Metric, currentScope: Scope, client: Client, samplingPerformed: boolean): Record<string, unknown> {
   const processedMetricAttributes = {
     ...beforeMetric.attributes,
   };
 
-  addSampleRateAttribute(beforeMetric, processedMetricAttributes);
+  addSampleRateAttribute(beforeMetric, processedMetricAttributes, samplingPerformed);
 
   const {
     user: { id, email, username },
@@ -234,12 +242,13 @@ export function _INTERNAL_captureMetric(beforeMetric: Metric, options?: Internal
     return;
   }
 
-  if (!shouldSampleMetric(beforeMetric, currentScope)) {
+  const { sampled, samplingPerformed } = shouldSampleMetric(beforeMetric, currentScope);
+  if (!sampled) {
     return;
   }
 
   const [, traceContext] = _getTraceInfoFromScope(client, currentScope);
-  const processedMetricAttributes = processMetricAttributes(beforeMetric, currentScope, client);
+  const processedMetricAttributes = processMetricAttributes(beforeMetric, currentScope, client, samplingPerformed);
 
   const metric: Metric = {
     ...beforeMetric,
