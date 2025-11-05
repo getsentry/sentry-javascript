@@ -78,6 +78,36 @@ function setMetricAttribute(
 }
 
 /**
+ * Validates and processes the sample_rate for a metric.
+ *
+ * @param metric - The metric containing the sample_rate to validate.
+ * @param client - The client to record dropped events with.
+ * @returns true if the sample_rate is valid, false if the metric should be dropped.
+ */
+function validateAndProcessSampleRate(metric: Metric, client: Client): boolean {
+  if (metric.sample_rate !== undefined) {
+    if (metric.sample_rate <= 0 || metric.sample_rate > 1.0) {
+      // Invalid sample rate - drop the metric entirely and record the lost event
+      client.recordDroppedEvent('invalid_sample_rate', 'metric');
+      return false;
+    }
+  }
+  return true;
+}
+
+/**
+ * Adds the sample_rate attribute to the metric attributes if needed.
+ *
+ * @param metric - The metric containing the sample_rate.
+ * @param attributes - The attributes object to modify.
+ */
+function addSampleRateAttribute(metric: Metric, attributes: Record<string, unknown>): void {
+  if (metric.sample_rate !== undefined && metric.sample_rate !== 1.0) {
+    setMetricAttribute(attributes, 'sentry.client_sample_rate', metric.sample_rate);
+  }
+}
+
+/**
  * Captures a serialized metric event and adds it to the metric buffer for the given client.
  *
  * @param client - A client. Uses the current client if not provided.
@@ -133,6 +163,10 @@ export function _INTERNAL_captureMetric(beforeMetric: Metric, options?: Internal
     return;
   }
 
+  if (!validateAndProcessSampleRate(beforeMetric, client)) {
+    return;
+  }
+
   const { release, environment, _experiments } = client.getOptions();
   if (!_experiments?.enableMetrics) {
     DEBUG_BUILD && debug.warn('metrics option not enabled, metric will not be captured.');
@@ -144,6 +178,9 @@ export function _INTERNAL_captureMetric(beforeMetric: Metric, options?: Internal
   const processedMetricAttributes = {
     ...beforeMetric.attributes,
   };
+
+
+  addSampleRateAttribute(beforeMetric, processedMetricAttributes);
 
   const {
     user: { id, email, username },

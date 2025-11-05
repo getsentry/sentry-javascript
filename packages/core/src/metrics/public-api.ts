@@ -20,6 +20,11 @@ export interface MetricOptions {
    * The scope to capture the metric with.
    */
   scope?: Scope;
+
+  /**
+   * The sample rate for the metric. Must be a float between 0 (exclusive) and 1 (inclusive).
+   */
+  sample_rate?: number;
 }
 
 /**
@@ -32,7 +37,7 @@ export interface MetricOptions {
  */
 function captureMetric(type: MetricType, name: string, value: number | string, options?: MetricOptions): void {
   _INTERNAL_captureMetric(
-    { type, name, value, unit: options?.unit, attributes: options?.attributes },
+    { type, name, value, unit: options?.unit, attributes: options?.attributes, sample_rate: options?.sample_rate },
     { scope: options?.scope },
   );
 }
@@ -43,6 +48,7 @@ function captureMetric(type: MetricType, name: string, value: number | string, o
  * @param name - The name of the counter metric.
  * @param value - The value to increment by (defaults to 1).
  * @param options - Options for capturing the metric.
+ * @param options.sample_rate - Sample rate for the metric (0 < sample_rate <= 1.0).
  *
  * @example
  *
@@ -56,14 +62,15 @@ function captureMetric(type: MetricType, name: string, value: number | string, o
  * });
  * ```
  *
- * @example With custom value
+ * @example With custom value and sample rate
  *
  * ```
  * Sentry.metrics.count('items.processed', 5, {
  *   attributes: {
  *     processor: 'batch-processor',
  *     queue: 'high-priority'
- *   }
+ *   },
+ *   sample_rate: 0.1
  * });
  * ```
  */
@@ -77,6 +84,7 @@ export function count(name: string, value: number = 1, options?: MetricOptions):
  * @param name - The name of the gauge metric.
  * @param value - The current value of the gauge.
  * @param options - Options for capturing the metric.
+ * @param options.sample_rate - Sample rate for the metric (0 < sample_rate <= 1.0).
  *
  * @example
  *
@@ -90,14 +98,15 @@ export function count(name: string, value: number = 1, options?: MetricOptions):
  * });
  * ```
  *
- * @example Without unit
+ * @example With sample rate
  *
  * ```
  * Sentry.metrics.gauge('active.connections', 42, {
  *   attributes: {
  *     server: 'api-1',
  *     protocol: 'websocket'
- *   }
+ *   },
+ *   sample_rate: 0.5
  * });
  * ```
  */
@@ -111,6 +120,7 @@ export function gauge(name: string, value: number, options?: MetricOptions): voi
  * @param name - The name of the distribution metric.
  * @param value - The value to record in the distribution.
  * @param options - Options for capturing the metric.
+ * @param options.sample_rate - Sample rate for the metric (0 < sample_rate <= 1.0).
  *
  * @example
  *
@@ -124,14 +134,15 @@ export function gauge(name: string, value: number, options?: MetricOptions): voi
  * });
  * ```
  *
- * @example Without unit
+ * @example With sample rate
  *
  * ```
  * Sentry.metrics.distribution('batch.size', 100, {
  *   attributes: {
  *     processor: 'batch-1',
  *     type: 'async'
- *   }
+ *   },
+ *   sample_rate: 0.25
  * });
  * ```
  */

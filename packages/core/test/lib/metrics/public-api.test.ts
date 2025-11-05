@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { Scope } from '../../../src';
 import { _INTERNAL_getMetricBuffer } from '../../../src/metrics/internal';
 import { count, distribution, gauge } from '../../../src/metrics/public-api';
@@ -119,6 +119,123 @@ describe('Metrics Public API', () => {
 
       expect(_INTERNAL_getMetricBuffer(client)).toBeUndefined();
     });
+
+    it('captures a counter metric with sample_rate', () => {
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, _experiments: { enableMetrics: true } });
+      const client = new TestClient(options);
+      const scope = new Scope();
+      scope.setClient(client);
+
+      count('api.requests', 1, {
+        scope,
+        sample_rate: 0.5,
+      });
+
+      const metricBuffer = _INTERNAL_getMetricBuffer(client);
+      expect(metricBuffer).toHaveLength(1);
+      expect(metricBuffer?.[0]).toEqual(
+        expect.objectContaining({
+          name: 'api.requests',
+          type: 'counter',
+          value: 1,
+          attributes: {
+            'sentry.client_sample_rate': {
+              value: 0.5,
+              type: 'double',
+            },
+          },
+        }),
+      );
+    });
+
+    it('captures a counter metric with sample_rate and existing attributes', () => {
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, _experiments: { enableMetrics: true } });
+      const client = new TestClient(options);
+      const scope = new Scope();
+      scope.setClient(client);
+
+      count('api.requests', 1, {
+        scope,
+        sample_rate: 0.25,
+        attributes: {
+          endpoint: '/api/users',
+          method: 'GET',
+        },
+      });
+
+      const metricBuffer = _INTERNAL_getMetricBuffer(client);
+      expect(metricBuffer).toHaveLength(1);
+      expect(metricBuffer?.[0]).toEqual(
+        expect.objectContaining({
+          name: 'api.requests',
+          type: 'counter',
+          value: 1,
+          attributes: {
+            endpoint: {
+              value: '/api/users',
+              type: 'string',
+            },
+            method: {
+              value: 'GET',
+              type: 'string',
+            },
+            'sentry.client_sample_rate': {
+              value: 0.25,
+              type: 'double',
+            },
+          },
+        }),
+      );
+    });
+
+    it('drops metrics with sample_rate above 1', () => {
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, _experiments: { enableMetrics: true } });
+      const client = new TestClient(options);
+      const scope = new Scope();
+      scope.setClient(client);
+
+      count('api.requests', 1, {
+        scope,
+        sample_rate: 1.5,
+      });
+
+      const metricBuffer = _INTERNAL_getMetricBuffer(client);
+      expect(metricBuffer).toBeUndefined();
+    });
+
+    it('drops metrics with sample_rate at or below 0', () => {
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, _experiments: { enableMetrics: true } });
+      const client = new TestClient(options);
+      const scope = new Scope();
+      scope.setClient(client);
+
+      count('api.requests', 1, {
+        scope,
+        sample_rate: 0,
+      });
+
+      const metricBuffer = _INTERNAL_getMetricBuffer(client);
+      expect(metricBuffer).toBeUndefined();
+    });
+
+    it('records dropped event for invalid sample_rate values', () => {
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, _experiments: { enableMetrics: true } });
+      const client = new TestClient(options);
+      const scope = new Scope();
+      scope.setClient(client);
+
+      const recordDroppedEventSpy = vi.spyOn(client, 'recordDroppedEvent');
+
+      count('api.requests', 1, { scope, sample_rate: 0 });
+      count('api.requests', 1, { scope, sample_rate: -0.5 });
+      count('api.requests', 1, { scope, sample_rate: 1.5 });
+
+      expect(recordDroppedEventSpy).toHaveBeenCalledTimes(3);
+      expect(recordDroppedEventSpy).toHaveBeenCalledWith('invalid_sample_rate', 'metric');
+
+      const metricBuffer = _INTERNAL_getMetricBuffer(client);
+      expect(metricBuffer).toBeUndefined();
+    });
   });
 
   describe('gauge', () => {
@@ -209,6 +326,34 @@ describe('Metrics Public API', () => {
 
       expect(_INTERNAL_getMetricBuffer(client)).toBeUndefined();
     });
+
+    it('captures a gauge metric with sample_rate', () => {
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, _experiments: { enableMetrics: true } });
+      const client = new TestClient(options);
+      const scope = new Scope();
+      scope.setClient(client);
+
+      gauge('memory.usage', 1024, {
+        scope,
+        sample_rate: 0.75,
+      });
+
+      const metricBuffer = _INTERNAL_getMetricBuffer(client);
+      expect(metricBuffer).toHaveLength(1);
+      expect(metricBuffer?.[0]).toEqual(
+        expect.objectContaining({
+          name: 'memory.usage',
+          type: 'gauge',
+          value: 1024,
+          attributes: {
+            'sentry.client_sample_rate': {
+              value: 0.75,
+              type: 'double',
+            },
+          },
+        }),
+      );
+    });
   });
 
   describe('distribution', () => {
@@ -298,6 +443,34 @@ describe('Metrics Public API', () => {
       distribution('task.duration', 500, { scope });
 
       expect(_INTERNAL_getMetricBuffer(client)).toBeUndefined();
+    });
+
+    it('captures a distribution metric with sample_rate', () => {
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, _experiments: { enableMetrics: true } });
+      const client = new TestClient(options);
+      const scope = new Scope();
+      scope.setClient(client);
+
+      distribution('task.duration', 500, {
+        scope,
+        sample_rate: 0.1,
+      });
+
+      const metricBuffer = _INTERNAL_getMetricBuffer(client);
+      expect(metricBuffer).toHaveLength(1);
+      expect(metricBuffer?.[0]).toEqual(
+        expect.objectContaining({
+          name: 'task.duration',
+          type: 'distribution',
+          value: 500,
+          attributes: {
+            'sentry.client_sample_rate': {
+              value: 0.1,
+              type: 'double',
+            },
+          },
+        }),
+      );
     });
   });
 
