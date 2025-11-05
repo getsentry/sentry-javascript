@@ -95,7 +95,14 @@ interface Metric {
    * support that API). For pages that are restored from the bfcache, this
    * value will be 'back-forward-cache'.
    */
-  navigationType: 'navigate' | 'reload' | 'back-forward' | 'back-forward-cache' | 'prerender' | 'restore';
+  navigationType:
+    | 'navigate'
+    | 'reload'
+    | 'back-forward'
+    | 'back-forward-cache'
+    | 'prerender'
+    | 'restore'
+    | 'soft-navigation';
 }
 
 type InstrumentHandlerType = InstrumentHandlerTypeMetric | InstrumentHandlerTypePerformanceObserver;
