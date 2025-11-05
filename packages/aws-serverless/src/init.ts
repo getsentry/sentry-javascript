@@ -78,7 +78,6 @@ export function init(options: AwsServerlessOptions = {}): NodeClient | undefined
   // 3. Default logic based on sdkSource, tunnel, and proxy settings
   const useLayerExtensionFromEnv = envToBool(process.env.SENTRY_LAYER_EXTENSION, { strict: true });
   const defaultUseLayerExtension = sdkSource === 'aws-lambda-layer' && !options.tunnel && !proxyWouldInterfere;
-
   const useLayerExtension = options.useLayerExtension ?? useLayerExtensionFromEnv ?? defaultUseLayerExtension;
 
   const opts = {
@@ -88,24 +87,26 @@ export function init(options: AwsServerlessOptions = {}): NodeClient | undefined
   };
 
   if (opts.useLayerExtension) {
-    if (sdkSource === 'aws-lambda-layer') {
-      if (!opts.tunnel) {
-        DEBUG_BUILD && debug.log('Proxying Sentry events through the Sentry Lambda extension');
-        opts.tunnel = 'http://localhost:9000/envelope';
-      } else {
+    if (sdkSource !== 'aws-lambda-layer') {
+      DEBUG_BUILD && debug.warn('The Sentry Lambda extension is only supported when using the AWS Lambda layer.');
+    } else if (opts.tunnel || proxyWouldInterfere) {
+      if (opts.tunnel) {
         DEBUG_BUILD &&
           debug.warn(
             `Using a custom tunnel with the Sentry Lambda extension is not supported. Events will be tunnelled to ${opts.tunnel} and not through the extension.`,
           );
       }
+
+      if (proxyWouldInterfere) {
+        DEBUG_BUILD &&
+          debug.warn(
+            'Sentry Lambda extension is disabled due to proxy environment variables (http_proxy/https_proxy). Consider adding localhost to no_proxy to re-enable.',
+          );
+      }
     } else {
-      DEBUG_BUILD && debug.warn('The Sentry Lambda extension is only supported when using the AWS Lambda layer.');
+      DEBUG_BUILD && debug.log('Proxying Sentry events through the Sentry Lambda extension');
+      opts.tunnel = 'http://localhost:9000/envelope';
     }
-  } else if (sdkSource === 'aws-lambda-layer' && proxyWouldInterfere) {
-    DEBUG_BUILD &&
-      debug.warn(
-        'Sentry Lambda extension disabled due to proxy environment variables (http_proxy/https_proxy). Consider adding localhost to no_proxy to re-enable.',
-      );
   }
 
   applySdkMetadata(opts, 'aws-serverless', ['aws-serverless'], sdkSource);
