@@ -87,7 +87,6 @@ function setMetricAttribute(
 function validateAndProcessSampleRate(metric: Metric, client: Client): boolean {
   if (metric.sample_rate !== undefined) {
     if (metric.sample_rate <= 0 || metric.sample_rate > 1.0) {
-      // Invalid sample rate - drop the metric entirely and record the lost event
       client.recordDroppedEvent('invalid_sample_rate', 'metric');
       return false;
     }
