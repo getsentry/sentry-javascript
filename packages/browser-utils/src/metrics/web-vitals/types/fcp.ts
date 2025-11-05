@@ -52,9 +52,9 @@ export interface FCPAttribution {
   /**
    * The `navigation` entry of the current page, which is useful for diagnosing
    * general page load issues. This can be used to access `serverTiming` for example:
-   * navigationEntry?.serverTiming
+   * navigationEntry.serverTiming
    */
-  navigationEntry?: PerformanceNavigationTiming;
+  navigationEntry?: PerformanceNavigationTiming | SoftNavigationEntry;
 }
 
 /**
