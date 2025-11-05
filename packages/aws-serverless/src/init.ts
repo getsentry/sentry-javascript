@@ -79,12 +79,7 @@ export function init(options: AwsServerlessOptions = {}): NodeClient | undefined
   const useLayerExtensionFromEnv = envToBool(process.env.SENTRY_LAYER_EXTENSION, { strict: true });
   const defaultUseLayerExtension = sdkSource === 'aws-lambda-layer' && !options.tunnel && !proxyWouldInterfere;
 
-  const useLayerExtension =
-    options.useLayerExtension !== undefined
-      ? options.useLayerExtension
-      : useLayerExtensionFromEnv !== null
-        ? useLayerExtensionFromEnv
-        : defaultUseLayerExtension;
+  const useLayerExtension = options.useLayerExtension ?? useLayerExtensionFromEnv ?? defaultUseLayerExtension;
 
   const opts = {
     defaultIntegrations: getDefaultIntegrations(options),
