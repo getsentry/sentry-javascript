@@ -84,6 +84,7 @@ declare global {
     value: number;
     sources: LayoutShiftAttribution[];
     hadRecentInput: boolean;
+    navigationId?: string;
   }
 
   // https://w3c.github.io/largest-contentful-paint/#sec-largest-contentful-paint-interface
