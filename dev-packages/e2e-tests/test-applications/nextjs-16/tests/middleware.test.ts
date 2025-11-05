@@ -61,11 +61,25 @@ test('Faulty middlewares', async ({ request }) => {
 
 test('Should trace outgoing fetch requests inside middleware and create breadcrumbs for it', async ({ request }) => {
   test.skip(isDevMode, 'The fetch requests ends up in a separate tx in dev atm');
+
+  // First, let's see what middleware transactions we get
+  // FIXME: Remove this once we know what's going on
+  const allMiddlewareTransactions: Event[] = [];
   const middlewareTransactionPromise = waitForTransaction('nextjs-16', async transactionEvent => {
-    return (
-      transactionEvent?.transaction === 'middleware GET' &&
-      !!transactionEvent.spans?.find(span => span.op === 'http.client')
-    );
+    console.log('Transaction event:', transactionEvent?.transaction);
+    if (transactionEvent?.transaction === 'middleware GET') {
+      allMiddlewareTransactions.push(transactionEvent as any);
+      console.log(
+        'Found middleware transaction, spans:',
+        transactionEvent.spans?.map(s => s.op),
+      );
+
+      const hasHttpClientSpan = !!transactionEvent.spans?.find(span => span.op === 'http.client');
+      if (hasHttpClientSpan) {
+        return true;
+      }
+    }
+    return false;
   });
 
   request.get('/api/endpoint-behind-middleware', { headers: { 'x-should-make-request': '1' } }).catch(() => {
