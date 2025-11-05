@@ -523,6 +523,7 @@ test('Creates separate transactions for rapid consecutive navigations', async ({
   expect(firstEvent.transaction).toBe('/lazy/inner/:id/:anotherId/:someAnotherId');
   expect(firstEvent.contexts?.trace?.op).toBe('navigation');
   expect(firstEvent.contexts?.trace?.status).toBe('ok');
+
   const firstTraceId = firstEvent.contexts?.trace?.trace_id;
   const firstSpanId = firstEvent.contexts?.trace?.span_id;
 
@@ -545,6 +546,7 @@ test('Creates separate transactions for rapid consecutive navigations', async ({
   expect(secondEvent.transaction).toBe('/another-lazy/sub/:id/:subId');
   expect(secondEvent.contexts?.trace?.op).toBe('navigation');
   expect(secondEvent.contexts?.trace?.status).toBe('ok');
+
   const secondTraceId = secondEvent.contexts?.trace?.trace_id;
   const secondSpanId = secondEvent.contexts?.trace?.span_id;
 
@@ -569,6 +571,7 @@ test('Creates separate transactions for rapid consecutive navigations', async ({
   expect(thirdEvent.transaction).toBe('/lazy/inner/:id/:anotherId/:someAnotherId');
   expect(thirdEvent.contexts?.trace?.op).toBe('navigation');
   expect(thirdEvent.contexts?.trace?.status).toBe('ok');
+
   const thirdTraceId = thirdEvent.contexts?.trace?.trace_id;
   const thirdSpanId = thirdEvent.contexts?.trace?.span_id;
 

@@ -279,7 +279,10 @@ export function createV6CompatibleWrapCreateBrowserRouter<
         state.historyAction === 'PUSH' || (state.historyAction === 'POP' && isInitialPageloadComplete);
 
       if (shouldHandleNavigation) {
-        const navigationHandler = (): void => {
+        // Only handle navigation when it's complete (state is idle).
+        // During 'loading' or 'submitting', state.location may still have the old pathname,
+        // which would cause us to create a span for the wrong route.
+        if (state.navigation.state === 'idle') {
           handleNavigation({
             location: state.location,
             routes,
@@ -288,13 +291,6 @@ export function createV6CompatibleWrapCreateBrowserRouter<
             basename,
             allRoutes: Array.from(allRoutes),
           });
-        };
-
-        // Wait for the next render if loading an unsettled route
-        if (state.navigation.state !== 'idle') {
-          requestAnimationFrame(navigationHandler);
-        } else {
-          navigationHandler();
         }
       }
     });
@@ -632,7 +628,8 @@ export function handleNavigation(opts: {
   allRoutes?: RouteObject[];
 }): void {
   const { location, routes, navigationType, version, matches, basename, allRoutes } = opts;
-  const branches = Array.isArray(matches) ? matches : _matchRoutes(routes, location, basename);
+  // Use allRoutes for matching to include lazy-loaded routes
+  const branches = Array.isArray(matches) ? matches : _matchRoutes(allRoutes || routes, location, basename);
 
   const client = getClient();
   if (!client || !CLIENTS_WITH_INSTRUMENT_NAVIGATION.has(client)) {
@@ -649,7 +646,7 @@ export function handleNavigation(opts: {
   if ((navigationType === 'PUSH' || navigationType === 'POP') && branches) {
     const [name, source] = resolveRouteNameAndSource(
       location,
-      routes,
+      allRoutes || routes,
       allRoutes || routes,
       branches as RouteMatch[],
       basename,
@@ -659,8 +656,11 @@ export function handleNavigation(opts: {
     const spanJson = activeSpan && spanToJSON(activeSpan);
     const isAlreadyInNavigationSpan = spanJson?.op === 'navigation';
 
-    // Cross usage can result in multiple navigation spans being created without this check
-    if (!isAlreadyInNavigationSpan) {
+    // Only skip creating a new span if we're already in a navigation span AND the route name matches.
+    // This handles cross-usage (multiple wrappers for same navigation) while allowing consecutive navigations.
+    const isSpanForSameRoute = isAlreadyInNavigationSpan && spanJson?.description === name;
+
+    if (!isSpanForSameRoute) {
       const navigationSpan = startBrowserTracingNavigationSpan(client, {
         name,
         attributes: {
@@ -727,7 +727,13 @@ function updatePageloadTransaction({
     : (_matchRoutes(allRoutes || routes, location, basename) as unknown as RouteMatch[]);
 
   if (branches) {
-    const [name, source] = resolveRouteNameAndSource(location, routes, allRoutes || routes, branches, basename);
+    const [name, source] = resolveRouteNameAndSource(
+      location,
+      allRoutes || routes,
+      allRoutes || routes,
+      branches,
+      basename,
+    );
 
     getCurrentScope().setTransactionName(name || '/');
 
@@ -780,7 +786,7 @@ function patchSpanEnd(
         if (branches) {
           const [name, source] = resolveRouteNameAndSource(
             location,
-            routes,
+            currentAllRoutes.length > 0 ? currentAllRoutes : routes,
             currentAllRoutes.length > 0 ? currentAllRoutes : routes,
             branches,
             basename,
