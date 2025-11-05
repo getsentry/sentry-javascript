@@ -22,8 +22,9 @@ import { initUnique } from './lib/initUnique';
 import { LayoutShiftManager } from './lib/LayoutShiftManager';
 import { observe } from './lib/observe';
 import { runOnce } from './lib/runOnce';
+import { getSoftNavigationEntry, softNavs } from './lib/softNavs';
 import { onFCP } from './onFCP';
-import type { CLSMetric, MetricRatingThresholds, ReportOpts } from './types';
+import type { CLSMetric, Metric, MetricRatingThresholds, ReportOpts } from './types';
 
 /** Thresholds for CLS. See https://web.dev/articles/cls#what_is_a_good_cls_score */
 export const CLSThresholds: MetricRatingThresholds = [0.1, 0.25];
@@ -50,18 +51,42 @@ export const CLSThresholds: MetricRatingThresholds = [0.1, 0.25];
  * during the same page load._
  */
 export const onCLS = (onReport: (metric: CLSMetric) => void, opts: ReportOpts = {}) => {
+  const softNavsEnabled = softNavs(opts);
+  let reportedMetric = false;
+  let metricNavStartTime = 0;
+
+  const visibilityWatcher = getVisibilityWatcher();
+
   // Start monitoring FCP so we can only report CLS if FCP is also reported.
   // Note: this is done to match the current behavior of CrUX.
   onFCP(
     runOnce(() => {
-      const metric = initMetric('CLS', 0);
+      let metric = initMetric('CLS', 0);
       let report: ReturnType<typeof bindReporter>;
-      const visibilityWatcher = getVisibilityWatcher();
 
       const layoutShiftManager = initUnique(opts, LayoutShiftManager);
 
+      const initNewCLSMetric = (navigation?: Metric['navigationType'], navigationId?: string) => {
+        metric = initMetric('CLS', 0, navigation, navigationId);
+        layoutShiftManager._sessionValue = 0;
+        report = bindReporter(onReport, metric, CLSThresholds, opts.reportAllChanges);
+        reportedMetric = false;
+        if (navigation === 'soft-navigation') {
+          const softNavEntry = getSoftNavigationEntry(navigationId);
+          metricNavStartTime = softNavEntry?.startTime ?? 0;
+        }
+      };
+
       const handleEntries = (entries: LayoutShift[]) => {
         for (const entry of entries) {
+          // If the entry is for a new navigationId than previous, then we have
+          // entered a new soft nav, so emit the final CLS and reinitialize the
+          // metric.
+          if (softNavsEnabled && entry.navigationId && entry.navigationId !== metric.navigationId) {
+            report(true);
+            initNewCLSMetric('soft-navigation', entry.navigationId);
+          }
+
           layoutShiftManager._processEntry(entry);
         }
 
@@ -74,14 +99,47 @@ export const onCLS = (onReport: (metric: CLSMetric) => void, opts: ReportOpts = 
         }
       };
 
-      const po = observe('layout-shift', handleEntries);
+      const po = observe('layout-shift', handleEntries, opts);
       if (po) {
         report = bindReporter(onReport, metric, CLSThresholds, opts.reportAllChanges);
 
         visibilityWatcher.onHidden(() => {
           handleEntries(po.takeRecords() as CLSMetric['entries']);
           report(true);
+          reportedMetric = true;
         });
+
+        // Soft navs may be detected by navigationId changes in metrics above
+        // But where no metric is issued we need to also listen for soft nav
+        // entries, then emit the final metric for the previous navigation and
+        // reset the metric for the new navigation.
+        //
+        // As PO is ordered by time, these should not happen before metrics.
+        //
+        // We add a check on startTime as we may be processing many entries that
+        // are already dealt with so just checking navigationId differs from
+        // current metric's navigation id, as we did above, is not sufficient.
+        const handleSoftNavEntries = (entries: SoftNavigationEntry[]) => {
+          for (const entry of entries) {
+            const navId = entry.navigationId;
+            const softNavEntry = navId ? getSoftNavigationEntry(navId) : null;
+            if (
+              navId &&
+              navId !== metric.navigationId &&
+              softNavEntry &&
+              (softNavEntry.startTime || 0) > metricNavStartTime
+            ) {
+              handleEntries(po.takeRecords() as CLSMetric['entries']);
+              if (!reportedMetric) report(true);
+              initNewCLSMetric('soft-navigation', entry.navigationId);
+              report = bindReporter(onReport, metric, CLSThresholds, opts.reportAllChanges);
+            }
+          }
+        };
+
+        if (softNavsEnabled) {
+          observe('soft-navigation', handleSoftNavEntries, opts);
+        }
 
         // Queue a task to report (if nothing else triggers a report first).
         // This allows CLS to be reported as soon as FCP fires when
