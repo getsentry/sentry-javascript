@@ -99,7 +99,8 @@ export function init(options: BrowserOptions = {}): Client | undefined {
     if (!defaultIntegrations) {
       defaultIntegrations = [];
     }
-    defaultIntegrations.push(spotlightBrowserIntegration());
+    const args = typeof options.spotlight === 'string' ? { sidecarUrl: options.spotlight } : undefined;
+    defaultIntegrations.push(spotlightBrowserIntegration(args));
   }
   /* rollup-include-development-only-end */
 
