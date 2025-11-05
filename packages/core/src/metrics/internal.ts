@@ -162,13 +162,13 @@ export function _INTERNAL_captureMetric(beforeMetric: Metric, options?: Internal
     return;
   }
 
-  if (!validateAndProcessSampleRate(beforeMetric, client)) {
-    return;
-  }
-
   const { release, environment, _experiments } = client.getOptions();
   if (!_experiments?.enableMetrics) {
     DEBUG_BUILD && debug.warn('metrics option not enabled, metric will not be captured.');
+    return;
+  }
+
+  if (!validateAndProcessSampleRate(beforeMetric, client)) {
     return;
   }
 
