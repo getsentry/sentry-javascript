@@ -607,7 +607,7 @@ export class Scope {
       return eventId;
     }
 
-    const syntheticException = new Error(message);
+    const syntheticException = hint?.syntheticException ?? new Error(message);
 
     this._client.captureMessage(
       message,
