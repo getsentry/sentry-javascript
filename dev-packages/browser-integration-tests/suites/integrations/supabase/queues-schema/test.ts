@@ -51,7 +51,7 @@ sentryTest('should capture Supabase queue spans from client.schema(...).rpc', as
   expect(queueSpans).toHaveLength(2);
 
   expect(queueSpans![0]).toMatchObject({
-    description: 'supabase.db.rpc',
+    description: 'publish todos',
     parent_span_id: event.contexts?.trace?.span_id,
     span_id: expect.any(String),
     start_timestamp: expect.any(Number),
@@ -59,14 +59,14 @@ sentryTest('should capture Supabase queue spans from client.schema(...).rpc', as
     trace_id: event.contexts?.trace?.trace_id,
     data: expect.objectContaining({
       'sentry.op': 'queue.publish',
-      'sentry.origin': 'auto.db.supabase',
+      'sentry.origin': 'auto.db.supabase.queue.producer',
       'messaging.destination.name': 'todos',
       'messaging.message.id': '0',
     }),
   });
 
   expect(queueSpans![1]).toMatchObject({
-    description: 'supabase.db.rpc',
+    description: 'process todos',
     parent_span_id: event.contexts?.trace?.span_id,
     span_id: expect.any(String),
     start_timestamp: expect.any(Number),
@@ -74,7 +74,7 @@ sentryTest('should capture Supabase queue spans from client.schema(...).rpc', as
     trace_id: event.contexts?.trace?.trace_id,
     data: expect.objectContaining({
       'sentry.op': 'queue.process',
-      'sentry.origin': 'auto.db.supabase',
+      'sentry.origin': 'auto.db.supabase.queue.consumer',
       'messaging.destination.name': 'todos',
       'messaging.message.id': '0',
     }),
