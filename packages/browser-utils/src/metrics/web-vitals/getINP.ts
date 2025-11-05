@@ -21,9 +21,10 @@ import { initUnique } from './lib/initUnique';
 import { InteractionManager } from './lib/InteractionManager';
 import { observe } from './lib/observe';
 import { initInteractionCountPolyfill } from './lib/polyfills/interactionCountPolyfill';
+import { getSoftNavigationEntry, softNavs } from './lib/softNavs';
 import { whenActivated } from './lib/whenActivated';
 import { whenIdleOrHidden } from './lib/whenIdleOrHidden';
-import type { INPMetric, INPReportOpts, MetricRatingThresholds } from './types';
+import type { INPMetric, INPReportOpts, Metric, MetricRatingThresholds } from './types';
 
 /** Thresholds for INP. See https://web.dev/articles/inp#what_is_a_good_inp_score */
 export const INPThresholds: MetricRatingThresholds = [200, 500];
@@ -67,19 +68,47 @@ export const onINP = (onReport: (metric: INPMetric) => void, opts: INPReportOpts
     return;
   }
 
+  let reportedMetric = false;
+  let metricNavStartTime = 0;
+  const softNavsEnabled = softNavs(opts);
   const visibilityWatcher = getVisibilityWatcher();
 
   whenActivated(() => {
     // TODO(philipwalton): remove once the polyfill is no longer needed.
-    initInteractionCountPolyfill();
+    initInteractionCountPolyfill(softNavsEnabled);
 
-    const metric = initMetric('INP');
-    // eslint-disable-next-line prefer-const
+    let metric = initMetric('INP');
     let report: ReturnType<typeof bindReporter>;
 
     const interactionManager = initUnique(opts, InteractionManager);
 
+    const initNewINPMetric = (navigation?: Metric['navigationType'], navigationId?: string) => {
+      interactionManager._resetInteractions();
+      metric = initMetric('INP', -1, navigation, navigationId);
+      report = bindReporter(onReport, metric, INPThresholds, opts.reportAllChanges);
+      reportedMetric = false;
+      if (navigation === 'soft-navigation') {
+        const softNavEntry = getSoftNavigationEntry(navigationId);
+        metricNavStartTime = softNavEntry?.startTime ?? 0;
+      }
+    };
+
+    const updateINPMetric = () => {
+      const inp = interactionManager._estimateP98LongestInteraction();
+
+      if (inp && (inp._latency !== metric.value || opts.reportAllChanges)) {
+        metric.value = inp._latency;
+        metric.entries = inp.entries;
+      }
+    };
+
     const handleEntries = (entries: INPMetric['entries']) => {
+      // Only process entries, if at least some of them have interaction ids
+      // (otherwise run into lots of errors later for empty INP entries)
+      if (entries.filter(entry => entry.interactionId).length === 0) {
+        return;
+      }
+
       // Queue the `handleEntries()` callback in the next idle task.
       // This is needed to increase the chances that all event entries that
       // occurred between the user interaction and the next paint
@@ -91,13 +120,8 @@ export const onINP = (onReport: (metric: INPMetric) => void, opts: INPReportOpts
           interactionManager._processEntry(entry);
         }
 
-        const inp = interactionManager._estimateP98LongestInteraction();
-
-        if (inp && inp._latency !== metric.value) {
-          metric.value = inp._latency;
-          metric.entries = inp.entries;
-          report();
-        }
+        updateINPMetric();
+        report();
       });
     };
 
@@ -109,19 +133,58 @@ export const onINP = (onReport: (metric: INPMetric) => void, opts: INPReportOpts
       // just one or two frames is likely not worth the insight that could be
       // gained.
       durationThreshold: opts.durationThreshold ?? DEFAULT_DURATION_THRESHOLD,
-    });
+      opts,
+    } as PerformanceObserverInit);
 
     report = bindReporter(onReport, metric, INPThresholds, opts.reportAllChanges);
 
     if (po) {
       // Also observe entries of type `first-input`. This is useful in cases
       // where the first interaction is less than the `durationThreshold`.
-      po.observe({ type: 'first-input', buffered: true });
+      po.observe({
+        type: 'first-input',
+        buffered: true,
+        includeSoftNavigationObservations: softNavsEnabled,
+      });
 
       visibilityWatcher.onHidden(() => {
         handleEntries(po.takeRecords() as INPMetric['entries']);
         report(true);
       });
+
+      // Soft navs may be detected by navigationId changes in metrics above
+      // But where no metric is issued we need to also listen for soft nav
+      // entries, then emit the final metric for the previous navigation and
+      // reset the metric for the new navigation.
+      //
+      // As PO is ordered by time, these should not happen before metrics.
+      //
+      // We add a check on startTime as we may be processing many entries that
+      // are already dealt with so just checking navigationId differs from
+      // current metric's navigation id, as we did above, is not sufficient.
+      const handleSoftNavEntries = (entries: SoftNavigationEntry[]) => {
+        entries.forEach(entry => {
+          const softNavEntry = getSoftNavigationEntry(entry.navigationId);
+          const softNavEntryStartTime = softNavEntry?.startTime ?? 0;
+          if (
+            entry.navigationId &&
+            entry.navigationId !== metric.navigationId &&
+            softNavEntryStartTime > metricNavStartTime
+          ) {
+            // Queue in whenIdleOrHidden in case entry processing for previous
+            // metric are queued.
+            whenIdleOrHidden(() => {
+              handleEntries(po.takeRecords() as INPMetric['entries']);
+              if (!reportedMetric && metric.value > 0) report(true);
+              initNewINPMetric('soft-navigation', entry.navigationId);
+            });
+          }
+        });
+      };
+
+      if (softNavsEnabled) {
+        observe('soft-navigation', handleSoftNavEntries, opts);
+      }
     }
   });
 };
