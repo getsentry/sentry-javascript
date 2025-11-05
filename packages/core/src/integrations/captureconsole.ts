@@ -1,5 +1,5 @@
 import { getClient, withScope } from '../currentScopes';
-import { captureException, captureMessage } from '../exports';
+import { captureException } from '../exports';
 import { addConsoleInstrumentationHandler } from '../instrument/console';
 import { defineIntegration } from '../integration';
 import type { CaptureContext } from '../scope';
