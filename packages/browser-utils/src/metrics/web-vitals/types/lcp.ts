@@ -21,7 +21,7 @@ import type { Metric } from './base.js';
  */
 export interface LCPMetric extends Metric {
   name: 'LCP';
-  entries: LargestContentfulPaint[];
+  entries: (LargestContentfulPaint | InteractionContentfulPaint)[];
 }
 
 /**
@@ -70,18 +70,19 @@ export interface LCPAttribution {
   /**
    * The `navigation` entry of the current page, which is useful for diagnosing
    * general page load issues. This can be used to access `serverTiming` for example:
-   * navigationEntry?.serverTiming
+   * navigationEntry.serverTiming
    */
-  navigationEntry?: PerformanceNavigationTiming;
+  navigationEntry?: PerformanceNavigationTiming | SoftNavigationEntry;
   /**
    * The `resource` entry for the LCP resource (if applicable), which is useful
    * for diagnosing resource load issues.
    */
   lcpResourceEntry?: PerformanceResourceTiming;
   /**
-   * The `LargestContentfulPaint` entry corresponding to LCP.
+   * The `LargestContentfulPaint` entry corresponding to LCP
+   * (or `InteractionContentfulPaint` for soft navigations).
    */
-  lcpEntry?: LargestContentfulPaint;
+  lcpEntry?: LargestContentfulPaint | InteractionContentfulPaint;
 }
 
 /**
