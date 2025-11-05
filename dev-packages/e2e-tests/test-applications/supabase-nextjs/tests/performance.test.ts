@@ -306,6 +306,7 @@ test('Sends queue publish spans with `schema(...).rpc(...)`', async ({ page, bas
     data: {
       'messaging.destination.name': 'todos',
       'messaging.message.id': '1',
+      'messaging.message.body.size': expect.any(Number),
     },
   });
 });
@@ -355,6 +356,7 @@ test('Sends queue publish spans with `rpc(...)`', async ({ page, baseURL }) => {
     data: {
       'messaging.destination.name': 'todos',
       'messaging.message.id': '2',
+      'messaging.message.body.size': expect.any(Number),
     },
   });
 });
@@ -459,6 +461,7 @@ test('Sends queue process spans with `schema(...).rpc(...)`', async ({ page, bas
     data: {
       'messaging.destination.name': 'todos',
       'messaging.message.id': '1',
+      'messaging.message.body.size': expect.any(Number),
     },
   });
 });
@@ -563,6 +566,7 @@ test('Sends queue process spans with `rpc(...)`', async ({ page, baseURL }) => {
     data: {
       'messaging.destination.name': 'todos',
       'messaging.message.id': '2',
+      'messaging.message.body.size': expect.any(Number),
     },
   });
 });
@@ -683,6 +687,7 @@ test('Sends queue batch publish spans with `rpc(...)`', async ({ page, baseURL }
       'messaging.destination.name': 'todos',
       'messaging.message.id': expect.stringMatching(/^\d+,\d+$/),
       'messaging.batch.message_count': 2,
+      'messaging.message.body.size': expect.any(Number),
     },
   });
 });
