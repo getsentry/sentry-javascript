@@ -120,11 +120,15 @@ describe('Metrics Public API', () => {
       expect(_INTERNAL_getMetricBuffer(client)).toBeUndefined();
     });
 
-    it('captures a counter metric with sample_rate', () => {
+    it('captures a counter metric with sample_rate when sampled', () => {
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, _experiments: { enableMetrics: true } });
       const client = new TestClient(options);
       const scope = new Scope();
       scope.setClient(client);
+      scope.setPropagationContext({
+        traceId: '86f39e84263a4de99c326acab3bfe3bd',
+        sampleRand: 0.25,
+      });
 
       count('api.requests', 1, {
         scope,
@@ -148,11 +152,34 @@ describe('Metrics Public API', () => {
       );
     });
 
+    it('drops counter metric with sample_rate when not sampled', () => {
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, _experiments: { enableMetrics: true } });
+      const client = new TestClient(options);
+      const scope = new Scope();
+      scope.setClient(client);
+      scope.setPropagationContext({
+        traceId: '86f39e84263a4de99c326acab3bfe3bd',
+        sampleRand: 0.75,
+      });
+
+      count('api.requests', 1, {
+        scope,
+        sample_rate: 0.5,
+      });
+
+      const metricBuffer = _INTERNAL_getMetricBuffer(client);
+      expect(metricBuffer).toBeUndefined();
+    });
+
     it('captures a counter metric with sample_rate and existing attributes', () => {
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, _experiments: { enableMetrics: true } });
       const client = new TestClient(options);
       const scope = new Scope();
       scope.setClient(client);
+      scope.setPropagationContext({
+        traceId: '86f39e84263a4de99c326acab3bfe3bd',
+        sampleRand: 0.1,
+      });
 
       count('api.requests', 1, {
         scope,
@@ -332,6 +359,10 @@ describe('Metrics Public API', () => {
       const client = new TestClient(options);
       const scope = new Scope();
       scope.setClient(client);
+      scope.setPropagationContext({
+        traceId: '86f39e84263a4de99c326acab3bfe3bd',
+        sampleRand: 0.5,
+      });
 
       gauge('memory.usage', 1024, {
         scope,
@@ -450,6 +481,10 @@ describe('Metrics Public API', () => {
       const client = new TestClient(options);
       const scope = new Scope();
       scope.setClient(client);
+      scope.setPropagationContext({
+        traceId: '86f39e84263a4de99c326acab3bfe3bd',
+        sampleRand: 0.05,
+      });
 
       distribution('task.duration', 500, {
         scope,
