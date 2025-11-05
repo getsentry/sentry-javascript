@@ -178,7 +178,6 @@ export function _INTERNAL_captureMetric(beforeMetric: Metric, options?: Internal
     ...beforeMetric.attributes,
   };
 
-
   addSampleRateAttribute(beforeMetric, processedMetricAttributes);
 
   const {
