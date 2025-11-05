@@ -492,9 +492,15 @@ function _calculateBatchLatency(messages: Array<{ enqueued_at?: string }>): numb
  * @param span - The span to process
  * @param res - The Supabase response
  * @param queueName - The name of the queue
+ * @param operationName - The queue operation name (e.g., 'pop', 'read', 'receive')
  * @returns The original response
  */
-function _processConsumerSpan(span: Span, res: SupabaseResponse, queueName: string | undefined): SupabaseResponse {
+function _processConsumerSpan(
+  span: Span,
+  res: SupabaseResponse,
+  queueName: string | undefined,
+  operationName: string,
+): SupabaseResponse {
   // Calculate latency for single message or batch average
   let latency: number | undefined;
   const isBatch = Array.isArray(res.data) && res.data.length > 1;
@@ -523,6 +529,10 @@ function _processConsumerSpan(span: Span, res: SupabaseResponse, queueName: stri
 
   // Note: messaging.destination.name is already set in initial span attributes
 
+  // Set OTEL messaging semantic attributes
+  span.setAttribute('messaging.operation.type', 'process');
+  span.setAttribute('messaging.operation.name', operationName);
+
   if (latency !== undefined) {
     span.setAttribute('messaging.message.receive.latency', latency);
   }
@@ -541,6 +551,7 @@ function _processConsumerSpan(span: Span, res: SupabaseResponse, queueName: stri
   const breadcrumbData: Record<string, unknown> = {};
   if (messageId) breadcrumbData['messaging.message.id'] = messageId;
   if (queueName) breadcrumbData['messaging.destination.name'] = queueName;
+  if (messageBodySize !== undefined) breadcrumbData['messaging.message.body.size'] = messageBodySize;
   _createQueueBreadcrumb('queue.process', queueName, breadcrumbData);
 
   // Handle errors in the response
@@ -667,7 +678,7 @@ const _instrumentRpcConsumer = (target: unknown, thisArg: unknown, argumentsList
           },
           span => {
             try {
-              const processedResponse = _processConsumerSpan(span, res, queueName);
+              const processedResponse = _processConsumerSpan(span, res, queueName, operationName);
 
               DEBUG_BUILD && debug.log('Consumer span processed successfully', { queueName });
 
@@ -789,6 +800,8 @@ function _instrumentRpcProducer(target: unknown, thisArg: unknown, argumentsList
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'queue.publish',
         'messaging.system': 'supabase',
         'messaging.destination.name': queueName,
+        'messaging.operation.name': operationName,
+        'messaging.operation.type': 'publish',
         ...(messageBodySize !== undefined && { 'messaging.message.body.size': messageBodySize }),
       },
     },

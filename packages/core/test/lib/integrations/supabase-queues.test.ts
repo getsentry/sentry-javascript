@@ -890,9 +890,49 @@ describe('Supabase Queue Instrumentation', () => {
           name: 'publish attr-test-queue',
           op: 'queue.publish',
           attributes: expect.objectContaining({
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.queue.supabase.producer',
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.supabase.queue.producer',
             'messaging.system': 'supabase',
             'messaging.destination.name': 'attr-test-queue',
+            'messaging.operation.name': 'send',
+            'messaging.operation.type': 'publish',
+            'messaging.message.body.size': expect.any(Number),
+          }),
+        }),
+      );
+    });
+
+    it('should set correct attributes on producer span for batch send', async () => {
+      const mockResponse: SupabaseResponse = {
+        data: [{ msg_id: 790 }, { msg_id: 791 }],
+        status: 200,
+      };
+
+      mockRpcFunction.mockResolvedValue(mockResponse);
+      instrumentSupabaseClient(mockSupabaseClient);
+
+      const startSpanSpy = vi.spyOn(Tracing, 'startSpan');
+
+      await startSpan({ name: 'test-transaction' }, async () => {
+        await mockSupabaseClient.rpc('send_batch', {
+          queue_name: 'attr-test-queue-batch',
+          messages: [{ test: 'data1' }, { test: 'data2' }],
+        });
+      });
+
+      // Find the queue.publish span call
+      const publishSpanCall = startSpanSpy.mock.calls.find(call => call[0]?.name === 'publish attr-test-queue-batch');
+
+      expect(publishSpanCall).toBeDefined();
+      expect(publishSpanCall?.[0]).toEqual(
+        expect.objectContaining({
+          name: 'publish attr-test-queue-batch',
+          op: 'queue.publish',
+          attributes: expect.objectContaining({
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.supabase.queue.producer',
+            'messaging.system': 'supabase',
+            'messaging.destination.name': 'attr-test-queue-batch',
+            'messaging.operation.name': 'send_batch',
+            'messaging.operation.type': 'publish',
             'messaging.message.body.size': expect.any(Number),
           }),
         }),
@@ -929,7 +969,7 @@ describe('Supabase Queue Instrumentation', () => {
           name: 'process consumer-attr-queue',
           op: 'queue.process',
           attributes: expect.objectContaining({
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.queue.supabase.consumer',
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.supabase.queue.consumer',
             'messaging.system': 'supabase',
             'messaging.destination.name': 'consumer-attr-queue',
           }),
