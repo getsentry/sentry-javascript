@@ -78,6 +78,105 @@ function setMetricAttribute(
 }
 
 /**
+ * Validates and processes the sample_rate for a metric.
+ *
+ * @param metric - The metric containing the sample_rate to validate.
+ * @param client - The client to record dropped events with.
+ * @returns true if the sample_rate is valid, false if the metric should be dropped.
+ */
+function validateAndProcessSampleRate(metric: Metric, client: Client): boolean {
+  if (metric.sample_rate !== undefined) {
+    if (metric.sample_rate <= 0 || metric.sample_rate > 1.0) {
+      client.recordDroppedEvent('invalid_sample_rate', 'metric');
+      return false;
+    }
+  }
+  return true;
+}
+
+/**
+ * Checks if a metric should be sampled based on the sample rate and scope's sampleRand (random based on trace).
+ *
+ * @param metric - The metric containing the sample_rate.
+ * @param scope - The scope containing the sampleRand.
+ * @returns An object with sampled (boolean) and samplingPerformed (boolean) flags.
+ */
+function shouldSampleMetric(metric: Metric, scope: Scope): { sampled: boolean; samplingPerformed: boolean } {
+  if (metric.sample_rate === undefined) {
+    return { sampled: true, samplingPerformed: false };
+  }
+
+  const propagationContext = scope.getPropagationContext();
+  if (!propagationContext || propagationContext.sampleRand === undefined) {
+    return { sampled: true, samplingPerformed: false };
+  }
+
+  const sampleRand = propagationContext.sampleRand;
+  return { sampled: sampleRand < metric.sample_rate, samplingPerformed: true };
+}
+
+/**
+ * Adds the sample_rate attribute to the metric attributes if sampling was actually performed.
+ *
+ * @param metric - The metric containing the sample_rate.
+ * @param attributes - The attributes object to modify.
+ * @param samplingPerformed - Whether sampling was actually performed.
+ */
+function addSampleRateAttribute(metric: Metric, attributes: Record<string, unknown>, samplingPerformed: boolean): void {
+  if (metric.sample_rate !== undefined && metric.sample_rate !== 1.0 && samplingPerformed) {
+    setMetricAttribute(attributes, 'sentry.client_sample_rate', metric.sample_rate);
+  }
+}
+
+/**
+ * Processes and enriches metric attributes with context data.
+ *
+ * @param beforeMetric - The original metric.
+ * @param currentScope - The current scope.
+ * @param client - The client.
+ * @param samplingPerformed - Whether sampling was actually performed.
+ * @returns The processed metric attributes.
+ */
+function processMetricAttributes(beforeMetric: Metric, currentScope: Scope, client: Client, samplingPerformed: boolean): Record<string, unknown> {
+  const processedMetricAttributes = {
+    ...beforeMetric.attributes,
+  };
+
+  addSampleRateAttribute(beforeMetric, processedMetricAttributes, samplingPerformed);
+
+  const {
+    user: { id, email, username },
+  } = getMergedScopeData(currentScope);
+  setMetricAttribute(processedMetricAttributes, 'user.id', id, false);
+  setMetricAttribute(processedMetricAttributes, 'user.email', email, false);
+  setMetricAttribute(processedMetricAttributes, 'user.name', username, false);
+
+  const { release, environment } = client.getOptions();
+  setMetricAttribute(processedMetricAttributes, 'sentry.release', release);
+  setMetricAttribute(processedMetricAttributes, 'sentry.environment', environment);
+
+  const { name, version } = client.getSdkMetadata()?.sdk ?? {};
+  setMetricAttribute(processedMetricAttributes, 'sentry.sdk.name', name);
+  setMetricAttribute(processedMetricAttributes, 'sentry.sdk.version', version);
+
+  const replay = client.getIntegrationByName<
+    Integration & {
+      getReplayId: (onlyIfSampled?: boolean) => string;
+      getRecordingMode: () => 'session' | 'buffer' | undefined;
+    }
+  >('Replay');
+
+  const replayId = replay?.getReplayId(true);
+  setMetricAttribute(processedMetricAttributes, 'sentry.replay_id', replayId);
+
+  if (replayId && replay?.getRecordingMode() === 'buffer') {
+    setMetricAttribute(processedMetricAttributes, 'sentry._internal.replay_is_buffering', true);
+  }
+
+  return processedMetricAttributes;
+}
+
+/**
  * Captures a serialized metric event and adds it to the metric buffer for the given client.
  *
  * @param client - A client. Uses the current client if not provided.
@@ -133,47 +232,23 @@ export function _INTERNAL_captureMetric(beforeMetric: Metric, options?: Internal
     return;
   }
 
-  const { release, environment, _experiments } = client.getOptions();
+  const { _experiments } = client.getOptions();
   if (!_experiments?.enableMetrics) {
     DEBUG_BUILD && debug.warn('metrics option not enabled, metric will not be captured.');
     return;
   }
 
-  const [, traceContext] = _getTraceInfoFromScope(client, currentScope);
-
-  const processedMetricAttributes = {
-    ...beforeMetric.attributes,
-  };
-
-  const {
-    user: { id, email, username },
-  } = getMergedScopeData(currentScope);
-  setMetricAttribute(processedMetricAttributes, 'user.id', id, false);
-  setMetricAttribute(processedMetricAttributes, 'user.email', email, false);
-  setMetricAttribute(processedMetricAttributes, 'user.name', username, false);
-
-  setMetricAttribute(processedMetricAttributes, 'sentry.release', release);
-  setMetricAttribute(processedMetricAttributes, 'sentry.environment', environment);
-
-  const { name, version } = client.getSdkMetadata()?.sdk ?? {};
-  setMetricAttribute(processedMetricAttributes, 'sentry.sdk.name', name);
-  setMetricAttribute(processedMetricAttributes, 'sentry.sdk.version', version);
-
-  const replay = client.getIntegrationByName<
-    Integration & {
-      getReplayId: (onlyIfSampled?: boolean) => string;
-      getRecordingMode: () => 'session' | 'buffer' | undefined;
-    }
-  >('Replay');
-
-  const replayId = replay?.getReplayId(true);
-
-  setMetricAttribute(processedMetricAttributes, 'sentry.replay_id', replayId);
-
-  if (replayId && replay?.getRecordingMode() === 'buffer') {
-    // We send this so we can identify cases where the replayId is attached but the replay itself might not have been sent to Sentry
-    setMetricAttribute(processedMetricAttributes, 'sentry._internal.replay_is_buffering', true);
+  if (!validateAndProcessSampleRate(beforeMetric, client)) {
+    return;
   }
+
+  const { sampled, samplingPerformed } = shouldSampleMetric(beforeMetric, currentScope);
+  if (!sampled) {
+    return;
+  }
+
+  const [, traceContext] = _getTraceInfoFromScope(client, currentScope);
+  const processedMetricAttributes = processMetricAttributes(beforeMetric, currentScope, client, samplingPerformed);
 
   const metric: Metric = {
     ...beforeMetric,

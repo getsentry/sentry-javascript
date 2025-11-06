@@ -25,6 +25,11 @@ export interface Metric {
    * Arbitrary structured data that stores information about the metric.
    */
   attributes?: Record<string, unknown>;
+
+  /**
+   * The sample rate for the metric. Must be a float between 0 (exclusive) and 1 (inclusive).
+   */
+  sample_rate?: number;
 }
 
 export type SerializedMetricAttributeValue =
