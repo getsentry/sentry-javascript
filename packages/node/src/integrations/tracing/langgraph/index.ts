@@ -11,7 +11,6 @@ export const instrumentLangGraph = generateInstrumentOnce<LangGraphOptions>(
 const _langgraphIntegration = ((options: LangGraphOptions = {}) => {
   return {
     name: LANGGRAPH_INTEGRATION_NAME,
-    options,
     setupOnce() {
       instrumentLangGraph(options);
     },
