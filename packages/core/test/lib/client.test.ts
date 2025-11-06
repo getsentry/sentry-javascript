@@ -2762,7 +2762,10 @@ describe('Client', () => {
 
       // Create large metrics that will exceed the 800KB threshold
       const largeValue = 'x'.repeat(400_000); // 400KB string
-      _INTERNAL_captureMetric({ name: 'large_metric', value: largeValue, type: 'counter', attributes: {} }, { scope });
+      _INTERNAL_captureMetric(
+        { name: 'large_metric', value: 1, type: 'counter', attributes: { large_value: largeValue } },
+        { scope },
+      );
 
       expect(sendEnvelopeSpy).toHaveBeenCalledTimes(1);
     });

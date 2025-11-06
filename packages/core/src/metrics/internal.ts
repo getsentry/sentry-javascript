@@ -183,7 +183,7 @@ function _buildSerializedMetric(metric: Metric, client: Client, currentScope: Sc
 
   return {
     timestamp: timestampInSeconds(),
-    trace_id: traceId,
+    trace_id: traceId ?? '',
     span_id: spanId,
     name: metric.name,
     type: metric.type,

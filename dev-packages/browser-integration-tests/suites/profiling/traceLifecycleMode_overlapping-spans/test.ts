@@ -60,9 +60,9 @@ sentryTest(
     // Required profile metadata (Sample Format V2)
     // https://develop.sentry.dev/sdk/telemetry/profiles/sample-format-v2/
     expect(typeof envelopeItemPayload.profiler_id).toBe('string');
-    expect(envelopeItemPayload.profiler_id).toMatch(/^[a-f0-9]{32}$/);
+    expect(envelopeItemPayload.profiler_id).toMatch(/^[a-f\d]{32}$/);
     expect(typeof envelopeItemPayload.chunk_id).toBe('string');
-    expect(envelopeItemPayload.chunk_id).toMatch(/^[a-f0-9]{32}$/);
+    expect(envelopeItemPayload.chunk_id).toMatch(/^[a-f\d]{32}$/);
     expect(envelopeItemPayload.client_sdk).toBeDefined();
     expect(typeof envelopeItemPayload.client_sdk.name).toBe('string');
     expect(typeof envelopeItemPayload.client_sdk.version).toBe('string');
@@ -175,7 +175,7 @@ sentryTest('attaches thread data to child spans (trace mode)', async ({ page, ge
   const profilerId = rootSpan?.contexts?.profile?.profiler_id as string | undefined;
   expect(typeof profilerId).toBe('string');
 
-  expect(profilerId).toMatch(/^[a-f0-9]{32}$/);
+  expect(profilerId).toMatch(/^[a-f\d]{32}$/);
 
   const spans = (rootSpan?.spans ?? []) as Array<{ data?: Record<string, unknown> }>;
   expect(spans.length).toBeGreaterThan(0);
