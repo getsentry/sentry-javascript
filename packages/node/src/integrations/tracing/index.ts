@@ -14,6 +14,7 @@ import { honoIntegration, instrumentHono } from './hono';
 import { instrumentKafka, kafkaIntegration } from './kafka';
 import { instrumentKoa, koaIntegration } from './koa';
 import { instrumentLangChain, langChainIntegration } from './langchain';
+import { instrumentLangGraph, langgraphIntegration } from './langgraph';
 import { instrumentLruMemoizer, lruMemoizerIntegration } from './lrumemoizer';
 import { instrumentMongo, mongoIntegration } from './mongo';
 import { instrumentMongoose, mongooseIntegration } from './mongoose';
@@ -58,6 +59,7 @@ export function getAutoPerformanceIntegrations(): Integration[] {
     anthropicAIIntegration(),
     googleGenAIIntegration(),
     langChainIntegration(),
+    langgraphIntegration(),
   ];
 }
 
@@ -96,5 +98,6 @@ export function getOpenTelemetryInstrumentationToPreload(): (((options?: any) =>
     instrumentAnthropicAi,
     instrumentGoogleGenAI,
     instrumentLangChain,
+    instrumentLangGraph,
   ];
 }
