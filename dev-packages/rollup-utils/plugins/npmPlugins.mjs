@@ -130,7 +130,7 @@ export function makeProductionReplacePlugin() {
 
   function stripDevBlocks(code) {
     if (!code) return null;
-    if (!pattern.test(code)) return null;
+    if (!code.includes('rollup-include-development-only')) return null;
     const replaced = code.replace(pattern, '');
     return { code: replaced, map: null };
   }
