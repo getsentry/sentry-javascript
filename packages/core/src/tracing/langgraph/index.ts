@@ -158,6 +158,45 @@ function instrumentCompiledGraphInvoke(
 }
 
 /**
+ * Instrument a LangGraph StateGraph instance for manual instrumentation
+ * Use this for Cloudflare Workers, Vercel Edge, and other environments without OpenTelemetry
+ *
+ * @example
+ * ```typescript
+ * import * as Sentry from '@sentry/cloudflare';
+ * import { StateGraph, START, END, MessagesAnnotation } from '@langchain/langgraph';
+ *
+ * // Create and instrument the graph
+ * const graph = new StateGraph(MessagesAnnotation)
+ *   .addNode('agent', agentFn)
+ *   .addEdge(START, 'agent')
+ *   .addEdge('agent', END);
+ *
+ * Sentry.instrumentLangGraph(graph, {
+ *   recordInputs: true,
+ *   recordOutputs: true,
+ * });
+ *
+ * const compiled = graph.compile({ name: 'weather_assistant' });
+ *
+ * await compiled.invoke({
+ *   messages: [{ role: 'user', content: 'What is the weather in SF?' }],
+ * });
+ * ```
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function instrumentLangGraph<T extends { compile: (...args: any[]) => any }>(
+  stateGraph: T,
+  options?: LangGraphOptions,
+): T {
+  const _options: LangGraphOptions = options || {};
+
+  stateGraph.compile = instrumentStateGraphCompile(stateGraph.compile.bind(stateGraph), _options);
+
+  return stateGraph;
+}
+
+/**
  * Extract tools from compiled graph structure
  *
  * Tools are stored in: compiledGraph.builder.nodes.tools.runnable.tools

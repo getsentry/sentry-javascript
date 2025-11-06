@@ -21,6 +21,7 @@ export type {
 export type { CloudflareOptions } from './client';
 
 export {
+  instrumentLangGraph,
   addEventProcessor,
   addBreadcrumb,
   addIntegration,

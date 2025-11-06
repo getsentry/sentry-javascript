@@ -13,6 +13,7 @@
     "test:watch": "yarn test --watch"
   },
   "dependencies": {
+    "@langchain/langgraph": "^1.0.1",
     "@sentry/cloudflare": "10.22.0"
   },
   "devDependencies": {
