@@ -39,6 +39,12 @@ export class SentryLangGraphInstrumentation extends InstrumentationBase<LangGrap
       exports => exports,
       [
         new InstrumentationNodeModuleFile(
+          /**
+           * In CJS, LangGraph packages re-export from dist/index.cjs files.
+           * Patching only the root module sometimes misses the real implementation or
+           * gets overwritten when that file is loaded. We add a file-level patch so that
+           * _patch runs again on the concrete implementation
+           */
           '@langchain/langgraph/dist/index.cjs',
           supportedVersions,
           this._patch.bind(this),

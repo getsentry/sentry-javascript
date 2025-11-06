@@ -24,7 +24,6 @@ import { extractModelMetadata, extractTokenUsageFromMetadata, extractToolCalls }
  * - Create a `gen_ai.create_agent` span when compile() is called
  * - Automatically wrap the invoke() method on the returned compiled graph
  *
- * Uses a Proxy to preserve the original function's properties
  */
 export function instrumentStateGraphCompile(
   originalCompile: (...args: unknown[]) => CompiledGraph,
@@ -73,7 +72,6 @@ export function instrumentStateGraphCompile(
  * Instruments CompiledGraph's invoke method to create spans for agent invocation
  *
  * Creates a `gen_ai.invoke_agent` span when invoke() is called
- * Uses a Proxy to preserve the original function's properties
  */
 function instrumentCompiledGraphInvoke(
   originalInvoke: (...args: unknown[]) => Promise<unknown>,
