@@ -1,0 +1,84 @@
+import {
+  type InstrumentationConfig,
+  type InstrumentationModuleDefinition,
+  InstrumentationBase,
+  InstrumentationNodeModuleDefinition,
+  InstrumentationNodeModuleFile,
+} from '@opentelemetry/instrumentation';
+import type { CompiledGraph, LangGraphOptions } from '@sentry/core';
+import { getClient, instrumentStateGraphCompile, SDK_VERSION } from '@sentry/core';
+
+const supportedVersions = ['>=0.0.0 <2.0.0'];
+
+type LangGraphInstrumentationOptions = InstrumentationConfig & LangGraphOptions;
+
+/**
+ * Represents the patched shape of the LangGraph module export.
+ */
+interface PatchedModuleExports {
+  [key: string]: unknown;
+  StateGraph?: abstract new (...args: unknown[]) => unknown;
+}
+
+/**
+ * Sentry LangGraph instrumentation using OpenTelemetry.
+ */
+export class SentryLangGraphInstrumentation extends InstrumentationBase<LangGraphInstrumentationOptions> {
+  public constructor(config: LangGraphInstrumentationOptions = {}) {
+    super('@sentry/instrumentation-langgraph', SDK_VERSION, config);
+  }
+
+  /**
+   * Initializes the instrumentation by defining the modules to be patched.
+   */
+  public init(): InstrumentationModuleDefinition {
+    const module = new InstrumentationNodeModuleDefinition(
+      '@langchain/langgraph',
+      supportedVersions,
+      this._patch.bind(this),
+      exports => exports,
+      [
+        new InstrumentationNodeModuleFile(
+          '@langchain/langgraph/dist/index.cjs',
+          supportedVersions,
+          this._patch.bind(this),
+          exports => exports,
+        ),
+      ],
+    );
+    return module;
+  }
+
+  /**
+   * Core patch logic applying instrumentation to the LangGraph module.
+   */
+  private _patch(exports: PatchedModuleExports): PatchedModuleExports | void {
+    const client = getClient();
+    const defaultPii = Boolean(client?.getOptions().sendDefaultPii);
+
+    const config = this.getConfig();
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    const recordInputs = config.recordInputs ?? defaultPii;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    const recordOutputs = config.recordOutputs ?? defaultPii;
+
+    const options: LangGraphOptions = {
+      recordInputs,
+      recordOutputs,
+    };
+
+    // Patch StateGraph.compile to instrument both compile() and invoke()
+    if (exports.StateGraph && typeof exports.StateGraph === 'function') {
+      const StateGraph = exports.StateGraph as {
+        prototype: Record<string, unknown>;
+      };
+
+      StateGraph.prototype.compile = instrumentStateGraphCompile(
+        StateGraph.prototype.compile as (...args: unknown[]) => CompiledGraph,
+        options,
+      );
+    }
+
+    return exports;
+  }
+}

@@ -93,6 +93,8 @@ export function constructWebpackConfigFunction({
       rawNewConfig = userNextConfig.webpack(rawNewConfig, buildContext);
     }
 
+    // rawConfig.externals = ['openai']
+
     // This mutates `rawNewConfig` in place, but also returns it in order to switch its type to one in which
     // `newConfig.module.rules` is required, so we don't have to keep asserting its existence
     const newConfig = setUpModuleRules(rawNewConfig);
