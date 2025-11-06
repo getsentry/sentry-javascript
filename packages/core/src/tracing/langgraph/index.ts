@@ -1,4 +1,4 @@
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
+import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import type { Span } from '../../types-hoist/span';
 import {
   GEN_AI_AGENT_NAME_ATTRIBUTE,
@@ -37,6 +37,7 @@ export function instrumentStateGraphCompile(
           name: 'create_agent',
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: LANGGRAPH_ORIGIN,
+            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.create_agent',
             [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'create_agent',
           },
         },
@@ -87,6 +88,7 @@ function instrumentCompiledGraphInvoke(
           name: 'invoke_agent',
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: LANGGRAPH_ORIGIN,
+            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.invoke_agent',
             [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'invoke_agent',
           },
         },
