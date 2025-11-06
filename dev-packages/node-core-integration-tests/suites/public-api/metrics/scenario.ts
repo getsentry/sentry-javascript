@@ -6,9 +6,6 @@ const client = Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   release: '1.0.0',
   environment: 'test',
-  _experiments: {
-    enableMetrics: true,
-  },
   transport: loggingTransport,
 });
 

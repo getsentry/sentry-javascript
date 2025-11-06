@@ -32,7 +32,7 @@ test('should ignore sentry-values in `baggage` header of a third party vendor an
     'other=vendor',
     'sentry-environment=myEnv',
     'sentry-release=2.1.0',
-    expect.stringMatching(/sentry-sample_rand=[0-9]+/),
+    expect.stringMatching(/sentry-sample_rand=\d+/),
     'sentry-sample_rate=0.54',
     'third=party',
   ]);
@@ -60,10 +60,10 @@ test('should ignore sentry-values in `baggage` header of a third party vendor an
     'sentry-environment=prod',
     'sentry-public_key=public',
     'sentry-release=1.0',
-    expect.stringMatching(/sentry-sample_rand=[0-9]+/),
+    expect.stringMatching(/sentry-sample_rand=\d+/),
     'sentry-sample_rate=1',
     'sentry-sampled=true',
-    expect.stringMatching(/sentry-trace_id=[0-9a-f]{32}/),
+    expect.stringMatching(/sentry-trace_id=[\da-f]{32}/),
     'sentry-transaction=GET%20%2Ftest%2Fexpress',
     'third=party',
   ]);

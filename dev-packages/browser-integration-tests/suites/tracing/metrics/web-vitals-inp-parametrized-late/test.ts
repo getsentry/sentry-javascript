@@ -45,7 +45,7 @@ sentryTest(
     const spanEnvelopeItem = spanEnvelope[1][0][1];
 
     const traceId = spanEnvelopeHeaders.trace!.trace_id;
-    expect(traceId).toMatch(/[a-f0-9]{32}/);
+    expect(traceId).toMatch(/[a-f\d]{32}/);
 
     expect(spanEnvelopeHeaders).toEqual({
       sent_at: expect.any(String),
@@ -84,7 +84,7 @@ sentryTest(
       origin: 'auto.http.browser.inp',
       is_segment: true,
       segment_id: spanEnvelopeItem.span_id,
-      span_id: expect.stringMatching(/[a-f0-9]{16}/),
+      span_id: expect.stringMatching(/[a-f\d]{16}/),
       start_timestamp: expect.any(Number),
       timestamp: expect.any(Number),
       trace_id: traceId,

@@ -2753,7 +2753,6 @@ describe('Client', () => {
     it('flushes metrics when weight exceeds 800KB', () => {
       const options = getDefaultTestClientOptions({
         dsn: PUBLIC_DSN,
-        _experiments: { enableMetrics: true },
       });
       const client = new TestClient(options);
       const scope = new Scope();
@@ -2763,7 +2762,10 @@ describe('Client', () => {
 
       // Create large metrics that will exceed the 800KB threshold
       const largeValue = 'x'.repeat(400_000); // 400KB string
-      _INTERNAL_captureMetric({ name: 'large_metric', value: largeValue, type: 'counter', attributes: {} }, { scope });
+      _INTERNAL_captureMetric(
+        { name: 'large_metric', value: 1, type: 'counter', attributes: { large_value: largeValue } },
+        { scope },
+      );
 
       expect(sendEnvelopeSpy).toHaveBeenCalledTimes(1);
     });
@@ -2771,7 +2773,6 @@ describe('Client', () => {
     it('accumulates metric weight without flushing when under threshold', () => {
       const options = getDefaultTestClientOptions({
         dsn: PUBLIC_DSN,
-        _experiments: { enableMetrics: true },
       });
       const client = new TestClient(options);
       const scope = new Scope();
@@ -2788,7 +2789,6 @@ describe('Client', () => {
     it('flushes metrics on flush event', () => {
       const options = getDefaultTestClientOptions({
         dsn: PUBLIC_DSN,
-        _experiments: { enableMetrics: true },
       });
       const client = new TestClient(options);
       const scope = new Scope();
