@@ -39,7 +39,7 @@ app.get(['/test/array1', /\/test\/array[2-9]/], (_req, res) => {
   res.send({ response: 'response 3' });
 });
 
-app.get(['/test/arr/:id', /\/test\/arr[0-9]*\/required(path)?(\/optionalPath)?\/(lastParam)?/], (_req, res) => {
+app.get(['/test/arr/:id', /\/test\/arr\d*\/required(path)?(\/optionalPath)?\/(lastParam)?/], (_req, res) => {
   res.send({ response: 'response 4' });
 });
 

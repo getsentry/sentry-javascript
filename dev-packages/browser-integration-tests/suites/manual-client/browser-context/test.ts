@@ -46,7 +46,7 @@ sentryTest('allows to setup a client manually & capture exceptions', async ({ ge
       },
     },
     contexts: {
-      trace: { trace_id: expect.stringMatching(/[a-f0-9]{32}/), span_id: expect.stringMatching(/[a-f0-9]{16}/) },
+      trace: { trace_id: expect.stringMatching(/[a-f\d]{32}/), span_id: expect.stringMatching(/[a-f\d]{16}/) },
     },
   });
 });

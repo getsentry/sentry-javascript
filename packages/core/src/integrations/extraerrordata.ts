@@ -34,7 +34,7 @@ const _extraErrorDataIntegration = ((options: Partial<ExtraErrorDataOptions> = {
   return {
     name: INTEGRATION_NAME,
     processEvent(event, hint, client) {
-      const { maxValueLength = 250 } = client.getOptions();
+      const { maxValueLength } = client.getOptions();
       return _enhanceEventWithErrorData(event, hint, depth, captureErrorCause, maxValueLength);
     },
   };
@@ -47,7 +47,7 @@ function _enhanceEventWithErrorData(
   hint: EventHint = {},
   depth: number,
   captureErrorCause: boolean,
-  maxValueLength: number,
+  maxValueLength: number | undefined,
 ): Event {
   if (!hint.originalException || !isError(hint.originalException)) {
     return event;
@@ -85,7 +85,7 @@ function _enhanceEventWithErrorData(
 function _extractErrorData(
   error: ExtendedError,
   captureErrorCause: boolean,
-  maxValueLength: number,
+  maxValueLength: number | undefined,
 ): Record<string, unknown> | null {
   // We are trying to enhance already existing event, so no harm done if it won't succeed
   try {
@@ -109,7 +109,12 @@ function _extractErrorData(
         continue;
       }
       const value = error[key];
-      extraErrorInfo[key] = isError(value) || typeof value === 'string' ? truncate(`${value}`, maxValueLength) : value;
+      extraErrorInfo[key] =
+        isError(value) || typeof value === 'string'
+          ? maxValueLength
+            ? truncate(`${value}`, maxValueLength)
+            : `${value}`
+          : value;
     }
 
     // Error.cause is a standard property that is non enumerable, we therefore need to access it separately.

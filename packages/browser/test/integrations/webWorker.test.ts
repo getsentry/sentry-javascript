@@ -216,6 +216,7 @@ describe('webWorkerIntegration', () => {
 describe('registerWebWorker', () => {
   let mockWorkerSelf: {
     postMessage: ReturnType<typeof vi.fn>;
+    addEventListener: ReturnType<typeof vi.fn>;
     _sentryDebugIds?: Record<string, string>;
   };
 
@@ -224,6 +225,7 @@ describe('registerWebWorker', () => {
 
     mockWorkerSelf = {
       postMessage: vi.fn(),
+      addEventListener: vi.fn(),
     };
   });
 
