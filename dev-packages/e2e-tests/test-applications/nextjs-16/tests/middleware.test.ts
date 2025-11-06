@@ -62,8 +62,6 @@ test('Faulty middlewares', async ({ request }) => {
 test('Should trace outgoing fetch requests inside middleware and create breadcrumbs for it', async ({ request }) => {
   test.skip(isDevMode, 'The fetch requests ends up in a separate tx in dev atm');
 
-  // First, let's see what middleware transactions we get
-  // FIXME: Remove this once we know what's going on
   const allMiddlewareTransactions: Event[] = [];
   const middlewareTransactionPromise = waitForTransaction('nextjs-16', async transactionEvent => {
     console.log('Transaction event:', transactionEvent?.transaction);
@@ -75,9 +73,21 @@ test('Should trace outgoing fetch requests inside middleware and create breadcru
       );
 
       const hasHttpClientSpan = !!transactionEvent.spans?.find(span => span.op === 'http.client');
-      if (hasHttpClientSpan) {
-        return true;
+
+      // Add diagnostic logging when span is missing to help debug CI failures
+      if (!hasHttpClientSpan) {
+        console.warn('[TEST] Middleware transaction found but missing http.client span');
+        console.warn(
+          '[TEST] Available spans:',
+          transactionEvent.spans?.map(s => ({ op: s.op, description: s.description })),
+        );
+        console.warn(
+          '[TEST] Breadcrumbs:',
+          transactionEvent.breadcrumbs?.filter(b => b.category === 'http'),
+        );
       }
+
+      return hasHttpClientSpan;
     }
     return false;
   });
@@ -90,6 +100,21 @@ test('Should trace outgoing fetch requests inside middleware and create breadcru
 
   const middlewareTransaction = await middlewareTransactionPromise;
 
+  // Assert breadcrumbs FIRST - these are more reliable as they don't depend on OTEL instrumentation
+  expect(middlewareTransaction.breadcrumbs).toEqual(
+    expect.arrayContaining([
+      {
+        category: 'http',
+        data: { 'http.method': 'GET', status_code: 200, url: 'http://localhost:3030/' },
+        timestamp: expect.any(Number),
+        type: 'http',
+      },
+    ]),
+  );
+
+  // Assert the http.client span exists
+  // This tests that OTEL fetch instrumentation is working in Next.js middleware
+  // If this fails consistently in CI but breadcrumbs pass, it indicates a real instrumentation bug
   expect(middlewareTransaction.spans).toEqual(
     expect.arrayContaining([
       {
@@ -120,17 +145,6 @@ test('Should trace outgoing fetch requests inside middleware and create breadcru
         status: 'ok',
         timestamp: expect.any(Number),
         trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-      },
-    ]),
-  );
-
-  expect(middlewareTransaction.breadcrumbs).toEqual(
-    expect.arrayContaining([
-      {
-        category: 'http',
-        data: { 'http.method': 'GET', status_code: 200, url: 'http://localhost:3030/' },
-        timestamp: expect.any(Number),
-        type: 'http',
       },
     ]),
   );
