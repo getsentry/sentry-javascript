@@ -39,7 +39,6 @@ describe('Redis', () => {
         { desc: 'no cache prefixes', cmd: 'get', args: ['key'], response: 'test', options: {} },
         { desc: 'non-matching prefix', cmd: 'get', args: ['key'], response: 'test', options: { cachePrefixes: ['c'] } },
       ])('should always set sentry.origin but return early when $desc', ({ cmd, args, response, options = {} }) => {
-        vi.clearAllMocks();
         Object.assign(_redisOptions, options);
 
         cacheResponseHook(mockSpan, cmd, args, response);
