@@ -232,8 +232,12 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
       setupWeightBasedFlushing(this, 'afterCaptureLog', 'flushLogs', estimateLogSizeInBytes, _INTERNAL_flushLogsBuffer);
     }
 
+    // todo(v11): Remove the experimental flag
+    // eslint-disable-next-line deprecation/deprecation
+    const enableMetrics = this._options.enableMetrics ?? this._options._experiments?.enableMetrics ?? true;
+
     // Setup metric flushing with weight and timeout tracking
-    if (this._options._experiments?.enableMetrics) {
+    if (enableMetrics) {
       setupWeightBasedFlushing(
         this,
         'afterCaptureMetric',
