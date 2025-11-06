@@ -16,8 +16,8 @@ test('node-schedule instrumentation', async () => {
         monitor_config: { schedule: { type: 'crontab', value: '* * * * * *' } },
         contexts: {
           trace: {
-            trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-            span_id: expect.stringMatching(/[a-f0-9]{16}/),
+            trace_id: expect.stringMatching(/[a-f\d]{32}/),
+            span_id: expect.stringMatching(/[a-f\d]{16}/),
           },
         },
       },
@@ -31,8 +31,8 @@ test('node-schedule instrumentation', async () => {
         duration: expect.any(Number),
         contexts: {
           trace: {
-            trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-            span_id: expect.stringMatching(/[a-f0-9]{16}/),
+            trace_id: expect.stringMatching(/[a-f\d]{32}/),
+            span_id: expect.stringMatching(/[a-f\d]{16}/),
           },
         },
       },
@@ -46,8 +46,8 @@ test('node-schedule instrumentation', async () => {
         monitor_config: { schedule: { type: 'crontab', value: '* * * * * *' } },
         contexts: {
           trace: {
-            trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-            span_id: expect.stringMatching(/[a-f0-9]{16}/),
+            trace_id: expect.stringMatching(/[a-f\d]{32}/),
+            span_id: expect.stringMatching(/[a-f\d]{16}/),
           },
         },
       },
@@ -61,8 +61,8 @@ test('node-schedule instrumentation', async () => {
         duration: expect.any(Number),
         contexts: {
           trace: {
-            trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-            span_id: expect.stringMatching(/[a-f0-9]{16}/),
+            trace_id: expect.stringMatching(/[a-f\d]{32}/),
+            span_id: expect.stringMatching(/[a-f\d]{16}/),
           },
         },
       },

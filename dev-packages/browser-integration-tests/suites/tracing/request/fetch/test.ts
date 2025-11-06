@@ -26,7 +26,7 @@ sentryTest('should create spans for fetch requests', async ({ getLocalTestUrl, p
     expect(span).toMatchObject({
       description: `GET http://sentry-test-site.example/${index}`,
       parent_span_id: tracingEvent.contexts?.trace?.span_id,
-      span_id: expect.stringMatching(/[a-f0-9]{16}/),
+      span_id: expect.stringMatching(/[a-f\d]{16}/),
       start_timestamp: expect.any(Number),
       timestamp: expect.any(Number),
       trace_id: tracingEvent.contexts?.trace?.trace_id,
@@ -62,7 +62,7 @@ sentryTest('attaches `sentry-trace` and `baggage` headers to fetch requests', as
   const request1 = requests[0];
   const requestHeaders1 = request1.headers();
   expect(requestHeaders1).toMatchObject({
-    'sentry-trace': expect.stringMatching(/^([a-f0-9]{32})-([a-f0-9]{16})-1$/),
+    'sentry-trace': expect.stringMatching(/^([a-f\d]{32})-([a-f\d]{16})-1$/),
     baggage: expect.any(String),
   });
   // traceparent must only be attached if propagateTraceparent is `true`
@@ -71,7 +71,7 @@ sentryTest('attaches `sentry-trace` and `baggage` headers to fetch requests', as
   const request2 = requests[1];
   const requestHeaders2 = request2.headers();
   expect(requestHeaders2).toMatchObject({
-    'sentry-trace': expect.stringMatching(/^([a-f0-9]{32})-([a-f0-9]{16})-1$/),
+    'sentry-trace': expect.stringMatching(/^([a-f\d]{32})-([a-f\d]{16})-1$/),
     baggage: expect.any(String),
     'x-test-header': 'existing-header',
   });
@@ -80,7 +80,7 @@ sentryTest('attaches `sentry-trace` and `baggage` headers to fetch requests', as
   const request3 = requests[2];
   const requestHeaders3 = request3.headers();
   expect(requestHeaders3).toMatchObject({
-    'sentry-trace': expect.stringMatching(/^([a-f0-9]{32})-([a-f0-9]{16})-1$/),
+    'sentry-trace': expect.stringMatching(/^([a-f\d]{32})-([a-f\d]{16})-1$/),
     baggage: expect.any(String),
   });
   expect(requestHeaders3).not.toHaveProperty('traceparent');
