@@ -18,17 +18,18 @@
   "exports": {
     "./package.json": "./package.json",
     ".": {
-      "import": {
-        "types": "./build/npm/types/index.d.ts",
-        "development": "./build/npm/esm/dev/index.js",
-        "production": "./build/npm/esm/prod/index.js",
-        "default": "./build/npm/esm/prod/index.js"
+      "types": "./build/npm/types/index.d.ts",
+      "development": {
+        "import": "./build/npm/esm/dev/index.js",
+        "require": "./build/npm/cjs/dev/index.js"
       },
-      "require": {
-        "types": "./build/npm/types/index.d.ts",
-        "development": "./build/npm/cjs/dev/index.js",
-        "production": "./build/npm/cjs/prod/index.js",
-        "default": "./build/npm/cjs/prod/index.js"
+      "production": {
+        "import": "./build/npm/esm/prod/index.js",
+        "require": "./build/npm/cjs/prod/index.js"
+      },
+      "default": {
+        "import": "./build/npm/esm/prod/index.js",
+        "require": "./build/npm/cjs/prod/index.js"
       }
     }
   },
