@@ -24,11 +24,11 @@ const MARKED_DISABLED_INTEGRATIONS = new Set<string>();
  * @param integrationName The name(s) of the integration(s) to mark as disabled
  */
 export function _markIntegrationsDisabled(integrationName: string | string[]): void {
-  if (Array.isArray(integrationName)) {
-    integrationName.forEach(name => MARKED_DISABLED_INTEGRATIONS.add(name));
-  } else {
-    MARKED_DISABLED_INTEGRATIONS.add(integrationName);
-  }
+  const names = Array.isArray(integrationName) ? integrationName : [integrationName];
+  names.forEach(name => {
+    MARKED_DISABLED_INTEGRATIONS.add(name);
+    DEBUG_BUILD && debug.log(`Integration marked as disabled: ${name}`);
+  });
 }
 
 /**
@@ -160,11 +160,8 @@ export function setupIntegration(client: Client, integration: Integration, integ
 
   // `setupOnce` is only called the first time
   if (!installedIntegrations.includes(integration.name) && typeof integration.setupOnce === 'function') {
-    // Skip setup if integration is marked as disabled
-    if (!_isIntegrationMarkedDisabled(integration.name)) {
-      integration.setupOnce();
-      installedIntegrations.push(integration.name);
-    }
+    integration.setupOnce();
+    installedIntegrations.push(integration.name);
   }
 
   // `setup` is run for each client

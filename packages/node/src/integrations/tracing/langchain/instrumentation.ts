@@ -160,9 +160,7 @@ export class SentryLangChainInstrumentation extends InstrumentationBase<LangChai
 
     const config = this.getConfig();
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     const recordInputs = config?.recordInputs ?? defaultPii;
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     const recordOutputs = config?.recordOutputs ?? defaultPii;
 
     // Create a shared handler instance

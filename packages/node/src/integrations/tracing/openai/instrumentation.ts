@@ -5,7 +5,13 @@ import {
   InstrumentationNodeModuleDefinition,
 } from '@opentelemetry/instrumentation';
 import type { Integration, OpenAiClient, OpenAiOptions } from '@sentry/core';
-import { getClient, instrumentOpenAiClient, OPENAI_INTEGRATION_NAME, SDK_VERSION } from '@sentry/core';
+import {
+  _isIntegrationMarkedDisabled,
+  getClient,
+  instrumentOpenAiClient,
+  OPENAI_INTEGRATION_NAME,
+  SDK_VERSION,
+} from '@sentry/core';
 
 const supportedVersions = ['>=4.0.0 <6'];
 
@@ -56,6 +62,12 @@ export class SentryOpenAiInstrumentation extends InstrumentationBase<Instrumenta
     const Original = exports.OpenAI;
 
     const WrappedOpenAI = function (this: unknown, ...args: unknown[]) {
+      // Check if disabled at runtime (after module is loaded, in case LangChain marked it)
+      if (_isIntegrationMarkedDisabled(OPENAI_INTEGRATION_NAME)) {
+        // Return unwrapped instance - no instrumentation
+        return Reflect.construct(Original, args) as OpenAiClient;
+      }
+
       const instance = Reflect.construct(Original, args);
       const client = getClient();
       const integration = client?.getIntegrationByName<OpenAiIntegration>(OPENAI_INTEGRATION_NAME);

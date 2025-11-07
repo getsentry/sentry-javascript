@@ -6,7 +6,14 @@ import {
   InstrumentationNodeModuleFile,
 } from '@opentelemetry/instrumentation';
 import type { GoogleGenAIClient, GoogleGenAIOptions } from '@sentry/core';
-import { getClient, instrumentGoogleGenAIClient, replaceExports, SDK_VERSION } from '@sentry/core';
+import {
+  _isIntegrationMarkedDisabled,
+  getClient,
+  GOOGLE_GENAI_INTEGRATION_NAME,
+  instrumentGoogleGenAIClient,
+  replaceExports,
+  SDK_VERSION,
+} from '@sentry/core';
 
 const supportedVersions = ['>=0.10.0 <2'];
 
@@ -65,14 +72,18 @@ export class SentryGoogleGenAiInstrumentation extends InstrumentationBase<Google
     }
 
     const WrappedGoogleGenAI = function (this: unknown, ...args: unknown[]): GoogleGenAIClient {
+      // Check if disabled at runtime (after module is loaded, in case LangChain marked it)
+      if (_isIntegrationMarkedDisabled(GOOGLE_GENAI_INTEGRATION_NAME)) {
+        // Return unwrapped instance - no instrumentation
+        return Reflect.construct(Original, args) as GoogleGenAIClient;
+      }
+
       const instance = Reflect.construct(Original, args);
       const client = getClient();
       const defaultPii = Boolean(client?.getOptions().sendDefaultPii);
 
       const typedConfig = config;
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       const recordInputs = typedConfig?.recordInputs ?? defaultPii;
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       const recordOutputs = typedConfig?.recordOutputs ?? defaultPii;
 
       return instrumentGoogleGenAIClient(instance, {

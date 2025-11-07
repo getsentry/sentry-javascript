@@ -5,7 +5,13 @@ import {
   InstrumentationNodeModuleDefinition,
 } from '@opentelemetry/instrumentation';
 import type { AnthropicAiClient, AnthropicAiOptions } from '@sentry/core';
-import { getClient, instrumentAnthropicAiClient, SDK_VERSION } from '@sentry/core';
+import {
+  _isIntegrationMarkedDisabled,
+  ANTHROPIC_AI_INTEGRATION_NAME,
+  getClient,
+  instrumentAnthropicAiClient,
+  SDK_VERSION,
+} from '@sentry/core';
 
 const supportedVersions = ['>=0.19.2 <1.0.0'];
 
@@ -48,6 +54,12 @@ export class SentryAnthropicAiInstrumentation extends InstrumentationBase<Anthro
     const config = this.getConfig();
 
     const WrappedAnthropic = function (this: unknown, ...args: unknown[]) {
+      // Check if disabled at runtime (after module is loaded, in case LangChain marked it)
+      if (_isIntegrationMarkedDisabled(ANTHROPIC_AI_INTEGRATION_NAME)) {
+        // Return unwrapped instance - no instrumentation
+        return Reflect.construct(Original, args) as AnthropicAiClient;
+      }
+
       const instance = Reflect.construct(Original, args);
       const client = getClient();
       const defaultPii = Boolean(client?.getOptions().sendDefaultPii);
