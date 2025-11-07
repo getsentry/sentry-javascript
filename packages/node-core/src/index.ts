@@ -113,7 +113,6 @@ export {
   captureSession,
   endSession,
   addIntegration,
-  disableIntegrations,
   startSpan,
   startSpanManual,
   startInactiveSpan,

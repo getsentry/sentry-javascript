@@ -60,10 +60,9 @@ export {
   addIntegration,
   defineIntegration,
   installedIntegrations,
-  disableIntegrations,
-  isIntegrationDisabled,
-  enableIntegration,
-  clearDisabledIntegrations,
+  _markIntegrationsDisabled,
+  _isIntegrationMarkedDisabled,
+  _clearDisabledIntegrationsMarks,
 } from './integration';
 export { applyScopeDataToEvent, mergeScopeData } from './utils/applyScopeDataToEvent';
 export { prepareEvent } from './utils/prepareEvent';

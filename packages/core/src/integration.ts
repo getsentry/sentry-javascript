@@ -9,62 +9,55 @@ import { debug } from './utils/debug-logger';
 export const installedIntegrations: string[] = [];
 
 /**
- * Registry to track disabled integrations.
+ * Registry to track integrations marked as disabled.
  * This is used to prevent duplicate instrumentation when higher-level integrations
  * (like LangChain) already instrument the underlying libraries (like OpenAI, Anthropic, etc.)
  */
-const DISABLED_INTEGRATIONS = new Set<string>();
+const MARKED_DISABLED_INTEGRATIONS = new Set<string>();
 
 /**
  * Mark one or more integrations as disabled to prevent their instrumentation from being set up.
- * @param integrationName The name(s) of the integration(s) to disable
- */
-export function disableIntegrations(integrationName: string | string[]): void {
-  if (Array.isArray(integrationName)) {
-    integrationName.forEach(name => DISABLED_INTEGRATIONS.add(name));
-  } else {
-    DISABLED_INTEGRATIONS.add(integrationName);
-  }
-}
-
-/**
- * Check if an integration has been disabled.
- * @param integrationName The name of the integration to check
- * @returns true if the integration is disabled
- */
-export function isIntegrationDisabled(integrationName: string): boolean {
-  return DISABLED_INTEGRATIONS.has(integrationName);
-}
-
-/**
- * Remove one or more integrations from the disabled list.
- * @param integrationName The name(s) of the integration(s) to enable
- */
-export function enableIntegration(integrationName: string | string[]): void {
-  if (Array.isArray(integrationName)) {
-    integrationName.forEach(name => DISABLED_INTEGRATIONS.delete(name));
-  } else {
-    DISABLED_INTEGRATIONS.delete(integrationName);
-  }
-}
-
-/**
- * Clear all disabled integrations.
- * This is automatically called during Sentry.init() to ensure a clean state.
+ * This should be called during an integration's setupOnce() phase.
+ * The marked integrations will be skipped when their own setupOnce() is called.
  *
- * This also removes the disabled integrations from the global installedIntegrations list,
- * allowing them to run setupOnce() again if they're included in a new client.
+ * @internal This is an internal API for coordination between integrations, not for public use.
+ * @param integrationName The name(s) of the integration(s) to mark as disabled
  */
-export function clearDisabledIntegrations(): void {
-  // Remove disabled integrations from the installed list so they can setup again
-  DISABLED_INTEGRATIONS.forEach(integrationName => {
-    const index = installedIntegrations.indexOf(integrationName);
-    if (index !== -1) {
-      installedIntegrations.splice(index, 1);
-    }
-  });
+export function _markIntegrationsDisabled(integrationName: string | string[]): void {
+  if (Array.isArray(integrationName)) {
+    integrationName.forEach(name => MARKED_DISABLED_INTEGRATIONS.add(name));
+  } else {
+    MARKED_DISABLED_INTEGRATIONS.add(integrationName);
+  }
+}
 
-  DISABLED_INTEGRATIONS.clear();
+/**
+ * Check if an integration has been marked as disabled.
+ *
+ * @internal This is an internal API for coordination between integrations, not for public use.
+ * @param integrationName The name of the integration to check
+ * @returns true if the integration is marked as disabled
+ */
+export function _isIntegrationMarkedDisabled(integrationName: string): boolean {
+  return MARKED_DISABLED_INTEGRATIONS.has(integrationName);
+}
+
+/**
+ * Clear all integration marks and remove marked integrations from the installed list.
+ * This is automatically called at the start of Sentry.init() to ensure a clean state
+ * between different client initializations.
+ *
+ * This also removes the marked integrations from the global installedIntegrations list,
+ * allowing them to run setupOnce() again if they're included in a new client.
+ *
+ * @internal This is an internal API for coordination between integrations, not for public use.
+ */
+export function _clearDisabledIntegrationsMarks(): void {
+  // Remove marked integrations from the installed list so they can setup again
+  const filtered = installedIntegrations.filter(integration => !MARKED_DISABLED_INTEGRATIONS.has(integration));
+  installedIntegrations.splice(0, installedIntegrations.length, ...filtered);
+
+  MARKED_DISABLED_INTEGRATIONS.clear();
 }
 
 /** Map of integrations assigned to a client */
@@ -166,9 +159,9 @@ export function setupIntegration(client: Client, integration: Integration, integ
   integrationIndex[integration.name] = integration;
 
   // `setupOnce` is only called the first time
-  if (installedIntegrations.indexOf(integration.name) === -1 && typeof integration.setupOnce === 'function') {
-    // Skip setup if integration is disabled
-    if (!isIntegrationDisabled(integration.name)) {
+  if (!installedIntegrations.includes(integration.name) && typeof integration.setupOnce === 'function') {
+    // Skip setup if integration is marked as disabled
+    if (!_isIntegrationMarkedDisabled(integration.name)) {
       integration.setupOnce();
       installedIntegrations.push(integration.name);
     }

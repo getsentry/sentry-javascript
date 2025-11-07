@@ -5,9 +5,9 @@ import { registerInstrumentations } from '@opentelemetry/instrumentation';
 import type { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import type { DynamicSamplingContext, Scope, ServerRuntimeClientOptions, TraceContext } from '@sentry/core';
 import {
+  _clearDisabledIntegrationsMarks,
   _INTERNAL_flushLogsBuffer,
   applySdkMetadata,
-  clearDisabledIntegrations,
   debug,
   SDK_VERSION,
   ServerRuntimeClient,
@@ -154,10 +154,10 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
 
   /** @inheritDoc */
   protected _setupIntegrations(): void {
-    // Clear disabled integrations before setting up integrations
+    // Clear integration marks before setting up integrations
     // This ensures that integrations work correctly when not all default integrations are used
-    // (e.g., when LangChain disables OpenAI, but a subsequent client doesn't use LangChain)
-    clearDisabledIntegrations();
+    // (e.g., when LangChain marks OpenAI as disabled, but a subsequent client doesn't use LangChain)
+    _clearDisabledIntegrationsMarks();
     super._setupIntegrations();
   }
 
