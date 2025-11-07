@@ -18,7 +18,7 @@ import type { EventDropReason, Outcome } from './types-hoist/clientreport';
 import type { DataCategory } from './types-hoist/datacategory';
 import type { DsnComponents } from './types-hoist/dsn';
 import type { DynamicSamplingContext, Envelope } from './types-hoist/envelope';
-import type { ErrorEvent, Event, EventHint, TransactionEvent } from './types-hoist/event';
+import type { ErrorEvent, Event, EventHint, EventType, TransactionEvent } from './types-hoist/event';
 import type { EventProcessor } from './types-hoist/eventprocessor';
 import type { FeedbackEvent } from './types-hoist/feedback';
 import type { Integration } from './types-hoist/integration';
@@ -335,7 +335,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     const sdkProcessingMetadata = event.sdkProcessingMetadata || {};
     const capturedSpanScope: Scope | undefined = sdkProcessingMetadata.capturedSpanScope;
     const capturedSpanIsolationScope: Scope | undefined = sdkProcessingMetadata.capturedSpanIsolationScope;
-    const dataCategory = event.type === 'replay_event' ? 'replay' : (event.type ?? 'unknown');
+    const dataCategory = getDataCategoryByType(event.type);
 
     this._process(
       () => this._captureEvent(event, hintWithEventId, capturedSpanScope || currentScope, capturedSpanIsolationScope),
@@ -1241,7 +1241,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
       );
     }
 
-    const dataCategory = (eventType === 'replay_event' ? 'replay' : eventType) satisfies DataCategory;
+    const dataCategory = getDataCategoryByType(event.type);
 
     return this._prepareEvent(event, hint, currentScope, isolationScope)
       .then(prepared => {
@@ -1401,6 +1401,10 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     _level?: SeverityLevel,
     _hint?: EventHint,
   ): PromiseLike<Event>;
+}
+
+function getDataCategoryByType(type: EventType | 'replay_event' | undefined): DataCategory {
+  return type === 'replay_event' ? 'replay' : type || 'error';
 }
 
 /**
