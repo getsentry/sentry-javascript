@@ -17,7 +17,7 @@ export function shouldInstrument(methodPath: string): methodPath is AnthropicAiI
  */
 export function handleResponseError(span: Span, response: AnthropicAiResponse): void {
   if (response.error) {
-    span.setStatus({ code: SPAN_STATUS_ERROR, message: response.error.type || 'unknown_error' });
+    span.setStatus({ code: SPAN_STATUS_ERROR, message: response.error.type || 'internal_error' });
 
     captureException(response.error, {
       mechanism: {

@@ -8,7 +8,7 @@
     "cf-typegen": "wrangler types --env-interface CloudflareBindings",
     "test:build": "pnpm install && pnpm build",
     "//": "Just checking if it builds correctly and types don't break",
-    "test:assert": "pnpm typecheck"
+    "test:assert": "pnpm typecheck && vitest run ."
   },
   "dependencies": {
     "@sentry/cloudflare": "latest || *",

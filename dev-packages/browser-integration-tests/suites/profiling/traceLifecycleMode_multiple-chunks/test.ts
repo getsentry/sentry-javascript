@@ -58,9 +58,9 @@ sentryTest(
 
     // Required profile metadata (Sample Format V2)
     expect(typeof envelopeItemPayload1.profiler_id).toBe('string');
-    expect(envelopeItemPayload1.profiler_id).toMatch(/^[a-f0-9]{32}$/);
+    expect(envelopeItemPayload1.profiler_id).toMatch(/^[a-f\d]{32}$/);
     expect(typeof envelopeItemPayload1.chunk_id).toBe('string');
-    expect(envelopeItemPayload1.chunk_id).toMatch(/^[a-f0-9]{32}$/);
+    expect(envelopeItemPayload1.chunk_id).toMatch(/^[a-f\d]{32}$/);
     expect(envelopeItemPayload1.client_sdk).toBeDefined();
     expect(typeof envelopeItemPayload1.client_sdk.name).toBe('string');
     expect(typeof envelopeItemPayload1.client_sdk.version).toBe('string');
@@ -170,9 +170,9 @@ sentryTest(
     // Required profile metadata (Sample Format V2)
     // https://develop.sentry.dev/sdk/telemetry/profiles/sample-format-v2/
     expect(typeof envelopeItemPayload2.profiler_id).toBe('string');
-    expect(envelopeItemPayload2.profiler_id).toMatch(/^[a-f0-9]{32}$/);
+    expect(envelopeItemPayload2.profiler_id).toMatch(/^[a-f\d]{32}$/);
     expect(typeof envelopeItemPayload2.chunk_id).toBe('string');
-    expect(envelopeItemPayload2.chunk_id).toMatch(/^[a-f0-9]{32}$/);
+    expect(envelopeItemPayload2.chunk_id).toMatch(/^[a-f\d]{32}$/);
     expect(envelopeItemPayload2.client_sdk).toBeDefined();
     expect(typeof envelopeItemPayload2.client_sdk.name).toBe('string');
     expect(typeof envelopeItemPayload2.client_sdk.version).toBe('string');

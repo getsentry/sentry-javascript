@@ -5,6 +5,7 @@ import {
   getCurrentScope,
   getRootSpan,
   htmlTreeAsString,
+  isBrowser,
   SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME,
   SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_UNIT,
   SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE,
@@ -12,6 +13,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   spanToJSON,
 } from '@sentry/core';
+import { WINDOW } from '../types';
 import type { InstrumentationHandlerCallback } from './instrument';
 import {
   addInpInstrumentationHandler,
@@ -20,8 +22,16 @@ import {
 } from './instrument';
 import { getBrowserPerformanceAPI, msToSec, startStandaloneWebVitalSpan } from './utils';
 
+interface InteractionContext {
+  span: Span | undefined;
+  elementName: string;
+}
+
 const LAST_INTERACTIONS: number[] = [];
-const INTERACTIONS_SPAN_MAP = new Map<number, Span>();
+const INTERACTIONS_SPAN_MAP = new Map<number, InteractionContext>();
+
+// Map to store element names by timestamp, since we get the DOM event before the PerformanceObserver entry
+const ELEMENT_NAME_TIMESTAMP_MAP = new Map<number, string>();
 
 /**
  * 60 seconds is the maximum for a plausible INP value
@@ -111,17 +121,17 @@ export const _onInp: InstrumentationHandlerCallback = ({ metric }) => {
   const activeSpan = getActiveSpan();
   const rootSpan = activeSpan ? getRootSpan(activeSpan) : undefined;
 
-  // We first try to lookup the span from our INTERACTIONS_SPAN_MAP,
-  // where we cache the route per interactionId
-  const cachedSpan = interactionId != null ? INTERACTIONS_SPAN_MAP.get(interactionId) : undefined;
+  // We first try to lookup the interaction context from our INTERACTIONS_SPAN_MAP,
+  // where we cache the route and element name per interactionId
+  const cachedInteractionContext = interactionId != null ? INTERACTIONS_SPAN_MAP.get(interactionId) : undefined;
 
-  const spanToUse = cachedSpan || rootSpan;
+  const spanToUse = cachedInteractionContext?.span || rootSpan;
 
   // Else, we try to use the active span.
   // Finally, we fall back to look at the transactionName on the scope
   const routeName = spanToUse ? spanToJSON(spanToUse).description : getCurrentScope().getScopeData().transactionName;
 
-  const name = htmlTreeAsString(entry.target);
+  const name = cachedInteractionContext?.elementName || htmlTreeAsString(entry.target);
   const attributes: SpanAttributes = {
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.browser.inp',
     [SEMANTIC_ATTRIBUTE_SENTRY_OP]: `ui.interaction.${interactionType}`,
@@ -149,12 +159,65 @@ export const _onInp: InstrumentationHandlerCallback = ({ metric }) => {
  * Register a listener to cache route information for INP interactions.
  */
 export function registerInpInteractionListener(): void {
+  // Listen for all interaction events that could contribute to INP
+  const interactionEvents = Object.keys(INP_ENTRY_MAP);
+  if (isBrowser()) {
+    interactionEvents.forEach(eventType => {
+      WINDOW.addEventListener(eventType, captureElementFromEvent, { capture: true, passive: true });
+    });
+  }
+
+  /**
+   * Captures the element name from a DOM event and stores it in the ELEMENT_NAME_TIMESTAMP_MAP.
+   */
+  function captureElementFromEvent(event: Event): void {
+    const target = event.target as HTMLElement | null;
+    if (!target) {
+      return;
+    }
+
+    const elementName = htmlTreeAsString(target);
+    const timestamp = Math.round(event.timeStamp);
+
+    // Store the element name by timestamp so we can match it with the PerformanceEntry
+    ELEMENT_NAME_TIMESTAMP_MAP.set(timestamp, elementName);
+
+    // Clean up old
+    if (ELEMENT_NAME_TIMESTAMP_MAP.size > 50) {
+      const firstKey = ELEMENT_NAME_TIMESTAMP_MAP.keys().next().value;
+      if (firstKey !== undefined) {
+        ELEMENT_NAME_TIMESTAMP_MAP.delete(firstKey);
+      }
+    }
+  }
+
+  /**
+   * Tries to get the element name from the timestamp map.
+   */
+  function resolveElementNameFromEntry(entry: PerformanceEntry): string {
+    const timestamp = Math.round(entry.startTime);
+    let elementName = ELEMENT_NAME_TIMESTAMP_MAP.get(timestamp);
+
+    // try nearby timestamps (±5ms)
+    if (!elementName) {
+      for (let offset = -5; offset <= 5; offset++) {
+        const nearbyName = ELEMENT_NAME_TIMESTAMP_MAP.get(timestamp + offset);
+        if (nearbyName) {
+          elementName = nearbyName;
+          break;
+        }
+      }
+    }
+
+    return elementName || '<unknown>';
+  }
+
   const handleEntries = ({ entries }: { entries: PerformanceEntry[] }): void => {
     const activeSpan = getActiveSpan();
     const activeRootSpan = activeSpan && getRootSpan(activeSpan);
 
     entries.forEach(entry => {
-      if (!isPerformanceEventTiming(entry) || !activeRootSpan) {
+      if (!isPerformanceEventTiming(entry)) {
         return;
       }
 
@@ -168,6 +231,8 @@ export function registerInpInteractionListener(): void {
         return;
       }
 
+      const elementName = entry.target ? htmlTreeAsString(entry.target) : resolveElementNameFromEntry(entry);
+
       // We keep max. 10 interactions in the list, then remove the oldest one & clean up
       if (LAST_INTERACTIONS.length > 10) {
         const last = LAST_INTERACTIONS.shift() as number;
@@ -175,9 +240,12 @@ export function registerInpInteractionListener(): void {
       }
 
       // We add the interaction to the list of recorded interactions
-      // and store the span for this interaction
+      // and store both the span and element name for this interaction
       LAST_INTERACTIONS.push(interactionId);
-      INTERACTIONS_SPAN_MAP.set(interactionId, activeRootSpan);
+      INTERACTIONS_SPAN_MAP.set(interactionId, {
+        span: activeRootSpan,
+        elementName,
+      });
     });
   };
 

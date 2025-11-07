@@ -32,6 +32,11 @@ describe('NodeClient', () => {
       dsn: expect.any(String),
       integrations: [],
       transport: options.transport,
+      transportOptions: {
+        headers: {
+          'user-agent': `sentry.javascript.node/${SDK_VERSION}`,
+        },
+      },
       stackParser: options.stackParser,
       _metadata: {
         sdk: {

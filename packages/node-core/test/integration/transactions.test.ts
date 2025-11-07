@@ -1,5 +1,5 @@
 import { context, trace, TraceFlags } from '@opentelemetry/api';
-import type { TransactionEvent } from '@sentry/core';
+import type { ErrorEvent, TransactionEvent } from '@sentry/core';
 import { debug, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import * as Sentry from '../../src';
@@ -9,6 +9,7 @@ describe('Integration | Transactions', () => {
   afterEach(() => {
     vi.restoreAllMocks();
     cleanupOtel();
+    vi.useRealTimers();
   });
 
   it('correctly creates transaction & spans', async () => {
@@ -673,5 +674,66 @@ describe('Integration | Transactions', () => {
 
     expect(spans).toContainEqual(expect.objectContaining({ description: 'inner span 1' }));
     expect(spans).toContainEqual(expect.objectContaining({ description: 'inner span 2' }));
+  });
+
+  it('withMonitor should use the same traces for each monitor', async () => {
+    const sendEvents: ErrorEvent[] = [];
+    const transactionEvents: TransactionEvent[] = [];
+    const beforeSendTransaction = vi.fn((event: TransactionEvent) => {
+      transactionEvents.push(event);
+      return null;
+    });
+    const beforeSend = vi.fn((event: ErrorEvent) => {
+      sendEvents.push(event);
+      return null;
+    });
+
+    mockSdkInit({
+      tracesSampleRate: 1,
+      beforeSendTransaction,
+      beforeSend,
+      debug: true,
+    });
+
+    const client = Sentry.getClient();
+    const errorMessage = 'Error outside withMonitor';
+
+    Sentry.startSpan({ name: 'span outside error' }, () => {
+      Sentry.withMonitor('cron-job-1', () => Sentry.startSpan({ name: 'inner span 1' }, () => undefined));
+
+      try {
+        throw new Error(errorMessage);
+      } catch (e) {
+        Sentry.startSpan({ name: 'span inside error' }, () => undefined);
+        Sentry.captureException(e);
+      }
+
+      Sentry.withMonitor('cron-job-2', () => {
+        Sentry.startSpan({ name: 'inner span 2' }, () => undefined);
+      });
+    });
+
+    await client?.flush();
+
+    const transactionTraceId = transactionEvents[0]?.contexts?.trace?.trace_id;
+    const errorTraceId = sendEvents[0]?.contexts?.trace?.trace_id;
+
+    expect(beforeSendTransaction).toHaveBeenCalledTimes(1);
+    expect(beforeSend).toHaveBeenCalledTimes(1);
+    expect(transactionEvents).toHaveLength(1);
+    expect(transactionTraceId).toBe(errorTraceId);
+    expect(transactionEvents[0]?.spans).toHaveLength(3);
+    expect(transactionEvents).toMatchObject([
+      {
+        spans: [{ description: 'inner span 1' }, { description: 'span inside error' }, { description: 'inner span 2' }],
+      },
+    ]);
+    expect(sendEvents).toMatchObject([
+      {
+        exception: {
+          values: [{ value: errorMessage }],
+        },
+      },
+    ]);
   });
 });

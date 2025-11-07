@@ -243,6 +243,37 @@ interface SourceMapsOptions {
   filesToDeleteAfterUpload?: string | Array<string>;
 }
 
+type AutoSetCommitsOptions = {
+  /**
+   * Automatically sets `commit` and `previousCommit`. Sets `commit` to `HEAD`
+   * and `previousCommit` as described in the option's documentation.
+   *
+   * If you set this to `true`, manually specified `commit` and `previousCommit`
+   * options will be overridden. It is best to not specify them at all if you
+   * set this option to `true`.
+   */
+  auto: true;
+  repo?: undefined;
+  commit?: undefined;
+};
+
+type ManualSetCommitsOptions = {
+  auto?: false | undefined;
+  /**
+   * The full repo name as defined in Sentry.
+   *
+   * Required if the `auto` option is not set to `true`.
+   */
+  repo: string;
+
+  /**
+   * The current (last) commit in the release.
+   *
+   * Required if the `auto` option is not set to `true`.
+   */
+  commit: string;
+};
+
 interface ReleaseOptions {
   /**
    * Unique identifier for the release you want to create.
@@ -299,101 +330,81 @@ interface ReleaseOptions {
 
   /**
    * Configuration for associating the release with its commits in Sentry.
+   *
+   * Set to `false` to disable commit association.
+   *
+   * @default { auto: true }
    */
-  setCommits?: (
-    | {
+  setCommits?:
+    | false
+    | ((AutoSetCommitsOptions | ManualSetCommitsOptions) & {
         /**
-         * Automatically sets `commit` and `previousCommit`. Sets `commit` to `HEAD`
-         * and `previousCommit` as described in the option's documentation.
+         * The commit before the beginning of this release (in other words,
+         * the last commit of the previous release).
          *
-         * If you set this to `true`, manually specified `commit` and `previousCommit`
-         * options will be overridden. It is best to not specify them at all if you
-         * set this option to `true`.
-         */
-        auto: true;
-        repo?: undefined;
-        commit?: undefined;
-      }
-    | {
-        auto?: false | undefined;
-        /**
-         * The full repo name as defined in Sentry.
+         * Defaults to the last commit of the previous release in Sentry.
          *
-         * Required if the `auto` option is not set to `true`.
+         * If there was no previous release, the last 10 commits will be used.
          */
-        repo: string;
+        previousCommit?: string;
 
         /**
-         * The current (last) commit in the release.
+         * If the flag is to `true` and the previous release commit was not found
+         * in the repository, the plugin creates a release with the default commits
+         * count instead of failing the command.
          *
-         * Required if the `auto` option is not set to `true`.
+         * @default false
          */
-        commit: string;
-      }
-  ) & {
-    /**
-     * The commit before the beginning of this release (in other words,
-     * the last commit of the previous release).
-     *
-     * Defaults to the last commit of the previous release in Sentry.
-     *
-     * If there was no previous release, the last 10 commits will be used.
-     */
-    previousCommit?: string;
+        ignoreMissing?: boolean;
 
-    /**
-     * If the flag is to `true` and the previous release commit was not found
-     * in the repository, the plugin creates a release with the default commits
-     * count instead of failing the command.
-     *
-     * @default false
-     */
-    ignoreMissing?: boolean;
-
-    /**
-     * If this flag is set, the setCommits step will not fail and just exit
-     * silently if no new commits for a given release have been found.
-     *
-     * @default false
-     */
-    ignoreEmpty?: boolean;
-  };
+        /**
+         * If this flag is set, the setCommits step will not fail and just exit
+         * silently if no new commits for a given release have been found.
+         *
+         * @default false
+         */
+        ignoreEmpty?: boolean;
+      });
 
   /**
    * Configuration for adding deployment information to the release in Sentry.
+   *
+   * Set to `false` to disable automatic deployment detection and creation.
    */
-  deploy?: {
-    /**
-     * Environment for this release. Values that make sense here would
-     * be `production` or `staging`.
-     */
-    env: string;
+  deploy?:
+    | false
+    | {
+        /**
+         * Environment for this release. Values that make sense here would
+         * be `production` or `staging`.
+         */
+        env: string;
 
-    /**
-     * Deployment start time in Unix timestamp (in seconds) or ISO 8601 format.
-     */
-    started?: number | string;
+        /**
+         * Deployment start time in Unix timestamp (in seconds) or ISO 8601 format.
+         */
+        started?: number | string;
 
-    /**
-     * Deployment finish time in Unix timestamp (in seconds) or ISO 8601 format.
-     */
-    finished?: number | string;
+        /**
+         * Deployment finish time in Unix timestamp (in seconds) or ISO 8601 format.
+         */
+        finished?: number | string;
 
-    /**
-     * Deployment duration (in seconds). Can be used instead of started and finished.
-     */
-    time?: number;
+        /**
+         * Deployment duration (in seconds). Can be used instead of started and finished.
+         */
+        time?: number;
 
-    /**
-     * Human-readable name for the deployment.
-     */
-    name?: string;
+        /**
+         * Human-readable name for the deployment.
+         */
+        name?: string;
 
-    /**
-     * URL that points to the deployment.
-     */
-    url?: string;
-  };
+        /**
+         * URL that points to the deployment.
+         */
+        url?: string;
+      };
 }
 
 interface BundleSizeOptimizationsOptions {

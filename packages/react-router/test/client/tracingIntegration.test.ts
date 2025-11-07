@@ -17,6 +17,7 @@ describe('reactRouterTracingIntegration', () => {
 
   it('calls instrumentHydratedRouter and browserTracingIntegrationInstance.afterAllSetup in afterAllSetup', () => {
     const browserTracingSpy = vi.spyOn(sentryBrowser, 'browserTracingIntegration').mockImplementation(() => ({
+      setup: vi.fn(),
       afterAllSetup: vi.fn(),
       name: 'BrowserTracing',
     }));

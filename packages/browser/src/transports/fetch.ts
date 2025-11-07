@@ -1,8 +1,10 @@
 import type { Transport, TransportMakeRequestResponse, TransportRequest } from '@sentry/core';
-import { createTransport } from '@sentry/core';
+import { createTransport, makePromiseBuffer } from '@sentry/core';
 import { clearCachedImplementation, getNativeImplementation } from '@sentry-internal/browser-utils';
 import type { WINDOW } from '../helpers';
 import type { BrowserTransportOptions } from './types';
+
+const DEFAULT_BROWSER_TRANSPORT_BUFFER_SIZE = 40;
 
 /**
  * Creates a Transport that uses the Fetch API to send events to Sentry.
@@ -59,5 +61,9 @@ export function makeFetchTransport(
     }
   }
 
-  return createTransport(options, makeRequest);
+  return createTransport(
+    options,
+    makeRequest,
+    makePromiseBuffer(options.bufferSize || DEFAULT_BROWSER_TRANSPORT_BUFFER_SIZE),
+  );
 }

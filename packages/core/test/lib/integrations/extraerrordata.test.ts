@@ -55,6 +55,27 @@ describe('ExtraErrorData()', () => {
     });
   });
 
+  it('should not truncate extra data without maxValueLength', () => {
+    const error = new TypeError('foo') as ExtendedError;
+    error.baz = 42;
+    error.foo = 'a'.repeat(300);
+
+    const enhancedEvent = extraErrorData.processEvent?.(
+      event,
+      {
+        originalException: error,
+      },
+      new TestClient(getDefaultTestClientOptions()),
+    ) as Event;
+
+    expect(enhancedEvent.contexts).toEqual({
+      TypeError: {
+        baz: 42,
+        foo: `${'a'.repeat(300)}`,
+      },
+    });
+  });
+
   it('should extract error data from the error cause with the same policy', () => {
     const error = new TypeError('foo') as ExtendedError;
     error.cause = new SyntaxError('bar') as ExtendedError;
