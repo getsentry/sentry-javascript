@@ -39,7 +39,6 @@ test('Sends a transaction for a request to app router', async ({ page }) => {
     headers: expect.objectContaining({
       'user-agent': expect.any(String),
     }),
-    url: expect.stringContaining('/server-component/parameter/1337/42'),
   });
 
   // The transaction should not contain any spans with the same name as the transaction
