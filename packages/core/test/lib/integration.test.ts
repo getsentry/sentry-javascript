@@ -1,6 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, test, vi } from 'vitest';
 import { getCurrentScope } from '../../src/currentScopes';
-import { addIntegration, getIntegrationsToSetup, installedIntegrations, setupIntegration } from '../../src/integration';
+import {
+  _clearDisabledIntegrationsMarks,
+  _isIntegrationMarkedDisabled,
+  _markIntegrationsDisabled,
+  addIntegration,
+  getIntegrationsToSetup,
+  installedIntegrations,
+  setupIntegration,
+} from '../../src/integration';
 import { setCurrentClient } from '../../src/sdk';
 import type { Integration } from '../../src/types-hoist/integration';
 import type { Options } from '../../src/types-hoist/options';
@@ -681,5 +689,129 @@ describe('addIntegration', () => {
     expect(integration2.afterAllSetup).toHaveBeenCalledTimes(0);
 
     expect(logs).toHaveBeenCalledWith('Integration skipped because it was already installed: test');
+  });
+});
+
+describe('Integration marking system', () => {
+  beforeEach(() => {
+    // Clear marks before each test
+    _clearDisabledIntegrationsMarks();
+    // Reset installed integrations
+    installedIntegrations.splice(0, installedIntegrations.length);
+  });
+
+  afterEach(() => {
+    // Clean up after tests
+    _clearDisabledIntegrationsMarks();
+  });
+
+  describe('_markIntegrationsDisabled', () => {
+    it('marks a single integration as disabled', () => {
+      _markIntegrationsDisabled('TestIntegration');
+      expect(_isIntegrationMarkedDisabled('TestIntegration')).toBe(true);
+    });
+
+    it('marks multiple integrations as disabled using array', () => {
+      _markIntegrationsDisabled(['Integration1', 'Integration2', 'Integration3']);
+      expect(_isIntegrationMarkedDisabled('Integration1')).toBe(true);
+      expect(_isIntegrationMarkedDisabled('Integration2')).toBe(true);
+      expect(_isIntegrationMarkedDisabled('Integration3')).toBe(true);
+    });
+
+    it('does not affect unmarked integrations', () => {
+      _markIntegrationsDisabled('Integration1');
+      expect(_isIntegrationMarkedDisabled('Integration1')).toBe(true);
+      expect(_isIntegrationMarkedDisabled('Integration2')).toBe(false);
+    });
+  });
+
+  describe('_isIntegrationMarkedDisabled', () => {
+    it('returns false for integrations that are not marked', () => {
+      expect(_isIntegrationMarkedDisabled('SomeIntegration')).toBe(false);
+    });
+
+    it('returns true for integrations that are marked', () => {
+      _markIntegrationsDisabled('MarkedIntegration');
+      expect(_isIntegrationMarkedDisabled('MarkedIntegration')).toBe(true);
+    });
+  });
+
+  describe('_clearDisabledIntegrationsMarks', () => {
+    it('clears all marks', () => {
+      _markIntegrationsDisabled(['Integration1', 'Integration2']);
+      expect(_isIntegrationMarkedDisabled('Integration1')).toBe(true);
+      expect(_isIntegrationMarkedDisabled('Integration2')).toBe(true);
+
+      _clearDisabledIntegrationsMarks();
+
+      expect(_isIntegrationMarkedDisabled('Integration1')).toBe(false);
+      expect(_isIntegrationMarkedDisabled('Integration2')).toBe(false);
+    });
+
+    it('removes marked integrations from installedIntegrations list', () => {
+      // Simulate integrations being installed
+      installedIntegrations.push('Integration1', 'Integration2', 'Integration3');
+
+      // Mark some as disabled
+      _markIntegrationsDisabled(['Integration1', 'Integration3']);
+
+      // Clear should remove marked ones from installed list
+      _clearDisabledIntegrationsMarks();
+
+      expect(installedIntegrations).toEqual(['Integration2']);
+    });
+
+    it('preserves integrations that are not marked when clearing', () => {
+      installedIntegrations.push('Integration1', 'Integration2', 'Integration3');
+      _markIntegrationsDisabled('Integration2');
+
+      _clearDisabledIntegrationsMarks();
+
+      expect(installedIntegrations).toEqual(['Integration1', 'Integration3']);
+    });
+  });
+
+  describe('setupIntegration with marked integrations', () => {
+    it('skips setupOnce for marked integrations', () => {
+      const client = getTestClient();
+      const integration = new MockIntegration('MarkedIntegration');
+
+      // Mark the integration as disabled before setup
+      _markIntegrationsDisabled('MarkedIntegration');
+
+      setupIntegration(client, integration, {});
+
+      // setupOnce should not be called
+      expect(integration.setupOnce).not.toHaveBeenCalled();
+      // Integration should not be in installed list
+      expect(installedIntegrations).not.toContain('MarkedIntegration');
+    });
+
+    it('calls setupOnce for non-marked integrations', () => {
+      const client = getTestClient();
+      const integration = new MockIntegration('NormalIntegration');
+
+      setupIntegration(client, integration, {});
+
+      // setupOnce should be called
+      expect(integration.setupOnce).toHaveBeenCalledTimes(1);
+      // Integration should be in installed list
+      expect(installedIntegrations).toContain('NormalIntegration');
+    });
+
+    it('allows setup after clearing marks', () => {
+      const client = getTestClient();
+      const integration = new MockIntegration('TestIntegration');
+
+      // Mark, clear, then setup
+      _markIntegrationsDisabled('TestIntegration');
+      _clearDisabledIntegrationsMarks();
+
+      setupIntegration(client, integration, {});
+
+      // setupOnce should be called after marks are cleared
+      expect(integration.setupOnce).toHaveBeenCalledTimes(1);
+      expect(installedIntegrations).toContain('TestIntegration');
+    });
   });
 });

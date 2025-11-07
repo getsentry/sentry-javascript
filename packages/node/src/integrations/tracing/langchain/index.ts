@@ -1,12 +1,5 @@
 import type { IntegrationFn, LangChainOptions } from '@sentry/core';
-import {
-  _markIntegrationsDisabled,
-  ANTHROPIC_AI_INTEGRATION_NAME,
-  defineIntegration,
-  GOOGLE_GENAI_INTEGRATION_NAME,
-  LANGCHAIN_INTEGRATION_NAME,
-  OPENAI_INTEGRATION_NAME,
-} from '@sentry/core';
+import { defineIntegration, LANGCHAIN_INTEGRATION_NAME } from '@sentry/core';
 import { generateInstrumentOnce } from '@sentry/node-core';
 import { SentryLangChainInstrumentation } from './instrumentation';
 
@@ -19,14 +12,8 @@ const _langChainIntegration = ((options: LangChainOptions = {}) => {
   return {
     name: LANGCHAIN_INTEGRATION_NAME,
     setupOnce() {
-      // Mark AI provider integrations as disabled to prevent duplicate spans
-      // LangChain integration handles instrumentation for all underlying AI providers
-      _markIntegrationsDisabled([
-        OPENAI_INTEGRATION_NAME,
-        ANTHROPIC_AI_INTEGRATION_NAME,
-        GOOGLE_GENAI_INTEGRATION_NAME,
-      ]);
-
+      // Register the instrumentation
+      // The instrumentation will mark AI providers as disabled when LangChain modules are actually loaded
       instrumentLangChain(options);
     },
   };
