@@ -15,7 +15,7 @@
     "@sentry/browser": "10.22.0",
     "webpack": "^5.0.0",
     "rollup": "^4.0.0",
-    "vite": "^7.0.0",
+    "vite": "^5.0.0",
     "@rollup/plugin-node-resolve": "^15.2.3",
     "vitest": "^3.2.4"
   },
