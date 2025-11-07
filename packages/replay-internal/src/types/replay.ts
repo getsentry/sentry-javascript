@@ -180,7 +180,7 @@ export interface ReplayPluginOptions extends ReplayNetworkOptions {
   /**
    * The min. duration (in ms) a replay has to have before it is sent to Sentry.
    * Whenever attempting to flush a session that is shorter than this, it will not actually send it to Sentry.
-   * Note that this is capped at max. 15s.
+   * Note that this is capped at max. 5 minutes.
    */
   minReplayDuration: number;
 
