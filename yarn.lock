@@ -4092,12 +4092,17 @@
   resolved "https://registry.yarnpkg.com/@esbuild/win32-x64/-/win32-x64-0.25.6.tgz#4276edd5c105bc28b11c6a1f76fb9d29d1bd25c1"
   integrity sha512-NgJPHHbEpLQgDH2MjQu90pzW/5vvXIZ7KOnPyNBm92A6WgZ/7b6fJyUBjoumLqeOQQGqY2QjQxRo97ah4Sj0cA==
 
-"@eslint-community/eslint-utils@^4.4.0":
-  version "4.4.0"
-  resolved "https://registry.yarnpkg.com/@eslint-community/eslint-utils/-/eslint-utils-4.4.0.tgz#a23514e8fb9af1269d5f7788aa556798d61c6b59"
-  integrity sha512-1/sA4dwrzBAyeUoQ6oxahHKmrZvsnLCg4RfxW3ZFGGmQkSNQPFNLV9CUEFQP1x9EYXHTo5p6xdhZM1Ne9p/AfA==
+"@eslint-community/eslint-utils@^4.2.0", "@eslint-community/eslint-utils@^4.4.0":
+  version "4.9.0"
+  resolved "https://registry.yarnpkg.com/@eslint-community/eslint-utils/-/eslint-utils-4.9.0.tgz#7308df158e064f0dd8b8fdb58aa14fa2a7f913b3"
+  integrity sha512-ayVFHdtZ+hsq1t2Dy24wCmGXGe4q9Gu3smhLYALJrr473ZH27MsnSL+LKUlimp4BWJqMDMLmPpx/Q9R3OAlL4g==
   dependencies:
-    eslint-visitor-keys "^3.3.0"
+    eslint-visitor-keys "^3.4.3"
+
+"@eslint-community/regexpp@^4.4.0", "@eslint-community/regexpp@^4.5.0":
+  version "4.12.2"
+  resolved "https://registry.yarnpkg.com/@eslint-community/regexpp/-/regexpp-4.12.2.tgz#bccdf615bcf7b6e8db830ec0b8d21c9a25de597b"
+  integrity sha512-EriSTlt5OC9/7SXkRSCAhfSxxoSUgBm33OH+IkwbdpgoqsSsUg7y3uh+IICI/Qg4BBWr3U2i39RpmycbxMq4ew==
 
 "@eslint/eslintrc@^0.4.3":
   version "0.4.3"
@@ -6961,22 +6966,22 @@
   dependencies:
     "@sentry-internal/rrweb-snapshot" "2.34.0"
 
-"@sentry-internal/rrdom@2.37.0":
-  version "2.37.0"
-  resolved "https://registry.yarnpkg.com/@sentry-internal/rrdom/-/rrdom-2.37.0.tgz#1aaf382eb7b543d7c256d31b73868e81e6649fbb"
-  integrity sha512-Wj6W4HP6kVYL1oenYq+Ec7QKtsq1Btk/acFLfZ/O7fygLVeAM0KZ4JZirPWdJmpeNNIk1YN7a8C7CfCiM014Ag==
+"@sentry-internal/rrdom@2.40.0":
+  version "2.40.0"
+  resolved "https://registry.yarnpkg.com/@sentry-internal/rrdom/-/rrdom-2.40.0.tgz#2afd76ab6695a63e7b000cb3c101029cd2ccd48b"
+  integrity sha512-QBnn2F0qi4Lx7TZW41CdRek/vWWLZCDx1Ywc1SimBX+byuVmNP84qvnVI4wKMoDvU6AcQiWHAgX2tGoa3Ol8pw==
   dependencies:
-    "@sentry-internal/rrweb-snapshot" "2.37.0"
+    "@sentry-internal/rrweb-snapshot" "2.40.0"
 
 "@sentry-internal/rrweb-snapshot@2.34.0":
   version "2.34.0"
   resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb-snapshot/-/rrweb-snapshot-2.34.0.tgz#79c2049b6c887e3c128d5fa80d6f745a61dd0e68"
   integrity sha512-9Tb8jwVufn5GLV0d/CTuoZWo2O06ZB+xWeTJdEkbtJ6PAmO/Q7GQI3uNIx0pfFEnXP+0Km8CKKxpwkEM0z2m6w==
 
-"@sentry-internal/rrweb-snapshot@2.37.0":
-  version "2.37.0"
-  resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb-snapshot/-/rrweb-snapshot-2.37.0.tgz#2081d1827a108a08cab219234952744e6e79c06b"
-  integrity sha512-fu2/Fd5J5gJrAgQgl9WykVPQkMjo+9MVFy4Y88STTP3WWsLu1u75YAQM6Lr1/tLEykoQ4NecmNDdcz/DiB/nNg==
+"@sentry-internal/rrweb-snapshot@2.40.0":
+  version "2.40.0"
+  resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb-snapshot/-/rrweb-snapshot-2.40.0.tgz#873e9be9967d7e4b6518beb7d9dfbdf5bbe043ac"
+  integrity sha512-uxYlYUIiybRqcyp5go46G5lcOswTFfeen8PelYVQsiLX34I7eugNfLgFchpBdiWv1FXwsautBWyOsZlxCPc3Zw==
 
 "@sentry-internal/rrweb-types@2.34.0":
   version "2.34.0"
@@ -6986,12 +6991,12 @@
     "@sentry-internal/rrweb-snapshot" "2.34.0"
     "@types/css-font-loading-module" "0.0.7"
 
-"@sentry-internal/rrweb-types@2.37.0":
-  version "2.37.0"
-  resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb-types/-/rrweb-types-2.37.0.tgz#edc91ee032896788fa9a6f96c76f1f6dd7c9f538"
-  integrity sha512-ydtHzfGFO6Tyw4n7yOLUrdaNKmRdyaVfqNgObEbEgO/qobzxBV5zf8eNApTayy6SOji3NrF8PpJzm55OX/ChNA==
+"@sentry-internal/rrweb-types@2.40.0":
+  version "2.40.0"
+  resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb-types/-/rrweb-types-2.40.0.tgz#0c16376b83d264548f67e757dc28ae01d2e46991"
+  integrity sha512-d4MB1NI7KeomX0vRy0E7OQJHI+WvbeKvwAHqG/xV94A4ZscKkF7DoAQUvyeBsFf3tED/SuwV75HNEnq2uwk/cQ==
   dependencies:
-    "@sentry-internal/rrweb-snapshot" "2.37.0"
+    "@sentry-internal/rrweb-snapshot" "2.40.0"
     "@types/css-font-loading-module" "0.0.7"
 
 "@sentry-internal/rrweb@2.34.0":
@@ -7008,14 +7013,14 @@
     fflate "^0.4.4"
     mitt "^3.0.0"
 
-"@sentry-internal/rrweb@2.37.0":
-  version "2.37.0"
-  resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb/-/rrweb-2.37.0.tgz#8ea0eb906e194060c60f4a6af4a0d3a16d52cdec"
-  integrity sha512-erN53M1WSPGpsMw+iVX6qWhI4id41+2AXcnALoB2JIyL/Q1W8f2loq/a4PxWkhaaq7mtGiHTmNTbks8Qgrsl9g==
+"@sentry-internal/rrweb@2.40.0":
+  version "2.40.0"
+  resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb/-/rrweb-2.40.0.tgz#9d60899800f21f061f38b1b62ddc64df1ff525bb"
+  integrity sha512-niFva5QmCTfavotLvIeFSvO0rfzbJwW04igcPaWAqTDATi+Xife27iBeVMBmjpHEWygGYkBaGyBQUUi8zUdAyg==
   dependencies:
-    "@sentry-internal/rrdom" "2.37.0"
-    "@sentry-internal/rrweb-snapshot" "2.37.0"
-    "@sentry-internal/rrweb-types" "2.37.0"
+    "@sentry-internal/rrdom" "2.40.0"
+    "@sentry-internal/rrweb-snapshot" "2.40.0"
+    "@sentry-internal/rrweb-types" "2.40.0"
     "@types/css-font-loading-module" "0.0.7"
     "@xstate/fsm" "^1.4.0"
     base64-arraybuffer "^1.0.1"
@@ -13127,6 +13132,11 @@ comment-parser@^0.7.6:
   resolved "https://registry.yarnpkg.com/comment-parser/-/comment-parser-0.7.6.tgz#0e743a53c8e646c899a1323db31f6cd337b10f12"
   integrity sha512-GKNxVA7/iuTnAqGADlTWX4tkhzxZKXp5fLJqKTlQLHkE65XDUKutZ3BHaJC5IGcper2tT3QRD1xr4o3jNpgXXg==
 
+comment-parser@^1.1.2:
+  version "1.4.1"
+  resolved "https://registry.yarnpkg.com/comment-parser/-/comment-parser-1.4.1.tgz#bdafead37961ac079be11eb7ec65c4d021eaf9cc"
+  integrity sha512-buhp5kePrmda3vhc5B9t7pUQXAb2Tnd0qgpkIhPhkHXxJpiPJ11H0ZEU0oBpJ2QztSbzG/ZxMj/CHsYJqRHmyg==
+
 commenting@~1.1.0:
   version "1.1.0"
   resolved "https://registry.yarnpkg.com/commenting/-/commenting-1.1.0.tgz#fae14345c6437b8554f30bc6aa6c1e1633033590"
@@ -16218,6 +16228,20 @@ eslint-plugin-react@^7.20.5, eslint-plugin-react@^7.31.11:
     semver "^6.3.0"
     string.prototype.matchall "^4.0.8"
 
+eslint-plugin-regexp@^1.15.0:
+  version "1.15.0"
+  resolved "https://registry.yarnpkg.com/eslint-plugin-regexp/-/eslint-plugin-regexp-1.15.0.tgz#2717cd4867418287b36d9569c72fca7d242c59b3"
+  integrity sha512-YEtQPfdudafU7RBIFci81R/Q1yErm0mVh3BkGnXD2Dk8DLwTFdc2ITYH1wCnHKim2gnHfPFgrkh+b2ozyyU7ag==
+  dependencies:
+    "@eslint-community/eslint-utils" "^4.2.0"
+    "@eslint-community/regexpp" "^4.4.0"
+    comment-parser "^1.1.2"
+    grapheme-splitter "^1.0.4"
+    jsdoctypeparser "^9.0.0"
+    refa "^0.11.0"
+    regexp-ast-analysis "^0.6.0"
+    scslre "^0.2.0"
+
 eslint-plugin-simple-import-sort@^6.0.0:
   version "6.0.1"
   resolved "https://registry.yarnpkg.com/eslint-plugin-simple-import-sort/-/eslint-plugin-simple-import-sort-6.0.1.tgz#24a3af3b745dcd389c060db28e22d0f5e3edf86e"
@@ -16255,7 +16279,7 @@ eslint-visitor-keys@^2.0.0:
   resolved "https://registry.yarnpkg.com/eslint-visitor-keys/-/eslint-visitor-keys-2.0.0.tgz#21fdc8fbcd9c795cc0321f0563702095751511a8"
   integrity sha512-QudtT6av5WXels9WjIM7qz1XD1cWGvX4gGXvp/zBn9nXG02D0utdU3Em2m/QjTnrsk6bBjmCygl3rmj118msQQ==
 
-eslint-visitor-keys@^3.3.0, eslint-visitor-keys@^3.4.1:
+eslint-visitor-keys@^3.3.0, eslint-visitor-keys@^3.4.1, eslint-visitor-keys@^3.4.3:
   version "3.4.3"
   resolved "https://registry.yarnpkg.com/eslint-visitor-keys/-/eslint-visitor-keys-3.4.3.tgz#0cd72fe8550e3c2eae156a96a4dddcd1c8ac5800"
   integrity sha512-wpc+LXeiyiisxPlEkUzU6svyS1frIO3Mgxj1fdy7Pm8Ygzguax2N3Fa/D/ag1WqbOprdI+uY6wMUl8/a2G+iag==
@@ -18095,6 +18119,11 @@ graceful-fs@4.2.11, graceful-fs@^4.1.11, graceful-fs@^4.1.15, graceful-fs@^4.1.2
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/graceful-readlink/-/graceful-readlink-1.0.1.tgz#4cafad76bc62f02fa039b2f94e9a3dd3a391a725"
   integrity sha1-TK+tdrxi8C+gObL5Tpo906ORpyU=
+
+grapheme-splitter@^1.0.4:
+  version "1.0.4"
+  resolved "https://registry.yarnpkg.com/grapheme-splitter/-/grapheme-splitter-1.0.4.tgz#9cf3a665c6247479896834af35cf1dbb4400767e"
+  integrity sha512-bzh50DW9kTPM00T8y4o8vQg89Di9oLJVLW/KaOGIXJWP/iqCN6WKYkbNOF04vFLJhwcpYUh9ydh/+5vpOqV4YQ==
 
 graphql-tag@^2.11.0:
   version "2.12.6"
@@ -26390,6 +26419,13 @@ redux@^4.0.5:
     loose-envify "^1.4.0"
     symbol-observable "^1.2.0"
 
+refa@^0.11.0:
+  version "0.11.0"
+  resolved "https://registry.yarnpkg.com/refa/-/refa-0.11.0.tgz#07d57a9f5f3ee2dd58e0d145a6a489fda2591ed0"
+  integrity sha512-486O8/pQXwj9jV0mVvUnTsxq0uknpBnNJ0eCUhkZqJRQ8KutrT1PhzmumdCeM1hSBF2eMlFPmwECRER4IbKXlQ==
+  dependencies:
+    "@eslint-community/regexpp" "^4.5.0"
+
 reflect-metadata@0.2.1:
   version "0.2.1"
   resolved "https://registry.yarnpkg.com/reflect-metadata/-/reflect-metadata-0.2.1.tgz#8d5513c0f5ef2b4b9c3865287f3c0940c1f67f74"
@@ -26446,6 +26482,14 @@ regex-parser@^2.2.11:
   version "2.2.11"
   resolved "https://registry.yarnpkg.com/regex-parser/-/regex-parser-2.2.11.tgz#3b37ec9049e19479806e878cabe7c1ca83ccfe58"
   integrity sha512-jbD/FT0+9MBU2XAZluI7w2OBs1RBi6p9M83nkoZayQXXU9e8Robt69FcZc7wU4eJD/YFTjn1JdCk3rbMJajz8Q==
+
+regexp-ast-analysis@^0.6.0:
+  version "0.6.0"
+  resolved "https://registry.yarnpkg.com/regexp-ast-analysis/-/regexp-ast-analysis-0.6.0.tgz#c0b648728c85d266a409ce00a6440c01c9834c61"
+  integrity sha512-OLxjyjPkVH+rQlBLb1I/P/VTmamSjGkvN5PTV5BXP432k3uVz727J7H29GA5IFiY0m7e1xBN7049Wn59FY3DEQ==
+  dependencies:
+    "@eslint-community/regexpp" "^4.5.0"
+    refa "^0.11.0"
 
 regexp-clone@1.0.0, regexp-clone@^1.0.0:
   version "1.0.0"
@@ -27316,6 +27360,15 @@ schema-utils@^4.0.0, schema-utils@^4.3.0, schema-utils@^4.3.2:
     ajv "^8.9.0"
     ajv-formats "^2.1.1"
     ajv-keywords "^5.1.0"
+
+scslre@^0.2.0:
+  version "0.2.0"
+  resolved "https://registry.yarnpkg.com/scslre/-/scslre-0.2.0.tgz#b604eedbab76f87003738d00de44d7601a78609e"
+  integrity sha512-4hc49fUMmX3jM0XdFUAPBrs1xwEcdHa0KyjEsjFs+Zfc66mpFpq5YmRgDtl+Ffo6AtJIilfei+yKw8fUn3N88w==
+  dependencies:
+    "@eslint-community/regexpp" "^4.5.0"
+    refa "^0.11.0"
+    regexp-ast-analysis "^0.6.0"
 
 scule@^1.0.0, scule@^1.2.0, scule@^1.3.0:
   version "1.3.0"

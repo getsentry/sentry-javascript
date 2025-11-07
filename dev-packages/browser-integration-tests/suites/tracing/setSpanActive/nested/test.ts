@@ -21,8 +21,8 @@ sentryTest(
     const checkoutSpanId = checkoutEvent.contexts?.trace?.span_id;
     const postCheckoutSpanId = postCheckoutEvent.contexts?.trace?.span_id;
 
-    expect(checkoutSpanId).toMatch(/[a-f0-9]{16}/);
-    expect(postCheckoutSpanId).toMatch(/[a-f0-9]{16}/);
+    expect(checkoutSpanId).toMatch(/[a-f\d]{16}/);
+    expect(postCheckoutSpanId).toMatch(/[a-f\d]{16}/);
 
     expect(checkoutEvent.spans).toHaveLength(4);
     expect(postCheckoutEvent.spans).toHaveLength(1);

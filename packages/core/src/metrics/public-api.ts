@@ -30,7 +30,7 @@ export interface MetricOptions {
  * @param value - The value of the metric.
  * @param options - Options for capturing the metric.
  */
-function captureMetric(type: MetricType, name: string, value: number | string, options?: MetricOptions): void {
+function captureMetric(type: MetricType, name: string, value: number, options?: MetricOptions): void {
   _INTERNAL_captureMetric(
     { type, name, value, unit: options?.unit, attributes: options?.attributes },
     { scope: options?.scope },
