@@ -11,6 +11,7 @@ import {
   SyncPromise,
   withMonitor,
 } from '../../src';
+import { startNewTrace } from '../../src/tracing';
 import * as integrationModule from '../../src/integration';
 import { _INTERNAL_captureLog } from '../../src/logs/internal';
 import { _INTERNAL_captureMetric } from '../../src/metrics/internal';
