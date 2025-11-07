@@ -124,24 +124,22 @@ function createSourcemapUploadAssetPatterns(
 
 /**
  * Creates ignore patterns for source map uploads
+ * Note: These patterns are relative to the upload path, not absolute paths
  */
-function createSourcemapUploadIgnorePattern(
-  normalizedDistPath: string,
-  widenClientFileUpload: boolean = false,
-): string[] {
+function createSourcemapUploadIgnorePattern(widenClientFileUpload: boolean = false): string[] {
   const ignore: string[] = [];
 
   // We only add main-* files if the user has not opted into it
   if (!widenClientFileUpload) {
-    ignore.push(path.posix.join(normalizedDistPath, FILE_PATTERNS.MAIN_CHUNKS));
+    ignore.push(FILE_PATTERNS.MAIN_CHUNKS);
   }
 
   // Always ignore these patterns
   ignore.push(
-    path.posix.join(normalizedDistPath, FILE_PATTERNS.FRAMEWORK_CHUNKS),
-    path.posix.join(normalizedDistPath, FILE_PATTERNS.FRAMEWORK_CHUNKS_DOT),
-    path.posix.join(normalizedDistPath, FILE_PATTERNS.POLYFILLS_CHUNKS),
-    path.posix.join(normalizedDistPath, FILE_PATTERNS.WEBPACK_CHUNKS),
+    FILE_PATTERNS.FRAMEWORK_CHUNKS,
+    FILE_PATTERNS.FRAMEWORK_CHUNKS_DOT,
+    FILE_PATTERNS.POLYFILLS_CHUNKS,
+    FILE_PATTERNS.WEBPACK_CHUNKS,
   );
 
   return ignore;
@@ -250,7 +248,7 @@ export function getBuildPluginOptions({
     widenClientFileUpload,
   );
 
-  const sourcemapUploadIgnore = createSourcemapUploadIgnorePattern(normalizedDistDirAbsPath, widenClientFileUpload);
+  const sourcemapUploadIgnore = createSourcemapUploadIgnorePattern(widenClientFileUpload);
 
   const filesToDeleteAfterUpload = createFilesToDeleteAfterUploadPattern(
     normalizedDistDirAbsPath,

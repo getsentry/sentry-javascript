@@ -28,11 +28,11 @@ describe('getBuildPluginOptions', () => {
         sourcemaps: {
           assets: ['/path/to/.next/server', '/path/to/.next/static/chunks/pages', '/path/to/.next/static/chunks/app'],
           ignore: [
-            '/path/to/.next/static/chunks/main-*',
-            '/path/to/.next/static/chunks/framework-*',
-            '/path/to/.next/static/chunks/framework.*',
-            '/path/to/.next/static/chunks/polyfills-*',
-            '/path/to/.next/static/chunks/webpack-*',
+            'static/chunks/main-*',
+            'static/chunks/framework-*',
+            'static/chunks/framework.*',
+            'static/chunks/polyfills-*',
+            'static/chunks/webpack-*',
           ],
           filesToDeleteAfterUpload: undefined,
           rewriteSources: expect.any(Function),
@@ -93,6 +93,13 @@ describe('getBuildPluginOptions', () => {
         'C:/Users/test/.next/static/chunks/pages/**',
         'C:/Users/test/.next/static/chunks/app/**',
       ]);
+      expect(result.sourcemaps?.ignore).toEqual([
+        'static/chunks/main-*',
+        'static/chunks/framework-*',
+        'static/chunks/framework.*',
+        'static/chunks/polyfills-*',
+        'static/chunks/webpack-*',
+      ]);
     });
   });
 
@@ -116,11 +123,11 @@ describe('getBuildPluginOptions', () => {
         '/path/to/.next/static/chunks/app/**',
       ]);
       expect(result.sourcemaps?.ignore).toEqual([
-        '/path/to/.next/static/chunks/main-*',
-        '/path/to/.next/static/chunks/framework-*',
-        '/path/to/.next/static/chunks/framework.*',
-        '/path/to/.next/static/chunks/polyfills-*',
-        '/path/to/.next/static/chunks/webpack-*',
+        'static/chunks/main-*',
+        'static/chunks/framework-*',
+        'static/chunks/framework.*',
+        'static/chunks/polyfills-*',
+        'static/chunks/webpack-*',
       ]);
       expect(result.reactComponentAnnotation).toBeDefined();
     });
@@ -138,10 +145,10 @@ describe('getBuildPluginOptions', () => {
 
       expect(result.sourcemaps?.assets).toEqual(['/path/to/.next/static/chunks/**']);
       expect(result.sourcemaps?.ignore).toEqual([
-        '/path/to/.next/static/chunks/framework-*',
-        '/path/to/.next/static/chunks/framework.*',
-        '/path/to/.next/static/chunks/polyfills-*',
-        '/path/to/.next/static/chunks/webpack-*',
+        'static/chunks/framework-*',
+        'static/chunks/framework.*',
+        'static/chunks/polyfills-*',
+        'static/chunks/webpack-*',
       ]);
     });
 
@@ -156,11 +163,11 @@ describe('getBuildPluginOptions', () => {
       expect(result._metaOptions?.loggerPrefixOverride).toBe('[@sentry/nextjs - Node.js]');
       expect(result.sourcemaps?.assets).toEqual(['/path/to/.next/server/**', '/path/to/.next/serverless/**']);
       expect(result.sourcemaps?.ignore).toEqual([
-        '/path/to/.next/static/chunks/main-*',
-        '/path/to/.next/static/chunks/framework-*',
-        '/path/to/.next/static/chunks/framework.*',
-        '/path/to/.next/static/chunks/polyfills-*',
-        '/path/to/.next/static/chunks/webpack-*',
+        'static/chunks/main-*',
+        'static/chunks/framework-*',
+        'static/chunks/framework.*',
+        'static/chunks/polyfills-*',
+        'static/chunks/webpack-*',
       ]);
       expect(result.reactComponentAnnotation).toBeDefined();
     });
@@ -176,11 +183,11 @@ describe('getBuildPluginOptions', () => {
       expect(result._metaOptions?.loggerPrefixOverride).toBe('[@sentry/nextjs - Edge]');
       expect(result.sourcemaps?.assets).toEqual(['/path/to/.next/server/**', '/path/to/.next/serverless/**']);
       expect(result.sourcemaps?.ignore).toEqual([
-        '/path/to/.next/static/chunks/main-*',
-        '/path/to/.next/static/chunks/framework-*',
-        '/path/to/.next/static/chunks/framework.*',
-        '/path/to/.next/static/chunks/polyfills-*',
-        '/path/to/.next/static/chunks/webpack-*',
+        'static/chunks/main-*',
+        'static/chunks/framework-*',
+        'static/chunks/framework.*',
+        'static/chunks/polyfills-*',
+        'static/chunks/webpack-*',
       ]);
       expect(result.reactComponentAnnotation).toBeDefined();
     });
@@ -200,11 +207,11 @@ describe('getBuildPluginOptions', () => {
         '/path/to/.next/static/chunks/app',
       ]);
       expect(result.sourcemaps?.ignore).toEqual([
-        '/path/to/.next/static/chunks/main-*',
-        '/path/to/.next/static/chunks/framework-*',
-        '/path/to/.next/static/chunks/framework.*',
-        '/path/to/.next/static/chunks/polyfills-*',
-        '/path/to/.next/static/chunks/webpack-*',
+        'static/chunks/main-*',
+        'static/chunks/framework-*',
+        'static/chunks/framework.*',
+        'static/chunks/polyfills-*',
+        'static/chunks/webpack-*',
       ]);
       expect(result.reactComponentAnnotation).toBeUndefined();
     });
@@ -223,11 +230,11 @@ describe('getBuildPluginOptions', () => {
         '/path/to/.next/static/chunks', // Turbopack uses broader pattern
       ]);
       expect(result.sourcemaps?.ignore).toEqual([
-        '/path/to/.next/static/chunks/main-*',
-        '/path/to/.next/static/chunks/framework-*',
-        '/path/to/.next/static/chunks/framework.*',
-        '/path/to/.next/static/chunks/polyfills-*',
-        '/path/to/.next/static/chunks/webpack-*',
+        'static/chunks/main-*',
+        'static/chunks/framework-*',
+        'static/chunks/framework.*',
+        'static/chunks/polyfills-*',
+        'static/chunks/webpack-*',
       ]);
       expect(result.reactComponentAnnotation).toBeUndefined();
     });
@@ -755,11 +762,11 @@ describe('getBuildPluginOptions', () => {
         disable: false,
         assets: ['/path/to/.next/server', '/path/to/.next/static/chunks/pages', '/path/to/.next/static/chunks/app'],
         ignore: [
-          '/path/to/.next/static/chunks/main-*',
-          '/path/to/.next/static/chunks/framework-*',
-          '/path/to/.next/static/chunks/framework.*',
-          '/path/to/.next/static/chunks/polyfills-*',
-          '/path/to/.next/static/chunks/webpack-*',
+          'static/chunks/main-*',
+          'static/chunks/framework-*',
+          'static/chunks/framework.*',
+          'static/chunks/polyfills-*',
+          'static/chunks/webpack-*',
         ],
         filesToDeleteAfterUpload: undefined,
         rewriteSources: expect.any(Function),
