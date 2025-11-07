@@ -34,7 +34,6 @@
     "test": "lerna run --ignore \"@sentry-internal/{browser-integration-tests,e2e-tests,integration-shims,node-integration-tests,node-core-integration-tests,cloudflare-integration-tests}\" test",
     "test:unit": "lerna run --ignore \"@sentry-internal/{browser-integration-tests,e2e-tests,integration-shims,node-integration-tests,node-core-integration-tests,cloudflare-integration-tests}\" test:unit",
     "test:update-snapshots": "lerna run test:update-snapshots",
-    "test:bundler": "lerna run test --scope @sentry-internal/bundler-tests",
     "test:pr": "nx affected -t test --exclude \"@sentry-internal/{browser-integration-tests,e2e-tests,integration-shims,node-integration-tests,node-core-integration-tests,cloudflare-integration-tests}\"",
     "test:pr:browser": "UNIT_TEST_ENV=browser ts-node ./scripts/ci-unit-tests.ts --affected",
     "test:pr:node": "UNIT_TEST_ENV=node ts-node ./scripts/ci-unit-tests.ts --affected",

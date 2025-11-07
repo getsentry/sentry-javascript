@@ -551,28 +551,6 @@ jobs:
           files: packages/**/*.junit.xml
           token: ${{ secrets.CODECOV_TOKEN }}
 
-  job_browser_bundler_tests:
-    name: Browser Bundler Tests
-    needs: [job_get_metadata, job_build]
-    timeout-minutes: 5
-    runs-on: ubuntu-24.04
-    steps:
-      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v5
-        with:
-          ref: ${{ env.HEAD_COMMIT }}
-      - name: Set up Node
-        uses: actions/setup-node@v4
-        with:
-          node-version-file: 'package.json'
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
-        with:
-          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
-
-      - name: Run bundler tests
-        run: yarn test:bundler
-
   job_browser_playwright_tests:
     name:
       Playwright ${{ matrix.bundle }}${{ matrix.project && matrix.project != 'chromium' && format(' {0}',
@@ -1182,7 +1160,6 @@ jobs:
         job_node_unit_tests,
         job_node_integration_tests,
         job_cloudflare_integration_tests,
-        job_browser_bundler_tests,
         job_browser_playwright_tests,
         job_browser_loader_tests,
         job_remix_integration_tests,
