@@ -38,8 +38,8 @@ sentryTest(
 
     expect(pageloadTraceContext).toMatchObject({
       op: 'pageload',
-      trace_id: expect.stringMatching(/^[0-9a-f]{32}$/),
-      span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
+      trace_id: expect.stringMatching(/^[\da-f]{32}$/),
+      span_id: expect.stringMatching(/^[\da-f]{16}$/),
     });
     expect(pageloadTraceContext).not.toHaveProperty('parent_span_id');
 
@@ -54,8 +54,8 @@ sentryTest(
 
     expect(navigationTraceContext).toMatchObject({
       op: 'navigation',
-      trace_id: expect.stringMatching(/^[0-9a-f]{32}$/),
-      span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
+      trace_id: expect.stringMatching(/^[\da-f]{32}$/),
+      span_id: expect.stringMatching(/^[\da-f]{16}$/),
     });
     expect(navigationTraceContext).not.toHaveProperty('parent_span_id');
 
@@ -89,8 +89,8 @@ sentryTest('error after pageload has pageload traceId', async ({ getLocalTestUrl
   expect(pageloadEvent.type).toEqual('transaction');
   expect(pageloadTraceContext).toMatchObject({
     op: 'pageload',
-    trace_id: expect.stringMatching(/^[0-9a-f]{32}$/),
-    span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
+    trace_id: expect.stringMatching(/^[\da-f]{32}$/),
+    span_id: expect.stringMatching(/^[\da-f]{16}$/),
   });
   expect(pageloadTraceContext).not.toHaveProperty('parent_span_id');
 
@@ -116,7 +116,7 @@ sentryTest('error after pageload has pageload traceId', async ({ getLocalTestUrl
 
   expect(errorTraceContext).toEqual({
     trace_id: pageloadTraceContext?.trace_id,
-    span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
+    span_id: expect.stringMatching(/^[\da-f]{16}$/),
   });
 
   expect(errorTraceHeader).toEqual({
@@ -156,8 +156,8 @@ sentryTest('error during pageload has pageload traceId', async ({ getLocalTestUr
   expect(pageloadEvent.type).toEqual('transaction');
   expect(pageloadTraceContext).toMatchObject({
     op: 'pageload',
-    trace_id: expect.stringMatching(/^[0-9a-f]{32}$/),
-    span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
+    trace_id: expect.stringMatching(/^[\da-f]{32}$/),
+    span_id: expect.stringMatching(/^[\da-f]{16}$/),
   });
   expect(pageloadTraceContext).not.toHaveProperty('parent_span_id');
 
@@ -175,7 +175,7 @@ sentryTest('error during pageload has pageload traceId', async ({ getLocalTestUr
   expect(errorEvent.type).toEqual(undefined);
   expect(errorTraceContext).toEqual({
     trace_id: pageloadTraceContext?.trace_id,
-    span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
+    span_id: expect.stringMatching(/^[\da-f]{16}$/),
   });
 
   expect(errorTraceHeader).toEqual({
@@ -221,8 +221,8 @@ sentryTest(
     expect(pageloadEvent.type).toEqual('transaction');
     expect(pageloadTraceContext).toMatchObject({
       op: 'pageload',
-      trace_id: expect.stringMatching(/^[0-9a-f]{32}$/),
-      span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
+      trace_id: expect.stringMatching(/^[\da-f]{32}$/),
+      span_id: expect.stringMatching(/^[\da-f]{16}$/),
     });
     expect(pageloadTraceContext).not.toHaveProperty('parent_span_id');
 
@@ -278,8 +278,8 @@ sentryTest(
     expect(pageloadEvent.type).toEqual('transaction');
     expect(pageloadTraceContext).toMatchObject({
       op: 'pageload',
-      trace_id: expect.stringMatching(/^[0-9a-f]{32}$/),
-      span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
+      trace_id: expect.stringMatching(/^[\da-f]{32}$/),
+      span_id: expect.stringMatching(/^[\da-f]{16}$/),
     });
     expect(pageloadTraceContext).not.toHaveProperty('parent_span_id');
 
@@ -457,8 +457,8 @@ sentryTest('user feedback event after pageload has pageload traceId in headers',
 
   expect(pageloadTraceContext).toMatchObject({
     op: 'pageload',
-    trace_id: expect.stringMatching(/^[0-9a-f]{32}$/),
-    span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
+    trace_id: expect.stringMatching(/^[\da-f]{32}$/),
+    span_id: expect.stringMatching(/^[\da-f]{16}$/),
   });
   expect(pageloadTraceContext).not.toHaveProperty('parent_span_id');
 
@@ -479,6 +479,6 @@ sentryTest('user feedback event after pageload has pageload traceId in headers',
 
   expect(feedbackTraceContext).toMatchObject({
     trace_id: pageloadTraceContext?.trace_id,
-    span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
+    span_id: expect.stringMatching(/^[\da-f]{16}$/),
   });
 });
