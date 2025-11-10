@@ -82,7 +82,7 @@ export {
   getSpanDescendants,
   getStatusMessage,
   getRootSpan,
-  getSegmentSpan,
+  INTERNAL_getSegmentSpan,
   getActiveSpan,
   addChildSpanToSpan,
   spanTimeInputToSeconds,
