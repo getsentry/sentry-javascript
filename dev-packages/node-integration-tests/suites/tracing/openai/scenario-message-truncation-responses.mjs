@@ -79,8 +79,8 @@ async function run() {
 
     const client = instrumentOpenAiClient(mockClient);
 
-    // Create 1 large message that should get truncated to fit within the 20KB limit
-    const largeContent = 'A'.repeat(25000) + 'B'.repeat(25000); // ~50KB should be truncated to include only As
+    // Create 1 large message that gets truncated to fit within the 20KB limit
+    const largeContent = 'A'.repeat(25000) + 'B'.repeat(25000); // ~50KB gets truncated to include only As
 
     await client.responses.create({
       model: 'gpt-3.5-turbo',
