@@ -102,6 +102,8 @@ export const SEMANTIC_ATTRIBUTE_SENTRY_RELEASE = 'sentry.release';
 export const SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT = 'sentry.environment';
 /** The segment name (e.g., "GET /users") */
 export const SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME = 'sentry.segment.name';
+/** The id of the segment that this span belongs to. */
+export const SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID = 'sentry.segment.id';
 /** The user ID (gated by sendDefaultPii) */
 export const SEMANTIC_ATTRIBUTE_USER_ID = 'user.id';
 /** The user email (gated by sendDefaultPii) */
