@@ -8,6 +8,7 @@ import {
   makeSession,
   Scope,
   setCurrentClient,
+  SeverityLevel,
   SyncPromise,
   withMonitor,
 } from '../../src';
@@ -2305,6 +2306,108 @@ describe('Client', () => {
       client.captureSession(session);
 
       expect(TestClient.instance!.session).toEqual(session);
+    });
+  });
+
+  describe('_updateSessionFromEvent()', () => {
+    describe('event has no exceptions', () => {
+      it('sets status to crashed if level is fatal', () => {
+        const client = new TestClient(getDefaultTestClientOptions());
+        const session = makeSession();
+        getCurrentScope().setSession(session);
+
+        client.captureEvent({ message: 'test', level: 'fatal' });
+
+        const updatedSession = client.session;
+
+        expect(updatedSession).toMatchObject({
+          duration: expect.any(Number),
+          errors: 1,
+          init: false,
+          sid: expect.any(String),
+          started: expect.any(Number),
+          status: 'crashed',
+          timestamp: expect.any(Number),
+        });
+      });
+
+      it.each(['error', 'warning', 'log', 'info', 'debug'] as const)(
+        'sets status to ok if level is %s',
+        (level: SeverityLevel) => {
+          const client = new TestClient(getDefaultTestClientOptions());
+          const session = makeSession();
+          getCurrentScope().setSession(session);
+
+          client.captureEvent({ message: 'test', level });
+
+          const updatedSession = client.session;
+
+          expect(updatedSession?.status).toEqual('ok');
+        },
+      );
+    });
+
+    describe('event has exceptions', () => {
+      it.each(['fatal', 'error', 'warning', 'log', 'info', 'debug'] as const)(
+        'sets status ok for handled exceptions and ignores event level %s',
+        (level: SeverityLevel) => {
+          const client = new TestClient(getDefaultTestClientOptions());
+          const session = makeSession();
+          getCurrentScope().setSession(session);
+
+          client.captureException(new Error('test'), { captureContext: { level } });
+
+          const updatedSession = client.session;
+
+          expect(updatedSession?.status).toEqual('ok');
+        },
+      );
+
+      it.each(['fatal', 'error', 'warning', 'log', 'info', 'debug'] as const)(
+        'sets status crashed for unhandled exceptions and ignores event level %s',
+        (level: SeverityLevel) => {
+          const client = new TestClient(getDefaultTestClientOptions());
+          const session = makeSession();
+          getCurrentScope().setSession(session);
+
+          client.captureException(new Error('test'), { captureContext: { level }, mechanism: { handled: false } });
+
+          const updatedSession = client.session;
+
+          expect(updatedSession?.status).toEqual('crashed');
+        },
+      );
+
+      it('sets status crashed if at least one exception is unhandled', () => {
+        const client = new TestClient(getDefaultTestClientOptions());
+        const session = makeSession();
+        getCurrentScope().setSession(session);
+
+        const event: Event = {
+          exception: {
+            values: [
+              {
+                mechanism: { type: 'generic', handled: true },
+              },
+              {
+                mechanism: { type: 'generic', handled: false },
+              },
+              {
+                mechanism: { type: 'generic', handled: true },
+              },
+            ],
+          },
+        };
+
+        client.captureEvent(event);
+
+        const updatedSession = client.session;
+
+        expect(updatedSession).toMatchObject({
+          status: 'crashed',
+          errors: 1, // an event with multiple exceptions still counts as one error in the session
+        });
+      });
     });
   });
 
