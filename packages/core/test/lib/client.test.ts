@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, test, vi } from 'vitest';
+import type { SeverityLevel } from '../../src';
 import {
   addBreadcrumb,
   dsnToString,
@@ -8,7 +9,6 @@ import {
   makeSession,
   Scope,
   setCurrentClient,
-  SeverityLevel,
   SyncPromise,
   withMonitor,
 } from '../../src';
