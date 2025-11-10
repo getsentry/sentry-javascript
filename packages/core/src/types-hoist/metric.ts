@@ -9,7 +9,7 @@ export interface Metric {
   /**
    * The value of the metric.
    */
-  value: number | string;
+  value: number;
 
   /**
    * The type of metric.
@@ -42,7 +42,7 @@ export interface SerializedMetric {
   /**
    * The trace ID for this metric.
    */
-  trace_id?: string;
+  trace_id: string;
 
   /**
    * The span ID for this metric.
@@ -67,7 +67,7 @@ export interface SerializedMetric {
   /**
    * The value of the metric.
    */
-  value: number | string;
+  value: number;
 
   /**
    * Arbitrary structured data that stores information about the metric.

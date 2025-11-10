@@ -48,7 +48,8 @@
   },
   "devDependencies": {
     "@playwright/test": "~1.53.2",
-    "@sentry/core": "10.23.0"
+    "@sentry/core": "10.23.0",
+    "eslint-plugin-regexp": "^1.15.0"
   },
   "volta": {
     "extends": "../../package.json"
