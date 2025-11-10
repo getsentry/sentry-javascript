@@ -216,7 +216,7 @@ export function spanToV2JSON(span: Span): SpanV2JSON {
     return span.getSpanV2JSON();
   }
 
-  const { spanId: span_id, traceId: trace_id, isRemote } = span.spanContext();
+  const { spanId: span_id, traceId: trace_id } = span.spanContext();
 
   // Handle a span from @opentelemetry/sdk-base-trace's `Span` class
   if (spanIsOpenTelemetrySdkTraceBaseSpan(span)) {
@@ -240,7 +240,7 @@ export function spanToV2JSON(span: Span): SpanV2JSON {
       parent_span_id: parentSpanId,
       start_timestamp: spanTimeInputToSeconds(startTime),
       end_timestamp: spanTimeInputToSeconds(endTime),
-      is_remote: isRemote || false,
+      is_segment: span === INTERNAL_getSegmentSpan(span),
       kind: 'internal', // TODO: Figure out how to get this from the OTel span as it's not publicly exposed
       status: getV2StatusMessage(status),
       attributes: getV2Attributes(attributes),
@@ -258,7 +258,7 @@ export function spanToV2JSON(span: Span): SpanV2JSON {
     end_timestamp: 0,
     status: 'ok',
     kind: 'internal',
-    is_remote: isRemote || false,
+    is_segment: span === INTERNAL_getSegmentSpan(span),
   };
 }
 
@@ -394,12 +394,12 @@ export function getSpanDescendants(span: SpanWithPotentialChildren): Span[] {
 /**
  * Returns the root span of a given span.
  */
-export const getRootSpan = getSegmentSpan;
+export const getRootSpan = INTERNAL_getSegmentSpan;
 
 /**
  * Returns the segment span of a given span.
  */
-export function getSegmentSpan(span: SpanWithPotentialChildren): Span {
+export function INTERNAL_getSegmentSpan(span: SpanWithPotentialChildren): Span {
   return span[ROOT_SPAN_FIELD] || span;
 }
 
