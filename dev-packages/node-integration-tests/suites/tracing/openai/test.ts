@@ -454,7 +454,7 @@ describe('OpenAI integration', () => {
                     'gen_ai.system': 'openai',
                     'gen_ai.request.model': 'gpt-3.5-turbo',
                     // Message should be present but truncated to include only As
-                    'gen_ai.request.input': expect.stringMatching(/^A+$/),
+                    'gen_ai.request.messages': expect.stringMatching(/^A+$/),
                   }),
                   description: 'responses gpt-3.5-turbo',
                   op: 'gen_ai.responses',
