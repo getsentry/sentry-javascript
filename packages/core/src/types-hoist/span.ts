@@ -44,7 +44,7 @@ export interface SpanV2JSON {
   end_timestamp: number;
   status: 'ok' | 'error';
   kind: 'server' | 'client' | 'internal' | 'consumer' | 'producer';
-  is_remote: boolean;
+  is_segment: boolean;
   attributes?: SerializedAttributes;
   links?: SpanLinkJSON<SerializedAttributes>[];
 }
