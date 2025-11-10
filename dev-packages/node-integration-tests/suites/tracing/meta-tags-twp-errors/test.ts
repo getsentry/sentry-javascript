@@ -13,8 +13,8 @@ describe('errors in TwP mode have same trace in trace context and getTraceData()
         event: event => {
           const { contexts } = event;
           const { trace_id, span_id } = contexts?.trace || {};
-          expect(trace_id).toMatch(/^[a-f0-9]{32}$/);
-          expect(span_id).toMatch(/^[a-f0-9]{16}$/);
+          expect(trace_id).toMatch(/^[a-f\d]{32}$/);
+          expect(span_id).toMatch(/^[a-f\d]{16}$/);
 
           const traceData = contexts?.traceData || {};
 
@@ -40,12 +40,12 @@ describe('errors in TwP mode have same trace in trace context and getTraceData()
         event: event => {
           const { contexts } = event;
           const { trace_id, span_id } = contexts?.trace || {};
-          expect(trace_id).toMatch(/^[a-f0-9]{32}$/);
-          expect(span_id).toMatch(/^[a-f0-9]{16}$/);
+          expect(trace_id).toMatch(/^[a-f\d]{32}$/);
+          expect(span_id).toMatch(/^[a-f\d]{16}$/);
 
           const traceData = contexts?.traceData || {};
 
-          expect(traceData['sentry-trace']).toMatch(/^[a-f0-9]{32}-[a-f0-9]{16}$/);
+          expect(traceData['sentry-trace']).toMatch(/^[a-f\d]{32}-[a-f\d]{16}$/);
           expect(traceData['sentry-trace']).toContain(`${trace_id}-`);
           // span_id is a random span ID
           expect(traceData['sentry-trace']).not.toContain(span_id);
@@ -53,7 +53,7 @@ describe('errors in TwP mode have same trace in trace context and getTraceData()
           expect(traceData.baggage).toContain(`sentry-trace_id=${trace_id}`);
           expect(traceData.baggage).not.toContain('sentry-sampled=');
 
-          expect(traceData.metaTags).toMatch(/<meta name="sentry-trace" content="[a-f0-9]{32}-[a-f0-9]{16}"\/>/);
+          expect(traceData.metaTags).toMatch(/<meta name="sentry-trace" content="[a-f\d]{32}-[a-f\d]{16}"\/>/);
           expect(traceData.metaTags).toContain(`<meta name="sentry-trace" content="${trace_id}-`);
           // span_id is a random span ID
           expect(traceData.metaTags).not.toContain(span_id);

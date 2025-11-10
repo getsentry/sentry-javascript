@@ -25,7 +25,7 @@ sentryTest('should create spans for fetch requests called directly after init', 
   expect(requestSpans![0]).toMatchObject({
     description: 'GET http://sentry-test-site.example/0',
     parent_span_id: tracingEvent.contexts?.trace?.span_id,
-    span_id: expect.stringMatching(/[a-f0-9]{16}/),
+    span_id: expect.stringMatching(/[a-f\d]{16}/),
     start_timestamp: expect.any(Number),
     timestamp: expect.any(Number),
     trace_id: tracingEvent.contexts?.trace?.trace_id,
