@@ -33,6 +33,8 @@ interface RedisOptions {
   /**
    * Maximum length of the cache key added to the span description. If the key exceeds this length, it will be truncated.
    *
+   * Passing `0` will use the full cache key without truncation.
+   *
    * By default, the full cache key is used.
    */
   maxCacheKeyLength?: number;
