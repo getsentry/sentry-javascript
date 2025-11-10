@@ -1,9 +1,11 @@
 import {
   captureException,
+  continueTrace,
   flush,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  setHttpStatus,
   startSpan,
   withIsolationScope,
 } from '@sentry/core';
