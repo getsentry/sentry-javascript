@@ -71,6 +71,7 @@
     "@opentelemetry/semantic-conventions": "^1.37.0",
     "@sentry/core": "10.23.0",
     "@sentry/node": "10.23.0",
+    "@sentry/node-core": "10.23.0",
     "@types/aws-lambda": "^8.10.62"
   },
   "devDependencies": {
