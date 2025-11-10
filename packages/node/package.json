@@ -75,7 +75,7 @@
     "@opentelemetry/instrumentation-express": "0.53.0",
     "@opentelemetry/instrumentation-fs": "0.24.0",
     "@opentelemetry/instrumentation-generic-pool": "0.48.0",
-    "@opentelemetry/instrumentation-graphql": "0.52.0",
+    "@opentelemetry/instrumentation-graphql": "0.56.0",
     "@opentelemetry/instrumentation-hapi": "0.51.0",
     "@opentelemetry/instrumentation-http": "0.204.0",
     "@opentelemetry/instrumentation-ioredis": "0.52.0",
