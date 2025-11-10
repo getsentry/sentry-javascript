@@ -53,9 +53,11 @@ let _enableAsyncRouteHandlers: boolean = false;
 const CLIENTS_WITH_INSTRUMENT_NAVIGATION = new WeakSet<Client>();
 
 /**
- * Adds resolved routes as children to the parent route.
- * Prevents duplicate routes by checking if they already exist.
+ * Tracks last navigation per client to prevent duplicate spans in cross-usage scenarios.
+ * Uses 100ms window to deduplicate when multiple wrappers handle the same navigation.
  */
+const LAST_NAVIGATION_PER_CLIENT = new WeakMap<Client, { key: string; timestamp: number }>();
+
 export function addResolvedRoutesToParent(resolvedRoutes: RouteObject[], parentRoute: RouteObject): void {
   const existingChildren = parentRoute.children || [];
 
@@ -618,6 +620,69 @@ function wrapPatchRoutesOnNavigation(
   };
 }
 
+function getNavigationKey(location: Location): string {
+  return `${location.pathname}${location.search}${location.hash}`;
+}
+
+function tryUpdateSpanName(
+  activeSpan: Span,
+  currentSpanName: string | undefined,
+  newName: string,
+  newSource: string,
+): void {
+  const isNewNameBetter = newName !== currentSpanName && newName.includes(':');
+  if (isNewNameBetter) {
+    activeSpan.updateName(newName);
+    activeSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, newSource as 'route' | 'url' | 'custom');
+  }
+}
+
+function isDuplicateNavigation(client: Client, navigationKey: string): boolean {
+  const lastNavigation = LAST_NAVIGATION_PER_CLIENT.get(client);
+  const now = Date.now();
+  return !!(lastNavigation && lastNavigation.key === navigationKey && now - lastNavigation.timestamp < 100);
+}
+
+function createNavigationSpan(opts: {
+  client: Client;
+  name: string;
+  source: string;
+  version: string;
+  location: Location;
+  routes: RouteObject[];
+  basename?: string;
+  allRoutes?: RouteObject[];
+  navigationKey: string;
+}): Span | undefined {
+  const { client, name, source, version, location, routes, basename, allRoutes, navigationKey } = opts;
+
+  LAST_NAVIGATION_PER_CLIENT.set(client, {
+    key: navigationKey,
+    timestamp: Date.now(),
+  });
+
+  const navigationSpan = startBrowserTracingNavigationSpan(client, {
+    name,
+    attributes: {
+      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source as 'route' | 'url' | 'custom',
+      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: `auto.navigation.react.reactrouter_v${version}`,
+    },
+  });
+
+  if (navigationSpan) {
+    patchNavigationSpanEnd(navigationSpan, location, routes, basename, allRoutes);
+
+    client.on('spanEnd', endedSpan => {
+      if (endedSpan === navigationSpan) {
+        LAST_NAVIGATION_PER_CLIENT.delete(client);
+      }
+    });
+  }
+
+  return navigationSpan;
+}
+
 export function handleNavigation(opts: {
   location: Location;
   routes: RouteObject[];
@@ -628,7 +693,6 @@ export function handleNavigation(opts: {
   allRoutes?: RouteObject[];
 }): void {
   const { location, routes, navigationType, version, matches, basename, allRoutes } = opts;
-  // Use allRoutes for matching to include lazy-loaded routes
   const branches = Array.isArray(matches) ? matches : _matchRoutes(allRoutes || routes, location, basename);
 
   const client = getClient();
@@ -636,8 +700,6 @@ export function handleNavigation(opts: {
     return;
   }
 
-  // Avoid starting a navigation span on initial load when a pageload root span is active.
-  // This commonly happens when lazy routes resolve during the first render and React Router emits a POP.
   const activeRootSpan = getActiveRootSpan();
   if (activeRootSpan && spanToJSON(activeRootSpan).op === 'pageload' && navigationType === 'POP') {
     return;
@@ -655,25 +717,25 @@ export function handleNavigation(opts: {
     const activeSpan = getActiveSpan();
     const spanJson = activeSpan && spanToJSON(activeSpan);
     const isAlreadyInNavigationSpan = spanJson?.op === 'navigation';
-
-    // Only skip creating a new span if we're already in a navigation span AND the route name matches.
-    // This handles cross-usage (multiple wrappers for same navigation) while allowing consecutive navigations.
     const isSpanForSameRoute = isAlreadyInNavigationSpan && spanJson?.description === name;
 
-    if (!isSpanForSameRoute) {
-      const navigationSpan = startBrowserTracingNavigationSpan(client, {
-        name,
-        attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: `auto.navigation.react.reactrouter_v${version}`,
-        },
-      });
+    const currentNavigationKey = getNavigationKey(location);
+    const isNavDuplicate = isDuplicateNavigation(client, currentNavigationKey);
 
-      // Patch navigation span to handle early cancellation (e.g., document.hidden)
-      if (navigationSpan) {
-        patchNavigationSpanEnd(navigationSpan, location, routes, basename, allRoutes);
-      }
+    if (!isSpanForSameRoute && !isNavDuplicate) {
+      createNavigationSpan({
+        client,
+        name,
+        source,
+        version,
+        location,
+        routes,
+        basename,
+        allRoutes,
+        navigationKey: currentNavigationKey,
+      });
+    } else if (isNavDuplicate && isAlreadyInNavigationSpan && activeSpan) {
+      tryUpdateSpanName(activeSpan, spanJson?.description, name, source);
     }
   }
 }

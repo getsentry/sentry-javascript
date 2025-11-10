@@ -220,15 +220,10 @@ describe('React Router cross usage of wrappers', () => {
 
       expect(container.innerHTML).toContain('Details');
 
-      expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(2);
-      expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
-        name: '/second-level/:id/third-level/:id',
-        attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
-        },
-      });
+      expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(1);
+      // In cross-usage scenarios, the first wrapper creates the span and the second updates it
+      expect(mockNavigationSpan.updateName).toHaveBeenCalledWith('/second-level/:id/third-level/:id');
+      expect(mockNavigationSpan.setAttribute).toHaveBeenCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
     });
   });
 
@@ -465,16 +460,12 @@ describe('React Router cross usage of wrappers', () => {
 
       expect(container.innerHTML).toContain('Details');
 
-      expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(2);
+      expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(1);
 
-      expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
-        name: '/second-level/:id/third-level/:id',
-        attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
-        },
-      });
+      // Cross-usage deduplication: Span created once with initial route name
+      // With nested lazy routes, initial name may be raw path, updated to parameterized by later wrapper
+      expect(mockNavigationSpan.updateName).toHaveBeenCalledWith('/second-level/:id/third-level/:id');
+      expect(mockNavigationSpan.setAttribute).toHaveBeenCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
     });
   });
 
@@ -595,15 +586,10 @@ describe('React Router cross usage of wrappers', () => {
       );
 
       expect(container.innerHTML).toContain('Details');
-      expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(2);
-      expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
-        name: '/second-level/:id/third-level/:id',
-        attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
-        },
-      });
+      expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(1);
+      // Cross-usage with all three wrappers: span created once, then updated
+      expect(mockNavigationSpan.updateName).toHaveBeenCalledWith('/second-level/:id/third-level/:id');
+      expect(mockNavigationSpan.setAttribute).toHaveBeenCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
     });
   });
 
