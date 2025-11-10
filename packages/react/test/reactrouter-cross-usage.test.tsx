@@ -26,6 +26,7 @@ import {
 } from 'react-router-6';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BrowserClient } from '../src';
+import { allRoutes } from '../src/reactrouter-compat-utils/instrumentation';
 import {
   reactRouterV6BrowserTracingIntegration,
   withSentryReactRouterV6Routing,
@@ -101,6 +102,7 @@ describe('React Router cross usage of wrappers', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     getCurrentScope().setClient(undefined);
+    allRoutes.clear();
   });
 
   describe('wrapCreateBrowserRouter and wrapUseRoutes', () => {
@@ -218,8 +220,7 @@ describe('React Router cross usage of wrappers', () => {
 
       expect(container.innerHTML).toContain('Details');
 
-      // It's called 1 time from the wrapped `MemoryRouter`
-      expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(1);
+      expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(2);
       expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
         name: '/second-level/:id/third-level/:id',
         attributes: {
@@ -339,7 +340,6 @@ describe('React Router cross usage of wrappers', () => {
 
       expect(container.innerHTML).toContain('Details');
 
-      // It's called 1 time from the wrapped `MemoryRouter`
       expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(1);
     });
   });
@@ -465,8 +465,7 @@ describe('React Router cross usage of wrappers', () => {
 
       expect(container.innerHTML).toContain('Details');
 
-      // It's called 1 time from the wrapped `createMemoryRouter`
-      expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(1);
+      expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(2);
 
       expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
         name: '/second-level/:id/third-level/:id',
@@ -596,7 +595,7 @@ describe('React Router cross usage of wrappers', () => {
       );
 
       expect(container.innerHTML).toContain('Details');
-      expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(1);
+      expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(2);
       expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
         name: '/second-level/:id/third-level/:id',
         attributes: {
