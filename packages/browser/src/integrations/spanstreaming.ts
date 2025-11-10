@@ -1,14 +1,12 @@
 import type { Client, IntegrationFn, Scope, ScopeData, Span, SpanAttributes, SpanV2JSON } from '@sentry/core';
 import {
-  attributesFromObject,
   createSpanV2Envelope,
   debug,
   defineIntegration,
   getCapturedScopesOnSpan,
   getDynamicSamplingContextFromSpan,
   getGlobalScope,
-  getRootSpan as getSegmentSpan,
-  httpHeadersToSpanAttributes,
+  INTERNAL_getSegmentSpan,
   isV2BeforeSendSpanCallback,
   mergeScopeData,
   reparentChildSpans,
@@ -18,7 +16,6 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME,
   SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION,
   SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME,
-  SEMANTIC_ATTRIBUTE_URL_FULL,
   SEMANTIC_ATTRIBUTE_USER_EMAIL,
   SEMANTIC_ATTRIBUTE_USER_ID,
   SEMANTIC_ATTRIBUTE_USER_IP_ADDRESS,
@@ -28,7 +25,6 @@ import {
   spanToV2JSON,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
-import { getHttpRequestData } from '../helpers';
 
 export interface SpanStreamingOptions {
   batchLimit: number;
@@ -110,7 +106,7 @@ interface SpanProcessingOptions {
  * Just the traceid alone isn't enough because there can be multiple span trees with the same traceid.
  */
 function getSpanTreeMapKey(span: Span): string {
-  return `${span.spanContext().traceId}-${getSegmentSpan(span).spanContext().spanId}`;
+  return `${span.spanContext().traceId}-${INTERNAL_getSegmentSpan(span).spanContext().spanId}`;
 }
 
 function processAndSendSpans(
@@ -131,10 +127,6 @@ function processAndSendSpans(
   for (const span of spansOfTrace) {
     applyCommonSpanAttributes(span, segmentSpanJson, client);
   }
-
-  applyScopeToSegmentSpan(segmentSpan, segmentSpanJson, client);
-
-  // TODO: Apply scope data and contexts to segment span
 
   const { ignoreSpans } = client.getOptions();
 
@@ -166,6 +158,7 @@ function processAndSendSpans(
     }
 
     // 3. Apply beforeSendSpan callback
+    // TODO: validate beforeSendSpan result/pass in a copy and merge afterwards
     const processedSpan = beforeSendSpan ? applyBeforeSendSpanCallback(span, beforeSendSpan) : span;
     processedSpans.push(processedSpan);
   }
@@ -221,38 +214,6 @@ function applyCommonSpanAttributes(span: Span, serializedSegmentSpan: SpanV2JSON
           [SEMANTIC_ATTRIBUTE_USER_USERNAME]: finalScopeData.user?.username,
         }
       : {}),
-  });
-}
-
-/**
- * Adds span attributes from the scopes' contexts
- * TODO: It's not set in stone yet if we actually want to flatmap contexts into span attributes.
- * For now we do it but not yet extra or tags. It's still TBD how to proceed here.
- */
-function applyScopeToSegmentSpan(segmentSpan: Span, serializedSegmentSpan: SpanV2JSON, client: Client): void {
-  const { isolationScope, scope } = getCapturedScopesOnSpan(segmentSpan);
-  const finalScopeData = getFinalScopeData(isolationScope, scope);
-
-  const browserRequestData = getHttpRequestData();
-
-  const tags = finalScopeData.tags ?? {};
-
-  let contextAttributes = {};
-  Object.keys(finalScopeData.contexts).forEach(key => {
-    const context = finalScopeData.contexts[key];
-    if (context) {
-      contextAttributes = { ...contextAttributes, ...attributesFromObject(context) };
-    }
-  });
-
-  const extraAttributes = attributesFromObject(finalScopeData.extra);
-
-  setAttributesIfNotPresent(segmentSpan, Object.keys(serializedSegmentSpan.attributes ?? {}), {
-    [SEMANTIC_ATTRIBUTE_URL_FULL]: browserRequestData.url,
-    ...httpHeadersToSpanAttributes(browserRequestData.headers, client.getOptions().sendDefaultPii ?? false),
-    ...tags,
-    ...contextAttributes,
-    ...extraAttributes,
   });
 }
 
