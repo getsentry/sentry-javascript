@@ -232,8 +232,12 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
       setupWeightBasedFlushing(this, 'afterCaptureLog', 'flushLogs', estimateLogSizeInBytes, _INTERNAL_flushLogsBuffer);
     }
 
+    // todo(v11): Remove the experimental flag
+    // eslint-disable-next-line deprecation/deprecation
+    const enableMetrics = this._options.enableMetrics ?? this._options._experiments?.enableMetrics ?? true;
+
     // Setup metric flushing with weight and timeout tracking
-    if (this._options._experiments?.enableMetrics) {
+    if (enableMetrics) {
       setupWeightBasedFlushing(
         this,
         'afterCaptureMetric',
@@ -1521,12 +1525,8 @@ function estimateMetricSizeInBytes(metric: Metric): number {
     weight += metric.name.length * 2;
   }
 
-  // Add weight for the value
-  if (typeof metric.value === 'string') {
-    weight += metric.value.length * 2;
-  } else {
-    weight += 8; // number
-  }
+  // Add weight for number
+  weight += 8;
 
   return weight + estimateAttributesSizeInBytes(metric.attributes);
 }
