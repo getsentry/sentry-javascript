@@ -439,7 +439,7 @@ describe('OpenAI integration', () => {
     'scenario-message-truncation-responses.mjs',
     'instrument-with-pii.mjs',
     (createRunner, test) => {
-      test('should truncate input strings that exceed byte limit', async () => {
+      test('truncates string inputs when they exceed byte limit', async () => {
         await createRunner()
           .ignore('event')
           .expect({
@@ -453,7 +453,7 @@ describe('OpenAI integration', () => {
                     'sentry.origin': 'auto.ai.openai',
                     'gen_ai.system': 'openai',
                     'gen_ai.request.model': 'gpt-3.5-turbo',
-                    // Message should be present but truncated to include only As
+                    // Messages should be present and should include truncated string input (contains only As)
                     'gen_ai.request.messages': expect.stringMatching(/^A+$/),
                   }),
                   description: 'responses gpt-3.5-turbo',
