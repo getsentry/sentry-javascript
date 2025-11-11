@@ -148,6 +148,7 @@ export {
   statsigIntegration,
   unleashIntegration,
   growthbookIntegration,
+  metrics,
 } from '@sentry/node';
 
 export {
