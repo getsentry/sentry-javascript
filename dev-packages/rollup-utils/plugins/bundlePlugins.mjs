@@ -30,7 +30,7 @@ export function makeBannerOptions(title, version) {
  * Create a plugin to set the value of the `__SENTRY_DEBUG__` magic string.
  *
  * @param includeDebugging Whether or not the resulting build should include log statements
- * @returns An instance of the `@rollup/plugin-replace` plugin to do the replacement of the magic string with `true` or
+ * @returns An instance of the `rolldown.replacePlugin` plugin to do the replacement of the magic string with `true` or
  * 'false`
  */
 export function makeIsDebugBuildPlugin(includeDebugging) {

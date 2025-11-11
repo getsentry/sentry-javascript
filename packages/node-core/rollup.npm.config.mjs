@@ -1,5 +1,5 @@
-import replace from '@rollup/plugin-replace';
 import { makeBaseNPMConfig, makeNPMConfigVariants, makeOtelLoaders } from '@sentry-internal/rollup-utils';
+import { replacePlugin } from 'rolldown/plugins';
 import { createWorkerCodeBuilder } from './rollup.anr-worker.config.mjs';
 
 const [anrWorkerConfig, getAnrBase64Code] = createWorkerCodeBuilder(
@@ -26,15 +26,17 @@ export default [
           exports: 'named',
         },
         plugins: [
-          replace({
-            delimiters: ['###', '###'],
-            // removes some rollup warnings
-            preventAssignment: true,
-            values: {
+          replacePlugin(
+            {
               AnrWorkerScript: () => getAnrBase64Code(),
               LocalVariablesWorkerScript: () => getLocalVariablesBase64Code(),
             },
-          }),
+            {
+              delimiters: ['###', '###'],
+              // removes some rollup warnings
+              preventAssignment: true,
+            },
+          ),
         ],
       },
     }),
