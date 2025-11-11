@@ -326,7 +326,7 @@ export class Scope {
    */
   public setAttributes(newAttributes: Record<string, AttributeValueType | TypedAttributeValue>): this {
     Object.entries(newAttributes).forEach(([key, value]) => {
-      if (typeof value === 'object' && !Array.isArray(value)) {
+      if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
         this._attributes[key] = value;
       } else {
         this._attributes[key] = attributeValueToTypedAttributeValue(value);
