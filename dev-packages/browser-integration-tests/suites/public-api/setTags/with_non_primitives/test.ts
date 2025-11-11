@@ -9,5 +9,5 @@ sentryTest('should not accept non-primitive tags', async ({ getLocalTestUrl, pag
   const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
 
   expect(eventData.message).toBe('non_primitives');
-  expect(eventData.tags).toMatchObject({});
+  expect(eventData.tags).toBeUndefined();
 });
