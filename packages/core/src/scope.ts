@@ -17,7 +17,7 @@ import type { Span } from './types-hoist/span';
 import type { PropagationContext } from './types-hoist/tracing';
 import type { User } from './types-hoist/user';
 import { debug } from './utils/debug-logger';
-import { isPlainObject } from './utils/is';
+import { isPlainObject, isPrimitive } from './utils/is';
 import { merge } from './utils/merge';
 import { uuid4 } from './utils/misc';
 import { generateTraceId } from './utils/propagationContext';
@@ -279,10 +279,11 @@ export class Scope {
    * and will be sent as tags data with the event.
    */
   public setTags(tags: { [key: string]: Primitive }): this {
-    this._tags = {
-      ...this._tags,
-      ...tags,
-    };
+    for (const [key, value] of Object.entries(tags)) {
+      if (isPrimitive(value)) {
+        this._tags[key] = value;
+      }
+    }
     this._notifyScopeListeners();
     return this;
   }
@@ -291,9 +292,7 @@ export class Scope {
    * Set a single tag that will be sent as tags data with the event.
    */
   public setTag(key: string, value: Primitive): this {
-    this._tags = { ...this._tags, [key]: value };
-    this._notifyScopeListeners();
-    return this;
+    return this.setTags({ [key]: value });
   }
 
   /**

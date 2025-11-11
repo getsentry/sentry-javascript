@@ -140,16 +140,61 @@ describe('Scope', () => {
       expect(scope['_extra']).toEqual({ a: undefined });
     });
 
-    test('setTag', () => {
-      const scope = new Scope();
-      scope.setTag('a', 'b');
-      expect(scope['_tags']).toEqual({ a: 'b' });
+    describe('setTag', () => {
+      it('sets a tag', () => {
+        const scope = new Scope();
+        scope.setTag('a', 'b');
+        expect(scope['_tags']).toEqual({ a: 'b' });
+      });
+
+      it('sets a tag with undefined', () => {
+        const scope = new Scope();
+        scope.setTag('a', 'b');
+        scope.setTag('a', undefined);
+        expect(scope['_tags']).toEqual({ a: undefined });
+      });
+
+      it('notifies scope listeners once per call', () => {
+        const scope = new Scope();
+        const listener = vi.fn();
+
+        scope.addScopeListener(listener);
+        scope.setTag('a', 'b');
+        scope.setTag('a', 'c');
+
+        expect(listener).toHaveBeenCalledTimes(2);
+      });
+
+      it('discards non-primitive values', () => {
+        const scope = new Scope();
+        // @ts-expect-error we want to test with a non-primitive value despite types not allowing it
+        scope.setTag('a', { b: 'c' });
+        expect(scope['_tags']).toEqual({});
+      });
     });
 
-    test('setTags', () => {
-      const scope = new Scope();
-      scope.setTags({ a: 'b' });
-      expect(scope['_tags']).toEqual({ a: 'b' });
+    describe('setTags', () => {
+      it('sets tags', () => {
+        const scope = new Scope();
+        scope.setTags({ a: 'b' });
+        expect(scope['_tags']).toEqual({ a: 'b' });
+      });
+
+      it('notifies scope listeners once per call', () => {
+        const scope = new Scope();
+        const listener = vi.fn();
+        scope.addScopeListener(listener);
+        scope.setTags({ a: 'b', c: 'd' });
+        scope.setTags({ a: 'e', f: 'g' });
+        expect(listener).toHaveBeenCalledTimes(2);
+      });
+
+      it('discards non-primitive values', () => {
+        const scope = new Scope();
+        // @ts-expect-error we want to test with a non-primitive value despite types not allowing it
+        scope.setTags({ a: { b: 'c' }, b: [1, 2, 3], c: new Map(), d: () => {} });
+        expect(scope['_tags']).toEqual({});
+      });
     });
 
     test('setUser', () => {
