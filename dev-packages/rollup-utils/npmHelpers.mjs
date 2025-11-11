@@ -97,27 +97,18 @@ export function makeBaseNPMConfig(options = {}) {
 
 export function makeNPMConfigVariants(baseConfig, options = {}) {
   const { emitEsm = true, emitCjs = true, splitDevProd = false } = options;
-  const baseOutput = baseConfig.output;
-  if (!baseOutput || Array.isArray(baseOutput)) {
-    throw new Error('Base config must have a single output object');
-  }
-
-  const baseOutputDir = baseOutput.dir;
-  if (typeof baseOutputDir !== 'string') {
-    throw new Error('Base config must have a string for dir');
-  }
 
   const variantSpecificConfigs = [];
 
   if (emitCjs) {
     if (splitDevProd) {
-      variantSpecificConfigs.push({ output: { format: 'cjs', dir: path.join(baseOutputDir, 'cjs/dev') } });
+      variantSpecificConfigs.push({ output: { format: 'cjs', dir: path.join(baseConfig.output.dir, 'cjs/dev') } });
       variantSpecificConfigs.push({
-        output: { format: 'cjs', dir: path.join(baseOutputDir, 'cjs/prod') },
+        output: { format: 'cjs', dir: path.join(baseConfig.output.dir, 'cjs/prod') },
         plugins: [makeProductionReplacePlugin()],
       });
     } else {
-      variantSpecificConfigs.push({ output: { format: 'cjs', dir: path.join(baseOutputDir, 'cjs') } });
+      variantSpecificConfigs.push({ output: { format: 'cjs', dir: path.join(baseConfig.output.dir, 'cjs') } });
     }
   }
 
@@ -126,14 +117,14 @@ export function makeNPMConfigVariants(baseConfig, options = {}) {
       variantSpecificConfigs.push({
         output: {
           format: 'esm',
-          dir: path.join(baseOutputDir, 'esm/dev'),
+          dir: path.join(baseConfig.output.dir, 'esm/dev'),
           plugins: [makePackageNodeEsm()],
         },
       });
       variantSpecificConfigs.push({
         output: {
           format: 'esm',
-          dir: path.join(baseOutputDir, 'esm/prod'),
+          dir: path.join(baseConfig.output.dir, 'esm/prod'),
           plugins: [makeProductionReplacePlugin(), makePackageNodeEsm()],
         },
       });
@@ -141,7 +132,7 @@ export function makeNPMConfigVariants(baseConfig, options = {}) {
       variantSpecificConfigs.push({
         output: {
           format: 'esm',
-          dir: path.join(baseOutputDir, 'esm'),
+          dir: path.join(baseConfig.output.dir, 'esm'),
           plugins: [makePackageNodeEsm()],
         },
       });
