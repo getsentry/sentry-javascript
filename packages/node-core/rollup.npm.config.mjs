@@ -24,6 +24,7 @@ export default [
         output: {
           // set exports to 'named' or 'auto' so that rollup doesn't warn
           exports: 'named',
+          preserveModules: true,
         },
         plugins: [
           replacePlugin(
