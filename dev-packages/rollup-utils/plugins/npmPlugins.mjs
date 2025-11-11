@@ -7,36 +7,7 @@
  * Sucrase plugin docs: https://github.com/rollup/plugins/tree/master/packages/sucrase
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
-
-import json from '@rollup/plugin-json';
-import replace from '@rollup/plugin-replace';
-import cleanup from 'rollup-plugin-cleanup';
-import sucrase from './vendor/sucrase-plugin.mjs';
-
-/**
- * Create a plugin to transpile TS syntax using `sucrase`.
- *
- * @returns An instance of the `@rollup/plugin-sucrase` plugin
- */
-export function makeSucrasePlugin(options = {}, sucraseOptions = {}) {
-  return sucrase(
-    {
-      // Required for bundling OTEL code properly
-      exclude: ['**/*.json'],
-      ...options,
-    },
-    {
-      transforms: ['typescript', 'jsx'],
-      // We use a custom forked version of sucrase,
-      // where there is a new option `disableES2019Transforms`
-      disableESTransforms: false,
-      disableES2019Transforms: true,
-      ...sucraseOptions,
-    },
-  );
-}
+import { replacePlugin } from 'rolldown/plugins';
 
 /**
  * Create a plugin which can be used to pause the build process at the given hook.
@@ -89,23 +60,6 @@ export function makeDebuggerPlugin(hookName) {
 }
 
 /**
- * Create a plugin to clean up output files by:
- * - Converting line endings unix line endings
- * - Removing consecutive empty lines
- *
- * @returns A `rollup-plugin-cleanup` instance.
- */
-export function makeCleanupPlugin() {
-  return cleanup({
-    // line endings are unix-ized by default
-    comments: 'all', // comments to keep
-    compactComments: 'false', // don't remove blank lines in multi-line comments
-    maxEmptyLines: 1,
-    extensions: ['js', 'jsx', 'ts', 'tsx'],
-  });
-}
-
-/**
  * Creates a plugin to replace all instances of "__DEBUG_BUILD__" with a safe statement that
  * a) evaluates to `true`
  * b) can easily be modified by our users' bundlers to evaluate to false, facilitating the treeshaking of logger code.
@@ -113,12 +67,14 @@ export function makeCleanupPlugin() {
  * @returns A `@rollup/plugin-replace` instance.
  */
 export function makeDebugBuildStatementReplacePlugin() {
-  return replace({
-    preventAssignment: false,
-    values: {
+  return replacePlugin(
+    {
       __DEBUG_BUILD__: "(typeof __SENTRY_DEBUG__ === 'undefined' || __SENTRY_DEBUG__)",
     },
-  });
+    {
+      preventAssignment: true,
+    },
+  );
 }
 
 export function makeProductionReplacePlugin() {
@@ -127,7 +83,9 @@ export function makeProductionReplacePlugin() {
   function stripDevBlocks(code) {
     if (!code) return null;
     if (!code.includes('rollup-include-development-only')) return null;
+
     const replaced = code.replace(pattern, '');
+
     return { code: replaced, map: null };
   }
 
@@ -158,23 +116,7 @@ export function makeRrwebBuildPlugin({ excludeShadowDom, excludeIframe } = {}) {
     values['__RRWEB_EXCLUDE_IFRAME__'] = excludeIframe;
   }
 
-  return replace({
+  return replacePlugin(values, {
     preventAssignment: true,
-    values,
-  });
-}
-
-/**
- * Plugin that uploads bundle analysis to codecov.
- *
- * @param type The type of bundle being uploaded.
- * @param prefix The prefix for the codecov bundle name. Defaults to 'npm'.
- */
-export function makeCodeCovPlugin() {
-  const packageJson = JSON.parse(fs.readFileSync(path.resolve(process.cwd(), './package.json'), { encoding: 'utf8' }));
-  return codecovRollupPlugin({
-    enableBundleAnalysis: process.env.CODECOV_TOKEN !== undefined,
-    bundleName: packageJson.name,
-    uploadToken: process.env.CODECOV_TOKEN,
   });
 }

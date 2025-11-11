@@ -13,11 +13,9 @@ import deepMerge from 'deepmerge';
 
 import { defineConfig } from 'rollup';
 import {
-  makeCleanupPlugin,
   makeDebugBuildStatementReplacePlugin,
   makeProductionReplacePlugin,
   makeRrwebBuildPlugin,
-  makeSucrasePlugin,
 } from './plugins/index.mjs';
 import { makePackageNodeEsm } from './plugins/make-esm-plugin.mjs';
 import { mergePlugins } from './utils.mjs';
@@ -33,13 +31,10 @@ export function makeBaseNPMConfig(options = {}) {
     entrypoints = ['src/index.ts'],
     hasBundles = false,
     packageSpecificConfig = {},
-    sucrase = {},
     bundledBuiltins = [],
   } = options;
 
-  const sucrasePlugin = makeSucrasePlugin({}, sucrase);
   const debugBuildStatementReplacePlugin = makeDebugBuildStatementReplacePlugin();
-  const cleanupPlugin = makeCleanupPlugin();
   const rrwebBuildPlugin = makeRrwebBuildPlugin({
     excludeShadowDom: undefined,
     excludeIframe: undefined,
@@ -62,9 +57,6 @@ export function makeBaseNPMConfig(options = {}) {
         preset: 'es2015',
       },
 
-      // don't add `"use strict"` to the top of cjs files
-      strict: false,
-
       // do TS-3.8-style exports
       //     exports.dogs = are.great
       // rather than TS-3.9-style exports
@@ -73,12 +65,6 @@ export function makeBaseNPMConfig(options = {}) {
       //       get: () => are.great,
       //     });
       externalLiveBindings: false,
-
-      // Don't call `Object.freeze` on the results of `import * as someModule from '...'`
-      // (We don't need it, so why waste the bytes?)
-      freeze: false,
-
-      interop: 'esModule',
     },
 
     treeshake: {
@@ -92,7 +78,7 @@ export function makeBaseNPMConfig(options = {}) {
       },
     },
 
-    plugins: [sucrasePlugin, debugBuildStatementReplacePlugin, rrwebBuildPlugin, cleanupPlugin],
+    plugins: [debugBuildStatementReplacePlugin, rrwebBuildPlugin],
 
     // don't include imported modules from outside the package in the final output
     external: [
@@ -109,20 +95,30 @@ export function makeBaseNPMConfig(options = {}) {
   });
 }
 
+// TODO: Instead of runtime checks, we should use TypeScript to ensure the base config is valid.
 export function makeNPMConfigVariants(baseConfig, options = {}) {
   const { emitEsm = true, emitCjs = true, splitDevProd = false } = options;
+  const baseOutput = baseConfig.output;
+  if (!baseOutput || Array.isArray(baseOutput)) {
+    throw new Error('Base config must have a single output object');
+  }
+
+  const baseOutputDir = baseOutput.dir;
+  if (typeof baseOutputDir !== 'string') {
+    throw new Error('Base config must have a string for dir');
+  }
 
   const variantSpecificConfigs = [];
 
   if (emitCjs) {
     if (splitDevProd) {
-      variantSpecificConfigs.push({ output: { format: 'cjs', dir: path.join(baseConfig.output.dir, 'cjs/dev') } });
+      variantSpecificConfigs.push({ output: { format: 'cjs', dir: path.join(baseOutputDir, 'cjs/dev') } });
       variantSpecificConfigs.push({
-        output: { format: 'cjs', dir: path.join(baseConfig.output.dir, 'cjs/prod') },
+        output: { format: 'cjs', dir: path.join(baseOutputDir, 'cjs/prod') },
         plugins: [makeProductionReplacePlugin()],
       });
     } else {
-      variantSpecificConfigs.push({ output: { format: 'cjs', dir: path.join(baseConfig.output.dir, 'cjs') } });
+      variantSpecificConfigs.push({ output: { format: 'cjs', dir: path.join(baseOutputDir, 'cjs') } });
     }
   }
 
@@ -131,14 +127,14 @@ export function makeNPMConfigVariants(baseConfig, options = {}) {
       variantSpecificConfigs.push({
         output: {
           format: 'esm',
-          dir: path.join(baseConfig.output.dir, 'esm/dev'),
+          dir: path.join(baseOutputDir, 'esm/dev'),
           plugins: [makePackageNodeEsm()],
         },
       });
       variantSpecificConfigs.push({
         output: {
           format: 'esm',
-          dir: path.join(baseConfig.output.dir, 'esm/prod'),
+          dir: path.join(baseOutputDir, 'esm/prod'),
           plugins: [makeProductionReplacePlugin(), makePackageNodeEsm()],
         },
       });
@@ -146,7 +142,7 @@ export function makeNPMConfigVariants(baseConfig, options = {}) {
       variantSpecificConfigs.push({
         output: {
           format: 'esm',
-          dir: path.join(baseConfig.output.dir, 'esm'),
+          dir: path.join(baseOutputDir, 'esm'),
           plugins: [makePackageNodeEsm()],
         },
       });
