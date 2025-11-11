@@ -1,5 +1,5 @@
-import replace from '@rollup/plugin-replace';
 import { makeBaseNPMConfig, makeNPMConfigVariants } from '@sentry-internal/rollup-utils';
+import { replacePlugin } from 'rolldown/plugins';
 
 export default makeNPMConfigVariants(
   makeBaseNPMConfig({
@@ -8,12 +8,14 @@ export default makeNPMConfigVariants(
     packageSpecificConfig: {
       context: 'globalThis',
       plugins: [
-        replace({
-          preventAssignment: true,
-          values: {
+        replacePlugin(
+          {
             'process.argv0': JSON.stringify(''), // needed because otel relies on process.argv0 for the default service name, but that api is not available in the edge runtime.
           },
-        }),
+          {
+            preventAssignment: true,
+          },
+        ),
         {
           // This plugin is needed because otel imports `performance` from `perf_hooks` and also uses it via the `performance` global.
           // It also imports `inspect` and `promisify` from node's `util` which are not available in the edge runtime so we need to define a polyfill.
