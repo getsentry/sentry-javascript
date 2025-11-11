@@ -27,6 +27,7 @@ describe('Scope', () => {
       attachments: [],
       contexts: {},
       tags: {},
+      attributes: {},
       extra: {},
       user: {},
       level: undefined,
@@ -42,6 +43,7 @@ describe('Scope', () => {
     scope.update({
       tags: { foo: 'bar' },
       extra: { foo2: 'bar2' },
+      attributes: { attr1: { value: 'value1', type: 'string' } },
     });
 
     expect(scope.getScopeData()).toEqual({
@@ -51,6 +53,7 @@ describe('Scope', () => {
       tags: {
         foo: 'bar',
       },
+      attributes: { attr1: { value: 'value1', type: 'string' } },
       extra: {
         foo2: 'bar2',
       },
@@ -71,6 +74,7 @@ describe('Scope', () => {
 
     scope.update({
       tags: { foo: 'bar' },
+      attributes: { attr1: { value: 'value1', type: 'string' } },
       extra: { foo2: 'bar2' },
     });
 
@@ -85,6 +89,7 @@ describe('Scope', () => {
       tags: {
         foo: 'bar',
       },
+      attributes: { attr1: { value: 'value1', type: 'string' } },
       extra: {
         foo2: 'bar2',
       },
@@ -114,7 +119,7 @@ describe('Scope', () => {
     });
   });
 
-  describe('attributes modification', () => {
+  describe('scope data modification', () => {
     test('setFingerprint', () => {
       const scope = new Scope();
       scope.setFingerprint(['abcd']);
@@ -150,6 +155,119 @@ describe('Scope', () => {
       const scope = new Scope();
       scope.setTags({ a: 'b' });
       expect(scope['_tags']).toEqual({ a: 'b' });
+    });
+
+    describe('setAttribute', () => {
+      it('accepts a key-value pair', () => {
+        const scope = new Scope();
+
+        scope.setAttribute('str', 'b');
+        scope.setAttribute('int', 1);
+        scope.setAttribute('double', 1.1);
+        scope.setAttribute('bool', true);
+
+        expect(scope['_attributes']).toEqual({
+          str: {
+            type: 'string',
+            value: 'b',
+          },
+          bool: {
+            type: 'boolean',
+            value: true,
+          },
+          double: {
+            type: 'double',
+            value: 1.1,
+          },
+          int: {
+            type: 'integer',
+            value: 1,
+          },
+        });
+      });
+
+      it('accepts a typed attribute value', () => {
+        const scope = new Scope();
+        scope.setAttribute('str', { type: 'string', value: 'b' });
+        expect(scope['_attributes']).toEqual({
+          str: { type: 'string', value: 'b' },
+        });
+      });
+
+      it('accepts a unit', () => {
+        const scope = new Scope();
+        scope.setAttribute('str', { type: 'string', value: 'b', unit: 'ms' });
+        expect(scope['_attributes']).toEqual({
+          str: { type: 'string', value: 'b', unit: 'ms' },
+        });
+      });
+
+      it('accepts an array', () => {
+        const scope = new Scope();
+
+        scope.setAttribute('strArray', ['a', 'b', 'c']);
+        scope.setAttribute('intArray', { value: [1, 2, 3], type: 'integer[]', unit: 'ms' });
+
+        expect(scope['_attributes']).toEqual({
+          strArray: { type: 'string[]', value: ['a', 'b', 'c'] },
+          intArray: { value: [1, 2, 3], type: 'integer[]', unit: 'ms' },
+        });
+      });
+    });
+
+    describe('setAttributes', () => {
+      it('accepts key-value pairs', () => {
+        const scope = new Scope();
+        scope.setAttributes({ str: 'b', int: 1, double: 1.1, bool: true });
+        expect(scope['_attributes']).toEqual({
+          str: {
+            type: 'string',
+            value: 'b',
+          },
+          bool: {
+            type: 'boolean',
+            value: true,
+          },
+          double: {
+            type: 'double',
+            value: 1.1,
+          },
+          int: {
+            type: 'integer',
+            value: 1,
+          },
+        });
+      });
+
+      it('accepts typed attribute values', () => {
+        const scope = new Scope();
+        scope.setAttributes({ str: { type: 'string', value: 'b' }, int: { type: 'integer', value: 1 } });
+        expect(scope['_attributes']).toEqual({
+          str: { type: 'string', value: 'b' },
+          int: { type: 'integer', value: 1 },
+        });
+      });
+
+      it('accepts units', () => {
+        const scope = new Scope();
+        scope.setAttributes({ str: { type: 'string', value: 'b', unit: 'ms' } });
+        expect(scope['_attributes']).toEqual({
+          str: { type: 'string', value: 'b', unit: 'ms' },
+        });
+      });
+
+      it('accepts arrays', () => {
+        const scope = new Scope();
+        scope.setAttributes({
+          strArray: ['a', 'b', 'c'],
+          intArray: { value: [1, 2, 3], type: 'integer[]', unit: 'ms' },
+        });
+
+        expect(scope['_attributes']).toEqual({
+          strArray: { type: 'string[]', value: ['a', 'b', 'c'] },
+          intArray: { type: 'integer[]', value: [1, 2, 3], unit: 'ms' },
+        });
+      });
     });
 
     test('setUser', () => {
@@ -298,12 +416,18 @@ describe('Scope', () => {
     const oldPropagationContext = scope.getScopeData().propagationContext;
     scope.setExtra('a', 2);
     scope.setTag('a', 'b');
+    scope.setAttribute('c', 'd');
     scope.setUser({ id: '1' });
     scope.setFingerprint(['abcd']);
     scope.addBreadcrumb({ message: 'test' });
+
+    expect(scope['_attributes']).toEqual({ c: { type: 'string', value: 'd' } });
     expect(scope['_extra']).toEqual({ a: 2 });
+
     scope.clear();
+
     expect(scope['_extra']).toEqual({});
+    expect(scope['_attributes']).toEqual({});
     expect(scope['_propagationContext']).toEqual({
       traceId: expect.any(String),
       sampled: undefined,
@@ -326,6 +450,7 @@ describe('Scope', () => {
     beforeEach(() => {
       scope = new Scope();
       scope.setTags({ foo: '1', bar: '2' });
+      scope.setAttribute('attr1', 'value1');
       scope.setExtras({ foo: '1', bar: '2' });
       scope.setContext('foo', { id: '1' });
       scope.setContext('bar', { id: '2' });
