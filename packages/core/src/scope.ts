@@ -1,5 +1,6 @@
 /* eslint-disable max-lines */
-import { Attributes, attributeValueToTypedAttributeValue, AttributeValueType, TypedAttributeValue } from './attributes';
+import type { Attributes, AttributeValueType, TypedAttributeValue } from './attributes';
+import { attributeValueToTypedAttributeValue } from './attributes';
 import type { Client } from './client';
 import { DEBUG_BUILD } from './debug-build';
 import { updateSession } from './session';
