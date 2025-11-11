@@ -49,6 +49,9 @@ vi.mock('../../src/reactrouter-compat-utils/utils', () => ({
   getGlobalLocation: vi.fn(() => ({ pathname: '/test', search: '', hash: '' })),
   getGlobalPathname: vi.fn(() => '/test'),
   routeIsDescendant: vi.fn(() => false),
+  transactionNameHasWildcard: vi.fn((name: string) => {
+    return name.includes('/*') || name === '*' || name.endsWith('*');
+  }),
 }));
 
 vi.mock('../../src/reactrouter-compat-utils/lazy-routes', () => ({
@@ -368,5 +371,42 @@ describe('addRoutesToAllRoutes', () => {
     const secondCount = allRoutes.size;
 
     expect(firstCount).toBe(secondCount);
+  });
+});
+
+describe('updateNavigationSpan with wildcard detection', () => {
+  const sampleLocation: Location = {
+    pathname: '/test',
+    search: '',
+    hash: '',
+    state: null,
+    key: 'default',
+  };
+
+  const sampleRoutes: RouteObject[] = [
+    { path: '/', element: <div>Home</div> },
+    { path: '/about', element: <div>About</div> },
+  ];
+
+  const mockMatchRoutes = vi.fn(() => []);
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('should call updateName when provided with valid routes', () => {
+    const testSpan = { ...mockSpan };
+    updateNavigationSpan(testSpan, sampleLocation, sampleRoutes, false, mockMatchRoutes);
+
+    expect(mockUpdateName).toHaveBeenCalledWith('Test Route');
+    expect(mockSetAttribute).toHaveBeenCalledWith('sentry.source', 'route');
+  });
+
+  it('should handle forced updates', () => {
+    const testSpan = { ...mockSpan, __sentry_navigation_name_set__: true };
+    updateNavigationSpan(testSpan, sampleLocation, sampleRoutes, true, mockMatchRoutes);
+
+    // Should update even though already named because forceUpdate=true
+    expect(mockUpdateName).toHaveBeenCalledWith('Test Route');
   });
 });
