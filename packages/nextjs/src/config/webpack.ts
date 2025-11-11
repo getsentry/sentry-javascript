@@ -276,7 +276,7 @@ export function constructWebpackConfigFunction({
       });
 
       // Wrap middleware
-      const canWrapStandaloneMiddleware = userNextConfig.output !== 'standalone' || (major && major < 16);
+      const canWrapStandaloneMiddleware = userNextConfig.output !== 'standalone' || !major || major < 16;
       if ((userSentryOptions.autoInstrumentMiddleware ?? true) && canWrapStandaloneMiddleware) {
         newConfig.module.rules.unshift({
           test: isMiddlewareResource,
