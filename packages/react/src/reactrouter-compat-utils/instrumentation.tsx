@@ -54,9 +54,9 @@ const CLIENTS_WITH_INSTRUMENT_NAVIGATION = new WeakSet<Client>();
 
 /**
  * Tracks last navigation per client to prevent duplicate spans in cross-usage scenarios.
- * Uses 100ms window to deduplicate when multiple wrappers handle the same navigation.
+ * Entry persists until next different navigation, handling delayed wrapper execution.
  */
-const LAST_NAVIGATION_PER_CLIENT = new WeakMap<Client, { key: string; timestamp: number }>();
+const LAST_NAVIGATION_PER_CLIENT = new WeakMap<Client, string>();
 
 export function addResolvedRoutesToParent(resolvedRoutes: RouteObject[], parentRoute: RouteObject): void {
   const existingChildren = parentRoute.children || [];
@@ -630,9 +630,8 @@ function tryUpdateSpanName(
 }
 
 function isDuplicateNavigation(client: Client, navigationKey: string): boolean {
-  const lastNavigation = LAST_NAVIGATION_PER_CLIENT.get(client);
-  const now = Date.now();
-  return !!(lastNavigation && lastNavigation.key === navigationKey && now - lastNavigation.timestamp < 100);
+  const lastKey = LAST_NAVIGATION_PER_CLIENT.get(client);
+  return lastKey === navigationKey;
 }
 
 function createNavigationSpan(opts: {
@@ -648,11 +647,6 @@ function createNavigationSpan(opts: {
 }): Span | undefined {
   const { client, name, source, version, location, routes, basename, allRoutes, navigationKey } = opts;
 
-  LAST_NAVIGATION_PER_CLIENT.set(client, {
-    key: navigationKey,
-    timestamp: Date.now(),
-  });
-
   const navigationSpan = startBrowserTracingNavigationSpan(client, {
     name,
     attributes: {
@@ -663,11 +657,17 @@ function createNavigationSpan(opts: {
   });
 
   if (navigationSpan) {
+    LAST_NAVIGATION_PER_CLIENT.set(client, navigationKey);
     patchNavigationSpanEnd(navigationSpan, location, routes, basename, allRoutes);
 
-    client.on('spanEnd', endedSpan => {
+    const unsubscribe = client.on('spanEnd', endedSpan => {
       if (endedSpan === navigationSpan) {
-        LAST_NAVIGATION_PER_CLIENT.delete(client);
+        // Clear key only if it's still our key (handles overlapping navigations)
+        const lastKey = LAST_NAVIGATION_PER_CLIENT.get(client);
+        if (lastKey === navigationKey) {
+          LAST_NAVIGATION_PER_CLIENT.delete(client);
+        }
+        unsubscribe(); // Prevent memory leak
       }
     });
   }
