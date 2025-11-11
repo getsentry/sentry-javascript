@@ -331,7 +331,15 @@ describe('Scope', () => {
       it('notifies scope listeners after deletion', () => {
         const scope = new Scope();
         const listener = vi.fn();
+
         scope.addScopeListener(listener);
+        scope.setAttribute('str', { type: 'string', value: 'b' });
+        expect(listener).toHaveBeenCalledTimes(1);
+
+        listener.mockClear();
+
+        scope.removeAttribute('str');
+        expect(listener).toHaveBeenCalledTimes(1);
       });
 
       it('does nothing if the attribute does not exist', () => {
