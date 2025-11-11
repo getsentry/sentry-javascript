@@ -64,7 +64,7 @@ export function makeDebuggerPlugin(hookName) {
  * a) evaluates to `true`
  * b) can easily be modified by our users' bundlers to evaluate to false, facilitating the treeshaking of logger code.
  *
- * @returns A `@rollup/plugin-replace` instance.
+ * @returns A `rolldown.replacePlugin` instance.
  */
 export function makeDebugBuildStatementReplacePlugin() {
   return replacePlugin(
