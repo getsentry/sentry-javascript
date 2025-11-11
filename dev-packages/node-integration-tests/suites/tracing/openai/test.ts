@@ -400,7 +400,7 @@ describe('OpenAI integration', () => {
 
   createEsmAndCjsTests(
     __dirname,
-    'scenario-message-truncation.mjs',
+    'scenario-message-truncation-completions.mjs',
     'instrument-with-pii.mjs',
     (createRunner, test) => {
       test('truncates messages when they exceed byte limit - keeps only last message and crops it', async () => {
@@ -422,6 +422,42 @@ describe('OpenAI integration', () => {
                   }),
                   description: 'chat gpt-3.5-turbo',
                   op: 'gen_ai.chat',
+                  origin: 'auto.ai.openai',
+                  status: 'ok',
+                }),
+              ]),
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+  );
+
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-message-truncation-responses.mjs',
+    'instrument-with-pii.mjs',
+    (createRunner, test) => {
+      test('truncates string inputs when they exceed byte limit', async () => {
+        await createRunner()
+          .ignore('event')
+          .expect({
+            transaction: {
+              transaction: 'main',
+              spans: expect.arrayContaining([
+                expect.objectContaining({
+                  data: expect.objectContaining({
+                    'gen_ai.operation.name': 'responses',
+                    'sentry.op': 'gen_ai.responses',
+                    'sentry.origin': 'auto.ai.openai',
+                    'gen_ai.system': 'openai',
+                    'gen_ai.request.model': 'gpt-3.5-turbo',
+                    // Messages should be present and should include truncated string input (contains only As)
+                    'gen_ai.request.messages': expect.stringMatching(/^A+$/),
+                  }),
+                  description: 'responses gpt-3.5-turbo',
+                  op: 'gen_ai.responses',
                   origin: 'auto.ai.openai',
                   status: 'ok',
                 }),
