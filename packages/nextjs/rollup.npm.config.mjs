@@ -61,6 +61,9 @@ export default [
 
           // make it so Rollup calms down about the fact that we're combining default and named exports
           exports: 'named',
+
+          // Don't preserve modules - we're using custom entryFileNames
+          preserveModules: false,
         },
         external: [
           '@sentry/nextjs',
@@ -83,6 +86,9 @@ export default [
 
           // make it so Rollup calms down about the fact that we're combining default and named exports
           exports: 'named',
+
+          // Don't preserve modules - we're using custom entryFileNames
+          preserveModules: false,
         },
         external: ['@rollup/plugin-commonjs', 'rollup'],
       },
@@ -99,6 +105,9 @@ export default [
 
           // make it so Rollup calms down about the fact that we're combining default and named exports
           exports: 'named',
+
+          // Don't preserve modules - we're using custom entryFileNames
+          preserveModules: false,
         },
       },
     }),
