@@ -16,4 +16,5 @@ export default makeNPMConfigVariants(
       },
     },
   }),
+  { splitDevProd: true },
 );

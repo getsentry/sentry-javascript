@@ -148,6 +148,7 @@ export {
   OpenFeatureIntegrationHook,
   statsigIntegration,
   unleashIntegration,
+  metrics,
 } from '@sentry/node';
 
 export {

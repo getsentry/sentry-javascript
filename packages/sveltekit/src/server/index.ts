@@ -128,6 +128,7 @@ export {
   createConsolaReporter,
   createSentryWinstonTransport,
   vercelAIIntegration,
+  metrics,
 } from '@sentry/node';
 
 // We can still leave this for the carrier init and type exports

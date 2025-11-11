@@ -46,8 +46,8 @@ const IMPORTED_INTEGRATION_CDN_BUNDLE_PATHS: Record<string, string> = {
 
 const BUNDLE_PATHS: Record<string, Record<string, string>> = {
   browser: {
-    cjs: 'build/npm/cjs/index.js',
-    esm: 'build/npm/esm/index.js',
+    cjs: 'build/npm/cjs/prod/index.js',
+    esm: 'build/npm/esm/prod/index.js',
     bundle: 'build/bundles/bundle.js',
     bundle_min: 'build/bundles/bundle.min.js',
     bundle_replay: 'build/bundles/bundle.replay.js',
@@ -67,8 +67,8 @@ const BUNDLE_PATHS: Record<string, Record<string, string>> = {
     loader_tracing_replay: 'build/bundles/bundle.tracing.replay.debug.min.js',
   },
   integrations: {
-    cjs: 'build/npm/cjs/index.js',
-    esm: 'build/npm/esm/index.js',
+    cjs: 'build/npm/cjs/prod/index.js',
+    esm: 'build/npm/esm/prod/index.js',
     bundle: 'build/bundles/[INTEGRATION_NAME].js',
     bundle_min: 'build/bundles/[INTEGRATION_NAME].min.js',
   },
@@ -77,8 +77,8 @@ const BUNDLE_PATHS: Record<string, Record<string, string>> = {
     bundle_min: 'build/bundles/[INTEGRATION_NAME].min.js',
   },
   wasm: {
-    cjs: 'build/npm/cjs/index.js',
-    esm: 'build/npm/esm/index.js',
+    cjs: 'build/npm/cjs/prod/index.js',
+    esm: 'build/npm/esm/prod/index.js',
     bundle: 'build/bundles/wasm.js',
     bundle_min: 'build/bundles/wasm.min.js',
   },

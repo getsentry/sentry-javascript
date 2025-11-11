@@ -232,8 +232,12 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
       setupWeightBasedFlushing(this, 'afterCaptureLog', 'flushLogs', estimateLogSizeInBytes, _INTERNAL_flushLogsBuffer);
     }
 
+    // todo(v11): Remove the experimental flag
+    // eslint-disable-next-line deprecation/deprecation
+    const enableMetrics = this._options.enableMetrics ?? this._options._experiments?.enableMetrics ?? true;
+
     // Setup metric flushing with weight and timeout tracking
-    if (this._options._experiments?.enableMetrics) {
+    if (enableMetrics) {
       setupWeightBasedFlushing(
         this,
         'afterCaptureMetric',
@@ -1033,16 +1037,18 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
 
   /** Updates existing session based on the provided event */
   protected _updateSessionFromEvent(session: Session, event: Event): void {
+    // initially, set `crashed` based on the event level and update from exceptions if there are any later on
     let crashed = event.level === 'fatal';
     let errored = false;
     const exceptions = event.exception?.values;
 
     if (exceptions) {
       errored = true;
+      // reset crashed to false if there are exceptions, to ensure `mechanism.handled` is respected.
+      crashed = false;
 
       for (const ex of exceptions) {
-        const mechanism = ex.mechanism;
-        if (mechanism?.handled === false) {
+        if (ex.mechanism?.handled === false) {
           crashed = true;
           break;
         }
@@ -1521,12 +1527,8 @@ function estimateMetricSizeInBytes(metric: Metric): number {
     weight += metric.name.length * 2;
   }
 
-  // Add weight for the value
-  if (typeof metric.value === 'string') {
-    weight += metric.value.length * 2;
-  } else {
-    weight += 8; // number
-  }
+  // Add weight for number
+  weight += 8;
 
   return weight + estimateAttributesSizeInBytes(metric.attributes);
 }

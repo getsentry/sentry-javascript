@@ -40,7 +40,7 @@ const FILE_PATTERNS = {
 } as const;
 
 // Source map file extensions to delete
-const SOURCEMAP_EXTENSIONS = ['*.js.map', '*.mjs.map', '*.cjs.map'] as const;
+const SOURCEMAP_EXTENSIONS = ['*.js.map', '*.mjs.map', '*.cjs.map', '*.css.map'] as const;
 
 type BuildTool = keyof typeof LOGGER_PREFIXES;
 

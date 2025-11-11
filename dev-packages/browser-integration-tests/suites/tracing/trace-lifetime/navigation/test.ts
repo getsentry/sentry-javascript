@@ -38,8 +38,8 @@ sentryTest('creates a new trace and sample_rand on each navigation', async ({ ge
 
   expect(navigation1TraceContext).toMatchObject({
     op: 'navigation',
-    trace_id: expect.stringMatching(/^[0-9a-f]{32}$/),
-    span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
+    trace_id: expect.stringMatching(/^[\da-f]{32}$/),
+    span_id: expect.stringMatching(/^[\da-f]{16}$/),
   });
   expect(navigation1TraceContext).not.toHaveProperty('parent_span_id');
 
@@ -54,8 +54,8 @@ sentryTest('creates a new trace and sample_rand on each navigation', async ({ ge
 
   expect(navigation2TraceContext).toMatchObject({
     op: 'navigation',
-    trace_id: expect.stringMatching(/^[0-9a-f]{32}$/),
-    span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
+    trace_id: expect.stringMatching(/^[\da-f]{32}$/),
+    span_id: expect.stringMatching(/^[\da-f]{16}$/),
   });
   expect(navigation2TraceContext).not.toHaveProperty('parent_span_id');
 
@@ -93,8 +93,8 @@ sentryTest('error after navigation has navigation traceId', async ({ getLocalTes
 
   expect(navigationTraceContext).toMatchObject({
     op: 'navigation',
-    trace_id: expect.stringMatching(/^[0-9a-f]{32}$/),
-    span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
+    trace_id: expect.stringMatching(/^[\da-f]{32}$/),
+    span_id: expect.stringMatching(/^[\da-f]{16}$/),
   });
   expect(navigationTraceContext).not.toHaveProperty('parent_span_id');
 
@@ -120,7 +120,7 @@ sentryTest('error after navigation has navigation traceId', async ({ getLocalTes
   const errorTraceContext = errorEvent.contexts?.trace;
   expect(errorTraceContext).toEqual({
     trace_id: navigationTraceContext?.trace_id,
-    span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
+    span_id: expect.stringMatching(/^[\da-f]{16}$/),
   });
   expect(errorTraceHeader).toEqual({
     environment: 'production',
@@ -162,8 +162,8 @@ sentryTest('error during navigation has new navigation traceId', async ({ getLoc
   const navigationTraceContext = navigationEvent?.contexts?.trace;
   expect(navigationTraceContext).toMatchObject({
     op: 'navigation',
-    trace_id: expect.stringMatching(/^[0-9a-f]{32}$/),
-    span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
+    trace_id: expect.stringMatching(/^[\da-f]{32}$/),
+    span_id: expect.stringMatching(/^[\da-f]{16}$/),
   });
   expect(navigationTraceContext).not.toHaveProperty('parent_span_id');
 
@@ -179,7 +179,7 @@ sentryTest('error during navigation has new navigation traceId', async ({ getLoc
   const errorTraceContext = errorEvent?.contexts?.trace;
   expect(errorTraceContext).toEqual({
     trace_id: navigationTraceContext?.trace_id,
-    span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
+    span_id: expect.stringMatching(/^[\da-f]{16}$/),
   });
 
   expect(errorTraceHeader).toEqual({
@@ -230,8 +230,8 @@ sentryTest(
     expect(navigationEvent.type).toEqual('transaction');
     expect(navigationTraceContext).toMatchObject({
       op: 'navigation',
-      trace_id: expect.stringMatching(/^[0-9a-f]{32}$/),
-      span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
+      trace_id: expect.stringMatching(/^[\da-f]{32}$/),
+      span_id: expect.stringMatching(/^[\da-f]{16}$/),
     });
     expect(navigationTraceContext).not.toHaveProperty('parent_span_id');
 
@@ -293,8 +293,8 @@ sentryTest(
     expect(navigationEvent.type).toEqual('transaction');
     expect(navigationTraceContext).toMatchObject({
       op: 'navigation',
-      trace_id: expect.stringMatching(/^[0-9a-f]{32}$/),
-      span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
+      trace_id: expect.stringMatching(/^[\da-f]{32}$/),
+      span_id: expect.stringMatching(/^[\da-f]{16}$/),
     });
     expect(navigationTraceContext).not.toHaveProperty('parent_span_id');
 
@@ -335,8 +335,8 @@ sentryTest(
     const navigationTraceContext = navigationEvent.contexts?.trace;
     expect(navigationTraceContext).toMatchObject({
       op: 'navigation',
-      trace_id: expect.stringMatching(/^[0-9a-f]{32}$/),
-      span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
+      trace_id: expect.stringMatching(/^[\da-f]{32}$/),
+      span_id: expect.stringMatching(/^[\da-f]{16}$/),
     });
     expect(navigationTraceContext).not.toHaveProperty('parent_span_id');
 
@@ -357,7 +357,7 @@ sentryTest(
 
     expect(feedbackTraceContext).toMatchObject({
       trace_id: navigationTraceContext?.trace_id,
-      span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
+      span_id: expect.stringMatching(/^[\da-f]{16}$/),
     });
   },
 );

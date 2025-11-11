@@ -23,6 +23,7 @@ const BROWSER_TEST_PACKAGES = [
   '@sentry-internal/replay-canvas',
   '@sentry-internal/replay-worker',
   '@sentry-internal/feedback',
+  '@sentry-internal/bundler-tests',
   '@sentry/wasm',
 ];
 

@@ -77,8 +77,7 @@ export function _sendStandaloneLcpSpan(
     entry.element && (attributes['lcp.element'] = htmlTreeAsString(entry.element));
     entry.id && (attributes['lcp.id'] = entry.id);
 
-    // Trim URL to the first 200 characters.
-    entry.url && (attributes['lcp.url'] = entry.url.trim().slice(0, 200));
+    entry.url && (attributes['lcp.url'] = entry.url);
 
     // loadTime is the time of LCP that's related to receiving the LCP element response..
     entry.loadTime != null && (attributes['lcp.loadTime'] = entry.loadTime);

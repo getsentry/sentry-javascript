@@ -11,7 +11,6 @@ import {
   makeCleanupPlugin,
   makeCommonJSPlugin,
   makeIsDebugBuildPlugin,
-  makeJsonPlugin,
   makeLicensePlugin,
   makeNodeResolvePlugin,
   makeRrwebBuildPlugin,
@@ -20,6 +19,7 @@ import {
   makeTerserPlugin,
 } from './plugins/index.mjs';
 import { mergePlugins } from './utils.mjs';
+import { makeProductionReplacePlugin } from './plugins/npmPlugins.mjs';
 
 const BUNDLE_VARIANTS = ['.js', '.min.js', '.debug.min.js'];
 
@@ -35,13 +35,12 @@ export function makeBaseBundleConfig(options) {
     excludeIframe: false,
     excludeShadowDom: false,
   });
+  const productionReplacePlugin = makeProductionReplacePlugin();
 
   // The `commonjs` plugin is the `esModuleInterop` of the bundling world. When used with `transformMixedEsModules`, it
   // will include all dependencies, imported or required, in the final bundle. (Without it, CJS modules aren't included
   // at all, and without `transformMixedEsModules`, they're only included if they're imported, not if they're required.)
   const commonJSPlugin = makeCommonJSPlugin({ transformMixedEsModules: true });
-
-  const jsonPlugin = makeJsonPlugin();
 
   // used by `@sentry/browser`
   const standAloneBundleConfig = {
@@ -119,7 +118,7 @@ export function makeBaseBundleConfig(options) {
       strict: false,
       esModule: false,
     },
-    plugins: [sucrasePlugin, nodeResolvePlugin, cleanupPlugin],
+    plugins: [productionReplacePlugin, sucrasePlugin, nodeResolvePlugin, cleanupPlugin],
     treeshake: 'smallest',
   };
 

@@ -16,6 +16,7 @@ export type {
   Stacktrace,
   Thread,
   User,
+  Metric,
 } from '@sentry/core';
 
 export type { CloudflareOptions } from './client';
@@ -100,6 +101,7 @@ export {
   featureFlagsIntegration,
   growthbookIntegration,
   logger,
+  metrics,
 } from '@sentry/core';
 
 export { withSentry } from './handler';

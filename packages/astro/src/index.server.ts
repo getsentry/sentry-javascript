@@ -162,6 +162,7 @@ export {
   statsigIntegration,
   unleashIntegration,
   growthbookIntegration,
+  metrics,
 } from '@sentry/node';
 
 export { init } from './server/sdk';

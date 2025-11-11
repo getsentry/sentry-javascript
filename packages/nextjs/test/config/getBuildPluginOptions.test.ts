@@ -308,6 +308,7 @@ describe('getBuildPluginOptions', () => {
         '/path/to/.next/static/**/*.js.map',
         '/path/to/.next/static/**/*.mjs.map',
         '/path/to/.next/static/**/*.cjs.map',
+        '/path/to/.next/static/**/*.css.map',
       ]);
     });
 
@@ -331,6 +332,7 @@ describe('getBuildPluginOptions', () => {
         '/path/to/.next/static/**/*.js.map',
         '/path/to/.next/static/**/*.mjs.map',
         '/path/to/.next/static/**/*.cjs.map',
+        '/path/to/.next/static/**/*.css.map',
       ]);
     });
 
@@ -355,6 +357,7 @@ describe('getBuildPluginOptions', () => {
         '/path/to/.next/static/**/*.js.map',
         '/path/to/.next/static/**/*.mjs.map',
         '/path/to/.next/static/**/*.cjs.map',
+        '/path/to/.next/static/**/*.css.map',
       ]);
     });
 
@@ -788,6 +791,7 @@ describe('getBuildPluginOptions', () => {
         `${complexPath}/static/**/*.js.map`,
         `${complexPath}/static/**/*.mjs.map`,
         `${complexPath}/static/**/*.cjs.map`,
+        `${complexPath}/static/**/*.css.map`,
       ]);
     });
   });

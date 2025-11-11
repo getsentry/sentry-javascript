@@ -14,7 +14,7 @@ sentryTest('sets an inactive span active and adds child spans to it', async ({ g
 
   const checkoutEvent = envelopeRequestParser(await req);
   const checkoutSpanId = checkoutEvent.contexts?.trace?.span_id;
-  expect(checkoutSpanId).toMatch(/[a-f0-9]{16}/);
+  expect(checkoutSpanId).toMatch(/[a-f\d]{16}/);
 
   expect(checkoutEvent.spans).toHaveLength(3);
 

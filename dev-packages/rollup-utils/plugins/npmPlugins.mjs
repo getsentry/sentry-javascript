@@ -125,6 +125,24 @@ export function makeDebugBuildStatementReplacePlugin() {
   });
 }
 
+export function makeProductionReplacePlugin() {
+  const pattern = /\/\* rollup-include-development-only \*\/[\s\S]*?\/\* rollup-include-development-only-end \*\/\s*/g;
+
+  function stripDevBlocks(code) {
+    if (!code) return null;
+    if (!code.includes('rollup-include-development-only')) return null;
+    const replaced = code.replace(pattern, '');
+    return { code: replaced, map: null };
+  }
+
+  return {
+    name: 'remove-dev-mode-blocks',
+    renderChunk(code) {
+      return stripDevBlocks(code);
+    },
+  };
+}
+
 /**
  * Creates a plugin to replace build flags of rrweb with either a constant (if passed true/false) or with a safe statement that:
  * a) evaluates to `true`
