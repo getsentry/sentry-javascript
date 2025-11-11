@@ -23,6 +23,7 @@ import {
   GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
+import { truncateGenAiMessages } from '../ai/messageTruncation';
 import { LANGCHAIN_ORIGIN, ROLE_MAP } from './constants';
 import type { LangChainLLMResult, LangChainMessage, LangChainSerialized } from './types';
 
@@ -281,7 +282,8 @@ export function extractChatModelRequestAttributes(
 
   if (recordInputs && Array.isArray(langChainMessages) && langChainMessages.length > 0) {
     const normalized = normalizeLangChainMessages(langChainMessages.flat());
-    setIfDefined(attrs, GEN_AI_REQUEST_MESSAGES_ATTRIBUTE, asString(normalized));
+    const truncated = truncateGenAiMessages(normalized);
+    setIfDefined(attrs, GEN_AI_REQUEST_MESSAGES_ATTRIBUTE, asString(truncated));
   }
 
   return attrs;
