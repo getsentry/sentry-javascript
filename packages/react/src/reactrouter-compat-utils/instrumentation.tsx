@@ -505,12 +505,8 @@ export function createReactRouterV6CompatibleTracingIntegration(
       // Get idleTimeout from browserTracingIntegration options (passed through)
       // idleTimeout from browserTracingIntegration (default: 1000ms)
       // Note: options already contains idleTimeout if user passed it to browserTracingIntegration
-      const idleTimeout = options.idleTimeout ?? 1000;
-
-      // Calculate default: 3× idleTimeout
-      const defaultMaxWait = idleTimeout * 3;
-
-      // Allow explicit override, otherwise use calculated default
+      // Calculate default: 3× idleTimeout, allow explicit override
+      const defaultMaxWait = (options.idleTimeout ?? 1000) * 3;
       const configuredMaxWait = maxLazyRouteWaitMs ?? defaultMaxWait;
 
       // Validate and set
@@ -940,22 +936,17 @@ function patchSpanEnd(
       const promiseArray = Array.from(pendingPromises);
 
       // Wait for all lazy routes to settle (never rejects, safe for all outcomes)
-      const settledPromise = Promise.allSettled(promiseArray).then(() => {});
+      const allSettled = Promise.allSettled(promiseArray).then(() => {});
 
-      // Create timeout promise to prevent hanging indefinitely
-      const timeoutPromise = new Promise<void>(resolve => {
-        // Handle special case: Infinity means no timeout
-        if (_maxLazyRouteWaitMs === Infinity) {
-          // Don't resolve - wait indefinitely (user explicitly opted in)
-          return;
-        }
-        setTimeout(resolve, _maxLazyRouteWaitMs);
-      });
+      // Race against timeout or wait indefinitely if Infinity
+      const waitPromise =
+        _maxLazyRouteWaitMs === Infinity
+          ? allSettled
+          : Promise.race([allSettled, new Promise<void>(r => setTimeout(r, _maxLazyRouteWaitMs))]);
 
-      // Race: whichever completes first (routes resolve or timeout)
-      Promise.race([settledPromise, timeoutPromise])
+      // Update span name once routes are resolved or timeout expires
+      waitPromise
         .then(() => {
-          // Try to update span name with (hopefully) resolved routes
           tryUpdateSpanNameBeforeEnd(
             span,
             spanToJSON(span),
@@ -968,9 +959,8 @@ function patchSpanEnd(
           );
           originalEnd(...args);
         })
-        .catch((error: unknown) => {
-          // Defensive: allSettled never rejects, but be safe
-          DEBUG_BUILD && debug.warn('Error waiting for lazy routes:', error);
+        .catch(() => {
+          // Defensive: should never happen with allSettled, but satisfy ESLint
           originalEnd(...args);
         });
       return;
