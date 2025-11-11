@@ -277,23 +277,22 @@ export function createV6CompatibleWrapCreateBrowserRouter<
         // If we haven't seen a pageload span yet, keep waiting (don't mark as complete)
       }
 
+      // Only handle navigation when it's complete (state is idle).
+      // During 'loading' or 'submitting', state.location may still have the old pathname,
+      // which would cause us to create a span for the wrong route.
       const shouldHandleNavigation =
-        state.historyAction === 'PUSH' || (state.historyAction === 'POP' && isInitialPageloadComplete);
+        (state.historyAction === 'PUSH' || (state.historyAction === 'POP' && isInitialPageloadComplete)) &&
+        state.navigation.state === 'idle';
 
       if (shouldHandleNavigation) {
-        // Only handle navigation when it's complete (state is idle).
-        // During 'loading' or 'submitting', state.location may still have the old pathname,
-        // which would cause us to create a span for the wrong route.
-        if (state.navigation.state === 'idle') {
-          handleNavigation({
-            location: state.location,
-            routes,
-            navigationType: state.historyAction,
-            version,
-            basename,
-            allRoutes: Array.from(allRoutes),
-          });
-        }
+        handleNavigation({
+          location: state.location,
+          routes,
+          navigationType: state.historyAction,
+          version,
+          basename,
+          allRoutes: Array.from(allRoutes),
+        });
       }
     });
 
@@ -402,29 +401,22 @@ export function createV6CompatibleWrapCreateMemoryRouter<
         // If we haven't seen a pageload span yet, keep waiting (don't mark as complete)
       }
 
-      const location = state.location;
-
+      // Only handle navigation when it's complete (state is idle).
+      // During 'loading' or 'submitting', state.location may still have the old pathname,
+      // which would cause us to create a span for the wrong route.
       const shouldHandleNavigation =
-        state.historyAction === 'PUSH' || (state.historyAction === 'POP' && isInitialPageloadComplete);
+        (state.historyAction === 'PUSH' || (state.historyAction === 'POP' && isInitialPageloadComplete)) &&
+        state.navigation.state === 'idle';
 
       if (shouldHandleNavigation) {
-        const navigationHandler = (): void => {
-          handleNavigation({
-            location,
-            routes,
-            navigationType: state.historyAction,
-            version,
-            basename,
-            allRoutes: Array.from(allRoutes),
-          });
-        };
-
-        // Wait for the next render if loading an unsettled route
-        if (state.navigation.state !== 'idle') {
-          requestAnimationFrame(navigationHandler);
-        } else {
-          navigationHandler();
-        }
+        handleNavigation({
+          location: state.location,
+          routes,
+          navigationType: state.historyAction,
+          version,
+          basename,
+          allRoutes: Array.from(allRoutes),
+        });
       }
     });
 
