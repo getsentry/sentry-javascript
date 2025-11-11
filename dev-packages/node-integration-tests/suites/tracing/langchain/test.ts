@@ -194,4 +194,46 @@ describe('LangChain integration', () => {
       await createRunner().ignore('event').expect({ transaction: EXPECTED_TRANSACTION_TOOL_CALLS }).start().completed();
     });
   });
+
+  const EXPECTED_TRANSACTION_MESSAGE_TRUNCATION = {
+    transaction: 'main',
+    spans: expect.arrayContaining([
+      expect.objectContaining({
+        data: expect.objectContaining({
+          'gen_ai.operation.name': 'chat',
+          'sentry.op': 'gen_ai.chat',
+          'sentry.origin': 'auto.ai.langchain',
+          'gen_ai.system': 'anthropic',
+          'gen_ai.request.model': 'claude-3-5-sonnet-20241022',
+          // Messages should be present and should include truncated string input (contains only Cs)
+          'gen_ai.request.messages': expect.stringMatching(/^\[{"role":"user","content":"C+"}\]$/),
+        }),
+        description: 'chat claude-3-5-sonnet-20241022',
+        op: 'gen_ai.chat',
+        origin: 'auto.ai.langchain',
+        status: 'ok',
+      }),
+      expect.objectContaining({
+        data: expect.objectContaining({
+          'gen_ai.operation.name': 'chat',
+          'sentry.op': 'gen_ai.chat',
+          'sentry.origin': 'auto.ai.langchain',
+          'gen_ai.system': 'anthropic',
+          'gen_ai.request.model': 'claude-3-5-sonnet-20241022',
+          // Messages should be present (truncation happened) and should be a JSON array of a single index (contains only Cs)
+          'gen_ai.request.messages': expect.stringMatching(/^\[{"role":"user","content":"C+"}\]$/),
+        }),
+        description: 'chat claude-3-5-sonnet-20241022',
+        op: 'gen_ai.chat',
+        origin: 'auto.ai.langchain',
+        status: 'ok',
+      }),
+    ]),
+  };
+
+  createEsmAndCjsTests(__dirname, 'scenario-message-truncation.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
+    test('truncates messages when they exceed byte limit', async () => {
+      await createRunner().ignore('event').expect({ transaction: EXPECTED_TRANSACTION_MESSAGE_TRUNCATION }).start().completed();
+    });
+  });
 });
