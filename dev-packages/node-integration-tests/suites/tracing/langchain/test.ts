@@ -231,9 +231,18 @@ describe('LangChain integration', () => {
     ]),
   };
 
-  createEsmAndCjsTests(__dirname, 'scenario-message-truncation.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
-    test('truncates messages when they exceed byte limit', async () => {
-      await createRunner().ignore('event').expect({ transaction: EXPECTED_TRANSACTION_MESSAGE_TRUNCATION }).start().completed();
-    });
-  });
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-message-truncation.mjs',
+    'instrument-with-pii.mjs',
+    (createRunner, test) => {
+      test('truncates messages when they exceed byte limit', async () => {
+        await createRunner()
+          .ignore('event')
+          .expect({ transaction: EXPECTED_TRANSACTION_MESSAGE_TRUNCATION })
+          .start()
+          .completed();
+      });
+    },
+  );
 });
