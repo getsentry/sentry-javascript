@@ -12,7 +12,7 @@ class MockOpenAI {
           await new Promise(resolve => setTimeout(resolve, 10));
 
           return {
-            id: 'chatcmpl-truncation-test',
+            id: 'chatcmpl-completions-truncation-test',
             object: 'chat.completion',
             created: 1677652288,
             model: params.model,

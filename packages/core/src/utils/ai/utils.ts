@@ -7,7 +7,7 @@ import {
   GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
 } from './gen-ai-attributes';
-import { truncateGenAiMessages } from './messageTruncation';
+import { truncateGenAiMessages, truncateGenAiStringInput } from './messageTruncation';
 /**
  * Maps AI method paths to Sentry operation name
  */
@@ -95,7 +95,7 @@ export function setTokenUsageAttributes(
 export function getTruncatedJsonString<T>(value: T | T[]): string {
   if (typeof value === 'string') {
     // Some values are already JSON strings, so we don't need to duplicate the JSON parsing
-    return value;
+    return truncateGenAiStringInput(value);
   }
   if (Array.isArray(value)) {
     // truncateGenAiMessages returns an array of strings, so we need to stringify it

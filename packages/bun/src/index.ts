@@ -16,6 +16,7 @@ export type {
   Thread,
   User,
   FeatureFlagsIntegration,
+  Metric,
 } from '@sentry/core';
 
 export {
@@ -164,6 +165,7 @@ export {
   OpenFeatureIntegrationHook,
   statsigIntegration,
   unleashIntegration,
+  metrics,
 } from '@sentry/node';
 
 export {

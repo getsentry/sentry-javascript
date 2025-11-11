@@ -1037,16 +1037,18 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
 
   /** Updates existing session based on the provided event */
   protected _updateSessionFromEvent(session: Session, event: Event): void {
+    // initially, set `crashed` based on the event level and update from exceptions if there are any later on
     let crashed = event.level === 'fatal';
     let errored = false;
     const exceptions = event.exception?.values;
 
     if (exceptions) {
       errored = true;
+      // reset crashed to false if there are exceptions, to ensure `mechanism.handled` is respected.
+      crashed = false;
 
       for (const ex of exceptions) {
-        const mechanism = ex.mechanism;
-        if (mechanism?.handled === false) {
+        if (ex.mechanism?.handled === false) {
           crashed = true;
           break;
         }
