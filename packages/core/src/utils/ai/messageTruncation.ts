@@ -294,3 +294,13 @@ export function truncateMessagesByBytes(messages: unknown[], maxBytes: number): 
 export function truncateGenAiMessages(messages: unknown[]): unknown[] {
   return truncateMessagesByBytes(messages, DEFAULT_GEN_AI_MESSAGES_BYTE_LIMIT);
 }
+
+/**
+ * Truncate GenAI string input using the default byte limit.
+ *
+ * @param input - The string to truncate
+ * @returns Truncated string
+ */
+export function truncateGenAiStringInput(input: string): string {
+  return truncateTextByBytes(input, DEFAULT_GEN_AI_MESSAGES_BYTE_LIMIT);
+}

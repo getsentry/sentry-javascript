@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/bundler-tests",
-  "version": "10.23.0",
+  "version": "10.24.0",
   "description": "Bundler tests for Sentry Browser SDK",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/bundler-tests",
@@ -12,7 +12,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@sentry/browser": "10.23.0",
+    "@sentry/browser": "10.24.0",
     "webpack": "^5.0.0",
     "rollup": "^4.0.0",
     "vite": "^5.0.0",
