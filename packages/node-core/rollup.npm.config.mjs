@@ -28,8 +28,8 @@ export default [
         plugins: [
           replacePlugin(
             {
-              AnrWorkerScript: () => getAnrBase64Code(),
-              LocalVariablesWorkerScript: () => getLocalVariablesBase64Code(),
+              AnrWorkerScript: JSON.stringify(getAnrBase64Code()),
+              LocalVariablesWorkerScript: JSON.stringify(getLocalVariablesBase64Code()),
             },
             {
               delimiters: ['###', '###'],
