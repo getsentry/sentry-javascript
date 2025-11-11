@@ -213,6 +213,15 @@ describe('Scope', () => {
           intArray: { value: [1, 2, 3], type: 'integer[]', unit: 'ms' },
         });
       });
+
+      it('notifies scope listeners once per call', () => {
+        const scope = new Scope();
+        const listener = vi.fn();
+        scope.addScopeListener(listener);
+        scope.setAttribute('str', 'b');
+        scope.setAttribute('int', 1);
+        expect(listener).toHaveBeenCalledTimes(2);
+      });
     });
 
     describe('setAttributes', () => {
@@ -267,6 +276,42 @@ describe('Scope', () => {
           strArray: { type: 'string[]', value: ['a', 'b', 'c'] },
           intArray: { type: 'integer[]', value: [1, 2, 3], unit: 'ms' },
         });
+      });
+
+      it('notifies scope listeners once per call', () => {
+        const scope = new Scope();
+        const listener = vi.fn();
+        scope.addScopeListener(listener);
+        scope.setAttributes({ str: 'b', int: 1 });
+        scope.setAttributes({ bool: true });
+        expect(listener).toHaveBeenCalledTimes(2);
+      });
+    });
+
+    describe('removeAttribute', () => {
+      it('removes an attribute', () => {
+        const scope = new Scope();
+        scope.setAttribute('str', 'b');
+        scope.setAttribute('int', 1);
+        scope.removeAttribute('str');
+        expect(scope['_attributes']).toEqual({ int: { type: 'integer', value: 1 } });
+      });
+
+      it('notifies scope listeners after deletion', () => {
+        const scope = new Scope();
+        const listener = vi.fn();
+        scope.addScopeListener(listener);
+      });
+
+      it('does nothing if the attribute does not exist', () => {
+        const scope = new Scope();
+        const listener = vi.fn();
+
+        scope.addScopeListener(listener);
+        scope.removeAttribute('str');
+
+        expect(scope['_attributes']).toEqual({});
+        expect(listener).not.toHaveBeenCalled();
       });
     });
 
