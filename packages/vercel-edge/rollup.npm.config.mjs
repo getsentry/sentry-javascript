@@ -7,6 +7,9 @@ export default makeNPMConfigVariants(
     bundledBuiltins: ['perf_hooks', 'util'],
     packageSpecificConfig: {
       context: 'globalThis',
+      output: {
+        preserveModules: false,
+      },
       plugins: [
         replacePlugin(
           {
