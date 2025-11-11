@@ -206,7 +206,7 @@ describe('LangChain integration', () => {
           'gen_ai.system': 'anthropic',
           'gen_ai.request.model': 'claude-3-5-sonnet-20241022',
           // Messages should be present and should include truncated string input (contains only Cs)
-          'gen_ai.request.messages': expect.stringMatching(/^\[{"role":"user","content":"C+"}\]$/),
+          'gen_ai.request.messages': expect.stringMatching(/^\[\{"role":"user","content":"C+"\}\]$/),
         }),
         description: 'chat claude-3-5-sonnet-20241022',
         op: 'gen_ai.chat',
@@ -221,7 +221,7 @@ describe('LangChain integration', () => {
           'gen_ai.system': 'anthropic',
           'gen_ai.request.model': 'claude-3-5-sonnet-20241022',
           // Messages should be present (truncation happened) and should be a JSON array of a single index (contains only Cs)
-          'gen_ai.request.messages': expect.stringMatching(/^\[{"role":"user","content":"C+"}\]$/),
+          'gen_ai.request.messages': expect.stringMatching(/^\[\{"role":"user","content":"C+"\}\]$/),
         }),
         description: 'chat claude-3-5-sonnet-20241022',
         op: 'gen_ai.chat',
