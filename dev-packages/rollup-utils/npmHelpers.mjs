@@ -8,10 +8,8 @@ import * as fs from 'fs';
 import { builtinModules } from 'module';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
-
 import deepMerge from 'deepmerge';
-
-import { defineConfig } from 'rollup';
+import { defineConfig } from 'rolldown';
 import {
   makeDebugBuildStatementReplacePlugin,
   makeProductionReplacePlugin,
@@ -40,7 +38,7 @@ export function makeBaseNPMConfig(options = {}) {
     excludeIframe: undefined,
   });
 
-  const defaultBaseConfig = {
+  const defaultBaseConfig = defineConfig({
     input: entrypoints,
 
     output: {
@@ -90,7 +88,7 @@ export function makeBaseNPMConfig(options = {}) {
       ...Object.keys(packageDotJSON.peerDependencies || {}),
       ...Object.keys(packageDotJSON.optionalDependencies || {}),
     ],
-  };
+  });
 
   return deepMerge(defaultBaseConfig, packageSpecificConfig, {
     // Plugins have to be in the correct order or everything breaks, so when merging we have to manually re-order them
@@ -98,7 +96,6 @@ export function makeBaseNPMConfig(options = {}) {
   });
 }
 
-// TODO: Instead of runtime checks, we should use TypeScript to ensure the base config is valid.
 export function makeNPMConfigVariants(baseConfig, options = {}) {
   const { emitEsm = true, emitCjs = true, splitDevProd = false } = options;
   const baseOutput = baseConfig.output;
