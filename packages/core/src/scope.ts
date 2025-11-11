@@ -357,6 +357,25 @@ export class Scope {
   }
 
   /**
+   * Removes the attribute with the given key from the scope.
+   *
+   * @param key - The attribute key.
+   *
+   * @example
+   * ```typescript
+   * scope.removeAttribute('is_admin');
+   * ```
+   */
+  public removeAttribute(key: string): this {
+    if (key in this._attributes) {
+      // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+      delete this._attributes[key];
+      this._notifyScopeListeners();
+    }
+    return this;
+  }
+
+  /**
    * Set an object that will be merged into existing extra on the scope,
    * and will be sent as extra data with the event.
    */
