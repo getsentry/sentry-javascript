@@ -142,35 +142,25 @@ export function makeBundleConfigVariants(baseConfig, options = {}) {
   const terserPlugin = makeTerserPlugin();
   const setSdkSourcePlugin = makeSetSDKSourcePlugin('cdn');
 
-  const baseOutput = baseConfig.output;
-  if (!baseOutput || Array.isArray(baseOutput)) {
-    throw new Error('Base config must have a single output object');
-  }
-
-  const baseOutputEntryFileNames = baseOutput.entryFileNames;
-  if (typeof baseOutputEntryFileNames !== 'function') {
-    throw new Error('Base config must have a function for entryFileNames');
-  }
-
   // The additional options to use for each variant we're going to create.
   const variantSpecificConfigMap = {
     '.js': {
       output: {
-        entryFileNames: chunkInfo => `${baseOutputEntryFileNames(chunkInfo)}.js`,
+        entryFileNames: chunkInfo => `${baseConfig.output.entryFileNames(chunkInfo)}.js`,
       },
       plugins: [includeDebuggingPlugin, setSdkSourcePlugin],
     },
 
     '.min.js': {
       output: {
-        entryFileNames: chunkInfo => `${baseOutputEntryFileNames(chunkInfo)}.min.js`,
+        entryFileNames: chunkInfo => `${baseConfig.output.entryFileNames(chunkInfo)}.min.js`,
       },
       plugins: [stripDebuggingPlugin, setSdkSourcePlugin, terserPlugin],
     },
 
     '.debug.min.js': {
       output: {
-        entryFileNames: chunkInfo => `${baseOutputEntryFileNames(chunkInfo)}.debug.min.js`,
+        entryFileNames: chunkInfo => `${baseConfig.output.entryFileNames(chunkInfo)}.debug.min.js`,
       },
       plugins: [includeDebuggingPlugin, setSdkSourcePlugin, terserPlugin],
     },
