@@ -39,4 +39,3 @@ export function mergePlugins(pluginsA, pluginsB) {
 
   return plugins;
 }
-

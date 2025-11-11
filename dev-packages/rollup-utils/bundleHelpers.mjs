@@ -188,4 +188,3 @@ export function makeBundleConfigVariants(baseConfig, options = {}) {
     });
   });
 }
-

@@ -140,4 +140,3 @@ export function makeTerserPlugin() {
     },
   });
 }
-
