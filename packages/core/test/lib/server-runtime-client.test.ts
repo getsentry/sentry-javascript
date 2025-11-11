@@ -156,6 +156,55 @@ describe('ServerRuntimeClient', () => {
 
       expect(sendEnvelopeSpy).toHaveBeenCalledTimes(0);
     });
+
+    it('fast check-ins can arrive out of order due to network delays', async () => {
+      // Tracks the receiving order of the check-ins
+      const receivedOrder: Array<{ status: string; timestamp: number }> = [];
+
+      // Create a custom transport that simulates network delays
+      const customTransport = () =>
+        createTransport({ recordDroppedEvent: () => undefined }, async request => {
+          // Parse the envelope from the request body
+          const lines = request.body.split('\n');
+          const checkIn = JSON.parse(lines[2]); // Third line contains the check-in data
+          const status = checkIn.status;
+
+          // Simulate 'in_progress' check-in takes longer to arrive
+          // a bit contrived, but it is worst case scenario for the race condition
+          if (status === 'in_progress') {
+            // Delay the in_progress check-in by 100ms
+            await new Promise(resolve => setTimeout(resolve, 100));
+          }
+
+          // 'ok' check-in has no delay (or shorter delay)
+          // so it will arrive first
+          receivedOrder.push({ status, timestamp: Date.now() });
+
+          return {};
+        });
+
+      const options = getDefaultClientOptions({
+        dsn: PUBLIC_DSN,
+        serverName: 'bar',
+        release: '1.0.0',
+        environment: 'dev',
+        transport: customTransport,
+      });
+
+      client = new ServerRuntimeClient(options);
+
+      const id = client.captureCheckIn({ monitorSlug: 'foo', status: 'in_progress' });
+      client.captureCheckIn({ monitorSlug: 'foo', status: 'ok', duration: 0, checkInId: id });
+
+      // Wait for both check-ins to complete
+      await new Promise(resolve => setTimeout(resolve, 150));
+
+      // FIXME: Should be the other way around, check-in should consider network delays
+      // Or follow the caller's order of execution
+      expect(receivedOrder).toHaveLength(2);
+      expect(receivedOrder[0].status).toBe('ok');
+      expect(receivedOrder[1].status).toBe('in_progress');
+    });
   });
 
   describe('captureException', () => {
