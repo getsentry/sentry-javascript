@@ -133,12 +133,12 @@ describe('spotlight', () => {
   for (const [name, bundler] of cases) {
     test(`${name} development bundle contains spotlight`, async () => {
       const code = await bundler('development');
-      expect(code).includes(SPOTLIGHT_URL);
+      expect(code).toContain(SPOTLIGHT_URL);
     });
 
     test(`${name} production bundle does not contain spotlight`, async () => {
       const code = await bundler('production');
-      expect(code).not.includes(SPOTLIGHT_URL);
+      expect(code).not.toContain(SPOTLIGHT_URL);
     });
   }
 });
