@@ -52,8 +52,8 @@ let _enableAsyncRouteHandlers: boolean = false;
 
 const CLIENTS_WITH_INSTRUMENT_NAVIGATION = new WeakSet<Client>();
 
-/** Delay (ms) for lazy route updates to complete before finalizing span names. */
-const LAZY_ROUTE_UPDATE_DELAY_MS = 50;
+// Maximum time (ms) to wait for lazy routes (configured in setup(), default: idleTimeout * 3)
+let _maxLazyRouteWaitMs = 3000;
 
 /**
  * Adds resolved routes as children to the parent route.
@@ -97,6 +97,15 @@ export interface ReactRouterOptions {
    * @default false
    */
   enableAsyncRouteHandlers?: boolean;
+
+  /**
+   * Maximum time (in milliseconds) to wait for lazy routes to load before finalizing span names.
+   *
+   * Defaults to 3× the configured `idleTimeout`. Set to `0` to not wait at all.
+   *
+   * Default: idleTimeout * 3
+   */
+  maxLazyRouteWaitMs?: number;
 }
 
 type V6CompatibleVersion = '6' | '7';
@@ -485,12 +494,42 @@ export function createReactRouterV6CompatibleTracingIntegration(
     enableAsyncRouteHandlers = false,
     instrumentPageLoad = true,
     instrumentNavigation = true,
+    maxLazyRouteWaitMs,
   } = options;
 
   return {
     ...integration,
     setup(client) {
       integration.setup(client);
+
+      // Get idleTimeout from browserTracingIntegration options (passed through)
+      // idleTimeout from browserTracingIntegration (default: 1000ms)
+      // Note: options already contains idleTimeout if user passed it to browserTracingIntegration
+      const idleTimeout = options.idleTimeout ?? 1000;
+
+      // Calculate default: 3× idleTimeout
+      const defaultMaxWait = idleTimeout * 3;
+
+      // Allow explicit override, otherwise use calculated default
+      const configuredMaxWait = maxLazyRouteWaitMs ?? defaultMaxWait;
+
+      // Validate and set
+      if (Number.isNaN(configuredMaxWait)) {
+        DEBUG_BUILD &&
+          debug.warn('[React Router] maxLazyRouteWaitMs must be a number, falling back to default:', defaultMaxWait);
+        _maxLazyRouteWaitMs = defaultMaxWait;
+      } else if (configuredMaxWait < 0 && configuredMaxWait !== Infinity) {
+        DEBUG_BUILD &&
+          debug.warn(
+            '[React Router] maxLazyRouteWaitMs must be non-negative or Infinity, got:',
+            configuredMaxWait,
+            'falling back to:',
+            defaultMaxWait,
+          );
+        _maxLazyRouteWaitMs = defaultMaxWait;
+      } else {
+        _maxLazyRouteWaitMs = configuredMaxWait;
+      }
 
       _useEffect = useEffect;
       _useLocation = useLocation;
@@ -827,7 +866,11 @@ function tryUpdateSpanNameBeforeEnd(
     const [name, source] = resolveRouteNameAndSource(location, routesToUse, routesToUse, branches, basename);
 
     // Only update if we have a valid name and it's better than current
-    const isImprovement = name && (!currentName || hasWildcard);
+    // Upgrade conditions:
+    // 1. No current name exists
+    // 2. Current name has wildcards (less specific)
+    // 3. Upgrading from non-route source to route source (e.g., URL -> parameterized route)
+    const isImprovement = name && (!currentName || hasWildcard || (currentSource !== 'route' && source === 'route'));
     const spanNotEnded = spanType === 'pageload' || !spanJson.timestamp;
 
     if (isImprovement && spanNotEnded) {
@@ -873,11 +916,13 @@ function patchSpanEnd(
     const spanJson = spanToJSON(span);
     const currentName = spanJson.description;
 
-    // If we have pending lazy route loads and the current name has wildcards, delay the end slightly
+    // If we have pending lazy route loads and the current name has wildcards,
+    // wait for promises to resolve (with timeout) before finalizing span
     const pendingPromises = pendingLazyRouteLoads.get(span);
     if (pendingPromises && pendingPromises.size > 0 && currentName && transactionNameHasWildcard(currentName)) {
-      // Small delay to allow in-flight lazy routes to complete
-      setTimeout(() => {
+      // Special case: 0 means don't wait at all (legacy behavior)
+      if (_maxLazyRouteWaitMs === 0) {
+        // Don't wait - immediately update and end span
         tryUpdateSpanNameBeforeEnd(
           span,
           spanToJSON(span),
@@ -888,8 +933,46 @@ function patchSpanEnd(
           spanType,
           allRoutes,
         );
-        originalEnd(...args);
-      }, LAZY_ROUTE_UPDATE_DELAY_MS);
+        return originalEnd(...args);
+      }
+
+      // Take snapshot of current promises to wait for (prevents race conditions with new navigations)
+      const promiseArray = Array.from(pendingPromises);
+
+      // Wait for all lazy routes to settle (never rejects, safe for all outcomes)
+      const settledPromise = Promise.allSettled(promiseArray).then(() => {});
+
+      // Create timeout promise to prevent hanging indefinitely
+      const timeoutPromise = new Promise<void>(resolve => {
+        // Handle special case: Infinity means no timeout
+        if (_maxLazyRouteWaitMs === Infinity) {
+          // Don't resolve - wait indefinitely (user explicitly opted in)
+          return;
+        }
+        setTimeout(resolve, _maxLazyRouteWaitMs);
+      });
+
+      // Race: whichever completes first (routes resolve or timeout)
+      Promise.race([settledPromise, timeoutPromise])
+        .then(() => {
+          // Try to update span name with (hopefully) resolved routes
+          tryUpdateSpanNameBeforeEnd(
+            span,
+            spanToJSON(span),
+            spanToJSON(span).description,
+            location,
+            routes,
+            basename,
+            spanType,
+            allRoutes,
+          );
+          originalEnd(...args);
+        })
+        .catch((error: unknown) => {
+          // Defensive: allSettled never rejects, but be safe
+          DEBUG_BUILD && debug.warn('Error waiting for lazy routes:', error);
+          originalEnd(...args);
+        });
       return;
     }
 
