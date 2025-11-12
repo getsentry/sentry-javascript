@@ -1,4 +1,5 @@
 import { ChatAnthropic } from '@langchain/anthropic';
+import * as langchain from 'langchain';
 import * as Sentry from '@sentry/node';
 import express from 'express';
 
