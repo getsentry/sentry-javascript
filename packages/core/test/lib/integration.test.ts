@@ -3,7 +3,7 @@ import { getCurrentScope } from '../../src/currentScopes';
 import { addIntegration, getIntegrationsToSetup, installedIntegrations, setupIntegration } from '../../src/integration';
 import { setCurrentClient } from '../../src/sdk';
 import type { Integration } from '../../src/types-hoist/integration';
-import type { Options } from '../../src/types-hoist/options';
+import type { CoreOptions } from '../../src/types-hoist/options';
 import { debug } from '../../src/utils/debug-logger';
 import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
 
@@ -32,8 +32,8 @@ class MockIntegration implements Integration {
 
 type TestCase = [
   string, // test name
-  Options['defaultIntegrations'], // default integrations
-  Options['integrations'], // user-provided integrations
+  CoreOptions['defaultIntegrations'], // default integrations
+  CoreOptions['integrations'], // user-provided integrations
   Array<string | string[]>, // expected results
 ];
 

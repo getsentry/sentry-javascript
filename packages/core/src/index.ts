@@ -55,7 +55,12 @@ export { initAndBind, setCurrentClient } from './sdk';
 export { createTransport } from './transports/base';
 export { makeOfflineTransport } from './transports/offline';
 export { makeMultiplexedTransport } from './transports/multiplexed';
-export { getIntegrationsToSetup, addIntegration, defineIntegration } from './integration';
+export { getIntegrationsToSetup, addIntegration, defineIntegration, installedIntegrations } from './integration';
+export {
+  _INTERNAL_skipAiProviderWrapping,
+  _INTERNAL_shouldSkipAiProviderWrapping,
+  _INTERNAL_clearAiProviderSkips,
+} from './utils/ai/providerSkip';
 export { applyScopeDataToEvent, mergeScopeData } from './utils/applyScopeDataToEvent';
 export { prepareEvent } from './utils/prepareEvent';
 export { createCheckInEnvelope } from './checkin';
