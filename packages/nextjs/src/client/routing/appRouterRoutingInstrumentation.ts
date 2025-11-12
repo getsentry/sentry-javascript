@@ -1,14 +1,13 @@
 import type { Client, Span } from '@sentry/core';
 import {
   browserPerformanceTimeOrigin,
-  GLOBAL_OBJ,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '@sentry/core';
 import { startBrowserTracingNavigationSpan, startBrowserTracingPageLoadSpan, WINDOW } from '@sentry/react';
-import type { RouteManifest } from '../../config/manifest/types';
 import { maybeParameterizeRoute } from './parameterization';
+import { GLOBAL_OBJ } from '@sentry/core';
 
 export const INCOMPLETE_APP_ROUTER_INSTRUMENTATION_TRANSACTION_NAME = 'incomplete-app-router-transaction';
 
@@ -34,66 +33,21 @@ let navigationRoutingMode: 'router-patch' | 'transition-start-hook' = 'router-pa
 
 const currentRouterPatchingNavigationSpanRef: NavigationSpanRef = { current: undefined };
 
-/**
- * Check if the current route is an ISR/SSG page by looking it up in the route manifest
- */
-function isIsrSsgRoute(pathname: string): boolean {
-  const globalWithManifest = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
-    _sentryRouteManifest?: string | RouteManifest;
-  };
-
-  const manifestData = globalWithManifest._sentryRouteManifest;
-  if (!manifestData) {
-    return false;
-  }
-
-  let manifest: RouteManifest;
-  if (typeof manifestData === 'string') {
-    try {
-      manifest = JSON.parse(manifestData);
-    } catch {
-      return false;
-    }
-  } else {
-    manifest = manifestData;
-  }
-
-  if (!manifest.isrRoutes || manifest.isrRoutes.length === 0) {
-    return false;
-  }
-
-  // Check if the pathname matches any ISR route
-  // For dynamic routes, we need to match the parameterized pattern
-  const parameterizedPath = maybeParameterizeRoute(pathname);
-  const pathToCheck = parameterizedPath || pathname;
-
-  return manifest.isrRoutes.includes(pathToCheck);
-}
-
 /** Instruments the Next.js app router for pageloads. */
 export function appRouterInstrumentPageLoad(client: Client): void {
   const parameterizedPathname = maybeParameterizeRoute(WINDOW.location.pathname);
   const origin = browserPerformanceTimeOrigin();
 
-  // Check if this is an ISR/SSG page
-  // if so, don't use cached trace meta tags to prevent using cached trace data
-  const isIsrSsgPage = isIsrSsgRoute(WINDOW.location.pathname);
-
-  startBrowserTracingPageLoadSpan(
-    client,
-    {
-      name: parameterizedPathname ?? WINDOW.location.pathname,
-      // pageload should always start at timeOrigin (and needs to be in s, not ms)
-      startTime: origin ? origin / 1000 : undefined,
-      attributes: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.nextjs.app_router_instrumentation',
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: parameterizedPathname ? 'route' : 'url',
-      },
+  startBrowserTracingPageLoadSpan(client, {
+    name: parameterizedPathname ?? WINDOW.location.pathname,
+    // pageload should always start at timeOrigin (and needs to be in s, not ms)
+    startTime: origin ? origin / 1000 : undefined,
+    attributes: {
+      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
+      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.nextjs.app_router_instrumentation',
+      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: parameterizedPathname ? 'route' : 'url',
     },
-    // For ISR/SSG pages, pass empty trace data to prevent using cached meta tags
-    isIsrSsgPage ? { sentryTrace: undefined, baggage: undefined } : undefined,
-  );
+  });
 }
 
 interface NavigationSpanRef {

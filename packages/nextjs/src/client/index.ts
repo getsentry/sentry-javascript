@@ -15,6 +15,7 @@ export * from '../common';
 export { captureUnderscoreErrorException } from '../common/pages-router-instrumentation/_error';
 export { browserTracingIntegration } from './browserTracingIntegration';
 export { captureRouterTransitionStart } from './routing/appRouterRoutingInstrumentation';
+import { removeIsrSsgTraceMetaTags } from './routing/isrRoutingTracing';
 
 let clientIsInitialized = false;
 
@@ -40,6 +41,10 @@ export function init(options: BrowserOptions): Client | undefined {
     });
   }
   clientIsInitialized = true;
+
+  // Remove cached trace meta tags for ISR/SSG pages before initializing
+  // This prevents the browser tracing integration from using stale trace IDs
+  removeIsrSsgTraceMetaTags();
 
   const opts = {
     environment: getVercelEnv(true) || process.env.NODE_ENV,
