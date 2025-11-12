@@ -115,22 +115,45 @@ function hasOptionalPrefix(paramNames: string[]): boolean {
   return firstParam === 'locale' || firstParam === 'lang' || firstParam === 'language';
 }
 
+/**
+ * Check if a page file exports generateStaticParams (ISR/SSG indicator)
+ */
+function checkForGenerateStaticParams(pageFilePath: string): boolean {
+  try {
+    const content = fs.readFileSync(pageFilePath, 'utf8');
+    // check for generateStaticParams export
+    // the regex covers `export function generateStaticParams`, `export async function generateStaticParams`, `export const generateStaticParams`
+    return /export\s+(async\s+)?function\s+generateStaticParams|export\s+const\s+generateStaticParams/.test(content);
+  } catch {
+    return false;
+  }
+}
+
 function scanAppDirectory(
   dir: string,
   basePath: string = '',
   includeRouteGroups: boolean = false,
-): { dynamicRoutes: RouteInfo[]; staticRoutes: RouteInfo[] } {
+): { dynamicRoutes: RouteInfo[]; staticRoutes: RouteInfo[]; isrRoutes: string[] } {
   const dynamicRoutes: RouteInfo[] = [];
   const staticRoutes: RouteInfo[] = [];
+  const isrRoutes: string[] = [];
 
   try {
     const entries = fs.readdirSync(dir, { withFileTypes: true });
-    const pageFile = entries.some(entry => isPageFile(entry.name));
+    const pageFile = entries.find(entry => isPageFile(entry.name));
 
     if (pageFile) {
       // Conditionally normalize the path based on includeRouteGroups option
       const routePath = includeRouteGroups ? basePath || '/' : normalizeRoutePath(basePath || '/');
       const isDynamic = routePath.includes(':');
+
+      // Check if this page has generateStaticParams (ISR/SSG indicator)
+      const pageFilePath = path.join(dir, pageFile.name);
+      const hasGenerateStaticParams = checkForGenerateStaticParams(pageFilePath);
+
+      if (hasGenerateStaticParams) {
+        isrRoutes.push(routePath);
+      }
 
       if (isDynamic) {
         const { regex, paramNames, hasOptionalPrefix } = buildRegexForDynamicRoute(routePath);
@@ -172,6 +195,7 @@ function scanAppDirectory(
 
         dynamicRoutes.push(...subRoutes.dynamicRoutes);
         staticRoutes.push(...subRoutes.staticRoutes);
+        isrRoutes.push(...subRoutes.isrRoutes);
       }
     }
   } catch (error) {
@@ -179,7 +203,7 @@ function scanAppDirectory(
     console.warn('Error building route manifest:', error);
   }
 
-  return { dynamicRoutes, staticRoutes };
+  return { dynamicRoutes, staticRoutes, isrRoutes };
 }
 
 /**
@@ -204,6 +228,7 @@ export function createRouteManifest(options?: CreateRouteManifestOptions): Route
 
   if (!targetDir) {
     return {
+      isrRoutes: [],
       dynamicRoutes: [],
       staticRoutes: [],
     };
@@ -214,11 +239,16 @@ export function createRouteManifest(options?: CreateRouteManifestOptions): Route
     return manifestCache;
   }
 
-  const { dynamicRoutes, staticRoutes } = scanAppDirectory(targetDir, options?.basePath, options?.includeRouteGroups);
+  const { dynamicRoutes, staticRoutes, isrRoutes } = scanAppDirectory(
+    targetDir,
+    options?.basePath,
+    options?.includeRouteGroups,
+  );
 
   const manifest: RouteManifest = {
     dynamicRoutes,
     staticRoutes,
+    isrRoutes,
   };
 
   // set cache
