@@ -45,18 +45,23 @@ export function removeIsrSsgTraceMetaTags(): void {
     return;
   }
 
+  // Helper function to remove a meta tag
+  const removeMetaTag = (metaName: string) => {
+    try {
+      const meta = document.querySelector(`meta[name="${metaName}"]`);
+      if (meta) {
+        meta.remove();
+      }
+    } catch {
+      // ignore errors when removing the meta tag
+    }
+  };
+
   if (!isIsrSsgRoute(window.location.pathname)) {
     return;
   }
 
   // Remove the meta tags so browserTracingIntegration won't pick them up
-  const sentryTraceMeta = document.querySelector('meta[name="sentry-trace"]');
-  if (sentryTraceMeta) {
-    sentryTraceMeta.remove();
-  }
-
-  const baggageMeta = document.querySelector('meta[name="baggage"]');
-  if (baggageMeta) {
-    baggageMeta.remove();
-  }
+  removeMetaTag('sentry-trace');
+  removeMetaTag('baggage');
 }
