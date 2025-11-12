@@ -4,6 +4,7 @@ import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import { SPAN_STATUS_ERROR } from '../../tracing';
 import { startSpan, startSpanManual } from '../../tracing/trace';
 import type { Span, SpanAttributeValue } from '../../types-hoist/span';
+import { handleCallbackErrors } from '../../utils/handleCallbackErrors';
 import {
   ANTHROPIC_AI_RESPONSE_TIMESTAMP_ATTRIBUTE,
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
@@ -30,7 +31,6 @@ import {
   getTruncatedJsonString,
   setTokenUsageAttributes,
 } from '../ai/utils';
-import { handleCallbackErrors } from '../../utils/handleCallbackErrors';
 import { instrumentAsyncIterableStream, instrumentMessageStream } from './streaming';
 import type {
   AnthropicAiInstrumentedMethod,
