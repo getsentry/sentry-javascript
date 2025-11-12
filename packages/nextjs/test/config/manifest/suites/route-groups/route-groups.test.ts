@@ -26,6 +26,7 @@ describe('route-groups', () => {
             hasOptionalPrefix: false,
           },
         ],
+        isrRoutes: [],
       });
     });
 
@@ -59,6 +60,7 @@ describe('route-groups', () => {
             hasOptionalPrefix: false,
           },
         ],
+        isrRoutes: [],
       });
     });
 
