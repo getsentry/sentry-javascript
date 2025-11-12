@@ -291,9 +291,7 @@ export class Scope {
    * Set a single tag that will be sent as tags data with the event.
    */
   public setTag(key: string, value: Primitive): this {
-    this._tags = { ...this._tags, [key]: value };
-    this._notifyScopeListeners();
-    return this;
+    return this.setTags({ [key]: value });
   }
 
   /**
