@@ -1,13 +1,13 @@
 import type { Client, Span } from '@sentry/core';
 import {
   browserPerformanceTimeOrigin,
+  GLOBAL_OBJ,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '@sentry/core';
 import { startBrowserTracingNavigationSpan, startBrowserTracingPageLoadSpan, WINDOW } from '@sentry/react';
 import { maybeParameterizeRoute } from './parameterization';
-import { GLOBAL_OBJ } from '@sentry/core';
 
 export const INCOMPLETE_APP_ROUTER_INSTRUMENTATION_TRANSACTION_NAME = 'incomplete-app-router-transaction';
 
@@ -37,7 +37,6 @@ const currentRouterPatchingNavigationSpanRef: NavigationSpanRef = { current: und
 export function appRouterInstrumentPageLoad(client: Client): void {
   const parameterizedPathname = maybeParameterizeRoute(WINDOW.location.pathname);
   const origin = browserPerformanceTimeOrigin();
-
   startBrowserTracingPageLoadSpan(client, {
     name: parameterizedPathname ?? WINDOW.location.pathname,
     // pageload should always start at timeOrigin (and needs to be in s, not ms)

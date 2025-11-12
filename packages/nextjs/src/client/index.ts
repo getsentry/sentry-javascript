@@ -8,6 +8,7 @@ import { isRedirectNavigationError } from '../common/nextNavigationErrorUtils';
 import { browserTracingIntegration } from './browserTracingIntegration';
 import { nextjsClientStackFrameNormalizationIntegration } from './clientNormalizationIntegration';
 import { INCOMPLETE_APP_ROUTER_INSTRUMENTATION_TRANSACTION_NAME } from './routing/appRouterRoutingInstrumentation';
+import { removeIsrSsgTraceMetaTags } from './routing/isrRoutingTracing';
 import { applyTunnelRouteOption } from './tunnelRoute';
 
 export * from '@sentry/react';
@@ -15,7 +16,6 @@ export * from '../common';
 export { captureUnderscoreErrorException } from '../common/pages-router-instrumentation/_error';
 export { browserTracingIntegration } from './browserTracingIntegration';
 export { captureRouterTransitionStart } from './routing/appRouterRoutingInstrumentation';
-import { removeIsrSsgTraceMetaTags } from './routing/isrRoutingTracing';
 
 let clientIsInitialized = false;
 
