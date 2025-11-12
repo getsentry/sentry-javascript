@@ -241,7 +241,6 @@ export function spanToV2JSON(span: Span): SpanV2JSON {
       start_timestamp: spanTimeInputToSeconds(startTime),
       end_timestamp: spanTimeInputToSeconds(endTime),
       is_segment: span === INTERNAL_getSegmentSpan(span),
-      kind: 'internal', // TODO: Figure out how to get this from the OTel span as it's not publicly exposed
       status: getV2StatusMessage(status),
       attributes: getV2Attributes(attributes),
       links: getV2SpanLinks(links),
@@ -257,7 +256,6 @@ export function spanToV2JSON(span: Span): SpanV2JSON {
     name: '',
     end_timestamp: 0,
     status: 'ok',
-    kind: 'internal',
     is_segment: span === INTERNAL_getSegmentSpan(span),
   };
 }
