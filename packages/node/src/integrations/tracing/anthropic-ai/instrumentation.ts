@@ -6,7 +6,7 @@ import {
 } from '@opentelemetry/instrumentation';
 import type { AnthropicAiClient, AnthropicAiOptions } from '@sentry/core';
 import {
-  _isIntegrationMarkedDisabled,
+  _INTERNAL_shouldSkipAiProviderWrapping,
   ANTHROPIC_AI_INTEGRATION_NAME,
   getClient,
   instrumentAnthropicAiClient,
@@ -54,9 +54,8 @@ export class SentryAnthropicAiInstrumentation extends InstrumentationBase<Anthro
     const config = this.getConfig();
 
     const WrappedAnthropic = function (this: unknown, ...args: unknown[]) {
-      // Check if disabled at runtime (after module is loaded, in case LangChain marked it)
-      if (_isIntegrationMarkedDisabled(ANTHROPIC_AI_INTEGRATION_NAME)) {
-        // Return unwrapped instance - no instrumentation
+      // Check if wrapping should be skipped (e.g., when LangChain is handling instrumentation)
+      if (_INTERNAL_shouldSkipAiProviderWrapping(ANTHROPIC_AI_INTEGRATION_NAME)) {
         return Reflect.construct(Original, args) as AnthropicAiClient;
       }
 

@@ -7,7 +7,7 @@ import {
 } from '@opentelemetry/instrumentation';
 import type { GoogleGenAIClient, GoogleGenAIOptions } from '@sentry/core';
 import {
-  _isIntegrationMarkedDisabled,
+  _INTERNAL_shouldSkipAiProviderWrapping,
   getClient,
   GOOGLE_GENAI_INTEGRATION_NAME,
   instrumentGoogleGenAIClient,
@@ -72,9 +72,8 @@ export class SentryGoogleGenAiInstrumentation extends InstrumentationBase<Google
     }
 
     const WrappedGoogleGenAI = function (this: unknown, ...args: unknown[]): GoogleGenAIClient {
-      // Check if disabled at runtime (after module is loaded, in case LangChain marked it)
-      if (_isIntegrationMarkedDisabled(GOOGLE_GENAI_INTEGRATION_NAME)) {
-        // Return unwrapped instance - no instrumentation
+      // Check if wrapping should be skipped (e.g., when LangChain is handling instrumentation)
+      if (_INTERNAL_shouldSkipAiProviderWrapping(GOOGLE_GENAI_INTEGRATION_NAME)) {
         return Reflect.construct(Original, args) as GoogleGenAIClient;
       }
 

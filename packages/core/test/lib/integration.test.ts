@@ -1,14 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, test, vi } from 'vitest';
 import { getCurrentScope } from '../../src/currentScopes';
-import {
-  _clearDisabledIntegrationsMarks,
-  _isIntegrationMarkedDisabled,
-  _markIntegrationsDisabled,
-  addIntegration,
-  getIntegrationsToSetup,
-  installedIntegrations,
-  setupIntegration,
-} from '../../src/integration';
+import { addIntegration, getIntegrationsToSetup, installedIntegrations, setupIntegration } from '../../src/integration';
 import { setCurrentClient } from '../../src/sdk';
 import type { Integration } from '../../src/types-hoist/integration';
 import type { CoreOptions } from '../../src/types-hoist/options';
@@ -689,62 +681,5 @@ describe('addIntegration', () => {
     expect(integration2.afterAllSetup).toHaveBeenCalledTimes(0);
 
     expect(logs).toHaveBeenCalledWith('Integration skipped because it was already installed: test');
-  });
-});
-
-describe('Integration marking system', () => {
-  beforeEach(() => {
-    _clearDisabledIntegrationsMarks();
-    installedIntegrations.splice(0, installedIntegrations.length);
-  });
-
-  afterEach(() => {
-    _clearDisabledIntegrationsMarks();
-  });
-
-  it('marks and checks single integration', () => {
-    expect(_isIntegrationMarkedDisabled('TestIntegration')).toBe(false);
-
-    _markIntegrationsDisabled('TestIntegration');
-
-    expect(_isIntegrationMarkedDisabled('TestIntegration')).toBe(true);
-  });
-
-  it('marks and checks multiple integrations', () => {
-    _markIntegrationsDisabled(['OpenAI', 'Anthropic', 'GoogleGenAI']);
-
-    expect(_isIntegrationMarkedDisabled('OpenAI')).toBe(true);
-    expect(_isIntegrationMarkedDisabled('Anthropic')).toBe(true);
-    expect(_isIntegrationMarkedDisabled('GoogleGenAI')).toBe(true);
-    expect(_isIntegrationMarkedDisabled('Other')).toBe(false);
-  });
-
-  it('clears marks and removes from installedIntegrations', () => {
-    // Simulate scenario: integrations installed, some marked for cleanup
-    installedIntegrations.push('LangChain', 'OpenAI', 'Anthropic', 'Normal');
-    _markIntegrationsDisabled(['OpenAI', 'Anthropic']);
-
-    _clearDisabledIntegrationsMarks();
-
-    // Marks are cleared
-    expect(_isIntegrationMarkedDisabled('OpenAI')).toBe(false);
-    expect(_isIntegrationMarkedDisabled('Anthropic')).toBe(false);
-
-    // Marked integrations removed from installed list (can setup again in new client)
-    expect(installedIntegrations).toEqual(['LangChain', 'Normal']);
-  });
-
-  it('handles multi-client scenario correctly', () => {
-    // First client with LangChain
-    installedIntegrations.push('LangChain', 'OpenAI');
-    _markIntegrationsDisabled('OpenAI');
-    expect(_isIntegrationMarkedDisabled('OpenAI')).toBe(true);
-
-    // Second client initialization clears marks
-    _clearDisabledIntegrationsMarks();
-
-    // OpenAI can be used standalone in second client
-    expect(_isIntegrationMarkedDisabled('OpenAI')).toBe(false);
-    expect(installedIntegrations).toEqual(['LangChain']); // OpenAI removed, can setup fresh
   });
 });

@@ -8,58 +8,6 @@ import { debug } from './utils/debug-logger';
 
 export const installedIntegrations: string[] = [];
 
-/**
- * Registry to track integrations marked as disabled.
- * This is used to prevent duplicate instrumentation when higher-level integrations
- * (like LangChain) already instrument the underlying libraries (like OpenAI, Anthropic, etc.)
- */
-const MARKED_DISABLED_INTEGRATIONS = new Set<string>();
-
-/**
- * Mark one or more integrations as disabled to prevent their instrumentation from being set up.
- * This should be called during an integration's setupOnce() phase.
- * The marked integrations will be skipped when their own setupOnce() is called.
- *
- * @internal This is an internal API for coordination between integrations, not for public use.
- * @param integrationName The name(s) of the integration(s) to mark as disabled
- */
-export function _markIntegrationsDisabled(integrationName: string | string[]): void {
-  const names = Array.isArray(integrationName) ? integrationName : [integrationName];
-  names.forEach(name => {
-    MARKED_DISABLED_INTEGRATIONS.add(name);
-    DEBUG_BUILD && debug.log(`Integration marked as disabled: ${name}`);
-  });
-}
-
-/**
- * Check if an integration has been marked as disabled.
- *
- * @internal This is an internal API for coordination between integrations, not for public use.
- * @param integrationName The name of the integration to check
- * @returns true if the integration is marked as disabled
- */
-export function _isIntegrationMarkedDisabled(integrationName: string): boolean {
-  return MARKED_DISABLED_INTEGRATIONS.has(integrationName);
-}
-
-/**
- * Clear all integration marks and remove marked integrations from the installed list.
- * This is automatically called at the start of Sentry.init() to ensure a clean state
- * between different client initializations.
- *
- * This also removes the marked integrations from the global installedIntegrations list,
- * allowing them to run setupOnce() again if they're included in a new client.
- *
- * @internal This is an internal API for coordination between integrations, not for public use.
- */
-export function _clearDisabledIntegrationsMarks(): void {
-  // Remove marked integrations from the installed list so they can setup again
-  const filtered = installedIntegrations.filter(integration => !MARKED_DISABLED_INTEGRATIONS.has(integration));
-  installedIntegrations.splice(0, installedIntegrations.length, ...filtered);
-
-  MARKED_DISABLED_INTEGRATIONS.clear();
-}
-
 /** Map of integrations assigned to a client */
 export type IntegrationIndex = {
   [key: string]: Integration;
