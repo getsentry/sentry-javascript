@@ -9,9 +9,9 @@ import {
   getSdkMetadataForEnvelopeHeader,
   uuid4,
 } from '@sentry/core';
-import { DEBUG_BUILD } from '../../debug-build';
-import type { JSSelfProfiler } from '../jsSelfProfiling';
-import { createProfileChunkPayload, startJSSelfProfile, validateProfileChunk } from '../utils';
+import { DEBUG_BUILD } from './../debug-build';
+import type { JSSelfProfiler } from './jsSelfProfiling';
+import { createProfileChunkPayload, startJSSelfProfile, validateProfileChunk } from './utils';
 
 const CHUNK_INTERVAL_MS = 60_000; // 1 minute
 // Maximum length for trace lifecycle profiling per root span (e.g. if spanEnd never fires)
@@ -27,7 +27,7 @@ const MAX_ROOT_SPAN_PROFILE_MS = 300_000; // 5 minutes
  * - there are no more sampled root spans, or
  * - the 60s chunk timer elapses while profiling is running.
  */
-export class BrowserTraceLifecycleProfiler {
+export class UIProfiler {
   private _client: Client | undefined;
   private _profiler: JSSelfProfiler | undefined;
   private _chunkTimer: ReturnType<typeof setTimeout> | undefined;
