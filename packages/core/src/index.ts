@@ -135,31 +135,31 @@ export {
 export * as metrics from './metrics/public-api';
 export type { MetricOptions } from './metrics/public-api';
 export { createConsolaReporter } from './integrations/consola';
-export { addVercelAiProcessors } from './utils/vercel-ai';
-export { _INTERNAL_getSpanForToolCallId, _INTERNAL_cleanupToolCallSpan } from './utils/vercel-ai/utils';
-export { instrumentOpenAiClient } from './utils/openai';
-export { OPENAI_INTEGRATION_NAME } from './utils/openai/constants';
-export { instrumentAnthropicAiClient } from './utils/anthropic-ai';
-export { ANTHROPIC_AI_INTEGRATION_NAME } from './utils/anthropic-ai/constants';
-export { instrumentGoogleGenAIClient } from './utils/google-genai';
-export { GOOGLE_GENAI_INTEGRATION_NAME } from './utils/google-genai/constants';
-export type { GoogleGenAIResponse } from './utils/google-genai/types';
-export { createLangChainCallbackHandler } from './utils/langchain';
-export { LANGCHAIN_INTEGRATION_NAME } from './utils/langchain/constants';
-export type { LangChainOptions, LangChainIntegration } from './utils/langchain/types';
-export type { OpenAiClient, OpenAiOptions, InstrumentedMethod } from './utils/openai/types';
+export { addVercelAiProcessors } from './tracing/vercel-ai';
+export { _INTERNAL_getSpanForToolCallId, _INTERNAL_cleanupToolCallSpan } from './tracing/vercel-ai/utils';
+export { instrumentOpenAiClient } from './tracing/openai';
+export { OPENAI_INTEGRATION_NAME } from './tracing/openai/constants';
+export { instrumentAnthropicAiClient } from './tracing/anthropic-ai';
+export { ANTHROPIC_AI_INTEGRATION_NAME } from './tracing/anthropic-ai/constants';
+export { instrumentGoogleGenAIClient } from './tracing/google-genai';
+export { GOOGLE_GENAI_INTEGRATION_NAME } from './tracing/google-genai/constants';
+export type { GoogleGenAIResponse } from './tracing/google-genai/types';
+export { createLangChainCallbackHandler } from './tracing/langchain';
+export { LANGCHAIN_INTEGRATION_NAME } from './tracing/langchain/constants';
+export type { LangChainOptions, LangChainIntegration } from './tracing/langchain/types';
+export type { OpenAiClient, OpenAiOptions, InstrumentedMethod } from './tracing/openai/types';
 export type {
   AnthropicAiClient,
   AnthropicAiOptions,
   AnthropicAiInstrumentedMethod,
   AnthropicAiResponse,
-} from './utils/anthropic-ai/types';
+} from './tracing/anthropic-ai/types';
 export type {
   GoogleGenAIClient,
   GoogleGenAIChat,
   GoogleGenAIOptions,
   GoogleGenAIIstrumentedMethod,
-} from './utils/google-genai/types';
+} from './tracing/google-genai/types';
 export type { FeatureFlag } from './utils/featureFlags';
 
 export {

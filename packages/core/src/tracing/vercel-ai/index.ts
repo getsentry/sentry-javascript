@@ -7,7 +7,7 @@ import {
   GEN_AI_USAGE_INPUT_TOKENS_CACHED_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
 import { getTruncatedJsonString } from '../ai/utils';
-import { spanToJSON } from '../spanUtils';
+import { spanToJSON } from '../../utils/spanUtils';
 import { toolCallSpanMap } from './constants';
 import type { TokenSummary } from './types';
 import { accumulateTokensForParent, applyAccumulatedTokens } from './utils';

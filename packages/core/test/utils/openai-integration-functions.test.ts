@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { OpenAiClient } from '../../src';
-import { instrumentOpenAiClient } from '../../src/utils/openai';
+import { instrumentOpenAiClient } from '../../src/tracing/openai';
 
 interface FullOpenAIClient {
   chat: {

@@ -30,7 +30,7 @@ import {
   getTruncatedJsonString,
   setTokenUsageAttributes,
 } from '../ai/utils';
-import { handleCallbackErrors } from '../handleCallbackErrors';
+import { handleCallbackErrors } from '../../utils/handleCallbackErrors';
 import { instrumentAsyncIterableStream, instrumentMessageStream } from './streaming';
 import type {
   AnthropicAiInstrumentedMethod,
