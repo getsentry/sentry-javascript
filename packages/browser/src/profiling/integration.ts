@@ -66,7 +66,7 @@ const _browserProfilingIntegration = (() => {
           }
 
           const traceLifecycleProfiler = new UIProfiler();
-          traceLifecycleProfiler.initialize(client, sessionSampled);
+          traceLifecycleProfiler.initialize(client, sessionSampled, lifecycleMode);
 
           // If there is an active, sampled root span already, notify the profiler
           if (rootSpan) {

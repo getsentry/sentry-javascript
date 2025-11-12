@@ -9,28 +9,23 @@ import {
   getSdkMetadataForEnvelopeHeader,
   uuid4,
 } from '@sentry/core';
-import { DEBUG_BUILD } from '../../debug-build';
-import type { JSSelfProfiler } from '../jsSelfProfiling';
-import { createProfileChunkPayload, startJSSelfProfile, validateProfileChunk } from '../utils';
+import { DEBUG_BUILD } from './../debug-build';
+import type { JSSelfProfiler } from './jsSelfProfiling';
+import { createProfileChunkPayload, startJSSelfProfile, validateProfileChunk } from './utils';
 
-// Unified constants (kept identical to previous implementations)
 const CHUNK_INTERVAL_MS = 60_000; // 1 minute
+// Maximum length for trace lifecycle profiling per root span (e.g. if spanEnd never fires)
 const MAX_ROOT_SPAN_PROFILE_MS = 300_000; // 5 minutes max per root span in trace mode
 
 /**
- * UIProfiler (Browser UI Profiling / Profiling V2)
+ * UIProfiler (Profiling V2):
  * Supports two lifecycle modes:
  *  - 'manual': controlled explicitly via start()/stop()
  *  - 'trace': automatically runs while there are active sampled root spans
  *
- * While running (either mode), we periodically stop and restart the JS self-profiling API
- * to emit standalone `profile_chunk` envelopes every 60s and when profiling stops.
- *
- * Public API surface (used by integration and user-facing profiler hooks):
- *  - initialize(client, sessionSampled, lifecycleMode)
- *  - start()
- *  - stop()
- *  - notifyRootSpanActive(span)  (only meaningful in 'trace' mode)
+ * Profiles are emitted as standalone `profile_chunk` envelopes either when:
+ * - there are no more sampled root spans, or
+ * - the 60s chunk timer elapses while profiling is running.
  */
 export class UIProfiler {
   private _client: Client | undefined;
@@ -63,6 +58,7 @@ export class UIProfiler {
 
   /** Initialize the profiler with client, session sampling and lifecycle mode. */
   public initialize(client: Client, sessionSampled: boolean, lifecycleMode: 'manual' | 'trace'): void {
+    // One Profiler ID per profiling session (user session)
     this._profilerId = uuid4();
 
     DEBUG_BUILD && debug.log(`[Profiling] Initializing profiler (lifecycle='${lifecycleMode}').`);
@@ -70,10 +66,6 @@ export class UIProfiler {
     this._client = client;
     this._sessionSampled = sessionSampled;
     this._lifecycleMode = lifecycleMode;
-
-    if (!sessionSampled) {
-      DEBUG_BUILD && debug.log('[Profiling] Session not sampled; profiler will remain inactive.');
-    }
 
     if (lifecycleMode === 'trace') {
       this._setupTraceLifecycleListeners(client);
@@ -118,16 +110,17 @@ export class UIProfiler {
   }
 
   /** Handle an already-active root span at integration setup time (used only in trace mode). */
-  public notifyRootSpanActive(span: Span): void {
+  public notifyRootSpanActive(rootSpan: Span): void {
     if (this._lifecycleMode !== 'trace' || !this._sessionSampled) {
       return;
     }
 
-    const spanId = span.spanContext().spanId;
+    const spanId = rootSpan.spanContext().spanId;
     if (!spanId || this._activeRootSpanIds.has(spanId)) {
       return;
     }
-    this._registerTraceRootSpan(spanId);
+
+    this._activeRootSpanIds.add(spanId);
 
     const rootSpanCount = this._activeRootSpanIds.size;
 
@@ -176,8 +169,9 @@ export class UIProfiler {
 
     this._clearAllRootSpanTimeouts();
 
+    // Collect whatever was currently recording
     this._collectCurrentChunk().catch(e => {
-      DEBUG_BUILD && debug.error('[Profiling] Failed to collect current profile chunk on stop():', e);
+      DEBUG_BUILD && debug.error('[Profiling] Failed to collect current profile chunk on `stop()`:', e);
     });
 
     // Clear context so subsequent events aren't marked as profiled in manual mode.
@@ -204,7 +198,7 @@ export class UIProfiler {
       }
 
       // Match emitted chunks with events: set profiler_id on global scope
-      // do I need this?
+      // todo: do I need this?
       // getGlobalScope().setContext('profile', { profiler_id: this._profilerId });
 
       const spanId = span.spanContext().spanId;
@@ -254,9 +248,9 @@ export class UIProfiler {
     getGlobalScope().setContext('profile', {});
   }
 
-  /** Clear all trace-mode root span timeouts. */
+  /** Clear and reset all per-root-span timeouts. */
   private _clearAllRootSpanTimeouts(): void {
-    this._rootSpanTimeouts.forEach(t => clearTimeout(t));
+    this._rootSpanTimeouts.forEach(timeout => clearTimeout(timeout));
     this._rootSpanTimeouts.clear();
   }
 
@@ -267,20 +261,24 @@ export class UIProfiler {
     this._rootSpanTimeouts.set(spanId, timeout);
   }
 
-  /** Start JS self profiler instance if needed. */
+  /** Start a profiler instance if needed. */
   private _startProfilerInstance(): void {
     if (this._profiler?.stopped === false) {
       return; // already running
     }
     const profiler = startJSSelfProfile();
     if (!profiler) {
-      DEBUG_BUILD && debug.log('[Profiling] Failed to start JS self profiler.');
+      DEBUG_BUILD && debug.log('[Profiling] Failed to start JS Profiler.');
       return;
     }
     this._profiler = profiler;
   }
 
-  /** Schedule periodic chunk collection while running. */
+  /**
+   * Schedule the next 60s chunk while running.
+   * Each tick collects a chunk and restarts the profiler.
+   * A chunk should be closed when there are no active root spans anymore OR when the maximum chunk interval is reached.
+   */
   private _startPeriodicChunking(): void {
     if (!this._isRunning) {
       return;
@@ -288,36 +286,44 @@ export class UIProfiler {
 
     this._chunkTimer = setTimeout(() => {
       this._collectCurrentChunk().catch(e => {
-        DEBUG_BUILD && debug.error('[Profiling] Failed to collect profile chunk during periodic chunking:', e);
+        DEBUG_BUILD && debug.error('[Profiling] Failed to collect current profile chunk during periodic chunking:', e);
       });
 
       if (this._isRunning) {
         this._startProfilerInstance();
+
         if (!this._profiler) {
-          // Could not restart -> stop profiling gracefully
+          // If restart failed, stop scheduling further chunks and reset context.
           this._resetProfilerInfo();
           return;
         }
+
         this._startPeriodicChunking();
       }
     }, CHUNK_INTERVAL_MS);
   }
 
-  /** Root span timeout handler (trace mode). */
-  private _onRootSpanTimeout(spanId: string): void {
-    if (!this._rootSpanTimeouts.has(spanId)) {
-      return; // span already ended
+  /**
+   * Handle timeout for a specific root span ID to avoid indefinitely running profiler if `spanEnd` never fires.
+   * If this was the last active root span, collect the current chunk and stop profiling.
+   */
+  private _onRootSpanTimeout(rootSpanId: string): void {
+    // If span already ended, ignore
+    if (!this._rootSpanTimeouts.has(rootSpanId)) {
+      return;
     }
-    this._rootSpanTimeouts.delete(spanId);
+    this._rootSpanTimeouts.delete(rootSpanId);
 
-    if (!this._activeRootSpanIds.has(spanId)) {
+    if (!this._activeRootSpanIds.has(rootSpanId)) {
       return;
     }
 
     DEBUG_BUILD &&
-      debug.log(`[Profiling] Reached 5-minute timeout for root span ${spanId}. Did you forget to call .end()?`);
+      debug.log(
+        `[Profiling] Reached 5-minute timeout for root span ${rootSpanId}. You likely started a manual root span that never called \`.end()\`.`,
+      );
 
-    this._activeRootSpanIds.delete(spanId);
+    this._activeRootSpanIds.delete(rootSpanId);
 
     if (this._activeRootSpanIds.size === 0) {
       this._endProfiling();
@@ -326,25 +332,32 @@ export class UIProfiler {
 
   /** Stop current profiler instance, convert profile to chunk & send. */
   private async _collectCurrentChunk(): Promise<void> {
-    const prev = this._profiler;
+    const prevProfiler = this._profiler;
     this._profiler = undefined;
-    if (!prev) {
+
+    if (!prevProfiler) {
       return;
     }
+
     try {
-      const profile = await prev.stop();
+      const profile = await prevProfiler.stop();
+
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       const chunk = createProfileChunkPayload(profile, this._client!, this._profilerId);
-      const validation = validateProfileChunk(chunk);
-      if ('reason' in validation) {
+
+      // Validate chunk before sending
+      const validationReturn = validateProfileChunk(chunk);
+      if ('reason' in validationReturn) {
         DEBUG_BUILD &&
           debug.log(
             '[Profiling] Discarding invalid profile chunk (this is probably a bug in the SDK):',
-            validation.reason,
+            validationReturn.reason,
           );
         return;
       }
+
       this._sendProfileChunk(chunk);
+
       DEBUG_BUILD && debug.log('[Profiling] Collected browser profile chunk.');
     } catch (e) {
       DEBUG_BUILD && debug.log('[Profiling] Error while stopping JS Profiler for chunk:', e);
@@ -355,6 +368,7 @@ export class UIProfiler {
   private _sendProfileChunk(chunk: ProfileChunk): void {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const client = this._client!;
+
     const sdkInfo = getSdkMetadataForEnvelopeHeader(client.getSdkMetadata?.());
     const dsn = client.getDsn();
     const tunnel = client.getOptions().tunnel;
