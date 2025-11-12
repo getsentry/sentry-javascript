@@ -707,7 +707,7 @@ describe('React Router cross usage of wrappers', () => {
       expect(calls[1]![1].name).toBe('/c');
     });
 
-    it('should NOT create duplicate spans for same route name (even with different params)', async () => {
+    it('should create separate spans for same route with different params', async () => {
       const client = createMockBrowserClient();
       setCurrentClient(client);
 
@@ -755,10 +755,19 @@ describe('React Router cross usage of wrappers', () => {
 
       await act(async () => {
         router.navigate('/user/3');
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await waitFor(() => expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(2));
       });
 
-      expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(1);
+      // Should create 2 spans - different concrete paths are different user actions
+      expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(2);
+      expect(mockStartBrowserTracingNavigationSpan).toHaveBeenNthCalledWith(2, expect.any(BrowserClient), {
+        name: '/user/:id',
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
+        },
+      });
     });
 
     it('should handle mixed cross-usage and consecutive navigations correctly', async () => {

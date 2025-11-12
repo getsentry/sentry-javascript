@@ -706,15 +706,22 @@ export function handleNavigation(opts: {
       basename,
     );
 
-    const activeSpan = getActiveSpan();
-    const spanJson = activeSpan && spanToJSON(activeSpan);
-    const isAlreadyInNavigationSpan = spanJson?.op === 'navigation';
-    const isSpanForSameRoute = isAlreadyInNavigationSpan && spanJson?.description === name;
-
     const currentNavigationKey = getNavigationKey(location);
     const isNavDuplicate = isDuplicateNavigation(client, currentNavigationKey);
 
-    if (!isSpanForSameRoute && !isNavDuplicate) {
+    if (isNavDuplicate) {
+      // Cross-usage duplicate - update existing span name if better
+      const activeSpan = getActiveSpan();
+      const spanJson = activeSpan && spanToJSON(activeSpan);
+      const isAlreadyInNavigationSpan = spanJson?.op === 'navigation';
+
+      if (isAlreadyInNavigationSpan && activeSpan) {
+        tryUpdateSpanName(activeSpan, spanJson?.description, name, source);
+      }
+    } else {
+      // Not a cross-usage duplicate - create new span
+      // This handles: different routes, same route with different params (/user/2 → /user/3)
+      // startBrowserTracingNavigationSpan will end any active navigation span
       createNavigationSpan({
         client,
         name,
@@ -726,8 +733,6 @@ export function handleNavigation(opts: {
         allRoutes,
         navigationKey: currentNavigationKey,
       });
-    } else if (isNavDuplicate && isAlreadyInNavigationSpan && activeSpan) {
-      tryUpdateSpanName(activeSpan, spanJson?.description, name, source);
     }
   }
 }
