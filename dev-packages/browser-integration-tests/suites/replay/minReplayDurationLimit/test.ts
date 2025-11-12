@@ -18,5 +18,5 @@ sentryTest('caps minReplayDuration to maximum of 50 seconds', async ({ getLocalT
   });
 
   // Even though we configured it to 60s (60000ms), it should be capped to 50s
-  expect(actualMinReplayDuration).toBe(50000);
+  expect(actualMinReplayDuration).toBe(50_000);
 });
