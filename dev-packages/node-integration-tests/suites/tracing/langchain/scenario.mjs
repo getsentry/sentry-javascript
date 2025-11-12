@@ -1,5 +1,6 @@
 import { ChatAnthropic } from '@langchain/anthropic';
-import * as langchain from 'langchain';
+import { LLMChain } from 'langchain/chains';
+import { PromptTemplate } from '@langchain/core/prompts';
 import * as Sentry from '@sentry/node';
 import express from 'express';
 
@@ -101,6 +102,25 @@ async function run() {
     } catch {
       // Expected error
     }
+
+    // Test 4: LLMChain
+    const chainModel = new ChatAnthropic({
+      model: 'claude-3-5-sonnet-20241022',
+      temperature: 0,
+      apiKey: 'mock-api-key',
+      clientOptions: {
+        baseURL: baseUrl,
+      },
+    });
+
+    const prompt = PromptTemplate.fromTemplate('Answer the following question: {question}');
+
+    const chain = new LLMChain({
+      llm: chainModel,
+      prompt: prompt,
+    });
+
+    await chain.call({ question: 'What is 2+2?' });
   });
 
   await Sentry.flush(2000);

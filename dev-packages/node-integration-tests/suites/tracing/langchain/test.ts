@@ -68,6 +68,10 @@ describe('LangChain integration', () => {
         origin: 'auto.ai.langchain',
         status: 'internal_error',
       }),
+      // Fourth span - agent executor
+      expect.objectContaining({
+        op: 'gen_ai.invoke_agent',
+      }),
     ]),
   };
 
