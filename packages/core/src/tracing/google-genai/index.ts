@@ -4,6 +4,7 @@ import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import { SPAN_STATUS_ERROR } from '../../tracing';
 import { startSpan, startSpanManual } from '../../tracing/trace';
 import type { Span, SpanAttributeValue } from '../../types-hoist/span';
+import { handleCallbackErrors } from '../../utils/handleCallbackErrors';
 import {
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
   GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE,
@@ -23,7 +24,6 @@ import {
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
 import { buildMethodPath, getFinalOperationName, getSpanOperation, getTruncatedJsonString } from '../ai/utils';
-import { handleCallbackErrors } from '../handleCallbackErrors';
 import { CHAT_PATH, CHATS_CREATE_METHOD, GOOGLE_GENAI_SYSTEM_NAME } from './constants';
 import { instrumentStream } from './streaming';
 import type {

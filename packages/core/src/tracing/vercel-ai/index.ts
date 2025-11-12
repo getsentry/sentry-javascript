@@ -2,12 +2,12 @@ import type { Client } from '../../client';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import type { Event } from '../../types-hoist/event';
 import type { Span, SpanAttributes, SpanAttributeValue, SpanJSON, SpanOrigin } from '../../types-hoist/span';
+import { spanToJSON } from '../../utils/spanUtils';
 import {
   GEN_AI_USAGE_INPUT_TOKENS_CACHE_WRITE_ATTRIBUTE,
   GEN_AI_USAGE_INPUT_TOKENS_CACHED_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
 import { getTruncatedJsonString } from '../ai/utils';
-import { spanToJSON } from '../spanUtils';
 import { toolCallSpanMap } from './constants';
 import type { TokenSummary } from './types';
 import { accumulateTokensForParent, applyAccumulatedTokens } from './utils';
