@@ -3,8 +3,8 @@ import { debug, defineIntegration, getActiveSpan, getRootSpan, hasSpansEnabled }
 import type { BrowserOptions } from '../client';
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';
-import { BrowserTraceLifecycleProfiler } from './lifecycleMode/traceLifecycleProfiler';
 import { startProfileForSpan } from './startProfileForSpan';
+import { BrowserTraceLifecycleProfiler } from './traceLifecycleProfiler';
 import type { ProfiledEvent } from './utils';
 import {
   addProfilesToEnvelope,

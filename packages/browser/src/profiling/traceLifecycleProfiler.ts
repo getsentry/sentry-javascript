@@ -9,9 +9,9 @@ import {
   getSdkMetadataForEnvelopeHeader,
   uuid4,
 } from '@sentry/core';
-import { DEBUG_BUILD } from '../../debug-build';
-import type { JSSelfProfiler } from '../jsSelfProfiling';
-import { createProfileChunkPayload, startJSSelfProfile, validateProfileChunk } from '../utils';
+import { DEBUG_BUILD } from './../debug-build';
+import type { JSSelfProfiler } from './jsSelfProfiling';
+import { createProfileChunkPayload, startJSSelfProfile, validateProfileChunk } from './utils';
 
 const CHUNK_INTERVAL_MS = 60_000; // 1 minute
 // Maximum length for trace lifecycle profiling per root span (e.g. if spanEnd never fires)
