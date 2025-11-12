@@ -1,8 +1,8 @@
 import type { RouteManifest } from '../../config/manifest/types';
 import { maybeParameterizeRoute } from './parameterization';
-import { GLOBAL_OBJ } from '@sentry/core';
+import { WINDOW } from '@sentry/react';
 
-const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
+const globalWithInjectedValues = WINDOW as typeof WINDOW & {
   _sentryRouteManifest: string | RouteManifest;
 };
 
@@ -41,14 +41,14 @@ function isIsrSsgRoute(pathname: string): boolean {
  * This prevents the browser tracing integration from using stale/cached trace IDs.
  */
 export function removeIsrSsgTraceMetaTags(): void {
-  if (typeof document === 'undefined') {
+  if (!WINDOW.document || !isIsrSsgRoute(WINDOW.location.pathname)) {
     return;
   }
 
   // Helper function to remove a meta tag
   const removeMetaTag = (metaName: string) => {
     try {
-      const meta = document.querySelector(`meta[name="${metaName}"]`);
+      const meta = WINDOW.document.querySelector(`meta[name="${metaName}"]`);
       if (meta) {
         meta.remove();
       }
@@ -56,10 +56,6 @@ export function removeIsrSsgTraceMetaTags(): void {
       // ignore errors when removing the meta tag
     }
   };
-
-  if (!isIsrSsgRoute(window.location.pathname)) {
-    return;
-  }
 
   // Remove the meta tags so browserTracingIntegration won't pick them up
   removeMetaTag('sentry-trace');
