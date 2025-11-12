@@ -264,7 +264,6 @@ export class SentrySpan implements Span {
       // just in case _endTime is not set, we use the start time (i.e. duration 0)
       end_timestamp: this._endTime ?? this._startTime,
       is_segment: this._isStandaloneSpan || this === getRootSpan(this),
-      kind: 'internal', // TODO: This has to be inferred from attributes SentrySpans. `internal` is the default.
       status: getV2StatusMessage(this._status),
       attributes: getV2Attributes(this._attributes),
       links: getV2SpanLinks(this._links),
