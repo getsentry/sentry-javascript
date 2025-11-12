@@ -79,6 +79,7 @@ export {
   onUnhandledRejectionIntegration,
   openAIIntegration,
   langChainIntegration,
+  langgraphIntegration,
   modulesIntegration,
   contextLinesIntegration,
   nodeContextIntegration,
