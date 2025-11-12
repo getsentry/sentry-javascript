@@ -2,11 +2,6 @@ import type { Client } from '../../client';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import type { Event } from '../../types-hoist/event';
 import type { Span, SpanAttributes, SpanAttributeValue, SpanJSON, SpanOrigin } from '../../types-hoist/span';
-import {
-  GEN_AI_USAGE_INPUT_TOKENS_CACHE_WRITE_ATTRIBUTE,
-  GEN_AI_USAGE_INPUT_TOKENS_CACHED_ATTRIBUTE,
-} from '../ai/gen-ai-attributes';
-import { getTruncatedJsonString } from '../ai/utils';
 import { spanToJSON } from '../spanUtils';
 import { toolCallSpanMap } from './constants';
 import type { TokenSummary } from './types';
@@ -123,7 +118,16 @@ function processEndedVercelAiSpan(span: SpanJSON): void {
       attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE] + attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE];
   }
 
-  // Rename AI SDK attributes to standardized gen_ai attributes
+  if (attributes[AI_PROMPT_MESSAGES_ATTRIBUTE]) {
+    try {
+      const messages = JSON.parse(String(attributes[AI_PROMPT_MESSAGES_ATTRIBUTE]));
+      const filtered = filterMediaFromMessages(messages);
+      attributes[AI_PROMPT_MESSAGES_ATTRIBUTE] = JSON.stringify(filtered);
+    } catch {
+      // noop
+    }
+  }
+
   renameAttributeKey(attributes, AI_PROMPT_MESSAGES_ATTRIBUTE, 'gen_ai.request.messages');
   renameAttributeKey(attributes, AI_RESPONSE_TEXT_ATTRIBUTE, 'gen_ai.response.text');
   renameAttributeKey(attributes, AI_RESPONSE_TOOL_CALLS_ATTRIBUTE, 'gen_ai.response.tool_calls');
