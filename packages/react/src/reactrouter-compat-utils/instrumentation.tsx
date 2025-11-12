@@ -222,7 +222,14 @@ export function updateNavigationSpan(
     );
 
     // Only update if we have a valid name and it's better than what we have
-    const isImprovement = name && (!currentName || !name.includes('*'));
+    // Never downgrade from route source to url source
+    const currentSource = spanJson.data?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
+    const isImprovement =
+      name &&
+      (!hasBeenNamed || // Span not finalized - accept any name
+        !currentName || // No current name - always set
+        (currentNameHasWildcard && source === 'route') || // Wildcard route → better route (MUST stay in route source)
+        (currentSource !== 'route' && source === 'route')); // URL → route upgrade
     if (isImprovement) {
       activeRootSpan.updateName(name);
       activeRootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
@@ -864,9 +871,13 @@ function tryUpdateSpanNameBeforeEnd(
     // Only update if we have a valid name and it's better than current
     // Upgrade conditions:
     // 1. No current name exists
-    // 2. Current name has wildcards (less specific)
+    // 2. Current name has wildcards and new source is also 'route' (never downgrade route→url)
     // 3. Upgrading from non-route source to route source (e.g., URL -> parameterized route)
-    const isImprovement = name && (!currentName || hasWildcard || (currentSource !== 'route' && source === 'route'));
+    const isImprovement =
+      name &&
+      (!currentName || // No current name - always set
+        (hasWildcard && source === 'route') || // Wildcard route → better route (MUST stay in route source)
+        (currentSource !== 'route' && source === 'route')); // URL → route upgrade
     const spanNotEnded = spanType === 'pageload' || !spanJson.timestamp;
 
     if (isImprovement && spanNotEnded) {
