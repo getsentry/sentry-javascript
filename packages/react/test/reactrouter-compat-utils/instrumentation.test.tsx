@@ -451,7 +451,7 @@ describe('tryUpdateSpanNameBeforeEnd - source upgrade logic', () => {
     expect(mockSetAttribute).toHaveBeenCalledWith('sentry.source', 'route');
   });
 
-  it('should NOT downgrade from route source to URL source', async () => {
+  it('should not downgrade from route source to URL source', async () => {
     // Setup: Current span has route source with parameterized name (no wildcard)
     vi.mocked(spanToJSON).mockReturnValue({
       op: 'navigation',
@@ -479,7 +479,7 @@ describe('tryUpdateSpanNameBeforeEnd - source upgrade logic', () => {
       vi.fn(() => [{ route: { path: '/users/:id' } }]),
     );
 
-    // Should NOT update because span is already named
+    // Should not update because span is already named
     // The early return in tryUpdateSpanNameBeforeEnd (line 815) protects against downgrades
     // This test verifies that route->url downgrades are blocked
     expect(mockUpdateName).not.toHaveBeenCalled();
@@ -494,8 +494,10 @@ describe('tryUpdateSpanNameBeforeEnd - source upgrade logic', () => {
       data: { 'sentry.source': 'route' },
     } as any);
 
-    // Mock wildcard detection
-    vi.mocked(transactionNameHasWildcard).mockReturnValue(true);
+    // Mock wildcard detection: current name has wildcard, new name doesn't
+    vi.mocked(transactionNameHasWildcard).mockImplementation((name: string) => {
+      return name === '/users/*'; // Only the current name has wildcard
+    });
 
     // Target: Resolves to specific parameterized route
     vi.mocked(resolveRouteNameAndSource).mockReturnValue(['/users/:id', 'route']);
@@ -519,6 +521,45 @@ describe('tryUpdateSpanNameBeforeEnd - source upgrade logic', () => {
     // Should upgrade from wildcard to specific
     expect(mockUpdateName).toHaveBeenCalledWith('/users/:id');
     expect(mockSetAttribute).toHaveBeenCalledWith('sentry.source', 'route');
+  });
+
+  it('should not downgrade from wildcard route to URL', async () => {
+    // Setup: Current span has route source with wildcard
+    vi.mocked(spanToJSON).mockReturnValue({
+      op: 'navigation',
+      description: '/users/*',
+      data: { 'sentry.source': 'route' },
+    } as any);
+
+    // Mock wildcard detection: current name has wildcard, new name doesn't
+    vi.mocked(transactionNameHasWildcard).mockImplementation((name: string) => {
+      return name === '/users/*'; // Only the current wildcard name returns true
+    });
+
+    // Target: After timeout, resolves to URL (lazy route didn't finish loading)
+    vi.mocked(resolveRouteNameAndSource).mockReturnValue(['/users/123', 'url']);
+
+    const mockUpdateName = vi.fn();
+    const mockSetAttribute = vi.fn();
+    const testSpan = {
+      updateName: mockUpdateName,
+      setAttribute: mockSetAttribute,
+      end: vi.fn(),
+      __sentry_navigation_name_set__: true, // Mark span as already named/finalized
+    } as unknown as Span;
+
+    updateNavigationSpan(
+      testSpan,
+      { pathname: '/users/123', search: '', hash: '', state: null, key: 'test' },
+      [{ path: '/users/*', element: <div /> }],
+      false,
+      vi.fn(() => [{ route: { path: '/users/*' } }]),
+    );
+
+    // Should not update - keep wildcard route instead of downgrading to URL
+    // Wildcard routes are better than URLs for aggregation in performance monitoring
+    expect(mockUpdateName).not.toHaveBeenCalled();
+    expect(mockSetAttribute).not.toHaveBeenCalled();
   });
 
   it('should set name when no current name exists', async () => {
