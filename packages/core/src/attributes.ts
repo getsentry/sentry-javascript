@@ -1,4 +1,4 @@
-export type Attributes = Record<string, TypedAttributeValue>;
+export type TypedAttributes = Record<string, TypedAttributeValue>;
 
 export type AttributeValueType = string | number | boolean | Array<string> | Array<number> | Array<boolean>;
 
@@ -47,7 +47,7 @@ type Units = 'ms' | 's' | 'bytes' | 'count' | 'percent';
  * @param value - The value of the passed attribute.
  * @returns The typed attribute.
  */
-export function attributeValueToTypedAttributeValue(value: AttributeValueType): TypedAttributeValue {
+export function attributeValueToTypedAttributeValue(value: unknown): TypedAttributeValue {
   switch (typeof value) {
     case 'number':
       if (Number.isInteger(value)) {

@@ -1,3 +1,4 @@
+import type { TypedAttributes } from '../attributes';
 import type { ParameterizedString } from './parameterize';
 
 export type LogSeverityLevel = 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal';
@@ -30,12 +31,6 @@ export interface Log {
   severityNumber?: number;
 }
 
-export type SerializedLogAttributeValue =
-  | { value: string; type: 'string' }
-  | { value: number; type: 'integer' }
-  | { value: number; type: 'double' }
-  | { value: boolean; type: 'boolean' };
-
 export interface SerializedLog {
   /**
    * Timestamp in seconds (epoch time) indicating when the  log occurred.
@@ -60,7 +55,7 @@ export interface SerializedLog {
   /**
    * Arbitrary structured data that stores information about the log - e.g., userId: 100.
    */
-  attributes?: Record<string, SerializedLogAttributeValue>;
+  attributes?: TypedAttributes;
 
   /**
    * The severity number.
