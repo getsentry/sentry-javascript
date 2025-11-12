@@ -1,6 +1,6 @@
+import { WINDOW } from '@sentry/react';
 import type { RouteManifest } from '../../config/manifest/types';
 import { maybeParameterizeRoute } from './parameterization';
-import { WINDOW } from '@sentry/react';
 
 const globalWithInjectedValues = WINDOW as typeof WINDOW & {
   _sentryRouteManifest: string | RouteManifest;
@@ -46,7 +46,7 @@ export function removeIsrSsgTraceMetaTags(): void {
   }
 
   // Helper function to remove a meta tag
-  const removeMetaTag = (metaName: string) => {
+  function removeMetaTag(metaName: string): void {
     try {
       const meta = WINDOW.document.querySelector(`meta[name="${metaName}"]`);
       if (meta) {
@@ -55,7 +55,7 @@ export function removeIsrSsgTraceMetaTags(): void {
     } catch {
       // ignore errors when removing the meta tag
     }
-  };
+  }
 
   // Remove the meta tags so browserTracingIntegration won't pick them up
   removeMetaTag('sentry-trace');
