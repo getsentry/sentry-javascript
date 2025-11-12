@@ -27,7 +27,7 @@ const MAX_ROOT_SPAN_PROFILE_MS = 300_000; // 5 minutes
  * - there are no more sampled root spans, or
  * - the 60s chunk timer elapses while profiling is running.
  */
-export class BrowserTraceLifecycleProfiler {
+export class UIProfiler {
   private _client: Client | undefined;
   private _profiler: JSSelfProfiler | undefined;
   private _chunkTimer: ReturnType<typeof setTimeout> | undefined;

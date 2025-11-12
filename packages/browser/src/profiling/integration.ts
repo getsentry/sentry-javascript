@@ -4,7 +4,7 @@ import type { BrowserOptions } from '../client';
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';
 import { startProfileForSpan } from './startProfileForSpan';
-import { BrowserTraceLifecycleProfiler } from './traceLifecycleProfiler';
+import { UIProfiler } from './UIProfiler';
 import type { ProfiledEvent } from './utils';
 import {
   addProfilesToEnvelope,
@@ -65,7 +65,7 @@ const _browserProfilingIntegration = (() => {
             return;
           }
 
-          const traceLifecycleProfiler = new BrowserTraceLifecycleProfiler();
+          const traceLifecycleProfiler = new UIProfiler();
           traceLifecycleProfiler.initialize(client, sessionSampled);
 
           // If there is an active, sampled root span already, notify the profiler
