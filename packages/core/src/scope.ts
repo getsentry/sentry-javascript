@@ -1,5 +1,5 @@
 /* eslint-disable max-lines */
-import type { Attributes, AttributeValueType, TypedAttributeValue } from './attributes';
+import type { AttributeValueType, TypedAttributes, TypedAttributeValue } from './attributes';
 import { attributeValueToTypedAttributeValue } from './attributes';
 import type { Client } from './client';
 import { DEBUG_BUILD } from './debug-build';
@@ -48,7 +48,7 @@ export interface ScopeContext {
   extra: Extras;
   contexts: Contexts;
   tags: { [key: string]: Primitive };
-  attributes?: Attributes;
+  attributes?: TypedAttributes;
   fingerprint: string[];
   propagationContext: PropagationContext;
 }
@@ -75,7 +75,7 @@ export interface ScopeData {
   user: User;
   tags: { [key: string]: Primitive };
   // TODO(v11): Make this a required field (could be subtly breaking if we did it today)
-  attributes?: Attributes;
+  attributes?: TypedAttributes;
   extra: Extras;
   contexts: Contexts;
   attachments: Attachment[];
@@ -110,7 +110,7 @@ export class Scope {
   protected _tags: { [key: string]: Primitive };
 
   /** Attributes */
-  protected _attributes: Attributes;
+  protected _attributes: TypedAttributes;
 
   /** Extra */
   protected _extra: Extras;
