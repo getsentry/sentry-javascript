@@ -1,3 +1,4 @@
+import { treeShakePreset } from '@sentry-internal/rollup-utils';
 import { defineConfig } from 'rolldown';
 
 const config = defineConfig([
@@ -8,7 +9,7 @@ const config = defineConfig([
       file: './examples/worker.js',
       format: 'esm',
     },
-    treeshake: 'smallest',
+    treeshake: treeShakePreset('smallest'),
   },
   {
     input: ['./src/_worker.ts'],
@@ -17,7 +18,7 @@ const config = defineConfig([
       file: './examples/worker.min.js',
       format: 'esm',
     },
-    treeshake: 'smallest',
+    treeshake: treeShakePreset('smallest'),
   },
 ]);
 
