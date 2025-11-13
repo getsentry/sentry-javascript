@@ -1,84 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
 import { fmt, Scope } from '../../../src';
-import {
-  _INTERNAL_captureLog,
-  _INTERNAL_flushLogsBuffer,
-  _INTERNAL_getLogBuffer,
-  logAttributeToSerializedLogAttribute,
-} from '../../../src/logs/internal';
+import { _INTERNAL_captureLog, _INTERNAL_flushLogsBuffer, _INTERNAL_getLogBuffer } from '../../../src/logs/internal';
 import type { Log } from '../../../src/types-hoist/log';
 import * as loggerModule from '../../../src/utils/debug-logger';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
 
 const PUBLIC_DSN = 'https://username@domain/123';
-
-describe('logAttributeToSerializedLogAttribute', () => {
-  it('serializes integer values', () => {
-    const result = logAttributeToSerializedLogAttribute(42);
-    expect(result).toEqual({
-      value: 42,
-      type: 'integer',
-    });
-  });
-
-  it('serializes double values', () => {
-    const result = logAttributeToSerializedLogAttribute(42.34);
-    expect(result).toEqual({
-      value: 42.34,
-      type: 'double',
-    });
-  });
-
-  it('serializes boolean values', () => {
-    const result = logAttributeToSerializedLogAttribute(true);
-    expect(result).toEqual({
-      value: true,
-      type: 'boolean',
-    });
-  });
-
-  it('serializes string values', () => {
-    const result = logAttributeToSerializedLogAttribute('username');
-    expect(result).toEqual({
-      value: 'username',
-      type: 'string',
-    });
-  });
-
-  it('serializes object values as JSON strings', () => {
-    const obj = { name: 'John', age: 30 };
-    const result = logAttributeToSerializedLogAttribute(obj);
-    expect(result).toEqual({
-      value: JSON.stringify(obj),
-      type: 'string',
-    });
-  });
-
-  it('serializes array values as JSON strings', () => {
-    const array = [1, 2, 3, 'test'];
-    const result = logAttributeToSerializedLogAttribute(array);
-    expect(result).toEqual({
-      value: JSON.stringify(array),
-      type: 'string',
-    });
-  });
-
-  it('serializes undefined values as empty strings', () => {
-    const result = logAttributeToSerializedLogAttribute(undefined);
-    expect(result).toEqual({
-      value: '',
-      type: 'string',
-    });
-  });
-
-  it('serializes null values as JSON strings', () => {
-    const result = logAttributeToSerializedLogAttribute(null);
-    expect(result).toEqual({
-      value: 'null',
-      type: 'string',
-    });
-  });
-});
 
 describe('_INTERNAL_captureLog', () => {
   it('captures and sends logs', () => {
@@ -215,31 +142,92 @@ describe('_INTERNAL_captureLog', () => {
     );
   });
 
-  it('includes custom attributes in log', () => {
-    const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableLogs: true });
-    const client = new TestClient(options);
-    const scope = new Scope();
-    scope.setClient(client);
+  describe('attributes', () => {
+    it('includes custom attributes in log', () => {
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableLogs: true });
+      const client = new TestClient(options);
+      const scope = new Scope();
+      scope.setClient(client);
 
-    _INTERNAL_captureLog(
-      {
-        level: 'info',
-        message: 'test log with custom attributes',
-        attributes: { userId: '123', component: 'auth' },
-      },
-      scope,
-    );
+      _INTERNAL_captureLog(
+        {
+          level: 'info',
+          message: 'test log with custom attributes',
+          attributes: { userId: '123', component: 'auth' },
+        },
+        scope,
+      );
 
-    const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
-    expect(logAttributes).toEqual({
-      userId: {
-        value: '123',
-        type: 'string',
-      },
-      component: {
-        value: 'auth',
-        type: 'string',
-      },
+      const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
+      expect(logAttributes).toEqual({
+        userId: {
+          value: '123',
+          type: 'string',
+        },
+        component: {
+          value: 'auth',
+          type: 'string',
+        },
+      });
+    });
+
+    it('applies scope attributes attributes to log', () => {
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableLogs: true });
+      const client = new TestClient(options);
+      const scope = new Scope();
+      scope.setClient(client);
+
+      scope.setAttribute('scope_1', 'attribute_value');
+      scope.setAttribute('scope_2', { value: 143.5, type: 'double', unit: 'bytes' });
+      scope.setAttributes({
+        scope_3: true,
+        scope_4: [1, 2, 3],
+        scope_5: { value: [true, false, true], type: 'boolean[]', unit: 's' },
+      });
+
+      _INTERNAL_captureLog(
+        {
+          level: 'info',
+          message: 'test log with custom attributes',
+          attributes: { userId: '123', component: 'auth' },
+        },
+        scope,
+      );
+
+      const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
+
+      expect(logAttributes).toEqual({
+        userId: {
+          value: '123',
+          type: 'string',
+        },
+        component: {
+          value: 'auth',
+          type: 'string',
+        },
+        scope_1: {
+          type: 'string',
+          value: 'attribute_value',
+        },
+        scope_2: {
+          type: 'double',
+          unit: 'bytes',
+          value: 143.5,
+        },
+        scope_3: {
+          type: 'boolean',
+          value: true,
+        },
+        scope_4: {
+          type: 'integer[]',
+          value: [1, 2, 3],
+        },
+        scope_5: {
+          type: 'boolean[]',
+          value: [true, false, true],
+          unit: 's',
+        },
+      });
     });
   });
 
@@ -329,6 +317,9 @@ describe('_INTERNAL_captureLog', () => {
     const scope = new Scope();
     scope.setClient(client);
 
+    scope.setAttribute('scope_1', 'attribute_value');
+    scope.setAttribute('scope_2', { value: 143.5, type: 'double', unit: 'bytes' });
+
     _INTERNAL_captureLog(
       {
         level: 'info',
@@ -341,7 +332,12 @@ describe('_INTERNAL_captureLog', () => {
     expect(beforeSendLog).toHaveBeenCalledWith({
       level: 'info',
       message: 'original message',
-      attributes: { original: true },
+      attributes: {
+        original: true,
+        // scope attributes should already be applied prior to beforeSendLog
+        scope_1: 'attribute_value',
+        scope_2: { value: 143.5, type: 'double', unit: 'bytes' },
+      },
     });
 
     const logBuffer = _INTERNAL_getLogBuffer(client);
