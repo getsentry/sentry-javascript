@@ -1,3 +1,6 @@
+export const revalidate = 60; // ISR: revalidate every 60 seconds
+export const dynamicParams = true;
+
 export async function generateStaticParams(): Promise<never[]> {
   return [];
 }
