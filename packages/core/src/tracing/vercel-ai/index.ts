@@ -10,7 +10,7 @@ import {
 import { getTruncatedJsonString } from '../ai/utils';
 import { toolCallSpanMap } from './constants';
 import type { TokenSummary } from './types';
-import { accumulateTokensForParent, applyAccumulatedTokens } from './utils';
+import { accumulateTokensForParent, applyAccumulatedTokens, convertAvailableToolsToJsonString } from './utils';
 import type { ProviderMetadata } from './vercel-ai-attributes';
 import {
   AI_MODEL_ID_ATTRIBUTE,
@@ -121,6 +121,13 @@ function processEndedVercelAiSpan(span: SpanJSON): void {
   ) {
     attributes['gen_ai.usage.total_tokens'] =
       attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE] + attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE];
+  }
+
+  // Convert the available tools array to a JSON string
+  if (attributes[AI_PROMPT_TOOLS_ATTRIBUTE] && Array.isArray(attributes[AI_PROMPT_TOOLS_ATTRIBUTE])) {
+    attributes[AI_PROMPT_TOOLS_ATTRIBUTE] = convertAvailableToolsToJsonString(
+      attributes[AI_PROMPT_TOOLS_ATTRIBUTE] as unknown[],
+    );
   }
 
   // Rename AI SDK attributes to standardized gen_ai attributes
