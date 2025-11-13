@@ -32,6 +32,7 @@ export function mergeScopeData(data: ScopeData, mergeData: ScopeData): void {
   const {
     extra,
     tags,
+    attributes,
     user,
     contexts,
     level,
@@ -47,6 +48,7 @@ export function mergeScopeData(data: ScopeData, mergeData: ScopeData): void {
 
   mergeAndOverwriteScopeData(data, 'extra', extra);
   mergeAndOverwriteScopeData(data, 'tags', tags);
+  mergeAndOverwriteScopeData(data, 'attributes', attributes);
   mergeAndOverwriteScopeData(data, 'user', user);
   mergeAndOverwriteScopeData(data, 'contexts', contexts);
 
@@ -88,7 +90,7 @@ export function mergeScopeData(data: ScopeData, mergeData: ScopeData): void {
  * Exported only for tests.
  */
 export function mergeAndOverwriteScopeData<
-  Prop extends 'extra' | 'tags' | 'user' | 'contexts' | 'sdkProcessingMetadata',
+  Prop extends 'extra' | 'tags' | 'attributes' | 'user' | 'contexts' | 'sdkProcessingMetadata',
   Data extends ScopeData,
 >(data: Data, prop: Prop, mergeVal: Data[Prop]): void {
   data[prop] = merge(data[prop], mergeVal, 1);
