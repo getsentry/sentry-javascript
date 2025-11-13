@@ -54,7 +54,7 @@ const CLIENTS_WITH_INSTRUMENT_NAVIGATION = new WeakSet<Client>();
 
 /**
  * Tracks last navigation per client to prevent duplicate spans in cross-usage scenarios.
- * Entry persists until next different navigation, handling delayed wrapper execution.
+ * Entry persists until the navigation span ends, allowing cross-usage detection during delayed wrapper execution.
  */
 const LAST_NAVIGATION_PER_CLIENT = new WeakMap<Client, string>();
 
@@ -628,7 +628,9 @@ function tryUpdateSpanName(
   newName: string,
   newSource: string,
 ): void {
-  const isNewNameParameterized = newName !== currentSpanName && newName.includes(':');
+  // Check if the new name contains React Router parameter syntax (/:param/)
+  const isReactRouterParam = /\/:[a-zA-Z0-9_]+/.test(newName);
+  const isNewNameParameterized = newName !== currentSpanName && isReactRouterParam;
   if (isNewNameParameterized) {
     activeSpan.updateName(newName);
     activeSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, newSource as 'route' | 'url' | 'custom');
