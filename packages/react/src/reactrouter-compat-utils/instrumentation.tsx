@@ -103,7 +103,7 @@ export interface ReactRouterOptions {
    *
    * Defaults to 3× the configured `idleTimeout`. Set to `0` to not wait at all.
    *
-   * Default: idleTimeout * 3
+   * @default idleTimeout * 3
    */
   maxLazyRouteWaitMs?: number;
 }
