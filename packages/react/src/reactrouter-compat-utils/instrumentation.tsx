@@ -76,6 +76,26 @@ export function addResolvedRoutesToParent(resolvedRoutes: RouteObject[], parentR
   }
 }
 
+/**
+ * Determines if a navigation should be handled based on router state.
+ * Only handles:
+ * - PUSH navigations (always)
+ * - POP navigations (only after initial pageload is complete)
+ * - When router state is 'idle' (not 'loading' or 'submitting')
+ *
+ * During 'loading' or 'submitting', state.location may still have the old pathname,
+ * which would cause us to create a span for the wrong route.
+ */
+function shouldHandleNavigation(
+  state: { historyAction: string; navigation: { state: string } },
+  isInitialPageloadComplete: boolean,
+): boolean {
+  return (
+    (state.historyAction === 'PUSH' || (state.historyAction === 'POP' && isInitialPageloadComplete)) &&
+    state.navigation.state === 'idle'
+  );
+}
+
 export interface ReactRouterOptions {
   useEffect: UseEffect;
   useLocation: UseLocation;
@@ -277,14 +297,7 @@ export function createV6CompatibleWrapCreateBrowserRouter<
         // If we haven't seen a pageload span yet, keep waiting (don't mark as complete)
       }
 
-      // Only handle navigation when it's complete (state is idle).
-      // During 'loading' or 'submitting', state.location may still have the old pathname,
-      // which would cause us to create a span for the wrong route.
-      const shouldHandleNavigation =
-        (state.historyAction === 'PUSH' || (state.historyAction === 'POP' && isInitialPageloadComplete)) &&
-        state.navigation.state === 'idle';
-
-      if (shouldHandleNavigation) {
+      if (shouldHandleNavigation(state, isInitialPageloadComplete)) {
         handleNavigation({
           location: state.location,
           routes,
@@ -401,14 +414,7 @@ export function createV6CompatibleWrapCreateMemoryRouter<
         // If we haven't seen a pageload span yet, keep waiting (don't mark as complete)
       }
 
-      // Only handle navigation when it's complete (state is idle).
-      // During 'loading' or 'submitting', state.location may still have the old pathname,
-      // which would cause us to create a span for the wrong route.
-      const shouldHandleNavigation =
-        (state.historyAction === 'PUSH' || (state.historyAction === 'POP' && isInitialPageloadComplete)) &&
-        state.navigation.state === 'idle';
-
-      if (shouldHandleNavigation) {
+      if (shouldHandleNavigation(state, isInitialPageloadComplete)) {
         handleNavigation({
           location: state.location,
           routes,
@@ -622,8 +628,8 @@ function tryUpdateSpanName(
   newName: string,
   newSource: string,
 ): void {
-  const isNewNameBetter = newName !== currentSpanName && newName.includes(':');
-  if (isNewNameBetter) {
+  const isNewNameParameterized = newName !== currentSpanName && newName.includes(':');
+  if (isNewNameParameterized) {
     activeSpan.updateName(newName);
     activeSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, newSource as 'route' | 'url' | 'custom');
   }
