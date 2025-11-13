@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- fix(node): Fix Spotlight configuration precedence to match specification (#18160)
+- fix(node): Fix Spotlight configuration precedence to match specification (#18195)
 
 ## 10.25.0
 
