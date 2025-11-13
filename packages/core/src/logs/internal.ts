@@ -162,6 +162,7 @@ export function _INTERNAL_captureLog(
     trace_id: traceContext?.trace_id,
     severity_number: severityNumber ?? SEVERITY_TEXT_TO_SEVERITY_NUMBER[level],
     attributes: {
+      // TODO: This is too late to apply scope attributes because we already invoked beforeSendLog earlier.
       ...scopeAttributes,
       ...Object.keys(attributes).reduce((acc, key) => {
         acc[key] = attributeValueToTypedAttributeValue(attributes[key]);
