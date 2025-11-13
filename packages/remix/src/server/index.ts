@@ -125,7 +125,9 @@ export {
 } from '@sentry/node';
 
 // Keeping the `*` exports for backwards compatibility and types
-export * from '@sentry/node';
+// FIXME: ROLLDOWN breaks here unless we export types and not the module
+// https://github.com/rolldown/rolldown/issues/6992
+export type * from '@sentry/node';
 
 export { init, getRemixDefaultIntegrations } from './sdk';
 export { captureRemixServerException } from './errors';

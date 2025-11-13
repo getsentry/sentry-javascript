@@ -130,6 +130,8 @@ export {
 } from '@sentry/node';
 
 // We can still leave this for the carrier init and type exports
+// FIXME: ROLLDOWN breaks here unless we export types and not the module
+// https://github.com/rolldown/rolldown/issues/6992
 export type * from '@sentry/node';
 
 export { withSentryErrorBoundary } from '@sentry/solid';
