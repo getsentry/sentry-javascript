@@ -101,7 +101,11 @@ export interface ReactRouterOptions {
   /**
    * Maximum time (in milliseconds) to wait for lazy routes to load before finalizing span names.
    *
-   * Set to `0` to not wait at all, or `Infinity` to wait indefinitely.
+   * - Set to `0` to not wait at all (immediate finalization)
+   * - Set to `Infinity` to wait indefinitely
+   * - Negative values will fall back to the default
+   *
+   * Defaults to 3× the configured `idleTimeout` (default: 3000ms).
    *
    * @default idleTimeout * 3
    */
@@ -204,11 +208,12 @@ export function updateNavigationSpan(
 
   // Check if this span has already been named to avoid multiple updates
   // But allow updates if:
-  // 1. This is a forced update (e.g., when lazy routes are loaded)
-  // 2. The current name has wildcards (incomplete parameterization)
+  // 1. Not yet finalized (!hasBeenNamed)
+  // 2. Forced update (e.g., when lazy routes are loaded)
+  // 3. Current name has wildcards (incomplete parameterization - safety valve)
   const hasBeenNamed = (activeRootSpan as { __sentry_navigation_name_set__?: boolean })?.__sentry_navigation_name_set__;
   const currentNameHasWildcard = currentName && transactionNameHasWildcard(currentName);
-  const shouldUpdate = forceUpdate || !hasBeenNamed || currentNameHasWildcard;
+  const shouldUpdate = !hasBeenNamed || forceUpdate || currentNameHasWildcard;
 
   if (shouldUpdate && !spanJson.timestamp) {
     // Get fresh branches for the current location with all loaded routes
@@ -226,10 +231,10 @@ export function updateNavigationSpan(
     const currentSource = spanJson.data?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
     const isImprovement =
       name &&
-      (!hasBeenNamed || // Span not finalized - accept any name
-        !currentName || // No current name - always set
-        (currentNameHasWildcard && source === 'route') || // Wildcard route → better route (MUST stay in route source)
-        (currentSource !== 'route' && source === 'route')); // URL → route upgrade
+      (!currentName || // No current name - always set
+        (!hasBeenNamed && (currentSource !== 'route' || source === 'route')) || // Not finalized - allow unless downgrading route→url
+        (currentSource !== 'route' && source === 'route') || // URL → route upgrade
+        (currentSource === 'route' && source === 'route' && currentNameHasWildcard)); // Route → better route (only if current has wildcard)
     if (isImprovement) {
       activeRootSpan.updateName(name);
       activeRootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
@@ -521,7 +526,7 @@ export function createReactRouterV6CompatibleTracingIntegration(
         DEBUG_BUILD &&
           debug.warn('[React Router] lazyRouteTimeout must be a number, falling back to default:', defaultMaxWait);
         _lazyRouteTimeout = defaultMaxWait;
-      } else if (configuredMaxWait < 0 && configuredMaxWait !== Infinity) {
+      } else if (configuredMaxWait < 0) {
         DEBUG_BUILD &&
           debug.warn(
             '[React Router] lazyRouteTimeout must be non-negative or Infinity, got:',
@@ -871,12 +876,12 @@ function tryUpdateSpanNameBeforeEnd(
     // Only update if we have a valid name and it's better than current
     // Upgrade conditions:
     // 1. No current name exists
-    // 2. Current name has wildcards and new source is also 'route' (never downgrade route→url)
+    // 2. Current name has wildcards and new name is non-wildcard route (wildcard resolution)
     // 3. Upgrading from non-route source to route source (e.g., URL -> parameterized route)
     const isImprovement =
       name &&
       (!currentName || // No current name - always set
-        (hasWildcard && source === 'route') || // Wildcard route → better route (MUST stay in route source)
+        (hasWildcard && source === 'route' && !transactionNameHasWildcard(name)) || // Wildcard → non-wildcard route
         (currentSource !== 'route' && source === 'route')); // URL → route upgrade
     const spanNotEnded = spanType === 'pageload' || !spanJson.timestamp;
 
@@ -935,8 +940,8 @@ function patchSpanEnd(
         // Don't wait - immediately update and end span
         tryUpdateSpanNameBeforeEnd(
           span,
-          spanToJSON(span),
-          spanToJSON(span).description,
+          spanJson,
+          currentName,
           location,
           routes,
           basename,
@@ -958,10 +963,12 @@ function patchSpanEnd(
       // Update span name once routes are resolved or timeout expires
       waitPromise
         .then(() => {
+          // Re-fetch span state after async wait (span may have been updated)
+          const updatedSpanJson = spanToJSON(span);
           tryUpdateSpanNameBeforeEnd(
             span,
-            spanToJSON(span),
-            spanToJSON(span).description,
+            updatedSpanJson,
+            updatedSpanJson.description,
             location,
             routes,
             basename,
