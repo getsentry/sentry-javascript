@@ -15,7 +15,7 @@ import {
   makeBannerOptions,
   makeTerserPlugin,
 } from './plugins/index.mjs';
-import { mergePlugins } from './utils.mjs';
+import { mergePlugins, treeShakePreset } from './utils.mjs';
 
 const BUNDLE_VARIANTS = ['.js', '.min.js', '.debug.min.js'];
 
@@ -109,7 +109,7 @@ export function makeBaseBundleConfig(options) {
       strict: false,
       esModule: false,
     },
-    treeshake: 'smallest',
+    treeshake: treeShakePreset('smallest'),
   };
 
   const bundleTypeConfigMap = {
