@@ -53,7 +53,7 @@ let _enableAsyncRouteHandlers: boolean = false;
 const CLIENTS_WITH_INSTRUMENT_NAVIGATION = new WeakSet<Client>();
 
 // Maximum time (ms) to wait for lazy routes (configured in setup(), default: idleTimeout * 3)
-let _maxLazyRouteWaitMs = 3000;
+let _lazyRouteTimeout = 3000;
 
 /**
  * Adds resolved routes as children to the parent route.
@@ -101,11 +101,11 @@ export interface ReactRouterOptions {
   /**
    * Maximum time (in milliseconds) to wait for lazy routes to load before finalizing span names.
    *
-   * Defaults to 3× the configured `idleTimeout`. Set to `0` to not wait at all.
+   * Set to `0` to not wait at all, or `Infinity` to wait indefinitely.
    *
    * @default idleTimeout * 3
    */
-  maxLazyRouteWaitMs?: number;
+  lazyRouteTimeout?: number;
 }
 
 type V6CompatibleVersion = '6' | '7';
@@ -501,7 +501,7 @@ export function createReactRouterV6CompatibleTracingIntegration(
     enableAsyncRouteHandlers = false,
     instrumentPageLoad = true,
     instrumentNavigation = true,
-    maxLazyRouteWaitMs,
+    lazyRouteTimeout,
   } = options;
 
   return {
@@ -514,24 +514,24 @@ export function createReactRouterV6CompatibleTracingIntegration(
       // Note: options already contains idleTimeout if user passed it to browserTracingIntegration
       // Calculate default: 3× idleTimeout, allow explicit override
       const defaultMaxWait = (options.idleTimeout ?? 1000) * 3;
-      const configuredMaxWait = maxLazyRouteWaitMs ?? defaultMaxWait;
+      const configuredMaxWait = lazyRouteTimeout ?? defaultMaxWait;
 
       // Validate and set
       if (Number.isNaN(configuredMaxWait)) {
         DEBUG_BUILD &&
-          debug.warn('[React Router] maxLazyRouteWaitMs must be a number, falling back to default:', defaultMaxWait);
-        _maxLazyRouteWaitMs = defaultMaxWait;
+          debug.warn('[React Router] lazyRouteTimeout must be a number, falling back to default:', defaultMaxWait);
+        _lazyRouteTimeout = defaultMaxWait;
       } else if (configuredMaxWait < 0 && configuredMaxWait !== Infinity) {
         DEBUG_BUILD &&
           debug.warn(
-            '[React Router] maxLazyRouteWaitMs must be non-negative or Infinity, got:',
+            '[React Router] lazyRouteTimeout must be non-negative or Infinity, got:',
             configuredMaxWait,
             'falling back to:',
             defaultMaxWait,
           );
-        _maxLazyRouteWaitMs = defaultMaxWait;
+        _lazyRouteTimeout = defaultMaxWait;
       } else {
-        _maxLazyRouteWaitMs = configuredMaxWait;
+        _lazyRouteTimeout = configuredMaxWait;
       }
 
       _useEffect = useEffect;
@@ -911,10 +911,13 @@ function patchSpanEnd(
 
   const originalEnd = span.end.bind(span);
 
+  // Prevent duplicate work when end() is called multiple times during the async lazy route wait.
+  // External code (visibility changes, timeouts) can call end() again, which would wastefully
+  // create promise chains and run expensive route matching before reaching the base span.end() guard.
   let endCalled = false;
 
   span.end = function patchedEnd(...args) {
-    // Prevent multiple calls to end()
+    // Guard against re-entry
     if (endCalled) {
       return;
     }
@@ -928,7 +931,7 @@ function patchSpanEnd(
     const pendingPromises = pendingLazyRouteLoads.get(span);
     if (pendingPromises && pendingPromises.size > 0 && currentName && transactionNameHasWildcard(currentName)) {
       // Special case: 0 means don't wait at all (legacy behavior)
-      if (_maxLazyRouteWaitMs === 0) {
+      if (_lazyRouteTimeout === 0) {
         // Don't wait - immediately update and end span
         tryUpdateSpanNameBeforeEnd(
           span,
@@ -943,17 +946,14 @@ function patchSpanEnd(
         return originalEnd(...args);
       }
 
-      // Take snapshot of current promises to wait for (prevents race conditions with new navigations)
-      const promiseArray = Array.from(pendingPromises);
-
-      // Wait for all lazy routes to settle (never rejects, safe for all outcomes)
-      const allSettled = Promise.allSettled(promiseArray).then(() => {});
+      // Wait for lazy routes that are currently loading
+      const allSettled = Promise.allSettled(pendingPromises).then(() => {});
 
       // Race against timeout or wait indefinitely if Infinity
       const waitPromise =
-        _maxLazyRouteWaitMs === Infinity
+        _lazyRouteTimeout === Infinity
           ? allSettled
-          : Promise.race([allSettled, new Promise<void>(r => setTimeout(r, _maxLazyRouteWaitMs))]);
+          : Promise.race([allSettled, new Promise<void>(r => setTimeout(r, _lazyRouteTimeout))]);
 
       // Update span name once routes are resolved or timeout expires
       waitPromise
