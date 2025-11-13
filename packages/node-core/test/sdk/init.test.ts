@@ -218,6 +218,10 @@ describe('init()', () => {
     });
 
     describe('spotlight configuration', () => {
+      afterEach(() => {
+        delete process.env.SENTRY_SPOTLIGHT;
+      });
+
       it('enables spotlight with default URL from `SENTRY_SPOTLIGHT` env variable (truthy value)', () => {
         process.env.SENTRY_SPOTLIGHT = 'true';
 
