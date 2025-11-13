@@ -1,4 +1,6 @@
 /* eslint-disable max-lines */
+import type { Attributes, AttributeValueType, TypedAttributeValue } from './attributes';
+import { attributeValueToTypedAttributeValue } from './attributes';
 import type { Client } from './client';
 import { DEBUG_BUILD } from './debug-build';
 import { updateSession } from './session';
@@ -46,6 +48,7 @@ export interface ScopeContext {
   extra: Extras;
   contexts: Contexts;
   tags: { [key: string]: Primitive };
+  attributes?: Attributes;
   fingerprint: string[];
   propagationContext: PropagationContext;
 }
@@ -71,6 +74,8 @@ export interface ScopeData {
   breadcrumbs: Breadcrumb[];
   user: User;
   tags: { [key: string]: Primitive };
+  // TODO(v11): Make this a required field (could be subtly breaking if we did it today)
+  attributes?: Attributes;
   extra: Extras;
   contexts: Contexts;
   attachments: Attachment[];
@@ -103,6 +108,9 @@ export class Scope {
 
   /** Tags */
   protected _tags: { [key: string]: Primitive };
+
+  /** Attributes */
+  protected _attributes: Attributes;
 
   /** Extra */
   protected _extra: Extras;
@@ -155,6 +163,7 @@ export class Scope {
     this._attachments = [];
     this._user = {};
     this._tags = {};
+    this._attributes = {};
     this._extra = {};
     this._contexts = {};
     this._sdkProcessingMetadata = {};
@@ -171,6 +180,7 @@ export class Scope {
     const newScope = new Scope();
     newScope._breadcrumbs = [...this._breadcrumbs];
     newScope._tags = { ...this._tags };
+    newScope._attributes = { ...this._attributes };
     newScope._extra = { ...this._extra };
     newScope._contexts = { ...this._contexts };
     if (this._contexts.flags) {
@@ -295,6 +305,78 @@ export class Scope {
   }
 
   /**
+   * Sets attributes onto the scope.
+   *
+   * TODO:
+   * Currently, these attributes are not applied to any telemetry data but they will be in the future.
+   *
+   * @param newAttributes - The attributes to set on the scope. You can either pass in key-value pairs, or
+   * an object with a concrete type declaration and an optional unit (if applicable to your attribute).
+   * You can only pass in primitive values or arrays of primitive values.
+   *
+   * @example
+   * ```typescript
+   * scope.setAttributes({
+   *   is_admin: true,
+   *   payment_selection: 'credit_card',
+   *   clicked_products: [130, 554, 292],
+   *   render_duration: { value: 'render_duration', type: 'float', unit: 'ms' },
+   * });
+   * ```
+   */
+  public setAttributes(newAttributes: Record<string, AttributeValueType | TypedAttributeValue>): this {
+    Object.entries(newAttributes).forEach(([key, value]) => {
+      if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+        this._attributes[key] = value;
+      } else {
+        this._attributes[key] = attributeValueToTypedAttributeValue(value);
+      }
+    });
+    this._notifyScopeListeners();
+    return this;
+  }
+
+  /**
+   * Sets an attribute onto the scope.
+   *
+   * TODO:
+   * Currently, these attributes are not applied to any telemetry data but they will be in the future.
+   *
+   * @param key - The attribute key.
+   * @param value - the attribute value. You can either pass in a raw value (primitive or array of primitives), or
+   * a typed attribute value object with a concrete type declaration and an optional unit (if applicable to your attribute).
+   *
+   * @example
+   * ```typescript
+   * scope.setAttribute('is_admin', true);
+   * scope.setAttribute('clicked_products', [130, 554, 292]);
+   * scope.setAttribute('render_duration', { value: 'render_duration', type: 'float', unit: 'ms' });
+   * ```
+   */
+  public setAttribute(key: string, value: AttributeValueType | TypedAttributeValue): this {
+    return this.setAttributes({ [key]: value });
+  }
+
+  /**
+   * Removes the attribute with the given key from the scope.
+   *
+   * @param key - The attribute key.
+   *
+   * @example
+   * ```typescript
+   * scope.removeAttribute('is_admin');
+   * ```
+   */
+  public removeAttribute(key: string): this {
+    if (key in this._attributes) {
+      // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+      delete this._attributes[key];
+      this._notifyScopeListeners();
+    }
+    return this;
+  }
+
+  /**
    * Set an object that will be merged into existing extra on the scope,
    * and will be sent as extra data with the event.
    */
@@ -409,9 +491,19 @@ export class Scope {
           ? (captureContext as ScopeContext)
           : undefined;
 
-    const { tags, extra, user, contexts, level, fingerprint = [], propagationContext } = scopeInstance || {};
+    const {
+      tags,
+      attributes,
+      extra,
+      user,
+      contexts,
+      level,
+      fingerprint = [],
+      propagationContext,
+    } = scopeInstance || {};
 
     this._tags = { ...this._tags, ...tags };
+    this._attributes = { ...this._attributes, ...attributes };
     this._extra = { ...this._extra, ...extra };
     this._contexts = { ...this._contexts, ...contexts };
 
@@ -442,6 +534,7 @@ export class Scope {
     // client is not cleared here on purpose!
     this._breadcrumbs = [];
     this._tags = {};
+    this._attributes = {};
     this._extra = {};
     this._user = {};
     this._contexts = {};
@@ -528,6 +621,7 @@ export class Scope {
       attachments: this._attachments,
       contexts: this._contexts,
       tags: this._tags,
+      attributes: this._attributes,
       extra: this._extra,
       user: this._user,
       level: this._level,
