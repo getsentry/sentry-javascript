@@ -205,7 +205,7 @@ describe('Google GenAI integration', () => {
   });
 
   const EXPECTED_AVAILABLE_TOOLS_JSON =
-    '[{\"name\":\"controlLight\",\"parametersJsonSchema\":{\"type\":\"object\",\"properties\":{\"brightness\":{\"type\":\"number\"},\"colorTemperature\":{\"type\":\"string\"}},\"required\":[\"brightness\",\"colorTemperature\"]}}]';
+    '[{"name":"controlLight","parametersJsonSchema":{"type":"object","properties":{"brightness":{"type":"number"},"colorTemperature":{"type":"string"}},"required":["brightness","colorTemperature"]}}]';
 
   const EXPECTED_TRANSACTION_TOOLS = {
     transaction: 'main',
