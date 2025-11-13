@@ -130,7 +130,7 @@ export {
 } from '@sentry/node';
 
 // We can still leave this for the carrier init and type exports
-export * from '@sentry/node';
+export type * from '@sentry/node';
 
 export { withSentryErrorBoundary } from '@sentry/solid';
 
