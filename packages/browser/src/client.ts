@@ -70,9 +70,26 @@ type BrowserSpecificOptions = BrowserClientReplayOptions &
      *
      * Either set it to true, or provide a specific Spotlight Sidecar URL.
      *
+     * Alternatively, you can configure Spotlight using environment variables:
+     * - SENTRY_SPOTLIGHT (base/official name)
+     * - PUBLIC_SENTRY_SPOTLIGHT (SvelteKit, Astro, Qwik)
+     * - NEXT_PUBLIC_SENTRY_SPOTLIGHT (Next.js)
+     * - VITE_SENTRY_SPOTLIGHT (Vite)
+     * - NUXT_PUBLIC_SENTRY_SPOTLIGHT (Nuxt)
+     * - REACT_APP_SENTRY_SPOTLIGHT (Create React App)
+     * - VUE_APP_SENTRY_SPOTLIGHT (Vue CLI)
+     * - GATSBY_SENTRY_SPOTLIGHT (Gatsby)
+     *
+     * Precedence rules:
+     * - If this option is `false`, Spotlight is disabled (env vars ignored)
+     * - If this option is a string URL, that URL is used (env vars ignored)
+     * - If this option is `true` and env var is a URL, the env var URL is used
+     * - If this option is `undefined`, the env var value is used (if set)
+     *
      * More details: https://spotlightjs.com/
      *
      * IMPORTANT: Only set this option to `true` while developing, not in production!
+     * Spotlight is automatically excluded from production bundles.
      */
     spotlight?: boolean | string;
   };

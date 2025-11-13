@@ -2,7 +2,16 @@
 
 ## Unreleased
 
+- feat(browser): Add environment variable support for Spotlight configuration
+  - Supports `SENTRY_SPOTLIGHT`, `PUBLIC_SENTRY_SPOTLIGHT`, `NEXT_PUBLIC_SENTRY_SPOTLIGHT`, `VITE_SENTRY_SPOTLIGHT`, `NUXT_PUBLIC_SENTRY_SPOTLIGHT`, `REACT_APP_SENTRY_SPOTLIGHT`, `VUE_APP_SENTRY_SPOTLIGHT`, and `GATSBY_SENTRY_SPOTLIGHT` with proper precedence
+  - Adds defensive environment variable access for both `process.env` and `import.meta.env`
+- feat(core): Add shared utilities for Spotlight configuration
+  - Moves `envToBool` from `node-core` to `core` for shared usage across SDKs
+  - Adds `resolveSpotlightOptions` utility for consistent precedence rules
+- feat(node): Update Spotlight configuration to use shared utilities
 - fix(node): Fix Spotlight configuration precedence to match specification (#18195)
+
+- "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
 ## 10.25.0
 
