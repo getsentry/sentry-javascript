@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
+- fix(node): Fix Spotlight configuration precedence to match specification (#18160)
 
 ## 10.25.0
 
