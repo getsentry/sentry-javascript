@@ -1,3 +1,6 @@
+export const revalidate = 60; // ISR: revalidate every 60 seconds
+export const dynamicParams = true; // Allow dynamic params beyond generateStaticParams
+
 export async function generateStaticParams(): Promise<Array<{ product: string }>> {
   return [{ product: 'laptop' }, { product: 'phone' }, { product: 'tablet' }];
 }

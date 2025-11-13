@@ -41,37 +41,34 @@ test('should remove meta tags for different ISR dynamic route values', async ({ 
   await expect(page.locator('meta[name="baggage"]')).toHaveCount(0);
 });
 
-test('should create unique transactions for ISR pages (not using stale trace IDs)', async ({ page }) => {
-  // First navigation - capture the trace ID
-  const firstTransactionPromise = waitForTransaction('nextjs-15', async transactionEvent => {
-    return transactionEvent.transaction === '/isr-test/:product' && transactionEvent.contexts?.trace?.op === 'pageload';
-  });
+test('should create unique transactions for ISR pages on each visit', async ({ page }) => {
+  const traceIds: string[] = [];
 
-  await page.goto('/isr-test/laptop');
-  const firstTransaction = await firstTransactionPromise;
-  const firstTraceId = firstTransaction.contexts?.trace?.trace_id;
+  // Load the same ISR page 5 times to ensure cached HTML meta tags are consistently removed
+  for (let i = 0; i < 5; i++) {
+    const transactionPromise = waitForTransaction('nextjs-15', async transactionEvent => {
+      return !!(
+        transactionEvent.transaction === '/isr-test/:product' && transactionEvent.contexts?.trace?.op === 'pageload'
+      );
+    });
 
-  expect(firstTraceId).toBeDefined();
-  expect(firstTraceId).toMatch(/[a-f0-9]{32}/);
+    if (i === 0) {
+      await page.goto('/isr-test/laptop');
+    } else {
+      await page.reload();
+    }
 
-  // Second navigation to the same ISR route with different param
-  const secondTransactionPromise = waitForTransaction('nextjs-15', async transactionEvent => {
-    return !!(
-      transactionEvent.transaction === '/isr-test/:product' &&
-      transactionEvent.contexts?.trace?.op === 'pageload' &&
-      transactionEvent.request?.url?.includes('/isr-test/phone')
-    );
-  });
+    const transaction = await transactionPromise;
+    const traceId = transaction.contexts?.trace?.trace_id;
 
-  await page.goto('/isr-test/phone');
-  const secondTransaction = await secondTransactionPromise;
-  const secondTraceId = secondTransaction.contexts?.trace?.trace_id;
+    expect(traceId).toBeDefined();
+    expect(traceId).toMatch(/[a-f0-9]{32}/);
+    traceIds.push(traceId!);
+  }
 
-  expect(secondTraceId).toBeDefined();
-  expect(secondTraceId).toMatch(/[a-f0-9]{32}/);
-
-  // Verify that each page load gets a NEW trace ID (not reusing cached/stale ones)
-  expect(firstTraceId).not.toBe(secondTraceId);
+  // Verify all 5 page loads have unique trace IDs (no reuse of cached/stale meta tags)
+  const uniqueTraceIds = new Set(traceIds);
+  expect(uniqueTraceIds.size).toBe(5);
 });
 
 test('ISR route should be identified correctly in the route manifest', async ({ page }) => {
