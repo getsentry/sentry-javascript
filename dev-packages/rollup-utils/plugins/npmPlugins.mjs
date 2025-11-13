@@ -1,10 +1,5 @@
 /**
- * Rollup plugin hooks docs: https://rollupjs.org/guide/en/#build-hooks and
- * https://rollupjs.org/guide/en/#output-generation-hooks
- *
- * Cleanup plugin docs: https://github.com/aMarCruz/rollup-plugin-cleanup
- * Replace plugin docs: https://github.com/rollup/plugins/tree/master/packages/replace
- * Sucrase plugin docs: https://github.com/rollup/plugins/tree/master/packages/sucrase
+ * Replace plugin docs: https://rolldown.rs/builtin-plugins/replace#replace-plugin
  */
 
 import { replacePlugin } from 'rolldown/plugins';
