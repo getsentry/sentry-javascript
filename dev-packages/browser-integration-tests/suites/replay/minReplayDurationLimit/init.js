@@ -5,7 +5,7 @@ window.Replay = Sentry.replayIntegration({
   flushMinDelay: 200,
   flushMaxDelay: 200,
   // Try to set to 60s - should be capped at 50s
-  minReplayDuration: 60_000,
+  minReplayDuration: 60000,
 });
 
 Sentry.init({
