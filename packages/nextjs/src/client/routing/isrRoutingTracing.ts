@@ -26,7 +26,7 @@ function isIsrSsgRoute(pathname: string): boolean {
     manifest = manifestData;
   }
 
-  if (!manifest.isrRoutes || manifest.isrRoutes.length === 0) {
+  if (!manifest.isrRoutes || !Array.isArray(manifest.isrRoutes) || manifest.isrRoutes.length === 0) {
     return false;
   }
 
