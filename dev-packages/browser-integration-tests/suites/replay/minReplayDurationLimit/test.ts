@@ -13,8 +13,9 @@ sentryTest('caps minReplayDuration to maximum of 50 seconds', async ({ getLocalT
 
   const actualMinReplayDuration = await page.evaluate(() => {
     // @ts-expect-error - Replay is not typed on window
-    const replay = window.Replay;
-    return replay._initialOptions.minReplayDuration;
+    const replayIntegration = window.Replay;
+    const replay = replayIntegration._replay;
+    return replay.getOptions().minReplayDuration;
   });
 
   // Even though we configured it to 60s (60000ms), it should be capped to 50s
