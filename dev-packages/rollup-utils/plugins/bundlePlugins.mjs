@@ -18,7 +18,6 @@ import terser from '@rollup/plugin-terser';
  *
  * @param title The title to use for the SDK, if not the package name
  * @param version The version of the SDK
- * @returns An instance of the `rollup-plugin-license` plugin
  */
 export function makeBannerOptions(title, version) {
   const commitHash = childProcess.execSync('git rev-parse --short HEAD', { encoding: 'utf-8' }).trim();
