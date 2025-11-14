@@ -753,8 +753,8 @@ export function handleNavigation(opts: {
 
     // If we're already in a navigation span, check if we should update its name
     if (isAlreadyInNavigationSpan && activeSpan) {
-      // Only update if the new name is better (doesn't have wildcards or is more complete)
-      const shouldUpdate = currentName && transactionNameHasWildcard(currentName) && !transactionNameHasWildcard(name);
+      const currentSource = spanJson?.data?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
+      const shouldUpdate = shouldUpdateWildcardSpanName(currentName, currentSource, name, source);
 
       if (shouldUpdate) {
         activeSpan.updateName(name);
@@ -843,6 +843,59 @@ function updatePageloadTransaction({
   }
 }
 
+/**
+ * Determines if a span name should be updated during wildcard route resolution.
+ *
+ * This handles cases where:
+ * 1. A wildcard route name (e.g., "/users/*") should be resolved to a specific route
+ * 2. A URL-based name should be upgraded to a parameterized route name
+ * 3. No current name exists and a route name is available (pageload transactions)
+ *
+ * @param currentName - The current span name (may be undefined)
+ * @param currentSource - The current span source ('route', 'url', or undefined)
+ * @param newName - The proposed new span name
+ * @param newSource - The proposed new span source
+ * @param allowNoCurrentName - If true, allow updates when there's no current name (for pageload spans)
+ * @returns true if the span name should be updated
+ */
+function shouldUpdateWildcardSpanName(
+  currentName: string | undefined,
+  currentSource: string | undefined,
+  newName: string,
+  newSource: string,
+  allowNoCurrentName = false,
+): boolean {
+  if (!newName) {
+    return false;
+  }
+
+  // Allow update if no current name exists and allowNoCurrentName is true (pageloads)
+  if (!currentName && allowNoCurrentName) {
+    return true;
+  }
+
+  // Check if current name has wildcard
+  const hasWildcard = currentName && transactionNameHasWildcard(currentName);
+
+  // Current has wildcard, new is non-wildcard route
+  if (hasWildcard && newSource === 'route' && !transactionNameHasWildcard(newName)) {
+    return true;
+  }
+
+  // Source upgrade - URL → route (but never route → URL)
+  if (currentSource !== 'route' && newSource === 'route') {
+    return true;
+  }
+
+  // Allow route-to-route updates if names are different (legitimate navigation)
+  if (currentSource === 'route' && newSource === 'route' && currentName !== newName) {
+    return true;
+  }
+
+  // Otherwise, don't update (prevents route→url downgrade)
+  return false;
+}
+
 /** Updates span name before end using latest route information. */
 function tryUpdateSpanNameBeforeEnd(
   span: Span,
@@ -856,10 +909,9 @@ function tryUpdateSpanNameBeforeEnd(
 ): void {
   try {
     const currentSource = spanJson.data?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
-    const hasWildcard = currentName && transactionNameHasWildcard(currentName);
 
     // Only attempt update if source is not 'route' or if the name has wildcards
-    if (currentSource === 'route' && !hasWildcard) {
+    if (currentSource === 'route' && currentName && !transactionNameHasWildcard(currentName)) {
       return;
     }
 
@@ -873,16 +925,9 @@ function tryUpdateSpanNameBeforeEnd(
 
     const [name, source] = resolveRouteNameAndSource(location, routesToUse, routesToUse, branches, basename);
 
-    // Only update if we have a valid name and it's better than current
-    // Upgrade conditions:
-    // 1. No current name exists
-    // 2. Current name has wildcards and new name is non-wildcard route (wildcard resolution)
-    // 3. Upgrading from non-route source to route source (e.g., URL -> parameterized route)
-    const isImprovement =
-      name &&
-      (!currentName || // No current name - always set
-        (hasWildcard && source === 'route' && !transactionNameHasWildcard(name)) || // Wildcard → non-wildcard route
-        (currentSource !== 'route' && source === 'route')); // URL → route upgrade
+    // Check if the new name is an improvement over the current name
+    // For pageload spans, allow updates when there's no current name
+    const isImprovement = shouldUpdateWildcardSpanName(currentName, currentSource, name, source, true);
     const spanNotEnded = spanType === 'pageload' || !spanJson.timestamp;
 
     if (isImprovement && spanNotEnded) {
@@ -938,16 +983,7 @@ function patchSpanEnd(
       // Special case: 0 means don't wait at all (legacy behavior)
       if (_lazyRouteTimeout === 0) {
         // Don't wait - immediately update and end span
-        tryUpdateSpanNameBeforeEnd(
-          span,
-          spanJson,
-          currentName,
-          location,
-          routes,
-          basename,
-          spanType,
-          allRoutes,
-        );
+        tryUpdateSpanNameBeforeEnd(span, spanJson, currentName, location, routes, basename, spanType, allRoutes);
         return originalEnd(...args);
       }
 
