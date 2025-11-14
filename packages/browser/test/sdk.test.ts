@@ -251,9 +251,8 @@ describe('init', () => {
       globalThis.process = {
         env: {
           SENTRY_SPOTLIGHT: 'true',
-        },
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } as any;
+        } as Record<string, string>,
+      } as NodeJS.Process;
 
       // @ts-expect-error this is fine for testing
       const initAndBindSpy = vi.spyOn(SentryCore, 'initAndBind').mockImplementationOnce(() => {});
@@ -271,9 +270,8 @@ describe('init', () => {
       globalThis.process = {
         env: {
           SENTRY_SPOTLIGHT: 'false',
-        },
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } as any;
+        } as Record<string, string>,
+      } as NodeJS.Process;
 
       // @ts-expect-error this is fine for testing
       const initAndBindSpy = vi.spyOn(SentryCore, 'initAndBind').mockImplementationOnce(() => {});
@@ -291,9 +289,8 @@ describe('init', () => {
       globalThis.process = {
         env: {
           SENTRY_SPOTLIGHT: 'true',
-        },
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } as any;
+        } as Record<string, string>,
+      } as NodeJS.Process;
 
       // @ts-expect-error this is fine for testing
       const initAndBindSpy = vi.spyOn(SentryCore, 'initAndBind').mockImplementationOnce(() => {});
@@ -312,9 +309,8 @@ describe('init', () => {
       globalThis.process = {
         env: {
           SENTRY_SPOTLIGHT: 'http://env:5678/stream',
-        },
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } as any;
+        } as Record<string, string>,
+      } as NodeJS.Process;
 
       // @ts-expect-error this is fine for testing
       const initAndBindSpy = vi.spyOn(SentryCore, 'initAndBind').mockImplementationOnce(() => {});
@@ -332,9 +328,8 @@ describe('init', () => {
       globalThis.process = {
         env: {
           SENTRY_SPOTLIGHT: 'http://env:5678/stream',
-        },
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } as any;
+        } as Record<string, string>,
+      } as NodeJS.Process;
 
       // @ts-expect-error this is fine for testing
       const initAndBindSpy = vi.spyOn(SentryCore, 'initAndBind').mockImplementationOnce(() => {});
@@ -347,15 +342,14 @@ describe('init', () => {
       expect(spotlightIntegration).toBeDefined();
     });
 
-    it('respects priority order: SENTRY_SPOTLIGHT over PUBLIC_SENTRY_SPOTLIGHT', () => {
+    it('respects priority order: PUBLIC_SENTRY_SPOTLIGHT over SENTRY_SPOTLIGHT', () => {
       originalProcess = globalThis.process;
       globalThis.process = {
         env: {
-          SENTRY_SPOTLIGHT: 'true',
-          PUBLIC_SENTRY_SPOTLIGHT: 'false',
-        },
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } as any;
+          PUBLIC_SENTRY_SPOTLIGHT: 'true',
+          SENTRY_SPOTLIGHT: 'false',
+        } as Record<string, string>,
+      } as NodeJS.Process;
 
       // @ts-expect-error this is fine for testing
       const initAndBindSpy = vi.spyOn(SentryCore, 'initAndBind').mockImplementationOnce(() => {});
@@ -363,7 +357,7 @@ describe('init', () => {
       init(options);
 
       const optionsPassed = initAndBindSpy.mock.calls[0]?.[1];
-      // Spotlight integration should be added (SENTRY_SPOTLIGHT=true wins)
+      // Spotlight integration should be added (PUBLIC_SENTRY_SPOTLIGHT=true wins)
       const spotlightIntegration = optionsPassed?.integrations.find((i: Integration) => i.name === 'SpotlightBrowser');
       expect(spotlightIntegration).toBeDefined();
     });
@@ -373,9 +367,8 @@ describe('init', () => {
       globalThis.process = {
         env: {
           NEXT_PUBLIC_SENTRY_SPOTLIGHT: 'true',
-        },
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } as any;
+        } as Record<string, string>,
+      } as NodeJS.Process;
 
       // @ts-expect-error this is fine for testing
       const initAndBindSpy = vi.spyOn(SentryCore, 'initAndBind').mockImplementationOnce(() => {});

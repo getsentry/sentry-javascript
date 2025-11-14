@@ -323,6 +323,24 @@ describe('init()', () => {
         expect(client?.getOptions().spotlight).toBe(true);
         expect(client?.getOptions().integrations.some(integration => integration.name === 'Spotlight')).toBe(true);
       });
+
+      it('treats empty string env var as undefined (no spotlight)', () => {
+        process.env.SENTRY_SPOTLIGHT = '';
+
+        const client = init({ dsn: PUBLIC_DSN });
+
+        expect(client?.getOptions().spotlight).toBeUndefined();
+        expect(client?.getOptions().integrations.some(integration => integration.name === 'Spotlight')).toBe(false);
+      });
+
+      it('treats whitespace-only string env var as undefined (no spotlight)', () => {
+        process.env.SENTRY_SPOTLIGHT = '   ';
+
+        const client = init({ dsn: PUBLIC_DSN });
+
+        expect(client?.getOptions().spotlight).toBeUndefined();
+        expect(client?.getOptions().integrations.some(integration => integration.name === 'Spotlight')).toBe(false);
+      });
     });
   });
 });

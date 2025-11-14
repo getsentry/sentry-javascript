@@ -187,6 +187,7 @@ function getClientOptions(
   // Parse spotlight configuration with proper precedence per spec
   const envBool = envToBool(process.env.SENTRY_SPOTLIGHT, { strict: true });
   const envSpotlight = envBool !== null ? envBool : process.env.SENTRY_SPOTLIGHT;
+  // Note: resolveSpotlightOptions handles empty/whitespace string filtering
   const spotlight = resolveSpotlightOptions(options.spotlight, envSpotlight);
 
   const tracesSampleRate = getTracesSampleRate(options.tracesSampleRate);

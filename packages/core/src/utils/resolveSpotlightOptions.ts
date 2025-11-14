@@ -17,12 +17,14 @@ export function resolveSpotlightOptions(
 
   if (typeof optionsSpotlight === 'string') {
     // Custom URL provided - ignore env vars
-    return optionsSpotlight;
+    // Treat empty strings as undefined to prevent invalid URL connections
+    return optionsSpotlight.trim() === '' ? undefined : optionsSpotlight;
   }
 
   // optionsSpotlight is true or undefined
   const envBool = typeof envSpotlight === 'boolean' ? envSpotlight : undefined;
-  const envUrl = typeof envSpotlight === 'string' ? envSpotlight : undefined;
+  // Treat empty/whitespace-only strings as undefined to prevent invalid URL connections
+  const envUrl = typeof envSpotlight === 'string' && envSpotlight.trim() !== '' ? envSpotlight : undefined;
 
   return optionsSpotlight === true
     ? (envUrl ?? true) // true: use env URL if present, otherwise true
