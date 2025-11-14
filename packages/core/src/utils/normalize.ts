@@ -217,7 +217,10 @@ function stringifyValue(
     }
 
     if (isVueViewModel(value)) {
-      return '[VueViewModel]';
+      // Check if it's a VNode (has __v_isVNode) vs a component instance (has _isVue/__isVue)
+      const isVNode = (value as { __v_isVNode?: boolean }).__v_isVNode;
+
+      return isVNode ? '[VueVNode]' : '[VueViewModel]';
     }
 
     // React's SyntheticEvent thingy

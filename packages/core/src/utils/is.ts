@@ -201,7 +201,11 @@ interface VueViewModel {
  */
 export function isVueViewModel(wat: unknown): boolean {
   // Not using Object.prototype.toString because in Vue 3 it would read the instance's Symbol(Symbol.toStringTag) property.
-  return !!(typeof wat === 'object' && wat !== null && ((wat as VueViewModel).__isVue || (wat as VueViewModel)._isVue));
+  return !!(
+    typeof wat === 'object' &&
+    wat !== null &&
+    ((wat as VueViewModel).__isVue || (wat as VueViewModel)._isVue || (wat as { __v_isVNode?: boolean }).__v_isVNode)
+  );
 }
 
 /**
