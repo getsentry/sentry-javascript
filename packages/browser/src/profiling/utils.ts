@@ -688,18 +688,21 @@ export function shouldProfileSpanLegacy(span: Span): boolean {
 }
 
 /**
- * Determine if a profile should be created for the current session (lifecycle profiling mode).
+ * Determine if a profile should be created for the current session.
  */
 export function shouldProfileSession(options: BrowserOptions): boolean {
   // If constructor failed once, it will always fail, so we can early return.
   if (PROFILING_CONSTRUCTOR_FAILED) {
     if (DEBUG_BUILD) {
-      debug.log('[Profiling] Profiling has been disabled for the duration of the current user session.');
+      debug.log(
+        '[Profiling] Profiling has been disabled for the duration of the current user session as the JS Profiler could not be started.',
+      );
     }
     return false;
   }
 
-  if (options.profileLifecycle !== 'trace') {
+  if (options.profileLifecycle !== 'trace' && options.profileLifecycle !== 'manual') {
+    DEBUG_BUILD && debug.warn('[Profiling] Session not sampled. Invalid `profileLifecycle` option.');
     return false;
   }
 

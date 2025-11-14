@@ -1,0 +1,76 @@
+import type { Profiler, ProfilingIntegration } from '@sentry/core';
+import { debug, getClient } from '@sentry/core';
+import { DEBUG_BUILD } from '../debug-build';
+
+function isProfilingIntegrationWithProfiler(
+  integration: ProfilingIntegration | undefined,
+): integration is ProfilingIntegration {
+  return (
+    !!integration &&
+    typeof integration['_profiler'] !== 'undefined' &&
+    typeof integration['_profiler']['start'] === 'function' &&
+    typeof integration['_profiler']['stop'] === 'function'
+  );
+}
+
+/**
+ * Starts the Sentry UI profiler.
+ * This mode is exclusive with the transaction profiler and will only work if the profilesSampleRate is set to a falsy value.
+ * In UI profiling mode, the profiler will keep reporting profile chunks to Sentry until it is stopped, which allows for continuous profiling of the application.
+ */
+function startProfiler(): void {
+  const client = getClient();
+  if (!client) {
+    DEBUG_BUILD && debug.warn('No Sentry client available, profiling is not started');
+    return;
+  }
+
+  const integration = client.getIntegrationByName<ProfilingIntegration>('BrowserProfiling');
+
+  if (!integration) {
+    DEBUG_BUILD && debug.warn('BrowserProfiling integration is not available');
+    return;
+  }
+
+  if (!isProfilingIntegrationWithProfiler(integration)) {
+    DEBUG_BUILD && debug.warn('Profiler is not available on profiling integration.');
+    return;
+  }
+
+  integration._profiler.start();
+}
+
+/**
+ * Stops the Sentry UI profiler.
+ * Calls to stop will stop the profiler and flush the currently collected profile data to Sentry.
+ */
+function stopProfiler(): void {
+  const client = getClient();
+  if (!client) {
+    DEBUG_BUILD && debug.warn('No Sentry client available, profiling is not started');
+    return;
+  }
+
+  const integration = client.getIntegrationByName<ProfilingIntegration>('BrowserProfiling');
+  if (!integration) {
+    DEBUG_BUILD && debug.warn('ProfilingIntegration is not available');
+    return;
+  }
+
+  if (!isProfilingIntegrationWithProfiler(integration)) {
+    DEBUG_BUILD && debug.warn('Profiler is not available on profiling integration.');
+    return;
+  }
+
+  integration._profiler.stop();
+}
+
+/**
+ * Profiler namespace for controlling the profiler in 'manual' mode.
+ *
+ * Requires the `browserProfilingIntegration` from the `@sentry/browser` package.
+ */
+export const uiProfiler: Profiler = {
+  startProfiler,
+  stopProfiler,
+};

@@ -1,4 +1,4 @@
-import type { Client, ProfileChunk, Span } from '@sentry/core';
+import type { Client, ContinuousProfiler, ProfileChunk, Span } from '@sentry/core';
 import {
   type ProfileChunkEnvelope,
   createEnvelope,
@@ -9,9 +9,10 @@ import {
   getSdkMetadataForEnvelopeHeader,
   uuid4,
 } from '@sentry/core';
+import type { BrowserOptions } from '../client';
 import { DEBUG_BUILD } from './../debug-build';
 import type { JSSelfProfiler } from './jsSelfProfiling';
-import { createProfileChunkPayload, startJSSelfProfile, validateProfileChunk } from './utils';
+import { createProfileChunkPayload, shouldProfileSession, startJSSelfProfile, validateProfileChunk } from './utils';
 
 const CHUNK_INTERVAL_MS = 60_000; // 1 minute
 // Maximum length for trace lifecycle profiling per root span (e.g. if spanEnd never fires)
@@ -27,7 +28,7 @@ const MAX_ROOT_SPAN_PROFILE_MS = 300_000; // 5 minutes max per root span in trac
  * - there are no more sampled root spans, or
  * - the 60s chunk timer elapses while profiling is running.
  */
-export class UIProfiler {
+export class UIProfiler implements ContinuousProfiler<Client> {
   private _client: Client | undefined;
   private _profiler: JSSelfProfiler | undefined;
   private _chunkTimer: ReturnType<typeof setTimeout> | undefined;
@@ -57,12 +58,18 @@ export class UIProfiler {
   }
 
   /** Initialize the profiler with client, session sampling and lifecycle mode. */
-  public initialize(client: Client, sessionSampled: boolean, lifecycleMode: 'manual' | 'trace'): void {
-    // One Profiler ID per profiling session (user session)
-    this._profilerId = uuid4();
+  public initialize(client: Client): void {
+    const lifecycleMode = (client.getOptions() as BrowserOptions).profileLifecycle;
+    const sessionSampled = shouldProfileSession(client.getOptions());
 
     DEBUG_BUILD && debug.log(`[Profiling] Initializing profiler (lifecycle='${lifecycleMode}').`);
 
+    if (!sessionSampled) {
+      DEBUG_BUILD && debug.log('[Profiling] Session not sampled. Skipping lifecycle profiler initialization.');
+    }
+
+    // One Profiler ID per profiling session (user session)
+    this._profilerId = uuid4();
     this._client = client;
     this._sessionSampled = sessionSampled;
     this._lifecycleMode = lifecycleMode;
@@ -173,12 +180,6 @@ export class UIProfiler {
     this._collectCurrentChunk().catch(e => {
       DEBUG_BUILD && debug.error('[Profiling] Failed to collect current profile chunk on `stop()`:', e);
     });
-
-    // Clear context so subsequent events aren't marked as profiled in manual mode.
-    // todo: test in manual mode
-    if (this._lifecycleMode === 'manual') {
-      getGlobalScope().setContext('profile', {});
-    }
   }
 
   /** Trace-mode: attach spanStart/spanEnd listeners. */
@@ -196,10 +197,6 @@ export class UIProfiler {
         DEBUG_BUILD && debug.log('[Profiling] Discarding profile because root span was not sampled.');
         return;
       }
-
-      // Match emitted chunks with events: set profiler_id on global scope
-      // todo: do I need this?
-      // getGlobalScope().setContext('profile', { profiler_id: this._profilerId });
 
       const spanId = span.spanContext().spanId;
       if (!spanId || this._activeRootSpanIds.has(spanId)) {

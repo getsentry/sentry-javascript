@@ -1,4 +1,4 @@
-import type { EventEnvelope, IntegrationFn, Profile, Span } from '@sentry/core';
+import type { EventEnvelope, Integration, IntegrationFn, Profile, Span } from '@sentry/core';
 import { debug, defineIntegration, getActiveSpan, getRootSpan, hasSpansEnabled } from '@sentry/core';
 import type { BrowserOptions } from '../client';
 import { DEBUG_BUILD } from '../debug-build';
@@ -14,7 +14,6 @@ import {
   getActiveProfilesCount,
   hasLegacyProfiling,
   isAutomatedPageLoadSpan,
-  shouldProfileSession,
   shouldProfileSpanLegacy,
   takeProfileFromGlobalCache,
 } from './utils';
@@ -24,6 +23,7 @@ const INTEGRATION_NAME = 'BrowserProfiling';
 const _browserProfilingIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
+    _profiler: new UIProfiler(),
     setup(client) {
       const options = client.getOptions() as BrowserOptions;
 
@@ -49,14 +49,11 @@ const _browserProfilingIntegration = (() => {
 
       // UI PROFILING (Profiling V2)
       if (!hasLegacyProfiling(options)) {
-        const sessionSampled = shouldProfileSession(options);
-        if (!sessionSampled) {
-          DEBUG_BUILD && debug.log('[Profiling] Session not sampled. Skipping lifecycle profiler initialization.');
-        }
-
         const lifecycleMode = options.profileLifecycle;
 
-        if (lifecycleMode === 'trace') {
+        if (lifecycleMode === 'manual') {
+          this._profiler.initialize(client);
+        } else if (lifecycleMode === 'trace') {
           if (!hasSpansEnabled(options)) {
             DEBUG_BUILD &&
               debug.warn(
@@ -65,12 +62,13 @@ const _browserProfilingIntegration = (() => {
             return;
           }
 
-          const traceLifecycleProfiler = new UIProfiler();
-          traceLifecycleProfiler.initialize(client, sessionSampled, lifecycleMode);
+          this._profiler.initialize(client);
 
           // If there is an active, sampled root span already, notify the profiler
           if (rootSpan) {
-            traceLifecycleProfiler.notifyRootSpanActive(rootSpan);
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore accessing integration instance property
+            this._profiler.notifyRootSpanActive(rootSpan);
           }
 
           // In case rootSpan is created slightly after setup -> schedule microtask to re-check and notify.
@@ -78,7 +76,9 @@ const _browserProfilingIntegration = (() => {
             const laterActiveSpan = getActiveSpan();
             const laterRootSpan = laterActiveSpan && getRootSpan(laterActiveSpan);
             if (laterRootSpan) {
-              traceLifecycleProfiler.notifyRootSpanActive(laterRootSpan);
+              // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+              // @ts-ignore accessing integration instance property
+              this._profiler.notifyRootSpanActive(laterRootSpan);
             }
           }, 0);
         }
@@ -154,6 +154,10 @@ const _browserProfilingIntegration = (() => {
       return attachProfiledThreadToEvent(event);
     },
   };
-}) satisfies IntegrationFn;
+}) satisfies IntegrationFn<BrowserProfilingIntegration>;
+
+interface BrowserProfilingIntegration extends Integration {
+  _profiler: UIProfiler;
+}
 
 export const browserProfilingIntegration = defineIntegration(_browserProfilingIntegration);

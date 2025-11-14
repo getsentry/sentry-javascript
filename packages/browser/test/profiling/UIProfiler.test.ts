@@ -4,7 +4,6 @@
 
 import * as Sentry from '@sentry/browser';
 import type { Span } from '@sentry/core';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { type Mock, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { BrowserOptions } from '../../src/index';
 
@@ -579,6 +578,189 @@ describe('Browser Profiling v2 trace lifecycle', () => {
       for (const chunk of chunks2) {
         expect(chunk?.profiler_id).toBe(profilerId2);
       }
+    });
+  });
+});
+
+function getBaseOptionsForManualLifecycle(sendMock: Mock<any>, enableTracing = true): BrowserOptions {
+  return {
+    dsn: 'https://public@o.ingest.sentry.io/1',
+    ...(enableTracing ? { tracesSampleRate: 1 } : {}),
+    profileSessionSampleRate: 1,
+    profileLifecycle: 'manual',
+    integrations: [Sentry.browserProfilingIntegration()],
+    transport: () => ({ flush: vi.fn().mockResolvedValue(true), send: sendMock }),
+  };
+}
+
+describe('Browser Profiling v2 manual lifecycle', () => {
+  afterEach(async () => {
+    const client = Sentry.getClient();
+    await client?.close();
+    // reset profiler constructor
+    (window as any).Profiler = undefined;
+    vi.restoreAllMocks();
+  });
+
+  function mockProfiler() {
+    const stop = vi.fn().mockResolvedValue({
+      frames: [{ name: 'f' }],
+      stacks: [{ frameId: 0 }],
+      samples: [{ timestamp: 0 }, { timestamp: 10 }],
+      resources: [],
+    });
+
+    class MockProfilerImpl {
+      stopped: boolean = false;
+      constructor(_opts: { sampleInterval: number; maxBufferSize: number }) {}
+      stop() {
+        this.stopped = true;
+        return stop();
+      }
+      addEventListener() {}
+    }
+
+    const mockConstructor = vi.fn().mockImplementation((opts: { sampleInterval: number; maxBufferSize: number }) => {
+      return new MockProfilerImpl(opts);
+    });
+
+    (window as any).Profiler = mockConstructor;
+    return { stop, mockConstructor };
+  }
+
+  it('starts and stops a profile session', async () => {
+    const { stop, mockConstructor } = mockProfiler();
+    const send = vi.fn().mockResolvedValue(undefined);
+
+    Sentry.init({
+      ...getBaseOptionsForManualLifecycle(send),
+    });
+
+    const client = Sentry.getClient();
+    expect(client).toBeDefined();
+
+    Sentry.uiProfiler.startProfiler();
+    expect(mockConstructor).toHaveBeenCalledTimes(1);
+
+    Sentry.uiProfiler.stopProfiler();
+    await Promise.resolve();
+
+    expect(stop).toHaveBeenCalledTimes(1);
+    expect(send).toHaveBeenCalledTimes(1);
+    const envelopeHeader = send.mock.calls?.[0]?.[0]?.[1]?.[0]?.[0];
+    expect(envelopeHeader?.type).toBe('profile_chunk');
+  });
+
+  it('calling start and stop while profile session is running does nothing', async () => {
+    const { stop, mockConstructor } = mockProfiler();
+    const send = vi.fn().mockResolvedValue(undefined);
+
+    Sentry.init({
+      ...getBaseOptionsForManualLifecycle(send),
+    });
+
+    Sentry.uiProfiler.startProfiler();
+    Sentry.uiProfiler.startProfiler();
+
+    expect(mockConstructor).toHaveBeenCalledTimes(1);
+
+    Sentry.uiProfiler.stopProfiler();
+    await Promise.resolve();
+    Sentry.uiProfiler.stopProfiler();
+    await Promise.resolve();
+
+    expect(stop).toHaveBeenCalledTimes(1);
+  });
+
+  it('profileSessionSampleRate is required', async () => {
+    const { stop, mockConstructor } = mockProfiler();
+    const send = vi.fn().mockResolvedValue(undefined);
+
+    Sentry.init({
+      dsn: 'https://public@o.ingest.sentry.io/1',
+      tracesSampleRate: 1,
+      profileLifecycle: 'manual',
+      integrations: [Sentry.browserProfilingIntegration()],
+      transport: () => ({ flush: vi.fn().mockResolvedValue(true), send }),
+    });
+
+    Sentry.uiProfiler.startProfiler();
+    Sentry.uiProfiler.stopProfiler();
+    await Promise.resolve();
+
+    expect(mockConstructor).not.toHaveBeenCalled();
+    expect(stop).not.toHaveBeenCalled();
+  });
+
+  it('does not start profiler when profileSessionSampleRate is 0', async () => {
+    const { stop, mockConstructor } = mockProfiler();
+    const send = vi.fn().mockResolvedValue(undefined);
+
+    Sentry.init({
+      ...getBaseOptionsForManualLifecycle(send),
+      profileSessionSampleRate: 0,
+    });
+
+    Sentry.uiProfiler.startProfiler();
+    Sentry.uiProfiler.stopProfiler();
+    await Promise.resolve();
+
+    expect(mockConstructor).not.toHaveBeenCalled();
+    expect(stop).not.toHaveBeenCalled();
+  });
+
+  describe('envelope', () => {
+    beforeEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('sends a profile_chunk envelope type', async () => {
+      const stop = vi.fn().mockResolvedValue({
+        frames: [{ name: 'f' }],
+        stacks: [{ frameId: 0 }],
+        samples: [{ timestamp: 0 }, { timestamp: 10 }],
+        resources: [],
+      });
+
+      class MockProfilerImpl {
+        stopped: boolean = false;
+        constructor(_opts: { sampleInterval: number; maxBufferSize: number }) {}
+        stop() {
+          this.stopped = true;
+          return stop();
+        }
+        addEventListener() {}
+      }
+
+      (window as any).Profiler = vi
+        .fn()
+        .mockImplementation((opts: { sampleInterval: number; maxBufferSize: number }) => new MockProfilerImpl(opts));
+
+      const send = vi.fn().mockResolvedValue(undefined);
+
+      Sentry.init({
+        ...getBaseOptionsForManualLifecycle(send),
+      });
+
+      const client = Sentry.getClient();
+
+      Sentry.uiProfiler.startProfiler();
+      await new Promise(resolve => setTimeout(resolve, 10));
+      Sentry.uiProfiler.stopProfiler();
+
+      await client?.flush(1000);
+
+      expect(send.mock.calls?.[0]?.[0]?.[1]?.[0]?.[0]).toMatchObject({
+        type: 'profile_chunk',
+      });
+
+      expect(send.mock.calls?.[0]?.[0]?.[1]?.[0]?.[1]).toMatchObject({
+        profiler_id: expect.any(String),
+        chunk_id: expect.any(String),
+        profile: expect.objectContaining({
+          stacks: expect.any(Array),
+        }),
+      });
     });
   });
 });
