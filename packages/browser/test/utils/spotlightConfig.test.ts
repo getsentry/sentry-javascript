@@ -59,24 +59,24 @@ describe('getSpotlightConfig', () => {
     expect(getSpotlightConfig()).toBe(customUrl);
   });
 
-  it('returns undefined when SENTRY_SPOTLIGHT is an empty string', () => {
+  it('returns empty string when SENTRY_SPOTLIGHT is an empty string (filtered by resolveSpotlightOptions)', () => {
     globalThis.process = {
       env: {
         SENTRY_SPOTLIGHT: '',
       } as Record<string, string>,
     } as NodeJS.Process;
 
-    expect(getSpotlightConfig()).toBeUndefined();
+    expect(getSpotlightConfig()).toBe('');
   });
 
-  it('returns undefined when SENTRY_SPOTLIGHT is whitespace only', () => {
+  it('returns whitespace string when SENTRY_SPOTLIGHT is whitespace only (filtered by resolveSpotlightOptions)', () => {
     globalThis.process = {
       env: {
         SENTRY_SPOTLIGHT: '   ',
       } as Record<string, string>,
     } as NodeJS.Process;
 
-    expect(getSpotlightConfig()).toBeUndefined();
+    expect(getSpotlightConfig()).toBe('   ');
   });
 
   it('parses various truthy values correctly', () => {

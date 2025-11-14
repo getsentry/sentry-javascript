@@ -2,9 +2,13 @@
  * Resolves the final spotlight configuration based on options and environment variables.
  * Implements the precedence rules from the Spotlight spec.
  *
+ * This is the single source of truth for filtering empty/whitespace strings - it ensures that
+ * empty strings are NEVER returned (returns undefined instead). All callers can rely on this
+ * guarantee when handling spotlight configuration.
+ *
  * @param optionsSpotlight - The spotlight option from user config (false | true | string | undefined)
  * @param envSpotlight - The spotlight value from environment variables (false | true | string | undefined)
- * @returns The resolved spotlight configuration
+ * @returns The resolved spotlight configuration (false | true | string | undefined) - NEVER an empty string
  */
 export function resolveSpotlightOptions(
   optionsSpotlight: boolean | string | undefined,
