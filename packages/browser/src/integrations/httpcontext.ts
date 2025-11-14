@@ -8,6 +8,8 @@ import { getHttpRequestData, WINDOW } from '../helpers';
 export const httpContextIntegration = defineIntegration(() => {
   return {
     name: 'HttpContext',
+    // TODO (span-streaming): probably fine to omit this in favour of us globally
+    // already adding request context data but should double-check this
     preprocessEvent(event) {
       // if none of the information we want exists, don't bother
       if (!WINDOW.navigator && !WINDOW.location && !WINDOW.document) {

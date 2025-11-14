@@ -77,3 +77,27 @@ export const SEMANTIC_ATTRIBUTE_URL_FULL = 'url.full';
  * @see https://develop.sentry.dev/sdk/telemetry/traces/span-links/#link-types
  */
 export const SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE = 'sentry.link.type';
+
+// some attributes for now exclusively used for span streaming
+// @see https://develop.sentry.dev/sdk/telemetry/spans/span-protocol/#common-attribute-keys
+
+/** The release version of the application */
+export const SEMANTIC_ATTRIBUTE_SENTRY_RELEASE = 'sentry.release';
+/** The environment name (e.g., "production", "staging", "development") */
+export const SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT = 'sentry.environment';
+/** The segment name (e.g., "GET /users") */
+export const SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME = 'sentry.segment.name';
+/** The id of the segment that this span belongs to. */
+export const SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID = 'sentry.segment.id';
+/** The user ID (gated by sendDefaultPii) */
+export const SEMANTIC_ATTRIBUTE_USER_ID = 'user.id';
+/** The user email (gated by sendDefaultPii) */
+export const SEMANTIC_ATTRIBUTE_USER_EMAIL = 'user.email';
+/** The user IP address (gated by sendDefaultPii) */
+export const SEMANTIC_ATTRIBUTE_USER_IP_ADDRESS = 'user.ip_address';
+/** The user username (gated by sendDefaultPii) */
+export const SEMANTIC_ATTRIBUTE_USER_USERNAME = 'user.username';
+/** The name of the Sentry SDK (e.g., "sentry.php", "sentry.javascript") */
+export const SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME = 'sentry.sdk.name';
+/** The version of the Sentry SDK */
+export const SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION = 'sentry.sdk.version';
