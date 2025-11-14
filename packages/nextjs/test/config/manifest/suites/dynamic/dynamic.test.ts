@@ -34,6 +34,7 @@ describe('dynamic', () => {
           hasOptionalPrefix: false,
         },
       ],
+      isrRoutes: [],
     });
   });
 
