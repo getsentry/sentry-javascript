@@ -1,4 +1,4 @@
-import type { Context, Span, SpanOptions, Tracer, TracerProvider } from '@opentelemetry/api';
+import type { Context, ProxyTracerProvider, Span, SpanOptions, Tracer, TracerProvider } from '@opentelemetry/api';
 import { trace } from '@opentelemetry/api';
 import { startInactiveSpan, startSpanManual } from '@sentry/core';
 
@@ -7,16 +7,24 @@ import { startInactiveSpan, startSpanManual } from '@sentry/core';
  * This is not perfect but handles easy/common use cases.
  */
 export function setupOpenTelemetryTracer(): void {
-  trace.setGlobalTracerProvider(new SentryCloudflareTraceProvider());
+  const result = trace.setGlobalTracerProvider(new SentryCloudflareTraceProvider());
+  if (result) {
+    return;
+  }
+  const current = trace.getTracerProvider() as ProxyTracerProvider;
+  current.setDelegate(new SentryCloudflareTraceProvider(current.getDelegate()));
 }
 
 class SentryCloudflareTraceProvider implements TracerProvider {
   private readonly _tracers: Map<string, Tracer> = new Map();
 
+  public constructor(private readonly _provider?: TracerProvider) {}
+
   public getTracer(name: string, version?: string, options?: { schemaUrl?: string }): Tracer {
     const key = `${name}@${version || ''}:${options?.schemaUrl || ''}`;
     if (!this._tracers.has(key)) {
-      this._tracers.set(key, new SentryCloudflareTracer());
+      const tracer = this._provider?.getTracer?.(key, version, options);
+      this._tracers.set(key, new SentryCloudflareTracer(tracer));
     }
 
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -25,13 +33,54 @@ class SentryCloudflareTraceProvider implements TracerProvider {
 }
 
 class SentryCloudflareTracer implements Tracer {
+  public constructor(private readonly _tracer?: Tracer) {}
   public startSpan(name: string, options?: SpanOptions): Span {
-    return startInactiveSpan({
+    const topSpan = this._tracer?.startSpan?.(name, options);
+    const sentrySpan = startInactiveSpan({
       name,
       ...options,
       attributes: {
         ...options?.attributes,
         'sentry.cloudflare_tracer': true,
+      },
+    });
+    if (!topSpan) {
+      return sentrySpan;
+    }
+    const _proxied = new WeakMap<CallableFunction, CallableFunction>();
+    return new Proxy(sentrySpan, {
+      set: (target, p, newValue, receiver) => {
+        try {
+          Reflect.set(topSpan, p, newValue);
+        } catch {
+          //
+        }
+        return Reflect.set(target, p, newValue, receiver);
+      },
+      get: (target, p) => {
+        const propertyValue = Reflect.get(target, p);
+        if (typeof propertyValue !== 'function') {
+          return propertyValue;
+        }
+        const proxyTo = Reflect.get(topSpan, p);
+        if (typeof proxyTo !== 'function') {
+          return propertyValue;
+        }
+        if (_proxied.has(propertyValue)) {
+          return _proxied.get(propertyValue);
+        }
+        const proxy = new Proxy(propertyValue, {
+          apply: (target, thisArg, argArray) => {
+            try {
+              Reflect.apply(proxyTo, topSpan, argArray);
+            } catch {
+              //
+            }
+            return Reflect.apply(target, thisArg, argArray);
+          },
+        });
+        _proxied.set(propertyValue, proxy);
+        return proxy;
       },
     });
   }
