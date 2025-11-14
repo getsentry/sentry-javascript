@@ -164,3 +164,16 @@ export function getFramesFromEvent(event: Event): StackFrame[] | undefined {
   }
   return undefined;
 }
+
+/**
+ * Get the internal name of an internal Vue value, to represent it in a stacktrace.
+ *
+ * @param value The value to get the internal name of.
+ */
+export function getVueInternalName(value: unknown): string {
+  // Check if it's a VNode (has __v_isVNode) vs a component instance (has _isVue/__isVue)
+  // https://github.com/vuejs/core/blob/main/packages/runtime-core/src/vnode.ts#L168
+  const isVNode = (value as { __v_isVNode?: boolean }).__v_isVNode;
+
+  return isVNode ? '[VueVNode]' : '[VueViewModel]';
+}

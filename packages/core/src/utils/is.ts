@@ -194,13 +194,15 @@ interface VueViewModel {
   _isVue?: boolean;
 }
 /**
- * Checks whether given value's type is a Vue ViewModel.
+ * Checks whether given value's type is a Vue ViewModel or a VNode.
  *
  * @param wat A value to be checked.
  * @returns A boolean representing the result.
  */
 export function isVueViewModel(wat: unknown): boolean {
   // Not using Object.prototype.toString because in Vue 3 it would read the instance's Symbol(Symbol.toStringTag) property.
+  // We also need to check for __v_isVNode because Vue 3 component render instances have an internal __v_isVNode property.
+  // https://github.com/vuejs/core/blob/main/packages/runtime-core/src/vnode.ts#L168
   return !!(
     typeof wat === 'object' &&
     wat !== null &&
