@@ -55,36 +55,66 @@ describe('resolveSpotlightOptions', () => {
     expect(resolveSpotlightOptions(undefined, envUrl)).toBe(envUrl);
   });
 
-  describe('empty string handling', () => {
-    it('returns undefined when options.spotlight is an empty string', () => {
+  describe('empty string handling - NEVER returns empty strings', () => {
+    it('returns undefined (never empty string) when options.spotlight is an empty string', () => {
       expect(resolveSpotlightOptions('', undefined)).toBeUndefined();
       expect(resolveSpotlightOptions('', true)).toBeUndefined();
       expect(resolveSpotlightOptions('', 'http://env:8969')).toBeUndefined();
     });
 
-    it('returns undefined when options.spotlight is whitespace only', () => {
+    it('returns undefined (never empty string) when options.spotlight is whitespace only', () => {
       expect(resolveSpotlightOptions('   ', undefined)).toBeUndefined();
       expect(resolveSpotlightOptions('\t\n', true)).toBeUndefined();
     });
 
-    it('returns undefined when env is an empty string and options.spotlight is undefined', () => {
+    it('returns undefined (never empty string) when env is an empty string and options.spotlight is undefined', () => {
       expect(resolveSpotlightOptions(undefined, '')).toBeUndefined();
     });
 
-    it('returns undefined when env is whitespace only and options.spotlight is undefined', () => {
+    it('returns undefined (never empty string) when env is whitespace only and options.spotlight is undefined', () => {
       expect(resolveSpotlightOptions(undefined, '   ')).toBeUndefined();
       expect(resolveSpotlightOptions(undefined, '\t\n')).toBeUndefined();
     });
 
-    it('returns true when options.spotlight is true and env is empty string', () => {
+    it('returns true when options.spotlight is true and env is empty string (filters out empty env)', () => {
       expect(resolveSpotlightOptions(true, '')).toBe(true);
       expect(resolveSpotlightOptions(true, '   ')).toBe(true);
     });
 
-    it('returns valid URL when options.spotlight is valid URL even if env is empty', () => {
+    it('returns valid URL when options.spotlight is valid URL even if env is empty (filters out empty env)', () => {
       const validUrl = 'http://localhost:8969/stream';
       expect(resolveSpotlightOptions(validUrl, '')).toBe(validUrl);
       expect(resolveSpotlightOptions(validUrl, '   ')).toBe(validUrl);
+    });
+
+    it('NEVER returns empty string - comprehensive check of all combinations', () => {
+      // Test all possible combinations to ensure empty strings are never returned
+      const emptyValues = ['', '   ', '\t\n', '  \t  \n  '];
+      const nonEmptyValues = [false, true, undefined, 'http://localhost:8969'];
+
+      // Empty options.spotlight with any env
+      for (const emptyOption of emptyValues) {
+        for (const env of [...emptyValues, ...nonEmptyValues]) {
+          const result = resolveSpotlightOptions(emptyOption, env);
+          expect(result).not.toBe('');
+          // Only test regex on strings
+          if (typeof result === 'string') {
+            expect(result).not.toMatch(/^\s+$/);
+          }
+        }
+      }
+
+      // Any options.spotlight with empty env
+      for (const option of [...emptyValues, ...nonEmptyValues]) {
+        for (const emptyEnv of emptyValues) {
+          const result = resolveSpotlightOptions(option, emptyEnv);
+          expect(result).not.toBe('');
+          // Only test regex on strings
+          if (typeof result === 'string') {
+            expect(result).not.toMatch(/^\s+$/);
+          }
+        }
+      }
     });
   });
 });

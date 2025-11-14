@@ -99,6 +99,7 @@ export function init(options: BrowserOptions = {}): Client | undefined {
   /* rollup-include-development-only */
   // Resolve Spotlight configuration with proper precedence
   const envSpotlight = getSpotlightConfig();
+  // resolveSpotlightOptions is the single source of truth that ensures empty strings are never used
   const spotlightValue = resolveSpotlightOptions(options.spotlight, envSpotlight);
 
   if (spotlightValue) {
