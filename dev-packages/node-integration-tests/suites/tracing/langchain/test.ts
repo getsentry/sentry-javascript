@@ -68,6 +68,10 @@ describe('LangChain integration', () => {
         origin: 'auto.ai.langchain',
         status: 'internal_error',
       }),
+      // Fourth span - agent executor
+      expect.objectContaining({
+        op: 'gen_ai.invoke_agent',
+      }),
     ]),
   };
 
@@ -179,7 +183,7 @@ describe('LangChain integration', () => {
           'gen_ai.response.id': expect.any(String),
           'gen_ai.response.model': expect.any(String),
           'gen_ai.response.stop_reason': 'tool_use',
-          'gen_ai.response.tool_calls': expect.any(String),
+          'gen_ai.response.tool_calls': expect.stringContaining('get_weather'),
         }),
         description: 'chat claude-3-5-sonnet-20241022',
         op: 'gen_ai.chat',
