@@ -33,7 +33,9 @@ describe('withSentry', () => {
       { options: MOCK_OPTIONS, request: new Request('https://example.com'), context: createMockExecutionContext() },
       () => response,
     );
-    expect(result).toBe(response);
+    // Response may be wrapped for streaming detection, verify content matches
+    expect(result.status).toBe(response.status);
+    expect(await result.text()).toBe('test');
   });
 
   test('flushes the event after the handler is done using the cloudflare context.waitUntil', async () => {
@@ -46,6 +48,25 @@ describe('withSentry', () => {
 
     expect(waitUntilSpy).toHaveBeenCalledTimes(1);
     expect(waitUntilSpy).toHaveBeenLastCalledWith(expect.any(Promise));
+  });
+
+  test('handles streaming responses correctly', async () => {
+    const stream = new ReadableStream({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode('chunk1'));
+        controller.enqueue(new TextEncoder().encode('chunk2'));
+        controller.close();
+      },
+    });
+    const streamingResponse = new Response(stream);
+
+    const result = await wrapRequestHandler(
+      { options: MOCK_OPTIONS, request: new Request('https://example.com'), context: createMockExecutionContext() },
+      () => streamingResponse,
+    );
+
+    const text = await result.text();
+    expect(text).toBe('chunk1chunk2');
   });
 
   test("doesn't error if context is undefined", () => {
@@ -69,7 +90,7 @@ describe('withSentry', () => {
   });
 
   test('flush must be called when all waitUntil are done', async () => {
-    const flush = vi.spyOn(SentryCore.Client.prototype, 'flush');
+    const flushSpy = vi.spyOn(SentryCore.Client.prototype, 'flush');
     vi.useFakeTimers();
     onTestFinished(() => {
       vi.useRealTimers();
@@ -83,13 +104,17 @@ describe('withSentry', () => {
 
     await wrapRequestHandler({ options: MOCK_OPTIONS, request: new Request('https://example.com'), context }, () => {
       addDelayedWaitUntil(context);
-      return new Response('test');
+      const response = new Response('test');
+      // Add Content-Length to skip probing
+      response.headers.set('content-length', '4');
+      return response;
     });
-    expect(flush).not.toBeCalled();
+    expect(flushSpy).not.toBeCalled();
     expect(waitUntil).toBeCalled();
-    vi.advanceTimersToNextTimerAsync().then(() => vi.runAllTimers());
+    await vi.advanceTimersToNextTimerAsync();
+    vi.runAllTimers();
     await Promise.all(waits);
-    expect(flush).toHaveBeenCalledOnce();
+    expect(flushSpy).toHaveBeenCalledOnce();
   });
 
   describe('scope instrumentation', () => {
@@ -302,6 +327,9 @@ describe('withSentry', () => {
           return new Response('test');
         },
       );
+
+      // Wait for async span end and transaction capture
+      await new Promise(resolve => setTimeout(resolve, 50));
 
       expect(sentryEvent.transaction).toEqual('GET /');
       expect(sentryEvent.spans).toHaveLength(0);

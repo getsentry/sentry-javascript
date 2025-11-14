@@ -72,7 +72,11 @@ describe('withSentry', () => {
         createMockExecutionContext(),
       );
 
-      expect(result).toBe(response);
+      // Response may be wrapped for streaming detection, verify content
+      expect(result?.status).toBe(response.status);
+      if (result) {
+        expect(await result.text()).toBe('test');
+      }
     });
 
     test('merges options from env and callback', async () => {
