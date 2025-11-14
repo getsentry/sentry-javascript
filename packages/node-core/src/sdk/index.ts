@@ -191,8 +191,10 @@ function getClientOptions(
     spotlight = options.spotlight;
   } else {
     // options.spotlight is true or undefined
-    const envBool = envToBool(process.env.SENTRY_SPOTLIGHT, { strict: true });
-    const envUrl = envBool === null && process.env.SENTRY_SPOTLIGHT ? process.env.SENTRY_SPOTLIGHT : undefined;
+    const rawEnv = process.env.SENTRY_SPOTLIGHT;
+    const envBool = envToBool(rawEnv, { strict: true });
+    // Accept env URL only if it's a non-empty, non-whitespace string
+    const envUrl = envBool === null && typeof rawEnv === 'string' && rawEnv.trim().length > 0 ? rawEnv : undefined;
 
     spotlight =
       options.spotlight === true

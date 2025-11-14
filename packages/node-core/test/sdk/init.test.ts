@@ -323,6 +323,42 @@ describe('init()', () => {
         expect(client?.getOptions().spotlight).toBe(true);
         expect(client?.getOptions().integrations.some(integration => integration.name === 'Spotlight')).toBe(true);
       });
+
+      it('treats empty string `SENTRY_SPOTLIGHT` env variable as unset', () => {
+        process.env.SENTRY_SPOTLIGHT = '';
+
+        const client = init({ dsn: PUBLIC_DSN });
+
+        expect(client?.getOptions().spotlight).toBeUndefined();
+        expect(client?.getOptions().integrations.some(integration => integration.name === 'Spotlight')).toBe(false);
+      });
+
+      it('treats whitespace-only `SENTRY_SPOTLIGHT` env variable as unset', () => {
+        process.env.SENTRY_SPOTLIGHT = '   ';
+
+        const client = init({ dsn: PUBLIC_DSN });
+
+        expect(client?.getOptions().spotlight).toBeUndefined();
+        expect(client?.getOptions().integrations.some(integration => integration.name === 'Spotlight')).toBe(false);
+      });
+
+      it('config `true` with empty string env var uses default URL', () => {
+        process.env.SENTRY_SPOTLIGHT = '';
+
+        const client = init({ dsn: PUBLIC_DSN, spotlight: true });
+
+        expect(client?.getOptions().spotlight).toBe(true);
+        expect(client?.getOptions().integrations.some(integration => integration.name === 'Spotlight')).toBe(true);
+      });
+
+      it('config `true` with whitespace-only env var uses default URL', () => {
+        process.env.SENTRY_SPOTLIGHT = '   ';
+
+        const client = init({ dsn: PUBLIC_DSN, spotlight: true });
+
+        expect(client?.getOptions().spotlight).toBe(true);
+        expect(client?.getOptions().integrations.some(integration => integration.name === 'Spotlight')).toBe(true);
+      });
     });
   });
 });
