@@ -3,48 +3,38 @@
  */
 
 import { builtinModules } from 'module';
-
+import path from 'node:path';
+import fs from 'node:fs';
 import deepMerge from 'deepmerge';
 
 import {
   makeBrowserBuildPlugin,
-  makeCleanupPlugin,
-  makeCommonJSPlugin,
   makeIsDebugBuildPlugin,
-  makeLicensePlugin,
-  makeNodeResolvePlugin,
   makeRrwebBuildPlugin,
   makeSetSDKSourcePlugin,
-  makeSucrasePlugin,
+  makeBannerOptions,
   makeTerserPlugin,
 } from './plugins/index.mjs';
-import { mergePlugins } from './utils.mjs';
-import { makeProductionReplacePlugin } from './plugins/npmPlugins.mjs';
+import { mergePlugins, treeShakePreset } from './utils.mjs';
 
 const BUNDLE_VARIANTS = ['.js', '.min.js', '.debug.min.js'];
 
-export function makeBaseBundleConfig(options) {
-  const { bundleType, entrypoints, licenseTitle, outputFileBase, packageSpecificConfig, sucrase } = options;
+const packageDotJSON = JSON.parse(fs.readFileSync(path.resolve(process.cwd(), './package.json'), { encoding: 'utf8' }));
 
-  const nodeResolvePlugin = makeNodeResolvePlugin();
-  const sucrasePlugin = makeSucrasePlugin({}, sucrase);
-  const cleanupPlugin = makeCleanupPlugin();
+export function makeBaseBundleConfig(options) {
+  const { bundleType, entrypoints, licenseTitle, outputFileBase, packageSpecificConfig } = options;
+
   const markAsBrowserBuildPlugin = makeBrowserBuildPlugin(true);
-  const licensePlugin = makeLicensePlugin(licenseTitle);
+  const banner = makeBannerOptions(licenseTitle, packageDotJSON.version);
   const rrwebBuildPlugin = makeRrwebBuildPlugin({
     excludeIframe: false,
     excludeShadowDom: false,
   });
-  const productionReplacePlugin = makeProductionReplacePlugin();
-
-  // The `commonjs` plugin is the `esModuleInterop` of the bundling world. When used with `transformMixedEsModules`, it
-  // will include all dependencies, imported or required, in the final bundle. (Without it, CJS modules aren't included
-  // at all, and without `transformMixedEsModules`, they're only included if they're imported, not if they're required.)
-  const commonJSPlugin = makeCommonJSPlugin({ transformMixedEsModules: true });
 
   // used by `@sentry/browser`
   const standAloneBundleConfig = {
     output: {
+      banner,
       format: 'iife',
       name: 'Sentry',
       intro: () => {
@@ -52,7 +42,7 @@ export function makeBaseBundleConfig(options) {
       },
     },
     context: 'window',
-    plugins: [rrwebBuildPlugin, markAsBrowserBuildPlugin, licensePlugin],
+    plugins: [rrwebBuildPlugin, markAsBrowserBuildPlugin],
   };
 
   // used by `@sentry/wasm` & pluggable integrations from core/browser (bundles which need to be combined with a stand-alone SDK bundle)
@@ -63,7 +53,7 @@ export function makeBaseBundleConfig(options) {
       format: 'cjs',
 
       // code to add before the CJS wrapper
-      banner: '(function (__window) {',
+      banner: `${banner}\n(function (__window) {`,
 
       // code to add just inside the CJS wrapper, before any of the wrapped code
       intro: 'var exports = {};',
@@ -86,14 +76,15 @@ export function makeBaseBundleConfig(options) {
       // code to add after the CJS wrapper
       footer: '}(window));',
     },
-    plugins: [rrwebBuildPlugin, markAsBrowserBuildPlugin, licensePlugin],
+    plugins: [rrwebBuildPlugin, markAsBrowserBuildPlugin],
   };
 
   const workerBundleConfig = {
     output: {
+      banner,
       format: 'esm',
     },
-    plugins: [commonJSPlugin, makeTerserPlugin(), licensePlugin],
+    plugins: [makeTerserPlugin()],
     // Don't bundle any of Node's core modules
     external: builtinModules,
   };
@@ -102,7 +93,7 @@ export function makeBaseBundleConfig(options) {
     output: {
       format: 'esm',
     },
-    plugins: [commonJSPlugin, makeIsDebugBuildPlugin(true), makeTerserPlugin()],
+    plugins: [makeIsDebugBuildPlugin(true), makeTerserPlugin()],
     // Don't bundle any of Node's core modules
     external: builtinModules,
   };
@@ -118,8 +109,7 @@ export function makeBaseBundleConfig(options) {
       strict: false,
       esModule: false,
     },
-    plugins: [productionReplacePlugin, sucrasePlugin, nodeResolvePlugin, cleanupPlugin],
-    treeshake: 'smallest',
+    treeshake: treeShakePreset('smallest'),
   };
 
   const bundleTypeConfigMap = {
@@ -180,6 +170,7 @@ export function makeBundleConfigVariants(baseConfig, options = {}) {
     if (!BUNDLE_VARIANTS.includes(variant)) {
       throw new Error(`Unknown bundle variant requested: ${variant}`);
     }
+
     return deepMerge(baseConfig, variantSpecificConfigMap[variant], {
       // Merge the plugin arrays and make sure the end result is in the correct order. Everything else can use the
       // default merge strategy.

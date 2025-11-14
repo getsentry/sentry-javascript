@@ -9,4 +9,10 @@ export default defineConfig({
     }),
     sveltekit(),
   ],
+  // https://github.com/sveltejs/kit/issues/11416
+  build: {
+    rollupOptions: {
+      external: ['fsevents'],
+    },
+  },
 });
