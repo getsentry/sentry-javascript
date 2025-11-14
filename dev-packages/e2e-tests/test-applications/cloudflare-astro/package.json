@@ -19,7 +19,7 @@
   "dependencies": {
     "@astrojs/cloudflare": "8.1.0",
     "@sentry/astro": "latest || *",
-    "astro": "4.16.18"
+    "astro": "5.15.6"
   },
   "devDependencies": {
     "@astrojs/internal-helpers": "0.4.1"
