@@ -93,4 +93,55 @@ describe('Sentry.VueIntegration', () => {
     ]);
     expect(loggerWarnings).toEqual([]);
   });
+
+  it('does not trigger warning spam when normalizing Vue VNodes with high normalizeDepth', () => {
+    // This test reproduces the issue from https://github.com/getsentry/sentry-javascript/issues/18203
+    // where VNodes in console arguments would trigger recursive warning spam with captureConsoleIntegration
+
+    Sentry.init({
+      dsn: PUBLIC_DSN,
+      defaultIntegrations: false,
+      normalizeDepth: 10, // High depth that would cause the issue
+      integrations: [Sentry.captureConsoleIntegration({ levels: ['warn'] })],
+    });
+
+    const initialWarningCount = warnings.length;
+
+    // Create a mock VNode that simulates the problematic behavior from the original issue
+    // In the real scenario, accessing VNode properties during normalization would trigger Vue warnings
+    // which would then be captured and normalized again, creating a recursive loop
+    let propertyAccessCount = 0;
+    const mockVNode = {
+      __v_isVNode: true,
+      __v_skip: true,
+      type: {},
+      get ctx() {
+        // Simulate Vue's behavior where accessing ctx triggers a warning
+        propertyAccessCount++;
+        // eslint-disable-next-line no-console
+        console.warn('[Vue warn]: compilerOptions warning triggered by property access');
+        return { uid: 1 };
+      },
+      get props() {
+        propertyAccessCount++;
+        return {};
+      },
+    };
+
+    // Pass the mock VNode to console.warn, simulating what Vue does
+    // Without the fix, Sentry would try to normalize mockVNode, access its ctx property,
+    // which triggers another warning, which gets captured and normalized, creating infinite recursion
+    // eslint-disable-next-line no-console
+    console.warn('[Vue warn]: Original warning', mockVNode);
+
+    // With the fix, Sentry detects the VNode early and stringifies it as [VueVNode]
+    // without accessing its properties, so propertyAccessCount stays at 0
+    expect(propertyAccessCount).toBe(0);
+
+    // Only 1 warning should be captured (the original one)
+    // Without the fix, the count would multiply as ctx getter warnings get recursively captured
+    const warningCountAfter = warnings.length;
+    const newWarnings = warningCountAfter - initialWarningCount;
+    expect(newWarnings).toBe(1);
+  });
 });
