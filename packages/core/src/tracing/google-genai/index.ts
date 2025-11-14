@@ -115,7 +115,7 @@ function extractRequestAttributes(
 
       // Extract available tools from config
       if ('tools' in config && Array.isArray(config.tools)) {
-        const functionDeclarations = config.tools.map(
+        const functionDeclarations = config.tools.flatMap(
           (tool: { functionDeclarations: unknown[] }) => tool.functionDeclarations,
         );
         attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE] = JSON.stringify(functionDeclarations);
