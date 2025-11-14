@@ -70,3 +70,20 @@ export function _INTERNAL_getSpanForToolCallId(toolCallId: string): Span | undef
 export function _INTERNAL_cleanupToolCallSpan(toolCallId: string): void {
   toolCallSpanMap.delete(toolCallId);
 }
+
+/**
+ * Convert an array of tool strings to a JSON string
+ */
+export function convertAvailableToolsToJsonString(tools: unknown[]): string {
+  const toolObjects = tools.map(tool => {
+    if (typeof tool === 'string') {
+      try {
+        return JSON.parse(tool);
+      } catch {
+        return tool;
+      }
+    }
+    return tool;
+  });
+  return JSON.stringify(toolObjects);
+}
