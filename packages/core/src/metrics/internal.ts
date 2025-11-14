@@ -88,14 +88,16 @@ function setMetricAttribute(
  */
 export function _INTERNAL_captureSerializedMetric(client: Client, serializedMetric: SerializedMetric): void {
   const bufferMap = _getBufferMap();
-
   const metricBuffer = _INTERNAL_getMetricBuffer(client);
+
   if (metricBuffer === undefined) {
     bufferMap.set(client, [serializedMetric]);
   } else {
-    bufferMap.set(client, [...metricBuffer, serializedMetric]);
     if (metricBuffer.length >= MAX_METRIC_BUFFER_SIZE) {
       _INTERNAL_flushMetricsBuffer(client, metricBuffer);
+      bufferMap.set(client, [serializedMetric]);
+    } else {
+      bufferMap.set(client, [...metricBuffer, serializedMetric]);
     }
   }
 }
