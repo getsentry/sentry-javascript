@@ -2,7 +2,9 @@
 
 ## Unreleased
 
-- fix(node): Fix Spotlight configuration precedence to match specification (#18195)
+- feat(browser): Add environment variable support for Spotlight configuration ([#18198](https://github.com/getsentry/sentry-javascript/pull/18198))
+  - `SENTRY_SPOTLIGHT`, `PUBLIC_SENTRY_SPOTLIGHT`, `NEXT_PUBLIC_SENTRY_SPOTLIGHT`, `VITE_SENTRY_SPOTLIGHT`, `NUXT_PUBLIC_SENTRY_SPOTLIGHT`, `REACT_APP_SENTRY_SPOTLIGHT`, `VUE_APP_SENTRY_SPOTLIGHT`, and `GATSBY_SENTRY_SPOTLIGHT`
+- fix(node): Fix Spotlight configuration precedence to match specification ([#18195](https://github.com/getsentry/sentry-javascript/pull/18195))
 
 ## 10.25.0
 
