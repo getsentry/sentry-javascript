@@ -48,9 +48,7 @@ function notProfiledFib(n) {
 
 // Adding setTimeout to ensure we cross the sampling interval to avoid flakes
 
-// ---
-
-Sentry.profiler.startProfiler();
+Sentry.uiProfiler.startProfiler();
 
 fibonacci(40);
 await new Promise(resolve => setTimeout(resolve, 25));
@@ -58,7 +56,7 @@ await new Promise(resolve => setTimeout(resolve, 25));
 largeSum();
 await new Promise(resolve => setTimeout(resolve, 25));
 
-Sentry.profiler.stopProfiler();
+Sentry.uiProfiler.stopProfiler();
 
 // ---
 
@@ -67,14 +65,12 @@ await new Promise(resolve => setTimeout(resolve, 25));
 
 // ---
 
-Sentry.profiler.startProfiler();
+Sentry.uiProfiler.startProfiler();
 
 fibonacci2(40);
 await new Promise(resolve => setTimeout(resolve, 25));
 
-Sentry.profiler.stopProfiler();
-
-// ---
+Sentry.uiProfiler.stopProfiler();
 
 const client = Sentry.getClient();
 await client?.flush(8000);

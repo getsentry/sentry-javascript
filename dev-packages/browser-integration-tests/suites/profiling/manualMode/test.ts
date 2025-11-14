@@ -51,6 +51,8 @@ sentryTest('sends profile_chunk envelopes in manual mode', async ({ page, getLoc
   expect(envelopeItemHeader).toHaveProperty('type', 'profile_chunk');
   expect(envelopeItemPayload1.profile).toBeDefined();
 
+  const profilerId1 = envelopeItemPayload1.profiler_id;
+
   validateProfilePayloadMetadata(envelopeItemPayload1);
 
   validateProfile(envelopeItemPayload1.profile, {
@@ -71,6 +73,8 @@ sentryTest('sends profile_chunk envelopes in manual mode', async ({ page, getLoc
 
   expect(envelopeItemHeader2).toHaveProperty('type', 'profile_chunk');
   expect(envelopeItemPayload2.profile).toBeDefined();
+
+  expect(envelopeItemPayload2.profiler_id).toBe(profilerId1); // same profiler id for the whole session
 
   validateProfilePayloadMetadata(envelopeItemPayload2);
 
