@@ -3,6 +3,7 @@
 import type { Primitive } from '../types-hoist/misc';
 import type { ParameterizedString } from '../types-hoist/parameterize';
 import type { PolymorphicEvent } from '../types-hoist/polymorphics';
+import type { VNode, VueViewModel } from '../types-hoist/vue';
 
 // eslint-disable-next-line @typescript-eslint/unbound-method
 const objectToString = Object.prototype.toString;
@@ -187,22 +188,15 @@ export function isInstanceOf(wat: any, base: any): boolean {
   }
 }
 
-interface VueViewModel {
-  // Vue3
-  __isVue?: boolean;
-  // Vue2
-  _isVue?: boolean;
-}
 /**
  * Checks whether given value's type is a Vue ViewModel or a VNode.
  *
  * @param wat A value to be checked.
  * @returns A boolean representing the result.
  */
-export function isVueViewModel(wat: unknown): boolean {
+export function isVueViewModel(wat: unknown): wat is VueViewModel | VNode {
   // Not using Object.prototype.toString because in Vue 3 it would read the instance's Symbol(Symbol.toStringTag) property.
   // We also need to check for __v_isVNode because Vue 3 component render instances have an internal __v_isVNode property.
-  // https://github.com/vuejs/core/blob/main/packages/runtime-core/src/vnode.ts#L168
   return !!(
     typeof wat === 'object' &&
     wat !== null &&
