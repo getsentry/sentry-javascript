@@ -15,6 +15,7 @@
  */
 
 import { WINDOW } from '../../../types';
+import { addPageListener } from './globalListeners';
 
 export interface OnHiddenCallback {
   (event: Event): void;
@@ -37,10 +38,8 @@ export const onHidden = (cb: OnHiddenCallback) => {
     }
   };
 
-  if (WINDOW.document) {
-    addEventListener('visibilitychange', onHiddenOrPageHide, true);
-    // Some browsers have buggy implementations of visibilitychange,
-    // so we use pagehide in addition, just to be safe.
-    addEventListener('pagehide', onHiddenOrPageHide, true);
-  }
+  addPageListener('visibilitychange', onHiddenOrPageHide, true);
+  // Some browsers have buggy implementations of visibilitychange,
+  // so we use pagehide in addition, just to be safe.
+  addPageListener('pagehide', onHiddenOrPageHide, true);
 };
