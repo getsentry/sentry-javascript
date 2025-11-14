@@ -1,6 +1,6 @@
 /* eslint-disable max-lines */
-import type { Attributes, AttributeValueType, TypedAttributeValue } from './attributes';
-import { attributeValueToTypedAttributeValue } from './attributes';
+import type { Attributes, AttributeValueType, TypedAttributeValue, ValidatedAttributes } from './attributes';
+import { attributeValueToTypedAttributeValue, isAttributeObject } from './attributes';
 import type { Client } from './client';
 import { DEBUG_BUILD } from './debug-build';
 import { updateSession } from './session';
@@ -324,14 +324,27 @@ export class Scope {
    * });
    * ```
    */
-  public setAttributes(newAttributes: Record<string, AttributeValueType | TypedAttributeValue>): this {
+  public setAttributes<T extends Record<string, unknown>>(newAttributes: T & ValidatedAttributes<T>): this {
     Object.entries(newAttributes).forEach(([key, value]) => {
-      if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-        this._attributes[key] = value;
+      if (isAttributeObject(value)) {
+        // Case 1: ({ value, unit })
+        if ('unit' in value && !('type' in value)) {
+          // Infer type from the inner value
+          this._attributes[key] = {
+            ...attributeValueToTypedAttributeValue(value.value),
+            unit: value.unit,
+          };
+        }
+        // Case 2: ({ value, type, unit? })
+        else {
+          this._attributes[key] = value;
+        }
       } else {
+        // Else: (string, number, etc.) or a random object (will stringify random values).
         this._attributes[key] = attributeValueToTypedAttributeValue(value);
       }
     });
+
     this._notifyScopeListeners();
     return this;
   }

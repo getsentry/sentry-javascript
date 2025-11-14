@@ -80,7 +80,6 @@ describe('attributeValueToTypedAttributeValue', () => {
     });
 
     it('stringifies an array of mixed types to a string attribute value', () => {
-      // @ts-expect-error - this is not allowed by types but we still test fallback behaviour
       const result = attributeValueToTypedAttributeValue([1, 'foo', true]);
       expect(result).toEqual({
         value: '[1,"foo",true]',
@@ -89,7 +88,6 @@ describe('attributeValueToTypedAttributeValue', () => {
     });
 
     it('stringifies an object value to a string attribute value', () => {
-      // @ts-expect-error - this is not allowed by types but we still test fallback behaviour
       const result = attributeValueToTypedAttributeValue({ foo: 'bar' });
       expect(result).toEqual({
         value: '{"foo":"bar"}',
