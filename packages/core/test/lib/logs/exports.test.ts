@@ -245,7 +245,10 @@ describe('_INTERNAL_captureLog', () => {
     // Add one more to trigger flush
     _INTERNAL_captureLog({ level: 'info', message: 'trigger flush' }, client, undefined);
 
-    expect(_INTERNAL_getLogBuffer(client)).toEqual([]);
+    // After flushing the 100 logs, the new log starts a fresh buffer with 1 item
+    const buffer = _INTERNAL_getLogBuffer(client);
+    expect(buffer).toHaveLength(1);
+    expect(buffer?.[0]?.body).toBe('trigger flush');
   });
 
   it('does not flush logs buffer when it is empty', () => {
