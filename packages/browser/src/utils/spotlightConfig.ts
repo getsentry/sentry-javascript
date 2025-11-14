@@ -50,7 +50,14 @@ export function getSpotlightConfig(): boolean | string | undefined {
       }
 
       // Not a boolean, treat as custom URL string
-      // Note: empty/whitespace strings are filtered by resolveSpotlightOptions
+      // Filter empty/whitespace strings to prevent invalid configurations
+      if (value.trim() === '') {
+        if (DEBUG_BUILD) {
+          debug.log(`[Spotlight] Skipping ${key} with empty/whitespace value`);
+        }
+        continue;
+      }
+
       if (DEBUG_BUILD) {
         debug.log(`[Spotlight] Found ${key}=${value} (custom URL) in environment variables`);
       }
