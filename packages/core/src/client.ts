@@ -94,7 +94,7 @@ function _isDoNotSendEventError(error: unknown): error is DoNotSendEventError {
  * This helper function encapsulates the common pattern of:
  * 1. Tracking accumulated weight of items
  * 2. Flushing when weight exceeds threshold (800KB)
- * 3. Flushing after idle timeout if no new items arrive
+ * 3. Flushing after timeout period from the first item
  *
  * Uses closure variables to track weight and timeout state.
  */
@@ -112,11 +112,13 @@ function setupWeightBasedFlushing<
   // Track weight and timeout in closure variables
   let weight = 0;
   let flushTimeout: ReturnType<typeof setTimeout> | undefined;
+  let isTimerActive = false;
 
   // @ts-expect-error - TypeScript can't narrow generic hook types to match specific overloads, but we know this is type-safe
   client.on(flushHook, () => {
     weight = 0;
     clearTimeout(flushTimeout);
+    isTimerActive = false;
   });
 
   // @ts-expect-error - TypeScript can't narrow generic hook types to match specific overloads, but we know this is type-safe
@@ -127,10 +129,14 @@ function setupWeightBasedFlushing<
     // The weight is a rough estimate, so we flush way before the payload gets too big.
     if (weight >= 800_000) {
       flushFn(client);
-    } else {
-      clearTimeout(flushTimeout);
+    } else if (!isTimerActive) {
+      // Only start timer if one isn't already running.
+      // This prevents flushing being delayed by logs that arrive close to the timeout limit
+      // and thus resetting the flushing timeout and delaying logs being flushed.
+      isTimerActive = true;
       flushTimeout = setTimeout(() => {
         flushFn(client);
+        isTimerActive = false;
       }, DEFAULT_FLUSH_INTERVAL);
     }
   });
