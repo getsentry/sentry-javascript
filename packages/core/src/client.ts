@@ -131,12 +131,13 @@ function setupWeightBasedFlushing<
       flushFn(client);
     } else if (!isTimerActive) {
       // Only start timer if one isn't already running.
-      // This prevents flushing being delayed by logs that arrive close to the timeout limit
-      // and thus resetting the flushing timeout and delaying logs being flushed.
+      // This prevents flushing being delayed by items that arrive close to the timeout limit
+      // and thus resetting the flushing timeout and delaying items being flushed.
       isTimerActive = true;
       flushTimeout = setTimeout(() => {
         flushFn(client);
-        isTimerActive = false;
+        // Note: isTimerActive is reset by the flushHook handler above, not here,
+        // to avoid race conditions when new items arrive during the flush.
       }, DEFAULT_FLUSH_INTERVAL);
     }
   });
