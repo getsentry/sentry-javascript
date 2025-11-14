@@ -36,6 +36,7 @@ export class ServerRuntimeClient<
 > extends Client<O> {
   private _logFlushIdleTimeout: ReturnType<typeof setTimeout> | undefined;
   private _logWeight: number;
+  private _isLogTimerActive: boolean;
 
   /**
    * Creates a new Edge SDK instance.
@@ -48,6 +49,7 @@ export class ServerRuntimeClient<
     super(options);
 
     this._logWeight = 0;
+    this._isLogTimerActive = false;
 
     // eslint-disable-next-line deprecation/deprecation
     const shouldEnableLogs = this._options.enableLogs ?? this._options._experiments?.enableLogs;
@@ -58,6 +60,7 @@ export class ServerRuntimeClient<
       client.on('flushLogs', () => {
         client._logWeight = 0;
         clearTimeout(client._logFlushIdleTimeout);
+        client._isLogTimerActive = false;
       });
 
       client.on('afterCaptureLog', log => {
@@ -68,10 +71,15 @@ export class ServerRuntimeClient<
         // the payload gets too big.
         if (client._logWeight >= 800_000) {
           _INTERNAL_flushLogsBuffer(client);
-        } else {
-          // start an idle timeout to flush the logs buffer if no logs are captured for a while
+        } else if (!client._isLogTimerActive) {
+          // Only start timer if one isn't already running.
+          // This prevents flushing being delayed by logs that arrive close to the timeout limit
+          // and thus resetting the flushing timeout and delaying logs being flushed.
+          client._isLogTimerActive = true;
           client._logFlushIdleTimeout = setTimeout(() => {
             _INTERNAL_flushLogsBuffer(client);
+            // Note: _isLogTimerActive is reset by the flushLogs handler above, not here,
+            // to avoid race conditions when new logs arrive during the flush.
           }, DEFAULT_LOG_FLUSH_INTERVAL);
         }
       });
