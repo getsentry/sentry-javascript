@@ -2,6 +2,7 @@ import type { Integration, Options } from '@sentry/core';
 import {
   applySdkMetadata,
   consoleIntegration,
+  consoleLoggingIntegration,
   consoleSandbox,
   debug,
   functionToStringIntegration,
@@ -45,8 +46,8 @@ import { initializeEsmLoader } from './esmLoader';
 /**
  * Get default integrations for the Node-Core SDK.
  */
-export function getDefaultIntegrations(): Integration[] {
-  return [
+export function getDefaultIntegrations(options: NodeOptions = {}): Integration[] {
+  const integrations = [
     // Common
     // TODO(v11): Replace with `eventFiltersIntegration` once we remove the deprecated `inboundFiltersIntegration`
     // eslint-disable-next-line deprecation/deprecation
@@ -70,6 +71,13 @@ export function getDefaultIntegrations(): Integration[] {
     processSessionIntegration(),
     modulesIntegration(),
   ];
+
+  if (options.enableLogs) {
+    // TODO(v11): Remove this once we add logs to the `consoleIntegration`.
+    integrations.push(consoleLoggingIntegration());
+  }
+
+  return integrations;
 }
 
 /**
