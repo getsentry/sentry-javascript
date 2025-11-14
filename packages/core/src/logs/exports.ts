@@ -90,14 +90,16 @@ function setLogAttribute(
  */
 export function _INTERNAL_captureSerializedLog(client: Client, serializedLog: SerializedLog): void {
   const bufferMap = _getBufferMap();
-
   const logBuffer = _INTERNAL_getLogBuffer(client);
+
   if (logBuffer === undefined) {
     bufferMap.set(client, [serializedLog]);
   } else {
-    bufferMap.set(client, [...logBuffer, serializedLog]);
     if (logBuffer.length >= MAX_LOG_BUFFER_SIZE) {
       _INTERNAL_flushLogsBuffer(client, logBuffer);
+      bufferMap.set(client, [serializedLog]);
+    } else {
+      bufferMap.set(client, [...logBuffer, serializedLog]);
     }
   }
 }
