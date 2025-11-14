@@ -16,16 +16,14 @@ describe('getSpotlightConfig', () => {
     if (originalProcess !== undefined) {
       globalThis.process = originalProcess;
     } else {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      delete (globalThis as any).process;
+      delete (globalThis as typeof globalThis & { process?: NodeJS.Process }).process;
     }
   });
 
   it('returns undefined when no environment variables are set', () => {
     globalThis.process = {
       env: {},
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } as any;
+    } as NodeJS.Process;
 
     expect(getSpotlightConfig()).toBeUndefined();
   });
@@ -34,9 +32,8 @@ describe('getSpotlightConfig', () => {
     globalThis.process = {
       env: {
         SENTRY_SPOTLIGHT: 'true',
-      },
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } as any;
+      } as Record<string, string>,
+    } as NodeJS.Process;
 
     expect(getSpotlightConfig()).toBe(true);
   });
@@ -45,9 +42,8 @@ describe('getSpotlightConfig', () => {
     globalThis.process = {
       env: {
         SENTRY_SPOTLIGHT: 'false',
-      },
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } as any;
+      } as Record<string, string>,
+    } as NodeJS.Process;
 
     expect(getSpotlightConfig()).toBe(false);
   });
@@ -57,9 +53,8 @@ describe('getSpotlightConfig', () => {
     globalThis.process = {
       env: {
         SENTRY_SPOTLIGHT: customUrl,
-      },
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } as any;
+      } as Record<string, string>,
+    } as NodeJS.Process;
 
     expect(getSpotlightConfig()).toBe(customUrl);
   });
@@ -71,9 +66,8 @@ describe('getSpotlightConfig', () => {
       globalThis.process = {
         env: {
           SENTRY_SPOTLIGHT: value,
-        },
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } as any;
+        } as Record<string, string>,
+      } as NodeJS.Process;
 
       expect(getSpotlightConfig()).toBe(true);
     });
@@ -86,23 +80,21 @@ describe('getSpotlightConfig', () => {
       globalThis.process = {
         env: {
           SENTRY_SPOTLIGHT: value,
-        },
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } as any;
+        } as Record<string, string>,
+      } as NodeJS.Process;
 
       expect(getSpotlightConfig()).toBe(false);
     });
   });
 
   describe('priority order', () => {
-    it('prioritizes SENTRY_SPOTLIGHT over PUBLIC_SENTRY_SPOTLIGHT', () => {
+    it('prioritizes PUBLIC_SENTRY_SPOTLIGHT over SENTRY_SPOTLIGHT', () => {
       globalThis.process = {
         env: {
-          SENTRY_SPOTLIGHT: 'true',
-          PUBLIC_SENTRY_SPOTLIGHT: 'false',
-        },
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } as any;
+          PUBLIC_SENTRY_SPOTLIGHT: 'true',
+          SENTRY_SPOTLIGHT: 'false',
+        } as Record<string, string>,
+      } as NodeJS.Process;
 
       expect(getSpotlightConfig()).toBe(true);
     });
@@ -112,9 +104,8 @@ describe('getSpotlightConfig', () => {
         env: {
           PUBLIC_SENTRY_SPOTLIGHT: 'true',
           NEXT_PUBLIC_SENTRY_SPOTLIGHT: 'false',
-        },
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } as any;
+        } as Record<string, string>,
+      } as NodeJS.Process;
 
       expect(getSpotlightConfig()).toBe(true);
     });
@@ -124,9 +115,8 @@ describe('getSpotlightConfig', () => {
         env: {
           NEXT_PUBLIC_SENTRY_SPOTLIGHT: 'true',
           VITE_SENTRY_SPOTLIGHT: 'false',
-        },
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } as any;
+        } as Record<string, string>,
+      } as NodeJS.Process;
 
       expect(getSpotlightConfig()).toBe(true);
     });
@@ -136,9 +126,8 @@ describe('getSpotlightConfig', () => {
         env: {
           VITE_SENTRY_SPOTLIGHT: 'true',
           NUXT_PUBLIC_SENTRY_SPOTLIGHT: 'false',
-        },
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } as any;
+        } as Record<string, string>,
+      } as NodeJS.Process;
 
       expect(getSpotlightConfig()).toBe(true);
     });
@@ -148,9 +137,8 @@ describe('getSpotlightConfig', () => {
         env: {
           NUXT_PUBLIC_SENTRY_SPOTLIGHT: 'true',
           REACT_APP_SENTRY_SPOTLIGHT: 'false',
-        },
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } as any;
+        } as Record<string, string>,
+      } as NodeJS.Process;
 
       expect(getSpotlightConfig()).toBe(true);
     });
@@ -160,9 +148,8 @@ describe('getSpotlightConfig', () => {
         env: {
           REACT_APP_SENTRY_SPOTLIGHT: 'true',
           VUE_APP_SENTRY_SPOTLIGHT: 'false',
-        },
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } as any;
+        } as Record<string, string>,
+      } as NodeJS.Process;
 
       expect(getSpotlightConfig()).toBe(true);
     });
@@ -172,9 +159,8 @@ describe('getSpotlightConfig', () => {
         env: {
           VUE_APP_SENTRY_SPOTLIGHT: 'true',
           GATSBY_SENTRY_SPOTLIGHT: 'false',
-        },
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } as any;
+        } as Record<string, string>,
+      } as NodeJS.Process;
 
       expect(getSpotlightConfig()).toBe(true);
     });
@@ -183,9 +169,19 @@ describe('getSpotlightConfig', () => {
       globalThis.process = {
         env: {
           GATSBY_SENTRY_SPOTLIGHT: 'true',
-        },
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } as any;
+          SENTRY_SPOTLIGHT: 'false',
+        } as Record<string, string>,
+      } as NodeJS.Process;
+
+      expect(getSpotlightConfig()).toBe(true);
+    });
+
+    it('uses SENTRY_SPOTLIGHT as fallback when no framework-specific vars are set', () => {
+      globalThis.process = {
+        env: {
+          SENTRY_SPOTLIGHT: 'true',
+        } as Record<string, string>,
+      } as NodeJS.Process;
 
       expect(getSpotlightConfig()).toBe(true);
     });
@@ -198,25 +194,53 @@ describe('getSpotlightConfig', () => {
         env: {
           PUBLIC_SENTRY_SPOTLIGHT: highPriorityUrl,
           GATSBY_SENTRY_SPOTLIGHT: lowPriorityUrl,
-        },
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } as any;
+        } as Record<string, string>,
+      } as NodeJS.Process;
 
       expect(getSpotlightConfig()).toBe(highPriorityUrl);
+    });
+
+    it('prioritizes framework-specific URL over SENTRY_SPOTLIGHT URL (Docker Compose scenario)', () => {
+      // Simulates Docker Compose setup where:
+      // - SENTRY_SPOTLIGHT is set for backend services with Docker hostname
+      // - Framework-specific var is set for frontend with localhost
+      const dockerHostUrl = 'http://host.docker.internal:8969/stream';
+      const localhostUrl = 'http://localhost:8969/stream';
+
+      globalThis.process = {
+        env: {
+          NEXT_PUBLIC_SENTRY_SPOTLIGHT: localhostUrl,
+          SENTRY_SPOTLIGHT: dockerHostUrl,
+        } as Record<string, string>,
+      } as NodeJS.Process;
+
+      // Framework-specific var should be used, not SENTRY_SPOTLIGHT
+      expect(getSpotlightConfig()).toBe(localhostUrl);
+    });
+
+    it('uses SENTRY_SPOTLIGHT URL when no framework-specific vars are set (remote Spotlight)', () => {
+      const remoteUrl = 'http://remote-spotlight.example.com:8969/stream';
+
+      globalThis.process = {
+        env: {
+          SENTRY_SPOTLIGHT: remoteUrl,
+        } as Record<string, string>,
+      } as NodeJS.Process;
+
+      // Should use SENTRY_SPOTLIGHT as fallback
+      expect(getSpotlightConfig()).toBe(remoteUrl);
     });
   });
 
   it('handles missing process object gracefully', () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    delete (globalThis as any).process;
+    delete (globalThis as typeof globalThis & { process?: NodeJS.Process }).process;
 
     expect(() => getSpotlightConfig()).not.toThrow();
     expect(getSpotlightConfig()).toBeUndefined();
   });
 
   it('handles missing process.env gracefully', () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    globalThis.process = {} as any;
+    globalThis.process = {} as NodeJS.Process;
 
     expect(() => getSpotlightConfig()).not.toThrow();
     expect(getSpotlightConfig()).toBeUndefined();

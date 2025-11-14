@@ -5,9 +5,17 @@ import { getEnvValue } from './env';
 /**
  * Environment variable keys to check for Spotlight configuration, in priority order.
  * The first one found with a value will be used.
+ *
+ * IMPORTANT: Framework-specific variables (PUBLIC_*, NEXT_PUBLIC_*, etc.) are prioritized
+ * over the generic SENTRY_SPOTLIGHT to support Docker Compose setups where:
+ * - Backend services need SENTRY_SPOTLIGHT=http://host.internal.docker:8969/stream
+ * - Frontend code needs localhost (via framework-specific vars like NEXT_PUBLIC_SENTRY_SPOTLIGHT=http://localhost:8969/stream)
+ *
+ * SENTRY_SPOTLIGHT is kept as a fallback for:
+ * - Simple non-Docker setups
+ * - Remote Spotlight instances when no framework-specific var is set
  */
 const SPOTLIGHT_ENV_KEYS = [
-  'SENTRY_SPOTLIGHT', // Base/official name - works in Parcel, Webpack, Rspack, Rollup, Rolldown, Node.js
   'PUBLIC_SENTRY_SPOTLIGHT', // SvelteKit, Astro, Qwik
   'NEXT_PUBLIC_SENTRY_SPOTLIGHT', // Next.js
   'VITE_SENTRY_SPOTLIGHT', // Vite
@@ -15,6 +23,7 @@ const SPOTLIGHT_ENV_KEYS = [
   'REACT_APP_SENTRY_SPOTLIGHT', // Create React App
   'VUE_APP_SENTRY_SPOTLIGHT', // Vue CLI
   'GATSBY_SENTRY_SPOTLIGHT', // Gatsby
+  'SENTRY_SPOTLIGHT', // Fallback/base name - works in Parcel, Webpack, Rspack, Rollup, Rolldown, Node.js
 ] as const;
 
 /**
