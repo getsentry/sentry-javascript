@@ -43,7 +43,7 @@ describe('Scope', () => {
     scope.update({
       tags: { foo: 'bar' },
       extra: { foo2: 'bar2' },
-      attributes: { attr1: { value: 'value1', type: 'string' } },
+      attributes: { attr1: { value: 'value1' } },
     });
 
     expect(scope.getScopeData()).toEqual({
@@ -53,7 +53,7 @@ describe('Scope', () => {
       tags: {
         foo: 'bar',
       },
-      attributes: { attr1: { value: 'value1', type: 'string' } },
+      attributes: { attr1: { value: 'value1' } },
       extra: {
         foo2: 'bar2',
       },
@@ -198,38 +198,26 @@ describe('Scope', () => {
         scope.setAttribute('bool', true);
 
         expect(scope['_attributes']).toEqual({
-          str: {
-            type: 'string',
-            value: 'b',
-          },
-          bool: {
-            type: 'boolean',
-            value: true,
-          },
-          double: {
-            type: 'double',
-            value: 1.1,
-          },
-          int: {
-            type: 'integer',
-            value: 1,
-          },
+          str: 'b',
+          bool: true,
+          double: 1.1,
+          int: 1,
         });
       });
 
-      it('accepts a typed attribute value', () => {
+      it('accepts an attribute value object', () => {
         const scope = new Scope();
-        scope.setAttribute('str', { type: 'string', value: 'b' });
+        scope.setAttribute('str', { value: 'b' });
         expect(scope['_attributes']).toEqual({
-          str: { type: 'string', value: 'b' },
+          str: { value: 'b' },
         });
       });
 
-      it('accepts a unit', () => {
+      it('accepts an attribute value object with a unit', () => {
         const scope = new Scope();
-        scope.setAttribute('str', { type: 'string', value: 'b', unit: 'ms' });
+        scope.setAttribute('str', { value: 1, unit: 'ms' });
         expect(scope['_attributes']).toEqual({
-          str: { type: 'string', value: 'b', unit: 'ms' },
+          str: { value: 1, unit: 'ms' },
         });
       });
 
@@ -237,11 +225,11 @@ describe('Scope', () => {
         const scope = new Scope();
 
         scope.setAttribute('strArray', ['a', 'b', 'c']);
-        scope.setAttribute('intArray', { value: [1, 2, 3], type: 'integer[]', unit: 'ms' });
+        scope.setAttribute('intArray', { value: [1, 2, 3], unit: 'ms' });
 
         expect(scope['_attributes']).toEqual({
-          strArray: { type: 'string[]', value: ['a', 'b', 'c'] },
-          intArray: { value: [1, 2, 3], type: 'integer[]', unit: 'ms' },
+          strArray: ['a', 'b', 'c'],
+          intArray: { value: [1, 2, 3], unit: 'ms' },
         });
       });
 
@@ -260,39 +248,28 @@ describe('Scope', () => {
         const scope = new Scope();
         scope.setAttributes({ str: 'b', int: 1, double: 1.1, bool: true });
         expect(scope['_attributes']).toEqual({
-          str: {
-            type: 'string',
-            value: 'b',
-          },
-          bool: {
-            type: 'boolean',
-            value: true,
-          },
-          double: {
-            type: 'double',
-            value: 1.1,
-          },
-          int: {
-            type: 'integer',
-            value: 1,
-          },
+          str: 'b',
+          int: 1,
+          double: 1.1,
+          bool: true,
         });
       });
 
-      it('accepts typed attribute values', () => {
+      it('accepts attribute value objects', () => {
         const scope = new Scope();
-        scope.setAttributes({ str: { type: 'string', value: 'b' }, int: { type: 'integer', value: 1 } });
+        scope.setAttributes({ str: { value: 'b' }, int: { value: 1 } });
         expect(scope['_attributes']).toEqual({
-          str: { type: 'string', value: 'b' },
-          int: { type: 'integer', value: 1 },
+          str: { value: 'b' },
+          int: { value: 1 },
         });
       });
 
-      it('accepts units', () => {
+      it('accepts attribute value objects with units', () => {
         const scope = new Scope();
-        scope.setAttributes({ str: { type: 'string', value: 'b', unit: 'ms' } });
+        scope.setAttributes({ str: { value: 'b', unit: 'ms' }, int: { value: 12, unit: 's' } });
         expect(scope['_attributes']).toEqual({
-          str: { type: 'string', value: 'b', unit: 'ms' },
+          str: { value: 'b', unit: 'ms' },
+          int: { value: 12, unit: 's' },
         });
       });
 
@@ -300,12 +277,12 @@ describe('Scope', () => {
         const scope = new Scope();
         scope.setAttributes({
           strArray: ['a', 'b', 'c'],
-          intArray: { value: [1, 2, 3], type: 'integer[]', unit: 'ms' },
+          intArray: { value: [1, 2, 3], unit: 'ms' },
         });
 
         expect(scope['_attributes']).toEqual({
-          strArray: { type: 'string[]', value: ['a', 'b', 'c'] },
-          intArray: { type: 'integer[]', value: [1, 2, 3], unit: 'ms' },
+          strArray: ['a', 'b', 'c'],
+          intArray: { value: [1, 2, 3], unit: 'ms' },
         });
       });
 
@@ -325,7 +302,7 @@ describe('Scope', () => {
         scope.setAttribute('str', 'b');
         scope.setAttribute('int', 1);
         scope.removeAttribute('str');
-        expect(scope['_attributes']).toEqual({ int: { type: 'integer', value: 1 } });
+        expect(scope['_attributes']).toEqual({ int: 1 });
       });
 
       it('notifies scope listeners after deletion', () => {
@@ -333,7 +310,7 @@ describe('Scope', () => {
         const listener = vi.fn();
 
         scope.addScopeListener(listener);
-        scope.setAttribute('str', { type: 'string', value: 'b' });
+        scope.setAttribute('str', { value: 'b' });
         expect(listener).toHaveBeenCalledTimes(1);
 
         listener.mockClear();
@@ -505,7 +482,7 @@ describe('Scope', () => {
     scope.setFingerprint(['abcd']);
     scope.addBreadcrumb({ message: 'test' });
 
-    expect(scope['_attributes']).toEqual({ c: { type: 'string', value: 'd' } });
+    expect(scope['_attributes']).toEqual({ c: 'd' });
     expect(scope['_extra']).toEqual({ a: 2 });
 
     scope.clear();

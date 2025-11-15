@@ -1,6 +1,5 @@
 /* eslint-disable max-lines */
-import type { Attributes, AttributeValueType, TypedAttributeValue, ValidatedAttributes } from './attributes';
-import { attributeValueToTypedAttributeValue, isAttributeObject } from './attributes';
+import type { AttributeWithUnit, RawAttribute, RawAttributes } from './attributes';
 import type { Client } from './client';
 import { DEBUG_BUILD } from './debug-build';
 import { updateSession } from './session';
@@ -48,7 +47,7 @@ export interface ScopeContext {
   extra: Extras;
   contexts: Contexts;
   tags: { [key: string]: Primitive };
-  attributes?: Attributes;
+  attributes?: RawAttributes<Record<string, unknown>>;
   fingerprint: string[];
   propagationContext: PropagationContext;
 }
@@ -75,7 +74,7 @@ export interface ScopeData {
   user: User;
   tags: { [key: string]: Primitive };
   // TODO(v11): Make this a required field (could be subtly breaking if we did it today)
-  attributes?: Attributes;
+  attributes?: RawAttributes<Record<string, unknown>>;
   extra: Extras;
   contexts: Contexts;
   attachments: Attachment[];
@@ -110,7 +109,7 @@ export class Scope {
   protected _tags: { [key: string]: Primitive };
 
   /** Attributes */
-  protected _attributes: Attributes;
+  protected _attributes: RawAttributes<Record<string, unknown>>;
 
   /** Extra */
   protected _extra: Extras;
@@ -311,8 +310,7 @@ export class Scope {
    * Currently, these attributes are not applied to any telemetry data but they will be in the future.
    *
    * @param newAttributes - The attributes to set on the scope. You can either pass in key-value pairs, or
-   * an object with a concrete type declaration and an optional unit (if applicable to your attribute).
-   * You can only pass in primitive values or arrays of primitive values.
+   * an object with a `value` and an optional `unit` (if applicable to your attribute).
    *
    * @example
    * ```typescript
@@ -320,30 +318,15 @@ export class Scope {
    *   is_admin: true,
    *   payment_selection: 'credit_card',
    *   clicked_products: [130, 554, 292],
-   *   render_duration: { value: 'render_duration', type: 'float', unit: 'ms' },
+   *   render_duration: { value: 'render_duration', unit: 'ms' },
    * });
    * ```
    */
-  public setAttributes<T extends Record<string, unknown>>(newAttributes: T & ValidatedAttributes<T>): this {
-    Object.entries(newAttributes).forEach(([key, value]) => {
-      if (isAttributeObject(value)) {
-        // Case 1: ({ value, unit })
-        if ('unit' in value && !('type' in value)) {
-          // Infer type from the inner value
-          this._attributes[key] = {
-            ...attributeValueToTypedAttributeValue(value.value),
-            unit: value.unit,
-          };
-        }
-        // Case 2: ({ value, type, unit? })
-        else {
-          this._attributes[key] = value;
-        }
-      } else {
-        // Else: (string, number, etc.) or a random object (will stringify random values).
-        this._attributes[key] = attributeValueToTypedAttributeValue(value);
-      }
-    });
+  public setAttributes<T extends Record<string, unknown>>(newAttributes: RawAttributes<T>): this {
+    this._attributes = {
+      ...this._attributes,
+      ...newAttributes,
+    };
 
     this._notifyScopeListeners();
     return this;
@@ -356,17 +339,21 @@ export class Scope {
    * Currently, these attributes are not applied to any telemetry data but they will be in the future.
    *
    * @param key - The attribute key.
-   * @param value - the attribute value. You can either pass in a raw value (primitive or array of primitives), or
-   * a typed attribute value object with a concrete type declaration and an optional unit (if applicable to your attribute).
+   * @param value - the attribute value. You can either pass in a raw value, or an attribute
+   * object with a `value` and an optional `unit` (if applicable to your attribute).
    *
    * @example
    * ```typescript
    * scope.setAttribute('is_admin', true);
    * scope.setAttribute('clicked_products', [130, 554, 292]);
-   * scope.setAttribute('render_duration', { value: 'render_duration', type: 'float', unit: 'ms' });
+   * scope.setAttribute('render_duration', { value: 'render_duration', unit: 'ms' });
    * ```
    */
-  public setAttribute(key: string, value: AttributeValueType | TypedAttributeValue): this {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  public setAttribute<T extends RawAttribute<T> extends { value: any } | { unit: any } ? AttributeWithUnit : unknown>(
+    key: string,
+    value: RawAttribute<T>,
+  ): this {
     return this.setAttributes({ [key]: value });
   }
 

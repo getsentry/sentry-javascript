@@ -70,6 +70,16 @@ describe('attributeValueToTypedAttributeValue', () => {
     });
   });
 
+  describe('attribute objects without units', () => {
+    it('converts a number value to a typed attribute value', () => {
+      const result = attributeValueToTypedAttributeValue({ value: 123 });
+      expect(result).toEqual({
+        value: 123,
+        type: 'integer',
+      });
+    });
+  });
+
   describe('disallowed value types', () => {
     it('stringifies mixed float and integer numbers to a string attribute value', () => {
       const result = attributeValueToTypedAttributeValue([1, 2.2, 3]);
@@ -79,10 +89,18 @@ describe('attributeValueToTypedAttributeValue', () => {
       });
     });
 
-    it('stringifies an array of mixed types to a string attribute value', () => {
+    it('stringifies an array of allowed but incoherent types to a string attribute value', () => {
       const result = attributeValueToTypedAttributeValue([1, 'foo', true]);
       expect(result).toEqual({
         value: '[1,"foo",true]',
+        type: 'string',
+      });
+    });
+
+    it('stringifies an array of disallowed and incoherent types to a string attribute value', () => {
+      const result = attributeValueToTypedAttributeValue([null, undefined, NaN]);
+      expect(result).toEqual({
+        value: '[null,null,null]',
         type: 'string',
       });
     });
@@ -91,6 +109,30 @@ describe('attributeValueToTypedAttributeValue', () => {
       const result = attributeValueToTypedAttributeValue({ foo: 'bar' });
       expect(result).toEqual({
         value: '{"foo":"bar"}',
+        type: 'string',
+      });
+    });
+
+    it('stringifies a null value to a string attribute value', () => {
+      const result = attributeValueToTypedAttributeValue(null);
+      expect(result).toEqual({
+        value: 'null',
+        type: 'string',
+      });
+    });
+
+    it('stringifies an undefined value to a string attribute value', () => {
+      const result = attributeValueToTypedAttributeValue(undefined);
+      expect(result).toEqual({
+        value: 'undefined',
+        type: 'string',
+      });
+    });
+
+    it('stringifies an NaN number value to a string attribute value', () => {
+      const result = attributeValueToTypedAttributeValue(NaN);
+      expect(result).toEqual({
+        value: 'null',
         type: 'string',
       });
     });
