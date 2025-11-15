@@ -28,6 +28,7 @@ import {
 } from 'react-router-6';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BrowserClient } from '../src';
+import { allRoutes } from '../src/reactrouter-compat-utils/instrumentation';
 import {
   reactRouterV6BrowserTracingIntegration,
   withSentryReactRouterV6Routing,
@@ -83,6 +84,7 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     getCurrentScope().setClient(undefined);
+    allRoutes.clear();
   });
 
   it('wrapCreateMemoryRouterV6 starts and updates a pageload transaction - single initialEntry', () => {
