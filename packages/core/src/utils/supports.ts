@@ -80,7 +80,7 @@ function _isFetchSupported(): boolean {
 
   try {
     new Headers();
-    new Request('http://www.example.com');
+    new Request('https://www.example.com');
     new Response();
     return true;
   } catch {
