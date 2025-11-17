@@ -44,7 +44,9 @@ export function init(options: BrowserOptions): Client | undefined {
 
   // Remove cached trace meta tags for ISR/SSG pages before initializing
   // This prevents the browser tracing integration from using stale trace IDs
-  removeIsrSsgTraceMetaTags();
+  if (typeof __SENTRY_TRACING__ === 'undefined' || __SENTRY_TRACING__) {
+    removeIsrSsgTraceMetaTags();
+  }
 
   const opts = {
     environment: getVercelEnv(true) || process.env.NODE_ENV,
