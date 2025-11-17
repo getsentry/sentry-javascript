@@ -129,11 +129,7 @@ function checkForGenerateStaticParams(pageFilePath: string): boolean {
   }
 }
 
-function scanAppDirectory(
-  dir: string,
-  basePath: string = '',
-  includeRouteGroups: boolean = false,
-): { dynamicRoutes: RouteInfo[]; staticRoutes: RouteInfo[]; isrRoutes: string[] } {
+function scanAppDirectory(dir: string, basePath: string = '', includeRouteGroups: boolean = false): RouteManifest {
   const dynamicRoutes: RouteInfo[] = [];
   const staticRoutes: RouteInfo[] = [];
   const isrRoutes: string[] = [];
