@@ -1,4 +1,5 @@
 import type { Event } from '@sentry/core';
+import { getClient } from '@sentry/core';
 import { getSanitizedRequestUrl } from './urls';
 
 /**
@@ -7,6 +8,12 @@ import { getSanitizedRequestUrl } from './urls';
 export function setUrlProcessingMetadata(event: Event): void {
   // Skip if not a server-side transaction
   if (event.type !== 'transaction' || event.contexts?.trace?.op !== 'http.server' || !event.contexts?.trace?.data) {
+    return;
+  }
+
+  // Only add URL if sendDefaultPii is enabled, as URLs may contain PII
+  const client = getClient();
+  if (!client?.getOptions().sendDefaultPii) {
     return;
   }
 
