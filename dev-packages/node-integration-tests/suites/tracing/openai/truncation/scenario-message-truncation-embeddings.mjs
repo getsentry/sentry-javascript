@@ -37,7 +37,7 @@ async function run() {
 
     const client = instrumentOpenAiClient(mockClient);
 
-    // Create 1 large message that gets truncated to fit within the 20KB limit
+    // Create 1 large input that gets truncated to fit within the 20KB limit
     const largeContent = 'A'.repeat(25000) + 'B'.repeat(25000); // ~50KB gets truncated to include only As
 
     await client.embeddings.create({
@@ -47,9 +47,9 @@ async function run() {
       encoding_format: 'float',
     });
 
-    // Create 3 large messages where:
-    // - First 2 messages are very large (will be dropped)
-    // - Last message is large but will be truncated to fit within the 20KB limit
+    // Create 3 large inputs where:
+    // - First 2 inputs are very large (will be dropped)
+    // - Last input is large but will be truncated to fit within the 20KB limit
     const largeContent1 = 'A'.repeat(15000); // ~15KB
     const largeContent2 = 'B'.repeat(15000); // ~15KB
     const largeContent3 = 'C'.repeat(25000); // ~25KB (will be truncated)
