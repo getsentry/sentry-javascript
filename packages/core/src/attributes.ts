@@ -51,83 +51,42 @@ export type ValidatedAttributes<T> = {
  * Type-guard: The attribute object has the shape the official attribute object (value, type, unit).
  * https://develop.sentry.dev/sdk/telemetry/scopes/#setting-attributes
  */
-export function isAttributeObject(value: unknown): value is AttributeWithUnit {
-  if (typeof value !== 'object' || value == null || Array.isArray(value)) {
+export function isAttributeObject(maybeObj: unknown): maybeObj is AttributeWithUnit {
+  if (typeof maybeObj !== 'object' || maybeObj == null || Array.isArray(maybeObj)) {
     return false;
   }
 
-  // MUST have 'value' and 'unit' property
-  return Object.prototype.hasOwnProperty.call(value, 'value') && Object.prototype.hasOwnProperty.call(value, 'unit');
+  // MUST have 'value' property
+  // MAY have 'unit' property
+  // MUST NOT have other properties
+  const keys = Object.keys(maybeObj);
+
+  // MUST have 'value'
+  if (!keys.includes('value')) {
+    return false;
+  }
+
+  // ALLOWED keys: 'value', optionally 'unit'
+  if (keys.some(k => k !== 'value' && k !== 'unit')) {
+    return false;
+  }
+
+  // All checks passed
+  return true;
 }
 
 /**
  * Converts an attribute value to a typed attribute value.
  *
  * Does not allow mixed arrays. In case of a mixed array, the value is stringified and the type is 'string'.
+ * All values besides the supported attribute types (see {@link AttributeTypeMap}) are stringified to a string attribute value.
  *
  * @param value - The value of the passed attribute.
  * @returns The typed attribute.
  */
 export function attributeValueToTypedAttributeValue(rawValue: unknown): TypedAttributeValue {
-  const unit = isAttributeObject(rawValue) ? rawValue.unit : undefined;
-  const value = isAttributeObject(rawValue) ? rawValue.value : rawValue;
-
-  switch (typeof value) {
-    case 'number': {
-      const numberType = getNumberType(value);
-      if (!numberType) {
-        break;
-      }
-      return {
-        value,
-        type: numberType,
-        unit,
-      };
-    }
-    case 'boolean':
-      return {
-        value,
-        type: 'boolean',
-        unit,
-      };
-    case 'string':
-      return {
-        value,
-        type: 'string',
-        unit,
-      };
-  }
-
-  if (Array.isArray(value)) {
-    const coherentType = value.reduce((acc: 'string' | 'boolean' | 'integer' | 'double' | null, item) => {
-      if (!acc || getPrimitiveType(item) !== acc) {
-        return null;
-      }
-      return acc;
-    }, getPrimitiveType(value[0]));
-
-    if (coherentType) {
-      return { value, type: `${coherentType}[]`, unit };
-    }
-  }
-
-  // Fallback: stringify the passed value
-  let fallbackValue = '';
-  try {
-    fallbackValue = JSON.stringify(value) ?? String(value);
-  } catch {
-    try {
-      fallbackValue = String(value);
-    } catch {
-      // ignore
-    }
-  }
-
-  return {
-    value: fallbackValue,
-    type: 'string',
-    unit,
-  };
+  const { value, unit } = isAttributeObject(rawValue) ? rawValue : { value: rawValue, unit: undefined };
+  return { ...getTypedAttributeValue(value), ...(unit && { unit }) };
 }
 
 // Disallow NaN, differentiate between integer and double
@@ -143,3 +102,58 @@ const getPrimitiveType: (item: unknown) => 'string' | 'boolean' | 'integer' | 'd
       : typeof item === 'number'
         ? getNumberType(item)
         : null;
+
+function getTypedAttributeValue(val: unknown): TypedAttributeValue {
+  switch (typeof val) {
+    case 'number': {
+      const numberType = getNumberType(val);
+      if (!numberType) {
+        break;
+      }
+      return {
+        value: val,
+        type: numberType,
+      };
+    }
+    case 'boolean':
+      return {
+        value: val,
+        type: 'boolean',
+      };
+    case 'string':
+      return {
+        value: val,
+        type: 'string',
+      };
+  }
+
+  if (Array.isArray(val)) {
+    const coherentType = val.reduce((acc: 'string' | 'boolean' | 'integer' | 'double' | null, item) => {
+      if (!acc || getPrimitiveType(item) !== acc) {
+        return null;
+      }
+      return acc;
+    }, getPrimitiveType(val[0]));
+
+    if (coherentType) {
+      return { value: val, type: `${coherentType}[]` };
+    }
+  }
+
+  // Fallback: stringify the passed value
+  let fallbackValue = '';
+  try {
+    fallbackValue = JSON.stringify(val) ?? String(val);
+  } catch {
+    try {
+      fallbackValue = String(val);
+    } catch {
+      // ignore
+    }
+  }
+
+  return {
+    value: fallbackValue,
+    type: 'string',
+  };
+}
