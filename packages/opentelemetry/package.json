@@ -1,6 +1,6 @@
 {
   "name": "@sentry/opentelemetry",
-  "version": "9.46.0",
+  "version": "9.47.0",
   "description": "Official Sentry utilities for OpenTelemetry",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/opentelemetry",
@@ -40,7 +40,7 @@
     "tag": "v9"
   },
   "dependencies": {
-    "@sentry/core": "9.46.0"
+    "@sentry/core": "9.47.0"
   },
   "peerDependencies": {
     "@opentelemetry/api": "^1.9.0",
