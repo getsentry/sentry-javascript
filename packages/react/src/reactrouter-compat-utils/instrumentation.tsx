@@ -730,12 +730,12 @@ export function handleNavigation(opts: {
             !transactionNameHasWildcard(name);
 
           if (shouldUpdate) {
+            const oldName = trackedNav.routeName;
             trackedNav.span.updateName(name);
             trackedNav.span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source as 'route' | 'url' | 'custom');
             // Update the tracked route name so future checks use the new name
             trackedNav.routeName = name;
-            DEBUG_BUILD &&
-              debug.log(`[Tracing] Updated navigation span name from "${trackedNav.routeName}" to "${name}"`);
+            DEBUG_BUILD && debug.log(`[Tracing] Updated navigation span name from "${oldName}" to "${name}"`);
           }
           return; // Skip - duplicate (same pathname, span still active)
         }
