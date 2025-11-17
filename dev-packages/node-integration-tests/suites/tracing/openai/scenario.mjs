@@ -74,6 +74,28 @@ class MockOpenAI {
         };
       },
     };
+
+    this.embeddings = {
+      create: async params => {
+        await new Promise(resolve => setTimeout(resolve, 10));
+
+        return {
+          object: 'list',
+          data: [
+            {
+              object: 'embedding',
+              embedding: [0.1, 0.2, 0.3],
+              index: 0,
+            },
+          ],
+          model: params.model,
+          usage: {
+            prompt_tokens: 10,
+            total_tokens: 10,
+          },
+        };
+      },
+    };
   }
 
   // Create a mock streaming response for chat completions
@@ -309,6 +331,24 @@ async function run() {
       for await (const chunk of errorStream) {
         void chunk;
       }
+    } catch {
+      // Error is expected and handled
+    }
+
+    // Seventh test: embeddings API
+    await client.embeddings.create({
+      input: 'Embedding test!',
+      model: 'text-embedding-3-small',
+      dimensions: 1536,
+      encoding_format: 'float',
+    });
+
+    // Eighth test: embeddings API error model
+    try {
+      await client.embeddings.create({
+        input: 'Error embedding test!',
+        model: 'error-model',
+      });
     } catch {
       // Error is expected and handled
     }

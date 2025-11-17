@@ -144,6 +144,26 @@ describe('OpenAI integration', () => {
         origin: 'auto.ai.openai',
         status: 'internal_error',
       }),
+      // Seventh span - embeddings API
+      expect.objectContaining({
+        data: {
+          'gen_ai.operation.name': 'embeddings',
+          'sentry.op': 'gen_ai.embeddings',
+          'sentry.origin': 'auto.ai.openai',
+          'gen_ai.system': 'openai',
+          'gen_ai.request.model': 'text-embedding-3-small',
+        },
+      }),
+      // Eighth span - embeddings API error model
+      expect.objectContaining({
+        data: {
+          'gen_ai.operation.name': 'embeddings',
+          'sentry.op': 'gen_ai.embeddings',
+          'sentry.origin': 'auto.ai.openai',
+          'gen_ai.system': 'openai',
+          'gen_ai.request.model': 'error-model',
+        },
+      }),
     ]),
   };
 
@@ -297,6 +317,26 @@ describe('OpenAI integration', () => {
         origin: 'auto.ai.openai',
         status: 'internal_error',
       }),
+      // Seventh span - embeddings API
+      expect.objectContaining({
+        data: {
+          'gen_ai.operation.name': 'embeddings',
+          'sentry.op': 'gen_ai.embeddings',
+          'sentry.origin': 'auto.ai.openai',
+          'gen_ai.system': 'openai',
+          'gen_ai.request.model': 'text-embedding-3-small',
+        },
+      }),
+      // Eighth span - embeddings API error model
+      expect.objectContaining({
+        data: {
+          'gen_ai.operation.name': 'embeddings',
+          'sentry.op': 'gen_ai.embeddings',
+          'sentry.origin': 'auto.ai.openai',
+          'gen_ai.system': 'openai',
+          'gen_ai.request.model': 'error-model',
+        },
+      }),
     ]),
   };
 
@@ -400,7 +440,7 @@ describe('OpenAI integration', () => {
 
   createEsmAndCjsTests(
     __dirname,
-    'scenario-message-truncation-completions.mjs',
+    'truncation/scenario-message-truncation-completions.mjs',
     'instrument-with-pii.mjs',
     (createRunner, test) => {
       test('truncates messages when they exceed byte limit - keeps only last message and crops it', async () => {
@@ -436,7 +476,7 @@ describe('OpenAI integration', () => {
 
   createEsmAndCjsTests(
     __dirname,
-    'scenario-message-truncation-responses.mjs',
+    'truncation/scenario-message-truncation-responses.mjs',
     'instrument-with-pii.mjs',
     (createRunner, test) => {
       test('truncates string inputs when they exceed byte limit', async () => {
@@ -460,6 +500,32 @@ describe('OpenAI integration', () => {
                   op: 'gen_ai.responses',
                   origin: 'auto.ai.openai',
                   status: 'ok',
+                }),
+              ]),
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+  );
+
+  createEsmAndCjsTests(
+    __dirname,
+    'truncation/scenario-message-truncation-embeddings.mjs',
+    'instrument-with-pii.mjs',
+    (createRunner, test) => {
+      test('truncates messages when they exceed byte limit - keeps only last message and crops it', async () => {
+        await createRunner()
+          .ignore('event')
+          .expect({
+            transaction: {
+              transaction: 'main',
+              spans: expect.arrayContaining([
+                expect.objectContaining({
+                  data: expect.objectContaining({
+                    'gen_ai.operation.name': 'embeddings',
+                  }),
                 }),
               ]),
             },
