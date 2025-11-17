@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/opentelemetry-v2-tests",
-  "version": "9.47.0",
+  "version": "9.47.1",
   "private": true,
   "description": "Tests for @sentry/opentelemetry with OpenTelemetry v2",
   "engines": {
