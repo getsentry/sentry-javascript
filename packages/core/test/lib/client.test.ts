@@ -2973,13 +2973,13 @@ describe('Client', () => {
       client.captureException(new Error('first')); // error
       client.captureException(new Error('second')); // error
       client.captureMessage('third'); // unknown
-      client.captureEvent({ message: 'fourth' }); // unknown
+      client.captureEvent({ message: 'fourth' }); // error
       client.captureEvent({ message: 'fifth', type: 'replay_event' }); // replay
       client.captureEvent({ message: 'sixth', type: 'transaction' }); // transaction
 
       expect(client._clearOutcomes()).toEqual([
-        { reason: 'queue_overflow', category: 'error', quantity: 1 },
-        { reason: 'queue_overflow', category: 'unknown', quantity: 2 },
+        { reason: 'queue_overflow', category: 'error', quantity: 2 },
+        { reason: 'queue_overflow', category: 'unknown', quantity: 1 },
         { reason: 'queue_overflow', category: 'replay', quantity: 1 },
         { reason: 'queue_overflow', category: 'transaction', quantity: 1 },
       ]);
