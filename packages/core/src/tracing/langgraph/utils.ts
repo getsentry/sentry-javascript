@@ -35,24 +35,32 @@ export function extractToolCalls(messages: Array<Record<string, unknown>> | null
 }
 
 /**
- * Extract token usage from a message's usage_metadata
+ * Extract token usage from a message's usage_metadata or response_metadata
+ * Returns token counts without setting span attributes
  */
-export function extractTokenUsageFromMetadata(span: Span, message: LangChainMessage): void {
+export function extractTokenUsageFromMessage(message: LangChainMessage): {
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+} {
   const msg = message as Record<string, unknown>;
+  let inputTokens = 0;
+  let outputTokens = 0;
+  let totalTokens = 0;
 
   // Extract from usage_metadata (newer format)
   if (msg.usage_metadata && typeof msg.usage_metadata === 'object') {
     const usage = msg.usage_metadata as Record<string, unknown>;
     if (typeof usage.input_tokens === 'number') {
-      span.setAttribute(GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE, usage.input_tokens);
+      inputTokens = usage.input_tokens;
     }
     if (typeof usage.output_tokens === 'number') {
-      span.setAttribute(GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE, usage.output_tokens);
+      outputTokens = usage.output_tokens;
     }
     if (typeof usage.total_tokens === 'number') {
-      span.setAttribute(GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE, usage.total_tokens);
+      totalTokens = usage.total_tokens;
     }
-    return; // Found usage_metadata, no need to check fallback
+    return { inputTokens, outputTokens, totalTokens };
   }
 
   // Fallback: Extract from response_metadata.tokenUsage
@@ -61,16 +69,18 @@ export function extractTokenUsageFromMetadata(span: Span, message: LangChainMess
     if (metadata.tokenUsage && typeof metadata.tokenUsage === 'object') {
       const tokenUsage = metadata.tokenUsage as Record<string, unknown>;
       if (typeof tokenUsage.promptTokens === 'number') {
-        span.setAttribute(GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE, tokenUsage.promptTokens);
+        inputTokens = tokenUsage.promptTokens;
       }
       if (typeof tokenUsage.completionTokens === 'number') {
-        span.setAttribute(GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE, tokenUsage.completionTokens);
+        outputTokens = tokenUsage.completionTokens;
       }
       if (typeof tokenUsage.totalTokens === 'number') {
-        span.setAttribute(GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE, tokenUsage.totalTokens);
+        totalTokens = tokenUsage.totalTokens;
       }
     }
   }
+
+  return { inputTokens, outputTokens, totalTokens };
 }
 
 /**
@@ -147,9 +157,31 @@ export function setResponseAttributes(span: Span, inputMessages: LangChainMessag
   const normalizedNewMessages = normalizeLangChainMessages(newMessages);
   span.setAttribute(GEN_AI_RESPONSE_TEXT_ATTRIBUTE, JSON.stringify(normalizedNewMessages));
 
+  // Accumulate token usage across all messages
+  let totalInputTokens = 0;
+  let totalOutputTokens = 0;
+  let totalTokens = 0;
+
   // Extract metadata from messages
   for (const message of newMessages) {
-    extractTokenUsageFromMetadata(span, message);
+    // Accumulate token usage
+    const tokens = extractTokenUsageFromMessage(message);
+    totalInputTokens += tokens.inputTokens;
+    totalOutputTokens += tokens.outputTokens;
+    totalTokens += tokens.totalTokens;
+
+    // Extract model metadata (last message's metadata wins for model/finish_reason)
     extractModelMetadata(span, message);
+  }
+
+  // Set accumulated token usage on span
+  if (totalInputTokens > 0) {
+    span.setAttribute(GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE, totalInputTokens);
+  }
+  if (totalOutputTokens > 0) {
+    span.setAttribute(GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE, totalOutputTokens);
+  }
+  if (totalTokens > 0) {
+    span.setAttribute(GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE, totalTokens);
   }
 }

@@ -168,9 +168,9 @@ describe('LangGraph integration', () => {
           'gen_ai.response.text': expect.stringMatching(/"role":"tool"/),
           // Verify tool_calls are captured
           'gen_ai.response.tool_calls': expect.stringContaining('get_weather'),
-          'gen_ai.usage.input_tokens': 50,
-          'gen_ai.usage.output_tokens': 20,
-          'gen_ai.usage.total_tokens': 70,
+          'gen_ai.usage.input_tokens': 80,
+          'gen_ai.usage.output_tokens': 40,
+          'gen_ai.usage.total_tokens': 120,
         }),
         description: 'invoke_agent tool_calling_agent',
         op: 'gen_ai.invoke_agent',
