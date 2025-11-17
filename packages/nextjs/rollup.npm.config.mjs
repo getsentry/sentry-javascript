@@ -51,9 +51,6 @@ export default [
 
       packageSpecificConfig: {
         output: {
-          // Preserve the original file structure (i.e., so that everything is still relative to `src`)
-          entryFileNames: 'config/templates/[name].js',
-
           // this is going to be add-on code, so it doesn't need the trappings of a full module (and in fact actively
           // shouldn't have them, lest they muck with the module to which we're adding it)
           sourcemap: false,
@@ -61,9 +58,6 @@ export default [
 
           // make it so Rollup calms down about the fact that we're combining default and named exports
           exports: 'named',
-
-          // Don't preserve modules - we're using custom entryFileNames
-          preserveModules: false,
         },
         external: [
           '@sentry/nextjs',
@@ -81,14 +75,8 @@ export default [
 
       packageSpecificConfig: {
         output: {
-          // Preserve the original file structure (i.e., so that everything is still relative to `src`)
-          entryFileNames: 'config/loaders/[name].js',
-
           // make it so Rollup calms down about the fact that we're combining default and named exports
           exports: 'named',
-
-          // Don't preserve modules - we're using custom entryFileNames
-          preserveModules: false,
         },
         external: ['@rollup/plugin-commonjs', 'rollup'],
       },
@@ -100,14 +88,8 @@ export default [
 
       packageSpecificConfig: {
         output: {
-          // Preserve the original file structure (i.e., so that everything is still relative to `src`)
-          entryFileNames: 'config/polyfills/[name].js',
-
           // make it so Rollup calms down about the fact that we're combining default and named exports
           exports: 'named',
-
-          // Don't preserve modules - we're using custom entryFileNames
-          preserveModules: false,
         },
       },
     }),
