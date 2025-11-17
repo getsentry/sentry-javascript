@@ -102,6 +102,7 @@ export {
   growthbookIntegration,
   logger,
   metrics,
+  instrumentLangGraph,
 } from '@sentry/core';
 
 export { withSentry } from './handler';

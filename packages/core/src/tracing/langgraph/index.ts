@@ -155,3 +155,38 @@ function instrumentCompiledGraphInvoke(
     },
   }) as (...args: unknown[]) => Promise<unknown>;
 }
+
+/**
+ * Directly instruments a StateGraph instance to add tracing spans
+ *
+ * This function can be used to manually instrument LangGraph StateGraph instances
+ * in environments where automatic instrumentation is not available or desired.
+ *
+ * @param stateGraph - The StateGraph instance to instrument
+ * @param options - Optional configuration for recording inputs/outputs
+ *
+ * @example
+ * ```typescript
+ * import { instrumentLangGraph } from '@sentry/cloudflare';
+ * import { StateGraph } from '@langchain/langgraph';
+ *
+ * const graph = new StateGraph(MessagesAnnotation)
+ *   .addNode('agent', mockLlm)
+ *   .addEdge(START, 'agent')
+ *   .addEdge('agent', END);
+ *
+ * instrumentLangGraph(graph, { recordInputs: true, recordOutputs: true });
+ * const compiled = graph.compile({ name: 'my_agent' });
+ * ```
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function instrumentLangGraph<T extends { compile: (...args: any[]) => any }>(
+  stateGraph: T,
+  options?: LangGraphOptions,
+): T {
+  const _options: LangGraphOptions = options || {};
+
+  stateGraph.compile = instrumentStateGraphCompile(stateGraph.compile.bind(stateGraph), _options);
+
+  return stateGraph;
+}
