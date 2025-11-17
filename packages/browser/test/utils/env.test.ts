@@ -18,7 +18,6 @@ describe('getEnvValue', () => {
     if (originalProcess !== undefined) {
       globalThis.process = originalProcess;
     } else {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       delete (globalThis as any).process;
     }
   });
@@ -28,14 +27,12 @@ describe('getEnvValue', () => {
       env: {
         TEST_VAR: 'test-value',
       },
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any;
 
     expect(getEnvValue('TEST_VAR')).toBe('test-value');
   });
 
   it('returns undefined when process.env does not exist', () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     delete (globalThis as any).process;
 
     expect(getEnvValue('NONEXISTENT')).toBeUndefined();
@@ -44,14 +41,12 @@ describe('getEnvValue', () => {
   it('returns undefined when variable does not exist in process.env', () => {
     globalThis.process = {
       env: {},
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any;
 
     expect(getEnvValue('NONEXISTENT')).toBeUndefined();
   });
 
   it('handles missing process object gracefully', () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     delete (globalThis as any).process;
 
     expect(() => getEnvValue('TEST_VAR')).not.toThrow();
@@ -59,7 +54,6 @@ describe('getEnvValue', () => {
   });
 
   it('handles missing process.env gracefully', () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     globalThis.process = {} as any;
 
     expect(() => getEnvValue('TEST_VAR')).not.toThrow();
@@ -71,7 +65,6 @@ describe('getEnvValue', () => {
       get env() {
         throw new Error('Access denied');
       },
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any;
 
     expect(() => getEnvValue('TEST_VAR')).not.toThrow();
@@ -83,9 +76,15 @@ describe('getEnvValue', () => {
       env: {
         EMPTY_VAR: '',
       },
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any;
 
     expect(getEnvValue('EMPTY_VAR')).toBe('');
   });
+
+  // Note: import.meta.env support cannot be easily unit tested because import.meta
+  // is a read-only compile-time construct that cannot be mocked. The import.meta.env
+  // functionality is tested via e2e tests with real Vite-based frameworks (Vue, Astro, etc.)
+  //
+  // The implementation safely checks for import.meta.env existence and will use it
+  // when available in Vite/Astro/SvelteKit builds.
 });

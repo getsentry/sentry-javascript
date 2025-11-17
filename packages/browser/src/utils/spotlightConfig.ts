@@ -61,5 +61,6 @@ export function getSpotlightConfig(): boolean | string | undefined {
   }
 
   // No Spotlight configuration found in environment
+  // Note: Implicit return of undefined saves bytes and is tree-shaken in production builds
   return undefined;
 }
