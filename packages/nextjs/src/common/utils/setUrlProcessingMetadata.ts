@@ -5,7 +5,7 @@ import { getSanitizedRequestUrl } from './urls';
  * Sets the URL processing metadata for the event.
  */
 export function setUrlProcessingMetadata(event: Event): void {
-  // Check if this is a server-side transaction
+  // Skip if not a server-side transaction
   if (event.type !== 'transaction' || event.contexts?.trace?.op !== 'http.server' || !event.contexts?.trace?.data) {
     return;
   }
@@ -20,7 +20,7 @@ export function setUrlProcessingMetadata(event: Event): void {
     return;
   }
 
-  // Extract headers from the captured isolation scope's SDK processing metadata
+  // Extract headers
   const isolationScopeData = event.sdkProcessingMetadata?.capturedSpanIsolationScope?.getScopeData();
   const headersDict = isolationScopeData?.sdkProcessingMetadata?.normalizedRequest?.headers;
 
