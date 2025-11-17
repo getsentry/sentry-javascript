@@ -62,76 +62,7 @@ export class UIProfiler {
     this._client = client;
     this._sessionSampled = sessionSampled;
 
-    client.on('spanStart', span => {
-      if (!this._sessionSampled) {
-        DEBUG_BUILD && debug.log('[Profiling] Session not sampled because of negative sampling decision.');
-        return;
-      }
-      if (span !== getRootSpan(span)) {
-        return;
-      }
-      // Only count sampled root spans
-      if (!span.isRecording()) {
-        DEBUG_BUILD && debug.log('[Profiling] Discarding profile because root span was not sampled.');
-        return;
-      }
-
-      // Matching root spans with profiles
-      getGlobalScope().setContext('profile', {
-        profiler_id: this._profilerId,
-      });
-
-      const spanId = span.spanContext().spanId;
-      if (!spanId) {
-        return;
-      }
-      if (this._activeRootSpanIds.has(spanId)) {
-        return;
-      }
-
-      this._activeRootSpanIds.add(spanId);
-      const rootSpanCount = this._activeRootSpanIds.size;
-
-      const timeout = setTimeout(() => {
-        this._onRootSpanTimeout(spanId);
-      }, MAX_ROOT_SPAN_PROFILE_MS);
-      this._rootSpanTimeouts.set(spanId, timeout);
-
-      if (rootSpanCount === 1) {
-        DEBUG_BUILD &&
-          debug.log(
-            `[Profiling] Root span with ID ${spanId} started. Will continue profiling for as long as there are active root spans (currently: ${rootSpanCount}).`,
-          );
-
-        this.start();
-      }
-    });
-
-    client.on('spanEnd', span => {
-      if (!this._sessionSampled) {
-        return;
-      }
-
-      const spanId = span.spanContext().spanId;
-      if (!spanId || !this._activeRootSpanIds.has(spanId)) {
-        return;
-      }
-
-      this._activeRootSpanIds.delete(spanId);
-      const rootSpanCount = this._activeRootSpanIds.size;
-
-      DEBUG_BUILD &&
-        debug.log(
-          `[Profiling] Root span with ID ${spanId} ended. Will continue profiling for as long as there are active root spans (currently: ${rootSpanCount}).`,
-        );
-      if (rootSpanCount === 0) {
-        this._collectCurrentChunk().catch(e => {
-          DEBUG_BUILD && debug.error('[Profiling] Failed to collect current profile chunk on `spanEnd`:', e);
-        });
-
-        this.stop();
-      }
-    });
+    this._setupTraceLifecycleListeners(client);
   }
 
   /**
@@ -170,6 +101,9 @@ export class UIProfiler {
 
     DEBUG_BUILD && debug.log('[Profiling] Started profiling with profile ID:', this._profilerId);
 
+    // Expose profiler_id to match root spans with profiles
+    getGlobalScope().setContext('profile', { profiler_id: this._profilerId });
+
     this._startProfilerInstance();
 
     if (!this._profiler) {
@@ -203,6 +137,63 @@ export class UIProfiler {
     });
   }
 
+  /** Trace-mode: attach spanStart/spanEnd listeners. */
+  private _setupTraceLifecycleListeners(client: Client): void {
+    client.on('spanStart', span => {
+      if (!this._sessionSampled) {
+        DEBUG_BUILD && debug.log('[Profiling] Session not sampled because of negative sampling decision.');
+        return;
+      }
+      if (span !== getRootSpan(span)) {
+        return; // only care about root spans
+      }
+      // Only count sampled root spans
+      if (!span.isRecording()) {
+        DEBUG_BUILD && debug.log('[Profiling] Discarding profile because root span was not sampled.');
+        return;
+      }
+
+      const spanId = span.spanContext().spanId;
+      if (!spanId || this._activeRootSpanIds.has(spanId)) {
+        return;
+      }
+
+      this._registerTraceRootSpan(spanId);
+
+      const rootSpanCount = this._activeRootSpanIds.size;
+      if (rootSpanCount === 1) {
+        DEBUG_BUILD &&
+          debug.log(
+            `[Profiling] Root span ${spanId} started. Profiling active while there are active root spans (count=${rootSpanCount}).`,
+          );
+        this.start();
+      }
+    });
+
+    client.on('spanEnd', span => {
+      if (!this._sessionSampled) {
+        return;
+      }
+      const spanId = span.spanContext().spanId;
+      if (!spanId || !this._activeRootSpanIds.has(spanId)) {
+        return;
+      }
+      this._activeRootSpanIds.delete(spanId);
+      const rootSpanCount = this._activeRootSpanIds.size;
+
+      DEBUG_BUILD &&
+        debug.log(
+          `[Profiling] Root span with ID ${spanId} ended. Will continue profiling for as long as there are active root spans (currently: ${rootSpanCount}).`,
+        );
+      if (rootSpanCount === 0) {
+        this._collectCurrentChunk().catch(e => {
+          DEBUG_BUILD && debug.error('[Profiling] Failed to collect current profile chunk on last `spanEnd`:', e);
+        });
+        this.stop();
+      }
+    });
+  }
+
   /**
    * Resets profiling information from scope and resets running state
    */
@@ -217,6 +208,13 @@ export class UIProfiler {
   private _clearAllRootSpanTimeouts(): void {
     this._rootSpanTimeouts.forEach(timeout => clearTimeout(timeout));
     this._rootSpanTimeouts.clear();
+  }
+
+  /** Register root span and schedule safeguard timeout (trace mode). */
+  private _registerTraceRootSpan(spanId: string): void {
+    this._activeRootSpanIds.add(spanId);
+    const timeout = setTimeout(() => this._onRootSpanTimeout(spanId), MAX_ROOT_SPAN_PROFILE_MS);
+    this._rootSpanTimeouts.set(spanId, timeout);
   }
 
   /**
