@@ -1,4 +1,4 @@
-import type { TypedAttributes } from '../attributes';
+import type { TypedAttributeValue } from '../attributes';
 import { attributeValueToTypedAttributeValue } from '../attributes';
 import { getGlobalSingleton } from '../carrier';
 import type { Client } from '../client';
@@ -141,7 +141,7 @@ export function _INTERNAL_captureLog(
   // Add the parent span ID to the log attributes for trace context
   setLogAttribute(processedLogAttributes, 'sentry.trace.parent_span_id', span?.spanContext().spanId);
 
-  const processedLog = { ...beforeLog, attributes: processedLogAttributes };
+  const processedLog = { ...beforeLog, attributes: { ...scopeAttributes, ...processedLogAttributes } };
 
   client.emit('beforeCaptureLog', processedLog);
 
@@ -161,14 +161,13 @@ export function _INTERNAL_captureLog(
     body: message,
     trace_id: traceContext?.trace_id,
     severity_number: severityNumber ?? SEVERITY_TEXT_TO_SEVERITY_NUMBER[level],
-    attributes: {
-      // TODO: This is too late to apply scope attributes because we already invoked beforeSendLog earlier.
-      ...scopeAttributes,
-      ...Object.keys(attributes).reduce((acc, key) => {
+    attributes: Object.keys(attributes).reduce(
+      (acc, key) => {
         acc[key] = attributeValueToTypedAttributeValue(attributes[key]);
         return acc;
-      }, {} as TypedAttributes),
-    },
+      },
+      {} as Record<string, TypedAttributeValue>,
+    ),
   };
 
   captureSerializedLog(client, serializedLog);
