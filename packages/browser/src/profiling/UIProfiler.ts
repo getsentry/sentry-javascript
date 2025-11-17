@@ -85,17 +85,19 @@ export class UIProfiler implements ContinuousProfiler<Client> {
   public start(): void {
     if (this._lifecycleMode === 'trace') {
       DEBUG_BUILD &&
-        debug.log('[Profiling] `profileLifecycle` is set to "trace"; manual start() calls are ignored in trace mode.');
+        debug.warn(
+          '[Profiling] `profileLifecycle` is set to "trace". Calls to `uiProfiler.start()` are ignored in trace mode.',
+        );
       return;
     }
 
     if (this._isRunning) {
-      DEBUG_BUILD && debug.log('[Profiling] Profile session already running, no-op.');
+      DEBUG_BUILD && debug.warn('[Profiling] Profile session is already running, `uiProfiler.start()` is a no-op.');
       return;
     }
 
     if (!this._sessionSampled) {
-      DEBUG_BUILD && debug.log('[Profiling] Session not sampled, start() is a no-op.');
+      DEBUG_BUILD && debug.warn('[Profiling] Session is not sampled, `uiProfiler.start()` is a no-op.');
       return;
     }
 
@@ -106,12 +108,14 @@ export class UIProfiler implements ContinuousProfiler<Client> {
   public stop(): void {
     if (this._lifecycleMode === 'trace') {
       DEBUG_BUILD &&
-        debug.log('[Profiling] `profileLifecycle` is set to "trace"; manual stop() calls are ignored in trace mode.');
+        debug.warn(
+          '[Profiling] `profileLifecycle` is set to "trace". Calls to `uiProfiler.stop()` are ignored in trace mode.',
+        );
       return;
     }
 
     if (!this._isRunning) {
-      DEBUG_BUILD && debug.log('[Profiling] No profile session running, stop() is a no-op.');
+      DEBUG_BUILD && debug.warn('[Profiling] Profile session is already running, `uiProfiler.stop()` is a no-op.');
       return;
     }
 

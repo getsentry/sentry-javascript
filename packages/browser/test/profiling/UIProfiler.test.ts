@@ -3,7 +3,7 @@
  */
 
 import * as Sentry from '@sentry/browser';
-import type { Span } from '@sentry/core';
+import { type Span, debug } from '@sentry/core';
 import { type Mock, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { BrowserOptions } from '../../src/index';
 
@@ -580,6 +580,36 @@ describe('Browser Profiling v2 trace lifecycle', () => {
       }
     });
   });
+
+  it('calling start and stop in trace lifecycle prints warnings', async () => {
+    const { stop } = mockProfiler();
+    const send = vi.fn().mockResolvedValue(undefined);
+    const debugWarnSpy = vi.spyOn(debug, 'warn');
+
+    Sentry.init({
+      ...getBaseOptionsForTraceLifecycle(send),
+      debug: true,
+    });
+
+    Sentry.uiProfiler.startProfiler();
+    Sentry.uiProfiler.startProfiler();
+
+    expect(debugWarnSpy).toHaveBeenCalledWith(
+      '[Profiling] `profileLifecycle` is set to "trace". Calls to `uiProfiler.start()` are ignored in trace mode.',
+    );
+
+    Sentry.uiProfiler.stopProfiler();
+    await Promise.resolve();
+
+    debugWarnSpy.mockClear();
+    Sentry.uiProfiler.stopProfiler();
+    await Promise.resolve();
+
+    expect(stop).toHaveBeenCalledTimes(0);
+    expect(debugWarnSpy).toHaveBeenCalledWith(
+      '[Profiling] `profileLifecycle` is set to "trace". Calls to `uiProfiler.stop()` are ignored in trace mode.',
+    );
+  });
 });
 
 function getBaseOptionsForManualLifecycle(sendMock: Mock<any>, enableTracing = true): BrowserOptions {
@@ -651,40 +681,52 @@ describe('Browser Profiling v2 manual lifecycle', () => {
     expect(envelopeHeader?.type).toBe('profile_chunk');
   });
 
-  it('calling start and stop while profile session is running does nothing', async () => {
+  it('calling start and stop while profile session is running prints warnings', async () => {
     const { stop, mockConstructor } = mockProfiler();
     const send = vi.fn().mockResolvedValue(undefined);
+    const debugWarnSpy = vi.spyOn(debug, 'warn');
 
     Sentry.init({
       ...getBaseOptionsForManualLifecycle(send),
+      debug: true,
     });
 
     Sentry.uiProfiler.startProfiler();
     Sentry.uiProfiler.startProfiler();
 
     expect(mockConstructor).toHaveBeenCalledTimes(1);
+    expect(debugWarnSpy).toHaveBeenCalledWith(
+      '[Profiling] Profile session is already running, `uiProfiler.start()` is a no-op.',
+    );
 
     Sentry.uiProfiler.stopProfiler();
     await Promise.resolve();
+
+    debugWarnSpy.mockClear();
     Sentry.uiProfiler.stopProfiler();
     await Promise.resolve();
 
     expect(stop).toHaveBeenCalledTimes(1);
+    expect(debugWarnSpy).toHaveBeenCalledWith(
+      '[Profiling] Profile session is already running, `uiProfiler.stop()` is a no-op.',
+    );
   });
 
   it('profileSessionSampleRate is required', async () => {
     const { stop, mockConstructor } = mockProfiler();
     const send = vi.fn().mockResolvedValue(undefined);
+    const debugWarnSpy = vi.spyOn(debug, 'warn');
 
     Sentry.init({
-      dsn: 'https://public@o.ingest.sentry.io/1',
-      tracesSampleRate: 1,
-      profileLifecycle: 'manual',
-      integrations: [Sentry.browserProfilingIntegration()],
-      transport: () => ({ flush: vi.fn().mockResolvedValue(true), send }),
+      ...getBaseOptionsForManualLifecycle(send),
+      profileSessionSampleRate: undefined,
     });
 
     Sentry.uiProfiler.startProfiler();
+    expect(debugWarnSpy).toHaveBeenCalledWith(
+      '[Profiling] Invalid sample rate. Sample rate must be a boolean or a number between 0 and 1. Got undefined of type "undefined".',
+    );
+    expect(debugWarnSpy).toHaveBeenCalledWith('[Profiling] Session is not sampled, `uiProfiler.start()` is a no-op.');
     Sentry.uiProfiler.stopProfiler();
     await Promise.resolve();
 
