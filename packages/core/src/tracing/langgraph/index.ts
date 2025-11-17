@@ -8,10 +8,10 @@ import {
   GEN_AI_PIPELINE_NAME_ATTRIBUTE,
   GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE,
   GEN_AI_REQUEST_MESSAGES_ATTRIBUTE,
-} from '../../utils/ai/gen-ai-attributes';
-import { truncateGenAiMessages } from '../../utils/ai/messageTruncation';
-import type { LangChainMessage } from '../../utils/langchain/types';
-import { normalizeLangChainMessages } from '../../utils/langchain/utils';
+} from '../ai/gen-ai-attributes';
+import { truncateGenAiMessages } from '../ai/messageTruncation';
+import type { LangChainMessage } from '../langchain/types';
+import { normalizeLangChainMessages } from '../langchain/utils';
 import { startSpan } from '../trace';
 import { LANGGRAPH_ORIGIN } from './constants';
 import type { CompiledGraph, LangGraphOptions } from './types';

@@ -7,9 +7,9 @@ import {
   GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
-} from '../../utils/ai/gen-ai-attributes';
-import type { LangChainMessage } from '../../utils/langchain/types';
-import { normalizeLangChainMessages } from '../../utils/langchain/utils';
+} from '../ai/gen-ai-attributes';
+import type { LangChainMessage } from '../langchain/types';
+import { normalizeLangChainMessages } from '../langchain/utils';
 import type { CompiledGraph, LangGraphTool } from './types';
 
 /**
