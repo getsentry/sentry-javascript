@@ -132,11 +132,12 @@ async function resolveStackFrame(
 
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 3000);
+    const devServerPort = process.env.PORT || '3000';
     const res = await suppressTracing(() =>
       fetch(
         `${
           // eslint-disable-next-line no-restricted-globals
-          typeof window === 'undefined' ? 'http://localhost:3000' : '' // TODO: handle the case where users define a different port
+          typeof window === 'undefined' ? `http://localhost:${devServerPort}` : ''
         }${basePath}/__nextjs_original-stack-frame?${params.toString()}`,
         {
           signal: controller.signal,
@@ -201,11 +202,12 @@ async function resolveStackFrames(
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 3000);
 
+    const devServerPort = process.env.PORT || '3000';
     const res = await suppressTracing(() =>
       fetch(
         `${
           // eslint-disable-next-line no-restricted-globals
-          typeof window === 'undefined' ? 'http://localhost:3000' : '' // TODO: handle the case where users define a different port
+          typeof window === 'undefined' ? `http://localhost:${devServerPort}` : ''
         }${basePath}/__nextjs_original-stack-frames`,
         {
           method: 'POST',
