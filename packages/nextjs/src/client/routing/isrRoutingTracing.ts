@@ -3,7 +3,7 @@ import type { RouteManifest } from '../../config/manifest/types';
 import { maybeParameterizeRoute } from './parameterization';
 
 const globalWithInjectedValues = WINDOW as typeof WINDOW & {
-  _sentryRouteManifest: string | RouteManifest;
+  _sentryRouteManifest: string;
 };
 
 /**
@@ -11,19 +11,15 @@ const globalWithInjectedValues = WINDOW as typeof WINDOW & {
  */
 function isIsrSsgRoute(pathname: string): boolean {
   const manifestData = globalWithInjectedValues._sentryRouteManifest;
-  if (!manifestData) {
+  if (!manifestData || typeof manifestData !== 'string') {
     return false;
   }
 
   let manifest: RouteManifest;
-  if (typeof manifestData === 'string') {
-    try {
-      manifest = JSON.parse(manifestData);
-    } catch {
-      return false;
-    }
-  } else {
-    manifest = manifestData;
+  try {
+    manifest = JSON.parse(manifestData);
+  } catch {
+    return false;
   }
 
   if (!manifest.isrRoutes || !Array.isArray(manifest.isrRoutes) || manifest.isrRoutes.length === 0) {
