@@ -1,3 +1,4 @@
+import { LRUMap } from '@sentry/core';
 import { WINDOW } from '@sentry/react';
 import { getManifest, maybeParameterizeRoute } from './parameterization';
 
@@ -5,7 +6,7 @@ import { getManifest, maybeParameterizeRoute } from './parameterization';
  * Cache for ISR/SSG route checks. Exported for testing purposes.
  * @internal
  */
-export const IS_ISR_SSG_ROUTE_CACHE = new Map<string, boolean>();
+export const IS_ISR_SSG_ROUTE_CACHE = new LRUMap<string, boolean>(100);
 
 /**
  * Check if the current page is an ISR/SSG route by checking the route manifest.
@@ -17,8 +18,9 @@ export function isIsrSsgRoute(pathname: string): boolean {
   const pathToCheck = parameterizedPath || pathname;
 
   // Check cache using the parameterized path as the key
-  if (IS_ISR_SSG_ROUTE_CACHE.has(pathToCheck)) {
-    return IS_ISR_SSG_ROUTE_CACHE.get(pathToCheck) as boolean;
+  const cachedResult = IS_ISR_SSG_ROUTE_CACHE.get(pathToCheck);
+  if (cachedResult !== undefined) {
+    return cachedResult;
   }
 
   // Cache miss get the manifest

@@ -301,14 +301,14 @@ describe('isrRoutingTracing', () => {
       const result1 = isIsrSsgRoute('/products/123');
       expect(result1).toBe(true);
       expect(IS_ISR_SSG_ROUTE_CACHE.size).toBe(1);
-      expect(IS_ISR_SSG_ROUTE_CACHE.has('/products/:id')).toBe(true);
+      expect(IS_ISR_SSG_ROUTE_CACHE.get('/products/:id')).toBeDefined();
 
       // Second call with different concrete path /products/456
       const result2 = isIsrSsgRoute('/products/456');
       expect(result2).toBe(true);
       // Cache size should still be 1 - both paths map to same parameterized route
       expect(IS_ISR_SSG_ROUTE_CACHE.size).toBe(1);
-      expect(IS_ISR_SSG_ROUTE_CACHE.has('/products/:id')).toBe(true);
+      expect(IS_ISR_SSG_ROUTE_CACHE.get('/products/:id')).toBeDefined();
 
       // Third call with yet another path /products/999
       const result3 = isIsrSsgRoute('/products/999');
@@ -324,7 +324,7 @@ describe('isrRoutingTracing', () => {
       // First call - cache miss, will populate cache
       isIsrSsgRoute('/products/1');
       expect(IS_ISR_SSG_ROUTE_CACHE.size).toBe(1);
-      expect(IS_ISR_SSG_ROUTE_CACHE.has('/products/:id')).toBe(true);
+      expect(IS_ISR_SSG_ROUTE_CACHE.get('/products/:id')).toBeDefined();
 
       // Second call with different concrete path - cache hit
       const result2 = isIsrSsgRoute('/products/2');
@@ -341,7 +341,7 @@ describe('isrRoutingTracing', () => {
     it('should cache false results for non-ISR routes', () => {
       const result1 = isIsrSsgRoute('/not-an-isr-route');
       expect(result1).toBe(false);
-      expect(IS_ISR_SSG_ROUTE_CACHE.has('/not-an-isr-route')).toBe(true);
+      expect(IS_ISR_SSG_ROUTE_CACHE.get('/not-an-isr-route')).toBeDefined();
       expect(IS_ISR_SSG_ROUTE_CACHE.get('/not-an-isr-route')).toBe(false);
 
       // Second call should use cache
@@ -355,14 +355,14 @@ describe('isrRoutingTracing', () => {
 
       const result = isIsrSsgRoute('/any-route');
       expect(result).toBe(false);
-      expect(IS_ISR_SSG_ROUTE_CACHE.has('/any-route')).toBe(true);
+      expect(IS_ISR_SSG_ROUTE_CACHE.get('/any-route')).toBeDefined();
       expect(IS_ISR_SSG_ROUTE_CACHE.get('/any-route')).toBe(false);
     });
 
     it('should cache static routes without parameterization', () => {
       const result1 = isIsrSsgRoute('/blog');
       expect(result1).toBe(true);
-      expect(IS_ISR_SSG_ROUTE_CACHE.has('/blog')).toBe(true);
+      expect(IS_ISR_SSG_ROUTE_CACHE.get('/blog')).toBeDefined();
 
       // Second call should use cache
       const result2 = isIsrSsgRoute('/blog');
@@ -378,10 +378,10 @@ describe('isrRoutingTracing', () => {
 
       // Should have 4 cache entries (one for each unique route pattern)
       expect(IS_ISR_SSG_ROUTE_CACHE.size).toBe(4);
-      expect(IS_ISR_SSG_ROUTE_CACHE.has('/products/:id')).toBe(true);
-      expect(IS_ISR_SSG_ROUTE_CACHE.has('/posts/:slug')).toBe(true);
-      expect(IS_ISR_SSG_ROUTE_CACHE.has('/blog')).toBe(true);
-      expect(IS_ISR_SSG_ROUTE_CACHE.has('/')).toBe(true);
+      expect(IS_ISR_SSG_ROUTE_CACHE.get('/products/:id')).toBeDefined();
+      expect(IS_ISR_SSG_ROUTE_CACHE.get('/posts/:slug')).toBeDefined();
+      expect(IS_ISR_SSG_ROUTE_CACHE.get('/blog')).toBeDefined();
+      expect(IS_ISR_SSG_ROUTE_CACHE.get('/')).toBeDefined();
     });
 
     it('should efficiently handle multiple calls to same dynamic route with different params', () => {
@@ -392,7 +392,7 @@ describe('isrRoutingTracing', () => {
 
       // Should only have 1 cache entry despite 100 calls
       expect(IS_ISR_SSG_ROUTE_CACHE.size).toBe(1);
-      expect(IS_ISR_SSG_ROUTE_CACHE.has('/products/:id')).toBe(true);
+      expect(IS_ISR_SSG_ROUTE_CACHE.get('/products/:id')).toBeDefined();
     });
   });
 });
