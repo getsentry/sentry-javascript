@@ -87,7 +87,7 @@ sentryTest('sends profile_chunk envelopes in manual mode', async ({ page, getLoc
     isChunkFormat: true,
   });
 
-  // does not contain fibonacci3 (called during unprofiled part)
-  const functionNames2 = envelopeItemPayload1.profile.frames.map(frame => frame.function).filter(name => name !== '');
-  expect(functionNames2).toEqual(expect.not.arrayContaining(['fibonacci3']));
+  // does not contain notProfiledFib (called during unprofiled part)
+  const functionNames2 = envelopeItemPayload2.profile.frames.map(frame => frame.function).filter(name => name !== '');
+  expect(functionNames2).toEqual(expect.not.arrayContaining(['notProfiledFib']));
 });

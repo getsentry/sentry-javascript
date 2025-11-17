@@ -708,7 +708,7 @@ describe('Browser Profiling v2 manual lifecycle', () => {
 
     expect(stop).toHaveBeenCalledTimes(1);
     expect(debugWarnSpy).toHaveBeenCalledWith(
-      '[Profiling] Profile session is already running, `uiProfiler.stop()` is a no-op.',
+      '[Profiling] Profiler is not running, `uiProfiler.stop()` is a no-op.',
     );
   });
 

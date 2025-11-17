@@ -115,7 +115,7 @@ export class UIProfiler implements ContinuousProfiler<Client> {
     }
 
     if (!this._isRunning) {
-      DEBUG_BUILD && debug.warn('[Profiling] Profile session is already running, `uiProfiler.stop()` is a no-op.');
+      DEBUG_BUILD && debug.warn('[Profiling] Profiler is not running, `uiProfiler.stop()` is a no-op.');
       return;
     }
 
@@ -155,9 +155,6 @@ export class UIProfiler implements ContinuousProfiler<Client> {
     this._isRunning = true;
 
     DEBUG_BUILD && debug.log('[Profiling] Started profiling with profiler ID:', this._profilerId);
-
-    // Expose profiler_id to match root spans with profiles
-    getGlobalScope().setContext('profile', { profiler_id: this._profilerId });
 
     // Expose profiler_id to match root spans with profiles
     getGlobalScope().setContext('profile', { profiler_id: this._profilerId });
