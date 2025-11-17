@@ -66,8 +66,6 @@ const _browserProfilingIntegration = (() => {
 
           // If there is an active, sampled root span already, notify the profiler
           if (rootSpan) {
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore accessing integration instance property
             this._profiler.notifyRootSpanActive(rootSpan);
           }
 
@@ -76,8 +74,6 @@ const _browserProfilingIntegration = (() => {
             const laterActiveSpan = getActiveSpan();
             const laterRootSpan = laterActiveSpan && getRootSpan(laterActiveSpan);
             if (laterRootSpan) {
-              // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-              // @ts-ignore accessing integration instance property
               this._profiler.notifyRootSpanActive(laterRootSpan);
             }
           }, 0);
