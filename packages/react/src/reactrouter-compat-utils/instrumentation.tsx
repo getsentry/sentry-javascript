@@ -89,23 +89,8 @@ function cancelScheduledCallback(id: number): void {
 }
 
 /**
- * Computes a location key that uniquely identifies a navigation including pathname, search, and hash.
- *
- * Normalizes undefined/null search and hash to empty strings to ensure consistency between
- * partial location objects (from <Routes location="/path">) and full location objects
- * (from history state). This prevents duplicate navigation spans when using the location
- * prop with string values (common in modal routes and SSR).
- *
+ * Computes location key for duplicate detection. Normalizes undefined/null to empty strings.
  * Exported for testing.
- *
- * @example
- * // Partial location (from <Routes location="/users">)
- * computeLocationKey({ pathname: '/users', search: undefined, hash: undefined })
- * // Returns: '/users'
- *
- * // Full location (from history)
- * computeLocationKey({ pathname: '/users', search: '', hash: '' })
- * // Returns: '/users' (same key - duplicate detection works correctly)
  */
 export function computeLocationKey(location: Location): string {
   return `${location.pathname}${location.search || ''}${location.hash || ''}`;
@@ -183,11 +168,6 @@ export interface ReactRouterOptions {
    * - Negative values will fall back to the default
    *
    * Defaults to 3× the configured `idleTimeout` (default: 3000ms).
-   *
-   * **Note**: This option only works with data routers (createBrowserRouter/createMemoryRouter)
-   * that use `patchRoutesOnNavigation`. Component-based routes (<Routes>/useRoutes) that use
-   * React.lazy() for code splitting cannot track lazy loads at the router level, so spans
-   * will finalize immediately regardless of this setting.
    *
    * @default idleTimeout * 3
    */
@@ -570,10 +550,6 @@ export function createReactRouterV6CompatibleTracingIntegration(
     setup(client) {
       integration.setup(client);
 
-      // Get idleTimeout from browserTracingIntegration options (passed through)
-      // idleTimeout from browserTracingIntegration (default: 1000ms)
-      // Note: options already contains idleTimeout if user passed it to browserTracingIntegration
-      // Calculate default: 3× idleTimeout, allow explicit override
       const defaultMaxWait = (options.idleTimeout ?? 1000) * 3;
       const configuredMaxWait = lazyRouteTimeout ?? defaultMaxWait;
 
@@ -807,6 +783,11 @@ export function handleNavigation(opts: {
         const oldName = trackedNav.routeName;
         trackedNav.span.updateName(name);
         trackedNav.span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source as 'route' | 'url' | 'custom');
+        addNonEnumerableProperty(
+          trackedNav.span as { __sentry_navigation_name_set__?: boolean },
+          '__sentry_navigation_name_set__',
+          true,
+        );
         trackedNav.routeName = name;
         DEBUG_BUILD && debug.log(`[Tracing] Updated navigation span name from "${oldName}" to "${name}"`);
       } else {
