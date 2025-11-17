@@ -8,6 +8,7 @@ import { isRedirectNavigationError } from '../common/nextNavigationErrorUtils';
 import { browserTracingIntegration } from './browserTracingIntegration';
 import { nextjsClientStackFrameNormalizationIntegration } from './clientNormalizationIntegration';
 import { INCOMPLETE_APP_ROUTER_INSTRUMENTATION_TRANSACTION_NAME } from './routing/appRouterRoutingInstrumentation';
+import { removeIsrSsgTraceMetaTags } from './routing/isrRoutingTracing';
 import { applyTunnelRouteOption } from './tunnelRoute';
 
 export * from '@sentry/react';
@@ -40,6 +41,12 @@ export function init(options: BrowserOptions): Client | undefined {
     });
   }
   clientIsInitialized = true;
+
+  // Remove cached trace meta tags for ISR/SSG pages before initializing
+  // This prevents the browser tracing integration from using stale trace IDs
+  if (typeof __SENTRY_TRACING__ === 'undefined' || __SENTRY_TRACING__) {
+    removeIsrSsgTraceMetaTags();
+  }
 
   const opts = {
     environment: getVercelEnv(true) || process.env.NODE_ENV,
