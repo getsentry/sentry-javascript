@@ -707,9 +707,7 @@ describe('Browser Profiling v2 manual lifecycle', () => {
     await Promise.resolve();
 
     expect(stop).toHaveBeenCalledTimes(1);
-    expect(debugWarnSpy).toHaveBeenCalledWith(
-      '[Profiling] Profiler is not running, `uiProfiler.stop()` is a no-op.',
-    );
+    expect(debugWarnSpy).toHaveBeenCalledWith('[Profiling] Profiler is not running, `uiProfiler.stop()` is a no-op.');
   });
 
   it('profileSessionSampleRate is required', async () => {
