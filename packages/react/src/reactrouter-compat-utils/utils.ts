@@ -38,9 +38,9 @@ export function pathEndsWithWildcard(path: string): boolean {
   return path.endsWith('*');
 }
 
-/** Checks if transaction name has wildcard (/* or * or ends with *). */
+/** Checks if transaction name has wildcard (/* or ends with *). */
 export function transactionNameHasWildcard(name: string): boolean {
-  return name.includes('/*') || name === '*' || name.endsWith('*');
+  return name.includes('/*') || name.endsWith('*');
 }
 
 /**

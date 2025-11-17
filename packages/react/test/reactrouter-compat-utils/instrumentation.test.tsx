@@ -480,7 +480,7 @@ describe('tryUpdateSpanNameBeforeEnd - source upgrade logic', () => {
     );
 
     // Should not update because span is already named
-    // The early return in tryUpdateSpanNameBeforeEnd (line 815) protects against downgrades
+    // The early return in tryUpdateSpanNameBeforeEnd protects against downgrades
     // This test verifies that route->url downgrades are blocked
     expect(mockUpdateName).not.toHaveBeenCalled();
     expect(mockSetAttribute).not.toHaveBeenCalled();
