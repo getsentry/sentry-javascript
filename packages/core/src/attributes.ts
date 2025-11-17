@@ -39,7 +39,7 @@ export type AttributeWithUnit = {
 /**
  * Unit of measurement that can be added to an attribute.
  */
-type Units = 'ms' | 's' | 'bytes' | 'count' | 'percent';
+type Units = 'ms' | 's' | 'bytes' | 'count' | 'percent' | string;
 
 /* If an attribute has either a 'value' or 'unit' property, we use the ValidAttributeObject type. */
 export type ValidatedAttributes<T> = {
@@ -86,7 +86,7 @@ export function isAttributeObject(maybeObj: unknown): maybeObj is AttributeWithU
  */
 export function attributeValueToTypedAttributeValue(rawValue: unknown): TypedAttributeValue {
   const { value, unit } = isAttributeObject(rawValue) ? rawValue : { value: rawValue, unit: undefined };
-  return { ...getTypedAttributeValue(value), ...(unit && { unit }) };
+  return { ...getTypedAttributeValue(value), ...(unit && typeof unit === 'string' ? { unit } : {}) };
 }
 
 // Disallow NaN, differentiate between integer and double

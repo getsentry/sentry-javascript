@@ -250,6 +250,17 @@ describe('attributeValueToTypedAttributeValue', () => {
       });
     });
   });
+
+  it.each([1, true, null, undefined, NaN, Symbol('test'), { foo: 'bar' }])(
+    'ignores invalid (non-string) units (%s)',
+    unit => {
+      const result = attributeValueToTypedAttributeValue({ value: 'foo', unit });
+      expect(result).toStrictEqual({
+        value: 'foo',
+        type: 'string',
+      });
+    },
+  );
 });
 
 describe('isAttributeObject', () => {
