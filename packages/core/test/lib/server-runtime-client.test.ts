@@ -298,4 +298,155 @@ describe('ServerRuntimeClient', () => {
       expect(client['_logWeight']).toBe(0); // Weight should be reset after flush
     });
   });
+
+  describe('log timeout-based flushing', () => {
+    it('flushes logs after idle timeout', () => {
+      vi.useFakeTimers();
+
+      const options = getDefaultClientOptions({
+        dsn: PUBLIC_DSN,
+        enableLogs: true,
+      });
+      client = new ServerRuntimeClient(options);
+
+      const sendEnvelopeSpy = vi.spyOn(client, 'sendEnvelope');
+
+      // Add a log (starts the timer)
+      _INTERNAL_captureLog({ message: 'test log 1', level: 'info' }, client);
+
+      // Should not have flushed yet
+      expect(sendEnvelopeSpy).not.toHaveBeenCalled();
+
+      // Fast forward to trigger the timeout
+      vi.advanceTimersByTime(5000);
+
+      // Should have flushed
+      expect(sendEnvelopeSpy).toHaveBeenCalledTimes(1);
+      expect(client['_logWeight']).toBe(0);
+
+      vi.useRealTimers();
+    });
+
+    it('does not reset idle timeout when new logs are captured', () => {
+      vi.useFakeTimers();
+
+      const options = getDefaultClientOptions({
+        dsn: PUBLIC_DSN,
+        enableLogs: true,
+      });
+      client = new ServerRuntimeClient(options);
+
+      const sendEnvelopeSpy = vi.spyOn(client, 'sendEnvelope');
+
+      // Add initial log (starts the timer)
+      _INTERNAL_captureLog({ message: 'test log 1', level: 'info' }, client);
+
+      // Fast forward part of the idle timeout
+      vi.advanceTimersByTime(2500);
+
+      // Add another log which should NOT reset the timeout
+      _INTERNAL_captureLog({ message: 'test log 2', level: 'info' }, client);
+
+      // Fast forward the remaining time to reach the full timeout from the first log
+      vi.advanceTimersByTime(2500);
+
+      // Should have flushed both logs since timeout was not reset
+      expect(sendEnvelopeSpy).toHaveBeenCalledTimes(1);
+      expect(client['_logWeight']).toBe(0);
+
+      vi.useRealTimers();
+    });
+
+    it('starts new timer after timeout completes and flushes', () => {
+      vi.useFakeTimers();
+
+      const options = getDefaultClientOptions({
+        dsn: PUBLIC_DSN,
+        enableLogs: true,
+      });
+      client = new ServerRuntimeClient(options);
+
+      const sendEnvelopeSpy = vi.spyOn(client, 'sendEnvelope');
+
+      // First batch: Add a log and let it flush
+      _INTERNAL_captureLog({ message: 'test log 1', level: 'info' }, client);
+
+      // Fast forward to trigger the first flush
+      vi.advanceTimersByTime(5000);
+
+      expect(sendEnvelopeSpy).toHaveBeenCalledTimes(1);
+
+      // Second batch: Add another log after the first flush completed
+      _INTERNAL_captureLog({ message: 'test log 2', level: 'info' }, client);
+
+      // Should not have flushed yet
+      expect(sendEnvelopeSpy).toHaveBeenCalledTimes(1);
+
+      // Fast forward to trigger the second flush
+      vi.advanceTimersByTime(5000);
+
+      // Should have flushed the second log
+      expect(sendEnvelopeSpy).toHaveBeenCalledTimes(2);
+
+      vi.useRealTimers();
+    });
+
+    it('does not start multiple timers for continuous logs', () => {
+      vi.useFakeTimers();
+
+      const options = getDefaultClientOptions({
+        dsn: PUBLIC_DSN,
+        enableLogs: true,
+      });
+      client = new ServerRuntimeClient(options);
+
+      const sendEnvelopeSpy = vi.spyOn(client, 'sendEnvelope');
+
+      // Add multiple logs in quick succession
+      _INTERNAL_captureLog({ message: 'test log 1', level: 'info' }, client);
+      _INTERNAL_captureLog({ message: 'test log 2', level: 'info' }, client);
+      _INTERNAL_captureLog({ message: 'test log 3', level: 'info' }, client);
+
+      // _isLogTimerActive should be true (only one timer running)
+      expect(client['_isLogTimerActive']).toBe(true);
+
+      // Fast forward to trigger the timeout
+      vi.advanceTimersByTime(5000);
+
+      // Should have flushed all logs together
+      expect(sendEnvelopeSpy).toHaveBeenCalledTimes(1);
+      expect(client['_logWeight']).toBe(0);
+      expect(client['_isLogTimerActive']).toBe(false);
+
+      vi.useRealTimers();
+    });
+
+    it('clears timer and flag when weight threshold is exceeded', () => {
+      vi.useFakeTimers();
+
+      const options = getDefaultClientOptions({
+        dsn: PUBLIC_DSN,
+        enableLogs: true,
+      });
+      client = new ServerRuntimeClient(options);
+
+      const sendEnvelopeSpy = vi.spyOn(client, 'sendEnvelope');
+
+      // Add a small log that starts the timer
+      _INTERNAL_captureLog({ message: 'small log', level: 'info' }, client);
+
+      expect(client['_isLogTimerActive']).toBe(true);
+
+      // Add a large log that exceeds the weight threshold
+      const largeMessage = 'x'.repeat(400_000); // 400KB string
+      _INTERNAL_captureLog({ message: largeMessage, level: 'info' }, client);
+
+      // Should have flushed due to weight, and timer flag should be reset
+      expect(sendEnvelopeSpy).toHaveBeenCalledTimes(1);
+      expect(client['_isLogTimerActive']).toBe(false);
+      expect(client['_logWeight']).toBe(0);
+
+      vi.useRealTimers();
+    });
+  });
 });
