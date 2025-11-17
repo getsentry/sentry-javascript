@@ -10,10 +10,14 @@ export type StreamingGuess = {
  * - No body → not streaming
  * - Content-Type: text/event-stream → streaming
  * - Content-Length header present → not streaming
- * - Otherwise: attempts immediate read to detect behavior
+ * - Otherwise: attempts immediate read with timeout to detect behavior
+ *   - Timeout (no data ready) → not streaming (typical SSR/buffered response)
  *   - Stream empty (done) → not streaming
- *   - Got data without Content-Length → streaming
+ *   - Got data without Content-Length → streaming (e.g., Vercel AI SDK)
  *   - Got data with Content-Length → not streaming
+ *
+ * The timeout prevents blocking on responses that are being generated (like SSR),
+ * while still detecting true streaming responses that produce data immediately.
  *
  * Note: Probing will tee() the stream and return a new Response object.
  *
@@ -38,23 +42,41 @@ export async function classifyResponseStreaming(res: Response): Promise<Streamin
     return { response: res, isStreaming: false };
   }
 
-  // Probe the stream by trying to read first chunk immediately
+  // Probe the stream by trying to read first chunk immediately with a timeout
   // After tee(), must use the teed stream (original is locked)
   const [probeStream, passStream] = res.body.tee();
   const reader = probeStream.getReader();
 
   try {
-    const { done } = await reader.read();
+    // Use a short timeout to avoid blocking on responses that aren't immediately ready
+    // Streaming responses (like Vercel AI) typically start producing data right away
+    // Buffered responses (like Remix SSR) will block until content is generated
+    const PROBE_TIMEOUT_MS = 10;
+
+    const timeoutPromise = new Promise<{ done: boolean; value?: unknown; timedOut: true }>(resolve => {
+      setTimeout(() => resolve({ done: false, value: undefined, timedOut: true }), PROBE_TIMEOUT_MS);
+    });
+
+    const readPromise = reader.read().then(result => ({ ...result, timedOut: false as const }));
+    const result = await Promise.race([readPromise, timeoutPromise]);
+
     reader.releaseLock();
 
     const teededResponse = new Response(passStream, res);
 
-    if (done) {
+    if (result.timedOut) {
+      // Timeout means data isn't immediately available - likely a buffered response
+      // being generated (like SSR). Treat as non-streaming.
+      return { response: teededResponse, isStreaming: false };
+    }
+
+    if (result.done) {
       // Stream completed immediately - buffered (empty body)
       return { response: teededResponse, isStreaming: false };
     }
 
-    // Got data - treat as streaming if no Content-Length header
+    // Got data immediately without Content-Length - likely streaming
+    // Got data immediately with Content-Length - buffered
     return { response: teededResponse, isStreaming: contentLength == null };
   } catch {
     reader.releaseLock();
