@@ -4,6 +4,17 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 9.47.0
+
+- feat(replay/v9): Add option to skip requestAnimationFrame for canvas snapshots ([#17426](https://github.com/getsentry/sentry-javascript/pull/17426))
+- fix(v9/core): Ensure logs past `MAX_LOG_BUFFER_SIZE` are not swallowed ([#18213](https://github.com/getsentry/sentry-javascript/pull/18213))
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+
+- fix(v9/e2e-tests): Fix various e2e tests ([#18226](https://github.com/getsentry/sentry-javascript/pull/18226))
+</details>
+
 ## 9.46.0
 
 - feat(v9/node): Capture `SystemError` context and remove paths from message ([#17394](https://github.com/getsentry/sentry-javascript/pull/17394))
