@@ -1,12 +1,17 @@
 import { WINDOW } from '@sentry/react';
 import { getManifest, maybeParameterizeRoute } from './parameterization';
 
-const IS_ISR_SSG_ROUTE_CACHE = new Map<string, boolean>();
+/**
+ * Cache for ISR/SSG route checks. Exported for testing purposes.
+ * @internal
+ */
+export const IS_ISR_SSG_ROUTE_CACHE = new Map<string, boolean>();
 
 /**
  * Check if the current page is an ISR/SSG route by checking the route manifest.
+ * @internal Exported for testing purposes.
  */
-function isIsrSsgRoute(pathname: string): boolean {
+export function isIsrSsgRoute(pathname: string): boolean {
   // Early parameterization to get the cache key
   const parameterizedPath = maybeParameterizeRoute(pathname);
   const pathToCheck = parameterizedPath || pathname;
