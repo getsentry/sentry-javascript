@@ -256,7 +256,10 @@ describe('_INTERNAL_captureMetric', () => {
     // Add one more to trigger flush
     _INTERNAL_captureMetric({ type: 'counter', name: 'trigger.flush', value: 999 }, { scope });
 
-    expect(_INTERNAL_getMetricBuffer(client)).toEqual([]);
+    // After flushing the 1000 metrics, the new metric starts a fresh buffer with 1 item
+    const buffer = _INTERNAL_getMetricBuffer(client);
+    expect(buffer).toHaveLength(1);
+    expect(buffer?.[0]?.name).toBe('trigger.flush');
   });
 
   it('does not flush metrics buffer when it is empty', () => {
