@@ -188,6 +188,12 @@ export class UIProfiler implements ContinuousProfiler<Client> {
     this._collectCurrentChunk().catch(e => {
       DEBUG_BUILD && debug.error('[Profiling] Failed to collect current profile chunk on `stop()`:', e);
     });
+
+    // Manual: Clear profiling context so spans outside start()/stop() aren't marked as profiled
+    // Trace: Profile context is kept as long as there is an active root span
+    if (this._lifecycleMode === 'manual') {
+      getGlobalScope().setContext('profile', {});
+    }
   }
 
   /** Trace-mode: attach spanStart/spanEnd listeners. */

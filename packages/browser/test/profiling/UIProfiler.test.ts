@@ -804,5 +804,49 @@ describe('Browser Profiling v2 manual lifecycle', () => {
         }),
       });
     });
+
+    it('reuses the same profiler_id while profiling across multiple stop/start calls', async () => {
+      mockProfiler();
+      const send = vi.fn().mockResolvedValue(undefined);
+
+      Sentry.init({
+        ...getBaseOptionsForManualLifecycle(send),
+      });
+
+      // 1. profiling cycle
+      Sentry.uiProfiler.startProfiler();
+      Sentry.startSpan({ name: 'manual-span-1', parentSpan: null, forceTransaction: true }, () => {});
+      Sentry.uiProfiler.stopProfiler();
+      await Promise.resolve();
+
+      // Not profiled -> should not have profile context
+      Sentry.startSpan({ name: 'manual-span-between', parentSpan: null, forceTransaction: true }, () => {});
+
+      // 2. profiling cycle
+      Sentry.uiProfiler.startProfiler();
+      Sentry.startSpan({ name: 'manual-span-2', parentSpan: null, forceTransaction: true }, () => {});
+      Sentry.uiProfiler.stopProfiler();
+      await Promise.resolve();
+
+      const client = Sentry.getClient();
+      await client?.flush(1000);
+
+      const calls = send.mock.calls;
+      const transactionEvents = calls
+        .filter(call => call?.[0]?.[1]?.[0]?.[0]?.type === 'transaction')
+        .map(call => call?.[0]?.[1]?.[0]?.[1]);
+
+      expect(transactionEvents.length).toBe(3);
+
+      const firstProfilerId = transactionEvents[0]?.contexts?.profile?.profiler_id;
+      expect(typeof firstProfilerId).toBe('string');
+
+      // Middle transaction (not profiled)
+      expect(transactionEvents[1]?.contexts?.profile?.profiler_id).toBeUndefined();
+
+      const thirdProfilerId = transactionEvents[2]?.contexts?.profile?.profiler_id;
+      expect(typeof thirdProfilerId).toBe('string');
+      expect(firstProfilerId).toBe(thirdProfilerId); // same profiler_id across session
+    });
   });
 });

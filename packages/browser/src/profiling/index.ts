@@ -66,7 +66,7 @@ function stopProfiler(): void {
 }
 
 /**
- * Profiler namespace for controlling the profiler in 'manual' mode.
+ * Profiler namespace for controlling the JS profiler in 'manual' mode.
  *
  * Requires the `browserProfilingIntegration` from the `@sentry/browser` package.
  */
