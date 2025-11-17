@@ -32,6 +32,13 @@ export function makeBaseNPMConfig(options = {}) {
     bundledBuiltins = [],
   } = options;
 
+  // Make sure subpath imports are also treated as external (e.g., 'solid-js/web' when 'solid-js' is external)
+  const externalWithSubpaths = [
+    ...Object.keys(packageDotJSON.dependencies || {}),
+    ...Object.keys(packageDotJSON.peerDependencies || {}),
+    ...Object.keys(packageDotJSON.optionalDependencies || {}),
+  ].map(dep => new RegExp(`^${dep}(?:/.*)?$`));
+
   const debugBuildStatementReplacePlugin = makeDebugBuildStatementReplacePlugin();
   const rrwebBuildPlugin = makeRrwebBuildPlugin({
     excludeShadowDom: undefined,
@@ -85,12 +92,7 @@ export function makeBaseNPMConfig(options = {}) {
     plugins: [debugBuildStatementReplacePlugin, rrwebBuildPlugin],
 
     // don't include imported modules from outside the package in the final output
-    external: [
-      ...builtinModules.filter(m => !bundledBuiltins.includes(m)),
-      ...Object.keys(packageDotJSON.dependencies || {}),
-      ...Object.keys(packageDotJSON.peerDependencies || {}),
-      ...Object.keys(packageDotJSON.optionalDependencies || {}),
-    ],
+    external: [...builtinModules.filter(m => !bundledBuiltins.includes(m)), ...externalWithSubpaths],
   });
 
   return deepMerge(defaultBaseConfig, packageSpecificConfig, {
