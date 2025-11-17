@@ -178,11 +178,11 @@ describe('_INTERNAL_captureLog', () => {
       scope.setClient(client);
 
       scope.setAttribute('scope_1', 'attribute_value');
-      scope.setAttribute('scope_2', { value: 143.5, type: 'double', unit: 'bytes' });
+      scope.setAttribute('scope_2', { value: 38, unit: 'gigabytes' });
       scope.setAttributes({
         scope_3: true,
         scope_4: [1, 2, 3],
-        scope_5: { value: [true, false, true], type: 'boolean[]', unit: 's' },
+        scope_5: { value: [true, false, true], unit: 's' },
       });
 
       _INTERNAL_captureLog(
@@ -210,9 +210,9 @@ describe('_INTERNAL_captureLog', () => {
           value: 'attribute_value',
         },
         scope_2: {
-          type: 'double',
-          unit: 'bytes',
-          value: 143.5,
+          type: 'integer',
+          unit: 'gigabytes',
+          value: 38,
         },
         scope_3: {
           type: 'boolean',
@@ -318,7 +318,7 @@ describe('_INTERNAL_captureLog', () => {
     scope.setClient(client);
 
     scope.setAttribute('scope_1', 'attribute_value');
-    scope.setAttribute('scope_2', { value: 143.5, type: 'double', unit: 'bytes' });
+    scope.setAttribute('scope_2', { value: 38, unit: 'gigabytes' });
 
     _INTERNAL_captureLog(
       {
@@ -334,9 +334,9 @@ describe('_INTERNAL_captureLog', () => {
       message: 'original message',
       attributes: {
         original: true,
-        // scope attributes should already be applied prior to beforeSendLog
+        // attributes here still have the same form as originally set on the scope or log
         scope_1: 'attribute_value',
-        scope_2: { value: 143.5, type: 'double', unit: 'bytes' },
+        scope_2: { value: 38, unit: 'gigabytes' },
       },
     });
 
@@ -353,6 +353,16 @@ describe('_INTERNAL_captureLog', () => {
           original: {
             value: true,
             type: 'boolean',
+          },
+          // during serialization, they're converted to the typed attribute format
+          scope_1: {
+            value: 'attribute_value',
+            type: 'string',
+          },
+          scope_2: {
+            value: 38,
+            unit: 'gigabytes',
+            type: 'integer',
           },
         },
       }),
