@@ -7,6 +7,8 @@ import type { Span, SpanAttributeValue } from '../../types-hoist/span';
 import {
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
   GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE,
+  GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE,
+  GEN_AI_REQUEST_ENCODING_FORMAT_ATTRIBUTE,
   GEN_AI_REQUEST_FREQUENCY_PENALTY_ATTRIBUTE,
   GEN_AI_REQUEST_MESSAGES_ATTRIBUTE,
   GEN_AI_REQUEST_MODEL_ATTRIBUTE,
@@ -15,9 +17,11 @@ import {
   GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE,
   GEN_AI_REQUEST_TOP_P_ATTRIBUTE,
   GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE,
+  GEN_AI_RESPONSE_MODEL_ATTRIBUTE,
   GEN_AI_RESPONSE_TEXT_ATTRIBUTE,
   GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
   GEN_AI_SYSTEM_ATTRIBUTE,
+  OPENAI_RESPONSE_MODEL_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
 import { getTruncatedJsonString } from '../ai/utils';
 import { OPENAI_INTEGRATION_NAME } from './constants';
@@ -26,6 +30,7 @@ import type {
   ChatCompletionChunk,
   InstrumentedMethod,
   OpenAiChatCompletionObject,
+  OpenAICreateEmbeddingsObject,
   OpenAiIntegration,
   OpenAiOptions,
   OpenAiResponse,
@@ -38,6 +43,7 @@ import {
   getOperationName,
   getSpanOperation,
   isChatCompletionResponse,
+  isEmbeddingsResponse,
   isResponsesApiResponse,
   setCommonResponseAttributes,
   setTokenUsageAttributes,
@@ -82,6 +88,8 @@ function extractRequestAttributes(args: unknown[], methodPath: string): Record<s
       attributes[GEN_AI_REQUEST_FREQUENCY_PENALTY_ATTRIBUTE] = params.frequency_penalty;
     if ('presence_penalty' in params) attributes[GEN_AI_REQUEST_PRESENCE_PENALTY_ATTRIBUTE] = params.presence_penalty;
     if ('stream' in params) attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE] = params.stream;
+    if ('encoding_format' in params) attributes[GEN_AI_REQUEST_ENCODING_FORMAT_ATTRIBUTE] = params.encoding_format;
+    if ('dimensions' in params) attributes[GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE] = params.dimensions;
   } else {
     attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] = 'unknown';
   }
@@ -167,6 +175,20 @@ function addResponsesApiAttributes(span: Span, response: OpenAIResponseObject, r
 }
 
 /**
+ * Add attributes for Embeddings API responses
+ */
+function addEmbeddingsAttributes(span: Span, response: OpenAICreateEmbeddingsObject): void {
+  span.setAttributes({
+    [OPENAI_RESPONSE_MODEL_ATTRIBUTE]: response.model,
+    [GEN_AI_RESPONSE_MODEL_ATTRIBUTE]: response.model,
+  });
+
+  if (response.usage) {
+    setTokenUsageAttributes(span, response.usage.prompt_tokens, undefined, response.usage.total_tokens);
+  }
+}
+
+/**
  * Add response attributes to spans
  * This currently supports both Chat Completion and Responses API responses
  */
@@ -186,6 +208,8 @@ function addResponseAttributes(span: Span, result: unknown, recordOutputs?: bool
     if (recordOutputs && response.output_text) {
       span.setAttributes({ [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: response.output_text });
     }
+  } else if (isEmbeddingsResponse(response)) {
+    addEmbeddingsAttributes(span, response);
   }
 }
 

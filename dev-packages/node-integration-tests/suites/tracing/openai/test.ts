@@ -152,7 +152,18 @@ describe('OpenAI integration', () => {
           'sentry.origin': 'auto.ai.openai',
           'gen_ai.system': 'openai',
           'gen_ai.request.model': 'text-embedding-3-small',
+          'gen_ai.request.encoding_format': 'float',
+          'gen_ai.request.dimensions': 1536,
+          'gen_ai.response.model': 'text-embedding-3-small',
+          'gen_ai.usage.input_tokens': 10,
+          'gen_ai.usage.total_tokens': 10,
+          'openai.response.model': 'text-embedding-3-small',
+          'openai.usage.prompt_tokens': 10,
         },
+        description: 'embeddings text-embedding-3-small',
+        op: 'gen_ai.embeddings',
+        origin: 'auto.ai.openai',
+        status: 'ok',
       }),
       // Eighth span - embeddings API error model
       expect.objectContaining({
@@ -163,6 +174,10 @@ describe('OpenAI integration', () => {
           'gen_ai.system': 'openai',
           'gen_ai.request.model': 'error-model',
         },
+        description: 'embeddings error-model',
+        op: 'gen_ai.embeddings',
+        origin: 'auto.ai.openai',
+        status: 'internal_error',
       }),
     ]),
   };
@@ -317,7 +332,7 @@ describe('OpenAI integration', () => {
         origin: 'auto.ai.openai',
         status: 'internal_error',
       }),
-      // Seventh span - embeddings API
+      // Seventh span - embeddings API with PII
       expect.objectContaining({
         data: {
           'gen_ai.operation.name': 'embeddings',
@@ -325,9 +340,21 @@ describe('OpenAI integration', () => {
           'sentry.origin': 'auto.ai.openai',
           'gen_ai.system': 'openai',
           'gen_ai.request.model': 'text-embedding-3-small',
+          'gen_ai.request.encoding_format': 'float',
+          'gen_ai.request.dimensions': 1536,
+          'gen_ai.request.messages': 'Embedding test!',
+          'gen_ai.response.model': 'text-embedding-3-small',
+          'gen_ai.usage.input_tokens': 10,
+          'gen_ai.usage.total_tokens': 10,
+          'openai.response.model': 'text-embedding-3-small',
+          'openai.usage.prompt_tokens': 10,
         },
+        description: 'embeddings text-embedding-3-small',
+        op: 'gen_ai.embeddings',
+        origin: 'auto.ai.openai',
+        status: 'ok',
       }),
-      // Eighth span - embeddings API error model
+      // Eighth span - embeddings API error model with PII
       expect.objectContaining({
         data: {
           'gen_ai.operation.name': 'embeddings',
@@ -335,7 +362,12 @@ describe('OpenAI integration', () => {
           'sentry.origin': 'auto.ai.openai',
           'gen_ai.system': 'openai',
           'gen_ai.request.model': 'error-model',
+          'gen_ai.request.messages': 'Error embedding test!',
         },
+        description: 'embeddings error-model',
+        op: 'gen_ai.embeddings',
+        origin: 'auto.ai.openai',
+        status: 'internal_error',
       }),
     ]),
   };

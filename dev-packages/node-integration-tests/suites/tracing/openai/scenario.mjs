@@ -79,6 +79,13 @@ class MockOpenAI {
       create: async params => {
         await new Promise(resolve => setTimeout(resolve, 10));
 
+        if (params.model === 'error-model') {
+          const error = new Error('Model not found');
+          error.status = 404;
+          error.headers = { 'x-request-id': 'mock-request-123' };
+          throw error;
+        }
+
         return {
           object: 'list',
           data: [
