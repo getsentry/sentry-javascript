@@ -651,8 +651,10 @@ export function shouldProfileSpanLegacy(span: Span): boolean {
     return false;
   }
 
-  // @ts-expect-error profilesSampleRate is not part of the browser options yet
-  const profilesSampleRate: number | boolean | undefined = options.profilesSampleRate;
+  // eslint-disable-next-line deprecation/deprecation
+  const profilesSampleRate = (options as BrowserOptions).profilesSampleRate as
+    | BrowserOptions['profilesSampleRate']
+    | boolean;
 
   // Since this is coming from the user (or from a function provided by the user), who knows what we might get. (The
   // only valid values are booleans or numbers between 0 and 1.)
@@ -727,6 +729,7 @@ export function shouldProfileSession(options: BrowserOptions): boolean {
  * Checks if legacy profiling is configured.
  */
 export function hasLegacyProfiling(options: BrowserOptions): boolean {
+  // eslint-disable-next-line deprecation/deprecation
   return typeof options.profilesSampleRate !== 'undefined';
 }
 
