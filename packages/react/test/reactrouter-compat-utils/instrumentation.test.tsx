@@ -10,7 +10,12 @@ import {
   createReactRouterV6CompatibleTracingIntegration,
   updateNavigationSpan,
 } from '../../src/reactrouter-compat-utils';
-import { addRoutesToAllRoutes, allRoutes } from '../../src/reactrouter-compat-utils/instrumentation';
+import {
+  addRoutesToAllRoutes,
+  allRoutes,
+  computeLocationKey,
+  shouldSkipNavigation,
+} from '../../src/reactrouter-compat-utils/instrumentation';
 import { resolveRouteNameAndSource, transactionNameHasWildcard } from '../../src/reactrouter-compat-utils/utils';
 import type { Location, RouteObject } from '../../src/types';
 
@@ -36,6 +41,7 @@ vi.mock('@sentry/browser', async requireActual => {
   return {
     ...(actual as any),
     startBrowserTracingNavigationSpan: vi.fn(),
+    startBrowserTracingPageLoadSpan: vi.fn(),
     browserTracingIntegration: vi.fn(() => ({
       setup: vi.fn(),
       afterAllSetup: vi.fn(),
@@ -624,5 +630,682 @@ describe('tryUpdateSpanNameBeforeEnd - source upgrade logic', () => {
     // This test validates that the isImprovement logic works correctly in tryUpdateSpanNameBeforeEnd
     // which is called during span.end() patching
     expect(mockUpdateName).toHaveBeenCalled(); // Initial set is allowed
+  });
+
+  describe('computeLocationKey (pure function)', () => {
+    it('should include pathname, search, and hash in location key', () => {
+      const location: Location = {
+        pathname: '/search',
+        search: '?q=foo',
+        hash: '#results',
+        state: null,
+        key: 'test',
+      };
+
+      const result = computeLocationKey(location);
+
+      expect(result).toBe('/search?q=foo#results');
+    });
+
+    it('should differentiate locations with same pathname but different query', () => {
+      const loc1: Location = { pathname: '/search', search: '?q=foo', hash: '', state: null, key: 'k1' };
+      const loc2: Location = { pathname: '/search', search: '?q=bar', hash: '', state: null, key: 'k2' };
+
+      const key1 = computeLocationKey(loc1);
+      const key2 = computeLocationKey(loc2);
+
+      // Verifies that search params are included in the location key
+      expect(key1).not.toBe(key2);
+      expect(key1).toBe('/search?q=foo');
+      expect(key2).toBe('/search?q=bar');
+    });
+
+    it('should differentiate locations with same pathname but different hash', () => {
+      const loc1: Location = { pathname: '/page', search: '', hash: '#section1', state: null, key: 'k1' };
+      const loc2: Location = { pathname: '/page', search: '', hash: '#section2', state: null, key: 'k2' };
+
+      const key1 = computeLocationKey(loc1);
+      const key2 = computeLocationKey(loc2);
+
+      // Verifies that hash values are included in the location key
+      expect(key1).not.toBe(key2);
+      expect(key1).toBe('/page#section1');
+      expect(key2).toBe('/page#section2');
+    });
+
+    it('should produce same key for identical locations', () => {
+      const loc1: Location = { pathname: '/users', search: '?id=123', hash: '#profile', state: null, key: 'k1' };
+      const loc2: Location = { pathname: '/users', search: '?id=123', hash: '#profile', state: null, key: 'k2' };
+
+      expect(computeLocationKey(loc1)).toBe(computeLocationKey(loc2));
+    });
+
+    it('should normalize undefined/null search and hash to empty strings (partial location objects)', () => {
+      // When <Routes location="/users"> receives a string, React Router creates a partial location
+      // with search: undefined and hash: undefined. We must normalize these to empty strings
+      // to match the keys from full location objects (which have search: '' and hash: '').
+      // This prevents duplicate navigation spans when using <Routes location> prop (common in modal routes).
+      const partialLocation: Location = {
+        pathname: '/users',
+        search: undefined as unknown as string,
+        hash: undefined as unknown as string,
+        state: null,
+        key: 'test1',
+      };
+
+      const fullLocation: Location = {
+        pathname: '/users',
+        search: '',
+        hash: '',
+        state: null,
+        key: 'test2',
+      };
+
+      const partialKey = computeLocationKey(partialLocation);
+      const fullKey = computeLocationKey(fullLocation);
+
+      // Verifies that undefined values are normalized to empty strings, preventing
+      // '/usersundefinedundefined' !== '/users' mismatches
+      expect(partialKey).toBe('/users');
+      expect(fullKey).toBe('/users');
+      expect(partialKey).toBe(fullKey);
+    });
+
+    it('should normalize null search and hash to empty strings', () => {
+      const locationWithNulls: Location = {
+        pathname: '/products',
+        search: null as unknown as string,
+        hash: null as unknown as string,
+        state: null,
+        key: 'test3',
+      };
+
+      const locationWithEmptyStrings: Location = {
+        pathname: '/products',
+        search: '',
+        hash: '',
+        state: null,
+        key: 'test4',
+      };
+
+      expect(computeLocationKey(locationWithNulls)).toBe('/products');
+      expect(computeLocationKey(locationWithEmptyStrings)).toBe('/products');
+      expect(computeLocationKey(locationWithNulls)).toBe(computeLocationKey(locationWithEmptyStrings));
+    });
+  });
+
+  describe('shouldSkipNavigation (pure function - duplicate detection logic)', () => {
+    const mockSpan: Span = { updateName: vi.fn(), setAttribute: vi.fn(), end: vi.fn() } as unknown as Span;
+
+    it('should not skip when no tracked navigation exists', () => {
+      const result = shouldSkipNavigation(undefined, '/users', '/users/:id', false);
+
+      expect(result).toEqual({ skip: false, shouldUpdate: false });
+    });
+
+    it('should skip placeholder navigations for same locationKey', () => {
+      const trackedNav = {
+        span: mockSpan,
+        routeName: '/search',
+        pathname: '/search',
+        locationKey: '/search?q=foo',
+        isPlaceholder: true,
+      };
+
+      const result = shouldSkipNavigation(trackedNav, '/search?q=foo', '/search', false);
+
+      // Verifies that placeholder navigations for the same locationKey are skipped
+      expect(result.skip).toBe(true);
+      expect(result.shouldUpdate).toBe(false);
+    });
+
+    it('should NOT skip placeholder navigations for different locationKey (query change)', () => {
+      const trackedNav = {
+        span: mockSpan,
+        routeName: '/search',
+        pathname: '/search',
+        locationKey: '/search?q=foo',
+        isPlaceholder: true,
+      };
+
+      const result = shouldSkipNavigation(trackedNav, '/search?q=bar', '/search', false);
+
+      // Verifies that different locationKeys allow new navigation even with same pathname
+      expect(result.skip).toBe(false);
+      expect(result.shouldUpdate).toBe(false);
+    });
+
+    it('should skip real span navigations for same locationKey when span has not ended', () => {
+      const trackedNav = {
+        span: mockSpan,
+        routeName: '/users/:id',
+        pathname: '/users/123',
+        locationKey: '/users/123?tab=profile',
+        isPlaceholder: false,
+      };
+
+      const result = shouldSkipNavigation(trackedNav, '/users/123?tab=profile', '/users/:id', false);
+
+      // Verifies that duplicate navigations are blocked when span hasn't ended
+      expect(result.skip).toBe(true);
+    });
+
+    it('should NOT skip real span navigations for different locationKey (query change)', () => {
+      const trackedNav = {
+        span: mockSpan,
+        routeName: '/users/:id',
+        pathname: '/users/123',
+        locationKey: '/users/123?tab=profile',
+        isPlaceholder: false,
+      };
+
+      const result = shouldSkipNavigation(trackedNav, '/users/123?tab=settings', '/users/:id', false);
+
+      // Verifies that different locationKeys allow new navigation even with same pathname
+      expect(result.skip).toBe(false);
+    });
+
+    it('should NOT skip when tracked span has ended', () => {
+      const trackedNav = {
+        span: mockSpan,
+        routeName: '/users/:id',
+        pathname: '/users/123',
+        locationKey: '/users/123',
+        isPlaceholder: false,
+      };
+
+      const result = shouldSkipNavigation(trackedNav, '/users/123', '/users/:id', true);
+
+      // Allow new navigation when previous span has ended
+      expect(result.skip).toBe(false);
+    });
+
+    it('should set shouldUpdate=true for wildcard to parameterized upgrade', () => {
+      const trackedNav = {
+        span: mockSpan,
+        routeName: '/users/*',
+        pathname: '/users/123',
+        locationKey: '/users/123',
+        isPlaceholder: false,
+      };
+
+      const result = shouldSkipNavigation(trackedNav, '/users/123', '/users/:id', false);
+
+      // Verifies that wildcard names are upgraded to parameterized routes
+      expect(result.skip).toBe(true);
+      expect(result.shouldUpdate).toBe(true);
+    });
+
+    it('should NOT set shouldUpdate=true when both names are wildcards', () => {
+      const trackedNav = {
+        span: mockSpan,
+        routeName: '/users/*',
+        pathname: '/users/123',
+        locationKey: '/users/123',
+        isPlaceholder: false,
+      };
+
+      const result = shouldSkipNavigation(trackedNav, '/users/123', '/users/*', false);
+
+      expect(result.skip).toBe(true);
+      expect(result.shouldUpdate).toBe(false);
+    });
+  });
+
+  describe('handleNavigation integration (verifies wiring to pure functions)', () => {
+    // Verifies that handleNavigation correctly uses computeLocationKey and shouldSkipNavigation
+
+    let mockNavigationSpan: Span;
+
+    beforeEach(async () => {
+      // Reset all mocks
+      vi.clearAllMocks();
+
+      // Import fresh modules to reset internal state
+      const coreModule = await import('@sentry/core');
+      const browserModule = await import('@sentry/browser');
+      const instrumentationModule = await import('../../src/reactrouter-compat-utils/instrumentation');
+
+      // Create a mock span with end() that captures callback
+      mockNavigationSpan = {
+        updateName: vi.fn(),
+        setAttribute: vi.fn(),
+        end: vi.fn(),
+      } as unknown as Span;
+
+      // Mock getClient to return a client that's registered for instrumentation
+      const mockClient = {
+        addIntegration: vi.fn(),
+        emit: vi.fn(),
+        on: vi.fn(),
+        getOptions: vi.fn(() => ({})),
+      } as unknown as Client;
+      vi.mocked(coreModule.getClient).mockReturnValue(mockClient);
+
+      // Mock startBrowserTracingPageLoadSpan to avoid pageload span creation during setup
+      vi.mocked(browserModule.startBrowserTracingPageLoadSpan).mockReturnValue(undefined);
+
+      // Register client for instrumentation by adding it to the internal set
+      const integration = instrumentationModule.createReactRouterV6CompatibleTracingIntegration({
+        useEffect: vi.fn(),
+        useLocation: vi.fn(),
+        useNavigationType: vi.fn(),
+        createRoutesFromChildren: vi.fn(),
+        matchRoutes: vi.fn(),
+      });
+      integration.afterAllSetup(mockClient);
+
+      // Mock startBrowserTracingNavigationSpan to return our mock span
+      vi.mocked(browserModule.startBrowserTracingNavigationSpan).mockReturnValue(mockNavigationSpan);
+
+      // Mock spanToJSON to return different values for different calls
+      vi.mocked(coreModule.spanToJSON).mockReturnValue({ op: 'navigation' } as any);
+
+      // Mock getActiveRootSpan to return undefined (no pageload span)
+      vi.mocked(coreModule.getActiveSpan).mockReturnValue(undefined);
+    });
+
+    it('creates navigation span and uses computeLocationKey for tracking', async () => {
+      const { handleNavigation } = await import('../../src/reactrouter-compat-utils/instrumentation');
+      const { startBrowserTracingNavigationSpan } = await import('@sentry/browser');
+      const { resolveRouteNameAndSource } = await import('../../src/reactrouter-compat-utils/utils');
+
+      // Mock to return a specific route name
+      vi.mocked(resolveRouteNameAndSource).mockReturnValue(['/search', 'route']);
+
+      const location: Location = {
+        pathname: '/search',
+        search: '?q=foo',
+        hash: '#results',
+        state: null,
+        key: 'test1',
+      };
+
+      const matches = [
+        {
+          pathname: '/search',
+          pathnameBase: '/search',
+          route: { path: '/search', element: <div /> },
+          params: {},
+        },
+      ];
+
+      handleNavigation({
+        location,
+        routes: [{ path: '/search', element: <div /> }],
+        navigationType: 'PUSH',
+        version: '6' as const,
+        matches: matches as any,
+      });
+
+      // Verifies that handleNavigation calls startBrowserTracingNavigationSpan
+      expect(startBrowserTracingNavigationSpan).toHaveBeenCalledTimes(1);
+      expect(startBrowserTracingNavigationSpan).toHaveBeenCalledWith(
+        expect.objectContaining({ emit: expect.any(Function) }), // client
+        expect.objectContaining({
+          name: '/search',
+          attributes: expect.objectContaining({
+            'sentry.op': 'navigation',
+            'sentry.source': 'route',
+          }),
+        }),
+      );
+    });
+
+    it('blocks duplicate navigation for exact same locationKey (pathname+query+hash)', async () => {
+      const { handleNavigation } = await import('../../src/reactrouter-compat-utils/instrumentation');
+      const { startBrowserTracingNavigationSpan } = await import('@sentry/browser');
+      const { spanToJSON } = await import('@sentry/core');
+
+      const location: Location = {
+        pathname: '/search',
+        search: '?q=foo',
+        hash: '#results',
+        state: null,
+        key: 'test1',
+      };
+
+      const matches = [
+        {
+          pathname: '/search',
+          pathnameBase: '/search',
+          route: { path: '/search', element: <div /> },
+          params: {},
+        },
+      ];
+
+      // First navigation - should create span
+      handleNavigation({
+        location,
+        routes: [{ path: '/search', element: <div /> }],
+        navigationType: 'PUSH',
+        version: '6' as const,
+        matches: matches as any,
+      });
+
+      // Mock spanToJSON to indicate span hasn't ended yet
+      vi.mocked(spanToJSON).mockReturnValue({ op: 'navigation' } as any);
+
+      // Second navigation - exact same location, should be blocked
+      handleNavigation({
+        location: { ...location, key: 'test2' }, // Different key, same location
+        routes: [{ path: '/search', element: <div /> }],
+        navigationType: 'PUSH',
+        version: '6' as const,
+        matches: matches as any,
+      });
+
+      // Verifies that duplicate detection uses locationKey (not just pathname)
+      expect(startBrowserTracingNavigationSpan).toHaveBeenCalledTimes(1); // Only first call
+    });
+
+    it('allows navigation for same pathname but different query string', async () => {
+      const { handleNavigation } = await import('../../src/reactrouter-compat-utils/instrumentation');
+      const { startBrowserTracingNavigationSpan } = await import('@sentry/browser');
+      const { spanToJSON } = await import('@sentry/core');
+
+      const location1: Location = {
+        pathname: '/search',
+        search: '?q=foo',
+        hash: '',
+        state: null,
+        key: 'test1',
+      };
+
+      const matches = [
+        {
+          pathname: '/search',
+          pathnameBase: '/search',
+          route: { path: '/search', element: <div /> },
+          params: {},
+        },
+      ];
+
+      // First navigation
+      handleNavigation({
+        location: location1,
+        routes: [{ path: '/search', element: <div /> }],
+        navigationType: 'PUSH',
+        version: '6' as const,
+        matches: matches as any,
+      });
+
+      // Mock spanToJSON to indicate span hasn't ended yet
+      vi.mocked(spanToJSON).mockReturnValue({ op: 'navigation' } as any);
+
+      // Second navigation - same pathname, different query
+      const location2: Location = {
+        pathname: '/search',
+        search: '?q=bar',
+        hash: '',
+        state: null,
+        key: 'test2',
+      };
+
+      handleNavigation({
+        location: location2,
+        routes: [{ path: '/search', element: <div /> }],
+        navigationType: 'PUSH',
+        version: '6' as const,
+        matches: matches as any,
+      });
+
+      // Verifies that query params are included in locationKey for duplicate detection
+      expect(startBrowserTracingNavigationSpan).toHaveBeenCalledTimes(2); // Both calls should create spans
+    });
+
+    it('allows navigation for same pathname but different hash', async () => {
+      const { handleNavigation } = await import('../../src/reactrouter-compat-utils/instrumentation');
+      const { startBrowserTracingNavigationSpan } = await import('@sentry/browser');
+      const { spanToJSON } = await import('@sentry/core');
+
+      const location1: Location = {
+        pathname: '/page',
+        search: '',
+        hash: '#section1',
+        state: null,
+        key: 'test1',
+      };
+
+      const matches = [
+        {
+          pathname: '/page',
+          pathnameBase: '/page',
+          route: { path: '/page', element: <div /> },
+          params: {},
+        },
+      ];
+
+      // First navigation
+      handleNavigation({
+        location: location1,
+        routes: [{ path: '/page', element: <div /> }],
+        navigationType: 'PUSH',
+        version: '6' as const,
+        matches: matches as any,
+      });
+
+      // Mock spanToJSON to indicate span hasn't ended yet
+      vi.mocked(spanToJSON).mockReturnValue({ op: 'navigation' } as any);
+
+      // Second navigation - same pathname, different hash
+      const location2: Location = {
+        pathname: '/page',
+        search: '',
+        hash: '#section2',
+        state: null,
+        key: 'test2',
+      };
+
+      handleNavigation({
+        location: location2,
+        routes: [{ path: '/page', element: <div /> }],
+        navigationType: 'PUSH',
+        version: '6' as const,
+        matches: matches as any,
+      });
+
+      // Verifies that hash values are included in locationKey for duplicate detection
+      expect(startBrowserTracingNavigationSpan).toHaveBeenCalledTimes(2); // Both calls should create spans
+    });
+
+    it('updates wildcard span when better parameterized name becomes available', async () => {
+      const { handleNavigation } = await import('../../src/reactrouter-compat-utils/instrumentation');
+      const { startBrowserTracingNavigationSpan } = await import('@sentry/browser');
+      const { spanToJSON } = await import('@sentry/core');
+      const { transactionNameHasWildcard, resolveRouteNameAndSource } = await import(
+        '../../src/reactrouter-compat-utils/utils'
+      );
+
+      const location: Location = {
+        pathname: '/users/123',
+        search: '',
+        hash: '',
+        state: null,
+        key: 'test1',
+      };
+
+      const matches = [
+        {
+          pathname: '/users/123',
+          pathnameBase: '/users',
+          route: { path: '/users/*', element: <div /> },
+          params: { '*': '123' },
+        },
+      ];
+
+      // First navigation - resolves to wildcard name
+      vi.mocked(resolveRouteNameAndSource).mockReturnValue(['/users/*', 'route']);
+      // Mock transactionNameHasWildcard to return true for wildcards, false for parameterized
+      vi.mocked(transactionNameHasWildcard).mockImplementation((name: string) => {
+        return name.includes('/*') || name === '*' || name.endsWith('*');
+      });
+
+      handleNavigation({
+        location,
+        routes: [{ path: '/users/*', element: <div /> }],
+        navigationType: 'PUSH',
+        version: '6' as const,
+        matches: matches as any,
+      });
+
+      const firstSpan = mockNavigationSpan;
+      expect(startBrowserTracingNavigationSpan).toHaveBeenCalledTimes(1);
+
+      // Mock spanToJSON to indicate span hasn't ended yet and has wildcard name
+      vi.mocked(spanToJSON).mockReturnValue({
+        op: 'navigation',
+        description: '/users/*',
+        data: { 'sentry.source': 'route' },
+      } as any);
+
+      // Second navigation - same location but better parameterized name available
+      vi.mocked(resolveRouteNameAndSource).mockReturnValue(['/users/:id', 'route']);
+
+      handleNavigation({
+        location: { ...location, key: 'test2' },
+        routes: [{ path: '/users/:id', element: <div /> }],
+        navigationType: 'PUSH',
+        version: '6' as const,
+        matches: matches as any,
+      });
+
+      // Verifies that wildcard span names are upgraded when parameterized routes become available
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(vi.mocked(firstSpan.updateName)).toHaveBeenCalledWith('/users/:id');
+      expect(startBrowserTracingNavigationSpan).toHaveBeenCalledTimes(1); // No new span created
+    });
+
+    it('prevents duplicate spans when <Routes location> prop is a string (partial location)', async () => {
+      // This test verifies the fix for the bug where <Routes location="/users"> creates
+      // a partial location object with search: undefined and hash: undefined, which
+      // would result in a different locationKey ('/usersundefinedundefined' vs '/users')
+      // causing duplicate navigation spans.
+      const { handleNavigation } = await import('../../src/reactrouter-compat-utils/instrumentation');
+      const { startBrowserTracingNavigationSpan } = await import('@sentry/browser');
+      const { spanToJSON } = await import('@sentry/core');
+      const { resolveRouteNameAndSource } = await import('../../src/reactrouter-compat-utils/utils');
+
+      // Mock resolveRouteNameAndSource to return consistent route name
+      vi.mocked(resolveRouteNameAndSource).mockReturnValue(['/users', 'route']);
+
+      const matches = [
+        {
+          pathname: '/users',
+          pathnameBase: '/users',
+          route: { path: '/users', element: <div /> },
+          params: {},
+        },
+      ];
+
+      // First call: Partial location (from <Routes location="/users">)
+      // React Router creates location with undefined search and hash
+      const partialLocation: Location = {
+        pathname: '/users',
+        search: undefined as unknown as string,
+        hash: undefined as unknown as string,
+        state: null,
+        key: 'test1',
+      };
+
+      handleNavigation({
+        location: partialLocation,
+        routes: [{ path: '/users', element: <div /> }],
+        navigationType: 'PUSH',
+        version: '6' as const,
+        matches: matches as any,
+      });
+
+      expect(startBrowserTracingNavigationSpan).toHaveBeenCalledTimes(1);
+
+      // Mock spanToJSON to indicate span hasn't ended yet
+      vi.mocked(spanToJSON).mockReturnValue({ op: 'navigation' } as any);
+
+      // Second call: Full location (from router.state)
+      // React Router provides location with empty string search and hash
+      const fullLocation: Location = {
+        pathname: '/users',
+        search: '',
+        hash: '',
+        state: null,
+        key: 'test2',
+      };
+
+      handleNavigation({
+        location: fullLocation,
+        routes: [{ path: '/users', element: <div /> }],
+        navigationType: 'PUSH',
+        version: '6' as const,
+        matches: matches as any,
+      });
+
+      // Verifies that undefined values are normalized, preventing duplicate spans
+      // (without normalization, '/usersundefinedundefined' != '/users' would create 2 spans)
+      expect(startBrowserTracingNavigationSpan).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('SSR-safe RAF fallback (scheduleCallback/cancelScheduledCallback)', () => {
+    // These tests verify that the RAF fallback works correctly in SSR environments
+
+    it('uses requestAnimationFrame when available', () => {
+      // Save original RAF
+      const originalRAF = window.requestAnimationFrame;
+      const rafSpy = vi.fn((cb: () => void) => {
+        cb();
+        return 123;
+      });
+      window.requestAnimationFrame = rafSpy;
+
+      try {
+        // Import module to trigger RAF usage
+        const scheduleCallback = (callback: () => void): number => {
+          if (window?.requestAnimationFrame) {
+            return window.requestAnimationFrame(callback);
+          }
+          return setTimeout(callback, 0) as unknown as number;
+        };
+
+        const mockCallback = vi.fn();
+        scheduleCallback(mockCallback);
+
+        // Verifies that requestAnimationFrame is used when available
+        expect(rafSpy).toHaveBeenCalled();
+        expect(mockCallback).toHaveBeenCalled();
+      } finally {
+        window.requestAnimationFrame = originalRAF;
+      }
+    });
+
+    it('falls back to setTimeout when requestAnimationFrame is unavailable (SSR)', () => {
+      // Simulate SSR by removing RAF
+      const originalRAF = window.requestAnimationFrame;
+      const originalCAF = window.cancelAnimationFrame;
+      // @ts-expect-error - Simulating SSR environment
+      delete window.requestAnimationFrame;
+      // @ts-expect-error - Simulating SSR environment
+      delete window.cancelAnimationFrame;
+
+      try {
+        const timeoutSpy = vi.spyOn(global, 'setTimeout');
+
+        // Import module to trigger setTimeout fallback
+        const scheduleCallback = (callback: () => void): number => {
+          if (window?.requestAnimationFrame) {
+            return window.requestAnimationFrame(callback);
+          }
+          return setTimeout(callback, 0) as unknown as number;
+        };
+
+        const mockCallback = vi.fn();
+        scheduleCallback(mockCallback);
+
+        // Verifies that setTimeout is used when requestAnimationFrame is unavailable
+        expect(timeoutSpy).toHaveBeenCalledWith(mockCallback, 0);
+      } finally {
+        window.requestAnimationFrame = originalRAF;
+        window.cancelAnimationFrame = originalCAF;
+      }
+    });
   });
 });

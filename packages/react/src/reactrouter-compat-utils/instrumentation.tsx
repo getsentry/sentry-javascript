@@ -57,7 +57,7 @@ const CLIENTS_WITH_INSTRUMENT_NAVIGATION = new WeakSet<Client>();
 // Prevents duplicate spans when router.subscribe fires multiple times
 const activeNavigationSpans = new WeakMap<
   Client,
-  { span: Span; routeName: string; pathname: string; isPlaceholder?: boolean }
+  { span: Span; routeName: string; pathname: string; locationKey: string; isPlaceholder?: boolean }
 >();
 
 // Exported for testing only
@@ -65,6 +65,94 @@ export const allRoutes = new Set<RouteObject>();
 
 // Tracks lazy route loads to wait before finalizing span names
 const pendingLazyRouteLoads = new WeakMap<Span, Set<Promise<unknown>>>();
+
+/**
+ * Schedules a callback using requestAnimationFrame when available (browser),
+ * or falls back to setTimeout for SSR environments (Node.js, createMemoryRouter tests).
+ */
+function scheduleCallback(callback: () => void): number {
+  if (WINDOW?.requestAnimationFrame) {
+    return WINDOW.requestAnimationFrame(callback);
+  }
+  return setTimeout(callback, 0) as unknown as number;
+}
+
+/**
+ * Cancels a scheduled callback, handling both RAF (browser) and timeout (SSR) IDs.
+ */
+function cancelScheduledCallback(id: number): void {
+  if (WINDOW?.cancelAnimationFrame) {
+    WINDOW.cancelAnimationFrame(id);
+  } else {
+    clearTimeout(id);
+  }
+}
+
+/**
+ * Computes a location key that uniquely identifies a navigation including pathname, search, and hash.
+ *
+ * Normalizes undefined/null search and hash to empty strings to ensure consistency between
+ * partial location objects (from <Routes location="/path">) and full location objects
+ * (from history state). This prevents duplicate navigation spans when using the location
+ * prop with string values (common in modal routes and SSR).
+ *
+ * Exported for testing.
+ *
+ * @example
+ * // Partial location (from <Routes location="/users">)
+ * computeLocationKey({ pathname: '/users', search: undefined, hash: undefined })
+ * // Returns: '/users'
+ *
+ * // Full location (from history)
+ * computeLocationKey({ pathname: '/users', search: '', hash: '' })
+ * // Returns: '/users' (same key - duplicate detection works correctly)
+ */
+export function computeLocationKey(location: Location): string {
+  return `${location.pathname}${location.search || ''}${location.hash || ''}`;
+}
+
+/**
+ * Determines if a navigation should be skipped as a duplicate, and if an existing span should be updated.
+ * Exported for testing.
+ *
+ * @returns An object with:
+ *   - skip: boolean - Whether to skip creating a new span
+ *   - shouldUpdate: boolean - Whether to update the existing span name (wildcard upgrade)
+ */
+export function shouldSkipNavigation(
+  trackedNav:
+    | { span: Span; routeName: string; pathname: string; locationKey: string; isPlaceholder?: boolean }
+    | undefined,
+  locationKey: string,
+  proposedName: string,
+  spanHasEnded: boolean,
+): { skip: boolean; shouldUpdate: boolean } {
+  if (!trackedNav) {
+    return { skip: false, shouldUpdate: false };
+  }
+
+  // If it's a placeholder for the same location, skip immediately (span creation in progress)
+  if (trackedNav.isPlaceholder && trackedNav.locationKey === locationKey) {
+    return { skip: true, shouldUpdate: false };
+  }
+
+  // For real spans (not placeholders), check if duplicate by location and end status
+  if (!trackedNav.isPlaceholder) {
+    // If tracked span is for the same location and hasn't ended yet, this is a duplicate
+    if (trackedNav.locationKey === locationKey && !spanHasEnded) {
+      // Check if we should update from wildcard to parameterized
+      const shouldUpdate =
+        !!trackedNav.routeName &&
+        transactionNameHasWildcard(trackedNav.routeName) &&
+        !transactionNameHasWildcard(proposedName);
+
+      return { skip: true, shouldUpdate };
+    }
+  }
+
+  // Location is different or span has ended - allow creating new span
+  return { skip: false, shouldUpdate: false };
+}
 
 export interface ReactRouterOptions {
   useEffect: UseEffect;
@@ -286,7 +374,8 @@ function setupRouterSubscription(
 
     if (shouldHandleNavigation) {
       // Include search and hash to allow query/hash-only navigations
-      const currentLocationKey = `${state.location.pathname}${state.location.search}${state.location.hash}`;
+      // Use computeLocationKey() to ensure undefined/null values are normalized to empty strings
+      const currentLocationKey = computeLocationKey(state.location);
       const navigationHandler = (): void => {
         // Prevent multiple calls for the same location within the same navigation cycle
         if (lastHandledPathname === currentLocationKey) {
@@ -311,13 +400,13 @@ function setupRouterSubscription(
         }
         // Cancel any previously scheduled handler to avoid duplicates
         if (scheduledNavigationHandler !== null) {
-          cancelAnimationFrame(scheduledNavigationHandler);
+          cancelScheduledCallback(scheduledNavigationHandler);
         }
-        scheduledNavigationHandler = requestAnimationFrame(navigationHandler);
+        scheduledNavigationHandler = scheduleCallback(navigationHandler);
       } else {
         // Navigation completed - cancel scheduled handler if any, then call immediately
         if (scheduledNavigationHandler !== null) {
-          cancelAnimationFrame(scheduledNavigationHandler);
+          cancelScheduledCallback(scheduledNavigationHandler);
           scheduledNavigationHandler = null;
         }
         navigationHandler();
@@ -671,7 +760,6 @@ function wrapPatchRoutesOnNavigation(
   };
 }
 
-// eslint-disable-next-line complexity
 export function handleNavigation(opts: {
   location: Location;
   routes: RouteObject[];
@@ -705,43 +793,26 @@ export function handleNavigation(opts: {
       basename,
     );
 
+    const locationKey = computeLocationKey(location);
     const trackedNav = activeNavigationSpans.get(client);
 
-    // If we have a tracked navigation for this client, check if it's a duplicate
-    if (trackedNav) {
-      // If it's a placeholder for the same pathname, skip immediately (span creation in progress)
-      if (trackedNav.isPlaceholder && trackedNav.pathname === location.pathname) {
-        DEBUG_BUILD &&
-          debug.log(`[Tracing] Skipping duplicate navigation - placeholder exists for pathname: ${location.pathname}`);
-        return;
+    // Determine if this navigation should be skipped as a duplicate
+    const trackedSpanHasEnded =
+      trackedNav && !trackedNav.isPlaceholder ? !!spanToJSON(trackedNav.span).timestamp : false;
+    const { skip, shouldUpdate } = shouldSkipNavigation(trackedNav, locationKey, name, trackedSpanHasEnded);
+
+    if (skip) {
+      if (shouldUpdate && trackedNav) {
+        // Update existing span from wildcard to parameterized route name
+        const oldName = trackedNav.routeName;
+        trackedNav.span.updateName(name);
+        trackedNav.span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source as 'route' | 'url' | 'custom');
+        trackedNav.routeName = name;
+        DEBUG_BUILD && debug.log(`[Tracing] Updated navigation span name from "${oldName}" to "${name}"`);
+      } else {
+        DEBUG_BUILD && debug.log(`[Tracing] Skipping duplicate navigation for location: ${locationKey}`);
       }
-
-      // For real spans (not placeholders), check if duplicate by pathname and end status
-      if (!trackedNav.isPlaceholder) {
-        const trackedSpanJson = spanToJSON(trackedNav.span);
-        const trackedSpanHasEnded = !!trackedSpanJson.timestamp;
-
-        // If tracked span is for the same pathname and hasn't ended yet, this is a duplicate
-        if (trackedNav.pathname === location.pathname && !trackedSpanHasEnded) {
-          // Check if we should update from wildcard to parameterized
-          const shouldUpdate =
-            trackedNav.routeName &&
-            transactionNameHasWildcard(trackedNav.routeName) &&
-            !transactionNameHasWildcard(name);
-
-          if (shouldUpdate) {
-            const oldName = trackedNav.routeName;
-            trackedNav.span.updateName(name);
-            trackedNav.span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source as 'route' | 'url' | 'custom');
-            // Update the tracked route name so future checks use the new name
-            trackedNav.routeName = name;
-            DEBUG_BUILD && debug.log(`[Tracing] Updated navigation span name from "${oldName}" to "${name}"`);
-          }
-          return; // Skip - duplicate (same pathname, span still active)
-        }
-        // If pathname is different or span has ended, allow creating new span
-        // This handles legitimate re-navigations like /users/123 -> /users/456
-      }
+      return;
     }
 
     // Create new navigation span (first navigation or legitimate new navigation)
@@ -752,6 +823,7 @@ export function handleNavigation(opts: {
       span: placeholderSpan,
       routeName: name,
       pathname: location.pathname,
+      locationKey,
       isPlaceholder: true,
     });
 
@@ -766,7 +838,12 @@ export function handleNavigation(opts: {
 
     if (navigationSpan) {
       // Update the map with the real span (isPlaceholder omitted, defaults to false)
-      activeNavigationSpans.set(client, { span: navigationSpan, routeName: name, pathname: location.pathname });
+      activeNavigationSpans.set(client, {
+        span: navigationSpan,
+        routeName: name,
+        pathname: location.pathname,
+        locationKey,
+      });
       patchSpanEnd(navigationSpan, location, routes, basename, allRoutes, 'navigation');
     } else {
       // If no span was created, remove the placeholder
@@ -955,14 +1032,16 @@ function patchSpanEnd(
     const currentName = spanJson.description;
     const currentSource = spanJson.data?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
 
-    // Clean up activeNavigationSpans entry for this span to prevent stale entries
-    const client = getClient();
-    if (client && spanType === 'navigation') {
-      const trackedNav = activeNavigationSpans.get(client);
-      if (trackedNav && trackedNav.span === span) {
-        activeNavigationSpans.delete(client);
+    // Helper to clean up activeNavigationSpans after span ends
+    const cleanupNavigationSpan = (): void => {
+      const client = getClient();
+      if (client && spanType === 'navigation') {
+        const trackedNav = activeNavigationSpans.get(client);
+        if (trackedNav && trackedNav.span === span) {
+          activeNavigationSpans.delete(client);
+        }
       }
-    }
+    };
 
     const pendingPromises = pendingLazyRouteLoads.get(span);
     // Wait for lazy routes if:
@@ -978,7 +1057,9 @@ function patchSpanEnd(
     if (shouldWaitForLazyRoutes) {
       if (_lazyRouteTimeout === 0) {
         tryUpdateSpanNameBeforeEnd(span, spanJson, currentName, location, routes, basename, spanType, allRoutesSet);
-        return originalEnd(...args);
+        originalEnd(...args);
+        cleanupNavigationSpan();
+        return;
       }
 
       const allSettled = Promise.allSettled(pendingPromises).then(() => {});
@@ -1001,15 +1082,18 @@ function patchSpanEnd(
             allRoutesSet,
           );
           originalEnd(...args);
+          cleanupNavigationSpan();
         })
         .catch(() => {
           originalEnd(...args);
+          cleanupNavigationSpan();
         });
       return;
     }
 
     tryUpdateSpanNameBeforeEnd(span, spanJson, currentName, location, routes, basename, spanType, allRoutesSet);
-    return originalEnd(...args);
+    originalEnd(...args);
+    cleanupNavigationSpan();
   };
 
   addNonEnumerableProperty(span as unknown as Record<string, boolean>, patchedPropertyName, true);
