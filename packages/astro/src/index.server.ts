@@ -95,7 +95,7 @@ export {
   onUnhandledRejectionIntegration,
   openAIIntegration,
   langChainIntegration,
-  langgraphIntegration,
+  langGraphIntegration,
   parameterize,
   pinoIntegration,
   postgresIntegration,

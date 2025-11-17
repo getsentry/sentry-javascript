@@ -164,6 +164,11 @@ export const GEN_AI_USAGE_INPUT_TOKENS_CACHE_WRITE_ATTRIBUTE = 'gen_ai.usage.inp
  */
 export const GEN_AI_USAGE_INPUT_TOKENS_CACHED_ATTRIBUTE = 'gen_ai.usage.input_tokens.cached';
 
+/**
+ * The span operation name for invoking an agent
+ */
+export const GEN_AI_INVOKE_AGENT_OPERATION_ATTRIBUTE = 'gen_ai.invoke_agent';
+
 // =============================================================================
 // OPENAI-SPECIFIC ATTRIBUTES
 // =============================================================================

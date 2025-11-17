@@ -84,9 +84,83 @@ async function run() {
     await graph.invoke({
       messages: [{ role: 'user', content: 'What is the weather?' }],
     });
+
+    // Define mock LLM function that returns with tool calls
+    let callCount = 0;
+    const mockLlmWithTools = () => {
+      callCount++;
+
+      // First call - return tool calls
+      if (callCount === 1) {
+        return {
+          messages: [
+            {
+              role: 'assistant',
+              content: '',
+              response_metadata: {
+                model_name: 'gpt-4-0613',
+                finish_reason: 'tool_calls',
+                tokenUsage: {
+                  promptTokens: 30,
+                  completionTokens: 20,
+                  totalTokens: 50,
+                },
+              },
+              tool_calls: [
+                {
+                  name: 'get_weather',
+                  args: { city: 'San Francisco' },
+                  id: 'call_123',
+                  type: 'tool_call',
+                },
+              ],
+            },
+          ],
+        };
+      }
+
+      // Second call - return final response after tool execution
+      return {
+        messages: [
+          {
+            role: 'assistant',
+            content: 'Based on the weather data, it is sunny and 72 degrees in San Francisco.',
+            response_metadata: {
+              model_name: 'gpt-4-0613',
+              finish_reason: 'stop',
+              tokenUsage: {
+                promptTokens: 50,
+                completionTokens: 20,
+                totalTokens: 70,
+              },
+            },
+            tool_calls: [],
+          },
+        ],
+      };
+    };
+
+    // Create graph with tool calls enabled
+    const graphWithTools = new StateGraph(MessagesAnnotation)
+      .addNode('agent', mockLlmWithTools)
+      .addNode('tools', toolNode)
+      .addEdge(START, 'agent')
+      .addConditionalEdges('agent', shouldContinue, {
+        tools: 'tools',
+        [END]: END,
+      })
+      .addEdge('tools', 'agent')
+      .compile({ name: 'tool_calling_agent' });
+
+    // Invocation that actually calls tools
+    await graphWithTools.invoke({
+      messages: [{ role: 'user', content: 'What is the weather in San Francisco?' }],
+    });
   });
 
   await Sentry.flush(2000);
 }
 
 run();
+
+

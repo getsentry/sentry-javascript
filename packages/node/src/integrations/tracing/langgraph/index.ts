@@ -8,7 +8,7 @@ export const instrumentLangGraph = generateInstrumentOnce<LangGraphOptions>(
   options => new SentryLangGraphInstrumentation(options),
 );
 
-const _langgraphIntegration = ((options: LangGraphOptions = {}) => {
+const _langGraphIntegration = ((options: LangGraphOptions = {}) => {
   return {
     name: LANGGRAPH_INTEGRATION_NAME,
     setupOnce() {
@@ -30,7 +30,7 @@ const _langgraphIntegration = ((options: LangGraphOptions = {}) => {
  * import * as Sentry from '@sentry/node';
  *
  * Sentry.init({
- *   integrations: [Sentry.langgraphIntegration()],
+ *   integrations: [Sentry.langGraphIntegration()],
  * });
  * ```
  *
@@ -50,7 +50,7 @@ const _langgraphIntegration = ((options: LangGraphOptions = {}) => {
  * // Record inputs and outputs when sendDefaultPii is false
  * Sentry.init({
  *   integrations: [
- *     Sentry.langgraphIntegration({
+ *     Sentry.langGraphIntegration({
  *       recordInputs: true,
  *       recordOutputs: true
  *     })
@@ -61,7 +61,7 @@ const _langgraphIntegration = ((options: LangGraphOptions = {}) => {
  * Sentry.init({
  *   sendDefaultPii: true,
  *   integrations: [
- *     Sentry.langgraphIntegration({
+ *     Sentry.langGraphIntegration({
  *       recordInputs: false,
  *       recordOutputs: false
  *     })
@@ -85,4 +85,4 @@ const _langgraphIntegration = ((options: LangGraphOptions = {}) => {
  * - Available tools configured in the graph
  *
  */
-export const langgraphIntegration = defineIntegration(_langgraphIntegration);
+export const langGraphIntegration = defineIntegration(_langGraphIntegration);

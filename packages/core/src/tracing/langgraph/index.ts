@@ -1,30 +1,28 @@
 import { captureException } from '../../exports';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import { SPAN_STATUS_ERROR } from '../../tracing';
-import type { Span } from '../../types-hoist/span';
 import {
   GEN_AI_AGENT_NAME_ATTRIBUTE,
+  GEN_AI_INVOKE_AGENT_OPERATION_ATTRIBUTE,
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
   GEN_AI_PIPELINE_NAME_ATTRIBUTE,
   GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE,
   GEN_AI_REQUEST_MESSAGES_ATTRIBUTE,
-  GEN_AI_RESPONSE_TEXT_ATTRIBUTE,
-  GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
 } from '../../utils/ai/gen-ai-attributes';
 import { truncateGenAiMessages } from '../../utils/ai/messageTruncation';
 import type { LangChainMessage } from '../../utils/langchain/types';
 import { normalizeLangChainMessages } from '../../utils/langchain/utils';
 import { startSpan } from '../trace';
 import { LANGGRAPH_ORIGIN } from './constants';
-import type { CompiledGraph, LangGraphOptions, LangGraphTool } from './types';
-import { extractModelMetadata, extractTokenUsageFromMetadata, extractToolCalls } from './utils';
+import type { CompiledGraph, LangGraphOptions } from './types';
+import { extractToolsFromCompiledGraph, setResponseAttributes } from './utils';
 
 /**
  * Instruments StateGraph's compile method to create spans for agent creation and invocation
  *
  * Wraps the compile() method to:
  * - Create a `gen_ai.create_agent` span when compile() is called
- * - Automatically wrap the invoke() method on the returned compiled graph
+ * - Automatically wrap the invoke() method on the returned compiled graph with a `gen_ai.invoke_agent` span
  *
  */
 export function instrumentStateGraphCompile(
@@ -101,7 +99,7 @@ function instrumentCompiledGraphInvoke(
           name: 'invoke_agent',
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: LANGGRAPH_ORIGIN,
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.invoke_agent',
+            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: GEN_AI_INVOKE_AGENT_OPERATION_ATTRIBUTE,
             [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'invoke_agent',
           },
         },
@@ -155,65 +153,4 @@ function instrumentCompiledGraphInvoke(
       );
     },
   }) as (...args: unknown[]) => Promise<unknown>;
-}
-
-/**
- * Extract tools from compiled graph structure
- *
- * Tools are stored in: compiledGraph.builder.nodes.tools.runnable.tools
- */
-function extractToolsFromCompiledGraph(compiledGraph: CompiledGraph): unknown[] | null {
-  if (!compiledGraph.builder?.nodes?.tools?.runnable?.tools) {
-    return null;
-  }
-
-  const tools = compiledGraph.builder?.nodes?.tools?.runnable?.tools;
-
-  if (!tools || !Array.isArray(tools) || tools.length === 0) {
-    return null;
-  }
-
-  // Extract name, description, and schema from each tool's lc_kwargs
-  return tools.map((tool: LangGraphTool) => ({
-    name: tool.lc_kwargs?.name,
-    description: tool.lc_kwargs?.description,
-    schema: tool.lc_kwargs?.schema,
-  }));
-}
-
-/**
- * Set response attributes on the span
- */
-function setResponseAttributes(span: Span, inputMessages: LangChainMessage[] | null, result: unknown): void {
-  // Extract messages from result
-  const resultObj = result as { messages?: LangChainMessage[] } | undefined;
-  const outputMessages = resultObj?.messages;
-
-  if (!outputMessages || !Array.isArray(outputMessages)) {
-    return;
-  }
-
-  // Get new messages (delta between input and output)
-  const inputCount = inputMessages?.length ?? 0;
-  const newMessages = outputMessages.length > inputCount ? outputMessages.slice(inputCount) : [];
-
-  if (newMessages.length === 0) {
-    return;
-  }
-
-  // Normalize the new messages
-  const normalizedNewMessages = normalizeLangChainMessages(newMessages);
-  span.setAttribute(GEN_AI_RESPONSE_TEXT_ATTRIBUTE, JSON.stringify(normalizedNewMessages));
-
-  // Extract and set tool calls from new messages
-  const toolCalls = extractToolCalls(normalizedNewMessages);
-  if (toolCalls) {
-    span.setAttribute(GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE, JSON.stringify(toolCalls));
-  }
-
-  // Extract metadata from messages
-  for (const message of newMessages) {
-    extractTokenUsageFromMetadata(span, message);
-    extractModelMetadata(span, message);
-  }
 }

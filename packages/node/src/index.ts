@@ -28,7 +28,7 @@ export { openAIIntegration } from './integrations/tracing/openai';
 export { anthropicAIIntegration } from './integrations/tracing/anthropic-ai';
 export { googleGenAIIntegration } from './integrations/tracing/google-genai';
 export { langChainIntegration } from './integrations/tracing/langchain';
-export { langgraphIntegration } from './integrations/tracing/langgraph';
+export { langGraphIntegration } from './integrations/tracing/langgraph';
 export {
   launchDarklyIntegration,
   buildLaunchDarklyFlagUsedHandler,

@@ -2,11 +2,15 @@ import type { Span } from '../../types-hoist/span';
 import {
   GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE,
   GEN_AI_RESPONSE_MODEL_ATTRIBUTE,
+  GEN_AI_RESPONSE_TEXT_ATTRIBUTE,
+  GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
   GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
 } from '../../utils/ai/gen-ai-attributes';
 import type { LangChainMessage } from '../../utils/langchain/types';
+import { normalizeLangChainMessages } from '../../utils/langchain/utils';
+import type { CompiledGraph, LangGraphTool } from './types';
 
 /**
  * Extract tool calls from messages
@@ -85,5 +89,67 @@ export function extractModelMetadata(span: Span, message: LangChainMessage): voi
     if (metadata.finish_reason && typeof metadata.finish_reason === 'string') {
       span.setAttribute(GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE, [metadata.finish_reason]);
     }
+  }
+}
+
+/**
+ * Extract tools from compiled graph structure
+ *
+ * Tools are stored in: compiledGraph.builder.nodes.tools.runnable.tools
+ */
+export function extractToolsFromCompiledGraph(compiledGraph: CompiledGraph): unknown[] | null {
+  if (!compiledGraph.builder?.nodes?.tools?.runnable?.tools) {
+    return null;
+  }
+
+  const tools = compiledGraph.builder?.nodes?.tools?.runnable?.tools;
+
+  if (!tools || !Array.isArray(tools) || tools.length === 0) {
+    return null;
+  }
+
+  // Extract name, description, and schema from each tool's lc_kwargs
+  return tools.map((tool: LangGraphTool) => ({
+    name: tool.lc_kwargs?.name,
+    description: tool.lc_kwargs?.description,
+    schema: tool.lc_kwargs?.schema,
+  }));
+}
+
+/**
+ * Set response attributes on the span
+ */
+export function setResponseAttributes(span: Span, inputMessages: LangChainMessage[] | null, result: unknown): void {
+  // Extract messages from result
+  const resultObj = result as { messages?: LangChainMessage[] } | undefined;
+  const outputMessages = resultObj?.messages;
+
+  if (!outputMessages || !Array.isArray(outputMessages)) {
+    return;
+  }
+
+  // Get new messages (delta between input and output)
+  const inputCount = inputMessages?.length ?? 0;
+  const newMessages = outputMessages.length > inputCount ? outputMessages.slice(inputCount) : [];
+
+  if (newMessages.length === 0) {
+    return;
+  }
+
+  // Extract and set tool calls from new messages BEFORE normalization
+  // (normalization strips tool_calls, so we need to extract them first)
+  const toolCalls = extractToolCalls(newMessages as Array<Record<string, unknown>>);
+  if (toolCalls) {
+    span.setAttribute(GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE, JSON.stringify(toolCalls));
+  }
+
+  // Normalize the new messages
+  const normalizedNewMessages = normalizeLangChainMessages(newMessages);
+  span.setAttribute(GEN_AI_RESPONSE_TEXT_ATTRIBUTE, JSON.stringify(normalizedNewMessages));
+
+  // Extract metadata from messages
+  for (const message of newMessages) {
+    extractTokenUsageFromMetadata(span, message);
+    extractModelMetadata(span, message);
   }
 }

@@ -105,7 +105,7 @@ describe('LangGraph integration', () => {
   const EXPECTED_TRANSACTION_WITH_TOOLS = {
     transaction: 'langgraph-tools-test',
     spans: expect.arrayContaining([
-      // create_agent span
+      // create_agent span for first graph (no tool calls)
       expect.objectContaining({
         data: {
           'gen_ai.operation.name': 'create_agent',
@@ -118,7 +118,7 @@ describe('LangGraph integration', () => {
         origin: 'auto.ai.langgraph',
         status: 'ok',
       }),
-      // invoke_agent span with tools
+      // invoke_agent span with tools available but not called
       expect.objectContaining({
         data: expect.objectContaining({
           'gen_ai.operation.name': 'invoke_agent',
@@ -136,6 +136,43 @@ describe('LangGraph integration', () => {
           'gen_ai.usage.total_tokens': 40,
         }),
         description: 'invoke_agent tool_agent',
+        op: 'gen_ai.invoke_agent',
+        origin: 'auto.ai.langgraph',
+        status: 'ok',
+      }),
+      // create_agent span for second graph (with tool calls)
+      expect.objectContaining({
+        data: {
+          'gen_ai.operation.name': 'create_agent',
+          'sentry.op': 'gen_ai.create_agent',
+          'sentry.origin': 'auto.ai.langgraph',
+          'gen_ai.agent.name': 'tool_calling_agent',
+        },
+        description: 'create_agent tool_calling_agent',
+        op: 'gen_ai.create_agent',
+        origin: 'auto.ai.langgraph',
+        status: 'ok',
+      }),
+      // invoke_agent span with tool calls and execution
+      expect.objectContaining({
+        data: expect.objectContaining({
+          'gen_ai.operation.name': 'invoke_agent',
+          'sentry.op': 'gen_ai.invoke_agent',
+          'sentry.origin': 'auto.ai.langgraph',
+          'gen_ai.agent.name': 'tool_calling_agent',
+          'gen_ai.pipeline.name': 'tool_calling_agent',
+          'gen_ai.request.available_tools': expect.stringContaining('get_weather'),
+          'gen_ai.request.messages': expect.stringContaining('San Francisco'),
+          'gen_ai.response.model': 'gpt-4-0613',
+          'gen_ai.response.finish_reasons': ['stop'],
+          'gen_ai.response.text': expect.stringMatching(/"role":"tool"/),
+          // Verify tool_calls are captured
+          'gen_ai.response.tool_calls': expect.stringContaining('get_weather'),
+          'gen_ai.usage.input_tokens': 50,
+          'gen_ai.usage.output_tokens': 20,
+          'gen_ai.usage.total_tokens': 70,
+        }),
+        description: 'invoke_agent tool_calling_agent',
         op: 'gen_ai.invoke_agent',
         origin: 'auto.ai.langgraph',
         status: 'ok',
