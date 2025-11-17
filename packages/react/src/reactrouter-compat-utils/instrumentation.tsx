@@ -48,6 +48,9 @@ let _useLocation: UseLocation;
 let _useNavigationType: UseNavigationType;
 let _createRoutesFromChildren: CreateRoutesFromChildren;
 let _matchRoutes: MatchRoutes;
+
+// Track the last created navigation span to prevent duplicates when router.subscribe fires multiple times
+let _lastCreatedNavigationSpanName: string | null = null;
 let _enableAsyncRouteHandlers: boolean = false;
 
 const CLIENTS_WITH_INSTRUMENT_NAVIGATION = new WeakSet<Client>();
@@ -713,6 +716,7 @@ function wrapPatchRoutesOnNavigation(
   };
 }
 
+// eslint-disable-next-line complexity
 export function handleNavigation(opts: {
   location: Location;
   routes: RouteObject[];
@@ -753,8 +757,8 @@ export function handleNavigation(opts: {
 
     // If we're already in a navigation span, check if we should update its name
     if (isAlreadyInNavigationSpan && activeSpan) {
-      const currentSource = spanJson?.data?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
-      const shouldUpdate = shouldUpdateWildcardSpanName(currentName, currentSource, name, source);
+      // Only update if the new name is better (doesn't have wildcards or is more complete)
+      const shouldUpdate = currentName && transactionNameHasWildcard(currentName) && !transactionNameHasWildcard(name);
 
       if (shouldUpdate) {
         activeSpan.updateName(name);
@@ -762,6 +766,12 @@ export function handleNavigation(opts: {
         DEBUG_BUILD && debug.log(`[Tracing] Updated navigation span name from "${currentName}" to "${name}"`);
       }
     } else if (!isAlreadyInNavigationSpan) {
+      // Prevent duplicate navigation spans when router.subscribe fires multiple times
+      // with the same route information after a span completes
+      if (_lastCreatedNavigationSpanName === name) {
+        return;
+      }
+
       // Cross usage can result in multiple navigation spans being created without this check
       const navigationSpan = startBrowserTracingNavigationSpan(client, {
         name,
@@ -771,6 +781,9 @@ export function handleNavigation(opts: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: `auto.navigation.react.reactrouter_v${version}`,
         },
       });
+
+      // Track this navigation span to prevent immediate duplicates
+      _lastCreatedNavigationSpanName = name;
 
       // Patch navigation span to handle early cancellation (e.g., document.hidden)
       if (navigationSpan) {
@@ -884,11 +897,6 @@ function shouldUpdateWildcardSpanName(
 
   // Source upgrade - URL → route (but never route → URL)
   if (currentSource !== 'route' && newSource === 'route') {
-    return true;
-  }
-
-  // Allow route-to-route updates if names are different (legitimate navigation)
-  if (currentSource === 'route' && newSource === 'route' && currentName !== newName) {
     return true;
   }
 
