@@ -1,35 +1,32 @@
 import { WINDOW } from '@sentry/react';
-import type { RouteManifest } from '../../config/manifest/types';
-import { maybeParameterizeRoute } from './parameterization';
+import { getManifest, maybeParameterizeRoute } from './parameterization';
 
-const globalWithInjectedValues = WINDOW as typeof WINDOW & {
-  _sentryRouteManifest: string;
-};
+const IS_ISR_SSG_ROUTE_CACHE = new Map<string, boolean>();
 
 /**
  * Check if the current page is an ISR/SSG route by checking the route manifest.
  */
 function isIsrSsgRoute(pathname: string): boolean {
-  const manifestData = globalWithInjectedValues._sentryRouteManifest;
-  if (!manifestData || typeof manifestData !== 'string') {
-    return false;
-  }
-
-  let manifest: RouteManifest;
-  try {
-    manifest = JSON.parse(manifestData);
-  } catch {
-    return false;
-  }
-
-  if (!manifest.isrRoutes || !Array.isArray(manifest.isrRoutes) || manifest.isrRoutes.length === 0) {
-    return false;
-  }
-
+  // Early parameterization to get the cache key
   const parameterizedPath = maybeParameterizeRoute(pathname);
   const pathToCheck = parameterizedPath || pathname;
 
-  return manifest.isrRoutes.includes(pathToCheck);
+  // Check cache using the parameterized path as the key
+  if (IS_ISR_SSG_ROUTE_CACHE.has(pathToCheck)) {
+    return IS_ISR_SSG_ROUTE_CACHE.get(pathToCheck) as boolean;
+  }
+
+  // Cache miss get the manifest
+  const manifest = getManifest();
+  if (!manifest?.isrRoutes || !Array.isArray(manifest.isrRoutes) || manifest.isrRoutes.length === 0) {
+    IS_ISR_SSG_ROUTE_CACHE.set(pathToCheck, false);
+    return false;
+  }
+
+  const isIsrSsgRoute = manifest.isrRoutes.includes(pathToCheck);
+  IS_ISR_SSG_ROUTE_CACHE.set(pathToCheck, isIsrSsgRoute);
+
+  return isIsrSsgRoute;
 }
 
 /**

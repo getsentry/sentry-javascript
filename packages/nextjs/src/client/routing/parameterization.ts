@@ -74,7 +74,7 @@ function getCompiledRegex(regexString: string): RegExp | null {
  * Get and cache the route manifest from the global object.
  * @returns The parsed route manifest or null if not available/invalid.
  */
-function getManifest(): RouteManifest | null {
+export function getManifest(): RouteManifest | null {
   if (
     !globalWithInjectedManifest?._sentryRouteManifest ||
     typeof globalWithInjectedManifest._sentryRouteManifest !== 'string'
