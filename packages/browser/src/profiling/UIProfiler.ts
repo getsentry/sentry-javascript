@@ -133,7 +133,7 @@ export class UIProfiler implements ContinuousProfiler<Client> {
       return;
     }
 
-    this._activeRootSpanIds.add(spanId);
+    this._registerTraceRootSpan(spanId);
 
     const rootSpanCount = this._activeRootSpanIds.size;
 
@@ -190,7 +190,7 @@ export class UIProfiler implements ContinuousProfiler<Client> {
     });
 
     // Manual: Clear profiling context so spans outside start()/stop() aren't marked as profiled
-    // Trace: Profile context is kept as long as there is an active root span
+    // Trace: Profile context is kept for the whole session duration
     if (this._lifecycleMode === 'manual') {
       getGlobalScope().setContext('profile', {});
     }
