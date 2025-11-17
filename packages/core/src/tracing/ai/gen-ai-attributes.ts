@@ -193,6 +193,7 @@ export const OPENAI_USAGE_PROMPT_TOKENS_ATTRIBUTE = 'openai.usage.prompt_tokens'
 export const OPENAI_OPERATIONS = {
   CHAT: 'chat',
   RESPONSES: 'responses',
+  EMBEDDINGS: 'embeddings',
 } as const;
 
 // =============================================================================

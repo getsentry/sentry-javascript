@@ -31,6 +31,9 @@ export function getOperationName(methodPath: string): string {
   if (methodPath.includes('responses')) {
     return OPENAI_OPERATIONS.RESPONSES;
   }
+  if (methodPath.includes('embeddings')) {
+    return OPENAI_OPERATIONS.EMBEDDINGS;
+  }
   return methodPath.split('.').pop() || 'unknown';
 }
 
