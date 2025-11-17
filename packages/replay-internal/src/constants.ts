@@ -45,8 +45,12 @@ export const REPLAY_MAX_EVENT_BUFFER_SIZE = 20_000_000; // ~20MB
 
 /** Replays must be min. 5s long before we send them. */
 export const MIN_REPLAY_DURATION = 4_999;
-/* The max. allowed value that the minReplayDuration can be set to. */
-export const MIN_REPLAY_DURATION_LIMIT = 15_000;
+
+/*
+The max. allowed value that the minReplayDuration can be set to.
+This needs to be below 60s, so we don't unintentionally drop buffered replays that are longer than 60s.
+*/
+export const MIN_REPLAY_DURATION_LIMIT = 50_000;
 
 /** The max. length of a replay. */
 export const MAX_REPLAY_DURATION = 3_600_000; // 60 minutes in ms;

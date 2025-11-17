@@ -81,7 +81,7 @@ export class UIProfiler implements ContinuousProfiler<Client> {
     }
   }
 
-  /** Start profiling manually (only effective in 'manual' mode and when sampled). */
+  /** Starts UI profiling (only effective in 'manual' mode and when sampled). */
   public start(): void {
     if (this._lifecycleMode === 'trace') {
       DEBUG_BUILD &&
@@ -104,7 +104,7 @@ export class UIProfiler implements ContinuousProfiler<Client> {
     this._beginProfiling();
   }
 
-  /** Stop profiling manually (only effective in 'manual' mode). */
+  /** Stops UI profiling (only effective in 'manual' mode). */
   public stop(): void {
     if (this._lifecycleMode === 'trace') {
       DEBUG_BUILD &&
@@ -155,6 +155,9 @@ export class UIProfiler implements ContinuousProfiler<Client> {
     this._isRunning = true;
 
     DEBUG_BUILD && debug.log('[Profiling] Started profiling with profiler ID:', this._profilerId);
+
+    // Expose profiler_id to match root spans with profiles
+    getGlobalScope().setContext('profile', { profiler_id: this._profilerId });
 
     // Expose profiler_id to match root spans with profiles
     getGlobalScope().setContext('profile', { profiler_id: this._profilerId });
@@ -253,7 +256,9 @@ export class UIProfiler implements ContinuousProfiler<Client> {
     });
   }
 
-  /** Reset running state and profiling context (used on failure). */
+  /**
+   * Resets profiling information from scope and resets running state (used on failure)
+   */
   private _resetProfilerInfo(): void {
     this._isRunning = false;
     getGlobalScope().setContext('profile', {});
@@ -267,14 +272,16 @@ export class UIProfiler implements ContinuousProfiler<Client> {
     this._rootSpanTimeouts.clear();
   }
 
-  /** Register root span and schedule safeguard timeout (trace mode). */
+  /** Keep track of root spans and schedule safeguard timeout (trace mode). */
   private _registerTraceRootSpan(spanId: string): void {
     this._activeRootSpanIds.add(spanId);
     const timeout = setTimeout(() => this._onRootSpanTimeout(spanId), MAX_ROOT_SPAN_PROFILE_MS);
     this._rootSpanTimeouts.set(spanId, timeout);
   }
 
-  /** Start a profiler instance if needed. */
+  /**
+   * Start a profiler instance if needed.
+   */
   private _startProfilerInstance(): void {
     if (this._profiler?.stopped === false) {
       return; // already running
