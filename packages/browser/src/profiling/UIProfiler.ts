@@ -57,7 +57,9 @@ export class UIProfiler implements ContinuousProfiler<Client> {
     this._rootSpanTimeouts = new Map();
   }
 
-  /** Initialize the profiler with client, session sampling and lifecycle mode. */
+  /**
+   * Initialize the profiler with client, session sampling and lifecycle mode.
+   */
   public initialize(client: Client): void {
     const lifecycleMode = (client.getOptions() as BrowserOptions).profileLifecycle;
     const sessionSampled = shouldProfileSession(client.getOptions());
@@ -139,7 +141,9 @@ export class UIProfiler implements ContinuousProfiler<Client> {
     }
   }
 
-  /** Begin profiling if not already running. */
+  /**
+   * Begin profiling if not already running.
+   */
   private _beginProfiling(): void {
     if (this._isRunning) {
       return;
@@ -245,7 +249,9 @@ export class UIProfiler implements ContinuousProfiler<Client> {
     getGlobalScope().setContext('profile', {});
   }
 
-  /** Clear and reset all per-root-span timeouts. */
+  /**
+   * Clear and reset all per-root-span timeouts.
+   */
   private _clearAllRootSpanTimeouts(): void {
     this._rootSpanTimeouts.forEach(timeout => clearTimeout(timeout));
     this._rootSpanTimeouts.clear();
@@ -327,7 +333,9 @@ export class UIProfiler implements ContinuousProfiler<Client> {
     }
   }
 
-  /** Stop current profiler instance, convert profile to chunk & send. */
+  /**
+   * Stop current profiler instance, convert profile to chunk & send.
+   */
   private async _collectCurrentChunk(): Promise<void> {
     const prevProfiler = this._profiler;
     this._profiler = undefined;
@@ -361,7 +369,9 @@ export class UIProfiler implements ContinuousProfiler<Client> {
     }
   }
 
-  /** Send a profile chunk as a standalone envelope. */
+  /**
+   * Send a profile chunk as a standalone envelope.
+   */
   private _sendProfileChunk(chunk: ProfileChunk): void {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const client = this._client!;
