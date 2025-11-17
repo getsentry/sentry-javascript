@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/cloudflare-integration-tests",
-  "version": "9.46.0",
+  "version": "9.47.0",
   "license": "MIT",
   "engines": {
     "node": ">=18"
@@ -13,7 +13,7 @@
     "test:watch": "yarn test --watch"
   },
   "dependencies": {
-    "@sentry/cloudflare": "9.46.0"
+    "@sentry/cloudflare": "9.47.0"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250708.0",
