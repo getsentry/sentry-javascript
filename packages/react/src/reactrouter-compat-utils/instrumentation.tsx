@@ -939,6 +939,9 @@ function patchSpanEnd(
     return;
   }
 
+  // Use the passed route context, or fall back to global Set
+  const allRoutesSet = _allRoutes ? new Set(_allRoutes) : allRoutes;
+
   const originalEnd = span.end.bind(span);
   let endCalled = false;
 
@@ -974,7 +977,7 @@ function patchSpanEnd(
 
     if (shouldWaitForLazyRoutes) {
       if (_lazyRouteTimeout === 0) {
-        tryUpdateSpanNameBeforeEnd(span, spanJson, currentName, location, routes, basename, spanType, allRoutes);
+        tryUpdateSpanNameBeforeEnd(span, spanJson, currentName, location, routes, basename, spanType, allRoutesSet);
         return originalEnd(...args);
       }
 
@@ -995,7 +998,7 @@ function patchSpanEnd(
             routes,
             basename,
             spanType,
-            allRoutes,
+            allRoutesSet,
           );
           originalEnd(...args);
         })
@@ -1005,7 +1008,7 @@ function patchSpanEnd(
       return;
     }
 
-    tryUpdateSpanNameBeforeEnd(span, spanJson, currentName, location, routes, basename, spanType, allRoutes);
+    tryUpdateSpanNameBeforeEnd(span, spanJson, currentName, location, routes, basename, spanType, allRoutesSet);
     return originalEnd(...args);
   };
 
