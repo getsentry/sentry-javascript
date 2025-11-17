@@ -241,7 +241,7 @@ export function _INTERNAL_captureMetric(beforeMetric: Metric, options?: Internal
 
   captureSerializedMetric(client, serializedMetric);
 
-  client.emit('afterCaptureMetric', enrichedMetric);
+  client.emit('afterCaptureMetric', processedMetric);
 }
 
 /**
