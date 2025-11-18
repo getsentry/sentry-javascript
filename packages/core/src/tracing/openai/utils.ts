@@ -90,11 +90,14 @@ export function isResponsesApiResponse(response: unknown): response is OpenAIRes
  * Check if response is an Embeddings API object
  */
 export function isEmbeddingsResponse(response: unknown): response is OpenAICreateEmbeddingsObject {
+  if (response === null || typeof response !== 'object' || !('object' in response)) {
+    return false;
+  }
+  const responseObject = response as Record<string, unknown>;
   return (
-    response !== null &&
-    typeof response === 'object' &&
-    'object' in response &&
-    (response as Record<string, unknown>).object === 'list'
+    responseObject.object === 'list' &&
+    typeof responseObject.model === 'string' &&
+    (responseObject.model as string).toLowerCase().includes('embedding')
   );
 }
 
