@@ -186,8 +186,8 @@ export class ServerRuntimeClient<
     this.on('processMetric', metric => {
       if (this._options.serverName) {
         metric.attributes = {
+          'server.address': this._options.serverName,
           ...metric.attributes,
-          'server.address': metric.attributes?.['server.address'] ?? this._options.serverName,
         };
       }
     });
