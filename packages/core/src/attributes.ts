@@ -1,3 +1,6 @@
+import { DEBUG_BUILD } from './debug-build';
+import { debug } from './utils/debug-logger';
+
 export type RawAttributes<T> = T & ValidatedAttributes<T>;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type RawAttribute<T> = T extends { value: any } | { unit: any } ? AttributeObject : T;
@@ -74,68 +77,64 @@ export function attributeValueToTypedAttributeValue(rawValue: unknown): TypedAtt
   return { ...getTypedAttributeValue(value), ...(unit && typeof unit === 'string' ? { unit } : {}) };
 }
 
-// Disallow NaN, differentiate between integer and double
-const getNumberType: (num: number) => 'integer' | 'double' | null = item =>
-  Number.isNaN(item) ? null : Number.isInteger(item) ? 'integer' : 'double';
-
 // Only allow string, boolean, or number types
-const getPrimitiveType: (item: unknown) => 'string' | 'boolean' | 'integer' | 'double' | null = item =>
+const getPrimitiveType: (
+  item: unknown,
+) => keyof Pick<AttributeTypeMap, 'string' | 'integer' | 'double' | 'boolean'> | null = item =>
   typeof item === 'string'
     ? 'string'
     : typeof item === 'boolean'
       ? 'boolean'
       : typeof item === 'number'
-        ? getNumberType(item)
+        ? Number.isNaN(item)
+          ? null
+          : Number.isInteger(item)
+            ? 'integer'
+            : 'double'
         : null;
 
-function getTypedAttributeValue(val: unknown): TypedAttributeValue {
-  switch (typeof val) {
-    case 'number': {
-      const numberType = getNumberType(val);
-      if (!numberType) {
-        break;
-      }
-      return {
-        value: val,
-        type: numberType,
-      };
-    }
-    case 'boolean':
-      return {
-        value: val,
-        type: 'boolean',
-      };
-    case 'string':
-      return {
-        value: val,
-        type: 'string',
-      };
+function getTypedAttributeValue(value: unknown): TypedAttributeValue {
+  const primitiveType = getPrimitiveType(value);
+  if (primitiveType) {
+    // @ts-expect-error - TS complains because {@link TypedAttributeValue} is strictly typed to
+    // avoid setting the wrong `type` on the attribute value.
+    // In this case, getPrimitiveType already does the check but TS doesn't know that.
+    // The "clean" alternative is to return an object per `typeof value` case
+    // but that would require more bundle size
+    // Therefore, we ignore it.
+    return { value, type: primitiveType };
   }
 
-  if (Array.isArray(val)) {
-    const coherentType = val.reduce((acc: 'string' | 'boolean' | 'integer' | 'double' | null, item) => {
+  if (Array.isArray(value)) {
+    const coherentArrayType = value.reduce((acc: 'string' | 'boolean' | 'integer' | 'double' | null, item) => {
       if (!acc || getPrimitiveType(item) !== acc) {
         return null;
       }
       return acc;
-    }, getPrimitiveType(val[0]));
+    }, getPrimitiveType(value[0]));
 
-    if (coherentType) {
-      return { value: val, type: `${coherentType}[]` };
+    if (coherentArrayType) {
+      return { value, type: `${coherentArrayType}[]` };
     }
   }
 
   // Fallback: stringify the passed value
   let fallbackValue = '';
   try {
-    fallbackValue = JSON.stringify(val) ?? String(val);
+    fallbackValue = JSON.stringify(value) ?? String(value);
   } catch {
     try {
-      fallbackValue = String(val);
+      fallbackValue = String(value);
     } catch {
+      DEBUG_BUILD && debug.warn('Failed to stringify attribute value', value);
       // ignore
     }
   }
+
+  // This is quite a low-quality message but we cannot safely log the original `value`
+  // here due to String() or JSON.stringify() potentially throwing.
+  DEBUG_BUILD &&
+    debug.log(`Stringified attribute value to ${fallbackValue} because it's not a supported attribute value type`);
 
   return {
     value: fallbackValue,
