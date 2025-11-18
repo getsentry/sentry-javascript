@@ -1,5 +1,5 @@
 import { DEBUG_BUILD } from './debug-build';
-import type { DurationUnit, FractionUnit, InformationUnit, MeasurementUnit, NoneUnit } from './types-hoist/measurement';
+import type { DurationUnit, FractionUnit, InformationUnit } from './types-hoist/measurement';
 import { debug } from './utils/debug-logger';
 
 export type RawAttributes<T> = T & ValidatedAttributes<T>;
