@@ -1,4 +1,5 @@
 import { DEBUG_BUILD } from './debug-build';
+import type { MeasurementUnit } from './types-hoist/measurement';
 import { debug } from './utils/debug-logger';
 
 export type RawAttributes<T> = T & ValidatedAttributes<T>;
@@ -32,17 +33,12 @@ type AttributeUnion = {
   };
 }[keyof AttributeTypeMap];
 
-export type TypedAttributeValue = AttributeUnion & { unit?: Units };
+export type TypedAttributeValue = AttributeUnion & { unit?: MeasurementUnit };
 
 export type AttributeObject = {
   value: unknown;
-  unit?: Units;
+  unit?: MeasurementUnit;
 };
-
-/**
- * Unit of measurement that can be added to an attribute.
- */
-type Units = 'ms' | 's' | 'bytes' | 'count' | 'percent' | string;
 
 /* If an attribute has either a 'value' or 'unit' property, we use the ValidAttributeObject type. */
 export type ValidatedAttributes<T> = {

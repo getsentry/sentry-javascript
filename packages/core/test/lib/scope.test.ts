@@ -215,9 +215,18 @@ describe('Scope', () => {
 
       it('accepts an attribute value object with a unit', () => {
         const scope = new Scope();
-        scope.setAttribute('str', { value: 1, unit: 'ms' });
+        scope.setAttribute('str', { value: 1, unit: 'millisecond' });
         expect(scope['_attributes']).toEqual({
-          str: { value: 1, unit: 'ms' },
+          str: { value: 1, unit: 'millisecond' },
+        });
+      });
+
+      it('accepts a custom unit', () => {
+        // mostly there for type checking purposes.
+        const scope = new Scope();
+        scope.setAttribute('str', { value: 3, unit: 'inch' });
+        expect(scope['_attributes']).toEqual({
+          str: { value: 3, unit: 'inch' },
         });
       });
 
@@ -225,11 +234,11 @@ describe('Scope', () => {
         const scope = new Scope();
 
         scope.setAttribute('strArray', ['a', 'b', 'c']);
-        scope.setAttribute('intArray', { value: [1, 2, 3], unit: 'ms' });
+        scope.setAttribute('intArray', { value: [1, 2, 3], unit: 'millisecond' });
 
         expect(scope['_attributes']).toEqual({
           strArray: ['a', 'b', 'c'],
-          intArray: { value: [1, 2, 3], unit: 'ms' },
+          intArray: { value: [1, 2, 3], unit: 'millisecond' },
         });
       });
 
@@ -266,10 +275,10 @@ describe('Scope', () => {
 
       it('accepts attribute value objects with units', () => {
         const scope = new Scope();
-        scope.setAttributes({ str: { value: 'b', unit: 'ms' }, int: { value: 12, unit: 's' } });
+        scope.setAttributes({ str: { value: 'b', unit: 'millisecond' }, int: { value: 12, unit: 'second' } });
         expect(scope['_attributes']).toEqual({
-          str: { value: 'b', unit: 'ms' },
-          int: { value: 12, unit: 's' },
+          str: { value: 'b', unit: 'millisecond' },
+          int: { value: 12, unit: 'second' },
         });
       });
 
@@ -277,12 +286,12 @@ describe('Scope', () => {
         const scope = new Scope();
         scope.setAttributes({
           strArray: ['a', 'b', 'c'],
-          intArray: { value: [1, 2, 3], unit: 'ms' },
+          intArray: { value: [1, 2, 3], unit: 'millisecond' },
         });
 
         expect(scope['_attributes']).toEqual({
           strArray: ['a', 'b', 'c'],
-          intArray: { value: [1, 2, 3], unit: 'ms' },
+          intArray: { value: [1, 2, 3], unit: 'millisecond' },
         });
       });
 
