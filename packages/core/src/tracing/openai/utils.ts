@@ -5,6 +5,8 @@ import {
   GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
+  GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE,
+  GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
   OPENAI_OPERATIONS,
   OPENAI_RESPONSE_ID_ATTRIBUTE,
   OPENAI_RESPONSE_MODEL_ATTRIBUTE,
@@ -119,6 +121,101 @@ export function isChatCompletionChunk(event: unknown): event is ChatCompletionCh
     'object' in event &&
     (event as Record<string, unknown>).object === 'chat.completion.chunk'
   );
+}
+
+/**
+ * Add attributes for Chat Completion responses
+ */
+export function addChatCompletionAttributes(
+  span: Span,
+  response: OpenAiChatCompletionObject,
+  recordOutputs?: boolean,
+): void {
+  setCommonResponseAttributes(span, response.id, response.model, response.created);
+  if (response.usage) {
+    setTokenUsageAttributes(
+      span,
+      response.usage.prompt_tokens,
+      response.usage.completion_tokens,
+      response.usage.total_tokens,
+    );
+  }
+  if (Array.isArray(response.choices)) {
+    const finishReasons = response.choices
+      .map(choice => choice.finish_reason)
+      .filter((reason): reason is string => reason !== null);
+    if (finishReasons.length > 0) {
+      span.setAttributes({
+        [GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]: JSON.stringify(finishReasons),
+      });
+    }
+
+    // Extract tool calls from all choices (only if recordOutputs is true)
+    if (recordOutputs) {
+      const toolCalls = response.choices
+        .map(choice => choice.message?.tool_calls)
+        .filter(calls => Array.isArray(calls) && calls.length > 0)
+        .flat();
+
+      if (toolCalls.length > 0) {
+        span.setAttributes({
+          [GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE]: JSON.stringify(toolCalls),
+        });
+      }
+    }
+  }
+}
+
+/**
+ * Add attributes for Responses API responses
+ */
+export function addResponsesApiAttributes(span: Span, response: OpenAIResponseObject, recordOutputs?: boolean): void {
+  setCommonResponseAttributes(span, response.id, response.model, response.created_at);
+  if (response.status) {
+    span.setAttributes({
+      [GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]: JSON.stringify([response.status]),
+    });
+  }
+  if (response.usage) {
+    setTokenUsageAttributes(
+      span,
+      response.usage.input_tokens,
+      response.usage.output_tokens,
+      response.usage.total_tokens,
+    );
+  }
+
+  // Extract function calls from output (only if recordOutputs is true)
+  if (recordOutputs) {
+    const responseWithOutput = response as OpenAIResponseObject & { output?: unknown[] };
+    if (Array.isArray(responseWithOutput.output) && responseWithOutput.output.length > 0) {
+      // Filter for function_call type objects in the output array
+      const functionCalls = responseWithOutput.output.filter(
+        (item): unknown =>
+          typeof item === 'object' && item !== null && (item as Record<string, unknown>).type === 'function_call',
+      );
+
+      if (functionCalls.length > 0) {
+        span.setAttributes({
+          [GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE]: JSON.stringify(functionCalls),
+        });
+      }
+    }
+  }
+}
+
+/**
+ * Add attributes for Embeddings API responses
+ */
+export function addEmbeddingsAttributes(span: Span, response: OpenAICreateEmbeddingsObject): void {
+  span.setAttributes({
+    [OPENAI_RESPONSE_MODEL_ATTRIBUTE]: response.model,
+    [GEN_AI_RESPONSE_MODEL_ATTRIBUTE]: response.model,
+  });
+
+  if (response.usage) {
+    setTokenUsageAttributes(span, response.usage.prompt_tokens, undefined, response.usage.total_tokens);
+  }
 }
 
 /**
