@@ -51,7 +51,7 @@ sentryTest(
       },
     });
 
-    // This is not a refernece error, but another generic error
+    // This is not a reference error, but another generic error
     expect(events[1].exception?.values).toHaveLength(1);
     expect(events[1].exception?.values?.[0]).toMatchObject({
       type: 'Error',
