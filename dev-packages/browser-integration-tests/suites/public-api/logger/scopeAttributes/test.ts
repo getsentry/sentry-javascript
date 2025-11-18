@@ -32,7 +32,7 @@ sentryTest('captures logs with scope attributes', async ({ getLocalTestUrl, page
           attributes: {
             'sentry.sdk.name': { value: 'sentry.javascript.browser', type: 'string' },
             'sentry.sdk.version': { value: expect.any(String), type: 'string' },
-            log_attr: { value: 'scope_attr_1', type: 'string' },
+            log_attr: { value: 'log_attr_1', type: 'string' },
           },
         },
         {
@@ -45,7 +45,7 @@ sentryTest('captures logs with scope attributes', async ({ getLocalTestUrl, page
             'sentry.sdk.name': { value: 'sentry.javascript.browser', type: 'string' },
             'sentry.sdk.version': { value: expect.any(String), type: 'string' },
             global_scope_attr: { value: true, type: 'boolean' },
-            log_attr: { value: 'scope_attr_2', type: 'string' },
+            log_attr: { value: 'log_attr_2', type: 'string' },
           },
         },
         {
@@ -59,7 +59,7 @@ sentryTest('captures logs with scope attributes', async ({ getLocalTestUrl, page
             'sentry.sdk.version': { value: expect.any(String), type: 'string' },
             global_scope_attr: { value: true, type: 'boolean' },
             isolation_scope_1_attr: { value: 100, unit: 'ms', type: 'integer' },
-            log_attr: { value: 'scope_attr_3', type: 'string' },
+            log_attr: { value: 'log_attr_3', type: 'string' },
           },
         },
         {
@@ -74,7 +74,7 @@ sentryTest('captures logs with scope attributes', async ({ getLocalTestUrl, page
             global_scope_attr: { value: true, type: 'boolean' },
             isolation_scope_1_attr: { value: 100, unit: 'ms', type: 'integer' },
             scope_attr: { value: 200, unit: 'ms', type: 'integer' },
-            log_attr: { value: 'scope_attr_4', type: 'string' },
+            log_attr: { value: 'log_attr_4', type: 'string' },
           },
         },
         {
@@ -89,7 +89,7 @@ sentryTest('captures logs with scope attributes', async ({ getLocalTestUrl, page
             global_scope_attr: { value: true, type: 'boolean' },
             isolation_scope_1_attr: { value: 100, unit: 'ms', type: 'integer' },
             scope_2_attr: { value: 300, unit: 'ms', type: 'integer' },
-            log_attr: { value: 'scope_attr_5', type: 'string' },
+            log_attr: { value: 'log_attr_5', type: 'string' },
           },
         },
       ],
