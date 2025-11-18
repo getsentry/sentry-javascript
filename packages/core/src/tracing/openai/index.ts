@@ -32,15 +32,15 @@ import type {
   ResponseStreamingEvent,
 } from './types';
 import {
+  addChatCompletionAttributes,
+  addEmbeddingsAttributes,
+  addResponsesApiAttributes,
   buildMethodPath,
   getOperationName,
   getSpanOperation,
   isChatCompletionResponse,
   isEmbeddingsResponse,
   isResponsesApiResponse,
-  addChatCompletionAttributes,
-  addResponsesApiAttributes,
-  addEmbeddingsAttributes,
   shouldInstrument,
 } from './utils';
 

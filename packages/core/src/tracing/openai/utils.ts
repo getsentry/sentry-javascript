@@ -1,12 +1,12 @@
 import type { Span } from '../../types-hoist/span';
 import {
+  GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE,
   GEN_AI_RESPONSE_ID_ATTRIBUTE,
   GEN_AI_RESPONSE_MODEL_ATTRIBUTE,
+  GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
   GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
-  GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE,
-  GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
   OPENAI_OPERATIONS,
   OPENAI_RESPONSE_ID_ATTRIBUTE,
   OPENAI_RESPONSE_MODEL_ATTRIBUTE,
@@ -97,7 +97,7 @@ export function isEmbeddingsResponse(response: unknown): response is OpenAICreat
   return (
     responseObject.object === 'list' &&
     typeof responseObject.model === 'string' &&
-    (responseObject.model as string).toLowerCase().includes('embedding')
+    (responseObject.model ).toLowerCase().includes('embedding')
   );
 }
 
