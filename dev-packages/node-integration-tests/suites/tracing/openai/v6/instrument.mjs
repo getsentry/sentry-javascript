@@ -9,4 +9,3 @@ Sentry.init({
   transport: loggingTransport,
   integrations: [Sentry.openAIIntegration()],
 });
-
