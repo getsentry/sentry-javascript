@@ -17,15 +17,9 @@ const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
 
 /**
  * Constructs the base URL for the Next.js dev server, including the port and base path.
- * Returns an empty string when running in the browser (client-side).
+ * Returns only the base path when running in the browser (client-side) for relative URLs.
  */
 function getDevServerBaseUrl(): string {
-  // eslint-disable-next-line no-restricted-globals
-  if (typeof window !== 'undefined') {
-    return '';
-  }
-
-  const devServerPort = process.env.PORT || '3000';
   let basePath = process.env._sentryBasePath ?? globalWithInjectedValues._sentryBasePath ?? '';
 
   // Prefix the basepath with a slash if it doesn't have one
@@ -33,6 +27,12 @@ function getDevServerBaseUrl(): string {
     basePath = `/${basePath}`;
   }
 
+  // eslint-disable-next-line no-restricted-globals
+  if (typeof window !== 'undefined') {
+    return basePath;
+  }
+
+  const devServerPort = process.env.PORT || '3000';
   return `http://localhost:${devServerPort}${basePath}`;
 }
 
