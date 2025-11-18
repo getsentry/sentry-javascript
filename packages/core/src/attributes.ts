@@ -85,12 +85,10 @@ const getPrimitiveType: (
     ? 'string'
     : typeof item === 'boolean'
       ? 'boolean'
-      : typeof item === 'number'
-        ? Number.isNaN(item)
-          ? null
-          : Number.isInteger(item)
-            ? 'integer'
-            : 'double'
+      : typeof item === 'number' && !Number.isNaN(item)
+        ? Number.isInteger(item)
+          ? 'integer'
+          : 'double'
         : null;
 
 function getTypedAttributeValue(value: unknown): TypedAttributeValue {
