@@ -97,7 +97,7 @@ export function isEmbeddingsResponse(response: unknown): response is OpenAICreat
   return (
     responseObject.object === 'list' &&
     typeof responseObject.model === 'string' &&
-    (responseObject.model ).toLowerCase().includes('embedding')
+    responseObject.model.toLowerCase().includes('embedding')
   );
 }
 
