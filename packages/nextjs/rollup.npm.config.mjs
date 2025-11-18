@@ -19,6 +19,10 @@ export default [
       packageSpecificConfig: {
         external: ['next/router', 'next/constants', 'next/headers', 'stacktrace-parser'],
 
+        output: {
+          virtualDirname: '_virtual/core',
+        },
+
         // Next.js and our users are more happy when our client code has the "use client" directive
         plugins: [
           {
@@ -51,6 +55,8 @@ export default [
 
       packageSpecificConfig: {
         output: {
+          virtualDirname: '_virtual/loaders',
+
           // this is going to be add-on code, so it doesn't need the trappings of a full module (and in fact actively
           // shouldn't have them, lest they muck with the module to which we're adding it)
           sourcemap: false,
@@ -75,6 +81,8 @@ export default [
 
       packageSpecificConfig: {
         output: {
+          virtualDirname: '_virtual/polyfills',
+
           // make it so Rollup calms down about the fact that we're combining default and named exports
           exports: 'named',
         },
@@ -88,6 +96,8 @@ export default [
 
       packageSpecificConfig: {
         output: {
+          virtualDirname: '_virtual/polyfills',
+
           // make it so Rollup calms down about the fact that we're combining default and named exports
           exports: 'named',
         },
