@@ -125,6 +125,17 @@ describe('attributeValueToTypedAttributeValue', () => {
         unit: 'bytes',
       });
     });
+
+    it('extracts the value property of an object with a value property', () => {
+      // and ignores other properties.
+      // For now we're fine with this but we may reconsider in the future.
+      const result = attributeValueToTypedAttributeValue({ value: 'foo', unit: 'ms', bar: 'baz' });
+      expect(result).toStrictEqual({
+        value: 'foo',
+        unit: 'ms',
+        type: 'string',
+      });
+    });
   });
 
   describe('unsupported value types', () => {
@@ -233,22 +244,6 @@ describe('attributeValueToTypedAttributeValue', () => {
         type: 'string',
       });
     });
-
-    it('stringifies an attribute-object-like object with additional properties to a string attribute value', () => {
-      const result = attributeValueToTypedAttributeValue({ value: 'foo', bar: 'baz' });
-      expect(result).toStrictEqual({
-        value: '{"value":"foo","bar":"baz"}',
-        type: 'string',
-      });
-    });
-
-    it('stringifies an attribute-object-like object with a unit property to a string attribute value', () => {
-      const result = attributeValueToTypedAttributeValue({ value: 'foo', unit: 'ms', bar: 'baz' });
-      expect(result).toStrictEqual({
-        value: '{"value":"foo","unit":"ms","bar":"baz"}',
-        type: 'string',
-      });
-    });
   });
 
   it.each([1, true, null, undefined, NaN, Symbol('test'), { foo: 'bar' }])(
@@ -275,18 +270,17 @@ describe('isAttributeObject', () => {
     expect(result).toBe(true);
   });
 
-  it.each([
-    1,
-    true,
-    'test',
-    null,
-    undefined,
-    NaN,
-    Symbol('test'),
-    { value: { foo: 'bar' }, bar: 'baz' },
-    { value: 1, unit: 'ms', anotherProperty: 'test' },
-  ])('returns false for an invalid attribute object (%s)', obj => {
-    const result = isAttributeObject(obj);
-    expect(result).toBe(false);
+  it('returns true for an object with a value property', () => {
+    // Explicitly demonstrate this behaviour which for now we're fine with.
+    // We may reconsider in the future.
+    expect(isAttributeObject({ value: 123.45, some: 'other property' })).toBe(true);
   });
+
+  it.each([1, true, 'test', null, undefined, NaN, Symbol('test')])(
+    'returns false for an invalid attribute object (%s)',
+    obj => {
+      const result = isAttributeObject(obj);
+      expect(result).toBe(false);
+    },
+  );
 });

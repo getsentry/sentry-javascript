@@ -1,6 +1,6 @@
 export type RawAttributes<T> = T & ValidatedAttributes<T>;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type RawAttribute<T> = T extends { value: any } | { unit: any } ? AttributeWithUnit : T;
+export type RawAttribute<T> = T extends { value: any } | { unit: any } ? AttributeObject : T;
 
 export type Attributes = Record<string, TypedAttributeValue>;
 
@@ -31,7 +31,7 @@ type AttributeUnion = {
 
 export type TypedAttributeValue = AttributeUnion & { unit?: Units };
 
-export type AttributeWithUnit = {
+export type AttributeObject = {
   value: unknown;
   unit?: Units;
 };
@@ -44,35 +44,20 @@ type Units = 'ms' | 's' | 'bytes' | 'count' | 'percent' | string;
 /* If an attribute has either a 'value' or 'unit' property, we use the ValidAttributeObject type. */
 export type ValidatedAttributes<T> = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  [K in keyof T]: T[K] extends { value: any } | { unit: any } ? AttributeWithUnit : unknown;
+  [K in keyof T]: T[K] extends { value: any } | { unit: any } ? AttributeObject : unknown;
 };
 
 /**
  * Type-guard: The attribute object has the shape the official attribute object (value, type, unit).
  * https://develop.sentry.dev/sdk/telemetry/scopes/#setting-attributes
  */
-export function isAttributeObject(maybeObj: unknown): maybeObj is AttributeWithUnit {
-  if (typeof maybeObj !== 'object' || maybeObj == null || Array.isArray(maybeObj)) {
-    return false;
-  }
-
-  // MUST have 'value' property
-  // MAY have 'unit' property
-  // MUST NOT have other properties
-  const keys = Object.keys(maybeObj);
-
-  // MUST have 'value'
-  if (!keys.includes('value')) {
-    return false;
-  }
-
-  // ALLOWED keys: 'value', optionally 'unit'
-  if (keys.some(k => k !== 'value' && k !== 'unit')) {
-    return false;
-  }
-
-  // All checks passed
-  return true;
+export function isAttributeObject(maybeObj: unknown): maybeObj is AttributeObject {
+  return (
+    typeof maybeObj === 'object' &&
+    maybeObj != null &&
+    !Array.isArray(maybeObj) &&
+    Object.keys(maybeObj).includes('value')
+  );
 }
 
 /**
