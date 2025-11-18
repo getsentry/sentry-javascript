@@ -6,6 +6,7 @@ import {
   getRootSpan,
   htmlTreeAsString,
   isBrowser,
+  LRUMap,
   SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME,
   SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_UNIT,
   SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE,
@@ -28,16 +29,17 @@ interface InteractionContext {
 }
 
 const LAST_INTERACTIONS: number[] = [];
-const INTERACTIONS_SPAN_MAP = new Map<number, InteractionContext>();
+const INTERACTIONS_SPAN_MAP = new LRUMap<number, InteractionContext>(10);
 
 // Map to store element names by timestamp, since we get the DOM event before the PerformanceObserver entry
-const ELEMENT_NAME_TIMESTAMP_MAP = new Map<number, string>();
+const ELEMENT_NAME_TIMESTAMP_MAP = new LRUMap<number, string>(50);
 
 /**
  * 60 seconds is the maximum for a plausible INP value
  * (source: Me)
  */
 const MAX_PLAUSIBLE_INP_DURATION = 60;
+
 /**
  * Start tracking INP webvital events.
  */
@@ -181,14 +183,6 @@ export function registerInpInteractionListener(): void {
 
     // Store the element name by timestamp so we can match it with the PerformanceEntry
     ELEMENT_NAME_TIMESTAMP_MAP.set(timestamp, elementName);
-
-    // Clean up old
-    if (ELEMENT_NAME_TIMESTAMP_MAP.size > 50) {
-      const firstKey = ELEMENT_NAME_TIMESTAMP_MAP.keys().next().value;
-      if (firstKey !== undefined) {
-        ELEMENT_NAME_TIMESTAMP_MAP.delete(firstKey);
-      }
-    }
   }
 
   /**
@@ -227,17 +221,11 @@ export function registerInpInteractionListener(): void {
       }
 
       // If the interaction was already recorded before, nothing more to do
-      if (INTERACTIONS_SPAN_MAP.has(interactionId)) {
+      if (INTERACTIONS_SPAN_MAP.get(interactionId)) {
         return;
       }
 
       const elementName = entry.target ? htmlTreeAsString(entry.target) : resolveElementNameFromEntry(entry);
-
-      // We keep max. 10 interactions in the list, then remove the oldest one & clean up
-      if (LAST_INTERACTIONS.length > 10) {
-        const last = LAST_INTERACTIONS.shift() as number;
-        INTERACTIONS_SPAN_MAP.delete(last);
-      }
 
       // We add the interaction to the list of recorded interactions
       // and store both the span and element name for this interaction
