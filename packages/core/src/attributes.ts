@@ -1,5 +1,5 @@
 import { DEBUG_BUILD } from './debug-build';
-import type { MeasurementUnit } from './types-hoist/measurement';
+import type { DurationUnit, FractionUnit, InformationUnit, MeasurementUnit, NoneUnit } from './types-hoist/measurement';
 import { debug } from './utils/debug-logger';
 
 export type RawAttributes<T> = T & ValidatedAttributes<T>;
@@ -33,12 +33,16 @@ type AttributeUnion = {
   };
 }[keyof AttributeTypeMap];
 
-export type TypedAttributeValue = AttributeUnion & { unit?: MeasurementUnit };
+export type TypedAttributeValue = AttributeUnion & { unit?: AttributeUnit };
 
 export type AttributeObject = {
   value: unknown;
-  unit?: MeasurementUnit;
+  unit?: AttributeUnit;
 };
+
+// Unfortunately, we loose type safety if we did something like Exclude<MeasurementUnit, string>
+// so therefore we unionize between the three supported unit categories.
+type AttributeUnit = DurationUnit | InformationUnit | FractionUnit;
 
 /* If an attribute has either a 'value' or 'unit' property, we use the ValidAttributeObject type. */
 export type ValidatedAttributes<T> = {

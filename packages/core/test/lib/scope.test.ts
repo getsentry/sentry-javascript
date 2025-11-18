@@ -221,9 +221,10 @@ describe('Scope', () => {
         });
       });
 
-      it('accepts a custom unit', () => {
+      it('still accepts a custom unit but TS-errors on it', () => {
         // mostly there for type checking purposes.
         const scope = new Scope();
+        /** @ts-expect-error we don't support custom units type-wise but we don't actively block them */
         scope.setAttribute('str', { value: 3, unit: 'inch' });
         expect(scope['_attributes']).toEqual({
           str: { value: 3, unit: 'inch' },
