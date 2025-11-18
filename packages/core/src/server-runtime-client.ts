@@ -40,6 +40,8 @@ export class ServerRuntimeClient<
     addUserAgentToTransportHeaders(options);
 
     super(options);
+
+    this._setUpMetricsProcessing();
   }
 
   /**
@@ -175,6 +177,20 @@ export class ServerRuntimeClient<
     }
 
     return super._prepareEvent(event, hint, currentScope, isolationScope);
+  }
+
+  /**
+   * Process a server-side metric before it is captured.
+   */
+  private _setUpMetricsProcessing(): void {
+    this.on('processMetric', metric => {
+      if (this._options.serverName) {
+        metric.attributes = {
+          ...metric.attributes,
+          'server.address': metric.attributes?.['server.address'] ?? this._options.serverName,
+        };
+      }
+    });
   }
 }
 
