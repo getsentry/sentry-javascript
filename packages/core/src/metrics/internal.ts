@@ -88,14 +88,16 @@ function setMetricAttribute(
  */
 export function _INTERNAL_captureSerializedMetric(client: Client, serializedMetric: SerializedMetric): void {
   const bufferMap = _getBufferMap();
-
   const metricBuffer = _INTERNAL_getMetricBuffer(client);
+
   if (metricBuffer === undefined) {
     bufferMap.set(client, [serializedMetric]);
   } else {
-    bufferMap.set(client, [...metricBuffer, serializedMetric]);
     if (metricBuffer.length >= MAX_METRIC_BUFFER_SIZE) {
       _INTERNAL_flushMetricsBuffer(client, metricBuffer);
+      bufferMap.set(client, [serializedMetric]);
+    } else {
+      bufferMap.set(client, [...metricBuffer, serializedMetric]);
     }
   }
 }
@@ -225,6 +227,8 @@ export function _INTERNAL_captureMetric(beforeMetric: Metric, options?: Internal
   // Enrich metric with contextual attributes
   const enrichedMetric = _enrichMetricAttributes(beforeMetric, client, currentScope);
 
+  client.emit('processMetric', enrichedMetric);
+
   // todo(v11): Remove the experimental `beforeSendMetric`
   // eslint-disable-next-line deprecation/deprecation
   const beforeSendCallback = beforeSendMetric || _experiments?.beforeSendMetric;
@@ -241,7 +245,7 @@ export function _INTERNAL_captureMetric(beforeMetric: Metric, options?: Internal
 
   captureSerializedMetric(client, serializedMetric);
 
-  client.emit('afterCaptureMetric', enrichedMetric);
+  client.emit('afterCaptureMetric', processedMetric);
 }
 
 /**

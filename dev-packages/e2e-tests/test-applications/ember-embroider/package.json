@@ -68,10 +68,5 @@
   },
   "volta": {
     "extends": "../../package.json"
-  },
-  "pnpm": {
-    "overrides": {
-      "@embroider/addon-shim": "1.10.0"
-    }
   }
 }

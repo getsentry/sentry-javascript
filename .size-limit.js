@@ -38,7 +38,7 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/prod/index.js',
     import: createImport('init', 'browserTracingIntegration'),
     gzip: true,
-    limit: '41.3 KB',
+    limit: '41.38 KB',
   },
   {
     name: '@sentry/browser (incl. Tracing, Profiling)',
@@ -127,7 +127,7 @@ module.exports = [
     import: createImport('init', 'ErrorBoundary', 'reactRouterV6BrowserTracingIntegration'),
     ignore: ['react/jsx-runtime'],
     gzip: true,
-    limit: '43.3 KB',
+    limit: '43.33 KB',
   },
   // Vue SDK (ESM)
   {
@@ -142,7 +142,7 @@ module.exports = [
     path: 'packages/vue/build/esm/index.js',
     import: createImport('init', 'browserTracingIntegration'),
     gzip: true,
-    limit: '43.1 KB',
+    limit: '43.2 KB',
   },
   // Svelte SDK (ESM)
   {
@@ -240,7 +240,7 @@ module.exports = [
     import: createImport('init'),
     ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
     gzip: true,
-    limit: '158 KB',
+    limit: '160 KB',
   },
   {
     name: '@sentry/node - without tracing',

@@ -1,6 +1,7 @@
 import type { Event } from '../types-hoist/event';
 import type { StackFrame } from '../types-hoist/stackframe';
 import type { StackLineParser, StackParser } from '../types-hoist/stacktrace';
+import type { VNode, VueViewModel } from '../types-hoist/vue';
 
 const STACKTRACE_FRAME_LIMIT = 50;
 export const UNKNOWN_FUNCTION = '?';
@@ -163,4 +164,16 @@ export function getFramesFromEvent(event: Event): StackFrame[] | undefined {
     }
   }
   return undefined;
+}
+
+/**
+ * Get the internal name of an internal Vue value, to represent it in a stacktrace.
+ *
+ * @param value The value to get the internal name of.
+ */
+export function getVueInternalName(value: VueViewModel | VNode): string {
+  // Check if it's a VNode (has __v_isVNode) or a component instance (has _isVue/__isVue)
+  const isVNode = '__v_isVNode' in value && value.__v_isVNode;
+
+  return isVNode ? '[VueVNode]' : '[VueViewModel]';
 }

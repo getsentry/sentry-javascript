@@ -13,7 +13,8 @@
     "test:watch": "yarn test --watch"
   },
   "dependencies": {
-    "@sentry/cloudflare": "10.25.0"
+    "@sentry/cloudflare": "10.25.0",
+    "@langchain/langgraph": "^1.0.1"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250922.0",

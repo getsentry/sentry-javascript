@@ -2772,7 +2772,7 @@ describe('Client', () => {
       expect(sendEnvelopeSpy).toHaveBeenCalledTimes(1);
     });
 
-    it('resets idle timeout when new logs are captured', () => {
+    it('does not reset idle timeout when new logs are captured', () => {
       const options = getDefaultTestClientOptions({
         dsn: PUBLIC_DSN,
         enableLogs: true,
@@ -2783,26 +2783,52 @@ describe('Client', () => {
 
       const sendEnvelopeSpy = vi.spyOn(client, 'sendEnvelope');
 
-      // Add initial log
+      // Add initial log (starts the timer)
       _INTERNAL_captureLog({ message: 'test log 1', level: 'info' }, scope);
 
       // Fast forward part of the idle timeout
       vi.advanceTimersByTime(2500);
 
-      // Add another log which should reset the timeout
+      // Add another log which should NOT reset the timeout
       _INTERNAL_captureLog({ message: 'test log 2', level: 'info' }, scope);
 
-      // Fast forward the remaining time
+      // Fast forward the remaining time to reach the full timeout from the first log
       vi.advanceTimersByTime(2500);
 
-      // Should not have flushed yet since timeout was reset
-      expect(sendEnvelopeSpy).not.toHaveBeenCalled();
+      // Should have flushed both logs since timeout was not reset
+      expect(sendEnvelopeSpy).toHaveBeenCalledTimes(1);
+    });
 
-      // Fast forward the full timeout
+    it('starts new timer after timeout completes and flushes', () => {
+      const options = getDefaultTestClientOptions({
+        dsn: PUBLIC_DSN,
+        enableLogs: true,
+      });
+      const client = new TestClient(options);
+      const scope = new Scope();
+      scope.setClient(client);
+
+      const sendEnvelopeSpy = vi.spyOn(client, 'sendEnvelope');
+
+      // First batch: Add a log and let it flush
+      _INTERNAL_captureLog({ message: 'test log 1', level: 'info' }, scope);
+
+      // Fast forward to trigger the first flush
       vi.advanceTimersByTime(5000);
 
-      // Now should have flushed both logs
       expect(sendEnvelopeSpy).toHaveBeenCalledTimes(1);
+
+      // Second batch: Add another log after the first flush completed
+      _INTERNAL_captureLog({ message: 'test log 2', level: 'info' }, scope);
+
+      // Should not have flushed yet
+      expect(sendEnvelopeSpy).toHaveBeenCalledTimes(1);
+
+      // Fast forward to trigger the second flush
+      vi.advanceTimersByTime(5000);
+
+      // Should have flushed the second log
+      expect(sendEnvelopeSpy).toHaveBeenCalledTimes(2);
     });
 
     it('flushes logs on flush event', () => {
