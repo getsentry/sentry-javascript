@@ -94,18 +94,11 @@
     "@opentelemetry/resources": "^2.1.0",
     "@opentelemetry/sdk-trace-base": "^2.1.0",
     "@opentelemetry/semantic-conventions": "^1.37.0",
-<<<<<<< HEAD
-    "@prisma/instrumentation": "6.15.0",
+    "@prisma/instrumentation": "6.19.0",
     "@sentry/core": "10.26.0",
     "@sentry/node-core": "10.26.0",
     "@sentry/opentelemetry": "10.26.0",
-=======
-    "@prisma/instrumentation": "6.19.0",
-    "@sentry/core": "10.25.0",
-    "@sentry/node-core": "10.25.0",
-    "@sentry/opentelemetry": "10.25.0",
->>>>>>> bf9901d2ee (feat(deps): Bump OpenTelemetry instrumentations)
-    "import-in-the-middle": "^1.14.2",
+    "import-in-the-middle": "^2",
     "minimatch": "^9.0.0"
   },
   "devDependencies": {
