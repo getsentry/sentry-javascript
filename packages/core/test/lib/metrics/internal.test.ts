@@ -82,7 +82,7 @@ describe('metricAttributeToSerializedMetricAttribute', () => {
 
 describe('_INTERNAL_captureMetric', () => {
   it('captures and sends metrics', () => {
-    const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, _experiments: { enableMetrics: true } });
+    const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
     const client = new TestClient(options);
     const scope = new Scope();
     scope.setClient(client);
@@ -103,7 +103,7 @@ describe('_INTERNAL_captureMetric', () => {
 
   it('does not capture metrics when enableMetrics is not enabled', () => {
     const logWarnSpy = vi.spyOn(loggerModule.debug, 'warn').mockImplementation(() => undefined);
-    const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
+    const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableMetrics: false });
     const client = new TestClient(options);
     const scope = new Scope();
     scope.setClient(client);
@@ -117,7 +117,7 @@ describe('_INTERNAL_captureMetric', () => {
   });
 
   it('includes trace context when available', () => {
-    const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, _experiments: { enableMetrics: true } });
+    const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
     const client = new TestClient(options);
     const scope = new Scope();
     scope.setClient(client);
@@ -138,7 +138,6 @@ describe('_INTERNAL_captureMetric', () => {
   it('includes release and environment in metric attributes when available', () => {
     const options = getDefaultTestClientOptions({
       dsn: PUBLIC_DSN,
-      _experiments: { enableMetrics: true },
       release: '1.0.0',
       environment: 'test',
     });
@@ -164,7 +163,6 @@ describe('_INTERNAL_captureMetric', () => {
   it('includes SDK metadata in metric attributes when available', () => {
     const options = getDefaultTestClientOptions({
       dsn: PUBLIC_DSN,
-      _experiments: { enableMetrics: true },
     });
     const client = new TestClient(options);
     const scope = new Scope();
@@ -195,7 +193,6 @@ describe('_INTERNAL_captureMetric', () => {
   it('does not include SDK metadata in metric attributes when not available', () => {
     const options = getDefaultTestClientOptions({
       dsn: PUBLIC_DSN,
-      _experiments: { enableMetrics: true },
     });
     const client = new TestClient(options);
     const scope = new Scope();
@@ -215,7 +212,7 @@ describe('_INTERNAL_captureMetric', () => {
   });
 
   it('includes custom attributes in metric', () => {
-    const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, _experiments: { enableMetrics: true } });
+    const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
     const client = new TestClient(options);
     const scope = new Scope();
     scope.setClient(client);
@@ -244,7 +241,7 @@ describe('_INTERNAL_captureMetric', () => {
   });
 
   it('flushes metrics buffer when it reaches max size', () => {
-    const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, _experiments: { enableMetrics: true } });
+    const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
     const client = new TestClient(options);
     const scope = new Scope();
     scope.setClient(client);
@@ -259,11 +256,14 @@ describe('_INTERNAL_captureMetric', () => {
     // Add one more to trigger flush
     _INTERNAL_captureMetric({ type: 'counter', name: 'trigger.flush', value: 999 }, { scope });
 
-    expect(_INTERNAL_getMetricBuffer(client)).toEqual([]);
+    // After flushing the 1000 metrics, the new metric starts a fresh buffer with 1 item
+    const buffer = _INTERNAL_getMetricBuffer(client);
+    expect(buffer).toHaveLength(1);
+    expect(buffer?.[0]?.name).toBe('trigger.flush');
   });
 
   it('does not flush metrics buffer when it is empty', () => {
-    const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, _experiments: { enableMetrics: true } });
+    const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
     const client = new TestClient(options);
 
     const mockSendEnvelope = vi.spyOn(client as any, 'sendEnvelope').mockImplementation(() => {});
@@ -280,7 +280,7 @@ describe('_INTERNAL_captureMetric', () => {
 
     const options = getDefaultTestClientOptions({
       dsn: PUBLIC_DSN,
-      _experiments: { enableMetrics: true, beforeSendMetric },
+      beforeSendMetric,
     });
     const client = new TestClient(options);
     const scope = new Scope();
@@ -328,7 +328,7 @@ describe('_INTERNAL_captureMetric', () => {
 
     const options = getDefaultTestClientOptions({
       dsn: PUBLIC_DSN,
-      _experiments: { enableMetrics: true, beforeSendMetric },
+      beforeSendMetric,
     });
     const client = new TestClient(options);
     const scope = new Scope();
@@ -352,7 +352,7 @@ describe('_INTERNAL_captureMetric', () => {
 
   it('emits afterCaptureMetric event', () => {
     const afterCaptureMetricSpy = vi.spyOn(TestClient.prototype, 'emit');
-    const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, _experiments: { enableMetrics: true } });
+    const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
     const client = new TestClient(options);
     const scope = new Scope();
     scope.setClient(client);
@@ -372,7 +372,7 @@ describe('_INTERNAL_captureMetric', () => {
 
   describe('replay integration with onlyIfSampled', () => {
     it('includes replay ID for sampled sessions', () => {
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, _experiments: { enableMetrics: true } });
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);
       const scope = new Scope();
       scope.setClient(client);
@@ -401,7 +401,7 @@ describe('_INTERNAL_captureMetric', () => {
     });
 
     it('excludes replay ID for unsampled sessions when onlyIfSampled=true', () => {
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, _experiments: { enableMetrics: true } });
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);
       const scope = new Scope();
       scope.setClient(client);
@@ -424,7 +424,7 @@ describe('_INTERNAL_captureMetric', () => {
     });
 
     it('includes replay ID for buffer mode sessions', () => {
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, _experiments: { enableMetrics: true } });
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);
       const scope = new Scope();
       scope.setClient(client);
@@ -457,7 +457,7 @@ describe('_INTERNAL_captureMetric', () => {
     });
 
     it('handles missing replay integration gracefully', () => {
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, _experiments: { enableMetrics: true } });
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);
       const scope = new Scope();
       scope.setClient(client);
@@ -474,7 +474,7 @@ describe('_INTERNAL_captureMetric', () => {
     it('combines replay ID with other metric attributes', () => {
       const options = getDefaultTestClientOptions({
         dsn: PUBLIC_DSN,
-        _experiments: { enableMetrics: true },
+
         release: '1.0.0',
         environment: 'test',
       });
@@ -526,7 +526,7 @@ describe('_INTERNAL_captureMetric', () => {
     });
 
     it('does not set replay ID attribute when getReplayId returns null or undefined', () => {
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, _experiments: { enableMetrics: true } });
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);
       const scope = new Scope();
       scope.setClient(client);
@@ -552,7 +552,7 @@ describe('_INTERNAL_captureMetric', () => {
     });
 
     it('sets replay_is_buffering attribute when replay is in buffer mode', () => {
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, _experiments: { enableMetrics: true } });
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);
       const scope = new Scope();
       scope.setClient(client);
@@ -584,7 +584,7 @@ describe('_INTERNAL_captureMetric', () => {
     });
 
     it('does not set replay_is_buffering attribute when replay is in session mode', () => {
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, _experiments: { enableMetrics: true } });
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);
       const scope = new Scope();
       scope.setClient(client);
@@ -613,7 +613,7 @@ describe('_INTERNAL_captureMetric', () => {
     });
 
     it('does not set replay_is_buffering attribute when replay is undefined mode', () => {
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, _experiments: { enableMetrics: true } });
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);
       const scope = new Scope();
       scope.setClient(client);
@@ -642,7 +642,7 @@ describe('_INTERNAL_captureMetric', () => {
     });
 
     it('does not set replay_is_buffering attribute when no replay ID is available', () => {
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, _experiments: { enableMetrics: true } });
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);
       const scope = new Scope();
       scope.setClient(client);
@@ -668,7 +668,7 @@ describe('_INTERNAL_captureMetric', () => {
     });
 
     it('does not set replay_is_buffering attribute when replay integration is missing', () => {
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, _experiments: { enableMetrics: true } });
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);
       const scope = new Scope();
       scope.setClient(client);
@@ -687,7 +687,7 @@ describe('_INTERNAL_captureMetric', () => {
     it('combines replay_is_buffering with other replay attributes', () => {
       const options = getDefaultTestClientOptions({
         dsn: PUBLIC_DSN,
-        _experiments: { enableMetrics: true },
+
         release: '1.0.0',
         environment: 'test',
       });
@@ -747,7 +747,6 @@ describe('_INTERNAL_captureMetric', () => {
     it('includes user data in metric attributes', () => {
       const options = getDefaultTestClientOptions({
         dsn: PUBLIC_DSN,
-        _experiments: { enableMetrics: true },
       });
       const client = new TestClient(options);
       const scope = new Scope();
@@ -780,7 +779,6 @@ describe('_INTERNAL_captureMetric', () => {
     it('includes partial user data when only some fields are available', () => {
       const options = getDefaultTestClientOptions({
         dsn: PUBLIC_DSN,
-        _experiments: { enableMetrics: true },
       });
       const client = new TestClient(options);
       const scope = new Scope();
@@ -804,7 +802,6 @@ describe('_INTERNAL_captureMetric', () => {
     it('includes user email and username without id', () => {
       const options = getDefaultTestClientOptions({
         dsn: PUBLIC_DSN,
-        _experiments: { enableMetrics: true },
       });
       const client = new TestClient(options);
       const scope = new Scope();
@@ -833,7 +830,6 @@ describe('_INTERNAL_captureMetric', () => {
     it('does not include user data when user object is empty', () => {
       const options = getDefaultTestClientOptions({
         dsn: PUBLIC_DSN,
-        _experiments: { enableMetrics: true },
       });
       const client = new TestClient(options);
       const scope = new Scope();
@@ -849,7 +845,7 @@ describe('_INTERNAL_captureMetric', () => {
     it('combines user data with other metric attributes', () => {
       const options = getDefaultTestClientOptions({
         dsn: PUBLIC_DSN,
-        _experiments: { enableMetrics: true },
+
         release: '1.0.0',
         environment: 'test',
       });
@@ -903,7 +899,6 @@ describe('_INTERNAL_captureMetric', () => {
     it('handles user data with non-string values', () => {
       const options = getDefaultTestClientOptions({
         dsn: PUBLIC_DSN,
-        _experiments: { enableMetrics: true },
       });
       const client = new TestClient(options);
       const scope = new Scope();
@@ -932,7 +927,6 @@ describe('_INTERNAL_captureMetric', () => {
     it('preserves existing user attributes in metric and does not override them', () => {
       const options = getDefaultTestClientOptions({
         dsn: PUBLIC_DSN,
-        _experiments: { enableMetrics: true },
       });
       const client = new TestClient(options);
       const scope = new Scope();
@@ -975,7 +969,6 @@ describe('_INTERNAL_captureMetric', () => {
     it('only adds scope user data for attributes that do not already exist', () => {
       const options = getDefaultTestClientOptions({
         dsn: PUBLIC_DSN,
-        _experiments: { enableMetrics: true },
       });
       const client = new TestClient(options);
       const scope = new Scope();
@@ -1024,7 +1017,7 @@ describe('_INTERNAL_captureMetric', () => {
   it('overrides user-provided system attributes with SDK values', () => {
     const options = getDefaultTestClientOptions({
       dsn: PUBLIC_DSN,
-      _experiments: { enableMetrics: true },
+
       release: 'sdk-release-1.0.0',
       environment: 'sdk-environment',
     });

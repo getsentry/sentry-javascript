@@ -63,6 +63,18 @@ type BrowserSpecificOptions = BrowserClientReplayOptions &
      * @default false
      */
     propagateTraceparent?: boolean;
+
+    /**
+     * If you use Spotlight by Sentry during development, use
+     * this option to forward captured Sentry events to Spotlight.
+     *
+     * Either set it to true, or provide a specific Spotlight Sidecar URL.
+     *
+     * More details: https://spotlightjs.com/
+     *
+     * IMPORTANT: Only set this option to `true` while developing, not in production!
+     */
+    spotlight?: boolean | string;
   };
 /**
  * Configuration options for the Sentry Browser SDK.
@@ -104,10 +116,22 @@ export class BrowserClient extends Client<BrowserClientOptions> {
 
     super(opts);
 
-    const { sendDefaultPii, sendClientReports, enableLogs, _experiments } = this._options;
+    const {
+      sendDefaultPii,
+      sendClientReports,
+      enableLogs,
+      _experiments,
+      enableMetrics: enableMetricsOption,
+    } = this._options;
+
+    // todo(v11): Remove the experimental flag
+    // eslint-disable-next-line deprecation/deprecation
+    const enableMetrics = enableMetricsOption ?? _experiments?.enableMetrics ?? true;
 
     // Flush logs and metrics when page becomes hidden (e.g., tab switch, navigation)
-    if (WINDOW.document && (sendClientReports || enableLogs || _experiments?.enableMetrics)) {
+    // todo(v11): Remove the experimental flag
+    // eslint-disable-next-line deprecation/deprecation
+    if (WINDOW.document && (sendClientReports || enableLogs || enableMetrics)) {
       WINDOW.document.addEventListener('visibilitychange', () => {
         if (WINDOW.document.visibilityState === 'hidden') {
           if (sendClientReports) {
@@ -116,7 +140,8 @@ export class BrowserClient extends Client<BrowserClientOptions> {
           if (enableLogs) {
             _INTERNAL_flushLogsBuffer(this);
           }
-          if (_experiments?.enableMetrics) {
+
+          if (enableMetrics) {
             _INTERNAL_flushMetricsBuffer(this);
           }
         }

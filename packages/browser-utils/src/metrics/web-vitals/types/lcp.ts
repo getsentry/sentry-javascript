@@ -34,7 +34,8 @@ export interface LCPAttribution {
    * By default, a selector identifying the element corresponding to the
    * largest contentful paint for the page. If the `generateTarget`
    * configuration option was passed, then this will instead be the return
-   * value of that function.
+   * value of that function, falling back to the default if that returns null
+   * or undefined.
    */
   target?: string;
   /**

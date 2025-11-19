@@ -37,8 +37,8 @@ sentryTest(
 
     expect(pageloadTraceContext).toMatchObject({
       op: 'pageload',
-      trace_id: expect.stringMatching(/^[0-9a-f]{32}$/),
-      span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
+      trace_id: expect.stringMatching(/^[\da-f]{32}$/),
+      span_id: expect.stringMatching(/^[\da-f]{16}$/),
     });
     expect(pageloadTraceContext).not.toHaveProperty('parent_span_id');
 
@@ -71,8 +71,8 @@ sentryTest(
     const newTraceTransactionTraceContext = newTraceTransactionEvent.contexts?.trace;
     expect(newTraceTransactionTraceContext).toMatchObject({
       op: 'ui.interaction.click',
-      trace_id: expect.stringMatching(/^[0-9a-f]{32}$/),
-      span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
+      trace_id: expect.stringMatching(/^[\da-f]{32}$/),
+      span_id: expect.stringMatching(/^[\da-f]{16}$/),
     });
 
     expect(newTraceTransactionTraceHeaders).toEqual({
@@ -88,8 +88,8 @@ sentryTest(
     const oldTraceTransactionEventTraceContext = oldTraceTransactionEvent.contexts?.trace;
     expect(oldTraceTransactionEventTraceContext).toMatchObject({
       op: 'ui.interaction.click',
-      trace_id: expect.stringMatching(/^[0-9a-f]{32}$/),
-      span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
+      trace_id: expect.stringMatching(/^[\da-f]{32}$/),
+      span_id: expect.stringMatching(/^[\da-f]{16}$/),
     });
 
     expect(oldTraceTransactionTraceHeaders).toEqual({

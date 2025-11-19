@@ -187,6 +187,7 @@ export class Replay implements Integration {
       this._recordingOptions.blockSelector = !this._recordingOptions.blockSelector
         ? MEDIA_SELECTORS
         : `${this._recordingOptions.blockSelector},${MEDIA_SELECTORS}`;
+      this._recordingOptions.ignoreCSSAttributes = new Set(['background-image']);
     }
 
     if (this._isInitialized && isBrowser()) {

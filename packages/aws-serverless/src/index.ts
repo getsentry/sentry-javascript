@@ -58,6 +58,7 @@ export {
   onUnhandledRejectionIntegration,
   openAIIntegration,
   langChainIntegration,
+  langGraphIntegration,
   modulesIntegration,
   contextLinesIntegration,
   nodeContextIntegration,
@@ -148,6 +149,7 @@ export {
   statsigIntegration,
   unleashIntegration,
   growthbookIntegration,
+  metrics,
 } from '@sentry/node';
 
 export {
