@@ -14,7 +14,6 @@ updates:
       interval: 'weekly'
     allow:
       - dependency-name: '@sentry/*'
-      - dependency-name: '@opentelemetry/*'
       - dependency-name: '@prisma/instrumentation'
       - dependency-name: '@playwright/test'
     versioning-strategy: increase
