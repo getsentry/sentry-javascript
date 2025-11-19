@@ -1,21 +1,19 @@
 /* eslint-disable max-lines */
 import { getEnvelopeEndpointWithUrlEncodedAuth } from './api';
 import { DEFAULT_ENVIRONMENT } from './constants';
-import { getCurrentScope, getIsolationScope, getTraceContextFromScope, withScope } from './currentScopes';
+import { getCurrentScope, getIsolationScope, getTraceContextFromScope } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
 import { createEventEnvelope, createSessionEnvelope } from './envelope';
 import type { IntegrationIndex } from './integration';
 import { afterSetupIntegrations, setupIntegration, setupIntegrations } from './integration';
+import { _INTERNAL_flushLogsBuffer } from './logs/internal';
+import { _INTERNAL_flushMetricsBuffer } from './metrics/internal';
 import type { Scope } from './scope';
 import { updateSession } from './session';
-import {
-  getDynamicSamplingContextFromScope,
-  getDynamicSamplingContextFromSpan,
-} from './tracing/dynamicSamplingContext';
+import { getDynamicSamplingContextFromScope } from './tracing/dynamicSamplingContext';
 import type { Breadcrumb, BreadcrumbHint, FetchBreadcrumbHint, XhrBreadcrumbHint } from './types-hoist/breadcrumb';
 import type { CheckIn, MonitorConfig } from './types-hoist/checkin';
 import type { EventDropReason, Outcome } from './types-hoist/clientreport';
-import type { TraceContext } from './types-hoist/context';
 import type { DataCategory } from './types-hoist/datacategory';
 import type { DsnComponents } from './types-hoist/dsn';
 import type { DynamicSamplingContext, Envelope } from './types-hoist/envelope';
@@ -24,8 +22,11 @@ import type { EventProcessor } from './types-hoist/eventprocessor';
 import type { FeedbackEvent } from './types-hoist/feedback';
 import type { Integration } from './types-hoist/integration';
 import type { Log } from './types-hoist/log';
+import type { Metric } from './types-hoist/metric';
+import type { Primitive } from './types-hoist/misc';
 import type { ClientOptions } from './types-hoist/options';
 import type { ParameterizedString } from './types-hoist/parameterize';
+import type { RequestEventData } from './types-hoist/request';
 import type { SdkMetadata } from './types-hoist/sdkmetadata';
 import type { Session, SessionAggregates } from './types-hoist/session';
 import type { SeverityLevel } from './types-hoist/severity';
@@ -43,7 +44,7 @@ import { checkOrSetAlreadyCaught, uuid4 } from './utils/misc';
 import { parseSampleRate } from './utils/parseSampleRate';
 import { prepareEvent } from './utils/prepareEvent';
 import { reparentChildSpans, shouldIgnoreSpan } from './utils/should-ignore-span';
-import { getActiveSpan, showSpanDropWarning, spanToTraceContext } from './utils/spanUtils';
+import { showSpanDropWarning } from './utils/spanUtils';
 import { rejectedSyncPromise } from './utils/syncpromise';
 import { convertSpanJsonToTransactionEvent, convertTransactionEventToSpanJson } from './utils/transactionEvent';
 
@@ -52,6 +53,9 @@ const MISSING_RELEASE_FOR_SESSION_ERROR = 'Discarded session because of missing 
 
 const INTERNAL_ERROR_SYMBOL = Symbol.for('SentryInternalError');
 const DO_NOT_SEND_EVENT_SYMBOL = Symbol.for('SentryDoNotSendEventError');
+
+// Default interval for flushing logs and metrics (5 seconds)
+const DEFAULT_FLUSH_INTERVAL = 5000;
 
 interface InternalError {
   message: string;
@@ -83,6 +87,64 @@ function _isInternalError(error: unknown): error is InternalError {
 
 function _isDoNotSendEventError(error: unknown): error is DoNotSendEventError {
   return !!error && typeof error === 'object' && DO_NOT_SEND_EVENT_SYMBOL in error;
+}
+
+/**
+ * Sets up weight-based flushing for logs or metrics.
+ * This helper function encapsulates the common pattern of:
+ * 1. Tracking accumulated weight of items
+ * 2. Flushing when weight exceeds threshold (800KB)
+ * 3. Flushing after timeout period from the first item
+ *
+ * Uses closure variables to track weight and timeout state.
+ */
+function setupWeightBasedFlushing<
+  T,
+  AfterCaptureHook extends 'afterCaptureLog' | 'afterCaptureMetric',
+  FlushHook extends 'flushLogs' | 'flushMetrics',
+>(
+  client: Client,
+  afterCaptureHook: AfterCaptureHook,
+  flushHook: FlushHook,
+  estimateSizeFn: (item: T) => number,
+  flushFn: (client: Client) => void,
+): void {
+  // Track weight and timeout in closure variables
+  let weight = 0;
+  let flushTimeout: ReturnType<typeof setTimeout> | undefined;
+  let isTimerActive = false;
+
+  // @ts-expect-error - TypeScript can't narrow generic hook types to match specific overloads, but we know this is type-safe
+  client.on(flushHook, () => {
+    weight = 0;
+    clearTimeout(flushTimeout);
+    isTimerActive = false;
+  });
+
+  // @ts-expect-error - TypeScript can't narrow generic hook types to match specific overloads, but we know this is type-safe
+  client.on(afterCaptureHook, (item: T) => {
+    weight += estimateSizeFn(item);
+
+    // We flush the buffer if it exceeds 0.8 MB
+    // The weight is a rough estimate, so we flush way before the payload gets too big.
+    if (weight >= 800_000) {
+      flushFn(client);
+    } else if (!isTimerActive) {
+      // Only start timer if one isn't already running.
+      // This prevents flushing being delayed by items that arrive close to the timeout limit
+      // and thus resetting the flushing timeout and delaying items being flushed.
+      isTimerActive = true;
+      flushTimeout = setTimeout(() => {
+        flushFn(client);
+        // Note: isTimerActive is reset by the flushHook handler above, not here,
+        // to avoid race conditions when new items arrive during the flush.
+      }, DEFAULT_FLUSH_INTERVAL);
+    }
+  });
+
+  client.on('flush', () => {
+    flushFn(client);
+  });
 }
 
 /**
@@ -170,6 +232,26 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
         ...options.transportOptions,
         url,
       });
+    }
+
+    // Setup log flushing with weight and timeout tracking
+    if (this._options.enableLogs) {
+      setupWeightBasedFlushing(this, 'afterCaptureLog', 'flushLogs', estimateLogSizeInBytes, _INTERNAL_flushLogsBuffer);
+    }
+
+    // todo(v11): Remove the experimental flag
+    // eslint-disable-next-line deprecation/deprecation
+    const enableMetrics = this._options.enableMetrics ?? this._options._experiments?.enableMetrics ?? true;
+
+    // Setup metric flushing with weight and timeout tracking
+    if (enableMetrics) {
+      setupWeightBasedFlushing(
+        this,
+        'afterCaptureMetric',
+        'flushMetrics',
+        estimateMetricSizeInBytes,
+        _INTERNAL_flushMetricsBuffer,
+      );
     }
   }
 
@@ -688,6 +770,38 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public on(hook: 'flushLogs', callback: () => void): () => void;
 
   /**
+   * A hook that is called after capturing a metric. This hooks runs after `beforeSendMetric` is fired.
+   *
+   * @returns {() => void} A function that, when executed, removes the registered callback.
+   */
+  public on(hook: 'afterCaptureMetric', callback: (metric: Metric) => void): () => void;
+
+  /**
+   * A hook that is called when the client is flushing metrics
+   *
+   * @returns {() => void} A function that, when executed, removes the registered callback.
+   */
+  public on(hook: 'flushMetrics', callback: () => void): () => void;
+
+  /**
+   * A hook that is called when a metric is processed before it is captured and before the `beforeSendMetric` callback is fired.
+   *
+   * @returns {() => void} A function that, when executed, removes the registered callback.
+   */
+  public on(hook: 'processMetric', callback: (metric: Metric) => void): () => void;
+
+  /**
+   * A hook that is called when a http server request is started.
+   * This hook is called after request isolation, but before the request is processed.
+   *
+   * @returns {() => void} A function that, when executed, removes the registered callback.
+   */
+  public on(
+    hook: 'httpServerRequest',
+    callback: (request: unknown, response: unknown, normalizedRequest: RequestEventData) => void,
+  ): () => void;
+
+  /**
    * Register a hook on this client.
    */
   public on(hook: string, callback: unknown): () => void {
@@ -876,6 +990,34 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public emit(hook: 'flushLogs'): void;
 
   /**
+   * Emit a hook event for client after capturing a metric.
+   */
+  public emit(hook: 'afterCaptureMetric', metric: Metric): void;
+
+  /**
+   * Emit a hook event for client flush metrics
+   */
+  public emit(hook: 'flushMetrics'): void;
+
+  /**
+   *
+   * Emit a hook event for client to process a metric before it is captured.
+   * This hook is called before the `beforeSendMetric` callback is fired.
+   */
+  public emit(hook: 'processMetric', metric: Metric): void;
+
+  /**
+   * Emit a hook event for client when a http server request is started.
+   * This hook is called after request isolation, but before the request is processed.
+   */
+  public emit(
+    hook: 'httpServerRequest',
+    request: unknown,
+    response: unknown,
+    normalizedRequest: RequestEventData,
+  ): void;
+
+  /**
    * Emit a hook that was previously registered via `on()`.
    */
   public emit(hook: string, ...rest: unknown[]): void {
@@ -916,16 +1058,18 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
 
   /** Updates existing session based on the provided event */
   protected _updateSessionFromEvent(session: Session, event: Event): void {
+    // initially, set `crashed` based on the event level and update from exceptions if there are any later on
     let crashed = event.level === 'fatal';
     let errored = false;
     const exceptions = event.exception?.values;
 
     if (exceptions) {
       errored = true;
+      // reset crashed to false if there are exceptions, to ensure `mechanism.handled` is respected.
+      crashed = false;
 
       for (const ex of exceptions) {
-        const mechanism = ex.mechanism;
-        if (mechanism?.handled === false) {
+        if (ex.mechanism?.handled === false) {
           crashed = true;
           break;
         }
@@ -1390,21 +1534,78 @@ function isTransactionEvent(event: Event): event is TransactionEvent {
   return event.type === 'transaction';
 }
 
-/** Extract trace information from scope */
-export function _getTraceInfoFromScope(
-  client: Client,
-  scope: Scope | undefined,
-): [dynamicSamplingContext: Partial<DynamicSamplingContext> | undefined, traceContext: TraceContext | undefined] {
-  if (!scope) {
-    return [undefined, undefined];
+/**
+ * Estimate the size of a metric in bytes.
+ *
+ * @param metric - The metric to estimate the size of.
+ * @returns The estimated size of the metric in bytes.
+ */
+function estimateMetricSizeInBytes(metric: Metric): number {
+  let weight = 0;
+
+  // Estimate byte size of 2 bytes per character. This is a rough estimate JS strings are stored as UTF-16.
+  if (metric.name) {
+    weight += metric.name.length * 2;
   }
 
-  return withScope(scope, () => {
-    const span = getActiveSpan();
-    const traceContext = span ? spanToTraceContext(span) : getTraceContextFromScope(scope);
-    const dynamicSamplingContext = span
-      ? getDynamicSamplingContextFromSpan(span)
-      : getDynamicSamplingContextFromScope(client, scope);
-    return [dynamicSamplingContext, traceContext];
+  // Add weight for number
+  weight += 8;
+
+  return weight + estimateAttributesSizeInBytes(metric.attributes);
+}
+
+/**
+ * Estimate the size of a log in bytes.
+ *
+ * @param log - The log to estimate the size of.
+ * @returns The estimated size of the log in bytes.
+ */
+function estimateLogSizeInBytes(log: Log): number {
+  let weight = 0;
+
+  // Estimate byte size of 2 bytes per character. This is a rough estimate JS strings are stored as UTF-16.
+  if (log.message) {
+    weight += log.message.length * 2;
+  }
+
+  return weight + estimateAttributesSizeInBytes(log.attributes);
+}
+
+/**
+ * Estimate the size of attributes in bytes.
+ *
+ * @param attributes - The attributes object to estimate the size of.
+ * @returns The estimated size of the attributes in bytes.
+ */
+function estimateAttributesSizeInBytes(attributes: Record<string, unknown> | undefined): number {
+  if (!attributes) {
+    return 0;
+  }
+
+  let weight = 0;
+
+  Object.values(attributes).forEach(value => {
+    if (Array.isArray(value)) {
+      weight += value.length * estimatePrimitiveSizeInBytes(value[0]);
+    } else if (isPrimitive(value)) {
+      weight += estimatePrimitiveSizeInBytes(value);
+    } else {
+      // For objects values, we estimate the size of the object as 100 bytes
+      weight += 100;
+    }
   });
+
+  return weight;
+}
+
+function estimatePrimitiveSizeInBytes(value: Primitive): number {
+  if (typeof value === 'string') {
+    return value.length * 2;
+  } else if (typeof value === 'number') {
+    return 8;
+  } else if (typeof value === 'boolean') {
+    return 4;
+  }
+
+  return 0;
 }

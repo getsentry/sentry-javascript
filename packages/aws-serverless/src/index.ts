@@ -42,6 +42,7 @@ export {
   close,
   getSentryRelease,
   createGetModuleFromFilename,
+  createLangChainCallbackHandler,
   httpHeadersToSpanAttributes,
   winterCGHeadersToDict,
   // eslint-disable-next-line deprecation/deprecation
@@ -50,10 +51,14 @@ export {
   disableAnrDetectionForCallback,
   consoleIntegration,
   httpIntegration,
+  httpServerIntegration,
+  httpServerSpansIntegration,
   nativeNodeFetchIntegration,
   onUncaughtExceptionIntegration,
   onUnhandledRejectionIntegration,
   openAIIntegration,
+  langChainIntegration,
+  langGraphIntegration,
   modulesIntegration,
   contextLinesIntegration,
   nodeContextIntegration,
@@ -104,6 +109,7 @@ export {
   mysql2Integration,
   redisIntegration,
   tediousIntegration,
+  pinoIntegration,
   postgresIntegration,
   postgresJsIntegration,
   prismaIntegration,
@@ -142,6 +148,8 @@ export {
   OpenFeatureIntegrationHook,
   statsigIntegration,
   unleashIntegration,
+  growthbookIntegration,
+  metrics,
 } from '@sentry/node';
 
 export {

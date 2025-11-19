@@ -116,7 +116,7 @@ export interface ReportOpts {
 }
 
 export interface AttributionReportOpts extends ReportOpts {
-  generateTarget?: (el: Node | null) => string;
+  generateTarget?: (el: Node | null) => string | undefined;
 }
 
 /**

@@ -673,4 +673,5 @@ export interface TurbopackOptions {
   conditions?: Record<string, TurbopackRuleCondition>;
   moduleIds?: 'named' | 'deterministic';
   root?: string;
+  debugIds?: boolean;
 }

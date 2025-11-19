@@ -16,6 +16,7 @@ export type {
   Thread,
   User,
   FeatureFlagsIntegration,
+  Metric,
 } from '@sentry/core';
 
 export {
@@ -62,6 +63,7 @@ export {
   close,
   getSentryRelease,
   createGetModuleFromFilename,
+  createLangChainCallbackHandler,
   httpHeadersToSpanAttributes,
   winterCGHeadersToDict,
   // eslint-disable-next-line deprecation/deprecation
@@ -70,10 +72,14 @@ export {
   disableAnrDetectionForCallback,
   consoleIntegration,
   httpIntegration,
+  httpServerIntegration,
+  httpServerSpansIntegration,
   nativeNodeFetchIntegration,
   onUncaughtExceptionIntegration,
   onUnhandledRejectionIntegration,
   openAIIntegration,
+  langChainIntegration,
+  langGraphIntegration,
   modulesIntegration,
   contextLinesIntegration,
   nodeContextIntegration,
@@ -154,11 +160,13 @@ export {
   wrapMcpServerWithSentry,
   featureFlagsIntegration,
   launchDarklyIntegration,
+  growthbookIntegration,
   buildLaunchDarklyFlagUsedHandler,
   openFeatureIntegration,
   OpenFeatureIntegrationHook,
   statsigIntegration,
   unleashIntegration,
+  metrics,
 } from '@sentry/node';
 
 export {

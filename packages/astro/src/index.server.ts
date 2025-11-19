@@ -31,6 +31,7 @@ export {
   contextLinesIntegration,
   continueTrace,
   createGetModuleFromFilename,
+  createLangChainCallbackHandler,
   createTransport,
   cron,
   dataloaderIntegration,
@@ -66,6 +67,8 @@ export {
   hapiIntegration,
   honoIntegration,
   httpIntegration,
+  httpServerIntegration,
+  httpServerSpansIntegration,
   // eslint-disable-next-line deprecation/deprecation
   inboundFiltersIntegration,
   eventFiltersIntegration,
@@ -91,7 +94,10 @@ export {
   onUncaughtExceptionIntegration,
   onUnhandledRejectionIntegration,
   openAIIntegration,
+  langChainIntegration,
+  langGraphIntegration,
   parameterize,
+  pinoIntegration,
   postgresIntegration,
   postgresJsIntegration,
   prismaIntegration,
@@ -156,6 +162,8 @@ export {
   OpenFeatureIntegrationHook,
   statsigIntegration,
   unleashIntegration,
+  growthbookIntegration,
+  metrics,
 } from '@sentry/node';
 
 export { init } from './server/sdk';

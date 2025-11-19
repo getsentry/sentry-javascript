@@ -19,6 +19,7 @@ export declare const defaultStackParser: StackParser;
 
 export declare const logger: typeof clientSdk.logger | typeof serverSdk.logger;
 
+export declare const growthbookIntegration: typeof clientSdk.growthbookIntegration;
 export declare const launchDarklyIntegration: typeof clientSdk.launchDarklyIntegration;
 export declare const buildLaunchDarklyFlagUsedHandler: typeof clientSdk.buildLaunchDarklyFlagUsedHandler;
 export declare const openFeatureIntegration: typeof clientSdk.openFeatureIntegration;

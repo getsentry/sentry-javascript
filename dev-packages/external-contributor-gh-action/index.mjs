@@ -7,7 +7,7 @@ const UNRELEASED_HEADING = `## Unreleased
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 `;
 
-const contributorMessageRegex = /Work in this release was contributed by (.+)\. Thank you for your contribution!/;
+const contributorMessageRegex = /Work in this release was contributed by (.+)\. Thank you for your contributions?!/;
 
 async function run() {
   const { getInput } = core;
@@ -35,7 +35,7 @@ async function run() {
 
   // If the contributor message already exists, add the new contributor to the list
   if (existing) {
-    const users = existing[1].split(/(?:,? and )|(?:, )/);
+    const users = existing[1].split(/,? and |, /);
     if (!users.includes(ghUserName)) {
       users.push(ghUserName);
     }

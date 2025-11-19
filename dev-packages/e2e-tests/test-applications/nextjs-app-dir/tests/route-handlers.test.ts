@@ -112,7 +112,7 @@ test.describe('Edge runtime', () => {
     expect(routehandlerError.tags?.['my-isolated-tag']).toBe(true);
     expect(routehandlerError.tags?.['my-global-scope-isolated-tag']).not.toBeDefined();
 
-    expect(routehandlerTransaction.contexts?.trace?.status).toBe('unknown_error');
+    expect(routehandlerTransaction.contexts?.trace?.status).toBe('internal_error');
     expect(routehandlerTransaction.contexts?.trace?.op).toBe('http.server');
 
     expect(routehandlerError.exception?.values?.[0].value).toBe('route-handler-edge-error');

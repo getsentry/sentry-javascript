@@ -51,7 +51,6 @@ body:
         - '@sentry/nestjs'
         - '@sentry/nextjs'
         - '@sentry/nuxt'
-        - '@sentry/pino-transport'
         - '@sentry/react'
         - '@sentry/react-router'
         - '@sentry/remix'
@@ -137,13 +136,14 @@ body:
     id: additional
     attributes:
       label: Additional Context
-      description:
-        Add any other context here. Please keep the pre-filled text, which helps us manage issue prioritization.
-      value: |-
-        <sub>Tip: React with 👍 to help prioritize this issue. Please use comments to provide useful context, avoiding `+1` or `me too`, to help us triage it.</sub>
+      description: Add any other context here.
     validations:
       required: false
-  - type: markdown
+  - type: dropdown
     attributes:
-      value: |-
-        ## Thanks 🙏
+      label: 'Priority'
+      description: Please keep the pre-filled option, which helps us manage issue prioritization.
+      default: 0
+      options:
+        - <sub>React with 👍 to help prioritize this issue. Please use comments to provide useful context, avoiding `+1`
+          or `me too`, to help us triage it.</sub>

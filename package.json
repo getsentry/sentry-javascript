@@ -71,7 +71,6 @@
     "packages/node-native",
     "packages/nuxt",
     "packages/opentelemetry",
-    "packages/pino-transport",
     "packages/profiling-node",
     "packages/react",
     "packages/react-router",
@@ -101,7 +100,8 @@
     "dev-packages/clear-cache-gh-action",
     "dev-packages/external-contributor-gh-action",
     "dev-packages/rollup-utils",
-    "dev-packages/node-overhead-gh-action"
+    "dev-packages/node-overhead-gh-action",
+    "dev-packages/bundler-tests"
   ],
   "devDependencies": {
     "@rollup/plugin-commonjs": "^25.0.7",
@@ -124,8 +124,8 @@
     "eslint": "7.32.0",
     "jsdom": "^21.1.2",
     "lerna": "7.1.1",
-    "madge": "7.0.0",
-    "nodemon": "^2.0.16",
+    "madge": "8.0.0",
+    "nodemon": "^3.1.10",
     "npm-run-all2": "^6.2.0",
     "prettier": "^3.6.2",
     "prettier-plugin-astro": "^0.14.1",
@@ -136,7 +136,7 @@
     "size-limit": "~11.1.6",
     "sucrase": "^3.35.0",
     "ts-node": "10.9.1",
-    "typescript": "~5.0.0",
+    "typescript": "~5.8.0",
     "vitest": "^3.2.4",
     "yalc": "^1.0.0-pre.53",
     "yarn-deduplicate": "6.0.2"

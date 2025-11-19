@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, test, vi } from 'vitest';
+import type { SeverityLevel } from '../../src';
 import {
   addBreadcrumb,
   dsnToString,
@@ -12,6 +13,8 @@ import {
   withMonitor,
 } from '../../src';
 import * as integrationModule from '../../src/integration';
+import { _INTERNAL_captureLog } from '../../src/logs/internal';
+import { _INTERNAL_captureMetric } from '../../src/metrics/internal';
 import type { Envelope } from '../../src/types-hoist/envelope';
 import type { ErrorEvent, Event, TransactionEvent } from '../../src/types-hoist/event';
 import type { SpanJSON } from '../../src/types-hoist/span';
@@ -2306,6 +2309,108 @@ describe('Client', () => {
     });
   });
 
+  describe('_updateSessionFromEvent()', () => {
+    describe('event has no exceptions', () => {
+      it('sets status to crashed if level is fatal', () => {
+        const client = new TestClient(getDefaultTestClientOptions());
+        const session = makeSession();
+        getCurrentScope().setSession(session);
+
+        client.captureEvent({ message: 'test', level: 'fatal' });
+
+        const updatedSession = client.session;
+
+        expect(updatedSession).toMatchObject({
+          duration: expect.any(Number),
+          errors: 1,
+          init: false,
+          sid: expect.any(String),
+          started: expect.any(Number),
+          status: 'crashed',
+          timestamp: expect.any(Number),
+        });
+      });
+
+      it.each(['error', 'warning', 'log', 'info', 'debug'] as const)(
+        'sets status to ok if level is %s',
+        (level: SeverityLevel) => {
+          const client = new TestClient(getDefaultTestClientOptions());
+          const session = makeSession();
+          getCurrentScope().setSession(session);
+
+          client.captureEvent({ message: 'test', level });
+
+          const updatedSession = client.session;
+
+          expect(updatedSession?.status).toEqual('ok');
+        },
+      );
+    });
+
+    describe('event has exceptions', () => {
+      it.each(['fatal', 'error', 'warning', 'log', 'info', 'debug'] as const)(
+        'sets status ok for handled exceptions and ignores event level %s',
+        (level: SeverityLevel) => {
+          const client = new TestClient(getDefaultTestClientOptions());
+          const session = makeSession();
+          getCurrentScope().setSession(session);
+
+          client.captureException(new Error('test'), { captureContext: { level } });
+
+          const updatedSession = client.session;
+
+          expect(updatedSession?.status).toEqual('ok');
+        },
+      );
+
+      it.each(['fatal', 'error', 'warning', 'log', 'info', 'debug'] as const)(
+        'sets status crashed for unhandled exceptions and ignores event level %s',
+        (level: SeverityLevel) => {
+          const client = new TestClient(getDefaultTestClientOptions());
+          const session = makeSession();
+          getCurrentScope().setSession(session);
+
+          client.captureException(new Error('test'), { captureContext: { level }, mechanism: { handled: false } });
+
+          const updatedSession = client.session;
+
+          expect(updatedSession?.status).toEqual('crashed');
+        },
+      );
+
+      it('sets status crashed if at least one exception is unhandled', () => {
+        const client = new TestClient(getDefaultTestClientOptions());
+        const session = makeSession();
+        getCurrentScope().setSession(session);
+
+        const event: Event = {
+          exception: {
+            values: [
+              {
+                mechanism: { type: 'generic', handled: true },
+              },
+              {
+                mechanism: { type: 'generic', handled: false },
+              },
+              {
+                mechanism: { type: 'generic', handled: true },
+              },
+            ],
+          },
+        };
+
+        client.captureEvent(event);
+
+        const updatedSession = client.session;
+
+        expect(updatedSession).toMatchObject({
+          status: 'crashed',
+          errors: 1, // an event with multiple exceptions still counts as one error in the session
+        });
+      });
+    });
+  });
+
   describe('recordDroppedEvent()/_clearOutcomes()', () => {
     test('records and returns outcomes', () => {
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
@@ -2597,6 +2702,237 @@ describe('Client', () => {
 
       const promise = await withMonitor('test-monitor', callback);
       await expect(promise).rejects.toThrowError(error);
+    });
+  });
+
+  describe('log weight-based flushing', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('flushes logs when weight exceeds 800KB', () => {
+      const options = getDefaultTestClientOptions({
+        dsn: PUBLIC_DSN,
+        enableLogs: true,
+      });
+      const client = new TestClient(options);
+      const scope = new Scope();
+      scope.setClient(client);
+
+      const sendEnvelopeSpy = vi.spyOn(client, 'sendEnvelope');
+
+      // Create a large log message that will exceed the 800KB threshold
+      const largeMessage = 'x'.repeat(400_000); // 400KB string
+      _INTERNAL_captureLog({ message: largeMessage, level: 'info' }, scope);
+
+      expect(sendEnvelopeSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('accumulates log weight without flushing when under threshold', () => {
+      const options = getDefaultTestClientOptions({
+        dsn: PUBLIC_DSN,
+        enableLogs: true,
+      });
+      const client = new TestClient(options);
+      const scope = new Scope();
+      scope.setClient(client);
+
+      const sendEnvelopeSpy = vi.spyOn(client, 'sendEnvelope');
+
+      // Create a log message that won't exceed the threshold
+      const message = 'x'.repeat(100_000); // 100KB string
+      _INTERNAL_captureLog({ message, level: 'info' }, scope);
+
+      expect(sendEnvelopeSpy).not.toHaveBeenCalled();
+    });
+
+    it('flushes logs after idle timeout', () => {
+      const options = getDefaultTestClientOptions({
+        dsn: PUBLIC_DSN,
+        enableLogs: true,
+      });
+      const client = new TestClient(options);
+      const scope = new Scope();
+      scope.setClient(client);
+
+      const sendEnvelopeSpy = vi.spyOn(client, 'sendEnvelope');
+
+      // Add a log which will trigger afterCaptureLog event
+      _INTERNAL_captureLog({ message: 'test log', level: 'info' }, scope);
+
+      expect(sendEnvelopeSpy).not.toHaveBeenCalled();
+
+      // Fast forward the idle timeout (5 seconds)
+      vi.advanceTimersByTime(5000);
+
+      expect(sendEnvelopeSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not reset idle timeout when new logs are captured', () => {
+      const options = getDefaultTestClientOptions({
+        dsn: PUBLIC_DSN,
+        enableLogs: true,
+      });
+      const client = new TestClient(options);
+      const scope = new Scope();
+      scope.setClient(client);
+
+      const sendEnvelopeSpy = vi.spyOn(client, 'sendEnvelope');
+
+      // Add initial log (starts the timer)
+      _INTERNAL_captureLog({ message: 'test log 1', level: 'info' }, scope);
+
+      // Fast forward part of the idle timeout
+      vi.advanceTimersByTime(2500);
+
+      // Add another log which should NOT reset the timeout
+      _INTERNAL_captureLog({ message: 'test log 2', level: 'info' }, scope);
+
+      // Fast forward the remaining time to reach the full timeout from the first log
+      vi.advanceTimersByTime(2500);
+
+      // Should have flushed both logs since timeout was not reset
+      expect(sendEnvelopeSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('starts new timer after timeout completes and flushes', () => {
+      const options = getDefaultTestClientOptions({
+        dsn: PUBLIC_DSN,
+        enableLogs: true,
+      });
+      const client = new TestClient(options);
+      const scope = new Scope();
+      scope.setClient(client);
+
+      const sendEnvelopeSpy = vi.spyOn(client, 'sendEnvelope');
+
+      // First batch: Add a log and let it flush
+      _INTERNAL_captureLog({ message: 'test log 1', level: 'info' }, scope);
+
+      // Fast forward to trigger the first flush
+      vi.advanceTimersByTime(5000);
+
+      expect(sendEnvelopeSpy).toHaveBeenCalledTimes(1);
+
+      // Second batch: Add another log after the first flush completed
+      _INTERNAL_captureLog({ message: 'test log 2', level: 'info' }, scope);
+
+      // Should not have flushed yet
+      expect(sendEnvelopeSpy).toHaveBeenCalledTimes(1);
+
+      // Fast forward to trigger the second flush
+      vi.advanceTimersByTime(5000);
+
+      // Should have flushed the second log
+      expect(sendEnvelopeSpy).toHaveBeenCalledTimes(2);
+    });
+
+    it('flushes logs on flush event', () => {
+      const options = getDefaultTestClientOptions({
+        dsn: PUBLIC_DSN,
+        enableLogs: true,
+      });
+      const client = new TestClient(options);
+      const scope = new Scope();
+      scope.setClient(client);
+
+      const sendEnvelopeSpy = vi.spyOn(client, 'sendEnvelope');
+
+      // Add some logs
+      _INTERNAL_captureLog({ message: 'test1', level: 'info' }, scope);
+      _INTERNAL_captureLog({ message: 'test2', level: 'info' }, scope);
+
+      // Trigger flush event
+      client.emit('flush');
+
+      expect(sendEnvelopeSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not flush logs when logs are disabled', () => {
+      const options = getDefaultTestClientOptions({
+        dsn: PUBLIC_DSN,
+      });
+      const client = new TestClient(options);
+      const scope = new Scope();
+      scope.setClient(client);
+
+      const sendEnvelopeSpy = vi.spyOn(client, 'sendEnvelope');
+
+      // Create a large log message
+      const largeMessage = 'x'.repeat(400_000);
+      _INTERNAL_captureLog({ message: largeMessage, level: 'info' }, scope);
+
+      expect(sendEnvelopeSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('metric weight-based flushing', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('flushes metrics when weight exceeds 800KB', () => {
+      const options = getDefaultTestClientOptions({
+        dsn: PUBLIC_DSN,
+      });
+      const client = new TestClient(options);
+      const scope = new Scope();
+      scope.setClient(client);
+
+      const sendEnvelopeSpy = vi.spyOn(client, 'sendEnvelope');
+
+      // Create large metrics that will exceed the 800KB threshold
+      const largeValue = 'x'.repeat(400_000); // 400KB string
+      _INTERNAL_captureMetric(
+        { name: 'large_metric', value: 1, type: 'counter', attributes: { large_value: largeValue } },
+        { scope },
+      );
+
+      expect(sendEnvelopeSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('accumulates metric weight without flushing when under threshold', () => {
+      const options = getDefaultTestClientOptions({
+        dsn: PUBLIC_DSN,
+      });
+      const client = new TestClient(options);
+      const scope = new Scope();
+      scope.setClient(client);
+
+      const sendEnvelopeSpy = vi.spyOn(client, 'sendEnvelope');
+
+      // Create metrics that won't exceed the threshold
+      _INTERNAL_captureMetric({ name: 'test_metric', value: 42, type: 'counter', attributes: {} }, { scope });
+
+      expect(sendEnvelopeSpy).not.toHaveBeenCalled();
+    });
+
+    it('flushes metrics on flush event', () => {
+      const options = getDefaultTestClientOptions({
+        dsn: PUBLIC_DSN,
+      });
+      const client = new TestClient(options);
+      const scope = new Scope();
+      scope.setClient(client);
+
+      const sendEnvelopeSpy = vi.spyOn(client, 'sendEnvelope');
+
+      // Add some metrics
+      _INTERNAL_captureMetric({ name: 'metric1', value: 1, type: 'counter', attributes: {} }, { scope });
+      _INTERNAL_captureMetric({ name: 'metric2', value: 2, type: 'counter', attributes: {} }, { scope });
+
+      // Trigger flush event
+      client.emit('flush');
+
+      expect(sendEnvelopeSpy).toHaveBeenCalledTimes(1);
     });
   });
 });

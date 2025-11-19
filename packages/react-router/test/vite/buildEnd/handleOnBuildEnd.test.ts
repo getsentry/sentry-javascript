@@ -81,6 +81,7 @@ describe('sentryOnBuildEnd', () => {
       } as unknown as TestConfig,
     };
 
+    // @ts-expect-error - mocking the React config
     await sentryOnBuildEnd(config);
 
     expect(mockSentryCliInstance.releases.new).toHaveBeenCalledWith('v1.0.0');
@@ -102,6 +103,7 @@ describe('sentryOnBuildEnd', () => {
       } as unknown as TestConfig,
     };
 
+    // @ts-expect-error - mocking the React config
     await sentryOnBuildEnd(config);
 
     expect(mockSentryCliInstance.releases.new).toHaveBeenCalledWith('v1.0.0-unstable');
@@ -126,6 +128,7 @@ describe('sentryOnBuildEnd', () => {
       } as unknown as TestConfig,
     };
 
+    // @ts-expect-error - mocking the React config
     await sentryOnBuildEnd(config);
 
     expect(mockSentryCliInstance.releases.new).toHaveBeenCalledWith('v1.0.0');
@@ -145,6 +148,7 @@ describe('sentryOnBuildEnd', () => {
       } as unknown as TestConfig,
     };
 
+    // @ts-expect-error - mocking the React config
     await sentryOnBuildEnd(config);
 
     expect(mockSentryCliInstance.releases.uploadSourceMaps).toHaveBeenCalledTimes(1);
@@ -168,12 +172,14 @@ describe('sentryOnBuildEnd', () => {
       } as unknown as TestConfig,
     };
 
+    // @ts-expect-error - mocking the React config
     await sentryOnBuildEnd(config);
 
     expect(mockSentryCliInstance.releases.uploadSourceMaps).not.toHaveBeenCalled();
   });
 
   it('should delete source maps after upload with default pattern', async () => {
+    // @ts-expect-error - mocking the React config
     await sentryOnBuildEnd(defaultConfig);
 
     expect(glob).toHaveBeenCalledWith(['/build/**/*.map'], {
@@ -196,6 +202,7 @@ describe('sentryOnBuildEnd', () => {
       } as unknown as TestConfig,
     };
 
+    // @ts-expect-error - mocking the React config
     await sentryOnBuildEnd(config);
 
     expect(glob).toHaveBeenCalledWith('/custom/**/*.map', {
@@ -221,6 +228,7 @@ describe('sentryOnBuildEnd', () => {
       } as unknown as TestConfig,
     };
 
+    // @ts-expect-error - mocking the React config
     await sentryOnBuildEnd(config);
 
     expect(consoleSpy).toHaveBeenCalledWith('[Sentry] Could not create release', expect.any(Error));
@@ -241,6 +249,7 @@ describe('sentryOnBuildEnd', () => {
       } as unknown as TestConfig,
     };
 
+    // @ts-expect-error - mocking the React config
     await sentryOnBuildEnd(config);
 
     expect(mockSentryCliInstance.execute).toHaveBeenCalledWith(['sourcemaps', 'inject', '/build'], false);
@@ -250,6 +259,7 @@ describe('sentryOnBuildEnd', () => {
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     mockSentryCliInstance.execute.mockRejectedValueOnce(new Error('Injection failed'));
 
+    // @ts-expect-error - mocking the React config
     await sentryOnBuildEnd(defaultConfig);
     expect(mockSentryCliInstance.execute).toHaveBeenCalledTimes(1);
     expect(mockSentryCliInstance.execute).toHaveBeenCalledWith(['sourcemaps', 'inject', '/build'], false);
@@ -262,6 +272,7 @@ describe('sentryOnBuildEnd', () => {
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     mockSentryCliInstance.releases.uploadSourceMaps.mockRejectedValueOnce(new Error('Upload failed'));
 
+    // @ts-expect-error - mocking the React config
     await sentryOnBuildEnd(defaultConfig);
 
     expect(consoleSpy).toHaveBeenCalledWith('[Sentry] Could not upload sourcemaps', expect.any(Error));
@@ -282,6 +293,7 @@ describe('sentryOnBuildEnd', () => {
       } as unknown as TestConfig,
     };
 
+    // @ts-expect-error - mocking the React config
     await sentryOnBuildEnd(config);
 
     expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('[Sentry] Automatically setting'));
@@ -312,6 +324,7 @@ describe('sentryOnBuildEnd', () => {
       } as unknown as TestConfig,
     };
 
+    // @ts-expect-error - mocking the React config
     await sentryOnBuildEnd(config);
 
     expect(SentryCli).toHaveBeenCalledWith(null, expect.objectContaining(customOptions));

@@ -3,17 +3,18 @@ import { diag } from '@opentelemetry/api';
 import type { HttpInstrumentationConfig } from '@opentelemetry/instrumentation-http';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
 import type { Span } from '@sentry/core';
-import { debug, defineIntegration, getClient, hasSpansEnabled } from '@sentry/core';
+import { defineIntegration, getClient, hasSpansEnabled } from '@sentry/core';
 import type { HTTPModuleRequestIncomingMessage, NodeClient } from '@sentry/node-core';
 import {
   type SentryHttpInstrumentationOptions,
   addOriginToSpan,
   generateInstrumentOnce,
   getRequestUrl,
+  httpServerIntegration,
+  httpServerSpansIntegration,
   NODE_VERSION,
   SentryHttpInstrumentation,
 } from '@sentry/node-core';
-import { DEBUG_BUILD } from '../debug-build';
 import type { NodeClientOptions } from '../types';
 
 const INTEGRATION_NAME = 'Http';
@@ -74,6 +75,12 @@ interface HttpOptions {
    * You can use it to filter on additional properties like method, headers, etc.
    */
   ignoreIncomingRequests?: (urlPath: string, request: IncomingMessage) => boolean;
+
+  /**
+   * A hook that can be used to mutate the span for incoming requests.
+   * This is triggered after the span is created, but before it is recorded.
+   */
+  incomingRequestSpanHook?: (span: Span, request: IncomingMessage, response: ServerResponse) => void;
 
   /**
    * Whether to automatically ignore common static asset requests like favicon.ico, robots.txt, etc.
@@ -194,50 +201,63 @@ export function _shouldUseOtelHttpInstrumentation(
  * It creates breadcrumbs and spans for outgoing HTTP requests which will be attached to the currently active span.
  */
 export const httpIntegration = defineIntegration((options: HttpOptions = {}) => {
-  const dropSpansForIncomingRequestStatusCodes = options.dropSpansForIncomingRequestStatusCodes ?? [
-    [401, 404],
-    // 300 and 304 are possibly valid status codes we do not want to filter
-    [301, 303],
-    [305, 399],
-  ];
+  const spans = options.spans ?? true;
+  const disableIncomingRequestSpans = options.disableIncomingRequestSpans;
+
+  const serverOptions = {
+    sessions: options.trackIncomingRequestsAsSessions,
+    sessionFlushingDelayMS: options.sessionFlushingDelayMS,
+    ignoreRequestBody: options.ignoreIncomingRequestBody,
+    maxRequestBodySize: options.maxIncomingRequestBodySize,
+  } satisfies Parameters<typeof httpServerIntegration>[0];
+
+  const serverSpansOptions = {
+    ignoreIncomingRequests: options.ignoreIncomingRequests,
+    ignoreStaticAssets: options.ignoreStaticAssets,
+    ignoreStatusCodes: options.dropSpansForIncomingRequestStatusCodes,
+    instrumentation: options.instrumentation,
+    onSpanCreated: options.incomingRequestSpanHook,
+  } satisfies Parameters<typeof httpServerSpansIntegration>[0];
+
+  const server = httpServerIntegration(serverOptions);
+  const serverSpans = httpServerSpansIntegration(serverSpansOptions);
+
+  const enableServerSpans = spans && !disableIncomingRequestSpans;
 
   return {
     name: INTEGRATION_NAME,
+    setup(client: NodeClient) {
+      const clientOptions = client.getOptions();
+
+      if (enableServerSpans && hasSpansEnabled(clientOptions)) {
+        serverSpans.setup(client);
+      }
+    },
     setupOnce() {
-      const clientOptions = (getClient<NodeClient>()?.getOptions() || {}) as Partial<NodeClientOptions>;
+      const clientOptions = (getClient<NodeClient>()?.getOptions() || {}) satisfies Partial<NodeClientOptions>;
       const useOtelHttpInstrumentation = _shouldUseOtelHttpInstrumentation(options, clientOptions);
-      const disableIncomingRequestSpans = options.disableIncomingRequestSpans ?? !hasSpansEnabled(clientOptions);
 
-      // This is Sentry-specific instrumentation for request isolation and breadcrumbs
-      instrumentSentryHttp({
-        ...options,
-        disableIncomingRequestSpans,
-        ignoreSpansForIncomingRequests: options.ignoreIncomingRequests,
-        // If spans are not instrumented, it means the HttpInstrumentation has not been added
-        // In that case, we want to handle trace propagation ourselves
+      server.setupOnce();
+
+      const sentryHttpInstrumentationOptions = {
+        breadcrumbs: options.breadcrumbs,
         propagateTraceInOutgoingRequests: !useOtelHttpInstrumentation,
-      });
+        ignoreOutgoingRequests: options.ignoreOutgoingRequests,
+      } satisfies SentryHttpInstrumentationOptions;
 
-      // This is the "regular" OTEL instrumentation that emits spans
+      // This is Sentry-specific instrumentation for outgoing request breadcrumbs & trace propagation
+      instrumentSentryHttp(sentryHttpInstrumentationOptions);
+
+      // This is the "regular" OTEL instrumentation that emits outgoing request spans
       if (useOtelHttpInstrumentation) {
         const instrumentationConfig = getConfigWithDefaults(options);
         instrumentOtelHttp(instrumentationConfig);
       }
     },
     processEvent(event) {
-      // Drop transaction if it has a status code that should be ignored
-      if (event.type === 'transaction') {
-        const statusCode = event.contexts?.trace?.data?.['http.response.status_code'];
-        if (typeof statusCode === 'number') {
-          const shouldDrop = shouldFilterStatusCode(statusCode, dropSpansForIncomingRequestStatusCodes);
-          if (shouldDrop) {
-            DEBUG_BUILD && debug.log('Dropping transaction due to status code', statusCode);
-            return null;
-          }
-        }
-      }
-
-      return event;
+      // Note: We always run this, even if spans are disabled
+      // The reason being that e.g. the remix integration disables span creation here but still wants to use the ignore status codes option
+      return serverSpans.processEvent(event);
     },
   };
 });
@@ -278,18 +298,4 @@ function getConfigWithDefaults(options: Partial<HttpOptions> = {}): HttpInstrume
   } satisfies HttpInstrumentationConfig;
 
   return instrumentationConfig;
-}
-
-/**
- * If the given status code should be filtered for the given list of status codes/ranges.
- */
-function shouldFilterStatusCode(statusCode: number, dropForStatusCodes: (number | [number, number])[]): boolean {
-  return dropForStatusCodes.some(code => {
-    if (typeof code === 'number') {
-      return code === statusCode;
-    }
-
-    const [min, max] = code;
-    return statusCode >= min && statusCode <= max;
-  });
 }
