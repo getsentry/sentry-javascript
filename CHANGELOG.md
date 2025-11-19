@@ -4,7 +4,101 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-- fix(node): Fix Spotlight configuration precedence to match specification (#18195)
+## 10.26.0
+
+### Important Changes
+
+- **feat(core): Instrument LangGraph Agent ([#18114](https://github.com/getsentry/sentry-javascript/pull/18114))**
+
+Adds support for instrumenting LangGraph StateGraph operations in Node. The LangGraph integration can be configured as follows:
+
+```js
+Sentry.init({
+  dsn: '__DSN__',
+  sendDefaultPii: false, // Even with PII disabled globally
+  integrations: [
+    Sentry.langGraphIntegration({
+      recordInputs: true, // Force recording input messages
+      recordOutputs: true, // Force recording response text
+    }),
+  ],
+});
+```
+
+- **feat(cloudflare/vercel-edge): Add manual instrumentation for LangGraph ([#18112](https://github.com/getsentry/sentry-javascript/pull/18112))**
+
+Instrumentation for LangGraph in Cloudflare Workers and Vercel Edge environments is supported by manually calling `instrumentLangGraph`:
+
+```js
+import * as Sentry from '@sentry/cloudflare'; // or '@sentry/vercel-edge'
+import { StateGraph, START, END, MessagesAnnotation } from '@langchain/langgraph';
+
+// Create and instrument the graph
+const graph = new StateGraph(MessagesAnnotation)
+  .addNode('agent', agentFn)
+  .addEdge(START, 'agent')
+  .addEdge('agent', END);
+
+Sentry.instrumentLangGraph(graph, {
+  recordInputs: true,
+  recordOutputs: true,
+});
+
+const compiled = graph.compile({ name: 'weather_assistant' });
+
+await compiled.invoke({
+  messages: [{ role: 'user', content: 'What is the weather in SF?' }],
+});
+```
+
+- **feat(node): Add OpenAI SDK v6 support ([#18244](https://github.com/getsentry/sentry-javascript/pull/18244))**
+
+### Other Changes
+
+- feat(core): Support OpenAI embeddings API ([#18224](https://github.com/getsentry/sentry-javascript/pull/18224))
+- feat(browser-utils): bump web-vitals to 5.1.0 ([#18091](https://github.com/getsentry/sentry-javascript/pull/18091))
+- feat(core): Support truncation for LangChain integration request messages ([#18157](https://github.com/getsentry/sentry-javascript/pull/18157))
+- feat(metrics): Add default `server.address` attribute on server runtimes ([#18242](https://github.com/getsentry/sentry-javascript/pull/18242))
+- feat(nextjs): Add URL to server-side transaction events ([#18230](https://github.com/getsentry/sentry-javascript/pull/18230))
+- feat(node-core): Add mechanism to prevent wrapping ai providers multiple times([#17972](https://github.com/getsentry/sentry-javascript/pull/17972))
+- feat(replay): Bump limit for minReplayDuration ([#18190](https://github.com/getsentry/sentry-javascript/pull/18190))
+- fix(browser): Add `ok` status to successful `idleSpan`s ([#18139](https://github.com/getsentry/sentry-javascript/pull/18139))
+- fix(core): Check `fetch` support with data URL ([#18225](https://github.com/getsentry/sentry-javascript/pull/18225))
+- fix(core): Decrease number of Sentry stack frames for messages from `captureConsoleIntegration` ([#18096](https://github.com/getsentry/sentry-javascript/pull/18096))
+- fix(core): Emit processed metric ([#18222](https://github.com/getsentry/sentry-javascript/pull/18222))
+- fix(core): Ensure logs past `MAX_LOG_BUFFER_SIZE` are not swallowed ([#18207](https://github.com/getsentry/sentry-javascript/pull/18207))
+- fix(core): Ensure metrics past `MAX_METRIC_BUFFER_SIZE` are not swallowed ([#18212](https://github.com/getsentry/sentry-javascript/pull/18212))
+- fix(core): Fix logs and metrics flush timeout starvation with continuous logging ([#18211](https://github.com/getsentry/sentry-javascript/pull/18211))
+- fix(core): Flatten gen_ai.request.available_tools in google-genai ([#18194](https://github.com/getsentry/sentry-javascript/pull/18194))
+- fix(core): Stringify available tools sent from vercelai ([#18197](https://github.com/getsentry/sentry-javascript/pull/18197))
+- fix(core/vue): Detect and skip normalizing Vue `VNode` objects with high `normalizeDepth` ([#18206](https://github.com/getsentry/sentry-javascript/pull/18206))
+- fix(nextjs): Avoid wrapping middleware files when in standalone mode ([#18172](https://github.com/getsentry/sentry-javascript/pull/18172))
+- fix(nextjs): Drop meta trace tags if rendered page is ISR ([#18192](https://github.com/getsentry/sentry-javascript/pull/18192))
+- fix(nextjs): Respect PORT variable for dev error symbolication ([#18227](https://github.com/getsentry/sentry-javascript/pull/18227))
+- fix(nextjs): use LRU map instead of map for ISR route cache ([#18234](https://github.com/getsentry/sentry-javascript/pull/18234))
+- fix(node): `tracingChannel` export missing in older node versions ([#18191](https://github.com/getsentry/sentry-javascript/pull/18191))
+- fix(node): Fix Spotlight configuration precedence to match specification ([#18195](https://github.com/getsentry/sentry-javascript/pull/18195))
+- fix(react): Prevent navigation span leaks for consecutive navigations ([#18098](https://github.com/getsentry/sentry-javascript/pull/18098))
+- ref(react-router): Deprecate ErrorBoundary exports ([#18208](https://github.com/getsentry/sentry-javascript/pull/18208))
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+
+- chore: Fix missing changelog quote we use for attribution placement ([#18237](https://github.com/getsentry/sentry-javascript/pull/18237))
+- chore: move tip about prioritizing issues ([#18071](https://github.com/getsentry/sentry-javascript/pull/18071))
+- chore(e2e): Pin `@embroider/addon-shim` to 1.10.0 for the e2e ember-embroider ([#18173](https://github.com/getsentry/sentry-javascript/pull/18173))
+- chore(react-router): Fix casing on deprecation notices ([#18221](https://github.com/getsentry/sentry-javascript/pull/18221))
+- chore(test): Use correct `testTimeout` field in bundler-tests vitest config
+- chore(e2e): Bump zod in e2e tests ([#18251](https://github.com/getsentry/sentry-javascript/pull/18251))
+- test(browser-integration): Fix incorrect tag value assertions ([#18162](https://github.com/getsentry/sentry-javascript/pull/18162))
+- test(profiling): Add test utils to validate Profile Chunk envelope ([#18170](https://github.com/getsentry/sentry-javascript/pull/18170))
+- ref(e2e-ember): Remove `@embroider/addon-shim` override ([#18180](https://github.com/getsentry/sentry-javascript/pull/18180))
+- ref(browser): Move trace lifecycle listeners to class function ([#18231](https://github.com/getsentry/sentry-javascript/pull/18231))
+- ref(browserprofiling): Move and rename profiler class to UIProfiler ([#18187](https://github.com/getsentry/sentry-javascript/pull/18187))
+- ref(core): Move ai integrations from utils to tracing ([#18185](https://github.com/getsentry/sentry-javascript/pull/18185))
+- ref(core): Optimize `Scope.setTag` bundle size and adjust test ([#18182](https://github.com/getsentry/sentry-javascript/pull/18182))
+
+</details>
 
 ## 10.25.0
 
