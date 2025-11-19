@@ -34,9 +34,17 @@ export function constructTurbopackConfig({
     ...(shouldEnableNativeDebugIds ? { debugIds: true } : {}),
   };
 
+  const tunnelPath =
+    userSentryOptions.tunnelRoute !== undefined &&
+    userNextConfig.output !== 'export' &&
+    typeof userSentryOptions.tunnelRoute === 'string'
+      ? `${userNextConfig.basePath ?? ''}${userSentryOptions.tunnelRoute}`
+      : undefined;
+
   const valueInjectionRules = generateValueInjectionRules({
     routeManifest,
     nextJsVersion,
+    tunnelPath,
   });
 
   for (const { matcher, rule } of valueInjectionRules) {
