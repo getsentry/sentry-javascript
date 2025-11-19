@@ -1,0 +1,26 @@
+{
+  "name": "@sentry-internal/bundler-tests",
+  "version": "10.25.0",
+  "description": "Bundler tests for Sentry Browser SDK",
+  "repository": "git://github.com/getsentry/sentry-javascript.git",
+  "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/bundler-tests",
+  "author": "Sentry",
+  "license": "MIT",
+  "private": true,
+  "main": "./index.mjs",
+  "scripts": {
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@rollup/plugin-node-resolve": "^15.2.3",
+    "@sentry/browser": "10.25.0",
+    "rollup": "^4.0.0",
+    "vite": "^5.0.0",
+    "vitest": "^3.2.4",
+    "webpack": "^5.0.0"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  },
+  "type": "module"
+}

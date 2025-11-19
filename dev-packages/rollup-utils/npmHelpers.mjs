@@ -16,6 +16,7 @@ import {
   makeCleanupPlugin,
   makeDebugBuildStatementReplacePlugin,
   makeNodeResolvePlugin,
+  makeProductionReplacePlugin,
   makeRrwebBuildPlugin,
   makeSucrasePlugin,
 } from './plugins/index.mjs';
@@ -114,22 +115,47 @@ export function makeBaseNPMConfig(options = {}) {
 }
 
 export function makeNPMConfigVariants(baseConfig, options = {}) {
-  const { emitEsm = true, emitCjs = true } = options;
+  const { emitEsm = true, emitCjs = true, splitDevProd = false } = options;
 
   const variantSpecificConfigs = [];
 
   if (emitCjs) {
-    variantSpecificConfigs.push({ output: { format: 'cjs', dir: path.join(baseConfig.output.dir, 'cjs') } });
+    if (splitDevProd) {
+      variantSpecificConfigs.push({ output: { format: 'cjs', dir: path.join(baseConfig.output.dir, 'cjs/dev') } });
+      variantSpecificConfigs.push({
+        output: { format: 'cjs', dir: path.join(baseConfig.output.dir, 'cjs/prod') },
+        plugins: [makeProductionReplacePlugin()],
+      });
+    } else {
+      variantSpecificConfigs.push({ output: { format: 'cjs', dir: path.join(baseConfig.output.dir, 'cjs') } });
+    }
   }
 
   if (emitEsm) {
-    variantSpecificConfigs.push({
-      output: {
-        format: 'esm',
-        dir: path.join(baseConfig.output.dir, 'esm'),
-        plugins: [makePackageNodeEsm()],
-      },
-    });
+    if (splitDevProd) {
+      variantSpecificConfigs.push({
+        output: {
+          format: 'esm',
+          dir: path.join(baseConfig.output.dir, 'esm/dev'),
+          plugins: [makePackageNodeEsm()],
+        },
+      });
+      variantSpecificConfigs.push({
+        output: {
+          format: 'esm',
+          dir: path.join(baseConfig.output.dir, 'esm/prod'),
+          plugins: [makeProductionReplacePlugin(), makePackageNodeEsm()],
+        },
+      });
+    } else {
+      variantSpecificConfigs.push({
+        output: {
+          format: 'esm',
+          dir: path.join(baseConfig.output.dir, 'esm'),
+          plugins: [makePackageNodeEsm()],
+        },
+      });
+    }
   }
 
   return variantSpecificConfigs.map(variant => deepMerge(baseConfig, variant));

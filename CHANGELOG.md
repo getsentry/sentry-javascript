@@ -4,6 +4,84 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+- fix(node): Fix Spotlight configuration precedence to match specification (#18195)
+
+## 10.25.0
+
+- feat(browser): Include Spotlight in development bundles ([#18078](https://github.com/getsentry/sentry-javascript/pull/18078))
+- feat(cloudflare): Add metrics exports ([#18147](https://github.com/getsentry/sentry-javascript/pull/18147))
+- feat(core): Truncate request string inputs in OpenAI integration ([#18136](https://github.com/getsentry/sentry-javascript/pull/18136))
+- feat(metrics): Add missing metric node exports ([#18149](https://github.com/getsentry/sentry-javascript/pull/18149))
+- feat(node): Add `maxCacheKeyLength` to Redis integration (remove truncation) ([#18045](https://github.com/getsentry/sentry-javascript/pull/18045))
+- feat(vercel-edge): Add metrics export ([#18148](https://github.com/getsentry/sentry-javascript/pull/18148))
+- fix(core): Only consider exception mechanism when updating session status from event with exceptions ([#18137](https://github.com/getsentry/sentry-javascript/pull/18137))
+- ref(browser): Remove truncation when not needed ([#18051](https://github.com/getsentry/sentry-javascript/pull/18051))
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+
+- chore(build): Fix incorrect versions after merge ([#18154](https://github.com/getsentry/sentry-javascript/pull/18154))
+</details>
+
+## 10.24.0
+
+### Important Changes
+
+- **feat(metrics): Add top level option `enableMetrics` and `beforeSendMetric` ([#18088](https://github.com/getsentry/sentry-javascript/pull/18088))**
+
+  This PR moves `enableMetrics` and `beforeSendMetric` out of the `_experiments` options.
+  The metrics feature will now be **enabled by default** (none of our integrations will auto-emit metrics as of now), but you can disable sending metrics via `enableMetrics: false`.
+  Metric options within `_experiments` got deprecated but will still work as of now, they will be removed with the next major version of our SDKs.
+
+### Other Changes
+
+- feat(aws): Add `SENTRY_LAYER_EXTENSION` to configure using the lambda layer extension via env variables ([#18101](https://github.com/getsentry/sentry-javascript/pull/18101))
+- feat(core): Include all exception object keys instead of truncating ([#18044](https://github.com/getsentry/sentry-javascript/pull/18044))
+- feat(metrics)!: Update types ([#17907](https://github.com/getsentry/sentry-javascript/pull/17907))
+- feat(replay): ignore `background-image` when `blockAllMedia` is enabled ([#18019](https://github.com/getsentry/sentry-javascript/pull/18019))
+- fix(nextjs): Delete css map files ([#18131](https://github.com/getsentry/sentry-javascript/pull/18131))
+- fix(nextjs): Stop accessing sync props in template ([#18113](https://github.com/getsentry/sentry-javascript/pull/18113))
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+
+- chore: X handle update ([#18117](https://github.com/getsentry/sentry-javascript/pull/18117))
+- chore(eslint): Add eslint-plugin-regexp rule (dev-packages) ([#18063](https://github.com/getsentry/sentry-javascript/pull/18063))
+- test(next): fix flakey tests ([#18100](https://github.com/getsentry/sentry-javascript/pull/18100))
+- test(node-core): Proof that withMonitor doesn't create a new trace ([#18057](https://github.com/getsentry/sentry-javascript/pull/18057))
+</details>
+
+## 10.23.0
+
+- feat(core): Send `user-agent` header with envelope requests in server SDKs ([#17929](https://github.com/getsentry/sentry-javascript/pull/17929))
+- feat(browser): Limit transport buffer size ([#18046](https://github.com/getsentry/sentry-javascript/pull/18046))
+- feat(core): Remove default value of `maxValueLength: 250` ([#18043](https://github.com/getsentry/sentry-javascript/pull/18043))
+- feat(react-router): Align options with shared build time options type ([#18014](https://github.com/getsentry/sentry-javascript/pull/18014))
+- fix(browser-utils): cache element names for INP ([#18052](https://github.com/getsentry/sentry-javascript/pull/18052))
+- fix(browser): Capture unhandled rejection errors for web worker integration ([#18054](https://github.com/getsentry/sentry-javascript/pull/18054))
+- fix(cloudflare): Ensure types for cloudflare handlers ([#18064](https://github.com/getsentry/sentry-javascript/pull/18064))
+- fix(nextjs): Update proxy template wrapping ([#18086](https://github.com/getsentry/sentry-javascript/pull/18086))
+- fix(nuxt): Added top-level fallback exports ([#18083](https://github.com/getsentry/sentry-javascript/pull/18083))
+- fix(nuxt): check for H3 error cause before re-capturing ([#18035](https://github.com/getsentry/sentry-javascript/pull/18035))
+- fix(replay): Linked errors not resetting session id ([#17854](https://github.com/getsentry/sentry-javascript/pull/17854))
+- fix(tracemetrics): Bump metrics buffer to 1k ([#18039](https://github.com/getsentry/sentry-javascript/pull/18039))
+- fix(vue): Make `options` parameter optional on `attachErrorHandler` ([#18072](https://github.com/getsentry/sentry-javascript/pull/18072))
+- ref(core): Set span status `internal_error` instead of `unknown_error` ([#17909](https://github.com/getsentry/sentry-javascript/pull/17909))
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+
+- fix(tests): un-override nitro dep version for nuxt-3 test ([#18056](https://github.com/getsentry/sentry-javascript/pull/18056))
+- fix(e2e): Add p-map override to fix React Router 7 test builds ([#18068](https://github.com/getsentry/sentry-javascript/pull/18068))
+- feat: Add a note to save changes before starting ([#17987](https://github.com/getsentry/sentry-javascript/pull/17987))
+- test(browser): Add test for INP target name after navigation or DOM changes ([#18033](https://github.com/getsentry/sentry-javascript/pull/18033))
+- chore: Add external contributor to CHANGELOG.md ([#18032](https://github.com/getsentry/sentry-javascript/pull/18032))
+- chore(aws-serverless): Fix typo in timeout warning function name ([#18031](https://github.com/getsentry/sentry-javascript/pull/18031))
+- chore(browser): upgrade fake-indexeddb to v6 ([#17975](https://github.com/getsentry/sentry-javascript/pull/17975))
+- chore(tests): pass test flags through to the test command ([#18062](https://github.com/getsentry/sentry-javascript/pull/18062))
+
+</details>
+
 Work in this release was contributed by @hanseo0507. Thank you for your contribution!
 
 ## 10.22.0

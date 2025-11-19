@@ -28,6 +28,9 @@ describe('Integration | rrweb', () => {
         "collectFonts": true,
         "emit": [Function],
         "errorHandler": [Function],
+        "ignoreCSSAttributes": Set {
+          "background-image",
+        },
         "ignoreSelector": ".sentry-test-ignore,.sentry-ignore,[data-sentry-ignore],input[type="file"]",
         "inlineImages": false,
         "inlineStylesheet": true,
@@ -69,6 +72,9 @@ describe('Integration | rrweb', () => {
         "collectFonts": true,
         "emit": [Function],
         "errorHandler": [Function],
+        "ignoreCSSAttributes": Set {
+          "background-image",
+        },
         "ignoreSelector": ".sentry-ignore,[data-sentry-ignore],input[type="file"]",
         "inlineImages": false,
         "inlineStylesheet": true,
@@ -121,6 +127,9 @@ describe('Integration | rrweb', () => {
         "collectFonts": true,
         "emit": [Function],
         "errorHandler": [Function],
+        "ignoreCSSAttributes": Set {
+          "background-image",
+        },
         "ignoreSelector": ".sentry-ignore,[data-sentry-ignore],input[type="file"]",
         "inlineImages": false,
         "inlineStylesheet": true,

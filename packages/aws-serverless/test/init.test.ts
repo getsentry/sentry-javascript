@@ -19,9 +19,13 @@ const mockInitWithoutDefaultIntegrations = vi.mocked(initWithoutDefaultIntegrati
 
 describe('init', () => {
   beforeEach(() => {
+    // Clear all mocks between tests
+    vi.clearAllMocks();
+
     // Clean up environment variables between tests
     delete process.env.http_proxy;
     delete process.env.no_proxy;
+    delete process.env.SENTRY_LAYER_EXTENSION;
   });
 
   describe('Lambda extension setup', () => {
@@ -377,6 +381,98 @@ describe('init', () => {
       expect(mockInitWithoutDefaultIntegrations).toHaveBeenCalledWith(
         expect.objectContaining({
           useLayerExtension: false,
+        }),
+      );
+      expect(mockInitWithoutDefaultIntegrations).toHaveBeenCalledWith(
+        expect.not.objectContaining({
+          tunnel: expect.any(String),
+        }),
+      );
+    });
+  });
+
+  describe('SENTRY_LAYER_EXTENSION environment variable', () => {
+    test('should enable useLayerExtension when SENTRY_LAYER_EXTENSION=true', () => {
+      process.env.SENTRY_LAYER_EXTENSION = 'true';
+      mockGetSDKSource.mockReturnValue('aws-lambda-layer');
+      const options: AwsServerlessOptions = {};
+
+      init(options);
+
+      expect(mockInitWithoutDefaultIntegrations).toHaveBeenCalledWith(
+        expect.objectContaining({
+          useLayerExtension: true,
+          tunnel: 'http://localhost:9000/envelope',
+        }),
+      );
+    });
+
+    test('should disable useLayerExtension when SENTRY_LAYER_EXTENSION=false', () => {
+      process.env.SENTRY_LAYER_EXTENSION = 'false';
+      mockGetSDKSource.mockReturnValue('aws-lambda-layer');
+      const options: AwsServerlessOptions = {};
+
+      init(options);
+
+      expect(mockInitWithoutDefaultIntegrations).toHaveBeenCalledWith(
+        expect.objectContaining({
+          useLayerExtension: false,
+        }),
+      );
+      expect(mockInitWithoutDefaultIntegrations).toHaveBeenCalledWith(
+        expect.not.objectContaining({
+          tunnel: expect.any(String),
+        }),
+      );
+    });
+
+    test('should fall back to default behavior when SENTRY_LAYER_EXTENSION is not set', () => {
+      mockGetSDKSource.mockReturnValue('aws-lambda-layer');
+      const options: AwsServerlessOptions = {};
+
+      init(options);
+
+      expect(mockInitWithoutDefaultIntegrations).toHaveBeenCalledWith(
+        expect.objectContaining({
+          useLayerExtension: true,
+          tunnel: 'http://localhost:9000/envelope',
+        }),
+      );
+    });
+
+    test('should prioritize explicit option over environment variable', () => {
+      process.env.SENTRY_LAYER_EXTENSION = 'true';
+      mockGetSDKSource.mockReturnValue('aws-lambda-layer');
+      const options: AwsServerlessOptions = {
+        useLayerExtension: false,
+      };
+
+      init(options);
+
+      expect(mockInitWithoutDefaultIntegrations).toHaveBeenCalledWith(
+        expect.objectContaining({
+          useLayerExtension: false,
+        }),
+      );
+      expect(mockInitWithoutDefaultIntegrations).toHaveBeenCalledWith(
+        expect.not.objectContaining({
+          tunnel: expect.any(String),
+        }),
+      );
+    });
+
+    test('should not set tunnel even tho useLayerExtension is set via env var when proxy is explicitly set', () => {
+      process.env.http_proxy = 'http://proxy.example.com:8080';
+      process.env.SENTRY_LAYER_EXTENSION = 'true';
+      mockGetSDKSource.mockReturnValue('aws-lambda-layer');
+      const options: AwsServerlessOptions = {};
+
+      init(options);
+
+      // useLayerExtension is respected but tunnel is not set due to proxy interference
+      expect(mockInitWithoutDefaultIntegrations).toHaveBeenCalledWith(
+        expect.objectContaining({
+          useLayerExtension: true,
         }),
       );
       expect(mockInitWithoutDefaultIntegrations).toHaveBeenCalledWith(
