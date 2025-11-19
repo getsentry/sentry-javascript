@@ -105,4 +105,9 @@ export interface MonitorConfig {
   failureIssueThreshold?: SerializedMonitorConfig['failure_issue_threshold'];
   /** How many consecutive OK check-ins it takes to resolve an issue. */
   recoveryThreshold?: SerializedMonitorConfig['recovery_threshold'];
+  /**
+   * If set to true, creates a new trace for the monitor callback instead of continuing the current trace.
+   * This allows distinguishing between different cron job executions.
+   */
+  isolateTrace?: boolean;
 }
