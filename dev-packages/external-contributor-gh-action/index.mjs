@@ -35,7 +35,7 @@ async function run() {
 
   // If the contributor message already exists, add the new contributor to the list
   if (existing) {
-    const users = existing[1].split(/(?:,? and )|(?:, )/);
+    const users = existing[1].split(/,? and |, /);
     if (!users.includes(ghUserName)) {
       users.push(ghUserName);
     }

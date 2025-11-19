@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/node-integration-tests",
-  "version": "10.22.0",
+  "version": "10.26.0",
   "license": "MIT",
   "engines": {
     "node": ">=18"
@@ -31,13 +31,14 @@
     "@hono/node-server": "^1.19.4",
     "@langchain/anthropic": "^0.3.10",
     "@langchain/core": "^0.3.28",
+    "@langchain/langgraph": "^0.2.32",
     "@nestjs/common": "^11",
     "@nestjs/core": "^11",
     "@nestjs/platform-express": "^11",
     "@prisma/client": "6.15.0",
-    "@sentry/aws-serverless": "10.22.0",
-    "@sentry/core": "10.22.0",
-    "@sentry/node": "10.22.0",
+    "@sentry/aws-serverless": "10.26.0",
+    "@sentry/core": "10.26.0",
+    "@sentry/node": "10.26.0",
     "@types/mongodb": "^3.6.20",
     "@types/mysql": "^2.15.21",
     "@types/pg": "^8.6.5",
@@ -82,10 +83,11 @@
     "yargs": "^16.2.0"
   },
   "devDependencies": {
-    "@sentry-internal/test-utils": "10.22.0",
+    "@sentry-internal/test-utils": "10.26.0",
     "@types/amqplib": "^0.10.5",
     "@types/node-cron": "^3.0.11",
     "@types/node-schedule": "^2.1.7",
+    "eslint-plugin-regexp": "^1.15.0",
     "file-type": "^20.4.1",
     "globby": "11",
     "react": "^18.3.1",

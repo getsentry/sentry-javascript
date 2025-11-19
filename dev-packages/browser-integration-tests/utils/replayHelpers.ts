@@ -447,9 +447,10 @@ export function normalize(
 ): string {
   const rawString = JSON.stringify(obj, null, 2);
   let normalizedString = rawString
-    .replace(/"file:\/\/.+(\/.*\.html)"/gm, '"$1"')
-    .replace(/"timeOffset":\s*-?\d+/gm, '"timeOffset": [timeOffset]')
-    .replace(/"timestamp":\s*0/gm, '"timestamp": [timestamp]');
+    // eslint-disable-next-line regexp/no-super-linear-backtracking
+    .replace(/"file:\/\/.+(\/.*\.html)"/g, '"$1"')
+    .replace(/"timeOffset":\s*-?\d+/g, '"timeOffset": [timeOffset]')
+    .replace(/"timestamp":\s*0/g, '"timestamp": [timestamp]');
 
   if (normalizeNumberAttributes?.length) {
     // We look for: "attr": "123px", "123", "123%", "123em", "123rem"

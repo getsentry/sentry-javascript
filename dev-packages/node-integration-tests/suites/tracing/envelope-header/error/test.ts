@@ -6,7 +6,7 @@ test('envelope header for error events is correct', async () => {
     .expectHeader({
       event: {
         trace: {
-          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+          trace_id: expect.stringMatching(/[a-f\d]{32}/),
           environment: 'production',
           public_key: 'public',
           release: '1.0',

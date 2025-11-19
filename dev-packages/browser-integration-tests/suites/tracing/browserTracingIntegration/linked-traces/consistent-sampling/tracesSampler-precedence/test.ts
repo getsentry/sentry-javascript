@@ -104,8 +104,8 @@ sentryTest.describe('When `consistentTraceSampling` is `true`', () => {
           {
             attributes: { 'sentry.link.type': 'previous_trace' },
             sampled: false,
-            span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
-            trace_id: expect.stringMatching(/^[0-9a-f]{32}$/),
+            span_id: expect.stringMatching(/^[\da-f]{16}$/),
+            trace_id: expect.stringMatching(/^[\da-f]{32}$/),
           },
         ]);
 

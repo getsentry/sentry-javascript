@@ -15,11 +15,11 @@
  */
 
 import { bindReporter } from './lib/bindReporter';
+import { getVisibilityWatcher } from './lib/getVisibilityWatcher';
 import { initMetric } from './lib/initMetric';
 import { initUnique } from './lib/initUnique';
 import { InteractionManager } from './lib/InteractionManager';
 import { observe } from './lib/observe';
-import { onHidden } from './lib/onHidden';
 import { initInteractionCountPolyfill } from './lib/polyfills/interactionCountPolyfill';
 import { whenActivated } from './lib/whenActivated';
 import { whenIdleOrHidden } from './lib/whenIdleOrHidden';
@@ -66,6 +66,8 @@ export const onINP = (onReport: (metric: INPMetric) => void, opts: INPReportOpts
   if (!(globalThis.PerformanceEventTiming && 'interactionId' in PerformanceEventTiming.prototype)) {
     return;
   }
+
+  const visibilityWatcher = getVisibilityWatcher();
 
   whenActivated(() => {
     // TODO(philipwalton): remove once the polyfill is no longer needed.
@@ -116,10 +118,7 @@ export const onINP = (onReport: (metric: INPMetric) => void, opts: INPReportOpts
       // where the first interaction is less than the `durationThreshold`.
       po.observe({ type: 'first-input', buffered: true });
 
-      // sentry: we use onHidden instead of directly listening to visibilitychange
-      // because some browsers we still support (Safari <14.4) don't fully support
-      // `visibilitychange` or have known bugs w.r.t the `visibilitychange` event.
-      onHidden(() => {
+      visibilityWatcher.onHidden(() => {
         handleEntries(po.takeRecords() as INPMetric['entries']);
         report(true);
       });
