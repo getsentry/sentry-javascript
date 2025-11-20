@@ -94,7 +94,7 @@ function _isDoNotSendEventError(error: unknown): error is DoNotSendEventError {
  * This helper function encapsulates the common pattern of:
  * 1. Tracking accumulated weight of items
  * 2. Flushing when weight exceeds threshold (800KB)
- * 3. Flushing after idle timeout if no new items arrive
+ * 3. Flushing after timeout period from the first item
  *
  * Uses closure variables to track weight and timeout state.
  */
@@ -112,11 +112,13 @@ function setupWeightBasedFlushing<
   // Track weight and timeout in closure variables
   let weight = 0;
   let flushTimeout: ReturnType<typeof setTimeout> | undefined;
+  let isTimerActive = false;
 
   // @ts-expect-error - TypeScript can't narrow generic hook types to match specific overloads, but we know this is type-safe
   client.on(flushHook, () => {
     weight = 0;
     clearTimeout(flushTimeout);
+    isTimerActive = false;
   });
 
   // @ts-expect-error - TypeScript can't narrow generic hook types to match specific overloads, but we know this is type-safe
@@ -127,10 +129,15 @@ function setupWeightBasedFlushing<
     // The weight is a rough estimate, so we flush way before the payload gets too big.
     if (weight >= 800_000) {
       flushFn(client);
-    } else {
-      clearTimeout(flushTimeout);
+    } else if (!isTimerActive) {
+      // Only start timer if one isn't already running.
+      // This prevents flushing being delayed by items that arrive close to the timeout limit
+      // and thus resetting the flushing timeout and delaying items being flushed.
+      isTimerActive = true;
       flushTimeout = setTimeout(() => {
         flushFn(client);
+        // Note: isTimerActive is reset by the flushHook handler above, not here,
+        // to avoid race conditions when new items arrive during the flush.
       }, DEFAULT_FLUSH_INTERVAL);
     }
   });
@@ -777,6 +784,13 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public on(hook: 'flushMetrics', callback: () => void): () => void;
 
   /**
+   * A hook that is called when a metric is processed before it is captured and before the `beforeSendMetric` callback is fired.
+   *
+   * @returns {() => void} A function that, when executed, removes the registered callback.
+   */
+  public on(hook: 'processMetric', callback: (metric: Metric) => void): () => void;
+
+  /**
    * A hook that is called when a http server request is started.
    * This hook is called after request isolation, but before the request is processed.
    *
@@ -984,6 +998,13 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    * Emit a hook event for client flush metrics
    */
   public emit(hook: 'flushMetrics'): void;
+
+  /**
+   *
+   * Emit a hook event for client to process a metric before it is captured.
+   * This hook is called before the `beforeSendMetric` callback is fired.
+   */
+  public emit(hook: 'processMetric', metric: Metric): void;
 
   /**
    * Emit a hook event for client when a http server request is started.

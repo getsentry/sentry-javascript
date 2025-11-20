@@ -7,6 +7,8 @@ import type { Span, SpanAttributeValue } from '../../types-hoist/span';
 import {
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
   GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE,
+  GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE,
+  GEN_AI_REQUEST_ENCODING_FORMAT_ATTRIBUTE,
   GEN_AI_REQUEST_FREQUENCY_PENALTY_ATTRIBUTE,
   GEN_AI_REQUEST_MESSAGES_ATTRIBUTE,
   GEN_AI_REQUEST_MODEL_ATTRIBUTE,
@@ -14,9 +16,7 @@ import {
   GEN_AI_REQUEST_STREAM_ATTRIBUTE,
   GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE,
   GEN_AI_REQUEST_TOP_P_ATTRIBUTE,
-  GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE,
   GEN_AI_RESPONSE_TEXT_ATTRIBUTE,
-  GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
   GEN_AI_SYSTEM_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
 import { getTruncatedJsonString } from '../ai/utils';
@@ -25,22 +25,22 @@ import { instrumentStream } from './streaming';
 import type {
   ChatCompletionChunk,
   InstrumentedMethod,
-  OpenAiChatCompletionObject,
   OpenAiIntegration,
   OpenAiOptions,
   OpenAiResponse,
-  OpenAIResponseObject,
   OpenAIStream,
   ResponseStreamingEvent,
 } from './types';
 import {
+  addChatCompletionAttributes,
+  addEmbeddingsAttributes,
+  addResponsesApiAttributes,
   buildMethodPath,
   getOperationName,
   getSpanOperation,
   isChatCompletionResponse,
+  isEmbeddingsResponse,
   isResponsesApiResponse,
-  setCommonResponseAttributes,
-  setTokenUsageAttributes,
   shouldInstrument,
 } from './utils';
 
@@ -82,88 +82,13 @@ function extractRequestAttributes(args: unknown[], methodPath: string): Record<s
       attributes[GEN_AI_REQUEST_FREQUENCY_PENALTY_ATTRIBUTE] = params.frequency_penalty;
     if ('presence_penalty' in params) attributes[GEN_AI_REQUEST_PRESENCE_PENALTY_ATTRIBUTE] = params.presence_penalty;
     if ('stream' in params) attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE] = params.stream;
+    if ('encoding_format' in params) attributes[GEN_AI_REQUEST_ENCODING_FORMAT_ATTRIBUTE] = params.encoding_format;
+    if ('dimensions' in params) attributes[GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE] = params.dimensions;
   } else {
     attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] = 'unknown';
   }
 
   return attributes;
-}
-
-/**
- * Add attributes for Chat Completion responses
- */
-function addChatCompletionAttributes(span: Span, response: OpenAiChatCompletionObject, recordOutputs?: boolean): void {
-  setCommonResponseAttributes(span, response.id, response.model, response.created);
-  if (response.usage) {
-    setTokenUsageAttributes(
-      span,
-      response.usage.prompt_tokens,
-      response.usage.completion_tokens,
-      response.usage.total_tokens,
-    );
-  }
-  if (Array.isArray(response.choices)) {
-    const finishReasons = response.choices
-      .map(choice => choice.finish_reason)
-      .filter((reason): reason is string => reason !== null);
-    if (finishReasons.length > 0) {
-      span.setAttributes({
-        [GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]: JSON.stringify(finishReasons),
-      });
-    }
-
-    // Extract tool calls from all choices (only if recordOutputs is true)
-    if (recordOutputs) {
-      const toolCalls = response.choices
-        .map(choice => choice.message?.tool_calls)
-        .filter(calls => Array.isArray(calls) && calls.length > 0)
-        .flat();
-
-      if (toolCalls.length > 0) {
-        span.setAttributes({
-          [GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE]: JSON.stringify(toolCalls),
-        });
-      }
-    }
-  }
-}
-
-/**
- * Add attributes for Responses API responses
- */
-function addResponsesApiAttributes(span: Span, response: OpenAIResponseObject, recordOutputs?: boolean): void {
-  setCommonResponseAttributes(span, response.id, response.model, response.created_at);
-  if (response.status) {
-    span.setAttributes({
-      [GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]: JSON.stringify([response.status]),
-    });
-  }
-  if (response.usage) {
-    setTokenUsageAttributes(
-      span,
-      response.usage.input_tokens,
-      response.usage.output_tokens,
-      response.usage.total_tokens,
-    );
-  }
-
-  // Extract function calls from output (only if recordOutputs is true)
-  if (recordOutputs) {
-    const responseWithOutput = response as OpenAIResponseObject & { output?: unknown[] };
-    if (Array.isArray(responseWithOutput.output) && responseWithOutput.output.length > 0) {
-      // Filter for function_call type objects in the output array
-      const functionCalls = responseWithOutput.output.filter(
-        (item): unknown =>
-          typeof item === 'object' && item !== null && (item as Record<string, unknown>).type === 'function_call',
-      );
-
-      if (functionCalls.length > 0) {
-        span.setAttributes({
-          [GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE]: JSON.stringify(functionCalls),
-        });
-      }
-    }
-  }
 }
 
 /**
@@ -186,6 +111,8 @@ function addResponseAttributes(span: Span, result: unknown, recordOutputs?: bool
     if (recordOutputs && response.output_text) {
       span.setAttributes({ [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: response.output_text });
     }
+  } else if (isEmbeddingsResponse(response)) {
+    addEmbeddingsAttributes(span, response);
   }
 }
 

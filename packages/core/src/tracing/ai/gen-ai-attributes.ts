@@ -66,6 +66,16 @@ export const GEN_AI_REQUEST_TOP_K_ATTRIBUTE = 'gen_ai.request.top_k';
 export const GEN_AI_REQUEST_STOP_SEQUENCES_ATTRIBUTE = 'gen_ai.request.stop_sequences';
 
 /**
+ * The encoding format for the model request
+ */
+export const GEN_AI_REQUEST_ENCODING_FORMAT_ATTRIBUTE = 'gen_ai.request.encoding_format';
+
+/**
+ * The dimensions for the model request
+ */
+export const GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE = 'gen_ai.request.dimensions';
+
+/**
  * Array of reasons why the model stopped generating tokens
  */
 export const GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE = 'gen_ai.response.finish_reasons';
@@ -135,6 +145,16 @@ export const GEN_AI_RESPONSE_STREAMING_ATTRIBUTE = 'gen_ai.response.streaming';
 export const GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE = 'gen_ai.response.tool_calls';
 
 /**
+ * The agent name
+ */
+export const GEN_AI_AGENT_NAME_ATTRIBUTE = 'gen_ai.agent.name';
+
+/**
+ * The pipeline name
+ */
+export const GEN_AI_PIPELINE_NAME_ATTRIBUTE = 'gen_ai.pipeline.name';
+
+/**
  * The number of cache creation input tokens used
  */
 export const GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS_ATTRIBUTE = 'gen_ai.usage.cache_creation_input_tokens';
@@ -153,6 +173,11 @@ export const GEN_AI_USAGE_INPUT_TOKENS_CACHE_WRITE_ATTRIBUTE = 'gen_ai.usage.inp
  * The number of cached input tokens that were used
  */
 export const GEN_AI_USAGE_INPUT_TOKENS_CACHED_ATTRIBUTE = 'gen_ai.usage.input_tokens.cached';
+
+/**
+ * The span operation name for invoking an agent
+ */
+export const GEN_AI_INVOKE_AGENT_OPERATION_ATTRIBUTE = 'gen_ai.invoke_agent';
 
 // =============================================================================
 // OPENAI-SPECIFIC ATTRIBUTES
@@ -193,6 +218,7 @@ export const OPENAI_USAGE_PROMPT_TOKENS_ATTRIBUTE = 'openai.usage.prompt_tokens'
 export const OPENAI_OPERATIONS = {
   CHAT: 'chat',
   RESPONSES: 'responses',
+  EMBEDDINGS: 'embeddings',
 } as const;
 
 // =============================================================================

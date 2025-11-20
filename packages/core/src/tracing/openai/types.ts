@@ -131,7 +131,29 @@ export interface OpenAIResponseObject {
   metadata: Record<string, unknown>;
 }
 
-export type OpenAiResponse = OpenAiChatCompletionObject | OpenAIResponseObject;
+/**
+ * @see https://platform.openai.com/docs/api-reference/embeddings/object
+ */
+export interface OpenAIEmbeddingsObject {
+  object: 'embedding';
+  embedding: number[];
+  index: number;
+}
+
+/**
+ * @see https://platform.openai.com/docs/api-reference/embeddings/create
+ */
+export interface OpenAICreateEmbeddingsObject {
+  object: 'list';
+  data: OpenAIEmbeddingsObject[];
+  model: string;
+  usage: {
+    prompt_tokens: number;
+    total_tokens: number;
+  };
+}
+
+export type OpenAiResponse = OpenAiChatCompletionObject | OpenAIResponseObject | OpenAICreateEmbeddingsObject;
 
 /**
  * Streaming event types for the Responses API
