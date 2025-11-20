@@ -117,7 +117,7 @@ export function wrapRequestHandler(
           }
 
           // Classify response to detect actual streaming
-          const classification = await classifyResponseStreaming(res);
+          const classification = classifyResponseStreaming(res);
 
           if (classification.isStreaming && classification.response.body) {
             // Streaming response detected - monitor consumption to keep span alive
