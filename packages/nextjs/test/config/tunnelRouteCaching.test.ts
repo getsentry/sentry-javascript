@@ -88,4 +88,3 @@ describe('Random Tunnel Route Generation', () => {
     expect(route2).toMatch(/^\/[a-z0-9]{8}$/);
   });
 });
-
