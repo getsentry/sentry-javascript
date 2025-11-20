@@ -15,6 +15,14 @@ updates:
     allow:
       - dependency-name: '@sentry/*'
       - dependency-name: '@playwright/test'
+      - dependency-name: '@opentelemetry/*'
+    ignore:
+      - dependency-name: '@opentelemetry/instrumentation'
+      - dependency-name: '@opentelemetry/instrumentation-*'
+    groups:
+      opentelemetry:
+        patterns:
+          - '@opentelemetry/*'
     versioning-strategy: increase
     commit-message:
       prefix: feat
