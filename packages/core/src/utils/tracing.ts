@@ -1,6 +1,5 @@
 import type { Client } from '../client';
 import type { DynamicSamplingContext } from '../types-hoist/envelope';
-import { Span } from '../types-hoist/span';
 import type { PropagationContext } from '../types-hoist/tracing';
 import type { TraceparentData } from '../types-hoist/transaction';
 import { debug } from '../utils/debug-logger';
@@ -111,12 +110,6 @@ export function generateTraceparentHeader(
   spanId: string | undefined = generateSpanId(),
   sampled?: boolean,
 ): string {
-  return `00-${traceId}-${spanId}-${sampled ? '01' : '00'}`;
-}
-
-export function generateTraceParentHeaderFromSpan(span: Span): string {
-  const { traceId, spanId, traceFlags } = span.spanContext();
-  const sampled = traceFlags === 1;
   return `00-${traceId}-${spanId}-${sampled ? '01' : '00'}`;
 }
 
