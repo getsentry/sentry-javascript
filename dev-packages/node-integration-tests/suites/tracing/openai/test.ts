@@ -6,7 +6,7 @@ describe('OpenAI integration', () => {
     cleanupChildProcesses();
   });
 
-  const EXPECTED_TRANSACTION_DEFAULT_PII_FALSE = {
+  const EXPECTED_TRANSACTION_DEFAULT_PII_FALSE_CHAT = {
     transaction: 'main',
     spans: expect.arrayContaining([
       // First span - basic chat completion without PII
@@ -147,7 +147,7 @@ describe('OpenAI integration', () => {
     ]),
   };
 
-  const EXPECTED_TRANSACTION_DEFAULT_PII_TRUE = {
+  const EXPECTED_TRANSACTION_DEFAULT_PII_TRUE_CHAT = {
     transaction: 'main',
     spans: expect.arrayContaining([
       // First span - basic chat completion with PII
@@ -321,31 +321,134 @@ describe('OpenAI integration', () => {
     ]),
   };
 
-  createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
+  createEsmAndCjsTests(__dirname, 'scenario-chat.mjs', 'instrument.mjs', (createRunner, test) => {
     test('creates openai related spans with sendDefaultPii: false', async () => {
       await createRunner()
         .ignore('event')
-        .expect({ transaction: EXPECTED_TRANSACTION_DEFAULT_PII_FALSE })
+        .expect({ transaction: EXPECTED_TRANSACTION_DEFAULT_PII_FALSE_CHAT })
         .start()
         .completed();
     });
   });
 
-  createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
+  createEsmAndCjsTests(__dirname, 'scenario-chat.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
     test('creates openai related spans with sendDefaultPii: true', async () => {
       await createRunner()
         .ignore('event')
-        .expect({ transaction: EXPECTED_TRANSACTION_DEFAULT_PII_TRUE })
+        .expect({ transaction: EXPECTED_TRANSACTION_DEFAULT_PII_TRUE_CHAT })
         .start()
         .completed();
     });
   });
 
-  createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-with-options.mjs', (createRunner, test) => {
+  createEsmAndCjsTests(__dirname, 'scenario-chat.mjs', 'instrument-with-options.mjs', (createRunner, test) => {
     test('creates openai related spans with custom options', async () => {
       await createRunner()
         .ignore('event')
         .expect({ transaction: EXPECTED_TRANSACTION_WITH_OPTIONS })
+        .start()
+        .completed();
+    });
+  });
+
+  const EXPECTED_TRANSACTION_DEFAULT_PII_FALSE_EMBEDDINGS = {
+    transaction: 'main',
+    spans: expect.arrayContaining([
+      // First span - embeddings API
+      expect.objectContaining({
+        data: {
+          'gen_ai.operation.name': 'embeddings',
+          'sentry.op': 'gen_ai.embeddings',
+          'sentry.origin': 'auto.ai.openai',
+          'gen_ai.system': 'openai',
+          'gen_ai.request.model': 'text-embedding-3-small',
+          'gen_ai.request.encoding_format': 'float',
+          'gen_ai.request.dimensions': 1536,
+          'gen_ai.response.model': 'text-embedding-3-small',
+          'gen_ai.usage.input_tokens': 10,
+          'gen_ai.usage.total_tokens': 10,
+          'openai.response.model': 'text-embedding-3-small',
+          'openai.usage.prompt_tokens': 10,
+        },
+        description: 'embeddings text-embedding-3-small',
+        op: 'gen_ai.embeddings',
+        origin: 'auto.ai.openai',
+        status: 'ok',
+      }),
+      // Second span - embeddings API error model
+      expect.objectContaining({
+        data: {
+          'gen_ai.operation.name': 'embeddings',
+          'sentry.op': 'gen_ai.embeddings',
+          'sentry.origin': 'auto.ai.openai',
+          'gen_ai.system': 'openai',
+          'gen_ai.request.model': 'error-model',
+        },
+        description: 'embeddings error-model',
+        op: 'gen_ai.embeddings',
+        origin: 'auto.ai.openai',
+        status: 'internal_error',
+      }),
+    ]),
+  };
+
+  const EXPECTED_TRANSACTION_DEFAULT_PII_TRUE_EMBEDDINGS = {
+    transaction: 'main',
+    spans: expect.arrayContaining([
+      // First span - embeddings API with PII
+      expect.objectContaining({
+        data: {
+          'gen_ai.operation.name': 'embeddings',
+          'sentry.op': 'gen_ai.embeddings',
+          'sentry.origin': 'auto.ai.openai',
+          'gen_ai.system': 'openai',
+          'gen_ai.request.model': 'text-embedding-3-small',
+          'gen_ai.request.encoding_format': 'float',
+          'gen_ai.request.dimensions': 1536,
+          'gen_ai.request.messages': 'Embedding test!',
+          'gen_ai.response.model': 'text-embedding-3-small',
+          'gen_ai.usage.input_tokens': 10,
+          'gen_ai.usage.total_tokens': 10,
+          'openai.response.model': 'text-embedding-3-small',
+          'openai.usage.prompt_tokens': 10,
+        },
+        description: 'embeddings text-embedding-3-small',
+        op: 'gen_ai.embeddings',
+        origin: 'auto.ai.openai',
+        status: 'ok',
+      }),
+      // Second span - embeddings API error model with PII
+      expect.objectContaining({
+        data: {
+          'gen_ai.operation.name': 'embeddings',
+          'sentry.op': 'gen_ai.embeddings',
+          'sentry.origin': 'auto.ai.openai',
+          'gen_ai.system': 'openai',
+          'gen_ai.request.model': 'error-model',
+          'gen_ai.request.messages': 'Error embedding test!',
+        },
+        description: 'embeddings error-model',
+        op: 'gen_ai.embeddings',
+        origin: 'auto.ai.openai',
+        status: 'internal_error',
+      }),
+    ]),
+  };
+  createEsmAndCjsTests(__dirname, 'scenario-embeddings.mjs', 'instrument.mjs', (createRunner, test) => {
+    test('creates openai related spans with sendDefaultPii: false', async () => {
+      await createRunner()
+        .ignore('event')
+        .expect({ transaction: EXPECTED_TRANSACTION_DEFAULT_PII_FALSE_EMBEDDINGS })
+        .start()
+        .completed();
+    });
+  });
+
+  createEsmAndCjsTests(__dirname, 'scenario-embeddings.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
+    test('creates openai related spans with sendDefaultPii: true', async () => {
+      await createRunner()
+        .ignore('event')
+        .expect({ transaction: EXPECTED_TRANSACTION_DEFAULT_PII_TRUE_EMBEDDINGS })
         .start()
         .completed();
     });
@@ -400,7 +503,7 @@ describe('OpenAI integration', () => {
 
   createEsmAndCjsTests(
     __dirname,
-    'scenario-message-truncation-completions.mjs',
+    'truncation/scenario-message-truncation-completions.mjs',
     'instrument-with-pii.mjs',
     (createRunner, test) => {
       test('truncates messages when they exceed byte limit - keeps only last message and crops it', async () => {
@@ -436,7 +539,7 @@ describe('OpenAI integration', () => {
 
   createEsmAndCjsTests(
     __dirname,
-    'scenario-message-truncation-responses.mjs',
+    'truncation/scenario-message-truncation-responses.mjs',
     'instrument-with-pii.mjs',
     (createRunner, test) => {
       test('truncates string inputs when they exceed byte limit', async () => {
@@ -460,6 +563,32 @@ describe('OpenAI integration', () => {
                   op: 'gen_ai.responses',
                   origin: 'auto.ai.openai',
                   status: 'ok',
+                }),
+              ]),
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+  );
+
+  createEsmAndCjsTests(
+    __dirname,
+    'truncation/scenario-message-truncation-embeddings.mjs',
+    'instrument-with-pii.mjs',
+    (createRunner, test) => {
+      test('truncates messages when they exceed byte limit - keeps only last message and crops it', async () => {
+        await createRunner()
+          .ignore('event')
+          .expect({
+            transaction: {
+              transaction: 'main',
+              spans: expect.arrayContaining([
+                expect.objectContaining({
+                  data: expect.objectContaining({
+                    'gen_ai.operation.name': 'embeddings',
+                  }),
                 }),
               ]),
             },

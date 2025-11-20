@@ -784,6 +784,13 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public on(hook: 'flushMetrics', callback: () => void): () => void;
 
   /**
+   * A hook that is called when a metric is processed before it is captured and before the `beforeSendMetric` callback is fired.
+   *
+   * @returns {() => void} A function that, when executed, removes the registered callback.
+   */
+  public on(hook: 'processMetric', callback: (metric: Metric) => void): () => void;
+
+  /**
    * A hook that is called when a http server request is started.
    * This hook is called after request isolation, but before the request is processed.
    *
@@ -991,6 +998,13 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    * Emit a hook event for client flush metrics
    */
   public emit(hook: 'flushMetrics'): void;
+
+  /**
+   *
+   * Emit a hook event for client to process a metric before it is captured.
+   * This hook is called before the `beforeSendMetric` callback is fired.
+   */
+  public emit(hook: 'processMetric', metric: Metric): void;
 
   /**
    * Emit a hook event for client when a http server request is started.
