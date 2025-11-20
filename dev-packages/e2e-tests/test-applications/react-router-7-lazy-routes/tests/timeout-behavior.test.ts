@@ -3,7 +3,6 @@ import { waitForTransaction } from '@sentry-internal/test-utils';
 
 test('lazyRouteTimeout: Routes load within timeout window', async ({ page }) => {
   const transactionPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
-    console.log('[WAIT] Transaction Event:', JSON.stringify(transactionEvent, null, 2));
     return (
       !!transactionEvent?.transaction &&
       transactionEvent.contexts?.trace?.op === 'navigation' &&
@@ -21,11 +20,6 @@ test('lazyRouteTimeout: Routes load within timeout window', async ({ page }) => 
 
   const event = await transactionPromise;
 
-  console.log('[TEST] Routes load within timeout:');
-  console.log('  Transaction:', event.transaction);
-  console.log('  Source:', event.contexts?.trace?.data?.['sentry.source']);
-  console.log('  Finish reason:', event.contexts?.trace?.data?.['sentry.idle_span_finish_reason']);
-
   // Should get full parameterized route
   expect(event.transaction).toBe('/deep/level2/level3/:id');
   expect(event.contexts?.trace?.data?.['sentry.source']).toBe('route');
@@ -34,7 +28,6 @@ test('lazyRouteTimeout: Routes load within timeout window', async ({ page }) => 
 
 test('lazyRouteTimeout: Infinity timeout always waits for routes', async ({ page }) => {
   const transactionPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
-    console.log('[WAIT] Transaction Event:', JSON.stringify(transactionEvent, null, 2));
     return (
       !!transactionEvent?.transaction &&
       transactionEvent.contexts?.trace?.op === 'navigation' &&
@@ -51,10 +44,6 @@ test('lazyRouteTimeout: Infinity timeout always waits for routes', async ({ page
 
   const event = await transactionPromise;
 
-  console.log('[TEST] Infinity timeout:');
-  console.log('  Transaction:', event.transaction);
-  console.log('  Source:', event.contexts?.trace?.data?.['sentry.source']);
-
   // Should wait indefinitely and get full route
   expect(event.transaction).toBe('/deep/level2/level3/:id');
   expect(event.contexts?.trace?.data?.['sentry.source']).toBe('route');
@@ -63,7 +52,6 @@ test('lazyRouteTimeout: Infinity timeout always waits for routes', async ({ page
 
 test('idleTimeout: Captures all activity with increased timeout', async ({ page }) => {
   const transactionPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
-    console.log('[WAIT] Transaction Event:', JSON.stringify(transactionEvent, null, 2));
     return (
       !!transactionEvent?.transaction &&
       transactionEvent.contexts?.trace?.op === 'navigation' &&
@@ -80,10 +68,6 @@ test('idleTimeout: Captures all activity with increased timeout', async ({ page 
 
   const event = await transactionPromise;
 
-  console.log('[TEST] Increased idleTimeout:');
-  console.log('  Transaction:', event.transaction);
-  console.log('  Duration:', event.timestamp! - event.start_timestamp);
-
   expect(event.transaction).toBe('/deep/level2/level3/:id');
   expect(event.contexts?.trace?.data?.['sentry.source']).toBe('route');
   expect(event.contexts?.trace?.data?.['sentry.idle_span_finish_reason']).toBe('idleTimeout');
@@ -96,7 +80,6 @@ test('idleTimeout: Captures all activity with increased timeout', async ({ page 
 
 test('idleTimeout: Finishes prematurely with low timeout', async ({ page }) => {
   const transactionPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
-    console.log('[WAIT] Transaction Event:', JSON.stringify(transactionEvent, null, 2));
     return (
       !!transactionEvent?.transaction &&
       transactionEvent.contexts?.trace?.op === 'navigation' &&
@@ -114,10 +97,6 @@ test('idleTimeout: Finishes prematurely with low timeout', async ({ page }) => {
 
   const event = await transactionPromise;
 
-  console.log('[TEST] Low idleTimeout:');
-  console.log('  Transaction:', event.transaction);
-  console.log('  Duration:', event.timestamp! - event.start_timestamp);
-
   expect(event.contexts?.trace?.data?.['sentry.idle_span_finish_reason']).toBe('idleTimeout');
   expect(event.transaction).toBe('/deep/level2/level3/:id');
   expect(event.contexts?.trace?.data?.['sentry.source']).toBe('route');
@@ -129,7 +108,6 @@ test('idleTimeout: Finishes prematurely with low timeout', async ({ page }) => {
 
 test('idleTimeout: Pageload on deeply nested route', async ({ page }) => {
   const pageloadPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
-    console.log('[WAIT] Transaction Event:', JSON.stringify(transactionEvent, null, 2));
     return (
       !!transactionEvent?.transaction &&
       transactionEvent.contexts?.trace?.op === 'pageload' &&
@@ -141,10 +119,6 @@ test('idleTimeout: Pageload on deeply nested route', async ({ page }) => {
   await page.goto('/deep/level2/level3/12345');
 
   const pageloadEvent = await pageloadPromise;
-
-  console.log('[TEST] Pageload on nested route:');
-  console.log('  Transaction:', pageloadEvent.transaction);
-  console.log('  Op:', pageloadEvent.contexts?.trace?.op);
 
   expect(pageloadEvent.transaction).toBe('/deep/level2/level3/:id');
   expect(pageloadEvent.contexts?.trace?.data?.['sentry.source']).toBe('route');

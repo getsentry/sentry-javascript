@@ -97,6 +97,14 @@ export function computeLocationKey(location: Location): string {
 }
 
 /**
+ * Checks if a route name is parameterized (contains route parameters like :id or wildcards like *)
+ * vs a raw URL path.
+ */
+function isParameterizedRoute(routeName: string): boolean {
+  return routeName.includes(':') || routeName.includes('*');
+}
+
+/**
  * Determines if a navigation should be skipped as a duplicate, and if an existing span should be updated.
  * Exported for testing.
  *
@@ -116,48 +124,34 @@ export function shouldSkipNavigation(
     return { skip: false, shouldUpdate: false };
   }
 
-  // If it's a placeholder for the same location, check if we should update when it becomes real
-  if (trackedNav.isPlaceholder && trackedNav.locationKey === locationKey) {
-    // Even though it's a placeholder, check if the proposed name is better
-    // This allows cross-usage scenarios where the second wrapper has more complete route info
+  // Check if this is a duplicate navigation (same location)
+  // 1. If it's a placeholder, it's always a duplicate (we're waiting for the real one)
+  // 2. If it's a real span, it's a duplicate only if it hasn't ended yet
+  const isDuplicate = trackedNav.locationKey === locationKey && (trackedNav.isPlaceholder || !spanHasEnded);
+
+  if (isDuplicate) {
+    // Check if we should update the span name with a better route
+    // Allow updates if:
+    // 1. Current has wildcard and new doesn't (wildcard → parameterized upgrade)
+    // 2. Current is raw path and new is parameterized (raw → parameterized upgrade)
+    // 3. New name is different and more specific (longer, indicating nested routes resolved)
     const currentHasWildcard = !!trackedNav.routeName && transactionNameHasWildcard(trackedNav.routeName);
     const proposedHasWildcard = transactionNameHasWildcard(proposedName);
+    const currentIsParameterized = !!trackedNav.routeName && isParameterizedRoute(trackedNav.routeName);
+    const proposedIsParameterized = isParameterizedRoute(proposedName);
 
     const isWildcardUpgrade = currentHasWildcard && !proposedHasWildcard;
+    const isRawToParameterized = !currentIsParameterized && proposedIsParameterized;
     const isMoreSpecific =
       proposedName !== trackedNav.routeName &&
       proposedName.length > (trackedNav.routeName?.length || 0) &&
       !proposedHasWildcard;
 
-    const shouldUpdate = !!(trackedNav.routeName && (isWildcardUpgrade || isMoreSpecific));
+    const shouldUpdate = !!(trackedNav.routeName && (isWildcardUpgrade || isRawToParameterized || isMoreSpecific));
 
     return { skip: true, shouldUpdate };
   }
 
-  // For real spans (not placeholders), check if duplicate by location and end status
-  if (!trackedNav.isPlaceholder) {
-    // If tracked span is for the same location and hasn't ended yet, this is a duplicate
-    if (trackedNav.locationKey === locationKey && !spanHasEnded) {
-      // Check if we should update the span name with a better route
-      // Allow updates if:
-      // 1. Current has wildcard and new doesn't (wildcard → parameterized upgrade)
-      // 2. New name is different and more specific (longer, indicating nested routes resolved)
-      const currentHasWildcard = !!trackedNav.routeName && transactionNameHasWildcard(trackedNav.routeName);
-      const proposedHasWildcard = transactionNameHasWildcard(proposedName);
-
-      const isWildcardUpgrade = currentHasWildcard && !proposedHasWildcard;
-      const isMoreSpecific =
-        proposedName !== trackedNav.routeName &&
-        proposedName.length > (trackedNav.routeName?.length || 0) &&
-        !proposedHasWildcard;
-
-      const shouldUpdate = !!(trackedNav.routeName && (isWildcardUpgrade || isMoreSpecific));
-
-      return { skip: true, shouldUpdate };
-    }
-  }
-
-  // Location is different or span has ended - allow creating new span
   return { skip: false, shouldUpdate: false };
 }
 
@@ -802,7 +796,9 @@ export function handleNavigation(opts: {
           // Update placeholder's route name - the real span will be created with this name
           trackedNav.routeName = name;
           DEBUG_BUILD &&
-            debug.log(`[Tracing] Updated placeholder navigation name from "${oldName}" to "${name}" (will apply to real span)`);
+            debug.log(
+              `[Tracing] Updated placeholder navigation name from "${oldName}" to "${name}" (will apply to real span)`,
+            );
         } else {
           // Update existing real span from wildcard to parameterized route name
           trackedNav.span.updateName(name);
