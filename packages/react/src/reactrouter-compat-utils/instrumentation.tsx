@@ -830,14 +830,21 @@ export function handleNavigation(opts: {
     };
     activeNavigationSpans.set(client, placeholderEntry);
 
-    const navigationSpan = startBrowserTracingNavigationSpan(client, {
-      name: placeholderEntry.routeName, // Use placeholder's routeName in case it was updated
-      attributes: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: `auto.navigation.react.reactrouter_v${version}`,
-      },
-    });
+    let navigationSpan: Span | undefined;
+    try {
+      navigationSpan = startBrowserTracingNavigationSpan(client, {
+        name: placeholderEntry.routeName, // Use placeholder's routeName in case it was updated
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: `auto.navigation.react.reactrouter_v${version}`,
+        },
+      });
+    } catch (e) {
+      // If span creation fails, remove the placeholder so we don't block future navigations
+      activeNavigationSpans.delete(client);
+      throw e;
+    }
 
     if (navigationSpan) {
       // Update the map with the real span (isPlaceholder omitted, defaults to false)
@@ -1070,8 +1077,8 @@ function patchSpanEnd(
     if (shouldWaitForLazyRoutes) {
       if (_lazyRouteTimeout === 0) {
         tryUpdateSpanNameBeforeEnd(span, spanJson, currentName, location, routes, basename, spanType, allRoutesSet);
-        originalEnd(endTimestamp);
         cleanupNavigationSpan();
+        originalEnd(endTimestamp);
         return;
       }
 
@@ -1094,19 +1101,19 @@ function patchSpanEnd(
             spanType,
             allRoutesSet,
           );
-          originalEnd(endTimestamp);
           cleanupNavigationSpan();
+          originalEnd(endTimestamp);
         })
         .catch(() => {
-          originalEnd(endTimestamp);
           cleanupNavigationSpan();
+          originalEnd(endTimestamp);
         });
       return;
     }
 
     tryUpdateSpanNameBeforeEnd(span, spanJson, currentName, location, routes, basename, spanType, allRoutesSet);
-    originalEnd(endTimestamp);
     cleanupNavigationSpan();
+    originalEnd(endTimestamp);
   };
 
   addNonEnumerableProperty(span as unknown as Record<string, boolean>, patchedPropertyName, true);
