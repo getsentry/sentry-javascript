@@ -3,7 +3,7 @@
   "version": 1,
   "newProjectRoot": "projects",
   "projects": {
-    "angular-20": {
+    "angular-21": {
       "projectType": "application",
       "schematics": {},
       "root": "",
@@ -13,7 +13,7 @@
         "build": {
           "builder": "@angular-devkit/build-angular:application",
           "options": {
-            "outputPath": "dist/angular-20",
+            "outputPath": "dist/angular-21",
             "index": "src/index.html",
             "browser": "src/main.ts",
             "polyfills": ["zone.js"],
@@ -55,10 +55,10 @@
           "builder": "@angular-devkit/build-angular:dev-server",
           "configurations": {
             "production": {
-              "buildTarget": "angular-20:build:production"
+              "buildTarget": "angular-21:build:production"
             },
             "development": {
-              "buildTarget": "angular-20:build:development"
+              "buildTarget": "angular-21:build:development"
             }
           },
           "defaultConfiguration": "development"

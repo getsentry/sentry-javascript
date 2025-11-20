@@ -8,5 +8,5 @@ import { RouterOutlet } from '@angular/router';
   template: `<router-outlet></router-outlet>`,
 })
 export class AppComponent {
-  title = 'angular-20';
+  title = 'angular-21';
 }

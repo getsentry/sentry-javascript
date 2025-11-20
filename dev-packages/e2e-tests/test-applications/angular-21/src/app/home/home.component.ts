@@ -7,7 +7,7 @@ import { RouterLink } from '@angular/router';
   imports: [RouterLink],
   template: `
     <main>
-      <h1>Welcome to Sentry's Angular 20 E2E test app</h1>
+      <h1>Welcome to Sentry's Angular 21 E2E test app</h1>
       <ul>
         <li><a id="navLink" [routerLink]="['/users', '123']">Visit User 123</a></li>
         <li><a id="redirectLink" [routerLink]="['/redirect1']">Redirect</a></li>
@@ -21,6 +21,6 @@ import { RouterLink } from '@angular/router';
 })
 export class HomeComponent {
   throwError() {
-    throw new Error('Error thrown from Angular 20 E2E test app');
+    throw new Error('Error thrown from Angular 21 E2E test app');
   }
 }
