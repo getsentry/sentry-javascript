@@ -1,6 +1,6 @@
 import type { Nuxt } from '@nuxt/schema';
-import { type SentryRollupPluginOptions, sentryRollupPlugin } from '@sentry/rollup-plugin';
-import { type SentryVitePluginOptions, sentryVitePlugin } from '@sentry/vite-plugin';
+import { sentryRollupPlugin, type SentryRollupPluginOptions } from '@sentry/rollup-plugin';
+import { sentryVitePlugin, type SentryVitePluginOptions } from '@sentry/vite-plugin';
 import type { NitroConfig } from 'nitropack';
 import type { SentryNuxtModuleOptions } from '../common/types';
 

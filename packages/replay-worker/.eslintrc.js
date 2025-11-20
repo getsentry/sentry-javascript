@@ -17,6 +17,7 @@ module.exports = {
       // these somehow fail with rollup.examples.config.mjs
       files: ['*.mjs'],
       rules: {
+        'import/named': 'off',
         'import/default': 'off',
         'import/no-named-as-default': 'off',
         'import/no-named-as-default-member': 'off',

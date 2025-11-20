@@ -1,6 +1,6 @@
 import { context, propagation, ProxyTracerProvider, trace } from '@opentelemetry/api';
 import { defaultResource, resourceFromAttributes } from '@opentelemetry/resources';
-import { type SpanProcessor, BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
+import { BasicTracerProvider, type SpanProcessor } from '@opentelemetry/sdk-trace-base';
 import {
   ATTR_SERVICE_NAME,
   ATTR_SERVICE_VERSION,

@@ -1,4 +1,4 @@
-import { type Client, type Event, type EventHint, debug, defineIntegration } from '@sentry/core';
+import { type Client, debug, defineIntegration, type Event, type EventHint } from '@sentry/core';
 import type { NodeOptions } from '@sentry/node';
 
 /**

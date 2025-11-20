@@ -14,8 +14,8 @@ import {
   forEachEnvelopeItem,
   serializeEnvelope,
 } from '../utils/envelope';
-import { type PromiseBuffer, makePromiseBuffer, SENTRY_BUFFER_FULL_ERROR } from '../utils/promisebuffer';
-import { type RateLimits, isRateLimited, updateRateLimits } from '../utils/ratelimit';
+import { makePromiseBuffer, type PromiseBuffer, SENTRY_BUFFER_FULL_ERROR } from '../utils/promisebuffer';
+import { isRateLimited, type RateLimits, updateRateLimits } from '../utils/ratelimit';
 
 export const DEFAULT_TRANSPORT_BUFFER_SIZE = 64;
 

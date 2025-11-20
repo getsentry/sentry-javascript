@@ -1,3 +1,4 @@
+/* eslint-disable import/export */
 import {
   instrumentBuild as instrumentRemixBuild,
   makeWrappedCreateRequestHandler,

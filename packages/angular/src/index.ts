@@ -1,3 +1,4 @@
+/* eslint-disable import/export */
 export type { ErrorHandlerOptions } from './errorhandler';
 
 export * from '@sentry/browser';

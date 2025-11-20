@@ -298,7 +298,6 @@ export class AwsLambdaInstrumentation extends InstrumentationBase<AwsLambdaInstr
     return function patchedHandler(
       this: never,
       // The event can be a user type, it truly is any.
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       event: any,
       context: Context,
       callback: Callback,
@@ -414,7 +413,6 @@ export class AwsLambdaInstrumentation extends InstrumentationBase<AwsLambdaInstr
   private _traceForceFlush(tracerProvider: TracerProvider) {
     if (!tracerProvider) return undefined;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let currentProvider: any = tracerProvider;
 
     if (typeof currentProvider.getDelegate === 'function') {
@@ -442,7 +440,6 @@ export class AwsLambdaInstrumentation extends InstrumentationBase<AwsLambdaInstr
   private _metricForceFlush(meterProvider: MeterProvider) {
     if (!meterProvider) return undefined;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const currentProvider: any = meterProvider;
 
     if (typeof currentProvider.forceFlush === 'function') {

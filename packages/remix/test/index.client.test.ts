@@ -1,5 +1,5 @@
 import * as SentryReact from '@sentry/react';
-import { type Mock, afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, type Mock, vi } from 'vitest';
 import { init } from '../src/index.client';
 
 vi.mock('@sentry/react', { spy: true });

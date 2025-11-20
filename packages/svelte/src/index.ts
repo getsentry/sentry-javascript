@@ -1,3 +1,4 @@
+/* eslint-disable import/export */
 export type {
   ComponentTrackingInitOptions as ComponentTrackingOptions,
   TrackComponentOptions as TrackingOptions,
