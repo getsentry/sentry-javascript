@@ -30,7 +30,6 @@ app.get('/check', (req, res) => {
   Sentry.startSpan({ name: 'check-endpoint' }, async () => {
     const appPort = getPortAppIsRunningOn(app);
     try {
-      // eslint-disable-next-line no-undef
       const response = await fetch(`http://localhost:${appPort}/bounce`);
       const bounceRes = await response.json();
       // eslint-disable-next-line no-console

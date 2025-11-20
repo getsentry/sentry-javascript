@@ -326,10 +326,7 @@ export function constructWebpackConfigFunction({
     if (appDirPath) {
       const hasGlobalErrorFile = pageExtensions
         .map(extension => `global-error.${extension}`)
-        .some(
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-          globalErrorFile => fs.existsSync(path.join(appDirPath, globalErrorFile)),
-        );
+        .some(globalErrorFile => fs.existsSync(path.join(appDirPath, globalErrorFile)));
 
       if (
         !hasGlobalErrorFile &&

@@ -1,6 +1,4 @@
 import {
-  type SpanAttributes,
-  type StartSpanOptions,
   captureException,
   debug,
   flushIfServerless,
@@ -10,9 +8,10 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
   SPAN_STATUS_OK,
+  type SpanAttributes,
   startSpan,
+  type StartSpanOptions,
 } from '@sentry/core';
-// eslint-disable-next-line import/no-extraneous-dependencies
 import { defineNitroPlugin, useStorage } from 'nitropack/runtime';
 import type { CacheEntry, ResponseCacheEntry } from 'nitropack/types';
 import type { Driver, Storage } from 'unstorage';

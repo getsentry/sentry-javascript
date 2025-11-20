@@ -44,7 +44,7 @@ import { merge } from './utils/merge';
 import { checkOrSetAlreadyCaught, uuid4 } from './utils/misc';
 import { parseSampleRate } from './utils/parseSampleRate';
 import { prepareEvent } from './utils/prepareEvent';
-import { type PromiseBuffer, makePromiseBuffer, SENTRY_BUFFER_FULL_ERROR } from './utils/promisebuffer';
+import { makePromiseBuffer, type PromiseBuffer, SENTRY_BUFFER_FULL_ERROR } from './utils/promisebuffer';
 import { reparentChildSpans, shouldIgnoreSpan } from './utils/should-ignore-span';
 import { showSpanDropWarning } from './utils/spanUtils';
 import { rejectedSyncPromise } from './utils/syncpromise';
@@ -884,13 +884,13 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    */
   public emit(hook: 'idleSpanEnableAutoFinish', span: Span): void;
 
-  /*
+  /**
    * Fire a hook event for envelope creation and sending. Expects to be given an envelope as the
    * second argument.
    */
   public emit(hook: 'beforeEnvelope', envelope: Envelope): void;
 
-  /*
+  /**
    * Fire a hook indicating that stack frame metadata should be applied to the event passed to the hook.
    */
   public emit(hook: 'applyFrameMetadata', event: Event): void;
@@ -920,7 +920,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    */
   public emit(hook: 'postprocessEvent', event: Event, hint?: EventHint): void;
 
-  /*
+  /**
    * Fire a hook event after sending an event. Expects to be given an Event as the
    * second argument.
    */

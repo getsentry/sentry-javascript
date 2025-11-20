@@ -55,7 +55,6 @@ export function patchFirestore(
   unwrap: ShimmerUnwrap,
   config: FirebaseInstrumentationConfig,
 ): InstrumentationNodeModuleDefinition {
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
   const defaultFirestoreSpanCreationHook: FirestoreSpanCreationHook = () => {};
 
   let firestoreSpanCreationHook: FirestoreSpanCreationHook = defaultFirestoreSpanCreationHook;
@@ -131,7 +130,6 @@ function unwrapMethods(
   for (const method of ['addDoc', 'getDocs', 'setDoc', 'deleteDoc']) {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     if (isWrapped(moduleExports[method])) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       unwrap(moduleExports, method);
     }
   }

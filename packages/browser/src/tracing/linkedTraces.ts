@@ -1,6 +1,5 @@
-import type { Client, PropagationContext, Span } from '@sentry/core';
+import type { Client, PropagationContext, Span, SpanContextData } from '@sentry/core';
 import {
-  type SpanContextData,
   debug,
   getCurrentScope,
   getRootSpan,

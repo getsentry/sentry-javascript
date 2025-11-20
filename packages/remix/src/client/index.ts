@@ -1,3 +1,4 @@
+/* eslint-disable import/export */
 import { debug } from '@sentry/core';
 import { DEBUG_BUILD } from '../utils/debug-build';
 

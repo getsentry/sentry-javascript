@@ -52,7 +52,6 @@ export class TestClient extends Client<TestClientOptions> {
           {
             type: exception.name,
             value: exception.message,
-            /* eslint-enable @typescript-eslint/no-unsafe-member-access */
           },
         ],
       },
