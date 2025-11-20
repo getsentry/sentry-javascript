@@ -66,6 +66,16 @@ export const GEN_AI_REQUEST_TOP_K_ATTRIBUTE = 'gen_ai.request.top_k';
 export const GEN_AI_REQUEST_STOP_SEQUENCES_ATTRIBUTE = 'gen_ai.request.stop_sequences';
 
 /**
+ * The encoding format for the model request
+ */
+export const GEN_AI_REQUEST_ENCODING_FORMAT_ATTRIBUTE = 'gen_ai.request.encoding_format';
+
+/**
+ * The dimensions for the model request
+ */
+export const GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE = 'gen_ai.request.dimensions';
+
+/**
  * Array of reasons why the model stopped generating tokens
  */
 export const GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE = 'gen_ai.response.finish_reasons';
@@ -208,6 +218,7 @@ export const OPENAI_USAGE_PROMPT_TOKENS_ATTRIBUTE = 'openai.usage.prompt_tokens'
 export const OPENAI_OPERATIONS = {
   CHAT: 'chat',
   RESPONSES: 'responses',
+  EMBEDDINGS: 'embeddings',
 } as const;
 
 // =============================================================================

@@ -2,7 +2,7 @@ export const OPENAI_INTEGRATION_NAME = 'OpenAI';
 
 // https://platform.openai.com/docs/quickstart?api-mode=responses
 // https://platform.openai.com/docs/quickstart?api-mode=chat
-export const INSTRUMENTED_METHODS = ['responses.create', 'chat.completions.create'] as const;
+export const INSTRUMENTED_METHODS = ['responses.create', 'chat.completions.create', 'embeddings.create'] as const;
 export const RESPONSES_TOOL_CALL_EVENT_TYPES = [
   'response.output_item.added',
   'response.function_call_arguments.delta',

@@ -32,7 +32,7 @@ jobs:
       - name: Check out current branch
         uses: actions/checkout@v5
       - name: Set up Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version-file: 'package.json'
           cache: 'yarn'
@@ -71,7 +71,7 @@ jobs:
           TEST_RUN_COUNT: 'AUTO'
 
       - name: Upload Playwright Traces
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: failure() && steps.test.outcome == 'failure'
         with:
           name: playwright-test-results

@@ -116,20 +116,42 @@ export function shouldSkipNavigation(
     return { skip: false, shouldUpdate: false };
   }
 
-  // If it's a placeholder for the same location, skip immediately (span creation in progress)
+  // If it's a placeholder for the same location, check if we should update when it becomes real
   if (trackedNav.isPlaceholder && trackedNav.locationKey === locationKey) {
-    return { skip: true, shouldUpdate: false };
+    // Even though it's a placeholder, check if the proposed name is better
+    // This allows cross-usage scenarios where the second wrapper has more complete route info
+    const currentHasWildcard = !!trackedNav.routeName && transactionNameHasWildcard(trackedNav.routeName);
+    const proposedHasWildcard = transactionNameHasWildcard(proposedName);
+
+    const isWildcardUpgrade = currentHasWildcard && !proposedHasWildcard;
+    const isMoreSpecific =
+      proposedName !== trackedNav.routeName &&
+      proposedName.length > (trackedNav.routeName?.length || 0) &&
+      !proposedHasWildcard;
+
+    const shouldUpdate = !!(trackedNav.routeName && (isWildcardUpgrade || isMoreSpecific));
+
+    return { skip: true, shouldUpdate };
   }
 
   // For real spans (not placeholders), check if duplicate by location and end status
   if (!trackedNav.isPlaceholder) {
     // If tracked span is for the same location and hasn't ended yet, this is a duplicate
     if (trackedNav.locationKey === locationKey && !spanHasEnded) {
-      // Check if we should update from wildcard to parameterized
-      const shouldUpdate =
-        !!trackedNav.routeName &&
-        transactionNameHasWildcard(trackedNav.routeName) &&
-        !transactionNameHasWildcard(proposedName);
+      // Check if we should update the span name with a better route
+      // Allow updates if:
+      // 1. Current has wildcard and new doesn't (wildcard → parameterized upgrade)
+      // 2. New name is different and more specific (longer, indicating nested routes resolved)
+      const currentHasWildcard = !!trackedNav.routeName && transactionNameHasWildcard(trackedNav.routeName);
+      const proposedHasWildcard = transactionNameHasWildcard(proposedName);
+
+      const isWildcardUpgrade = currentHasWildcard && !proposedHasWildcard;
+      const isMoreSpecific =
+        proposedName !== trackedNav.routeName &&
+        proposedName.length > (trackedNav.routeName?.length || 0) &&
+        !proposedHasWildcard;
+
+      const shouldUpdate = !!(trackedNav.routeName && (isWildcardUpgrade || isMoreSpecific));
 
       return { skip: true, shouldUpdate };
     }
@@ -176,10 +198,6 @@ export interface ReactRouterOptions {
 
 type V6CompatibleVersion = '6' | '7';
 
-/**
- * Adds resolved routes as children to the parent route.
- * Prevents duplicate routes by checking if they already exist.
- */
 export function addResolvedRoutesToParent(resolvedRoutes: RouteObject[], parentRoute: RouteObject): void {
   const existingChildren = parentRoute.children || [];
 
@@ -736,6 +754,7 @@ function wrapPatchRoutesOnNavigation(
   };
 }
 
+// eslint-disable-next-line complexity
 export function handleNavigation(opts: {
   location: Location;
   routes: RouteObject[];
@@ -746,15 +765,13 @@ export function handleNavigation(opts: {
   allRoutes?: RouteObject[];
 }): void {
   const { location, routes, navigationType, version, matches, basename, allRoutes } = opts;
-  const branches = Array.isArray(matches) ? matches : _matchRoutes(routes, location, basename);
+  const branches = Array.isArray(matches) ? matches : _matchRoutes(allRoutes || routes, location, basename);
 
   const client = getClient();
   if (!client || !CLIENTS_WITH_INSTRUMENT_NAVIGATION.has(client)) {
     return;
   }
 
-  // Avoid starting a navigation span on initial load when a pageload root span is active.
-  // This commonly happens when lazy routes resolve during the first render and React Router emits a POP.
   const activeRootSpan = getActiveRootSpan();
   if (activeRootSpan && spanToJSON(activeRootSpan).op === 'pageload' && navigationType === 'POP') {
     return;
@@ -763,7 +780,7 @@ export function handleNavigation(opts: {
   if ((navigationType === 'PUSH' || navigationType === 'POP') && branches) {
     const [name, source] = resolveRouteNameAndSource(
       location,
-      routes,
+      allRoutes || routes,
       allRoutes || routes,
       branches as RouteMatch[],
       basename,
@@ -779,17 +796,25 @@ export function handleNavigation(opts: {
 
     if (skip) {
       if (shouldUpdate && trackedNav) {
-        // Update existing span from wildcard to parameterized route name
         const oldName = trackedNav.routeName;
-        trackedNav.span.updateName(name);
-        trackedNav.span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source as 'route' | 'url' | 'custom');
-        addNonEnumerableProperty(
-          trackedNav.span as { __sentry_navigation_name_set__?: boolean },
-          '__sentry_navigation_name_set__',
-          true,
-        );
-        trackedNav.routeName = name;
-        DEBUG_BUILD && debug.log(`[Tracing] Updated navigation span name from "${oldName}" to "${name}"`);
+
+        if (trackedNav.isPlaceholder) {
+          // Update placeholder's route name - the real span will be created with this name
+          trackedNav.routeName = name;
+          DEBUG_BUILD &&
+            debug.log(`[Tracing] Updated placeholder navigation name from "${oldName}" to "${name}" (will apply to real span)`);
+        } else {
+          // Update existing real span from wildcard to parameterized route name
+          trackedNav.span.updateName(name);
+          trackedNav.span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source as 'route' | 'url' | 'custom');
+          addNonEnumerableProperty(
+            trackedNav.span as { __sentry_navigation_name_set__?: boolean },
+            '__sentry_navigation_name_set__',
+            true,
+          );
+          trackedNav.routeName = name;
+          DEBUG_BUILD && debug.log(`[Tracing] Updated navigation span name from "${oldName}" to "${name}"`);
+        }
       } else {
         DEBUG_BUILD && debug.log(`[Tracing] Skipping duplicate navigation for location: ${locationKey}`);
       }
@@ -800,16 +825,17 @@ export function handleNavigation(opts: {
     // Reserve the spot in the map first to prevent race conditions
     // Mark as placeholder to prevent concurrent handleNavigation calls from creating duplicates
     const placeholderSpan = { end: () => {} } as unknown as Span;
-    activeNavigationSpans.set(client, {
+    const placeholderEntry = {
       span: placeholderSpan,
       routeName: name,
       pathname: location.pathname,
       locationKey,
-      isPlaceholder: true,
-    });
+      isPlaceholder: true as const,
+    };
+    activeNavigationSpans.set(client, placeholderEntry);
 
     const navigationSpan = startBrowserTracingNavigationSpan(client, {
-      name,
+      name: placeholderEntry.routeName, // Use placeholder's routeName in case it was updated
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
@@ -821,7 +847,7 @@ export function handleNavigation(opts: {
       // Update the map with the real span (isPlaceholder omitted, defaults to false)
       activeNavigationSpans.set(client, {
         span: navigationSpan,
-        routeName: name,
+        routeName: placeholderEntry.routeName, // Use the (potentially updated) placeholder routeName
         pathname: location.pathname,
         locationKey,
       });
@@ -882,7 +908,13 @@ function updatePageloadTransaction({
     : (_matchRoutes(allRoutes || routes, location, basename) as unknown as RouteMatch[]);
 
   if (branches) {
-    const [name, source] = resolveRouteNameAndSource(location, routes, allRoutes || routes, branches, basename);
+    const [name, source] = resolveRouteNameAndSource(
+      location,
+      allRoutes || routes,
+      allRoutes || routes,
+      branches,
+      basename,
+    );
 
     getCurrentScope().setTransactionName(name || '/');
 

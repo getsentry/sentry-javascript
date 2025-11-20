@@ -39,6 +39,7 @@ import {
 } from '../common/span-attributes-with-logic-attached';
 import { addHeadersAsAttributes } from '../common/utils/addHeadersAsAttributes';
 import { isBuild } from '../common/utils/isBuild';
+import { setUrlProcessingMetadata } from '../common/utils/setUrlProcessingMetadata';
 import { distDirRewriteFramesIntegration } from './distDirRewriteFramesIntegration';
 
 export * from '@sentry/node';
@@ -391,6 +392,8 @@ export function init(options: NodeOptions): NodeClient | undefined {
         event.contexts.trace.parent_span_id = traceparentData.parentSpanId;
       }
     }
+
+    setUrlProcessingMetadata(event);
   });
 
   if (process.env.NODE_ENV === 'development') {

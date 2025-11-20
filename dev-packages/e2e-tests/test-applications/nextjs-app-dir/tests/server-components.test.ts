@@ -34,11 +34,8 @@ test('Sends a transaction for a request to app router', async ({ page }) => {
     trace_id: expect.stringMatching(/[a-f0-9]{32}/),
   });
 
-  expect(transactionEvent.request).toEqual({
-    cookies: {},
-    headers: expect.objectContaining({
-      'user-agent': expect.any(String),
-    }),
+  expect(transactionEvent.request).toMatchObject({
+    url: expect.stringContaining('/server-component/parameter/1337/42'),
   });
 
   // The transaction should not contain any spans with the same name as the transaction
