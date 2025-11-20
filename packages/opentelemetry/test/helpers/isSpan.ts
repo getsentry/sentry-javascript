@@ -1,5 +1,5 @@
-import type { Span } from '@opentelemetry/api';
-import { type SpanContext, INVALID_SPANID, INVALID_TRACEID } from '@opentelemetry/api';
+import type { Span, SpanContext } from '@opentelemetry/api';
+import { INVALID_SPANID, INVALID_TRACEID } from '@opentelemetry/api';
 
 export const isSpan = (value: unknown): value is Span => {
   return (

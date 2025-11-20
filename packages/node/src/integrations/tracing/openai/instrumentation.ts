@@ -1,7 +1,7 @@
 import {
+  InstrumentationBase,
   type InstrumentationConfig,
   type InstrumentationModuleDefinition,
-  InstrumentationBase,
   InstrumentationNodeModuleDefinition,
 } from '@opentelemetry/instrumentation';
 import type { Integration, OpenAiClient, OpenAiOptions } from '@sentry/core';

@@ -1,3 +1,4 @@
+/* eslint-disable import/export */
 export * from '@sentry/node';
 
 export { nestIntegration } from './integrations/nest';

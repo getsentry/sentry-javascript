@@ -1,5 +1,4 @@
 import {
-  type SpanAttributes,
   captureException,
   debug,
   flushIfServerless,
@@ -9,6 +8,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SPAN_STATUS_ERROR,
   SPAN_STATUS_OK,
+  type SpanAttributes,
   startSpan,
 } from '@sentry/core';
 import type {

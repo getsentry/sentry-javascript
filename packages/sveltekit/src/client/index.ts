@@ -1,3 +1,4 @@
+/* eslint-disable import/export */
 export * from '@sentry/svelte';
 
 export { init } from './sdk';

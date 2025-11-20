@@ -1,3 +1,4 @@
+/* eslint-disable import/export */
 // Node SDK exports
 // Unfortunately, we cannot `export * from '@sentry/node'` because in prod builds,
 // Vite puts these exports into a `default` property (Sentry.default) rather than
@@ -10,7 +11,6 @@ export {
   amqplibIntegration,
   // eslint-disable-next-line deprecation/deprecation
   anrIntegration,
-  // eslint-disable-next-line deprecation/deprecation
   disableAnrDetectionForCallback,
   captureCheckIn,
   captureConsoleIntegration,

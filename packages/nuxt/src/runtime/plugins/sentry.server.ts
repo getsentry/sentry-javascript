@@ -6,7 +6,6 @@ import {
   withIsolationScope,
 } from '@sentry/core';
 import type { EventHandler, H3Event } from 'h3';
-// eslint-disable-next-line import/no-extraneous-dependencies
 import { defineNitroPlugin } from 'nitropack/runtime';
 import type { NuxtRenderHTMLContext } from 'nuxt/app';
 import { sentryCaptureErrorHook } from '../hooks/captureErrorHook';

@@ -1,7 +1,8 @@
+/* eslint-disable import/export */
 import { context } from '@opentelemetry/api';
 import {
-  type EventProcessor,
   applySdkMetadata,
+  type EventProcessor,
   getCapturedScopesOnSpan,
   getCurrentScope,
   getGlobalScope,

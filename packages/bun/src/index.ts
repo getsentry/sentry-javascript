@@ -68,7 +68,6 @@ export {
   winterCGHeadersToDict,
   // eslint-disable-next-line deprecation/deprecation
   anrIntegration,
-  // eslint-disable-next-line deprecation/deprecation
   disableAnrDetectionForCallback,
   consoleIntegration,
   httpIntegration,

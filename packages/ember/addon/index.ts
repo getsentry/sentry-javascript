@@ -1,3 +1,4 @@
+/* eslint-disable import/export */
 import { assert } from '@ember/debug';
 import type Route from '@ember/routing/route';
 import { getOwnConfig } from '@embroider/macros';

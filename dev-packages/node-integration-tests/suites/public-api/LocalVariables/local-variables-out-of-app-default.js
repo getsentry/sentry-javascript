@@ -1,5 +1,3 @@
-/* eslint-disable no-unused-vars */
-
 const Sentry = require('@sentry/node');
 const { loggingTransport } = require('@sentry-internal/node-integration-tests');
 

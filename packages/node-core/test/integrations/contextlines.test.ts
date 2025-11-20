@@ -12,7 +12,6 @@ import { defaultStackParser } from '../../src/sdk/api';
 import { getError } from '../helpers/error';
 
 vi.mock('node:fs', async () => {
-  // eslint-disable-next-line @typescript-eslint/consistent-type-imports
   const original = await vi.importActual('node:fs');
   return {
     ...original,

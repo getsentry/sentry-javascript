@@ -1,5 +1,4 @@
 /* eslint-disable deprecation/deprecation */
-/* eslint-disable max-lines */
 /* eslint-disable jsdoc/require-jsdoc */
 
 // Vendored and modified from:
