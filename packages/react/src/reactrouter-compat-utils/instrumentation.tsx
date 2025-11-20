@@ -1037,6 +1037,10 @@ function patchSpanEnd(
     }
     endCalled = true;
 
+    // Capture timestamp immediately to avoid delay from async operations
+    // If no timestamp was provided, capture the current time now
+    const endTimestamp = args.length > 0 ? args[0] : Date.now() / 1000;
+
     const spanJson = spanToJSON(span);
     const currentName = spanJson.description;
     const currentSource = spanJson.data?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
@@ -1066,7 +1070,7 @@ function patchSpanEnd(
     if (shouldWaitForLazyRoutes) {
       if (_lazyRouteTimeout === 0) {
         tryUpdateSpanNameBeforeEnd(span, spanJson, currentName, location, routes, basename, spanType, allRoutesSet);
-        originalEnd(...args);
+        originalEnd(endTimestamp);
         cleanupNavigationSpan();
         return;
       }
@@ -1090,18 +1094,18 @@ function patchSpanEnd(
             spanType,
             allRoutesSet,
           );
-          originalEnd(...args);
+          originalEnd(endTimestamp);
           cleanupNavigationSpan();
         })
         .catch(() => {
-          originalEnd(...args);
+          originalEnd(endTimestamp);
           cleanupNavigationSpan();
         });
       return;
     }
 
     tryUpdateSpanNameBeforeEnd(span, spanJson, currentName, location, routes, basename, spanType, allRoutesSet);
-    originalEnd(...args);
+    originalEnd(endTimestamp);
     cleanupNavigationSpan();
   };
 
