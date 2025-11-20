@@ -23,7 +23,6 @@ import {
   supportsProductionCompileHook,
 } from './util';
 import { constructWebpackConfigFunction } from './webpack';
-import { isBuild } from '../common/utils/isBuild';
 
 let showedExportModeTunnelWarning = false;
 let showedExperimentalBuildModeWarning = false;
