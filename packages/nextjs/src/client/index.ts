@@ -60,11 +60,13 @@ export function init(options: BrowserOptions): Client | undefined {
 
   const client = reactInit(opts);
 
+  // TODO (span-streaming): replace with ignoreSpans default?
   const filterTransactions: EventProcessor = event =>
     event.type === 'transaction' && event.transaction === '/404' ? null : event;
   filterTransactions.id = 'NextClient404Filter';
   addEventProcessor(filterTransactions);
 
+  // TODO (span-streaming): replace with ignoreSpans default?
   const filterIncompleteNavigationTransactions: EventProcessor = event =>
     event.type === 'transaction' && event.transaction === INCOMPLETE_APP_ROUTER_INSTRUMENTATION_TRANSACTION_NAME
       ? null

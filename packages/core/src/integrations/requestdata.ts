@@ -40,6 +40,8 @@ const _requestDataIntegration = ((options: RequestDataIntegrationOptions = {}) =
 
   return {
     name: INTEGRATION_NAME,
+    // TODO (span-streaming): probably fine to leave as-is for errors.
+    // For spans, we go through global context -> attribute conversion or omit this completely (TBD)
     processEvent(event, _hint, client) {
       const { sdkProcessingMetadata = {} } = event;
       const { normalizedRequest, ipAddress } = sdkProcessingMetadata;

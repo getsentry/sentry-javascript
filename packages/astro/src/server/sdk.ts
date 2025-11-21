@@ -15,6 +15,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
 
   const client = initNodeSdk(opts);
 
+  // TODO (span-streaming): remove this event processor. In this case, can probably just disable http integration server spans
   client?.addEventProcessor(
     Object.assign(
       (event: Event) => {

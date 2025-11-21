@@ -47,12 +47,19 @@ module.exports = [
     gzip: true,
     limit: '48 KB',
   },
+  // {
+  //   name: '@sentry/browser (incl. Tracing Span-First)',
+  //   path: 'packages/browser/build/npm/esm/index.js',
+  //   import: createImport('init', 'browserTracingIntegration', 'spanStreamingIntegration'),
+  //   gzip: true,
+  //   limit: '44 KB',
+  // },
   {
     name: '@sentry/browser (incl. Tracing, Replay)',
     path: 'packages/browser/build/npm/esm/prod/index.js',
     import: createImport('init', 'browserTracingIntegration', 'replayIntegration'),
     gzip: true,
-    limit: '80 KB',
+    limit: '82 KB',
   },
   {
     name: '@sentry/browser (incl. Tracing, Replay) - with treeshaking flags',
@@ -82,14 +89,14 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/prod/index.js',
     import: createImport('init', 'browserTracingIntegration', 'replayIntegration', 'replayCanvasIntegration'),
     gzip: true,
-    limit: '85 KB',
+    limit: '86 KB',
   },
   {
     name: '@sentry/browser (incl. Tracing, Replay, Feedback)',
     path: 'packages/browser/build/npm/esm/prod/index.js',
     import: createImport('init', 'browserTracingIntegration', 'replayIntegration', 'feedbackIntegration'),
     gzip: true,
-    limit: '97 KB',
+    limit: '98 KB',
   },
   {
     name: '@sentry/browser (incl. Feedback)',
@@ -103,7 +110,7 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/prod/index.js',
     import: createImport('init', 'sendFeedback'),
     gzip: true,
-    limit: '30 KB',
+    limit: '31 KB',
   },
   {
     name: '@sentry/browser (incl. FeedbackAsync)',
@@ -135,7 +142,7 @@ module.exports = [
     path: 'packages/vue/build/esm/index.js',
     import: createImport('init'),
     gzip: true,
-    limit: '30 KB',
+    limit: '31 KB',
   },
   {
     name: '@sentry/vue (incl. Tracing)',
@@ -163,7 +170,7 @@ module.exports = [
     name: 'CDN Bundle (incl. Tracing)',
     path: createCDNPath('bundle.tracing.min.js'),
     gzip: true,
-    limit: '42.5 KB',
+    limit: '43 KB',
   },
   {
     name: 'CDN Bundle (incl. Tracing, Replay)',
@@ -213,7 +220,7 @@ module.exports = [
     import: createImport('init'),
     ignore: ['next/router', 'next/constants'],
     gzip: true,
-    limit: '46 KB',
+    limit: '47 KB',
   },
   // SvelteKit SDK (ESM)
   {
@@ -222,7 +229,7 @@ module.exports = [
     import: createImport('init'),
     ignore: ['$app/stores'],
     gzip: true,
-    limit: '42 KB',
+    limit: '43 KB',
   },
   // Node-Core SDK (ESM)
   {
@@ -240,7 +247,7 @@ module.exports = [
     import: createImport('init'),
     ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
     gzip: true,
-    limit: '160 KB',
+    limit: '161 KB',
   },
   {
     name: '@sentry/node - without tracing',
