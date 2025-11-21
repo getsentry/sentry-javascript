@@ -6,7 +6,6 @@ const dsn = process.env.E2E_TEST_DSN;
 
 // https://astro.build/config
 export default defineConfig({
-  output: 'hybrid',
   adapter: cloudflare({
     imageService: 'passthrough',
   }),
