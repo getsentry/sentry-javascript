@@ -25,6 +25,7 @@ export interface OpenAiIntegration extends Integration {
 interface PatchedModuleExports {
   [key: string]: unknown;
   OpenAI: abstract new (...args: unknown[]) => OpenAiClient;
+  AzureOpenAI: abstract new (...args: unknown[]) => OpenAiClient;
 }
 
 /**
@@ -59,7 +60,14 @@ export class SentryOpenAiInstrumentation extends InstrumentationBase<Instrumenta
    * Core patch logic applying instrumentation to the OpenAI client constructor.
    */
   private _patch(exports: PatchedModuleExports): PatchedModuleExports | void {
-    const Original = exports.OpenAI;
+    let result = exports;
+    result = this._patchClient(result, 'OpenAI');
+    result = this._patchClient(result, 'AzureOpenAI');
+    return result;
+  }
+
+  private _patchClient(exports: PatchedModuleExports, exportKey: 'OpenAI' | 'AzureOpenAI'): PatchedModuleExports {
+    const Original = exports[exportKey];
 
     const WrappedOpenAI = function (this: unknown, ...args: unknown[]) {
       // Check if wrapping should be skipped (e.g., when LangChain is handling instrumentation)
@@ -97,10 +105,10 @@ export class SentryOpenAiInstrumentation extends InstrumentationBase<Instrumenta
     // Constructor replacement - handle read-only properties
     // The OpenAI property might have only a getter, so use defineProperty
     try {
-      exports.OpenAI = WrappedOpenAI;
+      exports[exportKey] = WrappedOpenAI;
     } catch (error) {
       // If direct assignment fails, override the property descriptor
-      Object.defineProperty(exports, 'OpenAI', {
+      Object.defineProperty(exports, exportKey, {
         value: WrappedOpenAI,
         writable: true,
         configurable: true,
