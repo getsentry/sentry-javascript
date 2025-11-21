@@ -106,45 +106,17 @@ test('Tunnel requests should not create middleware or fetch spans', async ({ pag
   // Continue collecting for a bit
   await collectPromise;
 
-  // Log all transactions we received with full details
-  console.log('=== All transactions received ===');
-  allTransactions.forEach(tx => {
-    console.log({
-      transaction: tx.transaction,
-      op: tx.contexts?.trace?.op,
-      type: tx.type,
-      method: tx.contexts?.trace?.data?.['http.request.method'] || tx.request?.method,
-      url: tx.contexts?.trace?.data?.['url.full'] || tx.request?.url,
-      status: tx.contexts?.trace?.status,
-      trace: tx.contexts?.trace,
-    });
-  });
-
   // We should have received the pageload transaction
   expect(pageloadTransaction).toBeDefined();
   expect(pageloadTransaction.contexts?.trace?.op).toBe('pageload');
 
-  // Log all middleware transactions to see what methods they use
   const middlewareTransactions = allTransactions.filter(tx => tx.contexts?.trace?.op === 'http.server.middleware');
-
-  console.log('=== All middleware transactions ===', middlewareTransactions.length);
-  middlewareTransactions.forEach(tx => {
-    console.log({
-      transaction: tx.transaction,
-      op: tx.contexts?.trace?.op,
-      method: tx.contexts?.trace?.data?.['http.request.method'],
-      target: tx.contexts?.trace?.data?.['http.target'],
-      data: tx.contexts?.trace?.data,
-    });
-  });
 
   // We WILL have a middleware transaction for GET / (the pageload)
   // But we should NOT have middleware transactions for POST requests (tunnel route)
   const postMiddlewareTransactions = middlewareTransactions.filter(
     tx => tx.transaction?.includes('POST') || tx.contexts?.trace?.data?.['http.request.method'] === 'POST',
   );
-
-  console.log('=== POST middleware transactions ===', postMiddlewareTransactions.length);
 
   expect(postMiddlewareTransactions).toHaveLength(0);
 
@@ -155,15 +127,6 @@ test('Tunnel requests should not create middleware or fetch spans', async ({ pag
       (tx.contexts?.trace?.data?.['url.full']?.includes('sentry.io') ||
         tx.contexts?.trace?.data?.['url.full']?.includes('ingest')),
   );
-
-  console.log('=== Sentry fetch transactions ===', sentryFetchTransactions.length);
-  sentryFetchTransactions.forEach(tx => {
-    console.log({
-      transaction: tx.transaction,
-      op: tx.contexts?.trace?.op,
-      url: tx.contexts?.trace?.data?.['url.full'],
-    });
-  });
 
   expect(sentryFetchTransactions).toHaveLength(0);
 });
