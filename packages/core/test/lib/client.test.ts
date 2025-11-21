@@ -15,6 +15,7 @@ import {
 import * as integrationModule from '../../src/integration';
 import { _INTERNAL_captureLog } from '../../src/logs/internal';
 import { _INTERNAL_captureMetric } from '../../src/metrics/internal';
+import { DEFAULT_TRANSPORT_BUFFER_SIZE } from '../../src/transports/base';
 import type { Envelope } from '../../src/types-hoist/envelope';
 import type { ErrorEvent, Event, TransactionEvent } from '../../src/types-hoist/event';
 import type { SpanJSON } from '../../src/types-hoist/span';
@@ -23,7 +24,7 @@ import * as miscModule from '../../src/utils/misc';
 import * as stringModule from '../../src/utils/string';
 import * as timeModule from '../../src/utils/time';
 import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
-import { AdHocIntegration, TestIntegration } from '../mocks/integration';
+import { AdHocIntegration, AsyncTestIntegration, TestIntegration } from '../mocks/integration';
 import { makeFakeTransport } from '../mocks/transport';
 import { clearGlobalScope } from '../testutils';
 
@@ -2772,7 +2773,7 @@ describe('Client', () => {
       expect(sendEnvelopeSpy).toHaveBeenCalledTimes(1);
     });
 
-    it('resets idle timeout when new logs are captured', () => {
+    it('does not reset idle timeout when new logs are captured', () => {
       const options = getDefaultTestClientOptions({
         dsn: PUBLIC_DSN,
         enableLogs: true,
@@ -2783,26 +2784,52 @@ describe('Client', () => {
 
       const sendEnvelopeSpy = vi.spyOn(client, 'sendEnvelope');
 
-      // Add initial log
+      // Add initial log (starts the timer)
       _INTERNAL_captureLog({ message: 'test log 1', level: 'info' }, scope);
 
       // Fast forward part of the idle timeout
       vi.advanceTimersByTime(2500);
 
-      // Add another log which should reset the timeout
+      // Add another log which should NOT reset the timeout
       _INTERNAL_captureLog({ message: 'test log 2', level: 'info' }, scope);
 
-      // Fast forward the remaining time
+      // Fast forward the remaining time to reach the full timeout from the first log
       vi.advanceTimersByTime(2500);
 
-      // Should not have flushed yet since timeout was reset
-      expect(sendEnvelopeSpy).not.toHaveBeenCalled();
+      // Should have flushed both logs since timeout was not reset
+      expect(sendEnvelopeSpy).toHaveBeenCalledTimes(1);
+    });
 
-      // Fast forward the full timeout
+    it('starts new timer after timeout completes and flushes', () => {
+      const options = getDefaultTestClientOptions({
+        dsn: PUBLIC_DSN,
+        enableLogs: true,
+      });
+      const client = new TestClient(options);
+      const scope = new Scope();
+      scope.setClient(client);
+
+      const sendEnvelopeSpy = vi.spyOn(client, 'sendEnvelope');
+
+      // First batch: Add a log and let it flush
+      _INTERNAL_captureLog({ message: 'test log 1', level: 'info' }, scope);
+
+      // Fast forward to trigger the first flush
       vi.advanceTimersByTime(5000);
 
-      // Now should have flushed both logs
       expect(sendEnvelopeSpy).toHaveBeenCalledTimes(1);
+
+      // Second batch: Add another log after the first flush completed
+      _INTERNAL_captureLog({ message: 'test log 2', level: 'info' }, scope);
+
+      // Should not have flushed yet
+      expect(sendEnvelopeSpy).toHaveBeenCalledTimes(1);
+
+      // Fast forward to trigger the second flush
+      vi.advanceTimersByTime(5000);
+
+      // Should have flushed the second log
+      expect(sendEnvelopeSpy).toHaveBeenCalledTimes(2);
     });
 
     it('flushes logs on flush event', () => {
@@ -2907,6 +2934,68 @@ describe('Client', () => {
       client.emit('flush');
 
       expect(sendEnvelopeSpy).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('promise buffer usage', () => {
+    it('respects the default value of the buffer size', async () => {
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
+      const client = new TestClient(options);
+
+      client.addIntegration(new AsyncTestIntegration());
+
+      Array.from({ length: DEFAULT_TRANSPORT_BUFFER_SIZE + 1 }).forEach(() => {
+        client.captureException(new Error('ʕノ•ᴥ•ʔノ ︵ ┻━┻'));
+      });
+
+      expect(client._clearOutcomes()).toEqual([{ reason: 'queue_overflow', category: 'error', quantity: 1 }]);
+    });
+
+    it('records queue_overflow when promise buffer is full', async () => {
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, transportOptions: { bufferSize: 1 } });
+      const client = new TestClient(options);
+
+      client.addIntegration(new AsyncTestIntegration());
+
+      client.captureException(new Error('first'));
+      client.captureException(new Error('second'));
+      client.captureException(new Error('third'));
+
+      expect(client._clearOutcomes()).toEqual([{ reason: 'queue_overflow', category: 'error', quantity: 2 }]);
+    });
+
+    it('records different types of dropped events', async () => {
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, transportOptions: { bufferSize: 1 } });
+      const client = new TestClient(options);
+
+      client.addIntegration(new AsyncTestIntegration());
+
+      client.captureException(new Error('first')); // error
+      client.captureException(new Error('second')); // error
+      client.captureMessage('third'); // unknown
+      client.captureEvent({ message: 'fourth' }); // error
+      client.captureEvent({ message: 'fifth', type: 'replay_event' }); // replay
+      client.captureEvent({ message: 'sixth', type: 'transaction' }); // transaction
+
+      expect(client._clearOutcomes()).toEqual([
+        { reason: 'queue_overflow', category: 'error', quantity: 2 },
+        { reason: 'queue_overflow', category: 'unknown', quantity: 1 },
+        { reason: 'queue_overflow', category: 'replay', quantity: 1 },
+        { reason: 'queue_overflow', category: 'transaction', quantity: 1 },
+      ]);
+    });
+
+    it('should skip the promise buffer with sync integrations', async () => {
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, transportOptions: { bufferSize: 1 } });
+      const client = new TestClient(options);
+
+      client.addIntegration(new TestIntegration());
+
+      client.captureException(new Error('first'));
+      client.captureException(new Error('second'));
+      client.captureException(new Error('third'));
+
+      expect(client._clearOutcomes()).toEqual([]);
     });
   });
 });

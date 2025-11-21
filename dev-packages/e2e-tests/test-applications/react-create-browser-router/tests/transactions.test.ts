@@ -36,6 +36,7 @@ test('Captures a pageload transaction', async ({ page }) => {
       span_id: expect.stringMatching(/[a-f0-9]{16}/),
       trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       origin: 'auto.pageload.react.reactrouter_v6',
+      status: 'ok',
     }),
   );
 });
@@ -72,6 +73,7 @@ test('Captures a navigation transaction', async ({ page }) => {
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
     trace_id: expect.stringMatching(/[a-f0-9]{32}/),
     origin: 'auto.navigation.react.reactrouter_v6',
+    status: 'ok',
   });
 
   expect(transactionEvent).toEqual(
@@ -107,6 +109,7 @@ test('Captures a lazy pageload transaction', async ({ page }) => {
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
     trace_id: expect.stringMatching(/[a-f0-9]{32}/),
     origin: 'auto.pageload.react.reactrouter_v6',
+    status: 'ok',
   });
 
   expect(transactionEvent).toEqual(
@@ -169,6 +172,7 @@ test('Captures a lazy navigation transaction', async ({ page }) => {
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
     trace_id: expect.stringMatching(/[a-f0-9]{32}/),
     origin: 'auto.navigation.react.reactrouter_v6',
+    status: 'ok',
   });
 
   expect(transactionEvent).toEqual(

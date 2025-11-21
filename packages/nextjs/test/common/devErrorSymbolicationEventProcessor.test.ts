@@ -25,6 +25,7 @@ describe('devErrorSymbolicationEventProcessor', () => {
     vi.clearAllMocks();
     delete (GLOBAL_OBJ as any)._sentryNextJsVersion;
     delete (GLOBAL_OBJ as any)._sentryBasePath;
+    delete process.env.PORT;
   });
 
   describe('Next.js version handling', () => {
@@ -256,6 +257,220 @@ describe('devErrorSymbolicationEventProcessor', () => {
       const result = await devErrorSymbolicationEventProcessor(mockEvent, mockHint);
 
       expect(result?.spans).toHaveLength(1);
+    });
+  });
+
+  describe('dev server URL construction', () => {
+    it('should use default port 3000 when PORT env variable is not set (Next.js < 15.2)', async () => {
+      const mockEvent: Event = {
+        exception: {
+          values: [
+            {
+              stacktrace: {
+                frames: [{ filename: 'webpack-internal:///./test.js', lineno: 1 }],
+              },
+            },
+          ],
+        },
+      };
+
+      const testError = new Error('test error');
+      testError.stack = 'Error: test error\n    at webpack-internal:///./test.js:1:1';
+
+      const mockHint: EventHint = {
+        originalException: testError,
+      };
+
+      (GLOBAL_OBJ as any)._sentryNextJsVersion = '14.1.0';
+
+      const stackTraceParser = await import('stacktrace-parser');
+      vi.mocked(stackTraceParser.parse).mockReturnValue([
+        {
+          file: 'webpack-internal:///./test.js',
+          methodName: 'testMethod',
+          lineNumber: 1,
+          column: 1,
+          arguments: [],
+        },
+      ]);
+
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          originalStackFrame: { file: './test.js', lineNumber: 1, column: 1, methodName: 'testMethod' },
+          originalCodeFrame: '> 1 | test code',
+        }),
+      } as any);
+
+      await devErrorSymbolicationEventProcessor(mockEvent, mockHint);
+
+      expect(fetch).toHaveBeenCalledWith(
+        expect.stringContaining('http://localhost:3000/__nextjs_original-stack-frame'),
+        expect.any(Object),
+      );
+    });
+
+    it('should use PORT env variable when set (Next.js < 15.2)', async () => {
+      process.env.PORT = '4000';
+
+      const mockEvent: Event = {
+        exception: {
+          values: [
+            {
+              stacktrace: {
+                frames: [{ filename: 'webpack-internal:///./test.js', lineno: 1 }],
+              },
+            },
+          ],
+        },
+      };
+
+      const testError = new Error('test error');
+      testError.stack = 'Error: test error\n    at webpack-internal:///./test.js:1:1';
+
+      const mockHint: EventHint = {
+        originalException: testError,
+      };
+
+      (GLOBAL_OBJ as any)._sentryNextJsVersion = '14.1.0';
+
+      const stackTraceParser = await import('stacktrace-parser');
+      vi.mocked(stackTraceParser.parse).mockReturnValue([
+        {
+          file: 'webpack-internal:///./test.js',
+          methodName: 'testMethod',
+          lineNumber: 1,
+          column: 1,
+          arguments: [],
+        },
+      ]);
+
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          originalStackFrame: { file: './test.js', lineNumber: 1, column: 1, methodName: 'testMethod' },
+          originalCodeFrame: '> 1 | test code',
+        }),
+      } as any);
+
+      await devErrorSymbolicationEventProcessor(mockEvent, mockHint);
+
+      expect(fetch).toHaveBeenCalledWith(
+        expect.stringContaining('http://localhost:4000/__nextjs_original-stack-frame'),
+        expect.any(Object),
+      );
+    });
+
+    it('should use default port 3000 when PORT env variable is not set (Next.js >= 15.2)', async () => {
+      const mockEvent: Event = {
+        exception: {
+          values: [
+            {
+              stacktrace: {
+                frames: [{ filename: 'file:///test.js', lineno: 1 }],
+              },
+            },
+          ],
+        },
+      };
+
+      const testError = new Error('test error');
+      testError.stack = 'Error: test error\n    at file:///test.js:1:1';
+
+      const mockHint: EventHint = {
+        originalException: testError,
+      };
+
+      (GLOBAL_OBJ as any)._sentryNextJsVersion = '15.2.0';
+
+      const stackTraceParser = await import('stacktrace-parser');
+      vi.mocked(stackTraceParser.parse).mockReturnValue([
+        {
+          file: 'file:///test.js',
+          methodName: 'testMethod',
+          lineNumber: 1,
+          column: 1,
+          arguments: [],
+        },
+      ]);
+
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => [
+          {
+            value: {
+              originalStackFrame: { file: './test.js', lineNumber: 1, column: 1, methodName: 'testMethod' },
+              originalCodeFrame: '> 1 | test code',
+            },
+          },
+        ],
+      } as any);
+
+      await devErrorSymbolicationEventProcessor(mockEvent, mockHint);
+
+      expect(fetch).toHaveBeenCalledWith(
+        expect.stringContaining('http://localhost:3000/__nextjs_original-stack-frames'),
+        expect.any(Object),
+      );
+    });
+
+    it('should use PORT env variable when set (Next.js >= 15.2)', async () => {
+      process.env.PORT = '4000';
+
+      const mockEvent: Event = {
+        exception: {
+          values: [
+            {
+              stacktrace: {
+                frames: [{ filename: 'file:///test.js', lineno: 1 }],
+              },
+            },
+          ],
+        },
+      };
+
+      const testError = new Error('test error');
+      testError.stack = 'Error: test error\n    at file:///test.js:1:1';
+
+      const mockHint: EventHint = {
+        originalException: testError,
+      };
+
+      (GLOBAL_OBJ as any)._sentryNextJsVersion = '15.2.0';
+
+      const stackTraceParser = await import('stacktrace-parser');
+      vi.mocked(stackTraceParser.parse).mockReturnValue([
+        {
+          file: 'file:///test.js',
+          methodName: 'testMethod',
+          lineNumber: 1,
+          column: 1,
+          arguments: [],
+        },
+      ]);
+
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => [
+          {
+            value: {
+              originalStackFrame: { file: './test.js', lineNumber: 1, column: 1, methodName: 'testMethod' },
+              originalCodeFrame: '> 1 | test code',
+            },
+          },
+        ],
+      } as any);
+
+      await devErrorSymbolicationEventProcessor(mockEvent, mockHint);
+
+      expect(fetch).toHaveBeenCalledWith(
+        expect.stringContaining('http://localhost:4000/__nextjs_original-stack-frames'),
+        expect.any(Object),
+      );
     });
   });
 });

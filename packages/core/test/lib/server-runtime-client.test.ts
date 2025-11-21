@@ -1,5 +1,6 @@
 import { describe, expect, it, test, vi } from 'vitest';
 import { applySdkMetadata, createTransport, Scope } from '../../src';
+import { _INTERNAL_captureMetric, _INTERNAL_getMetricBuffer } from '../../src/metrics/internal';
 import type { ServerRuntimeClientOptions } from '../../src/server-runtime-client';
 import { ServerRuntimeClient } from '../../src/server-runtime-client';
 import type { Event, EventHint } from '../../src/types-hoist/event';
@@ -234,6 +235,70 @@ describe('ServerRuntimeClient', () => {
         'user-agent': 'custom-user-agent',
         'x-custom-header': 'custom-value',
       });
+    });
+  });
+
+  describe('metrics processing', () => {
+    it('adds server.address attribute to metrics when serverName is set', () => {
+      const options = getDefaultClientOptions({ dsn: PUBLIC_DSN, serverName: 'my-server.example.com' });
+      client = new ServerRuntimeClient(options);
+      const scope = new Scope();
+      scope.setClient(client);
+
+      _INTERNAL_captureMetric({ type: 'counter', name: 'test.metric', value: 1 }, { scope });
+
+      const metricAttributes = _INTERNAL_getMetricBuffer(client)?.[0]?.attributes;
+      expect(metricAttributes).toEqual(
+        expect.objectContaining({
+          'server.address': {
+            value: 'my-server.example.com',
+            type: 'string',
+          },
+        }),
+      );
+    });
+
+    it('does not add server.address attribute when serverName is not set', () => {
+      const options = getDefaultClientOptions({ dsn: PUBLIC_DSN });
+      client = new ServerRuntimeClient(options);
+      const scope = new Scope();
+      scope.setClient(client);
+
+      _INTERNAL_captureMetric({ type: 'counter', name: 'test.metric', value: 1 }, { scope });
+
+      const metricAttributes = _INTERNAL_getMetricBuffer(client)?.[0]?.attributes;
+      expect(metricAttributes).not.toEqual(
+        expect.objectContaining({
+          'server.address': expect.anything(),
+        }),
+      );
+    });
+
+    it('does not overwrite existing server.address attribute', () => {
+      const options = getDefaultClientOptions({ dsn: PUBLIC_DSN, serverName: 'my-server.example.com' });
+      client = new ServerRuntimeClient(options);
+      const scope = new Scope();
+      scope.setClient(client);
+
+      _INTERNAL_captureMetric(
+        {
+          type: 'counter',
+          name: 'test.metric',
+          value: 1,
+          attributes: { 'server.address': 'existing-server.example.com' },
+        },
+        { scope },
+      );
+
+      const metricAttributes = _INTERNAL_getMetricBuffer(client)?.[0]?.attributes;
+      expect(metricAttributes).toEqual(
+        expect.objectContaining({
+          'server.address': {
+            value: 'existing-server.example.com',
+            type: 'string',
+          },
+        }),
+      );
     });
   });
 });

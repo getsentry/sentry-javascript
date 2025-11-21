@@ -1,0 +1,33 @@
+---
+description: Use this rule if you are looking to grade OpenTelemetry instrumentations for the Sentry JavaScript SDKs
+globs: *
+alwaysApply: false
+---
+
+# Upgrading OpenTelemetry instrumentations
+
+1. For every package in packages/\*\*:
+   - When upgrading dependencies for OpenTelemetry instrumentations we need to first upgrade `@opentelemetry/instrumentation` to the latest version.
+     **CRITICAL**: `@opentelemetry/instrumentation` MUST NOT include any breaking changes.
+     Read through the changelog of `@opentelemetry/instrumentation` to figure out if breaking changes are included and fail with the reason if it does include breaking changes.
+     You can find the changelog at `https://github.com/open-telemetry/opentelemetry-js/blob/main/experimental/CHANGELOG.md`
+
+   - After successfully upgrading `@opentelemetry/instrumentation` upgrade all `@opentelemetry/instrumentation-{instrumentation}` packages, e.g. `@opentelemetry/instrumentation-pg`
+     **CRITICAL**: `@opentelemetry/instrumentation-{instrumentation}` MUST NOT include any breaking changes.
+     Read through the changelog of `@opentelemetry/instrumentation-{instrumentation}` to figure out if breaking changes are included and fail with the reason if it does including breaking changes.
+     You can find the changelogs at `https://github.com/open-telemetry/opentelemetry-js-contrib/blob/main/packages/instrumentation-{instrumentation}/CHANGELOG.md`.
+
+   - Finally, upgrade third party instrumentations to their latest versions, these are currently:
+     - @prisma/instrumentation
+
+     **CRITICAL**: Upgrades to third party instrumentations MUST NOT include breaking changes.
+     Read through the changelog of each third party instrumentation to figure out if breaking changes are included and fail with the reason if it does include breaking changes.
+
+2. For packages and apps in dev-packages/\*\*:
+   - If an app depends on `@opentelemetry/instrumentation` >= 0.200.x upgrade it to the latest version.
+     **CRITICAL**: `@opentelemetry/instrumentation` MUST NOT include any breaking changes.
+
+   - If an app depends on `@opentelemetry/instrumentation-http` >= 0.200.x upgrade it to the latest version.
+     **CRITICAL**: `@opentelemetry/instrumentation-http` MUST NOT include any breaking changes.
+
+3. Generate a new yarn lock file.

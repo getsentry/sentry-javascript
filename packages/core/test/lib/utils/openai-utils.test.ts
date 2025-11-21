@@ -8,7 +8,7 @@ import {
   isResponsesApiResponse,
   isResponsesApiStreamEvent,
   shouldInstrument,
-} from '../../../src/utils/openai/utils';
+} from '../../../src/tracing/openai/utils';
 
 describe('openai-utils', () => {
   describe('getOperationName', () => {

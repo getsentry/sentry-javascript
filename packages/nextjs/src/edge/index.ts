@@ -22,6 +22,7 @@ import { getDefaultIntegrations, init as vercelEdgeInit } from '@sentry/vercel-e
 import { addHeadersAsAttributes } from '../common/utils/addHeadersAsAttributes';
 import { isBuild } from '../common/utils/isBuild';
 import { flushSafelyWithTimeout } from '../common/utils/responseEnd';
+import { setUrlProcessingMetadata } from '../common/utils/setUrlProcessingMetadata';
 import { distDirRewriteFramesIntegration } from './distDirRewriteFramesIntegration';
 
 export * from '@sentry/vercel-edge';
@@ -126,6 +127,8 @@ export function init(options: VercelEdgeOptions = {}): void {
         }
       }
     }
+
+    setUrlProcessingMetadata(event);
   });
 
   client?.on('spanEnd', span => {

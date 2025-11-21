@@ -16,6 +16,7 @@ describe('file-extensions', () => {
         { path: '/typescript' },
       ],
       dynamicRoutes: [],
+      isrRoutes: [],
     });
   });
 });

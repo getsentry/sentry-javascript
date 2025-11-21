@@ -21,6 +21,7 @@ test('Creates a pageload transaction with parameterized route', async ({ page })
   expect(event.transaction).toBe('/lazy/inner/:id/:anotherId/:someAnotherId');
   expect(event.type).toBe('transaction');
   expect(event.contexts?.trace?.op).toBe('pageload');
+  expect(event.contexts?.trace?.status).toBe('ok');
 });
 
 test('Does not create a navigation transaction on initial load to deep lazy route', async ({ page }) => {
@@ -82,15 +83,24 @@ test('Creates a navigation transaction inside a lazy route', async ({ page }) =>
   expect(event.transaction).toBe('/lazy/inner/:id/:anotherId/:someAnotherId');
   expect(event.type).toBe('transaction');
   expect(event.contexts?.trace?.op).toBe('navigation');
+  expect(event.contexts?.trace?.status).toBe('ok');
 });
 
 test('Creates navigation transactions between two different lazy routes', async ({ page }) => {
-  // First, navigate to the "another-lazy" route
+  // Set up transaction listeners for both navigations
   const firstTransactionPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
     return (
       !!transactionEvent?.transaction &&
       transactionEvent.contexts?.trace?.op === 'navigation' &&
       transactionEvent.transaction === '/another-lazy/sub/:id/:subId'
+    );
+  });
+
+  const secondTransactionPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+    return (
+      !!transactionEvent?.transaction &&
+      transactionEvent.contexts?.trace?.op === 'navigation' &&
+      transactionEvent.transaction === '/lazy/inner/:id/:anotherId/:someAnotherId'
     );
   });
 
@@ -113,14 +123,6 @@ test('Creates navigation transactions between two different lazy routes', async 
   expect(firstEvent.contexts?.trace?.op).toBe('navigation');
 
   // Now navigate from the first lazy route to the second lazy route
-  const secondTransactionPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
-    return (
-      !!transactionEvent?.transaction &&
-      transactionEvent.contexts?.trace?.op === 'navigation' &&
-      transactionEvent.transaction === '/lazy/inner/:id/:anotherId/:someAnotherId'
-    );
-  });
-
   // Click the navigation link from within the first lazy route to the second lazy route
   const navigationToInnerFromDeep = page.locator('id=navigate-to-inner-from-deep');
   await expect(navigationToInnerFromDeep).toBeVisible();
@@ -253,7 +255,7 @@ test('Does not send any duplicate navigation transaction names browsing between 
 
   // Go to root page
   await page.goto('/');
-  page.waitForTimeout(1000);
+  await page.waitForTimeout(1000);
 
   // Navigate to inner lazy route
   const navigationToInner = page.locator('id=navigation');
@@ -337,11 +339,20 @@ test('Allows legitimate POP navigation (back/forward) after pageload completes',
   const navigationToLongRunning = page.locator('id=navigation-to-long-running');
   await expect(navigationToLongRunning).toBeVisible();
 
+  // Set up transaction listeners for both navigations
   const firstNavigationPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
     return (
       !!transactionEvent?.transaction &&
       transactionEvent.contexts?.trace?.op === 'navigation' &&
       transactionEvent.transaction === '/long-running/slow/:id'
+    );
+  });
+
+  const backNavigationPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+    return (
+      !!transactionEvent?.transaction &&
+      transactionEvent.contexts?.trace?.op === 'navigation' &&
+      transactionEvent.transaction === '/'
     );
   });
 
@@ -357,14 +368,6 @@ test('Allows legitimate POP navigation (back/forward) after pageload completes',
 
   // Now navigate back using browser back button (POP event)
   // This should create a navigation transaction since pageload is complete
-  const backNavigationPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
-    return (
-      !!transactionEvent?.transaction &&
-      transactionEvent.contexts?.trace?.op === 'navigation' &&
-      transactionEvent.transaction === '/'
-    );
-  });
-
   await page.goBack();
 
   // Verify we're back at home
@@ -497,4 +500,91 @@ test('Updates navigation transaction name correctly when span is cancelled early
   if (idleSpanFinishReason) {
     expect(['externalFinish', 'cancelled']).toContain(idleSpanFinishReason);
   }
+});
+
+test('Creates separate transactions for rapid consecutive navigations', async ({ page }) => {
+  await page.goto('/');
+
+  // Set up transaction listeners
+  const firstTransactionPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+    return (
+      !!transactionEvent?.transaction &&
+      transactionEvent.contexts?.trace?.op === 'navigation' &&
+      transactionEvent.transaction === '/lazy/inner/:id/:anotherId/:someAnotherId'
+    );
+  });
+
+  const secondTransactionPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+    return (
+      !!transactionEvent?.transaction &&
+      transactionEvent.contexts?.trace?.op === 'navigation' &&
+      transactionEvent.transaction === '/another-lazy/sub/:id/:subId'
+    );
+  });
+
+  // Third navigation promise - using counter to match second occurrence of same route
+  let innerRouteMatchCount = 0;
+  const thirdTransactionPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+    if (
+      transactionEvent?.transaction &&
+      transactionEvent.contexts?.trace?.op === 'navigation' &&
+      transactionEvent.transaction === '/lazy/inner/:id/:anotherId/:someAnotherId'
+    ) {
+      innerRouteMatchCount++;
+      return innerRouteMatchCount === 2; // Match the second occurrence
+    }
+    return false;
+  });
+
+  // Perform navigations
+  // First navigation: / -> /lazy/inner/:id/:anotherId/:someAnotherId
+  await page.locator('id=navigation').click();
+
+  const firstEvent = await firstTransactionPromise;
+
+  // Second navigation: /lazy/inner -> /another-lazy/sub/:id/:subId
+  await page.locator('id=navigate-to-another-from-inner').click();
+
+  const secondEvent = await secondTransactionPromise;
+
+  // Third navigation: /another-lazy -> /lazy/inner/:id/:anotherId/:someAnotherId (back to same route as first)
+  await page.locator('id=navigate-to-inner-from-deep').click();
+
+  const thirdEvent = await thirdTransactionPromise;
+
+  // Verify transactions
+  expect(firstEvent.transaction).toBe('/lazy/inner/:id/:anotherId/:someAnotherId');
+  expect(firstEvent.contexts?.trace?.op).toBe('navigation');
+  const firstTraceId = firstEvent.contexts?.trace?.trace_id;
+  const firstSpanId = firstEvent.contexts?.trace?.span_id;
+
+  expect(secondEvent.transaction).toBe('/another-lazy/sub/:id/:subId');
+  expect(secondEvent.contexts?.trace?.op).toBe('navigation');
+  expect(secondEvent.contexts?.trace?.status).toBe('ok');
+
+  const secondTraceId = secondEvent.contexts?.trace?.trace_id;
+  const secondSpanId = secondEvent.contexts?.trace?.span_id;
+
+  // Verify third transaction
+  expect(thirdEvent.transaction).toBe('/lazy/inner/:id/:anotherId/:someAnotherId');
+  expect(thirdEvent.contexts?.trace?.op).toBe('navigation');
+  expect(thirdEvent.contexts?.trace?.status).toBe('ok');
+
+  const thirdTraceId = thirdEvent.contexts?.trace?.trace_id;
+  const thirdSpanId = thirdEvent.contexts?.trace?.span_id;
+
+  // Verify each navigation created a separate transaction with unique trace and span IDs
+  expect(firstTraceId).toBeDefined();
+  expect(secondTraceId).toBeDefined();
+  expect(thirdTraceId).toBeDefined();
+
+  // All trace IDs should be unique
+  expect(firstTraceId).not.toBe(secondTraceId);
+  expect(secondTraceId).not.toBe(thirdTraceId);
+  expect(firstTraceId).not.toBe(thirdTraceId);
+
+  // All span IDs should be unique
+  expect(firstSpanId).not.toBe(secondSpanId);
+  expect(secondSpanId).not.toBe(thirdSpanId);
+  expect(firstSpanId).not.toBe(thirdSpanId);
 });

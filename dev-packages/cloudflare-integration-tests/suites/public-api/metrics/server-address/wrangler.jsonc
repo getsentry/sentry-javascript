@@ -1,0 +1,6 @@
+{
+  "name": "worker-name",
+  "compatibility_date": "2025-06-17",
+  "main": "index.ts",
+  "compatibility_flags": ["nodejs_compat"],
+}

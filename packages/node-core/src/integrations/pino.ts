@@ -1,4 +1,4 @@
-import { tracingChannel } from 'node:diagnostics_channel';
+import * as diagnosticsChannel from 'node:diagnostics_channel';
 import type { Integration, IntegrationFn, LogSeverityLevel } from '@sentry/core';
 import {
   _INTERNAL_captureLog,
@@ -122,8 +122,8 @@ const _pinoIntegration = defineIntegration((userOptions: DeepPartial<PinoOptions
         },
       });
 
-      const injectedChannel = tracingChannel('orchestrion:pino:pino-log');
-      const integratedChannel = tracingChannel('pino_asJson');
+      const injectedChannel = diagnosticsChannel.tracingChannel('orchestrion:pino:pino-log');
+      const integratedChannel = diagnosticsChannel.tracingChannel('pino_asJson');
 
       function onPinoStart(self: Pino, args: PinoHookArgs, result: PinoResult): void {
         if (!shouldTrackLogger(self)) {

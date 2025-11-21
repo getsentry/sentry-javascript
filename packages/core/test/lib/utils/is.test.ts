@@ -121,11 +121,42 @@ describe('isInstanceOf()', () => {
 });
 
 describe('isVueViewModel()', () => {
-  test('should work as advertised', () => {
-    expect(isVueViewModel({ _isVue: true })).toEqual(true);
-    expect(isVueViewModel({ __isVue: true })).toEqual(true);
+  test('detects Vue 2 component instances with _isVue', () => {
+    const vue2Component = { _isVue: true, $el: {}, $data: {} };
+    expect(isVueViewModel(vue2Component)).toEqual(true);
+  });
 
+  test('detects Vue 3 component instances with __isVue', () => {
+    const vue3Component = { __isVue: true, $el: {}, $data: {} };
+    expect(isVueViewModel(vue3Component)).toEqual(true);
+  });
+
+  test('detects Vue 3 VNodes with __v_isVNode', () => {
+    const vueVNode = {
+      __v_isVNode: true,
+      __v_skip: true,
+      type: {},
+      props: {},
+      children: null,
+    };
+    expect(isVueViewModel(vueVNode)).toEqual(true);
+  });
+
+  test('does not detect plain objects', () => {
     expect(isVueViewModel({ foo: true })).toEqual(false);
+    expect(isVueViewModel({ __v_skip: true })).toEqual(false); // __v_skip alone is not enough
+    expect(isVueViewModel({})).toEqual(false);
+  });
+
+  test('handles null and undefined', () => {
+    expect(isVueViewModel(null)).toEqual(false);
+    expect(isVueViewModel(undefined)).toEqual(false);
+  });
+
+  test('handles non-objects', () => {
+    expect(isVueViewModel('string')).toEqual(false);
+    expect(isVueViewModel(123)).toEqual(false);
+    expect(isVueViewModel(true)).toEqual(false);
   });
 });
 

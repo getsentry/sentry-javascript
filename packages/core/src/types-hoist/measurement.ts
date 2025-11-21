@@ -17,9 +17,11 @@ export type InformationUnit =
   | 'megabyte'
   | 'mebibyte'
   | 'gigabyte'
+  | 'gibibyte'
   | 'terabyte'
   | 'tebibyte'
   | 'petabyte'
+  | 'pebibyte'
   | 'exabyte'
   | 'exbibyte';
 

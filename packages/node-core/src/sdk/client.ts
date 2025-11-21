@@ -4,7 +4,14 @@ import { trace } from '@opentelemetry/api';
 import { registerInstrumentations } from '@opentelemetry/instrumentation';
 import type { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import type { DynamicSamplingContext, Scope, ServerRuntimeClientOptions, TraceContext } from '@sentry/core';
-import { _INTERNAL_flushLogsBuffer, applySdkMetadata, debug, SDK_VERSION, ServerRuntimeClient } from '@sentry/core';
+import {
+  _INTERNAL_clearAiProviderSkips,
+  _INTERNAL_flushLogsBuffer,
+  applySdkMetadata,
+  debug,
+  SDK_VERSION,
+  ServerRuntimeClient,
+} from '@sentry/core';
 import { getTraceContextForScope } from '@sentry/opentelemetry';
 import { isMainThread, threadId } from 'worker_threads';
 import { DEBUG_BUILD } from '../debug-build';
@@ -143,6 +150,15 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
 
       process.on('beforeExit', this._clientReportOnExitFlushListener);
     }
+  }
+
+  /** @inheritDoc */
+  protected _setupIntegrations(): void {
+    // Clear AI provider skip registrations before setting up integrations
+    // This ensures a clean state between different client initializations
+    // (e.g., when LangChain skips OpenAI in one client, but a subsequent client uses OpenAI standalone)
+    _INTERNAL_clearAiProviderSkips();
+    super._setupIntegrations();
   }
 
   /** Custom implementation for OTEL, so we can handle scope-span linking. */

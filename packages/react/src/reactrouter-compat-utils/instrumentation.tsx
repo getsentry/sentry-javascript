@@ -53,9 +53,11 @@ let _enableAsyncRouteHandlers: boolean = false;
 const CLIENTS_WITH_INSTRUMENT_NAVIGATION = new WeakSet<Client>();
 
 /**
- * Adds resolved routes as children to the parent route.
- * Prevents duplicate routes by checking if they already exist.
+ * Tracks last navigation per client to prevent duplicate spans in cross-usage scenarios.
+ * Entry persists until the navigation span ends, allowing cross-usage detection during delayed wrapper execution.
  */
+const LAST_NAVIGATION_PER_CLIENT = new WeakMap<Client, string>();
+
 export function addResolvedRoutesToParent(resolvedRoutes: RouteObject[], parentRoute: RouteObject): void {
   const existingChildren = parentRoute.children || [];
 
@@ -72,6 +74,26 @@ export function addResolvedRoutesToParent(resolvedRoutes: RouteObject[], parentR
   if (newRoutes.length > 0) {
     parentRoute.children = [...existingChildren, ...newRoutes];
   }
+}
+
+/**
+ * Determines if a navigation should be handled based on router state.
+ * Only handles:
+ * - PUSH navigations (always)
+ * - POP navigations (only after initial pageload is complete)
+ * - When router state is 'idle' (not 'loading' or 'submitting')
+ *
+ * During 'loading' or 'submitting', state.location may still have the old pathname,
+ * which would cause us to create a span for the wrong route.
+ */
+function shouldHandleNavigation(
+  state: { historyAction: string; navigation: { state: string } },
+  isInitialPageloadComplete: boolean,
+): boolean {
+  return (
+    (state.historyAction === 'PUSH' || (state.historyAction === 'POP' && isInitialPageloadComplete)) &&
+    state.navigation.state === 'idle'
+  );
 }
 
 export interface ReactRouterOptions {
@@ -275,27 +297,15 @@ export function createV6CompatibleWrapCreateBrowserRouter<
         // If we haven't seen a pageload span yet, keep waiting (don't mark as complete)
       }
 
-      const shouldHandleNavigation =
-        state.historyAction === 'PUSH' || (state.historyAction === 'POP' && isInitialPageloadComplete);
-
-      if (shouldHandleNavigation) {
-        const navigationHandler = (): void => {
-          handleNavigation({
-            location: state.location,
-            routes,
-            navigationType: state.historyAction,
-            version,
-            basename,
-            allRoutes: Array.from(allRoutes),
-          });
-        };
-
-        // Wait for the next render if loading an unsettled route
-        if (state.navigation.state !== 'idle') {
-          requestAnimationFrame(navigationHandler);
-        } else {
-          navigationHandler();
-        }
+      if (shouldHandleNavigation(state, isInitialPageloadComplete)) {
+        handleNavigation({
+          location: state.location,
+          routes,
+          navigationType: state.historyAction,
+          version,
+          basename,
+          allRoutes: Array.from(allRoutes),
+        });
       }
     });
 
@@ -404,29 +414,15 @@ export function createV6CompatibleWrapCreateMemoryRouter<
         // If we haven't seen a pageload span yet, keep waiting (don't mark as complete)
       }
 
-      const location = state.location;
-
-      const shouldHandleNavigation =
-        state.historyAction === 'PUSH' || (state.historyAction === 'POP' && isInitialPageloadComplete);
-
-      if (shouldHandleNavigation) {
-        const navigationHandler = (): void => {
-          handleNavigation({
-            location,
-            routes,
-            navigationType: state.historyAction,
-            version,
-            basename,
-            allRoutes: Array.from(allRoutes),
-          });
-        };
-
-        // Wait for the next render if loading an unsettled route
-        if (state.navigation.state !== 'idle') {
-          requestAnimationFrame(navigationHandler);
-        } else {
-          navigationHandler();
-        }
+      if (shouldHandleNavigation(state, isInitialPageloadComplete)) {
+        handleNavigation({
+          location: state.location,
+          routes,
+          navigationType: state.historyAction,
+          version,
+          basename,
+          allRoutes: Array.from(allRoutes),
+        });
       }
     });
 
@@ -622,6 +618,71 @@ function wrapPatchRoutesOnNavigation(
   };
 }
 
+function getNavigationKey(location: Location): string {
+  return `${location.pathname}${location.search}${location.hash}`;
+}
+
+function tryUpdateSpanName(
+  activeSpan: Span,
+  currentSpanName: string | undefined,
+  newName: string,
+  newSource: string,
+): void {
+  // Check if the new name contains React Router parameter syntax (/:param/)
+  const isReactRouterParam = /\/:[a-zA-Z0-9_]+/.test(newName);
+  const isNewNameParameterized = newName !== currentSpanName && isReactRouterParam;
+  if (isNewNameParameterized) {
+    activeSpan.updateName(newName);
+    activeSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, newSource as 'route' | 'url' | 'custom');
+  }
+}
+
+function isDuplicateNavigation(client: Client, navigationKey: string): boolean {
+  const lastKey = LAST_NAVIGATION_PER_CLIENT.get(client);
+  return lastKey === navigationKey;
+}
+
+function createNavigationSpan(opts: {
+  client: Client;
+  name: string;
+  source: string;
+  version: string;
+  location: Location;
+  routes: RouteObject[];
+  basename?: string;
+  allRoutes?: RouteObject[];
+  navigationKey: string;
+}): Span | undefined {
+  const { client, name, source, version, location, routes, basename, allRoutes, navigationKey } = opts;
+
+  const navigationSpan = startBrowserTracingNavigationSpan(client, {
+    name,
+    attributes: {
+      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source as 'route' | 'url' | 'custom',
+      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: `auto.navigation.react.reactrouter_v${version}`,
+    },
+  });
+
+  if (navigationSpan) {
+    LAST_NAVIGATION_PER_CLIENT.set(client, navigationKey);
+    patchNavigationSpanEnd(navigationSpan, location, routes, basename, allRoutes);
+
+    const unsubscribe = client.on('spanEnd', endedSpan => {
+      if (endedSpan === navigationSpan) {
+        // Clear key only if it's still our key (handles overlapping navigations)
+        const lastKey = LAST_NAVIGATION_PER_CLIENT.get(client);
+        if (lastKey === navigationKey) {
+          LAST_NAVIGATION_PER_CLIENT.delete(client);
+        }
+        unsubscribe(); // Prevent memory leak
+      }
+    });
+  }
+
+  return navigationSpan;
+}
+
 export function handleNavigation(opts: {
   location: Location;
   routes: RouteObject[];
@@ -632,15 +693,13 @@ export function handleNavigation(opts: {
   allRoutes?: RouteObject[];
 }): void {
   const { location, routes, navigationType, version, matches, basename, allRoutes } = opts;
-  const branches = Array.isArray(matches) ? matches : _matchRoutes(routes, location, basename);
+  const branches = Array.isArray(matches) ? matches : _matchRoutes(allRoutes || routes, location, basename);
 
   const client = getClient();
   if (!client || !CLIENTS_WITH_INSTRUMENT_NAVIGATION.has(client)) {
     return;
   }
 
-  // Avoid starting a navigation span on initial load when a pageload root span is active.
-  // This commonly happens when lazy routes resolve during the first render and React Router emits a POP.
   const activeRootSpan = getActiveRootSpan();
   if (activeRootSpan && spanToJSON(activeRootSpan).op === 'pageload' && navigationType === 'POP') {
     return;
@@ -649,31 +708,39 @@ export function handleNavigation(opts: {
   if ((navigationType === 'PUSH' || navigationType === 'POP') && branches) {
     const [name, source] = resolveRouteNameAndSource(
       location,
-      routes,
+      allRoutes || routes,
       allRoutes || routes,
       branches as RouteMatch[],
       basename,
     );
 
-    const activeSpan = getActiveSpan();
-    const spanJson = activeSpan && spanToJSON(activeSpan);
-    const isAlreadyInNavigationSpan = spanJson?.op === 'navigation';
+    const currentNavigationKey = getNavigationKey(location);
+    const isNavDuplicate = isDuplicateNavigation(client, currentNavigationKey);
 
-    // Cross usage can result in multiple navigation spans being created without this check
-    if (!isAlreadyInNavigationSpan) {
-      const navigationSpan = startBrowserTracingNavigationSpan(client, {
-        name,
-        attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: `auto.navigation.react.reactrouter_v${version}`,
-        },
-      });
+    if (isNavDuplicate) {
+      // Cross-usage duplicate - update existing span name if better
+      const activeSpan = getActiveSpan();
+      const spanJson = activeSpan && spanToJSON(activeSpan);
+      const isAlreadyInNavigationSpan = spanJson?.op === 'navigation';
 
-      // Patch navigation span to handle early cancellation (e.g., document.hidden)
-      if (navigationSpan) {
-        patchNavigationSpanEnd(navigationSpan, location, routes, basename, allRoutes);
+      if (isAlreadyInNavigationSpan && activeSpan) {
+        tryUpdateSpanName(activeSpan, spanJson?.description, name, source);
       }
+    } else {
+      // Not a cross-usage duplicate - create new span
+      // This handles: different routes, same route with different params (/user/2 → /user/3)
+      // startBrowserTracingNavigationSpan will end any active navigation span
+      createNavigationSpan({
+        client,
+        name,
+        source,
+        version,
+        location,
+        routes,
+        basename,
+        allRoutes,
+        navigationKey: currentNavigationKey,
+      });
     }
   }
 }
@@ -727,7 +794,13 @@ function updatePageloadTransaction({
     : (_matchRoutes(allRoutes || routes, location, basename) as unknown as RouteMatch[]);
 
   if (branches) {
-    const [name, source] = resolveRouteNameAndSource(location, routes, allRoutes || routes, branches, basename);
+    const [name, source] = resolveRouteNameAndSource(
+      location,
+      allRoutes || routes,
+      allRoutes || routes,
+      branches,
+      basename,
+    );
 
     getCurrentScope().setTransactionName(name || '/');
 
@@ -780,7 +853,7 @@ function patchSpanEnd(
         if (branches) {
           const [name, source] = resolveRouteNameAndSource(
             location,
-            routes,
+            currentAllRoutes.length > 0 ? currentAllRoutes : routes,
             currentAllRoutes.length > 0 ? currentAllRoutes : routes,
             branches,
             basename,

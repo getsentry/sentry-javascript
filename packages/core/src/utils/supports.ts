@@ -80,7 +80,8 @@ function _isFetchSupported(): boolean {
 
   try {
     new Headers();
-    new Request('http://www.example.com');
+    // Deno requires a valid URL so '' cannot be used as an argument
+    new Request('data:,');
     new Response();
     return true;
   } catch {

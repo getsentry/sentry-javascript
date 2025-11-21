@@ -60,7 +60,8 @@ export interface INPAttribution {
    * occurred. If this value is an empty string, that generally means the
    * element was removed from the DOM after the interaction. If the
    * `generateTarget` configuration option was passed, then this will instead
-   * be the return value of that function.
+   * be the return value of that function, falling back to the default if that
+   * returns null or undefined.
    */
   interactionTarget: string;
   /**

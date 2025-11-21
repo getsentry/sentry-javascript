@@ -33,6 +33,7 @@ test('Sends a pageload transaction', async ({ page }) => {
           trace_id: expect.stringMatching(/[a-f0-9]{32}/),
           op: 'pageload',
           origin: 'auto.pageload.nextjs.pages_router_instrumentation',
+          status: 'ok',
           data: expect.objectContaining({
             'sentry.op': 'pageload',
             'sentry.origin': 'auto.pageload.nextjs.pages_router_instrumentation',

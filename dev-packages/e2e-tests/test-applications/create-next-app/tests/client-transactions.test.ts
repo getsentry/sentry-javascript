@@ -24,6 +24,7 @@ test('Sends a pageload transaction to Sentry', async ({ page }) => {
           trace_id: expect.stringMatching(/[a-f0-9]{32}/),
           op: 'pageload',
           origin: 'auto.pageload.nextjs.pages_router_instrumentation',
+          status: 'ok',
           data: expect.objectContaining({
             'sentry.idle_span_finish_reason': 'idleTimeout',
             'sentry.op': 'pageload',
@@ -69,6 +70,7 @@ test('captures a navigation transaction to Sentry', async ({ page }) => {
           trace_id: expect.stringMatching(/[a-f0-9]{32}/),
           op: 'navigation',
           origin: 'auto.navigation.nextjs.pages_router_instrumentation',
+          status: 'ok',
           data: expect.objectContaining({
             'sentry.idle_span_finish_reason': 'idleTimeout',
             'sentry.op': 'navigation',

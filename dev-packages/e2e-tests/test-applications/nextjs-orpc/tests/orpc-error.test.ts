@@ -1,9 +1,12 @@
 import { expect, test } from '@playwright/test';
 import { waitForError } from '@sentry-internal/test-utils';
 
-test('should capture orpc error', async ({ page }) => {
+test('should capture server-side orpc error', async ({ page }) => {
   const orpcErrorPromise = waitForError('nextjs-orpc', errorEvent => {
-    return errorEvent.exception?.values?.[0]?.value === 'You are hitting an error';
+    return (
+      errorEvent.exception?.values?.[0]?.value === 'You are hitting an error' &&
+      errorEvent.contexts?.['runtime']?.name === 'node'
+    );
   });
 
   await page.goto('/');

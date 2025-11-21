@@ -107,7 +107,7 @@ export function setupIntegration(client: Client, integration: Integration, integ
   integrationIndex[integration.name] = integration;
 
   // `setupOnce` is only called the first time
-  if (installedIntegrations.indexOf(integration.name) === -1 && typeof integration.setupOnce === 'function') {
+  if (!installedIntegrations.includes(integration.name) && typeof integration.setupOnce === 'function') {
     integration.setupOnce();
     installedIntegrations.push(integration.name);
   }

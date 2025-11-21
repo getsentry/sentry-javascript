@@ -16,6 +16,44 @@ const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
 };
 
 /**
+ * Constructs the base URL for the Next.js dev server, including the port and base path.
+ * Returns only the base path when running in the browser (client-side) for relative URLs.
+ */
+function getDevServerBaseUrl(): string {
+  let basePath = process.env._sentryBasePath ?? globalWithInjectedValues._sentryBasePath ?? '';
+
+  // Prefix the basepath with a slash if it doesn't have one
+  if (basePath !== '' && !basePath.match(/^\//)) {
+    basePath = `/${basePath}`;
+  }
+
+  // eslint-disable-next-line no-restricted-globals
+  if (typeof window !== 'undefined') {
+    return basePath;
+  }
+
+  const devServerPort = process.env.PORT || '3000';
+  return `http://localhost:${devServerPort}${basePath}`;
+}
+
+/**
+ * Fetches a URL with a 3-second timeout using AbortController.
+ */
+async function fetchWithTimeout(url: string, options: RequestInit = {}): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 3000);
+
+  return suppressTracing(() =>
+    fetch(url, {
+      ...options,
+      signal: controller.signal,
+    }).finally(() => {
+      clearTimeout(timer);
+    }),
+  );
+}
+
+/**
  * Event processor that will symbolicate errors by using the webpack/nextjs dev server that is used to show stack traces
  * in the dev overlay.
  */
@@ -123,28 +161,8 @@ async function resolveStackFrame(
       params.append(key, (frame[key as keyof typeof frame] ?? '').toString());
     });
 
-    let basePath = process.env._sentryBasePath ?? globalWithInjectedValues._sentryBasePath ?? '';
-
-    // Prefix the basepath with a slash if it doesn't have one
-    if (basePath !== '' && !basePath.match(/^\//)) {
-      basePath = `/${basePath}`;
-    }
-
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 3000);
-    const res = await suppressTracing(() =>
-      fetch(
-        `${
-          // eslint-disable-next-line no-restricted-globals
-          typeof window === 'undefined' ? 'http://localhost:3000' : '' // TODO: handle the case where users define a different port
-        }${basePath}/__nextjs_original-stack-frame?${params.toString()}`,
-        {
-          signal: controller.signal,
-        },
-      ).finally(() => {
-        clearTimeout(timer);
-      }),
-    );
+    const baseUrl = getDevServerBaseUrl();
+    const res = await fetchWithTimeout(`${baseUrl}/__nextjs_original-stack-frame?${params.toString()}`);
 
     if (!res.ok || res.status === 204) {
       return null;
@@ -191,34 +209,14 @@ async function resolveStackFrames(
       isAppDirectory: true,
     };
 
-    let basePath = process.env._sentryBasePath ?? globalWithInjectedValues._sentryBasePath ?? '';
-
-    // Prefix the basepath with a slash if it doesn't have one
-    if (basePath !== '' && !basePath.match(/^\//)) {
-      basePath = `/${basePath}`;
-    }
-
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 3000);
-
-    const res = await suppressTracing(() =>
-      fetch(
-        `${
-          // eslint-disable-next-line no-restricted-globals
-          typeof window === 'undefined' ? 'http://localhost:3000' : '' // TODO: handle the case where users define a different port
-        }${basePath}/__nextjs_original-stack-frames`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          signal: controller.signal,
-          body: JSON.stringify(postBody),
-        },
-      ).finally(() => {
-        clearTimeout(timer);
-      }),
-    );
+    const baseUrl = getDevServerBaseUrl();
+    const res = await fetchWithTimeout(`${baseUrl}/__nextjs_original-stack-frames`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(postBody),
+    });
 
     if (!res.ok || res.status === 204) {
       return null;

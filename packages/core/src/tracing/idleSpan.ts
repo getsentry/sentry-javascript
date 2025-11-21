@@ -19,7 +19,7 @@ import { timestampInSeconds } from '../utils/time';
 import { freezeDscOnSpan, getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 import { SentryNonRecordingSpan } from './sentryNonRecordingSpan';
 import { SentrySpan } from './sentrySpan';
-import { SPAN_STATUS_ERROR } from './spanstatus';
+import { SPAN_STATUS_ERROR, SPAN_STATUS_OK } from './spanstatus';
 import { startInactiveSpan } from './trace';
 
 export const TRACING_DEFAULTS = {
@@ -300,6 +300,12 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
     const attributes = spanJSON.data;
     if (!attributes[SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON]) {
       span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON, _finishReason);
+    }
+
+    // Set span status to 'ok' if it hasn't been explicitly set to an error status
+    const currentStatus = spanJSON.status;
+    if (!currentStatus || currentStatus === 'unknown') {
+      span.setStatus({ code: SPAN_STATUS_OK });
     }
 
     debug.log(`[Tracing] Idle span "${spanJSON.op}" finished`);
