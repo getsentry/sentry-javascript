@@ -6,5 +6,4 @@ const nextConfig: NextConfig = {};
 export default withSentryConfig(nextConfig, {
   silent: true,
   tunnelRoute: true,
-  _tunnelRouteDestinationOverride: 'http://localhost:3031/',
 });

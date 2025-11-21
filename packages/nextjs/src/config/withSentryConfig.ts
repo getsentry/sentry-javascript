@@ -125,11 +125,7 @@ function getFinalConfigObject(
       const resolvedTunnelRoute = resolveTunnelRoute(userSentryOptions.tunnelRoute);
       userSentryOptions.tunnelRoute = resolvedTunnelRoute || undefined;
 
-      setUpTunnelRewriteRules(
-        incomingUserNextConfigObject,
-        resolvedTunnelRoute,
-        userSentryOptions._tunnelRouteDestinationOverride,
-      );
+      setUpTunnelRewriteRules(incomingUserNextConfigObject, resolvedTunnelRoute);
     }
   }
 
@@ -393,12 +389,15 @@ function getFinalConfigObject(
  *
  * See https://nextjs.org/docs/api-reference/next.config.js/rewrites.
  */
-function setUpTunnelRewriteRules(
-  userNextConfig: NextConfigObject,
-  tunnelPath: string,
-  destinationOverride?: string,
-): void {
+function setUpTunnelRewriteRules(userNextConfig: NextConfigObject, tunnelPath: string): void {
   const originalRewrites = userNextConfig.rewrites;
+  // Allow overriding the tunnel destination for E2E tests via environment variable
+  const destinationOverride = process.env._SENTRY_TUNNEL_DESTINATION_OVERRIDE;
+
+  // Make sure destinations are statically defined at build time
+  const destination = destinationOverride || 'https://o:orgid.ingest.sentry.io/api/:projectid/envelope/?hsts=0';
+  const destinationWithRegion =
+    destinationOverride || 'https://o:orgid.ingest.:region.sentry.io/api/:projectid/envelope/?hsts=0';
 
   // This function doesn't take any arguments at the time of writing but we future-proof
   // here in case Next.js ever decides to pass some
@@ -419,7 +418,7 @@ function setUpTunnelRewriteRules(
           value: '(?<projectid>\\d*)',
         },
       ],
-      destination: destinationOverride || 'https://o:orgid.ingest.sentry.io/api/:projectid/envelope/?hsts=0',
+      destination,
     };
 
     const tunnelRouteRewriteWithRegion = {
@@ -443,7 +442,7 @@ function setUpTunnelRewriteRules(
           value: '(?<region>[a-z]{2})',
         },
       ],
-      destination: destinationOverride || 'https://o:orgid.ingest.:region.sentry.io/api/:projectid/envelope/?hsts=0',
+      destination: destinationWithRegion,
     };
 
     // Order of these is important, they get applied first to last.

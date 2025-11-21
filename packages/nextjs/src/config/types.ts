@@ -438,12 +438,6 @@ export type SentryBuildOptions = {
   tunnelRoute?: string | boolean;
 
   /**
-   * @internal
-   * Override the destination URL for tunnel rewrites (for E2E testing only)
-   */
-  _tunnelRouteDestinationOverride?: string;
-
-  /**
    * Tree shakes Sentry SDK logger statements from the bundle.
    */
   disableLogger?: boolean;
