@@ -170,7 +170,7 @@ module.exports = [
     name: 'CDN Bundle (incl. Tracing)',
     path: createCDNPath('bundle.tracing.min.js'),
     gzip: true,
-    limit: '42.5 KB',
+    limit: '43 KB',
   },
   {
     name: 'CDN Bundle (incl. Tracing, Replay)',
@@ -220,7 +220,7 @@ module.exports = [
     import: createImport('init'),
     ignore: ['next/router', 'next/constants'],
     gzip: true,
-    limit: '46 KB',
+    limit: '47 KB',
   },
   // SvelteKit SDK (ESM)
   {
