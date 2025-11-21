@@ -2,7 +2,8 @@
 
 ## Unreleased
 
-- "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
+- feat(browser): Add environment variable support for Spotlight configuration ([#18198](https://github.com/getsentry/sentry-javascript/pull/18198))
+  - `SENTRY_SPOTLIGHT`, `PUBLIC_SENTRY_SPOTLIGHT`, `NEXT_PUBLIC_SENTRY_SPOTLIGHT`, `VITE_SENTRY_SPOTLIGHT`, `NUXT_PUBLIC_SENTRY_SPOTLIGHT`, `REACT_APP_SENTRY_SPOTLIGHT`, `VUE_APP_SENTRY_SPOTLIGHT`, and `GATSBY_SENTRY_SPOTLIGHT`
 
 - feat(deps): Bump OpenTelemetry ([#18239](https://github.com/getsentry/sentry-javascript/pull/18239))
   - Bump @opentelemetry/context-async-hooks from ^2.1.0 to ^2.2.0
