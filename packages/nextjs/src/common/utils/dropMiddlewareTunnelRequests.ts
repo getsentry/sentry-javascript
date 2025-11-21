@@ -40,14 +40,11 @@ export function dropMiddlewareTunnelRequests(span: Span, attrs: SpanAttributes |
  * Checks if a span's HTTP target matches the tunnel route.
  */
 function isTunnelRouteSpan(spanAttributes: Record<string, unknown>): boolean {
-  // Don't use process.env here because it will have a different value in the build and runtime
-  // We want to use the one in build
   const tunnelPath = globalWithInjectedValues._sentryRewritesTunnelPath || process.env._sentryRewritesTunnelPath;
   if (!tunnelPath) {
     return false;
   }
 
-  // Check both http.target (older) and url.query (newer) attributes
   // eslint-disable-next-line deprecation/deprecation
   const httpTarget = spanAttributes[SEMATTRS_HTTP_TARGET];
 
