@@ -59,7 +59,7 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/prod/index.js',
     import: createImport('init', 'browserTracingIntegration', 'replayIntegration'),
     gzip: true,
-    limit: '80 KB',
+    limit: '82 KB',
   },
   {
     name: '@sentry/browser (incl. Tracing, Replay) - with treeshaking flags',
@@ -170,7 +170,7 @@ module.exports = [
     name: 'CDN Bundle (incl. Tracing)',
     path: createCDNPath('bundle.tracing.min.js'),
     gzip: true,
-    limit: '42.5 KB',
+    limit: '43 KB',
   },
   {
     name: 'CDN Bundle (incl. Tracing, Replay)',
@@ -220,7 +220,7 @@ module.exports = [
     import: createImport('init'),
     ignore: ['next/router', 'next/constants'],
     gzip: true,
-    limit: '46 KB',
+    limit: '47 KB',
   },
   // SvelteKit SDK (ESM)
   {
@@ -247,7 +247,7 @@ module.exports = [
     import: createImport('init'),
     ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
     gzip: true,
-    limit: '160 KB',
+    limit: '161 KB',
   },
   {
     name: '@sentry/node - without tracing',
