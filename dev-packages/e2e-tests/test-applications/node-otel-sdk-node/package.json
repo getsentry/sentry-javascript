@@ -11,8 +11,8 @@
     "test:assert": "pnpm test"
   },
   "dependencies": {
-    "@opentelemetry/sdk-node": "0.204.0",
-    "@opentelemetry/exporter-trace-otlp-http": "0.204.0",
+    "@opentelemetry/sdk-node": "0.208.0",
+    "@opentelemetry/exporter-trace-otlp-http": "0.208.0",
     "@sentry/node": "latest || *",
     "@types/express": "4.17.17",
     "@types/node": "^18.19.1",
