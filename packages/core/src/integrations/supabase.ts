@@ -4,7 +4,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable max-lines */
 import { addBreadcrumb } from '../breadcrumbs';
-import { getClient, getCurrentScope } from '../currentScopes';
+import { getClient, getCurrentScope, withIsolationScope } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
 import { captureException } from '../exports';
 import { defineIntegration } from '../integration';
@@ -16,7 +16,7 @@ import {
 } from '../tracing/dynamicSamplingContext';
 import type { IntegrationFn } from '../types-hoist/integration';
 import type { Span, SpanAttributes } from '../types-hoist/span';
-import { dynamicSamplingContextToSentryBaggageHeader } from '../utils/baggage';
+import { dynamicSamplingContextToSentryBaggageHeader, parseBaggageHeader } from '../utils/baggage';
 import { debug } from '../utils/debug-logger';
 import { isPlainObject } from '../utils/is';
 import { addExceptionMechanism } from '../utils/misc';
@@ -247,6 +247,27 @@ export function translateFiltersIntoMethods(key: string, query: string): string 
 }
 
 /**
+ * Normalizes RPC function names by stripping schema prefixes.
+ * Handles schema-qualified names like 'pgmq.send' → 'send'
+ *
+ * @param name - The RPC function name, potentially schema-qualified
+ * @returns The normalized function name without schema prefix
+ */
+function _normalizeRpcFunctionName(name: unknown): string {
+  if (!name || typeof name !== 'string') {
+    return '';
+  }
+
+  // Strip schema prefix: 'pgmq.send' → 'send', 'my_schema.pop' → 'pop'
+  if (name.includes('.')) {
+    const parts = name.split('.');
+    return parts[parts.length - 1] || '';
+  }
+
+  return name;
+}
+
+/**
  * Creates a proxy handler for RPC methods to instrument queue operations.
  * This handler is shared between direct RPC calls and RPC calls via schema.
  *
@@ -261,9 +282,10 @@ function _createRpcProxyHandler(): ProxyHandler<(...args: unknown[]) => Promise<
     ): Promise<unknown> {
       // Add try-catch for safety
       try {
-        const isProducerSpan = argumentsList[0] === 'send' || argumentsList[0] === 'send_batch';
-        const isConsumerSpan =
-          argumentsList[0] === 'pop' || argumentsList[0] === 'receive' || argumentsList[0] === 'read';
+        // Normalize RPC function name to handle schema-qualified names (e.g., 'pgmq.send' → 'send')
+        const normalizedName = _normalizeRpcFunctionName(argumentsList[0]);
+        const isProducerSpan = normalizedName === 'send' || normalizedName === 'send_batch';
+        const isConsumerSpan = normalizedName === 'pop' || normalizedName === 'receive' || normalizedName === 'read';
 
         if (!isProducerSpan && !isConsumerSpan) {
           const result = Reflect.apply(target, thisArg, argumentsList);
@@ -492,15 +514,9 @@ function _calculateBatchLatency(messages: Array<{ enqueued_at?: string }>): numb
  * @param span - The span to process
  * @param res - The Supabase response
  * @param queueName - The name of the queue
- * @param operationName - The queue operation name (e.g., 'pop', 'read', 'receive')
  * @returns The original response
  */
-function _processConsumerSpan(
-  span: Span,
-  res: SupabaseResponse,
-  queueName: string | undefined,
-  operationName: string,
-): SupabaseResponse {
+function _processConsumerSpan(span: Span, res: SupabaseResponse, queueName: string | undefined): SupabaseResponse {
   // Calculate latency for single message or batch average
   let latency: number | undefined;
   const isBatch = Array.isArray(res.data) && res.data.length > 1;
@@ -527,11 +543,8 @@ function _processConsumerSpan(
     span.setAttribute('messaging.message.id', messageId);
   }
 
-  // Note: messaging.destination.name is already set in initial span attributes
-
-  // Set OTEL messaging semantic attributes
-  span.setAttribute('messaging.operation.type', 'process');
-  span.setAttribute('messaging.operation.name', operationName);
+  // Note: messaging.destination.name, messaging.operation.name, and messaging.operation.type
+  // are already set in initial span attributes
 
   if (latency !== undefined) {
     span.setAttribute('messaging.message.receive.latency', latency);
@@ -594,7 +607,8 @@ const _instrumentRpcConsumer = (target: unknown, thisArg: unknown, argumentsList
     return Reflect.apply(target as (...args: unknown[]) => Promise<unknown>, thisArg, argumentsList);
   }
 
-  const [operationName, queueParams] = argumentsList as [string, unknown];
+  const operationName = _normalizeRpcFunctionName(argumentsList[0]);
+  const queueParams = argumentsList[1];
 
   if (!isPlainObject(queueParams)) {
     return Reflect.apply(target as (...args: unknown[]) => Promise<unknown>, thisArg, argumentsList);
@@ -619,6 +633,8 @@ const _instrumentRpcConsumer = (target: unknown, thisArg: unknown, argumentsList
     [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'queue.process',
     'messaging.system': 'supabase',
     'messaging.destination.name': queueName,
+    'messaging.operation.name': operationName,
+    'messaging.operation.type': 'process',
   } as const;
   const spanStartTime = timestampInSeconds();
 
@@ -632,7 +648,8 @@ const _instrumentRpcConsumer = (target: unknown, thisArg: unknown, argumentsList
     .then(res => {
       DEBUG_BUILD && debug.log('Consumer RPC call completed', { queueName, hasData: !!res.data });
 
-      const { sentryTrace } = _extractTraceAndBaggageFromMessage(res.data?.[0]?.message || {});
+      // Extract trace context from message for distributed tracing
+      const { sentryTrace, baggage } = _extractTraceAndBaggageFromMessage(res.data?.[0]?.message || {});
 
       if (Array.isArray(res.data)) {
         res.data.forEach(item => {
@@ -642,8 +659,12 @@ const _instrumentRpcConsumer = (target: unknown, thisArg: unknown, argumentsList
         });
       }
 
-      // Extract producer span context for span link (before creating consumer span)
+      // Extract producer trace context for span link and propagation
       let producerSpanContext: { traceId: string; spanId: string; traceFlags: number } | undefined;
+      let producerPropagationContext:
+        | { traceId: string; parentSpanId: string; sampled: boolean; dsc?: Record<string, string> }
+        | undefined;
+
       if (sentryTrace) {
         const traceparentData = extractTraceparentData(sentryTrace);
         if (traceparentData?.traceId && traceparentData?.parentSpanId) {
@@ -656,55 +677,117 @@ const _instrumentRpcConsumer = (target: unknown, thisArg: unknown, argumentsList
             spanId: traceparentData.parentSpanId,
             traceFlags,
           };
+
+          // Prepare propagation context for isolated scope
+          producerPropagationContext = {
+            traceId: traceparentData.traceId,
+            parentSpanId: traceparentData.parentSpanId,
+            sampled: traceparentData.parentSampled ?? false,
+            dsc: baggage ? parseBaggageHeader(baggage) : undefined,
+          };
         }
       }
 
-      const runWithSpan = (): SupabaseResponse =>
-        startSpan(
-          {
-            name: spanName,
-            op: 'queue.process',
-            startTime: spanStartTime,
-            attributes: spanAttributes,
-            // Add span link to producer span for distributed tracing across async queue boundary
-            links: producerSpanContext
-              ? [
-                  {
-                    context: producerSpanContext,
-                    attributes: { 'sentry.link.type': 'queue.producer' },
-                  },
-                ]
-              : undefined,
-          },
-          span => {
-            try {
-              const processedResponse = _processConsumerSpan(span, res, queueName, operationName);
+      const runWithSpan = (): SupabaseResponse => {
+        // If we have producer trace context, use isolated scope to prevent pollution
+        if (producerPropagationContext) {
+          return withIsolationScope(isolatedScope => {
+            // Set producer's propagation context in isolated scope
+            // This ensures the consumer span continues the producer's trace
+            isolatedScope.setPropagationContext({
+              ...producerPropagationContext,
+              sampleRand: Math.random(), // Generate new sample rand for current execution context
+            });
 
-              DEBUG_BUILD && debug.log('Consumer span processed successfully', { queueName });
+            // Force transaction to make it a root span (not child of current span)
+            // This is critical to prevent the consumer span from becoming a child of
+            // an active HTTP request or other unrelated transaction
+            return startSpan(
+              {
+                name: spanName,
+                op: 'queue.process',
+                startTime: spanStartTime,
+                attributes: spanAttributes,
+                forceTransaction: true, // Makes this a root span, not a child
+                // Add span link to producer span for distributed tracing across async queue boundary
+                links: producerSpanContext
+                  ? [
+                      {
+                        context: producerSpanContext,
+                        attributes: { 'sentry.link.type': 'queue.producer' },
+                      },
+                    ]
+                  : undefined,
+              },
+              span => {
+                try {
+                  const processedResponse = _processConsumerSpan(span, res, queueName);
 
-              return processedResponse;
-            } catch (err: unknown) {
-              DEBUG_BUILD && debug.log('Consumer span processing failed', { queueName, error: err });
+                  DEBUG_BUILD && debug.log('Consumer span processed successfully', { queueName });
 
-              captureException(err, scope => {
-                scope.addEventProcessor(e => {
-                  addExceptionMechanism(e, {
-                    handled: false,
-                    type: 'auto.db.supabase.queue',
+                  return processedResponse;
+                } catch (err: unknown) {
+                  DEBUG_BUILD && debug.log('Consumer span processing failed', { queueName, error: err });
+
+                  captureException(err, scope => {
+                    scope.addEventProcessor(e => {
+                      addExceptionMechanism(e, {
+                        handled: false,
+                        type: 'auto.db.supabase.queue',
+                      });
+                      return e;
+                    });
+                    scope.setContext('supabase', { queueName });
+                    return scope;
                   });
-                  return e;
+
+                  span.setStatus({ code: SPAN_STATUS_ERROR });
+                  throw err;
+                }
+              },
+            );
+          });
+          // Isolated scope automatically discarded here, original scope restored
+        } else {
+          // No producer context, create regular span without isolation
+          return startSpan(
+            {
+              name: spanName,
+              op: 'queue.process',
+              startTime: spanStartTime,
+              attributes: spanAttributes,
+            },
+            span => {
+              try {
+                const processedResponse = _processConsumerSpan(span, res, queueName);
+
+                DEBUG_BUILD && debug.log('Consumer span processed successfully', { queueName });
+
+                return processedResponse;
+              } catch (err: unknown) {
+                DEBUG_BUILD && debug.log('Consumer span processing failed', { queueName, error: err });
+
+                captureException(err, scope => {
+                  scope.addEventProcessor(e => {
+                    addExceptionMechanism(e, {
+                      handled: false,
+                      type: 'auto.db.supabase.queue',
+                    });
+                    return e;
+                  });
+                  scope.setContext('supabase', { queueName });
+                  return scope;
                 });
-                scope.setContext('supabase', { queueName });
-                return scope;
-              });
 
-              span.setStatus({ code: SPAN_STATUS_ERROR });
-              throw err;
-            }
-          },
-        );
+                span.setStatus({ code: SPAN_STATUS_ERROR });
+                throw err;
+              }
+            },
+          );
+        }
+      };
 
-      // Create consumer span with link to producer (not as a child)
+      // Create consumer span with isolated scope and forced transaction
       return runWithSpan();
     })
     .catch((err: unknown) => {
@@ -778,7 +861,7 @@ function _instrumentRpcProducer(target: unknown, thisArg: unknown, argumentsList
     return Reflect.apply(target as (...args: unknown[]) => Promise<unknown>, thisArg, argumentsList);
   }
 
-  const operationName = argumentsList[0] as 'send' | 'send_batch';
+  const operationName = _normalizeRpcFunctionName(argumentsList[0]) as 'send' | 'send_batch';
   const isBatch = operationName === 'send_batch';
 
   DEBUG_BUILD &&
@@ -827,22 +910,40 @@ function _instrumentRpcProducer(target: unknown, thisArg: unknown, argumentsList
       ];
 
       // Inject trace context into messages (avoid mutation)
+      // Only inject into plain objects to prevent payload corruption (primitives, arrays)
       if (sentryArgumentsQueueParams?.message) {
-        sentryArgumentsQueueParams.message = {
-          ...sentryArgumentsQueueParams.message,
-          _sentry: {
-            sentry_trace: sentryTrace,
-            baggage: sentryBaggage,
-          },
-        };
+        if (isPlainObject(sentryArgumentsQueueParams.message)) {
+          sentryArgumentsQueueParams.message = {
+            ...sentryArgumentsQueueParams.message,
+            _sentry: {
+              sentry_trace: sentryTrace,
+              baggage: sentryBaggage,
+            },
+          };
+        } else {
+          DEBUG_BUILD &&
+            debug.warn(
+              'Skipping trace propagation for non-object message payload. PGMQ supports primitives and arrays, but trace context can only be injected into plain objects.',
+            );
+        }
       } else if (sentryArgumentsQueueParams?.messages) {
-        sentryArgumentsQueueParams.messages = sentryArgumentsQueueParams.messages.map(message => ({
-          ...message,
-          _sentry: {
-            sentry_trace: sentryTrace,
-            baggage: sentryBaggage,
-          },
-        }));
+        sentryArgumentsQueueParams.messages = sentryArgumentsQueueParams.messages.map(message => {
+          if (isPlainObject(message)) {
+            return {
+              ...message,
+              _sentry: {
+                sentry_trace: sentryTrace,
+                baggage: sentryBaggage,
+              },
+            };
+          } else {
+            DEBUG_BUILD &&
+              debug.warn(
+                'Skipping trace propagation for non-object message in batch. PGMQ supports primitives and arrays, but trace context can only be injected into plain objects.',
+              );
+            return message;
+          }
+        });
       }
 
       argumentsList[1] = sentryArgumentsQueueParams;
@@ -1102,7 +1203,8 @@ function _createInstrumentedPostgRESTThen(
       const rpcIndex = pathParts.indexOf('rpc');
       const rpcFunctionName = rpcIndex !== -1 && pathParts.length > rpcIndex + 1 ? pathParts[rpcIndex + 1] : undefined;
 
-      if (rpcFunctionName && QUEUE_RPC_OPERATIONS.has(rpcFunctionName)) {
+      // Normalize RPC function name to handle schema-qualified names (e.g., 'pgmq.send' → 'send')
+      if (rpcFunctionName && QUEUE_RPC_OPERATIONS.has(_normalizeRpcFunctionName(rpcFunctionName))) {
         // Queue RPC calls are instrumented in the dedicated queue instrumentation.
         return Reflect.apply(target, thisArg, argumentsList);
       }

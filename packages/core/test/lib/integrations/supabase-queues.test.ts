@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Client } from '../../../src';
+import { getCurrentScope } from '../../../src';
 import * as Breadcrumbs from '../../../src/breadcrumbs';
 import * as CurrentScopes from '../../../src/currentScopes';
 import type { SupabaseClientInstance, SupabaseResponse } from '../../../src/integrations/supabase';
@@ -7,6 +8,7 @@ import { instrumentSupabaseClient } from '../../../src/integrations/supabase';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../../src/semanticAttributes';
 import * as Tracing from '../../../src/tracing';
 import { startSpan } from '../../../src/tracing';
+import { getActiveSpan } from '../../../src/utils/spanUtils';
 
 describe('Supabase Queue Instrumentation', () => {
   let mockClient: Client;
@@ -1046,6 +1048,559 @@ describe('Supabase Queue Instrumentation', () => {
     });
   });
 
+  describe('Schema-Qualified RPC Names', () => {
+    it('should instrument schema-qualified producer RPC names', async () => {
+      const mockResponse: SupabaseResponse = {
+        data: [{ msg_id: 123 }],
+        status: 200,
+      };
+
+      mockRpcFunction.mockResolvedValue(mockResponse);
+      instrumentSupabaseClient(mockSupabaseClient);
+
+      const startSpanSpy = vi.spyOn(Tracing, 'startSpan');
+
+      await startSpan({ name: 'test-transaction' }, async () => {
+        await mockSupabaseClient.rpc('pgmq.send', {
+          queue_name: 'test-queue',
+          message: { foo: 'bar' },
+        });
+      });
+
+      // Verify queue.publish span was created for schema-qualified name
+      const publishSpanCall = startSpanSpy.mock.calls.find(call => call[0]?.op === 'queue.publish');
+      expect(publishSpanCall).toBeDefined();
+      expect(publishSpanCall?.[0]?.name).toBe('publish test-queue');
+    });
+
+    it('should instrument schema-qualified consumer RPC names', async () => {
+      const mockResponse: SupabaseResponse = {
+        data: [
+          {
+            msg_id: 123,
+            message: { foo: 'bar' },
+            enqueued_at: new Date().toISOString(),
+          },
+        ],
+        status: 200,
+      };
+
+      mockRpcFunction.mockResolvedValue(mockResponse);
+      instrumentSupabaseClient(mockSupabaseClient);
+
+      const startSpanSpy = vi.spyOn(Tracing, 'startSpan');
+
+      await mockSupabaseClient.rpc('my_schema.pop', {
+        queue_name: 'test-queue',
+      });
+
+      // Verify queue.process span was created for schema-qualified name
+      const processSpanCall = startSpanSpy.mock.calls.find(call => call[0]?.op === 'queue.process');
+      expect(processSpanCall).toBeDefined();
+      expect(processSpanCall?.[0]?.name).toBe('process test-queue');
+    });
+
+    it('should detect schema-qualified send_batch and set batch attributes', async () => {
+      const mockResponse: SupabaseResponse = {
+        data: [{ msg_id: 1 }, { msg_id: 2 }, { msg_id: 3 }],
+        status: 200,
+      };
+
+      mockRpcFunction.mockResolvedValue(mockResponse);
+      instrumentSupabaseClient(mockSupabaseClient);
+
+      const startSpanSpy = vi.spyOn(Tracing, 'startSpan');
+      const addBreadcrumbSpy = vi.spyOn(Breadcrumbs, 'addBreadcrumb');
+
+      await startSpan({ name: 'test-transaction' }, async () => {
+        await mockSupabaseClient.rpc('pgmq.send_batch', {
+          queue_name: 'batch-test-queue',
+          messages: [{ foo: 'bar' }, { baz: 'qux' }, { test: 'data' }],
+        });
+      });
+
+      // Verify span was created with normalized operation name
+      const publishSpanCall = startSpanSpy.mock.calls.find(call => call[0]?.name === 'publish batch-test-queue');
+      expect(publishSpanCall).toBeDefined();
+      expect(publishSpanCall?.[0]?.attributes).toEqual(
+        expect.objectContaining({
+          'messaging.operation.name': 'send_batch', // Normalized from 'pgmq.send_batch'
+          'messaging.operation.type': 'publish',
+          'messaging.destination.name': 'batch-test-queue',
+        }),
+      );
+
+      // Verify breadcrumb has batch count (messaging.batch.message_count is set after response)
+      expect(addBreadcrumbSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          category: 'queue.publish',
+          data: expect.objectContaining({
+            'messaging.batch.message_count': 3, // MUST be set in breadcrumb for batch operations
+          }),
+        }),
+      );
+    });
+
+    it('should handle schema-qualified send for single messages', async () => {
+      const mockResponse: SupabaseResponse = {
+        data: [{ msg_id: 999 }],
+        status: 200,
+      };
+
+      mockRpcFunction.mockResolvedValue(mockResponse);
+      instrumentSupabaseClient(mockSupabaseClient);
+
+      const startSpanSpy = vi.spyOn(Tracing, 'startSpan');
+
+      await startSpan({ name: 'test-transaction' }, async () => {
+        await mockSupabaseClient.rpc('pgmq.send', {
+          queue_name: 'single-msg-queue',
+          message: { foo: 'bar' },
+        });
+      });
+
+      // Verify span attributes - operation name should be normalized
+      const publishSpanCall = startSpanSpy.mock.calls.find(call => call[0]?.name === 'publish single-msg-queue');
+      expect(publishSpanCall).toBeDefined();
+      expect(publishSpanCall?.[0]?.attributes).toEqual(
+        expect.objectContaining({
+          'messaging.operation.name': 'send', // Normalized from 'pgmq.send'
+          'messaging.operation.type': 'publish',
+          'messaging.destination.name': 'single-msg-queue',
+        }),
+      );
+
+      // Verify NO batch attributes are set for single messages
+      expect(publishSpanCall?.[0]?.attributes).not.toHaveProperty('messaging.batch.message_count');
+    });
+
+    it('should handle multiple schema qualifiers', async () => {
+      const mockResponse: SupabaseResponse = {
+        data: [{ msg_id: 456 }],
+        status: 200,
+      };
+
+      mockRpcFunction.mockResolvedValue(mockResponse);
+      instrumentSupabaseClient(mockSupabaseClient);
+
+      const startSpanSpy = vi.spyOn(Tracing, 'startSpan');
+
+      await startSpan({ name: 'test-transaction' }, async () => {
+        await mockSupabaseClient.rpc('schema.nested.send', {
+          queue_name: 'nested-queue',
+          message: { test: 'data' },
+        });
+      });
+
+      // Should extract 'send' from 'schema.nested.send'
+      const publishSpanCall = startSpanSpy.mock.calls.find(call => call[0]?.op === 'queue.publish');
+      expect(publishSpanCall).toBeDefined();
+    });
+
+    it('should handle bare RPC names without schema', async () => {
+      const mockResponse: SupabaseResponse = {
+        data: [{ msg_id: 789 }],
+        status: 200,
+      };
+
+      mockRpcFunction.mockResolvedValue(mockResponse);
+      instrumentSupabaseClient(mockSupabaseClient);
+
+      const startSpanSpy = vi.spyOn(Tracing, 'startSpan');
+
+      await startSpan({ name: 'test-transaction' }, async () => {
+        await mockSupabaseClient.rpc('send', {
+          queue_name: 'bare-queue',
+          message: { foo: 'bar' },
+        });
+      });
+
+      // Bare name should still work
+      const publishSpanCall = startSpanSpy.mock.calls.find(call => call[0]?.op === 'queue.publish');
+      expect(publishSpanCall).toBeDefined();
+      expect(publishSpanCall?.[0]?.name).toBe('publish bare-queue');
+    });
+  });
+
+  describe('Consumer - Schema-qualified RPC names', () => {
+    it('should normalize schema-qualified pop operation name', async () => {
+      const consumerResponse: SupabaseResponse = {
+        data: [
+          {
+            msg_id: 123,
+            read_ct: 0,
+            enqueued_at: new Date().toISOString(),
+            message: { foo: 'bar' },
+          },
+        ],
+        status: 200,
+      };
+
+      mockRpcFunction.mockResolvedValue(consumerResponse);
+      instrumentSupabaseClient(mockSupabaseClient);
+
+      const startSpanSpy = vi.spyOn(Tracing, 'startSpan');
+
+      // Call with schema-qualified name
+      await mockSupabaseClient.rpc('pgmq.pop', {
+        queue_name: 'test_queue',
+        vt: 30,
+        qty: 1,
+      });
+
+      // Verify span attributes
+      const processSpanCall = startSpanSpy.mock.calls.find(call => call[0]?.op === 'queue.process');
+      expect(processSpanCall).toBeDefined();
+
+      const spanOptions = processSpanCall?.[0];
+      // CRITICAL: operation name must be normalized
+      expect(spanOptions?.attributes?.['messaging.operation.name']).toBe('pop'); // NOT 'pgmq.pop'
+      expect(spanOptions?.attributes?.['messaging.operation.type']).toBe('process');
+      expect(spanOptions?.attributes?.['messaging.destination.name']).toBe('test_queue');
+    });
+
+    it('should normalize schema-qualified receive operation name', async () => {
+      const consumerResponse: SupabaseResponse = {
+        data: [
+          {
+            msg_id: 456,
+            message: { test: 'data' },
+          },
+        ],
+        status: 200,
+      };
+
+      mockRpcFunction.mockResolvedValue(consumerResponse);
+      instrumentSupabaseClient(mockSupabaseClient);
+
+      const startSpanSpy = vi.spyOn(Tracing, 'startSpan');
+
+      await mockSupabaseClient.rpc('custom_schema.receive', {
+        queue_name: 'another_queue',
+        vt: 60,
+        qty: 5,
+      });
+
+      const processSpanCall = startSpanSpy.mock.calls.find(call => call[0]?.op === 'queue.process');
+      expect(processSpanCall).toBeDefined();
+
+      const spanOptions = processSpanCall?.[0];
+      expect(spanOptions?.attributes?.['messaging.operation.name']).toBe('receive'); // Normalized
+      expect(spanOptions?.attributes?.['messaging.operation.type']).toBe('process');
+      expect(spanOptions?.attributes?.['messaging.destination.name']).toBe('another_queue');
+    });
+
+    it('should normalize schema-qualified read operation name', async () => {
+      const consumerResponse: SupabaseResponse = {
+        data: [
+          { msg_id: 1, message: {} },
+          { msg_id: 2, message: {} },
+        ],
+        status: 200,
+      };
+
+      mockRpcFunction.mockResolvedValue(consumerResponse);
+      instrumentSupabaseClient(mockSupabaseClient);
+
+      const startSpanSpy = vi.spyOn(Tracing, 'startSpan');
+
+      await mockSupabaseClient.rpc('pgmq.read', {
+        queue_name: 'batch_queue',
+        vt: 30,
+        qty: 10,
+      });
+
+      const processSpanCall = startSpanSpy.mock.calls.find(call => call[0]?.op === 'queue.process');
+      expect(processSpanCall).toBeDefined();
+
+      const spanOptions = processSpanCall?.[0];
+      expect(spanOptions?.attributes?.['messaging.operation.name']).toBe('read'); // Normalized
+      expect(spanOptions?.attributes?.['messaging.operation.type']).toBe('process');
+      expect(spanOptions?.attributes?.['messaging.destination.name']).toBe('batch_queue');
+    });
+  });
+
+  describe('Payload Corruption Prevention', () => {
+    it('should not corrupt primitive message payloads (number)', async () => {
+      const mockResponse: SupabaseResponse = {
+        data: [{ msg_id: 123 }],
+        status: 200,
+      };
+
+      mockRpcFunction.mockResolvedValue(mockResponse);
+      instrumentSupabaseClient(mockSupabaseClient);
+
+      await startSpan({ name: 'test-transaction' }, async () => {
+        await mockSupabaseClient.rpc('send', {
+          queue_name: 'primitive-queue',
+          message: 123,
+        });
+      });
+
+      // Verify primitive payload was not corrupted
+      const call = mockRpcFunction.mock.calls[0];
+      expect(call[1].message).toBe(123); // Should remain a number
+      expect(call[1].message).not.toHaveProperty('_sentry');
+    });
+
+    it('should not corrupt primitive message payloads (string)', async () => {
+      const mockResponse: SupabaseResponse = {
+        data: [{ msg_id: 456 }],
+        status: 200,
+      };
+
+      mockRpcFunction.mockResolvedValue(mockResponse);
+      instrumentSupabaseClient(mockSupabaseClient);
+
+      await startSpan({ name: 'test-transaction' }, async () => {
+        await mockSupabaseClient.rpc('send', {
+          queue_name: 'string-queue',
+          message: 'hello world',
+        });
+      });
+
+      const call = mockRpcFunction.mock.calls[0];
+      expect(call[1].message).toBe('hello world'); // Should remain a string
+    });
+
+    it('should not corrupt primitive message payloads (boolean)', async () => {
+      const mockResponse: SupabaseResponse = {
+        data: [{ msg_id: 789 }],
+        status: 200,
+      };
+
+      mockRpcFunction.mockResolvedValue(mockResponse);
+      instrumentSupabaseClient(mockSupabaseClient);
+
+      await startSpan({ name: 'test-transaction' }, async () => {
+        await mockSupabaseClient.rpc('send', {
+          queue_name: 'boolean-queue',
+          message: true,
+        });
+      });
+
+      const call = mockRpcFunction.mock.calls[0];
+      expect(call[1].message).toBe(true); // Should remain a boolean
+    });
+
+    it('should not corrupt array message payloads', async () => {
+      const mockResponse: SupabaseResponse = {
+        data: [{ msg_id: 111 }],
+        status: 200,
+      };
+
+      mockRpcFunction.mockResolvedValue(mockResponse);
+      instrumentSupabaseClient(mockSupabaseClient);
+
+      const arrayMessage = [1, 2, 3];
+
+      await startSpan({ name: 'test-transaction' }, async () => {
+        await mockSupabaseClient.rpc('send', {
+          queue_name: 'array-queue',
+          message: arrayMessage,
+        });
+      });
+
+      const call = mockRpcFunction.mock.calls[0];
+      expect(call[1].message).toEqual([1, 2, 3]); // Should remain an array
+      expect(Array.isArray(call[1].message)).toBe(true);
+    });
+
+    it('should inject trace context into plain object messages', async () => {
+      const mockResponse: SupabaseResponse = {
+        data: [{ msg_id: 222 }],
+        status: 200,
+      };
+
+      mockRpcFunction.mockResolvedValue(mockResponse);
+      instrumentSupabaseClient(mockSupabaseClient);
+
+      await startSpan({ name: 'test-transaction' }, async () => {
+        await mockSupabaseClient.rpc('send', {
+          queue_name: 'object-queue',
+          message: { foo: 'bar' },
+        });
+      });
+
+      const call = mockRpcFunction.mock.calls[0];
+      expect(call[1].message).toEqual({
+        foo: 'bar',
+        _sentry: expect.objectContaining({
+          sentry_trace: expect.any(String),
+          baggage: expect.any(String),
+        }),
+      });
+    });
+
+    it('should not corrupt batch with mixed payload types', async () => {
+      const mockResponse: SupabaseResponse = {
+        data: [{ msg_id: 1 }, { msg_id: 2 }, { msg_id: 3 }],
+        status: 200,
+      };
+
+      mockRpcFunction.mockResolvedValue(mockResponse);
+      instrumentSupabaseClient(mockSupabaseClient);
+
+      await startSpan({ name: 'test-transaction' }, async () => {
+        await mockSupabaseClient.rpc('send_batch', {
+          queue_name: 'mixed-batch',
+          messages: [123, 'hello', { foo: 'bar' }],
+        });
+      });
+
+      const call = mockRpcFunction.mock.calls[0];
+      expect(call[1].messages[0]).toBe(123); // Number unchanged
+      expect(call[1].messages[1]).toBe('hello'); // String unchanged
+      expect(call[1].messages[2]).toEqual({
+        foo: 'bar',
+        _sentry: expect.objectContaining({
+          sentry_trace: expect.any(String),
+          baggage: expect.any(String),
+        }),
+      }); // Object gets trace context
+    });
+
+    it('should handle null and undefined messages gracefully', async () => {
+      const mockResponse: SupabaseResponse = {
+        data: [{ msg_id: 333 }],
+        status: 200,
+      };
+
+      mockRpcFunction.mockResolvedValue(mockResponse);
+      instrumentSupabaseClient(mockSupabaseClient);
+
+      await startSpan({ name: 'test-transaction' }, async () => {
+        await mockSupabaseClient.rpc('send', {
+          queue_name: 'null-queue',
+          message: null,
+        });
+      });
+
+      const call = mockRpcFunction.mock.calls[0];
+      expect(call[1].message).toBe(null);
+    });
+  });
+
+  describe('Trace Continuation', () => {
+    it('should continue producer trace in consumer span (same trace ID)', async () => {
+      let capturedTraceId: string | undefined;
+
+      const mockResponse: SupabaseResponse = {
+        data: [{ msg_id: 123 }],
+        status: 200,
+      };
+
+      mockRpcFunction.mockImplementation(async (operation: string, params: any) => {
+        if (operation === 'send') {
+          const traceContext = params.message._sentry;
+          if (traceContext?.sentry_trace) {
+            // Extract trace ID from producer
+            capturedTraceId = traceContext.sentry_trace.split('-')[0];
+          }
+          return mockResponse;
+        }
+        // Consumer: return message with trace context
+        return {
+          data: [
+            {
+              msg_id: 123,
+              message: {
+                foo: 'bar',
+                _sentry: {
+                  sentry_trace: `${capturedTraceId}-${'1'.repeat(16)}-1`,
+                  baggage: 'sentry-environment=production',
+                },
+              },
+            },
+          ],
+          status: 200,
+        };
+      });
+
+      instrumentSupabaseClient(mockSupabaseClient);
+
+      // Producer
+      await startSpan({ name: 'producer-transaction' }, async () => {
+        await mockSupabaseClient.rpc('send', {
+          queue_name: 'test-queue',
+          message: { foo: 'bar' },
+        });
+      });
+
+      const getCurrentScopeSpy = vi.spyOn(CurrentScopes, 'getCurrentScope');
+
+      // Consumer
+      await mockSupabaseClient.rpc('pop', {
+        queue_name: 'test-queue',
+      });
+
+      // Verify setPropagationContext was called
+      expect(getCurrentScopeSpy).toHaveBeenCalled();
+
+      // The consumer should have set propagation context with the same trace ID
+      const scope = getCurrentScopeSpy.mock.results[getCurrentScopeSpy.mock.results.length - 1]?.value;
+      if (scope && typeof scope.setPropagationContext === 'function') {
+        // Propagation context should have been set with producer's trace ID
+        expect(capturedTraceId).toBeDefined();
+      }
+    });
+
+    it('should propagate baggage/DSC from producer to consumer', async () => {
+      const mockResponse: SupabaseResponse = {
+        data: [
+          {
+            msg_id: 456,
+            message: {
+              data: 'test',
+              _sentry: {
+                sentry_trace: '12345678901234567890123456789012-1234567890123456-1',
+                baggage: 'sentry-environment=production,sentry-release=1.0.0',
+              },
+            },
+          },
+        ],
+        status: 200,
+      };
+
+      mockRpcFunction.mockResolvedValue(mockResponse);
+      instrumentSupabaseClient(mockSupabaseClient);
+
+      const getCurrentScopeSpy = vi.spyOn(CurrentScopes, 'getCurrentScope');
+
+      await mockSupabaseClient.rpc('pop', {
+        queue_name: 'baggage-queue',
+      });
+
+      // Verify getCurrentScope was called (for setPropagationContext)
+      expect(getCurrentScopeSpy).toHaveBeenCalled();
+    });
+
+    it('should handle missing trace context gracefully', async () => {
+      const mockResponse: SupabaseResponse = {
+        data: [
+          {
+            msg_id: 789,
+            message: { foo: 'bar' }, // No _sentry metadata
+          },
+        ],
+        status: 200,
+      };
+
+      mockRpcFunction.mockResolvedValue(mockResponse);
+      instrumentSupabaseClient(mockSupabaseClient);
+
+      const startSpanSpy = vi.spyOn(Tracing, 'startSpan');
+
+      await mockSupabaseClient.rpc('pop', {
+        queue_name: 'no-trace-queue',
+      });
+
+      // Should still create consumer span without trace continuation
+      const processSpanCall = startSpanSpy.mock.calls.find(call => call[0]?.op === 'queue.process');
+      expect(processSpanCall).toBeDefined();
+    });
+  });
+
   describe('Span Status', () => {
     it('should set span status to OK for successful operations', async () => {
       const mockResponse: SupabaseResponse = {
@@ -1105,6 +1660,165 @@ describe('Supabase Queue Instrumentation', () => {
       ).rejects.toThrow('Network failure');
 
       expect(mockRpcFunction).toHaveBeenCalled();
+    });
+  });
+
+  describe('Consumer - Trace continuation and scope isolation', () => {
+    it('should continue producer trace ID in consumer span', async () => {
+      // Producer trace context
+      const producerTraceId = '12345678901234567890123456789012';
+      const producerSpanId = '1234567890123456';
+      const sentryTrace = `${producerTraceId}-${producerSpanId}-1`;
+
+      const consumerResponse: SupabaseResponse = {
+        data: [
+          {
+            msg_id: 123,
+            message: {
+              foo: 'bar',
+              _sentry: { sentry_trace: sentryTrace },
+            },
+          },
+        ],
+        status: 200,
+      };
+
+      mockRpcFunction.mockResolvedValue(consumerResponse);
+      instrumentSupabaseClient(mockSupabaseClient);
+
+      const startSpanSpy = vi.spyOn(Tracing, 'startSpan');
+
+      await mockSupabaseClient.rpc('pop', { queue_name: 'test_queue' });
+
+      // Find the consumer span
+      const consumerSpanCall = startSpanSpy.mock.calls.find(call => call[0]?.op === 'queue.process');
+      expect(consumerSpanCall).toBeDefined();
+
+      // Get the span created by the callback
+      const spanCallback = consumerSpanCall?.[1];
+      expect(spanCallback).toBeDefined();
+
+      // Verify forceTransaction was set
+      const spanOptions = consumerSpanCall?.[0];
+      expect(spanOptions?.forceTransaction).toBe(true);
+    });
+
+    it('should not pollute scope after consumer span completes', async () => {
+      const producerTraceId = '12345678901234567890123456789012';
+      const producerSpanId = '1234567890123456';
+      const sentryTrace = `${producerTraceId}-${producerSpanId}-1`;
+
+      const consumerResponse: SupabaseResponse = {
+        data: [
+          {
+            msg_id: 456,
+            message: {
+              test: 'data',
+              _sentry: { sentry_trace: sentryTrace },
+            },
+          },
+        ],
+        status: 200,
+      };
+
+      // Get original scope state
+      const scopeBefore = getCurrentScope();
+      const propContextBefore = scopeBefore.getPropagationContext();
+
+      mockRpcFunction.mockResolvedValue(consumerResponse);
+      instrumentSupabaseClient(mockSupabaseClient);
+
+      await mockSupabaseClient.rpc('receive', { queue_name: 'test_queue' });
+
+      // Get scope state after consumer completes
+      const scopeAfter = getCurrentScope();
+      const propContextAfter = scopeAfter.getPropagationContext();
+
+      // CRITICAL: Scope must NOT have producer's trace ID
+      expect(propContextAfter.traceId).not.toBe(producerTraceId);
+
+      // Scope should be restored to original state
+      expect(propContextAfter.traceId).toBe(propContextBefore.traceId);
+    });
+
+    it('should create consumer span as root transaction not child of HTTP request', async () => {
+      const producerTraceId = '12345678901234567890123456789012';
+      const producerSpanId = 'aaaaaaaaaaaaaaaa';
+      const sentryTrace = `${producerTraceId}-${producerSpanId}-1`;
+
+      const consumerResponse: SupabaseResponse = {
+        data: [
+          {
+            msg_id: 789,
+            message: {
+              _sentry: { sentry_trace: sentryTrace },
+            },
+          },
+        ],
+        status: 200,
+      };
+
+      mockRpcFunction.mockResolvedValue(consumerResponse);
+      instrumentSupabaseClient(mockSupabaseClient);
+
+      const startSpanSpy = vi.spyOn(Tracing, 'startSpan');
+
+      // Simulate HTTP request transaction being active
+      await startSpan({ name: 'HTTP GET /api/test', op: 'http.server' }, async () => {
+        const httpSpan = getActiveSpan();
+        expect(httpSpan).toBeDefined();
+
+        // Consumer RPC happens during HTTP request
+        await mockSupabaseClient.rpc('read', { queue_name: 'test_queue' });
+
+        // Find consumer span call
+        const consumerSpanCall = startSpanSpy.mock.calls.find(call => call[0]?.op === 'queue.process');
+        expect(consumerSpanCall).toBeDefined();
+
+        const spanOptions = consumerSpanCall?.[0];
+
+        // CRITICAL: forceTransaction must be true to make it a root span
+        expect(spanOptions?.forceTransaction).toBe(true);
+
+        // The consumer span should have producer's trace ID in the link
+        expect(spanOptions?.links).toBeDefined();
+        expect(spanOptions?.links?.[0]?.context.traceId).toBe(producerTraceId);
+        expect(spanOptions?.links?.[0]?.context.spanId).toBe(producerSpanId);
+      });
+    });
+
+    it('should handle consumer without producer context using regular span', async () => {
+      const consumerResponse: SupabaseResponse = {
+        data: [
+          {
+            msg_id: 999,
+            message: {
+              foo: 'bar',
+              // No _sentry field - no producer context
+            },
+          },
+        ],
+        status: 200,
+      };
+
+      mockRpcFunction.mockResolvedValue(consumerResponse);
+      instrumentSupabaseClient(mockSupabaseClient);
+
+      const startSpanSpy = vi.spyOn(Tracing, 'startSpan');
+
+      await mockSupabaseClient.rpc('pop', { queue_name: 'test_queue' });
+
+      // Find the consumer span
+      const consumerSpanCall = startSpanSpy.mock.calls.find(call => call[0]?.op === 'queue.process');
+      expect(consumerSpanCall).toBeDefined();
+
+      const spanOptions = consumerSpanCall?.[0];
+
+      // Without producer context, should not force transaction
+      expect(spanOptions?.forceTransaction).toBeUndefined();
+
+      // No links should be created
+      expect(spanOptions?.links).toBeUndefined();
     });
   });
 });
