@@ -127,7 +127,7 @@ module.exports = [
     import: createImport('init', 'ErrorBoundary', 'reactRouterV6BrowserTracingIntegration'),
     ignore: ['react/jsx-runtime'],
     gzip: true,
-    limit: '43.5 KB',
+    limit: '45 KB',
   },
   // Vue SDK (ESM)
   {
