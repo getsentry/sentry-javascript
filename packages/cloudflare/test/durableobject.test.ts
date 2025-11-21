@@ -116,11 +116,18 @@ describe('instrumentDurableObjectWithSentry', () => {
   });
 
   it('flush performs after all waitUntil promises are finished', async () => {
+    // Spy on Client.prototype.flush and mock it to resolve immediately to avoid timeout issues with fake timers
+    const flush = vi.spyOn(SentryCore.Client.prototype, 'flush').mockResolvedValue(true);
     vi.useFakeTimers();
     onTestFinished(() => {
       vi.useRealTimers();
     });
-    const flush = vi.spyOn(SentryCore.Client.prototype, 'flush');
+
+    // Measure delta instead of absolute call count to avoid interference from parallel tests.
+    // Since we spy on the prototype, other tests running in parallel may also call flush.
+    // By measuring before/after, we only verify that THIS test triggered exactly one flush call.
+    const before = flush.mock.calls.length;
+
     const waitUntil = vi.fn();
     const testClass = vi.fn(context => ({
       fetch: () => {
@@ -151,8 +158,11 @@ describe('instrumentDurableObjectWithSentry', () => {
     vi.advanceTimersToNextTimer();
     await Promise.all(waitUntil.mock.calls.map(([p]) => p));
 
-    // Now flush should have been called
-    expect(flush).toBeCalled();
+    const after = flush.mock.calls.length;
+    const delta = after - before;
+
+    // Verify that exactly one flush call was made during this test
+    expect(delta).toBe(1);
   });
 
   describe('instrumentPrototypeMethods option', () => {
