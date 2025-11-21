@@ -2,7 +2,11 @@
 // Instrumentation for https://github.com/porsager/postgres
 import { context, trace } from '@opentelemetry/api';
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
-import { InstrumentationBase, InstrumentationNodeModuleDefinition } from '@opentelemetry/instrumentation';
+import {
+  InstrumentationBase,
+  InstrumentationNodeModuleDefinition,
+  safeExecuteInTheMiddle,
+} from '@opentelemetry/instrumentation';
 import {
   ATTR_DB_NAMESPACE,
   ATTR_DB_OPERATION_NAME,
@@ -385,14 +389,18 @@ export class PostgresJsInstrumentation extends InstrumentationBase<PostgresJsIns
           self._setConnectionAttributes(span, connectionContext);
 
           const config = self.getConfig();
-          if (config.requestHook) {
-            try {
-              config.requestHook(span, sanitizedSqlQuery, connectionContext);
-            } catch (e) {
-              // Set attribute to indicate hook failure, making it visible in spans
-              span.setAttribute('sentry.hook.error', 'requestHook failed');
-              DEBUG_BUILD && debug.error(`Error in requestHook for ${INTEGRATION_NAME} integration:`, e);
-            }
+          const { requestHook } = config;
+          if (requestHook) {
+            safeExecuteInTheMiddle(
+              () => requestHook(span, sanitizedSqlQuery, connectionContext),
+              e => {
+                if (e) {
+                  span.setAttribute('sentry.hook.error', 'requestHook failed');
+                  DEBUG_BUILD && debug.error(`Error in requestHook for ${INTEGRATION_NAME} integration:`, e);
+                }
+              },
+              true,
+            );
           }
 
           const queryWithCallbacks = this as {
