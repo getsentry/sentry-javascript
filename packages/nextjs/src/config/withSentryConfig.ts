@@ -125,7 +125,11 @@ function getFinalConfigObject(
       const resolvedTunnelRoute = resolveTunnelRoute(userSentryOptions.tunnelRoute);
       userSentryOptions.tunnelRoute = resolvedTunnelRoute || undefined;
 
-      setUpTunnelRewriteRules(incomingUserNextConfigObject, resolvedTunnelRoute);
+      setUpTunnelRewriteRules(
+        incomingUserNextConfigObject,
+        resolvedTunnelRoute,
+        userSentryOptions._tunnelRouteDestinationOverride,
+      );
     }
   }
 
@@ -389,7 +393,11 @@ function getFinalConfigObject(
  *
  * See https://nextjs.org/docs/api-reference/next.config.js/rewrites.
  */
-function setUpTunnelRewriteRules(userNextConfig: NextConfigObject, tunnelPath: string): void {
+function setUpTunnelRewriteRules(
+  userNextConfig: NextConfigObject,
+  tunnelPath: string,
+  destinationOverride?: string,
+): void {
   const originalRewrites = userNextConfig.rewrites;
 
   // This function doesn't take any arguments at the time of writing but we future-proof
@@ -411,7 +419,7 @@ function setUpTunnelRewriteRules(userNextConfig: NextConfigObject, tunnelPath: s
           value: '(?<projectid>\\d*)',
         },
       ],
-      destination: 'https://o:orgid.ingest.sentry.io/api/:projectid/envelope/?hsts=0',
+      destination: destinationOverride || 'https://o:orgid.ingest.sentry.io/api/:projectid/envelope/?hsts=0',
     };
 
     const tunnelRouteRewriteWithRegion = {
@@ -435,7 +443,7 @@ function setUpTunnelRewriteRules(userNextConfig: NextConfigObject, tunnelPath: s
           value: '(?<region>[a-z]{2})',
         },
       ],
-      destination: 'https://o:orgid.ingest.:region.sentry.io/api/:projectid/envelope/?hsts=0',
+      destination: destinationOverride || 'https://o:orgid.ingest.:region.sentry.io/api/:projectid/envelope/?hsts=0',
     };
 
     // Order of these is important, they get applied first to last.
