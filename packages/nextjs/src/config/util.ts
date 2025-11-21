@@ -181,37 +181,3 @@ export function detectActiveBundler(): 'turbopack' | 'webpack' {
     return 'webpack';
   }
 }
-
-/**
- * Finds the middleware or proxy file in the Next.js project.
- * Next.js only allows one middleware file, so this returns the first match.
- */
-export function findMiddlewareFile(): { path: string; contents: string } | undefined {
-  const projectDir = process.cwd();
-
-  // In Next.js 16+, the file is called 'proxy', in earlier versions it's 'middleware'
-  const nextVersion = getNextjsVersion();
-  const nextMajor = nextVersion ? parseSemver(nextVersion).major : undefined;
-  const basename = nextMajor && nextMajor >= 16 ? 'proxy' : 'middleware';
-  const directories = [projectDir, `${projectDir}/src`];
-  const extensions = ['.ts', '.js'];
-
-  // Find the first existing middleware/proxy file
-  for (const dir of directories) {
-    for (const ext of extensions) {
-      const filePath = `${dir}/${basename}${ext}`;
-      if (fs.existsSync(filePath)) {
-        try {
-          const contents = fs.readFileSync(filePath, 'utf-8');
-
-          return { path: filePath, contents };
-        } catch {
-          // If we can't read the file, continue searching
-          continue;
-        }
-      }
-    }
-  }
-
-  return undefined;
-}
