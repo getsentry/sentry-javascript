@@ -1,6 +1,6 @@
 import { KoaInstrumentation } from '@opentelemetry/instrumentation-koa';
 import { INSTRUMENTED } from '@sentry/node-core';
-import { type MockInstance, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, type MockInstance, vi } from 'vitest';
 import { instrumentKoa, koaIntegration } from '../../../src/integrations/tracing/koa';
 
 vi.mock('@opentelemetry/instrumentation-koa');

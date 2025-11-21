@@ -861,13 +861,13 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    */
   public emit(hook: 'idleSpanEnableAutoFinish', span: Span): void;
 
-  /*
+  /**
    * Fire a hook event for envelope creation and sending. Expects to be given an envelope as the
    * second argument.
    */
   public emit(hook: 'beforeEnvelope', envelope: Envelope): void;
 
-  /*
+  /**
    * Fire a hook indicating that stack frame metadata should be applied to the event passed to the hook.
    */
   public emit(hook: 'applyFrameMetadata', event: Event): void;
@@ -897,7 +897,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    */
   public emit(hook: 'postprocessEvent', event: Event, hint?: EventHint): void;
 
-  /*
+  /**
    * Fire a hook event after sending an event. Expects to be given an Event as the
    * second argument.
    */

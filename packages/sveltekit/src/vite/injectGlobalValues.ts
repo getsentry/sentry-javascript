@@ -1,4 +1,4 @@
-import { type InternalGlobal, escapeStringForRegex } from '@sentry/core';
+import { escapeStringForRegex, type InternalGlobal } from '@sentry/core';
 import MagicString from 'magic-string';
 import type { Plugin } from 'vite';
 import { type BackwardsForwardsCompatibleSvelteConfig, getAdapterOutputDir, getHooksFileName } from './svelteConfig';

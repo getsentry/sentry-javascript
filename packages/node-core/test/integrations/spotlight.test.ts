@@ -7,7 +7,6 @@ import { NodeClient } from '../../src/sdk/client';
 import { getDefaultNodeClientOptions } from '../helpers/getDefaultNodeClientOptions';
 
 vi.mock('node:http', async () => {
-  // eslint-disable-next-line @typescript-eslint/consistent-type-imports
   const original = await vi.importActual('node:http');
   return {
     ...original,

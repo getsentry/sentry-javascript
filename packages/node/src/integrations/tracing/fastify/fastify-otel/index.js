@@ -33,6 +33,7 @@ SOFTWARE.
 /* eslint-disable jsdoc/require-jsdoc */
 /* eslint-disable max-lines */
 /* eslint-disable no-param-reassign */
+/* eslint-disable import/named */
 import dc from 'node:diagnostics_channel';
 import { context, diag, propagation, SpanStatusCode, trace } from '@opentelemetry/api';
 import { getRPCMetadata, RPCType } from '@opentelemetry/core';

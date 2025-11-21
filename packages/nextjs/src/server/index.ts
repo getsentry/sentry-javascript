@@ -1,3 +1,4 @@
+/* eslint-disable import/export */
 import { context } from '@opentelemetry/api';
 import {
   ATTR_HTTP_REQUEST_METHOD,

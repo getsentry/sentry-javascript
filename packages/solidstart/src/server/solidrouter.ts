@@ -1,8 +1,6 @@
 import type { HashRouter, MemoryRouter, Router as BaseRouter, RouteSectionProps, StaticRouter } from '@solidjs/router';
 import type { Component, JSX, ParentProps } from 'solid-js';
-// eslint-disable-next-line import/no-extraneous-dependencies
 import { mergeProps, splitProps } from 'solid-js';
-// eslint-disable-next-line import/no-extraneous-dependencies
 import { createComponent } from 'solid-js/web';
 
 // We use @sentry/solid/solidrouter on the client.
