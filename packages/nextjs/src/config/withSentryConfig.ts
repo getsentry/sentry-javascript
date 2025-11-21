@@ -93,7 +93,7 @@ export function withSentryConfig<C>(nextConfig?: C, sentryBuildOptions: SentryBu
 
 /**
  * Checks if the user has a middleware/proxy file with a matcher that might exclude the tunnel route.
- * Warns the user if they have a matcher but are not using withSentryTunnelExclusion.
+ * Warns the user if they have a matcher but are not using withSentryMiddlewareConfig or withSentryProxyConfig.
  */
 function checkMiddlewareMatcherForTunnelRoute(tunnelPath: string): void {
   if (showedMiddlewareMatcherWarning) {
@@ -108,8 +108,11 @@ function checkMiddlewareMatcherForTunnelRoute(tunnelPath: string): void {
       return;
     }
 
-    // Check if they're already using withSentryTunnelExclusion
-    if (middlewareFile.contents.includes('withSentryTunnelExclusion')) {
+    // Check if they're already using Sentry middleware/proxy config helpers
+    if (
+      middlewareFile.contents.includes('withSentryMiddlewareConfig') ||
+      middlewareFile.contents.includes('withSentryProxyConfig')
+    ) {
       return;
     }
 
@@ -118,15 +121,16 @@ function checkMiddlewareMatcherForTunnelRoute(tunnelPath: string): void {
     const hasConfigMatcher = /export\s+const\s+config\s*=\s*{[^}]*matcher\s*:/s.test(middlewareFile.contents);
 
     if (hasConfigMatcher) {
+      const helperName = isProxy ? 'withSentryProxyConfig' : 'withSentryMiddlewareConfig';
       // eslint-disable-next-line no-console
       console.warn(
         `[@sentry/nextjs] WARNING: You have a ${isProxy ? 'proxy' : 'middleware'} file (${path.basename(middlewareFile.path)}) with a \`config.matcher\`. ` +
           `If your matcher does not include the Sentry tunnel route (${tunnelPath}), tunnel requests may be blocked. ` +
-          "To ensure your matcher doesn't interfere with Sentry event delivery, wrap your matcher with `withSentryTunnelExclusion`:\n\n" +
-          "  import { withSentryTunnelExclusion } from '@sentry/nextjs';\n" +
-          '  export const config = {\n' +
-          "    matcher: withSentryTunnelExclusion(['/your/routes']),\n" +
-          '  };\n',
+          `To ensure your matcher doesn't interfere with Sentry event delivery, wrap your config with \`${helperName}\`:\n\n` +
+          `  import { ${helperName} } from '@sentry/nextjs';\n` +
+          `  export const config = ${helperName}({\n` +
+          "    matcher: ['/your/routes'],\n" +
+          '  });\n',
       );
       showedMiddlewareMatcherWarning = true;
     }

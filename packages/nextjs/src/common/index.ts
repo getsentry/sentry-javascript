@@ -12,4 +12,4 @@ export { wrapPageComponentWithSentry } from './pages-router-instrumentation/wrap
 export { wrapGenerationFunctionWithSentry } from './wrapGenerationFunctionWithSentry';
 export { withServerActionInstrumentation } from './withServerActionInstrumentation';
 export { captureRequestError } from './captureRequestError';
-export { withSentryTunnelExclusion } from './withSentryTunnelExclusion';
+export { withSentryMiddlewareConfig, withSentryProxyConfig } from './withSentryMiddlewareConfig';
