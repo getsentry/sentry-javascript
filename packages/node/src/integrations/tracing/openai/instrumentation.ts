@@ -25,7 +25,7 @@ export interface OpenAiIntegration extends Integration {
 interface PatchedModuleExports {
   [key: string]: unknown;
   OpenAI: abstract new (...args: unknown[]) => OpenAiClient;
-  AzureOpenAI: abstract new (...args: unknown[]) => OpenAiClient;
+  AzureOpenAI?: abstract new (...args: unknown[]) => OpenAiClient;
 }
 
 /**
@@ -57,7 +57,7 @@ export class SentryOpenAiInstrumentation extends InstrumentationBase<Instrumenta
   }
 
   /**
-   * Core patch logic applying instrumentation to the OpenAI client constructor.
+   * Core patch logic applying instrumentation to the OpenAI and AzureOpenAI client constructors.
    */
   private _patch(exports: PatchedModuleExports): PatchedModuleExports | void {
     let result = exports;
@@ -66,8 +66,14 @@ export class SentryOpenAiInstrumentation extends InstrumentationBase<Instrumenta
     return result;
   }
 
+  /**
+   * Patch logic applying instrumentation to the specified client constructor.
+   */
   private _patchClient(exports: PatchedModuleExports, exportKey: 'OpenAI' | 'AzureOpenAI'): PatchedModuleExports {
     const Original = exports[exportKey];
+    if (!Original) {
+      return exports;
+    }
 
     const WrappedOpenAI = function (this: unknown, ...args: unknown[]) {
       // Check if wrapping should be skipped (e.g., when LangChain is handling instrumentation)
