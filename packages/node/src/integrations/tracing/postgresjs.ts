@@ -360,11 +360,14 @@ export class PostgresJsInstrumentation extends InstrumentationBase<PostgresJsIns
 
       const sanitizedSqlQuery = self._sanitizeSqlQuery(query.strings?.[0]);
 
-      let spanName = sanitizedSqlQuery?.trim() || '';
-      if (!spanName) {
-        // Fallback: try to extract operation from the sanitized query
-        const operationMatch = sanitizedSqlQuery?.match(SQL_OPERATION_REGEX);
-        spanName = operationMatch?.[1] ? `db.${operationMatch[1].toLowerCase()}` : 'db.query';
+      let spanName: string;
+      const operationMatch = sanitizedSqlQuery?.match(SQL_OPERATION_REGEX);
+      if (operationMatch?.[1]) {
+        spanName = `db.${operationMatch[1].toLowerCase()}`;
+      } else if (sanitizedSqlQuery?.trim()) {
+        spanName = sanitizedSqlQuery.trim();
+      } else {
+        spanName = 'db.query';
       }
 
       return startSpanManual(

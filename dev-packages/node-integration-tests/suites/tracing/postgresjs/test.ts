@@ -5,7 +5,7 @@ const EXISTING_TEST_EMAIL = 'bar@baz.com';
 const NON_EXISTING_TEST_EMAIL = 'foo@baz.com';
 
 // Helper function to create basic span matcher (reduces duplication in new tests)
-function createDbSpanMatcher(operationName: string, descriptionMatcher: any = expect.any(String)) {
+function createDbSpanMatcher(operationName: string, descriptionMatcher: unknown = expect.any(String)) {
   return expect.objectContaining({
     data: expect.objectContaining({
       'db.namespace': 'test_db',
