@@ -20,7 +20,7 @@ export function addHeadersAsAttributes(
       ? winterCGHeadersToDict(headers as Headers)
       : headers;
 
-  const headerAttributes = httpHeadersToSpanAttributes(headersDict, sendDefaultPii);
+  const headerAttributes = httpHeadersToSpanAttributes(headersDict);
 
   if (span) {
     span.setAttributes(headerAttributes);

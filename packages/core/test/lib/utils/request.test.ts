@@ -613,61 +613,25 @@ describe('request utils', () => {
     });
 
     describe('PII filtering', () => {
-      it('filters out sensitive headers when sendDefaultPii is false (default)', () => {
-        const headers = {
-          'Content-Type': 'application/json',
-          'User-Agent': 'test-agent',
-          Authorization: 'Bearer secret-token',
-          Cookie: 'session=abc123',
-          'X-API-Key': 'api-key-123',
-          'X-Auth-Token': 'auth-token-456',
-        };
-
-        const result = httpHeadersToSpanAttributes(headers, false);
-
-        expect(result).toEqual({
-          'http.request.header.content_type': 'application/json',
-          'http.request.header.user_agent': 'test-agent',
-          // Sensitive headers should be filtered out
-        });
-      });
-
-      it('includes sensitive headers when sendDefaultPii is true', () => {
-        const headers = {
-          'Content-Type': 'application/json',
-          'User-Agent': 'test-agent',
-          Authorization: 'Bearer secret-token',
-          Cookie: 'session=abc123',
-          'X-API-Key': 'api-key-123',
-        };
-
-        const result = httpHeadersToSpanAttributes(headers, true);
-
-        expect(result).toEqual({
-          'http.request.header.content_type': 'application/json',
-          'http.request.header.user_agent': 'test-agent',
-          'http.request.header.authorization': 'Bearer secret-token',
-          'http.request.header.cookie': 'session=abc123',
-          'http.request.header.x_api_key': 'api-key-123',
-        });
-      });
-
       it('filters sensitive headers case-insensitively', () => {
         const headers = {
           AUTHORIZATION: 'Bearer secret-token',
           Cookie: 'session=abc123',
-          'x-api-key': 'key-123',
+          'x-aPi-kEy': 'key-123',
           'Content-Type': 'application/json',
         };
 
-        const result = httpHeadersToSpanAttributes(headers, false);
+        const result = httpHeadersToSpanAttributes(headers);
 
         expect(result).toEqual({
           'http.request.header.content_type': 'application/json',
+          'http.request.header.cookie': '[Filtered]',
+          'http.request.header.x_api_key': '[Filtered]',
+          'http.request.header.authorization': '[Filtered]',
         });
       });
 
-      it('filters comprehensive list of sensitive headers', () => {
+      it('filters comprehensive list of sensitive headers when $description', () => {
         const headers = {
           'Content-Type': 'application/json',
           'User-Agent': 'test-agent',
@@ -692,15 +656,41 @@ describe('request utils', () => {
           'X-Private-Key': 'private',
           'X-Forwarded-user': 'user',
           'X-Forwarded-authorization': 'auth',
+          'x-jwt-token': 'jwt',
+          'x-bearer-token': 'bearer',
+          'x-sso-token': 'sso',
+          'x-saml-token': 'saml',
         };
 
-        const result = httpHeadersToSpanAttributes(headers, false);
+        const result = httpHeadersToSpanAttributes(headers);
 
+        // Sensitive headers are always included and redacted
         expect(result).toEqual({
           'http.request.header.content_type': 'application/json',
           'http.request.header.user_agent': 'test-agent',
           'http.request.header.accept': 'application/json',
           'http.request.header.host': 'example.com',
+          'http.request.header.authorization': '[Filtered]',
+          'http.request.header.cookie': '[Filtered]',
+          'http.request.header.set_cookie': '[Filtered]',
+          'http.request.header.x_api_key': '[Filtered]',
+          'http.request.header.x_auth_token': '[Filtered]',
+          'http.request.header.x_secret': '[Filtered]',
+          'http.request.header.x_secret_key': '[Filtered]',
+          'http.request.header.www_authenticate': '[Filtered]',
+          'http.request.header.proxy_authorization': '[Filtered]',
+          'http.request.header.x_access_token': '[Filtered]',
+          'http.request.header.x_csrf_token': '[Filtered]',
+          'http.request.header.x_xsrf_token': '[Filtered]',
+          'http.request.header.x_session_token': '[Filtered]',
+          'http.request.header.x_password': '[Filtered]',
+          'http.request.header.x_private_key': '[Filtered]',
+          'http.request.header.x_forwarded_user': '[Filtered]',
+          'http.request.header.x_forwarded_authorization': '[Filtered]',
+          'http.request.header.x_jwt_token': '[Filtered]',
+          'http.request.header.x_bearer_token': '[Filtered]',
+          'http.request.header.x_sso_token': '[Filtered]',
+          'http.request.header.x_saml_token': '[Filtered]',
         });
       });
     });

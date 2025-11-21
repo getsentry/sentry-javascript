@@ -208,8 +208,7 @@ function wrapRequestHandler<T extends RouteHandler = RouteHandler>(
     }
 
     const client = getClient();
-    const sendDefaultPii = client?.getOptions().sendDefaultPii ?? false;
-    Object.assign(attributes, httpHeadersToSpanAttributes(request.headers.toJSON(), sendDefaultPii));
+    Object.assign(attributes, httpHeadersToSpanAttributes(request.headers.toJSON()));
 
     isolationScope.setSDKProcessingMetadata({
       normalizedRequest: {
