@@ -180,7 +180,7 @@ export interface ReactRouterOptions {
    * Maximum time (in milliseconds) to wait for lazy routes to load before finalizing span names.
    *
    * - Set to `0` to not wait at all (immediate finalization)
-   * - Set to `Infinity` to wait indefinitely
+   * - Set to `Infinity` to wait as long as possible (capped at `finalTimeout` to prevent indefinite hangs)
    * - Negative values will fall back to the default
    *
    * Defaults to 3× the configured `idleTimeout` (default: 3000ms).
@@ -562,11 +562,20 @@ export function createReactRouterV6CompatibleTracingIntegration(
     setup(client) {
       integration.setup(client);
 
+      const finalTimeout = options.finalTimeout ?? 30000;
       const defaultMaxWait = (options.idleTimeout ?? 1000) * 3;
       const configuredMaxWait = lazyRouteTimeout ?? defaultMaxWait;
 
-      // Validate and set
-      if (Number.isNaN(configuredMaxWait)) {
+      // Cap Infinity at finalTimeout to prevent indefinite hangs
+      if (configuredMaxWait === Infinity) {
+        _lazyRouteTimeout = finalTimeout;
+        DEBUG_BUILD &&
+          debug.log(
+            '[React Router] lazyRouteTimeout set to Infinity, capping at finalTimeout:',
+            finalTimeout,
+            'ms to prevent indefinite hangs',
+          );
+      } else if (Number.isNaN(configuredMaxWait)) {
         DEBUG_BUILD &&
           debug.warn('[React Router] lazyRouteTimeout must be a number, falling back to default:', defaultMaxWait);
         _lazyRouteTimeout = defaultMaxWait;

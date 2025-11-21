@@ -35,7 +35,7 @@ test('lazyRouteTimeout: Infinity timeout always waits for routes', async ({ page
     );
   });
 
-  // Infinity timeout → waits however long needed
+  // Infinity timeout → waits as long as possible (capped at finalTimeout to prevent indefinite hangs)
   await page.goto('/?idleTimeout=50&timeout=Infinity');
 
   const navigationLink = page.locator('id=navigation-to-deep');
@@ -44,7 +44,7 @@ test('lazyRouteTimeout: Infinity timeout always waits for routes', async ({ page
 
   const event = await transactionPromise;
 
-  // Should wait indefinitely and get full route
+  // Should wait for routes to load (up to finalTimeout) and get full route
   expect(event.transaction).toBe('/deep/level2/level3/:id');
   expect(event.contexts?.trace?.data?.['sentry.source']).toBe('route');
   expect(event.contexts?.trace?.data?.['sentry.idle_span_finish_reason']).toBe('idleTimeout');
