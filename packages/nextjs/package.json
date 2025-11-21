@@ -80,7 +80,7 @@
     "@opentelemetry/semantic-conventions": "^1.37.0",
     "@rollup/plugin-commonjs": "28.0.1",
     "@sentry-internal/browser-utils": "10.26.0",
-    "@sentry/bundler-plugin-core": "^4.3.0",
+    "@sentry/bundler-plugin-core": "^4.6.1",
     "@sentry/core": "10.26.0",
     "@sentry/node": "10.26.0",
     "@sentry/opentelemetry": "10.26.0",
