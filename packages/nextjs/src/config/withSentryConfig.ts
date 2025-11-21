@@ -18,6 +18,7 @@ import type {
 } from './types';
 import {
   detectActiveBundler,
+  findMiddlewareFile,
   getNextjsVersion,
   requiresInstrumentationHook,
   supportsProductionCompileHook,
@@ -26,6 +27,7 @@ import { constructWebpackConfigFunction } from './webpack';
 
 let showedExportModeTunnelWarning = false;
 let showedExperimentalBuildModeWarning = false;
+let showedMiddlewareMatcherWarning = false;
 
 // Packages we auto-instrument need to be external for instrumentation to work
 // Next.js externalizes some packages by default, see: https://nextjs.org/docs/app/api-reference/config/next-config-js/serverExternalPackages
@@ -90,6 +92,50 @@ export function withSentryConfig<C>(nextConfig?: C, sentryBuildOptions: SentryBu
 }
 
 /**
+ * Checks if the user has a middleware/proxy file with a matcher that might exclude the tunnel route.
+ * Warns the user if they have a matcher but are not using withSentryTunnelExclusion.
+ */
+function checkMiddlewareMatcherForTunnelRoute(tunnelPath: string): void {
+  if (showedMiddlewareMatcherWarning) {
+    return;
+  }
+
+  try {
+    const middlewareFile = findMiddlewareFile();
+
+    // No middleware file found
+    if (!middlewareFile) {
+      return;
+    }
+
+    // Check if they're already using withSentryTunnelExclusion
+    if (middlewareFile.contents.includes('withSentryTunnelExclusion')) {
+      return;
+    }
+
+    // Look for config.matcher export
+    const isProxy = middlewareFile.path.includes('proxy');
+    const hasConfigMatcher = /export\s+const\s+config\s*=\s*{[^}]*matcher\s*:/s.test(middlewareFile.contents);
+
+    if (hasConfigMatcher) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[@sentry/nextjs] WARNING: You have a ${isProxy ? 'proxy' : 'middleware'} file (${path.basename(middlewareFile.path)}) with a \`config.matcher\`. ` +
+          `If your matcher does not include the Sentry tunnel route (${tunnelPath}), tunnel requests may be blocked. ` +
+          "To ensure your matcher doesn't interfere with Sentry event delivery, wrap your matcher with `withSentryTunnelExclusion`:\n\n" +
+          "  import { withSentryTunnelExclusion } from '@sentry/nextjs';\n" +
+          '  export const config = {\n' +
+          "    matcher: withSentryTunnelExclusion(['/your/routes']),\n" +
+          '  };\n',
+      );
+      showedMiddlewareMatcherWarning = true;
+    }
+  } catch {
+    // Silently fail - this is just a helpful warning, not critical
+  }
+}
+
+/**
  * Generates a random tunnel route path that's less likely to be blocked by ad-blockers
  */
 function generateRandomTunnelRoute(): string {
@@ -126,6 +172,7 @@ function getFinalConfigObject(
       userSentryOptions.tunnelRoute = resolvedTunnelRoute || undefined;
 
       setUpTunnelRewriteRules(incomingUserNextConfigObject, resolvedTunnelRoute);
+      checkMiddlewareMatcherForTunnelRoute(resolvedTunnelRoute);
     }
   }
 
