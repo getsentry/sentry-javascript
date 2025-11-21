@@ -1,4 +1,4 @@
-import type { EventEnvelope, Integration, IntegrationFn, Profile, Span } from '@sentry/core';
+import type { EventEnvelope, IntegrationFn, Profile, Span } from '@sentry/core';
 import { debug, defineIntegration, getActiveSpan, getRootSpan, hasSpansEnabled } from '@sentry/core';
 import type { BrowserOptions } from '../client';
 import { DEBUG_BUILD } from '../debug-build';
@@ -23,9 +23,9 @@ const INTEGRATION_NAME = 'BrowserProfiling';
 const _browserProfilingIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
-    _profiler: new UIProfiler(),
     setup(client) {
       const options = client.getOptions() as BrowserOptions;
+      const profiler = new UIProfiler();
 
       if (!hasLegacyProfiling(options) && !options.profileLifecycle) {
         // Set default lifecycle mode
@@ -52,8 +52,12 @@ const _browserProfilingIntegration = (() => {
       if (!hasLegacyProfiling(options)) {
         const lifecycleMode = options.profileLifecycle;
 
+        // Registering hooks in all lifecycle modes to be able to notify users in case they want to start/stop the profiler manually in `trace` mode
+        client.on('startUIProfiler', () => profiler.start());
+        client.on('stopUIProfiler', () => profiler.stop());
+
         if (lifecycleMode === 'manual') {
-          this._profiler.initialize(client);
+          profiler.initialize(client);
         } else if (lifecycleMode === 'trace') {
           if (!hasSpansEnabled(options)) {
             DEBUG_BUILD &&
@@ -63,11 +67,11 @@ const _browserProfilingIntegration = (() => {
             return;
           }
 
-          this._profiler.initialize(client);
+          profiler.initialize(client);
 
           // If there is an active, sampled root span already, notify the profiler
           if (rootSpan) {
-            this._profiler.notifyRootSpanActive(rootSpan);
+            profiler.notifyRootSpanActive(rootSpan);
           }
 
           // In case rootSpan is created slightly after setup -> schedule microtask to re-check and notify.
@@ -75,7 +79,7 @@ const _browserProfilingIntegration = (() => {
             const laterActiveSpan = getActiveSpan();
             const laterRootSpan = laterActiveSpan && getRootSpan(laterActiveSpan);
             if (laterRootSpan) {
-              this._profiler.notifyRootSpanActive(laterRootSpan);
+              profiler.notifyRootSpanActive(laterRootSpan);
             }
           }, 0);
         }
@@ -151,10 +155,6 @@ const _browserProfilingIntegration = (() => {
       return attachProfiledThreadToEvent(event);
     },
   };
-}) satisfies IntegrationFn<BrowserProfilingIntegration>;
-
-interface BrowserProfilingIntegration extends Integration {
-  _profiler: UIProfiler;
-}
+}) satisfies IntegrationFn;
 
 export const browserProfilingIntegration = defineIntegration(_browserProfilingIntegration);

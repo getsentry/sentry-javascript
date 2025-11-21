@@ -1,17 +1,6 @@
-import type { Profiler, ProfilingIntegration } from '@sentry/core';
+import type { Profiler } from '@sentry/core';
 import { debug, getClient } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
-
-function isProfilingIntegrationWithProfiler(
-  integration: ProfilingIntegration | undefined,
-): integration is ProfilingIntegration {
-  return (
-    !!integration &&
-    typeof integration['_profiler'] !== 'undefined' &&
-    typeof integration['_profiler']['start'] === 'function' &&
-    typeof integration['_profiler']['stop'] === 'function'
-  );
-}
 
 /**
  * Starts the Sentry UI profiler.
@@ -25,19 +14,14 @@ function startProfiler(): void {
     return;
   }
 
-  const integration = client.getIntegrationByName<ProfilingIntegration>('BrowserProfiling');
+  const integration = client.getIntegrationByName('BrowserProfiling');
 
   if (!integration) {
     DEBUG_BUILD && debug.warn('BrowserProfiling integration is not available');
     return;
   }
 
-  if (!isProfilingIntegrationWithProfiler(integration)) {
-    DEBUG_BUILD && debug.warn('Profiler is not available on profiling integration.');
-    return;
-  }
-
-  integration._profiler.start();
+  client.emit('startUIProfiler');
 }
 
 /**
@@ -51,18 +35,13 @@ function stopProfiler(): void {
     return;
   }
 
-  const integration = client.getIntegrationByName<ProfilingIntegration>('BrowserProfiling');
+  const integration = client.getIntegrationByName('BrowserProfiling');
   if (!integration) {
     DEBUG_BUILD && debug.warn('ProfilingIntegration is not available');
     return;
   }
 
-  if (!isProfilingIntegrationWithProfiler(integration)) {
-    DEBUG_BUILD && debug.warn('Profiler is not available on profiling integration.');
-    return;
-  }
-
-  integration._profiler.stop();
+  client.emit('stopUIProfiler');
 }
 
 /**
