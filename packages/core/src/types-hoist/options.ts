@@ -540,22 +540,3 @@ export interface CoreOptions<TO extends BaseTransportOptions = BaseTransportOpti
    */
   stackParser?: StackParser | StackLineParser[];
 }
-
-function myBeforeSendLog(log: Log) {
-  log.attributes = {
-    ...log.attributes,
-    myAttribute: 'myAttributeValue',
-  };
-
-  if (log.attributes?.['myAttribute'] === 'something') {
-    log.attributes['myAttribute'] = 'something else';
-  }
-
-  log.attributes['otherAttribute'] = log.attributes['myAttribute'];
-
-  delete log.attributes['myAttribute'];
-
-  log.attributes['myAttribute'];
-
-  return log;
-}
