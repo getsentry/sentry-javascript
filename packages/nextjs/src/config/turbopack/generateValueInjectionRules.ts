@@ -8,9 +8,11 @@ import type { JSONValue, TurbopackMatcherWithRule } from '../types';
 export function generateValueInjectionRules({
   routeManifest,
   nextJsVersion,
+  tunnelPath,
 }: {
   routeManifest?: RouteManifest;
   nextJsVersion?: string;
+  tunnelPath?: string;
 }): TurbopackMatcherWithRule[] {
   const rules: TurbopackMatcherWithRule[] = [];
   const isomorphicValues: Record<string, JSONValue> = {};
@@ -24,6 +26,11 @@ export function generateValueInjectionRules({
 
   if (routeManifest) {
     clientValues._sentryRouteManifest = JSON.stringify(routeManifest);
+  }
+
+  // Inject tunnel route path for both client and server
+  if (tunnelPath) {
+    isomorphicValues._sentryRewritesTunnelPath = tunnelPath;
   }
 
   if (Object.keys(isomorphicValues).length > 0) {

@@ -20,23 +20,31 @@ export function constructTurbopackConfig({
   nextJsVersion,
 }: {
   userNextConfig: NextConfigObject;
-  userSentryOptions: SentryBuildOptions;
+  userSentryOptions?: SentryBuildOptions;
   routeManifest?: RouteManifest;
   nextJsVersion?: string;
 }): TurbopackOptions {
   // If sourcemaps are disabled, we don't need to enable native debug ids as this will add build time.
   const shouldEnableNativeDebugIds =
     (supportsNativeDebugIds(nextJsVersion ?? '') && userNextConfig?.turbopack?.debugIds) ??
-    userSentryOptions.sourcemaps?.disable !== true;
+    userSentryOptions?.sourcemaps?.disable !== true;
 
   const newConfig: TurbopackOptions = {
     ...userNextConfig.turbopack,
     ...(shouldEnableNativeDebugIds ? { debugIds: true } : {}),
   };
 
+  const tunnelPath =
+    userSentryOptions?.tunnelRoute !== undefined &&
+    userNextConfig.output !== 'export' &&
+    typeof userSentryOptions.tunnelRoute === 'string'
+      ? `${userNextConfig.basePath ?? ''}${userSentryOptions.tunnelRoute}`
+      : undefined;
+
   const valueInjectionRules = generateValueInjectionRules({
     routeManifest,
     nextJsVersion,
+    tunnelPath,
   });
 
   for (const { matcher, rule } of valueInjectionRules) {
