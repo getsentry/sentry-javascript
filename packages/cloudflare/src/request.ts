@@ -8,13 +8,14 @@ import {
   parseStringToURLObject,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   setHttpStatus,
-  startSpan,
+  startSpanManual,
   winterCGHeadersToDict,
   withIsolationScope,
 } from '@sentry/core';
 import type { CloudflareOptions } from './client';
 import { addCloudResourceContext, addCultureContext, addRequest } from './scope-utils';
 import { init } from './sdk';
+import { classifyResponseStreaming } from './utils/streaming';
 
 interface RequestHandlerWrapperOptions {
   options: CloudflareOptions;
@@ -98,26 +99,64 @@ export function wrapRequestHandler(
         // Note: This span will not have a duration unless I/O happens in the handler. This is
         // because of how the cloudflare workers runtime works.
         // See: https://developers.cloudflare.com/workers/runtime-apis/performance/
-        return startSpan(
-          {
-            name,
-            attributes,
-          },
-          async span => {
-            try {
-              const res = await handler();
-              setHttpStatus(span, res.status);
-              return res;
-            } catch (e) {
-              if (captureErrors) {
-                captureException(e, { mechanism: { handled: false, type: 'auto.http.cloudflare' } });
-              }
-              throw e;
-            } finally {
-              waitUntil?.(flush(2000));
+
+        // Use startSpanManual to control when span ends (needed for streaming responses)
+        return startSpanManual({ name, attributes }, async span => {
+          let res: Response;
+
+          try {
+            res = await handler();
+            setHttpStatus(span, res.status);
+          } catch (e) {
+            span.end();
+            if (captureErrors) {
+              captureException(e, { mechanism: { handled: false, type: 'auto.http.cloudflare' } });
             }
-          },
-        );
+            waitUntil?.(flush(2000));
+            throw e;
+          }
+
+          // Classify response to detect actual streaming
+          const classification = classifyResponseStreaming(res);
+
+          if (classification.isStreaming && classification.response.body) {
+            // Streaming response detected - monitor consumption to keep span alive
+            const [clientStream, monitorStream] = classification.response.body.tee();
+
+            // Monitor stream consumption and end span when complete
+            const streamMonitor = (async () => {
+              const reader = monitorStream.getReader();
+
+              try {
+                let done = false;
+                while (!done) {
+                  const result = await reader.read();
+                  done = result.done;
+                }
+              } catch {
+                // Stream error or cancellation - will end span in finally
+              } finally {
+                reader.releaseLock();
+                span.end();
+                waitUntil?.(flush(2000));
+              }
+            })();
+
+            waitUntil?.(streamMonitor);
+
+            // Return response with client stream
+            return new Response(clientStream, {
+              status: classification.response.status,
+              statusText: classification.response.statusText,
+              headers: classification.response.headers,
+            });
+          }
+
+          // Non-streaming response - end span immediately and return original
+          span.end();
+          waitUntil?.(flush(2000));
+          return classification.response;
+        });
       },
     );
   });
