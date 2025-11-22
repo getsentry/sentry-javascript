@@ -65,6 +65,11 @@ function stopProfiler(): void {
   integration._profiler.stop();
 }
 
+/**
+ * Profiler namespace for controlling the profiler in 'manual' mode.
+ *
+ * Requires the `nodeProfilingIntegration` from the `@sentry/profiling-node` package.
+ */
 export const profiler: Profiler = {
   startProfiler,
   stopProfiler,

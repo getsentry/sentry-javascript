@@ -651,8 +651,10 @@ export function shouldProfileSpanLegacy(span: Span): boolean {
     return false;
   }
 
-  // @ts-expect-error profilesSampleRate is not part of the browser options yet
-  const profilesSampleRate: number | boolean | undefined = options.profilesSampleRate;
+  // eslint-disable-next-line deprecation/deprecation
+  const profilesSampleRate = (options as BrowserOptions).profilesSampleRate as
+    | BrowserOptions['profilesSampleRate']
+    | boolean;
 
   // Since this is coming from the user (or from a function provided by the user), who knows what we might get. (The
   // only valid values are booleans or numbers between 0 and 1.)
@@ -688,18 +690,21 @@ export function shouldProfileSpanLegacy(span: Span): boolean {
 }
 
 /**
- * Determine if a profile should be created for the current session (lifecycle profiling mode).
+ * Determine if a profile should be created for the current session.
  */
 export function shouldProfileSession(options: BrowserOptions): boolean {
   // If constructor failed once, it will always fail, so we can early return.
   if (PROFILING_CONSTRUCTOR_FAILED) {
     if (DEBUG_BUILD) {
-      debug.log('[Profiling] Profiling has been disabled for the duration of the current user session.');
+      debug.log(
+        '[Profiling] Profiling has been disabled for the duration of the current user session as the JS Profiler could not be started.',
+      );
     }
     return false;
   }
 
-  if (options.profileLifecycle !== 'trace') {
+  if (options.profileLifecycle !== 'trace' && options.profileLifecycle !== 'manual') {
+    DEBUG_BUILD && debug.warn('[Profiling] Session not sampled. Invalid `profileLifecycle` option.');
     return false;
   }
 
@@ -724,6 +729,7 @@ export function shouldProfileSession(options: BrowserOptions): boolean {
  * Checks if legacy profiling is configured.
  */
 export function hasLegacyProfiling(options: BrowserOptions): boolean {
+  // eslint-disable-next-line deprecation/deprecation
   return typeof options.profilesSampleRate !== 'undefined';
 }
 

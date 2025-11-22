@@ -90,7 +90,7 @@ export function validateProfile(
     }
   }
 
-  // Frames
+  // FRAMES
   expect(profile.frames.length).toBeGreaterThan(0);
   for (const frame of profile.frames) {
     expect(frame).toHaveProperty('function');

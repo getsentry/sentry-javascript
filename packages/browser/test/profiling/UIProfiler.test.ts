@@ -3,8 +3,20 @@
  */
 
 import * as Sentry from '@sentry/browser';
-import type { Span } from '@sentry/core';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { type Span, debug } from '@sentry/core';
+import { type Mock, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { BrowserOptions } from '../../src/index';
+
+function getBaseOptionsForTraceLifecycle(sendMock: Mock<any>, enableTracing = true): BrowserOptions {
+  return {
+    dsn: 'https://public@o.ingest.sentry.io/1',
+    ...(enableTracing ? { tracesSampleRate: 1 } : {}),
+    profileSessionSampleRate: 1,
+    profileLifecycle: 'trace',
+    integrations: [Sentry.browserProfilingIntegration()],
+    transport: () => ({ flush: vi.fn().mockResolvedValue(true), send: sendMock }),
+  };
+}
 
 describe('Browser Profiling v2 trace lifecycle', () => {
   afterEach(async () => {
@@ -48,12 +60,7 @@ describe('Browser Profiling v2 trace lifecycle', () => {
 
     Sentry.init({
       // tracing disabled
-      dsn: 'https://public@o.ingest.sentry.io/1',
-      profileSessionSampleRate: 1,
-      profileLifecycle: 'trace',
-      integrations: [Sentry.browserProfilingIntegration()],
-      // no tracesSampleRate/tracesSampler
-      transport: () => ({ flush: vi.fn().mockResolvedValue(true), send }),
+      ...getBaseOptionsForTraceLifecycle(send, false),
     });
 
     // warning is logged by our debug logger only when DEBUG_BUILD, so just assert no throw and no profiler
@@ -79,12 +86,7 @@ describe('Browser Profiling v2 trace lifecycle', () => {
       const send = vi.fn().mockResolvedValue(undefined);
 
       Sentry.init({
-        dsn: 'https://public@o.ingest.sentry.io/1',
-        tracesSampleRate: 1,
-        profileSessionSampleRate: 1,
-        profileLifecycle: 'trace',
-        integrations: [Sentry.browserProfilingIntegration()],
-        transport: () => ({ flush: vi.fn().mockResolvedValue(true), send }),
+        ...getBaseOptionsForTraceLifecycle(send),
       });
 
       let spanRef: any;
@@ -112,12 +114,7 @@ describe('Browser Profiling v2 trace lifecycle', () => {
       const send = vi.fn().mockResolvedValue(undefined);
 
       Sentry.init({
-        dsn: 'https://public@o.ingest.sentry.io/1',
-        tracesSampleRate: 1,
-        profileSessionSampleRate: 1,
-        profileLifecycle: 'trace',
-        integrations: [Sentry.browserProfilingIntegration()],
-        transport: () => ({ flush: vi.fn().mockResolvedValue(true), send }),
+        ...getBaseOptionsForTraceLifecycle(send),
       });
 
       let spanA: any;
@@ -159,12 +156,7 @@ describe('Browser Profiling v2 trace lifecycle', () => {
       const send = vi.fn().mockResolvedValue(undefined);
 
       Sentry.init({
-        dsn: 'https://public@o.ingest.sentry.io/1',
-        tracesSampleRate: 1,
-        profileSessionSampleRate: 1,
-        profileLifecycle: 'trace',
-        integrations: [Sentry.browserProfilingIntegration()],
-        transport: () => ({ flush: vi.fn().mockResolvedValue(true), send }),
+        ...getBaseOptionsForTraceLifecycle(send),
       });
 
       let spanRef: any;
@@ -195,12 +187,7 @@ describe('Browser Profiling v2 trace lifecycle', () => {
       const send = vi.fn().mockResolvedValue(undefined);
 
       Sentry.init({
-        dsn: 'https://public@o.ingest.sentry.io/1',
-        tracesSampleRate: 1,
-        profileSessionSampleRate: 1,
-        profileLifecycle: 'trace',
-        integrations: [Sentry.browserProfilingIntegration()],
-        transport: () => ({ flush: vi.fn().mockResolvedValue(true), send }),
+        ...getBaseOptionsForTraceLifecycle(send),
       });
 
       let spanRef: any;
@@ -255,12 +242,7 @@ describe('Browser Profiling v2 trace lifecycle', () => {
       const send = vi.fn().mockResolvedValue(undefined);
 
       Sentry.init({
-        dsn: 'https://public@o.ingest.sentry.io/1',
-        tracesSampleRate: 1,
-        profileSessionSampleRate: 1,
-        profileLifecycle: 'trace',
-        integrations: [Sentry.browserProfilingIntegration()],
-        transport: () => ({ flush: vi.fn().mockResolvedValue(true), send }),
+        ...getBaseOptionsForTraceLifecycle(send),
       });
 
       Sentry.startSpanManual({ name: 'root-manual-never-ends', parentSpan: null, forceTransaction: true }, _span => {
@@ -308,12 +290,7 @@ describe('Browser Profiling v2 trace lifecycle', () => {
       const send = vi.fn().mockResolvedValue(undefined);
 
       Sentry.init({
-        dsn: 'https://public@o.ingest.sentry.io/1',
-        tracesSampleRate: 1,
-        profileSessionSampleRate: 1,
-        profileLifecycle: 'trace',
-        integrations: [Sentry.browserProfilingIntegration()],
-        transport: () => ({ flush: vi.fn().mockResolvedValue(true), send }),
+        ...getBaseOptionsForTraceLifecycle(send),
       });
 
       Sentry.startSpanManual({ name: 'root-manual-never-ends', parentSpan: null, forceTransaction: true }, _span => {
@@ -375,12 +352,7 @@ describe('Browser Profiling v2 trace lifecycle', () => {
       const send = vi.fn().mockResolvedValue(undefined);
 
       Sentry.init({
-        dsn: 'https://public@o.ingest.sentry.io/1',
-        tracesSampleRate: 1,
-        profileSessionSampleRate: 1,
-        profileLifecycle: 'trace',
-        integrations: [Sentry.browserProfilingIntegration()],
-        transport: () => ({ flush: vi.fn().mockResolvedValue(true), send }),
+        ...getBaseOptionsForTraceLifecycle(send),
       });
 
       Sentry.startSpan({ name: 'root-for-context', parentSpan: null, forceTransaction: true }, () => {
@@ -440,12 +412,7 @@ describe('Browser Profiling v2 trace lifecycle', () => {
       const send = vi.fn().mockResolvedValue(undefined);
 
       Sentry.init({
-        dsn: 'https://public@o.ingest.sentry.io/1',
-        tracesSampleRate: 1,
-        profileSessionSampleRate: 1,
-        profileLifecycle: 'trace',
-        integrations: [Sentry.browserProfilingIntegration()],
-        transport: () => ({ flush: vi.fn().mockResolvedValue(true), send }),
+        ...getBaseOptionsForTraceLifecycle(send),
       });
 
       Sentry.startSpan({ name: 'rootSpan-1', parentSpan: null, forceTransaction: true }, () => {
@@ -499,12 +466,7 @@ describe('Browser Profiling v2 trace lifecycle', () => {
       const send = vi.fn().mockResolvedValue(undefined);
 
       Sentry.init({
-        dsn: 'https://public@o.ingest.sentry.io/1',
-        tracesSampleRate: 1,
-        profileSessionSampleRate: 1,
-        profileLifecycle: 'trace',
-        integrations: [Sentry.browserProfilingIntegration()],
-        transport: () => ({ flush: vi.fn().mockResolvedValue(true), send }),
+        ...getBaseOptionsForTraceLifecycle(send),
       });
 
       Sentry.startSpan({ name: 'rootSpan-chunk-1', parentSpan: null, forceTransaction: true }, () => {
@@ -563,12 +525,7 @@ describe('Browser Profiling v2 trace lifecycle', () => {
       // Session 1
       const send1 = vi.fn().mockResolvedValue(undefined);
       Sentry.init({
-        dsn: 'https://public@o.ingest.sentry.io/1',
-        tracesSampleRate: 1,
-        profileSessionSampleRate: 1,
-        profileLifecycle: 'trace',
-        integrations: [Sentry.browserProfilingIntegration()],
-        transport: () => ({ flush: vi.fn().mockResolvedValue(true), send: send1 }),
+        ...getBaseOptionsForTraceLifecycle(send1),
       });
 
       Sentry.startSpan({ name: 'session-1-rootSpan', parentSpan: null, forceTransaction: true }, () => {
@@ -598,12 +555,7 @@ describe('Browser Profiling v2 trace lifecycle', () => {
       // Session 2 (new init simulates new user session)
       const send2 = vi.fn().mockResolvedValue(undefined);
       Sentry.init({
-        dsn: 'https://public@o.ingest.sentry.io/1',
-        tracesSampleRate: 1,
-        profileSessionSampleRate: 1,
-        profileLifecycle: 'trace',
-        integrations: [Sentry.browserProfilingIntegration()],
-        transport: () => ({ flush: vi.fn().mockResolvedValue(true), send: send2 }),
+        ...getBaseOptionsForTraceLifecycle(send2),
       });
 
       Sentry.startSpan({ name: 'session-2-rootSpan', parentSpan: null, forceTransaction: true }, () => {
@@ -626,6 +578,273 @@ describe('Browser Profiling v2 trace lifecycle', () => {
       for (const chunk of chunks2) {
         expect(chunk?.profiler_id).toBe(profilerId2);
       }
+    });
+  });
+
+  it('calling start and stop in trace lifecycle prints warnings', async () => {
+    const { stop } = mockProfiler();
+    const send = vi.fn().mockResolvedValue(undefined);
+    const debugWarnSpy = vi.spyOn(debug, 'warn');
+
+    Sentry.init({
+      ...getBaseOptionsForTraceLifecycle(send),
+      debug: true,
+    });
+
+    Sentry.uiProfiler.startProfiler();
+    Sentry.uiProfiler.startProfiler();
+
+    expect(debugWarnSpy).toHaveBeenCalledWith(
+      '[Profiling] `profileLifecycle` is set to "trace". Calls to `uiProfiler.start()` are ignored in trace mode.',
+    );
+
+    Sentry.uiProfiler.stopProfiler();
+    await Promise.resolve();
+
+    debugWarnSpy.mockClear();
+    Sentry.uiProfiler.stopProfiler();
+    await Promise.resolve();
+
+    expect(stop).toHaveBeenCalledTimes(0);
+    expect(debugWarnSpy).toHaveBeenCalledWith(
+      '[Profiling] `profileLifecycle` is set to "trace". Calls to `uiProfiler.stop()` are ignored in trace mode.',
+    );
+  });
+});
+
+function getBaseOptionsForManualLifecycle(sendMock: Mock<any>, enableTracing = true): BrowserOptions {
+  return {
+    dsn: 'https://public@o.ingest.sentry.io/1',
+    ...(enableTracing ? { tracesSampleRate: 1 } : {}),
+    profileSessionSampleRate: 1,
+    profileLifecycle: 'manual',
+    integrations: [Sentry.browserProfilingIntegration()],
+    transport: () => ({ flush: vi.fn().mockResolvedValue(true), send: sendMock }),
+  };
+}
+
+describe('Browser Profiling v2 manual lifecycle', () => {
+  afterEach(async () => {
+    const client = Sentry.getClient();
+    await client?.close();
+    // reset profiler constructor
+    (window as any).Profiler = undefined;
+    vi.restoreAllMocks();
+  });
+
+  function mockProfiler() {
+    const stop = vi.fn().mockResolvedValue({
+      frames: [{ name: 'f' }],
+      stacks: [{ frameId: 0 }],
+      samples: [{ timestamp: 0 }, { timestamp: 10 }],
+      resources: [],
+    });
+
+    class MockProfilerImpl {
+      stopped: boolean = false;
+      constructor(_opts: { sampleInterval: number; maxBufferSize: number }) {}
+      stop() {
+        this.stopped = true;
+        return stop();
+      }
+      addEventListener() {}
+    }
+
+    const mockConstructor = vi.fn().mockImplementation((opts: { sampleInterval: number; maxBufferSize: number }) => {
+      return new MockProfilerImpl(opts);
+    });
+
+    (window as any).Profiler = mockConstructor;
+    return { stop, mockConstructor };
+  }
+
+  it('starts and stops a profile session', async () => {
+    const { stop, mockConstructor } = mockProfiler();
+    const send = vi.fn().mockResolvedValue(undefined);
+
+    Sentry.init({
+      ...getBaseOptionsForManualLifecycle(send),
+    });
+
+    const client = Sentry.getClient();
+    expect(client).toBeDefined();
+
+    Sentry.uiProfiler.startProfiler();
+    expect(mockConstructor).toHaveBeenCalledTimes(1);
+
+    Sentry.uiProfiler.stopProfiler();
+    await Promise.resolve();
+
+    expect(stop).toHaveBeenCalledTimes(1);
+    expect(send).toHaveBeenCalledTimes(1);
+    const envelopeHeader = send.mock.calls?.[0]?.[0]?.[1]?.[0]?.[0];
+    expect(envelopeHeader?.type).toBe('profile_chunk');
+  });
+
+  it('calling start and stop while profile session is running prints warnings', async () => {
+    const { stop, mockConstructor } = mockProfiler();
+    const send = vi.fn().mockResolvedValue(undefined);
+    const debugWarnSpy = vi.spyOn(debug, 'warn');
+
+    Sentry.init({
+      ...getBaseOptionsForManualLifecycle(send),
+      debug: true,
+    });
+
+    Sentry.uiProfiler.startProfiler();
+    Sentry.uiProfiler.startProfiler();
+
+    expect(mockConstructor).toHaveBeenCalledTimes(1);
+    expect(debugWarnSpy).toHaveBeenCalledWith(
+      '[Profiling] Profile session is already running, `uiProfiler.start()` is a no-op.',
+    );
+
+    Sentry.uiProfiler.stopProfiler();
+    await Promise.resolve();
+
+    debugWarnSpy.mockClear();
+    Sentry.uiProfiler.stopProfiler();
+    await Promise.resolve();
+
+    expect(stop).toHaveBeenCalledTimes(1);
+    expect(debugWarnSpy).toHaveBeenCalledWith('[Profiling] Profiler is not running, `uiProfiler.stop()` is a no-op.');
+  });
+
+  it('profileSessionSampleRate is required', async () => {
+    const { stop, mockConstructor } = mockProfiler();
+    const send = vi.fn().mockResolvedValue(undefined);
+    const debugWarnSpy = vi.spyOn(debug, 'warn');
+
+    Sentry.init({
+      ...getBaseOptionsForManualLifecycle(send),
+      profileSessionSampleRate: undefined,
+    });
+
+    Sentry.uiProfiler.startProfiler();
+    expect(debugWarnSpy).toHaveBeenCalledWith(
+      '[Profiling] Invalid sample rate. Sample rate must be a boolean or a number between 0 and 1. Got undefined of type "undefined".',
+    );
+    expect(debugWarnSpy).toHaveBeenCalledWith('[Profiling] Session is not sampled, `uiProfiler.start()` is a no-op.');
+    Sentry.uiProfiler.stopProfiler();
+    await Promise.resolve();
+
+    expect(mockConstructor).not.toHaveBeenCalled();
+    expect(stop).not.toHaveBeenCalled();
+  });
+
+  it('does not start profiler when profileSessionSampleRate is 0', async () => {
+    const { stop, mockConstructor } = mockProfiler();
+    const send = vi.fn().mockResolvedValue(undefined);
+
+    Sentry.init({
+      ...getBaseOptionsForManualLifecycle(send),
+      profileSessionSampleRate: 0,
+    });
+
+    Sentry.uiProfiler.startProfiler();
+    Sentry.uiProfiler.stopProfiler();
+    await Promise.resolve();
+
+    expect(mockConstructor).not.toHaveBeenCalled();
+    expect(stop).not.toHaveBeenCalled();
+  });
+
+  describe('envelope', () => {
+    beforeEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('sends a profile_chunk envelope type', async () => {
+      const stop = vi.fn().mockResolvedValue({
+        frames: [{ name: 'f' }],
+        stacks: [{ frameId: 0 }],
+        samples: [{ timestamp: 0 }, { timestamp: 10 }],
+        resources: [],
+      });
+
+      class MockProfilerImpl {
+        stopped: boolean = false;
+        constructor(_opts: { sampleInterval: number; maxBufferSize: number }) {}
+        stop() {
+          this.stopped = true;
+          return stop();
+        }
+        addEventListener() {}
+      }
+
+      (window as any).Profiler = vi
+        .fn()
+        .mockImplementation((opts: { sampleInterval: number; maxBufferSize: number }) => new MockProfilerImpl(opts));
+
+      const send = vi.fn().mockResolvedValue(undefined);
+
+      Sentry.init({
+        ...getBaseOptionsForManualLifecycle(send),
+      });
+
+      const client = Sentry.getClient();
+
+      Sentry.uiProfiler.startProfiler();
+      await new Promise(resolve => setTimeout(resolve, 10));
+      Sentry.uiProfiler.stopProfiler();
+
+      await client?.flush(1000);
+
+      expect(send.mock.calls?.[0]?.[0]?.[1]?.[0]?.[0]).toMatchObject({
+        type: 'profile_chunk',
+      });
+
+      expect(send.mock.calls?.[0]?.[0]?.[1]?.[0]?.[1]).toMatchObject({
+        profiler_id: expect.any(String),
+        chunk_id: expect.any(String),
+        profile: expect.objectContaining({
+          stacks: expect.any(Array),
+        }),
+      });
+    });
+
+    it('reuses the same profiler_id while profiling across multiple stop/start calls', async () => {
+      mockProfiler();
+      const send = vi.fn().mockResolvedValue(undefined);
+
+      Sentry.init({
+        ...getBaseOptionsForManualLifecycle(send),
+      });
+
+      // 1. profiling cycle
+      Sentry.uiProfiler.startProfiler();
+      Sentry.startSpan({ name: 'manual-span-1', parentSpan: null, forceTransaction: true }, () => {});
+      Sentry.uiProfiler.stopProfiler();
+      await Promise.resolve();
+
+      // Not profiled -> should not have profile context
+      Sentry.startSpan({ name: 'manual-span-between', parentSpan: null, forceTransaction: true }, () => {});
+
+      // 2. profiling cycle
+      Sentry.uiProfiler.startProfiler();
+      Sentry.startSpan({ name: 'manual-span-2', parentSpan: null, forceTransaction: true }, () => {});
+      Sentry.uiProfiler.stopProfiler();
+      await Promise.resolve();
+
+      const client = Sentry.getClient();
+      await client?.flush(1000);
+
+      const calls = send.mock.calls;
+      const transactionEvents = calls
+        .filter(call => call?.[0]?.[1]?.[0]?.[0]?.type === 'transaction')
+        .map(call => call?.[0]?.[1]?.[0]?.[1]);
+
+      expect(transactionEvents.length).toBe(3);
+
+      const firstProfilerId = transactionEvents[0]?.contexts?.profile?.profiler_id;
+      expect(typeof firstProfilerId).toBe('string');
+
+      // Middle transaction (not profiled)
+      expect(transactionEvents[1]?.contexts?.profile?.profiler_id).toBeUndefined();
+
+      const thirdProfilerId = transactionEvents[2]?.contexts?.profile?.profiler_id;
+      expect(typeof thirdProfilerId).toBe('string');
+      expect(firstProfilerId).toBe(thirdProfilerId); // same profiler_id across session
     });
   });
 });
