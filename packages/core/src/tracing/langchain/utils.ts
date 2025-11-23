@@ -381,10 +381,16 @@ export function extractLlmResponseAttributes(
   if (!llmResult) return;
 
   const attrs: Record<string, SpanAttributeValue> = {};
+  const llmOutput = (llmResult.llmOutput ?? {}) as {
+    model_name?: string;
+    model?: string;
+    id?: string;
+    stop_reason?: string;
+  };
 
   if (Array.isArray(llmResult.generations)) {
-    const finishReasons = llmResult.generations
-      .flat()
+    const flatGen = llmResult.generations.flat()
+    const finishReasons = flatGen
       .map(g => g.generation_info?.finish_reason)
       .filter((r): r is string => typeof r === 'string');
 
@@ -396,8 +402,7 @@ export function extractLlmResponseAttributes(
     addToolCallsAttributes(llmResult.generations as LangChainMessage[][], attrs);
 
     if (recordOutputs) {
-      const texts = llmResult.generations
-        .flat()
+      const texts = flatGen
         .map(gen => gen.text ?? gen.message?.content)
         .filter(t => typeof t === 'string');
 
@@ -405,16 +410,29 @@ export function extractLlmResponseAttributes(
         setIfDefined(attrs, GEN_AI_RESPONSE_TEXT_ATTRIBUTE, asString(texts));
       }
     }
+
+    // set these properties on our output if found in the gen messages data
+    if (!llmOutput.id) {
+      llmOutput.id = flatGen.map(gen => gen.message?.id)
+        .filter(id => typeof id === 'string')
+        .join(',')
+    }
+
+    if (!llmOutput.model_name && !llmOutput.model) {
+      llmOutput.model_name = flatGen
+        .map(gen => gen.message?.response_metadata?.model_name ?? gen.message?.response_metadata?.model)
+        .filter(model => typeof model === 'string')
+        .join(',')
+    }
   }
 
   addTokenUsageAttributes(llmResult.llmOutput, attrs);
 
-  const llmOutput = llmResult.llmOutput as { model_name?: string; model?: string; id?: string; stop_reason?: string };
   // Provider model identifier: `model_name` (OpenAI-style) or `model` (others)
-  const modelName = llmOutput?.model_name ?? llmOutput?.model;
+  const modelName = llmOutput.model_name ?? llmOutput.model
   if (modelName) setIfDefined(attrs, GEN_AI_RESPONSE_MODEL_ATTRIBUTE, modelName);
 
-  if (llmOutput?.id) {
+  if (llmOutput.id) {
     setIfDefined(attrs, GEN_AI_RESPONSE_ID_ATTRIBUTE, llmOutput.id);
   }
 
