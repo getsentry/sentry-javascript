@@ -42,11 +42,15 @@ export interface LangChainMessage {
     content?: unknown[];
     type?: string;
   };
+  response_metadata?: {
+    model?: string
+    model_name?: string;
+  };
   role?: string;
   additional_kwargs?: Record<string, unknown>;
   // LangChain serialized format
   lc?: number;
-  id?: string[];
+  id?: string[] | string;
   kwargs?: {
     [key: string]: unknown;
     content?: string;
