@@ -11,13 +11,14 @@ import { _INTERNAL_flushMetricsBuffer } from './metrics/internal';
 import type { Scope } from './scope';
 import { updateSession } from './session';
 import { getDynamicSamplingContextFromScope } from './tracing/dynamicSamplingContext';
+import { DEFAULT_TRANSPORT_BUFFER_SIZE } from './transports/base';
 import type { Breadcrumb, BreadcrumbHint, FetchBreadcrumbHint, XhrBreadcrumbHint } from './types-hoist/breadcrumb';
 import type { CheckIn, MonitorConfig } from './types-hoist/checkin';
 import type { EventDropReason, Outcome } from './types-hoist/clientreport';
 import type { DataCategory } from './types-hoist/datacategory';
 import type { DsnComponents } from './types-hoist/dsn';
 import type { DynamicSamplingContext, Envelope } from './types-hoist/envelope';
-import type { ErrorEvent, Event, EventHint, TransactionEvent } from './types-hoist/event';
+import type { ErrorEvent, Event, EventHint, EventType, TransactionEvent } from './types-hoist/event';
 import type { EventProcessor } from './types-hoist/eventprocessor';
 import type { FeedbackEvent } from './types-hoist/feedback';
 import type { Integration } from './types-hoist/integration';
@@ -43,6 +44,7 @@ import { merge } from './utils/merge';
 import { checkOrSetAlreadyCaught, uuid4 } from './utils/misc';
 import { parseSampleRate } from './utils/parseSampleRate';
 import { prepareEvent } from './utils/prepareEvent';
+import { type PromiseBuffer, makePromiseBuffer, SENTRY_BUFFER_FULL_ERROR } from './utils/promisebuffer';
 import { reparentChildSpans, shouldIgnoreSpan } from './utils/should-ignore-span';
 import { showSpanDropWarning } from './utils/spanUtils';
 import { rejectedSyncPromise } from './utils/syncpromise';
@@ -201,6 +203,8 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   // eslint-disable-next-line @typescript-eslint/ban-types
   private _hooks: Record<string, Set<Function>>;
 
+  private _promiseBuffer: PromiseBuffer<unknown>;
+
   /**
    * Initializes this client instance.
    *
@@ -213,6 +217,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     this._outcomes = {};
     this._hooks = {};
     this._eventProcessors = [];
+    this._promiseBuffer = makePromiseBuffer(options.transportOptions?.bufferSize ?? DEFAULT_TRANSPORT_BUFFER_SIZE);
 
     if (options.dsn) {
       this._dsn = makeDsn(options.dsn);
@@ -233,6 +238,11 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
         url,
       });
     }
+
+    // Backfill enableLogs option from _experiments.enableLogs
+    // TODO(v11): Remove or change default value
+    // eslint-disable-next-line deprecation/deprecation
+    this._options.enableLogs = this._options.enableLogs ?? this._options._experiments?.enableLogs;
 
     // Setup log flushing with weight and timeout tracking
     if (this._options.enableLogs) {
@@ -275,9 +285,11 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     };
 
     this._process(
-      this.eventFromException(exception, hintWithEventId).then(event =>
-        this._captureEvent(event, hintWithEventId, scope),
-      ),
+      () =>
+        this.eventFromException(exception, hintWithEventId)
+          .then(event => this._captureEvent(event, hintWithEventId, scope))
+          .then(res => res),
+      'error',
     );
 
     return hintWithEventId.event_id;
@@ -300,12 +312,15 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     };
 
     const eventMessage = isParameterizedString(message) ? message : String(message);
-
-    const promisedEvent = isPrimitive(message)
+    const isMessage = isPrimitive(message);
+    const promisedEvent = isMessage
       ? this.eventFromMessage(eventMessage, level, hintWithEventId)
       : this.eventFromException(message, hintWithEventId);
 
-    this._process(promisedEvent.then(event => this._captureEvent(event, hintWithEventId, currentScope)));
+    this._process(
+      () => promisedEvent.then(event => this._captureEvent(event, hintWithEventId, currentScope)),
+      isMessage ? 'unknown' : 'error',
+    );
 
     return hintWithEventId.event_id;
   }
@@ -332,9 +347,11 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     const sdkProcessingMetadata = event.sdkProcessingMetadata || {};
     const capturedSpanScope: Scope | undefined = sdkProcessingMetadata.capturedSpanScope;
     const capturedSpanIsolationScope: Scope | undefined = sdkProcessingMetadata.capturedSpanIsolationScope;
+    const dataCategory = getDataCategoryByType(event.type);
 
     this._process(
-      this._captureEvent(event, hintWithEventId, capturedSpanScope || currentScope, capturedSpanIsolationScope),
+      () => this._captureEvent(event, hintWithEventId, capturedSpanScope || currentScope, capturedSpanIsolationScope),
+      dataCategory,
     );
 
     return hintWithEventId.event_id;
@@ -802,6 +819,24 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   ): () => void;
 
   /**
+   * A hook that is called when the UI Profiler should start profiling.
+   *
+   * This hook is called when running `Sentry.uiProfiler.startProfiler()`.
+   *
+   * @returns {() => void} A function that, when executed, removes the registered callback.
+   */
+  public on(hook: 'startUIProfiler', callback: () => void): () => void;
+
+  /**
+   * A hook that is called when the UI Profiler should stop profiling.
+   *
+   * This hook is called when running `Sentry.uiProfiler.stopProfiler()`.
+   *
+   * @returns {() => void} A function that, when executed, removes the registered callback.
+   */
+  public on(hook: 'stopUIProfiler', callback: () => void): () => void;
+
+  /**
    * Register a hook on this client.
    */
   public on(hook: string, callback: unknown): () => void {
@@ -1016,6 +1051,16 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     response: unknown,
     normalizedRequest: RequestEventData,
   ): void;
+
+  /**
+   * Emit a hook event for starting the UI Profiler.
+   */
+  public emit(hook: 'startUIProfiler'): void;
+
+  /**
+   * Emit a hook event for stopping the UI Profiler.
+   */
+  public emit(hook: 'stopUIProfiler'): void;
 
   /**
    * Emit a hook that was previously registered via `on()`.
@@ -1252,7 +1297,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
       );
     }
 
-    const dataCategory = (eventType === 'replay_event' ? 'replay' : eventType) satisfies DataCategory;
+    const dataCategory = getDataCategoryByType(event.type);
 
     return this._prepareEvent(event, hint, currentScope, isolationScope)
       .then(prepared => {
@@ -1335,15 +1380,21 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   /**
    * Occupies the client with processing and event
    */
-  protected _process<T>(promise: PromiseLike<T>): void {
+  protected _process<T>(taskProducer: () => PromiseLike<T>, dataCategory: DataCategory): void {
     this._numProcessing++;
-    void promise.then(
+
+    void this._promiseBuffer.add(taskProducer).then(
       value => {
         this._numProcessing--;
         return value;
       },
       reason => {
         this._numProcessing--;
+
+        if (reason === SENTRY_BUFFER_FULL_ERROR) {
+          this.recordDroppedEvent('queue_overflow', dataCategory);
+        }
+
         return reason;
       },
     );
@@ -1406,6 +1457,10 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     _level?: SeverityLevel,
     _hint?: EventHint,
   ): PromiseLike<Event>;
+}
+
+function getDataCategoryByType(type: EventType | 'replay_event' | undefined): DataCategory {
+  return type === 'replay_event' ? 'replay' : type || 'error';
 }
 
 /**

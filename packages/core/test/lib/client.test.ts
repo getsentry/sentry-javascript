@@ -15,15 +15,15 @@ import {
 import * as integrationModule from '../../src/integration';
 import { _INTERNAL_captureLog } from '../../src/logs/internal';
 import { _INTERNAL_captureMetric } from '../../src/metrics/internal';
+import { DEFAULT_TRANSPORT_BUFFER_SIZE } from '../../src/transports/base';
 import type { Envelope } from '../../src/types-hoist/envelope';
 import type { ErrorEvent, Event, TransactionEvent } from '../../src/types-hoist/event';
 import type { SpanJSON } from '../../src/types-hoist/span';
 import * as debugLoggerModule from '../../src/utils/debug-logger';
 import * as miscModule from '../../src/utils/misc';
-import * as stringModule from '../../src/utils/string';
 import * as timeModule from '../../src/utils/time';
 import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
-import { AdHocIntegration, TestIntegration } from '../mocks/integration';
+import { AdHocIntegration, AsyncTestIntegration, TestIntegration } from '../mocks/integration';
 import { makeFakeTransport } from '../mocks/transport';
 import { clearGlobalScope } from '../testutils';
 
@@ -36,7 +36,6 @@ const clientProcess = vi.spyOn(TestClient.prototype as any, '_process');
 
 vi.spyOn(miscModule, 'uuid4').mockImplementation(() => '12312012123120121231201212312012');
 vi.spyOn(debugLoggerModule, 'consoleSandbox').mockImplementation(cb => cb());
-vi.spyOn(stringModule, 'truncate').mockImplementation(str => str);
 vi.spyOn(timeModule, 'dateTimestampInSeconds').mockImplementation(() => 2020);
 
 describe('Client', () => {
@@ -258,6 +257,36 @@ describe('Client', () => {
             ],
           },
           timestamp: 2020,
+        }),
+      );
+    });
+
+    test('does not truncate exception values by default', () => {
+      const exceptionMessageLength = 10_000;
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
+      const client = new TestClient(options);
+
+      client.captureException(new Error('a'.repeat(exceptionMessageLength)));
+      expect(TestClient.instance!.event).toEqual(
+        expect.objectContaining({
+          exception: {
+            values: [{ type: 'Error', value: 'a'.repeat(exceptionMessageLength) }],
+          },
+        }),
+      );
+    });
+
+    test('truncates exception values according to `maxValueLength` option', () => {
+      const maxValueLength = 10;
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, maxValueLength });
+      const client = new TestClient(options);
+
+      client.captureException(new Error('a'.repeat(50)));
+      expect(TestClient.instance!.event).toEqual(
+        expect.objectContaining({
+          exception: {
+            values: [{ type: 'Error', value: `${'a'.repeat(maxValueLength)}...` }],
+          },
         }),
       );
     });
@@ -2705,6 +2734,36 @@ describe('Client', () => {
     });
   });
 
+  describe('enableLogs', () => {
+    it('defaults to  `undefined`', () => {
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
+      const client = new TestClient(options);
+      expect(client.getOptions().enableLogs).toBeUndefined();
+    });
+
+    it('can be set as a top-level option', () => {
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableLogs: true });
+      const client = new TestClient(options);
+      expect(client.getOptions().enableLogs).toBe(true);
+    });
+
+    it('can be set as an experimental option', () => {
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, _experiments: { enableLogs: true } });
+      const client = new TestClient(options);
+      expect(client.getOptions().enableLogs).toBe(true);
+    });
+
+    test('top-level option takes precedence over experimental option', () => {
+      const options = getDefaultTestClientOptions({
+        dsn: PUBLIC_DSN,
+        enableLogs: true,
+        _experiments: { enableLogs: false },
+      });
+      const client = new TestClient(options);
+      expect(client.getOptions().enableLogs).toBe(true);
+    });
+  });
+
   describe('log weight-based flushing', () => {
     beforeEach(() => {
       vi.useFakeTimers();
@@ -2933,6 +2992,68 @@ describe('Client', () => {
       client.emit('flush');
 
       expect(sendEnvelopeSpy).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('promise buffer usage', () => {
+    it('respects the default value of the buffer size', async () => {
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
+      const client = new TestClient(options);
+
+      client.addIntegration(new AsyncTestIntegration());
+
+      Array.from({ length: DEFAULT_TRANSPORT_BUFFER_SIZE + 1 }).forEach(() => {
+        client.captureException(new Error('ʕノ•ᴥ•ʔノ ︵ ┻━┻'));
+      });
+
+      expect(client._clearOutcomes()).toEqual([{ reason: 'queue_overflow', category: 'error', quantity: 1 }]);
+    });
+
+    it('records queue_overflow when promise buffer is full', async () => {
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, transportOptions: { bufferSize: 1 } });
+      const client = new TestClient(options);
+
+      client.addIntegration(new AsyncTestIntegration());
+
+      client.captureException(new Error('first'));
+      client.captureException(new Error('second'));
+      client.captureException(new Error('third'));
+
+      expect(client._clearOutcomes()).toEqual([{ reason: 'queue_overflow', category: 'error', quantity: 2 }]);
+    });
+
+    it('records different types of dropped events', async () => {
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, transportOptions: { bufferSize: 1 } });
+      const client = new TestClient(options);
+
+      client.addIntegration(new AsyncTestIntegration());
+
+      client.captureException(new Error('first')); // error
+      client.captureException(new Error('second')); // error
+      client.captureMessage('third'); // unknown
+      client.captureEvent({ message: 'fourth' }); // error
+      client.captureEvent({ message: 'fifth', type: 'replay_event' }); // replay
+      client.captureEvent({ message: 'sixth', type: 'transaction' }); // transaction
+
+      expect(client._clearOutcomes()).toEqual([
+        { reason: 'queue_overflow', category: 'error', quantity: 2 },
+        { reason: 'queue_overflow', category: 'unknown', quantity: 1 },
+        { reason: 'queue_overflow', category: 'replay', quantity: 1 },
+        { reason: 'queue_overflow', category: 'transaction', quantity: 1 },
+      ]);
+    });
+
+    it('should skip the promise buffer with sync integrations', async () => {
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, transportOptions: { bufferSize: 1 } });
+      const client = new TestClient(options);
+
+      client.addIntegration(new TestIntegration());
+
+      client.captureException(new Error('first'));
+      client.captureException(new Error('second'));
+      client.captureException(new Error('third'));
+
+      expect(client._clearOutcomes()).toEqual([]);
     });
   });
 });

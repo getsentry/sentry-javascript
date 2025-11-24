@@ -18,10 +18,11 @@ export type BrowserClientReplayOptions = {
 };
 
 export type BrowserClientProfilingOptions = {
-  // todo: add deprecation warning for profilesSampleRate: @deprecated Use `profileSessionSampleRate` and `profileLifecycle` instead.
   /**
    * The sample rate for profiling
    * 1.0 will profile all transactions and 0 will profile none.
+   *
+   * @deprecated Use `profileSessionSampleRate` and `profileLifecycle` instead.
    */
   profilesSampleRate?: number;
 

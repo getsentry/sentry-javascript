@@ -17,9 +17,9 @@
     "test:assert": "pnpm -v"
   },
   "dependencies": {
-    "@astrojs/cloudflare": "8.1.0",
+    "@astrojs/cloudflare": "12.6.11",
     "@sentry/astro": "latest || *",
-    "astro": "4.16.18"
+    "astro": "5.15.9"
   },
   "devDependencies": {
     "@astrojs/internal-helpers": "0.4.1"
