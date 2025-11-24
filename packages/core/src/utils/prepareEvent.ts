@@ -147,8 +147,17 @@ export function applyClientOptions(event: Event, options: ClientOptions): void {
   }
 
   const request = event.request;
-  if (request?.url) {
-    request.url = maxValueLength ? truncate(request.url, maxValueLength) : request.url;
+  if (request?.url && maxValueLength) {
+    request.url = truncate(request.url, maxValueLength);
+  }
+
+  if (maxValueLength) {
+    event.exception?.values?.forEach(exception => {
+      if (exception.value) {
+        // Truncates error messages
+        exception.value = truncate(exception.value, maxValueLength);
+      }
+    });
   }
 }
 
