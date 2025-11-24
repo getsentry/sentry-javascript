@@ -70,6 +70,11 @@ export interface LangChainLLMResult {
         finish_reason?: string;
         logprobs?: unknown;
       };
+      generationInfo?: {
+        [key: string]: unknown;
+        finish_reason?: string;
+        logprobs?: unknown;
+      };
     }>
   >;
   llmOutput?: {
