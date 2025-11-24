@@ -386,11 +386,11 @@ export function extractLlmResponseAttributes(
     const finishReasons = llmResult.generations
       .flat()
       .map(g => {
-        // v0.3+ uses generationInfo.finish_reason
+        // v1 uses generationInfo.finish_reason
         if (g.generationInfo?.finish_reason) {
           return g.generationInfo.finish_reason;
         }
-        // v1 uses message.response_metadata.finish_reason
+        // v0.3+ uses generation_info.finish_reason
         if (g.generation_info?.finish_reason) {
           return g.generation_info.finish_reason;
         }
