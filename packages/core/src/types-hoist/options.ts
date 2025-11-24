@@ -306,6 +306,14 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
      * @deprecated Use the top level`beforeSendMetric` option instead.
      */
     beforeSendMetric?: (metric: Metric) => Metric | null;
+
+    /**
+     * Determines if logs support should be enabled.
+     *
+     * @default false
+     * @deprecated Use the top level `enableLogs` option instead.
+     */
+    enableLogs?: boolean;
   };
 
   /**
