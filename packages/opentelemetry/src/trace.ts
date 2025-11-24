@@ -1,6 +1,6 @@
 import type { Context, Span, SpanContext, SpanOptions, Tracer } from '@opentelemetry/api';
 import { context, SpanStatusCode, trace, TraceFlags } from '@opentelemetry/api';
-import { suppressTracing } from '@opentelemetry/core';
+import { isTracingSuppressed, suppressTracing } from '@opentelemetry/core';
 import type {
   Client,
   continueTrace as baseContinueTrace,
@@ -17,6 +17,7 @@ import {
   getRootSpan,
   getTraceContextFromScope,
   handleCallbackErrors,
+  hasSpansEnabled,
   SDK_VERSION,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   spanToJSON,
@@ -52,6 +53,34 @@ export function startSpan<T>(options: OpenTelemetrySpanContext, callback: (span:
     const ctx = shouldSkipSpan ? suppressTracing(activeCtx) : activeCtx;
 
     const spanOptions = getSpanOptions(options);
+
+    // If spans are not enabled, ensure we suppress tracing for the span creation
+    // but preserve the original context for the callback execution
+    // This ensures that we don't create spans when tracing is disabled which
+    // would otherwise be a problem for users that don't enable tracing but use
+    // custom OpenTelemetry setups.
+    if (!hasSpansEnabled()) {
+      const suppressedCtx = isTracingSuppressed(ctx) ? ctx : suppressTracing(ctx);
+
+      return context.with(suppressedCtx, () => {
+        return tracer.startActiveSpan(name, spanOptions, suppressedCtx, span => {
+          // Restore the original context for the callback execution
+          // so that custom OpenTelemetry spans maintain the correct context
+          return context.with(ctx, () => {
+            return handleCallbackErrors(
+              () => callback(span),
+              () => {
+                // Only set the span status to ERROR when there wasn't any status set before, in order to avoid stomping useful span statuses
+                if (spanToJSON(span).status === undefined) {
+                  span.setStatus({ code: SpanStatusCode.ERROR });
+                }
+              },
+              () => span.end(),
+            );
+          });
+        });
+      });
+    }
 
     return tracer.startActiveSpan(name, spanOptions, ctx, span => {
       return handleCallbackErrors(
@@ -96,6 +125,33 @@ export function startSpanManual<T>(
 
     const spanOptions = getSpanOptions(options);
 
+    if (!hasSpansEnabled()) {
+      // If spans are not enabled, ensure we suppress tracing for the span creation
+      // but preserve the original context for the callback execution
+      // This ensures that we don't create spans when tracing is disabled which
+      // would otherwise be a problem for users that don't enable tracing but use
+      // custom OpenTelemetry setups.
+      const suppressedCtx = isTracingSuppressed(ctx) ? ctx : suppressTracing(ctx);
+
+      return context.with(suppressedCtx, () => {
+        return tracer.startActiveSpan(name, spanOptions, suppressedCtx, span => {
+          // Restore the original context for the callback execution
+          // so that custom OpenTelemetry spans maintain the correct context
+          return context.with(ctx, () => {
+            return handleCallbackErrors(
+              () => callback(span, () => span.end()),
+              () => {
+                // Only set the span status to ERROR when there wasn't any status set before, in order to avoid stomping useful span statuses
+                if (spanToJSON(span).status === undefined) {
+                  span.setStatus({ code: SpanStatusCode.ERROR });
+                }
+              },
+            );
+          });
+        });
+      });
+    }
+
     return tracer.startActiveSpan(name, spanOptions, ctx, span => {
       return handleCallbackErrors(
         () => callback(span, () => span.end()),
@@ -134,9 +190,12 @@ export function startInactiveSpan(options: OpenTelemetrySpanContext): Span {
 
     const spanOptions = getSpanOptions(options);
 
-    const span = tracer.startSpan(name, spanOptions, ctx);
+    if (!hasSpansEnabled()) {
+      const suppressedCtx = isTracingSuppressed(ctx) ? ctx : suppressTracing(ctx);
+      return tracer.startSpan(name, spanOptions, suppressedCtx);
+    }
 
-    return span;
+    return tracer.startSpan(name, spanOptions, ctx);
   });
 }
 
