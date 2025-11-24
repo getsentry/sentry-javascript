@@ -27,6 +27,7 @@ describe('Scope', () => {
       attachments: [],
       contexts: {},
       tags: {},
+      attributes: {},
       extra: {},
       user: {},
       level: undefined,
@@ -42,6 +43,7 @@ describe('Scope', () => {
     scope.update({
       tags: { foo: 'bar' },
       extra: { foo2: 'bar2' },
+      attributes: { attr1: { value: 'value1' } },
     });
 
     expect(scope.getScopeData()).toEqual({
@@ -51,6 +53,7 @@ describe('Scope', () => {
       tags: {
         foo: 'bar',
       },
+      attributes: { attr1: { value: 'value1' } },
       extra: {
         foo2: 'bar2',
       },
@@ -71,6 +74,7 @@ describe('Scope', () => {
 
     scope.update({
       tags: { foo: 'bar' },
+      attributes: { attr1: { value: 'value1', type: 'string' } },
       extra: { foo2: 'bar2' },
     });
 
@@ -85,6 +89,7 @@ describe('Scope', () => {
       tags: {
         foo: 'bar',
       },
+      attributes: { attr1: { value: 'value1', type: 'string' } },
       extra: {
         foo2: 'bar2',
       },
@@ -114,7 +119,7 @@ describe('Scope', () => {
     });
   });
 
-  describe('attributes modification', () => {
+  describe('scope data modification', () => {
     test('setFingerprint', () => {
       const scope = new Scope();
       scope.setFingerprint(['abcd']);
@@ -180,6 +185,159 @@ describe('Scope', () => {
         scope.setTags({ a: 'b', c: 'd' });
         scope.setTags({ a: 'e', f: 'g' });
         expect(listener).toHaveBeenCalledTimes(2);
+      });
+    });
+
+    describe('setAttribute', () => {
+      it('accepts a key-value pair', () => {
+        const scope = new Scope();
+
+        scope.setAttribute('str', 'b');
+        scope.setAttribute('int', 1);
+        scope.setAttribute('double', 1.1);
+        scope.setAttribute('bool', true);
+
+        expect(scope['_attributes']).toEqual({
+          str: 'b',
+          bool: true,
+          double: 1.1,
+          int: 1,
+        });
+      });
+
+      it('accepts an attribute value object', () => {
+        const scope = new Scope();
+        scope.setAttribute('str', { value: 'b' });
+        expect(scope['_attributes']).toEqual({
+          str: { value: 'b' },
+        });
+      });
+
+      it('accepts an attribute value object with a unit', () => {
+        const scope = new Scope();
+        scope.setAttribute('str', { value: 1, unit: 'millisecond' });
+        expect(scope['_attributes']).toEqual({
+          str: { value: 1, unit: 'millisecond' },
+        });
+      });
+
+      it('still accepts a custom unit but TS-errors on it', () => {
+        // mostly there for type checking purposes.
+        const scope = new Scope();
+        /** @ts-expect-error we don't support custom units type-wise but we don't actively block them */
+        scope.setAttribute('str', { value: 3, unit: 'inch' });
+        expect(scope['_attributes']).toEqual({
+          str: { value: 3, unit: 'inch' },
+        });
+      });
+
+      it('accepts an array', () => {
+        const scope = new Scope();
+
+        scope.setAttribute('strArray', ['a', 'b', 'c']);
+        scope.setAttribute('intArray', { value: [1, 2, 3], unit: 'millisecond' });
+
+        expect(scope['_attributes']).toEqual({
+          strArray: ['a', 'b', 'c'],
+          intArray: { value: [1, 2, 3], unit: 'millisecond' },
+        });
+      });
+
+      it('notifies scope listeners once per call', () => {
+        const scope = new Scope();
+        const listener = vi.fn();
+        scope.addScopeListener(listener);
+        scope.setAttribute('str', 'b');
+        scope.setAttribute('int', 1);
+        expect(listener).toHaveBeenCalledTimes(2);
+      });
+    });
+
+    describe('setAttributes', () => {
+      it('accepts key-value pairs', () => {
+        const scope = new Scope();
+        scope.setAttributes({ str: 'b', int: 1, double: 1.1, bool: true });
+        expect(scope['_attributes']).toEqual({
+          str: 'b',
+          int: 1,
+          double: 1.1,
+          bool: true,
+        });
+      });
+
+      it('accepts attribute value objects', () => {
+        const scope = new Scope();
+        scope.setAttributes({ str: { value: 'b' }, int: { value: 1 } });
+        expect(scope['_attributes']).toEqual({
+          str: { value: 'b' },
+          int: { value: 1 },
+        });
+      });
+
+      it('accepts attribute value objects with units', () => {
+        const scope = new Scope();
+        scope.setAttributes({ str: { value: 'b', unit: 'millisecond' }, int: { value: 12, unit: 'second' } });
+        expect(scope['_attributes']).toEqual({
+          str: { value: 'b', unit: 'millisecond' },
+          int: { value: 12, unit: 'second' },
+        });
+      });
+
+      it('accepts arrays', () => {
+        const scope = new Scope();
+        scope.setAttributes({
+          strArray: ['a', 'b', 'c'],
+          intArray: { value: [1, 2, 3], unit: 'millisecond' },
+        });
+
+        expect(scope['_attributes']).toEqual({
+          strArray: ['a', 'b', 'c'],
+          intArray: { value: [1, 2, 3], unit: 'millisecond' },
+        });
+      });
+
+      it('notifies scope listeners once per call', () => {
+        const scope = new Scope();
+        const listener = vi.fn();
+        scope.addScopeListener(listener);
+        scope.setAttributes({ str: 'b', int: 1 });
+        scope.setAttributes({ bool: true });
+        expect(listener).toHaveBeenCalledTimes(2);
+      });
+    });
+
+    describe('removeAttribute', () => {
+      it('removes an attribute', () => {
+        const scope = new Scope();
+        scope.setAttribute('str', 'b');
+        scope.setAttribute('int', 1);
+        scope.removeAttribute('str');
+        expect(scope['_attributes']).toEqual({ int: 1 });
+      });
+
+      it('notifies scope listeners after deletion', () => {
+        const scope = new Scope();
+        const listener = vi.fn();
+
+        scope.addScopeListener(listener);
+        scope.setAttribute('str', { value: 'b' });
+        expect(listener).toHaveBeenCalledTimes(1);
+
+        listener.mockClear();
+
+        scope.removeAttribute('str');
+        expect(listener).toHaveBeenCalledTimes(1);
+      });
+
+      it('does nothing if the attribute does not exist', () => {
+        const scope = new Scope();
+        const listener = vi.fn();
+
+        scope.addScopeListener(listener);
+        scope.removeAttribute('str');
+
+        expect(scope['_attributes']).toEqual({});
+        expect(listener).not.toHaveBeenCalled();
       });
     });
 
@@ -329,12 +487,18 @@ describe('Scope', () => {
     const oldPropagationContext = scope.getScopeData().propagationContext;
     scope.setExtra('a', 2);
     scope.setTag('a', 'b');
+    scope.setAttribute('c', 'd');
     scope.setUser({ id: '1' });
     scope.setFingerprint(['abcd']);
     scope.addBreadcrumb({ message: 'test' });
+
+    expect(scope['_attributes']).toEqual({ c: 'd' });
     expect(scope['_extra']).toEqual({ a: 2 });
+
     scope.clear();
+
     expect(scope['_extra']).toEqual({});
+    expect(scope['_attributes']).toEqual({});
     expect(scope['_propagationContext']).toEqual({
       traceId: expect.any(String),
       sampled: undefined,
@@ -357,6 +521,7 @@ describe('Scope', () => {
     beforeEach(() => {
       scope = new Scope();
       scope.setTags({ foo: '1', bar: '2' });
+      scope.setAttribute('attr1', 'value1');
       scope.setExtras({ foo: '1', bar: '2' });
       scope.setContext('foo', { id: '1' });
       scope.setContext('bar', { id: '2' });

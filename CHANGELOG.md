@@ -4,6 +4,39 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+- feat(deps): Bump OpenTelemetry ([#18239](https://github.com/getsentry/sentry-javascript/pull/18239))
+  - Bump @opentelemetry/context-async-hooks from ^2.1.0 to ^2.2.0
+  - Bump @opentelemetry/core from ^2.1.0 to ^2.2.0
+  - Bump @opentelemetry/resources from ^2.1.0 to ^2.2.0
+  - Bump @opentelemetry/sdk-trace-base from ^2.1.0 to ^2.2.0
+  - Bump @opentelemetry/sdk-trace-node from ^2.1.0 to ^2.2.0
+  - Bump @opentelemetry/instrumentation from 0.204.0 to 0.208.0
+  - Bump @opentelemetry/instrumentation-amqplib from 0.51.0 to 0.55.0
+  - Bump @opentelemetry/instrumentation-aws-sdk from 0.59.0 to 0.64.0
+  - Bump @opentelemetry/instrumentation-connect from 0.48.0 to 0.52.0
+  - Bump @opentelemetry/instrumentation-dataloader from 0.22.0 to 0.26.0
+  - Bump @opentelemetry/instrumentation-express from 0.53.0 to 0.57.0
+  - Bump @opentelemetry/instrumentation-fs from 0.24.0 to 0.28.0
+  - Bump @opentelemetry/instrumentation-generic-pool from 0.48.0 to 0.52.0
+  - Bump @opentelemetry/instrumentation-graphql from 0.52.0 to 0.56.0
+  - Bump @opentelemetry/instrumentation-hapi from 0.51.0 to 0.55.0
+  - Bump @opentelemetry/instrumentation-http from 0.204.0 to 0.208.0
+  - Bump @opentelemetry/instrumentation-ioredis from 0.52.0 to 0.56.0
+  - Bump @opentelemetry/instrumentation-kafkajs from 0.14.0 to 0.18.0
+  - Bump @opentelemetry/instrumentation-knex from 0.49.0 to 0.53.0
+  - Bump @opentelemetry/instrumentation-koa from 0.52.0 to 0.57.0
+  - Bump @opentelemetry/instrumentation-lru-memoizer from 0.49.0 to 0.53.0
+  - Bump @opentelemetry/instrumentation-mongodb from 0.57.0 to 0.61.0
+  - Bump @opentelemetry/instrumentation-mongoose from 0.51.0 to 0.55.0
+  - Bump @opentelemetry/instrumentation-mysql from 0.50.0 to 0.54.0
+  - Bump @opentelemetry/instrumentation-mysql2 from 0.51.0 to 0.55.0
+  - Bump @opentelemetry/instrumentation-nestjs-core from 0.50.0 to 0.55.0
+  - Bump @opentelemetry/instrumentation-pg from 0.57.0 to 0.61.0
+  - Bump @opentelemetry/instrumentation-redis from 0.53.0 to 0.57.0
+  - Bump @opentelemetry/instrumentation-tedious from 0.23.0 to 0.27.0
+  - Bump @opentelemetry/instrumentation-undici from 0.15.0 to 0.19.0
+  - Bump @prisma/instrumentation from 6.15.0 to 6.19.0
+
 ## 10.26.0
 
 ### Important Changes

@@ -64,7 +64,7 @@ function getDefaultIntegrations(options: BrowserOptions): Integration[] | undefi
  * @returns the function that was previously on `window.fetch`.
  */
 function switchToFetchProxy(): typeof fetch | undefined {
-  const globalWithSentryFetchProxy: WindowWithSentryFetchProxy = WINDOW as WindowWithSentryFetchProxy;
+  const globalWithSentryFetchProxy: WindowWithSentryFetchProxy = WINDOW;
 
   // eslint-disable-next-line @typescript-eslint/unbound-method
   const actualFetch = globalWithSentryFetchProxy.fetch;
@@ -81,7 +81,7 @@ function switchToFetchProxy(): typeof fetch | undefined {
  * and puts our fetch proxy back onto `window._sentryFetchProxy`.
  */
 function restoreFetch(actualFetch: typeof fetch): void {
-  const globalWithSentryFetchProxy: WindowWithSentryFetchProxy = WINDOW as WindowWithSentryFetchProxy;
+  const globalWithSentryFetchProxy: WindowWithSentryFetchProxy = WINDOW;
 
   // eslint-disable-next-line @typescript-eslint/unbound-method
   globalWithSentryFetchProxy._sentryFetchProxy = globalWithSentryFetchProxy.fetch;
