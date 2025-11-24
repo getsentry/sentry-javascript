@@ -1,5 +1,5 @@
 import type { Span, WebFetchHeaders } from '@sentry/core';
-import { getClient, httpHeadersToSpanAttributes, winterCGHeadersToDict } from '@sentry/core';
+import { httpHeadersToSpanAttributes, winterCGHeadersToDict } from '@sentry/core';
 
 /**
  * Extracts HTTP request headers as span attributes and optionally applies them to a span.
@@ -11,9 +11,6 @@ export function addHeadersAsAttributes(
   if (!headers) {
     return {};
   }
-
-  const client = getClient();
-  const sendDefaultPii = client?.getOptions().sendDefaultPii ?? false;
 
   const headersDict: Record<string, string | string[] | undefined> =
     headers instanceof Headers || (typeof headers === 'object' && 'get' in headers)

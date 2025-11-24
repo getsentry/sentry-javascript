@@ -631,7 +631,7 @@ describe('request utils', () => {
         });
       });
 
-      it('filters comprehensive list of sensitive headers when $description', () => {
+      it('always filters comprehensive list of sensitive headers', () => {
         const headers = {
           'Content-Type': 'application/json',
           'User-Agent': 'test-agent',
