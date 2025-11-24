@@ -49,28 +49,19 @@
     "variants": [
       {
         "build-command": "pnpm test:build-webpack",
-        "label": "nextjs-16 (webpack)",
+        "label": "nextjs-16-cacheComponents (webpack)",
         "assert-command": "pnpm test:assert-webpack"
-      },
-      {
-        "build-command": "pnpm test:build-latest-webpack",
-        "label": "nextjs-16 (latest, webpack)",
-        "assert-command": "pnpm test:assert-webpack"
-      },
-      {
-        "build-command": "pnpm test:build-latest",
-        "label": "nextjs-16 (latest, turbopack)"
       }
     ],
     "optionalVariants": [
       {
         "build-command": "pnpm test:build-canary",
-        "label": "nextjs-16 (canary, turbopack)",
+        "label": "nextjs-16-cacheComponents (canary, turbopack)",
         "assert-command": "pnpm test:assert"
       },
       {
         "build-command": "pnpm test:build-canary-webpack",
-        "label": "nextjs-16 (canary, webpack)",
+        "label": "nextjs-16-cacheComponents (canary, webpack)",
         "assert-command": "pnpm test:assert-webpack"
       }
     ]
