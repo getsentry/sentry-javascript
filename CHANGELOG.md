@@ -4,6 +4,8 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+Work in this release was contributed by @bignoncedric. Thank you for your contribution!
+
 - feat(deps): Bump OpenTelemetry ([#18239](https://github.com/getsentry/sentry-javascript/pull/18239))
   - Bump @opentelemetry/context-async-hooks from ^2.1.0 to ^2.2.0
   - Bump @opentelemetry/core from ^2.1.0 to ^2.2.0
