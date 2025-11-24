@@ -7084,7 +7084,7 @@
     magic-string "0.30.8"
     unplugin "1.0.1"
 
-"@sentry/bundler-plugin-core@^4.6.1":
+"@sentry/bundler-plugin-core@4.6.1", "@sentry/bundler-plugin-core@^4.6.1":
   version "4.6.1"
   resolved "https://registry.yarnpkg.com/@sentry/bundler-plugin-core/-/bundler-plugin-core-4.6.1.tgz#d6013e6233bf663114f581bbd3c3a380ff9311d4"
   integrity sha512-WPeRbnMXm927m4Kr69NTArPfI+p5/34FHftdCRI3LFPMyhZDzz6J3wLy4hzaVUgmMf10eLzmq2HGEMvpQmdynA==
@@ -7174,12 +7174,12 @@
     "@sentry/bundler-plugin-core" "4.3.0"
     unplugin "1.0.1"
 
-"@sentry/webpack-plugin@^4.1.1", "@sentry/webpack-plugin@^4.3.0":
-  version "4.3.0"
-  resolved "https://registry.yarnpkg.com/@sentry/webpack-plugin/-/webpack-plugin-4.3.0.tgz#a96db7d8ada8646ec3ffdec2a7db6143c8061e85"
-  integrity sha512-K4nU1SheK/tvyakBws2zfd+MN6hzmpW+wPTbSbDWn1+WL9+g9hsPh8hjFFiVe47AhhUoUZ3YgiH2HyeHXjHflA==
+"@sentry/webpack-plugin@^4.6.1":
+  version "4.6.1"
+  resolved "https://registry.yarnpkg.com/@sentry/webpack-plugin/-/webpack-plugin-4.6.1.tgz#8041ef27f302c3f63902bc4bb01e2ee53ea94c15"
+  integrity sha512-CJgT/t2pQWsPsMx9VJ86goU/orCQhL2HhDj5ZYBol6fPPoEGeTqKOPCnv/xsbCAfGSp1uHpyRLTA/Gx96u7VVA==
   dependencies:
-    "@sentry/bundler-plugin-core" "4.3.0"
+    "@sentry/bundler-plugin-core" "4.6.1"
     unplugin "1.0.1"
     uuid "^9.0.0"
 
@@ -28820,7 +28820,6 @@ stylus@0.59.0, stylus@^0.59.0:
 
 sucrase@^3.27.0, sucrase@^3.35.0, sucrase@getsentry/sucrase#es2020-polyfills:
   version "3.36.0"
-  uid fd682f6129e507c00bb4e6319cc5d6b767e36061
   resolved "https://codeload.github.com/getsentry/sucrase/tar.gz/fd682f6129e507c00bb4e6319cc5d6b767e36061"
   dependencies:
     "@jridgewell/gen-mapping" "^0.3.2"
