@@ -2734,6 +2734,36 @@ describe('Client', () => {
     });
   });
 
+  describe('enableLogs', () => {
+    it('defaults to  `undefined`', () => {
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
+      const client = new TestClient(options);
+      expect(client.getOptions().enableLogs).toBeUndefined();
+    });
+
+    it('can be set as a top-level option', () => {
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableLogs: true });
+      const client = new TestClient(options);
+      expect(client.getOptions().enableLogs).toBe(true);
+    });
+
+    it('can be set as an experimental option', () => {
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, _experiments: { enableLogs: true } });
+      const client = new TestClient(options);
+      expect(client.getOptions().enableLogs).toBe(true);
+    });
+
+    test('top-level option takes precedence over experimental option', () => {
+      const options = getDefaultTestClientOptions({
+        dsn: PUBLIC_DSN,
+        enableLogs: true,
+        _experiments: { enableLogs: false },
+      });
+      const client = new TestClient(options);
+      expect(client.getOptions().enableLogs).toBe(true);
+    });
+  });
+
   describe('log weight-based flushing', () => {
     beforeEach(() => {
       vi.useFakeTimers();
