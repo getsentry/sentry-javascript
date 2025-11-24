@@ -3,7 +3,6 @@ import {
   captureException,
   continueTrace,
   defineIntegration,
-  getClient,
   httpHeadersToSpanAttributes,
   isURLObjectRelative,
   parseStringToURLObject,
@@ -207,7 +206,6 @@ function wrapRequestHandler<T extends RouteHandler = RouteHandler>(
       routeName = route;
     }
 
-    const client = getClient();
     Object.assign(attributes, httpHeadersToSpanAttributes(request.headers.toJSON()));
 
     isolationScope.setSDKProcessingMetadata({
