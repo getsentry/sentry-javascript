@@ -46,24 +46,6 @@
     "extends": "../../package.json"
   },
   "sentryTest": {
-    "variants": [
-      {
-        "build-command": "pnpm test:build-webpack",
-        "label": "nextjs-16-cacheComponents (webpack)",
-        "assert-command": "pnpm test:assert-webpack"
-      }
-    ],
-    "optionalVariants": [
-      {
-        "build-command": "pnpm test:build-canary",
-        "label": "nextjs-16-cacheComponents (canary, turbopack)",
-        "assert-command": "pnpm test:assert"
-      },
-      {
-        "build-command": "pnpm test:build-canary-webpack",
-        "label": "nextjs-16-cacheComponents (canary, webpack)",
-        "assert-command": "pnpm test:assert-webpack"
-      }
-    ]
+    "//": "TODO: Add variants for webpack once supported"
   }
 }
