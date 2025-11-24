@@ -11,7 +11,7 @@
  * Learn more at https://developers.cloudflare.com/workers/
  */
 import * as Sentry from '@sentry/cloudflare';
-import { DurableObject } from 'cloudflare:workers';
+import { DurableObject, WorkflowEntrypoint, WorkflowEvent, WorkflowStep } from 'cloudflare:workers';
 
 class MyDurableObjectBase extends DurableObject<Env> {
   private throwOnExit = new WeakMap<WebSocket, Error>();
@@ -53,7 +53,7 @@ class MyDurableObjectBase extends DurableObject<Env> {
 }
 
 export const MyDurableObject = Sentry.instrumentDurableObjectWithSentry(
-  (env: Env) => ({
+  env => ({
     dsn: env.E2E_TEST_DSN,
     environment: 'qa', // dynamic sampling bias to keep transactions
     tunnel: `http://localhost:3031/`, // proxy server
@@ -68,8 +68,27 @@ export const MyDurableObject = Sentry.instrumentDurableObjectWithSentry(
   MyDurableObjectBase,
 );
 
+class MyWorkflowBase extends WorkflowEntrypoint<Env> {
+  async run(_: WorkflowEvent<any>, step: WorkflowStep) {
+    await step.do('send marketing follow up', async () => {
+      throw new Error('To be recorded in Sentry.');
+    });
+  }
+}
+
+export const MyWorkflow = Sentry.instrumentWorkflowWithSentry(
+  env => ({
+    dsn: env.E2E_TEST_DSN,
+    environment: 'qa', // dynamic sampling bias to keep transactions
+    tunnel: `http://localhost:3031/`, // proxy server
+    tracesSampleRate: 1.0,
+    sendDefaultPii: true,
+  }),
+  MyWorkflowBase,
+);
+
 export default Sentry.withSentry(
-  (env: Env) => ({
+  env => ({
     dsn: env.E2E_TEST_DSN,
     environment: 'qa', // dynamic sampling bias to keep transactions
     tunnel: `http://localhost:3031/`, // proxy server
