@@ -2707,10 +2707,10 @@ describe('Client', () => {
   });
 
   describe('enableLogs', () => {
-    it('defaults to false', () => {
+    it('defaults to  `undefined`', () => {
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);
-      expect(client.getOptions().enableLogs).toBe(false);
+      expect(client.getOptions().enableLogs).toBeUndefined();
     });
 
     it('can be set as a top-level option', () => {
