@@ -501,6 +501,53 @@ describe('OpenAI integration', () => {
     });
   });
 
+  createEsmAndCjsTests(__dirname, 'scenario-azure-openai.mjs', 'instrument.mjs', (createRunner, test) => {
+    test('it works with Azure OpenAI', async () => {
+      await createRunner()
+        // First the span that our mock express server is emitting, unrelated to this test
+        .expect({
+          transaction: {
+            transaction: 'POST /azureopenai/deployments/:model/chat/completions',
+          },
+        })
+        .expect({
+          transaction: {
+            transaction: 'chat gpt-3.5-turbo',
+            contexts: {
+              trace: {
+                span_id: expect.any(String),
+                trace_id: expect.any(String),
+                data: {
+                  'gen_ai.operation.name': 'chat',
+                  'sentry.op': 'gen_ai.chat',
+                  'sentry.origin': 'auto.ai.openai',
+                  'gen_ai.system': 'openai',
+                  'gen_ai.request.model': 'gpt-3.5-turbo',
+                  'gen_ai.request.temperature': 0.7,
+                  'gen_ai.response.model': 'gpt-3.5-turbo',
+                  'gen_ai.response.id': 'chatcmpl-mock123',
+                  'gen_ai.response.finish_reasons': '["stop"]',
+                  'gen_ai.usage.input_tokens': 10,
+                  'gen_ai.usage.output_tokens': 15,
+                  'gen_ai.usage.total_tokens': 25,
+                  'openai.response.id': 'chatcmpl-mock123',
+                  'openai.response.model': 'gpt-3.5-turbo',
+                  'openai.response.timestamp': '2023-03-01T06:31:28.000Z',
+                  'openai.usage.completion_tokens': 15,
+                  'openai.usage.prompt_tokens': 10,
+                },
+                op: 'gen_ai.chat',
+                origin: 'auto.ai.openai',
+                status: 'ok',
+              },
+            },
+          },
+        })
+        .start()
+        .completed();
+    });
+  });
+
   createEsmAndCjsTests(
     __dirname,
     'truncation/scenario-message-truncation-completions.mjs',

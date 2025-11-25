@@ -21,7 +21,6 @@ import type { ErrorEvent, Event, TransactionEvent } from '../../src/types-hoist/
 import type { SpanJSON } from '../../src/types-hoist/span';
 import * as debugLoggerModule from '../../src/utils/debug-logger';
 import * as miscModule from '../../src/utils/misc';
-import * as stringModule from '../../src/utils/string';
 import * as timeModule from '../../src/utils/time';
 import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
 import { AdHocIntegration, AsyncTestIntegration, TestIntegration } from '../mocks/integration';
@@ -37,7 +36,6 @@ const clientProcess = vi.spyOn(TestClient.prototype as any, '_process');
 
 vi.spyOn(miscModule, 'uuid4').mockImplementation(() => '12312012123120121231201212312012');
 vi.spyOn(debugLoggerModule, 'consoleSandbox').mockImplementation(cb => cb());
-vi.spyOn(stringModule, 'truncate').mockImplementation(str => str);
 vi.spyOn(timeModule, 'dateTimestampInSeconds').mockImplementation(() => 2020);
 
 describe('Client', () => {
@@ -259,6 +257,36 @@ describe('Client', () => {
             ],
           },
           timestamp: 2020,
+        }),
+      );
+    });
+
+    test('does not truncate exception values by default', () => {
+      const exceptionMessageLength = 10_000;
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
+      const client = new TestClient(options);
+
+      client.captureException(new Error('a'.repeat(exceptionMessageLength)));
+      expect(TestClient.instance!.event).toEqual(
+        expect.objectContaining({
+          exception: {
+            values: [{ type: 'Error', value: 'a'.repeat(exceptionMessageLength) }],
+          },
+        }),
+      );
+    });
+
+    test('truncates exception values according to `maxValueLength` option', () => {
+      const maxValueLength = 10;
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, maxValueLength });
+      const client = new TestClient(options);
+
+      client.captureException(new Error('a'.repeat(50)));
+      expect(TestClient.instance!.event).toEqual(
+        expect.objectContaining({
+          exception: {
+            values: [{ type: 'Error', value: `${'a'.repeat(maxValueLength)}...` }],
+          },
         }),
       );
     });
@@ -2703,6 +2731,36 @@ describe('Client', () => {
 
       const promise = await withMonitor('test-monitor', callback);
       await expect(promise).rejects.toThrowError(error);
+    });
+  });
+
+  describe('enableLogs', () => {
+    it('defaults to  `undefined`', () => {
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
+      const client = new TestClient(options);
+      expect(client.getOptions().enableLogs).toBeUndefined();
+    });
+
+    it('can be set as a top-level option', () => {
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, enableLogs: true });
+      const client = new TestClient(options);
+      expect(client.getOptions().enableLogs).toBe(true);
+    });
+
+    it('can be set as an experimental option', () => {
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, _experiments: { enableLogs: true } });
+      const client = new TestClient(options);
+      expect(client.getOptions().enableLogs).toBe(true);
+    });
+
+    test('top-level option takes precedence over experimental option', () => {
+      const options = getDefaultTestClientOptions({
+        dsn: PUBLIC_DSN,
+        enableLogs: true,
+        _experiments: { enableLogs: false },
+      });
+      const client = new TestClient(options);
+      expect(client.getOptions().enableLogs).toBe(true);
     });
   });
 

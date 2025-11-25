@@ -121,11 +121,10 @@ function getFinalConfigObject(
         );
       }
     } else {
-      const resolvedTunnelRoute =
-        userSentryOptions.tunnelRoute === true ? generateRandomTunnelRoute() : userSentryOptions.tunnelRoute;
-
       // Update the global options object to use the resolved value everywhere
+      const resolvedTunnelRoute = resolveTunnelRoute(userSentryOptions.tunnelRoute);
       userSentryOptions.tunnelRoute = resolvedTunnelRoute || undefined;
+
       setUpTunnelRewriteRules(incomingUserNextConfigObject, resolvedTunnelRoute);
     }
   }
@@ -392,6 +391,13 @@ function getFinalConfigObject(
  */
 function setUpTunnelRewriteRules(userNextConfig: NextConfigObject, tunnelPath: string): void {
   const originalRewrites = userNextConfig.rewrites;
+  // Allow overriding the tunnel destination for E2E tests via environment variable
+  const destinationOverride = process.env._SENTRY_TUNNEL_DESTINATION_OVERRIDE;
+
+  // Make sure destinations are statically defined at build time
+  const destination = destinationOverride || 'https://o:orgid.ingest.sentry.io/api/:projectid/envelope/?hsts=0';
+  const destinationWithRegion =
+    destinationOverride || 'https://o:orgid.ingest.:region.sentry.io/api/:projectid/envelope/?hsts=0';
 
   // This function doesn't take any arguments at the time of writing but we future-proof
   // here in case Next.js ever decides to pass some
@@ -412,7 +418,7 @@ function setUpTunnelRewriteRules(userNextConfig: NextConfigObject, tunnelPath: s
           value: '(?<projectid>\\d*)',
         },
       ],
-      destination: 'https://o:orgid.ingest.sentry.io/api/:projectid/envelope/?hsts=0',
+      destination,
     };
 
     const tunnelRouteRewriteWithRegion = {
@@ -436,7 +442,7 @@ function setUpTunnelRewriteRules(userNextConfig: NextConfigObject, tunnelPath: s
           value: '(?<region>[a-z]{2})',
         },
       ],
-      destination: 'https://o:orgid.ingest.:region.sentry.io/api/:projectid/envelope/?hsts=0',
+      destination: destinationWithRegion,
     };
 
     // Order of these is important, they get applied first to last.
@@ -549,4 +555,27 @@ function getInstrumentationClientFileContents(): string | void {
       // noop
     }
   }
+}
+
+/**
+ * Resolves the tunnel route based on the user's configuration and the environment.
+ * @param tunnelRoute - The user-provided tunnel route option
+ */
+function resolveTunnelRoute(tunnelRoute: string | true): string {
+  if (process.env.__SENTRY_TUNNEL_ROUTE__) {
+    // Reuse cached value from previous build (server/client)
+    return process.env.__SENTRY_TUNNEL_ROUTE__;
+  }
+
+  const resolvedTunnelRoute = typeof tunnelRoute === 'string' ? tunnelRoute : generateRandomTunnelRoute();
+
+  // Cache for subsequent builds (only during build time)
+  // Turbopack runs the config twice, so we need a shared context to avoid generating a new tunnel route for each build.
+  // env works well here
+  // https://linear.app/getsentry/issue/JS-549/adblock-plus-blocking-requests-to-sentry-and-monitoring-tunnel
+  if (resolvedTunnelRoute) {
+    process.env.__SENTRY_TUNNEL_ROUTE__ = resolvedTunnelRoute;
+  }
+
+  return resolvedTunnelRoute;
 }
