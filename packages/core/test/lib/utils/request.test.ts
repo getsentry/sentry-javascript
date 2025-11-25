@@ -678,6 +678,12 @@ describe('request utils', () => {
         expect(result4).toEqual({ 'http.request.header.set_cookie.timezone': 'UTC' });
       });
 
+      it('only splits cookies once between key and value, even when more equals signs are present', () => {
+        const headers = { Cookie: 'random-string=eyJhbGc=.eyJzdWI=.SflKxw' };
+        const result = httpHeadersToSpanAttributes(headers);
+        expect(result).toEqual({ 'http.request.header.cookie.random_string': 'eyJhbGc=.eyJzdWI=.SflKxw' });
+      });
+
       it.each([
         { sendDefaultPii: false, description: 'sendDefaultPii is false (default)' },
         { sendDefaultPii: true, description: 'sendDefaultPii is true' },

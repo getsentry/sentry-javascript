@@ -178,7 +178,11 @@ export function httpHeadersToSpanAttributes(
         const cookies = value.split('; ');
 
         for (const cookie of cookies) {
-          const [cookieKey, cookieValue] = cookie.split('=');
+          // Split only at the first '=' to preserve '=' characters in cookie values
+          const equalSignIndex = cookie.indexOf('=');
+          const cookieKey = equalSignIndex !== -1 ? cookie.substring(0, equalSignIndex) : cookie;
+          const cookieValue = equalSignIndex !== -1 ? cookie.substring(equalSignIndex + 1) : '';
+
           const lowerCasedCookieKey = String(cookieKey).toLowerCase();
           const normalizedKey = `http.request.header.${normalizeAttributeKey(lowerCasedHeaderKey)}.${normalizeAttributeKey(lowerCasedCookieKey)}`;
 
