@@ -1,12 +1,8 @@
 import { flush } from '../exports';
+import { type MinimalCloudflareContext, CloudflareContextKey, cloudflareWaitUntil } from './cloudflareWaitUntil';
 import { debug } from './debug-logger';
 import { vercelWaitUntil } from './vercelWaitUntil';
 import { GLOBAL_OBJ } from './worldwide';
-
-type MinimalCloudflareContext = {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  waitUntil(promise: Promise<any>): void;
-};
 
 async function flushWithTimeout(timeout: number): Promise<void> {
   try {
@@ -56,6 +52,14 @@ export async function flushIfServerless(
     // Vercel has a waitUntil equivalent that works without execution context
     vercelWaitUntil(flushWithTimeout(timeout));
     return;
+  }
+
+  // @ts-expect-error This is not typed
+  if (GLOBAL_OBJ[Symbol.for(CloudflareContextKey)]) {
+    // If the cloudflareWaitUntil function is available, use it to flush the events, if not then fallback to the regular flush
+    if (cloudflareWaitUntil(flushWithTimeout(timeout))) {
+      return;
+    }
   }
 
   if (typeof process === 'undefined') {
