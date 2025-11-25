@@ -1,11 +1,13 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import type { ErrorHandler as AngularErrorHandler, OnDestroy } from '@angular/core';
-import { Inject, Injectable } from '@angular/core';
+import { Inject, Injectable, InjectionToken, Optional } from '@angular/core';
 import type { ReportDialogOptions } from '@sentry/browser';
 import * as Sentry from '@sentry/browser';
 import type { Event } from '@sentry/core';
 import { consoleSandbox, isString } from '@sentry/core';
 import { runOutsideAngular } from './zone';
+
+export const SENTRY_ERROR_HANDLER_OPTIONS = new InjectionToken<ErrorHandlerOptions>('errorHandlerOptions');
 
 /**
  * Options used to configure the behavior of the Angular ErrorHandler.
@@ -86,10 +88,10 @@ class SentryErrorHandler implements AngularErrorHandler, OnDestroy {
   /** The cleanup function is executed when the injector is destroyed. */
   private _removeAfterSendEventListener?: () => void;
 
-  public constructor(@Inject('errorHandlerOptions') options?: ErrorHandlerOptions) {
+  public constructor(@Inject(SENTRY_ERROR_HANDLER_OPTIONS) @Optional()  options?: ErrorHandlerOptions) {
     this._options = {
       logErrors: true,
-      ...options,
+      ...(options || {}),
     };
   }
 
