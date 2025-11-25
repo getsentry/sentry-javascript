@@ -198,6 +198,7 @@ function makeWrappedDataFunction(
           name: id,
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.remix',
+            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: `function.remix.${name}`,
             name,
           },
         },
