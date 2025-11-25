@@ -72,7 +72,7 @@ describe('sentryRemixVitePlugin', () => {
         mode: 'production',
       };
 
-      plugin.configResolved(mockConfig as ResolvedConfig);
+      plugin.configResolved(mockConfig );
 
       // Should not log in production mode
       expect(consoleLogSpy).not.toHaveBeenCalled();
@@ -93,7 +93,7 @@ describe('sentryRemixVitePlugin', () => {
         mode: 'development',
       };
 
-      plugin.configResolved(mockConfig as ResolvedConfig);
+      plugin.configResolved(mockConfig );
 
       expect(consoleLogSpy).toHaveBeenCalledWith(
         expect.stringContaining('[Sentry Remix] Found 1 static and 1 dynamic routes'),
@@ -112,7 +112,7 @@ describe('sentryRemixVitePlugin', () => {
       };
 
       // Should not throw
-      expect(() => plugin.configResolved(mockConfig as ResolvedConfig)).not.toThrow();
+      expect(() => plugin.configResolved(mockConfig )).not.toThrow();
 
       // Should log error but not crash
       expect(consoleErrorSpy).not.toHaveBeenCalled(); // No error if directory doesn't exist
@@ -134,7 +134,7 @@ describe('sentryRemixVitePlugin', () => {
         mode: 'development',
       };
 
-      plugin.configResolved(mockConfig as ResolvedConfig);
+      plugin.configResolved(mockConfig );
 
       expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('[Sentry Remix] Found 1 static'));
     });
@@ -158,7 +158,7 @@ describe('sentryRemixVitePlugin', () => {
         mode: 'production',
       };
 
-      plugin.configResolved(mockConfig as ResolvedConfig);
+      plugin.configResolved(mockConfig );
 
       const html = '<html><head><title>Test</title></head><body></body></html>';
       const result = plugin.transformIndexHtml.handler(html);
@@ -186,7 +186,7 @@ describe('sentryRemixVitePlugin', () => {
         mode: 'production',
       };
 
-      plugin.configResolved(mockConfig as ResolvedConfig);
+      plugin.configResolved(mockConfig );
 
       const html = '<html><body>Content</body></html>';
       const result = plugin.transformIndexHtml.handler(html);
@@ -212,7 +212,7 @@ describe('sentryRemixVitePlugin', () => {
         mode: 'production',
       };
 
-      plugin.configResolved(mockConfig as ResolvedConfig);
+      plugin.configResolved(mockConfig );
 
       const html = '<HTML><HEAD><TITLE>Test</TITLE></HEAD><BODY></BODY></HTML>';
       const result = plugin.transformIndexHtml.handler(html);
@@ -237,7 +237,7 @@ describe('sentryRemixVitePlugin', () => {
         mode: 'production',
       };
 
-      plugin.configResolved(mockConfig as ResolvedConfig);
+      plugin.configResolved(mockConfig );
 
       const html = '<div>Content</div>';
       const result = plugin.transformIndexHtml.handler(html);
@@ -265,7 +265,7 @@ describe('sentryRemixVitePlugin', () => {
         mode: 'production',
       };
 
-      plugin.configResolved(mockConfig as ResolvedConfig);
+      plugin.configResolved(mockConfig );
 
       const html = '<html><head></head><body></body></html>';
       const result = plugin.transformIndexHtml.handler(html);
@@ -290,7 +290,7 @@ describe('sentryRemixVitePlugin', () => {
         mode: 'production',
       };
 
-      plugin.configResolved(mockConfig as ResolvedConfig);
+      plugin.configResolved(mockConfig );
 
       const code = 'console.log("entry client");';
       const id = '/app/entry.client.tsx';
@@ -316,7 +316,7 @@ describe('sentryRemixVitePlugin', () => {
         mode: 'production',
       };
 
-      plugin.configResolved(mockConfig as ResolvedConfig);
+      plugin.configResolved(mockConfig );
 
       const code = 'console.log("entry client");';
       const id = '/app/entry-client.ts';
@@ -340,7 +340,7 @@ describe('sentryRemixVitePlugin', () => {
         mode: 'production',
       };
 
-      plugin.configResolved(mockConfig as ResolvedConfig);
+      plugin.configResolved(mockConfig );
 
       const code = 'console.log("some file");';
       const id = '/app/routes/index.tsx';
@@ -363,7 +363,7 @@ describe('sentryRemixVitePlugin', () => {
         mode: 'production',
       };
 
-      plugin.configResolved(mockConfig as ResolvedConfig);
+      plugin.configResolved(mockConfig );
 
       const code = 'console.log("entry server");';
       const id = '/app/entry.server.tsx';
@@ -389,7 +389,7 @@ describe('sentryRemixVitePlugin', () => {
         mode: 'production',
       };
 
-      plugin.configResolved(mockConfig as ResolvedConfig);
+      plugin.configResolved(mockConfig );
 
       const code = 'console.log("entry client");';
       const id = '/some/path/entry.client.js';
@@ -413,7 +413,7 @@ describe('sentryRemixVitePlugin', () => {
         mode: 'production',
       };
 
-      plugin.configResolved(mockConfig as ResolvedConfig);
+      plugin.configResolved(mockConfig );
 
       const code = 'console.log("entry client");';
       const id = '/app/entry.client.tsx';
@@ -444,7 +444,7 @@ describe('sentryRemixVitePlugin', () => {
         mode: 'production',
       };
 
-      plugin.configResolved(mockConfig as ResolvedConfig);
+      plugin.configResolved(mockConfig );
 
       const html = '<html><head></head><body></body></html>';
       const result = plugin.transformIndexHtml.handler(html);
@@ -484,7 +484,7 @@ describe('sentryRemixVitePlugin', () => {
         mode: 'production',
       };
 
-      plugin.configResolved(mockConfig as ResolvedConfig);
+      plugin.configResolved(mockConfig );
 
       const html = '<html><head></head><body></body></html>';
       const result = plugin.transformIndexHtml.handler(html);
@@ -519,7 +519,7 @@ describe('sentryRemixVitePlugin', () => {
         mode: 'production',
       };
 
-      plugin.configResolved(mockConfig as ResolvedConfig);
+      plugin.configResolved(mockConfig );
 
       const code = 'console.log("entry server");';
       const id = '/app/entry-server.ts';
@@ -543,7 +543,7 @@ describe('sentryRemixVitePlugin', () => {
         mode: 'production',
       };
 
-      plugin.configResolved(mockConfig as ResolvedConfig);
+      plugin.configResolved(mockConfig );
 
       const code = 'console.log("entry server");';
       const id = '/some/path/entry.server.js';
@@ -567,7 +567,7 @@ describe('sentryRemixVitePlugin', () => {
         mode: 'production',
       };
 
-      plugin.configResolved(mockConfig as ResolvedConfig);
+      plugin.configResolved(mockConfig );
 
       const code = 'console.log("Hydrogen server");';
 
