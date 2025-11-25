@@ -3,6 +3,7 @@ import {
   captureException,
   continueTrace,
   flush,
+  getClient,
   getHttpSpanDetailsFromUrlObject,
   httpHeadersToSpanAttributes,
   parseStringToURLObject,
@@ -66,7 +67,13 @@ export function wrapRequestHandler(
       attributes['user_agent.original'] = userAgentHeader;
     }
 
-    Object.assign(attributes, httpHeadersToSpanAttributes(winterCGHeadersToDict(request.headers)));
+    Object.assign(
+      attributes,
+      httpHeadersToSpanAttributes(
+        winterCGHeadersToDict(request.headers),
+        getClient()?.getOptions().sendDefaultPii ?? false,
+      ),
+    );
 
     attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] = 'http.server';
 

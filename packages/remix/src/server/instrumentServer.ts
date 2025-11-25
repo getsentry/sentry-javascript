@@ -310,7 +310,10 @@ function wrapRequestHandler<T extends ServerBuild | (() => ServerBuild | Promise
                   [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
                   [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
                   method: request.method,
-                  ...httpHeadersToSpanAttributes(winterCGHeadersToDict(request.headers)),
+                  ...httpHeadersToSpanAttributes(
+                    winterCGHeadersToDict(request.headers),
+                    clientOptions.sendDefaultPii ?? false,
+                  ),
                 },
               },
               async span => {

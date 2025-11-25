@@ -612,7 +612,7 @@ describe('request utils', () => {
       });
     });
 
-    describe('PII filtering', () => {
+    describe('PII/Sensitive data filtering', () => {
       it('filters sensitive headers case-insensitively', () => {
         const headers = {
           AUTHORIZATION: 'Bearer secret-token',
@@ -625,10 +625,93 @@ describe('request utils', () => {
 
         expect(result).toEqual({
           'http.request.header.content_type': 'application/json',
-          'http.request.header.cookie': '[Filtered]',
+          'http.request.header.cookie.session': '[Filtered]',
           'http.request.header.x_api_key': '[Filtered]',
           'http.request.header.authorization': '[Filtered]',
         });
+      });
+
+      it('attaches and filters sensitive cookie headers', () => {
+        const headers = {
+          Cookie:
+            'session=abc123; tracking=enabled; cookie-authentication-key-without-value; theme=dark; lang=en; user_session=xyz789; pref=1',
+        };
+
+        const result = httpHeadersToSpanAttributes(headers);
+
+        expect(result).toEqual({
+          'http.request.header.cookie.session': '[Filtered]',
+          'http.request.header.cookie.tracking': 'enabled',
+          'http.request.header.cookie.theme': 'dark',
+          'http.request.header.cookie.lang': 'en',
+          'http.request.header.cookie.user_session': '[Filtered]',
+          'http.request.header.cookie.cookie_authentication_key_without_value': '[Filtered]',
+          'http.request.header.cookie.pref': '1',
+        });
+      });
+
+      it('adds a filtered cookie header when cookie header is present, but has no valid key=value pairs', () => {
+        const headers1 = { Cookie: ['key', 'val'] };
+        const result1 = httpHeadersToSpanAttributes(headers1);
+        expect(result1).toEqual({ 'http.request.header.cookie': '[Filtered]' });
+
+        const headers3 = { Cookie: '' };
+        const result3 = httpHeadersToSpanAttributes(headers3);
+        expect(result3).toEqual({ 'http.request.header.cookie': '[Filtered]' });
+      });
+
+      it('attaches and filters sensitive a set-cookie header', () => {
+        const headers1 = { 'Set-Cookie': 'user_session=def456' };
+        const result1 = httpHeadersToSpanAttributes(headers1);
+        expect(result1).toEqual({ 'http.request.header.set_cookie.user_session': '[Filtered]' });
+
+        const headers2 = { 'Set-Cookie': 'preferred-color-mode=light' };
+        const result2 = httpHeadersToSpanAttributes(headers2);
+        expect(result2).toEqual({ 'http.request.header.set_cookie.preferred_color_mode': 'light' });
+
+        const headers3 = { 'Set-Cookie': 'lang=en' };
+        const result3 = httpHeadersToSpanAttributes(headers3);
+        expect(result3).toEqual({ 'http.request.header.set_cookie.lang': 'en' });
+
+        const headers4 = { 'Set-Cookie': 'timezone=UTC' };
+        const result4 = httpHeadersToSpanAttributes(headers4);
+        expect(result4).toEqual({ 'http.request.header.set_cookie.timezone': 'UTC' });
+      });
+
+      it.each([
+        { sendDefaultPii: false, description: 'sendDefaultPii is false (default)' },
+        { sendDefaultPii: true, description: 'sendDefaultPii is true' },
+      ])('does not include PII headers when $description', ({ sendDefaultPii }) => {
+        const headers = {
+          'Content-Type': 'application/json',
+          'User-Agent': 'Mozilla/5.0',
+          'x-user': 'my-personal-username',
+          'X-Forwarded-For': '192.168.1.1',
+          'X-Forwarded-Host': 'example.com',
+          'X-Forwarded-Proto': 'https',
+        };
+
+        const result = httpHeadersToSpanAttributes(headers, sendDefaultPii);
+
+        if (sendDefaultPii) {
+          expect(result).toEqual({
+            'http.request.header.content_type': 'application/json',
+            'http.request.header.user_agent': 'Mozilla/5.0',
+            'http.request.header.x_user': 'my-personal-username',
+            'http.request.header.x_forwarded_for': '192.168.1.1',
+            'http.request.header.x_forwarded_host': 'example.com',
+            'http.request.header.x_forwarded_proto': 'https',
+          });
+        } else {
+          expect(result).toEqual({
+            'http.request.header.content_type': 'application/json',
+            'http.request.header.user_agent': 'Mozilla/5.0',
+            'http.request.header.x_user': '[Filtered]',
+            'http.request.header.x_forwarded_for': '[Filtered]',
+            'http.request.header.x_forwarded_host': '[Filtered]',
+            'http.request.header.x_forwarded_proto': '[Filtered]',
+          });
+        }
       });
 
       it('always filters comprehensive list of sensitive headers', () => {
@@ -671,8 +754,8 @@ describe('request utils', () => {
           'http.request.header.accept': 'application/json',
           'http.request.header.host': 'example.com',
           'http.request.header.authorization': '[Filtered]',
-          'http.request.header.cookie': '[Filtered]',
-          'http.request.header.set_cookie': '[Filtered]',
+          'http.request.header.cookie.session': '[Filtered]',
+          'http.request.header.set_cookie.session': '[Filtered]',
           'http.request.header.x_api_key': '[Filtered]',
           'http.request.header.x_auth_token': '[Filtered]',
           'http.request.header.x_secret': '[Filtered]',
