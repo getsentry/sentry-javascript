@@ -25,6 +25,7 @@ export {
   pathEndsWithWildcard,
   pathIsWildcardAndHasChildren,
   getNumberOfUrlSegments,
+  transactionNameHasWildcard,
 } from './utils';
 
 // Lazy route exports

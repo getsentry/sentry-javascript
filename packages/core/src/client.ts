@@ -239,6 +239,11 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
       });
     }
 
+    // Backfill enableLogs option from _experiments.enableLogs
+    // TODO(v11): Remove or change default value
+    // eslint-disable-next-line deprecation/deprecation
+    this._options.enableLogs = this._options.enableLogs ?? this._options._experiments?.enableLogs;
+
     // Setup log flushing with weight and timeout tracking
     if (this._options.enableLogs) {
       setupWeightBasedFlushing(this, 'afterCaptureLog', 'flushLogs', estimateLogSizeInBytes, _INTERNAL_flushLogsBuffer);
@@ -814,6 +819,24 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   ): () => void;
 
   /**
+   * A hook that is called when the UI Profiler should start profiling.
+   *
+   * This hook is called when running `Sentry.uiProfiler.startProfiler()`.
+   *
+   * @returns {() => void} A function that, when executed, removes the registered callback.
+   */
+  public on(hook: 'startUIProfiler', callback: () => void): () => void;
+
+  /**
+   * A hook that is called when the UI Profiler should stop profiling.
+   *
+   * This hook is called when running `Sentry.uiProfiler.stopProfiler()`.
+   *
+   * @returns {() => void} A function that, when executed, removes the registered callback.
+   */
+  public on(hook: 'stopUIProfiler', callback: () => void): () => void;
+
+  /**
    * Register a hook on this client.
    */
   public on(hook: string, callback: unknown): () => void {
@@ -1028,6 +1051,16 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     response: unknown,
     normalizedRequest: RequestEventData,
   ): void;
+
+  /**
+   * Emit a hook event for starting the UI Profiler.
+   */
+  public emit(hook: 'startUIProfiler'): void;
+
+  /**
+   * Emit a hook event for stopping the UI Profiler.
+   */
+  public emit(hook: 'stopUIProfiler'): void;
 
   /**
    * Emit a hook that was previously registered via `on()`.

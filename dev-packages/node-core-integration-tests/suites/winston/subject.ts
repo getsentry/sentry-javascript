@@ -8,7 +8,11 @@ const client = Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   release: '1.0.0',
   environment: 'test',
-  enableLogs: true,
+  // Purposefully specifying the experimental flag here
+  // to ensure the top level option is still respected.
+  _experiments: {
+    enableLogs: true,
+  },
   transport: loggingTransport,
 });
 
