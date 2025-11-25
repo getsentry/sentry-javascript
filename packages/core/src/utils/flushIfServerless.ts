@@ -59,7 +59,7 @@ export async function flushIfServerless(
   }
 
   if (isCloudflareWaitUntilAvailable()) {
-    // If the cloudflareWaitUntil function is available, use it to flush the events, if not then fallback to the regular flush
+    // If the cloudflareWaitUntil function is available, use it to flush the events
     cloudflareWaitUntil(flushWithTimeout(timeout));
     return;
   }

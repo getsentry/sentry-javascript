@@ -10,13 +10,14 @@ export type MinimalCloudflareContext = {
  */
 function _getCloudflareContext(): MinimalCloudflareContext | undefined {
   const cfContextSymbol = Symbol.for('__cloudflare-context__');
-  const globalWithCfContext = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
-    [cfContextSymbol]?: {
-      ctx: MinimalCloudflareContext;
-    };
-  };
 
-  return globalWithCfContext[cfContextSymbol]?.ctx;
+  return (
+    GLOBAL_OBJ as typeof GLOBAL_OBJ & {
+      [cfContextSymbol]?: {
+        ctx: MinimalCloudflareContext;
+      };
+    }
+  )[cfContextSymbol]?.ctx;
 }
 
 /**
