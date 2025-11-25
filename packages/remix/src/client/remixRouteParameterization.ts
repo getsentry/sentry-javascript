@@ -82,7 +82,10 @@ function getManifest(): RouteManifest | null {
   };
 
   try {
-    manifest = JSON.parse(currentManifestString);
+    // The manifest is double-stringified for XSS prevention in the Vite plugin,
+    // so we need to parse twice: once to get the JSON string, then again to get the object
+    const manifestJsonString = JSON.parse(currentManifestString);
+    manifest = JSON.parse(manifestJsonString);
     if (!Array.isArray(manifest.staticRoutes) || !Array.isArray(manifest.dynamicRoutes)) {
       return null;
     }

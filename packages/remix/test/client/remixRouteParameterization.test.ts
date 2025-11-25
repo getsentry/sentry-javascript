@@ -7,6 +7,14 @@ const globalWithInjectedManifest = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   _sentryRemixRouteManifest: string | undefined;
 };
 
+/**
+ * Helper to simulate the Vite plugin's double-stringify behavior for XSS prevention.
+ * The Vite plugin stringifies the manifest once, then stringifies again when injecting into JS.
+ */
+function doubleStringify(manifest: RouteManifest): string {
+  return JSON.stringify(JSON.stringify(manifest));
+}
+
 describe('maybeParameterizeRemixRoute', () => {
   const originalManifest = globalWithInjectedManifest._sentryRemixRouteManifest;
 
@@ -30,7 +38,7 @@ describe('maybeParameterizeRemixRoute', () => {
         staticRoutes: [{ path: '/' }, { path: '/about' }, { path: '/contact' }, { path: '/blog/posts' }],
         dynamicRoutes: [],
       };
-      globalWithInjectedManifest._sentryRemixRouteManifest = JSON.stringify(manifest);
+      globalWithInjectedManifest._sentryRemixRouteManifest = doubleStringify(manifest);
 
       expect(maybeParameterizeRemixRoute('/')).toBeUndefined();
       expect(maybeParameterizeRemixRoute('/about')).toBeUndefined();
@@ -61,7 +69,7 @@ describe('maybeParameterizeRemixRoute', () => {
           },
         ],
       };
-      globalWithInjectedManifest._sentryRemixRouteManifest = JSON.stringify(manifest);
+      globalWithInjectedManifest._sentryRemixRouteManifest = doubleStringify(manifest);
 
       expect(maybeParameterizeRemixRoute('/users/123')).toBe('/users/:id');
       expect(maybeParameterizeRemixRoute('/users/john-doe')).toBe('/users/:id');
@@ -82,7 +90,7 @@ describe('maybeParameterizeRemixRoute', () => {
           },
         ],
       };
-      globalWithInjectedManifest._sentryRemixRouteManifest = JSON.stringify(manifest);
+      globalWithInjectedManifest._sentryRemixRouteManifest = doubleStringify(manifest);
 
       expect(maybeParameterizeRemixRoute('/')).toBeUndefined();
       expect(maybeParameterizeRemixRoute('/about')).toBeUndefined();
@@ -104,7 +112,7 @@ describe('maybeParameterizeRemixRoute', () => {
           },
         ],
       };
-      globalWithInjectedManifest._sentryRemixRouteManifest = JSON.stringify(manifest);
+      globalWithInjectedManifest._sentryRemixRouteManifest = doubleStringify(manifest);
 
       expect(maybeParameterizeRemixRoute('/docs/intro')).toBe('/docs/:*');
       expect(maybeParameterizeRemixRoute('/docs/guide/getting-started')).toBe('/docs/:*');
@@ -122,7 +130,7 @@ describe('maybeParameterizeRemixRoute', () => {
           },
         ],
       };
-      globalWithInjectedManifest._sentryRemixRouteManifest = JSON.stringify(manifest);
+      globalWithInjectedManifest._sentryRemixRouteManifest = doubleStringify(manifest);
 
       expect(maybeParameterizeRemixRoute('/users/user-with-dashes/settings')).toBe('/users/:id/settings');
       expect(maybeParameterizeRemixRoute('/users/user_with_underscores/settings')).toBe('/users/:id/settings');
@@ -145,7 +153,7 @@ describe('maybeParameterizeRemixRoute', () => {
           },
         ],
       };
-      globalWithInjectedManifest._sentryRemixRouteManifest = JSON.stringify(manifest);
+      globalWithInjectedManifest._sentryRemixRouteManifest = doubleStringify(manifest);
 
       // Should prefer more specific route over catch-all
       expect(maybeParameterizeRemixRoute('/users/123')).toBe('/users/:id');
@@ -162,7 +170,7 @@ describe('maybeParameterizeRemixRoute', () => {
           },
         ],
       };
-      globalWithInjectedManifest._sentryRemixRouteManifest = JSON.stringify(manifest);
+      globalWithInjectedManifest._sentryRemixRouteManifest = doubleStringify(manifest);
 
       expect(maybeParameterizeRemixRoute('/users/123')).toBeUndefined();
     });
@@ -178,7 +186,7 @@ describe('maybeParameterizeRemixRoute', () => {
           },
         ],
       };
-      globalWithInjectedManifest._sentryRemixRouteManifest = JSON.stringify(manifest);
+      globalWithInjectedManifest._sentryRemixRouteManifest = doubleStringify(manifest);
 
       expect(maybeParameterizeRemixRoute('/users/123')).toBeUndefined();
     });
@@ -196,7 +204,7 @@ describe('maybeParameterizeRemixRoute', () => {
           },
         ],
       };
-      globalWithInjectedManifest._sentryRemixRouteManifest = JSON.stringify(manifest);
+      globalWithInjectedManifest._sentryRemixRouteManifest = doubleStringify(manifest);
 
       expect(maybeParameterizeRemixRoute('/unknown')).toBeUndefined();
       expect(maybeParameterizeRemixRoute('/posts/123')).toBeUndefined();
@@ -210,7 +218,7 @@ describe('maybeParameterizeRemixRoute', () => {
         staticRoutes: [],
         dynamicRoutes: [],
       };
-      globalWithInjectedManifest._sentryRemixRouteManifest = JSON.stringify(manifest);
+      globalWithInjectedManifest._sentryRemixRouteManifest = doubleStringify(manifest);
 
       expect(maybeParameterizeRemixRoute('')).toBeUndefined();
     });
@@ -220,7 +228,7 @@ describe('maybeParameterizeRemixRoute', () => {
         staticRoutes: [{ path: '/' }],
         dynamicRoutes: [],
       };
-      globalWithInjectedManifest._sentryRemixRouteManifest = JSON.stringify(manifest);
+      globalWithInjectedManifest._sentryRemixRouteManifest = doubleStringify(manifest);
 
       expect(maybeParameterizeRemixRoute('/')).toBeUndefined();
     });
@@ -236,7 +244,7 @@ describe('maybeParameterizeRemixRoute', () => {
           },
         ],
       };
-      globalWithInjectedManifest._sentryRemixRouteManifest = JSON.stringify(manifest);
+      globalWithInjectedManifest._sentryRemixRouteManifest = doubleStringify(manifest);
 
       expect(maybeParameterizeRemixRoute('/api/v1/users/123/posts/456/comments/789')).toBe(
         '/api/v1/users/:id/posts/:postId/comments/:commentId',
@@ -289,7 +297,7 @@ describe('maybeParameterizeRemixRoute', () => {
           },
         ],
       };
-      globalWithInjectedManifest._sentryRemixRouteManifest = JSON.stringify(manifest);
+      globalWithInjectedManifest._sentryRemixRouteManifest = doubleStringify(manifest);
 
       if (expectedRoute === undefined) {
         expect(maybeParameterizeRemixRoute(inputRoute)).toBeUndefined();
@@ -316,7 +324,7 @@ describe('maybeParameterizeRemixRoute', () => {
           },
         ],
       };
-      globalWithInjectedManifest._sentryRemixRouteManifest = JSON.stringify(manifest);
+      globalWithInjectedManifest._sentryRemixRouteManifest = doubleStringify(manifest);
 
       // Single segment should match the specific route, not the catch-all
       expect(maybeParameterizeRemixRoute('/123')).toBe('/:parameter');
@@ -347,7 +355,7 @@ describe('maybeParameterizeRemixRoute', () => {
           },
         ],
       };
-      globalWithInjectedManifest._sentryRemixRouteManifest = JSON.stringify(manifest);
+      globalWithInjectedManifest._sentryRemixRouteManifest = doubleStringify(manifest);
 
       // More specific route with static segments should win
       expect(maybeParameterizeRemixRoute('/api/users/123')).toBe('/api/users/:id');
@@ -372,7 +380,7 @@ describe('maybeParameterizeRemixRoute', () => {
           },
         ],
       };
-      globalWithInjectedManifest._sentryRemixRouteManifest = JSON.stringify(manifest);
+      globalWithInjectedManifest._sentryRemixRouteManifest = doubleStringify(manifest);
 
       const result1 = maybeParameterizeRemixRoute('/users/123');
       const result2 = maybeParameterizeRemixRoute('/users/123');
@@ -392,7 +400,7 @@ describe('maybeParameterizeRemixRoute', () => {
           },
         ],
       };
-      globalWithInjectedManifest._sentryRemixRouteManifest = JSON.stringify(manifest1);
+      globalWithInjectedManifest._sentryRemixRouteManifest = doubleStringify(manifest1);
 
       expect(maybeParameterizeRemixRoute('/users/123')).toBe('/users/:id');
 
@@ -407,7 +415,7 @@ describe('maybeParameterizeRemixRoute', () => {
           },
         ],
       };
-      globalWithInjectedManifest._sentryRemixRouteManifest = JSON.stringify(manifest2);
+      globalWithInjectedManifest._sentryRemixRouteManifest = doubleStringify(manifest2);
 
       expect(maybeParameterizeRemixRoute('/users/123')).toBeUndefined();
       expect(maybeParameterizeRemixRoute('/members/123')).toBe('/members/:id');
