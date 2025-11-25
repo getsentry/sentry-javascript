@@ -185,11 +185,18 @@ export function httpHeadersToSpanAttributes(
           const lowerCasedCookieKey = String(cookieKey).toLowerCase();
           const normalizedKey = `http.request.header.${normalizeAttributeKey(lowerCasedHeaderKey)}.${normalizeAttributeKey(lowerCasedCookieKey)}`;
 
-          spanAttributes[normalizedKey] = handleHttpHeader(lowerCasedCookieKey, cookieValue, sendDefaultPii);
+          const headerValue = handleHttpHeader(lowerCasedCookieKey, cookieValue, sendDefaultPii);
+          if (headerValue !== undefined) {
+            spanAttributes[normalizedKey] = headerValue;
+          }
         }
       } else {
         const normalizedKey = `http.request.header.${normalizeAttributeKey(lowerCasedHeaderKey)}`;
-        spanAttributes[normalizedKey] = handleHttpHeader(lowerCasedHeaderKey, value, sendDefaultPii);
+
+        const headerValue = handleHttpHeader(lowerCasedHeaderKey, value, sendDefaultPii);
+        if (headerValue !== undefined) {
+          spanAttributes[normalizedKey] = headerValue;
+        }
       }
     });
   } catch {
@@ -199,11 +206,15 @@ export function httpHeadersToSpanAttributes(
   return spanAttributes;
 }
 
-function normalizeAttributeKey(key: string): string | undefined {
+function normalizeAttributeKey(key: string): string {
   return key.replace(/-/g, '_');
 }
 
-function handleHttpHeader(lowerCasedKey: string, value: string | string[] | undefined, sendPii: boolean): string {
+function handleHttpHeader(
+  lowerCasedKey: string,
+  value: string | string[] | undefined,
+  sendPii: boolean,
+): string | undefined {
   const isSensitive = sendPii
     ? SENSITIVE_HEADER_SNIPPETS.some(snippet => lowerCasedKey.includes(snippet))
     : [...PII_HEADER_SNIPPETS, ...SENSITIVE_HEADER_SNIPPETS].some(snippet => lowerCasedKey.includes(snippet));
@@ -216,7 +227,7 @@ function handleHttpHeader(lowerCasedKey: string, value: string | string[] | unde
     return value;
   }
 
-  return undefined; // Fallback for unexpected types
+  return undefined;
 }
 
 /** Extract the query params from an URL. */
