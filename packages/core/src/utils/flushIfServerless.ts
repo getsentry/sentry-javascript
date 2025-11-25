@@ -57,9 +57,8 @@ export async function flushIfServerless(
   // @ts-expect-error This is not typed
   if (GLOBAL_OBJ[Symbol.for(CloudflareContextKey)]) {
     // If the cloudflareWaitUntil function is available, use it to flush the events, if not then fallback to the regular flush
-    if (cloudflareWaitUntil(flushWithTimeout(timeout))) {
-      return;
-    }
+    cloudflareWaitUntil(flushWithTimeout(timeout));
+    return;
   }
 
   if (typeof process === 'undefined') {
