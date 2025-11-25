@@ -1,4 +1,3 @@
-import { getClient } from '../currentScopes';
 import type { PolymorphicRequest } from '../types-hoist/polymorphics';
 import type { RequestEventData } from '../types-hoist/request';
 import type { WebFetchHeaders, WebFetchRequest } from '../types-hoist/webfetchapi';
