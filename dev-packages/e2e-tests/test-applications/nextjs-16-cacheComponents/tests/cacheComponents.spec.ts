@@ -10,7 +10,7 @@ test('Should render cached component', async ({ page }) => {
   const serverTx = await serverTxPromise;
 
   // we want to skip creating spans in cached environments
-  expect(serverTx.spans?.filter(span => span.op === 'get.todos').length).toHaveLength(0);
+  expect(serverTx.spans?.filter(span => span.op === 'get.todos')).toHaveLength(0);
   await expect(page.locator('#todos-fetched')).toHaveText('Todos fetched: 5');
 });
 
@@ -23,6 +23,6 @@ test('Should render suspense component', async ({ page }) => {
   const serverTx = await serverTxPromise;
 
   // this will be called several times in development mode, so we need to check for at least one span
-  expect(serverTx.spans?.filter(span => span.op === 'get.todos').length).toBeGreaterThanOrEqual(1);
+  expect(serverTx.spans?.filter(span => span.op === 'get.todos').length).toBeGreaterThan(0);
   await expect(page.locator('#todos-fetched')).toHaveText('Todos fetched: 5');
 });
