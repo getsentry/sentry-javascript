@@ -419,19 +419,11 @@ export function extractLlmResponseAttributes(
 
   addTokenUsageAttributes(llmResult.llmOutput, attrs);
 
-  const llmOutput = llmResult.llmOutput as { model_name?: string; model?: string; id?: string; stop_reason?: string };
+  const llmOutput = llmResult.llmOutput;
 
   // Extract from v1 generations structure if available
   const firstGeneration = llmResult.generations?.[0]?.[0];
-  const v1Message = firstGeneration?.message as
-    | {
-        id?: string;
-        response_metadata?: {
-          model_name?: string;
-          finish_reason?: string;
-        };
-      }
-    | undefined;
+  const v1Message = firstGeneration?.message;
 
   // Provider model identifier: `model_name` (OpenAI-style) or `model` (others)
   // v1 stores this in message.response_metadata.model_name

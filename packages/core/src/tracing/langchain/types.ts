@@ -47,6 +47,10 @@ export interface LangChainMessage {
   // LangChain serialized format
   lc?: number;
   id?: string[];
+  response_metadata?: {
+    model_name?: string;
+    finish_reason?: string;
+  };
   kwargs?: {
     [key: string]: unknown;
     content?: string;
@@ -70,6 +74,7 @@ export interface LangChainLLMResult {
         finish_reason?: string;
         logprobs?: unknown;
       };
+      // v1+ uses generationInfo instead of generation_info
       generationInfo?: {
         [key: string]: unknown;
         finish_reason?: string;
