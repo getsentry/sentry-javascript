@@ -111,7 +111,7 @@ export const SEMANTIC_ATTRIBUTE_USER_EMAIL = 'user.email';
 /** The user IP address (gated by sendDefaultPii) */
 export const SEMANTIC_ATTRIBUTE_USER_IP_ADDRESS = 'user.ip_address';
 /** The user username (gated by sendDefaultPii) */
-export const SEMANTIC_ATTRIBUTE_USER_USERNAME = 'user.username';
+export const SEMANTIC_ATTRIBUTE_USER_USERNAME = 'user.name';
 /** The name of the Sentry SDK (e.g., "sentry.php", "sentry.javascript") */
 export const SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME = 'sentry.sdk.name';
 /** The version of the Sentry SDK */
