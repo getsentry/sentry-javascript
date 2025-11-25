@@ -36,12 +36,14 @@ function isRouteFile(filename: string): boolean {
  *   - users/$id.tsx (nested folder) -> /users/:id
  *   - users/$id/posts.tsx (nested folder) -> /users/:id/posts
  *   - users/index.tsx (nested folder) -> /users
+ *   - _layout.tsx -> null (pathless layout route, not URL-addressable)
+ *   - _auth.tsx -> null (pathless layout route, not URL-addressable)
  *
  * @param filename - The route filename or path (can include directory separators for nested routes)
- * @returns Object containing the parameterized path and whether it's dynamic
+ * @returns Object containing the parameterized path and whether it's dynamic, or null for pathless layout routes
  * @internal Exported for testing purposes
  */
-export function convertRemixRouteToPath(filename: string): { path: string; isDynamic: boolean } {
+export function convertRemixRouteToPath(filename: string): { path: string; isDynamic: boolean } | null {
   // Remove file extension
   const basename = filename.replace(/\.(tsx?|jsx?)$/, '');
 
@@ -83,6 +85,12 @@ export function convertRemixRouteToPath(filename: string): { path: string; isDyn
     } else if (segment !== 'index') {
       pathSegments.push(segment);
     }
+  }
+
+  // If all segments were skipped (pathless layout route like _layout.tsx, _auth.tsx),
+  // return null to indicate this file should not be added to the route manifest
+  if (pathSegments.length === 0) {
+    return null;
   }
 
   const path = `/${pathSegments.join('/')}`;
@@ -151,7 +159,14 @@ function scanRoutesDirectory(
         staticRoutes.push(...nested.staticRoutes);
       } else if (stat.isFile() && isRouteFile(entry)) {
         const routeName = prefix ? `${prefix}/${entry}` : entry;
-        const { path: routePath, isDynamic } = convertRemixRouteToPath(routeName);
+        const result = convertRemixRouteToPath(routeName);
+
+        // Skip pathless layout routes (e.g., _layout.tsx, _auth.tsx)
+        if (result === null) {
+          continue;
+        }
+
+        const { path: routePath, isDynamic } = result;
 
         if (isDynamic) {
           const { regex, paramNames } = buildRegexForDynamicRoute(routePath);

@@ -2,6 +2,16 @@ import * as path from 'path';
 import type { Plugin } from 'vite';
 import { createRemixRouteManifest } from './createRemixRouteManifest';
 
+/**
+ * Escapes a JSON string for safe embedding in HTML script tags.
+ * JSON.stringify alone doesn't escape </script> or <!-- which can break out of script context.
+ */
+function escapeJsonForHtml(jsonString: string): string {
+  return jsonString
+    .replace(/<\//g, '<\\/') // Escape </ to prevent </script> injection
+    .replace(/<!--/g, '<\\!--'); // Escape <!-- to prevent HTML comment injection
+}
+
 export type SentryRemixVitePluginOptions = {
   /**
    * Path to the app directory (where routes folder is located).
@@ -87,11 +97,11 @@ export function sentryRemixVitePlugin(options: SentryRemixVitePluginOptions = {}
         }
 
         /**
-         * XSS Prevention: Double-stringify strategy prevents injection from malicious route filenames.
-         * routeManifestJson is already stringified once, stringifying again escapes special chars.
-         * Client-side code parses once to recover the manifest object.
+         * XSS Prevention: JSON.stringify escapes quotes/backslashes, but we also need to escape
+         * HTML-dangerous sequences like </script> and <!-- that could break out of the script context.
          */
-        const script = `<script>window.${MANIFEST_GLOBAL_KEY} = ${JSON.stringify(routeManifestJson)};</script>`;
+        const safeJsonValue = escapeJsonForHtml(JSON.stringify(routeManifestJson));
+        const script = `<script>window.${MANIFEST_GLOBAL_KEY} = ${safeJsonValue};</script>`;
 
         if (/<head>/i.test(html)) {
           return html.replace(/<head>/i, match => `${match}\n  ${script}`);
@@ -125,11 +135,12 @@ export function sentryRemixVitePlugin(options: SentryRemixVitePluginOptions = {}
         /(^|\/)server\.[jt]sx?$/.test(id);
 
       if (isClientEntry) {
-        // XSS Prevention: Double-stringify strategy (same as transformIndexHtml above)
+        // XSS Prevention: Escape HTML-dangerous sequences in addition to JSON escaping
+        const safeJsonValue = escapeJsonForHtml(JSON.stringify(routeManifestJson));
         const injectedCode = `
 // Sentry Remix Route Manifest - Auto-injected
 if (typeof window !== 'undefined') {
-  window.${MANIFEST_GLOBAL_KEY} = window.${MANIFEST_GLOBAL_KEY} || ${JSON.stringify(routeManifestJson)};
+  window.${MANIFEST_GLOBAL_KEY} = window.${MANIFEST_GLOBAL_KEY} || ${safeJsonValue};
 }
 ${code}`;
 
@@ -142,10 +153,12 @@ ${code}`;
       if (isServerEntry) {
         // Inject into server entry for server-side transaction naming
         // Use globalThis for Cloudflare Workers/Hydrogen compatibility
+        // XSS Prevention: Escape HTML-dangerous sequences (important if server renders this)
+        const safeJsonValue = escapeJsonForHtml(JSON.stringify(routeManifestJson));
         const injectedCode = `
 // Sentry Remix Route Manifest - Auto-injected
 if (typeof globalThis !== 'undefined') {
-  globalThis.${MANIFEST_GLOBAL_KEY} = globalThis.${MANIFEST_GLOBAL_KEY} || ${JSON.stringify(routeManifestJson)};
+  globalThis.${MANIFEST_GLOBAL_KEY} = globalThis.${MANIFEST_GLOBAL_KEY} || ${safeJsonValue};
 }
 ${code}`;
 

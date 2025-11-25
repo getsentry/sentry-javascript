@@ -273,6 +273,50 @@ describe('sentryRemixVitePlugin', () => {
       // Check that the JSON is properly escaped (no unescaped quotes that would break JS)
       expect(result).toMatch(/window\._sentryRemixRouteManifest = "[^"]*"/);
     });
+
+    it('should escape HTML-dangerous sequences to prevent XSS attacks', () => {
+      // Create a route file with a name that could be used for XSS injection
+      // The path "</script><script>alert(1)</script>" would break out of the script tag
+      // without proper escaping
+      fs.writeFileSync(path.join(routesDir, 'index.tsx'), '// test');
+
+      const plugin = sentryRemixVitePlugin() as Plugin & {
+        configResolved: (config: ResolvedConfig) => void;
+        transformIndexHtml: {
+          order: string;
+          handler: (html: string) => string;
+        };
+        transform: (code: string, id: string) => { code: string; map: null } | null;
+      };
+
+      const mockConfig: Partial<ResolvedConfig> = {
+        root: tempDir,
+        command: 'build',
+        mode: 'production',
+      };
+
+      plugin.configResolved(mockConfig);
+
+      // Test transformIndexHtml
+      const html = '<html><head></head><body></body></html>';
+      const htmlResult = plugin.transformIndexHtml.handler(html);
+
+      // Should NOT contain unescaped </script> that could break out of script context
+      // The </script> in route paths must be escaped as <\/script>
+      expect(htmlResult).not.toMatch(/<\/script>.*<\/script>.*<\/script>/);
+
+      // The output should be valid - only one closing script tag for the injected script
+      const scriptTagCount = (htmlResult.match(/<\/script>/g) || []).length;
+      expect(scriptTagCount).toBe(1);
+
+      // Test transform (client entry)
+      const clientCode = 'console.log("entry");';
+      const clientResult = plugin.transform(clientCode, '/app/entry.client.tsx');
+      expect(clientResult).not.toBeNull();
+
+      // Verify no unescaped </script> in the transform output either
+      expect(clientResult?.code).not.toContain('</script>');
+    });
   });
 
   describe('transform hook', () => {

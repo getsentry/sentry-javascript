@@ -1,7 +1,7 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs, ServerBuild } from '@remix-run/node';
 import type { AgnosticRouteObject } from '@remix-run/router';
 import type { Span, TransactionSource } from '@sentry/core';
-import { debug, GLOBAL_OBJ } from '@sentry/core';
+import { debug } from '@sentry/core';
 import { DEBUG_BUILD } from './debug-build';
 import { getRequestMatch, matchServerRoutes } from './vendor/response';
 
@@ -104,21 +104,6 @@ export function convertRemixRouteIdToPath(routeId: string): string {
 }
 
 /**
- * Check if the Vite plugin manifest is available.
- * @returns True if the manifest is available, false otherwise.
- */
-function hasManifest(): boolean {
-  const globalWithInjectedManifest = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
-    _sentryRemixRouteManifest: string | undefined;
-  };
-
-  return (
-    !!globalWithInjectedManifest?._sentryRemixRouteManifest &&
-    typeof globalWithInjectedManifest._sentryRemixRouteManifest === 'string'
-  );
-}
-
-/**
  * Get transaction name from routes and url
  */
 export function getTransactionName(routes: AgnosticRouteObject[], url: URL): [string, TransactionSource] {
@@ -131,15 +116,10 @@ export function getTransactionName(routes: AgnosticRouteObject[], url: URL): [st
 
   const routeId = match.route.id || 'no-route-id';
 
-  // Only use parameterized path if the Vite plugin manifest is available
-  // This ensures backward compatibility - without the plugin, we use the old behavior
-  if (hasManifest()) {
-    const parameterizedPath = convertRemixRouteIdToPath(routeId);
-    return [parameterizedPath, 'route'];
-  }
-
-  // Fallback to old behavior (route ID) when manifest is not available
-  return [routeId, 'route'];
+  // Convert route ID to parameterized path (e.g., "routes/users.$id" -> "/users/:id")
+  // This is a pure string transformation that works without the Vite plugin manifest
+  const parameterizedPath = convertRemixRouteIdToPath(routeId);
+  return [parameterizedPath, 'route'];
 }
 
 /**

@@ -18,22 +18,22 @@ describe('getTransactionName', () => {
     },
   ];
 
-  describe('without Vite plugin manifest', () => {
-    it('should return route ID for matched routes (backward compatibility)', () => {
+  describe('route parameterization', () => {
+    it('should return parameterized path for matched dynamic routes', () => {
       const url = new URL('http://localhost/user/123');
       const [name, source] = getTransactionName(mockRoutes, url);
 
-      // Without manifest, should use old behavior (route ID)
-      expect(name).toBe('routes/user.$id');
+      // Server-side always converts route ID to parameterized path
+      expect(name).toBe('/user/:id');
       expect(source).toBe('route');
     });
 
-    it('should return route ID for index routes (backward compatibility)', () => {
+    it('should return parameterized path for index routes', () => {
       const url = new URL('http://localhost/');
       const [name, source] = getTransactionName(mockRoutes, url);
 
-      // Without manifest, should use old behavior (route ID)
-      expect(name).toBe('routes/_index');
+      // Server-side always converts route ID to parameterized path
+      expect(name).toBe('/');
       expect(source).toBe('route');
     });
 
@@ -44,52 +44,35 @@ describe('getTransactionName', () => {
       expect(name).toBe('/unknown');
       expect(source).toBe('url');
     });
-  });
 
-  describe('with Vite plugin manifest', () => {
-    it('should return parameterized path when manifest is available', () => {
-      // Simulate the Vite plugin injecting the manifest
-      // @ts-expect-error - Injecting manifest for testing
-      global._sentryRemixRouteManifest = JSON.stringify({
-        staticRoutes: [{ path: '/' }],
-        dynamicRoutes: [
-          {
-            path: '/user/:id',
-            regex: '^/user/[^/]+/?$',
-          },
-        ],
-      });
+    it('should handle routes with multiple dynamic segments', () => {
+      const routesWithNested: AgnosticRouteObject[] = [
+        {
+          id: 'routes/users.$userId.posts.$postId',
+          path: '/users/:userId/posts/:postId',
+        },
+      ];
 
-      const url = new URL('http://localhost/user/123');
-      const [name, source] = getTransactionName(mockRoutes, url);
+      const url = new URL('http://localhost/users/123/posts/456');
+      const [name, source] = getTransactionName(routesWithNested, url);
 
-      // With manifest, should use new behavior (parameterized path)
-      expect(name).toBe('/user/:id');
+      expect(name).toBe('/users/:userId/posts/:postId');
       expect(source).toBe('route');
-
-      // Cleanup
-      // @ts-expect-error - Cleaning up test manifest
-      delete global._sentryRemixRouteManifest;
     });
 
-    it('should return parameterized path for index routes when manifest is available', () => {
-      // Simulate the Vite plugin injecting the manifest
-      // @ts-expect-error - Injecting manifest for testing
-      global._sentryRemixRouteManifest = JSON.stringify({
-        staticRoutes: [{ path: '/' }],
-        dynamicRoutes: [],
-      });
+    it('should handle splat routes', () => {
+      const routesWithSplat: AgnosticRouteObject[] = [
+        {
+          id: 'routes/docs.$',
+          path: '/docs/*',
+        },
+      ];
 
-      const url = new URL('http://localhost/');
-      const [name, source] = getTransactionName(mockRoutes, url);
+      const url = new URL('http://localhost/docs/api/reference/intro');
+      const [name, source] = getTransactionName(routesWithSplat, url);
 
-      // With manifest, should use new behavior (parameterized path)
-      expect(name).toBe('/');
+      expect(name).toBe('/docs/:*');
       expect(source).toBe('route');
-
-      // Cleanup
-      // @ts-expect-error - Cleaning up test manifest
-      delete global._sentryRemixRouteManifest;
     });
   });
 });
