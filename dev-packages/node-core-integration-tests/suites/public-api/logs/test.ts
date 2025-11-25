@@ -52,7 +52,7 @@ describe('logger public API', () => {
                 },
                 'sentry.message.template': {
                   type: 'string',
-                  value: 'test info with {param}',
+                  value: 'test info with %d',
                 },
                 'sentry.sdk.name': {
                   type: 'string',
@@ -71,7 +71,7 @@ describe('logger public API', () => {
                   value: 'h4cktor',
                 },
               },
-              body: 'test info with {param} 1',
+              body: 'test info with 1',
               level: 'info',
               severity_number: 9,
               timestamp: expect.any(Number),
@@ -89,7 +89,7 @@ describe('logger public API', () => {
                 },
                 'sentry.message.template': {
                   type: 'string',
-                  value: '"test info with fm 1"',
+                  value: 'test info with fmt %s',
                 },
                 'sentry.sdk.name': {
                   type: 'string',
@@ -108,10 +108,7 @@ describe('logger public API', () => {
                   value: 'h4cktor',
                 },
               },
-              body: `[String: 'test info with fm 1'] {
-  __sentry_template_string__: 'test info with fm %s',
-  __sentry_template_values__: [ 1 ]
-} 1`,
+              body: 'test info with fmt 1',
               level: 'info',
               severity_number: 9,
               timestamp: expect.any(Number),

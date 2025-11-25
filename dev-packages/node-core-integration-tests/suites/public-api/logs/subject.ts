@@ -17,8 +17,8 @@ client.init();
 
 async function run(): Promise<void> {
   Sentry.logger.info('test info', { foo: 'bar1' }, { scope: customScope });
-  Sentry.logger.info('test info with {param}', [1], { foo: 'bar2' }, { scope: customScope });
-  Sentry.logger.info(Sentry.logger.fmt`test info with fm ${1}`, [1], { foo: 'bar3' }, { scope: customScope });
+  Sentry.logger.info('test info with %d', [1], { foo: 'bar2' }, { scope: customScope });
+  Sentry.logger.info(Sentry.logger.fmt`test info with fmt ${1}`, { foo: 'bar3' }, { scope: customScope });
 
   await Sentry.flush();
 }
