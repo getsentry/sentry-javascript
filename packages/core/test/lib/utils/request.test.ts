@@ -527,7 +527,7 @@ describe('request utils', () => {
         'X-Forwarded-For': '192.168.1.1',
       };
 
-      const result = httpHeadersToSpanAttributes(headers);
+      const result = httpHeadersToSpanAttributes(headers, true);
 
       expect(result).toEqual({
         'http.request.header.host': 'example.com',

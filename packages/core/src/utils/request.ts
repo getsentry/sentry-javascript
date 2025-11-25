@@ -200,7 +200,7 @@ export function httpHeadersToSpanAttributes(
   return spanAttributes;
 }
 
-function normalizeAttributeKey(key: string): string {
+function normalizeAttributeKey(key: string): string | undefined {
   return key.replace(/-/g, '_');
 }
 
@@ -217,7 +217,7 @@ function handleHttpHeader(lowerCasedKey: string, value: string | string[] | unde
     return value;
   }
 
-  return ''; // Fallback for unexpected types
+  return undefined; // Fallback for unexpected types
 }
 
 /** Extract the query params from an URL. */
