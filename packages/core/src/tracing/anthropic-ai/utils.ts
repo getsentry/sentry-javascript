@@ -27,3 +27,23 @@ export function handleResponseError(span: Span, response: AnthropicAiResponse): 
     });
   }
 }
+
+/**
+ * Include the system prompt in the messages list, if available
+ */
+export function messagesFromParams(params: Record<string, unknown>): unknown {
+  const systemMessage =
+    typeof params.system === 'string'
+      ? {
+          role: 'system',
+          content: params.system,
+        }
+      : undefined;
+  return systemMessage
+    ? Array.isArray(params.messages)
+      ? [systemMessage, ...params.messages]
+      : params.messages
+        ? [systemMessage, params.messages]
+        : [systemMessage]
+    : params.messages;
+}
