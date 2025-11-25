@@ -1,6 +1,7 @@
 import * as sentryCore from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as nodeLogger from '../../src/logs/exports';
+import { Scope } from '@sentry/core';
 
 // Mock the core functions
 vi.mock('@sentry/core', async () => {
@@ -169,6 +170,52 @@ describe('Node Logger', () => {
           }),
         },
         undefined,
+      );
+    });
+  });
+
+  describe('scustom cope', () => {
+    it('calls _INTERNAL_captureLog with custom scope for basic log message', () => {
+      const customScope = new Scope();
+      nodeLogger.debug('User logged in', undefined, { scope: customScope });
+      expect(mockCaptureLog).toHaveBeenCalledWith(
+        {
+          level: 'debug',
+          message: 'User logged in',
+        },
+        customScope,
+      );
+    });
+
+    it('calls _INTERNAL_captureLog with custom scope for parametrized log message', () => {
+      const customScope = new Scope();
+      nodeLogger.debug('User %s logged in from %s', ['Alice', 'mobile'], undefined, { scope: customScope });
+      expect(mockCaptureLog).toHaveBeenCalledWith(
+        {
+          level: 'debug',
+          message: 'User Alice logged in from mobile',
+          attributes: {
+            'sentry.message.template': 'User %s logged in from %s',
+            'sentry.message.parameter.0': 'Alice',
+            'sentry.message.parameter.1': 'mobile',
+          },
+        },
+        customScope,
+      );
+    });
+
+    it('calls _INTERNAL_captureLog with custom scope for fmt log message', () => {
+      const customScope = new Scope();
+      nodeLogger.debug(nodeLogger.fmt`User ${'Alice'} logged in from ${'mobile'}`, undefined, { scope: customScope });
+      expect(mockCaptureLog).toHaveBeenCalledWith(
+        {
+          level: 'debug',
+          message: expect.objectContaining({
+            __sentry_template_string__: 'User %s logged in from %s',
+            __sentry_template_values__: ['Alice', 'mobile'],
+          }),
+        },
+        customScope,
       );
     });
   });
