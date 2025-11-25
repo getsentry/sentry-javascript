@@ -1,7 +1,10 @@
-import { afterAll, describe, expect } from 'vitest';
+import { afterAll, expect } from 'vitest';
+import { conditionalTest } from '../../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/runner';
 
-describe('LangChain integration (v1)', () => {
+// LangChain v1 requires Node.js 20+ (dropped Node 18 support)
+// See: https://docs.langchain.com/oss/javascript/migrate/langgraph-v1#dropped-node-18-support
+conditionalTest({ min: 20 })('LangChain integration (v1)', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });

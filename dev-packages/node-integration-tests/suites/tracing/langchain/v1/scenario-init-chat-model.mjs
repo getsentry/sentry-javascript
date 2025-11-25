@@ -105,6 +105,7 @@ async function run() {
   await Sentry.flush(2000);
 
   server.close();
+
 }
 
 run();
