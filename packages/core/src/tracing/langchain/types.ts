@@ -46,7 +46,7 @@ export interface LangChainMessage {
   additional_kwargs?: Record<string, unknown>;
   // LangChain serialized format
   lc?: number;
-  id?: string[];
+  id?: string[] | string;
   response_metadata?: {
     model_name?: string;
     finish_reason?: string;
