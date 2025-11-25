@@ -1,7 +1,7 @@
 import * as sentryCore from '@sentry/core';
+import { Scope } from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as nodeLogger from '../../src/logs/exports';
-import { Scope } from '@sentry/core';
 
 // Mock the core functions
 vi.mock('@sentry/core', async () => {
