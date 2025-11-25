@@ -182,7 +182,7 @@ export function httpHeadersToSpanAttributes(
           const cookieKey = equalSignIndex !== -1 ? cookie.substring(0, equalSignIndex) : cookie;
           const cookieValue = equalSignIndex !== -1 ? cookie.substring(equalSignIndex + 1) : '';
 
-          const lowerCasedCookieKey = String(cookieKey).toLowerCase();
+          const lowerCasedCookieKey = cookieKey.toLowerCase();
           const normalizedKey = `http.request.header.${normalizeAttributeKey(lowerCasedHeaderKey)}.${normalizeAttributeKey(lowerCasedCookieKey)}`;
 
           const headerValue = handleHttpHeader(lowerCasedCookieKey, cookieValue, sendDefaultPii);
