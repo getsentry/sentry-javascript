@@ -1,20 +1,32 @@
 import type { Span, StartSpanOptions } from '@sentry/core';
 import {
+  debug,
   SentryNonRecordingSpan,
   startInactiveSpan as coreStartInactiveSpan,
   startSpan as coreStartSpan,
   startSpanManual as coreStartSpanManual,
 } from '@sentry/core';
+import { DEBUG_BUILD } from '../debug-build';
+import { isBuild } from './isBuild';
+import type { ServerReference } from './isUseCacheFunction';
+import { isUseCacheFunction } from './isUseCacheFunction';
 
-/**
- * Check if we're currently in a Next.js Cache Components context.
- * Cache Components are rendered during the production build phase.
- *
- * @returns true if we're in a Cache Components context, false otherwise
- * // todo: This is a heuristic check, we should use a more reliable way to detect a Cache Components context once Vercel exposes it.
- */
-function isCacheComponentContext(): boolean {
-  return process.env.NEXT_PHASE === 'phase-production-build';
+function shouldNoopSpan<T>(callback?: T & Partial<ServerReference>): boolean {
+  const isBuildContext = isBuild();
+  const isUseCacheFunctionContext = callback ? isUseCacheFunction(callback) : false;
+
+  if (isUseCacheFunctionContext) {
+    DEBUG_BUILD && debug.log('Skipping span creation in Cache Components context');
+  }
+
+  return isBuildContext || isUseCacheFunctionContext;
+}
+
+function createNonRecordingSpan(): Span {
+  return new SentryNonRecordingSpan({
+    traceId: '00000000000000000000000000000000',
+    spanId: '0000000000000000',
+  });
 }
 
 /**
@@ -22,22 +34,15 @@ function isCacheComponentContext(): boolean {
  * in Cache Components contexts (which render at build time).
  *
  * When in a Cache Components context, we execute the callback with a non-recording span
- * and return early without creating an actual span, since spans don't make sense at build time.
+ * and return early without creating an actual span, since spans don't make sense at build/cache time.
  *
  * @param options - Options for starting the span
  * @param callback - Callback function that receives the span
  * @returns The return value of the callback
  */
 export function startSpan<T>(options: StartSpanOptions, callback: (span: Span) => T): T {
-  if (isCacheComponentContext()) {
-    // Cache Components render at build time, so spans don't make sense
-    // Execute callback with a non-recording span (no crypto calls) and return early
-    // Use placeholder IDs since this span won't be sent to Sentry anyway
-    const nonRecordingSpan = new SentryNonRecordingSpan({
-      traceId: '00000000000000000000000000000000',
-      spanId: '0000000000000000',
-    });
-    return callback(nonRecordingSpan);
+  if (shouldNoopSpan(callback)) {
+    return callback(createNonRecordingSpan());
   }
 
   return coreStartSpan(options, callback);
@@ -46,21 +51,15 @@ export function startSpan<T>(options: StartSpanOptions, callback: (span: Span) =
 /**
  *
  * When in a Cache Components context, we execute the callback with a non-recording span
- * and return early without creating an actual span, since spans don't make sense at build time.
+ * and return early without creating an actual span, since spans don't make sense at build/cache time.
  *
  * @param options - Options for starting the span
  * @param callback - Callback function that receives the span and finish function
  * @returns The return value of the callback
  */
 export function startSpanManual<T>(options: StartSpanOptions, callback: (span: Span, finish: () => void) => T): T {
-  if (isCacheComponentContext()) {
-    // Cache Components render at build time, so spans don't make sense
-    // Execute callback with a non-recording span (no crypto calls) and return early
-    // Use placeholder IDs since this span won't be sent to Sentry anyway
-    const nonRecordingSpan = new SentryNonRecordingSpan({
-      traceId: '00000000000000000000000000000000',
-      spanId: '0000000000000000',
-    });
+  if (shouldNoopSpan(callback)) {
+    const nonRecordingSpan = createNonRecordingSpan();
     return callback(nonRecordingSpan, () => nonRecordingSpan.end());
   }
 
@@ -70,20 +69,14 @@ export function startSpanManual<T>(options: StartSpanOptions, callback: (span: S
 /**
  *
  * When in a Cache Components context, we return a non-recording span and return early
- * without creating an actual span, since spans don't make sense at build time.
+ * without creating an actual span, since spans don't make sense at build/cache time.
  *
  * @param options - Options for starting the span
  * @returns A non-recording span (in Cache Components context) or the created span
  */
 export function startInactiveSpan(options: StartSpanOptions): Span {
-  if (isCacheComponentContext()) {
-    // Cache Components render at build time, so spans don't make sense
-    // Return a non-recording span (no crypto calls) and return early
-    // Use placeholder IDs since this span won't be sent to Sentry anyway
-    return new SentryNonRecordingSpan({
-      traceId: '00000000000000000000000000000000',
-      spanId: '0000000000000000',
-    });
+  if (shouldNoopSpan()) {
+    return createNonRecordingSpan();
   }
 
   return coreStartInactiveSpan(options);
