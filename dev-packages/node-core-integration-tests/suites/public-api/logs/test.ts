@@ -6,7 +6,7 @@ describe('logger public API', () => {
     cleanupChildProcesses();
   });
 
-  test('captures logs with parameters in different forms', async () => {
+  test('captures logs with custom scopes and parameters in different forms', async () => {
     const runner = createRunner(__dirname, 'subject.ts')
       .expect({
         log: {
