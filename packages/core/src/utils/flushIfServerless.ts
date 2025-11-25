@@ -1,5 +1,9 @@
 import { flush } from '../exports';
-import { type MinimalCloudflareContext, CloudflareContextKey, cloudflareWaitUntil } from './cloudflareWaitUntil';
+import {
+  type MinimalCloudflareContext,
+  cloudflareWaitUntil,
+  isCloudflareWaitUntilAvailable,
+} from './cloudflareWaitUntil';
 import { debug } from './debug-logger';
 import { vercelWaitUntil } from './vercelWaitUntil';
 import { GLOBAL_OBJ } from './worldwide';
@@ -54,8 +58,7 @@ export async function flushIfServerless(
     return;
   }
 
-  // @ts-expect-error This is not typed
-  if (GLOBAL_OBJ[Symbol.for(CloudflareContextKey)]) {
+  if (isCloudflareWaitUntilAvailable()) {
     // If the cloudflareWaitUntil function is available, use it to flush the events, if not then fallback to the regular flush
     cloudflareWaitUntil(flushWithTimeout(timeout));
     return;

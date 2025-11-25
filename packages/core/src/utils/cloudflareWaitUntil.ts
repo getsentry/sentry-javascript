@@ -5,26 +5,30 @@ export type MinimalCloudflareContext = {
   waitUntil(promise: Promise<any>): void;
 };
 
-export const CloudflareContextKey = '__cloudflare-context__';
+/**
+ * Gets the Cloudflare context from the global object.
+ */
+function _getCloudflareContext(): MinimalCloudflareContext | undefined {
+  const cfContextSymbol = Symbol.for('__cloudflare-context__');
+  const globalWithCfContext = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
+    [cfContextSymbol]?: {
+      ctx: MinimalCloudflareContext;
+    };
+  };
+
+  return globalWithCfContext[cfContextSymbol]?.ctx;
+}
 
 /**
  * Function that delays closing of a Cloudflare lambda until the provided promise is resolved.
  */
 export function cloudflareWaitUntil(task: Promise<unknown>): void {
-  try {
-    const cfContextSymbol = Symbol.for(CloudflareContextKey);
-    const globalWithCfContext = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
-      [cfContextSymbol]: {
-        ctx: MinimalCloudflareContext;
-      };
-    };
+  _getCloudflareContext()?.waitUntil(task);
+}
 
-    const context = globalWithCfContext[cfContextSymbol].ctx;
-
-    if (typeof context.waitUntil === 'function') {
-      context.waitUntil(task);
-    }
-  } catch {
-    // Ignore errors
-  }
+/**
+ * Checks if the Cloudflare waitUntil function is available globally.
+ */
+export function isCloudflareWaitUntilAvailable(): boolean {
+  return typeof _getCloudflareContext()?.waitUntil === 'function';
 }
