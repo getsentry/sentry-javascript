@@ -2078,7 +2078,7 @@ describe('continueTrace', () => {
           baggage: sentryBaggage,
         },
         () => {
-          startSpan({ name: 'inner' }, (span) => {
+          startSpan({ name: 'inner' }, span => {
             const innerSpanJson = spanToJSON(span);
             const innerTraceId = innerSpanJson.trace_id;
             const innerParentSpanId = innerSpanJson.parent_span_id;
