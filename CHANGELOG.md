@@ -4,6 +4,17 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 10.27.0-alpha.0
+
+This release is a preview release for sending spans in browser via spanV2 instead of transaction event envelopes. All of this is experimental and subject to change. Use at your own risk. [More Details.](https://github.com/getsentry/sentry-javascript/pull/17852)
+
+Changes from 10.24-alpha.1:
+
+- add `sentry.segment.id` common span attribute
+- rename attribute `user.username` to `user.name`
+- remove `is_remote`, add `is_segment` span attributes
+- remove `span.kind` field
+
 ## 10.27.0
 
 ### Important Changes
