@@ -1,7 +1,7 @@
+/* eslint-disable max-lines */
 import type { Span } from '@opentelemetry/api';
 import {
   captureException,
-  getClient,
   GEN_AI_AGENT_NAME_ATTRIBUTE,
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
   GEN_AI_REQUEST_MESSAGES_ATTRIBUTE,
@@ -15,6 +15,7 @@ import {
   GEN_AI_TOOL_NAME_ATTRIBUTE,
   GEN_AI_TOOL_OUTPUT_ATTRIBUTE,
   GEN_AI_TOOL_TYPE_ATTRIBUTE,
+  getClient,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   setTokenUsageAttributes,
@@ -22,7 +23,7 @@ import {
   startSpanManual,
   withActiveSpan,
 } from '@sentry/core';
-import type { ClaudeCodeOptions } from './index';
+import type { ClaudeCodeOptions } from './types';
 
 export type ClaudeCodeInstrumentationOptions = ClaudeCodeOptions;
 
@@ -103,12 +104,12 @@ export function patchClaudeCodeQuery(
     // Preserve Query interface methods
     if (typeof (originalQueryInstance as Record<string, unknown>).interrupt === 'function') {
       (instrumentedGenerator as unknown as Record<string, unknown>).interrupt = (
-        (originalQueryInstance as Record<string, unknown>).interrupt as Function
+        (originalQueryInstance as Record<string, unknown>).interrupt as (...args: unknown[]) => unknown
       ).bind(originalQueryInstance);
     }
     if (typeof (originalQueryInstance as Record<string, unknown>).setPermissionMode === 'function') {
       (instrumentedGenerator as unknown as Record<string, unknown>).setPermissionMode = (
-        (originalQueryInstance as Record<string, unknown>).setPermissionMode as Function
+        (originalQueryInstance as Record<string, unknown>).setPermissionMode as (...args: unknown[]) => unknown
       ).bind(originalQueryInstance);
     }
 
@@ -146,6 +147,7 @@ function _createInstrumentedGenerator(
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.invoke_agent',
       },
     },
+    // eslint-disable-next-line complexity
     async function* (span: Span) {
         // State accumulation
         let sessionId: string | null = null;
@@ -327,7 +329,7 @@ function _createInstrumentedGenerator(
 
                 if (matchingTool && parentLLMSpan) {
                   withActiveSpan(parentLLMSpan, () => {
-                    const toolName = matchingTool!.name as string;
+                    const toolName = matchingTool.name as string;
                     const toolType = getToolType(toolName);
 
                     startSpan(
@@ -346,9 +348,9 @@ function _createInstrumentedGenerator(
                         },
                       },
                       (toolSpan: Span) => {
-                        if (instrumentationOptions.recordInputs && matchingTool!.input) {
+                        if (instrumentationOptions.recordInputs && matchingTool.input) {
                           toolSpan.setAttributes({
-                            [GEN_AI_TOOL_INPUT_ATTRIBUTE]: JSON.stringify(matchingTool!.input),
+                            [GEN_AI_TOOL_INPUT_ATTRIBUTE]: JSON.stringify(matchingTool.input),
                           });
                         }
 
@@ -401,12 +403,12 @@ function _createInstrumentedGenerator(
           throw error;
         } finally {
           // Ensure all child spans are closed even if generator exits early
-          if (currentLLMSpan && currentLLMSpan.isRecording()) {
+          if (currentLLMSpan?.isRecording()) {
             currentLLMSpan.setStatus({ code: 1 });
             currentLLMSpan.end();
           }
 
-          if (previousLLMSpan && previousLLMSpan.isRecording()) {
+          if (previousLLMSpan?.isRecording()) {
             previousLLMSpan.setStatus({ code: 1 });
             previousLLMSpan.end();
           }
