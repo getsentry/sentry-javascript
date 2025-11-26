@@ -42,24 +42,22 @@ describe('Supabase Queue Instrumentation', () => {
     // Create a mock RPC function
     mockRpcFunction = vi.fn();
 
-    // Create a mock Supabase client with proper structure
-    mockSupabaseClient = {
-      constructor: function SupabaseClient() {
-        // Constructor mock
-      },
-      rpc: mockRpcFunction,
-      auth: {
-        signInWithPassword: vi.fn(),
-        admin: {
-          createUser: vi.fn(),
-        },
-      },
-    } as unknown as SupabaseClientInstance;
-
-    // Add prototype methods for from() to support database instrumentation
-    (mockSupabaseClient.constructor as any).prototype = {
+    // Create a mock constructor with rpc on the prototype (matching real Supabase client behavior)
+    function MockSupabaseClient() {}
+    MockSupabaseClient.prototype = {
       from: vi.fn(),
       schema: vi.fn(),
+      rpc: mockRpcFunction,
+    };
+
+    // Create a mock Supabase client instance using Object.create to properly inherit from prototype
+    mockSupabaseClient = Object.create(MockSupabaseClient.prototype) as SupabaseClientInstance;
+    (mockSupabaseClient as any).constructor = MockSupabaseClient;
+    (mockSupabaseClient as any).auth = {
+      signInWithPassword: vi.fn(),
+      admin: {
+        createUser: vi.fn(),
+      },
     };
   });
 
@@ -1664,7 +1662,7 @@ describe('Supabase Queue Instrumentation', () => {
   });
 
   describe('Consumer - Trace continuation and scope isolation', () => {
-    it('should continue producer trace ID in consumer span', async () => {
+    it('should create span links to producer span for distributed tracing', async () => {
       // Producer trace context
       const producerTraceId = '12345678901234567890123456789012';
       const producerSpanId = '1234567890123456';
@@ -1694,13 +1692,18 @@ describe('Supabase Queue Instrumentation', () => {
       const consumerSpanCall = startSpanSpy.mock.calls.find(call => call[0]?.op === 'queue.process');
       expect(consumerSpanCall).toBeDefined();
 
-      // Get the span created by the callback
-      const spanCallback = consumerSpanCall?.[1];
-      expect(spanCallback).toBeDefined();
-
-      // Verify forceTransaction was set
+      // Get the span options
       const spanOptions = consumerSpanCall?.[0];
-      expect(spanOptions?.forceTransaction).toBe(true);
+
+      // Verify span links are created for distributed tracing
+      expect(spanOptions?.links).toBeDefined();
+      expect(spanOptions?.links).toHaveLength(1);
+      expect(spanOptions?.links?.[0].context.traceId).toBe(producerTraceId);
+      expect(spanOptions?.links?.[0].context.spanId).toBe(producerSpanId);
+      expect(spanOptions?.links?.[0].attributes?.['sentry.link.type']).toBe('queue.producer');
+
+      // Consumer span should NOT be a forced root transaction
+      expect(spanOptions?.forceTransaction).toBeUndefined();
     });
 
     it('should not pollute scope after consumer span completes', async () => {
@@ -1741,7 +1744,7 @@ describe('Supabase Queue Instrumentation', () => {
       expect(propContextAfter.traceId).toBe(propContextBefore.traceId);
     });
 
-    it('should create consumer span as root transaction not child of HTTP request', async () => {
+    it('should create consumer span as child of HTTP transaction with span links to producer', async () => {
       const producerTraceId = '12345678901234567890123456789012';
       const producerSpanId = 'aaaaaaaaaaaaaaaa';
       const sentryTrace = `${producerTraceId}-${producerSpanId}-1`;
@@ -1777,13 +1780,14 @@ describe('Supabase Queue Instrumentation', () => {
 
         const spanOptions = consumerSpanCall?.[0];
 
-        // CRITICAL: forceTransaction must be true to make it a root span
-        expect(spanOptions?.forceTransaction).toBe(true);
+        // Consumer span should be a child of HTTP transaction, not a forced root
+        expect(spanOptions?.forceTransaction).toBeUndefined();
 
-        // The consumer span should have producer's trace ID in the link
+        // The consumer span should have producer's trace ID in the link for distributed tracing
         expect(spanOptions?.links).toBeDefined();
         expect(spanOptions?.links?.[0]?.context.traceId).toBe(producerTraceId);
         expect(spanOptions?.links?.[0]?.context.spanId).toBe(producerSpanId);
+        expect(spanOptions?.links?.[0]?.attributes?.['sentry.link.type']).toBe('queue.producer');
       });
     });
 
@@ -1819,6 +1823,58 @@ describe('Supabase Queue Instrumentation', () => {
 
       // No links should be created
       expect(spanOptions?.links).toBeUndefined();
+    });
+  });
+
+  describe('Idempotency Guard', () => {
+    it('should not double-wrap rpc method when instrumentSupabaseClient is called multiple times', async () => {
+      const mockResponse: SupabaseResponse = {
+        data: [{ msg_id: 123 }],
+        status: 200,
+      };
+
+      mockRpcFunction.mockResolvedValue(mockResponse);
+
+      // Instrument the same client multiple times
+      instrumentSupabaseClient(mockSupabaseClient);
+      instrumentSupabaseClient(mockSupabaseClient);
+      instrumentSupabaseClient(mockSupabaseClient);
+
+      const startSpanSpy = vi.spyOn(Tracing, 'startSpan');
+
+      await startSpan({ name: 'test-transaction' }, async () => {
+        await mockSupabaseClient.rpc('send', {
+          queue_name: 'test-queue',
+          message: { foo: 'bar' },
+        });
+      });
+
+      // Should only create ONE queue.publish span, not three
+      const publishSpanCalls = startSpanSpy.mock.calls.filter(call => call[0]?.op === 'queue.publish');
+      expect(publishSpanCalls.length).toBe(1);
+    });
+
+    it('should only call the underlying RPC function once even after multiple instrumentations', async () => {
+      const mockResponse: SupabaseResponse = {
+        data: [{ msg_id: 456 }],
+        status: 200,
+      };
+
+      mockRpcFunction.mockResolvedValue(mockResponse);
+
+      // Instrument multiple times
+      instrumentSupabaseClient(mockSupabaseClient);
+      instrumentSupabaseClient(mockSupabaseClient);
+
+      await startSpan({ name: 'test-transaction' }, async () => {
+        await mockSupabaseClient.rpc('send', {
+          queue_name: 'test-queue',
+          message: { test: 'data' },
+        });
+      });
+
+      // The underlying mock RPC function should only be called once
+      expect(mockRpcFunction).toHaveBeenCalledTimes(1);
     });
   });
 });

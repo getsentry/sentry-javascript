@@ -271,7 +271,10 @@ test('Sends queue publish spans with `schema(...).rpc(...)`', async ({ page, bas
   const result = await fetch(`${baseURL}/api/queue/producer-schema`);
 
   expect(result.status).toBe(200);
-  expect(await result.json()).toEqual({ data: [1] });
+  const responseData = await result.json();
+  expect(responseData.data).toHaveLength(1);
+  expect(typeof responseData.data[0]).toBe('number');
+  const messageId = responseData.data[0];
 
   const transactionEvent = await httpTransactionPromise;
 
@@ -280,7 +283,7 @@ test('Sends queue publish spans with `schema(...).rpc(...)`', async ({ page, bas
     data: {
       'messaging.destination.name': 'todos',
       'messaging.system': 'supabase',
-      'messaging.message.id': '1',
+      'messaging.message.id': String(messageId),
       'messaging.operation.type': 'publish',
       'messaging.operation.name': 'send',
       'messaging.message.body.size': expect.any(Number),
@@ -305,7 +308,7 @@ test('Sends queue publish spans with `schema(...).rpc(...)`', async ({ page, bas
     message: 'queue.publish(todos)',
     data: {
       'messaging.destination.name': 'todos',
-      'messaging.message.id': '1',
+      'messaging.message.id': String(messageId),
       'messaging.message.body.size': expect.any(Number),
     },
   });
@@ -323,14 +326,17 @@ test('Sends queue publish spans with `rpc(...)`', async ({ page, baseURL }) => {
   const transactionEvent = await httpTransactionPromise;
 
   expect(result.status).toBe(200);
-  expect(await result.json()).toEqual({ data: [2] });
+  const responseData = await result.json();
+  expect(responseData.data).toHaveLength(1);
+  expect(typeof responseData.data[0]).toBe('number');
+  const messageId = responseData.data[0];
 
   expect(transactionEvent.spans).toHaveLength(2);
   expect(transactionEvent.spans).toContainEqual({
     data: {
       'messaging.destination.name': 'todos',
       'messaging.system': 'supabase',
-      'messaging.message.id': '2',
+      'messaging.message.id': String(messageId),
       'messaging.operation.type': 'publish',
       'messaging.operation.name': 'send',
       'messaging.message.body.size': expect.any(Number),
@@ -355,7 +361,7 @@ test('Sends queue publish spans with `rpc(...)`', async ({ page, baseURL }) => {
     message: 'queue.publish(todos)',
     data: {
       'messaging.destination.name': 'todos',
-      'messaging.message.id': '2',
+      'messaging.message.id': String(messageId),
       'messaging.message.body.size': expect.any(Number),
     },
   });
@@ -452,6 +458,11 @@ test('Sends queue process spans with `schema(...).rpc(...)`', async ({ page, bas
       'sentry.link.type': 'queue.producer',
     },
   });
+
+  // CRITICAL: Verify the link actually points to the producer span from the first request
+  // This ensures distributed tracing works correctly across separate HTTP transactions
+  expect(producerLink?.trace_id).toBe(producerSpan?.trace_id);
+  expect(producerLink?.span_id).toBe(producerSpan?.span_id);
 
   expect(transactionEvent.breadcrumbs).toContainEqual({
     timestamp: expect.any(Number),
@@ -557,6 +568,11 @@ test('Sends queue process spans with `rpc(...)`', async ({ page, baseURL }) => {
       'sentry.link.type': 'queue.producer',
     },
   });
+
+  // CRITICAL: Verify the link actually points to the producer span from the first request
+  // This ensures distributed tracing works correctly across separate HTTP transactions
+  expect(producerLink?.trace_id).toBe(producerSpan?.trace_id);
+  expect(producerLink?.span_id).toBe(producerSpan?.span_id);
 
   expect(transactionEvent.breadcrumbs).toContainEqual({
     timestamp: expect.any(Number),
