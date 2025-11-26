@@ -7,10 +7,8 @@ Sentry.init({
   transport: loggingTransport,
 });
 
-// First withMonitor call without isolateTrace
 // eslint-disable-next-line @sentry-internal/sdk/no-floating-promises
 Sentry.withMonitor('cron-job-1', async () => {
-  // Simulate some work
   await new Promise<void>((resolve) => {
     setTimeout(() => {
       resolve();
@@ -20,10 +18,8 @@ Sentry.withMonitor('cron-job-1', async () => {
   schedule: { type: 'crontab', value: '* * * * *' },
 });
 
-// Second withMonitor call with isolateTrace (should have different trace)
 // eslint-disable-next-line @sentry-internal/sdk/no-floating-promises
 Sentry.withMonitor('cron-job-2', async () => {
-  // Simulate some work
   await new Promise<void>((resolve) => {
     setTimeout(() => {
       resolve();
@@ -34,7 +30,6 @@ Sentry.withMonitor('cron-job-2', async () => {
   isolateTrace: true,
 });
 
-// Wait a bit for check-ins to complete before exiting
 setTimeout(() => {
   process.exit();
 }, 500);
