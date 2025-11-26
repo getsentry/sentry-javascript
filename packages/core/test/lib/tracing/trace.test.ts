@@ -2024,6 +2024,15 @@ describe('continueTrace', () => {
   });
 
   it('works inside an active span', () => {
+    const client = new TestClient(
+      getDefaultTestClientOptions({
+        dsn: 'https://username@domain/123',
+        tracesSampleRate: 1,
+      }),
+    );
+    setCurrentClient(client);
+    client.init();
+
     const sentryTrace = '12312012123120121231201212312012-1121201211212012-1'
     const sentryBaggage = 'sentry-org_id=123'
 
