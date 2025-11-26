@@ -79,28 +79,28 @@ type MinimalCloudflareContext = {
  * Relevant to opennext
  * https://github.com/opennextjs/opennextjs-cloudflare/blob/b53a046bd5c30e94a42e36b67747cefbf7785f9a/packages/cloudflare/src/cli/templates/init.ts#L17
  */
-function _getCloudflareContext(): MinimalCloudflareContext | undefined {
-  const cfContextSymbol = Symbol.for('__cloudflare-context__');
+function _getOpenNextCloudflareContext(): MinimalCloudflareContext | undefined {
+  const openNextCloudflareContextSymbol = Symbol.for('__cloudflare-context__');
 
   return (
     GLOBAL_OBJ as typeof GLOBAL_OBJ & {
-      [cfContextSymbol]?: {
+      [openNextCloudflareContextSymbol]?: {
         ctx: MinimalCloudflareContext;
       };
     }
-  )[cfContextSymbol]?.ctx;
+  )[openNextCloudflareContextSymbol]?.ctx;
 }
 
 /**
  * Function that delays closing of a Cloudflare lambda until the provided promise is resolved.
  */
 export function cloudflareWaitUntil(task: Promise<unknown>): void {
-  _getCloudflareContext()?.waitUntil(task);
+  _getOpenNextCloudflareContext()?.waitUntil(task);
 }
 
 /**
  * Checks if the Cloudflare waitUntil function is available globally.
  */
 export function isCloudflareWaitUntilAvailable(): boolean {
-  return typeof _getCloudflareContext()?.waitUntil === 'function';
+  return typeof _getOpenNextCloudflareContext()?.waitUntil === 'function';
 }
