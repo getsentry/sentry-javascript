@@ -1,8 +1,14 @@
 import type { TraceContext } from '../../types-hoist/context';
-import type { Span, SpanJSON } from '../../types-hoist/span';
-import { GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE, GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE } from '../ai/gen-ai-attributes';
+import type { Span, SpanAttributes, SpanJSON } from '../../types-hoist/span';
+import {
+  GEN_AI_REQUEST_MESSAGES_ATTRIBUTE,
+  GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
+  GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
+} from '../ai/gen-ai-attributes';
+import { getTruncatedJsonString } from '../ai/utils';
 import { toolCallSpanMap } from './constants';
 import type { TokenSummary } from './types';
+import { AI_PROMPT_ATTRIBUTE, AI_PROMPT_MESSAGES_ATTRIBUTE } from './vercel-ai-attributes';
 
 /**
  * Accumulates token data from a span to its parent in the token accumulator map.
@@ -86,4 +92,48 @@ export function convertAvailableToolsToJsonString(tools: unknown[]): string {
     return tool;
   });
   return JSON.stringify(toolObjects);
+}
+
+/**
+ * Convert the prompt string to messages array
+ */
+export function convertPromptToMessages(prompt: string): { role: string; content: string }[] {
+  try {
+    const p = JSON.parse(prompt);
+    if (!!p && typeof p === 'object') {
+      const { prompt, system } = p;
+      if (typeof prompt === 'string' || typeof system === 'string') {
+        const messages: { role: string; content: string }[] = [];
+        if (typeof system === 'string') {
+          messages.push({ role: 'system', content: system });
+        }
+        if (typeof prompt === 'string') {
+          messages.push({ role: 'user', content: prompt });
+        }
+        return messages;
+      }
+    }
+    // eslint-disable-next-line no-empty
+  } catch {}
+  return [];
+}
+
+/**
+ * Generate a request.messages JSON array from the prompt field in the
+ * invoke_agent op
+ */
+export function requestMessagesFromPrompt(span: Span, attributes: SpanAttributes): void {
+  if (attributes[AI_PROMPT_ATTRIBUTE]) {
+    const truncatedPrompt = getTruncatedJsonString(attributes[AI_PROMPT_ATTRIBUTE] as string | string[]);
+    span.setAttribute('gen_ai.prompt', truncatedPrompt);
+  }
+  const prompt = attributes[AI_PROMPT_ATTRIBUTE];
+  if (
+    typeof prompt === 'string' &&
+    !attributes[GEN_AI_REQUEST_MESSAGES_ATTRIBUTE] &&
+    !attributes[AI_PROMPT_MESSAGES_ATTRIBUTE]
+  ) {
+    const messages = convertPromptToMessages(prompt);
+    if (messages.length) span.setAttribute(GEN_AI_REQUEST_MESSAGES_ATTRIBUTE, getTruncatedJsonString(messages));
+  }
 }
