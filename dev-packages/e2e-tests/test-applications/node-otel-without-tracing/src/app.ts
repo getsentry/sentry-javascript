@@ -2,6 +2,7 @@ import './instrument';
 
 // Other imports below
 import * as Sentry from '@sentry/node';
+import { trace, type Span } from '@opentelemetry/api';
 import express from 'express';
 
 const app = express();
@@ -24,6 +25,23 @@ app.get('/test-transaction', function (req, res) {
     });
 
     await fetch('http://localhost:3030/test-success');
+
+    res.send({});
+  });
+});
+
+app.get('/test-only-if-parent', function (req, res) {
+  // Remove the HTTP span from the context to simulate no parent span
+  Sentry.withActiveSpan(null, () => {
+    // This should NOT create a span because onlyIfParent is true and there's no parent
+    Sentry.startSpan({ name: 'test-only-if-parent', onlyIfParent: true }, () => {
+      // This custom OTel span SHOULD be created and exported
+      // This tests that custom OTel spans aren't suppressed when onlyIfParent triggers
+      const customTracer = trace.getTracer('custom-tracer');
+      customTracer.startActiveSpan('custom-span-with-only-if-parent', (span: Span) => {
+        span.end();
+      });
+    });
 
     res.send({});
   });

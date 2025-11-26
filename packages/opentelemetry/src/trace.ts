@@ -64,9 +64,12 @@ export function startSpan<T>(options: OpenTelemetrySpanContext, callback: (span:
 
       return context.with(suppressedCtx, () => {
         return tracer.startActiveSpan(name, spanOptions, suppressedCtx, span => {
-          // Restore the original context for the callback execution
-          // so that custom OpenTelemetry spans maintain the correct context
-          return context.with(ctx, () => {
+          // Restore the original unsuppressed context for the callback execution
+          // so that custom OpenTelemetry spans maintain the correct context.
+          // We use activeCtx (not ctx) because ctx may be suppressed when onlyIfParent is true
+          // and no parent span exists. Using activeCtx ensures custom OTel spans are never
+          // inadvertently suppressed.
+          return context.with(activeCtx, () => {
             return handleCallbackErrors(
               () => callback(span),
               () => {
@@ -135,9 +138,12 @@ export function startSpanManual<T>(
 
       return context.with(suppressedCtx, () => {
         return tracer.startActiveSpan(name, spanOptions, suppressedCtx, span => {
-          // Restore the original context for the callback execution
-          // so that custom OpenTelemetry spans maintain the correct context
-          return context.with(ctx, () => {
+          // Restore the original unsuppressed context for the callback execution
+          // so that custom OpenTelemetry spans maintain the correct context.
+          // We use activeCtx (not ctx) because ctx may be suppressed when onlyIfParent is true
+          // and no parent span exists. Using activeCtx ensures custom OTel spans are never
+          // inadvertently suppressed.
+          return context.with(activeCtx, () => {
             return handleCallbackErrors(
               () => callback(span, () => span.end()),
               () => {
