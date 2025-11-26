@@ -1,28 +1,40 @@
-import { withMonitor } from '@sentry/node';
+import * as Sentry from '@sentry/node';
+import { loggingTransport } from '@sentry-internal/node-integration-tests';
 
-export async function run(): Promise<void> {
-  // First withMonitor call without isolateTrace (should share trace)
-  await withMonitor('cron-job-1', async () => {
-    // Simulate some work
-    await new Promise<void>((resolve) => {
-      setTimeout(() => {
-        resolve();
-      }, 100);
-    });
-  }, {
-    schedule: { type: 'crontab', value: '* * * * *' }
-  });
+Sentry.init({
+  dsn: 'https://public@dsn.ingest.sentry.io/1337',
+  release: '1.0',
+  transport: loggingTransport,
+});
 
-  // Second withMonitor call with isolateTrace (should have different trace)
-  await withMonitor('cron-job-2', async () => {
-    // Simulate some work
-    await new Promise<void>((resolve) => {
-      setTimeout(() => {
-        resolve();
-      }, 100);
-    });
-  }, {
-    schedule: { type: 'crontab', value: '* * * * *' },
-    isolateTrace: true
+// First withMonitor call without isolateTrace
+// eslint-disable-next-line @sentry-internal/sdk/no-floating-promises
+Sentry.withMonitor('cron-job-1', async () => {
+  // Simulate some work
+  await new Promise<void>((resolve) => {
+    setTimeout(() => {
+      resolve();
+    }, 100);
   });
-}
+}, {
+  schedule: { type: 'crontab', value: '* * * * *' },
+});
+
+// Second withMonitor call with isolateTrace (should have different trace)
+// eslint-disable-next-line @sentry-internal/sdk/no-floating-promises
+Sentry.withMonitor('cron-job-2', async () => {
+  // Simulate some work
+  await new Promise<void>((resolve) => {
+    setTimeout(() => {
+      resolve();
+    }, 100);
+  });
+}, {
+  schedule: { type: 'crontab', value: '* * * * *' },
+  isolateTrace: true,
+});
+
+// Wait a bit for check-ins to complete before exiting
+setTimeout(() => {
+  process.exit();
+}, 500);

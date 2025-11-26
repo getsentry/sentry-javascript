@@ -1,19 +1,51 @@
-import { expect } from 'vitest';
-import type { Event, TransactionEvent } from '@sentry/types';
+import type { SerializedCheckIn } from '@sentry/core';
+import { afterAll, describe, expect, test } from 'vitest';
+import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 
-export async function testResults(events: Event[]): Promise<void> {
-  // Get all transaction events (which represent traces)
-  const transactionEvents = events.filter((event): event is TransactionEvent => event.type === 'transaction');
+describe('withMonitor isolateTrace', () => {
+  afterAll(() => {
+    cleanupChildProcesses();
+  });
 
-  // Should have at least 2 transaction events (one for each withMonitor call)
-  expect(transactionEvents.length).toBeGreaterThanOrEqual(2);
+  test('creates distinct traces when isolateTrace is enabled', async () => {
+    const checkIns: SerializedCheckIn[] = [];
 
-  // Get trace IDs from the transactions
-  const traceIds = transactionEvents.map(event => event.contexts?.trace?.trace_id).filter(Boolean);
+    await createRunner(__dirname, 'scenario.ts')
+      .expect({
+        check_in: checkIn => {
+          checkIns.push(checkIn);
+        },
+      })
+      .expect({
+        check_in: checkIn => {
+          checkIns.push(checkIn);
+        },
+      })
+      .expect({
+        check_in: checkIn => {
+          checkIns.push(checkIn);
+        },
+      })
+      .expect({
+        check_in: checkIn => {
+          checkIns.push(checkIn);
+        },
+      })
+      .start()
+      .completed();
 
-  // Should have at least 2 different trace IDs (verifying trace isolation)
-  const uniqueTraceIds = [...new Set(traceIds)];
-  expect(uniqueTraceIds.length).toBeGreaterThanOrEqual(2);
+    // Find the two 'ok' check-ins for comparison
+    const checkIn1Ok = checkIns.find(c => c.monitor_slug === 'cron-job-1' && c.status === 'ok');
+    const checkIn2Ok = checkIns.find(c => c.monitor_slug === 'cron-job-2' && c.status === 'ok');
 
-  console.log('✅ Found traces with different trace IDs:', uniqueTraceIds);
-}
+    expect(checkIn1Ok).toBeDefined();
+    expect(checkIn2Ok).toBeDefined();
+
+    // Verify both check-ins have trace contexts
+    expect(checkIn1Ok!.contexts?.trace?.trace_id).toBeDefined();
+    expect(checkIn2Ok!.contexts?.trace?.trace_id).toBeDefined();
+
+    // The key assertion: trace IDs should be different when isolateTrace is enabled
+    expect(checkIn1Ok!.contexts!.trace!.trace_id).not.toBe(checkIn2Ok!.contexts!.trace!.trace_id);
+  });
+});
