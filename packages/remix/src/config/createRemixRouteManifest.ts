@@ -56,6 +56,7 @@ export function convertRemixRouteToPath(filename: string): { path: string; isDyn
   const segments = normalizedBasename.split('.');
   const pathSegments: string[] = [];
   let isDynamic = false;
+  let isIndexRoute = false;
 
   for (let i = 0; i < segments.length; i++) {
     const segment = segments[i];
@@ -68,7 +69,16 @@ export function convertRemixRouteToPath(filename: string): { path: string; isDyn
       continue;
     }
 
+    // Handle '_index' segments at the end (always skip - indicates an index route)
+    if (segment === '_index' && i === segments.length - 1) {
+      isIndexRoute = true;
+      continue;
+    }
+
+    // Handle 'index' segments at the end (skip only if there are path segments,
+    // otherwise root index is handled by the early return above)
     if (segment === 'index' && i === segments.length - 1 && pathSegments.length > 0) {
+      isIndexRoute = true;
       continue;
     }
 
@@ -87,13 +97,13 @@ export function convertRemixRouteToPath(filename: string): { path: string; isDyn
     }
   }
 
-  // If all segments were skipped (pathless layout route like _layout.tsx, _auth.tsx),
-  // return null to indicate this file should not be added to the route manifest
-  if (pathSegments.length === 0) {
+  // If all segments were skipped AND it's not an index route,
+  // it's a pathless layout route (like _layout.tsx, _auth.tsx) - exclude from manifest
+  if (pathSegments.length === 0 && !isIndexRoute) {
     return null;
   }
 
-  const path = `/${pathSegments.join('/')}`;
+  const path = pathSegments.length > 0 ? `/${pathSegments.join('/')}` : '/';
   return { path, isDynamic };
 }
 

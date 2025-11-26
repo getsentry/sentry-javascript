@@ -76,7 +76,13 @@ export function convertRemixRouteIdToPath(routeId: string): string {
       continue;
     }
 
-    // Handle 'index' segments at the end (they don't add to the path)
+    // Handle '_index' segments at the end (always skip - indicates an index route)
+    if (segment === '_index' && i === segments.length - 1) {
+      continue;
+    }
+
+    // Handle 'index' segments at the end (skip only if there are path segments,
+    // otherwise root index is handled by the early return above)
     if (segment === 'index' && i === segments.length - 1 && pathSegments.length > 0) {
       continue;
     }

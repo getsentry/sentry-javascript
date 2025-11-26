@@ -133,4 +133,95 @@ describe('createRemixRouteManifest', () => {
       );
     });
   });
+
+  describe('_index route handling', () => {
+    it('should handle root _index route', () => {
+      const { tempDir, routesDir } = createTestDir();
+
+      fs.writeFileSync(path.join(routesDir, '_index.tsx'), '// root index');
+
+      const manifest = createRemixRouteManifest({ rootDir: tempDir });
+
+      expect(manifest.staticRoutes).toHaveLength(1);
+      expect(manifest.staticRoutes).toContainEqual({ path: '/' });
+    });
+
+    it('should handle nested _index routes using flat file convention', () => {
+      const { tempDir, routesDir } = createTestDir();
+
+      // Flat file convention: users._index.tsx represents /users index
+      fs.writeFileSync(path.join(routesDir, '_index.tsx'), '// root index');
+      fs.writeFileSync(path.join(routesDir, 'users._index.tsx'), '// users index');
+      fs.writeFileSync(path.join(routesDir, 'users.$id.tsx'), '// user detail');
+
+      const manifest = createRemixRouteManifest({ rootDir: tempDir });
+
+      // Both root and users index should map to their parent paths
+      expect(manifest.staticRoutes).toContainEqual({ path: '/' });
+      expect(manifest.staticRoutes).toContainEqual({ path: '/users' });
+
+      // users.$id.tsx should be a dynamic route
+      expect(manifest.dynamicRoutes).toContainEqual(
+        expect.objectContaining({
+          path: '/users/:id',
+          regex: '^/users/([^/]+)$',
+          paramNames: ['id'],
+        }),
+      );
+
+      // Should NOT contain /users/_index as a path
+      expect(manifest.staticRoutes).not.toContainEqual({ path: '/users/_index' });
+    });
+
+    it('should handle deeply nested _index routes', () => {
+      const { tempDir, routesDir } = createTestDir();
+
+      // Flat file convention for deeply nested index
+      fs.writeFileSync(path.join(routesDir, 'admin.settings._index.tsx'), '// admin settings index');
+
+      const manifest = createRemixRouteManifest({ rootDir: tempDir });
+
+      expect(manifest.staticRoutes).toContainEqual({ path: '/admin/settings' });
+      expect(manifest.staticRoutes).not.toContainEqual({ path: '/admin/settings/_index' });
+    });
+
+    it('should handle _index in directory-based nested routes', () => {
+      const { tempDir, routesDir } = createTestDir();
+      const usersDir = path.join(routesDir, 'users');
+      fs.mkdirSync(usersDir, { recursive: true });
+
+      fs.writeFileSync(path.join(routesDir, '_index.tsx'), '// root index');
+      fs.writeFileSync(path.join(usersDir, '_index.tsx'), '// users index');
+      fs.writeFileSync(path.join(usersDir, '$id.tsx'), '// user detail');
+
+      const manifest = createRemixRouteManifest({ rootDir: tempDir });
+
+      expect(manifest.staticRoutes).toContainEqual({ path: '/' });
+      expect(manifest.staticRoutes).toContainEqual({ path: '/users' });
+      expect(manifest.dynamicRoutes).toContainEqual(
+        expect.objectContaining({
+          path: '/users/:id',
+        }),
+      );
+    });
+
+    it('should handle _index with layout routes', () => {
+      const { tempDir, routesDir } = createTestDir();
+
+      // _auth is a pathless layout, _auth._index is its index
+      fs.writeFileSync(path.join(routesDir, '_auth.tsx'), '// auth layout');
+      fs.writeFileSync(path.join(routesDir, '_auth._index.tsx'), '// auth index');
+      fs.writeFileSync(path.join(routesDir, '_auth.login.tsx'), '// login page');
+
+      const manifest = createRemixRouteManifest({ rootDir: tempDir });
+
+      // _auth layout should be excluded (pathless layout)
+      // _auth._index should map to / (root under pathless layout)
+      // _auth.login should map to /login
+      expect(manifest.staticRoutes).toContainEqual({ path: '/' });
+      expect(manifest.staticRoutes).toContainEqual({ path: '/login' });
+      expect(manifest.staticRoutes).not.toContainEqual({ path: '/_auth' });
+      expect(manifest.staticRoutes).not.toContainEqual({ path: '/_auth/_index' });
+    });
+  });
 });
