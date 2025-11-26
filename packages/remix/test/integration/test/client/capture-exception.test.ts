@@ -20,5 +20,5 @@ test('should report a manually captured error.', async ({ page }) => {
 
   expect(pageloadEnvelope.contexts?.trace?.op).toBe('pageload');
   expect(pageloadEnvelope.type).toBe('transaction');
-  expect(pageloadEnvelope.transaction).toBe('routes/capture-exception');
+  expect(pageloadEnvelope.transaction).toBe('/capture-exception');
 });

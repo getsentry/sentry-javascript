@@ -3,7 +3,7 @@ import { waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Sends a pageload transaction to Sentry', async ({ page }) => {
   const transactionPromise = waitForTransaction('remix-hydrogen', transactionEvent => {
-    return transactionEvent.contexts?.trace?.op === 'pageload' && transactionEvent.transaction === 'routes/_index';
+    return transactionEvent.contexts?.trace?.op === 'pageload' && transactionEvent.transaction === '/';
   });
 
   await page.goto('/');
@@ -15,7 +15,7 @@ test('Sends a pageload transaction to Sentry', async ({ page }) => {
 
 test('Sends a navigation transaction to Sentry', async ({ page }) => {
   const transactionPromise = waitForTransaction('remix-hydrogen', transactionEvent => {
-    return transactionEvent.contexts?.trace?.op === 'navigation' && transactionEvent.transaction === 'routes/user.$id';
+    return transactionEvent.contexts?.trace?.op === 'navigation' && transactionEvent.transaction === '/user/:id';
   });
 
   await page.goto('/');
@@ -27,7 +27,7 @@ test('Sends a navigation transaction to Sentry', async ({ page }) => {
 
   expect(transactionEvent).toBeDefined();
   expect(transactionEvent).toMatchObject({
-    transaction: 'routes/user.$id',
+    transaction: '/user/:id',
   });
 });
 

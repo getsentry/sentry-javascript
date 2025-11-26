@@ -149,20 +149,56 @@ function makeWrappedDocumentRequestFunction(instrumentTracing?: boolean) {
   };
 }
 
+/**
+ * Updates the root span name with the parameterized route name.
+ * This is necessary for runtimes like Cloudflare Workers/Hydrogen where
+ * the request handler is not wrapped by Remix's wrapRequestHandler.
+ */
+function updateSpanWithRoute(args: DataFunctionArgs, build: ServerBuild): void {
+  try {
+    const activeSpan = getActiveSpan();
+    const rootSpan = activeSpan && getRootSpan(activeSpan);
+
+    if (!rootSpan) {
+      return;
+    }
+
+    const routes = createRoutes(build.routes);
+    const url = new URL(args.request.url);
+    const [transactionName] = getTransactionName(routes, url);
+
+    // Preserve the HTTP method prefix if the span already has one
+    const method = args.request.method.toUpperCase();
+    const currentSpanName = spanToJSON(rootSpan).description;
+    const newSpanName = currentSpanName?.startsWith(method) ? `${method} ${transactionName}` : transactionName;
+
+    rootSpan.updateName(newSpanName);
+  } catch (e) {
+    DEBUG_BUILD && debug.warn('Failed to update span name with route', e);
+  }
+}
+
 function makeWrappedDataFunction(
   origFn: DataFunction,
   id: string,
   name: 'action' | 'loader',
   instrumentTracing?: boolean,
+  build?: ServerBuild,
 ): DataFunction {
   return async function (this: unknown, args: DataFunctionArgs): Promise<Response | AppData> {
     if (instrumentTracing) {
+      // Update span name for Cloudflare Workers/Hydrogen environments
+      if (build) {
+        updateSpanWithRoute(args, build);
+      }
+
       return startSpan(
         {
           op: `function.remix.${name}`,
           name: id,
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.remix',
+            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: `function.remix.${name}`,
             name,
           },
         },
@@ -177,20 +213,26 @@ function makeWrappedDataFunction(
 }
 
 const makeWrappedAction =
-  (id: string, instrumentTracing?: boolean) =>
+  (id: string, instrumentTracing?: boolean, build?: ServerBuild) =>
   (origAction: DataFunction): DataFunction => {
-    return makeWrappedDataFunction(origAction, id, 'action', instrumentTracing);
+    return makeWrappedDataFunction(origAction, id, 'action', instrumentTracing, build);
   };
 
 const makeWrappedLoader =
-  (id: string, instrumentTracing?: boolean) =>
+  (id: string, instrumentTracing?: boolean, build?: ServerBuild) =>
   (origLoader: DataFunction): DataFunction => {
-    return makeWrappedDataFunction(origLoader, id, 'loader', instrumentTracing);
+    return makeWrappedDataFunction(origLoader, id, 'loader', instrumentTracing, build);
   };
 
-function makeWrappedRootLoader() {
+function makeWrappedRootLoader(instrumentTracing?: boolean, build?: ServerBuild) {
   return function (origLoader: DataFunction): DataFunction {
     return async function (this: unknown, args: DataFunctionArgs): Promise<Response | AppData> {
+      // Update span name for Cloudflare Workers/Hydrogen environments
+      // The root loader always runs, even for routes that don't have their own loaders
+      if (instrumentTracing && build) {
+        updateSpanWithRoute(args, build);
+      }
+
       const res = await origLoader.call(this, args);
       const traceAndBaggage = getTraceAndBaggage();
 
@@ -283,6 +325,13 @@ function wrapRequestHandler<T extends ServerBuild | (() => ServerBuild | Promise
         [name, source] = getTransactionName(resolvedRoutes, url);
 
         isolationScope.setTransactionName(name);
+
+        // Update the span name if we're running inside an existing span
+        const parentSpan = getActiveSpan();
+        if (parentSpan) {
+          const rootSpan = getRootSpan(parentSpan);
+          rootSpan?.updateName(name);
+        }
       }
 
       isolationScope.setSDKProcessingMetadata({ normalizedRequest });
@@ -362,18 +411,18 @@ function instrumentBuildCallback(
       }
 
       if (!(wrappedRoute.module.loader as WrappedFunction).__sentry_original__) {
-        fill(wrappedRoute.module, 'loader', makeWrappedRootLoader());
+        fill(wrappedRoute.module, 'loader', makeWrappedRootLoader(options?.instrumentTracing, build));
       }
     }
 
     const routeAction = wrappedRoute.module.action as undefined | WrappedFunction;
     if (routeAction && !routeAction.__sentry_original__) {
-      fill(wrappedRoute.module, 'action', makeWrappedAction(id, options?.instrumentTracing));
+      fill(wrappedRoute.module, 'action', makeWrappedAction(id, options?.instrumentTracing, build));
     }
 
     const routeLoader = wrappedRoute.module.loader as undefined | WrappedFunction;
     if (routeLoader && !routeLoader.__sentry_original__) {
-      fill(wrappedRoute.module, 'loader', makeWrappedLoader(id, options?.instrumentTracing));
+      fill(wrappedRoute.module, 'loader', makeWrappedLoader(id, options?.instrumentTracing, build));
     }
 
     routes[id] = wrappedRoute;
