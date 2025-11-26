@@ -34,10 +34,10 @@ test('Sends an API route transaction to OTLP', async ({ baseURL }) => {
   const scopeSpans = json.resourceSpans?.[0]?.scopeSpans;
   expect(scopeSpans).toBeDefined();
 
-  // Http server span & undici client spans are emitted,
-  // as well as the spans emitted via `Sentry.startSpan()`
-  // But our default node-fetch spans are not emitted
-  expect(scopeSpans.length).toEqual(3);
+  // Http server span & undici client spans are emitted.
+  // Sentry.startSpan() spans are NOT emitted (non-recording when tracing is disabled).
+  // Our default node-fetch spans are also not emitted.
+  expect(scopeSpans.length).toEqual(2);
 
   const httpScopes = scopeSpans?.filter(scopeSpan => scopeSpan.scope.name === '@opentelemetry/instrumentation-http');
   const undiciScopes = scopeSpans?.filter(
@@ -47,43 +47,8 @@ test('Sends an API route transaction to OTLP', async ({ baseURL }) => {
 
   expect(httpScopes.length).toBe(1);
 
-  expect(startSpanScopes.length).toBe(1);
-  expect(startSpanScopes[0].spans.length).toBe(2);
-  expect(startSpanScopes[0].spans).toEqual([
-    {
-      traceId: expect.any(String),
-      spanId: expect.any(String),
-      parentSpanId: expect.any(String),
-      name: 'test-span',
-      kind: 1,
-      startTimeUnixNano: expect.any(String),
-      endTimeUnixNano: expect.any(String),
-      attributes: [],
-      droppedAttributesCount: 0,
-      events: [],
-      droppedEventsCount: 0,
-      status: { code: 0 },
-      links: [],
-      droppedLinksCount: 0,
-      flags: expect.any(Number),
-    },
-    {
-      traceId: expect.any(String),
-      spanId: expect.any(String),
-      name: 'test-transaction',
-      kind: 1,
-      startTimeUnixNano: expect.any(String),
-      endTimeUnixNano: expect.any(String),
-      attributes: [{ key: 'sentry.op', value: { stringValue: 'e2e-test' } }],
-      droppedAttributesCount: 0,
-      events: [],
-      droppedEventsCount: 0,
-      status: { code: 0 },
-      links: [],
-      droppedLinksCount: 0,
-      flags: expect.any(Number),
-    },
-  ]);
+  // Sentry spans should not be exported when tracing is disabled
+  expect(startSpanScopes.length).toBe(0);
 
   // Undici spans are emitted correctly
   expect(undiciScopes.length).toBe(1);
