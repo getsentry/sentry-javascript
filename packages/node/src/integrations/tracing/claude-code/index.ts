@@ -1,94 +1,81 @@
 import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
-import { patchClaudeCodeQuery } from './instrumentation';
+import { generateInstrumentOnce } from '@sentry/node-core';
+import { SentryClaudeCodeAgentSdkInstrumentation } from './otel-instrumentation';
+import type { ClaudeCodeOptions } from './types';
 
-export interface ClaudeCodeOptions {
-  /**
-   * Whether to record prompt messages.
-   * Defaults to Sentry client's `sendDefaultPii` setting.
-   */
-  recordInputs?: boolean;
+export type { ClaudeCodeOptions } from './types';
 
-  /**
-   * Whether to record response text, tool calls, and tool outputs.
-   * Defaults to Sentry client's `sendDefaultPii` setting.
-   */
-  recordOutputs?: boolean;
+export const CLAUDE_CODE_AGENT_SDK_INTEGRATION_NAME = 'ClaudeCodeAgentSdk';
 
-  /**
-   * Custom agent name to use for this integration.
-   * This allows you to differentiate between multiple Claude Code agents in your application.
-   * Defaults to 'claude-code'.
-   *
-   * @example
-   * ```typescript
-   * const query = createInstrumentedClaudeQuery({ name: 'app-builder' });
-   * ```
-   */
-  agentName?: string;
-}
+/**
+ * Instruments the Claude Code Agent SDK using OpenTelemetry.
+ * This is called automatically when the integration is added to Sentry.
+ */
+export const instrumentClaudeCodeAgentSdk = generateInstrumentOnce<ClaudeCodeOptions>(
+  CLAUDE_CODE_AGENT_SDK_INTEGRATION_NAME,
+  options => new SentryClaudeCodeAgentSdkInstrumentation(options),
+);
 
-const CLAUDE_CODE_INTEGRATION_NAME = 'ClaudeCode';
-
-const _claudeCodeIntegration = ((options: ClaudeCodeOptions = {}) => {
+const _claudeCodeAgentSdkIntegration = ((options: ClaudeCodeOptions = {}) => {
   return {
-    name: CLAUDE_CODE_INTEGRATION_NAME,
+    name: CLAUDE_CODE_AGENT_SDK_INTEGRATION_NAME,
     options,
     setupOnce() {
-      // Note: Automatic patching via require hooks doesn't work for ESM modules
-      // or webpack-bundled dependencies. Users must manually patch using patchClaudeCodeQuery()
-      // in their route files.
+      instrumentClaudeCodeAgentSdk(options);
     },
   };
 }) satisfies IntegrationFn;
 
 /**
- * Adds Sentry tracing instrumentation for the Claude Code SDK.
+ * Adds Sentry tracing instrumentation for the Claude Code Agent SDK.
  *
- * **Important**: Due to ESM module and bundler limitations, this integration requires
- * using the `createInstrumentedClaudeQuery()` helper function in your code.
- * See the example below for proper usage.
+ * This integration automatically instruments the `query` function from
+ * `@anthropic-ai/claude-agent-sdk` to capture telemetry data following
+ * OpenTelemetry Semantic Conventions for Generative AI.
  *
- * This integration captures telemetry data following OpenTelemetry Semantic Conventions
- * for Generative AI, including:
- * - Agent invocation spans (`invoke_agent`)
- * - LLM chat spans (`chat`)
- * - Tool execution spans (`execute_tool`)
- * - Token usage, model info, and session tracking
+ * **Important**: Sentry must be initialized BEFORE importing `@anthropic-ai/claude-agent-sdk`.
  *
  * @example
  * ```typescript
- * // Step 1: Configure the integration
+ * // Initialize Sentry FIRST
  * import * as Sentry from '@sentry/node';
  *
  * Sentry.init({
  *   dsn: 'your-dsn',
  *   integrations: [
- *     Sentry.claudeCodeIntegration({
+ *     Sentry.claudeCodeAgentSdkIntegration({
  *       recordInputs: true,
  *       recordOutputs: true
  *     })
  *   ],
  * });
  *
- * // Step 2: Use the helper in your routes
- * import { createInstrumentedClaudeQuery } from '@sentry/node';
+ * // THEN import the SDK - it will be automatically instrumented!
+ * import { query } from '@anthropic-ai/claude-agent-sdk';
  *
- * const query = createInstrumentedClaudeQuery();
- *
- * // Use query as normal - automatically instrumented!
+ * // Use query as normal - spans are created automatically
  * for await (const message of query({
  *   prompt: 'Hello',
- *   options: { model: 'claude-sonnet-4-5' }
+ *   options: { model: 'claude-sonnet-4-20250514' }
  * })) {
  *   console.log(message);
  * }
  * ```
  *
+ * ## Captured Telemetry
+ *
+ * This integration captures:
+ * - Agent invocation spans (`gen_ai.invoke_agent`)
+ * - LLM chat spans (`gen_ai.chat`)
+ * - Tool execution spans (`gen_ai.execute_tool`)
+ * - Token usage, model info, and session tracking
+ *
  * ## Options
  *
  * - `recordInputs`: Whether to record prompt messages (default: respects `sendDefaultPii` client option)
  * - `recordOutputs`: Whether to record response text, tool calls, and outputs (default: respects `sendDefaultPii` client option)
+ * - `agentName`: Custom agent name for differentiation (default: 'claude-code')
  *
  * ### Default Behavior
  *
@@ -101,7 +88,7 @@ const _claudeCodeIntegration = ((options: ClaudeCodeOptions = {}) => {
  * // Record inputs and outputs when sendDefaultPii is false
  * Sentry.init({
  *   integrations: [
- *     Sentry.claudeCodeIntegration({
+ *     Sentry.claudeCodeAgentSdkIntegration({
  *       recordInputs: true,
  *       recordOutputs: true
  *     })
@@ -112,9 +99,18 @@ const _claudeCodeIntegration = ((options: ClaudeCodeOptions = {}) => {
  * Sentry.init({
  *   sendDefaultPii: true,
  *   integrations: [
- *     Sentry.claudeCodeIntegration({
+ *     Sentry.claudeCodeAgentSdkIntegration({
  *       recordInputs: false,
  *       recordOutputs: false
+ *     })
+ *   ],
+ * });
+ *
+ * // Custom agent name
+ * Sentry.init({
+ *   integrations: [
+ *     Sentry.claudeCodeAgentSdkIntegration({
+ *       agentName: 'my-coding-assistant'
  *     })
  *   ],
  * });
@@ -122,21 +118,4 @@ const _claudeCodeIntegration = ((options: ClaudeCodeOptions = {}) => {
  *
  * @see https://docs.sentry.io/platforms/javascript/guides/node/ai-monitoring/
  */
-export const claudeCodeIntegration = defineIntegration(_claudeCodeIntegration);
-
-/**
- * Manually patch the Claude Code SDK query function with Sentry instrumentation.
- *
- * **Note**: Most users should use `createInstrumentedClaudeQuery()` instead,
- * which is simpler and handles option retrieval automatically.
- *
- * This low-level function is exported for advanced use cases where you need
- * explicit control over the patching process.
- *
- * @param queryFunction - The original query function from @anthropic-ai/claude-agent-sdk
- * @param options - Instrumentation options (recordInputs, recordOutputs)
- * @returns Instrumented query function
- *
- * @see createInstrumentedClaudeQuery for the recommended high-level helper
- */
-export { patchClaudeCodeQuery };
+export const claudeCodeAgentSdkIntegration = defineIntegration(_claudeCodeAgentSdkIntegration);

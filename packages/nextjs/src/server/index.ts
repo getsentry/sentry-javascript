@@ -24,9 +24,7 @@ import {
   getDefaultIntegrations,
   httpIntegration,
   init as nodeInit,
-  claudeCodeIntegration,
-  createInstrumentedClaudeQuery,
-  patchClaudeCodeQuery,
+  claudeCodeAgentSdkIntegration,
 } from '@sentry/node';
 import { DEBUG_BUILD } from '../common/debug-build';
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
@@ -45,12 +43,12 @@ import { prepareSafeIdGeneratorContext } from './prepareSafeIdGeneratorContext';
 
 export * from '@sentry/node';
 
-// Explicit re-exports for Claude Code integration
-// We re-export these explicitly to ensure rollup doesn't tree-shake them
-export { claudeCodeIntegration, createInstrumentedClaudeQuery, patchClaudeCodeQuery };
+// Explicit re-export for Claude Code integration
+// We re-export this explicitly to ensure rollup doesn't tree-shake it
+export { claudeCodeAgentSdkIntegration };
 
-// Force rollup to keep the imports by "using" them
-const _forceInclude = { claudeCodeIntegration, createInstrumentedClaudeQuery, patchClaudeCodeQuery };
+// Force rollup to keep the import by "using" it
+const _forceInclude = { claudeCodeAgentSdkIntegration };
 if (false as boolean) {
   console.log(_forceInclude);
 }
