@@ -4,6 +4,7 @@ import {
   getGlobalScope,
   getIsolationScope,
   getMainCarrier,
+  getTraceData,
   Scope,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -2019,6 +2020,26 @@ describe('continueTrace', () => {
         expect(scope.getPropagationContext().traceId).toBe('12312012123120121231201212312012');
         expect(scope.getPropagationContext().parentSpanId).toBe('1121201211212012');
       });
+    });
+  });
+
+  it('works inside an active span', () => {
+    const sentryTrace = '12312012123120121231201212312012-1121201211212012-1'
+    const sentryBaggage = 'sentry-org_id=123'
+
+    startSpan({ name: 'outer' }, () => {
+      continueTrace(
+        {
+          sentryTrace: sentryTrace,
+          baggage: sentryBaggage,
+        },
+        () => {
+          expect(getActiveSpan()).toBeUndefined();
+          expect(getTraceData()).toBeDefined()
+          expect(getTraceData()['sentry-trace']).toBe(sentryTrace);
+          expect(getCurrentScope().getPropagationContext().traceId).toBe(sentryTrace);
+        },
+      );
     });
   });
 });
