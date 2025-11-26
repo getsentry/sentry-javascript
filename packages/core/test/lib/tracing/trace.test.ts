@@ -2034,6 +2034,7 @@ describe('continueTrace', () => {
     client.init();
 
     const sentryTrace = '12312012123120121231201212312012-1121201211212012-1'
+    const sentryTraceId = '12312012123120121231201212312012'
     const sentryBaggage = 'sentry-org_id=123'
 
     startSpan({ name: 'outer' }, () => {
@@ -2043,10 +2044,13 @@ describe('continueTrace', () => {
           baggage: sentryBaggage,
         },
         () => {
+          const traceDataInContinuedTrace = getTraceData();
+          const traceIdInContinuedTrace = traceDataInContinuedTrace['sentry-trace']?.split('-')[0];
+          const traceIdInCurrentScope = getCurrentScope().getPropagationContext().traceId;
+
           expect(getActiveSpan()).toBeUndefined();
-          expect(getTraceData()).toBeDefined()
-          expect(getTraceData()['sentry-trace']).toBe(sentryTrace);
-          expect(getCurrentScope().getPropagationContext().traceId).toBe(sentryTrace);
+          expect(traceIdInContinuedTrace).toBe(sentryTraceId);
+          expect(traceIdInCurrentScope).toBe(sentryTraceId);
         },
       );
     });
