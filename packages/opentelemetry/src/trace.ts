@@ -192,13 +192,12 @@ export function startInactiveSpan(options: OpenTelemetrySpanContext): Span {
   return wrapper(() => {
     const activeCtx = getContext(options.scope, options.forceTransaction);
     const shouldSkipSpan = options.onlyIfParent && !trace.getSpan(activeCtx);
-    const ctx = shouldSkipSpan ? suppressTracing(activeCtx) : activeCtx;
+    let ctx = shouldSkipSpan ? suppressTracing(activeCtx) : activeCtx;
 
     const spanOptions = getSpanOptions(options);
 
     if (!hasSpansEnabled()) {
-      const suppressedCtx = isTracingSuppressed(ctx) ? ctx : suppressTracing(ctx);
-      return tracer.startSpan(name, spanOptions, suppressedCtx);
+      ctx = isTracingSuppressed(ctx) ? ctx : suppressTracing(ctx);
     }
 
     return tracer.startSpan(name, spanOptions, ctx);
