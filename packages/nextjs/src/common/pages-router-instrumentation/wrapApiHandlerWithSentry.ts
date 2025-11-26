@@ -10,12 +10,11 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setHttpStatus,
   startSpanManual,
-  vercelWaitUntil,
   withIsolationScope,
 } from '@sentry/core';
 import type { NextApiRequest } from 'next';
 import type { AugmentedNextApiResponse, NextApiHandler } from '../types';
-import { flushSafelyWithTimeout } from '../utils/responseEnd';
+import { flushSafelyWithTimeout, waitUntil } from '../utils/responseEnd';
 import { dropNextjsRootContext, escapeNextjsTracing } from '../utils/tracingUtils';
 
 export type AugmentedNextApiRequest = NextApiRequest & {
@@ -95,7 +94,7 @@ export function wrapApiHandlerWithSentry(apiHandler: NextApiHandler, parameteriz
                     apply(target, thisArg, argArray) {
                       setHttpStatus(span, res.statusCode);
                       span.end();
-                      vercelWaitUntil(flushSafelyWithTimeout());
+                      waitUntil(flushSafelyWithTimeout());
                       return target.apply(thisArg, argArray);
                     },
                   });
