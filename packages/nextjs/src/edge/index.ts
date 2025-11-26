@@ -15,7 +15,6 @@ import {
   setCapturedScopesOnSpan,
   spanToJSON,
   stripUrlQueryAndFragment,
-  vercelWaitUntil,
 } from '@sentry/core';
 import { getScopesFromContext } from '@sentry/opentelemetry';
 import type { VercelEdgeOptions } from '@sentry/vercel-edge';
@@ -24,7 +23,7 @@ import { TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION } from '../common/span-attribu
 import { addHeadersAsAttributes } from '../common/utils/addHeadersAsAttributes';
 import { dropMiddlewareTunnelRequests } from '../common/utils/dropMiddlewareTunnelRequests';
 import { isBuild } from '../common/utils/isBuild';
-import { flushSafelyWithTimeout } from '../common/utils/responseEnd';
+import { flushSafelyWithTimeout, waitUntil } from '../common/utils/responseEnd';
 import { setUrlProcessingMetadata } from '../common/utils/setUrlProcessingMetadata';
 import { distDirRewriteFramesIntegration } from './distDirRewriteFramesIntegration';
 
@@ -142,7 +141,7 @@ export function init(options: VercelEdgeOptions = {}): void {
 
   client?.on('spanEnd', span => {
     if (span === getRootSpan(span)) {
-      vercelWaitUntil(flushSafelyWithTimeout());
+      waitUntil(flushSafelyWithTimeout());
     }
   });
 
