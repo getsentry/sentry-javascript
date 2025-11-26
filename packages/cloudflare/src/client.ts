@@ -96,8 +96,6 @@ export class CloudflareClient extends ServerRuntimeClient {
       await spanCompletionRace;
     }
 
-    this._resetSpanCompletionPromise();
-
     return super.flush(timeout);
   }
 
