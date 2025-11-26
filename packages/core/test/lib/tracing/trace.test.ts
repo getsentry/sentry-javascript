@@ -2033,9 +2033,9 @@ describe('continueTrace', () => {
     setCurrentClient(client);
     client.init();
 
-    const sentryTrace = '12312012123120121231201212312012-1121201211212012-1'
-    const sentryTraceId = '12312012123120121231201212312012'
-    const sentryBaggage = 'sentry-org_id=123'
+    const sentryTrace = '12312012123120121231201212312012-1121201211212012-1';
+    const sentryTraceId = '12312012123120121231201212312012';
+    const sentryBaggage = 'sentry-org_id=123';
 
     startSpan({ name: 'outer' }, () => {
       continueTrace(
