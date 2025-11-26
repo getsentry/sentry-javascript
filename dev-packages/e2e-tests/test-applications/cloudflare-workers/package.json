@@ -10,7 +10,7 @@
     "typecheck": "tsc --noEmit",
     "cf-typegen": "wrangler types",
     "test:build": "pnpm install && pnpm build",
-    "test:assert": "pnpm test:dev && pnpm test:prod",
+    "test:assert": "pnpm typecheck && pnpm test:dev && pnpm test:prod",
     "test:prod": "TEST_ENV=production playwright test",
     "test:dev": "TEST_ENV=development playwright test"
   },
