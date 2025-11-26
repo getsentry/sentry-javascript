@@ -11,13 +11,17 @@ import type {
   RawSecurityItem,
   SessionEnvelope,
   SessionItem,
+  SpanContainerItem,
   SpanEnvelope,
   SpanItem,
+  SpanV2Envelope,
 } from './types-hoist/envelope';
 import type { Event } from './types-hoist/event';
 import type { SdkInfo } from './types-hoist/sdkinfo';
 import type { SdkMetadata } from './types-hoist/sdkmetadata';
 import type { Session, SessionAggregates } from './types-hoist/session';
+import type { SpanV2JSON } from './types-hoist/span';
+import { isV2BeforeSendSpanCallback } from './utils/beforeSendSpan';
 import { dsnToString } from './utils/dsn';
 import {
   createEnvelope,
@@ -120,10 +124,6 @@ export function createEventEnvelope(
  * Takes an optional client and runs spans through `beforeSendSpan` if available.
  */
 export function createSpanEnvelope(spans: [SentrySpan, ...SentrySpan[]], client?: Client): SpanEnvelope {
-  function dscHasRequiredProps(dsc: Partial<DynamicSamplingContext>): dsc is DynamicSamplingContext {
-    return !!dsc.trace_id && !!dsc.public_key;
-  }
-
   // For the moment we'll obtain the DSC from the first span in the array
   // This might need to be changed if we permit sending multiple spans from
   // different segments in one envelope
@@ -138,7 +138,8 @@ export function createSpanEnvelope(spans: [SentrySpan, ...SentrySpan[]], client?
     ...(!!tunnel && dsn && { dsn: dsnToString(dsn) }),
   };
 
-  const { beforeSendSpan, ignoreSpans } = client?.getOptions() || {};
+  const options = client?.getOptions();
+  const ignoreSpans = options?.ignoreSpans;
 
   const filteredSpans = ignoreSpans?.length
     ? spans.filter(span => !shouldIgnoreSpan(spanToJSON(span), ignoreSpans))
@@ -149,10 +150,14 @@ export function createSpanEnvelope(spans: [SentrySpan, ...SentrySpan[]], client?
     client?.recordDroppedEvent('before_send', 'span', droppedSpans);
   }
 
-  const convertToSpanJSON = beforeSendSpan
+  // checking against traceLifeCycle so that TS can infer the correct type for
+  // beforeSendSpan. This is a workaround for now as most likely, this entire function
+  // will be removed in the future (once we send standalone spans as spans v2)
+  const convertToSpanJSON = options?.beforeSendSpan
     ? (span: SentrySpan) => {
         const spanJson = spanToJSON(span);
-        const processedSpan = beforeSendSpan(spanJson);
+        const processedSpan =
+          !isV2BeforeSendSpanCallback(options?.beforeSendSpan) && options?.beforeSendSpan?.(spanJson);
 
         if (!processedSpan) {
           showSpanDropWarning();
@@ -172,6 +177,33 @@ export function createSpanEnvelope(spans: [SentrySpan, ...SentrySpan[]], client?
   }
 
   return createEnvelope<SpanEnvelope>(headers, items);
+}
+
+/**
+ * Creates a span v2 envelope
+ */
+export function createSpanV2Envelope(
+  serializedSpans: SpanV2JSON[],
+  dsc: Partial<DynamicSamplingContext>,
+  client: Client,
+): SpanV2Envelope {
+  const dsn = client?.getDsn();
+  const tunnel = client?.getOptions().tunnel;
+  const sdk = client?.getOptions()._metadata?.sdk;
+
+  const headers: SpanV2Envelope[0] = {
+    sent_at: new Date().toISOString(),
+    ...(dscHasRequiredProps(dsc) && { trace: dsc }),
+    ...(sdk && { sdk: sdk }),
+    ...(!!tunnel && dsn && { dsn: dsnToString(dsn) }),
+  };
+
+  const spanContainer: SpanContainerItem = [
+    { type: 'span', item_count: serializedSpans.length, content_type: 'application/vnd.sentry.items.span.v2+json' },
+    { items: serializedSpans },
+  ];
+
+  return createEnvelope<SpanV2Envelope>(headers, [spanContainer]);
 }
 
 /**
@@ -195,4 +227,8 @@ export function createRawSecurityEnvelope(
   ];
 
   return createEnvelope<RawSecurityEnvelope>(envelopeHeaders, [eventItem]);
+}
+
+function dscHasRequiredProps(dsc: Partial<DynamicSamplingContext>): dsc is DynamicSamplingContext {
+  return !!dsc.trace_id && !!dsc.public_key;
 }
