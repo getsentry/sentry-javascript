@@ -31,8 +31,6 @@ import {
   httpIntegration,
   init as nodeInit,
   claudeCodeIntegration,
-  createInstrumentedClaudeQuery,
-  patchClaudeCodeQuery,
 } from '@sentry/node';
 import { getScopesFromContext } from '@sentry/opentelemetry';
 import { DEBUG_BUILD } from '../common/debug-build';
@@ -50,12 +48,12 @@ import { distDirRewriteFramesIntegration } from './distDirRewriteFramesIntegrati
 
 export * from '@sentry/node';
 
-// Explicit re-exports for Claude Code integration
-// We re-export these explicitly to ensure rollup doesn't tree-shake them
-export { claudeCodeIntegration, createInstrumentedClaudeQuery, patchClaudeCodeQuery };
+// Explicit re-export for Claude Code integration
+// We re-export this explicitly to ensure rollup doesn't tree-shake it
+export { claudeCodeIntegration };
 
-// Force rollup to keep the imports by "using" them
-const _forceInclude = { claudeCodeIntegration, createInstrumentedClaudeQuery, patchClaudeCodeQuery };
+// Force rollup to keep the import by "using" it
+const _forceInclude = { claudeCodeIntegration };
 if (false as boolean) {
   console.log(_forceInclude);
 }

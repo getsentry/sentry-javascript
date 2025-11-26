@@ -123,20 +123,3 @@ const _claudeCodeIntegration = ((options: ClaudeCodeOptions = {}) => {
  * @see https://docs.sentry.io/platforms/javascript/guides/node/ai-monitoring/
  */
 export const claudeCodeIntegration = defineIntegration(_claudeCodeIntegration);
-
-/**
- * Manually patch the Claude Code SDK query function with Sentry instrumentation.
- *
- * **Note**: Most users should use `createInstrumentedClaudeQuery()` instead,
- * which is simpler and handles option retrieval automatically.
- *
- * This low-level function is exported for advanced use cases where you need
- * explicit control over the patching process.
- *
- * @param queryFunction - The original query function from @anthropic-ai/claude-agent-sdk
- * @param options - Instrumentation options (recordInputs, recordOutputs)
- * @returns Instrumented query function
- *
- * @see createInstrumentedClaudeQuery for the recommended high-level helper
- */
-export { patchClaudeCodeQuery };
