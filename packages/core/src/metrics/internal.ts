@@ -12,7 +12,7 @@ import { timestampInSeconds } from '../utils/time';
 import { _getTraceInfoFromScope } from '../utils/trace-info';
 import { createMetricEnvelope } from './envelope';
 
-const MAX_METRIC_BUFFER_SIZE = 100;
+const MAX_METRIC_BUFFER_SIZE = 1000;
 
 /**
  * Converts a metric attribute to a serialized metric attribute.
@@ -88,14 +88,16 @@ function setMetricAttribute(
  */
 export function _INTERNAL_captureSerializedMetric(client: Client, serializedMetric: SerializedMetric): void {
   const bufferMap = _getBufferMap();
-
   const metricBuffer = _INTERNAL_getMetricBuffer(client);
+
   if (metricBuffer === undefined) {
     bufferMap.set(client, [serializedMetric]);
   } else {
-    bufferMap.set(client, [...metricBuffer, serializedMetric]);
     if (metricBuffer.length >= MAX_METRIC_BUFFER_SIZE) {
       _INTERNAL_flushMetricsBuffer(client, metricBuffer);
+      bufferMap.set(client, [serializedMetric]);
+    } else {
+      bufferMap.set(client, [...metricBuffer, serializedMetric]);
     }
   }
 }
@@ -116,6 +118,84 @@ export interface InternalCaptureMetricOptions {
 }
 
 /**
+ * Enriches metric with all contextual attributes (user, SDK metadata, replay, etc.)
+ */
+function _enrichMetricAttributes(beforeMetric: Metric, client: Client, currentScope: Scope): Metric {
+  const { release, environment } = client.getOptions();
+
+  const processedMetricAttributes = {
+    ...beforeMetric.attributes,
+  };
+
+  // Add user attributes
+  const {
+    user: { id, email, username },
+  } = getMergedScopeData(currentScope);
+  setMetricAttribute(processedMetricAttributes, 'user.id', id, false);
+  setMetricAttribute(processedMetricAttributes, 'user.email', email, false);
+  setMetricAttribute(processedMetricAttributes, 'user.name', username, false);
+
+  // Add Sentry metadata
+  setMetricAttribute(processedMetricAttributes, 'sentry.release', release);
+  setMetricAttribute(processedMetricAttributes, 'sentry.environment', environment);
+
+  // Add SDK metadata
+  const { name, version } = client.getSdkMetadata()?.sdk ?? {};
+  setMetricAttribute(processedMetricAttributes, 'sentry.sdk.name', name);
+  setMetricAttribute(processedMetricAttributes, 'sentry.sdk.version', version);
+
+  // Add replay metadata
+  const replay = client.getIntegrationByName<
+    Integration & {
+      getReplayId: (onlyIfSampled?: boolean) => string;
+      getRecordingMode: () => 'session' | 'buffer' | undefined;
+    }
+  >('Replay');
+
+  const replayId = replay?.getReplayId(true);
+  setMetricAttribute(processedMetricAttributes, 'sentry.replay_id', replayId);
+
+  if (replayId && replay?.getRecordingMode() === 'buffer') {
+    setMetricAttribute(processedMetricAttributes, 'sentry._internal.replay_is_buffering', true);
+  }
+
+  return {
+    ...beforeMetric,
+    attributes: processedMetricAttributes,
+  };
+}
+
+/**
+ * Creates a serialized metric ready to be sent to Sentry.
+ */
+function _buildSerializedMetric(metric: Metric, client: Client, currentScope: Scope): SerializedMetric {
+  // Serialize attributes
+  const serializedAttributes: Record<string, SerializedMetricAttributeValue> = {};
+  for (const key in metric.attributes) {
+    if (metric.attributes[key] !== undefined) {
+      serializedAttributes[key] = metricAttributeToSerializedMetricAttribute(metric.attributes[key]);
+    }
+  }
+
+  // Get trace context
+  const [, traceContext] = _getTraceInfoFromScope(client, currentScope);
+  const span = _getSpanForScope(currentScope);
+  const traceId = span ? span.spanContext().traceId : traceContext?.trace_id;
+  const spanId = span ? span.spanContext().spanId : undefined;
+
+  return {
+    timestamp: timestampInSeconds(),
+    trace_id: traceId ?? '',
+    span_id: spanId,
+    name: metric.name,
+    type: metric.type,
+    unit: metric.unit,
+    value: metric.value,
+    attributes: serializedAttributes,
+  };
+}
+
+/**
  * Captures a metric event and sends it to Sentry.
  *
  * @param metric - The metric event to capture.
@@ -133,88 +213,39 @@ export function _INTERNAL_captureMetric(beforeMetric: Metric, options?: Internal
     return;
   }
 
-  const { release, environment, _experiments } = client.getOptions();
-  if (!_experiments?.enableMetrics) {
+  const { _experiments, enableMetrics, beforeSendMetric } = client.getOptions();
+
+  // todo(v11): Remove the experimental flag
+  // eslint-disable-next-line deprecation/deprecation
+  const metricsEnabled = enableMetrics ?? _experiments?.enableMetrics ?? true;
+
+  if (!metricsEnabled) {
     DEBUG_BUILD && debug.warn('metrics option not enabled, metric will not be captured.');
     return;
   }
 
-  const [, traceContext] = _getTraceInfoFromScope(client, currentScope);
+  // Enrich metric with contextual attributes
+  const enrichedMetric = _enrichMetricAttributes(beforeMetric, client, currentScope);
 
-  const processedMetricAttributes = {
-    ...beforeMetric.attributes,
-  };
+  client.emit('processMetric', enrichedMetric);
 
-  const {
-    user: { id, email, username },
-  } = getMergedScopeData(currentScope);
-  setMetricAttribute(processedMetricAttributes, 'user.id', id, false);
-  setMetricAttribute(processedMetricAttributes, 'user.email', email, false);
-  setMetricAttribute(processedMetricAttributes, 'user.name', username, false);
-
-  setMetricAttribute(processedMetricAttributes, 'sentry.release', release);
-  setMetricAttribute(processedMetricAttributes, 'sentry.environment', environment);
-
-  const { name, version } = client.getSdkMetadata()?.sdk ?? {};
-  setMetricAttribute(processedMetricAttributes, 'sentry.sdk.name', name);
-  setMetricAttribute(processedMetricAttributes, 'sentry.sdk.version', version);
-
-  const replay = client.getIntegrationByName<
-    Integration & {
-      getReplayId: (onlyIfSampled?: boolean) => string;
-      getRecordingMode: () => 'session' | 'buffer' | undefined;
-    }
-  >('Replay');
-
-  const replayId = replay?.getReplayId(true);
-
-  setMetricAttribute(processedMetricAttributes, 'sentry.replay_id', replayId);
-
-  if (replayId && replay?.getRecordingMode() === 'buffer') {
-    // We send this so we can identify cases where the replayId is attached but the replay itself might not have been sent to Sentry
-    setMetricAttribute(processedMetricAttributes, 'sentry._internal.replay_is_buffering', true);
-  }
-
-  const metric: Metric = {
-    ...beforeMetric,
-    attributes: processedMetricAttributes,
-  };
-
-  // Run beforeSendMetric callback
-  const processedMetric = _experiments?.beforeSendMetric ? _experiments.beforeSendMetric(metric) : metric;
+  // todo(v11): Remove the experimental `beforeSendMetric`
+  // eslint-disable-next-line deprecation/deprecation
+  const beforeSendCallback = beforeSendMetric || _experiments?.beforeSendMetric;
+  const processedMetric = beforeSendCallback ? beforeSendCallback(enrichedMetric) : enrichedMetric;
 
   if (!processedMetric) {
     DEBUG_BUILD && debug.log('`beforeSendMetric` returned `null`, will not send metric.');
     return;
   }
 
-  const serializedAttributes: Record<string, SerializedMetricAttributeValue> = {};
-  for (const key in processedMetric.attributes) {
-    if (processedMetric.attributes[key] !== undefined) {
-      serializedAttributes[key] = metricAttributeToSerializedMetricAttribute(processedMetric.attributes[key]);
-    }
-  }
-
-  const span = _getSpanForScope(currentScope);
-  const traceId = span ? span.spanContext().traceId : traceContext?.trace_id;
-  const spanId = span ? span.spanContext().spanId : undefined;
-
-  const serializedMetric: SerializedMetric = {
-    timestamp: timestampInSeconds(),
-    trace_id: traceId,
-    span_id: spanId,
-    name: processedMetric.name,
-    type: processedMetric.type,
-    unit: processedMetric.unit,
-    value: processedMetric.value,
-    attributes: serializedAttributes,
-  };
+  const serializedMetric = _buildSerializedMetric(processedMetric, client, currentScope);
 
   DEBUG_BUILD && debug.log('[Metric]', serializedMetric);
 
   captureSerializedMetric(client, serializedMetric);
 
-  client.emit('afterCaptureMetric', metric);
+  client.emit('afterCaptureMetric', processedMetric);
 }
 
 /**

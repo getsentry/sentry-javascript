@@ -21,6 +21,7 @@ test('Creates a pageload transaction with parameterized route', async ({ page })
   expect(event.transaction).toBe('/lazy/inner/:id/:anotherId/:someAnotherId');
   expect(event.type).toBe('transaction');
   expect(event.contexts?.trace?.op).toBe('pageload');
+  expect(event.contexts?.trace?.status).toBe('ok');
 });
 
 test('Does not create a navigation transaction on initial load to deep lazy route', async ({ page }) => {
@@ -82,15 +83,24 @@ test('Creates a navigation transaction inside a lazy route', async ({ page }) =>
   expect(event.transaction).toBe('/lazy/inner/:id/:anotherId/:someAnotherId');
   expect(event.type).toBe('transaction');
   expect(event.contexts?.trace?.op).toBe('navigation');
+  expect(event.contexts?.trace?.status).toBe('ok');
 });
 
 test('Creates navigation transactions between two different lazy routes', async ({ page }) => {
-  // First, navigate to the "another-lazy" route
+  // Set up transaction listeners for both navigations
   const firstTransactionPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
     return (
       !!transactionEvent?.transaction &&
       transactionEvent.contexts?.trace?.op === 'navigation' &&
       transactionEvent.transaction === '/another-lazy/sub/:id/:subId'
+    );
+  });
+
+  const secondTransactionPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+    return (
+      !!transactionEvent?.transaction &&
+      transactionEvent.contexts?.trace?.op === 'navigation' &&
+      transactionEvent.transaction === '/lazy/inner/:id/:anotherId/:someAnotherId'
     );
   });
 
@@ -113,14 +123,6 @@ test('Creates navigation transactions between two different lazy routes', async 
   expect(firstEvent.contexts?.trace?.op).toBe('navigation');
 
   // Now navigate from the first lazy route to the second lazy route
-  const secondTransactionPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
-    return (
-      !!transactionEvent?.transaction &&
-      transactionEvent.contexts?.trace?.op === 'navigation' &&
-      transactionEvent.transaction === '/lazy/inner/:id/:anotherId/:someAnotherId'
-    );
-  });
-
   // Click the navigation link from within the first lazy route to the second lazy route
   const navigationToInnerFromDeep = page.locator('id=navigate-to-inner-from-deep');
   await expect(navigationToInnerFromDeep).toBeVisible();
@@ -253,7 +255,7 @@ test('Does not send any duplicate navigation transaction names browsing between 
 
   // Go to root page
   await page.goto('/');
-  page.waitForTimeout(1000);
+  await page.waitForTimeout(1000);
 
   // Navigate to inner lazy route
   const navigationToInner = page.locator('id=navigation');
@@ -337,11 +339,20 @@ test('Allows legitimate POP navigation (back/forward) after pageload completes',
   const navigationToLongRunning = page.locator('id=navigation-to-long-running');
   await expect(navigationToLongRunning).toBeVisible();
 
+  // Set up transaction listeners for both navigations
   const firstNavigationPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
     return (
       !!transactionEvent?.transaction &&
       transactionEvent.contexts?.trace?.op === 'navigation' &&
       transactionEvent.transaction === '/long-running/slow/:id'
+    );
+  });
+
+  const backNavigationPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+    return (
+      !!transactionEvent?.transaction &&
+      transactionEvent.contexts?.trace?.op === 'navigation' &&
+      transactionEvent.transaction === '/'
     );
   });
 
@@ -357,14 +368,6 @@ test('Allows legitimate POP navigation (back/forward) after pageload completes',
 
   // Now navigate back using browser back button (POP event)
   // This should create a navigation transaction since pageload is complete
-  const backNavigationPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
-    return (
-      !!transactionEvent?.transaction &&
-      transactionEvent.contexts?.trace?.op === 'navigation' &&
-      transactionEvent.transaction === '/'
-    );
-  });
-
   await page.goBack();
 
   // Verify we're back at home
@@ -497,4 +500,386 @@ test('Updates navigation transaction name correctly when span is cancelled early
   if (idleSpanFinishReason) {
     expect(['externalFinish', 'cancelled']).toContain(idleSpanFinishReason);
   }
+});
+
+test('Creates separate transactions for rapid consecutive navigations', async ({ page }) => {
+  await page.goto('/');
+
+  // Set up transaction listeners
+  const firstTransactionPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+    return (
+      !!transactionEvent?.transaction &&
+      transactionEvent.contexts?.trace?.op === 'navigation' &&
+      transactionEvent.transaction === '/lazy/inner/:id/:anotherId/:someAnotherId'
+    );
+  });
+
+  const secondTransactionPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+    return (
+      !!transactionEvent?.transaction &&
+      transactionEvent.contexts?.trace?.op === 'navigation' &&
+      transactionEvent.transaction === '/another-lazy/sub/:id/:subId'
+    );
+  });
+
+  // Third navigation promise - using counter to match second occurrence of same route
+  let innerRouteMatchCount = 0;
+  const thirdTransactionPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+    if (
+      transactionEvent?.transaction &&
+      transactionEvent.contexts?.trace?.op === 'navigation' &&
+      transactionEvent.transaction === '/lazy/inner/:id/:anotherId/:someAnotherId'
+    ) {
+      innerRouteMatchCount++;
+      return innerRouteMatchCount === 2; // Match the second occurrence
+    }
+    return false;
+  });
+
+  // Perform navigations
+  // First navigation: / -> /lazy/inner/:id/:anotherId/:someAnotherId
+  await page.locator('id=navigation').click();
+
+  const firstEvent = await firstTransactionPromise;
+
+  // Second navigation: /lazy/inner -> /another-lazy/sub/:id/:subId
+  await page.locator('id=navigate-to-another-from-inner').click();
+
+  const secondEvent = await secondTransactionPromise;
+
+  // Third navigation: /another-lazy -> /lazy/inner/:id/:anotherId/:someAnotherId (back to same route as first)
+  await page.locator('id=navigate-to-inner-from-deep').click();
+
+  const thirdEvent = await thirdTransactionPromise;
+
+  // Verify transactions
+  expect(firstEvent.transaction).toBe('/lazy/inner/:id/:anotherId/:someAnotherId');
+  expect(firstEvent.contexts?.trace?.op).toBe('navigation');
+  const firstTraceId = firstEvent.contexts?.trace?.trace_id;
+  const firstSpanId = firstEvent.contexts?.trace?.span_id;
+
+  expect(secondEvent.transaction).toBe('/another-lazy/sub/:id/:subId');
+  expect(secondEvent.contexts?.trace?.op).toBe('navigation');
+  expect(secondEvent.contexts?.trace?.status).toBe('ok');
+
+  const secondTraceId = secondEvent.contexts?.trace?.trace_id;
+  const secondSpanId = secondEvent.contexts?.trace?.span_id;
+
+  // Verify third transaction
+  expect(thirdEvent.transaction).toBe('/lazy/inner/:id/:anotherId/:someAnotherId');
+  expect(thirdEvent.contexts?.trace?.op).toBe('navigation');
+  expect(thirdEvent.contexts?.trace?.status).toBe('ok');
+
+  const thirdTraceId = thirdEvent.contexts?.trace?.trace_id;
+  const thirdSpanId = thirdEvent.contexts?.trace?.span_id;
+
+  // Verify each navigation created a separate transaction with unique trace and span IDs
+  expect(firstTraceId).toBeDefined();
+  expect(secondTraceId).toBeDefined();
+  expect(thirdTraceId).toBeDefined();
+
+  // All trace IDs should be unique
+  expect(firstTraceId).not.toBe(secondTraceId);
+  expect(secondTraceId).not.toBe(thirdTraceId);
+  expect(firstTraceId).not.toBe(thirdTraceId);
+
+  // All span IDs should be unique
+  expect(firstSpanId).not.toBe(secondSpanId);
+  expect(secondSpanId).not.toBe(thirdSpanId);
+  expect(firstSpanId).not.toBe(thirdSpanId);
+});
+
+test('Creates pageload transaction with parameterized route for delayed lazy route', async ({ page }) => {
+  const pageloadPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+    return (
+      !!transactionEvent?.transaction &&
+      transactionEvent.contexts?.trace?.op === 'pageload' &&
+      transactionEvent.transaction === '/delayed-lazy/:id'
+    );
+  });
+
+  await page.goto('/delayed-lazy/123');
+
+  const pageloadEvent = await pageloadPromise;
+
+  const delayedReady = page.locator('id=delayed-lazy-ready');
+  await expect(delayedReady).toBeVisible();
+  await expect(page.locator('id=delayed-lazy-id')).toHaveText('ID: 123');
+  await expect(page.locator('id=delayed-lazy-path')).toHaveText('/delayed-lazy/123');
+
+  expect(pageloadEvent.transaction).toBe('/delayed-lazy/:id');
+  expect(pageloadEvent.contexts?.trace?.op).toBe('pageload');
+  expect(pageloadEvent.contexts?.trace?.data?.['sentry.source']).toBe('route');
+});
+
+test('Creates navigation transaction with parameterized route for delayed lazy route', async ({ page }) => {
+  await page.goto('/');
+
+  const navigationPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+    return (
+      !!transactionEvent?.transaction &&
+      transactionEvent.contexts?.trace?.op === 'navigation' &&
+      transactionEvent.transaction === '/delayed-lazy/:id'
+    );
+  });
+
+  const navigationLink = page.locator('id=navigation-to-delayed-lazy');
+  await expect(navigationLink).toBeVisible();
+  await navigationLink.click();
+
+  const navigationEvent = await navigationPromise;
+
+  const delayedReady = page.locator('id=delayed-lazy-ready');
+  await expect(delayedReady).toBeVisible();
+  await expect(page.locator('id=delayed-lazy-id')).toHaveText('ID: 123');
+  await expect(page.locator('id=delayed-lazy-path')).toHaveText('/delayed-lazy/123');
+
+  expect(navigationEvent.transaction).toBe('/delayed-lazy/:id');
+  expect(navigationEvent.contexts?.trace?.op).toBe('navigation');
+  expect(navigationEvent.contexts?.trace?.data?.['sentry.source']).toBe('route');
+});
+
+test('Creates navigation transaction when navigating with query parameters from home to route', async ({ page }) => {
+  await page.goto('/');
+
+  // Navigate from / to /delayed-lazy/123?source=homepage
+  // This should create a navigation transaction with the parameterized route name
+  const navigationPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+    return (
+      !!transactionEvent?.transaction &&
+      transactionEvent.contexts?.trace?.op === 'navigation' &&
+      transactionEvent.transaction === '/delayed-lazy/:id'
+    );
+  });
+
+  const navigationLink = page.locator('id=navigation-to-delayed-lazy-with-query');
+  await expect(navigationLink).toBeVisible();
+  await navigationLink.click();
+
+  const navigationEvent = await navigationPromise;
+
+  const delayedReady = page.locator('id=delayed-lazy-ready');
+  await expect(delayedReady).toBeVisible();
+  await expect(page.locator('id=delayed-lazy-id')).toHaveText('ID: 123');
+  await expect(page.locator('id=delayed-lazy-path')).toHaveText('/delayed-lazy/123');
+  await expect(page.locator('id=delayed-lazy-search')).toHaveText('?source=homepage');
+  await expect(page.locator('id=delayed-lazy-source')).toHaveText('Source: homepage');
+
+  // Verify the navigation transaction has the correct parameterized route name
+  // Query parameters should NOT affect the transaction name (still /delayed-lazy/:id)
+  expect(navigationEvent.transaction).toBe('/delayed-lazy/:id');
+  expect(navigationEvent.contexts?.trace?.op).toBe('navigation');
+  expect(navigationEvent.contexts?.trace?.data?.['sentry.source']).toBe('route');
+  expect(navigationEvent.contexts?.trace?.status).toBe('ok');
+});
+
+test('Creates separate navigation transaction when changing only query parameters on same route', async ({ page }) => {
+  await page.goto('/delayed-lazy/123');
+
+  // Wait for the page to fully load
+  const delayedReady = page.locator('id=delayed-lazy-ready');
+  await expect(delayedReady).toBeVisible();
+
+  // Navigate from /delayed-lazy/123 to /delayed-lazy/123?view=detailed
+  // This is a query-only change on the same route
+  const navigationPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+    return (
+      !!transactionEvent?.transaction &&
+      transactionEvent.contexts?.trace?.op === 'navigation' &&
+      transactionEvent.transaction === '/delayed-lazy/:id'
+    );
+  });
+
+  const queryLink = page.locator('id=link-to-query-view-detailed');
+  await expect(queryLink).toBeVisible();
+  await queryLink.click();
+
+  const navigationEvent = await navigationPromise;
+
+  // Verify query param was updated
+  await expect(page.locator('id=delayed-lazy-search')).toHaveText('?view=detailed');
+  await expect(page.locator('id=delayed-lazy-view')).toHaveText('View: detailed');
+
+  // Query-only navigation should create a navigation transaction
+  expect(navigationEvent.transaction).toBe('/delayed-lazy/:id');
+  expect(navigationEvent.contexts?.trace?.op).toBe('navigation');
+  expect(navigationEvent.contexts?.trace?.data?.['sentry.source']).toBe('route');
+  expect(navigationEvent.contexts?.trace?.status).toBe('ok');
+});
+
+test('Creates separate navigation transactions for multiple query parameter changes', async ({ page }) => {
+  await page.goto('/delayed-lazy/123');
+
+  const delayedReady = page.locator('id=delayed-lazy-ready');
+  await expect(delayedReady).toBeVisible();
+
+  // First query change: /delayed-lazy/123 -> /delayed-lazy/123?view=detailed
+  const firstNavigationPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+    return (
+      !!transactionEvent?.transaction &&
+      transactionEvent.contexts?.trace?.op === 'navigation' &&
+      transactionEvent.transaction === '/delayed-lazy/:id'
+    );
+  });
+
+  const firstQueryLink = page.locator('id=link-to-query-view-detailed');
+  await expect(firstQueryLink).toBeVisible();
+  await firstQueryLink.click();
+
+  const firstNavigationEvent = await firstNavigationPromise;
+  const firstTraceId = firstNavigationEvent.contexts?.trace?.trace_id;
+
+  await expect(page.locator('id=delayed-lazy-view')).toHaveText('View: detailed');
+
+  // Second query change: /delayed-lazy/123?view=detailed -> /delayed-lazy/123?view=list
+  const secondNavigationPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+    return (
+      !!transactionEvent?.transaction &&
+      transactionEvent.contexts?.trace?.op === 'navigation' &&
+      transactionEvent.transaction === '/delayed-lazy/:id' &&
+      transactionEvent.contexts?.trace?.trace_id !== firstTraceId
+    );
+  });
+
+  const secondQueryLink = page.locator('id=link-to-query-view-list');
+  await expect(secondQueryLink).toBeVisible();
+  await secondQueryLink.click();
+
+  const secondNavigationEvent = await secondNavigationPromise;
+  const secondTraceId = secondNavigationEvent.contexts?.trace?.trace_id;
+
+  await expect(page.locator('id=delayed-lazy-view')).toHaveText('View: list');
+
+  // Both navigations should have created separate transactions
+  expect(firstNavigationEvent.transaction).toBe('/delayed-lazy/:id');
+  expect(firstNavigationEvent.contexts?.trace?.op).toBe('navigation');
+  expect(secondNavigationEvent.transaction).toBe('/delayed-lazy/:id');
+  expect(secondNavigationEvent.contexts?.trace?.op).toBe('navigation');
+
+  // Trace IDs should be different (separate transactions)
+  expect(firstTraceId).toBeDefined();
+  expect(secondTraceId).toBeDefined();
+  expect(firstTraceId).not.toBe(secondTraceId);
+});
+
+test('Creates navigation transaction when changing only hash on same route', async ({ page }) => {
+  await page.goto('/delayed-lazy/123');
+
+  const delayedReady = page.locator('id=delayed-lazy-ready');
+  await expect(delayedReady).toBeVisible();
+
+  // Navigate from /delayed-lazy/123 to /delayed-lazy/123#section1
+  // This is a hash-only change on the same route
+  const navigationPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+    return (
+      !!transactionEvent?.transaction &&
+      transactionEvent.contexts?.trace?.op === 'navigation' &&
+      transactionEvent.transaction === '/delayed-lazy/:id'
+    );
+  });
+
+  const hashLink = page.locator('id=link-to-hash-section1');
+  await expect(hashLink).toBeVisible();
+  await hashLink.click();
+
+  const navigationEvent = await navigationPromise;
+
+  // Verify hash was updated
+  await expect(page.locator('id=delayed-lazy-hash')).toHaveText('#section1');
+
+  // Hash-only navigation should create a navigation transaction
+  expect(navigationEvent.transaction).toBe('/delayed-lazy/:id');
+  expect(navigationEvent.contexts?.trace?.op).toBe('navigation');
+  expect(navigationEvent.contexts?.trace?.data?.['sentry.source']).toBe('route');
+  expect(navigationEvent.contexts?.trace?.status).toBe('ok');
+});
+
+test('Creates separate navigation transactions for multiple hash changes', async ({ page }) => {
+  await page.goto('/delayed-lazy/123');
+
+  const delayedReady = page.locator('id=delayed-lazy-ready');
+  await expect(delayedReady).toBeVisible();
+
+  // First hash change: /delayed-lazy/123 -> /delayed-lazy/123#section1
+  const firstNavigationPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+    return (
+      !!transactionEvent?.transaction &&
+      transactionEvent.contexts?.trace?.op === 'navigation' &&
+      transactionEvent.transaction === '/delayed-lazy/:id'
+    );
+  });
+
+  const firstHashLink = page.locator('id=link-to-hash-section1');
+  await expect(firstHashLink).toBeVisible();
+  await firstHashLink.click();
+
+  const firstNavigationEvent = await firstNavigationPromise;
+  const firstTraceId = firstNavigationEvent.contexts?.trace?.trace_id;
+
+  await expect(page.locator('id=delayed-lazy-hash')).toHaveText('#section1');
+
+  // Second hash change: /delayed-lazy/123#section1 -> /delayed-lazy/123#section2
+  const secondNavigationPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+    return (
+      !!transactionEvent?.transaction &&
+      transactionEvent.contexts?.trace?.op === 'navigation' &&
+      transactionEvent.transaction === '/delayed-lazy/:id' &&
+      transactionEvent.contexts?.trace?.trace_id !== firstTraceId
+    );
+  });
+
+  const secondHashLink = page.locator('id=link-to-hash-section2');
+  await expect(secondHashLink).toBeVisible();
+  await secondHashLink.click();
+
+  const secondNavigationEvent = await secondNavigationPromise;
+  const secondTraceId = secondNavigationEvent.contexts?.trace?.trace_id;
+
+  await expect(page.locator('id=delayed-lazy-hash')).toHaveText('#section2');
+
+  // Both navigations should have created separate transactions
+  expect(firstNavigationEvent.transaction).toBe('/delayed-lazy/:id');
+  expect(firstNavigationEvent.contexts?.trace?.op).toBe('navigation');
+  expect(secondNavigationEvent.transaction).toBe('/delayed-lazy/:id');
+  expect(secondNavigationEvent.contexts?.trace?.op).toBe('navigation');
+
+  // Trace IDs should be different (separate transactions)
+  expect(firstTraceId).toBeDefined();
+  expect(secondTraceId).toBeDefined();
+  expect(firstTraceId).not.toBe(secondTraceId);
+});
+
+test('Creates navigation transaction when changing both query and hash on same route', async ({ page }) => {
+  await page.goto('/delayed-lazy/123?view=list');
+
+  const delayedReady = page.locator('id=delayed-lazy-ready');
+  await expect(delayedReady).toBeVisible();
+  await expect(page.locator('id=delayed-lazy-view')).toHaveText('View: list');
+
+  // Navigate from /delayed-lazy/123?view=list to /delayed-lazy/123?view=grid#results
+  // This changes both query and hash
+  const navigationPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+    return (
+      !!transactionEvent?.transaction &&
+      transactionEvent.contexts?.trace?.op === 'navigation' &&
+      transactionEvent.transaction === '/delayed-lazy/:id'
+    );
+  });
+
+  const queryAndHashLink = page.locator('id=link-to-query-and-hash');
+  await expect(queryAndHashLink).toBeVisible();
+  await queryAndHashLink.click();
+
+  const navigationEvent = await navigationPromise;
+
+  // Verify both query and hash were updated
+  await expect(page.locator('id=delayed-lazy-search')).toHaveText('?view=grid');
+  await expect(page.locator('id=delayed-lazy-hash')).toHaveText('#results');
+  await expect(page.locator('id=delayed-lazy-view')).toHaveText('View: grid');
+
+  // Combined query + hash navigation should create a navigation transaction
+  expect(navigationEvent.transaction).toBe('/delayed-lazy/:id');
+  expect(navigationEvent.contexts?.trace?.op).toBe('navigation');
+  expect(navigationEvent.contexts?.trace?.data?.['sentry.source']).toBe('route');
+  expect(navigationEvent.contexts?.trace?.status).toBe('ok');
 });

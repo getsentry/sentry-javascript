@@ -6,7 +6,15 @@ import {
   InstrumentationNodeModuleFile,
 } from '@opentelemetry/instrumentation';
 import type { LangChainOptions } from '@sentry/core';
-import { createLangChainCallbackHandler, getClient, SDK_VERSION } from '@sentry/core';
+import {
+  _INTERNAL_skipAiProviderWrapping,
+  ANTHROPIC_AI_INTEGRATION_NAME,
+  createLangChainCallbackHandler,
+  getClient,
+  GOOGLE_GENAI_INTEGRATION_NAME,
+  OPENAI_INTEGRATION_NAME,
+  SDK_VERSION,
+} from '@sentry/core';
 
 const supportedVersions = ['>=0.1.0 <1.0.0'];
 
@@ -143,14 +151,20 @@ export class SentryLangChainInstrumentation extends InstrumentationBase<LangChai
    * This is called when a LangChain provider package is loaded
    */
   private _patch(exports: PatchedLangChainExports): PatchedLangChainExports | void {
+    // Skip AI provider wrapping now that LangChain is actually being used
+    // This prevents duplicate spans from Anthropic/OpenAI/GoogleGenAI standalone integrations
+    _INTERNAL_skipAiProviderWrapping([
+      OPENAI_INTEGRATION_NAME,
+      ANTHROPIC_AI_INTEGRATION_NAME,
+      GOOGLE_GENAI_INTEGRATION_NAME,
+    ]);
+
     const client = getClient();
     const defaultPii = Boolean(client?.getOptions().sendDefaultPii);
 
     const config = this.getConfig();
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     const recordInputs = config?.recordInputs ?? defaultPii;
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     const recordOutputs = config?.recordOutputs ?? defaultPii;
 
     // Create a shared handler instance

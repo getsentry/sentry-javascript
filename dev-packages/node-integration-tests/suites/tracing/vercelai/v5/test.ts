@@ -193,6 +193,9 @@ describe('Vercel AI integration (V5)', () => {
     ]),
   };
 
+  const EXPECTED_AVAILABLE_TOOLS_JSON =
+    '[{"type":"function","name":"getWeather","inputSchema":{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"location":{"type":"string"}},"required":["location"],"additionalProperties":false}}]';
+
   const EXPECTED_TRANSACTION_DEFAULT_PII_TRUE = {
     transaction: 'main',
     spans: expect.arrayContaining([
@@ -348,7 +351,7 @@ describe('Vercel AI integration (V5)', () => {
           'vercel.ai.pipeline.name': 'generateText.doGenerate',
           'gen_ai.request.messages': expect.any(String),
           'vercel.ai.prompt.toolChoice': expect.any(String),
-          'gen_ai.request.available_tools': expect.any(Array),
+          'gen_ai.request.available_tools': EXPECTED_AVAILABLE_TOOLS_JSON,
           'vercel.ai.response.finishReason': 'tool-calls',
           'vercel.ai.response.id': expect.any(String),
           'vercel.ai.response.model': 'mock-model-id',
@@ -499,7 +502,7 @@ describe('Vercel AI integration (V5)', () => {
               description: 'execute_tool getWeather',
               op: 'gen_ai.execute_tool',
               origin: 'auto.vercelai.otel',
-              status: 'unknown_error',
+              status: 'internal_error',
             }),
           ]),
         };

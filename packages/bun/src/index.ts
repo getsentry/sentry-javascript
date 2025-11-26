@@ -16,6 +16,7 @@ export type {
   Thread,
   User,
   FeatureFlagsIntegration,
+  Metric,
 } from '@sentry/core';
 
 export {
@@ -78,6 +79,7 @@ export {
   onUnhandledRejectionIntegration,
   openAIIntegration,
   langChainIntegration,
+  langGraphIntegration,
   modulesIntegration,
   contextLinesIntegration,
   nodeContextIntegration,
@@ -164,6 +166,7 @@ export {
   OpenFeatureIntegrationHook,
   statsigIntegration,
   unleashIntegration,
+  metrics,
 } from '@sentry/node';
 
 export {

@@ -9,10 +9,17 @@ const worker = new Worker('/worker.js');
 
 Sentry.addIntegration(Sentry.webWorkerIntegration({ worker }));
 
-const btn = document.getElementById('errWorker');
+const btnError = document.getElementById('errWorker');
+const btnRejection = document.getElementById('rejectionWorker');
 
-btn.addEventListener('click', () => {
+btnError.addEventListener('click', () => {
   worker.postMessage({
     type: 'throw-error',
+  });
+});
+
+btnRejection.addEventListener('click', () => {
+  worker.postMessage({
+    type: 'throw-rejection',
   });
 });

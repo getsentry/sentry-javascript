@@ -4,6 +4,7 @@ import { getIsolationScope } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
 import type { Scope } from './scope';
 import { registerSpanErrorInstrumentation } from './tracing';
+import { addUserAgentToTransportHeaders } from './transports/userAgent';
 import type { CheckIn, MonitorConfig, SerializedCheckIn } from './types-hoist/checkin';
 import type { Event, EventHint } from './types-hoist/event';
 import type { ClientOptions } from './types-hoist/options';
@@ -36,7 +37,11 @@ export class ServerRuntimeClient<
     // Server clients always support tracing
     registerSpanErrorInstrumentation();
 
+    addUserAgentToTransportHeaders(options);
+
     super(options);
+
+    this._setUpMetricsProcessing();
   }
 
   /**
@@ -172,6 +177,20 @@ export class ServerRuntimeClient<
     }
 
     return super._prepareEvent(event, hint, currentScope, isolationScope);
+  }
+
+  /**
+   * Process a server-side metric before it is captured.
+   */
+  private _setUpMetricsProcessing(): void {
+    this.on('processMetric', metric => {
+      if (this._options.serverName) {
+        metric.attributes = {
+          'server.address': this._options.serverName,
+          ...metric.attributes,
+        };
+      }
+    });
   }
 }
 

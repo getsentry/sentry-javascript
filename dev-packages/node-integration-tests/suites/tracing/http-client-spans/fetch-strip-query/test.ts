@@ -44,7 +44,7 @@ test('strips and handles query params in spans of outgoing fetch requests', asyn
           origin: 'auto.http.otel.node_fetch',
           status: 'ok',
           parent_span_id: txn.contexts?.trace?.span_id,
-          span_id: expect.stringMatching(/[a-f0-9]{16}/),
+          span_id: expect.stringMatching(/[a-f\d]{16}/),
           trace_id: txn.contexts?.trace?.trace_id,
         });
       },
