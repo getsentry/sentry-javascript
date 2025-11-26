@@ -3,7 +3,7 @@
 
 /* eslint-disable max-lines */
 import { addBreadcrumb } from '../breadcrumbs';
-import { getClient, getCurrentScope, withIsolationScope } from '../currentScopes';
+import { getClient, getCurrentScope } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
 import { captureException } from '../exports';
 import { defineIntegration } from '../integration';
@@ -15,7 +15,7 @@ import {
 } from '../tracing/dynamicSamplingContext';
 import type { IntegrationFn } from '../types-hoist/integration';
 import type { Span, SpanAttributes } from '../types-hoist/span';
-import { dynamicSamplingContextToSentryBaggageHeader, parseBaggageHeader } from '../utils/baggage';
+import { dynamicSamplingContextToSentryBaggageHeader } from '../utils/baggage';
 import { debug } from '../utils/debug-logger';
 import { isPlainObject } from '../utils/is';
 import { addExceptionMechanism } from '../utils/misc';
@@ -27,6 +27,7 @@ export interface SupabaseClientConstructorType {
   prototype: {
     from: (table: string) => PostgRESTQueryBuilder;
     schema: (schema: string) => { rpc: (...args: unknown[]) => Promise<unknown> };
+    rpc: (...args: unknown[]) => Promise<unknown>;
   };
   rpc: (fn: string, params: Record<string, unknown>) => Promise<unknown>;
 }
@@ -648,7 +649,7 @@ const _instrumentRpcConsumer = (target: unknown, thisArg: unknown, argumentsList
       DEBUG_BUILD && debug.log('Consumer RPC call completed', { queueName, hasData: !!res.data });
 
       // Extract trace context from message for distributed tracing
-      const { sentryTrace, baggage } = _extractTraceAndBaggageFromMessage(res.data?.[0]?.message || {});
+      const { sentryTrace } = _extractTraceAndBaggageFromMessage(res.data?.[0]?.message || {});
 
       if (Array.isArray(res.data)) {
         res.data.forEach(item => {
@@ -658,11 +659,8 @@ const _instrumentRpcConsumer = (target: unknown, thisArg: unknown, argumentsList
         });
       }
 
-      // Extract producer trace context for span link and propagation
+      // Extract producer trace context for span link
       let producerSpanContext: { traceId: string; spanId: string; traceFlags: number } | undefined;
-      let producerPropagationContext:
-        | { traceId: string; parentSpanId: string; sampled: boolean; dsc?: Record<string, string> }
-        | undefined;
 
       if (sentryTrace) {
         const traceparentData = extractTraceparentData(sentryTrace);
@@ -676,117 +674,58 @@ const _instrumentRpcConsumer = (target: unknown, thisArg: unknown, argumentsList
             spanId: traceparentData.parentSpanId,
             traceFlags,
           };
-
-          // Prepare propagation context for isolated scope
-          producerPropagationContext = {
-            traceId: traceparentData.traceId,
-            parentSpanId: traceparentData.parentSpanId,
-            sampled: traceparentData.parentSampled ?? false,
-            dsc: baggage ? parseBaggageHeader(baggage) : undefined,
-          };
         }
       }
 
       const runWithSpan = (): SupabaseResponse => {
-        // If we have producer trace context, use isolated scope to prevent pollution
-        if (producerPropagationContext) {
-          return withIsolationScope(isolatedScope => {
-            // Set producer's propagation context in isolated scope
-            // This ensures the consumer span continues the producer's trace
-            isolatedScope.setPropagationContext({
-              ...producerPropagationContext,
-              sampleRand: Math.random(), // Generate new sample rand for current execution context
-            });
+        // Create consumer span as child of current transaction (e.g., HTTP request)
+        // Add span link to producer span for distributed tracing across async queue boundary
+        return startSpan(
+          {
+            name: spanName,
+            op: 'queue.process',
+            startTime: spanStartTime,
+            attributes: spanAttributes,
+            // Add span link to producer span for distributed tracing across async queue boundary
+            links: producerSpanContext
+              ? [
+                  {
+                    context: producerSpanContext,
+                    attributes: { 'sentry.link.type': 'queue.producer' },
+                  },
+                ]
+              : undefined,
+          },
+          span => {
+            try {
+              const processedResponse = _processConsumerSpan(span, res, queueName);
 
-            // Force transaction to make it a root span (not child of current span)
-            // This is critical to prevent the consumer span from becoming a child of
-            // an active HTTP request or other unrelated transaction
-            return startSpan(
-              {
-                name: spanName,
-                op: 'queue.process',
-                startTime: spanStartTime,
-                attributes: spanAttributes,
-                forceTransaction: true, // Makes this a root span, not a child
-                // Add span link to producer span for distributed tracing across async queue boundary
-                links: producerSpanContext
-                  ? [
-                      {
-                        context: producerSpanContext,
-                        attributes: { 'sentry.link.type': 'queue.producer' },
-                      },
-                    ]
-                  : undefined,
-              },
-              span => {
-                try {
-                  const processedResponse = _processConsumerSpan(span, res, queueName);
+              DEBUG_BUILD && debug.log('Consumer span processed successfully', { queueName });
 
-                  DEBUG_BUILD && debug.log('Consumer span processed successfully', { queueName });
+              return processedResponse;
+            } catch (err: unknown) {
+              DEBUG_BUILD && debug.log('Consumer span processing failed', { queueName, error: err });
 
-                  return processedResponse;
-                } catch (err: unknown) {
-                  DEBUG_BUILD && debug.log('Consumer span processing failed', { queueName, error: err });
-
-                  captureException(err, scope => {
-                    scope.addEventProcessor(e => {
-                      addExceptionMechanism(e, {
-                        handled: false,
-                        type: 'auto.db.supabase.queue',
-                      });
-                      return e;
-                    });
-                    scope.setContext('supabase', { queueName });
-                    return scope;
+              captureException(err, scope => {
+                scope.addEventProcessor(e => {
+                  addExceptionMechanism(e, {
+                    handled: false,
+                    type: 'auto.db.supabase.queue',
                   });
-
-                  span.setStatus({ code: SPAN_STATUS_ERROR });
-                  throw err;
-                }
-              },
-            );
-          });
-          // Isolated scope automatically discarded here, original scope restored
-        } else {
-          // No producer context, create regular span without isolation
-          return startSpan(
-            {
-              name: spanName,
-              op: 'queue.process',
-              startTime: spanStartTime,
-              attributes: spanAttributes,
-            },
-            span => {
-              try {
-                const processedResponse = _processConsumerSpan(span, res, queueName);
-
-                DEBUG_BUILD && debug.log('Consumer span processed successfully', { queueName });
-
-                return processedResponse;
-              } catch (err: unknown) {
-                DEBUG_BUILD && debug.log('Consumer span processing failed', { queueName, error: err });
-
-                captureException(err, scope => {
-                  scope.addEventProcessor(e => {
-                    addExceptionMechanism(e, {
-                      handled: false,
-                      type: 'auto.db.supabase.queue',
-                    });
-                    return e;
-                  });
-                  scope.setContext('supabase', { queueName });
-                  return scope;
+                  return e;
                 });
+                scope.setContext('supabase', { queueName });
+                return scope;
+              });
 
-                span.setStatus({ code: SPAN_STATUS_ERROR });
-                throw err;
-              }
-            },
-          );
-        }
+              span.setStatus({ code: SPAN_STATUS_ERROR });
+              throw err;
+            }
+          },
+        );
       };
 
-      // Create consumer span with isolated scope and forced transaction
+      // Create consumer span as child of current transaction with span links for distributed tracing
       return runWithSpan();
     })
     .catch((err: unknown) => {
@@ -1026,20 +965,32 @@ function _instrumentRpcProducer(target: unknown, thisArg: unknown, argumentsList
 }
 
 /**
- * Instruments direct RPC calls on a Supabase client.
+ * Instruments direct RPC calls on a Supabase client's constructor prototype.
  * This handles the pattern: `client.rpc('function_name', params)`
  * Uses the shared proxy handler to route queue operations.
  *
- * @param SupabaseClient - The Supabase client instance to instrument
+ * We instrument the prototype rather than individual instances to ensure consistent
+ * behavior across all clients sharing the same constructor and to avoid issues with
+ * Proxy property forwarding affecting the instrumentation marker on the original function.
+ *
+ * @param SupabaseClientConstructor - The Supabase client constructor to instrument
  */
-function _instrumentRpc(SupabaseClient: unknown): void {
-  const client = SupabaseClient as SupabaseClientInstance;
+function _instrumentRpc(SupabaseClientConstructor: unknown): void {
+  const prototype = (SupabaseClientConstructor as SupabaseClientConstructorType).prototype;
 
-  if (!client.rpc) {
+  if (!prototype?.rpc) {
     return;
   }
 
-  client.rpc = new Proxy(client.rpc, _createRpcProxyHandler());
+  // Prevent double-wrapping if instrumentSupabaseClient is called multiple times
+  if (_isInstrumented(prototype.rpc)) {
+    return;
+  }
+
+  const wrappedRpc = new Proxy(prototype.rpc, _createRpcProxyHandler());
+  prototype.rpc = wrappedRpc;
+
+  _markAsInstrumented(prototype.rpc);
 }
 
 /**
@@ -1454,7 +1405,7 @@ export const instrumentSupabaseClient = (supabaseClient: unknown): void => {
 
   _instrumentSupabaseClientConstructor(SupabaseClientConstructor);
   _instrumentRpcReturnedFromSchemaCall(SupabaseClientConstructor);
-  _instrumentRpc(supabaseClient as SupabaseClientInstance);
+  _instrumentRpc(SupabaseClientConstructor);
   _instrumentSupabaseAuthClient(supabaseClient as SupabaseClientInstance);
 };
 

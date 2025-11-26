@@ -20,7 +20,7 @@ async function performQueueOperations() {
   try {
     await supabaseClient.schema('pgmq_public').rpc('send', {
       queue_name: 'todos',
-      msg: { title: 'Test Todo' },
+      message: { title: 'Test Todo' },
     });
 
     await supabaseClient.schema('pgmq_public').rpc('pop', {
