@@ -16,7 +16,7 @@ import {
   SDK_VERSION,
 } from '@sentry/core';
 
-const supportedVersions = ['>=0.1.0 <1.0.0'];
+const supportedVersions = ['>=0.1.0 <2.0.0'];
 
 type LangChainInstrumentationOptions = InstrumentationConfig & LangChainOptions;
 
@@ -143,6 +143,25 @@ export class SentryLangChainInstrumentation extends InstrumentationBase<LangChai
       );
     }
 
+    // Hook into main 'langchain' package to catch initChatModel (v1+)
+    modules.push(
+      new InstrumentationNodeModuleDefinition(
+        'langchain',
+        supportedVersions,
+        this._patch.bind(this),
+        exports => exports,
+        [
+          // To catch the CJS build that contains ConfigurableModel / initChatModel for v1
+          new InstrumentationNodeModuleFile(
+            'langchain/dist/chat_models/universal.cjs',
+            supportedVersions,
+            this._patch.bind(this),
+            exports => exports,
+          ),
+        ],
+      ),
+    );
+
     return modules;
   }
 
@@ -193,14 +212,13 @@ export class SentryLangChainInstrumentation extends InstrumentationBase<LangChai
       'ChatMistralAI',
       'ChatVertexAI',
       'ChatGroq',
+      'ConfigurableModel',
     ];
 
-    // Find a chat model class in the exports by checking known class names
-    const chatModelClass = Object.values(exports).find(exp => {
-      if (typeof exp !== 'function') {
-        return false;
-      }
-      return knownChatModelNames.includes(exp.name);
+    const exportsToPatch = (exports.universal_exports ?? exports) as Record<string, unknown>;
+
+    const chatModelClass = Object.values(exportsToPatch).find(exp => {
+      return typeof exp === 'function' && knownChatModelNames.includes(exp.name);
     }) as { prototype: unknown; name: string } | undefined;
 
     if (!chatModelClass) {
