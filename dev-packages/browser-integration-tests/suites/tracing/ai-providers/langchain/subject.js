@@ -1,12 +1,12 @@
 import { createLangChainCallbackHandler } from '@sentry/browser';
-import { MockChatModel } from './mocks.js';
+import { MockChatAnthropic } from './mocks.js';
 
 const callbackHandler = createLangChainCallbackHandler({
   recordInputs: false,
   recordOutputs: false,
 });
 
-const chatModel = new MockChatModel({
+const chatModel = new MockChatAnthropic({
   model: 'claude-3-haiku-20240307',
   temperature: 0.7,
   maxTokens: 100,

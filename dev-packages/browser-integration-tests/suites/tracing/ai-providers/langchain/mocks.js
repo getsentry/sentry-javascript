@@ -1,5 +1,5 @@
 // Mock LangChain Chat Model for browser testing
-export class MockChatModel {
+export class MockChatAnthropic {
   constructor(params) {
     this._model = params.model;
     this._temperature = params.temperature;
@@ -46,7 +46,7 @@ export class MockChatModel {
       generations: [
         [
           {
-            text: 'Mock response from LangChain!',
+            text: 'Mock response from Anthropic!',
             generationInfo: {
               finish_reason: 'stop',
             },
