@@ -17,6 +17,7 @@ const reexportedPluggableIntegrationFiles = [
   'instrumentopenaiclient',
   'instrumentgooglegenaiclient',
   'instrumentlanggraph',
+  'addvercelaiprocessors',
 ];
 
 browserPluggableIntegrationFiles.forEach(integrationName => {
