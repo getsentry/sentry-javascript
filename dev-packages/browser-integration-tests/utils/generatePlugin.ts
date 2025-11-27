@@ -42,6 +42,7 @@ const IMPORTED_INTEGRATION_CDN_BUNDLE_PATHS: Record<string, string> = {
   instrumentGoogleGenAIClient: 'instrumentgooglegenaiclient',
   instrumentLangGraph: 'instrumentlanggraph',
   addVercelAiProcessors: 'addvercelaiprocessors',
+  createLangChainCallbackHandler: 'createlangchaincallbackhandler',
   // technically, this is not an integration, but let's add it anyway for simplicity
   makeMultiplexedTransport: 'multiplexedtransport',
 };

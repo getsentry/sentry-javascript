@@ -68,6 +68,7 @@ export {
   instrumentGoogleGenAIClient,
   instrumentLangGraph,
   addVercelAiProcessors,
+  createLangChainCallbackHandler,
   logger,
 } from '@sentry/core';
 export type { Span, FeatureFlagsIntegration } from '@sentry/core';
