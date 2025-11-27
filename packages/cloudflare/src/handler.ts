@@ -18,6 +18,39 @@ import { init } from './sdk';
 import { copyExecutionContext } from './utils/copyExecutionContext';
 
 /**
+ * Helper type to filter out empty object types from a union
+ * This is a distributive conditional type that operates on each member of a union
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type FilterEmptyObjects<T> = T extends any ? ([keyof T] extends [never] ? never : T) : never;
+
+/**
+ * Helper type to extract Env from ExportedHandler
+ * Filters out empty object types from unions and returns unknown instead
+ */
+type InferEnv<T> =
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  T extends ExportedHandler<infer E, any, any>
+    ? unknown extends E
+      ? unknown
+      : FilterEmptyObjects<E> extends never
+        ? unknown
+        : FilterEmptyObjects<E>
+    : unknown;
+
+/**
+ * Helper type to extract QueueHandlerMessage from ExportedHandler
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type InferQueueMessage<T> = T extends ExportedHandler<any, infer Q, any> ? Q : unknown;
+
+/**
+ * Helper type to extract CfHostMetadata from ExportedHandler
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type InferCfHostMetadata<T> = T extends ExportedHandler<any, any, infer C> ? C : unknown;
+
+/**
  * Wrapper for Cloudflare handlers.
  *
  * Initializes the SDK and wraps the handler with Sentry instrumentation.
@@ -28,17 +61,14 @@ import { copyExecutionContext } from './utils/copyExecutionContext';
  * @param handler {ExportedHandler} The handler to wrap.
  * @returns The wrapped handler.
  */
-// eslint-disable-next-line complexity
-export function withSentry<
-  Env = unknown,
-  QueueHandlerMessage = unknown,
-  CfHostMetadata = unknown,
-  T extends ExportedHandler<Env, QueueHandlerMessage, CfHostMetadata> = ExportedHandler<
-    Env,
-    QueueHandlerMessage,
-    CfHostMetadata
-  >,
->(optionsCallback: (env: Env) => CloudflareOptions, handler: T): T {
+// eslint-disable-next-line complexity, @typescript-eslint/no-explicit-any
+export function withSentry<T extends ExportedHandler<any, any, any>>(
+  optionsCallback: (env: InferEnv<T>) => CloudflareOptions,
+  handler: T,
+): T {
+  type Env = InferEnv<T>;
+  type QueueHandlerMessage = InferQueueMessage<T>;
+  type CfHostMetadata = InferCfHostMetadata<T>;
   setAsyncLocalStorageAsyncContextStrategy();
 
   try {

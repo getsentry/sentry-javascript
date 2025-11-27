@@ -2,5 +2,5 @@
 // by running `wrangler types`
 
 interface Env {
-  E2E_TEST_DSN: '';
+  E2E_TEST_DSN: string;
 }
