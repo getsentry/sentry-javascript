@@ -6,8 +6,8 @@ export class MockChatAnthropic {
     this._maxTokens = params.maxTokens;
   }
 
-  async invoke(messages, options) {
-    const callbacks = options?.callbacks || [];
+  async invoke(messages, config = { callbacks: [] }) {
+    const callbacks = config.callbacks;
     const runId = 'mock-run-id-123';
 
     const invocationParams = {
