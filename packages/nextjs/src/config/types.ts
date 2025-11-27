@@ -141,8 +141,6 @@ export type SentryBuildWebpackOptions = {
    * When enabled, your app's DOM will automatically be annotated during build-time with their respective component names.
    * This will unlock the capability to search for Replays in Sentry by component name, as well as see component names in breadcrumbs and performance monitoring.
    * Please note that this feature is not currently supported by the esbuild bundler plugins, and will only annotate React components
-   *
-   * @deprecated Use `webpack.reactComponentAnnotation` instead.
    */
   reactComponentAnnotation?: {
     /**
