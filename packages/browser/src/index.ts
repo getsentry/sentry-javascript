@@ -66,6 +66,7 @@ export {
   instrumentAnthropicAiClient,
   instrumentOpenAiClient,
   instrumentGoogleGenAIClient,
+  instrumentLangGraph,
   createLangChainCallbackHandler,
   logger,
 } from '@sentry/core';
