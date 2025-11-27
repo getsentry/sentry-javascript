@@ -359,6 +359,103 @@ describe('withSentryConfig', () => {
         expect(finalConfigOld.webpack).toBeInstanceOf(Function);
       });
     });
+
+    describe('deprecation warnings', () => {
+      let consoleWarnSpy: ReturnType<typeof vi.spyOn>;
+
+      beforeEach(() => {
+        consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      });
+
+      afterEach(() => {
+        consoleWarnSpy.mockRestore();
+        delete process.env.TURBOPACK;
+        vi.restoreAllMocks();
+      });
+
+      it('warns when using deprecated top-level options', () => {
+        delete process.env.TURBOPACK;
+
+        const sentryOptions = {
+          disableLogger: true,
+          widenClientFileUpload: true,
+        };
+
+        materializeFinalNextConfig(exportedNextConfig, undefined, sentryOptions);
+
+        expect(consoleWarnSpy).toHaveBeenCalledWith(
+          expect.stringContaining('[@sentry/nextjs] DEPRECATION WARNING: disableLogger is deprecated'),
+        );
+        expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('Use webpack.treeshake.debugLogs instead'));
+        expect(consoleWarnSpy).toHaveBeenCalledWith(
+          expect.stringContaining('[@sentry/nextjs] DEPRECATION WARNING: widenClientFileUpload is deprecated'),
+        );
+        expect(consoleWarnSpy).toHaveBeenCalledWith(
+          expect.stringContaining('Use webpack.widenClientFileUpload instead'),
+        );
+      });
+
+      it('does not warn when using new webpack path', () => {
+        delete process.env.TURBOPACK;
+
+        const sentryOptions = {
+          webpack: {
+            treeshake: {
+              debugLogs: true,
+            },
+            widenClientFileUpload: true,
+          },
+        };
+
+        materializeFinalNextConfig(exportedNextConfig, undefined, sentryOptions);
+
+        expect(consoleWarnSpy).not.toHaveBeenCalled();
+      });
+
+      it('warns even when new path is also set', () => {
+        delete process.env.TURBOPACK;
+
+        const sentryOptions = {
+          disableLogger: true, // deprecated
+          webpack: {
+            treeshake: {
+              debugLogs: false, // new path takes precedence
+            },
+          },
+        };
+
+        materializeFinalNextConfig(exportedNextConfig, undefined, sentryOptions);
+
+        // Should warn because deprecated value is present
+        expect(consoleWarnSpy).toHaveBeenCalledWith(
+          expect.stringContaining('[@sentry/nextjs] DEPRECATION WARNING: disableLogger is deprecated'),
+        );
+      });
+
+      it('warns for multiple deprecated options at once', () => {
+        delete process.env.TURBOPACK;
+
+        const sentryOptions = {
+          disableLogger: true,
+          automaticVercelMonitors: false,
+          excludeServerRoutes: ['/api/test'],
+        };
+
+        materializeFinalNextConfig(exportedNextConfig, undefined, sentryOptions);
+
+        // Should warn for all three deprecated options
+        expect(consoleWarnSpy).toHaveBeenCalledWith(
+          expect.stringContaining('[@sentry/nextjs] DEPRECATION WARNING: disableLogger is deprecated'),
+        );
+        expect(consoleWarnSpy).toHaveBeenCalledWith(
+          expect.stringContaining('[@sentry/nextjs] DEPRECATION WARNING: automaticVercelMonitors is deprecated'),
+        );
+        expect(consoleWarnSpy).toHaveBeenCalledWith(
+          expect.stringContaining('[@sentry/nextjs] DEPRECATION WARNING: excludeServerRoutes is deprecated'),
+        );
+        expect(consoleWarnSpy).toHaveBeenCalledTimes(3);
+      });
+    });
   });
 
   describe('bundler detection', () => {
