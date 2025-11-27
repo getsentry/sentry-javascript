@@ -72,6 +72,49 @@ export default [
           '__SENTRY_WRAPPING_TARGET_FILE__',
           '__SENTRY_NEXTJS_REQUEST_ASYNC_STORAGE_SHIM__',
         ],
+        plugins: [
+          {
+            name: 'sentry-fix-rolldown-generated-identifiers',
+            renderChunk(code, chunk) {
+              // Rolldown generates import identifiers like `__SENTRY_WRAPPING_TARGET_FILE___default` for default imports
+              // from our placeholder modules. When the wrapping loader later replaces `__SENTRY_WRAPPING_TARGET_FILE__`
+              // with `__SENTRY_WRAPPING_TARGET_FILE__.cjs`, this creates invalid syntax like
+              // `__SENTRY_WRAPPING_TARGET_FILE__.cjs_default`, where `.cjs` breaks the identifier.
+              // We fix this by replacing the problematic identifier pattern with a safe one that uses a different
+              // separator that won't be confused with property access when the placeholder is replaced.
+              let fixedCode = code
+                .replace(
+                  /__SENTRY_WRAPPING_TARGET_FILE___default/g,
+                  '__SENTRY_WRAPPING_TARGET_FILE_PLACEHOLDER_DEFAULT__',
+                )
+                .replace(/__SENTRY_CONFIG_IMPORT_PATH___default/g, '__SENTRY_CONFIG_IMPORT_PATH_PLACEHOLDER_DEFAULT__')
+                .replace(
+                  /__SENTRY_NEXTJS_REQUEST_ASYNC_STORAGE_SHIM___default/g,
+                  '__SENTRY_NEXTJS_REQUEST_ASYNC_STORAGE_SHIM_PLACEHOLDER_DEFAULT__',
+                );
+
+              // Rolldown has a bug where it removes namespace imports for external modules even when they're still
+              // referenced in the code (specifically when there's a `declare const` with the same name in the source).
+              // We need to add back the missing import for serverComponentModule in the serverComponentWrapperTemplate.
+              if (
+                chunk.facadeModuleId?.includes('serverComponentWrapperTemplate') &&
+                fixedCode.includes('serverComponentModule') &&
+                !fixedCode.includes('import * as serverComponentModule')
+              ) {
+                // Find the position after the last import statement to insert our missing import
+                const lastImportMatch = fixedCode.match(/^import[^;]*;/gm);
+                if (lastImportMatch) {
+                  const lastImport = lastImportMatch[lastImportMatch.length - 1];
+                  const lastImportEnd = fixedCode.indexOf(lastImport) + lastImport.length;
+                  fixedCode = `${fixedCode.slice(0, lastImportEnd)}
+import * as serverComponentModule from "__SENTRY_WRAPPING_TARGET_FILE__";${fixedCode.slice(lastImportEnd)}`;
+                }
+              }
+
+              return { code: fixedCode };
+            },
+          },
+        ],
       },
     }),
   ),
