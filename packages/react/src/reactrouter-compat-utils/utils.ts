@@ -1,9 +1,36 @@
-import type { TransactionSource } from '@sentry/core';
+import type { Span, TransactionSource } from '@sentry/core';
+import { getActiveSpan, getRootSpan, spanToJSON } from '@sentry/core';
 import type { Location, MatchRoutes, RouteMatch, RouteObject } from '../types';
 
 // Global variables that these utilities depend on
 let _matchRoutes: MatchRoutes;
 let _stripBasename: boolean = false;
+
+// Navigation context stack for nested/concurrent patchRoutesOnNavigation calls.
+// Required because window.location hasn't updated yet when handlers are invoked.
+// Uses a stack to handle overlapping navigations correctly (LIFO semantics).
+interface NavigationContext {
+  targetPath: string;
+  span: Span | undefined;
+}
+
+const _navigationContextStack: NavigationContext[] = [];
+
+/** Pushes a navigation context before invoking patchRoutesOnNavigation. */
+export function setNavigationContext(targetPath: string, span: Span | undefined): void {
+  _navigationContextStack.push({ targetPath, span });
+}
+
+/** Pops the most recent navigation context after patchRoutesOnNavigation completes. */
+export function clearNavigationContext(): void {
+  _navigationContextStack.pop();
+}
+
+/** Gets the current (most recent) navigation context if inside a patchRoutesOnNavigation call. */
+export function getNavigationContext(): NavigationContext | null {
+  const length = _navigationContextStack.length;
+  return length > 0 ? (_navigationContextStack[length - 1] ?? null) : null;
+}
 
 /**
  * Initialize function to set dependencies that the router utilities need.
@@ -272,4 +299,21 @@ export function resolveRouteNameAndSource(
   }
 
   return [name || location.pathname, source];
+}
+
+/**
+ * Gets the active root span if it's a pageload or navigation span.
+ */
+export function getActiveRootSpan(): Span | undefined {
+  const span = getActiveSpan();
+  const rootSpan = span ? getRootSpan(span) : undefined;
+
+  if (!rootSpan) {
+    return undefined;
+  }
+
+  const op = spanToJSON(rootSpan).op;
+
+  // Only use this root span if it is a pageload or navigation span
+  return op === 'navigation' || op === 'pageload' ? rootSpan : undefined;
 }

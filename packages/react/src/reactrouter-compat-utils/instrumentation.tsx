@@ -12,10 +12,8 @@ import type { Client, Integration, Span } from '@sentry/core';
 import {
   addNonEnumerableProperty,
   debug,
-  getActiveSpan,
   getClient,
   getCurrentScope,
-  getRootSpan,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
@@ -41,7 +39,14 @@ import type {
   UseRoutes,
 } from '../types';
 import { checkRouteForAsyncHandler } from './lazy-routes';
-import { initializeRouterUtils, resolveRouteNameAndSource, transactionNameHasWildcard } from './utils';
+import {
+  clearNavigationContext,
+  getActiveRootSpan,
+  initializeRouterUtils,
+  resolveRouteNameAndSource,
+  setNavigationContext,
+  transactionNameHasWildcard,
+} from './utils';
 
 let _useEffect: UseEffect;
 let _useLocation: UseLocation;
@@ -230,11 +235,14 @@ function trackLazyRouteLoad(span: Span, promise: Promise<unknown>): void {
 
 /**
  * Processes resolved routes by adding them to allRoutes and checking for nested async handlers.
+ * When capturedSpan is provided, updates that specific span instead of the current active span.
+ * This prevents race conditions where a lazy handler resolves after the user has navigated away.
  */
 export function processResolvedRoutes(
   resolvedRoutes: RouteObject[],
   parentRoute?: RouteObject,
   currentLocation: Location | null = null,
+  capturedSpan?: Span,
 ): void {
   resolvedRoutes.forEach(child => {
     allRoutes.add(child);
@@ -249,41 +257,29 @@ export function processResolvedRoutes(
     addResolvedRoutesToParent(resolvedRoutes, parentRoute);
   }
 
-  // After processing lazy routes, check if we need to update an active transaction
-  const activeRootSpan = getActiveRootSpan();
-  if (activeRootSpan) {
-    const spanOp = spanToJSON(activeRootSpan).op;
+  // Use captured span if provided, otherwise fall back to current active span
+  const targetSpan = capturedSpan ?? getActiveRootSpan();
+  if (targetSpan) {
+    const spanJson = spanToJSON(targetSpan);
 
-    // Try to use the provided location first, then fall back to global window location if needed
-    let location = currentLocation;
-    if (!location) {
-      if (typeof WINDOW !== 'undefined') {
-        const globalLocation = WINDOW.location;
-        if (globalLocation) {
-          location = { pathname: globalLocation.pathname };
-        }
-      }
+    // Skip update if span has already ended (timestamp is set when span.end() is called)
+    if (spanJson.timestamp) {
+      DEBUG_BUILD && debug.warn('[React Router] Lazy handler resolved after span ended - skipping update');
+      return;
     }
 
-    // If the user navigated away before this lazy handler resolved, skip updating the span.
-    if (currentLocation && typeof WINDOW !== 'undefined') {
-      try {
-        const windowLocation = WINDOW.location;
-        if (windowLocation) {
-          const capturedKey = computeLocationKey(currentLocation);
-          const currentKey = computeLocationKey({
-            pathname: windowLocation.pathname,
-            search: windowLocation.search || '',
-            hash: windowLocation.hash || '',
-          });
+    const spanOp = spanJson.op;
 
-          if (currentKey !== capturedKey) {
-            return;
-          }
+    // Use captured location for route matching (ensures we match against the correct route)
+    // Fall back to window.location only if no captured location and no captured span
+    // (i.e., this is not from an async handler)
+    let location = currentLocation;
+    if (!location && !capturedSpan) {
+      if (typeof WINDOW !== 'undefined') {
+        const globalLocation = WINDOW.location;
+        if (globalLocation?.pathname) {
+          location = { pathname: globalLocation.pathname };
         }
-      } catch {
-        DEBUG_BUILD && debug.warn('[React Router] Could not access window.location');
-        return;
       }
     }
 
@@ -291,14 +287,14 @@ export function processResolvedRoutes(
       if (spanOp === 'pageload') {
         // Re-run the pageload transaction update with the newly loaded routes
         updatePageloadTransaction({
-          activeRootSpan,
+          activeRootSpan: targetSpan,
           location: { pathname: location.pathname },
           routes: Array.from(allRoutes),
           allRoutes: Array.from(allRoutes),
         });
       } else if (spanOp === 'navigation') {
         // For navigation spans, update the name with the newly loaded routes
-        updateNavigationSpan(activeRootSpan, location, Array.from(allRoutes), false, _matchRoutes);
+        updateNavigationSpan(targetSpan, location, Array.from(allRoutes), false, _matchRoutes);
       }
     }
   }
@@ -750,7 +746,14 @@ function wrapPatchRoutesOnNavigation(
       }
 
       const lazyLoadPromise = (async () => {
-        const result = await originalPatchRoutes(args);
+        // Set context so async handlers can access correct targetPath and span
+        setNavigationContext(targetPath, activeRootSpan);
+        let result;
+        try {
+          result = await originalPatchRoutes(args);
+        } finally {
+          clearNavigationContext();
+        }
 
         const currentActiveRootSpan = getActiveRootSpan();
         if (currentActiveRootSpan && (spanToJSON(currentActiveRootSpan) as { op?: string }).op === 'navigation') {
@@ -1205,18 +1208,4 @@ export function createV6CompatibleWithSentryReactRouterRouting<P extends Record<
   // @ts-expect-error Setting more specific React Component typing for `R` generic above
   // will break advanced type inference done by react router params
   return SentryRoutes;
-}
-
-function getActiveRootSpan(): Span | undefined {
-  const span = getActiveSpan();
-  const rootSpan = span ? getRootSpan(span) : undefined;
-
-  if (!rootSpan) {
-    return undefined;
-  }
-
-  const op = spanToJSON(rootSpan).op;
-
-  // Only use this root span if it is a pageload or navigation span
-  return op === 'navigation' || op === 'pageload' ? rootSpan : undefined;
 }
