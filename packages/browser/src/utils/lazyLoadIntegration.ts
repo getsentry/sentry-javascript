@@ -24,6 +24,7 @@ const LazyLoadableIntegrations = {
   instrumentAnthropicAiClient: 'instrumentanthropicaiclient',
   instrumentOpenAiClient: 'instrumentopenaiclient',
   instrumentGoogleGenAIClient: 'instrumentgooglegenaiclient',
+  createLangChainCallbackHandler: 'createlangchaincallbackhandler',
 } as const;
 
 const WindowWithMaybeIntegration = WINDOW as {
