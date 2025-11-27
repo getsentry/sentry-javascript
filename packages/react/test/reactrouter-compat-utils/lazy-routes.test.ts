@@ -330,7 +330,7 @@ describe('reactrouter-compat-utils/lazy-routes', () => {
       expect(mockProcessResolvedRoutes).toHaveBeenCalledWith(routes, route, mockLocation);
     });
 
-    it('should pass null location when currentLocation is null', () => {
+    it('should convert null location to undefined for processResolvedRoutes', () => {
       const routes: RouteObject[] = [{ path: '/route1' }];
 
       handleAsyncHandlerResult(routes, route, handlerKey, mockProcessResolvedRoutes, null);

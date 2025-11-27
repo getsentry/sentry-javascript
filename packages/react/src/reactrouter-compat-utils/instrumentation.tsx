@@ -271,7 +271,11 @@ export function processResolvedRoutes(
         const windowLocation = WINDOW.location;
         if (windowLocation) {
           const capturedKey = computeLocationKey(currentLocation);
-          const currentKey = `${windowLocation.pathname}${windowLocation.search || ''}${windowLocation.hash || ''}`;
+          const currentKey = computeLocationKey({
+            pathname: windowLocation.pathname,
+            search: windowLocation.search || '',
+            hash: windowLocation.hash || '',
+          });
 
           if (currentKey !== capturedKey) {
             return;
