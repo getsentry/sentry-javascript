@@ -113,7 +113,7 @@ function migrateDeprecatedWebpackOptions(userSentryOptions: SentryBuildOptions):
     deprecatedValue: T | undefined,
     message: string,
   ): T | undefined => {
-    if (deprecatedValue !== undefined && deprecatedValue !== newValue) {
+    if (deprecatedValue !== undefined) {
       // eslint-disable-next-line no-console
       console.warn(message);
     }
