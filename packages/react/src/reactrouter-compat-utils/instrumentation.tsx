@@ -265,6 +265,24 @@ export function processResolvedRoutes(
       }
     }
 
+    // If the user navigated away before this lazy handler resolved, skip updating the span.
+    if (currentLocation && typeof WINDOW !== 'undefined') {
+      try {
+        const windowLocation = WINDOW.location;
+        if (windowLocation) {
+          const capturedKey = computeLocationKey(currentLocation);
+          const currentKey = `${windowLocation.pathname}${windowLocation.search || ''}${windowLocation.hash || ''}`;
+
+          if (currentKey !== capturedKey) {
+            return;
+          }
+        }
+      } catch {
+        DEBUG_BUILD && debug.warn('[React Router] Could not access window.location');
+        return;
+      }
+    }
+
     if (location) {
       if (spanOp === 'pageload') {
         // Re-run the pageload transaction update with the newly loaded routes

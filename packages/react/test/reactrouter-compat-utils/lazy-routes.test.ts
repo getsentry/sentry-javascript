@@ -106,7 +106,8 @@ describe('reactrouter-compat-utils/lazy-routes', () => {
       proxy();
 
       // Since handleAsyncHandlerResult is called internally, we verify through its side effects
-      expect(mockProcessResolvedRoutes).toHaveBeenCalledWith(['route1', 'route2'], route);
+      // The third parameter is the captured location (undefined in jsdom test environment)
+      expect(mockProcessResolvedRoutes).toHaveBeenCalledWith(['route1', 'route2'], route, undefined);
     });
 
     it('should handle functions that throw exceptions', () => {
@@ -137,35 +138,37 @@ describe('reactrouter-compat-utils/lazy-routes', () => {
       const proxy = createAsyncHandlerProxy(originalFunction, route, handlerKey, mockProcessResolvedRoutes);
       proxy();
 
-      expect(mockProcessResolvedRoutes).toHaveBeenCalledWith([], route);
+      // The third parameter is the captured location (undefined in jsdom test environment)
+      expect(mockProcessResolvedRoutes).toHaveBeenCalledWith([], route, undefined);
     });
   });
 
   describe('handleAsyncHandlerResult', () => {
     const route: RouteObject = { path: '/test' };
     const handlerKey = 'testHandler';
+    const mockLocation = { pathname: '/test', search: '', hash: '', state: null, key: 'default' };
 
     it('should handle array results directly', () => {
       const routes: RouteObject[] = [{ path: '/route1' }, { path: '/route2' }];
 
-      handleAsyncHandlerResult(routes, route, handlerKey, mockProcessResolvedRoutes);
+      handleAsyncHandlerResult(routes, route, handlerKey, mockProcessResolvedRoutes, mockLocation);
 
-      expect(mockProcessResolvedRoutes).toHaveBeenCalledWith(routes, route);
+      expect(mockProcessResolvedRoutes).toHaveBeenCalledWith(routes, route, mockLocation);
     });
 
     it('should handle empty array results', () => {
       const routes: RouteObject[] = [];
 
-      handleAsyncHandlerResult(routes, route, handlerKey, mockProcessResolvedRoutes);
+      handleAsyncHandlerResult(routes, route, handlerKey, mockProcessResolvedRoutes, mockLocation);
 
-      expect(mockProcessResolvedRoutes).toHaveBeenCalledWith(routes, route);
+      expect(mockProcessResolvedRoutes).toHaveBeenCalledWith(routes, route, mockLocation);
     });
 
     it('should handle Promise results that resolve to arrays', async () => {
       const routes: RouteObject[] = [{ path: '/route1' }, { path: '/route2' }];
       const promiseResult = Promise.resolve(routes);
 
-      handleAsyncHandlerResult(promiseResult, route, handlerKey, mockProcessResolvedRoutes);
+      handleAsyncHandlerResult(promiseResult, route, handlerKey, mockProcessResolvedRoutes, mockLocation);
 
       // Wait for the promise to resolve
       await promiseResult;
@@ -173,25 +176,25 @@ describe('reactrouter-compat-utils/lazy-routes', () => {
       // Use setTimeout to wait for the async handling
       await new Promise(resolve => setTimeout(resolve, 0));
 
-      expect(mockProcessResolvedRoutes).toHaveBeenCalledWith(routes, route);
+      expect(mockProcessResolvedRoutes).toHaveBeenCalledWith(routes, route, mockLocation);
     });
 
     it('should handle Promise results that resolve to empty arrays', async () => {
       const routes: RouteObject[] = [];
       const promiseResult = Promise.resolve(routes);
 
-      handleAsyncHandlerResult(promiseResult, route, handlerKey, mockProcessResolvedRoutes);
+      handleAsyncHandlerResult(promiseResult, route, handlerKey, mockProcessResolvedRoutes, mockLocation);
 
       await promiseResult;
       await new Promise(resolve => setTimeout(resolve, 0));
 
-      expect(mockProcessResolvedRoutes).toHaveBeenCalledWith(routes, route);
+      expect(mockProcessResolvedRoutes).toHaveBeenCalledWith(routes, route, mockLocation);
     });
 
     it('should handle Promise results that resolve to non-arrays', async () => {
       const promiseResult = Promise.resolve('not an array');
 
-      handleAsyncHandlerResult(promiseResult, route, handlerKey, mockProcessResolvedRoutes);
+      handleAsyncHandlerResult(promiseResult, route, handlerKey, mockProcessResolvedRoutes, mockLocation);
 
       await promiseResult;
       await new Promise(resolve => setTimeout(resolve, 0));
@@ -202,7 +205,7 @@ describe('reactrouter-compat-utils/lazy-routes', () => {
     it('should handle Promise results that resolve to null', async () => {
       const promiseResult = Promise.resolve(null);
 
-      handleAsyncHandlerResult(promiseResult, route, handlerKey, mockProcessResolvedRoutes);
+      handleAsyncHandlerResult(promiseResult, route, handlerKey, mockProcessResolvedRoutes, mockLocation);
 
       await promiseResult;
       await new Promise(resolve => setTimeout(resolve, 0));
@@ -213,7 +216,7 @@ describe('reactrouter-compat-utils/lazy-routes', () => {
     it('should handle Promise results that resolve to undefined', async () => {
       const promiseResult = Promise.resolve(undefined);
 
-      handleAsyncHandlerResult(promiseResult, route, handlerKey, mockProcessResolvedRoutes);
+      handleAsyncHandlerResult(promiseResult, route, handlerKey, mockProcessResolvedRoutes, mockLocation);
 
       await promiseResult;
       await new Promise(resolve => setTimeout(resolve, 0));
@@ -224,7 +227,7 @@ describe('reactrouter-compat-utils/lazy-routes', () => {
     it('should handle Promise rejections gracefully', async () => {
       const promiseResult = Promise.reject(new Error('Test error'));
 
-      handleAsyncHandlerResult(promiseResult, route, handlerKey, mockProcessResolvedRoutes);
+      handleAsyncHandlerResult(promiseResult, route, handlerKey, mockProcessResolvedRoutes, mockLocation);
 
       // Wait for the promise to be handled
       await new Promise(resolve => setTimeout(resolve, 0));
@@ -240,7 +243,7 @@ describe('reactrouter-compat-utils/lazy-routes', () => {
     it('should handle Promise rejections with non-Error values', async () => {
       const promiseResult = Promise.reject('string error');
 
-      handleAsyncHandlerResult(promiseResult, route, handlerKey, mockProcessResolvedRoutes);
+      handleAsyncHandlerResult(promiseResult, route, handlerKey, mockProcessResolvedRoutes, mockLocation);
 
       await new Promise(resolve => setTimeout(resolve, 0));
 
@@ -253,25 +256,25 @@ describe('reactrouter-compat-utils/lazy-routes', () => {
     });
 
     it('should ignore non-promise, non-array results', () => {
-      handleAsyncHandlerResult('string result', route, handlerKey, mockProcessResolvedRoutes);
-      handleAsyncHandlerResult(123, route, handlerKey, mockProcessResolvedRoutes);
-      handleAsyncHandlerResult({ not: 'array' }, route, handlerKey, mockProcessResolvedRoutes);
-      handleAsyncHandlerResult(null, route, handlerKey, mockProcessResolvedRoutes);
-      handleAsyncHandlerResult(undefined, route, handlerKey, mockProcessResolvedRoutes);
+      handleAsyncHandlerResult('string result', route, handlerKey, mockProcessResolvedRoutes, mockLocation);
+      handleAsyncHandlerResult(123, route, handlerKey, mockProcessResolvedRoutes, mockLocation);
+      handleAsyncHandlerResult({ not: 'array' }, route, handlerKey, mockProcessResolvedRoutes, mockLocation);
+      handleAsyncHandlerResult(null, route, handlerKey, mockProcessResolvedRoutes, mockLocation);
+      handleAsyncHandlerResult(undefined, route, handlerKey, mockProcessResolvedRoutes, mockLocation);
 
       expect(mockProcessResolvedRoutes).not.toHaveBeenCalled();
     });
 
     it('should ignore boolean values', () => {
-      handleAsyncHandlerResult(true, route, handlerKey, mockProcessResolvedRoutes);
-      handleAsyncHandlerResult(false, route, handlerKey, mockProcessResolvedRoutes);
+      handleAsyncHandlerResult(true, route, handlerKey, mockProcessResolvedRoutes, mockLocation);
+      handleAsyncHandlerResult(false, route, handlerKey, mockProcessResolvedRoutes, mockLocation);
 
       expect(mockProcessResolvedRoutes).not.toHaveBeenCalled();
     });
 
     it('should ignore functions as results', () => {
       const functionResult = () => 'test';
-      handleAsyncHandlerResult(functionResult, route, handlerKey, mockProcessResolvedRoutes);
+      handleAsyncHandlerResult(functionResult, route, handlerKey, mockProcessResolvedRoutes, mockLocation);
 
       expect(mockProcessResolvedRoutes).not.toHaveBeenCalled();
     });
@@ -281,7 +284,7 @@ describe('reactrouter-compat-utils/lazy-routes', () => {
         then: 'not a function',
       };
 
-      handleAsyncHandlerResult(fakeThenableButNotPromise, route, handlerKey, mockProcessResolvedRoutes);
+      handleAsyncHandlerResult(fakeThenableButNotPromise, route, handlerKey, mockProcessResolvedRoutes, mockLocation);
 
       expect(mockProcessResolvedRoutes).not.toHaveBeenCalled();
     });
@@ -291,7 +294,7 @@ describe('reactrouter-compat-utils/lazy-routes', () => {
         then: null,
       };
 
-      handleAsyncHandlerResult(almostPromise, route, handlerKey, mockProcessResolvedRoutes);
+      handleAsyncHandlerResult(almostPromise, route, handlerKey, mockProcessResolvedRoutes, mockLocation);
 
       expect(mockProcessResolvedRoutes).not.toHaveBeenCalled();
     });
@@ -306,12 +309,12 @@ describe('reactrouter-compat-utils/lazy-routes', () => {
       const routes: RouteObject[] = [{ path: '/dynamic1' }, { path: '/dynamic2' }];
       const promiseResult = Promise.resolve(routes);
 
-      handleAsyncHandlerResult(promiseResult, complexRoute, 'complexHandler', mockProcessResolvedRoutes);
+      handleAsyncHandlerResult(promiseResult, complexRoute, 'complexHandler', mockProcessResolvedRoutes, mockLocation);
 
       await promiseResult;
       await new Promise(resolve => setTimeout(resolve, 0));
 
-      expect(mockProcessResolvedRoutes).toHaveBeenCalledWith(routes, complexRoute);
+      expect(mockProcessResolvedRoutes).toHaveBeenCalledWith(routes, complexRoute, mockLocation);
     });
 
     it('should handle nested route objects in arrays', () => {
@@ -322,9 +325,18 @@ describe('reactrouter-compat-utils/lazy-routes', () => {
         },
       ];
 
-      handleAsyncHandlerResult(routes, route, handlerKey, mockProcessResolvedRoutes);
+      handleAsyncHandlerResult(routes, route, handlerKey, mockProcessResolvedRoutes, mockLocation);
 
-      expect(mockProcessResolvedRoutes).toHaveBeenCalledWith(routes, route);
+      expect(mockProcessResolvedRoutes).toHaveBeenCalledWith(routes, route, mockLocation);
+    });
+
+    it('should pass null location when currentLocation is null', () => {
+      const routes: RouteObject[] = [{ path: '/route1' }];
+
+      handleAsyncHandlerResult(routes, route, handlerKey, mockProcessResolvedRoutes, null);
+
+      // When null is passed, it should convert to undefined for processResolvedRoutes
+      expect(mockProcessResolvedRoutes).toHaveBeenCalledWith(routes, route, undefined);
     });
   });
 
