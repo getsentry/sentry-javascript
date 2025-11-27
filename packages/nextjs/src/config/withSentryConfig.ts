@@ -98,12 +98,84 @@ function generateRandomTunnelRoute(): string {
   return `/${randomString}`;
 }
 
+/**
+ * Migrates deprecated top-level webpack options to the new `webpack.*` path for backward compatibility.
+ * The new path takes precedence over deprecated options. This mutates the userSentryOptions object.
+ */
+function migrateDeprecatedWebpackOptions(userSentryOptions: SentryBuildOptions): void {
+  // Initialize webpack options if not present
+  userSentryOptions.webpack = userSentryOptions.webpack || {};
+
+  const webpack = userSentryOptions.webpack;
+
+  const withDeprecatedFallback = <T>(newValue: T | undefined, deprecatedValue: T | undefined): T | undefined => {
+    return newValue ?? deprecatedValue;
+  };
+
+  /* eslint-disable deprecation/deprecation */
+  // Migrate each deprecated option to the new path, but only if the new path isn't already set
+  webpack.autoInstrumentServerFunctions = withDeprecatedFallback(
+    webpack.autoInstrumentServerFunctions,
+    userSentryOptions.autoInstrumentServerFunctions,
+  );
+
+  webpack.autoInstrumentMiddleware = withDeprecatedFallback(
+    webpack.autoInstrumentMiddleware,
+    userSentryOptions.autoInstrumentMiddleware,
+  );
+
+  webpack.autoInstrumentAppDirectory = withDeprecatedFallback(
+    webpack.autoInstrumentAppDirectory,
+    userSentryOptions.autoInstrumentAppDirectory,
+  );
+
+  webpack.excludeServerRoutes = withDeprecatedFallback(
+    webpack.excludeServerRoutes,
+    userSentryOptions.excludeServerRoutes,
+  );
+
+  webpack.widenClientFileUpload = withDeprecatedFallback(
+    webpack.widenClientFileUpload,
+    userSentryOptions.widenClientFileUpload,
+  );
+
+  webpack.unstable_sentryWebpackPluginOptions = withDeprecatedFallback(
+    webpack.unstable_sentryWebpackPluginOptions,
+    userSentryOptions.unstable_sentryWebpackPluginOptions,
+  );
+
+  webpack.disableSentryConfig = withDeprecatedFallback(
+    webpack.disableSentryConfig,
+    userSentryOptions.disableSentryWebpackConfig,
+  );
+
+  // Handle treeshake.debugLogs specially since it's nested
+  if (userSentryOptions.disableLogger !== undefined) {
+    webpack.treeshake = webpack.treeshake || {};
+    webpack.treeshake.debugLogs = withDeprecatedFallback(webpack.treeshake.debugLogs, userSentryOptions.disableLogger);
+  }
+
+  webpack.automaticVercelMonitors = withDeprecatedFallback(
+    webpack.automaticVercelMonitors,
+    userSentryOptions.automaticVercelMonitors,
+  );
+
+  webpack.reactComponentAnnotation = withDeprecatedFallback(
+    webpack.reactComponentAnnotation,
+    userSentryOptions.reactComponentAnnotation,
+  );
+  /* eslint-enable deprecation/deprecation */
+}
+
 // Modify the materialized object form of the user's next config by deleting the `sentry` property and wrapping the
 // `webpack` property
 function getFinalConfigObject(
   incomingUserNextConfigObject: NextConfigObject,
   userSentryOptions: SentryBuildOptions,
 ): NextConfigObject {
+  // Migrate deprecated webpack options to new webpack path for backward compatibility
+  migrateDeprecatedWebpackOptions(userSentryOptions);
+
   // Only determine a release name if release creation is not explicitly disabled
   // This prevents injection of Git commit hashes that break build determinism
   const shouldCreateRelease = userSentryOptions.release?.create !== false;
@@ -363,7 +435,7 @@ function getFinalConfigObject(
             ],
           },
         }),
-    ...(isWebpack && !userSentryOptions.disableSentryWebpackConfig
+    ...(isWebpack && !userSentryOptions.webpack?.disableSentryConfig
       ? {
           webpack: constructWebpackConfigFunction({
             userNextConfig: incomingUserNextConfigObject,
