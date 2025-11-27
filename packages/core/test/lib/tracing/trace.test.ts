@@ -4,6 +4,7 @@ import {
   getGlobalScope,
   getIsolationScope,
   getMainCarrier,
+  getTraceData,
   Scope,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -2019,6 +2020,74 @@ describe('continueTrace', () => {
         expect(scope.getPropagationContext().traceId).toBe('12312012123120121231201212312012');
         expect(scope.getPropagationContext().parentSpanId).toBe('1121201211212012');
       });
+    });
+  });
+
+  it('updates the propagation context when called inside an active span', () => {
+    const client = new TestClient(
+      getDefaultTestClientOptions({
+        dsn: 'https://username@domain/123',
+        tracesSampleRate: 1,
+      }),
+    );
+    setCurrentClient(client);
+    client.init();
+
+    const sentryTrace = '12312012123120121231201212312012-1121201211212012-1';
+    const sentryTraceId = '12312012123120121231201212312012';
+    const sentryBaggage = 'sentry-org_id=123';
+
+    startSpan({ name: 'outer' }, () => {
+      continueTrace(
+        {
+          sentryTrace: sentryTrace,
+          baggage: sentryBaggage,
+        },
+        () => {
+          const traceDataInContinuedTrace = getTraceData();
+          const traceIdInContinuedTrace = traceDataInContinuedTrace['sentry-trace']?.split('-')[0];
+          const traceIdInCurrentScope = getCurrentScope().getPropagationContext().traceId;
+
+          expect(getActiveSpan()).toBeUndefined();
+          expect(traceIdInContinuedTrace).toBe(sentryTraceId);
+          expect(traceIdInCurrentScope).toBe(sentryTraceId);
+        },
+      );
+    });
+  });
+
+  it('sets the correct trace and parent span ids when called inside an active span and a new span is started from within the callback', () => {
+    const client = new TestClient(
+      getDefaultTestClientOptions({
+        dsn: 'https://username@domain/123',
+        tracesSampleRate: 1,
+      }),
+    );
+    setCurrentClient(client);
+    client.init();
+
+    const sentryTrace = '12312012123120121231201212312012-1121201211212012-1';
+    const sentryTraceId = '12312012123120121231201212312012';
+    const sentrySpanId = '1121201211212012';
+    const sentryBaggage = 'sentry-org_id=123';
+
+    startSpan({ name: 'outer' }, () => {
+      continueTrace(
+        {
+          sentryTrace: sentryTrace,
+          baggage: sentryBaggage,
+        },
+        () => {
+          startSpan({ name: 'inner' }, span => {
+            const innerSpanJson = spanToJSON(span);
+            const innerTraceId = innerSpanJson.trace_id;
+            const innerParentSpanId = innerSpanJson.parent_span_id;
+
+            expect(innerTraceId).toBe(sentryTraceId);
+            expect(innerParentSpanId).toBe(sentrySpanId);
+          });
+        },
+      );
     });
   });
 });
