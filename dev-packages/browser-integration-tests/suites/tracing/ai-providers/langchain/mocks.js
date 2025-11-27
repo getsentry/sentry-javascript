@@ -8,7 +8,7 @@ export class MockChatAnthropic {
 
   async invoke(messages, options) {
     const callbacks = options?.callbacks || [];
-    const runId = "mock-run-id-123";
+    const runId = 'mock-run-id-123';
 
     const invocationParams = {
       model: this._model,
