@@ -41,6 +41,7 @@ const IMPORTED_INTEGRATION_CDN_BUNDLE_PATHS: Record<string, string> = {
   instrumentOpenAiClient: 'instrumentopenaiclient',
   instrumentGoogleGenAIClient: 'instrumentgooglegenaiclient',
   instrumentLangGraph: 'instrumentlanggraph',
+  createLangChainCallbackHandler: 'createlangchaincallbackhandler',
   // technically, this is not an integration, but let's add it anyway for simplicity
   makeMultiplexedTransport: 'multiplexedtransport',
 };
