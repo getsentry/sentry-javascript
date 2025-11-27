@@ -1,5 +1,4 @@
 // Mock LangGraph graph for browser testing
-
 export class MockStateGraph {
   compile(options = {}) {
     const compiledGraph = {
@@ -11,7 +10,7 @@ export class MockStateGraph {
       builder: {
         nodes: {},
       },
-      invoke: async (input) => {
+      invoke: async input => {
         const messages = input?.messages;
         return {
           messages: [
