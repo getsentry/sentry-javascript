@@ -267,6 +267,98 @@ describe('withSentryConfig', () => {
 
       expect(finalConfig.turbopack).toBeUndefined();
     });
+
+    describe('webpack configuration options path', () => {
+      afterEach(() => {
+        delete process.env.TURBOPACK;
+        vi.restoreAllMocks();
+      });
+
+      it('uses new webpack.disableSentryConfig option', () => {
+        delete process.env.TURBOPACK;
+
+        const originalWebpackFunction = vi.fn();
+        const configWithWebpack = {
+          ...exportedNextConfig,
+          webpack: originalWebpackFunction,
+        };
+
+        const sentryOptions = {
+          webpack: {
+            disableSentryConfig: true,
+          },
+        };
+
+        const finalConfig = materializeFinalNextConfig(configWithWebpack, undefined, sentryOptions);
+        expect(finalConfig.webpack).toBe(originalWebpackFunction);
+      });
+
+      it('new webpack path takes precedence over deprecated top-level options', () => {
+        delete process.env.TURBOPACK;
+
+        const originalWebpackFunction = vi.fn();
+        const configWithWebpack = {
+          ...exportedNextConfig,
+          webpack: originalWebpackFunction,
+        };
+
+        // Both old and new paths set, new should win
+        const sentryOptions = {
+          disableSentryWebpackConfig: false, // deprecated - says enable
+          webpack: {
+            disableSentryConfig: true, // new - says disable
+          },
+        };
+
+        const finalConfig = materializeFinalNextConfig(configWithWebpack, undefined, sentryOptions);
+        // Should preserve original webpack because new path disables it
+        expect(finalConfig.webpack).toBe(originalWebpackFunction);
+      });
+
+      it('falls back to deprecated option when new path is not set', () => {
+        delete process.env.TURBOPACK;
+
+        const originalWebpackFunction = vi.fn();
+        const configWithWebpack = {
+          ...exportedNextConfig,
+          webpack: originalWebpackFunction,
+        };
+
+        // Only deprecated path set
+        const sentryOptions = {
+          disableSentryWebpackConfig: true,
+        };
+
+        const finalConfig = materializeFinalNextConfig(configWithWebpack, undefined, sentryOptions);
+        // Should preserve original webpack because deprecated option disables it
+        expect(finalConfig.webpack).toBe(originalWebpackFunction);
+      });
+
+      it('merges webpack.treeshake.debugLogs with deprecated disableLogger', () => {
+        delete process.env.TURBOPACK;
+
+        // New webpack.treeshake.debugLogs should map to disableLogger internally
+        const sentryOptionsNew = {
+          webpack: {
+            treeshake: {
+              debugLogs: true,
+            },
+          },
+        };
+
+        const sentryOptionsOld = {
+          disableLogger: true,
+        };
+
+        // Both should work the same way internally (though we can't easily test the actual effect here)
+        const finalConfigNew = materializeFinalNextConfig(exportedNextConfig, undefined, sentryOptionsNew);
+        const finalConfigOld = materializeFinalNextConfig(exportedNextConfig, undefined, sentryOptionsOld);
+
+        // Both should have webpack functions (not disabled)
+        expect(finalConfigNew.webpack).toBeInstanceOf(Function);
+        expect(finalConfigOld.webpack).toBeInstanceOf(Function);
+      });
+    });
   });
 
   describe('bundler detection', () => {
