@@ -33,10 +33,10 @@
       "require": "./build/cjs/index.server.js"
     },
     "./middleware": {
-      "types": "./build/types/integration/middleware/middleware.types.d.ts",
-      "node": "./build/esm/integration/middleware/middleware.js",
-      "import": "./build/esm/integration/middleware/middleware.js",
-      "require": "./build/cjs/integration/middleware/middleware.js"
+      "types": "./build/types/integration/middleware/index.types.d.ts",
+      "node": "./build/esm/integration/middleware/index.js",
+      "import": "./build/esm/integration/middleware/index.js",
+      "require": "./build/cjs/integration/middleware/index.js"
     },
     "./import": {
       "import": {
