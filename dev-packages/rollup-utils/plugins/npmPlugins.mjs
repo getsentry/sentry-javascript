@@ -73,7 +73,12 @@ export function makeDebugBuildStatementReplacePlugin() {
 }
 
 export function makeProductionReplacePlugin() {
-  const pattern = /\/\* rollup-include-development-only \*\/[\s\S]*?\/\* rollup-include-development-only-end \*\/\s*/g;
+  // Use legal comments (/*!) so they're preserved by Rolldown
+  // NOTE: Due to a Rolldown limitation, the ending comment must be placed before a statement
+  // (e.g., before a return) rather than after a block, otherwise it gets stripped.
+  // See: https://github.com/rolldown/rolldown/issues/[TODO: file issue]
+  const pattern =
+    /\/\*! rollup-include-development-only \*\/[\s\S]*?\/\*! rollup-include-development-only-end \*\/\s*/g;
 
   function stripDevBlocks(code) {
     if (!code) return null;
