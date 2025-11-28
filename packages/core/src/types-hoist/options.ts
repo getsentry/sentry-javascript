@@ -1,3 +1,4 @@
+import { RawAttributes } from '../attributes';
 import type { CaptureContext } from '../scope';
 import type { Breadcrumb, BreadcrumbHint } from './breadcrumb';
 import type { ErrorEvent, EventHint, TransactionEvent } from './event';
