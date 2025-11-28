@@ -15,6 +15,9 @@ export default [
         output: {
           // make it so Rollup calms down about the fact that we're combining default and named exports
           exports: 'named',
+          // Always include __esModule marker for proper CJS/ESM interop
+          // This ensures both `import * as Sentry` and `import Sentry` work correctly
+          esModule: true,
         },
       },
     }),
