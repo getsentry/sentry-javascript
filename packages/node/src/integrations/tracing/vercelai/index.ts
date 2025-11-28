@@ -1,6 +1,6 @@
 import type { Client, IntegrationFn } from '@sentry/core';
 import { addVercelAiProcessors, defineIntegration } from '@sentry/core';
-import { type modulesIntegration, generateInstrumentOnce } from '@sentry/node-core';
+import { generateInstrumentOnce, type modulesIntegration } from '@sentry/node-core';
 import { INTEGRATION_NAME } from './constants';
 import { SentryVercelAiInstrumentation } from './instrumentation';
 import type { VercelAiOptions } from './types';

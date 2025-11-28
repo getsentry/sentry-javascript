@@ -1,3 +1,4 @@
+/* eslint-disable import/export */
 export * from '@sentry/browser';
 
 // Override the browserTracingIntegration with the custom Astro version

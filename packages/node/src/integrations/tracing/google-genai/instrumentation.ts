@@ -1,6 +1,5 @@
-import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
+import type { InstrumentationConfig, InstrumentationModuleDefinition } from '@opentelemetry/instrumentation';
 import {
-  type InstrumentationModuleDefinition,
   InstrumentationBase,
   InstrumentationNodeModuleDefinition,
   InstrumentationNodeModuleFile,

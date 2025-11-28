@@ -9,8 +9,8 @@ import {
 } from '@opentelemetry/semantic-conventions';
 import { debug as coreDebug, SDK_VERSION } from '@sentry/core';
 import {
-  type NodeClient,
   initializeEsmLoader,
+  type NodeClient,
   SentryContextManager,
   setupOpenTelemetryLogger,
 } from '@sentry/node-core';
