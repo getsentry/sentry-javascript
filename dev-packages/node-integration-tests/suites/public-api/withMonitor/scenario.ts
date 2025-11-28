@@ -7,28 +7,36 @@ Sentry.init({
   transport: loggingTransport,
 });
 
-// eslint-disable-next-line @sentry-internal/sdk/no-floating-promises
-Sentry.withMonitor('cron-job-1', async () => {
-  await new Promise<void>((resolve) => {
-    setTimeout(() => {
-      resolve();
-    }, 100);
-  });
-}, {
-  schedule: { type: 'crontab', value: '* * * * *' },
-});
+// eslint-disable-next-line @typescript-eslint/no-floating-promises
+Sentry.withMonitor(
+  'cron-job-1',
+  async () => {
+    await new Promise<void>(resolve => {
+      setTimeout(() => {
+        resolve();
+      }, 100);
+    });
+  },
+  {
+    schedule: { type: 'crontab', value: '* * * * *' },
+  },
+);
 
-// eslint-disable-next-line @sentry-internal/sdk/no-floating-promises
-Sentry.withMonitor('cron-job-2', async () => {
-  await new Promise<void>((resolve) => {
-    setTimeout(() => {
-      resolve();
-    }, 100);
-  });
-}, {
-  schedule: { type: 'crontab', value: '* * * * *' },
-  isolateTrace: true,
-});
+// eslint-disable-next-line @typescript-eslint/no-floating-promises
+Sentry.withMonitor(
+  'cron-job-2',
+  async () => {
+    await new Promise<void>(resolve => {
+      setTimeout(() => {
+        resolve();
+      }, 100);
+    });
+  },
+  {
+    schedule: { type: 'crontab', value: '* * * * *' },
+    isolateTrace: true,
+  },
+);
 
 setTimeout(() => {
   process.exit();

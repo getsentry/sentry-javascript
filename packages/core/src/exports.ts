@@ -2,6 +2,7 @@ import { getClient, getCurrentScope, getIsolationScope, withIsolationScope } fro
 import { DEBUG_BUILD } from './debug-build';
 import type { CaptureContext } from './scope';
 import { closeSession, makeSession, updateSession } from './session';
+import { startNewTrace } from './tracing/trace';
 import type { CheckIn, FinishedCheckIn, MonitorConfig } from './types-hoist/checkin';
 import type { Event, EventHint } from './types-hoist/event';
 import type { EventProcessor } from './types-hoist/eventprocessor';
@@ -15,7 +16,6 @@ import { isThenable } from './utils/is';
 import { uuid4 } from './utils/misc';
 import type { ExclusiveEventHintOrCaptureContext } from './utils/prepareEvent';
 import { parseEventHintOrCaptureContext } from './utils/prepareEvent';
-import { startNewTrace } from './tracing/trace';
 import { timestampInSeconds } from './utils/time';
 import { GLOBAL_OBJ } from './utils/worldwide';
 
@@ -160,43 +160,13 @@ export function withMonitor<T>(
   callback: () => T,
   upsertMonitorConfig?: MonitorConfig,
 ): T {
-  const checkInId = captureCheckIn({ monitorSlug, status: 'in_progress' }, upsertMonitorConfig);
-  const now = timestampInSeconds();
+  function runCallback(): T {
+    const checkInId = captureCheckIn({ monitorSlug, status: 'in_progress' }, upsertMonitorConfig);
+    const now = timestampInSeconds();
 
-  function finishCheckIn(status: FinishedCheckIn['status']): void {
-    captureCheckIn({ monitorSlug, status, checkInId, duration: timestampInSeconds() - now });
-  }
-
-  return withIsolationScope(() => {
-    // If isolateTrace is enabled, start a new trace for this monitor execution
-    if (upsertMonitorConfig?.isolateTrace) {
-      return startNewTrace(() => {
-        let maybePromiseResult: T;
-        try {
-          maybePromiseResult = callback();
-        } catch (e) {
-          finishCheckIn('error');
-          throw e;
-        }
-
-        if (isThenable(maybePromiseResult)) {
-          return maybePromiseResult.then(
-            r => {
-              finishCheckIn('ok');
-              return r;
-            },
-            e => {
-              finishCheckIn('error');
-              throw e;
-            },
-          ) as T;
-        }
-        finishCheckIn('ok');
-
-        return maybePromiseResult;
-      });
+    function finishCheckIn(status: FinishedCheckIn['status']): void {
+      captureCheckIn({ monitorSlug, status, checkInId, duration: timestampInSeconds() - now });
     }
-
     // Default behavior without isolateTrace
     let maybePromiseResult: T;
     try {
@@ -221,7 +191,9 @@ export function withMonitor<T>(
     finishCheckIn('ok');
 
     return maybePromiseResult;
-  });
+  }
+
+  return withIsolationScope(() => (upsertMonitorConfig?.isolateTrace ? startNewTrace(runCallback) : runCallback()));
 }
 
 /**

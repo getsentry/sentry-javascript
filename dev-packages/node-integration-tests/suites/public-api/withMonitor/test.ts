@@ -34,18 +34,21 @@ describe('withMonitor isolateTrace', () => {
       .start()
       .completed();
 
-    // Find the two 'ok' check-ins for comparison
+    const checkIn1InProgress = checkIns.find(c => c.monitor_slug === 'cron-job-1' && c.status === 'in_progress');
     const checkIn1Ok = checkIns.find(c => c.monitor_slug === 'cron-job-1' && c.status === 'ok');
+
+    const checkIn2InProgress = checkIns.find(c => c.monitor_slug === 'cron-job-2' && c.status === 'in_progress');
     const checkIn2Ok = checkIns.find(c => c.monitor_slug === 'cron-job-2' && c.status === 'ok');
 
-    expect(checkIn1Ok).toBeDefined();
-    expect(checkIn2Ok).toBeDefined();
+    expect(checkIn1InProgress?.contexts?.trace?.trace_id).toMatch(/[a-f\d]{32}/);
+    expect(checkIn1Ok?.contexts?.trace?.trace_id).toMatch(/[a-f\d]{32}/);
+    expect(checkIn2InProgress?.contexts?.trace?.trace_id).toMatch(/[a-f\d]{32}/);
+    expect(checkIn2Ok?.contexts?.trace?.trace_id).toMatch(/[a-f\d]{32}/);
 
-    // Verify both check-ins have trace contexts
-    expect(checkIn1Ok!.contexts?.trace?.trace_id).toBeDefined();
-    expect(checkIn2Ok!.contexts?.trace?.trace_id).toBeDefined();
+    expect(checkIn1InProgress!.contexts?.trace?.trace_id).not.toBe(checkIn2InProgress!.contexts?.trace?.trace_id);
+    expect(checkIn1Ok!.contexts?.trace?.trace_id).toBe(checkIn1InProgress!.contexts?.trace?.trace_id);
 
-    // The key assertion: trace IDs should be different when isolateTrace is enabled
-    expect(checkIn1Ok!.contexts!.trace!.trace_id).not.toBe(checkIn2Ok!.contexts!.trace!.trace_id);
+    expect(checkIn2InProgress!.contexts?.trace?.trace_id).not.toBe(checkIn1InProgress!.contexts?.trace?.trace_id);
+    expect(checkIn2Ok!.contexts?.trace?.trace_id).toBe(checkIn2InProgress!.contexts?.trace?.trace_id);
   });
 });
