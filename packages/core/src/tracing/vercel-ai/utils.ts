@@ -1,6 +1,7 @@
 import type { TraceContext } from '../../types-hoist/context';
 import type { Span, SpanJSON } from '../../types-hoist/span';
 import { GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE, GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE } from '../ai/gen-ai-attributes';
+import { getTruncatedJsonString } from '../ai/utils';
 import { toolCallSpanMap } from './constants';
 import type { TokenSummary } from './types';
 
@@ -86,4 +87,40 @@ export function convertAvailableToolsToJsonString(tools: unknown[]): string {
     return tool;
   });
   return JSON.stringify(toolObjects);
+}
+
+/**
+ * Convert the prompt string to messages array
+ */
+export function convertPromptToMessages(prompt: string): { role: string; content: string }[] | undefined {
+  try {
+    const p = JSON.parse(prompt);
+    if (!!p && typeof p === 'object') {
+      const { prompt, system } = p;
+      if (typeof prompt === 'string' || typeof system === 'string') {
+        const messages: { role: string; content: string }[] = [];
+        if (typeof system === 'string') {
+          messages.push({ role: 'system', content: system });
+        }
+        if (typeof prompt === 'string') {
+          messages.push({ role: 'user', content: prompt });
+        }
+        return messages.length ? messages : [];
+      }
+    }
+    // eslint-disable-next-line no-empty
+  } catch {}
+  return undefined;
+}
+
+/**
+ * Generate a request.messages JSON array from the prompt field in the
+ * invoke_agent op
+ */
+export function requestMessagesFromPrompt(span: Span, prompt: unknown): void {
+  if (typeof prompt !== 'string') return;
+  const maybeMessages = convertPromptToMessages(prompt);
+  if (maybeMessages !== undefined) {
+    span.setAttribute('gen_ai.request.messages', getTruncatedJsonString(maybeMessages));
+  }
 }

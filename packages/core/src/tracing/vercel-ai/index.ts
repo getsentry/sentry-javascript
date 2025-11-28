@@ -10,7 +10,12 @@ import {
 import { getTruncatedJsonString } from '../ai/utils';
 import { toolCallSpanMap } from './constants';
 import type { TokenSummary } from './types';
-import { accumulateTokensForParent, applyAccumulatedTokens, convertAvailableToolsToJsonString } from './utils';
+import {
+  accumulateTokensForParent,
+  applyAccumulatedTokens,
+  convertAvailableToolsToJsonString,
+  requestMessagesFromPrompt,
+} from './utils';
 import type { ProviderMetadata } from './vercel-ai-attributes';
 import {
   AI_MODEL_ID_ATTRIBUTE,
@@ -141,6 +146,7 @@ function processEndedVercelAiSpan(span: SpanJSON): void {
   renameAttributeKey(attributes, AI_TOOL_CALL_RESULT_ATTRIBUTE, 'gen_ai.tool.output');
 
   renameAttributeKey(attributes, AI_SCHEMA_ATTRIBUTE, 'gen_ai.request.schema');
+  renameAttributeKey(attributes, AI_MODEL_ID_ATTRIBUTE, 'gen_ai.request.model');
 
   addProviderMetadataToAttributes(attributes);
 
@@ -206,6 +212,10 @@ function processGenerateSpan(span: Span, name: string, attributes: SpanAttribute
   if (attributes[AI_PROMPT_ATTRIBUTE]) {
     const truncatedPrompt = getTruncatedJsonString(attributes[AI_PROMPT_ATTRIBUTE] as string | string[]);
     span.setAttribute('gen_ai.prompt', truncatedPrompt);
+
+    if (!attributes['gen_ai.request.messages'] && !attributes[AI_PROMPT_MESSAGES_ATTRIBUTE]) {
+      requestMessagesFromPrompt(span, attributes[AI_PROMPT_ATTRIBUTE]);
+    }
   }
   if (attributes[AI_MODEL_ID_ATTRIBUTE] && !attributes[GEN_AI_RESPONSE_MODEL_ATTRIBUTE]) {
     span.setAttribute(GEN_AI_RESPONSE_MODEL_ATTRIBUTE, attributes[AI_MODEL_ID_ATTRIBUTE]);
