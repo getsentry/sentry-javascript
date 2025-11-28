@@ -752,7 +752,7 @@ function wrapPatchRoutesOnNavigation(
         try {
           result = await originalPatchRoutes(args);
         } finally {
-          clearNavigationContext();
+          clearNavigationContext(activeRootSpan);
         }
 
         const currentActiveRootSpan = getActiveRootSpan();

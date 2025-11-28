@@ -10,20 +10,29 @@ let _stripBasename: boolean = false;
 // Required because window.location hasn't updated yet when handlers are invoked.
 // Uses a stack to handle overlapping navigations correctly (LIFO semantics).
 interface NavigationContext {
-  targetPath: string;
+  targetPath: string | undefined;
   span: Span | undefined;
 }
 
 const _navigationContextStack: NavigationContext[] = [];
+const MAX_CONTEXT_STACK_SIZE = 10;
 
 /** Pushes a navigation context before invoking patchRoutesOnNavigation. */
-export function setNavigationContext(targetPath: string, span: Span | undefined): void {
+export function setNavigationContext(targetPath: string | undefined, span: Span | undefined): void {
+  // Prevent unbounded stack growth from cleanup failures or rapid navigations
+  if (_navigationContextStack.length >= MAX_CONTEXT_STACK_SIZE) {
+    _navigationContextStack.shift(); // Remove oldest
+  }
   _navigationContextStack.push({ targetPath, span });
 }
 
-/** Pops the most recent navigation context after patchRoutesOnNavigation completes. */
-export function clearNavigationContext(): void {
-  _navigationContextStack.pop();
+/** Pops the navigation context for the given span after patchRoutesOnNavigation completes. */
+export function clearNavigationContext(span: Span | undefined): void {
+  // Only pop if top of stack matches this span to prevent corruption from mismatched calls
+  const top = _navigationContextStack[_navigationContextStack.length - 1];
+  if (top?.span === span) {
+    _navigationContextStack.pop();
+  }
 }
 
 /** Gets the current (most recent) navigation context if inside a patchRoutesOnNavigation call. */

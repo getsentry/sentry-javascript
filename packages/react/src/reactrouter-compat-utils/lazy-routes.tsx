@@ -11,7 +11,9 @@ import { getActiveRootSpan, getNavigationContext } from './utils';
  */
 function captureCurrentLocation(): Location | null {
   const navContext = getNavigationContext();
-  if (navContext) {
+  // Only use navigation context if targetPath is defined (it can be undefined
+  // if patchRoutesOnNavigation was invoked without a path argument)
+  if (navContext?.targetPath) {
     return {
       pathname: navContext.targetPath,
       search: '',
