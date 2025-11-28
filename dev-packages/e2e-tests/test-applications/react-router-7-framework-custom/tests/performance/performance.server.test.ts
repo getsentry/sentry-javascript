@@ -19,7 +19,7 @@ test.describe('server - performance', () => {
           trace_id: expect.any(String),
           data: {
             'sentry.op': 'http.server',
-            'sentry.origin': 'auto.http.react_router.request-handler',
+            'sentry.origin': 'auto.http.react_router.request_handler',
             'sentry.source': 'route',
           },
           op: 'http.server',
