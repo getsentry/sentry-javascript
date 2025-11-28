@@ -119,43 +119,51 @@ export function wrapRequestHandler(
           // Classify response to detect actual streaming
           const classification = classifyResponseStreaming(res);
 
-          if (classification.isStreaming && classification.response.body) {
+          if (classification.isStreaming && res.body) {
             // Streaming response detected - monitor consumption to keep span alive
-            const [clientStream, monitorStream] = classification.response.body.tee();
+            try {
+              const [clientStream, monitorStream] = res.body.tee();
 
-            // Monitor stream consumption and end span when complete
-            const streamMonitor = (async () => {
-              const reader = monitorStream.getReader();
+              // Monitor stream consumption and end span when complete
+              const streamMonitor = (async () => {
+                const reader = monitorStream.getReader();
 
-              try {
-                let done = false;
-                while (!done) {
-                  const result = await reader.read();
-                  done = result.done;
+                try {
+                  let done = false;
+                  while (!done) {
+                    const result = await reader.read();
+                    done = result.done;
+                  }
+                } catch {
+                  // Stream error or cancellation - will end span in finally
+                } finally {
+                  reader.releaseLock();
+                  span.end();
+                  waitUntil?.(flush(2000));
                 }
-              } catch {
-                // Stream error or cancellation - will end span in finally
-              } finally {
-                reader.releaseLock();
-                span.end();
-                waitUntil?.(flush(2000));
-              }
-            })();
+              })();
 
-            waitUntil?.(streamMonitor);
+              // Keep worker alive until stream monitoring completes (otherwise span won't end)
+              waitUntil?.(streamMonitor);
 
-            // Return response with client stream
-            return new Response(clientStream, {
-              status: classification.response.status,
-              statusText: classification.response.statusText,
-              headers: classification.response.headers,
-            });
+              // Return response with client stream
+              return new Response(clientStream, {
+                status: res.status,
+                statusText: res.statusText,
+                headers: res.headers,
+              });
+            } catch (e) {
+              // tee() failed (e.g stream already locked) - fall back to non-streaming handling
+              span.end();
+              waitUntil?.(flush(2000));
+              return res;
+            }
           }
 
           // Non-streaming response - end span immediately and return original
           span.end();
           waitUntil?.(flush(2000));
-          return classification.response;
+          return res;
         });
       },
     );

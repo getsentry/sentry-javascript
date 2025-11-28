@@ -1,5 +1,4 @@
 export type StreamingGuess = {
-  response: Response;
   isStreaming: boolean;
 };
 
@@ -17,7 +16,7 @@ export type StreamingGuess = {
  */
 export function classifyResponseStreaming(res: Response): StreamingGuess {
   if (!res.body) {
-    return { response: res, isStreaming: false };
+    return { isStreaming: false };
   }
 
   const contentType = res.headers.get('content-type') ?? '';
@@ -34,9 +33,9 @@ export function classifyResponseStreaming(res: Response): StreamingGuess {
     /^application\/stream\+json\b/i.test(contentType) ||
     (/^text\/plain\b/i.test(contentType) && !contentLength)
   ) {
-    return { response: res, isStreaming: true };
+    return { isStreaming: true };
   }
 
   // Default: treat as non-streaming
-  return { response: res, isStreaming: false };
+  return { isStreaming: false };
 }
