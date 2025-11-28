@@ -2,6 +2,7 @@ import { getClient, getCurrentScope, getIsolationScope, withIsolationScope } fro
 import { DEBUG_BUILD } from './debug-build';
 import type { CaptureContext } from './scope';
 import { closeSession, makeSession, updateSession } from './session';
+import { startNewTrace } from './tracing/trace';
 import type { CheckIn, FinishedCheckIn, MonitorConfig } from './types-hoist/checkin';
 import type { Event, EventHint } from './types-hoist/event';
 import type { EventProcessor } from './types-hoist/eventprocessor';
@@ -159,14 +160,14 @@ export function withMonitor<T>(
   callback: () => T,
   upsertMonitorConfig?: MonitorConfig,
 ): T {
-  const checkInId = captureCheckIn({ monitorSlug, status: 'in_progress' }, upsertMonitorConfig);
-  const now = timestampInSeconds();
+  function runCallback(): T {
+    const checkInId = captureCheckIn({ monitorSlug, status: 'in_progress' }, upsertMonitorConfig);
+    const now = timestampInSeconds();
 
-  function finishCheckIn(status: FinishedCheckIn['status']): void {
-    captureCheckIn({ monitorSlug, status, checkInId, duration: timestampInSeconds() - now });
-  }
-
-  return withIsolationScope(() => {
+    function finishCheckIn(status: FinishedCheckIn['status']): void {
+      captureCheckIn({ monitorSlug, status, checkInId, duration: timestampInSeconds() - now });
+    }
+    // Default behavior without isolateTrace
     let maybePromiseResult: T;
     try {
       maybePromiseResult = callback();
@@ -190,7 +191,9 @@ export function withMonitor<T>(
     finishCheckIn('ok');
 
     return maybePromiseResult;
-  });
+  }
+
+  return withIsolationScope(() => (upsertMonitorConfig?.isolateTrace ? startNewTrace(runCallback) : runCallback()));
 }
 
 /**
