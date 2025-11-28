@@ -541,9 +541,6 @@ export class PostgresJsInstrumentation extends InstrumentationBase<PostgresJsIns
     const self = this;
     const originalHandle = moduleExports.Query.prototype.handle;
 
-    // Store original for unpatch
-    moduleExports.Query.prototype.handle.__sentry_original__ = originalHandle;
-
     moduleExports.Query.prototype.handle = async function (
       this: {
         resolve: unknown;
@@ -642,6 +639,9 @@ export class PostgresJsInstrumentation extends InstrumentationBase<PostgresJsIns
         },
       );
     };
+
+    // Store original for unpatch - must be set on the NEW patched function
+    moduleExports.Query.prototype.handle.__sentry_original__ = originalHandle;
 
     return moduleExports;
   }
