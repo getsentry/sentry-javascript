@@ -531,7 +531,9 @@ export class PostgresJsInstrumentation extends InstrumentationBase<PostgresJsIns
   private _patchQueryPrototype(moduleExports: {
     Query: {
       prototype: {
-        handle: ((...args: unknown[]) => Promise<unknown>) & { __sentry_original__?: (...args: unknown[]) => Promise<unknown> };
+        handle: ((...args: unknown[]) => Promise<unknown>) & {
+          __sentry_original__?: (...args: unknown[]) => Promise<unknown>;
+        };
       };
     };
   }): typeof moduleExports {
@@ -650,7 +652,9 @@ export class PostgresJsInstrumentation extends InstrumentationBase<PostgresJsIns
   private _unpatchQueryPrototype(moduleExports: {
     Query: {
       prototype: {
-        handle: ((...args: unknown[]) => Promise<unknown>) & { __sentry_original__?: (...args: unknown[]) => Promise<unknown> };
+        handle: ((...args: unknown[]) => Promise<unknown>) & {
+          __sentry_original__?: (...args: unknown[]) => Promise<unknown>;
+        };
       };
     };
   }): typeof moduleExports {
