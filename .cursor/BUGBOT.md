@@ -32,7 +32,11 @@ Do not flag the issues below if they appear in tests.
 
 - When calling any `startSpan` API (`startInactiveSpan`, `startSpanManual`, etc), always ensure that the following span attributes are set:
   - `SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN` (`'sentry.origin'`) with a proper span origin
+    - a proper origin must only contain [a-z], [A-Z], [0-9], `_` and `.` characters.
+    - flag any non-conforming origin values as invalid and link to the trace origin specification (https://develop.sentry.dev/sdk/telemetry/traces/trace-origin/)
   - `SEMANTIC_ATTRIBUTE_SENTRY_OP` (`'sentry.op'`) with a proper span op
+    - Span ops should be lower case only, and use snake_case. The `.` character is used to delimit op parts.
+    - flag any non-conforming origin values as invalid and link to the span op specification (https://develop.sentry.dev/sdk/telemetry/traces/span-operations/)
 - When calling `captureException`, always make sure that the `mechanism` is set:
   - `handled`: must be set to `true` or `false`
   - `type`: must be set to a proper origin (i.e. identify the integration and part in the integration that caught the exception).
