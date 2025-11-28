@@ -19,6 +19,7 @@ import {
   winterCGRequestToRequestData,
   withIsolationScope,
 } from '@sentry/core';
+import { getClient } from '@sentry/svelte';
 import type { Handle, ResolveOptions } from '@sveltejs/kit';
 import { DEBUG_BUILD } from '../common/debug-build';
 import { getTracePropagationData, sendErrorToSentry } from './utils';
@@ -204,7 +205,10 @@ async function instrumentHandle(
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.sveltekit',
               [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: routeId ? 'route' : 'url',
               'http.method': event.request.method,
-              ...httpHeadersToSpanAttributes(winterCGHeadersToDict(event.request.headers)),
+              ...httpHeadersToSpanAttributes(
+                winterCGHeadersToDict(event.request.headers),
+                getClient()?.getOptions().sendDefaultPii ?? false,
+              ),
             },
             name: routeName,
           },
