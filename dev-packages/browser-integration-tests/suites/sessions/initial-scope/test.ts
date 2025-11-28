@@ -2,7 +2,7 @@ import type { Route } from '@playwright/test';
 import { expect } from '@playwright/test';
 import type { SessionContext } from '@sentry/core';
 import { sentryTest } from '../../../utils/fixtures';
-import { getFirstSentryEnvelopeRequest, waitForSession } from '../../../utils/helpers';
+import { getFirstSentryEnvelopeRequest } from '../../../utils/helpers';
 
 sentryTest('should start a new session on pageload.', async ({ getLocalTestUrl, page }) => {
   const url = await getLocalTestUrl({ testDir: __dirname });
@@ -22,12 +22,12 @@ sentryTest('should start a new session with navigation.', async ({ getLocalTestU
 
   const initSession = await getFirstSentryEnvelopeRequest<SessionContext>(page, url);
 
-  // Set up session listener BEFORE clicking to avoid race condition
-  // between the click-triggered navigation and a second page.goto() call
-  const newSessionPromise = waitForSession(page);
-  await page.click('#navigate');
-
-  const newSession = await newSessionPromise;
+  // Use Promise.all to ensure the listener is active during the click-triggered navigation.
+  // Don't pass URL to getFirstSentryEnvelopeRequest so we don't trigger another navigation.
+  const [newSession] = await Promise.all([
+    getFirstSentryEnvelopeRequest<SessionContext>(page),
+    page.click('#navigate'),
+  ]);
 
   expect(newSession).toBeDefined();
   expect(newSession.init).toBe(true);
