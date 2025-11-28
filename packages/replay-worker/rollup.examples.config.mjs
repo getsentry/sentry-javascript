@@ -1,45 +1,24 @@
-import commonjs from '@rollup/plugin-commonjs';
-import resolve from '@rollup/plugin-node-resolve';
-import terser from '@rollup/plugin-terser';
-import typescript from '@rollup/plugin-typescript';
-import { defineConfig } from 'rollup';
-import { makeLicensePlugin } from '../../dev-packages/rollup-utils/plugins/index.mjs';
-
-const licensePlugin = makeLicensePlugin('Sentry Replay Worker');
+import { treeShakePreset } from '@sentry-internal/rollup-utils';
+import { defineConfig } from 'rolldown';
 
 const config = defineConfig([
   {
     input: ['./src/_worker.ts'],
+    tsconfig: './tsconfig.build.json',
     output: {
       file: './examples/worker.js',
       format: 'esm',
     },
-    treeshake: 'smallest',
-    plugins: [
-      commonjs(),
-      typescript({ tsconfig: './tsconfig.json', inlineSourceMap: false, sourceMap: false, inlineSources: false }),
-      resolve(),
-      licensePlugin,
-    ],
+    treeshake: treeShakePreset('smallest'),
   },
   {
     input: ['./src/_worker.ts'],
+    tsconfig: './tsconfig.build.json',
     output: {
       file: './examples/worker.min.js',
       format: 'esm',
     },
-    treeshake: 'smallest',
-    plugins: [
-      commonjs(),
-      typescript({ tsconfig: './tsconfig.json', inlineSourceMap: false, sourceMap: false, inlineSources: false }),
-      resolve(),
-      terser({
-        mangle: {
-          module: true,
-        },
-      }),
-      licensePlugin,
-    ],
+    treeshake: treeShakePreset('smallest'),
   },
 ]);
 
