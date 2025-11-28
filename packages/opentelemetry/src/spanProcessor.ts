@@ -56,6 +56,7 @@ function onSpanEnd(span: Span): void {
 
   const client = getClient();
   client?.emit('spanEnd', span);
+  client?.emit('afterSpanEnd', span);
 }
 
 /**

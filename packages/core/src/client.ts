@@ -613,13 +613,19 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    */
   public on(hook: 'spanEnd', callback: (span: Span) => void): () => void;
 
+  // Hooks reserved for Span-First span processing:
   /**
    * Register a callback for after a span is ended.
-   * NOTE: The span cannot be mutated anymore in this callback.
-   * Receives the span as argument.
-   * @returns {() => void} A function that, when executed, removes the registered callback.
    */
-  public on(hook: 'segmentSpanEnd', callback: (span: Span) => void): () => void;
+  public on(hook: 'afterSpanEnd', callback: (span: Span) => void): () => void;
+  /**
+   * Register a callback for after a segment span is ended.
+   */
+  public on(hook: 'afterSegmentSpanEnd', callback: (span: Span) => void): () => void;
+  /**
+   * Register a callback for when the span is ready to be enqueued into the span buffer.
+   */
+  public on(hook: 'enqueueSpan', callback: (span: Span) => void): () => void;
 
   /**
    * Register a callback for when an idle span is allowed to auto-finish.
@@ -893,8 +899,13 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   /** Fire a hook whenever a span ends. */
   public emit(hook: 'spanEnd', span: Span): void;
 
-  /** Fire a hook whenever a segment span ends. */
-  public emit(hook: 'segmentSpanEnd', span: Span): void;
+  // Hooks reserved for Span-First span processing:
+  /** Fire a hook after the `spanEnd` hook  */
+  public emit(hook: 'afterSpanEnd', span: Span): void;
+  /** Fire a hook after the `segmentSpanEnd` hook is fired. */
+  public emit(hook: 'afterSegmentSpanEnd', span: Span): void;
+  /** Fire a hook after a span ready to be enqueued into the span buffer. */
+  public emit(hook: 'enqueueSpan', span: Span): void;
 
   /**
    * Fire a hook indicating that an idle span is allowed to auto finish.
