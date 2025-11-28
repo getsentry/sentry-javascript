@@ -400,7 +400,8 @@ function instrumentBuildCallback(
   // We should be able to wrap them, as they may not be wrapped before.
   const defaultExport = wrappedEntry.module.default as undefined | WrappedFunction;
   if (defaultExport && !defaultExport.__sentry_original__) {
-    fill(wrappedEntry.module, 'default', makeWrappedDocumentRequestFunction(options?.instrumentTracing));
+    const instrumentTracing = options ? options.instrumentTracing : undefined;
+    fill(wrappedEntry.module, 'default', makeWrappedDocumentRequestFunction(instrumentTracing));
   }
 
   for (const [id, route] of Object.entries(build.routes)) {
@@ -414,18 +415,21 @@ function instrumentBuildCallback(
       }
 
       if (!(wrappedRoute.module.loader as WrappedFunction).__sentry_original__) {
-        fill(wrappedRoute.module, 'loader', makeWrappedRootLoader(options?.instrumentTracing, build));
+        const instrumentTracing = options ? options.instrumentTracing : undefined;
+        fill(wrappedRoute.module, 'loader', makeWrappedRootLoader(instrumentTracing, build));
       }
     }
 
     const routeAction = wrappedRoute.module.action as undefined | WrappedFunction;
     if (routeAction && !routeAction.__sentry_original__) {
-      fill(wrappedRoute.module, 'action', makeWrappedAction(id, options?.instrumentTracing, build));
+      const instrumentTracing = options ? options.instrumentTracing : undefined;
+      fill(wrappedRoute.module, 'action', makeWrappedAction(id, instrumentTracing, build));
     }
 
     const routeLoader = wrappedRoute.module.loader as undefined | WrappedFunction;
     if (routeLoader && !routeLoader.__sentry_original__) {
-      fill(wrappedRoute.module, 'loader', makeWrappedLoader(id, options?.instrumentTracing, build));
+      const instrumentTracing = options ? options.instrumentTracing : undefined;
+      fill(wrappedRoute.module, 'loader', makeWrappedLoader(id, instrumentTracing, build));
     }
 
     routes[id] = wrappedRoute;
@@ -483,7 +487,7 @@ export const makeWrappedCreateRequestHandler = (options?: { instrumentTracing?: 
 export function instrumentServer(options?: { instrumentTracing?: boolean }): void {
   const pkg = loadModule<{
     createRequestHandler: CreateRequestHandlerFunction;
-  }>('@remix-run/server-runtime', typeof module !== 'undefined' ? module : undefined);
+  }>('@remix-run/server-runtime', module);
 
   if (!pkg) {
     DEBUG_BUILD && debug.warn('Remix SDK was unable to require `@remix-run/server-runtime` package.');
