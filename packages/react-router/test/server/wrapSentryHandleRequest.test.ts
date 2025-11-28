@@ -78,7 +78,7 @@ describe('wrapSentryHandleRequest', () => {
     expect(mockRootSpan.setAttributes).toHaveBeenCalledWith({
       [ATTR_HTTP_ROUTE]: '/some-path',
       [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react_router.request-handler',
+      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react_router.request_handler',
     });
     expect(mockRpcMetadata.route).toBe('/some-path');
   });
