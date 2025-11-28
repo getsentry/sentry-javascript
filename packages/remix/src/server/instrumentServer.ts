@@ -483,7 +483,7 @@ export const makeWrappedCreateRequestHandler = (options?: { instrumentTracing?: 
 export function instrumentServer(options?: { instrumentTracing?: boolean }): void {
   const pkg = loadModule<{
     createRequestHandler: CreateRequestHandlerFunction;
-  }>('@remix-run/server-runtime', module);
+  }>('@remix-run/server-runtime', typeof module !== 'undefined' ? module : undefined);
 
   if (!pkg) {
     DEBUG_BUILD && debug.warn('Remix SDK was unable to require `@remix-run/server-runtime` package.');
