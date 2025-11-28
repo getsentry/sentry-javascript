@@ -1,6 +1,6 @@
 import { vitePlugin as remix } from '@remix-run/dev';
 import { defineConfig, Plugin } from 'vite';
-import { sentryRemixVitePlugin } from '@sentry/remix';
+import Sentry from '@sentry/remix';
 import path from 'path';
 
 // Custom plugin to resolve @sentry/remix to ESM builds for Vite
@@ -37,6 +37,6 @@ export default defineConfig({
         v3_lazyRouteDiscovery: true,
       },
     }),
-    sentryRemixVitePlugin(),
+    Sentry.sentryRemixVitePlugin(),
   ],
 });
