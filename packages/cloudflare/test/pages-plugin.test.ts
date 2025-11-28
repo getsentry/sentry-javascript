@@ -52,6 +52,8 @@ describe('sentryPagesPlugin', () => {
       pluginArgs: MOCK_OPTIONS,
     });
 
-    expect(result).toBe(response);
+    // Response may be wrapped for streaming detection, verify content
+    expect(result.status).toBe(response.status);
+    expect(await result.text()).toBe('test');
   });
 });
