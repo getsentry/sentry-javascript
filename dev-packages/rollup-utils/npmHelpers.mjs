@@ -48,6 +48,9 @@ export function makeBaseNPMConfig(options = {}) {
   const defaultBaseConfig = defineConfig({
     input: entrypoints,
 
+    // Point to the package's tsconfig.json so rolldown respects TypeScript & JSX settings
+    tsconfig: path.resolve(process.cwd(), './tsconfig.json'),
+
     output: {
       // an appropriately-named directory will be added to this base value when we specify either a cjs or esm build
       dir: hasBundles ? 'build/npm' : 'build',
