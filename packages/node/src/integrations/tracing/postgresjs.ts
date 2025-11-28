@@ -5,6 +5,7 @@ import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import {
   InstrumentationBase,
   InstrumentationNodeModuleDefinition,
+  InstrumentationNodeModuleFile,
   safeExecuteInTheMiddle,
 } from '@opentelemetry/instrumentation';
 import {
@@ -41,6 +42,9 @@ type PostgresConnectionContext = {
 
 const CONNECTION_CONTEXT_SYMBOL = Symbol('sentryPostgresConnectionContext');
 const INSTRUMENTED_MARKER = Symbol.for('sentry.instrumented.postgresjs');
+// Marker to track if a query was created from an instrumented sql instance
+// This prevents double-spanning when both wrapper and prototype patches are active
+const QUERY_FROM_INSTRUMENTED_SQL = Symbol.for('sentry.query.from.instrumented.sql');
 
 type PostgresJsInstrumentationConfig = InstrumentationConfig & {
   /**
@@ -79,6 +83,9 @@ export class PostgresJsInstrumentation extends InstrumentationBase<PostgresJsIns
 
   /**
    * Initializes the instrumentation by patching the postgres module.
+   * Uses two complementary approaches:
+   * 1. Main function wrapper: instruments sql instances created AFTER instrumentation is set up (CJS + ESM)
+   * 2. Query.prototype patch: fallback for sql instances created BEFORE instrumentation (CJS only)
    */
   public init(): InstrumentationNodeModuleDefinition {
     const module = new InstrumentationNodeModuleDefinition(
@@ -94,6 +101,20 @@ export class PostgresJsInstrumentation extends InstrumentationBase<PostgresJsIns
       },
       exports => exports,
     );
+
+    // Add fallback Query.prototype patching for pre-existing sql instances (CJS only)
+    // This catches queries from sql instances created before Sentry was initialized
+    ['src', 'cf/src', 'cjs/src'].forEach(path => {
+      module.files.push(
+        new InstrumentationNodeModuleFile(
+          `postgres/${path}/query.js`,
+          SUPPORTED_VERSIONS,
+          this._patchQueryPrototype.bind(this),
+          this._unpatchQueryPrototype.bind(this),
+        ),
+      );
+    });
+
     return module;
   }
 
@@ -352,6 +373,10 @@ export class PostgresJsInstrumentation extends InstrumentationBase<PostgresJsIns
       return;
     }
 
+    // Mark this query as coming from an instrumented sql instance
+    // This prevents the Query.prototype fallback patch from double-spanning
+    (query as Record<symbol, unknown>)[QUERY_FROM_INSTRUMENTED_SQL] = true;
+
     const originalHandle = query.handle as (...args: unknown[]) => Promise<unknown>;
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const self = this;
@@ -494,6 +519,145 @@ export class PostgresJsInstrumentation extends InstrumentationBase<PostgresJsIns
         .replace(/\bIN\b\s*\(\s*\?(?:\s*,\s*\?)*\s*\)/gi, 'IN (?)')
         .substring(0, 1024) // Truncate to 1024 characters AFTER sanitization
     );
+  }
+
+  /**
+   * Fallback patch for Query.prototype.handle to instrument queries from pre-existing sql instances.
+   * This catches queries from sql instances created BEFORE Sentry was initialized (CJS only).
+   *
+   * Note: Queries from pre-existing instances won't have connection context (database, host, port)
+   * because the sql instance wasn't created through our instrumented wrapper.
+   */
+  private _patchQueryPrototype(moduleExports: {
+    Query: {
+      prototype: {
+        handle: ((...args: unknown[]) => Promise<unknown>) & { __sentry_original__?: (...args: unknown[]) => Promise<unknown> };
+      };
+    };
+  }): typeof moduleExports {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    const self = this;
+    const originalHandle = moduleExports.Query.prototype.handle;
+
+    // Store original for unpatch
+    moduleExports.Query.prototype.handle.__sentry_original__ = originalHandle;
+
+    moduleExports.Query.prototype.handle = async function (
+      this: {
+        resolve: unknown;
+        reject: unknown;
+        strings?: string[];
+      },
+      ...args: unknown[]
+    ): Promise<unknown> {
+      // Skip if this query came from an instrumented sql instance (already handled by wrapper)
+      if ((this as Record<symbol, unknown>)[QUERY_FROM_INSTRUMENTED_SQL]) {
+        return originalHandle.apply(this, args);
+      }
+
+      // Skip if we shouldn't create spans
+      if (!self._shouldCreateSpans()) {
+        return originalHandle.apply(this, args);
+      }
+
+      const sanitizedSqlQuery = self._sanitizeSqlQuery(this.strings?.[0]);
+
+      return startSpanManual(
+        {
+          name: sanitizedSqlQuery || 'postgresjs.query',
+          op: 'db',
+        },
+        (span: Span) => {
+          addOriginToSpan(span, 'auto.db.otel.postgres');
+
+          span.setAttributes({
+            [ATTR_DB_SYSTEM_NAME]: 'postgres',
+            [ATTR_DB_QUERY_TEXT]: sanitizedSqlQuery,
+          });
+
+          // Note: No connection context available for pre-existing instances
+          // because the sql instance wasn't created through our instrumented wrapper
+
+          const config = self.getConfig();
+          const { requestHook } = config;
+          if (requestHook) {
+            safeExecuteInTheMiddle(
+              () => requestHook(span, sanitizedSqlQuery, undefined),
+              e => {
+                if (e) {
+                  span.setAttribute('sentry.hook.error', 'requestHook failed');
+                  DEBUG_BUILD && debug.error(`Error in requestHook for ${INTEGRATION_NAME} integration:`, e);
+                }
+              },
+              true,
+            );
+          }
+
+          // Wrap resolve to end span on success
+          const originalResolve = this.resolve;
+          this.resolve = new Proxy(originalResolve as (...args: unknown[]) => unknown, {
+            apply: (resolveTarget, resolveThisArg, resolveArgs: [{ command?: string }]) => {
+              try {
+                self._setOperationName(span, sanitizedSqlQuery, resolveArgs?.[0]?.command);
+                span.end();
+              } catch (e) {
+                DEBUG_BUILD && debug.error('Error ending span in resolve callback:', e);
+              }
+              return Reflect.apply(resolveTarget, resolveThisArg, resolveArgs);
+            },
+          });
+
+          // Wrap reject to end span on error
+          const originalReject = this.reject;
+          this.reject = new Proxy(originalReject as (...args: unknown[]) => unknown, {
+            apply: (rejectTarget, rejectThisArg, rejectArgs: { message?: string; code?: string; name?: string }[]) => {
+              try {
+                span.setStatus({
+                  code: SPAN_STATUS_ERROR,
+                  message: rejectArgs?.[0]?.message || 'unknown_error',
+                });
+                span.setAttribute(ATTR_DB_RESPONSE_STATUS_CODE, rejectArgs?.[0]?.code || 'unknown');
+                span.setAttribute(ATTR_ERROR_TYPE, rejectArgs?.[0]?.name || 'unknown');
+                self._setOperationName(span, sanitizedSqlQuery);
+                span.end();
+              } catch (e) {
+                DEBUG_BUILD && debug.error('Error ending span in reject callback:', e);
+              }
+              return Reflect.apply(rejectTarget, rejectThisArg, rejectArgs);
+            },
+          });
+
+          try {
+            return originalHandle.apply(this, args);
+          } catch (e) {
+            span.setStatus({
+              code: SPAN_STATUS_ERROR,
+              message: e instanceof Error ? e.message : 'unknown_error',
+            });
+            span.end();
+            throw e;
+          }
+        },
+      );
+    };
+
+    return moduleExports;
+  }
+
+  /**
+   * Restores the original Query.prototype.handle method.
+   */
+  private _unpatchQueryPrototype(moduleExports: {
+    Query: {
+      prototype: {
+        handle: ((...args: unknown[]) => Promise<unknown>) & { __sentry_original__?: (...args: unknown[]) => Promise<unknown> };
+      };
+    };
+  }): typeof moduleExports {
+    if (moduleExports.Query.prototype.handle.__sentry_original__) {
+      moduleExports.Query.prototype.handle = moduleExports.Query.prototype.handle.__sentry_original__;
+    }
+    return moduleExports;
   }
 }
 
