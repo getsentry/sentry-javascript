@@ -2,6 +2,7 @@ import * as os from 'node:os';
 import type { Integration, Options } from '@sentry/core';
 import {
   applySdkMetadata,
+  consoleLoggingIntegration,
   functionToStringIntegration,
   hasSpansEnabled,
   inboundFiltersIntegration,
@@ -26,9 +27,9 @@ import { makeFetchTransport } from './transports';
 import type { BunOptions } from './types';
 
 /** Get the default integrations for the Bun SDK. */
-export function getDefaultIntegrations(_options: Options): Integration[] {
+export function getDefaultIntegrations(options: Options): Integration[] {
   // We return a copy of the defaultIntegrations here to avoid mutating this
-  return [
+  const integrations = [
     // Common
     // TODO(v11): Replace with eventFiltersIntegration once we remove the deprecated `inboundFiltersIntegration`
     // eslint-disable-next-line deprecation/deprecation
@@ -49,8 +50,18 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
     modulesIntegration(),
     // Bun Specific
     bunServerIntegration(),
-    ...(hasSpansEnabled(_options) ? getAutoPerformanceIntegrations() : []),
   ];
+
+  if (options.enableLogs) {
+    // TODO(v11): Remove this once we add logs to the `consoleIntegration`.
+    integrations.push(consoleLoggingIntegration());
+  }
+
+  if (hasSpansEnabled(options)) {
+    integrations.push(...getAutoPerformanceIntegrations());
+  }
+
+  return integrations;
 }
 
 /**
