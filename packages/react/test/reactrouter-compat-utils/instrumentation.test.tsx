@@ -59,6 +59,7 @@ vi.mock('../../src/reactrouter-compat-utils/utils', () => ({
   transactionNameHasWildcard: vi.fn((name: string) => {
     return name.includes('/*') || name === '*' || name.endsWith('*');
   }),
+  getActiveRootSpan: vi.fn(() => undefined),
 }));
 
 vi.mock('../../src/reactrouter-compat-utils/lazy-routes', () => ({

@@ -1,9 +1,56 @@
-import type { TransactionSource } from '@sentry/core';
+import type { Span, TransactionSource } from '@sentry/core';
+import { debug, getActiveSpan, getRootSpan, spanToJSON } from '@sentry/core';
+import { DEBUG_BUILD } from '../debug-build';
 import type { Location, MatchRoutes, RouteMatch, RouteObject } from '../types';
 
 // Global variables that these utilities depend on
 let _matchRoutes: MatchRoutes;
 let _stripBasename: boolean = false;
+
+// Navigation context stack for nested/concurrent patchRoutesOnNavigation calls.
+// Required because window.location hasn't updated yet when handlers are invoked.
+interface NavigationContext {
+  token: object;
+  targetPath: string | undefined;
+  span: Span | undefined;
+}
+
+const _navigationContextStack: NavigationContext[] = [];
+const MAX_CONTEXT_STACK_SIZE = 10;
+
+/**
+ * Pushes a navigation context and returns a unique token for cleanup.
+ * The token uses object identity for uniqueness (no counter needed).
+ */
+export function setNavigationContext(targetPath: string | undefined, span: Span | undefined): object {
+  const token = {};
+  // Prevent unbounded stack growth - oldest (likely stale) contexts are evicted first
+  if (_navigationContextStack.length >= MAX_CONTEXT_STACK_SIZE) {
+    DEBUG_BUILD && debug.warn('[React Router] Navigation context stack overflow - removing oldest context');
+    _navigationContextStack.shift();
+  }
+  _navigationContextStack.push({ token, targetPath, span });
+  return token;
+}
+
+/**
+ * Clears the navigation context if it's on top of the stack (LIFO).
+ * If our context is not on top (out-of-order completion), we leave it -
+ * it will be cleaned up by overflow protection when the stack fills up.
+ */
+export function clearNavigationContext(token: object): void {
+  const top = _navigationContextStack[_navigationContextStack.length - 1];
+  if (top?.token === token) {
+    _navigationContextStack.pop();
+  }
+}
+
+/** Gets the current (most recent) navigation context if inside a patchRoutesOnNavigation call. */
+export function getNavigationContext(): NavigationContext | null {
+  const length = _navigationContextStack.length;
+  // The `?? null` converts undefined (from array access) to null to match return type
+  return length > 0 ? (_navigationContextStack[length - 1] ?? null) : null;
+}
 
 /**
  * Initialize function to set dependencies that the router utilities need.
@@ -272,4 +319,21 @@ export function resolveRouteNameAndSource(
   }
 
   return [name || location.pathname, source];
+}
+
+/**
+ * Gets the active root span if it's a pageload or navigation span.
+ */
+export function getActiveRootSpan(): Span | undefined {
+  const span = getActiveSpan();
+  const rootSpan = span ? getRootSpan(span) : undefined;
+
+  if (!rootSpan) {
+    return undefined;
+  }
+
+  const op = spanToJSON(rootSpan).op;
+
+  // Only use this root span if it is a pageload or navigation span
+  return op === 'navigation' || op === 'pageload' ? rootSpan : undefined;
 }
