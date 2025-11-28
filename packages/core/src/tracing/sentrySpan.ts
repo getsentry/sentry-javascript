@@ -316,6 +316,7 @@ export class SentrySpan implements Span {
     const client = getClient();
     if (client) {
       client.emit('spanEnd', this);
+      client.emit('afterSpanEnd', this);
     }
 
     // A segment span is basically the root span of a local span tree.
@@ -341,7 +342,7 @@ export class SentrySpan implements Span {
       return;
     } else if (client?.getOptions().traceLifecycle === 'stream') {
       // TODO (spans): Remove standalone span custom logic in favor of sending simple v2 web vital spans
-      client?.emit('segmentSpanEnd', this);
+      client?.emit('afterSegmentSpanEnd', this);
       return;
     }
 
