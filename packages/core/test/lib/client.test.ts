@@ -12,7 +12,6 @@ import {
   SyncPromise,
   withMonitor,
 } from '../../src';
-import { startNewTrace } from '../../src/tracing';
 import * as integrationModule from '../../src/integration';
 import { _INTERNAL_captureLog } from '../../src/logs/internal';
 import { _INTERNAL_captureMetric } from '../../src/metrics/internal';
@@ -2740,7 +2739,7 @@ describe('Client', () => {
 
       const returnedResult = withMonitor('test-monitor', callback, {
         schedule: { type: 'crontab', value: '* * * * *' },
-        isolateTrace: true
+        isolateTrace: true,
       });
 
       expect(returnedResult).toBe(result);
@@ -2753,7 +2752,7 @@ describe('Client', () => {
 
       const returnedResult = withMonitor('test-monitor', callback, {
         schedule: { type: 'crontab', value: '* * * * *' },
-        isolateTrace: false
+        isolateTrace: false,
       });
 
       expect(returnedResult).toBe(result);
@@ -2766,7 +2765,7 @@ describe('Client', () => {
 
       const promise = withMonitor('test-monitor', callback, {
         schedule: { type: 'crontab', value: '* * * * *' },
-        isolateTrace: true
+        isolateTrace: true,
       });
       await expect(promise).resolves.toEqual(result);
     });
