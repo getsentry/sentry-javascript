@@ -2,9 +2,9 @@
   "private": true,
   "sideEffects": false,
   "scripts": {
-    "build": "remix build && pnpm typecheck",
-    "dev": "remix dev",
-    "start": "NODE_OPTIONS='--require=./instrument.server.cjs' remix-serve build/index.js",
+    "build": "remix vite:build && pnpm typecheck",
+    "dev": "remix vite:dev",
+    "start": "NODE_OPTIONS='--require=./instrument.server.cjs' remix-serve build/server/index.js",
     "typecheck": "tsc",
     "clean": "npx rimraf node_modules pnpm-lock.yaml",
     "test:build": "pnpm install && pnpm build",
@@ -30,7 +30,8 @@
     "@types/prop-types": "15.7.7",
     "eslint": "^8.38.0",
     "typescript": "^5.1.6",
-    "vite": "^5.4.11"
+    "vite": "^5.4.11",
+    "vite-tsconfig-paths": "^4.2.1"
   },
   "resolutions": {
     "@types/react": "18.2.22"

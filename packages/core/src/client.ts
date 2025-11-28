@@ -11,13 +11,14 @@ import { _INTERNAL_flushMetricsBuffer } from './metrics/internal';
 import type { Scope } from './scope';
 import { updateSession } from './session';
 import { getDynamicSamplingContextFromScope } from './tracing/dynamicSamplingContext';
+import { DEFAULT_TRANSPORT_BUFFER_SIZE } from './transports/base';
 import type { Breadcrumb, BreadcrumbHint, FetchBreadcrumbHint, XhrBreadcrumbHint } from './types-hoist/breadcrumb';
 import type { CheckIn, MonitorConfig } from './types-hoist/checkin';
 import type { EventDropReason, Outcome } from './types-hoist/clientreport';
 import type { DataCategory } from './types-hoist/datacategory';
 import type { DsnComponents } from './types-hoist/dsn';
 import type { DynamicSamplingContext, Envelope } from './types-hoist/envelope';
-import type { ErrorEvent, Event, EventHint, TransactionEvent } from './types-hoist/event';
+import type { ErrorEvent, Event, EventHint, EventType, TransactionEvent } from './types-hoist/event';
 import type { EventProcessor } from './types-hoist/eventprocessor';
 import type { FeedbackEvent } from './types-hoist/feedback';
 import type { Integration } from './types-hoist/integration';
@@ -43,6 +44,7 @@ import { merge } from './utils/merge';
 import { checkOrSetAlreadyCaught, uuid4 } from './utils/misc';
 import { parseSampleRate } from './utils/parseSampleRate';
 import { prepareEvent } from './utils/prepareEvent';
+import { type PromiseBuffer, makePromiseBuffer, SENTRY_BUFFER_FULL_ERROR } from './utils/promisebuffer';
 import { reparentChildSpans, shouldIgnoreSpan } from './utils/should-ignore-span';
 import { showSpanDropWarning } from './utils/spanUtils';
 import { rejectedSyncPromise } from './utils/syncpromise';
@@ -94,7 +96,7 @@ function _isDoNotSendEventError(error: unknown): error is DoNotSendEventError {
  * This helper function encapsulates the common pattern of:
  * 1. Tracking accumulated weight of items
  * 2. Flushing when weight exceeds threshold (800KB)
- * 3. Flushing after idle timeout if no new items arrive
+ * 3. Flushing after timeout period from the first item
  *
  * Uses closure variables to track weight and timeout state.
  */
@@ -112,11 +114,13 @@ function setupWeightBasedFlushing<
   // Track weight and timeout in closure variables
   let weight = 0;
   let flushTimeout: ReturnType<typeof setTimeout> | undefined;
+  let isTimerActive = false;
 
   // @ts-expect-error - TypeScript can't narrow generic hook types to match specific overloads, but we know this is type-safe
   client.on(flushHook, () => {
     weight = 0;
     clearTimeout(flushTimeout);
+    isTimerActive = false;
   });
 
   // @ts-expect-error - TypeScript can't narrow generic hook types to match specific overloads, but we know this is type-safe
@@ -127,10 +131,15 @@ function setupWeightBasedFlushing<
     // The weight is a rough estimate, so we flush way before the payload gets too big.
     if (weight >= 800_000) {
       flushFn(client);
-    } else {
-      clearTimeout(flushTimeout);
+    } else if (!isTimerActive) {
+      // Only start timer if one isn't already running.
+      // This prevents flushing being delayed by items that arrive close to the timeout limit
+      // and thus resetting the flushing timeout and delaying items being flushed.
+      isTimerActive = true;
       flushTimeout = setTimeout(() => {
         flushFn(client);
+        // Note: isTimerActive is reset by the flushHook handler above, not here,
+        // to avoid race conditions when new items arrive during the flush.
       }, DEFAULT_FLUSH_INTERVAL);
     }
   });
@@ -194,6 +203,8 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   // eslint-disable-next-line @typescript-eslint/ban-types
   private _hooks: Record<string, Set<Function>>;
 
+  private _promiseBuffer: PromiseBuffer<unknown>;
+
   /**
    * Initializes this client instance.
    *
@@ -206,6 +217,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     this._outcomes = {};
     this._hooks = {};
     this._eventProcessors = [];
+    this._promiseBuffer = makePromiseBuffer(options.transportOptions?.bufferSize ?? DEFAULT_TRANSPORT_BUFFER_SIZE);
 
     if (options.dsn) {
       this._dsn = makeDsn(options.dsn);
@@ -227,13 +239,22 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
       });
     }
 
+    // Backfill enableLogs option from _experiments.enableLogs
+    // TODO(v11): Remove or change default value
+    // eslint-disable-next-line deprecation/deprecation
+    this._options.enableLogs = this._options.enableLogs ?? this._options._experiments?.enableLogs;
+
     // Setup log flushing with weight and timeout tracking
     if (this._options.enableLogs) {
       setupWeightBasedFlushing(this, 'afterCaptureLog', 'flushLogs', estimateLogSizeInBytes, _INTERNAL_flushLogsBuffer);
     }
 
+    // todo(v11): Remove the experimental flag
+    // eslint-disable-next-line deprecation/deprecation
+    const enableMetrics = this._options.enableMetrics ?? this._options._experiments?.enableMetrics ?? true;
+
     // Setup metric flushing with weight and timeout tracking
-    if (this._options._experiments?.enableMetrics) {
+    if (enableMetrics) {
       setupWeightBasedFlushing(
         this,
         'afterCaptureMetric',
@@ -264,9 +285,11 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     };
 
     this._process(
-      this.eventFromException(exception, hintWithEventId).then(event =>
-        this._captureEvent(event, hintWithEventId, scope),
-      ),
+      () =>
+        this.eventFromException(exception, hintWithEventId)
+          .then(event => this._captureEvent(event, hintWithEventId, scope))
+          .then(res => res),
+      'error',
     );
 
     return hintWithEventId.event_id;
@@ -289,12 +312,15 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     };
 
     const eventMessage = isParameterizedString(message) ? message : String(message);
-
-    const promisedEvent = isPrimitive(message)
+    const isMessage = isPrimitive(message);
+    const promisedEvent = isMessage
       ? this.eventFromMessage(eventMessage, level, hintWithEventId)
       : this.eventFromException(message, hintWithEventId);
 
-    this._process(promisedEvent.then(event => this._captureEvent(event, hintWithEventId, currentScope)));
+    this._process(
+      () => promisedEvent.then(event => this._captureEvent(event, hintWithEventId, currentScope)),
+      isMessage ? 'unknown' : 'error',
+    );
 
     return hintWithEventId.event_id;
   }
@@ -321,9 +347,11 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     const sdkProcessingMetadata = event.sdkProcessingMetadata || {};
     const capturedSpanScope: Scope | undefined = sdkProcessingMetadata.capturedSpanScope;
     const capturedSpanIsolationScope: Scope | undefined = sdkProcessingMetadata.capturedSpanIsolationScope;
+    const dataCategory = getDataCategoryByType(event.type);
 
     this._process(
-      this._captureEvent(event, hintWithEventId, capturedSpanScope || currentScope, capturedSpanIsolationScope),
+      () => this._captureEvent(event, hintWithEventId, capturedSpanScope || currentScope, capturedSpanIsolationScope),
+      dataCategory,
     );
 
     return hintWithEventId.event_id;
@@ -773,6 +801,13 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public on(hook: 'flushMetrics', callback: () => void): () => void;
 
   /**
+   * A hook that is called when a metric is processed before it is captured and before the `beforeSendMetric` callback is fired.
+   *
+   * @returns {() => void} A function that, when executed, removes the registered callback.
+   */
+  public on(hook: 'processMetric', callback: (metric: Metric) => void): () => void;
+
+  /**
    * A hook that is called when a http server request is started.
    * This hook is called after request isolation, but before the request is processed.
    *
@@ -782,6 +817,24 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     hook: 'httpServerRequest',
     callback: (request: unknown, response: unknown, normalizedRequest: RequestEventData) => void,
   ): () => void;
+
+  /**
+   * A hook that is called when the UI Profiler should start profiling.
+   *
+   * This hook is called when running `Sentry.uiProfiler.startProfiler()`.
+   *
+   * @returns {() => void} A function that, when executed, removes the registered callback.
+   */
+  public on(hook: 'startUIProfiler', callback: () => void): () => void;
+
+  /**
+   * A hook that is called when the UI Profiler should stop profiling.
+   *
+   * This hook is called when running `Sentry.uiProfiler.stopProfiler()`.
+   *
+   * @returns {() => void} A function that, when executed, removes the registered callback.
+   */
+  public on(hook: 'stopUIProfiler', callback: () => void): () => void;
 
   /**
    * Register a hook on this client.
@@ -982,6 +1035,13 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public emit(hook: 'flushMetrics'): void;
 
   /**
+   *
+   * Emit a hook event for client to process a metric before it is captured.
+   * This hook is called before the `beforeSendMetric` callback is fired.
+   */
+  public emit(hook: 'processMetric', metric: Metric): void;
+
+  /**
    * Emit a hook event for client when a http server request is started.
    * This hook is called after request isolation, but before the request is processed.
    */
@@ -991,6 +1051,16 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     response: unknown,
     normalizedRequest: RequestEventData,
   ): void;
+
+  /**
+   * Emit a hook event for starting the UI Profiler.
+   */
+  public emit(hook: 'startUIProfiler'): void;
+
+  /**
+   * Emit a hook event for stopping the UI Profiler.
+   */
+  public emit(hook: 'stopUIProfiler'): void;
 
   /**
    * Emit a hook that was previously registered via `on()`.
@@ -1033,16 +1103,18 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
 
   /** Updates existing session based on the provided event */
   protected _updateSessionFromEvent(session: Session, event: Event): void {
+    // initially, set `crashed` based on the event level and update from exceptions if there are any later on
     let crashed = event.level === 'fatal';
     let errored = false;
     const exceptions = event.exception?.values;
 
     if (exceptions) {
       errored = true;
+      // reset crashed to false if there are exceptions, to ensure `mechanism.handled` is respected.
+      crashed = false;
 
       for (const ex of exceptions) {
-        const mechanism = ex.mechanism;
-        if (mechanism?.handled === false) {
+        if (ex.mechanism?.handled === false) {
           crashed = true;
           break;
         }
@@ -1225,7 +1297,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
       );
     }
 
-    const dataCategory = (eventType === 'replay_event' ? 'replay' : eventType) satisfies DataCategory;
+    const dataCategory = getDataCategoryByType(event.type);
 
     return this._prepareEvent(event, hint, currentScope, isolationScope)
       .then(prepared => {
@@ -1308,15 +1380,21 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   /**
    * Occupies the client with processing and event
    */
-  protected _process<T>(promise: PromiseLike<T>): void {
+  protected _process<T>(taskProducer: () => PromiseLike<T>, dataCategory: DataCategory): void {
     this._numProcessing++;
-    void promise.then(
+
+    void this._promiseBuffer.add(taskProducer).then(
       value => {
         this._numProcessing--;
         return value;
       },
       reason => {
         this._numProcessing--;
+
+        if (reason === SENTRY_BUFFER_FULL_ERROR) {
+          this.recordDroppedEvent('queue_overflow', dataCategory);
+        }
+
         return reason;
       },
     );
@@ -1379,6 +1457,10 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     _level?: SeverityLevel,
     _hint?: EventHint,
   ): PromiseLike<Event>;
+}
+
+function getDataCategoryByType(type: EventType | 'replay_event' | undefined): DataCategory {
+  return type === 'replay_event' ? 'replay' : type || 'error';
 }
 
 /**
@@ -1521,12 +1603,8 @@ function estimateMetricSizeInBytes(metric: Metric): number {
     weight += metric.name.length * 2;
   }
 
-  // Add weight for the value
-  if (typeof metric.value === 'string') {
-    weight += metric.value.length * 2;
-  } else {
-    weight += 8; // number
-  }
+  // Add weight for number
+  weight += 8;
 
   return weight + estimateAttributesSizeInBytes(metric.attributes);
 }

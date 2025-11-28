@@ -8,7 +8,7 @@ import { getRequestMatch, matchServerRoutes } from './vendor/response';
 type ServerRouteManifest = ServerBuild['routes'];
 
 /**
- *
+ * Store configured FormData keys as span attributes for Remix actions.
  */
 export async function storeFormDataKeys(
   args: LoaderFunctionArgs | ActionFunctionArgs,
@@ -44,12 +44,88 @@ export async function storeFormDataKeys(
 }
 
 /**
+ * Converts Remix route IDs to parameterized paths at runtime.
+ * (e.g., "routes/users.$id" -> "/users/:id")
+ *
+ * @param routeId - The Remix route ID
+ * @returns The parameterized path
+ * @internal
+ */
+export function convertRemixRouteIdToPath(routeId: string): string {
+  // Remove the "routes/" prefix if present
+  const path = routeId.replace(/^routes\//, '');
+
+  // Handle root index route
+  if (path === 'index' || path === '_index') {
+    return '/';
+  }
+
+  // Split by dots to get segments
+  const segments = path.split('.');
+  const pathSegments: string[] = [];
+
+  for (let i = 0; i < segments.length; i++) {
+    const segment = segments[i];
+
+    if (!segment) {
+      continue;
+    }
+
+    // Skip layout route segments (prefixed with _)
+    if (segment.startsWith('_') && segment !== '_index') {
+      continue;
+    }
+
+    // Handle '_index' segments at the end (always skip - indicates an index route)
+    if (segment === '_index' && i === segments.length - 1) {
+      continue;
+    }
+
+    // Handle 'index' segments at the end (skip only if there are path segments,
+    // otherwise root index is handled by the early return above)
+    if (segment === 'index' && i === segments.length - 1 && pathSegments.length > 0) {
+      continue;
+    }
+
+    // Handle splat routes (catch-all)
+    // Remix accesses splat params via params["*"] at runtime
+    if (segment === '$') {
+      pathSegments.push(':*');
+      continue;
+    }
+
+    // Handle dynamic segments (prefixed with $)
+    if (segment.startsWith('$')) {
+      const paramName = segment.substring(1);
+      pathSegments.push(`:${paramName}`);
+    } else if (segment !== 'index') {
+      // Static segment (skip remaining 'index' segments)
+      pathSegments.push(segment);
+    }
+  }
+
+  // Return with leading slash for consistency with client-side URL paths
+  const routePath = pathSegments.length > 0 ? `/${pathSegments.join('/')}` : '/';
+  return routePath;
+}
+
+/**
  * Get transaction name from routes and url
  */
 export function getTransactionName(routes: AgnosticRouteObject[], url: URL): [string, TransactionSource] {
   const matches = matchServerRoutes(routes, url.pathname);
   const match = matches && getRequestMatch(url, matches);
-  return match === null ? [url.pathname, 'url'] : [match.route.id || 'no-route-id', 'route'];
+
+  if (match === null) {
+    return [url.pathname, 'url'];
+  }
+
+  const routeId = match.route.id || 'no-route-id';
+
+  // Convert route ID to parameterized path (e.g., "routes/users.$id" -> "/users/:id")
+  // This is a pure string transformation that works without the Vite plugin manifest
+  const parameterizedPath = convertRemixRouteIdToPath(routeId);
+  return [parameterizedPath, 'route'];
 }
 
 /**

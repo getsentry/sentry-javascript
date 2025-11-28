@@ -65,6 +65,7 @@ test('Sends an API route transaction to OTLP', async ({ baseURL }) => {
       status: { code: 0 },
       links: [],
       droppedLinksCount: 0,
+      flags: expect.any(Number),
     },
     {
       traceId: expect.any(String),
@@ -80,6 +81,7 @@ test('Sends an API route transaction to OTLP', async ({ baseURL }) => {
       status: { code: 0 },
       links: [],
       droppedLinksCount: 0,
+      flags: expect.any(Number),
     },
   ]);
 
@@ -116,6 +118,7 @@ test('Sends an API route transaction to OTLP', async ({ baseURL }) => {
       status: { code: 0 },
       links: [],
       droppedLinksCount: 0,
+      flags: expect.any(Number),
     },
   ]);
 
@@ -157,6 +160,7 @@ test('Sends an API route transaction to OTLP', async ({ baseURL }) => {
       },
       links: [],
       droppedLinksCount: 0,
+      flags: expect.any(Number),
     },
   ]);
 });

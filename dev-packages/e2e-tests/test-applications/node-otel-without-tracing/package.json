@@ -11,11 +11,11 @@
     "test:assert": "pnpm test"
   },
   "dependencies": {
-    "@opentelemetry/sdk-trace-node": "2.1.0",
-    "@opentelemetry/exporter-trace-otlp-http": "0.204.0",
+    "@opentelemetry/sdk-trace-node": "2.2.0",
+    "@opentelemetry/exporter-trace-otlp-http": "0.208.0",
     "@opentelemetry/instrumentation-undici": "0.13.2",
-    "@opentelemetry/instrumentation-http": "0.204.0",
-    "@opentelemetry/instrumentation": "0.204.0",
+    "@opentelemetry/instrumentation-http": "0.208.0",
+    "@opentelemetry/instrumentation": "0.208.0",
     "@sentry/node": "latest || *",
     "@types/express": "4.17.17",
     "@types/node": "^18.19.1",

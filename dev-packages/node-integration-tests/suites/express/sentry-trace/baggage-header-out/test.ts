@@ -23,7 +23,7 @@ test('should attach a baggage header to an outgoing request.', async () => {
     'sentry-sampled=true',
     'sentry-trace_id=__SENTRY_TRACE_ID__',
     'sentry-transaction=GET%20%2Ftest%2Fexpress',
-    expect.stringMatching(/sentry-sample_rand=0\.[0-9]+/),
+    expect.stringMatching(/sentry-sample_rand=0\.\d+/),
   ].forEach(item => {
     expect(baggage).toContainEqual(item);
   });

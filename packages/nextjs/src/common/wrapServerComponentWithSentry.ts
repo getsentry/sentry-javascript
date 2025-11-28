@@ -3,7 +3,6 @@ import {
   captureException,
   getActiveSpan,
   getCapturedScopesOnSpan,
-  getClient,
   getRootSpan,
   handleCallbackErrors,
   propagationContextFromHeaders,
@@ -13,20 +12,16 @@ import {
   setCapturedScopesOnSpan,
   SPAN_STATUS_ERROR,
   SPAN_STATUS_OK,
-  spanToJSON,
   startSpanManual,
-  vercelWaitUntil,
   winterCGHeadersToDict,
   withIsolationScope,
   withScope,
 } from '@sentry/core';
 import { isNotFoundNavigationError, isRedirectNavigationError } from '../common/nextNavigationErrorUtils';
 import type { ServerComponentContext } from '../common/types';
-import { flushSafelyWithTimeout } from '../common/utils/responseEnd';
+import { flushSafelyWithTimeout, waitUntil } from '../common/utils/responseEnd';
 import { TRANSACTION_ATTR_SENTRY_TRACE_BACKFILL } from './span-attributes-with-logic-attached';
 import { commonObjectToIsolationScope, commonObjectToPropagationContext } from './utils/tracingUtils';
-import { getSanitizedRequestUrl } from './utils/urls';
-import { maybeExtractSynchronousParamsAndSearchParams } from './utils/wrapperUtils';
 
 /**
  * Wraps an `app` directory server component with Sentry error instrumentation.
@@ -45,34 +40,18 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
       const requestTraceId = getActiveSpan()?.spanContext().traceId;
       const isolationScope = commonObjectToIsolationScope(context.headers);
 
-      let pathname = undefined as string | undefined;
       const activeSpan = getActiveSpan();
       if (activeSpan) {
         const rootSpan = getRootSpan(activeSpan);
         const { scope } = getCapturedScopesOnSpan(rootSpan);
         setCapturedScopesOnSpan(rootSpan, scope ?? new Scope(), isolationScope);
-
-        const spanData = spanToJSON(rootSpan);
-
-        if (spanData.data && 'http.target' in spanData.data) {
-          pathname = spanData.data['http.target']?.toString();
-        }
       }
 
       const headersDict = context.headers ? winterCGHeadersToDict(context.headers) : undefined;
 
-      let params: Record<string, string> | undefined = undefined;
-
-      if (getClient()?.getOptions().sendDefaultPii) {
-        const props: unknown = args[0];
-        const { params: paramsFromProps } = maybeExtractSynchronousParamsAndSearchParams(props);
-        params = paramsFromProps;
-      }
-
       isolationScope.setSDKProcessingMetadata({
         normalizedRequest: {
           headers: headersDict,
-          url: getSanitizedRequestUrl(componentRoute, params, headersDict, pathname),
         } satisfies RequestEventData,
       });
 
@@ -137,7 +116,7 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
                 },
                 () => {
                   span.end();
-                  vercelWaitUntil(flushSafelyWithTimeout());
+                  waitUntil(flushSafelyWithTimeout());
                 },
               );
             },

@@ -67,8 +67,7 @@ export function wrapRequestHandler(
       attributes['user_agent.original'] = userAgentHeader;
     }
 
-    const sendDefaultPii = options.sendDefaultPii ?? false;
-    Object.assign(attributes, httpHeadersToSpanAttributes(winterCGHeadersToDict(request.headers), sendDefaultPii));
+    Object.assign(attributes, httpHeadersToSpanAttributes(winterCGHeadersToDict(request.headers)));
 
     attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] = 'http.server';
 
@@ -107,6 +106,10 @@ export function wrapRequestHandler(
           try {
             res = await handler();
             setHttpStatus(span, res.status);
+        
+            // After the handler runs, the span name might have been updated by nested instrumentation
+            // (e.g., Remix parameterizing routes). The span should already have the correct name
+            // from that instrumentation, so we don't need to do anything here.
           } catch (e) {
             span.end();
             if (captureErrors) {

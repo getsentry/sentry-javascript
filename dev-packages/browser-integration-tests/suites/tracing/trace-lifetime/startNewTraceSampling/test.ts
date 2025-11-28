@@ -37,8 +37,8 @@ sentryTest(
 
     expect(pageloadTraceContext).toMatchObject({
       op: 'pageload',
-      trace_id: expect.stringMatching(/^[0-9a-f]{32}$/),
-      span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
+      trace_id: expect.stringMatching(/^[\da-f]{32}$/),
+      span_id: expect.stringMatching(/^[\da-f]{16}$/),
       data: {
         'sentry.sample_rate': 0.5,
       },
@@ -67,8 +67,8 @@ sentryTest(
     const newTraceTransactionTraceContext = newTraceTransactionEvent.contexts?.trace;
     expect(newTraceTransactionTraceContext).toMatchObject({
       op: 'ui.interaction.click',
-      trace_id: expect.stringMatching(/^[0-9a-f]{32}$/),
-      span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
+      trace_id: expect.stringMatching(/^[\da-f]{32}$/),
+      span_id: expect.stringMatching(/^[\da-f]{16}$/),
       data: {
         'sentry.sample_rate': 0.9,
       },

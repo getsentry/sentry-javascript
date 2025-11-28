@@ -9,6 +9,7 @@ import {
   prefixWithSlash,
   rebuildRoutePathFromAllRoutes,
   resolveRouteNameAndSource,
+  transactionNameHasWildcard,
 } from '../../src/reactrouter-compat-utils';
 import type { Location, MatchRoutes, RouteMatch, RouteObject } from '../../src/types';
 
@@ -627,6 +628,40 @@ describe('reactrouter-compat-utils/utils', () => {
 
       const result = resolveRouteNameAndSource(location, routes, allRoutes, branches, '');
       expect(result).toEqual(['/unknown', 'url']);
+    });
+  });
+
+  describe('transactionNameHasWildcard', () => {
+    it('should detect wildcard at the end of path', () => {
+      expect(transactionNameHasWildcard('/lazy/*')).toBe(true);
+      expect(transactionNameHasWildcard('/users/:id/*')).toBe(true);
+      expect(transactionNameHasWildcard('/products/:category/*')).toBe(true);
+    });
+
+    it('should detect standalone wildcard', () => {
+      expect(transactionNameHasWildcard('*')).toBe(true);
+    });
+
+    it('should detect wildcard in the middle of path', () => {
+      expect(transactionNameHasWildcard('/lazy/*/nested')).toBe(true);
+      expect(transactionNameHasWildcard('/a/*/b/*/c')).toBe(true);
+    });
+
+    it('should not detect wildcards in parameterized routes', () => {
+      expect(transactionNameHasWildcard('/users/:id')).toBe(false);
+      expect(transactionNameHasWildcard('/products/:category/:id')).toBe(false);
+      expect(transactionNameHasWildcard('/items/:itemId/details')).toBe(false);
+    });
+
+    it('should not detect wildcards in static routes', () => {
+      expect(transactionNameHasWildcard('/')).toBe(false);
+      expect(transactionNameHasWildcard('/about')).toBe(false);
+      expect(transactionNameHasWildcard('/users/profile')).toBe(false);
+    });
+
+    it('should handle edge cases', () => {
+      expect(transactionNameHasWildcard('')).toBe(false);
+      expect(transactionNameHasWildcard('/path/to/asterisk')).toBe(false); // 'asterisk' contains 'isk' but not '*'
     });
   });
 });
