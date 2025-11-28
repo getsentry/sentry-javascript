@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { onRequest } from '../../../src/integration/middleware/middleware';
+import { onRequest } from '../../../src/integration/middleware';
 
 vi.mock('../../../src/server/meta', () => ({
   getTracingMetaTagValues: () => ({
