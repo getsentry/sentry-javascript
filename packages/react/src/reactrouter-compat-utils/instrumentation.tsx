@@ -747,12 +747,12 @@ function wrapPatchRoutesOnNavigation(
 
       const lazyLoadPromise = (async () => {
         // Set context so async handlers can access correct targetPath and span
-        setNavigationContext(targetPath, activeRootSpan);
+        const contextToken = setNavigationContext(targetPath, activeRootSpan);
         let result;
         try {
           result = await originalPatchRoutes(args);
         } finally {
-          clearNavigationContext(activeRootSpan);
+          clearNavigationContext(contextToken);
         }
 
         const currentActiveRootSpan = getActiveRootSpan();

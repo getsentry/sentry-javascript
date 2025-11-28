@@ -1,5 +1,6 @@
 import type { Span, TransactionSource } from '@sentry/core';
-import { getActiveSpan, getRootSpan, spanToJSON } from '@sentry/core';
+import { debug, getActiveSpan, getRootSpan, spanToJSON } from '@sentry/core';
+import { DEBUG_BUILD } from '../debug-build';
 import type { Location, MatchRoutes, RouteMatch, RouteObject } from '../types';
 
 // Global variables that these utilities depend on
@@ -8,8 +9,8 @@ let _stripBasename: boolean = false;
 
 // Navigation context stack for nested/concurrent patchRoutesOnNavigation calls.
 // Required because window.location hasn't updated yet when handlers are invoked.
-// Uses a stack to handle overlapping navigations correctly (LIFO semantics).
 interface NavigationContext {
+  token: object;
   targetPath: string | undefined;
   span: Span | undefined;
 }
@@ -17,20 +18,29 @@ interface NavigationContext {
 const _navigationContextStack: NavigationContext[] = [];
 const MAX_CONTEXT_STACK_SIZE = 10;
 
-/** Pushes a navigation context before invoking patchRoutesOnNavigation. */
-export function setNavigationContext(targetPath: string | undefined, span: Span | undefined): void {
-  // Prevent unbounded stack growth from cleanup failures or rapid navigations
+/**
+ * Pushes a navigation context and returns a unique token for cleanup.
+ * The token uses object identity for uniqueness (no counter needed).
+ */
+export function setNavigationContext(targetPath: string | undefined, span: Span | undefined): object {
+  const token = {};
+  // Prevent unbounded stack growth - oldest (likely stale) contexts are evicted first
   if (_navigationContextStack.length >= MAX_CONTEXT_STACK_SIZE) {
-    _navigationContextStack.shift(); // Remove oldest
+    DEBUG_BUILD && debug.warn('[React Router] Navigation context stack overflow - removing oldest context');
+    _navigationContextStack.shift();
   }
-  _navigationContextStack.push({ targetPath, span });
+  _navigationContextStack.push({ token, targetPath, span });
+  return token;
 }
 
-/** Pops the navigation context for the given span after patchRoutesOnNavigation completes. */
-export function clearNavigationContext(span: Span | undefined): void {
-  // Only pop if top of stack matches this span to prevent corruption from mismatched calls
+/**
+ * Clears the navigation context if it's on top of the stack (LIFO).
+ * If our context is not on top (out-of-order completion), we leave it -
+ * it will be cleaned up by overflow protection when the stack fills up.
+ */
+export function clearNavigationContext(token: object): void {
   const top = _navigationContextStack[_navigationContextStack.length - 1];
-  if (top?.span === span) {
+  if (top?.token === token) {
     _navigationContextStack.pop();
   }
 }
