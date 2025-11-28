@@ -145,7 +145,7 @@ export function constructWebpackConfigFunction({
       appDir: appDirPath,
       pagesDir: pagesDirPath,
       pageExtensionRegex,
-      excludeServerRoutes: userSentryOptions.excludeServerRoutes,
+      excludeServerRoutes: userSentryOptions.webpack?.excludeServerRoutes,
       nextjsRequestAsyncStorageModulePath: getRequestAsyncStorageModuleLocation(
         projectDir,
         rawNewConfig.resolve?.modules,
@@ -220,7 +220,7 @@ export function constructWebpackConfigFunction({
       );
     };
 
-    if (isServer && userSentryOptions.autoInstrumentServerFunctions !== false) {
+    if (isServer && userSentryOptions.webpack?.autoInstrumentServerFunctions !== false) {
       // It is very important that we insert our loaders at the beginning of the array because we expect any sort of transformations/transpilations (e.g. TS -> JS) to already have happened.
 
       // Wrap pages
@@ -239,7 +239,7 @@ export function constructWebpackConfigFunction({
 
       let vercelCronsConfig: VercelCronsConfig = undefined;
       try {
-        if (process.env.VERCEL && userSentryOptions.automaticVercelMonitors) {
+        if (process.env.VERCEL && userSentryOptions.webpack?.automaticVercelMonitors) {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
           vercelCronsConfig = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'vercel.json'), 'utf8')).crons;
           if (vercelCronsConfig) {
@@ -277,7 +277,7 @@ export function constructWebpackConfigFunction({
 
       // Wrap middleware
       const canWrapStandaloneMiddleware = userNextConfig.output !== 'standalone' || !major || major < 16;
-      if ((userSentryOptions.autoInstrumentMiddleware ?? true) && canWrapStandaloneMiddleware) {
+      if ((userSentryOptions.webpack?.autoInstrumentMiddleware ?? true) && canWrapStandaloneMiddleware) {
         newConfig.module.rules.unshift({
           test: isMiddlewareResource,
           use: [
@@ -293,7 +293,7 @@ export function constructWebpackConfigFunction({
       }
     }
 
-    if (isServer && userSentryOptions.autoInstrumentAppDirectory !== false) {
+    if (isServer && userSentryOptions.webpack?.autoInstrumentAppDirectory !== false) {
       // Wrap server components
       newConfig.module.rules.unshift({
         test: isServerComponentResource,
@@ -431,7 +431,7 @@ export function constructWebpackConfigFunction({
       }
     }
 
-    if (userSentryOptions.disableLogger) {
+    if (userSentryOptions.webpack?.treeshake?.debugLogs) {
       newConfig.plugins = newConfig.plugins || [];
       newConfig.plugins.push(
         new buildContext.webpack.DefinePlugin({
