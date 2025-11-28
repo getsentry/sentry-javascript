@@ -19,11 +19,11 @@ test.describe('server - performance', () => {
           trace_id: expect.any(String),
           data: {
             'sentry.op': 'http.server',
-            'sentry.origin': 'auto.http.react-router.request-handler',
+            'sentry.origin': 'auto.http.react_router.request-handler',
             'sentry.source': 'route',
           },
           op: 'http.server',
-          origin: 'auto.http.react-router.request-handler',
+          origin: 'auto.http.react_router.request-handler',
         },
       },
       spans: expect.any(Array),
@@ -70,11 +70,11 @@ test.describe('server - performance', () => {
           trace_id: expect.any(String),
           data: {
             'sentry.op': 'http.server',
-            'sentry.origin': 'auto.http.react-router.request-handler',
+            'sentry.origin': 'auto.http.react_router.request-handler',
             'sentry.source': 'route',
           },
           op: 'http.server',
-          origin: 'auto.http.react-router.request-handler',
+          origin: 'auto.http.react_router.request-handler',
         },
       },
       spans: expect.any(Array),
@@ -122,7 +122,7 @@ test.describe('server - performance', () => {
             span_id: expect.any(String),
             trace_id: expect.any(String),
             op: 'http.server',
-            origin: 'auto.http.react-router.loader',
+            origin: 'auto.http.react_router.loader',
             parent_span_id: expect.any(String),
             status: 'ok',
             data: expect.objectContaining({
@@ -133,7 +133,7 @@ test.describe('server - performance', () => {
               'http.target': '/performance/server-loader.data',
               'http.url': 'http://localhost:3030/performance/server-loader.data',
               'sentry.op': 'http.server',
-              'sentry.origin': 'auto.http.react-router.loader',
+              'sentry.origin': 'auto.http.react_router.loader',
               'sentry.source': 'url',
               url: 'http://localhost:3030/performance/server-loader.data',
             }),
@@ -152,7 +152,7 @@ test.describe('server - performance', () => {
       span_id: expect.any(String),
       trace_id: expect.any(String),
       data: {
-        'sentry.origin': 'auto.http.react-router.loader',
+        'sentry.origin': 'auto.http.react_router.loader',
         'sentry.op': 'function.react-router.loader',
       },
       description: 'Executing Server Loader',
@@ -161,7 +161,7 @@ test.describe('server - performance', () => {
       timestamp: expect.any(Number),
       status: 'ok',
       op: 'function.react-router.loader',
-      origin: 'auto.http.react-router.loader',
+      origin: 'auto.http.react_router.loader',
     });
   });
 
@@ -182,7 +182,7 @@ test.describe('server - performance', () => {
             span_id: expect.any(String),
             trace_id: expect.any(String),
             op: 'http.server',
-            origin: 'auto.http.react-router.action',
+            origin: 'auto.http.react_router.action',
             parent_span_id: expect.any(String),
             status: 'ok',
             data: expect.objectContaining({
@@ -193,7 +193,7 @@ test.describe('server - performance', () => {
               'http.target': '/performance/server-action.data',
               'http.url': 'http://localhost:3030/performance/server-action.data',
               'sentry.op': 'http.server',
-              'sentry.origin': 'auto.http.react-router.action',
+              'sentry.origin': 'auto.http.react_router.action',
               'sentry.source': 'url',
               url: 'http://localhost:3030/performance/server-action.data',
             }),
@@ -212,7 +212,7 @@ test.describe('server - performance', () => {
       span_id: expect.any(String),
       trace_id: expect.any(String),
       data: {
-        'sentry.origin': 'auto.http.react-router.action',
+        'sentry.origin': 'auto.http.react_router.action',
         'sentry.op': 'function.react-router.action',
       },
       description: 'Executing Server Action',
@@ -221,7 +221,7 @@ test.describe('server - performance', () => {
       timestamp: expect.any(Number),
       status: 'ok',
       op: 'function.react-router.action',
-      origin: 'auto.http.react-router.action',
+      origin: 'auto.http.react_router.action',
     });
   });
 });

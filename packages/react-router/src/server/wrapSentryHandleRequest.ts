@@ -80,7 +80,7 @@ export function wrapSentryHandleRequest(
       rootSpan.setAttributes({
         [ATTR_HTTP_ROUTE]: routeName,
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react-router.request-handler',
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react_router.request-handler',
       });
     }
 
