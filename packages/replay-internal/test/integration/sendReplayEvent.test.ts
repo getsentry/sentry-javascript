@@ -340,7 +340,8 @@ describe('Integration | sendReplayEvent', () => {
         replay_start_timestamp: BASE_TIMESTAMP / 1000,
         // timestamp is set on first try, after 5s flush
         timestamp: (BASE_TIMESTAMP + 5000) / 1000,
-        trace_ids: [],
+        trace_ids: [expect.any(String)],
+        traces_by_timestamp: [[-1, expect.any(String)]],
         urls: ['http://localhost:3000/'],
       }),
       recordingPayloadHeader: { segment_id: 0 },
