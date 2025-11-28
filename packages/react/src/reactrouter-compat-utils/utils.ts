@@ -48,6 +48,7 @@ export function clearNavigationContext(token: object): void {
 /** Gets the current (most recent) navigation context if inside a patchRoutesOnNavigation call. */
 export function getNavigationContext(): NavigationContext | null {
   const length = _navigationContextStack.length;
+  // The `?? null` converts undefined (from array access) to null to match return type
   return length > 0 ? (_navigationContextStack[length - 1] ?? null) : null;
 }
 

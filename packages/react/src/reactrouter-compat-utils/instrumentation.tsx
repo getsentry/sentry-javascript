@@ -731,7 +731,12 @@ function wrapPatchRoutesOnNavigation(
           (args as any).patch = (routeId: string, children: RouteObject[]) => {
             addRoutesToAllRoutes(children);
             const currentActiveRootSpan = getActiveRootSpan();
-            if (currentActiveRootSpan && (spanToJSON(currentActiveRootSpan) as { op?: string }).op === 'navigation') {
+            // Only update if we have a valid targetPath (patchRoutesOnNavigation can be called without path)
+            if (
+              targetPath &&
+              currentActiveRootSpan &&
+              (spanToJSON(currentActiveRootSpan) as { op?: string }).op === 'navigation'
+            ) {
               updateNavigationSpan(
                 currentActiveRootSpan,
                 { pathname: targetPath, search: '', hash: '', state: null, key: 'default' },
