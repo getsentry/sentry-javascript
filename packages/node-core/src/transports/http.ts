@@ -125,12 +125,15 @@ function createRequestExecutor(
           body = body.pipe(createGzip());
         }
 
+        const hostnameIsIPv6 = hostname.startsWith('[');
+
         const req = httpModule.request(
           {
             method: 'POST',
             agent,
             headers,
-            hostname,
+            // Remove "[" and "]" from IPv6 hostnames
+            hostname: hostnameIsIPv6 ? hostname.slice(1, -1) : hostname,
             path: `${pathname}${search}`,
             port,
             protocol,
