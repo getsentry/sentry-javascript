@@ -62,6 +62,16 @@ app.get('/test-exception/:id', function (req, _res) {
   throw new Error(`This is an exception with id ${id}`);
 });
 
+app.get('/test-logs/:id', function (req, res) {
+  const id = req.params.id;
+
+  Sentry.startSpan({ name: `log-operation-${id}` }, () => {
+    Sentry.logger.info(`test-log-${id}`, { requestId: id });
+  });
+
+  res.send({ ok: true, id });
+});
+
 Sentry.setupExpressErrorHandler(app);
 
 app.use(function onError(err: unknown, req: any, res: any, next: any) {
