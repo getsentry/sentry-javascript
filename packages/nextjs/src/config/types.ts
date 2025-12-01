@@ -112,6 +112,36 @@ export type SentryBuildWebpackOptions = {
      * Removes Sentry SDK logger statements from the bundle. Note that this doesn't affect Sentry Logs.
      */
     removeDebugLogging?: boolean;
+
+    /**
+     * Setting this to true will tree-shake any SDK code that is related to tracing and performance monitoring.
+     */
+    tracing?: boolean;
+
+    /**
+     * Replacing this flag with true will tree shake any SDK code related to capturing iframe content with Session Replay.
+     * It's only relevant when using Session Replay. Enable this flag if you don't want to record any iframes.
+     * This has no effect if you did not add `replayIntegration`.
+     */
+    excludeReplayIframe?: boolean;
+
+    /**
+     * Replacing this flag with true will tree shake any SDK code related to capturing shadow dom elements with Session Replay.
+     * It's only relevant when using Session Replay.
+     * Enable this flag if you don't want to record any shadow dom elements.
+     * This has no effect if you did not add `replayIntegration`.
+     */
+    excludeReplayShadowDOM?: boolean;
+
+    /**
+     * Replacing this flag with true will tree shake any SDK code that's related to the included compression web worker for Session Replay.
+     * It's only relevant when using Session Replay.
+     * Enable this flag if you want to host a compression worker yourself.
+     * See Using a Custom Compression Worker for details.
+     * We don't recommend enabling this flag unless you provide a custom worker URL.
+     * This has no effect if you did not add `replayIntegration`.
+     */
+    excludeReplayCompressionWorker?: boolean;
   };
 
   /**
