@@ -1,5 +1,5 @@
 import { vitePlugin as remix } from '@remix-run/dev';
-import { sentryRemixVitePlugin } from '@sentry/remix';
+import Sentry from '@sentry/remix';
 import { defineConfig } from 'vite';
 import tsconfigPaths from 'vite-tsconfig-paths';
 
@@ -9,7 +9,7 @@ export default defineConfig({
       ignoredRouteFiles: ['**/.*'],
       serverModuleFormat: 'cjs',
     }),
-    sentryRemixVitePlugin(),
+    Sentry.sentryRemixVitePlugin(),
     tsconfigPaths(),
   ],
 });

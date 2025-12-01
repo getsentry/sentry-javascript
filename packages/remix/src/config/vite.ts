@@ -38,12 +38,12 @@ const MANIFEST_GLOBAL_KEY = '_sentryRemixRouteManifest' as const;
  * // vite.config.ts
  * import { defineConfig } from 'vite';
  * import { vitePlugin as remix } from '@remix-run/dev';
- * import { sentryRemixVitePlugin } from '@sentry/remix';
+ * import Sentry from '@sentry/remix';
  *
  * export default defineConfig({
  *   plugins: [
  *     remix(),
- *     sentryRemixVitePlugin({
+ *     Sentry.sentryRemixVitePlugin({
  *       appDirPath: './app',
  *     }),
  *   ],
