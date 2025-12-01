@@ -9,6 +9,7 @@ import type {
   EventEnvelope,
   EventEnvelopeHeaders,
   SessionContext,
+  SpanV2Envelope,
   TransactionEvent,
 } from '@sentry/core';
 import { parseEnvelope } from '@sentry/core';
@@ -256,6 +257,44 @@ export function waitForTransactionRequest(
       return false;
     }
   });
+}
+
+/**
+ * Wait for a span v2 envelope
+ */
+export async function waitForSpanV2Envelope(
+  page: Page,
+  callback?: (spanEnvelope: SpanV2Envelope) => boolean,
+): Promise<SpanV2Envelope> {
+  const req = await page.waitForRequest(req => {
+    const postData = req.postData();
+    if (!postData) {
+      return false;
+    }
+
+    try {
+      const spanEnvelope = properFullEnvelopeParser<SpanV2Envelope>(req);
+
+      const envelopeItemHeader = spanEnvelope[1][0][0];
+
+      if (
+        envelopeItemHeader?.type !== 'span' ||
+        envelopeItemHeader?.content_type !== 'application/vnd.sentry.items.span.v2+json'
+      ) {
+        return false;
+      }
+
+      if (callback) {
+        return callback(spanEnvelope);
+      }
+
+      return true;
+    } catch {
+      return false;
+    }
+  });
+
+  return properFullEnvelopeParser<SpanV2Envelope>(req);
 }
 
 export function waitForClientReportRequest(page: Page, callback?: (report: ClientReport) => boolean): Promise<Request> {

@@ -1,5 +1,6 @@
 import { afterAll, describe, expect, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
+import { run } from 'node:test';
 
 describe('errors in TwP mode have same trace in trace context and getTraceData()', () => {
   afterAll(() => {
@@ -8,11 +9,16 @@ describe('errors in TwP mode have same trace in trace context and getTraceData()
 
   // In a request handler, the spanId is consistent inside of the request
   test('in incoming request', async () => {
+    let firstTraceId: string | undefined;
+
     const runner = createRunner(__dirname, 'server.js')
       .expect({
         event: event => {
           const { contexts } = event;
           const { trace_id, span_id } = contexts?.trace || {};
+          if (!firstTraceId) {
+            firstTraceId = trace_id;
+          }
           expect(trace_id).toMatch(/^[a-f\d]{32}$/);
           expect(span_id).toMatch(/^[a-f\d]{16}$/);
 
@@ -28,7 +34,14 @@ describe('errors in TwP mode have same trace in trace context and getTraceData()
           expect(traceData.metaTags).not.toContain('sentry-sampled=');
         },
       })
+      .expect({
+        event: event => {
+          expect(event.contexts?.trace?.trace_id).toBeDefined();
+          expect(event.contexts?.trace?.trace_id).toBe(firstTraceId);
+        },
+      })
       .start();
+    runner.makeRequest('get', '/test');
     runner.makeRequest('get', '/test');
     await runner.completed();
   });
