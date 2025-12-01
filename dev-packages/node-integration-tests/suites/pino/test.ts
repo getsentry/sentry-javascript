@@ -11,6 +11,7 @@ conditionalTest({ min: 20 })('Pino integration', () => {
       .withMockSentryServer()
       .withInstrument(instrumentPath)
       .ignore('event')
+      .ignore('transaction')
       .expect({
         log: log => {
           const traceId1 = log.items?.[0]?.trace_id;
@@ -28,6 +29,7 @@ conditionalTest({ min: 20 })('Pino integration', () => {
     await createRunner(__dirname, 'scenario.mjs')
       .withMockSentryServer()
       .withInstrument(instrumentPath)
+      .ignore('transaction')
       .expect({
         event: {
           exception: {
@@ -105,6 +107,7 @@ conditionalTest({ min: 20 })('Pino integration', () => {
     await createRunner(__dirname, 'scenario-next.mjs')
       .withMockSentryServer()
       .withInstrument(instrumentPath)
+      .ignore('transaction')
       .expect({
         event: {
           exception: {
@@ -182,6 +185,7 @@ conditionalTest({ min: 20 })('Pino integration', () => {
     await createRunner(__dirname, 'scenario-track.mjs')
       .withMockSentryServer()
       .withInstrument(instrumentPath)
+      .ignore('transaction')
       .expect({
         log: {
           items: [
