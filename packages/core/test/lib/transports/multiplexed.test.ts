@@ -8,11 +8,7 @@ import {
   makeMultiplexedTransport,
   parseEnvelope,
 } from '../../../src';
-import {
-  eventFromEnvelope,
-  makeSimpleMultiplexedTransport,
-  SIMPLE_MULTIPLEXED_TRANSPORT_EXTRA_ROUTING_KEY,
-} from '../../../src/transports/multiplexed';
+import { eventFromEnvelope, MULTIPLEXED_TRANSPORT_EXTRA_KEY } from '../../../src/transports/multiplexed';
 import type { ClientReport } from '../../../src/types-hoist/clientreport';
 import type { Envelope, EventEnvelope, EventItem } from '../../../src/types-hoist/envelope';
 import type { TransactionEvent } from '../../../src/types-hoist/event';
@@ -247,11 +243,11 @@ describe('makeMultiplexedTransport', () => {
   });
 });
 
-describe('makeSimpleMultiplexedTransport()', () => {
-  it('sends events to targets provided in event.extra[SIMPLE_MULTIPLEXED_TRANSPORT_EXTRA_ROUTING_KEY]', async () => {
+describe('makeMultiplexedTransport() with default matcher', () => {
+  it('sends events to targets provided in event.extra[MULTIPLEXED_TRANSPORT_EXTRA_KEY]', async () => {
     expect.assertions(2);
 
-    const makeTransport = makeSimpleMultiplexedTransport(
+    const makeTransport = makeMultiplexedTransport(
       createTestTransport(
         url => {
           expect(url).toBe(DSN1_URL);
@@ -268,7 +264,7 @@ describe('makeSimpleMultiplexedTransport()', () => {
         {
           event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2',
           extra: {
-            [SIMPLE_MULTIPLEXED_TRANSPORT_EXTRA_ROUTING_KEY]: [DSN1, DSN2],
+            [MULTIPLEXED_TRANSPORT_EXTRA_KEY]: [DSN1, DSN2],
           },
         },
       ] as EventItem,
@@ -278,10 +274,10 @@ describe('makeSimpleMultiplexedTransport()', () => {
     await transport.send(envelope);
   });
 
-  it('sends events to default DSN if event.extra[SIMPLE_MULTIPLEXED_TRANSPORT_EXTRA_ROUTING_KEY] is not set', async () => {
+  it('sends events to default DSN if event.extra[MULTIPLEXED_TRANSPORT_EXTRA_KEY] is not set', async () => {
     expect.assertions(1);
 
-    const makeTransport = makeSimpleMultiplexedTransport(
+    const makeTransport = makeMultiplexedTransport(
       createTestTransport(url => {
         expect(url).toBe(DSN1_URL);
       }),
@@ -300,10 +296,10 @@ describe('makeSimpleMultiplexedTransport()', () => {
     await transport.send(envelope);
   });
 
-  it('sends events to default DSN if event.extra[SIMPLE_MULTIPLEXED_TRANSPORT_EXTRA_ROUTING_KEY] is an empty array', async () => {
+  it('sends events to default DSN if event.extra[MULTIPLEXED_TRANSPORT_EXTRA_KEY] is an empty array', async () => {
     expect.assertions(1);
 
-    const makeTransport = makeSimpleMultiplexedTransport(
+    const makeTransport = makeMultiplexedTransport(
       createTestTransport(url => {
         expect(url).toBe(DSN1_URL);
       }),
@@ -315,7 +311,7 @@ describe('makeSimpleMultiplexedTransport()', () => {
         {
           event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2',
           extra: {
-            [SIMPLE_MULTIPLEXED_TRANSPORT_EXTRA_ROUTING_KEY]: [],
+            [MULTIPLEXED_TRANSPORT_EXTRA_KEY]: [],
           },
         },
       ] as EventItem,

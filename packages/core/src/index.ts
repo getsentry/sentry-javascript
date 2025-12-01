@@ -54,11 +54,7 @@ export { ServerRuntimeClient } from './server-runtime-client';
 export { initAndBind, setCurrentClient } from './sdk';
 export { createTransport } from './transports/base';
 export { makeOfflineTransport } from './transports/offline';
-export {
-  makeMultiplexedTransport,
-  makeSimpleMultiplexedTransport,
-  SIMPLE_MULTIPLEXED_TRANSPORT_EXTRA_ROUTING_KEY,
-} from './transports/multiplexed';
+export { makeMultiplexedTransport, MULTIPLEXED_TRANSPORT_EXTRA_KEY } from './transports/multiplexed';
 export { getIntegrationsToSetup, addIntegration, defineIntegration, installedIntegrations } from './integration';
 export {
   _INTERNAL_skipAiProviderWrapping,
