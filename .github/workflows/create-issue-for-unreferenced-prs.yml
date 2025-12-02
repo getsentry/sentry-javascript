@@ -55,7 +55,8 @@ jobs:
             const prNumber = pr.number;
 
             // Regex for GitHub issue references (e.g., #123, fixes #456)
-            const issueRegexGitHub = /(?:(?:close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved):?\s*)?#\d+/i;
+            // https://regex101.com/r/eDiGrQ/1
+            const issueRegexGitHub = /(?:(?:close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved):?\s*)?(#\d+|https:\/\/github\.com\/getsentry\/[\w-]+\/issues\/\d+)/i;
 
             // Regex for Linear issue references (e.g., ENG-123, resolves ENG-456)
             const issueRegexLinear = /(?:(?:close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved):?\s*)?[A-Z]+-\d+/i;
