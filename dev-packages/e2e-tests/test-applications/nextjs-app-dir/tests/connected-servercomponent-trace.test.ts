@@ -14,8 +14,9 @@ test('Will create a transaction with spans for every server component and metada
     return span.description;
   });
 
-  expect(spanDescriptions).toContainEqual('Layout Server Component (/(nested-layout)/nested-layout)');
-  expect(spanDescriptions).toContainEqual('Layout Server Component (/(nested-layout))');
-  expect(spanDescriptions).toContainEqual('Page Server Component (/(nested-layout)/nested-layout)');
+  expect(spanDescriptions).toContainEqual('resolve root layout module');
+  expect(spanDescriptions).toContainEqual('resolve layout module "(nested-layout)"');
+  expect(spanDescriptions).toContainEqual('resolve layout module "nested-layout"');
+  expect(spanDescriptions).toContainEqual('resolve page module');
   expect(spanDescriptions).toContainEqual('Page.generateMetadata (/(nested-layout)/nested-layout)');
 });
