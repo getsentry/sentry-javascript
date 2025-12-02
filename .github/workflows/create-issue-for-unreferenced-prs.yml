@@ -19,6 +19,11 @@ concurrency:
 jobs:
   check_for_issue_reference:
     runs-on: ubuntu-latest
+    if: |
+      !contains(github.event.pull_request.labels.*.name, 'Dev: Gitflow')
+      && !startsWith(github.event.pull_request.head.ref, 'external-contributor/')
+      && !startsWith(github.event.pull_request.head.ref, 'prepare-release/')
+      && !startsWith(github.event.pull_request.head.ref, 'dependabot/')
     steps:
       - name: Check PR Body and Title for Issue Reference
         uses: actions/github-script@v8
