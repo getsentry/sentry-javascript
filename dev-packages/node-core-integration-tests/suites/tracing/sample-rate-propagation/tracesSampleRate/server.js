@@ -24,7 +24,7 @@ app.use(cors());
 
 app.get('/check', (req, res) => {
   const appPort = getPortAppIsRunningOn(app);
-  // eslint-disable-next-line no-undef
+
   fetch(`http://localhost:${appPort}/bounce`)
     .then(r => r.json())
     .then(bounceRes => {

@@ -1,4 +1,4 @@
-import { type InstrumentationNodeModuleDefinition, InstrumentationBase } from '@opentelemetry/instrumentation';
+import { InstrumentationBase, type InstrumentationNodeModuleDefinition } from '@opentelemetry/instrumentation';
 import { SDK_VERSION } from '@sentry/core';
 import { patchFirestore } from './patches/firestore';
 import { patchFunctions } from './patches/functions';

@@ -1,6 +1,5 @@
-import type { Client, ContinuousProfiler, ProfileChunk, Span } from '@sentry/core';
+import type { Client, ContinuousProfiler, ProfileChunk, ProfileChunkEnvelope, Span } from '@sentry/core';
 import {
-  type ProfileChunkEnvelope,
   createEnvelope,
   debug,
   dsnToString,

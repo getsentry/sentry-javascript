@@ -15,11 +15,11 @@ import {
 import { WINDOW } from '../types';
 import { trackClsAsStandaloneSpan } from './cls';
 import {
-  type PerformanceLongAnimationFrameTiming,
   addClsInstrumentationHandler,
   addLcpInstrumentationHandler,
   addPerformanceInstrumentationHandler,
   addTtfbInstrumentationHandler,
+  type PerformanceLongAnimationFrameTiming,
 } from './instrument';
 import { trackLcpAsStandaloneSpan } from './lcp';
 import { resourceTimingToSpanAttributes } from './resourceTiming';

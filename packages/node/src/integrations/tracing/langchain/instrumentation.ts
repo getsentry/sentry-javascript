@@ -1,7 +1,7 @@
 import {
+  InstrumentationBase,
   type InstrumentationConfig,
   type InstrumentationModuleDefinition,
-  InstrumentationBase,
   InstrumentationNodeModuleDefinition,
   InstrumentationNodeModuleFile,
 } from '@opentelemetry/instrumentation';

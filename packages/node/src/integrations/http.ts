@@ -4,9 +4,8 @@ import type { HttpInstrumentationConfig } from '@opentelemetry/instrumentation-h
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
 import type { Span } from '@sentry/core';
 import { defineIntegration, getClient, hasSpansEnabled } from '@sentry/core';
-import type { HTTPModuleRequestIncomingMessage, NodeClient } from '@sentry/node-core';
+import type { HTTPModuleRequestIncomingMessage, NodeClient, SentryHttpInstrumentationOptions } from '@sentry/node-core';
 import {
-  type SentryHttpInstrumentationOptions,
   addOriginToSpan,
   generateInstrumentOnce,
   getRequestUrl,
