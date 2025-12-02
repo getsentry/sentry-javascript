@@ -129,7 +129,7 @@ describe('getBuildPluginOptions', () => {
       const result = getBuildPluginOptions({
         sentryBuildOptions: {
           ...baseSentryOptions,
-          widenClientFileUpload: true, // top-level option
+          widenClientFileUpload: true,
         },
         releaseName: mockReleaseName,
         distDirAbsPath: mockDistDirAbsPath,

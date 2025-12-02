@@ -241,7 +241,6 @@ export function getBuildPluginOptions({
   const normalizedDistDirAbsPath = normalizePathForGlob(distDirAbsPath);
 
   const loggerPrefix = LOGGER_PREFIXES[buildTool];
-  // widenClientFileUpload is used for both webpack and turbopack, so it's a top-level option
   const widenClientFileUpload = sentryBuildOptions.widenClientFileUpload ?? false;
   const deleteSourcemapsAfterUpload = sentryBuildOptions.sourcemaps?.deleteSourcemapsAfterUpload ?? false;
 
