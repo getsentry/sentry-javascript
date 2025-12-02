@@ -106,6 +106,18 @@ sentryTest('sends a span v2 envelope for the pageload', async ({ getLocalTestUrl
         type: 'string',
         value: 'url',
       },
+      'sentry.idle_span_finish_reason': {
+        type: 'string',
+        value: 'idleTimeout',
+      },
+      'url.full': {
+        type: 'string',
+        value: 'http://sentry-test.io/index.html',
+      },
+      'http.request.header.user_agent': {
+        type: 'string',
+        value: expect.any(String),
+      },
     }),
     trace_id: expect.stringMatching(/^[a-f\d]{32}$/),
     span_id: expect.stringMatching(/^[a-f\d]{16}$/),
