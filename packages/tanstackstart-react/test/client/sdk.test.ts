@@ -27,8 +27,8 @@ describe('TanStack Start React Client SDK', () => {
               { name: 'npm:@sentry/tanstackstart-react', version: SDK_VERSION },
               { name: 'npm:@sentry/react', version: SDK_VERSION },
             ],
-            "settings": {
-              "infer_ip": "never",
+            settings: {
+              infer_ip: 'never',
             },
           },
         },
