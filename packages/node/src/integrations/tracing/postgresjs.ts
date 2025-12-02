@@ -396,7 +396,7 @@ export class PostgresJsInstrumentation extends InstrumentationBase<PostgresJsIns
           op: 'db',
         },
         (span: Span) => {
-          addOriginToSpan(span, 'auto.db.otel.postgres');
+          addOriginToSpan(span, 'auto.db.postgresjs');
 
           span.setAttributes({
             [ATTR_DB_SYSTEM_NAME]: 'postgres',
@@ -517,7 +517,6 @@ export class PostgresJsInstrumentation extends InstrumentationBase<PostgresJsIns
         .replace(/\b\d+\b/g, '?') // Replace standalone numbers
         // Collapse IN and in clauses (eg. IN (?, ?, ?, ?) to IN (?))
         .replace(/\bIN\b\s*\(\s*\?(?:\s*,\s*\?)*\s*\)/gi, 'IN (?)')
-        .substring(0, 1024) // Truncate to 1024 characters AFTER sanitization
     );
   }
 
@@ -567,7 +566,7 @@ export class PostgresJsInstrumentation extends InstrumentationBase<PostgresJsIns
           op: 'db',
         },
         (span: Span) => {
-          addOriginToSpan(span, 'auto.db.otel.postgres');
+          addOriginToSpan(span, 'auto.db.postgresjs');
 
           span.setAttributes({
             [ATTR_DB_SYSTEM_NAME]: 'postgres',
