@@ -16,6 +16,7 @@ export {
   // eslint-disable-next-line deprecation/deprecation
   anrIntegration,
   googleGenAIIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   disableAnrDetectionForCallback,
   captureCheckIn,
   captureConsoleIntegration,
