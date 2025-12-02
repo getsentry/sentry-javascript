@@ -2,9 +2,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { getCurrentScope } from '../../../src/currentScopes';
 import { debug } from '../../../src/utils/debug-logger';
 import {
-  type FeatureFlag,
   _INTERNAL_insertFlagToScope,
   _INTERNAL_insertToFlagBuffer,
+  type FeatureFlag,
 } from '../../../src/utils/featureFlags';
 
 describe('flags', () => {

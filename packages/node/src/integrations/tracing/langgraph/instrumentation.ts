@@ -1,7 +1,7 @@
 import {
+  InstrumentationBase,
   type InstrumentationConfig,
   type InstrumentationModuleDefinition,
-  InstrumentationBase,
   InstrumentationNodeModuleDefinition,
   InstrumentationNodeModuleFile,
 } from '@opentelemetry/instrumentation';
@@ -63,9 +63,7 @@ export class SentryLangGraphInstrumentation extends InstrumentationBase<LangGrap
     const defaultPii = Boolean(client?.getOptions().sendDefaultPii);
 
     const config = this.getConfig();
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     const recordInputs = config.recordInputs ?? defaultPii;
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     const recordOutputs = config.recordOutputs ?? defaultPii;
 
     const options: LangGraphOptions = {

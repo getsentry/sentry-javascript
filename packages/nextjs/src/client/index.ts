@@ -1,3 +1,6 @@
+// import/export got a false positive, and affects most of our index barrel files
+// can be removed once following issue is fixed: https://github.com/import-js/eslint-plugin-import/issues/703
+/* eslint-disable import/export */
 import type { Client, EventProcessor, Integration } from '@sentry/core';
 import { addEventProcessor, applySdkMetadata, consoleSandbox, getGlobalScope, GLOBAL_OBJ } from '@sentry/core';
 import type { BrowserOptions } from '@sentry/react';

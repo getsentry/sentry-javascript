@@ -1,6 +1,6 @@
 import type { Integration } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
-import { type MockInstance, beforeEach, describe, expect, test, vi } from 'vitest';
+import { beforeEach, describe, expect, type MockInstance, test, vi } from 'vitest';
 import type { HttpFunction, Request, Response } from '../../src/gcpfunction/general';
 import { wrapHttpFunction } from '../../src/gcpfunction/http';
 import { init } from '../../src/sdk';
@@ -19,7 +19,6 @@ const mockSpan = {
 };
 
 vi.mock('@sentry/node', async () => {
-  // eslint-disable-next-line @typescript-eslint/consistent-type-imports
   const original = await vi.importActual('@sentry/node');
   return {
     ...original,

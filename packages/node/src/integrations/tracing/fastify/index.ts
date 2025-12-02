@@ -262,7 +262,6 @@ export function setupFastifyErrorHandler(fastify: FastifyInstance, options?: Par
     },
   );
 
-  // eslint-disable-next-line @typescript-eslint/no-floating-promises
   fastify.register(plugin);
 }
 
