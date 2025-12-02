@@ -11,7 +11,6 @@ export const getRouter = () => {
   if (!router.isServer) {
     Sentry.init({
       environment: 'qa', // dynamic sampling bias to keep transactions
-      debug: true,
       dsn: 'https://public@dsn.ingest.sentry.io/1337',
       integrations: [Sentry.tanstackRouterBrowserTracingIntegration(router)],
       // We recommend adjusting this value in production, or using tracesSampler
