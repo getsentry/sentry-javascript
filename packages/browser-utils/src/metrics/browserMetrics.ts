@@ -3,6 +3,7 @@ import type { Client, Measurements, Span, SpanAttributes, SpanAttributeValue, St
 import {
   browserPerformanceTimeOrigin,
   getActiveSpan,
+  getClient,
   getComponentName,
   htmlTreeAsString,
   isPrimitive,
@@ -402,7 +403,12 @@ export function addPerformanceEntries(span: Span, options: AddPerformanceEntries
       delete _measurements.lcp;
     }
 
+    const isSpanFirst = getClient()?.getOptions().traceLifecycle === 'stream';
     Object.entries(_measurements).forEach(([measurementName, measurement]) => {
+      if (isSpanFirst) {
+        span.setAttribute(`ui.web_vital.${measurementName}`, measurement.value);
+        return;
+      }
       setMeasurement(measurementName, measurement.value, measurement.unit);
     });
 
