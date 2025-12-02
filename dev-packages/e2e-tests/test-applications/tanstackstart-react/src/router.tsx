@@ -8,10 +8,16 @@ export function getRouter() {
     scrollRestoration: true,
   });
 
+  console.log('CREATING ROUTER');
+  console.log('E2E_TEST_DSN', process.env.E2E_TEST_DSN);
+  console.log('ROUTER IS SERVER', router.isServer);
+
   if (!router.isServer) {
+    console.log('INITIALIZING SENTRY CLIENT');
     Sentry.init({
       environment: 'qa', // dynamic sampling bias to keep transactions
-      dsn: process.env.APP_DSN,
+      debug: true,
+      dsn: process.env.E2E_TEST_DSN,
       integrations: [Sentry.tanstackRouterBrowserTracingIntegration(router)],
       // We recommend adjusting this value in production, or using tracesSampler
       // for finer control

@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "vite build",
-    "start": "vite preview",
+    "start": "NODE_OPTIONS='--import ./instrument.server.mjs' vite dev",
     "test": "playwright test",
     "clean": "npx rimraf node_modules pnpm-lock.yaml",
     "test:build": "pnpm install && pnpm build",
@@ -14,18 +14,18 @@
   "dependencies": {
     "@sentry/tanstackstart-react": "latest || *",
     "@tanstack/react-start": "^1.139.12",
-    "@tanstack/react-router": "^1.64.0",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "@tanstack/react-router": "^1.139.12",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
   },
   "devDependencies": {
-    "@types/react": "^18.2.66",
-    "@types/react-dom": "^18.2.22",
-    "@types/node": "^24.10.1",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@types/node": "^24.10.0",
     "@typescript-eslint/eslint-plugin": "^7.2.0",
     "@typescript-eslint/parser": "^7.2.0",
     "@vitejs/plugin-react-swc": "^3.5.0",
-    "typescript": "^5.2.2",
+    "typescript": "^5.9.0",
     "vite": "7.2.0",
     "vite-tsconfig-paths": "^5.1.4",
     "@playwright/test": "~1.53.2",
