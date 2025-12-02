@@ -226,6 +226,7 @@ export const continueTrace = <V>(
   return withScope(scope => {
     const propagationContext = propagationContextFromHeaders(sentryTrace, baggage);
     scope.setPropagationContext(propagationContext);
+    _setSpanForScope(scope, undefined);
     return callback();
   });
 };

@@ -47,6 +47,9 @@ export * from '@sentry/node';
 
 export { captureUnderscoreErrorException } from '../common/pages-router-instrumentation/_error';
 
+// Override core span methods with Next.js-specific implementations that support Cache Components
+export { startSpan, startSpanManual, startInactiveSpan } from '../common/utils/nextSpan';
+
 const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   _sentryRewriteFramesDistDir?: string;
   _sentryRewritesTunnelPath?: string;

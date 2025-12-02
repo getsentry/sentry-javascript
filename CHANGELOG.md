@@ -4,6 +4,107 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 10.28.0
+
+### Important Changes
+
+- **feat(core): Make `matcher` parameter optional in `makeMultiplexedTransport` ([#10798](https://github.com/getsentry/sentry-javascript/pull/10798))**
+
+The `matcher` parameter in `makeMultiplexedTransport` is now optional with a sensible default. This makes it much easier to use the multiplexed transport for sending events to multiple DSNs based on runtime configuration.
+
+**Before:**
+
+```javascript
+import { makeFetchTransport, makeMultiplexedTransport } from '@sentry/browser';
+
+const EXTRA_KEY = 'ROUTE_TO';
+
+const transport = makeMultiplexedTransport(makeFetchTransport, args => {
+  const event = args.getEvent();
+  if (event?.extra?.[EXTRA_KEY] && Array.isArray(event.extra[EXTRA_KEY])) {
+    return event.extra[EXTRA_KEY];
+  }
+  return [];
+});
+
+Sentry.init({
+  transport,
+  // ... other options
+});
+
+// Capture events with routing info
+Sentry.captureException(error, {
+  extra: {
+    [EXTRA_KEY]: [
+      { dsn: 'https://key1@sentry.io/project1', release: 'v1.0.0' },
+      { dsn: 'https://key2@sentry.io/project2' },
+    ],
+  },
+});
+```
+
+**After:**
+
+```javascript
+import { makeFetchTransport, makeMultiplexedTransport, MULTIPLEXED_TRANSPORT_EXTRA_KEY } from '@sentry/browser';
+
+// Just pass the transport generator - the default matcher handles the rest!
+Sentry.init({
+  transport: makeMultiplexedTransport(makeFetchTransport),
+  // ... other options
+});
+
+// Capture events with routing info using the exported constant
+Sentry.captureException(error, {
+  extra: {
+    [MULTIPLEXED_TRANSPORT_EXTRA_KEY]: [
+      { dsn: 'https://key1@sentry.io/project1', release: 'v1.0.0' },
+      { dsn: 'https://key2@sentry.io/project2' },
+    ],
+  },
+});
+```
+
+The default matcher looks for routing information in `event.extra[MULTIPLEXED_TRANSPORT_EXTRA_KEY]`. You can still provide a custom matcher function for advanced use cases.
+
+- **feat(nextjs): Support cacheComponents on turbopack ([#18304](https://github.com/getsentry/sentry-javascript/pull/18304))**
+
+This release adds support for `cacheComponents` on turbopack builds. We are working on adding support for this feature in webpack builds as well.
+
+### Other Changes
+
+- feat: Publish AWS Lambda Layer for Node 24 ([#18327](https://github.com/getsentry/sentry-javascript/pull/18327))
+- feat(browser): Expose langchain instrumentation ([#18342](https://github.com/getsentry/sentry-javascript/pull/18342))
+- feat(browser): Expose langgraph instrumentation ([#18345](https://github.com/getsentry/sentry-javascript/pull/18345))
+- feat(cloudflare): Allow specifying a custom fetch in Cloudflare transport options ([#18335](https://github.com/getsentry/sentry-javascript/pull/18335))
+- feat(core): Add `isolateTrace` option to `Sentry.withMonitor()` ([#18079](https://github.com/getsentry/sentry-javascript/pull/18079))
+- feat(deps): bump @sentry/webpack-plugin from 4.3.0 to 4.6.1 ([#18272](https://github.com/getsentry/sentry-javascript/pull/18272))
+- feat(nextjs): Add cloudflare `waitUntil` detection ([#18336](https://github.com/getsentry/sentry-javascript/pull/18336))
+- feat(node): Add LangChain v1 support ([#18306](https://github.com/getsentry/sentry-javascript/pull/18306))
+- feat(remix): Add parameterized transaction naming for routes ([#17951](https://github.com/getsentry/sentry-javascript/pull/17951))
+- fix(cloudflare): Keep http root span alive until streaming responses are consumed ([#18087](https://github.com/getsentry/sentry-javascript/pull/18087))
+- fix(cloudflare): Wait for async events to finish ([#18334](https://github.com/getsentry/sentry-javascript/pull/18334))
+- fix(core): `continueTrace` doesn't propagate given trace ID if active span exists ([#18328](https://github.com/getsentry/sentry-javascript/pull/18328))
+- fix(node-core): Handle custom scope in log messages without parameters ([#18322](https://github.com/getsentry/sentry-javascript/pull/18322))
+- fix(opentelemetry): Ensure Sentry spans don't leak when tracing is disabled ([#18337](https://github.com/getsentry/sentry-javascript/pull/18337))
+- fix(react-router): Use underscores in trace origin values ([#18351](https://github.com/getsentry/sentry-javascript/pull/18351))
+- chore(tanstackstart-react): Export custom inits from tanstackstart-react ([#18369](https://github.com/getsentry/sentry-javascript/pull/18369))
+- chore(tanstackstart-react)!: Remove empty placeholder implementations ([#18338](https://github.com/getsentry/sentry-javascript/pull/18338))
+
+<details>
+  <summary><strong>Internal Changes</strong></summary>
+
+- chore: Allow URLs as issue ([#18372](https://github.com/getsentry/sentry-javascript/pull/18372))
+- chore(changelog): Add entry for [#18304](https://github.com/getsentry/sentry-javascript/pull/18304) ([#18329](https://github.com/getsentry/sentry-javascript/pull/18329))
+- chore(ci): Add action to track all PRs as issues ([#18363](https://github.com/getsentry/sentry-javascript/pull/18363))
+- chore(github): Adjust `BUGBOT.md` rules to flag invalid op and origin values during review ([#18352](https://github.com/getsentry/sentry-javascript/pull/18352))
+- ci: Add action to create issue on gitflow merge conflicts ([#18319](https://github.com/getsentry/sentry-javascript/pull/18319))
+- ci(deps): bump actions/checkout from 5 to 6 ([#18268](https://github.com/getsentry/sentry-javascript/pull/18268))
+- ci(deps): bump peter-evans/create-pull-request from 7.0.8 to 7.0.9 ([#18361](https://github.com/getsentry/sentry-javascript/pull/18361))
+- test(cloudflare): Add typechecks for cloudflare-worker e2e test ([#18321](https://github.com/getsentry/sentry-javascript/pull/18321))
+
+</details>
+
 ## 10.27.0
 
 ### Important Changes

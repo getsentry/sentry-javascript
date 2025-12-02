@@ -3,7 +3,7 @@ import { waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Sends a pageload transaction to Sentry', async ({ page }) => {
   const transactionPromise = waitForTransaction('create-remix-app-express-vite-dev', transactionEvent => {
-    return transactionEvent.contexts?.trace?.op === 'pageload' && transactionEvent.transaction === 'routes/_index';
+    return transactionEvent.contexts?.trace?.op === 'pageload' && transactionEvent.transaction === '/';
   });
 
   await page.goto('/');
@@ -15,7 +15,7 @@ test('Sends a pageload transaction to Sentry', async ({ page }) => {
 
 test('Sends a navigation transaction to Sentry', async ({ page }) => {
   const transactionPromise = waitForTransaction('create-remix-app-express-vite-dev', transactionEvent => {
-    return transactionEvent.contexts?.trace?.op === 'navigation' && transactionEvent.transaction === 'routes/user.$id';
+    return transactionEvent.contexts?.trace?.op === 'navigation' && transactionEvent.transaction === '/user/:id';
   });
 
   await page.goto('/');
@@ -26,6 +26,22 @@ test('Sends a navigation transaction to Sentry', async ({ page }) => {
   const transactionEvent = await transactionPromise;
 
   expect(transactionEvent).toBeDefined();
+});
+
+test('Sends a navigation transaction with parameterized route to Sentry', async ({ page }) => {
+  const transactionPromise = waitForTransaction('create-remix-app-express-vite-dev', transactionEvent => {
+    return transactionEvent.contexts?.trace?.op === 'navigation';
+  });
+
+  await page.goto('/');
+
+  const linkElement = page.locator('id=navigation');
+  await linkElement.click();
+
+  const transactionEvent = await transactionPromise;
+
+  expect(transactionEvent).toBeDefined();
+  expect(transactionEvent.transaction).toBeTruthy();
 });
 
 test('Renders `sentry-trace` and `baggage` meta tags for the root route', async ({ page }) => {
