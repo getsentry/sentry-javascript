@@ -1,6 +1,7 @@
-import type { PropagationContext } from '@sentry/core';
+import type { PropagationContext, SpanAttributes } from '@sentry/core';
 import { debug, getActiveSpan, getRootSpan, GLOBAL_OBJ, Scope, spanToJSON, startNewTrace } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
+import { ATTR_NEXT_SEGMENT, ATTR_NEXT_SPAN_NAME, ATTR_NEXT_SPAN_TYPE } from '../nextSpanAttributes';
 import { TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION } from '../span-attributes-with-logic-attached';
 
 const commonPropagationContextMap = new WeakMap<object, PropagationContext>();
@@ -107,4 +108,34 @@ export function dropNextjsRootContext(): void {
       getRootSpan(nextJsOwnedSpan)?.setAttribute(TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION, true);
     }
   }
+}
+
+/**
+ * Checks if the span is a resolve segment span.
+ * @param spanAttributes The attributes of the span to check.
+ * @returns True if the span is a resolve segment span, false otherwise.
+ */
+export function isResolveSegmentSpan(spanAttributes: SpanAttributes): boolean {
+  return (
+    spanAttributes[ATTR_NEXT_SPAN_TYPE] === 'NextNodeServer.getLayoutOrPageModule' &&
+    spanAttributes[ATTR_NEXT_SPAN_NAME] === 'resolve segment modules' &&
+    typeof spanAttributes[ATTR_NEXT_SEGMENT] === 'string'
+  );
+}
+
+/**
+ * Returns the enhanced name for a resolve segment span.
+ * @param segment The segment of the resolve segment span.
+ * @returns The enhanced name for the resolve segment span.
+ */
+export function getEnhancedResolveSegmentSpanName(segment: string): string {
+  if (segment === '__PAGE__') {
+    return 'resolve page module';
+  }
+
+  if (segment === '') {
+    return 'resolve root layout module';
+  }
+
+  return `resolve layout module "${segment}"`;
 }
