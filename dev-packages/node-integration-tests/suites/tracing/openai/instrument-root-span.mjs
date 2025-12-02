@@ -8,10 +8,4 @@ Sentry.init({
   sendDefaultPii: false,
   transport: loggingTransport,
   integrations: [Sentry.openAIIntegration()],
-  beforeSendTransaction: event => {
-    if (event.transaction.includes('/openai/')) {
-      return null;
-    }
-    return event;
-  },
 });

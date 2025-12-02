@@ -1,48 +1,54 @@
-import { instrumentOpenAiClient } from '@sentry/core';
 import * as Sentry from '@sentry/node';
+import OpenAI from 'openai';
+import express from 'express';
 
-class MockOpenAI {
-  constructor(config) {
-    this.apiKey = config.apiKey;
+function startMockServer() {
+  const app = express();
+  app.use(express.json());
 
-    this.embeddings = {
-      create: async params => {
-        await new Promise(resolve => setTimeout(resolve, 10));
+  // Embeddings endpoint
+  app.post('/openai/embeddings', (req, res) => {
+    const { model } = req.body;
 
-        if (params.model === 'error-model') {
-          const error = new Error('Model not found');
-          error.status = 404;
-          error.headers = { 'x-request-id': 'mock-request-123' };
-          throw error;
-        }
+    // Handle error model
+    if (model === 'error-model') {
+      res.status(404).set('x-request-id', 'mock-request-123').end('Model not found');
+      return;
+    }
 
-        return {
-          object: 'list',
-          data: [
-            {
-              object: 'embedding',
-              embedding: [0.1, 0.2, 0.3],
-              index: 0,
-            },
-          ],
-          model: params.model,
-          usage: {
-            prompt_tokens: 10,
-            total_tokens: 10,
-          },
-        };
+    // Return embeddings response
+    res.send({
+      object: 'list',
+      data: [
+        {
+          object: 'embedding',
+          embedding: [0.1, 0.2, 0.3],
+          index: 0,
+        },
+      ],
+      model: model,
+      usage: {
+        prompt_tokens: 10,
+        total_tokens: 10,
       },
-    };
-  }
+    });
+  });
+
+  return new Promise(resolve => {
+    const server = app.listen(0, () => {
+      resolve(server);
+    });
+  });
 }
 
 async function run() {
+  const server = await startMockServer();
+
   await Sentry.startSpan({ op: 'function', name: 'main' }, async () => {
-    const mockClient = new MockOpenAI({
+    const client = new OpenAI({
+      baseURL: `http://localhost:${server.address().port}/openai`,
       apiKey: 'mock-api-key',
     });
-
-    const client = instrumentOpenAiClient(mockClient);
 
     // First test: embeddings API
     await client.embeddings.create({
@@ -62,6 +68,8 @@ async function run() {
       // Error is expected and handled
     }
   });
+
+  server.close();
 }
 
 run();
