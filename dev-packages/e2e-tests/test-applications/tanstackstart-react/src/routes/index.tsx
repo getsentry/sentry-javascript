@@ -6,6 +6,13 @@ export const Route = createFileRoute('/')({
 
 function Home() {
   return (
-    <div>Hello World!</div>
+    <button
+      type="button"
+      onClick={() => {
+        throw new Error("Sentry Test Error");
+      }}
+    >
+      Break the world
+    </button>
   )
 }
