@@ -1,7 +1,7 @@
 import { expect } from '@playwright/test';
 import { SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE } from '@sentry/core';
 import { sentryTest } from '../../../utils/fixtures';
-import { envelopeRequestParser, shouldSkipTracingTest, waitForTransactionRequest } from '../../../utils/helpers';
+import { shouldSkipTracingTest } from '../../../utils/helpers';
 import { getSpanOp, waitForV2Spans } from '../../../utils/spanFirstUtils';
 
 sentryTest("navigation spans link back to previous trace's root span", async ({ getLocalTestUrl, page }) => {
