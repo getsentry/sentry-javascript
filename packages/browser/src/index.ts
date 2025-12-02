@@ -57,6 +57,7 @@ export {
   getSpanStatusFromHttpCode,
   setHttpStatus,
   makeMultiplexedTransport,
+  MULTIPLEXED_TRANSPORT_EXTRA_KEY,
   moduleMetadataIntegration,
   supabaseIntegration,
   instrumentSupabaseClient,

@@ -4,6 +4,67 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+### Important Changes
+
+- **feat(core): Make `matcher` parameter optional in `makeMultiplexedTransport` ([#10798](https://github.com/getsentry/sentry-javascript/pull/10798))** .
+
+The `matcher` parameter in `makeMultiplexedTransport` is now optional with a sensible default. This makes it much easier to use the multiplexed transport for sending events to multiple DSNs based on runtime configuration.
+
+**Before:**
+
+```javascript
+import { makeFetchTransport, makeMultiplexedTransport } from '@sentry/browser';
+
+const EXTRA_KEY = 'ROUTE_TO';
+
+const transport = makeMultiplexedTransport(makeFetchTransport, args => {
+  const event = args.getEvent();
+  if (event?.extra?.[EXTRA_KEY] && Array.isArray(event.extra[EXTRA_KEY])) {
+    return event.extra[EXTRA_KEY];
+  }
+  return [];
+});
+
+Sentry.init({
+  transport,
+  // ... other options
+});
+
+// Capture events with routing info
+Sentry.captureException(error, {
+  extra: {
+    [EXTRA_KEY]: [
+      { dsn: 'https://key1@sentry.io/project1', release: 'v1.0.0' },
+      { dsn: 'https://key2@sentry.io/project2' },
+    ],
+  },
+});
+```
+
+**After:**
+
+```javascript
+import { makeFetchTransport, makeMultiplexedTransport, MULTIPLEXED_TRANSPORT_EXTRA_KEY } from '@sentry/browser';
+
+// Just pass the transport generator - the default matcher handles the rest!
+Sentry.init({
+  transport: makeMultiplexedTransport(makeFetchTransport),
+  // ... other options
+});
+
+// Capture events with routing info using the exported constant
+Sentry.captureException(error, {
+  extra: {
+    [MULTIPLEXED_TRANSPORT_EXTRA_KEY]: [
+      { dsn: 'https://key1@sentry.io/project1', release: 'v1.0.0' },
+      { dsn: 'https://key2@sentry.io/project2' },
+    ],
+  },
+});
+```
+
+The default matcher looks for routing information in `event.extra[MULTIPLEXED_TRANSPORT_EXTRA_KEY]`. You can still provide a custom matcher function for advanced use cases.
+
 - **feat(nextjs): Support cacheComponents on turbopack ([#18304](https://github.com/getsentry/sentry-javascript/pull/18304))**
 
 This release adds support for `cacheComponents` on turbopack builds. We are working on adding support for this feature in webpack builds as well.
