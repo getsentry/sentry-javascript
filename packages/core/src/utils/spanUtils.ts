@@ -314,11 +314,7 @@ export function getStatusMessage(status: SpanStatus | undefined): string | undef
  * Convert the various statuses to the ones expected by Sentry ('ok' is default)
  */
 export function getV2StatusMessage(status: SpanStatus | undefined): 'ok' | 'error' {
-  return !status ||
-    status.code === SPAN_STATUS_UNSET ||
-    (status.code === SPAN_STATUS_ERROR && status.message === 'unknown_error')
-    ? 'ok'
-    : 'error';
+  return !status || status.code === SPAN_STATUS_OK || status.code === SPAN_STATUS_UNSET ? 'ok' : 'error';
 }
 
 /**
