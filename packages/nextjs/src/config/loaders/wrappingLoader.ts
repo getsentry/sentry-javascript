@@ -4,7 +4,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import type { RollupBuild, RollupError } from 'rollup';
 import { rollup } from 'rollup';
-import type { ServerComponentContext, VercelCronsConfig } from '../../common/types';
+import type { ServerComponentContext } from '../../common/types';
 import type { LoaderThis } from './types';
 
 // Just a simple placeholder to make referencing module consistent
@@ -13,11 +13,11 @@ const SENTRY_WRAPPER_MODULE_NAME = 'sentry-wrapper-module';
 // Needs to end in .cjs in order for the `commonjs` plugin to pick it up
 const WRAPPING_TARGET_MODULE_NAME = '__SENTRY_WRAPPING_TARGET_FILE__.cjs';
 
-const apiWrapperTemplatePath = path.resolve(__dirname, '..', 'templates', 'apiWrapperTemplate.js');
-const apiWrapperTemplateCode = fs.readFileSync(apiWrapperTemplatePath, { encoding: 'utf8' });
-
 const pageWrapperTemplatePath = path.resolve(__dirname, '..', 'templates', 'pageWrapperTemplate.js');
 const pageWrapperTemplateCode = fs.readFileSync(pageWrapperTemplatePath, { encoding: 'utf8' });
+
+const edgeApiWrapperTemplatePath = path.resolve(__dirname, '..', 'templates', 'edgeApiWrapperTemplate.js');
+const edgeApiWrapperTemplateCode = fs.readFileSync(edgeApiWrapperTemplatePath, { encoding: 'utf8' });
 
 const middlewareWrapperTemplatePath = path.resolve(__dirname, '..', 'templates', 'middlewareWrapperTemplate.js');
 const middlewareWrapperTemplateCode = fs.readFileSync(middlewareWrapperTemplatePath, { encoding: 'utf8' });
@@ -40,17 +40,15 @@ export type WrappingLoaderOptions = {
   appDir: string | undefined;
   pageExtensionRegex: string;
   excludeServerRoutes: Array<RegExp | string>;
-  wrappingTargetKind: 'page' | 'api-route' | 'middleware' | 'server-component' | 'route-handler';
-  vercelCronsConfig?: VercelCronsConfig;
+  wrappingTargetKind: 'page' | 'edge-api-route' | 'middleware' | 'server-component' | 'route-handler';
   nextjsRequestAsyncStorageModulePath?: string;
 };
 
 /**
  * Replace the loaded file with a wrapped version the original file. In the wrapped version, the original file is loaded,
- * any data-fetching functions (`getInitialProps`, `getStaticProps`, and `getServerSideProps`) or API routes it contains
+ * any data-fetching functions (`getInitialProps`, `getStaticProps`, and `getServerSideProps`) it contains
  * are wrapped, and then everything is re-exported.
  */
-// eslint-disable-next-line complexity
 export default function wrappingLoader(
   this: LoaderThis<WrappingLoaderOptions>,
   userCode: string,
@@ -64,7 +62,6 @@ export default function wrappingLoader(
     pageExtensionRegex,
     excludeServerRoutes = [],
     wrappingTargetKind,
-    vercelCronsConfig,
     nextjsRequestAsyncStorageModulePath,
   } = 'getOptions' in this ? this.getOptions() : this.query;
 
@@ -72,7 +69,7 @@ export default function wrappingLoader(
 
   let templateCode: string;
 
-  if (wrappingTargetKind === 'page' || wrappingTargetKind === 'api-route') {
+  if (wrappingTargetKind === 'page') {
     if (pagesDir === undefined) {
       this.callback(null, userCode, userModuleSourceMap);
       return;
@@ -102,15 +99,41 @@ export default function wrappingLoader(
       return;
     }
 
-    if (wrappingTargetKind === 'page') {
-      templateCode = pageWrapperTemplateCode;
-    } else if (wrappingTargetKind === 'api-route') {
-      templateCode = apiWrapperTemplateCode;
-    } else {
-      throw new Error(`Invariant: Could not get template code of unknown kind "${wrappingTargetKind}"`);
+    templateCode = pageWrapperTemplateCode;
+
+    // Inject the route and the path to the file we're wrapping into the template
+    templateCode = templateCode.replace(/__ROUTE__/g, parameterizedPagesRoute.replace(/\\/g, '\\\\'));
+  } else if (wrappingTargetKind === 'edge-api-route') {
+    if (pagesDir === undefined) {
+      this.callback(null, userCode, userModuleSourceMap);
+      return;
     }
 
-    templateCode = templateCode.replace(/__VERCEL_CRONS_CONFIGURATION__/g, JSON.stringify(vercelCronsConfig));
+    // Get the parameterized route name from this API route's filepath
+    const parameterizedPagesRoute = path
+      // Get the path of the file inside of the pages directory
+      .relative(pagesDir, this.resourcePath)
+      // Replace all backslashes with forward slashes (windows)
+      .replace(/\\/g, '/')
+      // Add a slash at the beginning
+      .replace(/(.*)/, '/$1')
+      // Pull off the file extension
+      // eslint-disable-next-line @sentry-internal/sdk/no-regexp-constructor -- not end user input
+      .replace(new RegExp(`\\.(${pageExtensionRegex})`), '')
+      // Any page file named `index` corresponds to root of the directory its in, URL-wise, so turn `/xyz/index` into
+      // just `/xyz`
+      .replace(/\/index$/, '')
+      // In case all of the above have left us with an empty string (which will happen if we're dealing with the
+      // homepage), sub back in the root route
+      .replace(/^$/, '/');
+
+    // Skip explicitly-ignored pages
+    if (stringMatchesSomePattern(parameterizedPagesRoute, excludeServerRoutes, true)) {
+      this.callback(null, userCode, userModuleSourceMap);
+      return;
+    }
+
+    templateCode = edgeApiWrapperTemplateCode;
 
     // Inject the route and the path to the file we're wrapping into the template
     templateCode = templateCode.replace(/__ROUTE__/g, parameterizedPagesRoute.replace(/\\/g, '\\\\'));

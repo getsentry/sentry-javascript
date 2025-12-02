@@ -152,19 +152,19 @@ describe('webpack loaders', () => {
       },
       {
         resourcePath: '/Users/Maisey/projects/squirrelChasingSimulator/src/pages/api/testApiRoute.ts',
-        expectedWrappingTargetKind: 'api-route',
+        expectedWrappingTargetKind: undefined,
       },
       {
         resourcePath: './src/pages/api/testApiRoute.ts',
-        expectedWrappingTargetKind: 'api-route',
+        expectedWrappingTargetKind: undefined,
       },
       {
         resourcePath: '/Users/Maisey/projects/squirrelChasingSimulator/src/pages/api/nested/testApiRoute.js',
-        expectedWrappingTargetKind: 'api-route',
+        expectedWrappingTargetKind: undefined,
       },
       {
         resourcePath: '/Users/Maisey/projects/squirrelChasingSimulator/src/pages/api/nested/testApiRoute.custom.js',
-        expectedWrappingTargetKind: 'api-route',
+        expectedWrappingTargetKind: undefined,
       },
       {
         resourcePath: '/Users/Maisey/projects/squirrelChasingSimulator/src/app/nested/route.ts',

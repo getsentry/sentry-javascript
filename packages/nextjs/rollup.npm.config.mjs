@@ -40,7 +40,7 @@ export default [
   ...makeNPMConfigVariants(
     makeBaseNPMConfig({
       entrypoints: [
-        'src/config/templates/apiWrapperTemplate.ts',
+        'src/config/templates/edgeApiWrapperTemplate.ts',
         'src/config/templates/middlewareWrapperTemplate.ts',
         'src/config/templates/pageWrapperTemplate.ts',
         'src/config/templates/requestAsyncStorageShim.ts',

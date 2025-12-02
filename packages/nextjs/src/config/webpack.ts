@@ -5,7 +5,6 @@ import { debug, escapeStringForRegex, loadModule, parseSemver } from '@sentry/co
 import * as fs from 'fs';
 import * as path from 'path';
 import { sync as resolveSync } from 'resolve';
-import type { VercelCronsConfig } from '../common/types';
 import { getBuildPluginOptions, normalizePathForGlob } from './getBuildPluginOptions';
 import type { RouteManifest } from './manifest/types';
 // Note: If you need to import a type from Webpack, do it in `types.ts` and export it from there. Otherwise, our
@@ -133,8 +132,6 @@ export function constructWebpackConfigFunction({
       appDirPath = maybeSrcAppDirPath;
     }
 
-    const apiRoutesPath = pagesDirPath ? path.join(pagesDirPath, 'api') : undefined;
-
     const middlewareLocationFolder = pagesDirPath
       ? path.join(pagesDirPath, '..')
       : appDirPath
@@ -166,20 +163,44 @@ export function constructWebpackConfigFunction({
 
     const isPageResource = (resourcePath: string): boolean => {
       const normalizedAbsoluteResourcePath = normalizeLoaderResourcePath(resourcePath);
+      const apiRoutesPath = pagesDirPath ? path.join(pagesDirPath, 'api') : undefined;
       return (
         pagesDirPath !== undefined &&
         normalizedAbsoluteResourcePath.startsWith(pagesDirPath + path.sep) &&
-        !normalizedAbsoluteResourcePath.startsWith(apiRoutesPath + path.sep) &&
+        !(apiRoutesPath && normalizedAbsoluteResourcePath.startsWith(apiRoutesPath + path.sep)) &&
         dotPrefixedPageExtensions.some(ext => normalizedAbsoluteResourcePath.endsWith(ext))
       );
     };
 
-    const isApiRouteResource = (resourcePath: string): boolean => {
+    const isEdgeApiRouteResource = (resourcePath: string): boolean => {
       const normalizedAbsoluteResourcePath = normalizeLoaderResourcePath(resourcePath);
-      return (
-        normalizedAbsoluteResourcePath.startsWith(apiRoutesPath + path.sep) &&
-        dotPrefixedPageExtensions.some(ext => normalizedAbsoluteResourcePath.endsWith(ext))
-      );
+      const apiRoutesPath = pagesDirPath ? path.join(pagesDirPath, 'api') : undefined;
+      if (
+        !apiRoutesPath ||
+        !normalizedAbsoluteResourcePath.startsWith(apiRoutesPath + path.sep) ||
+        !dotPrefixedPageExtensions.some(ext => normalizedAbsoluteResourcePath.endsWith(ext))
+      ) {
+        return false;
+      }
+
+      // Check if the file exports a config with runtime: 'edge'
+      // We check the source file to detect edge runtime
+      try {
+        if (!fs.existsSync(normalizedAbsoluteResourcePath)) {
+          return false;
+        }
+        const fileContent = fs.readFileSync(normalizedAbsoluteResourcePath, 'utf8');
+        // Check for edge runtime in config export - handle various formats:
+        // export const config = { runtime: 'edge' }
+        // export const config = { runtime: "edge" }
+        // export const config = { runtime: `edge` }
+        // Also handle multiline and whitespace variations
+        // Match: runtime: 'edge', runtime: "edge", runtime: `edge`, or runtime:'edge' (no spaces)
+        return /runtime\s*:\s*['"`]edge['"`]/.test(fileContent);
+      } catch {
+        // If we can't read the file, assume it's not an edge route
+        return false;
+      }
     };
 
     const possibleMiddlewareLocations = pageExtensions.flatMap(middlewareFileEnding => {
@@ -237,39 +258,15 @@ export function constructWebpackConfigFunction({
         ],
       });
 
-      let vercelCronsConfig: VercelCronsConfig = undefined;
-      try {
-        if (process.env.VERCEL && userSentryOptions.automaticVercelMonitors) {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-          vercelCronsConfig = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'vercel.json'), 'utf8')).crons;
-          if (vercelCronsConfig) {
-            debug.log(
-              "[@sentry/nextjs] Creating Sentry cron monitors for your Vercel Cron Jobs. You can disable this feature by setting the 'automaticVercelMonitors' option to false in you Next.js config.",
-            );
-          }
-        }
-      } catch (e) {
-        if ((e as { code: string }).code === 'ENOENT') {
-          // noop if file does not exist
-        } else {
-          // log but noop
-          debug.error(
-            '[@sentry/nextjs] Failed to read vercel.json for automatic cron job monitoring instrumentation',
-            e,
-          );
-        }
-      }
-
-      // Wrap api routes
+      // Wrap edge API routes
       newConfig.module.rules.unshift({
-        test: isApiRouteResource,
+        test: isEdgeApiRouteResource,
         use: [
           {
             loader: path.resolve(__dirname, 'loaders', 'wrappingLoader.js'),
             options: {
               ...staticWrappingLoaderOptions,
-              vercelCronsConfig,
-              wrappingTargetKind: 'api-route',
+              wrappingTargetKind: 'edge-api-route',
             },
           },
         ],
