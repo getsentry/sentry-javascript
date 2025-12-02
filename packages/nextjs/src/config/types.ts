@@ -59,19 +59,6 @@ export type NextConfigObject = {
 
 export type SentryBuildWebpackOptions = {
   /**
-   * Include Next.js-internal code and code from dependencies when uploading source maps.
-   *
-   * Note: Enabling this option can lead to longer build times.
-   * Disabling this option will leave you without readable stacktraces for dependencies and Next.js-internal code.
-   *
-   * Defaults to `false`.
-   */
-  // Enabling this option may upload a lot of source maps and since the sourcemap upload endpoint in Sentry is super
-  // slow we don't enable it by default so that we don't opaquely increase build times for users.
-  // TODO: Add an alias to this function called "uploadSourceMapsForDependencies"
-  widenClientFileUpload?: boolean;
-
-  /**
    * Automatically instrument Next.js data fetching methods and Next.js API routes with error and performance monitoring.
    * Defaults to `true`.
    */
@@ -492,7 +479,8 @@ export type SentryBuildOptions = {
    * Disabling this option will leave you without readable stacktraces for dependencies and Next.js-internal code.
    *
    * Defaults to `false`.
-   * @deprecated Use `webpack.widenClientFileUpload` instead.
+   *
+   * This option applies to both webpack and turbopack builds.
    */
   // Enabling this option may upload a lot of source maps and since the sourcemap upload endpoint in Sentry is super
   // slow we don't enable it by default so that we don't opaquely increase build times for users.

@@ -150,12 +150,6 @@ function migrateDeprecatedWebpackOptions(userSentryOptions: SentryBuildOptions):
     deprecatedMessage('excludeServerRoutes', 'webpack.excludeServerRoutes'),
   );
 
-  webpack.widenClientFileUpload = withDeprecatedFallback(
-    webpack.widenClientFileUpload,
-    userSentryOptions.widenClientFileUpload,
-    deprecatedMessage('widenClientFileUpload', 'webpack.widenClientFileUpload'),
-  );
-
   webpack.unstable_sentryWebpackPluginOptions = withDeprecatedFallback(
     webpack.unstable_sentryWebpackPluginOptions,
     userSentryOptions.unstable_sentryWebpackPluginOptions,

@@ -387,11 +387,9 @@ describe('withSentryConfig', () => {
           expect.stringContaining('[@sentry/nextjs] DEPRECATION WARNING: disableLogger is deprecated'),
         );
         expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('Use webpack.treeshake.debugLogs instead'));
-        expect(consoleWarnSpy).toHaveBeenCalledWith(
+        // widenClientFileUpload is not deprecated as it's used for both webpack and turbopack
+        expect(consoleWarnSpy).not.toHaveBeenCalledWith(
           expect.stringContaining('[@sentry/nextjs] DEPRECATION WARNING: widenClientFileUpload is deprecated'),
-        );
-        expect(consoleWarnSpy).toHaveBeenCalledWith(
-          expect.stringContaining('Use webpack.widenClientFileUpload instead'),
         );
       });
 
@@ -403,8 +401,8 @@ describe('withSentryConfig', () => {
             treeshake: {
               debugLogs: true,
             },
-            widenClientFileUpload: true,
           },
+          widenClientFileUpload: true, // top-level option, not deprecated
         };
 
         materializeFinalNextConfig(exportedNextConfig, undefined, sentryOptions);

@@ -129,9 +129,7 @@ describe('getBuildPluginOptions', () => {
       const result = getBuildPluginOptions({
         sentryBuildOptions: {
           ...baseSentryOptions,
-          webpack: {
-            widenClientFileUpload: true,
-          },
+          widenClientFileUpload: true, // top-level option
         },
         releaseName: mockReleaseName,
         distDirAbsPath: mockDistDirAbsPath,
