@@ -1,6 +1,6 @@
-import * as Sentry from "@sentry/tanstackstart-react"
-import { createRouter } from '@tanstack/react-router'
-import { routeTree } from './routeTree.gen'
+import * as Sentry from '@sentry/tanstackstart-react';
+import { createRouter } from '@tanstack/react-router';
+import { routeTree } from './routeTree.gen';
 
 export const getRouter = () => {
   const router = createRouter({
@@ -22,4 +22,4 @@ export const getRouter = () => {
   }
 
   return router;
-}
+};

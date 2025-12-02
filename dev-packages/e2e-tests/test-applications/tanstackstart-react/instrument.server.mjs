@@ -1,4 +1,4 @@
-import * as Sentry from "@sentry/tanstackstart-react";
+import * as Sentry from '@sentry/tanstackstart-react';
 
 Sentry.init({
   environment: 'qa', // dynamic sampling bias to keep transactions
