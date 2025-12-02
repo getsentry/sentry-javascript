@@ -2,7 +2,7 @@ import * as Sentry from "@sentry/tanstackstart-react"
 import { createRouter } from '@tanstack/react-router'
 import { routeTree } from './routeTree.gen'
 
-export function getRouter() {
+export const getRouter = () => {
   const router = createRouter({
     routeTree,
     scrollRestoration: true,
@@ -24,10 +24,6 @@ export function getRouter() {
       tracesSampleRate: 1.0,
       release: 'e2e-test',
       tunnel: 'http://localhost:3031/', // proxy server
-
-      // Always capture replays, so we can test this properly
-      replaysSessionSampleRate: 1.0,
-      replaysOnErrorSampleRate: 0.0,
     });
   }
 
