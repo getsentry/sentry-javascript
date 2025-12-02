@@ -941,5 +941,8 @@ function setupTreeshakingFromConfig(
     defines.__SENTRY_EXCLUDE_REPLAY_WORKER__ = true;
   }
 
-  newConfig.plugins.push(new buildContext.webpack.DefinePlugin(defines));
+  // Only add DefinePlugin if there are actual defines to set
+  if (Object.keys(defines).length > 0) {
+    newConfig.plugins.push(new buildContext.webpack.DefinePlugin(defines));
+  }
 }
