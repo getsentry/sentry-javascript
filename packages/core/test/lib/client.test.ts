@@ -15,6 +15,7 @@ import {
 import * as integrationModule from '../../src/integration';
 import { _INTERNAL_captureLog } from '../../src/logs/internal';
 import { _INTERNAL_captureMetric } from '../../src/metrics/internal';
+import * as traceModule from '../../src/tracing/trace';
 import { DEFAULT_TRANSPORT_BUFFER_SIZE } from '../../src/transports/base';
 import type { Envelope } from '../../src/types-hoist/envelope';
 import type { ErrorEvent, Event, TransactionEvent } from '../../src/types-hoist/event';
@@ -2733,41 +2734,80 @@ describe('Client', () => {
       await expect(promise).rejects.toThrowError(error);
     });
 
-    test('accepts isolateTrace option without error', () => {
-      const result = 'foo';
-      const callback = vi.fn().mockReturnValue(result);
+    describe('isolateTrace', () => {
+      const startNewTraceSpy = vi.spyOn(traceModule, 'startNewTrace').mockImplementation(cb => cb());
 
-      const returnedResult = withMonitor('test-monitor', callback, {
-        schedule: { type: 'crontab', value: '* * * * *' },
-        isolateTrace: true,
+      beforeEach(() => {
+        startNewTraceSpy.mockClear();
       });
 
-      expect(returnedResult).toBe(result);
-      expect(callback).toHaveBeenCalledTimes(1);
-    });
+      it('starts a new trace when isolateTrace is true (sync)', () => {
+        const result = 'foo';
+        const callback = vi.fn().mockReturnValue(result);
 
-    test('works with isolateTrace set to false', () => {
-      const result = 'foo';
-      const callback = vi.fn().mockReturnValue(result);
+        const returnedResult = withMonitor('test-monitor', callback, {
+          schedule: { type: 'crontab', value: '* * * * *' },
+          isolateTrace: true,
+        });
 
-      const returnedResult = withMonitor('test-monitor', callback, {
-        schedule: { type: 'crontab', value: '* * * * *' },
-        isolateTrace: false,
+        expect(returnedResult).toBe(result);
+        expect(callback).toHaveBeenCalledTimes(1);
+        expect(startNewTraceSpy).toHaveBeenCalledTimes(1);
       });
 
-      expect(returnedResult).toBe(result);
-      expect(callback).toHaveBeenCalledTimes(1);
-    });
+      it('starts a new trace when isolateTrace is true (async)', async () => {
+        const result = 'foo';
+        const callback = vi.fn().mockResolvedValue(result);
 
-    test('handles isolateTrace with asynchronous operations', async () => {
-      const result = 'foo';
-      const callback = vi.fn().mockResolvedValue(result);
-
-      const promise = withMonitor('test-monitor', callback, {
-        schedule: { type: 'crontab', value: '* * * * *' },
-        isolateTrace: true,
+        const promise = withMonitor('test-monitor', callback, {
+          schedule: { type: 'crontab', value: '* * * * *' },
+          isolateTrace: true,
+        });
+        await expect(promise).resolves.toEqual(result);
+        expect(callback).toHaveBeenCalledTimes(1);
+        expect(startNewTraceSpy).toHaveBeenCalledTimes(1);
       });
-      await expect(promise).resolves.toEqual(result);
+
+      it("doesn't start a new trace when isolateTrace is false (sync)", () => {
+        const result = 'foo';
+        const callback = vi.fn().mockReturnValue(result);
+
+        const returnedResult = withMonitor('test-monitor', callback, {
+          schedule: { type: 'crontab', value: '* * * * *' },
+          isolateTrace: false,
+        });
+
+        expect(returnedResult).toBe(result);
+        expect(callback).toHaveBeenCalledTimes(1);
+        expect(startNewTraceSpy).not.toHaveBeenCalled();
+      });
+
+      it("doesn't start a new trace when isolateTrace is false (async)", async () => {
+        const result = 'foo';
+        const callback = vi.fn().mockResolvedValue(result);
+
+        const promise = withMonitor('test-monitor', callback, {
+          schedule: { type: 'crontab', value: '* * * * *' },
+          isolateTrace: false,
+        });
+
+        await expect(promise).resolves.toEqual(result);
+        expect(callback).toHaveBeenCalledTimes(1);
+        expect(startNewTraceSpy).not.toHaveBeenCalled();
+      });
+
+      it("doesn't start a new trace by default", () => {
+        const result = 'foo';
+        const callback = vi.fn().mockReturnValue(result);
+
+        const returnedResult = withMonitor('test-monitor', callback, {
+          schedule: { type: 'crontab', value: '* * * * *' },
+        });
+
+        expect(returnedResult).toBe(result);
+        expect(callback).toHaveBeenCalledTimes(1);
+        expect(startNewTraceSpy).not.toHaveBeenCalled();
+      });
     });
   });
 

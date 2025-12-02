@@ -46,9 +46,9 @@ describe('withMonitor isolateTrace', () => {
     expect(checkIn2Ok?.contexts?.trace?.trace_id).toMatch(/[a-f\d]{32}/);
 
     expect(checkIn1InProgress!.contexts?.trace?.trace_id).not.toBe(checkIn2InProgress!.contexts?.trace?.trace_id);
-    expect(checkIn1Ok!.contexts?.trace?.trace_id).toBe(checkIn1InProgress!.contexts?.trace?.trace_id);
+    expect(checkIn1Ok!.contexts?.trace?.span_id).not.toBe(checkIn2Ok!.contexts?.trace?.span_id);
 
-    expect(checkIn2InProgress!.contexts?.trace?.trace_id).not.toBe(checkIn1InProgress!.contexts?.trace?.trace_id);
+    expect(checkIn1Ok!.contexts?.trace?.trace_id).toBe(checkIn1InProgress!.contexts?.trace?.trace_id);
     expect(checkIn2Ok!.contexts?.trace?.trace_id).toBe(checkIn2InProgress!.contexts?.trace?.trace_id);
   });
 });
