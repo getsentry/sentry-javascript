@@ -31,7 +31,7 @@ import type { RequestEventData } from './types-hoist/request';
 import type { SdkMetadata } from './types-hoist/sdkmetadata';
 import type { Session, SessionAggregates } from './types-hoist/session';
 import type { SeverityLevel } from './types-hoist/severity';
-import type { Span, SpanAttributes, SpanContextData, SpanJSON } from './types-hoist/span';
+import type { Span, SpanAttributes, SpanContextData, SpanJSON, SpanV2JSON } from './types-hoist/span';
 import type { StartSpanOptions } from './types-hoist/startSpanOptions';
 import type { Transport, TransportMakeRequestResponse } from './types-hoist/transport';
 import { isV2BeforeSendSpanCallback } from './utils/beforeSendSpan';
@@ -621,6 +621,10 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    * Register a callback for when the span is ready to be enqueued into the span buffer.
    */
   public on(hook: 'enqueueSpan', callback: (span: Span) => void): () => void;
+  /**
+   * Register a callback for when a span is processed, to add some attributes to the span.
+   */
+  public on(hook: 'processSpan', callback: (span: Span, hint: { readOnlySpan: SpanV2JSON }) => void): () => void;
 
   /**
    * Register a callback for when an idle span is allowed to auto-finish.
@@ -897,6 +901,8 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   // Hooks reserved for Span-First span processing:
   /** Fire a hook after the `spanEnd` hook  */
   public emit(hook: 'afterSpanEnd', span: Span): void;
+  /** Fire a hook after a span is processed, to add some attributes to the span. */
+  public emit(hook: 'processSpan', span: Span, hint: { readOnlySpan: SpanV2JSON }): void;
   /** Fire a hook after the `segmentSpanEnd` hook is fired. */
   public emit(hook: 'afterSegmentSpanEnd', span: Span): void;
   /** Fire a hook after a span ready to be enqueued into the span buffer. */

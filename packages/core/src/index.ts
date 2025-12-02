@@ -91,6 +91,7 @@ export {
   showSpanDropWarning,
 } from './utils/spanUtils';
 export { captureSpan } from './spans/captureSpan';
+export { safeSetSpanAttributes } from './spans/spanFirstUtils';
 export { attributesFromObject } from './utils/attributes';
 export { _setSpanForScope as _INTERNAL_setSpanForScope } from './utils/spanOnScope';
 export { parseSampleRate } from './utils/parseSampleRate';
