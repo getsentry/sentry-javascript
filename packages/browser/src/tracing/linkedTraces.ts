@@ -177,10 +177,10 @@ export function addPreviousTraceSpanLink(
   if (Date.now() / 1000 - previousTraceInfo.startTimestamp <= PREVIOUS_TRACE_MAX_DURATION) {
     if (DEBUG_BUILD) {
       debug.log(
-        `Adding previous_trace ${previousTraceSpanCtx} link to span ${{
+        `Adding previous_trace \`${JSON.stringify(previousTraceSpanCtx)}\` link to span \`${JSON.stringify({
           op: spanJson.op,
           ...span.spanContext(),
-        }}`,
+        })}\``,
       );
     }
 
