@@ -88,6 +88,8 @@ This release adds support for `cacheComponents` on turbopack builds. We are work
 - fix(node-core): Handle custom scope in log messages without parameters ([#18322](https://github.com/getsentry/sentry-javascript/pull/18322))
 - fix(opentelemetry): Ensure Sentry spans don't leak when tracing is disabled ([#18337](https://github.com/getsentry/sentry-javascript/pull/18337))
 - fix(react-router): Use underscores in trace origin values ([#18351](https://github.com/getsentry/sentry-javascript/pull/18351))
+- chore(tanstackstart-react): Export custom inits from tanstackstart-react ([#18369](https://github.com/getsentry/sentry-javascript/pull/18369))
+- chore(tanstackstart-react)!: Remove empty placeholder implementations ([#18338](https://github.com/getsentry/sentry-javascript/pull/18338))
 
 <details>
   <summary><strong>Internal Changes</strong></summary>
@@ -96,8 +98,6 @@ This release adds support for `cacheComponents` on turbopack builds. We are work
 - chore(changelog): Add entry for [#18304](https://github.com/getsentry/sentry-javascript/pull/18304) ([#18329](https://github.com/getsentry/sentry-javascript/pull/18329))
 - chore(ci): Add action to track all PRs as issues ([#18363](https://github.com/getsentry/sentry-javascript/pull/18363))
 - chore(github): Adjust `BUGBOT.md` rules to flag invalid op and origin values during review ([#18352](https://github.com/getsentry/sentry-javascript/pull/18352))
-- chore(tanstackstart-react): Export custom inits from tanstackstart-react ([#18369](https://github.com/getsentry/sentry-javascript/pull/18369))
-- chore(tanstackstart-react)!: Remove empty placeholder implementations ([#18338](https://github.com/getsentry/sentry-javascript/pull/18338))
 - ci: Add action to create issue on gitflow merge conflicts ([#18319](https://github.com/getsentry/sentry-javascript/pull/18319))
 - ci(deps): bump actions/checkout from 5 to 6 ([#18268](https://github.com/getsentry/sentry-javascript/pull/18268))
 - ci(deps): bump peter-evans/create-pull-request from 7.0.8 to 7.0.9 ([#18361](https://github.com/getsentry/sentry-javascript/pull/18361))
