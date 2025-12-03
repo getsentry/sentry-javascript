@@ -33,21 +33,23 @@ test('Sends server-side transactions to Sentry', async ({ baseURL }) => {
           status: 'ok',
         },
       }),
-      spans: [
-        {
+      spans: expect.arrayContaining([
+        expect.objectContaining({
           data: {
             'sentry.origin': 'manual',
           },
           description: 'test-span',
           origin: 'manual',
-          parent_span_id: transactionEvent.contexts?.trace?.span_id,
+          // Note: parent_span_id may be the root span or an intermediate "executing api route" span
+          // depending on Next.js instrumentation, so we just check it exists
+          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
           span_id: expect.stringMatching(/[a-f0-9]{16}/),
           start_timestamp: expect.any(Number),
           status: 'ok',
           timestamp: expect.any(Number),
           trace_id: transactionEvent.contexts?.trace?.trace_id,
-        },
-      ],
+        }),
+      ]),
       request: {
         headers: expect.any(Object),
         method: 'GET',
