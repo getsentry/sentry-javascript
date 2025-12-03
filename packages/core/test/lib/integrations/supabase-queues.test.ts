@@ -197,6 +197,51 @@ describe('Supabase Queue Instrumentation', () => {
       expect(publishSpanCall).toBeDefined();
       expect(publishSpanCall?.[0]?.name).toBe('publish test-queue');
     });
+
+    it('should leave single-message params untouched', async () => {
+      const mockResponse: SupabaseResponse = {
+        data: [{ msg_id: 123 }],
+        status: 200,
+      };
+
+      mockRpcFunction.mockResolvedValue(mockResponse);
+      instrumentSupabaseClient(mockSupabaseClient);
+
+      const originalParams = {
+        queue_name: 'test-queue',
+        message: { foo: 'bar', nested: { value: 42 } },
+      };
+
+      await startSpan({ name: 'test-transaction' }, async () => {
+        await mockSupabaseClient.rpc('send', originalParams);
+      });
+
+      expect(originalParams.message).toEqual({ foo: 'bar', nested: { value: 42 } });
+      expect(originalParams.message).not.toHaveProperty('_sentry');
+    });
+
+    it('should leave batch params untouched', async () => {
+      const mockResponse: SupabaseResponse = {
+        data: [{ msg_id: 123 }, { msg_id: 124 }],
+        status: 200,
+      };
+
+      mockRpcFunction.mockResolvedValue(mockResponse);
+      instrumentSupabaseClient(mockSupabaseClient);
+
+      const originalParams = {
+        queue_name: 'test-queue',
+        messages: [{ foo: 'bar' }, { baz: 'qux' }],
+      };
+
+      await startSpan({ name: 'test-transaction' }, async () => {
+        await mockSupabaseClient.rpc('send_batch', originalParams);
+      });
+
+      expect(originalParams.messages).toEqual([{ foo: 'bar' }, { baz: 'qux' }]);
+      expect(originalParams.messages?.[0]).not.toHaveProperty('_sentry');
+      expect(originalParams.messages?.[1]).not.toHaveProperty('_sentry');
+    });
   });
 
   describe('Consumer Spans (pop)', () => {
@@ -515,9 +560,34 @@ describe('Supabase Queue Instrumentation', () => {
         queue_name: 'empty-queue',
       });
 
-      // Verify consumer span was still created
+      // Verify consumer span was NOT created for empty response
       const processSpanCall = startSpanSpy.mock.calls.find(call => call[0]?.op === 'queue.process');
-      expect(processSpanCall).toBeDefined();
+      expect(processSpanCall).toBeUndefined();
+    });
+
+    it('should handle null response data', async () => {
+      const mockResponse: SupabaseResponse = {
+        data: null,
+        status: 200,
+      };
+
+      mockRpcFunction.mockResolvedValue(mockResponse);
+      instrumentSupabaseClient(mockSupabaseClient);
+
+      const startSpanSpy = vi.spyOn(Tracing, 'startSpan');
+
+      const result = await mockSupabaseClient.rpc('pop', {
+        queue_name: 'empty-queue',
+      });
+
+      expect(result).toEqual(mockResponse);
+      expect(mockRpcFunction).toHaveBeenCalledWith('pop', {
+        queue_name: 'empty-queue',
+      });
+
+      // Verify consumer span was NOT created for null response
+      const processSpanCall = startSpanSpy.mock.calls.find(call => call[0]?.op === 'queue.process');
+      expect(processSpanCall).toBeUndefined();
     });
 
     it('should handle malformed _sentry metadata gracefully', async () => {
@@ -1662,19 +1732,20 @@ describe('Supabase Queue Instrumentation', () => {
   });
 
   describe('Consumer - Trace continuation and scope isolation', () => {
-    it('should create span links to producer span for distributed tracing', async () => {
-      // Producer trace context
-      const producerTraceId = '12345678901234567890123456789012';
-      const producerSpanId = '1234567890123456';
-      const sentryTrace = `${producerTraceId}-${producerSpanId}-1`;
+    const queueName = 'test_queue';
 
+    const getConsumerSpanOptions = async (
+      sentryTrace: string,
+    ): Promise<Parameters<typeof Tracing.startSpan>[0] | undefined> => {
       const consumerResponse: SupabaseResponse = {
         data: [
           {
             msg_id: 123,
             message: {
-              foo: 'bar',
-              _sentry: { sentry_trace: sentryTrace },
+              payload: 'test',
+              _sentry: {
+                sentry_trace: sentryTrace,
+              },
             },
           },
         ],
@@ -1685,25 +1756,33 @@ describe('Supabase Queue Instrumentation', () => {
       instrumentSupabaseClient(mockSupabaseClient);
 
       const startSpanSpy = vi.spyOn(Tracing, 'startSpan');
+      await mockSupabaseClient.rpc('pop', { queue_name: queueName });
 
-      await mockSupabaseClient.rpc('pop', { queue_name: 'test_queue' });
+      return startSpanSpy.mock.calls.find(call => call[0]?.op === 'queue.process')?.[0];
+    };
 
-      // Find the consumer span
-      const consumerSpanCall = startSpanSpy.mock.calls.find(call => call[0]?.op === 'queue.process');
-      expect(consumerSpanCall).toBeDefined();
+    it('links consumer spans back to producer context', async () => {
+      const producerTraceId = '12345678901234567890123456789012';
+      const producerSpanId = '1234567890123456';
+      const spanOptions = await getConsumerSpanOptions(`${producerTraceId}-${producerSpanId}-1`);
 
-      // Get the span options
-      const spanOptions = consumerSpanCall?.[0];
-
-      // Verify span links are created for distributed tracing
       expect(spanOptions?.links).toBeDefined();
       expect(spanOptions?.links).toHaveLength(1);
-      expect(spanOptions?.links?.[0].context.traceId).toBe(producerTraceId);
-      expect(spanOptions?.links?.[0].context.spanId).toBe(producerSpanId);
-      expect(spanOptions?.links?.[0].attributes?.['sentry.link.type']).toBe('queue.producer');
-
-      // Consumer span should NOT be a forced root transaction
+      const link = spanOptions?.links?.[0];
+      expect(link?.context.traceId).toBe(producerTraceId);
+      expect(link?.context.spanId).toBe(producerSpanId);
+      expect(link?.attributes?.['sentry.link.type']).toBe('queue.producer');
       expect(spanOptions?.forceTransaction).toBeUndefined();
+    });
+
+    it('propagates unsampled traceFlags', async () => {
+      const spanOptions = await getConsumerSpanOptions(`${'a'.repeat(32)}-${'b'.repeat(16)}-0`);
+      expect(spanOptions?.links?.[0]?.context?.traceFlags).toBe(0);
+    });
+
+    it('propagates sampled traceFlags', async () => {
+      const spanOptions = await getConsumerSpanOptions(`${'c'.repeat(32)}-${'d'.repeat(16)}-1`);
+      expect(spanOptions?.links?.[0]?.context?.traceFlags).toBe(1);
     });
 
     it('should not pollute scope after consumer span completes', async () => {
@@ -1875,6 +1954,143 @@ describe('Supabase Queue Instrumentation', () => {
 
       // The underlying mock RPC function should only be called once
       expect(mockRpcFunction).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('Message Immutability', () => {
+    it('should not mutate the original message params object when sending', async () => {
+      const mockResponse: SupabaseResponse = {
+        data: [{ msg_id: 123 }],
+        status: 200,
+      };
+
+      mockRpcFunction.mockResolvedValue(mockResponse);
+      instrumentSupabaseClient(mockSupabaseClient);
+
+      // Create the original params object
+      const originalMessage = { foo: 'bar', nested: { value: 42 } };
+      const originalParams = {
+        queue_name: 'test-queue',
+        message: originalMessage,
+      };
+
+      // Store original state
+      const originalMessageCopy = JSON.stringify(originalMessage);
+
+      await startSpan({ name: 'test-transaction' }, async () => {
+        await mockSupabaseClient.rpc('send', originalParams);
+      });
+
+      // Verify the original message was NOT mutated
+      expect(JSON.stringify(originalMessage)).toBe(originalMessageCopy);
+      expect(originalMessage).not.toHaveProperty('_sentry');
+    });
+
+    it('should not mutate the original batch messages array when sending', async () => {
+      const mockResponse: SupabaseResponse = {
+        data: [{ msg_id: 123 }, { msg_id: 124 }],
+        status: 200,
+      };
+
+      mockRpcFunction.mockResolvedValue(mockResponse);
+      instrumentSupabaseClient(mockSupabaseClient);
+
+      // Create the original params object
+      const originalMessages = [{ foo: 'bar' }, { baz: 'qux' }];
+      const originalParams = {
+        queue_name: 'test-queue',
+        messages: originalMessages,
+      };
+
+      // Store original state
+      const originalMessagesCopy = JSON.stringify(originalMessages);
+
+      await startSpan({ name: 'test-transaction' }, async () => {
+        await mockSupabaseClient.rpc('send_batch', originalParams);
+      });
+
+      // Verify the original messages array was NOT mutated
+      expect(JSON.stringify(originalMessages)).toBe(originalMessagesCopy);
+      expect(originalMessages[0]).not.toHaveProperty('_sentry');
+      expect(originalMessages[1]).not.toHaveProperty('_sentry');
+    });
+  });
+
+  describe('TraceFlags Edge Cases', () => {
+    it('should set traceFlags to 0 when parentSampled is false', async () => {
+      const producerTraceId = 'a'.repeat(32);
+      const producerSpanId = 'b'.repeat(16);
+      // parentSampled = 0 (not sampled)
+      const sentryTrace = `${producerTraceId}-${producerSpanId}-0`;
+
+      const mockResponse: SupabaseResponse = {
+        data: [
+          {
+            msg_id: 123,
+            message: {
+              foo: 'bar',
+              _sentry: {
+                sentry_trace: sentryTrace,
+                baggage: 'sentry-environment=production',
+              },
+            },
+          },
+        ],
+        status: 200,
+      };
+
+      mockRpcFunction.mockResolvedValue(mockResponse);
+      instrumentSupabaseClient(mockSupabaseClient);
+
+      const startSpanSpy = vi.spyOn(Tracing, 'startSpan');
+
+      await mockSupabaseClient.rpc('pop', {
+        queue_name: 'test-queue',
+      });
+
+      const consumerSpanCall = startSpanSpy.mock.calls.find(call => call[0]?.op === 'queue.process');
+      expect(consumerSpanCall).toBeDefined();
+
+      const producerLink = consumerSpanCall?.[0]?.links?.[0];
+      expect(producerLink?.context?.traceFlags).toBe(0);
+    });
+
+    it('should set traceFlags to 1 when parentSampled is true', async () => {
+      const producerTraceId = 'c'.repeat(32);
+      const producerSpanId = 'd'.repeat(16);
+      // parentSampled = 1 (sampled)
+      const sentryTrace = `${producerTraceId}-${producerSpanId}-1`;
+
+      const mockResponse: SupabaseResponse = {
+        data: [
+          {
+            msg_id: 456,
+            message: {
+              data: 'test',
+              _sentry: {
+                sentry_trace: sentryTrace,
+                baggage: 'sentry-environment=staging',
+              },
+            },
+          },
+        ],
+        status: 200,
+      };
+
+      mockRpcFunction.mockResolvedValue(mockResponse);
+      instrumentSupabaseClient(mockSupabaseClient);
+
+      const startSpanSpy = vi.spyOn(Tracing, 'startSpan');
+
+      await mockSupabaseClient.rpc('pop', {
+        queue_name: 'test-queue',
+      });
+
+      const consumerSpanCall = startSpanSpy.mock.calls.find(call => call[0]?.op === 'queue.process');
+      expect(consumerSpanCall).toBeDefined();
+
+      const producerLink = consumerSpanCall?.[0]?.links?.[0];
+      expect(producerLink?.context?.traceFlags).toBe(1);
     });
   });
 });
