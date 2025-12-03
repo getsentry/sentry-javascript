@@ -5,6 +5,7 @@ test('should report healthy sessions', async ({ page }) => {
   test.skip(process.env.TEST_ENV === 'development', 'test is flakey in dev mode');
 
   const sessionPromise = waitForSession('nextjs-13', session => {
+    console.log('session', session);
     return session.init === true && session.status === 'ok' && session.errors === 0;
   });
 

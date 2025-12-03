@@ -39,11 +39,11 @@ cases.forEach(({ name, url, transactionName }) => {
           data: {
             'http.response.status_code': 200,
             'sentry.op': 'http.server',
-            'sentry.origin': 'auto.http.nextjs',
+            'sentry.origin': 'auto',
             'sentry.source': 'route',
           },
           op: 'http.server',
-          origin: 'auto.http.nextjs',
+          origin: 'auto',
           span_id: expect.stringMatching(/[a-f0-9]{16}/),
           status: 'ok',
           trace_id: expect.stringMatching(/[a-f0-9]{32}/),
