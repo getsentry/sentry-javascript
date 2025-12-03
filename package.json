@@ -122,7 +122,7 @@
     "prettier": "^3.6.2",
     "prettier-plugin-astro": "^0.14.1",
     "rimraf": "^5.0.10",
-    "rolldown": "https://pkg.pr.new/rolldown@ba60fcc",
+    "rolldown": "^1.0.0-beta.53",
     "size-limit": "~11.1.6",
     "ts-node": "10.9.1",
     "typescript": "~5.8.0",
