@@ -1,11 +1,4 @@
-import {
-  captureException,
-  debug,
-  getCurrentScope,
-  getIsolationScope,
-  httpRequestToRequestData,
-  objectify,
-} from '@sentry/core';
+import { captureException, debug, getIsolationScope, httpRequestToRequestData, objectify } from '@sentry/core';
 import type { NextApiRequest } from 'next';
 import type { AugmentedNextApiResponse, NextApiHandler } from '../types';
 import { flushSafelyWithTimeout } from '../utils/responseEnd';
@@ -50,12 +43,13 @@ export function wrapApiHandlerWithSentry(apiHandler: NextApiHandler, parameteriz
 
         req.__withSentry_applied__ = true;
 
-        // Set transaction name even without tracing to ensure parameterized routes are used
+        // Set transaction name on isolation scope to ensure parameterized routes are used
+        // The HTTP server integration sets it on isolation scope, so we need to match that
         const method = req.method || 'GET';
-        getCurrentScope().setTransactionName(`${method} ${parameterizedRoute}`);
-
+        const isolationScope = getIsolationScope();
+        isolationScope.setTransactionName(`${method} ${parameterizedRoute}`);
         // Set SDK processing metadata
-        getIsolationScope().setSDKProcessingMetadata({
+        isolationScope.setSDKProcessingMetadata({
           normalizedRequest: httpRequestToRequestData(req),
         });
 
