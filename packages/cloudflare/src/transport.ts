@@ -2,6 +2,8 @@ import type { BaseTransportOptions, Transport, TransportMakeRequestResponse, Tra
 import { createTransport, SENTRY_BUFFER_FULL_ERROR, suppressTracing } from '@sentry/core';
 
 export interface CloudflareTransportOptions extends BaseTransportOptions {
+  /** Custom fetch function to use. This allows usage of things like Workers VPC */
+  fetch?: typeof fetch;
   /** Fetch API init parameters. */
   fetchOptions?: RequestInit;
 }
@@ -87,7 +89,7 @@ export function makeCloudflareTransport(options: CloudflareTransportOptions): Tr
     };
 
     return suppressTracing(() => {
-      return fetch(options.url, requestOptions).then(response => {
+      return (options.fetch ?? fetch)(options.url, requestOptions).then(response => {
         return {
           statusCode: response.status,
           headers: {

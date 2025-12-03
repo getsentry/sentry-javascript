@@ -19,11 +19,11 @@ test.describe('server - performance', () => {
           trace_id: expect.any(String),
           data: {
             'sentry.op': 'http.server',
-            'sentry.origin': 'auto.http.react-router.request-handler',
+            'sentry.origin': 'auto.http.react_router.request_handler',
             'sentry.source': 'route',
           },
           op: 'http.server',
-          origin: 'auto.http.react-router.request-handler',
+          origin: 'auto.http.react_router.request_handler',
         },
       },
       spans: expect.any(Array),
@@ -70,11 +70,11 @@ test.describe('server - performance', () => {
           trace_id: expect.any(String),
           data: {
             'sentry.op': 'http.server',
-            'sentry.origin': 'auto.http.react-router.request-handler',
+            'sentry.origin': 'auto.http.react_router.request_handler',
             'sentry.source': 'route',
           },
           op: 'http.server',
-          origin: 'auto.http.react-router.request-handler',
+          origin: 'auto.http.react_router.request_handler',
         },
       },
       spans: expect.any(Array),
@@ -121,7 +121,7 @@ test.describe('server - performance', () => {
       span_id: expect.any(String),
       trace_id: expect.any(String),
       data: {
-        'sentry.origin': 'auto.http.react-router',
+        'sentry.origin': 'auto.http.react_router',
         'sentry.op': 'function.react-router.loader',
       },
       description: 'Executing Server Loader',
@@ -130,7 +130,7 @@ test.describe('server - performance', () => {
       timestamp: expect.any(Number),
       status: 'ok',
       op: 'function.react-router.loader',
-      origin: 'auto.http.react-router',
+      origin: 'auto.http.react_router',
     });
   });
 
@@ -149,7 +149,7 @@ test.describe('server - performance', () => {
       span_id: expect.any(String),
       trace_id: expect.any(String),
       data: {
-        'sentry.origin': 'auto.http.react-router',
+        'sentry.origin': 'auto.http.react_router',
         'sentry.op': 'function.react-router.action',
       },
       description: 'Executing Server Action',
@@ -158,7 +158,7 @@ test.describe('server - performance', () => {
       timestamp: expect.any(Number),
       status: 'ok',
       op: 'function.react-router.action',
-      origin: 'auto.http.react-router',
+      origin: 'auto.http.react_router',
     });
   });
 });

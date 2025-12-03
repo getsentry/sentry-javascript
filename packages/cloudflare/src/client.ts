@@ -1,5 +1,6 @@
 import type { ClientOptions, Options, ServerRuntimeClientOptions } from '@sentry/core';
-import { applySdkMetadata, ServerRuntimeClient } from '@sentry/core';
+import { applySdkMetadata, debug, ServerRuntimeClient } from '@sentry/core';
+import { DEBUG_BUILD } from './debug-build';
 import type { makeFlushLock } from './flush';
 import type { CloudflareTransportOptions } from './transport';
 
@@ -11,6 +12,9 @@ import type { CloudflareTransportOptions } from './transport';
  */
 export class CloudflareClient extends ServerRuntimeClient {
   private readonly _flushLock: ReturnType<typeof makeFlushLock> | void;
+  private _pendingSpans: Set<string> = new Set();
+  private _spanCompletionPromise: Promise<void> | null = null;
+  private _resolveSpanCompletion: (() => void) | null = null;
 
   /**
    * Creates a new Cloudflare SDK instance.
@@ -31,11 +35,39 @@ export class CloudflareClient extends ServerRuntimeClient {
 
     super(clientOptions);
     this._flushLock = flushLock;
+
+    // Track span lifecycle to know when to flush
+    this.on('spanStart', span => {
+      const spanId = span.spanContext().spanId;
+      DEBUG_BUILD && debug.log('[CloudflareClient] Span started:', spanId);
+      this._pendingSpans.add(spanId);
+
+      if (!this._spanCompletionPromise) {
+        this._spanCompletionPromise = new Promise(resolve => {
+          this._resolveSpanCompletion = resolve;
+        });
+      }
+    });
+
+    this.on('spanEnd', span => {
+      const spanId = span.spanContext().spanId;
+      DEBUG_BUILD && debug.log('[CloudflareClient] Span ended:', spanId);
+      this._pendingSpans.delete(spanId);
+
+      // If no more pending spans, resolve the completion promise
+      if (this._pendingSpans.size === 0 && this._resolveSpanCompletion) {
+        DEBUG_BUILD && debug.log('[CloudflareClient] All spans completed, resolving promise');
+        this._resolveSpanCompletion();
+        this._resetSpanCompletionPromise();
+      }
+    });
   }
 
   /**
    * Flushes pending operations and ensures all data is processed.
    * If a timeout is provided, the operation will be completed within the specified time limit.
+   *
+   * It will wait for all pending spans to complete before flushing.
    *
    * @param {number} [timeout] - Optional timeout in milliseconds to force the completion of the flush operation.
    * @return {Promise<boolean>} A promise that resolves to a boolean indicating whether the flush operation was successful.
@@ -44,7 +76,36 @@ export class CloudflareClient extends ServerRuntimeClient {
     if (this._flushLock) {
       await this._flushLock.finalize();
     }
+
+    if (this._pendingSpans.size > 0 && this._spanCompletionPromise) {
+      DEBUG_BUILD &&
+        debug.log('[CloudflareClient] Waiting for', this._pendingSpans.size, 'pending spans to complete...');
+
+      const timeoutMs = timeout ?? 5000;
+      const spanCompletionRace = Promise.race([
+        this._spanCompletionPromise,
+        new Promise(resolve =>
+          setTimeout(() => {
+            DEBUG_BUILD &&
+              debug.log('[CloudflareClient] Span completion timeout after', timeoutMs, 'ms, flushing anyway');
+            resolve(undefined);
+          }, timeoutMs),
+        ),
+      ]);
+
+      await spanCompletionRace;
+    }
+
     return super.flush(timeout);
+  }
+
+  /**
+   * Resets the span completion promise and resolve function.
+   */
+  private _resetSpanCompletionPromise(): void {
+    this._pendingSpans.clear();
+    this._spanCompletionPromise = null;
+    this._resolveSpanCompletion = null;
   }
 }
 

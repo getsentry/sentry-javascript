@@ -16,6 +16,8 @@ const reexportedPluggableIntegrationFiles = [
   'instrumentanthropicaiclient',
   'instrumentopenaiclient',
   'instrumentgooglegenaiclient',
+  'instrumentlanggraph',
+  'createlangchaincallbackhandler',
 ];
 
 browserPluggableIntegrationFiles.forEach(integrationName => {

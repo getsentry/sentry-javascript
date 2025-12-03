@@ -1,4 +1,4 @@
-import { type Mock, beforeEach, describe, expect, it, test, vi } from 'vitest';
+import { beforeEach, describe, expect, it, type Mock, test, vi } from 'vitest';
 import type { Client } from '../../src/client';
 import { getCurrentScope } from '../../src/currentScopes';
 import { captureCheckIn } from '../../src/exports';
