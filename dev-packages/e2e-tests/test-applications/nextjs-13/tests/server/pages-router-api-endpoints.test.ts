@@ -69,7 +69,7 @@ test('Should report an error event for errors thrown in pages router api routes'
     request: {
       headers: expect.any(Object),
       method: 'GET',
-      url: expect.stringMatching(/^\/api\/foo\/failure-api-route$/),
+      url: expect.stringMatching(/^http.*\/api\/foo\/failure-api-route$/),
     },
     start_timestamp: expect.any(Number),
     timestamp: expect.any(Number),
@@ -112,7 +112,7 @@ test('Should report a transaction event for a successful pages router api route'
     request: {
       headers: expect.any(Object),
       method: 'GET',
-      url: expect.stringMatching(/^\/api\/foo\/success-api-route$/),
+      url: expect.stringMatching(/^http.*\/api\/foo\/success-api-route$/),
     },
     start_timestamp: expect.any(Number),
     timestamp: expect.any(Number),
