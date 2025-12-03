@@ -28,6 +28,14 @@ function Home() {
       >
         Break server function
       </button>
+      <button
+        type="button"
+        onClick={async () => {
+          await fetch('/api/error');
+        }}
+      >
+        Break API route
+      </button>
     </div>
   );
 }

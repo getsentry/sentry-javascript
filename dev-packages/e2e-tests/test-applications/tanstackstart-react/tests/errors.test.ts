@@ -60,3 +60,33 @@ test('Sends server-side function error to Sentry with auto-instrumentation', asy
 
   expect(errorEvent.transaction).toBe('/');
 });
+
+test('Sends API route error to Sentry if manually instrumented', async ({ page }) => {
+  const errorEventPromise = waitForError('tanstackstart-react', errorEvent => {
+    return errorEvent?.exception?.values?.[0]?.value === 'Sentry API Route Test Error';
+  });
+
+  await page.goto(`/`);
+
+  await expect(page.locator('button').filter({ hasText: 'Break API route' })).toBeVisible();
+
+  await page.locator('button').filter({ hasText: 'Break API route' }).click();
+
+  const errorEvent = await errorEventPromise;
+
+  expect(errorEvent).toMatchObject({
+    exception: {
+      values: [
+        {
+          type: 'Error',
+          value: 'Sentry API Route Test Error',
+          mechanism: {
+            handled: true,
+          },
+        },
+      ],
+    },
+  });
+
+  expect(errorEvent.transaction).toBe('GET /api/error');
+});
