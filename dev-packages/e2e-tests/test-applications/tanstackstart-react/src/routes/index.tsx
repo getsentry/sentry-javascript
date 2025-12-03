@@ -1,4 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router';
+import { createServerFn } from '@tanstack/react-start';
+
+const throwServerError = createServerFn().handler(async () => {
+  throw new Error('Sentry Server Function Test Error');
+});
 
 export const Route = createFileRoute('/')({
   component: Home,
@@ -6,13 +11,23 @@ export const Route = createFileRoute('/')({
 
 function Home() {
   return (
-    <button
-      type="button"
-      onClick={() => {
-        throw new Error('Sentry Test Error');
-      }}
-    >
-      Break the world
-    </button>
+    <div>
+      <button
+        type="button"
+        onClick={() => {
+          throw new Error('Sentry Client Test Error');
+        }}
+      >
+        Break the client
+      </button>
+      <button
+        type="button"
+        onClick={async () => {
+          await throwServerError();
+        }}
+      >
+        Break server function
+      </button>
+    </div>
   );
 }
