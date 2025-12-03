@@ -22,11 +22,11 @@ test('Sends server-side transactions to Sentry', async ({ baseURL }) => {
           span_id: expect.stringMatching(/[a-f0-9]{16}/),
           trace_id: expect.stringMatching(/[a-f0-9]{32}/),
           op: 'http.server',
-          origin: 'auto.http.nextjs',
+          origin: 'auto',
           data: expect.objectContaining({
             'http.response.status_code': 200,
             'sentry.op': 'http.server',
-            'sentry.origin': 'auto.http.nextjs',
+            'sentry.origin': 'auto',
             'sentry.sample_rate': 1,
             'sentry.source': 'route',
           }),
