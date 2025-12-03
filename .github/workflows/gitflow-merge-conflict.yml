@@ -19,6 +19,7 @@ jobs:
         uses: actions/github-script@v8
         with:
           script: |
+            const initialDelay = 60_000; // Wait 1 minute before first check to let CI start
             const retryInterval = 30_000;
             const maxRetries = 10; // (30 seconds * 10 retries) = 5 minutes
 
@@ -38,6 +39,10 @@ jobs:
 
             let attempt = 0;
             let mergeable = null;
+
+            // Wait before first check to give CI time to start
+            console.log(`Waiting ${initialDelay/1000} seconds before first check to let CI start...`);
+            await sleep(initialDelay);
 
             while (attempt < maxRetries) {
               attempt++;
