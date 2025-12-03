@@ -3,17 +3,16 @@ import { defineIntegration, OPENAI_INTEGRATION_NAME } from '@sentry/core';
 import { generateInstrumentOnce } from '@sentry/node-core';
 import { SentryOpenAiInstrumentation } from './instrumentation';
 
-export const instrumentOpenAi = generateInstrumentOnce(
+export const instrumentOpenAi = generateInstrumentOnce<OpenAiOptions>(
   OPENAI_INTEGRATION_NAME,
-  () => new SentryOpenAiInstrumentation({}),
+  options => new SentryOpenAiInstrumentation(options),
 );
 
 const _openAiIntegration = ((options: OpenAiOptions = {}) => {
   return {
     name: OPENAI_INTEGRATION_NAME,
-    options,
     setupOnce() {
-      instrumentOpenAi();
+      instrumentOpenAi(options);
     },
   };
 }) satisfies IntegrationFn;

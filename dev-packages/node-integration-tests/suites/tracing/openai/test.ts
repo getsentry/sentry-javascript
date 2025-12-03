@@ -454,7 +454,7 @@ describe('OpenAI integration', () => {
     });
   });
 
-  createEsmAndCjsTests(__dirname, 'scenario-root-span.mjs', 'instrument.mjs', (createRunner, test) => {
+  createEsmAndCjsTests(__dirname, 'scenario-root-span.mjs', 'instrument-root-span.mjs', (createRunner, test) => {
     test('it works without a wrapping span', async () => {
       await createRunner()
         // First the span that our mock express server is emitting, unrelated to this test
