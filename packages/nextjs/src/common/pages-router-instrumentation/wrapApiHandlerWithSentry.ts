@@ -54,9 +54,10 @@ export function wrapApiHandlerWithSentry(apiHandler: NextApiHandler, parameteriz
         const method = req.method || 'GET';
         getCurrentScope().setTransactionName(`${method} ${parameterizedRoute}`);
 
-        // Set SDK processing metadata for session tracking (needed even without tracing)
-        const normalizedRequest = httpRequestToRequestData(req);
-        getIsolationScope().setSDKProcessingMetadata({ normalizedRequest });
+        // Set SDK processing metadata
+        getIsolationScope().setSDKProcessingMetadata({
+          normalizedRequest: httpRequestToRequestData(req),
+        });
 
         return await wrappingTarget.apply(thisArg, args);
       } catch (e) {
