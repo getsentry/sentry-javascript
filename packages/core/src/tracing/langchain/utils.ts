@@ -385,7 +385,17 @@ export function extractLlmResponseAttributes(
   if (Array.isArray(llmResult.generations)) {
     const finishReasons = llmResult.generations
       .flat()
-      .map(g => g.generation_info?.finish_reason)
+      .map(g => {
+        // v1 uses generationInfo.finish_reason
+        if (g.generationInfo?.finish_reason) {
+          return g.generationInfo.finish_reason;
+        }
+        // v0.3+ uses generation_info.finish_reason
+        if (g.generation_info?.finish_reason) {
+          return g.generation_info.finish_reason;
+        }
+        return null;
+      })
       .filter((r): r is string => typeof r === 'string');
 
     if (finishReasons.length > 0) {
@@ -409,17 +419,27 @@ export function extractLlmResponseAttributes(
 
   addTokenUsageAttributes(llmResult.llmOutput, attrs);
 
-  const llmOutput = llmResult.llmOutput as { model_name?: string; model?: string; id?: string; stop_reason?: string };
+  const llmOutput = llmResult.llmOutput;
+
+  // Extract from v1 generations structure if available
+  const firstGeneration = llmResult.generations?.[0]?.[0];
+  const v1Message = firstGeneration?.message;
+
   // Provider model identifier: `model_name` (OpenAI-style) or `model` (others)
-  const modelName = llmOutput?.model_name ?? llmOutput?.model;
+  // v1 stores this in message.response_metadata.model_name
+  const modelName = llmOutput?.model_name ?? llmOutput?.model ?? v1Message?.response_metadata?.model_name;
   if (modelName) setIfDefined(attrs, GEN_AI_RESPONSE_MODEL_ATTRIBUTE, modelName);
 
-  if (llmOutput?.id) {
-    setIfDefined(attrs, GEN_AI_RESPONSE_ID_ATTRIBUTE, llmOutput.id);
+  // Response ID: v1 stores this in message.id
+  const responseId = llmOutput?.id ?? v1Message?.id;
+  if (responseId) {
+    setIfDefined(attrs, GEN_AI_RESPONSE_ID_ATTRIBUTE, responseId);
   }
 
-  if (llmOutput?.stop_reason) {
-    setIfDefined(attrs, GEN_AI_RESPONSE_STOP_REASON_ATTRIBUTE, asString(llmOutput.stop_reason));
+  // Stop reason: v1 stores this in message.response_metadata.finish_reason
+  const stopReason = llmOutput?.stop_reason ?? v1Message?.response_metadata?.finish_reason;
+  if (stopReason) {
+    setIfDefined(attrs, GEN_AI_RESPONSE_STOP_REASON_ATTRIBUTE, asString(stopReason));
   }
 
   return attrs;

@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import {
-  type Scope,
   captureException,
   flush,
   getClient,
   isThenable,
+  type Scope,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startSpan,

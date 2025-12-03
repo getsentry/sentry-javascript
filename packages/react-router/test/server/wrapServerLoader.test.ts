@@ -30,7 +30,7 @@ describe('wrapServerLoader', () => {
       {
         name: 'Executing Server Loader',
         attributes: {
-          [core.SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react-router.loader',
+          [core.SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react_router.loader',
           [core.SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.react-router.loader',
         },
       },
@@ -60,7 +60,7 @@ describe('wrapServerLoader', () => {
       {
         name: 'Custom Loader',
         attributes: {
-          [core.SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react-router.loader',
+          [core.SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react_router.loader',
           [core.SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.react-router.loader',
           'sentry.custom': 'value',
         },
