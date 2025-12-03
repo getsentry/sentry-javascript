@@ -431,4 +431,5 @@ function sdkAlreadyInitialized(): boolean {
 
 export * from '../common';
 
+// eslint-disable-next-line max-lines
 export { wrapApiHandlerWithSentry } from '../common/pages-router-instrumentation/wrapApiHandlerWithSentry';
