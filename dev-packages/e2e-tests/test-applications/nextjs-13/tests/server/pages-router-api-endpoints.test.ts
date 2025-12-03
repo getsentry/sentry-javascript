@@ -8,7 +8,7 @@ test('Should report an error event for errors thrown in pages router api routes'
 
   const transactionEventPromise = waitForTransaction('nextjs-13', transactionEvent => {
     return (
-      transactionEvent.transaction === 'GET /api/[param]/failure-api-route' &&
+      transactionEvent.transaction === 'GET /api/foo/failure-api-route' &&
       transactionEvent.contexts?.trace?.op === 'http.server'
     );
   });
