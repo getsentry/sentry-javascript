@@ -57,7 +57,7 @@
     "access": "public"
   },
   "peerDependencies": {
-    "@solidjs/router": "^0.13.4",
+    "@solidjs/router": "^0.13.4 || ^0.14.0 || ^0.15.0",
     "@solidjs/start": "^1.0.0"
   },
   "peerDependenciesMeta": {
@@ -72,7 +72,7 @@
     "@sentry/vite-plugin": "^4.1.0"
   },
   "devDependencies": {
-    "@solidjs/router": "^0.13.4",
+    "@solidjs/router": "^0.15.0",
     "@solidjs/start": "^1.0.0",
     "@solidjs/testing-library": "0.8.5",
     "@testing-library/jest-dom": "^6.4.5",
