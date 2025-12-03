@@ -1,6 +1,6 @@
 import * as Sentry from '@sentry/node';
-import OpenAI from 'openai';
 import express from 'express';
+import OpenAI from 'openai';
 
 function startMockServer() {
   const app = express();
