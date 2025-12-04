@@ -9,12 +9,10 @@ export default function SpotlightEnvTestPage() {
 
   useEffect(() => {
     // Check environment variables
-    // @ts-expect-error - accessing process.env for testing
-    const processEnv = typeof process !== 'undefined' && process.env ? process.env : {};
+    const processEnv = typeof process !== 'undefined' && process.env ? process.env : ({} as Record<string, string>);
 
     setEnvVars({
       NEXT_PUBLIC_SENTRY_SPOTLIGHT: processEnv.NEXT_PUBLIC_SENTRY_SPOTLIGHT,
-      // @ts-expect-error - SENTRY_SPOTLIGHT should not be accessible in browser
       SENTRY_SPOTLIGHT: processEnv.SENTRY_SPOTLIGHT,
     });
 
