@@ -231,29 +231,41 @@ function instrumentMethod<T extends unknown[], R>(
       // Attach side-effect handlers without transforming the Promise
       // This preserves the original APIPromise type and its methods like .withResponse()
       if (isThenable(result)) {
-        Promise.resolve(result).then(
-          res => {
-            addResponseAttributes(span, res as OpenAiResponse, options.recordOutputs);
-            span.end();
-          },
-          err => {
-            captureException(err, {
-              mechanism: {
-                handled: false,
-                type: 'auto.ai.openai',
-                data: {
-                  function: methodPath,
+        Promise.resolve(result)
+          .then(
+            res => {
+              try {
+                addResponseAttributes(span, res as OpenAiResponse, options.recordOutputs);
+              } catch {
+                // Ignore attribute processing errors - they shouldn't affect the original Promise
+                // The span will still be ended in finally()
+              }
+            },
+            err => {
+              captureException(err, {
+                mechanism: {
+                  handled: false,
+                  type: 'auto.ai.openai',
+                  data: {
+                    function: methodPath,
+                  },
                 },
-              },
-            });
-            span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+              });
+              span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+            },
+          )
+          .finally(() => {
             span.end();
-          },
-        );
+          });
       } else {
         // Synchronous result (unlikely for OpenAI API but handle it)
-        addResponseAttributes(span, result as OpenAiResponse, options.recordOutputs);
-        span.end();
+        try {
+          addResponseAttributes(span, result as OpenAiResponse, options.recordOutputs);
+        } catch {
+          // Ignore attribute processing errors
+        } finally {
+          span.end();
+        }
       }
 
       // Return the original Promise (APIPromise) with all its methods intact
