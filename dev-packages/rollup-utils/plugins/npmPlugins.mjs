@@ -144,6 +144,58 @@ export function makeProductionReplacePlugin() {
 }
 
 /**
+ * Creates a plugin to strip ESM-only code from CJS bundles.
+ * ESM-only code should be wrapped in special comments:
+ * /* rollup-esm-only *\/ ... /* rollup-esm-only-end *\/
+ *
+ * This is necessary for code that uses `import.meta` which causes syntax errors in CJS.
+ *
+ * @returns A rollup plugin that removes ESM-only blocks from CJS bundles.
+ */
+export function makeStripEsmPlugin() {
+  const pattern = /\/\* rollup-esm-only \*\/[\s\S]*?\/\* rollup-esm-only-end \*\/\s*/g;
+
+  function stripEsmBlocks(code) {
+    if (!code) return null;
+    if (!code.includes('rollup-esm-only')) return null;
+    const replaced = code.replace(pattern, '');
+    return { code: replaced, map: null };
+  }
+
+  return {
+    name: 'strip-esm-only-blocks',
+    renderChunk(code) {
+      return stripEsmBlocks(code);
+    },
+  };
+}
+
+/**
+ * Creates a plugin to strip CJS-only code from ESM bundles.
+ * CJS-only code should be wrapped in special comments:
+ * /* rollup-cjs-only *\/ ... /* rollup-cjs-only-end *\/
+ *
+ * @returns A rollup plugin that removes CJS-only blocks from ESM bundles.
+ */
+export function makeStripCjsPlugin() {
+  const pattern = /\/\* rollup-cjs-only \*\/[\s\S]*?\/\* rollup-cjs-only-end \*\/\s*/g;
+
+  function stripCjsBlocks(code) {
+    if (!code) return null;
+    if (!code.includes('rollup-cjs-only')) return null;
+    const replaced = code.replace(pattern, '');
+    return { code: replaced, map: null };
+  }
+
+  return {
+    name: 'strip-cjs-only-blocks',
+    renderChunk(code) {
+      return stripCjsBlocks(code);
+    },
+  };
+}
+
+/**
  * Creates a plugin to replace build flags of rrweb with either a constant (if passed true/false) or with a safe statement that:
  * a) evaluates to `true`
  * b) can easily be modified by our users' bundlers to evaluate to false, facilitating the treeshaking of logger code.

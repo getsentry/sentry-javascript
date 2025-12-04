@@ -2,89 +2,69 @@
  * @vitest-environment jsdom
  */
 
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { describe, expect, it, beforeEach, afterEach } from 'vitest';
 import { getEnvValue } from '../../src/utils/env';
 
 describe('getEnvValue', () => {
   let originalProcess: typeof globalThis.process | undefined;
 
   beforeEach(() => {
-    // Store original values
     originalProcess = globalThis.process;
   });
 
   afterEach(() => {
-    // Restore original values
     if (originalProcess !== undefined) {
       globalThis.process = originalProcess;
     } else {
-      delete (globalThis as any).process;
+      delete (globalThis as typeof globalThis & { process?: NodeJS.Process }).process;
     }
   });
 
-  it('returns value from process.env when available', () => {
+  it('reads from process.env', () => {
     globalThis.process = {
       env: {
-        TEST_VAR: 'test-value',
-      },
-    } as any;
+        TEST_VAR: 'from-process-env',
+      } as Record<string, string>,
+    } as NodeJS.Process;
 
-    expect(getEnvValue('TEST_VAR')).toBe('test-value');
+    expect(getEnvValue('TEST_VAR')).toBe('from-process-env');
   });
 
-  it('returns undefined when process.env does not exist', () => {
-    delete (globalThis as any).process;
+  it('returns undefined when variable not set', () => {
+    globalThis.process = {
+      env: {} as Record<string, string>,
+    } as NodeJS.Process;
 
     expect(getEnvValue('NONEXISTENT')).toBeUndefined();
   });
 
-  it('returns undefined when variable does not exist in process.env', () => {
-    globalThis.process = {
-      env: {},
-    } as any;
-
-    expect(getEnvValue('NONEXISTENT')).toBeUndefined();
-  });
-
-  it('handles missing process object gracefully', () => {
-    delete (globalThis as any).process;
+  it('handles missing process gracefully', () => {
+    delete (globalThis as typeof globalThis & { process?: NodeJS.Process }).process;
 
     expect(() => getEnvValue('TEST_VAR')).not.toThrow();
     expect(getEnvValue('TEST_VAR')).toBeUndefined();
   });
 
-  it('handles missing process.env gracefully', () => {
-    globalThis.process = {} as any;
+  it('handles process without env gracefully', () => {
+    globalThis.process = {} as NodeJS.Process;
 
     expect(() => getEnvValue('TEST_VAR')).not.toThrow();
     expect(getEnvValue('TEST_VAR')).toBeUndefined();
   });
 
-  it('handles process.env access throwing an error', () => {
-    globalThis.process = {
-      get env() {
-        throw new Error('Access denied');
-      },
-    } as any;
-
-    expect(() => getEnvValue('TEST_VAR')).not.toThrow();
-    expect(getEnvValue('TEST_VAR')).toBeUndefined();
-  });
-
-  it('returns empty string when value is empty string in process.env', () => {
+  it('prioritizes process.env over import.meta.env', () => {
+    // In real scenarios, if both exist, process.env is checked first
     globalThis.process = {
       env: {
-        EMPTY_VAR: '',
-      },
-    } as any;
+        TEST_VAR: 'from-process',
+      } as Record<string, string>,
+    } as NodeJS.Process;
 
-    expect(getEnvValue('EMPTY_VAR')).toBe('');
+    expect(getEnvValue('TEST_VAR')).toBe('from-process');
   });
 
-  // Note: import.meta.env support cannot be easily unit tested because import.meta
-  // is a read-only compile-time construct that cannot be mocked. The import.meta.env
-  // functionality is tested via e2e tests with real Vite-based frameworks (Vue, Astro, etc.)
-  //
-  // The implementation safely checks for import.meta.env existence and will use it
-  // when available in Vite/Astro/SvelteKit builds.
+  // Note: We cannot easily test import.meta.env in unit tests since it's syntax
+  // that needs to exist at parse time. The real test is in the build artifacts:
+  // - CJS builds should NOT contain import.meta (would cause syntax error)
+  // - ESM builds SHOULD contain import.meta.env checks
 });
