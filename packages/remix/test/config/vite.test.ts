@@ -3,7 +3,6 @@ import * as os from 'os';
 import * as path from 'path';
 import type { Plugin, ResolvedConfig } from 'vite';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import * as Sentry from '../..';
 import { sentryRemixVitePlugin } from '../../src/config/vite';
 
 describe('sentryRemixVitePlugin', () => {
@@ -36,7 +35,7 @@ describe('sentryRemixVitePlugin', () => {
 
   describe('plugin configuration', () => {
     it('should return a valid Vite plugin with correct name', () => {
-      const plugin = Sentry.sentryRemixVitePlugin();
+      const plugin = sentryRemixVitePlugin();
 
       expect(plugin).toBeDefined();
       expect(plugin.name).toBe('sentry-remix-route-manifest');
@@ -44,13 +43,13 @@ describe('sentryRemixVitePlugin', () => {
     });
 
     it('should accept custom appDirPath option', () => {
-      const plugin = Sentry.sentryRemixVitePlugin({ appDirPath: '/custom/path' });
+      const plugin = sentryRemixVitePlugin({ appDirPath: '/custom/path' });
 
       expect(plugin).toBeDefined();
     });
 
     it('should work with no options', () => {
-      const plugin = Sentry.sentryRemixVitePlugin();
+      const plugin = sentryRemixVitePlugin();
 
       expect(plugin).toBeDefined();
     });
@@ -63,7 +62,7 @@ describe('sentryRemixVitePlugin', () => {
       fs.writeFileSync(path.join(routesDir, 'about.tsx'), '// about');
       fs.writeFileSync(path.join(routesDir, 'users.$id.tsx'), '// users');
 
-      const plugin = Sentry.sentryRemixVitePlugin();
+      const plugin = sentryRemixVitePlugin();
 
       const mockConfig: Partial<ResolvedConfig> = {
         root: tempDir,
@@ -82,7 +81,7 @@ describe('sentryRemixVitePlugin', () => {
       fs.writeFileSync(path.join(routesDir, 'index.tsx'), '// index');
       fs.writeFileSync(path.join(routesDir, 'users.$id.tsx'), '// users');
 
-      const plugin = Sentry.sentryRemixVitePlugin();
+      const plugin = sentryRemixVitePlugin();
 
       const mockConfig: Partial<ResolvedConfig> = {
         root: tempDir,
@@ -98,7 +97,7 @@ describe('sentryRemixVitePlugin', () => {
     });
 
     it('should handle errors gracefully and set empty manifest', () => {
-      const plugin = Sentry.sentryRemixVitePlugin({ appDirPath: '/nonexistent/path' });
+      const plugin = sentryRemixVitePlugin({ appDirPath: '/nonexistent/path' });
 
       const mockConfig: Partial<ResolvedConfig> = {
         root: tempDir,
@@ -119,7 +118,7 @@ describe('sentryRemixVitePlugin', () => {
       fs.mkdirSync(customRoutesDir, { recursive: true });
       fs.writeFileSync(path.join(customRoutesDir, 'index.tsx'), '// index');
 
-      const plugin = Sentry.sentryRemixVitePlugin({ appDirPath: customAppDir });
+      const plugin = sentryRemixVitePlugin({ appDirPath: customAppDir });
 
       const mockConfig: Partial<ResolvedConfig> = {
         root: tempDir,
@@ -137,7 +136,7 @@ describe('sentryRemixVitePlugin', () => {
     it('should inject manifest into HTML with <head> tag', () => {
       fs.writeFileSync(path.join(routesDir, 'index.tsx'), '// index');
 
-      const plugin = Sentry.sentryRemixVitePlugin();
+      const plugin = sentryRemixVitePlugin();
 
       const mockConfig: Partial<ResolvedConfig> = {
         root: tempDir,
