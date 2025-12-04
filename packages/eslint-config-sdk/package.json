@@ -24,19 +24,19 @@
   "dependencies": {
     "@sentry-internal/eslint-plugin-sdk": "10.28.0",
     "@sentry-internal/typescript": "10.28.0",
-    "@typescript-eslint/eslint-plugin": "^5.48.0",
-    "@typescript-eslint/parser": "^5.48.0",
-    "eslint-config-prettier": "^6.11.0",
-    "eslint-plugin-deprecation": "^1.5.0",
-    "eslint-plugin-import": "^2.22.0",
-    "eslint-plugin-jsdoc": "^30.0.3",
-    "eslint-plugin-simple-import-sort": "^6.0.0"
+    "@typescript-eslint/eslint-plugin": "^5.62.0",
+    "@typescript-eslint/parser": "^5.62.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-deprecation": "^3.0.0",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-jsdoc": "^50.6.1",
+    "eslint-plugin-simple-import-sort": "^12.1.1"
   },
   "peerDependencies": {
     "eslint": ">=5"
   },
   "devDependencies": {
-    "eslint": "7.32.0"
+    "eslint": "8.57.0"
   },
   "scripts": {
     "clean": "yarn rimraf sentry-internal-eslint-config-sdk-*.tgz",

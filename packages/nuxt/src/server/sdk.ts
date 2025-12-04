@@ -2,10 +2,10 @@ import * as path from 'node:path';
 import type { Client, Event, EventProcessor, Integration } from '@sentry/core';
 import { applySdkMetadata, debug, flush, getGlobalScope, vercelWaitUntil } from '@sentry/core';
 import {
-  type NodeOptions,
   getDefaultIntegrations as getDefaultNodeIntegrations,
   httpIntegration,
   init as initNode,
+  type NodeOptions,
 } from '@sentry/node';
 import { DEBUG_BUILD } from '../common/debug-build';
 import type { SentryNuxtServerOptions } from '../common/types';
