@@ -3,7 +3,7 @@
  */
 
 import * as Sentry from '@sentry/browser';
-import { debug,type Span } from '@sentry/core';
+import { debug, type Span } from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 import type { BrowserOptions } from '../../src/index';
 
