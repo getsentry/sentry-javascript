@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 
-import { afterEach,beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { getEnvValue } from '../../src/utils/env';
 
 describe('getEnvValue', () => {
