@@ -4,9 +4,9 @@ import type { NodeClient, NodeOptions } from '@sentry/node';
 import { getDefaultIntegrations as getDefaultNodeIntegrations, init as nodeInit, isInitialized } from '@sentry/node';
 import { DEBUG_BUILD } from '../utils/debug-build';
 import type { RemixOptions } from '../utils/remixOptions';
-import { instrumentServer } from './instrumentServer';
 import { httpIntegration } from './integrations/http';
 import { remixIntegration } from './integrations/opentelemetry';
+import { instrumentServer } from './patchServerRuntime';
 
 /**
  * Returns the default Remix integrations.
