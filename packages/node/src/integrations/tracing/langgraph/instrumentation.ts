@@ -6,7 +6,7 @@ import {
   InstrumentationNodeModuleFile,
 } from '@opentelemetry/instrumentation';
 import type { CompiledGraph, LangGraphOptions } from '@sentry/core';
-import { getClient, instrumentStateGraphCompile, SDK_VERSION } from '@sentry/core';
+import { getClient, instrumentStateGraphCompile, instrumentCreateReactAgent, SDK_VERSION } from '@sentry/core';
 
 const supportedVersions = ['>=0.0.0 <2.0.0'];
 
@@ -50,6 +50,16 @@ export class SentryLangGraphInstrumentation extends InstrumentationBase<LangGrap
           this._patch.bind(this),
           exports => exports,
         ),
+        new InstrumentationNodeModuleFile(
+          /**
+           * Patch the prebuilt subpath exports for CJS.
+           * The @langchain/langgraph/prebuilt entry point re-exports from dist/prebuilt/index.cjs
+           */
+          '@langchain/langgraph/dist/prebuilt/index.cjs',
+          supportedVersions,
+          this._patch.bind(this),
+          exports => exports,
+        ),
       ],
     );
     return module;
@@ -81,6 +91,26 @@ export class SentryLangGraphInstrumentation extends InstrumentationBase<LangGrap
         StateGraph.prototype.compile as (...args: unknown[]) => CompiledGraph,
         options,
       );
+    }
+
+    // Patch createReactAgent to instrument the agent creation and invocation
+    if (exports.createReactAgent && typeof exports.createReactAgent === 'function') {
+      exports.createReactAgent = instrumentCreateReactAgent(
+        exports.createReactAgent as (...args: unknown[]) => CompiledGraph,
+        options,
+      );
+     /*
+      const originalCreateReactAgent = exports.createReactAgent;
+      Object.defineProperty(exports, 'createReactAgent', {
+        value: instrumentCreateReactAgent(
+          originalCreateReactAgent as (...args: unknown[]) => CompiledGraph,
+          options,
+        ),
+        writable: true,
+        enumerable: true,
+        configurable: true,
+      });
+      */
     }
 
     return exports;
