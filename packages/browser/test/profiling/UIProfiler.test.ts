@@ -3,8 +3,8 @@
  */
 
 import * as Sentry from '@sentry/browser';
-import { type Span, debug } from '@sentry/core';
-import { type Mock, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { debug,type Span } from '@sentry/core';
+import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 import type { BrowserOptions } from '../../src/index';
 
 function getBaseOptionsForTraceLifecycle(sendMock: Mock<any>, enableTracing = true): BrowserOptions {
