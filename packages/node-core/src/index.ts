@@ -135,6 +135,9 @@ export {
   wrapMcpServerWithSentry,
   featureFlagsIntegration,
   metrics,
+  // Backwards compatibility: envToBool was previously exported from @sentry/node-core
+  // Re-export it from @sentry/core to avoid breaking existing code
+  envToBool,
 } from '@sentry/core';
 
 export type {
