@@ -8,7 +8,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '../semanticAttributes';
 import type { SentrySpan } from '../tracing/sentrySpan';
-import { SPAN_STATUS_ERROR, SPAN_STATUS_OK, SPAN_STATUS_UNSET } from '../tracing/spanstatus';
+import { SPAN_STATUS_OK, SPAN_STATUS_UNSET } from '../tracing/spanstatus';
 import { getCapturedScopesOnSpan } from '../tracing/utils';
 import type { SerializedAttributes } from '../types-hoist/attributes';
 import type { TraceContext } from '../types-hoist/context';
