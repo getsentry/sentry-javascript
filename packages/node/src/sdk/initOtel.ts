@@ -98,6 +98,7 @@ export function setupOtel(client: NodeClient, options: AdditionalOpenTelemetryOp
     spanProcessors: [
       new SentrySpanProcessor({
         timeout: _clampSpanProcessorTimeout(client.getOptions().maxSpanWaitDuration),
+        client,
       }),
       ...(options.spanProcessors || []),
     ],
