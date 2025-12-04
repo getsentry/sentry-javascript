@@ -3,7 +3,7 @@ import * as os from 'os';
 import * as path from 'path';
 import type { Plugin, ResolvedConfig } from 'vite';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import Sentry from '../../src';
+import * as Sentry from '../..';
 import { sentryRemixVitePlugin } from '../../src/config/vite';
 
 describe('sentryRemixVitePlugin', () => {
