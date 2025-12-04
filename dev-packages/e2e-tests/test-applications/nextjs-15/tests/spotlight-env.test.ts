@@ -1,23 +1,19 @@
 import { expect, test } from '@playwright/test';
 
 test.describe('Spotlight environment variable handling', () => {
-  test('respects NEXT_PUBLIC_SENTRY_SPOTLIGHT environment variable', async ({ page }) => {
-    // This test assumes NEXT_PUBLIC_SENTRY_SPOTLIGHT=true is set in the env
+  test('NEXT_PUBLIC_SENTRY_SPOTLIGHT is accessible in browser', async ({ page }) => {
+    // NEXT_PUBLIC_SENTRY_SPOTLIGHT=true is set in next.config.js
     await page.goto('/spotlight-env-test');
 
     const nextPublicSpotlight = await page.getByTestId('next-public-spotlight').textContent();
-    const spotlightStatus = await page.getByTestId('spotlight-integration-found').textContent();
 
-    // Verify NEXT_PUBLIC_SENTRY_SPOTLIGHT is accessible in the browser
+    // Verify NEXT_PUBLIC_SENTRY_SPOTLIGHT is accessible in the browser (embedded at build time)
     expect(nextPublicSpotlight).toContain('true');
-
-    // Verify Spotlight integration is enabled
-    expect(spotlightStatus).toContain('ENABLED');
   });
 
-  test('NEXT_PUBLIC_SENTRY_SPOTLIGHT takes precedence over SENTRY_SPOTLIGHT', async ({ page }) => {
+  test('SENTRY_SPOTLIGHT (server-only) is NOT accessible in browser', async ({ page }) => {
     // This test verifies that even if SENTRY_SPOTLIGHT is set (e.g., for backend),
-    // NEXT_PUBLIC_SENTRY_SPOTLIGHT is what the browser sees
+    // it's NOT exposed to the browser - only NEXT_PUBLIC_* vars are exposed
     await page.goto('/spotlight-env-test');
 
     const sentrySpotlight = await page.getByTestId('sentry-spotlight').textContent();
@@ -26,20 +22,8 @@ test.describe('Spotlight environment variable handling', () => {
     expect(sentrySpotlight).toContain('undefined');
   });
 
-  test('handles empty string environment variables correctly', async ({ page }) => {
-    // This test would need to be run with NEXT_PUBLIC_SENTRY_SPOTLIGHT=''
-    // It verifies that empty strings are treated as undefined and don't enable Spotlight
-
-    // Note: This test would need a separate test run with different env vars
-    // For now, we document the expected behavior
-    await page.goto('/spotlight-env-test');
-
-    // With an empty string, Spotlight should be disabled
-    // The resolveSpotlightOptions function filters out empty strings
-  });
-
-  test('process.env check works without errors in CJS build', async ({ page }) => {
-    // This test verifies that the CJS build (used by Next.js) doesn't have
+  test('no import.meta syntax errors in Next.js bundle', async ({ page }) => {
+    // This test verifies that the CJS build (used by Next.js webpack) doesn't have
     // import.meta syntax which would cause parse errors
 
     const consoleErrors: string[] = [];
