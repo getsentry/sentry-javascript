@@ -241,7 +241,6 @@ describe('init', () => {
       if (originalProcess !== undefined) {
         globalThis.process = originalProcess;
       } else {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         delete (globalThis as any).process;
       }
     });
