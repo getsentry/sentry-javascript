@@ -5,6 +5,11 @@ import { instrumentOpenAiClient } from '../../src/tracing/openai';
 /**
  * Mock APIPromise that simulates OpenAI SDK's APIPromise behavior
  * APIPromise extends Promise but has additional methods like withResponse()
+ *
+ * IMPORTANT: We do NOT override .then() here, matching the real OpenAI SDK behavior.
+ * This means calling .then() on an APIPromise returns a standard Promise, losing
+ * the _response data and withResponse() method. The instrumentation must preserve
+ * the original APIPromise instance to maintain these methods.
  */
 class MockAPIPromise<T> extends Promise<T> {
   private _response: { headers: Record<string, string> };
@@ -27,19 +32,6 @@ class MockAPIPromise<T> extends Promise<T> {
       response: this._response,
     }));
   }
-
-  // Override then to return MockAPIPromise to maintain the chain
-  // This is important for preserving the APIPromise type through .then() chains
-  override then<TResult1 = T, TResult2 = never>(
-    onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | null | undefined,
-    onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null | undefined,
-  ): MockAPIPromise<TResult1 | TResult2> {
-    const result = super.then(onfulfilled, onrejected);
-    const apiPromise = new MockAPIPromise<TResult1 | TResult2>((resolve, reject) => {
-      result.then(resolve, reject);
-    }, this._response);
-    return apiPromise;
-  }
 }
 
 interface FullOpenAIClient {
@@ -52,6 +44,16 @@ interface FullOpenAIClient {
   embeddings: {
     create: (params: EmbeddingsParams) => MockAPIPromise<EmbeddingsResponse>;
   };
+  responses: {
+    create: (params: { model: string; throwSync?: boolean; rejectAsync?: boolean }) => MockAPIPromise<ResponsesResponse>;
+  };
+}
+
+interface ResponsesResponse {
+  id: string;
+  object: string;
+  model: string;
+  created_at: number;
 }
 interface ChatCompletionParams {
   model: string;
@@ -154,6 +156,36 @@ class MockOpenAIClient implements FullOpenAIClient {
           model: params.model,
           data: [{ embedding: [0.1, 0.2, 0.3], index: 0 }],
           usage: { prompt_tokens: 10, total_tokens: 10 },
+        });
+      });
+    },
+  };
+
+  // responses.create is in INSTRUMENTED_METHODS, so we can test error handling here
+  responses = {
+    create: (params: {
+      model: string;
+      throwSync?: boolean;
+      rejectAsync?: boolean;
+    }): MockAPIPromise<ResponsesResponse> => {
+      // Simulate synchronous exception (e.g., validation error before API call)
+      if (params.throwSync) {
+        throw new Error('Sync error before API call');
+      }
+
+      // Simulate async rejection (e.g., API error response)
+      if (params.rejectAsync) {
+        return new MockAPIPromise((_, reject) => {
+          reject(new Error('Async API error'));
+        });
+      }
+
+      return new MockAPIPromise(resolve => {
+        resolve({
+          id: 'resp_123',
+          object: 'response',
+          model: params.model,
+          created_at: Math.floor(Date.now() / 1000),
         });
       });
     },
@@ -337,18 +369,75 @@ describe('OpenAI Integration APIPromise Preservation', () => {
     expect(result.choices[0]?.message?.content).toBe('Hello!');
   });
 
-  it('should preserve APIPromise through .then() chains', async () => {
-    const apiPromise = instrumentedClient.embeddings.create({
+  it('should return the exact same APIPromise instance (not a new Promise)', async () => {
+    // Create the mock client's APIPromise directly for comparison
+    const mockClient = new MockOpenAIClient();
+    const originalPromise = mockClient.embeddings.create({
       model: 'text-embedding-3-small',
       input: 'test',
     });
 
-    // Chain a .then() and verify withResponse still exists
-    const chainedPromise = apiPromise.then(data => data);
+    // Instrument and call the same method
+    const instrumentedPromise = instrumentedClient.embeddings.create({
+      model: 'text-embedding-3-small',
+      input: 'test',
+    });
 
-    // After .then(), withResponse should still be available (if the original type is preserved)
-    // Note: This depends on handleCallbackErrors returning the original Promise type
-    const result = await chainedPromise;
-    expect(result.model).toBe('text-embedding-3-small');
+    // Both should be MockAPIPromise instances (not converted to regular Promise)
+    expect(originalPromise.constructor.name).toBe('MockAPIPromise');
+    expect(instrumentedPromise.constructor.name).toBe('MockAPIPromise');
+
+    // The instrumented version should have withResponse available
+    expect(typeof instrumentedPromise.withResponse).toBe('function');
+
+    // And it should work correctly
+    const { data, response } = await instrumentedPromise.withResponse();
+    expect(data.model).toBe('text-embedding-3-small');
+    expect(response.headers['x-request-id']).toBe('test-request-id');
+  });
+});
+
+describe('OpenAI Integration Error Handling', () => {
+  let mockClient: MockOpenAIClient;
+  let instrumentedClient: FullOpenAIClient & OpenAiClient;
+
+  beforeEach(() => {
+    mockClient = new MockOpenAIClient();
+    instrumentedClient = instrumentOpenAiClient(mockClient as unknown as OpenAiClient) as FullOpenAIClient &
+      OpenAiClient;
+  });
+
+  it('should handle synchronous exceptions and re-throw them', async () => {
+    // responses.create is instrumented, so this tests the sync error path
+    expect(() => {
+      instrumentedClient.responses.create({
+        model: 'gpt-4',
+        throwSync: true,
+      });
+    }).toThrow('Sync error before API call');
+  });
+
+  it('should handle rejected Promises', async () => {
+    // responses.create is instrumented, so this tests the async error path
+    const promise = instrumentedClient.responses.create({
+      model: 'gpt-4',
+      rejectAsync: true,
+    });
+
+    await expect(promise).rejects.toThrow('Async API error');
+  });
+
+  it('should still preserve APIPromise on success with responses.create', async () => {
+    const promise = instrumentedClient.responses.create({
+      model: 'gpt-4',
+    });
+
+    // Should be a MockAPIPromise, not a regular Promise
+    expect(promise.constructor.name).toBe('MockAPIPromise');
+    expect(typeof promise.withResponse).toBe('function');
+
+    const result = await promise;
+    expect(result.id).toBe('resp_123');
+    expect(result.model).toBe('gpt-4');
   });
 });

@@ -2,9 +2,9 @@ import { getClient } from '../../currentScopes';
 import { captureException } from '../../exports';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import { SPAN_STATUS_ERROR } from '../../tracing';
-import { startSpan, startSpanManual } from '../../tracing/trace';
+import { startInactiveSpan, startSpanManual } from '../../tracing/trace';
 import type { Span, SpanAttributeValue } from '../../types-hoist/span';
-import { handleCallbackErrors } from '../../utils/handleCallbackErrors';
+import { isThenable } from '../../utils/is';
 import {
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
   GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE,
@@ -147,7 +147,7 @@ function handleStreamingError(error: unknown, span: Span, methodPath: string): n
  * Following Sentry AI Agents Manual Instrumentation conventions
  * @see https://docs.sentry.io/platforms/javascript/guides/node/tracing/instrumentation/ai-agents-module/#manual-instrumentation
  *
- * This implementation uses Proxy and handleCallbackErrors to preserve the original
+ * This implementation uses Proxy and startInactiveSpan to preserve the original
  * return type (e.g., OpenAI's APIPromise with .withResponse() method).
  */
 function instrumentMethod<T extends unknown[], R>(
@@ -193,36 +193,71 @@ function instrumentMethod<T extends unknown[], R>(
         );
       }
 
-      // Non-streaming responses: use handleCallbackErrors to preserve original return type (e.g., APIPromise)
-      return startSpan(
-        {
-          name: `${operationName} ${model}`,
-          op: getSpanOperation(methodPath),
-          attributes: requestAttributes as Record<string, SpanAttributeValue>,
-        },
-        span => {
-          if (options.recordInputs && params) {
-            addRequestAttributes(span, params);
-          }
+      // Non-streaming responses: use startInactiveSpan to preserve original return type
+      // (e.g., OpenAI's APIPromise with .withResponse())
+      //
+      // We use startInactiveSpan instead of startSpan/startSpanManual because those
+      // internally use handleCallbackErrors which calls .then() on Promises, creating
+      // a new Promise instance and losing APIPromise's custom methods like .withResponse().
+      const span = startInactiveSpan({
+        name: `${operationName} ${model}`,
+        op: getSpanOperation(methodPath),
+        attributes: requestAttributes as Record<string, SpanAttributeValue>,
+      });
 
-          return handleCallbackErrors(
-            () => target.apply(context, args),
-            error => {
-              captureException(error, {
-                mechanism: {
-                  handled: false,
-                  type: 'auto.ai.openai',
-                  data: {
-                    function: methodPath,
-                  },
-                },
-              });
+      if (options.recordInputs && params) {
+        addRequestAttributes(span, params);
+      }
+
+      // Handle synchronous exceptions from the API call
+      let result: R | Promise<R>;
+      try {
+        result = target.apply(context, args);
+      } catch (err) {
+        captureException(err, {
+          mechanism: {
+            handled: false,
+            type: 'auto.ai.openai',
+            data: {
+              function: methodPath,
             },
-            () => {},
-            result => addResponseAttributes(span, result as OpenAiResponse, options.recordOutputs),
-          );
-        },
-      );
+          },
+        });
+        span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+        span.end();
+        throw err;
+      }
+
+      // Attach side-effect handlers without transforming the Promise
+      // This preserves the original APIPromise type and its methods like .withResponse()
+      if (isThenable(result)) {
+        Promise.resolve(result).then(
+          res => {
+            addResponseAttributes(span, res as OpenAiResponse, options.recordOutputs);
+            span.end();
+          },
+          err => {
+            captureException(err, {
+              mechanism: {
+                handled: false,
+                type: 'auto.ai.openai',
+                data: {
+                  function: methodPath,
+                },
+              },
+            });
+            span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+            span.end();
+          },
+        );
+      } else {
+        // Synchronous result (unlikely for OpenAI API but handle it)
+        addResponseAttributes(span, result as OpenAiResponse, options.recordOutputs);
+        span.end();
+      }
+
+      // Return the original Promise (APIPromise) with all its methods intact
+      return result;
     },
   }) as (...args: T) => R | Promise<R>;
 }
