@@ -45,7 +45,11 @@ interface FullOpenAIClient {
     create: (params: EmbeddingsParams) => MockAPIPromise<EmbeddingsResponse>;
   };
   responses: {
-    create: (params: { model: string; throwSync?: boolean; rejectAsync?: boolean }) => MockAPIPromise<ResponsesResponse>;
+    create: (params: {
+      model: string;
+      throwSync?: boolean;
+      rejectAsync?: boolean;
+    }) => MockAPIPromise<ResponsesResponse>;
   };
 }
 
