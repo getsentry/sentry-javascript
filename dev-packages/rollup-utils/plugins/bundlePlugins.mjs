@@ -71,6 +71,8 @@ export function makeBrowserBuildPlugin(isBrowserBuild) {
   return replacePlugin(
     {
       __SENTRY_BROWSER_BUNDLE__: JSON.stringify(!!isBrowserBuild),
+      // Replace process.env.NODE_ENV for browser bundles (needed for dependencies like Preact)
+      'process.env.NODE_ENV': JSON.stringify('production'),
     },
     {
       // TODO This will be the default in the next version of the `replace` plugin
