@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 
-import { type Mock, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 import type { Client } from '../../../src';
 import * as CurrentScopes from '../../../src/currentScopes';
 import * as SentryCore from '../../../src/exports';

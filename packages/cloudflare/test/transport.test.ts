@@ -161,4 +161,20 @@ describe('IsolatedPromiseBuffer', () => {
     expect(task1).toHaveBeenCalled();
     expect(task2).toHaveBeenCalled();
   });
+
+  it('should allow for a custom fetch function to be passed in', async () => {
+    const customFetch = vi.fn(async () => {
+      return {
+        headers: new Headers(),
+        status: 200,
+        text: () => Promise.resolve({}),
+      } as unknown as Response;
+    });
+
+    const transport = makeCloudflareTransport({ ...DEFAULT_EDGE_TRANSPORT_OPTIONS, fetch: customFetch });
+
+    await transport.send(ERROR_ENVELOPE);
+    await transport.flush();
+    expect(customFetch).toHaveBeenCalledTimes(1);
+  });
 });

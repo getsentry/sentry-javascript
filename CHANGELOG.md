@@ -5,6 +5,187 @@
 - feat(browser): Add environment variable support for Spotlight configuration ([#18198](https://github.com/getsentry/sentry-javascript/pull/18198))
   - `SENTRY_SPOTLIGHT`, `PUBLIC_SENTRY_SPOTLIGHT`, `NEXT_PUBLIC_SENTRY_SPOTLIGHT`, `VITE_SENTRY_SPOTLIGHT`, `NUXT_PUBLIC_SENTRY_SPOTLIGHT`, `REACT_APP_SENTRY_SPOTLIGHT`, `VUE_APP_SENTRY_SPOTLIGHT`, and `GATSBY_SENTRY_SPOTLIGHT`
 
+## 10.28.0
+
+### Important Changes
+
+- **feat(core): Make `matcher` parameter optional in `makeMultiplexedTransport` ([#10798](https://github.com/getsentry/sentry-javascript/pull/10798))**
+
+The `matcher` parameter in `makeMultiplexedTransport` is now optional with a sensible default. This makes it much easier to use the multiplexed transport for sending events to multiple DSNs based on runtime configuration.
+
+**Before:**
+
+```javascript
+import { makeFetchTransport, makeMultiplexedTransport } from '@sentry/browser';
+
+const EXTRA_KEY = 'ROUTE_TO';
+
+const transport = makeMultiplexedTransport(makeFetchTransport, args => {
+  const event = args.getEvent();
+  if (event?.extra?.[EXTRA_KEY] && Array.isArray(event.extra[EXTRA_KEY])) {
+    return event.extra[EXTRA_KEY];
+  }
+  return [];
+});
+
+Sentry.init({
+  transport,
+  // ... other options
+});
+
+// Capture events with routing info
+Sentry.captureException(error, {
+  extra: {
+    [EXTRA_KEY]: [
+      { dsn: 'https://key1@sentry.io/project1', release: 'v1.0.0' },
+      { dsn: 'https://key2@sentry.io/project2' },
+    ],
+  },
+});
+```
+
+**After:**
+
+```javascript
+import { makeFetchTransport, makeMultiplexedTransport, MULTIPLEXED_TRANSPORT_EXTRA_KEY } from '@sentry/browser';
+
+// Just pass the transport generator - the default matcher handles the rest!
+Sentry.init({
+  transport: makeMultiplexedTransport(makeFetchTransport),
+  // ... other options
+});
+
+// Capture events with routing info using the exported constant
+Sentry.captureException(error, {
+  extra: {
+    [MULTIPLEXED_TRANSPORT_EXTRA_KEY]: [
+      { dsn: 'https://key1@sentry.io/project1', release: 'v1.0.0' },
+      { dsn: 'https://key2@sentry.io/project2' },
+    ],
+  },
+});
+```
+
+The default matcher looks for routing information in `event.extra[MULTIPLEXED_TRANSPORT_EXTRA_KEY]`. You can still provide a custom matcher function for advanced use cases.
+
+- **feat(nextjs): Support cacheComponents on turbopack ([#18304](https://github.com/getsentry/sentry-javascript/pull/18304))**
+
+This release adds support for `cacheComponents` on turbopack builds. We are working on adding support for this feature in webpack builds as well.
+
+### Other Changes
+
+- feat: Publish AWS Lambda Layer for Node 24 ([#18327](https://github.com/getsentry/sentry-javascript/pull/18327))
+- feat(browser): Expose langchain instrumentation ([#18342](https://github.com/getsentry/sentry-javascript/pull/18342))
+- feat(browser): Expose langgraph instrumentation ([#18345](https://github.com/getsentry/sentry-javascript/pull/18345))
+- feat(cloudflare): Allow specifying a custom fetch in Cloudflare transport options ([#18335](https://github.com/getsentry/sentry-javascript/pull/18335))
+- feat(core): Add `isolateTrace` option to `Sentry.withMonitor()` ([#18079](https://github.com/getsentry/sentry-javascript/pull/18079))
+- feat(deps): bump @sentry/webpack-plugin from 4.3.0 to 4.6.1 ([#18272](https://github.com/getsentry/sentry-javascript/pull/18272))
+- feat(nextjs): Add cloudflare `waitUntil` detection ([#18336](https://github.com/getsentry/sentry-javascript/pull/18336))
+- feat(node): Add LangChain v1 support ([#18306](https://github.com/getsentry/sentry-javascript/pull/18306))
+- feat(remix): Add parameterized transaction naming for routes ([#17951](https://github.com/getsentry/sentry-javascript/pull/17951))
+- fix(cloudflare): Keep http root span alive until streaming responses are consumed ([#18087](https://github.com/getsentry/sentry-javascript/pull/18087))
+- fix(cloudflare): Wait for async events to finish ([#18334](https://github.com/getsentry/sentry-javascript/pull/18334))
+- fix(core): `continueTrace` doesn't propagate given trace ID if active span exists ([#18328](https://github.com/getsentry/sentry-javascript/pull/18328))
+- fix(node-core): Handle custom scope in log messages without parameters ([#18322](https://github.com/getsentry/sentry-javascript/pull/18322))
+- fix(opentelemetry): Ensure Sentry spans don't leak when tracing is disabled ([#18337](https://github.com/getsentry/sentry-javascript/pull/18337))
+- fix(react-router): Use underscores in trace origin values ([#18351](https://github.com/getsentry/sentry-javascript/pull/18351))
+- chore(tanstackstart-react): Export custom inits from tanstackstart-react ([#18369](https://github.com/getsentry/sentry-javascript/pull/18369))
+- chore(tanstackstart-react)!: Remove empty placeholder implementations ([#18338](https://github.com/getsentry/sentry-javascript/pull/18338))
+
+<details>
+  <summary><strong>Internal Changes</strong></summary>
+
+- chore: Allow URLs as issue ([#18372](https://github.com/getsentry/sentry-javascript/pull/18372))
+- chore(changelog): Add entry for [#18304](https://github.com/getsentry/sentry-javascript/pull/18304) ([#18329](https://github.com/getsentry/sentry-javascript/pull/18329))
+- chore(ci): Add action to track all PRs as issues ([#18363](https://github.com/getsentry/sentry-javascript/pull/18363))
+- chore(github): Adjust `BUGBOT.md` rules to flag invalid op and origin values during review ([#18352](https://github.com/getsentry/sentry-javascript/pull/18352))
+- ci: Add action to create issue on gitflow merge conflicts ([#18319](https://github.com/getsentry/sentry-javascript/pull/18319))
+- ci(deps): bump actions/checkout from 5 to 6 ([#18268](https://github.com/getsentry/sentry-javascript/pull/18268))
+- ci(deps): bump peter-evans/create-pull-request from 7.0.8 to 7.0.9 ([#18361](https://github.com/getsentry/sentry-javascript/pull/18361))
+- test(cloudflare): Add typechecks for cloudflare-worker e2e test ([#18321](https://github.com/getsentry/sentry-javascript/pull/18321))
+
+</details>
+
+## 10.27.0
+
+### Important Changes
+
+- **feat(deps): Bump OpenTelemetry ([#18239](https://github.com/getsentry/sentry-javascript/pull/18239))**
+  - Bump @opentelemetry/context-async-hooks from ^2.1.0 to ^2.2.0
+  - Bump @opentelemetry/core from ^2.1.0 to ^2.2.0
+  - Bump @opentelemetry/resources from ^2.1.0 to ^2.2.0
+  - Bump @opentelemetry/sdk-trace-base from ^2.1.0 to ^2.2.0
+  - Bump @opentelemetry/sdk-trace-node from ^2.1.0 to ^2.2.0
+  - Bump @opentelemetry/instrumentation from 0.204.0 to 0.208.0
+  - Bump @opentelemetry/instrumentation-amqplib from 0.51.0 to 0.55.0
+  - Bump @opentelemetry/instrumentation-aws-sdk from 0.59.0 to 0.64.0
+  - Bump @opentelemetry/instrumentation-connect from 0.48.0 to 0.52.0
+  - Bump @opentelemetry/instrumentation-dataloader from 0.22.0 to 0.26.0
+  - Bump @opentelemetry/instrumentation-express from 0.53.0 to 0.57.0
+  - Bump @opentelemetry/instrumentation-fs from 0.24.0 to 0.28.0
+  - Bump @opentelemetry/instrumentation-generic-pool from 0.48.0 to 0.52.0
+  - Bump @opentelemetry/instrumentation-graphql from 0.52.0 to 0.56.0
+  - Bump @opentelemetry/instrumentation-hapi from 0.51.0 to 0.55.0
+  - Bump @opentelemetry/instrumentation-http from 0.204.0 to 0.208.0
+  - Bump @opentelemetry/instrumentation-ioredis from 0.52.0 to 0.56.0
+  - Bump @opentelemetry/instrumentation-kafkajs from 0.14.0 to 0.18.0
+  - Bump @opentelemetry/instrumentation-knex from 0.49.0 to 0.53.0
+  - Bump @opentelemetry/instrumentation-koa from 0.52.0 to 0.57.0
+  - Bump @opentelemetry/instrumentation-lru-memoizer from 0.49.0 to 0.53.0
+  - Bump @opentelemetry/instrumentation-mongodb from 0.57.0 to 0.61.0
+  - Bump @opentelemetry/instrumentation-mongoose from 0.51.0 to 0.55.0
+  - Bump @opentelemetry/instrumentation-mysql from 0.50.0 to 0.54.0
+  - Bump @opentelemetry/instrumentation-mysql2 from 0.51.0 to 0.55.0
+  - Bump @opentelemetry/instrumentation-nestjs-core from 0.50.0 to 0.55.0
+  - Bump @opentelemetry/instrumentation-pg from 0.57.0 to 0.61.0
+  - Bump @opentelemetry/instrumentation-redis from 0.53.0 to 0.57.0
+  - Bump @opentelemetry/instrumentation-tedious from 0.23.0 to 0.27.0
+  - Bump @opentelemetry/instrumentation-undici from 0.15.0 to 0.19.0
+  - Bump @prisma/instrumentation from 6.15.0 to 6.19.0
+
+- **feat(browserprofiling): Add `manual` mode and deprecate old profiling ([#18189](https://github.com/getsentry/sentry-javascript/pull/18189))**
+
+  Adds the `manual` lifecycle mode for UI profiling (the default mode), allowing profiles to be captured manually with `Sentry.uiProfiler.startProfiler()` and `Sentry.uiProfiler.stopProfiler()`.
+  The previous transaction-based profiling is with `profilesSampleRate` is now deprecated in favor of the new UI Profiling with `profileSessionSampleRate`.
+
+### Other Changes
+
+- feat(core): Add `gibibyte` and `pebibyte` to `InformationUnit` type ([#18241](https://github.com/getsentry/sentry-javascript/pull/18241))
+- feat(core): Add scope attribute APIs ([#18165](https://github.com/getsentry/sentry-javascript/pull/18165))
+- feat(core): Re-add `_experiments.enableLogs` option ([#18299](https://github.com/getsentry/sentry-javascript/pull/18299))
+- feat(core): Use `maxValueLength` on error messages ([#18301](https://github.com/getsentry/sentry-javascript/pull/18301))
+- feat(deps): bump @sentry/bundler-plugin-core from 4.3.0 to 4.6.1 ([#18273](https://github.com/getsentry/sentry-javascript/pull/18273))
+- feat(deps): bump @sentry/cli from 2.56.0 to 2.58.2 ([#18271](https://github.com/getsentry/sentry-javascript/pull/18271))
+- feat(node): Add tracing support for AzureOpenAI ([#18281](https://github.com/getsentry/sentry-javascript/pull/18281))
+- feat(node): Fix local variables capturing for out-of-app frames ([#18245](https://github.com/getsentry/sentry-javascript/pull/18245))
+- fix(core): Add a PromiseBuffer for incoming events on the client ([#18120](https://github.com/getsentry/sentry-javascript/pull/18120))
+- fix(core): Always redact content of sensitive headers regardless of `sendDefaultPii` ([#18311](https://github.com/getsentry/sentry-javascript/pull/18311))
+- fix(metrics): Update return type of `beforeSendMetric` ([#18261](https://github.com/getsentry/sentry-javascript/pull/18261))
+- fix(nextjs): universal random tunnel path support ([#18257](https://github.com/getsentry/sentry-javascript/pull/18257))
+- ref(react): Add more guarding against wildcards in lazy route transactions ([#18155](https://github.com/getsentry/sentry-javascript/pull/18155))
+- chore(deps): bump glob from 11.0.1 to 11.1.0 in /packages/react-router ([#18243](https://github.com/getsentry/sentry-javascript/pull/18243))
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+    - build(deps): bump hono from 4.9.7 to 4.10.3 in /dev-packages/e2e-tests/test-applications/cloudflare-hono ([#18038](https://github.com/getsentry/sentry-javascript/pull/18038))
+    - chore: Add `bump_otel_instrumentations` cursor command ([#18253](https://github.com/getsentry/sentry-javascript/pull/18253))
+    - chore: Add external contributor to CHANGELOG.md ([#18297](https://github.com/getsentry/sentry-javascript/pull/18297))
+    - chore: Add external contributor to CHANGELOG.md ([#18300](https://github.com/getsentry/sentry-javascript/pull/18300))
+    - chore: Do not update opentelemetry ([#18254](https://github.com/getsentry/sentry-javascript/pull/18254))
+    - chore(angular): Add Angular 21 Support ([#18274](https://github.com/getsentry/sentry-javascript/pull/18274))
+    - chore(deps): bump astro from 4.16.18 to 5.15.9 in /dev-packages/e2e-tests/test-applications/cloudflare-astro ([#18259](https://github.com/getsentry/sentry-javascript/pull/18259))
+    - chore(dev-deps): Update some dev dependencies ([#17816](https://github.com/getsentry/sentry-javascript/pull/17816))
+    - ci(deps): Bump actions/create-github-app-token from 2.1.1 to 2.1.4 ([#17825](https://github.com/getsentry/sentry-javascript/pull/17825))
+    - ci(deps): bump actions/setup-node from 4 to 6 ([#18077](https://github.com/getsentry/sentry-javascript/pull/18077))
+    - ci(deps): bump actions/upload-artifact from 4 to 5 ([#18075](https://github.com/getsentry/sentry-javascript/pull/18075))
+    - ci(deps): bump github/codeql-action from 3 to 4 ([#18076](https://github.com/getsentry/sentry-javascript/pull/18076))
+    - doc(sveltekit): Update documentation link for SvelteKit guide ([#18298](https://github.com/getsentry/sentry-javascript/pull/18298))
+    - test(e2e): Fix astro config in test app ([#18282](https://github.com/getsentry/sentry-javascript/pull/18282))
+    - test(nextjs): Remove debug logs from e2e test ([#18250](https://github.com/getsentry/sentry-javascript/pull/18250))
+</details>
+
+Work in this release was contributed by @bignoncedric and @adam-kov. Thank you for your contributions!
+
 ## 10.26.0
 
 ### Important Changes

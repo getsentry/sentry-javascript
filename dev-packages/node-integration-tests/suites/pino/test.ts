@@ -11,6 +11,7 @@ conditionalTest({ min: 20 })('Pino integration', () => {
       .withMockSentryServer()
       .withInstrument(instrumentPath)
       .ignore('event')
+      .ignore('transaction')
       .expect({
         log: log => {
           const traceId1 = log.items?.[0]?.trace_id;
@@ -28,6 +29,7 @@ conditionalTest({ min: 20 })('Pino integration', () => {
     await createRunner(__dirname, 'scenario.mjs')
       .withMockSentryServer()
       .withInstrument(instrumentPath)
+      .ignore('transaction')
       .expect({
         event: {
           exception: {
@@ -105,6 +107,7 @@ conditionalTest({ min: 20 })('Pino integration', () => {
     await createRunner(__dirname, 'scenario-next.mjs')
       .withMockSentryServer()
       .withInstrument(instrumentPath)
+      .ignore('transaction')
       .expect({
         event: {
           exception: {
@@ -182,6 +185,7 @@ conditionalTest({ min: 20 })('Pino integration', () => {
     await createRunner(__dirname, 'scenario-track.mjs')
       .withMockSentryServer()
       .withInstrument(instrumentPath)
+      .ignore('transaction')
       .expect({
         log: {
           items: [
@@ -217,6 +221,69 @@ conditionalTest({ min: 20 })('Pino integration', () => {
                 msg: { value: 'oh no', type: 'string' },
                 err: { value: expect.any(String), type: 'string' },
                 'pino.logger.level': { value: 50, type: 'integer' },
+                'sentry.origin': { value: 'auto.log.pino', type: 'string' },
+                'sentry.release': { value: '1.0', type: 'string' },
+                'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
+              },
+            },
+          ],
+        },
+      })
+      .start()
+      .completed();
+  });
+
+  test('captures structured logs with msg field', async () => {
+    const instrumentPath = join(__dirname, 'instrument.mjs');
+
+    await createRunner(__dirname, 'scenario-structured-logging.mjs')
+      .withMockSentryServer()
+      .withInstrument(instrumentPath)
+      .ignore('transaction')
+      .expect({
+        log: {
+          items: [
+            {
+              timestamp: expect.any(Number),
+              level: 'info',
+              body: 'test-msg',
+              trace_id: expect.any(String),
+              severity_number: 9,
+              attributes: {
+                name: { value: 'myapp', type: 'string' },
+                'pino.logger.level': { value: 30, type: 'integer' },
+                msg: { value: 'test-msg', type: 'string' },
+                'sentry.origin': { value: 'auto.log.pino', type: 'string' },
+                'sentry.release': { value: '1.0', type: 'string' },
+                'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
+              },
+            },
+            {
+              timestamp: expect.any(Number),
+              level: 'info',
+              body: 'test-msg-2',
+              trace_id: expect.any(String),
+              severity_number: 9,
+              attributes: {
+                name: { value: 'myapp', type: 'string' },
+                'pino.logger.level': { value: 30, type: 'integer' },
+                msg: { value: 'test-msg-2', type: 'string' },
+                userId: { value: 'user-123', type: 'string' },
+                action: { value: 'login', type: 'string' },
+                'sentry.origin': { value: 'auto.log.pino', type: 'string' },
+                'sentry.release': { value: '1.0', type: 'string' },
+                'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
+              },
+            },
+            {
+              timestamp: expect.any(Number),
+              level: 'info',
+              body: 'test-string',
+              trace_id: expect.any(String),
+              severity_number: 9,
+              attributes: {
+                name: { value: 'myapp', type: 'string' },
+                'pino.logger.level': { value: 30, type: 'integer' },
                 'sentry.origin': { value: 'auto.log.pino', type: 'string' },
                 'sentry.release': { value: '1.0', type: 'string' },
                 'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },

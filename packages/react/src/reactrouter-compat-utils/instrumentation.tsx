@@ -41,59 +41,118 @@ import type {
   UseRoutes,
 } from '../types';
 import { checkRouteForAsyncHandler } from './lazy-routes';
-import { initializeRouterUtils, resolveRouteNameAndSource } from './utils';
+import { initializeRouterUtils, resolveRouteNameAndSource, transactionNameHasWildcard } from './utils';
 
 let _useEffect: UseEffect;
 let _useLocation: UseLocation;
 let _useNavigationType: UseNavigationType;
 let _createRoutesFromChildren: CreateRoutesFromChildren;
 let _matchRoutes: MatchRoutes;
+
 let _enableAsyncRouteHandlers: boolean = false;
+let _lazyRouteTimeout = 3000;
 
 const CLIENTS_WITH_INSTRUMENT_NAVIGATION = new WeakSet<Client>();
 
+// Prevents duplicate spans when router.subscribe fires multiple times
+const activeNavigationSpans = new WeakMap<
+  Client,
+  { span: Span; routeName: string; pathname: string; locationKey: string; isPlaceholder?: boolean }
+>();
+
+// Exported for testing only
+export const allRoutes = new Set<RouteObject>();
+
+// Tracks lazy route loads to wait before finalizing span names
+const pendingLazyRouteLoads = new WeakMap<Span, Set<Promise<unknown>>>();
+
 /**
- * Tracks last navigation per client to prevent duplicate spans in cross-usage scenarios.
- * Entry persists until the navigation span ends, allowing cross-usage detection during delayed wrapper execution.
+ * Schedules a callback using requestAnimationFrame when available (browser),
+ * or falls back to setTimeout for SSR environments (Node.js, createMemoryRouter tests).
  */
-const LAST_NAVIGATION_PER_CLIENT = new WeakMap<Client, string>();
+function scheduleCallback(callback: () => void): number {
+  if (WINDOW?.requestAnimationFrame) {
+    return WINDOW.requestAnimationFrame(callback);
+  }
+  return setTimeout(callback, 0) as unknown as number;
+}
 
-export function addResolvedRoutesToParent(resolvedRoutes: RouteObject[], parentRoute: RouteObject): void {
-  const existingChildren = parentRoute.children || [];
-
-  const newRoutes = resolvedRoutes.filter(
-    newRoute =>
-      !existingChildren.some(
-        existing =>
-          existing === newRoute ||
-          (newRoute.path && existing.path === newRoute.path) ||
-          (newRoute.id && existing.id === newRoute.id),
-      ),
-  );
-
-  if (newRoutes.length > 0) {
-    parentRoute.children = [...existingChildren, ...newRoutes];
+/**
+ * Cancels a scheduled callback, handling both RAF (browser) and timeout (SSR) IDs.
+ */
+function cancelScheduledCallback(id: number): void {
+  if (WINDOW?.cancelAnimationFrame) {
+    WINDOW.cancelAnimationFrame(id);
+  } else {
+    clearTimeout(id);
   }
 }
 
 /**
- * Determines if a navigation should be handled based on router state.
- * Only handles:
- * - PUSH navigations (always)
- * - POP navigations (only after initial pageload is complete)
- * - When router state is 'idle' (not 'loading' or 'submitting')
- *
- * During 'loading' or 'submitting', state.location may still have the old pathname,
- * which would cause us to create a span for the wrong route.
+ * Computes location key for duplicate detection. Normalizes undefined/null to empty strings.
+ * Exported for testing.
  */
-function shouldHandleNavigation(
-  state: { historyAction: string; navigation: { state: string } },
-  isInitialPageloadComplete: boolean,
-): boolean {
-  return (
-    (state.historyAction === 'PUSH' || (state.historyAction === 'POP' && isInitialPageloadComplete)) &&
-    state.navigation.state === 'idle'
-  );
+export function computeLocationKey(location: Location): string {
+  return `${location.pathname}${location.search || ''}${location.hash || ''}`;
+}
+
+/**
+ * Checks if a route name is parameterized (contains route parameters like :id or wildcards like *)
+ * vs a raw URL path.
+ */
+function isParameterizedRoute(routeName: string): boolean {
+  return routeName.includes(':') || routeName.includes('*');
+}
+
+/**
+ * Determines if a navigation should be skipped as a duplicate, and if an existing span should be updated.
+ * Exported for testing.
+ *
+ * @returns An object with:
+ *   - skip: boolean - Whether to skip creating a new span
+ *   - shouldUpdate: boolean - Whether to update the existing span name (wildcard upgrade)
+ */
+export function shouldSkipNavigation(
+  trackedNav:
+    | { span: Span; routeName: string; pathname: string; locationKey: string; isPlaceholder?: boolean }
+    | undefined,
+  locationKey: string,
+  proposedName: string,
+  spanHasEnded: boolean,
+): { skip: boolean; shouldUpdate: boolean } {
+  if (!trackedNav) {
+    return { skip: false, shouldUpdate: false };
+  }
+
+  // Check if this is a duplicate navigation (same location)
+  // 1. If it's a placeholder, it's always a duplicate (we're waiting for the real one)
+  // 2. If it's a real span, it's a duplicate only if it hasn't ended yet
+  const isDuplicate = trackedNav.locationKey === locationKey && (trackedNav.isPlaceholder || !spanHasEnded);
+
+  if (isDuplicate) {
+    // Check if we should update the span name with a better route
+    // Allow updates if:
+    // 1. Current has wildcard and new doesn't (wildcard → parameterized upgrade)
+    // 2. Current is raw path and new is parameterized (raw → parameterized upgrade)
+    // 3. New name is different and more specific (longer, indicating nested routes resolved)
+    const currentHasWildcard = !!trackedNav.routeName && transactionNameHasWildcard(trackedNav.routeName);
+    const proposedHasWildcard = transactionNameHasWildcard(proposedName);
+    const currentIsParameterized = !!trackedNav.routeName && isParameterizedRoute(trackedNav.routeName);
+    const proposedIsParameterized = isParameterizedRoute(proposedName);
+
+    const isWildcardUpgrade = currentHasWildcard && !proposedHasWildcard;
+    const isRawToParameterized = !currentIsParameterized && proposedIsParameterized;
+    const isMoreSpecific =
+      proposedName !== trackedNav.routeName &&
+      proposedName.length > (trackedNav.routeName?.length || 0) &&
+      !proposedHasWildcard;
+
+    const shouldUpdate = !!(trackedNav.routeName && (isWildcardUpgrade || isRawToParameterized || isMoreSpecific));
+
+    return { skip: true, shouldUpdate };
+  }
+
+  return { skip: false, shouldUpdate: false };
 }
 
 export interface ReactRouterOptions {
@@ -116,13 +175,58 @@ export interface ReactRouterOptions {
    * @default false
    */
   enableAsyncRouteHandlers?: boolean;
+
+  /**
+   * Maximum time (in milliseconds) to wait for lazy routes to load before finalizing span names.
+   *
+   * - Set to `0` to not wait at all (immediate finalization)
+   * - Set to `Infinity` to wait as long as possible (capped at `finalTimeout` to prevent indefinite hangs)
+   * - Negative values will fall back to the default
+   *
+   * Defaults to 3× the configured `idleTimeout` (default: 3000ms).
+   *
+   * @default idleTimeout * 3
+   */
+  lazyRouteTimeout?: number;
 }
 
 type V6CompatibleVersion = '6' | '7';
 
-// Keeping as a global variable for cross-usage in multiple functions
-// only exported for testing purposes
-export const allRoutes = new Set<RouteObject>();
+export function addResolvedRoutesToParent(resolvedRoutes: RouteObject[], parentRoute: RouteObject): void {
+  const existingChildren = parentRoute.children || [];
+
+  const newRoutes = resolvedRoutes.filter(
+    newRoute =>
+      !existingChildren.some(
+        existing =>
+          existing === newRoute ||
+          (newRoute.path && existing.path === newRoute.path) ||
+          (newRoute.id && existing.id === newRoute.id),
+      ),
+  );
+
+  if (newRoutes.length > 0) {
+    parentRoute.children = [...existingChildren, ...newRoutes];
+  }
+}
+
+/** Registers a pending lazy route load promise for a span. */
+function trackLazyRouteLoad(span: Span, promise: Promise<unknown>): void {
+  let promises = pendingLazyRouteLoads.get(span);
+  if (!promises) {
+    promises = new Set();
+    pendingLazyRouteLoads.set(span, promises);
+  }
+  promises.add(promise);
+
+  // Clean up when promise resolves/rejects
+  promise.finally(() => {
+    const currentPromises = pendingLazyRouteLoads.get(span);
+    if (currentPromises) {
+      currentPromises.delete(promise);
+    }
+  });
+}
 
 /**
  * Processes resolved routes by adding them to allRoutes and checking for nested async handlers.
@@ -188,13 +292,14 @@ export function updateNavigationSpan(
   forceUpdate = false,
   matchRoutes: MatchRoutes,
 ): void {
-  // Check if this span has already been named to avoid multiple updates
-  // But allow updates if this is a forced update (e.g., when lazy routes are loaded)
-  const hasBeenNamed =
-    !forceUpdate && (activeRootSpan as { __sentry_navigation_name_set__?: boolean })?.__sentry_navigation_name_set__;
+  const spanJson = spanToJSON(activeRootSpan);
+  const currentName = spanJson.description;
 
-  if (!hasBeenNamed) {
-    // Get fresh branches for the current location with all loaded routes
+  const hasBeenNamed = (activeRootSpan as { __sentry_navigation_name_set__?: boolean })?.__sentry_navigation_name_set__;
+  const currentNameHasWildcard = currentName && transactionNameHasWildcard(currentName);
+  const shouldUpdate = !hasBeenNamed || forceUpdate || currentNameHasWildcard;
+
+  if (shouldUpdate && !spanJson.timestamp) {
     const currentBranches = matchRoutes(allRoutes, location);
     const [name, source] = resolveRouteNameAndSource(
       location,
@@ -204,20 +309,103 @@ export function updateNavigationSpan(
       '',
     );
 
-    // Only update if we have a valid name and the span hasn't finished
-    const spanJson = spanToJSON(activeRootSpan);
-    if (name && !spanJson.timestamp) {
+    const currentSource = spanJson.data?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
+    const isImprovement =
+      name &&
+      (!currentName || // No current name - always set
+        (!hasBeenNamed && (currentSource !== 'route' || source === 'route')) || // Not finalized - allow unless downgrading route→url
+        (currentSource !== 'route' && source === 'route') || // URL → route upgrade
+        (currentSource === 'route' && source === 'route' && currentNameHasWildcard)); // Route → better route (only if current has wildcard)
+    if (isImprovement) {
       activeRootSpan.updateName(name);
       activeRootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
 
-      // Mark this span as having its name set to prevent future updates
-      addNonEnumerableProperty(
-        activeRootSpan as { __sentry_navigation_name_set__?: boolean },
-        '__sentry_navigation_name_set__',
-        true,
-      );
+      // Only mark as finalized for non-wildcard route names (allows URL→route upgrades).
+      if (!transactionNameHasWildcard(name) && source === 'route') {
+        addNonEnumerableProperty(
+          activeRootSpan as { __sentry_navigation_name_set__?: boolean },
+          '__sentry_navigation_name_set__',
+          true,
+        );
+      }
     }
   }
+}
+
+function setupRouterSubscription(
+  router: Router,
+  routes: RouteObject[],
+  version: V6CompatibleVersion,
+  basename: string | undefined,
+  activeRootSpan: Span | undefined,
+): void {
+  let isInitialPageloadComplete = false;
+  let hasSeenPageloadSpan = !!activeRootSpan && spanToJSON(activeRootSpan).op === 'pageload';
+  let hasSeenPopAfterPageload = false;
+  let scheduledNavigationHandler: number | null = null;
+  let lastHandledPathname: string | null = null;
+
+  router.subscribe((state: RouterState) => {
+    if (!isInitialPageloadComplete) {
+      const currentRootSpan = getActiveRootSpan();
+      const isCurrentlyInPageload = currentRootSpan && spanToJSON(currentRootSpan).op === 'pageload';
+
+      if (isCurrentlyInPageload) {
+        hasSeenPageloadSpan = true;
+      } else if (hasSeenPageloadSpan) {
+        if (state.historyAction === 'POP' && !hasSeenPopAfterPageload) {
+          hasSeenPopAfterPageload = true;
+        } else {
+          isInitialPageloadComplete = true;
+        }
+      }
+    }
+
+    const shouldHandleNavigation =
+      state.historyAction === 'PUSH' || (state.historyAction === 'POP' && isInitialPageloadComplete);
+
+    if (shouldHandleNavigation) {
+      // Include search and hash to allow query/hash-only navigations
+      // Use computeLocationKey() to ensure undefined/null values are normalized to empty strings
+      const currentLocationKey = computeLocationKey(state.location);
+      const navigationHandler = (): void => {
+        // Prevent multiple calls for the same location within the same navigation cycle
+        if (lastHandledPathname === currentLocationKey) {
+          return;
+        }
+        lastHandledPathname = currentLocationKey;
+        scheduledNavigationHandler = null;
+        handleNavigation({
+          location: state.location,
+          routes,
+          navigationType: state.historyAction,
+          version,
+          basename,
+          allRoutes: Array.from(allRoutes),
+        });
+      };
+
+      if (state.navigation.state !== 'idle') {
+        // Navigation in progress - reset if location changed
+        if (lastHandledPathname !== currentLocationKey) {
+          lastHandledPathname = null;
+        }
+        // Cancel any previously scheduled handler to avoid duplicates
+        if (scheduledNavigationHandler !== null) {
+          cancelScheduledCallback(scheduledNavigationHandler);
+        }
+        scheduledNavigationHandler = scheduleCallback(navigationHandler);
+      } else {
+        // Navigation completed - cancel scheduled handler if any, then call immediately
+        if (scheduledNavigationHandler !== null) {
+          cancelScheduledCallback(scheduledNavigationHandler);
+          scheduledNavigationHandler = null;
+        }
+        navigationHandler();
+        // Don't reset - next navigation cycle resets to prevent duplicates within same cycle.
+      }
+    }
+  });
 }
 
 /**
@@ -242,30 +430,17 @@ export function createV6CompatibleWrapCreateBrowserRouter<
   return function (routes: RouteObject[], opts?: Record<string, unknown> & { basename?: string }): TRouter {
     addRoutesToAllRoutes(routes);
 
-    // Check for async handlers that might contain sub-route declarations (only if enabled)
     if (_enableAsyncRouteHandlers) {
       for (const route of routes) {
         checkRouteForAsyncHandler(route, processResolvedRoutes);
       }
     }
 
-    // Wrap patchRoutesOnNavigation to detect when lazy routes are loaded
     const wrappedOpts = wrapPatchRoutesOnNavigation(opts);
-
     const router = createRouterFunction(routes, wrappedOpts);
     const basename = opts?.basename;
-
     const activeRootSpan = getActiveRootSpan();
 
-    // Track whether we've completed the initial pageload to properly distinguish
-    // between POPs that occur during pageload vs. legitimate back/forward navigation.
-    let isInitialPageloadComplete = false;
-    let hasSeenPageloadSpan = !!activeRootSpan && spanToJSON(activeRootSpan).op === 'pageload';
-    let hasSeenPopAfterPageload = false;
-
-    // The initial load ends when `createBrowserRouter` is called.
-    // This is the earliest convenient time to update the transaction name.
-    // Callbacks to `router.subscribe` are not called for the initial load.
     if (router.state.historyAction === 'POP' && activeRootSpan) {
       updatePageloadTransaction({
         activeRootSpan,
@@ -276,38 +451,7 @@ export function createV6CompatibleWrapCreateBrowserRouter<
       });
     }
 
-    router.subscribe((state: RouterState) => {
-      // Track pageload completion to distinguish POPs during pageload from legitimate back/forward navigation
-      if (!isInitialPageloadComplete) {
-        const currentRootSpan = getActiveRootSpan();
-        const isCurrentlyInPageload = currentRootSpan && spanToJSON(currentRootSpan).op === 'pageload';
-
-        if (isCurrentlyInPageload) {
-          hasSeenPageloadSpan = true;
-        } else if (hasSeenPageloadSpan) {
-          // Pageload span was active but is now gone - pageload has completed
-          if (state.historyAction === 'POP' && !hasSeenPopAfterPageload) {
-            // Pageload ended: ignore the first POP after pageload
-            hasSeenPopAfterPageload = true;
-          } else {
-            // Pageload ended: either non-POP action or subsequent POP
-            isInitialPageloadComplete = true;
-          }
-        }
-        // If we haven't seen a pageload span yet, keep waiting (don't mark as complete)
-      }
-
-      if (shouldHandleNavigation(state, isInitialPageloadComplete)) {
-        handleNavigation({
-          location: state.location,
-          routes,
-          navigationType: state.historyAction,
-          version,
-          basename,
-          allRoutes: Array.from(allRoutes),
-        });
-      }
-    });
+    setupRouterSubscription(router, routes, version, basename, activeRootSpan);
 
     return router;
   };
@@ -342,14 +486,12 @@ export function createV6CompatibleWrapCreateMemoryRouter<
   ): TRouter {
     addRoutesToAllRoutes(routes);
 
-    // Check for async handlers that might contain sub-route declarations (only if enabled)
     if (_enableAsyncRouteHandlers) {
       for (const route of routes) {
         checkRouteForAsyncHandler(route, processResolvedRoutes);
       }
     }
 
-    // Wrap patchRoutesOnNavigation to detect when lazy routes are loaded
     const wrappedOpts = wrapPatchRoutesOnNavigation(opts, true);
 
     const router = createRouterFunction(routes, wrappedOpts);
@@ -387,44 +529,7 @@ export function createV6CompatibleWrapCreateMemoryRouter<
       });
     }
 
-    // Track whether we've completed the initial pageload to properly distinguish
-    // between POPs that occur during pageload vs. legitimate back/forward navigation.
-    let isInitialPageloadComplete = false;
-    let hasSeenPageloadSpan = !!memoryActiveRootSpan && spanToJSON(memoryActiveRootSpan).op === 'pageload';
-    let hasSeenPopAfterPageload = false;
-
-    router.subscribe((state: RouterState) => {
-      // Track pageload completion to distinguish POPs during pageload from legitimate back/forward navigation
-      if (!isInitialPageloadComplete) {
-        const currentRootSpan = getActiveRootSpan();
-        const isCurrentlyInPageload = currentRootSpan && spanToJSON(currentRootSpan).op === 'pageload';
-
-        if (isCurrentlyInPageload) {
-          hasSeenPageloadSpan = true;
-        } else if (hasSeenPageloadSpan) {
-          // Pageload span was active but is now gone - pageload has completed
-          if (state.historyAction === 'POP' && !hasSeenPopAfterPageload) {
-            // Pageload ended: ignore the first POP after pageload
-            hasSeenPopAfterPageload = true;
-          } else {
-            // Pageload ended: either non-POP action or subsequent POP
-            isInitialPageloadComplete = true;
-          }
-        }
-        // If we haven't seen a pageload span yet, keep waiting (don't mark as complete)
-      }
-
-      if (shouldHandleNavigation(state, isInitialPageloadComplete)) {
-        handleNavigation({
-          location: state.location,
-          routes,
-          navigationType: state.historyAction,
-          version,
-          basename,
-          allRoutes: Array.from(allRoutes),
-        });
-      }
-    });
+    setupRouterSubscription(router, routes, version, basename, memoryActiveRootSpan);
 
     return router;
   };
@@ -449,12 +554,43 @@ export function createReactRouterV6CompatibleTracingIntegration(
     enableAsyncRouteHandlers = false,
     instrumentPageLoad = true,
     instrumentNavigation = true,
+    lazyRouteTimeout,
   } = options;
 
   return {
     ...integration,
     setup(client) {
       integration.setup(client);
+
+      const finalTimeout = options.finalTimeout ?? 30000;
+      const defaultMaxWait = (options.idleTimeout ?? 1000) * 3;
+      const configuredMaxWait = lazyRouteTimeout ?? defaultMaxWait;
+
+      // Cap Infinity at finalTimeout to prevent indefinite hangs
+      if (configuredMaxWait === Infinity) {
+        _lazyRouteTimeout = finalTimeout;
+        DEBUG_BUILD &&
+          debug.log(
+            '[React Router] lazyRouteTimeout set to Infinity, capping at finalTimeout:',
+            finalTimeout,
+            'ms to prevent indefinite hangs',
+          );
+      } else if (Number.isNaN(configuredMaxWait)) {
+        DEBUG_BUILD &&
+          debug.warn('[React Router] lazyRouteTimeout must be a number, falling back to default:', defaultMaxWait);
+        _lazyRouteTimeout = defaultMaxWait;
+      } else if (configuredMaxWait < 0) {
+        DEBUG_BUILD &&
+          debug.warn(
+            '[React Router] lazyRouteTimeout must be non-negative or Infinity, got:',
+            configuredMaxWait,
+            'falling back to:',
+            defaultMaxWait,
+          );
+        _lazyRouteTimeout = defaultMaxWait;
+      } else {
+        _lazyRouteTimeout = configuredMaxWait;
+      }
 
       _useEffect = useEffect;
       _useLocation = useLocation;
@@ -530,6 +666,9 @@ export function createV6CompatibleWrapUseRoutes(origUseRoutes: UseRoutes, versio
         });
         isMountRenderPass.current = false;
       } else {
+        // Note: Component-based routes don't support lazy route tracking via lazyRouteTimeout
+        // because React.lazy() loads happen at the component level, not the router level.
+        // Use createBrowserRouter with patchRoutesOnNavigation for lazy route tracking.
         handleNavigation({
           location: normalizedLocation,
           routes,
@@ -564,7 +703,8 @@ function wrapPatchRoutesOnNavigation(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       const targetPath = (args as any)?.path;
 
-      // For browser router, wrap the patch function to update span during patching
+      const activeRootSpan = getActiveRootSpan();
+
       if (!isMemoryRouter) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         const originalPatch = (args as any)?.patch;
@@ -572,13 +712,13 @@ function wrapPatchRoutesOnNavigation(
           // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
           (args as any).patch = (routeId: string, children: RouteObject[]) => {
             addRoutesToAllRoutes(children);
-            const activeRootSpan = getActiveRootSpan();
-            if (activeRootSpan && (spanToJSON(activeRootSpan) as { op?: string }).op === 'navigation') {
+            const currentActiveRootSpan = getActiveRootSpan();
+            if (currentActiveRootSpan && (spanToJSON(currentActiveRootSpan) as { op?: string }).op === 'navigation') {
               updateNavigationSpan(
-                activeRootSpan,
+                currentActiveRootSpan,
                 { pathname: targetPath, search: '', hash: '', state: null, key: 'default' },
                 Array.from(allRoutes),
-                true, // forceUpdate = true since we're loading lazy routes
+                true,
                 _matchRoutes,
               );
             }
@@ -587,102 +727,37 @@ function wrapPatchRoutesOnNavigation(
         }
       }
 
-      const result = await originalPatchRoutes(args);
+      const lazyLoadPromise = (async () => {
+        const result = await originalPatchRoutes(args);
 
-      // Update navigation span after routes are patched
-      const activeRootSpan = getActiveRootSpan();
-      if (activeRootSpan && (spanToJSON(activeRootSpan) as { op?: string }).op === 'navigation') {
-        // Determine pathname based on router type
-        let pathname: string | undefined;
-        if (isMemoryRouter) {
-          // For memory routers, only use targetPath
-          pathname = targetPath;
-        } else {
-          // For browser routers, use targetPath or fall back to window.location
-          pathname = targetPath || WINDOW.location?.pathname;
+        const currentActiveRootSpan = getActiveRootSpan();
+        if (currentActiveRootSpan && (spanToJSON(currentActiveRootSpan) as { op?: string }).op === 'navigation') {
+          const pathname = isMemoryRouter ? targetPath : targetPath || WINDOW.location?.pathname;
+
+          if (pathname) {
+            updateNavigationSpan(
+              currentActiveRootSpan,
+              { pathname, search: '', hash: '', state: null, key: 'default' },
+              Array.from(allRoutes),
+              false,
+              _matchRoutes,
+            );
+          }
         }
 
-        if (pathname) {
-          updateNavigationSpan(
-            activeRootSpan,
-            { pathname, search: '', hash: '', state: null, key: 'default' },
-            Array.from(allRoutes),
-            false, // forceUpdate = false since this is after lazy routes are loaded
-            _matchRoutes,
-          );
-        }
+        return result;
+      })();
+
+      if (activeRootSpan) {
+        trackLazyRouteLoad(activeRootSpan, lazyLoadPromise);
       }
 
-      return result;
+      return lazyLoadPromise;
     },
   };
 }
 
-function getNavigationKey(location: Location): string {
-  return `${location.pathname}${location.search}${location.hash}`;
-}
-
-function tryUpdateSpanName(
-  activeSpan: Span,
-  currentSpanName: string | undefined,
-  newName: string,
-  newSource: string,
-): void {
-  // Check if the new name contains React Router parameter syntax (/:param/)
-  const isReactRouterParam = /\/:[a-zA-Z0-9_]+/.test(newName);
-  const isNewNameParameterized = newName !== currentSpanName && isReactRouterParam;
-  if (isNewNameParameterized) {
-    activeSpan.updateName(newName);
-    activeSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, newSource as 'route' | 'url' | 'custom');
-  }
-}
-
-function isDuplicateNavigation(client: Client, navigationKey: string): boolean {
-  const lastKey = LAST_NAVIGATION_PER_CLIENT.get(client);
-  return lastKey === navigationKey;
-}
-
-function createNavigationSpan(opts: {
-  client: Client;
-  name: string;
-  source: string;
-  version: string;
-  location: Location;
-  routes: RouteObject[];
-  basename?: string;
-  allRoutes?: RouteObject[];
-  navigationKey: string;
-}): Span | undefined {
-  const { client, name, source, version, location, routes, basename, allRoutes, navigationKey } = opts;
-
-  const navigationSpan = startBrowserTracingNavigationSpan(client, {
-    name,
-    attributes: {
-      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source as 'route' | 'url' | 'custom',
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: `auto.navigation.react.reactrouter_v${version}`,
-    },
-  });
-
-  if (navigationSpan) {
-    LAST_NAVIGATION_PER_CLIENT.set(client, navigationKey);
-    patchNavigationSpanEnd(navigationSpan, location, routes, basename, allRoutes);
-
-    const unsubscribe = client.on('spanEnd', endedSpan => {
-      if (endedSpan === navigationSpan) {
-        // Clear key only if it's still our key (handles overlapping navigations)
-        const lastKey = LAST_NAVIGATION_PER_CLIENT.get(client);
-        if (lastKey === navigationKey) {
-          LAST_NAVIGATION_PER_CLIENT.delete(client);
-        }
-        unsubscribe(); // Prevent memory leak
-      }
-    });
-  }
-
-  return navigationSpan;
-}
-
+// eslint-disable-next-line complexity
 export function handleNavigation(opts: {
   location: Location;
   routes: RouteObject[];
@@ -714,33 +789,84 @@ export function handleNavigation(opts: {
       basename,
     );
 
-    const currentNavigationKey = getNavigationKey(location);
-    const isNavDuplicate = isDuplicateNavigation(client, currentNavigationKey);
+    const locationKey = computeLocationKey(location);
+    const trackedNav = activeNavigationSpans.get(client);
 
-    if (isNavDuplicate) {
-      // Cross-usage duplicate - update existing span name if better
-      const activeSpan = getActiveSpan();
-      const spanJson = activeSpan && spanToJSON(activeSpan);
-      const isAlreadyInNavigationSpan = spanJson?.op === 'navigation';
+    // Determine if this navigation should be skipped as a duplicate
+    const trackedSpanHasEnded =
+      trackedNav && !trackedNav.isPlaceholder ? !!spanToJSON(trackedNav.span).timestamp : false;
+    const { skip, shouldUpdate } = shouldSkipNavigation(trackedNav, locationKey, name, trackedSpanHasEnded);
 
-      if (isAlreadyInNavigationSpan && activeSpan) {
-        tryUpdateSpanName(activeSpan, spanJson?.description, name, source);
+    if (skip) {
+      if (shouldUpdate && trackedNav) {
+        const oldName = trackedNav.routeName;
+
+        if (trackedNav.isPlaceholder) {
+          // Update placeholder's route name - the real span will be created with this name
+          trackedNav.routeName = name;
+          DEBUG_BUILD &&
+            debug.log(
+              `[Tracing] Updated placeholder navigation name from "${oldName}" to "${name}" (will apply to real span)`,
+            );
+        } else {
+          // Update existing real span from wildcard to parameterized route name
+          trackedNav.span.updateName(name);
+          trackedNav.span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source as 'route' | 'url' | 'custom');
+          addNonEnumerableProperty(
+            trackedNav.span as { __sentry_navigation_name_set__?: boolean },
+            '__sentry_navigation_name_set__',
+            true,
+          );
+          trackedNav.routeName = name;
+          DEBUG_BUILD && debug.log(`[Tracing] Updated navigation span name from "${oldName}" to "${name}"`);
+        }
+      } else {
+        DEBUG_BUILD && debug.log(`[Tracing] Skipping duplicate navigation for location: ${locationKey}`);
       }
-    } else {
-      // Not a cross-usage duplicate - create new span
-      // This handles: different routes, same route with different params (/user/2 → /user/3)
-      // startBrowserTracingNavigationSpan will end any active navigation span
-      createNavigationSpan({
-        client,
-        name,
-        source,
-        version,
-        location,
-        routes,
-        basename,
-        allRoutes,
-        navigationKey: currentNavigationKey,
+      return;
+    }
+
+    // Create new navigation span (first navigation or legitimate new navigation)
+    // Reserve the spot in the map first to prevent race conditions
+    // Mark as placeholder to prevent concurrent handleNavigation calls from creating duplicates
+    const placeholderSpan = { end: () => {} } as unknown as Span;
+    const placeholderEntry = {
+      span: placeholderSpan,
+      routeName: name,
+      pathname: location.pathname,
+      locationKey,
+      isPlaceholder: true as const,
+    };
+    activeNavigationSpans.set(client, placeholderEntry);
+
+    let navigationSpan: Span | undefined;
+    try {
+      navigationSpan = startBrowserTracingNavigationSpan(client, {
+        name: placeholderEntry.routeName, // Use placeholder's routeName in case it was updated
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: `auto.navigation.react.reactrouter_v${version}`,
+        },
       });
+    } catch (e) {
+      // If span creation fails, remove the placeholder so we don't block future navigations
+      activeNavigationSpans.delete(client);
+      throw e;
+    }
+
+    if (navigationSpan) {
+      // Update the map with the real span (isPlaceholder omitted, defaults to false)
+      activeNavigationSpans.set(client, {
+        span: navigationSpan,
+        routeName: placeholderEntry.routeName, // Use the (potentially updated) placeholder routeName
+        pathname: location.pathname,
+        locationKey,
+      });
+      patchSpanEnd(navigationSpan, location, routes, basename, allRoutes, 'navigation');
+    } else {
+      // If no span was created, remove the placeholder
+      activeNavigationSpans.delete(client);
     }
   }
 }
@@ -809,8 +935,90 @@ function updatePageloadTransaction({
       activeRootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
 
       // Patch span.end() to ensure we update the name one last time before the span is sent
-      patchPageloadSpanEnd(activeRootSpan, location, routes, basename, allRoutes);
+      patchSpanEnd(activeRootSpan, location, routes, basename, allRoutes, 'pageload');
     }
+  }
+}
+
+/**
+ * Determines if a span name should be updated during wildcard route resolution.
+ *
+ * Update conditions (in priority order):
+ * 1. No current name + allowNoCurrentName: true → always update (pageload spans)
+ * 2. Current name has wildcard + new is route without wildcard → upgrade (e.g., "/users/*" → "/users/:id")
+ * 3. Current source is not 'route' + new source is 'route' → upgrade (e.g., URL → parameterized route)
+ *
+ * @param currentName - The current span name (may be undefined)
+ * @param currentSource - The current span source ('route', 'url', or undefined)
+ * @param newName - The proposed new span name
+ * @param newSource - The proposed new span source
+ * @param allowNoCurrentName - If true, allow updates when there's no current name (for pageload spans)
+ * @returns true if the span name should be updated
+ */
+function shouldUpdateWildcardSpanName(
+  currentName: string | undefined,
+  currentSource: string | undefined,
+  newName: string,
+  newSource: string,
+  allowNoCurrentName = false,
+): boolean {
+  if (!newName) {
+    return false;
+  }
+
+  if (!currentName && allowNoCurrentName) {
+    return true;
+  }
+
+  const hasWildcard = currentName && transactionNameHasWildcard(currentName);
+
+  if (hasWildcard && newSource === 'route' && !transactionNameHasWildcard(newName)) {
+    return true;
+  }
+
+  if (currentSource !== 'route' && newSource === 'route') {
+    return true;
+  }
+
+  return false;
+}
+
+function tryUpdateSpanNameBeforeEnd(
+  span: Span,
+  spanJson: ReturnType<typeof spanToJSON>,
+  currentName: string | undefined,
+  location: Location,
+  routes: RouteObject[],
+  basename: string | undefined,
+  spanType: 'pageload' | 'navigation',
+  allRoutes: Set<RouteObject>,
+): void {
+  try {
+    const currentSource = spanJson.data?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
+
+    if (currentSource === 'route' && currentName && !transactionNameHasWildcard(currentName)) {
+      return;
+    }
+
+    const currentAllRoutes = Array.from(allRoutes);
+    const routesToUse = currentAllRoutes.length > 0 ? currentAllRoutes : routes;
+    const branches = _matchRoutes(routesToUse, location, basename) as unknown as RouteMatch[];
+
+    if (!branches) {
+      return;
+    }
+
+    const [name, source] = resolveRouteNameAndSource(location, routesToUse, routesToUse, branches, basename);
+
+    const isImprovement = shouldUpdateWildcardSpanName(currentName, currentSource, name, source, true);
+    const spanNotEnded = spanType === 'pageload' || !spanJson.timestamp;
+
+    if (isImprovement && spanNotEnded) {
+      span.updateName(name);
+      span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
+    }
+  } catch (error) {
+    DEBUG_BUILD && debug.warn(`Error updating span details before ending: ${error}`);
   }
 }
 
@@ -833,69 +1041,91 @@ function patchSpanEnd(
     return;
   }
 
+  // Use the passed route context, or fall back to global Set
+  const allRoutesSet = _allRoutes ? new Set(_allRoutes) : allRoutes;
+
   const originalEnd = span.end.bind(span);
+  let endCalled = false;
 
   span.end = function patchedEnd(...args) {
-    try {
-      // Only update if the span source is not already 'route' (i.e., it hasn't been parameterized yet)
-      const spanJson = spanToJSON(span);
-      const currentSource = spanJson.data?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
-      if (currentSource !== 'route') {
-        // Last chance to update the transaction name with the latest route info
-        // Use the live global allRoutes Set to include any lazy routes loaded after patching
-        const currentAllRoutes = Array.from(allRoutes);
-        const branches = _matchRoutes(
-          currentAllRoutes.length > 0 ? currentAllRoutes : routes,
-          location,
-          basename,
-        ) as unknown as RouteMatch[];
+    if (endCalled) {
+      return;
+    }
+    endCalled = true;
 
-        if (branches) {
-          const [name, source] = resolveRouteNameAndSource(
-            location,
-            currentAllRoutes.length > 0 ? currentAllRoutes : routes,
-            currentAllRoutes.length > 0 ? currentAllRoutes : routes,
-            branches,
-            basename,
-          );
+    // Capture timestamp immediately to avoid delay from async operations
+    // If no timestamp was provided, capture the current time now
+    const endTimestamp = args.length > 0 ? args[0] : Date.now() / 1000;
 
-          // Only update if we have a valid name
-          if (name && (spanType === 'pageload' || !spanJson.timestamp)) {
-            span.updateName(name);
-            span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
-          }
+    const spanJson = spanToJSON(span);
+    const currentName = spanJson.description;
+    const currentSource = spanJson.data?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
+
+    // Helper to clean up activeNavigationSpans after span ends
+    const cleanupNavigationSpan = (): void => {
+      const client = getClient();
+      if (client && spanType === 'navigation') {
+        const trackedNav = activeNavigationSpans.get(client);
+        if (trackedNav && trackedNav.span === span) {
+          activeNavigationSpans.delete(client);
         }
       }
-    } catch (error) {
-      // Silently catch errors to ensure span.end() is always called
-      DEBUG_BUILD && debug.warn(`Error updating span details before ending: ${error}`);
+    };
+
+    const pendingPromises = pendingLazyRouteLoads.get(span);
+    // Wait for lazy routes if:
+    // 1. There are pending promises AND
+    // 2. Current name exists AND
+    // 3. Either the name has a wildcard OR the source is not 'route' (URL-based names)
+    const shouldWaitForLazyRoutes =
+      pendingPromises &&
+      pendingPromises.size > 0 &&
+      currentName &&
+      (transactionNameHasWildcard(currentName) || currentSource !== 'route');
+
+    if (shouldWaitForLazyRoutes) {
+      if (_lazyRouteTimeout === 0) {
+        tryUpdateSpanNameBeforeEnd(span, spanJson, currentName, location, routes, basename, spanType, allRoutesSet);
+        cleanupNavigationSpan();
+        originalEnd(endTimestamp);
+        return;
+      }
+
+      const allSettled = Promise.allSettled(pendingPromises).then(() => {});
+      const waitPromise =
+        _lazyRouteTimeout === Infinity
+          ? allSettled
+          : Promise.race([allSettled, new Promise<void>(r => setTimeout(r, _lazyRouteTimeout))]);
+
+      waitPromise
+        .then(() => {
+          const updatedSpanJson = spanToJSON(span);
+          tryUpdateSpanNameBeforeEnd(
+            span,
+            updatedSpanJson,
+            updatedSpanJson.description,
+            location,
+            routes,
+            basename,
+            spanType,
+            allRoutesSet,
+          );
+          cleanupNavigationSpan();
+          originalEnd(endTimestamp);
+        })
+        .catch(() => {
+          cleanupNavigationSpan();
+          originalEnd(endTimestamp);
+        });
+      return;
     }
 
-    return originalEnd(...args);
+    tryUpdateSpanNameBeforeEnd(span, spanJson, currentName, location, routes, basename, spanType, allRoutesSet);
+    cleanupNavigationSpan();
+    originalEnd(endTimestamp);
   };
 
-  // Mark this span as having its end() method patched to prevent duplicate patching
   addNonEnumerableProperty(span as unknown as Record<string, boolean>, patchedPropertyName, true);
-}
-
-function patchPageloadSpanEnd(
-  span: Span,
-  location: Location,
-  routes: RouteObject[],
-  basename: string | undefined,
-  _allRoutes: RouteObject[] | undefined,
-): void {
-  patchSpanEnd(span, location, routes, basename, _allRoutes, 'pageload');
-}
-
-function patchNavigationSpanEnd(
-  span: Span,
-  location: Location,
-  routes: RouteObject[],
-  basename: string | undefined,
-  _allRoutes: RouteObject[] | undefined,
-): void {
-  patchSpanEnd(span, location, routes, basename, _allRoutes, 'navigation');
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -933,11 +1163,13 @@ export function createV6CompatibleWithSentryReactRouterRouting<P extends Record<
           });
           isMountRenderPass.current = false;
         } else {
+          // Note: Component-based routes don't support lazy route tracking via lazyRouteTimeout
+          // because React.lazy() loads happen at the component level, not the router level.
+          // Use createBrowserRouter with patchRoutesOnNavigation for lazy route tracking.
           handleNavigation({ location, routes, navigationType, version, allRoutes: Array.from(allRoutes) });
         }
       },
-      // `props.children` is purposely not included in the dependency array, because we do not want to re-run this effect
-      // when the children change. We only want to start transactions when the location or navigation type change.
+      // Re-run only on location/navigation changes, not children changes
       [location, navigationType],
     );
 

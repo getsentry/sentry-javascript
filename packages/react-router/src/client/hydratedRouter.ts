@@ -48,7 +48,7 @@ export function instrumentHydratedRouter(): void {
           pageloadSpan.updateName(parameterizePageloadRoute);
           pageloadSpan.setAttributes({
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.react-router',
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.react_router',
           });
         }
 
@@ -84,7 +84,7 @@ export function instrumentHydratedRouter(): void {
           navigationSpan.updateName(parameterizedNavRoute);
           navigationSpan.setAttributes({
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react-router',
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react_router',
           });
         }
       });
@@ -125,7 +125,7 @@ function maybeCreateNavigationTransaction(name: string, source: 'url' | 'route')
     attributes: {
       [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react-router',
+      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react_router',
     },
   });
 }

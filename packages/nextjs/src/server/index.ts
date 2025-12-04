@@ -1,3 +1,6 @@
+// import/export got a false positive, and affects most of our index barrel files
+// can be removed once following issue is fixed: https://github.com/import-js/eslint-plugin-import/issues/703
+/* eslint-disable import/export */
 import { context } from '@opentelemetry/api';
 import {
   ATTR_HTTP_REQUEST_METHOD,
@@ -38,6 +41,7 @@ import {
   TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION,
 } from '../common/span-attributes-with-logic-attached';
 import { addHeadersAsAttributes } from '../common/utils/addHeadersAsAttributes';
+import { dropMiddlewareTunnelRequests } from '../common/utils/dropMiddlewareTunnelRequests';
 import { isBuild } from '../common/utils/isBuild';
 import { setUrlProcessingMetadata } from '../common/utils/setUrlProcessingMetadata';
 import { distDirRewriteFramesIntegration } from './distDirRewriteFramesIntegration';
@@ -45,6 +49,9 @@ import { distDirRewriteFramesIntegration } from './distDirRewriteFramesIntegrati
 export * from '@sentry/node';
 
 export { captureUnderscoreErrorException } from '../common/pages-router-instrumentation/_error';
+
+// Override core span methods with Next.js-specific implementations that support Cache Components
+export { startSpan, startSpanManual, startInactiveSpan } from '../common/utils/nextSpan';
 
 const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   _sentryRewriteFramesDistDir?: string;
@@ -168,6 +175,8 @@ export function init(options: NodeOptions): NodeClient | undefined {
     const spanAttributes = spanToJSON(span).data;
     const rootSpan = getRootSpan(span);
     const isRootSpan = span === rootSpan;
+
+    dropMiddlewareTunnelRequests(span, spanAttributes);
 
     // What we do in this glorious piece of code, is hoist any information about parameterized routes from spans emitted
     // by Next.js via the `next.route` attribute, up to the transaction by setting the http.route attribute.

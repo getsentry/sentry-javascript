@@ -8,12 +8,12 @@ import {
   GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
 import { RESPONSE_EVENT_TYPES } from './constants';
-import type { OpenAIResponseObject } from './types';
-import {
-  type ChatCompletionChunk,
-  type ChatCompletionToolCall,
-  type ResponseFunctionCall,
-  type ResponseStreamingEvent,
+import type {
+  ChatCompletionChunk,
+  ChatCompletionToolCall,
+  OpenAIResponseObject,
+  ResponseFunctionCall,
+  ResponseStreamingEvent,
 } from './types';
 import {
   isChatCompletionChunk,

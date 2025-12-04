@@ -129,7 +129,19 @@ function getAbsoluteUrl({
 }
 
 // "-user" because otherwise it would match "user-agent"
-const SENSITIVE_HEADER_SNIPPETS = ['auth', 'token', 'secret', 'cookie', '-user', 'password', 'key'];
+const SENSITIVE_HEADER_SNIPPETS = [
+  'auth',
+  'token',
+  'secret',
+  'cookie',
+  '-user',
+  'password',
+  'key',
+  'jwt',
+  'bearer',
+  'sso',
+  'saml',
+];
 
 /**
  * Converts incoming HTTP request headers to OpenTelemetry span attributes following semantic conventions.
@@ -140,26 +152,25 @@ const SENSITIVE_HEADER_SNIPPETS = ['auth', 'token', 'secret', 'cookie', '-user',
  */
 export function httpHeadersToSpanAttributes(
   headers: Record<string, string | string[] | undefined>,
-  sendDefaultPii: boolean = false,
 ): Record<string, string> {
   const spanAttributes: Record<string, string> = {};
 
   try {
     Object.entries(headers).forEach(([key, value]) => {
-      if (value !== undefined) {
-        const lowerCasedKey = key.toLowerCase();
+      if (value == null) {
+        return;
+      }
 
-        if (!sendDefaultPii && SENSITIVE_HEADER_SNIPPETS.some(snippet => lowerCasedKey.includes(snippet))) {
-          return;
-        }
+      const lowerCasedKey = key.toLowerCase();
+      const isSensitive = SENSITIVE_HEADER_SNIPPETS.some(snippet => lowerCasedKey.includes(snippet));
+      const normalizedKey = `http.request.header.${lowerCasedKey.replace(/-/g, '_')}`;
 
-        const normalizedKey = `http.request.header.${lowerCasedKey.replace(/-/g, '_')}`;
-
-        if (Array.isArray(value)) {
-          spanAttributes[normalizedKey] = value.map(v => (v !== null && v !== undefined ? String(v) : v)).join(';');
-        } else if (typeof value === 'string') {
-          spanAttributes[normalizedKey] = value;
-        }
+      if (isSensitive) {
+        spanAttributes[normalizedKey] = '[Filtered]';
+      } else if (Array.isArray(value)) {
+        spanAttributes[normalizedKey] = value.map(v => (v != null ? String(v) : v)).join(';');
+      } else if (typeof value === 'string') {
+        spanAttributes[normalizedKey] = value;
       }
     });
   } catch {
