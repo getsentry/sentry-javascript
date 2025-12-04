@@ -83,10 +83,8 @@ test.describe('Spotlight environment variable handling in Vite (ESM)', () => {
     await page.waitForTimeout(1000);
 
     // Should have no syntax errors
-    const syntaxErrors = [...consoleErrors, ...pageErrors].filter(err =>
-      err.includes('SyntaxError') ||
-      err.includes('Unexpected token') ||
-      err.includes('Cannot use import.meta')
+    const syntaxErrors = [...consoleErrors, ...pageErrors].filter(
+      err => err.includes('SyntaxError') || err.includes('Unexpected token') || err.includes('Cannot use import.meta'),
     );
 
     expect(syntaxErrors).toHaveLength(0);

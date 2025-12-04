@@ -1,6 +1,6 @@
 /**
  * Tests to verify build artifacts are correctly formatted for their module type.
- * 
+ *
  * These tests verify that:
  * - CJS builds don't contain import.meta (would cause syntax errors)
  * - ESM builds DO contain import.meta.env checks
@@ -22,21 +22,25 @@ describe('Build Artifacts - CJS vs ESM', () => {
 
       if (fs.existsSync(cjsDevPath)) {
         const cjsDevContent = fs.readFileSync(cjsDevPath, 'utf-8');
-        
+
         // Should NOT contain actual import.meta code (only in comments is ok)
-        const lines = cjsDevContent.split('\n').filter(line => !line.trim().startsWith('//') && !line.trim().startsWith('*'));
+        const lines = cjsDevContent
+          .split('\n')
+          .filter(line => !line.trim().startsWith('//') && !line.trim().startsWith('*'));
         const codeOnly = lines.join('\n');
-        
+
         expect(codeOnly).not.toContain('import.meta.env');
         expect(codeOnly).not.toContain('typeof import.meta');
       }
 
       if (fs.existsSync(cjsProdPath)) {
         const cjsProdContent = fs.readFileSync(cjsProdPath, 'utf-8');
-        
-        const lines = cjsProdContent.split('\n').filter(line => !line.trim().startsWith('//') && !line.trim().startsWith('*'));
+
+        const lines = cjsProdContent
+          .split('\n')
+          .filter(line => !line.trim().startsWith('//') && !line.trim().startsWith('*'));
         const codeOnly = lines.join('\n');
-        
+
         expect(codeOnly).not.toContain('import.meta.env');
         expect(codeOnly).not.toContain('typeof import.meta');
       }
@@ -47,7 +51,7 @@ describe('Build Artifacts - CJS vs ESM', () => {
 
       if (fs.existsSync(cjsDevPath)) {
         const content = fs.readFileSync(cjsDevPath, 'utf-8');
-        
+
         // SHOULD contain process.env check
         expect(content).toContain('process.env');
       }
@@ -61,7 +65,7 @@ describe('Build Artifacts - CJS vs ESM', () => {
 
       if (fs.existsSync(esmDevPath)) {
         const content = fs.readFileSync(esmDevPath, 'utf-8');
-        
+
         // SHOULD contain import.meta checks
         expect(content).toContain('import.meta');
         expect(content).toContain('import.meta.env');
@@ -69,7 +73,7 @@ describe('Build Artifacts - CJS vs ESM', () => {
 
       if (fs.existsSync(esmProdPath)) {
         const content = fs.readFileSync(esmProdPath, 'utf-8');
-        
+
         expect(content).toContain('import.meta');
         expect(content).toContain('import.meta.env');
       }
@@ -80,7 +84,7 @@ describe('Build Artifacts - CJS vs ESM', () => {
 
       if (fs.existsSync(esmDevPath)) {
         const content = fs.readFileSync(esmDevPath, 'utf-8');
-        
+
         // SHOULD contain the rollup markers (they're kept in output as comments)
         expect(content).toContain('rollup-esm-only');
       }
@@ -91,7 +95,7 @@ describe('Build Artifacts - CJS vs ESM', () => {
 
       if (fs.existsSync(esmDevPath)) {
         const content = fs.readFileSync(esmDevPath, 'utf-8');
-        
+
         // SHOULD contain process.env check too (for compatibility)
         expect(content).toContain('process.env');
       }
@@ -115,4 +119,3 @@ describe('Build Artifacts - CJS vs ESM', () => {
     });
   });
 });
-

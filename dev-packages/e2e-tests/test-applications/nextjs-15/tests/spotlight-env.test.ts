@@ -59,10 +59,8 @@ test.describe('Spotlight environment variable handling', () => {
     await page.waitForTimeout(1000);
 
     // Should have no syntax errors from import.meta in CJS build
-    const syntaxErrors = consoleErrors.filter(err =>
-      err.includes('import.meta') ||
-      err.includes('SyntaxError') ||
-      err.includes('Unexpected token')
+    const syntaxErrors = consoleErrors.filter(
+      err => err.includes('import.meta') || err.includes('SyntaxError') || err.includes('Unexpected token'),
     );
 
     expect(syntaxErrors).toHaveLength(0);

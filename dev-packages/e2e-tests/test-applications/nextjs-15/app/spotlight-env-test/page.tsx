@@ -32,9 +32,7 @@ export default function SpotlightEnvTestPage() {
         <div data-testid="next-public-spotlight">
           NEXT_PUBLIC_SENTRY_SPOTLIGHT: {envVars.NEXT_PUBLIC_SENTRY_SPOTLIGHT || 'undefined'}
         </div>
-        <div data-testid="sentry-spotlight">
-          SENTRY_SPOTLIGHT: {envVars.SENTRY_SPOTLIGHT || 'undefined'}
-        </div>
+        <div data-testid="sentry-spotlight">SENTRY_SPOTLIGHT: {envVars.SENTRY_SPOTLIGHT || 'undefined'}</div>
       </div>
       <div id="spotlight-status" data-testid="spotlight-status">
         <h2>Spotlight Integration Status</h2>

@@ -21,6 +21,7 @@ Tests the **CJS build** scenario where `import.meta` must be stripped to avoid s
 **Source**: `nextjs-15/app/spotlight-env-test/page.tsx`
 
 #### Tests:
+
 1. **`respects NEXT_PUBLIC_SENTRY_SPOTLIGHT environment variable`**
    - Verifies that `NEXT_PUBLIC_SENTRY_SPOTLIGHT=true` enables Spotlight
    - Checks that the Spotlight integration is registered
@@ -39,6 +40,7 @@ Tests the **CJS build** scenario where `import.meta` must be stripped to avoid s
    - Monitors console for syntax errors
 
 #### Environment Setup:
+
 ```bash
 NEXT_PUBLIC_SENTRY_SPOTLIGHT=true
 # SENTRY_SPOTLIGHT can be set for backend, but won't be exposed to browser
@@ -52,6 +54,7 @@ Tests the **ESM build** scenario where `import.meta` should be present and funct
 **Source**: `browser-webworker-vite/src/spotlight-env-test.ts`
 
 #### Tests:
+
 1. **`respects VITE_SENTRY_SPOTLIGHT environment variable`**
    - Verifies that `VITE_SENTRY_SPOTLIGHT=true` enables Spotlight
    - Checks that the Spotlight integration is registered
@@ -78,6 +81,7 @@ Tests the **ESM build** scenario where `import.meta` should be present and funct
    - Verifies it successfully reads from `import.meta.env`
 
 #### Environment Setup:
+
 ```bash
 VITE_SENTRY_SPOTLIGHT=true
 ```
@@ -119,6 +123,7 @@ try {
 ```
 
 This code is:
+
 - **Included** in ESM builds (Vite, Astro, SvelteKit)
 - **Stripped** from CJS builds (Next.js, Webpack, etc.)
 
@@ -130,12 +135,11 @@ The shared `resolveSpotlightOptions` function filters empty/whitespace strings:
 
 ```typescript
 // Treat empty/whitespace-only strings as undefined
-const envUrl = typeof envSpotlight === 'string' && envSpotlight.trim() !== ''
-  ? envSpotlight
-  : undefined;
+const envUrl = typeof envSpotlight === 'string' && envSpotlight.trim() !== '' ? envSpotlight : undefined;
 ```
 
 This ensures:
+
 - Empty strings never enable Spotlight
 - Whitespace-only strings are treated as undefined
 - No invalid URL connections are attempted
@@ -143,12 +147,14 @@ This ensures:
 ## Running the Tests
 
 ### Next.js Tests
+
 ```bash
 cd dev-packages/e2e-tests/test-applications/nextjs-15
 NEXT_PUBLIC_SENTRY_SPOTLIGHT=true pnpm test tests/spotlight-env.test.ts
 ```
 
 ### Vite Tests
+
 ```bash
 cd dev-packages/e2e-tests/test-applications/browser-webworker-vite
 VITE_SENTRY_SPOTLIGHT=true pnpm test tests/spotlight-env.test.ts
@@ -157,6 +163,7 @@ VITE_SENTRY_SPOTLIGHT=true pnpm test tests/spotlight-env.test.ts
 ## Expected Outcomes
 
 ### Next.js (CJS)
+
 - ✅ `process.env.NEXT_PUBLIC_SENTRY_SPOTLIGHT` accessible
 - ✅ `SENTRY_SPOTLIGHT` NOT accessible (backend-only)
 - ✅ No `import.meta` syntax in output
@@ -164,6 +171,7 @@ VITE_SENTRY_SPOTLIGHT=true pnpm test tests/spotlight-env.test.ts
 - ✅ Spotlight integration enabled
 
 ### Vite (ESM)
+
 - ✅ `import.meta.env.VITE_SENTRY_SPOTLIGHT` accessible
 - ✅ `process.env.VITE_SENTRY_SPOTLIGHT` accessible (transformed)
 - ✅ `import.meta` syntax present in output
@@ -173,16 +181,19 @@ VITE_SENTRY_SPOTLIGHT=true pnpm test tests/spotlight-env.test.ts
 ## Troubleshooting
 
 ### Syntax Error: Cannot use import.meta outside a module
+
 - **Cause**: `import.meta` code not stripped from CJS build
 - **Fix**: Verify `makeStripEsmPlugin()` is applied to CJS builds
 - **Check**: Look for `/* rollup-esm-only */` comments in source
 
 ### Spotlight not enabled despite env var set
+
 - **Cause**: Empty string or wrong prefix
 - **Fix**: Use correct prefix (`NEXT_PUBLIC_*` for Next.js, `VITE_*` for Vite)
 - **Check**: Verify `resolveSpotlightOptions` receives non-empty string
 
 ### import.meta.env returns undefined in Vite
+
 - **Cause**: `import.meta` code stripped from ESM build
 - **Fix**: Verify `makeStripEsmPlugin()` is NOT applied to ESM builds
 - **Check**: ESM builds should only use `makeStripCjsPlugin()`
