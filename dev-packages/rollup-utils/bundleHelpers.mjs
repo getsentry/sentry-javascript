@@ -106,7 +106,6 @@ export function makeBaseBundleConfig(options) {
       entryFileNames: outputFileBase,
       dir: 'build',
       sourcemap: true,
-      strict: false,
       esModule: false,
     },
     treeshake: treeShakePreset('smallest'),
