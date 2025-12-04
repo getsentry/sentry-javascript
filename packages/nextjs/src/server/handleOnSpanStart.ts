@@ -11,15 +11,10 @@ import {
   spanToJSON,
 } from '@sentry/core';
 import { getScopesFromContext } from '@sentry/opentelemetry';
-import {
-  ATTR_NEXT_ROUTE,
-  ATTR_NEXT_SEGMENT,
-  ATTR_NEXT_SPAN_NAME,
-  ATTR_NEXT_SPAN_TYPE,
-} from '../common/nextSpanAttributes';
+import { ATTR_NEXT_ROUTE, ATTR_NEXT_SPAN_NAME, ATTR_NEXT_SPAN_TYPE } from '../common/nextSpanAttributes';
 import { addHeadersAsAttributes } from '../common/utils/addHeadersAsAttributes';
 import { dropMiddlewareTunnelRequests } from '../common/utils/dropMiddlewareTunnelRequests';
-import { getEnhancedResolveSegmentSpanName, isResolveSegmentSpan } from '../common/utils/tracingUtils';
+import { maybeEnhanceServerComponentSpanName } from '../common/utils/tracingUtils';
 
 /**
  * Handles the on span start event for Next.js spans.
@@ -30,6 +25,7 @@ import { getEnhancedResolveSegmentSpanName, isResolveSegmentSpan } from '../comm
 export function handleOnSpanStart(span: Span): void {
   const spanAttributes = spanToJSON(span).data;
   const rootSpan = getRootSpan(span);
+  const rootSpanAttributes = spanToJSON(rootSpan).data;
   const isRootSpan = span === rootSpan;
 
   dropMiddlewareTunnelRequests(span, spanAttributes);
@@ -37,7 +33,6 @@ export function handleOnSpanStart(span: Span): void {
   // What we do in this glorious piece of code, is hoist any information about parameterized routes from spans emitted
   // by Next.js via the `next.route` attribute, up to the transaction by setting the http.route attribute.
   if (typeof spanAttributes?.[ATTR_NEXT_ROUTE] === 'string') {
-    const rootSpanAttributes = spanToJSON(rootSpan).data;
     // Only hoist the http.route attribute if the transaction doesn't already have it
     if (
       // eslint-disable-next-line deprecation/deprecation
@@ -88,9 +83,5 @@ export function handleOnSpanStart(span: Span): void {
     setCapturedScopesOnSpan(span, scope, isolationScope);
   }
 
-  // Enhancing server component span names
-  if (isResolveSegmentSpan(spanAttributes)) {
-    // type conversion is safe because we already know the attribute is a string
-    span.updateName(getEnhancedResolveSegmentSpanName(spanAttributes[ATTR_NEXT_SEGMENT] as string));
-  }
+  maybeEnhanceServerComponentSpanName(span, spanAttributes, rootSpanAttributes);
 }

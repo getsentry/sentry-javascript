@@ -1,10 +1,22 @@
-import type { PropagationContext, SpanAttributes } from '@sentry/core';
-import { debug, getActiveSpan, getRootSpan, GLOBAL_OBJ, Scope, spanToJSON, startNewTrace } from '@sentry/core';
+import { ATTR_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
+import type { PropagationContext, Span, SpanAttributes } from '@sentry/core';
+import {
+  debug,
+  getActiveSpan,
+  getRootSpan,
+  GLOBAL_OBJ,
+  Scope,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  spanToJSON,
+  startNewTrace,
+} from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import { ATTR_NEXT_SEGMENT, ATTR_NEXT_SPAN_NAME, ATTR_NEXT_SPAN_TYPE } from '../nextSpanAttributes';
 import { TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION } from '../span-attributes-with-logic-attached';
 
 const commonPropagationContextMap = new WeakMap<object, PropagationContext>();
+
+const PAGE_SEGMENT = '__PAGE__';
 
 /**
  * Takes a shared (garbage collectable) object between resources, e.g. a headers object shared between Next.js server components and returns a common propagation context.
@@ -126,16 +138,44 @@ export function isResolveSegmentSpan(spanAttributes: SpanAttributes): boolean {
 /**
  * Returns the enhanced name for a resolve segment span.
  * @param segment The segment of the resolve segment span.
+ * @param route The route of the resolve segment span.
  * @returns The enhanced name for the resolve segment span.
  */
-export function getEnhancedResolveSegmentSpanName(segment: string): string {
-  if (segment === '__PAGE__') {
-    return 'resolve page module';
+export function getEnhancedResolveSegmentSpanName({ segment, route }: { segment: string; route: string }): string {
+  if (segment === PAGE_SEGMENT) {
+    return `resolve page server component "${route}"`;
   }
 
   if (segment === '') {
-    return 'resolve root layout module';
+    return 'resolve root layout server component';
   }
 
-  return `resolve layout module "${segment}"`;
+  return `resolve layout server component "${segment}"`;
+}
+
+/**
+ * Maybe enhances the span name for a resolve segment span.
+ * If the span is not a resolve segment span, this function does nothing.
+ * @param activeSpan The active span.
+ * @param spanAttributes The attributes of the span to check.
+ * @param rootSpanAttributes The attributes of the according root span.
+ */
+export function maybeEnhanceServerComponentSpanName(
+  activeSpan: Span,
+  spanAttributes: SpanAttributes,
+  rootSpanAttributes: SpanAttributes,
+): void {
+  if (!isResolveSegmentSpan(spanAttributes)) {
+    return;
+  }
+
+  const segment = spanAttributes[ATTR_NEXT_SEGMENT] as string;
+  const route = rootSpanAttributes[ATTR_HTTP_ROUTE];
+  const enhancedName = getEnhancedResolveSegmentSpanName({ segment, route: typeof route === 'string' ? route : '' });
+  activeSpan.updateName(enhancedName);
+  activeSpan.setAttributes({
+    'sentry.nextjs.ssr.function.type': segment === PAGE_SEGMENT ? 'Page' : 'Layout',
+    'sentry.nextjs.ssr.function.route': route,
+  });
+  activeSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'function.nextjs');
 }

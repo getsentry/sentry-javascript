@@ -1,5 +1,13 @@
 import type { RequestEventData } from '@sentry/core';
-import { captureException, handleCallbackErrors, winterCGHeadersToDict, withIsolationScope } from '@sentry/core';
+import {
+  captureException,
+  getActiveSpan,
+  getIsolationScope,
+  handleCallbackErrors,
+  SPAN_STATUS_ERROR,
+  SPAN_STATUS_OK,
+  winterCGHeadersToDict,
+} from '@sentry/core';
 import { isNotFoundNavigationError, isRedirectNavigationError } from '../common/nextNavigationErrorUtils';
 import type { ServerComponentContext } from '../common/types';
 import { flushSafelyWithTimeout, waitUntil } from '../common/utils/responseEnd';
@@ -28,28 +36,37 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
         } satisfies RequestEventData,
       });
 
-      return withIsolationScope(isolationScope, () => {
-        return handleCallbackErrors(
-          () => originalFunction.apply(thisArg, args),
-          error => {
+      return handleCallbackErrors(
+        () => originalFunction.apply(thisArg, args),
+        error => {
+          const isolationScope = getIsolationScope();
+          const span = getActiveSpan();
+          const { componentRoute, componentType } = context;
+          isolationScope.setTransactionName(`${componentType} Server Component (${componentRoute})`);
+
+          if (span) {
             if (isNotFoundNavigationError(error)) {
               // We don't want to report "not-found"s
+              span.setStatus({ code: SPAN_STATUS_ERROR, message: 'not_found' });
             } else if (isRedirectNavigationError(error)) {
               // We don't want to report redirects
+              span.setStatus({ code: SPAN_STATUS_OK });
             } else {
-              captureException(error, {
-                mechanism: {
-                  handled: false,
-                  type: 'auto.function.nextjs.server_component',
-                },
-              });
+              span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
             }
-          },
-          () => {
-            waitUntil(flushSafelyWithTimeout());
-          },
-        );
-      });
+          }
+
+          captureException(error, {
+            mechanism: {
+              handled: false,
+              type: 'auto.function.nextjs.server_component',
+            },
+          });
+        },
+        () => {
+          waitUntil(flushSafelyWithTimeout());
+        },
+      );
     },
   });
 }
