@@ -205,4 +205,44 @@ describe('LangGraph integration', () => {
       await createRunner().ignore('event').expect({ transaction: EXPECTED_TRANSACTION_WITH_TOOLS }).start().completed();
     });
   });
+
+  const EXPECTED_TRANSACTION_REACT_AGENT = {
+    transaction: 'main',
+    spans: expect.arrayContaining([
+      // create_agent span
+      expect.objectContaining({
+        data: expect.objectContaining({
+          'gen_ai.operation.name': 'create_agent',
+          'sentry.op': 'gen_ai.create_agent',
+          'sentry.origin': 'auto.ai.langgraph',
+        }),
+        description: expect.stringContaining('create_agent'),
+        op: 'gen_ai.create_agent',
+        origin: 'auto.ai.langgraph',
+        status: 'ok',
+      }),
+      // invoke_agent span
+      expect.objectContaining({
+        data: expect.objectContaining({
+          'gen_ai.operation.name': 'invoke_agent',
+          'sentry.op': 'gen_ai.invoke_agent',
+          'sentry.origin': 'auto.ai.langgraph',
+        }),
+        description: expect.stringContaining('invoke_agent'),
+        op: 'gen_ai.invoke_agent',
+        origin: 'auto.ai.langgraph',
+        status: 'ok',
+      }),
+    ]),
+  };
+
+  createEsmAndCjsTests(__dirname, 'agent-scenario.mjs', 'instrument.mjs', (createRunner, test) => {
+    test('should instrument LangGraph createReactAgent with default PII settings', async () => {
+      await createRunner()
+        .ignore('event')
+        .expect({ transaction: EXPECTED_TRANSACTION_REACT_AGENT })
+        .start()
+        .completed();
+    });
+  });
 });
