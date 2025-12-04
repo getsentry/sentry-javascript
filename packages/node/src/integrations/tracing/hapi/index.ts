@@ -119,7 +119,6 @@ export async function setupHapiErrorHandler(server: Server): Promise<void> {
     });
   }
 
-  // eslint-disable-next-line @typescript-eslint/unbound-method
   ensureIsWrapped(server.register, 'hapi');
 }
 

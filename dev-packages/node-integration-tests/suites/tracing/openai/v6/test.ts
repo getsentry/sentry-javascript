@@ -508,7 +508,7 @@ describe('OpenAI integration (V6)', () => {
   createEsmAndCjsTests(
     __dirname,
     'scenario-root-span.mjs',
-    'instrument.mjs',
+    'instrument-root-span.mjs',
     (createRunner, test) => {
       test('it works without a wrapping span (v6)', async () => {
         await createRunner()

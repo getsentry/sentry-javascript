@@ -1,5 +1,5 @@
-import type { Integration, SpanOrigin } from '@sentry/core';
-import { type SpanJSON, SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
+import type { Integration, SpanJSON, SpanOrigin } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 
 /**
  * A small integration that preprocesses spans so that SvelteKit-generated spans

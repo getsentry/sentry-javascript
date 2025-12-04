@@ -24,14 +24,14 @@
     "isbot": "^5.1.22",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-router": "^7.6.0",
-    "react-router-dom": "^7.6.0"
+    "react-router": "7.9.6",
+    "react-router-dom": "7.9.6"
   },
   "devDependencies": {
     "@graphql-codegen/cli": "5.0.2",
     "@playwright/test": "~1.53.2",
-    "@react-router/dev": "7.6.0",
-    "@react-router/fs-routes": "7.6.0",
+    "@react-router/dev": "7.9.6",
+    "@react-router/fs-routes": "7.9.6",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "@shopify/cli": "3.80.4",
     "@shopify/hydrogen-codegen": "^0.3.3",
