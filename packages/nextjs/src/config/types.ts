@@ -111,7 +111,7 @@ export type SentryBuildWebpackOptions = {
     /**
      * Tree shakes Sentry SDK logger statements from the bundle. Note that this doesn't affect Sentry Logs.
      */
-    debugLogs?: boolean;
+    debugLogging?: boolean;
   };
 
   /**
@@ -535,7 +535,7 @@ export type SentryBuildOptions = {
   /**
    * Tree shakes Sentry SDK logger statements from the bundle.
    *
-   * @deprecated Use `webpack.treeshake.debugLogs` instead.
+   * @deprecated Use `webpack.treeshake.debugLogging` instead.
    */
   disableLogger?: boolean;
 

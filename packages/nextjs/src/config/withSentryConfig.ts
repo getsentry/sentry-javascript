@@ -162,13 +162,13 @@ function migrateDeprecatedWebpackOptions(userSentryOptions: SentryBuildOptions):
     deprecatedMessage('disableSentryWebpackConfig', 'webpack.disableSentryConfig'),
   );
 
-  // Handle treeshake.debugLogs specially since it's nested
+  // Handle treeshake.debugLogging specially since it's nested
   if (userSentryOptions.disableLogger !== undefined) {
     webpack.treeshake = webpack.treeshake || {};
-    webpack.treeshake.debugLogs = withDeprecatedFallback(
-      webpack.treeshake.debugLogs,
+    webpack.treeshake.debugLogging = withDeprecatedFallback(
+      webpack.treeshake.debugLogging,
       userSentryOptions.disableLogger,
-      deprecatedMessage('disableLogger', 'webpack.treeshake.debugLogs'),
+      deprecatedMessage('disableLogger', 'webpack.treeshake.debugLogging'),
     );
   }
 

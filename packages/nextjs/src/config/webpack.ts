@@ -431,7 +431,7 @@ export function constructWebpackConfigFunction({
       }
     }
 
-    if (userSentryOptions.webpack?.treeshake?.debugLogs) {
+    if (userSentryOptions.webpack?.treeshake?.debugLogging) {
       newConfig.plugins = newConfig.plugins || [];
       newConfig.plugins.push(
         new buildContext.webpack.DefinePlugin({
