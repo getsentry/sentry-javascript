@@ -1,8 +1,10 @@
 import type { Context } from '@opentelemetry/api';
 import { ROOT_CONTEXT, trace } from '@opentelemetry/api';
 import type { ReadableSpan, Span, SpanProcessor as SpanProcessorInterface } from '@opentelemetry/sdk-trace-base';
+import type { Client } from '@sentry/core';
 import {
   addChildSpanToSpan,
+  captureSpan,
   getClient,
   getDefaultCurrentScope,
   getDefaultIsolationScope,
@@ -11,7 +13,9 @@ import {
   setCapturedScopesOnSpan,
 } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_PARENT_IS_REMOTE } from './semanticAttributes';
+import type { ISentrySpanExporter } from './spanExporter';
 import { SentrySpanExporter } from './spanExporter';
+import { StreamingSpanExporter } from './streamedSpanExporter';
 import { getScopesFromContext } from './utils/contextData';
 import { setIsSetup } from './utils/setupCheck';
 
@@ -51,24 +55,22 @@ function onSpanStart(span: Span, parentContext: Context): void {
   client?.emit('spanStart', span);
 }
 
-function onSpanEnd(span: Span): void {
-  logSpanEnd(span);
-
-  const client = getClient();
-  client?.emit('spanEnd', span);
-  client?.emit('afterSpanEnd', span);
-}
-
 /**
  * Converts OpenTelemetry Spans to Sentry Spans and sends them to Sentry via
  * the Sentry SDK.
  */
 export class SentrySpanProcessor implements SpanProcessorInterface {
-  private _exporter: SentrySpanExporter;
+  private _exporter: ISentrySpanExporter;
+  private _client: Client | undefined;
 
-  public constructor(options?: { timeout?: number }) {
+  public constructor(options?: { timeout?: number; client?: Client }) {
     setIsSetup('SentrySpanProcessor');
-    this._exporter = new SentrySpanExporter(options);
+    this._client = options?.client ?? getClient();
+    if (this._client?.getOptions().traceLifecycle === 'stream') {
+      this._exporter = new StreamingSpanExporter(this._client, { flushInterval: options?.timeout });
+    } else {
+      this._exporter = new SentrySpanExporter(options);
+    }
   }
 
   /**
@@ -94,8 +96,16 @@ export class SentrySpanProcessor implements SpanProcessorInterface {
 
   /** @inheritDoc */
   public onEnd(span: Span & ReadableSpan): void {
-    onSpanEnd(span);
+    logSpanEnd(span);
 
-    this._exporter.export(span);
+    this._client?.emit('spanEnd', span);
+
+    if (this._client?.getOptions().traceLifecycle === 'stream') {
+      // we probably don't need to emit afterSpanEnd here but can call captureSpan directly.
+      // might need to revisit but let's see.
+      captureSpan(span, this._client);
+    } else {
+      this._exporter.export(span);
+    }
   }
 }
