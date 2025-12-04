@@ -25,7 +25,7 @@ import { safeSetSpanAttributes } from './spanFirstUtils';
 /**
  * Captures a span and returns it to the caller, to be enqueued for sending.
  */
-export function captureSpan(span: Span, client = getClient()): void {
+export function captureSpan(span: Span, client = getClient()): Span | void {
   if (!client) {
     DEBUG_BUILD && debug.warn('No client available to capture span.');
     return;
@@ -59,6 +59,8 @@ export function captureSpan(span: Span, client = getClient()): void {
   // or construct a fully new span object. The latter is risky because users (or we) could hold
   // references to the original span instance.
   client.emit('enqueueSpan', span);
+
+  return span;
 }
 
 function applyScopeToSegmentSpan(

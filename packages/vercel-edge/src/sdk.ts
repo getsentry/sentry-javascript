@@ -172,6 +172,7 @@ export function setupOtel(client: VercelEdgeClient): void {
     spanProcessors: [
       new SentrySpanProcessor({
         timeout: client.getOptions().maxSpanWaitDuration,
+        client,
       }),
     ],
   });
