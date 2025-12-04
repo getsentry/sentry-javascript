@@ -1,5 +1,15 @@
 import { makeBaseBundleConfig, makeBundleConfigVariants } from '@sentry-internal/rollup-utils';
 
+// Alias react to preact/compat since this package uses Preact for rendering
+const preactAlias = {
+  resolve: {
+    alias: {
+      react: 'preact/compat',
+      'react/jsx-runtime': 'preact/jsx-runtime',
+    },
+  },
+};
+
 export default [
   // The core `feedback` bundle is built in the browser package
   // Sub-bundles are built here
@@ -10,6 +20,7 @@ export default [
       jsVersion: 'es6',
       licenseTitle: '@sentry-internal/feedback',
       outputFileBase: () => 'bundles/feedback-screenshot',
+      packageSpecificConfig: preactAlias,
     }),
   ),
   ...makeBundleConfigVariants(
@@ -19,6 +30,7 @@ export default [
       jsVersion: 'es6',
       licenseTitle: '@sentry-internal/feedback',
       outputFileBase: () => 'bundles/feedback-modal',
+      packageSpecificConfig: preactAlias,
     }),
   ),
 ];
