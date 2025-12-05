@@ -104,6 +104,11 @@ export function makeBaseBundleConfig(options) {
     // Point to the package's tsconfig.json so rolldown respects TypeScript & JSX settings
     tsconfig: path.resolve(process.cwd(), './tsconfig.json'),
 
+    // Enforce ES2020 target for all builds
+    transform: {
+      target: 'es2020',
+    },
+
     output: {
       // a file extension will be added to this base value when we specify either a minified or non-minified build
       entryFileNames: outputFileBase,

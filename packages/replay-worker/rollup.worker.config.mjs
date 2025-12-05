@@ -24,6 +24,9 @@ const config = defineConfig([
       minify: true,
     },
     treeshake: treeShakePreset('smallest'),
+    transform: {
+      target: 'es2020',
+    },
     plugins: [
       {
         name: 'worker-to-string',
@@ -42,6 +45,9 @@ const config = defineConfig([
       minify: true,
     },
     treeshake: treeShakePreset('smallest'),
+    transform: {
+      target: 'es2020',
+    },
   },
 ]);
 

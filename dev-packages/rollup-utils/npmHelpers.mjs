@@ -92,6 +92,11 @@ export function makeBaseNPMConfig(options = {}) {
       },
     },
 
+    // Enforce ES2020 target for all builds
+    transform: {
+      target: 'es2020',
+    },
+
     plugins: [debugBuildStatementReplacePlugin, rrwebBuildPlugin],
 
     // don't include imported modules from outside the package in the final output
