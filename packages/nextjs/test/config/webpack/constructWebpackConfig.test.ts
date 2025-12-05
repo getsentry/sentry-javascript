@@ -459,7 +459,7 @@ describe('constructWebpackConfigFunction()', () => {
         sentryBuildTimeOptions: {
           webpack: {
             treeshake: {
-              debugLogging: true,
+              removeDebugLogging: true,
             },
           },
         },
@@ -487,7 +487,7 @@ describe('constructWebpackConfigFunction()', () => {
         sentryBuildTimeOptions: {
           webpack: {
             treeshake: {
-              tracing: true,
+              removeTracing: true,
             },
           },
         },
@@ -603,8 +603,8 @@ describe('constructWebpackConfigFunction()', () => {
         sentryBuildTimeOptions: {
           webpack: {
             treeshake: {
-              debugLogging: true,
-              tracing: true,
+              removeDebugLogging: true,
+              removeTracing: true,
               excludeReplayIframe: true,
               excludeReplayShadowDOM: true,
               excludeReplayCompressionWorker: true,
@@ -649,8 +649,8 @@ describe('constructWebpackConfigFunction()', () => {
         sentryBuildTimeOptions: {
           webpack: {
             treeshake: {
-              debugLogging: false,
-              tracing: false,
+              removeDebugLogging: false,
+              removeTracing: false,
               excludeReplayIframe: false,
               excludeReplayShadowDOM: false,
               excludeReplayCompressionWorker: false,
@@ -687,8 +687,8 @@ describe('constructWebpackConfigFunction()', () => {
         sentryBuildTimeOptions: {
           webpack: {
             treeshake: {
-              debugLogging: true,
-              tracing: true,
+              removeDebugLogging: true,
+              removeTracing: true,
             },
           },
         },
@@ -758,8 +758,8 @@ describe('constructWebpackConfigFunction()', () => {
         sentryBuildTimeOptions: {
           webpack: {
             treeshake: {
-              debugLogging: true,
-              tracing: false, // disabled
+              removeDebugLogging: true,
+              removeTracing: false, // disabled
               excludeReplayIframe: true,
               excludeReplayShadowDOM: false, // disabled
               excludeReplayCompressionWorker: true,
