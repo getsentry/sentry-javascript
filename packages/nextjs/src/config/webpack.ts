@@ -106,8 +106,17 @@ export function constructWebpackConfigFunction({
         // Prepend 'development' to existing conditions to preserve Next.js's ESM/CJS resolution
         newConfig.resolve.conditionNames = ['development', ...existingConditions];
       } else if (!existingConditions) {
-        // Set default conditions with 'development' first (webpack defaults + development)
-        newConfig.resolve.conditionNames = ['development', 'webpack', 'module', 'import', 'require', 'default'];
+        // Set default conditions with 'development' first
+        // Include 'browser' for client bundles, 'node' for server bundles
+        const platformCondition = isServer ? 'node' : 'browser';
+        newConfig.resolve.conditionNames = [
+          'development',
+          platformCondition,
+          'module',
+          'import',
+          'require',
+          'default',
+        ];
       }
     }
 
