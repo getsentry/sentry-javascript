@@ -1,17 +1,5 @@
-/**
- * CommonJS plugin docs: https://github.com/rollup/plugins/tree/master/packages/commonjs
- * License plugin docs: https://github.com/mjeanroy/rollup-plugin-license
- * Replace plugin docs: https://github.com/rollup/plugins/tree/master/packages/replace
- * Resolve plugin docs: https://github.com/rollup/plugins/tree/master/packages/node-resolve
- * Terser plugin docs: https://github.com/TrySound/rollup-plugin-terser#options
- * Terser docs: https://github.com/terser/terser#api-reference
- * Typescript plugin docs: https://github.com/rollup/plugins/tree/master/packages/typescript/#readme
- */
-
 import * as childProcess from 'child_process';
-
 import { replacePlugin } from 'rolldown/plugins';
-import terser from '@rollup/plugin-terser';
 
 /**
  * Create a plugin to add an identification banner to the top of stand-alone bundles.
@@ -41,7 +29,6 @@ export function makeIsDebugBuildPlugin(includeDebugging) {
       __SENTRY_DEBUG__: JSON.stringify(includeDebugging),
     },
     {
-      // TODO `preventAssignment` will default to true in version 5.x of the replace plugin, at which point we can get rid
       // of this. (It actually makes no difference in this case whether it's true or false, since we never assign to
       // `__SENTRY_DEBUG__`, but if we don't give it a value, it will spam with warnings.)
       preventAssignment: true,
@@ -75,22 +62,18 @@ export function makeBrowserBuildPlugin(isBrowserBuild) {
       'process.env.NODE_ENV': JSON.stringify('production'),
     },
     {
-      // TODO This will be the default in the next version of the `replace` plugin
       preventAssignment: true,
     },
   );
 }
 
-// `terser` options reference: https://github.com/terser/terser#api-reference
-// `rollup-plugin-terser` options reference: https://github.com/TrySound/rollup-plugin-terser#options
-
 /**
- * Create a plugin to perform minification using `terser`.
+ * Create minifier options for the rollup build.
  *
- * @returns An instance of the `terser` plugin
+ * @returns {import('rolldown').OutputOptions['minify']}
  */
-export function makeTerserPlugin() {
-  return terser({
+export function makeMinifierOptions() {
+  return {
     mangle: {
       // `captureException` and `captureMessage` are public API methods and they don't need to be listed here, as the
       // mangler won't touch user-facing things, but `sentryWrapped` is not user-facing, and would be mangled during
@@ -136,8 +119,5 @@ export function makeTerserPlugin() {
         ],
       },
     },
-    output: {
-      comments: false,
-    },
-  });
+  };
 }
