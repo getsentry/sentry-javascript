@@ -3,6 +3,7 @@ import {
   captureException,
   continueTrace,
   defineIntegration,
+  getClient,
   httpHeadersToSpanAttributes,
   isURLObjectRelative,
   parseStringToURLObject,
@@ -206,7 +207,10 @@ function wrapRequestHandler<T extends RouteHandler = RouteHandler>(
       routeName = route;
     }
 
-    Object.assign(attributes, httpHeadersToSpanAttributes(request.headers.toJSON()));
+    Object.assign(
+      attributes,
+      httpHeadersToSpanAttributes(request.headers.toJSON(), getClient()?.getOptions().sendDefaultPii ?? false),
+    );
 
     isolationScope.setSDKProcessingMetadata({
       normalizedRequest: {
