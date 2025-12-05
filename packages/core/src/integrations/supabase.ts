@@ -3,7 +3,7 @@
 
 /* eslint-disable max-lines */
 import { addBreadcrumb } from '../breadcrumbs';
-import { getClient, getCurrentScope, withIsolationScope } from '../currentScopes';
+import { getClient, getCurrentScope } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
 import { captureException } from '../exports';
 import { defineIntegration } from '../integration';
@@ -15,7 +15,7 @@ import {
 } from '../tracing/dynamicSamplingContext';
 import type { IntegrationFn } from '../types-hoist/integration';
 import type { Span, SpanAttributes } from '../types-hoist/span';
-import { dynamicSamplingContextToSentryBaggageHeader, parseBaggageHeader } from '../utils/baggage';
+import { dynamicSamplingContextToSentryBaggageHeader } from '../utils/baggage';
 import { debug } from '../utils/debug-logger';
 import { isPlainObject } from '../utils/is';
 import { addExceptionMechanism } from '../utils/misc';
@@ -128,7 +128,7 @@ export interface SupabaseResponse {
         baggage?: string;
       };
     };
-  }> | null;
+  }>;
   error?: {
     message: string;
     code?: string;
@@ -161,8 +161,6 @@ export interface PostgRESTProtoThenable {
 type SentryInstrumented<T> = T & {
   __SENTRY_INSTRUMENTED__?: boolean;
 };
-
-const INSTRUMENTED_SCHEMA_RPCS = new WeakSet<object>();
 
 function _markAsInstrumented<T>(fn: T): void {
   try {
@@ -334,12 +332,9 @@ function _createRpcProxyHandler(): ProxyHandler<(...args: unknown[]) => Promise<
  * @param SupabaseClient - The Supabase client constructor to instrument
  */
 function _instrumentRpcReturnedFromSchemaCall(SupabaseClient: unknown): void {
-  const proto = (SupabaseClient as SupabaseClientConstructorType).prototype;
-
-  if (_isInstrumented(proto?.schema)) {
+  if (_isInstrumented((SupabaseClient as SupabaseClientConstructorType).prototype.schema)) {
     return;
   }
-
   (SupabaseClient as SupabaseClientConstructorType).prototype.schema = new Proxy(
     (SupabaseClient as SupabaseClientConstructorType).prototype.schema,
     {
@@ -365,16 +360,12 @@ function _instrumentRpcReturnedFromSchemaCall(SupabaseClient: unknown): void {
 function _instrumentRpcMethod(supabaseInstance: SupabaseClientConstructorType): void {
   const instance = supabaseInstance as unknown as SupabaseClientInstance;
 
-  if (!instance?.rpc) {
-    return;
-  }
-
-  if (INSTRUMENTED_SCHEMA_RPCS.has(instance)) {
+  // Only instrument if rpc method exists
+  if (!instance.rpc) {
     return;
   }
 
   instance.rpc = new Proxy(instance.rpc, _createRpcProxyHandler());
-  INSTRUMENTED_SCHEMA_RPCS.add(instance);
 }
 
 /**
@@ -406,27 +397,17 @@ function _extractTraceAndBaggageFromMessage(message: { _sentry?: { sentry_trace?
 function _extractMessageIds(
   data?:
     | number
-    | {
-        [key: string]: unknown;
-        msg_id?: number;
-      }
     | Array<
         | number
         | {
             [key: string]: unknown;
             msg_id?: number;
           }
-      >
-    | null,
+      >,
 ): string | undefined {
   // Handle single message ID (e.g., from send RPC)
   if (typeof data === 'number') {
     return String(data);
-  }
-
-  // Handle single object with msg_id (e.g., from pop RPC)
-  if (data && typeof data === 'object' && !Array.isArray(data) && 'msg_id' in data) {
-    return String(data.msg_id);
   }
 
   if (!Array.isArray(data)) {
@@ -471,74 +452,64 @@ function _createQueueBreadcrumb(category: string, queueName: string | undefined,
   addBreadcrumb(breadcrumb);
 }
 
-// Stop sizing work once payload exceeds 100KB of JSON.
-const MAX_MESSAGE_SIZE_FOR_CALCULATION = 1024 * 100;
+/**
+ * Maximum size for message body size calculation to prevent performance issues.
+ * Messages larger than this will not have their size calculated.
+ */
+const MAX_MESSAGE_SIZE_FOR_CALCULATION = 1024 * 100; // 100KB
 
+/**
+ * Calculates the size of a message body safely with performance safeguards.
+ *
+ * @param message - The message to calculate size for
+ * @returns The message size in bytes, or undefined if too large or calculation fails
+ */
 function _calculateMessageBodySize(message: unknown): number | undefined {
-  if (message === undefined || message === null) {
+  if (!message) {
     return undefined;
   }
 
   try {
     const serialized = JSON.stringify(message);
-    return serialized.length <= MAX_MESSAGE_SIZE_FOR_CALCULATION ? serialized.length : undefined;
-  } catch (error) {
-    DEBUG_BUILD && debug.warn('Message body size calculation skipped:', error);
+    // Only return size if it's under the max limit to avoid performance issues
+    if (serialized.length <= MAX_MESSAGE_SIZE_FOR_CALCULATION) {
+      return serialized.length;
+    }
+    DEBUG_BUILD && debug.warn('Message body too large for size calculation:', serialized.length);
+    return undefined;
+  } catch {
+    // Ignore JSON stringify errors
     return undefined;
   }
 }
 
 /**
- * Calculates average latency for batch messages.
+ * Safely extracts a property from a queue message item.
+ * Handles undefined items and non-object values.
  *
- * @param messages - Array of messages with enqueued_at timestamps
- * @returns Average latency in milliseconds, or undefined if no valid timestamps
+ * @param item - The queue message item
+ * @param key - The property key to extract
+ * @returns The property value or undefined
  */
-function _calculateBatchLatency(messages: Array<{ enqueued_at?: string }>): number | undefined {
-  let totalLatency = 0;
-  let count = 0;
-  const now = Date.now();
-
-  for (const msg of messages) {
-    if (msg.enqueued_at) {
-      const timestamp = Date.parse(msg.enqueued_at);
-      if (!Number.isNaN(timestamp)) {
-        totalLatency += now - timestamp;
-        count++;
-      }
-    }
-  }
-
-  return count > 0 ? totalLatency / count : undefined;
-}
-
-/**
- * Calculates latency for a single message item.
- */
-function _calculateSingleLatency(item: unknown): number | undefined {
-  if (item && typeof item === 'object' && 'enqueued_at' in item) {
-    const enqueuedAt = (item as { enqueued_at?: unknown }).enqueued_at;
-    if (enqueuedAt && typeof enqueuedAt === 'string') {
-      const timestamp = Date.parse(enqueuedAt);
-      if (!Number.isNaN(timestamp)) {
-        return Date.now() - timestamp;
-      }
-      DEBUG_BUILD && debug.warn('Invalid enqueued_at timestamp:', enqueuedAt);
-    }
+function _getMessageProperty<T>(item: unknown, key: string): T | undefined {
+  if (item && typeof item === 'object' && key in item) {
+    return (item as Record<string, T>)[key];
   }
   return undefined;
 }
 
 /**
- * Captures a queue consumer error with Sentry context.
+ * Captures a Supabase queue error with proper context and mechanism.
+ *
+ * @param error - The error from Supabase response
+ * @param queueName - The name of the queue
+ * @param messageId - Optional message ID for context
  */
 function _captureQueueError(
-  error: SupabaseResponse['error'],
+  error: { message: string; code?: string; details?: unknown },
   queueName: string | undefined,
-  messageId: string | undefined,
+  messageId?: string,
 ): void {
-  if (!error) return;
-
   const err = new Error(error.message) as SupabaseError;
   if (error.code) err.code = error.code;
   if (error.details) err.details = error.details;
@@ -557,36 +528,44 @@ function _captureQueueError(
 }
 
 /**
- * Cleans _sentry metadata from message responses.
- * Handles both array responses (from read) and single object responses (from pop).
+ * Parses an enqueued_at timestamp string and returns the latency in milliseconds.
+ *
+ * @param enqueuedAt - The timestamp string to parse
+ * @returns Latency in milliseconds, or undefined if invalid
  */
-function _cleanSentryMetadata(res: SupabaseResponse): void {
-  if (Array.isArray(res.data)) {
-    const hasMetadata = res.data.some(item => {
-      const message = item && typeof item === 'object' ? (item as { message?: unknown }).message : undefined;
-      return message && typeof message === 'object' && message !== null && '_sentry' in message;
-    });
+function _parseEnqueuedAtLatency(enqueuedAt: string | undefined): number | undefined {
+  if (!enqueuedAt || typeof enqueuedAt !== 'string') {
+    return undefined;
+  }
 
-    if (hasMetadata) {
-      res.data = res.data.map(item => {
-        if (item && typeof item === 'object' && item.message && typeof item.message === 'object') {
-          const cleanMessage = { ...(item.message as Record<string, unknown>) };
-          if ('_sentry' in cleanMessage) {
-            delete cleanMessage._sentry;
-            return { ...item, message: cleanMessage };
-          }
-        }
-        return item;
-      });
-    }
-  } else if (res.data && typeof res.data === 'object' && 'message' in res.data) {
-    const singleItem = res.data as { message?: unknown };
-    if (singleItem.message && typeof singleItem.message === 'object' && '_sentry' in singleItem.message) {
-      const cleanMessage = { ...(singleItem.message as Record<string, unknown>) };
-      delete cleanMessage._sentry;
-      (res.data as { message: unknown }).message = cleanMessage;
+  const timestamp = Date.parse(enqueuedAt);
+  if (Number.isNaN(timestamp)) {
+    DEBUG_BUILD && debug.warn('Invalid enqueued_at timestamp:', enqueuedAt);
+    return undefined;
+  }
+
+  return Date.now() - timestamp;
+}
+
+/**
+ * Calculates average latency for batch messages.
+ *
+ * @param messages - Array of messages with enqueued_at timestamps
+ * @returns Average latency in milliseconds, or undefined if no valid timestamps
+ */
+function _calculateBatchLatency(messages: Array<{ enqueued_at?: string }>): number | undefined {
+  let totalLatency = 0;
+  let count = 0;
+
+  for (const msg of messages) {
+    const latency = _parseEnqueuedAtLatency(msg.enqueued_at);
+    if (latency !== undefined) {
+      totalLatency += latency;
+      count++;
     }
   }
+
+  return count > 0 ? totalLatency / count : undefined;
 }
 
 /**
@@ -599,16 +578,36 @@ function _cleanSentryMetadata(res: SupabaseResponse): void {
  * @returns The original response
  */
 function _processConsumerSpan(span: Span, res: SupabaseResponse, queueName: string | undefined): SupabaseResponse {
-  // Normalize data access - pop returns single object, read returns array
+  // Handle edge case: no data (error case or empty response)
   const data = res.data;
-  const isArray = Array.isArray(data);
-  const firstItem = isArray ? data[0] : data;
-  const isBatch = isArray && data.length > 1;
+  if (!data || !Array.isArray(data)) {
+    // Still set required attributes for error cases
+    span.setAttribute('messaging.message.retry.count', 0);
+    span.setStatus({ code: res.error ? SPAN_STATUS_ERROR : SPAN_STATUS_OK });
+
+    // Create breadcrumb with queue name for error monitoring
+    const breadcrumbData: Record<string, unknown> = {};
+    if (queueName) {
+      breadcrumbData['messaging.destination.name'] = queueName;
+    }
+    _createQueueBreadcrumb('queue.process', queueName, Object.keys(breadcrumbData).length ? breadcrumbData : undefined);
+
+    // Handle errors in the response
+    if (res.error) {
+      _captureQueueError(res.error, queueName);
+    }
+
+    return res;
+  }
+
+  // Now TypeScript knows data is a non-empty array
+  const firstItem = data.length > 0 ? data[0] : undefined;
+  const isBatch = data.length > 1;
 
   // Calculate latency for single message or batch average
   const latency = isBatch
     ? _calculateBatchLatency(data as Array<{ enqueued_at?: string }>)
-    : _calculateSingleLatency(firstItem);
+    : _parseEnqueuedAtLatency((firstItem as { enqueued_at?: string } | undefined)?.enqueued_at);
 
   // Extract message IDs
   const messageId = _extractMessageIds(data);
@@ -626,13 +625,11 @@ function _processConsumerSpan(span: Span, res: SupabaseResponse, queueName: stri
   }
 
   // Extract retry count from PGMQ read_ct field
-  const retryCount =
-    firstItem && typeof firstItem === 'object' && 'read_ct' in firstItem ? (firstItem.read_ct ?? 0) : 0;
+  const retryCount = _getMessageProperty<number>(firstItem, 'read_ct') ?? 0;
   span.setAttribute('messaging.message.retry.count', retryCount);
 
   // Calculate message body size with performance safeguards
-  const messageBody =
-    firstItem && typeof firstItem === 'object' && 'message' in firstItem ? firstItem.message : undefined;
+  const messageBody = _getMessageProperty<unknown>(firstItem, 'message');
   const messageBodySize = _calculateMessageBodySize(messageBody);
   if (messageBodySize !== undefined) {
     span.setAttribute('messaging.message.body.size', messageBodySize);
@@ -646,7 +643,9 @@ function _processConsumerSpan(span: Span, res: SupabaseResponse, queueName: stri
   _createQueueBreadcrumb('queue.process', queueName, breadcrumbData);
 
   // Handle errors in the response
-  _captureQueueError(res.error, queueName, messageId);
+  if (res.error) {
+    _captureQueueError(res.error, queueName, messageId);
+  }
 
   // Set span status based on response
   span.setStatus({ code: res.error ? SPAN_STATUS_ERROR : SPAN_STATUS_OK });
@@ -710,145 +709,107 @@ const _instrumentRpcConsumer = (target: unknown, thisArg: unknown, argumentsList
     .then(res => {
       DEBUG_BUILD && debug.log('Consumer RPC call completed', { queueName, hasData: !!res.data });
 
-      // Skip creating queue.process span for empty responses (null or empty array)
-      // But create a span if there's an error in the response (to capture the error)
-      // This aligns with push-model semantics where handlers only run when messages exist
-      const isEmpty = !res.data || (Array.isArray(res.data) && res.data.length === 0);
-      if (isEmpty && !res.error) {
-        DEBUG_BUILD && debug.log('Skipping queue.process span for empty queue response', { queueName });
+      // Skip span creation for empty/null responses when there's no error - no messages to process
+      // Still create span if there's an error to capture the failure
+      if ((!res.data || (Array.isArray(res.data) && res.data.length === 0)) && !res.error) {
+        DEBUG_BUILD && debug.log('Skipping consumer span for empty response', { queueName });
         return res;
       }
 
-      // Extract trace context from first message for distributed tracing.
-      // We only check the first message because:
-      // 1. For pop: returns a single message object
-      // 2. For read: all messages in a batch typically share the same trace context
-      // Normalize access: pop returns single object, read returns array
-      const firstMessage = Array.isArray(res.data) ? res.data[0] : res.data;
-      const { sentryTrace, baggage } = _extractTraceAndBaggageFromMessage(
-        (firstMessage && typeof firstMessage === 'object' && 'message' in firstMessage ? firstMessage.message : null) ||
-          {},
-      );
+      // Extract trace context from message for distributed tracing
+      const { sentryTrace } = _extractTraceAndBaggageFromMessage(res.data?.[0]?.message || {});
 
       // Clean up _sentry metadata from messages before returning to user
-      _cleanSentryMetadata(res);
+      // Use immutable updates to avoid mutating the original response data
+      if (Array.isArray(res.data)) {
+        const hasMetadata = res.data.some(
+          item =>
+            item &&
+            typeof item === 'object' &&
+            item.message &&
+            typeof item.message === 'object' &&
+            '_sentry' in item.message,
+        );
 
-      // Extract producer trace context for span link and propagation
+        if (hasMetadata) {
+          res.data = res.data.map(item => {
+            if (item && typeof item === 'object' && item.message && typeof item.message === 'object') {
+              const messageCopy = { ...(item.message as Record<string, unknown>) };
+              delete messageCopy._sentry;
+              return { ...item, message: messageCopy };
+            }
+            return item;
+          });
+        }
+      }
+
+      // Extract producer trace context for span link
       let producerSpanContext: { traceId: string; spanId: string; traceFlags: number } | undefined;
-      let producerPropagationContext:
-        | { traceId: string; parentSpanId: string; sampled: boolean; dsc?: Record<string, string> }
-        | undefined;
 
       if (sentryTrace) {
         const traceparentData = extractTraceparentData(sentryTrace);
         if (traceparentData?.traceId && traceparentData?.parentSpanId) {
           // Convert parentSampled boolean to traceFlags (W3C trace context spec)
+          // traceFlags bit 0 (LSB) = sampled flag: 1 if sampled, 0 if not sampled
           const traceFlags = traceparentData.parentSampled ? 1 : 0;
+
           producerSpanContext = {
             traceId: traceparentData.traceId,
             spanId: traceparentData.parentSpanId,
             traceFlags,
           };
-
-          producerPropagationContext = {
-            traceId: traceparentData.traceId,
-            parentSpanId: traceparentData.parentSpanId,
-            sampled: traceparentData.parentSampled ?? false,
-            dsc: baggage ? parseBaggageHeader(baggage) : undefined,
-          };
         }
       }
 
       const runWithSpan = (): SupabaseResponse => {
-        if (producerPropagationContext) {
-          const context = producerPropagationContext;
-          return withIsolationScope(isolatedScope => {
-            isolatedScope.setPropagationContext({
-              ...context,
-              sampleRand: Math.random(),
-            });
+        // Create consumer span as child of current transaction (e.g., HTTP request)
+        // Add span link to producer span for distributed tracing across async queue boundary
+        return startSpan(
+          {
+            name: spanName,
+            op: 'queue.process',
+            startTime: spanStartTime,
+            attributes: spanAttributes,
+            // Add span link to producer span for distributed tracing across async queue boundary
+            links: producerSpanContext
+              ? [
+                  {
+                    context: producerSpanContext,
+                    attributes: { 'sentry.link.type': 'queue.producer' },
+                  },
+                ]
+              : undefined,
+          },
+          span => {
+            try {
+              const processedResponse = _processConsumerSpan(span, res, queueName);
 
-            return startSpan(
-              {
-                name: spanName,
-                op: 'queue.process',
-                startTime: spanStartTime,
-                attributes: spanAttributes,
-                links: producerSpanContext
-                  ? [
-                      {
-                        context: producerSpanContext,
-                        attributes: { 'sentry.link.type': 'queue.producer' },
-                      },
-                    ]
-                  : undefined,
-              },
-              span => {
-                try {
-                  const processedResponse = _processConsumerSpan(span, res, queueName);
+              DEBUG_BUILD && debug.log('Consumer span processed successfully', { queueName });
 
-                  DEBUG_BUILD && debug.log('Consumer span processed successfully', { queueName });
+              return processedResponse;
+            } catch (err: unknown) {
+              DEBUG_BUILD && debug.log('Consumer span processing failed', { queueName, error: err });
 
-                  return processedResponse;
-                } catch (err: unknown) {
-                  DEBUG_BUILD && debug.log('Consumer span processing failed', { queueName, error: err });
-
-                  captureException(err, scope => {
-                    scope.addEventProcessor(e => {
-                      addExceptionMechanism(e, {
-                        handled: false,
-                        type: 'auto.db.supabase.queue',
-                      });
-                      return e;
-                    });
-                    scope.setContext('supabase', { queueName });
-                    return scope;
+              captureException(err, scope => {
+                scope.addEventProcessor(e => {
+                  addExceptionMechanism(e, {
+                    handled: false,
+                    type: 'auto.db.supabase.queue',
                   });
-
-                  span.setStatus({ code: SPAN_STATUS_ERROR });
-                  throw err;
-                }
-              },
-            );
-          });
-        } else {
-          return startSpan(
-            {
-              name: spanName,
-              op: 'queue.process',
-              startTime: spanStartTime,
-              attributes: spanAttributes,
-            },
-            span => {
-              try {
-                const processedResponse = _processConsumerSpan(span, res, queueName);
-
-                DEBUG_BUILD && debug.log('Consumer span processed successfully', { queueName });
-
-                return processedResponse;
-              } catch (err: unknown) {
-                DEBUG_BUILD && debug.log('Consumer span processing failed', { queueName, error: err });
-
-                captureException(err, scope => {
-                  scope.addEventProcessor(e => {
-                    addExceptionMechanism(e, {
-                      handled: false,
-                      type: 'auto.db.supabase.queue',
-                    });
-                    return e;
-                  });
-                  scope.setContext('supabase', { queueName });
-                  return scope;
+                  return e;
                 });
+                scope.setContext('supabase', { queueName });
+                return scope;
+              });
 
-                span.setStatus({ code: SPAN_STATUS_ERROR });
-                throw err;
-              }
-            },
-          );
-        }
+              span.setStatus({ code: SPAN_STATUS_ERROR });
+              throw err;
+            }
+          },
+        );
       };
 
+      // Create consumer span as child of current transaction with span links for distributed tracing
       return runWithSpan();
     })
     .catch((err: unknown) => {
@@ -967,15 +928,18 @@ function _instrumentRpcProducer(target: unknown, thisArg: unknown, argumentsList
         message?: { _sentry?: { sentry_trace?: string; baggage?: string } };
       };
 
-      // Create a shallow copy to avoid mutating user's original params object
-      const queueParamsCopy = { ...originalParams };
+      // Create a deep copy of the params to avoid mutating the original
+      // This ensures the caller's original params remain unchanged
+      const paramsWithTrace: typeof originalParams = {
+        ...originalParams,
+      };
 
-      // Inject trace context into messages
+      // Inject trace context into messages (avoid mutation of original params)
       // Only inject into plain objects to prevent payload corruption (primitives, arrays)
-      if (queueParamsCopy?.message) {
-        if (isPlainObject(queueParamsCopy.message)) {
-          queueParamsCopy.message = {
-            ...queueParamsCopy.message,
+      if (originalParams?.message) {
+        if (isPlainObject(originalParams.message)) {
+          paramsWithTrace.message = {
+            ...originalParams.message,
             _sentry: {
               sentry_trace: sentryTrace,
               baggage: sentryBaggage,
@@ -987,8 +951,8 @@ function _instrumentRpcProducer(target: unknown, thisArg: unknown, argumentsList
               'Skipping trace propagation for non-object message payload. PGMQ supports primitives and arrays, but trace context can only be injected into plain objects.',
             );
         }
-      } else if (queueParamsCopy?.messages) {
-        queueParamsCopy.messages = queueParamsCopy.messages.map(message => {
+      } else if (originalParams?.messages) {
+        paramsWithTrace.messages = originalParams.messages.map(message => {
           if (isPlainObject(message)) {
             return {
               ...message,
@@ -1007,12 +971,13 @@ function _instrumentRpcProducer(target: unknown, thisArg: unknown, argumentsList
         });
       }
 
-      argumentsList[1] = queueParamsCopy;
+      // Create new arguments list with the modified params (don't mutate original argumentsList)
+      const modifiedArgumentsList = [argumentsList[0], paramsWithTrace];
 
       const promise = Reflect.apply(
         target as (...args: unknown[]) => Promise<unknown>,
         thisArg,
-        argumentsList,
+        modifiedArgumentsList,
       ) as Promise<SupabaseResponse>;
       return promise
         .then((res: SupabaseResponse) => {
@@ -1061,11 +1026,13 @@ function _instrumentRpcProducer(target: unknown, thisArg: unknown, argumentsList
           }
 
           span.setStatus({ code: res.error ? SPAN_STATUS_ERROR : SPAN_STATUS_OK });
+          span.end();
 
           return res;
         })
         .catch((err: unknown) => {
           span.setStatus({ code: SPAN_STATUS_ERROR });
+          span.end();
 
           captureException(err, scope => {
             scope.addEventProcessor(e => {
@@ -1149,10 +1116,12 @@ function _instrumentAuthOperation(operation: AuthOperationFn, isAdmin = false): 
                 span.setStatus({ code: SPAN_STATUS_OK });
               }
 
+              span.end();
               return res;
             })
             .catch((err: unknown) => {
               span.setStatus({ code: SPAN_STATUS_ERROR });
+              span.end();
 
               captureException(err, {
                 mechanism: {
@@ -1328,8 +1297,11 @@ function _createInstrumentedPostgRESTThen(
           return (Reflect.apply(target, thisArg, []) as Promise<SupabaseResponse>)
             .then(
               (res: SupabaseResponse) => {
-                if (span && res && typeof res === 'object' && 'status' in res) {
-                  setHttpStatus(span, res.status || 500);
+                if (span) {
+                  if (res && typeof res === 'object' && 'status' in res) {
+                    setHttpStatus(span, res.status || 500);
+                  }
+                  span.end();
                 }
 
                 const breadcrumb: SupabaseBreadcrumb = {
@@ -1404,6 +1376,7 @@ function _createInstrumentedPostgRESTThen(
 
                 if (span) {
                   setHttpStatus(span, 500);
+                  span.end();
                 }
                 throw err;
               },

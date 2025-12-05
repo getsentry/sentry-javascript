@@ -368,6 +368,9 @@ test('Sends queue publish spans with `rpc(...)`', async ({ page, baseURL }) => {
 });
 
 test('Sends queue process spans with `schema(...).rpc(...)`', async ({ page, baseURL }) => {
+  // Purge any stale messages from previous tests to ensure we get the message we just produced
+  await fetch(`${baseURL}/api/queue/purge`);
+
   const producerTransactionPromise = waitForTransaction('supabase-nextjs', transactionEvent => {
     return Boolean(
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
@@ -426,7 +429,7 @@ test('Sends queue process spans with `schema(...).rpc(...)`', async ({ page, bas
     data: expect.objectContaining({
       'messaging.destination.name': 'todos',
       'messaging.system': 'supabase',
-      'messaging.message.id': '1',
+      'messaging.message.id': expect.any(String),
       'messaging.operation.type': 'process',
       'messaging.operation.name': 'pop',
       'messaging.message.body.size': expect.any(Number),
@@ -471,13 +474,16 @@ test('Sends queue process spans with `schema(...).rpc(...)`', async ({ page, bas
     message: 'queue.process(todos)',
     data: {
       'messaging.destination.name': 'todos',
-      'messaging.message.id': '1',
+      'messaging.message.id': expect.any(String),
       'messaging.message.body.size': expect.any(Number),
     },
   });
 });
 
 test('Sends queue process spans with `rpc(...)`', async ({ page, baseURL }) => {
+  // Purge any stale messages from previous tests to ensure we get the message we just produced
+  await fetch(`${baseURL}/api/queue/purge`);
+
   const producerTransactionPromise = waitForTransaction('supabase-nextjs', transactionEvent => {
     return !!(
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
@@ -528,7 +534,7 @@ test('Sends queue process spans with `rpc(...)`', async ({ page, baseURL }) => {
   expect(queueMessage.message._sentry).toBeUndefined();
 
   const consumerSpan = transactionEvent.spans?.find(
-    span => span.op === 'queue.process' && span.data?.['messaging.message.id'] === '2',
+    span => span.op === 'queue.process' && span.description === 'process todos',
   );
   expect(consumerSpan).toBeDefined();
 
@@ -536,7 +542,7 @@ test('Sends queue process spans with `rpc(...)`', async ({ page, baseURL }) => {
     data: expect.objectContaining({
       'messaging.destination.name': 'todos',
       'messaging.system': 'supabase',
-      'messaging.message.id': '2',
+      'messaging.message.id': expect.any(String),
       'messaging.operation.type': 'process',
       'messaging.operation.name': 'pop',
       'messaging.message.body.size': expect.any(Number),
@@ -581,7 +587,7 @@ test('Sends queue process spans with `rpc(...)`', async ({ page, baseURL }) => {
     message: 'queue.process(todos)',
     data: {
       'messaging.destination.name': 'todos',
-      'messaging.message.id': '2',
+      'messaging.message.id': expect.any(String),
       'messaging.message.body.size': expect.any(Number),
     },
   });
