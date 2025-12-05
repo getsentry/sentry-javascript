@@ -559,6 +559,7 @@ export type WebpackConfigObject = {
   resolve?: {
     modules?: string[];
     alias?: { [key: string]: string | boolean };
+    conditionNames?: string[];
   };
   module?: {
     rules: Array<WebpackModuleRule>;
