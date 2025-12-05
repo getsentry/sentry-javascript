@@ -117,6 +117,7 @@ export {
   featureFlagsIntegration,
   metrics,
   envToBool,
+  withStreamSpan,
 } from '@sentry/core';
 
 export type {
