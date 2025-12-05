@@ -4,4 +4,3 @@ startEventProxyServer({
   port: 3031,
   proxyServerName: 'nextjs-15-spotlight',
 });
-

@@ -9,4 +9,3 @@ Sentry.init({
   // Note: We don't explicitly set spotlight here - it should be auto-enabled
   // from NEXT_PUBLIC_SENTRY_SPOTLIGHT env var in development mode
 });
-

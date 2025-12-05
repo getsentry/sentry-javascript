@@ -11,4 +11,3 @@ const config = getPlaywrightConfig({
 });
 
 export default config;
-

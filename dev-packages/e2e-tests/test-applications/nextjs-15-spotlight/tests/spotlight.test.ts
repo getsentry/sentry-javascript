@@ -44,4 +44,3 @@ test.describe('Spotlight auto-enablement in Next.js development mode', () => {
     expect(criticalErrors).toHaveLength(0);
   });
 });
-
