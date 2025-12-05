@@ -97,27 +97,13 @@ export function constructWebpackConfigFunction({
     // `newConfig.module.rules` is required, so we don't have to keep asserting its existence
     const newConfig = setUpModuleRules(rawNewConfig);
 
-    // In development mode, add 'development' to resolve conditions so that
-    // @sentry/* packages use their development exports (which include features like Spotlight auto-enablement)
-    if (isDev) {
+    // In development mode for client bundles, alias @sentry/browser to its development build
+    // This enables development-only features like Spotlight auto-enablement from env vars
+    if (isDev && !isServer) {
       newConfig.resolve = newConfig.resolve || {};
-      const existingConditions = newConfig.resolve.conditionNames;
-      if (existingConditions && !existingConditions.includes('development')) {
-        // Prepend 'development' to existing conditions to preserve Next.js's ESM/CJS resolution
-        newConfig.resolve.conditionNames = ['development', ...existingConditions];
-      } else if (!existingConditions) {
-        // Set default conditions with 'development' first
-        // Include 'browser' for client bundles, 'node' for server bundles
-        const platformCondition = isServer ? 'node' : 'browser';
-        newConfig.resolve.conditionNames = [
-          'development',
-          platformCondition,
-          'module',
-          'import',
-          'require',
-          'default',
-        ];
-      }
+      newConfig.resolve.alias = newConfig.resolve.alias || {};
+      // Use the CJS development build to avoid ESM 'export *' issues in Next.js client boundaries
+      newConfig.resolve.alias['@sentry/browser$'] = '@sentry/browser/build/npm/cjs/dev/index.js';
     }
 
     // Add a loader which will inject code that sets global values
