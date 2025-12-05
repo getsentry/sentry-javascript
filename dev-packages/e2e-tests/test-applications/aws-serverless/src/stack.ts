@@ -15,6 +15,17 @@ const LAYER_DIR = './node_modules/@sentry/aws-serverless/';
 const DEFAULT_NODE_VERSION = '22';
 export const SAM_PORT = 3001;
 
+function resolvePackagesDir(): string {
+  // When running via the e2e test runner, tests are copied to a temp directory
+  // so we need the workspace root passed via env var
+  const workspaceRoot = process.env.SENTRY_E2E_WORKSPACE_ROOT;
+  if (workspaceRoot) {
+    return path.join(workspaceRoot, 'packages');
+  }
+  // Fallback for local development when running from the original location
+  return path.resolve(__dirname, '../../../../../packages');
+}
+
 export class LocalLambdaStack extends Stack {
   sentryLayer: CfnResource;
 
@@ -67,10 +78,46 @@ export class LocalLambdaStack extends Stack {
       const functionName = `${addLayer ? 'Layer' : 'Npm'}${lambdaDir}`;
 
       if (!addLayer) {
+        const lambdaPath = path.resolve(functionsDir, lambdaDir);
+        const packageLockPath = path.join(lambdaPath, 'package-lock.json');
+        const nodeModulesPath = path.join(lambdaPath, 'node_modules');
+
+        // Point the dependency at the locally built packages so tests use the current workspace bits
+        // We need to link all @sentry/* packages that are dependencies of aws-serverless
+        // because otherwise npm will try to install them from the registry, where the current version is not yet published
+        const packagesToLink = ['aws-serverless', 'node', 'core', 'node-core', 'opentelemetry'];
+        const dependencies: Record<string, string> = {};
+
+        const packagesDir = resolvePackagesDir();
+        for (const pkgName of packagesToLink) {
+          const pkgDir = path.join(packagesDir, pkgName);
+          if (!fs.existsSync(pkgDir)) {
+            throw new Error(
+              `[LocalLambdaStack] Workspace package ${pkgName} not found at ${pkgDir}. Did you run the build?`,
+            );
+          }
+          const relativePath = path.relative(lambdaPath, pkgDir);
+          dependencies[`@sentry/${pkgName}`] = `file:${relativePath.replace(/\\/g, '/')}`;
+        }
+
         console.log(`[LocalLambdaStack] Install dependencies for ${functionName}`);
-        const packageJson = { dependencies: { '@sentry/aws-serverless': '* || latest' } };
-        fs.writeFileSync(path.join(functionsDir, lambdaDir, 'package.json'), JSON.stringify(packageJson, null, 2));
-        execFileSync('npm', ['install', '--prefix', path.join(functionsDir, lambdaDir)], { stdio: 'inherit' });
+
+        if (fs.existsSync(packageLockPath)) {
+          // Prevent stale lock files from pinning the published package version
+          fs.rmSync(packageLockPath);
+        }
+
+        if (fs.existsSync(nodeModulesPath)) {
+          // Ensure we reinstall from the workspace instead of reusing cached dependencies
+          fs.rmSync(nodeModulesPath, { recursive: true, force: true });
+        }
+
+        const packageJson = {
+          dependencies,
+        };
+
+        fs.writeFileSync(path.join(lambdaPath, 'package.json'), JSON.stringify(packageJson, null, 2));
+        execFileSync('npm', ['install', '--prefix', lambdaPath], { stdio: 'inherit' });
       }
 
       new CfnResource(this, functionName, {
