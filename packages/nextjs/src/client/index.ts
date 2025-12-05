@@ -2,9 +2,21 @@
 // can be removed once following issue is fixed: https://github.com/import-js/eslint-plugin-import/issues/703
 /* eslint-disable import/export */
 import type { Client, EventProcessor, Integration } from '@sentry/core';
-import { addEventProcessor, applySdkMetadata, consoleSandbox, getGlobalScope, GLOBAL_OBJ } from '@sentry/core';
+import {
+  addEventProcessor,
+  applySdkMetadata,
+  consoleSandbox,
+  envToBool,
+  getGlobalScope,
+  GLOBAL_OBJ,
+  resolveSpotlightOptions,
+} from '@sentry/core';
 import type { BrowserOptions } from '@sentry/react';
-import { getDefaultIntegrations as getReactDefaultIntegrations, init as reactInit } from '@sentry/react';
+import {
+  getDefaultIntegrations as getReactDefaultIntegrations,
+  init as reactInit,
+  spotlightBrowserIntegration,
+} from '@sentry/react';
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
 import { getVercelEnv } from '../common/getVercelEnv';
 import { isRedirectNavigationError } from '../common/nextNavigationErrorUtils';
@@ -54,12 +66,12 @@ export function init(options: BrowserOptions): Client | undefined {
     removeIsrSsgTraceMetaTags();
   }
 
-  const opts = {
+  const opts: BrowserOptions = {
     environment: getVercelEnv(true) || process.env.NODE_ENV,
     defaultIntegrations: getDefaultIntegrations(options),
     release: process.env._sentryRelease || globalWithInjectedValues._sentryRelease,
     ...options,
-  } satisfies BrowserOptions;
+  };
 
   applyTunnelRouteOption(opts);
   applySdkMetadata(opts, 'nextjs', ['nextjs', 'react']);
@@ -129,6 +141,22 @@ function getDefaultIntegrations(options: BrowserOptions): Integration[] {
       experimentalThirdPartyOriginStackFrames,
     }),
   );
+
+  // Auto-enable Spotlight from NEXT_PUBLIC_SENTRY_SPOTLIGHT env var
+  // Next.js replaces process.env.NEXT_PUBLIC_* at build time, so this will be
+  // a string literal if set, or undefined if not set. When undefined, this entire
+  // block is dead code and will be removed by the bundler.
+  const spotlightEnvValue = process.env.NEXT_PUBLIC_SENTRY_SPOTLIGHT;
+  if (spotlightEnvValue !== undefined && options.spotlight === undefined) {
+    const boolValue = envToBool(spotlightEnvValue, { strict: true });
+    const spotlightConfig = boolValue !== null ? boolValue : spotlightEnvValue;
+    const spotlightValue = resolveSpotlightOptions(undefined, spotlightConfig);
+
+    if (spotlightValue) {
+      const spotlightArgs = typeof spotlightValue === 'string' ? { sidecarUrl: spotlightValue } : undefined;
+      customDefaultIntegrations.push(spotlightBrowserIntegration(spotlightArgs));
+    }
+  }
 
   return customDefaultIntegrations;
 }

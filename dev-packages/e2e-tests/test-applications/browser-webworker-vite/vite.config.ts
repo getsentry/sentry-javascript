@@ -1,10 +1,16 @@
 import { sentryVitePlugin } from '@sentry/vite-plugin';
+import { resolve } from 'path';
 import { defineConfig } from 'vite';
 
 export default defineConfig({
   build: {
     sourcemap: 'hidden',
-    envPrefix: ['PUBLIC_'],
+    rollupOptions: {
+      input: {
+        main: resolve(__dirname, 'index.html'),
+        'spotlight-env-test': resolve(__dirname, 'spotlight-env-test.html'),
+      },
+    },
   },
 
   plugins: [
@@ -24,6 +30,4 @@ export default defineConfig({
       }),
     ],
   },
-
-  envPrefix: ['PUBLIC_'],
 });

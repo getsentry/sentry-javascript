@@ -13,7 +13,6 @@
     "/build/npm"
   ],
   "main": "build/npm/cjs/prod/index.js",
-  "module": "build/npm/esm/prod/index.js",
   "types": "build/npm/types/index.d.ts",
   "exports": {
     "./package.json": "./package.json",
