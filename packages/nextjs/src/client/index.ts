@@ -2,9 +2,21 @@
 // can be removed once following issue is fixed: https://github.com/import-js/eslint-plugin-import/issues/703
 /* eslint-disable import/export */
 import type { Client, EventProcessor, Integration } from '@sentry/core';
-import { addEventProcessor, applySdkMetadata, consoleSandbox, getGlobalScope, GLOBAL_OBJ } from '@sentry/core';
+import {
+  addEventProcessor,
+  applySdkMetadata,
+  consoleSandbox,
+  envToBool,
+  getGlobalScope,
+  GLOBAL_OBJ,
+  resolveSpotlightOptions,
+} from '@sentry/core';
 import type { BrowserOptions } from '@sentry/react';
-import { getDefaultIntegrations as getReactDefaultIntegrations, init as reactInit } from '@sentry/react';
+import {
+  getDefaultIntegrations as getReactDefaultIntegrations,
+  init as reactInit,
+  spotlightBrowserIntegration,
+} from '@sentry/react';
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
 import { getVercelEnv } from '../common/getVercelEnv';
 import { isRedirectNavigationError } from '../common/nextNavigationErrorUtils';
@@ -54,12 +66,32 @@ export function init(options: BrowserOptions): Client | undefined {
     removeIsrSsgTraceMetaTags();
   }
 
-  const opts = {
+  const opts: BrowserOptions = {
     environment: getVercelEnv(true) || process.env.NODE_ENV,
     defaultIntegrations: getDefaultIntegrations(options),
     release: process.env._sentryRelease || globalWithInjectedValues._sentryRelease,
     ...options,
-  } satisfies BrowserOptions;
+  };
+
+  // Auto-enable Spotlight in development mode from NEXT_PUBLIC_SENTRY_SPOTLIGHT env var
+  // This code will be tree-shaken in production builds by Next.js
+  if (process.env.NODE_ENV === 'development') {
+    const envValue = process.env.NEXT_PUBLIC_SENTRY_SPOTLIGHT;
+    // Only apply env var if user hasn't explicitly set spotlight option
+    if (envValue !== undefined && options.spotlight === undefined) {
+      const boolValue = envToBool(envValue, { strict: true });
+      const spotlightConfig = boolValue !== null ? boolValue : envValue;
+      const spotlightValue = resolveSpotlightOptions(undefined, spotlightConfig);
+
+      if (spotlightValue) {
+        const spotlightArgs = typeof spotlightValue === 'string' ? { sidecarUrl: spotlightValue } : undefined;
+        opts.integrations = [
+          ...(Array.isArray(opts.integrations) ? opts.integrations : []),
+          spotlightBrowserIntegration(spotlightArgs),
+        ];
+      }
+    }
+  }
 
   applyTunnelRouteOption(opts);
   applySdkMetadata(opts, 'nextjs', ['nextjs', 'react']);
