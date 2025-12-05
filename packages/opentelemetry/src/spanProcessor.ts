@@ -15,7 +15,7 @@ import {
 import { SEMANTIC_ATTRIBUTE_SENTRY_PARENT_IS_REMOTE } from './semanticAttributes';
 import type { ISentrySpanExporter } from './spanExporter';
 import { SentrySpanExporter } from './spanExporter';
-import { StreamingSpanExporter } from './streamedSpanExporter';
+import { StreamingSpanExporter } from './streamingSpanExporter';
 import { getScopesFromContext } from './utils/contextData';
 import { setIsSetup } from './utils/setupCheck';
 
@@ -100,12 +100,6 @@ export class SentrySpanProcessor implements SpanProcessorInterface {
 
     this._client?.emit('spanEnd', span);
 
-    if (this._client?.getOptions().traceLifecycle === 'stream') {
-      // we probably don't need to emit afterSpanEnd here but can call captureSpan directly.
-      // might need to revisit but let's see.
-      captureSpan(span, this._client);
-    } else {
-      this._exporter.export(span);
-    }
+    this._exporter.export(span);
   }
 }

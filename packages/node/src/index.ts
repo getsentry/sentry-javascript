@@ -190,4 +190,5 @@ export {
   cron,
   NODE_VERSION,
   validateOpenTelemetrySetup,
+  withStreamSpan,
 } from '@sentry/node-core';
