@@ -73,26 +73,6 @@ export function init(options: BrowserOptions): Client | undefined {
     ...options,
   };
 
-  // Auto-enable Spotlight in development mode from NEXT_PUBLIC_SENTRY_SPOTLIGHT env var
-  // This code will be tree-shaken in production builds by Next.js
-  if (process.env.NODE_ENV === 'development') {
-    const envValue = process.env.NEXT_PUBLIC_SENTRY_SPOTLIGHT;
-    // Only apply env var if user hasn't explicitly set spotlight option
-    if (envValue !== undefined && options.spotlight === undefined) {
-      const boolValue = envToBool(envValue, { strict: true });
-      const spotlightConfig = boolValue !== null ? boolValue : envValue;
-      const spotlightValue = resolveSpotlightOptions(undefined, spotlightConfig);
-
-      if (spotlightValue) {
-        const spotlightArgs = typeof spotlightValue === 'string' ? { sidecarUrl: spotlightValue } : undefined;
-        opts.integrations = [
-          ...(Array.isArray(opts.integrations) ? opts.integrations : []),
-          spotlightBrowserIntegration(spotlightArgs),
-        ];
-      }
-    }
-  }
-
   applyTunnelRouteOption(opts);
   applySdkMetadata(opts, 'nextjs', ['nextjs', 'react']);
 
@@ -161,6 +141,22 @@ function getDefaultIntegrations(options: BrowserOptions): Integration[] {
       experimentalThirdPartyOriginStackFrames,
     }),
   );
+
+  // Auto-enable Spotlight from NEXT_PUBLIC_SENTRY_SPOTLIGHT env var
+  // Next.js replaces process.env.NEXT_PUBLIC_* at build time, so this will be
+  // a string literal if set, or undefined if not set. When undefined, this entire
+  // block is dead code and will be removed by the bundler.
+  const spotlightEnvValue = process.env.NEXT_PUBLIC_SENTRY_SPOTLIGHT;
+  if (spotlightEnvValue !== undefined && options.spotlight === undefined) {
+    const boolValue = envToBool(spotlightEnvValue, { strict: true });
+    const spotlightConfig = boolValue !== null ? boolValue : spotlightEnvValue;
+    const spotlightValue = resolveSpotlightOptions(undefined, spotlightConfig);
+
+    if (spotlightValue) {
+      const spotlightArgs = typeof spotlightValue === 'string' ? { sidecarUrl: spotlightValue } : undefined;
+      customDefaultIntegrations.push(spotlightBrowserIntegration(spotlightArgs));
+    }
+  }
 
   return customDefaultIntegrations;
 }
