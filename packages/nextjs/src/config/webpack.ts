@@ -925,7 +925,7 @@ function setupTreeshakingFromConfig(
     defines.__SENTRY_DEBUG__ = false;
   }
 
-  if (userSentryOptions.webpack?.treeshake?.tracing) {
+  if (userSentryOptions.webpack?.treeshake?.removeTracing) {
     defines.__SENTRY_TRACING__ = false;
   }
 

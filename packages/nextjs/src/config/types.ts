@@ -116,7 +116,7 @@ export type SentryBuildWebpackOptions = {
     /**
      * Setting this to true will treeshake any SDK code that is related to tracing and performance monitoring.
      */
-    tracing?: boolean;
+    removeTracing?: boolean;
 
     /**
      * Setting this flag to `true` will tree shake any SDK code related to capturing iframe content with Session Replay.
