@@ -1,11 +1,11 @@
 import { expect, test } from '@playwright/test';
 import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 
-// In dev mode, worker files are served as .ts with query params
-// In prod mode, worker files are bundled as .js with hashes
-const WORKER_FILENAME_PATTERN = /worker(-.+\.js|\\.ts\?worker_file)/;
-const WORKER2_FILENAME_PATTERN = /worker2(-.+\.js|\\.ts\?worker_file)/;
-const WORKER3_FILENAME_PATTERN = /worker3(-.+\.js|\\.ts\?worker_file)/;
+// In dev mode, worker files are served as .ts with query params (e.g., worker.ts?worker_file&type=module)
+// In prod mode, worker files are bundled as .js with hashes (e.g., worker-abc123.js)
+const WORKER_FILENAME_PATTERN = /worker(-.+\.js|\.ts\?worker_file)/;
+const WORKER2_FILENAME_PATTERN = /worker2(-.+\.js|\.ts\?worker_file)/;
+const WORKER3_FILENAME_PATTERN = /worker3(-.+\.js|\.ts\?worker_file)/;
 
 test('captures an error with debug ids and pageload trace context', async ({ page }) => {
   const errorEventPromise = waitForError('browser-webworker-vite', async event => {
