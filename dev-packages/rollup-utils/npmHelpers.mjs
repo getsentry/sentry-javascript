@@ -10,6 +10,7 @@ import * as path from 'path';
 import { fileURLToPath } from 'url';
 import deepMerge from 'deepmerge';
 import { defineConfig } from 'rolldown';
+import { dts } from 'rolldown-plugin-dts';
 import {
   makeDebugBuildStatementReplacePlugin,
   makeProductionReplacePlugin,
@@ -143,11 +144,18 @@ export function makeNPMConfigVariants(baseConfig, options = {}) {
         },
       });
     } else {
+      const dtsPlugin = dts({
+        tsconfig: path.resolve(process.cwd(), './tsconfig.types.json'),
+        compilerOptions: {
+          outDir: 'build/types',
+        },
+      });
+
       variantSpecificConfigs.push({
         output: {
           format: 'esm',
           dir: path.join(baseConfig.output.dir, 'esm'),
-          plugins: [makePackageNodeEsm()],
+          plugins: [makePackageNodeEsm(), dtsPlugin],
         },
       });
     }
