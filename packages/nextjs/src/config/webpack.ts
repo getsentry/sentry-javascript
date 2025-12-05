@@ -97,16 +97,6 @@ export function constructWebpackConfigFunction({
     // `newConfig.module.rules` is required, so we don't have to keep asserting its existence
     const newConfig = setUpModuleRules(rawNewConfig);
 
-    // In development mode, add 'development' to resolve conditions so that
-    // @sentry/* packages use their development exports (which include features like Spotlight auto-enablement)
-    if (isDev) {
-      newConfig.resolve = newConfig.resolve || {};
-      newConfig.resolve.conditionNames = [
-        'development',
-        ...(newConfig.resolve.conditionNames || ['import', 'module', 'browser', 'require', 'node', 'default']),
-      ];
-    }
-
     // Add a loader which will inject code that sets global values
     addValueInjectionLoader({
       newConfig,
