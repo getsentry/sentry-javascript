@@ -13,18 +13,62 @@ type ContentMessage = {
 };
 
 /**
+ * Message format used by OpenAI and Anthropic APIs for media.
+ */
+type ContentArrayMessage = {
+  [key: string]: unknown;
+  content: {
+    [key: string]: unknown;
+    type: string;
+  }[];
+};
+
+/**
+ * Inline media content source, with a potentially very large base64
+ * blob or data: uri.
+ */
+type ContentMedia = Record<string, unknown> &
+  (
+    | {
+        media_type: string;
+        data: string;
+      }
+    | {
+        image_url: `data:${string}`;
+      }
+    | {
+        type: 'blob' | 'base64';
+        content: string;
+      }
+    | {
+        b64_json: string;
+      }
+    | {
+        uri: `data:${string}`;
+      }
+  );
+
+/**
  * Message format used by Google GenAI API.
  * Parts can be strings or objects with a text property.
  */
 type PartsMessage = {
   [key: string]: unknown;
-  parts: Array<string | { text: string }>;
+  parts: Array<TextPart | MediaPart>;
 };
 
 /**
  * A part in a Google GenAI message that contains text.
  */
 type TextPart = string | { text: string };
+
+/**
+ * A part in a Google GenAI that contains media.
+ */
+type MediaPart = {
+  type: string;
+  content: string;
+};
 
 /**
  * Calculate the UTF-8 byte length of a string.
@@ -79,11 +123,12 @@ function truncateTextByBytes(text: string, maxBytes: number): string {
  *
  * @returns The text content
  */
-function getPartText(part: TextPart): string {
+function getPartText(part: TextPart | MediaPart): string {
   if (typeof part === 'string') {
     return part;
   }
-  return part.text;
+  if ('text' in part) return part.text;
+  return '';
 }
 
 /**
@@ -93,7 +138,7 @@ function getPartText(part: TextPart): string {
  * @param text - New text content
  * @returns New part with updated text
  */
-function withPartText(part: TextPart, text: string): TextPart {
+function withPartText(part: TextPart | MediaPart, text: string): TextPart {
   if (typeof part === 'string') {
     return text;
   }
@@ -110,6 +155,33 @@ function isContentMessage(message: unknown): message is ContentMessage {
     'content' in message &&
     typeof (message as ContentMessage).content === 'string'
   );
+}
+
+/**
+ * Check if a message has the OpenAI/Anthropic content array format.
+ */
+function isContentArrayMessage(message: unknown): message is ContentArrayMessage {
+  return message !== null && typeof message === 'object' && 'content' in message && Array.isArray(message.content);
+}
+
+/**
+ * Check if a content part is an OpenAI/Anthropic media source
+ */
+function isContentMedia(part: unknown): part is ContentMedia {
+  if (!part || typeof part !== 'object') return false;
+
+  return (
+    isContentMediaSource(part) ||
+    ('media_type' in part && typeof part.media_type === 'string' && 'data' in part) ||
+    ('image_url' in part && typeof part.image_url === 'string' && part.image_url.startsWith('data:')) ||
+    ('type' in part && (part.type === 'blob' || part.type === 'base64')) ||
+    'b64_json' in part ||
+    ('type' in part && 'result' in part && part.type === 'image_generation') ||
+    ('uri' in part && typeof part.uri === 'string' && part.uri.startsWith('data:'))
+  );
+}
+function isContentMediaSource(part: NonNullable<unknown>): boolean {
+  return 'type' in part && typeof part.type === 'string' && 'source' in part && isContentMedia(part.source);
 }
 
 /**
@@ -167,7 +239,7 @@ function truncatePartsMessage(message: PartsMessage, maxBytes: number): unknown[
   }
 
   // Include parts until we run out of space
-  const includedParts: TextPart[] = [];
+  const includedParts: (TextPart | MediaPart)[] = [];
 
   for (const part of parts) {
     const text = getPartText(part);
@@ -190,7 +262,10 @@ function truncatePartsMessage(message: PartsMessage, maxBytes: number): unknown[
     }
   }
 
+  /* c8 ignore start
+   * for type safety only, algorithm guarantees SOME text included */
   return includedParts.length > 0 ? [{ ...message, parts: includedParts }] : [];
+  /* c8 ignore stop */
 }
 
 /**
@@ -205,9 +280,11 @@ function truncatePartsMessage(message: PartsMessage, maxBytes: number): unknown[
  * @returns Array containing the truncated message, or empty array if truncation fails
  */
 function truncateSingleMessage(message: unknown, maxBytes: number): unknown[] {
+  /* c8 ignore start - unreachable */
   if (!message || typeof message !== 'object') {
     return [];
   }
+  /* c8 ignore start - unreachable */
 
   if (isContentMessage(message)) {
     return truncateContentMessage(message, maxBytes);
@@ -219,6 +296,59 @@ function truncateSingleMessage(message: unknown, maxBytes: number): unknown[] {
 
   // Unknown message format: cannot truncate safely
   return [];
+}
+
+const REMOVED_STRING = '<removed>';
+
+const MEDIA_FIELDS = ['image_url', 'data', 'content', 'b64_json', 'result', 'uri'] as const;
+
+function stripInlineMediaFromSingleMessage(part: ContentMedia): ContentMedia {
+  const strip = { ...part };
+  if (isContentMedia(strip.source)) {
+    strip.source = stripInlineMediaFromSingleMessage(strip.source);
+  }
+  for (const field of MEDIA_FIELDS) {
+    if (strip[field]) strip[field] = REMOVED_STRING;
+  }
+  return strip;
+}
+
+/**
+ * Strip the inline media from message arrays.
+ *
+ * This returns a stripped message. We do NOT want to mutate the data in place,
+ * because of course we still want the actual API/client to handle the media.
+ */
+export function stripInlineMediaFromMessages(messages: unknown[]): unknown[] {
+  return messages.map(message => {
+    if (!!message && typeof message === 'object') {
+      if (isContentArrayMessage(message)) {
+        // eslint-disable-next-line no-param-reassign
+        message = {
+          ...message,
+          content: stripInlineMediaFromMessages(message.content),
+        };
+      } else if ('content' in message && isContentMedia(message.content)) {
+        // eslint-disable-next-line no-param-reassign
+        message = {
+          ...message,
+          content: stripInlineMediaFromSingleMessage(message.content),
+        };
+      }
+      if (isPartsMessage(message)) {
+        // eslint-disable-next-line no-param-reassign
+        message = {
+          ...message,
+          parts: stripInlineMediaFromMessages(message.parts),
+        };
+      }
+      if (isContentMedia(message)) {
+        // eslint-disable-next-line no-param-reassign
+        message = stripInlineMediaFromSingleMessage(message);
+      }
+    }
+    return message;
+  });
 }
 
 /**
@@ -245,6 +375,11 @@ export function truncateMessagesByBytes(messages: unknown[], maxBytes: number): 
   if (!Array.isArray(messages) || messages.length === 0) {
     return messages;
   }
+
+  // strip inline media first. This will often get us below the threshold,
+  // while preserving human-readable information about messages sent.
+  // eslint-disable-next-line no-param-reassign
+  messages = stripInlineMediaFromMessages(messages);
 
   // Fast path: if all messages fit, return as-is
   const totalBytes = jsonBytes(messages);
