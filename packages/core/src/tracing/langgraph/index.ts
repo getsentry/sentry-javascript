@@ -157,6 +157,51 @@ function instrumentCompiledGraphInvoke(
 }
 
 /**
+ * Instruments createReactAgent to create spans for agent creation and invocation
+ *
+ * Creates a `gen_ai.create_agent` span when createReactAgent() is called
+ */
+export function instrumentCreateReactAgent(
+  originalCreateReactAgent: (...args: unknown[]) => CompiledGraph,
+  options: LangGraphOptions,
+): (...args: unknown[]) => CompiledGraph {
+  return new Proxy(originalCreateReactAgent, {
+    apply(target, thisArg, args: unknown[]): CompiledGraph {
+      return startSpan(
+        {
+          op: 'gen_ai.create_agent',
+          name: 'create_agent',
+          attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: LANGGRAPH_ORIGIN,
+            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.create_agent',
+            [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'create_agent',
+          },
+        },
+        () => {
+          try {
+            const compiledGraph = Reflect.apply(target, thisArg, args);
+            const compiledOptions = args.length > 0 ? (args[0] as Record<string, unknown>) : {};
+            const originalInvoke = compiledGraph.invoke;
+            if (originalInvoke && typeof originalInvoke === 'function') {
+              compiledGraph.invoke = instrumentCompiledGraphInvoke(
+                originalInvoke.bind(compiledGraph) as (...args: unknown[]) => Promise<unknown>,
+                compiledGraph,
+                compiledOptions,
+                options,
+              ) as typeof originalInvoke;
+            }
+
+            return compiledGraph;
+          } catch (error) {
+            throw error;
+          }
+        },
+      );
+    },
+  }) as (...args: unknown[]) => CompiledGraph;
+}
+
+/**
  * Directly instruments a StateGraph instance to add tracing spans
  *
  * This function can be used to manually instrument LangGraph StateGraph instances
