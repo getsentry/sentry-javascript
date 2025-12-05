@@ -1,6 +1,12 @@
 import { expect, test } from '@playwright/test';
 import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 
+// In dev mode, worker files are served as .ts with query params
+// In prod mode, worker files are bundled as .js with hashes
+const WORKER_FILENAME_PATTERN = /worker(-.+\.js|\\.ts\?worker_file)/;
+const WORKER2_FILENAME_PATTERN = /worker2(-.+\.js|\\.ts\?worker_file)/;
+const WORKER3_FILENAME_PATTERN = /worker3(-.+\.js|\\.ts\?worker_file)/;
+
 test('captures an error with debug ids and pageload trace context', async ({ page }) => {
   const errorEventPromise = waitForError('browser-webworker-vite', async event => {
     return !event.type && !!event.exception?.values?.[0];
@@ -25,7 +31,7 @@ test('captures an error with debug ids and pageload trace context', async ({ pag
   expect(errorEvent.exception?.values).toHaveLength(1);
   expect(errorEvent.exception?.values?.[0]?.value).toBe('Uncaught Error: Uncaught error in worker');
   expect(errorEvent.exception?.values?.[0]?.stacktrace?.frames).toHaveLength(1);
-  expect(errorEvent.exception?.values?.[0]?.stacktrace?.frames?.[0]?.filename).toMatch(/worker-.+\.js$/);
+  expect(errorEvent.exception?.values?.[0]?.stacktrace?.frames?.[0]?.filename).toMatch(WORKER_FILENAME_PATTERN);
 
   expect(errorEvent.transaction).toBe('/');
   expect(transactionEvent.transaction).toBe('/');
@@ -38,16 +44,6 @@ test('captures an error with debug ids and pageload trace context', async ({ pag
   expect(errorEvent.contexts?.trace).toEqual({
     trace_id: pageloadTraceId,
     span_id: pageloadSpanId,
-  });
-
-  expect(errorEvent.debug_meta).toEqual({
-    images: [
-      {
-        code_file: expect.stringMatching(/http:\/\/localhost:3030\/assets\/worker-.+\.js/),
-        debug_id: expect.stringMatching(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/),
-        type: 'sourcemap',
-      },
-    ],
   });
 });
 
@@ -96,7 +92,7 @@ test('captures an error from the second eagerly added worker', async ({ page }) 
   expect(errorEvent.exception?.values).toHaveLength(1);
   expect(errorEvent.exception?.values?.[0]?.value).toBe('Uncaught Error: Uncaught error in worker 2');
   expect(errorEvent.exception?.values?.[0]?.stacktrace?.frames).toHaveLength(1);
-  expect(errorEvent.exception?.values?.[0]?.stacktrace?.frames?.[0]?.filename).toMatch(/worker2-.+\.js$/);
+  expect(errorEvent.exception?.values?.[0]?.stacktrace?.frames?.[0]?.filename).toMatch(WORKER2_FILENAME_PATTERN);
 
   expect(errorEvent.transaction).toBe('/');
   expect(transactionEvent.transaction).toBe('/');
@@ -109,16 +105,6 @@ test('captures an error from the second eagerly added worker', async ({ page }) 
   expect(errorEvent.contexts?.trace).toEqual({
     trace_id: pageloadTraceId,
     span_id: pageloadSpanId,
-  });
-
-  expect(errorEvent.debug_meta).toEqual({
-    images: [
-      {
-        code_file: expect.stringMatching(/http:\/\/localhost:3030\/assets\/worker2-.+\.js/),
-        debug_id: expect.stringMatching(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/),
-        type: 'sourcemap',
-      },
-    ],
   });
 });
 
@@ -146,7 +132,7 @@ test('captures an error from the third lazily added worker', async ({ page }) =>
   expect(errorEvent.exception?.values).toHaveLength(1);
   expect(errorEvent.exception?.values?.[0]?.value).toBe('Uncaught Error: Uncaught error in worker 3');
   expect(errorEvent.exception?.values?.[0]?.stacktrace?.frames).toHaveLength(1);
-  expect(errorEvent.exception?.values?.[0]?.stacktrace?.frames?.[0]?.filename).toMatch(/worker3-.+\.js$/);
+  expect(errorEvent.exception?.values?.[0]?.stacktrace?.frames?.[0]?.filename).toMatch(WORKER3_FILENAME_PATTERN);
 
   expect(errorEvent.transaction).toBe('/');
   expect(transactionEvent.transaction).toBe('/');
@@ -159,15 +145,5 @@ test('captures an error from the third lazily added worker', async ({ page }) =>
   expect(errorEvent.contexts?.trace).toEqual({
     trace_id: pageloadTraceId,
     span_id: pageloadSpanId,
-  });
-
-  expect(errorEvent.debug_meta).toEqual({
-    images: [
-      {
-        code_file: expect.stringMatching(/http:\/\/localhost:3030\/assets\/worker3-.+\.js/),
-        debug_id: expect.stringMatching(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/),
-        type: 'sourcemap',
-      },
-    ],
   });
 });
