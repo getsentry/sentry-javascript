@@ -334,14 +334,14 @@ describe('withSentryConfig', () => {
         expect(finalConfig.webpack).toBe(originalWebpackFunction);
       });
 
-      it('merges webpack.treeshake.debugLogging with deprecated disableLogger', () => {
+      it('merges webpack.treeshake.removeDebugLogging with deprecated disableLogger', () => {
         delete process.env.TURBOPACK;
 
-        // New webpack.treeshake.debugLogging should map to disableLogger internally
+        // New webpack.treeshake.removeDebugLogging should map to disableLogger internally
         const sentryOptionsNew = {
           webpack: {
             treeshake: {
-              debugLogging: true,
+              removeDebugLogging: true,
             },
           },
         };
@@ -386,7 +386,7 @@ describe('withSentryConfig', () => {
           expect.stringContaining('[@sentry/nextjs] DEPRECATION WARNING: disableLogger is deprecated'),
         );
         expect(consoleWarnSpy).toHaveBeenCalledWith(
-          expect.stringContaining('Use webpack.treeshake.debugLogging instead'),
+          expect.stringContaining('Use webpack.treeshake.removeDebugLogging instead'),
         );
       });
 
@@ -396,7 +396,7 @@ describe('withSentryConfig', () => {
         const sentryOptions = {
           webpack: {
             treeshake: {
-              debugLogging: true,
+              removeDebugLogging: true,
             },
           },
         };
@@ -413,7 +413,7 @@ describe('withSentryConfig', () => {
           disableLogger: true, // deprecated
           webpack: {
             treeshake: {
-              debugLogging: false, // new path takes precedence
+              removeDebugLogging: false, // new path takes precedence
             },
           },
         };
