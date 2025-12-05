@@ -105,11 +105,11 @@ export type SentryBuildWebpackOptions = {
   disableSentryConfig?: boolean;
 
   /**
-   * Tree shakes Sentry SDK logger statements from the bundle.
+   * Tree-shaking options to help reduce the size of the Sentry SDK bundle.
    */
   treeshake?: {
     /**
-     * Tree shakes Sentry SDK logger statements from the bundle. Note that this doesn't affect Sentry Logs.
+     * Removes Sentry SDK logger statements from the bundle. Note that this doesn't affect Sentry Logs.
      */
     removeDebugLogging?: boolean;
   };
