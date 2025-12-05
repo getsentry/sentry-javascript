@@ -9,6 +9,10 @@ sentryTest(
     const url = await getLocalTestUrl({ testDir: __dirname });
 
     const errorEvent = await getFirstSentryEnvelopeRequest<Event>(page, url);
-    expect(errorEvent?.extra?.['module_metadata_entries']).toEqual([{ foo: 'baz' }]);
+    // Filter out null entries from internal Sentry frames that don't have module metadata
+    const metadataEntries = (errorEvent?.extra?.['module_metadata_entries'] as Array<unknown>)?.filter(
+      entry => entry !== null,
+    );
+    expect(metadataEntries).toEqual([{ foo: 'baz' }]);
   },
 );
