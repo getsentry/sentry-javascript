@@ -428,13 +428,8 @@ export function constructWebpackConfigFunction({
       }
     }
 
-    if (userSentryOptions.webpack?.treeshake?.removeDebugLogging) {
-      newConfig.plugins = newConfig.plugins || [];
-      newConfig.plugins.push(
-        new buildContext.webpack.DefinePlugin({
-          __SENTRY_DEBUG__: false,
-        }),
-      );
+    if (userSentryOptions.webpack?.treeshake) {
+      setupTreeshakingFromConfig(userSentryOptions, newConfig, buildContext);
     }
 
     // We inject a map of dependencies that the nextjs app has, as we cannot reliably extract them at runtime, sadly
@@ -910,5 +905,44 @@ function _getModules(projectDir: string): Record<string, string> {
     };
   } catch {
     return {};
+  }
+}
+
+/**
+ * Sets up the tree-shaking flags based on the user's configuration.
+ * https://docs.sentry.io/platforms/javascript/guides/nextjs/configuration/tree-shaking/
+ */
+function setupTreeshakingFromConfig(
+  userSentryOptions: SentryBuildOptions,
+  newConfig: WebpackConfigObjectWithModuleRules,
+  buildContext: BuildContext,
+): void {
+  const defines: Record<string, boolean> = {};
+
+  newConfig.plugins = newConfig.plugins || [];
+
+  if (userSentryOptions.webpack?.treeshake?.removeDebugLogging) {
+    defines.__SENTRY_DEBUG__ = false;
+  }
+
+  if (userSentryOptions.webpack?.treeshake?.removeTracing) {
+    defines.__SENTRY_TRACING__ = false;
+  }
+
+  if (userSentryOptions.webpack?.treeshake?.excludeReplayIframe) {
+    defines.__RRWEB_EXCLUDE_IFRAME__ = true;
+  }
+
+  if (userSentryOptions.webpack?.treeshake?.excludeReplayShadowDOM) {
+    defines.__RRWEB_EXCLUDE_SHADOW_DOM__ = true;
+  }
+
+  if (userSentryOptions.webpack?.treeshake?.excludeReplayCompressionWorker) {
+    defines.__SENTRY_EXCLUDE_REPLAY_WORKER__ = true;
+  }
+
+  // Only add DefinePlugin if there are actual defines to set
+  if (Object.keys(defines).length > 0) {
+    newConfig.plugins.push(new buildContext.webpack.DefinePlugin(defines));
   }
 }

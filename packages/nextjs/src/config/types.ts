@@ -112,6 +112,36 @@ export type SentryBuildWebpackOptions = {
      * Removes Sentry SDK logger statements from the bundle. Note that this doesn't affect Sentry Logs.
      */
     removeDebugLogging?: boolean;
+
+    /**
+     * Setting this to true will treeshake any SDK code that is related to tracing and performance monitoring.
+     */
+    removeTracing?: boolean;
+
+    /**
+     * Setting this flag to `true` will tree shake any SDK code related to capturing iframe content with Session Replay.
+     * It's only relevant when using Session Replay. Enable this flag if you don't want to record any iframes.
+     * This has no effect if you did not add `replayIntegration`.
+     */
+    excludeReplayIframe?: boolean;
+
+    /**
+     * Setting this flag to `true` will tree shake any SDK code related to capturing shadow dom elements with Session Replay.
+     * It's only relevant when using Session Replay.
+     * Enable this flag if you don't want to record any shadow DOM elements.
+     * This has no effect if you did not add `replayIntegration`.
+     */
+    excludeReplayShadowDOM?: boolean;
+
+    /**
+     * Setting this flag to `true` will tree shake any SDK code that is related to the included compression web worker for Session Replay.
+     * It's only relevant when using Session Replay.
+     * Enable this flag if you want to host a compression worker yourself.
+     * See Using a Custom Compression Worker for details.
+     * We don't recommend enabling this flag unless you provide a custom worker URL.
+     * This has no effect if you did not add `replayIntegration`.
+     */
+    excludeReplayCompressionWorker?: boolean;
   };
 
   /**
@@ -403,7 +433,7 @@ export type SentryBuildOptions = {
    */
   bundleSizeOptimizations?: {
     /**
-     * If set to `true`, the Sentry SDK will attempt to tree-shake (remove) any debugging code within itself during the build.
+     * If set to `true`, the Sentry SDK will attempt to treeshake (remove) any debugging code within itself during the build.
      * Note that the success of this depends on tree shaking being enabled in your build tooling.
      *
      * Setting this option to `true` will disable features like the SDK's `debug` option.
@@ -411,14 +441,14 @@ export type SentryBuildOptions = {
     excludeDebugStatements?: boolean;
 
     /**
-     * If set to `true`, the Sentry SDK will attempt to tree-shake (remove) code within itself that is related to tracing and performance monitoring.
+     * If set to `true`, the Sentry SDK will attempt to treeshake (remove) code within itself that is related to tracing and performance monitoring.
      * Note that the success of this depends on tree shaking being enabled in your build tooling.
      * **Notice:** Do not enable this when you're using any performance monitoring-related SDK features (e.g. `Sentry.startTransaction()`).
      */
     excludeTracing?: boolean;
 
     /**
-     * If set to `true`, the Sentry SDK will attempt to tree-shake (remove) code related to the SDK's Session Replay Shadow DOM recording functionality.
+     * If set to `true`, the Sentry SDK will attempt to treeshake (remove) code related to the SDK's Session Replay Shadow DOM recording functionality.
      * Note that the success of this depends on tree shaking being enabled in your build tooling.
      *
      * This option is safe to be used when you do not want to capture any Shadow DOM activity via Sentry Session Replay.
@@ -426,7 +456,7 @@ export type SentryBuildOptions = {
     excludeReplayShadowDom?: boolean;
 
     /**
-     * If set to `true`, the Sentry SDK will attempt to tree-shake (remove) code related to the SDK's Session Replay `iframe` recording functionality.
+     * If set to `true`, the Sentry SDK will attempt to treeshake (remove) code related to the SDK's Session Replay `iframe` recording functionality.
      * Note that the success of this depends on tree shaking being enabled in your build tooling.
      *
      * You can safely do this when you do not want to capture any `iframe` activity via Sentry Session Replay.
@@ -434,7 +464,7 @@ export type SentryBuildOptions = {
     excludeReplayIframe?: boolean;
 
     /**
-     * If set to `true`, the Sentry SDK will attempt to tree-shake (remove) code related to the SDK's Session Replay's Compression Web Worker.
+     * If set to `true`, the Sentry SDK will attempt to treeshake (remove) code related to the SDK's Session Replay's Compression Web Worker.
      * Note that the success of this depends on tree shaking being enabled in your build tooling.
      *
      * **Notice:** You should only use this option if you manually host a compression worker and configure it in your Sentry Session Replay integration config via the `workerUrl` option.
