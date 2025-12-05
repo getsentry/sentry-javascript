@@ -26,6 +26,11 @@ export {
   pathIsWildcardAndHasChildren,
   getNumberOfUrlSegments,
   transactionNameHasWildcard,
+  getActiveRootSpan,
+  // Navigation context functions (internal use and testing)
+  setNavigationContext,
+  clearNavigationContext,
+  getNavigationContext,
 } from './utils';
 
 // Lazy route exports

@@ -126,6 +126,14 @@ const router = sentryCreateBrowserRouter(
         lazyChildren: () => import('./pages/deep/Level1Routes').then(module => module.level2Routes),
       },
     },
+    {
+      path: '/slow-fetch',
+      handle: {
+        // This lazy handler takes 500ms due to the top-level await in SlowFetchLazyRoutes.tsx
+        // It also makes a fetch request during loading which creates a span
+        lazyChildren: () => import('./pages/SlowFetchLazyRoutes').then(module => module.slowFetchRoutes),
+      },
+    },
   ],
   {
     async patchRoutesOnNavigation({ matches, patch }: Parameters<PatchRoutesOnNavigationFunction>[0]) {
