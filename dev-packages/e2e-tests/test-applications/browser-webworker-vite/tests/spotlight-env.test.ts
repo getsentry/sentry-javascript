@@ -34,16 +34,17 @@ test.describe('Spotlight environment variable handling in Vite (ESM)', () => {
     expect(importMetaValue).toContain('true');
   });
 
-  test('process.env also works via Vite transformation', async ({ page }) => {
-    // Vite transforms process.env references at build time
+  test('process.env is NOT available in Vite (only import.meta.env)', async ({ page }) => {
+    // Vite does NOT transform process.env - only import.meta.env is available
     await page.goto('/spotlight-env-test.html');
 
     await page.waitForTimeout(1000);
 
     const processEnvValue = await page.getByTestId('process-env-spotlight').textContent();
 
-    // Verify process.env works (transformed by Vite)
-    expect(processEnvValue).toContain('true');
+    // Verify process.env is NOT available in Vite (this is expected behavior)
+    // Unlike webpack/Next.js, Vite only exposes import.meta.env
+    expect(processEnvValue).toContain('undefined');
   });
 
   test('handles empty string environment variables correctly', async ({ page }) => {

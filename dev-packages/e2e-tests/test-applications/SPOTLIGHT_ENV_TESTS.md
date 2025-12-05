@@ -173,7 +173,7 @@ VITE_SENTRY_SPOTLIGHT=true pnpm test tests/spotlight-env.test.ts
 ### Vite (ESM)
 
 - ✅ `import.meta.env.VITE_SENTRY_SPOTLIGHT` accessible
-- ✅ `process.env.VITE_SENTRY_SPOTLIGHT` accessible (transformed)
+- ✅ `process.env.VITE_SENTRY_SPOTLIGHT` NOT accessible (Vite only exposes import.meta.env)
 - ✅ `import.meta` syntax present in output
 - ✅ No syntax errors
 - ✅ Spotlight integration enabled
