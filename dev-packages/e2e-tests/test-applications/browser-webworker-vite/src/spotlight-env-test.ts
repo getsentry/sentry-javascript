@@ -1,10 +1,18 @@
 import * as Sentry from '@sentry/browser';
 
+// Read VITE_SENTRY_SPOTLIGHT from environment
+// In production builds, automatic Spotlight enablement is stripped,
+// so we explicitly pass the env var value to init()
+const spotlightEnvValue = import.meta.env.VITE_SENTRY_SPOTLIGHT;
+const shouldEnableSpotlight = spotlightEnvValue === 'true' || spotlightEnvValue === true;
+
 Sentry.init({
   dsn: import.meta.env.VITE_E2E_TEST_DSN,
   debug: true,
   tunnel: 'http://localhost:3031/',
   tracesSampleRate: 1.0,
+  // Explicitly enable Spotlight based on env var (since auto-enablement is dev-only)
+  spotlight: shouldEnableSpotlight,
 });
 
 // Check environment variables
