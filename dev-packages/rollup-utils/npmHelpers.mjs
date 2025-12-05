@@ -115,6 +115,18 @@ export function makeNPMConfigVariants(baseConfig, options = {}) {
 
   const variantSpecificConfigs = [];
 
+  // Determine the correct types output directory based on hasBundles
+  // hasBundles packages output to build/npm/, so types go to build/npm/types
+  // Regular packages output to build/, so types go to build/types
+  const typesOutDir = baseConfig.output.dir === 'build/npm' ? 'build/npm/types' : 'build/types';
+
+  const dtsPlugin = dts({
+    tsconfig: path.resolve(process.cwd(), './tsconfig.types.json'),
+    compilerOptions: {
+      outDir: typesOutDir,
+    },
+  });
+
   if (emitCjs) {
     if (splitDevProd) {
       variantSpecificConfigs.push({ output: { format: 'cjs', dir: path.join(baseConfig.output.dir, 'cjs/dev') } });
@@ -129,11 +141,12 @@ export function makeNPMConfigVariants(baseConfig, options = {}) {
 
   if (emitEsm) {
     if (splitDevProd) {
+      // Add dts plugin to the dev ESM build (only needs to run once)
       variantSpecificConfigs.push({
         output: {
           format: 'esm',
           dir: path.join(baseConfig.output.dir, 'esm/dev'),
-          plugins: [makePackageNodeEsm()],
+          plugins: [makePackageNodeEsm(), dtsPlugin],
         },
       });
       variantSpecificConfigs.push({
@@ -144,13 +157,6 @@ export function makeNPMConfigVariants(baseConfig, options = {}) {
         },
       });
     } else {
-      const dtsPlugin = dts({
-        tsconfig: path.resolve(process.cwd(), './tsconfig.types.json'),
-        compilerOptions: {
-          outDir: 'build/types',
-        },
-      });
-
       variantSpecificConfigs.push({
         output: {
           format: 'esm',
