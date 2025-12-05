@@ -126,9 +126,9 @@ export type SentryBuildWebpackOptions = {
     excludeReplayIframe?: boolean;
 
     /**
-     * Replacing this flag with true will tree shake any SDK code related to capturing shadow dom elements with Session Replay.
+     * Replacing this flag with true will tree shake any SDK code related to capturing shadow DOM elements with Session Replay.
      * It's only relevant when using Session Replay.
-     * Enable this flag if you don't want to record any shadow dom elements.
+     * Enable this flag if you don't want to record any shadow DOM elements.
      * This has no effect if you did not add `replayIntegration`.
      */
     excludeReplayShadowDOM?: boolean;
