@@ -101,6 +101,9 @@ export function makeBaseBundleConfig(options) {
   // used by all bundles
   const sharedBundleConfig = {
     input: entrypoints,
+    // Point to the package's tsconfig.json so rolldown respects TypeScript & JSX settings
+    tsconfig: path.resolve(process.cwd(), './tsconfig.json'),
+
     output: {
       // a file extension will be added to this base value when we specify either a minified or non-minified build
       entryFileNames: outputFileBase,
