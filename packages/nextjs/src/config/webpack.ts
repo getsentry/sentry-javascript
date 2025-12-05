@@ -97,6 +97,13 @@ export function constructWebpackConfigFunction({
     // `newConfig.module.rules` is required, so we don't have to keep asserting its existence
     const newConfig = setUpModuleRules(rawNewConfig);
 
+    // In development mode, add 'development' to resolve conditions so that
+    // @sentry/* packages use their development exports (which include features like Spotlight auto-enablement)
+    // We only prepend 'development' to existing conditions to preserve Next.js's ESM/CJS resolution behavior
+    if (isDev && newConfig.resolve?.conditionNames && !newConfig.resolve.conditionNames.includes('development')) {
+      newConfig.resolve.conditionNames = ['development', ...newConfig.resolve.conditionNames];
+    }
+
     // Add a loader which will inject code that sets global values
     addValueInjectionLoader({
       newConfig,
