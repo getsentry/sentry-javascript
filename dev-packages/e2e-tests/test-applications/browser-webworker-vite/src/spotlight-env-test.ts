@@ -15,7 +15,6 @@ let importMetaSpotlight = 'undefined';
 try {
   // Check process.env (should work via bundler transformation)
   if (typeof process !== 'undefined' && process.env) {
-    // @ts-expect-error - accessing process.env for testing
     processEnvSpotlight = process.env.VITE_SENTRY_SPOTLIGHT || 'undefined';
   }
 } catch (e) {
