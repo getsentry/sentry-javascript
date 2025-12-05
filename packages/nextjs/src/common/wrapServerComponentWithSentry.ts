@@ -42,13 +42,16 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
           const isolationScope = getIsolationScope();
           const span = getActiveSpan();
           const { componentRoute, componentType } = context;
+          let shouldCapture = false;
           isolationScope.setTransactionName(`${componentType} Server Component (${componentRoute})`);
 
           if (span) {
             if (isNotFoundNavigationError(error)) {
+              shouldCapture = false;
               // We don't want to report "not-found"s
               span.setStatus({ code: SPAN_STATUS_ERROR, message: 'not_found' });
             } else if (isRedirectNavigationError(error)) {
+              shouldCapture = false;
               // We don't want to report redirects
               span.setStatus({ code: SPAN_STATUS_OK });
             } else {
@@ -56,12 +59,14 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
             }
           }
 
-          captureException(error, {
-            mechanism: {
-              handled: false,
-              type: 'auto.function.nextjs.server_component',
-            },
-          });
+          if (shouldCapture) {
+            captureException(error, {
+              mechanism: {
+                handled: false,
+                type: 'auto.function.nextjs.server_component',
+              },
+            });
+          }
         },
         () => {
           waitUntil(flushSafelyWithTimeout());
