@@ -99,9 +99,16 @@ export function constructWebpackConfigFunction({
 
     // In development mode, add 'development' to resolve conditions so that
     // @sentry/* packages use their development exports (which include features like Spotlight auto-enablement)
-    // We only prepend 'development' to existing conditions to preserve Next.js's ESM/CJS resolution behavior
-    if (isDev && newConfig.resolve?.conditionNames && !newConfig.resolve.conditionNames.includes('development')) {
-      newConfig.resolve.conditionNames = ['development', ...newConfig.resolve.conditionNames];
+    if (isDev) {
+      newConfig.resolve = newConfig.resolve || {};
+      const existingConditions = newConfig.resolve.conditionNames;
+      if (existingConditions && !existingConditions.includes('development')) {
+        // Prepend 'development' to existing conditions to preserve Next.js's ESM/CJS resolution
+        newConfig.resolve.conditionNames = ['development', ...existingConditions];
+      } else if (!existingConditions) {
+        // Set default conditions with 'development' first (webpack defaults + development)
+        newConfig.resolve.conditionNames = ['development', 'webpack', 'module', 'import', 'require', 'default'];
+      }
     }
 
     // Add a loader which will inject code that sets global values
