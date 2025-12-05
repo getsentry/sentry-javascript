@@ -9,4 +9,9 @@ export default defineConfig({
     }),
     sveltekit(),
   ],
+  build: {
+    rollupOptions: {
+      external: ['fsevents'],
+    },
+  },
 });
