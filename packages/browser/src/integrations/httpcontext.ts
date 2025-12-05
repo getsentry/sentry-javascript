@@ -1,7 +1,7 @@
 import {
   defineIntegration,
   httpHeadersToSpanAttributes,
-  safeSetSpanAttributes,
+  safeSetSpanJSONAttributes,
   SEMANTIC_ATTRIBUTE_URL_FULL,
 } from '@sentry/core';
 import { getHttpRequestData, WINDOW } from '../helpers';
@@ -21,19 +21,19 @@ export const httpContextIntegration = defineIntegration(() => {
       }
 
       if (client.getOptions().traceLifecycle === 'stream') {
-        client.on('processSpan', (span, { readOnlySpan }) => {
-          if (readOnlySpan.is_segment) {
+        client.on('processSpan', spanJSON => {
+          if (spanJSON.is_segment) {
             const { url, headers } = getHttpRequestData();
 
             const attributeHeaders = httpHeadersToSpanAttributes(headers);
 
-            safeSetSpanAttributes(
-              span,
+            safeSetSpanJSONAttributes(
+              spanJSON,
               {
                 [SEMANTIC_ATTRIBUTE_URL_FULL]: url,
                 ...attributeHeaders,
               },
-              readOnlySpan.attributes,
+              spanJSON.attributes,
             );
           }
         });

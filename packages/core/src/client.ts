@@ -619,13 +619,13 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    */
   public on(hook: 'afterSegmentSpanEnd', callback: (span: Span) => void): () => void;
   /**
-   * Register a callback for when the span is ready to be enqueued into the span buffer.
+   * Register a callback for when the span JSON is ready to be enqueued into the span buffer.
    */
-  public on(hook: 'enqueueSpan', callback: (span: Span) => void): () => void;
+  public on(hook: 'enqueueSpan', callback: (spanJSON: SpanV2JSON) => void): () => void;
   /**
-   * Register a callback for when a span is processed, to add some attributes to the span.
+   * Register a callback for when a span JSON is processed, to add some attributes to the span JSON.
    */
-  public on(hook: 'processSpan', callback: (span: Span, hint: { readOnlySpan: SpanV2JSON }) => void): () => void;
+  public on(hook: 'processSpan', callback: (spanJSON: SpanV2JSON, hint: { readOnlySpan: Span }) => void): () => void;
 
   /**
    * Register a callback for when an idle span is allowed to auto-finish.
@@ -902,12 +902,12 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   // Hooks reserved for Span-First span processing:
   /** Fire a hook after the `spanEnd` hook  */
   public emit(hook: 'afterSpanEnd', span: Span): void;
-  /** Fire a hook after a span is processed, to add some attributes to the span. */
-  public emit(hook: 'processSpan', span: Span, hint: { readOnlySpan: SpanV2JSON }): void;
+  /** Fire a hook after a span is processed, to add some attributes to the span JSON. */
+  public emit(hook: 'processSpan', spanJSON: SpanV2JSON, hint: { readOnlySpan: Span }): void;
   /** Fire a hook after the `segmentSpanEnd` hook is fired. */
   public emit(hook: 'afterSegmentSpanEnd', span: Span): void;
   /** Fire a hook after a span ready to be enqueued into the span buffer. */
-  public emit(hook: 'enqueueSpan', span: Span): void;
+  public emit(hook: 'enqueueSpan', spanJSON: SpanV2JSON): void;
 
   /**
    * Fire a hook indicating that an idle span is allowed to auto finish.
