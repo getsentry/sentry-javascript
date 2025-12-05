@@ -1,21 +1,16 @@
 import {
   captureException,
-  continueTrace,
   debug,
   getActiveSpan,
+  getIsolationScope,
+  getRootSpan,
   httpRequestToRequestData,
-  isString,
   objectify,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  setHttpStatus,
-  startSpanManual,
-  withIsolationScope,
 } from '@sentry/core';
 import type { NextApiRequest } from 'next';
+import { TRANSACTION_ATTR_SENTRY_ROUTE_BACKFILL } from '../span-attributes-with-logic-attached';
 import type { AugmentedNextApiResponse, NextApiHandler } from '../types';
-import { flushSafelyWithTimeout, waitUntil } from '../utils/responseEnd';
-import { dropNextjsRootContext, escapeNextjsTracing } from '../utils/tracingUtils';
+import { flushSafelyWithTimeout } from '../utils/responseEnd';
 
 export type AugmentedNextApiRequest = NextApiRequest & {
   __withSentry_applied__?: boolean;
@@ -31,15 +26,13 @@ export type AugmentedNextApiRequest = NextApiRequest & {
  */
 export function wrapApiHandlerWithSentry(apiHandler: NextApiHandler, parameterizedRoute: string): NextApiHandler {
   return new Proxy(apiHandler, {
-    apply: (
+    apply: async (
       wrappingTarget,
       thisArg,
       args: [AugmentedNextApiRequest | undefined, AugmentedNextApiResponse | undefined],
     ) => {
-      dropNextjsRootContext();
-      return escapeNextjsTracing(() => {
+      try {
         const [req, res] = args;
-
         if (!req) {
           debug.log(
             `Wrapped API handler on route "${parameterizedRoute}" was not passed a request object. Will not instrument.`,
@@ -56,86 +49,55 @@ export function wrapApiHandlerWithSentry(apiHandler: NextApiHandler, parameteriz
         if (req.__withSentry_applied__) {
           return wrappingTarget.apply(thisArg, args);
         }
+
         req.__withSentry_applied__ = true;
 
-        return withIsolationScope(isolationScope => {
-          // Normally, there is an active span here (from Next.js OTEL) and we just use that as parent
-          // Else, we manually continueTrace from the incoming headers
-          const continueTraceIfNoActiveSpan = getActiveSpan()
-            ? <T>(_opts: unknown, callback: () => T) => callback()
-            : continueTrace;
-
-          return continueTraceIfNoActiveSpan(
-            {
-              sentryTrace:
-                req.headers && isString(req.headers['sentry-trace']) ? req.headers['sentry-trace'] : undefined,
-              baggage: req.headers?.baggage,
-            },
-            () => {
-              const reqMethod = `${(req.method || 'GET').toUpperCase()} `;
-              const normalizedRequest = httpRequestToRequestData(req);
-
-              isolationScope.setSDKProcessingMetadata({ normalizedRequest });
-              isolationScope.setTransactionName(`${reqMethod}${parameterizedRoute}`);
-
-              return startSpanManual(
-                {
-                  name: `${reqMethod}${parameterizedRoute}`,
-                  op: 'http.server',
-                  forceTransaction: true,
-                  attributes: {
-                    [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-                    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.nextjs',
-                  },
-                },
-                async span => {
-                  // eslint-disable-next-line @typescript-eslint/unbound-method
-                  res.end = new Proxy(res.end, {
-                    apply(target, thisArg, argArray) {
-                      setHttpStatus(span, res.statusCode);
-                      span.end();
-                      waitUntil(flushSafelyWithTimeout());
-                      return target.apply(thisArg, argArray);
-                    },
-                  });
-                  try {
-                    return await wrappingTarget.apply(thisArg, args);
-                  } catch (e) {
-                    // In case we have a primitive, wrap it in the equivalent wrapper class (string -> String, etc.) so that we can
-                    // store a seen flag on it. (Because of the one-way-on-Vercel-one-way-off-of-Vercel approach we've been forced
-                    // to take, it can happen that the same thrown object gets caught in two different ways, and flagging it is a
-                    // way to prevent it from actually being reported twice.)
-                    const objectifiedErr = objectify(e);
-
-                    captureException(objectifiedErr, {
-                      mechanism: {
-                        type: 'auto.http.nextjs.api_handler',
-                        handled: false,
-                        data: {
-                          wrapped_handler: wrappingTarget.name,
-                          function: 'withSentry',
-                        },
-                      },
-                    });
-
-                    setHttpStatus(span, 500);
-                    span.end();
-
-                    // we need to await the flush here to ensure that the error is captured
-                    // as the runtime freezes as soon as the error is thrown below
-                    await flushSafelyWithTimeout();
-
-                    // We rethrow here so that nextjs can do with the error whatever it would normally do. (Sometimes "whatever it
-                    // would normally do" is to allow the error to bubble up to the global handlers - another reason we need to mark
-                    // the error as already having been captured.)
-                    throw objectifiedErr;
-                  }
-                },
-              );
-            },
-          );
+        // Set transaction name on isolation scope to ensure parameterized routes are used
+        // The HTTP server integration sets it on isolation scope, so we need to match that
+        const method = req.method || 'GET';
+        const isolationScope = getIsolationScope();
+        isolationScope.setTransactionName(`${method} ${parameterizedRoute}`);
+        // Set SDK processing metadata
+        isolationScope.setSDKProcessingMetadata({
+          normalizedRequest: httpRequestToRequestData(req),
         });
-      });
+
+        // Set the route backfill attribute on the root span so that the transaction name
+        // gets updated to use the parameterized route during event processing
+        const activeSpan = getActiveSpan();
+        if (activeSpan) {
+          const rootSpan = getRootSpan(activeSpan);
+          rootSpan.setAttribute(TRANSACTION_ATTR_SENTRY_ROUTE_BACKFILL, parameterizedRoute);
+        }
+
+        return await wrappingTarget.apply(thisArg, args);
+      } catch (e) {
+        // In case we have a primitive, wrap it in the equivalent wrapper class (string -> String, etc.) so that we can
+        // store a seen flag on it. (Because of the one-way-on-Vercel-one-way-off-of-Vercel approach we've been forced
+        // to take, it can happen that the same thrown object gets caught in two different ways, and flagging it is a
+        // way to prevent it from actually being reported twice.)
+        const objectifiedErr = objectify(e);
+
+        captureException(objectifiedErr, {
+          mechanism: {
+            type: 'auto.http.nextjs.api_handler',
+            handled: false,
+            data: {
+              wrapped_handler: wrappingTarget.name,
+              function: 'withSentry',
+            },
+          },
+        });
+
+        // we need to await the flush here to ensure that the error is captured
+        // as the runtime freezes as soon as the error is thrown below
+        await flushSafelyWithTimeout();
+
+        // We rethrow here so that nextjs can do with the error whatever it would normally do. (Sometimes "whatever it
+        // would normally do" is to allow the error to bubble up to the global handlers - another reason we need to mark
+        // the error as already having been captured.)
+        throw objectifiedErr;
+      }
     },
   });
 }

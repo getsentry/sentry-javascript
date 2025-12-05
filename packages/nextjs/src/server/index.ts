@@ -368,6 +368,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
       // backfill transaction name for pages that would otherwise contain unparameterized routes
       if (event.contexts.trace.data[TRANSACTION_ATTR_SENTRY_ROUTE_BACKFILL] && event.transaction !== 'GET /_app') {
         event.transaction = `${method} ${event.contexts.trace.data[TRANSACTION_ATTR_SENTRY_ROUTE_BACKFILL]}`;
+        event.contexts.trace.data[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] = 'route';
       }
 
       const middlewareMatch =
@@ -430,4 +431,5 @@ function sdkAlreadyInitialized(): boolean {
 
 export * from '../common';
 
+// eslint-disable-next-line max-lines
 export { wrapApiHandlerWithSentry } from '../common/pages-router-instrumentation/wrapApiHandlerWithSentry';
