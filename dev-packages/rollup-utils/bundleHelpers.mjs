@@ -13,7 +13,7 @@ import {
   makeRrwebBuildPlugin,
   makeSetSDKSourcePlugin,
   makeBannerOptions,
-  makeTerserPlugin,
+  makeMinifierOptions,
 } from './plugins/index.mjs';
 import { mergePlugins, treeShakePreset } from './utils.mjs';
 
@@ -83,8 +83,8 @@ export function makeBaseBundleConfig(options) {
     output: {
       banner,
       format: 'esm',
+      minify: makeMinifierOptions(),
     },
-    plugins: [makeTerserPlugin()],
     // Don't bundle any of Node's core modules
     external: builtinModules,
   };
@@ -92,8 +92,9 @@ export function makeBaseBundleConfig(options) {
   const awsLambdaExtensionBundleConfig = {
     output: {
       format: 'esm',
+      minify: makeMinifierOptions(),
     },
-    plugins: [makeIsDebugBuildPlugin(true), makeTerserPlugin()],
+    plugins: [makeIsDebugBuildPlugin(true)],
     // Don't bundle any of Node's core modules
     external: builtinModules,
   };
@@ -146,7 +147,7 @@ export function makeBundleConfigVariants(baseConfig, options = {}) {
 
   const includeDebuggingPlugin = makeIsDebugBuildPlugin(true);
   const stripDebuggingPlugin = makeIsDebugBuildPlugin(false);
-  const terserPlugin = makeTerserPlugin();
+  const minifierOptions = makeMinifierOptions();
   const setSdkSourcePlugin = makeSetSDKSourcePlugin('cdn');
 
   // The additional options to use for each variant we're going to create.
@@ -161,15 +162,17 @@ export function makeBundleConfigVariants(baseConfig, options = {}) {
     '.min.js': {
       output: {
         entryFileNames: chunkInfo => `${baseConfig.output.entryFileNames(chunkInfo)}.min.js`,
+        minify: minifierOptions,
       },
-      plugins: [stripDebuggingPlugin, setSdkSourcePlugin, terserPlugin],
+      plugins: [stripDebuggingPlugin, setSdkSourcePlugin],
     },
 
     '.debug.min.js': {
       output: {
         entryFileNames: chunkInfo => `${baseConfig.output.entryFileNames(chunkInfo)}.debug.min.js`,
+        minify: minifierOptions,
       },
-      plugins: [includeDebuggingPlugin, setSdkSourcePlugin, terserPlugin],
+      plugins: [includeDebuggingPlugin, setSdkSourcePlugin],
     },
   };
 
