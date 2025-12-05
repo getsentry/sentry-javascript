@@ -1,14 +1,12 @@
-import type { Client, IntegrationFn, Span, SpanV2JSON } from '@sentry/core';
+import type { Client, IntegrationFn, Span, SpanV2JSON, SpanV2JSONWithSegmentRef } from '@sentry/core';
 import {
   captureSpan,
   createSpanV2Envelope,
   debug,
   defineIntegration,
   getDynamicSamplingContextFromSpan,
-  INTERNAL_getSegmentSpan,
   isV2BeforeSendSpanCallback,
   showSpanDropWarning,
-  spanToV2JSON,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 
@@ -35,7 +33,7 @@ export const spanStreamingIntegration = defineIntegration(((userOptions?: Partia
   };
 
   // key: traceId-segmentSpanId
-  const spanTreeMap = new Map<string, Set<Span>>();
+  const spanTreeMap = new Map<string, Set<SpanV2JSONWithSegmentRef>>();
 
   return {
     name: 'SpanStreaming',
@@ -57,13 +55,13 @@ export const spanStreamingIntegration = defineIntegration(((userOptions?: Partia
         return;
       }
 
-      client.on('enqueueSpan', span => {
-        const spanTreeMapKey = getSpanTreeMapKey(span);
+      client.on('enqueueSpan', spanJSON => {
+        const spanTreeMapKey = getSpanTreeMapKey(spanJSON as SpanV2JSONWithSegmentRef);
         const spanBuffer = spanTreeMap.get(spanTreeMapKey);
         if (spanBuffer) {
-          spanBuffer.add(span);
+          spanBuffer.add(spanJSON as SpanV2JSONWithSegmentRef);
         } else {
-          spanTreeMap.set(spanTreeMapKey, new Set([span]));
+          spanTreeMap.set(spanTreeMapKey, new Set([spanJSON as SpanV2JSONWithSegmentRef]));
         }
       });
 
@@ -87,7 +85,7 @@ export const spanStreamingIntegration = defineIntegration(((userOptions?: Partia
 
 interface SpanProcessingOptions {
   client: Client;
-  spanTreeMap: Map<string, Set<Span>>;
+  spanTreeMap: Map<string, Set<SpanV2JSONWithSegmentRef>>;
   batchLimit: number;
   beforeSendSpan: ((span: SpanV2JSON) => SpanV2JSON) | undefined;
 }
@@ -95,8 +93,8 @@ interface SpanProcessingOptions {
 /**
  * Just the traceid alone isn't enough because there can be multiple span trees with the same traceid.
  */
-function getSpanTreeMapKey(span: Span): string {
-  return `${span.spanContext().traceId}-${INTERNAL_getSegmentSpan(span).spanContext().spanId}`;
+function getSpanTreeMapKey(spanJSON: SpanV2JSONWithSegmentRef): string {
+  return `${spanJSON.trace_id}-${spanJSON._segmentSpan?.spanContext().spanId || spanJSON.span_id}`;
 }
 
 function sendSegment(
@@ -104,7 +102,8 @@ function sendSegment(
   { client, spanTreeMap, batchLimit, beforeSendSpan }: SpanProcessingOptions,
 ): void {
   const traceId = segmentSpan.spanContext().traceId;
-  const spanTreeMapKey = getSpanTreeMapKey(segmentSpan);
+  const segmentSpanId = segmentSpan.spanContext().spanId;
+  const spanTreeMapKey = `${traceId}-${segmentSpanId}`;
   const spansOfTrace = spanTreeMap.get(spanTreeMapKey);
 
   if (!spansOfTrace?.size) {
@@ -112,12 +111,16 @@ function sendSegment(
     return;
   }
 
-  const finalSpans = Array.from(spansOfTrace).map(span => {
-    const spanJson = spanToV2JSON(span);
+  // Apply beforeSendSpan callback and clean up segment span references
+  const finalSpans = Array.from(spansOfTrace).map(spanJSON => {
+    // Remove the segment span reference before processing
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { _segmentSpan, ...cleanSpanJSON } = spanJSON;
+
     if (beforeSendSpan) {
-      return applyBeforeSendSpanCallback(spanJson, beforeSendSpan);
+      return applyBeforeSendSpanCallback(cleanSpanJSON, beforeSendSpan);
     }
-    return spanJson;
+    return cleanSpanJSON;
   });
 
   const batches: SpanV2JSON[][] = [];
@@ -127,6 +130,7 @@ function sendSegment(
 
   DEBUG_BUILD && debug.log(`Sending trace ${traceId} in ${batches.length} batch${batches.length === 1 ? '' : 'es'}`);
 
+  // Compute DSC from the segment span (passed as parameter)
   const dsc = getDynamicSamplingContextFromSpan(segmentSpan);
 
   for (const batch of batches) {

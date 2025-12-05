@@ -20,16 +20,31 @@ import type { Span, SpanV2JSON } from '../types-hoist/span';
 import { mergeScopeData } from '../utils/applyScopeDataToEvent';
 import { debug } from '../utils/debug-logger';
 import { INTERNAL_getSegmentSpan, spanToV2JSON } from '../utils/spanUtils';
-import { safeSetSpanAttributes } from './spanFirstUtils';
+import { safeSetSpanJSONAttributes } from './spanFirstUtils';
 
 /**
- * Captures a span and returns it to the caller, to be enqueued for sending.
+ * A SpanV2JSON with an attached reference to the segment span.
+ * This reference is used to compute dynamic sampling context before sending.
+ * The reference MUST be removed before sending the span envelope.
  */
-export function captureSpan(span: Span, client = getClient()): Span | void {
+export interface SpanV2JSONWithSegmentRef extends SpanV2JSON {
+  _segmentSpan: Span;
+}
+
+/**
+ * Captures a span and returns a JSON representation to be enqueued for sending.
+ *
+ * IMPORTANT: This function converts the span to JSON immediately to avoid writing
+ * to an already-ended OTel span instance (which is blocked by the OTel Span class).
+ */
+export function captureSpan(span: Span, client = getClient()): SpanV2JSONWithSegmentRef | void {
   if (!client) {
     DEBUG_BUILD && debug.warn('No client available to capture span.');
     return;
   }
+
+  // Convert to JSON FIRST - we cannot write to an already-ended span
+  const spanJSON = spanToV2JSON(span) as SpanV2JSONWithSegmentRef;
 
   const segmentSpan = INTERNAL_getSegmentSpan(span);
   const serializedSegmentSpan = spanToV2JSON(segmentSpan);
@@ -39,44 +54,39 @@ export function captureSpan(span: Span, client = getClient()): Span | void {
 
   const originalAttributes = serializedSegmentSpan.attributes ?? {};
 
-  applyCommonSpanAttributes(span, serializedSegmentSpan, client, finalScopeData, originalAttributes);
+  applyCommonSpanAttributes(spanJSON, serializedSegmentSpan, client, finalScopeData, originalAttributes);
 
   if (span === segmentSpan) {
-    applyScopeToSegmentSpan(span, finalScopeData, originalAttributes);
+    applyScopeToSegmentSpan(spanJSON, finalScopeData, originalAttributes);
   }
 
-  // Allow integrations to add additional data to span. Pass in a serialized
-  // span to avoid having to potentially serialize the span in every integration
-  // (for improved performance).
-  client.emit('processSpan', span, { readOnlySpan: spanToV2JSON(span) });
+  // Attach segment span reference for DSC generation at send time
+  spanJSON._segmentSpan = segmentSpan;
 
-  // Wondering where we apply the beforeSendSpan callback?
-  // We apply it directly before sending the span,
-  // so whenever the buffer this span gets enqueued in is being flushed.
-  // Why? Because we have to enqueue the span instance itself, not a JSON object.
-  // We could temporarily convert to JSON here but this means that we'd then again
-  // have to mutate the `span` instance (doesn't work for every kind of object mutation)
-  // or construct a fully new span object. The latter is risky because users (or we) could hold
-  // references to the original span instance.
-  client.emit('enqueueSpan', span);
+  // Allow integrations to add additional data to the span JSON
+  client.emit('processSpan', spanJSON, { readOnlySpan: span });
 
-  return span;
+  // Enqueue the JSON representation for sending
+  // Note: We now enqueue JSON instead of the span instance to avoid mutating ended spans
+  client.emit('enqueueSpan', spanJSON);
+
+  return spanJSON;
 }
 
 function applyScopeToSegmentSpan(
-  segmentSpan: Span,
+  segmentSpanJSON: SpanV2JSON,
   scopeData: ScopeData,
   originalAttributes: SerializedAttributes,
 ): void {
   // TODO: Apply all scope data from auto instrumentation (contexts, request) to segment span
   const { attributes } = scopeData;
   if (attributes) {
-    safeSetSpanAttributes(segmentSpan, attributes, originalAttributes);
+    safeSetSpanJSONAttributes(segmentSpanJSON, attributes, originalAttributes);
   }
 }
 
 function applyCommonSpanAttributes(
-  span: Span,
+  spanJSON: SpanV2JSON,
   serializedSegmentSpan: SpanV2JSON,
   client: Client,
   scopeData: ScopeData,
@@ -86,8 +96,8 @@ function applyCommonSpanAttributes(
   const { release, environment, sendDefaultPii } = client.getOptions();
 
   // avoid overwriting any previously set attributes (from users or potentially our SDK instrumentation)
-  safeSetSpanAttributes(
-    span,
+  safeSetSpanJSONAttributes(
+    spanJSON,
     {
       [SEMANTIC_ATTRIBUTE_SENTRY_RELEASE]: release,
       [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: environment,
