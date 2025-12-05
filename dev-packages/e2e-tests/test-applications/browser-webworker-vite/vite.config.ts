@@ -4,7 +4,6 @@ import { defineConfig } from 'vite';
 export default defineConfig({
   build: {
     sourcemap: 'hidden',
-    envPrefix: ['PUBLIC_'],
   },
 
   plugins: [
@@ -25,5 +24,4 @@ export default defineConfig({
     ],
   },
 
-  envPrefix: ['PUBLIC_'],
 });

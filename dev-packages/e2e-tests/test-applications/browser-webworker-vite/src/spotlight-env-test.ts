@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/browser';
 
 Sentry.init({
-  dsn: import.meta.env.PUBLIC_E2E_TEST_DSN,
+  dsn: import.meta.env.VITE_E2E_TEST_DSN,
   debug: true,
   tunnel: 'http://localhost:3031/',
   tracesSampleRate: 1.0,
