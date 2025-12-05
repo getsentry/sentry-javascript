@@ -7,6 +7,19 @@ const nextConfig = {
   env: {
     NEXT_PUBLIC_SENTRY_SPOTLIGHT: 'true',
   },
+
+  // Configure webpack to use 'development' export condition in dev mode
+  // This enables Sentry SDK's development-only features like Spotlight auto-enablement
+  webpack: (config, { dev }) => {
+    if (dev) {
+      // Add 'development' to the front of conditionNames to prioritize dev exports
+      config.resolve.conditionNames = [
+        'development',
+        ...(config.resolve.conditionNames || ['import', 'module', 'browser', 'require', 'node', 'default']),
+      ];
+    }
+    return config;
+  },
 };
 
 module.exports = withSentryConfig(nextConfig, {
