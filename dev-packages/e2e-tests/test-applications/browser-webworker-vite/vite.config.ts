@@ -13,12 +13,6 @@ export default defineConfig({
     },
   },
 
-  // Use development exports from @sentry/* packages to include Spotlight auto-enablement code
-  // The SDK has conditional exports: "development" includes Spotlight, "production" strips it
-  resolve: {
-    conditions: ['development', 'module', 'browser', 'import'],
-  },
-
   plugins: [
     sentryVitePlugin({
       org: process.env.E2E_TEST_SENTRY_ORG_SLUG,
