@@ -8,7 +8,14 @@ import { DEBUG_BUILD } from '../debug-build';
 import { captureException } from '../exports';
 import { defineIntegration } from '../integration';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
-import { setHttpStatus, SPAN_STATUS_ERROR, SPAN_STATUS_OK, startSpan } from '../tracing';
+import {
+  setHttpStatus,
+  SPAN_STATUS_ERROR,
+  SPAN_STATUS_OK,
+  startInactiveSpan,
+  startSpan,
+  withActiveSpan,
+} from '../tracing';
 import {
   getDynamicSamplingContextFromClient,
   getDynamicSamplingContextFromSpan,
@@ -288,26 +295,8 @@ function _createRpcProxyHandler(): ProxyHandler<(...args: unknown[]) => Promise<
         const isConsumerSpan = normalizedName === 'pop' || normalizedName === 'receive' || normalizedName === 'read';
 
         if (!isProducerSpan && !isConsumerSpan) {
-          const result = Reflect.apply(target, thisArg, argumentsList);
-
-          try {
-            if (result && typeof result === 'object') {
-              const builder = result as unknown as PostgRESTFilterBuilder;
-              const builderConstructor = builder?.constructor;
-
-              if (typeof builderConstructor === 'function') {
-                _instrumentPostgRESTFilterBuilder(
-                  builderConstructor as unknown as PostgRESTFilterBuilder['constructor'],
-                );
-              }
-
-              _instrumentPostgRESTFilterBuilderInstance(builder);
-            }
-          } catch (error) {
-            DEBUG_BUILD && debug.warn('Supabase RPC instrumentation setup failed:', error);
-          }
-
-          return result;
+          // For non-queue RPC calls, create spans directly
+          return _instrumentGenericRpc(target, thisArg, argumentsList);
         }
 
         if (isProducerSpan) {
@@ -323,6 +312,117 @@ function _createRpcProxyHandler(): ProxyHandler<(...args: unknown[]) => Promise<
       }
     },
   };
+}
+
+/**
+ * Instruments generic (non-queue) RPC calls with spans.
+ *
+ * Creates a db span for RPC function calls like `supabase.rpc('function_name', params)`.
+ * This handles RPC calls that are not queue operations (send, receive, pop, etc.).
+ *
+ * @param target - The original rpc function
+ * @param thisArg - The this context
+ * @param argumentsList - The arguments passed to rpc()
+ */
+function _instrumentGenericRpc(
+  target: (...args: unknown[]) => Promise<unknown>,
+  thisArg: unknown,
+  argumentsList: unknown[],
+): Promise<unknown> {
+  const functionName = typeof argumentsList[0] === 'string' ? argumentsList[0] : 'unknown';
+  const params = argumentsList[1];
+
+  const attributes: Record<string, unknown> = {
+    'db.system': 'postgresql',
+    'db.operation': 'insert', // RPC calls use POST which maps to 'insert'
+    'db.table': functionName,
+    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.supabase',
+    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'db',
+  };
+
+  if (params && typeof params === 'object') {
+    attributes['db.params'] = params;
+  }
+
+  return startSpan(
+    {
+      name: `rpc(${functionName})`,
+      attributes: attributes as SpanAttributes,
+    },
+    span => {
+      return (Reflect.apply(target, thisArg, argumentsList) as Promise<SupabaseResponse>).then(
+        (res: SupabaseResponse) => {
+          if (span && res && typeof res === 'object' && 'status' in res) {
+            setHttpStatus(span, res.status || 500);
+          }
+
+          // Create breadcrumb for RPC call
+          const breadcrumb: SupabaseBreadcrumb = {
+            type: 'supabase',
+            category: 'db.insert',
+            message: `rpc(${functionName})`,
+          };
+
+          if (params && typeof params === 'object') {
+            breadcrumb.data = { body: params as Record<string, unknown> };
+          }
+
+          addBreadcrumb(breadcrumb);
+
+          // Handle RPC errors returned in the response
+          if (res && typeof res === 'object' && 'error' in res && res.error) {
+            const error = res.error as { message?: string; code?: string; details?: string };
+            const err = new Error(error.message || 'RPC error') as SupabaseError;
+            if (error.code) err.code = error.code;
+            if (error.details) err.details = error.details;
+
+            if (span) {
+              span.setStatus({ code: SPAN_STATUS_ERROR });
+            }
+
+            captureException(err, scope => {
+              scope.addEventProcessor(e => {
+                addExceptionMechanism(e, {
+                  handled: false,
+                  type: 'auto.db.supabase.rpc',
+                });
+                return e;
+              });
+              scope.setContext('supabase', {
+                function: functionName,
+                params,
+              });
+              return scope;
+            });
+          }
+
+          return res;
+        },
+        (err: Error) => {
+          // Capture exception for RPC errors (network failures, etc.)
+          captureException(err, scope => {
+            scope.addEventProcessor(e => {
+              addExceptionMechanism(e, {
+                handled: false,
+                type: 'auto.db.supabase.rpc',
+              });
+              return e;
+            });
+            scope.setContext('supabase', {
+              function: functionName,
+              params,
+            });
+            return scope;
+          });
+
+          if (span) {
+            setHttpStatus(span, 500);
+          }
+          throw err;
+        },
+      );
+    },
+  );
 }
 
 /**
@@ -421,7 +521,8 @@ function _extractMessageIds(
         return String(item);
       }
       // Handle message objects with msg_id field
-      if (item && typeof item === 'object' && 'msg_id' in item) {
+      // Check that msg_id is not null/undefined to avoid returning literal "undefined" string
+      if (item && typeof item === 'object' && 'msg_id' in item && item.msg_id != null) {
         return String(item.msg_id);
       }
       return null;
@@ -1026,13 +1127,11 @@ function _instrumentRpcProducer(target: unknown, thisArg: unknown, argumentsList
           }
 
           span.setStatus({ code: res.error ? SPAN_STATUS_ERROR : SPAN_STATUS_OK });
-          span.end();
 
           return res;
         })
         .catch((err: unknown) => {
           span.setStatus({ code: SPAN_STATUS_ERROR });
-          span.end();
 
           captureException(err, scope => {
             scope.addEventProcessor(e => {
@@ -1116,12 +1215,10 @@ function _instrumentAuthOperation(operation: AuthOperationFn, isAdmin = false): 
                 span.setStatus({ code: SPAN_STATUS_OK });
               }
 
-              span.end();
               return res;
             })
             .catch((err: unknown) => {
               span.setStatus({ code: SPAN_STATUS_ERROR });
-              span.end();
 
               captureException(err, {
                 mechanism: {
@@ -1181,6 +1278,45 @@ function _instrumentSupabaseAuthClient(supabaseClientInstance: SupabaseClientIns
   _markAsInstrumented(supabaseClientInstance.auth);
 }
 
+/**
+ * Instruments a QueryBuilder instance's methods directly.
+ * This handles the case where methods are defined as instance properties (arrow functions)
+ * rather than prototype methods, which can't be caught by prototype instrumentation.
+ *
+ * @param queryBuilder - The QueryBuilder instance to instrument
+ */
+function _instrumentQueryBuilderInstance(queryBuilder: PostgRESTQueryBuilder): void {
+  for (const operation of DB_OPERATIONS_TO_INSTRUMENT) {
+    const instanceMethod = queryBuilder[operation];
+
+    // Skip if method doesn't exist or is not an own property (already using prototype)
+    if (!instanceMethod || !Object.prototype.hasOwnProperty.call(queryBuilder, operation)) {
+      continue;
+    }
+
+    if (_isInstrumented(instanceMethod)) {
+      continue;
+    }
+
+    const wrappedOperation = new Proxy(instanceMethod, {
+      apply(target: PostgRESTQueryOperationFn, thisArg: unknown, argumentsList: Parameters<PostgRESTQueryOperationFn>) {
+        const rv = Reflect.apply(target, thisArg, argumentsList);
+        const PostgRESTFilterBuilder = rv.constructor;
+
+        DEBUG_BUILD && debug.log(`Instrumenting ${operation} operation's PostgRESTFilterBuilder`);
+
+        _instrumentPostgRESTFilterBuilder(PostgRESTFilterBuilder);
+        _instrumentPostgRESTFilterBuilderInstance(rv);
+
+        return rv;
+      },
+    });
+
+    queryBuilder[operation] = wrappedOperation;
+    _markAsInstrumented(wrappedOperation);
+  }
+}
+
 function _instrumentSupabaseClientConstructor(SupabaseClient: unknown): void {
   if (_isInstrumented((SupabaseClient as SupabaseClientConstructorType).prototype.from)) {
     return;
@@ -1193,7 +1329,9 @@ function _instrumentSupabaseClientConstructor(SupabaseClient: unknown): void {
         const rv = Reflect.apply(target, thisArg, argumentsList);
         const PostgRESTQueryBuilder = (rv as PostgRESTQueryBuilder).constructor;
 
+        // Instrument both prototype (for prototype-based methods) and instance (for arrow functions)
         _instrumentPostgRESTQueryBuilder(PostgRESTQueryBuilder as unknown as new () => PostgRESTQueryBuilder);
+        _instrumentQueryBuilderInstance(rv as PostgRESTQueryBuilder);
 
         return rv;
       },
@@ -1224,6 +1362,15 @@ function _createInstrumentedPostgRESTThen(
   originalThen: PostgRESTProtoThenable['then'],
 ): PostgRESTProtoThenable['then'] {
   return new Proxy(originalThen, {
+    get(target, prop) {
+      // Return true for instrumentation check so we can identify this Proxy as instrumented
+      // This is needed because default Proxy behavior forwards property access to the target,
+      // which would incorrectly mark the original function as instrumented
+      if (prop === '__SENTRY_INSTRUMENTED__') {
+        return true;
+      }
+      return Reflect.get(target, prop);
+    },
     apply(target, thisArg, argumentsList) {
       const operations = DB_OPERATIONS_TO_INSTRUMENT;
       const typedThis = thisArg as PostgRESTFilterBuilder;
@@ -1288,102 +1435,105 @@ function _createInstrumentedPostgRESTThen(
         attributes['db.body'] = body;
       }
 
-      return startSpan(
-        {
-          name: description,
-          attributes: attributes as SpanAttributes,
-        },
-        span => {
-          return (Reflect.apply(target, thisArg, []) as Promise<SupabaseResponse>)
-            .then(
-              (res: SupabaseResponse) => {
-                if (span) {
-                  if (res && typeof res === 'object' && 'status' in res) {
-                    setHttpStatus(span, res.status || 500);
-                  }
-                  span.end();
+      // Use startInactiveSpan + withActiveSpan to ensure span.end() is called BEFORE user callbacks
+      // This is critical for proper span ordering - otherwise span.end() happens after user's await
+      // continuation, which can cause the root transaction to end before child spans
+      const span = startInactiveSpan({
+        name: description,
+        attributes: attributes as SpanAttributes,
+      });
+
+      // Run the operation with the span as active (for HTTP child spans)
+      return withActiveSpan(span, () => {
+        return (Reflect.apply(target, thisArg, []) as Promise<SupabaseResponse>)
+          .then(
+            (res: SupabaseResponse) => {
+              if (span) {
+                if (res && typeof res === 'object' && 'status' in res) {
+                  setHttpStatus(span, res.status || 500);
                 }
+                span.end();
+              }
 
-                const breadcrumb: SupabaseBreadcrumb = {
-                  type: 'supabase',
-                  category: `db.${operation}`,
-                  message: description,
-                };
+              const breadcrumb: SupabaseBreadcrumb = {
+                type: 'supabase',
+                category: `db.${operation}`,
+                message: description,
+              };
 
-                const data: Record<string, unknown> = {};
+              const data: Record<string, unknown> = {};
 
+              if (queryItems.length) {
+                data.query = queryItems;
+              }
+
+              if (Object.keys(body).length) {
+                data.body = body;
+              }
+
+              if (Object.keys(data).length) {
+                breadcrumb.data = data;
+              }
+
+              addBreadcrumb(breadcrumb);
+
+              if (res.error) {
+                const err = new Error(res.error.message) as SupabaseError;
+                if (res.error.code) err.code = res.error.code;
+                if (res.error.details) err.details = res.error.details;
+
+                const supabaseContext: Record<string, unknown> = {};
                 if (queryItems.length) {
-                  data.query = queryItems;
+                  supabaseContext.query = queryItems;
                 }
-
                 if (Object.keys(body).length) {
-                  data.body = body;
+                  supabaseContext.body = body;
                 }
 
-                if (Object.keys(data).length) {
-                  breadcrumb.data = data;
-                }
-
-                addBreadcrumb(breadcrumb);
-
-                if (res.error) {
-                  const err = new Error(res.error.message) as SupabaseError;
-                  if (res.error.code) err.code = res.error.code;
-                  if (res.error.details) err.details = res.error.details;
-
-                  const supabaseContext: Record<string, unknown> = {};
-                  if (queryItems.length) {
-                    supabaseContext.query = queryItems;
-                  }
-                  if (Object.keys(body).length) {
-                    supabaseContext.body = body;
-                  }
-
-                  captureException(err, scope => {
-                    scope.addEventProcessor(e => {
-                      addExceptionMechanism(e, {
-                        handled: false,
-                        type: 'auto.db.supabase.postgres',
-                      });
-
-                      return e;
-                    });
-
-                    scope.setContext('supabase', supabaseContext);
-
-                    return scope;
-                  });
-                }
-
-                return res;
-              },
-              (err: Error) => {
-                // Capture exception for database operation errors (network failures, etc.)
                 captureException(err, scope => {
                   scope.addEventProcessor(e => {
                     addExceptionMechanism(e, {
                       handled: false,
                       type: 'auto.db.supabase.postgres',
                     });
+
                     return e;
                   });
-                  scope.setContext('supabase', {
-                    operation: operation,
-                    table: table,
-                  });
+
+                  scope.setContext('supabase', supabaseContext);
+
                   return scope;
                 });
+              }
 
-                if (span) {
-                  setHttpStatus(span, 500);
-                  span.end();
-                }
-                throw err;
-              },
-            )
-            .then(...argumentsList);
-        },
-      );
+              return res;
+            },
+            (err: Error) => {
+              // Capture exception for database operation errors (network failures, etc.)
+              captureException(err, scope => {
+                scope.addEventProcessor(e => {
+                  addExceptionMechanism(e, {
+                    handled: false,
+                    type: 'auto.db.supabase.postgres',
+                  });
+                  return e;
+                });
+                scope.setContext('supabase', {
+                  operation: operation,
+                  table: table,
+                });
+                return scope;
+              });
+
+              if (span) {
+                setHttpStatus(span, 500);
+                span.end();
+              }
+              throw err;
+            },
+          )
+          .then(...argumentsList);
+      });
     },
   });
 }
@@ -1406,8 +1556,8 @@ function _instrumentPostgRESTFilterBuilder(PostgRESTFilterBuilder: PostgRESTFilt
   }
 
   prototype.then = _createInstrumentedPostgRESTThen(originalThen);
-
-  _markAsInstrumented(prototype.then);
+  // Note: We don't call _markAsInstrumented here because the Proxy's get handler
+  // returns true for __SENTRY_INSTRUMENTED__, which correctly identifies it as instrumented
 }
 
 function _instrumentPostgRESTFilterBuilderInstance(builder: PostgRESTFilterBuilder): void {
@@ -1422,13 +1572,18 @@ function _instrumentPostgRESTFilterBuilderInstance(builder: PostgRESTFilterBuild
     return;
   }
 
-  if (_isInstrumented(originalThen)) {
+  // Check if the instance has its own .then property (not inherited from prototype)
+  const hasOwnThen = Object.prototype.hasOwnProperty.call(builder, 'then');
+
+  // If the instance has its own .then that's not instrumented, we need to instrument it
+  // even if the prototype's .then is already instrumented
+  if (_isInstrumented(originalThen) && !hasOwnThen) {
     return;
   }
 
   thenable.then = _createInstrumentedPostgRESTThen(originalThen);
-
-  _markAsInstrumented(thenable.then);
+  // Note: We don't call _markAsInstrumented here because the Proxy's get handler
+  // returns true for __SENTRY_INSTRUMENTED__, which correctly identifies it as instrumented
 }
 
 /**
