@@ -726,7 +726,10 @@ function _processConsumerSpan(span: Span, res: SupabaseResponse, queueName: stri
   }
 
   // Extract retry count from PGMQ read_ct field
-  const retryCount = _getMessageProperty<number>(firstItem, 'read_ct') ?? 0;
+  // read_ct represents total reads starting at 1 for the first read, so retry count = read_ct - 1
+  // Math.max ensures we don't return negative values for invalid/missing read_ct
+  const readCount = _getMessageProperty<number>(firstItem, 'read_ct') ?? 0;
+  const retryCount = Math.max(0, readCount - 1);
   span.setAttribute('messaging.message.retry.count', retryCount);
 
   // Calculate message body size with performance safeguards
@@ -1073,7 +1076,8 @@ function _instrumentRpcProducer(target: unknown, thisArg: unknown, argumentsList
       }
 
       // Create new arguments list with the modified params (don't mutate original argumentsList)
-      const modifiedArgumentsList = [argumentsList[0], paramsWithTrace];
+      // Preserve any additional arguments beyond the second (e.g., options object)
+      const modifiedArgumentsList = [argumentsList[0], paramsWithTrace, ...argumentsList.slice(2)];
 
       const promise = Reflect.apply(
         target as (...args: unknown[]) => Promise<unknown>,
