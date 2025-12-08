@@ -32,7 +32,7 @@
     "build": "run-s build:transpile build:types",
     "build:dev": "yarn build",
     "build:transpile": "yarn deno-types && rollup -c rollup.npm.config.mjs",
-    "build:types": "tsc -p tsconfig.types.json",
+    "build:types": "tsgo -p tsconfig.types.json",
     "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf build build-types build-test coverage node_modules/.deno sentry-deno-*.tgz",
