@@ -4,6 +4,30 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 10.29.0
+
+### Important Changes
+
+- **feat(solid|solidstart): Bump accepted @solidjs/router range ([#18395](https://github.com/getsentry/sentry-javascript/pull/18395))**
+
+We expanded the supported version range for `@solidjs/router` to include `0.14.x` and `0.15.x` versions.
+
+### Other Changes
+
+- fix(logs): Add support for `msg` in pino integration ([#18389](https://github.com/getsentry/sentry-javascript/pull/18389))
+- fix(node): Include system message in anthropic-ai messages span ([#18332](https://github.com/getsentry/sentry-javascript/pull/18332))
+- fix(tracing): Add missing attributes in vercel-ai spans ([#18333](https://github.com/getsentry/sentry-javascript/pull/18333))
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+
+- chore(tanstackstart-react): clean up re-exported types ([#18393](https://github.com/getsentry/sentry-javascript/pull/18393))
+- ref(core): Avoid looking up openai integration options ([#17695](https://github.com/getsentry/sentry-javascript/pull/17695))
+- test(nuxt): Relax captured unhandled error assertion ([#18397](https://github.com/getsentry/sentry-javascript/pull/18397))
+- test(tanstackstart-react): Set up E2E test application ([#18358](https://github.com/getsentry/sentry-javascript/pull/18358))
+
+</details>
+
 ## 10.28.0
 
 ### Important Changes
