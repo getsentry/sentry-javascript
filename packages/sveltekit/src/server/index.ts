@@ -1,3 +1,4 @@
+/* eslint-disable import/export */
 // Node SDK exports
 // Unfortunately, we cannot `export * from '@sentry/node'` because in prod builds,
 // Vite puts these exports into a `default` property (Sentry.default) rather than
@@ -128,6 +129,7 @@ export {
   createConsolaReporter,
   createSentryWinstonTransport,
   vercelAIIntegration,
+  metrics,
 } from '@sentry/node';
 
 // We can still leave this for the carrier init and type exports

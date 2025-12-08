@@ -1,0 +1,112 @@
+name: 'Gitflow: Merge Conflict Issue'
+
+on:
+  pull_request:
+    types: [opened]
+    branches:
+      - develop
+
+jobs:
+  check-merge-conflicts:
+    name: Detect merge conflicts in gitflow PRs
+    runs-on: ubuntu-24.04
+    if: |
+      ${{ contains(github.event.pull_request.labels.*.name, 'Dev: Gitflow') }}
+    permissions:
+      issues: write
+    steps:
+      - name: Check for merge conflicts with retry
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const initialDelay = 60_000; // Wait 1 minute before first check to let CI start
+            const retryInterval = 30_000;
+            const maxRetries = 10; // (30 seconds * 10 retries) = 5 minutes
+
+            async function isMergeable() {
+              const { data: pr } = await github.rest.pulls.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: context.payload.pull_request.number
+              });
+
+              return pr.mergeable;
+            }
+
+            async function sleep(ms) {
+              return new Promise(resolve => setTimeout(resolve, ms));
+            }
+
+            let attempt = 0;
+            let mergeable = null;
+
+            // Wait before first check to give CI time to start
+            console.log(`Waiting ${initialDelay/1000} seconds before first check to let CI start...`);
+            await sleep(initialDelay);
+
+            while (attempt < maxRetries) {
+              attempt++;
+              console.log(`Attempt ${attempt}/${maxRetries}: Checking if PR is mergeable...`);
+
+              mergeable = await isMergeable();
+              console.log(`Mergeable: ${mergeable}`);
+
+              // If mergeable is not null, GitHub has finished computing merge state
+              if (mergeable !== null) {
+                break;
+              }
+
+              if (attempt < maxRetries) {
+                console.log(`Waiting ${retryInterval/1000} seconds before retry...`);
+                await sleep(retryInterval);
+              }
+            }
+
+            // Check if we have merge conflicts
+            if (mergeable === false) {
+              const issueTitle = '[Gitflow] Merge Conflict';
+
+              // Check for existing open issues with the same title
+              const { data: existingIssues } = await github.rest.issues.listForRepo({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                state: 'open',
+                labels: 'Dev: Gitflow'
+              });
+
+              const existingOpenIssue = existingIssues.find(issue =>
+                issue.title === issueTitle && !issue.pull_request
+              );
+
+              if (!existingOpenIssue) {
+                const issueBody = [
+                  '## Gitflow Merge Conflict Detected',
+                  '',
+                  `The automated gitflow PR #${context.payload.pull_request.number} has merge conflicts and cannot be merged automatically.`,
+                  '',
+                  '### How to resolve',
+                  '',
+                  `Follow the steps documented in [docs/gitflow.md](https://github.com/${context.repo.owner}/${context.repo.repo}/blob/develop/docs/gitflow.md#what-to-do-if-there-is-a-merge-conflict):`,
+                  '',
+                  `1. Close the automated PR #${context.payload.pull_request.number}`,
+                  '2. Create a new branch on top of `master` (e.g., `manual-develop-sync`)',
+                  '3. Merge `develop` into this branch with a **merge commit** (fix any merge conflicts)',
+                  '4. Create a PR against `develop` from your branch',
+                  '5. Merge that PR with a **merge commit**'
+                ].join('\n');
+
+                await github.rest.issues.create({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  title: issueTitle,
+                  body: issueBody,
+                  labels: ['Dev: Gitflow']
+                });
+
+                console.log('Created new issue for merge conflict');
+              }
+            } else if (mergeable === null) {
+              console.log('Could not determine mergeable state after maximum retries');
+            } else {
+              console.log('No merge conflicts detected - PR can be merged');
+            }

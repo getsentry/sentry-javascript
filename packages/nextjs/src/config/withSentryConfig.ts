@@ -98,12 +98,102 @@ function generateRandomTunnelRoute(): string {
   return `/${randomString}`;
 }
 
+/**
+ * Migrates deprecated top-level webpack options to the new `webpack.*` path for backward compatibility.
+ * The new path takes precedence over deprecated options. This mutates the userSentryOptions object.
+ */
+function migrateDeprecatedWebpackOptions(userSentryOptions: SentryBuildOptions): void {
+  // Initialize webpack options if not present
+  userSentryOptions.webpack = userSentryOptions.webpack || {};
+
+  const webpack = userSentryOptions.webpack;
+
+  const withDeprecatedFallback = <T>(
+    newValue: T | undefined,
+    deprecatedValue: T | undefined,
+    message: string,
+  ): T | undefined => {
+    if (deprecatedValue !== undefined) {
+      // eslint-disable-next-line no-console
+      console.warn(message);
+    }
+
+    return newValue ?? deprecatedValue;
+  };
+
+  const deprecatedMessage = (deprecatedPath: string, newPath: string): string =>
+    `[@sentry/nextjs] DEPRECATION WARNING: ${deprecatedPath} is deprecated and will be removed in a future version. Use ${newPath} instead.`;
+
+  /* eslint-disable deprecation/deprecation */
+  // Migrate each deprecated option to the new path, but only if the new path isn't already set
+  webpack.autoInstrumentServerFunctions = withDeprecatedFallback(
+    webpack.autoInstrumentServerFunctions,
+    userSentryOptions.autoInstrumentServerFunctions,
+    deprecatedMessage('autoInstrumentServerFunctions', 'webpack.autoInstrumentServerFunctions'),
+  );
+
+  webpack.autoInstrumentMiddleware = withDeprecatedFallback(
+    webpack.autoInstrumentMiddleware,
+    userSentryOptions.autoInstrumentMiddleware,
+    deprecatedMessage('autoInstrumentMiddleware', 'webpack.autoInstrumentMiddleware'),
+  );
+
+  webpack.autoInstrumentAppDirectory = withDeprecatedFallback(
+    webpack.autoInstrumentAppDirectory,
+    userSentryOptions.autoInstrumentAppDirectory,
+    deprecatedMessage('autoInstrumentAppDirectory', 'webpack.autoInstrumentAppDirectory'),
+  );
+
+  webpack.excludeServerRoutes = withDeprecatedFallback(
+    webpack.excludeServerRoutes,
+    userSentryOptions.excludeServerRoutes,
+    deprecatedMessage('excludeServerRoutes', 'webpack.excludeServerRoutes'),
+  );
+
+  webpack.unstable_sentryWebpackPluginOptions = withDeprecatedFallback(
+    webpack.unstable_sentryWebpackPluginOptions,
+    userSentryOptions.unstable_sentryWebpackPluginOptions,
+    deprecatedMessage('unstable_sentryWebpackPluginOptions', 'webpack.unstable_sentryWebpackPluginOptions'),
+  );
+
+  webpack.disableSentryConfig = withDeprecatedFallback(
+    webpack.disableSentryConfig,
+    userSentryOptions.disableSentryWebpackConfig,
+    deprecatedMessage('disableSentryWebpackConfig', 'webpack.disableSentryConfig'),
+  );
+
+  // Handle treeshake.removeDebugLogging specially since it's nested
+  if (userSentryOptions.disableLogger !== undefined) {
+    webpack.treeshake = webpack.treeshake || {};
+    webpack.treeshake.removeDebugLogging = withDeprecatedFallback(
+      webpack.treeshake.removeDebugLogging,
+      userSentryOptions.disableLogger,
+      deprecatedMessage('disableLogger', 'webpack.treeshake.removeDebugLogging'),
+    );
+  }
+
+  webpack.automaticVercelMonitors = withDeprecatedFallback(
+    webpack.automaticVercelMonitors,
+    userSentryOptions.automaticVercelMonitors,
+    deprecatedMessage('automaticVercelMonitors', 'webpack.automaticVercelMonitors'),
+  );
+
+  webpack.reactComponentAnnotation = withDeprecatedFallback(
+    webpack.reactComponentAnnotation,
+    userSentryOptions.reactComponentAnnotation,
+    deprecatedMessage('reactComponentAnnotation', 'webpack.reactComponentAnnotation'),
+  );
+}
+
 // Modify the materialized object form of the user's next config by deleting the `sentry` property and wrapping the
 // `webpack` property
 function getFinalConfigObject(
   incomingUserNextConfigObject: NextConfigObject,
   userSentryOptions: SentryBuildOptions,
 ): NextConfigObject {
+  // Migrate deprecated webpack options to new webpack path for backward compatibility
+  migrateDeprecatedWebpackOptions(userSentryOptions);
+
   // Only determine a release name if release creation is not explicitly disabled
   // This prevents injection of Git commit hashes that break build determinism
   const shouldCreateRelease = userSentryOptions.release?.create !== false;
@@ -121,11 +211,10 @@ function getFinalConfigObject(
         );
       }
     } else {
-      const resolvedTunnelRoute =
-        userSentryOptions.tunnelRoute === true ? generateRandomTunnelRoute() : userSentryOptions.tunnelRoute;
-
       // Update the global options object to use the resolved value everywhere
+      const resolvedTunnelRoute = resolveTunnelRoute(userSentryOptions.tunnelRoute);
       userSentryOptions.tunnelRoute = resolvedTunnelRoute || undefined;
+
       setUpTunnelRewriteRules(incomingUserNextConfigObject, resolvedTunnelRoute);
     }
   }
@@ -364,7 +453,7 @@ function getFinalConfigObject(
             ],
           },
         }),
-    ...(isWebpack && !userSentryOptions.disableSentryWebpackConfig
+    ...(isWebpack && !userSentryOptions.webpack?.disableSentryConfig
       ? {
           webpack: constructWebpackConfigFunction({
             userNextConfig: incomingUserNextConfigObject,
@@ -392,6 +481,13 @@ function getFinalConfigObject(
  */
 function setUpTunnelRewriteRules(userNextConfig: NextConfigObject, tunnelPath: string): void {
   const originalRewrites = userNextConfig.rewrites;
+  // Allow overriding the tunnel destination for E2E tests via environment variable
+  const destinationOverride = process.env._SENTRY_TUNNEL_DESTINATION_OVERRIDE;
+
+  // Make sure destinations are statically defined at build time
+  const destination = destinationOverride || 'https://o:orgid.ingest.sentry.io/api/:projectid/envelope/?hsts=0';
+  const destinationWithRegion =
+    destinationOverride || 'https://o:orgid.ingest.:region.sentry.io/api/:projectid/envelope/?hsts=0';
 
   // This function doesn't take any arguments at the time of writing but we future-proof
   // here in case Next.js ever decides to pass some
@@ -412,7 +508,7 @@ function setUpTunnelRewriteRules(userNextConfig: NextConfigObject, tunnelPath: s
           value: '(?<projectid>\\d*)',
         },
       ],
-      destination: 'https://o:orgid.ingest.sentry.io/api/:projectid/envelope/?hsts=0',
+      destination,
     };
 
     const tunnelRouteRewriteWithRegion = {
@@ -436,7 +532,7 @@ function setUpTunnelRewriteRules(userNextConfig: NextConfigObject, tunnelPath: s
           value: '(?<region>[a-z]{2})',
         },
       ],
-      destination: 'https://o:orgid.ingest.:region.sentry.io/api/:projectid/envelope/?hsts=0',
+      destination: destinationWithRegion,
     };
 
     // Order of these is important, they get applied first to last.
@@ -549,4 +645,27 @@ function getInstrumentationClientFileContents(): string | void {
       // noop
     }
   }
+}
+
+/**
+ * Resolves the tunnel route based on the user's configuration and the environment.
+ * @param tunnelRoute - The user-provided tunnel route option
+ */
+function resolveTunnelRoute(tunnelRoute: string | true): string {
+  if (process.env.__SENTRY_TUNNEL_ROUTE__) {
+    // Reuse cached value from previous build (server/client)
+    return process.env.__SENTRY_TUNNEL_ROUTE__;
+  }
+
+  const resolvedTunnelRoute = typeof tunnelRoute === 'string' ? tunnelRoute : generateRandomTunnelRoute();
+
+  // Cache for subsequent builds (only during build time)
+  // Turbopack runs the config twice, so we need a shared context to avoid generating a new tunnel route for each build.
+  // env works well here
+  // https://linear.app/getsentry/issue/JS-549/adblock-plus-blocking-requests-to-sentry-and-monitoring-tunnel
+  if (resolvedTunnelRoute) {
+    process.env.__SENTRY_TUNNEL_ROUTE__ = resolvedTunnelRoute;
+  }
+
+  return resolvedTunnelRoute;
 }

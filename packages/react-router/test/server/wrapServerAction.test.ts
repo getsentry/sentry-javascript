@@ -30,7 +30,7 @@ describe('wrapServerAction', () => {
       {
         name: 'Executing Server Action',
         attributes: {
-          [core.SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react-router.action',
+          [core.SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react_router.action',
           [core.SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.react-router.action',
         },
       },
@@ -60,7 +60,7 @@ describe('wrapServerAction', () => {
       {
         name: 'Custom Action',
         attributes: {
-          [core.SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react-router.action',
+          [core.SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react_router.action',
           [core.SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.react-router.action',
           'sentry.custom': 'value',
         },

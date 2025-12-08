@@ -1,14 +1,22 @@
 import {
+  InstrumentationBase,
   type InstrumentationConfig,
   type InstrumentationModuleDefinition,
-  InstrumentationBase,
   InstrumentationNodeModuleDefinition,
   InstrumentationNodeModuleFile,
 } from '@opentelemetry/instrumentation';
 import type { LangChainOptions } from '@sentry/core';
-import { createLangChainCallbackHandler, getClient, SDK_VERSION } from '@sentry/core';
+import {
+  _INTERNAL_skipAiProviderWrapping,
+  ANTHROPIC_AI_INTEGRATION_NAME,
+  createLangChainCallbackHandler,
+  getClient,
+  GOOGLE_GENAI_INTEGRATION_NAME,
+  OPENAI_INTEGRATION_NAME,
+  SDK_VERSION,
+} from '@sentry/core';
 
-const supportedVersions = ['>=0.1.0 <1.0.0'];
+const supportedVersions = ['>=0.1.0 <2.0.0'];
 
 type LangChainInstrumentationOptions = InstrumentationConfig & LangChainOptions;
 
@@ -135,6 +143,25 @@ export class SentryLangChainInstrumentation extends InstrumentationBase<LangChai
       );
     }
 
+    // Hook into main 'langchain' package to catch initChatModel (v1+)
+    modules.push(
+      new InstrumentationNodeModuleDefinition(
+        'langchain',
+        supportedVersions,
+        this._patch.bind(this),
+        exports => exports,
+        [
+          // To catch the CJS build that contains ConfigurableModel / initChatModel for v1
+          new InstrumentationNodeModuleFile(
+            'langchain/dist/chat_models/universal.cjs',
+            supportedVersions,
+            this._patch.bind(this),
+            exports => exports,
+          ),
+        ],
+      ),
+    );
+
     return modules;
   }
 
@@ -143,14 +170,20 @@ export class SentryLangChainInstrumentation extends InstrumentationBase<LangChai
    * This is called when a LangChain provider package is loaded
    */
   private _patch(exports: PatchedLangChainExports): PatchedLangChainExports | void {
+    // Skip AI provider wrapping now that LangChain is actually being used
+    // This prevents duplicate spans from Anthropic/OpenAI/GoogleGenAI standalone integrations
+    _INTERNAL_skipAiProviderWrapping([
+      OPENAI_INTEGRATION_NAME,
+      ANTHROPIC_AI_INTEGRATION_NAME,
+      GOOGLE_GENAI_INTEGRATION_NAME,
+    ]);
+
     const client = getClient();
     const defaultPii = Boolean(client?.getOptions().sendDefaultPii);
 
     const config = this.getConfig();
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     const recordInputs = config?.recordInputs ?? defaultPii;
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     const recordOutputs = config?.recordOutputs ?? defaultPii;
 
     // Create a shared handler instance
@@ -179,14 +212,13 @@ export class SentryLangChainInstrumentation extends InstrumentationBase<LangChai
       'ChatMistralAI',
       'ChatVertexAI',
       'ChatGroq',
+      'ConfigurableModel',
     ];
 
-    // Find a chat model class in the exports by checking known class names
-    const chatModelClass = Object.values(exports).find(exp => {
-      if (typeof exp !== 'function') {
-        return false;
-      }
-      return knownChatModelNames.includes(exp.name);
+    const exportsToPatch = (exports.universal_exports ?? exports) as Record<string, unknown>;
+
+    const chatModelClass = Object.values(exportsToPatch).find(exp => {
+      return typeof exp === 'function' && knownChatModelNames.includes(exp.name);
     }) as { prototype: unknown; name: string } | undefined;
 
     if (!chatModelClass) {

@@ -6,7 +6,7 @@ test('envelope header for transaction event of route correct', async () => {
     .expectHeader({
       transaction: {
         trace: {
-          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+          trace_id: expect.stringMatching(/[a-f\d]{32}/),
           public_key: 'public',
           transaction: 'GET /route',
           environment: 'production',

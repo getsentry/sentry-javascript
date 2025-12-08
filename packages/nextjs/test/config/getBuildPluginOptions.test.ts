@@ -308,6 +308,7 @@ describe('getBuildPluginOptions', () => {
         '/path/to/.next/static/**/*.js.map',
         '/path/to/.next/static/**/*.mjs.map',
         '/path/to/.next/static/**/*.cjs.map',
+        '/path/to/.next/static/**/*.css.map',
       ]);
     });
 
@@ -331,6 +332,7 @@ describe('getBuildPluginOptions', () => {
         '/path/to/.next/static/**/*.js.map',
         '/path/to/.next/static/**/*.mjs.map',
         '/path/to/.next/static/**/*.cjs.map',
+        '/path/to/.next/static/**/*.css.map',
       ]);
     });
 
@@ -355,6 +357,7 @@ describe('getBuildPluginOptions', () => {
         '/path/to/.next/static/**/*.js.map',
         '/path/to/.next/static/**/*.mjs.map',
         '/path/to/.next/static/**/*.cjs.map',
+        '/path/to/.next/static/**/*.css.map',
       ]);
     });
 
@@ -570,13 +573,15 @@ describe('getBuildPluginOptions', () => {
           create: true,
           vcsRemote: 'origin',
         },
-        unstable_sentryWebpackPluginOptions: {
-          release: {
-            setCommits: {
-              auto: true,
-            },
-            deploy: {
-              env: 'production',
+        webpack: {
+          unstable_sentryWebpackPluginOptions: {
+            release: {
+              setCommits: {
+                auto: true,
+              },
+              deploy: {
+                env: 'production',
+              },
             },
           },
         },
@@ -589,7 +594,7 @@ describe('getBuildPluginOptions', () => {
         buildTool: 'webpack-client',
       });
 
-      // The unstable_sentryWebpackPluginOptions.release is spread at the end and may override base properties
+      // The webpack.unstable_sentryWebpackPluginOptions.release is spread at the end and may override base properties
       expect(result.release).toHaveProperty('setCommits.auto', true);
       expect(result.release).toHaveProperty('deploy.env', 'production');
     });
@@ -600,12 +605,14 @@ describe('getBuildPluginOptions', () => {
       const sentryBuildOptions: SentryBuildOptions = {
         org: 'test-org',
         project: 'test-project',
-        reactComponentAnnotation: {
-          enabled: true,
-        },
-        unstable_sentryWebpackPluginOptions: {
+        webpack: {
           reactComponentAnnotation: {
-            enabled: false, // This will override the base setting
+            enabled: true,
+          },
+          unstable_sentryWebpackPluginOptions: {
+            reactComponentAnnotation: {
+              enabled: false, // This will override the base setting
+            },
           },
         },
       };
@@ -692,10 +699,12 @@ describe('getBuildPluginOptions', () => {
       const sentryBuildOptions: SentryBuildOptions = {
         org: 'test-org',
         project: 'test-project',
-        unstable_sentryWebpackPluginOptions: {
-          applicationKey: 'test-app-key',
-          sourcemaps: {
-            disable: false,
+        webpack: {
+          unstable_sentryWebpackPluginOptions: {
+            applicationKey: 'test-app-key',
+            sourcemaps: {
+              disable: false,
+            },
           },
         },
       };
@@ -788,6 +797,7 @@ describe('getBuildPluginOptions', () => {
         `${complexPath}/static/**/*.js.map`,
         `${complexPath}/static/**/*.mjs.map`,
         `${complexPath}/static/**/*.cjs.map`,
+        `${complexPath}/static/**/*.css.map`,
       ]);
     });
   });

@@ -9,12 +9,11 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setCapturedScopesOnSpan,
   startSpan,
-  vercelWaitUntil,
   winterCGRequestToRequestData,
   withIsolationScope,
 } from '@sentry/core';
 import { addHeadersAsAttributes } from '../common/utils/addHeadersAsAttributes';
-import { flushSafelyWithTimeout } from '../common/utils/responseEnd';
+import { flushSafelyWithTimeout, waitUntil } from '../common/utils/responseEnd';
 import type { EdgeRouteHandler } from './types';
 
 /**
@@ -94,7 +93,7 @@ export function wrapApiHandlerWithSentry<H extends EdgeRouteHandler>(
                 });
               },
               () => {
-                vercelWaitUntil(flushSafelyWithTimeout());
+                waitUntil(flushSafelyWithTimeout());
               },
             );
           },

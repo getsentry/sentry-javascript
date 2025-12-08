@@ -7,13 +7,12 @@ import {
   serializeEnvelope,
 } from '@sentry/core';
 import * as http from 'http';
-import { type Mock, afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, type Mock, vi } from 'vitest';
 import { createGunzip } from 'zlib';
 import * as httpProxyAgent from '../../src/proxy';
 import { makeNodeTransport } from '../../src/transports';
 
 vi.mock('@sentry/core', async () => {
-  // eslint-disable-next-line @typescript-eslint/consistent-type-imports
   const actualCore = await vi.importActual('@sentry/core');
   return {
     ...actualCore,
@@ -22,7 +21,6 @@ vi.mock('@sentry/core', async () => {
 });
 
 vi.mock('node:http', async () => {
-  // eslint-disable-next-line @typescript-eslint/consistent-type-imports
   const original = await vi.importActual('node:http');
   return {
     ...original,

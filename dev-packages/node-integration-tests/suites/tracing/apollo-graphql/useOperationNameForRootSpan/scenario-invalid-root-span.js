@@ -30,5 +30,4 @@ async function run() {
   });
 }
 
-// eslint-disable-next-line @typescript-eslint/no-floating-promises
 run();

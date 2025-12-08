@@ -66,7 +66,7 @@ describe('LangChain integration', () => {
         description: 'chat error-model',
         op: 'gen_ai.chat',
         origin: 'auto.ai.langchain',
-        status: 'unknown_error',
+        status: 'internal_error',
       }),
     ]),
   };
@@ -136,7 +136,7 @@ describe('LangChain integration', () => {
         description: 'chat error-model',
         op: 'gen_ai.chat',
         origin: 'auto.ai.langchain',
-        status: 'unknown_error',
+        status: 'internal_error',
       }),
     ]),
   };
@@ -194,4 +194,115 @@ describe('LangChain integration', () => {
       await createRunner().ignore('event').expect({ transaction: EXPECTED_TRANSACTION_TOOL_CALLS }).start().completed();
     });
   });
+
+  const EXPECTED_TRANSACTION_MESSAGE_TRUNCATION = {
+    transaction: 'main',
+    spans: expect.arrayContaining([
+      expect.objectContaining({
+        data: expect.objectContaining({
+          'gen_ai.operation.name': 'chat',
+          'sentry.op': 'gen_ai.chat',
+          'sentry.origin': 'auto.ai.langchain',
+          'gen_ai.system': 'anthropic',
+          'gen_ai.request.model': 'claude-3-5-sonnet-20241022',
+          // Messages should be present and should include truncated string input (contains only Cs)
+          'gen_ai.request.messages': expect.stringMatching(/^\[\{"role":"user","content":"C+"\}\]$/),
+        }),
+        description: 'chat claude-3-5-sonnet-20241022',
+        op: 'gen_ai.chat',
+        origin: 'auto.ai.langchain',
+        status: 'ok',
+      }),
+      expect.objectContaining({
+        data: expect.objectContaining({
+          'gen_ai.operation.name': 'chat',
+          'sentry.op': 'gen_ai.chat',
+          'sentry.origin': 'auto.ai.langchain',
+          'gen_ai.system': 'anthropic',
+          'gen_ai.request.model': 'claude-3-5-sonnet-20241022',
+          // Messages should be present (truncation happened) and should be a JSON array of a single index (contains only Cs)
+          'gen_ai.request.messages': expect.stringMatching(/^\[\{"role":"user","content":"C+"\}\]$/),
+        }),
+        description: 'chat claude-3-5-sonnet-20241022',
+        op: 'gen_ai.chat',
+        origin: 'auto.ai.langchain',
+        status: 'ok',
+      }),
+    ]),
+  };
+
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-message-truncation.mjs',
+    'instrument-with-pii.mjs',
+    (createRunner, test) => {
+      test('truncates messages when they exceed byte limit', async () => {
+        await createRunner()
+          .ignore('event')
+          .expect({ transaction: EXPECTED_TRANSACTION_MESSAGE_TRUNCATION })
+          .start()
+          .completed();
+      });
+    },
+  );
+
+  createEsmAndCjsTests(
+    __dirname,
+    'scenario-openai-before-langchain.mjs',
+    'instrument.mjs',
+    (createRunner, test) => {
+      test('demonstrates timing issue with duplicate spans (ESM only)', async () => {
+        await createRunner()
+          .ignore('event')
+          .expect({
+            transaction: event => {
+              // This test highlights the limitation: if a user creates an Anthropic client
+              // before importing LangChain, that client will still be instrumented and
+              // could cause duplicate spans when used alongside LangChain.
+
+              const spans = event.spans || [];
+
+              // First call: Direct Anthropic call made BEFORE LangChain import
+              // This should have Anthropic instrumentation (origin: 'auto.ai.anthropic')
+              const firstAnthropicSpan = spans.find(
+                span =>
+                  span.description === 'messages claude-3-5-sonnet-20241022' && span.origin === 'auto.ai.anthropic',
+              );
+
+              // Second call: LangChain call
+              // This should have LangChain instrumentation (origin: 'auto.ai.langchain')
+              const langchainSpan = spans.find(
+                span => span.description === 'chat claude-3-5-sonnet-20241022' && span.origin === 'auto.ai.langchain',
+              );
+
+              // Third call: Direct Anthropic call made AFTER LangChain import
+              // This should NOT have Anthropic instrumentation (skip works correctly)
+              // Count how many Anthropic spans we have - should be exactly 1
+              const anthropicSpans = spans.filter(
+                span =>
+                  span.description === 'messages claude-3-5-sonnet-20241022' && span.origin === 'auto.ai.anthropic',
+              );
+
+              // Verify the edge case limitation:
+              // - First Anthropic client (created before LangChain) IS instrumented
+              expect(firstAnthropicSpan).toBeDefined();
+              expect(firstAnthropicSpan?.origin).toBe('auto.ai.anthropic');
+
+              // - LangChain call IS instrumented by LangChain
+              expect(langchainSpan).toBeDefined();
+              expect(langchainSpan?.origin).toBe('auto.ai.langchain');
+
+              // - Second Anthropic client (created after LangChain) is NOT instrumented
+              // This demonstrates that the skip mechanism works for NEW clients
+              // We should only have ONE Anthropic span (the first one), not two
+              expect(anthropicSpans).toHaveLength(1);
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+    // This test fails on CJS because we use dynamic imports to simulate importing LangChain after the Anthropic client is created
+    { failsOnCjs: true },
+  );
 });

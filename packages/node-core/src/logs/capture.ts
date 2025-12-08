@@ -34,7 +34,8 @@ export type CaptureLogArgs = CaptureLogArgWithTemplate | CaptureLogArgWithoutTem
 export function captureLog(level: LogSeverityLevel, ...args: CaptureLogArgs): void {
   const [messageOrMessageTemplate, paramsOrAttributes, maybeAttributesOrMetadata, maybeMetadata] = args;
   if (Array.isArray(paramsOrAttributes)) {
-    const attributes = { ...(maybeAttributesOrMetadata as Log['attributes']) };
+    // type-casting here because from the type definitions we know that `maybeAttributesOrMetadata` is an attributes object (or undefined)
+    const attributes = { ...(maybeAttributesOrMetadata as Log['attributes'] | undefined) };
     attributes['sentry.message.template'] = messageOrMessageTemplate;
     paramsOrAttributes.forEach((param, index) => {
       attributes[`sentry.message.parameter.${index}`] = param;
@@ -44,7 +45,8 @@ export function captureLog(level: LogSeverityLevel, ...args: CaptureLogArgs): vo
   } else {
     _INTERNAL_captureLog(
       { level, message: messageOrMessageTemplate, attributes: paramsOrAttributes },
-      maybeMetadata?.scope,
+      // type-casting here because from the type definitions we know that `maybeAttributesOrMetadata` is a metadata object (or undefined)
+      (maybeAttributesOrMetadata as CaptureLogMetadata | undefined)?.scope ?? maybeMetadata?.scope,
     );
   }
 }

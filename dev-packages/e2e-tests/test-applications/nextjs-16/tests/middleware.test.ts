@@ -62,9 +62,15 @@ test('Faulty middlewares', async ({ request }) => {
 test('Should trace outgoing fetch requests inside middleware and create breadcrumbs for it', async ({ request }) => {
   test.skip(isDevMode, 'The fetch requests ends up in a separate tx in dev atm');
   const middlewareTransactionPromise = waitForTransaction('nextjs-16', async transactionEvent => {
+    return transactionEvent?.transaction === 'middleware GET';
+  });
+
+  // In some builds (especially webpack), fetch spans may end up in a separate transaction instead of as child spans
+  // This test validates that the fetch is traced either way
+  const fetchTransactionPromise = waitForTransaction('nextjs-16', async transactionEvent => {
     return (
-      transactionEvent?.transaction === 'middleware GET' &&
-      !!transactionEvent.spans?.find(span => span.op === 'http.client')
+      transactionEvent?.transaction === 'GET http://localhost:3030/' ||
+      transactionEvent?.contexts?.trace?.description === 'GET http://localhost:3030/'
     );
   });
 
@@ -74,40 +80,7 @@ test('Should trace outgoing fetch requests inside middleware and create breadcru
 
   const middlewareTransaction = await middlewareTransactionPromise;
 
-  expect(middlewareTransaction.spans).toEqual(
-    expect.arrayContaining([
-      {
-        data: {
-          'http.request.method': 'GET',
-          'http.request.method_original': 'GET',
-          'http.response.status_code': 200,
-          'network.peer.address': '::1',
-          'network.peer.port': 3030,
-          'otel.kind': 'CLIENT',
-          'sentry.op': 'http.client',
-          'sentry.origin': 'auto.http.otel.node_fetch',
-          'server.address': 'localhost',
-          'server.port': 3030,
-          url: 'http://localhost:3030/',
-          'url.full': 'http://localhost:3030/',
-          'url.path': '/',
-          'url.query': '',
-          'url.scheme': 'http',
-          'user_agent.original': 'node',
-        },
-        description: 'GET http://localhost:3030/',
-        op: 'http.client',
-        origin: 'auto.http.otel.node_fetch',
-        parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-        span_id: expect.stringMatching(/[a-f0-9]{16}/),
-        start_timestamp: expect.any(Number),
-        status: 'ok',
-        timestamp: expect.any(Number),
-        trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-      },
-    ]),
-  );
-
+  // Breadcrumbs should always be created for the fetch request
   expect(middlewareTransaction.breadcrumbs).toEqual(
     expect.arrayContaining([
       {
@@ -118,4 +91,52 @@ test('Should trace outgoing fetch requests inside middleware and create breadcru
       },
     ]),
   );
+
+  // Check if http.client span exists as a child of the middleware transaction
+  const hasHttpClientSpan = !!middlewareTransaction.spans?.find(span => span.op === 'http.client');
+
+  if (hasHttpClientSpan) {
+    // Check if fetch is traced as a child span of the middleware transaction
+    expect(middlewareTransaction.spans).toEqual(
+      expect.arrayContaining([
+        {
+          data: {
+            'http.request.method': 'GET',
+            'http.request.method_original': 'GET',
+            'http.response.status_code': 200,
+            'network.peer.address': '::1',
+            'network.peer.port': 3030,
+            'otel.kind': 'CLIENT',
+            'sentry.op': 'http.client',
+            'sentry.origin': 'auto.http.otel.node_fetch',
+            'server.address': 'localhost',
+            'server.port': 3030,
+            url: 'http://localhost:3030/',
+            'url.full': 'http://localhost:3030/',
+            'url.path': '/',
+            'url.query': '',
+            'url.scheme': 'http',
+            'user_agent.original': 'node',
+          },
+          description: 'GET http://localhost:3030/',
+          op: 'http.client',
+          origin: 'auto.http.otel.node_fetch',
+          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
+          span_id: expect.stringMatching(/[a-f0-9]{16}/),
+          start_timestamp: expect.any(Number),
+          status: 'ok',
+          timestamp: expect.any(Number),
+          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+        },
+      ]),
+    );
+  } else {
+    // Alternatively, fetch is traced as a separate transaction, similar to Dev builds
+    const fetchTransaction = await fetchTransactionPromise;
+
+    expect(fetchTransaction.contexts?.trace?.op).toBe('http.client');
+    expect(fetchTransaction.contexts?.trace?.status).toBe('ok');
+    expect(fetchTransaction.contexts?.trace?.data?.['http.request.method']).toBe('GET');
+    expect(fetchTransaction.contexts?.trace?.data?.['url.full']).toBe('http://localhost:3030/');
+  }
 });

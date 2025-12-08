@@ -1,4 +1,4 @@
-import { tracingChannel } from 'node:diagnostics_channel';
+import * as diagnosticsChannel from 'node:diagnostics_channel';
 import type { Integration, IntegrationFn, LogSeverityLevel } from '@sentry/core';
 import {
   _INTERNAL_captureLog,
@@ -122,8 +122,8 @@ const _pinoIntegration = defineIntegration((userOptions: DeepPartial<PinoOptions
         },
       });
 
-      const injectedChannel = tracingChannel('orchestrion:pino:pino-log');
-      const integratedChannel = tracingChannel('pino_asJson');
+      const injectedChannel = diagnosticsChannel.tracingChannel('orchestrion:pino:pino-log');
+      const integratedChannel = diagnosticsChannel.tracingChannel('pino_asJson');
 
       function onPinoStart(self: Pino, args: PinoHookArgs, result: PinoResult): void {
         if (!shouldTrackLogger(self)) {
@@ -134,6 +134,7 @@ const _pinoIntegration = defineIntegration((userOptions: DeepPartial<PinoOptions
 
         const [captureObj, message, levelNumber] = args;
         const level = self?.levels?.labels?.[levelNumber] || 'info';
+        const logMessage = message || (resultObj?.msg as string | undefined) || '';
 
         if (enableLogs && options.log.levels.includes(level)) {
           const attributes: Record<string, unknown> = {
@@ -142,7 +143,7 @@ const _pinoIntegration = defineIntegration((userOptions: DeepPartial<PinoOptions
             'pino.logger.level': levelNumber,
           };
 
-          _INTERNAL_captureLog({ level, message, attributes });
+          _INTERNAL_captureLog({ level, message: logMessage, attributes });
         }
 
         if (options.error.levels.includes(level)) {
@@ -167,7 +168,7 @@ const _pinoIntegration = defineIntegration((userOptions: DeepPartial<PinoOptions
               return;
             }
 
-            captureMessage(message, captureContext);
+            captureMessage(logMessage, captureContext);
           });
         }
       }

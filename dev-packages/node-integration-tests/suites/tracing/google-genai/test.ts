@@ -75,7 +75,7 @@ describe('Google GenAI integration', () => {
         description: 'models error-model',
         op: 'gen_ai.models',
         origin: 'auto.ai.google_genai',
-        status: 'unknown_error',
+        status: 'internal_error',
       }),
     ]),
   };
@@ -155,7 +155,7 @@ describe('Google GenAI integration', () => {
         description: 'models error-model',
         op: 'gen_ai.models',
         origin: 'auto.ai.google_genai',
-        status: 'unknown_error',
+        status: 'internal_error',
       }),
     ]),
   };
@@ -204,6 +204,9 @@ describe('Google GenAI integration', () => {
     });
   });
 
+  const EXPECTED_AVAILABLE_TOOLS_JSON =
+    '[{"name":"controlLight","parametersJsonSchema":{"type":"object","properties":{"brightness":{"type":"number"},"colorTemperature":{"type":"string"}},"required":["brightness","colorTemperature"]}}]';
+
   const EXPECTED_TRANSACTION_TOOLS = {
     transaction: 'main',
     spans: expect.arrayContaining([
@@ -215,7 +218,7 @@ describe('Google GenAI integration', () => {
           'sentry.origin': 'auto.ai.google_genai',
           'gen_ai.system': 'google_genai',
           'gen_ai.request.model': 'gemini-2.0-flash-001',
-          'gen_ai.request.available_tools': expect.any(String), // Should include tools
+          'gen_ai.request.available_tools': EXPECTED_AVAILABLE_TOOLS_JSON,
           'gen_ai.request.messages': expect.any(String), // Should include contents
           'gen_ai.response.text': expect.any(String), // Should include response text
           'gen_ai.response.tool_calls': expect.any(String), // Should include tool calls
@@ -236,7 +239,7 @@ describe('Google GenAI integration', () => {
           'sentry.origin': 'auto.ai.google_genai',
           'gen_ai.system': 'google_genai',
           'gen_ai.request.model': 'gemini-2.0-flash-001',
-          'gen_ai.request.available_tools': expect.any(String), // Should include tools
+          'gen_ai.request.available_tools': EXPECTED_AVAILABLE_TOOLS_JSON,
           'gen_ai.request.messages': expect.any(String), // Should include contents
           'gen_ai.response.streaming': true,
           'gen_ai.response.text': expect.any(String), // Should include response text
@@ -351,7 +354,7 @@ describe('Google GenAI integration', () => {
         description: 'models blocked-model stream-response',
         op: 'gen_ai.models',
         origin: 'auto.ai.google_genai',
-        status: 'unknown_error',
+        status: 'internal_error',
       }),
       // Fifth span - error handling for streaming
       expect.objectContaining({
@@ -450,7 +453,7 @@ describe('Google GenAI integration', () => {
         description: 'models blocked-model stream-response',
         op: 'gen_ai.models',
         origin: 'auto.ai.google_genai',
-        status: 'unknown_error',
+        status: 'internal_error',
       }),
       // Fifth span - error handling for streaming with PII
       expect.objectContaining({

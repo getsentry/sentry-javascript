@@ -93,14 +93,14 @@ export class ReactRouterInstrumentation extends InstrumentationBase<Instrumentat
               updateSpanName(rootSpan, `${request.method} ${target}`);
               rootSpan.setAttributes({
                 [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
-                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react-router.server',
+                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react_router.server',
               });
 
               return startSpan(
                 {
                   name: getSpanName(url.pathname, request.method),
                   attributes: {
-                    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react-router.server',
+                    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react_router.server',
                     [SEMANTIC_ATTRIBUTE_SENTRY_OP]: getOpName(url.pathname, request.method),
                   },
                 },

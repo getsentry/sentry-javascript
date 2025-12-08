@@ -219,10 +219,7 @@ async function instrumentRequestStartHttpServerSpan(
             // This is here for backwards compatibility, we used to set this here before
             method,
             url: stripUrlQueryAndFragment(ctx.url.href),
-            ...httpHeadersToSpanAttributes(
-              winterCGHeadersToDict(request.headers),
-              getClient()?.getOptions().sendDefaultPii ?? false,
-            ),
+            ...httpHeadersToSpanAttributes(winterCGHeadersToDict(request.headers)),
           };
 
           if (parametrizedRoute) {

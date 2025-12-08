@@ -1,6 +1,6 @@
 {
   "name": "@sentry/solidstart",
-  "version": "10.22.0",
+  "version": "10.29.0",
   "description": "Official Sentry SDK for Solid Start",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/solidstart",
@@ -57,7 +57,7 @@
     "access": "public"
   },
   "peerDependencies": {
-    "@solidjs/router": "^0.13.4",
+    "@solidjs/router": "^0.13.4 || ^0.14.0 || ^0.15.0",
     "@solidjs/start": "^1.0.0"
   },
   "peerDependenciesMeta": {
@@ -66,13 +66,13 @@
     }
   },
   "dependencies": {
-    "@sentry/core": "10.22.0",
-    "@sentry/node": "10.22.0",
-    "@sentry/solid": "10.22.0",
+    "@sentry/core": "10.29.0",
+    "@sentry/node": "10.29.0",
+    "@sentry/solid": "10.29.0",
     "@sentry/vite-plugin": "^4.1.0"
   },
   "devDependencies": {
-    "@solidjs/router": "^0.13.4",
+    "@solidjs/router": "^0.15.0",
     "@solidjs/start": "^1.0.0",
     "@solidjs/testing-library": "0.8.5",
     "@testing-library/jest-dom": "^6.4.5",
