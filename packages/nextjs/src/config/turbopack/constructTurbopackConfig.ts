@@ -45,6 +45,7 @@ export function constructTurbopackConfig({
     routeManifest,
     nextJsVersion,
     tunnelPath,
+    userNextConfig,
   });
 
   for (const { matcher, rule } of valueInjectionRules) {
