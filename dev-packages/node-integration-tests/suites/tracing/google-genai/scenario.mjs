@@ -61,6 +61,7 @@ async function run() {
         temperature: 0.8,
         topP: 0.9,
         maxOutputTokens: 150,
+        systemInstruction: 'You are a friendly robot who likes to be funny.',
       },
       history: [
         {
