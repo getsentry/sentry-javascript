@@ -892,6 +892,11 @@ const _instrumentRpcConsumer = (target: unknown, thisArg: unknown, argumentsList
 
               return processedResponse;
             } catch (err: unknown) {
+              // Handle span processing errors without re-throwing.
+              // The outer .catch() is for RPC promise rejections only.
+              // Re-throwing here would cause duplicate spans and duplicate captureException calls
+              // because the .then().catch() pattern catches errors from both promise rejections
+              // and errors thrown within the .then() callback.
               DEBUG_BUILD && debug.log('Consumer span processing failed', { queueName, error: err });
 
               captureException(err, scope => {
@@ -907,7 +912,10 @@ const _instrumentRpcConsumer = (target: unknown, thisArg: unknown, argumentsList
               });
 
               span.setStatus({ code: SPAN_STATUS_ERROR });
-              throw err;
+
+              // Return the original response since the RPC call itself succeeded.
+              // Only span processing failed, which we've already captured.
+              return res;
             }
           },
         );
