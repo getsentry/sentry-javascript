@@ -117,6 +117,7 @@
     "@size-limit/webpack": "~11.1.6",
     "@types/jsdom": "^21.1.6",
     "@types/node": "^18.19.1",
+    "@typescript/native-preview": "^7.0.0-dev.20251208.1",
     "@vitest/coverage-v8": "^3.2.4",
     "deepmerge": "^4.2.2",
     "downlevel-dts": "~0.11.0",
