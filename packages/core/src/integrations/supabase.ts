@@ -1055,7 +1055,7 @@ function _instrumentRpcProducer(target: unknown, thisArg: unknown, argumentsList
               'Skipping trace propagation for non-object message payload. PGMQ supports primitives and arrays, but trace context can only be injected into plain objects.',
             );
         }
-      } else if (originalParams?.messages) {
+      } else if (Array.isArray(originalParams?.messages)) {
         paramsWithTrace.messages = originalParams.messages.map(message => {
           if (isPlainObject(message)) {
             return {
