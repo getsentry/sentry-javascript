@@ -164,18 +164,19 @@ const _eventLoopBlockIntegration = ((options: Partial<ThreadBlockedIntegrationOp
         return;
       }
 
-      try {
-        // Otel is not setup until after afterAllSetup returns.
-        setImmediate(() => {
+      // Otel is not setup until after afterAllSetup returns.
+      setImmediate(async () => {
+        try {
           polling = startPolling(client, options);
-        });
 
-        if (isMainThread) {
-          await startWorker(dsn, client, options);
+          if (isMainThread) {
+            await startWorker(dsn, client, options);
+          }
+        } catch (err) {
+          log('Failed to start integration', err);
+          return;
         }
-      } catch (err) {
-        log('Failed to start integration', err);
-      }
+      });
     },
     start() {
       polling?.start();
