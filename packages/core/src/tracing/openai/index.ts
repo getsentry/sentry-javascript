@@ -205,13 +205,12 @@ function instrumentMethod<T extends unknown[], R>(
         attributes: requestAttributes as Record<string, SpanAttributeValue>,
       });
 
-      if (options.recordInputs && params) {
-        addRequestAttributes(span, params);
-      }
-
-      // Handle synchronous exceptions from the API call
+      // Handle synchronous exceptions from the API call or request attribute processing
       let result: R | Promise<R>;
       try {
+        if (options.recordInputs && params) {
+          addRequestAttributes(span, params);
+        }
         result = target.apply(context, args);
       } catch (err) {
         captureException(err, {
