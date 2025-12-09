@@ -942,6 +942,32 @@ describe('Supabase Queue Instrumentation', () => {
         }),
       );
     });
+
+    it('should create breadcrumb for empty consumer response', async () => {
+      const mockResponse: SupabaseResponse = {
+        data: [],
+        status: 200,
+      };
+
+      mockRpcFunction.mockResolvedValue(mockResponse);
+      instrumentSupabaseClient(mockSupabaseClient);
+
+      await mockSupabaseClient.rpc('pop', {
+        queue_name: 'empty-queue',
+      });
+
+      expect(addBreadcrumbSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'supabase',
+          category: 'queue.process',
+          message: 'queue.process(empty-queue)',
+          data: expect.objectContaining({
+            'messaging.destination.name': 'empty-queue',
+            'messaging.batch.message_count': 0,
+          }),
+        }),
+      );
+    });
   });
 
   describe('Span Attributes', () => {

@@ -843,6 +843,16 @@ const _instrumentRpcConsumer = (target: unknown, thisArg: unknown, argumentsList
             DEBUG_BUILD && debug.log('Consumer received empty response', { queueName });
             span.setStatus({ code: SPAN_STATUS_OK });
             span.setAttribute('messaging.batch.message_count', 0);
+            // Set retry count to 0 for empty responses (no messages to retry)
+            span.setAttribute('messaging.message.retry.count', 0);
+            // Create breadcrumb for empty queue polling (consistent with non-empty responses)
+            const breadcrumbData: Record<string, unknown> = {
+              'messaging.batch.message_count': 0,
+            };
+            if (queueName) {
+              breadcrumbData['messaging.destination.name'] = queueName;
+            }
+            _createQueueBreadcrumb('queue.process', queueName, breadcrumbData);
             return res;
           }
 
