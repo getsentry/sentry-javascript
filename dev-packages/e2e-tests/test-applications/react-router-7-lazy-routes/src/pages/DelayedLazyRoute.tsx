@@ -23,6 +23,14 @@ const DelayedLazyRoute = () => {
           Back Home
         </Link>
         <br />
+        <Link to="/slow-fetch/222" id="delayed-lazy-to-slow-fetch">
+          Go to Slow Fetch Route (500ms)
+        </Link>
+        <br />
+        <Link to="/another-lazy/sub" id="delayed-lazy-to-another-lazy">
+          Go to Another Lazy Route
+        </Link>
+        <br />
         <Link to={`/delayed-lazy/${id}?view=detailed`} id="link-to-query-view-detailed">
           View: Detailed (query param)
         </Link>
