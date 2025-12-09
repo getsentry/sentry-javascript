@@ -41,6 +41,13 @@ jobs:
               return;
             }
 
+            // Bail if this edit was made by the GitHub Actions bot
+            // This prevents infinite loops when we update the PR body with the new issue reference
+            if (context.payload.sender && context.payload.sender.type === 'Bot') {
+              console.log(`PR #${pr.number} was edited by a bot (likely this action), skipping.`);
+              return;
+            }
+
             // Check if the PR is already approved
             const reviewsResponse = await github.rest.pulls.listReviews({
               owner: context.repo.owner,
@@ -109,7 +116,7 @@ jobs:
             console.log(`Created issue #${issueID}.`);
 
             // Update the PR body to reference the new issue
-            const updatedPrBody = `${prBody}\n\nCloses #${issueID}`;
+            const updatedPrBody = `${prBody}\n\nCloses #${issueID} (added automatically)`;
 
             await github.rest.pulls.update({
               owner: context.repo.owner,
