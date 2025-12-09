@@ -8,7 +8,11 @@ import { getClient, getCurrentScope } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
 import { captureException } from '../exports';
 import { defineIntegration } from '../integration';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+} from '../semanticAttributes';
 import {
   setHttpStatus,
   SPAN_STATUS_ERROR,
@@ -28,7 +32,6 @@ import { debug } from '../utils/debug-logger';
 import { isPlainObject } from '../utils/is';
 import { addExceptionMechanism } from '../utils/misc';
 import { spanToTraceContext, spanToTraceHeader } from '../utils/spanUtils';
-import { timestampInSeconds } from '../utils/time';
 import { extractTraceparentData } from '../utils/tracing';
 
 export interface SupabaseClientConstructorType {
@@ -715,6 +718,10 @@ function _processConsumerSpan(span: Span, res: SupabaseResponse, queueName: stri
   const messageId = _extractMessageIds(data);
 
   // Set span attributes
+  // Set batch message count for OTel semantic conventions compliance
+  // This is set for all consumer operations since pop() returns an array (batch-oriented)
+  span.setAttribute('messaging.batch.message_count', data.length);
+
   if (messageId) {
     span.setAttribute('messaging.message.id', messageId);
   }
@@ -794,161 +801,129 @@ const _instrumentRpcConsumer = (target: unknown, thisArg: unknown, argumentsList
     });
 
   const spanName = `process ${queueName || 'unknown'}`;
+  // Use the Cloudflare pattern for queue spans:
+  // - op: 'db.queue' makes the span a valid transaction when no parent exists
+  // - SEMANTIC_ATTRIBUTE_SENTRY_OP: 'queue.process' ensures Queue Insights recognition
+  // - SEMANTIC_ATTRIBUTE_SENTRY_SOURCE: 'task' marks it as a task source
+  // This pattern allows queue spans to work both as child spans (when inside a transaction)
+  // and as root spans (when called outside a transaction context).
   const spanAttributes = {
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.supabase.queue.consumer',
     [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'queue.process',
+    [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'task',
     'messaging.system': 'supabase',
     'messaging.destination.name': queueName,
     'messaging.operation.name': operationName,
     'messaging.operation.type': 'process',
   } as const;
-  const spanStartTime = timestampInSeconds();
 
-  const rpcPromise = Reflect.apply(
-    target as (...args: unknown[]) => Promise<unknown>,
-    thisArg,
-    argumentsList,
-  ) as Promise<SupabaseResponse>;
+  // Wrap the entire RPC call with startSpan to ensure the span is created BEFORE the async operation.
+  // This matches the producer pattern and ensures the span is properly attached to the current
+  // transaction context. Previously, the span was created inside .then() which could cause
+  // the span to be orphaned if the transaction ended before the callback executed.
+  return startSpan(
+    {
+      name: spanName,
+      op: 'db.queue',
+      attributes: spanAttributes,
+    },
+    span => {
+      const rpcPromise = Reflect.apply(
+        target as (...args: unknown[]) => Promise<unknown>,
+        thisArg,
+        argumentsList,
+      ) as Promise<SupabaseResponse>;
 
-  return rpcPromise
-    .then(res => {
-      DEBUG_BUILD && debug.log('Consumer RPC call completed', { queueName, hasData: !!res.data });
+      return rpcPromise.then(
+        (res: SupabaseResponse) => {
+          DEBUG_BUILD && debug.log('Consumer RPC call completed', { queueName, hasData: !!res.data });
 
-      // Skip span creation for empty/null responses when there's no error - no messages to process
-      // Still create span if there's an error to capture the failure
-      if ((!res.data || (Array.isArray(res.data) && res.data.length === 0)) && !res.error) {
-        DEBUG_BUILD && debug.log('Skipping consumer span for empty response', { queueName });
-        return res;
-      }
+          // Handle empty responses - set span status but don't skip span creation
+          // The span is already created, we just mark it appropriately
+          if ((!res.data || (Array.isArray(res.data) && res.data.length === 0)) && !res.error) {
+            DEBUG_BUILD && debug.log('Consumer received empty response', { queueName });
+            span.setStatus({ code: SPAN_STATUS_OK });
+            span.setAttribute('messaging.batch.message_count', 0);
+            return res;
+          }
 
-      // Extract trace context from message for distributed tracing
-      const { sentryTrace } = _extractTraceAndBaggageFromMessage(res.data?.[0]?.message || {});
+          // Extract trace context from message for distributed tracing (before cleanup)
+          const { sentryTrace } = _extractTraceAndBaggageFromMessage(res.data?.[0]?.message || {});
 
-      // Clean up _sentry metadata from messages before returning to user
-      // Use immutable updates to avoid mutating the original response data
-      if (Array.isArray(res.data)) {
-        const hasMetadata = res.data.some(
-          item =>
-            item &&
-            typeof item === 'object' &&
-            item.message &&
-            typeof item.message === 'object' &&
-            '_sentry' in item.message,
-        );
+          // Clean up _sentry metadata from messages before returning to user
+          // Use immutable updates to avoid mutating the original response data
+          if (Array.isArray(res.data)) {
+            const hasMetadata = res.data.some(
+              item =>
+                item &&
+                typeof item === 'object' &&
+                item.message &&
+                typeof item.message === 'object' &&
+                '_sentry' in item.message,
+            );
 
-        if (hasMetadata) {
-          res.data = res.data.map(item => {
-            if (item && typeof item === 'object' && item.message && typeof item.message === 'object') {
-              const messageCopy = { ...(item.message as Record<string, unknown>) };
-              delete messageCopy._sentry;
-              return { ...item, message: messageCopy };
-            }
-            return item;
-          });
-        }
-      }
-
-      // Extract producer trace context for span link
-      let producerSpanContext: { traceId: string; spanId: string; traceFlags: number } | undefined;
-
-      if (sentryTrace) {
-        const traceparentData = extractTraceparentData(sentryTrace);
-        if (traceparentData?.traceId && traceparentData?.parentSpanId) {
-          // Convert parentSampled boolean to traceFlags (W3C trace context spec)
-          // traceFlags bit 0 (LSB) = sampled flag: 1 if sampled, 0 if not sampled
-          const traceFlags = traceparentData.parentSampled ? 1 : 0;
-
-          producerSpanContext = {
-            traceId: traceparentData.traceId,
-            spanId: traceparentData.parentSpanId,
-            traceFlags,
-          };
-        }
-      }
-
-      const runWithSpan = (): SupabaseResponse => {
-        // Create consumer span as child of current transaction (e.g., HTTP request)
-        // Add span link to producer span for distributed tracing across async queue boundary
-        return startSpan(
-          {
-            name: spanName,
-            op: 'queue.process',
-            startTime: spanStartTime,
-            attributes: spanAttributes,
-            // Add span link to producer span for distributed tracing across async queue boundary
-            links: producerSpanContext
-              ? [
-                  {
-                    context: producerSpanContext,
-                    attributes: { 'sentry.link.type': 'queue.producer' },
-                  },
-                ]
-              : undefined,
-          },
-          span => {
-            try {
-              const processedResponse = _processConsumerSpan(span, res, queueName);
-
-              DEBUG_BUILD && debug.log('Consumer span processed successfully', { queueName });
-
-              return processedResponse;
-            } catch (err: unknown) {
-              // Handle span processing errors without re-throwing.
-              // The outer .catch() is for RPC promise rejections only.
-              // Re-throwing here would cause duplicate spans and duplicate captureException calls
-              // because the .then().catch() pattern catches errors from both promise rejections
-              // and errors thrown within the .then() callback.
-              DEBUG_BUILD && debug.log('Consumer span processing failed', { queueName, error: err });
-
-              captureException(err, scope => {
-                scope.addEventProcessor(e => {
-                  addExceptionMechanism(e, {
-                    handled: false,
-                    type: 'auto.db.supabase.queue',
-                  });
-                  return e;
-                });
-                scope.setContext('supabase', { queueName });
-                return scope;
+            if (hasMetadata) {
+              res.data = res.data.map(item => {
+                if (item && typeof item === 'object' && item.message && typeof item.message === 'object') {
+                  const messageCopy = { ...(item.message as Record<string, unknown>) };
+                  delete messageCopy._sentry;
+                  return { ...item, message: messageCopy };
+                }
+                return item;
               });
-
-              span.setStatus({ code: SPAN_STATUS_ERROR });
-
-              // Return the original response since the RPC call itself succeeded.
-              // Only span processing failed, which we've already captured.
-              return res;
             }
-          },
-        );
-      };
+          }
 
-      // Create consumer span as child of current transaction with span links for distributed tracing
-      return runWithSpan();
-    })
-    .catch((err: unknown) => {
-      DEBUG_BUILD && debug.log('Consumer RPC call failed', { queueName, error: err });
+          // Extract producer trace context and add span link for distributed tracing
+          if (sentryTrace) {
+            const traceparentData = extractTraceparentData(sentryTrace);
+            if (traceparentData?.traceId && traceparentData?.parentSpanId) {
+              // Convert parentSampled boolean to traceFlags (W3C trace context spec)
+              // traceFlags bit 0 (LSB) = sampled flag: 1 if sampled, 0 if not sampled
+              const traceFlags = traceparentData.parentSampled ? 1 : 0;
 
-      return startSpan(
-        {
-          name: spanName,
-          op: 'queue.process',
-          startTime: spanStartTime,
-          attributes: spanAttributes,
+              span.addLink({
+                context: {
+                  traceId: traceparentData.traceId,
+                  spanId: traceparentData.parentSpanId,
+                  traceFlags,
+                },
+                attributes: { 'sentry.link.type': 'queue.producer' },
+              });
+            }
+          }
+
+          // Process the span with response data
+          try {
+            const processedResponse = _processConsumerSpan(span, res, queueName);
+            DEBUG_BUILD && debug.log('Consumer span processed successfully', { queueName });
+            return processedResponse;
+          } catch (err: unknown) {
+            DEBUG_BUILD && debug.log('Consumer span processing failed', { queueName, error: err });
+
+            captureException(err, scope => {
+              scope.addEventProcessor(e => {
+                addExceptionMechanism(e, {
+                  handled: false,
+                  type: 'auto.db.supabase.queue',
+                });
+                return e;
+              });
+              scope.setContext('supabase', { queueName });
+              return scope;
+            });
+
+            span.setStatus({ code: SPAN_STATUS_ERROR });
+            return res;
+          }
         },
-        span => {
-          if (queueName) {
-            span.setAttribute('messaging.destination.name', queueName);
-          }
+        (err: unknown) => {
+          // Handle RPC promise rejection
+          DEBUG_BUILD && debug.log('Consumer RPC call failed', { queueName, error: err });
 
-          const breadcrumbData: Record<string, unknown> = {};
-          if (queueName) {
-            breadcrumbData['messaging.destination.name'] = queueName;
-          }
-          _createQueueBreadcrumb(
-            'queue.process',
-            queueName,
-            Object.keys(breadcrumbData).length ? breadcrumbData : undefined,
-          );
+          _createQueueBreadcrumb('queue.process', queueName, {
+            'messaging.destination.name': queueName,
+          });
 
           captureException(err, scope => {
             scope.addEventProcessor(e => {
@@ -966,7 +941,8 @@ const _instrumentRpcConsumer = (target: unknown, thisArg: unknown, argumentsList
           throw err;
         },
       );
-    });
+    },
+  );
 };
 
 /**
@@ -1009,13 +985,20 @@ function _instrumentRpcProducer(target: unknown, thisArg: unknown, argumentsList
   // Calculate message body size upfront for initial span attributes
   const messageBodySize = _calculateMessageBodySize(queueParams?.message || queueParams?.messages);
 
+  // Use the Cloudflare pattern for queue spans:
+  // - op: 'db.queue' makes the span a valid transaction when no parent exists
+  // - SEMANTIC_ATTRIBUTE_SENTRY_OP: 'queue.publish' ensures Queue Insights recognition
+  // - SEMANTIC_ATTRIBUTE_SENTRY_SOURCE: 'task' marks it as a task source
+  // This pattern allows queue spans to work both as child spans (when inside a transaction)
+  // and as root spans (when called outside a transaction context).
   return startSpan(
     {
       name: `publish ${queueName || 'unknown'}`,
-      op: 'queue.publish',
+      op: 'db.queue',
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.supabase.queue.producer',
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'queue.publish',
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'task',
         'messaging.system': 'supabase',
         'messaging.destination.name': queueName,
         'messaging.operation.name': operationName,
