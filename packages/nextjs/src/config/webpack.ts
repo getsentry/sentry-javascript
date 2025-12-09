@@ -46,6 +46,7 @@ export function constructWebpackConfigFunction({
   routeManifest,
   nextJsVersion,
   useRunAfterProductionCompileHook,
+  spotlightConfig,
 }: {
   userNextConfig: NextConfigObject;
   userSentryOptions: SentryBuildOptions;
@@ -53,6 +54,7 @@ export function constructWebpackConfigFunction({
   routeManifest: RouteManifest | undefined;
   nextJsVersion: string | undefined;
   useRunAfterProductionCompileHook: boolean | undefined;
+  spotlightConfig: string | undefined;
 }): WebpackConfigFunction {
   // Will be called by nextjs and passed its default webpack configuration and context data about the build (whether
   // we're building server or client, whether we're in dev, what version of webpack we're using, etc). Note that
@@ -444,6 +446,17 @@ export function constructWebpackConfigFunction({
         __SENTRY_SERVER_MODULES__: JSON.stringify(_getModules(projectDir)),
       }),
     );
+
+    // Inject Spotlight config for client builds so the SDK can auto-enable Spotlight
+    // when NEXT_PUBLIC_SENTRY_SPOTLIGHT is set. We use DefinePlugin because Next.js
+    // doesn't replace process.env.* in node_modules code.
+    if (runtime === 'client' && spotlightConfig) {
+      newConfig.plugins.push(
+        new buildContext.webpack.DefinePlugin({
+          'process.env._sentrySpotlight': JSON.stringify(spotlightConfig),
+        }),
+      );
+    }
 
     return newConfig;
   };
