@@ -48,8 +48,13 @@ Do not flag the issues below if they appear in tests.
 
 ## Testing Conventions
 
-- When reviewing a `feat(*)` PR, check if the PR includes at least one integration or E2E test. If neither of the two are present, add a comment, recommending to add one.
-- Check that tests actually test the newly added behaviour. For instance, when checking on sent payloads by the SDK, ensure that the newly added data is asserted thoroughly.
+- When reviewing a `feat` PR, check if the PR includes at least one integration or E2E test.
+  If neither of the two are present, add a comment, recommending to add one.
+- When reviewing a `fix` PR, check if the PR includes at least one unit, integration or e2e test that tests the regression this PR fixes.
+  Usually this means the test failed prior to the fix and passes with the fix.
+  If no tests are present, add a comment recommending to add one.
+- Check that tests actually test the newly added behaviour.
+  For instance, when checking on sent payloads by the SDK, ensure that the newly added data is asserted thoroughly.
 - Flag usage of `expect.objectContaining` and other relaxed assertions, when a test expects something NOT to be included in a payload but there's no respective assertion.
 - Flag usage of conditionals in one test and recommend splitting up the test for the different paths.
 - Flag usage of loops testing multiple scenarios in one test and recommend using `(it)|(test).each` instead.
