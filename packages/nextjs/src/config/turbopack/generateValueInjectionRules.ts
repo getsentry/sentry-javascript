@@ -1,6 +1,6 @@
 import * as path from 'path';
 import type { RouteManifest } from '../manifest/types';
-import type { JSONValue, NextConfigObject, TurbopackMatcherWithRule } from '../types';
+import type { JSONValue, TurbopackMatcherWithRule } from '../types';
 
 /**
  * Generate the value injection rules for client and server in turbopack config.
@@ -9,12 +9,10 @@ export function generateValueInjectionRules({
   routeManifest,
   nextJsVersion,
   tunnelPath,
-  userNextConfig,
 }: {
   routeManifest?: RouteManifest;
   nextJsVersion?: string;
   tunnelPath?: string;
-  userNextConfig?: NextConfigObject;
 }): TurbopackMatcherWithRule[] {
   const rules: TurbopackMatcherWithRule[] = [];
   const isomorphicValues: Record<string, JSONValue> = {};
@@ -28,14 +26,6 @@ export function generateValueInjectionRules({
 
   if (routeManifest) {
     clientValues._sentryRouteManifest = JSON.stringify(routeManifest);
-  }
-
-  // Inject Spotlight config from NEXT_PUBLIC_SENTRY_SPOTLIGHT
-  // Turbopack is only used in dev mode, so we always inject this
-  // We check both userNextConfig.env (from next.config.js) and process.env (from .env files or shell)
-  const spotlightValue = userNextConfig?.env?.NEXT_PUBLIC_SENTRY_SPOTLIGHT ?? process.env.NEXT_PUBLIC_SENTRY_SPOTLIGHT;
-  if (spotlightValue) {
-    clientValues._sentrySpotlight = spotlightValue;
   }
 
   // Inject tunnel route path for both client and server

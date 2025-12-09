@@ -763,12 +763,6 @@ function addValueInjectionLoader({
       ? 'true'
       : undefined,
     _sentryRouteManifest: JSON.stringify(routeManifest),
-    // Inject Spotlight config from NEXT_PUBLIC_SENTRY_SPOTLIGHT (only in dev mode)
-    // This is needed because our SDK code in node_modules is not processed by Next.js DefinePlugin
-    // We check both userNextConfig.env (from next.config.js) and process.env (from .env files or shell)
-    _sentrySpotlight: buildContext.dev
-      ? (userNextConfig.env?.NEXT_PUBLIC_SENTRY_SPOTLIGHT ?? process.env.NEXT_PUBLIC_SENTRY_SPOTLIGHT)
-      : undefined,
   };
 
   if (buildContext.isServer) {
