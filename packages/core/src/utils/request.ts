@@ -141,7 +141,7 @@ const SENSITIVE_HEADER_SNIPPETS = [
   'bearer',
   'sso',
   'saml',
-  'crsf',
+  'csrf',
   'xsrf',
   'credentials',
   // Always treat cookie headers as sensitive in case individual key-value cookie pairs cannot properly be extracted
