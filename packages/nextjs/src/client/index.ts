@@ -143,19 +143,27 @@ function getDefaultIntegrations(options: BrowserOptions): Integration[] {
   );
 
   // Auto-enable Spotlight from NEXT_PUBLIC_SENTRY_SPOTLIGHT env var
-  // We read NEXT_PUBLIC_SENTRY_SPOTLIGHT directly because Next.js guarantees that
-  // NEXT_PUBLIC_* variables are exposed to the browser via webpack DefinePlugin replacement.
-  // Using a custom _sentrySpotlight variable doesn't work reliably because Next.js doesn't
-  // always replace arbitrary env vars in node_modules code.
-  const spotlightEnvValue = process.env.NEXT_PUBLIC_SENTRY_SPOTLIGHT;
+  // The value is injected at build time via buildTimeVariables in withSentryConfig
+  // following the same pattern as _sentryRelease
+  const spotlightEnvValue = process.env._sentrySpotlight;
+  // eslint-disable-next-line no-console
+  console.log('[Sentry Next.js] Spotlight debug:', {
+    spotlightEnvValue,
+    optionsSpotlight: options.spotlight,
+    typeofSpotlightEnvValue: typeof spotlightEnvValue,
+  });
   if (spotlightEnvValue !== undefined && options.spotlight === undefined) {
     const boolValue = envToBool(spotlightEnvValue, { strict: true });
     const spotlightConfig = boolValue !== null ? boolValue : spotlightEnvValue;
     const spotlightValue = resolveSpotlightOptions(undefined, spotlightConfig);
+    // eslint-disable-next-line no-console
+    console.log('[Sentry Next.js] Spotlight resolved:', { boolValue, spotlightConfig, spotlightValue });
 
     if (spotlightValue) {
       const spotlightArgs = typeof spotlightValue === 'string' ? { sidecarUrl: spotlightValue } : undefined;
       customDefaultIntegrations.push(spotlightBrowserIntegration(spotlightArgs));
+      // eslint-disable-next-line no-console
+      console.log('[Sentry Next.js] Spotlight integration added');
     }
   }
 

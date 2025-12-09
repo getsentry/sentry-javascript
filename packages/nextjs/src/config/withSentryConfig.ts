@@ -610,9 +610,12 @@ function setUpBuildTimeVariables(
     buildTimeVariables._sentryRelease = releaseName;
   }
 
-  // Note: NEXT_PUBLIC_SENTRY_SPOTLIGHT is read directly in the client code because
-  // Next.js guarantees that NEXT_PUBLIC_* variables are exposed to the browser.
-  // No need to inject it as a build-time variable here.
+  // Inject Spotlight config from NEXT_PUBLIC_SENTRY_SPOTLIGHT env var
+  // We check both userNextConfig.env (from next.config.js) and process.env (from .env files or shell)
+  const spotlightValue = userNextConfig.env?.NEXT_PUBLIC_SENTRY_SPOTLIGHT ?? process.env.NEXT_PUBLIC_SENTRY_SPOTLIGHT;
+  if (spotlightValue) {
+    buildTimeVariables._sentrySpotlight = spotlightValue;
+  }
 
   if (typeof userNextConfig.env === 'object') {
     userNextConfig.env = { ...buildTimeVariables, ...userNextConfig.env };
