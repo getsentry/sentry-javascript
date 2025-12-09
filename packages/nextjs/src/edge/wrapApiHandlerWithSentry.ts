@@ -1,23 +1,9 @@
-import {
-  captureException,
-  getActiveSpan,
-  getCurrentScope,
-  getRootSpan,
-  handleCallbackErrors,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  setCapturedScopesOnSpan,
-  startSpan,
-  winterCGRequestToRequestData,
-  withIsolationScope,
-} from '@sentry/core';
-import { addHeadersAsAttributes } from '../common/utils/addHeadersAsAttributes';
-import { flushSafelyWithTimeout, waitUntil } from '../common/utils/responseEnd';
+import { captureException, getIsolationScope, winterCGRequestToRequestData } from '@sentry/core';
+import { flushSafelyWithTimeout } from '../common/utils/responseEnd';
 import type { EdgeRouteHandler } from './types';
 
 /**
- * Wraps a Next.js edge route handler with Sentry error and performance instrumentation.
+ * Wraps a Next.js edge route handler with Sentry error monitoring.
  */
 export function wrapApiHandlerWithSentry<H extends EdgeRouteHandler>(
   handler: H,
@@ -25,80 +11,40 @@ export function wrapApiHandlerWithSentry<H extends EdgeRouteHandler>(
 ): (...params: Parameters<H>) => Promise<ReturnType<H>> {
   return new Proxy(handler, {
     apply: async (wrappingTarget, thisArg, args: Parameters<H>) => {
-      // TODO: We still should add central isolation scope creation for when our build-time instrumentation does not work anymore with turbopack.
-
-      return withIsolationScope(isolationScope => {
+      try {
         const req: unknown = args[0];
-        const currentScope = getCurrentScope();
 
-        let headerAttributes: Record<string, string> = {};
+        // Set transaction name on isolation scope to ensure parameterized routes are used
+        // The HTTP server integration sets it on isolation scope, so we need to match that
+        const isolationScope = getIsolationScope();
 
         if (req instanceof Request) {
+          const method = req.method || 'GET';
+          isolationScope.setTransactionName(`${method} ${parameterizedRoute}`);
+          // Set SDK processing metadata
           isolationScope.setSDKProcessingMetadata({
             normalizedRequest: winterCGRequestToRequestData(req),
           });
-          currentScope.setTransactionName(`${req.method} ${parameterizedRoute}`);
-          headerAttributes = addHeadersAsAttributes(req.headers);
         } else {
-          currentScope.setTransactionName(`handler (${parameterizedRoute})`);
+          isolationScope.setTransactionName(`handler (${parameterizedRoute})`);
         }
 
-        let spanName: string;
-        let op: string | undefined = 'http.server';
-
-        // If there is an active span, it likely means that the automatic Next.js OTEL instrumentation worked and we can
-        // rely on that for parameterization.
-        const activeSpan = getActiveSpan();
-        if (activeSpan) {
-          spanName = `handler (${parameterizedRoute})`;
-          op = undefined;
-
-          const rootSpan = getRootSpan(activeSpan);
-          if (rootSpan) {
-            rootSpan.updateName(
-              req instanceof Request ? `${req.method} ${parameterizedRoute}` : `handler ${parameterizedRoute}`,
-            );
-            rootSpan.setAttributes({
-              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
-              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-              ...headerAttributes,
-            });
-            setCapturedScopesOnSpan(rootSpan, currentScope, isolationScope);
-          }
-        } else if (req instanceof Request) {
-          spanName = `${req.method} ${parameterizedRoute}`;
-        } else {
-          spanName = `handler ${parameterizedRoute}`;
-        }
-
-        return startSpan(
-          {
-            name: spanName,
-            op: op,
-            attributes: {
-              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs.wrap_api_handler',
-              ...headerAttributes,
-            },
+        return await wrappingTarget.apply(thisArg, args);
+      } catch (error) {
+        captureException(error, {
+          mechanism: {
+            type: 'auto.function.nextjs.wrap_api_handler',
+            handled: false,
           },
-          () => {
-            return handleCallbackErrors(
-              () => wrappingTarget.apply(thisArg, args),
-              error => {
-                captureException(error, {
-                  mechanism: {
-                    type: 'auto.function.nextjs.wrap_api_handler',
-                    handled: false,
-                  },
-                });
-              },
-              () => {
-                waitUntil(flushSafelyWithTimeout());
-              },
-            );
-          },
-        );
-      });
+        });
+
+        // we need to await the flush here to ensure that the error is captured
+        // as the runtime freezes as soon as the error is thrown below
+        await flushSafelyWithTimeout();
+
+        // We rethrow here so that nextjs can do with the error whatever it would normally do.
+        throw error;
+      }
     },
   });
 }
