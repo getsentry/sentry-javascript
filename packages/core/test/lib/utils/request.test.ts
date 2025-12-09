@@ -660,22 +660,20 @@ describe('request utils', () => {
         expect(result3).toEqual({ 'http.request.header.cookie': '[Filtered]' });
       });
 
-      it('attaches and filters sensitive a set-cookie header', () => {
-        const headers1 = { 'Set-Cookie': 'user_session=def456' };
-        const result1 = httpHeadersToSpanAttributes(headers1);
-        expect(result1).toEqual({ 'http.request.header.set_cookie.user_session': '[Filtered]' });
-
-        const headers2 = { 'Set-Cookie': 'preferred-color-mode=light' };
-        const result2 = httpHeadersToSpanAttributes(headers2);
-        expect(result2).toEqual({ 'http.request.header.set_cookie.preferred_color_mode': 'light' });
-
-        const headers3 = { 'Set-Cookie': 'lang=en' };
-        const result3 = httpHeadersToSpanAttributes(headers3);
-        expect(result3).toEqual({ 'http.request.header.set_cookie.lang': 'en' });
-
-        const headers4 = { 'Set-Cookie': 'timezone=UTC' };
-        const result4 = httpHeadersToSpanAttributes(headers4);
-        expect(result4).toEqual({ 'http.request.header.set_cookie.timezone': 'UTC' });
+      it.each([
+        ['preferred-color-mode=light', { 'http.request.header.set_cookie.preferred_color_mode': 'light' }],
+        ['theme=dark; HttpOnly', { 'http.request.header.set_cookie.theme': 'dark' }],
+        ['session=abc123; Domain=example.com; HttpOnly', { 'http.request.header.set_cookie.session': '[Filtered]' }],
+        ['lang=en; Expires=Wed, 21 Oct 2025 07:28:00 GMT', { 'http.request.header.set_cookie.lang': 'en' }],
+        ['pref=1; Max-Age=3600', { 'http.request.header.set_cookie.pref': '1' }],
+        ['color=blue; Path=/dashboard', { 'http.request.header.set_cookie.color': 'blue' }],
+        ['token=eyJhbGc=.eyJzdWI=.SflKxw; Secure', { 'http.request.header.set_cookie.token': '[Filtered]' }],
+        ['auth_required; HttpOnly', { 'http.request.header.set_cookie.auth_required': '[Filtered]' }],
+        ['empty=; Secure', { 'http.request.header.set_cookie.empty': '' }],
+      ])('should parse and filter Set-Cookie header: %s', (setCookieValue, expected) => {
+        const headers = { 'Set-Cookie': setCookieValue };
+        const result = httpHeadersToSpanAttributes(headers);
+        expect(result).toEqual(expected);
       });
 
       it('only splits cookies once between key and value, even when more equals signs are present', () => {

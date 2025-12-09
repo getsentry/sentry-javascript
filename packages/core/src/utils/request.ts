@@ -174,7 +174,12 @@ export function httpHeadersToSpanAttributes(
       const isCookieHeader = lowerCasedHeaderKey === 'cookie' || lowerCasedHeaderKey === 'set-cookie';
 
       if (isCookieHeader && typeof value === 'string' && value !== '') {
-        const cookies = value.split('; ');
+        // Set-Cookie: single cookie with attributes ("name=value; HttpOnly; Secure")
+        // Cookie: multiple cookies separated by "; " ("cookie1=value1; cookie2=value2")
+        const isSetCookie = lowerCasedHeaderKey === 'set-cookie';
+        const semicolonIndex = value.indexOf(';');
+        const cookieString = isSetCookie && semicolonIndex !== -1 ? value.substring(0, semicolonIndex) : value;
+        const cookies = isSetCookie ? [cookieString] : cookieString.split('; ');
 
         for (const cookie of cookies) {
           // Split only at the first '=' to preserve '=' characters in cookie values
@@ -183,20 +188,11 @@ export function httpHeadersToSpanAttributes(
           const cookieValue = equalSignIndex !== -1 ? cookie.substring(equalSignIndex + 1) : '';
 
           const lowerCasedCookieKey = cookieKey.toLowerCase();
-          const normalizedKey = `http.request.header.${normalizeAttributeKey(lowerCasedHeaderKey)}.${normalizeAttributeKey(lowerCasedCookieKey)}`;
 
-          const headerValue = handleHttpHeader(lowerCasedCookieKey, cookieValue, sendDefaultPii);
-          if (headerValue !== undefined) {
-            spanAttributes[normalizedKey] = headerValue;
-          }
+          addSpanAttribute(spanAttributes, lowerCasedHeaderKey, lowerCasedCookieKey, cookieValue, sendDefaultPii);
         }
       } else {
-        const normalizedKey = `http.request.header.${normalizeAttributeKey(lowerCasedHeaderKey)}`;
-
-        const headerValue = handleHttpHeader(lowerCasedHeaderKey, value, sendDefaultPii);
-        if (headerValue !== undefined) {
-          spanAttributes[normalizedKey] = headerValue;
-        }
+        addSpanAttribute(spanAttributes, lowerCasedHeaderKey, '', value, sendDefaultPii);
       }
     });
   } catch {
@@ -208,6 +204,23 @@ export function httpHeadersToSpanAttributes(
 
 function normalizeAttributeKey(key: string): string {
   return key.replace(/-/g, '_');
+}
+
+function addSpanAttribute(
+  spanAttributes: Record<string, string>,
+  headerKey: string,
+  cookieKey: string,
+  value: string | string[] | undefined,
+  sendPii: boolean,
+): void {
+  const normalizedKey = cookieKey
+    ? `http.request.header.${normalizeAttributeKey(headerKey)}.${normalizeAttributeKey(cookieKey)}`
+    : `http.request.header.${normalizeAttributeKey(headerKey)}`;
+
+  const headerValue = handleHttpHeader(cookieKey || headerKey, value, sendPii);
+  if (headerValue !== undefined) {
+    spanAttributes[normalizedKey] = headerValue;
+  }
 }
 
 function handleHttpHeader(
