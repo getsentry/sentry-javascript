@@ -1,244 +1,202 @@
-import { instrumentOpenAiClient } from '@sentry/core';
 import * as Sentry from '@sentry/node';
+import express from 'express';
+import OpenAI from 'openai';
 
-class MockOpenAI {
-  constructor(config) {
-    this.apiKey = config.apiKey;
+function startMockServer() {
+  const app = express();
+  app.use(express.json());
 
-    this.chat = {
-      completions: {
-        create: async params => {
-          // Simulate processing time
-          await new Promise(resolve => setTimeout(resolve, 10));
+  // Chat completions endpoint
+  app.post('/openai/chat/completions', (req, res) => {
+    const { model, stream } = req.body;
 
-          if (params.model === 'error-model') {
-            const error = new Error('Model not found');
-            error.status = 404;
-            error.headers = { 'x-request-id': 'mock-request-123' };
-            throw error;
+    // Handle error model
+    if (model === 'error-model') {
+      res.status(500).set('x-request-id', 'mock-request-error').end('Internal server error');
+      return;
+    }
+
+    if (stream) {
+      // Streaming response
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Connection', 'keep-alive');
+
+      const chunks = [
+        {
+          id: 'chatcmpl-stream-123',
+          object: 'chat.completion.chunk',
+          created: 1677652300,
+          model: model,
+          choices: [{ delta: { role: 'assistant', content: '' }, index: 0 }],
+        },
+        {
+          id: 'chatcmpl-stream-123',
+          object: 'chat.completion.chunk',
+          created: 1677652300,
+          model: model,
+          choices: [{ delta: { content: 'Hello from OpenAI streaming!' }, index: 0 }],
+        },
+        {
+          id: 'chatcmpl-stream-123',
+          object: 'chat.completion.chunk',
+          created: 1677652300,
+          model: model,
+          choices: [{ delta: {}, index: 0, finish_reason: 'stop' }],
+          usage: {
+            prompt_tokens: 12,
+            completion_tokens: 18,
+            total_tokens: 30,
+          },
+        },
+      ];
+
+      chunks.forEach((chunk, index) => {
+        setTimeout(() => {
+          res.write(`data: ${JSON.stringify(chunk)}\n\n`);
+          if (index === chunks.length - 1) {
+            res.write('data: [DONE]\n\n');
+            res.end();
           }
+        }, index * 10);
+      });
+    } else {
+      // Non-streaming response
+      res.send({
+        id: 'chatcmpl-mock123',
+        object: 'chat.completion',
+        created: 1677652288,
+        model: model,
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: 'assistant',
+              content: 'Hello from OpenAI mock!',
+            },
+            finish_reason: 'stop',
+          },
+        ],
+        usage: {
+          prompt_tokens: 10,
+          completion_tokens: 15,
+          total_tokens: 25,
+        },
+      });
+    }
+  });
 
-          // If stream is requested, return an async generator
-          if (params.stream) {
-            return this._createChatCompletionStream(params);
+  // Responses API endpoint
+  app.post('/openai/responses', (req, res) => {
+    const { model, stream } = req.body;
+
+    // Handle error model
+    if (model === 'error-model') {
+      res.status(500).set('x-request-id', 'mock-request-error').end('Internal server error');
+      return;
+    }
+
+    if (stream) {
+      // Streaming response - using event-based format with 'response' field
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Connection', 'keep-alive');
+
+      const events = [
+        {
+          type: 'response.created',
+          response: {
+            id: 'resp_stream_456',
+            object: 'response',
+            created_at: 1677652310,
+            model: model,
+            status: 'in_progress',
+          },
+        },
+        {
+          type: 'response.output_text.delta',
+          delta: 'Streaming response to: Test streaming responses API',
+          response: {
+            id: 'resp_stream_456',
+            model: model,
+            created_at: 1677652310,
+          },
+        },
+        {
+          type: 'response.completed',
+          response: {
+            id: 'resp_stream_456',
+            object: 'response',
+            created_at: 1677652310,
+            model: model,
+            status: 'completed',
+            output_text: 'Test streaming responses API',
+            usage: {
+              input_tokens: 6,
+              output_tokens: 10,
+              total_tokens: 16,
+            },
+          },
+        },
+      ];
+
+      events.forEach((event, index) => {
+        setTimeout(() => {
+          res.write(`data: ${JSON.stringify(event)}\n\n`);
+          if (index === events.length - 1) {
+            res.write('data: [DONE]\n\n');
+            res.end();
           }
-
-          return {
-            id: 'chatcmpl-mock123',
-            object: 'chat.completion',
-            created: 1677652288,
-            model: params.model,
-            system_fingerprint: 'fp_44709d6fcb',
-            choices: [
+        }, index * 10);
+      });
+    } else {
+      // Non-streaming response
+      res.send({
+        id: 'resp_mock456',
+        object: 'response',
+        created_at: 1677652290,
+        model: model,
+        output: [
+          {
+            type: 'message',
+            id: 'msg_mock_output_1',
+            status: 'completed',
+            role: 'assistant',
+            content: [
               {
-                index: 0,
-                message: {
-                  role: 'assistant',
-                  content: 'Hello from OpenAI mock!',
-                },
-                finish_reason: 'stop',
+                type: 'output_text',
+                text: `Response to: ${req.body.input}`,
+                annotations: [],
               },
             ],
-            usage: {
-              prompt_tokens: 10,
-              completion_tokens: 15,
-              total_tokens: 25,
-            },
-          };
-        },
-      },
-    };
-
-    this.responses = {
-      create: async params => {
-        await new Promise(resolve => setTimeout(resolve, 10));
-
-        // If stream is requested, return an async generator
-        if (params.stream) {
-          return this._createResponsesApiStream(params);
-        }
-
-        return {
-          id: 'resp_mock456',
-          object: 'response',
-          created_at: 1677652290,
-          model: params.model,
-          input_text: params.input,
-          output_text: `Response to: ${params.input}`,
-          status: 'completed',
-          usage: {
-            input_tokens: 5,
-            output_tokens: 8,
-            total_tokens: 13,
           },
-        };
-      },
-    };
-  }
-
-  // Create a mock streaming response for chat completions
-  async *_createChatCompletionStream(params) {
-    // First chunk with basic info
-    yield {
-      id: 'chatcmpl-stream-123',
-      object: 'chat.completion.chunk',
-      created: 1677652300,
-      model: params.model,
-      system_fingerprint: 'fp_stream_123',
-      choices: [
-        {
-          index: 0,
-          delta: {
-            role: 'assistant',
-            content: 'Hello',
-          },
-          finish_reason: null,
-        },
-      ],
-    };
-
-    // Second chunk with more content
-    yield {
-      id: 'chatcmpl-stream-123',
-      object: 'chat.completion.chunk',
-      created: 1677652300,
-      model: params.model,
-      system_fingerprint: 'fp_stream_123',
-      choices: [
-        {
-          index: 0,
-          delta: {
-            content: ' from OpenAI streaming!',
-          },
-          finish_reason: 'stop',
-        },
-      ],
-      usage: {
-        prompt_tokens: 12,
-        completion_tokens: 18,
-        total_tokens: 30,
-        completion_tokens_details: {
-          accepted_prediction_tokens: 0,
-          audio_tokens: 0,
-          reasoning_tokens: 0,
-          rejected_prediction_tokens: 0,
-        },
-        prompt_tokens_details: {
-          audio_tokens: 0,
-          cached_tokens: 0,
-        },
-      },
-    };
-  }
-
-  // Create a mock streaming response for responses API
-  async *_createResponsesApiStream(params) {
-    // Response created event
-    yield {
-      type: 'response.created',
-      response: {
-        id: 'resp_stream_456',
-        object: 'response',
-        created_at: 1677652310,
-        model: params.model,
-        status: 'in_progress',
-        error: null,
-        incomplete_details: null,
-        instructions: params.instructions,
-        max_output_tokens: 1000,
-        parallel_tool_calls: false,
-        previous_response_id: null,
-        reasoning: {
-          effort: null,
-          summary: null,
-        },
-        store: false,
-        temperature: 0.7,
-        text: {
-          format: {
-            type: 'text',
-          },
-        },
-        tool_choice: 'auto',
-        top_p: 1.0,
-        truncation: 'disabled',
-        user: null,
-        metadata: {},
-        output: [],
-        output_text: '',
-        usage: {
-          input_tokens: 0,
-          output_tokens: 0,
-          total_tokens: 0,
-        },
-      },
-      sequence_number: 1,
-    };
-
-    // Response in progress with output text delta
-    yield {
-      type: 'response.output_text.delta',
-      delta: 'Streaming response to: ',
-      sequence_number: 2,
-    };
-
-    yield {
-      type: 'response.output_text.delta',
-      delta: params.input,
-      sequence_number: 3,
-    };
-
-    // Response completed event
-    yield {
-      type: 'response.completed',
-      response: {
-        id: 'resp_stream_456',
-        object: 'response',
-        created_at: 1677652310,
-        model: params.model,
+        ],
+        output_text: `Response to: ${req.body.input}`,
         status: 'completed',
-        error: null,
-        incomplete_details: null,
-        instructions: params.instructions,
-        max_output_tokens: 1000,
-        parallel_tool_calls: false,
-        previous_response_id: null,
-        reasoning: {
-          effort: null,
-          summary: null,
-        },
-        store: false,
-        temperature: 0.7,
-        text: {
-          format: {
-            type: 'text',
-          },
-        },
-        tool_choice: 'auto',
-        top_p: 1.0,
-        truncation: 'disabled',
-        user: null,
-        metadata: {},
-        output: [],
-        output_text: params.input,
         usage: {
-          input_tokens: 6,
-          output_tokens: 10,
-          total_tokens: 16,
+          input_tokens: 5,
+          output_tokens: 8,
+          total_tokens: 13,
         },
-      },
-      sequence_number: 4,
-    };
-  }
+      });
+    }
+  });
+
+  return new Promise(resolve => {
+    const server = app.listen(0, () => {
+      resolve(server);
+    });
+  });
 }
 
 async function run() {
+  const server = await startMockServer();
+
   await Sentry.startSpan({ op: 'function', name: 'main' }, async () => {
-    const mockClient = new MockOpenAI({
+    const client = new OpenAI({
+      baseURL: `http://localhost:${server.address().port}/openai`,
       apiKey: 'mock-api-key',
     });
-
-    const client = instrumentOpenAiClient(mockClient);
 
     // First test: basic chat completion
     await client.chat.completions.create({
@@ -313,6 +271,8 @@ async function run() {
       // Error is expected and handled
     }
   });
+
+  server.close();
 }
 
 run();

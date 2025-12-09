@@ -1,17 +1,16 @@
 import {
-  type Span,
-  type StartSpanOptions,
   addBreadcrumb,
   captureException,
   debug,
   flushIfServerless,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  type Span,
   SPAN_STATUS_ERROR,
   startSpan,
+  type StartSpanOptions,
 } from '@sentry/core';
 import type { Database, PreparedStatement } from 'db0';
-// eslint-disable-next-line import/no-extraneous-dependencies
 import { defineNitroPlugin, useDatabase } from 'nitropack/runtime';
 import type { DatabaseConnectionConfig as DatabaseConfig } from 'nitropack/types';
 // @ts-expect-error - This is a virtual module

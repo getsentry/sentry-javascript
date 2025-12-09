@@ -115,7 +115,6 @@ export function collectReplayRequests(
   const replayEvents: ReplayEvent[] = [];
   const replayRecordingSnapshots: RecordingSnapshot[] = [];
 
-  // eslint-disable-next-line @typescript-eslint/no-floating-promises
   const promise = page.waitForResponse(res => {
     const req = res.request();
 

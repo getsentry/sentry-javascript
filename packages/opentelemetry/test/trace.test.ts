@@ -1388,6 +1388,55 @@ describe('trace (tracing disabled)', () => {
   });
 });
 
+describe('trace (spans disabled)', () => {
+  beforeEach(() => {
+    // Initialize SDK without any tracing configuration (no tracesSampleRate or tracesSampler)
+    mockSdkInit({ tracesSampleRate: undefined, tracesSampler: undefined });
+  });
+
+  afterEach(async () => {
+    await cleanupOtel();
+  });
+
+  it('startSpan creates non-recording spans when hasSpansEnabled() === false', () => {
+    const val = startSpan({ name: 'outer' }, outerSpan => {
+      expect(outerSpan).toBeDefined();
+      expect(outerSpan.isRecording()).toBe(false);
+
+      // Nested spans should also be non-recording
+      return startSpan({ name: 'inner' }, innerSpan => {
+        expect(innerSpan).toBeDefined();
+        expect(innerSpan.isRecording()).toBe(false);
+        return 'test value';
+      });
+    });
+
+    expect(val).toEqual('test value');
+  });
+
+  it('startSpanManual creates non-recording spans when hasSpansEnabled() === false', () => {
+    const val = startSpanManual({ name: 'outer' }, outerSpan => {
+      expect(outerSpan).toBeDefined();
+      expect(outerSpan.isRecording()).toBe(false);
+
+      return startSpanManual({ name: 'inner' }, innerSpan => {
+        expect(innerSpan).toBeDefined();
+        expect(innerSpan.isRecording()).toBe(false);
+        return 'test value';
+      });
+    });
+
+    expect(val).toEqual('test value');
+  });
+
+  it('startInactiveSpan returns non-recording spans when hasSpansEnabled() === false', () => {
+    const span = startInactiveSpan({ name: 'test' });
+
+    expect(span).toBeDefined();
+    expect(span.isRecording()).toBe(false);
+  });
+});
+
 describe('trace (sampling)', () => {
   afterEach(async () => {
     await cleanupOtel();
