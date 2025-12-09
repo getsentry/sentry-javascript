@@ -41,10 +41,11 @@ jobs:
               return;
             }
 
-            // Bail if this edit was made by the GitHub Actions bot
+            // Bail if this edit was made by the GitHub Actions bot (this workflow)
             // This prevents infinite loops when we update the PR body with the new issue reference
-            if (context.payload.sender && context.payload.sender.type === 'Bot') {
-              console.log(`PR #${pr.number} was edited by a bot (likely this action), skipping.`);
+            // We check login specifically to not skip edits from other legitimate bots
+            if (context.payload.sender && context.payload.sender.login === 'github-actions[bot]') {
+              console.log(`PR #${pr.number} was edited by github-actions[bot] (this workflow), skipping.`);
               return;
             }
 
