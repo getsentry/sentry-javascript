@@ -117,7 +117,9 @@ export class LocalLambdaStack extends Stack {
         };
 
         fs.writeFileSync(path.join(lambdaPath, 'package.json'), JSON.stringify(packageJson, null, 2));
-        execFileSync('npm', ['install', '--prefix', lambdaPath], { stdio: 'inherit' });
+        // Use --install-links to copy files instead of creating symlinks for file: dependencies.
+        // Symlinks don't work inside the Docker container because the target paths don't exist there.
+        execFileSync('npm', ['install', '--install-links', '--prefix', lambdaPath], { stdio: 'inherit' });
       }
 
       new CfnResource(this, functionName, {
