@@ -11,7 +11,6 @@
     "strictPropertyInitialization": true,
     "noEmitOnError": false,
     "noEmit": true,
-    "baseUrl": ".",
     "module": "esnext",
     "experimentalDecorators": true,
     "paths": {
