@@ -43,6 +43,7 @@ const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   _sentryBasePath?: string;
   _sentryRelease?: string;
   _experimentalThirdPartyOriginStackFrames?: string;
+  _sentrySpotlight?: string;
 };
 
 // Treeshakable guard to remove all code related to tracing
@@ -145,7 +146,7 @@ function getDefaultIntegrations(options: BrowserOptions): Integration[] {
   // Auto-enable Spotlight from NEXT_PUBLIC_SENTRY_SPOTLIGHT env var
   // The value is injected at build time via buildTimeVariables in withSentryConfig
   // following the same pattern as _sentryRelease
-  const spotlightEnvValue = process.env._sentrySpotlight;
+  const spotlightEnvValue = process.env._sentrySpotlight || globalWithInjectedValues._sentrySpotlight;
   if (spotlightEnvValue !== undefined && options.spotlight === undefined) {
     const boolValue = envToBool(spotlightEnvValue, { strict: true });
     const spotlightConfig = boolValue !== null ? boolValue : spotlightEnvValue;
