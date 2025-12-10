@@ -35,6 +35,9 @@ export type SpanAttributes = Partial<{
 /** This type is aligned with the OpenTelemetry TimeInput type. */
 export type SpanTimeInput = HrTime | number | Date;
 
+/**
+ * JSON representation of a v2 span, as it should be sent to Sentry.
+ */
 export interface SpanV2JSON {
   trace_id: string;
   parent_span_id?: string;
@@ -46,6 +49,15 @@ export interface SpanV2JSON {
   is_segment: boolean;
   attributes?: SerializedAttributes;
   links?: SpanLinkJSON<SerializedAttributes>[];
+}
+
+/**
+ * A SpanV2JSON with an attached reference to the segment span.
+ * This reference is used to compute dynamic sampling context before sending.
+ * The reference MUST be removed before sending the span envelope.
+ */
+export interface SpanV2JSONWithSegmentRef extends SpanV2JSON {
+  _segmentSpan: Span;
 }
 
 export type SerializedSpanContainer = {
