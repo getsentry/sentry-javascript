@@ -44,6 +44,7 @@ const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   _sentryRelease?: string;
   _experimentalThirdPartyOriginStackFrames?: string;
   _sentrySpotlight?: string;
+  _sentrySpotlightManual?: string; // Debug: manually set by user in instrumentation-client.ts
 };
 
 // Treeshakable guard to remove all code related to tracing
@@ -147,14 +148,17 @@ function getDefaultIntegrations(options: BrowserOptions): Integration[] {
   // The value is injected at build time:
   // - Webpack: via DefinePlugin which replaces process.env._sentrySpotlight
   // - Turbopack: via valueInjectionLoader which sets globalThis._sentrySpotlight
+  // - Manual: user can set globalThis._sentrySpotlightManual in instrumentation-client.ts
   const processEnvSpotlight = process.env._sentrySpotlight;
   const globalSpotlight = globalWithInjectedValues._sentrySpotlight;
-  const spotlightEnvValue = processEnvSpotlight || globalSpotlight;
+  const manualSpotlight = globalWithInjectedValues._sentrySpotlightManual;
+  const spotlightEnvValue = processEnvSpotlight || globalSpotlight || manualSpotlight;
 
   // eslint-disable-next-line no-console
   console.log('[Sentry Next.js DEBUG] Spotlight detection:', {
     'process.env._sentrySpotlight': processEnvSpotlight,
     'globalThis._sentrySpotlight': globalSpotlight,
+    'globalThis._sentrySpotlightManual': manualSpotlight,
     resolved: spotlightEnvValue,
     'options.spotlight': options.spotlight,
   });

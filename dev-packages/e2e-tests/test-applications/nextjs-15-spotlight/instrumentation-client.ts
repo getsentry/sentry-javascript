@@ -1,3 +1,8 @@
+// Debug: manually set the global BEFORE importing Sentry
+// This tests if the SDK can read globals at all
+// @ts-expect-error - setting global for debugging
+globalThis._sentrySpotlightManual = process.env.NEXT_PUBLIC_SENTRY_SPOTLIGHT;
+
 import * as Sentry from '@sentry/nextjs';
 
 Sentry.init({
