@@ -52,6 +52,12 @@ declare const __SENTRY_TRACING__: boolean;
 
 /** Inits the Sentry NextJS SDK on the browser with the React SDK. */
 export function init(options: BrowserOptions): Client | undefined {
+  // Debug marker to verify this init() is being called
+  if (typeof globalThis !== 'undefined') {
+    (globalThis as Record<string, unknown>)._sentryNextjsInitCalled = true;
+    (globalThis as Record<string, unknown>)._sentryNextjsInitTimestamp = Date.now();
+  }
+
   if (clientIsInitialized) {
     consoleSandbox(() => {
       // eslint-disable-next-line no-console

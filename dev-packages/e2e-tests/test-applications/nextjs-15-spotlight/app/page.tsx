@@ -13,6 +13,10 @@ const INTERNAL_SPOTLIGHT_GLOBAL = typeof globalThis !== 'undefined' ? globalThis
 const MANUAL_SPOTLIGHT_GLOBAL = typeof globalThis !== 'undefined' ? globalThis._sentrySpotlightManual : 'globalThis undefined';
 // @ts-expect-error - accessing SDK debug info
 const SDK_DEBUG_INFO = typeof globalThis !== 'undefined' ? globalThis._sentrySpotlightDebug : undefined;
+// @ts-expect-error - accessing init marker
+const INIT_CALLED = typeof globalThis !== 'undefined' ? globalThis._sentryNextjsInitCalled : undefined;
+// @ts-expect-error - accessing init timestamp
+const INIT_TIMESTAMP = typeof globalThis !== 'undefined' ? globalThis._sentryNextjsInitTimestamp : undefined;
 
 export default function SpotlightTestPage() {
   const [spotlightEnabled, setSpotlightEnabled] = useState<boolean | null>(null);
@@ -56,6 +60,8 @@ export default function SpotlightTestPage() {
 
       <div data-testid="sdk-debug">
         <h2>SDK Debug Info (what SDK saw during init)</h2>
+        <p>init() called: {String(INIT_CALLED)}</p>
+        <p>init() timestamp: {String(INIT_TIMESTAMP)}</p>
         <pre>{SDK_DEBUG_INFO ? JSON.stringify(SDK_DEBUG_INFO, null, 2) : 'No debug info'}</pre>
       </div>
 
