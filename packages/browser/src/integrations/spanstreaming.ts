@@ -6,7 +6,6 @@ import {
   defineIntegration,
   getDynamicSamplingContextFromSpan,
   isV2BeforeSendSpanCallback,
-  showSpanDropWarning,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 
@@ -73,10 +72,9 @@ export const spanStreamingIntegration = defineIntegration(((userOptions?: Partia
       // TODO: This will change once we have more concrete ideas about a universal SDK data buffer.
       client.on('afterSegmentSpanEnd', segmentSpan => {
         sendSegment(segmentSpan, {
-          spanTreeMap: spanTreeMap,
+          spanTreeMap,
           client,
           batchLimit: options.batchLimit,
-          beforeSendSpan,
         });
       });
     },
@@ -87,7 +85,6 @@ interface SpanProcessingOptions {
   client: Client;
   spanTreeMap: Map<string, Set<SpanV2JSONWithSegmentRef>>;
   batchLimit: number;
-  beforeSendSpan: ((span: SpanV2JSON) => SpanV2JSON) | undefined;
 }
 
 /**
@@ -97,10 +94,7 @@ function getSpanTreeMapKey(spanJSON: SpanV2JSONWithSegmentRef): string {
   return `${spanJSON.trace_id}-${spanJSON._segmentSpan?.spanContext().spanId || spanJSON.span_id}`;
 }
 
-function sendSegment(
-  segmentSpan: Span,
-  { client, spanTreeMap, batchLimit, beforeSendSpan }: SpanProcessingOptions,
-): void {
+function sendSegment(segmentSpan: Span, { client, spanTreeMap, batchLimit }: SpanProcessingOptions): void {
   const traceId = segmentSpan.spanContext().traceId;
   const segmentSpanId = segmentSpan.spanContext().spanId;
   const spanTreeMapKey = `${traceId}-${segmentSpanId}`;
@@ -116,10 +110,6 @@ function sendSegment(
     // Remove the segment span reference before processing
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { _segmentSpan, ...cleanSpanJSON } = spanJSON;
-
-    if (beforeSendSpan) {
-      return applyBeforeSendSpanCallback(cleanSpanJSON, beforeSendSpan);
-    }
     return cleanSpanJSON;
   });
 
@@ -144,13 +134,4 @@ function sendSegment(
   }
 
   spanTreeMap.delete(spanTreeMapKey);
-}
-
-function applyBeforeSendSpanCallback(span: SpanV2JSON, beforeSendSpan: (span: SpanV2JSON) => SpanV2JSON): SpanV2JSON {
-  const modifedSpan = beforeSendSpan(span);
-  if (!modifedSpan) {
-    showSpanDropWarning();
-    return span;
-  }
-  return modifedSpan;
 }

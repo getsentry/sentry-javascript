@@ -1,3 +1,4 @@
+import { Attributes, RawAttribute, RawAttributes } from '../attributes';
 import type { Client } from '../client';
 import { getClient, getGlobalScope } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
@@ -16,35 +17,27 @@ import {
 } from '../semanticAttributes';
 import { getCapturedScopesOnSpan } from '../tracing/utils';
 import type { SerializedAttributes } from '../types-hoist/attributes';
+import { Contexts } from '../types-hoist/context';
 import type { Span, SpanV2JSON } from '../types-hoist/span';
 import { mergeScopeData } from '../utils/applyScopeDataToEvent';
+import { isV2BeforeSendSpanCallback } from '../utils/beforeSendSpan';
 import { debug } from '../utils/debug-logger';
 import { INTERNAL_getSegmentSpan, spanToV2JSON } from '../utils/spanUtils';
-import { safeSetSpanJSONAttributes } from './spanFirstUtils';
-
-/**
- * A SpanV2JSON with an attached reference to the segment span.
- * This reference is used to compute dynamic sampling context before sending.
- * The reference MUST be removed before sending the span envelope.
- */
-export interface SpanV2JSONWithSegmentRef extends SpanV2JSON {
-  _segmentSpan: Span;
-}
-
+import { applyBeforeSendSpanCallback, safeSetSpanJSONAttributes } from './spanFirstUtils';
 /**
  * Captures a span and returns a JSON representation to be enqueued for sending.
  *
  * IMPORTANT: This function converts the span to JSON immediately to avoid writing
  * to an already-ended OTel span instance (which is blocked by the OTel Span class).
  */
-export function captureSpan(span: Span, client = getClient()): SpanV2JSONWithSegmentRef | void {
+export function captureSpan(span: Span, client = getClient()): void {
   if (!client) {
     DEBUG_BUILD && debug.warn('No client available to capture span.');
     return;
   }
 
   // Convert to JSON FIRST - we cannot write to an already-ended span
-  const spanJSON = spanToV2JSON(span) as SpanV2JSONWithSegmentRef;
+  const spanJSON = spanToV2JSON(span);
 
   const segmentSpan = INTERNAL_getSegmentSpan(span);
   const serializedSegmentSpan = spanToV2JSON(segmentSpan);
@@ -60,17 +53,20 @@ export function captureSpan(span: Span, client = getClient()): SpanV2JSONWithSeg
     applyScopeToSegmentSpan(spanJSON, finalScopeData, originalAttributes);
   }
 
-  // Attach segment span reference for DSC generation at send time
-  spanJSON._segmentSpan = segmentSpan;
-
   // Allow integrations to add additional data to the span JSON
   client.emit('processSpan', spanJSON, { readOnlySpan: span });
 
-  // Enqueue the JSON representation for sending
-  // Note: We now enqueue JSON instead of the span instance to avoid mutating ended spans
-  client.emit('enqueueSpan', spanJSON);
+  const beforeSendSpan = client.getOptions().beforeSendSpan;
+  const processedSpan = isV2BeforeSendSpanCallback(beforeSendSpan)
+    ? applyBeforeSendSpanCallback(spanJSON, beforeSendSpan)
+    : spanJSON;
 
-  return spanJSON;
+  const spanWithRef = {
+    ...processedSpan,
+    _segmentSpan: segmentSpan,
+  };
+
+  client.emit('enqueueSpan', spanWithRef);
 }
 
 function applyScopeToSegmentSpan(
@@ -78,11 +74,10 @@ function applyScopeToSegmentSpan(
   scopeData: ScopeData,
   originalAttributes: SerializedAttributes,
 ): void {
-  // TODO: Apply all scope data from auto instrumentation (contexts, request) to segment span
-  const { attributes } = scopeData;
-  if (attributes) {
-    safeSetSpanJSONAttributes(segmentSpanJSON, attributes, originalAttributes);
-  }
+  // TODO: Apply all scope and request data from auto instrumentation (contexts, request) to segment span
+  const { contexts } = scopeData;
+
+  safeSetSpanJSONAttributes(segmentSpanJSON, contextsToAttributes(contexts), originalAttributes);
 }
 
 function applyCommonSpanAttributes(
@@ -113,6 +108,7 @@ function applyCommonSpanAttributes(
             [SEMANTIC_ATTRIBUTE_USER_USERNAME]: scopeData.user?.username,
           }
         : {}),
+      ...scopeData.attributes,
     },
     originalAttributes,
   );
@@ -128,4 +124,14 @@ function getFinalScopeData(isolationScope: Scope | undefined, scope: Scope | und
     mergeScopeData(finalScopeData, scope.getScopeData());
   }
   return finalScopeData;
+}
+
+function contextsToAttributes(contexts: Contexts): RawAttributes<Record<string, unknown>> {
+  return {
+    'os.build_id': contexts.os?.build,
+    'os.name': contexts.os?.name,
+    'os.version': contexts.os?.version,
+    // TODO: Add to Sentry SemConv
+    'os.kernel_version': contexts.os?.kernel_version,
+  };
 }

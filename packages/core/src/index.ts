@@ -91,7 +91,6 @@ export {
   showSpanDropWarning,
 } from './utils/spanUtils';
 export { captureSpan } from './spans/captureSpan';
-export type { SpanV2JSONWithSegmentRef } from './spans/captureSpan';
 export { safeSetSpanAttributes, safeSetSpanJSONAttributes } from './spans/spanFirstUtils';
 export { attributesFromObject } from './utils/attributes';
 export { _setSpanForScope as _INTERNAL_setSpanForScope } from './utils/spanOnScope';
@@ -459,6 +458,7 @@ export type {
   SpanContextData,
   TraceFlag,
   SpanV2JSON,
+  SpanV2JSONWithSegmentRef,
 } from './types-hoist/span';
 export type { SpanStatus } from './types-hoist/spanStatus';
 export type { Log, LogSeverityLevel } from './types-hoist/log';
