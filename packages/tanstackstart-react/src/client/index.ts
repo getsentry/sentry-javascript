@@ -4,3 +4,4 @@
 export * from '@sentry/react';
 
 export { init } from './sdk';
+export type { TanStackStartBrowserOptions as BrowserOptions } from './sdk';

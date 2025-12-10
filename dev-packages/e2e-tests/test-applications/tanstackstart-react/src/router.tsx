@@ -15,6 +15,7 @@ export const getRouter = () => {
       // We recommend adjusting this value in production, or using tracesSampler
       // for finer control
       tracesSampleRate: 1.0,
+      router: router,
       release: 'e2e-test',
       tunnel: 'http://localhost:3031/', // proxy server
     });
