@@ -52,7 +52,7 @@
     "lint": "eslint . --format stylish",
     "lint:es-compatibility": "es-check es2022 ./build/cjs/*.js && es-check es2022 ./build/esm/*.js --module",
     "fix": "eslint . --format stylish --fix",
-    "build": "yarn build:types && yarn build:transpile",
+    "build": "run-s build:transpile build:types",
     "build:transpile": "yarn rolldown -c rollup.npm.config.mjs",
     "build:types": "yarn downlevel-dts build/esm build/types-ts3.8 --to ts3.8",
     "build:dev": "yarn clean && yarn build",
