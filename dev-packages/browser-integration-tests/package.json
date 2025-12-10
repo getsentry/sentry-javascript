@@ -41,7 +41,7 @@
   "dependencies": {
     "@babel/core": "^7.27.7",
     "@babel/preset-typescript": "^7.16.7",
-    "@playwright/test": "~1.53.2",
+    "@playwright/test": "~1.56.0",
     "@sentry-internal/rrweb": "2.34.0",
     "@sentry/browser": "10.29.0",
     "@supabase/supabase-js": "2.49.3",

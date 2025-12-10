@@ -4,15 +4,15 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --port 3030",
     "build": "rm -rf dist && tsc && vite build",
     "preview": "vite preview --port 3030",
     "test": "playwright test",
-    "test:build": "pnpm install && pnpm build",
+    "test:build": "pnpm install",
     "test:assert": "pnpm test"
   },
   "devDependencies": {
-    "@playwright/test": "~1.53.2",
+    "@playwright/test": "~1.56.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "typescript": "~5.8.3",
     "vite": "^7.0.4"
