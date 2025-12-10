@@ -11,7 +11,7 @@ import { registrySetup } from './registrySetup';
 interface SentryTestVariant {
   'build-command': string;
   'assert-command'?: string;
-  label: string;
+  label?: string;
 }
 
 interface PackageJson {
@@ -74,7 +74,7 @@ function asyncExec(
 function findMatchingVariant(variants: SentryTestVariant[], variantLabel: string): SentryTestVariant | undefined {
   const variantLabelLower = variantLabel.toLowerCase();
 
-  return variants.find(variant => variant.label.toLowerCase().includes(variantLabelLower));
+  return variants.find(variant => variant.label?.toLowerCase().includes(variantLabelLower));
 }
 
 async function getVariantBuildCommand(
@@ -97,7 +97,7 @@ async function getVariantBuildCommand(
       return {
         buildCommand: matchingVariant['build-command'] || 'pnpm test:build',
         assertCommand: matchingVariant['assert-command'] || 'pnpm test:assert',
-        testLabel: matchingVariant.label,
+        testLabel: matchingVariant.label || testAppPath,
         matchedVariantLabel: matchingVariant.label,
       };
     }
@@ -136,7 +136,7 @@ async function run(): Promise<void> {
 
     // Handle --variant=<value> format
     if (flag.startsWith('--variant=')) {
-      const value = flag.split('=')[1];
+      const value = flag.slice('--variant='.length);
       const trimmedValue = value?.trim();
       if (trimmedValue) {
         variantLabel = trimmedValue;
@@ -224,8 +224,24 @@ async function run(): Promise<void> {
       await asyncExec(`volta run ${buildCommand}`, { env, cwd });
 
       console.log(`Testing ${testLabel}...`);
-      // Pass command and arguments as an array to prevent command injection
-      const testCommand = ['volta', 'run', ...assertCommand.split(' '), ...testFlags];
+      // Pass command as a string to support shell features (env vars, operators like &&)
+      // This matches how buildCommand is handled for consistency
+      // Properly quote test flags to preserve spaces and special characters
+      const quotedTestFlags = testFlags.map(flag => {
+        // If flag contains spaces or special shell characters, quote it
+        if (
+          flag.includes(' ') ||
+          flag.includes('"') ||
+          flag.includes("'") ||
+          flag.includes('$') ||
+          flag.includes('`')
+        ) {
+          // Escape single quotes and wrap in single quotes (safest for shell)
+          return `'${flag.replace(/'/g, "'\\''")}'`;
+        }
+        return flag;
+      });
+      const testCommand = `volta run ${assertCommand}${quotedTestFlags.length > 0 ? ` ${quotedTestFlags.join(' ')}` : ''}`;
       await asyncExec(testCommand, { env, cwd });
 
       // clean up (although this is tmp, still nice to do)
