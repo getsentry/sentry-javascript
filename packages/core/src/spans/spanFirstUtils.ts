@@ -3,6 +3,7 @@ import { isAttributeObject } from '../attributes';
 import type { SerializedAttributes } from '../types-hoist/attributes';
 import type { Span, SpanV2JSON } from '../types-hoist/span';
 import { attributeValueToSerializedAttribute } from '../utils/attributes';
+import { showSpanDropWarning } from '../utils/spanUtils';
 
 /**
  * Only set a span attribute if it is not already set.
@@ -53,6 +54,21 @@ function setAttributeOnSpanWithMaybeUnit(span: Span, attributeKey: string, attri
   } else if (isSupportedAttributeType(attributeValue)) {
     span.setAttribute(attributeKey, attributeValue);
   }
+}
+
+/**
+ * Apply a user-provided beforeSendSpan callback to a span JSON.
+ */
+export function applyBeforeSendSpanCallback(
+  span: SpanV2JSON,
+  beforeSendSpan: (span: SpanV2JSON) => SpanV2JSON,
+): SpanV2JSON {
+  const modifedSpan = beforeSendSpan(span);
+  if (!modifedSpan) {
+    showSpanDropWarning();
+    return span;
+  }
+  return modifedSpan;
 }
 
 function setAttributeOnSpanJSONWithMaybeUnit(
