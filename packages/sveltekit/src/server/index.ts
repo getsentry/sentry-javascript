@@ -123,6 +123,7 @@ export {
   withScope,
   supabaseIntegration,
   instrumentSupabaseClient,
+  instrumentOpenAiClient,
   zodErrorsIntegration,
   logger,
   consoleLoggingIntegration,
