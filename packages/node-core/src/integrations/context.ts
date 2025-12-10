@@ -15,7 +15,13 @@ import type {
   IntegrationFn,
   OsContext,
 } from '@sentry/core';
-import { debug, defineIntegration, getGlobalScope } from '@sentry/core';
+import {
+  debug,
+  defineIntegration,
+  getCapturedScopesOnSpan,
+  getGlobalScope,
+  INTERNAL_getSegmentSpan,
+} from '@sentry/core';
 
 export const readFileAsync = promisify(readFile);
 export const readDirAsync = promisify(readdir);
@@ -107,8 +113,8 @@ const _nodeContextIntegration = ((options: ContextOptions = {}) => {
 
   return {
     name: INTEGRATION_NAME,
-    setupOnce() {
-      console.log('xx setupOnce');
+    setup(client) {
+      // first set all contexts on the global scope
       _getContexts()
         .then(updatedContext => {
           const globalScope = getGlobalScope();
@@ -120,17 +126,29 @@ const _nodeContextIntegration = ((options: ContextOptions = {}) => {
             device: { ...updatedContext.device, ...previousContexts?.device },
             culture: { ...updatedContext.culture, ...previousContexts?.culture },
             cloud_resource: { ...updatedContext.cloud_resource, ...previousContexts?.cloud_resource },
+            runtime: { name: 'node', version: global.process.version, ...previousContexts?.runtime },
           };
 
           Object.keys(contexts).forEach(key => {
             globalScope.setContext(key, contexts[key as keyof Event['contexts']]);
           });
-
-          console.log('xx set contexts to global scope', contexts);
         })
         .catch(() => {
           debug.warn(`[${INTEGRATION_NAME}] Failed to get contexts from Node`);
         });
+
+      client.on('spanEnd', span => {
+        if (INTERNAL_getSegmentSpan(span) !== span) {
+          return;
+        }
+        const currentScopeOfSpan = getCapturedScopesOnSpan(span).scope;
+        if (currentScopeOfSpan) {
+          const updatedContext = _updateContext(getGlobalScope().getScopeData().contexts);
+          Object.keys(updatedContext).forEach(key => {
+            currentScopeOfSpan.setContext(key, updatedContext[key as keyof Event['contexts']] ?? null);
+          });
+        }
+      });
     },
     // TODO (span-streaming): we probably need to apply this to spans via a hook IF we decide to apply contexts to (segment) spans
     processEvent(event) {
