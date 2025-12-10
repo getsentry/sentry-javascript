@@ -44,7 +44,6 @@ const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   _sentryRelease?: string;
   _experimentalThirdPartyOriginStackFrames?: string;
   _sentrySpotlight?: string;
-  _sentrySpotlightManual?: string; // Debug: manually set by user in instrumentation-client.ts
 };
 
 // Treeshakable guard to remove all code related to tracing
@@ -52,11 +51,6 @@ declare const __SENTRY_TRACING__: boolean;
 
 /** Inits the Sentry NextJS SDK on the browser with the React SDK. */
 export function init(options: BrowserOptions): Client | undefined {
-  // Debug marker to verify this init() is being called (for e2e tests)
-  if (typeof globalThis !== 'undefined') {
-    (globalThis as Record<string, unknown>)._sentryNextjsInitCalled = true;
-  }
-
   if (clientIsInitialized) {
     consoleSandbox(() => {
       // eslint-disable-next-line no-console
@@ -153,55 +147,28 @@ function getDefaultIntegrations(options: BrowserOptions): Integration[] {
   // The value is injected at build time:
   // - Webpack: via DefinePlugin which replaces process.env._sentrySpotlight
   // - Turbopack: via valueInjectionLoader which sets globalThis._sentrySpotlight
-  // - Manual: user can set globalThis._sentrySpotlightManual in instrumentation-client.ts
+  // - Manual: user can set window._sentrySpotlight in instrumentation-client.ts
   const processEnvSpotlight = process.env._sentrySpotlight;
   const globalSpotlight = globalWithInjectedValues._sentrySpotlight;
-  const manualSpotlight = globalWithInjectedValues._sentrySpotlightManual;
-  // Also check raw globalThis directly in case GLOBAL_OBJ differs
-  const rawGlobalThis = typeof globalThis !== 'undefined' ? globalThis : undefined;
-  const rawManualSpotlightRaw = rawGlobalThis ? (rawGlobalThis as Record<string, unknown>)._sentrySpotlightManual : undefined;
-  const rawManualSpotlight = typeof rawManualSpotlightRaw === 'string' ? rawManualSpotlightRaw : undefined;
+
+  // Check window directly for manual setting (most reliable in browser)
+  // This is set in instrumentation-client.ts before Sentry.init()
+  const windowObj = typeof window !== 'undefined' ? window : undefined;
+  const windowSpotlight = windowObj ? (windowObj as unknown as Record<string, unknown>)._sentrySpotlight : undefined;
+
   const spotlightEnvValue: string | undefined =
-    processEnvSpotlight || globalSpotlight || manualSpotlight || rawManualSpotlight;
-
-  // Expose debug info on globalThis for test verification
-  if (rawGlobalThis) {
-    (rawGlobalThis as Record<string, unknown>)._sentrySpotlightDebug = {
-      processEnvSpotlight,
-      globalSpotlight,
-      manualSpotlight,
-      rawManualSpotlightRaw,
-      rawManualSpotlight,
-      spotlightEnvValue,
-      optionsSpotlight: options.spotlight,
-      GLOBAL_OBJ_keys: Object.keys(GLOBAL_OBJ),
-    };
-  }
-
-  // eslint-disable-next-line no-console
-  console.log('[Sentry Next.js DEBUG] Spotlight detection:', {
-    'process.env._sentrySpotlight': processEnvSpotlight,
-    'globalThis._sentrySpotlight': globalSpotlight,
-    'globalThis._sentrySpotlightManual': manualSpotlight,
-    'rawGlobalThis._sentrySpotlightManual (raw)': rawManualSpotlightRaw,
-    'rawGlobalThis._sentrySpotlightManual': rawManualSpotlight,
-    resolved: spotlightEnvValue,
-    'options.spotlight': options.spotlight,
-  });
+    processEnvSpotlight ||
+    globalSpotlight ||
+    (typeof windowSpotlight === 'string' ? windowSpotlight : undefined);
 
   if (spotlightEnvValue !== undefined && options.spotlight === undefined) {
     const boolValue = envToBool(spotlightEnvValue, { strict: true });
     const spotlightConfig = boolValue !== null ? boolValue : spotlightEnvValue;
     const spotlightValue = resolveSpotlightOptions(undefined, spotlightConfig);
 
-    // eslint-disable-next-line no-console
-    console.log('[Sentry Next.js DEBUG] Spotlight resolved:', { boolValue, spotlightConfig, spotlightValue });
-
     if (spotlightValue) {
       const spotlightArgs = typeof spotlightValue === 'string' ? { sidecarUrl: spotlightValue } : undefined;
       customDefaultIntegrations.push(spotlightBrowserIntegration(spotlightArgs));
-      // eslint-disable-next-line no-console
-      console.log('[Sentry Next.js DEBUG] Spotlight integration ADDED');
     }
   }
 

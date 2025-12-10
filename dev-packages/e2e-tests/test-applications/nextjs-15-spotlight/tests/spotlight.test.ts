@@ -7,8 +7,8 @@ test.describe('Spotlight auto-enablement in Next.js development mode', () => {
     // Wait for client-side hydration and Sentry initialization
     await page.waitForTimeout(2000);
 
-    // Wait a bit for useEffect to run and update state
-    await page.waitForTimeout(1000);
+    // Wait for React to hydrate and useEffect to run
+    await page.waitForTimeout(2000);
 
     // Check environment variable is accessible
     const envValue = await page.getByTestId('env-value').textContent();
@@ -16,13 +16,12 @@ test.describe('Spotlight auto-enablement in Next.js development mode', () => {
 
     // Get diagnostic info before asserting
     const integrationNames = await page.getByTestId('integration-names').textContent();
-    const sdkDebug = await page.getByTestId('sdk-debug').textContent();
 
     // Check Spotlight integration is enabled
     const spotlightStatus = await page.getByTestId('spotlight-enabled').textContent();
     expect(
       spotlightStatus,
-      `Spotlight should be ENABLED.\nEnv values: ${envValue}\nSDK Debug: ${sdkDebug}\nIntegrations: ${integrationNames}`,
+      `Spotlight should be ENABLED.\nEnv values: ${envValue}\nIntegrations: ${integrationNames}`,
     ).toBe('ENABLED');
   });
 
