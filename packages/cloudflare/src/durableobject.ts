@@ -28,7 +28,8 @@ type MethodWrapperOptions = {
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-type OriginalMethod = (...args: any[]) => any;
+type UncheckedMethod = (...args: any[]) => any;
+type OriginalMethod = UncheckedMethod;
 
 function wrapMethodWithSentry<T extends OriginalMethod>(
   wrapperOptions: MethodWrapperOptions,
@@ -269,8 +270,7 @@ export function instrumentDurableObjectWithSentry<
           // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
           (obj as any)[method] = wrapMethodWithSentry(
             { options, context, spanName: method, spanOp: 'rpc' },
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            value as (...args: any[]) => any,
+            value as UncheckedMethod,
           );
         }
       }
@@ -332,7 +332,7 @@ function instrumentPrototype<T extends NewableFunction>(target: T, methodsToInst
     }
 
     // Create a wrapper that gets context/options from the instance at runtime
-    const wrappedMethod = function (this: any, ...args: any[]): unknown {
+    const wrappedMethod = function (this: unknown, ...args: unknown[]): unknown {
       const thisWithSentry = this as {
         __SENTRY_CONTEXT__: DurableObjectState;
         __SENTRY_OPTIONS__: CloudflareOptions;
@@ -342,7 +342,7 @@ function instrumentPrototype<T extends NewableFunction>(target: T, methodsToInst
 
       if (!instanceOptions) {
         // Fallback to original method if no Sentry data found
-        return (originalMethod as (...args: any[]) => any).apply(this, args);
+        return (originalMethod as UncheckedMethod).apply(this, args);
       }
 
       // Use the existing wrapper but with instance-specific context/options
@@ -353,12 +353,12 @@ function instrumentPrototype<T extends NewableFunction>(target: T, methodsToInst
           spanName: methodName,
           spanOp: 'rpc',
         },
-        originalMethod as (...args: any[]) => any,
+        originalMethod as UncheckedMethod,
         undefined,
         true, // noMark = true since we'll mark the prototype method
       );
 
-      return (wrapper as (...args: any[]) => any).apply(this, args);
+      return wrapper.apply(this, args);
     };
 
     markAsInstrumented(wrappedMethod);
