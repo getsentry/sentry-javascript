@@ -433,6 +433,17 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
   beforeSendMetric?: (metric: Metric) => Metric | null;
 
   /**
+   * Maximum number of metrics that can be queued before dropping incoming metrics.
+   * When the buffer reaches this limit, new metrics will be dropped and recorded as dropped events.
+   * This prevents unbounded buffer growth when metrics arrive faster than they can be flushed.
+   *
+   * Set to 0 to disable dropping metrics.
+   *
+   * @default 2000
+   */
+  maxMetricDropLimit?: number;
+
+  /**
    * Function to compute tracing sample rate dynamically and filter unwanted traces.
    *
    * Tracing is enabled if either this or `tracesSampleRate` is defined. If both are defined, `tracesSampleRate` is

@@ -13,6 +13,7 @@ import { _getTraceInfoFromScope } from '../utils/trace-info';
 import { createMetricEnvelope } from './envelope';
 
 const MAX_METRIC_BUFFER_SIZE = 1000;
+const DEFAULT_MAX_METRIC_DROP_LIMIT = 2000;
 
 /**
  * Converts a metric attribute to a serialized metric attribute.
@@ -89,10 +90,19 @@ function setMetricAttribute(
 export function _INTERNAL_captureSerializedMetric(client: Client, serializedMetric: SerializedMetric): void {
   const bufferMap = _getBufferMap();
   const metricBuffer = _INTERNAL_getMetricBuffer(client);
+  const maxDropLimit = client.getOptions().maxMetricDropLimit ?? DEFAULT_MAX_METRIC_DROP_LIMIT;
+  const inFlightCount = _getInFlightCount(client);
 
   if (metricBuffer === undefined) {
     bufferMap.set(client, [serializedMetric]);
   } else {
+    const totalMetrics = metricBuffer.length + inFlightCount;
+
+    if (totalMetrics >= maxDropLimit && maxDropLimit > 0) {
+      client.recordDroppedEvent('buffer_overflow', 'metric');
+      return;
+    }
+
     if (metricBuffer.length >= MAX_METRIC_BUFFER_SIZE) {
       _INTERNAL_flushMetricsBuffer(client, metricBuffer);
       bufferMap.set(client, [serializedMetric]);
@@ -266,6 +276,10 @@ export function _INTERNAL_flushMetricsBuffer(client: Client, maybeMetricBuffer?:
   const clientOptions = client.getOptions();
   const envelope = createMetricEnvelope(metricBuffer, clientOptions._metadata, clientOptions.tunnel, client.getDsn());
 
+  // Track the number of metrics being flushed as in-flight
+  const metricsCount = metricBuffer.length;
+  _setInFlightCount(client, count => count + metricsCount);
+
   // Clear the metric buffer after envelopes have been constructed.
   _getBufferMap().set(client, []);
 
@@ -273,7 +287,7 @@ export function _INTERNAL_flushMetricsBuffer(client: Client, maybeMetricBuffer?:
 
   // sendEnvelope should not throw
   // eslint-disable-next-line @typescript-eslint/no-floating-promises
-  client.sendEnvelope(envelope);
+  client.sendEnvelope(envelope).then(() => _setInFlightCount(client, count => count - metricsCount));
 }
 
 /**
@@ -305,4 +319,32 @@ function getMergedScopeData(currentScope: Scope): ScopeData {
 function _getBufferMap(): WeakMap<Client, Array<SerializedMetric>> {
   // The reference to the Client <> MetricBuffer map is stored on the carrier to ensure it's always the same
   return getGlobalSingleton('clientToMetricBufferMap', () => new WeakMap<Client, Array<SerializedMetric>>());
+}
+
+function _getInFlightMap(): WeakMap<Client, number> {
+  // Track the number of metrics currently in-flight (flushed but not yet sent/completed)
+  return getGlobalSingleton('clientToInFlightMetricsMap', () => new WeakMap<Client, number>());
+}
+
+/**
+ * Gets the number of metrics currently in-flight (flushed but not yet sent/completed) for a given client.
+ *
+ * @param client - The client to get the in-flight count for.
+ * @returns The number of metrics in-flight.
+ */
+function _getInFlightCount(client: Client): number {
+  return _getInFlightMap().get(client) ?? 0;
+}
+
+/**
+ * Sets the in-flight metrics count for a given client.
+ *
+ * @param client - The client to set the count for.
+ * @param countOrUpdater - The value to set the count to, or a function to update the count. If a function is provided, it will be called with the current count as an argument.
+ */
+function _setInFlightCount(client: Client, countOrUpdater: number | ((current: number) => number)): void {
+  const inFlightMap = _getInFlightMap();
+  const currentCount = _getInFlightCount(client);
+  const nextCount = typeof countOrUpdater === 'function' ? countOrUpdater(currentCount) : countOrUpdater;
+  inFlightMap.set(client, Math.max(0, nextCount));
 }
