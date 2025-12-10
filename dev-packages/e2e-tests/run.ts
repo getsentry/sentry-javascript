@@ -10,6 +10,7 @@ import { registrySetup } from './registrySetup';
 
 interface SentryTestVariant {
   'build-command': string;
+  'assert-command'?: string;
   label: string;
 }
 
@@ -80,7 +81,7 @@ async function getVariantBuildCommand(
   packageJsonPath: string,
   variantLabel: string,
   testAppPath: string,
-): Promise<{ buildCommand: string; testLabel: string; matchedVariantLabel?: string }> {
+): Promise<{ buildCommand: string; assertCommand: string; testLabel: string; matchedVariantLabel?: string }> {
   try {
     const packageJsonContent = await readFile(packageJsonPath, 'utf-8');
     const packageJson: PackageJson = JSON.parse(packageJsonContent);
@@ -95,18 +96,22 @@ async function getVariantBuildCommand(
     if (matchingVariant) {
       return {
         buildCommand: `volta run ${matchingVariant['build-command']}`,
+        assertCommand: matchingVariant['assert-command']
+          ? `volta run ${matchingVariant['assert-command']}`
+          : 'volta run pnpm test:assert',
         testLabel: matchingVariant.label,
         matchedVariantLabel: matchingVariant.label,
       };
     }
 
     console.log(`No matching variant found for "${variantLabel}" in ${testAppPath}, using default build`);
-  } catch (error) {
+  } catch {
     console.log(`Could not read variants from package.json for ${testAppPath}, using default build`);
   }
 
   return {
     buildCommand: 'volta run pnpm test:build',
+    assertCommand: 'volta run pnpm test:assert',
     testLabel: testAppPath,
   };
 }
@@ -190,9 +195,13 @@ async function run(): Promise<void> {
       await copyToTemp(originalPath, tmpDirPath);
       const cwd = tmpDirPath;
       // Resolve variant if needed
-      const { buildCommand, testLabel, matchedVariantLabel } = variantLabel
+      const { buildCommand, assertCommand, testLabel, matchedVariantLabel } = variantLabel
         ? await getVariantBuildCommand(join(tmpDirPath, 'package.json'), variantLabel, testAppPath)
-        : { buildCommand: 'volta run pnpm test:build', testLabel: testAppPath };
+        : {
+            buildCommand: 'volta run pnpm test:build',
+            assertCommand: 'volta run pnpm test:assert',
+            testLabel: testAppPath,
+          };
 
       // Print which variant we're using if found
       if (matchedVariantLabel) {
@@ -203,9 +212,11 @@ async function run(): Promise<void> {
       await asyncExec(buildCommand, { env, cwd });
 
       console.log(`Testing ${testLabel}...`);
-      // Pass command and arguments as an array to prevent command injection
-      const testCommand = ['volta', 'run', 'pnpm', 'test:assert', ...testFlags];
-      await asyncExec(testCommand, { env, cwd });
+      // Use the variant's assert command if available, otherwise use default
+      // Construct the full command as a string to handle environment variables (e.g., NODE_VERSION=20)
+      // and append test flags
+      const fullAssertCommand = testFlags.length > 0 ? `${assertCommand} ${testFlags.join(' ')}` : assertCommand;
+      await asyncExec(fullAssertCommand, { env, cwd });
 
       // clean up (although this is tmp, still nice to do)
       await rm(tmpDirPath, { recursive: true });
