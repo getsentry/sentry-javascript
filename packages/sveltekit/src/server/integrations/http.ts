@@ -1,7 +1,5 @@
 import type { IntegrationFn } from '@sentry/core';
-import { httpIntegration as originalHttpIntegration } from '@sentry/node';
-
-type HttpOptions = Parameters<typeof originalHttpIntegration>[0];
+import { httpIntegration as originalHttpIntegration, type HttpIntegrationOptions } from '@sentry/node';
 
 /**
  * The http integration instruments Node's internal http and https modules.
@@ -12,7 +10,7 @@ type HttpOptions = Parameters<typeof originalHttpIntegration>[0];
  * (You likely don't need this!)
  *
  */
-export const httpIntegration = ((options: HttpOptions = {}) => {
+export const httpIntegration = ((options: HttpIntegrationOptions = {}) => {
   /*
    * This is a slightly modified version of the original httpIntegration: We avoid creating
    * incoming request spans because:

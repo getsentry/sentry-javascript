@@ -1,4 +1,4 @@
-export { httpIntegration } from './integrations/http';
+export { httpIntegration, type HttpOptions as HttpIntegrationOptions } from './integrations/http';
 export { nativeNodeFetchIntegration } from './integrations/node-fetch';
 export { fsIntegration } from './integrations/fs';
 export { expressIntegration, expressErrorHandler, setupExpressErrorHandler } from './integrations/tracing/express';
