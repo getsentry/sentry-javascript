@@ -14,11 +14,11 @@
   ],
   "main": "build/npm/cjs/prod/index.js",
   "module": "build/npm/esm/prod/index.js",
-  "types": "build/npm/types/index.d.ts",
+  "types": "build/npm/esm/index.d.ts",
   "exports": {
     "./package.json": "./package.json",
     ".": {
-      "types": "./build/npm/types/index.d.ts",
+      "types": "./build/npm/esm/index.d.ts",
       "development": {
         "import": "./build/npm/esm/dev/index.js",
         "require": "./build/npm/cjs/dev/index.js"
@@ -35,7 +35,7 @@
   },
   "typesVersions": {
     "<5.0": {
-      "build/npm/types/index.d.ts": [
+      "build/npm/esm/index.d.ts": [
         "build/npm/types-ts3.8/index.d.ts"
       ]
     }
@@ -59,14 +59,11 @@
     "build:dev": "run-p build:transpile build:types",
     "build:bundle": "rolldown -c rollup.bundle.config.mjs",
     "build:transpile": "rolldown -c rollup.npm.config.mjs",
-    "build:types": "run-s build:types:core build:types:downlevel",
-    "build:types:core": "tsc -p tsconfig.types.json",
-    "build:types:downlevel": "yarn downlevel-dts build/npm/types build/npm/types-ts3.8 --to ts3.8",
+    "build:types": "yarn downlevel-dts build/npm/esm build/npm/types-ts3.8 --to ts3.8",
     "build:watch": "run-p build:transpile:watch build:bundle:watch build:types:watch",
     "build:dev:watch": "run-p build:transpile:watch build:types:watch",
     "build:bundle:watch": "rolldown -c rollup.bundle.config.mjs --watch",
     "build:transpile:watch": "rolldown -c rollup.npm.config.mjs --watch",
-    "build:types:watch": "tsc -p tsconfig.types.json --watch",
     "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf build coverage .rpt2_cache sentry-browser-*.tgz",

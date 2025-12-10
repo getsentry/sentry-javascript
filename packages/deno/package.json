@@ -7,7 +7,7 @@
   "author": "Sentry",
   "license": "MIT",
   "module": "build/index.mjs",
-  "types": "build/index.d.ts",
+  "types": "build/esm/index.d.ts",
   "exports": {
     "./package.json": "./package.json",
     ".": {
@@ -32,7 +32,7 @@
     "build": "run-s build:transpile build:types",
     "build:dev": "yarn build",
     "build:transpile": "yarn deno-types && rolldown -c rollup.npm.config.mjs",
-    "build:types": "tsc -p tsconfig.types.json",
+    "build:types": "echo \"Types included with build\"",
     "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf build build-types build-test coverage node_modules/.deno sentry-deno-*.tgz",
