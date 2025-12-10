@@ -7,6 +7,9 @@ test.describe('Spotlight auto-enablement in Next.js development mode', () => {
     // Wait for client-side hydration and Sentry initialization
     await page.waitForTimeout(2000);
 
+    // Wait a bit for useEffect to run and update state
+    await page.waitForTimeout(1000);
+
     // Check environment variable is accessible
     const envValue = await page.getByTestId('env-value').textContent();
     expect(envValue).toContain('true');

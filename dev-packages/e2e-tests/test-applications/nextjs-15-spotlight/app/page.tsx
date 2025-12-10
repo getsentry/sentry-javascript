@@ -7,22 +7,35 @@ import * as Sentry from '@sentry/nextjs';
 const NEXT_PUBLIC_SPOTLIGHT_VALUE = process.env.NEXT_PUBLIC_SENTRY_SPOTLIGHT;
 // Check internal values (these may or may not be replaced depending on bundler)
 const INTERNAL_SPOTLIGHT_PROCESS_ENV = process.env._sentrySpotlight;
-// @ts-expect-error - accessing globalThis for debugging
-const INTERNAL_SPOTLIGHT_GLOBAL = typeof globalThis !== 'undefined' ? globalThis._sentrySpotlight : 'globalThis undefined';
-// @ts-expect-error - accessing manual global set in instrumentation-client.ts
-const MANUAL_SPOTLIGHT_GLOBAL = typeof globalThis !== 'undefined' ? globalThis._sentrySpotlightManual : 'globalThis undefined';
-// @ts-expect-error - accessing SDK debug info
-const SDK_DEBUG_INFO = typeof globalThis !== 'undefined' ? globalThis._sentrySpotlightDebug : undefined;
-// @ts-expect-error - accessing init marker
-const INIT_CALLED = typeof globalThis !== 'undefined' ? globalThis._sentryNextjsInitCalled : undefined;
-// @ts-expect-error - accessing init timestamp
-const INIT_TIMESTAMP = typeof globalThis !== 'undefined' ? globalThis._sentryNextjsInitTimestamp : undefined;
 
 export default function SpotlightTestPage() {
   const [spotlightEnabled, setSpotlightEnabled] = useState<boolean | null>(null);
   const [integrationNames, setIntegrationNames] = useState<string[]>([]);
+  const [debugInfo, setDebugInfo] = useState<{
+    internalGlobal: string;
+    manualGlobal: string;
+    sdkDebug: unknown;
+    initCalled: unknown;
+  } | null>(null);
 
   useEffect(() => {
+    // Read globals at runtime (after init has run)
+    // @ts-expect-error - accessing globalThis for debugging
+    const internalGlobal = globalThis._sentrySpotlight;
+    // @ts-expect-error - accessing manual global
+    const manualGlobal = globalThis._sentrySpotlightManual;
+    // @ts-expect-error - accessing SDK debug info
+    const sdkDebug = globalThis._sentrySpotlightDebug;
+    // @ts-expect-error - accessing init marker
+    const initCalled = globalThis._sentryNextjsInitCalled;
+
+    setDebugInfo({
+      internalGlobal: String(internalGlobal ?? 'undefined'),
+      manualGlobal: String(manualGlobal ?? 'undefined'),
+      sdkDebug,
+      initCalled,
+    });
+
     // Check if Spotlight integration is registered
     const client = Sentry.getClient();
     const integration = client?.getIntegrationByName?.('SpotlightBrowser');
@@ -37,9 +50,10 @@ export default function SpotlightTestPage() {
     console.log('Spotlight test results:', {
       envValue: NEXT_PUBLIC_SPOTLIGHT_VALUE,
       internalProcessEnv: INTERNAL_SPOTLIGHT_PROCESS_ENV,
-      internalGlobal: INTERNAL_SPOTLIGHT_GLOBAL,
-      manualGlobal: MANUAL_SPOTLIGHT_GLOBAL,
-      sdkDebugInfo: SDK_DEBUG_INFO,
+      internalGlobal,
+      manualGlobal,
+      sdkDebugInfo: sdkDebug,
+      initCalled,
       integrationFound: !!integration,
       clientExists: !!client,
       integrationNames: intNames,
@@ -54,15 +68,14 @@ export default function SpotlightTestPage() {
         <h2>Environment Variable</h2>
         <p>NEXT_PUBLIC_SENTRY_SPOTLIGHT: {NEXT_PUBLIC_SPOTLIGHT_VALUE || 'undefined'}</p>
         <p>process.env._sentrySpotlight: {String(INTERNAL_SPOTLIGHT_PROCESS_ENV) || 'undefined'}</p>
-        <p>globalThis._sentrySpotlight: {String(INTERNAL_SPOTLIGHT_GLOBAL) || 'undefined'}</p>
-        <p>globalThis._sentrySpotlightManual: {String(MANUAL_SPOTLIGHT_GLOBAL) || 'undefined'}</p>
+        <p>globalThis._sentrySpotlight: {debugInfo?.internalGlobal || 'loading...'}</p>
+        <p>globalThis._sentrySpotlightManual: {debugInfo?.manualGlobal || 'loading...'}</p>
       </div>
 
       <div data-testid="sdk-debug">
         <h2>SDK Debug Info (what SDK saw during init)</h2>
-        <p>init() called: {String(INIT_CALLED)}</p>
-        <p>init() timestamp: {String(INIT_TIMESTAMP)}</p>
-        <pre>{SDK_DEBUG_INFO ? JSON.stringify(SDK_DEBUG_INFO, null, 2) : 'No debug info'}</pre>
+        <p>init() called: {String(debugInfo?.initCalled ?? 'loading...')}</p>
+        <pre>{debugInfo?.sdkDebug ? JSON.stringify(debugInfo.sdkDebug, null, 2) : 'No debug info'}</pre>
       </div>
 
       <div data-testid="spotlight-status">
