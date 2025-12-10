@@ -12,7 +12,7 @@ import {
   SDK_VERSION,
   ServerRuntimeClient,
 } from '@sentry/core';
-import { getTraceContextForScope } from '@sentry/opentelemetry';
+import { type AsyncLocalStorageLookup, getTraceContextForScope } from '@sentry/opentelemetry';
 import { isMainThread, threadId } from 'worker_threads';
 import { DEBUG_BUILD } from '../debug-build';
 import type { NodeClientOptions } from '../types';
@@ -22,6 +22,8 @@ const DEFAULT_CLIENT_REPORT_FLUSH_INTERVAL_MS = 60_000; // 60s was chosen arbitr
 /** A client for using Sentry with Node & OpenTelemetry. */
 export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
   public traceProvider: BasicTracerProvider | undefined;
+  public asyncLocalStorageLookup: AsyncLocalStorageLookup | undefined;
+
   private _tracer: Tracer | undefined;
   private _clientReportInterval: NodeJS.Timeout | undefined;
   private _clientReportOnExitFlushListener: (() => void) | undefined;

@@ -63,7 +63,7 @@
     "build:tarball": "npm pack"
   },
   "dependencies": {
-    "@sentry-internal/node-native-stacktrace": "^0.2.2",
+    "@sentry-internal/node-native-stacktrace": "^0.3.0",
     "@sentry/core": "10.29.0",
     "@sentry/node": "10.29.0"
   },
