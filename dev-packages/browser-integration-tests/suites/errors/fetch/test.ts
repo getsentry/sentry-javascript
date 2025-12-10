@@ -5,10 +5,13 @@ import { envelopeRequestParser, waitForErrorRequest } from '../../../utils/helpe
 sentryTest('handles fetch network errors @firefox', async ({ getLocalTestUrl, page, browserName }) => {
   const url = await getLocalTestUrl({ testDir: __dirname });
   const reqPromise = waitForErrorRequest(page);
+  const pageErrorPromise = new Promise<string>(resolve => page.on('pageerror', error => resolve(error.message)));
+
   await page.goto(url);
   await page.evaluate('networkError()');
 
-  const eventData = envelopeRequestParser(await reqPromise);
+  const [req, pageErrorMessage] = await Promise.all([reqPromise, pageErrorPromise]);
+  const eventData = envelopeRequestParser(req);
 
   const errorMap: Record<string, string> = {
     chromium: 'Failed to fetch (sentry-test-external.io)',
@@ -18,6 +21,7 @@ sentryTest('handles fetch network errors @firefox', async ({ getLocalTestUrl, pa
 
   const error = errorMap[browserName];
 
+  expect(pageErrorMessage).toContain(error);
   expect(eventData.exception?.values).toHaveLength(1);
   expect(eventData.exception?.values?.[0]).toMatchObject({
     type: 'TypeError',
@@ -32,10 +36,13 @@ sentryTest('handles fetch network errors @firefox', async ({ getLocalTestUrl, pa
 sentryTest('handles fetch network errors on subdomains @firefox', async ({ getLocalTestUrl, page, browserName }) => {
   const url = await getLocalTestUrl({ testDir: __dirname });
   const reqPromise = waitForErrorRequest(page);
+  const pageErrorPromise = new Promise<string>(resolve => page.on('pageerror', error => resolve(error.message)));
+
   await page.goto(url);
   await page.evaluate('networkErrorSubdomain()');
 
-  const eventData = envelopeRequestParser(await reqPromise);
+  const [req, pageErrorMessage] = await Promise.all([reqPromise, pageErrorPromise]);
+  const eventData = envelopeRequestParser(req);
 
   const errorMap: Record<string, string> = {
     chromium: 'Failed to fetch (subdomain.sentry-test-external.io)',
@@ -44,6 +51,9 @@ sentryTest('handles fetch network errors on subdomains @firefox', async ({ getLo
   };
 
   const error = errorMap[browserName];
+
+  // Verify the error message at JavaScript level includes the hostname
+  expect(pageErrorMessage).toContain(error);
 
   expect(eventData.exception?.values).toHaveLength(1);
   expect(eventData.exception?.values?.[0]).toMatchObject({
@@ -127,10 +137,13 @@ sentryTest('handles fetch invalid URL scheme errors @firefox', async ({ getLocal
 
   const url = await getLocalTestUrl({ testDir: __dirname });
   const reqPromise = waitForErrorRequest(page);
+  const pageErrorPromise = new Promise<string>(resolve => page.on('pageerror', error => resolve(error.message)));
+
   await page.goto(url);
   await page.evaluate('invalidUrlScheme()');
 
-  const eventData = envelopeRequestParser(await reqPromise);
+  const [req, pageErrorMessage] = await Promise.all([reqPromise, pageErrorPromise]);
+  const eventData = envelopeRequestParser(req);
 
   const errorMap: Record<string, string> = {
     chromium: 'Failed to fetch (sentry-test-external.io)',
@@ -146,6 +159,7 @@ sentryTest('handles fetch invalid URL scheme errors @firefox', async ({ getLocal
    * But it seems we cannot really access this in the SDK :(
    */
 
+  expect(pageErrorMessage).toContain(error);
   expect(eventData.exception?.values).toHaveLength(1);
   expect(eventData.exception?.values?.[0]).toMatchObject({
     type: 'TypeError',
