@@ -351,6 +351,10 @@ function getFinalConfigObject(
     );
   }
 
+  // Calculate spotlight config once for both webpack and turbopack
+  const spotlightConfig =
+    incomingUserNextConfigObject.env?.NEXT_PUBLIC_SENTRY_SPOTLIGHT ?? process.env.NEXT_PUBLIC_SENTRY_SPOTLIGHT;
+
   let turboPackConfig: TurbopackOptions | undefined;
 
   if (isTurbopack) {
@@ -359,6 +363,7 @@ function getFinalConfigObject(
       userSentryOptions,
       routeManifest,
       nextJsVersion,
+      spotlightConfig,
     });
   }
 
@@ -462,10 +467,7 @@ function getFinalConfigObject(
             routeManifest,
             nextJsVersion,
             useRunAfterProductionCompileHook: shouldUseRunAfterProductionCompileHook,
-            // Spotlight config from NEXT_PUBLIC_SENTRY_SPOTLIGHT env var
-            spotlightConfig:
-              incomingUserNextConfigObject.env?.NEXT_PUBLIC_SENTRY_SPOTLIGHT ??
-              process.env.NEXT_PUBLIC_SENTRY_SPOTLIGHT,
+            spotlightConfig,
           }),
         }
       : {}),

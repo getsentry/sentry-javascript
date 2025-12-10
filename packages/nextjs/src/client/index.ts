@@ -43,6 +43,7 @@ const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   _sentryBasePath?: string;
   _sentryRelease?: string;
   _experimentalThirdPartyOriginStackFrames?: string;
+  _sentrySpotlight?: string;
 };
 
 // Treeshakable guard to remove all code related to tracing
@@ -143,9 +144,10 @@ function getDefaultIntegrations(options: BrowserOptions): Integration[] {
   );
 
   // Auto-enable Spotlight from NEXT_PUBLIC_SENTRY_SPOTLIGHT env var
-  // The value is injected at build time via DefinePlugin in webpack.ts
-  // We use DefinePlugin because Next.js doesn't replace process.env.* in node_modules code
-  const spotlightEnvValue = process.env._sentrySpotlight;
+  // The value is injected at build time:
+  // - Webpack: via DefinePlugin which replaces process.env._sentrySpotlight
+  // - Turbopack: via valueInjectionLoader which sets globalThis._sentrySpotlight
+  const spotlightEnvValue = process.env._sentrySpotlight || globalWithInjectedValues._sentrySpotlight;
   if (spotlightEnvValue !== undefined && options.spotlight === undefined) {
     const boolValue = envToBool(spotlightEnvValue, { strict: true });
     const spotlightConfig = boolValue !== null ? boolValue : spotlightEnvValue;

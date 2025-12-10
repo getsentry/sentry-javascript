@@ -9,10 +9,12 @@ export function generateValueInjectionRules({
   routeManifest,
   nextJsVersion,
   tunnelPath,
+  spotlightConfig,
 }: {
   routeManifest?: RouteManifest;
   nextJsVersion?: string;
   tunnelPath?: string;
+  spotlightConfig?: string;
 }): TurbopackMatcherWithRule[] {
   const rules: TurbopackMatcherWithRule[] = [];
   const isomorphicValues: Record<string, JSONValue> = {};
@@ -31,6 +33,11 @@ export function generateValueInjectionRules({
   // Inject tunnel route path for both client and server
   if (tunnelPath) {
     isomorphicValues._sentryRewritesTunnelPath = tunnelPath;
+  }
+
+  // Inject Spotlight config for client (Spotlight is a client-side feature)
+  if (spotlightConfig) {
+    clientValues._sentrySpotlight = spotlightConfig;
   }
 
   if (Object.keys(isomorphicValues).length > 0) {
