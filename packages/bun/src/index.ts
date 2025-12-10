@@ -147,6 +147,7 @@ export {
   updateSpanName,
   supabaseIntegration,
   instrumentSupabaseClient,
+  instrumentOpenAiClient,
   zodErrorsIntegration,
   profiler,
   amqplibIntegration,
