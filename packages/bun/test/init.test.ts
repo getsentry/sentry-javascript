@@ -38,6 +38,20 @@ describe('init()', () => {
       expect(mockAutoPerformanceIntegrations).toHaveBeenCalledTimes(0);
     });
 
+    it('enables spotlight with default URL from config `true`', () => {
+      const client = init({ dsn: PUBLIC_DSN, spotlight: true });
+
+      expect(client?.getOptions().spotlight).toBe(true);
+      expect(client?.getOptions().integrations.some(integration => integration.name === 'Spotlight')).toBe(true);
+    });
+
+    it('disables spotlight from config `false`', () => {
+      const client = init({ dsn: PUBLIC_DSN, spotlight: false });
+
+      expect(client?.getOptions().spotlight).toBe(false);
+      expect(client?.getOptions().integrations.some(integration => integration.name === 'Spotlight')).toBe(false);
+    });
+
     it('installs merged default integrations, with overrides provided through options', () => {
       const mockDefaultIntegrations = [
         new MockIntegration('Some mock integration 2.1'),

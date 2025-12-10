@@ -31,6 +31,10 @@ const Index = () => {
       <Link to="/deep/level2/level3/123" id="navigation-to-deep">
         Navigate to Deep Nested Route (3 levels, 900ms total)
       </Link>
+      <br />
+      <Link to="/slow-fetch/123" id="navigation-to-slow-fetch">
+        Navigate to Slow Fetch Route (500ms delay with fetch)
+      </Link>
     </>
   );
 };
