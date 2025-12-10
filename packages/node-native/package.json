@@ -1,6 +1,6 @@
 {
   "name": "@sentry/node-native",
-  "version": "10.28.0",
+  "version": "10.29.0",
   "description": "Native Tools for the Official Sentry Node.js SDK",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/node-native",
@@ -63,9 +63,9 @@
     "build:tarball": "npm pack"
   },
   "dependencies": {
-    "@sentry-internal/node-native-stacktrace": "^0.2.2",
-    "@sentry/core": "10.28.0",
-    "@sentry/node": "10.28.0"
+    "@sentry-internal/node-native-stacktrace": "^0.3.0",
+    "@sentry/core": "10.29.0",
+    "@sentry/node": "10.29.0"
   },
   "devDependencies": {
     "@types/node": "^18.19.1"
