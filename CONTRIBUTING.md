@@ -73,6 +73,72 @@ the tests in each location. Check out the `scripts` entry of the corresponding `
 
 Note: you must run `yarn build` before `yarn test` will work.
 
+## Running E2E Tests Locally
+
+The E2E tests in `dev-packages/e2e-tests/test-applications/` use Playwright and pnpm. To run them locally:
+
+### Prerequisites
+
+1. **Enable pnpm support in Volta** (required for E2E tests):
+
+   ```bash
+   export VOLTA_FEATURE_PNPM=1
+   ```
+
+   Add this to your shell profile (`.bashrc`, `.zshrc`, etc.) for persistence.
+
+2. **Build the SDK packages** you want to test:
+
+   ```bash
+   yarn build:dev:filter @sentry/nextjs  # or whichever package you're testing
+   ```
+
+### Running a specific E2E test app
+
+1. Navigate to the test application directory:
+
+   ```bash
+   cd dev-packages/e2e-tests/test-applications/<app-name>
+   ```
+
+2. Install dependencies:
+
+   ```bash
+   pnpm install
+   ```
+
+3. Link local SDK packages (to test your changes instead of the published version):
+
+   ```bash
+   # Remove existing @sentry packages and create symlinks to local builds
+   rm -rf node_modules/@sentry
+   mkdir -p node_modules/@sentry
+   ln -sf ../../../../../../../../packages/nextjs node_modules/@sentry/nextjs
+   ln -sf ../../../../../../../../packages/core node_modules/@sentry/core
+   ln -sf ../../../../../../../../packages/browser node_modules/@sentry/browser
+   ln -sf ../../../../../../../../packages/react node_modules/@sentry/react
+   # Add other packages as needed for your test
+   ```
+
+4. Install Playwright browsers (first time only):
+
+   ```bash
+   npx playwright install chromium
+   ```
+
+5. Run the tests:
+
+   ```bash
+   npx playwright test
+   ```
+
+### Troubleshooting
+
+- **WSL2 Chromium issues**: If you encounter "Invalid file descriptor to ICU data" or segfaults, you may need a newer
+  Playwright version. The test apps use `@playwright/test: ~1.56.0` which works in WSL2.
+- **Stale builds**: After making SDK changes, rebuild with `yarn build:dev:filter @sentry/<package>` and re-link.
+- **Port conflicts**: Check if the test app's port (usually 3030) is available.
+
 ## Debug Build Flags
 
 Throughout the codebase, you will find a `__DEBUG_BUILD__` constant. This flag serves two purposes:

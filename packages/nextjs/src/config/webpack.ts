@@ -447,13 +447,14 @@ export function constructWebpackConfigFunction({
       }),
     );
 
-    // Inject Spotlight config for client builds so the SDK can auto-enable Spotlight
-    // when NEXT_PUBLIC_SENTRY_SPOTLIGHT is set. We use DefinePlugin because Next.js
-    // doesn't replace process.env.* in node_modules code.
+    // Inject Spotlight config for client builds so the browser SDK can auto-enable Spotlight.
+    // Next.js doesn't replace process.env.NEXT_PUBLIC_* in node_modules code, so we use
+    // DefinePlugin to inject the value directly. The browser SDK's getSpotlightConfig()
+    // already checks for NEXT_PUBLIC_SENTRY_SPOTLIGHT.
     if (runtime === 'client' && spotlightConfig) {
       newConfig.plugins.push(
         new buildContext.webpack.DefinePlugin({
-          'process.env._sentrySpotlight': JSON.stringify(spotlightConfig),
+          'process.env.NEXT_PUBLIC_SENTRY_SPOTLIGHT': JSON.stringify(spotlightConfig),
         }),
       );
     }

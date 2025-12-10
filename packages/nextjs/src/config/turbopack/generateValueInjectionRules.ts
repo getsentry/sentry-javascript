@@ -35,9 +35,11 @@ export function generateValueInjectionRules({
     isomorphicValues._sentryRewritesTunnelPath = tunnelPath;
   }
 
-  // Inject Spotlight config for client (Spotlight is a client-side feature)
+  // Inject Spotlight config for client so the browser SDK can auto-enable Spotlight.
+  // Next.js doesn't expose NEXT_PUBLIC_* vars to node_modules, so we inject it via
+  // globalThis. The browser SDK's getEnvValue() checks globalThis as a fallback.
   if (spotlightConfig) {
-    clientValues._sentrySpotlight = spotlightConfig;
+    clientValues.NEXT_PUBLIC_SENTRY_SPOTLIGHT = spotlightConfig;
   }
 
   if (Object.keys(isomorphicValues).length > 0) {
