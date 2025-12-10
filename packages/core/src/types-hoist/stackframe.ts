@@ -13,7 +13,11 @@ export interface StackFrame {
   in_app?: boolean;
   instruction_addr?: string;
   addr_mode?: string;
+  // TODO: fix in v11, convert any to unknown
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   vars?: { [key: string]: any };
   debug_id?: string;
+  // TODO: fix in v11, convert any to unknown
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   module_metadata?: any;
 }
