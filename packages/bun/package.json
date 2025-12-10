@@ -46,7 +46,7 @@
     "bun-types": "^1.2.9"
   },
   "scripts": {
-    "build": "run-p build:transpile build:types",
+    "build": "run-s build:transpile build:types",
     "build:dev": "yarn build",
     "build:transpile": "rolldown -c rollup.npm.config.mjs",
     "build:types": "yarn downlevel-dts build/esm build/types-ts3.8 --to ts3.8",

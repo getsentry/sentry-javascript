@@ -60,7 +60,7 @@
     "webpack": "^5.0.0"
   },
   "scripts": {
-    "build": "run-p build:transpile build:types",
+    "build": "run-s build:transpile build:types",
     "build:dev": "yarn build",
     "build:plugin": "tsc -p tsconfig.plugin.json",
     "build:transpile": "run-p build:rollup build:plugin",

@@ -30,10 +30,10 @@
   ],
   "sideEffects": false,
   "scripts": {
-    "build": "run-p build:transpile build:types build:bundle",
+    "build": "run-s build:transpile build:types build:bundle",
     "build:transpile": "rolldown -c rollup.npm.config.mjs",
     "build:bundle": "rolldown -c rollup.bundle.config.mjs",
-    "build:dev": "run-p build:transpile build:types",
+    "build:dev": "run-s build:transpile build:types",
     "build:types": "yarn downlevel-dts build/npm/esm build/npm/types-ts3.8 --to ts3.8",
     "build:watch": "run-p build:transpile:watch build:bundle:watch build:types:watch",
     "build:dev:watch": "run-p build:transpile:watch build:types:watch",

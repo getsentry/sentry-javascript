@@ -79,9 +79,9 @@
     "@vercel/nft": "^0.29.4"
   },
   "scripts": {
-    "build": "run-p build:transpile build:types",
+    "build": "run-s build:transpile build:types",
     "build:layer": "rimraf build/aws && rolldown -c rollup.lambda-extension.config.mjs && yarn ts-node scripts/buildLambdaLayer.ts",
-    "build:dev": "run-p build:transpile build:types",
+    "build:dev": "run-s build:transpile build:types",
     "build:transpile": "rolldown -c rollup.npm.config.mjs && yarn build:layer",
     "build:types": "yarn downlevel-dts build/npm/esm build/npm/types-ts3.8 --to ts3.8",
     "build:watch": "run-p build:transpile:watch build:types:watch",

@@ -102,7 +102,7 @@
     "next": "^13.2.0 || ^14.0 || ^15.0.0-rc.0 || ^16.0.0-0"
   },
   "scripts": {
-    "build": "run-p build:transpile build:types",
+    "build": "run-s build:transpile build:types",
     "build:dev": "yarn build",
     "build:transpile": "ts-node scripts/buildRollup.ts",
     "build:types": "yarn downlevel-dts build/esm build/types-ts3.8 --to ts3.8",
