@@ -10,6 +10,7 @@ import * as path from 'path';
 import { fileURLToPath } from 'url';
 import deepMerge from 'deepmerge';
 import { defineConfig } from 'rolldown';
+import { dts as makeDtsPlugin } from 'rolldown-plugin-dts';
 import {
   makeDebugBuildStatementReplacePlugin,
   makeProductionReplacePlugin,
@@ -131,6 +132,12 @@ export function makeNPMConfigVariants(baseConfig, options = {}) {
   }
 
   if (emitEsm) {
+    const hasTypes = fs.existsSync(path.resolve(process.cwd(), './tsconfig.types.json'));
+    const dts = makeDtsPlugin({
+      tsconfig: path.resolve(process.cwd(), hasTypes ? './tsconfig.types.json' : './tsconfig.json'),
+      tsgo: true,
+    });
+
     if (splitDevProd) {
       variantSpecificConfigs.push({
         output: {
@@ -139,7 +146,9 @@ export function makeNPMConfigVariants(baseConfig, options = {}) {
           plugins: [makePackageNodeEsm()],
         },
       });
+
       variantSpecificConfigs.push({
+        plugins: [dts],
         output: {
           format: 'esm',
           dir: path.join(baseConfig.output.dir, 'esm/prod'),
@@ -148,6 +157,7 @@ export function makeNPMConfigVariants(baseConfig, options = {}) {
       });
     } else {
       variantSpecificConfigs.push({
+        plugins: [dts],
         output: {
           format: 'esm',
           dir: path.join(baseConfig.output.dir, 'esm'),
