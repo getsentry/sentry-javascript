@@ -154,8 +154,10 @@ function getDefaultIntegrations(options: BrowserOptions): Integration[] {
   const manualSpotlight = globalWithInjectedValues._sentrySpotlightManual;
   // Also check raw globalThis directly in case GLOBAL_OBJ differs
   const rawGlobalThis = typeof globalThis !== 'undefined' ? globalThis : undefined;
-  const rawManualSpotlight = rawGlobalThis ? (rawGlobalThis as Record<string, unknown>)._sentrySpotlightManual : undefined;
-  const spotlightEnvValue = processEnvSpotlight || globalSpotlight || manualSpotlight || rawManualSpotlight;
+  const rawManualSpotlightRaw = rawGlobalThis ? (rawGlobalThis as Record<string, unknown>)._sentrySpotlightManual : undefined;
+  const rawManualSpotlight = typeof rawManualSpotlightRaw === 'string' ? rawManualSpotlightRaw : undefined;
+  const spotlightEnvValue: string | undefined =
+    processEnvSpotlight || globalSpotlight || manualSpotlight || rawManualSpotlight;
 
   // Expose debug info on globalThis for test verification
   if (rawGlobalThis) {
@@ -163,6 +165,7 @@ function getDefaultIntegrations(options: BrowserOptions): Integration[] {
       processEnvSpotlight,
       globalSpotlight,
       manualSpotlight,
+      rawManualSpotlightRaw,
       rawManualSpotlight,
       spotlightEnvValue,
       optionsSpotlight: options.spotlight,
@@ -175,6 +178,7 @@ function getDefaultIntegrations(options: BrowserOptions): Integration[] {
     'process.env._sentrySpotlight': processEnvSpotlight,
     'globalThis._sentrySpotlight': globalSpotlight,
     'globalThis._sentrySpotlightManual': manualSpotlight,
+    'rawGlobalThis._sentrySpotlightManual (raw)': rawManualSpotlightRaw,
     'rawGlobalThis._sentrySpotlightManual': rawManualSpotlight,
     resolved: spotlightEnvValue,
     'options.spotlight': options.spotlight,
