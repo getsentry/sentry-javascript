@@ -136,15 +136,29 @@ async function run(): Promise<void> {
 
     // Handle --variant=<value> format
     if (flag.startsWith('--variant=')) {
-      variantLabel = flag.split('=')[1];
+      const value = flag.split('=')[1];
+      const trimmedValue = value?.trim();
+      if (trimmedValue) {
+        variantLabel = value;
+      } else {
+        console.warn('Warning: --variant= specified but no value provided. Ignoring variant flag.');
+      }
       return false; // Remove this flag from testFlags
     }
 
     // Handle --variant <value> format
     if (flag === '--variant') {
       if (index + 1 < allTestFlags.length) {
-        variantLabel = allTestFlags[index + 1];
-        skipNextFlag = true; // Mark next flag to be skipped
+        const value = allTestFlags[index + 1];
+        const trimmedValue = value?.trim();
+        if (trimmedValue) {
+          variantLabel = value;
+          skipNextFlag = true; // Mark next flag to be skipped
+        } else {
+          console.warn('Warning: --variant specified but no value provided. Ignoring variant flag.');
+        }
+      } else {
+        console.warn('Warning: --variant specified but no value provided. Ignoring variant flag.');
       }
       return false;
     }
