@@ -95,10 +95,8 @@ async function getVariantBuildCommand(
 
     if (matchingVariant) {
       return {
-        buildCommand: `volta run ${matchingVariant['build-command']}`,
-        assertCommand: matchingVariant['assert-command']
-          ? `volta run ${matchingVariant['assert-command']}`
-          : 'volta run pnpm test:assert',
+        buildCommand: matchingVariant['build-command'] || 'pnpm test:build',
+        assertCommand: matchingVariant['assert-command'] || 'pnpm test:assert',
         testLabel: matchingVariant.label,
         matchedVariantLabel: matchingVariant.label,
       };
@@ -110,8 +108,8 @@ async function getVariantBuildCommand(
   }
 
   return {
-    buildCommand: 'volta run pnpm test:build',
-    assertCommand: 'volta run pnpm test:assert',
+    buildCommand: 'pnpm test:build',
+    assertCommand: 'pnpm test:assert',
     testLabel: testAppPath,
   };
 }
@@ -198,8 +196,8 @@ async function run(): Promise<void> {
       const { buildCommand, assertCommand, testLabel, matchedVariantLabel } = variantLabel
         ? await getVariantBuildCommand(join(tmpDirPath, 'package.json'), variantLabel, testAppPath)
         : {
-            buildCommand: 'volta run pnpm test:build',
-            assertCommand: 'volta run pnpm test:assert',
+            buildCommand: 'pnpm test:build',
+            assertCommand: 'pnpm test:assert',
             testLabel: testAppPath,
           };
 
@@ -212,9 +210,7 @@ async function run(): Promise<void> {
       await asyncExec(buildCommand, { env, cwd });
 
       console.log(`Testing ${testLabel}...`);
-      // Use the variant's assert command if available, otherwise use default
-      // Construct the full command as a string to handle environment variables (e.g., NODE_VERSION=20)
-      // and append test flags
+      // Append test flags to assert command
       const fullAssertCommand = testFlags.length > 0 ? `${assertCommand} ${testFlags.join(' ')}` : assertCommand;
       await asyncExec(fullAssertCommand, { env, cwd });
 
