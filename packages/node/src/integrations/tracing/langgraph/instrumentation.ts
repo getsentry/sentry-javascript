@@ -31,8 +31,8 @@ export class SentryLangGraphInstrumentation extends InstrumentationBase<LangGrap
   /**
    * Initializes the instrumentation by defining the modules to be patched.
    */
-  public init(): InstrumentationModuleDefinition {
-    const module = new InstrumentationNodeModuleDefinition(
+  public init(): InstrumentationModuleDefinition[] {
+    const mainModule = new InstrumentationNodeModuleDefinition(
       '@langchain/langgraph',
       supportedVersions,
       this._patch.bind(this),
@@ -50,6 +50,15 @@ export class SentryLangGraphInstrumentation extends InstrumentationBase<LangGrap
           this._patch.bind(this),
           exports => exports,
         ),
+      ],
+    );
+
+    const prebuiltModule = new InstrumentationNodeModuleDefinition(
+      '@langchain/langgraph/prebuilt',
+      supportedVersions,
+      this._patch.bind(this),
+      exports => exports,
+      [
         new InstrumentationNodeModuleFile(
           /**
            * Patch the prebuilt subpath exports for CJS.
@@ -62,7 +71,8 @@ export class SentryLangGraphInstrumentation extends InstrumentationBase<LangGrap
         ),
       ],
     );
-    return module;
+
+    return [mainModule, prebuiltModule];
   }
 
   /**
