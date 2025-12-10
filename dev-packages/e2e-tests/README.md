@@ -25,6 +25,14 @@ Or run only a single E2E test app:
 yarn test:run <app-name>
 ```
 
+Or you can run a single E2E test app with a specific variant:
+
+```bash
+yarn test:run <app-name> --variant <variant-name>
+```
+
+Variant name matching is case-insensitive and partial. For example, `--variant 13` will match `nextjs-pages-dir (next@13)` if a matching variant is present in the test app's `package.json`.
+
 ## How they work
 
 Before running any tests we launch a fake test registry (in our case [Verdaccio](https://verdaccio.org/docs/e2e/)), we

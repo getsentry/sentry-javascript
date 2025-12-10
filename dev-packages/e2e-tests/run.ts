@@ -1,12 +1,24 @@
 /* eslint-disable no-console */
 import { spawn } from 'child_process';
 import * as dotenv from 'dotenv';
-import { mkdtemp, rm } from 'fs/promises';
+import { mkdtemp, readFile, rm } from 'fs/promises';
 import { sync as globSync } from 'glob';
 import { tmpdir } from 'os';
 import { join, resolve } from 'path';
 import { copyToTemp } from './lib/copyToTemp';
 import { registrySetup } from './registrySetup';
+
+interface SentryTestVariant {
+  'build-command': string;
+  label: string;
+}
+
+interface PackageJson {
+  sentryTest?: {
+    variants?: SentryTestVariant[];
+    optionalVariants?: SentryTestVariant[];
+  };
+}
 
 const DEFAULT_DSN = 'https://username@domain/123';
 const DEFAULT_SENTRY_ORG_SLUG = 'sentry-javascript-sdks';
@@ -58,6 +70,47 @@ function asyncExec(
   });
 }
 
+function findMatchingVariant(variants: SentryTestVariant[], variantLabel: string): SentryTestVariant | undefined {
+  const variantLabelLower = variantLabel.toLowerCase();
+
+  return variants.find(variant => variant.label.toLowerCase().includes(variantLabelLower));
+}
+
+async function getVariantBuildCommand(
+  packageJsonPath: string,
+  variantLabel: string,
+  testAppPath: string,
+): Promise<{ buildCommand: string; testLabel: string; matchedVariantLabel?: string }> {
+  try {
+    const packageJsonContent = await readFile(packageJsonPath, 'utf-8');
+    const packageJson: PackageJson = JSON.parse(packageJsonContent);
+
+    const allVariants = [
+      ...(packageJson.sentryTest?.variants || []),
+      ...(packageJson.sentryTest?.optionalVariants || []),
+    ];
+
+    const matchingVariant = findMatchingVariant(allVariants, variantLabel);
+
+    if (matchingVariant) {
+      return {
+        buildCommand: `volta run ${matchingVariant['build-command']}`,
+        testLabel: matchingVariant.label,
+        matchedVariantLabel: matchingVariant.label,
+      };
+    }
+
+    console.log(`No matching variant found for "${variantLabel}" in ${testAppPath}, using default build`);
+  } catch (error) {
+    console.log(`Could not read variants from package.json for ${testAppPath}, using default build`);
+  }
+
+  return {
+    buildCommand: 'volta run pnpm test:build',
+    testLabel: testAppPath,
+  };
+}
+
 async function run(): Promise<void> {
   // Load environment variables from .env file locally
   dotenv.config();
@@ -65,7 +118,36 @@ async function run(): Promise<void> {
   // Allow to run a single app only via `yarn test:run <app-name>`
   const appName = process.argv[2] || '';
   // Forward any additional flags to the test command
-  const testFlags = process.argv.slice(3);
+  const allTestFlags = process.argv.slice(3);
+
+  // Check for --variant flag
+  let variantLabel: string | undefined;
+  let skipNextFlag = false;
+
+  const testFlags = allTestFlags.filter((flag, index) => {
+    // Skip this flag if it was marked to skip (variant value after --variant)
+    if (skipNextFlag) {
+      skipNextFlag = false;
+      return false;
+    }
+
+    // Handle --variant=<value> format
+    if (flag.startsWith('--variant=')) {
+      variantLabel = flag.split('=')[1];
+      return false; // Remove this flag from testFlags
+    }
+
+    // Handle --variant <value> format
+    if (flag === '--variant') {
+      if (index + 1 < allTestFlags.length) {
+        variantLabel = allTestFlags[index + 1];
+        skipNextFlag = true; // Mark next flag to be skipped
+      }
+      return false;
+    }
+
+    return true;
+  });
 
   const dsn = process.env.E2E_TEST_DSN || DEFAULT_DSN;
 
@@ -107,11 +189,20 @@ async function run(): Promise<void> {
 
       await copyToTemp(originalPath, tmpDirPath);
       const cwd = tmpDirPath;
+      // Resolve variant if needed
+      const { buildCommand, testLabel, matchedVariantLabel } = variantLabel
+        ? await getVariantBuildCommand(join(tmpDirPath, 'package.json'), variantLabel, testAppPath)
+        : { buildCommand: 'volta run pnpm test:build', testLabel: testAppPath };
 
-      console.log(`Building ${testAppPath} in ${tmpDirPath}...`);
-      await asyncExec('volta run pnpm test:build', { env, cwd });
+      // Print which variant we're using if found
+      if (matchedVariantLabel) {
+        console.log(`Using variant: "${matchedVariantLabel}"`);
+      }
 
-      console.log(`Testing ${testAppPath}...`);
+      console.log(`Building ${testLabel} in ${tmpDirPath}...`);
+      await asyncExec(buildCommand, { env, cwd });
+
+      console.log(`Testing ${testLabel}...`);
       // Pass command and arguments as an array to prevent command injection
       const testCommand = ['volta', 'run', 'pnpm', 'test:assert', ...testFlags];
       await asyncExec(testCommand, { env, cwd });
