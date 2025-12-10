@@ -139,7 +139,7 @@ async function run(): Promise<void> {
       const value = flag.split('=')[1];
       const trimmedValue = value?.trim();
       if (trimmedValue) {
-        variantLabel = value;
+        variantLabel = trimmedValue;
       } else {
         console.warn('Warning: --variant= specified but no value provided. Ignoring variant flag.');
       }
@@ -152,7 +152,7 @@ async function run(): Promise<void> {
         const value = allTestFlags[index + 1];
         const trimmedValue = value?.trim();
         if (trimmedValue) {
-          variantLabel = value;
+          variantLabel = trimmedValue;
           skipNextFlag = true; // Mark next flag to be skipped
         } else {
           console.warn('Warning: --variant specified but no value provided. Ignoring variant flag.');
@@ -217,16 +217,16 @@ async function run(): Promise<void> {
 
       // Print which variant we're using if found
       if (matchedVariantLabel) {
-        console.log(`Using variant: "${matchedVariantLabel}"`);
+        console.log(`\n\nUsing variant: "${matchedVariantLabel}"\n\n`);
       }
 
       console.log(`Building ${testLabel} in ${tmpDirPath}...`);
-      await asyncExec(buildCommand, { env, cwd });
+      await asyncExec(`volta run ${buildCommand}`, { env, cwd });
 
       console.log(`Testing ${testLabel}...`);
-      // Append test flags to assert command
-      const fullAssertCommand = testFlags.length > 0 ? `${assertCommand} ${testFlags.join(' ')}` : assertCommand;
-      await asyncExec(fullAssertCommand, { env, cwd });
+      // Pass command and arguments as an array to prevent command injection
+      const testCommand = ['volta', 'run', ...assertCommand.split(' '), ...testFlags];
+      await asyncExec(testCommand, { env, cwd });
 
       // clean up (although this is tmp, still nice to do)
       await rm(tmpDirPath, { recursive: true });
