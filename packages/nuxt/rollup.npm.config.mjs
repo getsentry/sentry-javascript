@@ -8,6 +8,7 @@ export default [
         'src/index.client.ts',
         'src/client/index.ts',
         'src/server/index.ts',
+        'src/index.types.ts',
         'src/module.ts',
       ],
       packageSpecificConfig: {

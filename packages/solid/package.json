@@ -31,21 +31,21 @@
     },
     "./solidrouter": {
       "import": {
-        "types": "./solidrouter.d.ts",
+        "types": "./build/esm/solidrouter.d.ts",
         "default": "./build/esm/solidrouter.js"
       },
       "require": {
-        "types": "./solidrouter.d.ts",
+        "types": "./build/esm/solidrouter.d.ts",
         "default": "./build/cjs/solidrouter.js"
       }
     },
     "./tanstackrouter": {
       "import": {
-        "types": "./tanstackrouter.d.ts",
+        "types": "./build/esm/tanstackrouter.d.ts",
         "default": "./build/esm/tanstackrouter.js"
       },
       "require": {
-        "types": "./tanstackrouter.d.ts",
+        "types": "./build/esm/tanstackrouter.d.ts",
         "default": "./build/cjs/tanstackrouter.js"
       }
     }
