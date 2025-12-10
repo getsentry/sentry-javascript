@@ -362,11 +362,16 @@ function getFinalConfigObject(
     resolved: spotlightConfig,
     isTurbopack,
     isWebpack,
+    isTurbopackSupported,
   });
 
   let turboPackConfig: TurbopackOptions | undefined;
 
-  if (isTurbopack) {
+  // IMPORTANT: Always construct turbopack config if the Next.js version supports it,
+  // regardless of detected bundler. This is because Next.js 15+ uses Turbopack by
+  // default for `next dev` without setting TURBOPACK=1, so our detection may be wrong.
+  // Applying turbopack config when webpack is used is safe (webpack ignores it).
+  if (isTurbopack || isTurbopackSupported) {
     turboPackConfig = constructTurbopackConfig({
       userNextConfig: incomingUserNextConfigObject,
       userSentryOptions,
@@ -480,7 +485,10 @@ function getFinalConfigObject(
           }),
         }
       : {}),
-    ...(isTurbopackSupported && isTurbopack
+    // Always apply turbopack config if supported, regardless of detected bundler.
+    // Next.js 15+ uses Turbopack by default for `next dev` without setting TURBOPACK=1,
+    // so we can't reliably detect which bundler will be used. Safe to apply both configs.
+    ...(isTurbopackSupported && turboPackConfig
       ? {
           turbopack: turboPackConfig,
         }
