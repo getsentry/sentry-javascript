@@ -4,11 +4,11 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite --port 3030",
+    "dev": "vite",
     "build": "rm -rf dist && tsc && vite build",
     "preview": "vite preview --port 3030",
     "test": "playwright test",
-    "test:build": "pnpm install",
+    "test:build": "pnpm install && pnpm build",
     "test:assert": "pnpm test"
   },
   "devDependencies": {
