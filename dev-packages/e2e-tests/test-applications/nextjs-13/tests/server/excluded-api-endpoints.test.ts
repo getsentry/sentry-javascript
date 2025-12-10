@@ -16,7 +16,7 @@ test('should not apply build-time instrumentation for routes that were excluded 
   const transaction = await transactionPromise;
 
   expect(transaction.contexts?.trace?.data?.['sentry.origin']).toBeDefined();
-  expect(transaction.contexts?.trace?.data?.['sentry.origin']).not.toBe('auto.http.nextjs'); // This is the origin set by the build time instrumentation
+  expect(transaction.contexts?.trace?.data?.['sentry.origin']).toBe('auto');
 });
 
 test('should not apply build-time instrumentation for routes that were excluded from auto wrapping (regex)', async ({
@@ -34,5 +34,5 @@ test('should not apply build-time instrumentation for routes that were excluded 
   const transaction = await transactionPromise;
 
   expect(transaction.contexts?.trace?.data?.['sentry.origin']).toBeDefined();
-  expect(transaction.contexts?.trace?.data?.['sentry.origin']).not.toBe('auto.http.nextjs'); // This is the origin set by the build time instrumentation
+  expect(transaction.contexts?.trace?.data?.['sentry.origin']).toBe('auto');
 });
