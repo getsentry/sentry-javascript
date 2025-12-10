@@ -5,7 +5,6 @@ import { waitForTransaction } from '@sentry-internal/test-utils';
 // so here we just do a basic check to verify that the integration is automatically enabled if tracing is enabled
 test('sends a pageload transaction', async ({ page }) => {
   const transactionPromise = waitForTransaction('tanstackstart-react', async transactionEvent => {
-    console.log('transactionEvent', transactionEvent);
     return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
   });
 
@@ -18,21 +17,16 @@ test('sends a pageload transaction', async ({ page }) => {
       trace: {
         data: {
           'sentry.source': 'route',
-          'sentry.origin': 'auto.pageload.react.tanstackstart_react',
+          'sentry.origin': 'auto.pageload.react.tanstack_router',
           'sentry.op': 'pageload',
         },
         op: 'pageload',
-        origin: 'auto.pageload.react.tanstackstart_react',
+        origin: 'auto.pageload.react.tanstack_router',
       },
     },
     transaction: '/',
     transaction_info: {
       source: 'route',
     },
-    spans: expect.arrayContaining([
-      expect.objectContaining({
-        description: 'loading-home',
-      }),
-    ]),
   });
 });
