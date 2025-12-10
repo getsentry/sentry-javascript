@@ -8,7 +8,7 @@
     "inlineSources": true,
     "isolatedModules": true,
     "lib": ["es2020"],
-    "moduleResolution": "node",
+    "moduleResolution": "Bundler",
     "noErrorTruncation": true,
     "noFallthroughCasesInSwitch": true,
     "noImplicitReturns": true,
