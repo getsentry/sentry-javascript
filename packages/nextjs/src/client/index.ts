@@ -152,13 +152,30 @@ function getDefaultIntegrations(options: BrowserOptions): Integration[] {
   const processEnvSpotlight = process.env._sentrySpotlight;
   const globalSpotlight = globalWithInjectedValues._sentrySpotlight;
   const manualSpotlight = globalWithInjectedValues._sentrySpotlightManual;
-  const spotlightEnvValue = processEnvSpotlight || globalSpotlight || manualSpotlight;
+  // Also check raw globalThis directly in case GLOBAL_OBJ differs
+  const rawGlobalThis = typeof globalThis !== 'undefined' ? globalThis : undefined;
+  const rawManualSpotlight = rawGlobalThis ? (rawGlobalThis as Record<string, unknown>)._sentrySpotlightManual : undefined;
+  const spotlightEnvValue = processEnvSpotlight || globalSpotlight || manualSpotlight || rawManualSpotlight;
+
+  // Expose debug info on globalThis for test verification
+  if (rawGlobalThis) {
+    (rawGlobalThis as Record<string, unknown>)._sentrySpotlightDebug = {
+      processEnvSpotlight,
+      globalSpotlight,
+      manualSpotlight,
+      rawManualSpotlight,
+      spotlightEnvValue,
+      optionsSpotlight: options.spotlight,
+      GLOBAL_OBJ_keys: Object.keys(GLOBAL_OBJ),
+    };
+  }
 
   // eslint-disable-next-line no-console
   console.log('[Sentry Next.js DEBUG] Spotlight detection:', {
     'process.env._sentrySpotlight': processEnvSpotlight,
     'globalThis._sentrySpotlight': globalSpotlight,
     'globalThis._sentrySpotlightManual': manualSpotlight,
+    'rawGlobalThis._sentrySpotlightManual': rawManualSpotlight,
     resolved: spotlightEnvValue,
     'options.spotlight': options.spotlight,
   });

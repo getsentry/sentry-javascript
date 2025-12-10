@@ -11,6 +11,8 @@ const INTERNAL_SPOTLIGHT_PROCESS_ENV = process.env._sentrySpotlight;
 const INTERNAL_SPOTLIGHT_GLOBAL = typeof globalThis !== 'undefined' ? globalThis._sentrySpotlight : 'globalThis undefined';
 // @ts-expect-error - accessing manual global set in instrumentation-client.ts
 const MANUAL_SPOTLIGHT_GLOBAL = typeof globalThis !== 'undefined' ? globalThis._sentrySpotlightManual : 'globalThis undefined';
+// @ts-expect-error - accessing SDK debug info
+const SDK_DEBUG_INFO = typeof globalThis !== 'undefined' ? globalThis._sentrySpotlightDebug : undefined;
 
 export default function SpotlightTestPage() {
   const [spotlightEnabled, setSpotlightEnabled] = useState<boolean | null>(null);
@@ -33,6 +35,7 @@ export default function SpotlightTestPage() {
       internalProcessEnv: INTERNAL_SPOTLIGHT_PROCESS_ENV,
       internalGlobal: INTERNAL_SPOTLIGHT_GLOBAL,
       manualGlobal: MANUAL_SPOTLIGHT_GLOBAL,
+      sdkDebugInfo: SDK_DEBUG_INFO,
       integrationFound: !!integration,
       clientExists: !!client,
       integrationNames: intNames,
@@ -49,6 +52,11 @@ export default function SpotlightTestPage() {
         <p>process.env._sentrySpotlight: {String(INTERNAL_SPOTLIGHT_PROCESS_ENV) || 'undefined'}</p>
         <p>globalThis._sentrySpotlight: {String(INTERNAL_SPOTLIGHT_GLOBAL) || 'undefined'}</p>
         <p>globalThis._sentrySpotlightManual: {String(MANUAL_SPOTLIGHT_GLOBAL) || 'undefined'}</p>
+      </div>
+
+      <div data-testid="sdk-debug">
+        <h2>SDK Debug Info (what SDK saw during init)</h2>
+        <pre>{SDK_DEBUG_INFO ? JSON.stringify(SDK_DEBUG_INFO, null, 2) : 'No debug info'}</pre>
       </div>
 
       <div data-testid="spotlight-status">

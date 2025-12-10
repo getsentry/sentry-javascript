@@ -13,12 +13,13 @@ test.describe('Spotlight auto-enablement in Next.js development mode', () => {
 
     // Get diagnostic info before asserting
     const integrationNames = await page.getByTestId('integration-names').textContent();
+    const sdkDebug = await page.getByTestId('sdk-debug').textContent();
 
     // Check Spotlight integration is enabled
     const spotlightStatus = await page.getByTestId('spotlight-enabled').textContent();
     expect(
       spotlightStatus,
-      `Spotlight should be ENABLED.\nEnv values: ${envValue}\nIntegrations: ${integrationNames}`,
+      `Spotlight should be ENABLED.\nEnv values: ${envValue}\nSDK Debug: ${sdkDebug}\nIntegrations: ${integrationNames}`,
     ).toBe('ENABLED');
   });
 
