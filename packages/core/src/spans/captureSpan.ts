@@ -126,12 +126,36 @@ function getFinalScopeData(isolationScope: Scope | undefined, scope: Scope | und
   return finalScopeData;
 }
 
+// TODO: This should likely live in the Context integration since most of this data is only avialable in server runtime contexts
 function contextsToAttributes(contexts: Contexts): RawAttributes<Record<string, unknown>> {
   return {
+    // os context
     'os.build_id': contexts.os?.build,
     'os.name': contexts.os?.name,
     'os.version': contexts.os?.version,
     // TODO: Add to Sentry SemConv
     'os.kernel_version': contexts.os?.kernel_version,
+
+    // runtime context
+    // TODO: Add to Sentry SemConv
+    'runtime.name': contexts.runtime?.name,
+    // TODO: Add to Sentry SemConv
+    'runtime.version': contexts.runtime?.version,
+
+    // TODO: All of them need to be added to Sentry SemConv (except family and model)
+    ...(contexts.app
+      ? Object.fromEntries(Object.entries(contexts.app).map(([key, value]) => [`app.${key}`, value]))
+      : {}),
+    ...(contexts.device
+      ? Object.fromEntries(Object.entries(contexts.device).map(([key, value]) => [`device.${key}`, value]))
+      : {}),
+    ...(contexts.culture
+      ? Object.fromEntries(Object.entries(contexts.culture).map(([key, value]) => [`culture.${key}`, value]))
+      : {}),
+    ...(contexts.cloud_resource
+      ? Object.fromEntries(
+          Object.entries(contexts.cloud_resource).map(([key, value]) => [`cloud_resource.${key}`, value]),
+        )
+      : {}),
   };
 }
