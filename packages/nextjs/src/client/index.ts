@@ -156,10 +156,15 @@ function getDefaultIntegrations(options: BrowserOptions): Integration[] {
   const windowObj = typeof window !== 'undefined' ? window : undefined;
   const windowSpotlight = windowObj ? (windowObj as unknown as Record<string, unknown>)._sentrySpotlight : undefined;
 
-  const spotlightEnvValue: string | undefined =
-    processEnvSpotlight ||
-    globalSpotlight ||
-    (typeof windowSpotlight === 'string' ? windowSpotlight : undefined);
+  // Convert window value to string if it's a boolean or other type
+  const windowSpotlightStr =
+    typeof windowSpotlight === 'string'
+      ? windowSpotlight
+      : typeof windowSpotlight === 'boolean'
+        ? String(windowSpotlight)
+        : undefined;
+
+  const spotlightEnvValue: string | undefined = processEnvSpotlight || globalSpotlight || windowSpotlightStr;
 
   if (spotlightEnvValue !== undefined && options.spotlight === undefined) {
     const boolValue = envToBool(spotlightEnvValue, { strict: true });

@@ -451,16 +451,11 @@ export function constructWebpackConfigFunction({
     // when NEXT_PUBLIC_SENTRY_SPOTLIGHT is set. We use DefinePlugin because Next.js
     // doesn't replace process.env.* in node_modules code.
     if (runtime === 'client' && spotlightConfig) {
-      // eslint-disable-next-line no-console
-      console.log('[@sentry/nextjs] Webpack DefinePlugin: Injecting process.env._sentrySpotlight =', JSON.stringify(spotlightConfig));
       newConfig.plugins.push(
         new buildContext.webpack.DefinePlugin({
           'process.env._sentrySpotlight': JSON.stringify(spotlightConfig),
         }),
       );
-    } else if (runtime === 'client') {
-      // eslint-disable-next-line no-console
-      console.log('[@sentry/nextjs] Webpack DefinePlugin: NOT injecting spotlight. runtime=', runtime, 'spotlightConfig=', spotlightConfig);
     }
 
     return newConfig;

@@ -38,8 +38,6 @@ export function generateValueInjectionRules({
   // Inject Spotlight config for client (Spotlight is a client-side feature)
   if (spotlightConfig) {
     clientValues._sentrySpotlight = spotlightConfig;
-    // eslint-disable-next-line no-console
-    console.log('[@sentry/nextjs] Turbopack: Injecting _sentrySpotlight =', spotlightConfig);
   }
 
   if (Object.keys(isomorphicValues).length > 0) {
