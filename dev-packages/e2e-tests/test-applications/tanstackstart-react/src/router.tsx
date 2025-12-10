@@ -12,7 +12,6 @@ export const getRouter = () => {
     Sentry.init({
       environment: 'qa', // dynamic sampling bias to keep transactions
       dsn: 'https://public@dsn.ingest.sentry.io/1337',
-      integrations: [Sentry.tanstackRouterBrowserTracingIntegration(router)],
       // We recommend adjusting this value in production, or using tracesSampler
       // for finer control
       tracesSampleRate: 1.0,
