@@ -355,6 +355,15 @@ function getFinalConfigObject(
   const spotlightConfig =
     incomingUserNextConfigObject.env?.NEXT_PUBLIC_SENTRY_SPOTLIGHT ?? process.env.NEXT_PUBLIC_SENTRY_SPOTLIGHT;
 
+  // eslint-disable-next-line no-console
+  console.log('[@sentry/nextjs] Spotlight config detection:', {
+    'env.NEXT_PUBLIC_SENTRY_SPOTLIGHT': incomingUserNextConfigObject.env?.NEXT_PUBLIC_SENTRY_SPOTLIGHT,
+    'process.env.NEXT_PUBLIC_SENTRY_SPOTLIGHT': process.env.NEXT_PUBLIC_SENTRY_SPOTLIGHT,
+    resolved: spotlightConfig,
+    isTurbopack,
+    isWebpack,
+  });
+
   let turboPackConfig: TurbopackOptions | undefined;
 
   if (isTurbopack) {

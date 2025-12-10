@@ -147,15 +147,31 @@ function getDefaultIntegrations(options: BrowserOptions): Integration[] {
   // The value is injected at build time:
   // - Webpack: via DefinePlugin which replaces process.env._sentrySpotlight
   // - Turbopack: via valueInjectionLoader which sets globalThis._sentrySpotlight
-  const spotlightEnvValue = process.env._sentrySpotlight || globalWithInjectedValues._sentrySpotlight;
+  const processEnvSpotlight = process.env._sentrySpotlight;
+  const globalSpotlight = globalWithInjectedValues._sentrySpotlight;
+  const spotlightEnvValue = processEnvSpotlight || globalSpotlight;
+
+  // eslint-disable-next-line no-console
+  console.log('[Sentry Next.js DEBUG] Spotlight detection:', {
+    'process.env._sentrySpotlight': processEnvSpotlight,
+    'globalThis._sentrySpotlight': globalSpotlight,
+    resolved: spotlightEnvValue,
+    'options.spotlight': options.spotlight,
+  });
+
   if (spotlightEnvValue !== undefined && options.spotlight === undefined) {
     const boolValue = envToBool(spotlightEnvValue, { strict: true });
     const spotlightConfig = boolValue !== null ? boolValue : spotlightEnvValue;
     const spotlightValue = resolveSpotlightOptions(undefined, spotlightConfig);
 
+    // eslint-disable-next-line no-console
+    console.log('[Sentry Next.js DEBUG] Spotlight resolved:', { boolValue, spotlightConfig, spotlightValue });
+
     if (spotlightValue) {
       const spotlightArgs = typeof spotlightValue === 'string' ? { sidecarUrl: spotlightValue } : undefined;
       customDefaultIntegrations.push(spotlightBrowserIntegration(spotlightArgs));
+      // eslint-disable-next-line no-console
+      console.log('[Sentry Next.js DEBUG] Spotlight integration ADDED');
     }
   }
 
