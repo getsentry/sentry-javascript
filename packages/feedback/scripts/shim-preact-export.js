@@ -1,8 +1,8 @@
 // preact does not support more modern TypeScript versions, which breaks our users that depend on older
 // TypeScript versions. To fix this, we shim the types from preact to be any and remove the dependency on preact
-// for types directly. This script is meant to be run after the build/npm/types-ts3.8 directory is created.
+// for types directly. This script is meant to be run after the build/npm/esm directory is created (where rolldown dts generates types).
 
-// Path: build/npm/types-ts3.8/global.d.ts
+// Path: build/npm/esm/global.d.ts
 
 const fs = require('fs');
 const path = require('path');
@@ -67,8 +67,8 @@ function walk(dir) {
 }
 
 function run() {
-  // recurse through build/npm/types-ts3.8 directory
-  const dir = path.join('build', 'npm', 'types-ts3.8');
+  // recurse through build/npm/esm directory (where rolldown dts generates types)
+  const dir = path.join('build', 'npm', 'esm');
   walk(dir);
 }
 

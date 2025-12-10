@@ -31,11 +31,11 @@
     },
     "./setup": {
       "import": {
-        "types": "./setup.d.ts",
+        "types": "./build/esm/setup.d.ts",
         "default": "./build/esm/setup.js"
       },
       "require": {
-        "types": "./setup.d.ts",
+        "types": "./build/esm/setup.d.ts",
         "default": "./build/cjs/setup.js"
       }
     }
