@@ -8,7 +8,6 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: resolve(__dirname, 'index.html'),
-        'spotlight-env-test': resolve(__dirname, 'spotlight-env-test.html'),
       },
     },
   },
