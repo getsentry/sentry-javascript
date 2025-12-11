@@ -143,23 +143,27 @@ function getDefaultIntegrations(options: BrowserOptions): Integration[] {
     }),
   );
 
-  // Add Spotlight integration if enabled via NEXT_PUBLIC_SENTRY_SPOTLIGHT env var.
-  // The env var is injected by the Next.js build config:
-  // - Webpack: valueInjectionLoader sets globalThis.NEXT_PUBLIC_SENTRY_SPOTLIGHT
-  // - Turbopack: valueInjectionLoader sets globalThis.NEXT_PUBLIC_SENTRY_SPOTLIGHT
+  // Add Spotlight integration if enabled via:
+  // 1. NEXT_PUBLIC_SENTRY_SPOTLIGHT env var (injected by Next.js build config)
+  // 2. Explicit `spotlight` option in Sentry.init()
+  //
   // We handle this in the Next.js SDK rather than the browser SDK because the browser SDK's
   // auto-detection is development-only (stripped from production builds that users install).
   const spotlightEnvValue = globalWithInjectedValues.NEXT_PUBLIC_SENTRY_SPOTLIGHT;
-  if (spotlightEnvValue !== undefined) {
-    // Parse the env var value (could be 'true', 'false', or a URL)
-    const boolValue = envToBool(spotlightEnvValue, { strict: true });
-    const envSpotlight = boolValue !== null ? boolValue : spotlightEnvValue;
-    const spotlightValue = resolveSpotlightOptions(options.spotlight, envSpotlight);
 
-    if (spotlightValue) {
-      const args = typeof spotlightValue === 'string' ? { sidecarUrl: spotlightValue } : undefined;
-      customDefaultIntegrations.push(spotlightBrowserIntegration(args));
-    }
+  // Parse the env var value if present (could be 'true', 'false', or a URL)
+  let envSpotlight: boolean | string | undefined;
+  if (spotlightEnvValue !== undefined) {
+    const boolValue = envToBool(spotlightEnvValue, { strict: true });
+    envSpotlight = boolValue !== null ? boolValue : spotlightEnvValue;
+  }
+
+  // Resolve the final Spotlight config: explicit option takes precedence over env var
+  const spotlightValue = resolveSpotlightOptions(options.spotlight, envSpotlight);
+
+  if (spotlightValue) {
+    const args = typeof spotlightValue === 'string' ? { sidecarUrl: spotlightValue } : undefined;
+    customDefaultIntegrations.push(spotlightBrowserIntegration(args));
   }
 
   return customDefaultIntegrations;
