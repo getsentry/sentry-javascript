@@ -27,14 +27,10 @@ export const httpContextIntegration = defineIntegration(() => {
 
             const attributeHeaders = httpHeadersToSpanAttributes(headers);
 
-            safeSetSpanJSONAttributes(
-              spanJSON,
-              {
-                [SEMANTIC_ATTRIBUTE_URL_FULL]: url,
-                ...attributeHeaders,
-              },
-              spanJSON.attributes,
-            );
+            safeSetSpanJSONAttributes(spanJSON, {
+              [SEMANTIC_ATTRIBUTE_URL_FULL]: url,
+              ...attributeHeaders,
+            });
           }
         });
       }
