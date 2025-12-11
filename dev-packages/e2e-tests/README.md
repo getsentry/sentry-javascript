@@ -33,6 +33,29 @@ yarn test:run <app-name> --variant <variant-name>
 
 Variant name matching is case-insensitive and partial. For example, `--variant 13` will match `nextjs-pages-dir (next@13)` if a matching variant is present in the test app's `package.json`.
 
+For example, if you have the following variants in your test app's `package.json`:
+
+```json
+"sentryTest": {
+  "variants": [
+    {
+      "build-command": "pnpm test:build-13",
+      "label": "nextjs-pages-dir (next@13)"
+    },
+    {
+      "build-command": "pnpm test:build-13-canary",
+      "label": "nextjs-pages-dir (next@13-canary)"
+    },
+    {
+      "build-command": "pnpm test:build-15",
+      "label": "nextjs-pages-dir (next@15)"
+    }
+  ]
+}
+```
+
+If you run `yarn test:run nextjs-pages-dir --variant 13`, it will match against the very first matching variant, which is `nextjs-pages-dir (next@13)`. If you need to target the second variant in the example, you need to be more specific and use `--variant 13-canary`.
+
 ## How they work
 
 Before running any tests we launch a fake test registry (in our case [Verdaccio](https://verdaccio.org/docs/e2e/)), we
