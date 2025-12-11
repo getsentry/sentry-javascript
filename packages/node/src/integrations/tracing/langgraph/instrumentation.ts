@@ -6,7 +6,7 @@ import {
   InstrumentationNodeModuleFile,
 } from '@opentelemetry/instrumentation';
 import type { CompiledGraph, LangGraphOptions } from '@sentry/core';
-import { getClient, instrumentStateGraphCompile, instrumentCreateReactAgent, SDK_VERSION } from '@sentry/core';
+import { getClient, instrumentCreateReactAgent, instrumentStateGraphCompile, SDK_VERSION } from '@sentry/core';
 
 const supportedVersions = ['>=0.0.0 <2.0.0'];
 
@@ -31,11 +31,11 @@ export class SentryLangGraphInstrumentation extends InstrumentationBase<LangGrap
   /**
    * Initializes the instrumentation by defining the modules to be patched.
    */
-  public init(): InstrumentationModuleDefinition[] {
-    const mainModule = new InstrumentationNodeModuleDefinition(
+  public init(): InstrumentationModuleDefinition {
+    const module = new InstrumentationNodeModuleDefinition(
       '@langchain/langgraph',
       supportedVersions,
-      this._patchMainModule.bind(this),
+      this._patch.bind(this),
       exports => exports,
       [
         new InstrumentationNodeModuleFile(
@@ -43,45 +43,45 @@ export class SentryLangGraphInstrumentation extends InstrumentationBase<LangGrap
            * In CJS, LangGraph packages re-export from dist/index.cjs files.
            * Patching only the root module sometimes misses the real implementation or
            * gets overwritten when that file is loaded. We add a file-level patch so that
-           * _patchMainModule runs again on the concrete implementation
-          */
+           * _patch runs again on the concrete implementation
+           */
           '@langchain/langgraph/dist/index.cjs',
           supportedVersions,
-          this._patchMainModule.bind(this),
+          this._patch.bind(this),
           exports => exports,
         ),
-      ],
-    );
-
-    const prebuiltModule = new InstrumentationNodeModuleDefinition(
-      '@langchain/langgraph/prebuilt',
-      supportedVersions,
-      this._patchPrebuiltModule.bind(this),
-      exports => exports,
-      [
         new InstrumentationNodeModuleFile(
           /**
            * In CJS, LangGraph packages re-export from dist/prebuilt/index.cjs files.
            * Patching only the root module sometimes misses the real implementation or
            * gets overwritten when that file is loaded. We add a file-level patch so that
-           * _patchPrebuiltModule runs again on the concrete implementation
-          */
+           * _patch runs again on the concrete implementation
+           */
           '@langchain/langgraph/dist/prebuilt/index.cjs',
           supportedVersions,
-          this._patchPrebuiltModule.bind(this),
+          this._patch.bind(this),
           exports => exports,
         ),
       ],
     );
-
-    return [mainModule, prebuiltModule];
+    return module;
   }
 
   /**
-   * Patch logic applying instrumentation to the LangGraph main module.
+   * Core patch logic applying instrumentation to the LangGraph module.
    */
-  private _patchMainModule(exports: PatchedModuleExports): PatchedModuleExports | void {
-    const options = this._getOptions();
+  private _patch(exports: PatchedModuleExports): PatchedModuleExports | void {
+    const client = getClient();
+    const defaultPii = Boolean(client?.getOptions().sendDefaultPii);
+
+    const config = this.getConfig();
+    const recordInputs = config.recordInputs ?? defaultPii;
+    const recordOutputs = config.recordOutputs ?? defaultPii;
+
+    const options: LangGraphOptions = {
+      recordInputs,
+      recordOutputs,
+    };
 
     // Patch StateGraph.compile to instrument both compile() and invoke()
     if (exports.StateGraph && typeof exports.StateGraph === 'function') {
@@ -95,37 +95,18 @@ export class SentryLangGraphInstrumentation extends InstrumentationBase<LangGrap
       );
     }
 
-    return exports;
-  }
-
-  /**
-   * Patch logic applying instrumentation to the LangGraph prebuilt module.
-   */
-  private _patchPrebuiltModule(exports: PatchedModuleExports): PatchedModuleExports | void {
-    const options = this._getOptions();
-
     // Patch createReactAgent to instrument the agent creation and invocation
-    if (exports.createReactAgent && typeof exports.createReactAgent === 'function') {
-      exports.createReactAgent = instrumentCreateReactAgent(
-        exports.createReactAgent as (...args: unknown[]) => CompiledGraph,
+    const originalCreateReactAgent = exports.createReactAgent;
+    Object.defineProperty(exports, 'createReactAgent', {
+      value: instrumentCreateReactAgent(
+        originalCreateReactAgent as (...args: unknown[]) => CompiledGraph,
         options,
-      );
-    }
+      ),
+      writable: true,
+      enumerable: true,
+      configurable: true,
+    });
 
     return exports;
-  }
-
-  /**
-   * Helper to get instrumentation options
-   */
-  private _getOptions(): LangGraphOptions {
-    const client = getClient();
-    const defaultPii = Boolean(client?.getOptions().sendDefaultPii);
-    const config = this.getConfig();
-
-    return {
-      recordInputs: config.recordInputs ?? defaultPii,
-      recordOutputs: config.recordOutputs ?? defaultPii,
-    };
   }
 }
