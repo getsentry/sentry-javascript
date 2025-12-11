@@ -108,6 +108,7 @@ export function constructWebpackConfigFunction({
       releaseName,
       routeManifest,
       nextJsVersion,
+      spotlightConfig,
     });
 
     addOtelWarningIgnoreRule(newConfig);
@@ -447,18 +448,6 @@ export function constructWebpackConfigFunction({
       }),
     );
 
-    // Inject Spotlight config for client builds so the browser SDK can auto-enable Spotlight.
-    // Next.js doesn't replace process.env.NEXT_PUBLIC_* in node_modules code, so we use
-    // DefinePlugin to inject the value directly. The browser SDK's getSpotlightConfig()
-    // already checks for NEXT_PUBLIC_SENTRY_SPOTLIGHT.
-    if (runtime === 'client' && spotlightConfig) {
-      newConfig.plugins.push(
-        new buildContext.webpack.DefinePlugin({
-          'process.env.NEXT_PUBLIC_SENTRY_SPOTLIGHT': JSON.stringify(spotlightConfig),
-        }),
-      );
-    }
-
     return newConfig;
   };
 }
@@ -725,6 +714,7 @@ function addValueInjectionLoader({
   releaseName,
   routeManifest,
   nextJsVersion,
+  spotlightConfig,
 }: {
   newConfig: WebpackConfigObjectWithModuleRules;
   userNextConfig: NextConfigObject;
@@ -733,6 +723,7 @@ function addValueInjectionLoader({
   releaseName: string | undefined;
   routeManifest: RouteManifest | undefined;
   nextJsVersion: string | undefined;
+  spotlightConfig: string | undefined;
 }): void {
   const assetPrefix = userNextConfig.assetPrefix || userNextConfig.basePath || '';
 
@@ -777,6 +768,9 @@ function addValueInjectionLoader({
       ? 'true'
       : undefined,
     _sentryRouteManifest: JSON.stringify(routeManifest),
+    // Inject Spotlight config so the browser SDK can auto-enable Spotlight.
+    // The browser SDK's getEnvValue() checks globalThis as a fallback for bundler-injected values.
+    NEXT_PUBLIC_SENTRY_SPOTLIGHT: spotlightConfig,
   };
 
   if (buildContext.isServer) {
