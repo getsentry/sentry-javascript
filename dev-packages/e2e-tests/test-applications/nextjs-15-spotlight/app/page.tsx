@@ -44,9 +44,7 @@ export default function SpotlightTestPage() {
         <p data-testid="spotlight-enabled">
           {spotlightEnabled === null ? 'Loading...' : spotlightEnabled ? 'ENABLED' : 'DISABLED'}
         </p>
-        <p data-testid="integration-names">
-          Integrations: {integrationNames.join(', ') || 'none'}
-        </p>
+        <p data-testid="integration-names">Integrations: {integrationNames.join(', ') || 'none'}</p>
       </div>
     </div>
   );
