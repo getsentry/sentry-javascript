@@ -81,7 +81,7 @@ export default Sentry.withSentry(
     },
   }),
   {
-    async fetch(request, env) {
+    async fetch(request, env, ctx) {
       const url = new URL(request.url);
       switch (url.pathname) {
         case '/rpc/throwException':
@@ -96,6 +96,20 @@ export default Sentry.withSentry(
             }
           }
           break;
+        case '/waitUntil':
+          console.log('waitUntil called');
+
+          const longRunningTask = async () => {
+            await new Promise(resolve => setTimeout(resolve, 3000));
+
+            console.log('ʕっ•ᴥ•ʔっ');
+            Sentry.captureException(new Error('ʕノ•ᴥ•ʔノ ︵ ┻━┻'));
+          };
+
+          ctx.waitUntil(longRunningTask());
+
+          return new Response(null, { status: 200 });
+
         case '/throwException':
           throw new Error('To be recorded in Sentry.');
         default:

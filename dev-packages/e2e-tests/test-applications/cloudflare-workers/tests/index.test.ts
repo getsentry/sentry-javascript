@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
-import { waitForError, waitForRequest } from '@sentry-internal/test-utils';
+import { waitForError, waitForRequest, waitForTransaction } from '@sentry-internal/test-utils';
 import { SDK_VERSION } from '@sentry/cloudflare';
+import { waitForDebugger } from 'inspector';
 import { WebSocket } from 'ws';
 
 test('Index page', async ({ baseURL }) => {
@@ -81,4 +82,30 @@ test('sends user-agent header with SDK name and version in envelope requests', a
   expect(request.rawProxyRequestHeaders).toMatchObject({
     'user-agent': `sentry.javascript.cloudflare/${SDK_VERSION}`,
   });
+});
+
+test('waitUntil', async ({ baseURL }) => {
+  const errorWaiter = waitForError('cloudflare-workers', () => true);
+  const waitUntilSpanWaiter = waitForTransaction('cloudflare-workers', span => span.transaction === 'waitUntil');
+  const httpTransactionWaiter = waitForTransaction(
+    'cloudflare-workers',
+    transactionEvent => transactionEvent.contexts?.trace?.op === 'http.server',
+  );
+
+  const response = await fetch(`${baseURL}/waitUntil`);
+
+  const transactionRequest = await httpTransactionWaiter;
+  const waitUntilSpan = await waitUntilSpanWaiter;
+  const errorEvent = await errorWaiter;
+
+  expect(response.status).toBe(200);
+
+  // All traceIds should be the same
+  expect(transactionRequest.contexts?.trace?.trace_id).toBe(waitUntilSpan.contexts?.trace?.trace_id);
+  expect(transactionRequest.contexts?.trace?.trace_id).toBe(errorEvent.contexts?.trace?.trace_id);
+
+  expect(errorEvent.exception?.values?.[0]?.value).toBe('ʕノ•ᴥ•ʔノ ︵ ┻━┻');
+  expect(errorEvent.breadcrumbs).toStrictEqual(waitUntilSpan.breadcrumbs);
+
+  expect(waitUntilSpan.contexts?.trace?.parent_span_id).toBe(transactionRequest.contexts?.trace?.span_id);
 });
