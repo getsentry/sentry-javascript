@@ -149,7 +149,13 @@ export const countEnvelopes = async (
   });
 
   if (options?.url) {
-    await page.goto(options.url);
+    // Retry navigation once if it fails due to route handler timing issues
+    try {
+      await page.goto(options.url);
+    } catch (e) {
+      // Retry once for flaky navigation errors (e.g., route handler not ready in time)
+      await page.goto(options.url);
+    }
   }
 
   return countPromise;
@@ -404,7 +410,13 @@ async function getMultipleRequests<T>(
   });
 
   if (options?.url) {
-    await page.goto(options.url);
+    // Retry navigation once if it fails due to route handler timing issues
+    try {
+      await page.goto(options.url);
+    } catch (e) {
+      // Retry once for flaky navigation errors (e.g., route handler not ready in time)
+      await page.goto(options.url);
+    }
   }
 
   return requests;
