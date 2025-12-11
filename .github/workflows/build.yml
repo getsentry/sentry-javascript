@@ -995,6 +995,8 @@ jobs:
         working-directory: ${{ runner.temp }}/test-application
         timeout-minutes: 7
         run: ${{ matrix.build-command || 'pnpm test:build' }}
+        env:
+          SENTRY_E2E_WORKSPACE_ROOT: ${{ github.workspace }}
 
       - name: Install Playwright
         uses: ./.github/actions/install-playwright
@@ -1006,6 +1008,8 @@ jobs:
         working-directory: ${{ runner.temp }}/test-application
         timeout-minutes: 10
         run: ${{ matrix.assert-command || 'pnpm test:assert' }}
+        env:
+          SENTRY_E2E_WORKSPACE_ROOT: ${{ github.workspace }}
 
       - name: Upload Playwright Traces
         uses: actions/upload-artifact@v5

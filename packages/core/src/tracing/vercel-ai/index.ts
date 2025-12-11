@@ -24,7 +24,6 @@ import {
 import type { ProviderMetadata } from './vercel-ai-attributes';
 import {
   AI_MODEL_ID_ATTRIBUTE,
-  AI_MODEL_PROVIDER_ATTRIBUTE,
   AI_PROMPT_MESSAGES_ATTRIBUTE,
   AI_PROMPT_TOOLS_ATTRIBUTE,
   AI_RESPONSE_OBJECT_ATTRIBUTE,
@@ -65,12 +64,10 @@ function onVercelAiSpanStart(span: Span): void {
     return;
   }
 
-  // The AI and Provider must be defined for generate, stream, and embed spans.
-  // The id of the model
+  // The AI model ID must be defined for generate, stream, and embed spans.
+  // The provider is optional and may not always be present.
   const aiModelId = attributes[AI_MODEL_ID_ATTRIBUTE];
-  // the provider of the model
-  const aiModelProvider = attributes[AI_MODEL_PROVIDER_ATTRIBUTE];
-  if (typeof aiModelId !== 'string' || typeof aiModelProvider !== 'string' || !aiModelId || !aiModelProvider) {
+  if (typeof aiModelId !== 'string' || !aiModelId) {
     return;
   }
 

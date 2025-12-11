@@ -14,7 +14,7 @@ sentryTest("Feature flags are added to active span's attributes on span end.", a
     sentryTest.skip();
   }
 
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
+  await page.route(/^https:\/\/dsn\.ingest\.sentry\.io\//, route => {
     return route.fulfill({
       status: 200,
       contentType: 'application/json',

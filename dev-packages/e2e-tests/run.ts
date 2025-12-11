@@ -78,6 +78,8 @@ async function run(): Promise<void> {
     VITE_SENTRY_SPOTLIGHT: 'true',
     E2E_TEST_SENTRY_ORG_SLUG: process.env.E2E_TEST_SENTRY_ORG_SLUG || DEFAULT_SENTRY_ORG_SLUG,
     E2E_TEST_SENTRY_PROJECT: process.env.E2E_TEST_SENTRY_PROJECT || DEFAULT_SENTRY_PROJECT,
+    // Pass workspace root so tests copied to temp dirs can find local packages
+    SENTRY_E2E_WORKSPACE_ROOT: resolve(__dirname, '../..'),
   };
 
   const env = {

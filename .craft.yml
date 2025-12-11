@@ -4,14 +4,14 @@ preReleaseCommand: bash scripts/craft-pre-release.sh
 targets:
   # NPM Targets
   ## 1. Base Packages, node or browser SDKs depend on
-  ## 1.1 Types
-  - name: npm
-    id: '@sentry/types'
-    includeNames: /^sentry-types-\d.*\.tgz$/
-  ## 1.2 Core SDKs
+  ## 1.1 Core SDKs
   - name: npm
     id: '@sentry/core'
     includeNames: /^sentry-core-\d.*\.tgz$/
+    ## 1.2 Types
+  - name: npm
+    id: '@sentry/types'
+    includeNames: /^sentry-types-\d.*\.tgz$/
   - name: npm
     id: '@sentry/node-core'
     includeNames: /^sentry-node-core-\d.*\.tgz$/
