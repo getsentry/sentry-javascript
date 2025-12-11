@@ -18,8 +18,6 @@ import {
   makeNodeResolvePlugin,
   makeProductionReplacePlugin,
   makeRrwebBuildPlugin,
-  makeStripCjsPlugin,
-  makeStripEsmPlugin,
   makeSucrasePlugin,
 } from './plugins/index.mjs';
 import { makePackageNodeEsm } from './plugins/make-esm-plugin.mjs';
@@ -123,19 +121,13 @@ export function makeNPMConfigVariants(baseConfig, options = {}) {
 
   if (emitCjs) {
     if (splitDevProd) {
-      variantSpecificConfigs.push({
-        output: { format: 'cjs', dir: path.join(baseConfig.output.dir, 'cjs/dev') },
-        plugins: [makeStripEsmPlugin()],
-      });
+      variantSpecificConfigs.push({ output: { format: 'cjs', dir: path.join(baseConfig.output.dir, 'cjs/dev') } });
       variantSpecificConfigs.push({
         output: { format: 'cjs', dir: path.join(baseConfig.output.dir, 'cjs/prod') },
-        plugins: [makeProductionReplacePlugin(), makeStripEsmPlugin()],
+        plugins: [makeProductionReplacePlugin()],
       });
     } else {
-      variantSpecificConfigs.push({
-        output: { format: 'cjs', dir: path.join(baseConfig.output.dir, 'cjs') },
-        plugins: [makeStripEsmPlugin()],
-      });
+      variantSpecificConfigs.push({ output: { format: 'cjs', dir: path.join(baseConfig.output.dir, 'cjs') } });
     }
   }
 
@@ -145,14 +137,14 @@ export function makeNPMConfigVariants(baseConfig, options = {}) {
         output: {
           format: 'esm',
           dir: path.join(baseConfig.output.dir, 'esm/dev'),
-          plugins: [makeStripCjsPlugin(), makePackageNodeEsm()],
+          plugins: [makePackageNodeEsm()],
         },
       });
       variantSpecificConfigs.push({
         output: {
           format: 'esm',
           dir: path.join(baseConfig.output.dir, 'esm/prod'),
-          plugins: [makeProductionReplacePlugin(), makeStripCjsPlugin(), makePackageNodeEsm()],
+          plugins: [makeProductionReplacePlugin(), makePackageNodeEsm()],
         },
       });
     } else {
@@ -160,7 +152,7 @@ export function makeNPMConfigVariants(baseConfig, options = {}) {
         output: {
           format: 'esm',
           dir: path.join(baseConfig.output.dir, 'esm'),
-          plugins: [makeStripCjsPlugin(), makePackageNodeEsm()],
+          plugins: [makePackageNodeEsm()],
         },
       });
     }
