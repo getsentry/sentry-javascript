@@ -2,9 +2,21 @@
 // can be removed once following issue is fixed: https://github.com/import-js/eslint-plugin-import/issues/703
 /* eslint-disable import/export */
 import type { Client, EventProcessor, Integration } from '@sentry/core';
-import { addEventProcessor, applySdkMetadata, consoleSandbox, getGlobalScope, GLOBAL_OBJ } from '@sentry/core';
+import {
+  addEventProcessor,
+  applySdkMetadata,
+  consoleSandbox,
+  envToBool,
+  getGlobalScope,
+  GLOBAL_OBJ,
+  resolveSpotlightOptions,
+} from '@sentry/core';
 import type { BrowserOptions } from '@sentry/react';
-import { getDefaultIntegrations as getReactDefaultIntegrations, init as reactInit } from '@sentry/react';
+import {
+  getDefaultIntegrations as getReactDefaultIntegrations,
+  init as reactInit,
+  spotlightBrowserIntegration,
+} from '@sentry/react';
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
 import { getVercelEnv } from '../common/getVercelEnv';
 import { isRedirectNavigationError } from '../common/nextNavigationErrorUtils';
@@ -31,6 +43,7 @@ const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   _sentryBasePath?: string;
   _sentryRelease?: string;
   _experimentalThirdPartyOriginStackFrames?: string;
+  NEXT_PUBLIC_SENTRY_SPOTLIGHT?: string;
 };
 
 // Treeshakable guard to remove all code related to tracing
@@ -130,11 +143,24 @@ function getDefaultIntegrations(options: BrowserOptions): Integration[] {
     }),
   );
 
-  // Note: Spotlight auto-enablement from NEXT_PUBLIC_SENTRY_SPOTLIGHT is handled by the
-  // browser SDK's init() function. The Next.js build config injects the env var value via:
-  // - Webpack: DefinePlugin replaces process.env.NEXT_PUBLIC_SENTRY_SPOTLIGHT
+  // Add Spotlight integration if enabled via NEXT_PUBLIC_SENTRY_SPOTLIGHT env var.
+  // The env var is injected by the Next.js build config:
+  // - Webpack: valueInjectionLoader sets globalThis.NEXT_PUBLIC_SENTRY_SPOTLIGHT
   // - Turbopack: valueInjectionLoader sets globalThis.NEXT_PUBLIC_SENTRY_SPOTLIGHT
-  // The browser SDK's getEnvValue() checks both sources.
+  // We handle this in the Next.js SDK rather than the browser SDK because the browser SDK's
+  // auto-detection is development-only (stripped from production builds that users install).
+  const spotlightEnvValue = globalWithInjectedValues.NEXT_PUBLIC_SENTRY_SPOTLIGHT;
+  if (spotlightEnvValue !== undefined) {
+    // Parse the env var value (could be 'true', 'false', or a URL)
+    const boolValue = envToBool(spotlightEnvValue, { strict: true });
+    const envSpotlight = boolValue !== null ? boolValue : spotlightEnvValue;
+    const spotlightValue = resolveSpotlightOptions(options.spotlight, envSpotlight);
+
+    if (spotlightValue) {
+      const args = typeof spotlightValue === 'string' ? { sidecarUrl: spotlightValue } : undefined;
+      customDefaultIntegrations.push(spotlightBrowserIntegration(args));
+    }
+  }
 
   return customDefaultIntegrations;
 }

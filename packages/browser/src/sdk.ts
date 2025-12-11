@@ -96,12 +96,8 @@ export function init(options: BrowserOptions = {}): Client | undefined {
   let defaultIntegrations =
     options.defaultIntegrations == null ? getDefaultIntegrations(options) : options.defaultIntegrations;
 
-  // Resolve Spotlight configuration with proper precedence.
-  // This code is intentionally NOT wrapped in rollup-include-development-only because:
-  // - Users install production builds of the SDK from npm
-  // - They expect auto-enablement to work during their app's development
-  // - The env var (NEXT_PUBLIC_SENTRY_SPOTLIGHT, etc.) won't be set in production deployments
-  // - Users can explicitly disable with `spotlight: false` if needed
+  /* rollup-include-development-only */
+  // Resolve Spotlight configuration with proper precedence
   const envSpotlight = getSpotlightConfig();
   // resolveSpotlightOptions is the single source of truth that ensures empty strings are never used
   const spotlightValue = resolveSpotlightOptions(options.spotlight, envSpotlight);
@@ -113,6 +109,7 @@ export function init(options: BrowserOptions = {}): Client | undefined {
     const args = typeof spotlightValue === 'string' ? { sidecarUrl: spotlightValue } : undefined;
     defaultIntegrations.push(spotlightBrowserIntegration(args));
   }
+  /* rollup-include-development-only-end */
 
   const clientOptions: BrowserClientOptions = {
     ...options,
