@@ -22,9 +22,12 @@ export function makeFlushLock(context: ExecutionContext): FlushLock {
   const originalWaitUntil = context.waitUntil.bind(context) as typeof context.waitUntil;
   context.waitUntil = promise => {
     pending++;
+
     return originalWaitUntil(
       promise.finally(() => {
-        if (--pending === 0) resolveAllDone();
+        if (--pending === 0) {
+          resolveAllDone();
+        }
       }),
     );
   };

@@ -161,8 +161,10 @@ describe('instrumentDurableObjectWithSentry', () => {
     const after = flush.mock.calls.length;
     const delta = after - before;
 
-    // Verify that exactly one flush call was made during this test
-    expect(delta).toBe(1);
+    // Verify that two flush calls were made during this test
+    // The first flush is called when the response is captured
+    // The second flush is called when the waitUntil promises are finished
+    expect(delta).toBe(2);
   });
 
   describe('instrumentPrototypeMethods option', () => {

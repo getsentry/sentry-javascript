@@ -16,6 +16,7 @@ import {
 import type { CloudflareOptions } from './client';
 import { addCloudResourceContext, addCultureContext, addRequest } from './scope-utils';
 import { init } from './sdk';
+import { finalizeWorker } from './utils/finalizeWorker';
 import { classifyResponseStreaming } from './utils/streaming';
 
 interface RequestHandlerWrapperOptions {
@@ -108,6 +109,11 @@ export function wrapRequestHandler(
 
         // Use startSpanManual to control when span ends (needed for streaming responses)
         return startSpanManual({ name, attributes }, async span => {
+          const finalize = (): void => {
+            span.end();
+            waitUntil?.(finalizeWorker());
+          };
+
           let res: Response;
 
           try {
@@ -118,11 +124,12 @@ export function wrapRequestHandler(
             // (e.g., Remix parameterizing routes). The span should already have the correct name
             // from that instrumentation, so we don't need to do anything here.
           } catch (e) {
-            span.end();
+            // For errors, we still wait for waitUntil promises before ending the span
+            // so that any spans created in waitUntil callbacks are captured
             if (captureErrors) {
               captureException(e, { mechanism: { handled: false, type: 'auto.http.cloudflare' } });
             }
-            waitUntil?.(flush(2000));
+            finalize();
             throw e;
           }
 
@@ -148,8 +155,7 @@ export function wrapRequestHandler(
                   // Stream error or cancellation - will end span in finally
                 } finally {
                   reader.releaseLock();
-                  span.end();
-                  waitUntil?.(flush(2000));
+                  finalize();
                 }
               })();
 
@@ -164,15 +170,13 @@ export function wrapRequestHandler(
               });
             } catch (e) {
               // tee() failed (e.g stream already locked) - fall back to non-streaming handling
-              span.end();
-              waitUntil?.(flush(2000));
+              finalize();
               return res;
             }
           }
 
-          // Non-streaming response - end span immediately and return original
-          span.end();
-          waitUntil?.(flush(2000));
+          // Non-streaming response - end span after all waitUntil promises complete
+          finalize();
           return res;
         });
       },
