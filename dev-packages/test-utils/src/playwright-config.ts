@@ -64,8 +64,6 @@ export function getPlaywrightConfig(
           isMobile: false,
           hasTouch: false,
           defaultBrowserType: 'chromium',
-          // Use full chromium instead of headless shell to avoid ICU issues in WSL2
-          channel: 'chromium',
         },
       },
     ],
