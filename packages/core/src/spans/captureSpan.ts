@@ -1,4 +1,3 @@
-import { Attributes, RawAttribute, RawAttributes } from '../attributes';
 import type { Client } from '../client';
 import { getClient, getGlobalScope } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
@@ -17,13 +16,12 @@ import {
 } from '../semanticAttributes';
 import { getCapturedScopesOnSpan } from '../tracing/utils';
 import type { SerializedAttributes } from '../types-hoist/attributes';
-import { Contexts } from '../types-hoist/context';
 import type { Span, SpanV2JSON } from '../types-hoist/span';
 import { mergeScopeData } from '../utils/applyScopeDataToEvent';
 import { isV2BeforeSendSpanCallback } from '../utils/beforeSendSpan';
 import { debug } from '../utils/debug-logger';
 import { INTERNAL_getSegmentSpan, spanToV2JSON } from '../utils/spanUtils';
-import { applyBeforeSendSpanCallback, safeSetSpanJSONAttributes } from './spanFirstUtils';
+import { applyBeforeSendSpanCallback, contextsToAttributes, safeSetSpanJSONAttributes } from './spanFirstUtils';
 /**
  * Captures a span and returns a JSON representation to be enqueued for sending.
  *
@@ -43,14 +41,13 @@ export function captureSpan(span: Span, client = getClient()): void {
   const serializedSegmentSpan = spanToV2JSON(segmentSpan);
 
   const { isolationScope: spanIsolationScope, scope: spanScope } = getCapturedScopesOnSpan(span);
+
   const finalScopeData = getFinalScopeData(spanIsolationScope, spanScope);
 
-  const originalAttributes = serializedSegmentSpan.attributes ?? {};
-
-  applyCommonSpanAttributes(spanJSON, serializedSegmentSpan, client, finalScopeData, originalAttributes);
+  applyCommonSpanAttributes(spanJSON, serializedSegmentSpan, client, finalScopeData);
 
   if (span === segmentSpan) {
-    applyScopeToSegmentSpan(spanJSON, finalScopeData, originalAttributes);
+    applyScopeToSegmentSpan(spanJSON, finalScopeData);
   }
 
   // Allow integrations to add additional data to the span JSON
@@ -69,15 +66,11 @@ export function captureSpan(span: Span, client = getClient()): void {
   client.emit('enqueueSpan', spanWithRef);
 }
 
-function applyScopeToSegmentSpan(
-  segmentSpanJSON: SpanV2JSON,
-  scopeData: ScopeData,
-  originalAttributes: SerializedAttributes,
-): void {
+function applyScopeToSegmentSpan(segmentSpanJSON: SpanV2JSON, scopeData: ScopeData): void {
   // TODO: Apply all scope and request data from auto instrumentation (contexts, request) to segment span
   const { contexts } = scopeData;
 
-  safeSetSpanJSONAttributes(segmentSpanJSON, contextsToAttributes(contexts), originalAttributes);
+  safeSetSpanJSONAttributes(segmentSpanJSON, contextsToAttributes(contexts));
 }
 
 function applyCommonSpanAttributes(
@@ -85,33 +78,28 @@ function applyCommonSpanAttributes(
   serializedSegmentSpan: SpanV2JSON,
   client: Client,
   scopeData: ScopeData,
-  originalAttributes: SerializedAttributes,
 ): void {
   const sdk = client.getSdkMetadata();
   const { release, environment, sendDefaultPii } = client.getOptions();
 
   // avoid overwriting any previously set attributes (from users or potentially our SDK instrumentation)
-  safeSetSpanJSONAttributes(
-    spanJSON,
-    {
-      [SEMANTIC_ATTRIBUTE_SENTRY_RELEASE]: release,
-      [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: environment,
-      [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME]: serializedSegmentSpan.name,
-      [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID]: serializedSegmentSpan.span_id,
-      [SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME]: sdk?.sdk?.name,
-      [SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION]: sdk?.sdk?.version,
-      ...(sendDefaultPii
-        ? {
-            [SEMANTIC_ATTRIBUTE_USER_ID]: scopeData.user?.id,
-            [SEMANTIC_ATTRIBUTE_USER_EMAIL]: scopeData.user?.email,
-            [SEMANTIC_ATTRIBUTE_USER_IP_ADDRESS]: scopeData.user?.ip_address ?? undefined,
-            [SEMANTIC_ATTRIBUTE_USER_USERNAME]: scopeData.user?.username,
-          }
-        : {}),
-      ...scopeData.attributes,
-    },
-    originalAttributes,
-  );
+  safeSetSpanJSONAttributes(spanJSON, {
+    [SEMANTIC_ATTRIBUTE_SENTRY_RELEASE]: release,
+    [SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT]: environment,
+    [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME]: serializedSegmentSpan.name,
+    [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID]: serializedSegmentSpan.span_id,
+    [SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME]: sdk?.sdk?.name,
+    [SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION]: sdk?.sdk?.version,
+    ...(sendDefaultPii
+      ? {
+          [SEMANTIC_ATTRIBUTE_USER_ID]: scopeData.user?.id,
+          [SEMANTIC_ATTRIBUTE_USER_EMAIL]: scopeData.user?.email,
+          [SEMANTIC_ATTRIBUTE_USER_IP_ADDRESS]: scopeData.user?.ip_address,
+          [SEMANTIC_ATTRIBUTE_USER_USERNAME]: scopeData.user?.username,
+        }
+      : {}),
+    ...scopeData.attributes,
+  });
 }
 
 // TODO: Extract this to a helper in core. It's used in multiple places.
@@ -124,38 +112,4 @@ function getFinalScopeData(isolationScope: Scope | undefined, scope: Scope | und
     mergeScopeData(finalScopeData, scope.getScopeData());
   }
   return finalScopeData;
-}
-
-// TODO: This should likely live in the Context integration since most of this data is only avialable in server runtime contexts
-function contextsToAttributes(contexts: Contexts): RawAttributes<Record<string, unknown>> {
-  return {
-    // os context
-    'os.build_id': contexts.os?.build,
-    'os.name': contexts.os?.name,
-    'os.version': contexts.os?.version,
-    // TODO: Add to Sentry SemConv
-    'os.kernel_version': contexts.os?.kernel_version,
-
-    // runtime context
-    // TODO: Add to Sentry SemConv
-    'runtime.name': contexts.runtime?.name,
-    // TODO: Add to Sentry SemConv
-    'runtime.version': contexts.runtime?.version,
-
-    // TODO: All of them need to be added to Sentry SemConv (except family and model)
-    ...(contexts.app
-      ? Object.fromEntries(Object.entries(contexts.app).map(([key, value]) => [`app.${key}`, value]))
-      : {}),
-    ...(contexts.device
-      ? Object.fromEntries(Object.entries(contexts.device).map(([key, value]) => [`device.${key}`, value]))
-      : {}),
-    ...(contexts.culture
-      ? Object.fromEntries(Object.entries(contexts.culture).map(([key, value]) => [`culture.${key}`, value]))
-      : {}),
-    ...(contexts.cloud_resource
-      ? Object.fromEntries(
-          Object.entries(contexts.cloud_resource).map(([key, value]) => [`cloud_resource.${key}`, value]),
-        )
-      : {}),
-  };
 }
