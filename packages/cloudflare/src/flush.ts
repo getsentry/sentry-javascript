@@ -1,4 +1,5 @@
 import type { ExecutionContext } from '@cloudflare/workers-types';
+import { startSpan } from '@sentry/core';
 
 type FlushLock = {
   readonly ready: Promise<void>;
@@ -22,9 +23,18 @@ export function makeFlushLock(context: ExecutionContext): FlushLock {
   const originalWaitUntil = context.waitUntil.bind(context) as typeof context.waitUntil;
   context.waitUntil = promise => {
     pending++;
+
     return originalWaitUntil(
-      promise.finally(() => {
-        if (--pending === 0) resolveAllDone();
+      // Wrap the promise in a new scope and transaction so spans created inside
+      // waitUntil callbacks are properly isolated from the HTTP request transaction
+      startSpan({ op: 'cloudflare.wait_until', name: 'waitUntil' }, async () => {
+        // By awaiting the promise inside the new scope, all of its continuations
+        // will execute in this isolated scope
+        await promise;
+      }).finally(() => {
+        if (--pending === 0) {
+          resolveAllDone();
+        }
       }),
     );
   };

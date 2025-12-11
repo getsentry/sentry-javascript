@@ -16,6 +16,7 @@ import {
 import type { CloudflareOptions } from './client';
 import { addCloudResourceContext, addCultureContext, addRequest } from './scope-utils';
 import { init } from './sdk';
+import { endSpanAfterWaitUntil } from './utils/endSpanAfterWaitUntil';
 import { classifyResponseStreaming } from './utils/streaming';
 
 interface RequestHandlerWrapperOptions {
@@ -107,73 +108,79 @@ export function wrapRequestHandler(
         // See: https://developers.cloudflare.com/workers/runtime-apis/performance/
 
         // Use startSpanManual to control when span ends (needed for streaming responses)
-        return startSpanManual({ name, attributes }, async span => {
-          let res: Response;
-
-          try {
-            res = await handler();
-            setHttpStatus(span, res.status);
-
-            // After the handler runs, the span name might have been updated by nested instrumentation
-            // (e.g., Remix parameterizing routes). The span should already have the correct name
-            // from that instrumentation, so we don't need to do anything here.
-          } catch (e) {
-            span.end();
-            if (captureErrors) {
-              captureException(e, { mechanism: { handled: false, type: 'auto.http.cloudflare' } });
-            }
-            waitUntil?.(flush(2000));
-            throw e;
-          }
-
-          // Classify response to detect actual streaming
-          const classification = classifyResponseStreaming(res);
-
-          if (classification.isStreaming && res.body) {
-            // Streaming response detected - monitor consumption to keep span alive
-            try {
-              const [clientStream, monitorStream] = res.body.tee();
-
-              // Monitor stream consumption and end span when complete
-              const streamMonitor = (async () => {
-                const reader = monitorStream.getReader();
-
-                try {
-                  let done = false;
-                  while (!done) {
-                    const result = await reader.read();
-                    done = result.done;
-                  }
-                } catch {
-                  // Stream error or cancellation - will end span in finally
-                } finally {
-                  reader.releaseLock();
-                  span.end();
-                  waitUntil?.(flush(2000));
-                }
-              })();
-
-              // Keep worker alive until stream monitoring completes (otherwise span won't end)
-              waitUntil?.(streamMonitor);
-
-              // Return response with client stream
-              return new Response(clientStream, {
-                status: res.status,
-                statusText: res.statusText,
-                headers: res.headers,
-              });
-            } catch (e) {
-              // tee() failed (e.g stream already locked) - fall back to non-streaming handling
-              span.end();
+        return startSpanManual({ name, attributes }, async rootSpan => {
+          return startSpanManual({ name: 'fetch', attributes }, async fetchSpan => {
+            const finishSpansAndWaitUntil = (): void => {
+              fetchSpan.end();
               waitUntil?.(flush(2000));
-              return res;
-            }
-          }
+              waitUntil?.(endSpanAfterWaitUntil(rootSpan));
+            };
 
-          // Non-streaming response - end span immediately and return original
-          span.end();
-          waitUntil?.(flush(2000));
-          return res;
+            let res: Response;
+
+            try {
+              res = await handler();
+              setHttpStatus(rootSpan, res.status);
+
+              // After the handler runs, the span name might have been updated by nested instrumentation
+              // (e.g., Remix parameterizing routes). The span should already have the correct name
+              // from that instrumentation, so we don't need to do anything here.
+            } catch (e) {
+              // For errors, we still wait for waitUntil promises before ending the span
+              // so that any spans created in waitUntil callbacks are captured
+              if (captureErrors) {
+                captureException(e, { mechanism: { handled: false, type: 'auto.http.cloudflare' } });
+              }
+              finishSpansAndWaitUntil();
+              throw e;
+            }
+
+            // Classify response to detect actual streaming
+            const classification = classifyResponseStreaming(res);
+
+            if (classification.isStreaming && res.body) {
+              // Streaming response detected - monitor consumption to keep span alive
+              try {
+                const [clientStream, monitorStream] = res.body.tee();
+
+                // Monitor stream consumption and end span when complete
+                const streamMonitor = (async () => {
+                  const reader = monitorStream.getReader();
+
+                  try {
+                    let done = false;
+                    while (!done) {
+                      const result = await reader.read();
+                      done = result.done;
+                    }
+                  } catch {
+                    // Stream error or cancellation - will end span in finally
+                  } finally {
+                    reader.releaseLock();
+                    finishSpansAndWaitUntil();
+                  }
+                })();
+
+                // Keep worker alive until stream monitoring completes (otherwise span won't end)
+                waitUntil?.(streamMonitor);
+
+                // Return response with client stream
+                return new Response(clientStream, {
+                  status: res.status,
+                  statusText: res.statusText,
+                  headers: res.headers,
+                });
+              } catch (e) {
+                // tee() failed (e.g stream already locked) - fall back to non-streaming handling
+                finishSpansAndWaitUntil();
+                return res;
+              }
+            }
+
+            // Non-streaming response - end span after all waitUntil promises complete
+            finishSpansAndWaitUntil();
+            return res;
+          });
         });
       },
     );
