@@ -930,6 +930,7 @@ jobs:
       VITE_E2E_TEST_DSN: 'https://username@domain/123'
       # For Spotlight environment variable tests
       VITE_SENTRY_SPOTLIGHT: 'true'
+      NEXT_PUBLIC_SENTRY_SPOTLIGHT: 'true'
       E2E_TEST_SENTRY_ORG_SLUG: 'sentry-javascript-sdks'
       E2E_TEST_SENTRY_PROJECT: 'sentry-javascript-e2e-tests'
     strategy:
@@ -1066,6 +1067,7 @@ jobs:
       VITE_E2E_TEST_DSN: ${{ secrets.E2E_TEST_DSN }}
       # For Spotlight environment variable tests
       VITE_SENTRY_SPOTLIGHT: 'true'
+      NEXT_PUBLIC_SENTRY_SPOTLIGHT: 'true'
       E2E_TEST_SENTRY_ORG_SLUG: 'sentry-javascript-sdks'
       E2E_TEST_SENTRY_PROJECT: 'sentry-javascript-e2e-tests'
     strategy:

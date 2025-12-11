@@ -11,12 +11,9 @@ import {
   GLOBAL_OBJ,
   resolveSpotlightOptions,
 } from '@sentry/core';
+import { spotlightBrowserIntegration } from '@sentry/browser';
 import type { BrowserOptions } from '@sentry/react';
-import {
-  getDefaultIntegrations as getReactDefaultIntegrations,
-  init as reactInit,
-  spotlightBrowserIntegration,
-} from '@sentry/react';
+import { getDefaultIntegrations as getReactDefaultIntegrations, init as reactInit } from '@sentry/react';
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
 import { getVercelEnv } from '../common/getVercelEnv';
 import { isRedirectNavigationError } from '../common/nextNavigationErrorUtils';
