@@ -42,7 +42,7 @@ export type AttributeObject = {
 
 // Unfortunately, we loose type safety if we did something like Exclude<MeasurementUnit, string>
 // so therefore we unionize between the three supported unit categories.
-type AttributeUnit = DurationUnit | InformationUnit | FractionUnit;
+export type AttributeUnit = DurationUnit | InformationUnit | FractionUnit;
 
 /* If an attribute has either a 'value' or 'unit' property, we use the ValidAttributeObject type. */
 export type ValidatedAttributes<T> = {

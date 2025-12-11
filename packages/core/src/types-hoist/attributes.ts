@@ -1,3 +1,5 @@
+import type { AttributeUnit } from '../attributes';
+
 export type SerializedAttributes = Record<string, SerializedAttribute>;
 export type SerializedAttribute = (
   | {
@@ -16,5 +18,5 @@ export type SerializedAttribute = (
       type: 'boolean';
       value: boolean;
     }
-) & { unit?: 'ms' | 's' | 'bytes' | 'count' | 'percent' };
+) & { unit?: AttributeUnit };
 export type SerializedAttributeType = 'string' | 'integer' | 'double' | 'boolean';

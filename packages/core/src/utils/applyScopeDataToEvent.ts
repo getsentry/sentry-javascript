@@ -32,6 +32,7 @@ export function mergeScopeData(data: ScopeData, mergeData: ScopeData): void {
   const {
     extra,
     tags,
+    attributes,
     user,
     contexts,
     level,
@@ -78,6 +79,10 @@ export function mergeScopeData(data: ScopeData, mergeData: ScopeData): void {
 
   if (attachments.length) {
     data.attachments = [...data.attachments, ...attachments];
+  }
+
+  if (attributes) {
+    data.attributes = { ...data.attributes, ...attributes };
   }
 
   data.propagationContext = { ...data.propagationContext, ...propagationContext };
