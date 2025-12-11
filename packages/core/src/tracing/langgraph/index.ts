@@ -177,7 +177,7 @@ export function instrumentCreateReactAgent(
             [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'create_agent',
           },
         },
-        () => {
+        span => {
           try {
             const compiledGraph = Reflect.apply(target, thisArg, args);
             const compiledOptions = args.length > 0 ? (args[0] as Record<string, unknown>) : {};
@@ -193,6 +193,13 @@ export function instrumentCreateReactAgent(
 
             return compiledGraph;
           } catch (error) {
+            span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+            captureException(error, {
+              mechanism: {
+                handled: false,
+                type: 'auto.ai.langgraph.error',
+              },
+            });
             throw error;
           }
         },

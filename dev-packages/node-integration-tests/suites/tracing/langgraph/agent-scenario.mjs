@@ -1,6 +1,6 @@
 import { ChatAnthropic } from '@langchain/anthropic';
-import { createReactAgent } from '@langchain/langgraph/prebuilt';
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
+import { createReactAgent } from '@langchain/langgraph/prebuilt';
 import * as Sentry from '@sentry/node';
 import express from 'express';
 
@@ -58,10 +58,7 @@ async function run() {
 
     // Test: basic invocation
     await agent.invoke({
-      messages: [
-        new SystemMessage('You are a helpful assistant.'),
-        new HumanMessage('What is the weather today?'),
-      ],
+      messages: [new SystemMessage('You are a helpful assistant.'), new HumanMessage('What is the weather today?')],
     });
   });
 

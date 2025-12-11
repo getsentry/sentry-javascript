@@ -110,10 +110,7 @@ export class SentryLangGraphInstrumentation extends InstrumentationBase<LangGrap
     if (exports.createReactAgent && typeof exports.createReactAgent === 'function') {
       const originalCreateReactAgent = exports.createReactAgent;
       Object.defineProperty(exports, 'createReactAgent', {
-        value: instrumentCreateReactAgent(
-          originalCreateReactAgent as (...args: unknown[]) => CompiledGraph,
-          options,
-        ),
+        value: instrumentCreateReactAgent(originalCreateReactAgent as (...args: unknown[]) => CompiledGraph, options),
         writable: true,
         enumerable: true,
         configurable: true,
