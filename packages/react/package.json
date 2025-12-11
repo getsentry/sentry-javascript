@@ -39,10 +39,8 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/browser": "10.25.0",
-    "@sentry/core": "10.25.0"
     "@sentry/browser": "10.30.0",
-    "@sentry/core": "10.30.0",
+    "@sentry/core": "10.30.0"
   },
   "peerDependencies": {
     "react": "^16.14.0 || 17.x || 18.x || 19.x"
