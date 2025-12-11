@@ -6,6 +6,12 @@ import * as Sentry from '@sentry/nextjs';
 // Next.js replaces process.env.NEXT_PUBLIC_* at BUILD TIME with literal values
 const NEXT_PUBLIC_SPOTLIGHT_VALUE = process.env.NEXT_PUBLIC_SENTRY_SPOTLIGHT;
 
+// Check globalThis which is where the valueInjectionLoader should put the value
+const GLOBALTHIS_SPOTLIGHT_VALUE =
+  typeof globalThis !== 'undefined'
+    ? (globalThis as Record<string, unknown>)['NEXT_PUBLIC_SENTRY_SPOTLIGHT']
+    : undefined;
+
 export default function SpotlightTestPage() {
   const [spotlightEnabled, setSpotlightEnabled] = useState<boolean | null>(null);
   const [integrationNames, setIntegrationNames] = useState<string[]>([]);
@@ -23,7 +29,8 @@ export default function SpotlightTestPage() {
 
     // Log for debugging
     console.log('Spotlight test results:', {
-      envValue: NEXT_PUBLIC_SPOTLIGHT_VALUE,
+      processEnvValue: NEXT_PUBLIC_SPOTLIGHT_VALUE,
+      globalThisValue: GLOBALTHIS_SPOTLIGHT_VALUE,
       integrationFound: !!integration,
       clientExists: !!client,
       integrationNames: intNames,
@@ -36,7 +43,8 @@ export default function SpotlightTestPage() {
 
       <div data-testid="env-value">
         <h2>Environment Variable</h2>
-        <p>NEXT_PUBLIC_SENTRY_SPOTLIGHT: {NEXT_PUBLIC_SPOTLIGHT_VALUE || 'undefined'}</p>
+        <p>process.env: {NEXT_PUBLIC_SPOTLIGHT_VALUE || 'undefined'}</p>
+        <p data-testid="globalthis-value">globalThis: {String(GLOBALTHIS_SPOTLIGHT_VALUE) || 'undefined'}</p>
       </div>
 
       <div data-testid="spotlight-status">
