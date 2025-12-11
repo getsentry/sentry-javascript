@@ -57,7 +57,7 @@ export class StreamingSpanExporter implements ISentrySpanExporter {
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op,
         ...data,
       };
-      safeSetSpanJSONAttributes(spanJSON, allData, spanJSON.attributes);
+      safeSetSpanJSONAttributes(spanJSON, allData);
       spanJSON.name = description;
     });
 
