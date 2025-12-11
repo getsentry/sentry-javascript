@@ -71,6 +71,7 @@ export class SentryLangGraphInstrumentation extends InstrumentationBase<LangGrap
    * Core patch logic applying instrumentation to the LangGraph module.
    */
   private _patch(exports: PatchedModuleExports): PatchedModuleExports | void {
+    console.log('patching LangGraph module');
     const client = getClient();
     const defaultPii = Boolean(client?.getOptions().sendDefaultPii);
 
@@ -96,16 +97,18 @@ export class SentryLangGraphInstrumentation extends InstrumentationBase<LangGrap
     }
 
     // Patch createReactAgent to instrument the agent creation and invocation
-    const originalCreateReactAgent = exports.createReactAgent;
-    Object.defineProperty(exports, 'createReactAgent', {
-      value: instrumentCreateReactAgent(
-        originalCreateReactAgent as (...args: unknown[]) => CompiledGraph,
-        options,
-      ),
-      writable: true,
-      enumerable: true,
-      configurable: true,
-    });
+    if (exports.createReactAgent && typeof exports.createReactAgent === 'function') {
+      const originalCreateReactAgent = exports.createReactAgent;
+      Object.defineProperty(exports, 'createReactAgent', {
+        value: instrumentCreateReactAgent(
+          originalCreateReactAgent as (...args: unknown[]) => CompiledGraph,
+          options,
+        ),
+        writable: true,
+        enumerable: true,
+        configurable: true,
+      });
+    }
 
     return exports;
   }
