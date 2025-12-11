@@ -58,10 +58,7 @@ export function getTraceData(
   };
 
   if (options.propagateTraceparent) {
-    const traceparent = span ? spanToTraceparentHeader(span) : scopeToTraceparentHeader(scope);
-    if (traceparent) {
-      traceData.traceparent = traceparent;
-    }
+    traceData.traceparent = span ? spanToTraceparentHeader(span) : scopeToTraceparentHeader(scope);
   }
 
   return traceData;
@@ -75,7 +72,10 @@ function scopeToTraceHeader(scope: Scope): string {
   return generateSentryTraceHeader(traceId, propagationSpanId, sampled);
 }
 
-function scopeToTraceparentHeader(scope: Scope): string {
+/**
+ * Get a traceparent header value for the given scope.
+ */
+export function scopeToTraceparentHeader(scope: Scope): string {
   const { traceId, sampled, propagationSpanId } = scope.getPropagationContext();
   return generateTraceparentHeader(traceId, propagationSpanId, sampled);
 }
