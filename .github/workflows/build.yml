@@ -991,6 +991,10 @@ jobs:
         run: yarn ci:copy-to-temp ./test-applications/${{ matrix.test-application }} ${{ runner.temp }}/test-application
         working-directory: dev-packages/e2e-tests
 
+      - name: Set Spotlight env var for spotlight tests
+        if: contains(matrix.test-application, 'spotlight')
+        run: echo "NEXT_PUBLIC_SENTRY_SPOTLIGHT=true" >> $GITHUB_ENV
+
       - name: Build E2E app
         working-directory: ${{ runner.temp }}/test-application
         timeout-minutes: 7
@@ -1118,6 +1122,10 @@ jobs:
       - name: Copy to temp
         run: yarn ci:copy-to-temp ./test-applications/${{ matrix.test-application }} ${{ runner.temp }}/test-application
         working-directory: dev-packages/e2e-tests
+
+      - name: Set Spotlight env var for spotlight tests
+        if: contains(matrix.test-application, 'spotlight')
+        run: echo "NEXT_PUBLIC_SENTRY_SPOTLIGHT=true" >> $GITHUB_ENV
 
       - name: Build E2E app
         working-directory: ${{ runner.temp }}/test-application

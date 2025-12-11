@@ -2,11 +2,8 @@ const { withSentryConfig } = require('@sentry/nextjs');
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Environment variables for Spotlight testing
-  // NEXT_PUBLIC_* vars are embedded in the client bundle
-  env: {
-    NEXT_PUBLIC_SENTRY_SPOTLIGHT: 'true',
-  },
+  // NEXT_PUBLIC_SENTRY_SPOTLIGHT is set via environment variable in CI
+  // The SDK reads it from process.env during withSentryConfig()
 };
 
 module.exports = withSentryConfig(nextConfig, {
