@@ -62,8 +62,19 @@ export class SentryLangGraphInstrumentation extends InstrumentationBase<LangGrap
           this._patch.bind(this),
           exports => exports,
         ),
+        new InstrumentationNodeModuleFile(
+          /**
+           * ESM builds use dist/prebuilt/index.js (without .cjs extension)
+           * This catches ESM imports that resolve through the main package
+           */
+          '@langchain/langgraph/dist/prebuilt/index.js',
+          supportedVersions,
+          this._patch.bind(this),
+          exports => exports,
+        ),
       ],
     );
+
     return module;
   }
 
@@ -71,7 +82,6 @@ export class SentryLangGraphInstrumentation extends InstrumentationBase<LangGrap
    * Core patch logic applying instrumentation to the LangGraph module.
    */
   private _patch(exports: PatchedModuleExports): PatchedModuleExports | void {
-    console.log('patching LangGraph module');
     const client = getClient();
     const defaultPii = Boolean(client?.getOptions().sendDefaultPii);
 
