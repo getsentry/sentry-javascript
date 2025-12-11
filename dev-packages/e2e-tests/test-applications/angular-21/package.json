@@ -1,0 +1,60 @@
+{
+  "name": "angular-21",
+  "version": "0.0.0",
+  "scripts": {
+    "ng": "ng",
+    "dev": "ng serve",
+    "proxy": "node start-event-proxy.mjs",
+    "preview": "http-server dist/angular-21/browser --port 8080 --silent",
+    "build": "ng build",
+    "watch": "ng build --watch --configuration development",
+    "test": "playwright test",
+    "test:build": "pnpm install && pnpm build",
+    "test:build-canary": "pnpm install && pnpm add @angular/animations@next @angular/common@next @angular/compiler@next @angular/core@next @angular/forms@next @angular/platform-browser@next @angular/platform-browser-dynamic@next @angular/router@next && pnpm add -D @angular-devkit/build-angular@next @angular/cli@next @angular/compiler-cli@next && pnpm build",
+    "test:assert": "playwright test",
+    "clean": "npx rimraf .angular node_modules pnpm-lock.yaml dist"
+  },
+  "private": true,
+  "dependencies": {
+    "@angular/animations": "^21.0.0",
+    "@angular/common": "^21.0.0",
+    "@angular/compiler": "^21.0.0",
+    "@angular/core": "^21.0.0",
+    "@angular/forms": "^21.0.0",
+    "@angular/platform-browser": "^21.0.0",
+    "@angular/platform-browser-dynamic": "^21.0.0",
+    "@angular/router": "^21.0.0",
+    "@sentry/angular": "* || latest",
+    "rxjs": "~7.8.0",
+    "tslib": "^2.3.0",
+    "zone.js": "~0.15.0"
+  },
+  "devDependencies": {
+    "@angular-devkit/build-angular": "^21.0.0",
+    "@angular/cli": "^21.0.0",
+    "@angular/compiler-cli": "^21.0.0",
+    "@playwright/test": "~1.56.0",
+    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@sentry/core": "latest || *",
+    "@types/jasmine": "~5.1.0",
+    "http-server": "^14.1.1",
+    "jasmine-core": "~5.4.0",
+    "karma": "~6.4.0",
+    "karma-chrome-launcher": "~3.2.0",
+    "karma-coverage": "~2.2.0",
+    "karma-jasmine": "~5.1.0",
+    "karma-jasmine-html-reporter": "~2.1.0",
+    "typescript": "~5.9.0"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  },
+  "sentryTest": {
+    "optionalVariants": [
+      {
+        "build-command": "pnpm test:build-canary",
+        "label": "angular (canary)"
+      }
+    ]
+  }
+}

@@ -1,3 +1,4 @@
+/* eslint-disable import/export */
 // Node SDK exports
 // Unfortunately, we cannot `export * from '@sentry/node'` because in prod builds,
 // Vite puts these exports into a `default` property (Sentry.default) rather than
@@ -122,6 +123,7 @@ export {
   withScope,
   supabaseIntegration,
   instrumentSupabaseClient,
+  instrumentOpenAiClient,
   zodErrorsIntegration,
   logger,
   consoleLoggingIntegration,

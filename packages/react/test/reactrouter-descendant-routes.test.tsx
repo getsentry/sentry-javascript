@@ -25,6 +25,7 @@ import {
 } from 'react-router-6';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BrowserClient } from '../src';
+import { allRoutes } from '../src/reactrouter-compat-utils/instrumentation';
 import {
   reactRouterV6BrowserTracingIntegration,
   withSentryReactRouterV6Routing,
@@ -79,6 +80,7 @@ describe('React Router Descendant Routes', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     getCurrentScope().setClient(undefined);
+    allRoutes.clear();
   });
 
   describe('withSentryReactRouterV6Routing', () => {

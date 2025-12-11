@@ -227,6 +227,8 @@ export function _INTERNAL_captureMetric(beforeMetric: Metric, options?: Internal
   // Enrich metric with contextual attributes
   const enrichedMetric = _enrichMetricAttributes(beforeMetric, client, currentScope);
 
+  client.emit('processMetric', enrichedMetric);
+
   // todo(v11): Remove the experimental `beforeSendMetric`
   // eslint-disable-next-line deprecation/deprecation
   const beforeSendCallback = beforeSendMetric || _experiments?.beforeSendMetric;
@@ -243,7 +245,7 @@ export function _INTERNAL_captureMetric(beforeMetric: Metric, options?: Internal
 
   captureSerializedMetric(client, serializedMetric);
 
-  client.emit('afterCaptureMetric', enrichedMetric);
+  client.emit('afterCaptureMetric', processedMetric);
 }
 
 /**

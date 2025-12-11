@@ -78,6 +78,7 @@ export {
 export { WINDOW } from './helpers';
 export { BrowserClient } from './client';
 export { makeFetchTransport } from './transports/fetch';
+export { uiProfiler } from './profiling';
 export {
   defaultStackParser,
   defaultStackLineParsers,

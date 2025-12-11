@@ -99,6 +99,12 @@ export interface LocalVariablesIntegrationOptions {
    * Maximum number of exceptions to capture local variables for per second before rate limiting is triggered.
    */
   maxExceptionsPerSecond?: number;
+  /**
+   * When true, local variables will be captured for all frames, including those that are not in_app.
+   *
+   * Defaults to `false`.
+   */
+  includeOutOfAppFrames?: boolean;
 }
 
 export interface LocalVariablesWorkerArgs extends LocalVariablesIntegrationOptions {

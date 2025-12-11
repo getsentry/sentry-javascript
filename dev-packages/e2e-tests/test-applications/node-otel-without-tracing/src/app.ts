@@ -2,6 +2,7 @@ import './instrument';
 
 // Other imports below
 import * as Sentry from '@sentry/node';
+import { trace, type Span } from '@opentelemetry/api';
 import express from 'express';
 
 const app = express();
@@ -29,6 +30,23 @@ app.get('/test-transaction', function (req, res) {
   });
 });
 
+app.get('/test-only-if-parent', function (req, res) {
+  // Remove the HTTP span from the context to simulate no parent span
+  Sentry.withActiveSpan(null, () => {
+    // This should NOT create a span because onlyIfParent is true and there's no parent
+    Sentry.startSpan({ name: 'test-only-if-parent', onlyIfParent: true }, () => {
+      // This custom OTel span SHOULD be created and exported
+      // This tests that custom OTel spans aren't suppressed when onlyIfParent triggers
+      const customTracer = trace.getTracer('custom-tracer');
+      customTracer.startActiveSpan('custom-span-with-only-if-parent', (span: Span) => {
+        span.end();
+      });
+    });
+
+    res.send({});
+  });
+});
+
 app.get('/test-error', async function (req, res) {
   const exceptionId = Sentry.captureException(new Error('This is an error'));
 
@@ -42,6 +60,16 @@ app.get('/test-exception/:id', function (req, _res) {
   Sentry.setTag(`param-${id}`, id);
 
   throw new Error(`This is an exception with id ${id}`);
+});
+
+app.get('/test-logs/:id', function (req, res) {
+  const id = req.params.id;
+
+  Sentry.startSpan({ name: `log-operation-${id}` }, () => {
+    Sentry.logger.info(`test-log-${id}`, { requestId: id });
+  });
+
+  res.send({ ok: true, id });
 });
 
 Sentry.setupExpressErrorHandler(app);

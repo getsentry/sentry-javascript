@@ -267,6 +267,189 @@ describe('withSentryConfig', () => {
 
       expect(finalConfig.turbopack).toBeUndefined();
     });
+
+    describe('webpack configuration options path', () => {
+      afterEach(() => {
+        delete process.env.TURBOPACK;
+        vi.restoreAllMocks();
+      });
+
+      it('uses new webpack.disableSentryConfig option', () => {
+        delete process.env.TURBOPACK;
+
+        const originalWebpackFunction = vi.fn();
+        const configWithWebpack = {
+          ...exportedNextConfig,
+          webpack: originalWebpackFunction,
+        };
+
+        const sentryOptions = {
+          webpack: {
+            disableSentryConfig: true,
+          },
+        };
+
+        const finalConfig = materializeFinalNextConfig(configWithWebpack, undefined, sentryOptions);
+        expect(finalConfig.webpack).toBe(originalWebpackFunction);
+      });
+
+      it('new webpack path takes precedence over deprecated top-level options', () => {
+        delete process.env.TURBOPACK;
+
+        const originalWebpackFunction = vi.fn();
+        const configWithWebpack = {
+          ...exportedNextConfig,
+          webpack: originalWebpackFunction,
+        };
+
+        // Both old and new paths set, new should win
+        const sentryOptions = {
+          disableSentryWebpackConfig: false, // deprecated - says enable
+          webpack: {
+            disableSentryConfig: true, // new - says disable
+          },
+        };
+
+        const finalConfig = materializeFinalNextConfig(configWithWebpack, undefined, sentryOptions);
+        // Should preserve original webpack because new path disables it
+        expect(finalConfig.webpack).toBe(originalWebpackFunction);
+      });
+
+      it('falls back to deprecated option when new path is not set', () => {
+        delete process.env.TURBOPACK;
+
+        const originalWebpackFunction = vi.fn();
+        const configWithWebpack = {
+          ...exportedNextConfig,
+          webpack: originalWebpackFunction,
+        };
+
+        // Only deprecated path set
+        const sentryOptions = {
+          disableSentryWebpackConfig: true,
+        };
+
+        const finalConfig = materializeFinalNextConfig(configWithWebpack, undefined, sentryOptions);
+        // Should preserve original webpack because deprecated option disables it
+        expect(finalConfig.webpack).toBe(originalWebpackFunction);
+      });
+
+      it('merges webpack.treeshake.removeDebugLogging with deprecated disableLogger', () => {
+        delete process.env.TURBOPACK;
+
+        // New webpack.treeshake.removeDebugLogging should map to disableLogger internally
+        const sentryOptionsNew = {
+          webpack: {
+            treeshake: {
+              removeDebugLogging: true,
+            },
+          },
+        };
+
+        const sentryOptionsOld = {
+          disableLogger: true,
+        };
+
+        // Both should work the same way internally (though we can't easily test the actual effect here)
+        const finalConfigNew = materializeFinalNextConfig(exportedNextConfig, undefined, sentryOptionsNew);
+        const finalConfigOld = materializeFinalNextConfig(exportedNextConfig, undefined, sentryOptionsOld);
+
+        // Both should have webpack functions (not disabled)
+        expect(finalConfigNew.webpack).toBeInstanceOf(Function);
+        expect(finalConfigOld.webpack).toBeInstanceOf(Function);
+      });
+    });
+
+    describe('deprecation warnings', () => {
+      let consoleWarnSpy: ReturnType<typeof vi.spyOn>;
+
+      beforeEach(() => {
+        consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      });
+
+      afterEach(() => {
+        consoleWarnSpy.mockRestore();
+        delete process.env.TURBOPACK;
+        vi.restoreAllMocks();
+      });
+
+      it('warns when using deprecated top-level options', () => {
+        delete process.env.TURBOPACK;
+
+        const sentryOptions = {
+          disableLogger: true,
+        };
+
+        materializeFinalNextConfig(exportedNextConfig, undefined, sentryOptions);
+
+        expect(consoleWarnSpy).toHaveBeenCalledWith(
+          expect.stringContaining('[@sentry/nextjs] DEPRECATION WARNING: disableLogger is deprecated'),
+        );
+        expect(consoleWarnSpy).toHaveBeenCalledWith(
+          expect.stringContaining('Use webpack.treeshake.removeDebugLogging instead'),
+        );
+      });
+
+      it('does not warn when using new webpack path', () => {
+        delete process.env.TURBOPACK;
+
+        const sentryOptions = {
+          webpack: {
+            treeshake: {
+              removeDebugLogging: true,
+            },
+          },
+        };
+
+        materializeFinalNextConfig(exportedNextConfig, undefined, sentryOptions);
+
+        expect(consoleWarnSpy).not.toHaveBeenCalled();
+      });
+
+      it('warns even when new path is also set', () => {
+        delete process.env.TURBOPACK;
+
+        const sentryOptions = {
+          disableLogger: true, // deprecated
+          webpack: {
+            treeshake: {
+              removeDebugLogging: false, // new path takes precedence
+            },
+          },
+        };
+
+        materializeFinalNextConfig(exportedNextConfig, undefined, sentryOptions);
+
+        // Should warn because deprecated value is present
+        expect(consoleWarnSpy).toHaveBeenCalledWith(
+          expect.stringContaining('[@sentry/nextjs] DEPRECATION WARNING: disableLogger is deprecated'),
+        );
+      });
+
+      it('warns for multiple deprecated options at once', () => {
+        delete process.env.TURBOPACK;
+
+        const sentryOptions = {
+          disableLogger: true,
+          automaticVercelMonitors: false,
+          excludeServerRoutes: ['/api/test'],
+        };
+
+        materializeFinalNextConfig(exportedNextConfig, undefined, sentryOptions);
+
+        // Should warn for all three deprecated options
+        expect(consoleWarnSpy).toHaveBeenCalledWith(
+          expect.stringContaining('[@sentry/nextjs] DEPRECATION WARNING: disableLogger is deprecated'),
+        );
+        expect(consoleWarnSpy).toHaveBeenCalledWith(
+          expect.stringContaining('[@sentry/nextjs] DEPRECATION WARNING: automaticVercelMonitors is deprecated'),
+        );
+        expect(consoleWarnSpy).toHaveBeenCalledWith(
+          expect.stringContaining('[@sentry/nextjs] DEPRECATION WARNING: excludeServerRoutes is deprecated'),
+        );
+        expect(consoleWarnSpy).toHaveBeenCalledTimes(3);
+      });
+    });
   });
 
   describe('bundler detection', () => {

@@ -54,7 +54,7 @@ export { ServerRuntimeClient } from './server-runtime-client';
 export { initAndBind, setCurrentClient } from './sdk';
 export { createTransport } from './transports/base';
 export { makeOfflineTransport } from './transports/offline';
-export { makeMultiplexedTransport } from './transports/multiplexed';
+export { makeMultiplexedTransport, MULTIPLEXED_TRANSPORT_EXTRA_KEY } from './transports/multiplexed';
 export { getIntegrationsToSetup, addIntegration, defineIntegration, installedIntegrations } from './integration';
 export {
   _INTERNAL_skipAiProviderWrapping,
@@ -152,6 +152,9 @@ export type { GoogleGenAIResponse } from './tracing/google-genai/types';
 export { createLangChainCallbackHandler } from './tracing/langchain';
 export { LANGCHAIN_INTEGRATION_NAME } from './tracing/langchain/constants';
 export type { LangChainOptions, LangChainIntegration } from './tracing/langchain/types';
+export { instrumentStateGraphCompile, instrumentLangGraph } from './tracing/langgraph';
+export { LANGGRAPH_INTEGRATION_NAME } from './tracing/langgraph/constants';
+export type { LangGraphOptions, LangGraphIntegration, CompiledGraph } from './tracing/langgraph/types';
 export type { OpenAiClient, OpenAiOptions, InstrumentedMethod } from './tracing/openai/types';
 export type {
   AnthropicAiClient,

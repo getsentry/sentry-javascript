@@ -1,4 +1,5 @@
 import { vitePlugin as remix } from '@remix-run/dev';
+import { sentryRemixVitePlugin } from '@sentry/remix';
 import { hydrogen } from '@shopify/hydrogen/vite';
 import { oxygen } from '@shopify/mini-oxygen/vite';
 import { defineConfig } from 'vite';
@@ -16,6 +17,7 @@ export default defineConfig({
         v3_throwAbortReason: true,
       },
     }),
+    sentryRemixVitePlugin(),
     tsconfigPaths({
       // The dev server config errors are not relevant to this test app
       // https://github.com/aleclarson/vite-tsconfig-paths?tab=readme-ov-file#options

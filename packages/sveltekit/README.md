@@ -25,7 +25,7 @@ functionality related to SvelteKit.
 ## Installation
 
 To get started installing the SDK, use the Sentry Next.js Wizard by running the following command in your terminal or
-read the [Getting Started Docs](https://docs.sentry.io/platforms/javascript/guides/nextjs/):
+read the [Getting Started Docs](https://docs.sentry.io/platforms/javascript/guides/sveltekit/):
 
 ```sh
 npx @sentry/wizard@latest -i sveltekit

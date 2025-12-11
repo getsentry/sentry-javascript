@@ -1,0 +1,129 @@
+# This GitHub Action workflow checks if a new or updated pull request
+# references a GitHub issue in its title or body. If no reference is found,
+# it automatically creates a new issue. This helps ensure all work is
+# tracked, especially when syncing with tools like Linear.
+
+name: Create issue for unreferenced PR
+
+# This action triggers on pull request events
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize, ready_for_review]
+
+# Cancel in progress workflows on pull_requests.
+# https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-a-fallback-value
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  check_for_issue_reference:
+    runs-on: ubuntu-latest
+    if: |
+      !contains(github.event.pull_request.labels.*.name, 'Dev: Gitflow')
+      && !startsWith(github.event.pull_request.head.ref, 'external-contributor/')
+      && !startsWith(github.event.pull_request.head.ref, 'prepare-release/')
+      && !startsWith(github.event.pull_request.head.ref, 'dependabot/')
+    steps:
+      - name: Check PR Body and Title for Issue Reference
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            if (!pr) {
+              core.setFailed('Could not get PR from context.');
+              return;
+            }
+
+            // Don't create an issue for draft PRs
+            if (pr.draft) {
+              console.log(`PR #${pr.number} is a draft, skipping issue creation.`);
+              return;
+            }
+
+            // Bail if this edit was made by the GitHub Actions bot (this workflow)
+            // This prevents infinite loops when we update the PR body with the new issue reference
+            // We check login specifically to not skip edits from other legitimate bots
+            if (context.payload.sender && context.payload.sender.login === 'github-actions[bot]') {
+              console.log(`PR #${pr.number} was edited by github-actions[bot] (this workflow), skipping.`);
+              return;
+            }
+
+            // Check if the PR is already approved
+            const reviewsResponse = await github.rest.pulls.listReviews({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pr.number,
+            });
+
+            if (reviewsResponse.data.some(review => review.state === 'APPROVED')) {
+              console.log(`PR #${pr.number} is already approved, skipping issue creation.`);
+              return;
+            }
+
+            const prBody = pr.body || '';
+            const prTitle = pr.title || '';
+            const prAuthor = pr.user.login;
+            const prUrl = pr.html_url;
+            const prNumber = pr.number;
+
+            // Regex for GitHub issue references (e.g., #123, fixes #456)
+            // https://regex101.com/r/eDiGrQ/1
+            const issueRegexGitHub = /(?:(?:close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved):?\s*)?(#\d+|https:\/\/github\.com\/getsentry\/[\w-]+\/issues\/\d+)/i;
+
+            // Regex for Linear issue references (e.g., ENG-123, resolves ENG-456)
+            const issueRegexLinear = /(?:(?:close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved):?\s*)?[A-Z]+-\d+/i;
+
+            const contentToCheck = `${prTitle} ${prBody}`;
+            const hasIssueReference = issueRegexGitHub.test(contentToCheck) || issueRegexLinear.test(contentToCheck);
+
+            if (hasIssueReference) {
+              console.log(`PR #${prNumber} contains a valid issue reference.`);
+              return;
+            }
+
+            // Check if there's already an issue created by this automation for this PR
+            // Search for issues that mention this PR and were created by github-actions bot
+            const existingIssuesResponse = await github.rest.search.issuesAndPullRequests({
+              q: `repo:${context.repo.owner}/${context.repo.repo} is:issue is:open author:app/github-actions "${prUrl}" in:title in:body`,
+            });
+
+            if (existingIssuesResponse.data.total_count > 0) {
+              const existingIssue = existingIssuesResponse.data.items[0];
+              console.log(`An issue (#${existingIssue.number}) already exists for PR #${prNumber}, skipping creation.`);
+              return;
+            }
+
+            core.warning(`PR #${prNumber} does not have an issue reference. Creating a new issue so it can be tracked in Linear.`);
+
+            // Construct the title and body for the new issue
+            const issueTitle = `${prTitle}`;
+            const issueBody = `> [!NOTE]
+            > The pull request "[${prTitle}](${prUrl})" was created by @${prAuthor} but did not reference an issue. Therefore this issue was created for better visibility in external tools like Linear.
+
+            ${prBody}
+            `;
+
+            // Create the issue using the GitHub API
+            const newIssue = await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: issueTitle,
+              body: issueBody,
+              assignees: [prAuthor]
+            });
+
+            const issueID = newIssue.data.number;
+            console.log(`Created issue #${issueID}.`);
+
+            // Update the PR body to reference the new issue
+            const updatedPrBody = `${prBody}\n\nCloses #${issueID} (added automatically)`;
+
+            await github.rest.pulls.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber,
+              body: updatedPrBody
+            });
+
+            console.log(`Updated PR #${prNumber} to reference newly created issue #${issueID}.`);

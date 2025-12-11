@@ -90,7 +90,7 @@ test('Propagates trace when ErrorBoundary is triggered', async ({ page }) => {
   const pageLoadParentSpanId = pageloadTransaction.contexts?.trace?.parent_span_id;
 
   expect(httpServerTransaction.transaction).toBe('GET client-error');
-  expect(pageloadTransaction.transaction).toBe('routes/client-error');
+  expect(pageloadTransaction.transaction).toBe('/client-error');
 
   expect(httpServerTraceId).toBeDefined();
   expect(httpServerSpanId).toBeDefined();
@@ -132,7 +132,7 @@ test('Sends two linked transactions (server & client) to Sentry', async ({ page 
   const pageLoadParentSpanId = pageloadTransaction.contexts?.trace?.parent_span_id;
 
   expect(httpServerTransaction.transaction).toBe('GET http://localhost:3030/');
-  expect(pageloadTransaction.transaction).toBe('routes/_index');
+  expect(pageloadTransaction.transaction).toBe('/');
 
   expect(httpServerTraceId).toBeDefined();
   expect(httpServerSpanId).toBeDefined();

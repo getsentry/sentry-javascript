@@ -4,18 +4,26 @@ import type { Event } from '../../types-hoist/event';
 import type { Span, SpanAttributes, SpanAttributeValue, SpanJSON, SpanOrigin } from '../../types-hoist/span';
 import { spanToJSON } from '../../utils/spanUtils';
 import {
+  GEN_AI_OPERATION_NAME_ATTRIBUTE,
+  GEN_AI_REQUEST_MESSAGES_ATTRIBUTE,
+  GEN_AI_REQUEST_MODEL_ATTRIBUTE,
+  GEN_AI_RESPONSE_MODEL_ATTRIBUTE,
+  GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_INPUT_TOKENS_CACHE_WRITE_ATTRIBUTE,
   GEN_AI_USAGE_INPUT_TOKENS_CACHED_ATTRIBUTE,
+  GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
-import { getTruncatedJsonString } from '../ai/utils';
 import { toolCallSpanMap } from './constants';
 import type { TokenSummary } from './types';
-import { accumulateTokensForParent, applyAccumulatedTokens, convertAvailableToolsToJsonString } from './utils';
+import {
+  accumulateTokensForParent,
+  applyAccumulatedTokens,
+  convertAvailableToolsToJsonString,
+  requestMessagesFromPrompt,
+} from './utils';
 import type { ProviderMetadata } from './vercel-ai-attributes';
 import {
   AI_MODEL_ID_ATTRIBUTE,
-  AI_MODEL_PROVIDER_ATTRIBUTE,
-  AI_PROMPT_ATTRIBUTE,
   AI_PROMPT_MESSAGES_ATTRIBUTE,
   AI_PROMPT_TOOLS_ATTRIBUTE,
   AI_RESPONSE_OBJECT_ATTRIBUTE,
@@ -31,9 +39,7 @@ import {
   AI_USAGE_CACHED_INPUT_TOKENS_ATTRIBUTE,
   AI_USAGE_COMPLETION_TOKENS_ATTRIBUTE,
   AI_USAGE_PROMPT_TOKENS_ATTRIBUTE,
-  GEN_AI_RESPONSE_MODEL_ATTRIBUTE,
-  GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
-  GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
+  OPERATION_NAME_ATTRIBUTE,
 } from './vercel-ai-attributes';
 
 function addOriginToSpan(span: Span, origin: SpanOrigin): void {
@@ -58,12 +64,10 @@ function onVercelAiSpanStart(span: Span): void {
     return;
   }
 
-  // The AI and Provider must be defined for generate, stream, and embed spans.
-  // The id of the model
+  // The AI model ID must be defined for generate, stream, and embed spans.
+  // The provider is optional and may not always be present.
   const aiModelId = attributes[AI_MODEL_ID_ATTRIBUTE];
-  // the provider of the model
-  const aiModelProvider = attributes[AI_MODEL_PROVIDER_ATTRIBUTE];
-  if (typeof aiModelId !== 'string' || typeof aiModelProvider !== 'string' || !aiModelId || !aiModelProvider) {
+  if (typeof aiModelId !== 'string' || !aiModelId) {
     return;
   }
 
@@ -131,7 +135,8 @@ function processEndedVercelAiSpan(span: SpanJSON): void {
   }
 
   // Rename AI SDK attributes to standardized gen_ai attributes
-  renameAttributeKey(attributes, AI_PROMPT_MESSAGES_ATTRIBUTE, 'gen_ai.request.messages');
+  renameAttributeKey(attributes, OPERATION_NAME_ATTRIBUTE, GEN_AI_OPERATION_NAME_ATTRIBUTE);
+  renameAttributeKey(attributes, AI_PROMPT_MESSAGES_ATTRIBUTE, GEN_AI_REQUEST_MESSAGES_ATTRIBUTE);
   renameAttributeKey(attributes, AI_RESPONSE_TEXT_ATTRIBUTE, 'gen_ai.response.text');
   renameAttributeKey(attributes, AI_RESPONSE_TOOL_CALLS_ATTRIBUTE, 'gen_ai.response.tool_calls');
   renameAttributeKey(attributes, AI_RESPONSE_OBJECT_ATTRIBUTE, 'gen_ai.response.object');
@@ -141,6 +146,7 @@ function processEndedVercelAiSpan(span: SpanJSON): void {
   renameAttributeKey(attributes, AI_TOOL_CALL_RESULT_ATTRIBUTE, 'gen_ai.tool.output');
 
   renameAttributeKey(attributes, AI_SCHEMA_ATTRIBUTE, 'gen_ai.request.schema');
+  renameAttributeKey(attributes, AI_MODEL_ID_ATTRIBUTE, GEN_AI_REQUEST_MODEL_ATTRIBUTE);
 
   addProviderMetadataToAttributes(attributes);
 
@@ -203,10 +209,8 @@ function processGenerateSpan(span: Span, name: string, attributes: SpanAttribute
     span.setAttribute('gen_ai.function_id', functionId);
   }
 
-  if (attributes[AI_PROMPT_ATTRIBUTE]) {
-    const truncatedPrompt = getTruncatedJsonString(attributes[AI_PROMPT_ATTRIBUTE] as string | string[]);
-    span.setAttribute('gen_ai.prompt', truncatedPrompt);
-  }
+  requestMessagesFromPrompt(span, attributes);
+
   if (attributes[AI_MODEL_ID_ATTRIBUTE] && !attributes[GEN_AI_RESPONSE_MODEL_ATTRIBUTE]) {
     span.setAttribute(GEN_AI_RESPONSE_MODEL_ATTRIBUTE, attributes[AI_MODEL_ID_ATTRIBUTE]);
   }
