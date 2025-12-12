@@ -5,7 +5,6 @@
   // creating types for these template files a circular exercise, which causes `tsc` to crash. Fortunately, since the
   // templates aren't consumed as modules (they're essentially just text files which happen to contain code), we don't
   // actually need to create types for them.
-  "exclude": ["src/config/templates/*"],
 
   "compilerOptions": {
     "declaration": true,
