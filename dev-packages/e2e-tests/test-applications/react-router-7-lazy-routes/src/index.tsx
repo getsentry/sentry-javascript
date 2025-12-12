@@ -77,6 +77,9 @@ Sentry.init({
   release: 'e2e-test',
 
   tunnel: 'http://localhost:3031',
+  // Explicitly disable Spotlight to prevent auto-enablement from env vars
+  // This test is about transaction timing, not Spotlight functionality
+  spotlight: false,
 });
 
 const sentryCreateBrowserRouter = Sentry.wrapCreateBrowserRouterV7(createBrowserRouter);
