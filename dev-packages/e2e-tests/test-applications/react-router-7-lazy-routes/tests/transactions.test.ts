@@ -1,8 +1,30 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import {
+  startSpotlight,
+  waitForSpotlightTransaction,
+  clearSpotlightEventBuffer,
+} from '@sentry-internal/test-utils';
+import * as path from 'path';
+
+let spotlight: Awaited<ReturnType<typeof startSpotlight>>;
+
+test.beforeAll(async () => {
+  spotlight = await startSpotlight({
+    cwd: path.resolve(__dirname, '..'),
+    debug: !!process.env.DEBUG,
+  });
+});
+
+test.afterAll(() => {
+  spotlight?.stop();
+});
+
+test.beforeEach(() => {
+  clearSpotlightEventBuffer();
+});
 
 test('Creates a pageload transaction with parameterized route', async ({ page }) => {
-  const transactionPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+  const transactionPromise = waitForSpotlightTransaction(async transactionEvent => {
     return (
       !!transactionEvent?.transaction &&
       transactionEvent.contexts?.trace?.op === 'pageload' &&
@@ -25,11 +47,11 @@ test('Creates a pageload transaction with parameterized route', async ({ page })
 });
 
 test('Does not create a navigation transaction on initial load to deep lazy route', async ({ page }) => {
-  const navigationPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+  const navigationPromise = waitForSpotlightTransaction(async transactionEvent => {
     return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'navigation';
   });
 
-  const pageloadPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+  const pageloadPromise = waitForSpotlightTransaction(async transactionEvent => {
     return (
       !!transactionEvent?.transaction &&
       transactionEvent.contexts?.trace?.op === 'pageload' &&
@@ -56,7 +78,7 @@ test('Does not create a navigation transaction on initial load to deep lazy rout
 });
 
 test('Creates a navigation transaction inside a lazy route', async ({ page }) => {
-  const transactionPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+  const transactionPromise = waitForSpotlightTransaction(async transactionEvent => {
     return (
       !!transactionEvent?.transaction &&
       transactionEvent.contexts?.trace?.op === 'navigation' &&
@@ -88,7 +110,7 @@ test('Creates a navigation transaction inside a lazy route', async ({ page }) =>
 
 test('Creates navigation transactions between two different lazy routes', async ({ page }) => {
   // Set up transaction listeners for both navigations
-  const firstTransactionPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+  const firstTransactionPromise = waitForSpotlightTransaction(async transactionEvent => {
     return (
       !!transactionEvent?.transaction &&
       transactionEvent.contexts?.trace?.op === 'navigation' &&
@@ -96,7 +118,7 @@ test('Creates navigation transactions between two different lazy routes', async 
     );
   });
 
-  const secondTransactionPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+  const secondTransactionPromise = waitForSpotlightTransaction(async transactionEvent => {
     return (
       !!transactionEvent?.transaction &&
       transactionEvent.contexts?.trace?.op === 'navigation' &&
@@ -150,7 +172,7 @@ test('Creates navigation transactions from inner lazy route to another lazy rout
   await expect(navigationToInner).toBeVisible();
 
   // First, navigate to the inner lazy route
-  const firstTransactionPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+  const firstTransactionPromise = waitForSpotlightTransaction(async transactionEvent => {
     return (
       !!transactionEvent?.transaction &&
       transactionEvent.contexts?.trace?.op === 'navigation' &&
@@ -176,7 +198,7 @@ test('Creates navigation transactions from inner lazy route to another lazy rout
   await expect(navigationToAnotherFromInner).toBeVisible();
 
   // Now navigate from the inner lazy route to another lazy route
-  const secondTransactionPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+  const secondTransactionPromise = waitForSpotlightTransaction(async transactionEvent => {
     return (
       !!transactionEvent?.transaction &&
       transactionEvent.contexts?.trace?.op === 'navigation' &&
@@ -198,7 +220,7 @@ test('Creates navigation transactions from inner lazy route to another lazy rout
   expect(secondEvent.contexts?.trace?.op).toBe('navigation');
 
   // Go back to the previous page to ensure history navigation works as expected
-  const goBackTransactionPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+  const goBackTransactionPromise = waitForSpotlightTransaction(async transactionEvent => {
     return (
       !!transactionEvent?.transaction &&
       transactionEvent.contexts?.trace?.op === 'navigation' &&
@@ -216,7 +238,7 @@ test('Creates navigation transactions from inner lazy route to another lazy rout
   expect(goBackEvent.contexts?.trace?.op).toBe('navigation');
 
   // Navigate to the upper route
-  const goUpperRouteTransactionPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+  const goUpperRouteTransactionPromise = waitForSpotlightTransaction(async transactionEvent => {
     return (
       !!transactionEvent?.transaction &&
       transactionEvent.contexts?.trace?.op === 'navigation' &&
@@ -240,7 +262,7 @@ test('Does not send any duplicate navigation transaction names browsing between 
   const transactionNamesList: string[] = [];
 
   // Monitor and add all transaction names sent to Sentry for the navigations
-  const allTransactionsPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+  const allTransactionsPromise = waitForSpotlightTransaction(async transactionEvent => {
     if (transactionEvent?.transaction) {
       transactionNamesList.push(transactionEvent.transaction);
     }
@@ -298,7 +320,7 @@ test('Does not send any duplicate navigation transaction names browsing between 
 });
 
 test('Does not create premature navigation transaction during long-running lazy route pageload', async ({ page }) => {
-  const navigationPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+  const navigationPromise = waitForSpotlightTransaction(async transactionEvent => {
     return (
       !!transactionEvent?.transaction &&
       transactionEvent.contexts?.trace?.op === 'navigation' &&
@@ -306,7 +328,7 @@ test('Does not create premature navigation transaction during long-running lazy 
     );
   });
 
-  const pageloadPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+  const pageloadPromise = waitForSpotlightTransaction(async transactionEvent => {
     return (
       !!transactionEvent?.transaction &&
       transactionEvent.contexts?.trace?.op === 'pageload' &&
@@ -340,7 +362,7 @@ test('Allows legitimate POP navigation (back/forward) after pageload completes',
   await expect(navigationToLongRunning).toBeVisible();
 
   // Set up transaction listeners for both navigations
-  const firstNavigationPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+  const firstNavigationPromise = waitForSpotlightTransaction(async transactionEvent => {
     return (
       !!transactionEvent?.transaction &&
       transactionEvent.contexts?.trace?.op === 'navigation' &&
@@ -348,7 +370,7 @@ test('Allows legitimate POP navigation (back/forward) after pageload completes',
     );
   });
 
-  const backNavigationPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+  const backNavigationPromise = waitForSpotlightTransaction(async transactionEvent => {
     return (
       !!transactionEvent?.transaction &&
       transactionEvent.contexts?.trace?.op === 'navigation' &&
@@ -384,7 +406,7 @@ test('Allows legitimate POP navigation (back/forward) after pageload completes',
 test('Updates pageload transaction name correctly when span is cancelled early (document.hidden simulation)', async ({
   page,
 }) => {
-  const transactionPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+  const transactionPromise = waitForSpotlightTransaction(async transactionEvent => {
     return (
       !!transactionEvent?.transaction &&
       transactionEvent.contexts?.trace?.op === 'pageload' &&
@@ -438,7 +460,7 @@ test('Updates navigation transaction name correctly when span is cancelled early
   // First go to home page
   await page.goto('/');
 
-  const navigationPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+  const navigationPromise = waitForSpotlightTransaction(async transactionEvent => {
     return (
       !!transactionEvent?.transaction &&
       transactionEvent.contexts?.trace?.op === 'navigation' &&
@@ -506,7 +528,7 @@ test('Creates separate transactions for rapid consecutive navigations', async ({
   await page.goto('/');
 
   // Set up transaction listeners
-  const firstTransactionPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+  const firstTransactionPromise = waitForSpotlightTransaction(async transactionEvent => {
     return (
       !!transactionEvent?.transaction &&
       transactionEvent.contexts?.trace?.op === 'navigation' &&
@@ -514,7 +536,7 @@ test('Creates separate transactions for rapid consecutive navigations', async ({
     );
   });
 
-  const secondTransactionPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+  const secondTransactionPromise = waitForSpotlightTransaction(async transactionEvent => {
     return (
       !!transactionEvent?.transaction &&
       transactionEvent.contexts?.trace?.op === 'navigation' &&
@@ -524,7 +546,7 @@ test('Creates separate transactions for rapid consecutive navigations', async ({
 
   // Third navigation promise - using counter to match second occurrence of same route
   let innerRouteMatchCount = 0;
-  const thirdTransactionPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+  const thirdTransactionPromise = waitForSpotlightTransaction(async transactionEvent => {
     if (
       transactionEvent?.transaction &&
       transactionEvent.contexts?.trace?.op === 'navigation' &&
@@ -590,7 +612,7 @@ test('Creates separate transactions for rapid consecutive navigations', async ({
 });
 
 test('Creates pageload transaction with parameterized route for delayed lazy route', async ({ page }) => {
-  const pageloadPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+  const pageloadPromise = waitForSpotlightTransaction(async transactionEvent => {
     return (
       !!transactionEvent?.transaction &&
       transactionEvent.contexts?.trace?.op === 'pageload' &&
@@ -615,7 +637,7 @@ test('Creates pageload transaction with parameterized route for delayed lazy rou
 test('Creates navigation transaction with parameterized route for delayed lazy route', async ({ page }) => {
   await page.goto('/');
 
-  const navigationPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+  const navigationPromise = waitForSpotlightTransaction(async transactionEvent => {
     return (
       !!transactionEvent?.transaction &&
       transactionEvent.contexts?.trace?.op === 'navigation' &&
@@ -644,7 +666,7 @@ test('Creates navigation transaction when navigating with query parameters from 
 
   // Navigate from / to /delayed-lazy/123?source=homepage
   // This should create a navigation transaction with the parameterized route name
-  const navigationPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+  const navigationPromise = waitForSpotlightTransaction(async transactionEvent => {
     return (
       !!transactionEvent?.transaction &&
       transactionEvent.contexts?.trace?.op === 'navigation' &&
@@ -682,7 +704,7 @@ test('Creates separate navigation transaction when changing only query parameter
 
   // Navigate from /delayed-lazy/123 to /delayed-lazy/123?view=detailed
   // This is a query-only change on the same route
-  const navigationPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+  const navigationPromise = waitForSpotlightTransaction(async transactionEvent => {
     return (
       !!transactionEvent?.transaction &&
       transactionEvent.contexts?.trace?.op === 'navigation' &&
@@ -714,7 +736,7 @@ test('Creates separate navigation transactions for multiple query parameter chan
   await expect(delayedReady).toBeVisible();
 
   // First query change: /delayed-lazy/123 -> /delayed-lazy/123?view=detailed
-  const firstNavigationPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+  const firstNavigationPromise = waitForSpotlightTransaction(async transactionEvent => {
     return (
       !!transactionEvent?.transaction &&
       transactionEvent.contexts?.trace?.op === 'navigation' &&
@@ -732,7 +754,7 @@ test('Creates separate navigation transactions for multiple query parameter chan
   await expect(page.locator('id=delayed-lazy-view')).toHaveText('View: detailed');
 
   // Second query change: /delayed-lazy/123?view=detailed -> /delayed-lazy/123?view=list
-  const secondNavigationPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+  const secondNavigationPromise = waitForSpotlightTransaction(async transactionEvent => {
     return (
       !!transactionEvent?.transaction &&
       transactionEvent.contexts?.trace?.op === 'navigation' &&
@@ -770,7 +792,7 @@ test('Creates navigation transaction when changing only hash on same route', asy
 
   // Navigate from /delayed-lazy/123 to /delayed-lazy/123#section1
   // This is a hash-only change on the same route
-  const navigationPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+  const navigationPromise = waitForSpotlightTransaction(async transactionEvent => {
     return (
       !!transactionEvent?.transaction &&
       transactionEvent.contexts?.trace?.op === 'navigation' &&
@@ -801,7 +823,7 @@ test('Creates separate navigation transactions for multiple hash changes', async
   await expect(delayedReady).toBeVisible();
 
   // First hash change: /delayed-lazy/123 -> /delayed-lazy/123#section1
-  const firstNavigationPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+  const firstNavigationPromise = waitForSpotlightTransaction(async transactionEvent => {
     return (
       !!transactionEvent?.transaction &&
       transactionEvent.contexts?.trace?.op === 'navigation' &&
@@ -819,7 +841,7 @@ test('Creates separate navigation transactions for multiple hash changes', async
   await expect(page.locator('id=delayed-lazy-hash')).toHaveText('#section1');
 
   // Second hash change: /delayed-lazy/123#section1 -> /delayed-lazy/123#section2
-  const secondNavigationPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+  const secondNavigationPromise = waitForSpotlightTransaction(async transactionEvent => {
     return (
       !!transactionEvent?.transaction &&
       transactionEvent.contexts?.trace?.op === 'navigation' &&
@@ -858,7 +880,7 @@ test('Creates navigation transaction when changing both query and hash on same r
 
   // Navigate from /delayed-lazy/123?view=list to /delayed-lazy/123?view=grid#results
   // This changes both query and hash
-  const navigationPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+  const navigationPromise = waitForSpotlightTransaction(async transactionEvent => {
     return (
       !!transactionEvent?.transaction &&
       transactionEvent.contexts?.trace?.op === 'navigation' &&
@@ -891,7 +913,7 @@ test('Creates navigation transaction with correct name for slow lazy route', asy
 
   await page.goto('/');
 
-  const navigationPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+  const navigationPromise = waitForSpotlightTransaction(async transactionEvent => {
     return (
       !!transactionEvent?.transaction &&
       transactionEvent.contexts?.trace?.op === 'navigation' &&
@@ -922,7 +944,7 @@ test('Rapid navigation does not corrupt transaction names when lazy handlers res
 
   const allTransactions: Array<{ name: string; op: string }> = [];
 
-  const collectorPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+  const collectorPromise = waitForSpotlightTransaction(async transactionEvent => {
     if (transactionEvent?.transaction && transactionEvent.contexts?.trace?.op) {
       allTransactions.push({
         name: transactionEvent.transaction,
@@ -973,7 +995,7 @@ test('Correctly names pageload transaction for slow lazy route with fetch', asyn
   // This test verifies that a slow lazy route (with top-level await and fetch)
   // creates a correctly named pageload transaction
 
-  const pageloadPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+  const pageloadPromise = waitForSpotlightTransaction(async transactionEvent => {
     return (
       !!transactionEvent?.transaction &&
       transactionEvent.contexts?.trace?.op === 'pageload' &&
@@ -1009,14 +1031,14 @@ test('Correctly names pageload transaction for slow lazy route with fetch', asyn
 test('Three-route rapid navigation preserves distinct transaction names', async ({ page }) => {
   const navigationTransactions: Array<{ name: string }> = [];
 
-  const navigationCollector = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+  const navigationCollector = waitForSpotlightTransaction(async transactionEvent => {
     if (transactionEvent.contexts?.trace?.op === 'navigation') {
       navigationTransactions.push({ name: transactionEvent.transaction || '' });
     }
     return false;
   });
 
-  const pageloadPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+  const pageloadPromise = waitForSpotlightTransaction(async transactionEvent => {
     return (
       !!transactionEvent?.transaction &&
       transactionEvent.contexts?.trace?.op === 'pageload' &&
@@ -1060,7 +1082,7 @@ test('Three-route rapid navigation preserves distinct transaction names', async 
 test('Zero-wait rapid navigation does not corrupt transaction names', async ({ page }) => {
   const navigationTransactions: Array<{ name: string }> = [];
 
-  const collector = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+  const collector = waitForSpotlightTransaction(async transactionEvent => {
     if (transactionEvent.contexts?.trace?.op === 'navigation') {
       navigationTransactions.push({ name: transactionEvent.transaction || '' });
     }
@@ -1095,7 +1117,7 @@ test('Zero-wait rapid navigation does not corrupt transaction names', async ({ p
 test('Browser back during lazy handler resolution does not corrupt', async ({ page }) => {
   const allTransactions: Array<{ name: string; op: string }> = [];
 
-  const collector = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+  const collector = waitForSpotlightTransaction(async transactionEvent => {
     if (transactionEvent?.transaction && transactionEvent.contexts?.trace?.op) {
       allTransactions.push({
         name: transactionEvent.transaction,
@@ -1132,7 +1154,7 @@ test('Browser back during lazy handler resolution does not corrupt', async ({ pa
 test('Multiple overlapping lazy handlers do not corrupt each other', async ({ page }) => {
   const navigationTransactions: Array<{ name: string }> = [];
 
-  const collector = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+  const collector = waitForSpotlightTransaction(async transactionEvent => {
     if (transactionEvent.contexts?.trace?.op === 'navigation') {
       navigationTransactions.push({ name: transactionEvent.transaction || '' });
     }
@@ -1179,7 +1201,7 @@ test('Multiple overlapping lazy handlers do not corrupt each other', async ({ pa
 test('Query/hash navigation does not corrupt transaction name', async ({ page }) => {
   const navigationTransactions: Array<{ name: string }> = [];
 
-  const collectorPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+  const collectorPromise = waitForSpotlightTransaction(async transactionEvent => {
     if (transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'navigation') {
       navigationTransactions.push({ name: transactionEvent.transaction });
     }
