@@ -61,7 +61,6 @@ export async function startSpotlight(options: SpotlightOptions = {}): Promise<Sp
     const spotlightProcess = spawn('yarn', args, {
       cwd,
       stdio: ['ignore', 'pipe', 'pipe'],
-      shell: true,
     });
 
     let resolvedPort: number | null = null;
@@ -314,4 +313,3 @@ export function clearEventBuffer(): void {
 export function getCurrentSpotlightInstance(): SpotlightInstance | null {
   return currentSpotlightInstance;
 }
-
