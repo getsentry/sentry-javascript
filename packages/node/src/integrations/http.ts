@@ -20,7 +20,7 @@ const INTEGRATION_NAME = 'Http';
 
 const INSTRUMENTATION_NAME = '@opentelemetry_sentry-patched/instrumentation-http';
 
-interface HttpOptions {
+export interface HttpOptions {
   /**
    * Whether breadcrumbs should be recorded for outgoing requests.
    * Defaults to true

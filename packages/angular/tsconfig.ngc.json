@@ -8,7 +8,7 @@
     "target": "es2020",
     "declarationMap": false,
     "lib": ["DOM", "es2020"],
-    "baseUrl": "./"
+    "baseUrl": "."
   },
   "angularCompilerOptions": {
     "skipTemplateCodegen": true,
