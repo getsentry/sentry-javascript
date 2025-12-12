@@ -1,11 +1,12 @@
 import { expect } from '@playwright/test';
 import { SEMANTIC_LINK_ATTRIBUTE_LINK_TYPE } from '@sentry/core';
 import { sentryTest } from '../../../utils/fixtures';
-import { shouldSkipTracingTest } from '../../../utils/helpers';
+import { shouldSkipTracingTest, testingCdnBundle } from '../../../utils/helpers';
 import { getSpanOp, waitForV2Spans } from '../../../utils/spanFirstUtils';
 
 sentryTest("navigation spans link back to previous trace's root span", async ({ getLocalTestUrl, page }) => {
-  if (shouldSkipTracingTest()) {
+  // for now, spanStreamingIntegration is only exported in the NPM package, so we skip the test for bundles.
+  if (shouldSkipTracingTest() || testingCdnBundle()) {
     sentryTest.skip();
   }
 
@@ -77,7 +78,8 @@ sentryTest("navigation spans link back to previous trace's root span", async ({ 
 });
 
 sentryTest("doesn't link between hard page reloads by default", async ({ getLocalTestUrl, page }) => {
-  if (shouldSkipTracingTest()) {
+  // for now, spanStreamingIntegration is only exported in the NPM package, so we skip the test for bundles.
+  if (shouldSkipTracingTest() || testingCdnBundle()) {
     sentryTest.skip();
   }
 
