@@ -27,7 +27,7 @@ sentryTest('captures TTFB web vital', async ({ getLocalTestUrl, page }) => {
   }
 
   expect(pageloadSpan!.attributes?.['ui.web_vital.ttfb.requestTime']).toEqual({
-    type: expect.stringMatching(/^integer|double$/),
+    type: expect.stringMatching(/^(integer|double)$/),
     value: expect.any(Number),
   });
 });
