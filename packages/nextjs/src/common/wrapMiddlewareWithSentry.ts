@@ -1,17 +1,4 @@
-import type { TransactionSource } from '@sentry/core';
-import {
-  captureException,
-  getActiveSpan,
-  getCurrentScope,
-  getRootSpan,
-  handleCallbackErrors,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  setCapturedScopesOnSpan,
-  startSpan,
-  winterCGRequestToRequestData,
-  withIsolationScope,
-} from '@sentry/core';
+import { captureException, getCurrentScope, handleCallbackErrors } from '@sentry/core';
 import { flushSafelyWithTimeout, waitUntil } from '../common/utils/responseEnd';
 import type { EdgeRouteHandler } from '../edge/types';
 
@@ -31,6 +18,7 @@ export function wrapMiddlewareWithSentry<H extends EdgeRouteHandler>(
           ? (globalThis as Record<string, unknown>)._sentryRewritesTunnelPath
           : undefined;
 
+      // TODO: This can never work with Turbopack, need to remove it for consistency between builds.
       if (tunnelRoute && typeof tunnelRoute === 'string') {
         const req: unknown = args[0];
         // Check if the current request matches the tunnel route
@@ -51,68 +39,25 @@ export function wrapMiddlewareWithSentry<H extends EdgeRouteHandler>(
           }
         }
       }
-      // TODO: We still should add central isolation scope creation for when our build-time instrumentation does not work anymore with turbopack.
-      return withIsolationScope(isolationScope => {
-        const req: unknown = args[0];
-        const currentScope = getCurrentScope();
 
-        let spanName: string;
-        let spanSource: TransactionSource;
+      const req: unknown = args[0];
+      const spanName = req instanceof Request ? `middleware ${req.method}` : 'middleware';
+      getCurrentScope().setTransactionName(spanName);
 
-        if (req instanceof Request) {
-          isolationScope.setSDKProcessingMetadata({
-            normalizedRequest: winterCGRequestToRequestData(req),
-          });
-          spanName = `middleware ${req.method}`;
-          spanSource = 'url';
-        } else {
-          spanName = 'middleware';
-          spanSource = 'component';
-        }
-
-        currentScope.setTransactionName(spanName);
-
-        const activeSpan = getActiveSpan();
-
-        if (activeSpan) {
-          // If there is an active span, it likely means that the automatic Next.js OTEL instrumentation worked and we can
-          // rely on that for parameterization.
-          spanName = 'middleware';
-          spanSource = 'component';
-
-          const rootSpan = getRootSpan(activeSpan);
-          if (rootSpan) {
-            setCapturedScopesOnSpan(rootSpan, currentScope, isolationScope);
-          }
-        }
-
-        return startSpan(
-          {
-            name: spanName,
-            op: 'http.server.middleware',
-            attributes: {
-              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: spanSource,
-              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs.wrap_middleware',
+      return handleCallbackErrors(
+        () => wrappingTarget.apply(thisArg, args),
+        error => {
+          captureException(error, {
+            mechanism: {
+              type: 'auto.function.nextjs.wrap_middleware',
+              handled: false,
             },
-          },
-          () => {
-            return handleCallbackErrors(
-              () => wrappingTarget.apply(thisArg, args),
-              error => {
-                captureException(error, {
-                  mechanism: {
-                    type: 'auto.function.nextjs.wrap_middleware',
-                    handled: false,
-                  },
-                });
-              },
-              () => {
-                waitUntil(flushSafelyWithTimeout());
-              },
-            );
-          },
-        );
-      });
+          });
+        },
+        () => {
+          waitUntil(flushSafelyWithTimeout());
+        },
+      );
     },
   });
 }
