@@ -233,7 +233,10 @@ describe('PostgresJs', () => {
         ['SELECT * FROM users WHERE id IN ($1, $2, $3)', 'SELECT * FROM users WHERE id IN ($?)'],
         ['SELECT * FROM users WHERE id in ($1, $2)', 'SELECT * FROM users WHERE id IN ($?)'],
         ['SELECT * FROM users WHERE id IN (  $1 ,  $2  ,  $3  )', 'SELECT * FROM users WHERE id IN ($?)'],
-        ['SELECT * FROM users WHERE id IN ($1, $2) AND status IN ($3, $4)', 'SELECT * FROM users WHERE id IN ($?) AND status IN ($?)'],
+        [
+          'SELECT * FROM users WHERE id IN ($1, $2) AND status IN ($3, $4)',
+          'SELECT * FROM users WHERE id IN ($?) AND status IN ($?)',
+        ],
         ['SELECT * FROM users WHERE id NOT IN ($1, $2)', 'SELECT * FROM users WHERE id NOT IN ($?)'],
         ['SELECT * FROM users WHERE id NOT IN (?, ?)', 'SELECT * FROM users WHERE id NOT IN (?)'],
         ['SELECT * FROM users WHERE id IN ($1)', 'SELECT * FROM users WHERE id IN ($?)'],
@@ -265,7 +268,10 @@ describe('PostgresJs', () => {
         ["SELECT data->'key' FROM t WHERE id = $1", 'SELECT data->? FROM t WHERE id = $1'],
         ["SELECT data->>'key' FROM t WHERE id = $1", 'SELECT data->>? FROM t WHERE id = $1'],
         ["SELECT * FROM t WHERE data @> '{}'", 'SELECT * FROM t WHERE data @> ?'],
-        ["SELECT * FROM t WHERE created_at > NOW() - INTERVAL '7 days'", 'SELECT * FROM t WHERE created_at > NOW() - INTERVAL ?'],
+        [
+          "SELECT * FROM t WHERE created_at > NOW() - INTERVAL '7 days'",
+          'SELECT * FROM t WHERE created_at > NOW() - INTERVAL ?',
+        ],
         ['CREATE TABLE t (created_at TIMESTAMP(3))', 'CREATE TABLE t (created_at TIMESTAMP(?))'],
         ['CREATE TABLE t (price NUMERIC(10, 2))', 'CREATE TABLE t (price NUMERIC(?, ?))'],
       ])('handles PostgreSQL syntax: %p', (input, expected) => {
@@ -342,12 +348,30 @@ describe('PostgresJs', () => {
         ["SELECT * FROM users WHERE name LIKE '%john%'", 'SELECT * FROM users WHERE name LIKE ?'],
         ['SELECT * FROM t WHERE age BETWEEN 18 AND 65', 'SELECT * FROM t WHERE age BETWEEN ? AND ?'],
         ['SELECT * FROM t WHERE age BETWEEN $1 AND $2', 'SELECT * FROM t WHERE age BETWEEN $1 AND $2'],
-        ["SELECT CASE WHEN status = 'active' THEN 1 ELSE 0 END FROM users", 'SELECT CASE WHEN status = ? THEN ? ELSE ? END FROM users'],
-        ['SELECT * FROM users WHERE id IN (SELECT user_id FROM orders WHERE amount > 100)', 'SELECT * FROM users WHERE id IN (SELECT user_id FROM orders WHERE amount > ?)'],
-        ["WITH cte AS (SELECT * FROM users WHERE status = 'active') SELECT * FROM cte WHERE id = $1", 'WITH cte AS (SELECT * FROM users WHERE status = ?) SELECT * FROM cte WHERE id = $1'],
-        ['SELECT COUNT(*), SUM(amount), AVG(price) FROM orders WHERE status = $1', 'SELECT COUNT(*), SUM(amount), AVG(price) FROM orders WHERE status = $1'],
-        ['SELECT status, COUNT(*) FROM orders GROUP BY status HAVING COUNT(*) > 10', 'SELECT status, COUNT(*) FROM orders GROUP BY status HAVING COUNT(*) > ?'],
-        ['SELECT ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY created_at) FROM orders', 'SELECT ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY created_at) FROM orders'],
+        [
+          "SELECT CASE WHEN status = 'active' THEN 1 ELSE 0 END FROM users",
+          'SELECT CASE WHEN status = ? THEN ? ELSE ? END FROM users',
+        ],
+        [
+          'SELECT * FROM users WHERE id IN (SELECT user_id FROM orders WHERE amount > 100)',
+          'SELECT * FROM users WHERE id IN (SELECT user_id FROM orders WHERE amount > ?)',
+        ],
+        [
+          "WITH cte AS (SELECT * FROM users WHERE status = 'active') SELECT * FROM cte WHERE id = $1",
+          'WITH cte AS (SELECT * FROM users WHERE status = ?) SELECT * FROM cte WHERE id = $1',
+        ],
+        [
+          'SELECT COUNT(*), SUM(amount), AVG(price) FROM orders WHERE status = $1',
+          'SELECT COUNT(*), SUM(amount), AVG(price) FROM orders WHERE status = $1',
+        ],
+        [
+          'SELECT status, COUNT(*) FROM orders GROUP BY status HAVING COUNT(*) > 10',
+          'SELECT status, COUNT(*) FROM orders GROUP BY status HAVING COUNT(*) > ?',
+        ],
+        [
+          'SELECT ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY created_at) FROM orders',
+          'SELECT ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY created_at) FROM orders',
+        ],
       ])('handles edge case: %p', (input, expected) => {
         expect(sanitize(input)).toBe(expected);
       });
