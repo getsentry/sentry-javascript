@@ -1,20 +1,34 @@
 import type { PlaywrightTestConfig } from '@playwright/test';
 
+interface PlaywrightConfigOptions {
+  /** Command to start the test app (not needed when using Spotlight) */
+  startCommand?: string;
+  /** Port for the test app */
+  port?: number;
+  /** Port for the event proxy (legacy mode only) */
+  eventProxyPort?: number;
+  /** Path to the event proxy file (legacy mode only) */
+  eventProxyFile?: string;
+  /**
+   * Use Spotlight instead of the custom event proxy server.
+   * When enabled, Spotlight will automatically run the app and capture events.
+   * The app's Sentry SDK should use the DSN workaround: http://spotlight@localhost:PORT/0
+   */
+  useSpotlight?: boolean;
+  /** Port for Spotlight sidecar. Defaults to 8969. Use 0 for dynamic port. */
+  spotlightPort?: number;
+  /** Enable debug output for Spotlight */
+  spotlightDebug?: boolean;
+}
+
 /** Get a playwright config to use in an E2E test app. */
 export function getPlaywrightConfig(
-  options?: {
-    startCommand?: string;
-    port?: number;
-    eventProxyPort?: number;
-    eventProxyFile?: string;
-  },
+  options?: PlaywrightConfigOptions,
   overwriteConfig?: Partial<PlaywrightTestConfig>,
 ): PlaywrightTestConfig {
   const testEnv = process.env['TEST_ENV'] || 'production';
   const appPort = options?.port || 3030;
-  const eventProxyPort = options?.eventProxyPort || 3031;
-  const eventProxyFile = options?.eventProxyFile || 'start-event-proxy.mjs';
-  const startCommand = options?.startCommand;
+  const useSpotlight = options?.useSpotlight || false;
 
   /**
    * See https://playwright.dev/docs/test-configuration.
@@ -71,31 +85,63 @@ export function getPlaywrightConfig(
     ],
 
     /* Run your local dev server before starting the tests */
-    webServer: [
-      {
-        command: `node ${eventProxyFile}`,
-        port: eventProxyPort,
-        stdout: 'pipe',
-        stderr: 'pipe',
-      },
-    ],
+    webServer: [],
   };
 
-  if (startCommand) {
-    // @ts-expect-error - we set `config.webserver` to an array above.
-    // TS just can't infer that and thinks it could also be undefined or an object.
+  if (useSpotlight) {
+    // Spotlight mode: Use Spotlight to run the app and capture events
+    // Spotlight auto-detects the start script from package.json
+    const spotlightPort = options?.spotlightPort ?? 8969;
+    const spotlightArgs = ['-f', 'json'];
+
+    if (spotlightPort !== 0) {
+      spotlightArgs.push('-p', String(spotlightPort));
+    }
+
+    if (options?.spotlightDebug) {
+      spotlightArgs.push('-d');
+    }
+
+    // @ts-expect-error - we set `config.webserver` to an array above
     config.webServer.push({
-      command: startCommand,
+      command: `yarn spotlight run ${spotlightArgs.join(' ')}`,
       port: appPort,
       stdout: 'pipe',
       stderr: 'pipe',
       env: {
-        // Inherit all environment variables from the parent process
-        // This is needed for env vars like NEXT_PUBLIC_SENTRY_SPOTLIGHT to be passed through
         ...process.env,
         PORT: appPort.toString(),
       },
     });
+  } else {
+    // Legacy mode: Use custom event proxy server
+    const eventProxyPort = options?.eventProxyPort || 3031;
+    const eventProxyFile = options?.eventProxyFile || 'start-event-proxy.mjs';
+    const startCommand = options?.startCommand;
+
+    // @ts-expect-error - we set `config.webserver` to an array above
+    config.webServer.push({
+      command: `node ${eventProxyFile}`,
+      port: eventProxyPort,
+      stdout: 'pipe',
+      stderr: 'pipe',
+    });
+
+    if (startCommand) {
+      // @ts-expect-error - we set `config.webserver` to an array above
+      config.webServer.push({
+        command: startCommand,
+        port: appPort,
+        stdout: 'pipe',
+        stderr: 'pipe',
+        env: {
+          // Inherit all environment variables from the parent process
+          // This is needed for env vars like NEXT_PUBLIC_SENTRY_SPOTLIGHT to be passed through
+          ...process.env,
+          PORT: appPort.toString(),
+        },
+      });
+    }
   }
 
   return {

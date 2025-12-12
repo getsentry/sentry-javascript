@@ -55,9 +55,13 @@ function getRuntimeConfig(): { lazyRouteTimeout?: number; idleTimeout?: number }
 
 const runtimeConfig = getRuntimeConfig();
 
+// Use Spotlight DSN workaround - this makes the SDK send events directly to Spotlight
+// Spotlight runs on port 8969 by default and captures all Sentry events
+const SPOTLIGHT_DSN = 'http://spotlight@localhost:8969/0';
+
 Sentry.init({
   environment: 'qa', // dynamic sampling bias to keep transactions
-  dsn: process.env.REACT_APP_E2E_TEST_DSN,
+  dsn: SPOTLIGHT_DSN,
   integrations: [
     Sentry.reactRouterV7BrowserTracingIntegration({
       useEffect: React.useEffect,
@@ -75,8 +79,6 @@ Sentry.init({
   // for finer control
   tracesSampleRate: 1.0,
   release: 'e2e-test',
-
-  tunnel: 'http://localhost:3031',
 });
 
 const sentryCreateBrowserRouter = Sentry.wrapCreateBrowserRouterV7(createBrowserRouter);

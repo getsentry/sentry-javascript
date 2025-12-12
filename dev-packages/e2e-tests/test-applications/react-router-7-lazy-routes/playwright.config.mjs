@@ -1,7 +1,7 @@
 import { getPlaywrightConfig } from '@sentry-internal/test-utils';
 
 const config = getPlaywrightConfig({
-  startCommand: `pnpm start`,
+  useSpotlight: true,
 });
 
 export default config;
