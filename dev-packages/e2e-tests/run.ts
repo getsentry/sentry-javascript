@@ -174,7 +174,8 @@ async function run(): Promise<void> {
     PUBLIC_E2E_TEST_DSN: dsn,
     REACT_APP_E2E_TEST_DSN: dsn,
     VITE_E2E_TEST_DSN: dsn,
-    VITE_SENTRY_SPOTLIGHT: 'true',
+    // Note: Spotlight env vars (VITE_SENTRY_SPOTLIGHT, etc.) are NOT set globally.
+    // They should only be set in test apps that specifically test Spotlight functionality.
     E2E_TEST_SENTRY_ORG_SLUG: process.env.E2E_TEST_SENTRY_ORG_SLUG || DEFAULT_SENTRY_ORG_SLUG,
     E2E_TEST_SENTRY_PROJECT: process.env.E2E_TEST_SENTRY_PROJECT || DEFAULT_SENTRY_PROJECT,
     // Pass workspace root so tests copied to temp dirs can find local packages
