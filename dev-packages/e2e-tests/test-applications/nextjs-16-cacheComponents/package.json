@@ -26,7 +26,7 @@
     "@sentry/nextjs": "latest || *",
     "@sentry/core": "latest || *",
     "import-in-the-middle": "^1",
-    "next": "16.0.7",
+    "next": "16.0.9",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "require-in-the-middle": "^7",
