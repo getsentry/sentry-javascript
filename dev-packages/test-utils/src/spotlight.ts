@@ -5,6 +5,20 @@ import { spawn } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as readline from 'readline';
+import { fileURLToPath } from 'url';
+
+/**
+ * Get the directory name, works in both CJS and ESM environments.
+ */
+function getDirname(): string {
+  // ESM environment
+  if (typeof import.meta !== 'undefined' && import.meta.url) {
+    return path.dirname(fileURLToPath(import.meta.url));
+  }
+  // CJS environment
+  // eslint-disable-next-line no-restricted-globals
+  return __dirname;
+}
 
 /**
  * Find the monorepo root by looking for a package.json with workspaces.
@@ -30,7 +44,7 @@ function findRepoRoot(startDir: string): string {
 }
 
 // Find spotlight binary in repo root's node_modules
-const REPO_ROOT = findRepoRoot(__dirname);
+const REPO_ROOT = findRepoRoot(getDirname());
 const SPOTLIGHT_BIN = path.join(REPO_ROOT, 'node_modules', '.bin', 'spotlight');
 
 interface SpotlightOptions {
