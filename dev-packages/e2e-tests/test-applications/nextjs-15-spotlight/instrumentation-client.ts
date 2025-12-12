@@ -1,8 +1,13 @@
 import * as Sentry from '@sentry/nextjs';
 
-// In Next.js 15 Turbopack dev mode, custom loaders aren't applied to instrumentation files.
-// So we need to explicitly pass the spotlight value from process.env which Next.js DOES replace.
-// This is a workaround for the valueInjectionLoader not working in Turbopack.
+// In Next.js 15, Turbopack is the default dev bundler. Turbopack doesn't replace
+// process.env vars in node_modules code, which prevents the SDK's auto-detection
+// from working. As a workaround, we explicitly pass the spotlight value from
+// process.env which Next.js DOES replace in user code.
+//
+// Note: Auto-detection DOES work in:
+// - Next.js with webpack (older versions or configured to use webpack)
+// - Other frameworks like Vite, Create React App, etc.
 const spotlightValue = process.env.NEXT_PUBLIC_SENTRY_SPOTLIGHT === 'true';
 
 console.log('[Sentry Debug] Spotlight from process.env:', spotlightValue);

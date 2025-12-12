@@ -82,6 +82,30 @@ export function getPlaywrightConfig(
   };
 
   if (startCommand) {
+    // Filter environment variables to only include those that are safe and needed
+    // We avoid passing ALL env vars to prevent unintended side effects in tests
+    const filteredEnv = Object.fromEntries(
+      Object.entries(process.env).filter(([key]) => {
+        // Include E2E test DSN variables (needed by all test apps)
+        if (key.includes('E2E_TEST_DSN') || key === 'E2E_TEST_SENTRY_ORG_SLUG' || key === 'E2E_TEST_SENTRY_PROJECT') {
+          return true;
+        }
+        // Include Spotlight environment variables (needed for Spotlight tests)
+        if (key.includes('SENTRY_SPOTLIGHT')) {
+          return true;
+        }
+        // Include Node/npm related variables for proper execution
+        if (key === 'PATH' || key === 'NODE_ENV' || key === 'HOME' || key === 'USER') {
+          return true;
+        }
+        // Include CI variable for proper test configuration
+        if (key === 'CI') {
+          return true;
+        }
+        return false;
+      }),
+    );
+
     // @ts-expect-error - we set `config.webserver` to an array above.
     // TS just can't infer that and thinks it could also be undefined or an object.
     config.webServer.push({
@@ -90,9 +114,7 @@ export function getPlaywrightConfig(
       stdout: 'pipe',
       stderr: 'pipe',
       env: {
-        // Inherit all environment variables from the parent process
-        // This is needed for env vars like NEXT_PUBLIC_SENTRY_SPOTLIGHT to be passed through
-        ...process.env,
+        ...filteredEnv,
         PORT: appPort.toString(),
       },
     });
