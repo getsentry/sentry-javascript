@@ -516,6 +516,9 @@ export class PostgresJsInstrumentation extends InstrumentationBase<PostgresJsIns
   /**
    * Sanitize SQL query as per the OTEL semantic conventions
    * https://opentelemetry.io/docs/specs/semconv/database/database-spans/#sanitization-of-dbquerytext
+   *
+   * PostgreSQL $n placeholders are preserved per OTEL spec - they're parameterized queries,
+   * not sensitive literals. Only actual values (strings, numbers, booleans) are sanitized.
    */
   private _sanitizeSqlQuery(sqlQuery: string | undefined): string {
     if (!sqlQuery) {
@@ -531,11 +534,23 @@ export class PostgresJsInstrumentation extends InstrumentationBase<PostgresJsIns
         // Collapse whitespace to a single space (after removing comments)
         .replace(/\s+/g, ' ')
         .trim() // Remove extra spaces and trim
-        // Replace standalone numbers and parameterized queries ($1, $2, etc.) BEFORE truncation
-        .replace(/\$\d+/g, '?') // Replace PostgreSQL placeholders ($1, $2, etc.)
-        .replace(/\b\d+\b/g, '?') // Replace standalone numbers
-        // Collapse IN and in clauses (eg. IN (?, ?, ?, ?) to IN (?))
+        // Sanitize hex/binary literals before string literals
+        .replace(/\bX'[0-9A-Fa-f]*'/gi, '?') // Hex string literals
+        .replace(/\bB'[01]*'/gi, '?') // Binary string literals
+        // Sanitize string literals (handles escaped quotes)
+        .replace(/'(?:[^']|'')*'/g, '?')
+        // Sanitize hex numbers
+        .replace(/\b0x[0-9A-Fa-f]+/gi, '?')
+        // Sanitize boolean literals
+        .replace(/\b(?:TRUE|FALSE)\b/gi, '?')
+        // Sanitize numeric literals (preserve $n placeholders via negative lookbehind)
+        .replace(/-?\b\d+\.?\d*[eE][+-]?\d+\b/g, '?') // Scientific notation
+        .replace(/-?\b\d+\.\d+\b/g, '?') // Decimals
+        .replace(/-?\.\d+\b/g, '?') // Decimals starting with dot
+        .replace(/(?<!\$)-?\b\d+\b/g, '?') // Integers (NOT $n placeholders)
+        // Collapse IN clauses for cardinality (both ? and $n variants)
         .replace(/\bIN\b\s*\(\s*\?(?:\s*,\s*\?)*\s*\)/gi, 'IN (?)')
+        .replace(/\bIN\b\s*\(\s*\$\d+(?:\s*,\s*\$\d+)*\s*\)/gi, 'IN ($?)')
     );
   }
 
