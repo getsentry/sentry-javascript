@@ -22,7 +22,7 @@
     "tailwindcss": "^4.0.6"
   },
   "devDependencies": {
-    "@playwright/test": "~1.53.2",
+    "@playwright/test": "~1.56.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "typescript": "^5.7.2",
     "vite": "^7.1.7",

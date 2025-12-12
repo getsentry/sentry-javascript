@@ -1,6 +1,6 @@
 {
   "private": true,
-  "version": "10.29.0",
+  "version": "10.30.0",
   "name": "@sentry-internal/test-utils",
   "author": "Sentry",
   "license": "MIT",
@@ -41,14 +41,14 @@
     "clean": "rimraf -g ./node_modules ./build"
   },
   "peerDependencies": {
-    "@playwright/test": "~1.53.2"
+    "@playwright/test": "~1.56.0"
   },
   "dependencies": {
     "express": "^4.21.1"
   },
   "devDependencies": {
-    "@playwright/test": "~1.53.2",
-    "@sentry/core": "10.29.0",
+    "@playwright/test": "~1.56.0",
+    "@sentry/core": "10.30.0",
     "eslint-plugin-regexp": "^1.15.0"
   },
   "volta": {

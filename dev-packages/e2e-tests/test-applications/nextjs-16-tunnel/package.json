@@ -27,14 +27,14 @@
     "@sentry/core": "latest || *",
     "ai": "^3.0.0",
     "import-in-the-middle": "^1",
-    "next": "16.0.7",
+    "next": "16.0.9",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "require-in-the-middle": "^7",
     "zod": "^3.22.4"
   },
   "devDependencies": {
-    "@playwright/test": "~1.53.2",
+    "@playwright/test": "~1.56.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "@types/node": "^20",
     "@types/react": "^19",
