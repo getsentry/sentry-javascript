@@ -48,7 +48,9 @@ export async function startSpotlight(options: SpotlightOptions = {}): Promise<Sp
   const { port = 0, cwd = process.cwd(), debug = false } = options;
 
   return new Promise((resolve, reject) => {
-    const args = ['spotlight', 'run', '-f', 'json'];
+    // Use npx to run Spotlight - works regardless of package manager
+    // and will use the installed version or download if needed
+    const args = ['--yes', '@spotlightjs/spotlight', 'run', '-f', 'json'];
 
     if (port !== 0) {
       args.push('-p', String(port));
@@ -58,7 +60,7 @@ export async function startSpotlight(options: SpotlightOptions = {}): Promise<Sp
       args.push('-d');
     }
 
-    const spotlightProcess = spawn('yarn', args, {
+    const spotlightProcess = spawn('npx', args, {
       cwd,
       stdio: ['ignore', 'pipe', 'pipe'],
     });
