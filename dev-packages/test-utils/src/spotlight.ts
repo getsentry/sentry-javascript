@@ -3,6 +3,7 @@ import { parseEnvelope } from '@sentry/core';
 import type { ChildProcess } from 'child_process';
 import { spawn } from 'child_process';
 import * as fs from 'fs';
+import * as http from 'http';
 import * as path from 'path';
 import * as readline from 'readline';
 import { fileURLToPath } from 'url';
@@ -49,10 +50,14 @@ const SPOTLIGHT_BIN = path.join(REPO_ROOT, 'node_modules', '.bin', 'spotlight');
 interface SpotlightOptions {
   /** Port for the Spotlight sidecar. Use 0 for dynamic port assignment. */
   port?: number;
+  /** Port for the app to run on. Defaults to 3030. */
+  appPort?: number;
   /** Working directory for the child process (where package.json is located) */
   cwd?: string;
   /** Whether to enable debug output */
   debug?: boolean;
+  /** Additional environment variables to pass to the process */
+  env?: Record<string, string>;
 }
 
 interface SpotlightInstance {
@@ -87,7 +92,7 @@ const eventListeners: Set<(envelope: Envelope) => void> = new Set();
  * - Streams events in JSON format (with -f json flag)
  */
 export async function startSpotlight(options: SpotlightOptions = {}): Promise<SpotlightInstance> {
-  const { port = 0, cwd = process.cwd(), debug = false } = options;
+  const { port = 0, appPort = 3030, cwd = process.cwd(), debug = false, env = {} } = options;
 
   return new Promise((resolve, reject) => {
     // Run Spotlight directly from repo root's node_modules
@@ -104,6 +109,11 @@ export async function startSpotlight(options: SpotlightOptions = {}): Promise<Sp
     const spotlightProcess = spawn(SPOTLIGHT_BIN, args, {
       cwd,
       stdio: ['ignore', 'pipe', 'pipe'],
+      env: {
+        ...process.env,
+        ...env,
+        PORT: String(appPort),
+      },
     });
 
     let resolvedPort: number | null = null;
@@ -121,6 +131,30 @@ export async function startSpotlight(options: SpotlightOptions = {}): Promise<Sp
       crlfDelay: Infinity,
     });
 
+    // Helper to poll the app port until it's ready
+    const waitForAppReady = async (): Promise<void> => {
+      const maxAttempts = 60; // 30 seconds
+      for (let i = 0; i < maxAttempts; i++) {
+        try {
+          await new Promise<void>((resolveCheck, rejectCheck) => {
+            const req = http.get(`http://localhost:${appPort}/`, res => {
+              res.resume();
+              resolveCheck();
+            });
+            req.on('error', rejectCheck);
+            req.setTimeout(500, () => {
+              req.destroy();
+              rejectCheck(new Error('timeout'));
+            });
+          });
+          return; // App is ready
+        } catch {
+          await new Promise(r => setTimeout(r, 500));
+        }
+      }
+      throw new Error(`App did not start on port ${appPort} within 30 seconds`);
+    };
+
     stderrReader.on('line', (line: string) => {
       if (debug) {
         // eslint-disable-next-line no-console
@@ -136,21 +170,19 @@ export async function startSpotlight(options: SpotlightOptions = {}): Promise<Sp
 
       if (portMatch?.[1] && !resolvedPort) {
         resolvedPort = parseInt(portMatch[1], 10);
-        // Resolve immediately when we have the port from a "listening" message
-        if (!resolved && line.includes('listening')) {
-          resolved = true;
-          const instance = createSpotlightInstance(spotlightProcess, resolvedPort, debug);
-          currentSpotlightInstance = instance;
-          resolve(instance);
-        }
       }
 
-      // Fallback: check for other ready messages if we have a port
-      if (!resolved && resolvedPort && (line.includes('running') || line.includes('started'))) {
+      // When Spotlight says it's listening, start waiting for the app
+      if (!resolved && resolvedPort && line.includes('listening')) {
         resolved = true;
-        const instance = createSpotlightInstance(spotlightProcess, resolvedPort, debug);
-        currentSpotlightInstance = instance;
-        resolve(instance);
+        // Wait for app to be ready before resolving
+        waitForAppReady()
+          .then(() => {
+            const instance = createSpotlightInstance(spotlightProcess, resolvedPort, debug);
+            currentSpotlightInstance = instance;
+            resolve(instance);
+          })
+          .catch(reject);
       }
     });
 
