@@ -70,9 +70,7 @@ describe('Build Artifacts - env.ts', () => {
         const content = fs.readFileSync(esmDevPath, 'utf-8');
 
         // Filter out comments
-        const lines = content
-          .split('\n')
-          .filter(line => !line.trim().startsWith('//') && !line.trim().startsWith('*'));
+        const lines = content.split('\n').filter(line => !line.trim().startsWith('//') && !line.trim().startsWith('*'));
         const codeOnly = lines.join('\n');
 
         // Should NOT contain import.meta in actual code
@@ -82,9 +80,7 @@ describe('Build Artifacts - env.ts', () => {
       if (fs.existsSync(esmProdPath)) {
         const content = fs.readFileSync(esmProdPath, 'utf-8');
 
-        const lines = content
-          .split('\n')
-          .filter(line => !line.trim().startsWith('//') && !line.trim().startsWith('*'));
+        const lines = content.split('\n').filter(line => !line.trim().startsWith('//') && !line.trim().startsWith('*'));
         const codeOnly = lines.join('\n');
 
         expect(codeOnly).not.toContain('import.meta.env');

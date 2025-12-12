@@ -149,7 +149,12 @@ function getDefaultIntegrations(options: BrowserOptions): Integration[] {
   //
   // We handle this in the Next.js SDK rather than the browser SDK because the browser SDK's
   // auto-detection is development-only (stripped from production builds that users install).
-  const spotlightEnvValue = globalWithInjectedValues.NEXT_PUBLIC_SENTRY_SPOTLIGHT;
+  //
+  // Check both globalThis (valueInjectionLoader) and process.env (Next.js build-time replacement).
+  // globalThis is for Turbopack builds, process.env is replaced by Next.js at build time for
+  // NEXT_PUBLIC_* variables. We need both because valueInjectionLoader may not run in all scenarios.
+  const spotlightEnvValue =
+    globalWithInjectedValues.NEXT_PUBLIC_SENTRY_SPOTLIGHT ?? process.env.NEXT_PUBLIC_SENTRY_SPOTLIGHT;
 
   // Parse the env var value if present (could be 'true', 'false', or a URL)
   let envSpotlight: boolean | string | undefined;
