@@ -55,12 +55,12 @@ export const spanStreamingIntegration = defineIntegration(((userOptions?: Partia
       }
 
       client.on('enqueueSpan', spanJSON => {
-        const spanTreeMapKey = getSpanTreeMapKey(spanJSON as SpanV2JSONWithSegmentRef);
+        const spanTreeMapKey = getSpanTreeMapKey(spanJSON);
         const spanBuffer = spanTreeMap.get(spanTreeMapKey);
         if (spanBuffer) {
-          spanBuffer.add(spanJSON as SpanV2JSONWithSegmentRef);
+          spanBuffer.add(spanJSON);
         } else {
-          spanTreeMap.set(spanTreeMapKey, new Set([spanJSON as SpanV2JSONWithSegmentRef]));
+          spanTreeMap.set(spanTreeMapKey, new Set([spanJSON]));
         }
       });
 

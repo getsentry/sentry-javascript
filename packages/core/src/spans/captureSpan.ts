@@ -15,7 +15,6 @@ import {
   SEMANTIC_ATTRIBUTE_USER_USERNAME,
 } from '../semanticAttributes';
 import { getCapturedScopesOnSpan } from '../tracing/utils';
-import type { SerializedAttributes } from '../types-hoist/attributes';
 import type { Span, SpanV2JSON } from '../types-hoist/span';
 import { mergeScopeData } from '../utils/applyScopeDataToEvent';
 import { isV2BeforeSendSpanCallback } from '../utils/beforeSendSpan';
