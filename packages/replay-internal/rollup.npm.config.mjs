@@ -1,4 +1,3 @@
-import nodeResolve from '@rollup/plugin-node-resolve';
 import { makeBaseNPMConfig, makeNPMConfigVariants } from '@sentry-internal/rollup-utils';
 
 export default makeNPMConfigVariants(
@@ -22,10 +21,8 @@ export default makeNPMConfigVariants(
     input: ['./src/worker-bundler.ts'],
     output: {
       file: `./build/npm/${format}/worker-bundler.js`,
-      strict: false,
       format,
     },
     treeshake: false,
-    plugins: [nodeResolve()],
   })),
 );
