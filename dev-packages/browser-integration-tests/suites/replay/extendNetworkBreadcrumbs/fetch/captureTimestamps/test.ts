@@ -19,7 +19,7 @@ sentryTest('captures correct timestamps', async ({ getLocalTestUrl, page, browse
     });
   });
 
-  await page.route('https://dsn.ingest.sentry.io/**/*', async route => {
+  await page.route(/^https:\/\/dsn\.ingest\.sentry\.io\//, async route => {
     await new Promise(resolve => setTimeout(resolve, 10));
     return route.fulfill({
       status: 200,

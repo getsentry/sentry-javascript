@@ -22,7 +22,7 @@
     "zod": "~3.25.0"
   },
   "devDependencies": {
-    "@playwright/test": "~1.50.0",
+    "@playwright/test": "~1.56.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "tsx": "^4.20.3"
   },

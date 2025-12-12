@@ -30,6 +30,8 @@ export const sentryOnBuildEnd: BuildEndHook = async ({ reactRouterConfig, viteCo
     ...sentryConfigWithoutDeprecatedSourceMapOption
   } = sentryConfig;
 
+  const unstableSentryVitePluginOptions = sentryConfig.unstable_sentryVitePluginOptions;
+
   const {
     authToken,
     org,
@@ -40,26 +42,32 @@ export const sentryOnBuildEnd: BuildEndHook = async ({ reactRouterConfig, viteCo
   }: Omit<SentryReactRouterBuildOptions, 'sourcemaps' | 'sourceMapsUploadOptions'> &
     // Pick 'sourcemaps' from Vite plugin options as the types allow more (e.g. Promise values for `deleteFilesAfterUpload`)
     Pick<SentryVitePluginOptions, 'sourcemaps'> = {
-    ...sentryConfig.unstable_sentryVitePluginOptions,
+    ...unstableSentryVitePluginOptions,
     ...sentryConfigWithoutDeprecatedSourceMapOption, // spread in the config without the deprecated sourceMapsUploadOptions
     sourcemaps: {
-      ...sentryConfig.unstable_sentryVitePluginOptions?.sourcemaps,
+      ...unstableSentryVitePluginOptions?.sourcemaps,
       ...sentryConfig.sourcemaps,
       ...sourceMapsUploadOptions,
       // eslint-disable-next-line deprecation/deprecation
       disable: sourceMapsUploadOptions?.enabled === false ? true : sentryConfig.sourcemaps?.disable,
     },
     release: {
-      ...sentryConfig.unstable_sentryVitePluginOptions?.release,
+      ...unstableSentryVitePluginOptions?.release,
       ...sentryConfig.release,
     },
+    project: unstableSentryVitePluginOptions?.project
+      ? Array.isArray(unstableSentryVitePluginOptions?.project)
+        ? unstableSentryVitePluginOptions?.project[0]
+        : unstableSentryVitePluginOptions?.project
+      : sentryConfigWithoutDeprecatedSourceMapOption.project,
   };
 
   const cliInstance = new SentryCli(null, {
     authToken,
     org,
-    project,
     ...sentryConfig.unstable_sentryVitePluginOptions,
+    // same handling as in bundler plugins: https://github.com/getsentry/sentry-javascript-bundler-plugins/blob/05084f214c763a05137d863ff5a05ef38254f68d/packages/bundler-plugin-core/src/build-plugin-manager.ts#L102-L103
+    project: Array.isArray(project) ? project[0] : project,
   });
 
   // check if release should be created

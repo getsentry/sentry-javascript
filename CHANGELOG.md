@@ -4,6 +4,54 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+Work in this release was contributed by @sebws. Thank you for your contribution!
+
+## 10.30.0
+
+- feat(nextjs): Deprecate Webpack top-level options ([#18343](https://github.com/getsentry/sentry-javascript/pull/18343))
+- feat(node): Capture scope when event loop blocked ([#18040](https://github.com/getsentry/sentry-javascript/pull/18040))
+- fix(aws-serverless): Remove hyphens from AWS-lambda origins ([#18353](https://github.com/getsentry/sentry-javascript/pull/18353))
+- fix(core): Parse method from Request object in fetch ([#18453](https://github.com/getsentry/sentry-javascript/pull/18453))
+- fix(react): Add transaction name guards for rapid lazy-route navigations ([#18346](https://github.com/getsentry/sentry-javascript/pull/18346))
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+
+- chore(ci): Fix double issue creation for unreferenced PRs ([#18442](https://github.com/getsentry/sentry-javascript/pull/18442))
+- chore(deps): bump next from 15.5.4 to 15.5.7 in /dev-packages/e2e-tests/test-applications/nextjs-15 ([#18411](https://github.com/getsentry/sentry-javascript/pull/18411))
+- chore(deps): bump next from 15.5.4 to 15.5.7 in /dev-packages/e2e-tests/test-applications/nextjs-15-intl ([#18400](https://github.com/getsentry/sentry-javascript/pull/18400))
+- chore(deps): bump next from 16.0.0 to 16.0.7 in /dev-packages/e2e-tests/test-applications/nextjs-16 ([#18399](https://github.com/getsentry/sentry-javascript/pull/18399))
+- chore(deps): bump next from 16.0.0 to 16.0.7 in /dev-packages/e2e-tests/test-applications/nextjs-16-cacheComponents ([#18427](https://github.com/getsentry/sentry-javascript/pull/18427))
+- chore(deps): bump next from 16.0.0 to 16.0.7 in /dev-packages/e2e-tests/test-applications/nextjs-16-tunnel ([#18439](https://github.com/getsentry/sentry-javascript/pull/18439))
+- chore(publish): Fix publish order for `@sentry/types` ([#18429](https://github.com/getsentry/sentry-javascript/pull/18429))
+- ci(deps): bump actions/create-github-app-token from 2.1.4 to 2.2.0 ([#18362](https://github.com/getsentry/sentry-javascript/pull/18362))
+
+</details>
+
+## 10.29.0
+
+### Important Changes
+
+- **feat(solid|solidstart): Bump accepted @solidjs/router range ([#18395](https://github.com/getsentry/sentry-javascript/pull/18395))**
+
+We expanded the supported version range for `@solidjs/router` to include `0.14.x` and `0.15.x` versions.
+
+### Other Changes
+
+- fix(logs): Add support for `msg` in pino integration ([#18389](https://github.com/getsentry/sentry-javascript/pull/18389))
+- fix(node): Include system message in anthropic-ai messages span ([#18332](https://github.com/getsentry/sentry-javascript/pull/18332))
+- fix(tracing): Add missing attributes in vercel-ai spans ([#18333](https://github.com/getsentry/sentry-javascript/pull/18333))
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+
+- chore(tanstackstart-react): clean up re-exported types ([#18393](https://github.com/getsentry/sentry-javascript/pull/18393))
+- ref(core): Avoid looking up openai integration options ([#17695](https://github.com/getsentry/sentry-javascript/pull/17695))
+- test(nuxt): Relax captured unhandled error assertion ([#18397](https://github.com/getsentry/sentry-javascript/pull/18397))
+- test(tanstackstart-react): Set up E2E test application ([#18358](https://github.com/getsentry/sentry-javascript/pull/18358))
+
+</details>
+
 ## 10.28.0
 
 ### Important Changes
