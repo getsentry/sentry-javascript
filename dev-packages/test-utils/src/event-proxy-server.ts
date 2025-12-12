@@ -150,9 +150,10 @@ export async function startProxyServer(
 
     eventCallbackListeners.add(callbackListener);
 
-    // Prune old events from the buffer that are definitely stale (older than this listener).
+    // Prune old events from the buffer that are definitely stale (strictly older than this listener).
+    // Use strict < to match the live event behavior (>= at line 103) - same-ms events are kept.
     // This prevents memory buildup and ensures old events can never leak to future listeners.
-    while (eventBuffer.length > 0 && eventBuffer[0].timestamp <= listenerTimestamp) {
+    while (eventBuffer.length > 0 && eventBuffer[0].timestamp < listenerTimestamp) {
       eventBuffer.shift();
     }
 
