@@ -623,8 +623,13 @@ function setUpBuildTimeVariables(
     buildTimeVariables._sentryRelease = releaseName;
   }
 
-  // Note: Spotlight config (_sentrySpotlight) is injected via webpack DefinePlugin in webpack.ts
-  // because Next.js doesn't replace process.env.* in node_modules code via next.config.js env.
+  // Inject Spotlight config so the Next.js SDK can auto-enable Spotlight.
+  // We use an internal name (_sentrySpotlight) because Next.js replaces process.env.* in ALL code
+  // (including node_modules) for variables defined in the env config.
+  const spotlightConfig = userNextConfig.env?.NEXT_PUBLIC_SENTRY_SPOTLIGHT ?? process.env.NEXT_PUBLIC_SENTRY_SPOTLIGHT;
+  if (spotlightConfig) {
+    buildTimeVariables._sentrySpotlight = spotlightConfig;
+  }
 
   if (typeof userNextConfig.env === 'object') {
     userNextConfig.env = { ...buildTimeVariables, ...userNextConfig.env };

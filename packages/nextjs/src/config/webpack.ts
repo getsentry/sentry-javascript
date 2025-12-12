@@ -770,7 +770,9 @@ function addValueInjectionLoader({
     _sentryRouteManifest: JSON.stringify(routeManifest),
     // Inject Spotlight config so the browser SDK can auto-enable Spotlight.
     // The browser SDK's getEnvValue() checks globalThis as a fallback for bundler-injected values.
+    // We also inject _sentrySpotlight as a fallback for the Next.js SDK's client/index.ts.
     NEXT_PUBLIC_SENTRY_SPOTLIGHT: spotlightConfig,
+    _sentrySpotlight: spotlightConfig,
   };
 
   if (buildContext.isServer) {

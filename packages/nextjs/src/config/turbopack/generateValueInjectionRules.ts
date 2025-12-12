@@ -38,8 +38,10 @@ export function generateValueInjectionRules({
   // Inject Spotlight config for client so the browser SDK can auto-enable Spotlight.
   // Next.js doesn't expose NEXT_PUBLIC_* vars to node_modules, so we inject it via
   // globalThis. The browser SDK's getEnvValue() checks globalThis as a fallback.
+  // We also inject _sentrySpotlight as a fallback for the Next.js SDK's client/index.ts.
   if (spotlightConfig) {
     clientValues.NEXT_PUBLIC_SENTRY_SPOTLIGHT = spotlightConfig;
+    clientValues._sentrySpotlight = spotlightConfig;
   }
 
   if (Object.keys(isomorphicValues).length > 0) {
