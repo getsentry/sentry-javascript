@@ -11,8 +11,9 @@ type SimpleNode = {
 
 /**
  * Given a child DOM element, returns a query-selector statement describing that
- * and its ancestors
+ * and its ancestors, optionally prefixed with data-sentry-label if found on an ancestor
  * e.g. [HTMLElement] => body > div > input#foo.btn[name=baz]
+ * e.g. [HTMLElement] => [data-sentry-label="MyLabel"] div.container > button
  * @returns generated DOM path
  */
 export function htmlTreeAsString(
@@ -30,7 +31,7 @@ export function htmlTreeAsString(
   try {
     let currentElem = elem as SimpleNode;
     const MAX_TRAVERSE_HEIGHT = 5;
-    const out = [];
+    const out: string[] = [];
     let height = 0;
     let len = 0;
     const separator = ' > ';
@@ -55,7 +56,18 @@ export function htmlTreeAsString(
       currentElem = currentElem.parentNode;
     }
 
-    return out.reverse().join(separator);
+    const cssSelector = out.reverse().join(separator);
+
+    if (cssSelector.includes('[data-sentry-label="')) {
+      return cssSelector;
+    }
+
+    const sentryLabel = _getSentryLabel(elem);
+    if (sentryLabel) {
+      return `[data-sentry-label="${sentryLabel}"] ${cssSelector}`;
+    }
+
+    return cssSelector;
   } catch {
     return '<unknown>';
   }
@@ -84,6 +96,9 @@ function _htmlElementAsString(el: unknown, keyAttrs?: string[]): string {
   if (WINDOW.HTMLElement) {
     // If using the component name annotation plugin, this value may be available on the DOM node
     if (elem instanceof HTMLElement && elem.dataset) {
+      if (elem.dataset['sentryLabel']) {
+        return `[data-sentry-label="${elem.dataset['sentryLabel']}"]`;
+      }
       if (elem.dataset['sentryComponent']) {
         return elem.dataset['sentryComponent'];
       }
@@ -126,6 +141,27 @@ function _htmlElementAsString(el: unknown, keyAttrs?: string[]): string {
   }
 
   return out.join('');
+}
+
+/**
+ * Searches for the data-sentry-label attribute up the DOM tree.
+ * @returns The value of the first data-sentry-label found, or null if not found
+ */
+function _getSentryLabel(elem: unknown): string | null {
+  const MAX_LABEL_TRAVERSE_HEIGHT = 15;
+  let labelElem = elem as SimpleNode;
+
+  for (let i = 0; i < MAX_LABEL_TRAVERSE_HEIGHT && labelElem; i++) {
+    // @ts-expect-error WINDOW has HTMLElement
+    if (WINDOW.HTMLElement && labelElem instanceof HTMLElement && labelElem.dataset) {
+      if (labelElem.dataset['sentryLabel']) {
+        return labelElem.dataset['sentryLabel'];
+      }
+    }
+    labelElem = labelElem.parentNode;
+  }
+
+  return null;
 }
 
 /**
