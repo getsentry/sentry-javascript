@@ -2,7 +2,36 @@ import type { Envelope, EnvelopeItem, Event, SerializedSession } from '@sentry/c
 import { parseEnvelope } from '@sentry/core';
 import type { ChildProcess } from 'child_process';
 import { spawn } from 'child_process';
+import * as fs from 'fs';
+import * as path from 'path';
 import * as readline from 'readline';
+
+/**
+ * Find the monorepo root by looking for a package.json with workspaces.
+ * This works regardless of whether we're running from source or built output.
+ */
+function findRepoRoot(startDir: string): string {
+  let dir = startDir;
+  while (dir !== path.dirname(dir)) {
+    const pkgPath = path.join(dir, 'package.json');
+    if (fs.existsSync(pkgPath)) {
+      try {
+        const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+        if (pkg.workspaces) {
+          return dir;
+        }
+      } catch {
+        // Continue searching
+      }
+    }
+    dir = path.dirname(dir);
+  }
+  throw new Error('Could not find monorepo root');
+}
+
+// Find spotlight binary in repo root's node_modules
+const REPO_ROOT = findRepoRoot(__dirname);
+const SPOTLIGHT_BIN = path.join(REPO_ROOT, 'node_modules', '.bin', 'spotlight');
 
 interface SpotlightOptions {
   /** Port for the Spotlight sidecar. Use 0 for dynamic port assignment. */
@@ -48,9 +77,8 @@ export async function startSpotlight(options: SpotlightOptions = {}): Promise<Sp
   const { port = 0, cwd = process.cwd(), debug = false } = options;
 
   return new Promise((resolve, reject) => {
-    // Use npx to run Spotlight - works regardless of package manager
-    // and will use the installed version or download if needed
-    const args = ['--yes', '@spotlightjs/spotlight', 'run', '-f', 'json'];
+    // Run Spotlight directly from repo root's node_modules
+    const args = ['run', '-f', 'json'];
 
     if (port !== 0) {
       args.push('-p', String(port));
@@ -60,7 +88,7 @@ export async function startSpotlight(options: SpotlightOptions = {}): Promise<Sp
       args.push('-d');
     }
 
-    const spotlightProcess = spawn('npx', args, {
+    const spotlightProcess = spawn(SPOTLIGHT_BIN, args, {
       cwd,
       stdio: ['ignore', 'pipe', 'pipe'],
     });
@@ -81,20 +109,32 @@ export async function startSpotlight(options: SpotlightOptions = {}): Promise<Sp
         console.log('[spotlight stderr]', line);
       }
 
-      // Look for port in various formats
-      const portMatch = line.match(/localhost:(\d+)/i) || line.match(/port[:\s]+(\d+)/i);
+      // Look for port in various formats:
+      // - "Spotlight listening on 39143"
+      // - "http://localhost:8969"
+      // - "port: 8969"
+      const portMatch =
+        line.match(/listening on (\d+)/i) ||
+        line.match(/localhost:(\d+)/i) ||
+        line.match(/port[:\s]+(\d+)/i);
+
       if (portMatch?.[1] && !resolvedPort) {
         resolvedPort = parseInt(portMatch[1], 10);
-      }
-
-      // Also check for "Sidecar running" or similar ready messages
-      if ((line.includes('listening') || line.includes('running') || line.includes('started')) && resolvedPort) {
-        if (!resolved) {
+        // Resolve immediately when we have the port from a "listening" message
+        if (!resolved && line.includes('listening')) {
           resolved = true;
           const instance = createSpotlightInstance(spotlightProcess, resolvedPort, debug);
           currentSpotlightInstance = instance;
           resolve(instance);
         }
+      }
+
+      // Fallback: check for other ready messages if we have a port
+      if (!resolved && resolvedPort && (line.includes('running') || line.includes('started'))) {
+        resolved = true;
+        const instance = createSpotlightInstance(spotlightProcess, resolvedPort, debug);
+        currentSpotlightInstance = instance;
+        resolve(instance);
       }
     });
 
