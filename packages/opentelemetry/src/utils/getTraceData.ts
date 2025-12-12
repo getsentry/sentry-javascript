@@ -3,36 +3,28 @@ import type { Client, Scope, SerializedTraceData, Span } from '@sentry/core';
 import {
   dynamicSamplingContextToSentryBaggageHeader,
   generateSentryTraceHeader,
+  generateTraceparentHeader,
   getCapturedScopesOnSpan,
-  scopeToTraceparentHeader,
-  spanToTraceparentHeader,
 } from '@sentry/core';
 import { getInjectionData } from '../propagator';
-import { getContextFromScope, getScopesFromContext } from './contextData';
+import { getContextFromScope } from './contextData';
 
 /**
  * Otel-specific implementation of `getTraceData`.
  * @see `@sentry/core` version of `getTraceData` for more information
  */
-export function getTraceData(options: { span?: Span; scope?: Scope; client?: Client; propagateTraceparent?: boolean } = {}): SerializedTraceData {
-  const { client, propagateTraceparent } = options;
-  let { span, scope } = options;
-
+export function getTraceData({
+  span,
+  scope,
+  client,
+  propagateTraceparent,
+}: { span?: Span; scope?: Scope; client?: Client; propagateTraceparent?: boolean } = {}): SerializedTraceData {
   let ctx = (scope && getContextFromScope(scope)) ?? api.context.active();
 
   if (span) {
     const { scope } = getCapturedScopesOnSpan(span);
     // fall back to current context if for whatever reason we can't find the one of the span
     ctx = (scope && getContextFromScope(scope)) || api.trace.setSpan(api.context.active(), span);
-  } else {
-    span = api.trace.getSpan(ctx);
-  }
-
-  if (!scope) {
-    const scopes = getScopesFromContext(ctx);
-    if (scopes) {
-      scope = scopes.scope;
-    }
   }
 
   const { traceId, spanId, sampled, dynamicSamplingContext } = getInjectionData(ctx, { scope, client });
@@ -43,11 +35,7 @@ export function getTraceData(options: { span?: Span; scope?: Scope; client?: Cli
   };
 
   if (propagateTraceparent) {
-    if (span) {
-      traceData.traceparent = spanToTraceparentHeader(span);
-    } else if (scope) {
-      traceData.traceparent = scopeToTraceparentHeader(scope);
-    }
+    traceData.traceparent = generateTraceparentHeader(traceId, spanId, sampled);
   }
 
   return traceData;

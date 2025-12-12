@@ -74,7 +74,6 @@ export { addAutoIpAddressToSession } from './utils/ipAddress';
 export { addAutoIpAddressToUser } from './utils/ipAddress';
 export {
   convertSpanLinksForEnvelope,
-  spanToTraceparentHeader,
   spanToTraceHeader,
   spanToJSON,
   spanIsSampled,
@@ -90,7 +89,7 @@ export {
 export { _setSpanForScope as _INTERNAL_setSpanForScope } from './utils/spanOnScope';
 export { parseSampleRate } from './utils/parseSampleRate';
 export { applySdkMetadata } from './utils/sdkMetadata';
-export { getTraceData, scopeToTraceparentHeader } from './utils/traceData';
+export { getTraceData } from './utils/traceData';
 export { getTraceMetaTags } from './utils/meta';
 export { debounce } from './utils/debounce';
 export {
@@ -270,6 +269,7 @@ export {
   generateSentryTraceHeader,
   propagationContextFromHeaders,
   shouldContinueTrace,
+  generateTraceparentHeader,
 } from './utils/tracing';
 export { getSDKSource, isBrowserBundle } from './utils/env';
 export type { SdkSource } from './utils/env';

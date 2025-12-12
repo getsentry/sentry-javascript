@@ -72,10 +72,7 @@ function scopeToTraceHeader(scope: Scope): string {
   return generateSentryTraceHeader(traceId, propagationSpanId, sampled);
 }
 
-/**
- * Get a traceparent header value for the given scope.
- */
-export function scopeToTraceparentHeader(scope: Scope): string {
+function scopeToTraceparentHeader(scope: Scope): string {
   const { traceId, sampled, propagationSpanId } = scope.getPropagationContext();
   return generateTraceparentHeader(traceId, propagationSpanId, sampled);
 }
