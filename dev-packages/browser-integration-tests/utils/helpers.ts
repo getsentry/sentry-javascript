@@ -319,7 +319,7 @@ export function shouldSkipTracingTest(): boolean {
  */
 export function testingCdnBundle(): boolean {
   const bundle = process.env.PW_BUNDLE;
-  return bundle != null;
+  return bundle != null && (bundle.startsWith('bundle') || bundle.startsWith('loader'));
 }
 
 /**
