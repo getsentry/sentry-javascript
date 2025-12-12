@@ -993,15 +993,7 @@ jobs:
 
       - name: Set Spotlight env var for spotlight tests
         if: contains(matrix.test-application, 'spotlight')
-        run: |
-          echo "NEXT_PUBLIC_SENTRY_SPOTLIGHT=true" >> $GITHUB_ENV
-          echo "Setting NEXT_PUBLIC_SENTRY_SPOTLIGHT=true for spotlight test"
-
-      - name: Debug Spotlight env var
-        if: contains(matrix.test-application, 'spotlight')
-        run: |
-          echo "NEXT_PUBLIC_SENTRY_SPOTLIGHT=$NEXT_PUBLIC_SENTRY_SPOTLIGHT"
-          env | grep -i spotlight || echo "No SPOTLIGHT vars found"
+        run: echo "NEXT_PUBLIC_SENTRY_SPOTLIGHT=true" >> $GITHUB_ENV
 
       - name: Build E2E app
         working-directory: ${{ runner.temp }}/test-application

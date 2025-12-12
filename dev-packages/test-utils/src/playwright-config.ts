@@ -90,6 +90,9 @@ export function getPlaywrightConfig(
       stdout: 'pipe',
       stderr: 'pipe',
       env: {
+        // Inherit all environment variables from the parent process
+        // This is needed for env vars like NEXT_PUBLIC_SENTRY_SPOTLIGHT to be passed through
+        ...process.env,
         PORT: appPort.toString(),
       },
     });

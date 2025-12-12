@@ -355,14 +355,6 @@ function getFinalConfigObject(
   const spotlightConfig =
     incomingUserNextConfigObject.env?.NEXT_PUBLIC_SENTRY_SPOTLIGHT ?? process.env.NEXT_PUBLIC_SENTRY_SPOTLIGHT;
 
-  // Debug: Log spotlight config detection
-  // eslint-disable-next-line no-console
-  console.log('[@sentry/nextjs] Spotlight config detection:', {
-    fromNextConfigEnv: incomingUserNextConfigObject.env?.NEXT_PUBLIC_SENTRY_SPOTLIGHT,
-    fromProcessEnv: process.env.NEXT_PUBLIC_SENTRY_SPOTLIGHT,
-    resolved: spotlightConfig,
-  });
-
   let turboPackConfig: TurbopackOptions | undefined;
 
   // IMPORTANT: Always construct turbopack config if the Next.js version supports it,
