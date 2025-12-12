@@ -1,10 +1,11 @@
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
-import { shouldSkipTracingTest } from '../../../../utils/helpers';
+import { shouldSkipTracingTest, testingCdnBundle } from '../../../../utils/helpers';
 import { getSpanOp, waitForV2Spans } from '../../../../utils/spanFirstUtils';
 
 sentryTest('captures TTFB web vital', async ({ getLocalTestUrl, page }) => {
-  if (shouldSkipTracingTest()) {
+  // for now, spanStreamingIntegration is only exported in the NPM package, so we skip the test for bundles.
+  if (shouldSkipTracingTest() || testingCdnBundle()) {
     sentryTest.skip();
   }
   const pageloadSpansPromise = waitForV2Spans(page, spans => !!spans.find(span => getSpanOp(span) === 'pageload'));
