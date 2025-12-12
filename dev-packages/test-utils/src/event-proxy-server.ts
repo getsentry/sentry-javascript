@@ -410,10 +410,19 @@ async function retrieveCallbackServerPort(serverName: string): Promise<string> {
 }
 
 /**
- * We do nanosecond checking because the waitFor* calls and the fetch requests may come very shortly after one another.
+ * We use an epoch-based, high-resolution-ish timestamp because:
+ * - The proxy server and the Playwright test runner run in different Node.js processes.
+ * - `process.hrtime()` is only comparable within a single process, so using it here can cause
+ *   `waitFor*` helpers to pick up stale events from previous tests (timestamp mismatch across processes).
+ *
+ * We therefore combine `Date.now()` (epoch, comparable across processes) with a small sub-millisecond component
+ * derived from `process.hrtime.bigint()` to reduce collisions within the same millisecond.
  */
 function getNanosecondTimestamp(): number {
-  const NS_PER_SEC = 1e9;
-  const [seconds, nanoseconds] = process.hrtime();
-  return seconds * NS_PER_SEC + nanoseconds;
+  const nsPerMs = 1e6;
+  // `Date.now()` is milliseconds since epoch (comparable across processes)
+  const epochMs = Date.now();
+  // Add sub-ms "noise" to reduce collisions; the modulo keeps it < 1ms in nanoseconds
+  const subMs = Number(process.hrtime.bigint() % BigInt(nsPerMs));
+  return epochMs * nsPerMs + subMs;
 }
