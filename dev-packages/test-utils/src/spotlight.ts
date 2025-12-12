@@ -16,7 +16,6 @@ function getDirname(): string {
     return path.dirname(fileURLToPath(import.meta.url));
   }
   // CJS environment
-  // eslint-disable-next-line no-restricted-globals
   return __dirname;
 }
 
@@ -30,7 +29,7 @@ function findRepoRoot(startDir: string): string {
     const pkgPath = path.join(dir, 'package.json');
     if (fs.existsSync(pkgPath)) {
       try {
-        const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+        const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8')) as { workspaces?: string[] };
         if (pkg.workspaces) {
           return dir;
         }
@@ -112,8 +111,13 @@ export async function startSpotlight(options: SpotlightOptions = {}): Promise<Sp
 
     // Parse stderr for port information
     // Spotlight outputs something like "Spotlight listening on http://localhost:8969"
+    if (!spotlightProcess.stderr || !spotlightProcess.stdout) {
+      reject(new Error('Spotlight process has no stdout/stderr'));
+      return;
+    }
+
     const stderrReader = readline.createInterface({
-      input: spotlightProcess.stderr!,
+      input: spotlightProcess.stderr,
       crlfDelay: Infinity,
     });
 
@@ -128,9 +132,7 @@ export async function startSpotlight(options: SpotlightOptions = {}): Promise<Sp
       // - "http://localhost:8969"
       // - "port: 8969"
       const portMatch =
-        line.match(/listening on (\d+)/i) ||
-        line.match(/localhost:(\d+)/i) ||
-        line.match(/port[:\s]+(\d+)/i);
+        line.match(/listening on (\d+)/i) || line.match(/localhost:(\d+)/i) || line.match(/port[:\s]+(\d+)/i);
 
       if (portMatch?.[1] && !resolvedPort) {
         resolvedPort = parseInt(portMatch[1], 10);
@@ -154,7 +156,7 @@ export async function startSpotlight(options: SpotlightOptions = {}): Promise<Sp
 
     // Parse stdout for JSON events
     const stdoutReader = readline.createInterface({
-      input: spotlightProcess.stdout!,
+      input: spotlightProcess.stdout,
       crlfDelay: Infinity,
     });
 
