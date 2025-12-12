@@ -3,7 +3,7 @@ import { makeBaseNPMConfig, makeNPMConfigVariants } from '@sentry-internal/rollu
 export default [
   ...makeNPMConfigVariants(
     makeBaseNPMConfig({
-      entrypoints: ['src/index.server.ts', 'src/index.client.ts', 'src/cloudflare/index.ts'],
+      entrypoints: ['src/index.server.ts', 'src/index.client.ts', 'src/index.types.ts', 'src/cloudflare/index.ts'],
       packageSpecificConfig: {
         external: ['react-router', 'react-router-dom', 'react', 'react/jsx-runtime', 'vite'],
         output: {
