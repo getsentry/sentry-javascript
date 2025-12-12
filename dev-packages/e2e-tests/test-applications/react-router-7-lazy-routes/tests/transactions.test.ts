@@ -1,9 +1,5 @@
 import { expect, test } from '@playwright/test';
-import {
-  startSpotlight,
-  waitForSpotlightTransaction,
-  clearSpotlightEventBuffer,
-} from '@sentry-internal/test-utils';
+import { startSpotlight, waitForSpotlightTransaction, clearSpotlightEventBuffer } from '@sentry-internal/test-utils';
 import * as path from 'path';
 
 let spotlight: Awaited<ReturnType<typeof startSpotlight>>;
