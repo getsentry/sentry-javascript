@@ -2,8 +2,217 @@ import { describe, expect, it } from 'vitest';
 import { PostgresJsInstrumentation } from '../../../src/integrations/tracing/postgresjs';
 
 describe('PostgresJs', () => {
+  const instrumentation = new PostgresJsInstrumentation({ requireParentSpan: true });
+
+  describe('_reconstructQuery', () => {
+    const reconstruct = (strings: string[] | undefined) =>
+      (
+        instrumentation as unknown as { _reconstructQuery: (s: string[] | undefined) => string | undefined }
+      )._reconstructQuery(strings);
+
+    describe('undefined/null/empty input handling', () => {
+      it('returns undefined for undefined input', () => {
+        expect(reconstruct(undefined)).toBeUndefined();
+      });
+
+      it('returns undefined for null input', () => {
+        expect(reconstruct(null as unknown as undefined)).toBeUndefined();
+      });
+
+      it('returns undefined for empty array', () => {
+        expect(reconstruct([])).toBeUndefined();
+      });
+
+      it('returns undefined for array with single empty string', () => {
+        expect(reconstruct([''])).toBeUndefined();
+      });
+
+      it('returns undefined for whitespace-only single element', () => {
+        // Whitespace-only strings are truthy, so they should be returned
+        expect(reconstruct(['   '])).toBe('   ');
+      });
+    });
+
+    describe('single-element array (non-parameterized queries)', () => {
+      it('returns the string as-is for a single-element array', () => {
+        expect(reconstruct(['SELECT * FROM users'])).toBe('SELECT * FROM users');
+      });
+
+      it('handles sql.unsafe() style queries', () => {
+        expect(reconstruct(['SELECT * FROM users WHERE id = $1'])).toBe('SELECT * FROM users WHERE id = $1');
+      });
+
+      it('handles complex single-element queries', () => {
+        expect(reconstruct(['INSERT INTO users (email, name) VALUES ($1, $2)'])).toBe(
+          'INSERT INTO users (email, name) VALUES ($1, $2)',
+        );
+      });
+    });
+
+    describe('multi-element array (parameterized queries)', () => {
+      it('reconstructs query with single parameter', () => {
+        // sql`SELECT * FROM users WHERE id = ${123}`
+        // strings = ["SELECT * FROM users WHERE id = ", ""]
+        expect(reconstruct(['SELECT * FROM users WHERE id = ', ''])).toBe('SELECT * FROM users WHERE id = $1');
+      });
+
+      it('reconstructs query with two parameters', () => {
+        // sql`SELECT * FROM users WHERE id = ${123} AND name = ${'foo'}`
+        // strings = ["SELECT * FROM users WHERE id = ", " AND name = ", ""]
+        expect(reconstruct(['SELECT * FROM users WHERE id = ', ' AND name = ', ''])).toBe(
+          'SELECT * FROM users WHERE id = $1 AND name = $2',
+        );
+      });
+
+      it('reconstructs query with three parameters', () => {
+        // sql`INSERT INTO users (id, name, email) VALUES (${1}, ${'John'}, ${'john@example.com'})`
+        expect(reconstruct(['INSERT INTO users (id, name, email) VALUES (', ', ', ', ', ')'])).toBe(
+          'INSERT INTO users (id, name, email) VALUES ($1, $2, $3)',
+        );
+      });
+
+      it('reconstructs query with parameter at the beginning', () => {
+        // sql`${tableName} WHERE id = ${123}`
+        // strings = ["", " WHERE id = ", ""]
+        expect(reconstruct(['', ' WHERE id = ', ''])).toBe('$1 WHERE id = $2');
+      });
+
+      it('reconstructs complex query with multiple parameters', () => {
+        // sql`SELECT * FROM ${table} WHERE id = ${id} AND status IN (${s1}, ${s2}) ORDER BY ${col}`
+        expect(reconstruct(['SELECT * FROM ', ' WHERE id = ', ' AND status IN (', ', ', ') ORDER BY ', ''])).toBe(
+          'SELECT * FROM $1 WHERE id = $2 AND status IN ($3, $4) ORDER BY $5',
+        );
+      });
+    });
+
+    describe('edge cases', () => {
+      it('handles whitespace-only strings in array', () => {
+        expect(reconstruct(['SELECT * FROM users WHERE id = ', '   ', ''])).toBe(
+          'SELECT * FROM users WHERE id = $1   $2',
+        );
+      });
+
+      it('handles query ending without trailing empty string', () => {
+        // Some edge cases might not have trailing empty string
+        expect(reconstruct(['SELECT * FROM users WHERE id = ', ' LIMIT 10'])).toBe(
+          'SELECT * FROM users WHERE id = $1 LIMIT 10',
+        );
+      });
+
+      it('handles many parameters (10+)', () => {
+        // sql`INSERT INTO t VALUES (${a}, ${b}, ${c}, ${d}, ${e}, ${f}, ${g}, ${h}, ${i}, ${j})`
+        // 10 params need 11 string parts: prefix + 9 separators + suffix
+        const strings = ['INSERT INTO t VALUES (', ', ', ', ', ', ', ', ', ', ', ', ', ', ', ', ', ', ', ')'];
+        expect(reconstruct(strings)).toBe('INSERT INTO t VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)');
+      });
+
+      it('handles newlines in template strings', () => {
+        // sql`SELECT *\nFROM users\nWHERE id = ${123}`
+        expect(reconstruct(['SELECT *\nFROM users\nWHERE id = ', ''])).toBe('SELECT *\nFROM users\nWHERE id = $1');
+      });
+
+      it('handles unicode characters', () => {
+        expect(reconstruct(['SELECT * FROM users WHERE name = ', ' AND emoji = ', ''])).toBe(
+          'SELECT * FROM users WHERE name = $1 AND emoji = $2',
+        );
+      });
+
+      it('handles quotes in template strings', () => {
+        // sql`SELECT * FROM "User" WHERE "email" = ${email}`
+        expect(reconstruct(['SELECT * FROM "User" WHERE "email" = ', ''])).toBe(
+          'SELECT * FROM "User" WHERE "email" = $1',
+        );
+      });
+
+      it('handles consecutive parameters', () => {
+        // sql`SELECT ${a}${b}${c}`
+        expect(reconstruct(['SELECT ', '', '', ''])).toBe('SELECT $1$2$3');
+      });
+
+      it('handles parameter only query', () => {
+        // sql`${rawSql}` - just a single parameter
+        expect(reconstruct(['', ''])).toBe('$1');
+      });
+    });
+
+    describe('integration with _sanitizeSqlQuery', () => {
+      const sanitize = (query: string | undefined) =>
+        (instrumentation as unknown as { _sanitizeSqlQuery: (q: string | undefined) => string })._sanitizeSqlQuery(
+          query,
+        );
+
+      it('reconstructed query gets properly sanitized', () => {
+        // Full flow: reconstruct then sanitize
+        const strings = ['SELECT * FROM users WHERE id = ', ' AND name = ', ''];
+        const reconstructed = reconstruct(strings);
+        const sanitized = sanitize(reconstructed);
+        expect(sanitized).toBe('SELECT * FROM users WHERE id = ? AND name = ?');
+      });
+
+      it('handles complex parameterized query end-to-end', () => {
+        const strings = ['SELECT * FROM users WHERE id = ', ' AND status IN (', ', ', ', ', ')'];
+        const reconstructed = reconstruct(strings);
+        const sanitized = sanitize(reconstructed);
+        expect(sanitized).toBe('SELECT * FROM users WHERE id = ? AND status IN (?)');
+      });
+
+      it('handles undefined strings array gracefully in full flow', () => {
+        const reconstructed = reconstruct(undefined);
+        const sanitized = sanitize(reconstructed);
+        expect(sanitized).toBe('Unknown SQL Query');
+      });
+
+      it('handles INSERT with parameterized values', () => {
+        // sql`INSERT INTO users (email, name) VALUES (${email}, ${name})`
+        const strings = ['INSERT INTO users (email, name) VALUES (', ', ', ')'];
+        const reconstructed = reconstruct(strings);
+        const sanitized = sanitize(reconstructed);
+        expect(sanitized).toBe('INSERT INTO users (email, name) VALUES (?, ?)');
+      });
+
+      it('handles UPDATE with parameterized values', () => {
+        // sql`UPDATE users SET name = ${name} WHERE id = ${id}`
+        const strings = ['UPDATE users SET name = ', ' WHERE id = ', ''];
+        const reconstructed = reconstruct(strings);
+        const sanitized = sanitize(reconstructed);
+        expect(sanitized).toBe('UPDATE users SET name = ? WHERE id = ?');
+      });
+
+      it('handles DELETE with parameterized values', () => {
+        // sql`DELETE FROM users WHERE id = ${id}`
+        const strings = ['DELETE FROM users WHERE id = ', ''];
+        const reconstructed = reconstruct(strings);
+        const sanitized = sanitize(reconstructed);
+        expect(sanitized).toBe('DELETE FROM users WHERE id = ?');
+      });
+
+      it('handles query with newlines that get normalized', () => {
+        // sql`SELECT *\n  FROM users\n  WHERE id = ${id}`
+        const strings = ['SELECT *\n  FROM users\n  WHERE id = ', ''];
+        const reconstructed = reconstruct(strings);
+        const sanitized = sanitize(reconstructed);
+        expect(sanitized).toBe('SELECT * FROM users WHERE id = ?');
+      });
+
+      it('handles query with trailing semicolon', () => {
+        // sql`SELECT * FROM users WHERE id = ${id};`
+        const strings = ['SELECT * FROM users WHERE id = ', ';'];
+        const reconstructed = reconstruct(strings);
+        const sanitized = sanitize(reconstructed);
+        expect(sanitized).toBe('SELECT * FROM users WHERE id = ?');
+      });
+
+      it('handles real-world postgres.js query pattern', () => {
+        // Actual pattern from postgres.js: sql`SELECT * FROM "User" WHERE "email" = ${email} AND "name" = ${name}`
+        const strings = ['SELECT * FROM "User" WHERE "email" = ', ' AND "name" = ', ''];
+        const reconstructed = reconstruct(strings);
+        const sanitized = sanitize(reconstructed);
+        expect(sanitized).toBe('SELECT * FROM "User" WHERE "email" = ? AND "name" = ?');
+      });
+    });
+  });
+
   describe('_sanitizeSqlQuery', () => {
-    const instrumentation = new PostgresJsInstrumentation({ requireParentSpan: true });
     const sanitize = (query: string | undefined) =>
       (instrumentation as unknown as { _sanitizeSqlQuery: (q: string | undefined) => string })._sanitizeSqlQuery(query);
 
