@@ -58,7 +58,6 @@ const runtimeConfig = getRuntimeConfig();
 Sentry.init({
   environment: 'qa', // dynamic sampling bias to keep transactions
   dsn: process.env.REACT_APP_E2E_TEST_DSN,
-  spotlight: false,
   integrations: [
     Sentry.reactRouterV7BrowserTracingIntegration({
       useEffect: React.useEffect,
@@ -78,9 +77,6 @@ Sentry.init({
   release: 'e2e-test',
 
   tunnel: 'http://localhost:3031',
-  // Explicitly disable Spotlight to prevent auto-enablement from env vars
-  // This test is about transaction timing, not Spotlight functionality
-  spotlight: false,
 });
 
 const sentryCreateBrowserRouter = Sentry.wrapCreateBrowserRouterV7(createBrowserRouter);
