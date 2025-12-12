@@ -5,6 +5,7 @@ import {
   envelopeRequestParser,
   runScriptInSandbox,
   shouldSkipTracingTest,
+  testingCdnBundle,
   waitForErrorRequest,
 } from '../../../utils/helpers';
 import { getSpanOp, waitForV2Spans } from '../../../utils/spanFirstUtils';
@@ -12,12 +13,9 @@ import { getSpanOp, waitForV2Spans } from '../../../utils/spanFirstUtils';
 sentryTest(
   'puts the pageload span name onto an error event caught during pageload',
   async ({ getLocalTestUrl, page, browserName }) => {
-    if (browserName === 'webkit') {
-      // This test fails on Webkit as errors thrown from `runScriptInSandbox` are Script Errors and skipped by Sentry
-      sentryTest.skip();
-    }
-
-    if (shouldSkipTracingTest()) {
+    // for now, spanStreamingIntegration is only exported in the NPM package, so we skip the test for bundles.
+    // This test fails on Webkit as errors thrown from `runScriptInSandbox` are Script Errors and skipped by Sentry
+    if (shouldSkipTracingTest() || testingCdnBundle() || browserName === 'webkit') {
       sentryTest.skip();
     }
 

@@ -315,6 +315,14 @@ export function shouldSkipTracingTest(): boolean {
 }
 
 /**
+ * @returns `true` if we are testing a CDN bundle
+ */
+export function testingCdnBundle(): boolean {
+  const bundle = process.env.PW_BUNDLE;
+  return bundle != null;
+}
+
+/**
  * Today we always run feedback tests, but this can be used to guard this if we ever need to.
  */
 export function shouldSkipFeedbackTest(): boolean {
