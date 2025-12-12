@@ -3,41 +3,51 @@ import type { Client, Scope, SerializedTraceData, Span } from '@sentry/core';
 import {
   dynamicSamplingContextToSentryBaggageHeader,
   generateSentryTraceHeader,
-  getActiveSpan,
   getCapturedScopesOnSpan,
-  getCurrentScope,
   scopeToTraceparentHeader,
   spanToTraceparentHeader,
 } from '@sentry/core';
 import { getInjectionData } from '../propagator';
-import { getContextFromScope } from './contextData';
+import { getContextFromScope, getScopesFromContext } from './contextData';
 
 /**
  * Otel-specific implementation of `getTraceData`.
  * @see `@sentry/core` version of `getTraceData` for more information
  */
-export function getTraceData(
-  options: { span?: Span; scope?: Scope; client?: Client; propagateTraceparent?: boolean } = {},
-): SerializedTraceData {
-  const span = options.span || getActiveSpan();
-  const scope = options.scope || (span && getCapturedScopesOnSpan(span).scope) || getCurrentScope();
+export function getTraceData(options: { span?: Span; scope?: Scope; client?: Client; propagateTraceparent?: boolean } = {}): SerializedTraceData {
+  const { client, propagateTraceparent } = options;
+  let { span, scope } = options;
 
-  let ctx = getContextFromScope(scope) ?? api.context.active();
+  let ctx = (scope && getContextFromScope(scope)) ?? api.context.active();
 
   if (span) {
+    const { scope } = getCapturedScopesOnSpan(span);
     // fall back to current context if for whatever reason we can't find the one of the span
-    ctx = getContextFromScope(scope) || api.trace.setSpan(api.context.active(), span);
+    ctx = (scope && getContextFromScope(scope)) || api.trace.setSpan(api.context.active(), span);
+  } else {
+    span = api.trace.getSpan(ctx);
   }
 
-  const { traceId, spanId, sampled, dynamicSamplingContext } = getInjectionData(ctx, { scope, client: options.client });
+  if (!scope) {
+    const scopes = getScopesFromContext(ctx);
+    if (scopes) {
+      scope = scopes.scope;
+    }
+  }
+
+  const { traceId, spanId, sampled, dynamicSamplingContext } = getInjectionData(ctx, { scope, client });
 
   const traceData: SerializedTraceData = {
     'sentry-trace': generateSentryTraceHeader(traceId, spanId, sampled),
     baggage: dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext),
   };
 
-  if (options.propagateTraceparent) {
-    traceData.traceparent = span ? spanToTraceparentHeader(span) : scopeToTraceparentHeader(scope);
+  if (propagateTraceparent) {
+    if (span) {
+      traceData.traceparent = spanToTraceparentHeader(span);
+    } else if (scope) {
+      traceData.traceparent = scopeToTraceparentHeader(scope);
+    }
   }
 
   return traceData;
