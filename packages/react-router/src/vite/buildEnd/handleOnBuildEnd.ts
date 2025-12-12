@@ -65,9 +65,9 @@ export const sentryOnBuildEnd: BuildEndHook = async ({ reactRouterConfig, viteCo
   const cliInstance = new SentryCli(null, {
     authToken,
     org,
+    ...sentryConfig.unstable_sentryVitePluginOptions,
     // same handling as in bundler plugins: https://github.com/getsentry/sentry-javascript-bundler-plugins/blob/05084f214c763a05137d863ff5a05ef38254f68d/packages/bundler-plugin-core/src/build-plugin-manager.ts#L102-L103
     project: Array.isArray(project) ? project[0] : project,
-    ...sentryConfig.unstable_sentryVitePluginOptions,
   });
 
   // check if release should be created
