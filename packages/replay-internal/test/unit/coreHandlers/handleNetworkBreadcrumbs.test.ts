@@ -15,6 +15,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { NETWORK_BODY_MAX_SIZE } from '../../../src/constants';
 import { beforeAddNetworkBreadcrumb } from '../../../src/coreHandlers/handleNetworkBreadcrumbs';
 import type { EventBufferArray } from '../../../src/eventBuffer/EventBufferArray';
+import { INTERNAL_instrumentRequestInterface } from '../../../src/integration';
 import type { ReplayContainer, ReplayNetworkOptions } from '../../../src/types';
 import { BASE_TIMESTAMP } from '../..';
 import { setupReplayContainer } from '../../utils/setupReplayContainer';
@@ -814,6 +815,236 @@ other-header: test`;
           },
         },
       ]);
+    });
+
+    describe('with Request objects - with patching Request interface', () => {
+      beforeAll(() => {
+        // keep backup of original Request
+        const OriginalRequest = globalThis.Request;
+
+        return async () => {
+          globalThis.Request = OriginalRequest;
+        };
+      });
+
+      it('extracts body from Request object when attachRawBodyFromRequest is enabled', async () => {
+        options.networkCaptureBodies = true;
+
+        // Simulate what replay integration does when attachRawBodyFromRequest: true
+        INTERNAL_instrumentRequestInterface();
+
+        const request = new Request('https://example.com', {
+          method: 'POST',
+          body: 'Some example request body content',
+        });
+
+        const breadcrumb: Breadcrumb = {
+          category: 'fetch',
+          data: {
+            method: 'POST',
+            url: 'https://example.com',
+            status_code: 200,
+          },
+        };
+
+        const mockResponse = getMockResponse('13', 'test response');
+
+        const hint: FetchBreadcrumbHint = {
+          input: [request],
+          response: mockResponse,
+          startTimestamp: BASE_TIMESTAMP + 1000,
+          endTimestamp: BASE_TIMESTAMP + 2000,
+        };
+        beforeAddNetworkBreadcrumb(options, breadcrumb, hint);
+
+        expect(breadcrumb).toEqual({
+          category: 'fetch',
+          data: {
+            method: 'POST',
+            request_body_size: 33,
+            response_body_size: 13,
+            status_code: 200,
+            url: 'https://example.com',
+          },
+        });
+
+        await waitForReplayEventBuffer();
+
+        expect((options.replay.eventBuffer as EventBufferArray).events).toEqual([
+          {
+            type: 5,
+            timestamp: (BASE_TIMESTAMP + 1000) / 1000,
+            data: {
+              tag: 'performanceSpan',
+              payload: {
+                data: {
+                  method: 'POST',
+                  statusCode: 200,
+                  request: {
+                    headers: {},
+                    size: 33,
+                    body: 'Some example request body content', // When body is stored via Symbol, the body text should be captured
+                  },
+                  response: {
+                    size: 13,
+                    headers: {},
+                    body: 'test response',
+                  },
+                },
+                description: 'https://example.com',
+                endTimestamp: (BASE_TIMESTAMP + 2000) / 1000,
+                op: 'resource.fetch',
+                startTimestamp: (BASE_TIMESTAMP + 1000) / 1000,
+              },
+            },
+          },
+        ]);
+      });
+
+      it('uses options body when provided (overrides Request body)', async () => {
+        options.networkCaptureBodies = true;
+
+        // Simulate what replay integration does when attachRawBodyFromRequest: true
+        INTERNAL_instrumentRequestInterface();
+
+        const request = new Request('https://example.com', { method: 'POST', body: 'Original body' });
+
+        const breadcrumb: Breadcrumb = {
+          category: 'fetch',
+          data: {
+            method: 'POST',
+            url: 'https://example.com',
+            status_code: 200,
+          },
+        };
+
+        const mockResponse = getMockResponse('13', 'test response');
+
+        const hint: FetchBreadcrumbHint = {
+          input: [request, { body: 'Override body' }],
+          response: mockResponse,
+          startTimestamp: BASE_TIMESTAMP + 1000,
+          endTimestamp: BASE_TIMESTAMP + 2000,
+        };
+        beforeAddNetworkBreadcrumb(options, breadcrumb, hint);
+
+        expect(breadcrumb).toEqual({
+          category: 'fetch',
+          data: {
+            method: 'POST',
+            request_body_size: 13,
+            response_body_size: 13,
+            status_code: 200,
+            url: 'https://example.com',
+          },
+        });
+
+        await waitForReplayEventBuffer();
+
+        expect((options.replay.eventBuffer as EventBufferArray).events).toEqual([
+          {
+            type: 5,
+            timestamp: (BASE_TIMESTAMP + 1000) / 1000,
+            data: {
+              tag: 'performanceSpan',
+              payload: {
+                data: {
+                  method: 'POST',
+                  statusCode: 200,
+                  request: {
+                    size: 13,
+                    headers: {},
+                    body: 'Override body',
+                  },
+                  response: {
+                    size: 13,
+                    headers: {},
+                    body: 'test response',
+                  },
+                },
+                description: 'https://example.com',
+                endTimestamp: (BASE_TIMESTAMP + 2000) / 1000,
+                op: 'resource.fetch',
+                startTimestamp: (BASE_TIMESTAMP + 1000) / 1000,
+              },
+            },
+          },
+        ]);
+      });
+    });
+
+    describe('with Request objects - without patching Request interface', () => {
+      it('falls back to ReadableStream when attachRawBodyFromRequest is not enabled', async () => {
+        options.networkCaptureBodies = true;
+
+        // Without patching Request, Request body is a ReadableStream
+        const request = new Request('https://example.com', { method: 'POST', body: 'Request body' });
+
+        const breadcrumb: Breadcrumb = {
+          category: 'fetch',
+          data: {
+            method: 'POST',
+            url: 'https://example.com',
+            status_code: 200,
+          },
+        };
+
+        const mockResponse = getMockResponse('13', 'test response');
+
+        const hint: FetchBreadcrumbHint = {
+          input: [request],
+          response: mockResponse,
+          startTimestamp: BASE_TIMESTAMP + 1000,
+          endTimestamp: BASE_TIMESTAMP + 2000,
+        };
+        beforeAddNetworkBreadcrumb(options, breadcrumb, hint);
+
+        expect(breadcrumb).toEqual({
+          category: 'fetch',
+          data: {
+            method: 'POST',
+
+            response_body_size: 13,
+            status_code: 200,
+            url: 'https://example.com',
+          },
+        });
+
+        await waitForReplayEventBuffer();
+
+        expect((options.replay.eventBuffer as EventBufferArray).events).toEqual([
+          {
+            type: 5,
+            timestamp: (BASE_TIMESTAMP + 1000) / 1000,
+            data: {
+              tag: 'performanceSpan',
+              payload: {
+                data: {
+                  method: 'POST',
+                  statusCode: 200,
+                  request: {
+                    headers: {},
+                    size: undefined,
+                    _meta: {
+                      // Request body should not be captured since it's a ReadableStream (unparseable body type)
+                      warnings: ['UNPARSEABLE_BODY_TYPE'],
+                    },
+                  },
+                  response: {
+                    size: 13,
+                    headers: {},
+                    body: 'test response',
+                  },
+                },
+                description: 'https://example.com',
+                endTimestamp: (BASE_TIMESTAMP + 2000) / 1000,
+                op: 'resource.fetch',
+                startTimestamp: (BASE_TIMESTAMP + 1000) / 1000,
+              },
+            },
+          },
+        ]);
+      });
     });
 
     it('does not add xhr request/response body if URL does not match', async () => {

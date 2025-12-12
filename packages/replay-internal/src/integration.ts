@@ -1,5 +1,5 @@
 import type { BrowserClientReplayOptions, Client, Integration, IntegrationFn, ReplayRecordingMode } from '@sentry/core';
-import { consoleSandbox, isBrowser, parseSampleRate } from '@sentry/core';
+import { consoleSandbox, GLOBAL_OBJ, isBrowser, parseSampleRate } from '@sentry/core';
 import {
   DEFAULT_FLUSH_MAX_DELAY,
   DEFAULT_FLUSH_MIN_DELAY,
@@ -24,7 +24,48 @@ const MEDIA_SELECTORS =
 
 const DEFAULT_NETWORK_HEADERS = ['content-length', 'content-type', 'accept'];
 
+// Symbol to store the original body on Request objects
+// Using Symbol.for() to create a global symbol that can be accessed from other packages
+const ORIGINAL_BODY = Symbol.for('sentry__OriginalBody');
+
 let _initialized = false;
+let _isRequestInstrumented = false;
+
+/**
+ * Instruments the global Request constructor to store the original body.
+ * This allows us to retrieve the original body value later, since Request
+ * converts string bodies to ReadableStreams.
+ */
+export function INTERNAL_instrumentRequestInterface(): void {
+  if (typeof Request === 'undefined' || _isRequestInstrumented) {
+    return;
+  }
+
+  const OriginalRequest = Request;
+
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (GLOBAL_OBJ as any).Request = function SentryRequest(input: RequestInfo | URL, init?: RequestInit): Request {
+      const request = new OriginalRequest(input, init);
+
+      // Store the original body if it exists
+      if (init && 'body' in init && init.body !== null && init.body !== undefined) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        (request as any)[ORIGINAL_BODY] = init.body;
+      }
+
+      return request;
+    };
+
+    // Preserve the prototype
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    (GLOBAL_OBJ as any).Request.prototype = OriginalRequest.prototype;
+
+    _isRequestInstrumented = true;
+  } catch (e) {
+    // Silently fail if we can't patch Request (e.g., if it's frozen)
+  }
+}
 
 /**
  * Sentry integration for [Session Replay](https://sentry.io/for/session-replay/).
@@ -105,6 +146,7 @@ export class Replay implements Integration {
     beforeAddRecordingEvent,
     beforeErrorSampling,
     onError,
+    attachRawBodyFromRequest = false,
   }: ReplayConfiguration = {}) {
     this.name = 'Replay';
 
@@ -177,6 +219,7 @@ export class Replay implements Integration {
       beforeAddRecordingEvent,
       beforeErrorSampling,
       onError,
+      attachRawBodyFromRequest,
 
       _experiments,
     };
@@ -213,6 +256,10 @@ export class Replay implements Integration {
   public afterAllSetup(client: Client): void {
     if (!isBrowser() || this._replay) {
       return;
+    }
+
+    if (this._initialOptions.attachRawBodyFromRequest) {
+      INTERNAL_instrumentRequestInterface();
     }
 
     this._setup(client);
