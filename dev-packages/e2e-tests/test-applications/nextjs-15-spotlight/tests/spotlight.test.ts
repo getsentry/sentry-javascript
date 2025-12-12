@@ -1,34 +1,18 @@
 import { expect, test } from '@playwright/test';
 
-test.describe('Spotlight auto-enablement in Next.js development mode', () => {
-  test('Spotlight is automatically enabled when NEXT_PUBLIC_SENTRY_SPOTLIGHT=true', async ({ page }) => {
-    // Capture console output for debugging
-    const consoleLogs: string[] = [];
-    page.on('console', msg => {
-      const text = msg.text();
-      consoleLogs.push(`[${msg.type()}] ${text}`);
-      // Print Sentry debug messages immediately
-      if (text.includes('Sentry Debug')) {
-        console.log(`[Browser Console] ${text}`);
-      }
-    });
-
+test.describe('Spotlight in Next.js development mode', () => {
+  test('Spotlight is enabled when configured via NEXT_PUBLIC_SENTRY_SPOTLIGHT env var', async ({ page }) => {
     await page.goto('/');
 
     // Wait for client-side hydration and Sentry initialization
     await page.waitForTimeout(3000);
 
-    // Print all console logs for debugging
-    console.log('All browser console logs:');
-    consoleLogs.forEach(log => console.log(log));
-
-    // Check environment variable is accessible (injected at build time by Next.js)
+    // Check environment variable is accessible (replaced by Next.js at build time)
     const envValue = await page.getByTestId('env-value').textContent();
     expect(envValue).toContain('true');
 
     // Check Spotlight integration is enabled
     const spotlightStatus = await page.getByTestId('spotlight-enabled').textContent();
-    console.log('Spotlight status:', spotlightStatus);
     expect(spotlightStatus).toBe('ENABLED');
   });
 
