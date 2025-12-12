@@ -81,7 +81,7 @@ export async function startSpotlight(options: SpotlightOptions = {}): Promise<Sp
 
       // Look for port in various formats
       const portMatch = line.match(/localhost:(\d+)/i) || line.match(/port[:\s]+(\d+)/i);
-      if (portMatch && !resolvedPort) {
+      if (portMatch?.[1] && !resolvedPort) {
         resolvedPort = parseInt(portMatch[1], 10);
       }
 
@@ -156,7 +156,10 @@ function createSpotlightInstance(process: ChildProcess, port: number, _debug: bo
     while (true) {
       // Yield any buffered events first
       while (bufferIndex < eventBuffer.length) {
-        yield eventBuffer[bufferIndex++];
+        const envelope = eventBuffer[bufferIndex++];
+        if (envelope) {
+          yield envelope;
+        }
       }
 
       // Wait for new events

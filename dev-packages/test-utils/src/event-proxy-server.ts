@@ -153,8 +153,13 @@ export async function startProxyServer(
     // Prune old events from the buffer that are definitely stale (strictly older than this listener).
     // Use strict < to match the live event behavior (>= at line 103) - same-ms events are kept.
     // This prevents memory buildup and ensures old events can never leak to future listeners.
-    while (eventBuffer.length > 0 && eventBuffer[0].timestamp < listenerTimestamp) {
-      eventBuffer.shift();
+    while (eventBuffer.length > 0) {
+      const firstEvent = eventBuffer[0];
+      if (firstEvent && firstEvent.timestamp < listenerTimestamp) {
+        eventBuffer.shift();
+      } else {
+        break;
+      }
     }
 
     // Send any remaining buffered events (those that arrived after this listener was registered,
