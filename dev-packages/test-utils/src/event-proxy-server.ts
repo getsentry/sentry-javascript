@@ -150,13 +150,16 @@ export async function startProxyServer(
 
     eventCallbackListeners.add(callbackListener);
 
-    // Use strict inequality to prevent stale events from previous tests leaking through.
-    // If a previous test's event was buffered at the same millisecond as this listener started,
-    // we want to exclude it.
+    // Prune old events from the buffer that are definitely stale (older than this listener).
+    // This prevents memory buildup and ensures old events can never leak to future listeners.
+    while (eventBuffer.length > 0 && eventBuffer[0].timestamp <= listenerTimestamp) {
+      eventBuffer.shift();
+    }
+
+    // Send any remaining buffered events (those that arrived after this listener was registered,
+    // which can happen due to race conditions with HTTP request processing).
     eventBuffer.forEach(bufferedEvent => {
-      if (bufferedEvent.timestamp > listenerTimestamp) {
-        callbackListener.callback(bufferedEvent.data);
-      }
+      callbackListener.callback(bufferedEvent.data);
     });
 
     eventCallbackRequest.on('close', () => {
