@@ -2,7 +2,10 @@ import * as Sentry from '@sentry/nextjs';
 
 // Debug: Log what values the valueInjectionLoader should have set
 // This runs AFTER imports are processed but BEFORE Sentry.init()
-console.log('[Sentry Debug] After imports - globalThis._sentrySpotlight:', (globalThis as Record<string, unknown>)['_sentrySpotlight']);
+console.log(
+  '[Sentry Debug] After imports - globalThis._sentrySpotlight:',
+  (globalThis as Record<string, unknown>)['_sentrySpotlight'],
+);
 console.log(
   '[Sentry Debug] After imports - globalThis.NEXT_PUBLIC_SENTRY_SPOTLIGHT:',
   (globalThis as Record<string, unknown>)['NEXT_PUBLIC_SENTRY_SPOTLIGHT'],
