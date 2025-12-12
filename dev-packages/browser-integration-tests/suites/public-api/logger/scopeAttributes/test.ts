@@ -1,14 +1,14 @@
 import { expect } from '@playwright/test';
 import type { LogEnvelope } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
-import { getFirstSentryEnvelopeRequest, properFullEnvelopeRequestParser } from '../../../../utils/helpers';
+import {
+  getFirstSentryEnvelopeRequest,
+  properFullEnvelopeRequestParser,
+  testingCdnBundle,
+} from '../../../../utils/helpers';
 
 sentryTest('captures logs with scope attributes', async ({ getLocalTestUrl, page }) => {
-  const bundle = process.env.PW_BUNDLE || '';
-  // Only run this for npm package exports
-  if (bundle.startsWith('bundle') || bundle.startsWith('loader')) {
-    sentryTest.skip();
-  }
+  sentryTest.skip(testingCdnBundle());
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
