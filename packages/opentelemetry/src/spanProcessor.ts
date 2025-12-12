@@ -4,7 +4,6 @@ import type { ReadableSpan, Span, SpanProcessor as SpanProcessorInterface } from
 import type { Client } from '@sentry/core';
 import {
   addChildSpanToSpan,
-  captureSpan,
   getClient,
   getDefaultCurrentScope,
   getDefaultIsolationScope,
