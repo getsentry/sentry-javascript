@@ -7,6 +7,7 @@ let spotlight: Awaited<ReturnType<typeof startSpotlight>>;
 test.beforeAll(async () => {
   spotlight = await startSpotlight({
     cwd: path.resolve(__dirname, '..'),
+    port: 8969, // Must match DSN in src/index.tsx
     debug: !!process.env.DEBUG,
   });
 });
