@@ -1,14 +1,15 @@
 import { expect } from '@playwright/test';
 import type { LogEnvelope } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
-import { getFirstSentryEnvelopeRequest, properFullEnvelopeRequestParser } from '../../../../utils/helpers';
+import {
+  getFirstSentryEnvelopeRequest,
+  properFullEnvelopeRequestParser,
+  testingCdnBundle,
+} from '../../../../utils/helpers';
 
 sentryTest('should capture console object calls', async ({ getLocalTestUrl, page }) => {
-  const bundle = process.env.PW_BUNDLE || '';
   // Only run this for npm package exports
-  if (bundle.startsWith('bundle') || bundle.startsWith('loader')) {
-    sentryTest.skip();
-  }
+  sentryTest.skip(testingCdnBundle());
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
@@ -166,7 +167,7 @@ sentryTest('should capture console object calls', async ({ getLocalTestUrl, page
             'sentry.message.template': { value: 'Mixed: {} {} {} {}', type: 'string' },
             'sentry.message.parameter.0': { value: 'prefix', type: 'string' },
             'sentry.message.parameter.1': { value: '{"obj":true}', type: 'string' },
-            'sentry.message.parameter.2': { value: '[4,5,6]', type: 'string' },
+            'sentry.message.parameter.2': { value: [4, 5, 6], type: 'integer[]' },
             'sentry.message.parameter.3': { value: 'suffix', type: 'string' },
           },
         },
@@ -235,7 +236,7 @@ sentryTest('should capture console object calls', async ({ getLocalTestUrl, page
             'sentry.message.template': { value: 'hello {} {} {}', type: 'string' },
             'sentry.message.parameter.0': { value: true, type: 'boolean' },
             'sentry.message.parameter.1': { value: 'null', type: 'string' },
-            'sentry.message.parameter.2': { value: '', type: 'string' },
+            'sentry.message.parameter.2': { value: 'undefined', type: 'string' },
           },
         },
       ],
