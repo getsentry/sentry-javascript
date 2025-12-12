@@ -91,7 +91,7 @@ export async function startProxyServer(
       const callback: OnRequest =
         onRequest ||
         (async (eventCallbackListeners, proxyRequest, proxyRequestBody, eventBuffer) => {
-          eventBuffer.push({ data: proxyRequestBody, timestamp: getNanosecondTimestamp() });
+          eventBuffer.push({ data: proxyRequestBody, timestamp: getTimestamp() });
 
           eventCallbackListeners.forEach(listener => {
             listener(proxyRequestBody);
@@ -190,7 +190,7 @@ export async function startEventProxyServer(options: EventProxyServerOptions): P
 
     const dataString = Buffer.from(JSON.stringify(data)).toString('base64');
 
-    eventBuffer.push({ data: dataString, timestamp: getNanosecondTimestamp() });
+    eventBuffer.push({ data: dataString, timestamp: getTimestamp() });
 
     eventCallbackListeners.forEach(listener => {
       listener(dataString);
@@ -219,7 +219,7 @@ export async function waitForPlainRequest(
 
   return new Promise((resolve, reject) => {
     const request = http.request(
-      `http://localhost:${eventCallbackServerPort}/?timestamp=${getNanosecondTimestamp()}`,
+      `http://localhost:${eventCallbackServerPort}/?timestamp=${getTimestamp()}`,
       {},
       response => {
         let eventContents = '';
@@ -249,7 +249,7 @@ export async function waitForPlainRequest(
 export async function waitForRequest(
   proxyServerName: string,
   callback: (eventData: SentryRequestCallbackData) => Promise<boolean> | boolean,
-  timestamp: number = getNanosecondTimestamp(),
+  timestamp: number = getTimestamp(),
 ): Promise<SentryRequestCallbackData> {
   const eventCallbackServerPort = await retrieveCallbackServerPort(proxyServerName);
 
@@ -305,7 +305,7 @@ export async function waitForRequest(
 export function waitForEnvelopeItem(
   proxyServerName: string,
   callback: (envelopeItem: EnvelopeItem) => Promise<boolean> | boolean,
-  timestamp: number = getNanosecondTimestamp(),
+  timestamp: number = getTimestamp(),
 ): Promise<EnvelopeItem> {
   return new Promise((resolve, reject) => {
     waitForRequest(
@@ -330,7 +330,7 @@ export function waitForError(
   proxyServerName: string,
   callback: (errorEvent: Event) => Promise<boolean> | boolean,
 ): Promise<Event> {
-  const timestamp = getNanosecondTimestamp();
+  const timestamp = getTimestamp();
   return new Promise((resolve, reject) => {
     waitForEnvelopeItem(
       proxyServerName,
@@ -352,7 +352,7 @@ export function waitForSession(
   proxyServerName: string,
   callback: (session: SerializedSession) => Promise<boolean> | boolean,
 ): Promise<SerializedSession> {
-  const timestamp = getNanosecondTimestamp();
+  const timestamp = getTimestamp();
   return new Promise((resolve, reject) => {
     waitForEnvelopeItem(
       proxyServerName,
@@ -374,7 +374,7 @@ export function waitForTransaction(
   proxyServerName: string,
   callback: (transactionEvent: Event) => Promise<boolean> | boolean,
 ): Promise<Event> {
-  const timestamp = getNanosecondTimestamp();
+  const timestamp = getTimestamp();
   return new Promise((resolve, reject) => {
     waitForEnvelopeItem(
       proxyServerName,
@@ -410,23 +410,21 @@ async function retrieveCallbackServerPort(serverName: string): Promise<string> {
 }
 
 /**
- * Get a high-resolution timestamp that is comparable across processes.
+ * Get a timestamp that is comparable across processes.
  *
- * We use Date.now() as the base (epoch milliseconds) plus a sub-millisecond
- * component from performance.now() to get microsecond-level precision.
+ * We use Date.now() which returns epoch milliseconds. This is the ONLY reliable
+ * way to compare timestamps across different Node.js processes (the event proxy
+ * server and Playwright test runner).
  *
  * NOTE: We cannot use process.hrtime() because it returns time relative to an
- * arbitrary process-local reference point. Since the event proxy server and
- * Playwright test runner are separate processes, their hrtime values are not
- * comparable, which was causing stale events from previous tests to leak into
- * later tests.
+ * arbitrary process-local reference point that differs per process.
+ *
+ * NOTE: We cannot use performance.now() for sub-millisecond precision because
+ * it's also process-local and can cause incorrect timestamp ordering.
+ *
+ * Millisecond precision is sufficient for our use case - tests typically have
+ * gaps of hundreds of milliseconds or more between transactions.
  */
-function getNanosecondTimestamp(): number {
-  // Date.now() gives us epoch milliseconds (comparable across processes)
-  // performance.now() gives us sub-millisecond precision within this process
-  // We use the fractional part of performance.now() to add microseconds
-  const epochMs = Date.now();
-  const subMs = performance.now() % 1; // Get just the fractional part (0.0 to 0.999...)
-  // Convert to nanoseconds: epoch_ms * 1e6 + sub_ms * 1e6
-  return epochMs * 1e6 + Math.floor(subMs * 1e6);
+function getTimestamp(): number {
+  return Date.now();
 }
