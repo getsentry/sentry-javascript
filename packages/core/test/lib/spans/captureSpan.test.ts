@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, test, vi } from 'vitest';
 import type { Client } from '../../../src';
 import {
   getCurrentScope,
@@ -317,6 +317,53 @@ describe('captureSpan', () => {
           'sentry.segment.name': {
             type: 'string',
             value: 'spanName',
+          },
+        },
+      }),
+    );
+  });
+
+  test('scope attributes have precedence over attributes derived from contexts', () => {
+    currentScope.setUser({ id: '123', email: 'user@example.com', username: 'testuser' });
+
+    const span = new SentrySpan({ name: 'spanName' });
+    setCapturedScopesOnSpan(span, currentScope, isolationScope);
+
+    // Aalthough the current scope has precedence over the global scope,
+    // scope attributes have precedence over context attributes
+    getGlobalScope().setAttribute('app.name', 'myApp-scope-attribute');
+    currentScope.setContext('app', { name: 'myApp-current-scope-context' });
+
+    captureSpan(span, client);
+
+    expect(enqueueSpanCallback).toHaveBeenCalledOnce();
+    expect(enqueueSpanCallback).toHaveBeenCalledWith(
+      expect.objectContaining({
+        attributes: {
+          'sentry.environment': {
+            type: 'string',
+            value: 'staging',
+          },
+          'sentry.origin': {
+            type: 'string',
+            value: 'manual',
+          },
+          'sentry.release': {
+            type: 'string',
+            value: '1.1.1',
+          },
+          'sentry.segment.id': {
+            type: 'string',
+            value: span.spanContext().spanId,
+          },
+          'sentry.segment.name': {
+            type: 'string',
+            value: 'spanName',
+          },
+          // Therefore, we expect the attribute to be taken from the global scope's attributes
+          'app.name': {
+            type: 'string',
+            value: 'myApp-scope-attribute',
           },
         },
       }),
