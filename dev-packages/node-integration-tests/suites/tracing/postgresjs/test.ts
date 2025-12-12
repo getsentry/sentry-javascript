@@ -117,6 +117,29 @@ describe('postgresjs auto instrumentation', () => {
           timestamp: expect.any(Number),
           trace_id: expect.any(String),
         }),
+        // Parameterized query test - verifies that tagged template queries with interpolations
+        // are properly reconstructed with $1, $2 placeholders then sanitized to ?
+        expect.objectContaining({
+          data: expect.objectContaining({
+            'db.namespace': 'test_db',
+            'db.system.name': 'postgres',
+            'db.operation.name': 'SELECT',
+            'db.query.text': `SELECT * FROM "User" WHERE "email" = ? AND "name" = ?`,
+            'sentry.op': 'db',
+            'sentry.origin': 'auto.db.postgresjs',
+            'server.address': 'localhost',
+            'server.port': 5444,
+          }),
+          description: `SELECT * FROM "User" WHERE "email" = ? AND "name" = ?`,
+          op: 'db',
+          status: 'ok',
+          origin: 'auto.db.postgresjs',
+          parent_span_id: expect.any(String),
+          span_id: expect.any(String),
+          start_timestamp: expect.any(Number),
+          timestamp: expect.any(Number),
+          trace_id: expect.any(String),
+        }),
         expect.objectContaining({
           data: expect.objectContaining({
             'db.namespace': 'test_db',
@@ -303,6 +326,29 @@ describe('postgresjs auto instrumentation', () => {
             'server.port': 5444,
           }),
           description: `SELECT * FROM "User" WHERE "email" = '${EXISTING_TEST_EMAIL}'`,
+          op: 'db',
+          status: 'ok',
+          origin: 'auto.db.postgresjs',
+          parent_span_id: expect.any(String),
+          span_id: expect.any(String),
+          start_timestamp: expect.any(Number),
+          timestamp: expect.any(Number),
+          trace_id: expect.any(String),
+        }),
+        // Parameterized query test - verifies that tagged template queries with interpolations
+        // are properly reconstructed with $1, $2 placeholders then sanitized to ?
+        expect.objectContaining({
+          data: expect.objectContaining({
+            'db.namespace': 'test_db',
+            'db.system.name': 'postgres',
+            'db.operation.name': 'SELECT',
+            'db.query.text': `SELECT * FROM "User" WHERE "email" = ? AND "name" = ?`,
+            'sentry.op': 'db',
+            'sentry.origin': 'auto.db.postgresjs',
+            'server.address': 'localhost',
+            'server.port': 5444,
+          }),
+          description: `SELECT * FROM "User" WHERE "email" = ? AND "name" = ?`,
           op: 'db',
           status: 'ok',
           origin: 'auto.db.postgresjs',

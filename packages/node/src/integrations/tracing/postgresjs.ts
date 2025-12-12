@@ -388,7 +388,8 @@ export class PostgresJsInstrumentation extends InstrumentationBase<PostgresJsIns
         return originalHandle.apply(this, args);
       }
 
-      const sanitizedSqlQuery = self._sanitizeSqlQuery(query.strings?.[0]);
+      const fullQuery = self._reconstructQuery(query.strings);
+      const sanitizedSqlQuery = self._sanitizeSqlQuery(fullQuery);
 
       return startSpanManual(
         {
@@ -495,6 +496,24 @@ export class PostgresJsInstrumentation extends InstrumentationBase<PostgresJsIns
   }
 
   /**
+   * Reconstructs the full SQL query from template strings with PostgreSQL placeholders.
+   *
+   * For sql`SELECT * FROM users WHERE id = ${123} AND name = ${'foo'}`:
+   *   strings = ["SELECT * FROM users WHERE id = ", " AND name = ", ""]
+   *   returns: "SELECT * FROM users WHERE id = $1 AND name = $2"
+   */
+  private _reconstructQuery(strings: string[] | undefined): string | undefined {
+    if (!strings?.length) {
+      return undefined;
+    }
+    if (strings.length === 1) {
+      return strings[0] || undefined;
+    }
+    // Join template parts with PostgreSQL placeholders ($1, $2, etc.)
+    return strings.reduce((acc, str, i) => (i === 0 ? str : `${acc}$${i}${str}`), '');
+  }
+
+  /**
    * Sanitize SQL query as per the OTEL semantic conventions
    * https://opentelemetry.io/docs/specs/semconv/database/database-spans/#sanitization-of-dbquerytext
    */
@@ -558,7 +577,8 @@ export class PostgresJsInstrumentation extends InstrumentationBase<PostgresJsIns
         return originalHandle.apply(this, args);
       }
 
-      const sanitizedSqlQuery = self._sanitizeSqlQuery(this.strings?.[0]);
+      const fullQuery = self._reconstructQuery(this.strings);
+      const sanitizedSqlQuery = self._sanitizeSqlQuery(fullQuery);
 
       return startSpanManual(
         {
