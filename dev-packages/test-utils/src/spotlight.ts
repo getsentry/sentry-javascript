@@ -175,10 +175,11 @@ export async function startSpotlight(options: SpotlightOptions = {}): Promise<Sp
       // When Spotlight says it's listening, start waiting for the app
       if (!resolved && resolvedPort && line.includes('listening')) {
         resolved = true;
+        const spotlightPort = resolvedPort; // Capture for closure
         // Wait for app to be ready before resolving
         waitForAppReady()
           .then(() => {
-            const instance = createSpotlightInstance(spotlightProcess, resolvedPort, debug);
+            const instance = createSpotlightInstance(spotlightProcess, spotlightPort, debug);
             currentSpotlightInstance = instance;
             resolve(instance);
           })
