@@ -133,11 +133,12 @@ export async function startProxyServer(
     eventCallbackResponse.statusCode = 200;
     eventCallbackResponse.setHeader('connection', 'keep-alive');
 
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const searchParams = new URL(eventCallbackRequest.url!, 'http://justsomerandombasesothattheurlisparseable.com/')
-      .searchParams;
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const listenerTimestamp = Number(searchParams.get('timestamp')!);
+    // CRITICAL: Use the SERVER's current time when the listener is actually registered,
+    // NOT the client timestamp from the query param. Due to network latency, events may
+    // have been buffered between when the client generated its timestamp and when the
+    // HTTP request reached this server. Using server time ensures we only get events
+    // that arrived AFTER the listener was actually registered on the server.
+    const listenerTimestamp = getTimestamp();
 
     const callbackListener: EventCallbackListener = {
       callback: (data: string): void => {
