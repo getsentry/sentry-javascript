@@ -4,24 +4,6 @@ import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 const EXISTING_TEST_EMAIL = 'bar@baz.com';
 const NON_EXISTING_TEST_EMAIL = 'foo@baz.com';
 
-// Helper function to create basic span matcher (reduces duplication in new tests)
-function createDbSpanMatcher(operationName: string, descriptionMatcher: unknown = expect.any(String)) {
-  return expect.objectContaining({
-    data: expect.objectContaining({
-      'db.namespace': 'test_db',
-      'db.system.name': 'postgres',
-      'db.operation.name': operationName,
-      'sentry.op': 'db',
-      'sentry.origin': 'auto.db.postgresjs',
-      'server.address': 'localhost',
-      'server.port': 5444,
-    }),
-    description: descriptionMatcher,
-    op: 'db',
-    origin: 'auto.db.postgresjs',
-  });
-}
-
 describe('postgresjs auto instrumentation', () => {
   afterAll(() => {
     cleanupChildProcesses();
@@ -124,13 +106,13 @@ describe('postgresjs auto instrumentation', () => {
             'db.namespace': 'test_db',
             'db.system.name': 'postgres',
             'db.operation.name': 'SELECT',
-            'db.query.text': `SELECT * FROM "User" WHERE "email" = ? AND "name" = ?`,
+            'db.query.text': 'SELECT * FROM "User" WHERE "email" = ? AND "name" = ?',
             'sentry.op': 'db',
             'sentry.origin': 'auto.db.postgresjs',
             'server.address': 'localhost',
             'server.port': 5444,
           }),
-          description: `SELECT * FROM "User" WHERE "email" = ? AND "name" = ?`,
+          description: 'SELECT * FROM "User" WHERE "email" = ? AND "name" = ?',
           op: 'db',
           status: 'ok',
           origin: 'auto.db.postgresjs',
@@ -342,13 +324,13 @@ describe('postgresjs auto instrumentation', () => {
             'db.namespace': 'test_db',
             'db.system.name': 'postgres',
             'db.operation.name': 'SELECT',
-            'db.query.text': `SELECT * FROM "User" WHERE "email" = ? AND "name" = ?`,
+            'db.query.text': 'SELECT * FROM "User" WHERE "email" = ? AND "name" = ?',
             'sentry.op': 'db',
             'sentry.origin': 'auto.db.postgresjs',
             'server.address': 'localhost',
             'server.port': 5444,
           }),
-          description: `SELECT * FROM "User" WHERE "email" = ? AND "name" = ?`,
+          description: 'SELECT * FROM "User" WHERE "email" = ? AND "name" = ?',
           op: 'db',
           status: 'ok',
           origin: 'auto.db.postgresjs',
@@ -621,10 +603,72 @@ describe('postgresjs auto instrumentation', () => {
     const EXPECTED_TRANSACTION = {
       transaction: 'Test Transaction',
       spans: expect.arrayContaining([
-        createDbSpanMatcher('CREATE TABLE'),
-        createDbSpanMatcher('INSERT'),
-        createDbSpanMatcher('UPDATE'),
-        createDbSpanMatcher('SELECT'),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            'db.namespace': 'test_db',
+            'db.system.name': 'postgres',
+            'db.operation.name': 'CREATE TABLE',
+            'db.query.text':
+              'CREATE TABLE "User" ("id" SERIAL NOT NULL,"createdAt" TIMESTAMP(?) NOT NULL DEFAULT CURRENT_TIMESTAMP,"email" TEXT NOT NULL,"name" TEXT,CONSTRAINT "User_pkey" PRIMARY KEY ("id"))',
+            'sentry.op': 'db',
+            'sentry.origin': 'auto.db.postgresjs',
+            'server.address': 'localhost',
+            'server.port': 5444,
+          }),
+          description:
+            'CREATE TABLE "User" ("id" SERIAL NOT NULL,"createdAt" TIMESTAMP(?) NOT NULL DEFAULT CURRENT_TIMESTAMP,"email" TEXT NOT NULL,"name" TEXT,CONSTRAINT "User_pkey" PRIMARY KEY ("id"))',
+          op: 'db',
+          status: 'ok',
+          origin: 'auto.db.postgresjs',
+        }),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            'db.namespace': 'test_db',
+            'db.system.name': 'postgres',
+            'db.operation.name': 'INSERT',
+            'db.query.text': `INSERT INTO "User" ("email", "name") VALUES ('Foo', '${EXISTING_TEST_EMAIL}')`,
+            'sentry.op': 'db',
+            'sentry.origin': 'auto.db.postgresjs',
+            'server.address': 'localhost',
+            'server.port': 5444,
+          }),
+          description: `INSERT INTO "User" ("email", "name") VALUES ('Foo', '${EXISTING_TEST_EMAIL}')`,
+          op: 'db',
+          status: 'ok',
+          origin: 'auto.db.postgresjs',
+        }),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            'db.namespace': 'test_db',
+            'db.system.name': 'postgres',
+            'db.operation.name': 'UPDATE',
+            'db.query.text': `UPDATE "User" SET "name" = 'Foo' WHERE "email" = '${EXISTING_TEST_EMAIL}'`,
+            'sentry.op': 'db',
+            'sentry.origin': 'auto.db.postgresjs',
+            'server.address': 'localhost',
+            'server.port': 5444,
+          }),
+          description: `UPDATE "User" SET "name" = 'Foo' WHERE "email" = '${EXISTING_TEST_EMAIL}'`,
+          op: 'db',
+          status: 'ok',
+          origin: 'auto.db.postgresjs',
+        }),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            'db.namespace': 'test_db',
+            'db.system.name': 'postgres',
+            'db.operation.name': 'SELECT',
+            'db.query.text': `SELECT * FROM "User" WHERE "email" = '${EXISTING_TEST_EMAIL}'`,
+            'sentry.op': 'db',
+            'sentry.origin': 'auto.db.postgresjs',
+            'server.address': 'localhost',
+            'server.port': 5444,
+          }),
+          description: `SELECT * FROM "User" WHERE "email" = '${EXISTING_TEST_EMAIL}'`,
+          op: 'db',
+          status: 'ok',
+          origin: 'auto.db.postgresjs',
+        }),
       ]),
     };
 
@@ -639,10 +683,72 @@ describe('postgresjs auto instrumentation', () => {
     const EXPECTED_TRANSACTION = {
       transaction: 'Test Transaction',
       spans: expect.arrayContaining([
-        createDbSpanMatcher('CREATE TABLE'),
-        createDbSpanMatcher('INSERT'),
-        createDbSpanMatcher('SELECT'),
-        createDbSpanMatcher('DELETE'),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            'db.namespace': 'test_db',
+            'db.system.name': 'postgres',
+            'db.operation.name': 'CREATE TABLE',
+            'db.query.text':
+              'CREATE TABLE "User" ("id" SERIAL NOT NULL,"createdAt" TIMESTAMP(?) NOT NULL DEFAULT CURRENT_TIMESTAMP,"email" TEXT NOT NULL,"name" TEXT,CONSTRAINT "User_pkey" PRIMARY KEY ("id"))',
+            'sentry.op': 'db',
+            'sentry.origin': 'auto.db.postgresjs',
+            'server.address': 'localhost',
+            'server.port': 5444,
+          }),
+          description:
+            'CREATE TABLE "User" ("id" SERIAL NOT NULL,"createdAt" TIMESTAMP(?) NOT NULL DEFAULT CURRENT_TIMESTAMP,"email" TEXT NOT NULL,"name" TEXT,CONSTRAINT "User_pkey" PRIMARY KEY ("id"))',
+          op: 'db',
+          status: 'ok',
+          origin: 'auto.db.postgresjs',
+        }),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            'db.namespace': 'test_db',
+            'db.system.name': 'postgres',
+            'db.operation.name': 'INSERT',
+            'db.query.text': `INSERT INTO "User" ("email", "name") VALUES ('Foo', '${EXISTING_TEST_EMAIL}')`,
+            'sentry.op': 'db',
+            'sentry.origin': 'auto.db.postgresjs',
+            'server.address': 'localhost',
+            'server.port': 5444,
+          }),
+          description: `INSERT INTO "User" ("email", "name") VALUES ('Foo', '${EXISTING_TEST_EMAIL}')`,
+          op: 'db',
+          status: 'ok',
+          origin: 'auto.db.postgresjs',
+        }),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            'db.namespace': 'test_db',
+            'db.system.name': 'postgres',
+            'db.operation.name': 'SELECT',
+            'db.query.text': `SELECT * FROM "User" WHERE "email" = '${EXISTING_TEST_EMAIL}'`,
+            'sentry.op': 'db',
+            'sentry.origin': 'auto.db.postgresjs',
+            'server.address': 'localhost',
+            'server.port': 5444,
+          }),
+          description: `SELECT * FROM "User" WHERE "email" = '${EXISTING_TEST_EMAIL}'`,
+          op: 'db',
+          status: 'ok',
+          origin: 'auto.db.postgresjs',
+        }),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            'db.namespace': 'test_db',
+            'db.system.name': 'postgres',
+            'db.operation.name': 'DELETE',
+            'db.query.text': `DELETE FROM "User" WHERE "email" = '${EXISTING_TEST_EMAIL}'`,
+            'sentry.op': 'db',
+            'sentry.origin': 'auto.db.postgresjs',
+            'server.address': 'localhost',
+            'server.port': 5444,
+          }),
+          description: `DELETE FROM "User" WHERE "email" = '${EXISTING_TEST_EMAIL}'`,
+          op: 'db',
+          status: 'ok',
+          origin: 'auto.db.postgresjs',
+        }),
       ]),
     };
 
@@ -658,10 +764,70 @@ describe('postgresjs auto instrumentation', () => {
     const EXPECTED_TRANSACTION = {
       transaction: 'Test Transaction',
       spans: expect.arrayContaining([
-        createDbSpanMatcher('CREATE TABLE'),
-        createDbSpanMatcher('INSERT'),
-        createDbSpanMatcher('SELECT'),
-        createDbSpanMatcher('DROP TABLE'),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            'db.namespace': 'test_db',
+            'db.system.name': 'postgres',
+            'db.operation.name': 'CREATE TABLE',
+            'db.query.text': 'CREATE TABLE "User" ("id" SERIAL NOT NULL, "email" TEXT NOT NULL, PRIMARY KEY ("id"))',
+            'sentry.op': 'db',
+            'sentry.origin': 'auto.db.postgresjs',
+            'server.address': 'localhost',
+            'server.port': 5444,
+          }),
+          description: 'CREATE TABLE "User" ("id" SERIAL NOT NULL, "email" TEXT NOT NULL, PRIMARY KEY ("id"))',
+          op: 'db',
+          status: 'ok',
+          origin: 'auto.db.postgresjs',
+        }),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            'db.namespace': 'test_db',
+            'db.system.name': 'postgres',
+            'db.operation.name': 'INSERT',
+            'db.query.text': 'INSERT INTO "User" ("email") VALUES (?)',
+            'sentry.op': 'db',
+            'sentry.origin': 'auto.db.postgresjs',
+            'server.address': 'localhost',
+            'server.port': 5444,
+          }),
+          description: 'INSERT INTO "User" ("email") VALUES (?)',
+          op: 'db',
+          status: 'ok',
+          origin: 'auto.db.postgresjs',
+        }),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            'db.namespace': 'test_db',
+            'db.system.name': 'postgres',
+            'db.operation.name': 'SELECT',
+            'db.query.text': 'SELECT * FROM "User" WHERE "email" = ?',
+            'sentry.op': 'db',
+            'sentry.origin': 'auto.db.postgresjs',
+            'server.address': 'localhost',
+            'server.port': 5444,
+          }),
+          description: 'SELECT * FROM "User" WHERE "email" = ?',
+          op: 'db',
+          status: 'ok',
+          origin: 'auto.db.postgresjs',
+        }),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            'db.namespace': 'test_db',
+            'db.system.name': 'postgres',
+            'db.operation.name': 'DROP TABLE',
+            'db.query.text': 'DROP TABLE "User"',
+            'sentry.op': 'db',
+            'sentry.origin': 'auto.db.postgresjs',
+            'server.address': 'localhost',
+            'server.port': 5444,
+          }),
+          description: 'DROP TABLE "User"',
+          op: 'db',
+          status: 'ok',
+          origin: 'auto.db.postgresjs',
+        }),
       ]),
     };
 
@@ -676,10 +842,70 @@ describe('postgresjs auto instrumentation', () => {
     const EXPECTED_TRANSACTION = {
       transaction: 'Test Transaction',
       spans: expect.arrayContaining([
-        createDbSpanMatcher('CREATE TABLE'),
-        createDbSpanMatcher('INSERT'),
-        createDbSpanMatcher('SELECT'),
-        createDbSpanMatcher('DROP TABLE'),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            'db.namespace': 'test_db',
+            'db.system.name': 'postgres',
+            'db.operation.name': 'CREATE TABLE',
+            'db.query.text': 'CREATE TABLE "User" ("id" SERIAL NOT NULL, "email" TEXT NOT NULL, PRIMARY KEY ("id"))',
+            'sentry.op': 'db',
+            'sentry.origin': 'auto.db.postgresjs',
+            'server.address': 'localhost',
+            'server.port': 5444,
+          }),
+          description: 'CREATE TABLE "User" ("id" SERIAL NOT NULL, "email" TEXT NOT NULL, PRIMARY KEY ("id"))',
+          op: 'db',
+          status: 'ok',
+          origin: 'auto.db.postgresjs',
+        }),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            'db.namespace': 'test_db',
+            'db.system.name': 'postgres',
+            'db.operation.name': 'INSERT',
+            'db.query.text': 'INSERT INTO "User" ("email") VALUES (?)',
+            'sentry.op': 'db',
+            'sentry.origin': 'auto.db.postgresjs',
+            'server.address': 'localhost',
+            'server.port': 5444,
+          }),
+          description: 'INSERT INTO "User" ("email") VALUES (?)',
+          op: 'db',
+          status: 'ok',
+          origin: 'auto.db.postgresjs',
+        }),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            'db.namespace': 'test_db',
+            'db.system.name': 'postgres',
+            'db.operation.name': 'SELECT',
+            'db.query.text': 'SELECT * FROM "User" WHERE "email" = ?',
+            'sentry.op': 'db',
+            'sentry.origin': 'auto.db.postgresjs',
+            'server.address': 'localhost',
+            'server.port': 5444,
+          }),
+          description: 'SELECT * FROM "User" WHERE "email" = ?',
+          op: 'db',
+          status: 'ok',
+          origin: 'auto.db.postgresjs',
+        }),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            'db.namespace': 'test_db',
+            'db.system.name': 'postgres',
+            'db.operation.name': 'DROP TABLE',
+            'db.query.text': 'DROP TABLE "User"',
+            'sentry.op': 'db',
+            'sentry.origin': 'auto.db.postgresjs',
+            'server.address': 'localhost',
+            'server.port': 5444,
+          }),
+          description: 'DROP TABLE "User"',
+          op: 'db',
+          status: 'ok',
+          origin: 'auto.db.postgresjs',
+        }),
       ]),
     };
 
