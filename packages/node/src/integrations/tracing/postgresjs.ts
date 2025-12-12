@@ -1,4 +1,5 @@
 // Instrumentation for https://github.com/porsager/postgres
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { context, trace } from '@opentelemetry/api';
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import {

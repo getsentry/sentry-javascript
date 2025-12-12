@@ -180,7 +180,7 @@ export function isSyntheticEvent(wat: unknown): boolean {
  * @param base A constructor to be used in a check.
  * @returns A boolean representing the result.
  */
-export function isInstanceOf(wat: any, base: any): boolean {
+export function isInstanceOf<T>(wat: unknown, base: { new (...args: any[]): T }): wat is T {
   try {
     return wat instanceof base;
   } catch {

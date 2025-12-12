@@ -2,7 +2,7 @@
  * An interface describing a user of an application or a handled request.
  */
 export interface User {
-  [key: string]: any;
+  [key: string]: unknown;
   id?: string | number;
   ip_address?: string | null;
   email?: string;
