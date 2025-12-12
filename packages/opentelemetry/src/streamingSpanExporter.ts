@@ -1,7 +1,6 @@
 import type { ReadableSpan } from '@opentelemetry/sdk-trace-base';
-import type { Client, Span, SpanV2JSON } from '@sentry/core';
+import type { Client, Span, SpanV2JSON, SpanV2JSONWithSegmentRef } from '@sentry/core';
 import {
-  type SpanV2JSONWithSegmentRef,
   captureSpan,
   createSpanV2Envelope,
   debug,
@@ -11,7 +10,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
 } from '@sentry/core';
 import { DEBUG_BUILD } from './debug-build';
-import { type ISentrySpanExporter, getSpanData } from './spanExporter';
+import { getSpanData, type ISentrySpanExporter } from './spanExporter';
 
 type StreamingSpanExporterOptions = {
   flushInterval?: number;
