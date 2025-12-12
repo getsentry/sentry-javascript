@@ -12,7 +12,7 @@ sentryTest(
 
     let callsToSentry = 0;
 
-    await page.route('https://dsn.ingest.sentry.io/**/*', route => {
+    await page.route(/^https:\/\/dsn\.ingest\.sentry\.io\//, route => {
       const req = route.request();
       const event = envelopeRequestParser(req);
 

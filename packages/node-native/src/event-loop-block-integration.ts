@@ -1,7 +1,6 @@
 import { isPromise } from 'node:util/types';
 import { isMainThread, Worker } from 'node:worker_threads';
 import type {
-  Client,
   ClientOptions,
   Contexts,
   DsnComponents,
@@ -47,7 +46,7 @@ function poll(enabled: boolean, clientOptions: ClientOptions): void {
     // serialized without making it a SerializedSession
     const session = currentSession ? { ...currentSession, toJSON: undefined } : undefined;
     // message the worker to tell it the main event loop is still running
-    threadPoll({ session, debugImages: getFilenameToDebugIdMap(clientOptions.stackParser) }, !enabled);
+    threadPoll(enabled, { session, debugImages: getFilenameToDebugIdMap(clientOptions.stackParser) });
   } catch {
     // we ignore all errors
   }
@@ -57,10 +56,15 @@ function poll(enabled: boolean, clientOptions: ClientOptions): void {
  * Starts polling
  */
 function startPolling(
-  client: Client,
+  client: NodeClient,
   integrationOptions: Partial<ThreadBlockedIntegrationOptions>,
 ): IntegrationInternal | undefined {
-  registerThread();
+  if (client.asyncLocalStorageLookup) {
+    const { asyncLocalStorage, contextSymbol } = client.asyncLocalStorageLookup;
+    registerThread({ asyncLocalStorage, stateLookup: ['_currentContext', contextSymbol] });
+  } else {
+    registerThread();
+  }
 
   let enabled = true;
 
@@ -160,15 +164,19 @@ const _eventLoopBlockIntegration = ((options: Partial<ThreadBlockedIntegrationOp
         return;
       }
 
-      try {
-        polling = await startPolling(client, options);
+      // Otel is not setup until after afterAllSetup returns.
+      setImmediate(async () => {
+        try {
+          polling = startPolling(client, options);
 
-        if (isMainThread) {
-          await startWorker(dsn, client, options);
+          if (isMainThread) {
+            await startWorker(dsn, client, options);
+          }
+        } catch (err) {
+          log('Failed to start integration', err);
+          return;
         }
-      } catch (err) {
-        log('Failed to start integration', err);
-      }
+      });
     },
     start() {
       polling?.start();

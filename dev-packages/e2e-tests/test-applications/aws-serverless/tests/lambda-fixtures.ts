@@ -17,7 +17,7 @@ export const test = base.extend<{ testEnvironment: LocalLambdaStack; lambdaClien
       console.log('[testEnvironment fixture] Setting up AWS Lambda test infrastructure');
 
       execSync('docker network prune -f');
-      execSync(`docker network create --driver bridge ${DOCKER_NETWORK_NAME}`);
+      createDockerNetwork();
 
       const hostIp = await getHostIp();
       const app = new App();
@@ -71,6 +71,8 @@ export const test = base.extend<{ testEnvironment: LocalLambdaStack; lambdaClien
             resolve(void 0);
           }, 5000);
         });
+
+        removeDockerNetwork();
       }
     },
     { scope: 'worker', auto: true },
@@ -88,3 +90,27 @@ export const test = base.extend<{ testEnvironment: LocalLambdaStack; lambdaClien
     await use(lambdaClient);
   },
 });
+
+function createDockerNetwork() {
+  try {
+    execSync(`docker network create --driver bridge ${DOCKER_NETWORK_NAME}`);
+  } catch (error) {
+    const stderr = (error as { stderr?: Buffer }).stderr?.toString() ?? '';
+    if (stderr.includes('already exists')) {
+      console.log(`[testEnvironment fixture] Reusing existing docker network ${DOCKER_NETWORK_NAME}`);
+      return;
+    }
+    throw error;
+  }
+}
+
+function removeDockerNetwork() {
+  try {
+    execSync(`docker network rm ${DOCKER_NETWORK_NAME}`);
+  } catch (error) {
+    const stderr = (error as { stderr?: Buffer }).stderr?.toString() ?? '';
+    if (!stderr.includes('No such network')) {
+      console.warn(`[testEnvironment fixture] Failed to remove docker network ${DOCKER_NETWORK_NAME}: ${stderr}`);
+    }
+  }
+}

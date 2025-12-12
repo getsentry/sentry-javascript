@@ -8,7 +8,7 @@
     "test:assert": "playwright test"
   },
   "devDependencies": {
-    "@playwright/test": "~1.53.2",
+    "@playwright/test": "~1.56.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "@sentry/browser": "latest || *",
     "babel-loader": "^8.0.0",

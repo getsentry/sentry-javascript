@@ -39,7 +39,7 @@ import type {
   AnthropicAiStreamingEvent,
   ContentBlock,
 } from './types';
-import { handleResponseError, shouldInstrument } from './utils';
+import { handleResponseError, messagesFromParams, shouldInstrument } from './utils';
 
 /**
  * Extract request attributes from method arguments
@@ -82,10 +82,12 @@ function extractRequestAttributes(args: unknown[], methodPath: string): Record<s
  * This is only recorded if recordInputs is true.
  */
 function addPrivateRequestAttributes(span: Span, params: Record<string, unknown>): void {
-  if ('messages' in params) {
-    const truncatedMessages = getTruncatedJsonString(params.messages);
+  const messages = messagesFromParams(params);
+  if (messages.length) {
+    const truncatedMessages = getTruncatedJsonString(messages);
     span.setAttributes({ [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: truncatedMessages });
   }
+
   if ('input' in params) {
     const truncatedInput = getTruncatedJsonString(params.input);
     span.setAttributes({ [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: truncatedInput });

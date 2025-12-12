@@ -1,4 +1,4 @@
-import { getCurrentScope } from '../../currentScopes';
+import { getClient } from '../../currentScopes';
 import { captureException } from '../../exports';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import { SPAN_STATUS_ERROR } from '../../tracing';
@@ -20,12 +20,10 @@ import {
   GEN_AI_SYSTEM_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
 import { getTruncatedJsonString } from '../ai/utils';
-import { OPENAI_INTEGRATION_NAME } from './constants';
 import { instrumentStream } from './streaming';
 import type {
   ChatCompletionChunk,
   InstrumentedMethod,
-  OpenAiIntegration,
   OpenAiOptions,
   OpenAiResponse,
   OpenAIStream,
@@ -128,18 +126,6 @@ function addRequestAttributes(span: Span, params: Record<string, unknown>): void
   }
 }
 
-function getOptionsFromIntegration(): OpenAiOptions {
-  const scope = getCurrentScope();
-  const client = scope.getClient();
-  const integration = client?.getIntegrationByName<OpenAiIntegration>(OPENAI_INTEGRATION_NAME);
-  const shouldRecordInputsAndOutputs = integration ? Boolean(client?.getOptions().sendDefaultPii) : false;
-
-  return {
-    recordInputs: integration?.options?.recordInputs ?? shouldRecordInputsAndOutputs,
-    recordOutputs: integration?.options?.recordOutputs ?? shouldRecordInputsAndOutputs,
-  };
-}
-
 /**
  * Instrument a method with Sentry spans
  * Following Sentry AI Agents Manual Instrumentation conventions
@@ -149,10 +135,9 @@ function instrumentMethod<T extends unknown[], R>(
   originalMethod: (...args: T) => Promise<R>,
   methodPath: InstrumentedMethod,
   context: unknown,
-  options?: OpenAiOptions,
+  options: OpenAiOptions,
 ): (...args: T) => Promise<R> {
   return async function instrumentedMethod(...args: T): Promise<R> {
-    const finalOptions = options || getOptionsFromIntegration();
     const requestAttributes = extractRequestAttributes(args, methodPath);
     const model = (requestAttributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] as string) || 'unknown';
     const operationName = getOperationName(methodPath);
@@ -170,8 +155,8 @@ function instrumentMethod<T extends unknown[], R>(
         },
         async (span: Span) => {
           try {
-            if (finalOptions.recordInputs && args[0] && typeof args[0] === 'object') {
-              addRequestAttributes(span, args[0] as Record<string, unknown>);
+            if (options.recordInputs && params) {
+              addRequestAttributes(span, params);
             }
 
             const result = await originalMethod.apply(context, args);
@@ -179,7 +164,7 @@ function instrumentMethod<T extends unknown[], R>(
             return instrumentStream(
               result as OpenAIStream<ChatCompletionChunk | ResponseStreamingEvent>,
               span,
-              finalOptions.recordOutputs ?? false,
+              options.recordOutputs ?? false,
             ) as unknown as R;
           } catch (error) {
             // For streaming requests that fail before stream creation, we still want to record
@@ -209,12 +194,12 @@ function instrumentMethod<T extends unknown[], R>(
         },
         async (span: Span) => {
           try {
-            if (finalOptions.recordInputs && args[0] && typeof args[0] === 'object') {
-              addRequestAttributes(span, args[0] as Record<string, unknown>);
+            if (options.recordInputs && params) {
+              addRequestAttributes(span, params);
             }
 
             const result = await originalMethod.apply(context, args);
-            addResponseAttributes(span, result, finalOptions.recordOutputs);
+            addResponseAttributes(span, result, options.recordOutputs);
             return result;
           } catch (error) {
             captureException(error, {
@@ -237,7 +222,7 @@ function instrumentMethod<T extends unknown[], R>(
 /**
  * Create a deep proxy for OpenAI client instrumentation
  */
-function createDeepProxy<T extends object>(target: T, currentPath = '', options?: OpenAiOptions): T {
+function createDeepProxy<T extends object>(target: T, currentPath = '', options: OpenAiOptions): T {
   return new Proxy(target, {
     get(obj: object, prop: string): unknown {
       const value = (obj as Record<string, unknown>)[prop];
@@ -267,5 +252,13 @@ function createDeepProxy<T extends object>(target: T, currentPath = '', options?
  * Can be used across Node.js, Cloudflare Workers, and Vercel Edge
  */
 export function instrumentOpenAiClient<T extends object>(client: T, options?: OpenAiOptions): T {
-  return createDeepProxy(client, '', options);
+  const sendDefaultPii = Boolean(getClient()?.getOptions().sendDefaultPii);
+
+  const _options = {
+    recordInputs: sendDefaultPii,
+    recordOutputs: sendDefaultPii,
+    ...options,
+  };
+
+  return createDeepProxy(client, '', _options);
 }

@@ -29,7 +29,7 @@ sentryTest(
 
     let called = 0;
 
-    await page.route('https://dsn.ingest.sentry.io/**/*', route => {
+    await page.route(/^https:\/\/dsn\.ingest\.sentry\.io\//, route => {
       const event = envelopeRequestParser(route.request());
 
       // We only want to count replays here

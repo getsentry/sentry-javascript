@@ -666,7 +666,7 @@ test('Creates navigation transaction when navigating with query parameters from 
   await expect(page.locator('id=delayed-lazy-source')).toHaveText('Source: homepage');
 
   // Verify the navigation transaction has the correct parameterized route name
-  // Query parameters should NOT affect the transaction name (still /delayed-lazy/:id)
+  // Query parameters don't affect the transaction name (still /delayed-lazy/:id)
   expect(navigationEvent.transaction).toBe('/delayed-lazy/:id');
   expect(navigationEvent.contexts?.trace?.op).toBe('navigation');
   expect(navigationEvent.contexts?.trace?.data?.['sentry.source']).toBe('route');
@@ -882,4 +882,349 @@ test('Creates navigation transaction when changing both query and hash on same r
   expect(navigationEvent.contexts?.trace?.op).toBe('navigation');
   expect(navigationEvent.contexts?.trace?.data?.['sentry.source']).toBe('route');
   expect(navigationEvent.contexts?.trace?.status).toBe('ok');
+});
+
+test('Creates navigation transaction with correct name for slow lazy route', async ({ page }) => {
+  // This test verifies that navigating to a slow lazy route (with top-level await)
+  // creates a correctly named navigation transaction.
+  // The route uses handle.lazyChildren with a 500ms delay.
+
+  await page.goto('/');
+
+  const navigationPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+    return (
+      !!transactionEvent?.transaction &&
+      transactionEvent.contexts?.trace?.op === 'navigation' &&
+      transactionEvent.transaction === '/slow-fetch/:id'
+    );
+  });
+
+  // Navigate to slow-fetch route (500ms delay)
+  const navigationToSlowFetch = page.locator('id=navigation-to-slow-fetch');
+  await expect(navigationToSlowFetch).toBeVisible();
+  await navigationToSlowFetch.click();
+
+  const navigationEvent = await navigationPromise;
+
+  // Wait for the component to render (after the 500ms delay)
+  const slowFetchContent = page.locator('id=slow-fetch-content');
+  await expect(slowFetchContent).toBeVisible({ timeout: 5000 });
+  await expect(page.locator('id=slow-fetch-id')).toHaveText('ID: 123');
+
+  // Verify the transaction has the correct parameterized route name
+  expect(navigationEvent.transaction).toBe('/slow-fetch/:id');
+  expect(navigationEvent.contexts?.trace?.op).toBe('navigation');
+  expect(navigationEvent.contexts?.trace?.data?.['sentry.source']).toBe('route');
+});
+
+test('Rapid navigation does not corrupt transaction names when lazy handlers resolve late', async ({ page }) => {
+  await page.goto('/');
+
+  const allTransactions: Array<{ name: string; op: string }> = [];
+
+  const collectorPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+    if (transactionEvent?.transaction && transactionEvent.contexts?.trace?.op) {
+      allTransactions.push({
+        name: transactionEvent.transaction,
+        op: transactionEvent.contexts.trace.op,
+      });
+    }
+    return allTransactions.length >= 2;
+  });
+
+  // Navigate to slow-fetch route (500ms delay)
+  const slowFetchLink = page.locator('id=navigation-to-slow-fetch');
+  await expect(slowFetchLink).toBeVisible();
+  await slowFetchLink.click();
+
+  // Navigate away before lazy handler resolves
+  await page.waitForTimeout(200);
+  const anotherLink = page.locator('id=navigation-to-another');
+  await anotherLink.click();
+
+  await expect(page.locator('id=another-lazy-route')).toBeVisible({ timeout: 10000 });
+  await page.waitForTimeout(3000);
+
+  await Promise.race([
+    collectorPromise,
+    new Promise<'timeout'>(resolve => setTimeout(() => resolve('timeout'), 15000)),
+  ]);
+
+  const navigationTransactions = allTransactions.filter(t => t.op === 'navigation');
+
+  expect(navigationTransactions.length).toBeGreaterThanOrEqual(1);
+
+  // No "/" corruption
+  const corruptedToRoot = navigationTransactions.filter(t => t.name === '/');
+  expect(corruptedToRoot.length).toBe(0);
+
+  // At least one valid route name
+  const validRoutePatterns = [
+    '/slow-fetch/:id',
+    '/another-lazy/sub',
+    '/another-lazy/sub/:id',
+    '/another-lazy/sub/:id/:subId',
+  ];
+  const hasValidRouteName = navigationTransactions.some(t => validRoutePatterns.includes(t.name));
+  expect(hasValidRouteName).toBe(true);
+});
+
+test('Correctly names pageload transaction for slow lazy route with fetch', async ({ page }) => {
+  // This test verifies that a slow lazy route (with top-level await and fetch)
+  // creates a correctly named pageload transaction
+
+  const pageloadPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+    return (
+      !!transactionEvent?.transaction &&
+      transactionEvent.contexts?.trace?.op === 'pageload' &&
+      transactionEvent.transaction === '/slow-fetch/:id'
+    );
+  });
+
+  await page.goto('/slow-fetch/123');
+
+  const pageloadEvent = await pageloadPromise;
+
+  // Wait for the component to render (after the 500ms delay)
+  const slowFetchContent = page.locator('id=slow-fetch-content');
+  await expect(slowFetchContent).toBeVisible({ timeout: 5000 });
+  await expect(page.locator('id=slow-fetch-id')).toHaveText('ID: 123');
+
+  // Verify the transaction has the correct parameterized route name
+  expect(pageloadEvent.transaction).toBe('/slow-fetch/:id');
+  expect(pageloadEvent.contexts?.trace?.op).toBe('pageload');
+  expect(pageloadEvent.contexts?.trace?.data?.['sentry.source']).toBe('route');
+
+  // Verify the transaction contains a fetch span
+  const spans = pageloadEvent.spans || [];
+  const fetchSpan = spans.find(
+    (span: { op?: string; description?: string }) =>
+      span.op === 'http.client' && span.description?.includes('/api/slow-data'),
+  );
+
+  // The fetch span should exist (even if the fetch failed, the span is created)
+  expect(fetchSpan).toBeDefined();
+});
+
+test('Three-route rapid navigation preserves distinct transaction names', async ({ page }) => {
+  const navigationTransactions: Array<{ name: string }> = [];
+
+  const navigationCollector = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+    if (transactionEvent.contexts?.trace?.op === 'navigation') {
+      navigationTransactions.push({ name: transactionEvent.transaction || '' });
+    }
+    return false;
+  });
+
+  const pageloadPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+    return (
+      !!transactionEvent?.transaction &&
+      transactionEvent.contexts?.trace?.op === 'pageload' &&
+      transactionEvent.transaction === '/delayed-lazy/:id'
+    );
+  });
+
+  // Pageload to delayed-lazy route
+  await page.goto('/delayed-lazy/111');
+  await pageloadPromise;
+  await expect(page.locator('id=delayed-lazy-ready')).toBeVisible({ timeout: 5000 });
+
+  // Navigate to slow-fetch (500ms delay)
+  const slowFetchLink = page.locator('id=delayed-lazy-to-slow-fetch');
+  await slowFetchLink.click();
+  await page.waitForTimeout(150);
+
+  // Navigate to another-lazy before slow-fetch resolves
+  const anotherLazyLink = page.locator('id=delayed-lazy-to-another-lazy');
+  await anotherLazyLink.click();
+
+  await expect(page.locator('id=another-lazy-route')).toBeVisible({ timeout: 10000 });
+  await page.waitForTimeout(2000);
+
+  await Promise.race([
+    navigationCollector,
+    new Promise<'timeout'>(resolve => setTimeout(() => resolve('timeout'), 5000)),
+  ]).catch(() => {});
+
+  expect(navigationTransactions.length).toBe(2);
+
+  // Distinct names (corruption causes both to have same name)
+  const uniqueNames = new Set(navigationTransactions.map(t => t.name));
+  expect(uniqueNames.size).toBe(2);
+
+  // No "/" corruption
+  const corruptedToRoot = navigationTransactions.filter(t => t.name === '/');
+  expect(corruptedToRoot.length).toBe(0);
+});
+
+test('Zero-wait rapid navigation does not corrupt transaction names', async ({ page }) => {
+  const navigationTransactions: Array<{ name: string }> = [];
+
+  const collector = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+    if (transactionEvent.contexts?.trace?.op === 'navigation') {
+      navigationTransactions.push({ name: transactionEvent.transaction || '' });
+    }
+    return false;
+  });
+
+  await page.goto('/');
+
+  const slowFetchLink = page.locator('id=navigation-to-slow-fetch');
+  const anotherLink = page.locator('id=navigation-to-another');
+  await expect(slowFetchLink).toBeVisible();
+  await expect(anotherLink).toBeVisible();
+
+  // Click first then immediately second (no wait)
+  await slowFetchLink.click();
+  await anotherLink.click();
+
+  await expect(page.locator('id=another-lazy-route')).toBeVisible({ timeout: 10000 });
+  await page.waitForTimeout(3000);
+
+  await Promise.race([collector, new Promise<'timeout'>(resolve => setTimeout(() => resolve('timeout'), 5000))]).catch(
+    () => {},
+  );
+
+  expect(navigationTransactions.length).toBeGreaterThanOrEqual(1);
+
+  // No "/" corruption
+  const corruptedToRoot = navigationTransactions.filter(t => t.name === '/');
+  expect(corruptedToRoot.length).toBe(0);
+});
+
+test('Browser back during lazy handler resolution does not corrupt', async ({ page }) => {
+  const allTransactions: Array<{ name: string; op: string }> = [];
+
+  const collector = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+    if (transactionEvent?.transaction && transactionEvent.contexts?.trace?.op) {
+      allTransactions.push({
+        name: transactionEvent.transaction,
+        op: transactionEvent.contexts.trace.op,
+      });
+    }
+    return false;
+  });
+
+  await page.goto('/');
+  await expect(page.locator('id=navigation')).toBeVisible();
+
+  // Navigate to another-lazy to establish history
+  const anotherLink = page.locator('id=navigation-to-another');
+  await anotherLink.click();
+  await expect(page.locator('id=another-lazy-route')).toBeVisible({ timeout: 10000 });
+
+  // Navigate to slow-fetch route
+  await page.goto('/slow-fetch/123');
+  await page.waitForTimeout(150);
+
+  // Press browser back before handler resolves
+  await page.goBack();
+  await page.waitForTimeout(3000);
+
+  await Promise.race([collector, new Promise<'timeout'>(resolve => setTimeout(() => resolve('timeout'), 10000))]).catch(
+    () => {},
+  );
+
+  expect(allTransactions.length).toBeGreaterThanOrEqual(1);
+  expect(allTransactions.every(t => t.name.length > 0)).toBe(true);
+});
+
+test('Multiple overlapping lazy handlers do not corrupt each other', async ({ page }) => {
+  const navigationTransactions: Array<{ name: string }> = [];
+
+  const collector = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+    if (transactionEvent.contexts?.trace?.op === 'navigation') {
+      navigationTransactions.push({ name: transactionEvent.transaction || '' });
+    }
+    return false;
+  });
+
+  await page.goto('/');
+
+  // Navigation 1: To delayed-lazy (400ms delay)
+  const delayedLazyLink = page.locator('id=navigation-to-delayed-lazy');
+  await expect(delayedLazyLink).toBeVisible();
+  await delayedLazyLink.click();
+  await page.waitForTimeout(50);
+
+  // Navigation 2: To slow-fetch (500ms delay)
+  const slowFetchLink = page.locator('id=navigation-to-slow-fetch');
+  await slowFetchLink.click();
+  await page.waitForTimeout(50);
+
+  // Navigation 3: To another-lazy (fast)
+  const anotherLink = page.locator('id=navigation-to-another');
+  await anotherLink.click();
+
+  await expect(page.locator('id=another-lazy-route')).toBeVisible({ timeout: 10000 });
+  await page.waitForTimeout(3000);
+
+  await Promise.race([collector, new Promise<'timeout'>(resolve => setTimeout(() => resolve('timeout'), 5000))]).catch(
+    () => {},
+  );
+
+  expect(navigationTransactions.length).toBeGreaterThanOrEqual(1);
+
+  // No "/" corruption
+  const corruptedToRoot = navigationTransactions.filter(t => t.name === '/');
+  expect(corruptedToRoot.length).toBe(0);
+
+  // If multiple navigations, they should have distinct names
+  if (navigationTransactions.length >= 2) {
+    const allSameName = navigationTransactions.every(t => t.name === navigationTransactions[0].name);
+    expect(allSameName).toBe(false);
+  }
+});
+
+test('Query/hash navigation does not corrupt transaction name', async ({ page }) => {
+  const navigationTransactions: Array<{ name: string }> = [];
+
+  const collectorPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+    if (transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'navigation') {
+      navigationTransactions.push({ name: transactionEvent.transaction });
+    }
+    return navigationTransactions.length >= 1;
+  });
+
+  await page.goto('/');
+
+  // Navigate to delayed-lazy route
+  const delayedLazyLink = page.locator('id=navigation-to-delayed-lazy');
+  await expect(delayedLazyLink).toBeVisible();
+  await delayedLazyLink.click();
+  await expect(page.locator('id=delayed-lazy-ready')).toBeVisible({ timeout: 10000 });
+
+  // Trigger query-only navigation
+  const queryLink = page.locator('id=link-to-query-view-detailed');
+  await expect(queryLink).toBeVisible();
+  await queryLink.click();
+  await page.waitForURL('**/delayed-lazy/**?view=detailed');
+
+  // Trigger hash-only navigation
+  const hashLink = page.locator('id=link-to-hash-section1');
+  await expect(hashLink).toBeVisible();
+  await hashLink.click();
+  await page.waitForTimeout(500);
+  expect(page.url()).toContain('#section1');
+
+  // Trigger combined query+hash navigation
+  const combinedLink = page.locator('id=link-to-query-and-hash');
+  await expect(combinedLink).toBeVisible();
+  await combinedLink.click();
+  await page.waitForTimeout(500);
+  expect(page.url()).toContain('view=grid');
+  expect(page.url()).toContain('#results');
+
+  await page.waitForTimeout(2000);
+  await Promise.race([
+    collectorPromise,
+    new Promise<'timeout'>(resolve => setTimeout(() => resolve('timeout'), 5000)),
+  ]).catch(() => {});
+
+  expect(navigationTransactions.length).toBeGreaterThanOrEqual(1);
+  expect(navigationTransactions[0].name).toBe('/delayed-lazy/:id');
+
+  // No "/" corruption from query/hash navigations
+  const corruptedToRoot = navigationTransactions.filter(t => t.name === '/');
+  expect(corruptedToRoot.length).toBe(0);
 });

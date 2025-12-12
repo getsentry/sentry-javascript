@@ -20,7 +20,7 @@
     "typescript": "5.9.3"
   },
   "devDependencies": {
-    "@playwright/test": "~1.53.2",
+    "@playwright/test": "~1.56.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "firebase-tools": "^14.20.0"
   },

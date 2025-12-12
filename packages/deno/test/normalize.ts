@@ -72,7 +72,7 @@ function normalizeEvent(event: Event): Event {
   }
 
   if (event?.sdk?.packages) {
-    for (const pkg of event?.sdk?.packages) {
+    for (const pkg of event.sdk.packages) {
       if (pkg.version) {
         pkg.version = '{{version}}';
       }

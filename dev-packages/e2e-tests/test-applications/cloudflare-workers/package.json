@@ -18,7 +18,7 @@
     "@sentry/cloudflare": "latest || *"
   },
   "devDependencies": {
-    "@playwright/test": "~1.50.0",
+    "@playwright/test": "~1.56.0",
     "@cloudflare/vitest-pool-workers": "^0.8.19",
     "@cloudflare/workers-types": "^4.20240725.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",

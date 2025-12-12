@@ -19,7 +19,7 @@
     "@spotlightjs/spotlight": "2.0.0-alpha.1"
   },
   "devDependencies": {
-    "@playwright/test": "~1.53.2",
+    "@playwright/test": "~1.56.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "@sveltejs/adapter-node": "^5.3.1",
     "@sveltejs/kit": "2.31.0",

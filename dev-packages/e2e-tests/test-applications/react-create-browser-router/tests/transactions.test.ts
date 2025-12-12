@@ -86,7 +86,9 @@ test('Captures a navigation transaction', async ({ page }) => {
     }),
   );
 
-  expect(transactionEvent.spans).toEqual([]);
+  // Filter out favicon spans which may or may not be present depending on the browser version
+  const spans = (transactionEvent.spans || []).filter(span => !span.description?.includes('favicon'));
+  expect(spans).toEqual([]);
 });
 
 test('Captures a lazy pageload transaction', async ({ page }) => {

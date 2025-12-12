@@ -15,10 +15,10 @@
     "@sentry/solidstart": "latest || *"
   },
   "devDependencies": {
-    "@playwright/test": "~1.53.2",
+    "@playwright/test": "~1.56.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "@solidjs/meta": "^0.29.4",
-    "@solidjs/router": "^0.13.4",
+    "@solidjs/router": "^0.15.0",
     "@solidjs/start": "^1.0.2",
     "@solidjs/testing-library": "^0.8.7",
     "@testing-library/jest-dom": "^6.4.2",

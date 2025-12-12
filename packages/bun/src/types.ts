@@ -23,6 +23,18 @@ export interface BaseBunOptions {
   serverName?: string;
 
   /**
+   * If you use Spotlight by Sentry during development, use
+   * this option to forward captured Sentry events to Spotlight.
+   *
+   * Either set it to true, or provide a specific Spotlight Sidecar URL.
+   *
+   * More details: https://spotlightjs.com/
+   *
+   * IMPORTANT: Only set this option to `true` while developing, not in production!
+   */
+  spotlight?: boolean | string;
+
+  /**
    * If this is set to true, the SDK will not set up OpenTelemetry automatically.
    * In this case, you _have_ to ensure to set it up correctly yourself, including:
    * * The `SentrySpanProcessor`

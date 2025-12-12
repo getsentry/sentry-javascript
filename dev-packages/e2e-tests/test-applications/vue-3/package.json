@@ -21,7 +21,7 @@
     "vue-router": "^4.2.5"
   },
   "devDependencies": {
-    "@playwright/test": "~1.53.2",
+    "@playwright/test": "~1.56.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "@tsconfig/node20": "^20.1.2",
     "@types/node": "^18.19.1",

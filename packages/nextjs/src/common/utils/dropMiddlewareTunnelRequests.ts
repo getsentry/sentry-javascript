@@ -1,5 +1,5 @@
 import { SEMATTRS_HTTP_TARGET } from '@opentelemetry/semantic-conventions';
-import { type Span, type SpanAttributes, GLOBAL_OBJ, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
+import { GLOBAL_OBJ, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, type Span, type SpanAttributes } from '@sentry/core';
 import { isSentryRequestSpan } from '@sentry/opentelemetry';
 import { ATTR_NEXT_SPAN_TYPE } from '../nextSpanAttributes';
 import { TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION } from '../span-attributes-with-logic-attached';

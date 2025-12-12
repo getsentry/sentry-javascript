@@ -147,6 +147,7 @@ export {
   withScope,
   supabaseIntegration,
   instrumentSupabaseClient,
+  instrumentOpenAiClient,
   zodErrorsIntegration,
   profiler,
   logger,

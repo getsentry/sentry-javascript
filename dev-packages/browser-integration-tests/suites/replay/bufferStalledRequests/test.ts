@@ -27,7 +27,7 @@ sentryTest(
 
     const url = await getLocalTestUrl({ testDir: __dirname, skipDsnRouteHandler: true });
 
-    await page.route('https://dsn.ingest.sentry.io/**/*', async route => {
+    await page.route(/^https:\/\/dsn\.ingest\.sentry\.io\//, async route => {
       const event = envelopeRequestParser(route.request());
 
       // Track error events
@@ -106,7 +106,7 @@ sentryTest('buffer mode remains after interrupting replay flush', async ({ getLo
 
   const url = await getLocalTestUrl({ testDir: __dirname, skipDsnRouteHandler: true });
 
-  await page.route('https://dsn.ingest.sentry.io/**/*', async route => {
+  await page.route(/^https:\/\/dsn\.ingest\.sentry\.io\//, async route => {
     const event = envelopeRequestParser(route.request());
 
     // Track error events
@@ -186,7 +186,7 @@ sentryTest(
 
     const url = await getLocalTestUrl({ testDir: __dirname, skipDsnRouteHandler: true });
 
-    await page.route('https://dsn.ingest.sentry.io/**/*', async route => {
+    await page.route(/^https:\/\/dsn\.ingest\.sentry\.io\//, async route => {
       const event = envelopeRequestParser(route.request());
 
       // Track error events

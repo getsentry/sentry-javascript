@@ -1,6 +1,7 @@
 import { join } from 'node:path';
 import type { Event } from '@sentry/core';
 import { afterAll, describe, expect, test } from 'vitest';
+import { NODE_VERSION } from '../../utils/index';
 import { cleanupChildProcesses, createRunner } from '../../utils/runner';
 
 function EXCEPTION(thread_id = '0', fn = 'longWork') {
@@ -34,9 +35,17 @@ function EXCEPTION(thread_id = '0', fn = 'longWork') {
   };
 }
 
-const ANR_EVENT = {
+const ANR_EVENT = (trace: boolean = false) => ({
   // Ensure we have context
   contexts: {
+    ...(trace
+      ? {
+          trace: {
+            span_id: expect.stringMatching(/[a-f\d]{16}/),
+            trace_id: expect.stringMatching(/[a-f\d]{32}/),
+          },
+        }
+      : {}),
     device: {
       arch: expect.any(String),
     },
@@ -63,11 +72,11 @@ const ANR_EVENT = {
   },
   // and an exception that is our ANR
   exception: EXCEPTION(),
-};
+});
 
 function ANR_EVENT_WITH_DEBUG_META(file: string): Event {
   return {
-    ...ANR_EVENT,
+    ...ANR_EVENT(),
     debug_meta: {
       images: [
         {
@@ -103,7 +112,7 @@ describe('Thread Blocked Native', { timeout: 30_000 }, () => {
 
   test('Custom appRootPath', async () => {
     const ANR_EVENT_WITH_SPECIFIC_DEBUG_META: Event = {
-      ...ANR_EVENT,
+      ...ANR_EVENT(),
       debug_meta: {
         images: [
           {
@@ -134,7 +143,7 @@ describe('Thread Blocked Native', { timeout: 30_000 }, () => {
   test('blocked indefinitely', async () => {
     await createRunner(__dirname, 'indefinite.mjs')
       .withMockSentryServer()
-      .expect({ event: ANR_EVENT })
+      .expect({ event: ANR_EVENT() })
       .start()
       .completed();
   });
@@ -160,7 +169,7 @@ describe('Thread Blocked Native', { timeout: 30_000 }, () => {
       .withMockSentryServer()
       .expect({
         event: {
-          ...ANR_EVENT,
+          ...ANR_EVENT(),
           exception: EXCEPTION('0', 'longWorkOther'),
         },
       })
@@ -179,7 +188,7 @@ describe('Thread Blocked Native', { timeout: 30_000 }, () => {
           expect(crashedThread).toBeDefined();
 
           expect(event).toMatchObject({
-            ...ANR_EVENT,
+            ...ANR_EVENT(),
             exception: {
               ...EXCEPTION(crashedThread),
             },
@@ -201,6 +210,54 @@ describe('Thread Blocked Native', { timeout: 30_000 }, () => {
                   crashed: true,
                   current: true,
                   main: false,
+                },
+              ],
+            },
+          });
+        },
+      })
+      .start()
+      .completed();
+  });
+
+  test('Capture scope via AsyncLocalStorage', async ctx => {
+    if (NODE_VERSION < 24) {
+      ctx.skip();
+      return;
+    }
+
+    const instrument = join(__dirname, 'instrument.mjs');
+    await createRunner(__dirname, 'isolated.mjs')
+      .withMockSentryServer()
+      .withInstrument(instrument)
+      .expect({
+        event: event => {
+          const crashedThread = event.threads?.values?.find(thread => thread.crashed)?.id as string;
+          expect(crashedThread).toBeDefined();
+
+          expect(event).toMatchObject({
+            ...ANR_EVENT(true),
+            exception: {
+              ...EXCEPTION(crashedThread),
+            },
+            breadcrumbs: [
+              {
+                timestamp: expect.any(Number),
+                category: 'console',
+                data: { arguments: ['Starting task 5'], logger: 'console' },
+                level: 'log',
+                message: 'Starting task 5',
+              },
+            ],
+            user: { id: 5 },
+            threads: {
+              values: [
+                {
+                  id: '0',
+                  name: 'main',
+                  crashed: true,
+                  current: true,
+                  main: true,
                 },
               ],
             },

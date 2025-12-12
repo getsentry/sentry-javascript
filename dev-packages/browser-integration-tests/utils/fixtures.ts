@@ -80,7 +80,7 @@ const sentryTest = base.extend<TestFixtures>({
         }
 
         if (!skipDsnRouteHandler) {
-          await page.route('https://dsn.ingest.sentry.io/**/*', route => {
+          await page.route(/^https:\/\/dsn\.ingest\.sentry\.io\//, route => {
             return route.fulfill({
               status: 200,
               contentType: 'application/json',

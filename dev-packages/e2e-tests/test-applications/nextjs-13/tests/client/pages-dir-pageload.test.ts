@@ -57,7 +57,10 @@ test('should create a pageload transaction with correct name when an error occur
     );
   });
 
-  await page.goto(`/something/error-getServerSideProps`, { waitUntil: 'networkidle' });
+  // This page returns an error status code, so we need to catch the navigation error
+  await page.goto(`/something/error-getServerSideProps`, { waitUntil: 'networkidle' }).catch(() => {
+    // Expected to fail with net::ERR_HTTP_RESPONSE_CODE_FAILURE in newer Chromium versions
+  });
 
   const transaction = await transactionPromise;
 

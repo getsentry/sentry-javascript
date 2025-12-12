@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
 test('should correctly instrument `fetch` for performance tracing', async ({ page }) => {
-  await page.route('https://example.com/**/*', route => {
+  await page.route(/^https:\/\/example\.com\//, route => {
     return route.fulfill({
       status: 200,
       body: JSON.stringify({

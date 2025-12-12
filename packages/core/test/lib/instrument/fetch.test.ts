@@ -27,4 +27,29 @@ describe('instrument > parseFetchArgs', () => {
 
     expect(actual).toEqual(expected);
   });
+
+  describe('fetch with Request object', () => {
+    it.each([
+      [
+        'Request object (as only arg)',
+        [new Request('http://example.com', { method: 'POST' })],
+        { method: 'POST', url: 'http://example.com/' },
+      ],
+      [
+        'Request object (with undefined options arg)',
+        [new Request('http://example.com', { method: 'POST' }), undefined],
+        { method: 'POST', url: 'http://example.com/' },
+      ],
+      [
+        'Request object (with overwritten options arg)',
+        [new Request('http://example.com', { method: 'POST' }), { method: 'DELETE' }],
+        // fetch options overwrite Request object options
+        { method: 'DELETE', url: 'http://example.com/' },
+      ],
+    ])('%s', (_name, args, expected) => {
+      const actual = parseFetchArgs(args as unknown[]);
+
+      expect(actual).toEqual(expected);
+    });
+  });
 });

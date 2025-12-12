@@ -12,7 +12,7 @@ sentryTest('Flag evaluations in forked scopes are stored separately.', async ({ 
     sentryTest.skip();
   }
 
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
+  await page.route(/^https:\/\/dsn\.ingest\.sentry\.io\//, route => {
     return route.fulfill({
       status: 200,
       contentType: 'application/json',

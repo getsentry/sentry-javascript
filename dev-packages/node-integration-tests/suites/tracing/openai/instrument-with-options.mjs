@@ -13,4 +13,10 @@ Sentry.init({
       recordOutputs: true,
     }),
   ],
+  beforeSendTransaction: event => {
+    if (event.transaction.includes('/openai/')) {
+      return null;
+    }
+    return event;
+  },
 });

@@ -3,6 +3,7 @@ import {
   continueTrace,
   debug,
   flushIfServerless,
+  getClient,
   getCurrentScope,
   getDefaultIsolationScope,
   getIsolationScope,
@@ -178,7 +179,10 @@ async function instrumentHandle(
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.sveltekit',
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: routeName ? 'route' : 'url',
           'sveltekit.tracing.original_name': originalName,
-          ...httpHeadersToSpanAttributes(winterCGHeadersToDict(event.request.headers)),
+          ...httpHeadersToSpanAttributes(
+            winterCGHeadersToDict(event.request.headers),
+            getClient()?.getOptions().sendDefaultPii ?? false,
+          ),
         });
       }
 
@@ -204,7 +208,10 @@ async function instrumentHandle(
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.sveltekit',
               [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: routeId ? 'route' : 'url',
               'http.method': event.request.method,
-              ...httpHeadersToSpanAttributes(winterCGHeadersToDict(event.request.headers)),
+              ...httpHeadersToSpanAttributes(
+                winterCGHeadersToDict(event.request.headers),
+                getClient()?.getOptions().sendDefaultPii ?? false,
+              ),
             },
             name: routeName,
           },

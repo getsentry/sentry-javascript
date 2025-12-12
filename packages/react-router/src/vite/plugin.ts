@@ -1,5 +1,4 @@
-import type { ConfigEnv } from 'vite';
-import { type Plugin } from 'vite';
+import type { ConfigEnv, Plugin } from 'vite';
 import { makeConfigInjectorPlugin } from './makeConfigInjectorPlugin';
 import { makeCustomSentryVitePlugins } from './makeCustomSentryVitePlugins';
 import { makeEnableSourceMapsPlugin } from './makeEnableSourceMapsPlugin';
