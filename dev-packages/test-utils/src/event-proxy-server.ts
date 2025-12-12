@@ -410,10 +410,23 @@ async function retrieveCallbackServerPort(serverName: string): Promise<string> {
 }
 
 /**
- * We do nanosecond checking because the waitFor* calls and the fetch requests may come very shortly after one another.
+ * Get a high-resolution timestamp that is comparable across processes.
+ *
+ * We use Date.now() as the base (epoch milliseconds) plus a sub-millisecond
+ * component from performance.now() to get microsecond-level precision.
+ *
+ * NOTE: We cannot use process.hrtime() because it returns time relative to an
+ * arbitrary process-local reference point. Since the event proxy server and
+ * Playwright test runner are separate processes, their hrtime values are not
+ * comparable, which was causing stale events from previous tests to leak into
+ * later tests.
  */
 function getNanosecondTimestamp(): number {
-  const NS_PER_SEC = 1e9;
-  const [seconds, nanoseconds] = process.hrtime();
-  return seconds * NS_PER_SEC + nanoseconds;
+  // Date.now() gives us epoch milliseconds (comparable across processes)
+  // performance.now() gives us sub-millisecond precision within this process
+  // We use the fractional part of performance.now() to add microseconds
+  const epochMs = Date.now();
+  const subMs = performance.now() % 1; // Get just the fractional part (0.0 to 0.999...)
+  // Convert to nanoseconds: epoch_ms * 1e6 + sub_ms * 1e6
+  return epochMs * 1e6 + Math.floor(subMs * 1e6);
 }
