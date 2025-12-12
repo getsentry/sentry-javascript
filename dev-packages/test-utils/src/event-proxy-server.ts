@@ -96,10 +96,11 @@ export async function startProxyServer(
           const eventTimestamp = getTimestamp();
           eventBuffer.push({ data: proxyRequestBody, timestamp: eventTimestamp });
 
-          // Only send to listeners that registered BEFORE this event was received.
-          // This prevents stale events from previous tests leaking to newer listeners.
+          // Send to listeners that registered BEFORE or AT THE SAME TIME as this event.
+          // Use >= for live events because they're guaranteed to be new (not stale).
+          // The strict > is only needed for buffered events which might be from before.
           eventCallbackListeners.forEach(listener => {
-            if (eventTimestamp > listener.registeredAt) {
+            if (eventTimestamp >= listener.registeredAt) {
               listener.callback(proxyRequestBody);
             }
           });
@@ -207,10 +208,11 @@ export async function startEventProxyServer(options: EventProxyServerOptions): P
     const eventTimestamp = getTimestamp();
     eventBuffer.push({ data: dataString, timestamp: eventTimestamp });
 
-    // Only send to listeners that registered BEFORE this event was received.
-    // This prevents stale events from previous tests leaking to newer listeners.
+    // Send to listeners that registered BEFORE or AT THE SAME TIME as this event.
+    // Use >= for live events because they're guaranteed to be new (not stale).
+    // The strict > is only needed for buffered events which might be from before.
     eventCallbackListeners.forEach(listener => {
-      if (eventTimestamp > listener.registeredAt) {
+      if (eventTimestamp >= listener.registeredAt) {
         listener.callback(dataString);
       }
     });
