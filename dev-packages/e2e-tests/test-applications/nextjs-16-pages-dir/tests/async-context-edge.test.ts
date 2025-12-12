@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Should allow for async context isolation in the edge SDK', async ({ request }) => {
-  const edgerouteTransactionPromise = waitForTransaction('nextjs-pages-dir', async transactionEvent => {
+  const edgerouteTransactionPromise = waitForTransaction('nextjs-16-pages-dir', async transactionEvent => {
     return transactionEvent?.transaction === 'GET /api/async-context-edge-endpoint';
   });
 

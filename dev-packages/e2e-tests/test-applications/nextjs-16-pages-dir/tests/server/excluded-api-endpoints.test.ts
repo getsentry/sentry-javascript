@@ -4,7 +4,7 @@ import { waitForTransaction } from '@sentry-internal/test-utils';
 test('should not apply build-time instrumentation for routes that were excluded from auto wrapping (string)', async ({
   request,
 }) => {
-  const transactionPromise = waitForTransaction('nextjs-13', async transactionEvent => {
+  const transactionPromise = waitForTransaction('nextjs-16-pages-dir', async transactionEvent => {
     return (
       transactionEvent.transaction === 'GET /api/endpoint-excluded-with-string' &&
       transactionEvent.contexts?.trace?.op === 'http.server'
@@ -16,13 +16,13 @@ test('should not apply build-time instrumentation for routes that were excluded 
   const transaction = await transactionPromise;
 
   expect(transaction.contexts?.trace?.data?.['sentry.origin']).toBeDefined();
-  expect(transaction.contexts?.trace?.data?.['sentry.origin']).toBe('auto');
+  expect(transaction.contexts?.trace?.data?.['sentry.origin']).not.toBe('auto.http.nextjs'); // This is the origin set by the build time instrumentation
 });
 
 test('should not apply build-time instrumentation for routes that were excluded from auto wrapping (regex)', async ({
   request,
 }) => {
-  const transactionPromise = waitForTransaction('nextjs-13', async transactionEvent => {
+  const transactionPromise = waitForTransaction('nextjs-16-pages-dir', async transactionEvent => {
     return (
       transactionEvent.transaction === 'GET /api/endpoint-excluded-with-regex' &&
       transactionEvent.contexts?.trace?.op === 'http.server'
@@ -34,5 +34,5 @@ test('should not apply build-time instrumentation for routes that were excluded 
   const transaction = await transactionPromise;
 
   expect(transaction.contexts?.trace?.data?.['sentry.origin']).toBeDefined();
-  expect(transaction.contexts?.trace?.data?.['sentry.origin']).toBe('auto');
+  expect(transaction.contexts?.trace?.data?.['sentry.origin']).not.toBe('auto.http.nextjs'); // This is the origin set by the build time instrumentation
 });

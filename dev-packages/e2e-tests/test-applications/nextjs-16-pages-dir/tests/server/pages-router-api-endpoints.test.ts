@@ -2,11 +2,11 @@ import { expect, test } from '@playwright/test';
 import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Should report an error event for errors thrown in pages router api routes', async ({ request }) => {
-  const errorEventPromise = waitForError('nextjs-13', errorEvent => {
+  const errorEventPromise = waitForError('nextjs-16-pages-dir', errorEvent => {
     return errorEvent.exception?.values?.[0].value === 'api route error';
   });
 
-  const transactionEventPromise = waitForTransaction('nextjs-13', transactionEvent => {
+  const transactionEventPromise = waitForTransaction('nextjs-16-pages-dir', transactionEvent => {
     return (
       transactionEvent.transaction === 'GET /api/[param]/failure-api-route' &&
       transactionEvent.contexts?.trace?.op === 'http.server'
@@ -26,11 +26,9 @@ test('Should report an error event for errors thrown in pages router api routes'
       values: [
         {
           mechanism: {
-            data: {
-              function: 'withSentry',
-            },
             handled: false,
-            type: 'auto.http.nextjs.api_handler',
+            // Mechanism type varies between webpack and turbopack
+            type: expect.stringMatching(/auto\.(function\.nextjs\.on_request_error|http\.nextjs\.api_handler)/),
           },
           stacktrace: { frames: expect.arrayContaining([]) },
           type: 'Error',
@@ -45,7 +43,8 @@ test('Should report an error event for errors thrown in pages router api routes'
       url: expect.stringMatching(/^http.*\/api\/foo\/failure-api-route$/),
     },
     timestamp: expect.any(Number),
-    transaction: 'GET /api/[param]/failure-api-route',
+    // Transaction name varies between webpack and turbopack
+    transaction: expect.stringMatching(/.*\/api\/\[param\]\/failure-api-route/),
   });
 
   expect(await transactionEventPromise).toMatchObject({
@@ -69,7 +68,7 @@ test('Should report an error event for errors thrown in pages router api routes'
     request: {
       headers: expect.any(Object),
       method: 'GET',
-      url: expect.stringMatching(/^http.*\/api\/foo\/failure-api-route$/),
+      url: expect.stringContaining('/api/foo/failure-api-route'),
     },
     start_timestamp: expect.any(Number),
     timestamp: expect.any(Number),
@@ -80,7 +79,7 @@ test('Should report an error event for errors thrown in pages router api routes'
 });
 
 test('Should report a transaction event for a successful pages router api route', async ({ request }) => {
-  const transactionEventPromise = waitForTransaction('nextjs-13', transactionEvent => {
+  const transactionEventPromise = waitForTransaction('nextjs-16-pages-dir', transactionEvent => {
     return (
       transactionEvent.transaction === 'GET /api/[param]/success-api-route' &&
       transactionEvent.contexts?.trace?.op === 'http.server'
@@ -112,7 +111,7 @@ test('Should report a transaction event for a successful pages router api route'
     request: {
       headers: expect.any(Object),
       method: 'GET',
-      url: expect.stringMatching(/^http.*\/api\/foo\/success-api-route$/),
+      url: expect.stringContaining('/api/foo/success-api-route'),
     },
     start_timestamp: expect.any(Number),
     timestamp: expect.any(Number),

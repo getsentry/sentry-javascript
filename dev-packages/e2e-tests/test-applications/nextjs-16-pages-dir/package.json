@@ -1,0 +1,52 @@
+{
+  "name": "nextjs-16-pages-dir",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build > .tmp_build_stdout 2> .tmp_build_stderr || (cat .tmp_build_stdout && cat .tmp_build_stderr && exit 1)",
+    "build-webpack": "next build --webpack > .tmp_build_stdout 2> .tmp_build_stderr || (cat .tmp_build_stdout && cat .tmp_build_stderr && exit 1)",
+    "clean": "npx rimraf node_modules pnpm-lock.yaml",
+    "start": "next start",
+    "test:prod": "TEST_ENV=production playwright test",
+    "test:dev": "TEST_ENV=development playwright test",
+    "test:dev-webpack": "TEST_ENV=development-webpack playwright test",
+    "test:build": "pnpm install && pnpm build-webpack",
+    "test:build-webpack": "pnpm install && pnpm build",
+    "test:assert": "pnpm test:prod && pnpm test:dev",
+    "test:assert-webpack": "pnpm test:prod && pnpm test:dev-webpack"
+  },
+  "dependencies": {
+    "@sentry/nextjs": "latest || *",
+    "@sentry/core": "latest || *",
+    "@types/node": "^18.19.1",
+    "@types/react": "18.0.26",
+    "@types/react-dom": "18.0.9",
+    "next": "16.0.7",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "typescript": "^5"
+  },
+  "devDependencies": {
+    "@playwright/test": "~1.53.2",
+    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "ts-node": "10.9.1"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  },
+  "sentryTest": {
+    "variants": [
+      {
+        "build-command": "pnpm test:build-webpack",
+        "label": "nextjs-16-pages-dir (webpack)",
+        "assert-command": "pnpm test:assert-webpack"
+      },
+      {
+        "build-command": "pnpm test:build",
+        "label": "nextjs-16-pages-dir (turbopack)",
+        "assert-command": "pnpm test:assert"
+      }
+    ]
+  }
+}
