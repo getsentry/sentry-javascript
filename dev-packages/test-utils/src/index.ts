@@ -9,6 +9,12 @@ export {
   waitForPlainRequest,
 } from './event-proxy-server';
 
+export { getPlaywrightConfig } from './playwright-config';
+export { createBasicSentryServer } from './server';
+
+// Spotlight helpers - experimental, not yet ready for production use
+// The architecture needs work: tests must call startSpotlight() directly
+// in the same process to populate the event buffer
 export {
   startSpotlight,
   getSpotlightDsn,
@@ -19,6 +25,3 @@ export {
   clearEventBuffer as clearSpotlightEventBuffer,
   getCurrentSpotlightInstance,
 } from './spotlight';
-
-export { getPlaywrightConfig } from './playwright-config';
-export { createBasicSentryServer } from './server';
