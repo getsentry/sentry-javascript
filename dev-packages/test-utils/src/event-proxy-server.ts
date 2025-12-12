@@ -30,9 +30,7 @@ interface SentryRequestCallbackData {
 }
 
 interface EventCallbackListener {
-  callback: (data: string) => void;
-  /** Timestamp when this listener was registered. Only events after this time should be sent. */
-  registeredAt: number;
+  (data: string): void;
 }
 
 type SentryResponseStatusCode = number;
@@ -93,16 +91,10 @@ export async function startProxyServer(
       const callback: OnRequest =
         onRequest ||
         (async (eventCallbackListeners, proxyRequest, proxyRequestBody, eventBuffer) => {
-          const eventTimestamp = getTimestamp();
-          eventBuffer.push({ data: proxyRequestBody, timestamp: eventTimestamp });
+          eventBuffer.push({ data: proxyRequestBody, timestamp: getTimestamp() });
 
-          // Send to listeners that registered BEFORE or AT THE SAME TIME as this event.
-          // Use >= for live events because they're guaranteed to be new (not stale).
-          // The strict > is only needed for buffered events which might be from before.
           eventCallbackListeners.forEach(listener => {
-            if (eventTimestamp >= listener.registeredAt) {
-              listener.callback(proxyRequestBody);
-            }
+            listener(proxyRequestBody);
           });
 
           return [200, '{}', {}];
@@ -134,38 +126,26 @@ export async function startProxyServer(
     eventCallbackResponse.statusCode = 200;
     eventCallbackResponse.setHeader('connection', 'keep-alive');
 
-    // CRITICAL: Use the SERVER's current time when the listener is actually registered,
-    // NOT the client timestamp from the query param. Due to network latency, events may
-    // have been buffered between when the client generated its timestamp and when the
-    // HTTP request reached this server. Using server time ensures we only get events
-    // that arrived AFTER the listener was actually registered on the server.
-    const listenerTimestamp = getTimestamp();
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const searchParams = new URL(eventCallbackRequest.url!, 'http://justsomerandombasesothattheurlisparseable.com/')
+      .searchParams;
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const listenerTimestamp = Number(searchParams.get('timestamp')!);
 
-    const callbackListener: EventCallbackListener = {
-      callback: (data: string): void => {
-        eventCallbackResponse.write(data.concat('\n'), 'utf8');
-      },
-      registeredAt: listenerTimestamp,
+    const callbackListener = (data: string): void => {
+      eventCallbackResponse.write(data.concat('\n'), 'utf8');
     };
 
     eventCallbackListeners.add(callbackListener);
 
-    // Prune old events from the buffer that are definitely stale (strictly older than this listener).
-    // Use strict < to match the live event behavior (>= at line 103) - same-ms events are kept.
-    // This prevents memory buildup and ensures old events can never leak to future listeners.
-    while (eventBuffer.length > 0) {
-      const firstEvent = eventBuffer[0];
-      if (firstEvent && firstEvent.timestamp < listenerTimestamp) {
-        eventBuffer.shift();
-      } else {
-        break;
-      }
-    }
-
-    // Send any remaining buffered events (those that arrived after this listener was registered,
-    // which can happen due to race conditions with HTTP request processing).
+    // Use strict inequality to prevent stale events from previous tests leaking through.
+    // If a previous test's event was buffered at the same millisecond as this listener started,
+    // we want to exclude it. New events arriving after the listener is registered go through
+    // the callback directly (not the buffer), so they're not affected by this filter.
     eventBuffer.forEach(bufferedEvent => {
-      callbackListener.callback(bufferedEvent.data);
+      if (bufferedEvent.timestamp > listenerTimestamp) {
+        callbackListener(bufferedEvent.data);
+      }
     });
 
     eventCallbackRequest.on('close', () => {
@@ -214,16 +194,10 @@ export async function startEventProxyServer(options: EventProxyServerOptions): P
 
     const dataString = Buffer.from(JSON.stringify(data)).toString('base64');
 
-    const eventTimestamp = getTimestamp();
-    eventBuffer.push({ data: dataString, timestamp: eventTimestamp });
+    eventBuffer.push({ data: dataString, timestamp: getTimestamp() });
 
-    // Send to listeners that registered BEFORE or AT THE SAME TIME as this event.
-    // Use >= for live events because they're guaranteed to be new (not stale).
-    // The strict > is only needed for buffered events which might be from before.
     eventCallbackListeners.forEach(listener => {
-      if (eventTimestamp >= listener.registeredAt) {
-        listener.callback(dataString);
-      }
+      listener(dataString);
     });
 
     if (options.envelopeDumpPath) {
