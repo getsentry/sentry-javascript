@@ -30,7 +30,9 @@ interface SentryRequestCallbackData {
 }
 
 interface EventCallbackListener {
-  (data: string): void;
+  callback: (data: string) => void;
+  /** Timestamp when this listener was registered. Only events after this time should be sent. */
+  registeredAt: number;
 }
 
 type SentryResponseStatusCode = number;
@@ -91,10 +93,15 @@ export async function startProxyServer(
       const callback: OnRequest =
         onRequest ||
         (async (eventCallbackListeners, proxyRequest, proxyRequestBody, eventBuffer) => {
-          eventBuffer.push({ data: proxyRequestBody, timestamp: getTimestamp() });
+          const eventTimestamp = getTimestamp();
+          eventBuffer.push({ data: proxyRequestBody, timestamp: eventTimestamp });
 
+          // Only send to listeners that registered BEFORE this event was received.
+          // This prevents stale events from previous tests leaking to newer listeners.
           eventCallbackListeners.forEach(listener => {
-            listener(proxyRequestBody);
+            if (eventTimestamp > listener.registeredAt) {
+              listener.callback(proxyRequestBody);
+            }
           });
 
           return [200, '{}', {}];
@@ -132,19 +139,21 @@ export async function startProxyServer(
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const listenerTimestamp = Number(searchParams.get('timestamp')!);
 
-    const callbackListener = (data: string): void => {
-      eventCallbackResponse.write(data.concat('\n'), 'utf8');
+    const callbackListener: EventCallbackListener = {
+      callback: (data: string): void => {
+        eventCallbackResponse.write(data.concat('\n'), 'utf8');
+      },
+      registeredAt: listenerTimestamp,
     };
 
     eventCallbackListeners.add(callbackListener);
 
     // Use strict inequality to prevent stale events from previous tests leaking through.
     // If a previous test's event was buffered at the same millisecond as this listener started,
-    // we want to exclude it. New events arriving after the listener is registered go through
-    // the callback directly (not the buffer), so they're not affected by this filter.
+    // we want to exclude it.
     eventBuffer.forEach(bufferedEvent => {
       if (bufferedEvent.timestamp > listenerTimestamp) {
-        callbackListener(bufferedEvent.data);
+        callbackListener.callback(bufferedEvent.data);
       }
     });
 
@@ -194,10 +203,15 @@ export async function startEventProxyServer(options: EventProxyServerOptions): P
 
     const dataString = Buffer.from(JSON.stringify(data)).toString('base64');
 
-    eventBuffer.push({ data: dataString, timestamp: getTimestamp() });
+    const eventTimestamp = getTimestamp();
+    eventBuffer.push({ data: dataString, timestamp: eventTimestamp });
 
+    // Only send to listeners that registered BEFORE this event was received.
+    // This prevents stale events from previous tests leaking to newer listeners.
     eventCallbackListeners.forEach(listener => {
-      listener(dataString);
+      if (eventTimestamp > listener.registeredAt) {
+        listener.callback(dataString);
+      }
     });
 
     if (options.envelopeDumpPath) {
