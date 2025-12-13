@@ -10,12 +10,11 @@ const https = require('https');
 const installScriptUrl = 'https://bun.sh/install';
 
 // Check if bun is installed
-exec('bun -version', (error, version) => {
+exec('bun --version', (error, version) => {
   if (error) {
     console.error('bun is not installed. Installing...');
     installLatestBun();
   } else {
-    const versionBefore = version.trim();
 
     exec('bun upgrade', (error, stdout, stderr) => {
       if (error) {
@@ -26,6 +25,7 @@ exec('bun -version', (error, version) => {
       const out = [stdout, stderr].join('\n');
 
       if (out.includes("You're already on the latest version of Bun")) {
+        console.log('Bun is already up to date.');
         return;
       }
 
