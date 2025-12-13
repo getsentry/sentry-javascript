@@ -70,13 +70,20 @@ test('Should set a "not_found" status on a server component span when notFound()
 
   const transactionEvent = await serverComponentTransactionPromise;
 
-  // Transaction should have status ok, because the http status is ok, but the server component span should be not_found
+  // Transaction should have status ok, because the http status is ok, but the render component span should be not_found
   expect(transactionEvent.contexts?.trace?.status).toBe('ok');
   expect(transactionEvent.spans).toContainEqual(
     expect.objectContaining({
-      description: 'Page Server Component (/server-component/not-found)',
-      op: 'function.nextjs',
+      description: 'render route (app) /server-component/not-found',
       status: 'not_found',
+    }),
+  );
+
+  // Page server component span should have the right name and attributes
+  expect(transactionEvent.spans).toContainEqual(
+    expect.objectContaining({
+      description: 'resolve page server component "/server-component/not-found"',
+      op: 'function.nextjs',
       data: expect.objectContaining({
         'sentry.nextjs.ssr.function.type': 'Page',
         'sentry.nextjs.ssr.function.route': '/server-component/not-found',
@@ -102,13 +109,20 @@ test('Should capture an error and transaction for a app router page', async ({ p
   // Error event should have the right transaction name
   expect(errorEvent.transaction).toBe(`Page Server Component (/server-component/faulty)`);
 
-  // Transaction should have status ok, because the http status is ok, but the server component span should be internal_error
+  // Transaction should have status ok, because the http status is ok, but the render component span should be internal_error
   expect(transactionEvent.contexts?.trace?.status).toBe('ok');
   expect(transactionEvent.spans).toContainEqual(
     expect.objectContaining({
-      description: 'Page Server Component (/server-component/faulty)',
-      op: 'function.nextjs',
+      description: 'render route (app) /server-component/faulty',
       status: 'internal_error',
+    }),
+  );
+
+  // The page server component span should have the right name and attributes
+  expect(transactionEvent.spans).toContainEqual(
+    expect.objectContaining({
+      description: 'resolve page server component "/server-component/faulty"',
+      op: 'function.nextjs',
       data: expect.objectContaining({
         'sentry.nextjs.ssr.function.type': 'Page',
         'sentry.nextjs.ssr.function.route': '/server-component/faulty',
