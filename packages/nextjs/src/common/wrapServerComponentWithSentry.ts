@@ -11,7 +11,6 @@ import {
 import { isNotFoundNavigationError, isRedirectNavigationError } from '../common/nextNavigationErrorUtils';
 import type { ServerComponentContext } from '../common/types';
 import { flushSafelyWithTimeout, waitUntil } from '../common/utils/responseEnd';
-import { commonObjectToIsolationScope } from './utils/tracingUtils';
 
 /**
  * Wraps an `app` directory server component with Sentry error instrumentation.
@@ -26,7 +25,7 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
   // hook. 🤯
   return new Proxy(appDirComponent, {
     apply: (originalFunction, thisArg, args) => {
-      const isolationScope = commonObjectToIsolationScope(context.headers);
+      const isolationScope = getIsolationScope();
 
       const headersDict = context.headers ? winterCGHeadersToDict(context.headers) : undefined;
 
@@ -39,20 +38,19 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
       return handleCallbackErrors(
         () => originalFunction.apply(thisArg, args),
         error => {
-          const isolationScope = getIsolationScope();
           const span = getActiveSpan();
           const { componentRoute, componentType } = context;
-          let shouldCapture = false;
+          let shouldCapture = true;
           isolationScope.setTransactionName(`${componentType} Server Component (${componentRoute})`);
 
           if (span) {
             if (isNotFoundNavigationError(error)) {
-              shouldCapture = false;
               // We don't want to report "not-found"s
+              shouldCapture = false;
               span.setStatus({ code: SPAN_STATUS_ERROR, message: 'not_found' });
             } else if (isRedirectNavigationError(error)) {
-              shouldCapture = false;
               // We don't want to report redirects
+              shouldCapture = false;
               span.setStatus({ code: SPAN_STATUS_OK });
             } else {
               span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
