@@ -271,6 +271,60 @@ describe('_INTERNAL_captureMetric', () => {
     expect(mockSendEnvelope).not.toHaveBeenCalled();
   });
 
+  it('drops metrics when in-flight + buffer count exceeds drop limit', async () => {
+    const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, maxMetricDropLimit: 2000 });
+    const client = new TestClient(options);
+    const scope = new Scope();
+    scope.setClient(client);
+
+    // Create a promise that we can control to simulate in-flight network requests
+    let resolveEnvelope: () => void;
+    const envelopePromise = new Promise<void>(resolve => {
+      resolveEnvelope = resolve;
+    });
+
+    const mockSendEnvelope = vi.spyOn(client as any, 'sendEnvelope').mockImplementation(() => envelopePromise);
+
+    // Fill buffer to 1000 and trigger flush - this will mark 1000 metrics as in-flight
+    for (let i = 0; i < 1000; i++) {
+      _INTERNAL_captureMetric({ type: 'counter', name: `metric.${i}`, value: i }, { scope });
+    }
+    expect(_INTERNAL_getMetricBuffer(client)).toHaveLength(1000);
+
+    // Trigger flush - buffer cleared, 1000 metrics now in-flight
+    _INTERNAL_captureMetric({ type: 'counter', name: 'trigger.flush', value: 1000 }, { scope });
+    expect(_INTERNAL_getMetricBuffer(client)).toHaveLength(1);
+    expect(mockSendEnvelope).toHaveBeenCalledTimes(1);
+
+    // Add 999 more metrics to buffer (total: 1 in buffer + 1000 in-flight = 1001)
+    for (let i = 0; i < 999; i++) {
+      _INTERNAL_captureMetric({ type: 'counter', name: `metric.after.${i}`, value: i }, { scope });
+    }
+    expect(_INTERNAL_getMetricBuffer(client)).toHaveLength(1000);
+
+    // Add one more - should be dropped because (1000 in buffer + 1000 in-flight = 2000 >= 2000)
+    _INTERNAL_captureMetric({ type: 'counter', name: 'dropped.metric', value: 999 }, { scope });
+
+    // Buffer should still be at 1000 (metric was dropped)
+    const finalBuffer = _INTERNAL_getMetricBuffer(client);
+    expect(finalBuffer).toHaveLength(1000);
+    expect(finalBuffer?.some(m => m.name === 'dropped.metric')).toBe(false);
+
+    // Verify dropped event was recorded
+    const outcomes = client._clearOutcomes();
+    expect(outcomes).toEqual([
+      {
+        reason: 'buffer_overflow',
+        category: 'metric',
+        quantity: 1,
+      },
+    ]);
+
+    // Resolve the envelope promise to clean up
+    resolveEnvelope!();
+    await envelopePromise;
+  });
+
   it('processes metrics through beforeSendMetric when provided', () => {
     const beforeSendMetric = vi.fn().mockImplementation(metric => ({
       ...metric,

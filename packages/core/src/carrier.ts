@@ -39,6 +39,12 @@ export interface SentryCarrier {
    */
   clientToMetricBufferMap?: WeakMap<Client, Array<SerializedMetric>>;
 
+  /**
+   * A map of Sentry clients to the number of metrics currently in-flight (flushed but not yet sent/completed).
+   * This is used to track metrics that have been flushed but are still waiting for network requests to complete.
+   */
+  clientToInFlightMetricsMap?: WeakMap<Client, number>;
+
   /** Overwrites TextEncoder used in `@sentry/core`, need for `react-native@0.73` and older */
   encodePolyfill?: (input: string) => Uint8Array;
   /** Overwrites TextDecoder used in `@sentry/core`, need for `react-native@0.73` and older */
