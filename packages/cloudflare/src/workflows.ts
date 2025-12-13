@@ -133,6 +133,20 @@ class WrappedWorkflowStep implements WorkflowStep {
 }
 
 /**
+ * Helper type to extract the environment type from a WorkflowEntrypoint constructor.
+ * This extracts the second parameter type (env) from the constructor signature.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type ExtractEnv<C> = C extends new (ctx: any, env: infer E) => any ? E : never;
+
+/**
+ * Helper type to extract the payload type from a WorkflowEntrypoint constructor.
+ * This extracts the second parameter type (P) from the constructor signature.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type ExtractPayload<C> = C extends new (ctx: any, env: any, payload: infer P) => any ? P : never;
+
+/**
  * Instruments a Cloudflare Workflow class with Sentry.
  *
  * @example
@@ -150,13 +164,15 @@ class WrappedWorkflowStep implements WorkflowStep {
  * @returns Instrumented workflow class with the same interface
  */
 export function instrumentWorkflowWithSentry<
-  E, // Environment type
-  P, // Payload type
-  T extends WorkflowEntrypoint<E, P>, // WorkflowEntrypoint type
-  C extends new (ctx: ExecutionContext, env: E) => T, // Constructor type of the WorkflowEntrypoint class
->(optionsCallback: (env: E) => CloudflareOptions, WorkFlowClass: C): C {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  C extends new (ctx: ExecutionContext, env: any) => WorkflowEntrypoint<any, any>,
+>(optionsCallback: (env: ExtractEnv<C>) => CloudflareOptions, WorkFlowClass: C): C {
+  type Env = ExtractEnv<C>;
+  type Payload = ExtractPayload<C>;
+  type T = WorkflowEntrypoint<Env, Payload>;
+
   return new Proxy(WorkFlowClass, {
-    construct(target: C, args: [ctx: ExecutionContext, env: E], newTarget) {
+    construct(target: C, args: [ctx: ExecutionContext, env: Env], newTarget) {
       const [ctx, env] = args;
       const context = copyExecutionContext(ctx);
       args[0] = context;
@@ -166,7 +182,7 @@ export function instrumentWorkflowWithSentry<
       return new Proxy(instance, {
         get(obj, prop, receiver) {
           if (prop === 'run') {
-            return async function (event: WorkflowEvent<P>, step: WorkflowStep): Promise<unknown> {
+            return async function (event: WorkflowEvent<Payload>, step: WorkflowStep): Promise<unknown> {
               setAsyncLocalStorageAsyncContextStrategy();
 
               return withIsolationScope(async isolationScope => {
