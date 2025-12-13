@@ -114,6 +114,7 @@ export class SentryNodeFetchInstrumentation extends InstrumentationBase<SentryNo
    * This method is called when a request is created.
    * You can still mutate the request here before it is sent.
    */
+  // eslint-disable-next-line complexity
   private _onRequestCreated({ request }: { request: UndiciRequest }): void {
     const config = this.getConfig();
     const enabled = config.enabled !== false;
@@ -137,16 +138,16 @@ export class SentryNodeFetchInstrumentation extends InstrumentationBase<SentryNo
     // Note: We do not use `propagation.inject()` here, because our propagator relies on an active span
     // Which we do not have in this case
     // The propagator _may_ overwrite this, but this should be fine as it is the same data
-    const tracePropagationTargets = getClient()?.getOptions().tracePropagationTargets;
+    const { tracePropagationTargets, propagateTraceparent } = getClient()?.getOptions() || {};
     const addedHeaders = shouldPropagateTraceForUrl(url, tracePropagationTargets, this._propagationDecisionMap)
-      ? getTraceData()
+      ? getTraceData({ propagateTraceparent })
       : undefined;
 
     if (!addedHeaders) {
       return;
     }
 
-    const { 'sentry-trace': sentryTrace, baggage } = addedHeaders;
+    const { 'sentry-trace': sentryTrace, baggage, traceparent } = addedHeaders;
 
     // We do not want to overwrite existing headers here
     // If the core UndiciInstrumentation is registered, it will already have set the headers
@@ -157,6 +158,10 @@ export class SentryNodeFetchInstrumentation extends InstrumentationBase<SentryNo
       // We do not want to overwrite existing header here, if it was already set
       if (sentryTrace && !requestHeaders.includes(SENTRY_TRACE_HEADER)) {
         requestHeaders.push(SENTRY_TRACE_HEADER, sentryTrace);
+      }
+
+      if (traceparent && !requestHeaders.includes('traceparent')) {
+        requestHeaders.push('traceparent', traceparent);
       }
 
       // For baggage, we make sure to merge this into a possibly existing header
@@ -175,6 +180,10 @@ export class SentryNodeFetchInstrumentation extends InstrumentationBase<SentryNo
       // We do not want to overwrite existing header here, if it was already set
       if (sentryTrace && !requestHeaders.includes(`${SENTRY_TRACE_HEADER}:`)) {
         request.headers += `${SENTRY_TRACE_HEADER}: ${sentryTrace}\r\n`;
+      }
+
+      if (traceparent && !requestHeaders.includes('traceparent:')) {
+        request.headers += `traceparent: ${traceparent}\r\n`;
       }
 
       const existingBaggage = request.headers.match(BAGGAGE_HEADER_REGEX)?.[1];
