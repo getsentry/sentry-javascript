@@ -254,8 +254,7 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
   private _onOutgoingRequestStart(request: http.ClientRequest): void {
     DEBUG_BUILD && debug.log(INSTRUMENTATION_NAME, 'Handling started outgoing request');
 
-    const _spans = this.getConfig().spans;
-    const spansEnabled = typeof _spans === 'undefined' ? true : _spans;
+    const spansEnabled = this.getConfig().spans ?? true;
 
     const shouldIgnore = this._ignoreOutgoingRequestsMap.get(request) ?? this._shouldIgnoreOutgoingRequest(request);
     this._ignoreOutgoingRequestsMap.set(request, shouldIgnore);
