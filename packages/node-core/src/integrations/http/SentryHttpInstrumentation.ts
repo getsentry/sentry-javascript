@@ -51,13 +51,6 @@ export type SentryHttpInstrumentationOptions = InstrumentationConfig & {
   breadcrumbs?: boolean;
 
   /**
-   * Whether to create spans for outgoing requests.
-   *
-   * @default `true`
-   */
-  spans?: boolean;
-
-  /**
    * Whether to propagate Sentry trace headers in outgoing requests.
    * By default this is done by the HttpInstrumentation, but if that is not added (e.g. because tracing is disabled)
    * then this instrumentation can take over.
@@ -67,11 +60,25 @@ export type SentryHttpInstrumentationOptions = InstrumentationConfig & {
   propagateTraceInOutgoingRequests?: boolean;
 
   /**
-   * If spans for outgoing requests should be created.
+   * Whether to enable the capability to create spans for outgoing requests via diagnostic channels.
+   * This controls whether the instrumentation subscribes to the `http.client.request.start` channel.
+   * If enabled, spans will only be created if the `spans` option is also enabled (default: true).
    *
-   * @default `false``
+   * This is a feature flag that should be enabled by SDKs when the runtime supports it (Node 22+).
+   * Individual users should not need to configure this directly.
+   *
+   * @default `false`
    */
   createSpansForOutgoingRequests?: boolean;
+
+  /**
+   * Whether to create spans for outgoing requests (user preference).
+   * This only takes effect if `createSpansForOutgoingRequests` is also enabled.
+   * If `createSpansForOutgoingRequests` is not enabled, this option is ignored.
+   *
+   * @default `true`
+   */
+  spans?: boolean;
 
   /**
    * Do not capture breadcrumbs for outgoing HTTP requests to URLs where the given callback returns `true`.
