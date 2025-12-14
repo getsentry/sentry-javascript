@@ -291,7 +291,7 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
         const parentContext = context.active();
         const requestContext = trace.setSpan(parentContext, span);
 
-        context.with(requestContext, () => {
+        return context.with(requestContext, () => {
           return target.apply(thisArg, args);
         });
       },
