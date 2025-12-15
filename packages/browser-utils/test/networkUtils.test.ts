@@ -213,6 +213,24 @@ describe('getFetchRequestArgBody', () => {
         ]);
         expect(actual).toEqual(body);
       });
+
+      it('works with ReadableStream', () => {
+        const stream = new ReadableStream({
+          start(controller) {
+            controller.enqueue(new TextEncoder().encode('stream data'));
+            controller.close();
+          },
+        });
+        const request = new Request('http://example.com', {
+          method: 'POST',
+          body: stream,
+          // @ts-expect-error - Required for streaming requests https://developer.mozilla.org/en-US/docs/Web/API/Request/duplex
+          duplex: 'half',
+        });
+
+        const actual = getFetchRequestArgBody([addOriginalBodySymbol(request, stream)]);
+        expect(actual).toBe(stream);
+      });
     });
   });
 });
