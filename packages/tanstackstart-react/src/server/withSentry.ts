@@ -35,7 +35,7 @@ export function withSentry(serverEntry: ServerEntry): ServerEntry {
         // instrument server functions
         if (request.url?.includes('_serverFn') || request.url?.includes('createServerFn')) {
           const op = 'function.tanstackstart';
-          return await startSpan(
+          return startSpan(
             {
               op: op,
               name: request.url,
@@ -45,12 +45,12 @@ export function withSentry(serverEntry: ServerEntry): ServerEntry {
               },
             },
             async () => {
-              return await target.apply(thisArg, args);
+              return target.apply(thisArg, args);
             },
           );
         }
 
-        return await target.apply(thisArg, args);
+        return target.apply(thisArg, args);
       },
     });
   }
