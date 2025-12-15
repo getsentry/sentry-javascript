@@ -1,6 +1,8 @@
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan } from '@sentry/node';
 
-export type ServerEntry = { fetch?: (request: Request) => Promise<unknown> };
+export type ServerEntry = {
+  fetch: (request: Request, opts?: unknown) => Promise<Response> | Response
+};
 
 /**
  * This function can be used to wrap the server entry request handler to add tracing to server-side functionality.
@@ -27,13 +29,16 @@ export type ServerEntry = { fetch?: (request: Request) => Promise<unknown> };
  * @returns - wrapped request handler
  */
 export function withSentry(serverEntry: ServerEntry): ServerEntry {
+  console.log('withSentry called!');
   if (serverEntry.fetch) {
     serverEntry.fetch = new Proxy<typeof serverEntry.fetch>(serverEntry.fetch, {
       apply: async (target, thisArg, args) => {
         const request: Request = args[0];
+        console.log('request: ', request);
 
         // instrument server functions
         if (request.url?.includes('_serverFn') || request.url?.includes('createServerFn')) {
+          console.log('server function called!');
           const op = 'function.tanstackstart';
           return startSpan(
             {
@@ -44,7 +49,7 @@ export function withSentry(serverEntry: ServerEntry): ServerEntry {
                 [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op,
               },
             },
-            async () => {
+            () => {
               return target.apply(thisArg, args);
             },
           );
