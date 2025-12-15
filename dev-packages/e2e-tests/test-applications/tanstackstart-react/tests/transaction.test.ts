@@ -3,20 +3,32 @@ import { waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Sends a server function transaction', async ({ page }) => {
   const transactionEventPromise = waitForTransaction('tanstackstart-react', transactionEvent => {
-    return transactionEvent?.contexts?.trace?.op === 'http.server' && transactionEvent?.transaction === 'GET /';
+    return (
+      transactionEvent?.contexts?.trace?.op === 'http.server' &&
+      !!transactionEvent?.transaction?.startsWith('GET /_serverFn')
+    );
   });
 
-  await page.goto('/');
+  await page.goto('/test-serverFn');
 
-  await expect(page.locator('button').filter({ hasText: 'Break server function' })).toBeVisible();
+  await expect(page.getByText('Call server function')).toBeVisible();
 
-  await page.locator('button').filter({ hasText: 'Break server function' }).click();
+  await page.getByText('Call server function').click();
 
   const transactionEvent = await transactionEventPromise;
 
-  console.log('transactionEvent: ', transactionEvent);
-
-  // TODO: verify correct span data
   expect(Array.isArray(transactionEvent?.spans)).toBe(true);
-  expect(transactionEvent?.spans?.length).toBeGreaterThan(0);
+  expect(transactionEvent?.spans).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        description: 'server.fetch',
+        op: 'function.tanstackstart',
+        origin: 'auto.function.tanstackstart.serverFn',
+        data: {
+          'sentry.op': 'function.tanstackstart',
+          'sentry.origin': 'auto.function.tanstackstart.serverFn',
+        },
+      }),
+    ]),
+  );
 });

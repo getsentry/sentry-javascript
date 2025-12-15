@@ -31,6 +31,7 @@ export function withSentry(serverEntry: ServerEntry): ServerEntry {
           );
         }
 
+        console.log('fetch without startSpan');
         return await target.apply(thisArg, args);
       },
     });
