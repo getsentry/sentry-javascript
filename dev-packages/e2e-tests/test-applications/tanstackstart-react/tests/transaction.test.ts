@@ -21,7 +21,7 @@ test('Sends a server function transaction', async ({ page }) => {
   expect(transactionEvent?.spans).toEqual(
     expect.arrayContaining([
       expect.objectContaining({
-        description: 'server.fetch',
+        description: expect.stringContaining('/_serverFn/'),
         op: 'function.tanstackstart',
         origin: 'auto.function.tanstackstart.serverFn',
         data: {

@@ -5,8 +5,6 @@ import type { ServerEntry } from '@tanstack/react-start/server-entry';
 
 const requestHandler: ServerEntry = withSentry({
   fetch(request: Request) {
-    console.log('requestHandler fetch');
-    console.log(request);
     return handler.fetch(request);
   },
 });
