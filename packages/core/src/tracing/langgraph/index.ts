@@ -8,14 +8,15 @@ import {
   GEN_AI_PIPELINE_NAME_ATTRIBUTE,
   GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE,
   GEN_AI_REQUEST_MESSAGES_ATTRIBUTE,
+  GEN_AI_REQUEST_MODEL_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
 import { truncateGenAiMessages } from '../ai/messageTruncation';
-import type { LangChainMessage } from '../langchain/types';
+import type { BaseChatModel, LangChainMessage } from '../langchain/types';
 import { normalizeLangChainMessages } from '../langchain/utils';
 import { startSpan } from '../trace';
 import { LANGGRAPH_ORIGIN } from './constants';
 import type { CompiledGraph, LangGraphOptions } from './types';
-import { extractToolsFromCompiledGraph, setResponseAttributes } from './utils';
+import { extractLLMFromParams, extractToolsFromCompiledGraph, setResponseAttributes } from './utils';
 
 /**
  * Instruments StateGraph's compile method to create spans for agent creation and invocation
@@ -90,9 +91,11 @@ function instrumentCompiledGraphInvoke(
   graphInstance: CompiledGraph,
   compileOptions: Record<string, unknown>,
   options: LangGraphOptions,
+  llm?: BaseChatModel | null,
 ): (...args: unknown[]) => Promise<unknown> {
   return new Proxy(originalInvoke, {
     apply(target, thisArg, args: unknown[]): Promise<unknown> {
+      const modelName = llm?.modelName;
       return startSpan(
         {
           op: 'gen_ai.invoke_agent',
@@ -111,6 +114,9 @@ function instrumentCompiledGraphInvoke(
               span.setAttribute(GEN_AI_PIPELINE_NAME_ATTRIBUTE, graphName);
               span.setAttribute(GEN_AI_AGENT_NAME_ATTRIBUTE, graphName);
               span.updateName(`invoke_agent ${graphName}`);
+            }
+            if (modelName) {
+              span.setAttribute(GEN_AI_REQUEST_MODEL_ATTRIBUTE, modelName);
             }
 
             // Extract available tools from the graph instance
@@ -167,6 +173,7 @@ export function instrumentCreateReactAgent(
 ): (...args: unknown[]) => CompiledGraph {
   return new Proxy(originalCreateReactAgent, {
     apply(target, thisArg, args: unknown[]): CompiledGraph {
+      const llm = extractLLMFromParams(args);
       return startSpan(
         {
           op: 'gen_ai.create_agent',
@@ -188,6 +195,7 @@ export function instrumentCreateReactAgent(
                 compiledGraph,
                 compiledOptions,
                 options,
+                llm,
               ) as typeof originalInvoke;
             }
 
