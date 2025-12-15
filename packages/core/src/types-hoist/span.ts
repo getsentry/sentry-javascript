@@ -1,4 +1,4 @@
-import type { SerializedAttributes } from './attributes';
+import type { TypedAttributes } from '../attributes';
 import type { SpanLink, SpanLinkJSON } from './link';
 import type { Measurements } from './measurement';
 import type { HrTime } from './opentelemetry';
@@ -47,8 +47,8 @@ export interface SpanV2JSON {
   end_timestamp: number;
   status: 'ok' | 'error';
   is_segment: boolean;
-  attributes?: SerializedAttributes;
-  links?: SpanLinkJSON<SerializedAttributes>[];
+  attributes?: TypedAttributes;
+  links?: SpanLinkJSON<TypedAttributes>[];
 }
 
 /**
