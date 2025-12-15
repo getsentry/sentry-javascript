@@ -13,16 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import { softNavs } from './softNavs';
 
 interface PerformanceEntryMap {
   event: PerformanceEventTiming[];
   'first-input': PerformanceEventTiming[];
+  'interaction-contentful-paint': InteractionContentfulPaint[];
   'layout-shift': LayoutShift[];
   'largest-contentful-paint': LargestContentfulPaint[];
   'long-animation-frame': PerformanceLongAnimationFrameTiming[];
   paint: PerformancePaintTiming[];
   navigation: PerformanceNavigationTiming[];
   resource: PerformanceResourceTiming[];
+  'soft-navigation': SoftNavigationEntry[];
   // Sentry-specific change:
   // We add longtask as a supported entry type as we use this in
   // our `instrumentPerformanceObserver` function also observes 'longtask'
@@ -46,6 +49,8 @@ export const observe = <K extends keyof PerformanceEntryMap>(
   callback: (entries: PerformanceEntryMap[K]) => void,
   opts: PerformanceObserverInit = {},
 ): PerformanceObserver | undefined => {
+  const includeSoftNavigationObservations = softNavs(opts);
+
   try {
     if (PerformanceObserver.supportedEntryTypes.includes(type)) {
       const po = new PerformanceObserver(list => {
@@ -57,7 +62,13 @@ export const observe = <K extends keyof PerformanceEntryMap>(
           callback(list.getEntries() as PerformanceEntryMap[K]);
         });
       });
-      po.observe({ type, buffered: true, ...opts });
+      po.observe({
+        type,
+        buffered: true,
+        includeSoftNavigationObservations,
+        ...opts,
+      } as PerformanceObserverInit);
+
       return po;
     }
   } catch {
