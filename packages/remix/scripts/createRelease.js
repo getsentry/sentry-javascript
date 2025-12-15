@@ -1,3 +1,4 @@
+// @ts-check
 /* eslint-disable no-console */
 const { SentryCli } = require('@sentry/cli');
 
@@ -25,14 +26,12 @@ async function createRelease(argv, URL_PREFIX, BUILD_PATH) {
     release = argv.release;
   }
 
-  await sentry.releases.new(release);
+  await sentry.releases.new(release, {});
 
   try {
     await sentry.releases.uploadSourceMaps(release, {
       urlPrefix: URL_PREFIX,
       include: [BUILD_PATH],
-      useArtifactBundle: !argv.disableDebugIds,
-      live: 'rejectOnError',
     });
   } catch {
     console.warn('[sentry] Failed to upload sourcemaps.');
