@@ -8,7 +8,7 @@ import type { IntegrationIndex } from './integration';
 import { afterSetupIntegrations, setupIntegration, setupIntegrations } from './integration';
 import { _INTERNAL_flushLogsBuffer } from './logs/internal';
 import { _INTERNAL_flushMetricsBuffer } from './metrics/internal';
-import type { Scope } from './scope';
+import type { Scope, ScopeData } from './scope';
 import { updateSession } from './session';
 import { getDynamicSamplingContextFromScope } from './tracing/dynamicSamplingContext';
 import { DEFAULT_TRANSPORT_BUFFER_SIZE } from './transports/base';
@@ -634,10 +634,16 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    */
   public on(hook: 'enqueueSpan', callback: (spanJSON: SpanV2JSONWithSegmentRef) => void): () => void;
   /**
-   * Register a callback for when a span JSON is processed, to add some attributes to the span JSON.
+   * Register a callback for when a span JSON is processed, to add some data to the span JSON.
    */
   public on(hook: 'processSpan', callback: (spanJSON: SpanV2JSON, hint: { readOnlySpan: Span }) => void): () => void;
-
+  /**
+   * Register a callback for when a segment span JSON is processed, to add some data to the segment span JSON.
+   */
+  public on(
+    hook: 'processSegmentSpan',
+    callback: (spanJSON: SpanV2JSON, hint: { scopeData: ScopeData }) => void,
+  ): () => void;
   /**
    * Register a callback for when an idle span is allowed to auto-finish.
    * @returns {() => void} A function that, when executed, removes the registered callback.
@@ -915,6 +921,8 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   public emit(hook: 'afterSpanEnd', span: Span): void;
   /** Fire a hook after a span is processed, to add some attributes to the span JSON. */
   public emit(hook: 'processSpan', spanJSON: SpanV2JSON, hint: { readOnlySpan: Span }): void;
+  /** Fire a hook after a span is processed, to add some attributes to the span JSON. */
+  public emit(hook: 'processSegmentSpan', spanJSON: SpanV2JSON, hint: { scopeData: ScopeData }): void;
   /** Fire a hook after the `segmentSpanEnd` hook is fired. */
   public emit(hook: 'afterSegmentSpanEnd', span: Span): void;
   /** Fire a hook after a span ready to be enqueued into the span buffer. */
