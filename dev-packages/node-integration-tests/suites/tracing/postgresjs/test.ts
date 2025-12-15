@@ -1,9 +1,6 @@
 import { afterAll, describe, expect, test } from 'vitest';
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 
-const EXISTING_TEST_EMAIL = 'bar@baz.com';
-const NON_EXISTING_TEST_EMAIL = 'foo@baz.com';
-
 describe('postgresjs auto instrumentation', () => {
   afterAll(() => {
     cleanupChildProcesses();
