@@ -14,6 +14,8 @@ test('Sends a server function transaction', async ({ page }) => {
 
   const transactionEvent = await transactionEventPromise;
 
+  console.log('transactionEvent: ', transactionEvent);
+
   // TODO: verify correct span data
   expect(Array.isArray(transactionEvent?.spans)).toBe(true);
   expect(transactionEvent?.spans?.length).toBeGreaterThan(0);
