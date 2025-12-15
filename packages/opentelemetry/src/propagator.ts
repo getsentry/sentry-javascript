@@ -86,13 +86,13 @@ export class SentryPropagator extends W3CBaggagePropagator {
       }, baggage);
     }
 
-    if (propagateTraceparent) {
-      setter.set(carrier, 'traceparent', generateTraceparentHeader(traceId, spanId, sampled));
-    }
-
     // We also want to avoid setting the default OTEL trace ID, if we get that for whatever reason
     if (traceId && traceId !== INVALID_TRACEID) {
       setter.set(carrier, SENTRY_TRACE_HEADER, generateSentryTraceHeader(traceId, spanId, sampled));
+
+      if (propagateTraceparent) {
+        setter.set(carrier, 'traceparent', generateTraceparentHeader(traceId, spanId, sampled));
+      }
     }
 
     super.inject(propagation.setBaggage(context, baggage), carrier, setter);
