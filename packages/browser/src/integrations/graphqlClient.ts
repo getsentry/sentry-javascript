@@ -92,8 +92,8 @@ function _updateSpanWithGraphQLData(client: Client, options: GraphQLClientOption
 
         // Handle persisted operations - capture hash for debugging
         if (isPersistedRequest(graphqlBody)) {
-          span.setAttribute('graphql.persistedQuery.sha256Hash', graphqlBody.extensions.persistedQuery.sha256Hash);
-          span.setAttribute('graphql.persistedQuery.version', graphqlBody.extensions.persistedQuery.version);
+          span.setAttribute('graphql.persisted_query.hash.sha256', graphqlBody.extensions.persistedQuery.sha256Hash);
+          span.setAttribute('graphql.persisted_query.version', graphqlBody.extensions.persistedQuery.version);
         }
       }
     }
@@ -128,8 +128,8 @@ function _updateBreadcrumbWithGraphQLData(client: Client, options: GraphQLClient
           }
 
           if (isPersistedRequest(graphqlBody)) {
-            data['graphql.persistedQuery.sha256Hash'] = graphqlBody.extensions.persistedQuery.sha256Hash;
-            data['graphql.persistedQuery.version'] = graphqlBody.extensions.persistedQuery.version;
+            data['graphql.persisted_query.hash.sha256'] = graphqlBody.extensions.persistedQuery.sha256Hash;
+            data['graphql.persisted_query.version'] = graphqlBody.extensions.persistedQuery.version;
           }
         }
       }
