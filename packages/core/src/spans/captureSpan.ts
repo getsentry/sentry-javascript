@@ -47,6 +47,7 @@ export function captureSpan(span: Span, client = getClient()): void {
 
   if (span === segmentSpan) {
     applyScopeToSegmentSpan(spanJSON, finalScopeData);
+    client.emit('processSegmentSpan', spanJSON, { scopeData: finalScopeData });
   }
 
   // Allow integrations to add additional data to the span JSON
