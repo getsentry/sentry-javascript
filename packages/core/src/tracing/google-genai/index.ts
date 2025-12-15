@@ -16,6 +16,7 @@ import {
   GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE,
   GEN_AI_REQUEST_TOP_K_ATTRIBUTE,
   GEN_AI_REQUEST_TOP_P_ATTRIBUTE,
+  GEN_AI_RESPONSE_MODEL_ATTRIBUTE,
   GEN_AI_RESPONSE_TEXT_ATTRIBUTE,
   GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
   GEN_AI_SYSTEM_ATTRIBUTE,
@@ -23,7 +24,8 @@ import {
   GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
-import { buildMethodPath, getFinalOperationName, getSpanOperation, getTruncatedJsonString } from '../ai/utils';
+import { truncateGenAiMessages } from '../ai/messageTruncation';
+import { buildMethodPath, getFinalOperationName, getSpanOperation } from '../ai/utils';
 import { CHAT_PATH, CHATS_CREATE_METHOD, GOOGLE_GENAI_SYSTEM_NAME } from './constants';
 import { instrumentStream } from './streaming';
 import type {
@@ -33,7 +35,8 @@ import type {
   GoogleGenAIOptions,
   GoogleGenAIResponse,
 } from './types';
-import { isStreamingMethod, shouldInstrument } from './utils';
+import type { ContentListUnion, ContentUnion, Message, PartListUnion } from './utils';
+import { contentUnionToMessages, isStreamingMethod, shouldInstrument } from './utils';
 
 /**
  * Extract model from parameters or chat context object
@@ -134,26 +137,38 @@ function extractRequestAttributes(
  * Handles different parameter formats for different Google GenAI methods.
  */
 function addPrivateRequestAttributes(span: Span, params: Record<string, unknown>): void {
-  // For models.generateContent: ContentListUnion: Content | Content[] | PartUnion | PartUnion[]
-  if ('contents' in params) {
-    const contents = params.contents;
-    // For models.generateContent: ContentListUnion: Content | Content[] | PartUnion | PartUnion[]
-    const truncatedContents = getTruncatedJsonString(contents);
-    span.setAttributes({ [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: truncatedContents });
-  }
+  const messages: Message[] = [];
 
-  // For chat.sendMessage: message can be string or Part[]
-  if ('message' in params) {
-    const message = params.message;
-    const truncatedMessage = getTruncatedJsonString(message);
-    span.setAttributes({ [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: truncatedMessage });
+  // config.systemInstruction: ContentUnion
+  if (
+    'config' in params &&
+    params.config &&
+    typeof params.config === 'object' &&
+    'systemInstruction' in params.config &&
+    params.config.systemInstruction
+  ) {
+    messages.push(...contentUnionToMessages(params.config.systemInstruction as ContentUnion, 'system'));
   }
 
   // For chats.create: history contains the conversation history
   if ('history' in params) {
-    const history = params.history;
-    const truncatedHistory = getTruncatedJsonString(history);
-    span.setAttributes({ [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: truncatedHistory });
+    messages.push(...contentUnionToMessages(params.history as PartListUnion, 'user'));
+  }
+
+  // For models.generateContent: ContentListUnion
+  if ('contents' in params) {
+    messages.push(...contentUnionToMessages(params.contents as ContentListUnion, 'user'));
+  }
+
+  // For chat.sendMessage: message can be PartListUnion
+  if ('message' in params) {
+    messages.push(...contentUnionToMessages(params.message as PartListUnion, 'user'));
+  }
+
+  if (messages.length) {
+    span.setAttributes({
+      [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: JSON.stringify(truncateGenAiMessages(messages)),
+    });
   }
 }
 
@@ -163,6 +178,10 @@ function addPrivateRequestAttributes(span: Span, params: Record<string, unknown>
  */
 function addResponseAttributes(span: Span, response: GoogleGenAIResponse, recordOutputs?: boolean): void {
   if (!response || typeof response !== 'object') return;
+
+  if (response.modelVersion) {
+    span.setAttribute(GEN_AI_RESPONSE_MODEL_ATTRIBUTE, response.modelVersion);
+  }
 
   // Add usage metadata if present
   if (response.usageMetadata && typeof response.usageMetadata === 'object') {

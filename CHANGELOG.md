@@ -2,6 +2,31 @@
 
 ## Unreleased
 
+### Important Changes
+
+- **feat(browser): Add support for GraphQL persisted operations ([#18505](https://github.com/getsentry/sentry-javascript/pull/18505))**
+
+The `graphqlClientIntegration` now supports GraphQL persisted operations (queries). When a persisted query is detected, the integration will capture the operation hash and version as span attributes:
+
+- `graphql.persisted_query.hash.sha256` - The SHA-256 hash of the persisted query
+- `graphql.persisted_query.version` - The version of the persisted query protocol
+
+Additionally, the `graphql.document` attribute format has changed to align with OpenTelemetry semantic conventions. It now contains only the GraphQL query string instead of the full JSON request payload.
+
+**Before:**
+
+```javascript
+"graphql.document": "{\"query\":\"query Test { user { id } }\"}"
+```
+
+**After:**
+
+```javascript
+"graphql.document": "query Test { user { id } }"
+```
+
+### Other Changes
+
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
 Work in this release was contributed by @sebws. Thank you for your contribution!
