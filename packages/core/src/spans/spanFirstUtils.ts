@@ -80,7 +80,47 @@ const explicitAttributeToContextMapping = {
   'app.start_time': 'app.app_start_time',
 };
 
-const knownContexts = ['app', 'os', 'device', 'culture', 'cloud_resource', 'runtime'];
+const knownContexts = [
+  // set by `nodeContextIntegration`
+  'app',
+  'os',
+  'device',
+  'culture',
+  'cloud_resource',
+  'runtime',
+
+  // TODO: These need more thorough checking if they're all setting expected attributes
+
+  // set by the `instrumentPostgresJs`
+  'postgresjsConnection',
+  // set by `ensureIsWrapped`
+  'missing_instrumentation',
+  // set by `nodeProfilingIntegration`
+  'profile',
+  // set by angular `init`
+  'angular',
+  // set by AWS Lambda SDK
+  'aws.lambda',
+  'aws.cloudwatch.logs',
+  // set by `instrumentBunServe`
+  'response',
+  // set by `trpcMiddleware`
+  'trpc',
+  // set by `instrumentSupabaseClient`
+  'supabase',
+  // set by `gcp.function.context`
+  'gcp.function.context',
+  // set by nextjs SDK
+  'nextjs',
+  // set by react SDK `captureReactException`, `init`
+  'react',
+  // set by react SDK `createReduxEnhancer`
+  'state',
+  // set by `replayIntegration`
+  'Replays',
+  // set by feature flags integration(s)
+  'flags',
+];
 
 /**
  * Converts a context object to a set of attributes.
