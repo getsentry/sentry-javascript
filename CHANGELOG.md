@@ -4,6 +4,21 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+- **feat(replay): Add Request body with `attachRawBodyFromRequest` option**
+
+To attach the raw request body (from `Request` objects passed as the first `fetch` argument) to replay events,
+you can now use the `attachRawBodyFromRequest` option in the Replay integration:
+
+```js
+Sentry.init({
+  integrations: [
+    Sentry.replayIntegration({
+      attachRawBodyFromRequest: true,
+    }),
+  ],
+});
+```
+
 ## 10.29.0
 
 ### Important Changes
