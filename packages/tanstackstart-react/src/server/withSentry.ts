@@ -29,16 +29,13 @@ export type ServerEntry = {
  * @returns - wrapped request handler
  */
 export function withSentry(serverEntry: ServerEntry): ServerEntry {
-  console.log('withSentry called!');
   if (serverEntry.fetch) {
     serverEntry.fetch = new Proxy<typeof serverEntry.fetch>(serverEntry.fetch, {
       apply: async (target, thisArg, args) => {
         const request: Request = args[0];
-        console.log('request: ', request);
 
         // instrument server functions
         if (request.url?.includes('_serverFn') || request.url?.includes('createServerFn')) {
-          console.log('server function called!');
           const op = 'function.tanstackstart';
           return startSpan(
             {
