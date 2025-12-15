@@ -1,5 +1,5 @@
 /* eslint-disable no-console */
-const SentryCli = require('@sentry/cli');
+const { SentryCli } = require('@sentry/cli');
 
 const { deleteSourcemaps } = require('./deleteSourcemaps');
 

@@ -22,9 +22,8 @@ async function mock(mockedUri: string, stub: any) {
 }
 
 await vi.hoisted(async () =>
-  mock(
-    '@sentry/cli',
-    vi.fn().mockImplementation(() => {
+  mock('@sentry/cli', {
+    SentryCli: vi.fn().mockImplementation(() => {
       return {
         execute: vi.fn(),
         releases: {
@@ -35,7 +34,7 @@ await vi.hoisted(async () =>
         },
       };
     }),
-  ),
+  }),
 );
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires

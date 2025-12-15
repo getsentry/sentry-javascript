@@ -1,7 +1,7 @@
 /* eslint-disable no-console */
 const { execSync } = require('child_process');
 
-const SentryCli = require('@sentry/cli');
+const { SentryCli } = require('@sentry/cli');
 
 function injectDebugId(buildPath) {
   const cliPath = SentryCli.getPath();

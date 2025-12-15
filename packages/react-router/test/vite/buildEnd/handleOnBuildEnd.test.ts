@@ -1,4 +1,4 @@
-import SentryCli from '@sentry/cli';
+import { SentryCli } from '@sentry/cli';
 import * as fs from 'fs';
 import { glob } from 'glob';
 import type { ResolvedConfig } from 'vite';
@@ -84,7 +84,7 @@ describe('sentryOnBuildEnd', () => {
     // @ts-expect-error - mocking the React config
     await sentryOnBuildEnd(config);
 
-    expect(mockSentryCliInstance.releases.new).toHaveBeenCalledWith('v1.0.0');
+    expect(mockSentryCliInstance.releases.new).toHaveBeenCalledWith('v1.0.0', {});
   });
 
   it('should create a new Sentry release when release name is provided in unstable_sentryVitePluginOptions', async () => {
@@ -106,7 +106,7 @@ describe('sentryOnBuildEnd', () => {
     // @ts-expect-error - mocking the React config
     await sentryOnBuildEnd(config);
 
-    expect(mockSentryCliInstance.releases.new).toHaveBeenCalledWith('v1.0.0-unstable');
+    expect(mockSentryCliInstance.releases.new).toHaveBeenCalledWith('v1.0.0-unstable', {});
   });
 
   it('should prioritize release name from main config over unstable_sentryVitePluginOptions', async () => {
@@ -131,7 +131,7 @@ describe('sentryOnBuildEnd', () => {
     // @ts-expect-error - mocking the React config
     await sentryOnBuildEnd(config);
 
-    expect(mockSentryCliInstance.releases.new).toHaveBeenCalledWith('v1.0.0');
+    expect(mockSentryCliInstance.releases.new).toHaveBeenCalledWith('v1.0.0', {});
   });
 
   it('should upload source maps when enabled', async () => {
@@ -154,7 +154,6 @@ describe('sentryOnBuildEnd', () => {
     expect(mockSentryCliInstance.releases.uploadSourceMaps).toHaveBeenCalledTimes(1);
     expect(mockSentryCliInstance.releases.uploadSourceMaps).toHaveBeenCalledWith('undefined', {
       include: [{ paths: ['/build'] }],
-      live: 'rejectOnError',
     });
   });
 
@@ -298,8 +297,7 @@ describe('sentryOnBuildEnd', () => {
 
     expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('[Sentry] Automatically setting'));
     expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Deleting asset after upload:'));
-    // rejectOnError is used in debug mode to pipe debug id injection output from the CLI to this process's stdout
-    expect(mockSentryCliInstance.execute).toHaveBeenCalledWith(['sourcemaps', 'inject', '/build'], 'rejectOnError');
+    expect(mockSentryCliInstance.execute).toHaveBeenCalledWith(['sourcemaps', 'inject', '/build'], true);
 
     consoleSpy.mockRestore();
   });
