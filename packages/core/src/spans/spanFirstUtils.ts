@@ -1,8 +1,7 @@
 import type { RawAttributes } from '../attributes';
-import { isAttributeObject } from '../attributes';
+import { attributeValueToTypedAttributeValue, isAttributeObject } from '../attributes';
 import type { Context, Contexts } from '../types-hoist/context';
 import type { SpanV2JSON } from '../types-hoist/span';
-import { attributeValueToSerializedAttribute } from '../utils/attributes';
 import { isPrimitive } from '../utils/is';
 import { showSpanDropWarning } from '../utils/spanUtils';
 
@@ -56,13 +55,13 @@ function setAttributeOnSpanJSONWithMaybeUnit(
     const { value, unit } = attributeValue;
 
     if (isSupportedSerializableType(value)) {
-      spanJSON.attributes[attributeKey] = attributeValueToSerializedAttribute(value);
+      spanJSON.attributes[attributeKey] = attributeValueToTypedAttributeValue(attributeValue);
       if (unit) {
         spanJSON.attributes[attributeKey].unit = unit;
       }
     }
   } else if (isSupportedSerializableType(attributeValue)) {
-    spanJSON.attributes[attributeKey] = attributeValueToSerializedAttribute(attributeValue);
+    spanJSON.attributes[attributeKey] = attributeValueToTypedAttributeValue(attributeValue);
   }
 }
 
@@ -118,8 +117,8 @@ const knownContexts = [
   'state',
   // set by `replayIntegration`
   'Replays',
-  // set by feature flags integration(s)
-  'flags',
+  // Other information:
+  // - no need to handler feature flags `flags` context because it's already added to the active span
 ];
 
 /**
