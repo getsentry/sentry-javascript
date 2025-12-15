@@ -134,7 +134,7 @@ export function eventFromUnknownInput(
   exception: unknown,
   hint?: EventHint,
 ): Event {
-  const providedMechanism: Mechanism | undefined = hint?.data && (hint.data as { mechanism: Mechanism }).mechanism;
+  const providedMechanism = (hint?.data as { mechanism?: Mechanism })?.mechanism;
   const mechanism: Mechanism = providedMechanism || {
     handled: true,
     type: 'generic',

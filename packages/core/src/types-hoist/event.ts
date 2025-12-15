@@ -83,6 +83,6 @@ export interface EventHint {
   syntheticException?: Error | null;
   originalException?: unknown;
   attachments?: Attachment[];
-  data?: any;
+  data?: unknown;
   integrations?: string[];
 }
