@@ -6,6 +6,7 @@ import type { FetchHint, XhrHint } from '@sentry-internal/browser-utils';
 import { SENTRY_XHR_DATA_KEY } from '@sentry-internal/browser-utils';
 import { describe, expect, test } from 'vitest';
 import {
+  _getGraphQLOperation,
   getGraphQLRequestPayload,
   getRequestPayloadXhrOrFetch,
   parseGraphQLQuery,
@@ -57,7 +58,8 @@ describe('GraphqlClient', () => {
 
       expect(getGraphQLRequestPayload(JSON.stringify(requestBody))).toBeUndefined();
     });
-    test('should return the payload object for GraphQL request', () => {
+
+    test('should return the payload object for standard GraphQL request', () => {
       const requestBody = {
         query: 'query Test {\r\n  items {\r\n    id\r\n   }\r\n }',
         operationName: 'Test',
@@ -66,6 +68,51 @@ describe('GraphqlClient', () => {
       };
 
       expect(getGraphQLRequestPayload(JSON.stringify(requestBody))).toEqual(requestBody);
+    });
+
+    test('should return the payload object for persisted operation request', () => {
+      const requestBody = {
+        operationName: 'GetUser',
+        variables: { id: '123' },
+        extensions: {
+          persistedQuery: {
+            version: 1,
+            sha256Hash: 'abc123def456...',
+          },
+        },
+      };
+
+      expect(getGraphQLRequestPayload(JSON.stringify(requestBody))).toEqual(requestBody);
+    });
+
+    test('should return undefined for persisted operation without operationName', () => {
+      const requestBody = {
+        variables: { id: '123' },
+        extensions: {
+          persistedQuery: {
+            version: 1,
+            sha256Hash: 'abc123def456...',
+          },
+        },
+      };
+
+      expect(getGraphQLRequestPayload(JSON.stringify(requestBody))).toBeUndefined();
+    });
+
+    test('should return undefined for request with extensions but no persistedQuery', () => {
+      const requestBody = {
+        operationName: 'GetUser',
+        variables: { id: '123' },
+        extensions: {
+          someOtherExtension: true,
+        },
+      };
+
+      expect(getGraphQLRequestPayload(JSON.stringify(requestBody))).toBeUndefined();
+    });
+
+    test('should return undefined for invalid JSON', () => {
+      expect(getGraphQLRequestPayload('not valid json {')).toBeUndefined();
     });
   });
 
@@ -134,6 +181,93 @@ describe('GraphqlClient', () => {
 
       const result = getRequestPayloadXhrOrFetch(hint);
       expect(result).toBeUndefined();
+    });
+  });
+
+  describe('_getGraphQLOperation', () => {
+    test('should format standard GraphQL query with operation name', () => {
+      const requestBody = {
+        query: 'query GetUser { user { id } }',
+        operationName: 'GetUser',
+      };
+
+      expect(_getGraphQLOperation(requestBody)).toBe('query GetUser');
+    });
+
+    test('should format standard GraphQL mutation with operation name', () => {
+      const requestBody = {
+        query: 'mutation CreateUser($input: UserInput!) { createUser(input: $input) { id } }',
+        operationName: 'CreateUser',
+      };
+
+      expect(_getGraphQLOperation(requestBody)).toBe('mutation CreateUser');
+    });
+
+    test('should format standard GraphQL subscription with operation name', () => {
+      const requestBody = {
+        query: 'subscription OnUserCreated { userCreated { id } }',
+        operationName: 'OnUserCreated',
+      };
+
+      expect(_getGraphQLOperation(requestBody)).toBe('subscription OnUserCreated');
+    });
+
+    test('should format standard GraphQL query without operation name', () => {
+      const requestBody = {
+        query: 'query { users { id } }',
+      };
+
+      expect(_getGraphQLOperation(requestBody)).toBe('query');
+    });
+
+    test('should use query operation name when provided in request body', () => {
+      const requestBody = {
+        query: 'query { users { id } }',
+        operationName: 'GetAllUsers',
+      };
+
+      expect(_getGraphQLOperation(requestBody)).toBe('query GetAllUsers');
+    });
+
+    test('should format persisted operation request', () => {
+      const requestBody = {
+        operationName: 'GetUser',
+        variables: { id: '123' },
+        extensions: {
+          persistedQuery: {
+            version: 1,
+            sha256Hash: 'abc123def456',
+          },
+        },
+      };
+
+      expect(_getGraphQLOperation(requestBody)).toBe('persisted GetUser');
+    });
+
+    test('should handle persisted operation with additional extensions', () => {
+      const requestBody = {
+        operationName: 'GetUser',
+        extensions: {
+          persistedQuery: {
+            version: 1,
+            sha256Hash: 'abc123def456',
+          },
+          tracing: true,
+          customExtension: 'value',
+        },
+      };
+
+      expect(_getGraphQLOperation(requestBody)).toBe('persisted GetUser');
+    });
+
+    test('should return "unknown" for unrecognized request format', () => {
+      const requestBody = {
+        variables: { id: '123' },
+      };
+
+      // This shouldn't happen in practice since getGraphQLRequestPayload filters,
+      // but test the fallback behavior
+      expect(_getGraphQLOperation(requestBody as any)).toBe('unknown');
     });
   });
 });
