@@ -149,6 +149,14 @@ function setupWeightBasedFlushing<
   });
 }
 
+class HookEvent extends Event {
+  hookData: unknown[];
+  constructor(hook: string, ...rest: unknown[]) {
+    super(hook);
+    this.hookData = rest;
+  }
+}
+
 /**
  * Base implementation for all JavaScript SDK clients.
  *
@@ -200,8 +208,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   /** Holds flushable  */
   private _outcomes: { [key: string]: number };
 
-  // eslint-disable-next-line @typescript-eslint/ban-types
-  private _hooks: Record<string, Set<Function>>;
+  private _hooksTarget: EventTarget;
 
   private _promiseBuffer: PromiseBuffer<unknown>;
 
@@ -215,7 +222,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     this._integrations = {};
     this._numProcessing = 0;
     this._outcomes = {};
-    this._hooks = {};
+    this._hooksTarget = new EventTarget();
     this._eventProcessors = [];
     this._promiseBuffer = makePromiseBuffer(options.transportOptions?.bufferSize ?? DEFAULT_TRANSPORT_BUFFER_SIZE);
 
@@ -840,23 +847,21 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    * Register a hook on this client.
    */
   public on(hook: string, callback: unknown): () => void {
-    const hookCallbacks = (this._hooks[hook] = this._hooks[hook] || new Set());
-
     // Wrap the callback in a function so that registering the same callback instance multiple
     // times results in the callback being called multiple times.
     // @ts-expect-error - The `callback` type is correct and must be a function due to the
     // individual, specific overloads of this function.
     // eslint-disable-next-line @typescript-eslint/ban-types
-    const uniqueCallback: Function = (...args: unknown[]) => callback(...args);
+    const uniqueCallback = (event: HookEvent) => callback(event.hookData);
 
-    hookCallbacks.add(uniqueCallback);
+    this._hooksTarget.addEventListener(hook, uniqueCallback as EventListener);
 
     // This function returns a callback execution handler that, when invoked,
     // deregisters a callback. This is crucial for managing instances where callbacks
     // need to be unregistered to prevent self-referencing in callback closures,
     // ensuring proper garbage collection.
     return () => {
-      hookCallbacks.delete(uniqueCallback);
+      this._hooksTarget.removeEventListener(hook, uniqueCallback as EventListener);
     };
   }
 
@@ -1066,10 +1071,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    * Emit a hook that was previously registered via `on()`.
    */
   public emit(hook: string, ...rest: unknown[]): void {
-    const callbacks = this._hooks[hook];
-    if (callbacks) {
-      callbacks.forEach(callback => callback(...rest));
-    }
+    this._hooksTarget.dispatchEvent(new HookEvent(hook, ...rest));
   }
 
   /**
