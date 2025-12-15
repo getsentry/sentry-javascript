@@ -248,11 +248,8 @@ export function getGraphQLRequestPayload(payload: string): GraphQLRequestPayload
   try {
     const requestBody = JSON.parse(payload);
 
-    if (isStandardRequest(requestBody)) {
-      return requestBody;
-    }
-
-    if (isPersistedRequest(requestBody)) {
+    // Return any valid GraphQL request (standard, persisted, or APQ retry with both)
+    if (isStandardRequest(requestBody) || isPersistedRequest(requestBody)) {
       return requestBody;
     }
 
