@@ -156,6 +156,8 @@ export type {
   User,
   Span,
   FeatureFlagsIntegration,
+  ExclusiveEventHintOrCaptureContext,
+  CaptureContext,
 } from '@sentry/core';
 
 export { logger };
