@@ -661,4 +661,52 @@ describe('Anthropic integration', () => {
       });
     },
   );
+
+  createEsmAndCjsTests(__dirname, 'scenario-media-truncation.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
+    test('truncates media attachment, keeping all other details', async () => {
+      await createRunner()
+        .ignore('event')
+        .expect({
+          transaction: {
+            transaction: 'main',
+            spans: expect.arrayContaining([
+              expect.objectContaining({
+                data: expect.objectContaining({
+                  'gen_ai.operation.name': 'messages',
+                  'sentry.op': 'gen_ai.messages',
+                  'sentry.origin': 'auto.ai.anthropic',
+                  'gen_ai.system': 'anthropic',
+                  'gen_ai.request.model': 'claude-3-haiku-20240307',
+                  'gen_ai.request.messages': JSON.stringify([
+                    {
+                      role: 'user',
+                      content: [
+                        {
+                          type: 'image',
+                          source: {
+                            type: 'base64',
+                            media_type: 'image/png',
+                            data: '[Filtered]',
+                          },
+                        },
+                      ],
+                    },
+                    {
+                      role: 'user',
+                      content: 'what number is this?',
+                    },
+                  ]),
+                }),
+                description: 'messages claude-3-haiku-20240307',
+                op: 'gen_ai.messages',
+                origin: 'auto.ai.anthropic',
+                status: 'ok',
+              }),
+            ]),
+          },
+        })
+        .start()
+        .completed();
+    });
+  });
 });

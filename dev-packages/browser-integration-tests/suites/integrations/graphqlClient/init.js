@@ -9,7 +9,7 @@ Sentry.init({
   integrations: [
     Sentry.browserTracingIntegration(),
     graphqlClientIntegration({
-      endpoints: ['http://sentry-test.io/foo'],
+      endpoints: ['http://sentry-test.io/foo', 'http://sentry-test.io/graphql'],
     }),
   ],
   tracesSampleRate: 1,

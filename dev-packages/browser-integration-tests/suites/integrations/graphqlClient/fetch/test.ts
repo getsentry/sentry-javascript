@@ -10,7 +10,6 @@ const query = `query Test{
     pet
   }
 }`;
-const queryPayload = JSON.stringify({ query });
 
 sentryTest('should update spans for GraphQL fetch requests', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
@@ -55,7 +54,7 @@ sentryTest('should update spans for GraphQL fetch requests', async ({ getLocalTe
       'server.address': 'sentry-test.io',
       'sentry.op': 'http.client',
       'sentry.origin': 'auto.http.browser',
-      'graphql.document': queryPayload,
+      'graphql.document': query,
     }),
   });
 });

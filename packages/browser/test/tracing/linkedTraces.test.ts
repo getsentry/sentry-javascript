@@ -1,5 +1,5 @@
 import type { Span } from '@sentry/core';
-import { addChildSpanToSpan, SentrySpan, spanToJSON, timestampInSeconds } from '@sentry/core';
+import { addChildSpanToSpan, debug, SentrySpan, spanToJSON, timestampInSeconds } from '@sentry/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BrowserClient } from '../../src';
 import type { PreviousTraceInfo } from '../../src/tracing/linkedTraces';
@@ -199,6 +199,47 @@ describe('addPreviousTraceSpanLink', () => {
       sampleRand: 0.0126,
       sampleRate: 0.5,
     });
+  });
+
+  it('logs a debug message when adding a previous trace link (with stringified context)', () => {
+    const debugLogSpy = vi.spyOn(debug, 'log');
+
+    const currentSpanStart = timestampInSeconds();
+
+    const previousTraceInfo: PreviousTraceInfo = {
+      spanContext: { traceId: '123', spanId: '456', traceFlags: 1 },
+      startTimestamp: currentSpanStart - PREVIOUS_TRACE_MAX_DURATION + 1,
+      sampleRand: 0.0126,
+      sampleRate: 0.5,
+    };
+
+    const currentSpan = new SentrySpan({
+      name: 'test',
+      op: 'navigation',
+      startTimestamp: currentSpanStart,
+      parentSpanId: '789',
+      spanId: 'abc',
+      traceId: 'def',
+      sampled: true,
+    });
+
+    const oldPropagationContext = {
+      sampleRand: 0.0126,
+      traceId: '123',
+      sampled: true,
+      dsc: { sample_rand: '0.0126', sample_rate: '0.5' },
+    };
+
+    addPreviousTraceSpanLink(previousTraceInfo, currentSpan, oldPropagationContext);
+
+    expect(debugLogSpy).not.toHaveBeenCalledWith(expect.stringContaining('[object Object]'));
+    expect(debugLogSpy).toHaveBeenCalledWith(
+      expect.stringContaining(
+        'Adding previous_trace `{"traceId":"123","spanId":"456","traceFlags":1}` link to span `{"op":"navigation","spanId":"abc","traceId":"def","traceFlags":1}`',
+      ),
+    );
+
+    debugLogSpy.mockRestore();
   });
 
   it(`doesn't add a previous_trace span link if the previous trace was created more than ${PREVIOUS_TRACE_MAX_DURATION}s ago`, () => {

@@ -4,6 +4,29 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+### Important Changes
+
+- **feat(browser): Add support for GraphQL persisted operations ([#18505](https://github.com/getsentry/sentry-javascript/pull/18505))**
+
+The `graphqlClientIntegration` now supports GraphQL persisted operations (queries). When a persisted query is detected, the integration will capture the operation hash and version as span attributes:
+
+- `graphql.persisted_query.hash.sha256` - The SHA-256 hash of the persisted query
+- `graphql.persisted_query.version` - The version of the persisted query protocol
+
+Additionally, the `graphql.document` attribute format has changed to align with OpenTelemetry semantic conventions. It now contains only the GraphQL query string instead of the full JSON request payload.
+
+**Before:**
+
+```javascript
+"graphql.document": "{\"query\":\"query Test { user { id } }\"}"
+```
+
+**After:**
+
+```javascript
+"graphql.document": "query Test { user { id } }"
+```
+
 - **feat(replay): Add Request body with `attachRawBodyFromRequest` option**
 
 To attach the raw request body (from `Request` objects passed as the first `fetch` argument) to replay events,
@@ -18,6 +41,32 @@ Sentry.init({
   ],
 });
 ```
+
+### Other Changes
+
+Work in this release was contributed by @sebws. Thank you for your contribution!
+
+## 10.30.0
+
+- feat(nextjs): Deprecate Webpack top-level options ([#18343](https://github.com/getsentry/sentry-javascript/pull/18343))
+- feat(node): Capture scope when event loop blocked ([#18040](https://github.com/getsentry/sentry-javascript/pull/18040))
+- fix(aws-serverless): Remove hyphens from AWS-lambda origins ([#18353](https://github.com/getsentry/sentry-javascript/pull/18353))
+- fix(core): Parse method from Request object in fetch ([#18453](https://github.com/getsentry/sentry-javascript/pull/18453))
+- fix(react): Add transaction name guards for rapid lazy-route navigations ([#18346](https://github.com/getsentry/sentry-javascript/pull/18346))
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+
+- chore(ci): Fix double issue creation for unreferenced PRs ([#18442](https://github.com/getsentry/sentry-javascript/pull/18442))
+- chore(deps): bump next from 15.5.4 to 15.5.7 in /dev-packages/e2e-tests/test-applications/nextjs-15 ([#18411](https://github.com/getsentry/sentry-javascript/pull/18411))
+- chore(deps): bump next from 15.5.4 to 15.5.7 in /dev-packages/e2e-tests/test-applications/nextjs-15-intl ([#18400](https://github.com/getsentry/sentry-javascript/pull/18400))
+- chore(deps): bump next from 16.0.0 to 16.0.7 in /dev-packages/e2e-tests/test-applications/nextjs-16 ([#18399](https://github.com/getsentry/sentry-javascript/pull/18399))
+- chore(deps): bump next from 16.0.0 to 16.0.7 in /dev-packages/e2e-tests/test-applications/nextjs-16-cacheComponents ([#18427](https://github.com/getsentry/sentry-javascript/pull/18427))
+- chore(deps): bump next from 16.0.0 to 16.0.7 in /dev-packages/e2e-tests/test-applications/nextjs-16-tunnel ([#18439](https://github.com/getsentry/sentry-javascript/pull/18439))
+- chore(publish): Fix publish order for `@sentry/types` ([#18429](https://github.com/getsentry/sentry-javascript/pull/18429))
+- ci(deps): bump actions/create-github-app-token from 2.1.4 to 2.2.0 ([#18362](https://github.com/getsentry/sentry-javascript/pull/18362))
+
+</details>
 
 ## 10.29.0
 

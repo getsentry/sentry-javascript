@@ -9,7 +9,7 @@ sentryTest('Logs and returns if isEnabled does not match expected signature', as
   const bundleKey = process.env.PW_BUNDLE || '';
   const hasDebug = !bundleKey.includes('_min');
 
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
+  await page.route(/^https:\/\/dsn\.ingest\.sentry\.io\//, route => {
     return route.fulfill({
       status: 200,
       contentType: 'application/json',
