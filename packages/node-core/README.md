@@ -222,6 +222,7 @@ app.get('/error', (req, res) => {
 ```
 
 **Caveats:**
+
 - Manual isolation prevents scope data leakage between requests
 - However, **distributed tracing will not work correctly** - incoming `sentry-trace` and `baggage` headers won't be automatically extracted and propagated
 - For full distributed tracing support, use Node.js 22+ or the full `@sentry/node` SDK with OpenTelemetry
