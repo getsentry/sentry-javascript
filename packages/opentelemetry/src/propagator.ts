@@ -7,6 +7,7 @@ import {
   baggageHeaderToDynamicSamplingContext,
   debug,
   generateSentryTraceHeader,
+  generateTraceparentHeader,
   getClient,
   getCurrentScope,
   getDynamicSamplingContextFromScope,
@@ -54,7 +55,7 @@ export class SentryPropagator extends W3CBaggagePropagator {
     const activeSpan = trace.getSpan(context);
     const url = activeSpan && getCurrentURL(activeSpan);
 
-    const tracePropagationTargets = getClient()?.getOptions()?.tracePropagationTargets;
+    const { tracePropagationTargets, propagateTraceparent } = getClient()?.getOptions() || {};
     if (!shouldPropagateTraceForUrl(url, tracePropagationTargets, this._urlMatchesTargetsMap)) {
       DEBUG_BUILD &&
         debug.log('[Tracing] Not injecting trace data for url because it does not match tracePropagationTargets:', url);
@@ -83,6 +84,10 @@ export class SentryPropagator extends W3CBaggagePropagator {
         }
         return b;
       }, baggage);
+    }
+
+    if (propagateTraceparent) {
+      setter.set(carrier, 'traceparent', generateTraceparentHeader(traceId, spanId, sampled));
     }
 
     // We also want to avoid setting the default OTEL trace ID, if we get that for whatever reason
