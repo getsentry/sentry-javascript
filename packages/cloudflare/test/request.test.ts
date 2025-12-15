@@ -18,6 +18,13 @@ function addDelayedWaitUntil(context: ExecutionContext) {
   context.waitUntil(new Promise<void>(resolve => setTimeout(() => resolve())));
 }
 
+function createMockExecutionContext(): ExecutionContext {
+  return {
+    waitUntil: vi.fn(),
+    passThroughOnException: vi.fn(),
+  };
+}
+
 describe('withSentry', () => {
   beforeAll(() => {
     setAsyncLocalStorageAsyncContextStrategy();
@@ -46,7 +53,7 @@ describe('withSentry', () => {
       () => new Response('test'),
     );
 
-    expect(waitUntilSpy).toHaveBeenCalledTimes(1);
+    expect(waitUntilSpy).toHaveBeenCalledTimes(3);
     expect(waitUntilSpy).toHaveBeenLastCalledWith(expect.any(Promise));
   });
 
@@ -123,8 +130,10 @@ describe('withSentry', () => {
     const after = flushSpy.mock.calls.length;
     const delta = after - before;
 
-    // Verify that exactly one flush call was made during this test
-    expect(delta).toBe(1);
+    // Verify that two flush calls were made during this test
+    // One for the flush after the request handler is done
+    // and one for the waitUntil promise
+    expect(delta).toBe(2);
   });
 
   describe('scope instrumentation', () => {
@@ -285,12 +294,17 @@ describe('withSentry', () => {
         'sentry-release=2.1.12,sentry-public_key=public,sentry-trace_id=12312012123120121231201212312012,sentry-sample_rate=0.3232',
       );
 
+      let sentryEventTransaction: Event = {};
       let sentryEvent: Event = {};
       await wrapRequestHandler(
         {
           options: {
             ...MOCK_OPTIONS,
             tracesSampleRate: 0,
+            beforeSendTransaction(event) {
+              sentryEventTransaction = event;
+              return null;
+            },
             beforeSend(event) {
               sentryEvent = event;
               return null;
@@ -304,8 +318,20 @@ describe('withSentry', () => {
           return new Response('test');
         },
       );
+
+      // Wait for async span end and transaction capture
+      await new Promise(resolve => setTimeout(resolve, 50));
+
+      expect(sentryEventTransaction.contexts?.trace).toEqual(
+        expect.objectContaining({
+          parent_span_id: '1121201211212012',
+          span_id: expect.stringMatching(/[a-f0-9]{16}/),
+          trace_id: '12312012123120121231201212312012',
+        }),
+      );
+
       expect(sentryEvent.contexts?.trace).toEqual({
-        parent_span_id: '1121201211212012',
+        parent_span_id: sentryEventTransaction.contexts?.trace?.span_id,
         span_id: expect.stringMatching(/[a-f0-9]{16}/),
         trace_id: '12312012123120121231201212312012',
       });
@@ -342,7 +368,25 @@ describe('withSentry', () => {
       await new Promise(resolve => setTimeout(resolve, 50));
 
       expect(sentryEvent.transaction).toEqual('GET /');
-      expect(sentryEvent.spans).toHaveLength(0);
+      expect(sentryEvent.spans).toHaveLength(1);
+      expect(sentryEvent.spans).toEqual([
+        expect.objectContaining({
+          data: expect.any(Object),
+          description: 'fetch',
+          op: 'http.server',
+          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
+          span_id: expect.stringMatching(/[a-f0-9]{16}/),
+          start_timestamp: expect.any(Number),
+          timestamp: expect.any(Number),
+          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+          origin: 'auto.http.cloudflare',
+          status: 'ok',
+        }),
+      ]);
+      expect(sentryEvent.contexts?.trace?.data).toStrictEqual({
+        ...sentryEvent.spans?.[0]?.data,
+        'sentry.sample_rate': 1,
+      });
       expect(sentryEvent.contexts?.trace).toEqual({
         data: {
           'sentry.origin': 'auto.http.cloudflare',
@@ -370,10 +414,3 @@ describe('withSentry', () => {
     });
   });
 });
-
-function createMockExecutionContext(): ExecutionContext {
-  return {
-    waitUntil: vi.fn(),
-    passThroughOnException: vi.fn(),
-  };
-}

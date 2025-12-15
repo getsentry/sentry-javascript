@@ -121,6 +121,7 @@ export function wrapRequestHandler(
             try {
               res = await handler();
               setHttpStatus(rootSpan, res.status);
+              setHttpStatus(fetchSpan, res.status);
 
               // After the handler runs, the span name might have been updated by nested instrumentation
               // (e.g., Remix parameterizing routes). The span should already have the correct name
