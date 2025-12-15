@@ -1,5 +1,6 @@
 import { getAsyncContextStrategy } from '../asyncContext';
-import { attributeValueToTypedAttributeValue, TypedAttributes } from '../attributes';
+import type { TypedAttributes } from '../attributes';
+import { attributeValueToTypedAttributeValue } from '../attributes';
 import { getMainCarrier } from '../carrier';
 import { getCurrentScope } from '../currentScopes';
 import {
@@ -11,7 +12,6 @@ import {
 import type { SentrySpan } from '../tracing/sentrySpan';
 import { SPAN_STATUS_OK, SPAN_STATUS_UNSET } from '../tracing/spanstatus';
 import { getCapturedScopesOnSpan } from '../tracing/utils';
-import type { SerializedAttributes } from '../types-hoist/attributes';
 import type { TraceContext } from '../types-hoist/context';
 import type { SpanLink, SpanLinkJSON } from '../types-hoist/link';
 import type { Span, SpanAttributes, SpanJSON, SpanOrigin, SpanTimeInput, SpanV2JSON } from '../types-hoist/span';
@@ -20,7 +20,6 @@ import { addNonEnumerableProperty } from '../utils/object';
 import { generateSpanId } from '../utils/propagationContext';
 import { timestampInSeconds } from '../utils/time';
 import { generateSentryTraceHeader, generateTraceparentHeader } from '../utils/tracing';
-import { attributeValueToSerializedAttribute } from './attributes';
 import { consoleSandbox } from './debug-logger';
 import { _getSpanForScope } from './spanOnScope';
 
