@@ -2,9 +2,8 @@ import { debug } from '@sentry/core';
 import { DEBUG_BUILD } from './debug-build';
 import type { NetworkMetaWarning } from './types';
 
-// Symbol used by replay integration to store original body on Request objects
-// This must match the symbol used in @sentry-internal/replay-internal
-const ORIGINAL_BODY = Symbol.for('sentry__OriginalBody');
+// Symbol used by e.g. the Replay integration to store original body on Request objects
+export const ORIGINAL_REQ_BODY = Symbol.for('sentry__originalRequestBody');
 
 /**
  * Serializes FormData.
@@ -48,24 +47,26 @@ export function getBodyString(body: unknown, _debug: typeof debug = debug): [str
 
 /**
  * Parses the fetch arguments to extract the request payload.
+ *
+ * In case of a Request object, this function attempts to retrieve the original body by looking for a Sentry-patched symbol.
  */
 export function getFetchRequestArgBody(fetchArgs: unknown[] = []): RequestInit['body'] | undefined {
-  // Check if there's a second argument with options that has a body - this takes precedence
+  // Second argument with body options takes precedence
   if (fetchArgs.length >= 2 && fetchArgs[1] && typeof fetchArgs[1] === 'object' && 'body' in fetchArgs[1]) {
     return (fetchArgs[1] as RequestInit).body;
   }
 
-  // Check if the first argument is a Request object
   if (fetchArgs.length >= 1 && fetchArgs[0] instanceof Request) {
     const request = fetchArgs[0];
-    // Try to get the original body of Request interface if it was stored by replay integration
+    /* The Request interface's body is a ReadableStream, which we cannot directly access.
+       Some integrations (e.g. Replay) patch the Request object to store the original body. */
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    const originalBody = (request as any)[ORIGINAL_BODY];
+    const originalBody = (request as any)[ORIGINAL_REQ_BODY];
     if (originalBody !== undefined) {
       return originalBody;
     }
-    // Fall back to returning undefined (as we don't want to return a ReadableStream)
-    return undefined;
+
+    return undefined; // Fall back to returning undefined (as we don't want to return a ReadableStream)
   }
 
   return undefined;

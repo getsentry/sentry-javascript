@@ -25,8 +25,7 @@ const MEDIA_SELECTORS =
 const DEFAULT_NETWORK_HEADERS = ['content-length', 'content-type', 'accept'];
 
 // Symbol to store the original body on Request objects
-// Using Symbol.for() to create a global symbol that can be accessed from other packages
-const ORIGINAL_BODY = Symbol.for('sentry__OriginalBody');
+const ORIGINAL_BODY = Symbol.for('sentry__originalRequestBody');
 
 let _initialized = false;
 let _isRequestInstrumented = false;
@@ -36,7 +35,7 @@ let _isRequestInstrumented = false;
  * This allows us to retrieve the original body value later, since Request
  * converts string bodies to ReadableStreams.
  */
-export function INTERNAL_instrumentRequestInterface(): void {
+export function _INTERNAL_instrumentRequestInterface(): void {
   if (typeof Request === 'undefined' || _isRequestInstrumented) {
     return;
   }
@@ -44,12 +43,11 @@ export function INTERNAL_instrumentRequestInterface(): void {
   const OriginalRequest = Request;
 
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any,@typescript-eslint/no-unsafe-member-access
     (GLOBAL_OBJ as any).Request = function SentryRequest(input: RequestInfo | URL, init?: RequestInit): Request {
       const request = new OriginalRequest(input, init);
 
-      // Store the original body if it exists
-      if (init && 'body' in init && init.body !== null && init.body !== undefined) {
+      if (init && 'body' in init && init.body != null) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
         (request as any)[ORIGINAL_BODY] = init.body;
       }
@@ -259,7 +257,7 @@ export class Replay implements Integration {
     }
 
     if (this._initialOptions.attachRawBodyFromRequest) {
-      INTERNAL_instrumentRequestInterface();
+      _INTERNAL_instrumentRequestInterface();
     }
 
     this._setup(client);

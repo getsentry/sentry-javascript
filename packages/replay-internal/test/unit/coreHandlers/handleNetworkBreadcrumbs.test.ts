@@ -15,7 +15,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { NETWORK_BODY_MAX_SIZE } from '../../../src/constants';
 import { beforeAddNetworkBreadcrumb } from '../../../src/coreHandlers/handleNetworkBreadcrumbs';
 import type { EventBufferArray } from '../../../src/eventBuffer/EventBufferArray';
-import { INTERNAL_instrumentRequestInterface } from '../../../src/integration';
+import { _INTERNAL_instrumentRequestInterface } from '../../../src/integration';
 import type { ReplayContainer, ReplayNetworkOptions } from '../../../src/types';
 import { BASE_TIMESTAMP } from '../..';
 import { setupReplayContainer } from '../../utils/setupReplayContainer';
@@ -831,7 +831,7 @@ other-header: test`;
         options.networkCaptureBodies = true;
 
         // Simulate what replay integration does when attachRawBodyFromRequest: true
-        INTERNAL_instrumentRequestInterface();
+        _INTERNAL_instrumentRequestInterface();
 
         const request = new Request('https://example.com', {
           method: 'POST',
@@ -905,7 +905,7 @@ other-header: test`;
         options.networkCaptureBodies = true;
 
         // Simulate what replay integration does when attachRawBodyFromRequest: true
-        INTERNAL_instrumentRequestInterface();
+        _INTERNAL_instrumentRequestInterface();
 
         const request = new Request('https://example.com', { method: 'POST', body: 'Original body' });
 
