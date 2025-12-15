@@ -120,7 +120,7 @@ export class SentryPropagator extends W3CBaggagePropagator {
    * @inheritDoc
    */
   public fields(): string[] {
-    return [SENTRY_TRACE_HEADER, SENTRY_BAGGAGE_HEADER];
+    return [SENTRY_TRACE_HEADER, SENTRY_BAGGAGE_HEADER, 'traceparent'];
   }
 }
 
