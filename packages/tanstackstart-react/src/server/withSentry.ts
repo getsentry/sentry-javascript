@@ -1,7 +1,7 @@
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan } from '@sentry/node';
 
 export type ServerEntry = {
-  fetch: (request: Request, opts?: unknown) => Promise<Response> | Response
+  fetch: (request: Request, opts?: unknown) => Promise<Response> | Response;
 };
 
 /**
