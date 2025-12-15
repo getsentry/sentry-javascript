@@ -232,7 +232,9 @@ function isPersistedRequest(payload: unknown): payload is GraphQLPersistedReques
     isObject(payload) &&
     typeof payload.operationName === 'string' &&
     isObject(payload.extensions) &&
-    isObject(payload.extensions.persistedQuery)
+    isObject(payload.extensions.persistedQuery) &&
+    typeof payload.extensions.persistedQuery.sha256Hash === 'string' &&
+    typeof payload.extensions.persistedQuery.version === 'number'
   );
 }
 

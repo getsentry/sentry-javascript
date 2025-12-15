@@ -111,6 +111,44 @@ describe('GraphqlClient', () => {
       expect(getGraphQLRequestPayload(JSON.stringify(requestBody))).toBeUndefined();
     });
 
+    test('should return undefined for persisted operation with incomplete persistedQuery object', () => {
+      const requestBody = {
+        operationName: 'GetUser',
+        variables: { id: '123' },
+        extensions: {
+          persistedQuery: {},
+        },
+      };
+
+      expect(getGraphQLRequestPayload(JSON.stringify(requestBody))).toBeUndefined();
+    });
+
+    test('should return undefined for persisted operation missing sha256Hash', () => {
+      const requestBody = {
+        operationName: 'GetUser',
+        extensions: {
+          persistedQuery: {
+            version: 1,
+          },
+        },
+      };
+
+      expect(getGraphQLRequestPayload(JSON.stringify(requestBody))).toBeUndefined();
+    });
+
+    test('should return undefined for persisted operation missing version', () => {
+      const requestBody = {
+        operationName: 'GetUser',
+        extensions: {
+          persistedQuery: {
+            sha256Hash: 'abc123',
+          },
+        },
+      };
+
+      expect(getGraphQLRequestPayload(JSON.stringify(requestBody))).toBeUndefined();
+    });
+
     test('should return undefined for invalid JSON', () => {
       expect(getGraphQLRequestPayload('not valid json {')).toBeUndefined();
     });
