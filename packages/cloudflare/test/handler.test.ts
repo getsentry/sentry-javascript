@@ -161,7 +161,7 @@ describe('withSentry', () => {
       expect(waitUntil).toBeCalled();
       vi.advanceTimersToNextTimer().runAllTimers();
       await Promise.all(waits);
-      expect(flush).toHaveBeenCalledOnce();
+      expect(flush).toHaveBeenCalledTimes(2);
     });
   });
 

@@ -137,23 +137,34 @@ test.only('waitUntil', async ({ baseURL }) => {
   // Transaction trace context (root span - no status/response code, those are on the fetch child span)
   expect(transactionEvent.contexts?.trace).toMatchObject({
     op: 'http.server',
-    status: 'ok',
     origin: 'auto.http.cloudflare',
     data: expect.objectContaining({
       'sentry.op': 'http.server',
       'sentry.origin': 'auto.http.cloudflare',
-      'http.request.method': 'GET',
       'url.path': '/waitUntil',
-      'http.response.status_code': 200,
     }),
   });
 
+  expect(transactionEvent.contexts?.trace).not.toEqual(
+    expect.objectContaining({
+      data: expect.objectContaining({
+        'http.request.method': 'GET',
+        'http.response.status_code': 200,
+      }),
+    }),
+  );
+
   expect(transactionEvent.spans).toEqual([
     expect.objectContaining({
+      status: 'ok',
       description: 'fetch',
       op: 'http.server',
       origin: 'auto.http.cloudflare',
       parent_span_id: transactionEvent.contexts?.trace?.span_id,
+      data: expect.objectContaining({
+        'http.request.method': 'GET',
+        'http.response.status_code': 200,
+      }),
     }),
     expect.objectContaining({
       description: 'waitUntil',
