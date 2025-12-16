@@ -18,31 +18,6 @@ import { createLogEnvelope } from './envelope';
 const MAX_LOG_BUFFER_SIZE = 100;
 
 /**
- * Converts a log attribute to a serialized log attribute.
- *
- * @param key - The key of the log attribute.
- * @param value - The value of the log attribute.
- * @returns The serialized log attribute.
- */
-export function attributeValueToTypedAttributeValueWithFallback(value: unknown): TypedAttributeValue {
-  const typedAttributeValue = attributeValueToTypedAttributeValue(value);
-  if (typedAttributeValue) {
-    return typedAttributeValue;
-  }
-
-  let stringValue = '';
-  try {
-    stringValue = JSON.stringify(value) ?? '';
-  } catch {
-    // Do nothing
-  }
-  return {
-    value: stringValue,
-    type: 'string',
-  };
-}
-
-/**
  * Sets a log attribute if the value exists and the attribute key is not already present.
  *
  * @param logAttributes - The log attributes object to modify.
@@ -198,7 +173,7 @@ export function _INTERNAL_captureLog(
       ),
       ...Object.keys(logAttributes).reduce(
         (acc, key) => {
-          acc[key] = attributeValueToTypedAttributeValueWithFallback(logAttributes[key]);
+          acc[key] = attributeValueToTypedAttributeValue(logAttributes[key], true);
           return acc;
         },
         {} as Record<string, TypedAttributeValue>,

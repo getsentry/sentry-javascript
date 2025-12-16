@@ -61,6 +61,7 @@ export function isAttributeObject(maybeObj: unknown): maybeObj is AttributeObjec
   );
 }
 
+export function attributeValueToTypedAttributeValue(rawValue: unknown, useFallback?: true): TypedAttributeValue;
 /**
  * Converts an attribute value to a typed attribute value.
  *
@@ -68,14 +69,39 @@ export function isAttributeObject(maybeObj: unknown): maybeObj is AttributeObjec
  * All values besides the supported attribute types (see {@link AttributeTypeMap}) are stringified to a string attribute value.
  *
  * @param value - The value of the passed attribute.
+ * @param useFallback - If true, unsupported values will be stringified to a string attribute value.
+ *                      Defaults to false. In this case, `undefined` is returned for unsupported values.
  * @returns The typed attribute.
  */
-export function attributeValueToTypedAttributeValue(rawValue: unknown): TypedAttributeValue | void {
+export function attributeValueToTypedAttributeValue(
+  rawValue: unknown,
+  useFallback = false,
+): TypedAttributeValue | void {
   const { value, unit } = isAttributeObject(rawValue) ? rawValue : { value: rawValue, unit: undefined };
   const attributeValue = getTypedAttributeValue(value);
+  const checkedUnit = unit && typeof unit === 'string' ? { unit } : {};
   if (attributeValue) {
-    return { ...attributeValue, ...(unit && typeof unit === 'string' ? { unit } : {}) };
+    return { ...attributeValue, ...checkedUnit };
   }
+
+  if (!useFallback) {
+    return;
+  }
+
+  // Fallback: stringify the value
+  // TODO(v11): be smarter here and use String constructor if stringify fails
+  // (this is a breaking change for already existing attribute values)
+  let stringValue = '';
+  try {
+    stringValue = JSON.stringify(value) ?? '';
+  } catch {
+    // Do nothing
+  }
+  return {
+    value: stringValue,
+    type: 'string',
+    ...checkedUnit,
+  };
 }
 
 /**

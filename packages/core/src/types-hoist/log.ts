@@ -1,4 +1,4 @@
-import type { TypedAttributes } from '../attributes';
+import type { Attributes } from '../attributes';
 import type { ParameterizedString } from './parameterize';
 
 export type LogSeverityLevel = 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal';
@@ -55,7 +55,7 @@ export interface SerializedLog {
   /**
    * Arbitrary structured data that stores information about the log - e.g., userId: 100.
    */
-  attributes?: TypedAttributes;
+  attributes?: Attributes;
 
   /**
    * The severity number.

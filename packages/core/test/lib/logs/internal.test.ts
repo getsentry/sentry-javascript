@@ -326,9 +326,7 @@ describe('_INTERNAL_captureLog', () => {
       message: 'original message',
       attributes: {
         original: true,
-        // attributes here still have the same form as originally set on the scope or log
-        scope_1: 'attribute_value',
-        scope_2: { value: 38, unit: 'gigabytes' },
+        // scope attributes are not included in beforeSendLog - they're only added during serialization
       },
     });
 
