@@ -40,8 +40,7 @@ test('Sends server-side transactions to Sentry', async ({ baseURL }) => {
           },
           description: 'test-span',
           origin: 'manual',
-          // Note: parent_span_id may be the root span or an intermediate "executing api route" span
-          // depending on Next.js instrumentation, so we just check it exists
+          // Won't be the trace span id because we don't wrap the Next.js span in the wrapper
           parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
           span_id: expect.stringMatching(/[a-f0-9]{16}/),
           start_timestamp: expect.any(Number),
