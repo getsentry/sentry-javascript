@@ -245,6 +245,21 @@ describe('attributeValueToTypedAttributeValue', () => {
         });
       });
 
+      it('returns empty string if JSON.stringify fails', () => {
+        const result = attributeValueToTypedAttributeValue(
+          {
+            toJSON: () => {
+              throw new Error('test');
+            },
+          },
+          true,
+        );
+        expect(result).toStrictEqual({
+          value: '',
+          type: 'string',
+        });
+      });
+
       it('stringifies non-primitive attribute object values', () => {
         const result = attributeValueToTypedAttributeValue({ value: { nested: 'object' } }, true);
         expect(result).toStrictEqual({
