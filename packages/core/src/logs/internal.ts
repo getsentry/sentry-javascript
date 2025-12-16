@@ -1,4 +1,5 @@
-import { attributeValueToTypedAttributeValue, TypedAttributeValue } from '../attributes';
+import type { TypedAttributeValue } from '../attributes';
+import { attributeValueToTypedAttributeValue } from '../attributes';
 import { getGlobalSingleton } from '../carrier';
 import type { Client } from '../client';
 import { getClient, getCurrentScope, getGlobalScope, getIsolationScope } from '../currentScopes';
