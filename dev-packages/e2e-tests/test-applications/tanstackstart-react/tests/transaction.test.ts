@@ -22,7 +22,7 @@ test('Sends a server function transaction with auto-instrumentation', async ({ p
   expect(transactionEvent?.spans).toEqual(
     expect.arrayContaining([
       expect.objectContaining({
-        description: expect.stringContaining('/_serverFn/'),
+        description: expect.stringContaining('GET /_serverFn/'),
         op: 'function.tanstackstart',
         origin: 'auto.function.tanstackstart.server',
         data: {
@@ -59,7 +59,7 @@ test('Sends a server function transaction for a nested server function only if i
   expect(transactionEvent?.spans).toEqual(
     expect.arrayContaining([
       expect.objectContaining({
-        description: expect.stringContaining('/_serverFn/'),
+        description: expect.stringContaining('GET /_serverFn/'),
         op: 'function.tanstackstart',
         origin: 'auto.function.tanstackstart.server',
         data: {

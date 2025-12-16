@@ -33,14 +33,16 @@ export function withSentry(serverEntry: ServerEntry): ServerEntry {
     serverEntry.fetch = new Proxy<typeof serverEntry.fetch>(serverEntry.fetch, {
       apply: (target, thisArg, args) => {
         const request: Request = args[0];
+        const url = new URL(request.url);
+        const method = request.method || 'GET';
 
         // instrument server functions
-        if (request.url?.includes('_serverFn') || request.url?.includes('createServerFn')) {
+        if (url.pathname.includes('_serverFn') || url.pathname.includes('createServerFn')) {
           const op = 'function.tanstackstart';
           return startSpan(
             {
               op: op,
-              name: request.url,
+              name: `${method} ${url.pathname}`,
               attributes: {
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.tanstackstart.server',
                 [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op,
