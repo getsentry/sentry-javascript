@@ -1,14 +1,5 @@
-import {
-  captureException,
-  debug,
-  getActiveSpan,
-  getIsolationScope,
-  getRootSpan,
-  httpRequestToRequestData,
-  objectify,
-} from '@sentry/core';
+import { captureException, debug, objectify } from '@sentry/core';
 import type { NextApiRequest } from 'next';
-import { TRANSACTION_ATTR_SENTRY_ROUTE_BACKFILL } from '../span-attributes-with-logic-attached';
 import type { AugmentedNextApiResponse, NextApiHandler } from '../types';
 import { flushSafelyWithTimeout } from '../utils/responseEnd';
 
@@ -51,24 +42,6 @@ export function wrapApiHandlerWithSentry(apiHandler: NextApiHandler, parameteriz
         }
 
         req.__withSentry_applied__ = true;
-
-        // Set transaction name on isolation scope to ensure parameterized routes are used
-        // The HTTP server integration sets it on isolation scope, so we need to match that
-        const method = req.method || 'GET';
-        const isolationScope = getIsolationScope();
-        isolationScope.setTransactionName(`${method} ${parameterizedRoute}`);
-        // Set SDK processing metadata
-        isolationScope.setSDKProcessingMetadata({
-          normalizedRequest: httpRequestToRequestData(req),
-        });
-
-        // Set the route backfill attribute on the root span so that the transaction name
-        // gets updated to use the parameterized route during event processing
-        const activeSpan = getActiveSpan();
-        if (activeSpan) {
-          const rootSpan = getRootSpan(activeSpan);
-          rootSpan.setAttribute(TRANSACTION_ATTR_SENTRY_ROUTE_BACKFILL, parameterizedRoute);
-        }
 
         return await wrappingTarget.apply(thisArg, args);
       } catch (e) {
