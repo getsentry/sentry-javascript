@@ -11,7 +11,19 @@ test('Should record transactions for mcp handlers', async ({ baseURL }) => {
     version: '1.0.0',
   });
 
+  const initializeTransactionPromise = waitForTransaction('node-express-v5', transactionEvent => {
+    return transactionEvent.transaction === 'initialize';
+  });
+
   await client.connect(transport);
+
+  await test.step('initialize handshake', async () => {
+    const initializeTransaction = await initializeTransactionPromise;
+    expect(initializeTransaction).toBeDefined();
+    expect(initializeTransaction.contexts?.trace?.data?.['mcp.method.name']).toEqual('initialize');
+    expect(initializeTransaction.contexts?.trace?.data?.['mcp.client.name']).toEqual('test-client');
+    expect(initializeTransaction.contexts?.trace?.data?.['mcp.server.name']).toEqual('Echo');
+  });
 
   await test.step('tool handler', async () => {
     const postTransactionPromise = waitForTransaction('node-express-v5', transactionEvent => {
