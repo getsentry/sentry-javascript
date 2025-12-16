@@ -270,6 +270,7 @@ export {
   generateSentryTraceHeader,
   propagationContextFromHeaders,
   shouldContinueTrace,
+  generateTraceparentHeader,
 } from './utils/tracing';
 export { getSDKSource, isBrowserBundle } from './utils/env';
 export type { SdkSource } from './utils/env';
