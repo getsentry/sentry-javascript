@@ -155,6 +155,16 @@ export function _INTERNAL_captureLog(
 
   const { level, message, attributes: logAttributes = {}, severityNumber } = log;
 
+  const serializedScopeAttributes = Object.fromEntries(
+    Object.entries(scopeAttributes)
+      .map(([key, value]) => [key, attributeValueToTypedAttributeValue(value)])
+      .filter(([_, value]) => value != null),
+  );
+
+  const serializedLogAttributes = Object.fromEntries(
+    Object.entries(logAttributes).map(([key, value]) => [key, attributeValueToTypedAttributeValue(value, true)]),
+  );
+
   const serializedLog: SerializedLog = {
     timestamp: timestampInSeconds(),
     level,
@@ -162,23 +172,8 @@ export function _INTERNAL_captureLog(
     trace_id: traceContext?.trace_id,
     severity_number: severityNumber ?? SEVERITY_TEXT_TO_SEVERITY_NUMBER[level],
     attributes: {
-      ...Object.keys(scopeAttributes).reduce(
-        (acc, key) => {
-          const attributeValue = attributeValueToTypedAttributeValue(scopeAttributes[key]);
-          if (attributeValue) {
-            acc[key] = attributeValue;
-          }
-          return acc;
-        },
-        {} as Record<string, TypedAttributeValue>,
-      ),
-      ...Object.keys(logAttributes).reduce(
-        (acc, key) => {
-          acc[key] = attributeValueToTypedAttributeValue(logAttributes[key], true);
-          return acc;
-        },
-        {} as Record<string, TypedAttributeValue>,
-      ),
+      ...serializedScopeAttributes,
+      ...serializedLogAttributes,
     },
   };
 
