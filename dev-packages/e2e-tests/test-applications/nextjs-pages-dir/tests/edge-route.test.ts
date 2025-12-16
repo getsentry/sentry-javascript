@@ -54,8 +54,12 @@ test('Faulty edge routes', async ({ request }) => {
 
   test.step('should have scope isolation', () => {
     expect(edgerouteTransaction.tags?.['my-isolated-tag']).toBe(true);
-    expect(edgerouteTransaction.tags?.['my-global-scope-isolated-tag']).not.toBeDefined();
+    // No longer valid since we removed the global scope isolation from the wrapper
+    // expect(edgerouteTransaction.tags?.['my-global-scope-isolated-tag']).not.toBeDefined();
+    expect(edgerouteTransaction.tags?.['my-global-scope-isolated-tag']).toBeDefined();
     expect(errorEvent.tags?.['my-isolated-tag']).toBe(true);
-    expect(errorEvent.tags?.['my-global-scope-isolated-tag']).not.toBeDefined();
+    // No longer valid since we removed the global scope isolation from the wrapper
+    // expect(errorEvent.tags?.['my-global-scope-isolated-tag']).not.toBeDefined();
+    expect(errorEvent.tags?.['my-global-scope-isolated-tag']).toBeDefined();
   });
 });

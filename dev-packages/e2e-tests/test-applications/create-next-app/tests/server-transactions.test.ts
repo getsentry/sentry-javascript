@@ -22,32 +22,33 @@ test('Sends server-side transactions to Sentry', async ({ baseURL }) => {
           span_id: expect.stringMatching(/[a-f0-9]{16}/),
           trace_id: expect.stringMatching(/[a-f0-9]{32}/),
           op: 'http.server',
-          origin: 'auto.http.nextjs',
+          origin: 'auto',
           data: expect.objectContaining({
             'http.response.status_code': 200,
             'sentry.op': 'http.server',
-            'sentry.origin': 'auto.http.nextjs',
+            'sentry.origin': 'auto',
             'sentry.sample_rate': 1,
             'sentry.source': 'route',
           }),
           status: 'ok',
         },
       }),
-      spans: [
-        {
+      spans: expect.arrayContaining([
+        expect.objectContaining({
           data: {
             'sentry.origin': 'manual',
           },
           description: 'test-span',
           origin: 'manual',
-          parent_span_id: transactionEvent.contexts?.trace?.span_id,
+          // Won't be the trace span id because we don't wrap the Next.js span in the wrapper
+          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
           span_id: expect.stringMatching(/[a-f0-9]{16}/),
           start_timestamp: expect.any(Number),
           status: 'ok',
           timestamp: expect.any(Number),
           trace_id: transactionEvent.contexts?.trace?.trace_id,
-        },
-      ],
+        }),
+      ]),
       request: {
         headers: expect.any(Object),
         method: 'GET',
