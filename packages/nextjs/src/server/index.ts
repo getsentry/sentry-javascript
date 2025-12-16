@@ -160,9 +160,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
     }
   });
 
-  client?.on('spanStart', span => {
-    handleOnSpanStart(span);
-  });
+  client?.on('spanStart', handleOnSpanStart);
 
   getGlobalScope().addEventProcessor(
     Object.assign(
