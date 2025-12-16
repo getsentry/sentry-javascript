@@ -8,16 +8,21 @@
 import { getIsolationScope, withIsolationScope } from '../../currentScopes';
 import { startInactiveSpan, withActiveSpan } from '../../tracing';
 import { fill } from '../../utils/object';
+import { MCP_PROTOCOL_VERSION_ATTRIBUTE } from './attributes';
 import { cleanupPendingSpansForTransport, completeSpanWithResults, storeSpanForRequest } from './correlation';
 import { captureError } from './errorCapture';
-import { extractSessionDataFromInitializeRequest, extractSessionDataFromInitializeResponse } from './sessionExtraction';
+import {
+  buildClientAttributesFromInfo,
+  extractSessionDataFromInitializeRequest,
+  extractSessionDataFromInitializeResponse,
+} from './sessionExtraction';
 import {
   cleanupSessionDataForTransport,
   storeSessionDataForTransport,
   updateSessionDataForTransport,
 } from './sessionManagement';
 import { buildMcpServerSpanConfig, createMcpNotificationSpan, createMcpOutgoingNotificationSpan } from './spans';
-import type { ExtraHandlerData, MCPTransport } from './types';
+import type { ExtraHandlerData, MCPTransport, SessionData } from './types';
 import { isJsonRpcNotification, isJsonRpcRequest, isJsonRpcResponse, isValidContentItem } from './validation';
 
 /**
@@ -31,10 +36,13 @@ export function wrapTransportOnMessage(transport: MCPTransport): void {
     fill(transport, 'onmessage', originalOnMessage => {
       return function (this: MCPTransport, message: unknown, extra?: unknown) {
         if (isJsonRpcRequest(message)) {
-          if (message.method === 'initialize') {
+          const isInitialize = message.method === 'initialize';
+          let initSessionData: SessionData | undefined;
+
+          if (isInitialize) {
             try {
-              const sessionData = extractSessionDataFromInitializeRequest(message);
-              storeSessionDataForTransport(this, sessionData);
+              initSessionData = extractSessionDataFromInitializeRequest(message);
+              storeSessionDataForTransport(this, initSessionData);
             } catch {
               // noop
             }
@@ -45,6 +53,16 @@ export function wrapTransportOnMessage(transport: MCPTransport): void {
           return withIsolationScope(isolationScope, () => {
             const spanConfig = buildMcpServerSpanConfig(message, this, extra as ExtraHandlerData);
             const span = startInactiveSpan(spanConfig);
+
+            // For initialize requests, add client info directly to span (works even for stateless transports)
+            if (isInitialize && initSessionData) {
+              span.setAttributes({
+                ...buildClientAttributesFromInfo(initSessionData.clientInfo),
+                ...(initSessionData.protocolVersion && {
+                  [MCP_PROTOCOL_VERSION_ATTRIBUTE]: initSessionData.protocolVersion,
+                }),
+              });
+            }
 
             storeSpanForRequest(this, message.id, span, message.method);
 
