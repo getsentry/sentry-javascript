@@ -1,4 +1,4 @@
-import { captureException, getCurrentScope, handleCallbackErrors } from '@sentry/core';
+import { captureException, getIsolationScope, handleCallbackErrors } from '@sentry/core';
 import { flushSafelyWithTimeout, waitUntil } from '../common/utils/responseEnd';
 import type { EdgeRouteHandler } from '../edge/types';
 
@@ -13,6 +13,7 @@ export function wrapMiddlewareWithSentry<H extends EdgeRouteHandler>(
 ): (...params: Parameters<H>) => Promise<ReturnType<H>> {
   return new Proxy(middleware, {
     apply: async (wrappingTarget, thisArg, args: Parameters<H>) => {
+      const isolationScope = getIsolationScope();
       const tunnelRoute =
         '_sentryRewritesTunnelPath' in globalThis
           ? (globalThis as Record<string, unknown>)._sentryRewritesTunnelPath
@@ -40,13 +41,11 @@ export function wrapMiddlewareWithSentry<H extends EdgeRouteHandler>(
         }
       }
 
-      const req: unknown = args[0];
-      const spanName = req instanceof Request ? `middleware ${req.method}` : 'middleware';
-      getCurrentScope().setTransactionName(spanName);
-
       return handleCallbackErrors(
         () => wrappingTarget.apply(thisArg, args),
         error => {
+          const req: unknown = args[0];
+          isolationScope.setTransactionName(req instanceof Request ? `middleware ${req.method}` : 'middleware');
           captureException(error, {
             mechanism: {
               type: 'auto.function.nextjs.wrap_middleware',
