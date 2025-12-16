@@ -42,7 +42,7 @@ export function withSentry(serverEntry: ServerEntry): ServerEntry {
               op: op,
               name: request.url,
               attributes: {
-                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.tanstackstart.serverFn',
+                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.tanstackstart.server',
                 [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op,
               },
             },

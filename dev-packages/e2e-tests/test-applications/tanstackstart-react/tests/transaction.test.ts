@@ -24,11 +24,12 @@ test('Sends a server function transaction with auto-instrumentation', async ({ p
       expect.objectContaining({
         description: expect.stringContaining('/_serverFn/'),
         op: 'function.tanstackstart',
-        origin: 'auto.function.tanstackstart.serverFn',
+        origin: 'auto.function.tanstackstart.server',
         data: {
           'sentry.op': 'function.tanstackstart',
-          'sentry.origin': 'auto.function.tanstackstart.serverFn',
+          'sentry.origin': 'auto.function.tanstackstart.server',
         },
+        status: 'ok',
       }),
     ]),
   );
@@ -60,7 +61,11 @@ test('Sends a server function transaction for a nested server function only if i
       expect.objectContaining({
         description: expect.stringContaining('/_serverFn/'),
         op: 'function.tanstackstart',
-        origin: 'auto.function.tanstackstart.serverFn',
+        origin: 'auto.function.tanstackstart.server',
+        data: {
+          'sentry.op': 'function.tanstackstart',
+          'sentry.origin': 'auto.function.tanstackstart.server',
+        },
         status: 'ok',
       }),
     ]),
@@ -80,7 +85,7 @@ test('Sends a server function transaction for a nested server function only if i
   // Verify that the auto span is the parent of the nested span
   const autoSpan = transactionEvent?.spans?.find(
     (span: { op?: string; origin?: string }) =>
-      span.op === 'function.tanstackstart' && span.origin === 'auto.function.tanstackstart.serverFn',
+      span.op === 'function.tanstackstart' && span.origin === 'auto.function.tanstackstart.server',
   );
   const nestedSpan = transactionEvent?.spans?.find(
     (span: { description?: string; origin?: string }) =>
