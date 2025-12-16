@@ -1536,7 +1536,7 @@ function _validateBeforeSendResult(
 /**
  * Process the matching `beforeSendXXX` callback.
  */
-// eslint-disable-next-line complexity
+
 function processBeforeSend(
   client: Client,
   options: ClientOptions,
