@@ -75,6 +75,10 @@ export class StreamingSpanExporter implements ISentrySpanExporter {
         this._debounceFlushInterval();
       }
     });
+
+    this._client.on('flush', () => {
+      this.flush();
+    });
   }
 
   /**
