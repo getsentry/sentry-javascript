@@ -20,6 +20,7 @@ test('Should record transactions for mcp handlers', async ({ baseURL }) => {
   await test.step('initialize handshake', async () => {
     const initializeTransaction = await initializeTransactionPromise;
     expect(initializeTransaction).toBeDefined();
+    expect(initializeTransaction.contexts?.trace?.op).toEqual('mcp.server');
     expect(initializeTransaction.contexts?.trace?.data?.['mcp.method.name']).toEqual('initialize');
     expect(initializeTransaction.contexts?.trace?.data?.['mcp.client.name']).toEqual('test-client');
     expect(initializeTransaction.contexts?.trace?.data?.['mcp.server.name']).toEqual('Echo');
