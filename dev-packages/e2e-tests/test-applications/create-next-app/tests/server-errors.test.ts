@@ -24,8 +24,10 @@ test('Sends a server-side exception to Sentry', async ({ baseURL }) => {
 
   expect(errorEvent.transaction).toEqual('GET /api/error');
 
-  expect(errorEvent.contexts?.trace).toMatchObject({
+  expect(errorEvent.contexts?.trace).toEqual({
     trace_id: expect.stringMatching(/[a-f0-9]{32}/),
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
+    // Will be present since we no longer drop Next.js spans in the wrapper
+    parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
   });
 });
