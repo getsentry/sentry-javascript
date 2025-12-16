@@ -12,10 +12,10 @@ describe('attributeValueToTypedAttributeValue', () => {
         });
       });
 
-      it('converts an integer number value to a typed attribute value', () => {
-        const result = attributeValueToTypedAttributeValue(42);
+      it.each([42, 42.0])('converts an integer number value to a typed attribute value (%s)', value => {
+        const result = attributeValueToTypedAttributeValue(value);
         expect(result).toStrictEqual({
-          value: 42,
+          value: value,
           type: 'integer',
         });
       });
