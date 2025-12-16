@@ -1,5 +1,4 @@
-import type { TypedAttributeValue } from '../attributes';
-import { attributeValueToTypedAttributeValue } from '../attributes';
+import { attributeValueToTypedAttributeValue, TypedAttributeValue } from '../attributes';
 import { getGlobalSingleton } from '../carrier';
 import type { Client } from '../client';
 import { getClient, getCurrentScope, getGlobalScope, getIsolationScope } from '../currentScopes';
@@ -17,6 +16,31 @@ import { SEVERITY_TEXT_TO_SEVERITY_NUMBER } from './constants';
 import { createLogEnvelope } from './envelope';
 
 const MAX_LOG_BUFFER_SIZE = 100;
+
+/**
+ * Converts a log attribute to a serialized log attribute.
+ *
+ * @param key - The key of the log attribute.
+ * @param value - The value of the log attribute.
+ * @returns The serialized log attribute.
+ */
+export function attributeValueToTypedAttributeValueWithFallback(value: unknown): TypedAttributeValue {
+  const typedAttributeValue = attributeValueToTypedAttributeValue(value);
+  if (typedAttributeValue) {
+    return typedAttributeValue;
+  }
+
+  let stringValue = '';
+  try {
+    stringValue = JSON.stringify(value) ?? '';
+  } catch {
+    // Do nothing
+  }
+  return {
+    value: stringValue,
+    type: 'string',
+  };
+}
 
 /**
  * Sets a log attribute if the value exists and the attribute key is not already present.
@@ -98,7 +122,7 @@ export function _INTERNAL_captureLog(
 
   const {
     user: { id, email, username },
-    attributes: scopeAttributes,
+    attributes: scopeAttributes = {},
   } = getMergedScopeData(currentScope);
   setLogAttribute(processedLogAttributes, 'user.id', id, false);
   setLogAttribute(processedLogAttributes, 'user.email', email, false);
@@ -141,7 +165,7 @@ export function _INTERNAL_captureLog(
   // Add the parent span ID to the log attributes for trace context
   setLogAttribute(processedLogAttributes, 'sentry.trace.parent_span_id', span?.spanContext().spanId);
 
-  const processedLog = { ...beforeLog, attributes: { ...scopeAttributes, ...processedLogAttributes } };
+  const processedLog = { ...beforeLog, attributes: processedLogAttributes };
 
   client.emit('beforeCaptureLog', processedLog);
 
@@ -153,7 +177,7 @@ export function _INTERNAL_captureLog(
     return;
   }
 
-  const { level, message, attributes = {}, severityNumber } = log;
+  const { level, message, attributes: logAttributes = {}, severityNumber } = log;
 
   const serializedLog: SerializedLog = {
     timestamp: timestampInSeconds(),
@@ -161,16 +185,25 @@ export function _INTERNAL_captureLog(
     body: message,
     trace_id: traceContext?.trace_id,
     severity_number: severityNumber ?? SEVERITY_TEXT_TO_SEVERITY_NUMBER[level],
-    attributes: Object.keys(attributes).reduce(
-      (acc, key) => {
-        const typedAttributeValue = attributeValueToTypedAttributeValue(attributes[key]);
-        if (typedAttributeValue) {
-          acc[key] = typedAttributeValue;
-        }
-        return acc;
-      },
-      {} as Record<string, TypedAttributeValue>,
-    ),
+    attributes: {
+      ...Object.keys(scopeAttributes).reduce(
+        (acc, key) => {
+          const attributeValue = attributeValueToTypedAttributeValue(scopeAttributes[key]);
+          if (attributeValue) {
+            acc[key] = attributeValue;
+          }
+          return acc;
+        },
+        {} as Record<string, TypedAttributeValue>,
+      ),
+      ...Object.keys(logAttributes).reduce(
+        (acc, key) => {
+          acc[key] = attributeValueToTypedAttributeValueWithFallback(logAttributes[key]);
+          return acc;
+        },
+        {} as Record<string, TypedAttributeValue>,
+      ),
+    },
   };
 
   captureSerializedLog(client, serializedLog);
