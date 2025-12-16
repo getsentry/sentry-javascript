@@ -25,12 +25,12 @@ const commonAttributes: SerializedLog['attributes'] = {
   },
 };
 
-describe('metrics', () => {
+describe('logs', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
 
-  test('should capture all metric types', async () => {
+  test('captures logs with scope and log attributes', async () => {
     const runner = createRunner(__dirname, 'scenario.ts')
       .expect({
         log: {

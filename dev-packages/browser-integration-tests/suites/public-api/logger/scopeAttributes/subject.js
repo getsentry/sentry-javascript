@@ -3,6 +3,9 @@ Sentry.logger.info('log_before_any_scope', { log_attr: 'log_attr_1' });
 
 Sentry.getGlobalScope().setAttributes({ global_scope_attr: true });
 
+// this attribute will not be sent for now
+Sentry.getGlobalScope().setAttribute('array_attr', [1, 2, 3]);
+
 // global scope, log attribute
 Sentry.logger.info('log_after_global_scope', { log_attr: 'log_attr_2' });
 

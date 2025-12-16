@@ -62,11 +62,13 @@ export function isAttributeObject(maybeObj: unknown): maybeObj is AttributeObjec
 }
 
 export function attributeValueToTypedAttributeValue(rawValue: unknown, useFallback?: true): TypedAttributeValue;
+
 /**
  * Converts an attribute value to a typed attribute value.
  *
- * Does not allow mixed arrays. In case of a mixed array, the value is stringified and the type is 'string'.
- * All values besides the supported attribute types (see {@link AttributeTypeMap}) are stringified to a string attribute value.
+ * For now, we intentionally only support primitive values and attribute objects with primitive values.
+ * If @param useFallback is true, we stringify non-primitive values to a string attribute value. Otherwise
+ * we return `undefined` for unsupported values.
  *
  * @param value - The value of the passed attribute.
  * @param useFallback - If true, unsupported values will be stringified to a string attribute value.
