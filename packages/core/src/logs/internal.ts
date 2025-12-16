@@ -1,4 +1,3 @@
-import type { TypedAttributeValue } from '../attributes';
 import { attributeValueToTypedAttributeValue } from '../attributes';
 import { getGlobalSingleton } from '../carrier';
 import type { Client } from '../client';
@@ -100,6 +99,7 @@ export function _INTERNAL_captureLog(
     user: { id, email, username },
     attributes: scopeAttributes = {},
   } = getMergedScopeData(currentScope);
+
   setLogAttribute(processedLogAttributes, 'user.id', id, false);
   setLogAttribute(processedLogAttributes, 'user.email', email, false);
   setLogAttribute(processedLogAttributes, 'user.name', username, false);
@@ -158,7 +158,7 @@ export function _INTERNAL_captureLog(
   const serializedScopeAttributes = Object.fromEntries(
     Object.entries(scopeAttributes)
       .map(([key, value]) => [key, attributeValueToTypedAttributeValue(value)])
-      .filter(([_, value]) => value != null),
+      .filter(([, value]) => value != null),
   );
 
   const serializedLogAttributes = Object.fromEntries(
