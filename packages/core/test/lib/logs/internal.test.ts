@@ -178,11 +178,12 @@ describe('_INTERNAL_captureLog', () => {
       scope.setClient(client);
 
       scope.setAttribute('scope_1', 'attribute_value');
-      scope.setAttribute('scope_2', { value: 38, unit: 'gigabytes' });
+      scope.setAttribute('scope_2', { value: 38, unit: 'gigabyte' });
       scope.setAttributes({
         scope_3: true,
+        // these are invalid since for now we don't support arrays
         scope_4: [1, 2, 3],
-        scope_5: { value: [true, false, true], unit: 's' },
+        scope_5: { value: [true, false, true], unit: 'second' },
       });
 
       _INTERNAL_captureLog(
@@ -196,7 +197,7 @@ describe('_INTERNAL_captureLog', () => {
 
       const logAttributes = _INTERNAL_getLogBuffer(client)?.[0]?.attributes;
 
-      expect(logAttributes).toEqual({
+      expect(logAttributes).toStrictEqual({
         userId: {
           value: '123',
           type: 'string',
@@ -211,21 +212,12 @@ describe('_INTERNAL_captureLog', () => {
         },
         scope_2: {
           type: 'integer',
-          unit: 'gigabytes',
+          unit: 'gigabyte',
           value: 38,
         },
         scope_3: {
           type: 'boolean',
           value: true,
-        },
-        scope_4: {
-          type: 'integer[]',
-          value: [1, 2, 3],
-        },
-        scope_5: {
-          type: 'boolean[]',
-          value: [true, false, true],
-          unit: 's',
         },
       });
     });

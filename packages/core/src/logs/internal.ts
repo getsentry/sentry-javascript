@@ -163,7 +163,10 @@ export function _INTERNAL_captureLog(
     severity_number: severityNumber ?? SEVERITY_TEXT_TO_SEVERITY_NUMBER[level],
     attributes: Object.keys(attributes).reduce(
       (acc, key) => {
-        acc[key] = attributeValueToTypedAttributeValue(attributes[key]);
+        const typedAttributeValue = attributeValueToTypedAttributeValue(attributes[key]);
+        if (typedAttributeValue) {
+          acc[key] = typedAttributeValue;
+        }
         return acc;
       },
       {} as Record<string, TypedAttributeValue>,

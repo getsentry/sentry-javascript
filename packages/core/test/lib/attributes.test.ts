@@ -37,41 +37,21 @@ describe('attributeValueToTypedAttributeValue', () => {
   });
 
   describe('arrays', () => {
-    it('converts an array of strings to a typed attribute value', () => {
-      const result = attributeValueToTypedAttributeValue(['foo', 'bar']);
-      expect(result).toStrictEqual({
-        value: ['foo', 'bar'],
-        type: 'string[]',
-      });
-    });
-
-    it('converts an array of integer numbers to a typed attribute value', () => {
-      const result = attributeValueToTypedAttributeValue([1, 2, 3]);
-      expect(result).toStrictEqual({
-        value: [1, 2, 3],
-        type: 'integer[]',
-      });
-    });
-
-    it('converts an array of double numbers to a typed attribute value', () => {
-      const result = attributeValueToTypedAttributeValue([1.1, 2.2, 3.3]);
-      expect(result).toStrictEqual({
-        value: [1.1, 2.2, 3.3],
-        type: 'double[]',
-      });
-    });
-
-    it('converts an array of booleans to a typed attribute value', () => {
-      const result = attributeValueToTypedAttributeValue([true, false, true]);
-      expect(result).toStrictEqual({
-        value: [true, false, true],
-        type: 'boolean[]',
-      });
+    it.each([
+      ['foo', 'bar'],
+      [1, 2, 3],
+      [true, false, true],
+      [1, 'foo', true],
+      { foo: 'bar' },
+      () => 'test',
+      Symbol('test'),
+    ])('returns undefined for none-primitive values (%s)', value => {
+      const result = attributeValueToTypedAttributeValue(value);
+      expect(result).toBeUndefined();
     });
   });
 
   describe('attribute objects without units', () => {
-    // Note: These tests only test exemplar type and fallback behaviour (see above for more cases)
     it('converts a primitive value to a typed attribute value', () => {
       const result = attributeValueToTypedAttributeValue({ value: 123.45 });
       expect(result).toStrictEqual({
@@ -80,20 +60,17 @@ describe('attributeValueToTypedAttributeValue', () => {
       });
     });
 
-    it('converts an array of primitive values to a typed attribute value', () => {
-      const result = attributeValueToTypedAttributeValue({ value: [true, false] });
-      expect(result).toStrictEqual({
-        value: [true, false],
-        type: 'boolean[]',
-      });
-    });
-
-    it('converts an unsupported object value to a string attribute value', () => {
-      const result = attributeValueToTypedAttributeValue({ value: { foo: 'bar' } });
-      expect(result).toStrictEqual({
-        value: '{"foo":"bar"}',
-        type: 'string',
-      });
+    it.each([
+      ['foo', 'bar'],
+      [1, 2, 3],
+      [true, false, true],
+      [1, 'foo', true],
+      { foo: 'bar' },
+      () => 'test',
+      Symbol('test'),
+    ])('returns undefined for none-primitive values (%s)', value => {
+      const result = attributeValueToTypedAttributeValue({ value });
+      expect(result).toBeUndefined();
     });
   });
 
@@ -108,24 +85,6 @@ describe('attributeValueToTypedAttributeValue', () => {
       });
     });
 
-    it('converts an array of primitive values to a typed attribute value', () => {
-      const result = attributeValueToTypedAttributeValue({ value: [true, false], unit: 'count' });
-      expect(result).toStrictEqual({
-        value: [true, false],
-        type: 'boolean[]',
-        unit: 'count',
-      });
-    });
-
-    it('converts an unsupported object value to a string attribute value', () => {
-      const result = attributeValueToTypedAttributeValue({ value: { foo: 'bar' }, unit: 'bytes' });
-      expect(result).toStrictEqual({
-        value: '{"foo":"bar"}',
-        type: 'string',
-        unit: 'bytes',
-      });
-    });
-
     it('extracts the value property of an object with a value property', () => {
       // and ignores other properties.
       // For now we're fine with this but we may reconsider in the future.
@@ -133,114 +92,6 @@ describe('attributeValueToTypedAttributeValue', () => {
       expect(result).toStrictEqual({
         value: 'foo',
         unit: 'ms',
-        type: 'string',
-      });
-    });
-  });
-
-  describe('unsupported value types', () => {
-    it('stringifies mixed float and integer numbers to a string attribute value', () => {
-      const result = attributeValueToTypedAttributeValue([1, 2.2, 3]);
-      expect(result).toStrictEqual({
-        value: '[1,2.2,3]',
-        type: 'string',
-      });
-    });
-
-    it('stringifies an array of allowed but incoherent types to a string attribute value', () => {
-      const result = attributeValueToTypedAttributeValue([1, 'foo', true]);
-      expect(result).toStrictEqual({
-        value: '[1,"foo",true]',
-        type: 'string',
-      });
-    });
-
-    it('stringifies an array of disallowed and incoherent types to a string attribute value', () => {
-      const result = attributeValueToTypedAttributeValue([null, undefined, NaN]);
-      expect(result).toStrictEqual({
-        value: '[null,null,null]',
-        type: 'string',
-      });
-    });
-
-    it('stringifies an object value to a string attribute value', () => {
-      const result = attributeValueToTypedAttributeValue({ foo: 'bar' });
-      expect(result).toStrictEqual({
-        value: '{"foo":"bar"}',
-        type: 'string',
-      });
-    });
-
-    it('stringifies a null value to a string attribute value', () => {
-      const result = attributeValueToTypedAttributeValue(null);
-      expect(result).toStrictEqual({
-        value: 'null',
-        type: 'string',
-      });
-    });
-
-    it('stringifies an undefined value to a string attribute value', () => {
-      const result = attributeValueToTypedAttributeValue(undefined);
-      expect(result).toStrictEqual({
-        value: 'undefined',
-        type: 'string',
-      });
-    });
-
-    it('stringifies an NaN number value to a string attribute value', () => {
-      const result = attributeValueToTypedAttributeValue(NaN);
-      expect(result).toStrictEqual({
-        value: 'null',
-        type: 'string',
-      });
-    });
-
-    it('converts an object toString if stringification fails', () => {
-      const result = attributeValueToTypedAttributeValue({
-        value: {
-          toJson: () => {
-            throw new Error('test');
-          },
-        },
-      });
-      expect(result).toStrictEqual({
-        value: '{}',
-        type: 'string',
-      });
-    });
-
-    it('falls back to an empty string if stringification and toString fails', () => {
-      const result = attributeValueToTypedAttributeValue({
-        value: {
-          toJSON: () => {
-            throw new Error('test');
-          },
-          toString: () => {
-            throw new Error('test');
-          },
-        },
-      });
-      expect(result).toStrictEqual({
-        value: '',
-        type: 'string',
-      });
-    });
-
-    it('converts a function toString ', () => {
-      const result = attributeValueToTypedAttributeValue(() => {
-        return 'test';
-      });
-
-      expect(result).toStrictEqual({
-        value: '() => {\n        return "test";\n      }',
-        type: 'string',
-      });
-    });
-
-    it('converts a symbol toString', () => {
-      const result = attributeValueToTypedAttributeValue(Symbol('test'));
-      expect(result).toStrictEqual({
-        value: 'Symbol(test)',
         type: 'string',
       });
     });
