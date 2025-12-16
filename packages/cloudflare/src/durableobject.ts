@@ -155,6 +155,13 @@ function wrapMethodWithSentry<T extends OriginalMethod>(
 }
 
 /**
+ * Helper type to extract the environment type from a DurableObject constructor.
+ * This extracts the second parameter type (env) from the constructor signature.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type ExtractEnv<C> = C extends new (state: any, env: infer E) => any ? E : never;
+
+/**
  * Instruments a Durable Object class to capture errors and performance data.
  *
  * Instruments the following methods:
@@ -188,10 +195,9 @@ function wrapMethodWithSentry<T extends OriginalMethod>(
  * ```
  */
 export function instrumentDurableObjectWithSentry<
-  E,
-  T extends DurableObject<E>,
-  C extends new (state: DurableObjectState, env: E) => T,
->(optionsCallback: (env: E) => CloudflareOptions, DurableObjectClass: C): C {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  C extends new (state: DurableObjectState, env: any) => DurableObject<any>,
+>(optionsCallback: (env: ExtractEnv<C>) => CloudflareOptions, DurableObjectClass: C): C {
   return new Proxy(DurableObjectClass, {
     construct(target, [ctx, env]) {
       setAsyncLocalStorageAsyncContextStrategy();
@@ -332,6 +338,7 @@ function instrumentPrototype<T extends NewableFunction>(target: T, methodsToInst
     }
 
     // Create a wrapper that gets context/options from the instance at runtime
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const wrappedMethod = function (this: any, ...args: any[]): unknown {
       const thisWithSentry = this as {
         __SENTRY_CONTEXT__: DurableObjectState;
@@ -342,6 +349,7 @@ function instrumentPrototype<T extends NewableFunction>(target: T, methodsToInst
 
       if (!instanceOptions) {
         // Fallback to original method if no Sentry data found
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return (originalMethod as (...args: any[]) => any).apply(this, args);
       }
 
@@ -353,11 +361,13 @@ function instrumentPrototype<T extends NewableFunction>(target: T, methodsToInst
           spanName: methodName,
           spanOp: 'rpc',
         },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         originalMethod as (...args: any[]) => any,
         undefined,
         true, // noMark = true since we'll mark the prototype method
       );
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return (wrapper as (...args: any[]) => any).apply(this, args);
     };
 
