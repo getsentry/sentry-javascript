@@ -92,6 +92,7 @@ export {
 } from './utils/spanUtils';
 export { captureSpan } from './spans/captureSpan';
 export { safeSetSpanJSONAttributes } from './spans/spanFirstUtils';
+export { SpanBuffer, type SpanBufferOptions } from './spans/spanBuffer';
 export { _setSpanForScope as _INTERNAL_setSpanForScope } from './utils/spanOnScope';
 export { parseSampleRate } from './utils/parseSampleRate';
 export { applySdkMetadata } from './utils/sdkMetadata';
@@ -125,6 +126,7 @@ export { thirdPartyErrorFilterIntegration } from './integrations/third-party-err
 export { consoleIntegration } from './integrations/console';
 export { featureFlagsIntegration, type FeatureFlagsIntegration } from './integrations/featureFlags';
 export { growthbookIntegration } from './integrations/featureFlags';
+export { serverSpanStreamingIntegration } from './integrations/serverSpanStreaming';
 
 export { profiler } from './profiling';
 // eslint thinks the entire function is deprecated (while only one overload is actually deprecated)
