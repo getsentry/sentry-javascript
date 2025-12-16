@@ -17,6 +17,8 @@ export type {
   Thread,
   User,
   Metric,
+  ExclusiveEventHintOrCaptureContext,
+  CaptureContext,
 } from '@sentry/core';
 
 export type { CloudflareOptions } from './client';
