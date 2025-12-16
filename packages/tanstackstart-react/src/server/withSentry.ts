@@ -31,7 +31,7 @@ export type ServerEntry = {
 export function withSentry(serverEntry: ServerEntry): ServerEntry {
   if (serverEntry.fetch) {
     serverEntry.fetch = new Proxy<typeof serverEntry.fetch>(serverEntry.fetch, {
-      apply: async (target, thisArg, args) => {
+      apply: (target, thisArg, args) => {
         const request: Request = args[0];
 
         // instrument server functions
