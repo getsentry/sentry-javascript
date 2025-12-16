@@ -1022,14 +1022,7 @@ other-header: test`;
                 data: {
                   method: 'POST',
                   statusCode: 200,
-                  request: {
-                    headers: {},
-                    size: undefined,
-                    _meta: {
-                      // Request body should not be captured since it's a ReadableStream (unparseable body type)
-                      warnings: ['UNPARSEABLE_BODY_TYPE'],
-                    },
-                  },
+                  request: undefined,
                   response: {
                     size: 13,
                     headers: {},
