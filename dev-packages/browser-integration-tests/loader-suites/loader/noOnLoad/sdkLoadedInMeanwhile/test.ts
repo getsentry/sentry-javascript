@@ -17,7 +17,7 @@ sentryTest('it does not download the SDK if the SDK was loaded in the meanwhile'
   let cdnLoadedCount = 0;
   let sentryEventCount = 0;
 
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
+  await page.route(/^https:\/\/dsn\.ingest\.sentry\.io\//, route => {
     sentryEventCount++;
 
     return route.fulfill({

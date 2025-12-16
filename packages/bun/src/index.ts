@@ -17,6 +17,8 @@ export type {
   User,
   FeatureFlagsIntegration,
   Metric,
+  ExclusiveEventHintOrCaptureContext,
+  CaptureContext,
 } from '@sentry/core';
 
 export {
@@ -147,6 +149,7 @@ export {
   updateSpanName,
   supabaseIntegration,
   instrumentSupabaseClient,
+  instrumentOpenAiClient,
   zodErrorsIntegration,
   profiler,
   amqplibIntegration,

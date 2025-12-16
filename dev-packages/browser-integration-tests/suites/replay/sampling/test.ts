@@ -7,7 +7,7 @@ sentryTest('should not send replays if both sample rates are 0', async ({ getLoc
     sentryTest.skip();
   }
 
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
+  await page.route(/^https:\/\/dsn\.ingest\.sentry\.io\//, route => {
     // This should never be called!
     expect(true).toBe(false);
 
