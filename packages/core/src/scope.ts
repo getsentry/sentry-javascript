@@ -335,8 +335,12 @@ export class Scope {
   /**
    * Sets an attribute onto the scope.
    *
-   * TODO:
-   * Currently, these attributes are not applied to any telemetry data but they will be in the future.
+   * These attributes are currently only applied to logs.
+   * In the future, they will be applied to metrics and spans.
+   *
+   * Important: For now, only strings, numbers and boolean attributes are supported, despite types allowing for
+   * more complex attribute types. We'll add this support in the future but already specify the wider type to
+   * avoid a breaking change in the future.
    *
    * @param key - The attribute key.
    * @param value - the attribute value. You can either pass in a raw value, or an attribute
@@ -345,7 +349,6 @@ export class Scope {
    * @example
    * ```typescript
    * scope.setAttribute('is_admin', true);
-   * scope.setAttribute('clicked_products', [130, 554, 292]);
    * scope.setAttribute('render_duration', { value: 'render_duration', unit: 'ms' });
    * ```
    */
