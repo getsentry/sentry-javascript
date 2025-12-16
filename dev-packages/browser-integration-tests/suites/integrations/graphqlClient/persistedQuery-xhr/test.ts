@@ -3,29 +3,23 @@ import type { Event } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
 
-// Duplicate from subject.js
-const query = `query Test{
-  people {
-    name
-    pet
-  }
-}`;
-
-sentryTest('should update spans for GraphQL XHR requests', async ({ getLocalTestUrl, page }) => {
+sentryTest('should update spans for GraphQL persisted query XHR requests', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
     return;
   }
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
-  await page.route('**/foo', route => {
+  await page.route('**/graphql', route => {
     return route.fulfill({
       status: 200,
       body: JSON.stringify({
-        people: [
-          { name: 'Amy', pet: 'dog' },
-          { name: 'Jay', pet: 'cat' },
-        ],
+        data: {
+          user: {
+            id: '123',
+            name: 'Test User',
+          },
+        },
       }),
       headers: {
         'Content-Type': 'application/json',
@@ -39,7 +33,7 @@ sentryTest('should update spans for GraphQL XHR requests', async ({ getLocalTest
   expect(requestSpans).toHaveLength(1);
 
   expect(requestSpans![0]).toMatchObject({
-    description: 'POST http://sentry-test.io/foo (query Test)',
+    description: 'POST http://sentry-test.io/graphql (persisted GetUser)',
     parent_span_id: eventData.contexts?.trace?.span_id,
     span_id: expect.any(String),
     start_timestamp: expect.any(Number),
@@ -49,31 +43,34 @@ sentryTest('should update spans for GraphQL XHR requests', async ({ getLocalTest
     data: {
       type: 'xhr',
       'http.method': 'POST',
-      'http.url': 'http://sentry-test.io/foo',
-      url: 'http://sentry-test.io/foo',
+      'http.url': 'http://sentry-test.io/graphql',
+      url: 'http://sentry-test.io/graphql',
       'server.address': 'sentry-test.io',
       'sentry.op': 'http.client',
       'sentry.origin': 'auto.http.browser',
-      'graphql.document': query,
+      'graphql.persisted_query.hash.sha256': 'ecf4edb46db40b5132295c0291d62fb65d6759a9eedfa4d5d612dd5ec54a6b38',
+      'graphql.persisted_query.version': 1,
     },
   });
 });
 
-sentryTest('should update breadcrumbs for GraphQL XHR requests', async ({ getLocalTestUrl, page }) => {
+sentryTest('should update breadcrumbs for GraphQL persisted query XHR requests', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
     return;
   }
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
-  await page.route('**/foo', route => {
+  await page.route('**/graphql', route => {
     return route.fulfill({
       status: 200,
       body: JSON.stringify({
-        people: [
-          { name: 'Amy', pet: 'dog' },
-          { name: 'Jay', pet: 'cat' },
-        ],
+        data: {
+          user: {
+            id: '123',
+            name: 'Test User',
+          },
+        },
       }),
       headers: {
         'Content-Type': 'application/json',
@@ -92,9 +89,10 @@ sentryTest('should update breadcrumbs for GraphQL XHR requests', async ({ getLoc
     data: {
       method: 'POST',
       status_code: 200,
-      url: 'http://sentry-test.io/foo',
-      'graphql.document': query,
-      'graphql.operation': 'query Test',
+      url: 'http://sentry-test.io/graphql',
+      'graphql.operation': 'persisted GetUser',
+      'graphql.persisted_query.hash.sha256': 'ecf4edb46db40b5132295c0291d62fb65d6759a9eedfa4d5d612dd5ec54a6b38',
+      'graphql.persisted_query.version': 1,
     },
   });
 });
