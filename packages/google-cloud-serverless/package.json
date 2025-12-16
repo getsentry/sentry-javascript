@@ -49,14 +49,22 @@
   },
   "dependencies": {
     "@sentry/core": "10.30.0",
-    "@sentry/node": "10.30.0",
-    "@types/express": "^4.17.14"
+    "@sentry/node": "10.30.0"
   },
   "devDependencies": {
     "@google-cloud/bigquery": "^5.3.0",
     "@google-cloud/common": "^3.4.1",
+    "@types/express": "^5.0.6",
     "@types/node": "^18.19.1",
     "nock": "^13.5.5"
+  },
+  "peerDependencies": {
+    "@types/express": "^4.17.14 || ^5.x"
+  },
+  "peerDependenciesMeta": {
+    "@types/express": {
+      "optional": true
+    }
   },
   "scripts": {
     "build": "run-p build:transpile build:types",
