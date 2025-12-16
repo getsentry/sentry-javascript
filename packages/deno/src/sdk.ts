@@ -8,6 +8,7 @@ import {
   initAndBind,
   linkedErrorsIntegration,
   nodeStackLineParser,
+  serverSpanStreamingIntegration,
   stackParserFromStackParserOptions,
 } from '@sentry/core';
 import { DenoClient } from './client';
@@ -21,7 +22,7 @@ import { makeFetchTransport } from './transports';
 import type { DenoOptions } from './types';
 
 /** Get the default integrations for the Deno SDK. */
-export function getDefaultIntegrations(_options: Options): Integration[] {
+export function getDefaultIntegrations(options: Options): Integration[] {
   // We return a copy of the defaultIntegrations here to avoid mutating this
   return [
     // Common
@@ -37,6 +38,7 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
     contextLinesIntegration(),
     normalizePathsIntegration(),
     globalHandlersIntegration(),
+    ...(options.traceLifecycle === 'stream' ? [serverSpanStreamingIntegration()] : []),
   ];
 }
 
