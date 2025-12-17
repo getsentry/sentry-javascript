@@ -16,7 +16,7 @@ type SentryPiniaPluginOptions = {
   attachPiniaState: boolean;
   addBreadcrumbs: boolean;
   actionTransformer: (action: string) => unknown;
-  stateTransformer: (state: Record<string, unknown>) => unknown;
+  stateTransformer: (state: Record<string, unknown>) => Record<string, unknown>;
 };
 
 const DEFAULT_PINIA_PLUGIN_OPTIONS: SentryPiniaPluginOptions = {

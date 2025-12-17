@@ -43,16 +43,14 @@ export function tanstackRouterBrowserTracingIntegration<R extends AnyRouter>(
       if (instrumentPageLoad && initialWindowLocation) {
         const matchedRoutes = router.matchRoutes(
           initialWindowLocation.pathname,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+
           router.options.parseSearch(initialWindowLocation.search),
           { preload: false, throwOnError: false },
         );
 
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         const lastMatch = matchedRoutes[matchedRoutes.length - 1];
 
         startBrowserTracingPageLoadSpan(client, {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
           name: lastMatch ? lastMatch.routeId : initialWindowLocation.pathname,
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
@@ -65,7 +63,8 @@ export function tanstackRouterBrowserTracingIntegration<R extends AnyRouter>(
 
       if (instrumentNavigation) {
         // The onBeforeNavigate hook is called at the very beginning of a navigation and is only called once per navigation, even when the user is redirected
-        router.subscribe('onBeforeNavigate', onBeforeNavigateArgs => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        router.subscribe('onBeforeNavigate', (onBeforeNavigateArgs: any) => {
           // onBeforeNavigate is called during pageloads. We can avoid creating navigation spans by:
           // 1. Checking if there's no fromLocation (initial pageload)
           // 2. Comparing the states of the to and from arguments
@@ -87,14 +86,12 @@ export function tanstackRouterBrowserTracingIntegration<R extends AnyRouter>(
             { preload: false, throwOnError: false },
           );
 
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
           const onBeforeNavigateLastMatch = onResolvedMatchedRoutes[onResolvedMatchedRoutes.length - 1];
 
           const navigationLocation = WINDOW.location;
           const navigationSpan = startBrowserTracingNavigationSpan(client, {
             name: onBeforeNavigateLastMatch
-              ? // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-                onBeforeNavigateLastMatch.routeId
+              ? onBeforeNavigateLastMatch.routeId
               : // In SSR/non-browser contexts, WINDOW.location may be undefined, so fall back to the router's location
                 // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
                 navigationLocation?.pathname || onBeforeNavigateArgs.toLocation.pathname,
@@ -106,7 +103,8 @@ export function tanstackRouterBrowserTracingIntegration<R extends AnyRouter>(
           });
 
           // In case the user is redirected during navigation we want to update the span with the right value.
-          const unsubscribeOnResolved = router.subscribe('onResolved', onResolvedArgs => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const unsubscribeOnResolved = router.subscribe('onResolved', (onResolvedArgs: any) => {
             unsubscribeOnResolved();
             if (navigationSpan) {
               const onResolvedMatchedRoutes = router.matchRoutes(
@@ -117,11 +115,9 @@ export function tanstackRouterBrowserTracingIntegration<R extends AnyRouter>(
                 { preload: false, throwOnError: false },
               );
 
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
               const onResolvedLastMatch = onResolvedMatchedRoutes[onResolvedMatchedRoutes.length - 1];
 
               if (onResolvedLastMatch) {
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
                 navigationSpan.updateName(onResolvedLastMatch.routeId);
                 navigationSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
                 navigationSpan.setAttributes(routeMatchToParamSpanAttributes(onResolvedLastMatch));
@@ -140,7 +136,6 @@ function routeMatchToParamSpanAttributes(match: RouteMatch | undefined): Record<
   }
 
   const paramAttributes: Record<string, string> = {};
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   Object.entries(match.params as Record<string, string>).forEach(([key, value]) => {
     paramAttributes[`url.path.parameter.${key}`] = value;
     paramAttributes[`params.${key}`] = value; // params.[key] is an alias
