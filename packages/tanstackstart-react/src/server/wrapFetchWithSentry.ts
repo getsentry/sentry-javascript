@@ -12,12 +12,12 @@ export type ServerEntry = {
  *
  * @example
  * ```ts
- * import { withSentry } from '@sentry/tanstackstart-react';
+ * import { wrapFetchWithSentry } from '@sentry/tanstackstart-react';
  *
  * import handler, { createServerEntry } from '@tanstack/react-start/server-entry';
  * import type { ServerEntry } from '@tanstack/react-start/server-entry';
  *
- * const requestHandler: ServerEntry = withSentry({
+ * const requestHandler: ServerEntry = wrapFetchWithSentry({
  *  fetch(request: Request) {
  *    return handler.fetch(request);
  *  },
@@ -29,7 +29,7 @@ export type ServerEntry = {
  * @param serverEntry - request handler to wrap
  * @returns - wrapped request handler
  */
-export function withSentry(serverEntry: ServerEntry): ServerEntry {
+export function wrapFetchWithSentry(serverEntry: ServerEntry): ServerEntry {
   if (serverEntry.fetch) {
     serverEntry.fetch = new Proxy<typeof serverEntry.fetch>(serverEntry.fetch, {
       apply: (target, thisArg, args) => {
