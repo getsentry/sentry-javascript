@@ -571,7 +571,7 @@ describe('MCP Server Transport Instrumentation', () => {
 
     it('excludes sessionId when undefined', () => {
       const transport = createMockTransport();
-      transport.sessionId = undefined;
+      transport.sessionId = '';
       const attributes = buildTransportAttributes(transport);
 
       expect(attributes['mcp.session.id']).toBeUndefined();
@@ -582,6 +582,77 @@ describe('MCP Server Transport Instrumentation', () => {
       const attributes = buildTransportAttributes(transport);
 
       expect(attributes['mcp.session.id']).toBeUndefined();
+    });
+  });
+
+  describe('Initialize Span Attributes', () => {
+    it('should add client info to initialize span on request', async () => {
+      const mockMcpServer = createMockMcpServer();
+      const wrappedMcpServer = wrapMcpServerWithSentry(mockMcpServer);
+      const transport = createMockTransport();
+      transport.sessionId = '';
+
+      await wrappedMcpServer.connect(transport);
+
+      const mockSpan = { setAttributes: vi.fn(), end: vi.fn() };
+      startInactiveSpanSpy.mockReturnValue(mockSpan);
+
+      transport.onmessage?.(
+        {
+          jsonrpc: '2.0',
+          method: 'initialize',
+          id: 'init-1',
+          params: { protocolVersion: '2025-06-18', clientInfo: { name: 'test-client', version: '1.0.0' } },
+        },
+        {},
+      );
+
+      expect(mockSpan.setAttributes).toHaveBeenCalledWith(
+        expect.objectContaining({
+          'mcp.client.name': 'test-client',
+          'mcp.client.version': '1.0.0',
+          'mcp.protocol.version': '2025-06-18',
+        }),
+      );
+    });
+
+    it('should add server info to initialize span on response', async () => {
+      const mockMcpServer = createMockMcpServer();
+      const wrappedMcpServer = wrapMcpServerWithSentry(mockMcpServer);
+      const transport = createMockTransport();
+
+      await wrappedMcpServer.connect(transport);
+
+      const mockSpan = { setAttributes: vi.fn(), end: vi.fn() };
+      startInactiveSpanSpy.mockReturnValue(mockSpan as any);
+
+      transport.onmessage?.(
+        {
+          jsonrpc: '2.0',
+          method: 'initialize',
+          id: 'init-1',
+          params: { protocolVersion: '2025-06-18', clientInfo: { name: 'test-client', version: '1.0.0' } },
+        },
+        {},
+      );
+
+      await transport.send?.({
+        jsonrpc: '2.0',
+        id: 'init-1',
+        result: {
+          protocolVersion: '2025-06-18',
+          serverInfo: { name: 'test-server', version: '2.0.0' },
+          capabilities: {},
+        },
+      });
+
+      expect(mockSpan.setAttributes).toHaveBeenCalledWith(
+        expect.objectContaining({
+          'mcp.server.name': 'test-server',
+          'mcp.server.version': '2.0.0',
+        }),
+      );
+      expect(mockSpan.end).toHaveBeenCalled();
     });
   });
 });
