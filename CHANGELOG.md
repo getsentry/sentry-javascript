@@ -4,7 +4,22 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-- feat(nextjs): Add tree-shaking configuration to `webpack` build config ([#18359](https://github.com/getsentry/sentry-javascript/pull/18359))
+- **feat(nextjs): Add tree-shaking configuration to `webpack` build config ([#18359](https://github.com/getsentry/sentry-javascript/pull/18359))**
+
+- **feat(replay): Add Request body with `attachRawBodyFromRequest` option ([#18501](https://github.com/getsentry/sentry-javascript/pull/18501))**
+
+To attach the raw request body (from `Request` objects passed as the first `fetch` argument) to replay events,
+you can now use the `attachRawBodyFromRequest` option in the Replay integration:
+
+```js
+Sentry.init({
+  integrations: [
+    Sentry.replayIntegration({
+      attachRawBodyFromRequest: true,
+    }),
+  ],
+});
+```
 
 ## 10.31.0
 
