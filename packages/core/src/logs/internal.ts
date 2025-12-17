@@ -1,4 +1,4 @@
-import { Attributes, attributeValueToTypedAttributeValue, RawAttributes, serializeAttributes } from '../attributes';
+import { serializeAttributes } from '../attributes';
 import { getGlobalSingleton } from '../carrier';
 import type { Client } from '../client';
 import { getClient, getCurrentScope, getGlobalScope, getIsolationScope } from '../currentScopes';
