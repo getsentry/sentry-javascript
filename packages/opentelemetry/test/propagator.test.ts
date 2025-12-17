@@ -35,7 +35,7 @@ describe('SentryPropagator', () => {
   });
 
   it('returns fields set', () => {
-    expect(propagator.fields()).toEqual([SENTRY_TRACE_HEADER, SENTRY_BAGGAGE_HEADER]);
+    expect(propagator.fields()).toEqual([SENTRY_TRACE_HEADER, SENTRY_BAGGAGE_HEADER, 'traceparent']);
   });
 
   describe('inject', () => {

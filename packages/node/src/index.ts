@@ -159,6 +159,8 @@ export type {
   Span,
   Metric,
   FeatureFlagsIntegration,
+  ExclusiveEventHintOrCaptureContext,
+  CaptureContext,
 } from '@sentry/core';
 
 export {

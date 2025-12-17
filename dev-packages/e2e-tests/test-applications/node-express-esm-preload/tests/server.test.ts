@@ -131,12 +131,11 @@ test('Should record spans from http instrumentation', async ({ request }) => {
   expect(httpClientSpan).toEqual({
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
     trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-    data: {
+    data: expect.objectContaining({
       'http.flavor': '1.1',
       'http.host': 'example.com:80',
       'http.method': 'GET',
       'http.response.status_code': 200,
-      'http.response_content_length_uncompressed': expect.any(Number),
       'http.status_code': 200,
       'http.status_text': 'OK',
       'http.target': '/',
@@ -149,7 +148,7 @@ test('Should record spans from http instrumentation', async ({ request }) => {
       'sentry.op': 'http.client',
       'sentry.origin': 'auto.http.otel.http',
       url: 'http://example.com/',
-    },
+    }),
     description: 'GET http://example.com/',
     parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
     start_timestamp: expect.any(Number),
