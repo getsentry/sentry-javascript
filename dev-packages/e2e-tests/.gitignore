@@ -4,3 +4,4 @@ tmp
 .tmp_build_stderr
 pnpm-lock.yaml
 .last-run.json
+.next

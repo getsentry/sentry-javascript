@@ -43,7 +43,6 @@ export { initializeEsmLoader } from './sdk/esmLoader';
 export { isCjs } from './utils/detection';
 export { ensureIsWrapped } from './utils/ensureIsWrapped';
 export { createMissingInstrumentationContext } from './utils/createMissingInstrumentationContext';
-export { envToBool } from './utils/envToBool';
 export { makeNodeTransport, type NodeTransportOptions } from './transports';
 export type { HTTPModuleRequestIncomingMessage } from './transports/http-module';
 export { NodeClient } from './sdk/client';
@@ -136,6 +135,9 @@ export {
   wrapMcpServerWithSentry,
   featureFlagsIntegration,
   metrics,
+  // Backwards compatibility: envToBool was previously exported from @sentry/node-core
+  // Re-export it from @sentry/core to avoid breaking existing code
+  envToBool,
 } from '@sentry/core';
 
 export type {

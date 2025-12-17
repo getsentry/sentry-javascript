@@ -18,11 +18,13 @@ export function constructTurbopackConfig({
   userSentryOptions,
   routeManifest,
   nextJsVersion,
+  spotlightConfig,
 }: {
   userNextConfig: NextConfigObject;
   userSentryOptions?: SentryBuildOptions;
   routeManifest?: RouteManifest;
   nextJsVersion?: string;
+  spotlightConfig?: string;
 }): TurbopackOptions {
   // If sourcemaps are disabled, we don't need to enable native debug ids as this will add build time.
   const shouldEnableNativeDebugIds =
@@ -45,6 +47,7 @@ export function constructTurbopackConfig({
     routeManifest,
     nextJsVersion,
     tunnelPath,
+    spotlightConfig,
   });
 
   for (const { matcher, rule } of valueInjectionRules) {

@@ -5,6 +5,7 @@ import {
   getIntegrationsToSetup,
   inboundFiltersIntegration,
   initAndBind,
+  resolveSpotlightOptions,
   stackParserFromStackParserOptions,
 } from '@sentry/core';
 import type { BrowserClientOptions, BrowserOptions } from './client';
@@ -19,6 +20,7 @@ import { spotlightBrowserIntegration } from './integrations/spotlight';
 import { defaultStackParser } from './stack-parsers';
 import { makeFetchTransport } from './transports/fetch';
 import { checkAndWarnIfIsEmbeddedBrowserExtension } from './utils/detectBrowserExtension';
+import { getSpotlightConfig } from './utils/spotlightConfig';
 
 /** Get the default integrations for the browser SDK. */
 export function getDefaultIntegrations(_options: Options): Integration[] {
@@ -95,11 +97,16 @@ export function init(options: BrowserOptions = {}): Client | undefined {
     options.defaultIntegrations == null ? getDefaultIntegrations(options) : options.defaultIntegrations;
 
   /* rollup-include-development-only */
-  if (options.spotlight) {
+  // Resolve Spotlight configuration with proper precedence
+  const envSpotlight = getSpotlightConfig();
+  // resolveSpotlightOptions is the single source of truth that ensures empty strings are never used
+  const spotlightValue = resolveSpotlightOptions(options.spotlight, envSpotlight);
+
+  if (spotlightValue) {
     if (!defaultIntegrations) {
       defaultIntegrations = [];
     }
-    const args = typeof options.spotlight === 'string' ? { sidecarUrl: options.spotlight } : undefined;
+    const args = typeof spotlightValue === 'string' ? { sidecarUrl: spotlightValue } : undefined;
     defaultIntegrations.push(spotlightBrowserIntegration(args));
   }
   /* rollup-include-development-only-end */

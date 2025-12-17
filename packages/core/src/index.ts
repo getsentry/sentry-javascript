@@ -274,6 +274,9 @@ export {
 } from './utils/tracing';
 export { getSDKSource, isBrowserBundle } from './utils/env';
 export type { SdkSource } from './utils/env';
+export { envToBool } from './utils/envToBool';
+export type { BoolCastOptions, StrictBoolCast, LooseBoolCast } from './utils/envToBool';
+export { resolveSpotlightOptions } from './utils/resolveSpotlightOptions';
 export {
   addItemToEnvelope,
   createAttachmentEnvelopeItem,
