@@ -125,7 +125,7 @@ test('Sends an API route transaction with auto-instrumentation', async ({ page }
         data: {
           'sentry.op': 'http.server',
           'sentry.origin': 'auto.http.tanstackstart.server',
-          'sentry.source': 'route',
+          'sentry.source': 'url',
           'http.request.method': 'GET',
         },
       }),

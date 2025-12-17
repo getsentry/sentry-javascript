@@ -63,7 +63,7 @@ export function wrapFetchWithSentry(serverEntry: ServerEntry): ServerEntry {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.tanstackstart.server',
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op,
             [SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD]: method,
-            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
           };
         }
 
