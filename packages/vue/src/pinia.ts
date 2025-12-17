@@ -15,8 +15,10 @@ type PiniaPlugin = (context: {
 type SentryPiniaPluginOptions = {
   attachPiniaState: boolean;
   addBreadcrumbs: boolean;
-  actionTransformer: (action: string) => unknown;
-  stateTransformer: (state: Record<string, unknown>) => Record<string, unknown>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  actionTransformer: (action: string) => any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  stateTransformer: (state: Record<string, unknown>) => any;
 };
 
 const DEFAULT_PINIA_PLUGIN_OPTIONS: SentryPiniaPluginOptions = {
@@ -29,7 +31,8 @@ const DEFAULT_PINIA_PLUGIN_OPTIONS: SentryPiniaPluginOptions = {
 const getAllStoreStates = (
   pinia: { state: Ref<Record<string, StateTree>> },
   stateTransformer?: SentryPiniaPluginOptions['stateTransformer'],
-): Record<string, unknown> => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+): any => {
   const states: Record<string, unknown> = {};
 
   try {
