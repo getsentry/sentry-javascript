@@ -58,3 +58,35 @@ new Vue({
   template: '<App/>',
 });
 ```
+
+### TanStack Router
+
+If you use TanStack Router for Vue instead of Vue Router, you can use the TanStack Router instrumentation to create
+navigation spans and collect meaningful performance data about the health of your page loads and associated requests.
+
+Add `tanstackRouterBrowserTracingIntegration` from `@sentry/vue/tanstackrouter` instead of the regular
+`Sentry.browserTracingIntegration`.
+
+Make sure `tanstackRouterBrowserTracingIntegration` is initialized by your `Sentry.init` call. Otherwise, the routing
+instrumentation will not work properly.
+
+Pass your router instance from `createRouter` to the integration.
+
+```javascript
+import { createApp } from 'vue';
+import { createRouter } from '@tanstack/vue-router';
+import * as Sentry from '@sentry/vue';
+import { tanstackRouterBrowserTracingIntegration } from '@sentry/vue/tanstackrouter';
+
+const router = createRouter({
+  // your router config
+  // ...
+});
+
+Sentry.init({
+  app,
+  dsn: '__PUBLIC_DSN__',
+  integrations: [tanstackRouterBrowserTracingIntegration(router)],
+  tracesSampleRate: 1.0, // Capture 100% of the transactions
+});
+```
