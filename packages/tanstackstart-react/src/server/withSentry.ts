@@ -48,7 +48,6 @@ export function withSentry(serverEntry: ServerEntry): ServerEntry {
             'tanstackstart.function.hash.sha256': functionSha256,
           };
 
-
           return startSpan(
             {
               op: op,
