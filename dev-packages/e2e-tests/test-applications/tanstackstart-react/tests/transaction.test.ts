@@ -28,6 +28,7 @@ test('Sends a server function transaction with auto-instrumentation', async ({ p
         data: {
           'sentry.op': 'function.tanstackstart',
           'sentry.origin': 'auto.function.tanstackstart.server',
+          'tanstackstart.function.hash.sha256': expect.any(String),
         },
         status: 'ok',
       }),
@@ -65,6 +66,7 @@ test('Sends a server function transaction for a nested server function only if i
         data: {
           'sentry.op': 'function.tanstackstart',
           'sentry.origin': 'auto.function.tanstackstart.server',
+          'tanstackstart.function.hash.sha256': expect.any(String),
         },
         status: 'ok',
       }),

@@ -1,4 +1,5 @@
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan } from '@sentry/node';
+import { extractServerFunctionSha256 } from './utils';
 
 export type ServerEntry = {
   fetch: (request: Request, opts?: unknown) => Promise<Response> | Response;
@@ -38,15 +39,21 @@ export function withSentry(serverEntry: ServerEntry): ServerEntry {
 
         // instrument server functions
         if (url.pathname.includes('_serverFn') || url.pathname.includes('createServerFn')) {
+          const functionSha256 = extractServerFunctionSha256(url.pathname);
           const op = 'function.tanstackstart';
+
+          const serverFunctionSpanAttributes = {
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.tanstackstart.server',
+            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op,
+            'tanstackstart.function.hash.sha256': functionSha256,
+          };
+
+
           return startSpan(
             {
               op: op,
               name: `${method} ${url.pathname}`,
-              attributes: {
-                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.tanstackstart.server',
-                [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op,
-              },
+              attributes: serverFunctionSpanAttributes,
             },
             () => {
               return target.apply(thisArg, args);
