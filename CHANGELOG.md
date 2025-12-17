@@ -43,6 +43,25 @@ Sentry.init({
 });
 ```
 
+## 10.32.0-alpha.0
+
+This preview release includes updates to our Span Streaming PoC implementation. Use at your own risk.
+
+- Attributes extracted from request andknown contexts on scopes are applied to the segment span
+- Scope attributes are applied to every span
+- Added a simple interval, limit and `Sentry.flush`-based span buffer for backend SDKs
+- Span-first can now also be tested in any of our server SDKs, including `@sentry/node`, `@sentry/cloudflare`, `@sentry/deno`, `@sentry/bun` and `@sentry/vercel-edge`
+
+Known issues:
+
+- Missing data from various integrations and framework SDKs
+- `ignoreSpans` is not yet applied
+
+Untested:
+
+- Meta frameworks or framework SDKs building on top of `@sentry/browser` or `@sentry/node`. Likely,
+  data is missing, noisy spans are not filtered, etc.
+
 ## 10.31.0
 
 ### Important Changes
