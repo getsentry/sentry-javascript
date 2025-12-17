@@ -35,7 +35,6 @@ test('Will create a transaction with spans for every server component and metada
   page,
 }) => {
   const serverTransactionEventPromise = waitForTransaction('nextjs-app-dir', async transactionEvent => {
-    console.log(transactionEvent?.transaction);
     return transactionEvent?.transaction === 'GET /nested-layout/[dynamic]';
   });
 
