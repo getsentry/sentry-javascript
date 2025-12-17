@@ -6,8 +6,7 @@
  * @param pathname - the pathname of the server function
  * @returns the sha256 of the server function
  */
-export function extractServerFunctionSha256(pathname: string): string | undefined {
-  const serverFnMatch = pathname.match(/\/_serverFn\/([a-f0-9]{64})/);
-  const functionSha256 = serverFnMatch ? serverFnMatch[1] : undefined;
-  return functionSha256;
+export function extractServerFunctionSha256(pathname: string): string {
+  const serverFnMatch = pathname.match(/\/_serverFn\/([a-f0-9]{64})/i);
+  return serverFnMatch?.[1] ?? 'unknown';
 }
