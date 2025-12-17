@@ -98,3 +98,40 @@ test('Sends a server function transaction for a nested server function only if i
   expect(nestedSpan).toBeDefined();
   expect(nestedSpan?.parent_span_id).toBe(autoSpan?.span_id);
 });
+
+test('Sends an API route transaction with auto-instrumentation', async ({ page }) => {
+  const transactionEventPromise = waitForTransaction('tanstackstart-react', transactionEvent => {
+    return (
+      transactionEvent?.contexts?.trace?.op === 'http.server' &&
+      transactionEvent?.transaction === 'GET /api/hello'
+    );
+  });
+
+  await page.goto('/api/hello');
+
+  const transactionEvent = await transactionEventPromise;
+
+  console.log('transactionEvent: ', transactionEvent);
+
+  expect(transactionEvent).toEqual(
+    expect.objectContaining({
+      transaction: 'GET /api/hello',
+    }),
+  );
+
+  expect(transactionEvent?.spans).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        description: 'GET /api/hello',
+        op: 'http.server',
+        origin: 'auto.http.tanstackstart.server',
+        source: 'route',
+        data: {
+          'sentry.op': 'http.server',
+          'sentry.origin': 'auto.http.tanstackstart.server',
+          'http.route': '/api/hello',
+        },
+      }),
+    ]),
+  );
+});
