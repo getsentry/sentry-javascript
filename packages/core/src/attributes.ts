@@ -61,8 +61,6 @@ export function isAttributeObject(maybeObj: unknown): maybeObj is AttributeObjec
   );
 }
 
-export function attributeValueToTypedAttributeValue(rawValue: unknown, useFallback?: true): TypedAttributeValue;
-
 /**
  * Converts an attribute value to a typed attribute value.
  *
@@ -77,7 +75,7 @@ export function attributeValueToTypedAttributeValue(rawValue: unknown, useFallba
  */
 export function attributeValueToTypedAttributeValue(
   rawValue: unknown,
-  useFallback = false,
+  useFallback?: boolean,
 ): TypedAttributeValue | void {
   const { value, unit } = isAttributeObject(rawValue) ? rawValue : { value: rawValue, unit: undefined };
   const attributeValue = getTypedAttributeValue(value);
@@ -104,6 +102,26 @@ export function attributeValueToTypedAttributeValue(
     type: 'string',
     ...checkedUnit,
   };
+}
+
+/**
+ * Serializes raw attributes to typed attributes as expected in our envelopes.
+ *
+ * @param attributes The raw attributes to serialize.
+ * @param fallback   If true, unsupported values will be stringified to a string attribute value.
+ *                   Defaults to false. In this case, `undefined` is returned for unsupported values.
+ *
+ * @returns The serialized attributes.
+ */
+export function serializeAttributes<T>(attributes: RawAttributes<T>, fallback: boolean = false): Attributes {
+  const serializedAttributes: Attributes = {};
+  for (const [key, value] of Object.entries(attributes)) {
+    const typedValue = attributeValueToTypedAttributeValue(value, fallback);
+    if (typedValue) {
+      serializedAttributes[key] = typedValue;
+    }
+  }
+  return serializedAttributes;
 }
 
 /**

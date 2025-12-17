@@ -1,4 +1,4 @@
-import { attributeValueToTypedAttributeValue } from '../attributes';
+import { Attributes, attributeValueToTypedAttributeValue, RawAttributes, serializeAttributes } from '../attributes';
 import { getGlobalSingleton } from '../carrier';
 import type { Client } from '../client';
 import { getClient, getCurrentScope, getGlobalScope, getIsolationScope } from '../currentScopes';
@@ -155,16 +155,6 @@ export function _INTERNAL_captureLog(
 
   const { level, message, attributes: logAttributes = {}, severityNumber } = log;
 
-  const serializedScopeAttributes = Object.fromEntries(
-    Object.entries(scopeAttributes)
-      .map(([key, value]) => [key, attributeValueToTypedAttributeValue(value)])
-      .filter(([, value]) => value != null),
-  );
-
-  const serializedLogAttributes = Object.fromEntries(
-    Object.entries(logAttributes).map(([key, value]) => [key, attributeValueToTypedAttributeValue(value, true)]),
-  );
-
   const serializedLog: SerializedLog = {
     timestamp: timestampInSeconds(),
     level,
@@ -172,8 +162,8 @@ export function _INTERNAL_captureLog(
     trace_id: traceContext?.trace_id,
     severity_number: severityNumber ?? SEVERITY_TEXT_TO_SEVERITY_NUMBER[level],
     attributes: {
-      ...serializedScopeAttributes,
-      ...serializedLogAttributes,
+      ...serializeAttributes(scopeAttributes),
+      ...serializeAttributes(logAttributes, true),
     },
   };
 
