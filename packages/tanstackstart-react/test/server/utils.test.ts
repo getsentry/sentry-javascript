@@ -39,4 +39,3 @@ describe('extractServerFunctionSha256', () => {
     expect(result).toBe('unknown');
   });
 });
-
