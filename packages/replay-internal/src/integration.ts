@@ -43,25 +43,23 @@ export function _INTERNAL_instrumentRequestInterface(): void {
   const OriginalRequest = Request;
 
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any,@typescript-eslint/no-unsafe-member-access
-    (GLOBAL_OBJ as any).Request = function SentryRequest(input: RequestInfo | URL, init?: RequestInit): Request {
+    const SentryRequest = function (input: RequestInfo | URL, init?: RequestInit): Request {
       const request = new OriginalRequest(input, init);
-
-      if (init && 'body' in init && init.body != null) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      if (init?.body != null) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any,@typescript-eslint/no-unsafe-member-access
         (request as any)[ORIGINAL_BODY] = init.body;
       }
-
       return request;
     };
 
-    // Preserve the prototype
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    (GLOBAL_OBJ as any).Request.prototype = OriginalRequest.prototype;
+    SentryRequest.prototype = OriginalRequest.prototype;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any,@typescript-eslint/no-unsafe-member-access
+    (GLOBAL_OBJ as any).Request = SentryRequest;
 
     _isRequestInstrumented = true;
-  } catch (e) {
-    // Silently fail if we can't patch Request (e.g., if it's frozen)
+  } catch {
+    // Fail silently if Request is frozen
   }
 }
 
