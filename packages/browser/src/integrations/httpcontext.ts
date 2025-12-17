@@ -6,6 +6,9 @@ import {
 } from '@sentry/core';
 import { getHttpRequestData, WINDOW } from '../helpers';
 
+// Treeshakable guard to remove all code related to tracing
+declare const __SENTRY_TRACING__: boolean | undefined;
+
 /**
  * Collects information about HTTP request headers and
  * attaches them to the event.
@@ -20,19 +23,21 @@ export const httpContextIntegration = defineIntegration(() => {
         return;
       }
 
-      if (client.getOptions().traceLifecycle === 'stream') {
-        client.on('processSpan', spanJSON => {
-          if (spanJSON.is_segment) {
-            const { url, headers } = getHttpRequestData();
+      if (typeof __SENTRY_TRACING__ === 'undefined' || __SENTRY_TRACING__) {
+        if (client.getOptions().traceLifecycle === 'stream') {
+          client.on('processSpan', spanJSON => {
+            if (spanJSON.is_segment) {
+              const { url, headers } = getHttpRequestData();
 
-            const attributeHeaders = httpHeadersToSpanAttributes(headers);
+              const attributeHeaders = httpHeadersToSpanAttributes(headers);
 
-            safeSetSpanJSONAttributes(spanJSON, {
-              [SEMANTIC_ATTRIBUTE_URL_FULL]: url,
-              ...attributeHeaders,
-            });
-          }
-        });
+              safeSetSpanJSONAttributes(spanJSON, {
+                [SEMANTIC_ATTRIBUTE_URL_FULL]: url,
+                ...attributeHeaders,
+              });
+            }
+          });
+        }
       }
     },
     preprocessEvent(event) {
