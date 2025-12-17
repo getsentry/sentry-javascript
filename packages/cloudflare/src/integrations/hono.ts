@@ -17,13 +17,9 @@ interface HonoError extends Error {
   status?: number;
 }
 
-interface HonoContext {
-  req: {
-    method: string;
-    url: string;
-    headers: Record<string, string>;
-    path?: string;
-  };
+// Minimal type - only exported for tests
+export interface HonoContext {
+  req: { method: string; path?: string };
 }
 
 export interface Options {
@@ -52,6 +48,7 @@ const routePath = (c: HonoContext): string => c.req?.path ?? '';
 const _honoIntegration = ((options: Partial<Options> = {}) => {
   return {
     name: INTEGRATION_NAME,
+    // Hono error handler: https://github.com/honojs/hono/blob/d3abeb1f801aaa1b334285c73da5f5f022dbcadb/src/hono-base.ts#L35
     handleHonoException(err: HonoError, context: HonoContext): void {
       const shouldHandleError = options.shouldHandleError || defaultShouldHandleError;
 

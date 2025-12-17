@@ -2,6 +2,7 @@ import * as sentryCore from '@sentry/core';
 import { type Client, createStackParser } from '@sentry/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CloudflareClient } from '../../src/client';
+import type { HonoContext } from '../../src/integrations/hono';
 import { honoIntegration } from '../../src/integrations/hono';
 
 class FakeClient extends CloudflareClient {
@@ -10,7 +11,11 @@ class FakeClient extends CloudflareClient {
   }
 }
 
-type MockHonoIntegrationType = { handleHonoException: (err: Error) => void };
+type MockHonoIntegrationType = { handleHonoException: (err: Error, ctx: HonoContext) => void };
+
+const sampleContext: HonoContext = {
+  req: { method: 'GET', path: '/vitest-sample' },
+};
 
 describe('Hono integration', () => {
   let client: FakeClient;
@@ -34,7 +39,7 @@ describe('Hono integration', () => {
 
     const error = new Error('hono boom');
     // simulate withSentry wrapping of errorHandler calling back into integration
-    (integration as unknown as MockHonoIntegrationType).handleHonoException(error);
+    (integration as unknown as MockHonoIntegrationType).handleHonoException(error, sampleContext);
 
     expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
     expect(captureExceptionSpy).toHaveBeenLastCalledWith(error, {
@@ -49,6 +54,7 @@ describe('Hono integration', () => {
 
     (integration as unknown as MockHonoIntegrationType).handleHonoException(
       Object.assign(new Error('client err'), { status: 404 }),
+      sampleContext,
     );
     expect(captureExceptionSpy).not.toHaveBeenCalled();
   });
@@ -60,6 +66,7 @@ describe('Hono integration', () => {
 
     (integration as unknown as MockHonoIntegrationType).handleHonoException(
       Object.assign(new Error('redirect'), { status: 302 }),
+      sampleContext,
     );
     expect(captureExceptionSpy).not.toHaveBeenCalled();
   });
@@ -70,7 +77,7 @@ describe('Hono integration', () => {
     integration.setupOnce?.();
 
     const err = Object.assign(new Error('server err'), { status: 500 });
-    (integration as unknown as MockHonoIntegrationType).handleHonoException(err);
+    (integration as unknown as MockHonoIntegrationType).handleHonoException(err, sampleContext);
     expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
   });
 
@@ -79,7 +86,7 @@ describe('Hono integration', () => {
     const integration = honoIntegration();
     integration.setupOnce?.();
 
-    (integration as unknown as MockHonoIntegrationType).handleHonoException(new Error('no status'));
+    (integration as unknown as MockHonoIntegrationType).handleHonoException(new Error('no status'), sampleContext);
     expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
   });
 
@@ -88,7 +95,7 @@ describe('Hono integration', () => {
     const integration = honoIntegration({ shouldHandleError: () => false });
     integration.setupOnce?.();
 
-    (integration as unknown as MockHonoIntegrationType).handleHonoException(new Error('blocked'));
+    (integration as unknown as MockHonoIntegrationType).handleHonoException(new Error('blocked'), sampleContext);
     expect(captureExceptionSpy).not.toHaveBeenCalled();
   });
 });
