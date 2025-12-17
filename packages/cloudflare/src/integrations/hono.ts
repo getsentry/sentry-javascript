@@ -58,13 +58,17 @@ const _honoIntegration = ((options: Partial<Options> = {}) => {
       }
 
       if (shouldHandleError(err)) {
-        const activeSpan = getActiveSpan();
-        if (activeSpan) {
-          activeSpan.updateName(`${context.req.method} ${routePath(context)}`);
-          updateSpanName(getRootSpan(activeSpan), `${context.req.method} ${routePath(context)}`);
-        }
+        if (context) {
+          const activeSpan = getActiveSpan();
+          const spanName = `${context.req.method} ${routePath(context)}`;
 
-        getIsolationScope().setTransactionName(`${context.req.method} ${routePath(context)}`);
+          if (activeSpan) {
+            activeSpan.updateName(spanName);
+            updateSpanName(getRootSpan(activeSpan), spanName);
+          }
+
+          getIsolationScope().setTransactionName(spanName);
+        }
 
         captureException(err, { mechanism: { handled: false, type: 'auto.faas.hono.error_handler' } });
       } else {

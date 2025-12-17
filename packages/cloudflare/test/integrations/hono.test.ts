@@ -98,4 +98,14 @@ describe('Hono integration', () => {
     (integration as unknown as MockHonoIntegrationType).handleHonoException(new Error('blocked'), sampleContext);
     expect(captureExceptionSpy).not.toHaveBeenCalled();
   });
+
+  it('does not throw error without passed context and still captures', () => {
+    const captureExceptionSpy = vi.spyOn(sentryCore, 'captureException');
+    const integration = honoIntegration();
+    integration.setupOnce?.();
+
+    // @ts-expect-error context is not passed
+    (integration as unknown as MockHonoIntegrationType).handleHonoException(new Error());
+    expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
+  });
 });
