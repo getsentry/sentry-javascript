@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/node-overhead-gh-action",
-  "version": "10.29.0",
+  "version": "10.31.0",
   "license": "MIT",
   "engines": {
     "node": ">=18"
@@ -23,7 +23,7 @@
     "fix": "eslint . --format stylish --fix"
   },
   "dependencies": {
-    "@sentry/node": "10.29.0",
+    "@sentry/node": "10.31.0",
     "express": "^4.21.1",
     "mysql2": "^3.14.4"
   },

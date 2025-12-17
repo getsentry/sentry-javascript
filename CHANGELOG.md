@@ -4,6 +4,98 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+- feat(nextjs): Add tree-shaking configuration to `webpack` build config ([#18359](https://github.com/getsentry/sentry-javascript/pull/18359))
+
+## 10.31.0
+
+### Important Changes
+
+- **feat(browser): Add support for GraphQL persisted operations ([#18505](https://github.com/getsentry/sentry-javascript/pull/18505))**
+
+The `graphqlClientIntegration` now supports GraphQL persisted operations (queries). When a persisted query is detected, the integration will capture the operation hash and version as span attributes:
+
+- `graphql.persisted_query.hash.sha256` - The SHA-256 hash of the persisted query
+- `graphql.persisted_query.version` - The version of the persisted query protocol
+
+Additionally, the `graphql.document` attribute format has changed to align with OpenTelemetry semantic conventions. It now contains only the GraphQL query string instead of the full JSON request payload.
+
+**Before:**
+
+```javascript
+"graphql.document": "{\"query\":\"query Test { user { id } }\"}"
+```
+
+**After:**
+
+```javascript
+"graphql.document": "query Test { user { id } }"
+```
+
+### Other Changes
+
+- feat(node): Support `propagateTraceparent` option ([#18476](https://github.com/getsentry/sentry-javascript/pull/18476))
+- feat(bun): Expose spotlight option in TypeScript ([#18436](https://github.com/getsentry/sentry-javascript/pull/18436))
+- feat(core): Add additional exports for `captureException` and `captureMessage` parameter types ([#18521](https://github.com/getsentry/sentry-javascript/pull/18521))
+- feat(core): Export `captureException` and `captureMessage` parameter types ([#18509](https://github.com/getsentry/sentry-javascript/pull/18509))
+- feat(core): Parse individual cookies from cookie header ([#18325](https://github.com/getsentry/sentry-javascript/pull/18325))
+- feat(node): Add instrument OpenAI export to node ([#18461](https://github.com/getsentry/sentry-javascript/pull/18461))
+- feat(nuxt): Bump `@sentry/vite-plugin` and `@sentry/rollup-plugin` to 4.6.1 ([#18349](https://github.com/getsentry/sentry-javascript/pull/18349))
+- feat(profiling): Add support for Node v24 in the prune script ([#18447](https://github.com/getsentry/sentry-javascript/pull/18447))
+- feat(tracing): strip inline media from messages ([#18413](https://github.com/getsentry/sentry-javascript/pull/18413))
+- feat(node): Add ESM support for postgres.js instrumentation ([#17961](https://github.com/getsentry/sentry-javascript/pull/17961))
+- fix(browser): Stringify span context in linked traces log statement ([#18376](https://github.com/getsentry/sentry-javascript/pull/18376))
+- fix(google-cloud-serverless): Move @types/express to optional peerDeps ([#18452](https://github.com/getsentry/sentry-javascript/pull/18452))
+- fix(node-core): passthrough node-cron context ([#17835](https://github.com/getsentry/sentry-javascript/pull/17835))
+- fix(tanstack-router): Check for `fromLocation` existence before reporting pageload ([#18463](https://github.com/getsentry/sentry-javascript/pull/18463))
+- fix(tracing): add system prompt, model to google genai ([#18424](https://github.com/getsentry/sentry-javascript/pull/18424))
+- fix(tracing): Set span operations for AI spans with model ID only ([#18471](https://github.com/getsentry/sentry-javascript/pull/18471))
+- ref(browser): Improve profiling debug statement ([#18507](https://github.com/getsentry/sentry-javascript/pull/18507))
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+
+- chore: Add external contributor to CHANGELOG.md ([#18473](https://github.com/getsentry/sentry-javascript/pull/18473))
+- chore: upgrade Playwright to ~1.56.0 for WSL2 compatibility ([#18468](https://github.com/getsentry/sentry-javascript/pull/18468))
+- chore(bugbot): Add testing conventions code review rules ([#18433](https://github.com/getsentry/sentry-javascript/pull/18433))
+- chore(deps): bump next from 14.2.25 to 14.2.35 in /dev-packages/e2e-tests/test-applications/create-next-app ([#18494](https://github.com/getsentry/sentry-javascript/pull/18494))
+- chore(deps): bump next from 14.2.32 to 14.2.35 in /dev-packages/e2e-tests/test-applications/nextjs-orpc ([#18520](https://github.com/getsentry/sentry-javascript/pull/18520))
+- chore(deps): bump next from 14.2.32 to 14.2.35 in /dev-packages/e2e-tests/test-applications/nextjs-pages-dir ([#18496](https://github.com/getsentry/sentry-javascript/pull/18496))
+- chore(deps): bump next from 15.5.7 to 15.5.9 in /dev-packages/e2e-tests/test-applications/nextjs-15 ([#18482](https://github.com/getsentry/sentry-javascript/pull/18482))
+- chore(deps): bump next from 15.5.7 to 15.5.9 in /dev-packages/e2e-tests/test-applications/nextjs-15-intl ([#18483](https://github.com/getsentry/sentry-javascript/pull/18483))
+- chore(deps): bump next from 16.0.7 to 16.0.9 in /dev-packages/e2e-tests/test-applications/nextjs-16 ([#18480](https://github.com/getsentry/sentry-javascript/pull/18480))
+- chore(deps): bump next from 16.0.7 to 16.0.9 in /dev-packages/e2e-tests/test-applications/nextjs-16-cacheComponents ([#18479](https://github.com/getsentry/sentry-javascript/pull/18479))
+- chore(deps): bump next from 16.0.7 to 16.0.9 in /dev-packages/e2e-tests/test-applications/nextjs-16-tunnel ([#18481](https://github.com/getsentry/sentry-javascript/pull/18481))
+- chore(deps): bump next from 16.0.9 to 16.0.10 in /dev-packages/e2e-tests/test-applications/nextjs-16 ([#18514](https://github.com/getsentry/sentry-javascript/pull/18514))
+- chore(deps): bump next from 16.0.9 to 16.0.10 in /dev-packages/e2e-tests/test-applications/nextjs-16-tunnel ([#18487](https://github.com/getsentry/sentry-javascript/pull/18487))
+- chore(tests): Added test variant flag ([#18458](https://github.com/getsentry/sentry-javascript/pull/18458))
+- test(cloudflare-mcp): Pin mcp sdk to 1.24.0 ([#18524](https://github.com/getsentry/sentry-javascript/pull/18524))
+
+</details>
+
+Work in this release was contributed by @sebws and @TBeeren. Thank you for your contributions!
+
+## 10.30.0
+
+- feat(nextjs): Deprecate Webpack top-level options ([#18343](https://github.com/getsentry/sentry-javascript/pull/18343))
+- feat(node): Capture scope when event loop blocked ([#18040](https://github.com/getsentry/sentry-javascript/pull/18040))
+- fix(aws-serverless): Remove hyphens from AWS-lambda origins ([#18353](https://github.com/getsentry/sentry-javascript/pull/18353))
+- fix(core): Parse method from Request object in fetch ([#18453](https://github.com/getsentry/sentry-javascript/pull/18453))
+- fix(react): Add transaction name guards for rapid lazy-route navigations ([#18346](https://github.com/getsentry/sentry-javascript/pull/18346))
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+
+- chore(ci): Fix double issue creation for unreferenced PRs ([#18442](https://github.com/getsentry/sentry-javascript/pull/18442))
+- chore(deps): bump next from 15.5.4 to 15.5.7 in /dev-packages/e2e-tests/test-applications/nextjs-15 ([#18411](https://github.com/getsentry/sentry-javascript/pull/18411))
+- chore(deps): bump next from 15.5.4 to 15.5.7 in /dev-packages/e2e-tests/test-applications/nextjs-15-intl ([#18400](https://github.com/getsentry/sentry-javascript/pull/18400))
+- chore(deps): bump next from 16.0.0 to 16.0.7 in /dev-packages/e2e-tests/test-applications/nextjs-16 ([#18399](https://github.com/getsentry/sentry-javascript/pull/18399))
+- chore(deps): bump next from 16.0.0 to 16.0.7 in /dev-packages/e2e-tests/test-applications/nextjs-16-cacheComponents ([#18427](https://github.com/getsentry/sentry-javascript/pull/18427))
+- chore(deps): bump next from 16.0.0 to 16.0.7 in /dev-packages/e2e-tests/test-applications/nextjs-16-tunnel ([#18439](https://github.com/getsentry/sentry-javascript/pull/18439))
+- chore(publish): Fix publish order for `@sentry/types` ([#18429](https://github.com/getsentry/sentry-javascript/pull/18429))
+- ci(deps): bump actions/create-github-app-token from 2.1.4 to 2.2.0 ([#18362](https://github.com/getsentry/sentry-javascript/pull/18362))
+
+</details>
+
 ## 10.29.0
 
 ### Important Changes

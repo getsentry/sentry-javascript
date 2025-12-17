@@ -44,6 +44,7 @@ export function addRequestBreadcrumb(request: ClientRequest, response: IncomingM
  * Add trace propagation headers to an outgoing request.
  * This must be called _before_ the request is sent!
  */
+// eslint-disable-next-line complexity
 export function addTracePropagationHeadersToOutgoingRequest(
   request: ClientRequest,
   propagationDecisionMap: LRUMap<string, boolean>,
@@ -53,16 +54,16 @@ export function addTracePropagationHeadersToOutgoingRequest(
   // Manually add the trace headers, if it applies
   // Note: We do not use `propagation.inject()` here, because our propagator relies on an active span
   // Which we do not have in this case
-  const tracePropagationTargets = getClient()?.getOptions().tracePropagationTargets;
+  const { tracePropagationTargets, propagateTraceparent } = getClient()?.getOptions() || {};
   const headersToAdd = shouldPropagateTraceForUrl(url, tracePropagationTargets, propagationDecisionMap)
-    ? getTraceData()
+    ? getTraceData({ propagateTraceparent })
     : undefined;
 
   if (!headersToAdd) {
     return;
   }
 
-  const { 'sentry-trace': sentryTrace, baggage } = headersToAdd;
+  const { 'sentry-trace': sentryTrace, baggage, traceparent } = headersToAdd;
 
   // We do not want to overwrite existing header here, if it was already set
   if (sentryTrace && !request.getHeader('sentry-trace')) {
@@ -74,6 +75,20 @@ export function addTracePropagationHeadersToOutgoingRequest(
         debug.error(
           INSTRUMENTATION_NAME,
           'Failed to add sentry-trace header to outgoing request:',
+          isError(error) ? error.message : 'Unknown error',
+        );
+    }
+  }
+
+  if (traceparent && !request.getHeader('traceparent')) {
+    try {
+      request.setHeader('traceparent', traceparent);
+      DEBUG_BUILD && debug.log(INSTRUMENTATION_NAME, 'Added traceparent header to outgoing request');
+    } catch (error) {
+      DEBUG_BUILD &&
+        debug.error(
+          INSTRUMENTATION_NAME,
+          'Failed to add traceparent header to outgoing request:',
           isError(error) ? error.message : 'Unknown error',
         );
     }
