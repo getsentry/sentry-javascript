@@ -92,8 +92,12 @@ export function tanstackRouterBrowserTracingIntegration<R extends AnyRouter>(
 
           const navigationLocation = WINDOW.location;
           const navigationSpan = startBrowserTracingNavigationSpan(client, {
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-            name: onBeforeNavigateLastMatch ? onBeforeNavigateLastMatch.routeId : navigationLocation.pathname,
+            name: onBeforeNavigateLastMatch
+              ? // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+                onBeforeNavigateLastMatch.routeId
+              : // In SSR/non-browser contexts, WINDOW.location may be undefined, so fall back to the router's location
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+                navigationLocation?.pathname || onBeforeNavigateArgs.toLocation.pathname,
             attributes: {
               [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.vue.tanstack_router',
