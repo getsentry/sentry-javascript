@@ -110,8 +110,6 @@ test('Sends an API route transaction with auto-instrumentation', async ({ page }
 
   const transactionEvent = await transactionEventPromise;
 
-  console.log('transactionEvent: ', transactionEvent);
-
   expect(transactionEvent).toEqual(
     expect.objectContaining({
       transaction: 'GET /api/hello',

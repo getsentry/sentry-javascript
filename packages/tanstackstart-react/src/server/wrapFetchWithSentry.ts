@@ -44,43 +44,34 @@ export function wrapFetchWithSentry(serverEntry: ServerEntry): ServerEntry {
         const url = new URL(request.url);
         const method = request.method || 'GET';
 
-        // instrument server functions
-        if (url.pathname.includes('_serverFn') || url.pathname.includes('createServerFn')) {
-          const functionSha256 = extractServerFunctionSha256(url.pathname);
-          const op = 'function.tanstackstart';
+        let op: string;
+        let spanAttributes: SpanAttributes;
 
-          const serverFunctionSpanAttributes: SpanAttributes = {
+        if (url.pathname.includes('_serverFn') || url.pathname.includes('createServerFn')) {
+          // server function call
+          op = 'function.tanstackstart';
+          const functionSha256 = extractServerFunctionSha256(url.pathname);
+          spanAttributes = {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.tanstackstart.server',
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op,
             'tanstackstart.function.hash.sha256': functionSha256,
           };
-
-          return startSpan(
-            {
-              op: op,
-              name: `${method} ${url.pathname}`,
-              attributes: serverFunctionSpanAttributes,
-            },
-            () => {
-              return target.apply(thisArg, args);
-            },
-          );
+        } else {
+          // API route or other server request
+          op = 'http.server';
+          spanAttributes = {
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.tanstackstart.server',
+            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op,
+            [SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD]: method,
+            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          };
         }
-
-        // instrument other server requests including API routes
-        const op = 'http.server';
-        const httpServerSpanAttributes: SpanAttributes = {
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.tanstackstart.server',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op,
-          [SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD]: method,
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-        };
 
         return startSpan(
           {
-            op: op,
+            op,
             name: `${method} ${url.pathname}`,
-            attributes: httpServerSpanAttributes,
+            attributes: spanAttributes,
           },
           () => {
             return target.apply(thisArg, args);
