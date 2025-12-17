@@ -4,6 +4,25 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+- **feat(nextjs): Add tree-shaking configuration to `webpack` build config ([#18359](https://github.com/getsentry/sentry-javascript/pull/18359))**
+
+- **feat(replay): Add Request body with `attachRawBodyFromRequest` option ([#18501](https://github.com/getsentry/sentry-javascript/pull/18501))**
+
+To attach the raw request body (from `Request` objects passed as the first `fetch` argument) to replay events,
+you can now use the `attachRawBodyFromRequest` option in the Replay integration:
+
+```js
+Sentry.init({
+  integrations: [
+    Sentry.replayIntegration({
+      attachRawBodyFromRequest: true,
+    }),
+  ],
+});
+```
+
+## 10.31.0
+
 ### Important Changes
 
 - **feat(browser): Add support for GraphQL persisted operations ([#18505](https://github.com/getsentry/sentry-javascript/pull/18505))**
@@ -27,24 +46,48 @@ Additionally, the `graphql.document` attribute format has changed to align with 
 "graphql.document": "query Test { user { id } }"
 ```
 
-- **feat(replay): Add Request body with `attachRawBodyFromRequest` option**
-
-To attach the raw request body (from `Request` objects passed as the first `fetch` argument) to replay events,
-you can now use the `attachRawBodyFromRequest` option in the Replay integration:
-
-```js
-Sentry.init({
-  integrations: [
-    Sentry.replayIntegration({
-      attachRawBodyFromRequest: true,
-    }),
-  ],
-});
-```
-
 ### Other Changes
 
-Work in this release was contributed by @sebws. Thank you for your contribution!
+- feat(node): Support `propagateTraceparent` option ([#18476](https://github.com/getsentry/sentry-javascript/pull/18476))
+- feat(bun): Expose spotlight option in TypeScript ([#18436](https://github.com/getsentry/sentry-javascript/pull/18436))
+- feat(core): Add additional exports for `captureException` and `captureMessage` parameter types ([#18521](https://github.com/getsentry/sentry-javascript/pull/18521))
+- feat(core): Export `captureException` and `captureMessage` parameter types ([#18509](https://github.com/getsentry/sentry-javascript/pull/18509))
+- feat(core): Parse individual cookies from cookie header ([#18325](https://github.com/getsentry/sentry-javascript/pull/18325))
+- feat(node): Add instrument OpenAI export to node ([#18461](https://github.com/getsentry/sentry-javascript/pull/18461))
+- feat(nuxt): Bump `@sentry/vite-plugin` and `@sentry/rollup-plugin` to 4.6.1 ([#18349](https://github.com/getsentry/sentry-javascript/pull/18349))
+- feat(profiling): Add support for Node v24 in the prune script ([#18447](https://github.com/getsentry/sentry-javascript/pull/18447))
+- feat(tracing): strip inline media from messages ([#18413](https://github.com/getsentry/sentry-javascript/pull/18413))
+- feat(node): Add ESM support for postgres.js instrumentation ([#17961](https://github.com/getsentry/sentry-javascript/pull/17961))
+- fix(browser): Stringify span context in linked traces log statement ([#18376](https://github.com/getsentry/sentry-javascript/pull/18376))
+- fix(google-cloud-serverless): Move @types/express to optional peerDeps ([#18452](https://github.com/getsentry/sentry-javascript/pull/18452))
+- fix(node-core): passthrough node-cron context ([#17835](https://github.com/getsentry/sentry-javascript/pull/17835))
+- fix(tanstack-router): Check for `fromLocation` existence before reporting pageload ([#18463](https://github.com/getsentry/sentry-javascript/pull/18463))
+- fix(tracing): add system prompt, model to google genai ([#18424](https://github.com/getsentry/sentry-javascript/pull/18424))
+- fix(tracing): Set span operations for AI spans with model ID only ([#18471](https://github.com/getsentry/sentry-javascript/pull/18471))
+- ref(browser): Improve profiling debug statement ([#18507](https://github.com/getsentry/sentry-javascript/pull/18507))
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+
+- chore: Add external contributor to CHANGELOG.md ([#18473](https://github.com/getsentry/sentry-javascript/pull/18473))
+- chore: upgrade Playwright to ~1.56.0 for WSL2 compatibility ([#18468](https://github.com/getsentry/sentry-javascript/pull/18468))
+- chore(bugbot): Add testing conventions code review rules ([#18433](https://github.com/getsentry/sentry-javascript/pull/18433))
+- chore(deps): bump next from 14.2.25 to 14.2.35 in /dev-packages/e2e-tests/test-applications/create-next-app ([#18494](https://github.com/getsentry/sentry-javascript/pull/18494))
+- chore(deps): bump next from 14.2.32 to 14.2.35 in /dev-packages/e2e-tests/test-applications/nextjs-orpc ([#18520](https://github.com/getsentry/sentry-javascript/pull/18520))
+- chore(deps): bump next from 14.2.32 to 14.2.35 in /dev-packages/e2e-tests/test-applications/nextjs-pages-dir ([#18496](https://github.com/getsentry/sentry-javascript/pull/18496))
+- chore(deps): bump next from 15.5.7 to 15.5.9 in /dev-packages/e2e-tests/test-applications/nextjs-15 ([#18482](https://github.com/getsentry/sentry-javascript/pull/18482))
+- chore(deps): bump next from 15.5.7 to 15.5.9 in /dev-packages/e2e-tests/test-applications/nextjs-15-intl ([#18483](https://github.com/getsentry/sentry-javascript/pull/18483))
+- chore(deps): bump next from 16.0.7 to 16.0.9 in /dev-packages/e2e-tests/test-applications/nextjs-16 ([#18480](https://github.com/getsentry/sentry-javascript/pull/18480))
+- chore(deps): bump next from 16.0.7 to 16.0.9 in /dev-packages/e2e-tests/test-applications/nextjs-16-cacheComponents ([#18479](https://github.com/getsentry/sentry-javascript/pull/18479))
+- chore(deps): bump next from 16.0.7 to 16.0.9 in /dev-packages/e2e-tests/test-applications/nextjs-16-tunnel ([#18481](https://github.com/getsentry/sentry-javascript/pull/18481))
+- chore(deps): bump next from 16.0.9 to 16.0.10 in /dev-packages/e2e-tests/test-applications/nextjs-16 ([#18514](https://github.com/getsentry/sentry-javascript/pull/18514))
+- chore(deps): bump next from 16.0.9 to 16.0.10 in /dev-packages/e2e-tests/test-applications/nextjs-16-tunnel ([#18487](https://github.com/getsentry/sentry-javascript/pull/18487))
+- chore(tests): Added test variant flag ([#18458](https://github.com/getsentry/sentry-javascript/pull/18458))
+- test(cloudflare-mcp): Pin mcp sdk to 1.24.0 ([#18524](https://github.com/getsentry/sentry-javascript/pull/18524))
+
+</details>
+
+Work in this release was contributed by @sebws and @TBeeren. Thank you for your contributions!
 
 ## 10.30.0
 
