@@ -4,6 +4,28 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+- **feat(vue): Add TanStack Router integration ([#18359](https://github.com/getsentry/sentry-javascript/pull/18359))**
+
+The `@sentry/vue` package now includes support for TanStack Router. Use `tanstackRouterBrowserTracingIntegration` to automatically instrument pageload and navigation transactions with parameterized routes:
+
+```javascript
+import { createApp } from 'vue';
+import { createRouter } from '@tanstack/vue-router';
+import * as Sentry from '@sentry/vue';
+import { tanstackRouterBrowserTracingIntegration } from '@sentry/vue/tanstackrouter';
+
+const router = createRouter({
+  // your router config
+});
+
+Sentry.init({
+  app,
+  dsn: '__PUBLIC_DSN__',
+  integrations: [tanstackRouterBrowserTracingIntegration(router)],
+  tracesSampleRate: 1.0,
+});
+```
+
 - **feat(nextjs): Add tree-shaking configuration to `webpack` build config ([#18359](https://github.com/getsentry/sentry-javascript/pull/18359))**
 
 - **feat(replay): Add Request body with `attachRawBodyFromRequest` option ([#18501](https://github.com/getsentry/sentry-javascript/pull/18501))**

@@ -9,9 +9,7 @@
           <Link to="/posts/$postId" :params="{ postId: '1' }">Post 1</Link>
         </li>
         <li>
-          <Link to="/posts/$postId" :params="{ postId: '2' }" id="nav-link">
-            Post 2
-          </Link>
+          <Link to="/posts/$postId" :params="{ postId: '2' }" id="nav-link"> Post 2 </Link>
         </li>
       </ul>
     </nav>

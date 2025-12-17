@@ -43,13 +43,16 @@ export function tanstackRouterBrowserTracingIntegration<R extends AnyRouter>(
       if (instrumentPageLoad && initialWindowLocation) {
         const matchedRoutes = router.matchRoutes(
           initialWindowLocation.pathname,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
           router.options.parseSearch(initialWindowLocation.search),
           { preload: false, throwOnError: false },
         );
 
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         const lastMatch = matchedRoutes[matchedRoutes.length - 1];
 
         startBrowserTracingPageLoadSpan(client, {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
           name: lastMatch ? lastMatch.routeId : initialWindowLocation.pathname,
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
@@ -66,23 +69,30 @@ export function tanstackRouterBrowserTracingIntegration<R extends AnyRouter>(
           // onBeforeNavigate is called during pageloads. We can avoid creating navigation spans by:
           // 1. Checking if there's no fromLocation (initial pageload)
           // 2. Comparing the states of the to and from arguments
+           
           if (
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
             !onBeforeNavigateArgs.fromLocation ||
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
             onBeforeNavigateArgs.toLocation.state === onBeforeNavigateArgs.fromLocation.state
           ) {
             return;
           }
 
           const onResolvedMatchedRoutes = router.matchRoutes(
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
             onBeforeNavigateArgs.toLocation.pathname,
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
             onBeforeNavigateArgs.toLocation.search,
             { preload: false, throwOnError: false },
           );
 
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
           const onBeforeNavigateLastMatch = onResolvedMatchedRoutes[onResolvedMatchedRoutes.length - 1];
 
           const navigationLocation = WINDOW.location;
           const navigationSpan = startBrowserTracingNavigationSpan(client, {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
             name: onBeforeNavigateLastMatch ? onBeforeNavigateLastMatch.routeId : navigationLocation.pathname,
             attributes: {
               [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
@@ -96,14 +106,18 @@ export function tanstackRouterBrowserTracingIntegration<R extends AnyRouter>(
             unsubscribeOnResolved();
             if (navigationSpan) {
               const onResolvedMatchedRoutes = router.matchRoutes(
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
                 onResolvedArgs.toLocation.pathname,
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
                 onResolvedArgs.toLocation.search,
                 { preload: false, throwOnError: false },
               );
 
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
               const onResolvedLastMatch = onResolvedMatchedRoutes[onResolvedMatchedRoutes.length - 1];
 
               if (onResolvedLastMatch) {
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
                 navigationSpan.updateName(onResolvedLastMatch.routeId);
                 navigationSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
                 navigationSpan.setAttributes(routeMatchToParamSpanAttributes(onResolvedLastMatch));
@@ -122,6 +136,7 @@ function routeMatchToParamSpanAttributes(match: RouteMatch | undefined): Record<
   }
 
   const paramAttributes: Record<string, string> = {};
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   Object.entries(match.params as Record<string, string>).forEach(([key, value]) => {
     paramAttributes[`url.path.parameter.${key}`] = value;
     paramAttributes[`params.${key}`] = value; // params.[key] is an alias

@@ -76,12 +76,12 @@ describe('tanstackRouterBrowserTracingIntegration', () => {
   });
 
   it('creates an integration with the correct name', () => {
-    const integration = tanstackRouterBrowserTracingIntegration(mockRouter as AnyRouter);
+    const integration = tanstackRouterBrowserTracingIntegration(mockRouter );
     expect(integration.name).toBe('BrowserTracing');
   });
 
   it('instruments pageload on setup', () => {
-    const integration = tanstackRouterBrowserTracingIntegration(mockRouter as AnyRouter, {
+    const integration = tanstackRouterBrowserTracingIntegration(mockRouter , {
       instrumentPageLoad: true,
     });
 
@@ -109,7 +109,7 @@ describe('tanstackRouterBrowserTracingIntegration', () => {
   });
 
   it('does not instrument pageload when instrumentPageLoad is false', () => {
-    const integration = tanstackRouterBrowserTracingIntegration(mockRouter as AnyRouter, {
+    const integration = tanstackRouterBrowserTracingIntegration(mockRouter , {
       instrumentPageLoad: false,
     });
 
@@ -119,7 +119,7 @@ describe('tanstackRouterBrowserTracingIntegration', () => {
   });
 
   it('subscribes to router navigation events when instrumentNavigation is true', () => {
-    const integration = tanstackRouterBrowserTracingIntegration(mockRouter as AnyRouter, {
+    const integration = tanstackRouterBrowserTracingIntegration(mockRouter , {
       instrumentNavigation: true,
     });
 
@@ -129,7 +129,7 @@ describe('tanstackRouterBrowserTracingIntegration', () => {
   });
 
   it('does not subscribe to navigation events when instrumentNavigation is false', () => {
-    const integration = tanstackRouterBrowserTracingIntegration(mockRouter as AnyRouter, {
+    const integration = tanstackRouterBrowserTracingIntegration(mockRouter , {
       instrumentNavigation: false,
     });
 
@@ -140,7 +140,7 @@ describe('tanstackRouterBrowserTracingIntegration', () => {
   });
 
   it('creates navigation spans with correct attributes', () => {
-    const integration = tanstackRouterBrowserTracingIntegration(mockRouter as AnyRouter, {
+    const integration = tanstackRouterBrowserTracingIntegration(mockRouter , {
       instrumentNavigation: true,
       instrumentPageLoad: false, // Disable pageload to isolate navigation test
     });
@@ -179,7 +179,7 @@ describe('tanstackRouterBrowserTracingIntegration', () => {
   });
 
   it('skips navigation span creation when state is the same', () => {
-    const integration = tanstackRouterBrowserTracingIntegration(mockRouter as AnyRouter, {
+    const integration = tanstackRouterBrowserTracingIntegration(mockRouter , {
       instrumentNavigation: true,
       instrumentPageLoad: false,
     });
@@ -208,7 +208,7 @@ describe('tanstackRouterBrowserTracingIntegration', () => {
   });
 
   it('updates navigation span on redirect using onResolved', () => {
-    const integration = tanstackRouterBrowserTracingIntegration(mockRouter as AnyRouter, {
+    const integration = tanstackRouterBrowserTracingIntegration(mockRouter , {
       instrumentNavigation: true,
       instrumentPageLoad: false,
     });

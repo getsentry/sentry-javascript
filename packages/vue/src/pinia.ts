@@ -2,7 +2,7 @@ import { addBreadcrumb, addNonEnumerableProperty, getClient, getCurrentScope, ge
 import type { Ref } from 'vue';
 
 // Inline Pinia types
-type StateTree = Record<string | number | symbol, any>;
+type StateTree = Record<string | number | symbol, unknown>;
 type PiniaPlugin = (context: {
   store: {
     $id: string;
@@ -15,8 +15,8 @@ type PiniaPlugin = (context: {
 type SentryPiniaPluginOptions = {
   attachPiniaState: boolean;
   addBreadcrumbs: boolean;
-  actionTransformer: (action: string) => any;
-  stateTransformer: (state: Record<string, unknown>) => any;
+  actionTransformer: (action: string) => unknown;
+  stateTransformer: (state: Record<string, unknown>) => unknown;
 };
 
 const DEFAULT_PINIA_PLUGIN_OPTIONS: SentryPiniaPluginOptions = {

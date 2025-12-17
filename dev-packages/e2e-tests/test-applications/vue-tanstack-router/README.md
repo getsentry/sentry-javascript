@@ -40,6 +40,7 @@ This project uses [TanStack Router](https://tanstack.com/router) for Vue.js. The
 ### Sentry Integration
 
 The app demonstrates:
+
 - TanStack Router browser tracing integration
 - Pageload transaction tracking with parameterized routes
 - Navigation transaction tracking
@@ -48,6 +49,7 @@ The app demonstrates:
 ## Testing
 
 The E2E tests verify:
+
 1. Pageload transactions are created with correct route parameters
 2. Navigation transactions are properly instrumented
 3. Route parameters are captured in transaction data
