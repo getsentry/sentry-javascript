@@ -1,4 +1,11 @@
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan } from '@sentry/node';
+import type { SpanAttributes } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD } from '@sentry/core';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  startSpan,
+} from '@sentry/node';
 import { extractServerFunctionSha256 } from './utils';
 
 export type ServerEntry = {
@@ -42,7 +49,7 @@ export function wrapFetchWithSentry(serverEntry: ServerEntry): ServerEntry {
           const functionSha256 = extractServerFunctionSha256(url.pathname);
           const op = 'function.tanstackstart';
 
-          const serverFunctionSpanAttributes = {
+          const serverFunctionSpanAttributes: SpanAttributes = {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.tanstackstart.server',
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op,
             'tanstackstart.function.hash.sha256': functionSha256,
@@ -60,7 +67,25 @@ export function wrapFetchWithSentry(serverEntry: ServerEntry): ServerEntry {
           );
         }
 
-        return target.apply(thisArg, args);
+        // instrument other server requests including API routes
+        const op = 'http.server';
+        const httpServerSpanAttributes: SpanAttributes = {
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.tanstackstart.server',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op,
+          [SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD]: method,
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+        };
+
+        return startSpan(
+          {
+            op: op,
+            name: `${method} ${url.pathname}`,
+            attributes: httpServerSpanAttributes,
+          },
+          () => {
+            return target.apply(thisArg, args);
+          },
+        );
       },
     });
   }

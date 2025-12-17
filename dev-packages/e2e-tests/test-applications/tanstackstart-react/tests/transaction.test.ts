@@ -102,8 +102,7 @@ test('Sends a server function transaction for a nested server function only if i
 test('Sends an API route transaction with auto-instrumentation', async ({ page }) => {
   const transactionEventPromise = waitForTransaction('tanstackstart-react', transactionEvent => {
     return (
-      transactionEvent?.contexts?.trace?.op === 'http.server' &&
-      transactionEvent?.transaction === 'GET /api/hello'
+      transactionEvent?.contexts?.trace?.op === 'http.server' && transactionEvent?.transaction === 'GET /api/hello'
     );
   });
 
@@ -125,11 +124,11 @@ test('Sends an API route transaction with auto-instrumentation', async ({ page }
         description: 'GET /api/hello',
         op: 'http.server',
         origin: 'auto.http.tanstackstart.server',
-        source: 'route',
         data: {
           'sentry.op': 'http.server',
           'sentry.origin': 'auto.http.tanstackstart.server',
-          'http.route': '/api/hello',
+          'sentry.source': 'route',
+          'http.request.method': 'GET',
         },
       }),
     ]),
