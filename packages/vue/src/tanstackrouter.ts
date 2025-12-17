@@ -69,7 +69,7 @@ export function tanstackRouterBrowserTracingIntegration<R extends AnyRouter>(
           // onBeforeNavigate is called during pageloads. We can avoid creating navigation spans by:
           // 1. Checking if there's no fromLocation (initial pageload)
           // 2. Comparing the states of the to and from arguments
-           
+
           if (
             // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
             !onBeforeNavigateArgs.fromLocation ||
