@@ -77,7 +77,7 @@ sentryTest(
 );
 
 sentryTest(
-  'enhanceFetchErrorMessages: false: includes port in hostname @firefox',
+  'enhanceFetchErrorMessages: false: includes port in hostname',
   async ({ getLocalTestUrl, page, browserName }) => {
     const url = await getLocalTestUrl({ testDir: __dirname });
     const reqPromise = waitForErrorRequest(page);
