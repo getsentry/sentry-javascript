@@ -26,7 +26,7 @@ describe('MCP Server Semantic Conventions', () => {
 
     beforeEach(() => {
       mockMcpServer = createMockMcpServer();
-      wrappedMcpServer = wrapMcpServerWithSentry(mockMcpServer);
+      wrappedMcpServer = wrapMcpServerWithSentry(mockMcpServer, { recordInputs: true, recordOutputs: true });
       mockTransport = createMockTransport();
       mockTransport.sessionId = 'test-session-123';
     });

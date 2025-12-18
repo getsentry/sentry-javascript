@@ -190,7 +190,7 @@ describe('MCP Server Transport Instrumentation', () => {
 
     beforeEach(() => {
       mockMcpServer = createMockMcpServer();
-      wrappedMcpServer = wrapMcpServerWithSentry(mockMcpServer);
+      wrappedMcpServer = wrapMcpServerWithSentry(mockMcpServer, { recordInputs: true });
       mockStdioTransport = createMockStdioTransport();
       mockStdioTransport.sessionId = 'stdio-session-456';
     });
@@ -308,7 +308,7 @@ describe('MCP Server Transport Instrumentation', () => {
     it('should test wrapTransportOnMessage directly', () => {
       const originalOnMessage = mockTransport.onmessage;
 
-      wrapTransportOnMessage(mockTransport);
+      wrapTransportOnMessage(mockTransport, false);
 
       expect(mockTransport.onmessage).not.toBe(originalOnMessage);
     });
@@ -316,7 +316,7 @@ describe('MCP Server Transport Instrumentation', () => {
     it('should test wrapTransportSend directly', () => {
       const originalSend = mockTransport.send;
 
-      wrapTransportSend(mockTransport);
+      wrapTransportSend(mockTransport, false);
 
       expect(mockTransport.send).not.toBe(originalSend);
     });
@@ -345,12 +345,17 @@ describe('MCP Server Transport Instrumentation', () => {
         params: { name: 'test-tool', arguments: { input: 'test' } },
       };
 
-      const config = buildMcpServerSpanConfig(jsonRpcRequest, mockTransport, {
-        requestInfo: {
-          remoteAddress: '127.0.0.1',
-          remotePort: 8080,
+      const config = buildMcpServerSpanConfig(
+        jsonRpcRequest,
+        mockTransport,
+        {
+          requestInfo: {
+            remoteAddress: '127.0.0.1',
+            remotePort: 8080,
+          },
         },
-      });
+        true, // recordInputs
+      );
 
       expect(config).toEqual({
         name: 'tools/call test-tool',
@@ -653,6 +658,56 @@ describe('MCP Server Transport Instrumentation', () => {
         }),
       );
       expect(mockSpan.end).toHaveBeenCalled();
+    });
+  });
+
+  describe('Wrapper Options', () => {
+    it('should NOT capture request arguments by default (recordInputs: false)', async () => {
+      const mockMcpServer = createMockMcpServer();
+      const wrappedMcpServer = wrapMcpServerWithSentry(mockMcpServer);
+      const transport = createMockTransport();
+
+      await wrappedMcpServer.connect(transport);
+
+      transport.onmessage?.(
+        {
+          jsonrpc: '2.0',
+          method: 'tools/call',
+          id: 'tool-1',
+          params: { name: 'weather', arguments: { location: 'London' } },
+        },
+        {},
+      );
+
+      expect(startInactiveSpanSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          attributes: expect.not.objectContaining({
+            'mcp.request.argument.location': expect.anything(),
+          }),
+        }),
+      );
+    });
+
+    it('should NOT capture tool outputs by default (recordOutputs: false)', async () => {
+      const mockMcpServer = createMockMcpServer();
+      const wrappedMcpServer = wrapMcpServerWithSentry(mockMcpServer);
+      const transport = createMockTransport();
+
+      await wrappedMcpServer.connect(transport);
+
+      const setAttributesSpy = vi.fn();
+      const mockSpan = { setAttributes: setAttributesSpy, end: vi.fn() };
+      startInactiveSpanSpy.mockReturnValueOnce(mockSpan as any);
+
+      transport.onmessage?.({ jsonrpc: '2.0', method: 'tools/call', id: 'tool-1', params: { name: 'weather' } }, {});
+
+      await transport.send?.({
+        jsonrpc: '2.0',
+        id: 'tool-1',
+        result: { content: [{ type: 'text', text: 'Sunny' }], isError: false },
+      });
+
+      expect(setAttributesSpy).not.toHaveBeenCalled();
     });
   });
 });
