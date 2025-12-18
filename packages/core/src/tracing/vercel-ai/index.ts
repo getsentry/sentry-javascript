@@ -109,10 +109,38 @@ function vercelAiEventProcessor(event: Event): Event {
  * Post-process spans emitted by the Vercel AI SDK.
  */
 function processEndedVercelAiSpan(span: SpanJSON): void {
-  const { data: attributes, origin } = span;
+  const { data: attributes, origin, description: name } = span;
 
   if (origin !== 'auto.vercelai.otel') {
     return;
+  }
+
+  // Ensure ended spans still get a GenAI op even if the required attributes were not present at span start.
+  // This is important for Sentry's AI Agents UI, which relies on `span.op` being set to `gen_ai.*`.
+  // See: https://github.com/getsentry/sentry-javascript/issues/18448
+  if (name && (span.op === 'default' || !span.op)) {
+    if (
+      name === 'ai.generateText' ||
+      name === 'ai.streamText' ||
+      name === 'ai.generateObject' ||
+      name === 'ai.streamObject' ||
+      name === 'ai.embed' ||
+      name === 'ai.embedMany'
+    ) {
+      span.op = 'gen_ai.invoke_agent';
+    } else if (name === 'ai.generateText.doGenerate') {
+      span.op = 'gen_ai.generate_text';
+    } else if (name === 'ai.streamText.doStream') {
+      span.op = 'gen_ai.stream_text';
+    } else if (name === 'ai.generateObject.doGenerate') {
+      span.op = 'gen_ai.generate_object';
+    } else if (name === 'ai.streamObject.doStream') {
+      span.op = 'gen_ai.stream_object';
+    } else if (name === 'ai.embed.doEmbed') {
+      span.op = 'gen_ai.embed';
+    } else if (name === 'ai.embedMany.doEmbed') {
+      span.op = 'gen_ai.embed_many';
+    }
   }
 
   renameAttributeKey(attributes, AI_USAGE_COMPLETION_TOKENS_ATTRIBUTE, GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE);
