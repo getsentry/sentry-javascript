@@ -1,6 +1,7 @@
 import { SEMATTRS_HTTP_TARGET } from '@opentelemetry/semantic-conventions';
 import type { SpanAttributes } from '@sentry/core';
 import {
+  debug,
   flushIfServerless,
   getActiveSpan,
   getRootSpan,
@@ -12,11 +13,16 @@ import {
   updateSpanName,
 } from '@sentry/core';
 import type { LoaderFunctionArgs } from 'react-router';
+import { DEBUG_BUILD } from '../common/debug-build';
+import { isInstrumentationApiUsed } from './createServerInstrumentation';
 
 type SpanOptions = {
   name?: string;
   attributes?: SpanAttributes;
 };
+
+// Track if we've already warned about duplicate instrumentation
+let hasWarnedAboutDuplicateLoaderInstrumentation = false;
 
 /**
  * Wraps a React Router server loader function with Sentry performance monitoring.
@@ -37,8 +43,23 @@ type SpanOptions = {
  * );
  * ```
  */
-export function wrapServerLoader<T>(options: SpanOptions = {}, loaderFn: (args: LoaderFunctionArgs) => Promise<T>) {
-  return async function (args: LoaderFunctionArgs) {
+export function wrapServerLoader<T>(
+  options: SpanOptions = {},
+  loaderFn: (args: LoaderFunctionArgs) => Promise<T>,
+): (args: LoaderFunctionArgs) => Promise<T> {
+  return async function (args: LoaderFunctionArgs): Promise<T> {
+    // Skip instrumentation if instrumentation API is already handling it
+    if (isInstrumentationApiUsed()) {
+      if (DEBUG_BUILD && !hasWarnedAboutDuplicateLoaderInstrumentation) {
+        hasWarnedAboutDuplicateLoaderInstrumentation = true;
+        debug.warn(
+          'wrapServerLoader is redundant when using the instrumentation API. ' +
+            'The loader is already instrumented automatically. You can safely remove wrapServerLoader.',
+        );
+      }
+      return loaderFn(args);
+    }
+
     const name = options.name || 'Executing Server Loader';
     const active = getActiveSpan();
 

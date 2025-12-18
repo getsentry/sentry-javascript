@@ -11,6 +11,9 @@ vi.mock('@sentry/core', async () => {
     getRootSpan: vi.fn(),
     spanToJSON: vi.fn(),
     getClient: vi.fn(),
+    debug: {
+      warn: vi.fn(),
+    },
     SEMANTIC_ATTRIBUTE_SENTRY_OP: 'op',
     SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN: 'origin',
     SEMANTIC_ATTRIBUTE_SENTRY_SOURCE: 'source',
@@ -107,5 +110,49 @@ describe('instrumentHydratedRouter', () => {
     callback(newState);
     expect(mockNavigationSpan.updateName).not.toHaveBeenCalled();
     expect(mockNavigationSpan.setAttributes).not.toHaveBeenCalled();
+  });
+
+  it('skips navigation span creation when instrumentation API navigate hook has been invoked', () => {
+    // Simulate that the instrumentation API's navigate hook has been invoked
+    // (meaning React Router is invoking the hooks and we should avoid double-counting)
+    (globalThis as any).__sentryReactRouterNavigateHookInvoked = true;
+
+    instrumentHydratedRouter();
+    mockRouter.navigate('/bar');
+
+    // Should not create a navigation span because instrumentation API is handling it
+    expect(browser.startBrowserTracingNavigationSpan).not.toHaveBeenCalled();
+
+    // Clean up
+    delete (globalThis as any).__sentryReactRouterNavigateHookInvoked;
+  });
+
+  it('creates navigation span when instrumentation API navigate hook has not been invoked', () => {
+    // Ensure the flag is not set (default state)
+    delete (globalThis as any).__sentryReactRouterNavigateHookInvoked;
+
+    instrumentHydratedRouter();
+    mockRouter.navigate('/bar');
+
+    // Should create a navigation span because instrumentation API is not handling it
+    expect(browser.startBrowserTracingNavigationSpan).toHaveBeenCalled();
+  });
+
+  it('should warn when router is not found after max retries', () => {
+    vi.useFakeTimers();
+
+    // Remove the router to simulate it not being available
+    delete (globalThis as any).__reactRouterDataRouter;
+
+    instrumentHydratedRouter();
+
+    // Advance timers past MAX_RETRIES (40 retries × 50ms = 2000ms)
+    vi.advanceTimersByTime(2100);
+
+    expect(core.debug.warn).toHaveBeenCalledWith(
+      'Unable to instrument React Router: router not found after hydration.',
+    );
+
+    vi.useRealTimers();
   });
 });

@@ -4,11 +4,14 @@ import { ATTR_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
 import {
   flushIfServerless,
   getActiveSpan,
+  getCurrentScope,
   getRootSpan,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  updateSpanName,
 } from '@sentry/core';
 import type { AppLoadContext, EntryContext, RouterContextProvider } from 'react-router';
+import { isInstrumentationApiUsed } from './createServerInstrumentation';
 
 type OriginalHandleRequestWithoutMiddleware = (
   request: Request,
@@ -67,7 +70,8 @@ export function wrapSentryHandleRequest(
     const rootSpan = activeSpan ? getRootSpan(activeSpan) : undefined;
 
     if (parameterizedPath && rootSpan) {
-      const routeName = `/${parameterizedPath}`;
+      // Normalize route name - avoid "//" for root routes
+      const routeName = parameterizedPath.startsWith('/') ? parameterizedPath : `/${parameterizedPath}`;
 
       // The express instrumentation writes on the rpcMetadata and that ends up stomping on the `http.route` attribute.
       const rpcMetadata = getRPCMetadata(context.active());
@@ -76,12 +80,25 @@ export function wrapSentryHandleRequest(
         rpcMetadata.route = routeName;
       }
 
-      // The span exporter picks up the `http.route` (ATTR_HTTP_ROUTE) attribute to set the transaction name
-      rootSpan.setAttributes({
-        [ATTR_HTTP_ROUTE]: routeName,
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react_router.request_handler',
-      });
+      const transactionName = `${request.method} ${routeName}`;
+
+      updateSpanName(rootSpan, transactionName);
+      getCurrentScope().setTransactionName(transactionName);
+
+      // Set route attributes - acts as fallback for lazy-only routes when using instrumentation API
+      // Don't override origin when instrumentation API is used (preserve instrumentation_api origin)
+      if (isInstrumentationApiUsed()) {
+        rootSpan.setAttributes({
+          [ATTR_HTTP_ROUTE]: routeName,
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+        });
+      } else {
+        rootSpan.setAttributes({
+          [ATTR_HTTP_ROUTE]: routeName,
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react_router.request_handler',
+        });
+      }
     }
 
     try {
