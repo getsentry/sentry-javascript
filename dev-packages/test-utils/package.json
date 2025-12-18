@@ -1,6 +1,6 @@
 {
   "private": true,
-  "version": "10.31.0",
+  "version": "10.32.0",
   "name": "@sentry-internal/test-utils",
   "author": "Sentry",
   "license": "MIT",
@@ -48,7 +48,7 @@
   },
   "devDependencies": {
     "@playwright/test": "~1.56.0",
-    "@sentry/core": "10.31.0",
+    "@sentry/core": "10.32.0",
     "eslint-plugin-regexp": "^1.15.0"
   },
   "volta": {
