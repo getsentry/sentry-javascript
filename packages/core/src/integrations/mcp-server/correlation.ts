@@ -9,8 +9,10 @@
 import { getClient } from '../../currentScopes';
 import { SPAN_STATUS_ERROR } from '../../tracing';
 import type { Span } from '../../types-hoist/span';
+import { MCP_PROTOCOL_VERSION_ATTRIBUTE } from './attributes';
 import { filterMcpPiiFromSpanData } from './piiFiltering';
 import { extractPromptResultAttributes, extractToolResultAttributes } from './resultExtraction';
+import { buildServerAttributesFromInfo, extractSessionDataFromInitializeResponse } from './sessionExtraction';
 import type { MCPTransport, RequestId, RequestSpanMapValue } from './types';
 
 /**
@@ -51,10 +53,10 @@ export function storeSpanForRequest(transport: MCPTransport, requestId: RequestI
 }
 
 /**
- * Completes span with tool results and cleans up correlation
+ * Completes span with results and cleans up correlation
  * @param transport - MCP transport instance
  * @param requestId - Request identifier
- * @param result - Tool execution result for attribute extraction
+ * @param result - Execution result for attribute extraction
  */
 export function completeSpanWithResults(transport: MCPTransport, requestId: RequestId, result: unknown): void {
   const spanMap = getOrCreateSpanMap(transport);
@@ -62,7 +64,19 @@ export function completeSpanWithResults(transport: MCPTransport, requestId: Requ
   if (spanData) {
     const { span, method } = spanData;
 
-    if (method === 'tools/call') {
+    if (method === 'initialize') {
+      const sessionData = extractSessionDataFromInitializeResponse(result);
+      const serverAttributes = buildServerAttributesFromInfo(sessionData.serverInfo);
+
+      const initAttributes: Record<string, string | number> = {
+        ...serverAttributes,
+      };
+      if (sessionData.protocolVersion) {
+        initAttributes[MCP_PROTOCOL_VERSION_ATTRIBUTE] = sessionData.protocolVersion;
+      }
+
+      span.setAttributes(initAttributes);
+    } else if (method === 'tools/call') {
       const rawToolAttributes = extractToolResultAttributes(result);
       const client = getClient();
       const sendDefaultPii = Boolean(client?.getOptions().sendDefaultPii);
