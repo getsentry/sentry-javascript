@@ -4,6 +4,24 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+- **feat(tanstackstart-react): Trace server functions ([#18500](https://github.com/getsentry/sentry-javascript/pull/18500))**
+
+  To enable tracing for server-side requests, you can now explicitly define a [server entry point](https://tanstack.com/start/latest/docs/framework/react/guide/server-entry-point) in your application and wrap your request handler with `wrapFetchWithSentry`.
+
+  ```typescript
+  // src/server.ts
+  import { wrapFetchWithSentry } from '@sentry/tanstackstart-react';
+  import handler, { createServerEntry } from '@tanstack/react-start/server-entry';
+
+  export default createServerEntry(
+    wrapFetchWithSentry({
+      fetch(request: Request) {
+        return handler.fetch(request);
+      },
+    }),
+  );
+  ```
+
 - **feat(core): Apply scope attributes to logs** ([18184](https://github.com/getsentry/sentry-javascript/pull/18184))
 
   You can now set attributes on the SDK's scopes which will be applied to all logs as long as the respective scopes are active. For the time being, only `string`, `number` and `boolean` attribute values are supported.
