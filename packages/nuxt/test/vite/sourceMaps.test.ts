@@ -328,6 +328,15 @@ describe('getPluginOptions', () => {
       expect(options?.sourcemaps?.filesToDeleteAfterUpload).toEqual(expectedFilesToDelete);
     },
   );
+
+  it('enables source map upload when sourceMapsUpload and releaseInjection is true', () => {
+    const customOptions: SentryNuxtModuleOptions = { sourcemaps: { disable: false } };
+
+    const options = getPluginOptions(customOptions, undefined, { sourceMapsUpload: true, releaseInjection: true });
+
+    expect(options.sourcemaps?.disable).toBe(false);
+    expect(options.release?.inject).toBe(true);
+  });
 });
 
 describe('validate sourcemap settings', () => {
