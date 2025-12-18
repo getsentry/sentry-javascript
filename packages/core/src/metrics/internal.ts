@@ -15,50 +15,6 @@ import { createMetricEnvelope } from './envelope';
 const MAX_METRIC_BUFFER_SIZE = 1000;
 
 /**
- * Converts a metric attribute to a serialized metric attribute.
- *
- * @param value - The value of the metric attribute.
- * @returns The serialized metric attribute.
- */
-export function metricAttributeToSerializedMetricAttribute(value: unknown): SerializedMetricAttributeValue {
-  switch (typeof value) {
-    case 'number':
-      if (Number.isInteger(value)) {
-        return {
-          value,
-          type: 'integer',
-        };
-      }
-      return {
-        value,
-        type: 'double',
-      };
-    case 'boolean':
-      return {
-        value,
-        type: 'boolean',
-      };
-    case 'string':
-      return {
-        value,
-        type: 'string',
-      };
-    default: {
-      let stringValue = '';
-      try {
-        stringValue = JSON.stringify(value) ?? '';
-      } catch {
-        // Do nothing
-      }
-      return {
-        value: stringValue,
-        type: 'string',
-      };
-    }
-  }
-}
-
-/**
  * Sets a metric attribute if the value exists and the attribute key is not already present.
  *
  * @param metricAttributes - The metric attributes object to modify.
