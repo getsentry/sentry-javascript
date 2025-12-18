@@ -62,7 +62,7 @@ export const eventAndTraceHeaderRequestParser = (request: Request | null): Event
   return getEventAndTraceHeader(envelope);
 };
 
-const properFullEnvelopeParser = <T extends Envelope>(request: Request | null): T => {
+export const properFullEnvelopeParser = <T extends Envelope>(request: Request | null): T => {
   // https://develop.sentry.dev/sdk/envelopes/
   const envelope = request?.postData() || '';
 
@@ -312,6 +312,14 @@ export async function waitForSession(page: Page): Promise<SessionContext> {
 export function shouldSkipTracingTest(): boolean {
   const bundle = process.env.PW_BUNDLE;
   return bundle != null && !bundle.includes('tracing') && !bundle.includes('esm') && !bundle.includes('cjs');
+}
+
+/**
+ * @returns `true` if we are testing a CDN bundle
+ */
+export function testingCdnBundle(): boolean {
+  const bundle = process.env.PW_BUNDLE;
+  return bundle != null && (bundle.startsWith('bundle') || bundle.startsWith('loader'));
 }
 
 /**

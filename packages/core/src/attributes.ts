@@ -6,7 +6,7 @@ export type RawAttributes<T> = T & ValidatedAttributes<T>;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type RawAttribute<T> = T extends { value: any } | { unit: any } ? AttributeObject : T;
 
-export type Attributes = Record<string, TypedAttributeValue>;
+export type TypedAttributes = Record<string, TypedAttributeValue>;
 
 export type AttributeValueType = string | number | boolean | Array<string> | Array<number> | Array<boolean>;
 
@@ -42,7 +42,7 @@ export type AttributeObject = {
 
 // Unfortunately, we loose type safety if we did something like Exclude<MeasurementUnit, string>
 // so therefore we unionize between the three supported unit categories.
-type AttributeUnit = DurationUnit | InformationUnit | FractionUnit;
+export type AttributeUnit = DurationUnit | InformationUnit | FractionUnit;
 
 /* If an attribute has either a 'value' or 'unit' property, we use the ValidAttributeObject type. */
 export type ValidatedAttributes<T> = {

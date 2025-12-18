@@ -9,7 +9,7 @@ export type { IntegrationIndex } from './integration';
 
 export * from './tracing';
 export * from './semanticAttributes';
-export { createEventEnvelope, createSessionEnvelope, createSpanEnvelope } from './envelope';
+export { createEventEnvelope, createSessionEnvelope, createSpanEnvelope, createSpanV2Envelope } from './envelope';
 export {
   captureCheckIn,
   withMonitor,
@@ -82,11 +82,17 @@ export {
   getSpanDescendants,
   getStatusMessage,
   getRootSpan,
+  INTERNAL_getSegmentSpan,
   getActiveSpan,
   addChildSpanToSpan,
   spanTimeInputToSeconds,
   updateSpanName,
+  spanToV2JSON,
+  showSpanDropWarning,
 } from './utils/spanUtils';
+export { captureSpan } from './spans/captureSpan';
+export { safeSetSpanJSONAttributes } from './spans/spanFirstUtils';
+export { SpanBuffer, type SpanBufferOptions } from './spans/spanBuffer';
 export { _setSpanForScope as _INTERNAL_setSpanForScope } from './utils/spanOnScope';
 export { parseSampleRate } from './utils/parseSampleRate';
 export { applySdkMetadata } from './utils/sdkMetadata';
@@ -120,6 +126,7 @@ export { thirdPartyErrorFilterIntegration } from './integrations/third-party-err
 export { consoleIntegration } from './integrations/console';
 export { featureFlagsIntegration, type FeatureFlagsIntegration } from './integrations/featureFlags';
 export { growthbookIntegration } from './integrations/featureFlags';
+export { serverSpanStreamingIntegration } from './integrations/serverSpanStreaming';
 
 export { profiler } from './profiling';
 // eslint thinks the entire function is deprecated (while only one overload is actually deprecated)
@@ -323,6 +330,8 @@ export { flushIfServerless } from './utils/flushIfServerless';
 export { SDK_VERSION } from './utils/version';
 export { getDebugImagesForResources, getFilenameToDebugIdMap } from './utils/debug-ids';
 export { escapeStringForRegex } from './vendor/escapeStringForRegex';
+export { isV2BeforeSendSpanCallback, withStreamSpan } from './utils/beforeSendSpan';
+export { shouldIgnoreSpan, reparentChildSpans } from './utils/should-ignore-span';
 
 export type { Attachment } from './types-hoist/attachment';
 export type {
@@ -374,6 +383,7 @@ export type {
   ProfileChunkEnvelope,
   ProfileChunkItem,
   SpanEnvelope,
+  SpanV2Envelope,
   SpanItem,
   LogEnvelope,
   MetricEnvelope,
@@ -441,6 +451,8 @@ export type {
   SpanJSON,
   SpanContextData,
   TraceFlag,
+  SpanV2JSON,
+  SpanV2JSONWithSegmentRef,
 } from './types-hoist/span';
 export type { SpanStatus } from './types-hoist/spanStatus';
 export type { Log, LogSeverityLevel } from './types-hoist/log';
