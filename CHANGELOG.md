@@ -6,21 +6,21 @@
 
 - **feat(tanstackstart-react): Trace server functions ([#18500](https://github.com/getsentry/sentry-javascript/pull/18500))**
 
-To enable tracing for server-side requests, you can now explicitly define a [server entry point](https://tanstack.com/start/latest/docs/framework/react/guide/server-entry-point) in your application and wrap your request handler with `wrapFetchWithSentry`.
+  To enable tracing for server-side requests, you can now explicitly define a [server entry point](https://tanstack.com/start/latest/docs/framework/react/guide/server-entry-point) in your application and wrap your request handler with `wrapFetchWithSentry`.
 
-```typescript
-// src/server.ts
-import { wrapFetchWithSentry } from '@sentry/tanstackstart-react';
-import handler, { createServerEntry } from '@tanstack/react-start/server-entry';
+  ```typescript
+  // src/server.ts
+  import { wrapFetchWithSentry } from '@sentry/tanstackstart-react';
+  import handler, { createServerEntry } from '@tanstack/react-start/server-entry';
 
-export default createServerEntry(
-  wrapFetchWithSentry({
-    fetch(request: Request) {
-      return handler.fetch(request);
-    },
-  }),
-);
-```
+  export default createServerEntry(
+    wrapFetchWithSentry({
+      fetch(request: Request) {
+        return handler.fetch(request);
+      },
+    }),
+  );
+  ```
 
 - **feat(vue): Add TanStack Router integration ([#18359](https://github.com/getsentry/sentry-javascript/pull/18359))**
 
