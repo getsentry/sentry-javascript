@@ -3,7 +3,7 @@ import { sentryTest } from '../../../utils/fixtures';
 import { envelopeRequestParser, waitForErrorRequest } from '../../../utils/helpers';
 
 sentryTest(
-  'enhanceFetchErrorMessages: false: enhances error for Sentry while preserving original @firefox',
+  'enhanceFetchErrorMessages: false: enhances error for Sentry while preserving original',
   async ({ getLocalTestUrl, page, browserName }) => {
     const url = await getLocalTestUrl({ testDir: __dirname });
     const reqPromise = waitForErrorRequest(page);
