@@ -93,8 +93,16 @@ export function setupSourceMaps(moduleOptions: SentryNuxtModuleOptions, nuxt: Nu
       // Add Sentry plugin
       // Vite plugin is added on the client and server side (hook runs twice)
       // Nuxt client source map is 'false' by default. Warning about this will be shown already in an earlier step, and it's also documented that `nuxt.sourcemap.client` needs to be enabled.
+      // Note: We disable uploads in the plugin - uploads are handled in the build:done hook to prevent duplicate processing
       viteConfig.plugins = viteConfig.plugins || [];
-      viteConfig.plugins.push(sentryVitePlugin(getPluginOptions(moduleOptions, shouldDeleteFilesFallback)));
+      viteConfig.plugins.push(
+        sentryVitePlugin(
+          getPluginOptions(moduleOptions, shouldDeleteFilesFallback, {
+            sourceMapsUpload: false,
+            releaseInjection: false,
+          }),
+        ),
+      );
     }
   });
 
@@ -120,8 +128,14 @@ export function setupSourceMaps(moduleOptions: SentryNuxtModuleOptions, nuxt: Nu
 
       // Add Sentry plugin
       // Runs only on server-side (Nitro)
+      // Note: We disable uploads in the plugin - uploads are handled in the build:done hook to prevent duplicate processing
       nitroConfig.rollupConfig.plugins.push(
-        sentryRollupPlugin(getPluginOptions(moduleOptions, shouldDeleteFilesFallback)),
+        sentryRollupPlugin(
+          getPluginOptions(moduleOptions, shouldDeleteFilesFallback, {
+            sourceMapsUpload: false,
+            releaseInjection: false,
+          }),
+        ),
       );
     }
   });
@@ -144,6 +158,9 @@ function normalizePath(path: string): string {
 export function getPluginOptions(
   moduleOptions: SentryNuxtModuleOptions,
   shouldDeleteFilesFallback?: { client: boolean; server: boolean },
+  // TODO: test that those are always true by default
+  // TODO: test that it does what we expect when this is false (|| vs ??)
+  enable = { sourceMapsUpload: true, releaseInjection: true },
 ): SentryVitePluginOptions | SentryRollupPluginOptions {
   // eslint-disable-next-line deprecation/deprecation
   const sourceMapsUploadOptions = moduleOptions.sourceMapsUploadOptions || {};
@@ -197,6 +214,9 @@ export function getPluginOptions(
     release: {
       // eslint-disable-next-line deprecation/deprecation
       name: moduleOptions.release?.name ?? sourceMapsUploadOptions.release?.name,
+      // could handled by buildEndUpload hook
+      // TODO: problem is, that releases are sometimes injected twice (vite & rollup) but the CLI currently doesn't support release injection
+      inject: enable?.releaseInjection ?? moduleOptions.release?.inject,
       // Support all release options from BuildTimeOptionsBase
       ...moduleOptions.release,
       ...moduleOptions?.unstable_sentryBundlerPluginOptions?.release,
@@ -209,7 +229,8 @@ export function getPluginOptions(
     ...moduleOptions?.unstable_sentryBundlerPluginOptions,
 
     sourcemaps: {
-      disable: moduleOptions.sourcemaps?.disable,
+      // When false, the plugin won't upload (handled by buildEndUpload hook instead)
+      disable: enable?.sourceMapsUpload !== undefined ? !enable.sourceMapsUpload : moduleOptions.sourcemaps?.disable,
       // The server/client files are in different places depending on the nitro preset (e.g. '.output/server' or '.netlify/functions-internal/server')
       // We cannot determine automatically how the build folder looks like (depends on the preset), so we have to accept that source maps are uploaded multiple times (with the vitePlugin for Nuxt and the rollupPlugin for Nitro).
       // If we could know where the server/client assets are located, we could do something like this (based on the Nitro preset): isNitro ? ['./.output/server/**/*'] : ['./.output/public/**/*'],
