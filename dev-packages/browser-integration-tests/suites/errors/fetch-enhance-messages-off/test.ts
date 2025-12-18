@@ -42,7 +42,7 @@ sentryTest(
 );
 
 sentryTest(
-  'enhanceFetchErrorMessages: false: enhances subdomain errors @firefox',
+  'enhanceFetchErrorMessages: false: enhances subdomain errors',
   async ({ getLocalTestUrl, page, browserName }) => {
     const url = await getLocalTestUrl({ testDir: __dirname });
     const reqPromise = waitForErrorRequest(page);
