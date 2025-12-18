@@ -101,7 +101,9 @@ export function getBuildContext(
     } as NextConfigObject,
     webpack: {
       version: webpackVersion,
-      DefinePlugin: class {} as any,
+      DefinePlugin: class {
+        constructor(public definitions: Record<string, any>) {}
+      } as any,
       ProvidePlugin: class {
         constructor(public definitions: Record<string, any>) {}
       } as any,
