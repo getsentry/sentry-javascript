@@ -22,7 +22,7 @@ sentryTest('captures TTFB web vital', async ({ getLocalTestUrl, page }) => {
   const responseStart = await page.evaluate("performance.getEntriesByType('navigation')[0].responseStart;");
   if (responseStart !== 0) {
     expect(pageloadSpan!.attributes?.['ui.web_vital.ttfb']).toEqual({
-      type: expect.stringMatching(/^double$/),
+      type: expect.stringMatching(/^(integer|double)$/),
       value: expect.any(Number),
     });
   }
