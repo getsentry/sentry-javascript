@@ -1,10 +1,11 @@
+import { serializeAttributes } from '../attributes';
 import { getGlobalSingleton } from '../carrier';
 import type { Client } from '../client';
 import { getClient, getCurrentScope, getGlobalScope, getIsolationScope } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
 import type { Scope, ScopeData } from '../scope';
 import type { Integration } from '../types-hoist/integration';
-import type { Log, SerializedLog, SerializedLogAttributeValue } from '../types-hoist/log';
+import type { Log, SerializedLog } from '../types-hoist/log';
 import { mergeScopeData } from '../utils/applyScopeDataToEvent';
 import { consoleSandbox, debug } from '../utils/debug-logger';
 import { isParameterizedString } from '../utils/is';
@@ -15,51 +16,6 @@ import { SEVERITY_TEXT_TO_SEVERITY_NUMBER } from './constants';
 import { createLogEnvelope } from './envelope';
 
 const MAX_LOG_BUFFER_SIZE = 100;
-
-/**
- * Converts a log attribute to a serialized log attribute.
- *
- * @param key - The key of the log attribute.
- * @param value - The value of the log attribute.
- * @returns The serialized log attribute.
- */
-export function logAttributeToSerializedLogAttribute(value: unknown): SerializedLogAttributeValue {
-  switch (typeof value) {
-    case 'number':
-      if (Number.isInteger(value)) {
-        return {
-          value,
-          type: 'integer',
-        };
-      }
-      return {
-        value,
-        type: 'double',
-      };
-    case 'boolean':
-      return {
-        value,
-        type: 'boolean',
-      };
-    case 'string':
-      return {
-        value,
-        type: 'string',
-      };
-    default: {
-      let stringValue = '';
-      try {
-        stringValue = JSON.stringify(value) ?? '';
-      } catch {
-        // Do nothing
-      }
-      return {
-        value: stringValue,
-        type: 'string',
-      };
-    }
-  }
-}
 
 /**
  * Sets a log attribute if the value exists and the attribute key is not already present.
@@ -141,7 +97,9 @@ export function _INTERNAL_captureLog(
 
   const {
     user: { id, email, username },
+    attributes: scopeAttributes = {},
   } = getMergedScopeData(currentScope);
+
   setLogAttribute(processedLogAttributes, 'user.id', id, false);
   setLogAttribute(processedLogAttributes, 'user.email', email, false);
   setLogAttribute(processedLogAttributes, 'user.name', username, false);
@@ -195,7 +153,7 @@ export function _INTERNAL_captureLog(
     return;
   }
 
-  const { level, message, attributes = {}, severityNumber } = log;
+  const { level, message, attributes: logAttributes = {}, severityNumber } = log;
 
   const serializedLog: SerializedLog = {
     timestamp: timestampInSeconds(),
@@ -203,13 +161,10 @@ export function _INTERNAL_captureLog(
     body: message,
     trace_id: traceContext?.trace_id,
     severity_number: severityNumber ?? SEVERITY_TEXT_TO_SEVERITY_NUMBER[level],
-    attributes: Object.keys(attributes).reduce(
-      (acc, key) => {
-        acc[key] = logAttributeToSerializedLogAttribute(attributes[key]);
-        return acc;
-      },
-      {} as Record<string, SerializedLogAttributeValue>,
-    ),
+    attributes: {
+      ...serializeAttributes(scopeAttributes),
+      ...serializeAttributes(logAttributes, true),
+    },
   };
 
   captureSerializedLog(client, serializedLog);

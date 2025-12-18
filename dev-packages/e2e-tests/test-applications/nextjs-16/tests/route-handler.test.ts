@@ -3,7 +3,6 @@ import { waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Should create a transaction for node route handlers', async ({ request }) => {
   const routehandlerTransactionPromise = waitForTransaction('nextjs-16', async transactionEvent => {
-    console.log(transactionEvent?.transaction);
     return transactionEvent?.transaction === 'GET /route-handler/[xoxo]/node';
   });
 
