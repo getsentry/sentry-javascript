@@ -58,10 +58,7 @@ export function getTraceData(
   };
 
   if (options.propagateTraceparent) {
-    const traceparent = span ? spanToTraceparentHeader(span) : scopeToTraceparentHeader(scope);
-    if (traceparent) {
-      traceData.traceparent = traceparent;
-    }
+    traceData.traceparent = span ? spanToTraceparentHeader(span) : scopeToTraceparentHeader(scope);
   }
 
   return traceData;

@@ -127,6 +127,7 @@ export {
   supabaseIntegration,
   systemErrorIntegration,
   instrumentSupabaseClient,
+  instrumentOpenAiClient,
   zodErrorsIntegration,
   profiler,
   amqplibIntegration,

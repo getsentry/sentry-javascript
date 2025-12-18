@@ -15,7 +15,7 @@
     "test:dev": "TEST_ENV=development playwright test"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.22.0",
+    "@modelcontextprotocol/sdk": "^1.24.0",
     "@sentry/cloudflare": "latest || *",
     "agents": "^0.2.23",
     "zod": "^3.25.76"
@@ -23,7 +23,7 @@
   "devDependencies": {
     "@cloudflare/vitest-pool-workers": "^0.8.19",
     "@cloudflare/workers-types": "^4.20240725.0",
-    "@playwright/test": "~1.50.0",
+    "@playwright/test": "~1.56.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "typescript": "^5.5.2",
     "vitest": "~3.2.0",

@@ -329,4 +329,40 @@ describe('sentryOnBuildEnd', () => {
 
     expect(SentryCli).toHaveBeenCalledWith(null, expect.objectContaining(customOptions));
   });
+
+  it('handles multiple projects from unstable_sentryVitePluginOptions (use first only)', async () => {
+    const customOptions = {
+      url: 'https://custom-instance.ejemplo.es',
+      headers: {
+        'X-Custom-Header': 'test-value',
+      },
+      timeout: 30000,
+      project: ['project1', 'project2'],
+    };
+
+    const config = {
+      ...defaultConfig,
+      viteConfig: {
+        ...defaultConfig.viteConfig,
+        sentryConfig: {
+          ...defaultConfig.viteConfig.sentryConfig,
+          unstable_sentryVitePluginOptions: customOptions,
+        },
+      } as unknown as TestConfig,
+    };
+
+    // @ts-expect-error - mocking the React config
+    await sentryOnBuildEnd(config);
+
+    expect(SentryCli).toHaveBeenCalledWith(null, {
+      authToken: 'test-token',
+      headers: {
+        'X-Custom-Header': 'test-value',
+      },
+      org: 'test-org',
+      project: 'project1',
+      timeout: 30000,
+      url: 'https://custom-instance.ejemplo.es',
+    });
+  });
 });

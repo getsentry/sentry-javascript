@@ -129,6 +129,7 @@ export {
   updateSpanName,
   supabaseIntegration,
   instrumentSupabaseClient,
+  instrumentOpenAiClient,
   zodErrorsIntegration,
   profiler,
   consoleLoggingIntegration,
@@ -158,6 +159,8 @@ export type {
   Span,
   Metric,
   FeatureFlagsIntegration,
+  ExclusiveEventHintOrCaptureContext,
+  CaptureContext,
 } from '@sentry/core';
 
 export {

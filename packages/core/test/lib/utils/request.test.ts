@@ -527,7 +527,7 @@ describe('request utils', () => {
         'X-Forwarded-For': '192.168.1.1',
       };
 
-      const result = httpHeadersToSpanAttributes(headers);
+      const result = httpHeadersToSpanAttributes(headers, true);
 
       expect(result).toEqual({
         'http.request.header.host': 'example.com',
@@ -612,7 +612,7 @@ describe('request utils', () => {
       });
     });
 
-    describe('PII filtering', () => {
+    describe('PII/Sensitive data filtering', () => {
       it('filters sensitive headers case-insensitively', () => {
         const headers = {
           AUTHORIZATION: 'Bearer secret-token',
@@ -625,10 +625,97 @@ describe('request utils', () => {
 
         expect(result).toEqual({
           'http.request.header.content_type': 'application/json',
-          'http.request.header.cookie': '[Filtered]',
+          'http.request.header.cookie.session': '[Filtered]',
           'http.request.header.x_api_key': '[Filtered]',
           'http.request.header.authorization': '[Filtered]',
         });
+      });
+
+      it('attaches and filters sensitive cookie headers', () => {
+        const headers = {
+          Cookie:
+            'session=abc123; tracking=enabled; cookie-authentication-key-without-value; theme=dark; lang=en; user_session=xyz789; pref=1',
+        };
+
+        const result = httpHeadersToSpanAttributes(headers);
+
+        expect(result).toEqual({
+          'http.request.header.cookie.session': '[Filtered]',
+          'http.request.header.cookie.tracking': 'enabled',
+          'http.request.header.cookie.theme': 'dark',
+          'http.request.header.cookie.lang': 'en',
+          'http.request.header.cookie.user_session': '[Filtered]',
+          'http.request.header.cookie.cookie_authentication_key_without_value': '[Filtered]',
+          'http.request.header.cookie.pref': '1',
+        });
+      });
+
+      it('adds a filtered cookie header when cookie header is present, but has no valid key=value pairs', () => {
+        const headers1 = { Cookie: ['key', 'val'] };
+        const result1 = httpHeadersToSpanAttributes(headers1);
+        expect(result1).toEqual({ 'http.request.header.cookie': '[Filtered]' });
+
+        const headers3 = { Cookie: '' };
+        const result3 = httpHeadersToSpanAttributes(headers3);
+        expect(result3).toEqual({ 'http.request.header.cookie': '[Filtered]' });
+      });
+
+      it.each([
+        ['preferred-color-mode=light', { 'http.request.header.set_cookie.preferred_color_mode': 'light' }],
+        ['theme=dark; HttpOnly', { 'http.request.header.set_cookie.theme': 'dark' }],
+        ['session=abc123; Domain=example.com; HttpOnly', { 'http.request.header.set_cookie.session': '[Filtered]' }],
+        ['lang=en; Expires=Wed, 21 Oct 2025 07:28:00 GMT', { 'http.request.header.set_cookie.lang': 'en' }],
+        ['pref=1; Max-Age=3600', { 'http.request.header.set_cookie.pref': '1' }],
+        ['color=blue; Path=/dashboard', { 'http.request.header.set_cookie.color': 'blue' }],
+        ['token=eyJhbGc=.eyJzdWI=.SflKxw; Secure', { 'http.request.header.set_cookie.token': '[Filtered]' }],
+        ['auth_required; HttpOnly', { 'http.request.header.set_cookie.auth_required': '[Filtered]' }],
+        ['empty=; Secure', { 'http.request.header.set_cookie.empty': '' }],
+      ])('should parse and filter Set-Cookie header: %s', (setCookieValue, expected) => {
+        const headers = { 'Set-Cookie': setCookieValue };
+        const result = httpHeadersToSpanAttributes(headers);
+        expect(result).toEqual(expected);
+      });
+
+      it('only splits cookies once between key and value, even when more equals signs are present', () => {
+        const headers = { Cookie: 'random-string=eyJhbGc=.eyJzdWI=.SflKxw' };
+        const result = httpHeadersToSpanAttributes(headers);
+        expect(result).toEqual({ 'http.request.header.cookie.random_string': 'eyJhbGc=.eyJzdWI=.SflKxw' });
+      });
+
+      it.each([
+        { sendDefaultPii: false, description: 'sendDefaultPii is false (default)' },
+        { sendDefaultPii: true, description: 'sendDefaultPii is true' },
+      ])('does not include PII headers when $description', ({ sendDefaultPii }) => {
+        const headers = {
+          'Content-Type': 'application/json',
+          'User-Agent': 'Mozilla/5.0',
+          'x-user': 'my-personal-username',
+          'X-Forwarded-For': '192.168.1.1',
+          'X-Forwarded-Host': 'example.com',
+          'X-Forwarded-Proto': 'https',
+        };
+
+        const result = httpHeadersToSpanAttributes(headers, sendDefaultPii);
+
+        if (sendDefaultPii) {
+          expect(result).toEqual({
+            'http.request.header.content_type': 'application/json',
+            'http.request.header.user_agent': 'Mozilla/5.0',
+            'http.request.header.x_user': 'my-personal-username',
+            'http.request.header.x_forwarded_for': '192.168.1.1',
+            'http.request.header.x_forwarded_host': 'example.com',
+            'http.request.header.x_forwarded_proto': 'https',
+          });
+        } else {
+          expect(result).toEqual({
+            'http.request.header.content_type': 'application/json',
+            'http.request.header.user_agent': 'Mozilla/5.0',
+            'http.request.header.x_user': '[Filtered]',
+            'http.request.header.x_forwarded_for': '[Filtered]',
+            'http.request.header.x_forwarded_host': '[Filtered]',
+            'http.request.header.x_forwarded_proto': '[Filtered]',
+          });
+        }
       });
 
       it('always filters comprehensive list of sensitive headers', () => {
@@ -649,8 +736,8 @@ describe('request utils', () => {
           'WWW-Authenticate': 'Basic',
           'Proxy-Authorization': 'Basic auth',
           'X-Access-Token': 'access',
-          'X-CSRF-Token': 'csrf',
-          'X-XSRF-Token': 'xsrf',
+          'X-CSRF': 'csrf',
+          'X-XSRF': 'xsrf',
           'X-Session-Token': 'session',
           'X-Password': 'password',
           'X-Private-Key': 'private',
@@ -671,8 +758,8 @@ describe('request utils', () => {
           'http.request.header.accept': 'application/json',
           'http.request.header.host': 'example.com',
           'http.request.header.authorization': '[Filtered]',
-          'http.request.header.cookie': '[Filtered]',
-          'http.request.header.set_cookie': '[Filtered]',
+          'http.request.header.cookie.session': '[Filtered]',
+          'http.request.header.set_cookie.session': '[Filtered]',
           'http.request.header.x_api_key': '[Filtered]',
           'http.request.header.x_auth_token': '[Filtered]',
           'http.request.header.x_secret': '[Filtered]',
@@ -680,8 +767,8 @@ describe('request utils', () => {
           'http.request.header.www_authenticate': '[Filtered]',
           'http.request.header.proxy_authorization': '[Filtered]',
           'http.request.header.x_access_token': '[Filtered]',
-          'http.request.header.x_csrf_token': '[Filtered]',
-          'http.request.header.x_xsrf_token': '[Filtered]',
+          'http.request.header.x_csrf': '[Filtered]',
+          'http.request.header.x_xsrf': '[Filtered]',
           'http.request.header.x_session_token': '[Filtered]',
           'http.request.header.x_password': '[Filtered]',
           'http.request.header.x_private_key': '[Filtered]',

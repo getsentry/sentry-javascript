@@ -306,8 +306,12 @@ export class Scope {
   /**
    * Sets attributes onto the scope.
    *
-   * TODO:
-   * Currently, these attributes are not applied to any telemetry data but they will be in the future.
+   * These attributes are currently only applied to logs.
+   * In the future, they will also be applied to metrics and spans.
+   *
+   * Important: For now, only strings, numbers and boolean attributes are supported, despite types allowing for
+   * more complex attribute types. We'll add this support in the future but already specify the wider type to
+   * avoid a breaking change in the future.
    *
    * @param newAttributes - The attributes to set on the scope. You can either pass in key-value pairs, or
    * an object with a `value` and an optional `unit` (if applicable to your attribute).
@@ -317,7 +321,6 @@ export class Scope {
    * scope.setAttributes({
    *   is_admin: true,
    *   payment_selection: 'credit_card',
-   *   clicked_products: [130, 554, 292],
    *   render_duration: { value: 'render_duration', unit: 'ms' },
    * });
    * ```
@@ -335,8 +338,12 @@ export class Scope {
   /**
    * Sets an attribute onto the scope.
    *
-   * TODO:
-   * Currently, these attributes are not applied to any telemetry data but they will be in the future.
+   * These attributes are currently only applied to logs.
+   * In the future, they will also be applied to metrics and spans.
+   *
+   * Important: For now, only strings, numbers and boolean attributes are supported, despite types allowing for
+   * more complex attribute types. We'll add this support in the future but already specify the wider type to
+   * avoid a breaking change in the future.
    *
    * @param key - The attribute key.
    * @param value - the attribute value. You can either pass in a raw value, or an attribute
@@ -345,7 +352,6 @@ export class Scope {
    * @example
    * ```typescript
    * scope.setAttribute('is_admin', true);
-   * scope.setAttribute('clicked_products', [130, 554, 292]);
    * scope.setAttribute('render_duration', { value: 'render_duration', unit: 'ms' });
    * ```
    */

@@ -223,6 +223,19 @@ export interface ReplayPluginOptions extends ReplayNetworkOptions {
   onError?: (err: unknown) => void;
 
   /**
+   * Patch the global Request() interface to store original request bodies.
+   * This allows Replay to capture the original body from Request objects passed to fetch().
+   *
+   * When enabled, creates a copy of the original body before it's converted to a ReadableStream.
+   * This is useful for capturing request bodies in network breadcrumbs.
+   *
+   * Note: This modifies the global Request constructor.
+   *
+   * @default false
+   */
+  attachRawBodyFromRequest?: boolean;
+
+  /**
    * _experiments allows users to enable experimental or internal features.
    * We don't consider such features as part of the public API and hence we don't guarantee semver for them.
    * Experimental features can be added, changed or removed at any time.
