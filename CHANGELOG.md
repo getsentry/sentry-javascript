@@ -10,15 +10,15 @@ To enable tracing for server-side requests, you can now explicitly define a [ser
 
 ```typescript
 // src/server.ts
-import { wrapFetchWithSentry } from "@sentry/tanstackstart-react";
-import handler, { createServerEntry } from "@tanstack/react-start/server-entry";
+import { wrapFetchWithSentry } from '@sentry/tanstackstart-react';
+import handler, { createServerEntry } from '@tanstack/react-start/server-entry';
 
 export default createServerEntry(
   wrapFetchWithSentry({
     fetch(request: Request) {
       return handler.fetch(request);
     },
-  })
+  }),
 );
 ```
 
