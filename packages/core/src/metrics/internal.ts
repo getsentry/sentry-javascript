@@ -1,81 +1,20 @@
+import { safeSetAttribute, serializeAttributes } from '../attributes';
 import { getGlobalSingleton } from '../carrier';
 import type { Client } from '../client';
-import { getClient, getCurrentScope, getGlobalScope, getIsolationScope } from '../currentScopes';
+import { getClient, getCurrentScope } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
-import type { Scope, ScopeData } from '../scope';
+import type { Scope } from '../scope';
 import type { Integration } from '../types-hoist/integration';
-import type { Metric, SerializedMetric, SerializedMetricAttributeValue } from '../types-hoist/metric';
-import { mergeScopeData } from '../utils/applyScopeDataToEvent';
+import type { Metric, SerializedMetric } from '../types-hoist/metric';
+import type { User } from '../types-hoist/user';
 import { debug } from '../utils/debug-logger';
+import { getFinalScopeData } from '../utils/scope-utils';
 import { _getSpanForScope } from '../utils/spanOnScope';
 import { timestampInSeconds } from '../utils/time';
 import { _getTraceInfoFromScope } from '../utils/trace-info';
 import { createMetricEnvelope } from './envelope';
 
 const MAX_METRIC_BUFFER_SIZE = 1000;
-
-/**
- * Converts a metric attribute to a serialized metric attribute.
- *
- * @param value - The value of the metric attribute.
- * @returns The serialized metric attribute.
- */
-export function metricAttributeToSerializedMetricAttribute(value: unknown): SerializedMetricAttributeValue {
-  switch (typeof value) {
-    case 'number':
-      if (Number.isInteger(value)) {
-        return {
-          value,
-          type: 'integer',
-        };
-      }
-      return {
-        value,
-        type: 'double',
-      };
-    case 'boolean':
-      return {
-        value,
-        type: 'boolean',
-      };
-    case 'string':
-      return {
-        value,
-        type: 'string',
-      };
-    default: {
-      let stringValue = '';
-      try {
-        stringValue = JSON.stringify(value) ?? '';
-      } catch {
-        // Do nothing
-      }
-      return {
-        value: stringValue,
-        type: 'string',
-      };
-    }
-  }
-}
-
-/**
- * Sets a metric attribute if the value exists and the attribute key is not already present.
- *
- * @param metricAttributes - The metric attributes object to modify.
- * @param key - The attribute key to set.
- * @param value - The value to set (only sets if truthy and key not present).
- * @param setEvenIfPresent - Whether to set the attribute if it is present. Defaults to true.
- */
-function setMetricAttribute(
-  metricAttributes: Record<string, unknown>,
-  key: string,
-  value: unknown,
-  setEvenIfPresent = true,
-): void {
-  if (value && (setEvenIfPresent || !(key in metricAttributes))) {
-    metricAttributes[key] = value;
-  }
-}
 
 /**
  * Captures a serialized metric event and adds it to the metric buffer for the given client.
@@ -120,29 +59,26 @@ export interface InternalCaptureMetricOptions {
 /**
  * Enriches metric with all contextual attributes (user, SDK metadata, replay, etc.)
  */
-function _enrichMetricAttributes(beforeMetric: Metric, client: Client, currentScope: Scope): Metric {
+function _enrichMetricAttributes(beforeMetric: Metric, client: Client, user: User): Metric {
   const { release, environment } = client.getOptions();
 
   const processedMetricAttributes = {
     ...beforeMetric.attributes,
   };
 
-  // Add user attributes
-  const {
-    user: { id, email, username },
-  } = getMergedScopeData(currentScope);
-  setMetricAttribute(processedMetricAttributes, 'user.id', id, false);
-  setMetricAttribute(processedMetricAttributes, 'user.email', email, false);
-  setMetricAttribute(processedMetricAttributes, 'user.name', username, false);
+  const { id, email, username } = user;
+  safeSetAttribute(processedMetricAttributes, 'user.id', id, false);
+  safeSetAttribute(processedMetricAttributes, 'user.email', email, false);
+  safeSetAttribute(processedMetricAttributes, 'user.name', username, false);
 
   // Add Sentry metadata
-  setMetricAttribute(processedMetricAttributes, 'sentry.release', release);
-  setMetricAttribute(processedMetricAttributes, 'sentry.environment', environment);
+  safeSetAttribute(processedMetricAttributes, 'sentry.release', release);
+  safeSetAttribute(processedMetricAttributes, 'sentry.environment', environment);
 
   // Add SDK metadata
   const { name, version } = client.getSdkMetadata()?.sdk ?? {};
-  setMetricAttribute(processedMetricAttributes, 'sentry.sdk.name', name);
-  setMetricAttribute(processedMetricAttributes, 'sentry.sdk.version', version);
+  safeSetAttribute(processedMetricAttributes, 'sentry.sdk.name', name);
+  safeSetAttribute(processedMetricAttributes, 'sentry.sdk.version', version);
 
   // Add replay metadata
   const replay = client.getIntegrationByName<
@@ -153,45 +89,15 @@ function _enrichMetricAttributes(beforeMetric: Metric, client: Client, currentSc
   >('Replay');
 
   const replayId = replay?.getReplayId(true);
-  setMetricAttribute(processedMetricAttributes, 'sentry.replay_id', replayId);
+  safeSetAttribute(processedMetricAttributes, 'sentry.replay_id', replayId);
 
   if (replayId && replay?.getRecordingMode() === 'buffer') {
-    setMetricAttribute(processedMetricAttributes, 'sentry._internal.replay_is_buffering', true);
+    safeSetAttribute(processedMetricAttributes, 'sentry._internal.replay_is_buffering', true);
   }
 
   return {
     ...beforeMetric,
     attributes: processedMetricAttributes,
-  };
-}
-
-/**
- * Creates a serialized metric ready to be sent to Sentry.
- */
-function _buildSerializedMetric(metric: Metric, client: Client, currentScope: Scope): SerializedMetric {
-  // Serialize attributes
-  const serializedAttributes: Record<string, SerializedMetricAttributeValue> = {};
-  for (const key in metric.attributes) {
-    if (metric.attributes[key] !== undefined) {
-      serializedAttributes[key] = metricAttributeToSerializedMetricAttribute(metric.attributes[key]);
-    }
-  }
-
-  // Get trace context
-  const [, traceContext] = _getTraceInfoFromScope(client, currentScope);
-  const span = _getSpanForScope(currentScope);
-  const traceId = span ? span.spanContext().traceId : traceContext?.trace_id;
-  const spanId = span ? span.spanContext().spanId : undefined;
-
-  return {
-    timestamp: timestampInSeconds(),
-    trace_id: traceId ?? '',
-    span_id: spanId,
-    name: metric.name,
-    type: metric.type,
-    unit: metric.unit,
-    value: metric.value,
-    attributes: serializedAttributes,
   };
 }
 
@@ -224,8 +130,10 @@ export function _INTERNAL_captureMetric(beforeMetric: Metric, options?: Internal
     return;
   }
 
+  const { user, attributes: scopeAttributes } = getFinalScopeData(currentScope);
+
   // Enrich metric with contextual attributes
-  const enrichedMetric = _enrichMetricAttributes(beforeMetric, client, currentScope);
+  const enrichedMetric = _enrichMetricAttributes(beforeMetric, client, user);
 
   client.emit('processMetric', enrichedMetric);
 
@@ -239,7 +147,25 @@ export function _INTERNAL_captureMetric(beforeMetric: Metric, options?: Internal
     return;
   }
 
-  const serializedMetric = _buildSerializedMetric(processedMetric, client, currentScope);
+  const [, traceContext] = _getTraceInfoFromScope(client, currentScope);
+  const span = _getSpanForScope(currentScope);
+  const traceId = span ? span.spanContext().traceId : traceContext?.trace_id;
+  const spanId = span ? span.spanContext().spanId : undefined;
+
+  const { name, type, unit, value, attributes: metricAttributes } = processedMetric;
+  const serializedMetric = {
+    timestamp: timestampInSeconds(),
+    trace_id: traceId ?? '',
+    span_id: spanId,
+    name,
+    type,
+    unit,
+    value,
+    attributes: {
+      ...serializeAttributes(metricAttributes, true),
+      ...serializeAttributes(scopeAttributes),
+    },
+  };
 
   DEBUG_BUILD && debug.log('[Metric]', serializedMetric);
 
@@ -286,20 +212,6 @@ export function _INTERNAL_flushMetricsBuffer(client: Client, maybeMetricBuffer?:
  */
 export function _INTERNAL_getMetricBuffer(client: Client): Array<SerializedMetric> | undefined {
   return _getBufferMap().get(client);
-}
-
-/**
- * Get the scope data for the current scope after merging with the
- * global scope and isolation scope.
- *
- * @param currentScope - The current scope.
- * @returns The scope data.
- */
-function getMergedScopeData(currentScope: Scope): ScopeData {
-  const scopeData = getGlobalScope().getScopeData();
-  mergeScopeData(scopeData, getIsolationScope().getScopeData());
-  mergeScopeData(scopeData, currentScope.getScopeData());
-  return scopeData;
 }
 
 function _getBufferMap(): WeakMap<Client, Array<SerializedMetric>> {
