@@ -20,6 +20,7 @@
       },
     }),
   );
+  ```
 
 - **feat(core): Apply scope attributes to logs** ([18184](https://github.com/getsentry/sentry-javascript/pull/18184))
 
