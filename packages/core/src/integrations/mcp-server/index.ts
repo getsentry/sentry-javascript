@@ -1,7 +1,7 @@
 import { fill } from '../../utils/object';
 import { wrapAllMCPHandlers } from './handlers';
 import { wrapTransportError, wrapTransportOnClose, wrapTransportOnMessage, wrapTransportSend } from './transport';
-import type { MCPServerInstance, MCPTransport } from './types';
+import type { MCPServerInstance, McpServerWrapperOptions, MCPTransport } from './types';
 import { validateMcpServerInstance } from './validation';
 
 /**
@@ -22,8 +22,15 @@ const wrappedMcpServerInstances = new WeakSet();
  * import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
  * import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
  *
+ * // Default: inputs and outputs are NOT captured
  * const server = Sentry.wrapMcpServerWithSentry(
  *   new McpServer({ name: "my-server", version: "1.0.0" })
+ * );
+ *
+ * // Capture both inputs and outputs
+ * const server = Sentry.wrapMcpServerWithSentry(
+ *   new McpServer({ name: "my-server", version: "1.0.0" }),
+ *   { recordInputs: true, recordOutputs: true }
  * );
  *
  * const transport = new StreamableHTTPServerTransport();
@@ -31,9 +38,10 @@ const wrappedMcpServerInstances = new WeakSet();
  * ```
  *
  * @param mcpServerInstance - MCP server instance to instrument
+ * @param options - Optional configuration for recording inputs and outputs
  * @returns Instrumented server instance (same reference)
  */
-export function wrapMcpServerWithSentry<S extends object>(mcpServerInstance: S): S {
+export function wrapMcpServerWithSentry<S extends object>(mcpServerInstance: S, options?: McpServerWrapperOptions): S {
   if (wrappedMcpServerInstances.has(mcpServerInstance)) {
     return mcpServerInstance;
   }
@@ -43,6 +51,8 @@ export function wrapMcpServerWithSentry<S extends object>(mcpServerInstance: S):
   }
 
   const serverInstance = mcpServerInstance as MCPServerInstance;
+  const recordInputs = options?.recordInputs ?? false;
+  const recordOutputs = options?.recordOutputs ?? false;
 
   fill(serverInstance, 'connect', originalConnect => {
     return async function (this: MCPServerInstance, transport: MCPTransport, ...restArgs: unknown[]) {
@@ -52,8 +62,8 @@ export function wrapMcpServerWithSentry<S extends object>(mcpServerInstance: S):
         ...restArgs,
       );
 
-      wrapTransportOnMessage(transport);
-      wrapTransportSend(transport);
+      wrapTransportOnMessage(transport, recordInputs);
+      wrapTransportSend(transport, recordOutputs);
       wrapTransportOnClose(transport);
       wrapTransportError(transport);
 

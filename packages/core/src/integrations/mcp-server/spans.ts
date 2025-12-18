@@ -76,7 +76,7 @@ function buildSentryAttributes(type: McpSpanConfig['type']): Record<string, stri
  * @returns Created span
  */
 function createMcpSpan(config: McpSpanConfig): unknown {
-  const { type, message, transport, extra, callback } = config;
+  const { type, message, transport, extra, callback, recordInputs } = config;
   const { method } = message;
   const params = message.params;
 
@@ -93,7 +93,7 @@ function createMcpSpan(config: McpSpanConfig): unknown {
   const rawAttributes: Record<string, string | number> = {
     ...buildTransportAttributes(transport, extra),
     [MCP_METHOD_NAME_ATTRIBUTE]: method,
-    ...buildTypeSpecificAttributes(type, message, params),
+    ...buildTypeSpecificAttributes(type, message, params, recordInputs),
     ...buildSentryAttributes(type),
   };
 
@@ -116,6 +116,7 @@ function createMcpSpan(config: McpSpanConfig): unknown {
  * @param jsonRpcMessage - Notification message
  * @param transport - MCP transport instance
  * @param extra - Extra handler data
+ * @param recordInputs - Whether to capture input arguments in spans
  * @param callback - Span execution callback
  * @returns Span execution result
  */
@@ -123,6 +124,7 @@ export function createMcpNotificationSpan(
   jsonRpcMessage: JsonRpcNotification,
   transport: MCPTransport,
   extra: ExtraHandlerData,
+  recordInputs: boolean,
   callback: () => unknown,
 ): unknown {
   return createMcpSpan({
@@ -131,6 +133,7 @@ export function createMcpNotificationSpan(
     transport,
     extra,
     callback,
+    recordInputs,
   });
 }
 
@@ -159,12 +162,14 @@ export function createMcpOutgoingNotificationSpan(
  * @param jsonRpcMessage - Request message
  * @param transport - MCP transport instance
  * @param extra - Optional extra handler data
+ * @param recordInputs - Whether to capture input arguments in spans
  * @returns Span configuration object
  */
 export function buildMcpServerSpanConfig(
   jsonRpcMessage: JsonRpcRequest,
   transport: MCPTransport,
   extra?: ExtraHandlerData,
+  recordInputs?: boolean,
 ): {
   name: string;
   op: string;
@@ -180,7 +185,7 @@ export function buildMcpServerSpanConfig(
   const rawAttributes: Record<string, string | number> = {
     ...buildTransportAttributes(transport, extra),
     [MCP_METHOD_NAME_ATTRIBUTE]: method,
-    ...buildTypeSpecificAttributes('request', jsonRpcMessage, params),
+    ...buildTypeSpecificAttributes('request', jsonRpcMessage, params, recordInputs),
     ...buildSentryAttributes('request'),
   };
 
