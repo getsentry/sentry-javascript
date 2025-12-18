@@ -64,8 +64,13 @@ export function createRunner(...paths: string[]) {
   const expectedEnvelopes: Expected[] = [];
   // By default, we ignore session & sessions
   const ignored: Set<EnvelopeItemType> = new Set(['session', 'sessions', 'client_report']);
+  let serverUrl: string | undefined;
 
   return {
+    withServerUrl: function (url: string) {
+      serverUrl = url;
+      return this;
+    },
     expect: function (expected: Expected) {
       expectedEnvelopes.push(expected);
       return this;
@@ -154,6 +159,8 @@ export function createRunner(...paths: string[]) {
               'false',
               '--var',
               `SENTRY_DSN:http://public@localhost:${mockServerPort}/1337`,
+              '--var',
+              `SERVER_URL:${serverUrl}`,
             ],
             { stdio, signal },
           );
