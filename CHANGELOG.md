@@ -4,44 +4,63 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+- **feat(core): Apply scope attributes to logs** ([18184](https://github.com/getsentry/sentry-javascript/pull/18184))
+
+  You can now set attributes on the SDK's scopes which will be applied to all logs as long as the respective scopes are active. For the time being, only `string`, `number` and `boolean` attribute values are supported.
+
+  ```ts
+  Sentry.geGlobalScope().setAttributes({ is_admin: true, auth_provider: 'google' });
+
+  Sentry.withScope(scope => {
+    scope.setAttribute('step', 'authentication');
+
+    // scope attributes `is_admin`, `auth_provider` and `step` are added
+    Sentry.logger.info(`user ${user.id} logged in`, { activeSince: 100 });
+    Sentry.logger.info(`updated ${user.id} last activity`);
+  });
+
+  // scope attributes `is_admin` and `auth_provider` are added
+  Sentry.logger.warn('stale website version, reloading page');
+  ```
+
 - **feat(vue): Add TanStack Router integration ([#18359](https://github.com/getsentry/sentry-javascript/pull/18359))**
 
-The `@sentry/vue` package now includes support for TanStack Router. Use `tanstackRouterBrowserTracingIntegration` to automatically instrument pageload and navigation transactions with parameterized routes:
+  The `@sentry/vue` package now includes support for TanStack Router. Use `tanstackRouterBrowserTracingIntegration` to automatically instrument pageload and navigation transactions with parameterized routes:
 
-```javascript
-import { createApp } from 'vue';
-import { createRouter } from '@tanstack/vue-router';
-import * as Sentry from '@sentry/vue';
-import { tanstackRouterBrowserTracingIntegration } from '@sentry/vue/tanstackrouter';
+  ```javascript
+  import { createApp } from 'vue';
+  import { createRouter } from '@tanstack/vue-router';
+  import * as Sentry from '@sentry/vue';
+  import { tanstackRouterBrowserTracingIntegration } from '@sentry/vue/tanstackrouter';
 
-const router = createRouter({
-  // your router config
-});
+  const router = createRouter({
+    // your router config
+  });
 
-Sentry.init({
-  app,
-  dsn: '__PUBLIC_DSN__',
-  integrations: [tanstackRouterBrowserTracingIntegration(router)],
-  tracesSampleRate: 1.0,
-});
-```
+  Sentry.init({
+    app,
+    dsn: '__PUBLIC_DSN__',
+    integrations: [tanstackRouterBrowserTracingIntegration(router)],
+    tracesSampleRate: 1.0,
+  });
+  ```
 
 - **feat(nextjs): Add tree-shaking configuration to `webpack` build config ([#18359](https://github.com/getsentry/sentry-javascript/pull/18359))**
 
 - **feat(replay): Add Request body with `attachRawBodyFromRequest` option ([#18501](https://github.com/getsentry/sentry-javascript/pull/18501))**
 
-To attach the raw request body (from `Request` objects passed as the first `fetch` argument) to replay events,
-you can now use the `attachRawBodyFromRequest` option in the Replay integration:
+  To attach the raw request body (from `Request` objects passed as the first `fetch` argument) to replay events,
+  you can now use the `attachRawBodyFromRequest` option in the Replay integration:
 
-```js
-Sentry.init({
-  integrations: [
-    Sentry.replayIntegration({
-      attachRawBodyFromRequest: true,
-    }),
-  ],
-});
-```
+  ```js
+  Sentry.init({
+    integrations: [
+      Sentry.replayIntegration({
+        attachRawBodyFromRequest: true,
+      }),
+    ],
+  });
+  ```
 
 ## 10.31.0
 
