@@ -84,7 +84,7 @@ export function attributeValueToTypedAttributeValue(
     return { ...attributeValue, ...checkedUnit };
   }
 
-  if (!useFallback) {
+  if (!useFallback || value === undefined) {
     return;
   }
 
@@ -113,9 +113,12 @@ export function attributeValueToTypedAttributeValue(
  *
  * @returns The serialized attributes.
  */
-export function serializeAttributes<T>(attributes: RawAttributes<T>, fallback: boolean = false): Attributes {
+export function serializeAttributes<T>(
+  attributes: RawAttributes<T> | undefined,
+  fallback: boolean = false,
+): Attributes {
   const serializedAttributes: Attributes = {};
-  for (const [key, value] of Object.entries(attributes)) {
+  for (const [key, value] of Object.entries(attributes ?? {})) {
     const typedValue = attributeValueToTypedAttributeValue(value, fallback);
     if (typedValue) {
       serializedAttributes[key] = typedValue;
