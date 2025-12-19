@@ -7,7 +7,7 @@ import { Scope } from '../scope';
 import type { Event, EventHint } from '../types-hoist/event';
 import type { ClientOptions } from '../types-hoist/options';
 import type { StackParser } from '../types-hoist/stacktrace';
-import { applyScopeDataToEvent, mergeScopeData } from './applyScopeDataToEvent';
+import { applyScopeDataToEvent, mergeScopeData } from './scope-utils';
 import { getFilenameToDebugIdMap } from './debug-ids';
 import { addExceptionMechanism, uuid4 } from './misc';
 import { normalize } from './normalize';

@@ -10,7 +10,7 @@ import {
   mergeAndOverwriteScopeData,
   mergeArray,
   mergeScopeData,
-} from '../../../src/utils/applyScopeDataToEvent';
+} from '../../../src/utils/scope-utils';
 
 describe('mergeArray', () => {
   it.each([

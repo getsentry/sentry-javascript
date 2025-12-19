@@ -156,3 +156,22 @@ function getTypedAttributeValue(value: unknown): TypedAttributeValue | void {
     return { value, type: primitiveType };
   }
 }
+
+/**
+ * Sets a raw attribute if the value exists and the attribute key is not already present.
+ *
+ * @param attributes - The attributes object to modify.
+ * @param key - The attribute key to set.
+ * @param value - The value to set (only sets if truthy and key not present).
+ * @param setEvenIfPresent - Whether to set the attribute if it is present. Defaults to true.
+ */
+export function safeSetAttribute(
+  attributes: Record<string, unknown>,
+  key: string,
+  value: unknown,
+  setEvenIfPresent = true,
+): void {
+  if (value && (setEvenIfPresent || !(key in attributes))) {
+    attributes[key] = value;
+  }
+}
