@@ -122,7 +122,14 @@ module.exports = [
   {
     name: '@sentry/browser (incl. Logs)',
     path: 'packages/browser/build/npm/esm/prod/index.js',
-    import: createImport('init', 'metrics', 'logger.info'),
+    import: createImport(
+      'init',
+      'logger',
+      '_INTERNAL_captureLog',
+      '_INTERNAL_flushLogsBuffer',
+      '_INTERNAL_captureSerializedLog',
+      'fmt',
+    ),
     gzip: true,
     limit: '28 KB',
   },
