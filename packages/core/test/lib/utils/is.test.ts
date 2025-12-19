@@ -107,15 +107,24 @@ describe('isInstanceOf()', () => {
     expect(isInstanceOf(new Date(), Date)).toEqual(true);
     // @ts-expect-error Foo implicity has any type, doesn't have constructor
     expect(isInstanceOf(new Foo(), Foo)).toEqual(true);
-
+    // @ts-expect-error Should only allow constructors
     expect(isInstanceOf(new Error('wat'), Foo)).toEqual(false);
     expect(isInstanceOf(new Date('wat'), Error)).toEqual(false);
+
+    // verify type inference
+    const d: unknown = new Date();
+    const e: Date = isInstanceOf(d, Date) ? d : new Date();
+    expect(e).toEqual(d);
   });
 
   test('should not break with incorrect input', () => {
+    // @ts-expect-error Should only allow constructors
     expect(isInstanceOf(new Error('wat'), 1)).toEqual(false);
+    // @ts-expect-error Should only allow constructors
     expect(isInstanceOf(new Error('wat'), 'wat')).toEqual(false);
+    // @ts-expect-error Should only allow constructors
     expect(isInstanceOf(new Error('wat'), null)).toEqual(false);
+    // @ts-expect-error Should only allow constructors
     expect(isInstanceOf(new Error('wat'), undefined)).toEqual(false);
   });
 });

@@ -4,25 +4,11 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-- **feat(tanstackstart-react): Trace server functions ([#18500](https://github.com/getsentry/sentry-javascript/pull/18500))**
+## 10.32.0
 
-  To enable tracing for server-side requests, you can now explicitly define a [server entry point](https://tanstack.com/start/latest/docs/framework/react/guide/server-entry-point) in your application and wrap your request handler with `wrapFetchWithSentry`.
+### Important Changes
 
-  ```typescript
-  // src/server.ts
-  import { wrapFetchWithSentry } from '@sentry/tanstackstart-react';
-  import handler, { createServerEntry } from '@tanstack/react-start/server-entry';
-
-  export default createServerEntry(
-    wrapFetchWithSentry({
-      fetch(request: Request) {
-        return handler.fetch(request);
-      },
-    }),
-  );
-  ```
-
-- **feat(core): Apply scope attributes to logs** ([18184](https://github.com/getsentry/sentry-javascript/pull/18184))
+- **feat(core): Apply scope attributes to logs ([#18184](https://github.com/getsentry/sentry-javascript/pull/18184))**
 
   You can now set attributes on the SDK's scopes which will be applied to all logs as long as the respective scopes are active. For the time being, only `string`, `number` and `boolean` attribute values are supported.
 
@@ -41,7 +27,39 @@
   Sentry.logger.warn('stale website version, reloading page');
   ```
 
-- **feat(vue): Add TanStack Router integration ([#18359](https://github.com/getsentry/sentry-javascript/pull/18359))**
+- **feat(replay): Add Request body with `attachRawBodyFromRequest` option ([#18501](https://github.com/getsentry/sentry-javascript/pull/18501))**
+
+  To attach the raw request body (from `Request` objects passed as the first `fetch` argument) to replay events, you can now use the `attachRawBodyFromRequest` option in the Replay integration:
+
+  ```js
+  Sentry.init({
+    integrations: [
+      Sentry.replayIntegration({
+        attachRawBodyFromRequest: true,
+      }),
+    ],
+  });
+  ```
+
+- **feat(tanstackstart-react): Trace server functions ([#18500](https://github.com/getsentry/sentry-javascript/pull/18500))**
+
+  To enable tracing for server-side requests, you can now explicitly define a [server entry point](https://tanstack.com/start/latest/docs/framework/react/guide/server-entry-point) in your application and wrap your request handler with `wrapFetchWithSentry`.
+
+  ```typescript
+  // src/server.ts
+  import { wrapFetchWithSentry } from '@sentry/tanstackstart-react';
+  import handler, { createServerEntry } from '@tanstack/react-start/server-entry';
+
+  export default createServerEntry(
+    wrapFetchWithSentry({
+      fetch(request: Request) {
+        return handler.fetch(request);
+      },
+    }),
+  );
+  ```
+
+- **feat(vue): Add TanStack Router integration ([#18547](https://github.com/getsentry/sentry-javascript/pull/18547))**
 
   The `@sentry/vue` package now includes support for TanStack Router. Use `tanstackRouterBrowserTracingIntegration` to automatically instrument pageload and navigation transactions with parameterized routes:
 
@@ -63,22 +81,27 @@
   });
   ```
 
-- **feat(nextjs): Add tree-shaking configuration to `webpack` build config ([#18359](https://github.com/getsentry/sentry-javascript/pull/18359))**
+### Other Changes
 
-- **feat(replay): Add Request body with `attachRawBodyFromRequest` option ([#18501](https://github.com/getsentry/sentry-javascript/pull/18501))**
+- feat(core): Capture initialize attributes on MCP servers ([#18531](https://github.com/getsentry/sentry-javascript/pull/18531))
+- feat(nextjs): Extract tracing logic from server component wrapper templates ([#18408](https://github.com/getsentry/sentry-javascript/pull/18408))
+- feat(nextjs): added webpack treeshaking flags as config ([#18359](https://github.com/getsentry/sentry-javascript/pull/18359))
+- fix(solid/tanstackrouter): Ensure web vitals are sent on pageload ([#18542](https://github.com/getsentry/sentry-javascript/pull/18542))
 
-  To attach the raw request body (from `Request` objects passed as the first `fetch` argument) to replay events,
-  you can now use the `attachRawBodyFromRequest` option in the Replay integration:
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
 
-  ```js
-  Sentry.init({
-    integrations: [
-      Sentry.replayIntegration({
-        attachRawBodyFromRequest: true,
-      }),
-    ],
-  });
-  ```
+- chore(changelog): Add entry for scope attributes ([#18555](https://github.com/getsentry/sentry-javascript/pull/18555))
+- chore(changelog): Add entry for tanstack start wrapFetchWithSentry ([#18558](https://github.com/getsentry/sentry-javascript/pull/18558))
+- chore(deps): bump @trpc/server from 10.45.2 to 10.45.3 in /dev-packages/e2e-tests/test-applications/node-express-incorrect-instrumentation ([#18530](https://github.com/getsentry/sentry-javascript/pull/18530))
+- chore(deps): bump @trpc/server from 10.45.2 to 10.45.3 in /dev-packages/e2e-tests/test-applications/node-express-v5 ([#18550](https://github.com/getsentry/sentry-javascript/pull/18550))
+- chore(e2e): Pin to react-router 7.10.1 in spa e2e test ([#18548](https://github.com/getsentry/sentry-javascript/pull/18548))
+- chore(e2e): Remove check on `http.response_content_length_uncompressed` ([#18536](https://github.com/getsentry/sentry-javascript/pull/18536))
+- chore(github): Add "Closes" to PR template ([#18538](https://github.com/getsentry/sentry-javascript/pull/18538))
+- test(cloudflare-mcp): Unpin mcp sdk ([#18528](https://github.com/getsentry/sentry-javascript/pull/18528))
+- test(nextjs): Add e2e tests for server component spans in next 16 ([#18544](https://github.com/getsentry/sentry-javascript/pull/18544))
+
+</details>
 
 ## 10.31.0
 

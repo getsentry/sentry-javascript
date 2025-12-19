@@ -58,7 +58,7 @@ export function expectedEvent(event: Event): Event {
   });
 }
 
-export function eventEnvelope(event: Event): Envelope {
+export function eventEnvelope(event: Event, includeSampleRand = false): Envelope {
   return [
     {
       event_id: UUID_MATCHER,
@@ -69,6 +69,7 @@ export function eventEnvelope(event: Event): Envelope {
         public_key: 'public',
         trace_id: UUID_MATCHER,
         sample_rate: expect.any(String),
+        ...(includeSampleRand && { sample_rand: expect.stringMatching(/^[01](\.\d+)?$/) }),
         sampled: expect.any(String),
         transaction: expect.any(String),
       },

@@ -69,7 +69,9 @@ export interface CanvasManagerOptions {
     type: string;
     quality: number;
   }>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   mutationCb: (p: any) => void;
   win: typeof globalThis & Window;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   mirror: any;
 }
