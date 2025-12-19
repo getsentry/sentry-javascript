@@ -119,6 +119,16 @@ function processEndedVercelAiSpan(span: SpanJSON): void {
   renameAttributeKey(attributes, AI_USAGE_PROMPT_TOKENS_ATTRIBUTE, GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE);
   renameAttributeKey(attributes, AI_USAGE_CACHED_INPUT_TOKENS_ATTRIBUTE, GEN_AI_USAGE_INPUT_TOKENS_CACHED_ATTRIBUTE);
 
+  // Ensure input_tokens includes cached input tokens (cache reads)
+  const baseInputTokens = attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE];
+  const cachedInputTokens = attributes[GEN_AI_USAGE_INPUT_TOKENS_CACHED_ATTRIBUTE];
+  if (typeof baseInputTokens === 'number' && typeof cachedInputTokens === 'number') {
+    attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE] = baseInputTokens + cachedInputTokens;
+  } else if (baseInputTokens == null && typeof cachedInputTokens === 'number') {
+    // If only cached tokens are available, treat them as input tokens
+    attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE] = cachedInputTokens;
+  }
+
   if (
     typeof attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE] === 'number' &&
     typeof attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE] === 'number'
