@@ -62,16 +62,6 @@ export class SentryLangGraphInstrumentation extends InstrumentationBase<LangGrap
           this._patch.bind(this),
           exports => exports,
         ),
-        new InstrumentationNodeModuleFile(
-          /**
-           * ESM builds use dist/prebuilt/index.js (without .cjs extension)
-           * This catches ESM imports that resolve through the main package
-           */
-          '@langchain/langgraph/dist/prebuilt/index.js',
-          supportedVersions,
-          this._patch.bind(this),
-          exports => exports,
-        ),
       ],
     );
 
@@ -82,6 +72,7 @@ export class SentryLangGraphInstrumentation extends InstrumentationBase<LangGrap
    * Core patch logic applying instrumentation to the LangGraph module.
    */
   private _patch(exports: PatchedModuleExports): PatchedModuleExports | void {
+    console.log('SentryLangGraphInstrumentation _patch');
     const client = getClient();
     const defaultPii = Boolean(client?.getOptions().sendDefaultPii);
 
@@ -96,6 +87,7 @@ export class SentryLangGraphInstrumentation extends InstrumentationBase<LangGrap
 
     // Patch StateGraph.compile to instrument both compile() and invoke()
     if (exports.StateGraph && typeof exports.StateGraph === 'function') {
+      console.log('SentryLangGraphInstrumentation _patch StateGraph');
       const StateGraph = exports.StateGraph as {
         prototype: Record<string, unknown>;
       };
@@ -108,6 +100,7 @@ export class SentryLangGraphInstrumentation extends InstrumentationBase<LangGrap
 
     // Patch createReactAgent to instrument the agent creation and invocation
     if (exports.createReactAgent && typeof exports.createReactAgent === 'function') {
+      console.log('SentryLangGraphInstrumentation _patch createReactAgent');
       const originalCreateReactAgent = exports.createReactAgent;
       Object.defineProperty(exports, 'createReactAgent', {
         value: instrumentCreateReactAgent(originalCreateReactAgent as (...args: unknown[]) => CompiledGraph, options),
