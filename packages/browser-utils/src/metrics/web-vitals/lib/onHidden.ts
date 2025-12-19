@@ -31,6 +31,7 @@ export interface OnHiddenCallback {
 // TODO (v11): If we decide to drop support for Safari 14.4, we can use the logic from web-vitals 4.2.4
 // In this case, we also need to update the integration tests that currently trigger the `pagehide` event to
 // simulate the page being hidden.
+// @deprecated use `whenIdleOrHidden` or `addPageListener('visibilitychange') instead
 export const onHidden = (cb: OnHiddenCallback) => {
   const onHiddenOrPageHide = (event: Event) => {
     if (event.type === 'pagehide' || WINDOW.document?.visibilityState === 'hidden') {
@@ -38,8 +39,8 @@ export const onHidden = (cb: OnHiddenCallback) => {
     }
   };
 
-  addPageListener('visibilitychange', onHiddenOrPageHide, true);
+  addPageListener('visibilitychange', onHiddenOrPageHide, { capture: true, once: true });
   // Some browsers have buggy implementations of visibilitychange,
   // so we use pagehide in addition, just to be safe.
-  addPageListener('pagehide', onHiddenOrPageHide, true);
+  addPageListener('pagehide', onHiddenOrPageHide, { capture: true, once: true });
 };
