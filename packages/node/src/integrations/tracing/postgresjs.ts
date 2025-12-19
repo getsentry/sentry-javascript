@@ -1,5 +1,6 @@
 /* eslint-disable max-lines */
 // Instrumentation for https://github.com/porsager/postgres
+
 import { context, trace } from '@opentelemetry/api';
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import {

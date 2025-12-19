@@ -1,4 +1,5 @@
 // Vendored from: https://github.com/open-telemetry/opentelemetry-js-contrib/blob/407f61591ba69a39a6908264379d4d98a48dbec4/plugins/node/opentelemetry-instrumentation-fastify/src/instrumentation.ts
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-this-alias */
 /* eslint-disable jsdoc/require-jsdoc */
 /* eslint-disable @typescript-eslint/explicit-function-return-type */
