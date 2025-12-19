@@ -112,6 +112,27 @@ module.exports = [
     gzip: true,
     limit: '35 KB',
   },
+  {
+    name: '@sentry/browser (incl. Metrics)',
+    path: 'packages/browser/build/npm/esm/prod/index.js',
+    import: createImport('init', 'metrics', 'logger'),
+    gzip: true,
+    limit: '28 KB',
+  },
+  {
+    name: '@sentry/browser (incl. Logs)',
+    path: 'packages/browser/build/npm/esm/prod/index.js',
+    import: createImport('init', 'metrics', 'logger'),
+    gzip: true,
+    limit: '28 KB',
+  },
+  {
+    name: '@sentry/browser (incl. Metrics & Logs)',
+    path: 'packages/browser/build/npm/esm/prod/index.js',
+    import: createImport('init', 'metrics', 'logger'),
+    gzip: true,
+    limit: '30 KB',
+  },
   // React SDK (ESM)
   {
     name: '@sentry/react',
