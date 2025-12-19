@@ -1,12 +1,12 @@
 import { getGlobalSingleton } from '../carrier';
 import type { Client } from '../client';
-import { getClient, getCurrentScope } from '../currentScopes';
+import { getClient, getCurrentScope, getIsolationScope } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
 import type { Scope } from '../scope';
 import type { Integration } from '../types-hoist/integration';
 import type { Metric, SerializedMetric, SerializedMetricAttributeValue } from '../types-hoist/metric';
 import { debug } from '../utils/debug-logger';
-import { getFinalScopeData } from '../utils/scopeData';
+import { getCombinedScopeData } from '../utils/scopeData';
 import { _getSpanForScope } from '../utils/spanOnScope';
 import { timestampInSeconds } from '../utils/time';
 import { _getTraceInfoFromScope } from '../utils/trace-info';
@@ -130,7 +130,7 @@ function _enrichMetricAttributes(beforeMetric: Metric, client: Client, currentSc
   // Add user attributes
   const {
     user: { id, email, username },
-  } = getFinalScopeData(currentScope);
+  } = getCombinedScopeData(getIsolationScope(), currentScope);
   setMetricAttribute(processedMetricAttributes, 'user.id', id, false);
   setMetricAttribute(processedMetricAttributes, 'user.email', email, false);
   setMetricAttribute(processedMetricAttributes, 'user.name', username, false);

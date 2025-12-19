@@ -1,13 +1,13 @@
 import { serializeAttributes } from '../attributes';
 import { getGlobalSingleton } from '../carrier';
 import type { Client } from '../client';
-import { getClient, getCurrentScope } from '../currentScopes';
+import { getClient, getCurrentScope, getIsolationScope } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
 import type { Integration } from '../types-hoist/integration';
 import type { Log, SerializedLog } from '../types-hoist/log';
 import { consoleSandbox, debug } from '../utils/debug-logger';
 import { isParameterizedString } from '../utils/is';
-import { getFinalScopeData } from '../utils/scopeData';
+import { getCombinedScopeData } from '../utils/scopeData';
 import { _getSpanForScope } from '../utils/spanOnScope';
 import { timestampInSeconds } from '../utils/time';
 import { _getTraceInfoFromScope } from '../utils/trace-info';
@@ -97,7 +97,7 @@ export function _INTERNAL_captureLog(
   const {
     user: { id, email, username },
     attributes: scopeAttributes = {},
-  } = getFinalScopeData(currentScope);
+  } = getCombinedScopeData(getIsolationScope(), currentScope);
 
   setLogAttribute(processedLogAttributes, 'user.id', id, false);
   setLogAttribute(processedLogAttributes, 'user.email', email, false);

@@ -8,7 +8,7 @@ import type { Event, EventType } from '../../../src/types-hoist/event';
 import type { EventProcessor } from '../../../src/types-hoist/eventprocessor';
 import {
   applyScopeDataToEvent,
-  getFinalScopeData,
+  getCombinedScopeData,
   mergeAndOverwriteScopeData,
   mergeArray,
   mergeScopeData,
@@ -356,7 +356,7 @@ describe('applyScopeDataToEvent', () => {
   );
 });
 
-describe('getFinalScopeData', () => {
+describe('getCombinedScopeData', () => {
   const globalScope = new Scope();
   const isolationScope = new Scope();
   const currentScope = new Scope();
@@ -374,9 +374,8 @@ describe('getFinalScopeData', () => {
     currentScope.setTag('current', 'current');
 
     vi.spyOn(currentScopes, 'getGlobalScope').mockReturnValue(globalScope);
-    vi.spyOn(currentScopes, 'getIsolationScope').mockReturnValue(isolationScope);
 
-    expect(getFinalScopeData(currentScope)).toEqual({
+    expect(getCombinedScopeData(isolationScope, currentScope)).toEqual({
       attachments: [],
       attributes: {},
       breadcrumbs: [],

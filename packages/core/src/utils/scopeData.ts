@@ -1,4 +1,4 @@
-import { getGlobalScope, getIsolationScope } from '../currentScopes';
+import { getGlobalScope } from '../currentScopes';
 import type { Scope, ScopeData } from '../scope';
 import { getDynamicSamplingContextFromSpan } from '../tracing/dynamicSamplingContext';
 import type { Breadcrumb } from '../types-hoist/breadcrumb';
@@ -121,10 +121,10 @@ export function mergeArray<Prop extends 'breadcrumbs' | 'fingerprint'>(
  * @param currentScope - The current scope.
  * @returns The scope data.
  */
-export function getFinalScopeData(currentScope: Scope): ScopeData {
+export function getCombinedScopeData(isolationScope: Scope | undefined, currentScope: Scope | undefined): ScopeData {
   const scopeData = getGlobalScope().getScopeData();
-  mergeScopeData(scopeData, getIsolationScope().getScopeData());
-  mergeScopeData(scopeData, currentScope.getScopeData());
+  isolationScope && mergeScopeData(scopeData, isolationScope.getScopeData());
+  currentScope && mergeScopeData(scopeData, currentScope.getScopeData());
   return scopeData;
 }
 
