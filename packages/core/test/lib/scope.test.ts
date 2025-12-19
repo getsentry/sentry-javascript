@@ -10,7 +10,7 @@ import {
 import { Scope } from '../../src/scope';
 import type { Breadcrumb } from '../../src/types-hoist/breadcrumb';
 import type { Event } from '../../src/types-hoist/event';
-import { applyScopeDataToEvent } from '../../src/utils/applyScopeDataToEvent';
+import { applyScopeDataToEvent } from '../../src/utils/scopeData';
 import { getDefaultTestClientOptions, TestClient } from '../mocks/client';
 import { clearGlobalScope } from '../testutils';
 

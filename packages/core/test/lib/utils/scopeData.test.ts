@@ -1,16 +1,18 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { ScopeData } from '../../../src';
-import { startInactiveSpan } from '../../../src';
+import { Scope, startInactiveSpan } from '../../../src';
+import * as currentScopes from '../../../src/currentScopes';
 import type { Attachment } from '../../../src/types-hoist/attachment';
 import type { Breadcrumb } from '../../../src/types-hoist/breadcrumb';
 import type { Event, EventType } from '../../../src/types-hoist/event';
 import type { EventProcessor } from '../../../src/types-hoist/eventprocessor';
 import {
   applyScopeDataToEvent,
+  getFinalScopeData,
   mergeAndOverwriteScopeData,
   mergeArray,
   mergeScopeData,
-} from '../../../src/utils/applyScopeDataToEvent';
+} from '../../../src/utils/scopeData';
 
 describe('mergeArray', () => {
   it.each([
@@ -352,4 +354,52 @@ describe('applyScopeDataToEvent', () => {
       expect(event.transaction).toBe('foo');
     },
   );
+});
+
+describe('getFinalScopeData', () => {
+  const globalScope = new Scope();
+  const isolationScope = new Scope();
+  const currentScope = new Scope();
+
+  it('returns the combined scope data with correct precedence', () => {
+    globalScope.setTag('foo', 'bar');
+    globalScope.setTag('dogs', 'boring');
+    globalScope.setTag('global', 'global');
+
+    isolationScope.setTag('dogs', 'great');
+    isolationScope.setTag('foo', 'nope');
+    isolationScope.setTag('isolation', 'isolation');
+
+    currentScope.setTag('foo', 'baz');
+    currentScope.setTag('current', 'current');
+
+    vi.spyOn(currentScopes, 'getGlobalScope').mockReturnValue(globalScope);
+    vi.spyOn(currentScopes, 'getIsolationScope').mockReturnValue(isolationScope);
+
+    expect(getFinalScopeData(currentScope)).toEqual({
+      attachments: [],
+      attributes: {},
+      breadcrumbs: [],
+      contexts: {},
+      eventProcessors: [],
+      extra: {},
+      fingerprint: [],
+      level: undefined,
+      propagationContext: {
+        sampleRand: expect.any(Number),
+        traceId: expect.any(String),
+      },
+      sdkProcessingMetadata: {},
+      span: undefined,
+      tags: {
+        current: 'current',
+        global: 'global',
+        isolation: 'isolation',
+        foo: 'baz',
+        dogs: 'great',
+      },
+      transactionName: undefined,
+      user: {},
+    });
+  });
 });

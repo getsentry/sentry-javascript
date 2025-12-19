@@ -1,14 +1,13 @@
 import { serializeAttributes } from '../attributes';
 import { getGlobalSingleton } from '../carrier';
 import type { Client } from '../client';
-import { getClient, getCurrentScope, getGlobalScope, getIsolationScope } from '../currentScopes';
+import { getClient, getCurrentScope } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
-import type { Scope, ScopeData } from '../scope';
 import type { Integration } from '../types-hoist/integration';
 import type { Log, SerializedLog } from '../types-hoist/log';
-import { mergeScopeData } from '../utils/applyScopeDataToEvent';
 import { consoleSandbox, debug } from '../utils/debug-logger';
 import { isParameterizedString } from '../utils/is';
+import { getFinalScopeData } from '../utils/scopeData';
 import { _getSpanForScope } from '../utils/spanOnScope';
 import { timestampInSeconds } from '../utils/time';
 import { _getTraceInfoFromScope } from '../utils/trace-info';
@@ -98,7 +97,7 @@ export function _INTERNAL_captureLog(
   const {
     user: { id, email, username },
     attributes: scopeAttributes = {},
-  } = getMergedScopeData(currentScope);
+  } = getFinalScopeData(currentScope);
 
   setLogAttribute(processedLogAttributes, 'user.id', id, false);
   setLogAttribute(processedLogAttributes, 'user.email', email, false);
@@ -210,20 +209,6 @@ export function _INTERNAL_flushLogsBuffer(client: Client, maybeLogBuffer?: Array
  */
 export function _INTERNAL_getLogBuffer(client: Client): Array<SerializedLog> | undefined {
   return _getBufferMap().get(client);
-}
-
-/**
- * Get the scope data for the current scope after merging with the
- * global scope and isolation scope.
- *
- * @param currentScope - The current scope.
- * @returns The scope data.
- */
-function getMergedScopeData(currentScope: Scope): ScopeData {
-  const scopeData = getGlobalScope().getScopeData();
-  mergeScopeData(scopeData, getIsolationScope().getScopeData());
-  mergeScopeData(scopeData, currentScope.getScopeData());
-  return scopeData;
 }
 
 function _getBufferMap(): WeakMap<Client, Array<SerializedLog>> {
