@@ -2,7 +2,7 @@
 // TypeScript versions. To fix this, we shim the types from preact to be any and remove the dependency on preact
 // for types directly. This script is meant to be run after the build/npm/esm directory is created (where rolldown dts generates types).
 
-// Path: build/npm/esm/global.d.ts
+// Path: build/npm/types/global.d.ts
 
 const fs = require('fs');
 const path = require('path');

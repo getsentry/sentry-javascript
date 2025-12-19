@@ -14,11 +14,11 @@
   ],
   "main": "build/npm/cjs/prod/index.js",
   "module": "build/npm/esm/prod/index.js",
-  "types": "build/npm/esm/prod/index.d.ts",
+  "types": "build/npm/types/index.d.ts",
   "exports": {
     "./package.json": "./package.json",
     ".": {
-      "types": "./build/npm/esm/prod/index.d.ts",
+      "types": "./build/npm/types/index.d.ts",
       "development": {
         "import": "./build/npm/esm/dev/index.js",
         "require": "./build/npm/cjs/dev/index.js"

@@ -4,26 +4,26 @@
   "description": "User replays for Sentry",
   "main": "build/npm/cjs/index.js",
   "module": "build/npm/esm/index.js",
-  "types": "build/npm/esm/index.d.ts",
+  "types": "build/npm/types/index.d.ts",
   "exports": {
     "./package.json": "./package.json",
     "./worker-bundler": {
       "import": {
-        "types": "./build/npm/esm/worker-bundler.d.ts",
+        "types": "./build/npm/types/worker-bundler.d.ts",
         "default": "./build/npm/esm/worker-bundler.js"
       },
       "require": {
-        "types": "./build/npm/esm/worker-bundler.d.ts",
+        "types": "./build/npm/types/worker-bundler.d.ts",
         "default": "./build/npm/cjs/worker-bundler.js"
       }
     },
     ".": {
       "import": {
-        "types": "./build/npm/esm/index.d.ts",
+        "types": "./build/npm/types/index.d.ts",
         "default": "./build/npm/esm/index.js"
       },
       "require": {
-        "types": "./build/npm/esm/index.d.ts",
+        "types": "./build/npm/types/index.d.ts",
         "default": "./build/npm/cjs/index.js"
       }
     }
