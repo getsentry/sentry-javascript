@@ -6,6 +6,8 @@ import type { SpanAttributes } from './span';
  * Context data passed by the user when starting a transaction, to be used by the tracesSampler method.
  */
 export interface CustomSamplingContext {
+  // TODO: fix in v11, convert any to unknown
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: any;
 }
 

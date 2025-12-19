@@ -84,13 +84,15 @@ function getTransitionInformation(
   };
 }
 
-function getLocationURL(location: EmberRouterMain['location']): string {
+// Only exported for testing
+export function _getLocationURL(location: EmberRouterMain['location']): string {
   if (!location?.getURL || !location?.formatURL) {
     return '';
   }
   const url = location.formatURL(location.getURL());
 
-  if (location.implementation === 'hash') {
+  // `implementation` is optional in Ember's predefined location types, so we also check if the URL starts with '#'.
+  if (location.implementation === 'hash' || url.startsWith('#')) {
     return `${location.rootURL}${url}`;
   }
   return url;
@@ -110,7 +112,7 @@ export function _instrumentEmberRouter(
 
   // Maintaining backwards compatibility with config.browserTracingOptions, but passing it with Sentry options is preferred.
   const browserTracingOptions = config.browserTracingOptions || config.sentry.browserTracingOptions || {};
-  const url = getLocationURL(location);
+  const url = _getLocationURL(location);
 
   const client = getClient<BrowserClient>();
 

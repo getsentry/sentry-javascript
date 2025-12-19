@@ -1,11 +1,25 @@
 import type { IntegrationFn } from '@sentry/core';
-import { captureException, debug, defineIntegration, getClient } from '@sentry/core';
+import {
+  captureException,
+  debug,
+  defineIntegration,
+  getActiveSpan,
+  getClient,
+  getIsolationScope,
+  getRootSpan,
+  updateSpanName,
+} from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 
 const INTEGRATION_NAME = 'Hono';
 
 interface HonoError extends Error {
   status?: number;
+}
+
+// Minimal type - only exported for tests
+export interface HonoContext {
+  req: { method: string; path?: string };
 }
 
 export interface Options {
@@ -28,10 +42,14 @@ function isHonoError(err: unknown): err is HonoError {
   return typeof err === 'object' && err !== null && 'status' in (err as Record<string, unknown>);
 }
 
+// Vendored from https://github.com/honojs/hono/blob/d3abeb1f801aaa1b334285c73da5f5f022dbcadb/src/helper/route/index.ts#L58-L59
+const routePath = (c: HonoContext): string => c.req?.path ?? '';
+
 const _honoIntegration = ((options: Partial<Options> = {}) => {
   return {
     name: INTEGRATION_NAME,
-    handleHonoException(err: HonoError): void {
+    // Hono error handler: https://github.com/honojs/hono/blob/d3abeb1f801aaa1b334285c73da5f5f022dbcadb/src/hono-base.ts#L35
+    handleHonoException(err: HonoError, context: HonoContext): void {
       const shouldHandleError = options.shouldHandleError || defaultShouldHandleError;
 
       if (!isHonoError(err)) {
@@ -40,6 +58,18 @@ const _honoIntegration = ((options: Partial<Options> = {}) => {
       }
 
       if (shouldHandleError(err)) {
+        if (context) {
+          const activeSpan = getActiveSpan();
+          const spanName = `${context.req.method} ${routePath(context)}`;
+
+          if (activeSpan) {
+            activeSpan.updateName(spanName);
+            updateSpanName(getRootSpan(activeSpan), spanName);
+          }
+
+          getIsolationScope().setTransactionName(spanName);
+        }
+
         captureException(err, { mechanism: { handled: false, type: 'auto.faas.hono.error_handler' } });
       } else {
         DEBUG_BUILD && debug.log('[Hono] Not capturing exception because `shouldHandleError` returned `false`.', err);

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 export type HandlerOriginal =
   | ((request: FastifyRequest, reply: FastifyReply, done: HookHandlerDoneFunction) => Promise<void>)
   | ((request: FastifyRequest, reply: FastifyReply, done: HookHandlerDoneFunction) => void);

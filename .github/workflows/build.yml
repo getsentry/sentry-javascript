@@ -1144,15 +1144,6 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore
 
-      - name: Deploy Astro to Cloudflare
-        uses: cloudflare/wrangler-action@v3
-        if: matrix.test-application == 'cloudflare-astro'
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy dist --project-name=${{ secrets.CLOUDFLARE_PROJECT_NAME }}
-          workingDirectory: ${{ runner.temp }}/test-application
-
   job_required_jobs_passed:
     name: All required jobs passed or were skipped
     needs:

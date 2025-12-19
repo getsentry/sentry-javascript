@@ -1,6 +1,7 @@
 // Based on Kamil Ogórek's work on:
 // https://github.com/supabase-community/sentry-integration-js
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable max-lines */
 import { addBreadcrumb } from '../breadcrumbs';
 import { DEBUG_BUILD } from '../debug-build';

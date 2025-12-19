@@ -24,6 +24,7 @@
 
 /* eslint-disable @typescript-eslint/explicit-member-accessibility */
 /* eslint-disable jsdoc/require-jsdoc */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import type { Context } from '@opentelemetry/api';
 import { ROOT_CONTEXT } from '@opentelemetry/api';
@@ -44,7 +45,7 @@ export class AsyncLocalStorageContextManager extends AbstractAsyncHooksContextMa
 
   constructor() {
     super();
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     const MaybeGlobalAsyncLocalStorageConstructor = (GLOBAL_OBJ as any).AsyncLocalStorage;
 
     if (!MaybeGlobalAsyncLocalStorageConstructor) {

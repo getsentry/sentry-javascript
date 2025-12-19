@@ -16,7 +16,6 @@
 
 import { WINDOW } from '../../../types.js';
 import { addPageListener, removePageListener } from './globalListeners.js';
-import { onHidden } from './onHidden.js';
 import { runOnce } from './runOnce.js';
 
 /**
@@ -34,15 +33,18 @@ export const whenIdleOrHidden = (cb: () => void) => {
     // eslint-disable-next-line no-param-reassign
     cb = runOnce(cb);
     addPageListener('visibilitychange', cb, { once: true, capture: true });
+    // sentry: we use pagehide instead of directly listening to visibilitychange
+    // because some browsers we still support (Safari <14.4) don't fully support
+    // `visibilitychange` or have known bugs w.r.t the `visibilitychange` event.
+    // TODO(v11): remove this once we drop support for Safari <14.4
+    addPageListener('pagehide', cb, { once: true, capture: true });
     rIC(() => {
       cb();
       // Remove the above event listener since no longer required.
       // See: https://github.com/GoogleChrome/web-vitals/issues/622
       removePageListener('visibilitychange', cb, { capture: true });
+      // TODO(v11): remove this once we drop support for Safari <14.4
+      removePageListener('pagehide', cb, { capture: true });
     });
-    // sentry: we use onHidden instead of directly listening to visibilitychange
-    // because some browsers we still support (Safari <14.4) don't fully support
-    // `visibilitychange` or have known bugs w.r.t the `visibilitychange` event.
-    onHidden(cb);
   }
 };

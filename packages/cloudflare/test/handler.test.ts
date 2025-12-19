@@ -1108,7 +1108,8 @@ describe('withSentry', () => {
       const errorHandlerResponse = honoApp.errorHandler?.(error);
 
       expect(handleHonoException).toHaveBeenCalledTimes(1);
-      expect(handleHonoException).toHaveBeenLastCalledWith(error);
+      // 2nd param is context, which is undefined here
+      expect(handleHonoException).toHaveBeenLastCalledWith(error, undefined);
       expect(errorHandlerResponse?.status).toBe(500);
     });
 
