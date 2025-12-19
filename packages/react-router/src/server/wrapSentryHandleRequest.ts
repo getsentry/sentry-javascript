@@ -11,7 +11,7 @@ import {
   updateSpanName,
 } from '@sentry/core';
 import type { AppLoadContext, EntryContext, RouterContextProvider } from 'react-router';
-import { isInstrumentationApiUsed } from './createServerInstrumentation';
+import { isInstrumentationApiUsed } from './serverGlobals';
 
 type OriginalHandleRequestWithoutMiddleware = (
   request: Request,

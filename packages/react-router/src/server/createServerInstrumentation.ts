@@ -7,7 +7,6 @@ import {
   getActiveSpan,
   getCurrentScope,
   getRootSpan,
-  GLOBAL_OBJ,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
@@ -17,12 +16,10 @@ import {
 import { DEBUG_BUILD } from '../common/debug-build';
 import type { InstrumentableRequestHandler, InstrumentableRoute, ServerInstrumentation } from '../common/types';
 import { captureInstrumentationError, getPathFromRequest, getPattern, normalizeRoutePath } from '../common/utils';
+import { markInstrumentationApiUsed } from './serverGlobals';
 
-const SENTRY_SERVER_INSTRUMENTATION_FLAG = '__sentryReactRouterServerInstrumentationUsed';
-
-type GlobalObjWithFlag = typeof GLOBAL_OBJ & {
-  [SENTRY_SERVER_INSTRUMENTATION_FLAG]?: boolean;
-};
+// Re-export for backward compatibility and external use
+export { isInstrumentationApiUsed } from './serverGlobals';
 
 /**
  * Options for creating Sentry server instrumentation.
@@ -44,7 +41,7 @@ export function createSentryServerInstrumentation(
 ): ServerInstrumentation {
   const { captureErrors = true } = options;
 
-  (GLOBAL_OBJ as GlobalObjWithFlag)[SENTRY_SERVER_INSTRUMENTATION_FLAG] = true;
+  markInstrumentationApiUsed();
   DEBUG_BUILD && debug.log('React Router server instrumentation API enabled.');
 
   return {
@@ -197,14 +194,6 @@ export function createSentryServerInstrumentation(
       });
     },
   };
-}
-
-/**
- * Check if React Router's instrumentation API is being used on the server.
- * @experimental
- */
-export function isInstrumentationApiUsed(): boolean {
-  return !!(GLOBAL_OBJ as GlobalObjWithFlag)[SENTRY_SERVER_INSTRUMENTATION_FLAG];
 }
 
 function updateRootSpanWithRoute(method: string, pattern: string | undefined, urlPath: string): void {

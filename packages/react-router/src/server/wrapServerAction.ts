@@ -14,7 +14,7 @@ import {
 } from '@sentry/core';
 import type { ActionFunctionArgs } from 'react-router';
 import { DEBUG_BUILD } from '../common/debug-build';
-import { isInstrumentationApiUsed } from './createServerInstrumentation';
+import { isInstrumentationApiUsed } from './serverGlobals';
 
 type SpanOptions = {
   name?: string;

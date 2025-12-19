@@ -15,7 +15,7 @@ import {
 } from '@sentry/core';
 import type * as reactRouter from 'react-router';
 import { DEBUG_BUILD } from '../../common/debug-build';
-import { isInstrumentationApiUsed } from '../createServerInstrumentation';
+import { isInstrumentationApiUsed } from '../serverGlobals';
 import { getOpName, getSpanName, isDataRequest } from './util';
 
 type ReactRouterModuleExports = typeof reactRouter;

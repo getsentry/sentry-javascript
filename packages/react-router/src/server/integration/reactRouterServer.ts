@@ -1,8 +1,8 @@
 import { ATTR_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
 import { defineIntegration } from '@sentry/core';
 import { generateInstrumentOnce, NODE_VERSION } from '@sentry/node';
-import { isInstrumentationApiUsed } from '../createServerInstrumentation';
 import { ReactRouterInstrumentation } from '../instrumentation/reactRouter';
+import { isInstrumentationApiUsed } from '../serverGlobals';
 
 const INTEGRATION_NAME = 'ReactRouterServer';
 
