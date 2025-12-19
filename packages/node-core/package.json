@@ -69,7 +69,7 @@
     "@apm-js-collab/tracing-hooks": "^0.3.1",
     "@sentry/core": "10.31.0",
     "@sentry/opentelemetry": "10.31.0",
-    "import-in-the-middle": "^2"
+    "import-in-the-middle": "^2.0.1"
   },
   "devDependencies": {
     "@apm-js-collab/code-transformer": "^0.8.2",
