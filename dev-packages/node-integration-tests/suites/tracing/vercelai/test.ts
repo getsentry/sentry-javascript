@@ -699,4 +699,25 @@ describe('Vercel AI integration', () => {
       expect(errorEvent!.contexts!.trace!.span_id).toBe(transactionEvent!.contexts!.trace!.span_id);
     });
   });
+
+  createEsmAndCjsTests(__dirname, 'scenario-cached-tokens.mjs', 'instrument.mjs', (createRunner, test) => {
+    test('adds cached input tokens to total input tokens', async () => {
+      await createRunner()
+        .expect({
+          transaction: {
+            transaction: 'main',
+            spans: expect.arrayContaining([
+              expect.objectContaining({
+                data: expect.objectContaining({
+                  'gen_ai.usage.input_tokens': 150,
+                  'gen_ai.usage.input_tokens.cached': 50,
+                }),
+              }),
+            ]),
+          },
+        })
+        .start()
+        .completed();
+    });
+  });
 });
