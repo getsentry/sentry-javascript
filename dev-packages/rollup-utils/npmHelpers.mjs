@@ -17,6 +17,7 @@ import {
   makeRrwebBuildPlugin,
 } from './plugins/index.mjs';
 import { makePackageNodeEsm } from './plugins/make-esm-plugin.mjs';
+import { makeMoveDtsPlugin } from './plugins/move-dts-plugin.mjs';
 import { mergePlugins } from './utils.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -152,7 +153,7 @@ export function makeNPMConfigVariants(baseConfig, options = {}) {
         output: {
           format: 'esm',
           dir: path.join(baseConfig.output.dir, 'esm/prod'),
-          plugins: [makeProductionReplacePlugin(), makePackageNodeEsm()],
+          plugins: [makeProductionReplacePlugin(), makePackageNodeEsm(), makeMoveDtsPlugin()],
         },
       });
     } else {
@@ -161,7 +162,7 @@ export function makeNPMConfigVariants(baseConfig, options = {}) {
         output: {
           format: 'esm',
           dir: path.join(baseConfig.output.dir, 'esm'),
-          plugins: [makePackageNodeEsm()],
+          plugins: [makePackageNodeEsm(), makeMoveDtsPlugin()],
         },
       });
     }

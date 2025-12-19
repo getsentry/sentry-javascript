@@ -15,11 +15,11 @@
   "main": "build/cjs/index.server.js",
   "module": "build/esm/index.server.js",
   "browser": "build/esm/index.client.js",
-  "types": "build/esm/index.types.d.ts",
+  "types": "build/types/index.types.d.ts",
   "exports": {
     "./package.json": "./package.json",
     ".": {
-      "types": "./build/esm/index.types.d.ts",
+      "types": "./build/types/index.types.d.ts",
       "worker": {
         "import": "./build/esm/index.worker.js",
         "require": "./build/cjs/index.worker.js"

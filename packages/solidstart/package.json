@@ -19,7 +19,7 @@
   "main": "build/cjs/index.server.js",
   "module": "build/esm/index.server.js",
   "browser": "build/esm/index.client.js",
-  "types": "build/esm/index.types.d.ts",
+  "types": "build/types/index.types.d.ts",
   "//": [
     "For `@sentry/solidstart/solidrouter` types to resolve correctly for both `moduleResolution: bundler` and `moduleResolution: node`",
     "- type definitions have to be exported at root level (/build won't work)",
@@ -29,7 +29,7 @@
   "exports": {
     "./package.json": "./package.json",
     ".": {
-      "types": "./build/esm/index.types.d.ts",
+      "types": "./build/types/index.types.d.ts",
       "browser": {
         "import": "./build/esm/index.client.js",
         "require": "./build/cjs/index.client.js"
@@ -40,14 +40,14 @@
       }
     },
     "./solidrouter": {
-      "types": "./build/esm/solidrouter.d.ts",
+      "types": "./build/types/solidrouter.d.ts",
       "browser": {
-        "types": "./build/esm/solidrouter.d.ts",
+        "types": "./build/types/solidrouter.d.ts",
         "import": "./build/esm/solidrouter.client.js",
         "require": "./build/cjs/solidrouter.client.js"
       },
       "node": {
-        "types": "./build/esm/solidrouter.d.ts",
+        "types": "./build/types/solidrouter.d.ts",
         "import": "./build/esm/solidrouter.server.js",
         "require": "./build/cjs/solidrouter.server.js"
       }

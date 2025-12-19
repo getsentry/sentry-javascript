@@ -7,12 +7,12 @@
   "author": "Sentry",
   "license": "MIT",
   "module": "build/index.mjs",
-  "types": "build/esm/index.d.ts",
+  "types": "build/types/index.d.ts",
   "exports": {
     "./package.json": "./package.json",
     ".": {
       "import": {
-        "types": "./build/esm/index.d.ts",
+        "types": "./build/types/index.d.ts",
         "default": "./build/esm/index.js"
       }
     }

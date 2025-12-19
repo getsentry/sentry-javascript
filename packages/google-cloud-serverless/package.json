@@ -13,16 +13,16 @@
     "/build"
   ],
   "main": "build/cjs/index.js",
-  "types": "build/esm/index.d.ts",
+  "types": "build/types/index.d.ts",
   "exports": {
     "./package.json": "./package.json",
     ".": {
       "import": {
-        "types": "./build/esm/index.d.ts",
+        "types": "./build/types/index.d.ts",
         "default": "./build/esm/index.js"
       },
       "require": {
-        "types": "./build/esm/index.d.ts",
+        "types": "./build/types/index.d.ts",
         "default": "./build/cjs/index.js"
       }
     },

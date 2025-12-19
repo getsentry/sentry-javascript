@@ -4,20 +4,20 @@
   "description": "Worker for @sentry-internal/replay",
   "main": "build/esm/index.js",
   "module": "build/esm/index.js",
-  "types": "build/esm/index.d.ts",
+  "types": "build/types/index.d.ts",
   "exports": {
     "./package.json": "./package.json",
     "./worker-bundler": {
-      "types": "./build/esm/worker-bundler.d.ts",
+      "types": "./build/types/worker-bundler.d.ts",
       "default": "./build/esm/worker-bundler.js"
     },
     ".": {
       "import": {
-        "types": "./build/esm/index.d.ts",
+        "types": "./build/types/index.d.ts",
         "default": "./build/esm/index.js"
       },
       "require": {
-        "types": "./build/esm/index.d.ts",
+        "types": "./build/types/index.d.ts",
         "default": "./build/cjs/index.js"
       }
     }

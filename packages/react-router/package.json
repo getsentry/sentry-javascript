@@ -15,11 +15,11 @@
   "main": "build/cjs/index.server.js",
   "module": "build/esm/index.server.js",
   "browser": "build/esm/index.client.js",
-  "types": "build/esm/index.types.d.ts",
+  "types": "build/types/index.types.d.ts",
   "exports": {
     "./package.json": "./package.json",
     ".": {
-      "types": "./build/esm/index.types.d.ts",
+      "types": "./build/types/index.types.d.ts",
       "browser": {
         "import": "./build/esm/index.client.js",
         "require": "./build/cjs/index.client.js"
@@ -37,7 +37,7 @@
     "./cloudflare": {
       "import": "./build/esm/cloudflare/index.js",
       "require": "./build/cjs/cloudflare/index.js",
-      "types": "./build/esm/cloudflare/index.d.ts",
+      "types": "./build/types/cloudflare/index.d.ts",
       "default": "./build/esm/cloudflare/index.js"
     }
   },

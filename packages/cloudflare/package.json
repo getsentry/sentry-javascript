@@ -19,21 +19,21 @@
     "./package.json": "./package.json",
     ".": {
       "import": {
-        "types": "./build/esm/index.d.ts",
+        "types": "./build/types/index.d.ts",
         "default": "./build/esm/index.js"
       },
       "require": {
-        "types": "./build/esm/index.d.ts",
+        "types": "./build/types/index.d.ts",
         "default": "./build/cjs/index.js"
       }
     },
     "./request": {
       "import": {
-        "types": "./build/esm/request.d.ts",
+        "types": "./build/types/request.d.ts",
         "default": "./build/esm/request.js"
       },
       "require": {
-        "types": "./build/esm/request.d.ts",
+        "types": "./build/types/request.d.ts",
         "default": "./build/cjs/request.js"
       }
     }
