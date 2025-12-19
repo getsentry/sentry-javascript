@@ -9,4 +9,5 @@ Sentry.init({
     // We expect the app to send a lot of events in a short time
     bufferSize: 1000,
   },
+  debug: true,
 });
