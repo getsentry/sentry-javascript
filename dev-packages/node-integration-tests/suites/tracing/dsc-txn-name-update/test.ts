@@ -1,6 +1,6 @@
+import { createTestServer } from '@sentry-internal/test-utils';
 import { expect, test } from 'vitest';
 import { createRunner } from '../../../utils/runner';
-import { createTestServer } from '../../../utils/server';
 
 test('adds current transaction name to baggage when the txn name is high-quality', async () => {
   expect.assertions(5);

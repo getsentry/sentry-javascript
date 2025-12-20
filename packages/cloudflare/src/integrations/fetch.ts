@@ -90,6 +90,7 @@ const _fetchIntegration = ((options: Partial<Options> = {}) => {
     setupOnce() {
       addFetchInstrumentationHandler(handlerData => {
         const client = getClient();
+        const { propagateTraceparent } = client?.getOptions() || {};
         if (!client || !HAS_CLIENT_MAP.get(client)) {
           return;
         }
@@ -100,6 +101,7 @@ const _fetchIntegration = ((options: Partial<Options> = {}) => {
 
         instrumentFetchRequest(handlerData, _shouldCreateSpan, _shouldAttachTraceData, spans, {
           spanOrigin: 'auto.http.fetch',
+          propagateTraceparent,
         });
 
         if (breadcrumbs) {

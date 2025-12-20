@@ -1,6 +1,6 @@
+import { createTestServer } from '@sentry-internal/test-utils';
 import { describe, expect } from 'vitest';
 import { createEsmAndCjsTests } from '../../../../utils/runner';
-import { createTestServer } from '../../../../utils/server';
 
 describe('outgoing traceparent', () => {
   createEsmAndCjsTests(__dirname, 'scenario-fetch.mjs', 'instrument.mjs', (createRunner, test) => {

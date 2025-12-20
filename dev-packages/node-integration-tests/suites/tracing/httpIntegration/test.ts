@@ -1,6 +1,6 @@
+import { createTestServer } from '@sentry-internal/test-utils';
 import { afterAll, describe, expect, test } from 'vitest';
 import { cleanupChildProcesses, createEsmAndCjsTests, createRunner } from '../../../utils/runner';
-import { createTestServer } from '../../../utils/server';
 
 function getCommonHttpRequestHeaders(): Record<string, unknown> {
   return {
