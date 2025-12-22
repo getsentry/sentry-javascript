@@ -279,7 +279,7 @@ describe('consola integration', () => {
             {
               timestamp: expect.any(Number),
               level: 'info',
-              body: 'Message with args: hello 123 {"key":"value"} [1,2,3]',
+              body: 'Message with args: hello 123',
               severity_number: expect.any(Number),
               trace_id: expect.any(String),
               attributes: {
@@ -291,6 +291,7 @@ describe('consola integration', () => {
                 'server.address': { value: expect.any(String), type: 'string' },
                 'consola.type': { value: 'info', type: 'string' },
                 'consola.level': { value: 3, type: 'integer' },
+                key: { value: 'value', type: 'string' },
               },
             },
             {
@@ -482,6 +483,114 @@ describe('consola integration', () => {
                 'server.address': { value: expect.any(String), type: 'string' },
                 'consola.type': { value: 'info', type: 'string' },
                 'consola.level': { value: 3, type: 'integer' },
+              },
+            },
+          ],
+        },
+      })
+      .start();
+
+    await runner.completed();
+  });
+
+  test('should extract objects as searchable context attributes', async () => {
+    const runner = createRunner(__dirname, 'subject-object-context.ts')
+      .expect({
+        log: {
+          items: [
+            {
+              timestamp: expect.any(Number),
+              level: 'info',
+              body: 'User logged in',
+              severity_number: expect.any(Number),
+              trace_id: expect.any(String),
+              attributes: {
+                'sentry.origin': { value: 'auto.log.consola', type: 'string' },
+                'sentry.release': { value: '1.0.0', type: 'string' },
+                'sentry.environment': { value: 'test', type: 'string' },
+                'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
+                'sentry.sdk.version': { value: expect.any(String), type: 'string' },
+                'server.address': { value: expect.any(String), type: 'string' },
+                'consola.type': { value: 'info', type: 'string' },
+                'consola.level': { value: 3, type: 'integer' },
+                userId: { value: 123, type: 'integer' },
+                sessionId: { value: 'abc-123', type: 'string' },
+              },
+            },
+            {
+              timestamp: expect.any(Number),
+              level: 'warn',
+              body: 'Payment processed',
+              severity_number: expect.any(Number),
+              trace_id: expect.any(String),
+              attributes: {
+                'sentry.origin': { value: 'auto.log.consola', type: 'string' },
+                'sentry.release': { value: '1.0.0', type: 'string' },
+                'sentry.environment': { value: 'test', type: 'string' },
+                'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
+                'sentry.sdk.version': { value: expect.any(String), type: 'string' },
+                'server.address': { value: expect.any(String), type: 'string' },
+                'consola.type': { value: 'warn', type: 'string' },
+                'consola.level': { value: 1, type: 'integer' },
+                orderId: { value: 456, type: 'integer' },
+                amount: { value: 99.99, type: 'double' },
+                currency: { value: 'USD', type: 'string' },
+              },
+            },
+            {
+              timestamp: expect.any(Number),
+              level: 'error',
+              body: 'Error occurred in payment module',
+              severity_number: expect.any(Number),
+              trace_id: expect.any(String),
+              attributes: {
+                'sentry.origin': { value: 'auto.log.consola', type: 'string' },
+                'sentry.release': { value: '1.0.0', type: 'string' },
+                'sentry.environment': { value: 'test', type: 'string' },
+                'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
+                'sentry.sdk.version': { value: expect.any(String), type: 'string' },
+                'server.address': { value: expect.any(String), type: 'string' },
+                'consola.type': { value: 'error', type: 'string' },
+                'consola.level': { value: 0, type: 'integer' },
+                errorCode: { value: 'E001', type: 'string' },
+                retryable: { value: true, type: 'boolean' },
+              },
+            },
+            {
+              timestamp: expect.any(Number),
+              level: 'debug',
+              body: 'Processing items',
+              severity_number: expect.any(Number),
+              trace_id: expect.any(String),
+              attributes: {
+                'sentry.origin': { value: 'auto.log.consola', type: 'string' },
+                'sentry.release': { value: '1.0.0', type: 'string' },
+                'sentry.environment': { value: 'test', type: 'string' },
+                'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
+                'sentry.sdk.version': { value: expect.any(String), type: 'string' },
+                'server.address': { value: expect.any(String), type: 'string' },
+                'consola.type': { value: 'debug', type: 'string' },
+                'consola.level': { value: 4, type: 'integer' },
+                'consola.context.0': { value: '[1,2,3,4,5]', type: 'string' },
+              },
+            },
+            {
+              timestamp: expect.any(Number),
+              level: 'info',
+              body: 'Complex data',
+              severity_number: expect.any(Number),
+              trace_id: expect.any(String),
+              attributes: {
+                'sentry.origin': { value: 'auto.log.consola', type: 'string' },
+                'sentry.release': { value: '1.0.0', type: 'string' },
+                'sentry.environment': { value: 'test', type: 'string' },
+                'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
+                'sentry.sdk.version': { value: expect.any(String), type: 'string' },
+                'server.address': { value: expect.any(String), type: 'string' },
+                'consola.type': { value: 'info', type: 'string' },
+                'consola.level': { value: 3, type: 'integer' },
+                user: { value: '{"id":789,"name":"Jane"}', type: 'string' },
+                metadata: { value: '{"source":"api"}', type: 'string' },
               },
             },
           ],
