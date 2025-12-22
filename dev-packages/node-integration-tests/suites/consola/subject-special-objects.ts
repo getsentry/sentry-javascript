@@ -28,12 +28,17 @@ async function run(): Promise<void> {
   // Test Map and Set objects are preserved
   consola.info('Collections:', new Map([['key', 'value']]), new Set([1, 2, 3]));
 
-  // Test mixed: plain object + special object
-  consola.info('Mixed data', { userId: 123 }, new Date('2023-06-15T12:00:00.000Z'));
+  // Test mixed: nested object, primitives, Date, and Map
+  consola.info(
+    'Mixed data',
+    { userId: 123, nestedMetadata: { id: 789, name: 'Jane', source: 'api' } },
+    new Date('2023-06-15T12:00:00.000Z'),
+    'a-simple-string',
+    new Map([['key', 'value']]),
+  );
 
   await Sentry.flush();
 }
 
 // eslint-disable-next-line @typescript-eslint/no-floating-promises
 void run();
-

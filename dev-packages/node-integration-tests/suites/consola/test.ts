@@ -706,7 +706,7 @@ describe('consola integration', () => {
             {
               timestamp: expect.any(Number),
               level: 'info',
-              body: 'Mixed data',
+              body: 'Mixed data a-simple-string',
               severity_number: expect.any(Number),
               trace_id: expect.any(String),
               attributes: {
@@ -718,10 +718,14 @@ describe('consola integration', () => {
                 'server.address': { value: expect.any(String), type: 'string' },
                 'consola.type': { value: 'info', type: 'string' },
                 'consola.level': { value: 3, type: 'integer' },
-                // Plain object properties are extracted
+                // Plain object properties extracted
                 userId: { value: 123, type: 'integer' },
-                // Date is preserved in context
+                // Nested metadata object normalized (depth 3)
+                nestedMetadata: { value: '{"id":789,"name":"Jane","source":"api"}', type: 'string' },
+                // Date preserved as args
                 'consola.args.0': { value: '"2023-06-15T12:00:00.000Z"', type: 'string' },
+                // Map converted to object and stored as args
+                'consola.args.1': { value: '{"key":"value"}', type: 'string' },
               },
             },
           ],
