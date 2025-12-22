@@ -66,18 +66,7 @@ function onVercelAiSpanStart(span: Span): void {
   }
 
   // Check if this is a Vercel AI span by name pattern.
-  // We set origin even if model ID is missing, so processEndedVercelAiSpan
-  // can still process the span when attributes are set late.
   if (!name.startsWith('ai.')) {
-    return;
-  }
-
-  addOriginToSpan(span, 'auto.vercelai.otel');
-
-  // The AI model ID must be defined for full generate span processing.
-  // If it's not available at span start, processEndedVercelAiSpan will set the op.
-  const aiModelId = attributes[AI_MODEL_ID_ATTRIBUTE];
-  if (typeof aiModelId !== 'string' || !aiModelId) {
     return;
   }
 
@@ -119,19 +108,10 @@ function vercelAiEventProcessor(event: Event): Event {
  * Post-process spans emitted by the Vercel AI SDK.
  */
 function processEndedVercelAiSpan(span: SpanJSON): void {
-  const { data: attributes, origin, description: name } = span;
+  const { data: attributes, origin } = span;
 
   if (origin !== 'auto.vercelai.otel') {
     return;
-  }
-
-  // Set span.op if it wasn't already set during span start
-  // This can happen when the model attribute is set too late
-  // Check for both undefined (OTel spans without op) and 'default'
-  if ((!span.op || span.op === 'default') && name) {
-    const op = getSpanOpFromName(name);
-    span.op = op;
-    attributes['sentry.op'] = op;
   }
 
   renameAttributeKey(attributes, AI_USAGE_COMPLETION_TOKENS_ATTRIBUTE, GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE);
@@ -223,6 +203,8 @@ function processToolCallSpan(span: Span, attributes: SpanAttributes): void {
 }
 
 function processGenerateSpan(span: Span, name: string, attributes: SpanAttributes): void {
+  addOriginToSpan(span, 'auto.vercelai.otel');
+
   const nameWthoutAi = name.replace('ai.', '');
   span.setAttribute('ai.pipeline.name', nameWthoutAi);
   span.updateName(nameWthoutAi);
@@ -248,27 +230,29 @@ function processGenerateSpan(span: Span, name: string, attributes: SpanAttribute
     span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, op);
   }
 
-  // Update span names for .do* spans to include the model ID
+  // Update span names for .do* spans to include the model ID (only if model ID exists)
   const modelId = attributes[AI_MODEL_ID_ATTRIBUTE];
-  switch (name) {
-    case 'ai.generateText.doGenerate':
-      span.updateName(`generate_text ${modelId}`);
-      break;
-    case 'ai.streamText.doStream':
-      span.updateName(`stream_text ${modelId}`);
-      break;
-    case 'ai.generateObject.doGenerate':
-      span.updateName(`generate_object ${modelId}`);
-      break;
-    case 'ai.streamObject.doStream':
-      span.updateName(`stream_object ${modelId}`);
-      break;
-    case 'ai.embed.doEmbed':
-      span.updateName(`embed ${modelId}`);
-      break;
-    case 'ai.embedMany.doEmbed':
-      span.updateName(`embed_many ${modelId}`);
-      break;
+  if (modelId) {
+    switch (name) {
+      case 'ai.generateText.doGenerate':
+        span.updateName(`generate_text ${modelId}`);
+        break;
+      case 'ai.streamText.doStream':
+        span.updateName(`stream_text ${modelId}`);
+        break;
+      case 'ai.generateObject.doGenerate':
+        span.updateName(`generate_object ${modelId}`);
+        break;
+      case 'ai.streamObject.doStream':
+        span.updateName(`stream_object ${modelId}`);
+        break;
+      case 'ai.embed.doEmbed':
+        span.updateName(`embed ${modelId}`);
+        break;
+      case 'ai.embedMany.doEmbed':
+        span.updateName(`embed_many ${modelId}`);
+        break;
+    }
   }
 }
 

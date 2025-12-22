@@ -706,9 +706,8 @@ describe('Vercel AI integration', () => {
         transaction: 'main',
         spans: expect.arrayContaining([
           // The generateText span should have the correct op even though model ID was not available at span start
-          // Since processGenerateSpan didn't run, the span description remains 'ai.generateText'
           expect.objectContaining({
-            description: 'ai.generateText',
+            description: 'generateText',
             op: 'gen_ai.invoke_agent',
             origin: 'auto.vercelai.otel',
             status: 'ok',
@@ -718,9 +717,9 @@ describe('Vercel AI integration', () => {
               'gen_ai.operation.name': 'ai.generateText',
             }),
           }),
-          // The doGenerate span should also have the correct op
+          // The doGenerate span - name stays as 'generateText.doGenerate' since model ID is missing
           expect.objectContaining({
-            description: 'ai.generateText.doGenerate',
+            description: 'generateText.doGenerate',
             op: 'gen_ai.generate_text',
             origin: 'auto.vercelai.otel',
             status: 'ok',

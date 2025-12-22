@@ -2,8 +2,8 @@ import * as Sentry from '@sentry/node';
 import { generateText } from 'ai';
 
 // Custom mock model that doesn't set modelId initially (simulates late model ID setting)
-// This tests that processEndedVercelAiSpan correctly sets the op even when
-// processGenerateSpan didn't run due to missing model ID at span start
+// This tests that the op is correctly set even when model ID is not available at span start.
+// The span name update (e.g., 'generate_text gpt-4') is skipped when model ID is missing.t
 class LateModelIdMock {
   specificationVersion = 'v1';
   provider = 'late-model-provider';
