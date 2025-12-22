@@ -7,12 +7,12 @@ import path from 'node:path';
  * This preserves the directory structure within the types directory.
  * Optimized for speed with parallel file operations.
  */
-export function makeMoveDtsPlugin() {
+export function makeMoveDtsPlugin(searchDir = 'build/esm', outputDir = 'build/types') {
   return {
     name: 'move-dts-files',
     async writeBundle() {
-      const buildEsmDir = path.resolve(process.cwd(), 'build/esm');
-      const buildTypesDir = path.resolve(process.cwd(), 'build/types');
+      const buildEsmDir = path.resolve(process.cwd(), searchDir);
+      const buildTypesDir = path.resolve(process.cwd(), outputDir);
 
       // Check if build/esm exists
       if (!fs.existsSync(buildEsmDir)) {
