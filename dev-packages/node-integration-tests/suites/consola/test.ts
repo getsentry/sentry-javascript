@@ -593,6 +593,26 @@ describe('consola integration', () => {
                 metadata: { value: '{"source":"api"}', type: 'string' },
               },
             },
+            {
+              timestamp: expect.any(Number),
+              level: 'info',
+              body: 'Deep object',
+              severity_number: expect.any(Number),
+              trace_id: expect.any(String),
+              attributes: {
+                'sentry.origin': { value: 'auto.log.consola', type: 'string' },
+                'sentry.release': { value: '1.0.0', type: 'string' },
+                'sentry.environment': { value: 'test', type: 'string' },
+                'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
+                'sentry.sdk.version': { value: expect.any(String), type: 'string' },
+                'server.address': { value: expect.any(String), type: 'string' },
+                'consola.type': { value: 'info', type: 'string' },
+                'consola.level': { value: 3, type: 'integer' },
+                // Nested objects are extracted and normalized respecting normalizeDepth setting
+                level1: { value: '{"level2":{"level3":{"level4":"[Object]"}}}', type: 'string' },
+                simpleKey: { value: 'simple value', type: 'string' },
+              },
+            },
           ],
         },
       })

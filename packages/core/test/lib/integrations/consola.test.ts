@@ -213,7 +213,7 @@ describe('createConsolaReporter', () => {
         attributes: {
           'sentry.origin': 'auto.log.consola',
           'consola.type': 'info',
-          self: circular,
+          self: { self: '[Circular ~]' },
         },
       });
     });
@@ -316,6 +316,34 @@ describe('createConsolaReporter', () => {
       expect(captureCall.attributes['sentry.origin']).toBe('auto.log.consola');
       expect(captureCall.attributes.user).toEqual({ id: 123, name: 'John' });
       expect(captureCall.attributes.timestamp).toEqual(expect.any(Number));
+    });
+
+    it('should respect normalizeDepth when extracting object properties', () => {
+      const logObj = {
+        type: 'info',
+        args: [
+          'Deep object',
+          {
+            level1: {
+              level2: {
+                level3: {
+                  level4: { level5: 'should be normalized' }, // beause of normalizeDepth=3
+                },
+              },
+            },
+            simpleKey: 'simple value',
+          },
+        ],
+      };
+
+      sentryReporter.log(logObj);
+
+      const captureCall = vi.mocked(_INTERNAL_captureLog).mock.calls[0][0];
+      expect(captureCall.level).toBe('info');
+      expect(captureCall.message).toBe('Deep object');
+      expect(captureCall.attributes['sentry.origin']).toBe('auto.log.consola');
+      expect(captureCall.attributes.level1).toEqual({ level2: { level3: { level4: '[Object]' } } });
+      expect(captureCall.attributes.simpleKey).toBe('simple value');
     });
 
     it('should map consola levels to sentry levels when type is not provided', () => {

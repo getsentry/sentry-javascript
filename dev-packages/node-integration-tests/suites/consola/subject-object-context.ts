@@ -25,11 +25,23 @@ async function run(): Promise<void> {
   // Mixed primitives and objects
   consola.error('Error occurred', 'in payment module', { errorCode: 'E001', retryable: true });
 
-  // Aarrays (should be stored as context attributes)
+  // Arrays (should be stored as context attributes)
   consola.debug('Processing items', [1, 2, 3, 4, 5]);
 
   // Nested objects
   consola.info('Complex data', { user: { id: 789, name: 'Jane' }, metadata: { source: 'api' } });
+
+  // Deep nesting to test normalizeDepth (should be normalized at depth 3 - default)
+  consola.info('Deep object', {
+    level1: {
+      level2: {
+        level3: {
+          level4: { level5: 'should be normalized' },
+        },
+      },
+    },
+    simpleKey: 'simple value',
+  });
 
   await Sentry.flush();
 }
