@@ -3,7 +3,7 @@ import { getClient } from '../currentScopes';
 import { _INTERNAL_captureLog } from '../logs/internal';
 import { formatConsoleArgs } from '../logs/utils';
 import type { LogSeverityLevel } from '../types-hoist/log';
-import { isPrimitive } from '../utils/is';
+import { isPlainObject, isPrimitive } from '../utils/is';
 import { normalize } from '../utils/normalize';
 
 /**
@@ -234,26 +234,24 @@ export function createConsolaReporter(options: ConsolaReporterOptions = {}): Con
           if (isPrimitive(arg)) {
             primitives.push(arg);
           } else if (typeof arg === 'object' && arg !== null) {
-            // Plain objects: extract properties as attributes
-            if (!Array.isArray(arg)) {
+            // Plain objects: extract properties as individual attributes
+            if (isPlainObject(arg)) {
               try {
                 for (const key in arg) {
                   // Only add if not conflicting with existing or consola-prefixed attributes
                   if (!(key in attributes) && !(`consola.${key}` in attributes)) {
                     // Normalize the value to respect normalizeDepth
-                    attributes[key] = normalize(
-                      (arg as Record<string, unknown>)[key],
-                      normalizeDepth,
-                      normalizeMaxBreadth,
-                    );
+                    attributes[key] = normalize(arg[key], normalizeDepth, normalizeMaxBreadth);
                   }
                 }
               } catch {
                 // Skip on error
               }
             } else {
-              // Arrays: store as context attribute as they don't have meaningful property names, just numeric indices
-              attributes[`consola.context.${contextIndex++}`] = arg;
+              // Non-plain objects (Date, Error, Map, Set, etc.) and arrays: Store as args attribute so they get properly serialized
+              // Special handling for Map and Set to preserve their data
+              attributes[`consola.args.${contextIndex++}`] =
+                arg instanceof Map ? Object.fromEntries(arg) : arg instanceof Set ? Array.from(arg) : arg;
             }
           } else {
             primitives.push(arg);

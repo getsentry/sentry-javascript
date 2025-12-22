@@ -275,7 +275,7 @@ describe('createConsolaReporter', () => {
         attributes: {
           'sentry.origin': 'auto.log.consola',
           'consola.type': 'info',
-          'consola.context.0': [1, 2, 3],
+          'consola.args.0': [1, 2, 3],
         },
       });
     });
@@ -344,6 +344,98 @@ describe('createConsolaReporter', () => {
       expect(captureCall.attributes['sentry.origin']).toBe('auto.log.consola');
       expect(captureCall.attributes.level1).toEqual({ level2: { level3: { level4: '[Object]' } } });
       expect(captureCall.attributes.simpleKey).toBe('simple value');
+    });
+
+    it('should store Date objects as context attributes', () => {
+      const now = new Date('2023-01-01T00:00:00.000Z');
+      const logObj = {
+        type: 'info',
+        args: ['Current time:', now],
+      };
+
+      sentryReporter.log(logObj);
+
+      const captureCall = vi.mocked(_INTERNAL_captureLog).mock.calls[0][0];
+      expect(captureCall.level).toBe('info');
+      expect(captureCall.message).toBe('Current time:');
+      expect(captureCall.attributes['sentry.origin']).toBe('auto.log.consola');
+      expect(captureCall.attributes['consola.args.0']).toBe(now);
+    });
+
+    it('should store Error objects as context attributes', () => {
+      const error = new Error('Test error');
+      const logObj = {
+        type: 'error',
+        args: ['Error occurred:', error],
+      };
+
+      sentryReporter.log(logObj);
+
+      const captureCall = vi.mocked(_INTERNAL_captureLog).mock.calls[0][0];
+      expect(captureCall.level).toBe('error');
+      expect(captureCall.message).toBe('Error occurred:');
+      expect(captureCall.attributes['sentry.origin']).toBe('auto.log.consola');
+      expect(captureCall.attributes['consola.args.0']).toBe(error);
+    });
+
+    it('should store RegExp objects as context attributes', () => {
+      const pattern = /test/gi;
+      const logObj = {
+        type: 'info',
+        args: ['Pattern:', pattern],
+      };
+
+      sentryReporter.log(logObj);
+
+      const captureCall = vi.mocked(_INTERNAL_captureLog).mock.calls[0][0];
+      expect(captureCall.level).toBe('info');
+      expect(captureCall.message).toBe('Pattern:');
+      expect(captureCall.attributes['sentry.origin']).toBe('auto.log.consola');
+      expect(captureCall.attributes['consola.args.0']).toBe(pattern);
+    });
+
+    it('should store Map and Set objects as context attributes', () => {
+      const map = new Map([
+        ['key', 'value'],
+        ['foo', 'bar'],
+      ]);
+      const set = new Set([1, 2, 3]);
+      const logObj = {
+        type: 'info',
+        args: ['Collections:', map, set],
+      };
+
+      sentryReporter.log(logObj);
+
+      const captureCall = vi.mocked(_INTERNAL_captureLog).mock.calls[0][0];
+      expect(captureCall.level).toBe('info');
+      expect(captureCall.message).toBe('Collections:');
+      expect(captureCall.attributes['sentry.origin']).toBe('auto.log.consola');
+      // Map should be converted to plain object
+      expect(captureCall.attributes['consola.args.0']).toEqual({ key: 'value', foo: 'bar' });
+      // Set should be converted to array
+      expect(captureCall.attributes['consola.args.1']).toEqual([1, 2, 3]);
+    });
+
+    it('should only extract properties from plain objects', () => {
+      const plainObj = { userId: 123, name: 'test' };
+      const error = new Error('test');
+      const logObj = {
+        type: 'info',
+        args: ['Mixed:', plainObj, error],
+      };
+
+      sentryReporter.log(logObj);
+
+      const captureCall = vi.mocked(_INTERNAL_captureLog).mock.calls[0][0];
+      expect(captureCall.level).toBe('info');
+      expect(captureCall.message).toBe('Mixed:');
+      // Plain object properties should be extracted
+      expect(captureCall.attributes.userId).toBe(123);
+      expect(captureCall.attributes.name).toBe('test');
+      // Error should NOT have properties extracted (stored as context instead)
+      expect(captureCall.attributes.message).toBeUndefined();
+      expect(captureCall.attributes['consola.args.0']).toBe(error);
     });
 
     it('should map consola levels to sentry levels when type is not provided', () => {
