@@ -3,6 +3,7 @@ import { getClient } from '../currentScopes';
 import { _INTERNAL_captureLog } from '../logs/internal';
 import { formatConsoleArgs } from '../logs/utils';
 import type { LogSeverityLevel } from '../types-hoist/log';
+import { isPrimitive } from '../utils/is';
 
 /**
  * Options for the Sentry Consola reporter.
@@ -206,17 +207,7 @@ export function createConsolaReporter(options: ConsolaReporterOptions = {}): Con
 
       const { normalizeDepth = 3, normalizeMaxBreadth = 1_000 } = client.getOptions();
 
-      // Format the log message using the same approach as consola's basic reporter
-      const messageParts = [];
-      if (consolaMessage) {
-        messageParts.push(consolaMessage);
-      }
-      if (args && args.length > 0) {
-        messageParts.push(formatConsoleArgs(args, normalizeDepth, normalizeMaxBreadth));
-      }
-      const message = messageParts.join(' ');
-
-      // Build attributes
+      // Build base attributes first
       attributes['sentry.origin'] = 'auto.log.consola';
 
       if (tag) {
@@ -230,6 +221,44 @@ export function createConsolaReporter(options: ConsolaReporterOptions = {}): Con
       // Only add level if it's a valid number (not null/undefined)
       if (level != null && typeof level === 'number') {
         attributes['consola.level'] = level;
+      }
+
+      // Process args: separate primitives for message, extract objects as attributes
+      let message = consolaMessage || '';
+      if (args?.length) {
+        const primitives: unknown[] = [];
+        let contextIndex = 0;
+
+        for (const arg of args) {
+          if (isPrimitive(arg)) {
+            primitives.push(arg);
+          } else if (typeof arg === 'object' && arg !== null) {
+            // Plain objects: extract properties as attributes
+            if (!Array.isArray(arg)) {
+              try {
+                for (const key in arg) {
+                  // Only add if not conflicting with existing or consola-prefixed attributes
+                  if (!(key in attributes) && !(`consola.${key}` in attributes)) {
+                    attributes[key] = (arg as Record<string, unknown>)[key];
+                  }
+                }
+              } catch {
+                // Skip on error
+              }
+            } else {
+              // Arrays: store as context attribute as they don't have meaningful property names, just numeric indices
+              attributes[`consola.context.${contextIndex++}`] = arg;
+            }
+          } else {
+            primitives.push(arg);
+          }
+        }
+
+        if (primitives.length) {
+          message = message
+            ? `${message} ${formatConsoleArgs(primitives, normalizeDepth, normalizeMaxBreadth)}`
+            : formatConsoleArgs(primitives, normalizeDepth, normalizeMaxBreadth);
+        }
       }
 
       _INTERNAL_captureLog({

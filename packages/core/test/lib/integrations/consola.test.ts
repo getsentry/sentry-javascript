@@ -184,13 +184,14 @@ describe('createConsolaReporter', () => {
 
       sentryReporter.log(logObj);
 
-      expect(formatConsoleArgs).toHaveBeenCalledWith(['Hello', 'world', 123, { key: 'value' }], 3, 1000);
+      expect(formatConsoleArgs).toHaveBeenCalledWith(['Hello', 'world', 123], 3, 1000);
       expect(_INTERNAL_captureLog).toHaveBeenCalledWith({
         level: 'info',
-        message: 'Hello world 123 {"key":"value"}',
+        message: 'Hello world 123',
         attributes: {
           'sentry.origin': 'auto.log.consola',
           'consola.type': 'info',
+          key: 'value',
         },
       });
     });
@@ -208,12 +209,113 @@ describe('createConsolaReporter', () => {
 
       expect(_INTERNAL_captureLog).toHaveBeenCalledWith({
         level: 'info',
-        message: 'Message {"self":"[Circular ~]"}',
+        message: 'Message',
         attributes: {
           'sentry.origin': 'auto.log.consola',
           'consola.type': 'info',
+          self: circular,
         },
       });
+    });
+
+    it('should extract multiple objects as attributes', () => {
+      const logObj = {
+        type: 'info',
+        message: 'User action',
+        args: [{ userId: 123 }, { sessionId: 'abc-123' }],
+      };
+
+      sentryReporter.log(logObj);
+
+      expect(_INTERNAL_captureLog).toHaveBeenCalledWith({
+        level: 'info',
+        message: 'User action',
+        attributes: {
+          'sentry.origin': 'auto.log.consola',
+          'consola.type': 'info',
+          userId: 123,
+          sessionId: 'abc-123',
+        },
+      });
+    });
+
+    it('should handle mixed primitives and objects in args', () => {
+      const logObj = {
+        type: 'info',
+        args: ['Processing', { userId: 456 }, 'for', { action: 'login' }],
+      };
+
+      sentryReporter.log(logObj);
+
+      expect(formatConsoleArgs).toHaveBeenCalledWith(['Processing', 'for'], 3, 1000);
+      expect(_INTERNAL_captureLog).toHaveBeenCalledWith({
+        level: 'info',
+        message: 'Processing for',
+        attributes: {
+          'sentry.origin': 'auto.log.consola',
+          'consola.type': 'info',
+          userId: 456,
+          action: 'login',
+        },
+      });
+    });
+
+    it('should handle arrays as context attributes', () => {
+      const logObj = {
+        type: 'info',
+        message: 'Array data',
+        args: [[1, 2, 3]],
+      };
+
+      sentryReporter.log(logObj);
+
+      expect(_INTERNAL_captureLog).toHaveBeenCalledWith({
+        level: 'info',
+        message: 'Array data',
+        attributes: {
+          'sentry.origin': 'auto.log.consola',
+          'consola.type': 'info',
+          'consola.context.0': [1, 2, 3],
+        },
+      });
+    });
+
+    it('should not override existing attributes with object properties', () => {
+      const logObj = {
+        type: 'info',
+        message: 'Test',
+        tag: 'api',
+        args: [{ tag: 'should-not-override' }],
+      };
+
+      sentryReporter.log(logObj);
+
+      expect(_INTERNAL_captureLog).toHaveBeenCalledWith({
+        level: 'info',
+        message: 'Test',
+        attributes: {
+          'sentry.origin': 'auto.log.consola',
+          'consola.type': 'info',
+          'consola.tag': 'api',
+          // tag should not be overridden by the object arg
+        },
+      });
+    });
+
+    it('should handle objects with nested properties', () => {
+      const logObj = {
+        type: 'info',
+        args: ['Event', { user: { id: 123, name: 'John' }, timestamp: Date.now() }],
+      };
+
+      sentryReporter.log(logObj);
+
+      const captureCall = vi.mocked(_INTERNAL_captureLog).mock.calls[0][0];
+      expect(captureCall.level).toBe('info');
+      expect(captureCall.message).toBe('Event');
+      expect(captureCall.attributes['sentry.origin']).toBe('auto.log.consola');
+      expect(captureCall.attributes.user).toEqual({ id: 123, name: 'John' });
+      expect(captureCall.attributes.timestamp).toEqual(expect.any(Number));
     });
 
     it('should map consola levels to sentry levels when type is not provided', () => {
