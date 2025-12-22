@@ -47,6 +47,7 @@ it('Hono app captures errors', async ({ signal }) => {
         }),
       );
     })
+    .unordered()
     .start(signal);
   await runner.makeRequest('get', '/error', { expectError: true });
   await runner.completed();
