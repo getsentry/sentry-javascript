@@ -190,8 +190,8 @@ export type SessionData = {
  * @internal
  */
 export type McpServerWrapperOptions = {
-  /** Whether to capture tool/prompt input arguments in spans. @default false */
+  /** Whether to capture tool/prompt input arguments in spans. Defaults to sendDefaultPii. */
   recordInputs?: boolean;
-  /** Whether to capture tool/prompt output results in spans. @default false */
+  /** Whether to capture tool/prompt output results in spans. Defaults to sendDefaultPii. */
   recordOutputs?: boolean;
 };

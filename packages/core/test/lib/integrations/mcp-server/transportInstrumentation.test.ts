@@ -662,7 +662,13 @@ describe('MCP Server Transport Instrumentation', () => {
   });
 
   describe('Wrapper Options', () => {
-    it('should NOT capture request arguments by default (recordInputs: false)', async () => {
+    it('should NOT capture inputs/outputs when sendDefaultPii is false', async () => {
+      getClientSpy.mockReturnValue({
+        getOptions: () => ({ sendDefaultPii: false }),
+        getDsn: () => ({ publicKey: 'test-key', host: 'test-host' }),
+        emit: vi.fn(),
+      } as any);
+
       const mockMcpServer = createMockMcpServer();
       const wrappedMcpServer = wrapMcpServerWithSentry(mockMcpServer);
       const transport = createMockTransport();
@@ -688,26 +694,68 @@ describe('MCP Server Transport Instrumentation', () => {
       );
     });
 
-    it('should NOT capture tool outputs by default (recordOutputs: false)', async () => {
+    it('should capture inputs/outputs when sendDefaultPii is true', async () => {
+      getClientSpy.mockReturnValue({
+        getOptions: () => ({ sendDefaultPii: true }),
+        getDsn: () => ({ publicKey: 'test-key', host: 'test-host' }),
+        emit: vi.fn(),
+      } as any);
+
       const mockMcpServer = createMockMcpServer();
       const wrappedMcpServer = wrapMcpServerWithSentry(mockMcpServer);
       const transport = createMockTransport();
 
       await wrappedMcpServer.connect(transport);
 
-      const setAttributesSpy = vi.fn();
-      const mockSpan = { setAttributes: setAttributesSpy, end: vi.fn() };
-      startInactiveSpanSpy.mockReturnValueOnce(mockSpan as any);
+      transport.onmessage?.(
+        {
+          jsonrpc: '2.0',
+          method: 'tools/call',
+          id: 'tool-1',
+          params: { name: 'weather', arguments: { location: 'London' } },
+        },
+        {},
+      );
 
-      transport.onmessage?.({ jsonrpc: '2.0', method: 'tools/call', id: 'tool-1', params: { name: 'weather' } }, {});
+      expect(startInactiveSpanSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          attributes: expect.objectContaining({
+            'mcp.request.argument.location': '"London"',
+          }),
+        }),
+      );
+    });
 
-      await transport.send?.({
-        jsonrpc: '2.0',
-        id: 'tool-1',
-        result: { content: [{ type: 'text', text: 'Sunny' }], isError: false },
-      });
+    it('should allow explicit override of defaults', async () => {
+      getClientSpy.mockReturnValue({
+        getOptions: () => ({ sendDefaultPii: true }),
+        getDsn: () => ({ publicKey: 'test-key', host: 'test-host' }),
+        emit: vi.fn(),
+      } as any);
 
-      expect(setAttributesSpy).not.toHaveBeenCalled();
+      const mockMcpServer = createMockMcpServer();
+      const wrappedMcpServer = wrapMcpServerWithSentry(mockMcpServer, { recordInputs: false });
+      const transport = createMockTransport();
+
+      await wrappedMcpServer.connect(transport);
+
+      transport.onmessage?.(
+        {
+          jsonrpc: '2.0',
+          method: 'tools/call',
+          id: 'tool-1',
+          params: { name: 'weather', arguments: { location: 'London' } },
+        },
+        {},
+      );
+
+      expect(startInactiveSpanSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          attributes: expect.not.objectContaining({
+            'mcp.request.argument.location': expect.anything(),
+          }),
+        }),
+      );
     });
   });
 });

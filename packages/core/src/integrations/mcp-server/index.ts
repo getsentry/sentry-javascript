@@ -1,3 +1,4 @@
+import { getClient } from '../../currentScopes';
 import { fill } from '../../utils/object';
 import { wrapAllMCPHandlers } from './handlers';
 import { wrapTransportError, wrapTransportOnClose, wrapTransportOnMessage, wrapTransportSend } from './transport';
@@ -22,15 +23,15 @@ const wrappedMcpServerInstances = new WeakSet();
  * import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
  * import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
  *
- * // Default: inputs and outputs are NOT captured
+ * // Default: inputs/outputs captured based on sendDefaultPii option
  * const server = Sentry.wrapMcpServerWithSentry(
  *   new McpServer({ name: "my-server", version: "1.0.0" })
  * );
  *
- * // Capture both inputs and outputs
+ * // Explicitly control input/output capture
  * const server = Sentry.wrapMcpServerWithSentry(
  *   new McpServer({ name: "my-server", version: "1.0.0" }),
- *   { recordInputs: true, recordOutputs: true }
+ *   { recordInputs: true, recordOutputs: false }
  * );
  *
  * const transport = new StreamableHTTPServerTransport();
@@ -51,8 +52,10 @@ export function wrapMcpServerWithSentry<S extends object>(mcpServerInstance: S, 
   }
 
   const serverInstance = mcpServerInstance as MCPServerInstance;
-  const recordInputs = options?.recordInputs ?? false;
-  const recordOutputs = options?.recordOutputs ?? false;
+  const client = getClient();
+  const sendDefaultPii = Boolean(client?.getOptions().sendDefaultPii);
+  const recordInputs = options?.recordInputs ?? sendDefaultPii;
+  const recordOutputs = options?.recordOutputs ?? sendDefaultPii;
 
   fill(serverInstance, 'connect', originalConnect => {
     return async function (this: MCPServerInstance, transport: MCPTransport, ...restArgs: unknown[]) {
