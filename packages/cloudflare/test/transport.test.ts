@@ -106,6 +106,78 @@ describe('Edge Transport', () => {
       ...REQUEST_OPTIONS,
     });
   });
+
+  describe('Response body consumption (issue #18534)', () => {
+    it('consumes the response body to prevent Cloudflare stalled connection warnings', async () => {
+      const textMock = vi.fn(() => Promise.resolve('OK'));
+      const headers = {
+        get: vi.fn(),
+      };
+      mockFetch.mockImplementationOnce(() =>
+        Promise.resolve({
+          headers,
+          status: 200,
+          text: textMock,
+        }),
+      );
+
+      const transport = makeCloudflareTransport(DEFAULT_EDGE_TRANSPORT_OPTIONS);
+
+      await transport.send(ERROR_ENVELOPE);
+      await transport.flush();
+
+      expect(textMock).toHaveBeenCalledTimes(1);
+      expect(headers.get).toHaveBeenCalledTimes(2);
+      expect(headers.get).toHaveBeenCalledWith('X-Sentry-Rate-Limits');
+      expect(headers.get).toHaveBeenCalledWith('Retry-After');
+    });
+
+    it('handles response body consumption errors gracefully', async () => {
+      const textMock = vi.fn(() => Promise.reject(new Error('Body read error')));
+      const headers = {
+        get: vi.fn(),
+      };
+
+      mockFetch.mockImplementationOnce(() =>
+        Promise.resolve({
+          headers,
+          status: 200,
+          text: textMock,
+        }),
+      );
+
+      const transport = makeCloudflareTransport(DEFAULT_EDGE_TRANSPORT_OPTIONS);
+
+      await expect(transport.send(ERROR_ENVELOPE)).resolves.toBeDefined();
+      await expect(transport.flush()).resolves.toBeDefined();
+
+      expect(textMock).toHaveBeenCalledTimes(1);
+      expect(headers.get).toHaveBeenCalledTimes(2);
+      expect(headers.get).toHaveBeenCalledWith('X-Sentry-Rate-Limits');
+      expect(headers.get).toHaveBeenCalledWith('Retry-After');
+    });
+
+    it('handles a potential never existing use case of a non existing text method', async () => {
+      const headers = {
+        get: vi.fn(),
+      };
+
+      mockFetch.mockImplementationOnce(() =>
+        Promise.resolve({
+          headers,
+          status: 200,
+        }),
+      );
+
+      const transport = makeCloudflareTransport(DEFAULT_EDGE_TRANSPORT_OPTIONS);
+
+      await expect(transport.send(ERROR_ENVELOPE)).resolves.toBeDefined();
+      await expect(transport.flush()).resolves.toBeDefined();
+      expect(headers.get).toHaveBeenCalledTimes(2);
+      expect(headers.get).toHaveBeenCalledWith('X-Sentry-Rate-Limits');
+      expect(headers.get).toHaveBeenCalledWith('Retry-After');
+    });
+  });
 });
 
 describe('IsolatedPromiseBuffer', () => {
