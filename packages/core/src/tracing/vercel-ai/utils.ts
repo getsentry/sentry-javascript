@@ -176,6 +176,6 @@ export function getSpanOpFromName(name: string): string | undefined {
       if (name.startsWith('ai.stream')) {
         return 'ai.run';
       }
-      return name;
+      return undefined;
   }
 }
