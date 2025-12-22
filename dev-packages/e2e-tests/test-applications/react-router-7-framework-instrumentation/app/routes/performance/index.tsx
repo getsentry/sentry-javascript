@@ -1,7 +1,6 @@
 import { Link } from 'react-router';
 
 // Minimal loader to trigger Sentry's route instrumentation
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function loader() {
   return null;
 }
