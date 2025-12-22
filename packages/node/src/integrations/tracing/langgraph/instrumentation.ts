@@ -52,6 +52,18 @@ export class SentryLangGraphInstrumentation extends InstrumentationBase<LangGrap
             this._patch.bind(this),
             exports => exports,
           ),
+          new InstrumentationNodeModuleFile(
+            /**
+             * In CJS, LangGraph packages re-export from dist/prebuilt/index.cjs files.
+             * Patching only the root module sometimes misses the real implementation or
+             * gets overwritten when that file is loaded. We add a file-level patch so that
+             * _patch runs again on the concrete implementation
+             */
+            '@langchain/langgraph/dist/prebuilt/index.cjs',
+            supportedVersions,
+            this._patch.bind(this),
+            exports => exports,
+          ),
         ],
       ),
       new InstrumentationNodeModuleDefinition(
@@ -61,7 +73,24 @@ export class SentryLangGraphInstrumentation extends InstrumentationBase<LangGrap
         exports => exports,
         [
           new InstrumentationNodeModuleFile(
-            '@langchain/langgraph/dist/prebuilt/index.js',
+            /**
+             * ESM builds use dist/prebuilt/index.js (without .cjs extension)
+             * This catches ESM imports that resolve through the main package,
+             * using the package.json submodule export
+             */
+            '@langchain/langgraph/prebuilt',
+            supportedVersions,
+            this._patch.bind(this),
+            exports => exports,
+          ),
+          new InstrumentationNodeModuleFile(
+            /**
+             * In CJS, LangGraph packages re-export from dist/prebuilt/index.cjs files.
+             * Patching only the root module sometimes misses the real implementation or
+             * gets overwritten when that file is loaded. We add a file-level patch so that
+             * _patch runs again on the concrete implementation
+             */
+            '@langchain/langgraph/dist/prebuilt/index.cjs',
             supportedVersions,
             this._patch.bind(this),
             exports => exports,
@@ -75,7 +104,6 @@ export class SentryLangGraphInstrumentation extends InstrumentationBase<LangGrap
    * Core patch logic applying instrumentation to the LangGraph module.
    */
   private _patch(exports: PatchedModuleExports): PatchedModuleExports | void {
-    console.log('SentryLangGraphInstrumentation _patch');
     const client = getClient();
     const defaultPii = Boolean(client?.getOptions().sendDefaultPii);
 
@@ -90,7 +118,6 @@ export class SentryLangGraphInstrumentation extends InstrumentationBase<LangGrap
 
     // Patch StateGraph.compile to instrument both compile() and invoke()
     if (exports.StateGraph && typeof exports.StateGraph === 'function') {
-      console.log('SentryLangGraphInstrumentation _patch StateGraph');
       const StateGraph = exports.StateGraph as {
         prototype: Record<string, unknown>;
       };
@@ -103,7 +130,6 @@ export class SentryLangGraphInstrumentation extends InstrumentationBase<LangGrap
 
     // Patch createReactAgent to instrument the agent creation and invocation
     if (exports.createReactAgent && typeof exports.createReactAgent === 'function') {
-      console.log('SentryLangGraphInstrumentation _patch createReactAgent');
       const originalCreateReactAgent = exports.createReactAgent;
       Object.defineProperty(exports, 'createReactAgent', {
         value: instrumentCreateReactAgent(originalCreateReactAgent as (...args: unknown[]) => CompiledGraph, options),
