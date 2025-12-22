@@ -571,7 +571,7 @@ describe('consola integration', () => {
                 'server.address': { value: expect.any(String), type: 'string' },
                 'consola.type': { value: 'debug', type: 'string' },
                 'consola.level': { value: 4, type: 'integer' },
-                'consola.context.0': { value: '[1,2,3,4,5]', type: 'string' },
+                'consola.args.0': { value: '[1,2,3,4,5]', type: 'string' },
               },
             },
             {
@@ -611,6 +611,117 @@ describe('consola integration', () => {
                 // Nested objects are extracted and normalized respecting normalizeDepth setting
                 level1: { value: '{"level2":{"level3":{"level4":"[Object]"}}}', type: 'string' },
                 simpleKey: { value: 'simple value', type: 'string' },
+              },
+            },
+          ],
+        },
+      })
+      .start();
+
+    await runner.completed();
+  });
+
+  test('should preserve special objects (Date, Error, RegExp, Map, Set) as context attributes', async () => {
+    const runner = createRunner(__dirname, 'subject-special-objects.ts')
+      .expect({
+        log: {
+          items: [
+            {
+              timestamp: expect.any(Number),
+              level: 'info',
+              body: 'Current time:',
+              severity_number: expect.any(Number),
+              trace_id: expect.any(String),
+              attributes: {
+                'sentry.origin': { value: 'auto.log.consola', type: 'string' },
+                'sentry.release': { value: '1.0.0', type: 'string' },
+                'sentry.environment': { value: 'test', type: 'string' },
+                'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
+                'sentry.sdk.version': { value: expect.any(String), type: 'string' },
+                'server.address': { value: expect.any(String), type: 'string' },
+                'consola.type': { value: 'info', type: 'string' },
+                'consola.level': { value: 3, type: 'integer' },
+                // Date objects serialize with extra quotes
+                'consola.args.0': { value: '"2023-01-01T00:00:00.000Z"', type: 'string' },
+              },
+            },
+            {
+              timestamp: expect.any(Number),
+              level: 'error',
+              body: 'Error occurred:',
+              severity_number: expect.any(Number),
+              trace_id: expect.any(String),
+              attributes: {
+                'sentry.origin': { value: 'auto.log.consola', type: 'string' },
+                'sentry.release': { value: '1.0.0', type: 'string' },
+                'sentry.environment': { value: 'test', type: 'string' },
+                'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
+                'sentry.sdk.version': { value: expect.any(String), type: 'string' },
+                'server.address': { value: expect.any(String), type: 'string' },
+                'consola.type': { value: 'error', type: 'string' },
+                'consola.level': { value: 0, type: 'integer' },
+                // Error objects serialize as empty object (properties are non-enumerable)
+                'consola.args.0': { value: '{}', type: 'string' },
+              },
+            },
+            {
+              timestamp: expect.any(Number),
+              level: 'info',
+              body: 'Pattern:',
+              severity_number: expect.any(Number),
+              trace_id: expect.any(String),
+              attributes: {
+                'sentry.origin': { value: 'auto.log.consola', type: 'string' },
+                'sentry.release': { value: '1.0.0', type: 'string' },
+                'sentry.environment': { value: 'test', type: 'string' },
+                'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
+                'sentry.sdk.version': { value: expect.any(String), type: 'string' },
+                'server.address': { value: expect.any(String), type: 'string' },
+                'consola.type': { value: 'info', type: 'string' },
+                'consola.level': { value: 3, type: 'integer' },
+                // RegExp objects serialize as empty object
+                'consola.args.0': { value: '{}', type: 'string' },
+              },
+            },
+            {
+              timestamp: expect.any(Number),
+              level: 'info',
+              body: 'Collections:',
+              severity_number: expect.any(Number),
+              trace_id: expect.any(String),
+              attributes: {
+                'sentry.origin': { value: 'auto.log.consola', type: 'string' },
+                'sentry.release': { value: '1.0.0', type: 'string' },
+                'sentry.environment': { value: 'test', type: 'string' },
+                'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
+                'sentry.sdk.version': { value: expect.any(String), type: 'string' },
+                'server.address': { value: expect.any(String), type: 'string' },
+                'consola.type': { value: 'info', type: 'string' },
+                'consola.level': { value: 3, type: 'integer' },
+                // Map converted to object, Set converted to array
+                'consola.args.0': { value: '{"key":"value"}', type: 'string' },
+                'consola.args.1': { value: '[1,2,3]', type: 'string' },
+              },
+            },
+            {
+              timestamp: expect.any(Number),
+              level: 'info',
+              body: 'Mixed data',
+              severity_number: expect.any(Number),
+              trace_id: expect.any(String),
+              attributes: {
+                'sentry.origin': { value: 'auto.log.consola', type: 'string' },
+                'sentry.release': { value: '1.0.0', type: 'string' },
+                'sentry.environment': { value: 'test', type: 'string' },
+                'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
+                'sentry.sdk.version': { value: expect.any(String), type: 'string' },
+                'server.address': { value: expect.any(String), type: 'string' },
+                'consola.type': { value: 'info', type: 'string' },
+                'consola.level': { value: 3, type: 'integer' },
+                // Plain object properties are extracted
+                userId: { value: 123, type: 'integer' },
+                // Date is preserved in context
+                'consola.args.0': { value: '"2023-06-15T12:00:00.000Z"', type: 'string' },
               },
             },
           ],
