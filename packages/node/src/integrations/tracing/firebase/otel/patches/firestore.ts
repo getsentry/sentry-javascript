@@ -38,7 +38,9 @@ import type {
 
 // Inline minimal types used from `shimmer` to avoid importing shimmer's types directly.
 // We only need the shape for `wrap` and `unwrap` used in this file.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type ShimmerWrap = (target: any, name: string, wrapper: (...args: any[]) => any) => void;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type ShimmerUnwrap = (target: any, name: string) => void;
 
 /**
