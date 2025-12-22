@@ -11,7 +11,7 @@ import type { Span } from '../../types-hoist/span';
 import { MCP_PROTOCOL_VERSION_ATTRIBUTE } from './attributes';
 import { extractPromptResultAttributes, extractToolResultAttributes } from './resultExtraction';
 import { buildServerAttributesFromInfo, extractSessionDataFromInitializeResponse } from './sessionExtraction';
-import type { MCPTransport, RequestId, RequestSpanMapValue } from './types';
+import type { MCPTransport, RequestId, RequestSpanMapValue, ResolvedMcpOptions } from './types';
 
 /**
  * Transport-scoped correlation system that prevents collisions between different MCP sessions
@@ -55,13 +55,13 @@ export function storeSpanForRequest(transport: MCPTransport, requestId: RequestI
  * @param transport - MCP transport instance
  * @param requestId - Request identifier
  * @param result - Execution result for attribute extraction
- * @param recordOutputs - Whether to capture output results in spans
+ * @param options - Resolved MCP options
  */
 export function completeSpanWithResults(
   transport: MCPTransport,
   requestId: RequestId,
   result: unknown,
-  recordOutputs: boolean,
+  options: ResolvedMcpOptions,
 ): void {
   const spanMap = getOrCreateSpanMap(transport);
   const spanData = spanMap.get(requestId);
@@ -80,10 +80,10 @@ export function completeSpanWithResults(
       }
 
       span.setAttributes(initAttributes);
-    } else if (method === 'tools/call' && recordOutputs) {
+    } else if (method === 'tools/call' && options.recordOutputs) {
       const toolAttributes = extractToolResultAttributes(result);
       span.setAttributes(toolAttributes);
-    } else if (method === 'prompts/get' && recordOutputs) {
+    } else if (method === 'prompts/get' && options.recordOutputs) {
       const promptAttributes = extractPromptResultAttributes(result);
       span.setAttributes(promptAttributes);
     }

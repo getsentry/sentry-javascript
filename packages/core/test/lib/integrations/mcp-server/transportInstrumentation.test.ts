@@ -308,7 +308,7 @@ describe('MCP Server Transport Instrumentation', () => {
     it('should test wrapTransportOnMessage directly', () => {
       const originalOnMessage = mockTransport.onmessage;
 
-      wrapTransportOnMessage(mockTransport, false);
+      wrapTransportOnMessage(mockTransport, { recordInputs: false, recordOutputs: false });
 
       expect(mockTransport.onmessage).not.toBe(originalOnMessage);
     });
@@ -316,7 +316,7 @@ describe('MCP Server Transport Instrumentation', () => {
     it('should test wrapTransportSend directly', () => {
       const originalSend = mockTransport.send;
 
-      wrapTransportSend(mockTransport, false);
+      wrapTransportSend(mockTransport, { recordInputs: false, recordOutputs: false });
 
       expect(mockTransport.send).not.toBe(originalSend);
     });
@@ -354,7 +354,7 @@ describe('MCP Server Transport Instrumentation', () => {
             remotePort: 8080,
           },
         },
-        true, // recordInputs
+        { recordInputs: true, recordOutputs: true },
       );
 
       expect(config).toEqual({
