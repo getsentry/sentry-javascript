@@ -11,6 +11,7 @@ import {
   GEN_AI_REQUEST_ENCODING_FORMAT_ATTRIBUTE,
   GEN_AI_REQUEST_FREQUENCY_PENALTY_ATTRIBUTE,
   GEN_AI_REQUEST_MESSAGES_ATTRIBUTE,
+  GEN_AI_REQUEST_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
   GEN_AI_REQUEST_MODEL_ATTRIBUTE,
   GEN_AI_REQUEST_PRESENCE_PENALTY_ATTRIBUTE,
   GEN_AI_REQUEST_STREAM_ATTRIBUTE,
@@ -116,13 +117,15 @@ function addResponseAttributes(span: Span, result: unknown, recordOutputs?: bool
 
 // Extract and record AI request inputs, if present. This is intentionally separate from response attributes.
 function addRequestAttributes(span: Span, params: Record<string, unknown>): void {
-  if ('messages' in params) {
-    const truncatedMessages = getTruncatedJsonString(params.messages);
-    span.setAttributes({ [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: truncatedMessages });
-  }
-  if ('input' in params) {
-    const truncatedInput = getTruncatedJsonString(params.input);
-    span.setAttributes({ [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: truncatedInput });
+  const src = 'input' in params ? params.input : 'messages' in params ? params.messages : undefined;
+  // typically an array, but can be other types. skip if an empty array.
+  const length = Array.isArray(src) ? src.length : undefined;
+  if (src && length !== 0) {
+    const truncatedInput = getTruncatedJsonString(src);
+    span.setAttribute(GEN_AI_REQUEST_MESSAGES_ATTRIBUTE, truncatedInput);
+    if (length) {
+      span.setAttribute(GEN_AI_REQUEST_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE, length);
+    }
   }
 }
 

@@ -11,6 +11,7 @@ import {
   GEN_AI_REQUEST_FREQUENCY_PENALTY_ATTRIBUTE,
   GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE,
   GEN_AI_REQUEST_MESSAGES_ATTRIBUTE,
+  GEN_AI_REQUEST_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
   GEN_AI_REQUEST_MODEL_ATTRIBUTE,
   GEN_AI_REQUEST_PRESENCE_PENALTY_ATTRIBUTE,
   GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE,
@@ -165,8 +166,9 @@ function addPrivateRequestAttributes(span: Span, params: Record<string, unknown>
     messages.push(...contentUnionToMessages(params.message as PartListUnion, 'user'));
   }
 
-  if (messages.length) {
+  if (Array.isArray(messages) && messages.length) {
     span.setAttributes({
+      [GEN_AI_REQUEST_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: messages.length,
       [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: JSON.stringify(truncateGenAiMessages(messages)),
     });
   }
