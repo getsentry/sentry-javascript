@@ -4,6 +4,7 @@ import { _INTERNAL_captureLog } from '../logs/internal';
 import { formatConsoleArgs } from '../logs/utils';
 import type { LogSeverityLevel } from '../types-hoist/log';
 import { isPrimitive } from '../utils/is';
+import { normalize } from '../utils/normalize';
 
 /**
  * Options for the Sentry Consola reporter.
@@ -239,7 +240,12 @@ export function createConsolaReporter(options: ConsolaReporterOptions = {}): Con
                 for (const key in arg) {
                   // Only add if not conflicting with existing or consola-prefixed attributes
                   if (!(key in attributes) && !(`consola.${key}` in attributes)) {
-                    attributes[key] = (arg as Record<string, unknown>)[key];
+                    // Normalize the value to respect normalizeDepth
+                    attributes[key] = normalize(
+                      (arg as Record<string, unknown>)[key],
+                      normalizeDepth,
+                      normalizeMaxBreadth,
+                    );
                   }
                 }
               } catch {
