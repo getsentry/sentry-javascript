@@ -699,4 +699,40 @@ describe('Vercel AI integration', () => {
       expect(errorEvent!.contexts!.trace!.span_id).toBe(transactionEvent!.contexts!.trace!.span_id);
     });
   });
+
+  createEsmAndCjsTests(__dirname, 'scenario-late-model-id.mjs', 'instrument.mjs', (createRunner, test) => {
+    test('sets op correctly even when model ID is not available at span start', async () => {
+      const expectedTransaction = {
+        transaction: 'main',
+        spans: expect.arrayContaining([
+          // The generateText span should have the correct op even though model ID was not available at span start
+          expect.objectContaining({
+            description: 'generateText',
+            op: 'gen_ai.invoke_agent',
+            origin: 'auto.vercelai.otel',
+            status: 'ok',
+            data: expect.objectContaining({
+              'sentry.op': 'gen_ai.invoke_agent',
+              'sentry.origin': 'auto.vercelai.otel',
+              'gen_ai.operation.name': 'ai.generateText',
+            }),
+          }),
+          // The doGenerate span - name stays as 'generateText.doGenerate' since model ID is missing
+          expect.objectContaining({
+            description: 'generateText.doGenerate',
+            op: 'gen_ai.generate_text',
+            origin: 'auto.vercelai.otel',
+            status: 'ok',
+            data: expect.objectContaining({
+              'sentry.op': 'gen_ai.generate_text',
+              'sentry.origin': 'auto.vercelai.otel',
+              'gen_ai.operation.name': 'ai.generateText.doGenerate',
+            }),
+          }),
+        ]),
+      };
+
+      await createRunner().expect({ transaction: expectedTransaction }).start().completed();
+    });
+  });
 });
