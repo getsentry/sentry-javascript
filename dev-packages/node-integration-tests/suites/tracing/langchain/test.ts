@@ -68,6 +68,14 @@ describe('LangChain integration', () => {
         origin: 'auto.ai.langchain',
         status: 'internal_error',
       }),
+      // Fourth span - chain invocation
+      expect.objectContaining({
+        data: expect.objectContaining({
+          'sentry.origin': 'auto.ai.langchain',
+          'sentry.op': 'gen_ai.invoke_agent',
+          'langchain.chain.name': 'my_test_chain',
+        }),
+      }),
     ]),
   };
 
@@ -137,6 +145,14 @@ describe('LangChain integration', () => {
         op: 'gen_ai.chat',
         origin: 'auto.ai.langchain',
         status: 'internal_error',
+      }),
+      // Fourth span - chain invocation
+      expect.objectContaining({
+        data: expect.objectContaining({
+          'sentry.origin': 'auto.ai.langchain',
+          'sentry.op': 'gen_ai.invoke_agent',
+          'langchain.chain.name': 'my_test_chain',
+        }),
       }),
     ]),
   };

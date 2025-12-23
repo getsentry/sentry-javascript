@@ -1,3 +1,5 @@
+import { PromptTemplate } from "@langchain/core/prompts";
+import { LLMChain } from "langchain/chains";
 import { ChatAnthropic } from '@langchain/anthropic';
 import * as Sentry from '@sentry/node';
 import express from 'express';
@@ -56,12 +58,18 @@ async function run() {
   const baseUrl = `http://localhost:${server.address().port}`;
 
   await Sentry.startSpan({ op: 'function', name: 'main' }, async () => {
+    const callbackHandler = Sentry.createLangChainCallbackHandler({
+      recordInputs: false,
+      recordOutputs: false,
+    });
+
     // Test 1: Basic chat model invocation
     const model1 = new ChatAnthropic({
       model: 'claude-3-5-sonnet-20241022',
       temperature: 0.7,
       maxTokens: 100,
       apiKey: 'mock-api-key',
+      callbacks: [callbackHandler],
       clientOptions: {
         baseURL: baseUrl,
       },
@@ -100,6 +108,21 @@ async function run() {
     } catch {
       // Expected error
     }
+
+    // Test 4: Chain invocation
+    const prompt = new PromptTemplate({
+      input_variables: ["country"],
+      template: "What is the capital of {country}?",
+    });
+    const chain = new LLMChain({
+      llm: model1,
+      prompt: prompt,
+      callbacks: [callbackHandler],
+    });
+    await chain.invoke(
+      {'country': 'France'},
+      { callbacks: [callbackHandler] }
+    );
   });
 
   await Sentry.flush(2000);

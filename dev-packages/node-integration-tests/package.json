@@ -32,6 +32,7 @@
     "@langchain/anthropic": "^0.3.10",
     "@langchain/core": "^0.3.28",
     "@langchain/langgraph": "^0.2.32",
+    "langchain": "^0.3.8",
     "@nestjs/common": "^11",
     "@nestjs/core": "^11",
     "@nestjs/platform-express": "^11",
