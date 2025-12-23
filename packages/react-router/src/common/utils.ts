@@ -50,15 +50,15 @@ export function captureInstrumentationError(
   result: InstrumentationResult,
   captureErrors: boolean,
   mechanismType: string,
-  data: Record<string, unknown>,
+  data: Record<string, string | boolean>,
 ): void {
   if (result.status === 'error' && captureErrors && isError(result.error)) {
     captureException(result.error, {
       mechanism: {
         type: mechanismType,
         handled: false,
+        data,
       },
-      data,
     });
   }
 }

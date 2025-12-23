@@ -94,8 +94,7 @@ describe('captureInstrumentationError', () => {
     captureInstrumentationError(result, true, 'react_router.loader', data);
 
     expect(core.captureException).toHaveBeenCalledWith(error, {
-      mechanism: { type: 'react_router.loader', handled: false },
-      data,
+      mechanism: { type: 'react_router.loader', handled: false, data },
     });
   });
 

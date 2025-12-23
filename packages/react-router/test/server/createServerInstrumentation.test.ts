@@ -132,10 +132,10 @@ describe('createSentryServerInstrumentation', () => {
     await hooks.request(mockHandleRequest, { request: mockRequest, context: undefined });
 
     expect(core.captureException).toHaveBeenCalledWith(mockError, {
-      mechanism: { type: 'react_router.request_handler', handled: false },
-      data: {
-        'http.method': 'GET',
-        'http.url': '/api/users',
+      mechanism: {
+        type: 'react_router.request_handler',
+        handled: false,
+        data: { 'http.method': 'GET', 'http.url': '/api/users' },
       },
     });
   });
@@ -367,10 +367,10 @@ describe('createSentryServerInstrumentation', () => {
     });
 
     expect(core.captureException).toHaveBeenCalledWith(mockError, {
-      mechanism: { type: 'react_router.loader', handled: false },
-      data: {
-        'http.method': 'GET',
-        'http.url': '/test',
+      mechanism: {
+        type: 'react_router.loader',
+        handled: false,
+        data: { 'http.method': 'GET', 'http.url': '/test' },
       },
     });
   });

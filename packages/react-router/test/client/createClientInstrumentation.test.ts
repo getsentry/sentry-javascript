@@ -214,10 +214,7 @@ describe('createSentryClientInstrumentation', () => {
     });
 
     expect(core.captureException).toHaveBeenCalledWith(mockError, {
-      mechanism: { type: 'react_router.client_loader', handled: false },
-      data: {
-        'http.url': '/test-path',
-      },
+      mechanism: { type: 'react_router.client_loader', handled: false, data: { 'http.url': '/test-path' } },
     });
   });
 
@@ -268,10 +265,7 @@ describe('createSentryClientInstrumentation', () => {
     });
 
     expect(core.captureException).toHaveBeenCalledWith(mockError, {
-      mechanism: { type: 'react_router.navigate', handled: false },
-      data: {
-        'http.url': '/about',
-      },
+      mechanism: { type: 'react_router.navigate', handled: false, data: { 'http.url': '/about' } },
     });
   });
 
