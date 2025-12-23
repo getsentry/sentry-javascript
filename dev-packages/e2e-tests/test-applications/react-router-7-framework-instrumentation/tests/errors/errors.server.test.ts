@@ -60,15 +60,15 @@ test.describe('server - instrumentation API error capture', () => {
 
     // Find the loader span
     const loaderSpan = transaction?.spans?.find(
-      (span: { data?: { 'sentry.op'?: string } }) => span.data?.['sentry.op'] === 'function.react-router.loader',
+      (span: { data?: { 'sentry.op'?: string } }) => span.data?.['sentry.op'] === 'function.react_router.loader',
     );
 
     expect(loaderSpan).toMatchObject({
       data: {
         'sentry.origin': 'auto.function.react_router.instrumentation_api',
-        'sentry.op': 'function.react-router.loader',
+        'sentry.op': 'function.react_router.loader',
       },
-      op: 'function.react-router.loader',
+      op: 'function.react_router.loader',
     });
   });
 

@@ -103,21 +103,21 @@ test.describe('server - instrumentation API performance', () => {
     const transaction = await txPromise;
 
     // Find the loader span
-    const loaderSpan = transaction?.spans?.find(span => span.data?.['sentry.op'] === 'function.react-router.loader');
+    const loaderSpan = transaction?.spans?.find(span => span.data?.['sentry.op'] === 'function.react_router.loader');
 
     expect(loaderSpan).toMatchObject({
       span_id: expect.any(String),
       trace_id: expect.any(String),
       data: {
         'sentry.origin': 'auto.function.react_router.instrumentation_api',
-        'sentry.op': 'function.react-router.loader',
+        'sentry.op': 'function.react_router.loader',
       },
       description: '/performance/server-loader',
       parent_span_id: expect.any(String),
       start_timestamp: expect.any(Number),
       timestamp: expect.any(Number),
       status: 'ok',
-      op: 'function.react-router.loader',
+      op: 'function.react_router.loader',
       origin: 'auto.function.react_router.instrumentation_api',
     });
   });
@@ -133,21 +133,21 @@ test.describe('server - instrumentation API performance', () => {
     const transaction = await txPromise;
 
     // Find the action span
-    const actionSpan = transaction?.spans?.find(span => span.data?.['sentry.op'] === 'function.react-router.action');
+    const actionSpan = transaction?.spans?.find(span => span.data?.['sentry.op'] === 'function.react_router.action');
 
     expect(actionSpan).toMatchObject({
       span_id: expect.any(String),
       trace_id: expect.any(String),
       data: {
         'sentry.origin': 'auto.function.react_router.instrumentation_api',
-        'sentry.op': 'function.react-router.action',
+        'sentry.op': 'function.react_router.action',
       },
       description: '/performance/server-action',
       parent_span_id: expect.any(String),
       start_timestamp: expect.any(Number),
       timestamp: expect.any(Number),
       status: 'ok',
-      op: 'function.react-router.action',
+      op: 'function.react_router.action',
       origin: 'auto.function.react_router.instrumentation_api',
     });
   });

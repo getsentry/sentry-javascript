@@ -40,7 +40,7 @@ test.describe('server - instrumentation API middleware', () => {
 
     // Find the middleware span
     const middlewareSpan = transaction?.spans?.find(
-      (span: { data?: { 'sentry.op'?: string } }) => span.data?.['sentry.op'] === 'function.react-router.middleware',
+      (span: { data?: { 'sentry.op'?: string } }) => span.data?.['sentry.op'] === 'function.react_router.middleware',
     );
 
     expect(middlewareSpan).toMatchObject({
@@ -48,13 +48,13 @@ test.describe('server - instrumentation API middleware', () => {
       trace_id: expect.any(String),
       data: {
         'sentry.origin': 'auto.function.react_router.instrumentation_api',
-        'sentry.op': 'function.react-router.middleware',
+        'sentry.op': 'function.react_router.middleware',
       },
       description: '/performance/with-middleware',
       parent_span_id: expect.any(String),
       start_timestamp: expect.any(Number),
       timestamp: expect.any(Number),
-      op: 'function.react-router.middleware',
+      op: 'function.react_router.middleware',
       origin: 'auto.function.react_router.instrumentation_api',
     });
   });
@@ -69,11 +69,11 @@ test.describe('server - instrumentation API middleware', () => {
     const transaction = await txPromise;
 
     const middlewareSpan = transaction?.spans?.find(
-      (span: { data?: { 'sentry.op'?: string } }) => span.data?.['sentry.op'] === 'function.react-router.middleware',
+      (span: { data?: { 'sentry.op'?: string } }) => span.data?.['sentry.op'] === 'function.react_router.middleware',
     );
 
     const loaderSpan = transaction?.spans?.find(
-      (span: { data?: { 'sentry.op'?: string } }) => span.data?.['sentry.op'] === 'function.react-router.loader',
+      (span: { data?: { 'sentry.op'?: string } }) => span.data?.['sentry.op'] === 'function.react_router.loader',
     );
 
     expect(middlewareSpan).toBeDefined();

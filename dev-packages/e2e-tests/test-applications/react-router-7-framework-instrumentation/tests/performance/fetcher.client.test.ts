@@ -22,7 +22,7 @@ test.describe('client - instrumentation API fetcher (upstream limitation)', () =
     // Wait for the fetcher action transaction
     const fetcherTxPromise = waitForTransaction(APP_NAME, async transactionEvent => {
       return (
-        transactionEvent.contexts?.trace?.op === 'function.react-router.fetcher' &&
+        transactionEvent.contexts?.trace?.op === 'function.react_router.fetcher' &&
         transactionEvent.contexts?.trace?.data?.['sentry.origin'] === 'auto.function.react_router.instrumentation_api'
       );
     });
@@ -34,7 +34,7 @@ test.describe('client - instrumentation API fetcher (upstream limitation)', () =
     expect(fetcherTx).toMatchObject({
       contexts: {
         trace: {
-          op: 'function.react-router.fetcher',
+          op: 'function.react_router.fetcher',
           origin: 'auto.function.react_router.instrumentation_api',
         },
       },

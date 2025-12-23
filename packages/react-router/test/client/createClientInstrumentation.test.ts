@@ -104,7 +104,7 @@ describe('createSentryClientInstrumentation', () => {
       expect.objectContaining({
         name: 'Fetcher fetcher-1',
         attributes: expect.objectContaining({
-          'sentry.op': 'function.react-router.fetcher',
+          'sentry.op': 'function.react_router.fetcher',
           'sentry.origin': 'auto.function.react_router.instrumentation_api',
         }),
       }),
@@ -143,7 +143,7 @@ describe('createSentryClientInstrumentation', () => {
       expect.objectContaining({
         name: '/users/:id',
         attributes: expect.objectContaining({
-          'sentry.op': 'function.react-router.client-loader',
+          'sentry.op': 'function.react_router.client_loader',
           'sentry.origin': 'auto.function.react_router.instrumentation_api',
         }),
       }),
@@ -180,7 +180,7 @@ describe('createSentryClientInstrumentation', () => {
       expect.objectContaining({
         name: '/users/:id',
         attributes: expect.objectContaining({
-          'sentry.op': 'function.react-router.client-action',
+          'sentry.op': 'function.react_router.client_action',
           'sentry.origin': 'auto.function.react_router.instrumentation_api',
         }),
       }),
@@ -334,7 +334,7 @@ describe('createSentryClientInstrumentation', () => {
       expect.objectContaining({
         name: '/users/:id',
         attributes: expect.objectContaining({
-          'sentry.op': 'function.react-router.client-middleware',
+          'sentry.op': 'function.react_router.client_middleware',
           'sentry.origin': 'auto.function.react_router.instrumentation_api',
         }),
       }),
@@ -364,7 +364,7 @@ describe('createSentryClientInstrumentation', () => {
       expect.objectContaining({
         name: 'Lazy Route Load',
         attributes: expect.objectContaining({
-          'sentry.op': 'function.react-router.client-lazy',
+          'sentry.op': 'function.react_router.client_lazy',
           'sentry.origin': 'auto.function.react_router.instrumentation_api',
         }),
       }),

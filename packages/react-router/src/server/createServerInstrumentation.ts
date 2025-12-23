@@ -112,7 +112,7 @@ export function createSentryServerInstrumentation(
             {
               name: routePattern,
               attributes: {
-                [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.react-router.loader',
+                [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.react_router.loader',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.react_router.instrumentation_api',
               },
             },
@@ -136,7 +136,7 @@ export function createSentryServerInstrumentation(
             {
               name: routePattern,
               attributes: {
-                [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.react-router.action',
+                [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.react_router.action',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.react_router.instrumentation_api',
               },
             },
@@ -162,7 +162,7 @@ export function createSentryServerInstrumentation(
             {
               name: routePattern,
               attributes: {
-                [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.react-router.middleware',
+                [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.react_router.middleware',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.react_router.instrumentation_api',
               },
             },
@@ -181,7 +181,7 @@ export function createSentryServerInstrumentation(
             {
               name: 'Lazy Route Load',
               attributes: {
-                [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.react-router.lazy',
+                [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.react_router.lazy',
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.react_router.instrumentation_api',
               },
             },

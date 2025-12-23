@@ -209,7 +209,7 @@ describe('createSentryServerInstrumentation', () => {
       expect.objectContaining({
         name: '/users/:id',
         attributes: expect.objectContaining({
-          'sentry.op': 'function.react-router.loader',
+          'sentry.op': 'function.react_router.loader',
           'sentry.origin': 'auto.function.react_router.instrumentation_api',
         }),
       }),
@@ -249,7 +249,7 @@ describe('createSentryServerInstrumentation', () => {
       expect.objectContaining({
         name: '/users/:id',
         attributes: expect.objectContaining({
-          'sentry.op': 'function.react-router.action',
+          'sentry.op': 'function.react_router.action',
           'sentry.origin': 'auto.function.react_router.instrumentation_api',
         }),
       }),
@@ -289,7 +289,7 @@ describe('createSentryServerInstrumentation', () => {
       expect.objectContaining({
         name: '/users/:id',
         attributes: expect.objectContaining({
-          'sentry.op': 'function.react-router.middleware',
+          'sentry.op': 'function.react_router.middleware',
           'sentry.origin': 'auto.function.react_router.instrumentation_api',
         }),
       }),
@@ -330,7 +330,7 @@ describe('createSentryServerInstrumentation', () => {
       expect.objectContaining({
         name: 'Lazy Route Load',
         attributes: expect.objectContaining({
-          'sentry.op': 'function.react-router.lazy',
+          'sentry.op': 'function.react_router.lazy',
           'sentry.origin': 'auto.function.react_router.instrumentation_api',
         }),
       }),
