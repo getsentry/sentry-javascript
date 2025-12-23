@@ -449,6 +449,7 @@ export type {
   MetricType,
   SerializedMetric,
   SerializedMetricContainer,
+  // eslint-disable-next-line deprecation/deprecation
   SerializedMetricAttributeValue,
 } from './types-hoist/metric';
 export type { TimedEvent } from './types-hoist/timedEvent';
