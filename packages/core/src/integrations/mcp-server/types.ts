@@ -127,6 +127,7 @@ export interface McpSpanConfig {
   transport: MCPTransport;
   extra?: ExtraHandlerData;
   callback: () => unknown;
+  options?: ResolvedMcpOptions;
 }
 
 export type SessionId = string;
@@ -183,3 +184,19 @@ export type SessionData = {
   protocolVersion?: string;
   serverInfo?: PartyInfo;
 };
+
+/**
+ * Options for configuring the MCP server wrapper.
+ */
+export type McpServerWrapperOptions = {
+  /** Whether to capture tool/prompt input arguments in spans. Defaults to sendDefaultPii. */
+  recordInputs?: boolean;
+  /** Whether to capture tool/prompt output results in spans. Defaults to sendDefaultPii. */
+  recordOutputs?: boolean;
+};
+
+/**
+ * Resolved options with defaults applied. Used internally.
+ * @internal
+ */
+export type ResolvedMcpOptions = Required<McpServerWrapperOptions>;
