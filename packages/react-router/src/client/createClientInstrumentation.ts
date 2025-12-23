@@ -48,8 +48,6 @@ export function createSentryClientInstrumentation(
     router(router: InstrumentableRouter) {
       router.instrument({
         async navigate(callNavigate, info) {
-          (GLOBAL_OBJ as GlobalObjWithFlags)[SENTRY_NAVIGATE_HOOK_INVOKED_FLAG] = true;
-
           // Skip numeric navigations (history back/forward like navigate(-1))
           // since we can't resolve them to meaningful route names
           if (typeof info.to === 'number') {
@@ -64,6 +62,7 @@ export function createSentryClientInstrumentation(
           const toPath = String(info.to);
 
           if (client) {
+            (GLOBAL_OBJ as GlobalObjWithFlags)[SENTRY_NAVIGATE_HOOK_INVOKED_FLAG] = true;
             startBrowserTracingNavigationSpan(client, {
               name: toPath,
               attributes: {
