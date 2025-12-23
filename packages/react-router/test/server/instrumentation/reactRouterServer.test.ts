@@ -18,6 +18,7 @@ vi.mock('@sentry/core', async () => {
     SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN: 'sentry.origin',
     SEMANTIC_ATTRIBUTE_SENTRY_SOURCE: 'sentry.source',
     startSpan: vi.fn((opts, fn) => fn({})),
+    GLOBAL_OBJ: {},
   };
 });
 
