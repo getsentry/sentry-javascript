@@ -69,6 +69,53 @@ test.describe('client - navigation fallback to legacy instrumentation', () => {
       transaction_info: { source: 'route' },
     });
   });
+
+  test('should send multiple navigation transactions in sequence', async ({ page }) => {
+    await page.goto(`/performance`);
+    await page.waitForTimeout(1000);
+
+    // First navigation: /performance -> /performance/ssr
+    const firstNavPromise = waitForTransaction(APP_NAME, async transactionEvent => {
+      return (
+        transactionEvent.transaction === '/performance/ssr' && transactionEvent.contexts?.trace?.op === 'navigation'
+      );
+    });
+
+    await page.getByRole('link', { name: 'SSR Page' }).click();
+
+    const firstNav = await firstNavPromise;
+
+    expect(firstNav).toMatchObject({
+      contexts: {
+        trace: {
+          op: 'navigation',
+          origin: 'auto.navigation.react_router',
+        },
+      },
+      transaction: '/performance/ssr',
+      type: 'transaction',
+    });
+
+    // Second navigation: /performance/ssr -> /performance
+    const secondNavPromise = waitForTransaction(APP_NAME, async transactionEvent => {
+      return transactionEvent.transaction === '/performance' && transactionEvent.contexts?.trace?.op === 'navigation';
+    });
+
+    await page.getByRole('link', { name: 'Back to Performance' }).click();
+
+    const secondNav = await secondNavPromise;
+
+    expect(secondNav).toMatchObject({
+      contexts: {
+        trace: {
+          op: 'navigation',
+          origin: 'auto.navigation.react_router',
+        },
+      },
+      transaction: '/performance',
+      type: 'transaction',
+    });
+  });
 });
 
 // Tests for instrumentation API navigation - expected to fail until React Router fixes upstream

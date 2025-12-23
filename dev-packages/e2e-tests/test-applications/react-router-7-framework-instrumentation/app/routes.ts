@@ -11,6 +11,9 @@ export default [
     route('server-action', 'routes/performance/server-action.tsx'),
     route('with-middleware', 'routes/performance/with-middleware.tsx'),
     route('error-loader', 'routes/performance/error-loader.tsx'),
+    route('error-action', 'routes/performance/error-action.tsx'),
+    route('error-middleware', 'routes/performance/error-middleware.tsx'),
     route('lazy-route', 'routes/performance/lazy-route.tsx'),
+    route('fetcher-test', 'routes/performance/fetcher-test.tsx'),
   ]),
 ] satisfies RouteConfig;

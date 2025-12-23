@@ -13,6 +13,7 @@ import type { ClientInstrumentation, InstrumentableRoute, InstrumentableRouter }
 import { captureInstrumentationError, getPathFromRequest, getPattern, normalizeRoutePath } from '../common/utils';
 
 const SENTRY_CLIENT_INSTRUMENTATION_FLAG = '__sentryReactRouterClientInstrumentationUsed';
+// Intentionally never reset - once set, instrumentation API handles all navigations for the session.
 const SENTRY_NAVIGATE_HOOK_INVOKED_FLAG = '__sentryReactRouterNavigateHookInvoked';
 
 type GlobalObjWithFlags = typeof GLOBAL_OBJ & {

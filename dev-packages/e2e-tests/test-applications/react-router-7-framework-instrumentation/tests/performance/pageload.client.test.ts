@@ -24,4 +24,28 @@ test.describe('client - instrumentation API pageload', () => {
       type: 'transaction',
     });
   });
+
+  test('should link server and client transactions with same trace_id', async ({ page }) => {
+    const serverTxPromise = waitForTransaction(APP_NAME, async transactionEvent => {
+      return (
+        transactionEvent.transaction === 'GET /performance' && transactionEvent.contexts?.trace?.op === 'http.server'
+      );
+    });
+
+    const clientTxPromise = waitForTransaction(APP_NAME, async transactionEvent => {
+      return transactionEvent.transaction === '/performance' && transactionEvent.contexts?.trace?.op === 'pageload';
+    });
+
+    await page.goto(`/performance`);
+
+    const [serverTx, clientTx] = await Promise.all([serverTxPromise, clientTxPromise]);
+
+    // Both transactions should share the same trace_id
+    expect(serverTx.contexts?.trace?.trace_id).toBeDefined();
+    expect(clientTx.contexts?.trace?.trace_id).toBeDefined();
+    expect(serverTx.contexts?.trace?.trace_id).toBe(clientTx.contexts?.trace?.trace_id);
+
+    // But have different span_ids
+    expect(serverTx.contexts?.trace?.span_id).not.toBe(clientTx.contexts?.trace?.span_id);
+  });
 });

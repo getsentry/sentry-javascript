@@ -90,4 +90,87 @@ test.describe('server - instrumentation API error capture', () => {
     // Error and transaction should have the same trace_id
     expect(error.contexts?.trace?.trace_id).toBe(transaction.contexts?.trace?.trace_id);
   });
+
+  test('should capture action errors with instrumentation API mechanism', async ({ page }) => {
+    const errorPromise = waitForError(APP_NAME, async errorEvent => {
+      return errorEvent.exception?.values?.[0]?.value === 'Action error for testing';
+    });
+
+    const txPromise = waitForTransaction(APP_NAME, async transactionEvent => {
+      return transactionEvent.transaction === 'POST /performance/error-action';
+    });
+
+    await page.goto(`/performance/error-action`);
+    await page.getByRole('button', { name: 'Trigger Error' }).click();
+
+    const [error, transaction] = await Promise.all([errorPromise, txPromise]);
+
+    expect(error).toMatchObject({
+      exception: {
+        values: [
+          {
+            type: 'Error',
+            value: 'Action error for testing',
+            mechanism: {
+              type: 'react_router.action',
+              handled: false,
+            },
+          },
+        ],
+      },
+      transaction: 'POST /performance/error-action',
+    });
+
+    expect(transaction).toMatchObject({
+      transaction: 'POST /performance/error-action',
+      contexts: {
+        trace: {
+          op: 'http.server',
+          origin: 'auto.http.react_router.instrumentation_api',
+        },
+      },
+    });
+  });
+
+  test('should capture middleware errors with instrumentation API mechanism', async ({ page }) => {
+    const errorPromise = waitForError(APP_NAME, async errorEvent => {
+      return errorEvent.exception?.values?.[0]?.value === 'Middleware error for testing';
+    });
+
+    const txPromise = waitForTransaction(APP_NAME, async transactionEvent => {
+      return transactionEvent.transaction === 'GET /performance/error-middleware';
+    });
+
+    await page.goto(`/performance/error-middleware`).catch(() => {
+      // Expected to fail due to middleware error
+    });
+
+    const [error, transaction] = await Promise.all([errorPromise, txPromise]);
+
+    expect(error).toMatchObject({
+      exception: {
+        values: [
+          {
+            type: 'Error',
+            value: 'Middleware error for testing',
+            mechanism: {
+              type: 'react_router.middleware',
+              handled: false,
+            },
+          },
+        ],
+      },
+      transaction: 'GET /performance/error-middleware',
+    });
+
+    expect(transaction).toMatchObject({
+      transaction: 'GET /performance/error-middleware',
+      contexts: {
+        trace: {
+          op: 'http.server',
+          origin: 'auto.http.react_router.instrumentation_api',
+        },
+      },
+    });
+  });
 });
