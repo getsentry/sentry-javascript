@@ -11,3 +11,32 @@ export { wrapServerAction } from './wrapServerAction';
 export { wrapServerLoader } from './wrapServerLoader';
 export { createSentryHandleError, type SentryHandleErrorOptions } from './createSentryHandleError';
 export { getMetaTagTransformer } from './getMetaTagTransformer';
+
+// React Server Components (RSC) instrumentation - React Router v7.9.0+
+export {
+  // RSC entry wrappers
+  wrapMatchRSCServerRequest,
+  wrapRouteRSCServerRequest,
+  // Server function wrapper ("use server")
+  wrapServerFunction,
+  wrapServerFunctions,
+  // Server component wrapper
+  wrapServerComponent,
+  isServerComponentContext,
+} from './rsc';
+
+// RSC type exports
+export type {
+  RSCRouteConfigEntry,
+  RSCPayload,
+  RSCMatch,
+  DecodedPayload,
+  RouterContextProvider,
+  MatchRSCServerRequestArgs,
+  MatchRSCServerRequestFn,
+  RouteRSCServerRequestArgs,
+  RouteRSCServerRequestFn,
+  RSCHydratedRouterProps,
+  ServerComponentContext,
+  WrapServerFunctionOptions,
+} from './rsc';
