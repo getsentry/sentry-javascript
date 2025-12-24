@@ -18,13 +18,6 @@
       }
     }
   },
-  "typesVersions": {
-    "<5.0": {
-      "build/npm/types/index.d.ts": [
-        "build/npm/types-ts3.8/index.d.ts"
-      ]
-    }
-  },
   "files": [
     "/build/npm"
   ],
@@ -34,9 +27,7 @@
     "build:transpile": "rollup -c rollup.npm.config.mjs",
     "build:bundle": "rollup -c rollup.bundle.config.mjs",
     "build:dev": "run-p build:transpile build:types",
-    "build:types": "run-s build:types:core build:types:downlevel",
-    "build:types:core": "tsc -p tsconfig.types.json",
-    "build:types:downlevel": "yarn downlevel-dts build/npm/types build/npm/types-ts3.8 --to ts3.8",
+    "build:types": "tsc -p tsconfig.types.json",
     "build:watch": "run-p build:transpile:watch build:bundle:watch build:types:watch",
     "build:dev:watch": "run-p build:transpile:watch build:types:watch",
     "build:transpile:watch": "yarn build:transpile --watch",

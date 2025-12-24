@@ -10,8 +10,7 @@
   "files": [
     "cjs",
     "esm",
-    "types",
-    "types-ts3.8"
+    "types"
   ],
   "exports": {
     "./package.json": "./package.json",

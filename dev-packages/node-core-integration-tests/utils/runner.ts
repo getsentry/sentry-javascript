@@ -423,8 +423,6 @@ export function createRunner(...paths: string[]) {
         }
       }
 
-      // We need to properly define & pass these types around for TS 3.8,
-      // which otherwise fails to infer these correctly :(
       type ServerStartup = [number | undefined, (() => void) | undefined];
       type DockerStartup = VoidFunction | undefined;
 

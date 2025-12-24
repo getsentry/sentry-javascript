@@ -70,13 +70,9 @@ export function makeBaseNPMConfig(options = {}) {
       // don't add `"use strict"` to the top of cjs files
       strict: false,
 
-      // do TS-3.8-style exports
+      // Use simple exports format:
       //     exports.dogs = are.great
-      // rather than TS-3.9-style exports
-      //     Object.defineProperty(exports, 'dogs', {
-      //       enumerable: true,
-      //       get: () => are.great,
-      //     });
+      // rather than Object.defineProperty style exports
       externalLiveBindings: false,
 
       // Don't call `Object.freeze` on the results of `import * as someModule from '...'`

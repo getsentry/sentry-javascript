@@ -10,8 +10,8 @@
     "test:assert": "pnpm -v"
   },
   "devDependencies": {
-    "typescript": "5.0.2",
-    "@types/node": "^18.19.1"
+    "typescript": "5.0.4",
+    "@types/node": "^18.0.0"
   },
   "dependencies": {
     "@sentry/browser": "latest || *",

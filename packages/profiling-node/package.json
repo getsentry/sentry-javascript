@@ -22,13 +22,6 @@
       }
     }
   },
-  "typesVersions": {
-    "<5.0": {
-      "build/types/index.d.ts": [
-        "build/types-ts3.8/index.d.ts"
-      ]
-    }
-  },
   "bin": {
     "sentry-prune-profiler-binaries": "scripts/prune-profiler-binaries.js"
   },
@@ -50,8 +43,7 @@
     "fix": "eslint . --format stylish --fix",
     "build": "yarn build:types && yarn build:transpile",
     "build:transpile": "yarn rollup -c rollup.npm.config.mjs",
-    "build:types:downlevel": "yarn downlevel-dts build/types build/types-ts3.8 --to ts3.8",
-    "build:types": "tsc -p tsconfig.types.json && yarn build:types:downlevel",
+    "build:types": "tsc -p tsconfig.types.json",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
     "build:dev": "yarn clean && yarn build",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",

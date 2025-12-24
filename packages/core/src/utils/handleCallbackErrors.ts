@@ -1,18 +1,7 @@
 import { isThenable } from '../utils/is';
 
-/* eslint-disable */
-// Vendor "Awaited" in to be TS 3.8 compatible
-type AwaitedPromise<T> = T extends null | undefined
-  ? T // special case for `null | undefined` when not in `--strictNullChecks` mode
-  : T extends object & { then(onfulfilled: infer F, ...args: infer _): any } // `await` only unwraps object types with a callable `then`. Non-object types are not unwrapped
-    ? F extends (value: infer V, ...args: infer _) => any // if the argument to `then` is callable, extracts the first argument
-      ? V // normally this would recursively unwrap, but this is not possible in TS3.8
-      : never // the argument to `then` was not callable
-    : T; // non-object or non-thenable
-/* eslint-enable */
-
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function handleCallbackErrors<Fn extends () => Promise<any>, PromiseValue = AwaitedPromise<ReturnType<Fn>>>(
+export function handleCallbackErrors<Fn extends () => Promise<any>, PromiseValue = Awaited<ReturnType<Fn>>>(
   fn: Fn,
   onError: (error: unknown) => void,
   onFinally?: () => void,
@@ -44,7 +33,7 @@ export function handleCallbackErrors<
   fn: Fn,
   onError: (error: unknown) => void,
   onFinally: () => void = () => {},
-  onSuccess: (result: ValueType | AwaitedPromise<ValueType>) => void = () => {},
+  onSuccess: (result: ValueType | Awaited<ValueType>) => void = () => {},
 ): ValueType {
   let maybePromiseResult: ReturnType<Fn>;
   try {
@@ -68,7 +57,7 @@ function maybeHandlePromiseRejection<MaybePromise>(
   value: MaybePromise,
   onError: (error: unknown) => void,
   onFinally: () => void,
-  onSuccess: (result: MaybePromise | AwaitedPromise<MaybePromise>) => void,
+  onSuccess: (result: MaybePromise | Awaited<MaybePromise>) => void,
 ): MaybePromise {
   if (isThenable(value)) {
     // @ts-expect-error - the isThenable check returns the "wrong" type here
