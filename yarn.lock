@@ -11843,10 +11843,10 @@ birpc@^0.2.17:
   resolved "https://registry.yarnpkg.com/birpc/-/birpc-0.2.17.tgz#d0bdb90d4d063061156637f03b7b0adea1779734"
   integrity sha512-+hkTxhot+dWsLpp3gia5AkVHIsKlZybNT5gIYiDlNzJrmYPcTM9k5/w2uaj3IPpd7LlEYpmCj4Jj1nC41VhDFg==
 
-birpc@^3.0.0:
-  version "3.0.0"
-  resolved "https://registry.yarnpkg.com/birpc/-/birpc-3.0.0.tgz#eb18f6c539e10cbfc6d6b1fd1cd6e08d77b70b49"
-  integrity sha512-by+04pHuxpCEQcucAXqzopqfhyI8TLK5Qg5MST0cB6MP+JhHna9ollrtK9moVh27aq6Q6MEJgebD0cVm//yBkg==
+birpc@^4.0.0:
+  version "4.0.0"
+  resolved "https://registry.yarnpkg.com/birpc/-/birpc-4.0.0.tgz#cceef485926b93496735201896d86c3a182ad30f"
+  integrity sha512-LShSxJP0KTmd101b6DRyGBj57LZxSDYWKitQNW/mi8GRMvZb078Uf9+pveax1DrVL89vm7mWe+TovdI/UDOuPw==
 
 bl@^2.2.1:
   version "2.2.1"
@@ -21672,7 +21672,7 @@ magic-string@^0.26.0, magic-string@^0.26.7:
   dependencies:
     sourcemap-codec "^1.4.8"
 
-magic-string@^0.30.0, magic-string@^0.30.10, magic-string@^0.30.11, magic-string@^0.30.17, magic-string@^0.30.19, magic-string@^0.30.21, magic-string@^0.30.3, magic-string@^0.30.4, magic-string@^0.30.5, magic-string@^0.30.8:
+magic-string@^0.30.0, magic-string@^0.30.10, magic-string@^0.30.11, magic-string@^0.30.17, magic-string@^0.30.19, magic-string@^0.30.3, magic-string@^0.30.4, magic-string@^0.30.5, magic-string@^0.30.8:
   version "0.30.21"
   resolved "https://registry.yarnpkg.com/magic-string/-/magic-string-0.30.21.tgz#56763ec09a0fa8091df27879fd94d19078c00d91"
   integrity sha512-vd2F4YUyEXKGcLHoq+TEyCjxueSeHnFxyyjNp80yg0XV4vUhnDer/lvvlqM/arB5bXQN5K2/3oinyCRyx8T2CQ==
@@ -27332,19 +27332,18 @@ roarr@^7.0.4:
     safe-stable-stringify "^2.4.1"
     semver-compare "^1.0.0"
 
-rolldown-plugin-dts@^0.18.3:
-  version "0.18.3"
-  resolved "https://registry.yarnpkg.com/rolldown-plugin-dts/-/rolldown-plugin-dts-0.18.3.tgz#b9ff1dcb1f6f695c07f5ad263dc82b04c9becb9c"
-  integrity sha512-rd1LZ0Awwfyn89UndUF/HoFF4oH9a5j+2ZeuKSJYM80vmeN/p0gslYMnHTQHBEXPhUlvAlqGA3tVgXB/1qFNDg==
+rolldown-plugin-dts@^0.19.2:
+  version "0.19.2"
+  resolved "https://registry.yarnpkg.com/rolldown-plugin-dts/-/rolldown-plugin-dts-0.19.2.tgz#42e9ea6abc263d59545b4f6bd71e6f35b09e6213"
+  integrity sha512-KbP0cnnjD1ubnyklqy6GCahvUsOrPFH4i+RTX6bNpyvh+jUsaxY01e9mLOU2NsGzQkJS/q4hbCbdcQoAmSWIYg==
   dependencies:
     "@babel/generator" "^7.28.5"
     "@babel/parser" "^7.28.5"
     "@babel/types" "^7.28.5"
     ast-kit "^2.2.0"
-    birpc "^3.0.0"
+    birpc "^4.0.0"
     dts-resolver "^2.1.3"
     get-tsconfig "^4.13.0"
-    magic-string "^0.30.21"
     obug "^2.1.1"
 
 rolldown@^1.0.0-beta.57:

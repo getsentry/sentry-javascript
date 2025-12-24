@@ -122,7 +122,7 @@
     "prettier-plugin-astro": "^0.14.1",
     "rimraf": "^5.0.10",
     "rolldown": "^1.0.0-beta.57",
-    "rolldown-plugin-dts": "^0.18.3",
+    "rolldown-plugin-dts": "^0.19.2",
     "size-limit": "~11.1.6",
     "ts-node": "10.9.1",
     "typescript": "~5.8.0",
