@@ -159,6 +159,7 @@ describe('OpenAI integration', () => {
           'gen_ai.system': 'openai',
           'gen_ai.request.model': 'gpt-3.5-turbo',
           'gen_ai.request.temperature': 0.7,
+          'gen_ai.request.messages.original_length': 2,
           'gen_ai.request.messages':
             '[{"role":"system","content":"You are a helpful assistant."},{"role":"user","content":"What is the capital of France?"}]',
           'gen_ai.response.model': 'gpt-3.5-turbo',
@@ -214,6 +215,7 @@ describe('OpenAI integration', () => {
           'sentry.origin': 'auto.ai.openai',
           'gen_ai.system': 'openai',
           'gen_ai.request.model': 'error-model',
+          'gen_ai.request.messages.original_length': 1,
           'gen_ai.request.messages': '[{"role":"user","content":"This will fail"}]',
         },
         description: 'chat error-model',
@@ -231,6 +233,7 @@ describe('OpenAI integration', () => {
           'gen_ai.request.model': 'gpt-4',
           'gen_ai.request.temperature': 0.8,
           'gen_ai.request.stream': true,
+          'gen_ai.request.messages.original_length': 2,
           'gen_ai.request.messages':
             '[{"role":"system","content":"You are a helpful assistant."},{"role":"user","content":"Tell me about streaming"}]',
           'gen_ai.response.text': 'Hello from OpenAI streaming!',
@@ -287,6 +290,7 @@ describe('OpenAI integration', () => {
           'gen_ai.operation.name': 'chat',
           'gen_ai.request.model': 'error-model',
           'gen_ai.request.stream': true,
+          'gen_ai.request.messages.original_length': 1,
           'gen_ai.request.messages': '[{"role":"user","content":"This will fail"}]',
           'gen_ai.system': 'openai',
           'sentry.op': 'gen_ai.chat',
