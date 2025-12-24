@@ -14,4 +14,3 @@ execSync(`yarn add --dev --ignore-workspace-root-check typescript@${tsVersion} @
 });
 
 console.log('TypeScript version updated successfully.');
-
