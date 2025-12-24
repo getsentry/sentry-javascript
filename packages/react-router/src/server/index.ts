@@ -18,3 +18,28 @@ export {
   isInstrumentationApiUsed,
   type CreateSentryServerInstrumentationOptions,
 } from './createServerInstrumentation';
+
+// React Server Components (RSC) - React Router v7.9.0+
+export {
+  wrapMatchRSCServerRequest,
+  wrapRouteRSCServerRequest,
+  wrapServerFunction,
+  wrapServerFunctions,
+  wrapServerComponent,
+  isServerComponentContext,
+} from './rsc';
+
+export type {
+  RSCRouteConfigEntry,
+  RSCPayload,
+  RSCMatch,
+  DecodedPayload,
+  RouterContextProvider,
+  MatchRSCServerRequestArgs,
+  MatchRSCServerRequestFn,
+  RouteRSCServerRequestArgs,
+  RouteRSCServerRequestFn,
+  RSCHydratedRouterProps,
+  ServerComponentContext,
+  WrapServerFunctionOptions,
+} from './rsc';
