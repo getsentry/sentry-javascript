@@ -22,6 +22,7 @@ export default makeNPMConfigVariants(
     output: {
       file: `./build/npm/${format}/worker-bundler.js`,
       format,
+      minify: true,
     },
     treeshake: false,
   })),
