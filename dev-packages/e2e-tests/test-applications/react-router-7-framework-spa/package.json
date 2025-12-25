@@ -18,16 +18,16 @@
   },
   "dependencies": {
     "@sentry/react-router": "latest || *",
-    "@react-router/node": "7.10.1",
-    "@react-router/serve": "7.10.1",
+    "@react-router/node": "^7.11.0",
+    "@react-router/serve": "^7.11.0",
     "isbot": "^5.1.27",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-router": "7.10.1"
+    "react-router": "^7.11.0"
   },
   "devDependencies": {
     "@playwright/test": "~1.56.0",
-    "@react-router/dev": "7.10.1",
+    "@react-router/dev": "^7.11.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "@tailwindcss/vite": "^4.1.4",
     "@types/node": "^20",
