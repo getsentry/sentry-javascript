@@ -3,48 +3,38 @@
  */
 
 import { builtinModules } from 'module';
-
+import path from 'node:path';
+import fs from 'node:fs';
 import deepMerge from 'deepmerge';
 
 import {
   makeBrowserBuildPlugin,
-  makeCleanupPlugin,
-  makeCommonJSPlugin,
   makeIsDebugBuildPlugin,
-  makeLicensePlugin,
-  makeNodeResolvePlugin,
   makeRrwebBuildPlugin,
   makeSetSDKSourcePlugin,
-  makeSucrasePlugin,
-  makeTerserPlugin,
+  makeBannerOptions,
+  makeMinifierOptions,
 } from './plugins/index.mjs';
-import { mergePlugins } from './utils.mjs';
-import { makeProductionReplacePlugin } from './plugins/npmPlugins.mjs';
+import { mergePlugins, treeShakePreset } from './utils.mjs';
 
 const BUNDLE_VARIANTS = ['.js', '.min.js', '.debug.min.js'];
 
-export function makeBaseBundleConfig(options) {
-  const { bundleType, entrypoints, licenseTitle, outputFileBase, packageSpecificConfig, sucrase } = options;
+const packageDotJSON = JSON.parse(fs.readFileSync(path.resolve(process.cwd(), './package.json'), { encoding: 'utf8' }));
 
-  const nodeResolvePlugin = makeNodeResolvePlugin();
-  const sucrasePlugin = makeSucrasePlugin({}, sucrase);
-  const cleanupPlugin = makeCleanupPlugin();
+export function makeBaseBundleConfig(options) {
+  const { bundleType, entrypoints, licenseTitle, outputFileBase, packageSpecificConfig } = options;
+
   const markAsBrowserBuildPlugin = makeBrowserBuildPlugin(true);
-  const licensePlugin = makeLicensePlugin(licenseTitle);
+  const banner = makeBannerOptions(licenseTitle, packageDotJSON.version);
   const rrwebBuildPlugin = makeRrwebBuildPlugin({
     excludeIframe: false,
     excludeShadowDom: false,
   });
-  const productionReplacePlugin = makeProductionReplacePlugin();
-
-  // The `commonjs` plugin is the `esModuleInterop` of the bundling world. When used with `transformMixedEsModules`, it
-  // will include all dependencies, imported or required, in the final bundle. (Without it, CJS modules aren't included
-  // at all, and without `transformMixedEsModules`, they're only included if they're imported, not if they're required.)
-  const commonJSPlugin = makeCommonJSPlugin({ transformMixedEsModules: true });
 
   // used by `@sentry/browser`
   const standAloneBundleConfig = {
     output: {
+      banner,
       format: 'iife',
       name: 'Sentry',
       intro: () => {
@@ -52,7 +42,7 @@ export function makeBaseBundleConfig(options) {
       },
     },
     context: 'window',
-    plugins: [rrwebBuildPlugin, markAsBrowserBuildPlugin, licensePlugin],
+    plugins: [rrwebBuildPlugin, markAsBrowserBuildPlugin],
   };
 
   // used by `@sentry/wasm` & pluggable integrations from core/browser (bundles which need to be combined with a stand-alone SDK bundle)
@@ -63,7 +53,7 @@ export function makeBaseBundleConfig(options) {
       format: 'cjs',
 
       // code to add before the CJS wrapper
-      banner: '(function (__window) {',
+      banner: `${banner}\n(function (__window) {`,
 
       // code to add just inside the CJS wrapper, before any of the wrapped code
       intro: 'var exports = {};',
@@ -86,14 +76,15 @@ export function makeBaseBundleConfig(options) {
       // code to add after the CJS wrapper
       footer: '}(window));',
     },
-    plugins: [rrwebBuildPlugin, markAsBrowserBuildPlugin, licensePlugin],
+    plugins: [rrwebBuildPlugin, markAsBrowserBuildPlugin],
   };
 
   const workerBundleConfig = {
     output: {
+      banner,
       format: 'esm',
+      minify: makeMinifierOptions(),
     },
-    plugins: [commonJSPlugin, makeTerserPlugin(), licensePlugin],
     // Don't bundle any of Node's core modules
     external: builtinModules,
   };
@@ -101,8 +92,9 @@ export function makeBaseBundleConfig(options) {
   const awsLambdaExtensionBundleConfig = {
     output: {
       format: 'esm',
+      minify: makeMinifierOptions(),
     },
-    plugins: [commonJSPlugin, makeIsDebugBuildPlugin(true), makeTerserPlugin()],
+    plugins: [makeIsDebugBuildPlugin(true)],
     // Don't bundle any of Node's core modules
     external: builtinModules,
   };
@@ -110,16 +102,22 @@ export function makeBaseBundleConfig(options) {
   // used by all bundles
   const sharedBundleConfig = {
     input: entrypoints,
+    // Point to the package's tsconfig.json so rolldown respects TypeScript & JSX settings
+    tsconfig: path.resolve(process.cwd(), './tsconfig.json'),
+
+    // Enforce ES2020 target for all builds
+    transform: {
+      target: 'es2020',
+    },
+
     output: {
       // a file extension will be added to this base value when we specify either a minified or non-minified build
       entryFileNames: outputFileBase,
       dir: 'build',
       sourcemap: true,
-      strict: false,
       esModule: false,
     },
-    plugins: [productionReplacePlugin, sucrasePlugin, nodeResolvePlugin, cleanupPlugin],
-    treeshake: 'smallest',
+    treeshake: treeShakePreset('smallest'),
   };
 
   const bundleTypeConfigMap = {
@@ -149,7 +147,7 @@ export function makeBundleConfigVariants(baseConfig, options = {}) {
 
   const includeDebuggingPlugin = makeIsDebugBuildPlugin(true);
   const stripDebuggingPlugin = makeIsDebugBuildPlugin(false);
-  const terserPlugin = makeTerserPlugin();
+  const minifierOptions = makeMinifierOptions();
   const setSdkSourcePlugin = makeSetSDKSourcePlugin('cdn');
 
   // The additional options to use for each variant we're going to create.
@@ -164,15 +162,17 @@ export function makeBundleConfigVariants(baseConfig, options = {}) {
     '.min.js': {
       output: {
         entryFileNames: chunkInfo => `${baseConfig.output.entryFileNames(chunkInfo)}.min.js`,
+        minify: minifierOptions,
       },
-      plugins: [stripDebuggingPlugin, setSdkSourcePlugin, terserPlugin],
+      plugins: [stripDebuggingPlugin, setSdkSourcePlugin],
     },
 
     '.debug.min.js': {
       output: {
         entryFileNames: chunkInfo => `${baseConfig.output.entryFileNames(chunkInfo)}.debug.min.js`,
+        minify: minifierOptions,
       },
-      plugins: [includeDebuggingPlugin, setSdkSourcePlugin, terserPlugin],
+      plugins: [includeDebuggingPlugin, setSdkSourcePlugin],
     },
   };
 
@@ -180,6 +180,7 @@ export function makeBundleConfigVariants(baseConfig, options = {}) {
     if (!BUNDLE_VARIANTS.includes(variant)) {
       throw new Error(`Unknown bundle variant requested: ${variant}`);
     }
+
     return deepMerge(baseConfig, variantSpecificConfigMap[variant], {
       // Merge the plugin arrays and make sure the end result is in the correct order. Everything else can use the
       // default merge strategy.

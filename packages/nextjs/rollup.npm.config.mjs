@@ -19,6 +19,10 @@ export default [
       packageSpecificConfig: {
         external: ['next/router', 'next/constants', 'next/headers', 'stacktrace-parser'],
 
+        output: {
+          virtualDirname: '_virtual/core',
+        },
+
         // Next.js and our users are more happy when our client code has the "use client" directive
         plugins: [
           {
@@ -51,8 +55,7 @@ export default [
 
       packageSpecificConfig: {
         output: {
-          // Preserve the original file structure (i.e., so that everything is still relative to `src`)
-          entryFileNames: 'config/templates/[name].js',
+          virtualDirname: '_virtual/loaders',
 
           // this is going to be add-on code, so it doesn't need the trappings of a full module (and in fact actively
           // shouldn't have them, lest they muck with the module to which we're adding it)
@@ -69,6 +72,33 @@ export default [
           '__SENTRY_WRAPPING_TARGET_FILE__',
           '__SENTRY_NEXTJS_REQUEST_ASYNC_STORAGE_SHIM__',
         ],
+        plugins: [
+          {
+            name: 'sentry-fix-missing-serverComponentModule-import',
+            renderChunk(code, chunk) {
+              // Rolldown has a bug where it removes namespace imports for external modules even when they're still
+              // referenced in the code (specifically when there's a `declare const` with the same name in the source).
+              // We need to add back the missing import for serverComponentModule in the serverComponentWrapperTemplate.
+              if (
+                chunk.facadeModuleId?.includes('serverComponentWrapperTemplate') &&
+                code.includes('serverComponentModule') &&
+                !code.includes('import * as serverComponentModule')
+              ) {
+                // Find the position after the last import statement to insert our missing import
+                const lastImportMatch = code.match(/^import[^;]*;/gm);
+                if (lastImportMatch) {
+                  const lastImport = lastImportMatch[lastImportMatch.length - 1];
+                  const lastImportEnd = code.indexOf(lastImport) + lastImport.length;
+                  return {
+                    code: `${code.slice(0, lastImportEnd)}
+import * as serverComponentModule from "__SENTRY_WRAPPING_TARGET_FILE__";${code.slice(lastImportEnd)}`,
+                  };
+                }
+              }
+              return null;
+            },
+          },
+        ],
       },
     }),
   ),
@@ -78,8 +108,7 @@ export default [
 
       packageSpecificConfig: {
         output: {
-          // Preserve the original file structure (i.e., so that everything is still relative to `src`)
-          entryFileNames: 'config/loaders/[name].js',
+          virtualDirname: '_virtual/polyfills',
 
           // make it so Rollup calms down about the fact that we're combining default and named exports
           exports: 'named',
@@ -94,8 +123,7 @@ export default [
 
       packageSpecificConfig: {
         output: {
-          // Preserve the original file structure (i.e., so that everything is still relative to `src`)
-          entryFileNames: 'config/polyfills/[name].js',
+          virtualDirname: '_virtual/polyfills',
 
           // make it so Rollup calms down about the fact that we're combining default and named exports
           exports: 'named',
