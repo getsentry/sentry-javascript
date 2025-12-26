@@ -330,6 +330,11 @@ function createPatchHandler(
       }
 
       return context.with(trace.setSpan(context.active(), span), () => {
+        // Call responseHook early to ensure sentry.origin is set for both success and error cases
+        if (config.responseHook) {
+          config.responseHook(span, undefined);
+        }
+
         const onSuccess = (response: ClickHouseResponse): ClickHouseResponse => {
           if (config.captureExecutionStats !== false && response) {
             const headers = response.response_headers || response.headers;
@@ -339,9 +344,6 @@ function createPatchHandler(
                   addExecutionStats(span, summary);
                 }
             }
-          }
-          if (config.responseHook) {
-            config.responseHook(span, response);
           }
           span.setStatus({ code: SpanStatusCode.OK });
           span.end();
@@ -365,7 +367,7 @@ function createPatchHandler(
           }
           return onSuccess(result as ClickHouseResponse);
         } catch (error) {
-          onError(error as Error);
+          return onError(error as Error);
         }
       });
     };
