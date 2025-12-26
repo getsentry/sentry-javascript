@@ -223,7 +223,7 @@ export function patchClickHouseClient(
       'insert',
       createPatchHandler('insert', tracer, getConfig, isEnabled, args => {
         const params = (args[0] || {}) as ClickHouseInsertParams;
-        const table = params.table as string;
+        const table = params.table || '<unknown>';
         const format = params.format || 'JSONCompactEachRow';
         let statement = `INSERT INTO ${table}`;
 
@@ -330,11 +330,6 @@ function createPatchHandler(
       }
 
       return context.with(trace.setSpan(context.active(), span), () => {
-        // Call responseHook early to ensure sentry.origin is set for both success and error cases
-        if (config.responseHook) {
-          config.responseHook(span, undefined);
-        }
-
         const onSuccess = (response: ClickHouseResponse): ClickHouseResponse => {
           if (config.captureExecutionStats !== false && response) {
             const headers = response.response_headers || response.headers;
@@ -345,17 +340,22 @@ function createPatchHandler(
                 }
             }
           }
+          // Call responseHook with the actual response
+          if (config.responseHook) {
+            config.responseHook(span, response);
+          }
           span.setStatus({ code: SpanStatusCode.OK });
           span.end();
           return response;
         };
 
         const onError = (error: Error): never => {
+          // Call responseHook to ensure sentry.origin is set for error cases
+          if (config.responseHook) {
+            config.responseHook(span, undefined);
+          }
           span.recordException(error);
-          span.setStatus({
-            code: SpanStatusCode.ERROR,
-            message: error.message,
-          });
+          span.setStatus({code: SpanStatusCode.ERROR, message: error.message});
           span.end();
           throw error;
         };

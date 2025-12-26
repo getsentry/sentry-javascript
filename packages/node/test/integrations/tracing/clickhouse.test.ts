@@ -221,15 +221,14 @@ describe('ClickHouseInstrumentation - Functional Tests', () => {
     const hook = vi.fn();
     instrumentation.setConfig({ responseHook: hook });
 
-    await client.query({ query: 'SELECT 1' });
+    const result = await client.query({ query: 'SELECT 1' });
 
     expect(hook).toHaveBeenCalledTimes(1);
-    // responseHook is called early with undefined to ensure sentry.origin is set for both success and error cases
     expect(hook).toHaveBeenCalledWith(
       expect.objectContaining({
         spanContext: expect.any(Function),
       }),
-      undefined
+      result
     );
   });
 
