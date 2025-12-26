@@ -22,6 +22,8 @@ function run(cmd: string, options?: childProcess.ExecSyncOptions): string {
 async function buildLambdaLayer(): Promise<void> {
   console.log('Building Lambda layer.');
   buildPackageJson();
+  // Clean up Angular ngcc lock files that can cause yarn install to fail when using file: dependencies
+  cleanupNgccLockFiles();
   console.log('Installing local @sentry/aws-serverless into build/aws/dist-serverless/nodejs.');
   run('yarn install --prod --cwd ./build/aws/dist-serverless/nodejs');
 
@@ -151,6 +153,31 @@ function getAllFiles(dir: string): string[] {
 
   walkDirectory(dir);
   return files;
+}
+
+/**
+ * Clean up Angular ngcc lock files from all packages that could interfere with yarn install.
+ * These lock files can cause ENOENT errors when yarn tries to copy files from file: dependencies.
+ */
+function cleanupNgccLockFiles(): void {
+  const packagesDir = path.resolve(__dirname, '../..');
+  const packageDirs = fs
+    .readdirSync(packagesDir, { withFileTypes: true })
+    .filter(dirent => dirent.isDirectory())
+    .map(dirent => dirent.name)
+    .filter(name => !name.startsWith('.'));
+
+  for (const packageDir of packageDirs) {
+    const lockFilePath = path.join(packagesDir, packageDir, 'node_modules', '.ngcc_lock_file');
+    if (fs.existsSync(lockFilePath)) {
+      try {
+        fs.unlinkSync(lockFilePath);
+        console.log(`Removed ${lockFilePath}`);
+      } catch {
+        console.warn(`Warning: Could not remove ${lockFilePath}`);
+      }
+    }
+  }
 }
 
 function buildPackageJson(): void {

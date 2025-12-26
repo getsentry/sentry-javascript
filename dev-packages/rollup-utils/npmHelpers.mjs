@@ -10,12 +10,14 @@ import * as path from 'path';
 import { fileURLToPath } from 'url';
 import deepMerge from 'deepmerge';
 import { defineConfig } from 'rolldown';
+import { dts as makeDtsPlugin } from 'rolldown-plugin-dts';
 import {
   makeDebugBuildStatementReplacePlugin,
   makeProductionReplacePlugin,
   makeRrwebBuildPlugin,
 } from './plugins/index.mjs';
 import { makePackageNodeEsm } from './plugins/make-esm-plugin.mjs';
+import { makeMoveDtsPlugin } from './plugins/move-dts-plugin.mjs';
 import { mergePlugins } from './utils.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -107,15 +109,23 @@ export function makeBaseNPMConfig(options = {}) {
     external: [...builtinModules.filter(m => !bundledBuiltins.includes(m)), ...externalWithSubpaths],
   });
 
-  return deepMerge(defaultBaseConfig, packageSpecificConfig, {
+  const baseConfig = deepMerge(defaultBaseConfig, packageSpecificConfig, {
     // Plugins have to be in the correct order or everything breaks, so when merging we have to manually re-order them
     customMerge: key => (key === 'plugins' ? mergePlugins : undefined),
   });
+
+  if (hasBundles) {
+    // @ts-expect-error - this is a private property that we use to determine if the package has bundles
+    baseConfig.__sentry_internal_hasBundles = true;
+  }
+
+  return baseConfig;
 }
 
 export function makeNPMConfigVariants(baseConfig, options = {}) {
   const { emitEsm = true, emitCjs = true, splitDevProd = false } = options;
 
+  const hasBundles = baseConfig.__sentry_internal_hasBundles;
   const variantSpecificConfigs = [];
 
   if (emitCjs) {
@@ -131,6 +141,15 @@ export function makeNPMConfigVariants(baseConfig, options = {}) {
   }
 
   if (emitEsm) {
+    const hasTypes = fs.existsSync(path.resolve(process.cwd(), './tsconfig.types.json'));
+    const dts = makeDtsPlugin({
+      tsconfig: path.resolve(process.cwd(), hasTypes ? './tsconfig.types.json' : './tsconfig.json'),
+      tsgo: true,
+    });
+
+    const moveDtsDir = hasBundles ? 'build/npm/esm' : 'build/esm';
+    const moveDtsOutputDir = hasBundles ? 'build/npm/types' : 'build/types';
+
     if (splitDevProd) {
       variantSpecificConfigs.push({
         output: {
@@ -139,24 +158,32 @@ export function makeNPMConfigVariants(baseConfig, options = {}) {
           plugins: [makePackageNodeEsm()],
         },
       });
+
       variantSpecificConfigs.push({
+        plugins: [dts],
         output: {
           format: 'esm',
           dir: path.join(baseConfig.output.dir, 'esm/prod'),
-          plugins: [makeProductionReplacePlugin(), makePackageNodeEsm()],
+          plugins: [
+            makeProductionReplacePlugin(),
+            makePackageNodeEsm(),
+            makeMoveDtsPlugin(`${moveDtsDir}/prod`, moveDtsOutputDir),
+          ],
         },
       });
     } else {
       variantSpecificConfigs.push({
+        plugins: [dts],
         output: {
           format: 'esm',
           dir: path.join(baseConfig.output.dir, 'esm'),
-          plugins: [makePackageNodeEsm()],
+          plugins: [makePackageNodeEsm(), makeMoveDtsPlugin(moveDtsDir, moveDtsOutputDir)],
         },
       });
     }
   }
 
+  // @ts-expect-error -TODO: Not properly typed at the moment
   return variantSpecificConfigs.map(variant => deepMerge(baseConfig, variant));
 }
 

@@ -31,11 +31,11 @@
     },
     "./setup": {
       "import": {
-        "types": "./setup.d.ts",
+        "types": "./build/types/setup.d.ts",
         "default": "./build/esm/setup.js"
       },
       "require": {
-        "types": "./setup.d.ts",
+        "types": "./build/types/setup.d.ts",
         "default": "./build/cjs/setup.js"
       }
     }
@@ -66,13 +66,10 @@
     "build": "run-p build:transpile build:types",
     "build:dev": "yarn build",
     "build:transpile": "rolldown -c rollup.npm.config.mjs",
-    "build:types": "run-s build:types:core build:types:setup",
-    "build:types:core": "tsc -p tsconfig.types.json",
-    "build:types:setup": "tsc -p tsconfig.setup-types.json",
+    "build:types": "echo \"Types included with build\"",
     "build:watch": "run-p build:transpile:watch build:types:watch",
     "build:dev:watch": "yarn build:watch",
     "build:transpile:watch": "rolldown -c rollup.npm.config.mjs --watch",
-    "build:types:watch": "tsc -p tsconfig.types.json --watch",
     "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.ts && madge --circular src/setup.ts",
     "clean": "rimraf build coverage sentry-nestjs-*.tgz ./*.d.ts ./*.d.ts.map",

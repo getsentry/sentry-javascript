@@ -4,6 +4,8 @@
 
 import { replacePlugin } from 'rolldown/plugins';
 
+export { makeMoveDtsPlugin } from './move-dts-plugin.mjs';
+
 /**
  * Create a plugin which can be used to pause the build process at the given hook.
  *

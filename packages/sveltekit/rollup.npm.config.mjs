@@ -6,6 +6,7 @@ export default makeNPMConfigVariants(
       'src/index.server.ts',
       'src/index.client.ts',
       'src/index.worker.ts',
+      'src/index.types.ts',
       'src/client/index.ts',
       'src/server/index.ts',
       'src/worker/index.ts',

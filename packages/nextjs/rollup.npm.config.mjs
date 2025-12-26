@@ -8,6 +8,7 @@ export default [
       entrypoints: [
         'src/index.server.ts',
         'src/index.client.ts',
+        'src/index.types.ts',
         'src/client/index.ts',
         'src/server/index.ts',
         'src/edge/index.ts',
