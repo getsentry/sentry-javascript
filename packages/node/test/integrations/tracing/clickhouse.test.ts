@@ -264,29 +264,24 @@ describe('ClickHouseInstrumentation - Functional Tests', () => {
     expect(spans[0]!.attributes['net.peer.port']).toBe(9000);
   });
 
-  it('extracts operation from various SQL statements', async () => {
-    const testCases = [
-      { query: 'SELECT * FROM users', expectedOp: 'SELECT' },
-      { query: 'INSERT INTO logs VALUES (1)', expectedOp: 'INSERT' },
-      { query: 'UPDATE users SET name = ?', expectedOp: 'UPDATE' },
-      { query: 'DELETE FROM logs WHERE id = 1', expectedOp: 'DELETE' },
-      { query: 'CREATE TABLE test (id Int32)', expectedOp: 'CREATE' },
-      { query: 'DROP TABLE test', expectedOp: 'DROP' },
-      { query: 'ALTER TABLE test ADD COLUMN name String', expectedOp: 'ALTER' },
-      { query: 'TRUNCATE TABLE logs', expectedOp: 'TRUNCATE' },
-    ];
-
-    for (const { query } of testCases) {
-      await client.query({ query });
-    }
+  it.each([
+    { query: 'SELECT * FROM users', expectedOp: 'SELECT' },
+    { query: 'INSERT INTO logs VALUES (1)', expectedOp: 'INSERT' },
+    { query: 'UPDATE users SET name = ?', expectedOp: 'UPDATE' },
+    { query: 'DELETE FROM logs WHERE id = 1', expectedOp: 'DELETE' },
+    { query: 'CREATE TABLE test (id Int32)', expectedOp: 'CREATE' },
+    { query: 'DROP TABLE test', expectedOp: 'DROP' },
+    { query: 'ALTER TABLE test ADD COLUMN name String', expectedOp: 'ALTER' },
+    { query: 'TRUNCATE TABLE logs', expectedOp: 'TRUNCATE' },
+  ])('extracts $expectedOp operation from "$query"', async ({ query, expectedOp }) => {
+    await client.query({ query });
 
     const spans = exporter.getFinishedSpans();
-    expect(spans).toHaveLength(testCases.length);
+    expect(spans).toHaveLength(1);
 
-    testCases.forEach((testCase, index) => {
-      expect(spans[index]!.attributes['db.operation']).toBe(testCase.expectedOp);
-      expect(spans[index]!.name).toBe(`${testCase.expectedOp} clickhouse`);
-    });
+    const span = spans[0]!;
+    expect(span.attributes['db.operation']).toBe(expectedOp);
+    expect(span.name).toBe(`${expectedOp} clickhouse`);
   });
 
   it('handles captureExecutionStats option', async () => {
