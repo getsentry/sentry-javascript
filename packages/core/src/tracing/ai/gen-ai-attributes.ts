@@ -237,11 +237,6 @@ export const GEN_AI_EXECUTE_TOOL_OPERATION_ATTRIBUTE = 'gen_ai.execute_tool';
 // =============================================================================
 
 /**
- * The name of the AI agent
- */
-export const GEN_AI_AGENT_NAME_ATTRIBUTE = 'gen_ai.agent.name';
-
-/**
  * The name of the tool being executed
  */
 export const GEN_AI_TOOL_NAME_ATTRIBUTE = 'gen_ai.tool.name';

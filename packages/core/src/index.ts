@@ -157,12 +157,14 @@ export { instrumentStateGraphCompile, instrumentLangGraph } from './tracing/lang
 export { LANGGRAPH_INTEGRATION_NAME } from './tracing/langgraph/constants';
 export type { LangGraphOptions, LangGraphIntegration, CompiledGraph } from './tracing/langgraph/types';
 export type { OpenAiClient, OpenAiOptions, InstrumentedMethod } from './tracing/openai/types';
-export { setTokenUsageAttributes } from './tracing/ai/utils';
+export { setTokenUsageAttributes, getTruncatedJsonString } from './tracing/ai/utils';
 export {
   GEN_AI_AGENT_NAME_ATTRIBUTE,
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
+  GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE,
   GEN_AI_REQUEST_MESSAGES_ATTRIBUTE,
   GEN_AI_REQUEST_MODEL_ATTRIBUTE,
+  GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE,
   GEN_AI_RESPONSE_ID_ATTRIBUTE,
   GEN_AI_RESPONSE_MODEL_ATTRIBUTE,
   GEN_AI_RESPONSE_TEXT_ATTRIBUTE,

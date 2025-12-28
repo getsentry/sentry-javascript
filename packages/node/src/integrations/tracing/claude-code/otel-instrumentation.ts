@@ -53,10 +53,7 @@ export class SentryClaudeCodeAgentSdkInstrumentation extends InstrumentationBase
     }
 
     // Create wrapped query function
-    const wrappedQuery = function (
-      this: unknown,
-      ...args: unknown[]
-    ): AsyncGenerator<unknown, void, unknown> {
+    const wrappedQuery = function (this: unknown, ...args: unknown[]): AsyncGenerator<unknown, void, unknown> {
       const client = getClient();
       const defaultPii = Boolean(client?.getOptions().sendDefaultPii);
 
@@ -93,11 +90,7 @@ export class SentryClaudeCodeAgentSdkInstrumentation extends InstrumentationBase
       }
 
       // Also patch default export if it has a query property
-      if (
-        moduleExports.default &&
-        typeof moduleExports.default === 'object' &&
-        'query' in moduleExports.default
-      ) {
+      if (moduleExports.default && typeof moduleExports.default === 'object' && 'query' in moduleExports.default) {
         try {
           (moduleExports.default as Record<string, unknown>).query = wrappedQuery;
         } catch {

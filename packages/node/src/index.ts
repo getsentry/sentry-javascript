@@ -26,7 +26,7 @@ export { amqplibIntegration } from './integrations/tracing/amqplib';
 export { vercelAIIntegration } from './integrations/tracing/vercelai';
 export { openAIIntegration } from './integrations/tracing/openai';
 export { anthropicAIIntegration } from './integrations/tracing/anthropic-ai';
-export { claudeCodeAgentSdkIntegration } from './integrations/tracing/claude-code';
+export { claudeCodeAgentSdkIntegration, patchClaudeCodeQuery } from './integrations/tracing/claude-code';
 export type { ClaudeCodeOptions } from './integrations/tracing/claude-code';
 export { googleGenAIIntegration } from './integrations/tracing/google-genai';
 export { langChainIntegration } from './integrations/tracing/langchain';
