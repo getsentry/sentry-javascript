@@ -19,9 +19,26 @@ type LevelMapping = {
 };
 
 type Pino = {
+  [key: symbol]: unknown;
   levels: LevelMapping;
   [SENTRY_TRACK_SYMBOL]?: 'track' | 'ignore';
 };
+
+/**
+ * Gets a custom Pino key from a logger instance by searching for the symbol.
+ * Pino uses non-global symbols like Symbol('pino.messageKey'): https://github.com/pinojs/pino/blob/8a816c0b1f72de5ae9181f3bb402109b66f7d812/lib/symbols.js
+ */
+function getPinoKey(logger: Pino, symbolName: string, defaultKey: string): string {
+  const symbols = Object.getOwnPropertySymbols(logger);
+  const symbolString = `Symbol(${symbolName})`;
+  for (const sym of symbols) {
+    if (sym.toString() === symbolString) {
+      const value = logger[sym];
+      return typeof value === 'string' ? value : defaultKey;
+    }
+  }
+  return defaultKey;
+}
 
 type MergeObject = {
   [key: string]: unknown;
@@ -134,7 +151,8 @@ const _pinoIntegration = defineIntegration((userOptions: DeepPartial<PinoOptions
 
         const [captureObj, message, levelNumber] = args;
         const level = self?.levels?.labels?.[levelNumber] || 'info';
-        const logMessage = message || (resultObj?.msg as string | undefined) || '';
+        const messageKey = getPinoKey(self, 'pino.messageKey', 'msg');
+        const logMessage = message || (resultObj?.[messageKey] as string | undefined) || '';
 
         if (enableLogs && options.log.levels.includes(level)) {
           const attributes: Record<string, unknown> = {
@@ -163,8 +181,9 @@ const _pinoIntegration = defineIntegration((userOptions: DeepPartial<PinoOptions
               return event;
             });
 
-            if (captureObj.err) {
-              captureException(captureObj.err, captureContext);
+            const error = captureObj[getPinoKey(self, 'pino.errorKey', 'err')];
+            if (error) {
+              captureException(error, captureContext);
               return;
             }
 

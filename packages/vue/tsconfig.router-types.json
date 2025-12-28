@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.json",
+
+  "compilerOptions": {
+    "declaration": true,
+    "declarationMap": true,
+    "emitDeclarationOnly": true,
+    "outDir": "./"
+  },
+
+  "//": "This type is built separately because it is for a subpath export, which has problems if it is not in the root",
+  "include": ["src/tanstackrouter.ts"],
+  "//": "Without this, we cannot output into the root dir",
+  "exclude": []
+}

@@ -128,7 +128,7 @@ jobs:
       needs.job_get_metadata.outputs.changed_any_code == 'true' ||
       needs.job_get_metadata.outputs.is_base_branch == 'true' ||
       needs.job_get_metadata.outputs.is_release == 'true' ||
-      (needs.job_get_metadata.outputs.is_gitflow_sync == 'false' && needs.job_get_metadata.outputs.has_gitflow_label == 'false')
+      (needs.job_get_metadata.outputs.is_gitflow_sync == 'false' && needs.job_get_metadata.outputs.has_gitflow_label == 'false' && needs.job_get_metadata.outputs.changed_any_code == 'true')
     steps:
       - name: Check out base commit (${{ github.event.pull_request.base.sha }})
         uses: actions/checkout@v6
@@ -1143,15 +1143,6 @@ jobs:
           overwrite: true
           retention-days: 7
           if-no-files-found: ignore
-
-      - name: Deploy Astro to Cloudflare
-        uses: cloudflare/wrangler-action@v3
-        if: matrix.test-application == 'cloudflare-astro'
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy dist --project-name=${{ secrets.CLOUDFLARE_PROJECT_NAME }}
-          workingDirectory: ${{ runner.temp }}/test-application
 
   job_required_jobs_passed:
     name: All required jobs passed or were skipped

@@ -2,7 +2,7 @@ import { addBreadcrumb, addNonEnumerableProperty, getClient, getCurrentScope, ge
 import type { Ref } from 'vue';
 
 // Inline Pinia types
-type StateTree = Record<string | number | symbol, any>;
+type StateTree = Record<string | number | symbol, unknown>;
 type PiniaPlugin = (context: {
   store: {
     $id: string;
@@ -15,7 +15,9 @@ type PiniaPlugin = (context: {
 type SentryPiniaPluginOptions = {
   attachPiniaState: boolean;
   addBreadcrumbs: boolean;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   actionTransformer: (action: string) => any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   stateTransformer: (state: Record<string, unknown>) => any;
 };
 
@@ -29,7 +31,8 @@ const DEFAULT_PINIA_PLUGIN_OPTIONS: SentryPiniaPluginOptions = {
 const getAllStoreStates = (
   pinia: { state: Ref<Record<string, StateTree>> },
   stateTransformer?: SentryPiniaPluginOptions['stateTransformer'],
-): Record<string, unknown> => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+): any => {
   const states: Record<string, unknown> = {};
 
   try {
