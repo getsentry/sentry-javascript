@@ -88,8 +88,7 @@ export function wrapServerAction<T>(
           ...options,
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react_router.action',
-            // TODO: Fix span op to use snake_case ('function.react_router.action') per span op spec
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.react-router.action',
+            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.react_router.action',
             ...options.attributes,
           },
         },
