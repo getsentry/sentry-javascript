@@ -40,7 +40,7 @@
   },
   "dependencies": {
     "@sentry/browser": "10.32.0",
-    "@sentry/core": "10.32.0",
+    "@sentry/core": "10.32.0"
   },
   "peerDependencies": {
     "react": "^16.14.0 || 17.x || 18.x || 19.x"
