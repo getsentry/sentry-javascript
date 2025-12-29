@@ -40,8 +40,7 @@
   },
   "dependencies": {
     "@sentry/browser": "10.32.1",
-    "@sentry/core": "10.32.1",
-    "hoist-non-react-statics": "^3.3.2"
+    "@sentry/core": "10.32.1"
   },
   "peerDependencies": {
     "react": "^16.14.0 || 17.x || 18.x || 19.x"
@@ -51,7 +50,7 @@
     "@testing-library/react-hooks": "^7.0.2",
     "@types/history-4": "npm:@types/history@4.7.8",
     "@types/history-5": "npm:@types/history@4.7.8",
-    "@types/hoist-non-react-statics": "^3.3.5",
+    "@types/node-fetch": "^2.6.11",
     "@types/react": "17.0.3",
     "@types/react-router-4": "npm:@types/react-router@4.0.25",
     "@types/react-router-5": "npm:@types/react-router@5.1.20",
