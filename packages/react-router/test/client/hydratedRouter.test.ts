@@ -112,10 +112,10 @@ describe('instrumentHydratedRouter', () => {
     expect(mockNavigationSpan.setAttributes).not.toHaveBeenCalled();
   });
 
-  it('skips navigation span creation when instrumentation API navigate hook has been invoked', () => {
-    // Simulate that the instrumentation API's navigate hook has been invoked
-    // (meaning React Router is invoking the hooks and we should avoid double-counting)
-    (globalThis as any).__sentryReactRouterNavigateHookInvoked = true;
+  it('skips navigation span creation when client instrumentation API is enabled', () => {
+    // Simulate that the client instrumentation API is enabled
+    // (meaning the instrumentation API handles navigation spans and we should avoid double-counting)
+    (globalThis as any).__sentryReactRouterClientInstrumentationUsed = true;
 
     instrumentHydratedRouter();
     mockRouter.navigate('/bar');
@@ -124,17 +124,36 @@ describe('instrumentHydratedRouter', () => {
     expect(browser.startBrowserTracingNavigationSpan).not.toHaveBeenCalled();
 
     // Clean up
-    delete (globalThis as any).__sentryReactRouterNavigateHookInvoked;
+    delete (globalThis as any).__sentryReactRouterClientInstrumentationUsed;
   });
 
-  it('creates navigation span when instrumentation API navigate hook has not been invoked', () => {
-    // Ensure the flag is not set (default state)
-    delete (globalThis as any).__sentryReactRouterNavigateHookInvoked;
+  it('creates navigation span when client instrumentation API is not enabled', () => {
+    // Ensure the flag is not set (default state - instrumentation API not used)
+    delete (globalThis as any).__sentryReactRouterClientInstrumentationUsed;
 
     instrumentHydratedRouter();
     mockRouter.navigate('/bar');
 
     // Should create a navigation span because instrumentation API is not handling it
+    expect(browser.startBrowserTracingNavigationSpan).toHaveBeenCalled();
+  });
+
+  it('creates navigation span in Framework Mode (flag not set means router() was never called)', () => {
+    // This is a regression test for Framework Mode (e.g., Remix) where:
+    // 1. createSentryClientInstrumentation() may be called during SDK init
+    // 2. But the framework doesn't support unstable_instrumentations, so router() is never called
+    // 3. In this case, the legacy navigation instrumentation should still create spans
+    //
+    // We simulate this by ensuring the flag is NOT set (since router() was never called)
+
+    // Ensure the flag is NOT set (simulating that router() was never called)
+    delete (globalThis as any).__sentryReactRouterClientInstrumentationUsed;
+
+    instrumentHydratedRouter();
+    mockRouter.navigate('/bar');
+
+    // Should create a navigation span via legacy instrumentation because
+    // the instrumentation API's router() method was never called
     expect(browser.startBrowserTracingNavigationSpan).toHaveBeenCalled();
   });
 

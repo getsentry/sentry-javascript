@@ -13,7 +13,7 @@ import {
 } from '@sentry/core';
 import type { DataRouter, RouterState } from 'react-router';
 import { DEBUG_BUILD } from '../common/debug-build';
-import { isNavigateHookInvoked } from './createClientInstrumentation';
+import { isClientInstrumentationApiUsed } from './createClientInstrumentation';
 
 const GLOBAL_OBJ_WITH_DATA_ROUTER = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   __reactRouterDataRouter?: DataRouter;
@@ -57,8 +57,8 @@ export function instrumentHydratedRouter(): void {
       if (typeof router.navigate === 'function') {
         const originalNav = router.navigate.bind(router);
         router.navigate = function sentryPatchedNavigate(...args) {
-          // Skip if instrumentation API is handling navigation (prevents double-counting)
-          if (!isNavigateHookInvoked()) {
+          // Skip if instrumentation API is enabled (it handles navigation spans itself)
+          if (!isClientInstrumentationApiUsed()) {
             maybeCreateNavigationTransaction(String(args[0]) || '<unknown route>', 'url');
           }
           return originalNav(...args);

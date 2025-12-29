@@ -22,7 +22,7 @@ vi.mock('@sentry/core', async () => {
 });
 
 vi.mock('@sentry/browser', () => ({
-  startBrowserTracingNavigationSpan: vi.fn(),
+  startBrowserTracingNavigationSpan: vi.fn().mockReturnValue({ setStatus: vi.fn() }),
 }));
 
 describe('createSentryClientInstrumentation', () => {
@@ -44,10 +44,27 @@ describe('createSentryClientInstrumentation', () => {
     expect(typeof instrumentation.route).toBe('function');
   });
 
-  it('should set the global flag when created', () => {
+  it('should NOT set the global flag when created (only when router() is called)', () => {
     expect((globalThis as any).__sentryReactRouterClientInstrumentationUsed).toBeUndefined();
 
     createSentryClientInstrumentation();
+
+    // Flag should NOT be set just by creating instrumentation
+    // This is important for Framework Mode where router() is never called
+    expect((globalThis as any).__sentryReactRouterClientInstrumentationUsed).toBeUndefined();
+  });
+
+  it('should set the global flag when router() is called by React Router', () => {
+    expect((globalThis as any).__sentryReactRouterClientInstrumentationUsed).toBeUndefined();
+
+    const mockInstrument = vi.fn();
+    const instrumentation = createSentryClientInstrumentation();
+
+    // Flag should not be set yet
+    expect((globalThis as any).__sentryReactRouterClientInstrumentationUsed).toBeUndefined();
+
+    // When React Router calls router(), the flag should be set
+    instrumentation.router?.({ instrument: mockInstrument });
 
     expect((globalThis as any).__sentryReactRouterClientInstrumentationUsed).toBe(true);
   });
@@ -193,8 +210,9 @@ describe('createSentryClientInstrumentation', () => {
     // React Router returns an error result, not a rejection
     const mockCallLoader = vi.fn().mockResolvedValue({ status: 'error', error: mockError });
     const mockInstrument = vi.fn();
+    const mockSpan = { setStatus: vi.fn() };
 
-    (core.startSpan as any).mockImplementation((_opts: any, fn: any) => fn());
+    (core.startSpan as any).mockImplementation((_opts: any, fn: any) => fn(mockSpan));
 
     const instrumentation = createSentryClientInstrumentation();
     instrumentation.route?.({
@@ -216,6 +234,9 @@ describe('createSentryClientInstrumentation', () => {
     expect(core.captureException).toHaveBeenCalledWith(mockError, {
       mechanism: { type: 'react_router.client_loader', handled: false, data: { 'http.url': '/test-path' } },
     });
+
+    // Should also set span status to error for actual Error instances
+    expect(mockSpan.setStatus).toHaveBeenCalledWith({ code: 2, message: 'internal_error' });
   });
 
   it('should not capture errors when captureErrors is false', async () => {
@@ -223,8 +244,9 @@ describe('createSentryClientInstrumentation', () => {
     // React Router returns an error result, not a rejection
     const mockCallLoader = vi.fn().mockResolvedValue({ status: 'error', error: mockError });
     const mockInstrument = vi.fn();
+    const mockSpan = { setStatus: vi.fn() };
 
-    (core.startSpan as any).mockImplementation((_opts: any, fn: any) => fn());
+    (core.startSpan as any).mockImplementation((_opts: any, fn: any) => fn(mockSpan));
 
     const instrumentation = createSentryClientInstrumentation({ captureErrors: false });
     instrumentation.route?.({
@@ -244,15 +266,20 @@ describe('createSentryClientInstrumentation', () => {
     });
 
     expect(core.captureException).not.toHaveBeenCalled();
+
+    // Span status should still be set for Error instances (reflects actual state)
+    expect(mockSpan.setStatus).toHaveBeenCalledWith({ code: 2, message: 'internal_error' });
   });
 
-  it('should capture navigate errors', async () => {
+  it('should capture navigate errors and set span status', async () => {
     const mockError = new Error('Navigation error');
     // React Router returns an error result, not a rejection
     const mockCallNavigate = vi.fn().mockResolvedValue({ status: 'error', error: mockError });
     const mockInstrument = vi.fn();
+    const mockNavigationSpan = { setStatus: vi.fn() };
 
     (core.getClient as any).mockReturnValue({});
+    (browser.startBrowserTracingNavigationSpan as any).mockReturnValue(mockNavigationSpan);
 
     const instrumentation = createSentryClientInstrumentation();
     instrumentation.router?.({ instrument: mockInstrument });
@@ -267,6 +294,9 @@ describe('createSentryClientInstrumentation', () => {
     expect(core.captureException).toHaveBeenCalledWith(mockError, {
       mechanism: { type: 'react_router.navigate', handled: false, data: { 'http.url': '/about' } },
     });
+
+    // Should set span status to error
+    expect(mockNavigationSpan.setStatus).toHaveBeenCalledWith({ code: 2, message: 'internal_error' });
   });
 
   it('should fall back to URL pathname when unstable_pattern is undefined', async () => {
@@ -385,9 +415,20 @@ describe('isClientInstrumentationApiUsed', () => {
     expect(isClientInstrumentationApiUsed()).toBe(true);
   });
 
-  it('should return true after createSentryClientInstrumentation is called', () => {
+  it('should return false after createSentryClientInstrumentation is called (flag set only when router() called)', () => {
     expect(isClientInstrumentationApiUsed()).toBe(false);
     createSentryClientInstrumentation();
+    // Flag is NOT set just by creating instrumentation - it's set when router() is called
+    // This is important for Framework Mode where router() is never called
+    expect(isClientInstrumentationApiUsed()).toBe(false);
+  });
+
+  it('should return true after router() is called', () => {
+    const mockInstrument = vi.fn();
+    expect(isClientInstrumentationApiUsed()).toBe(false);
+    const instrumentation = createSentryClientInstrumentation();
+    expect(isClientInstrumentationApiUsed()).toBe(false);
+    instrumentation.router?.({ instrument: mockInstrument });
     expect(isClientInstrumentationApiUsed()).toBe(true);
   });
 });

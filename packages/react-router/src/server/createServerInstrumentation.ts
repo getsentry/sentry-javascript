@@ -10,6 +10,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  SPAN_STATUS_ERROR,
   startSpan,
   updateSpanName,
 } from '@sentry/core';
@@ -116,8 +117,11 @@ export function createSentryServerInstrumentation(
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.react_router.instrumentation_api',
               },
             },
-            async () => {
+            async span => {
               const result = await callLoader();
+              if (result.status === 'error' && result.error instanceof Error) {
+                span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+              }
               captureInstrumentationError(result, captureErrors, 'react_router.loader', {
                 'http.method': info.request.method,
                 'http.url': urlPath,
@@ -140,8 +144,11 @@ export function createSentryServerInstrumentation(
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.react_router.instrumentation_api',
               },
             },
-            async () => {
+            async span => {
               const result = await callAction();
+              if (result.status === 'error' && result.error instanceof Error) {
+                span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+              }
               captureInstrumentationError(result, captureErrors, 'react_router.action', {
                 'http.method': info.request.method,
                 'http.url': urlPath,
@@ -166,8 +173,11 @@ export function createSentryServerInstrumentation(
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.react_router.instrumentation_api',
               },
             },
-            async () => {
+            async span => {
               const result = await callMiddleware();
+              if (result.status === 'error' && result.error instanceof Error) {
+                span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+              }
               captureInstrumentationError(result, captureErrors, 'react_router.middleware', {
                 'http.method': info.request.method,
                 'http.url': urlPath,
@@ -185,8 +195,11 @@ export function createSentryServerInstrumentation(
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.react_router.instrumentation_api',
               },
             },
-            async () => {
+            async span => {
               const result = await callLazy();
+              if (result.status === 'error' && result.error instanceof Error) {
+                span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+              }
               captureInstrumentationError(result, captureErrors, 'react_router.lazy', {});
             },
           );

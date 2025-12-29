@@ -6,6 +6,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  SPAN_STATUS_ERROR,
   startSpan,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../common/debug-build';
@@ -41,11 +42,16 @@ export function createSentryClientInstrumentation(
 ): ClientInstrumentation {
   const { captureErrors = true } = options;
 
-  (GLOBAL_OBJ as GlobalObjWithFlags)[SENTRY_CLIENT_INSTRUMENTATION_FLAG] = true;
-  DEBUG_BUILD && debug.log('React Router client instrumentation API enabled.');
+  DEBUG_BUILD && debug.log('React Router client instrumentation API created.');
 
   return {
     router(router: InstrumentableRouter) {
+      // Set the flag when React Router actually invokes our instrumentation.
+      // This ensures the flag is only set in Library Mode (where hooks run),
+      // not in Framework Mode (where hooks are never called).
+      (GLOBAL_OBJ as GlobalObjWithFlags)[SENTRY_CLIENT_INSTRUMENTATION_FLAG] = true;
+      DEBUG_BUILD && debug.log('React Router client instrumentation API router hook registered.');
+
       router.instrument({
         async navigate(callNavigate, info) {
           // Skip numeric navigations (history back/forward like navigate(-1))
@@ -60,10 +66,11 @@ export function createSentryClientInstrumentation(
 
           const client = getClient();
           const toPath = String(info.to);
+          let navigationSpan;
 
           if (client) {
             (GLOBAL_OBJ as GlobalObjWithFlags)[SENTRY_NAVIGATE_HOOK_INVOKED_FLAG] = true;
-            startBrowserTracingNavigationSpan(client, {
+            navigationSpan = startBrowserTracingNavigationSpan(client, {
               name: toPath,
               attributes: {
                 [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
@@ -74,6 +81,9 @@ export function createSentryClientInstrumentation(
           }
 
           const result = await callNavigate();
+          if (result.status === 'error' && result.error instanceof Error && navigationSpan) {
+            navigationSpan.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+          }
           captureInstrumentationError(result, captureErrors, 'react_router.navigate', {
             'http.url': toPath,
           });
@@ -88,8 +98,11 @@ export function createSentryClientInstrumentation(
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.react_router.instrumentation_api',
               },
             },
-            async () => {
+            async span => {
               const result = await callFetch();
+              if (result.status === 'error' && result.error instanceof Error) {
+                span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+              }
               captureInstrumentationError(result, captureErrors, 'react_router.fetcher', {
                 'http.url': info.href,
               });
@@ -113,8 +126,11 @@ export function createSentryClientInstrumentation(
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.react_router.instrumentation_api',
               },
             },
-            async () => {
+            async span => {
               const result = await callLoader();
+              if (result.status === 'error' && result.error instanceof Error) {
+                span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+              }
               captureInstrumentationError(result, captureErrors, 'react_router.client_loader', {
                 'http.url': urlPath,
               });
@@ -134,8 +150,11 @@ export function createSentryClientInstrumentation(
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.react_router.instrumentation_api',
               },
             },
-            async () => {
+            async span => {
               const result = await callAction();
+              if (result.status === 'error' && result.error instanceof Error) {
+                span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+              }
               captureInstrumentationError(result, captureErrors, 'react_router.client_action', {
                 'http.url': urlPath,
               });
@@ -155,8 +174,11 @@ export function createSentryClientInstrumentation(
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.react_router.instrumentation_api',
               },
             },
-            async () => {
+            async span => {
               const result = await callMiddleware();
+              if (result.status === 'error' && result.error instanceof Error) {
+                span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+              }
               captureInstrumentationError(result, captureErrors, 'react_router.client_middleware', {
                 'http.url': urlPath,
               });
@@ -173,8 +195,11 @@ export function createSentryClientInstrumentation(
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.react_router.instrumentation_api',
               },
             },
-            async () => {
+            async span => {
               const result = await callLazy();
+              if (result.status === 'error' && result.error instanceof Error) {
+                span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+              }
               captureInstrumentationError(result, captureErrors, 'react_router.client_lazy', {});
             },
           );

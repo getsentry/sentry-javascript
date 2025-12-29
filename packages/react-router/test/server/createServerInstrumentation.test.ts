@@ -344,8 +344,9 @@ describe('createSentryServerInstrumentation', () => {
     // React Router returns an error result, not a rejection
     const mockCallLoader = vi.fn().mockResolvedValue({ status: 'error', error: mockError });
     const mockInstrument = vi.fn();
+    const mockSpan = { setStatus: vi.fn() };
 
-    (core.startSpan as any).mockImplementation((_opts: any, fn: any) => fn());
+    (core.startSpan as any).mockImplementation((_opts: any, fn: any) => fn(mockSpan));
     (core.getActiveSpan as any).mockReturnValue({});
     (core.getRootSpan as any).mockReturnValue({ setAttributes: vi.fn() });
 
@@ -373,6 +374,9 @@ describe('createSentryServerInstrumentation', () => {
         data: { 'http.method': 'GET', 'http.url': '/test' },
       },
     });
+
+    // Should also set span status to error for actual Error instances
+    expect(mockSpan.setStatus).toHaveBeenCalledWith({ code: 2, message: 'internal_error' });
   });
 
   it('should not capture errors when captureErrors is false', async () => {
@@ -380,8 +384,9 @@ describe('createSentryServerInstrumentation', () => {
     // React Router returns an error result, not a rejection
     const mockCallLoader = vi.fn().mockResolvedValue({ status: 'error', error: mockError });
     const mockInstrument = vi.fn();
+    const mockSpan = { setStatus: vi.fn() };
 
-    (core.startSpan as any).mockImplementation((_opts: any, fn: any) => fn());
+    (core.startSpan as any).mockImplementation((_opts: any, fn: any) => fn(mockSpan));
     (core.getActiveSpan as any).mockReturnValue({});
     (core.getRootSpan as any).mockReturnValue({ setAttributes: vi.fn() });
 
@@ -403,6 +408,9 @@ describe('createSentryServerInstrumentation', () => {
     });
 
     expect(core.captureException).not.toHaveBeenCalled();
+
+    // Span status should still be set for Error instances (reflects actual state)
+    expect(mockSpan.setStatus).toHaveBeenCalledWith({ code: 2, message: 'internal_error' });
   });
 });
 
