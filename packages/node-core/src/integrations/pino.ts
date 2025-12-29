@@ -9,7 +9,6 @@ import {
   severityLevelFromString,
   withScope,
 } from '@sentry/core';
-import { addInstrumentationConfig } from '../sdk/injectLoader';
 
 const SENTRY_TRACK_SYMBOL = Symbol('sentry-track-pino-logger');
 
@@ -128,18 +127,6 @@ const _pinoIntegration = defineIntegration((userOptions: DeepPartial<PinoOptions
     setup: client => {
       const enableLogs = !!client.getOptions().enableLogs;
 
-      addInstrumentationConfig({
-        channelName: 'pino-log',
-        // From Pino v9.10.0 a tracing channel is available directly from Pino:
-        // https://github.com/pinojs/pino/pull/2281
-        module: { name: 'pino', versionRange: '>=8.0.0 < 9.10.0', filePath: 'lib/tools.js' },
-        functionQuery: {
-          functionName: 'asJson',
-          kind: 'Sync',
-        },
-      });
-
-      const injectedChannel = diagnosticsChannel.tracingChannel('orchestrion:pino:pino-log');
       const integratedChannel = diagnosticsChannel.tracingChannel('pino_asJson');
 
       function onPinoStart(self: Pino, args: PinoHookArgs, result: PinoResult): void {
@@ -191,11 +178,6 @@ const _pinoIntegration = defineIntegration((userOptions: DeepPartial<PinoOptions
           });
         }
       }
-
-      injectedChannel.end.subscribe(data => {
-        const { self, arguments: args, result } = data as { self: Pino; arguments: PinoHookArgs; result: string };
-        onPinoStart(self, args, JSON.parse(result));
-      });
 
       integratedChannel.end.subscribe(data => {
         const {
