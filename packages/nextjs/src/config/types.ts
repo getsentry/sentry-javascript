@@ -11,8 +11,8 @@ type NextRewrite = {
 };
 
 interface WebpackPluginInstance {
-  [index: string]: any;
-  apply: (compiler: any) => void;
+  [index: string]: unknown;
+  apply: (compiler: unknown) => void;
 }
 
 export type NextConfigObject = {

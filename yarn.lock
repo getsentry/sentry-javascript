@@ -7156,7 +7156,7 @@
     "@sentry/bundler-plugin-core" "4.6.1"
     unplugin "1.0.1"
 
-"@sentry/vite-plugin@^4.1.0", "@sentry/vite-plugin@^4.6.1":
+"@sentry/vite-plugin@^4.6.1":
   version "4.6.1"
   resolved "https://registry.yarnpkg.com/@sentry/vite-plugin/-/vite-plugin-4.6.1.tgz#883d8448c033b309528985e12e0d5d1af99ee1c6"
   integrity sha512-Qvys1y3o8/bfL3ikrHnJS9zxdjt0z3POshdBl3967UcflrTqBmnGNkcVk53SlmtJWIfh85fgmrLvGYwZ2YiqNg==
@@ -18848,10 +18848,10 @@ homedir-polyfill@^1.0.1:
   dependencies:
     parse-passwd "^1.0.0"
 
-hono@^4.9.8:
-  version "4.9.8"
-  resolved "https://registry.yarnpkg.com/hono/-/hono-4.9.8.tgz#1710981135ec775fe26fab5ea6535b403e92bcc3"
-  integrity sha512-JW8Bb4RFWD9iOKxg5PbUarBYGM99IcxFl2FPBo2gSJO11jjUDqlP1Bmfyqt8Z/dGhIQ63PMA9LdcLefXyIasyg==
+hono@^4.0.0, hono@^4.9.8:
+  version "4.11.1"
+  resolved "https://registry.yarnpkg.com/hono/-/hono-4.11.1.tgz#cb1b0c045fc74a96c693927234c95a45fb46ab0b"
+  integrity sha512-KsFcH0xxHes0J4zaQgWbYwmz3UPOOskdqZmItstUG93+Wk1ePBLkLGwbP9zlmh1BFUiL8Qp+Xfu9P7feJWpGNg==
 
 hookable@^5.5.3:
   version "5.5.3"
@@ -19238,10 +19238,10 @@ import-fresh@^3.2.1:
     parent-module "^1.0.0"
     resolve-from "^4.0.0"
 
-import-in-the-middle@^2, import-in-the-middle@^2.0.0:
-  version "2.0.0"
-  resolved "https://registry.yarnpkg.com/import-in-the-middle/-/import-in-the-middle-2.0.0.tgz#295948cee94d0565314824c6bd75379d13e5b1a5"
-  integrity sha512-yNZhyQYqXpkT0AKq3F3KLasUSK4fHvebNH5hOsKQw2dhGSALvQ4U0BqUc5suziKvydO5u5hgN2hy1RJaho8U5A==
+import-in-the-middle@2.0.1, import-in-the-middle@^2.0.0, import-in-the-middle@^2.0.1:
+  version "2.0.1"
+  resolved "https://registry.yarnpkg.com/import-in-the-middle/-/import-in-the-middle-2.0.1.tgz#8d1aa2db18374f2c811de2aa4756ebd6e9859243"
+  integrity sha512-bruMpJ7xz+9jwGzrwEhWgvRrlKRYCRDBrfU+ur3FcasYXLJDxTruJ//8g2Noj+QFyRBeqbpj8Bhn4Fbw6HjvhA==
   dependencies:
     acorn "^8.14.0"
     acorn-import-attributes "^1.9.5"
