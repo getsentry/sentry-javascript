@@ -3,8 +3,8 @@
 
 import { debug, escapeStringForRegex, loadModule, parseSemver } from '@sentry/core';
 import * as fs from 'fs';
+import { createRequire } from 'module';
 import * as path from 'path';
-import { sync as resolveSync } from 'resolve';
 import type { VercelCronsConfig } from '../common/types';
 import { getBuildPluginOptions, normalizePathForGlob } from './getBuildPluginOptions';
 import type { RouteManifest } from './manifest/types';
@@ -790,7 +790,7 @@ function addValueInjectionLoader({
 
 function resolveNextPackageDirFromDirectory(basedir: string): string | undefined {
   try {
-    return path.dirname(resolveSync('next/package.json', { basedir }));
+    return path.dirname(createRequire(`${basedir}/`).resolve('next/package.json'));
   } catch {
     // Should not happen in theory
     return undefined;
