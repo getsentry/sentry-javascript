@@ -378,20 +378,6 @@
   dependencies:
     json-schema-to-ts "^3.1.1"
 
-"@apm-js-collab/code-transformer@^0.8.0", "@apm-js-collab/code-transformer@^0.8.2":
-  version "0.8.2"
-  resolved "https://registry.yarnpkg.com/@apm-js-collab/code-transformer/-/code-transformer-0.8.2.tgz#a3160f16d1c4df9cb81303527287ad18d00994d1"
-  integrity sha512-YRjJjNq5KFSjDUoqu5pFUWrrsvGOxl6c3bu+uMFc9HNNptZ2rNU/TI2nLw4jnhQNtka972Ee2m3uqbvDQtPeCA==
-
-"@apm-js-collab/tracing-hooks@^0.3.1":
-  version "0.3.1"
-  resolved "https://registry.yarnpkg.com/@apm-js-collab/tracing-hooks/-/tracing-hooks-0.3.1.tgz#414d3a93c3a15d8be543a3fac561f7c602b6a588"
-  integrity sha512-Vu1CbmPURlN5fTboVuKMoJjbO5qcq9fA5YXpskx3dXe/zTBvjODFoerw+69rVBlRLrJpwPqSDqEuJDEKIrTldw==
-  dependencies:
-    "@apm-js-collab/code-transformer" "^0.8.0"
-    debug "^4.4.1"
-    module-details-from-path "^1.0.4"
-
 "@apollo/cache-control-types@^1.0.3":
   version "1.0.3"
   resolved "https://registry.yarnpkg.com/@apollo/cache-control-types/-/cache-control-types-1.0.3.tgz#5da62cf64c3b4419dabfef4536b57a40c8ff0b47"
