@@ -142,3 +142,49 @@ describe('spotlight', () => {
     });
   }
 });
+
+describe('__VITE_SPOTLIGHT_ENV__ rollup replacement', () => {
+  // Test that our rollup build correctly replaces __VITE_SPOTLIGHT_ENV__
+  // ESM bundles should have import.meta.env access, CJS should have undefined
+
+  function readSdkFile(packageName: string, format: 'esm' | 'cjs'): string {
+    const sdkPath = path.join(
+      rootDir(),
+      'packages',
+      packageName,
+      'build',
+      format,
+      'sdk.js',
+    );
+    if (!fs.existsSync(sdkPath)) {
+      throw new Error(`SDK file not found: ${sdkPath}. Make sure to run yarn build:dev first.`);
+    }
+    return fs.readFileSync(sdkPath, 'utf8');
+  }
+
+  // Remove comments from code to test only actual code
+  function stripComments(code: string): string {
+    // Remove single-line comments
+    return code.replace(/\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '');
+  }
+
+  test.each(['react', 'vue', 'svelte', 'solid'] as const)(
+    '%s ESM bundle contains import.meta.env?.VITE_SENTRY_SPOTLIGHT access',
+    packageName => {
+      const code = stripComments(readSdkFile(packageName, 'esm'));
+      // ESM bundles should have import.meta.env access for Vite support
+      // The replacement is: import.meta.env?.VITE_SENTRY_SPOTLIGHT
+      expect(code).toMatch(/import\.meta\.env\?\.[A-Z_]+SPOTLIGHT/);
+    },
+  );
+
+  test.each(['react', 'vue', 'svelte', 'solid'] as const)(
+    '%s CJS bundle does not contain import.meta.env (CJS incompatible)',
+    packageName => {
+      const code = stripComments(readSdkFile(packageName, 'cjs'));
+      // CJS bundles should NOT have import.meta.env as it's ESM-only syntax
+      // The __VITE_SPOTLIGHT_ENV__ placeholder should be replaced with 'undefined'
+      expect(code).not.toMatch(/import\.meta\.env/);
+    },
+  );
+});
