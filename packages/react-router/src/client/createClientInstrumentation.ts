@@ -63,7 +63,7 @@ export function createSentryClientInstrumentation(
 
       // Add popstate listener for browser back/forward button navigation
       // Only add once per session
-      if (!((GLOBAL_OBJ as GlobalObjWithFlags)[SENTRY_POPSTATE_LISTENER_ADDED_FLAG]) && WINDOW.addEventListener) {
+      if (!(GLOBAL_OBJ as GlobalObjWithFlags)[SENTRY_POPSTATE_LISTENER_ADDED_FLAG] && WINDOW.addEventListener) {
         (GLOBAL_OBJ as GlobalObjWithFlags)[SENTRY_POPSTATE_LISTENER_ADDED_FLAG] = true;
 
         WINDOW.addEventListener('popstate', () => {
