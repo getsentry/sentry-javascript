@@ -272,10 +272,6 @@ async function wrapUserCode(
         {
           name: 'virtualize-sentry-wrapper-modules',
           resolveId: id => {
-            if (isDev && id === WRAPPING_TARGET_MODULE_NAME) {
-              return userModulePath || id;
-            }
-
             if (id === SENTRY_WRAPPER_MODULE_NAME || id === WRAPPING_TARGET_MODULE_NAME) {
               return id;
             }
@@ -287,7 +283,7 @@ async function wrapUserCode(
               return withDefaultExport ? wrapperCode : wrapperCode.replace('export { default } from', 'export {} from');
             }
 
-            if (id !== WRAPPING_TARGET_MODULE_NAME && !(isDev && id === userModulePath)) {
+            if (id !== WRAPPING_TARGET_MODULE_NAME) {
               return null;
             }
 
@@ -339,11 +335,7 @@ async function wrapUserCode(
       ],
 
       // We only want to bundle our wrapper module and the wrappee module into one, so we mark everything else as external.
-      // In dev mode, we also need to include userModulePath since resolveId returns the absolute path for debugging.
-      external: sourceId =>
-        sourceId !== SENTRY_WRAPPER_MODULE_NAME &&
-        sourceId !== WRAPPING_TARGET_MODULE_NAME &&
-        !(isDev && sourceId === userModulePath),
+      external: sourceId => sourceId !== SENTRY_WRAPPER_MODULE_NAME && sourceId !== WRAPPING_TARGET_MODULE_NAME,
 
       // Prevent rollup from stressing out about TS's use of global `this` when polyfilling await. (TS will polyfill if the
       // user's tsconfig `target` is set to anything before `es2017`. See https://stackoverflow.com/a/72822340 and
