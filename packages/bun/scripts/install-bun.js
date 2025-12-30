@@ -15,7 +15,6 @@ exec('bun --version', (error, version) => {
     console.error('bun is not installed. Installing...');
     installLatestBun();
   } else {
-
     exec('bun upgrade', (error, stdout, stderr) => {
       if (error) {
         console.error('Failed to upgrade bun:', error);
