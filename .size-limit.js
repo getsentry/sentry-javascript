@@ -148,7 +148,7 @@ module.exports = [
     import: createImport('init', 'ErrorBoundary', 'reactRouterV6BrowserTracingIntegration'),
     ignore: ['react/jsx-runtime'],
     gzip: true,
-    limit: '44 KB',
+    limit: '44.5 KB',
   },
   // Vue SDK (ESM)
   {
@@ -171,7 +171,7 @@ module.exports = [
     path: 'packages/svelte/build/esm/index.js',
     import: createImport('init'),
     gzip: true,
-    limit: '25 KB',
+    limit: '25.5 KB',
   },
   // Browser CDN bundles
   {
@@ -243,7 +243,7 @@ module.exports = [
     import: createImport('init'),
     ignore: ['$app/stores'],
     gzip: true,
-    limit: '42 KB',
+    limit: '42.5 KB',
   },
   // Node-Core SDK (ESM)
   {

@@ -18,12 +18,12 @@ webpack(
       minimizer: [new TerserPlugin()],
     },
     plugins: [
-      new webpack.DefinePlugin({
-        // E2E_TEST_DSN can be passed from environment or defaults to empty
-        'process.env.E2E_TEST_DSN': JSON.stringify(process.env.E2E_TEST_DSN || ''),
+      // EnvironmentPlugin is more robust for replacing process.env.* references
+      new webpack.EnvironmentPlugin({
+        E2E_TEST_DSN: '',
         // SENTRY_SPOTLIGHT is hardcoded to point to the Spotlight proxy server on port 3032
         // This tests that the SDK correctly parses the env var and sends events to Spotlight
-        'process.env.SENTRY_SPOTLIGHT': JSON.stringify('http://localhost:3032/stream'),
+        SENTRY_SPOTLIGHT: 'http://localhost:3032/stream',
       }),
       new HtmlWebpackPlugin({
         template: path.join(__dirname, 'public/index.html'),
