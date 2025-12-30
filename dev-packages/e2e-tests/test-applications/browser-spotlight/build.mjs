@@ -34,11 +34,11 @@ webpack(
           SENTRY_SPOTLIGHT: 'http://localhost:3032/stream',
         }),
         // Define 'process' object so typeof check works - must come after process.env
-        'process': JSON.stringify({
+        process: JSON.stringify({
           env: {
             E2E_TEST_DSN: process.env.E2E_TEST_DSN || 'https://public@dsn.ingest.sentry.io/1234567',
             SENTRY_SPOTLIGHT: 'http://localhost:3032/stream',
-          }
+          },
         }),
       }),
       new HtmlWebpackPlugin({
