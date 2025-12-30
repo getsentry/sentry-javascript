@@ -107,6 +107,14 @@ export default defineNuxtModule<ModuleOptions>({
 
     addOTelCommonJSImportAlias(nuxt);
 
+    // Inject SENTRY_SPOTLIGHT env var for client bundles (fallback for manual setup without VITE_ prefix)
+    nuxt.hook('vite:extendConfig', (viteConfig, env) => {
+      if (env.isClient) {
+        viteConfig.define = viteConfig.define || {};
+        viteConfig.define['import.meta.env.SENTRY_SPOTLIGHT'] = JSON.stringify(process.env.SENTRY_SPOTLIGHT || '');
+      }
+    });
+
     const pagesDataTemplate = addTemplate({
       filename: 'sentry--nuxt-pages-data.mjs',
       // Initial empty array (later filled in pages:extend hook)

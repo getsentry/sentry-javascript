@@ -169,6 +169,24 @@ export function makeRrwebBuildPlugin({ excludeShadowDom, excludeIframe } = {}) {
 }
 
 /**
+ * Creates a plugin to replace __VITE_SPOTLIGHT_ENV__ with the appropriate value based on output format.
+ * - ESM: import.meta.env?.VITE_SENTRY_SPOTLIGHT (allows Vite to provide zero-config Spotlight support)
+ * - CJS: undefined (import.meta is not available in CJS)
+ *
+ * @param format The output format ('esm' or 'cjs')
+ * @returns A `@rollup/plugin-replace` instance.
+ */
+export function makeViteSpotlightEnvReplacePlugin(format) {
+  const value = format === 'esm' ? 'import.meta.env?.VITE_SENTRY_SPOTLIGHT' : 'undefined';
+  return replace({
+    preventAssignment: true,
+    values: {
+      __VITE_SPOTLIGHT_ENV__: value,
+    },
+  });
+}
+
+/**
  * Plugin that uploads bundle analysis to codecov.
  *
  * @param type The type of bundle being uploaded.

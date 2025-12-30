@@ -2,7 +2,15 @@
 // can be removed once following issue is fixed: https://github.com/import-js/eslint-plugin-import/issues/703
 /* eslint-disable import/export */
 import type { Client, EventProcessor, Integration } from '@sentry/core';
-import { addEventProcessor, applySdkMetadata, consoleSandbox, getGlobalScope, GLOBAL_OBJ } from '@sentry/core';
+import {
+  addEventProcessor,
+  applySdkMetadata,
+  consoleSandbox,
+  getGlobalScope,
+  GLOBAL_OBJ,
+  parseSpotlightEnvValue,
+  resolveSpotlightValue,
+} from '@sentry/core';
 import type { BrowserOptions } from '@sentry/react';
 import { getDefaultIntegrations as getReactDefaultIntegrations, init as reactInit } from '@sentry/react';
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
@@ -31,6 +39,7 @@ const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   _sentryBasePath?: string;
   _sentryRelease?: string;
   _experimentalThirdPartyOriginStackFrames?: string;
+  _sentrySpotlight?: string; // For turbopack fallback
 };
 
 // Treeshakable guard to remove all code related to tracing
@@ -54,11 +63,20 @@ export function init(options: BrowserOptions): Client | undefined {
     removeIsrSsgTraceMetaTags();
   }
 
+  // Read NEXT_PUBLIC_SENTRY_SPOTLIGHT (set by spotlight run, works with both bundlers)
+  // OR fallback to SENTRY_SPOTLIGHT (webpack: process.env, turbopack: globalThis)
+  const spotlightEnvRaw =
+    process.env.NEXT_PUBLIC_SENTRY_SPOTLIGHT ||
+    process.env.SENTRY_SPOTLIGHT ||
+    globalWithInjectedValues._sentrySpotlight;
+  const spotlightEnvValue = parseSpotlightEnvValue(spotlightEnvRaw);
+
   const opts = {
     environment: getVercelEnv(true) || process.env.NODE_ENV,
     defaultIntegrations: getDefaultIntegrations(options),
     release: process.env._sentryRelease || globalWithInjectedValues._sentryRelease,
     ...options,
+    spotlight: resolveSpotlightValue(options.spotlight, spotlightEnvValue),
   } satisfies BrowserOptions;
 
   applyTunnelRouteOption(opts);

@@ -19,6 +19,7 @@ import {
   makeProductionReplacePlugin,
   makeRrwebBuildPlugin,
   makeSucrasePlugin,
+  makeViteSpotlightEnvReplacePlugin,
 } from './plugins/index.mjs';
 import { makePackageNodeEsm } from './plugins/make-esm-plugin.mjs';
 import { mergePlugins } from './utils.mjs';
@@ -121,13 +122,19 @@ export function makeNPMConfigVariants(baseConfig, options = {}) {
 
   if (emitCjs) {
     if (splitDevProd) {
-      variantSpecificConfigs.push({ output: { format: 'cjs', dir: path.join(baseConfig.output.dir, 'cjs/dev') } });
+      variantSpecificConfigs.push({
+        output: { format: 'cjs', dir: path.join(baseConfig.output.dir, 'cjs/dev') },
+        plugins: [makeViteSpotlightEnvReplacePlugin('cjs')],
+      });
       variantSpecificConfigs.push({
         output: { format: 'cjs', dir: path.join(baseConfig.output.dir, 'cjs/prod') },
-        plugins: [makeProductionReplacePlugin()],
+        plugins: [makeProductionReplacePlugin(), makeViteSpotlightEnvReplacePlugin('cjs')],
       });
     } else {
-      variantSpecificConfigs.push({ output: { format: 'cjs', dir: path.join(baseConfig.output.dir, 'cjs') } });
+      variantSpecificConfigs.push({
+        output: { format: 'cjs', dir: path.join(baseConfig.output.dir, 'cjs') },
+        plugins: [makeViteSpotlightEnvReplacePlugin('cjs')],
+      });
     }
   }
 
@@ -139,6 +146,7 @@ export function makeNPMConfigVariants(baseConfig, options = {}) {
           dir: path.join(baseConfig.output.dir, 'esm/dev'),
           plugins: [makePackageNodeEsm()],
         },
+        plugins: [makeViteSpotlightEnvReplacePlugin('esm')],
       });
       variantSpecificConfigs.push({
         output: {
@@ -146,6 +154,7 @@ export function makeNPMConfigVariants(baseConfig, options = {}) {
           dir: path.join(baseConfig.output.dir, 'esm/prod'),
           plugins: [makeProductionReplacePlugin(), makePackageNodeEsm()],
         },
+        plugins: [makeViteSpotlightEnvReplacePlugin('esm')],
       });
     } else {
       variantSpecificConfigs.push({
@@ -154,6 +163,7 @@ export function makeNPMConfigVariants(baseConfig, options = {}) {
           dir: path.join(baseConfig.output.dir, 'esm'),
           plugins: [makePackageNodeEsm()],
         },
+        plugins: [makeViteSpotlightEnvReplacePlugin('esm')],
       });
     }
   }
