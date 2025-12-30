@@ -5,16 +5,15 @@ import { waitForError, waitForSpotlightError, waitForSpotlightTransaction } from
  * Test that Spotlight integration correctly sends events to the sidecar.
  *
  * This test verifies that:
- * 1. The SDK includes Spotlight integration when in development mode
+ * 1. The spotlightBrowserIntegration can be explicitly added to integrations
  * 2. Events are sent to both the tunnel AND the Spotlight sidecar URL
  * 3. The Spotlight sidecar receives the events at the /stream endpoint
  *
  * Test setup:
- * - spotlight option is set to 'http://localhost:3032/stream' (via env var or fallback)
+ * - spotlightBrowserIntegration is explicitly added with sidecarUrl
  * - tunnel is set to 'http://localhost:3031' for regular event capture
  * - A Spotlight proxy server runs on port 3032 to capture Spotlight events
  * - A regular event proxy server runs on port 3031 to capture tunnel events
- * - Webpack uses 'development' condition to resolve SDK dev builds with Spotlight
  */
 test('Spotlight integration sends error events to sidecar', async ({ page }) => {
   // Wait for the error to arrive at the regular tunnel (port 3031)
