@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { waitForMetric } from '@sentry-internal/test-utils';
 
-test.only('Should emit metrics from server and client', async ({ request, page }) => {
+test('Should emit metrics from server and client', async ({ request, page }) => {
   const clientCountPromise = waitForMetric('nextjs-16', async metric => {
     return metric.name === 'test.page.count';
   });
