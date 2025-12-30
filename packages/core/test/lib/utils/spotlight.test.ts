@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as debugLogger from '../../../src/utils/debug-logger';
 import { parseSpotlightEnvValue, resolveSpotlightValue } from '../../../src/utils/spotlight';
 
