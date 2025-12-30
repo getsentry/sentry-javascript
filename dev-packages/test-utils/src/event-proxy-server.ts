@@ -1,5 +1,12 @@
 /* eslint-disable max-lines */
-import type { Envelope, EnvelopeItem, Event, SerializedSession } from '@sentry/core';
+import type {
+  Envelope,
+  EnvelopeItem,
+  Event,
+  SerializedMetric,
+  SerializedMetricContainer,
+  SerializedSession,
+} from '@sentry/core';
 import { parseEnvelope } from '@sentry/core';
 import * as fs from 'fs';
 import * as http from 'http';
@@ -459,6 +466,35 @@ export function waitForSpotlightTransaction(
 ): Promise<Event> {
   // Reuse the same logic as waitForTransaction - just uses a different proxy server name
   return waitForTransaction(proxyServerName, callback);
+}
+
+/**
+ * Wait for metric items to be sent.
+ */
+export function waitForMetric(
+  proxyServerName: string,
+  callback: (metricEvent: SerializedMetric) => Promise<boolean> | boolean,
+): Promise<SerializedMetric> {
+  const timestamp = getNanosecondTimestamp();
+  return new Promise((resolve, reject) => {
+    waitForEnvelopeItem(
+      proxyServerName,
+      async envelopeItem => {
+        const [envelopeItemHeader, envelopeItemBody] = envelopeItem;
+        const metricContainer = envelopeItemBody as SerializedMetricContainer;
+        if (envelopeItemHeader.type === 'trace_metric') {
+          for (const metric of metricContainer.items) {
+            if (await callback(metric)) {
+              resolve(metric);
+              return true;
+            }
+          }
+        }
+        return false;
+      },
+      timestamp,
+    ).catch(reject);
+  });
 }
 
 const TEMP_FILE_PREFIX = 'event-proxy-server-';

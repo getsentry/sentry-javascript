@@ -10,6 +10,7 @@ export {
   waitForPlainRequest,
   waitForSpotlightError,
   waitForSpotlightTransaction,
+  waitForMetric,
 } from './event-proxy-server';
 
 export { getPlaywrightConfig } from './playwright-config';

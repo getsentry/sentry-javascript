@@ -13,6 +13,7 @@ import {
 } from '@sentry/core';
 import type { BrowserOptions } from '@sentry/react';
 import { getDefaultIntegrations as getReactDefaultIntegrations, init as reactInit } from '@sentry/react';
+import { DEBUG_BUILD } from '../common/debug-build';
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
 import { getVercelEnv } from '../common/getVercelEnv';
 import { isRedirectNavigationError } from '../common/nextNavigationErrorUtils';
@@ -56,6 +57,15 @@ export function init(options: BrowserOptions): Client | undefined {
     });
   }
   clientIsInitialized = true;
+
+  if (!DEBUG_BUILD && options.debug) {
+    consoleSandbox(() => {
+      // eslint-disable-next-line no-console
+      console.warn(
+        '[@sentry/nextjs] You have enabled `debug: true`, but Sentry debug logging was removed from your bundle (likely via `withSentryConfig({ disableLogger: true })` / `webpack.treeshake.removeDebugLogging: true`). Set that option to `false` to see Sentry debug output.',
+      );
+    });
+  }
 
   // Remove cached trace meta tags for ISR/SSG pages before initializing
   // This prevents the browser tracing integration from using stale trace IDs
