@@ -55,11 +55,8 @@ function getRuntimeConfig(): { lazyRouteTimeout?: number; idleTimeout?: number }
 
 const runtimeConfig = getRuntimeConfig();
 
-// Use Spotlight DSN workaround - sends events directly to Spotlight sidecar
-// Port 8969 is Spotlight's default port
 Sentry.init({
-  environment: 'qa', // dynamic sampling bias to keep transactions
-  dsn: 'http://spotlight@localhost:8969/0',
+  dsn: process.env.E2E_TEST_DSN,
   integrations: [
     Sentry.reactRouterV7BrowserTracingIntegration({
       useEffect: React.useEffect,
@@ -73,10 +70,10 @@ Sentry.init({
       idleTimeout: runtimeConfig.idleTimeout,
     }),
   ],
-  // We recommend adjusting this value in production, or using tracesSampler
-  // for finer control
   tracesSampleRate: 1.0,
   release: 'e2e-test',
+  environment: 'qa',
+  tunnel: 'http://localhost:3031',
 });
 
 const sentryCreateBrowserRouter = Sentry.wrapCreateBrowserRouterV7(createBrowserRouter);

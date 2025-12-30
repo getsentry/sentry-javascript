@@ -1,27 +1,8 @@
 import { expect, test } from '@playwright/test';
-import { startSpotlight, waitForSpotlightTransaction, clearSpotlightEventBuffer } from '@sentry-internal/test-utils';
-import * as path from 'path';
-
-let spotlight: Awaited<ReturnType<typeof startSpotlight>>;
-
-test.beforeAll(async () => {
-  spotlight = await startSpotlight({
-    cwd: path.resolve(__dirname, '..'),
-    port: 8969, // Must match DSN in src/index.tsx
-    debug: !!process.env.DEBUG,
-  });
-});
-
-test.afterAll(() => {
-  spotlight?.stop();
-});
-
-test.beforeEach(() => {
-  clearSpotlightEventBuffer();
-});
+import { waitForTransaction } from '@sentry-internal/test-utils';
 
 test('lazyRouteTimeout: Routes load within timeout window', async ({ page }) => {
-  const transactionPromise = waitForSpotlightTransaction(async transactionEvent => {
+  const transactionPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
     return (
       !!transactionEvent?.transaction &&
       transactionEvent.contexts?.trace?.op === 'navigation' &&
@@ -46,7 +27,7 @@ test('lazyRouteTimeout: Routes load within timeout window', async ({ page }) => 
 });
 
 test('lazyRouteTimeout: Infinity timeout always waits for routes', async ({ page }) => {
-  const transactionPromise = waitForSpotlightTransaction(async transactionEvent => {
+  const transactionPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
     return (
       !!transactionEvent?.transaction &&
       transactionEvent.contexts?.trace?.op === 'navigation' &&
@@ -70,7 +51,7 @@ test('lazyRouteTimeout: Infinity timeout always waits for routes', async ({ page
 });
 
 test('idleTimeout: Captures all activity with increased timeout', async ({ page }) => {
-  const transactionPromise = waitForSpotlightTransaction(async transactionEvent => {
+  const transactionPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
     return (
       !!transactionEvent?.transaction &&
       transactionEvent.contexts?.trace?.op === 'navigation' &&
@@ -98,7 +79,7 @@ test('idleTimeout: Captures all activity with increased timeout', async ({ page 
 });
 
 test('idleTimeout: Finishes prematurely with low timeout', async ({ page }) => {
-  const transactionPromise = waitForSpotlightTransaction(async transactionEvent => {
+  const transactionPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
     return (
       !!transactionEvent?.transaction &&
       transactionEvent.contexts?.trace?.op === 'navigation' &&
@@ -126,7 +107,7 @@ test('idleTimeout: Finishes prematurely with low timeout', async ({ page }) => {
 });
 
 test('idleTimeout: Pageload on deeply nested route', async ({ page }) => {
-  const pageloadPromise = waitForSpotlightTransaction(async transactionEvent => {
+  const pageloadPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
     return (
       !!transactionEvent?.transaction &&
       transactionEvent.contexts?.trace?.op === 'pageload' &&
