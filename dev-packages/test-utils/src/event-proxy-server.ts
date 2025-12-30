@@ -91,6 +91,17 @@ export async function startProxyServer(
     });
 
     proxyRequest.addListener('end', () => {
+      // Handle CORS preflight requests before processing body
+      if (proxyRequest.method === 'OPTIONS') {
+        proxyResponse.writeHead(200, {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, X-Sentry-Auth',
+        });
+        proxyResponse.end();
+        return;
+      }
+
       const proxyRequestBody =
         proxyRequest.headers['content-encoding'] === 'gzip'
           ? zlib.gunzipSync(Buffer.concat(proxyRequestChunks)).toString()
