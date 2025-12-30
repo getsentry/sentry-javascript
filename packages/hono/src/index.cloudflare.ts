@@ -1,1 +1,1 @@
-export { sentry } from './middleware/middleware.cloudflare';
+export { sentry } from './cloudflare/middleware';
