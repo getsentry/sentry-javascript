@@ -13,6 +13,11 @@ webpack(
       path: path.join(__dirname, 'build'),
       filename: 'app.js',
     },
+    resolve: {
+      // Use 'development' condition to resolve to SDK builds that include Spotlight code
+      // The @sentry packages use conditional exports with 'development' and 'production' conditions
+      conditionNames: ['development', 'browser', 'module', 'import', 'require', 'default'],
+    },
     optimization: {
       minimize: true,
       minimizer: [new TerserPlugin()],
