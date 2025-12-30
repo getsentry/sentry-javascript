@@ -94,6 +94,7 @@ describe('createSentryClientInstrumentation', () => {
         'sentry.source': 'url',
         'sentry.op': 'navigation',
         'sentry.origin': 'auto.navigation.react_router.instrumentation_api',
+        'navigation.type': 'router.navigate',
       }),
     });
     expect(mockCallNavigate).toHaveBeenCalled();
@@ -299,6 +300,124 @@ describe('createSentryClientInstrumentation', () => {
     expect(mockNavigationSpan.setStatus).toHaveBeenCalledWith({ code: 2, message: 'internal_error' });
   });
 
+  describe('numeric navigations (history back/forward)', () => {
+    const originalLocation = globalThis.location;
+
+    beforeEach(() => {
+      (globalThis as any).location = { pathname: '/current-page' };
+    });
+
+    afterEach(() => {
+      if (originalLocation) {
+        (globalThis as any).location = originalLocation;
+      } else {
+        delete (globalThis as any).location;
+      }
+    });
+
+    it.each([
+      { to: -1, expectedType: 'router.back', destination: '/previous-page' },
+      { to: -2, expectedType: 'router.back', destination: '/two-pages-back' },
+      { to: 1, expectedType: 'router.forward', destination: '/next-page' },
+    ])('should create navigation span for navigate($to) with navigation.type $expectedType', async ({ to, expectedType, destination }) => {
+      const mockCallNavigate = vi.fn().mockImplementation(async () => {
+        (globalThis as any).location.pathname = destination;
+        return { status: 'success', error: undefined };
+      });
+      const mockInstrument = vi.fn();
+      const mockNavigationSpan = { setStatus: vi.fn(), updateName: vi.fn() };
+      const mockClient = {};
+
+      (core.getClient as any).mockReturnValue(mockClient);
+      (browser.startBrowserTracingNavigationSpan as any).mockReturnValue(mockNavigationSpan);
+
+      const instrumentation = createSentryClientInstrumentation();
+      instrumentation.router?.({ instrument: mockInstrument });
+      const hooks = mockInstrument.mock.calls[0]![0];
+
+      await hooks.navigate(mockCallNavigate, { currentUrl: '/current-page', to });
+
+      expect(browser.startBrowserTracingNavigationSpan).toHaveBeenCalledWith(mockClient, {
+        name: '/current-page',
+        attributes: expect.objectContaining({
+          'sentry.source': 'url',
+          'sentry.op': 'navigation',
+          'sentry.origin': 'auto.navigation.react_router.instrumentation_api',
+          'navigation.type': expectedType,
+        }),
+      });
+      expect(mockNavigationSpan.updateName).toHaveBeenCalledWith(destination);
+    });
+
+    it('should skip span creation for navigate(0) since it triggers a page reload', async () => {
+      const mockCallNavigate = vi.fn().mockResolvedValue({ status: 'success', error: undefined });
+      const mockInstrument = vi.fn();
+
+      (core.getClient as any).mockReturnValue({});
+
+      const instrumentation = createSentryClientInstrumentation();
+      instrumentation.router?.({ instrument: mockInstrument });
+      const hooks = mockInstrument.mock.calls[0]![0];
+
+      await hooks.navigate(mockCallNavigate, { currentUrl: '/current-page', to: 0 });
+
+      expect(browser.startBrowserTracingNavigationSpan).not.toHaveBeenCalled();
+      expect(mockCallNavigate).toHaveBeenCalled();
+    });
+
+    it('should set error status on span for failed numeric navigation', async () => {
+      const mockError = new Error('Navigation failed');
+      const mockCallNavigate = vi.fn().mockImplementation(async () => {
+        (globalThis as any).location.pathname = '/error-page';
+        return { status: 'error', error: mockError };
+      });
+      const mockInstrument = vi.fn();
+      const mockNavigationSpan = { setStatus: vi.fn(), updateName: vi.fn() };
+
+      (core.getClient as any).mockReturnValue({});
+      (browser.startBrowserTracingNavigationSpan as any).mockReturnValue(mockNavigationSpan);
+
+      const instrumentation = createSentryClientInstrumentation();
+      instrumentation.router?.({ instrument: mockInstrument });
+      const hooks = mockInstrument.mock.calls[0]![0];
+
+      await hooks.navigate(mockCallNavigate, { currentUrl: '/current-page', to: -1 });
+
+      expect(mockNavigationSpan.setStatus).toHaveBeenCalledWith({ code: 2, message: 'internal_error' });
+      expect(core.captureException).toHaveBeenCalledWith(mockError, {
+        mechanism: { type: 'react_router.navigate', handled: false, data: { 'http.url': '/error-page' } },
+      });
+    });
+
+    it('should set navigate hook invoked flag for numeric navigations but NOT for navigate(0)', async () => {
+      const mockInstrument = vi.fn();
+      const mockNavigationSpan = { setStatus: vi.fn(), updateName: vi.fn() };
+
+      (core.getClient as any).mockReturnValue({});
+      (browser.startBrowserTracingNavigationSpan as any).mockReturnValue(mockNavigationSpan);
+
+      delete (globalThis as any).__sentryReactRouterNavigateHookInvoked;
+
+      const instrumentation = createSentryClientInstrumentation();
+      instrumentation.router?.({ instrument: mockInstrument });
+      const hooks = mockInstrument.mock.calls[0]![0];
+
+      // navigate(0) should NOT set flag
+      await hooks.navigate(vi.fn().mockResolvedValue({ status: 'success', error: undefined }), {
+        currentUrl: '/current-page',
+        to: 0,
+      });
+      expect(isNavigateHookInvoked()).toBe(false);
+
+      // navigate(-1) should set flag
+      await hooks.navigate(vi.fn().mockResolvedValue({ status: 'success', error: undefined }), {
+        currentUrl: '/current-page',
+        to: -1,
+      });
+      expect(isNavigateHookInvoked()).toBe(true);
+    });
+  });
+
   it('should fall back to URL pathname when unstable_pattern is undefined', async () => {
     const mockCallLoader = vi.fn().mockResolvedValue({ status: 'success', error: undefined });
     const mockInstrument = vi.fn();
@@ -395,6 +514,126 @@ describe('createSentryClientInstrumentation', () => {
       expect.any(Function),
     );
   });
+
+  describe('popstate listener (browser back/forward button)', () => {
+    const originalLocation = globalThis.location;
+    const originalAddEventListener = globalThis.addEventListener;
+    let addEventListenerSpy: ReturnType<typeof vi.fn>;
+    let popstateHandler: (() => void) | null = null;
+
+    beforeEach(() => {
+      delete (globalThis as any).__sentryReactRouterPopstateListenerAdded;
+      delete (globalThis as any).__sentryReactRouterClientInstrumentationUsed;
+
+      (globalThis as any).location = { pathname: '/current-page' };
+
+      popstateHandler = null;
+      addEventListenerSpy = vi.fn((event, handler) => {
+        if (event === 'popstate') {
+          popstateHandler = handler;
+        }
+      });
+      (globalThis as any).addEventListener = addEventListenerSpy;
+    });
+
+    afterEach(() => {
+      if (originalLocation) {
+        (globalThis as any).location = originalLocation;
+      } else {
+        delete (globalThis as any).location;
+      }
+      (globalThis as any).addEventListener = originalAddEventListener;
+      delete (globalThis as any).__sentryReactRouterPopstateListenerAdded;
+    });
+
+    it('should register popstate listener once when router() is called', () => {
+      const mockInstrument = vi.fn();
+      const instrumentation = createSentryClientInstrumentation();
+
+      instrumentation.router?.({ instrument: mockInstrument });
+      instrumentation.router?.({ instrument: mockInstrument });
+
+      const popstateCalls = addEventListenerSpy.mock.calls.filter((call: string[]) => call[0] === 'popstate');
+      expect(popstateCalls.length).toBe(1);
+    });
+
+    it('should create navigation span with browser.popstate type on popstate event', () => {
+      const mockClient = {};
+      (core.getClient as any).mockReturnValue(mockClient);
+
+      const mockInstrument = vi.fn();
+      const instrumentation = createSentryClientInstrumentation();
+      instrumentation.router?.({ instrument: mockInstrument });
+
+      popstateHandler!();
+
+      expect(browser.startBrowserTracingNavigationSpan).toHaveBeenCalledWith(mockClient, {
+        name: '/current-page',
+        attributes: expect.objectContaining({
+          'sentry.source': 'url',
+          'sentry.op': 'navigation',
+          'sentry.origin': 'auto.navigation.react_router.instrumentation_api',
+          'navigation.type': 'browser.popstate',
+        }),
+      });
+    });
+
+    it('should not create span on popstate when no client is available', () => {
+      (core.getClient as any).mockReturnValue(undefined);
+
+      const mockInstrument = vi.fn();
+      const instrumentation = createSentryClientInstrumentation();
+      instrumentation.router?.({ instrument: mockInstrument });
+
+      popstateHandler!();
+
+      expect(browser.startBrowserTracingNavigationSpan).not.toHaveBeenCalled();
+    });
+
+    it('should update existing numeric navigation span on popstate instead of creating duplicate', async () => {
+      const mockClient = {};
+      const mockNavigationSpan = { setStatus: vi.fn(), updateName: vi.fn(), isRecording: vi.fn().mockReturnValue(true) };
+
+      (core.getClient as any).mockReturnValue(mockClient);
+      (browser.startBrowserTracingNavigationSpan as any).mockReturnValue(mockNavigationSpan);
+
+      const mockCallNavigate = vi.fn().mockImplementation(async () => {
+        (globalThis as any).location.pathname = '/previous-page';
+        popstateHandler!();
+        return { status: 'success', error: undefined };
+      });
+      const mockInstrument = vi.fn();
+
+      const instrumentation = createSentryClientInstrumentation();
+      instrumentation.router?.({ instrument: mockInstrument });
+      const hooks = mockInstrument.mock.calls[0]![0];
+
+      await hooks.navigate(mockCallNavigate, { currentUrl: '/current-page', to: -1 });
+
+      // Only ONE span created (not two - no duplicate from popstate)
+      expect(browser.startBrowserTracingNavigationSpan).toHaveBeenCalledTimes(1);
+      expect(mockNavigationSpan.updateName).toHaveBeenCalledWith('/previous-page');
+    });
+
+    it('should create new span on popstate when no numeric navigation is in progress', () => {
+      const mockClient = {};
+      (core.getClient as any).mockReturnValue(mockClient);
+
+      const mockInstrument = vi.fn();
+      const instrumentation = createSentryClientInstrumentation();
+      instrumentation.router?.({ instrument: mockInstrument });
+
+      // Direct popstate without navigate(-1) - simulates browser back button click
+      popstateHandler!();
+
+      expect(browser.startBrowserTracingNavigationSpan).toHaveBeenCalledWith(mockClient, {
+        name: '/current-page',
+        attributes: expect.objectContaining({
+          'navigation.type': 'browser.popstate',
+        }),
+      });
+    });
+  });
 });
 
 describe('isClientInstrumentationApiUsed', () => {
@@ -435,6 +674,7 @@ describe('isClientInstrumentationApiUsed', () => {
 
 describe('isNavigateHookInvoked', () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     delete (globalThis as any).__sentryReactRouterNavigateHookInvoked;
     delete (globalThis as any).__sentryReactRouterClientInstrumentationUsed;
   });
@@ -444,43 +684,28 @@ describe('isNavigateHookInvoked', () => {
     delete (globalThis as any).__sentryReactRouterClientInstrumentationUsed;
   });
 
-  it('should return false when flag is not set', () => {
+  it('should return false when flag is not set and true when set', () => {
     expect(isNavigateHookInvoked()).toBe(false);
-  });
-
-  it('should return true when flag is set', () => {
     (globalThis as any).__sentryReactRouterNavigateHookInvoked = true;
     expect(isNavigateHookInvoked()).toBe(true);
   });
 
-  it('should return false after createSentryClientInstrumentation is called (before navigate)', () => {
-    createSentryClientInstrumentation();
-    // Flag should not be set just by creating instrumentation
-    // It only gets set when the navigate hook is actually invoked
-    expect(isNavigateHookInvoked()).toBe(false);
-  });
-
-  it('should return true after navigate hook is invoked', async () => {
+  it('should set flag after navigate hook is invoked even without client', async () => {
     const mockCallNavigate = vi.fn().mockResolvedValue({ status: 'success', error: undefined });
     const mockInstrument = vi.fn();
 
-    (core.getClient as any).mockReturnValue({});
+    (core.getClient as any).mockReturnValue(undefined);
 
     const instrumentation = createSentryClientInstrumentation();
     instrumentation.router?.({ instrument: mockInstrument });
 
-    // Before navigation, flag should be false
     expect(isNavigateHookInvoked()).toBe(false);
 
     const hooks = mockInstrument.mock.calls[0]![0];
 
-    // Call the navigate hook
-    await hooks.navigate(mockCallNavigate, {
-      currentUrl: '/home',
-      to: '/about',
-    });
+    await hooks.navigate(mockCallNavigate, { currentUrl: '/home', to: '/about' });
 
-    // After navigation, flag should be true
     expect(isNavigateHookInvoked()).toBe(true);
+    expect(browser.startBrowserTracingNavigationSpan).not.toHaveBeenCalled();
   });
 });
