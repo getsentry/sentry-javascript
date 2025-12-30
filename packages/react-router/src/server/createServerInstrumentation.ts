@@ -63,6 +63,9 @@ export function createSentryServerInstrumentation(
 
             try {
               const result = await handleRequest();
+              if (result.status === 'error' && result.error instanceof Error) {
+                existingRootSpan.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+              }
               captureInstrumentationError(result, captureErrors, 'react_router.request_handler', {
                 'http.method': info.request.method,
                 'http.url': pathname,
@@ -84,9 +87,12 @@ export function createSentryServerInstrumentation(
                   'url.full': info.request.url,
                 },
               },
-              async () => {
+              async span => {
                 try {
                   const result = await handleRequest();
+                  if (result.status === 'error' && result.error instanceof Error) {
+                    span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+                  }
                   captureInstrumentationError(result, captureErrors, 'react_router.request_handler', {
                     'http.method': info.request.method,
                     'http.url': pathname,

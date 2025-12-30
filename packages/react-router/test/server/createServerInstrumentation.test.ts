@@ -115,14 +115,16 @@ describe('createSentryServerInstrumentation', () => {
     expect(core.flushIfServerless).toHaveBeenCalled();
   });
 
-  it('should capture errors in handler when no root span exists', async () => {
+  it('should capture errors and set span status when root span exists', async () => {
     const mockRequest = new Request('http://example.com/api/users');
     const mockError = new Error('Handler error');
     const mockHandleRequest = vi.fn().mockResolvedValue({ status: 'error', error: mockError });
     const mockInstrument = vi.fn();
+    const mockSetStatus = vi.fn();
+    const mockRootSpan = { setAttributes: vi.fn(), setStatus: mockSetStatus };
 
-    (core.getActiveSpan as any).mockReturnValue(undefined);
-    (core.startSpan as any).mockImplementation((_opts: any, fn: any) => fn());
+    (core.getActiveSpan as any).mockReturnValue({});
+    (core.getRootSpan as any).mockReturnValue(mockRootSpan);
 
     const instrumentation = createSentryServerInstrumentation();
     instrumentation.handler?.({ instrument: mockInstrument });
@@ -131,6 +133,34 @@ describe('createSentryServerInstrumentation', () => {
 
     await hooks.request(mockHandleRequest, { request: mockRequest, context: undefined });
 
+    expect(mockSetStatus).toHaveBeenCalledWith({ code: 2, message: 'internal_error' });
+    expect(core.captureException).toHaveBeenCalledWith(mockError, {
+      mechanism: {
+        type: 'react_router.request_handler',
+        handled: false,
+        data: { 'http.method': 'GET', 'http.url': '/api/users' },
+      },
+    });
+  });
+
+  it('should capture errors in handler when no root span exists', async () => {
+    const mockRequest = new Request('http://example.com/api/users');
+    const mockError = new Error('Handler error');
+    const mockHandleRequest = vi.fn().mockResolvedValue({ status: 'error', error: mockError });
+    const mockInstrument = vi.fn();
+    const mockSpan = { setStatus: vi.fn() };
+
+    (core.getActiveSpan as any).mockReturnValue(undefined);
+    (core.startSpan as any).mockImplementation((_opts: any, fn: any) => fn(mockSpan));
+
+    const instrumentation = createSentryServerInstrumentation();
+    instrumentation.handler?.({ instrument: mockInstrument });
+
+    const hooks = mockInstrument.mock.calls[0]![0];
+
+    await hooks.request(mockHandleRequest, { request: mockRequest, context: undefined });
+
+    expect(mockSpan.setStatus).toHaveBeenCalledWith({ code: 2, message: 'internal_error' });
     expect(core.captureException).toHaveBeenCalledWith(mockError, {
       mechanism: {
         type: 'react_router.request_handler',
