@@ -4,81 +4,12 @@ import {
   _INTERNAL_captureMetric,
   _INTERNAL_flushMetricsBuffer,
   _INTERNAL_getMetricBuffer,
-  metricAttributeToSerializedMetricAttribute,
 } from '../../../src/metrics/internal';
 import type { Metric } from '../../../src/types-hoist/metric';
 import * as loggerModule from '../../../src/utils/debug-logger';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
 
 const PUBLIC_DSN = 'https://username@domain/123';
-
-describe('metricAttributeToSerializedMetricAttribute', () => {
-  it('serializes integer values', () => {
-    const result = metricAttributeToSerializedMetricAttribute(42);
-    expect(result).toEqual({
-      value: 42,
-      type: 'integer',
-    });
-  });
-
-  it('serializes double values', () => {
-    const result = metricAttributeToSerializedMetricAttribute(42.34);
-    expect(result).toEqual({
-      value: 42.34,
-      type: 'double',
-    });
-  });
-
-  it('serializes boolean values', () => {
-    const result = metricAttributeToSerializedMetricAttribute(true);
-    expect(result).toEqual({
-      value: true,
-      type: 'boolean',
-    });
-  });
-
-  it('serializes string values', () => {
-    const result = metricAttributeToSerializedMetricAttribute('endpoint');
-    expect(result).toEqual({
-      value: 'endpoint',
-      type: 'string',
-    });
-  });
-
-  it('serializes object values as JSON strings', () => {
-    const obj = { name: 'John', age: 30 };
-    const result = metricAttributeToSerializedMetricAttribute(obj);
-    expect(result).toEqual({
-      value: JSON.stringify(obj),
-      type: 'string',
-    });
-  });
-
-  it('serializes array values as JSON strings', () => {
-    const array = [1, 2, 3, 'test'];
-    const result = metricAttributeToSerializedMetricAttribute(array);
-    expect(result).toEqual({
-      value: JSON.stringify(array),
-      type: 'string',
-    });
-  });
-
-  it('serializes undefined values as empty strings', () => {
-    const result = metricAttributeToSerializedMetricAttribute(undefined);
-    expect(result).toEqual({
-      value: '',
-      type: 'string',
-    });
-  });
-
-  it('serializes null values as JSON strings', () => {
-    const result = metricAttributeToSerializedMetricAttribute(null);
-    expect(result).toEqual({
-      value: 'null',
-      type: 'string',
-    });
-  });
-});
 
 describe('_INTERNAL_captureMetric', () => {
   it('captures and sends metrics', () => {
