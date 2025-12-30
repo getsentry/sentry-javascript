@@ -4,7 +4,7 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-Work in this release was contributed by @xgedev, @Mohataseem89 and @sebws. Thank you for your contributions!
+Work in this release was contributed by @xgedev, @Mohataseem89, @sebws, and @G-Rath. Thank you for your contributions!
 
 - ref(nextjs): Drop `resolve` dependency from the Next.js SDK ([#18618](https://github.com/getsentry/sentry-javascript/pull/18618))
 
