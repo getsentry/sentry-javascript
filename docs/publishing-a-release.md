@@ -4,6 +4,8 @@ _These steps are only relevant to Sentry employees when preparing and publishing
 
 These have also been documented via [Cursor Rules](../.cursor/rules/publishing-release.mdc).
 
+You can run a pre-configured command in cursor by just typing `/publish_release` into the chat window to automate the steps below.
+
 **If you want to release a new SDK for the first time, be sure to follow the
 [New SDK Release Checklist](./new-sdk-release-checklist.md)**
 

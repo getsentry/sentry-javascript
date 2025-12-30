@@ -14,9 +14,8 @@ import {
   forEachEnvelopeItem,
   serializeEnvelope,
 } from '../utils/envelope';
-import { type PromiseBuffer, makePromiseBuffer, SENTRY_BUFFER_FULL_ERROR } from '../utils/promisebuffer';
-import { type RateLimits, isRateLimited, updateRateLimits } from '../utils/ratelimit';
-import { resolvedSyncPromise } from '../utils/syncpromise';
+import { makePromiseBuffer, type PromiseBuffer, SENTRY_BUFFER_FULL_ERROR } from '../utils/promisebuffer';
+import { isRateLimited, type RateLimits, updateRateLimits } from '../utils/ratelimit';
 
 export const DEFAULT_TRANSPORT_BUFFER_SIZE = 64;
 
@@ -51,7 +50,7 @@ export function createTransport(
 
     // Skip sending if envelope is empty after filtering out rate limited events
     if (filteredEnvelopeItems.length === 0) {
-      return resolvedSyncPromise({});
+      return Promise.resolve({});
     }
 
     const filteredEnvelope: Envelope = createEnvelope(envelope[0], filteredEnvelopeItems as (typeof envelope)[1]);
@@ -87,7 +86,7 @@ export function createTransport(
         if (error === SENTRY_BUFFER_FULL_ERROR) {
           DEBUG_BUILD && debug.error('Skipped sending event because buffer is full.');
           recordEnvelopeLoss('queue_overflow');
-          return resolvedSyncPromise({});
+          return Promise.resolve({});
         } else {
           throw error;
         }

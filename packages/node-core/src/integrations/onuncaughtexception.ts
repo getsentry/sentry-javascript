@@ -108,7 +108,7 @@ export function makeErrorHandler(client: NodeClient, options: OnUncaughtExceptio
             },
             mechanism: {
               handled: false,
-              type: 'onuncaughtexception',
+              type: 'auto.node.onuncaughtexception',
             },
           });
         }

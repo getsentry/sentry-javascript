@@ -29,11 +29,8 @@ function sendErrorToSentry(e: unknown): unknown {
 
   captureException(objectifiedErr, {
     mechanism: {
-      type: 'sveltekit',
+      type: 'auto.function.sveltekit.load',
       handled: false,
-      data: {
-        function: 'load',
-      },
     },
   });
 

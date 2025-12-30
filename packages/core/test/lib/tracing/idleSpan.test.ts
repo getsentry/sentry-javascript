@@ -47,7 +47,7 @@ describe('startIdleSpan', () => {
 
     expect(getActiveSpan()).toBe(idleSpan);
 
-    idleSpan!.end();
+    idleSpan.end();
     vi.runAllTimers();
 
     expect(getActiveSpan()).toBe(undefined);
@@ -142,7 +142,7 @@ describe('startIdleSpan', () => {
     vi.advanceTimersByTime(TRACING_DEFAULTS.idleTimeout + 1);
     vi.runOnlyPendingTimers();
 
-    expect(spanToJSON(idleSpan!).data).toEqual(
+    expect(spanToJSON(idleSpan).data).toEqual(
       expect.objectContaining({
         foo: 'bar',
       }),
@@ -693,7 +693,7 @@ describe('startIdleSpan', () => {
 
       vi.runAllTimers();
 
-      expect(spanToJSON(idleSpan!).timestamp).toBe(1100);
+      expect(spanToJSON(idleSpan).timestamp).toBe(1100);
     });
 
     it('trims end to final timeout', () => {
@@ -713,7 +713,7 @@ describe('startIdleSpan', () => {
 
       vi.runAllTimers();
 
-      expect(spanToJSON(idleSpan!).timestamp).toBe(1030);
+      expect(spanToJSON(idleSpan).timestamp).toBe(1030);
     });
 
     it('keeps lower span endTime than highest child span end', () => {
@@ -733,8 +733,8 @@ describe('startIdleSpan', () => {
 
       vi.runAllTimers();
 
-      expect(spanToJSON(idleSpan!).timestamp).toBeLessThan(999_999_999);
-      expect(spanToJSON(idleSpan!).timestamp).toBeGreaterThan(1060);
+      expect(spanToJSON(idleSpan).timestamp).toBeLessThan(999_999_999);
+      expect(spanToJSON(idleSpan).timestamp).toBeGreaterThan(1060);
     });
   });
 });

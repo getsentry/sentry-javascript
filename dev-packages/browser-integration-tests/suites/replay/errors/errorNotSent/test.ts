@@ -11,7 +11,7 @@ sentryTest(
 
     let callsToSentry = 0;
 
-    await page.route('https://dsn.ingest.sentry.io/**/*', route => {
+    await page.route(/^https:\/\/dsn\.ingest\.sentry\.io\//, route => {
       callsToSentry++;
 
       return route.fulfill({

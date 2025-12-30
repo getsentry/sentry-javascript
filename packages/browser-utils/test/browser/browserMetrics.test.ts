@@ -1,4 +1,4 @@
-import type { Span } from '@sentry/core';
+import type { Span, SpanAttributes } from '@sentry/core';
 import {
   getClient,
   getCurrentScope,
@@ -10,7 +10,12 @@ import {
   spanToJSON,
 } from '@sentry/core';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { _addMeasureSpans, _addNavigationSpans, _addResourceSpans } from '../../src/metrics/browserMetrics';
+import {
+  _addMeasureSpans,
+  _addNavigationSpans,
+  _addResourceSpans,
+  _setResourceRequestAttributes,
+} from '../../src/metrics/browserMetrics';
 import { WINDOW } from '../../src/types';
 import { getDefaultClientOptions, TestClient } from '../utils/TestClient';
 
@@ -181,6 +186,75 @@ describe('_addMeasureSpans', () => {
       ]),
     );
   });
+
+  it('ignores React 19.2+ measure spans', () => {
+    const pageloadSpan = new SentrySpan({ op: 'pageload', name: '/', sampled: true });
+    const spans: Span[] = [];
+
+    getClient()?.on('spanEnd', span => {
+      spans.push(span);
+    });
+
+    const entries: PerformanceMeasure[] = [
+      {
+        entryType: 'measure',
+        name: '\u200bLayout',
+        duration: 0.3,
+        startTime: 12,
+        detail: {
+          devtools: {
+            track: 'Components ⚛',
+          },
+        },
+        toJSON: () => ({ foo: 'bar' }),
+      },
+      {
+        entryType: 'measure',
+        name: '\u200bButton',
+        duration: 0.1,
+        startTime: 13,
+        detail: {
+          devtools: {
+            track: 'Components ⚛',
+          },
+        },
+        toJSON: () => ({}),
+      },
+      {
+        entryType: 'measure',
+        name: 'Unmount',
+        duration: 0.1,
+        startTime: 14,
+        detail: {
+          devtools: {
+            track: 'Components ⚛',
+          },
+        },
+        toJSON: () => ({}),
+      },
+      {
+        entryType: 'measure',
+        name: 'my-measurement',
+        duration: 0,
+        startTime: 12,
+        detail: null,
+        toJSON: () => ({}),
+      },
+    ];
+
+    const timeOrigin = 100;
+    const startTime = 23;
+    const duration = 356;
+
+    entries.forEach(e => {
+      _addMeasureSpans(pageloadSpan, e, startTime, duration, timeOrigin, []);
+    });
+
+    expect(spans).toHaveLength(1);
+    expect(spans.map(spanToJSON)).toEqual(
+      expect.arrayContaining([expect.objectContaining({ description: 'my-measurement', op: 'measure' })]),
+    );
+  });
 });
 
 describe('_addResourceSpans', () => {
@@ -261,6 +335,18 @@ describe('_addResourceSpans', () => {
       decodedBodySize: 593,
       renderBlockingStatus: 'non-blocking',
       nextHopProtocol: 'http/1.1',
+      connectStart: 1000,
+      connectEnd: 1001,
+      redirectStart: 1002,
+      redirectEnd: 1003,
+      fetchStart: 1004,
+      domainLookupStart: 1005,
+      domainLookupEnd: 1006,
+      requestStart: 1007,
+      responseStart: 1008,
+      responseEnd: 1009,
+      secureConnectionStart: 1005,
+      workerStart: 1006,
     });
 
     const timeOrigin = 100;
@@ -289,6 +375,19 @@ describe('_addResourceSpans', () => {
           ['url.same_origin']: true,
           ['network.protocol.name']: 'http',
           ['network.protocol.version']: '1.1',
+          'http.request.connect_start': expect.any(Number),
+          'http.request.connection_end': expect.any(Number),
+          'http.request.domain_lookup_end': expect.any(Number),
+          'http.request.domain_lookup_start': expect.any(Number),
+          'http.request.fetch_start': expect.any(Number),
+          'http.request.redirect_end': expect.any(Number),
+          'http.request.redirect_start': expect.any(Number),
+          'http.request.request_start': expect.any(Number),
+          'http.request.response_end': expect.any(Number),
+          'http.request.response_start': expect.any(Number),
+          'http.request.secure_connection_start': expect.any(Number),
+          'http.request.time_to_first_byte': 1.008,
+          'http.request.worker_start': expect.any(Number),
         },
       }),
     );
@@ -404,7 +503,7 @@ describe('_addResourceSpans', () => {
     expect(spans).toHaveLength(1);
     expect(spanToJSON(spans[0]!)).toEqual(
       expect.objectContaining({
-        data: {
+        data: expect.objectContaining({
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'resource.css',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
           ['http.decoded_response_content_length']: entry.decodedBodySize,
@@ -416,7 +515,7 @@ describe('_addResourceSpans', () => {
           ['url.same_origin']: true,
           ['network.protocol.name']: 'http',
           ['network.protocol.version']: '2',
-        },
+        }),
       }),
     );
   });
@@ -441,7 +540,7 @@ describe('_addResourceSpans', () => {
     expect(spans).toHaveLength(1);
     expect(spanToJSON(spans[0]!)).toEqual(
       expect.objectContaining({
-        data: {
+        data: expect.objectContaining({
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'resource.css',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
           'server.address': 'example.com',
@@ -449,7 +548,7 @@ describe('_addResourceSpans', () => {
           'url.scheme': 'https',
           ['network.protocol.name']: 'http',
           ['network.protocol.version']: '3',
-        },
+        }),
         description: '/assets/to/css',
         timestamp: 468,
         op: 'resource.css',
@@ -474,6 +573,18 @@ describe('_addResourceSpans', () => {
       encodedBodySize: null,
       decodedBodySize: null,
       nextHopProtocol: 'h3',
+      connectStart: 1000,
+      connectEnd: 1001,
+      redirectStart: 1002,
+      redirectEnd: 1003,
+      fetchStart: 1004,
+      domainLookupStart: 1005,
+      domainLookupEnd: 1006,
+      requestStart: 1007,
+      responseStart: 1008,
+      responseEnd: 1009,
+      secureConnectionStart: 1005,
+      workerStart: 1006,
     } as unknown as PerformanceResourceTiming;
 
     _addResourceSpans(span, entry, resourceEntryName, 100, 23, 345);
@@ -489,6 +600,19 @@ describe('_addResourceSpans', () => {
           'url.scheme': 'https',
           ['network.protocol.name']: 'http',
           ['network.protocol.version']: '3',
+          'http.request.connect_start': expect.any(Number),
+          'http.request.connection_end': expect.any(Number),
+          'http.request.domain_lookup_end': expect.any(Number),
+          'http.request.domain_lookup_start': expect.any(Number),
+          'http.request.fetch_start': expect.any(Number),
+          'http.request.redirect_end': expect.any(Number),
+          'http.request.redirect_start': expect.any(Number),
+          'http.request.request_start': expect.any(Number),
+          'http.request.response_end': expect.any(Number),
+          'http.request.response_start': expect.any(Number),
+          'http.request.secure_connection_start': expect.any(Number),
+          'http.request.time_to_first_byte': 1.008,
+          'http.request.worker_start': expect.any(Number),
         },
         description: '/assets/to/css',
         timestamp: 468,
@@ -706,6 +830,75 @@ describe('_addNavigationSpans', () => {
         }),
       ]),
     );
+  });
+});
+
+describe('_setResourceRequestAttributes', () => {
+  it('sets resource request attributes', () => {
+    const attributes: SpanAttributes = {};
+
+    const entry = mockPerformanceResourceTiming({
+      transferSize: 0,
+      deliveryType: 'cache',
+      renderBlockingStatus: 'non-blocking',
+      responseStatus: 200,
+      redirectStart: 100,
+      responseStart: 200,
+    });
+
+    _setResourceRequestAttributes(entry, attributes, [
+      ['transferSize', 'http.response_transfer_size'],
+      ['deliveryType', 'http.response_delivery_type'],
+      ['renderBlockingStatus', 'resource.render_blocking_status'],
+      ['responseStatus', 'http.response.status_code'],
+      ['redirectStart', 'http.request.redirect_start'],
+      ['responseStart', 'http.response.start'],
+    ]);
+
+    expect(attributes).toEqual({
+      'http.response_transfer_size': 0,
+      'http.request.redirect_start': 100,
+      'http.response.start': 200,
+      'http.response.status_code': 200,
+      'http.response_delivery_type': 'cache',
+      'resource.render_blocking_status': 'non-blocking',
+    });
+  });
+
+  it("doesn't set other attributes", () => {
+    const attributes: SpanAttributes = {};
+
+    const entry = mockPerformanceResourceTiming({
+      transferSize: 0,
+      deliveryType: 'cache',
+      renderBlockingStatus: 'non-blocking',
+    });
+
+    _setResourceRequestAttributes(entry, attributes, [['transferSize', 'http.response_transfer_size']]);
+
+    expect(attributes).toEqual({
+      'http.response_transfer_size': 0,
+    });
+  });
+
+  it("doesn't set non-primitive or undefined values", () => {
+    const attributes: SpanAttributes = {};
+
+    const entry = mockPerformanceResourceTiming({
+      transferSize: undefined,
+      // @ts-expect-error null is invalid but let's test it anyway
+      deliveryType: null,
+      // @ts-expect-error object is invalid but let's test it anyway
+      renderBlockingStatus: { blocking: 'non-blocking' },
+    });
+
+    _setResourceRequestAttributes(entry, attributes, [
+      ['transferSize', 'http.response_transfer_size'],
+      ['deliveryType', 'http.response_delivery_type'],
+      ['renderBlockingStatus', 'resource.render_blocking_status'],
+    ]);
+
+    expect(attributes).toEqual({});
   });
 });
 

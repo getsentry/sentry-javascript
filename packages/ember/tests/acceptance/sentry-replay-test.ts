@@ -16,7 +16,7 @@ module('Acceptance | Sentry Session Replay', function (hooks) {
       Sentry.getClient<BrowserClient>()?.getIntegrationByName<ReturnType<typeof replayIntegration>>('Replay');
     assert.ok(integration);
 
-    const replay = integration!['_replay'] as ReturnType<typeof replayIntegration>['_replay'];
+    const replay = integration!['_replay'];
 
     assert.true(replay.isEnabled());
     assert.false(replay.isPaused());

@@ -4,8 +4,15 @@ import { trace } from '@opentelemetry/api';
 import { registerInstrumentations } from '@opentelemetry/instrumentation';
 import type { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import type { DynamicSamplingContext, Scope, ServerRuntimeClientOptions, TraceContext } from '@sentry/core';
-import { _INTERNAL_flushLogsBuffer, applySdkMetadata, debug, SDK_VERSION, ServerRuntimeClient } from '@sentry/core';
-import { getTraceContextForScope } from '@sentry/opentelemetry';
+import {
+  _INTERNAL_clearAiProviderSkips,
+  _INTERNAL_flushLogsBuffer,
+  applySdkMetadata,
+  debug,
+  SDK_VERSION,
+  ServerRuntimeClient,
+} from '@sentry/core';
+import { type AsyncLocalStorageLookup, getTraceContextForScope } from '@sentry/opentelemetry';
 import { isMainThread, threadId } from 'worker_threads';
 import { DEBUG_BUILD } from '../debug-build';
 import type { NodeClientOptions } from '../types';
@@ -15,6 +22,8 @@ const DEFAULT_CLIENT_REPORT_FLUSH_INTERVAL_MS = 60_000; // 60s was chosen arbitr
 /** A client for using Sentry with Node & OpenTelemetry. */
 export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
   public traceProvider: BasicTracerProvider | undefined;
+  public asyncLocalStorageLookup: AsyncLocalStorageLookup | undefined;
+
   private _tracer: Tracer | undefined;
   private _clientReportInterval: NodeJS.Timeout | undefined;
   private _clientReportOnExitFlushListener: (() => void) | undefined;
@@ -77,9 +86,9 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
     return tracer;
   }
 
-  // Eslint ignore explanation: This is already documented in super.
-  // eslint-disable-next-line jsdoc/require-jsdoc
-  public async flush(timeout?: number): Promise<boolean> {
+  /** @inheritDoc */
+  // @ts-expect-error - PromiseLike is a subset of Promise
+  public async flush(timeout?: number): PromiseLike<boolean> {
     await this.traceProvider?.forceFlush();
 
     if (this.getOptions().sendClientReports) {
@@ -89,9 +98,9 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
     return super.flush(timeout);
   }
 
-  // Eslint ignore explanation: This is already documented in super.
-  // eslint-disable-next-line jsdoc/require-jsdoc
-  public close(timeout?: number | undefined): PromiseLike<boolean> {
+  /** @inheritDoc */
+  // @ts-expect-error - PromiseLike is a subset of Promise
+  public async close(timeout?: number | undefined): PromiseLike<boolean> {
     if (this._clientReportInterval) {
       clearInterval(this._clientReportInterval);
     }
@@ -104,11 +113,12 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
       process.off('beforeExit', this._logOnExitFlushListener);
     }
 
-    return super
-      .close(timeout)
-      .then(allEventsSent =>
-        this.traceProvider ? this.traceProvider.shutdown().then(() => allEventsSent) : allEventsSent,
-      );
+    const allEventsSent = await super.close(timeout);
+    if (this.traceProvider) {
+      await this.traceProvider.shutdown();
+    }
+
+    return allEventsSent;
   }
 
   /**
@@ -142,6 +152,15 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
 
       process.on('beforeExit', this._clientReportOnExitFlushListener);
     }
+  }
+
+  /** @inheritDoc */
+  protected _setupIntegrations(): void {
+    // Clear AI provider skip registrations before setting up integrations
+    // This ensures a clean state between different client initializations
+    // (e.g., when LangChain skips OpenAI in one client, but a subsequent client uses OpenAI standalone)
+    _INTERNAL_clearAiProviderSkips();
+    super._setupIntegrations();
   }
 
   /** Custom implementation for OTEL, so we can handle scope-span linking. */

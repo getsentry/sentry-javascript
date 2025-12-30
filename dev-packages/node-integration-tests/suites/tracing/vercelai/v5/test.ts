@@ -13,7 +13,7 @@ describe('Vercel AI integration (V5)', () => {
       // First span - no telemetry config, should enable telemetry but not record inputs/outputs when sendDefaultPii: false
       expect.objectContaining({
         data: {
-          'vercel.ai.model.id': 'mock-model-id',
+          'gen_ai.request.model': 'mock-model-id',
           'vercel.ai.model.provider': 'mock-provider',
           'vercel.ai.operationId': 'ai.generateText',
           'vercel.ai.pipeline.name': 'generateText',
@@ -24,7 +24,7 @@ describe('Vercel AI integration (V5)', () => {
           'gen_ai.usage.input_tokens': 10,
           'gen_ai.usage.output_tokens': 20,
           'gen_ai.usage.total_tokens': 30,
-          'operation.name': 'ai.generateText',
+          'gen_ai.operation.name': 'ai.generateText',
           'sentry.op': 'gen_ai.invoke_agent',
           'sentry.origin': 'auto.vercelai.otel',
         },
@@ -38,13 +38,12 @@ describe('Vercel AI integration (V5)', () => {
         data: {
           'sentry.origin': 'auto.vercelai.otel',
           'sentry.op': 'gen_ai.generate_text',
-          'operation.name': 'ai.generateText.doGenerate',
+          'gen_ai.operation.name': 'ai.generateText.doGenerate',
           'vercel.ai.operationId': 'ai.generateText.doGenerate',
           'vercel.ai.model.provider': 'mock-provider',
-          'vercel.ai.model.id': 'mock-model-id',
+          'gen_ai.request.model': 'mock-model-id',
           'vercel.ai.settings.maxRetries': 2,
           'gen_ai.system': 'mock-provider',
-          'gen_ai.request.model': 'mock-model-id',
           'vercel.ai.pipeline.name': 'generateText.doGenerate',
           'vercel.ai.streaming': false,
           'vercel.ai.response.finishReason': 'stop',
@@ -66,7 +65,7 @@ describe('Vercel AI integration (V5)', () => {
       // Third span - explicit telemetry enabled, should record inputs/outputs regardless of sendDefaultPii
       expect.objectContaining({
         data: {
-          'vercel.ai.model.id': 'mock-model-id',
+          'gen_ai.request.model': 'mock-model-id',
           'vercel.ai.model.provider': 'mock-provider',
           'vercel.ai.operationId': 'ai.generateText',
           'vercel.ai.pipeline.name': 'generateText',
@@ -76,11 +75,12 @@ describe('Vercel AI integration (V5)', () => {
           'vercel.ai.settings.maxRetries': 2,
           'vercel.ai.streaming': false,
           'gen_ai.prompt': '{"prompt":"Where is the second span?"}',
+          'gen_ai.request.messages': '[{"role":"user","content":"Where is the second span?"}]',
           'gen_ai.response.model': 'mock-model-id',
           'gen_ai.usage.input_tokens': 10,
           'gen_ai.usage.output_tokens': 20,
           'gen_ai.usage.total_tokens': 30,
-          'operation.name': 'ai.generateText',
+          'gen_ai.operation.name': 'ai.generateText',
           'sentry.op': 'gen_ai.invoke_agent',
           'sentry.origin': 'auto.vercelai.otel',
         },
@@ -94,13 +94,12 @@ describe('Vercel AI integration (V5)', () => {
         data: {
           'sentry.origin': 'auto.vercelai.otel',
           'sentry.op': 'gen_ai.generate_text',
-          'operation.name': 'ai.generateText.doGenerate',
+          'gen_ai.operation.name': 'ai.generateText.doGenerate',
           'vercel.ai.operationId': 'ai.generateText.doGenerate',
           'vercel.ai.model.provider': 'mock-provider',
-          'vercel.ai.model.id': 'mock-model-id',
+          'gen_ai.request.model': 'mock-model-id',
           'vercel.ai.settings.maxRetries': 2,
           'gen_ai.system': 'mock-provider',
-          'gen_ai.request.model': 'mock-model-id',
           'vercel.ai.pipeline.name': 'generateText.doGenerate',
           'vercel.ai.streaming': false,
           'vercel.ai.response.finishReason': 'stop',
@@ -124,7 +123,7 @@ describe('Vercel AI integration (V5)', () => {
       // Fifth span - tool call generateText span
       expect.objectContaining({
         data: {
-          'vercel.ai.model.id': 'mock-model-id',
+          'gen_ai.request.model': 'mock-model-id',
           'vercel.ai.model.provider': 'mock-provider',
           'vercel.ai.operationId': 'ai.generateText',
           'vercel.ai.pipeline.name': 'generateText',
@@ -135,7 +134,7 @@ describe('Vercel AI integration (V5)', () => {
           'gen_ai.usage.input_tokens': 15,
           'gen_ai.usage.output_tokens': 25,
           'gen_ai.usage.total_tokens': 40,
-          'operation.name': 'ai.generateText',
+          'gen_ai.operation.name': 'ai.generateText',
           'sentry.op': 'gen_ai.invoke_agent',
           'sentry.origin': 'auto.vercelai.otel',
         },
@@ -147,7 +146,7 @@ describe('Vercel AI integration (V5)', () => {
       // Sixth span - tool call doGenerate span
       expect.objectContaining({
         data: {
-          'vercel.ai.model.id': 'mock-model-id',
+          'gen_ai.request.model': 'mock-model-id',
           'vercel.ai.model.provider': 'mock-provider',
           'vercel.ai.operationId': 'ai.generateText.doGenerate',
           'vercel.ai.pipeline.name': 'generateText.doGenerate',
@@ -157,7 +156,6 @@ describe('Vercel AI integration (V5)', () => {
           'vercel.ai.response.timestamp': expect.any(String),
           'vercel.ai.settings.maxRetries': 2,
           'vercel.ai.streaming': false,
-          'gen_ai.request.model': 'mock-model-id',
           'gen_ai.response.finish_reasons': ['tool-calls'],
           'gen_ai.response.id': expect.any(String),
           'gen_ai.response.model': 'mock-model-id',
@@ -165,7 +163,7 @@ describe('Vercel AI integration (V5)', () => {
           'gen_ai.usage.input_tokens': 15,
           'gen_ai.usage.output_tokens': 25,
           'gen_ai.usage.total_tokens': 40,
-          'operation.name': 'ai.generateText.doGenerate',
+          'gen_ai.operation.name': 'ai.generateText.doGenerate',
           'sentry.op': 'gen_ai.generate_text',
           'sentry.origin': 'auto.vercelai.otel',
         },
@@ -181,7 +179,7 @@ describe('Vercel AI integration (V5)', () => {
           'gen_ai.tool.call.id': 'call-1',
           'gen_ai.tool.name': 'getWeather',
           'gen_ai.tool.type': 'function',
-          'operation.name': 'ai.toolCall',
+          'gen_ai.operation.name': 'ai.toolCall',
           'sentry.op': 'gen_ai.execute_tool',
           'sentry.origin': 'auto.vercelai.otel',
         },
@@ -193,17 +191,21 @@ describe('Vercel AI integration (V5)', () => {
     ]),
   };
 
+  const EXPECTED_AVAILABLE_TOOLS_JSON =
+    '[{"type":"function","name":"getWeather","inputSchema":{"$schema":"http://json-schema.org/draft-07/schema#","type":"object","properties":{"location":{"type":"string"}},"required":["location"],"additionalProperties":false}}]';
+
   const EXPECTED_TRANSACTION_DEFAULT_PII_TRUE = {
     transaction: 'main',
     spans: expect.arrayContaining([
       // First span - no telemetry config, should enable telemetry AND record inputs/outputs when sendDefaultPii: true
       expect.objectContaining({
         data: {
-          'vercel.ai.model.id': 'mock-model-id',
+          'gen_ai.request.model': 'mock-model-id',
           'vercel.ai.model.provider': 'mock-provider',
           'vercel.ai.operationId': 'ai.generateText',
           'vercel.ai.pipeline.name': 'generateText',
           'vercel.ai.prompt': '{"prompt":"Where is the first span?"}',
+          'gen_ai.request.messages': '[{"role":"user","content":"Where is the first span?"}]',
           'vercel.ai.response.finishReason': 'stop',
           'gen_ai.response.text': 'First span here!',
           'vercel.ai.settings.maxRetries': 2,
@@ -213,7 +215,7 @@ describe('Vercel AI integration (V5)', () => {
           'gen_ai.usage.input_tokens': 10,
           'gen_ai.usage.output_tokens': 20,
           'gen_ai.usage.total_tokens': 30,
-          'operation.name': 'ai.generateText',
+          'gen_ai.operation.name': 'ai.generateText',
           'sentry.op': 'gen_ai.invoke_agent',
           'sentry.origin': 'auto.vercelai.otel',
         },
@@ -225,7 +227,7 @@ describe('Vercel AI integration (V5)', () => {
       // Second span - doGenerate for first call, should also include input/output fields when sendDefaultPii: true
       expect.objectContaining({
         data: {
-          'vercel.ai.model.id': 'mock-model-id',
+          'gen_ai.request.model': 'mock-model-id',
           'vercel.ai.model.provider': 'mock-provider',
           'vercel.ai.operationId': 'ai.generateText.doGenerate',
           'vercel.ai.pipeline.name': 'generateText.doGenerate',
@@ -237,7 +239,6 @@ describe('Vercel AI integration (V5)', () => {
           'vercel.ai.response.timestamp': expect.any(String),
           'vercel.ai.settings.maxRetries': 2,
           'vercel.ai.streaming': false,
-          'gen_ai.request.model': 'mock-model-id',
           'gen_ai.response.finish_reasons': ['stop'],
           'gen_ai.response.id': expect.any(String),
           'gen_ai.response.model': 'mock-model-id',
@@ -245,7 +246,7 @@ describe('Vercel AI integration (V5)', () => {
           'gen_ai.usage.input_tokens': 10,
           'gen_ai.usage.output_tokens': 20,
           'gen_ai.usage.total_tokens': 30,
-          'operation.name': 'ai.generateText.doGenerate',
+          'gen_ai.operation.name': 'ai.generateText.doGenerate',
           'sentry.op': 'gen_ai.generate_text',
           'sentry.origin': 'auto.vercelai.otel',
         },
@@ -257,11 +258,12 @@ describe('Vercel AI integration (V5)', () => {
       // Third span - explicitly enabled telemetry, should record inputs/outputs regardless of sendDefaultPii
       expect.objectContaining({
         data: {
-          'vercel.ai.model.id': 'mock-model-id',
+          'gen_ai.request.model': 'mock-model-id',
           'vercel.ai.model.provider': 'mock-provider',
           'vercel.ai.operationId': 'ai.generateText',
           'vercel.ai.pipeline.name': 'generateText',
           'vercel.ai.prompt': '{"prompt":"Where is the second span?"}',
+          'gen_ai.request.messages': '[{"role":"user","content":"Where is the second span?"}]',
           'vercel.ai.response.finishReason': 'stop',
           'gen_ai.response.text': expect.any(String),
           'vercel.ai.settings.maxRetries': 2,
@@ -271,7 +273,7 @@ describe('Vercel AI integration (V5)', () => {
           'gen_ai.usage.input_tokens': 10,
           'gen_ai.usage.output_tokens': 20,
           'gen_ai.usage.total_tokens': 30,
-          'operation.name': 'ai.generateText',
+          'gen_ai.operation.name': 'ai.generateText',
           'sentry.op': 'gen_ai.invoke_agent',
           'sentry.origin': 'auto.vercelai.otel',
         },
@@ -285,13 +287,12 @@ describe('Vercel AI integration (V5)', () => {
         data: {
           'sentry.origin': 'auto.vercelai.otel',
           'sentry.op': 'gen_ai.generate_text',
-          'operation.name': 'ai.generateText.doGenerate',
+          'gen_ai.operation.name': 'ai.generateText.doGenerate',
           'vercel.ai.operationId': 'ai.generateText.doGenerate',
           'vercel.ai.model.provider': 'mock-provider',
-          'vercel.ai.model.id': 'mock-model-id',
+          'gen_ai.request.model': 'mock-model-id',
           'vercel.ai.settings.maxRetries': 2,
           'gen_ai.system': 'mock-provider',
-          'gen_ai.request.model': 'mock-model-id',
           'vercel.ai.pipeline.name': 'generateText.doGenerate',
           'vercel.ai.streaming': false,
           'vercel.ai.response.finishReason': 'stop',
@@ -315,13 +316,13 @@ describe('Vercel AI integration (V5)', () => {
       // Fifth span - tool call generateText span (should include prompts when sendDefaultPii: true)
       expect.objectContaining({
         data: {
-          'vercel.ai.model.id': 'mock-model-id',
+          'gen_ai.request.model': 'mock-model-id',
           'vercel.ai.model.provider': 'mock-provider',
           'vercel.ai.operationId': 'ai.generateText',
           'vercel.ai.pipeline.name': 'generateText',
           'vercel.ai.prompt': '{"prompt":"What is the weather in San Francisco?"}',
+          'gen_ai.request.messages': '[{"role":"user","content":"What is the weather in San Francisco?"}]',
           'vercel.ai.response.finishReason': 'tool-calls',
-          // 'gen_ai.response.text': 'Tool call completed!',
           'gen_ai.response.tool_calls': expect.any(String),
           'vercel.ai.settings.maxRetries': 2,
           'vercel.ai.streaming': false,
@@ -330,7 +331,7 @@ describe('Vercel AI integration (V5)', () => {
           'gen_ai.usage.input_tokens': 15,
           'gen_ai.usage.output_tokens': 25,
           'gen_ai.usage.total_tokens': 40,
-          'operation.name': 'ai.generateText',
+          'gen_ai.operation.name': 'ai.generateText',
           'sentry.op': 'gen_ai.invoke_agent',
           'sentry.origin': 'auto.vercelai.otel',
         },
@@ -342,13 +343,13 @@ describe('Vercel AI integration (V5)', () => {
       // Sixth span - tool call doGenerate span (should include prompts when sendDefaultPii: true)
       expect.objectContaining({
         data: {
-          'vercel.ai.model.id': 'mock-model-id',
+          'gen_ai.request.model': 'mock-model-id',
           'vercel.ai.model.provider': 'mock-provider',
           'vercel.ai.operationId': 'ai.generateText.doGenerate',
           'vercel.ai.pipeline.name': 'generateText.doGenerate',
           'gen_ai.request.messages': expect.any(String),
           'vercel.ai.prompt.toolChoice': expect.any(String),
-          'gen_ai.request.available_tools': expect.any(Array),
+          'gen_ai.request.available_tools': EXPECTED_AVAILABLE_TOOLS_JSON,
           'vercel.ai.response.finishReason': 'tool-calls',
           'vercel.ai.response.id': expect.any(String),
           'vercel.ai.response.model': 'mock-model-id',
@@ -357,7 +358,6 @@ describe('Vercel AI integration (V5)', () => {
           'gen_ai.response.tool_calls': expect.any(String),
           'vercel.ai.settings.maxRetries': 2,
           'vercel.ai.streaming': false,
-          'gen_ai.request.model': 'mock-model-id',
           'gen_ai.response.finish_reasons': ['tool-calls'],
           'gen_ai.response.id': expect.any(String),
           'gen_ai.response.model': 'mock-model-id',
@@ -365,7 +365,7 @@ describe('Vercel AI integration (V5)', () => {
           'gen_ai.usage.input_tokens': 15,
           'gen_ai.usage.output_tokens': 25,
           'gen_ai.usage.total_tokens': 40,
-          'operation.name': 'ai.generateText.doGenerate',
+          'gen_ai.operation.name': 'ai.generateText.doGenerate',
           'sentry.op': 'gen_ai.generate_text',
           'sentry.origin': 'auto.vercelai.otel',
         },
@@ -383,7 +383,7 @@ describe('Vercel AI integration (V5)', () => {
           'gen_ai.tool.input': expect.any(String),
           'gen_ai.tool.output': expect.any(String),
           'gen_ai.tool.type': 'function',
-          'operation.name': 'ai.toolCall',
+          'gen_ai.operation.name': 'ai.toolCall',
           'sentry.op': 'gen_ai.execute_tool',
           'sentry.origin': 'auto.vercelai.otel',
         },
@@ -438,7 +438,7 @@ describe('Vercel AI integration (V5)', () => {
           spans: expect.arrayContaining([
             expect.objectContaining({
               data: {
-                'vercel.ai.model.id': 'mock-model-id',
+                'gen_ai.request.model': 'mock-model-id',
                 'vercel.ai.model.provider': 'mock-provider',
                 'vercel.ai.operationId': 'ai.generateText',
                 'vercel.ai.pipeline.name': 'generateText',
@@ -448,7 +448,7 @@ describe('Vercel AI integration (V5)', () => {
                 'gen_ai.usage.input_tokens': 15,
                 'gen_ai.usage.output_tokens': 25,
                 'gen_ai.usage.total_tokens': 40,
-                'operation.name': 'ai.generateText',
+                'gen_ai.operation.name': 'ai.generateText',
                 'sentry.op': 'gen_ai.invoke_agent',
                 'sentry.origin': 'auto.vercelai.otel',
                 'vercel.ai.response.finishReason': 'tool-calls',
@@ -459,7 +459,7 @@ describe('Vercel AI integration (V5)', () => {
             }),
             expect.objectContaining({
               data: {
-                'vercel.ai.model.id': 'mock-model-id',
+                'gen_ai.request.model': 'mock-model-id',
                 'vercel.ai.model.provider': 'mock-provider',
                 'vercel.ai.operationId': 'ai.generateText.doGenerate',
                 'vercel.ai.pipeline.name': 'generateText.doGenerate',
@@ -469,7 +469,6 @@ describe('Vercel AI integration (V5)', () => {
                 'vercel.ai.response.timestamp': expect.any(String),
                 'vercel.ai.settings.maxRetries': 2,
                 'vercel.ai.streaming': false,
-                'gen_ai.request.model': 'mock-model-id',
                 'gen_ai.response.finish_reasons': ['tool-calls'],
                 'gen_ai.response.id': expect.any(String),
                 'gen_ai.response.model': 'mock-model-id',
@@ -477,7 +476,7 @@ describe('Vercel AI integration (V5)', () => {
                 'gen_ai.usage.input_tokens': 15,
                 'gen_ai.usage.output_tokens': 25,
                 'gen_ai.usage.total_tokens': 40,
-                'operation.name': 'ai.generateText.doGenerate',
+                'gen_ai.operation.name': 'ai.generateText.doGenerate',
                 'sentry.op': 'gen_ai.generate_text',
                 'sentry.origin': 'auto.vercelai.otel',
               },
@@ -492,14 +491,14 @@ describe('Vercel AI integration (V5)', () => {
                 'gen_ai.tool.call.id': 'call-1',
                 'gen_ai.tool.name': 'getWeather',
                 'gen_ai.tool.type': 'function',
-                'operation.name': 'ai.toolCall',
+                'gen_ai.operation.name': 'ai.toolCall',
                 'sentry.op': 'gen_ai.execute_tool',
                 'sentry.origin': 'auto.vercelai.otel',
               },
               description: 'execute_tool getWeather',
               op: 'gen_ai.execute_tool',
               origin: 'auto.vercelai.otel',
-              status: 'unknown_error',
+              status: 'internal_error',
             }),
           ]),
         };

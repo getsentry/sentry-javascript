@@ -129,6 +129,27 @@ describe('webpack loaders', () => {
         resourcePath: '/Users/Maisey/projects/squirrelChasingSimulator/middleware.tsx',
         expectedWrappingTargetKind: undefined,
       },
+      // Next.js 16+ renamed middleware to proxy
+      {
+        resourcePath: '/Users/Maisey/projects/squirrelChasingSimulator/src/proxy.js',
+        expectedWrappingTargetKind: 'middleware',
+      },
+      {
+        resourcePath: '/Users/Maisey/projects/squirrelChasingSimulator/src/proxy.ts',
+        expectedWrappingTargetKind: 'middleware',
+      },
+      {
+        resourcePath: './src/proxy.ts',
+        expectedWrappingTargetKind: 'middleware',
+      },
+      {
+        resourcePath: '/Users/Maisey/projects/squirrelChasingSimulator/src/proxy.tsx',
+        expectedWrappingTargetKind: 'middleware',
+      },
+      {
+        resourcePath: '/Users/Maisey/projects/squirrelChasingSimulator/proxy.tsx',
+        expectedWrappingTargetKind: undefined,
+      },
       {
         resourcePath: '/Users/Maisey/projects/squirrelChasingSimulator/src/pages/api/testApiRoute.ts',
         expectedWrappingTargetKind: 'api-route',

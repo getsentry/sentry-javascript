@@ -9,8 +9,8 @@ import type { Span } from '../types-hoist/span';
 import type { SerializedTraceData } from '../types-hoist/tracing';
 import { dynamicSamplingContextToSentryBaggageHeader } from './baggage';
 import { debug } from './debug-logger';
-import { getActiveSpan, spanToTraceHeader } from './spanUtils';
-import { extractTraceparentData, generateSentryTraceHeader, TRACEPARENT_REGEXP } from './tracing';
+import { getActiveSpan, spanToTraceHeader, spanToTraceparentHeader } from './spanUtils';
+import { generateSentryTraceHeader, generateTraceparentHeader, TRACEPARENT_REGEXP } from './tracing';
 
 /**
  * Extracts trace propagation data from the current span or from the client's scope (via transaction or propagation
@@ -58,10 +58,7 @@ export function getTraceData(
   };
 
   if (options.propagateTraceparent) {
-    const traceparent = _sentryTraceToTraceParentHeader(sentryTrace);
-    if (traceparent) {
-      traceData.traceparent = traceparent;
-    }
+    traceData.traceparent = span ? spanToTraceparentHeader(span) : scopeToTraceparentHeader(scope);
   }
 
   return traceData;
@@ -75,22 +72,7 @@ function scopeToTraceHeader(scope: Scope): string {
   return generateSentryTraceHeader(traceId, propagationSpanId, sampled);
 }
 
-/**
- * Builds a W3C traceparent header from the given sentry-trace header.
- *
- * Why parse that header and not create traceparent from primitives?
- * We want these two headers to always have the same ids. The easiest way to do this is to take
- * one of them as the source of truth (sentry-trace) and derive the other from it.
- *
- * Most importantly, this guarantees parentSpanId consistency between sentry-trace and traceparent
- * in tracing without performance (TwP) mode, where we always generate a random parentSpanId.
- *
- * Exported for testing
- */
-export function _sentryTraceToTraceParentHeader(sentryTrace: string): string | undefined {
-  const { traceId, parentSpanId, parentSampled } = extractTraceparentData(sentryTrace) || {};
-  if (!traceId || !parentSpanId) {
-    return undefined;
-  }
-  return `00-${traceId}-${parentSpanId}-${parentSampled ? '01' : '00'}`;
+function scopeToTraceparentHeader(scope: Scope): string {
+  const { traceId, sampled, propagationSpanId } = scope.getPropagationContext();
+  return generateTraceparentHeader(traceId, propagationSpanId, sampled);
 }

@@ -1,10 +1,19 @@
 /* eslint-disable max-lines */
-import type { Client, IntegrationFn, Span, StartSpanOptions, TransactionSource, WebFetchHeaders } from '@sentry/core';
+import type {
+  Client,
+  IntegrationFn,
+  RequestHookInfo,
+  ResponseHookInfo,
+  Span,
+  StartSpanOptions,
+  TransactionSource,
+} from '@sentry/core';
 import {
   addNonEnumerableProperty,
   browserPerformanceTimeOrigin,
   dateTimestampInSeconds,
   debug,
+  generateSpanId,
   generateTraceId,
   getClient,
   getCurrentScope,
@@ -12,6 +21,7 @@ import {
   getIsolationScope,
   getLocationHref,
   GLOBAL_OBJ,
+  hasSpansEnabled,
   parseStringToURLObject,
   propagationContextFromHeaders,
   registerSpanErrorInstrumentation,
@@ -249,6 +259,23 @@ export interface BrowserTracingOptions {
   consistentTraceSampling: boolean;
 
   /**
+   * If set to `true`, the pageload span will not end itself automatically, unless it
+   * runs until the {@link BrowserTracingOptions.finalTimeout} (30 seconds by default) is reached.
+   *
+   * Set this option to `true`, if you want full control over the pageload span duration.
+   * You can use `Sentry.reportPageLoaded()` to manually end the pageload span whenever convenient.
+   * Be aware that you have to ensure that this is always called, regardless of the chosen route
+   * or path in the application.
+   *
+   * @default `false`. By default, the pageload span will end itself automatically, based on
+   * the {@link BrowserTracingOptions.finalTimeout}, {@link BrowserTracingOptions.idleTimeout}
+   * and {@link BrowserTracingOptions.childSpanTimeout}. This is more convenient to use but means
+   * that the pageload duration can be arbitrary and might not be fully representative of a perceived
+   * page load time.
+   */
+  enableReportPageLoaded: boolean;
+
+  /**
    * _experiments allows the user to send options to define how this integration works.
    *
    * Default: undefined
@@ -278,7 +305,12 @@ export interface BrowserTracingOptions {
    * You can use it to annotate the span with additional data or attributes, for example by setting
    * attributes based on the passed request headers.
    */
-  onRequestSpanStart?(span: Span, requestInformation: { headers?: WebFetchHeaders }): void;
+  onRequestSpanStart?(span: Span, requestInformation: RequestHookInfo): void;
+
+  /**
+   * Is called when spans end for outgoing requests, providing access to response headers.
+   */
+  onRequestSpanEnd?(span: Span, responseInformation: ResponseHookInfo): void;
 }
 
 const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
@@ -295,6 +327,7 @@ const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
   detectRedirects: true,
   linkPreviousTrace: 'in-memory',
   consistentTraceSampling: false,
+  enableReportPageLoaded: false,
   _experiments: {},
   ...defaultRequestInstrumentationOptions,
 };
@@ -308,7 +341,7 @@ const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
  *
  * We explicitly export the proper type here, as this has to be extended in some cases.
  */
-export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptions> = {}) => {
+export const browserTracingIntegration = ((options: Partial<BrowserTracingOptions> = {}) => {
   const latestRoute: RouteInfo = {
     name: undefined,
     source: undefined,
@@ -343,18 +376,22 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
     detectRedirects,
     linkPreviousTrace,
     consistentTraceSampling,
+    enableReportPageLoaded,
     onRequestSpanStart,
+    onRequestSpanEnd,
   } = {
     ...DEFAULT_BROWSER_TRACING_OPTIONS,
-    ..._options,
+    ...options,
   };
 
   let _collectWebVitals: undefined | (() => void);
   let lastInteractionTimestamp: number | undefined;
 
+  let _pageloadSpan: Span | undefined;
+
   /** Create routing idle transaction. */
   function _createRouteSpan(client: Client, startSpanOptions: StartSpanOptions, makeActive = true): void {
-    const isPageloadTransaction = startSpanOptions.op === 'pageload';
+    const isPageloadSpan = startSpanOptions.op === 'pageload';
 
     const initialSpanName = startSpanOptions.name;
     const finalStartSpanOptions: StartSpanOptions = beforeStartSpan
@@ -388,7 +425,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
       finalTimeout,
       childSpanTimeout,
       // should wait for finish signal if it's a pageload transaction
-      disableAutoFinish: isPageloadTransaction,
+      disableAutoFinish: isPageloadSpan,
       beforeSpanEnd: span => {
         // This will generally always be defined here, because it is set in `setup()` of the integration
         // but technically, it is optional, so we guard here to be extra safe
@@ -413,8 +450,18 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
           sampled: spanIsSampled(idleSpan),
           dsc: getDynamicSamplingContextFromSpan(span),
         });
+
+        if (isPageloadSpan) {
+          // clean up the stored pageload span on the intergration.
+          _pageloadSpan = undefined;
+        }
       },
+      trimIdleSpanEndTimestamp: !enableReportPageLoaded,
     });
+
+    if (isPageloadSpan && enableReportPageLoaded) {
+      _pageloadSpan = idleSpan;
+    }
 
     setActiveIdleSpan(client, idleSpan);
 
@@ -424,7 +471,8 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
       }
     }
 
-    if (isPageloadTransaction && optionalWindowDocument) {
+    // Enable auto finish of the pageload span if users are not explicitly ending it
+    if (isPageloadSpan && !enableReportPageLoaded && optionalWindowDocument) {
       optionalWindowDocument.addEventListener('readystatechange', () => {
         emitFinish();
       });
@@ -512,10 +560,19 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
 
         maybeEndActiveSpan();
 
-        getIsolationScope().setPropagationContext({ traceId: generateTraceId(), sampleRand: Math.random() });
+        getIsolationScope().setPropagationContext({
+          traceId: generateTraceId(),
+          sampleRand: Math.random(),
+          propagationSpanId: hasSpansEnabled() ? undefined : generateSpanId(),
+        });
 
         const scope = getCurrentScope();
-        scope.setPropagationContext({ traceId: generateTraceId(), sampleRand: Math.random() });
+        scope.setPropagationContext({
+          traceId: generateTraceId(),
+          sampleRand: Math.random(),
+          propagationSpanId: hasSpansEnabled() ? undefined : generateSpanId(),
+        });
+
         // We reset this to ensure we do not have lingering incorrect data here
         // places that call this hook may set this where appropriate - else, the URL at span sending time is used
         scope.setSDKProcessingMetadata({
@@ -525,6 +582,9 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         _createRouteSpan(client, {
           op: 'navigation',
           ...startSpanOptions,
+          // Navigation starts a new trace and is NOT parented under any active interaction (e.g. ui.action.click)
+          parentSpan: null,
+          forceTransaction: true,
         });
       });
 
@@ -541,6 +601,12 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
 
         const scope = getCurrentScope();
         scope.setPropagationContext(propagationContext);
+        if (!hasSpansEnabled()) {
+          // for browser, we wanna keep the spanIds consistent during the entire lifetime of the trace
+          // this works by setting the propagationSpanId to a random spanId so that we have a consistent
+          // span id to propagate in TwP mode (!hasSpansEnabled())
+          scope.getPropagationContext().propagationSpanId = generateSpanId();
+        }
 
         // We store the normalized request data on the scope, so we get the request data at time of span creation
         // otherwise, the URL etc. may already be of the following navigation, and we'd report the wrong URL
@@ -553,7 +619,15 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
           ...startSpanOptions,
         });
       });
+
+      client.on('endPageloadSpan', () => {
+        if (enableReportPageLoaded && _pageloadSpan) {
+          _pageloadSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON, 'reportPageLoaded');
+          _pageloadSpan.end();
+        }
+      });
     },
+
     afterAllSetup(client) {
       let startingUrl: string | undefined = getLocationHref();
 
@@ -632,6 +706,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         shouldCreateSpanForRequest,
         enableHTTPTimings,
         onRequestSpanStart,
+        onRequestSpanEnd,
       });
     },
   };

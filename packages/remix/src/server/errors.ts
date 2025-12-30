@@ -1,11 +1,4 @@
-import type {
-  ActionFunction,
-  ActionFunctionArgs,
-  EntryContext,
-  HandleDocumentRequestFunction,
-  LoaderFunction,
-  LoaderFunctionArgs,
-} from '@remix-run/node';
+import type { ActionFunction, ActionFunctionArgs, LoaderFunction, LoaderFunctionArgs } from '@remix-run/node';
 import { isRouteErrorResponse } from '@remix-run/router';
 import type { RequestEventData, Span } from '@sentry/core';
 import {
@@ -65,7 +58,7 @@ export async function captureRemixServerException(err: unknown, name: string, re
 
     scope.addEventProcessor(event => {
       addExceptionMechanism(event, {
-        type: 'instrument',
+        type: 'auto.function.remix.server',
         handled: false,
         data: {
           function: name,
@@ -77,37 +70,6 @@ export async function captureRemixServerException(err: unknown, name: string, re
 
     return scope;
   });
-}
-
-/**
- * Wraps the original `HandleDocumentRequestFunction` with error handling.
- *
- * @param origDocumentRequestFunction The original `HandleDocumentRequestFunction`.
- * @param requestContext The request context.
- *
- * @returns The wrapped `HandleDocumentRequestFunction`.
- */
-export function errorHandleDocumentRequestFunction(
-  this: unknown,
-  origDocumentRequestFunction: HandleDocumentRequestFunction,
-  requestContext: {
-    request: Request;
-    responseStatusCode: number;
-    responseHeaders: Headers;
-    context: EntryContext;
-    loadContext?: Record<string, unknown>;
-  },
-): HandleDocumentRequestFunction {
-  const { request, responseStatusCode, responseHeaders, context, loadContext } = requestContext;
-
-  return handleCallbackErrors(
-    () => {
-      return origDocumentRequestFunction.call(this, request, responseStatusCode, responseHeaders, context, loadContext);
-    },
-    err => {
-      throw err;
-    },
-  );
 }
 
 /**

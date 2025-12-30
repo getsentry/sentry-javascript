@@ -1,3 +1,5 @@
+// import/export got a false positive, and affects most of our index barrel files
+// can be removed once following issue is fixed: https://github.com/import-js/eslint-plugin-import/issues/703
 /* eslint-disable import/export */
 
 // We export everything from both the client part of the SDK and from the server part.
@@ -60,6 +62,7 @@ export declare function trackComponent(options: clientSdk.TrackingOptions): Retu
 
 export declare const logger: typeof clientSdk.logger | typeof serverSdk.logger;
 
+export declare const growthbookIntegration: typeof clientSdk.growthbookIntegration;
 export declare const launchDarklyIntegration: typeof clientSdk.launchDarklyIntegration;
 export declare const buildLaunchDarklyFlagUsedHandler: typeof clientSdk.buildLaunchDarklyFlagUsedHandler;
 export declare const openFeatureIntegration: typeof clientSdk.openFeatureIntegration;

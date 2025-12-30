@@ -73,9 +73,7 @@ test.describe('server-side errors', () => {
             value: "'HttpError' captured as exception with keys: body, status",
             mechanism: {
               handled: false,
-              data: {
-                function: 'serverRoute',
-              },
+              type: 'auto.function.sveltekit.server_route',
             },
             stacktrace: { frames: expect.any(Array) },
           },

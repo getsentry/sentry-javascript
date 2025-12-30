@@ -115,7 +115,6 @@ export function collectReplayRequests(
   const replayEvents: ReplayEvent[] = [];
   const replayRecordingSnapshots: RecordingSnapshot[] = [];
 
-  // eslint-disable-next-line @typescript-eslint/no-floating-promises
   const promise = page.waitForResponse(res => {
     const req = res.request();
 
@@ -431,7 +430,7 @@ export const replayEnvelopeParser = (request: Request | null): unknown[] => {
  * @returns `true` if we should skip the replay test
  */
 export function shouldSkipReplayTest(): boolean {
-  const bundle = process.env.PW_BUNDLE as string | undefined;
+  const bundle = process.env.PW_BUNDLE;
   return bundle != null && !bundle.includes('replay') && !bundle.includes('esm') && !bundle.includes('cjs');
 }
 
@@ -447,9 +446,10 @@ export function normalize(
 ): string {
   const rawString = JSON.stringify(obj, null, 2);
   let normalizedString = rawString
-    .replace(/"file:\/\/.+(\/.*\.html)"/gm, '"$1"')
-    .replace(/"timeOffset":\s*-?\d+/gm, '"timeOffset": [timeOffset]')
-    .replace(/"timestamp":\s*0/gm, '"timestamp": [timestamp]');
+    // eslint-disable-next-line regexp/no-super-linear-backtracking
+    .replace(/"file:\/\/.+(\/.*\.html)"/g, '"$1"')
+    .replace(/"timeOffset":\s*-?\d+/g, '"timeOffset": [timeOffset]')
+    .replace(/"timestamp":\s*0/g, '"timestamp": [timestamp]');
 
   if (normalizeNumberAttributes?.length) {
     // We look for: "attr": "123px", "123", "123%", "123em", "123rem"

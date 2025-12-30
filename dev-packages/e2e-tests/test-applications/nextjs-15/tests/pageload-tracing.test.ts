@@ -24,11 +24,6 @@ test('App router transactions should be attached to the pageload request span', 
 });
 
 test('extracts HTTP request headers as span attributes', async ({ baseURL }) => {
-  test.skip(
-    process.env.TEST_ENV === 'prod-turbopack' || process.env.TEST_ENV === 'dev-turbopack',
-    'Incoming fetch request headers are not added as span attributes when Turbopack is enabled (addHeadersAsAttributes)',
-  );
-
   const serverTransactionPromise = waitForTransaction('nextjs-15', async transactionEvent => {
     return transactionEvent?.transaction === 'GET /pageload-tracing';
   });

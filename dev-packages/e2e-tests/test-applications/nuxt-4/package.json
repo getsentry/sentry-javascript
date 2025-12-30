@@ -18,14 +18,15 @@
   "dependencies": {
     "@pinia/nuxt": "^0.5.5",
     "@sentry/nuxt": "latest || *",
-    "nuxt": "^4.0.0-alpha.4"
+    "nuxt": "^4.1.2"
   },
   "devDependencies": {
-    "@playwright/test": "~1.53.2",
+    "@playwright/test": "~1.56.0",
     "@sentry-internal/test-utils": "link:../../../test-utils"
   },
   "volta": {
-    "extends": "../../package.json"
+    "extends": "../../package.json",
+    "node": "22.20.0"
   },
   "sentryTest": {
     "optionalVariants": [

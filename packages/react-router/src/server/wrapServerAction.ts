@@ -54,7 +54,7 @@ export function wrapServerAction<T>(options: SpanOptions = {}, actionFn: (args: 
           updateSpanName(root, `${args.request.method} ${target}`);
           root.setAttributes({
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react-router.action',
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react_router.action',
           });
         }
       }
@@ -66,8 +66,8 @@ export function wrapServerAction<T>(options: SpanOptions = {}, actionFn: (args: 
           name,
           ...options,
           attributes: {
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react-router.action',
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.react-router.action',
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react_router.action',
+            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.react_router.action',
             ...options.attributes,
           },
         },

@@ -1,4 +1,11 @@
-import type { Client, HandlerDataXhr, SentryWrappedXMLHttpRequest, Span, WebFetchHeaders } from '@sentry/core';
+import type {
+  Client,
+  HandlerDataXhr,
+  RequestHookInfo,
+  ResponseHookInfo,
+  SentryWrappedXMLHttpRequest,
+  Span,
+} from '@sentry/core';
 import {
   addFetchEndInstrumentationHandler,
   addFetchInstrumentationHandler,
@@ -22,11 +29,12 @@ import type { XhrHint } from '@sentry-internal/browser-utils';
 import {
   addPerformanceInstrumentationHandler,
   addXhrInstrumentationHandler,
+  parseXhrResponseHeaders,
+  resourceTimingToSpanAttributes,
   SENTRY_XHR_DATA_KEY,
 } from '@sentry-internal/browser-utils';
 import type { BrowserClient } from '../client';
-import { WINDOW } from '../helpers';
-import { resourceTimingToSpanAttributes } from './resource-timing';
+import { baggageHeaderHasSentryValues, createHeadersSafely, getFullURL, isPerformanceResourceTiming } from './utils';
 
 /** Options for Request Instrumentation */
 export interface RequestInstrumentationOptions {
@@ -102,7 +110,12 @@ export interface RequestInstrumentationOptions {
   /**
    * Is called when spans are started for outgoing requests.
    */
-  onRequestSpanStart?(span: Span, requestInformation: { headers?: WebFetchHeaders }): void;
+  onRequestSpanStart?(span: Span, requestInformation: RequestHookInfo): void;
+
+  /**
+   * Is called when spans end for outgoing requests, providing access to response headers.
+   */
+  onRequestSpanEnd?(span: Span, responseInformation: ResponseHookInfo): void;
 }
 
 const responseToSpanId = new WeakMap<object, string>();
@@ -125,6 +138,7 @@ export function instrumentOutgoingRequests(client: Client, _options?: Partial<Re
     enableHTTPTimings,
     tracePropagationTargets,
     onRequestSpanStart,
+    onRequestSpanEnd,
   } = {
     ...defaultRequestInstrumentationOptions,
     ..._options,
@@ -171,6 +185,7 @@ export function instrumentOutgoingRequests(client: Client, _options?: Partial<Re
     addFetchInstrumentationHandler(handlerData => {
       const createdSpan = instrumentFetchRequest(handlerData, shouldCreateSpan, shouldAttachHeadersWithTargets, spans, {
         propagateTraceparent,
+        onRequestSpanEnd,
       });
 
       if (handlerData.response && handlerData.fetchData.__span) {
@@ -205,6 +220,7 @@ export function instrumentOutgoingRequests(client: Client, _options?: Partial<Re
         shouldAttachHeadersWithTargets,
         spans,
         propagateTraceparent,
+        onRequestSpanEnd,
       );
 
       if (createdSpan) {
@@ -212,25 +228,12 @@ export function instrumentOutgoingRequests(client: Client, _options?: Partial<Re
           addHTTPTimings(createdSpan);
         }
 
-        let headers;
-        try {
-          headers = new Headers(handlerData.xhr.__sentry_xhr_v3__?.request_headers);
-        } catch {
-          // noop
-        }
-        onRequestSpanStart?.(createdSpan, { headers });
+        onRequestSpanStart?.(createdSpan, {
+          headers: createHeadersSafely(handlerData.xhr.__sentry_xhr_v3__?.request_headers),
+        });
       }
     });
   }
-}
-
-function isPerformanceResourceTiming(entry: PerformanceEntry): entry is PerformanceResourceTiming {
-  return (
-    entry.entryType === 'resource' &&
-    'initiatorType' in entry &&
-    typeof (entry as PerformanceResourceTiming).nextHopProtocol === 'string' &&
-    (entry.initiatorType === 'fetch' || entry.initiatorType === 'xmlhttprequest')
-  );
 }
 
 /**
@@ -249,8 +252,7 @@ function addHTTPTimings(span: Span): void {
   const cleanup = addPerformanceInstrumentationHandler('resource', ({ entries }) => {
     entries.forEach(entry => {
       if (isPerformanceResourceTiming(entry) && entry.name.endsWith(url)) {
-        const spanAttributes = resourceTimingToSpanAttributes(entry);
-        spanAttributes.forEach(attributeArray => span.setAttribute(...attributeArray));
+        span.setAttributes(resourceTimingToSpanAttributes(entry));
         // In the next tick, clean this handler up
         // We have to wait here because otherwise this cleans itself up before it is fully done
         setTimeout(cleanup);
@@ -316,6 +318,7 @@ function xhrCallback(
   shouldAttachHeaders: (url: string) => boolean,
   spans: Record<string, Span>,
   propagateTraceparent?: boolean,
+  onRequestSpanEnd?: RequestInstrumentationOptions['onRequestSpanEnd'],
 ): Span | undefined {
   const xhr = handlerData.xhr;
   const sentryXhrData = xhr?.[SENTRY_XHR_DATA_KEY];
@@ -337,6 +340,11 @@ function xhrCallback(
     if (span && sentryXhrData.status_code !== undefined) {
       setHttpStatus(span, sentryXhrData.status_code);
       span.end();
+
+      onRequestSpanEnd?.(span, {
+        headers: createHeadersSafely(parseXhrResponseHeaders(xhr as XMLHttpRequest & SentryWrappedXMLHttpRequest)),
+        error: handlerData.error,
+      });
 
       // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
       delete spans[spanId];
@@ -437,20 +445,5 @@ function setHeaderOnXhr(
     }
   } catch {
     // Error: InvalidStateError: Failed to execute 'setRequestHeader' on 'XMLHttpRequest': The object's state must be OPENED.
-  }
-}
-
-function baggageHeaderHasSentryValues(baggageHeader: string): boolean {
-  return baggageHeader.split(',').some(value => value.trim().startsWith('sentry-'));
-}
-
-function getFullURL(url: string): string | undefined {
-  try {
-    // By adding a base URL to new URL(), this will also work for relative urls
-    // If `url` is a full URL, the base URL is ignored anyhow
-    const parsed = new URL(url, WINDOW.location.origin);
-    return parsed.href;
-  } catch {
-    return undefined;
   }
 }

@@ -3,7 +3,7 @@ import type { Event } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
 import { getMultipleSentryEnvelopeRequests, shouldSkipTracingTest } from '../../../../utils/helpers';
 
-sentryTest('should create fetch spans with http timing @firefox', async ({ browserName, getLocalTestUrl, page }) => {
+sentryTest('creates fetch spans with http timing', async ({ browserName, getLocalTestUrl, page }) => {
   const supportedBrowsers = ['chromium', 'firefox'];
 
   if (shouldSkipTracingTest() || !supportedBrowsers.includes(browserName)) {
@@ -34,12 +34,14 @@ sentryTest('should create fetch spans with http timing @firefox', async ({ brows
     expect(span).toMatchObject({
       description: `GET http://sentry-test-site.example/${index}`,
       parent_span_id: tracingEvent.contexts?.trace?.span_id,
-      span_id: expect.stringMatching(/[a-f0-9]{16}/),
+      span_id: expect.stringMatching(/[a-f\d]{16}/),
       start_timestamp: expect.any(Number),
       timestamp: expect.any(Number),
       trace_id: tracingEvent.contexts?.trace?.trace_id,
       data: expect.objectContaining({
         'http.request.redirect_start': expect.any(Number),
+        'http.request.redirect_end': expect.any(Number),
+        'http.request.worker_start': expect.any(Number),
         'http.request.fetch_start': expect.any(Number),
         'http.request.domain_lookup_start': expect.any(Number),
         'http.request.domain_lookup_end': expect.any(Number),
@@ -49,6 +51,7 @@ sentryTest('should create fetch spans with http timing @firefox', async ({ brows
         'http.request.request_start': expect.any(Number),
         'http.request.response_start': expect.any(Number),
         'http.request.response_end': expect.any(Number),
+        'http.request.time_to_first_byte': expect.any(Number),
         'network.protocol.version': expect.any(String),
       }),
     }),

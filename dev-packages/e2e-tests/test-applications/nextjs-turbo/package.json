@@ -17,13 +17,13 @@
     "@types/node": "^18.19.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "next": "^15.3.5",
+    "next": "^15.5.4",
     "react": "^19",
     "react-dom": "^19",
     "typescript": "~5.0.0"
   },
   "devDependencies": {
-    "@playwright/test": "~1.53.2",
+    "@playwright/test": "~1.56.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "@sentry/core": "latest || *"
   },

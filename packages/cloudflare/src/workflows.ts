@@ -2,6 +2,7 @@ import type { PropagationContext } from '@sentry/core';
 import {
   captureException,
   flush,
+  getCurrentScope,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   startSpan,
@@ -21,6 +22,7 @@ import { setAsyncLocalStorageAsyncContextStrategy } from './async';
 import type { CloudflareOptions } from './client';
 import { addCloudResourceContext } from './scope-utils';
 import { init } from './sdk';
+import { copyExecutionContext } from './utils/copyExecutionContext';
 
 const UUID_REGEX = /^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$/i;
 
@@ -56,29 +58,6 @@ async function propagationContextFromInstanceId(instanceId: string): Promise<Pro
   };
 }
 
-async function workflowStepWithSentry<V>(
-  instanceId: string,
-  options: CloudflareOptions,
-  callback: () => V,
-): Promise<V> {
-  setAsyncLocalStorageAsyncContextStrategy();
-
-  return withIsolationScope(async isolationScope => {
-    const client = init({ ...options, enableDedupe: false });
-    isolationScope.setClient(client);
-
-    addCloudResourceContext(isolationScope);
-
-    return withScope(async scope => {
-      const propagationContext = await propagationContextFromInstanceId(instanceId);
-      scope.setPropagationContext(propagationContext);
-
-      // eslint-disable-next-line no-return-await
-      return await callback();
-    });
-  });
-}
-
 class WrappedWorkflowStep implements WorkflowStep {
   public constructor(
     private _instanceId: string,
@@ -98,38 +77,40 @@ class WrappedWorkflowStep implements WorkflowStep {
     configOrCallback: WorkflowStepConfig | (() => Promise<T>),
     maybeCallback?: () => Promise<T>,
   ): Promise<T> {
+    // Capture the current scope, so parent span (e.g., a startSpan surrounding step.do) is preserved
+    const scopeForStep = getCurrentScope();
+
     const userCallback = (maybeCallback || configOrCallback) as () => Promise<T>;
     const config = typeof configOrCallback === 'function' ? undefined : configOrCallback;
 
     const instrumentedCallback: () => Promise<T> = async () => {
-      return workflowStepWithSentry(this._instanceId, this._options, async () => {
-        return startSpan(
-          {
-            op: 'function.step.do',
-            name,
-            attributes: {
-              'cloudflare.workflow.timeout': config?.timeout,
-              'cloudflare.workflow.retries.backoff': config?.retries?.backoff,
-              'cloudflare.workflow.retries.delay': config?.retries?.delay,
-              'cloudflare.workflow.retries.limit': config?.retries?.limit,
-              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.faas.cloudflare.workflow',
-              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'task',
-            },
+      return startSpan(
+        {
+          op: 'function.step.do',
+          name,
+          scope: scopeForStep,
+          attributes: {
+            'cloudflare.workflow.timeout': config?.timeout,
+            'cloudflare.workflow.retries.backoff': config?.retries?.backoff,
+            'cloudflare.workflow.retries.delay': config?.retries?.delay,
+            'cloudflare.workflow.retries.limit': config?.retries?.limit,
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.faas.cloudflare.workflow',
+            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'task',
           },
-          async span => {
-            try {
-              const result = await userCallback();
-              span.setStatus({ code: 1 });
-              return result;
-            } catch (error) {
-              captureException(error, { mechanism: { handled: true, type: 'cloudflare' } });
-              throw error;
-            } finally {
-              this._ctx.waitUntil(flush(2000));
-            }
-          },
-        );
-      });
+        },
+        async span => {
+          try {
+            const result = await userCallback();
+            span.setStatus({ code: 1 });
+            return result;
+          } catch (error) {
+            captureException(error, { mechanism: { handled: true, type: 'auto.faas.cloudflare.workflow' } });
+            throw error;
+          } finally {
+            this._ctx.waitUntil(flush(2000));
+          }
+        },
+      );
     };
 
     return config ? this._step.do(name, config, instrumentedCallback) : this._step.do(name, instrumentedCallback);
@@ -177,18 +158,43 @@ export function instrumentWorkflowWithSentry<
   return new Proxy(WorkFlowClass, {
     construct(target: C, args: [ctx: ExecutionContext, env: E], newTarget) {
       const [ctx, env] = args;
+      const context = copyExecutionContext(ctx);
+      args[0] = context;
+
       const options = optionsCallback(env);
       const instance = Reflect.construct(target, args, newTarget) as T;
       return new Proxy(instance, {
         get(obj, prop, receiver) {
           if (prop === 'run') {
             return async function (event: WorkflowEvent<P>, step: WorkflowStep): Promise<unknown> {
-              return obj.run.call(obj, event, new WrappedWorkflowStep(event.instanceId, ctx, options, step));
+              setAsyncLocalStorageAsyncContextStrategy();
+
+              return withIsolationScope(async isolationScope => {
+                const client = init({ ...options, enableDedupe: false });
+                isolationScope.setClient(client);
+
+                addCloudResourceContext(isolationScope);
+
+                return withScope(async scope => {
+                  const propagationContext = await propagationContextFromInstanceId(event.instanceId);
+                  scope.setPropagationContext(propagationContext);
+
+                  try {
+                    return await obj.run.call(
+                      obj,
+                      event,
+                      new WrappedWorkflowStep(event.instanceId, context, options, step),
+                    );
+                  } finally {
+                    context.waitUntil(flush(2000));
+                  }
+                });
+              });
             };
           }
           return Reflect.get(obj, prop, receiver);
         },
       });
     },
-  }) as C;
+  });
 }

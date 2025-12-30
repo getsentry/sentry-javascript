@@ -4,7 +4,8 @@
   "include": ["src/**/*"],
 
   "compilerOptions": {
-    "lib": ["es2018", "es2020.string"],
-    "module": "Node16"
+    "lib": ["ES2020", "ES2021.WeakRef"],
+    "module": "Node16",
+    "moduleResolution": "Node16"
   }
 }

@@ -22,12 +22,11 @@
     "vue-router": "4.2.4"
   },
   "devDependencies": {
-    "@playwright/test": "~1.53.2",
+    "@playwright/test": "~1.56.0",
     "@sentry-internal/test-utils": "link:../../../test-utils"
   },
   "pnpm": {
     "overrides": {
-      "nitropack": "2.10.0",
       "ofetch": "1.4.0",
       "@vercel/nft": "0.29.4"
     }

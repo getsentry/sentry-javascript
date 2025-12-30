@@ -24,7 +24,7 @@ export const feedbackModalIntegration = ((): FeedbackModalIntegration => {
     name: 'FeedbackModal',
     setupOnce() {},
     createDialog: ({ options, screenshotIntegration, sendFeedback, shadow }) => {
-      const shadowRoot = shadow as unknown as ShadowRoot;
+      const shadowRoot = shadow as ShadowRoot;
       const userKey = options.useSentryUser;
       const user = getUser();
 
@@ -69,8 +69,8 @@ export const feedbackModalIntegration = ((): FeedbackModalIntegration => {
             screenshotInput={screenshotInput}
             showName={options.showName || options.isNameRequired}
             showEmail={options.showEmail || options.isEmailRequired}
-            defaultName={(userKey && user?.[userKey.name]) || ''}
-            defaultEmail={(userKey && user?.[userKey.email]) || ''}
+            defaultName={String((userKey && user?.[userKey.name]) || '')}
+            defaultEmail={String((userKey && user?.[userKey.email]) || '')}
             onFormClose={() => {
               renderContent(false);
               options.onFormClose?.();

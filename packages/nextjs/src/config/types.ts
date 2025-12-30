@@ -11,8 +11,8 @@ type NextRewrite = {
 };
 
 interface WebpackPluginInstance {
-  [index: string]: any;
-  apply: (compiler: any) => void;
+  [index: string]: unknown;
+  apply: (compiler: unknown) => void;
 }
 
 export type NextConfigObject = {
@@ -54,6 +54,121 @@ export type NextConfigObject = {
   turbopack?: TurbopackOptions;
   compiler?: {
     runAfterProductionCompile?: (context: { distDir: string; projectDir: string }) => Promise<void> | void;
+  };
+};
+
+export type SentryBuildWebpackOptions = {
+  /**
+   * Automatically instrument Next.js data fetching methods and Next.js API routes with error and performance monitoring.
+   * Defaults to `true`.
+   */
+  autoInstrumentServerFunctions?: boolean;
+
+  /**
+   * Automatically instrument Next.js middleware with error and performance monitoring. Defaults to `true`.
+   */
+  autoInstrumentMiddleware?: boolean;
+
+  /**
+   * Automatically instrument components in the `app` directory with error monitoring. Defaults to `true`.
+   */
+  autoInstrumentAppDirectory?: boolean;
+
+  /**
+   * Automatically create cron monitors in Sentry for your Vercel Cron Jobs if configured via `vercel.json`.
+   *
+   * Defaults to `false`.
+   */
+  automaticVercelMonitors?: boolean;
+
+  /**
+   * Exclude certain serverside API routes or pages from being instrumented with Sentry during build-time. This option
+   * takes an array of strings or regular expressions. This options also affects pages in the `app` directory.
+   *
+   * NOTE: Pages should be specified as routes (`/animals` or `/api/animals/[animalType]/habitat`), not filepaths
+   * (`pages/animals/index.js` or `.\src\pages\api\animals\[animalType]\habitat.tsx`), and strings must be be a full,
+   * exact match.
+   *
+   * Notice: If you build Next.js with turbopack, the Sentry SDK will no longer apply build-time instrumentation and
+   * purely rely on Next.js telemetry features, meaning that this option will effectively no-op.
+   */
+  excludeServerRoutes?: Array<RegExp | string>;
+
+  /**
+   * Disables automatic injection of Sentry's Webpack configuration.
+   *
+   * By default, the Sentry Next.js SDK injects its own Webpack configuration to enable features such as
+   * source map upload and automatic instrumentation. Set this option to `true` if you want to prevent
+   * the SDK from modifying your Webpack config (for example, if you want to handle Sentry integration manually
+   * or if you are on an older version of Next.js while using Turbopack).
+   */
+  disableSentryConfig?: boolean;
+
+  /**
+   * Tree-shaking options to help reduce the size of the Sentry SDK bundle.
+   */
+  treeshake?: {
+    /**
+     * Removes Sentry SDK logger statements from the bundle. Note that this doesn't affect Sentry Logs.
+     */
+    removeDebugLogging?: boolean;
+
+    /**
+     * Setting this to true will treeshake any SDK code that is related to tracing and performance monitoring.
+     */
+    removeTracing?: boolean;
+
+    /**
+     * Setting this flag to `true` will tree shake any SDK code related to capturing iframe content with Session Replay.
+     * It's only relevant when using Session Replay. Enable this flag if you don't want to record any iframes.
+     * This has no effect if you did not add `replayIntegration`.
+     */
+    excludeReplayIframe?: boolean;
+
+    /**
+     * Setting this flag to `true` will tree shake any SDK code related to capturing shadow dom elements with Session Replay.
+     * It's only relevant when using Session Replay.
+     * Enable this flag if you don't want to record any shadow DOM elements.
+     * This has no effect if you did not add `replayIntegration`.
+     */
+    excludeReplayShadowDOM?: boolean;
+
+    /**
+     * Setting this flag to `true` will tree shake any SDK code that is related to the included compression web worker for Session Replay.
+     * It's only relevant when using Session Replay.
+     * Enable this flag if you want to host a compression worker yourself.
+     * See Using a Custom Compression Worker for details.
+     * We don't recommend enabling this flag unless you provide a custom worker URL.
+     * This has no effect if you did not add `replayIntegration`.
+     */
+    excludeReplayCompressionWorker?: boolean;
+  };
+
+  /**
+   * Options to be passed directly to the Sentry Webpack Plugin (`@sentry/webpack-plugin`) that ships with the Sentry SDK.
+   * You can use this option to override any options the SDK passes to the Webpack plugin.
+   *
+   * Please note that this option is unstable and may change in a breaking way in any release.
+   */
+  unstable_sentryWebpackPluginOptions?: SentryWebpackPluginOptions;
+
+  /**
+   * Options related to react component name annotations.
+   * Disabled by default, unless a value is set for this option.
+   * When enabled, your app's DOM will automatically be annotated during build-time with their respective component names.
+   * This will unlock the capability to search for Replays in Sentry by component name, as well as see component names in breadcrumbs and performance monitoring.
+   * Please note that this feature is not currently supported by the esbuild bundler plugins, and will only annotate React components
+   */
+  reactComponentAnnotation?: {
+    /**
+     * Whether the component name annotate plugin should be enabled or not.
+     */
+    enabled?: boolean;
+
+    /**
+     * A list of strings representing the names of components to ignore. The plugin will not apply `data-sentry` annotations on the DOM element for these components.
+     */
+    ignoredComponents?: string[];
   };
 };
 
@@ -318,7 +433,7 @@ export type SentryBuildOptions = {
    */
   bundleSizeOptimizations?: {
     /**
-     * If set to `true`, the Sentry SDK will attempt to tree-shake (remove) any debugging code within itself during the build.
+     * If set to `true`, the Sentry SDK will attempt to treeshake (remove) any debugging code within itself during the build.
      * Note that the success of this depends on tree shaking being enabled in your build tooling.
      *
      * Setting this option to `true` will disable features like the SDK's `debug` option.
@@ -326,14 +441,14 @@ export type SentryBuildOptions = {
     excludeDebugStatements?: boolean;
 
     /**
-     * If set to `true`, the Sentry SDK will attempt to tree-shake (remove) code within itself that is related to tracing and performance monitoring.
+     * If set to `true`, the Sentry SDK will attempt to treeshake (remove) code within itself that is related to tracing and performance monitoring.
      * Note that the success of this depends on tree shaking being enabled in your build tooling.
      * **Notice:** Do not enable this when you're using any performance monitoring-related SDK features (e.g. `Sentry.startTransaction()`).
      */
     excludeTracing?: boolean;
 
     /**
-     * If set to `true`, the Sentry SDK will attempt to tree-shake (remove) code related to the SDK's Session Replay Shadow DOM recording functionality.
+     * If set to `true`, the Sentry SDK will attempt to treeshake (remove) code related to the SDK's Session Replay Shadow DOM recording functionality.
      * Note that the success of this depends on tree shaking being enabled in your build tooling.
      *
      * This option is safe to be used when you do not want to capture any Shadow DOM activity via Sentry Session Replay.
@@ -341,7 +456,7 @@ export type SentryBuildOptions = {
     excludeReplayShadowDom?: boolean;
 
     /**
-     * If set to `true`, the Sentry SDK will attempt to tree-shake (remove) code related to the SDK's Session Replay `iframe` recording functionality.
+     * If set to `true`, the Sentry SDK will attempt to treeshake (remove) code related to the SDK's Session Replay `iframe` recording functionality.
      * Note that the success of this depends on tree shaking being enabled in your build tooling.
      *
      * You can safely do this when you do not want to capture any `iframe` activity via Sentry Session Replay.
@@ -349,7 +464,7 @@ export type SentryBuildOptions = {
     excludeReplayIframe?: boolean;
 
     /**
-     * If set to `true`, the Sentry SDK will attempt to tree-shake (remove) code related to the SDK's Session Replay's Compression Web Worker.
+     * If set to `true`, the Sentry SDK will attempt to treeshake (remove) code related to the SDK's Session Replay's Compression Web Worker.
      * Note that the success of this depends on tree shaking being enabled in your build tooling.
      *
      * **Notice:** You should only use this option if you manually host a compression worker and configure it in your Sentry Session Replay integration config via the `workerUrl` option.
@@ -363,6 +478,8 @@ export type SentryBuildOptions = {
    * When enabled, your app's DOM will automatically be annotated during build-time with their respective component names.
    * This will unlock the capability to search for Replays in Sentry by component name, as well as see component names in breadcrumbs and performance monitoring.
    * Please note that this feature is not currently supported by the esbuild bundler plugins, and will only annotate React components
+   *
+   * @deprecated Use `webpack.reactComponentAnnotation` instead.
    */
   reactComponentAnnotation?: {
     /**
@@ -381,6 +498,7 @@ export type SentryBuildOptions = {
    * You can use this option to override any options the SDK passes to the webpack plugin.
    *
    * Please note that this option is unstable and may change in a breaking way in any release.
+   * @deprecated Use `webpack.unstable_sentryWebpackPluginOptions` instead.
    */
   unstable_sentryWebpackPluginOptions?: SentryWebpackPluginOptions;
 
@@ -391,6 +509,8 @@ export type SentryBuildOptions = {
    * Disabling this option will leave you without readable stacktraces for dependencies and Next.js-internal code.
    *
    * Defaults to `false`.
+   *
+   * This option applies to both webpack and turbopack builds.
    */
   // Enabling this option may upload a lot of source maps and since the sourcemap upload endpoint in Sentry is super
   // slow we don't enable it by default so that we don't opaquely increase build times for users.
@@ -400,16 +520,19 @@ export type SentryBuildOptions = {
   /**
    * Automatically instrument Next.js data fetching methods and Next.js API routes with error and performance monitoring.
    * Defaults to `true`.
+   * @deprecated Use `webpack.autoInstrumentServerFunctions` instead.
    */
   autoInstrumentServerFunctions?: boolean;
 
   /**
    * Automatically instrument Next.js middleware with error and performance monitoring. Defaults to `true`.
+   * @deprecated Use `webpack.autoInstrumentMiddleware` instead.
    */
   autoInstrumentMiddleware?: boolean;
 
   /**
    * Automatically instrument components in the `app` directory with error monitoring. Defaults to `true`.
+   * @deprecated Use `webpack.autoInstrumentAppDirectory` instead.
    */
   autoInstrumentAppDirectory?: boolean;
 
@@ -423,6 +546,8 @@ export type SentryBuildOptions = {
    *
    * Notice: If you build Next.js with turbopack, the Sentry SDK will no longer apply build-time instrumentation and
    * purely rely on Next.js telemetry features, meaning that this option will effectively no-op.
+   *
+   * @deprecated Use `webpack.excludeServerRoutes` instead.
    */
   excludeServerRoutes?: Array<RegExp | string>;
 
@@ -439,6 +564,8 @@ export type SentryBuildOptions = {
 
   /**
    * Tree shakes Sentry SDK logger statements from the bundle.
+   *
+   * @deprecated Use `webpack.treeshake.removeDebugLogging` instead.
    */
   disableLogger?: boolean;
 
@@ -446,6 +573,8 @@ export type SentryBuildOptions = {
    * Automatically create cron monitors in Sentry for your Vercel Cron Jobs if configured via `vercel.json`.
    *
    * Defaults to `false`.
+   *
+   * @deprecated Use `webpack.automaticVercelMonitors` instead.
    */
   automaticVercelMonitors?: boolean;
 
@@ -497,9 +626,21 @@ export type SentryBuildOptions = {
    * the SDK from modifying your Webpack config (for example, if you want to handle Sentry integration manually
    * or if you are on an older version of Next.js while using Turbopack).
    *
+   * @deprecated Use `webpack.disableSentryConfig` instead.
+   *
    * @default false
    */
   disableSentryWebpackConfig?: boolean;
+
+  /**
+   * When true (and Next.js >= 15), use the runAfterProductionCompile hook to consolidate sourcemap uploads
+   * into a single operation after builds complete, reducing build time.
+   *
+   * When false, use the traditional approach of uploading sourcemaps during each webpack build. For Turbopack no sourcemaps will be uploaded.
+   *
+   * @default true for Turbopack, false for Webpack
+   */
+  useRunAfterProductionCompileHook?: boolean;
 
   /**
    * Contains a set of experimental flags that might change in future releases. These flags enable
@@ -507,17 +648,13 @@ export type SentryBuildOptions = {
    * Use with caution in production environments.
    */
   _experimental?: Partial<{
-    /**
-     * When true (and Next.js >= 15), use the runAfterProductionCompile hook to consolidate sourcemap uploads
-     * into a single operation after turbopack builds complete, reducing build time.
-     *
-     * When false, use the traditional approach of uploading sourcemaps during each webpack build.
-     *
-     * @default false
-     */
-    useRunAfterProductionCompileHook?: boolean;
-    thirdPartyOriginStackFrames: boolean;
+    thirdPartyOriginStackFrames?: boolean;
   }>;
+
+  /**
+   * Options related to webpack builds, has no effect if you are using Turbopack.
+   */
+  webpack?: SentryBuildWebpackOptions;
 };
 
 export type NextConfigFunction = (
@@ -581,6 +718,7 @@ export type BuildContext = {
   webpack: {
     version: string;
     DefinePlugin: new (values: Record<string, string | boolean>) => WebpackPluginInstance;
+    ProvidePlugin: new (values: Record<string, string | string[]>) => WebpackPluginInstance;
   };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   defaultLoaders: any; // needed for type tests (test:types)
@@ -671,4 +809,5 @@ export interface TurbopackOptions {
   conditions?: Record<string, TurbopackRuleCondition>;
   moduleIds?: 'named' | 'deterministic';
   root?: string;
+  debugIds?: boolean;
 }

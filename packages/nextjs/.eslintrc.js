@@ -21,5 +21,11 @@ module.exports = {
         'import/no-extraneous-dependencies': 'off',
       },
     },
+    {
+      files: ['src/config/polyfills/perf_hooks.js'],
+      globals: {
+        globalThis: 'readonly',
+      },
+    },
   ],
 };

@@ -154,7 +154,7 @@ describe('wrapLoadWithSentry', () => {
 
     expect(mockCaptureException).toHaveBeenCalledTimes(1);
     expect(mockCaptureException).toHaveBeenCalledWith(expect.any(Error), {
-      mechanism: { handled: false, type: 'sveltekit', data: { function: 'load' } },
+      mechanism: { handled: false, type: 'auto.function.sveltekit.load' },
     });
   });
 

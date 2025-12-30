@@ -24,7 +24,7 @@
     "@ember/optional-features": "~2.0.0",
     "@glimmer/component": "~1.1.2",
     "@glimmer/tracking": "~1.1.2",
-    "@playwright/test": "~1.53.2",
+    "@playwright/test": "~1.56.0",
     "@ember/string": "~3.1.1",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "@sentry/ember": "latest || *",
@@ -75,7 +75,8 @@
     "node": ">=18"
   },
   "resolutions": {
-    "@babel/traverse": "~7.25.9"
+    "@babel/traverse": "~7.25.9",
+    "clean-css": "^5.3.0"
   },
   "ember": {
     "edition": "octane"

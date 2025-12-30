@@ -41,4 +41,9 @@ test('Should capture errors from nested server components when `Sentry.captureRe
     router_path: '/nested-rsc-error/[param]',
     request_path: '/nested-rsc-error/123',
   });
+
+  expect(errorEvent.exception?.values?.[0]?.mechanism).toEqual({
+    handled: false,
+    type: 'auto.function.nextjs.on_request_error',
+  });
 });

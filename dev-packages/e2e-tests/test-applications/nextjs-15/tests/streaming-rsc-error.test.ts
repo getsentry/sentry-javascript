@@ -41,4 +41,9 @@ test('Should capture errors for crashing streaming promises in server components
     router_path: '/streaming-rsc-error/[param]',
     request_path: '/streaming-rsc-error/123',
   });
+
+  expect(errorEvent.exception?.values?.[0]?.mechanism).toEqual({
+    handled: false,
+    type: 'auto.function.nextjs.on_request_error',
+  });
 });

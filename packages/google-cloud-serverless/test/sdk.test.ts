@@ -4,8 +4,7 @@ import { init } from '../src/sdk';
 const mockInit = vi.fn();
 
 vi.mock('@sentry/node', async () => {
-  // eslint-disable-next-line @typescript-eslint/consistent-type-imports
-  const original = (await vi.importActual('@sentry/node')) as typeof import('@sentry/node');
+  const original = await vi.importActual('@sentry/node');
   return {
     ...original,
     init: (options: unknown) => {

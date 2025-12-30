@@ -54,11 +54,8 @@ function isErrorEvent(event: unknown): event is RequestEvent {
 function sendErrorToSentry(errorData: object): void {
   captureException(errorData, {
     mechanism: {
-      type: 'hapi',
+      type: 'auto.function.hapi',
       handled: false,
-      data: {
-        function: 'hapiErrorPlugin',
-      },
     },
   });
 }
@@ -122,7 +119,6 @@ export async function setupHapiErrorHandler(server: Server): Promise<void> {
     });
   }
 
-  // eslint-disable-next-line @typescript-eslint/unbound-method
   ensureIsWrapped(server.register, 'hapi');
 }
 

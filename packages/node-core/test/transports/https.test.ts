@@ -2,15 +2,14 @@ import type { EventEnvelope, EventItem } from '@sentry/core';
 import { createEnvelope, createTransport, serializeEnvelope } from '@sentry/core';
 import * as http from 'http';
 import * as https from 'https';
-import { type Mock, afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, type Mock, vi } from 'vitest';
 import * as httpProxyAgent from '../../src/proxy';
 import { makeNodeTransport } from '../../src/transports';
 import type { HTTPModule, HTTPModuleRequestIncomingMessage } from '../../src/transports/http-module';
 import testServerCerts from './test-server-certs';
 
 vi.mock('@sentry/core', async () => {
-  // eslint-disable-next-line @typescript-eslint/consistent-type-imports
-  const actualCore = (await vi.importActual('@sentry/core')) as typeof import('@sentry/core');
+  const actualCore = await vi.importActual('@sentry/core');
   return {
     ...actualCore,
     createTransport: vi.fn().mockImplementation(actualCore.createTransport),

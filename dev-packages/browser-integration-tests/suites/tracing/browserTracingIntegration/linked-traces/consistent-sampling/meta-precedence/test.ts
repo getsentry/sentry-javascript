@@ -30,10 +30,13 @@ sentryTest.describe('When `consistentTraceSampling` is `true` and page contains 
       const clientReportPromise = waitForClientReportRequest(page);
 
       await sentryTest.step('Initial pageload', async () => {
+        // negative sampling decision -> no pageload txn
         await page.goto(url);
       });
 
       await sentryTest.step('Make fetch request', async () => {
+        // The fetch requests starts a new trace on purpose. So we only want the
+        // sampling decision and rand to be the same as from the meta tag but not the trace id or DSC
         const tracingHeadersPromise = waitForTracingHeadersOnUrl(page, 'http://sentry-test-external.io');
 
         await page.locator('#btn2').click();
@@ -45,7 +48,7 @@ sentryTest.describe('When `consistentTraceSampling` is `true` and page contains 
 
         expect(extractTraceparentData(sentryTrace)).toEqual({
           traceId: expect.not.stringContaining(metaTagTraceIdIndex),
-          parentSpanId: expect.stringMatching(/^[0-9a-f]{16}$/),
+          parentSpanId: expect.stringMatching(/^[\da-f]{16}$/),
           parentSampled: false,
         });
 

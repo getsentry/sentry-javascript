@@ -16,6 +16,7 @@
 
 import { WINDOW } from '../../types';
 import { bindReporter } from './lib/bindReporter';
+import { getVisibilityWatcher } from './lib/getVisibilityWatcher';
 import { initMetric } from './lib/initMetric';
 import { initUnique } from './lib/initUnique';
 import { LayoutShiftManager } from './lib/LayoutShiftManager';
@@ -55,6 +56,7 @@ export const onCLS = (onReport: (metric: CLSMetric) => void, opts: ReportOpts = 
     runOnce(() => {
       const metric = initMetric('CLS', 0);
       let report: ReturnType<typeof bindReporter>;
+      const visibilityWatcher = getVisibilityWatcher();
 
       const layoutShiftManager = initUnique(opts, LayoutShiftManager);
 
@@ -74,13 +76,11 @@ export const onCLS = (onReport: (metric: CLSMetric) => void, opts: ReportOpts = 
 
       const po = observe('layout-shift', handleEntries);
       if (po) {
-        report = bindReporter(onReport, metric, CLSThresholds, opts!.reportAllChanges);
+        report = bindReporter(onReport, metric, CLSThresholds, opts.reportAllChanges);
 
-        WINDOW.document?.addEventListener('visibilitychange', () => {
-          if (WINDOW.document?.visibilityState === 'hidden') {
-            handleEntries(po.takeRecords() as CLSMetric['entries']);
-            report(true);
-          }
+        visibilityWatcher.onHidden(() => {
+          handleEntries(po.takeRecords() as CLSMetric['entries']);
+          report(true);
         });
 
         // Queue a task to report (if nothing else triggers a report first).

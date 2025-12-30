@@ -186,7 +186,7 @@ export const buildFeedbackIntegration = ({
         _shadow = host.attachShadow({ mode: 'open' });
         _shadow.appendChild(createMainStyles(options));
       }
-      return _shadow as ShadowRoot;
+      return _shadow;
     };
 
     const _loadAndRenderDialog = async (

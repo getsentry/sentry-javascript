@@ -1,4 +1,4 @@
-import { captureException, withMonitor } from '@sentry/core';
+import { captureException, type MonitorConfig, withMonitor } from '@sentry/core';
 import { replaceCronNames } from './common';
 
 export interface NodeCronOptions {
@@ -7,7 +7,11 @@ export interface NodeCronOptions {
 }
 
 export interface NodeCron {
-  schedule: (cronExpression: string, callback: () => void, options: NodeCronOptions | undefined) => unknown;
+  schedule: (
+    cronExpression: string,
+    callback: (context?: unknown) => void,
+    options: NodeCronOptions | undefined,
+  ) => unknown;
 }
 
 /**
@@ -28,7 +32,10 @@ export interface NodeCron {
  * );
  * ```
  */
-export function instrumentNodeCron<T>(lib: Partial<NodeCron> & T): T {
+export function instrumentNodeCron<T>(
+  lib: Partial<NodeCron> & T,
+  monitorConfig: Pick<MonitorConfig, 'isolateTrace'> = {},
+): T {
   return new Proxy(lib, {
     get(target, prop) {
       if (prop === 'schedule' && target.schedule) {
@@ -44,22 +51,28 @@ export function instrumentNodeCron<T>(lib: Partial<NodeCron> & T): T {
               throw new Error('Missing "name" for scheduled job. A name is required for Sentry check-in monitoring.');
             }
 
-            const monitoredCallback = async (): Promise<void> => {
+            const monitoredCallback = async (...args: Parameters<typeof callback>): Promise<void> => {
               return withMonitor(
                 name,
                 async () => {
                   // We have to manually catch here and capture the exception because node-cron swallows errors
                   // https://github.com/node-cron/node-cron/issues/399
                   try {
-                    return await callback();
+                    return await callback(...args);
                   } catch (e) {
-                    captureException(e);
+                    captureException(e, {
+                      mechanism: {
+                        handled: false,
+                        type: 'auto.function.node-cron.instrumentNodeCron',
+                      },
+                    });
                     throw e;
                   }
                 },
                 {
                   schedule: { type: 'crontab', value: replaceCronNames(expression) },
                   timezone,
+                  ...monitorConfig,
                 },
               );
             };

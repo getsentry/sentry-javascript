@@ -1,6 +1,6 @@
 import { describe, expect, it, test, vi } from 'vitest';
-import { createTransport, Scope } from '../../src';
-import { _INTERNAL_captureLog, _INTERNAL_flushLogsBuffer } from '../../src/logs/exports';
+import { applySdkMetadata, createTransport, Scope } from '../../src';
+import { _INTERNAL_captureMetric, _INTERNAL_getMetricBuffer } from '../../src/metrics/internal';
 import type { ServerRuntimeClientOptions } from '../../src/server-runtime-client';
 import { ServerRuntimeClient } from '../../src/server-runtime-client';
 import type { Event, EventHint } from '../../src/types-hoist/event';
@@ -207,95 +207,98 @@ describe('ServerRuntimeClient', () => {
     });
   });
 
-  describe('log weight-based flushing', () => {
-    it('flushes logs when weight exceeds 800KB', () => {
-      const options = getDefaultClientOptions({
-        dsn: PUBLIC_DSN,
-        enableLogs: true,
-      });
+  describe('user-agent header', () => {
+    it('sends user-agent header with SDK name and version', () => {
+      const options = getDefaultClientOptions({ dsn: PUBLIC_DSN });
+
+      // this is done in all `init` functions of the respective SDKs:
+      applySdkMetadata(options, 'core');
+
       client = new ServerRuntimeClient(options);
 
-      const sendEnvelopeSpy = vi.spyOn(client, 'sendEnvelope');
-
-      // Create a large log message that will exceed the 800KB threshold
-      const largeMessage = 'x'.repeat(400_000); // 400KB string
-      _INTERNAL_captureLog({ message: largeMessage, level: 'info' }, client);
-
-      expect(sendEnvelopeSpy).toHaveBeenCalledTimes(1);
-      expect(client['_logWeight']).toBe(0); // Weight should be reset after flush
+      expect(client.getOptions().transportOptions?.headers).toEqual({
+        'user-agent': 'sentry.javascript.core/0.0.0-unknown.0',
+      });
     });
 
-    it('accumulates log weight without flushing when under threshold', () => {
+    it('prefers user-passed headers (including user-agent)', () => {
       const options = getDefaultClientOptions({
         dsn: PUBLIC_DSN,
-        enableLogs: true,
+        transportOptions: { headers: { 'x-custom-header': 'custom-value', 'user-agent': 'custom-user-agent' } },
       });
+
+      applySdkMetadata(options, 'core');
+
       client = new ServerRuntimeClient(options);
 
-      const sendEnvelopeSpy = vi.spyOn(client, 'sendEnvelope');
+      expect(client.getOptions().transportOptions?.headers).toEqual({
+        'user-agent': 'custom-user-agent',
+        'x-custom-header': 'custom-value',
+      });
+    });
+  });
 
-      // Create a log message that won't exceed the threshold
-      const message = 'x'.repeat(100_000); // 100KB string
-      _INTERNAL_captureLog({ message, level: 'info' }, client);
+  describe('metrics processing', () => {
+    it('adds server.address attribute to metrics when serverName is set', () => {
+      const options = getDefaultClientOptions({ dsn: PUBLIC_DSN, serverName: 'my-server.example.com' });
+      client = new ServerRuntimeClient(options);
+      const scope = new Scope();
+      scope.setClient(client);
 
-      expect(sendEnvelopeSpy).not.toHaveBeenCalled();
-      expect(client['_logWeight']).toBeGreaterThan(0);
+      _INTERNAL_captureMetric({ type: 'counter', name: 'test.metric', value: 1 }, { scope });
+
+      const metricAttributes = _INTERNAL_getMetricBuffer(client)?.[0]?.attributes;
+      expect(metricAttributes).toEqual(
+        expect.objectContaining({
+          'server.address': {
+            value: 'my-server.example.com',
+            type: 'string',
+          },
+        }),
+      );
     });
 
-    it('flushes logs on flush event', () => {
-      const options = getDefaultClientOptions({
-        dsn: PUBLIC_DSN,
-        enableLogs: true,
-      });
+    it('does not add server.address attribute when serverName is not set', () => {
+      const options = getDefaultClientOptions({ dsn: PUBLIC_DSN });
       client = new ServerRuntimeClient(options);
+      const scope = new Scope();
+      scope.setClient(client);
 
-      const sendEnvelopeSpy = vi.spyOn(client, 'sendEnvelope');
+      _INTERNAL_captureMetric({ type: 'counter', name: 'test.metric', value: 1 }, { scope });
 
-      // Add some logs
-      _INTERNAL_captureLog({ message: 'test1', level: 'info' }, client);
-      _INTERNAL_captureLog({ message: 'test2', level: 'info' }, client);
-
-      // Trigger flush directly
-      _INTERNAL_flushLogsBuffer(client);
-
-      expect(sendEnvelopeSpy).toHaveBeenCalledTimes(1);
-      expect(client['_logWeight']).toBe(0); // Weight should be reset after flush
+      const metricAttributes = _INTERNAL_getMetricBuffer(client)?.[0]?.attributes;
+      expect(metricAttributes).not.toEqual(
+        expect.objectContaining({
+          'server.address': expect.anything(),
+        }),
+      );
     });
 
-    it('does not flush logs when logs are disabled', () => {
-      const options = getDefaultClientOptions({
-        dsn: PUBLIC_DSN,
-      });
+    it('does not overwrite existing server.address attribute', () => {
+      const options = getDefaultClientOptions({ dsn: PUBLIC_DSN, serverName: 'my-server.example.com' });
       client = new ServerRuntimeClient(options);
+      const scope = new Scope();
+      scope.setClient(client);
 
-      const sendEnvelopeSpy = vi.spyOn(client, 'sendEnvelope');
+      _INTERNAL_captureMetric(
+        {
+          type: 'counter',
+          name: 'test.metric',
+          value: 1,
+          attributes: { 'server.address': 'existing-server.example.com' },
+        },
+        { scope },
+      );
 
-      // Create a large log message
-      const largeMessage = 'x'.repeat(400_000);
-      _INTERNAL_captureLog({ message: largeMessage, level: 'info' }, client);
-
-      expect(sendEnvelopeSpy).not.toHaveBeenCalled();
-      expect(client['_logWeight']).toBe(0);
-    });
-
-    it('flushes logs when flush event is triggered', () => {
-      const options = getDefaultClientOptions({
-        dsn: PUBLIC_DSN,
-        enableLogs: true,
-      });
-      client = new ServerRuntimeClient(options);
-
-      const sendEnvelopeSpy = vi.spyOn(client, 'sendEnvelope');
-
-      // Add some logs
-      _INTERNAL_captureLog({ message: 'test1', level: 'info' }, client);
-      _INTERNAL_captureLog({ message: 'test2', level: 'info' }, client);
-
-      // Trigger flush event
-      client.emit('flush');
-
-      expect(sendEnvelopeSpy).toHaveBeenCalledTimes(1);
-      expect(client['_logWeight']).toBe(0); // Weight should be reset after flush
+      const metricAttributes = _INTERNAL_getMetricBuffer(client)?.[0]?.attributes;
+      expect(metricAttributes).toEqual(
+        expect.objectContaining({
+          'server.address': {
+            value: 'existing-server.example.com',
+            type: 'string',
+          },
+        }),
+      );
     });
   });
 });

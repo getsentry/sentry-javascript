@@ -9,7 +9,7 @@ import {
 } from '../../../../utils/helpers';
 
 async function mockSupabaseAuthRoutesSuccess(page: Page) {
-  await page.route('**/auth/v1/token?grant_type=password**', route => {
+  await page.route(/\/auth\/v1\/token\?grant_type=password/, route => {
     return route.fulfill({
       status: 200,
       body: JSON.stringify({
@@ -38,7 +38,7 @@ async function mockSupabaseAuthRoutesSuccess(page: Page) {
 }
 
 async function mockSupabaseAuthRoutesFailure(page: Page) {
-  await page.route('**/auth/v1/token?grant_type=password**', route => {
+  await page.route(/\/auth\/v1\/token\?grant_type=password/, route => {
     return route.fulfill({
       status: 400,
       body: JSON.stringify({
@@ -143,7 +143,7 @@ sentryTest('should capture Supabase authentication errors', async ({ getLocalTes
     start_timestamp: expect.any(Number),
     timestamp: expect.any(Number),
     trace_id: transactionEvent.contexts?.trace?.trace_id,
-    status: 'unknown_error',
+    status: 'internal_error',
     data: expect.objectContaining({
       'sentry.op': 'db',
       'sentry.origin': 'auto.db.supabase',

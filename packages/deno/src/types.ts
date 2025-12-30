@@ -1,5 +1,4 @@
-import type { ClientOptions, Options, TracePropagationTargets } from '@sentry/core';
-import type { DenoTransportOptions } from './transports';
+import type { BaseTransportOptions, ClientOptions, Options, TracePropagationTargets } from '@sentry/core';
 
 export interface BaseDenoOptions {
   /**
@@ -23,6 +22,19 @@ export interface BaseDenoOptions {
   /** Sets an optional server name (device name) */
   serverName?: string;
 
+  /**
+   * The Deno SDK is not OpenTelemetry native, however, we set up some OpenTelemetry compatibility
+   * via a custom trace provider.
+   * This ensures that any spans emitted via `@opentelemetry/api` will be captured by Sentry.
+   * HOWEVER, big caveat: This does not handle custom context handling, it will always work off the current scope.
+   * This should be good enough for many, but not all integrations.
+   *
+   * If you want to opt-out of setting up the OpenTelemetry compatibility tracer, set this to `true`.
+   *
+   * @default false
+   */
+  skipOpenTelemetrySetup?: boolean;
+
   /** Callback that is executed when a fatal global error occurs. */
   onFatalError?(this: void, error: Error): void;
 }
@@ -31,10 +43,10 @@ export interface BaseDenoOptions {
  * Configuration options for the Sentry Deno SDK
  * @see @sentry/core Options for more information.
  */
-export interface DenoOptions extends Options<DenoTransportOptions>, BaseDenoOptions {}
+export interface DenoOptions extends Options<BaseTransportOptions>, BaseDenoOptions {}
 
 /**
  * Configuration options for the Sentry Deno SDK Client class
  * @see DenoClient for more information.
  */
-export interface DenoClientOptions extends ClientOptions<DenoTransportOptions>, BaseDenoOptions {}
+export interface DenoClientOptions extends ClientOptions<BaseTransportOptions>, BaseDenoOptions {}

@@ -23,7 +23,7 @@ test.describe('Lambda layer', () => {
       data: {
         'sentry.sample_rate': 1,
         'sentry.source': 'custom',
-        'sentry.origin': 'auto.otel.aws-lambda',
+        'sentry.origin': 'auto.otel.aws_lambda',
         'sentry.op': 'function.aws.lambda',
         'cloud.account.id': '012345678912',
         'faas.execution': expect.any(String),
@@ -32,7 +32,7 @@ test.describe('Lambda layer', () => {
         'otel.kind': 'SERVER',
       },
       op: 'function.aws.lambda',
-      origin: 'auto.otel.aws-lambda',
+      origin: 'auto.otel.aws_lambda',
       span_id: expect.stringMatching(/[a-f0-9]{16}/),
       status: 'ok',
       trace_id: expect.stringMatching(/[a-f0-9]{32}/),
@@ -91,7 +91,7 @@ test.describe('Lambda layer', () => {
       data: {
         'sentry.sample_rate': 1,
         'sentry.source': 'custom',
-        'sentry.origin': 'auto.otel.aws-lambda',
+        'sentry.origin': 'auto.otel.aws_lambda',
         'sentry.op': 'function.aws.lambda',
         'cloud.account.id': '012345678912',
         'faas.execution': expect.any(String),
@@ -100,7 +100,7 @@ test.describe('Lambda layer', () => {
         'otel.kind': 'SERVER',
       },
       op: 'function.aws.lambda',
-      origin: 'auto.otel.aws-lambda',
+      origin: 'auto.otel.aws_lambda',
       span_id: expect.stringMatching(/[a-f0-9]{16}/),
       status: 'ok',
       trace_id: expect.stringMatching(/[a-f0-9]{32}/),
@@ -160,7 +160,7 @@ test.describe('Lambda layer', () => {
         type: 'Error',
         value: 'test',
         mechanism: {
-          type: 'auto.function.aws-serverless.otel',
+          type: 'auto.function.aws_serverless.otel',
           handled: false,
         },
       }),
@@ -188,7 +188,7 @@ test.describe('Lambda layer', () => {
         type: 'Error',
         value: 'test esm',
         mechanism: {
-          type: 'auto.function.aws-serverless.otel',
+          type: 'auto.function.aws_serverless.otel',
           handled: false,
         },
       }),
@@ -214,7 +214,7 @@ test.describe('Lambda layer', () => {
       data: {
         'sentry.sample_rate': 1,
         'sentry.source': 'custom',
-        'sentry.origin': 'auto.otel.aws-lambda',
+        'sentry.origin': 'auto.otel.aws_lambda',
         'sentry.op': 'function.aws.lambda',
         'cloud.account.id': '012345678912',
         'faas.execution': expect.any(String),
@@ -223,55 +223,7 @@ test.describe('Lambda layer', () => {
         'otel.kind': 'SERVER',
       },
       op: 'function.aws.lambda',
-      origin: 'auto.otel.aws-lambda',
-      span_id: expect.stringMatching(/[a-f0-9]{16}/),
-      status: 'ok',
-      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-    });
-
-    expect(transactionEvent.spans).toHaveLength(1);
-
-    expect(transactionEvent.spans).toContainEqual(
-      expect.objectContaining({
-        data: expect.objectContaining({
-          'sentry.op': 'test',
-          'sentry.origin': 'manual',
-        }),
-        description: 'manual-span',
-        op: 'test',
-      }),
-    );
-  });
-
-  test('experimental extension works', async ({ lambdaClient }) => {
-    const transactionEventPromise = waitForTransaction('aws-serverless-lambda-sam', transactionEvent => {
-      return transactionEvent?.transaction === 'LayerExperimentalExtension';
-    });
-
-    await lambdaClient.send(
-      new InvokeCommand({
-        FunctionName: 'LayerExperimentalExtension',
-        Payload: JSON.stringify({}),
-      }),
-    );
-
-    const transactionEvent = await transactionEventPromise;
-
-    expect(transactionEvent.transaction).toEqual('LayerExperimentalExtension');
-    expect(transactionEvent.contexts?.trace).toEqual({
-      data: {
-        'sentry.sample_rate': 1,
-        'sentry.source': 'custom',
-        'sentry.origin': 'auto.otel.aws-lambda',
-        'sentry.op': 'function.aws.lambda',
-        'cloud.account.id': '012345678912',
-        'faas.execution': expect.any(String),
-        'faas.id': 'arn:aws:lambda:us-east-1:012345678912:function:LayerExperimentalExtension',
-        'faas.coldstart': true,
-        'otel.kind': 'SERVER',
-      },
-      op: 'function.aws.lambda',
-      origin: 'auto.otel.aws-lambda',
+      origin: 'auto.otel.aws_lambda',
       span_id: expect.stringMatching(/[a-f0-9]{16}/),
       status: 'ok',
       trace_id: expect.stringMatching(/[a-f0-9]{32}/),

@@ -1,7 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import * as SentryBrowser from '@sentry/browser';
 import type { Client, Event } from '@sentry/core';
-import { vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createErrorHandler, SentryErrorHandler } from '../src/errorhandler';
 
 const captureExceptionSpy = vi.spyOn(SentryBrowser, 'captureException');
@@ -9,7 +9,7 @@ const captureExceptionSpy = vi.spyOn(SentryBrowser, 'captureException');
 vi.spyOn(console, 'error').mockImplementation(() => {});
 
 const captureExceptionEventHint = {
-  mechanism: { handled: false, type: 'angular' },
+  mechanism: { handled: false, type: 'auto.function.angular.error_handler' },
 };
 
 class CustomError extends Error {
@@ -71,7 +71,9 @@ describe('SentryErrorHandler', () => {
       createErrorHandler().handleError(str);
 
       expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
-      expect(captureExceptionSpy).toHaveBeenCalledWith(str, { mechanism: { handled: false, type: 'angular' } });
+      expect(captureExceptionSpy).toHaveBeenCalledWith(str, {
+        mechanism: { handled: false, type: 'auto.function.angular.error_handler' },
+      });
     });
 
     it('extracts an empty Error', () => {
@@ -79,7 +81,9 @@ describe('SentryErrorHandler', () => {
       createErrorHandler().handleError(err);
 
       expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
-      expect(captureExceptionSpy).toHaveBeenCalledWith(err, { mechanism: { handled: false, type: 'angular' } });
+      expect(captureExceptionSpy).toHaveBeenCalledWith(err, {
+        mechanism: { handled: false, type: 'auto.function.angular.error_handler' },
+      });
     });
 
     it('extracts a non-empty Error', () => {
@@ -88,7 +92,9 @@ describe('SentryErrorHandler', () => {
       createErrorHandler().handleError(err);
 
       expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
-      expect(captureExceptionSpy).toHaveBeenCalledWith(err, { mechanism: { handled: false, type: 'angular' } });
+      expect(captureExceptionSpy).toHaveBeenCalledWith(err, {
+        mechanism: { handled: false, type: 'auto.function.angular.error_handler' },
+      });
     });
 
     it('extracts an error-like object without stack', () => {
@@ -169,7 +175,9 @@ describe('SentryErrorHandler', () => {
       createErrorHandler().handleError(err);
 
       expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
-      expect(captureExceptionSpy).toHaveBeenCalledWith(err, { mechanism: { handled: false, type: 'angular' } });
+      expect(captureExceptionSpy).toHaveBeenCalledWith(err, {
+        mechanism: { handled: false, type: 'auto.function.angular.error_handler' },
+      });
     });
 
     it('extracts an instance of class not extending Error but that has an error-like shape', () => {
@@ -178,7 +186,9 @@ describe('SentryErrorHandler', () => {
       createErrorHandler().handleError(err);
 
       expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
-      expect(captureExceptionSpy).toHaveBeenCalledWith(err, { mechanism: { handled: false, type: 'angular' } });
+      expect(captureExceptionSpy).toHaveBeenCalledWith(err, {
+        mechanism: { handled: false, type: 'auto.function.angular.error_handler' },
+      });
     });
 
     it('extracts an instance of a class that does not extend Error and does not have an error-like shape', () => {
@@ -251,7 +261,9 @@ describe('SentryErrorHandler', () => {
       createErrorHandler().handleError(err);
 
       expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
-      expect(captureExceptionSpy).toHaveBeenCalledWith(ngErr, { mechanism: { handled: false, type: 'angular' } });
+      expect(captureExceptionSpy).toHaveBeenCalledWith(ngErr, {
+        mechanism: { handled: false, type: 'auto.function.angular.error_handler' },
+      });
     });
 
     it('extracts an `HttpErrorResponse` with `Error`', () => {
@@ -261,7 +273,9 @@ describe('SentryErrorHandler', () => {
       createErrorHandler().handleError(err);
 
       expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
-      expect(captureExceptionSpy).toHaveBeenCalledWith(httpErr, { mechanism: { handled: false, type: 'angular' } });
+      expect(captureExceptionSpy).toHaveBeenCalledWith(httpErr, {
+        mechanism: { handled: false, type: 'auto.function.angular.error_handler' },
+      });
     });
 
     it('extracts an `HttpErrorResponse` with `ErrorEvent`', () => {
@@ -431,7 +445,9 @@ describe('SentryErrorHandler', () => {
       createErrorHandler().handleError(err);
 
       expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
-      expect(captureExceptionSpy).toHaveBeenCalledWith(err, { mechanism: { handled: false, type: 'angular' } });
+      expect(captureExceptionSpy).toHaveBeenCalledWith(err, {
+        mechanism: { handled: false, type: 'auto.function.angular.error_handler' },
+      });
     });
 
     it('extracts an `HttpErrorResponse` with an instance of class not extending Error but that has an error-like shape', () => {
@@ -441,7 +457,9 @@ describe('SentryErrorHandler', () => {
       createErrorHandler().handleError(err);
 
       expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
-      expect(captureExceptionSpy).toHaveBeenCalledWith(innerErr, { mechanism: { handled: false, type: 'angular' } });
+      expect(captureExceptionSpy).toHaveBeenCalledWith(innerErr, {
+        mechanism: { handled: false, type: 'auto.function.angular.error_handler' },
+      });
     });
 
     it('extracts an `HttpErrorResponse` with an instance of a class that does not extend Error and does not have an error-like shape', () => {

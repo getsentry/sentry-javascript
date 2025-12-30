@@ -1,6 +1,6 @@
 {
   "name": "@sentry/aws-serverless",
-  "version": "10.11.0",
+  "version": "10.32.1",
   "description": "Official Sentry SDK for AWS Lambda and AWS Serverless Environments",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/aws-serverless",
@@ -66,11 +66,12 @@
   },
   "dependencies": {
     "@opentelemetry/api": "^1.9.0",
-    "@opentelemetry/instrumentation": "^0.203.0",
-    "@opentelemetry/instrumentation-aws-sdk": "0.57.0",
-    "@opentelemetry/semantic-conventions": "^1.36.0",
-    "@sentry/core": "10.11.0",
-    "@sentry/node": "10.11.0",
+    "@opentelemetry/instrumentation": "^0.208.0",
+    "@opentelemetry/instrumentation-aws-sdk": "0.64.0",
+    "@opentelemetry/semantic-conventions": "^1.37.0",
+    "@sentry/core": "10.32.1",
+    "@sentry/node": "10.32.1",
+    "@sentry/node-core": "10.32.1",
     "@types/aws-lambda": "^8.10.62"
   },
   "devDependencies": {
@@ -79,7 +80,7 @@
   },
   "scripts": {
     "build": "run-p build:transpile build:types",
-    "build:layer": "rollup -c rollup.lambda-extension.config.mjs && yarn ts-node scripts/buildLambdaLayer.ts",
+    "build:layer": "rimraf build/aws && rollup -c rollup.lambda-extension.config.mjs && yarn ts-node scripts/buildLambdaLayer.ts",
     "build:dev": "run-p build:transpile build:types",
     "build:transpile": "rollup -c rollup.npm.config.mjs && yarn build:layer",
     "build:types": "run-s build:types:core build:types:downlevel",

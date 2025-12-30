@@ -24,6 +24,16 @@ export class TestIntegration implements Integration {
   }
 }
 
+export class AsyncTestIntegration implements Integration {
+  public static id: string = 'AsyncTestIntegration';
+
+  public name: string = 'AsyncTestIntegration';
+
+  processEvent(event: Event): Event | null | PromiseLike<Event | null> {
+    return new Promise(resolve => setTimeout(() => resolve(event), 1));
+  }
+}
+
 export class AddAttachmentTestIntegration implements Integration {
   public static id: string = 'AddAttachmentTestIntegration';
 

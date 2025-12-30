@@ -32,6 +32,62 @@ function createMockStreamEvents(model = 'claude-3-haiku-20240307') {
   return generator();
 }
 
+// Mimics Anthropic SDK's MessageStream class
+class MockMessageStream {
+  constructor(model) {
+    this._model = model;
+    this._eventHandlers = {};
+  }
+
+  on(event, handler) {
+    if (!this._eventHandlers[event]) {
+      this._eventHandlers[event] = [];
+    }
+    this._eventHandlers[event].push(handler);
+
+    // Start processing events asynchronously (don't await)
+    if (event === 'streamEvent' && !this._processing) {
+      this._processing = true;
+      this._processEvents();
+    }
+
+    return this;
+  }
+
+  async _processEvents() {
+    try {
+      const generator = createMockStreamEvents(this._model);
+      for await (const event of generator) {
+        if (this._eventHandlers['streamEvent']) {
+          for (const handler of this._eventHandlers['streamEvent']) {
+            handler(event);
+          }
+        }
+      }
+
+      // Emit 'message' event when done
+      if (this._eventHandlers['message']) {
+        for (const handler of this._eventHandlers['message']) {
+          handler();
+        }
+      }
+    } catch (error) {
+      if (this._eventHandlers['error']) {
+        for (const handler of this._eventHandlers['error']) {
+          handler(error);
+        }
+      }
+    }
+  }
+
+  async *[Symbol.asyncIterator]() {
+    const generator = createMockStreamEvents(this._model);
+    for await (const event of generator) {
+      yield event;
+    }
+  }
+}
+
 class MockAnthropic {
   constructor(config) {
     this.apiKey = config.apiKey;
@@ -68,9 +124,9 @@ class MockAnthropic {
     };
   }
 
-  async _messagesStream(params) {
-    await new Promise(resolve => setTimeout(resolve, 5));
-    return createMockStreamEvents(params?.model);
+  // This should return synchronously (like the real Anthropic SDK)
+  _messagesStream(params) {
+    return new MockMessageStream(params?.model);
   }
 }
 
@@ -90,11 +146,25 @@ async function run() {
     }
 
     // 2) Streaming via messages.stream API
-    const stream2 = await client.messages.stream({
+    const stream2 = client.messages.stream({
       model: 'claude-3-haiku-20240307',
       messages: [{ role: 'user', content: 'Stream this too' }],
     });
     for await (const _ of stream2) {
+      void _;
+    }
+
+    // 3) Streaming via messages.stream API with redundant stream: true param
+    const stream3 = client.messages.stream({
+      model: 'claude-3-haiku-20240307',
+      messages: [{ role: 'user', content: 'Stream with param' }],
+      stream: true, // This param is redundant but should not break synchronous behavior
+    });
+    // Verify it has .on() method immediately (not a Promise)
+    if (typeof stream3.on !== 'function') {
+      throw new Error('BUG: messages.stream() with stream: true did not return MessageStream synchronously!');
+    }
+    for await (const _ of stream3) {
       void _;
     }
   });

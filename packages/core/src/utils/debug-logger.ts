@@ -47,7 +47,7 @@ export function consoleSandbox<T>(callback: () => T): T {
     return callback();
   }
 
-  const console = GLOBAL_OBJ.console as Console;
+  const console = GLOBAL_OBJ.console;
   const wrappedFuncs: Partial<Record<ConsoleLevel, (...args: unknown[]) => void>> = {};
 
   const wrappedLevels = Object.keys(originalConsoleMethods) as ConsoleLevel[];

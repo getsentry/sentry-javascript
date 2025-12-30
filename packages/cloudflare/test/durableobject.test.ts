@@ -23,10 +23,7 @@ describe('instrumentDurableObjectWithSentry', () => {
         return 'sync-result';
       }
     };
-    const obj = Reflect.construct(
-      instrumentDurableObjectWithSentry(vi.fn().mockReturnValue({}), testClass as any),
-      [],
-    ) as any;
+    const obj = Reflect.construct(instrumentDurableObjectWithSentry(vi.fn().mockReturnValue({}), testClass as any), []);
     expect(obj.method).toBe(obj.method);
 
     const result = obj.method();
@@ -40,10 +37,7 @@ describe('instrumentDurableObjectWithSentry', () => {
         return 'async-result';
       }
     };
-    const obj = Reflect.construct(
-      instrumentDurableObjectWithSentry(vi.fn().mockReturnValue({}), testClass as any),
-      [],
-    ) as any;
+    const obj = Reflect.construct(instrumentDurableObjectWithSentry(vi.fn().mockReturnValue({}), testClass as any), []);
     expect(obj.asyncMethod).toBe(obj.asyncMethod);
 
     const result = obj.asyncMethod();
@@ -74,13 +68,13 @@ describe('instrumentDurableObjectWithSentry', () => {
     const instance1 = Reflect.construct(instrumentDurableObjectWithSentry(options, testClass as any), [
       mockContext,
       mockEnv,
-    ]) as any;
+    ]);
     instance1.method();
 
     const instance2 = Reflect.construct(instrumentDurableObjectWithSentry(options, testClass as any), [
       mockContext,
       mockEnv,
-    ]) as any;
+    ]);
     instance2.method();
 
     expect(initCore).nthCalledWith(1, expect.any(Function), expect.objectContaining({ orgId: 1 }));
@@ -122,11 +116,18 @@ describe('instrumentDurableObjectWithSentry', () => {
   });
 
   it('flush performs after all waitUntil promises are finished', async () => {
+    // Spy on Client.prototype.flush and mock it to resolve immediately to avoid timeout issues with fake timers
+    const flush = vi.spyOn(SentryCore.Client.prototype, 'flush').mockResolvedValue(true);
     vi.useFakeTimers();
     onTestFinished(() => {
       vi.useRealTimers();
     });
-    const flush = vi.spyOn(SentryCore.Client.prototype, 'flush');
+
+    // Measure delta instead of absolute call count to avoid interference from parallel tests.
+    // Since we spy on the prototype, other tests running in parallel may also call flush.
+    // By measuring before/after, we only verify that THIS test triggered exactly one flush call.
+    const before = flush.mock.calls.length;
+
     const waitUntil = vi.fn();
     const testClass = vi.fn(context => ({
       fetch: () => {
@@ -139,12 +140,29 @@ describe('instrumentDurableObjectWithSentry', () => {
       waitUntil,
     } as unknown as ExecutionContext;
     const dObject: any = Reflect.construct(instrumented, [context, {} as any]);
-    expect(() => dObject.fetch(new Request('https://example.com'))).not.toThrow();
-    expect(flush).not.toBeCalled();
-    expect(waitUntil).toHaveBeenCalledOnce();
+
+    // Call fetch (don't await yet)
+    const responsePromise = dObject.fetch(new Request('https://example.com'));
+
+    // Advance past classification timeout and get response
+    vi.advanceTimersByTime(30);
+    const response = await responsePromise;
+
+    // Consume response (triggers span end for buffered responses)
+    await response.text();
+
+    // The flush should now be queued in waitUntil
+    expect(waitUntil).toHaveBeenCalled();
+
+    // Advance to trigger the setTimeout in the handler's waitUntil
     vi.advanceTimersToNextTimer();
     await Promise.all(waitUntil.mock.calls.map(([p]) => p));
-    expect(flush).toBeCalled();
+
+    const after = flush.mock.calls.length;
+    const delta = after - before;
+
+    // Verify that exactly one flush call was made during this test
+    expect(delta).toBe(1);
   });
 
   describe('instrumentPrototypeMethods option', () => {
@@ -156,7 +174,7 @@ describe('instrumentDurableObjectWithSentry', () => {
       };
       const options = vi.fn().mockReturnValue({});
       const instrumented = instrumentDurableObjectWithSentry(options, testClass as any);
-      const obj = Reflect.construct(instrumented, []) as any;
+      const obj = Reflect.construct(instrumented, []);
 
       expect(isInstrumented(obj.prototypeMethod)).toBeFalsy();
     });
@@ -169,7 +187,7 @@ describe('instrumentDurableObjectWithSentry', () => {
       };
       const options = vi.fn().mockReturnValue({ instrumentPrototypeMethods: false });
       const instrumented = instrumentDurableObjectWithSentry(options, testClass as any);
-      const obj = Reflect.construct(instrumented, []) as any;
+      const obj = Reflect.construct(instrumented, []);
 
       expect(isInstrumented(obj.prototypeMethod)).toBeFalsy();
     });
@@ -185,7 +203,7 @@ describe('instrumentDurableObjectWithSentry', () => {
       };
       const options = vi.fn().mockReturnValue({ instrumentPrototypeMethods: true });
       const instrumented = instrumentDurableObjectWithSentry(options, testClass as any);
-      const obj = Reflect.construct(instrumented, []) as any;
+      const obj = Reflect.construct(instrumented, []);
 
       expect(isInstrumented(obj.methodOne)).toBeTruthy();
       expect(isInstrumented(obj.methodTwo)).toBeTruthy();
@@ -205,7 +223,7 @@ describe('instrumentDurableObjectWithSentry', () => {
       };
       const options = vi.fn().mockReturnValue({ instrumentPrototypeMethods: ['methodOne', 'methodThree'] });
       const instrumented = instrumentDurableObjectWithSentry(options, testClass as any);
-      const obj = Reflect.construct(instrumented, []) as any;
+      const obj = Reflect.construct(instrumented, []);
 
       expect(isInstrumented(obj.methodOne)).toBeTruthy();
       expect(isInstrumented(obj.methodTwo)).toBeFalsy();
@@ -224,7 +242,7 @@ describe('instrumentDurableObjectWithSentry', () => {
       };
       const options = vi.fn().mockReturnValue({ instrumentPrototypeMethods: false });
       const instrumented = instrumentDurableObjectWithSentry(options, testClass as any);
-      const obj = Reflect.construct(instrumented, []) as any;
+      const obj = Reflect.construct(instrumented, []);
 
       // Instance methods should still be instrumented
       expect(isInstrumented(obj.propertyFunction)).toBeTruthy();

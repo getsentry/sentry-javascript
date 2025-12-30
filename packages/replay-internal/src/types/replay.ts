@@ -180,7 +180,10 @@ export interface ReplayPluginOptions extends ReplayNetworkOptions {
   /**
    * The min. duration (in ms) a replay has to have before it is sent to Sentry.
    * Whenever attempting to flush a session that is shorter than this, it will not actually send it to Sentry.
-   * Note that this is capped at max. 15s.
+   * Note that this is capped at max. 50s, so we don't unintentionally drop buffered replays that are longer than 60s
+   *
+   * Warning: Setting this to a higher value can result in unintended drops of onError-sampled replays.
+   *
    */
   minReplayDuration: number;
 
@@ -218,6 +221,19 @@ export interface ReplayPluginOptions extends ReplayNetworkOptions {
    * issues.
    */
   onError?: (err: unknown) => void;
+
+  /**
+   * Patch the global Request() interface to store original request bodies.
+   * This allows Replay to capture the original body from Request objects passed to fetch().
+   *
+   * When enabled, creates a copy of the original body before it's converted to a ReadableStream.
+   * This is useful for capturing request bodies in network breadcrumbs.
+   *
+   * Note: This modifies the global Request constructor.
+   *
+   * @default false
+   */
+  attachRawBodyFromRequest?: boolean;
 
   /**
    * _experiments allows users to enable experimental or internal features.
@@ -383,6 +399,13 @@ export interface Session {
    * Is the session sampled? `false` if not sampled, otherwise, `session` or `buffer`
    */
   sampled: Sampled;
+
+  /**
+   * Session is dirty when its id has been linked to an event (e.g. error event).
+   * This is helpful when a session is mistakenly stuck in "buffer" mode (e.g. network issues preventing it from being converted to "session" mode).
+   * The dirty flag is used to prevent updating the session start time to the earliest event in the buffer so that it can be refreshed if it's been expired.
+   */
+  dirty?: boolean;
 }
 
 export type EventBufferType = 'sync' | 'worker';

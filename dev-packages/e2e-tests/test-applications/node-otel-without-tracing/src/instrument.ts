@@ -17,6 +17,7 @@ Sentry.init({
   // Tracing is completely disabled
   // Custom OTEL setup
   skipOpenTelemetrySetup: true,
+  enableLogs: true,
 });
 
 // Create and configure NodeTracerProvider

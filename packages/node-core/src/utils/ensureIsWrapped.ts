@@ -1,15 +1,15 @@
 import { isWrapped } from '@opentelemetry/instrumentation';
 import { consoleSandbox, getClient, getGlobalScope, hasSpansEnabled, isEnabled } from '@sentry/core';
 import type { NodeClient } from '../sdk/client';
-import { isCjs } from './commonjs';
 import { createMissingInstrumentationContext } from './createMissingInstrumentationContext';
+import { isCjs } from './detection';
 
 /**
  * Checks and warns if a framework isn't wrapped by opentelemetry.
  */
 export function ensureIsWrapped(
   maybeWrappedFunction: unknown,
-  name: 'express' | 'connect' | 'fastify' | 'hapi' | 'koa',
+  name: 'express' | 'connect' | 'fastify' | 'hapi' | 'koa' | 'hono',
 ): void {
   const clientOptions = getClient<NodeClient>()?.getOptions();
   if (

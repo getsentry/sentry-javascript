@@ -31,11 +31,11 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Check out current commit
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version-file: 'package.json'
       - name: Check canary cache
@@ -76,11 +76,8 @@ jobs:
             build-command: 'test:build-canary'
             label: 'create-react-app (canary)'
           - test-application: 'nextjs-app-dir'
-            build-command: 'test:build-canary'
-            label: 'nextjs-app-dir (canary)'
-          - test-application: 'nextjs-app-dir'
-            build-command: 'test:build-latest'
-            label: 'nextjs-app-dir (latest)'
+            build-command: 'test:build-15'
+            label: 'nextjs-app-dir (next@15)'
           - test-application: 'nextjs-13'
             build-command: 'test:build-latest'
             label: 'nextjs-13 (latest)'
@@ -91,11 +88,14 @@ jobs:
             build-command: 'test:build-latest'
             label: 'nextjs-14 (latest)'
           - test-application: 'nextjs-15'
-            build-command: 'test:build-canary'
-            label: 'nextjs-15 (canary)'
-          - test-application: 'nextjs-15'
             build-command: 'test:build-latest'
             label: 'nextjs-15 (latest)'
+          - test-application: 'nextjs-16'
+            build-command: 'test:build-canary'
+            label: 'nextjs-16 (canary)'
+          - test-application: 'nextjs-16'
+            build-command: 'test:build-canary-webpack'
+            label: 'nextjs-16 (canary-webpack)'
           - test-application: 'nextjs-turbo'
             build-command: 'test:build-canary'
             label: 'nextjs-turbo (canary)'
@@ -117,7 +117,7 @@ jobs:
 
     steps:
       - name: Check out current commit
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - uses: pnpm/action-setup@v4
@@ -125,7 +125,7 @@ jobs:
           version: 9.15.9
       - name: Set up Node
         if: matrix.test-application != 'angular-20'
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version-file: 'dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}/package.json'
 

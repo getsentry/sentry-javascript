@@ -1,5 +1,7 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  clearNavigationContext,
+  getNavigationContext,
   getNormalizedName,
   getNumberOfUrlSegments,
   initializeRouterUtils,
@@ -9,6 +11,8 @@ import {
   prefixWithSlash,
   rebuildRoutePathFromAllRoutes,
   resolveRouteNameAndSource,
+  setNavigationContext,
+  transactionNameHasWildcard,
 } from '../../src/reactrouter-compat-utils';
 import type { Location, MatchRoutes, RouteMatch, RouteObject } from '../../src/types';
 
@@ -436,7 +440,7 @@ describe('reactrouter-compat-utils/utils', () => {
       ];
 
       const result = getNormalizedName(routes, location, branches, '');
-      expect(result).toEqual(['', 'route']);
+      expect(result).toEqual(['/', 'route']);
     });
 
     it('should handle simple route path', () => {
@@ -627,6 +631,173 @@ describe('reactrouter-compat-utils/utils', () => {
 
       const result = resolveRouteNameAndSource(location, routes, allRoutes, branches, '');
       expect(result).toEqual(['/unknown', 'url']);
+    });
+  });
+
+  describe('transactionNameHasWildcard', () => {
+    it('should detect wildcard at the end of path', () => {
+      expect(transactionNameHasWildcard('/lazy/*')).toBe(true);
+      expect(transactionNameHasWildcard('/users/:id/*')).toBe(true);
+      expect(transactionNameHasWildcard('/products/:category/*')).toBe(true);
+    });
+
+    it('should detect standalone wildcard', () => {
+      expect(transactionNameHasWildcard('*')).toBe(true);
+    });
+
+    it('should detect wildcard in the middle of path', () => {
+      expect(transactionNameHasWildcard('/lazy/*/nested')).toBe(true);
+      expect(transactionNameHasWildcard('/a/*/b/*/c')).toBe(true);
+    });
+
+    it('should not detect wildcards in parameterized routes', () => {
+      expect(transactionNameHasWildcard('/users/:id')).toBe(false);
+      expect(transactionNameHasWildcard('/products/:category/:id')).toBe(false);
+      expect(transactionNameHasWildcard('/items/:itemId/details')).toBe(false);
+    });
+
+    it('should not detect wildcards in static routes', () => {
+      expect(transactionNameHasWildcard('/')).toBe(false);
+      expect(transactionNameHasWildcard('/about')).toBe(false);
+      expect(transactionNameHasWildcard('/users/profile')).toBe(false);
+    });
+
+    it('should handle edge cases', () => {
+      expect(transactionNameHasWildcard('')).toBe(false);
+      expect(transactionNameHasWildcard('/path/to/asterisk')).toBe(false); // 'asterisk' contains 'isk' but not '*'
+    });
+  });
+
+  describe('navigation context management', () => {
+    // Clean up navigation context after each test by popping until empty
+    afterEach(() => {
+      // Pop all remaining contexts
+      while (getNavigationContext() !== null) {
+        const ctx = getNavigationContext();
+        if (ctx) {
+          clearNavigationContext((ctx as any).token);
+        }
+      }
+    });
+
+    describe('setNavigationContext', () => {
+      it('should return unique tokens (object identity)', () => {
+        const token1 = setNavigationContext('/path1', undefined);
+        const token2 = setNavigationContext('/path2', undefined);
+        const token3 = setNavigationContext('/path3', undefined);
+
+        // Each token should be a unique object
+        expect(token1).not.toBe(token2);
+        expect(token2).not.toBe(token3);
+        expect(token1).not.toBe(token3);
+      });
+
+      it('should store targetPath and span in context', () => {
+        const mockSpan = { name: 'test-span' } as any;
+        setNavigationContext('/test-path', mockSpan);
+
+        const context = getNavigationContext();
+        expect(context).not.toBeNull();
+        expect(context?.targetPath).toBe('/test-path');
+        expect(context?.span).toBe(mockSpan);
+      });
+
+      it('should handle undefined targetPath', () => {
+        setNavigationContext(undefined, undefined);
+
+        const context = getNavigationContext();
+        expect(context).not.toBeNull();
+        expect(context?.targetPath).toBeUndefined();
+      });
+    });
+
+    describe('clearNavigationContext', () => {
+      it('should remove context when token matches top of stack (LIFO)', () => {
+        const token = setNavigationContext('/test', undefined);
+
+        expect(getNavigationContext()).not.toBeNull();
+
+        clearNavigationContext(token);
+
+        expect(getNavigationContext()).toBeNull();
+      });
+
+      it('should NOT remove context when token is not on top (out-of-order completion)', () => {
+        // Simulate: Nav1 starts, Nav2 starts, Nav1 tries to complete first
+        const token1 = setNavigationContext('/nav1', undefined);
+        const token2 = setNavigationContext('/nav2', undefined);
+
+        // Most recent should be nav2
+        expect(getNavigationContext()?.targetPath).toBe('/nav2');
+
+        // Nav1 tries to complete first (out of order) - should NOT pop because nav1 is not on top
+        clearNavigationContext(token1);
+
+        // Nav2 should still be the current context (nav1's context is still buried)
+        expect(getNavigationContext()?.targetPath).toBe('/nav2');
+
+        // Nav2 completes - should pop because nav2 IS on top
+        clearNavigationContext(token2);
+
+        // Now nav1's stale context is on top (will be cleaned by overflow protection)
+        expect(getNavigationContext()?.targetPath).toBe('/nav1');
+      });
+
+      it('should not throw when clearing with unknown token', () => {
+        const unknownToken = {};
+        expect(() => clearNavigationContext(unknownToken)).not.toThrow();
+      });
+
+      it('should correctly handle LIFO cleanup order', () => {
+        const token1 = setNavigationContext('/path1', undefined);
+        const token2 = setNavigationContext('/path2', undefined);
+        const token3 = setNavigationContext('/path3', undefined);
+
+        // Clear in LIFO order
+        clearNavigationContext(token3);
+        expect(getNavigationContext()?.targetPath).toBe('/path2');
+
+        clearNavigationContext(token2);
+        expect(getNavigationContext()?.targetPath).toBe('/path1');
+
+        clearNavigationContext(token1);
+        expect(getNavigationContext()).toBeNull();
+      });
+    });
+
+    describe('getNavigationContext', () => {
+      it('should return null when stack is empty', () => {
+        expect(getNavigationContext()).toBeNull();
+      });
+
+      it('should return the most recent context', () => {
+        setNavigationContext('/first', undefined);
+        setNavigationContext('/second', undefined);
+        setNavigationContext('/third', undefined);
+
+        expect(getNavigationContext()?.targetPath).toBe('/third');
+      });
+    });
+
+    describe('stack overflow protection', () => {
+      it('should remove oldest context when stack exceeds limit', () => {
+        // Push 12 contexts (limit is 10)
+        const tokens: object[] = [];
+        for (let i = 0; i < 12; i++) {
+          tokens.push(setNavigationContext(`/path${i}`, undefined));
+        }
+
+        // Most recent should be /path11
+        expect(getNavigationContext()?.targetPath).toBe('/path11');
+
+        // The oldest contexts (path0, path1) were evicted due to overflow
+        // Trying to clear them does nothing (their tokens no longer match anything)
+        clearNavigationContext(tokens[0]!);
+        clearNavigationContext(tokens[1]!);
+
+        // /path11 should still be current
+        expect(getNavigationContext()?.targetPath).toBe('/path11');
+      });
     });
   });
 });

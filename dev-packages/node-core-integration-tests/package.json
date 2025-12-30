@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/node-core-integration-tests",
-  "version": "10.11.0",
+  "version": "10.32.1",
   "license": "MIT",
   "engines": {
     "node": ">=18"
@@ -23,19 +23,19 @@
     "test:watch": "yarn test --watch"
   },
   "dependencies": {
-    "@nestjs/common": "11.0.16",
-    "@nestjs/core": "10.4.6",
-    "@nestjs/platform-express": "10.4.6",
+    "@nestjs/common": "^11",
+    "@nestjs/core": "^11",
+    "@nestjs/platform-express": "^11",
     "@opentelemetry/api": "^1.9.0",
-    "@opentelemetry/context-async-hooks": "^2.0.0",
-    "@opentelemetry/core": "^2.0.0",
-    "@opentelemetry/instrumentation": "^0.203.0",
-    "@opentelemetry/instrumentation-http": "0.203.0",
-    "@opentelemetry/resources": "^2.0.0",
-    "@opentelemetry/sdk-trace-base": "^2.0.0",
-    "@opentelemetry/semantic-conventions": "^1.34.0",
-    "@sentry/core": "10.11.0",
-    "@sentry/node-core": "10.11.0",
+    "@opentelemetry/context-async-hooks": "^2.2.0",
+    "@opentelemetry/core": "^2.2.0",
+    "@opentelemetry/instrumentation": "^0.208.0",
+    "@opentelemetry/instrumentation-http": "0.208.0",
+    "@opentelemetry/resources": "^2.2.0",
+    "@opentelemetry/sdk-trace-base": "^2.2.0",
+    "@opentelemetry/semantic-conventions": "^1.37.0",
+    "@sentry/core": "10.32.1",
+    "@sentry/node-core": "10.32.1",
     "body-parser": "^1.20.3",
     "cors": "^2.8.5",
     "cron": "^3.1.6",
@@ -53,6 +53,7 @@
   "devDependencies": {
     "@types/node-cron": "^3.0.11",
     "@types/node-schedule": "^2.1.7",
+    "eslint-plugin-regexp": "^1.15.0",
     "globby": "11"
   },
   "config": {

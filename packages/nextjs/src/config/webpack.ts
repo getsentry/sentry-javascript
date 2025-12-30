@@ -2,11 +2,11 @@
 /* eslint-disable max-lines */
 
 import { debug, escapeStringForRegex, loadModule, parseSemver } from '@sentry/core';
-import * as chalk from 'chalk';
 import * as fs from 'fs';
+import { createRequire } from 'module';
 import * as path from 'path';
-import { sync as resolveSync } from 'resolve';
 import type { VercelCronsConfig } from '../common/types';
+import { getBuildPluginOptions, normalizePathForGlob } from './getBuildPluginOptions';
 import type { RouteManifest } from './manifest/types';
 // Note: If you need to import a type from Webpack, do it in `types.ts` and export it from there. Otherwise, our
 // circular dependency check thinks this file is importing from itself. See https://github.com/pahen/madge/issues/306.
@@ -22,7 +22,6 @@ import type {
   WebpackEntryProperty,
 } from './types';
 import { getNextjsVersion } from './util';
-import { getWebpackPluginOptions } from './webpackPluginOptions';
 
 // Next.js runs webpack 3 times, once for the client, the server, and for edge. Because we don't want to print certain
 // warnings 3 times, we keep track of them here.
@@ -40,13 +39,21 @@ let showedMissingGlobalErrorWarningMsg = false;
  * @param userSentryOptions The user's SentryWebpackPlugin config, as passed to `withSentryConfig`
  * @returns The function to set as the nextjs config's `webpack` value
  */
-export function constructWebpackConfigFunction(
-  userNextConfig: NextConfigObject = {},
-  userSentryOptions: SentryBuildOptions = {},
-  releaseName: string | undefined,
-  routeManifest: RouteManifest | undefined,
-  nextJsVersion: string | undefined,
-): WebpackConfigFunction {
+export function constructWebpackConfigFunction({
+  userNextConfig = {},
+  userSentryOptions = {},
+  releaseName,
+  routeManifest,
+  nextJsVersion,
+  useRunAfterProductionCompileHook,
+}: {
+  userNextConfig: NextConfigObject;
+  userSentryOptions: SentryBuildOptions;
+  releaseName: string | undefined;
+  routeManifest: RouteManifest | undefined;
+  nextJsVersion: string | undefined;
+  useRunAfterProductionCompileHook: boolean | undefined;
+}): WebpackConfigFunction {
   // Will be called by nextjs and passed its default webpack configuration and context data about the build (whether
   // we're building server or client, whether we're in dev, what version of webpack we're using, etc). Note that
   // `incomingConfig` and `buildContext` are referred to as `config` and `options` in the nextjs docs.
@@ -60,6 +67,8 @@ export function constructWebpackConfigFunction(
     const pageExtensions = userNextConfig.pageExtensions || ['tsx', 'ts', 'jsx', 'js'];
     const dotPrefixedPageExtensions = pageExtensions.map(ext => `.${ext}`);
     const pageExtensionRegex = pageExtensions.map(escapeStringForRegex).join('|');
+    const nextVersion = nextJsVersion || getNextjsVersion();
+    const { major } = parseSemver(nextVersion || '');
 
     // We add `.ts` and `.js` back in because `pageExtensions` might not be relevant to the instrumentation file
     // e.g. user's setting `.mdx`. In that case we still want to default look up
@@ -70,8 +79,6 @@ export function constructWebpackConfigFunction(
       warnAboutDeprecatedConfigFiles(projectDir, instrumentationFile, runtime);
     }
     if (runtime === 'server') {
-      const nextJsVersion = getNextjsVersion();
-      const { major } = parseSemver(nextJsVersion || '');
       // was added in v15 (https://github.com/vercel/next.js/pull/67539)
       if (major && major >= 15) {
         warnAboutMissingOnRequestErrorHandler(instrumentationFile);
@@ -103,6 +110,11 @@ export function constructWebpackConfigFunction(
 
     addOtelWarningIgnoreRule(newConfig);
 
+    // Add edge runtime polyfills when building for edge in dev mode
+    if (major && major === 13 && runtime === 'edge' && isDev) {
+      addEdgeRuntimePolyfills(newConfig, buildContext);
+    }
+
     let pagesDirPath: string | undefined;
     const maybePagesDirPath = path.join(projectDir, 'pages');
     const maybeSrcPagesDirPath = path.join(projectDir, 'src', 'pages');
@@ -133,7 +145,7 @@ export function constructWebpackConfigFunction(
       appDir: appDirPath,
       pagesDir: pagesDirPath,
       pageExtensionRegex,
-      excludeServerRoutes: userSentryOptions.excludeServerRoutes,
+      excludeServerRoutes: userSentryOptions.webpack?.excludeServerRoutes,
       nextjsRequestAsyncStorageModulePath: getRequestAsyncStorageModuleLocation(
         projectDir,
         rawNewConfig.resolve?.modules,
@@ -170,8 +182,11 @@ export function constructWebpackConfigFunction(
       );
     };
 
-    const possibleMiddlewareLocations = pageExtensions.map(middlewareFileEnding => {
-      return path.join(middlewareLocationFolder, `middleware.${middlewareFileEnding}`);
+    const possibleMiddlewareLocations = pageExtensions.flatMap(middlewareFileEnding => {
+      return [
+        path.join(middlewareLocationFolder, `middleware.${middlewareFileEnding}`),
+        path.join(middlewareLocationFolder, `proxy.${middlewareFileEnding}`),
+      ];
     });
     const isMiddlewareResource = (resourcePath: string): boolean => {
       const normalizedAbsoluteResourcePath = normalizeLoaderResourcePath(resourcePath);
@@ -205,7 +220,7 @@ export function constructWebpackConfigFunction(
       );
     };
 
-    if (isServer && userSentryOptions.autoInstrumentServerFunctions !== false) {
+    if (isServer && userSentryOptions.webpack?.autoInstrumentServerFunctions !== false) {
       // It is very important that we insert our loaders at the beginning of the array because we expect any sort of transformations/transpilations (e.g. TS -> JS) to already have happened.
 
       // Wrap pages
@@ -224,16 +239,12 @@ export function constructWebpackConfigFunction(
 
       let vercelCronsConfig: VercelCronsConfig = undefined;
       try {
-        if (process.env.VERCEL && userSentryOptions.automaticVercelMonitors) {
+        if (process.env.VERCEL && userSentryOptions.webpack?.automaticVercelMonitors) {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
           vercelCronsConfig = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'vercel.json'), 'utf8')).crons;
           if (vercelCronsConfig) {
             debug.log(
-              `${chalk.cyan(
-                'info',
-              )} - Creating Sentry cron monitors for your Vercel Cron Jobs. You can disable this feature by setting the ${chalk.bold.cyan(
-                'automaticVercelMonitors',
-              )} option to false in you Next.js config.`,
+              "[@sentry/nextjs] Creating Sentry cron monitors for your Vercel Cron Jobs. You can disable this feature by setting the 'automaticVercelMonitors' option to false in you Next.js config.",
             );
           }
         }
@@ -243,9 +254,7 @@ export function constructWebpackConfigFunction(
         } else {
           // log but noop
           debug.error(
-            `${chalk.red(
-              'error',
-            )} - Sentry failed to read vercel.json for automatic cron job monitoring instrumentation`,
+            '[@sentry/nextjs] Failed to read vercel.json for automatic cron job monitoring instrumentation',
             e,
           );
         }
@@ -267,7 +276,8 @@ export function constructWebpackConfigFunction(
       });
 
       // Wrap middleware
-      if (userSentryOptions.autoInstrumentMiddleware ?? true) {
+      const canWrapStandaloneMiddleware = userNextConfig.output !== 'standalone' || !major || major < 16;
+      if ((userSentryOptions.webpack?.autoInstrumentMiddleware ?? true) && canWrapStandaloneMiddleware) {
         newConfig.module.rules.unshift({
           test: isMiddlewareResource,
           use: [
@@ -283,7 +293,7 @@ export function constructWebpackConfigFunction(
       }
     }
 
-    if (isServer && userSentryOptions.autoInstrumentAppDirectory !== false) {
+    if (isServer && userSentryOptions.webpack?.autoInstrumentAppDirectory !== false) {
       // Wrap server components
       newConfig.module.rules.unshift({
         test: isServerComponentResource,
@@ -316,10 +326,7 @@ export function constructWebpackConfigFunction(
     if (appDirPath) {
       const hasGlobalErrorFile = pageExtensions
         .map(extension => `global-error.${extension}`)
-        .some(
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-          globalErrorFile => fs.existsSync(path.join(appDirPath!, globalErrorFile)),
-        );
+        .some(globalErrorFile => fs.existsSync(path.join(appDirPath, globalErrorFile)));
 
       if (
         !hasGlobalErrorFile &&
@@ -328,11 +335,7 @@ export function constructWebpackConfigFunction(
       ) {
         // eslint-disable-next-line no-console
         console.log(
-          `${chalk.yellow(
-            'warn',
-          )}  - It seems like you don't have a global error handler set up. It is recommended that you add a ${chalk.cyan(
-            'global-error.js',
-          )} file with Sentry instrumentation so that React rendering errors are reported to Sentry. Read more: https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/#react-render-errors-in-app-router (you can suppress this warning by setting SENTRY_SUPPRESS_GLOBAL_ERROR_HANDLER_FILE_WARNING=1 as environment variable)`,
+          "[@sentry/nextjs] It seems like you don't have a global error handler set up. It is recommended that you add a 'global-error.js' file with Sentry instrumentation so that React rendering errors are reported to Sentry. Read more: https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/#react-render-errors-in-app-router (you can suppress this warning by setting SENTRY_SUPPRESS_GLOBAL_ERROR_HANDLER_FILE_WARNING=1 as environment variable)",
         );
         showedMissingGlobalErrorWarningMsg = true;
       }
@@ -403,22 +406,30 @@ export function constructWebpackConfigFunction(
         }
 
         newConfig.plugins = newConfig.plugins || [];
+        const { config: userNextConfig, dir, nextRuntime } = buildContext;
+        const buildTool = isServer ? (nextRuntime === 'edge' ? 'webpack-edge' : 'webpack-nodejs') : 'webpack-client';
+        const projectDir = normalizePathForGlob(dir);
+        const distDir = normalizePathForGlob((userNextConfig as NextConfigObject).distDir ?? '.next');
+        const distDirAbsPath = path.posix.join(projectDir, distDir);
+
         const sentryWebpackPluginInstance = sentryWebpackPlugin(
-          getWebpackPluginOptions(buildContext, userSentryOptions, releaseName),
+          getBuildPluginOptions({
+            sentryBuildOptions: userSentryOptions,
+            releaseName,
+            distDirAbsPath,
+            buildTool,
+            useRunAfterProductionCompileHook,
+          }),
         );
+
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         sentryWebpackPluginInstance._name = 'sentry-webpack-plugin'; // For tests and debugging. Serves no other purpose.
         newConfig.plugins.push(sentryWebpackPluginInstance);
       }
     }
 
-    if (userSentryOptions.disableLogger) {
-      newConfig.plugins = newConfig.plugins || [];
-      newConfig.plugins.push(
-        new buildContext.webpack.DefinePlugin({
-          __SENTRY_DEBUG__: false,
-        }),
-      );
+    if (userSentryOptions.webpack?.treeshake) {
+      setupTreeshakingFromConfig(userSentryOptions, newConfig, buildContext);
     }
 
     // We inject a map of dependencies that the nextjs app has, as we cannot reliably extract them at runtime, sadly
@@ -512,9 +523,7 @@ function warnAboutMissingOnRequestErrorHandler(instrumentationFile: string | nul
     if (!process.env.SENTRY_SUPPRESS_INSTRUMENTATION_FILE_WARNING) {
       // eslint-disable-next-line no-console
       console.warn(
-        chalk.yellow(
-          '[@sentry/nextjs] Could not find a Next.js instrumentation file. This indicates an incomplete configuration of the Sentry SDK. An instrumentation file is required for the Sentry SDK to be initialized on the server: https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/#create-initialization-config-files (you can suppress this warning by setting SENTRY_SUPPRESS_INSTRUMENTATION_FILE_WARNING=1 as environment variable)',
-        ),
+        '[@sentry/nextjs] Could not find a Next.js instrumentation file. This indicates an incomplete configuration of the Sentry SDK. An instrumentation file is required for the Sentry SDK to be initialized on the server: https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/#create-initialization-config-files (you can suppress this warning by setting SENTRY_SUPPRESS_INSTRUMENTATION_FILE_WARNING=1 as environment variable)',
       );
     }
     return;
@@ -523,9 +532,7 @@ function warnAboutMissingOnRequestErrorHandler(instrumentationFile: string | nul
   if (!instrumentationFile.includes('onRequestError')) {
     // eslint-disable-next-line no-console
     console.warn(
-      chalk.yellow(
-        '[@sentry/nextjs] Could not find `onRequestError` hook in instrumentation file. This indicates outdated configuration of the Sentry SDK. Use `Sentry.captureRequestError` to instrument the `onRequestError` hook: https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/#errors-from-nested-react-server-components',
-      ),
+      '[@sentry/nextjs] Could not find `onRequestError` hook in instrumentation file. This indicates outdated configuration of the Sentry SDK. Use `Sentry.captureRequestError` to instrument the `onRequestError` hook: https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/#errors-from-nested-react-server-components',
     );
   }
 }
@@ -783,7 +790,7 @@ function addValueInjectionLoader({
 
 function resolveNextPackageDirFromDirectory(basedir: string): string | undefined {
   try {
-    return path.dirname(resolveSync('next/package.json', { basedir }));
+    return path.dirname(createRequire(`${basedir}/`).resolve('next/package.json'));
   } catch {
     // Should not happen in theory
     return undefined;
@@ -865,6 +872,24 @@ function addOtelWarningIgnoreRule(newConfig: WebpackConfigObjectWithModuleRules)
   }
 }
 
+function addEdgeRuntimePolyfills(newConfig: WebpackConfigObjectWithModuleRules, buildContext: BuildContext): void {
+  // Use ProvidePlugin to inject performance global only when accessed
+  newConfig.plugins = newConfig.plugins || [];
+  newConfig.plugins.push(
+    new buildContext.webpack.ProvidePlugin({
+      performance: [path.resolve(__dirname, 'polyfills', 'perf_hooks.js'), 'performance'],
+    }),
+  );
+
+  // Add module resolution aliases for problematic Node.js modules in edge runtime
+  newConfig.resolve = newConfig.resolve || {};
+  newConfig.resolve.alias = {
+    ...newConfig.resolve.alias,
+    // Redirect perf_hooks imports to a polyfilled version
+    perf_hooks: path.resolve(__dirname, 'polyfills', 'perf_hooks.js'),
+  };
+}
+
 function _getModules(projectDir: string): Record<string, string> {
   try {
     const packageJson = path.join(projectDir, 'package.json');
@@ -880,5 +905,44 @@ function _getModules(projectDir: string): Record<string, string> {
     };
   } catch {
     return {};
+  }
+}
+
+/**
+ * Sets up the tree-shaking flags based on the user's configuration.
+ * https://docs.sentry.io/platforms/javascript/guides/nextjs/configuration/tree-shaking/
+ */
+function setupTreeshakingFromConfig(
+  userSentryOptions: SentryBuildOptions,
+  newConfig: WebpackConfigObjectWithModuleRules,
+  buildContext: BuildContext,
+): void {
+  const defines: Record<string, boolean> = {};
+
+  newConfig.plugins = newConfig.plugins || [];
+
+  if (userSentryOptions.webpack?.treeshake?.removeDebugLogging) {
+    defines.__SENTRY_DEBUG__ = false;
+  }
+
+  if (userSentryOptions.webpack?.treeshake?.removeTracing) {
+    defines.__SENTRY_TRACING__ = false;
+  }
+
+  if (userSentryOptions.webpack?.treeshake?.excludeReplayIframe) {
+    defines.__RRWEB_EXCLUDE_IFRAME__ = true;
+  }
+
+  if (userSentryOptions.webpack?.treeshake?.excludeReplayShadowDOM) {
+    defines.__RRWEB_EXCLUDE_SHADOW_DOM__ = true;
+  }
+
+  if (userSentryOptions.webpack?.treeshake?.excludeReplayCompressionWorker) {
+    defines.__SENTRY_EXCLUDE_REPLAY_WORKER__ = true;
+  }
+
+  // Only add DefinePlugin if there are actual defines to set
+  if (Object.keys(defines).length > 0) {
+    newConfig.plugins.push(new buildContext.webpack.DefinePlugin(defines));
   }
 }

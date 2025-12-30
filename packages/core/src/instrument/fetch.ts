@@ -240,11 +240,16 @@ export function parseFetchArgs(fetchArgs: unknown[]): { method: string; url: str
   }
 
   if (fetchArgs.length === 2) {
-    const [url, options] = fetchArgs as [FetchResource, object];
+    const [resource, options] = fetchArgs as [FetchResource, object];
 
     return {
-      url: getUrlFromResource(url),
-      method: hasProp(options, 'method') ? String(options.method).toUpperCase() : 'GET',
+      url: getUrlFromResource(resource),
+      method: hasProp(options, 'method')
+        ? String(options.method).toUpperCase()
+        : // Request object as first argument
+          isRequest(resource) && hasProp(resource, 'method')
+          ? String(resource.method).toUpperCase()
+          : 'GET',
     };
   }
 

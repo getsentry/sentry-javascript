@@ -3,6 +3,7 @@
 /* eslint-disable @typescript-eslint/no-dynamic-delete */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/explicit-function-return-type */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /*
  * Copyright The OpenTelemetry Authors
  *
@@ -19,7 +20,7 @@
  * limitations under the License.
  */
 
-import { type Attributes, type Span, type Tracer, SpanStatusCode } from '@opentelemetry/api';
+import { type Attributes, type Span, SpanStatusCode, type Tracer } from '@opentelemetry/api';
 import { spanRequestSymbol } from './constants';
 import type { PluginFastifyReply } from './internal-types';
 
@@ -41,7 +42,6 @@ export function startSpan(
   const spans: Span[] = reply[spanRequestSymbol] || [];
   spans.push(span);
 
-  // eslint-disable-next-line @typescript-eslint/no-floating-promises
   Object.defineProperty(reply, spanRequestSymbol, {
     enumerable: false,
     configurable: true,

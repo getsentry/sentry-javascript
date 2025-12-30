@@ -86,7 +86,7 @@ function _installGlobalOnUnhandledRejectionHandler(client: Client): void {
       return;
     }
 
-    const error = _getUnhandledRejectionError(e as unknown);
+    const error = _getUnhandledRejectionError(e);
 
     const event = isPrimitive(error)
       ? _eventFromRejectionWithPrimitive(error)
@@ -104,7 +104,10 @@ function _installGlobalOnUnhandledRejectionHandler(client: Client): void {
   });
 }
 
-function _getUnhandledRejectionError(error: unknown): unknown {
+/**
+ *
+ */
+export function _getUnhandledRejectionError(error: unknown): unknown {
   if (isPrimitive(error)) {
     return error;
   }
@@ -138,7 +141,7 @@ function _getUnhandledRejectionError(error: unknown): unknown {
  * @param reason: The `reason` property of the promise rejection
  * @returns An Event object with an appropriate `exception` value
  */
-function _eventFromRejectionWithPrimitive(reason: Primitive): Event {
+export function _eventFromRejectionWithPrimitive(reason: Primitive): Event {
   return {
     exception: {
       values: [
@@ -214,5 +217,5 @@ function getFilenameFromUrl(url: string | undefined): string | undefined {
     return `<data:${mimeType}${isBase64 ? ',base64' : ''}>`;
   }
 
-  return url.slice(0, 1024);
+  return url; // it's fine to not truncate it as it's not put in a regex (https://codeql.github.com/codeql-query-help/javascript/js-polynomial-redos)
 }

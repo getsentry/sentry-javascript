@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
-import { waitForError } from '@sentry-internal/test-utils';
+import { waitForError, waitForRequest } from '@sentry-internal/test-utils';
+import { SDK_VERSION } from '@sentry/cloudflare';
 import { WebSocket } from 'ws';
 
 test('Index page', async ({ baseURL }) => {
@@ -10,7 +11,7 @@ test('Index page', async ({ baseURL }) => {
 
 test("worker's withSentry", async ({ baseURL }) => {
   const eventWaiter = waitForError('cloudflare-workers', event => {
-    return event.exception?.values?.[0]?.mechanism?.type === 'cloudflare';
+    return event.exception?.values?.[0]?.mechanism?.type === 'auto.http.cloudflare';
   });
   const response = await fetch(`${baseURL}/throwException`);
   expect(response.status).toBe(500);
@@ -20,25 +21,27 @@ test("worker's withSentry", async ({ baseURL }) => {
 
 test('RPC method which throws an exception to be logged to sentry', async ({ baseURL }) => {
   const eventWaiter = waitForError('cloudflare-workers', event => {
-    return event.exception?.values?.[0]?.mechanism?.type === 'cloudflare_durableobject';
+    return event.exception?.values?.[0]?.mechanism?.type === 'auto.faas.cloudflare.durable_object';
   });
   const response = await fetch(`${baseURL}/rpc/throwException`);
   expect(response.status).toBe(500);
   const event = await eventWaiter;
   expect(event.exception?.values?.[0]?.value).toBe('Should be recorded in Sentry.');
 });
+
 test("Request processed by DurableObject's fetch is recorded", async ({ baseURL }) => {
   const eventWaiter = waitForError('cloudflare-workers', event => {
-    return event.exception?.values?.[0]?.mechanism?.type === 'cloudflare_durableobject';
+    return event.exception?.values?.[0]?.mechanism?.type === 'auto.faas.cloudflare.durable_object';
   });
   const response = await fetch(`${baseURL}/pass-to-object/throwException`);
   expect(response.status).toBe(500);
   const event = await eventWaiter;
   expect(event.exception?.values?.[0]?.value).toBe('Should be recorded in Sentry.');
 });
+
 test('Websocket.webSocketMessage', async ({ baseURL }) => {
   const eventWaiter = waitForError('cloudflare-workers', event => {
-    return event.exception?.values?.[0]?.mechanism?.type === 'cloudflare_durableobject';
+    return !!event.exception?.values?.[0];
   });
   const url = new URL('/pass-to-object/ws', baseURL);
   url.protocol = url.protocol.replace('http', 'ws');
@@ -49,11 +52,12 @@ test('Websocket.webSocketMessage', async ({ baseURL }) => {
   const event = await eventWaiter;
   socket.close();
   expect(event.exception?.values?.[0]?.value).toBe('Should be recorded in Sentry: webSocketMessage');
+  expect(event.exception?.values?.[0]?.mechanism?.type).toBe('auto.faas.cloudflare.durable_object');
 });
 
 test('Websocket.webSocketClose', async ({ baseURL }) => {
   const eventWaiter = waitForError('cloudflare-workers', event => {
-    return event.exception?.values?.[0]?.mechanism?.type === 'cloudflare_durableobject';
+    return !!event.exception?.values?.[0];
   });
   const url = new URL('/pass-to-object/ws', baseURL);
   url.protocol = url.protocol.replace('http', 'ws');
@@ -64,4 +68,17 @@ test('Websocket.webSocketClose', async ({ baseURL }) => {
   });
   const event = await eventWaiter;
   expect(event.exception?.values?.[0]?.value).toBe('Should be recorded in Sentry: webSocketClose');
+  expect(event.exception?.values?.[0]?.mechanism?.type).toBe('auto.faas.cloudflare.durable_object');
+});
+
+test('sends user-agent header with SDK name and version in envelope requests', async ({ baseURL }) => {
+  const requestPromise = waitForRequest('cloudflare-workers', () => true);
+
+  await fetch(`${baseURL}/throwException`);
+
+  const request = await requestPromise;
+
+  expect(request.rawProxyRequestHeaders).toMatchObject({
+    'user-agent': `sentry.javascript.cloudflare/${SDK_VERSION}`,
+  });
 });

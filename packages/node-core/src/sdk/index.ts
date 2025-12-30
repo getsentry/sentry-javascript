@@ -7,6 +7,7 @@ import {
   functionToStringIntegration,
   getCurrentScope,
   getIntegrationsToSetup,
+  GLOBAL_OBJ,
   hasSpansEnabled,
   inboundFiltersIntegration,
   linkedErrorsIntegration,
@@ -35,11 +36,11 @@ import { INTEGRATION_NAME as SPOTLIGHT_INTEGRATION_NAME, spotlightIntegration } 
 import { systemErrorIntegration } from '../integrations/systemError';
 import { makeNodeTransport } from '../transports';
 import type { NodeClientOptions, NodeOptions } from '../types';
-import { isCjs } from '../utils/commonjs';
+import { isCjs } from '../utils/detection';
 import { envToBool } from '../utils/envToBool';
 import { defaultStackParser, getSentryRelease } from './api';
 import { NodeClient } from './client';
-import { maybeInitializeEsmLoader } from './esmLoader';
+import { initializeEsmLoader } from './esmLoader';
 
 /**
  * Get default integrations for the Node-Core SDK.
@@ -106,8 +107,8 @@ function _init(
     }
   }
 
-  if (!isCjs() && options.registerEsmLoaderHooks !== false) {
-    maybeInitializeEsmLoader();
+  if (options.registerEsmLoaderHooks !== false) {
+    initializeEsmLoader();
   }
 
   setOpenTelemetryContextAsyncContextStrategy();
@@ -131,7 +132,9 @@ function _init(
 
   client.init();
 
-  debug.log(`Running in ${isCjs() ? 'CommonJS' : 'ESM'} mode.`);
+  GLOBAL_OBJ._sentryInjectLoaderHookRegister?.();
+
+  debug.log(`SDK initialized from ${isCjs() ? 'CommonJS' : 'ESM'}`);
 
   client.startClientReportTracking();
 
@@ -188,8 +191,24 @@ function getClientOptions(
   getDefaultIntegrationsImpl: (options: Options) => Integration[],
 ): NodeClientOptions {
   const release = getRelease(options.release);
-  const spotlight =
-    options.spotlight ?? envToBool(process.env.SENTRY_SPOTLIGHT, { strict: true }) ?? process.env.SENTRY_SPOTLIGHT;
+
+  // Parse spotlight configuration with proper precedence per spec
+  let spotlight: boolean | string | undefined;
+  if (options.spotlight === false) {
+    spotlight = false;
+  } else if (typeof options.spotlight === 'string') {
+    spotlight = options.spotlight;
+  } else {
+    // options.spotlight is true or undefined
+    const envBool = envToBool(process.env.SENTRY_SPOTLIGHT, { strict: true });
+    const envUrl = envBool === null && process.env.SENTRY_SPOTLIGHT ? process.env.SENTRY_SPOTLIGHT : undefined;
+
+    spotlight =
+      options.spotlight === true
+        ? (envUrl ?? true) // true: use env URL if present, otherwise true
+        : (envBool ?? envUrl); // undefined: use env var (bool or URL)
+  }
+
   const tracesSampleRate = getTracesSampleRate(options.tracesSampleRate);
 
   const mergedOptions = {

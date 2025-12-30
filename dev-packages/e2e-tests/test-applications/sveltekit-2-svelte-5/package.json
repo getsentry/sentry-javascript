@@ -19,10 +19,10 @@
     "@spotlightjs/spotlight": "2.0.0-alpha.1"
   },
   "devDependencies": {
-    "@playwright/test": "~1.53.2",
+    "@playwright/test": "~1.56.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "@sveltejs/adapter-auto": "^3.0.0",
-    "@sveltejs/kit": "^2.21.3",
+    "@sveltejs/kit": "2.41.0",
     "@sveltejs/vite-plugin-svelte": "^3.0.0",
     "svelte": "^5.0.0-next.115",
     "svelte-check": "^3.6.0",

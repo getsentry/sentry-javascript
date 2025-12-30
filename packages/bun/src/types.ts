@@ -1,5 +1,4 @@
-import type { ClientOptions, Options, TracePropagationTargets } from '@sentry/core';
-import type { BunTransportOptions } from './transports';
+import type { BaseTransportOptions, ClientOptions, Options, TracePropagationTargets } from '@sentry/core';
 
 export interface BaseBunOptions {
   /**
@@ -24,6 +23,18 @@ export interface BaseBunOptions {
   serverName?: string;
 
   /**
+   * If you use Spotlight by Sentry during development, use
+   * this option to forward captured Sentry events to Spotlight.
+   *
+   * Either set it to true, or provide a specific Spotlight Sidecar URL.
+   *
+   * More details: https://spotlightjs.com/
+   *
+   * IMPORTANT: Only set this option to `true` while developing, not in production!
+   */
+  spotlight?: boolean | string;
+
+  /**
    * If this is set to true, the SDK will not set up OpenTelemetry automatically.
    * In this case, you _have_ to ensure to set it up correctly yourself, including:
    * * The `SentrySpanProcessor`
@@ -43,10 +54,10 @@ export interface BaseBunOptions {
  * Configuration options for the Sentry Bun SDK
  * @see @sentry/core Options for more information.
  */
-export interface BunOptions extends Options<BunTransportOptions>, BaseBunOptions {}
+export interface BunOptions extends Options<BaseTransportOptions>, BaseBunOptions {}
 
 /**
  * Configuration options for the Sentry Bun SDK Client class
  * @see BunClient for more information.
  */
-export interface BunClientOptions extends ClientOptions<BunTransportOptions>, BaseBunOptions {}
+export interface BunClientOptions extends ClientOptions<BaseTransportOptions>, BaseBunOptions {}

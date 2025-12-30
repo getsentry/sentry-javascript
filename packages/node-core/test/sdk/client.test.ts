@@ -32,6 +32,11 @@ describe('NodeClient', () => {
       dsn: expect.any(String),
       integrations: [],
       transport: options.transport,
+      transportOptions: {
+        headers: {
+          'user-agent': `sentry.javascript.node/${SDK_VERSION}`,
+        },
+      },
       stackParser: options.stackParser,
       _metadata: {
         sdk: {
@@ -362,9 +367,7 @@ describe('NodeClient', () => {
 
       expect(result).toBe(true);
 
-      // once call directly in close to stop client reports,
-      // the other in core client `_isClientDoneProcessing`
-      expect(clearIntervalSpy).toHaveBeenCalledTimes(2);
+      expect(clearIntervalSpy).toHaveBeenCalledTimes(1);
 
       // removes `_clientReportOnExitFlushListener`
       expect(processOffSpy).toHaveBeenNthCalledWith(1, 'beforeExit', expect.any(Function));

@@ -111,7 +111,7 @@ class SentryErrorHandler implements AngularErrorHandler, OnDestroy {
     // Capture handled exception and send it to Sentry.
     const eventId = runOutsideAngular(() =>
       Sentry.captureException(extractedError, {
-        mechanism: { type: 'angular', handled: false },
+        mechanism: { type: 'auto.function.angular.error_handler', handled: false },
       }),
     );
 

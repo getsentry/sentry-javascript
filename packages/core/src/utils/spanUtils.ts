@@ -17,7 +17,7 @@ import type { SpanStatus } from '../types-hoist/spanStatus';
 import { addNonEnumerableProperty } from '../utils/object';
 import { generateSpanId } from '../utils/propagationContext';
 import { timestampInSeconds } from '../utils/time';
-import { generateSentryTraceHeader } from '../utils/tracing';
+import { generateSentryTraceHeader, generateTraceparentHeader } from '../utils/tracing';
 import { consoleSandbox } from './debug-logger';
 import { _getSpanForScope } from './spanOnScope';
 
@@ -75,6 +75,15 @@ export function spanToTraceHeader(span: Span): string {
   const { traceId, spanId } = span.spanContext();
   const sampled = spanIsSampled(span);
   return generateSentryTraceHeader(traceId, spanId, sampled);
+}
+
+/**
+ * Convert a Span to a W3C traceparent header.
+ */
+export function spanToTraceparentHeader(span: Span): string {
+  const { traceId, spanId } = span.spanContext();
+  const sampled = spanIsSampled(span);
+  return generateTraceparentHeader(traceId, spanId, sampled);
 }
 
 /**
@@ -225,7 +234,7 @@ export function getStatusMessage(status: SpanStatus | undefined): string | undef
     return 'ok';
   }
 
-  return status.message || 'unknown_error';
+  return status.message || 'internal_error';
 }
 
 const CHILD_SPANS_FIELD = '_sentryChildSpans';
@@ -314,7 +323,7 @@ export function showSpanDropWarning(): void {
     consoleSandbox(() => {
       // eslint-disable-next-line no-console
       console.warn(
-        '[Sentry] Returning null from `beforeSendSpan` is disallowed. To drop certain spans, configure the respective integrations directly.',
+        '[Sentry] Returning null from `beforeSendSpan` is disallowed. To drop certain spans, configure the respective integrations directly or use `ignoreSpans`.',
       );
     });
     hasShownSpanDropWarning = true;

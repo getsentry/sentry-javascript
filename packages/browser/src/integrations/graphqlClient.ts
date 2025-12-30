@@ -16,12 +16,26 @@ interface GraphQLClientOptions {
 }
 
 /** Standard graphql request shape: https://graphql.org/learn/serving-over-http/#post-request-and-body */
-interface GraphQLRequestPayload {
+interface GraphQLStandardRequest {
   query: string;
   operationName?: string;
   variables?: Record<string, unknown>;
   extensions?: Record<string, unknown>;
 }
+
+/** Persisted operation request */
+interface GraphQLPersistedRequest {
+  operationName: string;
+  variables?: Record<string, unknown>;
+  extensions: {
+    persistedQuery: {
+      version: number;
+      sha256Hash: string;
+    };
+  } & Record<string, unknown>;
+}
+
+type GraphQLRequestPayload = GraphQLStandardRequest | GraphQLPersistedRequest;
 
 interface GraphQLOperation {
   operationType?: string;
@@ -33,7 +47,7 @@ const INTEGRATION_NAME = 'GraphQLClient';
 const _graphqlClientIntegration = ((options: GraphQLClientOptions) => {
   return {
     name: INTEGRATION_NAME,
-    setup(client) {
+    setup(client: Client) {
       _updateSpanWithGraphQLData(client, options);
       _updateBreadcrumbWithGraphQLData(client, options);
     },
@@ -70,7 +84,17 @@ function _updateSpanWithGraphQLData(client: Client, options: GraphQLClientOption
       if (graphqlBody) {
         const operationInfo = _getGraphQLOperation(graphqlBody);
         span.updateName(`${httpMethod} ${httpUrl} (${operationInfo})`);
-        span.setAttribute('graphql.document', payload);
+
+        // Handle standard requests - always capture the query document
+        if (isStandardRequest(graphqlBody)) {
+          span.setAttribute('graphql.document', graphqlBody.query);
+        }
+
+        // Handle persisted operations - capture hash for debugging
+        if (isPersistedRequest(graphqlBody)) {
+          span.setAttribute('graphql.persisted_query.hash.sha256', graphqlBody.extensions.persistedQuery.sha256Hash);
+          span.setAttribute('graphql.persisted_query.version', graphqlBody.extensions.persistedQuery.version);
+        }
       }
     }
   });
@@ -96,8 +120,17 @@ function _updateBreadcrumbWithGraphQLData(client: Client, options: GraphQLClient
 
         if (!data.graphql && graphqlBody) {
           const operationInfo = _getGraphQLOperation(graphqlBody);
-          data['graphql.document'] = graphqlBody.query;
+
           data['graphql.operation'] = operationInfo;
+
+          if (isStandardRequest(graphqlBody)) {
+            data['graphql.document'] = graphqlBody.query;
+          }
+
+          if (isPersistedRequest(graphqlBody)) {
+            data['graphql.persisted_query.hash.sha256'] = graphqlBody.extensions.persistedQuery.sha256Hash;
+            data['graphql.persisted_query.version'] = graphqlBody.extensions.persistedQuery.version;
+          }
         }
       }
     }
@@ -106,15 +139,24 @@ function _updateBreadcrumbWithGraphQLData(client: Client, options: GraphQLClient
 
 /**
  * @param requestBody - GraphQL request
- * @returns A formatted version of the request: 'TYPE NAME' or 'TYPE'
+ * @returns A formatted version of the request: 'TYPE NAME' or 'TYPE' or 'persisted NAME'
  */
-function _getGraphQLOperation(requestBody: GraphQLRequestPayload): string {
-  const { query: graphqlQuery, operationName: graphqlOperationName } = requestBody;
+export function _getGraphQLOperation(requestBody: GraphQLRequestPayload): string {
+  // Handle persisted operations
+  if (isPersistedRequest(requestBody)) {
+    return `persisted ${requestBody.operationName}`;
+  }
 
-  const { operationName = graphqlOperationName, operationType } = parseGraphQLQuery(graphqlQuery);
-  const operationInfo = operationName ? `${operationType} ${operationName}` : `${operationType}`;
+  // Handle standard GraphQL requests
+  if (isStandardRequest(requestBody)) {
+    const { query: graphqlQuery, operationName: graphqlOperationName } = requestBody;
+    const { operationName = graphqlOperationName, operationType } = parseGraphQLQuery(graphqlQuery);
+    const operationInfo = operationName ? `${operationType} ${operationName}` : `${operationType}`;
+    return operationInfo;
+  }
 
-  return operationInfo;
+  // Fallback for unknown request types
+  return 'unknown';
 }
 
 /**
@@ -169,26 +211,53 @@ export function parseGraphQLQuery(query: string): GraphQLOperation {
 }
 
 /**
+ * Helper to safely check if a value is a non-null object
+ */
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+/**
+ * Type guard to check if a request is a standard GraphQL request
+ */
+function isStandardRequest(payload: unknown): payload is GraphQLStandardRequest {
+  return isObject(payload) && typeof payload.query === 'string';
+}
+
+/**
+ * Type guard to check if a request is a persisted operation request
+ */
+function isPersistedRequest(payload: unknown): payload is GraphQLPersistedRequest {
+  return (
+    isObject(payload) &&
+    typeof payload.operationName === 'string' &&
+    isObject(payload.extensions) &&
+    isObject(payload.extensions.persistedQuery) &&
+    typeof payload.extensions.persistedQuery.sha256Hash === 'string' &&
+    typeof payload.extensions.persistedQuery.version === 'number'
+  );
+}
+
+/**
  * Extract the payload of a request if it's GraphQL.
  * Exported for tests only.
  * @param payload - A valid JSON string
  * @returns A POJO or undefined
  */
 export function getGraphQLRequestPayload(payload: string): GraphQLRequestPayload | undefined {
-  let graphqlBody = undefined;
   try {
-    const requestBody = JSON.parse(payload) satisfies GraphQLRequestPayload;
+    const requestBody = JSON.parse(payload);
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    const isGraphQLRequest = !!requestBody['query'];
-    if (isGraphQLRequest) {
-      graphqlBody = requestBody;
+    // Return any valid GraphQL request (standard, persisted, or APQ retry with both)
+    if (isStandardRequest(requestBody) || isPersistedRequest(requestBody)) {
+      return requestBody;
     }
-  } finally {
-    // Fallback to undefined if payload is an invalid JSON (SyntaxError)
 
-    /* eslint-disable no-unsafe-finally */
-    return graphqlBody;
+    // Not a GraphQL request
+    return undefined;
+  } catch {
+    // Invalid JSON
+    return undefined;
   }
 }
 

@@ -270,7 +270,8 @@ export class RemixTestEnv extends TestEnv {
     const server = await new Promise<http.Server>(async resolve => {
       const app = express();
 
-      app.all('*', createRequestHandler({ build: await import('../../../build') }));
+      // Vite builds to build/server/index.js instead of build/index.js
+      app.all('*', createRequestHandler({ build: await import('../../../build/server/index.js') }));
 
       const server = app.listen(0, () => {
         serverPort = (server.address() as AddressInfo).port;

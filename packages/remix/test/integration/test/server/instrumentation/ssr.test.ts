@@ -36,7 +36,7 @@ describe('Server Side Rendering', () => {
                 function: 'remix.server.handleError',
               },
               handled: false,
-              type: 'instrument',
+              type: 'auto.function.remix.server',
             },
           },
         ],

@@ -7,16 +7,18 @@ import type {
   EventEnvelope,
   SerializedCheckIn,
   SerializedLogContainer,
+  SerializedMetricContainer,
   SerializedSession,
   SessionAggregates,
   TransactionEvent,
 } from '@sentry/core';
 import { normalize } from '@sentry/core';
 import { createBasicSentryServer } from '@sentry-internal/test-utils';
-import { execSync, spawn, spawnSync } from 'child_process';
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'fs';
+import { exec, execSync, spawn, spawnSync } from 'child_process';
+import { existsSync } from 'fs';
+import { cp, mkdir, readFile, rm, writeFile } from 'fs/promises';
 import { basename, join } from 'path';
-import { inspect } from 'util';
+import { inspect, promisify } from 'util';
 import { afterAll, beforeAll, describe, test } from 'vitest';
 import {
   assertEnvelopeHeader,
@@ -24,10 +26,13 @@ import {
   assertSentryClientReport,
   assertSentryEvent,
   assertSentryLogContainer,
+  assertSentryMetricContainer,
   assertSentrySession,
   assertSentrySessions,
   assertSentryTransaction,
 } from './assertions';
+
+const execPromise = promisify(exec);
 
 const CLEANUP_STEPS = new Set<VoidFunction>();
 
@@ -104,7 +109,11 @@ async function runDockerCompose(options: DockerOptions): Promise<VoidFunction> {
           child.stdout.removeAllListeners();
           clearTimeout(timeout);
           if (options.setupCommand) {
-            execSync(options.setupCommand, { cwd, stdio: 'inherit' });
+            try {
+              execSync(options.setupCommand, { cwd, stdio: 'inherit' });
+            } catch (e) {
+              log('Error running docker setup command', e);
+            }
           }
           resolve(close);
         }
@@ -123,6 +132,7 @@ type ExpectedSessions = Partial<SessionAggregates> | ((event: SessionAggregates)
 type ExpectedCheckIn = Partial<SerializedCheckIn> | ((event: SerializedCheckIn) => void);
 type ExpectedClientReport = Partial<ClientReport> | ((event: ClientReport) => void);
 type ExpectedLogContainer = Partial<SerializedLogContainer> | ((event: SerializedLogContainer) => void);
+type ExpectedMetricContainer = Partial<SerializedMetricContainer> | ((event: SerializedMetricContainer) => void);
 
 type Expected =
   | {
@@ -145,6 +155,9 @@ type Expected =
     }
   | {
       log: ExpectedLogContainer;
+    }
+  | {
+      trace_metric: ExpectedMetricContainer;
     };
 
 type ExpectedEnvelopeHeader =
@@ -160,7 +173,7 @@ type StartResult = {
   getLogs(): string[];
   getPort(): number | undefined;
   makeRequest<T>(
-    method: 'get' | 'post',
+    method: 'get' | 'post' | 'put' | 'delete' | 'patch',
     path: string,
     options?: { headers?: Record<string, string>; data?: BodyInit; expectError?: boolean },
   ): Promise<T | undefined>;
@@ -174,11 +187,20 @@ export function createEsmAndCjsTests(
     createTestRunner: () => ReturnType<typeof createRunner>,
     testFn: typeof test | typeof test.fails,
     mode: 'esm' | 'cjs',
+    cwd: string,
   ) => void,
-  // `additionalDependencies` to install in a tmp dir for the esm and cjs tests
-  // This could be used to override packages that live in the parent package.json for the specific run of the test
-  // e.g. `{ ai: '^5.0.0' }` to test Vercel AI v5
-  options?: { failsOnCjs?: boolean; failsOnEsm?: boolean; additionalDependencies?: Record<string, string> },
+  options?: {
+    failsOnCjs?: boolean;
+    failsOnEsm?: boolean;
+    /**
+     * `additionalDependencies` to install in a tmp dir for the esm and cjs tests
+     * This could be used to override packages that live in the parent package.json for the specific run of the test
+     * e.g. `{ ai: '^5.0.0' }` to test Vercel AI v5
+     */
+    additionalDependencies?: Record<string, string>;
+    /** Copy these files/dirs into the tmp dir. */
+    copyPaths?: string[];
+  },
 ): void {
   const mjsScenarioPath = join(cwd, scenarioPath);
   const mjsInstrumentPath = join(cwd, instrumentPath);
@@ -202,16 +224,23 @@ export function createEsmAndCjsTests(
   const cjsScenarioPath = join(tmpDirPath, esmScenarioBasename.replace('.mjs', '.cjs'));
   const cjsInstrumentPath = join(tmpDirPath, esmInstrumentBasename.replace('.mjs', '.cjs'));
 
-  function createTmpDir(): void {
-    mkdirSync(tmpDirPath);
+  async function createTmpDir(): Promise<void> {
+    await mkdir(tmpDirPath);
 
     // Copy ESM files as-is into tmp dir
-    writeFileSync(esmScenarioPathForRun, readFileSync(mjsScenarioPath, 'utf8'));
-    writeFileSync(esmInstrumentPathForRun, readFileSync(mjsInstrumentPath, 'utf8'));
+    await writeFile(esmScenarioPathForRun, await readFile(mjsScenarioPath, 'utf8'));
+    await writeFile(esmInstrumentPathForRun, await readFile(mjsInstrumentPath, 'utf8'));
 
     // Pre-create CJS converted files inside tmp dir
-    convertEsmFileToCjs(esmScenarioPathForRun, cjsScenarioPath);
-    convertEsmFileToCjs(esmInstrumentPathForRun, cjsInstrumentPath);
+    await convertEsmFileToCjs(esmScenarioPathForRun, cjsScenarioPath);
+    await convertEsmFileToCjs(esmInstrumentPathForRun, cjsInstrumentPath);
+
+    // Copy any additional files/dirs into tmp dir
+    if (options?.copyPaths) {
+      for (const path of options.copyPaths) {
+        await cp(join(cwd, path), join(tmpDirPath, path), { recursive: true });
+      }
+    }
 
     // Create a minimal package.json with requested dependencies (if any) and install them
     const additionalDependencies = options?.additionalDependencies ?? {};
@@ -223,7 +252,7 @@ export function createEsmAndCjsTests(
         dependencies: additionalDependencies,
       } as const;
 
-      writeFileSync(join(tmpDirPath, 'package.json'), JSON.stringify(packageJson, null, 2));
+      await writeFile(join(tmpDirPath, 'package.json'), JSON.stringify(packageJson, null, 2));
 
       try {
         const deps = Object.entries(additionalDependencies).map(([name, range]) => {
@@ -234,33 +263,24 @@ export function createEsmAndCjsTests(
         });
 
         if (deps.length > 0) {
-          // Prefer npm for temp installs to avoid Yarn engine strictness; see https://github.com/vercel/ai/issues/7777
-          // We rely on the generated package.json dependencies and run a plain install.
-          const result = spawnSync('npm', ['install', '--silent', '--no-audit', '--no-fund'], {
-            cwd: tmpDirPath,
-            encoding: 'utf8',
-          });
+          try {
+            // Prefer npm for temp installs to avoid Yarn engine strictness; see https://github.com/vercel/ai/issues/7777
+            // We rely on the generated package.json dependencies and run a plain install.
+            const { stdout, stderr } = await execPromise('npm install --silent --no-audit --no-fund', {
+              cwd: tmpDirPath,
+              encoding: 'utf8',
+            });
 
-          if (process.env.DEBUG) {
-            // eslint-disable-next-line no-console
-            console.log('[additionalDependencies via npm]', deps.join(' '));
-            // eslint-disable-next-line no-console
-            console.log('[npm stdout]', result.stdout);
-            // eslint-disable-next-line no-console
-            console.log('[npm stderr]', result.stderr);
-          }
-
-          if (result.error) {
-            throw new Error(
-              `Failed to install additionalDependencies in tmp dir ${tmpDirPath}: ${result.error.message}`,
-            );
-          }
-          if (typeof result.status === 'number' && result.status !== 0) {
-            throw new Error(
-              `Failed to install additionalDependencies in tmp dir ${tmpDirPath} (exit ${result.status}):\n${
-                result.stderr || result.stdout || '(no output)'
-              }`,
-            );
+            if (process.env.DEBUG) {
+              // eslint-disable-next-line no-console
+              console.log('[additionalDependencies via npm]', deps.join(' '));
+              // eslint-disable-next-line no-console
+              console.log('[npm stdout]', stdout);
+              // eslint-disable-next-line no-console
+              console.log('[npm stderr]', stderr);
+            }
+          } catch (error) {
+            throw new Error(`Failed to install additionalDependencies in tmp dir ${tmpDirPath}: ${error}`);
           }
         }
       } catch (e) {
@@ -278,37 +298,46 @@ export function createEsmAndCjsTests(
         () => createRunner(esmScenarioPathForRun).withFlags('--import', esmInstrumentPathForRun),
         esmTestFn,
         'esm',
+        tmpDirPath,
       );
     });
 
     const cjsTestFn = options?.failsOnCjs ? test.fails : test;
     describe('cjs', () => {
-      callback(() => createRunner(cjsScenarioPath).withFlags('--require', cjsInstrumentPath), cjsTestFn, 'cjs');
+      callback(
+        () => createRunner(cjsScenarioPath).withFlags('--require', cjsInstrumentPath),
+        cjsTestFn,
+        'cjs',
+        tmpDirPath,
+      );
     });
 
     // Create tmp directory
-    beforeAll(() => {
-      createTmpDir();
-    });
+    beforeAll(async () => {
+      await createTmpDir();
+    }, 60_000);
 
     // Clean up the tmp directory after both esm and cjs suites have run
-    afterAll(() => {
+    afterAll(async () => {
+      // First do cleanup!
+      cleanupChildProcesses();
+
       try {
-        rmSync(tmpDirPath, { recursive: true, force: true });
+        await rm(tmpDirPath, { recursive: true, force: true });
       } catch {
         if (process.env.DEBUG) {
           // eslint-disable-next-line no-console
           console.error(`Failed to remove tmp dir: ${tmpDirPath}`);
         }
       }
-    });
+    }, 30_000);
   });
 }
 
-function convertEsmFileToCjs(inputPath: string, outputPath: string): void {
-  const cjsFileContent = readFileSync(inputPath, 'utf8');
+async function convertEsmFileToCjs(inputPath: string, outputPath: string): Promise<void> {
+  const cjsFileContent = await readFile(inputPath, 'utf8');
   const cjsFileContentConverted = convertEsmToCjs(cjsFileContent);
-  writeFileSync(outputPath, cjsFileContentConverted);
+  return writeFile(outputPath, cjsFileContentConverted);
 }
 
 /** Creates a test runner */
@@ -355,6 +384,11 @@ export function createRunner(...paths: string[]) {
       }
 
       expectedEnvelopeHeaders.push(expected);
+      return this;
+    },
+    expectMetricEnvelope: function () {
+      // Unignore metric envelopes
+      ignored.delete('metric');
       return this;
     },
     withEnv: function (env: Record<string, string>) {
@@ -491,6 +525,9 @@ export function createRunner(...paths: string[]) {
             } else if ('log' in expected) {
               expectLog(item[1] as SerializedLogContainer, expected.log);
               expectCallbackCalled();
+            } else if ('trace_metric' in expected) {
+              expectMetric(item[1] as SerializedMetricContainer, expected.trace_metric);
+              expectCallbackCalled();
             } else {
               throw new Error(
                 `Unhandled expected envelope item type: ${JSON.stringify(expected)}\nItem: ${JSON.stringify(item)}`,
@@ -515,7 +552,7 @@ export function createRunner(...paths: string[]) {
         ? runDockerCompose(dockerOptions)
         : Promise.resolve(undefined);
 
-      const startup = Promise.all([dockerStartup, serverStartup]) as Promise<[DockerStartup, ServerStartup]>;
+      const startup = Promise.all([dockerStartup, serverStartup]);
 
       startup
         .then(([dockerChild, [mockServerPort, mockServerClose]]) => {
@@ -574,7 +611,7 @@ export function createRunner(...paths: string[]) {
 
           function tryParseEnvelopeFromStdoutLine(line: string): void {
             // Lines can have leading '[something] [{' which we need to remove
-            const cleanedLine = line.replace(/^.*?] \[{"/, '[{"');
+            const cleanedLine = line.replace(/^.*?\] \[\{"/, '[{"');
 
             // See if we have a port message
             if (cleanedLine.startsWith('{"port":')) {
@@ -632,7 +669,7 @@ export function createRunner(...paths: string[]) {
           return scenarioServerPort;
         },
         makeRequest: async function <T>(
-          method: 'get' | 'post',
+          method: 'get' | 'post' | 'put' | 'delete' | 'patch',
           path: string,
           options: { headers?: Record<string, string>; data?: BodyInit; expectError?: boolean } = {},
         ): Promise<T | undefined> {
@@ -651,7 +688,7 @@ export function createRunner(...paths: string[]) {
           if (process.env.DEBUG) log('making request', method, url, headers, body);
 
           try {
-            const res = await fetch(url, { headers, method, body });
+            const res = await fetch(url, { headers, method: method.toUpperCase(), body });
 
             if (!res.ok) {
               if (!expectError) {
@@ -746,6 +783,14 @@ function expectLog(item: SerializedLogContainer, expected: ExpectedLogContainer)
   }
 }
 
+function expectMetric(item: SerializedMetricContainer, expected: ExpectedMetricContainer): void {
+  if (typeof expected === 'function') {
+    expected(item);
+  } else {
+    assertSentryMetricContainer(item, expected);
+  }
+}
+
 /**
  * Converts ESM import statements to CommonJS require statements
  * @param content The content of an ESM file
@@ -756,6 +801,7 @@ function convertEsmToCjs(content: string): string {
 
   // Handle default imports: import x from 'y' -> const x = require('y')
   newContent = newContent.replace(
+    // eslint-disable-next-line regexp/optimal-quantifier-concatenation, regexp/no-super-linear-backtracking
     /import\s+([\w*{}\s,]+)\s+from\s+['"]([^'"]+)['"]/g,
     (_, imports: string, module: string) => {
       if (imports.includes('* as')) {

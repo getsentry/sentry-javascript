@@ -35,9 +35,6 @@ interface WinstonTransportOptions {
  * @param TransportClass - The Winston transport class to extend.
  * @returns The extended transport class.
  *
- * @experimental This method will experience breaking changes. This is not yet part of
- * the stable Sentry SDK API and can be changed or removed without warning.
- *
  * @example
  * ```ts
  * const winston = require('winston');
@@ -92,7 +89,7 @@ export function createSentryWinstonTransport<TransportStreamInstance extends obj
         if (this._levels.has(logSeverityLevel)) {
           captureLog(logSeverityLevel, message as string, {
             ...attributes,
-            'sentry.origin': 'auto.logging.winston',
+            'sentry.origin': 'auto.log.winston',
           });
         }
       } catch {

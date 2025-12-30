@@ -1,10 +1,7 @@
 import { feedbackAsyncIntegration } from './feedbackAsync';
 import { feedbackSyncIntegration } from './feedbackSync';
-import * as logger from './log';
 
 export * from './exports';
-
-export { logger };
 
 export { reportingObserverIntegration } from './integrations/reportingobserver';
 export { httpClientIntegration } from './integrations/httpclient';
@@ -16,6 +13,7 @@ export {
   extraErrorDataIntegration,
   rewriteFramesIntegration,
   consoleLoggingIntegration,
+  createConsolaReporter,
 } from '@sentry/core';
 
 export { replayIntegration, getReplay } from '@sentry-internal/replay';
@@ -41,6 +39,9 @@ export {
   startBrowserTracingNavigationSpan,
   startBrowserTracingPageLoadSpan,
 } from './tracing/browserTracingIntegration';
+export { reportPageLoaded } from './tracing/reportPageLoaded';
+export { setActiveSpanInBrowser } from './tracing/setActiveSpan';
+
 export type { RequestInstrumentationOptions } from './tracing/request';
 export {
   registerSpanErrorInstrumentation,
@@ -56,12 +57,19 @@ export {
   getSpanStatusFromHttpCode,
   setHttpStatus,
   makeMultiplexedTransport,
+  MULTIPLEXED_TRANSPORT_EXTRA_KEY,
   moduleMetadataIntegration,
   supabaseIntegration,
   instrumentSupabaseClient,
   zodErrorsIntegration,
   thirdPartyErrorFilterIntegration,
   featureFlagsIntegration,
+  instrumentAnthropicAiClient,
+  instrumentOpenAiClient,
+  instrumentGoogleGenAIClient,
+  instrumentLangGraph,
+  createLangChainCallbackHandler,
+  logger,
 } from '@sentry/core';
 export type { Span, FeatureFlagsIntegration } from '@sentry/core';
 export { makeBrowserOfflineTransport } from './transports/offline';
@@ -71,6 +79,7 @@ export { browserSessionIntegration } from './integrations/browsersession';
 export { launchDarklyIntegration, buildLaunchDarklyFlagUsedHandler } from './integrations/featureFlags/launchdarkly';
 export { openFeatureIntegration, OpenFeatureIntegrationHook } from './integrations/featureFlags/openfeature';
 export { unleashIntegration } from './integrations/featureFlags/unleash';
+export { growthbookIntegration } from './integrations/featureFlags/growthbook';
 export { statsigIntegration } from './integrations/featureFlags/statsig';
 export { diagnoseSdkConnectivity } from './diagnose-sdk';
 export { webWorkerIntegration, registerWebWorker } from './integrations/webWorker';

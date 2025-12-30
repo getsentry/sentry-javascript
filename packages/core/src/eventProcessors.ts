@@ -3,7 +3,7 @@ import type { Event, EventHint } from './types-hoist/event';
 import type { EventProcessor } from './types-hoist/eventprocessor';
 import { debug } from './utils/debug-logger';
 import { isThenable } from './utils/is';
-import { SyncPromise } from './utils/syncpromise';
+import { rejectedSyncPromise, resolvedSyncPromise } from './utils/syncpromise';
 
 /**
  * Process an array of event processors, returning the processed event (or `null` if the event was dropped).
@@ -14,24 +14,33 @@ export function notifyEventProcessors(
   hint: EventHint,
   index: number = 0,
 ): PromiseLike<Event | null> {
-  return new SyncPromise<Event | null>((resolve, reject) => {
-    const processor = processors[index];
-    if (event === null || typeof processor !== 'function') {
-      resolve(event);
-    } else {
-      const result = processor({ ...event }, hint) as Event | null;
+  try {
+    const result = _notifyEventProcessors(event, hint, processors, index);
+    return isThenable(result) ? result : resolvedSyncPromise(result);
+  } catch (error) {
+    return rejectedSyncPromise(error);
+  }
+}
 
-      DEBUG_BUILD && processor.id && result === null && debug.log(`Event processor "${processor.id}" dropped event`);
+function _notifyEventProcessors(
+  event: Event | null,
+  hint: EventHint,
+  processors: EventProcessor[],
+  index: number,
+): Event | null | PromiseLike<Event | null> {
+  const processor = processors[index];
 
-      if (isThenable(result)) {
-        void result
-          .then(final => notifyEventProcessors(processors, final, hint, index + 1).then(resolve))
-          .then(null, reject);
-      } else {
-        void notifyEventProcessors(processors, result, hint, index + 1)
-          .then(resolve)
-          .then(null, reject);
-      }
-    }
-  });
+  if (!event || !processor) {
+    return event;
+  }
+
+  const result = processor({ ...event }, hint);
+
+  DEBUG_BUILD && result === null && debug.log(`Event processor "${processor.id || '?'}" dropped event`);
+
+  if (isThenable(result)) {
+    return result.then(final => _notifyEventProcessors(final, hint, processors, index + 1));
+  }
+
+  return _notifyEventProcessors(result, hint, processors, index + 1);
 }

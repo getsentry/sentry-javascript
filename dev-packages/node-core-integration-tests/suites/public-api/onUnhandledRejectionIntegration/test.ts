@@ -83,7 +83,7 @@ test rejection`);
                 type: 'Error',
                 value: 'test rejection',
                 mechanism: {
-                  type: 'onunhandledrejection',
+                  type: 'auto.node.onunhandledrejection',
                   handled: false,
                 },
                 stacktrace: {
@@ -109,7 +109,7 @@ test rejection`);
                 type: 'Error',
                 value: 'test rejection',
                 mechanism: {
-                  type: 'onunhandledrejection',
+                  type: 'auto.node.onunhandledrejection',
                   handled: false,
                 },
                 stacktrace: {

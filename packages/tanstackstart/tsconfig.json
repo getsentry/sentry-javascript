@@ -2,7 +2,8 @@
   "extends": "../../tsconfig.json",
   "include": ["src/**/*"],
   "compilerOptions": {
-    "lib": ["es2018", "es2020.string"],
-    "module": "Node16"
+    "lib": ["es2020"],
+    "module": "Node16",
+    "moduleResolution": "Node16"
   }
 }

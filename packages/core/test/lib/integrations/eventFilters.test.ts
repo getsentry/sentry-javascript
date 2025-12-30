@@ -256,7 +256,7 @@ const USELESS_EXCEPTION_EVENT: Event = {
     values: [
       {},
       {
-        mechanism: { type: 'onunhandledrejection', handled: false },
+        mechanism: { type: 'auto.node.onunhandledrejection', handled: false },
       },
     ],
   },

@@ -7,7 +7,7 @@ describe('getBuildPluginOptions', () => {
   const mockDistDirAbsPath = '/path/to/.next';
 
   describe('basic functionality', () => {
-    it('returns correct build plugin options with minimal configuration', () => {
+    it('returns correct build plugin options with minimal configuration for after-production-compile-webpack', () => {
       const sentryBuildOptions: SentryBuildOptions = {
         org: 'test-org',
         project: 'test-project',
@@ -18,6 +18,7 @@ describe('getBuildPluginOptions', () => {
         sentryBuildOptions,
         releaseName: mockReleaseName,
         distDirAbsPath: mockDistDirAbsPath,
+        buildTool: 'after-production-compile-webpack',
       });
 
       expect(result).toMatchObject({
@@ -25,9 +26,15 @@ describe('getBuildPluginOptions', () => {
         org: 'test-org',
         project: 'test-project',
         sourcemaps: {
-          assets: ['/path/to/.next/**'],
-          ignore: [],
-          filesToDeleteAfterUpload: [],
+          assets: ['/path/to/.next/server', '/path/to/.next/static/chunks/pages', '/path/to/.next/static/chunks/app'],
+          ignore: [
+            '/path/to/.next/static/chunks/main-*',
+            '/path/to/.next/static/chunks/framework-*',
+            '/path/to/.next/static/chunks/framework.*',
+            '/path/to/.next/static/chunks/polyfills-*',
+            '/path/to/.next/static/chunks/webpack-*',
+          ],
+          filesToDeleteAfterUpload: undefined,
           rewriteSources: expect.any(Function),
         },
         release: {
@@ -37,16 +44,17 @@ describe('getBuildPluginOptions', () => {
           finalize: undefined,
         },
         _metaOptions: {
-          loggerPrefixOverride: '[@sentry/nextjs]',
+          loggerPrefixOverride: '[@sentry/nextjs - After Production Compile (Webpack)]',
           telemetry: {
             metaFramework: 'nextjs',
           },
         },
         bundleSizeOptimizations: {},
+        reactComponentAnnotation: undefined, // Should be undefined for after-production-compile
       });
     });
 
-    it('normalizes Windows paths to posix for glob patterns', () => {
+    it('normalizes Windows paths to posix for glob patterns in after-production-compile builds', () => {
       const windowsPath = 'C:\\Users\\test\\.next';
       const sentryBuildOptions: SentryBuildOptions = {
         org: 'test-org',
@@ -57,14 +65,230 @@ describe('getBuildPluginOptions', () => {
         sentryBuildOptions,
         releaseName: mockReleaseName,
         distDirAbsPath: windowsPath,
+        buildTool: 'after-production-compile-webpack',
       });
 
-      expect(result.sourcemaps?.assets).toEqual(['C:/Users/test/.next/**']);
+      expect(result.sourcemaps?.assets).toEqual([
+        'C:/Users/test/.next/server',
+        'C:/Users/test/.next/static/chunks/pages',
+        'C:/Users/test/.next/static/chunks/app',
+      ]);
+    });
+
+    it('normalizes Windows paths to posix for webpack builds', () => {
+      const windowsPath = 'C:\\Users\\test\\.next';
+      const sentryBuildOptions: SentryBuildOptions = {
+        org: 'test-org',
+        project: 'test-project',
+      };
+
+      const result = getBuildPluginOptions({
+        sentryBuildOptions,
+        releaseName: mockReleaseName,
+        distDirAbsPath: windowsPath,
+        buildTool: 'webpack-client',
+      });
+
+      expect(result.sourcemaps?.assets).toEqual([
+        'C:/Users/test/.next/static/chunks/pages/**',
+        'C:/Users/test/.next/static/chunks/app/**',
+      ]);
+    });
+  });
+
+  describe('build tool specific behavior', () => {
+    const baseSentryOptions: SentryBuildOptions = {
+      org: 'test-org',
+      project: 'test-project',
+    };
+
+    it('configures webpack-client build correctly', () => {
+      const result = getBuildPluginOptions({
+        sentryBuildOptions: baseSentryOptions,
+        releaseName: mockReleaseName,
+        distDirAbsPath: mockDistDirAbsPath,
+        buildTool: 'webpack-client',
+      });
+
+      expect(result._metaOptions?.loggerPrefixOverride).toBe('[@sentry/nextjs - Client]');
+      expect(result.sourcemaps?.assets).toEqual([
+        '/path/to/.next/static/chunks/pages/**',
+        '/path/to/.next/static/chunks/app/**',
+      ]);
+      expect(result.sourcemaps?.ignore).toEqual([
+        '/path/to/.next/static/chunks/main-*',
+        '/path/to/.next/static/chunks/framework-*',
+        '/path/to/.next/static/chunks/framework.*',
+        '/path/to/.next/static/chunks/polyfills-*',
+        '/path/to/.next/static/chunks/webpack-*',
+      ]);
+      expect(result.reactComponentAnnotation).toBeDefined();
+    });
+
+    it('configures webpack-client build with widenClientFileUpload correctly', () => {
+      const result = getBuildPluginOptions({
+        sentryBuildOptions: {
+          ...baseSentryOptions,
+          widenClientFileUpload: true,
+        },
+        releaseName: mockReleaseName,
+        distDirAbsPath: mockDistDirAbsPath,
+        buildTool: 'webpack-client',
+      });
+
+      expect(result.sourcemaps?.assets).toEqual(['/path/to/.next/static/chunks/**']);
+      expect(result.sourcemaps?.ignore).toEqual([
+        '/path/to/.next/static/chunks/framework-*',
+        '/path/to/.next/static/chunks/framework.*',
+        '/path/to/.next/static/chunks/polyfills-*',
+        '/path/to/.next/static/chunks/webpack-*',
+      ]);
+    });
+
+    it('configures webpack-nodejs build correctly', () => {
+      const result = getBuildPluginOptions({
+        sentryBuildOptions: baseSentryOptions,
+        releaseName: mockReleaseName,
+        distDirAbsPath: mockDistDirAbsPath,
+        buildTool: 'webpack-nodejs',
+      });
+
+      expect(result._metaOptions?.loggerPrefixOverride).toBe('[@sentry/nextjs - Node.js]');
+      expect(result.sourcemaps?.assets).toEqual(['/path/to/.next/server/**', '/path/to/.next/serverless/**']);
+      expect(result.sourcemaps?.ignore).toEqual([
+        '/path/to/.next/static/chunks/main-*',
+        '/path/to/.next/static/chunks/framework-*',
+        '/path/to/.next/static/chunks/framework.*',
+        '/path/to/.next/static/chunks/polyfills-*',
+        '/path/to/.next/static/chunks/webpack-*',
+      ]);
+      expect(result.reactComponentAnnotation).toBeDefined();
+    });
+
+    it('configures webpack-edge build correctly', () => {
+      const result = getBuildPluginOptions({
+        sentryBuildOptions: baseSentryOptions,
+        releaseName: mockReleaseName,
+        distDirAbsPath: mockDistDirAbsPath,
+        buildTool: 'webpack-edge',
+      });
+
+      expect(result._metaOptions?.loggerPrefixOverride).toBe('[@sentry/nextjs - Edge]');
+      expect(result.sourcemaps?.assets).toEqual(['/path/to/.next/server/**', '/path/to/.next/serverless/**']);
+      expect(result.sourcemaps?.ignore).toEqual([
+        '/path/to/.next/static/chunks/main-*',
+        '/path/to/.next/static/chunks/framework-*',
+        '/path/to/.next/static/chunks/framework.*',
+        '/path/to/.next/static/chunks/polyfills-*',
+        '/path/to/.next/static/chunks/webpack-*',
+      ]);
+      expect(result.reactComponentAnnotation).toBeDefined();
+    });
+
+    it('configures after-production-compile-webpack build correctly', () => {
+      const result = getBuildPluginOptions({
+        sentryBuildOptions: baseSentryOptions,
+        releaseName: mockReleaseName,
+        distDirAbsPath: mockDistDirAbsPath,
+        buildTool: 'after-production-compile-webpack',
+      });
+
+      expect(result._metaOptions?.loggerPrefixOverride).toBe('[@sentry/nextjs - After Production Compile (Webpack)]');
+      expect(result.sourcemaps?.assets).toEqual([
+        '/path/to/.next/server',
+        '/path/to/.next/static/chunks/pages',
+        '/path/to/.next/static/chunks/app',
+      ]);
+      expect(result.sourcemaps?.ignore).toEqual([
+        '/path/to/.next/static/chunks/main-*',
+        '/path/to/.next/static/chunks/framework-*',
+        '/path/to/.next/static/chunks/framework.*',
+        '/path/to/.next/static/chunks/polyfills-*',
+        '/path/to/.next/static/chunks/webpack-*',
+      ]);
+      expect(result.reactComponentAnnotation).toBeUndefined();
+    });
+
+    it('configures after-production-compile-turbopack build correctly', () => {
+      const result = getBuildPluginOptions({
+        sentryBuildOptions: baseSentryOptions,
+        releaseName: mockReleaseName,
+        distDirAbsPath: mockDistDirAbsPath,
+        buildTool: 'after-production-compile-turbopack',
+      });
+
+      expect(result._metaOptions?.loggerPrefixOverride).toBe('[@sentry/nextjs - After Production Compile (Turbopack)]');
+      expect(result.sourcemaps?.assets).toEqual([
+        '/path/to/.next/server',
+        '/path/to/.next/static/chunks', // Turbopack uses broader pattern
+      ]);
+      expect(result.sourcemaps?.ignore).toEqual([
+        '/path/to/.next/static/chunks/main-*',
+        '/path/to/.next/static/chunks/framework-*',
+        '/path/to/.next/static/chunks/framework.*',
+        '/path/to/.next/static/chunks/polyfills-*',
+        '/path/to/.next/static/chunks/webpack-*',
+      ]);
+      expect(result.reactComponentAnnotation).toBeUndefined();
+    });
+  });
+
+  describe('useRunAfterProductionCompileHook functionality', () => {
+    const baseSentryOptions: SentryBuildOptions = {
+      org: 'test-org',
+      project: 'test-project',
+    };
+
+    it('disables sourcemaps when useRunAfterProductionCompileHook is true for webpack builds', () => {
+      const webpackBuildTools = ['webpack-client', 'webpack-nodejs', 'webpack-edge'] as const;
+
+      webpackBuildTools.forEach(buildTool => {
+        const result = getBuildPluginOptions({
+          sentryBuildOptions: baseSentryOptions,
+          releaseName: mockReleaseName,
+          distDirAbsPath: mockDistDirAbsPath,
+          buildTool,
+          useRunAfterProductionCompileHook: true,
+        });
+
+        expect(result.sourcemaps?.disable).toBe(true);
+      });
+    });
+
+    it('does not disable sourcemaps when useRunAfterProductionCompileHook is true for after-production-compile builds', () => {
+      const afterProductionCompileBuildTools = [
+        'after-production-compile-webpack',
+        'after-production-compile-turbopack',
+      ] as const;
+
+      afterProductionCompileBuildTools.forEach(buildTool => {
+        const result = getBuildPluginOptions({
+          sentryBuildOptions: baseSentryOptions,
+          releaseName: mockReleaseName,
+          distDirAbsPath: mockDistDirAbsPath,
+          buildTool,
+          useRunAfterProductionCompileHook: true,
+        });
+
+        expect(result.sourcemaps?.disable).toBe(false);
+      });
+    });
+
+    it('does not disable sourcemaps when useRunAfterProductionCompileHook is false', () => {
+      const result = getBuildPluginOptions({
+        sentryBuildOptions: baseSentryOptions,
+        releaseName: mockReleaseName,
+        distDirAbsPath: mockDistDirAbsPath,
+        buildTool: 'webpack-client',
+        useRunAfterProductionCompileHook: false,
+      });
+
+      expect(result.sourcemaps?.disable).toBe(false);
     });
   });
 
   describe('sourcemap configuration', () => {
-    it('configures file deletion when deleteSourcemapsAfterUpload is enabled', () => {
+    it('configures file deletion when deleteSourcemapsAfterUpload is enabled for after-production-compile-webpack', () => {
       const sentryBuildOptions: SentryBuildOptions = {
         org: 'test-org',
         project: 'test-project',
@@ -77,13 +301,108 @@ describe('getBuildPluginOptions', () => {
         sentryBuildOptions,
         releaseName: mockReleaseName,
         distDirAbsPath: mockDistDirAbsPath,
+        buildTool: 'after-production-compile-webpack',
       });
 
       expect(result.sourcemaps?.filesToDeleteAfterUpload).toEqual([
-        '/path/to/.next/**/*.js.map',
-        '/path/to/.next/**/*.mjs.map',
-        '/path/to/.next/**/*.cjs.map',
+        '/path/to/.next/static/**/*.js.map',
+        '/path/to/.next/static/**/*.mjs.map',
+        '/path/to/.next/static/**/*.cjs.map',
+        '/path/to/.next/static/**/*.css.map',
       ]);
+    });
+
+    it('configures file deletion when deleteSourcemapsAfterUpload is enabled for after-production-compile-turbopack', () => {
+      const sentryBuildOptions: SentryBuildOptions = {
+        org: 'test-org',
+        project: 'test-project',
+        sourcemaps: {
+          deleteSourcemapsAfterUpload: true,
+        },
+      };
+
+      const result = getBuildPluginOptions({
+        sentryBuildOptions,
+        releaseName: mockReleaseName,
+        distDirAbsPath: mockDistDirAbsPath,
+        buildTool: 'after-production-compile-turbopack',
+      });
+
+      expect(result.sourcemaps?.filesToDeleteAfterUpload).toEqual([
+        '/path/to/.next/static/**/*.js.map',
+        '/path/to/.next/static/**/*.mjs.map',
+        '/path/to/.next/static/**/*.cjs.map',
+        '/path/to/.next/static/**/*.css.map',
+      ]);
+    });
+
+    it('configures file deletion when deleteSourcemapsAfterUpload is enabled for webpack-client without useRunAfterProductionCompileHook', () => {
+      const sentryBuildOptions: SentryBuildOptions = {
+        org: 'test-org',
+        project: 'test-project',
+        sourcemaps: {
+          deleteSourcemapsAfterUpload: true,
+        },
+      };
+
+      const result = getBuildPluginOptions({
+        sentryBuildOptions,
+        releaseName: mockReleaseName,
+        distDirAbsPath: mockDistDirAbsPath,
+        buildTool: 'webpack-client',
+        useRunAfterProductionCompileHook: false,
+      });
+
+      expect(result.sourcemaps?.filesToDeleteAfterUpload).toEqual([
+        '/path/to/.next/static/**/*.js.map',
+        '/path/to/.next/static/**/*.mjs.map',
+        '/path/to/.next/static/**/*.cjs.map',
+        '/path/to/.next/static/**/*.css.map',
+      ]);
+    });
+
+    it('does not configure file deletion when deleteSourcemapsAfterUpload is enabled for webpack-client with useRunAfterProductionCompileHook', () => {
+      const sentryBuildOptions: SentryBuildOptions = {
+        org: 'test-org',
+        project: 'test-project',
+        sourcemaps: {
+          deleteSourcemapsAfterUpload: true,
+        },
+      };
+
+      const result = getBuildPluginOptions({
+        sentryBuildOptions,
+        releaseName: mockReleaseName,
+        distDirAbsPath: mockDistDirAbsPath,
+        buildTool: 'webpack-client',
+        useRunAfterProductionCompileHook: true,
+      });
+
+      // File deletion should be undefined when using the hook
+      expect(result.sourcemaps?.filesToDeleteAfterUpload).toBeUndefined();
+    });
+
+    it('does not configure file deletion for server builds even when deleteSourcemapsAfterUpload is enabled', () => {
+      const sentryBuildOptions: SentryBuildOptions = {
+        org: 'test-org',
+        project: 'test-project',
+        sourcemaps: {
+          deleteSourcemapsAfterUpload: true,
+        },
+      };
+
+      const serverBuildTools = ['webpack-nodejs', 'webpack-edge'] as const;
+
+      serverBuildTools.forEach(buildTool => {
+        const result = getBuildPluginOptions({
+          sentryBuildOptions,
+          releaseName: mockReleaseName,
+          distDirAbsPath: mockDistDirAbsPath,
+          buildTool,
+        });
+
+        expect(result.sourcemaps?.filesToDeleteAfterUpload).toBeUndefined();
+      });
     });
 
     it('does not configure file deletion when deleteSourcemapsAfterUpload is disabled', () => {
@@ -99,9 +418,10 @@ describe('getBuildPluginOptions', () => {
         sentryBuildOptions,
         releaseName: mockReleaseName,
         distDirAbsPath: mockDistDirAbsPath,
+        buildTool: 'webpack-client',
       });
 
-      expect(result.sourcemaps?.filesToDeleteAfterUpload).toEqual([]);
+      expect(result.sourcemaps?.filesToDeleteAfterUpload).toBeUndefined();
     });
 
     it('uses custom sourcemap assets when provided', () => {
@@ -118,6 +438,7 @@ describe('getBuildPluginOptions', () => {
         sentryBuildOptions,
         releaseName: mockReleaseName,
         distDirAbsPath: mockDistDirAbsPath,
+        buildTool: 'webpack-client',
       });
 
       expect(result.sourcemaps?.assets).toEqual(customAssets);
@@ -137,6 +458,7 @@ describe('getBuildPluginOptions', () => {
         sentryBuildOptions,
         releaseName: mockReleaseName,
         distDirAbsPath: mockDistDirAbsPath,
+        buildTool: 'webpack-client',
       });
 
       expect(result.sourcemaps?.ignore).toEqual(customIgnore);
@@ -155,6 +477,7 @@ describe('getBuildPluginOptions', () => {
         sentryBuildOptions,
         releaseName: mockReleaseName,
         distDirAbsPath: mockDistDirAbsPath,
+        buildTool: 'webpack-client',
       });
 
       expect(result.sourcemaps?.disable).toBe(true);
@@ -172,6 +495,7 @@ describe('getBuildPluginOptions', () => {
         sentryBuildOptions,
         releaseName: mockReleaseName,
         distDirAbsPath: mockDistDirAbsPath,
+        buildTool: 'webpack-client',
       });
 
       const rewriteSources = result.sourcemaps?.rewriteSources;
@@ -209,6 +533,7 @@ describe('getBuildPluginOptions', () => {
         sentryBuildOptions,
         releaseName: mockReleaseName,
         distDirAbsPath: mockDistDirAbsPath,
+        buildTool: 'webpack-client',
       });
 
       expect(result.release).toMatchObject({
@@ -230,6 +555,7 @@ describe('getBuildPluginOptions', () => {
         sentryBuildOptions,
         releaseName: undefined,
         distDirAbsPath: mockDistDirAbsPath,
+        buildTool: 'webpack-client',
       });
 
       expect(result.release).toMatchObject({
@@ -247,13 +573,15 @@ describe('getBuildPluginOptions', () => {
           create: true,
           vcsRemote: 'origin',
         },
-        unstable_sentryWebpackPluginOptions: {
-          release: {
-            setCommits: {
-              auto: true,
-            },
-            deploy: {
-              env: 'production',
+        webpack: {
+          unstable_sentryWebpackPluginOptions: {
+            release: {
+              setCommits: {
+                auto: true,
+              },
+              deploy: {
+                env: 'production',
+              },
             },
           },
         },
@@ -263,25 +591,28 @@ describe('getBuildPluginOptions', () => {
         sentryBuildOptions,
         releaseName: mockReleaseName,
         distDirAbsPath: mockDistDirAbsPath,
+        buildTool: 'webpack-client',
       });
 
-      // The unstable_sentryWebpackPluginOptions.release is spread at the end and may override base properties
+      // The webpack.unstable_sentryWebpackPluginOptions.release is spread at the end and may override base properties
       expect(result.release).toHaveProperty('setCommits.auto', true);
       expect(result.release).toHaveProperty('deploy.env', 'production');
     });
   });
 
   describe('react component annotation', () => {
-    it('merges react component annotation options correctly', () => {
+    it('merges react component annotation options correctly for webpack builds', () => {
       const sentryBuildOptions: SentryBuildOptions = {
         org: 'test-org',
         project: 'test-project',
-        reactComponentAnnotation: {
-          enabled: true,
-        },
-        unstable_sentryWebpackPluginOptions: {
+        webpack: {
           reactComponentAnnotation: {
-            enabled: false, // This will override the base setting
+            enabled: true,
+          },
+          unstable_sentryWebpackPluginOptions: {
+            reactComponentAnnotation: {
+              enabled: false, // This will override the base setting
+            },
           },
         },
       };
@@ -290,10 +621,37 @@ describe('getBuildPluginOptions', () => {
         sentryBuildOptions,
         releaseName: mockReleaseName,
         distDirAbsPath: mockDistDirAbsPath,
+        buildTool: 'webpack-client',
       });
 
       // The unstable options override the base options - in this case enabled should be false
       expect(result.reactComponentAnnotation).toHaveProperty('enabled', false);
+    });
+
+    it('sets react component annotation to undefined for after-production-compile builds', () => {
+      const sentryBuildOptions: SentryBuildOptions = {
+        org: 'test-org',
+        project: 'test-project',
+        reactComponentAnnotation: {
+          enabled: true,
+        },
+      };
+
+      const afterProductionCompileBuildTools = [
+        'after-production-compile-webpack',
+        'after-production-compile-turbopack',
+      ] as const;
+
+      afterProductionCompileBuildTools.forEach(buildTool => {
+        const result = getBuildPluginOptions({
+          sentryBuildOptions,
+          releaseName: mockReleaseName,
+          distDirAbsPath: mockDistDirAbsPath,
+          buildTool,
+        });
+
+        expect(result.reactComponentAnnotation).toBeUndefined();
+      });
     });
   });
 
@@ -318,6 +676,7 @@ describe('getBuildPluginOptions', () => {
         sentryBuildOptions,
         releaseName: mockReleaseName,
         distDirAbsPath: mockDistDirAbsPath,
+        buildTool: 'webpack-client',
       });
 
       expect(result).toMatchObject({
@@ -340,10 +699,12 @@ describe('getBuildPluginOptions', () => {
       const sentryBuildOptions: SentryBuildOptions = {
         org: 'test-org',
         project: 'test-project',
-        unstable_sentryWebpackPluginOptions: {
-          applicationKey: 'test-app-key',
-          sourcemaps: {
-            disable: false,
+        webpack: {
+          unstable_sentryWebpackPluginOptions: {
+            applicationKey: 'test-app-key',
+            sourcemaps: {
+              disable: false,
+            },
           },
         },
       };
@@ -352,6 +713,7 @@ describe('getBuildPluginOptions', () => {
         sentryBuildOptions,
         releaseName: mockReleaseName,
         distDirAbsPath: mockDistDirAbsPath,
+        buildTool: 'webpack-client',
       });
 
       expect(result).toMatchObject({
@@ -374,6 +736,7 @@ describe('getBuildPluginOptions', () => {
         sentryBuildOptions,
         releaseName: undefined,
         distDirAbsPath: mockDistDirAbsPath,
+        buildTool: 'webpack-client',
       });
 
       expect(result.release).toMatchObject({
@@ -394,13 +757,20 @@ describe('getBuildPluginOptions', () => {
         sentryBuildOptions,
         releaseName: mockReleaseName,
         distDirAbsPath: mockDistDirAbsPath,
+        buildTool: 'after-production-compile-webpack',
       });
 
       expect(result.sourcemaps).toMatchObject({
-        disable: undefined,
-        assets: ['/path/to/.next/**'],
-        ignore: [],
-        filesToDeleteAfterUpload: [],
+        disable: false,
+        assets: ['/path/to/.next/server', '/path/to/.next/static/chunks/pages', '/path/to/.next/static/chunks/app'],
+        ignore: [
+          '/path/to/.next/static/chunks/main-*',
+          '/path/to/.next/static/chunks/framework-*',
+          '/path/to/.next/static/chunks/framework.*',
+          '/path/to/.next/static/chunks/polyfills-*',
+          '/path/to/.next/static/chunks/webpack-*',
+        ],
+        filesToDeleteAfterUpload: undefined,
         rewriteSources: expect.any(Function),
       });
     });
@@ -419,13 +789,15 @@ describe('getBuildPluginOptions', () => {
         sentryBuildOptions,
         releaseName: mockReleaseName,
         distDirAbsPath: complexPath,
+        buildTool: 'after-production-compile-turbopack',
       });
 
-      expect(result.sourcemaps?.assets).toEqual([`${complexPath}/**`]);
+      expect(result.sourcemaps?.assets).toEqual([`${complexPath}/server`, `${complexPath}/static/chunks`]);
       expect(result.sourcemaps?.filesToDeleteAfterUpload).toEqual([
-        `${complexPath}/**/*.js.map`,
-        `${complexPath}/**/*.mjs.map`,
-        `${complexPath}/**/*.cjs.map`,
+        `${complexPath}/static/**/*.js.map`,
+        `${complexPath}/static/**/*.mjs.map`,
+        `${complexPath}/static/**/*.cjs.map`,
+        `${complexPath}/static/**/*.css.map`,
       ]);
     });
   });

@@ -33,7 +33,9 @@ describe('withSentry', () => {
       { options: MOCK_OPTIONS, request: new Request('https://example.com'), context: createMockExecutionContext() },
       () => response,
     );
-    expect(result).toBe(response);
+    // Response may be wrapped for streaming detection, verify content matches
+    expect(result.status).toBe(response.status);
+    expect(await result.text()).toBe('test');
   });
 
   test('flushes the event after the handler is done using the cloudflare context.waitUntil', async () => {
@@ -46,6 +48,25 @@ describe('withSentry', () => {
 
     expect(waitUntilSpy).toHaveBeenCalledTimes(1);
     expect(waitUntilSpy).toHaveBeenLastCalledWith(expect.any(Promise));
+  });
+
+  test('handles streaming responses correctly', async () => {
+    const stream = new ReadableStream({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode('chunk1'));
+        controller.enqueue(new TextEncoder().encode('chunk2'));
+        controller.close();
+      },
+    });
+    const streamingResponse = new Response(stream);
+
+    const result = await wrapRequestHandler(
+      { options: MOCK_OPTIONS, request: new Request('https://example.com'), context: createMockExecutionContext() },
+      () => streamingResponse,
+    );
+
+    const text = await result.text();
+    expect(text).toBe('chunk1chunk2');
   });
 
   test("doesn't error if context is undefined", () => {
@@ -69,11 +90,18 @@ describe('withSentry', () => {
   });
 
   test('flush must be called when all waitUntil are done', async () => {
-    const flush = vi.spyOn(SentryCore.Client.prototype, 'flush');
+    // Spy on Client.prototype.flush and mock it to resolve immediately to avoid timeout issues with fake timers
+    const flushSpy = vi.spyOn(SentryCore.Client.prototype, 'flush').mockResolvedValue(true);
     vi.useFakeTimers();
     onTestFinished(() => {
       vi.useRealTimers();
     });
+
+    // Measure delta instead of absolute call count to avoid interference from parallel tests.
+    // Since we spy on the prototype, other tests running in parallel may also call flush.
+    // By measuring before/after, we only verify that THIS test triggered exactly one flush call.
+    const before = flushSpy.mock.calls.length;
+
     const waits: Promise<unknown>[] = [];
     const waitUntil = vi.fn(promise => waits.push(promise));
 
@@ -83,13 +111,20 @@ describe('withSentry', () => {
 
     await wrapRequestHandler({ options: MOCK_OPTIONS, request: new Request('https://example.com'), context }, () => {
       addDelayedWaitUntil(context);
-      return new Response('test');
+      const response = new Response('test');
+      // Add Content-Length to skip probing
+      response.headers.set('content-length', '4');
+      return response;
     });
-    expect(flush).not.toBeCalled();
     expect(waitUntil).toBeCalled();
-    vi.advanceTimersToNextTimerAsync().then(() => vi.runAllTimers());
+    vi.advanceTimersToNextTimer().runAllTimers();
     await Promise.all(waits);
-    expect(flush).toHaveBeenCalledOnce();
+
+    const after = flushSpy.mock.calls.length;
+    const delta = after - before;
+
+    // Verify that exactly one flush call was made during this test
+    expect(delta).toBe(1);
   });
 
   describe('scope instrumentation', () => {
@@ -192,7 +227,7 @@ describe('withSentry', () => {
 
       expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
       expect(captureExceptionSpy).toHaveBeenLastCalledWith(error, {
-        mechanism: { handled: false, type: 'cloudflare' },
+        mechanism: { handled: false, type: 'auto.http.cloudflare' },
       });
     });
 
@@ -302,6 +337,9 @@ describe('withSentry', () => {
           return new Response('test');
         },
       );
+
+      // Wait for async span end and transaction capture
+      await new Promise(resolve => setTimeout(resolve, 50));
 
       expect(sentryEvent.transaction).toEqual('GET /');
       expect(sentryEvent.spans).toHaveLength(0);

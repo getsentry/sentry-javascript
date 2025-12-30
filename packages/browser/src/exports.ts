@@ -16,6 +16,8 @@ export type {
   User,
   Session,
   ReportDialogOptions,
+  CaptureContext,
+  ExclusiveEventHintOrCaptureContext,
 } from '@sentry/core';
 
 export type { BrowserOptions } from './client';
@@ -65,6 +67,7 @@ export {
   spanToTraceHeader,
   spanToBaggageHeader,
   updateSpanName,
+  metrics,
 } from '@sentry/core';
 
 export {
@@ -77,6 +80,7 @@ export {
 export { WINDOW } from './helpers';
 export { BrowserClient } from './client';
 export { makeFetchTransport } from './transports/fetch';
+export { uiProfiler } from './profiling';
 export {
   defaultStackParser,
   defaultStackLineParsers,

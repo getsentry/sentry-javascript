@@ -23,7 +23,7 @@ export function getTracePropagationData(event: RequestEvent): { sentryTrace: str
  *
  * @returns an objectified version of @param e
  */
-export function sendErrorToSentry(e: unknown, handlerFn: 'handle' | 'load' | 'serverRoute'): object {
+export function sendErrorToSentry(e: unknown, handlerFn: 'handle' | 'load' | 'server_route'): object {
   // In case we have a primitive, wrap it in the equivalent wrapper class (string -> String, etc.) so that we can
   // store a seen flag on it.
   const objectifiedErr = objectify(e);
@@ -42,11 +42,8 @@ export function sendErrorToSentry(e: unknown, handlerFn: 'handle' | 'load' | 'se
 
   captureException(objectifiedErr, {
     mechanism: {
-      type: 'sveltekit',
+      type: `auto.function.sveltekit.${handlerFn}`,
       handled: false,
-      data: {
-        function: handlerFn,
-      },
     },
   });
 

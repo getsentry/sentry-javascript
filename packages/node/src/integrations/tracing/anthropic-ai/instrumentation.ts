@@ -1,17 +1,21 @@
 import {
+  InstrumentationBase,
   type InstrumentationConfig,
   type InstrumentationModuleDefinition,
-  InstrumentationBase,
   InstrumentationNodeModuleDefinition,
 } from '@opentelemetry/instrumentation';
-import type { AnthropicAiClient, AnthropicAiOptions, Integration } from '@sentry/core';
-import { ANTHROPIC_AI_INTEGRATION_NAME, getCurrentScope, instrumentAnthropicAiClient, SDK_VERSION } from '@sentry/core';
+import type { AnthropicAiClient, AnthropicAiOptions } from '@sentry/core';
+import {
+  _INTERNAL_shouldSkipAiProviderWrapping,
+  ANTHROPIC_AI_INTEGRATION_NAME,
+  getClient,
+  instrumentAnthropicAiClient,
+  SDK_VERSION,
+} from '@sentry/core';
 
 const supportedVersions = ['>=0.19.2 <1.0.0'];
 
-export interface AnthropicAiIntegration extends Integration {
-  options: AnthropicAiOptions;
-}
+type AnthropicAiInstrumentationOptions = InstrumentationConfig & AnthropicAiOptions;
 
 /**
  * Represents the patched shape of the Anthropic AI module export.
@@ -22,22 +26,10 @@ interface PatchedModuleExports {
 }
 
 /**
- * Determines telemetry recording settings.
- */
-function determineRecordingSettings(
-  integrationOptions: AnthropicAiOptions | undefined,
-  defaultEnabled: boolean,
-): { recordInputs: boolean; recordOutputs: boolean } {
-  const recordInputs = integrationOptions?.recordInputs ?? defaultEnabled;
-  const recordOutputs = integrationOptions?.recordOutputs ?? defaultEnabled;
-  return { recordInputs, recordOutputs };
-}
-
-/**
  * Sentry Anthropic AI instrumentation using OpenTelemetry.
  */
-export class SentryAnthropicAiInstrumentation extends InstrumentationBase<InstrumentationConfig> {
-  public constructor(config: InstrumentationConfig = {}) {
+export class SentryAnthropicAiInstrumentation extends InstrumentationBase<AnthropicAiInstrumentationOptions> {
+  public constructor(config: AnthropicAiInstrumentationOptions = {}) {
     super('@sentry/instrumentation-anthropic-ai', SDK_VERSION, config);
   }
 
@@ -59,14 +51,20 @@ export class SentryAnthropicAiInstrumentation extends InstrumentationBase<Instru
   private _patch(exports: PatchedModuleExports): PatchedModuleExports | void {
     const Original = exports.Anthropic;
 
-    const WrappedAnthropic = function (this: unknown, ...args: unknown[]) {
-      const instance = Reflect.construct(Original, args);
-      const scopeClient = getCurrentScope().getClient();
-      const integration = scopeClient?.getIntegrationByName<AnthropicAiIntegration>(ANTHROPIC_AI_INTEGRATION_NAME);
-      const integrationOpts = integration?.options;
-      const defaultPii = Boolean(scopeClient?.getOptions().sendDefaultPii);
+    const config = this.getConfig();
 
-      const { recordInputs, recordOutputs } = determineRecordingSettings(integrationOpts, defaultPii);
+    const WrappedAnthropic = function (this: unknown, ...args: unknown[]) {
+      // Check if wrapping should be skipped (e.g., when LangChain is handling instrumentation)
+      if (_INTERNAL_shouldSkipAiProviderWrapping(ANTHROPIC_AI_INTEGRATION_NAME)) {
+        return Reflect.construct(Original, args) as AnthropicAiClient;
+      }
+
+      const instance = Reflect.construct(Original, args);
+      const client = getClient();
+      const defaultPii = Boolean(client?.getOptions().sendDefaultPii);
+
+      const recordInputs = config.recordInputs ?? defaultPii;
+      const recordOutputs = config.recordOutputs ?? defaultPii;
 
       return instrumentAnthropicAiClient(instance as AnthropicAiClient, {
         recordInputs,

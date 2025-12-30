@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import {
-  type Scope,
   captureException,
   flush,
   getClient,
   isThenable,
+  type Scope,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   startSpan,
@@ -18,6 +18,7 @@ import { isInstrumented, markAsInstrumented } from './instrument';
 import { getFinalOptions } from './options';
 import { wrapRequestHandler } from './request';
 import { init } from './sdk';
+import { copyExecutionContext } from './utils/copyExecutionContext';
 
 type MethodWrapperOptions = {
   spanName?: string;
@@ -27,7 +28,8 @@ type MethodWrapperOptions = {
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-type OriginalMethod = (...args: any[]) => any;
+type UncheckedMethod = (...args: any[]) => any;
+type OriginalMethod = UncheckedMethod;
 
 function wrapMethodWithSentry<T extends OriginalMethod>(
   wrapperOptions: MethodWrapperOptions,
@@ -79,7 +81,7 @@ function wrapMethodWithSentry<T extends OriginalMethod>(
                 (e: unknown) => {
                   captureException(e, {
                     mechanism: {
-                      type: 'cloudflare_durableobject',
+                      type: 'auto.faas.cloudflare.durable_object',
                       handled: false,
                     },
                   });
@@ -94,7 +96,7 @@ function wrapMethodWithSentry<T extends OriginalMethod>(
           } catch (e) {
             captureException(e, {
               mechanism: {
-                type: 'cloudflare_durableobject',
+                type: 'auto.faas.cloudflare.durable_object',
                 handled: false,
               },
             });
@@ -106,7 +108,7 @@ function wrapMethodWithSentry<T extends OriginalMethod>(
         const attributes = wrapperOptions.spanOp
           ? {
               [SEMANTIC_ATTRIBUTE_SENTRY_OP]: wrapperOptions.spanOp,
-              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.faas.cloudflare_durableobjects',
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.faas.cloudflare.durable_object',
             }
           : {};
 
@@ -123,7 +125,7 @@ function wrapMethodWithSentry<T extends OriginalMethod>(
                 (e: unknown) => {
                   captureException(e, {
                     mechanism: {
-                      type: 'cloudflare_durableobject',
+                      type: 'auto.faas.cloudflare.durable_object',
                       handled: false,
                     },
                   });
@@ -138,7 +140,7 @@ function wrapMethodWithSentry<T extends OriginalMethod>(
           } catch (e) {
             captureException(e, {
               mechanism: {
-                type: 'cloudflare_durableobject',
+                type: 'auto.faas.cloudflare.durable_object',
                 handled: false,
               },
             });
@@ -192,8 +194,9 @@ export function instrumentDurableObjectWithSentry<
   C extends new (state: DurableObjectState, env: E) => T,
 >(optionsCallback: (env: E) => CloudflareOptions, DurableObjectClass: C): C {
   return new Proxy(DurableObjectClass, {
-    construct(target, [context, env]) {
+    construct(target, [ctx, env]) {
       setAsyncLocalStorageAsyncContextStrategy();
+      const context = copyExecutionContext(ctx);
 
       const options = getFinalOptions(optionsCallback(env), env);
 
@@ -243,7 +246,7 @@ export function instrumentDurableObjectWithSentry<
           (_, error) =>
             captureException(error, {
               mechanism: {
-                type: 'cloudflare_durableobject_websocket',
+                type: 'auto.faas.cloudflare.durable_object_websocket',
                 handled: false,
               },
             }),
@@ -267,8 +270,7 @@ export function instrumentDurableObjectWithSentry<
           // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
           (obj as any)[method] = wrapMethodWithSentry(
             { options, context, spanName: method, spanOp: 'rpc' },
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            value as (...args: any[]) => any,
+            value as UncheckedMethod,
           );
         }
       }
@@ -330,7 +332,7 @@ function instrumentPrototype<T extends NewableFunction>(target: T, methodsToInst
     }
 
     // Create a wrapper that gets context/options from the instance at runtime
-    const wrappedMethod = function (this: any, ...args: any[]): unknown {
+    const wrappedMethod = function (this: unknown, ...args: unknown[]): unknown {
       const thisWithSentry = this as {
         __SENTRY_CONTEXT__: DurableObjectState;
         __SENTRY_OPTIONS__: CloudflareOptions;
@@ -340,7 +342,7 @@ function instrumentPrototype<T extends NewableFunction>(target: T, methodsToInst
 
       if (!instanceOptions) {
         // Fallback to original method if no Sentry data found
-        return (originalMethod as (...args: any[]) => any).apply(this, args);
+        return (originalMethod as UncheckedMethod).apply(this, args);
       }
 
       // Use the existing wrapper but with instance-specific context/options
@@ -351,12 +353,12 @@ function instrumentPrototype<T extends NewableFunction>(target: T, methodsToInst
           spanName: methodName,
           spanOp: 'rpc',
         },
-        originalMethod as (...args: any[]) => any,
+        originalMethod as UncheckedMethod,
         undefined,
         true, // noMark = true since we'll mark the prototype method
       );
 
-      return (wrapper as (...args: any[]) => any).apply(this, args);
+      return wrapper.apply(this, args);
     };
 
     markAsInstrumented(wrappedMethod);

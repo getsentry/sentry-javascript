@@ -117,7 +117,7 @@ describe('webWorkerIntegration', () => {
 
         // Extract the message handler from the addEventListener call
         expect(mockWorker.addEventListener.mock.calls).toBeDefined();
-        messageHandler = mockWorker.addEventListener.mock.calls![0]![1];
+        messageHandler = mockWorker.addEventListener.mock.calls[0]![1];
       });
 
       it('ignores non-Sentry messages', () => {
@@ -216,6 +216,7 @@ describe('webWorkerIntegration', () => {
 describe('registerWebWorker', () => {
   let mockWorkerSelf: {
     postMessage: ReturnType<typeof vi.fn>;
+    addEventListener: ReturnType<typeof vi.fn>;
     _sentryDebugIds?: Record<string, string>;
   };
 
@@ -224,6 +225,7 @@ describe('registerWebWorker', () => {
 
     mockWorkerSelf = {
       postMessage: vi.fn(),
+      addEventListener: vi.fn(),
     };
   });
 

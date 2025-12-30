@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/unbound-method */
+import { startSpan } from '@sentry/core';
 import type { WorkflowEvent, WorkflowStep, WorkflowStepConfig } from 'cloudflare:workers';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { deterministicTraceIdFromInstanceId, instrumentWorkflowWithSentry } from '../src/workflows';
@@ -96,7 +97,8 @@ describe.skipIf(NODE_MAJOR_VERSION < 20)('workflows', () => {
 
     expect(mockStep.do).toHaveBeenCalledTimes(1);
     expect(mockStep.do).toHaveBeenCalledWith('first step', expect.any(Function));
-    expect(mockContext.waitUntil).toHaveBeenCalledTimes(1);
+    // We flush after the step.do and at the end of the run
+    expect(mockContext.waitUntil).toHaveBeenCalledTimes(2);
     expect(mockContext.waitUntil).toHaveBeenCalledWith(expect.any(Promise));
     expect(mockTransport.send).toHaveBeenCalledTimes(1);
     expect(mockTransport.send).toHaveBeenCalledWith([
@@ -161,7 +163,8 @@ describe.skipIf(NODE_MAJOR_VERSION < 20)('workflows', () => {
 
     expect(mockStep.do).toHaveBeenCalledTimes(1);
     expect(mockStep.do).toHaveBeenCalledWith('first step', expect.any(Function));
-    expect(mockContext.waitUntil).toHaveBeenCalledTimes(1);
+    // We flush after the step.do and at the end of the run
+    expect(mockContext.waitUntil).toHaveBeenCalledTimes(2);
     expect(mockContext.waitUntil).toHaveBeenCalledWith(expect.any(Promise));
     expect(mockTransport.send).toHaveBeenCalledTimes(1);
     expect(mockTransport.send).toHaveBeenCalledWith([
@@ -232,8 +235,10 @@ describe.skipIf(NODE_MAJOR_VERSION < 20)('workflows', () => {
 
     expect(mockStep.do).toHaveBeenCalledTimes(1);
     expect(mockStep.do).toHaveBeenCalledWith('sometimes error step', expect.any(Function));
-    expect(mockContext.waitUntil).toHaveBeenCalledTimes(2);
+    // One flush for the error transaction, one for the retry success, one at end of run
+    expect(mockContext.waitUntil).toHaveBeenCalledTimes(3);
     expect(mockContext.waitUntil).toHaveBeenCalledWith(expect.any(Promise));
+    // error event + failed transaction + successful retry transaction
     expect(mockTransport.send).toHaveBeenCalledTimes(3);
 
     // First we should get the error event
@@ -267,7 +272,7 @@ describe.skipIf(NODE_MAJOR_VERSION < 20)('workflows', () => {
                 expect.objectContaining({
                   type: 'Error',
                   value: 'Test error',
-                  mechanism: { type: 'cloudflare', handled: true },
+                  mechanism: { type: 'auto.faas.cloudflare.workflow', handled: true },
                 }),
               ],
             },
@@ -376,11 +381,11 @@ describe.skipIf(NODE_MAJOR_VERSION < 20)('workflows', () => {
 
     expect(mockStep.do).toHaveBeenCalledTimes(1);
     expect(mockStep.do).toHaveBeenCalledWith('sometimes error step', expect.any(Function));
-    expect(mockContext.waitUntil).toHaveBeenCalledTimes(2);
+    // One flush for the error event and one at end of run
+    expect(mockContext.waitUntil).toHaveBeenCalledTimes(3);
     expect(mockContext.waitUntil).toHaveBeenCalledWith(expect.any(Promise));
 
-    // We should get the error event and then nothing else. No transactions
-    // should be sent
+    // We should get the error event and then nothing else. No transactions should be sent
     expect(mockTransport.send).toHaveBeenCalledTimes(1);
 
     expect(mockTransport.send).toHaveBeenCalledWith([
@@ -420,5 +425,42 @@ describe.skipIf(NODE_MAJOR_VERSION < 20)('workflows', () => {
         ],
       ],
     ]);
+  });
+
+  test('Step.do span becomes child of surrounding custom span', async () => {
+    class ParentChildWorkflow {
+      constructor(_ctx: ExecutionContext, _env: unknown) {}
+
+      async run(_event: Readonly<WorkflowEvent<Params>>, step: WorkflowStep): Promise<void> {
+        await startSpan({ name: 'custom span' }, async () => {
+          await step.do('first step', async () => {
+            return { files: ['a'] };
+          });
+        });
+      }
+    }
+
+    const TestWorkflowInstrumented = instrumentWorkflowWithSentry(getSentryOptions, ParentChildWorkflow as any);
+    const workflow = new TestWorkflowInstrumented(mockContext, {}) as ParentChildWorkflow;
+    const event = { payload: {}, timestamp: new Date(), instanceId: INSTANCE_ID };
+    await workflow.run(event, mockStep);
+
+    // Flush after step.do and at end of run
+    expect(mockContext.waitUntil).toHaveBeenCalledTimes(2);
+    expect(mockTransport.send).toHaveBeenCalledTimes(1);
+
+    const sendArg = mockTransport.send.mock.calls[0]![0];
+    const items = sendArg[1] as any[];
+    const rootSpanItem = items.find(i => i[0].type === 'transaction');
+    expect(rootSpanItem).toBeDefined();
+    const rootSpan = rootSpanItem[1];
+
+    expect(rootSpan.transaction).toBe('custom span');
+    const rootSpanId = rootSpan.contexts.trace.span_id;
+
+    // Child span for the step.do with the custom span as parent
+    const stepSpan = rootSpan.spans.find((s: any) => s.description === 'first step' && s.op === 'function.step.do');
+    expect(stepSpan).toBeDefined();
+    expect(stepSpan.parent_span_id).toBe(rootSpanId);
   });
 });

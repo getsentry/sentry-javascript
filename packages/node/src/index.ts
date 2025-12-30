@@ -15,6 +15,7 @@ export { postgresIntegration } from './integrations/tracing/postgres';
 export { postgresJsIntegration } from './integrations/tracing/postgresjs';
 export { prismaIntegration } from './integrations/tracing/prisma';
 export { hapiIntegration, setupHapiErrorHandler } from './integrations/tracing/hapi';
+export { honoIntegration, setupHonoErrorHandler } from './integrations/tracing/hono';
 export { koaIntegration, setupKoaErrorHandler } from './integrations/tracing/koa';
 export { connectIntegration, setupConnectErrorHandler } from './integrations/tracing/connect';
 export { knexIntegration } from './integrations/tracing/knex';
@@ -25,6 +26,9 @@ export { amqplibIntegration } from './integrations/tracing/amqplib';
 export { vercelAIIntegration } from './integrations/tracing/vercelai';
 export { openAIIntegration } from './integrations/tracing/openai';
 export { anthropicAIIntegration } from './integrations/tracing/anthropic-ai';
+export { googleGenAIIntegration } from './integrations/tracing/google-genai';
+export { langChainIntegration } from './integrations/tracing/langchain';
+export { langGraphIntegration } from './integrations/tracing/langgraph';
 export {
   launchDarklyIntegration,
   buildLaunchDarklyFlagUsedHandler,
@@ -32,6 +36,7 @@ export {
   OpenFeatureIntegrationHook,
   statsigIntegration,
   unleashIntegration,
+  growthbookIntegration,
 } from './integrations/featureFlagShims';
 export { firebaseIntegration } from './integrations/tracing/firebase';
 
@@ -124,12 +129,15 @@ export {
   updateSpanName,
   supabaseIntegration,
   instrumentSupabaseClient,
+  instrumentOpenAiClient,
   zodErrorsIntegration,
   profiler,
   consoleLoggingIntegration,
+  createConsolaReporter,
   consoleIntegration,
   wrapMcpServerWithSentry,
   featureFlagsIntegration,
+  createLangChainCallbackHandler,
 } from '@sentry/core';
 
 export type {
@@ -149,11 +157,17 @@ export type {
   Thread,
   User,
   Span,
+  Metric,
   FeatureFlagsIntegration,
+  ExclusiveEventHintOrCaptureContext,
+  CaptureContext,
 } from '@sentry/core';
 
 export {
   logger,
+  metrics,
+  httpServerIntegration,
+  httpServerSpansIntegration,
   nodeContextIntegration,
   contextLinesIntegration,
   localVariablesIntegration,
@@ -166,6 +180,7 @@ export {
   disableAnrDetectionForCallback,
   spotlightIntegration,
   childProcessIntegration,
+  pinoIntegration,
   createSentryWinstonTransport,
   SentryContextManager,
   systemErrorIntegration,

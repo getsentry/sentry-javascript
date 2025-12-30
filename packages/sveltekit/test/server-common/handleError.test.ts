@@ -5,10 +5,6 @@ import { handleErrorWithSentry } from '../../src/server-common/handleError';
 
 const mockCaptureException = vi.spyOn(SentryCore, 'captureException').mockImplementation(() => 'xx');
 
-const captureExceptionEventHint = {
-  mechanism: { handled: false, type: 'sveltekit' },
-};
-
 function handleError(_input: { error: unknown; event: RequestEvent }): ReturnType<HandleServerError> {
   return {
     message: 'Whoops!',
@@ -73,7 +69,9 @@ describe('handleError (server)', () => {
 
       expect(returnVal).not.toBeDefined();
       expect(mockCaptureException).toHaveBeenCalledTimes(1);
-      expect(mockCaptureException).toHaveBeenCalledWith(mockError, captureExceptionEventHint);
+      expect(mockCaptureException).toHaveBeenCalledWith(mockError, {
+        mechanism: { handled: false, type: 'auto.function.sveltekit.handle_error' },
+      });
       // The default handler logs the error to the console
       expect(consoleErrorSpy).toHaveBeenCalledTimes(1);
     });
@@ -91,7 +89,7 @@ describe('handleError (server)', () => {
       expect(returnVal.message).toEqual('Whoops!');
       expect(mockCaptureException).toHaveBeenCalledTimes(1);
       expect(mockCaptureException).toHaveBeenCalledWith(mockError, {
-        mechanism: { handled: true, type: 'sveltekit' },
+        mechanism: { handled: true, type: 'auto.function.sveltekit.handle_error' },
       });
       // Check that the default handler wasn't invoked
       expect(consoleErrorSpy).toHaveBeenCalledTimes(0);

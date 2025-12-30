@@ -3,9 +3,9 @@ import { ANTHROPIC_AI_INTEGRATION_NAME, defineIntegration } from '@sentry/core';
 import { generateInstrumentOnce } from '@sentry/node-core';
 import { SentryAnthropicAiInstrumentation } from './instrumentation';
 
-export const instrumentAnthropicAi = generateInstrumentOnce(
+export const instrumentAnthropicAi = generateInstrumentOnce<AnthropicAiOptions>(
   ANTHROPIC_AI_INTEGRATION_NAME,
-  () => new SentryAnthropicAiInstrumentation({}),
+  options => new SentryAnthropicAiInstrumentation(options),
 );
 
 const _anthropicAIIntegration = ((options: AnthropicAiOptions = {}) => {
@@ -13,7 +13,7 @@ const _anthropicAIIntegration = ((options: AnthropicAiOptions = {}) => {
     name: ANTHROPIC_AI_INTEGRATION_NAME,
     options,
     setupOnce() {
-      instrumentAnthropicAi();
+      instrumentAnthropicAi(options);
     },
   };
 }) satisfies IntegrationFn;

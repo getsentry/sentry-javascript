@@ -10,7 +10,6 @@ const query = `query Test{
     pet
   }
 }`;
-const queryPayload = JSON.stringify({ query });
 
 sentryTest('should update spans for GraphQL XHR requests', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
@@ -55,7 +54,7 @@ sentryTest('should update spans for GraphQL XHR requests', async ({ getLocalTest
       'server.address': 'sentry-test.io',
       'sentry.op': 'http.client',
       'sentry.origin': 'auto.http.browser',
-      'graphql.document': queryPayload,
+      'graphql.document': query,
     },
   });
 });
@@ -86,7 +85,7 @@ sentryTest('should update breadcrumbs for GraphQL XHR requests', async ({ getLoc
 
   expect(eventData?.breadcrumbs?.length).toBe(1);
 
-  expect(eventData!.breadcrumbs![0]).toEqual({
+  expect(eventData.breadcrumbs![0]).toEqual({
     timestamp: expect.any(Number),
     category: 'xhr',
     type: 'http',

@@ -9,12 +9,10 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setCapturedScopesOnSpan,
   startSpan,
-  vercelWaitUntil,
   winterCGRequestToRequestData,
   withIsolationScope,
 } from '@sentry/core';
-import { addHeadersAsAttributes } from '../common/utils/addHeadersAsAttributes';
-import { flushSafelyWithTimeout } from '../common/utils/responseEnd';
+import { flushSafelyWithTimeout, waitUntil } from '../common/utils/responseEnd';
 import type { EdgeRouteHandler } from '../edge/types';
 
 /**
@@ -60,16 +58,13 @@ export function wrapMiddlewareWithSentry<H extends EdgeRouteHandler>(
 
         let spanName: string;
         let spanSource: TransactionSource;
-        let headerAttributes: Record<string, string> = {};
 
         if (req instanceof Request) {
           isolationScope.setSDKProcessingMetadata({
             normalizedRequest: winterCGRequestToRequestData(req),
           });
-          spanName = `middleware ${req.method} ${new URL(req.url).pathname}`;
+          spanName = `middleware ${req.method}`;
           spanSource = 'url';
-
-          headerAttributes = addHeadersAsAttributes(req.headers);
         } else {
           spanName = 'middleware';
           spanSource = 'component';
@@ -88,7 +83,6 @@ export function wrapMiddlewareWithSentry<H extends EdgeRouteHandler>(
           const rootSpan = getRootSpan(activeSpan);
           if (rootSpan) {
             setCapturedScopesOnSpan(rootSpan, currentScope, isolationScope);
-            rootSpan.setAttributes(headerAttributes);
           }
         }
 
@@ -98,8 +92,7 @@ export function wrapMiddlewareWithSentry<H extends EdgeRouteHandler>(
             op: 'http.server.middleware',
             attributes: {
               [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: spanSource,
-              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs.wrapMiddlewareWithSentry',
-              ...headerAttributes,
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs.wrap_middleware',
             },
           },
           () => {
@@ -108,13 +101,13 @@ export function wrapMiddlewareWithSentry<H extends EdgeRouteHandler>(
               error => {
                 captureException(error, {
                   mechanism: {
-                    type: 'instrument',
+                    type: 'auto.function.nextjs.wrap_middleware',
                     handled: false,
                   },
                 });
               },
               () => {
-                vercelWaitUntil(flushSafelyWithTimeout());
+                waitUntil(flushSafelyWithTimeout());
               },
             );
           },

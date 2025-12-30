@@ -55,7 +55,7 @@ export function wrapServerLoader<T>(options: SpanOptions = {}, loaderFn: (args: 
           updateSpanName(root, `${args.request.method} ${target}`);
           root.setAttributes({
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react-router.loader',
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react_router.loader',
           });
         }
       }
@@ -66,8 +66,8 @@ export function wrapServerLoader<T>(options: SpanOptions = {}, loaderFn: (args: 
           name,
           ...options,
           attributes: {
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react-router.loader',
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.react-router.loader',
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react_router.loader',
+            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.react_router.loader',
             ...options.attributes,
           },
         },

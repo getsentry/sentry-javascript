@@ -6,25 +6,17 @@ import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
 import type { ConsoleLevel } from '../types-hoist/instrument';
 import type { IntegrationFn } from '../types-hoist/integration';
 import { CONSOLE_LEVELS, debug } from '../utils/debug-logger';
-import { isPrimitive } from '../utils/is';
-import { normalize } from '../utils/normalize';
-import { GLOBAL_OBJ } from '../utils/worldwide';
-import { _INTERNAL_captureLog } from './exports';
+import { _INTERNAL_captureLog } from './internal';
+import { createConsoleTemplateAttributes, formatConsoleArgs, hasConsoleSubstitutions } from './utils';
 
 interface CaptureConsoleOptions {
   levels: ConsoleLevel[];
 }
 
-type GlobalObjectWithUtil = typeof GLOBAL_OBJ & {
-  util: {
-    format: (...args: unknown[]) => string;
-  };
-};
-
 const INTEGRATION_NAME = 'ConsoleLogs';
 
 const DEFAULT_ATTRIBUTES = {
-  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.console.logging',
+  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.log.console',
 };
 
 const _consoleLoggingIntegration = ((options: Partial<CaptureConsoleOptions> = {}) => {
@@ -44,9 +36,11 @@ const _consoleLoggingIntegration = ((options: Partial<CaptureConsoleOptions> = {
           return;
         }
 
+        const firstArg = args[0];
+        const followingArgs = args.slice(1);
+
         if (level === 'assert') {
-          if (!args[0]) {
-            const followingArgs = args.slice(1);
+          if (!firstArg) {
             const assertionMessage =
               followingArgs.length > 0
                 ? `Assertion failed: ${formatConsoleArgs(followingArgs, normalizeDepth, normalizeMaxBreadth)}`
@@ -57,11 +51,19 @@ const _consoleLoggingIntegration = ((options: Partial<CaptureConsoleOptions> = {
         }
 
         const isLevelLog = level === 'log';
+
+        const shouldGenerateTemplate =
+          args.length > 1 && typeof args[0] === 'string' && !hasConsoleSubstitutions(args[0]);
+        const attributes = {
+          ...DEFAULT_ATTRIBUTES,
+          ...(shouldGenerateTemplate ? createConsoleTemplateAttributes(firstArg, followingArgs) : {}),
+        };
+
         _INTERNAL_captureLog({
           level: isLevelLog ? 'info' : level,
           message: formatConsoleArgs(args, normalizeDepth, normalizeMaxBreadth),
           severityNumber: isLevelLog ? 10 : undefined,
-          attributes: DEFAULT_ATTRIBUTES,
+          attributes,
         });
       });
     },
@@ -89,17 +91,3 @@ const _consoleLoggingIntegration = ((options: Partial<CaptureConsoleOptions> = {
  * ```
  */
 export const consoleLoggingIntegration = defineIntegration(_consoleLoggingIntegration);
-
-function formatConsoleArgs(values: unknown[], normalizeDepth: number, normalizeMaxBreadth: number): string {
-  return 'util' in GLOBAL_OBJ && typeof (GLOBAL_OBJ as GlobalObjectWithUtil).util.format === 'function'
-    ? (GLOBAL_OBJ as GlobalObjectWithUtil).util.format(...values)
-    : safeJoinConsoleArgs(values, normalizeDepth, normalizeMaxBreadth);
-}
-
-function safeJoinConsoleArgs(values: unknown[], normalizeDepth: number, normalizeMaxBreadth: number): string {
-  return values
-    .map(value =>
-      isPrimitive(value) ? String(value) : JSON.stringify(normalize(value, normalizeDepth, normalizeMaxBreadth)),
-    )
-    .join(' ');
-}

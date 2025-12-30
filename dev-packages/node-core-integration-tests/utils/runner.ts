@@ -7,6 +7,7 @@ import type {
   EventEnvelope,
   SerializedCheckIn,
   SerializedLogContainer,
+  SerializedMetricContainer,
   SerializedSession,
   SessionAggregates,
   TransactionEvent,
@@ -22,6 +23,7 @@ import {
   assertSentryClientReport,
   assertSentryEvent,
   assertSentryLogContainer,
+  assertSentryMetricContainer,
   assertSentrySession,
   assertSentrySessions,
   assertSentryTransaction,
@@ -122,6 +124,7 @@ type ExpectedSessions = Partial<SessionAggregates> | ((event: SessionAggregates)
 type ExpectedCheckIn = Partial<SerializedCheckIn> | ((event: SerializedCheckIn) => void);
 type ExpectedClientReport = Partial<ClientReport> | ((event: ClientReport) => void);
 type ExpectedLogContainer = Partial<SerializedLogContainer> | ((event: SerializedLogContainer) => void);
+type ExpectedMetricContainer = Partial<SerializedMetricContainer> | ((event: SerializedMetricContainer) => void);
 
 type Expected =
   | {
@@ -144,6 +147,9 @@ type Expected =
     }
   | {
       log: ExpectedLogContainer;
+    }
+  | {
+      trace_metric: ExpectedMetricContainer;
     };
 
 type ExpectedEnvelopeHeader =
@@ -403,6 +409,9 @@ export function createRunner(...paths: string[]) {
             } else if ('log' in expected) {
               expectLog(item[1] as SerializedLogContainer, expected.log);
               expectCallbackCalled();
+            } else if ('trace_metric' in expected) {
+              expectMetric(item[1] as SerializedMetricContainer, expected.trace_metric);
+              expectCallbackCalled();
             } else {
               throw new Error(
                 `Unhandled expected envelope item type: ${JSON.stringify(expected)}\nItem: ${JSON.stringify(item)}`,
@@ -427,7 +436,7 @@ export function createRunner(...paths: string[]) {
         ? runDockerCompose(dockerOptions)
         : Promise.resolve(undefined);
 
-      const startup = Promise.all([dockerStartup, serverStartup]) as Promise<[DockerStartup, ServerStartup]>;
+      const startup = Promise.all([dockerStartup, serverStartup]);
 
       startup
         .then(([dockerChild, [mockServerPort, mockServerClose]]) => {
@@ -480,7 +489,7 @@ export function createRunner(...paths: string[]) {
 
           function tryParseEnvelopeFromStdoutLine(line: string): void {
             // Lines can have leading '[something] [{' which we need to remove
-            const cleanedLine = line.replace(/^.*?] \[{"/, '[{"');
+            const cleanedLine = line.replace(/^.*?\] \[\{"/, '[{"');
 
             // See if we have a port message
             if (cleanedLine.startsWith('{"port":')) {
@@ -649,6 +658,14 @@ function expectLog(item: SerializedLogContainer, expected: ExpectedLogContainer)
   }
 }
 
+function expectMetric(item: SerializedMetricContainer, expected: ExpectedMetricContainer): void {
+  if (typeof expected === 'function') {
+    expected(item);
+  } else {
+    assertSentryMetricContainer(item, expected);
+  }
+}
+
 /**
  * Converts ESM import statements to CommonJS require statements
  * @param content The content of an ESM file
@@ -659,6 +676,7 @@ function convertEsmToCjs(content: string): string {
 
   // Handle default imports: import x from 'y' -> const x = require('y')
   newContent = newContent.replace(
+    // eslint-disable-next-line regexp/no-super-linear-backtracking, regexp/optimal-quantifier-concatenation
     /import\s+([\w*{}\s,]+)\s+from\s+['"]([^'"]+)['"]/g,
     (_, imports: string, module: string) => {
       if (imports.includes('* as')) {

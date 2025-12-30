@@ -15,6 +15,7 @@ export {
   anthropicAIIntegration,
   // eslint-disable-next-line deprecation/deprecation
   anrIntegration,
+  googleGenAIIntegration,
   // eslint-disable-next-line deprecation/deprecation
   disableAnrDetectionForCallback,
   captureCheckIn,
@@ -30,6 +31,7 @@ export {
   contextLinesIntegration,
   continueTrace,
   createGetModuleFromFilename,
+  createLangChainCallbackHandler,
   createTransport,
   cron,
   dataloaderIntegration,
@@ -63,7 +65,10 @@ export {
   winterCGHeadersToDict,
   graphqlIntegration,
   hapiIntegration,
+  honoIntegration,
   httpIntegration,
+  httpServerIntegration,
+  httpServerSpansIntegration,
   // eslint-disable-next-line deprecation/deprecation
   inboundFiltersIntegration,
   eventFiltersIntegration,
@@ -89,7 +94,10 @@ export {
   onUncaughtExceptionIntegration,
   onUnhandledRejectionIntegration,
   openAIIntegration,
+  langChainIntegration,
+  langGraphIntegration,
   parameterize,
+  pinoIntegration,
   postgresIntegration,
   postgresJsIntegration,
   prismaIntegration,
@@ -115,6 +123,7 @@ export {
   setupConnectErrorHandler,
   setupExpressErrorHandler,
   setupHapiErrorHandler,
+  setupHonoErrorHandler,
   setupKoaErrorHandler,
   setUser,
   spanToBaggageHeader,
@@ -138,10 +147,12 @@ export {
   withScope,
   supabaseIntegration,
   instrumentSupabaseClient,
+  instrumentOpenAiClient,
   zodErrorsIntegration,
   profiler,
   logger,
   consoleLoggingIntegration,
+  createConsolaReporter,
   wrapMcpServerWithSentry,
   NODE_VERSION,
   featureFlagsIntegration,
@@ -152,6 +163,8 @@ export {
   OpenFeatureIntegrationHook,
   statsigIntegration,
   unleashIntegration,
+  growthbookIntegration,
+  metrics,
 } from '@sentry/node';
 
 export { init } from './server/sdk';

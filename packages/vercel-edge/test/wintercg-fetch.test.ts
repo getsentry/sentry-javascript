@@ -1,6 +1,5 @@
 import type { HandlerDataFetch, Integration } from '@sentry/core';
 import * as sentryCore from '@sentry/core';
-import * as sentryUtils from '@sentry/core';
 import { createStackParser } from '@sentry/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { VercelEdgeClient } from '../src/index';
@@ -8,11 +7,11 @@ import { winterCGFetchIntegration } from '../src/integrations/wintercg-fetch';
 
 class FakeClient extends VercelEdgeClient {
   public getIntegrationByName<T extends Integration = Integration>(name: string): T | undefined {
-    return name === 'WinterCGFetch' ? (winterCGFetchIntegration() as Integration as T) : undefined;
+    return name === 'WinterCGFetch' ? (winterCGFetchIntegration() as T) : undefined;
   }
 }
 
-const addFetchInstrumentationHandlerSpy = vi.spyOn(sentryUtils, 'addFetchInstrumentationHandler');
+const addFetchInstrumentationHandlerSpy = vi.spyOn(sentryCore, 'addFetchInstrumentationHandler');
 const instrumentFetchRequestSpy = vi.spyOn(sentryCore, 'instrumentFetchRequest');
 const addBreadcrumbSpy = vi.spyOn(sentryCore, 'addBreadcrumb');
 

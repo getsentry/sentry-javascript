@@ -14,8 +14,14 @@ import type {
   NextConfigFunction,
   NextConfigObject,
   SentryBuildOptions,
+  TurbopackOptions,
 } from './types';
-import { getNextjsVersion, supportsProductionCompileHook } from './util';
+import {
+  detectActiveBundler,
+  getNextjsVersion,
+  requiresInstrumentationHook,
+  supportsProductionCompileHook,
+} from './util';
 import { constructWebpackConfigFunction } from './webpack';
 
 let showedExportModeTunnelWarning = false;
@@ -92,12 +98,102 @@ function generateRandomTunnelRoute(): string {
   return `/${randomString}`;
 }
 
+/**
+ * Migrates deprecated top-level webpack options to the new `webpack.*` path for backward compatibility.
+ * The new path takes precedence over deprecated options. This mutates the userSentryOptions object.
+ */
+function migrateDeprecatedWebpackOptions(userSentryOptions: SentryBuildOptions): void {
+  // Initialize webpack options if not present
+  userSentryOptions.webpack = userSentryOptions.webpack || {};
+
+  const webpack = userSentryOptions.webpack;
+
+  const withDeprecatedFallback = <T>(
+    newValue: T | undefined,
+    deprecatedValue: T | undefined,
+    message: string,
+  ): T | undefined => {
+    if (deprecatedValue !== undefined) {
+      // eslint-disable-next-line no-console
+      console.warn(message);
+    }
+
+    return newValue ?? deprecatedValue;
+  };
+
+  const deprecatedMessage = (deprecatedPath: string, newPath: string): string =>
+    `[@sentry/nextjs] DEPRECATION WARNING: ${deprecatedPath} is deprecated and will be removed in a future version. Use ${newPath} instead.`;
+
+  /* eslint-disable deprecation/deprecation */
+  // Migrate each deprecated option to the new path, but only if the new path isn't already set
+  webpack.autoInstrumentServerFunctions = withDeprecatedFallback(
+    webpack.autoInstrumentServerFunctions,
+    userSentryOptions.autoInstrumentServerFunctions,
+    deprecatedMessage('autoInstrumentServerFunctions', 'webpack.autoInstrumentServerFunctions'),
+  );
+
+  webpack.autoInstrumentMiddleware = withDeprecatedFallback(
+    webpack.autoInstrumentMiddleware,
+    userSentryOptions.autoInstrumentMiddleware,
+    deprecatedMessage('autoInstrumentMiddleware', 'webpack.autoInstrumentMiddleware'),
+  );
+
+  webpack.autoInstrumentAppDirectory = withDeprecatedFallback(
+    webpack.autoInstrumentAppDirectory,
+    userSentryOptions.autoInstrumentAppDirectory,
+    deprecatedMessage('autoInstrumentAppDirectory', 'webpack.autoInstrumentAppDirectory'),
+  );
+
+  webpack.excludeServerRoutes = withDeprecatedFallback(
+    webpack.excludeServerRoutes,
+    userSentryOptions.excludeServerRoutes,
+    deprecatedMessage('excludeServerRoutes', 'webpack.excludeServerRoutes'),
+  );
+
+  webpack.unstable_sentryWebpackPluginOptions = withDeprecatedFallback(
+    webpack.unstable_sentryWebpackPluginOptions,
+    userSentryOptions.unstable_sentryWebpackPluginOptions,
+    deprecatedMessage('unstable_sentryWebpackPluginOptions', 'webpack.unstable_sentryWebpackPluginOptions'),
+  );
+
+  webpack.disableSentryConfig = withDeprecatedFallback(
+    webpack.disableSentryConfig,
+    userSentryOptions.disableSentryWebpackConfig,
+    deprecatedMessage('disableSentryWebpackConfig', 'webpack.disableSentryConfig'),
+  );
+
+  // Handle treeshake.removeDebugLogging specially since it's nested
+  if (userSentryOptions.disableLogger !== undefined) {
+    webpack.treeshake = webpack.treeshake || {};
+    webpack.treeshake.removeDebugLogging = withDeprecatedFallback(
+      webpack.treeshake.removeDebugLogging,
+      userSentryOptions.disableLogger,
+      deprecatedMessage('disableLogger', 'webpack.treeshake.removeDebugLogging'),
+    );
+  }
+
+  webpack.automaticVercelMonitors = withDeprecatedFallback(
+    webpack.automaticVercelMonitors,
+    userSentryOptions.automaticVercelMonitors,
+    deprecatedMessage('automaticVercelMonitors', 'webpack.automaticVercelMonitors'),
+  );
+
+  webpack.reactComponentAnnotation = withDeprecatedFallback(
+    webpack.reactComponentAnnotation,
+    userSentryOptions.reactComponentAnnotation,
+    deprecatedMessage('reactComponentAnnotation', 'webpack.reactComponentAnnotation'),
+  );
+}
+
 // Modify the materialized object form of the user's next config by deleting the `sentry` property and wrapping the
 // `webpack` property
 function getFinalConfigObject(
   incomingUserNextConfigObject: NextConfigObject,
   userSentryOptions: SentryBuildOptions,
 ): NextConfigObject {
+  // Migrate deprecated webpack options to new webpack path for backward compatibility
+  migrateDeprecatedWebpackOptions(userSentryOptions);
+
   // Only determine a release name if release creation is not explicitly disabled
   // This prevents injection of Git commit hashes that break build determinism
   const shouldCreateRelease = userSentryOptions.release?.create !== false;
@@ -115,11 +211,10 @@ function getFinalConfigObject(
         );
       }
     } else {
-      const resolvedTunnelRoute =
-        userSentryOptions.tunnelRoute === true ? generateRandomTunnelRoute() : userSentryOptions.tunnelRoute;
-
       // Update the global options object to use the resolved value everywhere
+      const resolvedTunnelRoute = resolveTunnelRoute(userSentryOptions.tunnelRoute);
       userSentryOptions.tunnelRoute = resolvedTunnelRoute || undefined;
+
       setUpTunnelRewriteRules(incomingUserNextConfigObject, resolvedTunnelRoute);
     }
   }
@@ -147,7 +242,9 @@ function getFinalConfigObject(
 
   let routeManifest: RouteManifest | undefined;
   if (!userSentryOptions.disableManifestInjection) {
-    routeManifest = createRouteManifest();
+    routeManifest = createRouteManifest({
+      basePath: incomingUserNextConfigObject.basePath,
+    });
   }
 
   setUpBuildTimeVariables(incomingUserNextConfigObject, userSentryOptions, releaseName);
@@ -175,47 +272,18 @@ function getFinalConfigObject(
 
   // From Next.js version (15.0.0-canary.124) onwards, Next.js does no longer require the `experimental.instrumentationHook` option and will
   // print a warning when it is set, so we need to conditionally provide it for lower versions.
-  if (nextJsVersion) {
-    const { major, minor, patch, prerelease } = parseSemver(nextJsVersion);
-    const isFullySupportedRelease =
-      major !== undefined &&
-      minor !== undefined &&
-      patch !== undefined &&
-      major >= 15 &&
-      ((minor === 0 && patch === 0 && prerelease === undefined) || minor > 0 || patch > 0);
-    const isSupportedV15Rc =
-      major !== undefined &&
-      minor !== undefined &&
-      patch !== undefined &&
-      prerelease !== undefined &&
-      major === 15 &&
-      minor === 0 &&
-      patch === 0 &&
-      prerelease.startsWith('rc.') &&
-      parseInt(prerelease.split('.')[1] || '', 10) > 0;
-    const isSupportedCanary =
-      minor !== undefined &&
-      patch !== undefined &&
-      prerelease !== undefined &&
-      major === 15 &&
-      minor === 0 &&
-      patch === 0 &&
-      prerelease.startsWith('canary.') &&
-      parseInt(prerelease.split('.')[1] || '', 10) >= 124;
-
-    if (!isFullySupportedRelease && !isSupportedV15Rc && !isSupportedCanary) {
-      if (incomingUserNextConfigObject.experimental?.instrumentationHook === false) {
-        // eslint-disable-next-line no-console
-        console.warn(
-          '[@sentry/nextjs] You turned off the `experimental.instrumentationHook` option. Note that Sentry will not be initialized if you did not set it up inside `instrumentation.(js|ts)`.',
-        );
-      }
-      incomingUserNextConfigObject.experimental = {
-        instrumentationHook: true,
-        ...incomingUserNextConfigObject.experimental,
-      };
+  if (nextJsVersion && requiresInstrumentationHook(nextJsVersion)) {
+    if (incomingUserNextConfigObject.experimental?.instrumentationHook === false) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        '[@sentry/nextjs] You turned off the `experimental.instrumentationHook` option. Note that Sentry will not be initialized if you did not set it up inside `instrumentation.(js|ts)`.',
+      );
     }
-  } else {
+    incomingUserNextConfigObject.experimental = {
+      instrumentationHook: true,
+      ...incomingUserNextConfigObject.experimental,
+    };
+  } else if (!nextJsVersion) {
     // If we cannot detect a Next.js version for whatever reason, the sensible default is to set the `experimental.instrumentationHook`, even though it may create a warning.
     if (
       incomingUserNextConfigObject.experimental &&
@@ -253,53 +321,63 @@ function getFinalConfigObject(
   }
 
   let nextMajor: number | undefined;
-  const isTurbopack = process.env.TURBOPACK;
-  let isTurbopackSupported = false;
   if (nextJsVersion) {
-    const { major, minor, patch, prerelease } = parseSemver(nextJsVersion);
+    const { major } = parseSemver(nextJsVersion);
     nextMajor = major;
-    const isSupportedVersion =
-      major !== undefined &&
-      minor !== undefined &&
-      patch !== undefined &&
-      (major > 15 ||
-        (major === 15 && minor > 3) ||
-        (major === 15 && minor === 3 && patch === 0 && prerelease === undefined) ||
-        (major === 15 && minor === 3 && patch > 0));
-    isTurbopackSupported = isSupportedVersion;
-    const isSupportedCanary =
-      major !== undefined &&
-      minor !== undefined &&
-      patch !== undefined &&
-      prerelease !== undefined &&
-      major === 15 &&
-      minor === 3 &&
-      patch === 0 &&
-      prerelease.startsWith('canary.') &&
-      parseInt(prerelease.split('.')[1] || '', 10) >= 28;
-    const supportsClientInstrumentation = isSupportedCanary || isSupportedVersion;
-
-    if (!supportsClientInstrumentation && isTurbopack) {
-      if (process.env.NODE_ENV === 'development') {
-        // eslint-disable-next-line no-console
-        console.warn(
-          `[@sentry/nextjs] WARNING: You are using the Sentry SDK with Turbopack (\`next dev --turbo\`). The Sentry SDK is compatible with Turbopack on Next.js version 15.3.0 or later. You are currently on ${nextJsVersion}. Please upgrade to a newer Next.js version to use the Sentry SDK with Turbopack. Note that the SDK will continue to work for non-Turbopack production builds. This warning is only about dev-mode.`,
-        );
-      } else if (process.env.NODE_ENV === 'production') {
-        // eslint-disable-next-line no-console
-        console.warn(
-          `[@sentry/nextjs] WARNING: You are using the Sentry SDK with Turbopack (\`next build --turbo\`). The Sentry SDK is compatible with Turbopack on Next.js version 15.3.0 or later. You are currently on ${nextJsVersion}. Please upgrade to a newer Next.js version to use the Sentry SDK with Turbopack. Note that as Turbopack is still experimental for production builds, some of the Sentry SDK features like source maps will not work. Follow this issue for progress on Sentry + Turbopack: https://github.com/getsentry/sentry-javascript/issues/8105.`,
-        );
-      }
-    }
   }
 
-  if (userSentryOptions?._experimental?.useRunAfterProductionCompileHook === true && supportsProductionCompileHook()) {
+  const activeBundler = detectActiveBundler();
+  const isTurbopack = activeBundler === 'turbopack';
+  const isWebpack = activeBundler === 'webpack';
+  const isTurbopackSupported = supportsProductionCompileHook(nextJsVersion ?? '');
+
+  // Warn if using turbopack with an unsupported Next.js version
+  if (!isTurbopackSupported && isTurbopack) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      `[@sentry/nextjs] WARNING: You are using the Sentry SDK with Turbopack. The Sentry SDK is compatible with Turbopack on Next.js version 15.4.1 or later. You are currently on ${nextJsVersion}. Please upgrade to a newer Next.js version to use the Sentry SDK with Turbopack.`,
+    );
+  }
+
+  // Webpack case - warn if trying to use runAfterProductionCompile hook with unsupported Next.js version
+  if (
+    userSentryOptions.useRunAfterProductionCompileHook &&
+    !supportsProductionCompileHook(nextJsVersion ?? '') &&
+    isWebpack
+  ) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      '[@sentry/nextjs] The configured `useRunAfterProductionCompileHook` option is not compatible with your current Next.js version. This option is only supported on Next.js version 15.4.1 or later. Will not run source map and release management logic.',
+    );
+  }
+
+  let turboPackConfig: TurbopackOptions | undefined;
+
+  if (isTurbopack) {
+    turboPackConfig = constructTurbopackConfig({
+      userNextConfig: incomingUserNextConfigObject,
+      userSentryOptions,
+      routeManifest,
+      nextJsVersion,
+    });
+  }
+
+  // If not explicitly set, turbopack uses the runAfterProductionCompile hook (as there are no alternatives), webpack does not.
+  const shouldUseRunAfterProductionCompileHook =
+    userSentryOptions?.useRunAfterProductionCompileHook ?? (isTurbopack ? true : false);
+
+  if (shouldUseRunAfterProductionCompileHook && supportsProductionCompileHook(nextJsVersion ?? '')) {
     if (incomingUserNextConfigObject?.compiler?.runAfterProductionCompile === undefined) {
       incomingUserNextConfigObject.compiler ??= {};
+
       incomingUserNextConfigObject.compiler.runAfterProductionCompile = async ({ distDir }) => {
         await handleRunAfterProductionCompile(
-          { releaseName, distDir, buildTool: isTurbopack ? 'turbopack' : 'webpack' },
+          {
+            releaseName,
+            distDir,
+            buildTool: isTurbopack ? 'turbopack' : 'webpack',
+            usesNativeDebugIds: isTurbopack ? turboPackConfig?.debugIds : undefined,
+          },
           userSentryOptions,
         );
       };
@@ -311,7 +389,12 @@ function getFinalConfigObject(
             const { distDir }: { distDir: string } = argArray[0] ?? { distDir: '.next' };
             await target.apply(thisArg, argArray);
             await handleRunAfterProductionCompile(
-              { releaseName, distDir, buildTool: isTurbopack ? 'turbopack' : 'webpack' },
+              {
+                releaseName,
+                distDir,
+                buildTool: isTurbopack ? 'turbopack' : 'webpack',
+                usesNativeDebugIds: isTurbopack ? turboPackConfig?.debugIds : undefined,
+              },
               userSentryOptions,
             );
           },
@@ -329,16 +412,21 @@ function getFinalConfigObject(
   if (isTurbopackSupported && isTurbopack && !userSentryOptions.sourcemaps?.disable) {
     // Only set if not already configured by user
     if (incomingUserNextConfigObject.productionBrowserSourceMaps === undefined) {
-      // eslint-disable-next-line no-console
-      console.log('[@sentry/nextjs] Automatically enabling browser source map generation for turbopack build.');
+      if (userSentryOptions.debug) {
+        // eslint-disable-next-line no-console
+        console.log('[@sentry/nextjs] Automatically enabling browser source map generation for turbopack build.');
+      }
       incomingUserNextConfigObject.productionBrowserSourceMaps = true;
 
       // Enable source map deletion if not explicitly disabled
       if (userSentryOptions.sourcemaps?.deleteSourcemapsAfterUpload === undefined) {
-        // eslint-disable-next-line no-console
-        console.warn(
-          '[@sentry/nextjs] Source maps will be automatically deleted after being uploaded to Sentry. If you want to keep the source maps, set the `sourcemaps.deleteSourcemapsAfterUpload` option to false in `withSentryConfig()`. If you do not want to generate and upload sourcemaps at all, set the `sourcemaps.disable` option to true.',
-        );
+        if (userSentryOptions.debug) {
+          // eslint-disable-next-line no-console
+          console.warn(
+            '[@sentry/nextjs] Source maps will be automatically deleted after being uploaded to Sentry. If you want to keep the source maps, set the `sourcemaps.deleteSourcemapsAfterUpload` option to false in `withSentryConfig()`. If you do not want to generate and upload sourcemaps at all, set the `sourcemaps.disable` option to true.',
+          );
+        }
+
         userSentryOptions.sourcemaps = {
           ...userSentryOptions.sourcemaps,
           deleteSourcemapsAfterUpload: true,
@@ -365,23 +453,21 @@ function getFinalConfigObject(
             ],
           },
         }),
-    webpack:
-      isTurbopack || userSentryOptions.disableSentryWebpackConfig
-        ? incomingUserNextConfigObject.webpack // just return the original webpack config
-        : constructWebpackConfigFunction(
-            incomingUserNextConfigObject,
+    ...(isWebpack && !userSentryOptions.webpack?.disableSentryConfig
+      ? {
+          webpack: constructWebpackConfigFunction({
+            userNextConfig: incomingUserNextConfigObject,
             userSentryOptions,
             releaseName,
             routeManifest,
             nextJsVersion,
-          ),
+            useRunAfterProductionCompileHook: shouldUseRunAfterProductionCompileHook,
+          }),
+        }
+      : {}),
     ...(isTurbopackSupported && isTurbopack
       ? {
-          turbopack: constructTurbopackConfig({
-            userNextConfig: incomingUserNextConfigObject,
-            routeManifest,
-            nextJsVersion,
-          }),
+          turbopack: turboPackConfig,
         }
       : {}),
   };
@@ -395,6 +481,13 @@ function getFinalConfigObject(
  */
 function setUpTunnelRewriteRules(userNextConfig: NextConfigObject, tunnelPath: string): void {
   const originalRewrites = userNextConfig.rewrites;
+  // Allow overriding the tunnel destination for E2E tests via environment variable
+  const destinationOverride = process.env._SENTRY_TUNNEL_DESTINATION_OVERRIDE;
+
+  // Make sure destinations are statically defined at build time
+  const destination = destinationOverride || 'https://o:orgid.ingest.sentry.io/api/:projectid/envelope/?hsts=0';
+  const destinationWithRegion =
+    destinationOverride || 'https://o:orgid.ingest.:region.sentry.io/api/:projectid/envelope/?hsts=0';
 
   // This function doesn't take any arguments at the time of writing but we future-proof
   // here in case Next.js ever decides to pass some
@@ -415,7 +508,7 @@ function setUpTunnelRewriteRules(userNextConfig: NextConfigObject, tunnelPath: s
           value: '(?<projectid>\\d*)',
         },
       ],
-      destination: 'https://o:orgid.ingest.sentry.io/api/:projectid/envelope/?hsts=0',
+      destination,
     };
 
     const tunnelRouteRewriteWithRegion = {
@@ -439,7 +532,7 @@ function setUpTunnelRewriteRules(userNextConfig: NextConfigObject, tunnelPath: s
           value: '(?<region>[a-z]{2})',
         },
       ],
-      destination: 'https://o:orgid.ingest.:region.sentry.io/api/:projectid/envelope/?hsts=0',
+      destination: destinationWithRegion,
     };
 
     // Order of these is important, they get applied first to last.
@@ -552,4 +645,27 @@ function getInstrumentationClientFileContents(): string | void {
       // noop
     }
   }
+}
+
+/**
+ * Resolves the tunnel route based on the user's configuration and the environment.
+ * @param tunnelRoute - The user-provided tunnel route option
+ */
+function resolveTunnelRoute(tunnelRoute: string | true): string {
+  if (process.env.__SENTRY_TUNNEL_ROUTE__) {
+    // Reuse cached value from previous build (server/client)
+    return process.env.__SENTRY_TUNNEL_ROUTE__;
+  }
+
+  const resolvedTunnelRoute = typeof tunnelRoute === 'string' ? tunnelRoute : generateRandomTunnelRoute();
+
+  // Cache for subsequent builds (only during build time)
+  // Turbopack runs the config twice, so we need a shared context to avoid generating a new tunnel route for each build.
+  // env works well here
+  // https://linear.app/getsentry/issue/JS-549/adblock-plus-blocking-requests-to-sentry-and-monitoring-tunnel
+  if (resolvedTunnelRoute) {
+    process.env.__SENTRY_TUNNEL_ROUTE__ = resolvedTunnelRoute;
+  }
+
+  return resolvedTunnelRoute;
 }

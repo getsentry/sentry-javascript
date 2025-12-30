@@ -1,5 +1,5 @@
 import { context, propagation, ProxyTracerProvider, trace } from '@opentelemetry/api';
-import { type SpanProcessor, BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
+import { BasicTracerProvider, type SpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { getClient, getCurrentScope, getGlobalScope, getIsolationScope } from '@sentry/core';
 import { SentrySpanProcessor } from '@sentry/opentelemetry';
 import type { NodeClient } from '../../src';
@@ -61,7 +61,7 @@ export function getSpanProcessor(): SentrySpanProcessor | undefined {
 
   const spanProcessor = multiSpanProcessor?.['_spanProcessors']?.find(
     (spanProcessor: SpanProcessor) => spanProcessor instanceof SentrySpanProcessor,
-  ) as SentrySpanProcessor | undefined;
+  );
 
   return spanProcessor;
 }

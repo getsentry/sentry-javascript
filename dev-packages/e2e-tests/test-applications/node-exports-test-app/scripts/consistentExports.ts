@@ -53,6 +53,7 @@ const DEPENDENTS: Dependent[] = [
       'NODE_VERSION',
       'childProcessIntegration',
       'systemErrorIntegration',
+      'pinoIntegration',
     ],
   },
   {

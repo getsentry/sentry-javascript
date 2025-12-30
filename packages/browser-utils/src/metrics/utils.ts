@@ -218,6 +218,7 @@ export function listenForWebVitalReportEvents(
     collected = true;
   }
 
+  // eslint-disable-next-line deprecation/deprecation
   onHidden(() => {
     _runCollectorCallbackOnce('pagehide');
   });
@@ -226,21 +227,13 @@ export function listenForWebVitalReportEvents(
     // we only want to collect LCP if we actually navigate. Redirects should be ignored.
     if (!options?.isRedirect) {
       _runCollectorCallbackOnce('navigation');
-      safeUnsubscribe(unsubscribeStartNavigation, unsubscribeAfterStartPageLoadSpan);
+      unsubscribeStartNavigation();
+      unsubscribeAfterStartPageLoadSpan();
     }
   });
 
   const unsubscribeAfterStartPageLoadSpan = client.on('afterStartPageLoadSpan', span => {
     pageloadSpanId = span.spanContext().spanId;
-    safeUnsubscribe(unsubscribeAfterStartPageLoadSpan);
+    unsubscribeAfterStartPageLoadSpan();
   });
-}
-
-/**
- * Invoke a list of unsubscribers in a safe way, by deferring the invocation to the next tick.
- * This is necessary because unsubscribing in sync can lead to other callbacks no longer being invoked
- * due to in-place array mutation of the subscribers array on the client.
- */
-function safeUnsubscribe(...unsubscribers: (() => void | undefined)[]): void {
-  unsubscribers.forEach(u => u && setTimeout(u, 0));
 }

@@ -385,7 +385,7 @@ describe('ErrorBoundary', () => {
 
       expect(mockCaptureException).toHaveBeenCalledTimes(1);
       expect(mockCaptureException).toHaveBeenLastCalledWith(expect.any(Error), {
-        mechanism: { handled: true },
+        mechanism: { handled: true, type: 'auto.function.react.error_boundary' },
       });
 
       expect(scopeSetContextSpy).toHaveBeenCalledTimes(1);
@@ -444,7 +444,7 @@ describe('ErrorBoundary', () => {
 
       expect(mockCaptureException).toHaveBeenCalledTimes(1);
       expect(mockCaptureException).toHaveBeenLastCalledWith('bam', {
-        mechanism: { handled: true },
+        mechanism: { handled: true, type: 'auto.function.react.error_boundary' },
       });
 
       expect(scopeSetContextSpy).toHaveBeenCalledTimes(1);
@@ -483,7 +483,7 @@ describe('ErrorBoundary', () => {
 
       expect(mockCaptureException).toHaveBeenCalledTimes(1);
       expect(mockCaptureException).toHaveBeenLastCalledWith(expect.any(Error), {
-        mechanism: { handled: true },
+        mechanism: { handled: true, type: 'auto.function.react.error_boundary' },
       });
 
       expect(scopeSetContextSpy).toHaveBeenCalledTimes(1);
@@ -527,7 +527,7 @@ describe('ErrorBoundary', () => {
 
       expect(mockCaptureException).toHaveBeenCalledTimes(1);
       expect(mockCaptureException).toHaveBeenLastCalledWith(expect.any(Error), {
-        mechanism: { handled: true },
+        mechanism: { handled: true, type: 'auto.function.react.error_boundary' },
       });
 
       expect(scopeSetContextSpy).toHaveBeenCalledTimes(1);
@@ -695,7 +695,7 @@ describe('ErrorBoundary', () => {
 
         expect(mockCaptureException).toHaveBeenCalledTimes(1);
         expect(mockCaptureException).toHaveBeenLastCalledWith(expect.any(Object), {
-          mechanism: { handled: expected },
+          mechanism: { handled: expected, type: 'auto.function.react.error_boundary' },
         });
 
         expect(scopeSetContextSpy).toHaveBeenCalledTimes(1);

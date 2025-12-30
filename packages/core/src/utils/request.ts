@@ -128,8 +128,28 @@ function getAbsoluteUrl({
   return undefined;
 }
 
-// "-user" because otherwise it would match "user-agent"
-const SENSITIVE_HEADER_SNIPPETS = ['auth', 'token', 'secret', 'cookie', '-user', 'password', 'key'];
+const SENSITIVE_HEADER_SNIPPETS = [
+  'auth',
+  'token',
+  'secret',
+  'session', // for the user_session cookie
+  'password',
+  'passwd',
+  'pwd',
+  'key',
+  'jwt',
+  'bearer',
+  'sso',
+  'saml',
+  'csrf',
+  'xsrf',
+  'credentials',
+  // Always treat cookie headers as sensitive in case individual key-value cookie pairs cannot properly be extracted
+  'set-cookie',
+  'cookie',
+];
+
+const PII_HEADER_SNIPPETS = ['x-forwarded-', '-user'];
 
 /**
  * Converts incoming HTTP request headers to OpenTelemetry span attributes following semantic conventions.
@@ -146,20 +166,33 @@ export function httpHeadersToSpanAttributes(
 
   try {
     Object.entries(headers).forEach(([key, value]) => {
-      if (value !== undefined) {
-        const lowerCasedKey = key.toLowerCase();
+      if (value == null) {
+        return;
+      }
 
-        if (!sendDefaultPii && SENSITIVE_HEADER_SNIPPETS.some(snippet => lowerCasedKey.includes(snippet))) {
-          return;
+      const lowerCasedHeaderKey = key.toLowerCase();
+      const isCookieHeader = lowerCasedHeaderKey === 'cookie' || lowerCasedHeaderKey === 'set-cookie';
+
+      if (isCookieHeader && typeof value === 'string' && value !== '') {
+        // Set-Cookie: single cookie with attributes ("name=value; HttpOnly; Secure")
+        // Cookie: multiple cookies separated by "; " ("cookie1=value1; cookie2=value2")
+        const isSetCookie = lowerCasedHeaderKey === 'set-cookie';
+        const semicolonIndex = value.indexOf(';');
+        const cookieString = isSetCookie && semicolonIndex !== -1 ? value.substring(0, semicolonIndex) : value;
+        const cookies = isSetCookie ? [cookieString] : cookieString.split('; ');
+
+        for (const cookie of cookies) {
+          // Split only at the first '=' to preserve '=' characters in cookie values
+          const equalSignIndex = cookie.indexOf('=');
+          const cookieKey = equalSignIndex !== -1 ? cookie.substring(0, equalSignIndex) : cookie;
+          const cookieValue = equalSignIndex !== -1 ? cookie.substring(equalSignIndex + 1) : '';
+
+          const lowerCasedCookieKey = cookieKey.toLowerCase();
+
+          addSpanAttribute(spanAttributes, lowerCasedHeaderKey, lowerCasedCookieKey, cookieValue, sendDefaultPii);
         }
-
-        const normalizedKey = `http.request.header.${lowerCasedKey.replace(/-/g, '_')}`;
-
-        if (Array.isArray(value)) {
-          spanAttributes[normalizedKey] = value.map(v => (v !== null && v !== undefined ? String(v) : v)).join(';');
-        } else if (typeof value === 'string') {
-          spanAttributes[normalizedKey] = value;
-        }
+      } else {
+        addSpanAttribute(spanAttributes, lowerCasedHeaderKey, '', value, sendDefaultPii);
       }
     });
   } catch {
@@ -167,6 +200,47 @@ export function httpHeadersToSpanAttributes(
   }
 
   return spanAttributes;
+}
+
+function normalizeAttributeKey(key: string): string {
+  return key.replace(/-/g, '_');
+}
+
+function addSpanAttribute(
+  spanAttributes: Record<string, string>,
+  headerKey: string,
+  cookieKey: string,
+  value: string | string[] | undefined,
+  sendPii: boolean,
+): void {
+  const normalizedKey = cookieKey
+    ? `http.request.header.${normalizeAttributeKey(headerKey)}.${normalizeAttributeKey(cookieKey)}`
+    : `http.request.header.${normalizeAttributeKey(headerKey)}`;
+
+  const headerValue = handleHttpHeader(cookieKey || headerKey, value, sendPii);
+  if (headerValue !== undefined) {
+    spanAttributes[normalizedKey] = headerValue;
+  }
+}
+
+function handleHttpHeader(
+  lowerCasedKey: string,
+  value: string | string[] | undefined,
+  sendPii: boolean,
+): string | undefined {
+  const isSensitive = sendPii
+    ? SENSITIVE_HEADER_SNIPPETS.some(snippet => lowerCasedKey.includes(snippet))
+    : [...PII_HEADER_SNIPPETS, ...SENSITIVE_HEADER_SNIPPETS].some(snippet => lowerCasedKey.includes(snippet));
+
+  if (isSensitive) {
+    return '[Filtered]';
+  } else if (Array.isArray(value)) {
+    return value.map(v => (v != null ? String(v) : v)).join(';');
+  } else if (typeof value === 'string') {
+    return value;
+  }
+
+  return undefined;
 }
 
 /** Extract the query params from an URL. */

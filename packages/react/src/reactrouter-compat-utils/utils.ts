@@ -1,9 +1,56 @@
-import type { TransactionSource } from '@sentry/core';
+import type { Span, TransactionSource } from '@sentry/core';
+import { debug, getActiveSpan, getRootSpan, spanToJSON } from '@sentry/core';
+import { DEBUG_BUILD } from '../debug-build';
 import type { Location, MatchRoutes, RouteMatch, RouteObject } from '../types';
 
 // Global variables that these utilities depend on
 let _matchRoutes: MatchRoutes;
 let _stripBasename: boolean = false;
+
+// Navigation context stack for nested/concurrent patchRoutesOnNavigation calls.
+// Required because window.location hasn't updated yet when handlers are invoked.
+interface NavigationContext {
+  token: object;
+  targetPath: string | undefined;
+  span: Span | undefined;
+}
+
+const _navigationContextStack: NavigationContext[] = [];
+const MAX_CONTEXT_STACK_SIZE = 10;
+
+/**
+ * Pushes a navigation context and returns a unique token for cleanup.
+ * The token uses object identity for uniqueness (no counter needed).
+ */
+export function setNavigationContext(targetPath: string | undefined, span: Span | undefined): object {
+  const token = {};
+  // Prevent unbounded stack growth - oldest (likely stale) contexts are evicted first
+  if (_navigationContextStack.length >= MAX_CONTEXT_STACK_SIZE) {
+    DEBUG_BUILD && debug.warn('[React Router] Navigation context stack overflow - removing oldest context');
+    _navigationContextStack.shift();
+  }
+  _navigationContextStack.push({ token, targetPath, span });
+  return token;
+}
+
+/**
+ * Clears the navigation context if it's on top of the stack (LIFO).
+ * If our context is not on top (out-of-order completion), we leave it -
+ * it will be cleaned up by overflow protection when the stack fills up.
+ */
+export function clearNavigationContext(token: object): void {
+  const top = _navigationContextStack[_navigationContextStack.length - 1];
+  if (top?.token === token) {
+    _navigationContextStack.pop();
+  }
+}
+
+/** Gets the current (most recent) navigation context if inside a patchRoutesOnNavigation call. */
+export function getNavigationContext(): NavigationContext | null {
+  const length = _navigationContextStack.length;
+  // The `?? null` converts undefined (from array access) to null to match return type
+  return length > 0 ? (_navigationContextStack[length - 1] ?? null) : null;
+}
 
 /**
  * Initialize function to set dependencies that the router utilities need.
@@ -38,6 +85,11 @@ export function pathEndsWithWildcard(path: string): boolean {
   return path.endsWith('*');
 }
 
+/** Checks if transaction name has wildcard (/* or ends with *). */
+export function transactionNameHasWildcard(name: string): boolean {
+  return name.includes('/*') || name.endsWith('*');
+}
+
 /**
  * Checks if a path is a wildcard and has child routes.
  */
@@ -45,21 +97,27 @@ export function pathIsWildcardAndHasChildren(path: string, branch: RouteMatch<st
   return (pathEndsWithWildcard(path) && !!branch.route.children?.length) || false;
 }
 
-function routeIsDescendant(route: RouteObject): boolean {
+/** Check if route is in descendant route (<Routes> within <Routes>) */
+export function routeIsDescendant(route: RouteObject): boolean {
   return !!(!route.children && route.element && route.path?.endsWith('/*'));
 }
 
 function sendIndexPath(pathBuilder: string, pathname: string, basename: string): [string, TransactionSource] {
-  const reconstructedPath = pathBuilder || _stripBasename ? stripBasenameFromPathname(pathname, basename) : pathname;
+  const reconstructedPath =
+    pathBuilder && pathBuilder.length > 0
+      ? pathBuilder
+      : _stripBasename
+        ? stripBasenameFromPathname(pathname, basename)
+        : pathname;
 
-  const formattedPath =
-    // If the path ends with a slash, remove it
-    reconstructedPath[reconstructedPath.length - 1] === '/'
-      ? reconstructedPath.slice(0, -1)
-      : // If the path ends with a wildcard, remove it
-        reconstructedPath.slice(-2) === '/*'
-        ? reconstructedPath.slice(0, -1)
-        : reconstructedPath;
+  let formattedPath =
+    // If the path ends with a wildcard suffix, remove both the slash and the asterisk
+    reconstructedPath.slice(-2) === '/*' ? reconstructedPath.slice(0, -2) : reconstructedPath;
+
+  // If the path ends with a slash, remove it (but keep single '/')
+  if (formattedPath.length > 1 && formattedPath[formattedPath.length - 1] === '/') {
+    formattedPath = formattedPath.slice(0, -1);
+  }
 
   return [formattedPath, 'route'];
 }
@@ -166,6 +224,13 @@ export function locationIsInsideDescendantRoute(location: Location, routes: Rout
 }
 
 /**
+ * Returns a fallback transaction name from location pathname.
+ */
+function getFallbackTransactionName(location: Location, basename: string): string {
+  return _stripBasename ? stripBasenameFromPathname(location.pathname, basename) : location.pathname || '';
+}
+
+/**
  * Gets a normalized route name and transaction source from the current routes and location.
  */
 export function getNormalizedName(
@@ -178,53 +243,55 @@ export function getNormalizedName(
     return [_stripBasename ? stripBasenameFromPathname(location.pathname, basename) : location.pathname, 'url'];
   }
 
-  let pathBuilder = '';
-
-  if (branches) {
-    for (const branch of branches) {
-      const route = branch.route;
-      if (route) {
-        // Early return if index route
-        if (route.index) {
-          return sendIndexPath(pathBuilder, branch.pathname, basename);
-        }
-        const path = route.path;
-
-        // If path is not a wildcard and has no child routes, append the path
-        if (path && !pathIsWildcardAndHasChildren(path, branch)) {
-          const newPath = path[0] === '/' || pathBuilder[pathBuilder.length - 1] === '/' ? path : `/${path}`;
-          pathBuilder = trimSlash(pathBuilder) + prefixWithSlash(newPath);
-
-          // If the path matches the current location, return the path
-          if (trimSlash(location.pathname) === trimSlash(basename + branch.pathname)) {
-            if (
-              // If the route defined on the element is something like
-              // <Route path="/stores/:storeId/products/:productId" element={<div>Product</div>} />
-              // We should check against the branch.pathname for the number of / separators
-              getNumberOfUrlSegments(pathBuilder) !== getNumberOfUrlSegments(branch.pathname) &&
-              // We should not count wildcard operators in the url segments calculation
-              !pathEndsWithWildcard(pathBuilder)
-            ) {
-              return [(_stripBasename ? '' : basename) + newPath, 'route'];
-            }
-
-            // if the last character of the pathbuilder is a wildcard and there are children, remove the wildcard
-            if (pathIsWildcardAndHasChildren(pathBuilder, branch)) {
-              pathBuilder = pathBuilder.slice(0, -1);
-            }
-
-            return [(_stripBasename ? '' : basename) + pathBuilder, 'route'];
-          }
-        }
-      }
-    }
+  if (!branches) {
+    return [getFallbackTransactionName(location, basename), 'url'];
   }
 
-  const fallbackTransactionName = _stripBasename
-    ? stripBasenameFromPathname(location.pathname, basename)
-    : location.pathname || '';
+  let pathBuilder = '';
 
-  return [fallbackTransactionName, 'url'];
+  for (const branch of branches) {
+    const route = branch.route;
+    if (!route) {
+      continue;
+    }
+
+    // Early return for index routes
+    if (route.index) {
+      return sendIndexPath(pathBuilder, branch.pathname, basename);
+    }
+
+    const path = route.path;
+    if (!path || pathIsWildcardAndHasChildren(path, branch)) {
+      continue;
+    }
+
+    // Build the route path
+    const newPath = path[0] === '/' || pathBuilder[pathBuilder.length - 1] === '/' ? path : `/${path}`;
+    pathBuilder = trimSlash(pathBuilder) + prefixWithSlash(newPath);
+
+    // Check if this path matches the current location
+    if (trimSlash(location.pathname) !== trimSlash(basename + branch.pathname)) {
+      continue;
+    }
+
+    // Check if this is a parameterized route like /stores/:storeId/products/:productId
+    if (
+      getNumberOfUrlSegments(pathBuilder) !== getNumberOfUrlSegments(branch.pathname) &&
+      !pathEndsWithWildcard(pathBuilder)
+    ) {
+      return [(_stripBasename ? '' : basename) + newPath, 'route'];
+    }
+
+    // Handle wildcard routes with children - strip trailing wildcard
+    if (pathIsWildcardAndHasChildren(pathBuilder, branch)) {
+      pathBuilder = pathBuilder.slice(0, -1);
+    }
+
+    return [(_stripBasename ? '' : basename) + pathBuilder, 'route'];
+  }
+
+  // Fallback when no matching route found
+  return [getFallbackTransactionName(location, basename), 'url'];
 }
 
 /**
@@ -252,4 +319,21 @@ export function resolveRouteNameAndSource(
   }
 
   return [name || location.pathname, source];
+}
+
+/**
+ * Gets the active root span if it's a pageload or navigation span.
+ */
+export function getActiveRootSpan(): Span | undefined {
+  const span = getActiveSpan();
+  const rootSpan = span ? getRootSpan(span) : undefined;
+
+  if (!rootSpan) {
+    return undefined;
+  }
+
+  const op = spanToJSON(rootSpan).op;
+
+  // Only use this root span if it is a pageload or navigation span
+  return op === 'navigation' || op === 'pageload' ? rootSpan : undefined;
 }

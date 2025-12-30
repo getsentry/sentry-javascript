@@ -16,6 +16,7 @@ export type {
   Stacktrace,
   Thread,
   User,
+  Metric,
 } from '@sentry/core';
 
 export type { VercelEdgeOptions } from './types';
@@ -70,6 +71,9 @@ export {
   // eslint-disable-next-line deprecation/deprecation
   inboundFiltersIntegration,
   instrumentOpenAiClient,
+  instrumentLangGraph,
+  instrumentGoogleGenAIClient,
+  instrumentAnthropicAiClient,
   eventFiltersIntegration,
   linkedErrorsIntegration,
   requestDataIntegration,
@@ -92,7 +96,11 @@ export {
   spanToBaggageHeader,
   wrapMcpServerWithSentry,
   consoleLoggingIntegration,
+  createConsolaReporter,
+  createLangChainCallbackHandler,
   featureFlagsIntegration,
+  logger,
+  metrics,
 } from '@sentry/core';
 
 export { VercelEdgeClient } from './client';
@@ -100,5 +108,3 @@ export { getDefaultIntegrations, init } from './sdk';
 
 export { winterCGFetchIntegration } from './integrations/wintercg-fetch';
 export { vercelAIIntegration } from './integrations/tracing/vercelai';
-
-export * as logger from './logs/exports';

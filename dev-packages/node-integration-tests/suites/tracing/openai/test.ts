@@ -6,7 +6,7 @@ describe('OpenAI integration', () => {
     cleanupChildProcesses();
   });
 
-  const EXPECTED_TRANSACTION_DEFAULT_PII_FALSE = {
+  const EXPECTED_TRANSACTION_DEFAULT_PII_FALSE_CHAT = {
     transaction: 'main',
     spans: expect.arrayContaining([
       // First span - basic chat completion without PII
@@ -72,7 +72,7 @@ describe('OpenAI integration', () => {
         description: 'chat error-model',
         op: 'gen_ai.chat',
         origin: 'auto.ai.openai',
-        status: 'unknown_error',
+        status: 'internal_error',
       }),
       // Fourth span - chat completions streaming
       expect.objectContaining({
@@ -147,7 +147,7 @@ describe('OpenAI integration', () => {
     ]),
   };
 
-  const EXPECTED_TRANSACTION_DEFAULT_PII_TRUE = {
+  const EXPECTED_TRANSACTION_DEFAULT_PII_TRUE_CHAT = {
     transaction: 'main',
     spans: expect.arrayContaining([
       // First span - basic chat completion with PII
@@ -187,7 +187,7 @@ describe('OpenAI integration', () => {
           'sentry.origin': 'auto.ai.openai',
           'gen_ai.system': 'openai',
           'gen_ai.request.model': 'gpt-3.5-turbo',
-          'gen_ai.request.messages': '"Translate this to French: Hello"',
+          'gen_ai.request.messages': 'Translate this to French: Hello',
           'gen_ai.response.text': 'Response to: Translate this to French: Hello',
           'gen_ai.response.finish_reasons': '["completed"]',
           'gen_ai.response.model': 'gpt-3.5-turbo',
@@ -219,7 +219,7 @@ describe('OpenAI integration', () => {
         description: 'chat error-model',
         op: 'gen_ai.chat',
         origin: 'auto.ai.openai',
-        status: 'unknown_error',
+        status: 'internal_error',
       }),
       // Fourth span - chat completions streaming with PII
       expect.objectContaining({
@@ -261,7 +261,7 @@ describe('OpenAI integration', () => {
           'gen_ai.system': 'openai',
           'gen_ai.request.model': 'gpt-4',
           'gen_ai.request.stream': true,
-          'gen_ai.request.messages': '"Test streaming responses API"',
+          'gen_ai.request.messages': 'Test streaming responses API',
           'gen_ai.response.text': 'Streaming response to: Test streaming responses APITest streaming responses API',
           'gen_ai.response.finish_reasons': '["in_progress","completed"]',
           'gen_ai.response.id': 'resp_stream_456',
@@ -321,27 +321,27 @@ describe('OpenAI integration', () => {
     ]),
   };
 
-  createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
+  createEsmAndCjsTests(__dirname, 'scenario-chat.mjs', 'instrument.mjs', (createRunner, test) => {
     test('creates openai related spans with sendDefaultPii: false', async () => {
       await createRunner()
         .ignore('event')
-        .expect({ transaction: EXPECTED_TRANSACTION_DEFAULT_PII_FALSE })
+        .expect({ transaction: EXPECTED_TRANSACTION_DEFAULT_PII_FALSE_CHAT })
         .start()
         .completed();
     });
   });
 
-  createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
+  createEsmAndCjsTests(__dirname, 'scenario-chat.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
     test('creates openai related spans with sendDefaultPii: true', async () => {
       await createRunner()
         .ignore('event')
-        .expect({ transaction: EXPECTED_TRANSACTION_DEFAULT_PII_TRUE })
+        .expect({ transaction: EXPECTED_TRANSACTION_DEFAULT_PII_TRUE_CHAT })
         .start()
         .completed();
     });
   });
 
-  createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-with-options.mjs', (createRunner, test) => {
+  createEsmAndCjsTests(__dirname, 'scenario-chat.mjs', 'instrument-with-options.mjs', (createRunner, test) => {
     test('creates openai related spans with custom options', async () => {
       await createRunner()
         .ignore('event')
@@ -351,7 +351,110 @@ describe('OpenAI integration', () => {
     });
   });
 
-  createEsmAndCjsTests(__dirname, 'scenario-root-span.mjs', 'instrument.mjs', (createRunner, test) => {
+  const EXPECTED_TRANSACTION_DEFAULT_PII_FALSE_EMBEDDINGS = {
+    transaction: 'main',
+    spans: expect.arrayContaining([
+      // First span - embeddings API
+      expect.objectContaining({
+        data: {
+          'gen_ai.operation.name': 'embeddings',
+          'sentry.op': 'gen_ai.embeddings',
+          'sentry.origin': 'auto.ai.openai',
+          'gen_ai.system': 'openai',
+          'gen_ai.request.model': 'text-embedding-3-small',
+          'gen_ai.request.encoding_format': 'float',
+          'gen_ai.request.dimensions': 1536,
+          'gen_ai.response.model': 'text-embedding-3-small',
+          'gen_ai.usage.input_tokens': 10,
+          'gen_ai.usage.total_tokens': 10,
+          'openai.response.model': 'text-embedding-3-small',
+          'openai.usage.prompt_tokens': 10,
+        },
+        description: 'embeddings text-embedding-3-small',
+        op: 'gen_ai.embeddings',
+        origin: 'auto.ai.openai',
+        status: 'ok',
+      }),
+      // Second span - embeddings API error model
+      expect.objectContaining({
+        data: {
+          'gen_ai.operation.name': 'embeddings',
+          'sentry.op': 'gen_ai.embeddings',
+          'sentry.origin': 'auto.ai.openai',
+          'gen_ai.system': 'openai',
+          'gen_ai.request.model': 'error-model',
+        },
+        description: 'embeddings error-model',
+        op: 'gen_ai.embeddings',
+        origin: 'auto.ai.openai',
+        status: 'internal_error',
+      }),
+    ]),
+  };
+
+  const EXPECTED_TRANSACTION_DEFAULT_PII_TRUE_EMBEDDINGS = {
+    transaction: 'main',
+    spans: expect.arrayContaining([
+      // First span - embeddings API with PII
+      expect.objectContaining({
+        data: {
+          'gen_ai.operation.name': 'embeddings',
+          'sentry.op': 'gen_ai.embeddings',
+          'sentry.origin': 'auto.ai.openai',
+          'gen_ai.system': 'openai',
+          'gen_ai.request.model': 'text-embedding-3-small',
+          'gen_ai.request.encoding_format': 'float',
+          'gen_ai.request.dimensions': 1536,
+          'gen_ai.request.messages': 'Embedding test!',
+          'gen_ai.response.model': 'text-embedding-3-small',
+          'gen_ai.usage.input_tokens': 10,
+          'gen_ai.usage.total_tokens': 10,
+          'openai.response.model': 'text-embedding-3-small',
+          'openai.usage.prompt_tokens': 10,
+        },
+        description: 'embeddings text-embedding-3-small',
+        op: 'gen_ai.embeddings',
+        origin: 'auto.ai.openai',
+        status: 'ok',
+      }),
+      // Second span - embeddings API error model with PII
+      expect.objectContaining({
+        data: {
+          'gen_ai.operation.name': 'embeddings',
+          'sentry.op': 'gen_ai.embeddings',
+          'sentry.origin': 'auto.ai.openai',
+          'gen_ai.system': 'openai',
+          'gen_ai.request.model': 'error-model',
+          'gen_ai.request.messages': 'Error embedding test!',
+        },
+        description: 'embeddings error-model',
+        op: 'gen_ai.embeddings',
+        origin: 'auto.ai.openai',
+        status: 'internal_error',
+      }),
+    ]),
+  };
+  createEsmAndCjsTests(__dirname, 'scenario-embeddings.mjs', 'instrument.mjs', (createRunner, test) => {
+    test('creates openai related spans with sendDefaultPii: false', async () => {
+      await createRunner()
+        .ignore('event')
+        .expect({ transaction: EXPECTED_TRANSACTION_DEFAULT_PII_FALSE_EMBEDDINGS })
+        .start()
+        .completed();
+    });
+  });
+
+  createEsmAndCjsTests(__dirname, 'scenario-embeddings.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
+    test('creates openai related spans with sendDefaultPii: true', async () => {
+      await createRunner()
+        .ignore('event')
+        .expect({ transaction: EXPECTED_TRANSACTION_DEFAULT_PII_TRUE_EMBEDDINGS })
+        .start()
+        .completed();
+    });
+  });
+
+  createEsmAndCjsTests(__dirname, 'scenario-root-span.mjs', 'instrument-root-span.mjs', (createRunner, test) => {
     test('it works without a wrapping span', async () => {
       await createRunner()
         // First the span that our mock express server is emitting, unrelated to this test
@@ -397,4 +500,149 @@ describe('OpenAI integration', () => {
         .completed();
     });
   });
+
+  createEsmAndCjsTests(__dirname, 'scenario-azure-openai.mjs', 'instrument.mjs', (createRunner, test) => {
+    test('it works with Azure OpenAI', async () => {
+      await createRunner()
+        // First the span that our mock express server is emitting, unrelated to this test
+        .expect({
+          transaction: {
+            transaction: 'POST /azureopenai/deployments/:model/chat/completions',
+          },
+        })
+        .expect({
+          transaction: {
+            transaction: 'chat gpt-3.5-turbo',
+            contexts: {
+              trace: {
+                span_id: expect.any(String),
+                trace_id: expect.any(String),
+                data: {
+                  'gen_ai.operation.name': 'chat',
+                  'sentry.op': 'gen_ai.chat',
+                  'sentry.origin': 'auto.ai.openai',
+                  'gen_ai.system': 'openai',
+                  'gen_ai.request.model': 'gpt-3.5-turbo',
+                  'gen_ai.request.temperature': 0.7,
+                  'gen_ai.response.model': 'gpt-3.5-turbo',
+                  'gen_ai.response.id': 'chatcmpl-mock123',
+                  'gen_ai.response.finish_reasons': '["stop"]',
+                  'gen_ai.usage.input_tokens': 10,
+                  'gen_ai.usage.output_tokens': 15,
+                  'gen_ai.usage.total_tokens': 25,
+                  'openai.response.id': 'chatcmpl-mock123',
+                  'openai.response.model': 'gpt-3.5-turbo',
+                  'openai.response.timestamp': '2023-03-01T06:31:28.000Z',
+                  'openai.usage.completion_tokens': 15,
+                  'openai.usage.prompt_tokens': 10,
+                },
+                op: 'gen_ai.chat',
+                origin: 'auto.ai.openai',
+                status: 'ok',
+              },
+            },
+          },
+        })
+        .start()
+        .completed();
+    });
+  });
+
+  createEsmAndCjsTests(
+    __dirname,
+    'truncation/scenario-message-truncation-completions.mjs',
+    'instrument-with-pii.mjs',
+    (createRunner, test) => {
+      test('truncates messages when they exceed byte limit - keeps only last message and crops it', async () => {
+        await createRunner()
+          .ignore('event')
+          .expect({
+            transaction: {
+              transaction: 'main',
+              spans: expect.arrayContaining([
+                expect.objectContaining({
+                  data: expect.objectContaining({
+                    'gen_ai.operation.name': 'chat',
+                    'sentry.op': 'gen_ai.chat',
+                    'sentry.origin': 'auto.ai.openai',
+                    'gen_ai.system': 'openai',
+                    'gen_ai.request.model': 'gpt-3.5-turbo',
+                    // Messages should be present (truncation happened) and should be a JSON array of a single index
+                    'gen_ai.request.messages': expect.stringMatching(/^\[\{"role":"user","content":"C+"\}\]$/),
+                  }),
+                  description: 'chat gpt-3.5-turbo',
+                  op: 'gen_ai.chat',
+                  origin: 'auto.ai.openai',
+                  status: 'ok',
+                }),
+              ]),
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+  );
+
+  createEsmAndCjsTests(
+    __dirname,
+    'truncation/scenario-message-truncation-responses.mjs',
+    'instrument-with-pii.mjs',
+    (createRunner, test) => {
+      test('truncates string inputs when they exceed byte limit', async () => {
+        await createRunner()
+          .ignore('event')
+          .expect({
+            transaction: {
+              transaction: 'main',
+              spans: expect.arrayContaining([
+                expect.objectContaining({
+                  data: expect.objectContaining({
+                    'gen_ai.operation.name': 'responses',
+                    'sentry.op': 'gen_ai.responses',
+                    'sentry.origin': 'auto.ai.openai',
+                    'gen_ai.system': 'openai',
+                    'gen_ai.request.model': 'gpt-3.5-turbo',
+                    // Messages should be present and should include truncated string input (contains only As)
+                    'gen_ai.request.messages': expect.stringMatching(/^A+$/),
+                  }),
+                  description: 'responses gpt-3.5-turbo',
+                  op: 'gen_ai.responses',
+                  origin: 'auto.ai.openai',
+                  status: 'ok',
+                }),
+              ]),
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+  );
+
+  createEsmAndCjsTests(
+    __dirname,
+    'truncation/scenario-message-truncation-embeddings.mjs',
+    'instrument-with-pii.mjs',
+    (createRunner, test) => {
+      test('truncates messages when they exceed byte limit - keeps only last message and crops it', async () => {
+        await createRunner()
+          .ignore('event')
+          .expect({
+            transaction: {
+              transaction: 'main',
+              spans: expect.arrayContaining([
+                expect.objectContaining({
+                  data: expect.objectContaining({
+                    'gen_ai.operation.name': 'embeddings',
+                  }),
+                }),
+              ]),
+            },
+          })
+          .start()
+          .completed();
+      });
+    },
+  );
 });

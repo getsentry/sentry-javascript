@@ -24,7 +24,6 @@ import type {
 } from '../types-hoist/span';
 import type { SpanStatus } from '../types-hoist/spanStatus';
 import type { TimedEvent } from '../types-hoist/timedEvent';
-import type { TransactionSource } from '../types-hoist/transaction';
 import { debug } from '../utils/debug-logger';
 import { generateSpanId, generateTraceId } from '../utils/propagationContext';
 import {
@@ -347,7 +346,7 @@ export class SentrySpan implements Span {
 
     const spans = finishedSpans.map(span => spanToJSON(span)).filter(isFullFinishedSpan);
 
-    const source = this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] as TransactionSource | undefined;
+    const source = this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
 
     // remove internal root span attributes we don't need to send.
     /* eslint-disable @typescript-eslint/no-dynamic-delete */

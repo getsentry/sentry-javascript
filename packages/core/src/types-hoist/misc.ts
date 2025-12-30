@@ -4,6 +4,8 @@ import type { QueryParams } from './request';
  * Data extracted from an incoming request to a node server
  */
 export interface ExtractedNodeRequestData {
+  // TODO: fix in v11, convert any to unknown
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: any;
 
   /** Specific headers from the request */

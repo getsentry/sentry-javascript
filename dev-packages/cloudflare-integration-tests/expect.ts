@@ -2,11 +2,11 @@ import type { Contexts, Envelope, Event, SdkInfo } from '@sentry/core';
 import { SDK_VERSION } from '@sentry/core';
 import { expect } from 'vitest';
 
-export const UUID_MATCHER = expect.stringMatching(/^[0-9a-f]{32}$/);
+export const UUID_MATCHER = expect.stringMatching(/^[\da-f]{32}$/);
 export const UUID_V4_MATCHER = expect.stringMatching(
-  /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+  /^[\da-f]{8}-[\da-f]{4}-4[\da-f]{3}-[89ab][\da-f]{3}-[\da-f]{12}$/,
 );
-export const SHORT_UUID_MATCHER = expect.stringMatching(/^[0-9a-f]{16}$/);
+export const SHORT_UUID_MATCHER = expect.stringMatching(/^[\da-f]{16}$/);
 export const ISO_DATE_MATCHER = expect.stringMatching(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
 
 function dropUndefinedKeys<T extends Record<string, unknown>>(obj: T): T {
@@ -58,7 +58,7 @@ export function expectedEvent(event: Event): Event {
   });
 }
 
-export function eventEnvelope(event: Event): Envelope {
+export function eventEnvelope(event: Event, includeSampleRand = false): Envelope {
   return [
     {
       event_id: UUID_MATCHER,
@@ -69,6 +69,7 @@ export function eventEnvelope(event: Event): Envelope {
         public_key: 'public',
         trace_id: UUID_MATCHER,
         sample_rate: expect.any(String),
+        ...(includeSampleRand && { sample_rand: expect.stringMatching(/^[01](\.\d+)?$/) }),
         sampled: expect.any(String),
         transaction: expect.any(String),
       },

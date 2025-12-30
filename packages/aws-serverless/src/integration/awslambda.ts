@@ -24,12 +24,12 @@ export const instrumentAwsLambda = generateInstrumentOnce(
       ...options,
       eventContextExtractor,
       requestHook(span) {
-        span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, 'auto.otel.aws-lambda');
+        span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, 'auto.otel.aws_lambda');
         span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'function.aws.lambda');
       },
       responseHook(_span, { err }) {
         if (err) {
-          captureException(err, scope => markEventUnhandled(scope, 'auto.function.aws-serverless.otel'));
+          captureException(err, scope => markEventUnhandled(scope, 'auto.function.aws_serverless.otel'));
         }
       },
     };

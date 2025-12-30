@@ -52,7 +52,12 @@ describe('logger', () => {
       const err = new Error('An error');
       debug.exception(err, 'a message');
       if (captureExceptions) {
-        expect(mockCaptureException).toHaveBeenCalledWith(err);
+        expect(mockCaptureException).toHaveBeenCalledWith(err, {
+          mechanism: {
+            handled: true,
+            type: 'auto.function.replay.debug',
+          },
+        });
       }
       expect(mockLogError).toHaveBeenCalledWith('[Replay] ', 'a message');
       expect(mockLogError).toHaveBeenLastCalledWith('[Replay] ', err);
@@ -75,7 +80,12 @@ describe('logger', () => {
       const err = new Error('An error');
       debug.exception(err);
       if (captureExceptions) {
-        expect(mockCaptureException).toHaveBeenCalledWith(err);
+        expect(mockCaptureException).toHaveBeenCalledWith(err, {
+          mechanism: {
+            handled: true,
+            type: 'auto.function.replay.debug',
+          },
+        });
         expect(mockAddBreadcrumb).not.toHaveBeenCalled();
       }
       expect(mockLogError).toHaveBeenCalledTimes(1);

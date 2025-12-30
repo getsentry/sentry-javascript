@@ -21,10 +21,6 @@ const navigationEvent: NavigationEvent = {
   url: new URL('http://example.org/users/123'),
 };
 
-const captureExceptionEventHint = {
-  mechanism: { handled: false, type: 'sveltekit' },
-};
-
 const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(_ => {});
 
 describe('handleError (client)', () => {
@@ -42,7 +38,9 @@ describe('handleError (client)', () => {
 
       expect(returnVal).not.toBeDefined();
       expect(mockCaptureException).toHaveBeenCalledTimes(1);
-      expect(mockCaptureException).toHaveBeenCalledWith(mockError, captureExceptionEventHint);
+      expect(mockCaptureException).toHaveBeenCalledWith(mockError, {
+        mechanism: { handled: false, type: 'auto.function.sveltekit.handle_error' },
+      });
       // The default handler logs the error to the console
       expect(consoleErrorSpy).toHaveBeenCalledTimes(1);
     });
@@ -56,7 +54,7 @@ describe('handleError (client)', () => {
       expect(returnVal.message).toEqual('Whoops!');
       expect(mockCaptureException).toHaveBeenCalledTimes(1);
       expect(mockCaptureException).toHaveBeenCalledWith(mockError, {
-        mechanism: { handled: true, type: 'sveltekit' },
+        mechanism: { handled: true, type: 'auto.function.sveltekit.handle_error' },
       });
 
       // Check that the default handler wasn't invoked

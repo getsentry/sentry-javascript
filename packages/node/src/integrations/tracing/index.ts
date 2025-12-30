@@ -7,10 +7,14 @@ import { expressIntegration, instrumentExpress } from './express';
 import { fastifyIntegration, instrumentFastify, instrumentFastifyV3 } from './fastify';
 import { firebaseIntegration, instrumentFirebase } from './firebase';
 import { genericPoolIntegration, instrumentGenericPool } from './genericPool';
+import { googleGenAIIntegration, instrumentGoogleGenAI } from './google-genai';
 import { graphqlIntegration, instrumentGraphql } from './graphql';
 import { hapiIntegration, instrumentHapi } from './hapi';
+import { honoIntegration, instrumentHono } from './hono';
 import { instrumentKafka, kafkaIntegration } from './kafka';
 import { instrumentKoa, koaIntegration } from './koa';
+import { instrumentLangChain, langChainIntegration } from './langchain';
+import { instrumentLangGraph, langGraphIntegration } from './langgraph';
 import { instrumentLruMemoizer, lruMemoizerIntegration } from './lrumemoizer';
 import { instrumentMongo, mongoIntegration } from './mongo';
 import { instrumentMongoose, mongooseIntegration } from './mongoose';
@@ -32,6 +36,7 @@ export function getAutoPerformanceIntegrations(): Integration[] {
     expressIntegration(),
     fastifyIntegration(),
     graphqlIntegration(),
+    honoIntegration(),
     mongoIntegration(),
     mongooseIntegration(),
     mysqlIntegration(),
@@ -47,11 +52,16 @@ export function getAutoPerformanceIntegrations(): Integration[] {
     kafkaIntegration(),
     amqplibIntegration(),
     lruMemoizerIntegration(),
+    // AI providers
+    // LangChain must come first to disable AI provider integrations before they instrument
+    langChainIntegration(),
+    langGraphIntegration(),
     vercelAIIntegration(),
     openAIIntegration(),
+    anthropicAIIntegration(),
+    googleGenAIIntegration(),
     postgresJsIntegration(),
     firebaseIntegration(),
-    anthropicAIIntegration(),
   ];
 }
 
@@ -68,6 +78,7 @@ export function getOpenTelemetryInstrumentationToPreload(): (((options?: any) =>
     instrumentFastify,
     instrumentFastifyV3,
     instrumentHapi,
+    instrumentHono,
     instrumentKafka,
     instrumentKoa,
     instrumentLruMemoizer,
@@ -82,10 +93,13 @@ export function getOpenTelemetryInstrumentationToPreload(): (((options?: any) =>
     instrumentTedious,
     instrumentGenericPool,
     instrumentAmqplib,
+    instrumentLangChain,
     instrumentVercelAi,
     instrumentOpenAi,
     instrumentPostgresJs,
     instrumentFirebase,
     instrumentAnthropicAi,
+    instrumentGoogleGenAI,
+    instrumentLangGraph,
   ];
 }

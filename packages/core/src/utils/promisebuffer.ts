@@ -1,9 +1,9 @@
-import { rejectedSyncPromise, resolvedSyncPromise, SyncPromise } from './syncpromise';
+import { rejectedSyncPromise, resolvedSyncPromise } from './syncpromise';
 
 export interface PromiseBuffer<T> {
   // exposes the internal array so tests can assert on the state of it.
   // XXX: this really should not be public api.
-  $: Array<PromiseLike<T>>;
+  $: PromiseLike<T>[];
   add(taskProducer: () => PromiseLike<T>): PromiseLike<T>;
   drain(timeout?: number): PromiseLike<boolean>;
 }
@@ -14,11 +14,11 @@ export const SENTRY_BUFFER_FULL_ERROR = Symbol.for('SentryBufferFullError');
  * Creates an new PromiseBuffer object with the specified limit
  * @param limit max number of promises that can be stored in the buffer
  */
-export function makePromiseBuffer<T>(limit?: number): PromiseBuffer<T> {
-  const buffer: Array<PromiseLike<T>> = [];
+export function makePromiseBuffer<T>(limit: number = 100): PromiseBuffer<T> {
+  const buffer: Set<PromiseLike<T>> = new Set();
 
   function isReady(): boolean {
-    return limit === undefined || buffer.length < limit;
+    return buffer.size < limit;
   }
 
   /**
@@ -27,8 +27,8 @@ export function makePromiseBuffer<T>(limit?: number): PromiseBuffer<T> {
    * @param task Can be any PromiseLike<T>
    * @returns Removed promise.
    */
-  function remove(task: PromiseLike<T>): PromiseLike<T | void> {
-    return buffer.splice(buffer.indexOf(task), 1)[0] || Promise.resolve(undefined);
+  function remove(task: PromiseLike<T>): void {
+    buffer.delete(task);
   }
 
   /**
@@ -48,19 +48,11 @@ export function makePromiseBuffer<T>(limit?: number): PromiseBuffer<T> {
 
     // start the task and add its promise to the queue
     const task = taskProducer();
-    if (buffer.indexOf(task) === -1) {
-      buffer.push(task);
-    }
-    void task
-      .then(() => remove(task))
-      // Use `then(null, rejectionHandler)` rather than `catch(rejectionHandler)` so that we can use `PromiseLike`
-      // rather than `Promise`. `PromiseLike` doesn't have a `.catch` method, making its polyfill smaller. (ES5 didn't
-      // have promises, so TS has to polyfill when down-compiling.)
-      .then(null, () =>
-        remove(task).then(null, () => {
-          // We have to add another catch here because `remove()` starts a new promise chain.
-        }),
-      );
+    buffer.add(task);
+    void task.then(
+      () => remove(task),
+      () => remove(task),
+    );
     return task;
   }
 
@@ -74,34 +66,28 @@ export function makePromiseBuffer<T>(limit?: number): PromiseBuffer<T> {
    * `false` otherwise
    */
   function drain(timeout?: number): PromiseLike<boolean> {
-    return new SyncPromise<boolean>((resolve, reject) => {
-      let counter = buffer.length;
+    if (!buffer.size) {
+      return resolvedSyncPromise(true);
+    }
 
-      if (!counter) {
-        return resolve(true);
-      }
+    // We want to resolve even if one of the promises rejects
+    const drainPromise = Promise.allSettled(Array.from(buffer)).then(() => true);
 
-      // wait for `timeout` ms and then resolve to `false` (if not cancelled first)
-      const capturedSetTimeout = setTimeout(() => {
-        if (timeout && timeout > 0) {
-          resolve(false);
-        }
-      }, timeout);
+    if (!timeout) {
+      return drainPromise;
+    }
 
-      // if all promises resolve in time, cancel the timer and resolve to `true`
-      buffer.forEach(item => {
-        void resolvedSyncPromise(item).then(() => {
-          if (!--counter) {
-            clearTimeout(capturedSetTimeout);
-            resolve(true);
-          }
-        }, reject);
-      });
-    });
+    const promises = [drainPromise, new Promise<boolean>(resolve => setTimeout(() => resolve(false), timeout))];
+
+    // Promise.race will resolve to the first promise that resolves or rejects
+    // So if the drainPromise resolves, the timeout promise will be ignored
+    return Promise.race(promises);
   }
 
   return {
-    $: buffer,
+    get $(): PromiseLike<T>[] {
+      return Array.from(buffer);
+    },
     add,
     drain,
   };

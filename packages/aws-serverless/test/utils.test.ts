@@ -3,8 +3,7 @@ import { eventContextExtractor, getAwsTraceData } from '../src/utils';
 
 const mockExtractContext = vi.fn();
 vi.mock('@opentelemetry/api', async () => {
-  // eslint-disable-next-line @typescript-eslint/consistent-type-imports
-  const actualApi = (await vi.importActual('@opentelemetry/api')) as typeof import('@opentelemetry/api');
+  const actualApi = await vi.importActual('@opentelemetry/api');
   return {
     ...actualApi,
     propagation: {

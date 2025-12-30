@@ -57,14 +57,14 @@ function aggregateExceptionsFromError(
   // Recursively call this function in order to walk down a chain of errors
   if (isInstanceOf(error[key], Error)) {
     applyExceptionGroupFieldsForParentException(exception, exceptionId);
-    const newException = exceptionFromErrorImplementation(parser, error[key]);
+    const newException = exceptionFromErrorImplementation(parser, error[key] as Error);
     const newExceptionId = newExceptions.length;
     applyExceptionGroupFieldsForChildException(newException, key, newExceptionId, exceptionId);
     newExceptions = aggregateExceptionsFromError(
       exceptionFromErrorImplementation,
       parser,
       limit,
-      error[key],
+      error[key] as ExtendedError,
       key,
       [newException, ...newExceptions],
       newException,
@@ -78,14 +78,14 @@ function aggregateExceptionsFromError(
     error.errors.forEach((childError, i) => {
       if (isInstanceOf(childError, Error)) {
         applyExceptionGroupFieldsForParentException(exception, exceptionId);
-        const newException = exceptionFromErrorImplementation(parser, childError);
+        const newException = exceptionFromErrorImplementation(parser, childError as Error);
         const newExceptionId = newExceptions.length;
         applyExceptionGroupFieldsForChildException(newException, `errors[${i}]`, newExceptionId, exceptionId);
         newExceptions = aggregateExceptionsFromError(
           exceptionFromErrorImplementation,
           parser,
           limit,
-          childError,
+          childError as ExtendedError,
           key,
           [newException, ...newExceptions],
           newException,
@@ -99,10 +99,9 @@ function aggregateExceptionsFromError(
 }
 
 function applyExceptionGroupFieldsForParentException(exception: Exception, exceptionId: number): void {
-  // Don't know if this default makes sense. The protocol requires us to set these values so we pick *some* default.
-  exception.mechanism = exception.mechanism || { type: 'generic', handled: true };
-
   exception.mechanism = {
+    handled: true,
+    type: 'auto.core.linked_errors',
     ...exception.mechanism,
     ...(exception.type === 'AggregateError' && { is_exception_group: true }),
     exception_id: exceptionId,
@@ -115,10 +114,8 @@ function applyExceptionGroupFieldsForChildException(
   exceptionId: number,
   parentId: number | undefined,
 ): void {
-  // Don't know if this default makes sense. The protocol requires us to set these values so we pick *some* default.
-  exception.mechanism = exception.mechanism || { type: 'generic', handled: true };
-
   exception.mechanism = {
+    handled: true,
     ...exception.mechanism,
     type: 'chained',
     source,

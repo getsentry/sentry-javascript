@@ -1,6 +1,5 @@
 import commonjs from '@rollup/plugin-commonjs';
 import { stringMatchesSomePattern } from '@sentry/core';
-import * as chalk from 'chalk';
 import * as fs from 'fs';
 import * as path from 'path';
 import type { RollupBuild, RollupError } from 'rollup';
@@ -165,9 +164,7 @@ export default function wrappingLoader(
       if (!showedMissingAsyncStorageModuleWarning) {
         // eslint-disable-next-line no-console
         console.warn(
-          `${chalk.yellow('warn')}  - The Sentry SDK could not access the ${chalk.bold.cyan(
-            'RequestAsyncStorage',
-          )} module. Certain features may not work. There is nothing you can do to fix this yourself, but future SDK updates may resolve this.\n`,
+          "[@sentry/nextjs] The Sentry SDK could not access the 'RequestAsyncStorage' module. Certain features may not work. There is nothing you can do to fix this yourself, but future SDK updates may resolve this.",
         );
         showedMissingAsyncStorageModuleWarning = true;
       }

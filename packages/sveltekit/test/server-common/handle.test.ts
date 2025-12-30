@@ -186,7 +186,7 @@ describe('sentryHandle', () => {
           resolve: async _ => {
             // simulating a nested load call:
             await sentryHandle()({
-              event: mockEvent({ route: { id: 'api/users/details/[id]', isSubRequest: true } }),
+              event: mockEvent({ route: { id: 'api/users/details/[id]' }, isSubRequest: true }),
               resolve: resolve(type, isError),
             });
             return mockResponse;
@@ -317,7 +317,7 @@ describe('sentryHandle', () => {
       } catch (e) {
         expect(mockCaptureException).toBeCalledTimes(1);
         expect(mockCaptureException).toBeCalledWith(expect.any(Error), {
-          mechanism: { handled: false, type: 'sveltekit', data: { function: 'handle' } },
+          mechanism: { handled: false, type: 'auto.function.sveltekit.handle' },
         });
       }
     });

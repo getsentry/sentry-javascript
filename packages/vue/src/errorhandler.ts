@@ -4,7 +4,7 @@ import { formatComponentName, generateComponentTrace } from './vendor/components
 
 type UnknownFunc = (...args: unknown[]) => void;
 
-export const attachErrorHandler = (app: Vue, options: VueOptions): void => {
+export const attachErrorHandler = (app: Vue, options?: Partial<VueOptions>): void => {
   const { errorHandler: originalErrorHandler } = app.config;
 
   app.config.errorHandler = (error: Error, vm: ViewModel, lifecycleHook: string): void => {
@@ -16,7 +16,8 @@ export const attachErrorHandler = (app: Vue, options: VueOptions): void => {
       trace,
     };
 
-    if (options.attachProps && vm) {
+    // TODO(v11): guard via sendDefaultPii?
+    if (options?.attachProps !== false && vm) {
       // Vue2 - $options.propsData
       // Vue3 - $props
       if (vm.$options?.propsData) {
@@ -30,7 +31,7 @@ export const attachErrorHandler = (app: Vue, options: VueOptions): void => {
     setTimeout(() => {
       captureException(error, {
         captureContext: { contexts: { vue: metadata } },
-        mechanism: { handled: !!originalErrorHandler, type: 'vue' },
+        mechanism: { handled: !!originalErrorHandler, type: 'auto.function.vue.error_handler' },
       });
     });
 

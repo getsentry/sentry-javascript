@@ -16,7 +16,6 @@ import {
   ATTR_SERVER_PORT,
 } from '@opentelemetry/semantic-conventions';
 import type { SpanAttributes } from '@sentry/core';
-import type { unwrap as shimmerUnwrap, wrap as shimmerWrap } from 'shimmer';
 import type { FirebaseInstrumentation } from '../firebaseInstrumentation';
 import type {
   AddDocType,
@@ -37,6 +36,13 @@ import type {
   WithFieldValue,
 } from '../types';
 
+// Inline minimal types used from `shimmer` to avoid importing shimmer's types directly.
+// We only need the shape for `wrap` and `unwrap` used in this file.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type ShimmerWrap = (target: any, name: string, wrapper: (...args: any[]) => any) => void;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type ShimmerUnwrap = (target: any, name: string) => void;
+
 /**
  *
  * @param tracer - Opentelemetry Tracer
@@ -47,11 +53,10 @@ import type {
 export function patchFirestore(
   tracer: Tracer,
   firestoreSupportedVersions: string[],
-  wrap: typeof shimmerWrap,
-  unwrap: typeof shimmerUnwrap,
+  wrap: ShimmerWrap,
+  unwrap: ShimmerUnwrap,
   config: FirebaseInstrumentationConfig,
 ): InstrumentationNodeModuleDefinition {
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
   const defaultFirestoreSpanCreationHook: FirestoreSpanCreationHook = () => {};
 
   let firestoreSpanCreationHook: FirestoreSpanCreationHook = defaultFirestoreSpanCreationHook;
@@ -102,8 +107,8 @@ export function patchFirestore(
 function wrapMethods(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   moduleExports: any,
-  wrap: typeof shimmerWrap,
-  unwrap: typeof shimmerUnwrap,
+  wrap: ShimmerWrap,
+  unwrap: ShimmerUnwrap,
   tracer: Tracer,
   firestoreSpanCreationHook: FirestoreSpanCreationHook,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -121,13 +126,12 @@ function wrapMethods(
 function unwrapMethods(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   moduleExports: any,
-  unwrap: typeof shimmerUnwrap,
+  unwrap: ShimmerUnwrap,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): any {
   for (const method of ['addDoc', 'getDocs', 'setDoc', 'deleteDoc']) {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     if (isWrapped(moduleExports[method])) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       unwrap(moduleExports, method);
     }
   }

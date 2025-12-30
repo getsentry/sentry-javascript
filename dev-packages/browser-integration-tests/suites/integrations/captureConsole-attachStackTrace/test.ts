@@ -37,7 +37,7 @@ sentryTest(
     expect(logEvent?.exception?.values![0]).toMatchObject({
       mechanism: {
         handled: true,
-        type: 'console',
+        type: 'auto.core.capture_console',
         synthetic: true,
       },
       value: 'console log',
@@ -59,7 +59,7 @@ sentryTest(
     expect(warnEvent?.exception?.values![0]).toMatchObject({
       mechanism: {
         handled: true,
-        type: 'console',
+        type: 'auto.core.capture_console',
         synthetic: true,
       },
       value: 'console warn',
@@ -81,7 +81,7 @@ sentryTest(
     expect(infoEvent?.exception?.values![0]).toMatchObject({
       mechanism: {
         handled: true,
-        type: 'console',
+        type: 'auto.core.capture_console',
         synthetic: true,
       },
       value: 'console info',
@@ -103,7 +103,7 @@ sentryTest(
     expect(errorEvent?.exception?.values![0]).toMatchObject({
       mechanism: {
         handled: true,
-        type: 'console',
+        type: 'auto.core.capture_console',
         synthetic: true,
       },
       value: 'console error',
@@ -125,7 +125,7 @@ sentryTest(
     expect(traceEvent?.exception?.values![0]).toMatchObject({
       mechanism: {
         handled: true,
-        type: 'console',
+        type: 'auto.core.capture_console',
         synthetic: true,
       },
       value: 'console trace',
@@ -153,7 +153,7 @@ sentryTest(
     expect(errorWithErrorEvent?.exception?.values?.[0].value).toBe('console error with error object');
     expect(errorWithErrorEvent?.exception?.values?.[0].mechanism).toEqual({
       handled: true,
-      type: 'console',
+      type: 'auto.core.capture_console',
     });
     expect(traceWithErrorEvent).toEqual(
       expect.objectContaining({

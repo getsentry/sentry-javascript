@@ -5,5 +5,9 @@ export default {
   test: {
     ...baseConfig.test,
     environment: 'jsdom',
+    typecheck: {
+      enabled: true,
+      tsconfig: './tsconfig.test.json',
+    },
   },
 };

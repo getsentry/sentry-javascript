@@ -1,7 +1,7 @@
 import { expect, it } from 'vitest';
 import { createRunner } from '../../../runner';
 
-it('traces a durable object method', async () => {
+it('traces a durable object method', async ({ signal }) => {
   const runner = createRunner(__dirname)
     .expect(envelope => {
       const transactionEvent = envelope[1]?.[0]?.[1];
@@ -12,16 +12,16 @@ it('traces a durable object method', async () => {
               op: 'rpc',
               data: expect.objectContaining({
                 'sentry.op': 'rpc',
-                'sentry.origin': 'auto.faas.cloudflare_durableobjects',
+                'sentry.origin': 'auto.faas.cloudflare.durable_object',
               }),
-              origin: 'auto.faas.cloudflare_durableobjects',
+              origin: 'auto.faas.cloudflare.durable_object',
             }),
           }),
           transaction: 'sayHello',
         }),
       );
     })
-    .start();
+    .start(signal);
   await runner.makeRequest('get', '/hello');
   await runner.completed();
 });

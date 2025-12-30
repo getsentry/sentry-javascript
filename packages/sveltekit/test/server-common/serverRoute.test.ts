@@ -1,6 +1,6 @@
 import * as SentryCore from '@sentry/core';
-import type { NumericRange } from '@sveltejs/kit';
-import { type RequestEvent, error, redirect } from '@sveltejs/kit';
+import type { NumericRange, type RequestEvent } from '@sveltejs/kit';
+import { error, redirect } from '@sveltejs/kit';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -31,7 +31,7 @@ describe('wrapServerRouteWithSentry', () => {
     it('assigns the route id as name if available', () => {
       const wrappedRouteHandler = wrapServerRouteWithSentry(originalRouteHandler);
 
-      wrappedRouteHandler(getRequestEventMock() as RequestEvent);
+      wrappedRouteHandler(getRequestEventMock());
 
       expect(startSpanSpy).toHaveBeenCalledWith(
         {
@@ -81,11 +81,11 @@ describe('wrapServerRouteWithSentry', () => {
       });
 
       await expect(async () => {
-        await wrappedRouteHandler(getRequestEventMock() as RequestEvent);
+        await wrappedRouteHandler(getRequestEventMock());
       }).rejects.toThrowError('Server Route Error');
 
       expect(captureExceptionSpy).toHaveBeenCalledWith(error, {
-        mechanism: { type: 'sveltekit', handled: false, data: { function: 'serverRoute' } },
+        mechanism: { type: 'auto.function.sveltekit.server_route', handled: false },
       });
     });
 
@@ -95,13 +95,16 @@ describe('wrapServerRouteWithSentry', () => {
       });
 
       await expect(async () => {
-        await wrappedRouteHandler(getRequestEventMock() as RequestEvent);
+        await wrappedRouteHandler(getRequestEventMock());
       }).rejects.toThrow();
 
       expect(captureExceptionSpy).toHaveBeenCalledWith(
         { body: { message: `error(${status}) error` }, status },
         {
-          mechanism: { type: 'sveltekit', handled: false, data: { function: 'serverRoute' } },
+          mechanism: {
+            type: 'auto.function.sveltekit.server_route',
+            handled: false,
+          },
         },
       );
     });
@@ -112,7 +115,7 @@ describe('wrapServerRouteWithSentry', () => {
       });
 
       await expect(async () => {
-        await wrappedRouteHandler(getRequestEventMock() as RequestEvent);
+        await wrappedRouteHandler(getRequestEventMock());
       }).rejects.toThrow();
 
       expect(captureExceptionSpy).not.toHaveBeenCalled();
@@ -124,7 +127,7 @@ describe('wrapServerRouteWithSentry', () => {
       });
 
       await expect(async () => {
-        await wrappedRouteHandler(getRequestEventMock() as RequestEvent);
+        await wrappedRouteHandler(getRequestEventMock());
       }).rejects.toThrow();
 
       expect(captureExceptionSpy).not.toHaveBeenCalled();

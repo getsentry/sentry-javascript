@@ -1,12 +1,12 @@
 import { expect, test } from '@playwright/test';
-import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
+import { waitForTransaction } from '@sentry-internal/test-utils';
+import { isDevMode } from './isDevMode';
 
 const packageJson = require('../package.json');
 
 test('Sends a pageload transaction', async ({ page }) => {
   const nextjsVersion = packageJson.dependencies.next;
   const nextjsMajor = Number(nextjsVersion.split('.')[0]);
-  const isDevMode = process.env.TEST_ENV === 'development';
 
   const pageloadTransactionEventPromise = waitForTransaction('nextjs-pages-dir', transactionEvent => {
     return transactionEvent?.contexts?.trace?.op === 'pageload' && transactionEvent?.transaction === '/';
@@ -33,6 +33,7 @@ test('Sends a pageload transaction', async ({ page }) => {
           trace_id: expect.stringMatching(/[a-f0-9]{32}/),
           op: 'pageload',
           origin: 'auto.pageload.nextjs.pages_router_instrumentation',
+          status: 'ok',
           data: expect.objectContaining({
             'sentry.op': 'pageload',
             'sentry.origin': 'auto.pageload.nextjs.pages_router_instrumentation',

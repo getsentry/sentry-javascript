@@ -6,6 +6,7 @@ import type { Span } from '../types-hoist/span';
 import type { StartSpanOptions } from '../types-hoist/startSpanOptions';
 import { debug } from '../utils/debug-logger';
 import { hasSpansEnabled } from '../utils/hasSpansEnabled';
+import { shouldIgnoreSpan } from '../utils/should-ignore-span';
 import { _setSpanForScope } from '../utils/spanOnScope';
 import {
   getActiveSpan,
@@ -18,7 +19,7 @@ import { timestampInSeconds } from '../utils/time';
 import { freezeDscOnSpan, getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 import { SentryNonRecordingSpan } from './sentryNonRecordingSpan';
 import { SentrySpan } from './sentrySpan';
-import { SPAN_STATUS_ERROR } from './spanstatus';
+import { SPAN_STATUS_ERROR, SPAN_STATUS_OK } from './spanstatus';
 import { startInactiveSpan } from './trace';
 
 export const TRACING_DEFAULTS = {
@@ -74,8 +75,16 @@ interface IdleSpanOptions {
    * Defaults to `false`.
    */
   disableAutoFinish?: boolean;
+
   /** Allows to configure a hook that is called when the idle span is ended, before it is processed. */
   beforeSpanEnd?: (span: Span) => void;
+
+  /**
+   * If set to `true`, the idle span will be trimmed to the latest span end timestamp of its children.
+   *
+   * @default `true`.
+   */
+  trimIdleSpanEndTimestamp?: boolean;
 }
 
 /**
@@ -107,6 +116,7 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
     finalTimeout = TRACING_DEFAULTS.finalTimeout,
     childSpanTimeout = TRACING_DEFAULTS.childSpanTimeout,
     beforeSpanEnd,
+    trimIdleSpanEndTimestamp = true,
   } = options;
 
   const client = getClient();
@@ -150,19 +160,33 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
       // Ensure we end with the last span timestamp, if possible
       const spans = getSpanDescendants(span).filter(child => child !== span);
 
+      const spanJson = spanToJSON(span);
+
       // If we have no spans, we just end, nothing else to do here
-      if (!spans.length) {
+      // Likewise, if users explicitly ended the span, we simply end the span without timestamp adjustment
+      if (!spans.length || !trimIdleSpanEndTimestamp) {
         onIdleSpanEnded(spanEndTimestamp);
         return Reflect.apply(target, thisArg, [spanEndTimestamp, ...rest]);
       }
 
-      const childEndTimestamps = spans
-        .map(span => spanToJSON(span).timestamp)
-        .filter(timestamp => !!timestamp) as number[];
-      const latestSpanEndTimestamp = childEndTimestamps.length ? Math.max(...childEndTimestamps) : undefined;
+      const ignoreSpans = client.getOptions().ignoreSpans;
+
+      const latestSpanEndTimestamp = spans?.reduce((acc: number | undefined, current) => {
+        const currentSpanJson = spanToJSON(current);
+        if (!currentSpanJson.timestamp) {
+          return acc;
+        }
+        // Ignored spans will get dropped later (in the client) but since we already adjust
+        // the idle span end timestamp here, we can already take to-be-ignored spans out of
+        // the calculation here.
+        if (ignoreSpans && shouldIgnoreSpan(currentSpanJson, ignoreSpans)) {
+          return acc;
+        }
+        return acc ? Math.max(acc, currentSpanJson.timestamp) : currentSpanJson.timestamp;
+      }, undefined);
 
       // In reality this should always exist here, but type-wise it may be undefined...
-      const spanStartTimestamp = spanToJSON(span).start_timestamp;
+      const spanStartTimestamp = spanJson.start_timestamp;
 
       // The final endTimestamp should:
       // * Never be before the span start timestamp
@@ -276,6 +300,12 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
     const attributes = spanJSON.data;
     if (!attributes[SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON]) {
       span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON, _finishReason);
+    }
+
+    // Set span status to 'ok' if it hasn't been explicitly set to an error status
+    const currentStatus = spanJSON.status;
+    if (!currentStatus || currentStatus === 'unknown') {
+      span.setStatus({ code: SPAN_STATUS_OK });
     }
 
     debug.log(`[Tracing] Idle span "${spanJSON.op}" finished`);

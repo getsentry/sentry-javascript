@@ -1,4 +1,5 @@
 /* eslint-disable max-lines */
+import type { AttributeObject, RawAttribute, RawAttributes } from './attributes';
 import type { Client } from './client';
 import { DEBUG_BUILD } from './debug-build';
 import { updateSession } from './session';
@@ -46,6 +47,7 @@ export interface ScopeContext {
   extra: Extras;
   contexts: Contexts;
   tags: { [key: string]: Primitive };
+  attributes?: RawAttributes<Record<string, unknown>>;
   fingerprint: string[];
   propagationContext: PropagationContext;
 }
@@ -71,6 +73,8 @@ export interface ScopeData {
   breadcrumbs: Breadcrumb[];
   user: User;
   tags: { [key: string]: Primitive };
+  // TODO(v11): Make this a required field (could be subtly breaking if we did it today)
+  attributes?: RawAttributes<Record<string, unknown>>;
   extra: Extras;
   contexts: Contexts;
   attachments: Attachment[];
@@ -103,6 +107,9 @@ export class Scope {
 
   /** Tags */
   protected _tags: { [key: string]: Primitive };
+
+  /** Attributes */
+  protected _attributes: RawAttributes<Record<string, unknown>>;
 
   /** Extra */
   protected _extra: Extras;
@@ -155,6 +162,7 @@ export class Scope {
     this._attachments = [];
     this._user = {};
     this._tags = {};
+    this._attributes = {};
     this._extra = {};
     this._contexts = {};
     this._sdkProcessingMetadata = {};
@@ -171,6 +179,7 @@ export class Scope {
     const newScope = new Scope();
     newScope._breadcrumbs = [...this._breadcrumbs];
     newScope._tags = { ...this._tags };
+    newScope._attributes = { ...this._attributes };
     newScope._extra = { ...this._extra };
     newScope._contexts = { ...this._contexts };
     if (this._contexts.flags) {
@@ -291,8 +300,85 @@ export class Scope {
    * Set a single tag that will be sent as tags data with the event.
    */
   public setTag(key: string, value: Primitive): this {
-    this._tags = { ...this._tags, [key]: value };
+    return this.setTags({ [key]: value });
+  }
+
+  /**
+   * Sets attributes onto the scope.
+   *
+   * These attributes are currently only applied to logs.
+   * In the future, they will also be applied to metrics and spans.
+   *
+   * Important: For now, only strings, numbers and boolean attributes are supported, despite types allowing for
+   * more complex attribute types. We'll add this support in the future but already specify the wider type to
+   * avoid a breaking change in the future.
+   *
+   * @param newAttributes - The attributes to set on the scope. You can either pass in key-value pairs, or
+   * an object with a `value` and an optional `unit` (if applicable to your attribute).
+   *
+   * @example
+   * ```typescript
+   * scope.setAttributes({
+   *   is_admin: true,
+   *   payment_selection: 'credit_card',
+   *   render_duration: { value: 'render_duration', unit: 'ms' },
+   * });
+   * ```
+   */
+  public setAttributes<T extends Record<string, unknown>>(newAttributes: RawAttributes<T>): this {
+    this._attributes = {
+      ...this._attributes,
+      ...newAttributes,
+    };
+
     this._notifyScopeListeners();
+    return this;
+  }
+
+  /**
+   * Sets an attribute onto the scope.
+   *
+   * These attributes are currently only applied to logs.
+   * In the future, they will also be applied to metrics and spans.
+   *
+   * Important: For now, only strings, numbers and boolean attributes are supported, despite types allowing for
+   * more complex attribute types. We'll add this support in the future but already specify the wider type to
+   * avoid a breaking change in the future.
+   *
+   * @param key - The attribute key.
+   * @param value - the attribute value. You can either pass in a raw value, or an attribute
+   * object with a `value` and an optional `unit` (if applicable to your attribute).
+   *
+   * @example
+   * ```typescript
+   * scope.setAttribute('is_admin', true);
+   * scope.setAttribute('render_duration', { value: 'render_duration', unit: 'ms' });
+   * ```
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  public setAttribute<T extends RawAttribute<T> extends { value: any } | { unit: any } ? AttributeObject : unknown>(
+    key: string,
+    value: RawAttribute<T>,
+  ): this {
+    return this.setAttributes({ [key]: value });
+  }
+
+  /**
+   * Removes the attribute with the given key from the scope.
+   *
+   * @param key - The attribute key.
+   *
+   * @example
+   * ```typescript
+   * scope.removeAttribute('is_admin');
+   * ```
+   */
+  public removeAttribute(key: string): this {
+    if (key in this._attributes) {
+      // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+      delete this._attributes[key];
+      this._notifyScopeListeners();
+    }
     return this;
   }
 
@@ -411,9 +497,19 @@ export class Scope {
           ? (captureContext as ScopeContext)
           : undefined;
 
-    const { tags, extra, user, contexts, level, fingerprint = [], propagationContext } = scopeInstance || {};
+    const {
+      tags,
+      attributes,
+      extra,
+      user,
+      contexts,
+      level,
+      fingerprint = [],
+      propagationContext,
+    } = scopeInstance || {};
 
     this._tags = { ...this._tags, ...tags };
+    this._attributes = { ...this._attributes, ...attributes };
     this._extra = { ...this._extra, ...extra };
     this._contexts = { ...this._contexts, ...contexts };
 
@@ -444,6 +540,7 @@ export class Scope {
     // client is not cleared here on purpose!
     this._breadcrumbs = [];
     this._tags = {};
+    this._attributes = {};
     this._extra = {};
     this._user = {};
     this._contexts = {};
@@ -530,6 +627,7 @@ export class Scope {
       attachments: this._attachments,
       contexts: this._contexts,
       tags: this._tags,
+      attributes: this._attributes,
       extra: this._extra,
       user: this._user,
       level: this._level,
@@ -607,7 +705,7 @@ export class Scope {
       return eventId;
     }
 
-    const syntheticException = new Error(message);
+    const syntheticException = hint?.syntheticException ?? new Error(message);
 
     this._client.captureMessage(
       message,

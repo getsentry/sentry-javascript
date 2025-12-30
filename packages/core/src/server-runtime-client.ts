@@ -1,26 +1,21 @@
 import { createCheckInEnvelope } from './checkin';
-import { _getTraceInfoFromScope, Client } from './client';
+import { Client } from './client';
 import { getIsolationScope } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
-import { _INTERNAL_flushLogsBuffer } from './logs/exports';
 import type { Scope } from './scope';
 import { registerSpanErrorInstrumentation } from './tracing';
+import { addUserAgentToTransportHeaders } from './transports/userAgent';
 import type { CheckIn, MonitorConfig, SerializedCheckIn } from './types-hoist/checkin';
 import type { Event, EventHint } from './types-hoist/event';
-import type { Log } from './types-hoist/log';
-import type { Primitive } from './types-hoist/misc';
 import type { ClientOptions } from './types-hoist/options';
 import type { ParameterizedString } from './types-hoist/parameterize';
 import type { SeverityLevel } from './types-hoist/severity';
 import type { BaseTransportOptions } from './types-hoist/transport';
 import { debug } from './utils/debug-logger';
 import { eventFromMessage, eventFromUnknownInput } from './utils/eventbuilder';
-import { isPrimitive } from './utils/is';
 import { uuid4 } from './utils/misc';
 import { resolvedSyncPromise } from './utils/syncpromise';
-
-// TODO: Make this configurable
-const DEFAULT_LOG_FLUSH_INTERVAL = 5000;
+import { _getTraceInfoFromScope } from './utils/trace-info';
 
 export interface ServerRuntimeClientOptions extends ClientOptions<BaseTransportOptions> {
   platform?: string;
@@ -34,9 +29,6 @@ export interface ServerRuntimeClientOptions extends ClientOptions<BaseTransportO
 export class ServerRuntimeClient<
   O extends ClientOptions & ServerRuntimeClientOptions = ServerRuntimeClientOptions,
 > extends Client<O> {
-  private _logFlushIdleTimeout: ReturnType<typeof setTimeout> | undefined;
-  private _logWeight: number;
-
   /**
    * Creates a new Edge SDK instance.
    * @param options Configuration options for this SDK.
@@ -45,39 +37,11 @@ export class ServerRuntimeClient<
     // Server clients always support tracing
     registerSpanErrorInstrumentation();
 
+    addUserAgentToTransportHeaders(options);
+
     super(options);
 
-    this._logWeight = 0;
-
-    if (this._options.enableLogs) {
-      // eslint-disable-next-line @typescript-eslint/no-this-alias
-      const client = this;
-
-      client.on('flushLogs', () => {
-        client._logWeight = 0;
-        clearTimeout(client._logFlushIdleTimeout);
-      });
-
-      client.on('afterCaptureLog', log => {
-        client._logWeight += estimateLogSizeInBytes(log);
-
-        // We flush the logs buffer if it exceeds 0.8 MB
-        // The log weight is a rough estimate, so we flush way before
-        // the payload gets too big.
-        if (client._logWeight >= 800_000) {
-          _INTERNAL_flushLogsBuffer(client);
-        } else {
-          // start an idle timeout to flush the logs buffer if no logs are captured for a while
-          client._logFlushIdleTimeout = setTimeout(() => {
-            _INTERNAL_flushLogsBuffer(client);
-          }, DEFAULT_LOG_FLUSH_INTERVAL);
-        }
-      });
-
-      client.on('flush', () => {
-        _INTERNAL_flushLogsBuffer(client);
-      });
-    }
+    this._setUpMetricsProcessing();
   }
 
   /**
@@ -214,6 +178,20 @@ export class ServerRuntimeClient<
 
     return super._prepareEvent(event, hint, currentScope, isolationScope);
   }
+
+  /**
+   * Process a server-side metric before it is captured.
+   */
+  private _setUpMetricsProcessing(): void {
+    this.on('processMetric', metric => {
+      if (this._options.serverName) {
+        metric.attributes = {
+          'server.address': this._options.serverName,
+          ...metric.attributes,
+        };
+      }
+    });
+  }
 }
 
 function setCurrentRequestSessionErroredOrCrashed(eventHint?: EventHint): void {
@@ -231,46 +209,4 @@ function setCurrentRequestSessionErroredOrCrashed(eventHint?: EventHint): void {
       requestSession.status = 'crashed';
     }
   }
-}
-
-/**
- * Estimate the size of a log in bytes.
- *
- * @param log - The log to estimate the size of.
- * @returns The estimated size of the log in bytes.
- */
-function estimateLogSizeInBytes(log: Log): number {
-  let weight = 0;
-
-  // Estimate byte size of 2 bytes per character. This is a rough estimate JS strings are stored as UTF-16.
-  if (log.message) {
-    weight += log.message.length * 2;
-  }
-
-  if (log.attributes) {
-    Object.values(log.attributes).forEach(value => {
-      if (Array.isArray(value)) {
-        weight += value.length * estimatePrimitiveSizeInBytes(value[0]);
-      } else if (isPrimitive(value)) {
-        weight += estimatePrimitiveSizeInBytes(value);
-      } else {
-        // For objects values, we estimate the size of the object as 100 bytes
-        weight += 100;
-      }
-    });
-  }
-
-  return weight;
-}
-
-function estimatePrimitiveSizeInBytes(value: Primitive): number {
-  if (typeof value === 'string') {
-    return value.length * 2;
-  } else if (typeof value === 'number') {
-    return 8;
-  } else if (typeof value === 'boolean') {
-    return 4;
-  }
-
-  return 0;
 }

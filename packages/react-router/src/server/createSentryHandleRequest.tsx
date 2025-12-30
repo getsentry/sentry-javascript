@@ -1,7 +1,7 @@
 import type { createReadableStreamFromReadable } from '@react-router/node';
 import type { ReactNode } from 'react';
 import React from 'react';
-import type { AppLoadContext, EntryContext, ServerRouter } from 'react-router';
+import type { AppLoadContext, EntryContext, RouterContextProvider, ServerRouter } from 'react-router';
 import { PassThrough } from 'stream';
 import { getMetaTagTransformer } from './getMetaTagTransformer';
 import { wrapSentryHandleRequest } from './wrapSentryHandleRequest';
@@ -53,6 +53,22 @@ export interface SentryHandleRequestOptions {
   botRegex?: RegExp;
 }
 
+type HandleRequestWithoutMiddleware = (
+  request: Request,
+  responseStatusCode: number,
+  responseHeaders: Headers,
+  routerContext: EntryContext,
+  loadContext: AppLoadContext,
+) => Promise<unknown>;
+
+type HandleRequestWithMiddleware = (
+  request: Request,
+  responseStatusCode: number,
+  responseHeaders: Headers,
+  routerContext: EntryContext,
+  loadContext: RouterContextProvider,
+) => Promise<unknown>;
+
 /**
  * A complete Sentry-instrumented handleRequest implementation that handles both
  * route parametrization and trace meta tag injection.
@@ -62,13 +78,7 @@ export interface SentryHandleRequestOptions {
  */
 export function createSentryHandleRequest(
   options: SentryHandleRequestOptions,
-): (
-  request: Request,
-  responseStatusCode: number,
-  responseHeaders: Headers,
-  routerContext: EntryContext,
-  loadContext: AppLoadContext,
-) => Promise<unknown> {
+): HandleRequestWithoutMiddleware & HandleRequestWithMiddleware {
   const {
     streamTimeout = 10000,
     renderToPipeableStream,
@@ -82,7 +92,7 @@ export function createSentryHandleRequest(
     responseStatusCode: number,
     responseHeaders: Headers,
     routerContext: EntryContext,
-    _loadContext: AppLoadContext,
+    _loadContext: AppLoadContext | RouterContextProvider,
   ): Promise<Response> {
     return new Promise((resolve, reject) => {
       let shellRendered = false;
@@ -135,5 +145,6 @@ export function createSentryHandleRequest(
   };
 
   // Wrap the handle request function for request parametrization
-  return wrapSentryHandleRequest(handleRequest);
+  return wrapSentryHandleRequest(handleRequest as HandleRequestWithoutMiddleware) as HandleRequestWithoutMiddleware &
+    HandleRequestWithMiddleware;
 }

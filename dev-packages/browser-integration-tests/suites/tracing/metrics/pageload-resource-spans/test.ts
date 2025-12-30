@@ -4,7 +4,7 @@ import { type Event, SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORI
 import { sentryTest } from '../../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
 
-sentryTest('should add resource spans to pageload transaction', async ({ getLocalTestUrl, page, browserName }) => {
+sentryTest('adds resource spans to pageload transaction', async ({ getLocalTestUrl, page, browserName }) => {
   if (shouldSkipTracingTest()) {
     sentryTest.skip();
   }
@@ -74,6 +74,19 @@ sentryTest('should add resource spans to pageload transaction', async ({ getLoca
       'http.decoded_response_content_length': expect.any(Number),
       'http.response_content_length': expect.any(Number),
       'http.response_transfer_size': expect.any(Number),
+      'http.request.connect_start': expect.any(Number),
+      'http.request.connection_end': expect.any(Number),
+      'http.request.domain_lookup_end': expect.any(Number),
+      'http.request.domain_lookup_start': expect.any(Number),
+      'http.request.fetch_start': expect.any(Number),
+      'http.request.redirect_end': expect.any(Number),
+      'http.request.redirect_start': expect.any(Number),
+      'http.request.request_start': expect.any(Number),
+      'http.request.secure_connection_start': expect.any(Number),
+      'http.request.worker_start': expect.any(Number),
+      'http.request.response_end': expect.any(Number),
+      'http.request.response_start': expect.any(Number),
+      'http.request.time_to_first_byte': expect.any(Number),
       'network.protocol.name': '',
       'network.protocol.version': 'unknown',
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'resource.img',
@@ -82,6 +95,7 @@ sentryTest('should add resource spans to pageload transaction', async ({ getLoca
       'url.same_origin': false,
       'url.scheme': 'https',
       ...(!isWebkitRun && {
+        'http.response.status_code': expect.any(Number),
         'resource.render_blocking_status': 'non-blocking',
         'http.response_delivery_type': '',
       }),
@@ -90,17 +104,36 @@ sentryTest('should add resource spans to pageload transaction', async ({ getLoca
     op: 'resource.img',
     origin: 'auto.resource.browser.metrics',
     parent_span_id: spanId,
-    span_id: expect.stringMatching(/^[a-f0-9]{16}$/),
+    span_id: expect.stringMatching(/^[a-f\d]{16}$/),
     start_timestamp: expect.any(Number),
     timestamp: expect.any(Number),
     trace_id: traceId,
   });
+
+  // range check: TTFB must be >0 (at least in this case) and it's reasonable to
+  // assume <10 seconds. This also tests that we're reporting TTFB in seconds.
+  const imgSpanTtfb = imgSpan?.data['http.request.time_to_first_byte'];
+  expect(imgSpanTtfb).toBeGreaterThan(0);
+  expect(imgSpanTtfb).toBeLessThan(10);
 
   expect(linkSpan).toEqual({
     data: {
       'http.decoded_response_content_length': expect.any(Number),
       'http.response_content_length': expect.any(Number),
       'http.response_transfer_size': expect.any(Number),
+      'http.request.connect_start': expect.any(Number),
+      'http.request.connection_end': expect.any(Number),
+      'http.request.domain_lookup_end': expect.any(Number),
+      'http.request.domain_lookup_start': expect.any(Number),
+      'http.request.fetch_start': expect.any(Number),
+      'http.request.redirect_end': expect.any(Number),
+      'http.request.redirect_start': expect.any(Number),
+      'http.request.request_start': expect.any(Number),
+      'http.request.secure_connection_start': expect.any(Number),
+      'http.request.worker_start': expect.any(Number),
+      'http.request.response_end': expect.any(Number),
+      'http.request.response_start': expect.any(Number),
+      'http.request.time_to_first_byte': expect.any(Number),
       'network.protocol.name': '',
       'network.protocol.version': 'unknown',
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'resource.link',
@@ -109,6 +142,7 @@ sentryTest('should add resource spans to pageload transaction', async ({ getLoca
       'url.same_origin': false,
       'url.scheme': 'https',
       ...(!isWebkitRun && {
+        'http.response.status_code': expect.any(Number),
         'resource.render_blocking_status': 'non-blocking',
         'http.response_delivery_type': '',
       }),
@@ -117,7 +151,7 @@ sentryTest('should add resource spans to pageload transaction', async ({ getLoca
     op: 'resource.link',
     origin: 'auto.resource.browser.metrics',
     parent_span_id: spanId,
-    span_id: expect.stringMatching(/^[a-f0-9]{16}$/),
+    span_id: expect.stringMatching(/^[a-f\d]{16}$/),
     start_timestamp: expect.any(Number),
     timestamp: expect.any(Number),
     trace_id: traceId,
@@ -128,6 +162,19 @@ sentryTest('should add resource spans to pageload transaction', async ({ getLoca
       'http.decoded_response_content_length': expect.any(Number),
       'http.response_content_length': expect.any(Number),
       'http.response_transfer_size': expect.any(Number),
+      'http.request.connection_end': expect.any(Number),
+      'http.request.connect_start': expect.any(Number),
+      'http.request.domain_lookup_end': expect.any(Number),
+      'http.request.domain_lookup_start': expect.any(Number),
+      'http.request.fetch_start': expect.any(Number),
+      'http.request.redirect_end': expect.any(Number),
+      'http.request.redirect_start': expect.any(Number),
+      'http.request.request_start': expect.any(Number),
+      'http.request.secure_connection_start': expect.any(Number),
+      'http.request.worker_start': expect.any(Number),
+      'http.request.response_end': expect.any(Number),
+      'http.request.response_start': expect.any(Number),
+      'http.request.time_to_first_byte': expect.any(Number),
       'network.protocol.name': '',
       'network.protocol.version': 'unknown',
       'sentry.op': 'resource.script',
@@ -136,6 +183,7 @@ sentryTest('should add resource spans to pageload transaction', async ({ getLoca
       'url.same_origin': false,
       'url.scheme': 'https',
       ...(!isWebkitRun && {
+        'http.response.status_code': expect.any(Number),
         'resource.render_blocking_status': 'non-blocking',
         'http.response_delivery_type': '',
       }),
@@ -144,7 +192,7 @@ sentryTest('should add resource spans to pageload transaction', async ({ getLoca
     op: 'resource.script',
     origin: 'auto.resource.browser.metrics',
     parent_span_id: spanId,
-    span_id: expect.stringMatching(/^[a-f0-9]{16}$/),
+    span_id: expect.stringMatching(/^[a-f\d]{16}$/),
     start_timestamp: expect.any(Number),
     timestamp: expect.any(Number),
     trace_id: traceId,

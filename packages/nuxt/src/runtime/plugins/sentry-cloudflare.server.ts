@@ -1,4 +1,3 @@
-import type { ExecutionContext, IncomingRequestCfProperties } from '@cloudflare/workers-types';
 import type { CloudflareOptions } from '@sentry/cloudflare';
 import { setAsyncLocalStorageAsyncContextStrategy, wrapRequestHandler } from '@sentry/cloudflare';
 import { debug, getDefaultIsolationScope, getIsolationScope, getTraceData } from '@sentry/core';
@@ -8,50 +7,7 @@ import type { NuxtRenderHTMLContext } from 'nuxt/app';
 import { sentryCaptureErrorHook } from '../hooks/captureErrorHook';
 import { updateRouteBeforeResponse } from '../hooks/updateRouteBeforeResponse';
 import { addSentryTracingMetaTags } from '../utils';
-
-interface CfEventType {
-  protocol: string;
-  host: string;
-  method: string;
-  headers: Record<string, string>;
-  context: {
-    cf: {
-      httpProtocol?: string;
-      country?: string;
-      // ...other CF properties
-    };
-    cloudflare: {
-      context: ExecutionContext;
-      request?: Record<string, unknown>;
-      env?: Record<string, unknown>;
-    };
-  };
-}
-
-function isEventType(event: unknown): event is CfEventType {
-  if (event === null || typeof event !== 'object') return false;
-
-  return (
-    // basic properties
-    'protocol' in event &&
-    'host' in event &&
-    typeof event.protocol === 'string' &&
-    typeof event.host === 'string' &&
-    // context property
-    'context' in event &&
-    typeof event.context === 'object' &&
-    event.context !== null &&
-    // context.cf properties
-    'cf' in event.context &&
-    typeof event.context.cf === 'object' &&
-    event.context.cf !== null &&
-    // context.cloudflare properties
-    'cloudflare' in event.context &&
-    typeof event.context.cloudflare === 'object' &&
-    event.context.cloudflare !== null &&
-    'context' in event.context.cloudflare
-  );
-}
+import { getCfProperties, getCloudflareProperties, hasCfProperty, isEventType } from '../utils/event-type-check';
 
 /**
  * Sentry Cloudflare Nitro plugin for when using the "cloudflare-pages" preset in Nuxt.
@@ -107,13 +63,14 @@ export const sentryCloudflareNitroPlugin =
           const request = new Request(url, {
             method: event.method,
             headers: event.headers,
-            cf: event.context.cf,
-          }) as Request<unknown, IncomingRequestCfProperties<unknown>>;
+            // @ts-expect-error - 'cf' is a valid property in the RequestInit type for Cloudflare
+            cf: getCfProperties(event),
+          });
 
           const requestHandlerOptions = {
             options: cloudflareOptions,
             request,
-            context: event.context.cloudflare.context,
+            context: getCloudflareProperties(event).context,
           };
 
           return wrapRequestHandler(requestHandlerOptions, () => {
@@ -124,7 +81,7 @@ export const sentryCloudflareNitroPlugin =
             const traceData = getTraceData();
             if (traceData && Object.keys(traceData).length > 0) {
               // Storing trace data in the WeakMap using event.context.cf as key for later use in HTML meta-tags
-              traceDataMap.set(event.context.cf, traceData);
+              traceDataMap.set(getCfProperties(event), traceData);
               debug.log('Stored trace data for later use in HTML meta-tags: ', traceData);
             }
 
@@ -144,7 +101,19 @@ export const sentryCloudflareNitroPlugin =
 
     // @ts-expect-error - 'render:html' is a valid hook name in the Nuxt context
     nitroApp.hooks.hook('render:html', (html: NuxtRenderHTMLContext, { event }: { event: H3Event }) => {
-      const storedTraceData = event?.context?.cf ? traceDataMap.get(event.context.cf) : undefined;
+      let storedTraceData: ReturnType<typeof getTraceData> | undefined = undefined;
+
+      if (
+        event?.context &&
+        '_platform' in event.context &&
+        event.context._platform &&
+        hasCfProperty(event.context._platform)
+      ) {
+        storedTraceData = traceDataMap.get(event.context._platform.cf);
+      } else if (event?.context && hasCfProperty(event.context)) {
+        // legacy support (before Nitro v2.11.7 (PR: https://github.com/nitrojs/nitro/pull/3224))
+        storedTraceData = traceDataMap.get(event.context.cf);
+      }
 
       if (storedTraceData && Object.keys(storedTraceData).length > 0) {
         debug.log('Using stored trace data for HTML meta-tags: ', storedTraceData);

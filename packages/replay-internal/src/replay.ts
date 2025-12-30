@@ -606,6 +606,7 @@ export class ReplayContainer implements ReplayContainerInterface {
 
     // Once this session ends, we do not want to refresh it
     if (this.session) {
+      this.session.dirty = false;
       this._updateUserActivity(activityTime);
       this._updateSessionActivity(activityTime);
       this._maybeSaveSession();
@@ -719,8 +720,15 @@ export class ReplayContainer implements ReplayContainerInterface {
     this._debouncedFlush.cancel();
   }
 
-  /** Get the current session (=replay) ID */
-  public getSessionId(): string | undefined {
+  /** Get the current session (=replay) ID
+   *
+   * @param onlyIfSampled - If true, will only return the session ID if the session is sampled.
+   */
+  public getSessionId(onlyIfSampled?: boolean): string | undefined {
+    if (onlyIfSampled && this.session?.sampled === false) {
+      return undefined;
+    }
+
     return this.session?.id;
   }
 

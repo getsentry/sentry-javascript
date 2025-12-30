@@ -1,12 +1,16 @@
 import { workerData } from 'node:worker_threads';
-import type { DebugImage, Event, Session, StackFrame, Thread } from '@sentry/core';
+import type { DebugImage, Event, ScopeData, Session, StackFrame, Thread } from '@sentry/core';
 import {
+  applyScopeDataToEvent,
   createEventEnvelope,
   createSessionEnvelope,
   filenameIsInApp,
+  generateSpanId,
   getEnvelopeEndpointWithUrlEncodedAuth,
   makeSession,
+  mergeScopeData,
   normalizeUrlToBase,
+  Scope,
   stripSentryFramesAndReverse,
   updateSession,
   uuid4,
@@ -15,6 +19,11 @@ import { makeNodeTransport } from '@sentry/node';
 import { captureStackTrace, getThreadsLastSeen } from '@sentry-internal/node-native-stacktrace';
 import type { ThreadState, WorkerStartData } from './common';
 import { POLL_RATIO } from './common';
+
+type CurrentScopes = {
+  scope: Scope;
+  isolationScope: Scope;
+};
 
 const {
   threshold,
@@ -149,7 +158,7 @@ function applyDebugMeta(event: Event, debugImages: Record<string, string>): void
     for (const frame of exception.stacktrace?.frames || []) {
       const filename = stripFileProtocol(frame.abs_path || frame.filename);
       if (filename && normalisedDebugImages[filename]) {
-        filenameToDebugId.set(filename, normalisedDebugImages[filename] as string);
+        filenameToDebugId.set(filename, normalisedDebugImages[filename]);
       }
     }
   }
@@ -158,7 +167,7 @@ function applyDebugMeta(event: Event, debugImages: Record<string, string>): void
     for (const frame of thread.stacktrace?.frames || []) {
       const filename = stripFileProtocol(frame.abs_path || frame.filename);
       if (filename && normalisedDebugImages[filename]) {
-        filenameToDebugId.set(filename, normalisedDebugImages[filename] as string);
+        filenameToDebugId.set(filename, normalisedDebugImages[filename]);
       }
     }
   }
@@ -178,7 +187,7 @@ function applyDebugMeta(event: Event, debugImages: Record<string, string>): void
 
 function getExceptionAndThreads(
   crashedThreadId: string,
-  threads: ReturnType<typeof captureStackTrace<ThreadState>>,
+  threads: ReturnType<typeof captureStackTrace<CurrentScopes, ThreadState>>,
 ): Event {
   const crashedThread = threads[crashedThreadId];
 
@@ -217,12 +226,28 @@ function getExceptionAndThreads(
   };
 }
 
+function applyScopeToEvent(event: Event, scope: ScopeData): void {
+  applyScopeDataToEvent(event, scope);
+
+  if (!event.contexts?.trace) {
+    const { traceId, parentSpanId, propagationSpanId } = scope.propagationContext;
+    event.contexts = {
+      trace: {
+        trace_id: traceId,
+        span_id: propagationSpanId || generateSpanId(),
+        parent_span_id: parentSpanId,
+      },
+      ...event.contexts,
+    };
+  }
+}
+
 async function sendBlockEvent(crashedThreadId: string): Promise<void> {
   if (isRateLimited()) {
     return;
   }
 
-  const threads = captureStackTrace<ThreadState>();
+  const threads = captureStackTrace<CurrentScopes, ThreadState>();
   const crashedThread = threads[crashedThreadId];
 
   if (!crashedThread) {
@@ -231,7 +256,7 @@ async function sendBlockEvent(crashedThreadId: string): Promise<void> {
   }
 
   try {
-    await sendAbnormalSession(crashedThread.state?.session);
+    await sendAbnormalSession(crashedThread.pollState?.session);
   } catch (error) {
     log(`Failed to send abnormal session for thread '${crashedThreadId}':`, error);
   }
@@ -250,8 +275,17 @@ async function sendBlockEvent(crashedThreadId: string): Promise<void> {
     ...getExceptionAndThreads(crashedThreadId, threads),
   };
 
+  const asyncState = threads[crashedThreadId]?.asyncState;
+  if (asyncState) {
+    // We need to rehydrate the scopes from the serialized objects so we can call getScopeData()
+    const scope = Object.assign(new Scope(), asyncState.scope).getScopeData();
+    const isolationScope = Object.assign(new Scope(), asyncState.isolationScope).getScopeData();
+    mergeScopeData(scope, isolationScope);
+    applyScopeToEvent(event, scope);
+  }
+
   const allDebugImages: Record<string, string> = Object.values(threads).reduce((acc, threadState) => {
-    return { ...acc, ...threadState.state?.debugImages };
+    return { ...acc, ...threadState.pollState?.debugImages };
   }, {});
 
   applyDebugMeta(event, allDebugImages);

@@ -1,4 +1,3 @@
-/* eslint-enable @typescript-eslint/no-unused-vars */
 import type { Client } from '@sentry/core';
 import { applySdkMetadata } from '@sentry/core';
 import { init as reactInit } from '@sentry/react';

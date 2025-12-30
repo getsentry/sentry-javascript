@@ -12,7 +12,7 @@ sentryTest('Basic test with eviction, update, and no async tasks', async ({ getL
     sentryTest.skip();
   }
 
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
+  await page.route(/^https:\/\/dsn\.ingest\.sentry\.io\//, route => {
     return route.fulfill({
       status: 200,
       contentType: 'application/json',
