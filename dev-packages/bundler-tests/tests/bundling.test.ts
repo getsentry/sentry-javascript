@@ -148,14 +148,7 @@ describe('__VITE_SPOTLIGHT_ENV__ rollup replacement', () => {
   // ESM bundles should have import.meta.env access, CJS should have undefined
 
   function readSdkFile(packageName: string, format: 'esm' | 'cjs'): string {
-    const sdkPath = path.join(
-      rootDir(),
-      'packages',
-      packageName,
-      'build',
-      format,
-      'sdk.js',
-    );
+    const sdkPath = path.join(rootDir(), 'packages', packageName, 'build', format, 'sdk.js');
     if (!fs.existsSync(sdkPath)) {
       throw new Error(`SDK file not found: ${sdkPath}. Make sure to run yarn build:dev first.`);
     }
