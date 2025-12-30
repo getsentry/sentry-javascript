@@ -2,21 +2,21 @@ import { expect, test } from '@playwright/test';
 import { waitForError, waitForSpotlightError, waitForSpotlightTransaction } from '@sentry-internal/test-utils';
 
 /**
- * Test that SENTRY_SPOTLIGHT environment variable enables Spotlight integration.
+ * Test that Spotlight integration correctly sends events to the sidecar.
  *
  * This test verifies that:
- * 1. The SDK correctly parses SENTRY_SPOTLIGHT env var at build time (via webpack DefinePlugin)
- * 2. The SDK resolves the spotlight option from the env var
- * 3. Events are sent to both the tunnel AND the Spotlight sidecar URL
- * 4. The Spotlight sidecar receives the events at the /stream endpoint
+ * 1. The SDK includes Spotlight integration when in development mode
+ * 2. Events are sent to both the tunnel AND the Spotlight sidecar URL
+ * 3. The Spotlight sidecar receives the events at the /stream endpoint
  *
  * Test setup:
- * - SENTRY_SPOTLIGHT is set to 'http://localhost:3032/stream' at build time
+ * - spotlight option is set to 'http://localhost:3032/stream' (via env var or fallback)
  * - tunnel is set to 'http://localhost:3031' for regular event capture
  * - A Spotlight proxy server runs on port 3032 to capture Spotlight events
  * - A regular event proxy server runs on port 3031 to capture tunnel events
+ * - Webpack uses 'development' condition to resolve SDK dev builds with Spotlight
  */
-test('SENTRY_SPOTLIGHT env var enables Spotlight and events are sent to sidecar', async ({ page }) => {
+test('Spotlight integration sends error events to sidecar', async ({ page }) => {
   // Wait for the error to arrive at the regular tunnel (port 3031)
   const tunnelErrorPromise = waitForError('browser-spotlight', event => {
     return !event.type && event.exception?.values?.[0]?.value === 'Spotlight test error!';
@@ -51,7 +51,7 @@ test('SENTRY_SPOTLIGHT env var enables Spotlight and events are sent to sidecar'
 /**
  * Test that Spotlight receives transaction events as well.
  */
-test('SENTRY_SPOTLIGHT sends transactions to sidecar', async ({ page }) => {
+test('Spotlight integration sends transactions to sidecar', async ({ page }) => {
   // Wait for a pageload transaction to arrive at the Spotlight sidecar
   const spotlightTransactionPromise = waitForSpotlightTransaction('browser-spotlight-sidecar', event => {
     return event.type === 'transaction' && event.contexts?.trace?.op === 'pageload';
