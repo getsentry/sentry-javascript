@@ -51,8 +51,10 @@ export async function sentrySvelteKit(options: SentrySvelteKitPluginOptions = {}
 
   const sentryPlugins: Plugin[] = [];
 
-  // Add spotlight plugin unconditionally for zero-config Spotlight support
-  sentryPlugins.push(makeSpotlightDefinePlugin());
+  // Add spotlight plugin for zero-config Spotlight support (only if env var is set)
+  if (process.env.PUBLIC_SENTRY_SPOTLIGHT || process.env.SENTRY_SPOTLIGHT) {
+    sentryPlugins.push(makeSpotlightDefinePlugin());
+  }
 
   if (mergedOptions.autoInstrument) {
     // TODO: Once tracing is promoted stable, we need to adjust this check!

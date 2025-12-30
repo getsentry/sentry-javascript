@@ -180,13 +180,16 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
         }
 
         // Inject SENTRY_SPOTLIGHT env var for client bundles (fallback for manual setup without PUBLIC_ prefix)
-        updateConfig({
-          vite: {
-            define: {
-              'import.meta.env.SENTRY_SPOTLIGHT': JSON.stringify(process.env.SENTRY_SPOTLIGHT || ''),
+        // Only add if we have a value to inject and the SDK is enabled
+        if (process.env.SENTRY_SPOTLIGHT && sdkEnabled.client) {
+          updateConfig({
+            vite: {
+              define: {
+                'import.meta.env.SENTRY_SPOTLIGHT': JSON.stringify(process.env.SENTRY_SPOTLIGHT),
+              },
             },
-          },
-        });
+          });
+        }
 
         const isSSR = config && (config.output === 'server' || config.output === 'hybrid');
         const shouldAddMiddleware = sdkEnabled.server && autoInstrumentation?.requestHandler !== false;
