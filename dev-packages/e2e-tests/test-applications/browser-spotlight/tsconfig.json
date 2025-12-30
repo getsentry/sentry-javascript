@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "types": ["node"],
+    "esModuleInterop": true,
+    "lib": ["DOM", "ES2020"],
+    "strict": true,
+    "outDir": "dist"
+  },
+  "include": ["*.ts", "src/**/*.ts", "tests/**/*.ts"]
+}

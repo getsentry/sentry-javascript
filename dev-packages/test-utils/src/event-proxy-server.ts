@@ -25,6 +25,7 @@ interface SentryRequestCallbackData {
   envelope: Envelope;
   rawProxyRequestBody: string;
   rawProxyRequestHeaders: Record<string, string | string[] | undefined>;
+  rawProxyRequestUrl?: string;
   rawSentryResponseBody: string;
   sentryResponseStatusCode?: number;
 }
@@ -184,6 +185,7 @@ export async function startEventProxyServer(options: EventProxyServerOptions): P
       envelope: parseEnvelope(proxyRequestBody),
       rawProxyRequestBody: proxyRequestBody,
       rawProxyRequestHeaders: proxyRequest.headers,
+      rawProxyRequestUrl: proxyRequest.url,
       rawSentryResponseBody: '',
       sentryResponseStatusCode: 200,
     };
@@ -389,6 +391,74 @@ export function waitForTransaction(
       timestamp,
     ).catch(reject);
   });
+}
+
+interface SpotlightProxyServerOptions {
+  /** Port to start the spotlight proxy server at. */
+  port: number;
+  /** The name for the proxy server used for referencing it with listener functions */
+  proxyServerName: string;
+}
+
+/**
+ * Starts a proxy server that acts like a Spotlight sidecar.
+ * It accepts envelopes at /stream and allows tests to wait for them.
+ * Point the SDK's `spotlight` option or `SENTRY_SPOTLIGHT` env var to this server.
+ */
+export async function startSpotlightProxyServer(options: SpotlightProxyServerOptions): Promise<void> {
+  await startProxyServer(options, async (eventCallbackListeners, proxyRequest, proxyRequestBody, eventBuffer) => {
+    // Spotlight sends to /stream endpoint
+    const url = proxyRequest.url || '';
+    if (!url.includes('/stream')) {
+      // Return 404 for non-spotlight requests
+      return [404, 'Not Found', {}];
+    }
+
+    const data: SentryRequestCallbackData = {
+      envelope: parseEnvelope(proxyRequestBody),
+      rawProxyRequestBody: proxyRequestBody,
+      rawProxyRequestHeaders: proxyRequest.headers,
+      rawProxyRequestUrl: proxyRequest.url,
+      rawSentryResponseBody: '',
+      sentryResponseStatusCode: 200,
+    };
+
+    const dataString = Buffer.from(JSON.stringify(data)).toString('base64');
+
+    eventBuffer.push({ data: dataString, timestamp: getNanosecondTimestamp() });
+
+    eventCallbackListeners.forEach(listener => {
+      listener(dataString);
+    });
+
+    return [
+      200,
+      '{}',
+      {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type',
+      },
+    ];
+  });
+}
+
+/** Wait for an error to be sent to Spotlight. */
+export function waitForSpotlightError(
+  proxyServerName: string,
+  callback: (errorEvent: Event) => Promise<boolean> | boolean,
+): Promise<Event> {
+  // Reuse the same logic as waitForError - just uses a different proxy server name
+  return waitForError(proxyServerName, callback);
+}
+
+/** Wait for a transaction to be sent to Spotlight. */
+export function waitForSpotlightTransaction(
+  proxyServerName: string,
+  callback: (transactionEvent: Event) => Promise<boolean> | boolean,
+): Promise<Event> {
+  // Reuse the same logic as waitForTransaction - just uses a different proxy server name
+  return waitForTransaction(proxyServerName, callback);
 }
 
 const TEMP_FILE_PREFIX = 'event-proxy-server-';
