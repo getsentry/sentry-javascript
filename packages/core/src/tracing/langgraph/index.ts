@@ -8,6 +8,7 @@ import {
   GEN_AI_PIPELINE_NAME_ATTRIBUTE,
   GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE,
   GEN_AI_REQUEST_MESSAGES_ATTRIBUTE,
+  GEN_AI_REQUEST_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
 import { truncateGenAiMessages } from '../ai/messageTruncation';
 import type { LangChainMessage } from '../langchain/types';
@@ -128,7 +129,10 @@ function instrumentCompiledGraphInvoke(
             if (inputMessages && recordInputs) {
               const normalizedMessages = normalizeLangChainMessages(inputMessages);
               const truncatedMessages = truncateGenAiMessages(normalizedMessages);
-              span.setAttribute(GEN_AI_REQUEST_MESSAGES_ATTRIBUTE, JSON.stringify(truncatedMessages));
+              span.setAttributes({
+                [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: JSON.stringify(truncatedMessages),
+                [GEN_AI_REQUEST_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: normalizedMessages.length,
+              });
             }
 
             // Call original invoke

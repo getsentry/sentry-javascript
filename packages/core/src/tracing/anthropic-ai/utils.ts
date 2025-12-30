@@ -1,6 +1,11 @@
 import { captureException } from '../../exports';
 import { SPAN_STATUS_ERROR } from '../../tracing';
 import type { Span } from '../../types-hoist/span';
+import {
+  GEN_AI_REQUEST_MESSAGES_ATTRIBUTE,
+  GEN_AI_REQUEST_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
+} from '../ai/gen-ai-attributes';
+import { getTruncatedJsonString } from '../ai/utils';
 import { ANTHROPIC_AI_INSTRUMENTED_METHODS } from './constants';
 import type { AnthropicAiInstrumentedMethod, AnthropicAiResponse } from './types';
 
@@ -9,6 +14,23 @@ import type { AnthropicAiInstrumentedMethod, AnthropicAiResponse } from './types
  */
 export function shouldInstrument(methodPath: string): methodPath is AnthropicAiInstrumentedMethod {
   return ANTHROPIC_AI_INSTRUMENTED_METHODS.includes(methodPath as AnthropicAiInstrumentedMethod);
+}
+
+/**
+ * Set the messages and messages original length attributes.
+ */
+export function setMessagesAttribute(span: Span, messages: unknown): void {
+  if (Array.isArray(messages)) {
+    if (!messages.length) return;
+    span.setAttributes({
+      [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: getTruncatedJsonString(messages),
+      [GEN_AI_REQUEST_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: messages.length,
+    });
+  } else if (messages && typeof messages === 'string') {
+    span.setAttributes({
+      [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: getTruncatedJsonString(messages),
+    });
+  }
 }
 
 /**
