@@ -23,15 +23,23 @@ webpack(
       minimizer: [new TerserPlugin()],
     },
     plugins: [
-      // Use DefinePlugin to properly set process.env.* values
-      // Must also define 'process' so the typeof check works in browser
+      // Use DefinePlugin to properly set process and process.env values
+      // We need both:
+      // 1. 'process' defined so "typeof process !== 'undefined'" is true
+      // 2. 'process.env' with the values so they can be read
+      // DefinePlugin handles these correctly - more specific patterns take precedence
       new webpack.DefinePlugin({
-        'process.env.E2E_TEST_DSN': JSON.stringify(
-          process.env.E2E_TEST_DSN || 'https://public@dsn.ingest.sentry.io/1234567',
-        ),
-        'process.env.SENTRY_SPOTLIGHT': JSON.stringify('http://localhost:3032/stream'),
-        // Define process so "typeof process !== 'undefined'" is true in browser
-        process: JSON.stringify({ env: {} }),
+        'process.env': JSON.stringify({
+          E2E_TEST_DSN: process.env.E2E_TEST_DSN || 'https://public@dsn.ingest.sentry.io/1234567',
+          SENTRY_SPOTLIGHT: 'http://localhost:3032/stream',
+        }),
+        // Define 'process' object so typeof check works - must come after process.env
+        'process': JSON.stringify({
+          env: {
+            E2E_TEST_DSN: process.env.E2E_TEST_DSN || 'https://public@dsn.ingest.sentry.io/1234567',
+            SENTRY_SPOTLIGHT: 'http://localhost:3032/stream',
+          }
+        }),
       }),
       new HtmlWebpackPlugin({
         template: path.join(__dirname, 'public/index.html'),
