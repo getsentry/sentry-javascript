@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "@sentry/react": "latest || *",
+    "@sentry/browser": "latest || *",
     "@types/node": "^18.19.1",
     "typescript": "~5.0.0"
   },

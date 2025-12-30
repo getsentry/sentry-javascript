@@ -1,5 +1,4 @@
-import * as Sentry from '@sentry/react';
-import { spotlightBrowserIntegration } from '@sentry/browser';
+import * as Sentry from '@sentry/browser';
 
 // Initialize Sentry with DSN and tunnel for regular event capture.
 // We explicitly add spotlightBrowserIntegration to test that Spotlight
@@ -9,7 +8,7 @@ Sentry.init({
   integrations: [
     Sentry.browserTracingIntegration(),
     // Explicitly add Spotlight integration with the sidecar URL
-    spotlightBrowserIntegration({
+    Sentry.spotlightBrowserIntegration({
       sidecarUrl: 'http://localhost:3032/stream',
     }),
   ],
