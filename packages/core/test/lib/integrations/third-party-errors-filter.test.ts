@@ -368,7 +368,7 @@ describe('ThirdPartyErrorFilter', () => {
         const integration = thirdPartyErrorFilterIntegration({
           behaviour: 'drop-error-if-exclusively-contains-third-party-frames',
           filterKeys: ['some-key'],
-          experimentalExcludeSentryInternalFrames: true,
+          ignoreSentryInternalFrames: true,
         });
 
         const event = clone(eventWithThirdPartyAndSentryInternalFrames);
@@ -380,7 +380,7 @@ describe('ThirdPartyErrorFilter', () => {
         const integration = thirdPartyErrorFilterIntegration({
           behaviour: 'drop-error-if-exclusively-contains-third-party-frames',
           filterKeys: ['some-key'],
-          experimentalExcludeSentryInternalFrames: true,
+          ignoreSentryInternalFrames: true,
         });
 
         const event = clone(eventWithThirdPartySentryInternalAndFirstPartyFrames);
@@ -392,7 +392,7 @@ describe('ThirdPartyErrorFilter', () => {
         const integration = thirdPartyErrorFilterIntegration({
           behaviour: 'drop-error-if-exclusively-contains-third-party-frames',
           filterKeys: ['some-key'],
-          experimentalExcludeSentryInternalFrames: false,
+          ignoreSentryInternalFrames: false,
         });
 
         const event = clone(eventWithThirdPartyAndSentryInternalFrames);
@@ -419,7 +419,7 @@ describe('ThirdPartyErrorFilter', () => {
         const integration = thirdPartyErrorFilterIntegration({
           behaviour: 'drop-error-if-contains-third-party-frames',
           filterKeys: ['some-key'],
-          experimentalExcludeSentryInternalFrames: true,
+          ignoreSentryInternalFrames: true,
         });
 
         const event = clone(eventWithThirdPartyAndSentryInternalFrames);
@@ -431,7 +431,7 @@ describe('ThirdPartyErrorFilter', () => {
         const integration = thirdPartyErrorFilterIntegration({
           behaviour: 'drop-error-if-contains-third-party-frames',
           filterKeys: ['some-key'],
-          experimentalExcludeSentryInternalFrames: true,
+          ignoreSentryInternalFrames: true,
         });
 
         const event = clone(eventWithThirdPartySentryInternalAndFirstPartyFrames);
@@ -478,7 +478,7 @@ describe('ThirdPartyErrorFilter', () => {
         const integration = thirdPartyErrorFilterIntegration({
           behaviour: 'drop-error-if-exclusively-contains-third-party-frames',
           filterKeys: ['some-key'],
-          experimentalExcludeSentryInternalFrames: true,
+          ignoreSentryInternalFrames: true,
         });
 
         const event = clone(eventWithContextLine);
@@ -522,7 +522,7 @@ describe('ThirdPartyErrorFilter', () => {
         const integration = thirdPartyErrorFilterIntegration({
           behaviour: 'drop-error-if-exclusively-contains-third-party-frames',
           filterKeys: ['some-key'],
-          experimentalExcludeSentryInternalFrames: true,
+          ignoreSentryInternalFrames: true,
         });
 
         const event = clone(eventWithPreContext);
@@ -566,7 +566,7 @@ describe('ThirdPartyErrorFilter', () => {
         const integration = thirdPartyErrorFilterIntegration({
           behaviour: 'drop-error-if-exclusively-contains-third-party-frames',
           filterKeys: ['some-key'],
-          experimentalExcludeSentryInternalFrames: true,
+          ignoreSentryInternalFrames: true,
         });
 
         const event = clone(eventWithoutFnApply);
@@ -617,7 +617,7 @@ describe('ThirdPartyErrorFilter', () => {
         const integration = thirdPartyErrorFilterIntegration({
           behaviour: 'drop-error-if-exclusively-contains-third-party-frames',
           filterKeys: ['some-key'],
-          experimentalExcludeSentryInternalFrames: true,
+          ignoreSentryInternalFrames: true,
         });
 
         const event = clone(eventWithSentryFrameNotLast);
@@ -662,7 +662,7 @@ describe('ThirdPartyErrorFilter', () => {
         const integration = thirdPartyErrorFilterIntegration({
           behaviour: 'drop-error-if-exclusively-contains-third-party-frames',
           filterKeys: ['some-key'],
-          experimentalExcludeSentryInternalFrames: true,
+          ignoreSentryInternalFrames: true,
         });
 
         const event = clone(eventWithWrongFilename);

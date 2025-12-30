@@ -36,10 +36,10 @@ interface Options {
 
   /**
    * @experimental
-   * If set to true, the integration will exclude frames that are internal to the Sentry SDK from the third-party frame detection.
+   * If set to true, the integration will ignore frames that are internal to the Sentry SDK from the third-party frame detection.
    * Note that enabling this option might lead to errors being misclassified as third-party errors.
    */
-  experimentalExcludeSentryInternalFrames?: boolean;
+  ignoreSentryInternalFrames?: boolean;
 }
 
 /**
@@ -75,7 +75,7 @@ export const thirdPartyErrorFilterIntegration = defineIntegration((options: Opti
     },
 
     processEvent(event) {
-      const frameKeys = getBundleKeysForAllFramesWithFilenames(event, options.experimentalExcludeSentryInternalFrames);
+      const frameKeys = getBundleKeysForAllFramesWithFilenames(event, options.ignoreSentryInternalFrames);
 
       if (frameKeys) {
         const arrayMethod =
@@ -120,13 +120,11 @@ function isSentryInternalFrame(frame: StackFrame, frameIndex: number): boolean {
     return false;
   }
 
-  // Filename would look something like this: 'node_modules/@sentry/browser/build/npm/esm/helpers.js'
-  if (!frame.filename.includes('sentry') || !frame.filename.includes('helpers')) {
-    return false;
-  }
-
-  // Must have context_line with the exact fn.apply pattern (case-sensitive)
-  if (!frame.context_line.includes(SENTRY_INTERNAL_FN_APPLY)) {
+  if (
+    !frame.filename.includes('sentry') ||
+    !frame.filename.includes('helpers') || // Filename would look something like this: 'node_modules/@sentry/browser/build/npm/esm/helpers.js'
+    !frame.context_line.includes(SENTRY_INTERNAL_FN_APPLY) // Must have context_line with the exact fn.apply pattern
+  ) {
     return false;
   }
 
@@ -145,7 +143,7 @@ function isSentryInternalFrame(frame: StackFrame, frameIndex: number): boolean {
 
 function getBundleKeysForAllFramesWithFilenames(
   event: Event,
-  excludeSentryInternalFrames?: boolean,
+  ignoreSentryInternalFrames?: boolean,
 ): string[][] | undefined {
   const frames = getFramesFromEvent(event);
 
@@ -160,8 +158,8 @@ function getBundleKeysForAllFramesWithFilenames(
       if (!frame.filename || (frame.lineno == null && frame.colno == null)) {
         return false;
       }
-      // Optionally exclude Sentry internal frames
-      return !excludeSentryInternalFrames || !isSentryInternalFrame(frame, index);
+      // Optionally ignore Sentry internal frames
+      return !ignoreSentryInternalFrames || !isSentryInternalFrame(frame, index);
     })
     .map(frame => {
       if (!frame.module_metadata) {
