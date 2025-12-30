@@ -1,4 +1,5 @@
-import type { ScopeData } from '../scope';
+import { getGlobalScope } from '../currentScopes';
+import type { Scope, ScopeData } from '../scope';
 import { getDynamicSamplingContextFromSpan } from '../tracing/dynamicSamplingContext';
 import type { Breadcrumb } from '../types-hoist/breadcrumb';
 import type { Event } from '../types-hoist/event';
@@ -111,6 +112,20 @@ export function mergeArray<Prop extends 'breadcrumbs' | 'fingerprint'>(
 
   const merged = [...(prevVal || []), ...mergeVal] as ScopeData[Prop];
   event[prop] = merged.length ? merged : undefined;
+}
+
+/**
+ * Get the scope data for the current scope after merging with the
+ * global scope and isolation scope.
+ *
+ * @param currentScope - The current scope.
+ * @returns The scope data.
+ */
+export function getCombinedScopeData(isolationScope: Scope | undefined, currentScope: Scope | undefined): ScopeData {
+  const scopeData = getGlobalScope().getScopeData();
+  isolationScope && mergeScopeData(scopeData, isolationScope.getScopeData());
+  currentScope && mergeScopeData(scopeData, currentScope.getScopeData());
+  return scopeData;
 }
 
 function applyDataToEvent(event: Event, data: ScopeData): void {
