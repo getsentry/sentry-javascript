@@ -1,6 +1,16 @@
 import { expect, test } from '@playwright/test';
 import { waitForError, waitForSpotlightError, waitForSpotlightTransaction } from '@sentry-internal/test-utils';
 
+// Forward browser console messages to the test output for debugging
+test.beforeEach(async ({ page }) => {
+  page.on('console', msg => {
+    console.log(`[Browser Console] ${msg.type()}: ${msg.text()}`);
+  });
+  page.on('pageerror', error => {
+    console.log(`[Browser Error] ${error.message}`);
+  });
+});
+
 /**
  * Test that VITE_SENTRY_SPOTLIGHT environment variable automatically enables Spotlight.
  *
