@@ -2,12 +2,16 @@ import { expect, test } from '@playwright/test';
 import { waitForError, waitForSpotlightError, waitForSpotlightTransaction } from '@sentry-internal/test-utils';
 
 /**
- * Test that VITE_SENTRY_SPOTLIGHT environment variable enables Spotlight integration.
+ * Test that Spotlight integration correctly sends events to the sidecar.
  *
  * This test verifies that:
- * 1. The SDK automatically parses VITE_SENTRY_SPOTLIGHT env var via import.meta.env
- * 2. The SDK enables Spotlight without explicit configuration
+ * 1. The VITE_SENTRY_SPOTLIGHT env var is correctly parsed by Vite
+ * 2. The spotlightBrowserIntegration correctly sends events to the sidecar URL
  * 3. Events are sent to both the tunnel AND the Spotlight sidecar URL
+ *
+ * Note: The automatic Spotlight enablement via env var only works with SDK dev builds
+ * (spotlight code is stripped from prod builds). For E2E testing, we explicitly add
+ * the integration with the URL from the env var to test the integration functionality.
  *
  * Test setup:
  * - VITE_SENTRY_SPOTLIGHT is set to 'http://localhost:3032/stream' at build time
@@ -15,7 +19,7 @@ import { waitForError, waitForSpotlightError, waitForSpotlightTransaction } from
  * - A Spotlight proxy server runs on port 3032 to capture Spotlight events
  * - A regular event proxy server runs on port 3031 to capture tunnel events
  */
-test('VITE_SENTRY_SPOTLIGHT env var enables Spotlight and events are sent to sidecar', async ({ page }) => {
+test('Spotlight integration sends error events to sidecar', async ({ page }) => {
   // Capture console logs for debugging
   page.on('console', msg => {
     console.log(`[Browser Console] ${msg.type()}: ${msg.text()}`);
@@ -55,7 +59,7 @@ test('VITE_SENTRY_SPOTLIGHT env var enables Spotlight and events are sent to sid
 /**
  * Test that Spotlight receives transaction events as well.
  */
-test('VITE_SENTRY_SPOTLIGHT sends transactions to sidecar', async ({ page }) => {
+test('Spotlight integration sends transactions to sidecar', async ({ page }) => {
   // Capture console logs for debugging
   page.on('console', msg => {
     console.log(`[Browser Console] ${msg.type()}: ${msg.text()}`);
