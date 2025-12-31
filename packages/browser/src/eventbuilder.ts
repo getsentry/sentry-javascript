@@ -8,6 +8,7 @@ import type {
   StackParser,
 } from '@sentry/core';
 import {
+  _INTERNAL_enhanceErrorWithSentryInfo,
   addExceptionMechanism,
   addExceptionTypeValue,
   extractExceptionKeysForMessage,
@@ -212,10 +213,10 @@ export function extractMessage(ex: Error & { message: { error?: Error } }): stri
   }
 
   if (message.error && typeof message.error.message === 'string') {
-    return message.error.message;
+    return _INTERNAL_enhanceErrorWithSentryInfo(message.error);
   }
 
-  return message;
+  return _INTERNAL_enhanceErrorWithSentryInfo(ex);
 }
 
 /**
