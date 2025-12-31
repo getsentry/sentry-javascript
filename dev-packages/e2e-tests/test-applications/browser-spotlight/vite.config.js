@@ -11,6 +11,14 @@ export default defineConfig({
   preview: {
     port: 3030,
   },
+  resolve: {
+    // Use 'development' condition to resolve SDK packages to their dev builds
+    // This is necessary because Spotlight integration code is stripped from production builds
+    // The @sentry/browser package exports different builds via conditional exports:
+    // - production (default): Spotlight code stripped
+    // - development: Spotlight code included
+    conditions: ['development'],
+  },
   define: {
     // Define env vars for the E2E test
     // VITE_SENTRY_SPOTLIGHT is read automatically by @sentry/react via import.meta.env
