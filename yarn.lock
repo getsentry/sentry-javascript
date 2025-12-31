@@ -3364,7 +3364,7 @@
     lodash "^4.17.21"
     resolve "^1.20.0"
 
-"@emnapi/core@^1.1.0", "@emnapi/core@^1.4.3", "@emnapi/core@^1.7.1":
+"@emnapi/core@^1.1.0", "@emnapi/core@^1.4.3":
   version "1.8.1"
   resolved "https://registry.yarnpkg.com/@emnapi/core/-/core-1.8.1.tgz#fd9efe721a616288345ffee17a1f26ac5dd01349"
   integrity sha512-AvT9QFpxK0Zd8J0jopedNm+w/2fIzvtPKPjqyw9jwvBaReTTqPBk9Hixaz7KbjimP+QNz605/XnjFcDAL2pqBg==
@@ -3372,10 +3372,25 @@
     "@emnapi/wasi-threads" "1.1.0"
     tslib "^2.4.0"
 
-"@emnapi/runtime@^1.1.0", "@emnapi/runtime@^1.4.3", "@emnapi/runtime@^1.7.0", "@emnapi/runtime@^1.7.1":
+"@emnapi/core@^1.7.1":
+  version "1.7.1"
+  resolved "https://registry.yarnpkg.com/@emnapi/core/-/core-1.7.1.tgz#3a79a02dbc84f45884a1806ebb98e5746bdfaac4"
+  integrity sha512-o1uhUASyo921r2XtHYOHy7gdkGLge8ghBEQHMWmyJFoXlpU58kIrhhN3w26lpQb6dspetweapMn2CSNwQ8I4wg==
+  dependencies:
+    "@emnapi/wasi-threads" "1.1.0"
+    tslib "^2.4.0"
+
+"@emnapi/runtime@^1.1.0", "@emnapi/runtime@^1.4.3", "@emnapi/runtime@^1.7.0":
   version "1.8.1"
   resolved "https://registry.yarnpkg.com/@emnapi/runtime/-/runtime-1.8.1.tgz#550fa7e3c0d49c5fb175a116e8cd70614f9a22a5"
   integrity sha512-mehfKSMWjjNol8659Z8KxEMrdSJDDot5SXMq00dM8BN4o+CLNXQ0xH2V7EchNHV4RmbZLmmPdEaXZc5H2FXmDg==
+  dependencies:
+    tslib "^2.4.0"
+
+"@emnapi/runtime@^1.7.1":
+  version "1.7.1"
+  resolved "https://registry.yarnpkg.com/@emnapi/runtime/-/runtime-1.7.1.tgz#a73784e23f5d57287369c808197288b52276b791"
+  integrity sha512-PVtJr5CmLwYAU9PZDMITZoR5iAOShYREoR45EyyLrbntV50mdePTgUn4AmOw90Ifcj+x2kRjdzr1HP3RrNiHGA==
   dependencies:
     tslib "^2.4.0"
 
@@ -29525,7 +29540,7 @@ undici-types@~6.20.0:
   resolved "https://registry.yarnpkg.com/undici-types/-/undici-types-6.20.0.tgz#8171bf22c1f588d1554d55bf204bc624af388433"
   integrity sha512-Ny6QZ2Nju20vw1SRHe3d9jVu6gJ+4e3+MMpqu7pqE5HT6WsTSlce++GQmK5UXS8mzV8DSYHrQH+Xrf2jVcuKNg==
 
-undici@7.18.2, undici@^7.16.0:
+undici@7.18.2:
   version "7.18.2"
   resolved "https://registry.yarnpkg.com/undici/-/undici-7.18.2.tgz#6cf724ef799a67d94fd55adf66b1e184176efcdf"
   integrity sha512-y+8YjDFzWdQlSE9N5nzKMT3g4a5UBX1HKowfdXh0uvAnTaqqwqB92Jt4UXBAeKekDs5IaDKyJFR4X1gYVCgXcw==
@@ -29541,6 +29556,11 @@ undici@^6.21.2, undici@^6.23.0:
   version "6.23.0"
   resolved "https://registry.yarnpkg.com/undici/-/undici-6.23.0.tgz#7953087744d9095a96f115de3140ca3828aff3a4"
   integrity sha512-VfQPToRA5FZs/qJxLIinmU59u0r7LXqoJkCzinq3ckNJp3vKEh7jTWN589YQ5+aoAC/TGRLyJLCPKcLQbM8r9g==
+
+undici@^7.16.0:
+  version "7.16.0"
+  resolved "https://registry.yarnpkg.com/undici/-/undici-7.16.0.tgz#cb2a1e957726d458b536e3f076bf51f066901c1a"
+  integrity sha512-QEg3HPMll0o3t2ourKwOeUAZ159Kn9mx5pnzHRQO8+Wixmh88YdZRiIwat0iNzNNXn0yoEtXJqFpyW7eM8BV7g==
 
 unenv@2.0.0-rc.24, unenv@^2.0.0-rc.18, unenv@^2.0.0-rc.24:
   version "2.0.0-rc.24"
