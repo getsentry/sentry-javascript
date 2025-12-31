@@ -1,25 +1,21 @@
 import * as Sentry from '@sentry/react';
 
-// Log debug info about the Spotlight env var and SDK state
+// Log debug info about the Spotlight env var
 console.log('[E2E Debug] VITE_SENTRY_SPOTLIGHT:', import.meta.env.VITE_SENTRY_SPOTLIGHT);
 console.log('[E2E Debug] VITE_E2E_TEST_DSN:', import.meta.env.VITE_E2E_TEST_DSN);
 
-// Get the Spotlight URL from env var (this is what the SDK should do automatically)
-const spotlightUrl = import.meta.env.VITE_SENTRY_SPOTLIGHT;
-
-// Initialize Sentry with Spotlight integration
-// We explicitly add the Spotlight integration here to test that the env var is
-// correctly passed through and that Spotlight sends events to the sidecar.
+// Initialize Sentry - the @sentry/react SDK automatically parses
+// VITE_SENTRY_SPOTLIGHT from import.meta.env (zero-config for Vite!)
+// This tests the automatic SDK initialization feature.
+//
+// NOTE: We do NOT explicitly set `spotlight` or add `spotlightBrowserIntegration`!
+// The SDK should automatically:
+// 1. Read VITE_SENTRY_SPOTLIGHT from import.meta.env
+// 2. Enable Spotlight with the URL from the env var
+// 3. Add the spotlightBrowserIntegration to send events to the sidecar
 const client = Sentry.init({
   dsn: import.meta.env.VITE_E2E_TEST_DSN,
-  integrations: [
-    Sentry.browserTracingIntegration(),
-    // Explicitly add Spotlight integration - this is what the SDK would do
-    // automatically if using the dev build (spotlight code is stripped from prod builds)
-    Sentry.spotlightBrowserIntegration({
-      sidecarUrl: spotlightUrl,
-    }),
-  ],
+  integrations: [Sentry.browserTracingIntegration()],
   tracesSampleRate: 1.0,
   release: 'e2e-test',
   environment: 'qa',
@@ -28,12 +24,17 @@ const client = Sentry.init({
   debug: true,
 });
 
-// Debug: Check if Spotlight integration was added
+// Debug: Check if Spotlight integration was automatically added
 console.log('[E2E Debug] Sentry client:', client);
 const spotlightIntegration = client?.getIntegration?.('Spotlight');
-console.log('[E2E Debug] Spotlight integration:', spotlightIntegration);
+console.log('[E2E Debug] Spotlight integration (should be present):', spotlightIntegration);
 
-// Simple render without React DOM to keep dependencies minimal
+if (!spotlightIntegration) {
+  console.error('[E2E Debug] ERROR: Spotlight integration was NOT automatically added!');
+  console.error('[E2E Debug] This means the VITE_SENTRY_SPOTLIGHT env var support is not working.');
+}
+
+// Simple render
 document.getElementById('root').innerHTML = `
   <div>
     <h1>Spotlight E2E Test</h1>

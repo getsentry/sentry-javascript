@@ -2,24 +2,25 @@ import { expect, test } from '@playwright/test';
 import { waitForError, waitForSpotlightError, waitForSpotlightTransaction } from '@sentry-internal/test-utils';
 
 /**
- * Test that Spotlight integration correctly sends events to the sidecar.
+ * Test that VITE_SENTRY_SPOTLIGHT environment variable automatically enables Spotlight.
  *
  * This test verifies that:
- * 1. The VITE_SENTRY_SPOTLIGHT env var is correctly parsed by Vite
- * 2. The spotlightBrowserIntegration correctly sends events to the sidecar URL
+ * 1. The SDK automatically parses VITE_SENTRY_SPOTLIGHT env var via import.meta.env
+ * 2. The SDK enables Spotlight WITHOUT explicit configuration (zero-config for Vite!)
  * 3. Events are sent to both the tunnel AND the Spotlight sidecar URL
  *
- * Note: The automatic Spotlight enablement via env var only works with SDK dev builds
- * (spotlight code is stripped from prod builds). For E2E testing, we explicitly add
- * the integration with the URL from the env var to test the integration functionality.
+ * IMPORTANT: The test app does NOT explicitly add spotlightBrowserIntegration.
+ * The SDK should automatically enable Spotlight when VITE_SENTRY_SPOTLIGHT is set.
  *
  * Test setup:
+ * - Vite is configured with mode: 'development' to use SDK dev builds
+ *   (Spotlight code is stripped from prod builds)
  * - VITE_SENTRY_SPOTLIGHT is set to 'http://localhost:3032/stream' at build time
  * - tunnel is set to 'http://localhost:3031' for regular event capture
  * - A Spotlight proxy server runs on port 3032 to capture Spotlight events
  * - A regular event proxy server runs on port 3031 to capture tunnel events
  */
-test('Spotlight integration sends error events to sidecar', async ({ page }) => {
+test('VITE_SENTRY_SPOTLIGHT env var automatically enables Spotlight', async ({ page }) => {
   // Capture console logs for debugging
   page.on('console', msg => {
     console.log(`[Browser Console] ${msg.type()}: ${msg.text()}`);
@@ -57,9 +58,9 @@ test('Spotlight integration sends error events to sidecar', async ({ page }) => 
 });
 
 /**
- * Test that Spotlight receives transaction events as well.
+ * Test that Spotlight automatically receives transaction events.
  */
-test('Spotlight integration sends transactions to sidecar', async ({ page }) => {
+test('VITE_SENTRY_SPOTLIGHT automatically sends transactions to sidecar', async ({ page }) => {
   // Capture console logs for debugging
   page.on('console', msg => {
     console.log(`[Browser Console] ${msg.type()}: ${msg.text()}`);
