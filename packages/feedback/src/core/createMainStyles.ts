@@ -71,7 +71,7 @@ export function createMainStyles({
   font-family: var(--font-family);
   font-size: var(--font-size);
 
-  ${colorScheme !== 'system' ? 'color-scheme: only light;' : ''}
+  ${colorScheme !== 'system' ? `color-scheme: only ${colorScheme};` : ''}
 
   ${getThemedCssVariables(
     colorScheme === 'dark' ? { ...DEFAULT_DARK, ...themeDark } : { ...DEFAULT_LIGHT, ...themeLight },
@@ -83,11 +83,12 @@ ${
     ? `
 @media (prefers-color-scheme: dark) {
   :host {
+    color-scheme: only dark;
+
     ${getThemedCssVariables({ ...DEFAULT_DARK, ...themeDark })}
   }
 }`
     : ''
-}
 }
 `;
 
