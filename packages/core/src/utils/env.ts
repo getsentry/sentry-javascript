@@ -31,5 +31,5 @@ export function isBrowserBundle(): boolean {
  */
 export function getSDKSource(): SdkSource {
   // This comment is used to identify this line in the CDN bundle build step and replace this with "return 'cdn';"
-  /* __SENTRY_SDK_SOURCE__ */ return 'npm';
+  /*! __SENTRY_SDK_SOURCE__ */ return 'npm';
 }
