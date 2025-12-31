@@ -2,26 +2,26 @@
   "name": "browser-spotlight-test-app",
   "version": "0.1.0",
   "private": true,
-  "dependencies": {
-    "@sentry/browser": "latest || *",
-    "@types/node": "^18.19.1",
-    "typescript": "~5.0.0"
-  },
+  "type": "module",
   "scripts": {
-    "start": "serve -s build",
-    "build": "node build.mjs",
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview --port 3030",
     "test": "playwright test",
     "clean": "npx rimraf node_modules pnpm-lock.yaml",
     "test:build": "pnpm install && pnpm build",
     "test:assert": "pnpm test"
   },
+  "dependencies": {
+    "@sentry/react": "latest || *",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
   "devDependencies": {
     "@playwright/test": "~1.56.0",
     "@sentry-internal/test-utils": "link:../../../test-utils",
-    "webpack": "^5.91.0",
-    "serve": "14.0.1",
-    "terser-webpack-plugin": "^5.3.10",
-    "html-webpack-plugin": "^5.6.0"
+    "@vitejs/plugin-react": "^4.2.1",
+    "vite": "~5.4.0"
   },
   "volta": {
     "extends": "../../package.json"

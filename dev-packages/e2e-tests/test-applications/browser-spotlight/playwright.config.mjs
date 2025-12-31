@@ -1,7 +1,7 @@
 import { getPlaywrightConfig } from '@sentry-internal/test-utils';
 
 const config = getPlaywrightConfig({
-  startCommand: `pnpm start`,
+  startCommand: `pnpm preview`,
 });
 
 // Add the Spotlight proxy server as an additional webServer

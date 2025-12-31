@@ -1,0 +1,46 @@
+import * as Sentry from '@sentry/react';
+
+// Initialize Sentry - the @sentry/react SDK automatically parses
+// VITE_SENTRY_SPOTLIGHT from import.meta.env (zero-config for Vite!)
+// This tests the automatic SDK initialization feature.
+Sentry.init({
+  dsn: import.meta.env.VITE_E2E_TEST_DSN,
+  integrations: [Sentry.browserTracingIntegration()],
+  tracesSampleRate: 1.0,
+  release: 'e2e-test',
+  environment: 'qa',
+  // Use tunnel to capture events at our proxy server
+  tunnel: 'http://localhost:3031',
+  // NOTE: We intentionally do NOT set `spotlight` here!
+  // The SDK should automatically parse VITE_SENTRY_SPOTLIGHT env var
+  // and enable Spotlight with the URL from the env var
+});
+
+function App() {
+  const handleClick = () => {
+    throw new Error('Spotlight test error!');
+  };
+
+  return (
+    <div>
+      <h1>Spotlight E2E Test</h1>
+      <p>This page tests that VITE_SENTRY_SPOTLIGHT env var enables Spotlight integration.</p>
+      <button id="exception-button" onClick={handleClick}>
+        Trigger Error
+      </button>
+    </div>
+  );
+}
+
+// Simple render without React DOM to keep dependencies minimal
+document.getElementById('root').innerHTML = `
+  <div>
+    <h1>Spotlight E2E Test</h1>
+    <p>This page tests that VITE_SENTRY_SPOTLIGHT env var enables Spotlight integration.</p>
+    <button id="exception-button">Trigger Error</button>
+  </div>
+`;
+
+document.getElementById('exception-button').addEventListener('click', () => {
+  throw new Error('Spotlight test error!');
+});
