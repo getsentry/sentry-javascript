@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "VITE_SENTRY_SPOTLIGHT=http://localhost:3032/stream VITE_E2E_TEST_DSN=${E2E_TEST_DSN:-https://public@dsn.ingest.sentry.io/1234567} vite build",
     "preview": "vite preview --port 3030",
     "test": "playwright test",
     "clean": "npx rimraf node_modules pnpm-lock.yaml",
@@ -19,7 +19,6 @@
   },
   "devDependencies": {
     "@playwright/test": "~1.56.0",
-    "@rollup/plugin-replace": "^5.0.5",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "@vitejs/plugin-react": "^4.2.1",
     "vite": "~5.4.0"
