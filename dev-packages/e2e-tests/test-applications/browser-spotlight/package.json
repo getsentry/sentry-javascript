@@ -19,6 +19,7 @@
   },
   "devDependencies": {
     "@playwright/test": "~1.56.0",
+    "@rollup/plugin-replace": "^5.0.5",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "@vitejs/plugin-react": "^4.2.1",
     "vite": "~5.4.0"
