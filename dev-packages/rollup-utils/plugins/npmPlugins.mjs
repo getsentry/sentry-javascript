@@ -170,18 +170,25 @@ export function makeRrwebBuildPlugin({ excludeShadowDom, excludeIframe } = {}) {
 
 /**
  * Creates a plugin to replace __VITE_SPOTLIGHT_ENV__ with the appropriate value based on output format.
- * - ESM: import.meta.env?.VITE_SENTRY_SPOTLIGHT (allows Vite to provide zero-config Spotlight support)
+ * - ESM: import.meta.env.VITE_SENTRY_SPOTLIGHT (allows Vite to provide zero-config Spotlight support)
  * - CJS: undefined (import.meta is not available in CJS)
+ *
+ * Note: We don't use optional chaining (?.) here because Vite's static replacement only works on
+ * exact matches of `import.meta.env.VITE_*`. The guard is done via __IMPORT_META_ENV_EXISTS__.
  *
  * @param format The output format ('esm' or 'cjs')
  * @returns A `@rollup/plugin-replace` instance.
  */
 export function makeViteSpotlightEnvReplacePlugin(format) {
-  const value = format === 'esm' ? 'import.meta.env?.VITE_SENTRY_SPOTLIGHT' : 'undefined';
+  const isEsm = format === 'esm';
   return replace({
     preventAssignment: true,
     values: {
-      __VITE_SPOTLIGHT_ENV__: value,
+      // In ESM, check if import.meta.env exists (using typeof for safety)
+      // In CJS, import.meta is not available so this is always false
+      __IMPORT_META_ENV_EXISTS__: isEsm ? "(typeof import.meta !== 'undefined' && import.meta.env)" : 'false',
+      // The actual env var value - only accessed if __IMPORT_META_ENV_EXISTS__ is truthy
+      __VITE_SPOTLIGHT_ENV__: isEsm ? 'import.meta.env.VITE_SENTRY_SPOTLIGHT' : 'undefined',
     },
   });
 }

@@ -5,9 +5,15 @@ import { applySdkMetadata, parseSpotlightEnvValue, resolveSpotlightValue } from 
 import { version } from 'react';
 
 // Build-time placeholder - Rollup replaces per output format
-// ESM: import.meta.env?.VITE_SENTRY_SPOTLIGHT (zero-config for Vite)
+// ESM: import.meta.env.VITE_SENTRY_SPOTLIGHT (zero-config for Vite)
 // CJS: undefined
+// Note: We don't use optional chaining (?.) because Vite only does static replacement
+// on exact matches of import.meta.env.VITE_*
 declare const __VITE_SPOTLIGHT_ENV__: string | undefined;
+
+// Vite exposes env vars via import.meta.env - check if it exists
+// We use typeof to avoid throwing if import.meta is undefined
+declare const __IMPORT_META_ENV_EXISTS__: boolean;
 
 /**
  * Inits the React SDK
@@ -23,7 +29,7 @@ export function init(options: BrowserOptions): Client | undefined {
   // 3. import.meta.env.VITE_SENTRY_SPOTLIGHT (ESM only, zero-config for Vite!)
   const spotlightEnvRaw =
     (typeof process !== 'undefined' && (process.env?.SENTRY_SPOTLIGHT || process.env?.VITE_SENTRY_SPOTLIGHT)) ||
-    (typeof __VITE_SPOTLIGHT_ENV__ !== 'undefined' && __VITE_SPOTLIGHT_ENV__) ||
+    (__IMPORT_META_ENV_EXISTS__ && __VITE_SPOTLIGHT_ENV__) ||
     undefined;
 
   if (spotlightEnvRaw) {
