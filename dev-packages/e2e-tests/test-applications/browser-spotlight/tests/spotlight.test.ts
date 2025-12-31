@@ -16,6 +16,11 @@ import { waitForError, waitForSpotlightError, waitForSpotlightTransaction } from
  * - A regular event proxy server runs on port 3031 to capture tunnel events
  */
 test('VITE_SENTRY_SPOTLIGHT env var enables Spotlight and events are sent to sidecar', async ({ page }) => {
+  // Capture console logs for debugging
+  page.on('console', msg => {
+    console.log(`[Browser Console] ${msg.type()}: ${msg.text()}`);
+  });
+
   // Wait for the error to arrive at the regular tunnel (port 3031)
   const tunnelErrorPromise = waitForError('browser-spotlight', event => {
     return !event.type && event.exception?.values?.[0]?.value === 'Spotlight test error!';
@@ -51,6 +56,11 @@ test('VITE_SENTRY_SPOTLIGHT env var enables Spotlight and events are sent to sid
  * Test that Spotlight receives transaction events as well.
  */
 test('VITE_SENTRY_SPOTLIGHT sends transactions to sidecar', async ({ page }) => {
+  // Capture console logs for debugging
+  page.on('console', msg => {
+    console.log(`[Browser Console] ${msg.type()}: ${msg.text()}`);
+  });
+
   // Wait for a pageload transaction to arrive at the Spotlight sidecar
   const spotlightTransactionPromise = waitForSpotlightTransaction('browser-spotlight-sidecar', event => {
     return event.type === 'transaction' && event.contexts?.trace?.op === 'pageload';
