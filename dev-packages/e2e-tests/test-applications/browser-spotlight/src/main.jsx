@@ -3,6 +3,7 @@ import * as Sentry from '@sentry/react';
 // Log debug info about the Spotlight env var
 console.log('[E2E Debug] VITE_SENTRY_SPOTLIGHT:', import.meta.env.VITE_SENTRY_SPOTLIGHT);
 console.log('[E2E Debug] VITE_E2E_TEST_DSN:', import.meta.env.VITE_E2E_TEST_DSN);
+console.log('[E2E Debug] Full import.meta.env:', JSON.stringify(import.meta.env));
 
 // Initialize Sentry - the @sentry/react SDK automatically parses
 // VITE_SENTRY_SPOTLIGHT from import.meta.env (zero-config for Vite!)
@@ -22,12 +23,22 @@ const client = Sentry.init({
   // Use tunnel to capture events at our proxy server
   tunnel: 'http://localhost:3031',
   debug: true,
+  // DEBUG: Log the options to see if spotlight is set
+  beforeSend(event) {
+    console.log('[E2E Debug] beforeSend called, event type:', event.type || 'error');
+    return event;
+  },
 });
 
 // Debug: Check if Spotlight integration was automatically added
 console.log('[E2E Debug] Sentry client:', client);
+console.log('[E2E Debug] Client options:', client?.getOptions?.());
 const spotlightIntegration = client?.getIntegration?.('Spotlight');
 console.log('[E2E Debug] Spotlight integration (should be present):', spotlightIntegration);
+
+// List all integrations
+const allIntegrations = client?.getOptions?.()?.integrations || [];
+console.log('[E2E Debug] All integrations:', allIntegrations.map(i => i.name).join(', '));
 
 if (!spotlightIntegration) {
   console.error('[E2E Debug] ERROR: Spotlight integration was NOT automatically added!');
