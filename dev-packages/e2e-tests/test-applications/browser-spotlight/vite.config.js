@@ -7,6 +7,12 @@ export default defineConfig({
   build: {
     // Output to 'build' directory to match existing setup
     outDir: 'build',
+    // Don't minify to help with debugging
+    minify: false,
+    // Bundle Sentry packages so we can control the resolution
+    rollupOptions: {
+      // Force rollup to resolve with our conditions
+    },
   },
   preview: {
     port: 3030,
@@ -18,6 +24,11 @@ export default defineConfig({
     // - production (default): Spotlight code stripped
     // - development: Spotlight code included
     conditions: ['development'],
+  },
+  // Disable pre-bundling (esbuild) for Sentry packages
+  // This ensures Vite uses our resolve.conditions when bundling
+  optimizeDeps: {
+    exclude: ['@sentry/react', '@sentry/browser', '@sentry/core', '@sentry-internal/browser-utils'],
   },
   define: {
     // Define env vars for the E2E test
