@@ -23,21 +23,27 @@ const initOptions = {
   debug: true,
 };
 
-console.log('[E2E Debug] Init options BEFORE Sentry.init:', JSON.stringify({
-  dsn: initOptions.dsn,
-  spotlight: initOptions.spotlight,
-  debug: initOptions.debug,
-}));
+console.log(
+  '[E2E Debug] Init options BEFORE Sentry.init:',
+  JSON.stringify({
+    dsn: initOptions.dsn,
+    spotlight: initOptions.spotlight,
+    debug: initOptions.debug,
+  }),
+);
 
 const client = Sentry.init(initOptions);
 
 // Debug: Check what the client received
 const clientOptions = client?.getOptions();
-console.log('[E2E Debug] Client options AFTER Sentry.init:', JSON.stringify({
-  dsn: clientOptions?.dsn,
-  spotlight: clientOptions?.spotlight,
-  debug: clientOptions?.debug,
-}));
+console.log(
+  '[E2E Debug] Client options AFTER Sentry.init:',
+  JSON.stringify({
+    dsn: clientOptions?.dsn,
+    spotlight: clientOptions?.spotlight,
+    debug: clientOptions?.debug,
+  }),
+);
 
 // Debug: Check if Spotlight integration was added
 const integrations = clientOptions?.integrations || [];

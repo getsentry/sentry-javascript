@@ -7,8 +7,10 @@ console.log('[Spotlight Proxy] Starting spotlight proxy server on port 3032...')
 startSpotlightProxyServer({
   port: 3032,
   proxyServerName: 'browser-spotlight-sidecar',
-}).then(() => {
-  console.log('[Spotlight Proxy] Server started successfully on port 3032');
-}).catch(err => {
-  console.error('[Spotlight Proxy] Failed to start server:', err);
-});
+})
+  .then(() => {
+    console.log('[Spotlight Proxy] Server started successfully on port 3032');
+  })
+  .catch(err => {
+    console.error('[Spotlight Proxy] Failed to start server:', err);
+  });
