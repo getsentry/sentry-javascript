@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build --mode development",
+    "build": "vite build",
     "preview": "vite preview --port 3030",
     "test": "playwright test",
     "clean": "npx rimraf node_modules pnpm-lock.yaml",
