@@ -1,4 +1,5 @@
 import type { NitroModule } from 'nitro/types';
+import { instrumentServer } from './instruments/instrumentServer';
 
 /**
  * Creates a Nitro module to setup the Sentry SDK.
@@ -6,8 +7,8 @@ import type { NitroModule } from 'nitro/types';
 export function createNitroModule(): NitroModule {
   return {
     name: 'sentry',
-    setup: _nitro => {
-      // TODO: Setup the Sentry SDK.
+    setup: nitro => {
+      instrumentServer(nitro);
     },
   };
 }
