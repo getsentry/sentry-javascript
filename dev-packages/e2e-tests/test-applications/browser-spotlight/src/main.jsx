@@ -7,14 +7,7 @@ console.log('[E2E Debug] MODE:', import.meta.env.MODE);
 
 // Initialize Sentry - the @sentry/react SDK automatically parses
 // VITE_SENTRY_SPOTLIGHT from import.meta.env (zero-config for Vite!)
-// This tests the automatic SDK initialization feature.
-//
-// NOTE: We do NOT explicitly set `spotlight` or add `spotlightBrowserIntegration`!
-// The SDK automatically:
-// 1. Reads VITE_SENTRY_SPOTLIGHT from import.meta.env
-// 2. Enables Spotlight with the URL from the env var
-// 3. Adds the spotlightBrowserIntegration to send events to the sidecar
-const client = Sentry.init({
+const initOptions = {
   dsn: import.meta.env.VITE_E2E_TEST_DSN,
   integrations: [Sentry.browserTracingIntegration()],
   tracesSampleRate: 1.0,
@@ -23,10 +16,26 @@ const client = Sentry.init({
   // Use tunnel to capture events at our proxy server
   tunnel: 'http://localhost:3031',
   debug: true,
-});
+};
+
+console.log('[E2E Debug] Init options BEFORE Sentry.init:', JSON.stringify({
+  dsn: initOptions.dsn,
+  spotlight: initOptions.spotlight,
+  debug: initOptions.debug,
+}));
+
+const client = Sentry.init(initOptions);
+
+// Debug: Check what the client received
+const clientOptions = client?.getOptions();
+console.log('[E2E Debug] Client options AFTER Sentry.init:', JSON.stringify({
+  dsn: clientOptions?.dsn,
+  spotlight: clientOptions?.spotlight,
+  debug: clientOptions?.debug,
+}));
 
 // Debug: Check if Spotlight integration was added
-const integrations = client?.getOptions()?.integrations || [];
+const integrations = clientOptions?.integrations || [];
 const integrationNames = integrations.map(i => i.name);
 console.log('[E2E Debug] Integrations:', integrationNames.join(', '));
 console.log('[E2E Debug] Has SpotlightBrowser:', integrationNames.includes('SpotlightBrowser'));
