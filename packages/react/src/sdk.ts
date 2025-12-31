@@ -11,10 +11,6 @@ import { version } from 'react';
 // on exact matches of import.meta.env.VITE_*
 declare const __VITE_SPOTLIGHT_ENV__: string | undefined;
 
-// Vite exposes env vars via import.meta.env - check if it exists
-// We use typeof to avoid throwing if import.meta is undefined
-declare const __IMPORT_META_ENV_EXISTS__: boolean;
-
 /**
  * Inits the React SDK
  */
@@ -27,9 +23,13 @@ export function init(options: BrowserOptions): Client | undefined {
   // 1. process.env.SENTRY_SPOTLIGHT (all bundlers, requires config)
   // 2. process.env.VITE_SENTRY_SPOTLIGHT (all bundlers, requires config)
   // 3. import.meta.env.VITE_SENTRY_SPOTLIGHT (ESM only, zero-config for Vite!)
+  //
+  // For option 3, Rollup replaces __VITE_SPOTLIGHT_ENV__ with import.meta.env.VITE_SENTRY_SPOTLIGHT
+  // Then Vite replaces that with the actual value or undefined at build time.
+  // We use typeof to check if the value exists, which works because Vite does static replacement.
   const spotlightEnvRaw =
     (typeof process !== 'undefined' && (process.env?.SENTRY_SPOTLIGHT || process.env?.VITE_SENTRY_SPOTLIGHT)) ||
-    (__IMPORT_META_ENV_EXISTS__ && __VITE_SPOTLIGHT_ENV__) ||
+    (typeof __VITE_SPOTLIGHT_ENV__ !== 'undefined' && __VITE_SPOTLIGHT_ENV__) ||
     undefined;
 
   if (spotlightEnvRaw) {

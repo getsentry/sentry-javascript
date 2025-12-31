@@ -136,9 +136,12 @@ describe('spotlight', () => {
       expect(code).toContain(SPOTLIGHT_URL);
     });
 
-    test(`${name} production bundle does not contain spotlight`, async () => {
+    // Spotlight is now included in production builds too (not dev-only)
+    // The integration is gated by the spotlight option, so there's no need
+    // to strip it from production builds
+    test(`${name} production bundle contains spotlight`, async () => {
       const code = await bundler('production');
-      expect(code).not.toContain(SPOTLIGHT_URL);
+      expect(code).toContain(SPOTLIGHT_URL);
     });
   }
 });
@@ -162,12 +165,13 @@ describe('__VITE_SPOTLIGHT_ENV__ rollup replacement', () => {
   }
 
   test.each(['react', 'vue', 'svelte', 'solid'] as const)(
-    '%s ESM bundle contains import.meta.env?.VITE_SENTRY_SPOTLIGHT access',
+    '%s ESM bundle contains import.meta.env.VITE_SENTRY_SPOTLIGHT access',
     packageName => {
       const code = stripComments(readSdkFile(packageName, 'esm'));
       // ESM bundles should have import.meta.env access for Vite support
-      // The replacement is: import.meta.env?.VITE_SENTRY_SPOTLIGHT
-      expect(code).toMatch(/import\.meta\.env\?\.[A-Z_]+SPOTLIGHT/);
+      // The replacement is: import.meta.env.VITE_SENTRY_SPOTLIGHT (without optional chaining)
+      // so that Vite can properly do static replacement at build time
+      expect(code).toMatch(/import\.meta\.env\.[A-Z_]+SPOTLIGHT/);
     },
   );
 

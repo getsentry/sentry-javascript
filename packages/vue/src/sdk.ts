@@ -5,8 +5,10 @@ import { vueIntegration } from './integration';
 import type { Options } from './types';
 
 // Build-time placeholder - Rollup replaces per output format
-// ESM: import.meta.env?.VITE_SENTRY_SPOTLIGHT (zero-config for Vite)
+// ESM: import.meta.env.VITE_SENTRY_SPOTLIGHT (zero-config for Vite)
 // CJS: undefined
+// Note: We don't use optional chaining (?.) because Vite only does static replacement
+// on exact matches of import.meta.env.VITE_*
 declare const __VITE_SPOTLIGHT_ENV__: string | undefined;
 
 /**

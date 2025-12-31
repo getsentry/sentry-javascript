@@ -174,7 +174,7 @@ export function makeRrwebBuildPlugin({ excludeShadowDom, excludeIframe } = {}) {
  * - CJS: undefined (import.meta is not available in CJS)
  *
  * Note: We don't use optional chaining (?.) here because Vite's static replacement only works on
- * exact matches of `import.meta.env.VITE_*`. The guard is done via __IMPORT_META_ENV_EXISTS__.
+ * exact matches of `import.meta.env.VITE_*`. The SDK code uses typeof to guard against undefined.
  *
  * @param format The output format ('esm' or 'cjs')
  * @returns A `@rollup/plugin-replace` instance.
@@ -184,10 +184,8 @@ export function makeViteSpotlightEnvReplacePlugin(format) {
   return replace({
     preventAssignment: true,
     values: {
-      // In ESM, check if import.meta.env exists (using typeof for safety)
-      // In CJS, import.meta is not available so this is always false
-      __IMPORT_META_ENV_EXISTS__: isEsm ? "(typeof import.meta !== 'undefined' && import.meta.env)" : 'false',
-      // The actual env var value - only accessed if __IMPORT_META_ENV_EXISTS__ is truthy
+      // ESM: Replace with import.meta.env.VITE_SENTRY_SPOTLIGHT for Vite zero-config support
+      // CJS: Replace with undefined since import.meta is not available
       __VITE_SPOTLIGHT_ENV__: isEsm ? 'import.meta.env.VITE_SENTRY_SPOTLIGHT' : 'undefined',
     },
   });
