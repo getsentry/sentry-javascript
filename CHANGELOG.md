@@ -4,6 +4,24 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+Work in this release was contributed by @xgedev, @Mohataseem89, @sebws, and @G-Rath. Thank you for your contributions!
+
+- ref(nextjs): Drop `resolve` dependency from the Next.js SDK ([#18618](https://github.com/getsentry/sentry-javascript/pull/18618))
+
+## 10.32.1
+
+- fix(cloudflare): Add hono transaction name when error is thrown ([#18529](https://github.com/getsentry/sentry-javascript/pull/18529))
+- fix(ember): Make `implementation` field optional (`hash` routes) ([#18564](https://github.com/getsentry/sentry-javascript/pull/18564))
+- fix(vercelai): Fix input token count ([#18574](https://github.com/getsentry/sentry-javascript/pull/18574))
+
+<details>
+  <summary> <strong>Internal Changes</strong> </summary>
+
+- chore(lint): prefer 'unknown' to 'any', fix lint warnings
+- chore(test): Remove `cloudflare-astro` e2e test ([#18567](https://github.com/getsentry/sentry-javascript/pull/18567))
+
+</details>
+
 ## 10.32.0
 
 ### Important Changes

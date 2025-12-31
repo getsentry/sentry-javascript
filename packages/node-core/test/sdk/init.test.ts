@@ -111,6 +111,64 @@ describe('init()', () => {
     expect(client).toBeInstanceOf(NodeClient);
   });
 
+  it('registers a SIGTERM handler on Vercel', () => {
+    const originalVercelEnv = process.env.VERCEL;
+    process.env.VERCEL = '1';
+
+    const baselineListeners = process.listeners('SIGTERM');
+
+    init({ dsn: PUBLIC_DSN, skipOpenTelemetrySetup: true });
+
+    const postInitListeners = process.listeners('SIGTERM');
+    const addedListeners = postInitListeners.filter(l => !baselineListeners.includes(l));
+
+    expect(addedListeners).toHaveLength(1);
+
+    // Cleanup: remove the handler we added in this test.
+    process.off('SIGTERM', addedListeners[0] as any);
+    process.env.VERCEL = originalVercelEnv;
+  });
+
+  it('flushes when SIGTERM is received on Vercel', () => {
+    const originalVercelEnv = process.env.VERCEL;
+    process.env.VERCEL = '1';
+
+    const baselineListeners = process.listeners('SIGTERM');
+
+    const client = init({ dsn: PUBLIC_DSN, skipOpenTelemetrySetup: true });
+    expect(client).toBeInstanceOf(NodeClient);
+
+    const flushSpy = vi.spyOn(client as NodeClient, 'flush').mockResolvedValue(true);
+
+    const postInitListeners = process.listeners('SIGTERM');
+    const addedListeners = postInitListeners.filter(l => !baselineListeners.includes(l));
+    expect(addedListeners).toHaveLength(1);
+
+    process.emit('SIGTERM');
+
+    expect(flushSpy).toHaveBeenCalledWith(200);
+
+    // Cleanup: remove the handler we added in this test.
+    process.off('SIGTERM', addedListeners[0] as any);
+    process.env.VERCEL = originalVercelEnv;
+  });
+
+  it('does not register a SIGTERM handler when not running on Vercel', () => {
+    const originalVercelEnv = process.env.VERCEL;
+    delete process.env.VERCEL;
+
+    const baselineListeners = process.listeners('SIGTERM');
+
+    init({ dsn: PUBLIC_DSN, skipOpenTelemetrySetup: true });
+
+    const postInitListeners = process.listeners('SIGTERM');
+    const addedListeners = postInitListeners.filter(l => !baselineListeners.includes(l));
+
+    expect(addedListeners).toHaveLength(0);
+
+    process.env.VERCEL = originalVercelEnv;
+  });
+
   describe('environment variable options', () => {
     const originalProcessEnv = { ...process.env };
 

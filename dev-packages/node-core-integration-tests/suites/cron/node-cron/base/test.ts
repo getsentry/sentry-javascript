@@ -1,5 +1,5 @@
 import { afterAll, expect, test } from 'vitest';
-import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
+import { cleanupChildProcesses, createRunner } from '../../../../utils/runner';
 
 afterAll(() => {
   cleanupChildProcesses();
@@ -69,7 +69,15 @@ test('node-cron instrumentation', async () => {
     })
     .expect({
       event: {
-        exception: { values: [{ type: 'Error', value: 'Error in cron job' }] },
+        exception: {
+          values: [
+            {
+              type: 'Error',
+              value: 'Error in cron job',
+              mechanism: { type: 'auto.function.node-cron.instrumentNodeCron', handled: false },
+            },
+          ],
+        },
       },
     })
     .start()

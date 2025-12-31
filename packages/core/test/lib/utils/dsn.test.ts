@@ -1,12 +1,15 @@
 import { beforeEach, describe, expect, it, test, vi } from 'vitest';
-import { DEBUG_BUILD } from '../../../src/debug-build';
 import { debug } from '../../../src/utils/debug-logger';
 import { dsnToString, extractOrgIdFromClient, extractOrgIdFromDsnHost, makeDsn } from '../../../src/utils/dsn';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
 
-function testIf(condition: boolean) {
-  return condition ? test : test.skip;
-}
+let mockDebugBuild = true;
+
+vi.mock('../../../src/debug-build', () => ({
+  get DEBUG_BUILD() {
+    return mockDebugBuild;
+  },
+}));
 
 const loggerErrorSpy = vi.spyOn(debug, 'error').mockImplementation(() => {});
 const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -14,6 +17,7 @@ const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 describe('Dsn', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockDebugBuild = true;
   });
 
   describe('fromComponents', () => {
@@ -51,7 +55,7 @@ describe('Dsn', () => {
       expect(dsn?.projectId).toBe('123');
     });
 
-    testIf(DEBUG_BUILD)('returns `undefined` for missing components', () => {
+    it('returns `undefined` for missing components', () => {
       expect(
         makeDsn({
           host: '',
@@ -88,7 +92,7 @@ describe('Dsn', () => {
       expect(loggerErrorSpy).toHaveBeenCalledTimes(4);
     });
 
-    testIf(DEBUG_BUILD)('returns `undefined` if components are invalid', () => {
+    it('returns `undefined` if components are invalid', () => {
       expect(
         makeDsn({
           host: 'sentry.io',
@@ -167,12 +171,53 @@ describe('Dsn', () => {
       expect(dsn?.projectId).toBe('321');
     });
 
-    testIf(DEBUG_BUILD)('returns undefined when provided invalid Dsn', () => {
+    test('with IPv4 hostname', () => {
+      const dsn = makeDsn('https://abc@192.168.1.1/123');
+      expect(dsn?.protocol).toBe('https');
+      expect(dsn?.publicKey).toBe('abc');
+      expect(dsn?.pass).toBe('');
+      expect(dsn?.host).toBe('192.168.1.1');
+      expect(dsn?.port).toBe('');
+      expect(dsn?.path).toBe('');
+      expect(dsn?.projectId).toBe('123');
+    });
+
+    test.each([
+      '[2001:db8::1]',
+      '[::1]', // loopback
+      '[::ffff:192.0.2.1]', // IPv4-mapped IPv6 (contains dots)
+      '[fe80::1]', // link-local
+      '[2001:db8:85a3::8a2e:370:7334]', // compressed in middle
+      '[2001:db8::]', // trailing zeros compressed
+      '[2001:0db8:0000:0000:0000:0000:0000:0001]', // full form with leading zeros
+      '[fe80::1%eth0]', // zone identifier with interface name (contains percent sign)
+      '[fe80::1%25eth0]', // zone identifier URL-encoded (percent as %25)
+      '[fe80::a:b:c:d%en0]', // zone identifier with different interface
+    ])('with IPv6 hostname %s', hostname => {
+      const dsn = makeDsn(`https://abc@${hostname}/123`);
+      expect(dsn?.protocol).toBe('https');
+      expect(dsn?.publicKey).toBe('abc');
+      expect(dsn?.pass).toBe('');
+      expect(dsn?.host).toBe(hostname);
+      expect(dsn?.port).toBe('');
+      expect(dsn?.path).toBe('');
+      expect(dsn?.projectId).toBe('123');
+    });
+
+    test('skips validation for non-debug builds', () => {
+      mockDebugBuild = false;
+      const dsn = makeDsn('httx://abc@192.168.1.1/123');
+      expect(dsn?.protocol).toBe('httx');
+      expect(dsn?.publicKey).toBe('abc');
+      expect(dsn?.pass).toBe('');
+    });
+
+    it('returns undefined when provided invalid Dsn', () => {
       expect(makeDsn('some@random.dsn')).toBeUndefined();
       expect(consoleErrorSpy).toHaveBeenCalledTimes(1);
     });
 
-    testIf(DEBUG_BUILD)('returns undefined if mandatory fields are missing', () => {
+    it('returns undefined if mandatory fields are missing', () => {
       expect(makeDsn('://abc@sentry.io/123')).toBeUndefined();
       expect(makeDsn('https://@sentry.io/123')).toBeUndefined();
       expect(makeDsn('https://abc@123')).toBeUndefined();
@@ -180,7 +225,7 @@ describe('Dsn', () => {
       expect(consoleErrorSpy).toHaveBeenCalledTimes(4);
     });
 
-    testIf(DEBUG_BUILD)('returns undefined if fields are invalid', () => {
+    it('returns undefined if fields are invalid', () => {
       expect(makeDsn('httpx://abc@sentry.io/123')).toBeUndefined();
       expect(makeDsn('httpx://abc@sentry.io:xxx/123')).toBeUndefined();
       expect(makeDsn('http://abc@sentry.io/abc')).toBeUndefined();

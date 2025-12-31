@@ -7,6 +7,7 @@ export {
   waitForTransaction,
   waitForSession,
   waitForPlainRequest,
+  waitForMetric,
 } from './event-proxy-server';
 
 export { getPlaywrightConfig } from './playwright-config';

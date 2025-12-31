@@ -23,6 +23,9 @@ module.exports = {
     'types/**',
     'scripts/*.js',
   ],
+  rules: {
+    '@typescript-eslint/no-explicit-any': 'error',
+  },
   reportUnusedDisableDirectives: true,
   overrides: [
     {
@@ -35,6 +38,9 @@ module.exports = {
       files: ['test/**/*.ts', 'test/**/*.tsx'],
       parserOptions: {
         project: ['tsconfig.test.json'],
+      },
+      rules: {
+        '@typescript-eslint/no-explicit-any': 'off',
       },
     },
     {

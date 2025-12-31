@@ -57,6 +57,9 @@ type StartResult = {
 export function createRunner(...paths: string[]) {
   const testPath = join(...paths);
 
+  // controls whether envelopes are expected in predefined order or not
+  let unordered = false;
+
   if (!existsSync(testPath)) {
     throw new Error(`Test scenario not found: ${testPath}`);
   }
@@ -79,6 +82,10 @@ export function createRunner(...paths: string[]) {
       for (let i = 0; i < n; i++) {
         expectedEnvelopes.push(expected);
       }
+      return this;
+    },
+    unordered: function () {
+      unordered = true;
       return this;
     },
     ignore: function (...types: EnvelopeItemType[]) {
@@ -107,6 +114,14 @@ export function createRunner(...paths: string[]) {
         }
       }
 
+      function assertEnvelopeMatches(expected: Expected, envelope: Envelope): void {
+        if (typeof expected === 'function') {
+          expected(envelope);
+        } else {
+          expect(envelope).toEqual(expected);
+        }
+      }
+
       function newEnvelope(envelope: Envelope): void {
         if (process.env.DEBUG) log('newEnvelope', inspect(envelope, false, null, true));
 
@@ -116,19 +131,36 @@ export function createRunner(...paths: string[]) {
           return;
         }
 
-        const expected = expectedEnvelopes.shift();
-
-        // Catch any error or failed assertions and pass them to done to end the test quickly
         try {
-          if (!expected) {
-            return;
+          if (unordered) {
+            // find any matching expected envelope
+            const matchIndex = expectedEnvelopes.findIndex(candidate => {
+              try {
+                assertEnvelopeMatches(candidate, envelope);
+                return true;
+              } catch {
+                return false;
+              }
+            });
+
+            // no match found
+            if (matchIndex < 0) {
+              return;
+            }
+
+            // remove the matching expected envelope
+            expectedEnvelopes.splice(matchIndex, 1);
+          } else {
+            // in ordered mode we just look at the next expected envelope
+            const expected = expectedEnvelopes.shift();
+
+            if (!expected) {
+              return;
+            }
+
+            assertEnvelopeMatches(expected, envelope);
           }
 
-          if (typeof expected === 'function') {
-            expected(envelope);
-          } else {
-            expect(envelope).toEqual(expected);
-          }
           expectCallbackCalled();
         } catch (e) {
           reject(e);
