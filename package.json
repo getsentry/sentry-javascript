@@ -68,6 +68,7 @@
     "packages/integration-shims",
     "packages/nestjs",
     "packages/nextjs",
+    "packages/nitro",
     "packages/node",
     "packages/node-core",
     "packages/node-native",
