@@ -5,6 +5,11 @@ console.log('[E2E Debug] VITE_SENTRY_SPOTLIGHT:', import.meta.env.VITE_SENTRY_SP
 console.log('[E2E Debug] VITE_E2E_TEST_DSN:', import.meta.env.VITE_E2E_TEST_DSN);
 console.log('[E2E Debug] MODE:', import.meta.env.MODE);
 
+// Debug: Check if import.meta.env is available at runtime
+console.log('[E2E Debug] typeof import.meta:', typeof import.meta);
+console.log('[E2E Debug] typeof import.meta.env:', typeof import.meta.env);
+console.log('[E2E Debug] import.meta.env object:', JSON.stringify(import.meta.env));
+
 // Initialize Sentry - the @sentry/react SDK automatically parses
 // VITE_SENTRY_SPOTLIGHT from import.meta.env (zero-config for Vite!)
 const initOptions = {
