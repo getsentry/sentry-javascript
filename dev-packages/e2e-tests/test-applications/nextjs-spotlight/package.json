@@ -1,0 +1,31 @@
+{
+  "name": "nextjs-spotlight-test-app",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "NEXT_PUBLIC_SENTRY_SPOTLIGHT=http://localhost:3032/stream next build",
+    "start": "next start -p 3030",
+    "dev": "NEXT_PUBLIC_SENTRY_SPOTLIGHT=http://localhost:3032/stream next dev -p 3030",
+    "test": "playwright test",
+    "clean": "npx rimraf node_modules pnpm-lock.yaml .next",
+    "test:build": "pnpm install && pnpm build",
+    "test:assert": "pnpm test"
+  },
+  "dependencies": {
+    "@sentry/nextjs": "latest || *",
+    "@types/node": "^18.19.1",
+    "@types/react": "18.0.26",
+    "@types/react-dom": "18.0.9",
+    "next": "14.2.32",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "typescript": "~5.0.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "~1.56.0",
+    "@sentry-internal/test-utils": "link:../../../test-utils"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  }
+}

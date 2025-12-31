@@ -22,9 +22,20 @@ export function init(options: BrowserOptions): Client | undefined {
   // 1. process.env.SENTRY_SPOTLIGHT (all bundlers, requires config)
   // 2. process.env.VITE_SENTRY_SPOTLIGHT (all bundlers, requires config)
   // 3. import.meta.env.VITE_SENTRY_SPOTLIGHT (ESM only, zero-config for Vite!)
+  //
+  // For option 3, Rollup replaces __VITE_SPOTLIGHT_ENV__ with import.meta.env.VITE_SENTRY_SPOTLIGHT
+  // Then Vite replaces that with the actual value or undefined at build time.
+  // We wrap in try-catch because in non-Vite ESM environments (like SvelteKit with other bundlers), import.meta.env may not exist.
+  let viteSpotlightEnv: string | undefined;
+  try {
+    viteSpotlightEnv = typeof __VITE_SPOTLIGHT_ENV__ !== 'undefined' ? __VITE_SPOTLIGHT_ENV__ : undefined;
+  } catch {
+    // import.meta.env doesn't exist in this environment
+  }
+
   const spotlightEnvRaw =
     (typeof process !== 'undefined' && (process.env?.SENTRY_SPOTLIGHT || process.env?.VITE_SENTRY_SPOTLIGHT)) ||
-    (typeof __VITE_SPOTLIGHT_ENV__ !== 'undefined' && __VITE_SPOTLIGHT_ENV__) ||
+    viteSpotlightEnv ||
     undefined;
 
   if (spotlightEnvRaw) {
