@@ -18,6 +18,12 @@ export default defineConfig({
   preview: {
     port: 3030,
   },
+  resolve: {
+    // EXPLICITLY add 'development' to ensure the dev builds are used
+    // This tells Vite/Rollup to use the 'development' conditional exports
+    // Priority: development > browser > module > import > default
+    conditions: ['development', 'browser', 'module', 'import', 'require', 'default'],
+  },
   // Disable pre-bundling (esbuild) for Sentry packages
   // This ensures Vite/Rollup uses the mode's conditions when bundling
   optimizeDeps: {
