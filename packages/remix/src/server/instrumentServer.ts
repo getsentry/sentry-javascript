@@ -17,8 +17,10 @@ import {
   continueTrace,
   debug,
   fill,
+  generateSentryTraceHeader,
   getActiveSpan,
   getClient,
+  getCurrentScope,
   getRootSpan,
   getTraceData,
   hasSpansEnabled,
@@ -29,7 +31,9 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setHttpStatus,
+  spanToBaggageHeader,
   spanToJSON,
+  spanToTraceHeader,
   startSpan,
   winterCGHeadersToDict,
   winterCGRequestToRequestData,
@@ -39,6 +43,7 @@ import { DEBUG_BUILD } from '../utils/debug-build';
 import { createRoutes, getTransactionName } from '../utils/utils';
 import { extractData, isResponse, json } from '../utils/vendor/response';
 import { captureRemixServerException, errorHandleDataFunction } from './errors';
+import { generateSentryServerTimingHeader, isCloudflareEnv } from './serverTimingTracePropagation';
 
 type AppData = unknown;
 type RemixRequest = Parameters<RequestHandler>[0];
@@ -53,6 +58,37 @@ function isRedirectResponse(response: Response): boolean {
 
 function isCatchResponse(response: Response): boolean {
   return response.headers.get('X-Remix-Catch') != null;
+}
+
+/**
+ * Injects Server-Timing header with Sentry trace context into a Response.
+ */
+function injectServerTimingHeader(response: Response, precomputedHeader?: string | null): Response {
+  const serverTiming = precomputedHeader !== undefined ? precomputedHeader : generateSentryServerTimingHeader();
+
+  if (!serverTiming) {
+    return response;
+  }
+
+  if (response.bodyUsed) {
+    DEBUG_BUILD && debug.warn('Cannot inject Server-Timing header: response body already consumed');
+    return response;
+  }
+
+  try {
+    const headers = new Headers(response.headers);
+    const existingTiming = headers.get('Server-Timing');
+    headers.set('Server-Timing', existingTiming ? `${existingTiming}, ${serverTiming}` : serverTiming);
+
+    return new Response(response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers,
+    });
+  } catch (e) {
+    DEBUG_BUILD && debug.warn('Failed to inject Server-Timing header into response', e);
+    return response;
+  }
 }
 
 /**
@@ -95,22 +131,42 @@ export function wrapHandleErrorWithSentry(
   };
 }
 
-function isCloudflareEnv(): boolean {
-  // eslint-disable-next-line no-restricted-globals
-  return navigator?.userAgent?.includes('Cloudflare');
-}
-
 function getTraceAndBaggage(): {
   sentryTrace?: string;
   sentryBaggage?: string;
 } {
   if (isNodeEnv() || isCloudflareEnv()) {
-    const traceData = getTraceData();
+    // Use activeSpan (loader) so client's pageload parent is the loader, not http.server
+    const activeSpan = getActiveSpan();
+    if (activeSpan) {
+      const sentryTrace = spanToTraceHeader(activeSpan);
+      if (sentryTrace) {
+        return {
+          sentryTrace,
+          sentryBaggage: spanToBaggageHeader(activeSpan) || '',
+        };
+      }
+    }
 
-    return {
-      sentryTrace: traceData['sentry-trace'],
-      sentryBaggage: traceData.baggage,
-    };
+    // Fall back to scope's propagation context
+    const scope = getCurrentScope();
+    const propagationContext = scope.getPropagationContext();
+    const traceData = getTraceData();
+    const spanId = propagationContext.propagationSpanId ?? propagationContext.parentSpanId;
+
+    // Only generate if we have valid IDs to avoid "traceid-undefined-1" format
+    if (propagationContext.traceId && spanId) {
+      const fallbackTrace = generateSentryTraceHeader(propagationContext.traceId, spanId, propagationContext.sampled);
+      DEBUG_BUILD && debug.log('[getTraceAndBaggage] Falling back to propagation context:', fallbackTrace);
+
+      return {
+        sentryTrace: fallbackTrace,
+        sentryBaggage: traceData.baggage,
+      };
+    }
+
+    DEBUG_BUILD && debug.log('[getTraceAndBaggage] No valid trace context available');
+    return {};
   }
 
   return {};
@@ -119,13 +175,18 @@ function getTraceAndBaggage(): {
 function makeWrappedDocumentRequestFunction(instrumentTracing?: boolean) {
   return function (origDocumentRequestFunction: HandleDocumentRequestFunction): HandleDocumentRequestFunction {
     return async function (this: unknown, request: Request, ...args: unknown[]): Promise<Response> {
-      if (instrumentTracing) {
-        const activeSpan = getActiveSpan();
-        const rootSpan = activeSpan && getRootSpan(activeSpan);
+      const activeSpan = getActiveSpan();
+      const rootSpan = activeSpan && getRootSpan(activeSpan);
 
+      // Capture trace data now before span ends
+      const serverTimingHeader = rootSpan ? generateSentryServerTimingHeader({ span: rootSpan }) : null;
+
+      let response: Response;
+
+      if (instrumentTracing) {
         const name = rootSpan ? spanToJSON(rootSpan).description : undefined;
 
-        return startSpan(
+        response = await startSpan(
           {
             // If we don't have a root span, `onlyIfParent` will lead to the span not being created anyhow
             // So we don't need to care too much about the fallback name, it's just for typing purposes....
@@ -143,8 +204,14 @@ function makeWrappedDocumentRequestFunction(instrumentTracing?: boolean) {
           },
         );
       } else {
-        return origDocumentRequestFunction.call(this, request, ...args);
+        response = await origDocumentRequestFunction.call(this, request, ...args);
       }
+
+      if (serverTimingHeader && response instanceof Response) {
+        return injectServerTimingHeader(response, serverTimingHeader);
+      }
+
+      return response;
     };
   };
 }
@@ -254,14 +321,12 @@ function makeWrappedRootLoader(instrumentTracing?: boolean, build?: ServerBuild)
           const data = await extractData(res);
 
           if (typeof data === 'object') {
-            return json(
-              { ...data, ...traceAndBaggage },
-              {
-                headers: res.headers,
-                statusText: res.statusText,
-                status: res.status,
-              },
-            );
+            const merged = { ...data, ...traceAndBaggage };
+            return json(merged, {
+              headers: res.headers,
+              statusText: res.statusText,
+              status: res.status,
+            });
           } else {
             DEBUG_BUILD && debug.warn('Skipping injection of trace and baggage as the response body is not an object');
             return res;
@@ -336,50 +401,47 @@ function wrapRequestHandler<T extends ServerBuild | (() => ServerBuild | Promise
 
       isolationScope.setSDKProcessingMetadata({ normalizedRequest });
 
+      const sentryTrace = request.headers.get('sentry-trace');
+      const baggage = request.headers.get('baggage');
+
       if (!clientOptions || !hasSpansEnabled(clientOptions)) {
-        return origRequestHandler.call(this, request, loadContext);
+        return (await origRequestHandler.call(this, request, loadContext)) as Response;
       }
 
-      return continueTrace(
-        {
-          sentryTrace: request.headers.get('sentry-trace') || '',
-          baggage: request.headers.get('baggage') || '',
-        },
-        async () => {
-          if (options?.instrumentTracing) {
-            const parentSpan = getActiveSpan();
-            const rootSpan = parentSpan && getRootSpan(parentSpan);
-            rootSpan?.updateName(name);
+      const handleRequest = async (): Promise<Response> => {
+        const res = (await origRequestHandler.call(this, request, loadContext)) as Response;
 
-            return startSpan(
-              {
-                name,
-                attributes: {
-                  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.remix',
-                  [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
-                  [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
-                  method: request.method,
-                  ...httpHeadersToSpanAttributes(
-                    winterCGHeadersToDict(request.headers),
-                    clientOptions.sendDefaultPii ?? false,
-                  ),
-                },
-              },
-              async span => {
-                const res = (await origRequestHandler.call(this, request, loadContext)) as Response;
+        // Span may be null if OTel has already ended it
+        const activeSpan = getActiveSpan();
+        const rootSpan = activeSpan ? getRootSpan(activeSpan) : undefined;
 
-                if (isResponse(res)) {
-                  setHttpStatus(span, res.status);
-                }
+        if (options?.instrumentTracing && rootSpan) {
+          rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, 'auto.http.remix');
+          rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
+          rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'http.server');
+          rootSpan.setAttribute('http.method', request.method);
 
-                return res;
-              },
-            );
+          const headerAttributes = httpHeadersToSpanAttributes(
+            winterCGHeadersToDict(request.headers),
+            clientOptions.sendDefaultPii ?? false,
+          );
+          for (const [key, value] of Object.entries(headerAttributes)) {
+            rootSpan.setAttribute(key, value);
           }
 
-          return (await origRequestHandler.call(this, request, loadContext)) as Response;
-        },
-      );
+          if (isResponse(res)) {
+            setHttpStatus(rootSpan, res.status);
+          }
+        }
+
+        return res;
+      };
+
+      if (sentryTrace) {
+        return continueTrace({ sentryTrace, baggage: baggage || '' }, handleRequest);
+      }
+
+      return handleRequest();
     });
   };
 }

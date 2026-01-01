@@ -13,6 +13,11 @@ import { getClient, startBrowserTracingNavigationSpan, startBrowserTracingPageLo
 import * as React from 'react';
 import { DEBUG_BUILD } from '../utils/debug-build';
 import { hasManifest, maybeParameterizeRemixRoute } from './remixRouteParameterization';
+import {
+  getMetaTagTraceContext,
+  getNavigationTraceContext,
+  getNavigationTraceContextAsync,
+} from './serverTimingTracePropagation';
 
 export type Params<Key extends string = string> = {
   readonly [key in Key]: string | undefined;
@@ -106,7 +111,24 @@ export function startPageloadSpan(client: Client): void {
     },
   };
 
-  startBrowserTracingPageLoadSpan(client, spanContext);
+  // Try meta tags first (contains loader span ID for precise parent linking)
+  const metaTagTrace = getMetaTagTraceContext();
+  if (metaTagTrace) {
+    startBrowserTracingPageLoadSpan(client, spanContext, metaTagTrace);
+    return;
+  }
+
+  // Fall back to Server-Timing header
+  const serverTimingTrace = getNavigationTraceContext();
+  if (serverTimingTrace) {
+    startBrowserTracingPageLoadSpan(client, spanContext, serverTimingTrace);
+    return;
+  }
+
+  // Async retry for slow header processing
+  getNavigationTraceContextAsync(trace => {
+    startBrowserTracingPageLoadSpan(client, spanContext, trace ?? undefined);
+  });
 }
 
 function startNavigationSpan(matches: RouteMatch<string>[], location: ReturnType<UseLocation>): void {
