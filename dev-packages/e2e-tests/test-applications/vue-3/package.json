@@ -12,7 +12,9 @@
     "type-check": "vue-tsc --build --force",
     "test": "playwright test",
     "test:build": "pnpm install && pnpm build",
-    "test:assert": "playwright test"
+    "test:assert": "playwright test",
+    "test:build-canary": "pnpm install && pnpm add vue@alpha && pnpm build",
+    "test:build-latest": "pnpm install && pnpm add vue@latest && pnpm build"
   },
   "dependencies": {
     "@sentry/vue": "latest || *",
@@ -36,5 +38,19 @@
   },
   "volta": {
     "extends": "../../package.json"
+  },
+  "sentryTest": {
+    "variants": [
+      {
+        "build-command": "pnpm test:build-latest",
+        "label": "vue-3 (latest)"
+      }
+    ],
+    "optionalVariants": [
+      {
+        "build-command": "pnpm test:build-canary",
+        "label": "vue-3 (canary)"
+      }
+    ]
   }
 }
