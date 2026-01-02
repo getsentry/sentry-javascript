@@ -31,10 +31,10 @@ type MiddlewareWrapperOptions = {
  * @param options - Options for the wrapper, including the span name
  * @returns The wrapped middleware with Sentry instrumentation
  */
-export function wrapMiddlewareWithSentry<T extends TanStackMiddleware>(
-  middleware: T,
+export function wrapMiddlewareWithSentry(
+  middleware: TanStackMiddleware,
   options: MiddlewareWrapperOptions,
-): T {
+): TanStackMiddleware {
   if ((middleware as Record<symbol, unknown>)[SENTRY_WRAPPED]) {
     return middleware;
   }
@@ -78,7 +78,7 @@ export function wrapMiddlewareWithSentry<T extends TanStackMiddleware>(
  * @param middlewares - An object containing middlewares
  * @returns An array of wrapped middlewares
  */
-export function wrapMiddlewareListWithSentry<T extends TanStackMiddleware>(middlewares: Record<string, T>): T[] {
+export function wrapMiddlewareListWithSentry(middlewares: Record<string, TanStackMiddleware>): TanStackMiddleware[] {
   return Object.entries(middlewares).map(([name, middleware]) => {
     return wrapMiddlewareWithSentry(middleware, { name });
   });
