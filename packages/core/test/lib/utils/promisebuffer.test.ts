@@ -1,8 +1,11 @@
-import { describe, expect, test, vi } from 'vitest';
+import { afterEach, describe, expect, test, vi } from 'vitest';
 import { makePromiseBuffer } from '../../../src/utils/promisebuffer';
 import { rejectedSyncPromise, resolvedSyncPromise } from '../../../src/utils/syncpromise';
 
 describe('PromiseBuffer', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
   describe('add()', () => {
     test('enforces limit of promises', async () => {
       const buffer = makePromiseBuffer(5);
@@ -107,91 +110,83 @@ describe('PromiseBuffer', () => {
     test('drains all promises without timeout', async () => {
       vi.useFakeTimers();
 
-      try {
-        const buffer = makePromiseBuffer();
+      const buffer = makePromiseBuffer();
 
-        const p1 = vi.fn(() => new Promise(resolve => setTimeout(resolve, 10)));
-        const p2 = vi.fn(() => new Promise(resolve => setTimeout(resolve, 10)));
-        const p3 = vi.fn(() => new Promise(resolve => setTimeout(resolve, 10)));
-        const p4 = vi.fn(() => new Promise(resolve => setTimeout(resolve, 10)));
-        const p5 = vi.fn(() => new Promise(resolve => setTimeout(resolve, 10)));
+      const p1 = vi.fn(() => new Promise(resolve => setTimeout(resolve, 10)));
+      const p2 = vi.fn(() => new Promise(resolve => setTimeout(resolve, 10)));
+      const p3 = vi.fn(() => new Promise(resolve => setTimeout(resolve, 10)));
+      const p4 = vi.fn(() => new Promise(resolve => setTimeout(resolve, 10)));
+      const p5 = vi.fn(() => new Promise(resolve => setTimeout(resolve, 10)));
 
-        [p1, p2, p3, p4, p5].forEach(p => {
-          void buffer.add(p);
-        });
+      [p1, p2, p3, p4, p5].forEach(p => {
+        void buffer.add(p);
+      });
 
-        expect(buffer.$.length).toEqual(5);
+      expect(buffer.$.length).toEqual(5);
 
-        const drainPromise = buffer.drain();
+      const drainPromise = buffer.drain();
 
-        // Advance time to resolve all promises
-        await vi.advanceTimersByTimeAsync(10);
+      // Advance time to resolve all promises
+      await vi.advanceTimersByTimeAsync(10);
 
-        const result = await drainPromise;
-        expect(result).toEqual(true);
-        expect(buffer.$.length).toEqual(0);
+      const result = await drainPromise;
+      expect(result).toEqual(true);
+      expect(buffer.$.length).toEqual(0);
 
-        expect(p1).toHaveBeenCalled();
-        expect(p2).toHaveBeenCalled();
-        expect(p3).toHaveBeenCalled();
-        expect(p4).toHaveBeenCalled();
-        expect(p5).toHaveBeenCalled();
-      } finally {
-        vi.useRealTimers();
-      }
+      expect(p1).toHaveBeenCalled();
+      expect(p2).toHaveBeenCalled();
+      expect(p3).toHaveBeenCalled();
+      expect(p4).toHaveBeenCalled();
+      expect(p5).toHaveBeenCalled();
     });
 
     test('drains all promises with timeout', async () => {
       vi.useFakeTimers();
 
-      try {
-        const buffer = makePromiseBuffer();
+      const buffer = makePromiseBuffer();
 
-        const p1 = vi.fn(() => new Promise(resolve => setTimeout(resolve, 20)));
-        const p2 = vi.fn(() => new Promise(resolve => setTimeout(resolve, 40)));
-        const p3 = vi.fn(() => new Promise(resolve => setTimeout(resolve, 60)));
-        const p4 = vi.fn(() => new Promise(resolve => setTimeout(resolve, 80)));
-        const p5 = vi.fn(() => new Promise(resolve => setTimeout(resolve, 100)));
+      const p1 = vi.fn(() => new Promise(resolve => setTimeout(resolve, 20)));
+      const p2 = vi.fn(() => new Promise(resolve => setTimeout(resolve, 40)));
+      const p3 = vi.fn(() => new Promise(resolve => setTimeout(resolve, 60)));
+      const p4 = vi.fn(() => new Promise(resolve => setTimeout(resolve, 80)));
+      const p5 = vi.fn(() => new Promise(resolve => setTimeout(resolve, 100)));
 
-        [p1, p2, p3, p4, p5].forEach(p => {
-          void buffer.add(p);
-        });
+      [p1, p2, p3, p4, p5].forEach(p => {
+        void buffer.add(p);
+      });
 
-        expect(p1).toHaveBeenCalled();
-        expect(p2).toHaveBeenCalled();
-        expect(p3).toHaveBeenCalled();
-        expect(p4).toHaveBeenCalled();
-        expect(p5).toHaveBeenCalled();
+      expect(p1).toHaveBeenCalled();
+      expect(p2).toHaveBeenCalled();
+      expect(p3).toHaveBeenCalled();
+      expect(p4).toHaveBeenCalled();
+      expect(p5).toHaveBeenCalled();
 
-        expect(buffer.$.length).toEqual(5);
+      expect(buffer.$.length).toEqual(5);
 
-        // Start draining with a 50ms timeout
-        const drainPromise = buffer.drain(50);
+      // Start draining with a 50ms timeout
+      const drainPromise = buffer.drain(50);
 
-        // Advance time by 50ms - this will:
-        // - Resolve p1 (20ms) and p2 (40ms)
-        // - Trigger the drain timeout (50ms)
-        // - p3, p4, p5 are still pending
-        await vi.advanceTimersByTimeAsync(50);
+      // Advance time by 50ms - this will:
+      // - Resolve p1 (20ms) and p2 (40ms)
+      // - Trigger the drain timeout (50ms)
+      // - p3, p4, p5 are still pending
+      await vi.advanceTimersByTimeAsync(50);
 
-        const result = await drainPromise;
-        expect(result).toEqual(false);
+      const result = await drainPromise;
+      expect(result).toEqual(false);
 
-        // p3, p4 & p5 are still in the buffer
-        expect(buffer.$.length).toEqual(3);
+      // p3, p4 & p5 are still in the buffer
+      expect(buffer.$.length).toEqual(3);
 
-        // Now drain remaining items without timeout
-        const drainPromise2 = buffer.drain();
+      // Now drain remaining items without timeout
+      const drainPromise2 = buffer.drain();
 
-        // Advance time to resolve remaining promises
-        await vi.advanceTimersByTimeAsync(100);
+      // Advance time to resolve remaining promises
+      await vi.advanceTimersByTimeAsync(100);
 
-        const result2 = await drainPromise2;
-        expect(result2).toEqual(true);
-        expect(buffer.$.length).toEqual(0);
-      } finally {
-        vi.useRealTimers();
-      }
+      const result2 = await drainPromise2;
+      expect(result2).toEqual(true);
+      expect(buffer.$.length).toEqual(0);
     });
 
     test('on empty buffer', async () => {
