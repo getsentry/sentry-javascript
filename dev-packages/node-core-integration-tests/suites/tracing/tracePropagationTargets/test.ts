@@ -1,7 +1,7 @@
+import { createTestServer } from '@sentry-internal/test-utils';
 import { expect, test } from 'vitest';
 import { conditionalTest } from '../../../utils';
 import { createRunner } from '../../../utils/runner';
-import { createTestServer } from '../../../utils/server';
 
 // This test requires Node.js 22+ because it depends on the 'http.client.request.created'
 // diagnostic channel for baggage header propagation, which only exists since Node 22.12.0+ and 23.2.0+

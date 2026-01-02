@@ -1,7 +1,7 @@
+import { createTestServer } from '@sentry-internal/test-utils';
 import { describe, expect } from 'vitest';
 import { conditionalTest } from '../../../../utils';
 import { createEsmAndCjsTests } from '../../../../utils/runner';
-import { createTestServer } from '../../../../utils/server';
 
 describe('outgoing fetch', () => {
   createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument.mjs', (createRunner, test) => {
