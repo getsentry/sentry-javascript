@@ -1,9 +1,9 @@
+import { addNonEnumerableProperty } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan } from '@sentry/node';
 
-const SENTRY_WRAPPED = Symbol.for('sentry.middleware.wrapped');
-
 type TanStackMiddleware = {
-  options: { server: (...args: unknown[]) => unknown };
+  options?: { server?: (...args: unknown[]) => unknown };
+  SENTRY_WRAPPED?: boolean;
 };
 
 type MiddlewareWrapperOptions = {
@@ -35,27 +35,29 @@ export function wrapMiddlewareWithSentry(
   middleware: TanStackMiddleware,
   options: MiddlewareWrapperOptions,
 ): TanStackMiddleware {
-  if ((middleware as Record<symbol, unknown>)[SENTRY_WRAPPED]) {
+  if (middleware.SENTRY_WRAPPED) {
     return middleware;
   }
 
-  middleware.options.server = new Proxy(middleware.options.server, {
-    apply: (target, thisArg, args) => {
-      return startSpan(
-        {
-          op: 'middleware.tanstackstart',
-          name: options.name,
-          attributes: {
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'manual.middleware.tanstackstart',
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'middleware.tanstackstart',
+  if (middleware.options?.server) {
+    middleware.options.server = new Proxy(middleware.options.server, {
+      apply: (target, thisArg, args) => {
+        return startSpan(
+          {
+            op: 'middleware.tanstackstart',
+            name: options.name,
+            attributes: {
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'manual.middleware.tanstackstart',
+              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'middleware.tanstackstart',
+            },
           },
-        },
-        () => target.apply(thisArg, args),
-      );
-    },
-  });
+          () => target.apply(thisArg, args),
+        );
+      },
+    });
+  }
 
-  Object.defineProperty(middleware, SENTRY_WRAPPED, { value: true });
+  addNonEnumerableProperty(middleware, 'SENTRY_WRAPPED', true);
   return middleware;
 }
 
