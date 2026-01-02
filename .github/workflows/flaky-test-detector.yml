@@ -40,7 +40,7 @@ jobs:
         run: yarn install --ignore-engines --frozen-lockfile
 
       - name: NX cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: .nxcache
           key: nx-Linux-${{ github.ref }}-${{ env.HEAD_COMMIT }}
