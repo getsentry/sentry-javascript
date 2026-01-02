@@ -12,11 +12,14 @@ type NavigationTraceResult =
   | { status: 'unavailable' }
   | { status: 'available'; data: ServerTimingTraceContext };
 
-// Cache for navigation trace to avoid repeated parsing
+/**
+ * Cache for navigation trace context.
+ * - undefined: Not yet attempted to retrieve
+ * - null: Attempted but unavailable (no Server-Timing data or API not supported)
+ * - ServerTimingTraceContext: Successfully retrieved trace context
+ */
 let navigationTraceCache: ServerTimingTraceContext | null | undefined;
 
-// 40 attempts × 50ms = 2 seconds max wait for Performance API to process navigation entries
-// Aligned with react-router's hydration polling pattern (see hydratedRouter.ts)
 const MAX_RETRY_ATTEMPTS = 40;
 const RETRY_INTERVAL_MS = 50;
 
@@ -45,6 +48,11 @@ export function isServerTimingSupported(): boolean {
   }
 }
 
+/**
+ * Parses Server-Timing header entries to extract Sentry trace context.
+ * Expects entries with names 'sentry-trace' and 'baggage'.
+ * Baggage is URL-decoded as it's encoded in the Server-Timing header.
+ */
 function parseServerTimingTrace(serverTiming: readonly PerformanceServerTiming[]): ServerTimingTraceContext | null {
   let sentryTrace = '';
   let baggage = '';
@@ -75,6 +83,14 @@ function parseServerTimingTrace(serverTiming: readonly PerformanceServerTiming[]
   return { sentryTrace, baggage };
 }
 
+/**
+ * Attempts to retrieve trace context from the navigation performance entry.
+ *
+ * @returns
+ * - `{ status: 'available', data }` - Trace context successfully retrieved
+ * - `{ status: 'pending' }` - Headers not yet processed (responseStart === 0), retry recommended
+ * - `{ status: 'unavailable' }` - No Server-Timing data available, don't retry
+ */
 function tryGetNavigationTraceContext(): NavigationTraceResult {
   try {
     const navEntries = WINDOW.performance.getEntriesByType('navigation');
@@ -137,27 +153,39 @@ export function getNavigationTraceContext(): ServerTimingTraceContext | null {
 /**
  * Get trace context from navigation with retry mechanism.
  * Useful during SDK init when browser may not have finished processing headers.
+ *
+ * @returns Cleanup function to cancel pending retries (e.g., on navigation)
  */
 export function getNavigationTraceContextAsync(
   callback: (trace: ServerTimingTraceContext | null) => void,
   maxAttempts: number = MAX_RETRY_ATTEMPTS,
   delayMs: number = RETRY_INTERVAL_MS,
-): void {
+): () => void {
+  const state = { cancelled: false };
+
   if (navigationTraceCache !== undefined) {
     callback(navigationTraceCache);
-    return;
+    return () => {
+      state.cancelled = true;
+    };
   }
 
   if (!isServerTimingSupported()) {
     DEBUG_BUILD && debug.log('[Server-Timing] Server-Timing API not supported');
     navigationTraceCache = null;
     callback(null);
-    return;
+    return () => {
+      state.cancelled = true;
+    };
   }
 
   let attempts = 0;
 
   const tryGet = (): void => {
+    if (state.cancelled) {
+      return;
+    }
+
     attempts++;
     const result = tryGetNavigationTraceContext();
 
@@ -171,7 +199,7 @@ export function getNavigationTraceContextAsync(
           setTimeout(tryGet, delayMs);
           return;
         }
-        DEBUG_BUILD && debug.log('[Server-Timing] Max retry attempts reached');
+        DEBUG_BUILD && debug.warn('[Server-Timing] Max retry attempts reached, trace context unavailable');
         navigationTraceCache = null;
         callback(null);
         return;
@@ -182,10 +210,14 @@ export function getNavigationTraceContextAsync(
   };
 
   tryGet();
+
+  return () => {
+    state.cancelled = true;
+  };
 }
 
 /**
- * Get trace context from meta tags (fallback for older browsers).
+ * Get trace context from meta tags.
  * Looks for `<meta name="sentry-trace">` and `<meta name="baggage">` tags.
  */
 export function getMetaTagTraceContext(): ServerTimingTraceContext | null {
