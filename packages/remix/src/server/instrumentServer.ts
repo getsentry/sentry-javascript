@@ -43,7 +43,11 @@ import { DEBUG_BUILD } from '../utils/debug-build';
 import { createRoutes, getTransactionName } from '../utils/utils';
 import { extractData, isResponse, json } from '../utils/vendor/response';
 import { captureRemixServerException, errorHandleDataFunction } from './errors';
-import { generateSentryServerTimingHeader, isCloudflareEnv } from './serverTimingTracePropagation';
+import {
+  generateSentryServerTimingHeader,
+  injectServerTimingHeaderValue,
+  isCloudflareEnv,
+} from './serverTimingTracePropagation';
 
 type AppData = unknown;
 type RemixRequest = Parameters<RequestHandler>[0];
@@ -58,37 +62,6 @@ function isRedirectResponse(response: Response): boolean {
 
 function isCatchResponse(response: Response): boolean {
   return response.headers.get('X-Remix-Catch') != null;
-}
-
-/**
- * Injects Server-Timing header with Sentry trace context into a Response.
- */
-function injectServerTimingHeader(response: Response, precomputedHeader?: string | null): Response {
-  const serverTiming = precomputedHeader !== undefined ? precomputedHeader : generateSentryServerTimingHeader();
-
-  if (!serverTiming) {
-    return response;
-  }
-
-  if (response.bodyUsed) {
-    DEBUG_BUILD && debug.warn('Cannot inject Server-Timing header: response body already consumed');
-    return response;
-  }
-
-  try {
-    const headers = new Headers(response.headers);
-    const existingTiming = headers.get('Server-Timing');
-    headers.set('Server-Timing', existingTiming ? `${existingTiming}, ${serverTiming}` : serverTiming);
-
-    return new Response(response.body, {
-      status: response.status,
-      statusText: response.statusText,
-      headers,
-    });
-  } catch (e) {
-    DEBUG_BUILD && debug.warn('Failed to inject Server-Timing header into response', e);
-    return response;
-  }
 }
 
 /**
@@ -208,7 +181,7 @@ function makeWrappedDocumentRequestFunction(instrumentTracing?: boolean) {
       }
 
       if (serverTimingHeader && response instanceof Response) {
-        return injectServerTimingHeader(response, serverTimingHeader);
+        return injectServerTimingHeaderValue(response, serverTimingHeader);
       }
 
       return response;
