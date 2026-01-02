@@ -7,12 +7,18 @@ export interface ServerTimingTraceContext {
   baggage: string;
 }
 
+type NavigationTraceResult =
+  | { status: 'pending' }
+  | { status: 'unavailable' }
+  | { status: 'available'; data: ServerTimingTraceContext };
+
 // Cache for navigation trace to avoid repeated parsing
 let navigationTraceCache: ServerTimingTraceContext | null | undefined;
 
-// 5 attempts × 10ms = ~50ms max wait for Performance API to process navigation entries
-const DEFAULT_RETRY_ATTEMPTS = 5;
-const DEFAULT_RETRY_DELAY_MS = 10;
+// 40 attempts × 50ms = 2 seconds max wait for Performance API to process navigation entries
+// Aligned with react-router's hydration polling pattern (see hydratedRouter.ts)
+const MAX_RETRY_ATTEMPTS = 40;
+const RETRY_INTERVAL_MS = 50;
 
 /**
  * Check if Server-Timing API is supported in the current browser.
@@ -69,33 +75,32 @@ function parseServerTimingTrace(serverTiming: readonly PerformanceServerTiming[]
   return { sentryTrace, baggage };
 }
 
-// Returns trace context, null if not available yet, or false if definitely not available
-function tryGetNavigationTraceContext(): ServerTimingTraceContext | null | false {
+function tryGetNavigationTraceContext(): NavigationTraceResult {
   try {
     const navEntries = WINDOW.performance.getEntriesByType('navigation');
 
     if (!navEntries || navEntries.length === 0) {
-      return false;
+      return { status: 'unavailable' };
     }
 
     const navEntry = navEntries[0] as PerformanceNavigationTiming;
 
     // responseStart === 0 means headers haven't been processed yet
     if (navEntry.responseStart === 0) {
-      return null;
+      return { status: 'pending' };
     }
 
     const serverTiming = navEntry.serverTiming;
 
     if (!serverTiming || serverTiming.length === 0) {
-      return false;
+      return { status: 'unavailable' };
     }
 
     const result = parseServerTimingTrace(serverTiming);
 
-    return result ?? false;
+    return result ? { status: 'available', data: result } : { status: 'unavailable' };
   } catch {
-    return false;
+    return { status: 'unavailable' };
   }
 }
 
@@ -117,17 +122,16 @@ export function getNavigationTraceContext(): ServerTimingTraceContext | null {
 
   const result = tryGetNavigationTraceContext();
 
-  if (result === false) {
-    navigationTraceCache = null;
-    return null;
+  switch (result.status) {
+    case 'unavailable':
+      navigationTraceCache = null;
+      return null;
+    case 'pending':
+      return null;
+    case 'available':
+      navigationTraceCache = result.data;
+      return result.data;
   }
-
-  if (result === null) {
-    return null;
-  }
-
-  navigationTraceCache = result;
-  return result;
 }
 
 /**
@@ -136,8 +140,8 @@ export function getNavigationTraceContext(): ServerTimingTraceContext | null {
  */
 export function getNavigationTraceContextAsync(
   callback: (trace: ServerTimingTraceContext | null) => void,
-  maxAttempts: number = DEFAULT_RETRY_ATTEMPTS,
-  delayMs: number = DEFAULT_RETRY_DELAY_MS,
+  maxAttempts: number = MAX_RETRY_ATTEMPTS,
+  delayMs: number = RETRY_INTERVAL_MS,
 ): void {
   if (navigationTraceCache !== undefined) {
     callback(navigationTraceCache);
@@ -157,25 +161,24 @@ export function getNavigationTraceContextAsync(
     attempts++;
     const result = tryGetNavigationTraceContext();
 
-    if (result === false) {
-      navigationTraceCache = null;
-      callback(null);
-      return;
-    }
-
-    if (result === null) {
-      if (attempts < maxAttempts) {
-        setTimeout(tryGet, delayMs);
+    switch (result.status) {
+      case 'unavailable':
+        navigationTraceCache = null;
+        callback(null);
         return;
-      }
-      DEBUG_BUILD && debug.log('[Server-Timing] Max retry attempts reached');
-      navigationTraceCache = null;
-      callback(null);
-      return;
+      case 'pending':
+        if (attempts < maxAttempts) {
+          setTimeout(tryGet, delayMs);
+          return;
+        }
+        DEBUG_BUILD && debug.log('[Server-Timing] Max retry attempts reached');
+        navigationTraceCache = null;
+        callback(null);
+        return;
+      case 'available':
+        navigationTraceCache = result.data;
+        callback(result.data);
     }
-
-    navigationTraceCache = result;
-    callback(result);
   };
 
   tryGet();
