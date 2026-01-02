@@ -95,12 +95,14 @@ export function getNotificationAttributes(
  * @param type - Span type (request or notification)
  * @param message - JSON-RPC message
  * @param params - Optional parameters for attribute extraction
+ * @param recordInputs - Whether to capture input arguments in spans
  * @returns Type-specific attributes for span instrumentation
  */
 export function buildTypeSpecificAttributes(
   type: McpSpanType,
   message: JsonRpcRequest | JsonRpcNotification,
   params?: Record<string, unknown>,
+  recordInputs?: boolean,
 ): Record<string, string | number> {
   if (type === 'request') {
     const request = message as JsonRpcRequest;
@@ -109,7 +111,7 @@ export function buildTypeSpecificAttributes(
     return {
       ...(request.id !== undefined && { [MCP_REQUEST_ID_ATTRIBUTE]: String(request.id) }),
       ...targetInfo.attributes,
-      ...getRequestArguments(request.method, params || {}),
+      ...(recordInputs ? getRequestArguments(request.method, params || {}) : {}),
     };
   }
 
