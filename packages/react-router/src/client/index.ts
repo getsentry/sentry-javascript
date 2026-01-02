@@ -4,7 +4,11 @@
 export * from '@sentry/browser';
 
 export { init } from './sdk';
-export { reactRouterTracingIntegration } from './tracingIntegration';
+export {
+  reactRouterTracingIntegration,
+  type ReactRouterTracingIntegration,
+  type ReactRouterTracingIntegrationOptions,
+} from './tracingIntegration';
 
 export { captureReactException, reactErrorHandler, Profiler, withProfiler, useProfiler } from '@sentry/react';
 
@@ -19,3 +23,11 @@ export { ErrorBoundary, withErrorBoundary } from '@sentry/react';
  * See https://docs.sentry.io/platforms/javascript/guides/react-router/#report-errors-from-error-boundaries
  */
 export type { ErrorBoundaryProps, FallbackRender } from '@sentry/react';
+
+// React Router instrumentation API for use with unstable_instrumentations (React Router 7.x)
+export {
+  createSentryClientInstrumentation,
+  isClientInstrumentationApiUsed,
+  isNavigateHookInvoked,
+  type CreateSentryClientInstrumentationOptions,
+} from './createClientInstrumentation';

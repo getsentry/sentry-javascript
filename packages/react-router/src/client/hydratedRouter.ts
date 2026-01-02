@@ -1,7 +1,7 @@
 import { startBrowserTracingNavigationSpan } from '@sentry/browser';
 import type { Span } from '@sentry/core';
 import {
-  consoleSandbox,
+  debug,
   getActiveSpan,
   getClient,
   getRootSpan,
@@ -13,6 +13,7 @@ import {
 } from '@sentry/core';
 import type { DataRouter, RouterState } from 'react-router';
 import { DEBUG_BUILD } from '../common/debug-build';
+import { isClientInstrumentationApiUsed } from './createClientInstrumentation';
 
 const GLOBAL_OBJ_WITH_DATA_ROUTER = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   __reactRouterDataRouter?: DataRouter;
@@ -34,7 +35,6 @@ export function instrumentHydratedRouter(): void {
 
     if (router) {
       // The first time we hit the router, we try to update the pageload transaction
-      // todo: update pageload tx here
       const pageloadSpan = getActiveRootSpan();
 
       if (pageloadSpan) {
@@ -51,18 +51,18 @@ export function instrumentHydratedRouter(): void {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.react_router',
           });
         }
+      }
 
-        // Patching navigate for creating accurate navigation transactions
-        if (typeof router.navigate === 'function') {
-          const originalNav = router.navigate.bind(router);
-          router.navigate = function sentryPatchedNavigate(...args) {
-            maybeCreateNavigationTransaction(
-              String(args[0]) || '<unknown route>', // will be updated anyway
-              'url', // this also will be updated once we have the parameterized route
-            );
-            return originalNav(...args);
-          };
-        }
+      // Patching navigate for creating accurate navigation transactions
+      if (typeof router.navigate === 'function') {
+        const originalNav = router.navigate.bind(router);
+        router.navigate = function sentryPatchedNavigate(...args) {
+          // Skip if instrumentation API is enabled (it handles navigation spans itself)
+          if (!isClientInstrumentationApiUsed()) {
+            maybeCreateNavigationTransaction(String(args[0]) || '<unknown route>', 'url');
+          }
+          return originalNav(...args);
+        };
       }
 
       // Subscribe to router state changes to update navigation transactions with parameterized routes
@@ -79,7 +79,8 @@ export function instrumentHydratedRouter(): void {
         if (
           navigationSpanName &&
           newState.navigation.state === 'idle' && // navigation has completed
-          normalizePathname(newState.location.pathname) === normalizePathname(navigationSpanName) // this event is for the currently active navigation
+          // this event is for the currently active navigation
+          normalizePathname(newState.location.pathname) === normalizePathname(navigationSpanName)
         ) {
           navigationSpan.updateName(parameterizedNavRoute);
           navigationSpan.setAttributes({
@@ -100,11 +101,7 @@ export function instrumentHydratedRouter(): void {
     const interval = setInterval(() => {
       if (trySubscribe() || retryCount >= MAX_RETRIES) {
         if (retryCount >= MAX_RETRIES) {
-          DEBUG_BUILD &&
-            consoleSandbox(() => {
-              // eslint-disable-next-line no-console
-              console.warn('Unable to instrument React Router: router not found after hydration.');
-            });
+          DEBUG_BUILD && debug.warn('Unable to instrument React Router: router not found after hydration.');
         }
         clearInterval(interval);
       }

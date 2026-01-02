@@ -15,6 +15,7 @@ import {
 } from '@sentry/core';
 import type * as reactRouter from 'react-router';
 import { DEBUG_BUILD } from '../../common/debug-build';
+import { isInstrumentationApiUsed } from '../serverGlobals';
 import { getOpName, getSpanName, isDataRequest } from './util';
 
 type ReactRouterModuleExports = typeof reactRouter;
@@ -73,6 +74,13 @@ export class ReactRouterInstrumentation extends InstrumentationBase<Instrumentat
 
               // We currently just want to trace loaders and actions
               if (!isDataRequest(url.pathname)) {
+                return originalRequestHandler(request, initialContext);
+              }
+
+              // Skip OTEL instrumentation if instrumentation API is being used
+              // as it handles loader/action spans itself
+              if (isInstrumentationApiUsed()) {
+                DEBUG_BUILD && debug.log('Skipping OTEL loader/action instrumentation - using instrumentation API');
                 return originalRequestHandler(request, initialContext);
               }
 
