@@ -1,6 +1,17 @@
 import type { Span } from '@sentry/core';
-import { debug, getActiveSpan, getRootSpan, getTraceData, isNodeEnv, spanToTraceHeader } from '@sentry/core';
+import {
+  debug,
+  getActiveSpan,
+  getDynamicSamplingContextFromSpan,
+  getRootSpan,
+  getTraceData,
+  isNodeEnv,
+  spanToTraceHeader,
+} from '@sentry/core';
 import { DEBUG_BUILD } from '../utils/debug-build';
+
+// Sentry baggage key prefix
+const SENTRY_BAGGAGE_KEY_PREFIX = 'sentry-';
 
 export interface ServerTimingTraceOptions {
   /** Include baggage in Server-Timing header. @default true */
@@ -46,8 +57,22 @@ export function generateSentryServerTimingHeader(options: ServerTimingTraceOptio
 
   if (span) {
     sentryTrace = spanToTraceHeader(span);
-    const traceData = getTraceData({ span });
-    baggage = traceData.baggage;
+    const spanTraceId = span.spanContext().traceId;
+
+    // Get DSC from span and ensure trace_id consistency
+    const dsc = getDynamicSamplingContextFromSpan(span);
+
+    // Build baggage string, ensuring trace_id matches the span's trace_id
+    // The DSC may have a different trace_id if it was frozen from an earlier context
+    const baggageEntries: string[] = [];
+    for (const [key, value] of Object.entries(dsc)) {
+      if (value) {
+        // Override trace_id to match the span's trace_id for consistency
+        const actualValue = key === 'trace_id' ? spanTraceId : value;
+        baggageEntries.push(`${SENTRY_BAGGAGE_KEY_PREFIX}${key}=${actualValue}`);
+      }
+    }
+    baggage = baggageEntries.length > 0 ? baggageEntries.join(',') : undefined;
   } else {
     const traceData = getTraceData();
     sentryTrace = traceData['sentry-trace'];
