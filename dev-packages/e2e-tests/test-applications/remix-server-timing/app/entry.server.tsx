@@ -55,9 +55,6 @@ function handleBotRequest(
 
           responseHeaders.set('Content-Type', 'text/html');
 
-          // Server-Timing header is automatically injected by Sentry SDK
-          // via wrapRequestHandler in instrumentServer.ts
-
           resolve(
             new Response(stream, {
               headers: responseHeaders,
@@ -103,9 +100,6 @@ function handleBrowserRequest(
           const stream = createReadableStreamFromReadable(body);
 
           responseHeaders.set('Content-Type', 'text/html');
-
-          // Server-Timing header is automatically injected by Sentry SDK
-          // via wrapRequestHandler in instrumentServer.ts
 
           resolve(
             new Response(stream, {

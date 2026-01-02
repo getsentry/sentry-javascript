@@ -90,6 +90,9 @@ function getTransactionNameAndSource(
   return { name: routeId, source: 'route' };
 }
 
+// Flag to prevent async callback from creating a span after navigation has occurred
+let pageloadSpanStarted = false;
+
 export function startPageloadSpan(client: Client): void {
   const initPathName = getInitPathName();
 
@@ -97,7 +100,6 @@ export function startPageloadSpan(client: Client): void {
     return;
   }
 
-  // Try to parameterize the route using the route manifest
   const parameterizedRoute = maybeParameterizeRemixRoute(initPathName);
   const spanName = parameterizedRoute || initPathName;
   const source = parameterizedRoute ? 'route' : 'url';
@@ -111,22 +113,27 @@ export function startPageloadSpan(client: Client): void {
     },
   };
 
-  // Try meta tags first (contains loader span ID for precise parent linking)
+  // Priority: meta tags > Server-Timing header > async retry
   const metaTagTrace = getMetaTagTraceContext();
   if (metaTagTrace) {
+    pageloadSpanStarted = true;
     startBrowserTracingPageLoadSpan(client, spanContext, metaTagTrace);
     return;
   }
 
-  // Fall back to Server-Timing header
   const serverTimingTrace = getNavigationTraceContext();
   if (serverTimingTrace) {
+    pageloadSpanStarted = true;
     startBrowserTracingPageLoadSpan(client, spanContext, serverTimingTrace);
     return;
   }
 
-  // Async retry for slow header processing
   getNavigationTraceContextAsync(trace => {
+    // Skip if pageload span was already started (e.g., navigation occurred during retry)
+    if (pageloadSpanStarted) {
+      return;
+    }
+    pageloadSpanStarted = true;
     startBrowserTracingPageLoadSpan(client, spanContext, trace ?? undefined);
   });
 }
@@ -223,6 +230,9 @@ export function withSentry<P extends Record<string, unknown>, R extends React.Co
       }
 
       if (_instrumentNavigation && matches?.length) {
+        // Mark pageload as started to prevent async callback from firing after navigation
+        pageloadSpanStarted = true;
+
         if (activeRootSpan) {
           activeRootSpan.end();
         }
