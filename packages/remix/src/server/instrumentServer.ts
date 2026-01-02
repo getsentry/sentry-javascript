@@ -104,30 +104,32 @@ export function wrapHandleErrorWithSentry(
   };
 }
 
+/**
+ * Get trace context for injection into loader response data.
+ * Prioritizes active span context to ensure client pageload continues from the loader span,
+ * not the http.server span, enabling proper trace continuity via Server-Timing headers.
+ */
 function getTraceAndBaggage(): {
   sentryTrace?: string;
   sentryBaggage?: string;
 } {
   if (isNodeEnv() || isCloudflareEnv()) {
-    // Use activeSpan (loader) so client's pageload parent is the loader, not http.server
     const activeSpan = getActiveSpan();
     if (activeSpan) {
       const sentryTrace = spanToTraceHeader(activeSpan);
       if (sentryTrace) {
         return {
           sentryTrace,
-          sentryBaggage: spanToBaggageHeader(activeSpan) || '',
+          sentryBaggage: spanToBaggageHeader(activeSpan),
         };
       }
     }
 
-    // Fall back to scope's propagation context
     const scope = getCurrentScope();
     const propagationContext = scope.getPropagationContext();
     const traceData = getTraceData();
     const spanId = propagationContext.propagationSpanId ?? propagationContext.parentSpanId;
 
-    // Only generate if we have valid IDs to avoid "traceid-undefined-1" format
     if (propagationContext.traceId && spanId) {
       const fallbackTrace = generateSentryTraceHeader(propagationContext.traceId, spanId, propagationContext.sampled);
       DEBUG_BUILD && debug.log('[getTraceAndBaggage] Falling back to propagation context:', fallbackTrace);
@@ -381,10 +383,12 @@ function wrapRequestHandler<T extends ServerBuild | (() => ServerBuild | Promise
         return (await origRequestHandler.call(this, request, loadContext)) as Response;
       }
 
+      // We update the existing http.server span (created by OTel) with Remix-specific
+      // attributes rather than creating a nested child span. This ensures proper trace
+      // hierarchy where the http.server span is the parent of loader/action spans.
       const handleRequest = async (): Promise<Response> => {
         const res = (await origRequestHandler.call(this, request, loadContext)) as Response;
 
-        // Span may be null if OTel has already ended it
         const activeSpan = getActiveSpan();
         const rootSpan = activeSpan ? getRootSpan(activeSpan) : undefined;
 
@@ -410,6 +414,8 @@ function wrapRequestHandler<T extends ServerBuild | (() => ServerBuild | Promise
         return res;
       };
 
+      // Only continue trace if there's an incoming sentry-trace header.
+      // Otherwise, start a fresh trace in the isolation scope.
       if (sentryTrace) {
         return continueTrace({ sentryTrace, baggage: baggage || '' }, handleRequest);
       }
