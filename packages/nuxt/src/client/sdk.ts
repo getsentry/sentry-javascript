@@ -1,7 +1,6 @@
 import { getDefaultIntegrations as getBrowserDefaultIntegrations, init as initBrowser } from '@sentry/browser';
 import type { Client } from '@sentry/core';
 import { applySdkMetadata, DEFAULT_ENVIRONMENT, DEV_ENVIRONMENT } from '@sentry/core';
-import { isCjs } from '@sentry/node-core';
 import type { SentryNuxtClientOptions } from '../common/types';
 
 /**
@@ -13,7 +12,7 @@ export function init(options: SentryNuxtClientOptions): Client | undefined {
   const sentryOptions = {
     /* BrowserTracing is added later with the Nuxt client plugin */
     defaultIntegrations: [...getBrowserDefaultIntegrations(options)],
-    environment: !isCjs() && import.meta.dev ? DEV_ENVIRONMENT : DEFAULT_ENVIRONMENT,
+    environment: import.meta.dev ? DEV_ENVIRONMENT : DEFAULT_ENVIRONMENT,
     ...options,
   };
 
