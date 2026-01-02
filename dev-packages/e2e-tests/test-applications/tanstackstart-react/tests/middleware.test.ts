@@ -89,3 +89,30 @@ test('Sends spans for global request middleware on page load', async ({ page }) 
     ]),
   );
 });
+
+test('Sends spans for server route specific request middleware', async ({ page }) => {
+  const transactionEventPromise = waitForTransaction('tanstackstart-react', transactionEvent => {
+    return (
+      transactionEvent?.contexts?.trace?.op === 'http.server' &&
+      transactionEvent?.transaction === 'GET /api/test-middleware'
+    );
+  });
+
+  await page.goto('/api/test-middleware');
+
+  const transactionEvent = await transactionEventPromise;
+
+  expect(Array.isArray(transactionEvent?.spans)).toBe(true);
+
+  // Check for the server route specific request middleware span
+  expect(transactionEvent?.spans).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        description: 'serverRouteRequestMiddleware',
+        op: 'middleware.tanstackstart',
+        origin: 'manual.middleware.tanstackstart',
+        status: 'ok',
+      }),
+    ]),
+  );
+});

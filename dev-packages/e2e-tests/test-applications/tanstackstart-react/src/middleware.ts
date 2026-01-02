@@ -19,6 +19,12 @@ const serverFnMiddleware = createMiddleware({ type: 'function' }).server(async (
   return next();
 });
 
+// Server route specific request middleware
+const serverRouteRequestMiddleware = createMiddleware().server(async ({ next }) => {
+  console.log('Server route request middleware executed');
+  return next();
+});
+
 // Wrap global request middleware
 export const wrappedGlobalRequestMiddleware = wrapMiddlewareWithSentry(globalRequestMiddleware, {
   name: 'globalRequestMiddleware',
@@ -30,6 +36,7 @@ export const wrappedGlobalFunctionMiddleware = wrapMiddlewareWithSentry(globalFu
 });
 
 // Wrap server function middleware using list wrapper
-export const [wrappedServerFnMiddleware] = wrapMiddlewareListWithSentry({
+export const [wrappedServerFnMiddleware, wrappedServerRouteRequestMiddleware] = wrapMiddlewareListWithSentry({
   serverFnMiddleware,
+  serverRouteRequestMiddleware,
 });
