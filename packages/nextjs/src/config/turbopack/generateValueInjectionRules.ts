@@ -28,6 +28,11 @@ export function generateValueInjectionRules({
     clientValues._sentryRouteManifest = JSON.stringify(routeManifest);
   }
 
+  // Inject SENTRY_SPOTLIGHT for client (fallback for manual setup without NEXT_PUBLIC_ prefix)
+  if (process.env.SENTRY_SPOTLIGHT) {
+    clientValues._sentrySpotlight = process.env.SENTRY_SPOTLIGHT;
+  }
+
   // Inject tunnel route path for both client and server
   if (tunnelPath) {
     isomorphicValues._sentryRewritesTunnelPath = tunnelPath;

@@ -69,6 +69,10 @@ export { hasSpansEnabled } from './utils/hasSpansEnabled';
 export { isSentryRequestUrl } from './utils/isSentryRequestUrl';
 export { handleCallbackErrors } from './utils/handleCallbackErrors';
 export { parameterize, fmt } from './utils/parameterize';
+export { envToBool, FALSY_ENV_VALUES, TRUTHY_ENV_VALUES } from './utils/envToBool';
+export type { BoolCastOptions, StrictBoolCast, LooseBoolCast } from './utils/envToBool';
+export { parseSpotlightEnvValue, resolveSpotlightValue } from './utils/spotlight';
+export type { SpotlightConnectionOptions } from './utils/spotlight';
 
 export { addAutoIpAddressToSession } from './utils/ipAddress';
 // eslint-disable-next-line deprecation/deprecation

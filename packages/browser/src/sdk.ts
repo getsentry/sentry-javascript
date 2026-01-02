@@ -94,7 +94,9 @@ export function init(options: BrowserOptions = {}): Client | undefined {
   let defaultIntegrations =
     options.defaultIntegrations == null ? getDefaultIntegrations(options) : options.defaultIntegrations;
 
-  /* rollup-include-development-only */
+  // Add Spotlight integration if configured
+  // This is included in all builds (not just development) so users can use Spotlight
+  // in any environment where they set the spotlight option
   if (options.spotlight) {
     if (!defaultIntegrations) {
       defaultIntegrations = [];
@@ -102,7 +104,6 @@ export function init(options: BrowserOptions = {}): Client | undefined {
     const args = typeof options.spotlight === 'string' ? { sidecarUrl: options.spotlight } : undefined;
     defaultIntegrations.push(spotlightBrowserIntegration(args));
   }
-  /* rollup-include-development-only-end */
 
   const clientOptions: BrowserClientOptions = {
     ...options,

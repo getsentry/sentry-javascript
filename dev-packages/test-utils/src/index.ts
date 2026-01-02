@@ -1,12 +1,15 @@
 export {
   startProxyServer,
   startEventProxyServer,
+  startSpotlightProxyServer,
   waitForEnvelopeItem,
   waitForError,
   waitForRequest,
   waitForTransaction,
   waitForSession,
   waitForPlainRequest,
+  waitForSpotlightError,
+  waitForSpotlightTransaction,
   waitForMetric,
 } from './event-proxy-server';
 

@@ -14,6 +14,26 @@ const DEFAULT_PLUGIN_OPTIONS: SentrySvelteKitPluginOptions = {
 };
 
 /**
+ * Creates a Vite plugin that injects SENTRY_SPOTLIGHT env var for client bundles.
+ * This enables zero-config Spotlight support when using `spotlight run`.
+ */
+function makeSpotlightDefinePlugin(): Plugin {
+  return {
+    name: 'sentry-sveltekit-spotlight-define',
+    config() {
+      // Read PUBLIC_SENTRY_SPOTLIGHT (set by spotlight run, SvelteKit uses PUBLIC_ prefix)
+      // OR fallback to SENTRY_SPOTLIGHT (manual setup)
+      const spotlightValue = process.env.PUBLIC_SENTRY_SPOTLIGHT || process.env.SENTRY_SPOTLIGHT || '';
+      return {
+        define: {
+          'import.meta.env.SENTRY_SPOTLIGHT': JSON.stringify(spotlightValue),
+        },
+      };
+    },
+  };
+}
+
+/**
  * Vite Plugins for the Sentry SvelteKit SDK, taking care of creating
  * Sentry releases and uploading source maps to Sentry.
  *
@@ -30,6 +50,11 @@ export async function sentrySvelteKit(options: SentrySvelteKitPluginOptions = {}
   const svelteConfig = await loadSvelteConfig();
 
   const sentryPlugins: Plugin[] = [];
+
+  // Add spotlight plugin for zero-config Spotlight support (only if env var is set)
+  if (process.env.PUBLIC_SENTRY_SPOTLIGHT || process.env.SENTRY_SPOTLIGHT) {
+    sentryPlugins.push(makeSpotlightDefinePlugin());
+  }
 
   if (mergedOptions.autoInstrument) {
     // TODO: Once tracing is promoted stable, we need to adjust this check!

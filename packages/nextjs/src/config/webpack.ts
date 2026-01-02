@@ -440,6 +440,15 @@ export function constructWebpackConfigFunction({
       }),
     );
 
+    // Inject SENTRY_SPOTLIGHT env var for client bundles (fallback for manual setup without NEXT_PUBLIC_ prefix)
+    if (!buildContext.isServer) {
+      newConfig.plugins.push(
+        new buildContext.webpack.DefinePlugin({
+          'process.env.SENTRY_SPOTLIGHT': JSON.stringify(process.env.SENTRY_SPOTLIGHT || ''),
+        }),
+      );
+    }
+
     return newConfig;
   };
 }

@@ -1,8 +1,25 @@
 import type { Client, Integration } from '@sentry/core';
-import { applySdkMetadata } from '@sentry/core';
+import { applySdkMetadata, parseSpotlightEnvValue, resolveSpotlightValue } from '@sentry/core';
 import type { BrowserOptions } from '@sentry/svelte';
 import { getDefaultIntegrations as getDefaultSvelteIntegrations, init as initSvelteSdk, WINDOW } from '@sentry/svelte';
 import { browserTracingIntegration as svelteKitBrowserTracingIntegration } from './browserTracingIntegration';
+
+// Type for spotlight-related env vars injected by Vite
+interface SpotlightEnv {
+  PUBLIC_SENTRY_SPOTLIGHT?: string;
+  SENTRY_SPOTLIGHT?: string;
+}
+
+// Access import.meta.env in a way that works with TypeScript
+// Vite replaces this at build time
+function getSpotlightEnv(): SpotlightEnv {
+  try {
+    // @ts-expect-error - import.meta.env is injected by Vite
+    return typeof import.meta !== 'undefined' && import.meta.env ? (import.meta.env as SpotlightEnv) : {};
+  } catch {
+    return {};
+  }
+}
 
 type WindowWithSentryFetchProxy = typeof WINDOW & {
   _sentryFetchProxy?: typeof fetch;
@@ -17,9 +34,16 @@ declare const __SENTRY_TRACING__: boolean;
  * @param options Configuration options for the SDK.
  */
 export function init(options: BrowserOptions): Client | undefined {
+  // Read PUBLIC_SENTRY_SPOTLIGHT (set by spotlight run, SvelteKit uses PUBLIC_ prefix)
+  // OR fallback to SENTRY_SPOTLIGHT (injected by our vite plugin)
+  const spotlightEnv = getSpotlightEnv();
+  const spotlightEnvRaw = spotlightEnv.PUBLIC_SENTRY_SPOTLIGHT || spotlightEnv.SENTRY_SPOTLIGHT;
+  const spotlightEnvValue = parseSpotlightEnvValue(spotlightEnvRaw);
+
   const opts = {
     defaultIntegrations: getDefaultIntegrations(options),
     ...options,
+    spotlight: resolveSpotlightValue(options.spotlight, spotlightEnvValue),
   };
 
   applySdkMetadata(opts, 'sveltekit', ['sveltekit', 'svelte']);
