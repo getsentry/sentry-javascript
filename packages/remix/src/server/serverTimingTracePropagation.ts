@@ -91,16 +91,11 @@ export function mergeSentryServerTimingHeader(
 }
 
 /**
- * Add Sentry trace context to Response headers via Server-Timing.
+ * Inject a precomputed Server-Timing header value into a Response.
  * Returns a new Response with the header added.
+ * @internal
  */
-export function addSentryServerTimingHeader(response: Response, options?: ServerTimingTraceOptions): Response {
-  const sentryTiming = generateSentryServerTimingHeader(options);
-
-  if (!sentryTiming) {
-    return response;
-  }
-
+export function injectServerTimingHeaderValue(response: Response, serverTimingValue: string): Response {
   if (response.bodyUsed) {
     DEBUG_BUILD && debug.warn('Cannot add Server-Timing header: response body already consumed');
     return response;
@@ -110,7 +105,7 @@ export function addSentryServerTimingHeader(response: Response, options?: Server
     const headers = new Headers(response.headers);
     const existing = headers.get('Server-Timing');
 
-    headers.set('Server-Timing', existing ? `${existing}, ${sentryTiming}` : sentryTiming);
+    headers.set('Server-Timing', existing ? `${existing}, ${serverTimingValue}` : serverTimingValue);
 
     return new Response(response.body, {
       status: response.status,
@@ -121,4 +116,18 @@ export function addSentryServerTimingHeader(response: Response, options?: Server
     DEBUG_BUILD && debug.warn('Failed to add Server-Timing header to response', e);
     return response;
   }
+}
+
+/**
+ * Add Sentry trace context to Response headers via Server-Timing.
+ * Returns a new Response with the header added.
+ */
+export function addSentryServerTimingHeader(response: Response, options?: ServerTimingTraceOptions): Response {
+  const sentryTiming = generateSentryServerTimingHeader(options);
+
+  if (!sentryTiming) {
+    return response;
+  }
+
+  return injectServerTimingHeaderValue(response, sentryTiming);
 }
