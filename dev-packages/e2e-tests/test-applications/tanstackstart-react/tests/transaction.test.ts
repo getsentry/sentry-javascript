@@ -84,17 +84,18 @@ test('Sends a server function transaction for a nested server function only if i
     ]),
   );
 
-  // Verify that the auto span is the parent of the nested span
-  const autoSpan = transactionEvent?.spans?.find(
-    (span: { op?: string; origin?: string }) =>
-      span.op === 'function.tanstackstart' && span.origin === 'auto.function.tanstackstart.server',
+  // Verify that the globalFunctionMiddleware span is the parent of the nested span
+  // (middleware spans are inserted between the auto function span and user code)
+  const functionMiddlewareSpan = transactionEvent?.spans?.find(
+    (span: { description?: string; origin?: string }) =>
+      span.description === 'globalFunctionMiddleware' && span.origin === 'manual.middleware.tanstackstart',
   );
   const nestedSpan = transactionEvent?.spans?.find(
     (span: { description?: string; origin?: string }) =>
       span.description === 'testNestedLog' && span.origin === 'manual',
   );
 
-  expect(autoSpan).toBeDefined();
+  expect(functionMiddlewareSpan).toBeDefined();
   expect(nestedSpan).toBeDefined();
-  expect(nestedSpan?.parent_span_id).toBe(autoSpan?.span_id);
+  expect(nestedSpan?.parent_span_id).toBe(functionMiddlewareSpan?.span_id);
 });
