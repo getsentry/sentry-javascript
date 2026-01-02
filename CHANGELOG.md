@@ -31,7 +31,7 @@ Work in this release was contributed by @xgedev, @Mohataseem89, @sebws, and @G-R
   You can now set attributes on the SDK's scopes which will be applied to all logs as long as the respective scopes are active. For the time being, only `string`, `number` and `boolean` attribute values are supported.
 
   ```ts
-  Sentry.geGlobalScope().setAttributes({ is_admin: true, auth_provider: 'google' });
+  Sentry.getGlobalScope().setAttributes({ is_admin: true, auth_provider: 'google' });
 
   Sentry.withScope(scope => {
     scope.setAttribute('step', 'authentication');
