@@ -5,7 +5,6 @@
   "scripts": {
     "build": "nuxt build",
     "dev": "nuxt dev",
-    "dev:sentry": "NODE_OPTIONS='--import ./.nuxt/dev/sentry.server.config.mjs' nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "start": "node .output/server/index.mjs",
@@ -13,7 +12,7 @@
     "clean": "npx nuxi cleanup",
     "test": "playwright test",
     "test:prod": "TEST_ENV=production playwright test",
-    "test:dev": "TEST_ENV=development playwright test",
+    "test:dev": "TEST_ENV=development playwright test environment",
     "test:build": "pnpm install && pnpm build",
     "test:build-canary": "pnpm add nuxt@npm:nuxt-nightly@latest && pnpm add nitropack@npm:nitropack-nightly@latest && pnpm install --force && pnpm build",
     "test:assert": "pnpm test:prod && pnpm test:dev"

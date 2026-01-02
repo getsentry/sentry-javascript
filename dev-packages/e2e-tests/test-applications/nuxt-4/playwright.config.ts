@@ -8,7 +8,7 @@ if (!testEnv) {
 
 const getStartCommand = () => {
   if (testEnv === 'development') {
-    return 'pnpm dev';
+    return 'bash ./nuxt-start-dev-server.bash';
   }
 
   if (testEnv === 'production') {

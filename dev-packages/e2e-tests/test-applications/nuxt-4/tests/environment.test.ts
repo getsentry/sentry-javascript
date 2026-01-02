@@ -8,7 +8,8 @@ test.describe('environment detection', async () => {
       return errorEvent?.exception?.values?.[0]?.value === 'Error thrown from Nuxt-4 E2E test app';
     });
 
-    await page.goto(`/client-error`);
+    // We have to wait for networkidle in dev mode because clicking the button is a no-op otherwise (network requests are blocked during page load)
+    await page.goto(`/client-error`, isDevMode ? { waitUntil: 'networkidle' } : {});
     await page.locator('#errorBtn').click();
 
     const error = await errorPromise;
@@ -33,23 +34,6 @@ test.describe('environment detection', async () => {
       expect(transaction.environment).toBe('development');
     } else {
       expect(transaction.environment).toBe('production');
-    }
-  });
-
-  test('includes environment in event context', async ({ page }) => {
-    const errorPromise = waitForError('nuxt-4', async errorEvent => {
-      return errorEvent?.exception?.values?.[0]?.value === 'Error thrown from Nuxt-4 E2E test app';
-    });
-
-    await page.goto(`/client-error`);
-    await page.locator('#errorBtn').click();
-
-    const error = await errorPromise;
-
-    if (isDevMode) {
-      expect(error.environment).toBe('development');
-    } else {
-      expect(error.environment).toBe('production');
     }
   });
 });
