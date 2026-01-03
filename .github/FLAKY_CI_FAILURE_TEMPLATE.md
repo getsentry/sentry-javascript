@@ -25,4 +25,5 @@ _Not available - check the run link for details_
 - **Commit**: {{ env.COMMIT_SHA }}
 
 ---
-*This issue was automatically created.*
+
+_This issue was automatically created._
