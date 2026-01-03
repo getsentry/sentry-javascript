@@ -1168,7 +1168,74 @@ jobs:
     # Always run this, even if a dependent job failed
     if: always()
     runs-on: ubuntu-24.04
+    permissions:
+      issues: write
     steps:
+      - name: Create issues for failed jobs
+        if: github.ref == 'refs/heads/develop' && (contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled'))
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const needs = ${{ toJSON(needs) }};
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+
+            for (const [jobName, jobData] of Object.entries(needs)) {
+              if (jobData.result !== 'failure' && jobData.result !== 'cancelled') {
+                continue;
+              }
+
+              const title = `[Flaky CI]: ${jobName}`;
+
+              // Check for existing open issue with same title
+              const existing = await github.rest.issues.listForRepo({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                state: 'open',
+                labels: 'Tests',
+                per_page: 100
+              });
+
+              const existingIssue = existing.data.find(i => i.title === title);
+
+              if (existingIssue) {
+                console.log(`Issue already exists for ${jobName}: #${existingIssue.number}`);
+                continue;
+              }
+
+              const body = `### Flakiness Type
+
+Other / Unknown
+
+### Name of Job
+
+${jobName}
+
+### Name of Test
+
+_Not available - check the run link for details_
+
+### Link to Test Run
+
+${runUrl}
+
+### Details
+
+- **Result**: ${jobData.result}
+- **Commit**: ${context.sha}
+
+---
+*This issue was automatically created.*`;
+
+              const newIssue = await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: title,
+                body: body,
+                labels: ['Tests']
+              });
+              console.log(`Created issue #${newIssue.data.number} for ${jobName}`);
+            }
+
       - name: Check for failures
         if: cancelled() || contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
         run: |
