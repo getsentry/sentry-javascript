@@ -20,7 +20,7 @@ import {
   stripUrlQueryAndFragment,
 } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
-import { getDefaultIntegrations, httpIntegration, init as nodeInit } from '@sentry/node';
+import { claudeCodeAgentSdkIntegration, getDefaultIntegrations, httpIntegration, init as nodeInit } from '@sentry/node';
 import { DEBUG_BUILD } from '../common/debug-build';
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
 import { getVercelEnv } from '../common/getVercelEnv';
@@ -36,6 +36,10 @@ import { distDirRewriteFramesIntegration } from './distDirRewriteFramesIntegrati
 import { handleOnSpanStart } from './handleOnSpanStart';
 
 export * from '@sentry/node';
+
+// Explicit re-export for Claude Code integration
+// We re-export this explicitly to ensure rollup doesn't tree-shake it
+export { claudeCodeAgentSdkIntegration };
 
 export { captureUnderscoreErrorException } from '../common/pages-router-instrumentation/_error';
 
