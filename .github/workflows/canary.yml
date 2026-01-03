@@ -114,6 +114,9 @@ jobs:
           - test-application: 'nuxt-4'
             build-command: 'test:build-canary'
             label: 'nuxt-4 (canary)'
+          - test-application: 'tanstackstart-react'
+            build-command: 'test:build-latest'
+            label: 'tanstackstart-react (latest)'
 
     steps:
       - name: Check out current commit
