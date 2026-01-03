@@ -35,13 +35,5 @@
   },
   "volta": {
     "extends": "../../package.json"
-  },
-  "sentryTest": {
-    "optionalVariants": [
-      {
-        "build-command": "pnpm test:build-latest",
-        "label": "tanstackstart-react (latest)"
-      }
-    ]
   }
 }
