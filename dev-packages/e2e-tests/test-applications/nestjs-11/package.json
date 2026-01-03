@@ -11,7 +11,6 @@
     "clean": "npx rimraf node_modules pnpm-lock.yaml",
     "test": "playwright test",
     "test:build": "pnpm install",
-    "test:build-canary": "pnpm install && pnpm add @nestjs/common@next @nestjs/core@next @nestjs/platform-express@next @nestjs/microservices@next && pnpm add -D @nestjs/cli@next @nestjs/testing@next && pnpm build",
     "test:build-latest": "pnpm install && pnpm add @nestjs/common@latest @nestjs/core@latest @nestjs/platform-express@latest @nestjs/microservices@latest && pnpm add -D @nestjs/cli@latest @nestjs/testing@latest && pnpm build",
     "test:assert": "pnpm test"
   },
@@ -50,17 +49,5 @@
   },
   "volta": {
     "extends": "../../package.json"
-  },
-  "sentryTest": {
-    "optionalVariants": [
-      {
-        "build-command": "pnpm test:build-canary",
-        "label": "nestjs-11 (next)"
-      },
-      {
-        "build-command": "pnpm test:build-latest",
-        "label": "nestjs-11 (latest)"
-      }
-    ]
   }
 }

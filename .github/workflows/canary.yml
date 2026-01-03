@@ -115,9 +115,6 @@ jobs:
             build-command: 'test:build-canary'
             label: 'nuxt-4 (canary)'
           - test-application: 'nestjs-11'
-            build-command: 'test:build-canary'
-            label: 'nestjs-11 (next)'
-          - test-application: 'nestjs-11'
             build-command: 'test:build-latest'
             label: 'nestjs-11 (latest)'
 
