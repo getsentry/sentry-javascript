@@ -13,6 +13,11 @@ import { getClient, startBrowserTracingNavigationSpan, startBrowserTracingPageLo
 import * as React from 'react';
 import { DEBUG_BUILD } from '../utils/debug-build';
 import { hasManifest, maybeParameterizeRemixRoute } from './remixRouteParameterization';
+import {
+  getMetaTagTraceContext,
+  getNavigationTraceContext,
+  getNavigationTraceContextAsync,
+} from './serverTimingTracePropagation';
 
 export type Params<Key extends string = string> = {
   readonly [key in Key]: string | undefined;
@@ -85,6 +90,9 @@ function getTransactionNameAndSource(
   return { name: routeId, source: 'route' };
 }
 
+// Flag to prevent async callback from creating a span after navigation has occurred
+let pageloadSpanStarted = false;
+
 export function startPageloadSpan(client: Client): void {
   const initPathName = getInitPathName();
 
@@ -92,7 +100,6 @@ export function startPageloadSpan(client: Client): void {
     return;
   }
 
-  // Try to parameterize the route using the route manifest
   const parameterizedRoute = maybeParameterizeRemixRoute(initPathName);
   const spanName = parameterizedRoute || initPathName;
   const source = parameterizedRoute ? 'route' : 'url';
@@ -106,7 +113,29 @@ export function startPageloadSpan(client: Client): void {
     },
   };
 
-  startBrowserTracingPageLoadSpan(client, spanContext);
+  // Priority: meta tags > Server-Timing header > async retry
+  const metaTagTrace = getMetaTagTraceContext();
+  if (metaTagTrace) {
+    pageloadSpanStarted = true;
+    startBrowserTracingPageLoadSpan(client, spanContext, metaTagTrace);
+    return;
+  }
+
+  const serverTimingTrace = getNavigationTraceContext();
+  if (serverTimingTrace) {
+    pageloadSpanStarted = true;
+    startBrowserTracingPageLoadSpan(client, spanContext, serverTimingTrace);
+    return;
+  }
+
+  getNavigationTraceContextAsync(trace => {
+    // Skip if pageload span was already started (e.g., navigation occurred during retry)
+    if (pageloadSpanStarted) {
+      return;
+    }
+    pageloadSpanStarted = true;
+    startBrowserTracingPageLoadSpan(client, spanContext, trace ?? undefined);
+  });
 }
 
 function startNavigationSpan(matches: RouteMatch<string>[], location: ReturnType<UseLocation>): void {
@@ -201,6 +230,9 @@ export function withSentry<P extends Record<string, unknown>, R extends React.Co
       }
 
       if (_instrumentNavigation && matches?.length) {
+        // Mark pageload as started to prevent async callback from firing after navigation
+        pageloadSpanStarted = true;
+
         if (activeRootSpan) {
           activeRootSpan.end();
         }
