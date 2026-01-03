@@ -11,6 +11,7 @@
     "clean": "npx rimraf node_modules pnpm-lock.yaml",
     "test": "playwright test",
     "test:build": "pnpm install",
+    "test:build-latest": "pnpm install && pnpm add @nestjs/common@latest @nestjs/core@latest @nestjs/platform-express@latest @nestjs/microservices@latest && pnpm add -D @nestjs/cli@latest @nestjs/testing@latest && pnpm build",
     "test:assert": "pnpm test"
   },
   "dependencies": {

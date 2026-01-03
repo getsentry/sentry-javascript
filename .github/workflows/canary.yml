@@ -114,6 +114,9 @@ jobs:
           - test-application: 'nuxt-4'
             build-command: 'test:build-canary'
             label: 'nuxt-4 (canary)'
+          - test-application: 'nestjs-11'
+            build-command: 'test:build-latest'
+            label: 'nestjs-11 (latest)'
 
     steps:
       - name: Check out current commit
