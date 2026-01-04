@@ -5,6 +5,7 @@ import { SentryClaudeCodeAgentSdkInstrumentation } from './instrumentation';
 import type { ClaudeCodeOptions } from './types';
 
 export type { ClaudeCodeOptions } from './types';
+export { patchClaudeCodeQuery } from './helpers';
 
 export const CLAUDE_CODE_AGENT_SDK_INTEGRATION_NAME = 'ClaudeCodeAgentSdk';
 

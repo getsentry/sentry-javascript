@@ -10,6 +10,8 @@
  * - type: 'result' - Final result
  */
 
+let sessionCounter = 0;
+
 export class MockClaudeAgentSdk {
   constructor(scenarios = {}) {
     this.scenarios = scenarios;
@@ -40,7 +42,7 @@ export class MockClaudeAgentSdk {
 
   async *_createGenerator(params) {
     const model = params.options?.model || 'claude-sonnet-4-20250514';
-    const sessionId = `sess_${Math.random().toString(36).substr(2, 9)}`;
+    const sessionId = `sess_${Date.now()}_${++sessionCounter}`;
     const scenarioName = params.options?.scenario || 'basic';
 
     // Get scenario or use default

@@ -1,4 +1,5 @@
 /* eslint-disable no-console */
+import { patchClaudeCodeQuery } from '@sentry/node';
 import * as Sentry from '@sentry/node';
 import { createMockSdk } from './mock-server.mjs';
 
@@ -11,10 +12,16 @@ import { createMockSdk } from './mock-server.mjs';
 async function run() {
   const mockSdk = createMockSdk();
 
+  // Manually patch the query function
+  const originalQuery = mockSdk.query.bind(mockSdk);
+  const patchedQuery = patchClaudeCodeQuery(originalQuery, {
+    agentName: 'claude-code',
+  });
+
   // Test agent initialization error
   console.log('[Test] Running agent initialization error...');
   try {
-    const query1 = mockSdk.query({
+    const query1 = patchedQuery({
       prompt: 'This will fail at agent init',
       options: { model: 'claude-sonnet-4-20250514', scenario: 'agentError' },
     });
@@ -33,7 +40,7 @@ async function run() {
   // Test LLM error (rate limit)
   console.log('[Test] Running LLM error (rate limit)...');
   try {
-    const query2 = mockSdk.query({
+    const query2 = patchedQuery({
       prompt: 'This will fail during LLM call',
       options: { model: 'claude-sonnet-4-20250514', scenario: 'llmError' },
     });
@@ -56,7 +63,7 @@ async function run() {
 
   // Test tool execution error
   console.log('[Test] Running tool execution error...');
-  const query3 = mockSdk.query({
+  const query3 = patchedQuery({
     prompt: 'Run a command that will fail',
     options: { model: 'claude-sonnet-4-20250514', scenario: 'toolError' },
   });

@@ -1,4 +1,5 @@
 /* eslint-disable no-console */
+import { patchClaudeCodeQuery } from '@sentry/node';
 import * as Sentry from '@sentry/node';
 import { createMockSdk } from './mock-server.mjs';
 
@@ -11,9 +12,15 @@ import { createMockSdk } from './mock-server.mjs';
 async function run() {
   const mockSdk = createMockSdk();
 
+  // Manually patch the query function
+  const originalQuery = mockSdk.query.bind(mockSdk);
+  const patchedQuery = patchClaudeCodeQuery(originalQuery, {
+    agentName: 'claude-code',
+  });
+
   // Test function tools
   console.log('[Test] Running with function tools (Read)...');
-  const query1 = mockSdk.query({
+  const query1 = patchedQuery({
     prompt: 'Read the file',
     options: { model: 'claude-sonnet-4-20250514', scenario: 'withTools' },
   });
@@ -30,7 +37,7 @@ async function run() {
 
   // Test multiple tools in sequence
   console.log('[Test] Running with multiple tools...');
-  const query2 = mockSdk.query({
+  const query2 = patchedQuery({
     prompt: 'Find and read JavaScript files',
     options: { model: 'claude-sonnet-4-20250514', scenario: 'multipleTools' },
   });
@@ -48,7 +55,7 @@ async function run() {
 
   // Test extension tools
   console.log('[Test] Running with extension tools...');
-  const query3 = mockSdk.query({
+  const query3 = patchedQuery({
     prompt: 'Search the web',
     options: { model: 'claude-sonnet-4-20250514', scenario: 'extensionTools' },
   });
