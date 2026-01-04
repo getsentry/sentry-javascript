@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 import { patchClaudeCodeQuery } from '@sentry/node';
 import * as Sentry from '@sentry/node';
 import { createMockSdk } from './mock-server.mjs';
@@ -17,7 +16,6 @@ async function run() {
   });
 
   // Basic query
-  console.log('[Test] Running basic agent invocation...');
   const query1 = patchedQuery({
     prompt: 'What is the capital of France?',
     inputMessages: [{ role: 'user', content: 'What is the capital of France?' }],
@@ -25,16 +23,13 @@ async function run() {
   });
 
   for await (const message of query1) {
-    console.log('[Message]', message.type);
-    if (message.type === 'llm_text') {
-      console.log('[LLM Text]', message.text);
+    // Consume all messages
+    if (message.type === 'error') {
+      throw message.error;
     }
   }
 
-  console.log('[Test] Basic invocation complete\n');
-
   // Query with tool usage
-  console.log('[Test] Running agent invocation with tools...');
   const query2 = patchedQuery({
     prompt: 'Read the test file',
     inputMessages: [{ role: 'user', content: 'Read the test file' }],
@@ -42,20 +37,13 @@ async function run() {
   });
 
   for await (const message of query2) {
-    console.log('[Message]', message.type);
-    if (message.type === 'llm_text') {
-      console.log('[LLM Text]', message.text);
-    } else if (message.type === 'llm_tool_call') {
-      console.log('[Tool Call]', message.toolName, message.toolInput);
-    } else if (message.type === 'tool_result') {
-      console.log('[Tool Result]', message.toolName, message.status);
+    // Consume all messages
+    if (message.type === 'error') {
+      throw message.error;
     }
   }
 
-  console.log('[Test] Tool invocation complete\n');
-
   // Query with extension tools (WebSearch, WebFetch)
-  console.log('[Test] Running agent invocation with extension tools...');
   const query3 = patchedQuery({
     prompt: 'Search for information about Sentry',
     inputMessages: [{ role: 'user', content: 'Search for information about Sentry' }],
@@ -63,16 +51,13 @@ async function run() {
   });
 
   for await (const message of query3) {
-    console.log('[Message]', message.type);
-    if (message.type === 'llm_tool_call') {
-      console.log('[Tool Call]', message.toolName, 'type:', getToolType(message.toolName));
+    // Consume all messages
+    if (message.type === 'error') {
+      throw message.error;
     }
   }
 
-  console.log('[Test] Extension tools invocation complete\n');
-
   // Test error handling
-  console.log('[Test] Running agent invocation with LLM error...');
   try {
     const query4 = patchedQuery({
       prompt: 'This will fail',
@@ -81,46 +66,18 @@ async function run() {
     });
 
     for await (const message of query4) {
-      console.log('[Message]', message.type);
       if (message.type === 'error') {
         throw message.error;
       }
     }
-  } catch (error) {
-    console.log('[Error caught]', error.message);
+  } catch {
+    // Expected error - swallow it
   }
-
-  console.log('[Test] Error handling complete\n');
 
   // Allow spans to be sent
   await Sentry.flush(2000);
-  console.log('[Test] All scenarios complete');
 }
 
-function getToolType(toolName) {
-  const functionTools = new Set([
-    'Bash',
-    'BashOutput',
-    'KillShell',
-    'Read',
-    'Write',
-    'Edit',
-    'Glob',
-    'Grep',
-    'Task',
-    'ExitPlanMode',
-    'TodoWrite',
-    'NotebookEdit',
-    'SlashCommand',
-  ]);
-  const extensionTools = new Set(['WebSearch', 'WebFetch']);
-
-  if (functionTools.has(toolName)) return 'function';
-  if (extensionTools.has(toolName)) return 'extension';
-  return 'function';
-}
-
-run().catch(error => {
-  console.error('[Fatal error]', error);
+run().catch(() => {
   process.exit(1);
 });
