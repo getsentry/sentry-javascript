@@ -1,7 +1,7 @@
 import type { IntegrationFn } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
 import { generateInstrumentOnce } from '@sentry/node-core';
-import { SentryClaudeCodeAgentSdkInstrumentation } from './otel-instrumentation';
+import { SentryClaudeCodeAgentSdkInstrumentation } from './instrumentation';
 import type { ClaudeCodeOptions } from './types';
 
 export type { ClaudeCodeOptions } from './types';
