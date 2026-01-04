@@ -20,7 +20,6 @@ export const instrumentClaudeCodeAgentSdk = generateInstrumentOnce<ClaudeCodeOpt
 const _claudeCodeAgentSdkIntegration = ((options: ClaudeCodeOptions = {}) => {
   return {
     name: CLAUDE_CODE_AGENT_SDK_INTEGRATION_NAME,
-    options,
     setupOnce() {
       instrumentClaudeCodeAgentSdk(options);
     },
