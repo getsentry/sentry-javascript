@@ -13,7 +13,7 @@ describe('Claude Code Agent SDK integration', () => {
       // LLM chat span (child of agent span)
       expect.objectContaining({
         data: expect.objectContaining({
-          'sentry.origin': 'auto.ai.claude-code',
+          'sentry.origin': 'auto.ai.claude_code',
           'sentry.op': 'gen_ai.chat',
           'gen_ai.system': 'anthropic',
           'gen_ai.request.model': 'claude-sonnet-4-20250514',
@@ -27,7 +27,7 @@ describe('Claude Code Agent SDK integration', () => {
         }),
         description: expect.stringMatching(/^chat claude-sonnet/),
         op: 'gen_ai.chat',
-        origin: 'auto.ai.claude-code',
+        origin: 'auto.ai.claude_code',
         status: 'ok',
       }),
     ]),
@@ -58,13 +58,13 @@ describe('Claude Code Agent SDK integration', () => {
       expect.objectContaining({
         data: expect.objectContaining({
           'sentry.op': 'gen_ai.execute_tool',
-          'sentry.origin': 'auto.ai.claude-code',
+          'sentry.origin': 'auto.ai.claude_code',
           'gen_ai.tool.name': 'Read',
           'gen_ai.tool.type': 'function',
         }),
         description: 'execute_tool Read',
         op: 'gen_ai.execute_tool',
-        origin: 'auto.ai.claude-code',
+        origin: 'auto.ai.claude_code',
         status: 'ok',
       }),
 
@@ -110,7 +110,7 @@ describe('Claude Code Agent SDK integration', () => {
           type: 'Error',
           value: expect.stringMatching(/Rate limit exceeded|Agent initialization failed/),
           mechanism: {
-            type: 'auto.ai.claude-code',
+            type: 'auto.ai.claude_code',
             handled: false,
           },
         }),

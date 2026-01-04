@@ -118,6 +118,3 @@ const _claudeCodeAgentSdkIntegration = ((options: ClaudeCodeOptions = {}) => {
  * @see https://docs.sentry.io/platforms/javascript/guides/node/ai-monitoring/
  */
 export const claudeCodeAgentSdkIntegration = defineIntegration(_claudeCodeAgentSdkIntegration);
-
-// Export for testing purposes only
-export { patchClaudeCodeQuery } from './instrumentation';

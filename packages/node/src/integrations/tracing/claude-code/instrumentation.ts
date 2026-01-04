@@ -30,7 +30,7 @@ import type { ClaudeCodeOptions } from './types';
 
 export type ClaudeCodeInstrumentationOptions = ClaudeCodeOptions;
 
-const SENTRY_ORIGIN = 'auto.ai.claude-code';
+const SENTRY_ORIGIN = 'auto.ai.claude_code';
 
 /**
  * Maps Claude Code tool names to OpenTelemetry tool types.
