@@ -211,6 +211,9 @@ async function* _instrumentQueryGenerator(
   let totalCacheCreationTokens = 0;
   let totalCacheReadTokens = 0;
 
+  // Track if we encountered an error (for setting child span status in finally)
+  let encounteredError = false;
+
   try {
     for await (const message of originalQuery) {
       const msg = message as Record<string, unknown>;
@@ -246,37 +249,77 @@ async function* _instrumentQueryGenerator(
           previousTurnTools = [];
         }
 
-        // Create new LLM span
-        if (!currentLLMSpan) {
-          currentLLMSpan = withActiveSpan(span, () => {
-            return startSpanManual(
-              {
-                name: `chat ${model}`,
-                op: 'gen_ai.chat',
-                attributes: {
-                  [GEN_AI_SYSTEM_ATTRIBUTE]: 'anthropic',
-                  [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: model,
-                  [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'chat',
-                  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: SENTRY_ORIGIN,
-                  [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.chat',
-                },
-              },
-              (childSpan: Span) => {
-                if (instrumentationOptions.recordInputs && instrumentationOptions.prompt) {
-                  childSpan.setAttributes({
-                    [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: getTruncatedJsonString(instrumentationOptions.prompt),
-                  });
-                }
-                return childSpan;
-              },
-            );
-          });
+        // Create new LLM span for each assistant message (each is a new LLM turn)
+        // Close the current span first if it exists (this handles multiple assistant messages)
+        if (currentLLMSpan) {
+          // Finalize current LLM span before starting a new one
+          if (instrumentationOptions.recordOutputs && currentTurnContent) {
+            currentLLMSpan.setAttributes({
+              [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: currentTurnContent,
+            });
+          }
+          if (instrumentationOptions.recordOutputs && currentTurnTools.length > 0) {
+            currentLLMSpan.setAttributes({
+              [GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE]: JSON.stringify(currentTurnTools),
+            });
+          }
+          if (currentTurnId) {
+            currentLLMSpan.setAttributes({
+              [GEN_AI_RESPONSE_ID_ATTRIBUTE]: currentTurnId,
+            });
+          }
+          if (currentTurnModel) {
+            currentLLMSpan.setAttributes({
+              [GEN_AI_RESPONSE_MODEL_ATTRIBUTE]: currentTurnModel,
+            });
+          }
+          if (currentTurnStopReason) {
+            currentLLMSpan.setAttributes({
+              [GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]: JSON.stringify([currentTurnStopReason]),
+            });
+          }
 
-          currentTurnContent = '';
-          currentTurnTools = [];
+          currentLLMSpan.setStatus({ code: 1 });
+          currentLLMSpan.end();
+
+          // Move to previous for tool result matching
+          previousLLMSpan = currentLLMSpan;
+          previousTurnTools = currentTurnTools;
         }
 
-        // Accumulate content
+        // Create new LLM span for this turn
+        currentLLMSpan = withActiveSpan(span, () => {
+          return startSpanManual(
+            {
+              name: `chat ${model}`,
+              op: 'gen_ai.chat',
+              attributes: {
+                [GEN_AI_SYSTEM_ATTRIBUTE]: 'anthropic',
+                [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: model,
+                [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'chat',
+                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: SENTRY_ORIGIN,
+                [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.chat',
+              },
+            },
+            (childSpan: Span) => {
+              if (instrumentationOptions.recordInputs && instrumentationOptions.prompt) {
+                childSpan.setAttributes({
+                  [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: getTruncatedJsonString(instrumentationOptions.prompt),
+                });
+              }
+              return childSpan;
+            },
+          );
+        });
+
+        // Reset turn state for new span
+        currentTurnContent = '';
+        currentTurnTools = [];
+        currentTurnId = null;
+        currentTurnModel = null;
+        currentTurnStopReason = null;
+
+        // Accumulate content from this message
         const content = (msg.message as Record<string, unknown>)?.content as unknown[];
         if (Array.isArray(content)) {
           const textContent = content
@@ -302,6 +345,35 @@ async function* _instrumentQueryGenerator(
         if ((msg.message as Record<string, unknown>)?.stop_reason) {
           currentTurnStopReason = (msg.message as Record<string, unknown>).stop_reason as string;
         }
+
+        // If this assistant message has usage info, record it on the span and accumulate
+        const messageUsage = (msg.message as Record<string, unknown>)?.usage as Record<string, number> | undefined;
+        if (messageUsage && currentLLMSpan) {
+          setTokenUsageAttributes(
+            currentLLMSpan,
+            messageUsage.input_tokens,
+            messageUsage.output_tokens,
+            messageUsage.cache_creation_input_tokens,
+            messageUsage.cache_read_input_tokens,
+          );
+
+          if (messageUsage.cache_creation_input_tokens !== undefined) {
+            currentLLMSpan.setAttributes({
+              [GEN_AI_USAGE_INPUT_TOKENS_CACHE_WRITE_ATTRIBUTE]: messageUsage.cache_creation_input_tokens,
+            });
+          }
+          if (messageUsage.cache_read_input_tokens !== undefined) {
+            currentLLMSpan.setAttributes({
+              [GEN_AI_USAGE_INPUT_TOKENS_CACHED_ATTRIBUTE]: messageUsage.cache_read_input_tokens,
+            });
+          }
+
+          // Accumulate tokens for the invoke_agent span
+          totalInputTokens += messageUsage.input_tokens ?? 0;
+          totalOutputTokens += messageUsage.output_tokens ?? 0;
+          totalCacheCreationTokens += messageUsage.cache_creation_input_tokens ?? 0;
+          totalCacheReadTokens += messageUsage.cache_read_input_tokens ?? 0;
+        }
       }
 
       // Handle result messages
@@ -318,7 +390,7 @@ async function* _instrumentQueryGenerator(
           previousTurnTools = [];
         }
 
-        // Finalize current LLM span
+        // Finalize current LLM span (if still open)
         if (currentLLMSpan) {
           if (instrumentationOptions.recordOutputs && currentTurnContent) {
             currentLLMSpan.setAttributes({
@@ -346,35 +418,6 @@ async function* _instrumentQueryGenerator(
             currentLLMSpan.setAttributes({
               [GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]: JSON.stringify([currentTurnStopReason]),
             });
-          }
-
-          if (msg.usage) {
-            const usage = msg.usage as Record<string, number>;
-            setTokenUsageAttributes(
-              currentLLMSpan,
-              usage.input_tokens,
-              usage.output_tokens,
-              usage.cache_creation_input_tokens,
-              usage.cache_read_input_tokens,
-            );
-
-            // Set additional cache token attributes
-            if (usage.cache_creation_input_tokens !== undefined) {
-              currentLLMSpan.setAttributes({
-                [GEN_AI_USAGE_INPUT_TOKENS_CACHE_WRITE_ATTRIBUTE]: usage.cache_creation_input_tokens,
-              });
-            }
-            if (usage.cache_read_input_tokens !== undefined) {
-              currentLLMSpan.setAttributes({
-                [GEN_AI_USAGE_INPUT_TOKENS_CACHED_ATTRIBUTE]: usage.cache_read_input_tokens,
-              });
-            }
-
-            // Accumulate tokens for the invoke_agent span
-            totalInputTokens += usage.input_tokens ?? 0;
-            totalOutputTokens += usage.output_tokens ?? 0;
-            totalCacheCreationTokens += usage.cache_creation_input_tokens ?? 0;
-            totalCacheReadTokens += usage.cache_read_input_tokens ?? 0;
           }
 
           currentLLMSpan.setStatus({ code: 1 });
@@ -511,16 +554,26 @@ async function* _instrumentQueryGenerator(
     });
 
     span.setStatus({ code: 2, message: (error as Error).message });
+    encounteredError = true;
     throw error;
   } finally {
     // Ensure all child spans are closed even if generator exits early
+    // If we encountered an error, mark child spans as error too (not OK)
     if (currentLLMSpan?.isRecording()) {
-      currentLLMSpan.setStatus({ code: 1 });
+      if (encounteredError) {
+        currentLLMSpan.setStatus({ code: 2, message: 'Parent operation failed' });
+      } else {
+        currentLLMSpan.setStatus({ code: 1 });
+      }
       currentLLMSpan.end();
     }
 
     if (previousLLMSpan?.isRecording()) {
-      previousLLMSpan.setStatus({ code: 1 });
+      if (encounteredError) {
+        previousLLMSpan.setStatus({ code: 2, message: 'Parent operation failed' });
+      } else {
+        previousLLMSpan.setStatus({ code: 1 });
+      }
       previousLLMSpan.end();
     }
 
