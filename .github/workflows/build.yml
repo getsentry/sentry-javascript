@@ -1230,7 +1230,7 @@ jobs:
                 issueBody = issueBody.replace(pattern, value);
               }
 
-              const existingIssue = existing.data.find(i => i.title === title);
+              const existingIssue = existing.find(i => i.title === title);
 
               if (existingIssue) {
                 console.log(`Issue already exists for ${jobName}: #${existingIssue.number}`);
