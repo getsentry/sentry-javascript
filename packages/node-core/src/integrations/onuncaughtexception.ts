@@ -45,6 +45,8 @@ export const onUncaughtExceptionIntegration = defineIntegration((options: Partia
   return {
     name: INTEGRATION_NAME,
     setup(client: NodeClient) {
+      // errors in worker threads are already handled by the childProcessIntegration
+      // also we don't want to exit the Node process on worker thread errors
       if (!isMainThread) {
         return;
       }
