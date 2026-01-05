@@ -113,18 +113,18 @@ export function startPageloadSpan(client: Client): void {
     },
   };
 
-  // Priority: meta tags > Server-Timing header > async retry
-  const metaTagTrace = getMetaTagTraceContext();
-  if (metaTagTrace) {
-    pageloadSpanStarted = true;
-    startBrowserTracingPageLoadSpan(client, spanContext, metaTagTrace);
-    return;
-  }
-
+  // Priority: Server-Timing header > meta tags > async retry
   const serverTimingTrace = getNavigationTraceContext();
   if (serverTimingTrace) {
     pageloadSpanStarted = true;
     startBrowserTracingPageLoadSpan(client, spanContext, serverTimingTrace);
+    return;
+  }
+
+  const metaTagTrace = getMetaTagTraceContext();
+  if (metaTagTrace) {
+    pageloadSpanStarted = true;
+    startBrowserTracingPageLoadSpan(client, spanContext, metaTagTrace);
     return;
   }
 
