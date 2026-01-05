@@ -1172,17 +1172,13 @@ jobs:
       issues: write
     steps:
       - name: Check out current commit
-        if:
-          (github.ref == 'refs/heads/develop' || github.event_name == 'pull_request') && (contains(needs.*.result,
-          'failure') || contains(needs.*.result, 'cancelled'))
+        if: github.ref == 'refs/heads/develop' && (contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled'))
         uses: actions/checkout@v6
         with:
           sparse-checkout: .github
 
       - name: Create issues for failed jobs
-        if:
-          (github.ref == 'refs/heads/develop' || github.event_name == 'pull_request') && (contains(needs.*.result,
-          'failure') || contains(needs.*.result, 'cancelled'))
+        if: github.ref == 'refs/heads/develop' && (contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled'))
         uses: actions/github-script@v7
         with:
           script: |
