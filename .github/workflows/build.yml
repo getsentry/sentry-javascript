@@ -1185,14 +1185,14 @@ jobs:
             const fs = require('fs');
 
             // Fetch actual job details from the API to get descriptive names
-            const jobs = await github.rest.actions.listJobsForWorkflowRun({
+            const jobs = await github.paginate(github.rest.actions.listJobsForWorkflowRun, {
               owner: context.repo.owner,
               repo: context.repo.repo,
               run_id: context.runId,
               per_page: 100
             });
 
-            const failedJobs = jobs.data.jobs.filter(job => job.conclusion === 'failure');
+            const failedJobs = jobs.filter(job => job.conclusion === 'failure');
 
             if (failedJobs.length === 0) {
               console.log('No failed jobs found');
