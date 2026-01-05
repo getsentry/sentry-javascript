@@ -31,9 +31,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setHttpStatus,
-  spanToBaggageHeader,
   spanToJSON,
-  spanToTraceHeader,
   startSpan,
   winterCGHeadersToDict,
   winterCGRequestToRequestData,
@@ -105,26 +103,26 @@ export function wrapHandleErrorWithSentry(
 }
 
 /**
- * Get trace context for injection into loader response data.
- * Prioritizes active span context to ensure client pageload continues from the loader span,
- * not the http.server span, enabling proper trace continuity via Server-Timing headers.
+ * Get trace context for injection into loader response data (for meta tags).
+ * Returns empty object when Server-Timing headers are available, as they take priority.
+ * Only provides trace data for meta tags as a fallback mechanism.
  */
 function getTraceAndBaggage(): {
   sentryTrace?: string;
   sentryBaggage?: string;
 } {
+  // Server-Timing headers take priority over meta tags.
+  // When in Node.js or Cloudflare environments with an active span,
+  // Server-Timing headers will be injected, so skip meta tag data.
   if (isNodeEnv() || isCloudflareEnv()) {
     const activeSpan = getActiveSpan();
     if (activeSpan) {
-      const sentryTrace = spanToTraceHeader(activeSpan);
-      if (sentryTrace) {
-        return {
-          sentryTrace,
-          sentryBaggage: spanToBaggageHeader(activeSpan),
-        };
-      }
+      // Server-Timing header will be available, skip meta tag injection
+      DEBUG_BUILD && debug.log('[getTraceAndBaggage] Skipping meta tag injection - Server-Timing header will be used');
+      return {};
     }
 
+    // No active span - fall back to meta tags via propagation context
     const scope = getCurrentScope();
     const propagationContext = scope.getPropagationContext();
     const traceData = getTraceData();
@@ -132,7 +130,7 @@ function getTraceAndBaggage(): {
 
     if (propagationContext.traceId && spanId) {
       const fallbackTrace = generateSentryTraceHeader(propagationContext.traceId, spanId, propagationContext.sampled);
-      DEBUG_BUILD && debug.log('[getTraceAndBaggage] Falling back to propagation context:', fallbackTrace);
+      DEBUG_BUILD && debug.log('[getTraceAndBaggage] Using meta tags fallback - no active span for Server-Timing');
 
       return {
         sentryTrace: fallbackTrace,
