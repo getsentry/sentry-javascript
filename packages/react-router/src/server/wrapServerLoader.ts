@@ -67,7 +67,7 @@ export function wrapServerLoader<T>(options: SpanOptions = {}, loaderFn: (args: 
           ...options,
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.react_router.loader',
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.react-router.loader',
+            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.react_router.loader',
             ...options.attributes,
           },
         },

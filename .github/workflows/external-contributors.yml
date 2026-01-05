@@ -36,7 +36,7 @@ jobs:
           author_association: ${{ github.event.pull_request.author_association }}
 
       - name: Create PR with changes
-        uses: peter-evans/create-pull-request@84ae59a2cdc2258d6fa0732dd66352dddae2a412
+        uses: peter-evans/create-pull-request@98357b18bf14b5342f975ff684046ec3b2a07725
         with:
           # This token is scoped to Daniel Griesser
           # If we used the default GITHUB_TOKEN, the resulting PR would not trigger CI :(

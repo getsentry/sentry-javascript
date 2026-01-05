@@ -249,4 +249,90 @@ describe('wrappingLoader', () => {
       expect(wrappedCode).toMatch(/const proxy = userProvidedProxy \? wrappedHandler : undefined/);
     });
   });
+
+  describe('sourcemap handling', () => {
+    it('should include inline sourcemap in dev mode', async () => {
+      const callback = vi.fn();
+
+      const userCode = `
+        export function middleware(request) {
+          return new Response('ok');
+        }
+      `;
+      const userCodeSourceMap = undefined;
+
+      const loaderPromise = new Promise<void>(resolve => {
+        const loaderThis = {
+          ...defaultLoaderThis,
+          resourcePath: '/my/src/middleware.ts',
+          callback: callback.mockImplementation(() => {
+            resolve();
+          }),
+          getOptions() {
+            return {
+              pagesDir: '/my/pages',
+              appDir: '/my/app',
+              pageExtensionRegex: DEFAULT_PAGE_EXTENSION_REGEX,
+              excludeServerRoutes: [],
+              wrappingTargetKind: 'middleware',
+              vercelCronsConfig: undefined,
+              nextjsRequestAsyncStorageModulePath: '/my/request-async-storage.js',
+              isDev: true,
+            };
+          },
+        } satisfies LoaderThis<WrappingLoaderOptions>;
+
+        wrappingLoader.call(loaderThis, userCode, userCodeSourceMap);
+      });
+
+      await loaderPromise;
+
+      const wrappedCode = callback.mock.calls[0][1] as string;
+
+      // In dev mode, should have inline sourcemap for debugger support
+      expect(wrappedCode).toContain('//# sourceMappingURL=data:application/json;charset=utf-8;base64,');
+    });
+
+    it('should not include inline sourcemap in production mode', async () => {
+      const callback = vi.fn();
+
+      const userCode = `
+        export function middleware(request) {
+          return new Response('ok');
+        }
+      `;
+      const userCodeSourceMap = undefined;
+
+      const loaderPromise = new Promise<void>(resolve => {
+        const loaderThis = {
+          ...defaultLoaderThis,
+          resourcePath: '/my/src/middleware.ts',
+          callback: callback.mockImplementation(() => {
+            resolve();
+          }),
+          getOptions() {
+            return {
+              pagesDir: '/my/pages',
+              appDir: '/my/app',
+              pageExtensionRegex: DEFAULT_PAGE_EXTENSION_REGEX,
+              excludeServerRoutes: [],
+              wrappingTargetKind: 'middleware',
+              vercelCronsConfig: undefined,
+              nextjsRequestAsyncStorageModulePath: '/my/request-async-storage.js',
+              isDev: false,
+            };
+          },
+        } satisfies LoaderThis<WrappingLoaderOptions>;
+
+        wrappingLoader.call(loaderThis, userCode, userCodeSourceMap);
+      });
+
+      await loaderPromise;
+
+      const wrappedCode = callback.mock.calls[0][1] as string;
+
+      // In production mode, should NOT have inline sourcemap (hidden sourcemap instead)
+      expect(wrappedCode).not.toContain('//# sourceMappingURL=data:application/json;charset=utf-8;base64,');
+    });
+  });
 });

@@ -5,10 +5,10 @@
  */
 export function getOpName(pathName: string, requestMethod: string): string {
   return isLoaderRequest(pathName, requestMethod)
-    ? 'function.react-router.loader'
+    ? 'function.react_router.loader'
     : isActionRequest(pathName, requestMethod)
-      ? 'function.react-router.action'
-      : 'function.react-router';
+      ? 'function.react_router.action'
+      : 'function.react_router';
 }
 
 /**
