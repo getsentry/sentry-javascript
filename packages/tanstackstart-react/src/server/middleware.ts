@@ -1,14 +1,6 @@
 import { addNonEnumerableProperty } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan } from '@sentry/node';
-
-type TanStackMiddleware = {
-  options?: { server?: (...args: unknown[]) => unknown };
-  SENTRY_WRAPPED?: boolean;
-};
-
-type MiddlewareWrapperOptions = {
-  name: string;
-};
+import type { MiddlewareWrapperOptions, TanStackMiddleware } from '../common/types';
 
 /**
  * Wraps a TanStack Start middleware with Sentry instrumentation to create spans.
@@ -35,10 +27,12 @@ export function wrapMiddlewareWithSentry(
   middleware: TanStackMiddleware,
   options: MiddlewareWrapperOptions,
 ): TanStackMiddleware {
-  if (middleware.SENTRY_WRAPPED) {
+  if (middleware.__SENTRY_WRAPPED__) {
+    // already instrumented
     return middleware;
   }
 
+  // instrument server middleware
   if (middleware.options?.server) {
     middleware.options.server = new Proxy(middleware.options.server, {
       apply: (target, thisArg, args) => {
@@ -57,7 +51,9 @@ export function wrapMiddlewareWithSentry(
     });
   }
 
-  addNonEnumerableProperty(middleware, 'SENTRY_WRAPPED', true);
+  // mark as instrumented
+  addNonEnumerableProperty(middleware, '__SENTRY_WRAPPED__', true);
+
   return middleware;
 }
 
