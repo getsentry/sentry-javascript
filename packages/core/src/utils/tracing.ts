@@ -7,6 +7,7 @@ import { baggageHeaderToDynamicSamplingContext } from './baggage';
 import { extractOrgIdFromClient } from './dsn';
 import { parseSampleRate } from './parseSampleRate';
 import { generateSpanId, generateTraceId } from './propagationContext';
+import { safeMathRandom } from './safeRandomGeneratorRunner';
 
 // eslint-disable-next-line @sentry-internal/sdk/no-regexp-constructor -- RegExp is used for readability here
 export const TRACEPARENT_REGEXP = new RegExp(
@@ -65,7 +66,7 @@ export function propagationContextFromHeaders(
   if (!traceparentData?.traceId) {
     return {
       traceId: generateTraceId(),
-      sampleRand: Math.random(),
+      sampleRand: safeMathRandom(),
     };
   }
 
@@ -133,12 +134,12 @@ function getSampleRandFromTraceparentAndDsc(
   if (parsedSampleRate && traceparentData?.parentSampled !== undefined) {
     return traceparentData.parentSampled
       ? // Returns a sample rand with positive sampling decision [0, sampleRate)
-        Math.random() * parsedSampleRate
+        safeMathRandom() * parsedSampleRate
       : // Returns a sample rand with negative sampling decision [sampleRate, 1)
-        parsedSampleRate + Math.random() * (1 - parsedSampleRate);
+        parsedSampleRate + safeMathRandom() * (1 - parsedSampleRate);
   } else {
     // If nothing applies, return a random sample rand.
-    return Math.random();
+    return safeMathRandom();
   }
 }
 

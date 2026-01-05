@@ -1,3 +1,4 @@
+import { runInRandomSafeContext } from './safeRandomGeneratorRunner';
 import { GLOBAL_OBJ } from './worldwide';
 
 const ONE_SECOND_IN_MS = 1000;
@@ -21,7 +22,7 @@ interface Performance {
  * Returns a timestamp in seconds since the UNIX epoch using the Date API.
  */
 export function dateTimestampInSeconds(): number {
-  return Date.now() / ONE_SECOND_IN_MS;
+  return runInRandomSafeContext(() => Date.now() / ONE_SECOND_IN_MS);
 }
 
 /**
@@ -50,7 +51,7 @@ function createUnixTimestampInSecondsFunc(): () => number {
   // See: https://github.com/mdn/content/issues/4713
   // See: https://dev.to/noamr/when-a-millisecond-is-not-a-millisecond-3h6
   return () => {
-    return (timeOrigin + performance.now()) / ONE_SECOND_IN_MS;
+    return runInRandomSafeContext(() => (timeOrigin + performance.now()) / ONE_SECOND_IN_MS);
   };
 }
 

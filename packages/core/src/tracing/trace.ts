@@ -17,6 +17,7 @@ import { handleCallbackErrors } from '../utils/handleCallbackErrors';
 import { hasSpansEnabled } from '../utils/hasSpansEnabled';
 import { parseSampleRate } from '../utils/parseSampleRate';
 import { generateTraceId } from '../utils/propagationContext';
+import { safeMathRandom } from '../utils/safeRandomGeneratorRunner';
 import { _getSpanForScope, _setSpanForScope } from '../utils/spanOnScope';
 import { addChildSpanToSpan, getRootSpan, spanIsSampled, spanTimeInputToSeconds, spanToJSON } from '../utils/spanUtils';
 import { propagationContextFromHeaders, shouldContinueTrace } from '../utils/tracing';
@@ -293,7 +294,7 @@ export function startNewTrace<T>(callback: () => T): T {
   return withScope(scope => {
     scope.setPropagationContext({
       traceId: generateTraceId(),
-      sampleRand: Math.random(),
+      sampleRand: safeMathRandom(),
     });
     DEBUG_BUILD && debug.log(`Starting a new trace with id ${scope.getPropagationContext().traceId}`);
     return withActiveSpan(null, callback);
