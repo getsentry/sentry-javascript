@@ -12,6 +12,7 @@ import type {
   TransactionSource,
 } from '@sentry/core';
 import {
+  _INTERNAL_safeDateNow,
   captureEvent,
   convertSpanLinksForEnvelope,
   debounce,
@@ -82,7 +83,7 @@ export class SentrySpanExporter {
   }) {
     this._finishedSpanBucketSize = options?.timeout || DEFAULT_TIMEOUT;
     this._finishedSpanBuckets = new Array(this._finishedSpanBucketSize).fill(undefined);
-    this._lastCleanupTimestampInS = Math.floor(Date.now() / 1000);
+    this._lastCleanupTimestampInS = Math.floor(_INTERNAL_safeDateNow() / 1000);
     this._spansToBucketEntry = new WeakMap();
     this._sentSpans = new Map<string, number>();
     this._debouncedFlush = debounce(this.flush.bind(this), 1, { maxWait: 100 });
@@ -93,7 +94,7 @@ export class SentrySpanExporter {
    * This is called by the span processor whenever a span is ended.
    */
   public export(span: ReadableSpan): void {
-    const currentTimestampInS = Math.floor(Date.now() / 1000);
+    const currentTimestampInS = Math.floor(_INTERNAL_safeDateNow() / 1000);
 
     if (this._lastCleanupTimestampInS !== currentTimestampInS) {
       let droppedSpanCount = 0;
@@ -146,7 +147,7 @@ export class SentrySpanExporter {
         `SpanExporter exported ${sentSpanCount} spans, ${remainingOpenSpanCount} spans are waiting for their parent spans to finish`,
       );
 
-    const expirationDate = Date.now() + DEFAULT_TIMEOUT * 1000;
+    const expirationDate = _INTERNAL_safeDateNow() + DEFAULT_TIMEOUT * 1000;
 
     for (const span of sentSpans) {
       this._sentSpans.set(span.spanContext().spanId, expirationDate);
@@ -226,7 +227,7 @@ export class SentrySpanExporter {
 
   /** Remove "expired" span id entries from the _sentSpans cache. */
   private _flushSentSpanCache(): void {
-    const currentTimestamp = Date.now();
+    const currentTimestamp = _INTERNAL_safeDateNow();
     // Note, it is safe to delete items from the map as we go: https://stackoverflow.com/a/35943995/90297
     for (const [spanId, expirationTime] of this._sentSpans.entries()) {
       if (expirationTime <= currentTimestamp) {
