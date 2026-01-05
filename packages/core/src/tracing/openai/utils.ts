@@ -1,5 +1,6 @@
 import type { Span } from '../../types-hoist/span';
 import {
+  GEN_AI_CONVERSATION_ID_ATTRIBUTE,
   GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE,
   GEN_AI_RESPONSE_ID_ATTRIBUTE,
   GEN_AI_RESPONSE_MODEL_ATTRIBUTE,
@@ -19,6 +20,7 @@ import type {
   ChatCompletionChunk,
   InstrumentedMethod,
   OpenAiChatCompletionObject,
+  OpenAIConversationObject,
   OpenAICreateEmbeddingsObject,
   OpenAIResponseObject,
   ResponseStreamingEvent,
@@ -36,6 +38,10 @@ export function getOperationName(methodPath: string): string {
   }
   if (methodPath.includes('embeddings')) {
     return OPENAI_OPERATIONS.EMBEDDINGS;
+  }
+  // Conversations API
+  if (methodPath.includes('conversations')) {
+    return OPENAI_OPERATIONS.CONVERSATIONS;
   }
   return methodPath.split('.').pop() || 'unknown';
 }
@@ -98,6 +104,19 @@ export function isEmbeddingsResponse(response: unknown): response is OpenAICreat
     responseObject.object === 'list' &&
     typeof responseObject.model === 'string' &&
     responseObject.model.toLowerCase().includes('embedding')
+  );
+}
+
+/**
+ * Check if response is a Conversations API object
+ * @see https://platform.openai.com/docs/api-reference/conversations
+ */
+export function isConversationResponse(response: unknown): response is OpenAIConversationObject {
+  return (
+    response !== null &&
+    typeof response === 'object' &&
+    'object' in response &&
+    (response as Record<string, unknown>).object === 'conversation'
   );
 }
 
@@ -218,6 +237,27 @@ export function addEmbeddingsAttributes(span: Span, response: OpenAICreateEmbedd
 
   if (response.usage) {
     setTokenUsageAttributes(span, response.usage.prompt_tokens, undefined, response.usage.total_tokens);
+  }
+}
+
+/**
+ * Add attributes for Conversations API responses
+ * @see https://platform.openai.com/docs/api-reference/conversations
+ */
+export function addConversationAttributes(span: Span, response: OpenAIConversationObject): void {
+  const { id, created_at } = response;
+
+  span.setAttributes({
+    [OPENAI_RESPONSE_ID_ATTRIBUTE]: id,
+    [GEN_AI_RESPONSE_ID_ATTRIBUTE]: id,
+    // The conversation id is used to link messages across API calls
+    [GEN_AI_CONVERSATION_ID_ATTRIBUTE]: id,
+  });
+
+  if (created_at) {
+    span.setAttributes({
+      [OPENAI_RESPONSE_TIMESTAMP_ATTRIBUTE]: new Date(created_at * 1000).toISOString(),
+    });
   }
 }
 
