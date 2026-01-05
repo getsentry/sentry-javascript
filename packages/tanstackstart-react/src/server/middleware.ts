@@ -43,9 +43,9 @@ function getNextProxy<T extends (...args: unknown[]) => unknown>(next: T, span: 
  * );
  * ```
  *
- * @param middleware - The TanStack Start middleware to wrap
- * @param options - Options for the wrapper, including the span name
- * @returns The wrapped middleware with Sentry instrumentation
+ * @param middleware - The TanStack Start middleware to patch
+ * @param options - Options for the wrapper (currently only the name of the middleware)
+ * @returns The patched middleware
  */
 export function wrapMiddlewareWithSentry<T extends TanStackMiddlewareBase>(
   middleware: T,
