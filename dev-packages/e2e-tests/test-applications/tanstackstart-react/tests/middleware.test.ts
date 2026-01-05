@@ -119,7 +119,7 @@ test('Sends spans for server route request middleware', async ({ page }) => {
 
   expect(Array.isArray(transactionEvent?.spans)).toBe(true);
 
-  // Check for the server route specific request middleware span
+  // Check for the server route request middleware span
   expect(transactionEvent?.spans).toEqual(
     expect.arrayContaining([
       expect.objectContaining({

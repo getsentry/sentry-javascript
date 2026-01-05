@@ -13,13 +13,13 @@ const globalFunctionMiddleware = createMiddleware({ type: 'function' }).server(a
   return next();
 });
 
-// Server function specific middleware
+// Server function middleware
 const serverFnMiddleware = createMiddleware({ type: 'function' }).server(async ({ next }) => {
   console.log('Server function middleware executed');
   return next();
 });
 
-// Server route specific request middleware
+// Server route request middleware
 const serverRouteRequestMiddleware = createMiddleware().server(async ({ next }) => {
   console.log('Server route request middleware executed');
   return next();
