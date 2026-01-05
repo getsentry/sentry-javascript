@@ -117,6 +117,9 @@ jobs:
           - test-application: 'tanstackstart-react'
             build-command: 'test:build-latest'
             label: 'tanstackstart-react (latest)'
+          - test-application: 'nestjs-11'
+            build-command: 'test:build-latest'
+            label: 'nestjs-11 (latest)'
 
     steps:
       - name: Check out current commit
