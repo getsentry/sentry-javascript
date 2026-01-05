@@ -19,11 +19,6 @@ _Not available - check the run link for details_
 
 {{ env.RUN_LINK }}
 
-### Details
-
-- **Result**: {{ env.JOB_RESULT }}
-- **Commit**: {{ env.COMMIT_SHA }}
-
 ---
 
 _This issue was automatically created._

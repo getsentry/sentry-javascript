@@ -1187,42 +1187,54 @@ jobs:
         with:
           script: |
             const fs = require('fs');
-            const needs = ${{ toJSON(needs) }};
-            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+
+            // Fetch actual job details from the API to get descriptive names
+            const jobs = await github.rest.actions.listJobsForWorkflowRun({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: context.runId,
+              per_page: 100
+            });
+
+            const failedJobs = jobs.data.jobs.filter(job =>
+              job.conclusion === 'failure' || job.conclusion === 'cancelled'
+            );
+
+            if (failedJobs.length === 0) {
+              console.log('No failed jobs found');
+              return;
+            }
 
             // Read and parse template
             const template = fs.readFileSync('.github/FLAKY_CI_FAILURE_TEMPLATE.md', 'utf8');
-            const [, frontmatter, body] = template.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
+            const [, frontmatter, bodyTemplate] = template.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
 
-            for (const [jobName, jobData] of Object.entries(needs)) {
-              if (jobData.result !== 'failure' && jobData.result !== 'cancelled') {
-                continue;
-              }
+            // Get existing open issues with Tests label
+            const existing = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'Tests',
+              per_page: 100
+            });
+
+            for (const job of failedJobs) {
+              const jobName = job.name;
+              const jobUrl = job.html_url;
 
               // Replace template variables
               const vars = {
                 'JOB_NAME': jobName,
-                'JOB_RESULT': jobData.result,
-                'RUN_LINK': runUrl,
-                'COMMIT_SHA': context.sha
+                'RUN_LINK': jobUrl
               };
 
               let title = frontmatter.match(/title:\s*'(.*)'/)[1];
-              let issueBody = body;
+              let issueBody = bodyTemplate;
               for (const [key, value] of Object.entries(vars)) {
                 const pattern = new RegExp(`\\{\\{\\s*env\\.${key}\\s*\\}\\}`, 'g');
                 title = title.replace(pattern, value);
                 issueBody = issueBody.replace(pattern, value);
               }
-
-              // Check for existing open issue with same title
-              const existing = await github.rest.issues.listForRepo({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                state: 'open',
-                labels: 'Tests',
-                per_page: 100
-              });
 
               const existingIssue = existing.data.find(i => i.title === title);
 
