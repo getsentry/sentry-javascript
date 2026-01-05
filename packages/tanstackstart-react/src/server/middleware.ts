@@ -10,11 +10,7 @@ const SENTRY_WRAPPED = '__SENTRY_WRAPPED__';
  * Creates a proxy for the next function that ends the current span and restores the parent span.
  * This ensures that subsequent middleware spans are children of the root span, not nested children.
  */
-function getNextProxy<T extends (...args: unknown[]) => unknown>(
-  next: T,
-  span: Span,
-  prevSpan: Span | undefined,
-): T {
+function getNextProxy<T extends (...args: unknown[]) => unknown>(next: T, span: Span, prevSpan: Span | undefined): T {
   return new Proxy(next, {
     apply: (originalNext, thisArgNext, argsNext) => {
       span.end();
@@ -27,7 +23,7 @@ function getNextProxy<T extends (...args: unknown[]) => unknown>(
 
       return Reflect.apply(originalNext, thisArgNext, argsNext);
     },
-  }) as T;
+  }) ;
 }
 
 /**
@@ -105,9 +101,7 @@ export function wrapMiddlewareWithSentry<T extends TanStackMiddlewareBase>(
  * @param middlewares - An object containing middlewares
  * @returns An array of wrapped middlewares
  */
-export function wrapMiddlewareListWithSentry<T extends TanStackMiddlewareBase>(
-  middlewares: Record<string, T>,
-): T[] {
+export function wrapMiddlewareListWithSentry<T extends TanStackMiddlewareBase>(middlewares: Record<string, T>): T[] {
   return Object.entries(middlewares).map(([name, middleware]) => {
     return wrapMiddlewareWithSentry(middleware, { name });
   });

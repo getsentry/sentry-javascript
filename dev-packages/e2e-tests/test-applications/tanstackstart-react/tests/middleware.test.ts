@@ -1,7 +1,9 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
-test('Sends spans for server function specific middleware and verifies that multiple middlewares are siblings', async ({ page }) => {
+test('Sends spans for server function specific middleware and verifies that multiple middlewares are siblings', async ({
+  page,
+}) => {
   const transactionEventPromise = waitForTransaction('tanstackstart-react', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&

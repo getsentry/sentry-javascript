@@ -1,3 +1,4 @@
+import type { StartSpanOptions } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/node';
 
 /**
@@ -16,7 +17,7 @@ export function extractServerFunctionSha256(pathname: string): string {
 /**
  * Returns span options for TanStack Start middleware spans.
  */
-export function getMiddlewareSpanOptions(name: string) {
+export function getMiddlewareSpanOptions(name: string): StartSpanOptions {
   return {
     op: 'middleware.tanstackstart',
     name,
