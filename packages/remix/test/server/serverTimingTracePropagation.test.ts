@@ -1,4 +1,11 @@
-import { getActiveSpan, getRootSpan, getTraceData, isNodeEnv, spanToTraceHeader } from '@sentry/core';
+import {
+  getActiveSpan,
+  getDynamicSamplingContextFromSpan,
+  getRootSpan,
+  getTraceData,
+  isNodeEnv,
+  spanToTraceHeader,
+} from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   addSentryServerTimingHeader,
@@ -9,8 +16,14 @@ import {
 } from '../../src/server/serverTimingTracePropagation';
 
 // Mock @sentry/core - vi.mock is hoisted automatically
-const mockSpan = { spanId: 'test-span-id' };
-const mockRootSpan = { spanId: 'root-span-id' };
+const mockSpan = {
+  spanId: 'test-span-id',
+  spanContext: () => ({ traceId: '12345678901234567890123456789012' }),
+};
+const mockRootSpan = {
+  spanId: 'root-span-id',
+  spanContext: () => ({ traceId: '12345678901234567890123456789012' }),
+};
 
 vi.mock('@sentry/core', () => ({
   debug: {
@@ -22,6 +35,11 @@ vi.mock('@sentry/core', () => ({
   getTraceData: vi.fn(() => ({
     'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
     baggage: 'sentry-environment=production,sentry-release=1.0.0',
+  })),
+  getDynamicSamplingContextFromSpan: vi.fn(() => ({
+    trace_id: '12345678901234567890123456789012',
+    environment: 'production',
+    release: '1.0.0',
   })),
   spanToTraceHeader: vi.fn(() => '12345678901234567890123456789012-1234567890123456-1'),
   isNodeEnv: vi.fn(() => true),
@@ -94,7 +112,10 @@ describe('serverTimingTracePropagation', () => {
     });
 
     it('uses explicitly provided span', () => {
-      const customSpan = { spanId: 'custom-span' };
+      const customSpan = {
+        spanId: 'custom-span',
+        spanContext: () => ({ traceId: 'custom-trace-id' }),
+      };
       vi.mocked(spanToTraceHeader).mockReturnValue('custom-trace-id-custom-span-id-1');
       vi.mocked(getTraceData).mockReturnValue({
         'sentry-trace': 'custom-trace-id-custom-span-id-1',
@@ -134,6 +155,7 @@ describe('serverTimingTracePropagation', () => {
         'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
         baggage: '',
       });
+      vi.mocked(getDynamicSamplingContextFromSpan).mockReturnValue({});
 
       const result = generateSentryServerTimingHeader();
 
@@ -144,6 +166,7 @@ describe('serverTimingTracePropagation', () => {
       vi.mocked(getTraceData).mockReturnValue({
         'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
       });
+      vi.mocked(getDynamicSamplingContextFromSpan).mockReturnValue({});
 
       const result = generateSentryServerTimingHeader();
 
@@ -275,7 +298,10 @@ describe('serverTimingTracePropagation', () => {
     });
 
     it('uses provided span option', () => {
-      const customSpan = { spanId: 'custom' };
+      const customSpan = {
+        spanId: 'custom',
+        spanContext: () => ({ traceId: 'custom-trace-id' }),
+      };
       vi.mocked(spanToTraceHeader).mockReturnValue('custom-trace-header');
       vi.mocked(getTraceData).mockReturnValue({
         'sentry-trace': 'custom-trace-header',
