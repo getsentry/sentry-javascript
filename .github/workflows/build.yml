@@ -1204,7 +1204,7 @@ jobs:
             const [, frontmatter, bodyTemplate] = template.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
 
             // Get existing open issues with Tests label
-            const existing = await github.rest.issues.listForRepo({
+            const existing = await github.paginate(github.rest.issues.listForRepo, {
               owner: context.repo.owner,
               repo: context.repo.repo,
               state: 'open',
