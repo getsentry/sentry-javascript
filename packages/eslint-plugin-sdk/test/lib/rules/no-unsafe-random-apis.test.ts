@@ -154,4 +154,3 @@ describe('no-unsafe-random-apis', () => {
     });
   });
 });
-
