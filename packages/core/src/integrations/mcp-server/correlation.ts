@@ -80,11 +80,11 @@ export function completeSpanWithResults(
       }
 
       span.setAttributes(initAttributes);
-    } else if (method === 'tools/call' && options.recordOutputs) {
-      const toolAttributes = extractToolResultAttributes(result);
+    } else if (method === 'tools/call') {
+      const toolAttributes = extractToolResultAttributes(result, options.recordOutputs);
       span.setAttributes(toolAttributes);
-    } else if (method === 'prompts/get' && options.recordOutputs) {
-      const promptAttributes = extractPromptResultAttributes(result);
+    } else if (method === 'prompts/get') {
+      const promptAttributes = extractPromptResultAttributes(result, options.recordOutputs);
       span.setAttributes(promptAttributes);
     }
 
