@@ -1,4 +1,5 @@
 import { captureException, debug, defineIntegration, getClient } from '@sentry/core';
+import { isMainThread } from 'worker_threads';
 import { DEBUG_BUILD } from '../debug-build';
 import type { NodeClient } from '../sdk/client';
 import { logAndExitProcess } from '../utils/errorhandling';
@@ -44,6 +45,10 @@ export const onUncaughtExceptionIntegration = defineIntegration((options: Partia
   return {
     name: INTEGRATION_NAME,
     setup(client: NodeClient) {
+      if (!isMainThread) {
+        return;
+      }
+
       global.process.on('uncaughtException', makeErrorHandler(client, optionsWithDefaults));
     },
   };
