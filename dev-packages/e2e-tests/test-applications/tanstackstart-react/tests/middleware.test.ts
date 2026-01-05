@@ -1,9 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
-test('Sends spans for server function specific middleware and verifies that multiple middlewares are siblings', async ({
-  page,
-}) => {
+test('Sends spans for multiple middlewares and verifies they are siblings under teh same parent span', async ({ page }) => {
   const transactionEventPromise = waitForTransaction('tanstackstart-react', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
@@ -19,23 +17,7 @@ test('Sends spans for server function specific middleware and verifies that mult
 
   expect(Array.isArray(transactionEvent?.spans)).toBe(true);
 
-  // Check for the server function specific middleware span
-  expect(transactionEvent?.spans).toEqual(
-    expect.arrayContaining([
-      expect.objectContaining({
-        description: 'serverFnMiddleware',
-        op: 'middleware.tanstackstart',
-        origin: 'manual.middleware.tanstackstart',
-        data: expect.objectContaining({
-          'sentry.op': 'middleware.tanstackstart',
-          'sentry.origin': 'manual.middleware.tanstackstart',
-        }),
-        status: 'ok',
-      }),
-    ]),
-  );
-
-  // Verify that multiple middlewares are siblings under the same parent span
+  // Find both middleware spans
   const serverFnMiddlewareSpan = transactionEvent?.spans?.find(
     (span: { description?: string; origin?: string }) =>
       span.description === 'serverFnMiddleware' && span.origin === 'manual.middleware.tanstackstart',
@@ -45,8 +27,23 @@ test('Sends spans for server function specific middleware and verifies that mult
       span.description === 'globalFunctionMiddleware' && span.origin === 'manual.middleware.tanstackstart',
   );
 
-  expect(serverFnMiddlewareSpan).toBeDefined();
-  expect(globalFunctionMiddlewareSpan).toBeDefined();
+  // Verify both middleware spans exist with expected properties
+  expect(serverFnMiddlewareSpan).toEqual(
+    expect.objectContaining({
+      description: 'serverFnMiddleware',
+      op: 'middleware.tanstackstart',
+      origin: 'manual.middleware.tanstackstart',
+      status: 'ok',
+    }),
+  );
+  expect(globalFunctionMiddlewareSpan).toEqual(
+    expect.objectContaining({
+      description: 'globalFunctionMiddleware',
+      op: 'middleware.tanstackstart',
+      origin: 'manual.middleware.tanstackstart',
+      status: 'ok',
+    }),
+  );
 
   // Both middleware spans should be siblings under the same parent
   expect(serverFnMiddlewareSpan?.parent_span_id).toBe(globalFunctionMiddlewareSpan?.parent_span_id);
@@ -81,7 +78,7 @@ test('Sends spans for global function middleware', async ({ page }) => {
   );
 });
 
-test('Sends spans for global request middleware on page load', async ({ page }) => {
+test('Sends spans for global request middleware', async ({ page }) => {
   const transactionEventPromise = waitForTransaction('tanstackstart-react', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
@@ -108,7 +105,7 @@ test('Sends spans for global request middleware on page load', async ({ page }) 
   );
 });
 
-test('Sends spans for server route specific request middleware', async ({ page }) => {
+test('Sends spans for server route request middleware', async ({ page }) => {
   const transactionEventPromise = waitForTransaction('tanstackstart-react', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
