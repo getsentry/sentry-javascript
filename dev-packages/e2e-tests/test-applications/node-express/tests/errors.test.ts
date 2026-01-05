@@ -56,3 +56,8 @@ test('To not crash app from withMonitor', async ({ baseURL }) => {
   expect(response2.message).toBe('This is an exception withMonitor: 2');
   expect(response1.pid).toBe(response2.pid); //Just to double-check, TBS
 });
+
+// TODO: Remove this test - added temporarily to test flaky CI issue creation
+test('Intentional failure for testing flaky CI workflow', async () => {
+  expect(true).toBe(false);
+});
