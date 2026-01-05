@@ -2,5 +2,5 @@
 // so we keep this to be future proof
 export * from './client';
 // nothing gets exported yet from there
- 
+
 export * from './common';

@@ -23,7 +23,7 @@ function getNextProxy<T extends (...args: unknown[]) => unknown>(next: T, span: 
 
       return Reflect.apply(originalNext, thisArgNext, argsNext);
     },
-  }) ;
+  });
 }
 
 /**
