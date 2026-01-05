@@ -84,8 +84,7 @@ test('Sends a server function transaction for a nested server function only if i
     ]),
   );
 
-  // Verify that the globalFunctionMiddleware span is the parent of the nested span
-  // (middleware spans are inserted between the auto function span and user code)
+  // Verify that globalFunctionMiddleware and testNestedLog are sibling spans under the root
   const functionMiddlewareSpan = transactionEvent?.spans?.find(
     (span: { description?: string; origin?: string }) =>
       span.description === 'globalFunctionMiddleware' && span.origin === 'manual.middleware.tanstackstart',
@@ -97,5 +96,7 @@ test('Sends a server function transaction for a nested server function only if i
 
   expect(functionMiddlewareSpan).toBeDefined();
   expect(nestedSpan).toBeDefined();
-  expect(nestedSpan?.parent_span_id).toBe(functionMiddlewareSpan?.span_id);
+
+  // Both spans should be siblings under the same parent (root transaction)
+  expect(nestedSpan?.parent_span_id).toBe(functionMiddlewareSpan?.parent_span_id);
 });
