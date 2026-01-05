@@ -1,1 +1,1 @@
-export type { TanStackMiddleware, MiddlewareWrapperOptions } from './types';
+export type { TanStackMiddlewareBase, MiddlewareWrapperOptions } from './types';

@@ -1,6 +1,5 @@
-export type TanStackMiddleware = {
+export type TanStackMiddlewareBase = {
   options?: { server?: (...args: unknown[]) => unknown };
-  __SENTRY_WRAPPED__?: boolean;
 };
 
 export type MiddlewareWrapperOptions = {

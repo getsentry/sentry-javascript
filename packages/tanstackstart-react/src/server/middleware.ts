@@ -1,6 +1,8 @@
 import { addNonEnumerableProperty } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan } from '@sentry/node';
-import type { MiddlewareWrapperOptions, TanStackMiddleware } from '../common/types';
+import type { MiddlewareWrapperOptions, TanStackMiddlewareBase } from '../common/types';
+
+const SENTRY_WRAPPED = '__SENTRY_WRAPPED__';
 
 /**
  * Wraps a TanStack Start middleware with Sentry instrumentation to create spans.
@@ -23,11 +25,11 @@ import type { MiddlewareWrapperOptions, TanStackMiddleware } from '../common/typ
  * @param options - Options for the wrapper, including the span name
  * @returns The wrapped middleware with Sentry instrumentation
  */
-export function wrapMiddlewareWithSentry(
-  middleware: TanStackMiddleware,
+export function wrapMiddlewareWithSentry<T extends TanStackMiddlewareBase>(
+  middleware: T,
   options: MiddlewareWrapperOptions,
-): TanStackMiddleware {
-  if (middleware.__SENTRY_WRAPPED__) {
+): T {
+  if ((middleware as TanStackMiddlewareBase & { [SENTRY_WRAPPED]?: boolean })[SENTRY_WRAPPED]) {
     // already instrumented
     return middleware;
   }
@@ -49,10 +51,10 @@ export function wrapMiddlewareWithSentry(
         );
       },
     });
-  }
 
-  // mark as instrumented
-  addNonEnumerableProperty(middleware, '__SENTRY_WRAPPED__', true);
+    // mark as instrumented
+    addNonEnumerableProperty(middleware as unknown as Record<string, unknown>, SENTRY_WRAPPED, true);
+  }
 
   return middleware;
 }
@@ -76,7 +78,9 @@ export function wrapMiddlewareWithSentry(
  * @param middlewares - An object containing middlewares
  * @returns An array of wrapped middlewares
  */
-export function wrapMiddlewareListWithSentry(middlewares: Record<string, TanStackMiddleware>): TanStackMiddleware[] {
+export function wrapMiddlewareListWithSentry<T extends TanStackMiddlewareBase>(
+  middlewares: Record<string, T>,
+): T[] {
   return Object.entries(middlewares).map(([name, middleware]) => {
     return wrapMiddlewareWithSentry(middleware, { name });
   });

@@ -5,13 +5,13 @@ export * from '@sentry/react';
 
 export { init } from './sdk';
 
-import type { MiddlewareWrapperOptions, TanStackMiddleware } from '../common/types';
+import type { MiddlewareWrapperOptions, TanStackMiddlewareBase } from '../common/types';
 
 /**
  * No-op stub for client-side builds.
  * The actual implementation is server-only, but this stub is needed to prevent build errors.
  */
-export function wrapMiddlewareWithSentry<T extends TanStackMiddleware>(
+export function wrapMiddlewareWithSentry<T extends TanStackMiddlewareBase>(
   middleware: T,
   _options: MiddlewareWrapperOptions,
 ): T {
@@ -22,6 +22,6 @@ export function wrapMiddlewareWithSentry<T extends TanStackMiddleware>(
  * No-op stub for client-side builds.
  * The actual implementation is server-only, but this stub is needed to prevent build errors.
  */
-export function wrapMiddlewareListWithSentry<T extends TanStackMiddleware>(middlewares: Record<string, T>): T[] {
+export function wrapMiddlewareListWithSentry<T extends TanStackMiddlewareBase>(middlewares: Record<string, T>): T[] {
   return Object.values(middlewares);
 }
