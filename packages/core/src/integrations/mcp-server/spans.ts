@@ -148,18 +148,21 @@ export function createMcpNotificationSpan(
  * Creates a span for outgoing MCP notifications
  * @param jsonRpcMessage - Notification message
  * @param transport - MCP transport instance
+ * @param options - Resolved MCP options
  * @param callback - Span execution callback
  * @returns Span execution result
  */
 export function createMcpOutgoingNotificationSpan(
   jsonRpcMessage: JsonRpcNotification,
   transport: MCPTransport,
+  options: ResolvedMcpOptions,
   callback: () => unknown,
 ): unknown {
   return createMcpSpan({
     type: 'notification-outgoing',
     message: jsonRpcMessage,
     transport,
+    options,
     callback,
   });
 }

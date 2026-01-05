@@ -15,14 +15,24 @@ import { extractTargetInfo, getRequestArguments } from './methodConfig';
 import type { JsonRpcNotification, JsonRpcRequest, McpSpanType } from './types';
 
 /**
+ * Formats logging data for span attributes
+ * @internal
+ */
+function formatLoggingData(data: unknown): string {
+  return typeof data === 'string' ? data : JSON.stringify(data);
+}
+
+/**
  * Extracts additional attributes for specific notification types
  * @param method - Notification method name
  * @param params - Notification parameters
+ * @param recordInputs - Whether to include actual content or just metadata
  * @returns Method-specific attributes for span instrumentation
  */
 export function getNotificationAttributes(
   method: string,
   params: Record<string, unknown>,
+  recordInputs?: boolean,
 ): Record<string, string | number> {
   const attributes: Record<string, string | number> = {};
 
@@ -45,10 +55,8 @@ export function getNotificationAttributes(
       }
       if (params?.data !== undefined) {
         attributes[MCP_LOGGING_DATA_TYPE_ATTRIBUTE] = typeof params.data;
-        if (typeof params.data === 'string') {
-          attributes[MCP_LOGGING_MESSAGE_ATTRIBUTE] = params.data;
-        } else {
-          attributes[MCP_LOGGING_MESSAGE_ATTRIBUTE] = JSON.stringify(params.data);
+        if (recordInputs) {
+          attributes[MCP_LOGGING_MESSAGE_ATTRIBUTE] = formatLoggingData(params.data);
         }
       }
       break;
@@ -115,7 +123,7 @@ export function buildTypeSpecificAttributes(
     };
   }
 
-  return getNotificationAttributes(message.method, params || {});
+  return getNotificationAttributes(message.method, params || {}, recordInputs);
 }
 
 // Re-export buildTransportAttributes for spans.ts

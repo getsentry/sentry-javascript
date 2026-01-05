@@ -508,7 +508,6 @@ describe('MCP Server Semantic Conventions', () => {
     });
 
     it('should capture tool result metadata but not content when recordOutputs is false', async () => {
-      // Fresh server needed due to double-wrap protection
       const server = wrapMcpServerWithSentry(createMockMcpServer(), { recordOutputs: false });
       const transport = createMockTransport();
       await server.connect(transport);
@@ -536,7 +535,6 @@ describe('MCP Server Semantic Conventions', () => {
     });
 
     it('should capture prompt result metadata but not content when recordOutputs is false', async () => {
-      // Fresh server needed due to double-wrap protection
       const server = wrapMcpServerWithSentry(createMockMcpServer(), { recordOutputs: false });
       const transport = createMockTransport();
       await server.connect(transport);
@@ -561,6 +559,34 @@ describe('MCP Server Semantic Conventions', () => {
       expect(attrs).toMatchObject({ 'mcp.prompt.result.message_count': 1 });
       expect(attrs).not.toHaveProperty('mcp.prompt.result.description');
       expect(attrs).not.toHaveProperty('mcp.prompt.result.message_role');
+    });
+
+    it('should capture notification metadata but not logging message when recordInputs is false', async () => {
+      const server = wrapMcpServerWithSentry(createMockMcpServer(), { recordInputs: false });
+      const transport = createMockTransport();
+      await server.connect(transport);
+
+      const loggingNotification = {
+        jsonrpc: '2.0',
+        method: 'notifications/message',
+        params: { level: 'info', logger: 'test-logger', data: 'sensitive log message' },
+      };
+
+      transport.onmessage?.(loggingNotification, {});
+
+      expect(startSpanSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          attributes: expect.objectContaining({
+            'mcp.logging.level': 'info',
+            'mcp.logging.logger': 'test-logger',
+            'mcp.logging.data_type': 'string',
+          }),
+        }),
+        expect.any(Function),
+      );
+
+      const lastCall = startSpanSpy.mock.calls[startSpanSpy.mock.calls.length - 1];
+      expect(lastCall?.[0]?.attributes).not.toHaveProperty('mcp.logging.message');
     });
   });
 });

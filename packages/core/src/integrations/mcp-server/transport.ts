@@ -99,7 +99,7 @@ export function wrapTransportSend(transport: MCPTransport, options: ResolvedMcpO
         const [message] = args;
 
         if (isJsonRpcNotification(message)) {
-          return createMcpOutgoingNotificationSpan(message, this, () => {
+          return createMcpOutgoingNotificationSpan(message, this, options, () => {
             return (originalSend as (...args: unknown[]) => unknown).call(this, ...args);
           });
         }
