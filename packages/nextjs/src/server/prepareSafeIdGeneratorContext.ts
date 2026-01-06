@@ -1,8 +1,8 @@
-import { debug, GLOBAL_OBJ } from '@sentry/core';
+import { type _INTERNAL_RandomSafeContextRunner as RandomSafeContextRunner, debug, GLOBAL_OBJ } from '@sentry/core';
 import { DEBUG_BUILD } from '../common/debug-build';
 
-type SafeRandomContextRunner = <T>(callback: () => T) => T;
-
+// Inline AsyncLocalStorage interface from current types
+// Avoids conflict with resolving it from getBuiltinModule
 type OriginalAsyncLocalStorage = typeof AsyncLocalStorage;
 
 /**
@@ -11,7 +11,7 @@ type OriginalAsyncLocalStorage = typeof AsyncLocalStorage;
  */
 export function prepareSafeIdGeneratorContext(): void {
   const sym = Symbol.for('__SENTRY_SAFE_RANDOM_ID_WRAPPER__');
-  const globalWithSymbol: typeof GLOBAL_OBJ & { [sym]?: SafeRandomContextRunner } = GLOBAL_OBJ;
+  const globalWithSymbol: typeof GLOBAL_OBJ & { [sym]?: RandomSafeContextRunner } = GLOBAL_OBJ;
   const als = getAsyncLocalStorage();
   if (!als) {
     DEBUG_BUILD &&
@@ -27,11 +27,14 @@ export function prepareSafeIdGeneratorContext(): void {
 
 function getAsyncLocalStorage(): OriginalAsyncLocalStorage | undefined {
   // May exist in the Next.js runtime globals
-  if ('AsyncLocalStorage' in GLOBAL_OBJ) {
+  // Doesn't exist in some of our tests
+  if (typeof AsyncLocalStorage !== 'undefined') {
     return AsyncLocalStorage;
   }
 
   // Try to resolve it dynamically without synchronously importing the module
+  // This is done to avoid importing the module synchronously at the top
+  // which means this is safe across runtimes
   if ('getBuiltinModule' in process && typeof process.getBuiltinModule === 'function') {
     const { AsyncLocalStorage } = process.getBuiltinModule('async_hooks') ?? {};
 

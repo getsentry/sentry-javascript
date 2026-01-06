@@ -1,8 +1,8 @@
 import { GLOBAL_OBJ } from './worldwide';
 
-type SafeRandomContextRunner = <T>(callback: () => T) => T;
+export type RandomSafeContextRunner = <T>(callback: () => T) => T;
 
-let RESOLVED_RUNNER: SafeRandomContextRunner | undefined;
+let RESOLVED_RUNNER: RandomSafeContextRunner | undefined;
 
 /**
  * Simple wrapper that allows SDKs to *secretly* set context wrapper to generate safe random IDs in cache components contexts
@@ -14,7 +14,7 @@ export function runInRandomSafeContext<T>(cb: () => T): T {
   }
 
   const sym = Symbol.for('__SENTRY_SAFE_RANDOM_ID_WRAPPER__');
-  const globalWithSymbol: typeof GLOBAL_OBJ & { [sym]?: SafeRandomContextRunner } = GLOBAL_OBJ;
+  const globalWithSymbol: typeof GLOBAL_OBJ & { [sym]?: RandomSafeContextRunner } = GLOBAL_OBJ;
   if (!(sym in globalWithSymbol) || typeof globalWithSymbol[sym] !== 'function') {
     return cb();
   }

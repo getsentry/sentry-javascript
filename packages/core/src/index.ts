@@ -518,4 +518,5 @@ export {
   runInRandomSafeContext as _INTERNAL_runInRandomSafeContext,
   safeDateNow as _INTERNAL_safeDateNow,
   safeMathRandom as _INTERNAL_safeMathRandom,
+  type RandomSafeContextRunner as _INTERNAL_RandomSafeContextRunner,
 } from './utils/safeRandomGeneratorRunner';

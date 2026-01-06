@@ -1,6 +1,6 @@
 import type { DataCategory } from '../types-hoist/datacategory';
 import type { TransportMakeRequestResponse } from '../types-hoist/transport';
-import { runInRandomSafeContext, safeDateNow } from './safeRandomGeneratorRunner';
+import { safeDateNow } from './safeRandomGeneratorRunner';
 
 // Intentionally keeping the key broad, as we don't know for sure what rate limit headers get returned from backend
 export type RateLimits = Record<string, number>;
@@ -13,7 +13,7 @@ export const DEFAULT_RETRY_AFTER = 60 * 1000; // 60 seconds
  * @param now current unix timestamp
  *
  */
-export function parseRetryAfterHeader(header: string, now: number = runInRandomSafeContext(() => Date.now())): number {
+export function parseRetryAfterHeader(header: string, now: number = safeDateNow()): number {
   const headerDelay = parseInt(`${header}`, 10);
   if (!isNaN(headerDelay)) {
     return headerDelay * 1000;
