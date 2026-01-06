@@ -88,29 +88,11 @@ EOF
 
 Make sure to add a `test:build` and `test:assert` command to the new app's `package.json` file.
 
-### Critical: The `.npmrc` File
+### The `.npmrc` File
 
-**Every E2E test application MUST have an `.npmrc` file.** This file tells pnpm to fetch `@sentry/*` and `@sentry-internal/*` packages from the local Verdaccio registry instead of the public npm registry.
+Every test application needs an `.npmrc` file (as shown above) to tell pnpm to fetch `@sentry/*` and `@sentry-internal/*` packages from the local Verdaccio registry. Without it, pnpm will install from the public npm registry and your local changes won't be tested - this is one of the most common causes of confusing test failures.
 
-The `.npmrc` file must contain:
-
-```
-@sentry:registry=http://127.0.0.1:4873
-@sentry-internal:registry=http://127.0.0.1:4873
-```
-
-**Why is this critical?**
-
-Without this file:
-
-- pnpm will install packages from the public npm registry
-- Your local SDK changes will NOT be tested
-- Tests may pass or fail based on the published version, not your changes
-- This is one of the most common causes of confusing test failures
-
-**How to verify packages are installed from Verdaccio:**
-
-Check the version in `node_modules/@sentry/*/package.json`. If it shows a version like `0.0.0-pr.12345` or matches your local build, Verdaccio is working correctly. If it shows a released version (e.g., `8.0.0`), the `.npmrc` is missing or incorrect.
+To verify packages are being installed from Verdaccio, check the version in `node_modules/@sentry/*/package.json`. If it shows something like `0.0.0-pr.12345`, Verdaccio is working. If it shows a released version (e.g., `8.0.0`), the `.npmrc` is missing or incorrect.
 
 ## Troubleshooting
 

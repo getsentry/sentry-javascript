@@ -132,16 +132,16 @@ E2E tests use [Verdaccio](https://verdaccio.org/), a lightweight npm registry ru
 2. Tarballs are published to Verdaccio at `http://127.0.0.1:4873`
 3. Test applications install packages from Verdaccio instead of public npm
 
-#### Critical `.npmrc` Requirement
+#### The `.npmrc` Requirement
 
-**Every E2E test application MUST have an `.npmrc` file** with:
+Every E2E test application needs an `.npmrc` file with:
 
 ```
 @sentry:registry=http://127.0.0.1:4873
 @sentry-internal:registry=http://127.0.0.1:4873
 ```
 
-Without this file, pnpm will install packages from the public npm registry, causing tests to use published versions instead of your local changes. This is a common cause of "tests pass in CI but fail locally" or vice versa.
+Without this file, pnpm installs from the public npm registry instead of Verdaccio, so your local changes won't be tested. This is a common cause of "tests pass in CI but fail locally" or vice versa.
 
 #### Running a Single E2E Test
 
@@ -163,18 +163,7 @@ yarn test:run <app-name> --variant <variant-name>
 
 2. **Stale tarballs**: After SDK changes, must re-run `yarn build:tarball`.
 
-3. **Bundler environment variable handling**:
-   - Webpack's `DefinePlugin` doesn't replace values in `node_modules`
-   - Vite's `define` doesn't replace values in `node_modules` either
-   - For Vite apps needing env vars in dependencies, use `@rollup/plugin-replace`
-   - Next.js injects `process.env` via webpack/turbopack automatically
-
-4. **`import.meta.env` behavior**:
-   - Vite replaces `import.meta.env.VITE_*` at build time
-   - Other bundlers (webpack, turbopack) don't have `import.meta.env`
-   - SDK code must use try-catch when accessing `import.meta.env`
-
-5. **Debugging tips**:
+3. **Debugging tips**:
    - Check browser console logs for SDK initialization errors
    - Use `debug: true` in Sentry config
    - Verify installed package version: check `node_modules/@sentry/*/package.json`
