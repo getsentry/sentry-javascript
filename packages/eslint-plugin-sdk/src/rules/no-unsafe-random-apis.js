@@ -8,13 +8,33 @@
  * random number generation in certain contexts (e.g., React Server Components with caching).
  */
 
-// APIs that should be wrapped with runInRandomSafeContext
+// APIs that should be wrapped with runInRandomSafeContext, with their specific messages
 const UNSAFE_MEMBER_CALLS = [
-  { object: 'Date', property: 'now' },
-  { object: 'Math', property: 'random' },
-  { object: 'performance', property: 'now' },
-  { object: 'crypto', property: 'randomUUID' },
-  { object: 'crypto', property: 'getRandomValues' },
+  {
+    object: 'Date',
+    property: 'now',
+    messageId: 'unsafeDateNow',
+  },
+  {
+    object: 'Math',
+    property: 'random',
+    messageId: 'unsafeMathRandom',
+  },
+  {
+    object: 'performance',
+    property: 'now',
+    messageId: 'unsafePerformanceNow',
+  },
+  {
+    object: 'crypto',
+    property: 'randomUUID',
+    messageId: 'unsafeCryptoRandomUUID',
+  },
+  {
+    object: 'crypto',
+    property: 'getRandomValues',
+    messageId: 'unsafeCryptoGetRandomValues',
+  },
 ];
 
 module.exports = {
@@ -29,8 +49,16 @@ module.exports = {
     fixable: null,
     schema: [],
     messages: {
-      unsafeRandomApi:
-        '{{ api }} should be wrapped with runInRandomSafeContext() to ensure safe random/time value generation. Use: runInRandomSafeContext(() => {{ api }}). You can disable this rule with an eslint-disable comment if this usage is intentional.',
+      unsafeDateNow:
+        '`Date.now()` should be replaced with `safeDateNow()` from `@sentry/core` to ensure safe time value generation. You can disable this rule with an eslint-disable comment if this usage is intentional.',
+      unsafeMathRandom:
+        '`Math.random()` should be replaced with `safeMathRandom()` from `@sentry/core` to ensure safe random value generation. You can disable this rule with an eslint-disable comment if this usage is intentional.',
+      unsafePerformanceNow:
+        '`performance.now()` should be wrapped with `runInRandomSafeContext()` to ensure safe time value generation. Use: `runInRandomSafeContext(() => performance.now())`. You can disable this rule with an eslint-disable comment if this usage is intentional.',
+      unsafeCryptoRandomUUID:
+        '`crypto.randomUUID()` should be wrapped with `runInRandomSafeContext()` to ensure safe random value generation. Use: `runInRandomSafeContext(() => crypto.randomUUID())`. You can disable this rule with an eslint-disable comment if this usage is intentional.',
+      unsafeCryptoGetRandomValues:
+        '`crypto.getRandomValues()` should be wrapped with `runInRandomSafeContext()` to ensure safe random value generation. Use: `runInRandomSafeContext(() => crypto.getRandomValues(...))`. You can disable this rule with an eslint-disable comment if this usage is intentional.',
     },
   },
   create: function (context) {
@@ -104,17 +132,12 @@ module.exports = {
           }
 
           // Check if this is one of the unsafe APIs
-          const isUnsafeApi = UNSAFE_MEMBER_CALLS.some(
-            api => api.object === objectName && api.property === propertyName,
-          );
+          const unsafeApi = UNSAFE_MEMBER_CALLS.find(api => api.object === objectName && api.property === propertyName);
 
-          if (isUnsafeApi && !isInsideRunInRandomSafeContext(node)) {
+          if (unsafeApi && !isInsideRunInRandomSafeContext(node)) {
             context.report({
               node,
-              messageId: 'unsafeRandomApi',
-              data: {
-                api: `${objectName}.${propertyName}()`,
-              },
+              messageId: unsafeApi.messageId,
             });
           }
         }

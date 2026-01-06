@@ -61,8 +61,7 @@ describe('no-unsafe-random-apis', () => {
           code: 'const time = Date.now()',
           errors: [
             {
-              messageId: 'unsafeRandomApi',
-              data: { api: 'Date.now()' },
+              messageId: 'unsafeDateNow',
             },
           ],
         },
@@ -71,8 +70,7 @@ describe('no-unsafe-random-apis', () => {
           code: 'const random = Math.random()',
           errors: [
             {
-              messageId: 'unsafeRandomApi',
-              data: { api: 'Math.random()' },
+              messageId: 'unsafeMathRandom',
             },
           ],
         },
@@ -81,8 +79,7 @@ describe('no-unsafe-random-apis', () => {
           code: 'const perf = performance.now()',
           errors: [
             {
-              messageId: 'unsafeRandomApi',
-              data: { api: 'performance.now()' },
+              messageId: 'unsafePerformanceNow',
             },
           ],
         },
@@ -91,8 +88,7 @@ describe('no-unsafe-random-apis', () => {
           code: 'const uuid = crypto.randomUUID()',
           errors: [
             {
-              messageId: 'unsafeRandomApi',
-              data: { api: 'crypto.randomUUID()' },
+              messageId: 'unsafeCryptoRandomUUID',
             },
           ],
         },
@@ -101,8 +97,7 @@ describe('no-unsafe-random-apis', () => {
           code: 'const bytes = crypto.getRandomValues(new Uint8Array(16))',
           errors: [
             {
-              messageId: 'unsafeRandomApi',
-              data: { api: 'crypto.getRandomValues()' },
+              messageId: 'unsafeCryptoGetRandomValues',
             },
           ],
         },
@@ -111,8 +106,7 @@ describe('no-unsafe-random-apis', () => {
           code: 'function getTime() { return Date.now(); }',
           errors: [
             {
-              messageId: 'unsafeRandomApi',
-              data: { api: 'Date.now()' },
+              messageId: 'unsafeDateNow',
             },
           ],
         },
@@ -121,8 +115,7 @@ describe('no-unsafe-random-apis', () => {
           code: 'const getTime = () => Date.now()',
           errors: [
             {
-              messageId: 'unsafeRandomApi',
-              data: { api: 'Date.now()' },
+              messageId: 'unsafeDateNow',
             },
           ],
         },
@@ -131,8 +124,7 @@ describe('no-unsafe-random-apis', () => {
           code: 'someOtherWrapper(() => Date.now())',
           errors: [
             {
-              messageId: 'unsafeRandomApi',
-              data: { api: 'Date.now()' },
+              messageId: 'unsafeDateNow',
             },
           ],
         },
@@ -141,12 +133,10 @@ describe('no-unsafe-random-apis', () => {
           code: 'const a = Date.now(); const b = Math.random();',
           errors: [
             {
-              messageId: 'unsafeRandomApi',
-              data: { api: 'Date.now()' },
+              messageId: 'unsafeDateNow',
             },
             {
-              messageId: 'unsafeRandomApi',
-              data: { api: 'Math.random()' },
+              messageId: 'unsafeMathRandom',
             },
           ],
         },
