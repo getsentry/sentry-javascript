@@ -56,7 +56,6 @@ describe('browserPerformanceTimeOrigin', () => {
     const currentTimeMs = 1767778040870;
 
     const navigationStartMs = currentTimeMs - 2_000;
-    // const unreliableTime = currentTimeMs - RELIABLE_THRESHOLD_MS - 2_000;
 
     const timeSincePageloadMs = 1_234.789;
 
