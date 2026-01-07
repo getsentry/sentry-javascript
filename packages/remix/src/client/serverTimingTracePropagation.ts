@@ -72,7 +72,7 @@ function parseServerTimingTrace(serverTiming: readonly PerformanceServerTiming[]
 
   const traceparentData = extractTraceparentData(sentryTrace);
   if (!traceparentData?.traceId || !traceparentData?.parentSpanId) {
-    DEBUG_BUILD && debug.warn('[Server-Timing] Invalid sentry-trace format:', sentryTrace);
+    DEBUG_BUILD && debug.warn('Invalid sentry-trace format:', sentryTrace);
     return null;
   }
 
@@ -117,9 +117,7 @@ function tryGetNavigationTraceContext(): NavigationTraceResult {
 }
 
 /**
- * Get trace context from the initial navigation (page load).
- * Reads the Server-Timing header from the navigation performance entry.
- * Results are cached after first successful retrieval.
+ * Get trace context from Server-Timing header synchronously. Results are cached.
  */
 export function getNavigationTraceContext(): ServerTimingTraceContext | null {
   if (navigationTraceCache !== undefined) {
@@ -127,7 +125,7 @@ export function getNavigationTraceContext(): ServerTimingTraceContext | null {
   }
 
   if (!isServerTimingSupported()) {
-    DEBUG_BUILD && debug.log('[Server-Timing] Server-Timing API not supported');
+    DEBUG_BUILD && debug.log('Server-Timing API not supported');
     navigationTraceCache = null;
     return null;
   }
@@ -147,10 +145,8 @@ export function getNavigationTraceContext(): ServerTimingTraceContext | null {
 }
 
 /**
- * Get trace context from navigation with retry mechanism.
- * Useful during SDK init when browser may not have finished processing headers.
- *
- * @returns Cleanup function to cancel pending retries (e.g., on navigation)
+ * Get trace context from Server-Timing header with retry mechanism for early SDK initialization.
+ * Returns a cleanup function to cancel pending retries.
  */
 export function getNavigationTraceContextAsync(
   callback: (trace: ServerTimingTraceContext | null) => void,
@@ -167,7 +163,7 @@ export function getNavigationTraceContextAsync(
   }
 
   if (!isServerTimingSupported()) {
-    DEBUG_BUILD && debug.log('[Server-Timing] Server-Timing API not supported');
+    DEBUG_BUILD && debug.log('Server-Timing API not supported');
     navigationTraceCache = null;
     callback(null);
     return () => {
@@ -187,21 +183,27 @@ export function getNavigationTraceContextAsync(
 
     switch (result.status) {
       case 'unavailable':
-        navigationTraceCache = null;
-        callback(null);
+        if (!state.cancelled) {
+          navigationTraceCache = null;
+          callback(null);
+        }
         return;
       case 'pending':
         if (attempts < maxAttempts) {
           setTimeout(tryGet, delayMs);
           return;
         }
-        DEBUG_BUILD && debug.warn('[Server-Timing] Max retry attempts reached, trace context unavailable');
-        navigationTraceCache = null;
-        callback(null);
+        DEBUG_BUILD && debug.warn('Max retry attempts reached, trace context unavailable');
+        if (!state.cancelled) {
+          navigationTraceCache = null;
+          callback(null);
+        }
         return;
       case 'available':
-        navigationTraceCache = result.data;
-        callback(result.data);
+        if (!state.cancelled) {
+          navigationTraceCache = result.data;
+          callback(result.data);
+        }
     }
   };
 
@@ -213,8 +215,7 @@ export function getNavigationTraceContextAsync(
 }
 
 /**
- * Get trace context from meta tags.
- * Looks for `<meta name="sentry-trace">` and `<meta name="baggage">` tags.
+ * Get trace context from meta tags as a fallback for browsers without Server-Timing support.
  */
 export function getMetaTagTraceContext(): ServerTimingTraceContext | null {
   if (typeof WINDOW === 'undefined' || !WINDOW.document) {
@@ -233,7 +234,7 @@ export function getMetaTagTraceContext(): ServerTimingTraceContext | null {
 
     const traceparentData = extractTraceparentData(sentryTrace);
     if (!traceparentData?.traceId || !traceparentData?.parentSpanId) {
-      DEBUG_BUILD && debug.warn('[Server-Timing] Invalid sentry-trace format in meta tag:', sentryTrace);
+      DEBUG_BUILD && debug.warn('Invalid sentry-trace format in meta tag:', sentryTrace);
       return null;
     }
 
@@ -246,7 +247,10 @@ export function getMetaTagTraceContext(): ServerTimingTraceContext | null {
   }
 }
 
-/** @internal */
+/**
+ * Resets the navigation trace cache for fresh retrieval.
+ * @internal
+ */
 export function clearNavigationTraceCache(): void {
   navigationTraceCache = undefined;
 }

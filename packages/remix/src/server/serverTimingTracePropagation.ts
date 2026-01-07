@@ -33,8 +33,8 @@ export function isCloudflareEnv(): boolean {
 }
 
 /**
- * Generate Server-Timing header value containing Sentry trace context.
- * Enables trace propagation from server to client via the Performance API.
+ * Generate a Server-Timing header value containing Sentry trace context.
+ * Called automatically by instrumented `handleDocumentRequest`.
  */
 export function generateSentryServerTimingHeader(options: ServerTimingTraceOptions = {}): string | null {
   // Only generate on server environments
@@ -62,8 +62,6 @@ export function generateSentryServerTimingHeader(options: ServerTimingTraceOptio
     // Get DSC from span and ensure trace_id consistency
     const dsc = getDynamicSamplingContextFromSpan(span);
 
-    // Build baggage string, ensuring trace_id matches the span's trace_id
-    // The DSC may have a different trace_id if it was frozen from an earlier context
     const baggageEntries: string[] = [];
     for (const [key, value] of Object.entries(dsc)) {
       if (value) {
@@ -98,7 +96,7 @@ export function generateSentryServerTimingHeader(options: ServerTimingTraceOptio
 }
 
 /**
- * Merge Sentry Server-Timing with an existing Server-Timing header value.
+ * Merge Sentry trace context with an existing Server-Timing header value.
  */
 export function mergeSentryServerTimingHeader(
   existingHeader: string | null | undefined,
@@ -146,8 +144,8 @@ export function injectServerTimingHeaderValue(response: Response, serverTimingVa
 }
 
 /**
- * Add Sentry trace context to Response headers via Server-Timing.
- * Returns a new Response with the header added.
+ * Add Sentry trace context to a Response via the Server-Timing header.
+ * Returns a new Response with the header added (original is not modified).
  */
 export function addSentryServerTimingHeader(response: Response, options?: ServerTimingTraceOptions): Response {
   const sentryTiming = generateSentryServerTimingHeader(options);
