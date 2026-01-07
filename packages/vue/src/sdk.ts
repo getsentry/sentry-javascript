@@ -1,8 +1,15 @@
 import { getDefaultIntegrations, init as browserInit } from '@sentry/browser';
 import type { Client } from '@sentry/core';
-import { applySdkMetadata } from '@sentry/core';
+import { applySdkMetadata, parseSpotlightEnvValue, resolveSpotlightValue } from '@sentry/core';
 import { vueIntegration } from './integration';
 import type { Options } from './types';
+
+// Build-time placeholder - Rollup replaces per output format
+// ESM: import.meta.env.VITE_SENTRY_SPOTLIGHT (zero-config for Vite)
+// CJS: undefined
+// Note: We don't use optional chaining (?.) because Vite only does static replacement
+// on exact matches of import.meta.env.VITE_*
+declare const __VITE_SPOTLIGHT_ENV__: string | undefined;
 
 /**
  * Inits the Vue SDK
@@ -12,6 +19,31 @@ export function init(options: Partial<Omit<Options, 'tracingOptions'>> = {}): Cl
     defaultIntegrations: [...getDefaultIntegrations(options), vueIntegration()],
     ...options,
   };
+
+  // Check for spotlight env vars:
+  // 1. process.env.SENTRY_SPOTLIGHT (all bundlers, requires config)
+  // 2. process.env.VITE_SENTRY_SPOTLIGHT (all bundlers, requires config)
+  // 3. import.meta.env.VITE_SENTRY_SPOTLIGHT (ESM only, zero-config for Vite!)
+  //
+  // For option 3, Rollup replaces __VITE_SPOTLIGHT_ENV__ with import.meta.env.VITE_SENTRY_SPOTLIGHT
+  // Then Vite replaces that with the actual value or undefined at build time.
+  // We wrap in try-catch because in non-Vite ESM environments (like Nuxt), import.meta.env may not exist.
+  let viteSpotlightEnv: string | undefined;
+  try {
+    viteSpotlightEnv = typeof __VITE_SPOTLIGHT_ENV__ !== 'undefined' ? __VITE_SPOTLIGHT_ENV__ : undefined;
+  } catch {
+    // import.meta.env doesn't exist in this environment
+  }
+
+  const spotlightEnvRaw =
+    (typeof process !== 'undefined' && (process.env?.SENTRY_SPOTLIGHT || process.env?.VITE_SENTRY_SPOTLIGHT)) ||
+    viteSpotlightEnv ||
+    undefined;
+
+  if (spotlightEnvRaw) {
+    const envValue = parseSpotlightEnvValue(spotlightEnvRaw);
+    opts.spotlight = resolveSpotlightValue(options.spotlight, envValue);
+  }
 
   applySdkMetadata(opts, 'vue');
 
