@@ -107,17 +107,12 @@ describe('browserPerformanceTimeOrigin', () => {
     it('caches `undefined` result', async () => {
       vi.stubGlobal('performance', undefined);
 
-      // Get a fresh module instance
       const timeModule = await import(`../../../src/utils/time?update=${Date.now()}`);
 
-      // Call browserPerformanceTimeOrigin multiple times
       const result1 = timeModule.browserPerformanceTimeOrigin();
 
-      // All should be undefined
       expect(result1).toBeUndefined();
-
-      // Now set performance to a valid object - if caching works, the result should still be undefined
-      // because the first call should have cached the undefined result
+      
       vi.stubGlobal('performance', {
         timeOrigin: 1000,
         now: () => 100,
