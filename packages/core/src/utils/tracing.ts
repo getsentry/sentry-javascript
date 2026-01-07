@@ -7,6 +7,7 @@ import { baggageHeaderToDynamicSamplingContext } from './baggage';
 import { extractOrgIdFromClient } from './dsn';
 import { parseSampleRate } from './parseSampleRate';
 import { generateSpanId, generateTraceId } from './propagationContext';
+import { withRandomSafeContext } from './randomSafeContext';
 
 // eslint-disable-next-line @sentry-internal/sdk/no-regexp-constructor -- RegExp is used for readability here
 export const TRACEPARENT_REGEXP = new RegExp(
@@ -64,8 +65,8 @@ export function propagationContextFromHeaders(
 
   if (!traceparentData?.traceId) {
     return {
-      traceId: generateTraceId(),
-      sampleRand: Math.random(),
+      traceId: withRandomSafeContext(generateTraceId),
+      sampleRand: withRandomSafeContext(() => Math.random()),
     };
   }
 
