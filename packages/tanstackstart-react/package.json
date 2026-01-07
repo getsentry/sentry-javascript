@@ -57,6 +57,9 @@
     "@sentry/node": "10.32.1",
     "@sentry/react": "10.32.1"
   },
+  "devDependencies": {
+    "vite": "^5.4.11"
+  },
   "scripts": {
     "build": "run-p build:transpile build:types",
     "build:dev": "yarn build",
