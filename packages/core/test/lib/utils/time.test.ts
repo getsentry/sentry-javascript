@@ -111,7 +111,7 @@ describe('browserPerformanceTimeOrigin', () => {
       const result1 = timeModule.browserPerformanceTimeOrigin();
 
       expect(result1).toBeUndefined();
-      
+
       vi.stubGlobal('performance', {
         timeOrigin: 1000,
         now: () => 100,
