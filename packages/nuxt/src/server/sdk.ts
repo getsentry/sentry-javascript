@@ -1,12 +1,21 @@
 import * as path from 'node:path';
 import type { Client, Event, EventProcessor, Integration } from '@sentry/core';
-import { applySdkMetadata, debug, flush, getGlobalScope, vercelWaitUntil } from '@sentry/core';
+import {
+  applySdkMetadata,
+  debug,
+  DEFAULT_ENVIRONMENT,
+  DEV_ENVIRONMENT,
+  flush,
+  getGlobalScope,
+  vercelWaitUntil,
+} from '@sentry/core';
 import {
   getDefaultIntegrations as getDefaultNodeIntegrations,
   httpIntegration,
   init as initNode,
   type NodeOptions,
 } from '@sentry/node';
+import { isCjs } from '@sentry/node-core';
 import { DEBUG_BUILD } from '../common/debug-build';
 import type { SentryNuxtServerOptions } from '../common/types';
 
@@ -16,7 +25,11 @@ import type { SentryNuxtServerOptions } from '../common/types';
  * @param options Configuration options for the SDK.
  */
 export function init(options: SentryNuxtServerOptions): Client | undefined {
-  const sentryOptions = { defaultIntegrations: getNuxtDefaultIntegrations(options), ...options };
+  const sentryOptions = {
+    environment: !isCjs() && import.meta.dev ? DEV_ENVIRONMENT : DEFAULT_ENVIRONMENT,
+    defaultIntegrations: getNuxtDefaultIntegrations(options),
+    ...options,
+  };
 
   applySdkMetadata(sentryOptions, 'nuxt', ['nuxt', 'node']);
 
