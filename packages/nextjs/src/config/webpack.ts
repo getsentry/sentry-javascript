@@ -150,6 +150,7 @@ export function constructWebpackConfigFunction({
         projectDir,
         rawNewConfig.resolve?.modules,
       ),
+      isDev,
     };
 
     const normalizeLoaderResourcePath = (resourcePath: string): string => {
