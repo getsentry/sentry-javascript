@@ -78,6 +78,7 @@ let cachedTimeOrigin: number | undefined;
 
 /**
  * Gets the time origin and the mode used to determine it.
+ * TODO: move to `@sentry/browser-utils` package.
  */
 function getBrowserTimeOrigin(): number | undefined {
   // Unfortunately browsers may report an inaccurate time origin data, through either performance.timeOrigin or
