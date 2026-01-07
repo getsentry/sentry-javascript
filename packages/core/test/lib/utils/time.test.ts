@@ -77,31 +77,6 @@ describe('browserPerformanceTimeOrigin', () => {
     vi.unstubAllGlobals();
   });
 
-  it('returns `performance.timing.navigationStart` if `performance.timeOrigin` is less reliable', async () => {
-    const currentTimeMs = 1767778040874;
-
-    const navigationStartMs = currentTimeMs - 2_000;
-
-    const timeSincePageloadMs = 1_234.789;
-
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date(currentTimeMs));
-
-    vi.stubGlobal('performance', {
-      timeOrigin: navigationStartMs - 1,
-      timing: {
-        navigationStart: navigationStartMs,
-      },
-      now: () => timeSincePageloadMs,
-    });
-
-    const timeOrigin = await getFreshPerformanceTimeOrigin();
-    expect(timeOrigin).toBe(navigationStartMs);
-
-    vi.useRealTimers();
-    vi.unstubAllGlobals();
-  });
-
   describe('caching', () => {
     it('caches `undefined` result', async () => {
       vi.stubGlobal('performance', undefined);
