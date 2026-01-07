@@ -137,7 +137,8 @@ describe('serverTimingTracePropagation', () => {
           responseStart: 100,
           serverTiming: [
             { name: 'sentry-trace', description: sentryTrace },
-            { name: 'baggage', description: encodeURIComponent(baggage) },
+            // Baggage is escaped for quoted-string context (not URL-encoded)
+            { name: 'baggage', description: baggage },
           ],
         },
       ]);
@@ -232,18 +233,20 @@ describe('serverTimingTracePropagation', () => {
       expect(result).toBeNull();
     });
 
-    it('decodes URL-encoded baggage', () => {
+    it('unescapes backslash-escaped baggage', () => {
       const traceId = '12345678901234567890123456789012';
       const spanId = '1234567890123456';
       const sentryTrace = `${traceId}-${spanId}-1`;
       const baggage = 'sentry-environment=production,sentry-release=1.0.0';
+      // Simulate escaped baggage (backslash-escaped quotes and backslashes)
+      const escapedBaggage = baggage.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
 
       mockPerformance.getEntriesByType = vi.fn().mockReturnValue([
         {
           responseStart: 100,
           serverTiming: [
             { name: 'sentry-trace', description: sentryTrace },
-            { name: 'baggage', description: encodeURIComponent(baggage) },
+            { name: 'baggage', description: escapedBaggage },
           ],
         },
       ]);
@@ -253,25 +256,27 @@ describe('serverTimingTracePropagation', () => {
       expect(result?.baggage).toBe(baggage);
     });
 
-    it('handles malformed URL-encoded baggage gracefully', () => {
+    it('handles baggage with special characters', () => {
       const traceId = '12345678901234567890123456789012';
       const spanId = '1234567890123456';
       const sentryTrace = `${traceId}-${spanId}-1`;
-      const malformedBaggage = '%E0%A4%A';
+      // Baggage with escaped quotes (simulating what server sends)
+      const escapedBaggage = 'key=value\\"with\\"quotes';
 
       mockPerformance.getEntriesByType = vi.fn().mockReturnValue([
         {
           responseStart: 100,
           serverTiming: [
             { name: 'sentry-trace', description: sentryTrace },
-            { name: 'baggage', description: malformedBaggage },
+            { name: 'baggage', description: escapedBaggage },
           ],
         },
       ]);
 
       const result = getNavigationTraceContext();
 
-      expect(result?.baggage).toBe(malformedBaggage);
+      // Should unescape the backslash-escaped quotes
+      expect(result?.baggage).toBe('key=value"with"quotes');
     });
   });
 

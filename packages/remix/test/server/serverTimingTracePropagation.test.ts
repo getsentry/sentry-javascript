@@ -101,7 +101,8 @@ describe('serverTimingTracePropagation', () => {
 
       expect(result).toContain('sentry-trace;desc="12345678901234567890123456789012-1234567890123456-1"');
       expect(result).toContain('baggage;desc=');
-      expect(result).toContain(encodeURIComponent('sentry-environment=production,sentry-release=1.0.0'));
+      // Baggage is escaped for quoted-string context (not URL-encoded)
+      expect(result).toContain('sentry-environment=production,sentry-release=1.0.0');
     });
 
     it('generates header without baggage when includeBaggage is false', () => {
@@ -138,7 +139,8 @@ describe('serverTimingTracePropagation', () => {
       const result = generateSentryServerTimingHeader();
 
       expect(result).toContain('sentry-trace;desc="fallback-trace-id-1234567890123456-0"');
-      expect(result).toContain(encodeURIComponent('sentry-fallback=true'));
+      // Baggage is escaped for quoted-string context (not URL-encoded)
+      expect(result).toContain('sentry-fallback=true');
     });
 
     it('works in Cloudflare environment', () => {
