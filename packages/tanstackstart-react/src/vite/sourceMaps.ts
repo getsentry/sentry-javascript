@@ -94,7 +94,7 @@ export function getUpdatedSourceMapSettings(
 ): boolean | 'inline' | 'hidden' {
   viteConfig.build = viteConfig.build || {};
 
-  const viteSourceMap = viteConfig.build.sourcemap;
+  const viteSourceMap = viteConfig.build?.sourcemap;
   let updatedSourceMapSetting = viteSourceMap;
 
   const settingKey = 'vite.build.sourcemap';
