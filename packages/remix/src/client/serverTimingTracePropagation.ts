@@ -61,12 +61,8 @@ function parseServerTimingTrace(serverTiming: readonly PerformanceServerTiming[]
     if (entry.name === 'sentry-trace') {
       sentryTrace = entry.description;
     } else if (entry.name === 'baggage') {
-      try {
-        // Baggage is URL-encoded in Server-Timing header
-        baggage = decodeURIComponent(entry.description);
-      } catch {
-        baggage = entry.description;
-      }
+      // Baggage is escaped for quoted-string context (backslash-escaped quotes and backslashes)
+      baggage = entry.description.replace(/\\"/g, '"').replace(/\\\\/g, '\\');
     }
   }
 

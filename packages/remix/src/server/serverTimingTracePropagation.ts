@@ -88,8 +88,10 @@ export function generateSentryServerTimingHeader(options: ServerTimingTraceOptio
   metrics.push(`sentry-trace;desc="${sentryTrace}"`);
 
   if (opts.includeBaggage && baggage) {
-    // URL-encode baggage to handle special characters
-    metrics.push(`baggage;desc="${encodeURIComponent(baggage)}"`);
+    // Escape special characters for use inside a quoted-string (RFC 7230)
+    // We escape backslashes and double quotes to prevent injection
+    const escapedBaggage = baggage.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+    metrics.push(`baggage;desc="${escapedBaggage}"`);
   }
 
   return metrics.join(', ');
