@@ -10,16 +10,17 @@ describe('route-groups', () => {
 
     test('should generate a manifest with route groups stripped', () => {
       expect(manifest).toEqual({
-        staticRoutes: expect.arrayContaining([
+        staticRoutes: [
           { path: '/' },
+          { path: '/api' },
           { path: '/login' },
           { path: '/signup' },
+          { path: '/login' }, // from (auth-v2)
           { path: '/dashboard' },
           { path: '/settings/profile' },
           { path: '/public/about' },
-          { path: '/api' },
           { path: '/features' },
-        ]),
+        ],
         dynamicRoutes: [
           {
             path: '/dashboard/:id',
@@ -59,17 +60,17 @@ describe('route-groups', () => {
 
     test('should generate a manifest with route groups included', () => {
       expect(manifest).toEqual({
-        staticRoutes: expect.arrayContaining([
+        staticRoutes: [
           { path: '/' },
+          { path: '/(api_internal)/api' },
           { path: '/(auth)/login' },
           { path: '/(auth)/signup' },
+          { path: '/(auth-v2)/login' },
           { path: '/(dashboard)/dashboard' },
           { path: '/(dashboard)/settings/profile' },
           { path: '/(marketing)/public/about' },
-          { path: '/(auth-v2)/login' },
-          { path: '/(api_internal)/api' },
           { path: '/(v2.0.beta)/features' },
-        ]),
+        ],
         dynamicRoutes: [
           {
             path: '/(dashboard)/dashboard/:id',
