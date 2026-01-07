@@ -74,22 +74,23 @@ export function timestampInSeconds(): number {
 /**
  * Cached result of getBrowserTimeOrigin.
  */
-let cachedTimeOrigin: [number | undefined, string] | undefined;
+let cachedTimeOrigin: number | null | undefined = null;
 
 /**
  * Gets the time origin and the mode used to determine it.
+ * TODO: move to `@sentry/browser-utils` package.
  */
-function getBrowserTimeOrigin(): [number | undefined, string] {
+function getBrowserTimeOrigin(): number | undefined {
   // Unfortunately browsers may report an inaccurate time origin data, through either performance.timeOrigin or
   // performance.timing.navigationStart, which results in poor results in performance data. We only treat time origin
   // data as reliable if they are within a reasonable threshold of the current time.
-
   const { performance } = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
   if (!performance?.now) {
-    return [undefined, 'none'];
+    return undefined;
   }
 
-  const threshold = 3600 * 1000;
+  // TOOD: We should probably set a much tighter threshold here as skew can already happen within just a few minutes.
+  const threshold = 3_600_000; // 1 hour in milliseconds
   const performanceNow = performance.now();
   const dateNow = Date.now();
 
@@ -98,6 +99,10 @@ function getBrowserTimeOrigin(): [number | undefined, string] {
     ? Math.abs(performance.timeOrigin + performanceNow - dateNow)
     : threshold;
   const timeOriginIsReliable = timeOriginDelta < threshold;
+
+  // TODO: Remove all code related to `performance.timing.navigationStart` once we drop support for Safari 14.
+  // `performance.timeSince` is available in Safari 15.
+  // see: https://caniuse.com/mdn-api_performance_timeorigin
 
   // While performance.timing.navigationStart is deprecated in favor of performance.timeOrigin, performance.timeOrigin
   // is not as widely supported. Namely, performance.timeOrigin is undefined in Safari as of writing.
@@ -111,17 +116,18 @@ function getBrowserTimeOrigin(): [number | undefined, string] {
   const navigationStartDelta = hasNavigationStart ? Math.abs(navigationStart + performanceNow - dateNow) : threshold;
   const navigationStartIsReliable = navigationStartDelta < threshold;
 
-  if (timeOriginIsReliable || navigationStartIsReliable) {
-    // Use the more reliable time origin
-    if (timeOriginDelta <= navigationStartDelta) {
-      return [performance.timeOrigin, 'timeOrigin'];
-    } else {
-      return [navigationStart, 'navigationStart'];
-    }
+  // TODO: Since timeOrigin explicitly replaces navigationStart, we should probably remove the navigationStartIsReliable check.
+  if (timeOriginIsReliable && timeOriginDelta <= navigationStartDelta) {
+    return performance.timeOrigin;
   }
 
+  if (navigationStartIsReliable) {
+    return navigationStart;
+  }
+
+  // TODO: We should probably fall back to Date.now() - performance.now(), since this is still more accurate than just Date.now() (?)
   // Either both timeOrigin and navigationStart are skewed or neither is available, fallback to Date.
-  return [dateNow, 'dateNow'];
+  return dateNow;
 }
 
 /**
@@ -129,9 +135,9 @@ function getBrowserTimeOrigin(): [number | undefined, string] {
  * performance API is available.
  */
 export function browserPerformanceTimeOrigin(): number | undefined {
-  if (!cachedTimeOrigin) {
+  if (cachedTimeOrigin === null) {
     cachedTimeOrigin = getBrowserTimeOrigin();
   }
 
-  return cachedTimeOrigin[0];
+  return cachedTimeOrigin;
 }
