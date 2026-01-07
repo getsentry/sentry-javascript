@@ -1,4 +1,8 @@
-import { type _INTERNAL_RandomSafeContextRunner as RandomSafeContextRunner, debug, GLOBAL_OBJ } from '@sentry/core';
+import {
+  type _INTERNAL_RandomSafeContextRunner as _INTERNAL_RandomSafeContextRunner,
+  debug,
+  GLOBAL_OBJ,
+} from '@sentry/core';
 import { DEBUG_BUILD } from '../common/debug-build';
 
 // Inline AsyncLocalStorage interface from current types
@@ -11,7 +15,7 @@ type OriginalAsyncLocalStorage = typeof AsyncLocalStorage;
  */
 export function prepareSafeIdGeneratorContext(): void {
   const sym = Symbol.for('__SENTRY_SAFE_RANDOM_ID_WRAPPER__');
-  const globalWithSymbol: typeof GLOBAL_OBJ & { [sym]?: RandomSafeContextRunner } = GLOBAL_OBJ;
+  const globalWithSymbol: typeof GLOBAL_OBJ & { [sym]?: _INTERNAL_RandomSafeContextRunner } = GLOBAL_OBJ;
   const als = getAsyncLocalStorage();
   if (!als || typeof als.snapshot !== 'function') {
     DEBUG_BUILD &&

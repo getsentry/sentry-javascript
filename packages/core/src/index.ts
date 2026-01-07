@@ -514,3 +514,7 @@ export type {
   UnstableRollupPluginOptions,
   UnstableWebpackPluginOptions,
 } from './build-time-plugins/buildTimeOptionsBase';
+export {
+  withRandomSafeContext as _INTERNAL_withRandomSafeContext,
+  type RandomSafeContextRunner as _INTERNAL_RandomSafeContextRunner,
+} from './utils/randomSafeContext';
