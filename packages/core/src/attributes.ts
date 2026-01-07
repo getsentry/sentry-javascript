@@ -84,7 +84,7 @@ export function attributeValueToTypedAttributeValue(
     return { ...attributeValue, ...checkedUnit };
   }
 
-  if (!useFallback || value === undefined) {
+  if (!useFallback) {
     return;
   }
 
