@@ -102,4 +102,47 @@ describe('browserPerformanceTimeOrigin', () => {
     vi.useRealTimers();
     vi.unstubAllGlobals();
   });
+
+  describe('caching', () => {
+    it('caches `undefined` result', async () => {
+      vi.stubGlobal('performance', undefined);
+
+      // Get a fresh module instance
+      const timeModule = await import(`../../../src/utils/time?update=${Date.now()}`);
+
+      // Call browserPerformanceTimeOrigin multiple times
+      const result1 = timeModule.browserPerformanceTimeOrigin();
+
+      // All should be undefined
+      expect(result1).toBeUndefined();
+
+      // Now set performance to a valid object - if caching works, the result should still be undefined
+      // because the first call should have cached the undefined result
+      vi.stubGlobal('performance', {
+        timeOrigin: 1000,
+        now: () => 100,
+      });
+
+      const result2 = timeModule.browserPerformanceTimeOrigin();
+      expect(result2).toBeUndefined(); // Should still be undefined due to caching
+
+      vi.unstubAllGlobals();
+    });
+
+    it('caches `number` result', async () => {
+      const timeModule = await import(`../../../src/utils/time?update=${Date.now()}`);
+      const result = timeModule.browserPerformanceTimeOrigin();
+      const timeOrigin = performance.timeOrigin;
+      expect(result).toBe(timeOrigin);
+
+      vi.stubGlobal('performance', {
+        now: undefined,
+      });
+
+      const result2 = timeModule.browserPerformanceTimeOrigin();
+      expect(result2).toBe(timeOrigin);
+
+      vi.unstubAllGlobals();
+    });
+  });
 });

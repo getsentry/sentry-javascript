@@ -74,7 +74,7 @@ export function timestampInSeconds(): number {
 /**
  * Cached result of getBrowserTimeOrigin.
  */
-let cachedTimeOrigin: number | undefined;
+let cachedTimeOrigin: number | null | undefined = null;
 
 /**
  * Gets the time origin and the mode used to determine it.
@@ -135,7 +135,7 @@ function getBrowserTimeOrigin(): number | undefined {
  * performance API is available.
  */
 export function browserPerformanceTimeOrigin(): number | undefined {
-  if (!cachedTimeOrigin) {
+  if (cachedTimeOrigin === null) {
     cachedTimeOrigin = getBrowserTimeOrigin();
   }
 
