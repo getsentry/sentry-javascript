@@ -61,7 +61,7 @@ export {
   _INTERNAL_shouldSkipAiProviderWrapping,
   _INTERNAL_clearAiProviderSkips,
 } from './utils/ai/providerSkip';
-export { applyScopeDataToEvent, mergeScopeData } from './utils/applyScopeDataToEvent';
+export { applyScopeDataToEvent, mergeScopeData, getCombinedScopeData } from './utils/scopeData';
 export { prepareEvent } from './utils/prepareEvent';
 export type { ExclusiveEventHintOrCaptureContext } from './utils/prepareEvent';
 export { createCheckInEnvelope } from './checkin';
@@ -101,7 +101,7 @@ export {
   headersToDict,
   httpHeadersToSpanAttributes,
 } from './utils/request';
-export { DEFAULT_ENVIRONMENT } from './constants';
+export { DEFAULT_ENVIRONMENT, DEV_ENVIRONMENT } from './constants';
 export { addBreadcrumb } from './breadcrumbs';
 export { functionToStringIntegration } from './integrations/functiontostring';
 // eslint-disable-next-line deprecation/deprecation

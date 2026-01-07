@@ -5,6 +5,7 @@ import {
   getSpanOperation,
   isChatCompletionChunk,
   isChatCompletionResponse,
+  isConversationResponse,
   isResponsesApiResponse,
   isResponsesApiStreamEvent,
   shouldInstrument,
@@ -20,6 +21,11 @@ describe('openai-utils', () => {
     it('should return responses for responses methods', () => {
       expect(getOperationName('responses.create')).toBe('responses');
       expect(getOperationName('some.path.responses.method')).toBe('responses');
+    });
+
+    it('should return conversations for conversations methods', () => {
+      expect(getOperationName('conversations.create')).toBe('conversations');
+      expect(getOperationName('some.path.conversations.method')).toBe('conversations');
     });
 
     it('should return the last part of path for unknown methods', () => {
@@ -44,6 +50,7 @@ describe('openai-utils', () => {
     it('should return true for instrumented methods', () => {
       expect(shouldInstrument('responses.create')).toBe(true);
       expect(shouldInstrument('chat.completions.create')).toBe(true);
+      expect(shouldInstrument('conversations.create')).toBe(true);
     });
 
     it('should return false for non-instrumented methods', () => {
@@ -144,6 +151,38 @@ describe('openai-utils', () => {
       expect(isChatCompletionChunk({})).toBe(false);
       expect(isChatCompletionChunk({ object: 'chat.completion' })).toBe(false);
       expect(isChatCompletionChunk({ object: null })).toBe(false);
+    });
+  });
+
+  describe('isConversationResponse', () => {
+    it('should return true for valid conversation responses', () => {
+      const validConversation = {
+        object: 'conversation',
+        id: 'conv_689667905b048191b4740501625afd940c7533ace33a2dab',
+        created_at: 1704067200,
+      };
+      expect(isConversationResponse(validConversation)).toBe(true);
+    });
+
+    it('should return true for conversation with metadata', () => {
+      const conversationWithMetadata = {
+        object: 'conversation',
+        id: 'conv_123',
+        created_at: 1704067200,
+        metadata: { user_id: 'user_123' },
+      };
+      expect(isConversationResponse(conversationWithMetadata)).toBe(true);
+    });
+
+    it('should return false for invalid responses', () => {
+      expect(isConversationResponse(null)).toBe(false);
+      expect(isConversationResponse(undefined)).toBe(false);
+      expect(isConversationResponse('string')).toBe(false);
+      expect(isConversationResponse(123)).toBe(false);
+      expect(isConversationResponse({})).toBe(false);
+      expect(isConversationResponse({ object: 'thread' })).toBe(false);
+      expect(isConversationResponse({ object: 'response' })).toBe(false);
+      expect(isConversationResponse({ object: null })).toBe(false);
     });
   });
 });

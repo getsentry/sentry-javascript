@@ -4,6 +4,10 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+Work in this release was contributed by @xgedev, @Mohataseem89, @sebws, @G-Rath, @maximepvrt, and @gianpaj. Thank you for your contributions!
+
+- ref(nextjs): Drop `resolve` dependency from the Next.js SDK ([#18618](https://github.com/getsentry/sentry-javascript/pull/18618))
+
 ## 10.32.1
 
 - fix(cloudflare): Add hono transaction name when error is thrown ([#18529](https://github.com/getsentry/sentry-javascript/pull/18529))
@@ -27,7 +31,7 @@
   You can now set attributes on the SDK's scopes which will be applied to all logs as long as the respective scopes are active. For the time being, only `string`, `number` and `boolean` attribute values are supported.
 
   ```ts
-  Sentry.geGlobalScope().setAttributes({ is_admin: true, auth_provider: 'google' });
+  Sentry.getGlobalScope().setAttributes({ is_admin: true, auth_provider: 'google' });
 
   Sentry.withScope(scope => {
     scope.setAttribute('step', 'authentication');

@@ -78,7 +78,7 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    *
    * @default undefined
    */
-  dsn?: string;
+  dsn?: string | undefined;
 
   /**
    * Sets the release. Release names are strings, but some formats are detected by Sentry and might be
@@ -88,7 +88,7 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    *
    * @default undefined
    */
-  release?: string;
+  release?: string | undefined;
 
   /**
    * The current environment of your application (e.g. "production").
@@ -98,7 +98,7 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    *
    * @default "production"
    */
-  environment?: string;
+  environment?: string | undefined;
 
   /**
    * Sets the distribution of the application. Distributions are used to disambiguate build or
@@ -106,7 +106,7 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    *
    * @default undefined
    */
-  dist?: string;
+  dist?: string | undefined;
 
   /**
    * List of integrations that should be installed after SDK was initialized.
