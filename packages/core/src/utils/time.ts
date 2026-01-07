@@ -78,12 +78,14 @@ let cachedTimeOrigin: number | null | undefined = null;
 
 /**
  * Gets the time origin and the mode used to determine it.
+ *
+ * Unfortunately browsers may report an inaccurate time origin data, through either performance.timeOrigin or
+ * performance.timing.navigationStart, which results in poor results in performance data. We only treat time origin
+ * data as reliable if they are within a reasonable threshold of the current time.
+ *
  * TODO: move to `@sentry/browser-utils` package.
  */
 function getBrowserTimeOrigin(): number | undefined {
-  // Unfortunately browsers may report an inaccurate time origin data, through either performance.timeOrigin or
-  // performance.timing.navigationStart, which results in poor results in performance data. We only treat time origin
-  // data as reliable if they are within a reasonable threshold of the current time.
   const { performance } = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
   if (!performance?.now) {
     return undefined;
@@ -94,11 +96,13 @@ function getBrowserTimeOrigin(): number | undefined {
   const performanceNow = performance.now();
   const dateNow = Date.now();
 
-  // if timeOrigin isn't available set delta to threshold so it isn't used
-  const timeOriginDelta = performance.timeOrigin
-    ? Math.abs(performance.timeOrigin + performanceNow - dateNow)
-    : threshold;
-  const timeOriginIsReliable = timeOriginDelta < threshold;
+  const timeOrigin = performance.timeOrigin;
+  if (typeof timeOrigin === 'number') {
+    const timeOriginDelta = Math.abs(timeOrigin + performanceNow - dateNow);
+    if (timeOriginDelta < threshold) {
+      return timeOrigin;
+    }
+  }
 
   // TODO: Remove all code related to `performance.timing.navigationStart` once we drop support for Safari 14.
   // `performance.timeSince` is available in Safari 15.
@@ -111,18 +115,11 @@ function getBrowserTimeOrigin(): number | undefined {
   // Date API.
   // eslint-disable-next-line deprecation/deprecation
   const navigationStart = performance.timing?.navigationStart;
-  const hasNavigationStart = typeof navigationStart === 'number';
-  // if navigationStart isn't available set delta to threshold so it isn't used
-  const navigationStartDelta = hasNavigationStart ? Math.abs(navigationStart + performanceNow - dateNow) : threshold;
-  const navigationStartIsReliable = navigationStartDelta < threshold;
-
-  // TODO: Since timeOrigin explicitly replaces navigationStart, we should probably remove the navigationStartIsReliable check.
-  if (timeOriginIsReliable && timeOriginDelta <= navigationStartDelta) {
-    return performance.timeOrigin;
-  }
-
-  if (navigationStartIsReliable) {
-    return navigationStart;
+  if (typeof navigationStart === 'number') {
+    const navigationStartDelta = Math.abs(navigationStart + performanceNow - dateNow);
+    if (navigationStartDelta < threshold) {
+      return navigationStart;
+    }
   }
 
   // Either both timeOrigin and navigationStart are skewed or neither is available, fallback to subtracting
