@@ -103,9 +103,9 @@ export function wrapHandleErrorWithSentry(
 }
 
 /**
- * Get trace context for injection into loader response data (for meta tags).
- * Returns empty object when Server-Timing headers are available, as they take priority.
- * Only provides trace data for meta tags as a fallback mechanism.
+ * Get trace context for meta tag injection. Returns empty object when Server-Timing
+ * headers will be used (active span in Node.js/Cloudflare), as Server-Timing takes
+ * priority over meta tags for trace propagation.
  */
 function getTraceAndBaggage(): {
   sentryTrace?: string;
@@ -117,8 +117,9 @@ function getTraceAndBaggage(): {
   if (isNodeEnv() || isCloudflareEnv()) {
     const activeSpan = getActiveSpan();
     if (activeSpan) {
-      // Server-Timing header will be available, skip meta tag injection
-      DEBUG_BUILD && debug.log('[getTraceAndBaggage] Skipping meta tag injection - Server-Timing header will be used');
+      // Active span exists - Server-Timing header will be injected by makeWrappedDocumentRequestFunction.
+      // Return empty to avoid duplicate trace context in meta tags.
+      DEBUG_BUILD && debug.log('Skipping meta tag injection - Server-Timing header will be used');
       return {};
     }
 
@@ -130,7 +131,7 @@ function getTraceAndBaggage(): {
 
     if (propagationContext.traceId && spanId) {
       const fallbackTrace = generateSentryTraceHeader(propagationContext.traceId, spanId, propagationContext.sampled);
-      DEBUG_BUILD && debug.log('[getTraceAndBaggage] Using meta tags fallback - no active span for Server-Timing');
+      DEBUG_BUILD && debug.log('Using meta tags fallback - no active span for Server-Timing');
 
       return {
         sentryTrace: fallbackTrace,
@@ -138,7 +139,7 @@ function getTraceAndBaggage(): {
       };
     }
 
-    DEBUG_BUILD && debug.log('[getTraceAndBaggage] No valid trace context available');
+    DEBUG_BUILD && debug.log('No valid trace context available');
     return {};
   }
 

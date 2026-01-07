@@ -14,6 +14,7 @@ import * as React from 'react';
 import { DEBUG_BUILD } from '../utils/debug-build';
 import { hasManifest, maybeParameterizeRemixRoute } from './remixRouteParameterization';
 import {
+  clearNavigationTraceCache,
   getMetaTagTraceContext,
   getNavigationTraceContext,
   getNavigationTraceContextAsync,
@@ -92,6 +93,14 @@ function getTransactionNameAndSource(
 
 // Flag to prevent async callback from creating a span after navigation has occurred
 let pageloadSpanStarted = false;
+
+/**
+ * Resets navigation state and trace cache when starting a new navigation.
+ */
+function resetNavigationState(): void {
+  clearNavigationTraceCache();
+  pageloadSpanStarted = true;
+}
 
 export function startPageloadSpan(client: Client): void {
   const initPathName = getInitPathName();
@@ -230,8 +239,8 @@ export function withSentry<P extends Record<string, unknown>, R extends React.Co
       }
 
       if (_instrumentNavigation && matches?.length) {
-        // Mark pageload as started to prevent async callback from firing after navigation
-        pageloadSpanStarted = true;
+        // Reset navigation state when starting a new navigation
+        resetNavigationState();
 
         if (activeRootSpan) {
           activeRootSpan.end();
