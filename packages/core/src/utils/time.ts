@@ -125,9 +125,9 @@ function getBrowserTimeOrigin(): number | undefined {
     return navigationStart;
   }
 
-  // TODO: We should probably fall back to Date.now() - performance.now(), since this is still more accurate than just Date.now() (?)
-  // Either both timeOrigin and navigationStart are skewed or neither is available, fallback to Date.
-  return dateNow;
+  // Either both timeOrigin and navigationStart are skewed or neither is available, fallback to subtracting
+  // `performance.now()` from `Date.now()`.
+  return dateNow - performanceNow;
 }
 
 /**

@@ -27,12 +27,12 @@ describe('browserPerformanceTimeOrigin', () => {
     vi.unstubAllGlobals();
   });
 
-  it('returns `Date.now()` if `performance.timeOrigin` is not reliable', async () => {
+  it('returns `Date.now() - performance.now()` if `performance.timeOrigin` is not reliable', async () => {
     const currentTimeMs = 1767778040866;
 
     const unreliableTime = currentTimeMs - RELIABLE_THRESHOLD_MS - 2_000;
 
-    const timeSincePageloadMs = 1_234.789;
+    const timeSincePageloadMs = 1_234.56789;
 
     vi.useFakeTimers();
     vi.setSystemTime(new Date(currentTimeMs));
@@ -46,7 +46,29 @@ describe('browserPerformanceTimeOrigin', () => {
     });
 
     const timeOrigin = await getFreshPerformanceTimeOrigin();
-    expect(timeOrigin).toBe(1767778040866);
+    expect(timeOrigin).toBe(currentTimeMs - timeSincePageloadMs);
+
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
+  it('returns `Date.now() - performance.now()` if neither `performance.timeOrigin` nor `performance.timing.navigationStart` are available', async () => {
+    const currentTimeMs = 1767778040866;
+
+    const timeSincePageloadMs = 1_234.56789;
+
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(currentTimeMs));
+    vi.stubGlobal('performance', {
+      timeOrigin: undefined,
+      timing: {
+        navigationStart: undefined,
+      },
+      now: () => timeSincePageloadMs,
+    });
+
+    const timeOrigin = await getFreshPerformanceTimeOrigin();
+    expect(timeOrigin).toBe(currentTimeMs - timeSincePageloadMs);
 
     vi.useRealTimers();
     vi.unstubAllGlobals();
