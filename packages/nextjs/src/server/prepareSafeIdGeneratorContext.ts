@@ -13,10 +13,10 @@ export function prepareSafeIdGeneratorContext(): void {
   const sym = Symbol.for('__SENTRY_SAFE_RANDOM_ID_WRAPPER__');
   const globalWithSymbol: typeof GLOBAL_OBJ & { [sym]?: RandomSafeContextRunner } = GLOBAL_OBJ;
   const als = getAsyncLocalStorage();
-  if (!als) {
+  if (!als || typeof als.snapshot !== 'function') {
     DEBUG_BUILD &&
       debug.warn(
-        '[@sentry/nextjs] No AsyncLocalStorage found in the runtime, skipping safe random ID generator context preparation, you may see some errors with Cache components.',
+        '[@sentry/nextjs] No AsyncLocalStorage found in the runtime or AsyncLocalStorage.snapshot() is not available, skipping safe random ID generator context preparation, you may see some errors with cache components.',
       );
     return;
   }
