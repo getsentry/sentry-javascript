@@ -5,18 +5,10 @@ import { SPAN_STATUS_ERROR } from '../../tracing';
 import { startSpan, startSpanManual } from '../../tracing/trace';
 import type { Span, SpanAttributeValue } from '../../types-hoist/span';
 import {
-  GEN_AI_CONVERSATION_ID_ATTRIBUTE,
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
   GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE,
-  GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE,
-  GEN_AI_REQUEST_ENCODING_FORMAT_ATTRIBUTE,
-  GEN_AI_REQUEST_FREQUENCY_PENALTY_ATTRIBUTE,
   GEN_AI_REQUEST_MESSAGES_ATTRIBUTE,
   GEN_AI_REQUEST_MODEL_ATTRIBUTE,
-  GEN_AI_REQUEST_PRESENCE_PENALTY_ATTRIBUTE,
-  GEN_AI_REQUEST_STREAM_ATTRIBUTE,
-  GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE,
-  GEN_AI_REQUEST_TOP_P_ATTRIBUTE,
   GEN_AI_RESPONSE_TEXT_ATTRIBUTE,
   GEN_AI_SYSTEM_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
@@ -36,6 +28,7 @@ import {
   addEmbeddingsAttributes,
   addResponsesApiAttributes,
   buildMethodPath,
+  extractRequestParameters,
   getOperationName,
   getSpanOperation,
   isChatCompletionResponse,
@@ -60,48 +53,6 @@ function extractAvailableTools(params: Record<string, unknown>): string | undefi
 }
 
 /**
- * Extract conversation ID from request parameters
- * Supports both Conversations API and previous_response_id chaining
- * @see https://platform.openai.com/docs/guides/conversation-state
- */
-function extractConversationId(params: Record<string, unknown>): string | undefined {
-  // Conversations API: conversation parameter (e.g., "conv_...")
-  if ('conversation' in params && typeof params.conversation === 'string') {
-    return params.conversation;
-  }
-  // Responses chaining: previous_response_id links to parent response
-  if ('previous_response_id' in params && typeof params.previous_response_id === 'string') {
-    return params.previous_response_id;
-  }
-  return undefined;
-}
-
-/**
- * Extract model parameters from request
- */
-function extractModelParameters(params: Record<string, unknown>): Record<string, unknown> {
-  const attributes: Record<string, unknown> = {
-    [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: params.model ?? 'unknown',
-  };
-
-  if ('temperature' in params) attributes[GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE] = params.temperature;
-  if ('top_p' in params) attributes[GEN_AI_REQUEST_TOP_P_ATTRIBUTE] = params.top_p;
-  if ('frequency_penalty' in params) attributes[GEN_AI_REQUEST_FREQUENCY_PENALTY_ATTRIBUTE] = params.frequency_penalty;
-  if ('presence_penalty' in params) attributes[GEN_AI_REQUEST_PRESENCE_PENALTY_ATTRIBUTE] = params.presence_penalty;
-  if ('stream' in params) attributes[GEN_AI_REQUEST_STREAM_ATTRIBUTE] = params.stream;
-  if ('encoding_format' in params) attributes[GEN_AI_REQUEST_ENCODING_FORMAT_ATTRIBUTE] = params.encoding_format;
-  if ('dimensions' in params) attributes[GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE] = params.dimensions;
-
-  // Capture conversation ID for linking messages across API calls
-  const conversationId = extractConversationId(params);
-  if (conversationId) {
-    attributes[GEN_AI_CONVERSATION_ID_ATTRIBUTE] = conversationId;
-  }
-
-  return attributes;
-}
-
-/**
  * Extract request attributes from method arguments
  */
 function extractRequestAttributes(args: unknown[], methodPath: string): Record<string, unknown> {
@@ -119,7 +70,7 @@ function extractRequestAttributes(args: unknown[], methodPath: string): Record<s
       attributes[GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE] = availableTools;
     }
 
-    Object.assign(attributes, extractModelParameters(params));
+    Object.assign(attributes, extractRequestParameters(params));
   } else {
     attributes[GEN_AI_REQUEST_MODEL_ATTRIBUTE] = 'unknown';
   }
@@ -150,7 +101,6 @@ function addResponseAttributes(span: Span, result: unknown, recordOutputs?: bool
   } else if (isEmbeddingsResponse(response)) {
     addEmbeddingsAttributes(span, response);
   } else if (isConversationResponse(response)) {
-    // Conversations API: Conversation creation
     addConversationAttributes(span, response);
   }
 }

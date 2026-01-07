@@ -261,7 +261,6 @@ export const OPENAI_OPERATIONS = {
   CHAT: 'chat',
   RESPONSES: 'responses',
   EMBEDDINGS: 'embeddings',
-  // Conversations API
   CONVERSATIONS: 'conversations',
 } as const;
 
