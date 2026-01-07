@@ -61,8 +61,9 @@ export {
   _INTERNAL_shouldSkipAiProviderWrapping,
   _INTERNAL_clearAiProviderSkips,
 } from './utils/ai/providerSkip';
-export { applyScopeDataToEvent, mergeScopeData } from './utils/applyScopeDataToEvent';
+export { applyScopeDataToEvent, mergeScopeData, getCombinedScopeData } from './utils/scopeData';
 export { prepareEvent } from './utils/prepareEvent';
+export type { ExclusiveEventHintOrCaptureContext } from './utils/prepareEvent';
 export { createCheckInEnvelope } from './checkin';
 export { hasSpansEnabled } from './utils/hasSpansEnabled';
 export { isSentryRequestUrl } from './utils/isSentryRequestUrl';
@@ -269,6 +270,7 @@ export {
   generateSentryTraceHeader,
   propagationContextFromHeaders,
   shouldContinueTrace,
+  generateTraceparentHeader,
 } from './utils/tracing';
 export { getSDKSource, isBrowserBundle } from './utils/env';
 export type { SdkSource } from './utils/env';

@@ -39,7 +39,7 @@ jobs:
         with:
           node-version-file: 'package.json'
       - name: Check canary cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: canary-${{ env.HEAD_COMMIT }}
@@ -114,6 +114,12 @@ jobs:
           - test-application: 'nuxt-4'
             build-command: 'test:build-canary'
             label: 'nuxt-4 (canary)'
+          - test-application: 'tanstackstart-react'
+            build-command: 'test:build-latest'
+            label: 'tanstackstart-react (latest)'
+          - test-application: 'nestjs-11'
+            build-command: 'test:build-latest'
+            label: 'nestjs-11 (latest)'
 
     steps:
       - name: Check out current commit
@@ -130,7 +136,7 @@ jobs:
           node-version-file: 'dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}/package.json'
 
       - name: Restore canary cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: canary-${{ env.HEAD_COMMIT }}

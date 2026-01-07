@@ -78,7 +78,7 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    *
    * @default undefined
    */
-  dsn?: string;
+  dsn?: string | undefined;
 
   /**
    * Sets the release. Release names are strings, but some formats are detected by Sentry and might be
@@ -88,7 +88,7 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    *
    * @default undefined
    */
-  release?: string;
+  release?: string | undefined;
 
   /**
    * The current environment of your application (e.g. "production").
@@ -98,7 +98,7 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    *
    * @default "production"
    */
-  environment?: string;
+  environment?: string | undefined;
 
   /**
    * Sets the distribution of the application. Distributions are used to disambiguate build or
@@ -106,7 +106,7 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    *
    * @default undefined
    */
-  dist?: string;
+  dist?: string | undefined;
 
   /**
    * List of integrations that should be installed after SDK was initialized.
@@ -368,6 +368,20 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    *   - Tracing headers will be attached because the request URL matches the string `'https://external-api.com'`.
    */
   tracePropagationTargets?: TracePropagationTargets;
+
+  /**
+   * If set to `true`, the SDK propagates the W3C `traceparent` header to any outgoing requests,
+   * in addition to the `sentry-trace` and `baggage` headers. Use the {@link CoreOptions.tracePropagationTargets}
+   * option to control to which outgoing requests the header will be attached.
+   *
+   * **Important:** If you set this option to `true`, make sure that you configured your servers'
+   * CORS settings to allow the `traceparent` header. Otherwise, requests might get blocked.
+   *
+   * @see https://www.w3.org/TR/trace-context/
+   *
+   * @default false
+   */
+  propagateTraceparent?: boolean;
 
   /**
    * If set to `true`, the SDK will only continue a trace if the `organization ID` of the incoming trace found in the

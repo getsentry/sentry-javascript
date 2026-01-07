@@ -75,69 +75,86 @@ Note: you must run `yarn build` before `yarn test` will work.
 
 ## Running E2E Tests Locally
 
-The E2E tests in `dev-packages/e2e-tests/test-applications/` use Playwright and pnpm. To run them locally:
+E2E tests verify SDK behavior in real-world framework scenarios using a local npm registry (Verdaccio).
 
 ### Prerequisites
 
-1. **Enable pnpm support in Volta** (required for E2E tests):
+1. **Docker**: Required to run the Verdaccio registry container
+2. **Volta with pnpm support**: Enable pnpm in Volta by setting `VOLTA_FEATURE_PNPM=1` in your environment. See [Volta pnpm docs](https://docs.volta.sh/advanced/pnpm).
+
+### Step-by-Step Instructions
+
+1. **Build the SDK packages and create tarballs:**
 
    ```bash
-   export VOLTA_FEATURE_PNPM=1
+   yarn build
+   yarn build:tarball
    ```
 
-   Add this to your shell profile (`.bashrc`, `.zshrc`, etc.) for persistence.
+   Note: You must re-run `yarn build:tarball` after any changes to packages.
 
-2. **Build the SDK packages** you want to test:
+2. **Set up environment (optional):**
 
    ```bash
-   yarn build:dev:filter @sentry/nextjs  # or whichever package you're testing
+   cd dev-packages/e2e-tests
+   cp .env.example .env
+   # Fill in Sentry project auth info if running tests that send data to Sentry
    ```
 
-### Running a specific E2E test app
-
-1. Navigate to the test application directory:
+3. **Run all E2E tests:**
 
    ```bash
-   cd dev-packages/e2e-tests/test-applications/<app-name>
+   yarn test:e2e
    ```
 
-2. Install dependencies:
+4. **Or run a specific test application:**
 
    ```bash
-   pnpm install
+   yarn test:run <app-name>
+   # Example: yarn test:run nextjs-app-dir
    ```
 
-3. Link local SDK packages (to test your changes instead of the published version):
-
+5. **Run with a specific variant:**
    ```bash
-   # Remove existing @sentry packages and create symlinks to local builds
-   rm -rf node_modules/@sentry
-   mkdir -p node_modules/@sentry
-   ln -sf ../../../../../../../../packages/nextjs node_modules/@sentry/nextjs
-   ln -sf ../../../../../../../../packages/core node_modules/@sentry/core
-   ln -sf ../../../../../../../../packages/browser node_modules/@sentry/browser
-   ln -sf ../../../../../../../../packages/react node_modules/@sentry/react
-   # Add other packages as needed for your test
+   yarn test:run <app-name> --variant <variant-name>
+   # Example: yarn test:run nextjs-pages-dir --variant 15
    ```
 
-4. Install Playwright browsers (first time only):
+### Common Issues and Troubleshooting
 
-   ```bash
-   npx playwright install chromium
-   ```
+#### Packages install from public npm instead of Verdaccio
 
-5. Run the tests:
+Every E2E test application **must** have an `.npmrc` file with:
 
-   ```bash
-   npx playwright test
-   ```
+```
+@sentry:registry=http://127.0.0.1:4873
+@sentry-internal:registry=http://127.0.0.1:4873
+```
 
-### Troubleshooting
+Without this, pnpm will fetch packages from the public npm registry instead of the local Verdaccio instance, causing tests to use outdated/published versions instead of your local changes.
 
-- **WSL2 Chromium issues**: If you encounter "Invalid file descriptor to ICU data" or segfaults, you may need a newer
-  Playwright version. The test apps use `@playwright/test: ~1.56.0` which works in WSL2.
-- **Stale builds**: After making SDK changes, rebuild with `yarn build:dev:filter @sentry/<package>` and re-link.
-- **Port conflicts**: Check if the test app's port (usually 3030) is available.
+#### Tests fail after making SDK changes
+
+Make sure to rebuild tarballs:
+
+```bash
+yarn build
+yarn build:tarball
+```
+
+#### Docker-related issues
+
+- Ensure Docker daemon is running
+- Check that port 4873 is not in use by another process
+- Try stopping and removing existing Verdaccio containers
+
+#### Debugging test failures
+
+1. Check browser console logs for SDK initialization errors
+2. Enable debug mode in the test app's Sentry config: `debug: true`
+3. Verify packages are installed from Verdaccio by checking the version in `node_modules/@sentry/*/package.json`
+
+For more details, see [dev-packages/e2e-tests/README.md](dev-packages/e2e-tests/README.md).
 
 ## Debug Build Flags
 

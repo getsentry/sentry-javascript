@@ -3,7 +3,6 @@ import type { GoogleGenAIChat, GoogleGenAIClient, GoogleGenAIResponse } from '@s
 export class MockGoogleGenAI implements GoogleGenAIClient {
   public models: {
     generateContent: (...args: unknown[]) => Promise<GoogleGenAIResponse>;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     generateContentStream: (...args: unknown[]) => Promise<AsyncGenerator<GoogleGenAIResponse, any, unknown>>;
   };
   public chats: {

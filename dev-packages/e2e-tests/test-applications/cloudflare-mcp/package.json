@@ -15,9 +15,9 @@
     "test:dev": "TEST_ENV=development playwright test"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.22.0",
+    "@modelcontextprotocol/sdk": "^1.24.0",
     "@sentry/cloudflare": "latest || *",
-    "agents": "^0.2.23",
+    "agents": "0.2.32",
     "zod": "^3.25.76"
   },
   "devDependencies": {

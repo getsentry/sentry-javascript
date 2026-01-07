@@ -29,7 +29,7 @@ export interface EmberRouterMain {
   location: {
     getURL?: () => string;
     formatURL?: (url: string) => string;
-    implementation: string;
+    implementation?: string;
     rootURL: string;
   };
 }

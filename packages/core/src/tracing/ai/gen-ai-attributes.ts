@@ -155,6 +155,13 @@ export const GEN_AI_AGENT_NAME_ATTRIBUTE = 'gen_ai.agent.name';
 export const GEN_AI_PIPELINE_NAME_ATTRIBUTE = 'gen_ai.pipeline.name';
 
 /**
+ * The conversation ID for linking messages across API calls
+ * For OpenAI Assistants API: thread_id
+ * For LangGraph: configurable.thread_id
+ */
+export const GEN_AI_CONVERSATION_ID_ATTRIBUTE = 'gen_ai.conversation.id';
+
+/**
  * The number of cache creation input tokens used
  */
 export const GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS_ATTRIBUTE = 'gen_ai.usage.cache_creation_input_tokens';
@@ -178,6 +185,41 @@ export const GEN_AI_USAGE_INPUT_TOKENS_CACHED_ATTRIBUTE = 'gen_ai.usage.input_to
  * The span operation name for invoking an agent
  */
 export const GEN_AI_INVOKE_AGENT_OPERATION_ATTRIBUTE = 'gen_ai.invoke_agent';
+
+/**
+ * The span operation name for generating text
+ */
+export const GEN_AI_GENERATE_TEXT_DO_GENERATE_OPERATION_ATTRIBUTE = 'gen_ai.generate_text';
+
+/**
+ * The span operation name for streaming text
+ */
+export const GEN_AI_STREAM_TEXT_DO_STREAM_OPERATION_ATTRIBUTE = 'gen_ai.stream_text';
+
+/**
+ * The span operation name for generating object
+ */
+export const GEN_AI_GENERATE_OBJECT_DO_GENERATE_OPERATION_ATTRIBUTE = 'gen_ai.generate_object';
+
+/**
+ * The span operation name for streaming object
+ */
+export const GEN_AI_STREAM_OBJECT_DO_STREAM_OPERATION_ATTRIBUTE = 'gen_ai.stream_object';
+
+/**
+ * The span operation name for embedding
+ */
+export const GEN_AI_EMBED_DO_EMBED_OPERATION_ATTRIBUTE = 'gen_ai.embed';
+
+/**
+ * The span operation name for embedding many
+ */
+export const GEN_AI_EMBED_MANY_DO_EMBED_OPERATION_ATTRIBUTE = 'gen_ai.embed_many';
+
+/**
+ * The span operation name for executing a tool
+ */
+export const GEN_AI_EXECUTE_TOOL_OPERATION_ATTRIBUTE = 'gen_ai.execute_tool';
 
 // =============================================================================
 // OPENAI-SPECIFIC ATTRIBUTES
@@ -219,6 +261,7 @@ export const OPENAI_OPERATIONS = {
   CHAT: 'chat',
   RESPONSES: 'responses',
   EMBEDDINGS: 'embeddings',
+  CONVERSATIONS: 'conversations',
 } as const;
 
 // =============================================================================

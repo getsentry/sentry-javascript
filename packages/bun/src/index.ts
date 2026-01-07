@@ -17,6 +17,8 @@ export type {
   User,
   FeatureFlagsIntegration,
   Metric,
+  ExclusiveEventHintOrCaptureContext,
+  CaptureContext,
 } from '@sentry/core';
 
 export {

@@ -22,6 +22,8 @@ import {
 import { getScopesFromContext } from '@sentry/opentelemetry';
 import type { VercelEdgeOptions } from '@sentry/vercel-edge';
 import { getDefaultIntegrations, init as vercelEdgeInit } from '@sentry/vercel-edge';
+import { DEBUG_BUILD } from '../common/debug-build';
+import { ATTR_NEXT_SPAN_TYPE } from '../common/nextSpanAttributes';
 import { TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION } from '../common/span-attributes-with-logic-attached';
 import { addHeadersAsAttributes } from '../common/utils/addHeadersAsAttributes';
 import { dropMiddlewareTunnelRequests } from '../common/utils/dropMiddlewareTunnelRequests';
@@ -52,6 +54,13 @@ export function init(options: VercelEdgeOptions = {}): void {
 
   if (isBuild()) {
     return;
+  }
+
+  if (!DEBUG_BUILD && options.debug) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      '[@sentry/nextjs] You have enabled `debug: true`, but Sentry debug logging was removed from your bundle (likely via `withSentryConfig({ disableLogger: true })` / `webpack.treeshake.removeDebugLogging: true`). Set that option to `false` to see Sentry debug output.',
+    );
   }
 
   const customDefaultIntegrations = getDefaultIntegrations(options);
@@ -90,19 +99,21 @@ export function init(options: VercelEdgeOptions = {}): void {
     if (spanAttributes?.['next.span_type'] === 'Middleware.execute') {
       span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'http.server.middleware');
       span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'url');
+    }
 
-      if (isRootSpan) {
-        // Fork isolation scope for middleware requests
-        const scopes = getCapturedScopesOnSpan(span);
-        const isolationScope = (scopes.isolationScope || getIsolationScope()).clone();
-        const scope = scopes.scope || getCurrentScope();
-        const currentScopesPointer = getScopesFromContext(context.active());
-        if (currentScopesPointer) {
-          currentScopesPointer.isolationScope = isolationScope;
-        }
+    // We want to fork the isolation scope for incoming requests
+    if (spanAttributes?.[ATTR_NEXT_SPAN_TYPE] === 'BaseServer.handleRequest' && isRootSpan) {
+      const scopes = getCapturedScopesOnSpan(span);
 
-        setCapturedScopesOnSpan(span, scope, isolationScope);
+      const isolationScope = (scopes.isolationScope || getIsolationScope()).clone();
+      const scope = scopes.scope || getCurrentScope();
+
+      const currentScopesPointer = getScopesFromContext(context.active());
+      if (currentScopesPointer) {
+        currentScopesPointer.isolationScope = isolationScope;
       }
+
+      setCapturedScopesOnSpan(span, scope, isolationScope);
     }
 
     if (isRootSpan) {

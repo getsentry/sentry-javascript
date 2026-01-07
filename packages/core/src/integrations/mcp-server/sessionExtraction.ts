@@ -106,12 +106,54 @@ export function getClientAttributes(transport: MCPTransport): Record<string, str
 }
 
 /**
+ * Build client attributes from PartyInfo directly
+ * @param clientInfo - Client party info
+ * @returns Client attributes for span instrumentation
+ */
+export function buildClientAttributesFromInfo(clientInfo?: PartyInfo): Record<string, string> {
+  const attributes: Record<string, string> = {};
+
+  if (clientInfo?.name) {
+    attributes['mcp.client.name'] = clientInfo.name;
+  }
+  if (clientInfo?.title) {
+    attributes['mcp.client.title'] = clientInfo.title;
+  }
+  if (clientInfo?.version) {
+    attributes['mcp.client.version'] = clientInfo.version;
+  }
+
+  return attributes;
+}
+
+/**
  * Build server attributes from stored server info
  * @param transport - MCP transport instance
  * @returns Server attributes for span instrumentation
  */
 export function getServerAttributes(transport: MCPTransport): Record<string, string> {
   const serverInfo = getSessionDataForTransport(transport)?.serverInfo;
+  const attributes: Record<string, string> = {};
+
+  if (serverInfo?.name) {
+    attributes[MCP_SERVER_NAME_ATTRIBUTE] = serverInfo.name;
+  }
+  if (serverInfo?.title) {
+    attributes[MCP_SERVER_TITLE_ATTRIBUTE] = serverInfo.title;
+  }
+  if (serverInfo?.version) {
+    attributes[MCP_SERVER_VERSION_ATTRIBUTE] = serverInfo.version;
+  }
+
+  return attributes;
+}
+
+/**
+ * Build server attributes from PartyInfo directly
+ * @param serverInfo - Server party info
+ * @returns Server attributes for span instrumentation
+ */
+export function buildServerAttributesFromInfo(serverInfo?: PartyInfo): Record<string, string> {
   const attributes: Record<string, string> = {};
 
   if (serverInfo?.name) {

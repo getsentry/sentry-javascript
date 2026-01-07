@@ -190,7 +190,7 @@ describe('MCP Server Transport Instrumentation', () => {
 
     beforeEach(() => {
       mockMcpServer = createMockMcpServer();
-      wrappedMcpServer = wrapMcpServerWithSentry(mockMcpServer);
+      wrappedMcpServer = wrapMcpServerWithSentry(mockMcpServer, { recordInputs: true });
       mockStdioTransport = createMockStdioTransport();
       mockStdioTransport.sessionId = 'stdio-session-456';
     });
@@ -308,7 +308,7 @@ describe('MCP Server Transport Instrumentation', () => {
     it('should test wrapTransportOnMessage directly', () => {
       const originalOnMessage = mockTransport.onmessage;
 
-      wrapTransportOnMessage(mockTransport);
+      wrapTransportOnMessage(mockTransport, { recordInputs: false, recordOutputs: false });
 
       expect(mockTransport.onmessage).not.toBe(originalOnMessage);
     });
@@ -316,7 +316,7 @@ describe('MCP Server Transport Instrumentation', () => {
     it('should test wrapTransportSend directly', () => {
       const originalSend = mockTransport.send;
 
-      wrapTransportSend(mockTransport);
+      wrapTransportSend(mockTransport, { recordInputs: false, recordOutputs: false });
 
       expect(mockTransport.send).not.toBe(originalSend);
     });
@@ -345,12 +345,17 @@ describe('MCP Server Transport Instrumentation', () => {
         params: { name: 'test-tool', arguments: { input: 'test' } },
       };
 
-      const config = buildMcpServerSpanConfig(jsonRpcRequest, mockTransport, {
-        requestInfo: {
-          remoteAddress: '127.0.0.1',
-          remotePort: 8080,
+      const config = buildMcpServerSpanConfig(
+        jsonRpcRequest,
+        mockTransport,
+        {
+          requestInfo: {
+            remoteAddress: '127.0.0.1',
+            remotePort: 8080,
+          },
         },
-      });
+        { recordInputs: true, recordOutputs: true },
+      );
 
       expect(config).toEqual({
         name: 'tools/call test-tool',
@@ -571,7 +576,7 @@ describe('MCP Server Transport Instrumentation', () => {
 
     it('excludes sessionId when undefined', () => {
       const transport = createMockTransport();
-      transport.sessionId = undefined;
+      transport.sessionId = '';
       const attributes = buildTransportAttributes(transport);
 
       expect(attributes['mcp.session.id']).toBeUndefined();
@@ -582,6 +587,175 @@ describe('MCP Server Transport Instrumentation', () => {
       const attributes = buildTransportAttributes(transport);
 
       expect(attributes['mcp.session.id']).toBeUndefined();
+    });
+  });
+
+  describe('Initialize Span Attributes', () => {
+    it('should add client info to initialize span on request', async () => {
+      const mockMcpServer = createMockMcpServer();
+      const wrappedMcpServer = wrapMcpServerWithSentry(mockMcpServer);
+      const transport = createMockTransport();
+      transport.sessionId = '';
+
+      await wrappedMcpServer.connect(transport);
+
+      const mockSpan = { setAttributes: vi.fn(), end: vi.fn() };
+      startInactiveSpanSpy.mockReturnValue(mockSpan);
+
+      transport.onmessage?.(
+        {
+          jsonrpc: '2.0',
+          method: 'initialize',
+          id: 'init-1',
+          params: { protocolVersion: '2025-06-18', clientInfo: { name: 'test-client', version: '1.0.0' } },
+        },
+        {},
+      );
+
+      expect(mockSpan.setAttributes).toHaveBeenCalledWith(
+        expect.objectContaining({
+          'mcp.client.name': 'test-client',
+          'mcp.client.version': '1.0.0',
+          'mcp.protocol.version': '2025-06-18',
+        }),
+      );
+    });
+
+    it('should add server info to initialize span on response', async () => {
+      const mockMcpServer = createMockMcpServer();
+      const wrappedMcpServer = wrapMcpServerWithSentry(mockMcpServer);
+      const transport = createMockTransport();
+
+      await wrappedMcpServer.connect(transport);
+
+      const mockSpan = { setAttributes: vi.fn(), end: vi.fn() };
+      startInactiveSpanSpy.mockReturnValue(mockSpan as any);
+
+      transport.onmessage?.(
+        {
+          jsonrpc: '2.0',
+          method: 'initialize',
+          id: 'init-1',
+          params: { protocolVersion: '2025-06-18', clientInfo: { name: 'test-client', version: '1.0.0' } },
+        },
+        {},
+      );
+
+      await transport.send?.({
+        jsonrpc: '2.0',
+        id: 'init-1',
+        result: {
+          protocolVersion: '2025-06-18',
+          serverInfo: { name: 'test-server', version: '2.0.0' },
+          capabilities: {},
+        },
+      });
+
+      expect(mockSpan.setAttributes).toHaveBeenCalledWith(
+        expect.objectContaining({
+          'mcp.server.name': 'test-server',
+          'mcp.server.version': '2.0.0',
+        }),
+      );
+      expect(mockSpan.end).toHaveBeenCalled();
+    });
+  });
+
+  describe('Wrapper Options', () => {
+    it('should NOT capture inputs/outputs when sendDefaultPii is false', async () => {
+      getClientSpy.mockReturnValue({
+        getOptions: () => ({ sendDefaultPii: false }),
+        getDsn: () => ({ publicKey: 'test-key', host: 'test-host' }),
+        emit: vi.fn(),
+      } as any);
+
+      const mockMcpServer = createMockMcpServer();
+      const wrappedMcpServer = wrapMcpServerWithSentry(mockMcpServer);
+      const transport = createMockTransport();
+
+      await wrappedMcpServer.connect(transport);
+
+      transport.onmessage?.(
+        {
+          jsonrpc: '2.0',
+          method: 'tools/call',
+          id: 'tool-1',
+          params: { name: 'weather', arguments: { location: 'London' } },
+        },
+        {},
+      );
+
+      expect(startInactiveSpanSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          attributes: expect.not.objectContaining({
+            'mcp.request.argument.location': expect.anything(),
+          }),
+        }),
+      );
+    });
+
+    it('should capture inputs/outputs when sendDefaultPii is true', async () => {
+      getClientSpy.mockReturnValue({
+        getOptions: () => ({ sendDefaultPii: true }),
+        getDsn: () => ({ publicKey: 'test-key', host: 'test-host' }),
+        emit: vi.fn(),
+      } as any);
+
+      const mockMcpServer = createMockMcpServer();
+      const wrappedMcpServer = wrapMcpServerWithSentry(mockMcpServer);
+      const transport = createMockTransport();
+
+      await wrappedMcpServer.connect(transport);
+
+      transport.onmessage?.(
+        {
+          jsonrpc: '2.0',
+          method: 'tools/call',
+          id: 'tool-1',
+          params: { name: 'weather', arguments: { location: 'London' } },
+        },
+        {},
+      );
+
+      expect(startInactiveSpanSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          attributes: expect.objectContaining({
+            'mcp.request.argument.location': '"London"',
+          }),
+        }),
+      );
+    });
+
+    it('should allow explicit override of defaults', async () => {
+      getClientSpy.mockReturnValue({
+        getOptions: () => ({ sendDefaultPii: true }),
+        getDsn: () => ({ publicKey: 'test-key', host: 'test-host' }),
+        emit: vi.fn(),
+      } as any);
+
+      const mockMcpServer = createMockMcpServer();
+      const wrappedMcpServer = wrapMcpServerWithSentry(mockMcpServer, { recordInputs: false });
+      const transport = createMockTransport();
+
+      await wrappedMcpServer.connect(transport);
+
+      transport.onmessage?.(
+        {
+          jsonrpc: '2.0',
+          method: 'tools/call',
+          id: 'tool-1',
+          params: { name: 'weather', arguments: { location: 'London' } },
+        },
+        {},
+      );
+
+      expect(startInactiveSpanSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          attributes: expect.not.objectContaining({
+            'mcp.request.argument.location': expect.anything(),
+          }),
+        }),
+      );
     });
   });
 });

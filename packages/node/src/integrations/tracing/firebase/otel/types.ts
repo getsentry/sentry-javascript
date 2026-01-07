@@ -1,5 +1,6 @@
 import type { Span } from '@opentelemetry/api';
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 // Inlined types from 'firebase/app'
 export interface FirebaseOptions {

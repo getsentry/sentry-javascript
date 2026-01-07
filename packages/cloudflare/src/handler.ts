@@ -67,9 +67,9 @@ export function withSentry<
     ) {
       handler.errorHandler = new Proxy(handler.errorHandler, {
         apply(target, thisArg, args) {
-          const [err] = args;
+          const [err, context] = args;
 
-          getHonoIntegration()?.handleHonoException(err);
+          getHonoIntegration()?.handleHonoException(err, context);
 
           return Reflect.apply(target, thisArg, args);
         },

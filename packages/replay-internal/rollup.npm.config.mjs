@@ -1,3 +1,4 @@
+/* eslint-disable import/no-named-as-default */
 import nodeResolve from '@rollup/plugin-node-resolve';
 import { makeBaseNPMConfig, makeNPMConfigVariants } from '@sentry-internal/rollup-utils';
 
