@@ -65,6 +65,18 @@ describe('Nuxt Server SDK', () => {
       expect(callArgs?.defaultIntegrations).toBe(customIntegrations);
     });
 
+    it('allows options.defaultIntegrations to be set to false', () => {
+      init({
+        dsn: 'https://public@dsn.ingest.sentry.io/1337',
+        defaultIntegrations: false,
+      });
+
+      expect(nodeInit).toHaveBeenCalledTimes(1);
+      const callArgs = nodeInit.mock.calls[0]?.[0];
+      expect(callArgs).toBeDefined();
+      expect(callArgs?.defaultIntegrations).toBe(false);
+    });
+
     describe('lowQualityTransactionsFilter', () => {
       const options = { debug: false };
       const filter = lowQualityTransactionsFilter(options);
