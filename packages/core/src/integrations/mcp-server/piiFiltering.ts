@@ -1,71 +1,37 @@
 /**
  * PII filtering for MCP server spans
  *
- * Removes sensitive data when sendDefaultPii is false.
- * Uses configurable attribute filtering to protect user privacy.
+ * Removes network-level sensitive data when sendDefaultPii is false.
+ * Input/output data (request arguments, tool/prompt results) is controlled
+ * separately via recordInputs/recordOutputs options.
  */
 import type { SpanAttributeValue } from '../../types-hoist/span';
-import {
-  CLIENT_ADDRESS_ATTRIBUTE,
-  CLIENT_PORT_ATTRIBUTE,
-  MCP_LOGGING_MESSAGE_ATTRIBUTE,
-  MCP_PROMPT_RESULT_DESCRIPTION_ATTRIBUTE,
-  MCP_PROMPT_RESULT_MESSAGE_CONTENT_ATTRIBUTE,
-  MCP_PROMPT_RESULT_PREFIX,
-  MCP_REQUEST_ARGUMENT,
-  MCP_RESOURCE_URI_ATTRIBUTE,
-  MCP_TOOL_RESULT_CONTENT_ATTRIBUTE,
-  MCP_TOOL_RESULT_PREFIX,
-} from './attributes';
+import { CLIENT_ADDRESS_ATTRIBUTE, CLIENT_PORT_ATTRIBUTE, MCP_RESOURCE_URI_ATTRIBUTE } from './attributes';
 
 /**
- * PII attributes that should be removed when sendDefaultPii is false
+ * Network PII attributes that should be removed when sendDefaultPii is false
  * @internal
  */
-const PII_ATTRIBUTES = new Set([
-  CLIENT_ADDRESS_ATTRIBUTE,
-  CLIENT_PORT_ATTRIBUTE,
-  MCP_LOGGING_MESSAGE_ATTRIBUTE,
-  MCP_PROMPT_RESULT_DESCRIPTION_ATTRIBUTE,
-  MCP_PROMPT_RESULT_MESSAGE_CONTENT_ATTRIBUTE,
-  MCP_RESOURCE_URI_ATTRIBUTE,
-  MCP_TOOL_RESULT_CONTENT_ATTRIBUTE,
-]);
+const NETWORK_PII_ATTRIBUTES = new Set([CLIENT_ADDRESS_ATTRIBUTE, CLIENT_PORT_ATTRIBUTE, MCP_RESOURCE_URI_ATTRIBUTE]);
 
 /**
- * Checks if an attribute key should be considered PII.
+ * Checks if an attribute key should be considered network PII.
  *
  * Returns true for:
- * - Explicit PII attributes (client.address, client.port, mcp.logging.message, etc.)
- * - All request arguments (mcp.request.argument.*)
- * - Tool and prompt result content (mcp.tool.result.*, mcp.prompt.result.*) except metadata
- *
- * Preserves metadata attributes ending with _count, _error, or .is_error as they don't contain sensitive data.
+ * - client.address (IP address)
+ * - client.port (port number)
+ * - mcp.resource.uri (potentially sensitive URIs)
  *
  * @param key - Attribute key to evaluate
- * @returns true if the attribute should be filtered out (is PII), false if it should be preserved
+ * @returns true if the attribute should be filtered out (is network PII), false if it should be preserved
  * @internal
  */
-function isPiiAttribute(key: string): boolean {
-  if (PII_ATTRIBUTES.has(key)) {
-    return true;
-  }
-
-  if (key.startsWith(`${MCP_REQUEST_ARGUMENT}.`)) {
-    return true;
-  }
-
-  if (key.startsWith(`${MCP_TOOL_RESULT_PREFIX}.`) || key.startsWith(`${MCP_PROMPT_RESULT_PREFIX}.`)) {
-    if (!key.endsWith('_count') && !key.endsWith('_error') && !key.endsWith('.is_error')) {
-      return true;
-    }
-  }
-
-  return false;
+function isNetworkPiiAttribute(key: string): boolean {
+  return NETWORK_PII_ATTRIBUTES.has(key);
 }
 
 /**
- * Removes PII attributes from span data when sendDefaultPii is false
+ * Removes network PII attributes from span data when sendDefaultPii is false
  * @param spanData - Raw span attributes
  * @param sendDefaultPii - Whether to include PII data
  * @returns Filtered span attributes
@@ -80,7 +46,7 @@ export function filterMcpPiiFromSpanData(
 
   return Object.entries(spanData).reduce(
     (acc, [key, value]) => {
-      if (!isPiiAttribute(key)) {
+      if (!isNetworkPiiAttribute(key)) {
         acc[key] = value as SpanAttributeValue;
       }
       return acc;
