@@ -153,7 +153,22 @@ export interface OpenAICreateEmbeddingsObject {
   };
 }
 
-export type OpenAiResponse = OpenAiChatCompletionObject | OpenAIResponseObject | OpenAICreateEmbeddingsObject;
+/**
+ * OpenAI Conversations API Conversation object
+ * @see https://platform.openai.com/docs/api-reference/conversations
+ */
+export interface OpenAIConversationObject {
+  id: string;
+  object: 'conversation';
+  created_at: number;
+  metadata?: Record<string, unknown>;
+}
+
+export type OpenAiResponse =
+  | OpenAiChatCompletionObject
+  | OpenAIResponseObject
+  | OpenAICreateEmbeddingsObject
+  | OpenAIConversationObject;
 
 /**
  * Streaming event types for the Responses API

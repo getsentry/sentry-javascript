@@ -155,6 +155,13 @@ export const GEN_AI_AGENT_NAME_ATTRIBUTE = 'gen_ai.agent.name';
 export const GEN_AI_PIPELINE_NAME_ATTRIBUTE = 'gen_ai.pipeline.name';
 
 /**
+ * The conversation ID for linking messages across API calls
+ * For OpenAI Assistants API: thread_id
+ * For LangGraph: configurable.thread_id
+ */
+export const GEN_AI_CONVERSATION_ID_ATTRIBUTE = 'gen_ai.conversation.id';
+
+/**
  * The number of cache creation input tokens used
  */
 export const GEN_AI_USAGE_CACHE_CREATION_INPUT_TOKENS_ATTRIBUTE = 'gen_ai.usage.cache_creation_input_tokens';
@@ -254,6 +261,7 @@ export const OPENAI_OPERATIONS = {
   CHAT: 'chat',
   RESPONSES: 'responses',
   EMBEDDINGS: 'embeddings',
+  CONVERSATIONS: 'conversations',
 } as const;
 
 // =============================================================================
