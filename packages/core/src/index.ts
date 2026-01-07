@@ -101,7 +101,7 @@ export {
   headersToDict,
   httpHeadersToSpanAttributes,
 } from './utils/request';
-export { DEFAULT_ENVIRONMENT, DEV_ENVIRONMENT } from './constants';
+export { DEFAULT_ENVIRONMENT } from './constants';
 export { addBreadcrumb } from './breadcrumbs';
 export { functionToStringIntegration } from './integrations/functiontostring';
 // eslint-disable-next-line deprecation/deprecation
@@ -514,9 +514,3 @@ export type {
   UnstableRollupPluginOptions,
   UnstableWebpackPluginOptions,
 } from './build-time-plugins/buildTimeOptionsBase';
-export {
-  runInRandomSafeContext as _INTERNAL_runInRandomSafeContext,
-  safeDateNow as _INTERNAL_safeDateNow,
-  safeMathRandom as _INTERNAL_safeMathRandom,
-  type RandomSafeContextRunner as _INTERNAL_RandomSafeContextRunner,
-} from './utils/safeRandomGeneratorRunner';

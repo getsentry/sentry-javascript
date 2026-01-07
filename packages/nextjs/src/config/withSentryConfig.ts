@@ -94,7 +94,6 @@ export function withSentryConfig<C>(nextConfig?: C, sentryBuildOptions: SentryBu
  */
 function generateRandomTunnelRoute(): string {
   // Generate a random 8-character alphanumeric string
-  // eslint-disable-next-line @sentry-internal/sdk/no-unsafe-random-apis
   const randomString = Math.random().toString(36).substring(2, 10);
   return `/${randomString}`;
 }

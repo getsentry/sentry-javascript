@@ -1,6 +1,5 @@
 import type { DataCategory } from '../types-hoist/datacategory';
 import type { TransportMakeRequestResponse } from '../types-hoist/transport';
-import { safeDateNow } from './safeRandomGeneratorRunner';
 
 // Intentionally keeping the key broad, as we don't know for sure what rate limit headers get returned from backend
 export type RateLimits = Record<string, number>;
@@ -13,7 +12,7 @@ export const DEFAULT_RETRY_AFTER = 60 * 1000; // 60 seconds
  * @param now current unix timestamp
  *
  */
-export function parseRetryAfterHeader(header: string, now: number = safeDateNow()): number {
+export function parseRetryAfterHeader(header: string, now: number = Date.now()): number {
   const headerDelay = parseInt(`${header}`, 10);
   if (!isNaN(headerDelay)) {
     return headerDelay * 1000;
@@ -41,7 +40,7 @@ export function disabledUntil(limits: RateLimits, dataCategory: DataCategory): n
 /**
  * Checks if a category is rate limited
  */
-export function isRateLimited(limits: RateLimits, dataCategory: DataCategory, now: number = safeDateNow()): boolean {
+export function isRateLimited(limits: RateLimits, dataCategory: DataCategory, now: number = Date.now()): boolean {
   return disabledUntil(limits, dataCategory) > now;
 }
 
@@ -53,7 +52,7 @@ export function isRateLimited(limits: RateLimits, dataCategory: DataCategory, no
 export function updateRateLimits(
   limits: RateLimits,
   { statusCode, headers }: TransportMakeRequestResponse,
-  now: number = safeDateNow(),
+  now: number = Date.now(),
 ): RateLimits {
   const updatedRateLimits: RateLimits = {
     ...limits,

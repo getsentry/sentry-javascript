@@ -3,7 +3,6 @@ import type { Exception } from '../types-hoist/exception';
 import type { Mechanism } from '../types-hoist/mechanism';
 import type { StackFrame } from '../types-hoist/stackframe';
 import { addNonEnumerableProperty } from './object';
-import { runInRandomSafeContext, safeMathRandom } from './safeRandomGeneratorRunner';
 import { snipLine } from './string';
 import { GLOBAL_OBJ } from './worldwide';
 
@@ -25,7 +24,7 @@ function getCrypto(): CryptoInternal | undefined {
 let emptyUuid: string | undefined;
 
 function getRandomByte(): number {
-  return safeMathRandom() * 16;
+  return Math.random() * 16;
 }
 
 /**
@@ -36,8 +35,7 @@ function getRandomByte(): number {
 export function uuid4(crypto = getCrypto()): string {
   try {
     if (crypto?.randomUUID) {
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      return runInRandomSafeContext(() => crypto.randomUUID!().replace(/-/g, ''));
+      return crypto.randomUUID().replace(/-/g, '');
     }
   } catch {
     // some runtimes can crash invoking crypto

@@ -1,4 +1,3 @@
-import { runInRandomSafeContext } from './safeRandomGeneratorRunner';
 import { GLOBAL_OBJ } from './worldwide';
 
 const ONE_SECOND_IN_MS = 1000;
@@ -22,7 +21,7 @@ interface Performance {
  * Returns a timestamp in seconds since the UNIX epoch using the Date API.
  */
 export function dateTimestampInSeconds(): number {
-  return runInRandomSafeContext(() => Date.now() / ONE_SECOND_IN_MS);
+  return Date.now() / ONE_SECOND_IN_MS;
 }
 
 /**
@@ -51,7 +50,7 @@ function createUnixTimestampInSecondsFunc(): () => number {
   // See: https://github.com/mdn/content/issues/4713
   // See: https://dev.to/noamr/when-a-millisecond-is-not-a-millisecond-3h6
   return () => {
-    return runInRandomSafeContext(() => (timeOrigin + performance.now()) / ONE_SECOND_IN_MS);
+    return (timeOrigin + performance.now()) / ONE_SECOND_IN_MS;
   };
 }
 
@@ -79,14 +78,12 @@ let cachedTimeOrigin: number | null | undefined = null;
 
 /**
  * Gets the time origin and the mode used to determine it.
- *
- * Unfortunately browsers may report an inaccurate time origin data, through either performance.timeOrigin or
- * performance.timing.navigationStart, which results in poor results in performance data. We only treat time origin
- * data as reliable if they are within a reasonable threshold of the current time.
- *
  * TODO: move to `@sentry/browser-utils` package.
  */
 function getBrowserTimeOrigin(): number | undefined {
+  // Unfortunately browsers may report an inaccurate time origin data, through either performance.timeOrigin or
+  // performance.timing.navigationStart, which results in poor results in performance data. We only treat time origin
+  // data as reliable if they are within a reasonable threshold of the current time.
   const { performance } = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
   if (!performance?.now) {
     return undefined;
@@ -96,13 +93,11 @@ function getBrowserTimeOrigin(): number | undefined {
   const performanceNow = performance.now();
   const dateNow = Date.now();
 
-  const timeOrigin = performance.timeOrigin;
-  if (typeof timeOrigin === 'number') {
-    const timeOriginDelta = Math.abs(timeOrigin + performanceNow - dateNow);
-    if (timeOriginDelta < threshold) {
-      return timeOrigin;
-    }
-  }
+  // if timeOrigin isn't available set delta to threshold so it isn't used
+  const timeOriginDelta = performance.timeOrigin
+    ? Math.abs(performance.timeOrigin + performanceNow - dateNow)
+    : threshold;
+  const timeOriginIsReliable = timeOriginDelta < threshold;
 
   // TODO: Remove all code related to `performance.timing.navigationStart` once we drop support for Safari 14.
   // `performance.timeSince` is available in Safari 15.
@@ -115,16 +110,23 @@ function getBrowserTimeOrigin(): number | undefined {
   // Date API.
   // eslint-disable-next-line deprecation/deprecation
   const navigationStart = performance.timing?.navigationStart;
-  if (typeof navigationStart === 'number') {
-    const navigationStartDelta = Math.abs(navigationStart + performanceNow - dateNow);
-    if (navigationStartDelta < threshold) {
-      return navigationStart;
-    }
+  const hasNavigationStart = typeof navigationStart === 'number';
+  // if navigationStart isn't available set delta to threshold so it isn't used
+  const navigationStartDelta = hasNavigationStart ? Math.abs(navigationStart + performanceNow - dateNow) : threshold;
+  const navigationStartIsReliable = navigationStartDelta < threshold;
+
+  // TODO: Since timeOrigin explicitly replaces navigationStart, we should probably remove the navigationStartIsReliable check.
+  if (timeOriginIsReliable && timeOriginDelta <= navigationStartDelta) {
+    return performance.timeOrigin;
   }
 
-  // Either both timeOrigin and navigationStart are skewed or neither is available, fallback to subtracting
-  // `performance.now()` from `Date.now()`.
-  return dateNow - performanceNow;
+  if (navigationStartIsReliable) {
+    return navigationStart;
+  }
+
+  // TODO: We should probably fall back to Date.now() - performance.now(), since this is still more accurate than just Date.now() (?)
+  // Either both timeOrigin and navigationStart are skewed or neither is available, fallback to Date.
+  return dateNow;
 }
 
 /**

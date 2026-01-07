@@ -8,7 +8,6 @@
 
 import { SPAN_STATUS_ERROR } from '../../tracing';
 import type { Span } from '../../types-hoist/span';
-import { safeDateNow } from '../../utils/safeRandomGeneratorRunner';
 import { MCP_PROTOCOL_VERSION_ATTRIBUTE } from './attributes';
 import { extractPromptResultAttributes, extractToolResultAttributes } from './resultExtraction';
 import { buildServerAttributesFromInfo, extractSessionDataFromInitializeResponse } from './sessionExtraction';
@@ -47,7 +46,7 @@ export function storeSpanForRequest(transport: MCPTransport, requestId: RequestI
   spanMap.set(requestId, {
     span,
     method,
-    startTime: safeDateNow(),
+    startTime: Date.now(),
   });
 }
 

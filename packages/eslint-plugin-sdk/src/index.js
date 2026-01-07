@@ -15,6 +15,5 @@ module.exports = {
     'no-regexp-constructor': require('./rules/no-regexp-constructor'),
     'no-focused-tests': require('./rules/no-focused-tests'),
     'no-skipped-tests': require('./rules/no-skipped-tests'),
-    'no-unsafe-random-apis': require('./rules/no-unsafe-random-apis'),
   },
 };

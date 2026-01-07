@@ -22,7 +22,6 @@ import { isPlainObject } from './utils/is';
 import { merge } from './utils/merge';
 import { uuid4 } from './utils/misc';
 import { generateTraceId } from './utils/propagationContext';
-import { safeMathRandom } from './utils/safeRandomGeneratorRunner';
 import { _getSpanForScope, _setSpanForScope } from './utils/spanOnScope';
 import { truncate } from './utils/string';
 import { dateTimestampInSeconds } from './utils/time';
@@ -169,7 +168,7 @@ export class Scope {
     this._sdkProcessingMetadata = {};
     this._propagationContext = {
       traceId: generateTraceId(),
-      sampleRand: safeMathRandom(),
+      sampleRand: Math.random(),
     };
   }
 
@@ -551,7 +550,7 @@ export class Scope {
     this._session = undefined;
     _setSpanForScope(this, undefined);
     this._attachments = [];
-    this.setPropagationContext({ traceId: generateTraceId(), sampleRand: safeMathRandom() });
+    this.setPropagationContext({ traceId: generateTraceId(), sampleRand: Math.random() });
 
     this._notifyScopeListeners();
     return this;

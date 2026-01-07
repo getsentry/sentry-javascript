@@ -15,7 +15,7 @@ import type {
   IntegrationFn,
   OsContext,
 } from '@sentry/core';
-import { _INTERNAL_safeDateNow, defineIntegration } from '@sentry/core';
+import { defineIntegration } from '@sentry/core';
 
 export const readFileAsync = promisify(readFile);
 export const readDirAsync = promisify(readdir);
@@ -204,7 +204,7 @@ function getCultureContext(): CultureContext | undefined {
  */
 export function getAppContext(): AppContext {
   const app_memory = process.memoryUsage().rss;
-  const app_start_time = new Date(_INTERNAL_safeDateNow() - process.uptime() * 1000).toISOString();
+  const app_start_time = new Date(Date.now() - process.uptime() * 1000).toISOString();
   // https://nodejs.org/api/process.html#processavailablememory
   const appContext: AppContext = { app_start_time, app_memory };
 
@@ -236,7 +236,7 @@ export function getDeviceContext(deviceOpt: DeviceContextOptions | true): Device
   // Hence, we only set boot time, if we get a valid uptime value.
   // @see https://github.com/getsentry/sentry-javascript/issues/5856
   if (typeof uptime === 'number') {
-    device.boot_time = new Date(_INTERNAL_safeDateNow() - uptime * 1000).toISOString();
+    device.boot_time = new Date(Date.now() - uptime * 1000).toISOString();
   }
 
   device.arch = os.arch();
