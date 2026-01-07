@@ -15,12 +15,12 @@ export const ErrorBoundary: ErrorBoundaryComponent = () => {
   );
 };
 
-export const meta: MetaFunction = ({ data }) => [
+// With Server-Timing headers as the primary trace propagation method,
+// meta tags for sentry-trace and baggage are no longer needed.
+export const meta: MetaFunction = () => [
   { charset: 'utf-8' },
   { title: 'New Remix App' },
   { name: 'viewport', content: 'width=device-width,initial-scale=1' },
-  { name: 'sentry-trace', content: data.sentryTrace },
-  { name: 'baggage', content: data.sentryBaggage },
 ];
 
 export const loader: LoaderFunction = async ({ request }) => {
