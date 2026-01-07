@@ -16,10 +16,7 @@ import type { SentryNuxtServerOptions } from '../common/types';
  * @param options Configuration options for the SDK.
  */
 export function init(options: SentryNuxtServerOptions): Client | undefined {
-  const sentryOptions = {
-    ...options,
-    defaultIntegrations: getNuxtDefaultIntegrations(options),
-  };
+  const sentryOptions = { defaultIntegrations: getNuxtDefaultIntegrations(options), ...options };
 
   applySdkMetadata(sentryOptions, 'nuxt', ['nuxt', 'node']);
 
