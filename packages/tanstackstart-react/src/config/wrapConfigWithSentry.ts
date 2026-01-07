@@ -1,5 +1,6 @@
 import type { UserConfig } from 'vite';
 import type { SentryTanstackStartReactPluginOptions } from './types';
+import { addSentryPlugins } from '../vite';
 
 /**
  * Wraps a Vite configuration object with Sentry build-time enhancements such as
@@ -32,9 +33,13 @@ import type { SentryTanstackStartReactPluginOptions } from './types';
  */
 export function wrapConfigWithSentry(
   config: UserConfig = {},
-  _sentryPluginOptions: SentryTanstackStartReactPluginOptions = {},
+  sentryPluginOptions: SentryTanstackStartReactPluginOptions = {},
 ): UserConfig {
-  // TODO: Add Sentry Vite plugins for source map upload
-  console.log('wrapConfigWithSentry', config, _sentryPluginOptions);
-  return config;
+  const userPlugins = Array.isArray(config.plugins) ? [...config.plugins] : [];
+  const plugins = addSentryPlugins(userPlugins, sentryPluginOptions);
+
+  return {
+    ...config,
+    plugins,
+  };
 }
