@@ -1,6 +1,6 @@
 import type { UserConfig } from 'vite';
-import type { SentryTanstackStartReactPluginOptions } from './types';
 import { addSentryPlugins } from '../vite';
+import type { SentryTanstackStartReactPluginOptions } from './types';
 
 /**
  * Wraps a Vite configuration object with Sentry build-time enhancements such as
@@ -36,7 +36,7 @@ export function wrapConfigWithSentry(
   sentryPluginOptions: SentryTanstackStartReactPluginOptions = {},
 ): UserConfig {
   const userPlugins = Array.isArray(config.plugins) ? [...config.plugins] : [];
-  const plugins = addSentryPlugins(userPlugins, sentryPluginOptions);
+  const plugins = addSentryPlugins(userPlugins, sentryPluginOptions, config);
 
   return {
     ...config,
