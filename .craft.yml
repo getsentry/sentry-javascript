@@ -146,7 +146,7 @@ targets:
   # AWS Lambda Layer target
   - name: aws-lambda-layer
     includeNames: /^sentry-node-serverless-\d+.\d+.\d+(-(beta|alpha|rc)\.\d+)?\.zip$/
-    layerName: SentryNodeServerlessSDKv10
+    layerName: SentryNodeServerlessSDKv{{{major}}}
     compatibleRuntimes:
       - name: node
         versions:

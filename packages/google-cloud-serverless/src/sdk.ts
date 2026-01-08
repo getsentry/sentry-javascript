@@ -2,12 +2,9 @@ import type { Integration, Options } from '@sentry/core';
 import { applySdkMetadata } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
 import { getDefaultIntegrationsWithoutPerformance, init as initNode } from '@sentry/node';
+import { isCjs } from '@sentry/node-core';
 import { googleCloudGrpcIntegration } from './integrations/google-cloud-grpc';
 import { googleCloudHttpIntegration } from './integrations/google-cloud-http';
-
-function isCjs(): boolean {
-  return typeof require !== 'undefined';
-}
 
 function getCjsOnlyIntegrations(): Integration[] {
   return isCjs()

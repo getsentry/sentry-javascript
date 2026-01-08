@@ -1,4 +1,5 @@
 import { captureException, debug, defineIntegration, getClient } from '@sentry/core';
+import { isMainThread } from 'worker_threads';
 import { DEBUG_BUILD } from '../debug-build';
 import type { NodeClient } from '../sdk/client';
 import { logAndExitProcess } from '../utils/errorhandling';
@@ -44,6 +45,12 @@ export const onUncaughtExceptionIntegration = defineIntegration((options: Partia
   return {
     name: INTEGRATION_NAME,
     setup(client: NodeClient) {
+      // errors in worker threads are already handled by the childProcessIntegration
+      // also we don't want to exit the Node process on worker thread errors
+      if (!isMainThread) {
+        return;
+      }
+
       global.process.on('uncaughtException', makeErrorHandler(client, optionsWithDefaults));
     },
   };

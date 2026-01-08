@@ -88,6 +88,81 @@ EOF
 
 Make sure to add a `test:build` and `test:assert` command to the new app's `package.json` file.
 
+### The `.npmrc` File
+
+Every test application needs an `.npmrc` file (as shown above) to tell pnpm to fetch `@sentry/*` and `@sentry-internal/*` packages from the local Verdaccio registry. Without it, pnpm will install from the public npm registry and your local changes won't be tested - this is one of the most common causes of confusing test failures.
+
+To verify packages are being installed from Verdaccio, check the version in `node_modules/@sentry/*/package.json`. If it shows something like `0.0.0-pr.12345`, Verdaccio is working. If it shows a released version (e.g., `8.0.0`), the `.npmrc` is missing or incorrect.
+
+## Troubleshooting
+
+### Common Issues
+
+#### Tests fail with "Cannot find module '@sentry/...'" or use wrong package version
+
+1. Verify the test application has an `.npmrc` file (see above)
+2. Rebuild tarballs: `yarn build && yarn build:tarball`
+3. Delete `node_modules` in the test application and re-run the test
+
+#### Docker/Verdaccio issues
+
+- Ensure Docker daemon is running
+- Check that port 4873 is not already in use: `lsof -i :4873`
+- Stop any existing Verdaccio containers: `docker ps` and `docker stop <container-id>`
+- Check Verdaccio logs for errors
+
+#### Tests pass locally but fail in CI (or vice versa)
+
+- Most likely cause: missing `.npmrc` file
+- Verify all `@sentry/*` dependencies use `latest || *` version specifier
+- Check if the test relies on environment-specific behavior
+
+### Debugging Tips
+
+1. **Enable Sentry debug mode**: Add `debug: true` to the Sentry init config to see detailed SDK logs
+2. **Check browser console**: Look for SDK initialization errors or warnings
+3. **Inspect network requests**: Verify events are being sent to the expected endpoint
+4. **Check installed versions**: `cat node_modules/@sentry/browser/package.json | grep version`
+
+## Bundler-Specific Behavior
+
+Different bundlers handle environment variables and code replacement differently. This is important when writing tests or SDK code that relies on build-time constants.
+
+### Webpack
+
+- `DefinePlugin` replaces variables in your application code
+- **Does NOT replace values inside `node_modules`**
+- Environment variables must be explicitly defined
+
+### Vite
+
+- `define` option replaces variables in your application code
+- **Does NOT replace values inside `node_modules`**
+- `import.meta.env.VITE_*` variables are replaced at build time
+- For replacing values in dependencies, use `@rollup/plugin-replace`
+
+### Next.js
+
+- Automatically injects `process.env` via webpack/turbopack
+- Handles environment variables more seamlessly than raw webpack/Vite
+- Server and client bundles may have different environment variable access
+
+### `import.meta.env` Considerations
+
+- Only available in Vite and ES modules
+- Webpack and Turbopack do not have `import.meta.env`
+- SDK code accessing `import.meta.env` must use try-catch to handle environments where it doesn't exist
+
+```typescript
+// Safe pattern for SDK code
+let envValue: string | undefined;
+try {
+  envValue = import.meta.env.VITE_SOME_VAR;
+} catch {
+  // import.meta.env not available in this bundler
+}
+```
+
 Test apps in the folder `test-applications` will be automatically picked up by CI in the job `job_e2e_tests` (in `.github/workflows/build.yml`).
 The test matrix for CI is generated in `dev-packages/e2e-tests/lib/getTestMatrix.ts`.
 

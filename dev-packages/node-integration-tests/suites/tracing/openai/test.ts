@@ -159,6 +159,7 @@ describe('OpenAI integration', () => {
           'gen_ai.system': 'openai',
           'gen_ai.request.model': 'gpt-3.5-turbo',
           'gen_ai.request.temperature': 0.7,
+          'gen_ai.request.messages.original_length': 2,
           'gen_ai.request.messages':
             '[{"role":"system","content":"You are a helpful assistant."},{"role":"user","content":"What is the capital of France?"}]',
           'gen_ai.response.model': 'gpt-3.5-turbo',
@@ -214,6 +215,7 @@ describe('OpenAI integration', () => {
           'sentry.origin': 'auto.ai.openai',
           'gen_ai.system': 'openai',
           'gen_ai.request.model': 'error-model',
+          'gen_ai.request.messages.original_length': 1,
           'gen_ai.request.messages': '[{"role":"user","content":"This will fail"}]',
         },
         description: 'chat error-model',
@@ -231,6 +233,7 @@ describe('OpenAI integration', () => {
           'gen_ai.request.model': 'gpt-4',
           'gen_ai.request.temperature': 0.8,
           'gen_ai.request.stream': true,
+          'gen_ai.request.messages.original_length': 2,
           'gen_ai.request.messages':
             '[{"role":"system","content":"You are a helpful assistant."},{"role":"user","content":"Tell me about streaming"}]',
           'gen_ai.response.text': 'Hello from OpenAI streaming!',
@@ -287,6 +290,7 @@ describe('OpenAI integration', () => {
           'gen_ai.operation.name': 'chat',
           'gen_ai.request.model': 'error-model',
           'gen_ai.request.stream': true,
+          'gen_ai.request.messages.original_length': 1,
           'gen_ai.request.messages': '[{"role":"user","content":"This will fail"}]',
           'gen_ai.system': 'openai',
           'sentry.op': 'gen_ai.chat',
@@ -645,4 +649,75 @@ describe('OpenAI integration', () => {
       });
     },
   );
+
+  // Test for conversation ID support (Conversations API and previous_response_id)
+  const EXPECTED_TRANSACTION_CONVERSATION = {
+    transaction: 'conversation-test',
+    spans: expect.arrayContaining([
+      // First span - conversations.create returns conversation object with id
+      expect.objectContaining({
+        data: expect.objectContaining({
+          'gen_ai.operation.name': 'conversations',
+          'sentry.op': 'gen_ai.conversations',
+          'sentry.origin': 'auto.ai.openai',
+          'gen_ai.system': 'openai',
+          // The conversation ID should be captured from the response
+          'gen_ai.conversation.id': 'conv_689667905b048191b4740501625afd940c7533ace33a2dab',
+        }),
+        description: 'conversations unknown',
+        op: 'gen_ai.conversations',
+        origin: 'auto.ai.openai',
+        status: 'ok',
+      }),
+      // Second span - responses.create with conversation parameter
+      expect.objectContaining({
+        data: expect.objectContaining({
+          'gen_ai.operation.name': 'responses',
+          'sentry.op': 'gen_ai.responses',
+          'sentry.origin': 'auto.ai.openai',
+          'gen_ai.system': 'openai',
+          'gen_ai.request.model': 'gpt-4',
+          // The conversation ID should be captured from the request
+          'gen_ai.conversation.id': 'conv_689667905b048191b4740501625afd940c7533ace33a2dab',
+        }),
+        op: 'gen_ai.responses',
+        origin: 'auto.ai.openai',
+        status: 'ok',
+      }),
+      // Third span - responses.create without conversation (first in chain, should NOT have gen_ai.conversation.id)
+      expect.objectContaining({
+        data: expect.not.objectContaining({
+          'gen_ai.conversation.id': expect.anything(),
+        }),
+        op: 'gen_ai.responses',
+        origin: 'auto.ai.openai',
+        status: 'ok',
+      }),
+      // Fourth span - responses.create with previous_response_id (chaining)
+      expect.objectContaining({
+        data: expect.objectContaining({
+          'gen_ai.operation.name': 'responses',
+          'sentry.op': 'gen_ai.responses',
+          'sentry.origin': 'auto.ai.openai',
+          'gen_ai.system': 'openai',
+          'gen_ai.request.model': 'gpt-4',
+          // The previous_response_id should be captured as conversation.id
+          'gen_ai.conversation.id': 'resp_mock_conv_123',
+        }),
+        op: 'gen_ai.responses',
+        origin: 'auto.ai.openai',
+        status: 'ok',
+      }),
+    ]),
+  };
+
+  createEsmAndCjsTests(__dirname, 'scenario-conversation.mjs', 'instrument.mjs', (createRunner, test) => {
+    test('captures conversation ID from Conversations API and previous_response_id', async () => {
+      await createRunner()
+        .ignore('event')
+        .expect({ transaction: EXPECTED_TRANSACTION_CONVERSATION })
+        .start()
+        .completed();
+    });
+  });
 });
