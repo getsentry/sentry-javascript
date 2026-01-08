@@ -28,26 +28,8 @@ function getNextProxy<T extends (...args: unknown[]) => unknown>(next: T, span: 
 
 /**
  * Wraps a TanStack Start middleware with Sentry instrumentation to create spans.
- *
- * @example
- * ```ts
- * import { wrapMiddlewareWithSentry } from '@sentry/tanstackstart-react';
- * import { createMiddleware } from '@tanstack/react-start';
- *
- * const authMiddleware = wrapMiddlewareWithSentry(
- *   createMiddleware().server(async ({ next }) => {
- *     // auth logic
- *     return next();
- *   }),
- *   { name: 'authMiddleware' }
- * );
- * ```
- *
- * @param middleware - The TanStack Start middleware to patch
- * @param options - Options for the wrapper (currently only the name of the middleware)
- * @returns The patched middleware
  */
-export function wrapMiddlewareWithSentry<T extends TanStackMiddlewareBase>(
+function wrapMiddlewareWithSentry<T extends TanStackMiddlewareBase>(
   middleware: T,
   options: MiddlewareWrapperOptions,
 ): T {
@@ -88,9 +70,9 @@ export function wrapMiddlewareWithSentry<T extends TanStackMiddlewareBase>(
  *
  * @example
  * ```ts
- * import { wrapMiddlewareListWithSentry } from '@sentry/tanstackstart-react';
+ * import { wrapMiddlewaresWithSentry } from '@sentry/tanstackstart-react';
  *
- * const wrappedMiddlewares = wrapMiddlewareListWithSentry({
+ * const wrappedMiddlewares = wrapMiddlewaresWithSentry({
  *   authMiddleware,
  *   loggingMiddleware,
  * });
@@ -101,7 +83,7 @@ export function wrapMiddlewareWithSentry<T extends TanStackMiddlewareBase>(
  * @param middlewares - An object containing middlewares
  * @returns An array of wrapped middlewares
  */
-export function wrapMiddlewareListWithSentry<T extends TanStackMiddlewareBase>(middlewares: Record<string, T>): T[] {
+export function wrapMiddlewaresWithSentry<T extends TanStackMiddlewareBase>(middlewares: Record<string, T>): T[] {
   return Object.entries(middlewares).map(([name, middleware]) => {
     return wrapMiddlewareWithSentry(middleware, { name });
   });

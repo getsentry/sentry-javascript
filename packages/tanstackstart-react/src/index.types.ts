@@ -35,5 +35,4 @@ export declare const OpenFeatureIntegrationHook: typeof clientSdk.OpenFeatureInt
 export declare const statsigIntegration: typeof clientSdk.statsigIntegration;
 export declare const unleashIntegration: typeof clientSdk.unleashIntegration;
 
-export declare const wrapMiddlewareWithSentry: typeof serverSdk.wrapMiddlewareWithSentry;
-export declare const wrapMiddlewareListWithSentry: typeof serverSdk.wrapMiddlewareListWithSentry;
+export declare const wrapMiddlewaresWithSentry: typeof serverSdk.wrapMiddlewaresWithSentry;

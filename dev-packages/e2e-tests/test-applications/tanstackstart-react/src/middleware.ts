@@ -1,5 +1,5 @@
 import { createMiddleware } from '@tanstack/react-start';
-import { wrapMiddlewareWithSentry, wrapMiddlewareListWithSentry } from '@sentry/tanstackstart-react';
+import { wrapMiddlewaresWithSentry } from '@sentry/tanstackstart-react';
 
 // Global request middleware - runs on every request
 const globalRequestMiddleware = createMiddleware().server(async ({ next }) => {
@@ -25,18 +25,15 @@ const serverRouteRequestMiddleware = createMiddleware().server(async ({ next }) 
   return next();
 });
 
-// Wrap global request middleware
-export const wrappedGlobalRequestMiddleware = wrapMiddlewareWithSentry(globalRequestMiddleware, {
-  name: 'globalRequestMiddleware',
-});
-
-// Wrap global function middleware
-export const wrappedGlobalFunctionMiddleware = wrapMiddlewareWithSentry(globalFunctionMiddleware, {
-  name: 'globalFunctionMiddleware',
-});
-
-// Wrap server function middleware using list wrapper
-export const [wrappedServerFnMiddleware, wrappedServerRouteRequestMiddleware] = wrapMiddlewareListWithSentry({
+// Manually wrap middlewares with Sentry
+export const [
+  wrappedGlobalRequestMiddleware,
+  wrappedGlobalFunctionMiddleware,
+  wrappedServerFnMiddleware,
+  wrappedServerRouteRequestMiddleware,
+] = wrapMiddlewaresWithSentry({
+  globalRequestMiddleware,
+  globalFunctionMiddleware,
   serverFnMiddleware,
   serverRouteRequestMiddleware,
 });
