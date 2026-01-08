@@ -96,7 +96,7 @@ test('Propagates trace when ErrorBoundary is triggered', async ({ page }) => {
   expect(httpServerSpanId).toBeDefined();
 
   expect(pageLoadTraceId).toEqual(httpServerTraceId);
-  expect(pageLoadParentSpanId).toEqual(loaderSpanId);
+  expect(pageLoadParentSpanId).toEqual(httpServerSpanId);
   expect(pageLoadSpanId).not.toEqual(httpServerSpanId);
 });
 
@@ -139,6 +139,6 @@ test('Sends two linked transactions (server & client) to Sentry', async ({ page 
 
   expect(loaderParentSpanId).toEqual(httpServerSpanId);
   expect(pageLoadTraceId).toEqual(httpServerTraceId);
-  expect(pageLoadParentSpanId).toEqual(loaderSpanId);
+  expect(pageLoadParentSpanId).toEqual(httpServerSpanId);
   expect(pageLoadSpanId).not.toEqual(httpServerSpanId);
 });

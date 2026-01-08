@@ -44,30 +44,30 @@ test('Sends a navigation transaction with parameterized route to Sentry', async 
   expect(transactionEvent.transaction).toBeTruthy();
 });
 
-test('Renders `sentry-trace` and `baggage` meta tags for the root route', async ({ page }) => {
+test('Server-Timing header contains sentry-trace and baggage for the root route', async ({ page }) => {
+  const responsePromise = page.waitForResponse(response => response.url().endsWith('/') && response.status() === 200);
+
   await page.goto('/');
 
-  const sentryTraceMetaTag = await page.waitForSelector('meta[name="sentry-trace"]', {
-    state: 'attached',
-  });
-  const baggageMetaTag = await page.waitForSelector('meta[name="baggage"]', {
-    state: 'attached',
-  });
+  const response = await responsePromise;
+  const serverTimingHeader = response.headers()['server-timing'];
 
-  expect(sentryTraceMetaTag).toBeTruthy();
-  expect(baggageMetaTag).toBeTruthy();
+  expect(serverTimingHeader).toBeDefined();
+  expect(serverTimingHeader).toContain('sentry-trace');
+  expect(serverTimingHeader).toContain('baggage');
 });
 
-test('Renders `sentry-trace` and `baggage` meta tags for a sub-route', async ({ page }) => {
+test('Server-Timing header contains sentry-trace and baggage for a sub-route', async ({ page }) => {
+  const responsePromise = page.waitForResponse(
+    response => response.url().includes('/user/123') && response.status() === 200,
+  );
+
   await page.goto('/user/123');
 
-  const sentryTraceMetaTag = await page.waitForSelector('meta[name="sentry-trace"]', {
-    state: 'attached',
-  });
-  const baggageMetaTag = await page.waitForSelector('meta[name="baggage"]', {
-    state: 'attached',
-  });
+  const response = await responsePromise;
+  const serverTimingHeader = response.headers()['server-timing'];
 
-  expect(sentryTraceMetaTag).toBeTruthy();
-  expect(baggageMetaTag).toBeTruthy();
+  expect(serverTimingHeader).toBeDefined();
+  expect(serverTimingHeader).toContain('sentry-trace');
+  expect(serverTimingHeader).toContain('baggage');
 });
