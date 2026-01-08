@@ -20,7 +20,7 @@ import type { BaseTransportOptions, Transport } from './transport';
  *
  * @see https://wintercg.org/
  */
-export interface BaseWinterTCOptions {
+export interface ServerRuntimeOptions {
   /**
    * List of strings/regex controlling to which outgoing requests
    * the SDK will attach tracing headers.

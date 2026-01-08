@@ -1,11 +1,11 @@
-import type { BaseTransportOptions, BaseWinterTCOptions, ClientOptions, Options } from '@sentry/core';
+import type { BaseTransportOptions, ClientOptions, Options, ServerRuntimeOptions } from '@sentry/core';
 
 /**
  * Base options for the Sentry Bun SDK.
  * Extends the common WinterTC options shared with Node.js and other server-side SDKs.
  */
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface BaseBunOptions extends BaseWinterTCOptions {}
+export interface BaseBunOptions extends ServerRuntimeOptions {}
 
 /**
  * Configuration options for the Sentry Bun SDK
