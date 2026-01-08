@@ -45,5 +45,23 @@ fi
 
 echo "Starting nuxt dev with Sentry server config..."
 
-# 4.  Start the actual dev command which should be used for the tests
-NODE_OPTIONS='--import ./.nuxt/dev/sentry.server.config.mjs' nuxt dev
+# 4.  Start the actual dev command in the background first
+NODE_OPTIONS='--import ./.nuxt/dev/sentry.server.config.mjs' nuxt dev &
+DEV_PID=$!
+
+# 5.  Wait for port 3030 to be ready before Playwright starts running tests
+echo "Waiting for port 3030 to be ready..."
+COUNTER=0
+while ! nc -z localhost 3030 2>/dev/null && [ $COUNTER -lt 60 ]; do
+    sleep 0.5
+    ((COUNTER++))
+done
+
+if nc -z localhost 3030 2>/dev/null; then
+    echo "Port 3030 is ready!"
+else
+    echo "WARNING: Port 3030 not ready after 30 seconds"
+fi
+
+# 6.  Keep the script running (wait for the background process)
+wait $DEV_PID
