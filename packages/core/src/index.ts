@@ -517,4 +517,6 @@ export type {
 export {
   withRandomSafeContext as _INTERNAL_withRandomSafeContext,
   type RandomSafeContextRunner as _INTERNAL_RandomSafeContextRunner,
+  safeMathRandom as _INTERNAL_safeMathRandom,
+  safeDateNow as _INTERNAL_safeDateNow,
 } from './utils/randomSafeContext';

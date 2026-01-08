@@ -23,3 +23,19 @@ export function withRandomSafeContext<T>(cb: () => T): T {
 
   return globalWithSymbol[sym](cb);
 }
+
+/**
+ * Identical to Math.random() but wrapped in withRandomSafeContext
+ * to ensure safe random number generation in certain contexts (e.g., Next.js Cache Components).
+ */
+export function safeMathRandom(): number {
+  return withRandomSafeContext(() => Math.random());
+}
+
+/**
+ * Identical to performance.now() but wrapped in withRandomSafeContext
+ * to ensure safe time value generation in certain contexts (e.g., Next.js Cache Components).
+ */
+export function safeDateNow(): number {
+  return withRandomSafeContext(() => Date.now());
+}

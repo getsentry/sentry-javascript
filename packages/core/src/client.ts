@@ -1,4 +1,5 @@
 /* eslint-disable max-lines */
+import { _INTERNAL_safeMathRandom } from '.';
 import { getEnvelopeEndpointWithUrlEncodedAuth } from './api';
 import { DEFAULT_ENVIRONMENT } from './constants';
 import { getCurrentScope, getIsolationScope, getTraceContextFromScope } from './currentScopes';
@@ -1288,7 +1289,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     // 0.0 === 0% events are sent
     // Sampling for transaction happens somewhere else
     const parsedSampleRate = typeof sampleRate === 'undefined' ? undefined : parseSampleRate(sampleRate);
-    if (isError && typeof parsedSampleRate === 'number' && Math.random() > parsedSampleRate) {
+    if (isError && typeof parsedSampleRate === 'number' && _INTERNAL_safeMathRandom() > parsedSampleRate) {
       this.recordDroppedEvent('sample_rate', 'error');
       return rejectedSyncPromise(
         _makeDoNotSendEventError(

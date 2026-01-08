@@ -26,7 +26,6 @@ import type { SpanStatus } from '../types-hoist/spanStatus';
 import type { TimedEvent } from '../types-hoist/timedEvent';
 import { debug } from '../utils/debug-logger';
 import { generateSpanId, generateTraceId } from '../utils/propagationContext';
-import { withRandomSafeContext } from '../utils/randomSafeContext';
 import {
   convertSpanLinksForEnvelope,
   getRootSpan,
@@ -77,9 +76,9 @@ export class SentrySpan implements Span {
    * @hidden
    */
   public constructor(spanContext: SentrySpanArguments = {}) {
-    this._traceId = spanContext.traceId || withRandomSafeContext(generateTraceId);
-    this._spanId = spanContext.spanId || withRandomSafeContext(generateSpanId);
-    this._startTime = spanContext.startTimestamp || withRandomSafeContext(timestampInSeconds);
+    this._traceId = spanContext.traceId || generateTraceId();
+    this._spanId = spanContext.spanId || generateSpanId();
+    this._startTime = spanContext.startTimestamp || timestampInSeconds();
     this._links = spanContext.links;
 
     this._attributes = {};
