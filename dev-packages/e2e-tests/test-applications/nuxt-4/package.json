@@ -20,8 +20,7 @@
   "dependencies": {
     "@pinia/nuxt": "^0.5.5",
     "@sentry/nuxt": "latest || *",
-    "nitropack": "npm:nitropack-nightly@2.13.0-20260107-221335-d463e948",
-    "nuxt": "npm:nuxt-nightly@4.3.0-29461891.8f4fbecd"
+    "nuxt": "^4.1.2"
   },
   "devDependencies": {
     "@playwright/test": "~1.56.0",
