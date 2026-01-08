@@ -18,7 +18,7 @@ export default Sentry.withSentry(
         recordOutputs: false,
       });
 
-      // Create a second handler with recordOutputs enabled for tool_calls test
+      // Create LangChain callback handler with recordOutputs enabled for tool_calls test
       const callbackHandlerWithOutputs = Sentry.createLangChainCallbackHandler({
         recordInputs: false,
         recordOutputs: true,
@@ -35,7 +35,7 @@ export default Sentry.withSentry(
         callbacks: [callbackHandler],
       });
 
-      // Test 2: Chain invocation (without tool calls)
+      // Test 2: Chain invocation
       const chain = new MockChain('my_test_chain');
       await chain.invoke(
         { input: 'test input' },
@@ -50,7 +50,7 @@ export default Sentry.withSentry(
         callbacks: [callbackHandler],
       });
 
-      // Test 4: Chain invocation with tool calls (recordOutputs enabled)
+      // Test 4: Chain invocation with tool calls
       const chainWithToolCalls = new MockChain('chain_with_tool_calls', { includeToolCalls: true });
       await chainWithToolCalls.invoke(
         { input: 'test input for tool calls' },
