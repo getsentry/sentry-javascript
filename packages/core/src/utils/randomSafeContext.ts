@@ -33,7 +33,7 @@ export function safeMathRandom(): number {
 }
 
 /**
- * Identical to performance.now() but wrapped in withRandomSafeContext
+ * Identical to Date.now() but wrapped in withRandomSafeContext
  * to ensure safe time value generation in certain contexts (e.g., Next.js Cache Components).
  */
 export function safeDateNow(): number {

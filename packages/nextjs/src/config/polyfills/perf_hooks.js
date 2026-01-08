@@ -1,3 +1,4 @@
+/* eslint-disable @sentry-internal/sdk/no-unsafe-random-apis */
 // Polyfill for Node.js perf_hooks module in edge runtime
 // This mirrors the polyfill from packages/vercel-edge/rollup.npm.config.mjs
 const __sentry__timeOrigin = Date.now();
