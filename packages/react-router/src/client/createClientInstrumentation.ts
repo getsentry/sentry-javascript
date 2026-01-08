@@ -107,9 +107,11 @@ export function createSentryClientInstrumentation(
           // (navigation can be rejected before reload, e.g., by a navigation guard)
           if (info.to === 0) {
             const result = await callNavigate();
-            captureInstrumentationError(result, captureErrors, 'react_router.navigate', {
-              'http.url': info.currentUrl,
-            });
+            if (result.status === 'error' && result.error instanceof Error) {
+              captureInstrumentationError(result, captureErrors, 'react_router.navigate', {
+                'http.url': info.currentUrl,
+              });
+            }
             return;
           }
 
