@@ -40,11 +40,8 @@ export function normalizeRoutePath(pattern?: string): string | undefined {
 }
 
 /**
- * Captures an error from instrumentation result if conditions are met.
- * Used by both client and server instrumentation to avoid duplication.
- *
- * Only captures actual Error instances - Response objects and ErrorResponse
- * are expected control flow in React Router (redirects, 404s, etc).
+ * Captures an error from instrumentation result.
+ * Caller must verify result contains an Error before calling.
  */
 export function captureInstrumentationError(
   result: InstrumentationResult,
@@ -52,7 +49,7 @@ export function captureInstrumentationError(
   mechanismType: string,
   data: Record<string, string | boolean>,
 ): void {
-  if (result.status === 'error' && captureErrors && isError(result.error)) {
+  if (captureErrors) {
     captureException(result.error, {
       mechanism: {
         type: mechanismType,
@@ -61,12 +58,4 @@ export function captureInstrumentationError(
       },
     });
   }
-}
-
-/**
- * Checks if value is an Error instance.
- * Response objects and ErrorResponse are not errors - they're expected control flow.
- */
-function isError(value: unknown): value is Error {
-  return value instanceof Error;
 }

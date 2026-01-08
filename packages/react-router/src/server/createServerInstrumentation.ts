@@ -65,11 +65,11 @@ export function createSentryServerInstrumentation(
               const result = await handleRequest();
               if (result.status === 'error' && result.error instanceof Error) {
                 existingRootSpan.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+                captureInstrumentationError(result, captureErrors, 'react_router.request_handler', {
+                  'http.method': info.request.method,
+                  'http.url': pathname,
+                });
               }
-              captureInstrumentationError(result, captureErrors, 'react_router.request_handler', {
-                'http.method': info.request.method,
-                'http.url': pathname,
-              });
             } finally {
               await flushIfServerless();
             }
@@ -92,11 +92,11 @@ export function createSentryServerInstrumentation(
                   const result = await handleRequest();
                   if (result.status === 'error' && result.error instanceof Error) {
                     span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+                    captureInstrumentationError(result, captureErrors, 'react_router.request_handler', {
+                      'http.method': info.request.method,
+                      'http.url': pathname,
+                    });
                   }
-                  captureInstrumentationError(result, captureErrors, 'react_router.request_handler', {
-                    'http.method': info.request.method,
-                    'http.url': pathname,
-                  });
                 } finally {
                   await flushIfServerless();
                 }
@@ -127,11 +127,11 @@ export function createSentryServerInstrumentation(
               const result = await callLoader();
               if (result.status === 'error' && result.error instanceof Error) {
                 span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+                captureInstrumentationError(result, captureErrors, 'react_router.loader', {
+                  'http.method': info.request.method,
+                  'http.url': urlPath,
+                });
               }
-              captureInstrumentationError(result, captureErrors, 'react_router.loader', {
-                'http.method': info.request.method,
-                'http.url': urlPath,
-              });
             },
           );
         },
@@ -154,11 +154,11 @@ export function createSentryServerInstrumentation(
               const result = await callAction();
               if (result.status === 'error' && result.error instanceof Error) {
                 span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+                captureInstrumentationError(result, captureErrors, 'react_router.action', {
+                  'http.method': info.request.method,
+                  'http.url': urlPath,
+                });
               }
-              captureInstrumentationError(result, captureErrors, 'react_router.action', {
-                'http.method': info.request.method,
-                'http.url': urlPath,
-              });
             },
           );
         },
@@ -183,11 +183,11 @@ export function createSentryServerInstrumentation(
               const result = await callMiddleware();
               if (result.status === 'error' && result.error instanceof Error) {
                 span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+                captureInstrumentationError(result, captureErrors, 'react_router.middleware', {
+                  'http.method': info.request.method,
+                  'http.url': urlPath,
+                });
               }
-              captureInstrumentationError(result, captureErrors, 'react_router.middleware', {
-                'http.method': info.request.method,
-                'http.url': urlPath,
-              });
             },
           );
         },
@@ -205,8 +205,8 @@ export function createSentryServerInstrumentation(
               const result = await callLazy();
               if (result.status === 'error' && result.error instanceof Error) {
                 span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+                captureInstrumentationError(result, captureErrors, 'react_router.lazy', {});
               }
-              captureInstrumentationError(result, captureErrors, 'react_router.lazy', {});
             },
           );
         },

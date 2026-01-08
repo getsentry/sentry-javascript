@@ -86,7 +86,7 @@ describe('captureInstrumentationError', () => {
     vi.clearAllMocks();
   });
 
-  it('should capture error when result is error and captureErrors is true', () => {
+  it('should capture error when captureErrors is true', () => {
     const error = new Error('test error');
     const result = { status: 'error' as const, error };
     const data = { 'http.url': '/test' };
@@ -103,40 +103,6 @@ describe('captureInstrumentationError', () => {
     const result = { status: 'error' as const, error };
 
     captureInstrumentationError(result, false, 'react_router.loader', {});
-
-    expect(core.captureException).not.toHaveBeenCalled();
-  });
-
-  it('should not capture when result is success', () => {
-    const result = { status: 'success' as const, error: undefined };
-
-    captureInstrumentationError(result, true, 'react_router.loader', {});
-
-    expect(core.captureException).not.toHaveBeenCalled();
-  });
-
-  it('should not capture Response objects (redirects are expected control flow)', () => {
-    const response = new Response(null, { status: 302 });
-    const result = { status: 'error' as const, error: response };
-
-    captureInstrumentationError(result, true, 'react_router.loader', {});
-
-    expect(core.captureException).not.toHaveBeenCalled();
-  });
-
-  it('should not capture non-Error objects (e.g., ErrorResponse)', () => {
-    const errorResponse = { status: 404, data: 'Not found' };
-    const result = { status: 'error' as const, error: errorResponse };
-
-    captureInstrumentationError(result, true, 'react_router.loader', {});
-
-    expect(core.captureException).not.toHaveBeenCalled();
-  });
-
-  it('should not capture string errors', () => {
-    const result = { status: 'error' as const, error: 'Something went wrong' };
-
-    captureInstrumentationError(result, true, 'react_router.loader', {});
 
     expect(core.captureException).not.toHaveBeenCalled();
   });

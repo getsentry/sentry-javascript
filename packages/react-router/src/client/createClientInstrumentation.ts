@@ -104,6 +104,7 @@ export function createSentryClientInstrumentation(
       router.instrument({
         async navigate(callNavigate, info) {
           // navigate(0) triggers a page reload - skip span creation, but still capture errors
+          // (navigation can be rejected before reload, e.g., by a navigation guard)
           if (info.to === 0) {
             const result = await callNavigate();
             captureInstrumentationError(result, captureErrors, 'react_router.navigate', {
@@ -144,13 +145,14 @@ export function createSentryClientInstrumentation(
                 navigationSpan.updateName(WINDOW.location.pathname);
               }
 
-              if (result.status === 'error' && result.error instanceof Error && navigationSpan) {
-                navigationSpan.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+              if (result.status === 'error' && result.error instanceof Error) {
+                if (navigationSpan) {
+                  navigationSpan.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+                }
+                captureInstrumentationError(result, captureErrors, 'react_router.navigate', {
+                  'http.url': WINDOW.location?.pathname || info.currentUrl,
+                });
               }
-
-              captureInstrumentationError(result, captureErrors, 'react_router.navigate', {
-                'http.url': WINDOW.location?.pathname || info.currentUrl,
-              });
             } finally {
               currentNumericNavigationSpan = undefined;
             }
@@ -175,12 +177,14 @@ export function createSentryClientInstrumentation(
           }
 
           const result = await callNavigate();
-          if (result.status === 'error' && result.error instanceof Error && navigationSpan) {
-            navigationSpan.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+          if (result.status === 'error' && result.error instanceof Error) {
+            if (navigationSpan) {
+              navigationSpan.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+            }
+            captureInstrumentationError(result, captureErrors, 'react_router.navigate', {
+              'http.url': toPath,
+            });
           }
-          captureInstrumentationError(result, captureErrors, 'react_router.navigate', {
-            'http.url': toPath,
-          });
           return;
         },
 
@@ -197,10 +201,10 @@ export function createSentryClientInstrumentation(
               const result = await callFetch();
               if (result.status === 'error' && result.error instanceof Error) {
                 span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+                captureInstrumentationError(result, captureErrors, 'react_router.fetcher', {
+                  'http.url': info.href,
+                });
               }
-              captureInstrumentationError(result, captureErrors, 'react_router.fetcher', {
-                'http.url': info.href,
-              });
             },
           );
         },
@@ -225,10 +229,10 @@ export function createSentryClientInstrumentation(
               const result = await callLoader();
               if (result.status === 'error' && result.error instanceof Error) {
                 span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+                captureInstrumentationError(result, captureErrors, 'react_router.client_loader', {
+                  'http.url': urlPath,
+                });
               }
-              captureInstrumentationError(result, captureErrors, 'react_router.client_loader', {
-                'http.url': urlPath,
-              });
             },
           );
         },
@@ -249,10 +253,10 @@ export function createSentryClientInstrumentation(
               const result = await callAction();
               if (result.status === 'error' && result.error instanceof Error) {
                 span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+                captureInstrumentationError(result, captureErrors, 'react_router.client_action', {
+                  'http.url': urlPath,
+                });
               }
-              captureInstrumentationError(result, captureErrors, 'react_router.client_action', {
-                'http.url': urlPath,
-              });
             },
           );
         },
@@ -273,10 +277,10 @@ export function createSentryClientInstrumentation(
               const result = await callMiddleware();
               if (result.status === 'error' && result.error instanceof Error) {
                 span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+                captureInstrumentationError(result, captureErrors, 'react_router.client_middleware', {
+                  'http.url': urlPath,
+                });
               }
-              captureInstrumentationError(result, captureErrors, 'react_router.client_middleware', {
-                'http.url': urlPath,
-              });
             },
           );
         },
@@ -294,8 +298,8 @@ export function createSentryClientInstrumentation(
               const result = await callLazy();
               if (result.status === 'error' && result.error instanceof Error) {
                 span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+                captureInstrumentationError(result, captureErrors, 'react_router.client_lazy', {});
               }
-              captureInstrumentationError(result, captureErrors, 'react_router.client_lazy', {});
             },
           );
         },
