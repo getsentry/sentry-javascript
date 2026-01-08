@@ -276,9 +276,21 @@ describe('attributeValueToTypedAttributeValue', () => {
         });
       });
 
-      it.each([undefined, { value: undefined }, { value: undefined, unit: 'byte' }])('ignores %s values', value => {
+      it.each([undefined, { value: undefined }])('stringifies %s values to ""', value => {
         const result = attributeValueToTypedAttributeValue(value, true);
-        expect(result).toBeUndefined();
+        expect(result).toEqual({
+          value: '',
+          type: 'string',
+        });
+      });
+
+      it('stringifies undefined values with unit to ""', () => {
+        const result = attributeValueToTypedAttributeValue({ value: undefined, unit: 'byte' }, true);
+        expect(result).toEqual({
+          value: '',
+          unit: 'byte',
+          type: 'string',
+        });
       });
     });
   });
@@ -341,12 +353,31 @@ describe('serializeAttributes', () => {
     });
   });
 
-  it.each([true, false])('ignores undefined values if fallback is %s', fallback => {
+  it('ignores undefined values if fallback is false', () => {
     const result = serializeAttributes(
       { foo: undefined, bar: { value: undefined }, baz: { value: undefined, unit: 'byte' } },
-      fallback,
+      false,
     );
     expect(result).toStrictEqual({});
+  });
+
+  it('stringifies undefined values to "" if fallback is true', () => {
+    const result = serializeAttributes(
+      { foo: undefined, bar: { value: undefined }, baz: { value: undefined, unit: 'byte' } },
+      true,
+    );
+    expect(result).toStrictEqual({
+      bar: {
+        type: 'string',
+        value: '',
+      },
+      baz: {
+        type: 'string',
+        unit: 'byte',
+        value: '',
+      },
+      foo: { type: 'string', value: '' },
+    });
   });
 
   it('ignores null values by default', () => {
