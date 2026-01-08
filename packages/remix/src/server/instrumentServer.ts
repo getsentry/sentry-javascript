@@ -320,10 +320,6 @@ function wrapRequestHandler<T extends ServerBuild | (() => ServerBuild | Promise
     instrumentTracing?: boolean;
   },
 ): RequestHandler {
-  let resolvedBuild: ServerBuild | { build: ServerBuild };
-  let name: string;
-  let source: TransactionSource;
-
   return async function (this: unknown, request: RemixRequest, loadContext?: AppLoadContext): Promise<Response> {
     const upperCaseMethod = request.method.toUpperCase();
     // We don't want to wrap OPTIONS and HEAD requests
@@ -331,6 +327,11 @@ function wrapRequestHandler<T extends ServerBuild | (() => ServerBuild | Promise
       return origRequestHandler.call(this, request, loadContext);
     }
 
+    // These variables are declared inside the async function to avoid race conditions
+    // across concurrent requests. Each request gets its own instance.
+    let resolvedBuild: ServerBuild | { build: ServerBuild };
+    let name: string;
+    let source: TransactionSource;
     let resolvedRoutes: AgnosticRouteObject[] | undefined;
 
     if (options?.instrumentTracing) {
