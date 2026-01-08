@@ -12,7 +12,7 @@
     "clean": "npx nuxi cleanup",
     "test": "playwright test",
     "test:prod": "TEST_ENV=production playwright test",
-    "test:dev": "bash ./nuxt-start-dev-server.bash && TEST_ENV=development playwright test environment ",
+    "test:dev": "bash ./nuxt-start-dev-server.bash && TEST_ENV=development playwright test environment",
     "test:build": "pnpm install && pnpm build",
     "test:build-canary": "pnpm add nuxt@npm:nuxt-nightly@latest && pnpm add nitropack@npm:nitropack-nightly@latest && pnpm install --force && pnpm build",
     "test:assert": "pnpm test:prod && pnpm test:dev"
@@ -20,7 +20,8 @@
   "dependencies": {
     "@pinia/nuxt": "^0.5.5",
     "@sentry/nuxt": "latest || *",
-    "nuxt": "^4.1.2"
+    "nitropack": "npm:nitropack-nightly@2.13.0-20260107-221335-d463e948",
+    "nuxt": "npm:nuxt-nightly@4.3.0-29461891.8f4fbecd"
   },
   "devDependencies": {
     "@playwright/test": "~1.56.0",
