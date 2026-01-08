@@ -140,7 +140,7 @@ function _buildSerializedMetric(metric: Metric, client: Client, currentScope: Sc
     type: metric.type,
     unit: metric.unit,
     value: metric.value,
-    attributes: serializeAttributes(metric.attributes, true),
+    attributes: serializeAttributes(metric.attributes, 'skip-undefined'),
   };
 }
 

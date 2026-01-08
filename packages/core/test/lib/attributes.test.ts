@@ -294,6 +294,16 @@ describe('attributeValueToTypedAttributeValue', () => {
       });
     });
   });
+
+  describe('with fallback="skip-undefined"', () => {
+    it.each([undefined, { value: undefined }, { value: undefined, unit: 'byte' }])(
+      'ignores undefined values (%s)',
+      value => {
+        const result = attributeValueToTypedAttributeValue(value, 'skip-undefined');
+        expect(result).toBeUndefined();
+      },
+    );
+  });
 });
 
 describe('isAttributeObject', () => {
@@ -357,6 +367,14 @@ describe('serializeAttributes', () => {
     const result = serializeAttributes(
       { foo: undefined, bar: { value: undefined }, baz: { value: undefined, unit: 'byte' } },
       false,
+    );
+    expect(result).toStrictEqual({});
+  });
+
+  it('ignores undefined values if fallback is "skip-undefined"', () => {
+    const result = serializeAttributes(
+      { foo: undefined, bar: { value: undefined }, baz: { value: undefined, unit: 'byte' } },
+      'skip-undefined',
     );
     expect(result).toStrictEqual({});
   });

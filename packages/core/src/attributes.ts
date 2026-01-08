@@ -75,7 +75,7 @@ export function isAttributeObject(maybeObj: unknown): maybeObj is AttributeObjec
  */
 export function attributeValueToTypedAttributeValue(
   rawValue: unknown,
-  useFallback?: boolean,
+  useFallback?: boolean | 'skip-undefined',
 ): TypedAttributeValue | void {
   const { value, unit } = isAttributeObject(rawValue) ? rawValue : { value: rawValue, unit: undefined };
   const attributeValue = getTypedAttributeValue(value);
@@ -84,7 +84,7 @@ export function attributeValueToTypedAttributeValue(
     return { ...attributeValue, ...checkedUnit };
   }
 
-  if (!useFallback) {
+  if (!useFallback || (useFallback === 'skip-undefined' && value === undefined)) {
     return;
   }
 
@@ -115,7 +115,7 @@ export function attributeValueToTypedAttributeValue(
  */
 export function serializeAttributes<T>(
   attributes: RawAttributes<T> | undefined,
-  fallback: boolean = false,
+  fallback: boolean | 'skip-undefined' = false,
 ): Attributes {
   const serializedAttributes: Attributes = {};
   for (const [key, value] of Object.entries(attributes ?? {})) {
