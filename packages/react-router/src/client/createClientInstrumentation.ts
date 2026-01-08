@@ -30,12 +30,15 @@ type GlobalObjWithFlags = typeof GLOBAL_OBJ & {
   [SENTRY_POPSTATE_LISTENER_ADDED_FLAG]?: boolean;
 };
 
+const GLOBAL_WITH_FLAGS = GLOBAL_OBJ as GlobalObjWithFlags;
+
 /**
  * Options for creating Sentry client instrumentation.
  */
 export interface CreateSentryClientInstrumentationOptions {
   /**
    * Whether to capture errors from loaders/actions automatically.
+   * Set to `false` to avoid duplicates if using custom error handlers.
    * @default true
    */
   captureErrors?: boolean;
@@ -58,13 +61,12 @@ export function createSentryClientInstrumentation(
       // This ensures the flag is only set in Library Mode (where hooks run),
       // not in Framework Mode (where hooks are never called).
       // See: https://github.com/remix-run/react-router/discussions/13749
-      (GLOBAL_OBJ as GlobalObjWithFlags)[SENTRY_CLIENT_INSTRUMENTATION_FLAG] = true;
+      GLOBAL_WITH_FLAGS[SENTRY_CLIENT_INSTRUMENTATION_FLAG] = true;
       DEBUG_BUILD && debug.log('React Router client instrumentation API router hook registered.');
 
-      // Add popstate listener for browser back/forward button navigation
-      // Only add once per session
-      if (!(GLOBAL_OBJ as GlobalObjWithFlags)[SENTRY_POPSTATE_LISTENER_ADDED_FLAG] && WINDOW.addEventListener) {
-        (GLOBAL_OBJ as GlobalObjWithFlags)[SENTRY_POPSTATE_LISTENER_ADDED_FLAG] = true;
+      // Add popstate listener for browser back/forward navigation (persists for session, one listener only)
+      if (!GLOBAL_WITH_FLAGS[SENTRY_POPSTATE_LISTENER_ADDED_FLAG] && WINDOW.addEventListener) {
+        GLOBAL_WITH_FLAGS[SENTRY_POPSTATE_LISTENER_ADDED_FLAG] = true;
 
         WINDOW.addEventListener('popstate', () => {
           const client = getClient();
@@ -101,7 +103,7 @@ export function createSentryClientInstrumentation(
 
       router.instrument({
         async navigate(callNavigate, info) {
-          // navigate(0) triggers a page reload - skip span creation
+          // navigate(0) triggers a page reload - skip span creation, but still capture errors
           if (info.to === 0) {
             const result = await callNavigate();
             captureInstrumentationError(result, captureErrors, 'react_router.navigate', {
@@ -110,7 +112,7 @@ export function createSentryClientInstrumentation(
             return;
           }
 
-          (GLOBAL_OBJ as GlobalObjWithFlags)[SENTRY_NAVIGATE_HOOK_INVOKED_FLAG] = true;
+          GLOBAL_WITH_FLAGS[SENTRY_NAVIGATE_HOOK_INVOKED_FLAG] = true;
 
           // Handle numeric navigations (navigate(-1), navigate(1), etc.)
           if (typeof info.to === 'number') {
@@ -179,6 +181,7 @@ export function createSentryClientInstrumentation(
           captureInstrumentationError(result, captureErrors, 'react_router.navigate', {
             'http.url': toPath,
           });
+          return;
         },
 
         async fetch(callFetch, info) {
@@ -306,7 +309,7 @@ export function createSentryClientInstrumentation(
  * @experimental
  */
 export function isClientInstrumentationApiUsed(): boolean {
-  return !!(GLOBAL_OBJ as GlobalObjWithFlags)[SENTRY_CLIENT_INSTRUMENTATION_FLAG];
+  return !!GLOBAL_WITH_FLAGS[SENTRY_CLIENT_INSTRUMENTATION_FLAG];
 }
 
 /**
@@ -314,5 +317,5 @@ export function isClientInstrumentationApiUsed(): boolean {
  * @experimental
  */
 export function isNavigateHookInvoked(): boolean {
-  return !!(GLOBAL_OBJ as GlobalObjWithFlags)[SENTRY_NAVIGATE_HOOK_INVOKED_FLAG];
+  return !!GLOBAL_WITH_FLAGS[SENTRY_NAVIGATE_HOOK_INVOKED_FLAG];
 }
