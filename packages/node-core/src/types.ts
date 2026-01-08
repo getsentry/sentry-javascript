@@ -1,28 +1,14 @@
 import type { Span as WriteableSpan } from '@opentelemetry/api';
 import type { Instrumentation } from '@opentelemetry/instrumentation';
 import type { ReadableSpan, SpanProcessor } from '@opentelemetry/sdk-trace-base';
-import type { ClientOptions, Options, SamplingContext, Scope, Span, TracePropagationTargets } from '@sentry/core';
+import type { BaseWinterTCOptions, ClientOptions, Options, SamplingContext, Scope, Span } from '@sentry/core';
 import type { NodeTransportOptions } from './transports';
 
-export interface BaseNodeOptions {
-  /**
-   * List of strings/regex controlling to which outgoing requests
-   * the SDK will attach tracing headers.
-   *
-   * By default the SDK will attach those headers to all outgoing
-   * requests. If this option is provided, the SDK will match the
-   * request URL of outgoing requests against the items in this
-   * array, and only attach tracing headers if a match was found.
-   *
-   * @example
-   * ```js
-   * Sentry.init({
-   *   tracePropagationTargets: ['api.site.com'],
-   * });
-   * ```
-   */
-  tracePropagationTargets?: TracePropagationTargets;
-
+/**
+ * Base options for the Sentry Node SDK.
+ * Extends the common WinterTC options shared with Bun and other server-side SDKs.
+ */
+export interface BaseNodeOptions extends BaseWinterTCOptions {
   /**
    * Sets profiling sample rate when @sentry/profiling-node is installed
    *
@@ -71,27 +57,12 @@ export interface BaseNodeOptions {
    */
   includeServerName?: boolean;
 
-  /** Sets an optional server name (device name) */
-  serverName?: string;
-
   /**
    * Include local variables with stack traces.
    *
    * Requires the `LocalVariables` integration.
    */
   includeLocalVariables?: boolean;
-
-  /**
-   * If you use Spotlight by Sentry during development, use
-   * this option to forward captured Sentry events to Spotlight.
-   *
-   * Either set it to true, or provide a specific Spotlight Sidecar URL.
-   *
-   * More details: https://spotlightjs.com/
-   *
-   * IMPORTANT: Only set this option to `true` while developing, not in production!
-   */
-  spotlight?: boolean | string;
 
   /**
    * Provide an array of OpenTelemetry Instrumentations that should be registered.
@@ -144,9 +115,6 @@ export interface BaseNodeOptions {
    * problems.
    */
   shutdownTimeout?: number;
-
-  /** Callback that is executed when a fatal global error occurs. */
-  onFatalError?(this: void, error: Error): void;
 }
 
 /**
