@@ -186,7 +186,7 @@ export class SentryVercelAiInstrumentation extends InstrumentationBase {
    * Initializes the instrumentation by defining the modules to be patched.
    */
   public init(): InstrumentationModuleDefinition {
-    const module = new InstrumentationNodeModuleDefinition('ai', ['>=3.0.0 <6'], this._patch.bind(this));
+    const module = new InstrumentationNodeModuleDefinition('ai', ['>=3.0.0 <7'], this._patch.bind(this));
     return module;
   }
 
