@@ -33,7 +33,7 @@ it('traces langchain chat model, chain, and tool invocations', async ({ signal }
             op: 'gen_ai.chat',
             origin: 'auto.ai.langchain',
           }),
-          // Chain span
+          // Chain span (without tool calls)
           expect.objectContaining({
             data: expect.objectContaining({
               'sentry.origin': 'auto.ai.langchain',
@@ -53,6 +53,19 @@ it('traces langchain chat model, chain, and tool invocations', async ({ signal }
             }),
             description: 'execute_tool search_tool',
             op: 'gen_ai.execute_tool',
+            origin: 'auto.ai.langchain',
+          }),
+          // Chain span with tool calls (recordOutputs enabled)
+          expect.objectContaining({
+            data: expect.objectContaining({
+              'sentry.origin': 'auto.ai.langchain',
+              'sentry.op': 'gen_ai.invoke_agent',
+              'langchain.chain.name': 'chain_with_tool_calls',
+              'langchain.chain.outputs': expect.stringContaining('Chain execution completed'),
+              'gen_ai.response.tool_calls': expect.stringContaining('search_tool'),
+            }),
+            description: 'chain chain_with_tool_calls',
+            op: 'gen_ai.invoke_agent',
             origin: 'auto.ai.langchain',
           }),
         ]),

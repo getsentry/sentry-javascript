@@ -3,7 +3,11 @@ import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '
 import { SPAN_STATUS_ERROR } from '../../tracing';
 import { startSpanManual } from '../../tracing/trace';
 import type { Span, SpanAttributeValue } from '../../types-hoist/span';
-import { GEN_AI_OPERATION_NAME_ATTRIBUTE, GEN_AI_REQUEST_MODEL_ATTRIBUTE } from '../ai/gen-ai-attributes';
+import {
+  GEN_AI_OPERATION_NAME_ATTRIBUTE,
+  GEN_AI_REQUEST_MODEL_ATTRIBUTE,
+  GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
+} from '../ai/gen-ai-attributes';
 import { LANGCHAIN_ORIGIN } from './constants';
 import type {
   LangChainCallbackHandler,
@@ -16,6 +20,7 @@ import {
   extractChatModelRequestAttributes,
   extractLLMRequestAttributes,
   extractLlmResponseAttributes,
+  extractToolCallsFromChainOutput,
   getInvocationParams,
 } from './utils';
 
@@ -215,6 +220,12 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
           span.setAttributes({
             'langchain.chain.outputs': JSON.stringify(outputs),
           });
+
+          // Extract tool calls from chain outputs
+          const toolCalls = extractToolCallsFromChainOutput(outputs);
+          if (toolCalls && toolCalls.length > 0) {
+            span.setAttribute(GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE, JSON.stringify(toolCalls));
+          }
         }
         exitSpan(runId);
       }

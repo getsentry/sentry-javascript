@@ -319,6 +319,28 @@ function addToolCallsAttributes(generations: LangChainMessage[][], attrs: Record
 }
 
 /**
+ * Extracts tool calls from chain outputs.
+ * Handles: { messages: [{ tool_calls }] }, { output: { messages } }, { tool_calls }
+ */
+export function extractToolCallsFromChainOutput(outputs: unknown): unknown[] | null {
+  if (!outputs || typeof outputs !== 'object') return null;
+
+  const toolCalls: unknown[] = [];
+  const out = outputs as Record<string, unknown>;
+  const messages = out.messages ?? (out.output as Record<string, unknown> | undefined)?.messages;
+
+  if (Array.isArray(messages)) {
+    for (const msg of messages) {
+      const calls = (msg as Record<string, unknown> | null)?.tool_calls;
+      if (Array.isArray(calls)) toolCalls.push(...calls);
+    }
+  }
+  if (Array.isArray(out.tool_calls)) toolCalls.push(...out.tool_calls);
+
+  return toolCalls.length > 0 ? toolCalls : null;
+}
+
+/**
  * Adds token usage attributes, supporting both OpenAI (`tokenUsage`) and Anthropic (`usage`) formats.
  * - Preserve zero values (0 tokens) by avoiding truthy checks.
  * - Compute a total for Anthropic when not explicitly provided.

@@ -132,9 +132,11 @@ export class MockChatModel {
 // Mock LangChain Chain
 export class MockChain {
   private _name: string;
+  private _includeToolCalls: boolean;
 
-  public constructor(name: string) {
+  public constructor(name: string, options?: { includeToolCalls?: boolean }) {
     this._name = name;
+    this._includeToolCalls = options?.includeToolCalls ?? false;
   }
 
   public async invoke(
@@ -151,7 +153,16 @@ export class MockChain {
       }
     }
 
-    const outputs = { result: 'Chain execution completed!' };
+    const outputs = this._includeToolCalls
+      ? {
+          result: 'Chain execution completed!',
+          messages: [
+            {
+              tool_calls: [{ name: 'search_tool', args: { query: 'test query' } }],
+            },
+          ],
+        }
+      : { result: 'Chain execution completed!' };
 
     // Call handleChainEnd
     for (const callback of callbacks) {

@@ -246,6 +246,60 @@ describe('LangChain integration', () => {
     },
   );
 
+  const EXPECTED_TRANSACTION_CHAIN_TOOL_CALLS = {
+    transaction: 'main',
+    spans: expect.arrayContaining([
+      // Simple chain without tool calls (RunnableLambda reports name as "unknown_chain")
+      expect.objectContaining({
+        data: expect.objectContaining({
+          'sentry.origin': 'auto.ai.langchain',
+          'sentry.op': 'gen_ai.invoke_agent',
+          'langchain.chain.inputs': expect.stringContaining('Hello world'),
+          'langchain.chain.outputs': expect.stringContaining('Processed'),
+        }),
+        op: 'gen_ai.invoke_agent',
+        origin: 'auto.ai.langchain',
+        status: 'ok',
+      }),
+      // Chain with tool calls in messages format
+      expect.objectContaining({
+        data: expect.objectContaining({
+          'sentry.origin': 'auto.ai.langchain',
+          'sentry.op': 'gen_ai.invoke_agent',
+          'langchain.chain.outputs': expect.stringContaining('Processed with tools'),
+          // This is the key attribute we're testing
+          'gen_ai.response.tool_calls': expect.stringContaining('search'),
+        }),
+        op: 'gen_ai.invoke_agent',
+        origin: 'auto.ai.langchain',
+        status: 'ok',
+      }),
+      // Chain with direct tool_calls on output
+      expect.objectContaining({
+        data: expect.objectContaining({
+          'sentry.origin': 'auto.ai.langchain',
+          'sentry.op': 'gen_ai.invoke_agent',
+          'langchain.chain.outputs': expect.stringContaining('Direct tool calls'),
+          // This tests the alternative format (tool_calls directly on output)
+          'gen_ai.response.tool_calls': expect.stringContaining('weather'),
+        }),
+        op: 'gen_ai.invoke_agent',
+        origin: 'auto.ai.langchain',
+        status: 'ok',
+      }),
+    ]),
+  };
+
+  createEsmAndCjsTests(__dirname, 'scenario-chain-tool-calls.mjs', 'instrument-with-pii.mjs', (createRunner, test) => {
+    test('creates langchain chain spans with tool calls', async () => {
+      await createRunner()
+        .ignore('event')
+        .expect({ transaction: EXPECTED_TRANSACTION_CHAIN_TOOL_CALLS })
+        .start()
+        .completed();
+    });
+  });
+
   createEsmAndCjsTests(
     __dirname,
     'scenario-openai-before-langchain.mjs',
