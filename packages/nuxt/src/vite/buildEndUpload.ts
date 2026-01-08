@@ -21,21 +21,6 @@ export async function handleBuildDoneHook(sentryModuleOptions: SentryNuxtModuleO
     console.log('[Sentry] Running build:done hook to upload source maps.');
   }
 
-  // eslint-disable-next-line deprecation/deprecation
-  const sourceMapsUploadOptions = sentryModuleOptions.sourceMapsUploadOptions || {};
-
-  const sourceMapsEnabled =
-    sentryModuleOptions.sourcemaps?.disable === true
-      ? false
-      : sentryModuleOptions.sourcemaps?.disable === false
-        ? true
-        : // eslint-disable-next-line deprecation/deprecation
-          (sourceMapsUploadOptions.enabled ?? true);
-
-  if (!sourceMapsEnabled) {
-    return;
-  }
-
   let createSentryBuildPluginManager: typeof createSentryBuildPluginManagerType | undefined;
   try {
     const bundlerPluginCore = await import('@sentry/bundler-plugin-core');
@@ -93,12 +78,26 @@ export async function handleBuildDoneHook(sentryModuleOptions: SentryNuxtModuleO
 
     await sentryBuildPluginManager.telemetry.emitBundlerPluginExecutionSignal();
     await sentryBuildPluginManager.createRelease();
-    await sentryBuildPluginManager.injectDebugIds([outputDir]);
-    await sentryBuildPluginManager.uploadSourcemaps([outputDir], {
-      prepareArtifacts: false,
-    });
 
-    await sentryBuildPluginManager.deleteArtifacts();
+    // eslint-disable-next-line deprecation/deprecation
+    const sourceMapsUploadOptions = sentryModuleOptions.sourceMapsUploadOptions || {};
+
+    const sourceMapsEnabled =
+      sentryModuleOptions.sourcemaps?.disable === true
+        ? false
+        : sentryModuleOptions.sourcemaps?.disable === false
+          ? true
+          : // eslint-disable-next-line deprecation/deprecation
+            (sourceMapsUploadOptions.enabled ?? true);
+
+    if (sourceMapsEnabled) {
+      await sentryBuildPluginManager.injectDebugIds([outputDir]);
+      await sentryBuildPluginManager.uploadSourcemaps([outputDir], {
+        // We don't want to prepare the artifacts because we injected debug ids manually before
+        prepareArtifacts: false,
+      });
+      await sentryBuildPluginManager.deleteArtifacts();
+    }
 
     // eslint-disable-next-line no-console
     debug && console.log('[Sentry] Successfully uploaded source maps.');
