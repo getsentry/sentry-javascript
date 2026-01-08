@@ -13,7 +13,7 @@
   "dependencies": {
     "@sentry/remix": "latest || *",
     "@remix-run/css-bundle": "2.7.2",
-    "@remix-run/node": "2.7.2",
+    "@remix-run/node": "2.17.2",
     "@remix-run/react": "2.7.2",
     "@remix-run/serve": "2.7.2",
     "isbot": "^3.6.8",
