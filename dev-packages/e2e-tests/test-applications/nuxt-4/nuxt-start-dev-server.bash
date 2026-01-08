@@ -43,7 +43,4 @@ else
     echo "Port $TEMP_PORT released successfully"
 fi
 
-echo "Starting nuxt dev with Sentry server config..."
-
-# 4.  Start the actual dev command which should be used for the tests
-NODE_OPTIONS='--import ./.nuxt/dev/sentry.server.config.mjs' nuxt dev
+echo "Nuxt dev server can now be started with '--import ./.nuxt/dev/sentry.server.config.mjs'"
