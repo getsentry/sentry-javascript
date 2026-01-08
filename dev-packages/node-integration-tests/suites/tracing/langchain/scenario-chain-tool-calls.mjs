@@ -2,10 +2,10 @@ import { RunnableLambda } from '@langchain/core/runnables';
 import * as Sentry from '@sentry/node';
 
 async function run() {
-  // Create callback handler with recordOutputs enabled
+  // Create callback handler - tool_calls are captured regardless of recordOutputs
   const callbackHandler = Sentry.createLangChainCallbackHandler({
-    recordInputs: true,
-    recordOutputs: true,
+    recordInputs: false,
+    recordOutputs: false,
   });
 
   await Sentry.startSpan({ op: 'function', name: 'main' }, async () => {

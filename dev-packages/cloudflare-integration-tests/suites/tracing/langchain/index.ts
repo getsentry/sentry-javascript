@@ -18,12 +18,6 @@ export default Sentry.withSentry(
         recordOutputs: false,
       });
 
-      // Create LangChain callback handler with recordOutputs enabled for tool_calls test
-      const callbackHandlerWithOutputs = Sentry.createLangChainCallbackHandler({
-        recordInputs: false,
-        recordOutputs: true,
-      });
-
       // Test 1: Chat model invocation
       const chatModel = new MockChatModel({
         model: 'claude-3-5-sonnet-20241022',
@@ -35,7 +29,7 @@ export default Sentry.withSentry(
         callbacks: [callbackHandler],
       });
 
-      // Test 2: Chain invocation
+      // Test 2: Chain invocation (without tool calls)
       const chain = new MockChain('my_test_chain');
       await chain.invoke(
         { input: 'test input' },
@@ -50,12 +44,12 @@ export default Sentry.withSentry(
         callbacks: [callbackHandler],
       });
 
-      // Test 4: Chain invocation with tool calls
+      // Test 4: Chain invocation with tool calls (tool_calls captured regardless of recordOutputs)
       const chainWithToolCalls = new MockChain('chain_with_tool_calls', { includeToolCalls: true });
       await chainWithToolCalls.invoke(
         { input: 'test input for tool calls' },
         {
-          callbacks: [callbackHandlerWithOutputs],
+          callbacks: [callbackHandler],
         },
       );
 

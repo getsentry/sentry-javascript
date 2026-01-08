@@ -220,13 +220,14 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
           span.setAttributes({
             'langchain.chain.outputs': JSON.stringify(outputs),
           });
-
-          // Extract tool calls from chain outputs
-          const toolCalls = extractToolCallsFromChainOutput(outputs);
-          if (toolCalls && toolCalls.length > 0) {
-            span.setAttribute(GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE, JSON.stringify(toolCalls));
-          }
         }
+
+        // Tool calls metadata (names, IDs) are not PII, so capture them regardless of recordOutputs
+        const toolCalls = extractToolCallsFromChainOutput(outputs);
+        if (toolCalls && toolCalls.length > 0) {
+          span.setAttribute(GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE, JSON.stringify(toolCalls));
+        }
+
         exitSpan(runId);
       }
     },
