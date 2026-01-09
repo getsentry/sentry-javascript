@@ -4,7 +4,7 @@ export type RawAttributes<T> = T & ValidatedAttributes<T>;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type RawAttribute<T> = T extends { value: any } | { unit: any } ? AttributeObject : T;
 
-export type TypedAttributes = Record<string, TypedAttributeValue>;
+export type Attributes = Record<string, TypedAttributeValue>;
 
 export type AttributeValueType = string | number | boolean | Array<string> | Array<number> | Array<boolean>;
 
