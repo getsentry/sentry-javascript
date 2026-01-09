@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { attributeValueToTypedAttributeValue, isAttributeObject } from '../../src/attributes';
+import { attributeValueToTypedAttributeValue, isAttributeObject, serializeAttributes } from '../../src/attributes';
 
 describe('attributeValueToTypedAttributeValue', () => {
   describe('without fallback (default behavior)', () => {
@@ -267,7 +267,42 @@ describe('attributeValueToTypedAttributeValue', () => {
           type: 'string',
         });
       });
+
+      it.each([null, { value: null }, { value: null, unit: 'byte' }])('stringifies %s values', value => {
+        const result = attributeValueToTypedAttributeValue(value, true);
+        expect(result).toMatchObject({
+          value: 'null',
+          type: 'string',
+        });
+      });
+
+      it.each([undefined, { value: undefined }])('stringifies %s values to ""', value => {
+        const result = attributeValueToTypedAttributeValue(value, true);
+        expect(result).toEqual({
+          value: '',
+          type: 'string',
+        });
+      });
+
+      it('stringifies undefined values with unit to ""', () => {
+        const result = attributeValueToTypedAttributeValue({ value: undefined, unit: 'byte' }, true);
+        expect(result).toEqual({
+          value: '',
+          unit: 'byte',
+          type: 'string',
+        });
+      });
     });
+  });
+
+  describe('with fallback="skip-undefined"', () => {
+    it.each([undefined, { value: undefined }, { value: undefined, unit: 'byte' }])(
+      'ignores undefined values (%s)',
+      value => {
+        const result = attributeValueToTypedAttributeValue(value, 'skip-undefined');
+        expect(result).toBeUndefined();
+      },
+    );
   });
 });
 
@@ -296,4 +331,119 @@ describe('isAttributeObject', () => {
       expect(result).toBe(false);
     },
   );
+});
+
+describe('serializeAttributes', () => {
+  it('returns an empty object for undefined attributes', () => {
+    const result = serializeAttributes(undefined);
+    expect(result).toStrictEqual({});
+  });
+
+  it('returns an empty object for an empty object', () => {
+    const result = serializeAttributes({});
+    expect(result).toStrictEqual({});
+  });
+
+  it('serializes valid, non-primitive values', () => {
+    const result = serializeAttributes({ foo: 'bar', bar: { value: 123 }, baz: { value: 456, unit: 'byte' } });
+    expect(result).toStrictEqual({
+      bar: {
+        type: 'integer',
+        value: 123,
+      },
+      baz: {
+        type: 'integer',
+        unit: 'byte',
+        value: 456,
+      },
+      foo: {
+        type: 'string',
+        value: 'bar',
+      },
+    });
+  });
+
+  it('ignores undefined values if fallback is false', () => {
+    const result = serializeAttributes(
+      { foo: undefined, bar: { value: undefined }, baz: { value: undefined, unit: 'byte' } },
+      false,
+    );
+    expect(result).toStrictEqual({});
+  });
+
+  it('ignores undefined values if fallback is "skip-undefined"', () => {
+    const result = serializeAttributes(
+      { foo: undefined, bar: { value: undefined }, baz: { value: undefined, unit: 'byte' } },
+      'skip-undefined',
+    );
+    expect(result).toStrictEqual({});
+  });
+
+  it('stringifies undefined values to "" if fallback is true', () => {
+    const result = serializeAttributes(
+      { foo: undefined, bar: { value: undefined }, baz: { value: undefined, unit: 'byte' } },
+      true,
+    );
+    expect(result).toStrictEqual({
+      bar: {
+        type: 'string',
+        value: '',
+      },
+      baz: {
+        type: 'string',
+        unit: 'byte',
+        value: '',
+      },
+      foo: { type: 'string', value: '' },
+    });
+  });
+
+  it('ignores null values by default', () => {
+    const result = serializeAttributes({ foo: null, bar: { value: null }, baz: { value: null, unit: 'byte' } });
+    expect(result).toStrictEqual({});
+  });
+
+  it('stringifies to `"null"` if fallback is true', () => {
+    const result = serializeAttributes({ foo: null, bar: { value: null }, baz: { value: null, unit: 'byte' } }, true);
+    expect(result).toStrictEqual({
+      foo: {
+        type: 'string',
+        value: 'null',
+      },
+      bar: {
+        type: 'string',
+        value: 'null',
+      },
+      baz: {
+        type: 'string',
+        unit: 'byte',
+        value: 'null',
+      },
+    });
+  });
+
+  describe('invalid (non-primitive) values', () => {
+    it("doesn't fall back to stringification by default", () => {
+      const result = serializeAttributes({ foo: { some: 'object' }, bar: [1, 2, 3], baz: () => {} });
+      expect(result).toStrictEqual({});
+    });
+
+    it('falls back to stringification of unsupported non-primitive values if fallback is true', () => {
+      const result = serializeAttributes({ foo: { some: 'object' }, bar: [1, 2, 3], baz: () => {} }, true);
+      expect(result).toStrictEqual({
+        bar: {
+          type: 'string',
+          value: '[1,2,3]',
+        },
+        baz: {
+          type: 'string',
+          value: '',
+        },
+        foo: {
+          type: 'string',
+          value: '{"some":"object"}',
+        },
+      });
+    });
+  });
 });

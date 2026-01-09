@@ -1,10 +1,11 @@
+import { serializeAttributes } from '../attributes';
 import { getGlobalSingleton } from '../carrier';
 import type { Client } from '../client';
 import { getClient, getCurrentScope, getIsolationScope } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
 import type { Scope } from '../scope';
 import type { Integration } from '../types-hoist/integration';
-import type { Metric, SerializedMetric, SerializedMetricAttributeValue } from '../types-hoist/metric';
+import type { Metric, SerializedMetric } from '../types-hoist/metric';
 import { debug } from '../utils/debug-logger';
 import { getCombinedScopeData } from '../utils/scopeData';
 import { _getSpanForScope } from '../utils/spanOnScope';
@@ -13,50 +14,6 @@ import { _getTraceInfoFromScope } from '../utils/trace-info';
 import { createMetricEnvelope } from './envelope';
 
 const MAX_METRIC_BUFFER_SIZE = 1000;
-
-/**
- * Converts a metric attribute to a serialized metric attribute.
- *
- * @param value - The value of the metric attribute.
- * @returns The serialized metric attribute.
- */
-export function metricAttributeToSerializedMetricAttribute(value: unknown): SerializedMetricAttributeValue {
-  switch (typeof value) {
-    case 'number':
-      if (Number.isInteger(value)) {
-        return {
-          value,
-          type: 'integer',
-        };
-      }
-      return {
-        value,
-        type: 'double',
-      };
-    case 'boolean':
-      return {
-        value,
-        type: 'boolean',
-      };
-    case 'string':
-      return {
-        value,
-        type: 'string',
-      };
-    default: {
-      let stringValue = '';
-      try {
-        stringValue = JSON.stringify(value) ?? '';
-      } catch {
-        // Do nothing
-      }
-      return {
-        value: stringValue,
-        type: 'string',
-      };
-    }
-  }
-}
 
 /**
  * Sets a metric attribute if the value exists and the attribute key is not already present.
@@ -169,14 +126,6 @@ function _enrichMetricAttributes(beforeMetric: Metric, client: Client, currentSc
  * Creates a serialized metric ready to be sent to Sentry.
  */
 function _buildSerializedMetric(metric: Metric, client: Client, currentScope: Scope): SerializedMetric {
-  // Serialize attributes
-  const serializedAttributes: Record<string, SerializedMetricAttributeValue> = {};
-  for (const key in metric.attributes) {
-    if (metric.attributes[key] !== undefined) {
-      serializedAttributes[key] = metricAttributeToSerializedMetricAttribute(metric.attributes[key]);
-    }
-  }
-
   // Get trace context
   const [, traceContext] = _getTraceInfoFromScope(client, currentScope);
   const span = _getSpanForScope(currentScope);
@@ -191,7 +140,7 @@ function _buildSerializedMetric(metric: Metric, client: Client, currentScope: Sc
     type: metric.type,
     unit: metric.unit,
     value: metric.value,
-    attributes: serializedAttributes,
+    attributes: serializeAttributes(metric.attributes, 'skip-undefined'),
   };
 }
 
