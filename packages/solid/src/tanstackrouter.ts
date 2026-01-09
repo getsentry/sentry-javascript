@@ -48,14 +48,17 @@ export function tanstackRouterBrowserTracingIntegration<R extends AnyRouter>(
         );
 
         const lastMatch = matchedRoutes[matchedRoutes.length - 1];
+        // If we only match __root__, we ended up not matching any route at all, so
+        // we fall back to the pathname.
+        const routeMatch = lastMatch?.routeId !== '__root__' ? lastMatch : undefined;
 
         startBrowserTracingPageLoadSpan(client, {
-          name: lastMatch ? lastMatch.routeId : initialWindowLocation.pathname,
+          name: routeMatch ? routeMatch.routeId : initialWindowLocation.pathname,
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.solid.tanstack_router',
-            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: lastMatch ? 'route' : 'url',
-            ...routeMatchToParamSpanAttributes(lastMatch),
+            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: routeMatch ? 'route' : 'url',
+            ...routeMatchToParamSpanAttributes(routeMatch),
           },
         });
       }
@@ -73,21 +76,23 @@ export function tanstackRouterBrowserTracingIntegration<R extends AnyRouter>(
             return;
           }
 
-          const onResolvedMatchedRoutes = router.matchRoutes(
+          const matchedRoutesOnBeforeNavigate = router.matchRoutes(
             onBeforeNavigateArgs.toLocation.pathname,
             onBeforeNavigateArgs.toLocation.search,
             { preload: false, throwOnError: false },
           );
 
-          const onBeforeNavigateLastMatch = onResolvedMatchedRoutes[onResolvedMatchedRoutes.length - 1];
+          const onBeforeNavigateLastMatch = matchedRoutesOnBeforeNavigate[matchedRoutesOnBeforeNavigate.length - 1];
+          const onBeforeNavigateRouteMatch =
+            onBeforeNavigateLastMatch?.routeId !== '__root__' ? onBeforeNavigateLastMatch : undefined;
 
           const navigationLocation = WINDOW.location;
           const navigationSpan = startBrowserTracingNavigationSpan(client, {
-            name: onBeforeNavigateLastMatch ? onBeforeNavigateLastMatch.routeId : navigationLocation.pathname,
+            name: onBeforeNavigateRouteMatch ? onBeforeNavigateRouteMatch.routeId : navigationLocation.pathname,
             attributes: {
               [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.solid.tanstack_router',
-              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: onBeforeNavigateLastMatch ? 'route' : 'url',
+              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: onBeforeNavigateRouteMatch ? 'route' : 'url',
             },
           });
 
@@ -95,18 +100,20 @@ export function tanstackRouterBrowserTracingIntegration<R extends AnyRouter>(
           const unsubscribeOnResolved = router.subscribe('onResolved', onResolvedArgs => {
             unsubscribeOnResolved();
             if (navigationSpan) {
-              const onResolvedMatchedRoutes = router.matchRoutes(
+              const matchedRoutesOnResolved = router.matchRoutes(
                 onResolvedArgs.toLocation.pathname,
                 onResolvedArgs.toLocation.search,
                 { preload: false, throwOnError: false },
               );
 
-              const onResolvedLastMatch = onResolvedMatchedRoutes[onResolvedMatchedRoutes.length - 1];
+              const onResolvedLastMatch = matchedRoutesOnResolved[matchedRoutesOnResolved.length - 1];
+              const onResolvedRouteMatch =
+                onResolvedLastMatch?.routeId !== '__root__' ? onResolvedLastMatch : undefined;
 
-              if (onResolvedLastMatch) {
-                navigationSpan.updateName(onResolvedLastMatch.routeId);
+              if (onResolvedRouteMatch) {
+                navigationSpan.updateName(onResolvedRouteMatch.routeId);
                 navigationSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
-                navigationSpan.setAttributes(routeMatchToParamSpanAttributes(onResolvedLastMatch));
+                navigationSpan.setAttributes(routeMatchToParamSpanAttributes(onResolvedRouteMatch));
               }
             }
           });
