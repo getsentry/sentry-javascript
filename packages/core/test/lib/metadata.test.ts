@@ -3,7 +3,6 @@ import {
   addMetadataToStackFrames,
   getFilenameToMetadataMap,
   getMetadataForUrl,
-  mergeMetadataMap,
   stripMetadataFromStackFrames,
 } from '../../src/metadata';
 import type { Event } from '../../src/types-hoist/event';
@@ -173,77 +172,5 @@ describe('getFilenameToMetadataMap', () => {
 
     // Last one wins (based on iteration order)
     expect(result['/path/to/same-file.js']).toBeDefined();
-  });
-});
-
-describe('mergeMetadataMap', () => {
-  beforeEach(() => {
-    delete GLOBAL_OBJ._sentryModuleMetadata;
-  });
-
-  it('merges metadata from a map into internal cache', () => {
-    const workerMetadata = {
-      'worker-file1.js': { '_sentryBundlerPluginAppKey:my-app': true },
-      'worker-file2.js': { '_sentryBundlerPluginAppKey:my-app': true },
-    };
-
-    mergeMetadataMap(workerMetadata);
-
-    const metadata1 = getMetadataForUrl(parser, 'worker-file1.js');
-    const metadata2 = getMetadataForUrl(parser, 'worker-file2.js');
-
-    expect(metadata1).toEqual({ '_sentryBundlerPluginAppKey:my-app': true });
-    expect(metadata2).toEqual({ '_sentryBundlerPluginAppKey:my-app': true });
-  });
-
-  it('does not overwrite existing metadata', () => {
-    const stack = `Error
-    at Object.<anonymous> (/existing-file.js:10:15)`;
-
-    GLOBAL_OBJ._sentryModuleMetadata = {
-      [stack]: { '_sentryBundlerPluginAppKey:main-app': true, existing: true },
-    };
-
-    const existingMetadata = getMetadataForUrl(parser, '/existing-file.js');
-    expect(existingMetadata).toEqual({ '_sentryBundlerPluginAppKey:main-app': true, existing: true });
-
-    const workerMetadata = {
-      '/existing-file.js': { '_sentryBundlerPluginAppKey:worker-app': true, worker: true },
-    };
-
-    mergeMetadataMap(workerMetadata);
-
-    const metadataAfterMerge = getMetadataForUrl(parser, '/existing-file.js');
-    expect(metadataAfterMerge).toEqual({ '_sentryBundlerPluginAppKey:main-app': true, existing: true });
-  });
-
-  it('handles empty metadata map', () => {
-    mergeMetadataMap({});
-
-    const metadata = getMetadataForUrl(parser, 'nonexistent-file.js');
-    expect(metadata).toBeUndefined();
-  });
-
-  it('adds new files without affecting existing ones', () => {
-    const stack = `Error
-    at Object.<anonymous> (/main-file.js:10:15)`;
-
-    GLOBAL_OBJ._sentryModuleMetadata = {
-      [stack]: { '_sentryBundlerPluginAppKey:main-app': true },
-    };
-
-    getMetadataForUrl(parser, '/main-file.js');
-
-    const workerMetadata = {
-      '/worker-file.js': { '_sentryBundlerPluginAppKey:worker-app': true },
-    };
-
-    mergeMetadataMap(workerMetadata);
-
-    const mainMetadata = getMetadataForUrl(parser, '/main-file.js');
-    const workerMetadataResult = getMetadataForUrl(parser, '/worker-file.js');
-
-    expect(mainMetadata).toEqual({ '_sentryBundlerPluginAppKey:main-app': true });
-    expect(workerMetadataResult).toEqual({ '_sentryBundlerPluginAppKey:worker-app': true });
   });
 });

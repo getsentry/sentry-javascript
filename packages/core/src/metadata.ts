@@ -68,21 +68,6 @@ function ensureMetadataStacksAreParsed(parser: StackParser): void {
 }
 
 /**
- * Merges a filename-to-metadata map into the internal metadata cache.
- * This is used to integrate metadata from web workers into the main thread.
- *
- * @param metadataMap - A map of filename to metadata object
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function mergeMetadataMap(metadataMap: Record<string, any>): void {
-  for (const filename of Object.keys(metadataMap)) {
-    if (!filenameMetadataMap.has(filename)) {
-      filenameMetadataMap.set(filename, metadataMap[filename]);
-    }
-  }
-}
-
-/**
  * Retrieve metadata for a specific JavaScript file URL.
  *
  * Metadata is injected by the Sentry bundler plugins using the `_experiments.moduleMetadata` config option.

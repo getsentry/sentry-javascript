@@ -1,18 +1,8 @@
 import type { Integration, IntegrationFn } from '@sentry/core';
-import {
-  captureEvent,
-  debug,
-  defineIntegration,
-  getClient,
-  getFilenameToMetadataMap,
-  isPlainObject,
-  isPrimitive,
-  mergeMetadataMap,
-} from '@sentry/core';
+import { captureEvent, debug, defineIntegration, getClient, isPlainObject, isPrimitive } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import { eventFromUnknownInput } from '../eventbuilder';
 import { WINDOW } from '../helpers';
-import { defaultStackParser } from '../stack-parsers';
 import { _eventFromRejectionWithPrimitive, _getUnhandledRejectionError } from './globalhandlers';
 
 export const INTEGRATION_NAME = 'WebWorker';
@@ -136,8 +126,13 @@ function listenForSentryMessages(worker: Worker): void {
       // Handle module metadata
       if (event.data._sentryModuleMetadata) {
         DEBUG_BUILD && debug.log('Sentry module metadata web worker message received', event.data);
-        // Merge worker metadata into the main thread's metadata cache
-        mergeMetadataMap(event.data._sentryModuleMetadata);
+        // Merge worker's raw metadata into the global object
+        // It will be parsed lazily when needed by getMetadataForUrl
+        WINDOW._sentryModuleMetadata = {
+          ...event.data._sentryModuleMetadata,
+          // Module metadata of the main thread have precedence over the worker's in case of a collision.
+          ...WINDOW._sentryModuleMetadata,
+        };
       }
 
       // Handle unhandled rejections forwarded from worker
@@ -237,13 +232,12 @@ interface RegisterWebWorkerOptions {
  *   - `self`: The worker instance you're calling this function from (self).
  */
 export function registerWebWorker({ self }: RegisterWebWorkerOptions): void {
-  const moduleMetadata = self._sentryModuleMetadata ? getFilenameToMetadataMap(defaultStackParser) : undefined;
-
-  // Send debug IDs and module metadata to parent thread
+  // Send debug IDs and raw module metadata to parent thread
+  // The metadata will be parsed lazily on the main thread when needed
   self.postMessage({
     _sentryMessage: true,
     _sentryDebugIds: self._sentryDebugIds ?? undefined,
-    _sentryModuleMetadata: moduleMetadata,
+    _sentryModuleMetadata: self._sentryModuleMetadata ?? undefined,
   });
 
   // Set up unhandledrejection handler inside the worker
