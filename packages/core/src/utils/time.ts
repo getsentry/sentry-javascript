@@ -74,30 +74,38 @@ export function timestampInSeconds(): number {
 /**
  * Cached result of getBrowserTimeOrigin.
  */
-let cachedTimeOrigin: [number | undefined, string] | undefined;
+let cachedTimeOrigin: number | null | undefined = null;
 
 /**
  * Gets the time origin and the mode used to determine it.
+ *
+ * Unfortunately browsers may report an inaccurate time origin data, through either performance.timeOrigin or
+ * performance.timing.navigationStart, which results in poor results in performance data. We only treat time origin
+ * data as reliable if they are within a reasonable threshold of the current time.
+ *
+ * TODO: move to `@sentry/browser-utils` package.
  */
-function getBrowserTimeOrigin(): [number | undefined, string] {
-  // Unfortunately browsers may report an inaccurate time origin data, through either performance.timeOrigin or
-  // performance.timing.navigationStart, which results in poor results in performance data. We only treat time origin
-  // data as reliable if they are within a reasonable threshold of the current time.
-
+function getBrowserTimeOrigin(): number | undefined {
   const { performance } = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
   if (!performance?.now) {
-    return [undefined, 'none'];
+    return undefined;
   }
 
-  const threshold = 3600 * 1000;
+  const threshold = 300_000; // 5 minutes in milliseconds
   const performanceNow = performance.now();
   const dateNow = Date.now();
 
-  // if timeOrigin isn't available set delta to threshold so it isn't used
-  const timeOriginDelta = performance.timeOrigin
-    ? Math.abs(performance.timeOrigin + performanceNow - dateNow)
-    : threshold;
-  const timeOriginIsReliable = timeOriginDelta < threshold;
+  const timeOrigin = performance.timeOrigin;
+  if (typeof timeOrigin === 'number') {
+    const timeOriginDelta = Math.abs(timeOrigin + performanceNow - dateNow);
+    if (timeOriginDelta < threshold) {
+      return timeOrigin;
+    }
+  }
+
+  // TODO: Remove all code related to `performance.timing.navigationStart` once we drop support for Safari 14.
+  // `performance.timeSince` is available in Safari 15.
+  // see: https://caniuse.com/mdn-api_performance_timeorigin
 
   // While performance.timing.navigationStart is deprecated in favor of performance.timeOrigin, performance.timeOrigin
   // is not as widely supported. Namely, performance.timeOrigin is undefined in Safari as of writing.
@@ -106,22 +114,16 @@ function getBrowserTimeOrigin(): [number | undefined, string] {
   // Date API.
   // eslint-disable-next-line deprecation/deprecation
   const navigationStart = performance.timing?.navigationStart;
-  const hasNavigationStart = typeof navigationStart === 'number';
-  // if navigationStart isn't available set delta to threshold so it isn't used
-  const navigationStartDelta = hasNavigationStart ? Math.abs(navigationStart + performanceNow - dateNow) : threshold;
-  const navigationStartIsReliable = navigationStartDelta < threshold;
-
-  if (timeOriginIsReliable || navigationStartIsReliable) {
-    // Use the more reliable time origin
-    if (timeOriginDelta <= navigationStartDelta) {
-      return [performance.timeOrigin, 'timeOrigin'];
-    } else {
-      return [navigationStart, 'navigationStart'];
+  if (typeof navigationStart === 'number') {
+    const navigationStartDelta = Math.abs(navigationStart + performanceNow - dateNow);
+    if (navigationStartDelta < threshold) {
+      return navigationStart;
     }
   }
 
-  // Either both timeOrigin and navigationStart are skewed or neither is available, fallback to Date.
-  return [dateNow, 'dateNow'];
+  // Either both timeOrigin and navigationStart are skewed or neither is available, fallback to subtracting
+  // `performance.now()` from `Date.now()`.
+  return dateNow - performanceNow;
 }
 
 /**
@@ -129,9 +131,9 @@ function getBrowserTimeOrigin(): [number | undefined, string] {
  * performance API is available.
  */
 export function browserPerformanceTimeOrigin(): number | undefined {
-  if (!cachedTimeOrigin) {
+  if (cachedTimeOrigin === null) {
     cachedTimeOrigin = getBrowserTimeOrigin();
   }
 
-  return cachedTimeOrigin[0];
+  return cachedTimeOrigin;
 }

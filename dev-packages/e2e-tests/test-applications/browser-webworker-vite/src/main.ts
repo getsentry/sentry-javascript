@@ -7,7 +7,13 @@ Sentry.init({
   environment: import.meta.env.MODE || 'development',
   tracesSampleRate: 1.0,
   debug: true,
-  integrations: [Sentry.browserTracingIntegration()],
+  integrations: [
+    Sentry.browserTracingIntegration(),
+    Sentry.thirdPartyErrorFilterIntegration({
+      behaviour: 'apply-tag-if-contains-third-party-frames',
+      filterKeys: ['browser-webworker-vite'],
+    }),
+  ],
   tunnel: 'http://localhost:3031/', // proxy server
 });
 

@@ -24,7 +24,14 @@ import {
 } from './attributes';
 import { extractTargetInfo } from './methodConfig';
 import { filterMcpPiiFromSpanData } from './piiFiltering';
-import type { ExtraHandlerData, JsonRpcNotification, JsonRpcRequest, McpSpanConfig, MCPTransport } from './types';
+import type {
+  ExtraHandlerData,
+  JsonRpcNotification,
+  JsonRpcRequest,
+  McpSpanConfig,
+  MCPTransport,
+  ResolvedMcpOptions,
+} from './types';
 
 /**
  * Creates a span name based on the method and target
@@ -76,7 +83,7 @@ function buildSentryAttributes(type: McpSpanConfig['type']): Record<string, stri
  * @returns Created span
  */
 function createMcpSpan(config: McpSpanConfig): unknown {
-  const { type, message, transport, extra, callback } = config;
+  const { type, message, transport, extra, callback, options } = config;
   const { method } = message;
   const params = message.params;
 
@@ -93,7 +100,7 @@ function createMcpSpan(config: McpSpanConfig): unknown {
   const rawAttributes: Record<string, string | number> = {
     ...buildTransportAttributes(transport, extra),
     [MCP_METHOD_NAME_ATTRIBUTE]: method,
-    ...buildTypeSpecificAttributes(type, message, params),
+    ...buildTypeSpecificAttributes(type, message, params, options?.recordInputs),
     ...buildSentryAttributes(type),
   };
 
@@ -116,6 +123,7 @@ function createMcpSpan(config: McpSpanConfig): unknown {
  * @param jsonRpcMessage - Notification message
  * @param transport - MCP transport instance
  * @param extra - Extra handler data
+ * @param options - Resolved MCP options
  * @param callback - Span execution callback
  * @returns Span execution result
  */
@@ -123,6 +131,7 @@ export function createMcpNotificationSpan(
   jsonRpcMessage: JsonRpcNotification,
   transport: MCPTransport,
   extra: ExtraHandlerData,
+  options: ResolvedMcpOptions,
   callback: () => unknown,
 ): unknown {
   return createMcpSpan({
@@ -131,6 +140,7 @@ export function createMcpNotificationSpan(
     transport,
     extra,
     callback,
+    options,
   });
 }
 
@@ -138,18 +148,21 @@ export function createMcpNotificationSpan(
  * Creates a span for outgoing MCP notifications
  * @param jsonRpcMessage - Notification message
  * @param transport - MCP transport instance
+ * @param options - Resolved MCP options
  * @param callback - Span execution callback
  * @returns Span execution result
  */
 export function createMcpOutgoingNotificationSpan(
   jsonRpcMessage: JsonRpcNotification,
   transport: MCPTransport,
+  options: ResolvedMcpOptions,
   callback: () => unknown,
 ): unknown {
   return createMcpSpan({
     type: 'notification-outgoing',
     message: jsonRpcMessage,
     transport,
+    options,
     callback,
   });
 }
@@ -159,12 +172,14 @@ export function createMcpOutgoingNotificationSpan(
  * @param jsonRpcMessage - Request message
  * @param transport - MCP transport instance
  * @param extra - Optional extra handler data
+ * @param options - Resolved MCP options
  * @returns Span configuration object
  */
 export function buildMcpServerSpanConfig(
   jsonRpcMessage: JsonRpcRequest,
   transport: MCPTransport,
   extra?: ExtraHandlerData,
+  options?: ResolvedMcpOptions,
 ): {
   name: string;
   op: string;
@@ -180,7 +195,7 @@ export function buildMcpServerSpanConfig(
   const rawAttributes: Record<string, string | number> = {
     ...buildTransportAttributes(transport, extra),
     [MCP_METHOD_NAME_ATTRIBUTE]: method,
-    ...buildTypeSpecificAttributes('request', jsonRpcMessage, params),
+    ...buildTypeSpecificAttributes('request', jsonRpcMessage, params, options?.recordInputs),
     ...buildSentryAttributes('request'),
   };
 

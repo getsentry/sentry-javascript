@@ -26,7 +26,7 @@ describe('MCP Server Semantic Conventions', () => {
 
     beforeEach(() => {
       mockMcpServer = createMockMcpServer();
-      wrappedMcpServer = wrapMcpServerWithSentry(mockMcpServer);
+      wrappedMcpServer = wrapMcpServerWithSentry(mockMcpServer, { recordInputs: true, recordOutputs: true });
       mockTransport = createMockTransport();
       mockTransport.sessionId = 'test-session-123';
     });
@@ -505,6 +505,88 @@ describe('MCP Server Semantic Conventions', () => {
 
       expect(setStatusSpy).not.toHaveBeenCalled();
       expect(endSpy).toHaveBeenCalled();
+    });
+
+    it('should capture tool result metadata but not content when recordOutputs is false', async () => {
+      const server = wrapMcpServerWithSentry(createMockMcpServer(), { recordOutputs: false });
+      const transport = createMockTransport();
+      await server.connect(transport);
+
+      const setAttributesSpy = vi.fn();
+      const mockSpan = { setAttributes: setAttributesSpy, setStatus: vi.fn(), end: vi.fn() };
+      startInactiveSpanSpy.mockReturnValueOnce(
+        mockSpan as unknown as ReturnType<typeof tracingModule.startInactiveSpan>,
+      );
+
+      transport.onmessage?.({ jsonrpc: '2.0', method: 'tools/call', id: 'req-1', params: { name: 'tool' } }, {});
+      transport.send?.({
+        jsonrpc: '2.0',
+        id: 'req-1',
+        result: {
+          content: [{ type: 'text', text: 'sensitive', mimeType: 'text/plain', uri: 'file:///secret', name: 'file' }],
+          isError: false,
+        },
+      });
+
+      const attrs = setAttributesSpy.mock.calls.find(c => c[0]?.['mcp.tool.result.content_count'])?.[0];
+      expect(attrs).toMatchObject({ 'mcp.tool.result.is_error': false, 'mcp.tool.result.content_count': 1 });
+      expect(attrs).not.toHaveProperty('mcp.tool.result.content');
+      expect(attrs).not.toHaveProperty('mcp.tool.result.uri');
+    });
+
+    it('should capture prompt result metadata but not content when recordOutputs is false', async () => {
+      const server = wrapMcpServerWithSentry(createMockMcpServer(), { recordOutputs: false });
+      const transport = createMockTransport();
+      await server.connect(transport);
+
+      const setAttributesSpy = vi.fn();
+      const mockSpan = { setAttributes: setAttributesSpy, setStatus: vi.fn(), end: vi.fn() };
+      startInactiveSpanSpy.mockReturnValueOnce(
+        mockSpan as unknown as ReturnType<typeof tracingModule.startInactiveSpan>,
+      );
+
+      transport.onmessage?.({ jsonrpc: '2.0', method: 'prompts/get', id: 'req-1', params: { name: 'prompt' } }, {});
+      transport.send?.({
+        jsonrpc: '2.0',
+        id: 'req-1',
+        result: {
+          description: 'sensitive description',
+          messages: [{ role: 'user', content: { type: 'text', text: 'sensitive' } }],
+        },
+      });
+
+      const attrs = setAttributesSpy.mock.calls.find(c => c[0]?.['mcp.prompt.result.message_count'])?.[0];
+      expect(attrs).toMatchObject({ 'mcp.prompt.result.message_count': 1 });
+      expect(attrs).not.toHaveProperty('mcp.prompt.result.description');
+      expect(attrs).not.toHaveProperty('mcp.prompt.result.message_role');
+    });
+
+    it('should capture notification metadata but not logging message when recordInputs is false', async () => {
+      const server = wrapMcpServerWithSentry(createMockMcpServer(), { recordInputs: false });
+      const transport = createMockTransport();
+      await server.connect(transport);
+
+      const loggingNotification = {
+        jsonrpc: '2.0',
+        method: 'notifications/message',
+        params: { level: 'info', logger: 'test-logger', data: 'sensitive log message' },
+      };
+
+      transport.onmessage?.(loggingNotification, {});
+
+      expect(startSpanSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          attributes: expect.objectContaining({
+            'mcp.logging.level': 'info',
+            'mcp.logging.logger': 'test-logger',
+            'mcp.logging.data_type': 'string',
+          }),
+        }),
+        expect.any(Function),
+      );
+
+      const lastCall = startSpanSpy.mock.calls[startSpanSpy.mock.calls.length - 1];
+      expect(lastCall?.[0]?.attributes).not.toHaveProperty('mcp.logging.message');
     });
   });
 });
