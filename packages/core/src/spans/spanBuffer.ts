@@ -55,7 +55,7 @@ export class SpanBuffer {
     }
 
     if (traceBucket.size >= this._maxSpanLimit) {
-      this._flushTrace(traceId);
+      this.flushTrace(traceId);
       this._debounceFlushInterval();
     }
   }
@@ -71,12 +71,16 @@ export class SpanBuffer {
     DEBUG_BUILD && debug.log(`Flushing span tree map with ${this._spanTreeMap.size} traces`);
 
     this._spanTreeMap.forEach((_, traceId) => {
-      this._flushTrace(traceId);
+      this.flushTrace(traceId);
     });
     this._debounceFlushInterval();
   }
 
-  private _flushTrace(traceId: string): void {
+  /**
+   * Flush spans of a specific trace.
+   * In contrast to {@link SpanBuffer.flush}, this method does not flush all traces, but only the one with the given traceId.
+   */
+  public flushTrace(traceId: string): void {
     const traceBucket = this._spanTreeMap.get(traceId);
     if (!traceBucket) {
       return;
