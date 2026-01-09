@@ -22,7 +22,6 @@ import type { SdkMetadata } from './types-hoist/sdkmetadata';
 import type { Session, SessionAggregates } from './types-hoist/session';
 import { dsnToString } from './utils/dsn';
 import {
-  createAttachmentEnvelopeItem,
   createEnvelope,
   createEventEnvelopeHeaders,
   createSpanEnvelopeItem,
@@ -32,6 +31,7 @@ import {
 import { uuid4 } from './utils/misc';
 import { shouldIgnoreSpan } from './utils/should-ignore-span';
 import { showSpanDropWarning, spanToJSON } from './utils/spanUtils';
+import { timestampInSeconds } from './utils/time';
 
 /**
  * Apply SdkInfo (name, version, packages, integrations) to the corresponding event key.
@@ -216,15 +216,15 @@ export function createRawSecurityEnvelope(
  * @param dsn - DSN components for the envelope header
  * @param tunnel - Tunnel URL if configured
  * @param attributes - Optional arbitrary attributes for querying in EAP
- * @param traceId - Optional explicit trace_id (if not provided, will use DSC trace_id or placeholder)
+ * @param traceId - The trace_id to associate with this attachment
  */
 export function createAttachmentEnvelope(
   attachment: Attachment,
-  dsc?: Partial<DynamicSamplingContext>,
-  dsn?: DsnComponents,
-  tunnel?: string,
-  attributes?: Record<string, { type: string; value: unknown }>,
-  traceId?: string,
+  dsc: Partial<DynamicSamplingContext> | undefined,
+  dsn: DsnComponents | undefined,
+  tunnel: string | undefined,
+  attributes: Record<string, { type: string; value: unknown }> | undefined,
+  traceId: string,
 ): AttachmentEnvelope {
   function dscHasRequiredProps(dsc: Partial<DynamicSamplingContext>): dsc is DynamicSamplingContext {
     return !!dsc.trace_id && !!dsc.public_key;
@@ -236,15 +236,8 @@ export function createAttachmentEnvelope(
     ...(!!tunnel && dsn && { dsn: dsnToString(dsn) }),
   };
 
-  // Get trace_id from explicit parameter, DSC, or use a placeholder
-  // In trace attachments, trace_id is required in the metadata
-  const resolvedTraceId = traceId || dsc?.trace_id || '00000000000000000000000000000000';
-
-  // Get current timestamp as UNIX timestamp (seconds with fractional part)
-  const timestamp = Date.now() / 1000;
-
-  // Create trace attachment item with metadata
-  const attachmentItem = createTraceAttachmentEnvelopeItem(attachment, resolvedTraceId, timestamp, attributes);
+  const timestamp = timestampInSeconds();
+  const attachmentItem = createTraceAttachmentEnvelopeItem(attachment, traceId, timestamp, attributes);
 
   return createEnvelope<AttachmentEnvelope>(headers, [attachmentItem]);
 }

@@ -612,32 +612,18 @@ export class Scope {
    * in a standalone envelope with trace context.
    */
   public addAttachment(attachment: Attachment): this {
-    // Get the current span from the active context (not just this scope)
-    // This is important for Node.js/OTEL where spans are stored in async context
     const span = getActiveSpan();
-
-    // Get dynamic sampling context from the span if available
     const dsc = span ? getDynamicSamplingContextFromSpan(span) : undefined;
-
-    // Get trace_id directly from span for V2 trace attachment metadata
-    // If no span, DSC might have trace_id, otherwise use placeholder
-    const traceId = span?.spanContext().traceId || dsc?.trace_id;
-
-    // Get DSN and tunnel from client options
+    const traceId = span?.spanContext().traceId || dsc?.trace_id || this._propagationContext.traceId;
     const dsn = this._client?.getDsn();
     const tunnel = this._client?.getOptions().tunnel;
-
-    console.log('traceId', traceId);
-
-    // Create and send the attachment envelope immediately
     const envelope = createAttachmentEnvelope(attachment, dsc, dsn, tunnel, undefined, traceId);
 
-    // sendEnvelope should not throw
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    this._client?.sendEnvelope(envelope);
+    void this._client?.sendEnvelope(envelope);
 
     // Still add to the scope's attachments array for backward compatibility
     // this._attachments.push(attachment);
+
     return this;
   }
 
