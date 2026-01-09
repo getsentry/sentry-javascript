@@ -15,6 +15,8 @@ import {
 import { INTEGRATION_NAME } from './constants';
 import type { TelemetrySettings, VercelAiIntegration } from './types';
 
+const SUPPORTED_VERSIONS = ['>=3.0.0 <7'];
+
 // List of patched methods
 // From: https://sdk.vercel.ai/docs/ai-sdk-core/telemetry#collected-data
 const INSTRUMENTED_METHODS = [
@@ -186,7 +188,7 @@ export class SentryVercelAiInstrumentation extends InstrumentationBase {
    * Initializes the instrumentation by defining the modules to be patched.
    */
   public init(): InstrumentationModuleDefinition {
-    const module = new InstrumentationNodeModuleDefinition('ai', ['>=3.0.0 <7'], this._patch.bind(this));
+    const module = new InstrumentationNodeModuleDefinition('ai', SUPPORTED_VERSIONS, this._patch.bind(this));
     return module;
   }
 
