@@ -4,6 +4,7 @@
  *
  */
 export const SEMANTIC_ATTRIBUTE_SENTRY_SOURCE = 'sentry.source';
+export const SEMANTIC_ATTRIBUTE_SENTRY_SPAN_SOURCE = 'sentry.span.source';
 
 /**
  * Attributes that holds the sample rate that was locally applied to a span.

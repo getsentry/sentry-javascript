@@ -9,6 +9,8 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION,
   SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID,
   SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_NAME,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  SEMANTIC_ATTRIBUTE_SENTRY_SPAN_SOURCE,
   SEMANTIC_ATTRIBUTE_USER_EMAIL,
   SEMANTIC_ATTRIBUTE_USER_ID,
   SEMANTIC_ATTRIBUTE_USER_IP_ADDRESS,
@@ -90,6 +92,10 @@ function applyCommonSpanAttributes(
     [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID]: serializedSegmentSpan.span_id,
     [SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME]: sdk?.sdk?.name,
     [SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION]: sdk?.sdk?.version,
+    // Backfill sentry.span.source from sentry.source for the PoC
+    // TODO(v11): Stop sending `sentry.source` attribute and only send `sentry.span.source`
+    // probably easiest done by just renaming SEMANTIC_ATTRIBUTE_SENTRY_SOURCE
+    [SEMANTIC_ATTRIBUTE_SENTRY_SPAN_SOURCE]: spanJSON.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE],
     ...(sendDefaultPii
       ? {
           [SEMANTIC_ATTRIBUTE_USER_ID]: scopeData.user?.id,

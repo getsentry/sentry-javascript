@@ -5,6 +5,7 @@ import {
   safeSetSpanJSONAttributes,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SpanBuffer,
 } from '@sentry/core';
 import { getSpanData, type ISentrySpanExporter } from './spanExporter';
@@ -39,6 +40,7 @@ export class StreamingSpanExporter implements ISentrySpanExporter {
       const allData = {
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: origin,
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op,
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
         ...data,
       };
       safeSetSpanJSONAttributes(spanJSON, allData);
