@@ -14,6 +14,8 @@ vi.mock('@sentry/core', async importActual => {
     debug: {
       log: vi.fn(),
     },
+    mergeMetadataMap: vi.fn(),
+    getFilenameToMetadataMap: vi.fn(),
   };
 });
 
@@ -209,6 +211,74 @@ describe('webWorkerIntegration', () => {
           'main.js': 'main-debug',
         });
       });
+
+      it('processes module metadata from worker', () => {
+        const mockMergeMetadataMap = SentryCore.mergeMetadataMap as any;
+        const moduleMetadata = {
+          'worker-file1.js': { '_sentryBundlerPluginAppKey:my-app': true },
+          'worker-file2.js': { '_sentryBundlerPluginAppKey:my-app': true },
+        };
+
+        mockEvent.data = {
+          _sentryMessage: true,
+          _sentryModuleMetadata: moduleMetadata,
+        };
+
+        messageHandler(mockEvent);
+
+        expect(mockEvent.stopImmediatePropagation).toHaveBeenCalled();
+        expect(mockDebugLog).toHaveBeenCalledWith('Sentry module metadata web worker message received', mockEvent.data);
+        expect(mockMergeMetadataMap).toHaveBeenCalledWith(moduleMetadata);
+      });
+
+      it('handles message with both debug IDs and module metadata', () => {
+        const mockMergeMetadataMap = SentryCore.mergeMetadataMap as any;
+        const moduleMetadata = {
+          'worker-file.js': { '_sentryBundlerPluginAppKey:my-app': true },
+        };
+
+        mockEvent.data = {
+          _sentryMessage: true,
+          _sentryDebugIds: { 'worker-file.js': 'debug-id-1' },
+          _sentryModuleMetadata: moduleMetadata,
+        };
+
+        messageHandler(mockEvent);
+
+        expect(mockEvent.stopImmediatePropagation).toHaveBeenCalled();
+        expect(mockMergeMetadataMap).toHaveBeenCalledWith(moduleMetadata);
+        expect((helpers.WINDOW as any)._sentryDebugIds).toEqual({
+          'worker-file.js': 'debug-id-1',
+        });
+      });
+
+      it('accepts message with only module metadata', () => {
+        const mockMergeMetadataMap = SentryCore.mergeMetadataMap as any;
+        const moduleMetadata = {
+          'worker-file.js': { '_sentryBundlerPluginAppKey:my-app': true },
+        };
+
+        mockEvent.data = {
+          _sentryMessage: true,
+          _sentryModuleMetadata: moduleMetadata,
+        };
+
+        messageHandler(mockEvent);
+
+        expect(mockEvent.stopImmediatePropagation).toHaveBeenCalled();
+        expect(mockMergeMetadataMap).toHaveBeenCalledWith(moduleMetadata);
+      });
+
+      it('ignores invalid module metadata', () => {
+        mockEvent.data = {
+          _sentryMessage: true,
+          _sentryModuleMetadata: 'not-an-object',
+        };
+
+        messageHandler(mockEvent);
+
+        expect(mockEvent.stopImmediatePropagation).not.toHaveBeenCalled();
+      });
     });
   });
 });
@@ -218,6 +288,7 @@ describe('registerWebWorker', () => {
     postMessage: ReturnType<typeof vi.fn>;
     addEventListener: ReturnType<typeof vi.fn>;
     _sentryDebugIds?: Record<string, string>;
+    _sentryModuleMetadata?: Record<string, any>;
   };
 
   beforeEach(() => {
@@ -236,6 +307,7 @@ describe('registerWebWorker', () => {
     expect(mockWorkerSelf.postMessage).toHaveBeenCalledWith({
       _sentryMessage: true,
       _sentryDebugIds: undefined,
+      _sentryModuleMetadata: undefined,
     });
   });
 
@@ -254,6 +326,7 @@ describe('registerWebWorker', () => {
         'worker-file1.js': 'debug-id-1',
         'worker-file2.js': 'debug-id-2',
       },
+      _sentryModuleMetadata: undefined,
     });
   });
 
@@ -266,6 +339,72 @@ describe('registerWebWorker', () => {
     expect(mockWorkerSelf.postMessage).toHaveBeenCalledWith({
       _sentryMessage: true,
       _sentryDebugIds: undefined,
+      _sentryModuleMetadata: undefined,
+    });
+  });
+
+  it('calls getFilenameToMetadataMap when module metadata is available', () => {
+    const mockGetFilenameToMetadataMap = SentryCore.getFilenameToMetadataMap as any;
+    const extractedMetadata = {
+      'worker-file1.js': { '_sentryBundlerPluginAppKey:my-app': true },
+      'worker-file2.js': { '_sentryBundlerPluginAppKey:my-app': true },
+    };
+
+    mockWorkerSelf._sentryModuleMetadata = {
+      'Error\n    at worker-file1.js:1:1': { '_sentryBundlerPluginAppKey:my-app': true },
+      'Error\n    at worker-file2.js:1:1': { '_sentryBundlerPluginAppKey:my-app': true },
+    };
+
+    mockGetFilenameToMetadataMap.mockReturnValue(extractedMetadata);
+
+    registerWebWorker({ self: mockWorkerSelf as any });
+
+    expect(mockGetFilenameToMetadataMap).toHaveBeenCalledWith(expect.any(Function));
+    expect(mockWorkerSelf.postMessage).toHaveBeenCalledWith({
+      _sentryMessage: true,
+      _sentryDebugIds: undefined,
+      _sentryModuleMetadata: extractedMetadata,
+    });
+  });
+
+  it('does not call getFilenameToMetadataMap when module metadata is not available', () => {
+    const mockGetFilenameToMetadataMap = SentryCore.getFilenameToMetadataMap as any;
+
+    mockWorkerSelf._sentryModuleMetadata = undefined;
+
+    registerWebWorker({ self: mockWorkerSelf as any });
+
+    expect(mockGetFilenameToMetadataMap).not.toHaveBeenCalled();
+    expect(mockWorkerSelf.postMessage).toHaveBeenCalledWith({
+      _sentryMessage: true,
+      _sentryDebugIds: undefined,
+      _sentryModuleMetadata: undefined,
+    });
+  });
+
+  it('includes both debug IDs and module metadata when both available', () => {
+    const mockGetFilenameToMetadataMap = SentryCore.getFilenameToMetadataMap as any;
+    const extractedMetadata = {
+      'worker-file.js': { '_sentryBundlerPluginAppKey:my-app': true },
+    };
+
+    mockWorkerSelf._sentryDebugIds = {
+      'worker-file.js': 'debug-id-1',
+    };
+    mockWorkerSelf._sentryModuleMetadata = {
+      'Error\n    at worker-file.js:1:1': { '_sentryBundlerPluginAppKey:my-app': true },
+    };
+
+    mockGetFilenameToMetadataMap.mockReturnValue(extractedMetadata);
+
+    registerWebWorker({ self: mockWorkerSelf as any });
+
+    expect(mockWorkerSelf.postMessage).toHaveBeenCalledWith({
+      _sentryMessage: true,
+      _sentryDebugIds: {
+        'worker-file.js': 'debug-id-1',
+      },
+      _sentryModuleMetadata: extractedMetadata,
     });
   });
 });

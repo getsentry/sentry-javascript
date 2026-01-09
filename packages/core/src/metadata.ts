@@ -8,6 +8,37 @@ const filenameMetadataMap = new Map<string, any>();
 /** Set of stack strings that have already been parsed. */
 const parsedStacks = new Set<string>();
 
+/**
+ * Builds a map of filenames to module metadata from the global _sentryModuleMetadata object.
+ * This is useful for forwarding metadata from web workers to the main thread.
+ *
+ * @param parser - Stack parser to use for extracting filenames from stack traces
+ * @returns A map of filename to metadata object
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function getFilenameToMetadataMap(parser: StackParser): Record<string, any> {
+  if (!GLOBAL_OBJ._sentryModuleMetadata) {
+    return {};
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const filenameMap: Record<string, any> = {};
+
+  for (const stack of Object.keys(GLOBAL_OBJ._sentryModuleMetadata)) {
+    const metadata = GLOBAL_OBJ._sentryModuleMetadata[stack];
+    const frames = parser(stack);
+
+    for (const frame of frames.reverse()) {
+      if (frame.filename) {
+        filenameMap[frame.filename] = metadata;
+        break;
+      }
+    }
+  }
+
+  return filenameMap;
+}
+
 function ensureMetadataStacksAreParsed(parser: StackParser): void {
   if (!GLOBAL_OBJ._sentryModuleMetadata) {
     return;
@@ -32,6 +63,21 @@ function ensureMetadataStacksAreParsed(parser: StackParser): void {
         filenameMetadataMap.set(frame.filename, metadata);
         break;
       }
+    }
+  }
+}
+
+/**
+ * Merges a filename-to-metadata map into the internal metadata cache.
+ * This is used to integrate metadata from web workers into the main thread.
+ *
+ * @param metadataMap - A map of filename to metadata object
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function mergeMetadataMap(metadataMap: Record<string, any>): void {
+  for (const filename of Object.keys(metadataMap)) {
+    if (!filenameMetadataMap.has(filename)) {
+      filenameMetadataMap.set(filename, metadataMap[filename]);
     }
   }
 }

@@ -322,6 +322,7 @@ export { vercelWaitUntil } from './utils/vercelWaitUntil';
 export { flushIfServerless } from './utils/flushIfServerless';
 export { SDK_VERSION } from './utils/version';
 export { getDebugImagesForResources, getFilenameToDebugIdMap } from './utils/debug-ids';
+export { getFilenameToMetadataMap, mergeMetadataMap } from './metadata';
 export { escapeStringForRegex } from './vendor/escapeStringForRegex';
 
 export type { Attachment } from './types-hoist/attachment';
