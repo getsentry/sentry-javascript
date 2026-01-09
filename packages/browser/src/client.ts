@@ -129,6 +129,13 @@ export class BrowserClient extends Client<BrowserClientOptions> {
           if (enableMetrics) {
             _INTERNAL_flushMetricsBuffer(this);
           }
+
+          // TODO: does anything speak against flushing here in general?
+          // this would also allow us to let the logs and metric buffers listen
+          // for client.on('flush'), meaning we don't have to explicitly call
+          // them like above (?)
+          // For now, this will flush the span buffer (besides errors, txns, etc).
+          this.flush(2000).then(null, () => {});
         }
       });
     }

@@ -6,8 +6,10 @@ import {
   defineIntegration,
   getDynamicSamplingContextFromSpan,
   isV2BeforeSendSpanCallback,
+  SpanBuffer,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
+import { WINDOW } from '../helpers';
 
 export interface SpanStreamingOptions {
   batchLimit: number;
@@ -31,12 +33,10 @@ export const spanStreamingIntegration = defineIntegration(((userOptions?: Partia
         : 1000,
   };
 
-  // key: traceId-segmentSpanId
-  const spanTreeMap = new Map<string, Set<SpanV2JSONWithSegmentRef>>();
-
   return {
     name: 'SpanStreaming',
     setup(client) {
+      const buffer = new SpanBuffer(client);
       const clientOptions = client.getOptions();
       const beforeSendSpan = clientOptions.beforeSendSpan;
 
@@ -55,83 +55,17 @@ export const spanStreamingIntegration = defineIntegration(((userOptions?: Partia
       }
 
       client.on('enqueueSpan', spanJSON => {
-        const spanTreeMapKey = getSpanTreeMapKey(spanJSON);
-        const spanBuffer = spanTreeMap.get(spanTreeMapKey);
-        if (spanBuffer) {
-          spanBuffer.add(spanJSON);
-        } else {
-          spanTreeMap.set(spanTreeMapKey, new Set([spanJSON]));
-        }
+        buffer.addSpan(spanJSON);
       });
 
       client.on('afterSpanEnd', span => {
         captureSpan(span, client);
       });
 
-      // For now, we send all spans on local segment (root) span end.
-      // TODO: This will change once we have more concrete ideas about a universal SDK data buffer.
-      client.on('afterSegmentSpanEnd', segmentSpan => {
-        sendSegment(segmentSpan, {
-          spanTreeMap,
-          client,
-          batchLimit: options.batchLimit,
-        });
-      });
+      // in addition to capturing the span, we also flush the trace when the segment
+      // span ends to ensure things are sent timely. We never know when the browser
+      // is closed, users navigate away, etc.
+      client.on('afterSegmentSpanEnd', segmentSpan => buffer.flushTrace(segmentSpan.spanContext().traceId));
     },
   };
 }) satisfies IntegrationFn);
-
-interface SpanProcessingOptions {
-  client: Client;
-  spanTreeMap: Map<string, Set<SpanV2JSONWithSegmentRef>>;
-  batchLimit: number;
-}
-
-/**
- * Just the traceid alone isn't enough because there can be multiple span trees with the same traceid.
- */
-function getSpanTreeMapKey(spanJSON: SpanV2JSONWithSegmentRef): string {
-  return `${spanJSON.trace_id}-${spanJSON._segmentSpan?.spanContext().spanId || spanJSON.span_id}`;
-}
-
-function sendSegment(segmentSpan: Span, { client, spanTreeMap, batchLimit }: SpanProcessingOptions): void {
-  const traceId = segmentSpan.spanContext().traceId;
-  const segmentSpanId = segmentSpan.spanContext().spanId;
-  const spanTreeMapKey = `${traceId}-${segmentSpanId}`;
-  const spansOfTrace = spanTreeMap.get(spanTreeMapKey);
-
-  if (!spansOfTrace?.size) {
-    spanTreeMap.delete(spanTreeMapKey);
-    return;
-  }
-
-  // Apply beforeSendSpan callback and clean up segment span references
-  const finalSpans = Array.from(spansOfTrace).map(spanJSON => {
-    // Remove the segment span reference before processing
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { _segmentSpan, ...cleanSpanJSON } = spanJSON;
-    return cleanSpanJSON;
-  });
-
-  const batches: SpanV2JSON[][] = [];
-  for (let i = 0; i < finalSpans.length; i += batchLimit) {
-    batches.push(finalSpans.slice(i, i + batchLimit));
-  }
-
-  DEBUG_BUILD && debug.log(`Sending trace ${traceId} in ${batches.length} batch${batches.length === 1 ? '' : 'es'}`);
-
-  // Compute DSC from the segment span (passed as parameter)
-  const dsc = getDynamicSamplingContextFromSpan(segmentSpan);
-
-  for (const batch of batches) {
-    const envelope = createSpanV2Envelope(batch, dsc, client);
-    // no need to handle client reports for network errors,
-    // buffer overflows or rate limiting here. All of this is handled
-    // by client and transport.
-    client.sendEnvelope(envelope).then(null, reason => {
-      DEBUG_BUILD && debug.error('Error while sending span stream envelope:', reason);
-    });
-  }
-
-  spanTreeMap.delete(spanTreeMapKey);
-}
