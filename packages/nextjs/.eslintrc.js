@@ -7,6 +7,9 @@ module.exports = {
     jsx: true,
   },
   extends: ['../../.eslintrc.js'],
+  rules: {
+    '@sentry-internal/sdk/no-unsafe-random-apis': 'error',
+  },
   overrides: [
     {
       files: ['scripts/**/*.ts'],
@@ -25,6 +28,12 @@ module.exports = {
       files: ['src/config/polyfills/perf_hooks.js'],
       globals: {
         globalThis: 'readonly',
+      },
+    },
+    {
+      files: ['test/**/*.ts', 'test/**/*.tsx'],
+      rules: {
+        '@sentry-internal/sdk/no-unsafe-random-apis': 'off',
       },
     },
   ],
