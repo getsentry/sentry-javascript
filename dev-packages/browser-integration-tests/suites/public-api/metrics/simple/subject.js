@@ -13,6 +13,6 @@ Sentry.withScope(scope => {
   scope.setAttribute('scope_attribute_1', 1);
   scope.setAttributes({ scope_attribute_2: { value: 'test' }, scope_attribute_3: { value: 38, unit: 'gigabyte' } });
   Sentry.metrics.count('test.scope.attributes.counter', 1, { attributes: { action: 'click' } });
-})
+});
 
 Sentry.flush();
