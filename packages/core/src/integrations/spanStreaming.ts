@@ -13,9 +13,9 @@ export interface ServerSpanStreamingOptions {
   flushInterval?: number;
 }
 
-const INTEGRATION_NAME = 'ServerSpanStreaming';
+const INTEGRATION_NAME = 'SpanStreaming';
 
-const _serverSpanStreamingIntegration = ((options?: ServerSpanStreamingOptions) => {
+const _spanStreamingIntegration = ((options?: ServerSpanStreamingOptions) => {
   return {
     name: INTEGRATION_NAME,
     setup(client) {
@@ -51,4 +51,7 @@ const _serverSpanStreamingIntegration = ((options?: ServerSpanStreamingOptions) 
   };
 }) satisfies IntegrationFn;
 
-export const serverSpanStreamingIntegration = defineIntegration(_serverSpanStreamingIntegration);
+/**
+ * Span streaming integration used by server runtime SDKs.
+ */
+export const spanStreamingIntegration = defineIntegration(_spanStreamingIntegration);

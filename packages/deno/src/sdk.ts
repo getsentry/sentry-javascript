@@ -9,7 +9,7 @@ import {
   linkedErrorsIntegration,
   nodeStackLineParser,
   requestDataIntegration,
-  serverSpanStreamingIntegration,
+  spanStreamingIntegration,
   stackParserFromStackParserOptions,
 } from '@sentry/core';
 import { DenoClient } from './client';
@@ -42,7 +42,7 @@ export function getDefaultIntegrations(options: Options): Integration[] {
     contextLinesIntegration(),
     normalizePathsIntegration(),
     globalHandlersIntegration(),
-    ...(options.traceLifecycle === 'stream' ? [serverSpanStreamingIntegration()] : []),
+    ...(options.traceLifecycle === 'stream' ? [spanStreamingIntegration()] : []),
   ];
 }
 
