@@ -8,7 +8,7 @@ import {
   initAndBind,
   linkedErrorsIntegration,
   requestDataIntegration,
-  serverSpanStreamingIntegration,
+  spanStreamingIntegration,
   stackParserFromStackParserOptions,
 } from '@sentry/core';
 import type { CloudflareClientOptions, CloudflareOptions } from './client';
@@ -37,7 +37,7 @@ export function getDefaultIntegrations(options: CloudflareOptions): Integration[
     // TODO(v11): the `include` object should be defined directly in the integration based on `sendDefaultPii`
     requestDataIntegration(sendDefaultPii ? undefined : { include: { cookies: false } }),
     consoleIntegration(),
-    ...(options.traceLifecycle === 'stream' ? [serverSpanStreamingIntegration()] : []),
+    ...(options.traceLifecycle === 'stream' ? [spanStreamingIntegration()] : []),
   ];
 }
 

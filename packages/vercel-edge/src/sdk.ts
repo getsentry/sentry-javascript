@@ -22,7 +22,7 @@ import {
   nodeStackLineParser,
   requestDataIntegration,
   SDK_VERSION,
-  serverSpanStreamingIntegration,
+  spanStreamingIntegration,
   stackParserFromStackParserOptions,
 } from '@sentry/core';
 import {
@@ -62,7 +62,7 @@ export function getDefaultIntegrations(options: Options): Integration[] {
     consoleIntegration(),
     // TODO(v11): integration can be included - but integration should not add IP address etc
     ...(options.sendDefaultPii ? [requestDataIntegration()] : []),
-    ...(options.traceLifecycle === 'stream' ? [serverSpanStreamingIntegration()] : []),
+    ...(options.traceLifecycle === 'stream' ? [spanStreamingIntegration()] : []),
   ];
 }
 

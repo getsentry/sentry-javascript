@@ -48,7 +48,7 @@ describe('init', () => {
       ]);
     });
 
-    it('adds serverSpanStreamingIntegration if traceLifecycle is stream', () => {
+    it('adds spanStreamingIntegration if traceLifecycle is stream', () => {
       const integrations = getDefaultIntegrations({ traceLifecycle: 'stream' }).map(integration => integration.name);
       expect(integrations).toEqual([
         'Dedupe',
@@ -59,7 +59,7 @@ describe('init', () => {
         'Hono',
         'RequestData',
         'Console',
-        'ServerSpanStreaming',
+        'SpanStreaming',
       ]);
     });
 

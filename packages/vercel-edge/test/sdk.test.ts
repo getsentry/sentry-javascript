@@ -14,7 +14,7 @@ describe('getDefaultIntegrations', () => {
     ]);
   });
 
-  it('returns serverSpanStreamingIntegration if traceLifecycle is stream', () => {
+  it('returns spanStreamingIntegration if traceLifecycle is stream', () => {
     const integrations = getDefaultIntegrations({ traceLifecycle: 'stream' }).map(integration => integration.name);
     expect(integrations).toEqual([
       'Dedupe',
@@ -23,7 +23,7 @@ describe('getDefaultIntegrations', () => {
       'LinkedErrors',
       'WinterCGFetch',
       'Console',
-      'ServerSpanStreaming',
+      'SpanStreaming',
     ]);
   });
 
