@@ -1,6 +1,35 @@
 import replace from '@rollup/plugin-replace';
 import { makeBaseNPMConfig, makeNPMConfigVariants, plugins } from '@sentry-internal/rollup-utils';
 
+const downlevelLogicalAssignmentsPlugin = {
+  name: 'downlevel-logical-assignments',
+  renderChunk(code) {
+    // ES2021 logical assignment operators (`||=`, `&&=`, `??=`) are not allowed by our ES2020 compatibility check.
+    // OTEL currently ships some of these, so we downlevel them in the final output.
+    //
+    // Note: This is intentionally conservative (only matches property access-like LHS) to avoid duplicating side effects.
+    // IMPORTANT: Use regex literals (not `String.raw` + `RegExp(...)`) to avoid accidental double-escaping.
+    let out = code;
+
+    // ??=
+    out = out.replace(/([A-Za-z_$][\w$]*(?:\[[^\]]+\]|\.[A-Za-z_$][\w$]*)+)\s*\?\?=\s*([^;]+);/g, (_m, left, right) => {
+      return `${left} = ${left} ?? ${right};`;
+    });
+
+    // ||=
+    out = out.replace(/([A-Za-z_$][\w$]*(?:\[[^\]]+\]|\.[A-Za-z_$][\w$]*)+)\s*\|\|=\s*([^;]+);/g, (_m, left, right) => {
+      return `${left} = ${left} || ${right};`;
+    });
+
+    // &&=
+    out = out.replace(/([A-Za-z_$][\w$]*(?:\[[^\]]+\]|\.[A-Za-z_$][\w$]*)+)\s*&&=\s*([^;]+);/g, (_m, left, right) => {
+      return `${left} = ${left} && ${right};`;
+    });
+
+    return { code: out, map: null };
+  },
+};
+
 const baseConfig = makeBaseNPMConfig({
   entrypoints: ['src/index.ts'],
   bundledBuiltins: ['perf_hooks', 'util'],
@@ -72,6 +101,7 @@ const baseConfig = makeBaseNPMConfig({
           }
         },
       },
+      downlevelLogicalAssignmentsPlugin,
     ],
   },
 });
