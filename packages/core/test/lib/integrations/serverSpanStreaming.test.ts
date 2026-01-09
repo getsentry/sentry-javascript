@@ -1,11 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Client } from '../../../src';
-import { SentrySpan, setCurrentClient } from '../../../src';
-import { serverSpanStreamingIntegration } from '../../../src/integrations/serverSpanStreaming';
+import { SentrySpan, setCurrentClient, spanStreamingIntegration } from '../../../src';
 import { debug } from '../../../src/utils/debug-logger';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
 
-describe('serverSpanStreamingIntegration', () => {
+describe('spanStreamingIntegration', () => {
   let client: TestClient;
   let sendEnvelopeSpy: ReturnType<typeof vi.fn>;
 
@@ -32,8 +31,8 @@ describe('serverSpanStreamingIntegration', () => {
   });
 
   it('has the correct name', () => {
-    const integration = serverSpanStreamingIntegration();
-    expect(integration.name).toBe('ServerSpanStreaming');
+    const integration = spanStreamingIntegration();
+    expect(integration.name).toBe('SpanStreaming');
   });
 
   it("doesn't set up if traceLifecycle is not stream", () => {
@@ -49,7 +48,7 @@ describe('serverSpanStreamingIntegration', () => {
     client.sendEnvelope = sendEnvelopeSpy;
     setCurrentClient(client as Client);
 
-    const integration = serverSpanStreamingIntegration();
+    const integration = spanStreamingIntegration();
     integration.setup?.(client);
     client.init();
 
@@ -62,7 +61,7 @@ describe('serverSpanStreamingIntegration', () => {
     expect(sendEnvelopeSpy).not.toHaveBeenCalled();
 
     expect(debugWarnSpy).toHaveBeenCalledWith(
-      'serverSpanStreamingIntegration requires `traceLifecycle` to be set to "stream"! Falling back to static trace lifecycle.',
+      'spanStreamingIntegration requires `traceLifecycle` to be set to "stream"! Falling back to static trace lifecycle.',
     );
     expect(client.getOptions().traceLifecycle).toBe('static');
   });
@@ -82,20 +81,20 @@ describe('serverSpanStreamingIntegration', () => {
     client.sendEnvelope = sendEnvelopeSpy;
     setCurrentClient(client as Client);
 
-    const integration = serverSpanStreamingIntegration();
+    const integration = spanStreamingIntegration();
     integration.setup?.(client);
     client.init();
 
     const segmentSpan = new SentrySpan({ name: 'segment', sampled: true });
     client.emit('afterSpanEnd', segmentSpan);
     expect(debugWarnSpy).toHaveBeenCalledWith(
-      'serverSpanStreamingIntegration requires a beforeSendSpan callback using `withStreamSpan`! Falling back to static trace lifecycle.',
+      'spanStreamingIntegration requires a beforeSendSpan callback using `withStreamSpan`! Falling back to static trace lifecycle.',
     );
     expect(client.getOptions().traceLifecycle).toBe('static');
   });
 
   it('captures spans on afterSpanEnd hook', () => {
-    const integration = serverSpanStreamingIntegration();
+    const integration = spanStreamingIntegration();
     integration.setup?.(client);
     client.init();
 
@@ -112,7 +111,7 @@ describe('serverSpanStreamingIntegration', () => {
   });
 
   it('respects maxSpanLimit option', () => {
-    const integration = serverSpanStreamingIntegration({ maxSpanLimit: 1 });
+    const integration = spanStreamingIntegration({ maxSpanLimit: 1 });
     integration.setup?.(client);
     client.init();
 
@@ -135,7 +134,7 @@ describe('serverSpanStreamingIntegration', () => {
   });
 
   it('respects flushInterval option', () => {
-    const integration = serverSpanStreamingIntegration({ flushInterval: 1000 });
+    const integration = spanStreamingIntegration({ flushInterval: 1000 });
     integration.setup?.(client);
     client.init();
 

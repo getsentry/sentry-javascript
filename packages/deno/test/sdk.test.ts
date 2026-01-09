@@ -21,7 +21,7 @@ Deno.test('getDefaultIntegrations returns list of integrations with default opti
   ]);
 });
 
-Deno.test('getDefaultIntegrations returns serverSpanStreamingIntegration if traceLifecycle is stream', () => {
+Deno.test('getDefaultIntegrations returns spanStreamingIntegration if traceLifecycle is stream', () => {
   const integrations = getDefaultIntegrations({ traceLifecycle: 'stream' }).map(integration => integration.name);
   assertEquals(integrations, [
     'InboundFilters',
@@ -33,6 +33,6 @@ Deno.test('getDefaultIntegrations returns serverSpanStreamingIntegration if trac
     'ContextLines',
     'NormalizePaths',
     'GlobalHandlers',
-    'ServerSpanStreaming',
+    'SpanStreaming',
   ]);
 });
