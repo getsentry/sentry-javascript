@@ -46,6 +46,7 @@ export type {
 } from '@sentry/core';
 
 export {
+  addAttachment,
   addEventProcessor,
   addBreadcrumb,
   addIntegration,

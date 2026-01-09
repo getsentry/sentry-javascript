@@ -1,4 +1,5 @@
 export {
+  addAttachment,
   addEventProcessor,
   addBreadcrumb,
   addIntegration,

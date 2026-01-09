@@ -22,6 +22,7 @@ export type {
 export type { VercelEdgeOptions } from './types';
 
 export {
+  addAttachment,
   addEventProcessor,
   addBreadcrumb,
   addIntegration,

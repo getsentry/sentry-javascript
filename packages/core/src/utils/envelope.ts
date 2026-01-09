@@ -16,6 +16,7 @@ import type { SdkInfo } from '../types-hoist/sdkinfo';
 import type { SdkMetadata } from '../types-hoist/sdkmetadata';
 import type { SpanJSON } from '../types-hoist/span';
 import { dsnToString } from './dsn';
+import { uuid4 } from './misc';
 import { normalize } from './normalize';
 import { GLOBAL_OBJ } from './worldwide';
 
@@ -187,7 +188,7 @@ export function createSpanEnvelopeItem(spanJson: Partial<SpanJSON>): SpanItem {
 }
 
 /**
- * Creates attachment envelope items
+ * Creates attachment envelope items (traditional format - for events)
  */
 export function createAttachmentEnvelopeItem(attachment: Attachment): AttachmentItem {
   const buffer = typeof attachment.data === 'string' ? encodeUTF8(attachment.data) : attachment.data;
@@ -201,6 +202,65 @@ export function createAttachmentEnvelopeItem(attachment: Attachment): Attachment
       attachment_type: attachment.attachmentType,
     },
     buffer,
+  ];
+}
+
+/**
+ * Creates a trace attachment envelope item with metadata prefix.
+ *
+ * This implements the experimental trace attachment format as specified at:
+ * https://develop.sentry.dev/sdk/data-model/envelope-items/#trace-attachment
+ *
+ * @param attachment - The attachment to create an item for
+ * @param traceId - The trace ID (32 character hex string)
+ * @param timestamp - UNIX timestamp as a float
+ * @param attributes - Optional arbitrary attributes for querying
+ */
+export function createTraceAttachmentEnvelopeItem(
+  attachment: Attachment,
+  traceId: string,
+  timestamp: number,
+  attributes?: Record<string, { type: string; value: unknown }>,
+): AttachmentItem {
+  const attachmentBody = typeof attachment.data === 'string' ? encodeUTF8(attachment.data) : attachment.data;
+
+  // Generate a unique attachment ID (UUID v4 without dashes)
+  const attachmentId = uuid4().replace(/-/g, '');
+
+  // Create the metadata JSON object
+  const metadata: Record<string, unknown> = {
+    trace_id: traceId,
+    attachment_id: attachmentId,
+    timestamp,
+    content_type: attachment.contentType || 'application/octet-stream',
+  };
+
+  if (attachment.filename) {
+    metadata.filename = attachment.filename;
+  }
+
+  if (attributes) {
+    metadata.attributes = attributes;
+  }
+
+  // Serialize metadata to JSON
+  const metadataJson = JSON.stringify(metadata);
+  const metadataBuffer = encodeUTF8(metadataJson);
+
+  // Combine metadata and attachment body
+  const combinedLength = metadataBuffer.length + attachmentBody.length;
+  const combinedBuffer = new Uint8Array(combinedLength);
+  combinedBuffer.set(metadataBuffer, 0);
+  combinedBuffer.set(attachmentBody, metadataBuffer.length);
+
+  return [
+    {
+      type: 'attachment',
+      content_type: 'application/vnd.sentry.trace-attachment',
+      length: combinedLength,
+      meta_length: metadataBuffer.length,
+    },
+    combinedBuffer,
   ];
 }
 

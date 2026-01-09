@@ -76,9 +76,10 @@ type EventItemHeaders = {
 type AttachmentItemHeaders = {
   type: 'attachment';
   length: number;
-  filename: string;
+  filename?: string;
   content_type?: string;
   attachment_type?: AttachmentType;
+  meta_length?: number;
 };
 type UserFeedbackItemHeaders = { type: 'user_report' };
 type FeedbackItemHeaders = { type: 'feedback' };
@@ -133,6 +134,7 @@ type CheckInEnvelopeHeaders = { trace?: DynamicSamplingContext };
 type ClientReportEnvelopeHeaders = BaseEnvelopeHeaders;
 type ReplayEnvelopeHeaders = BaseEnvelopeHeaders;
 type SpanEnvelopeHeaders = BaseEnvelopeHeaders & { trace?: DynamicSamplingContext };
+type AttachmentEnvelopeHeaders = BaseEnvelopeHeaders & { trace?: DynamicSamplingContext };
 type LogEnvelopeHeaders = BaseEnvelopeHeaders;
 type MetricEnvelopeHeaders = BaseEnvelopeHeaders;
 export type EventEnvelope = BaseEnvelope<
@@ -144,6 +146,7 @@ export type ClientReportEnvelope = BaseEnvelope<ClientReportEnvelopeHeaders, Cli
 export type ReplayEnvelope = [ReplayEnvelopeHeaders, [ReplayEventItem, ReplayRecordingItem]];
 export type CheckInEnvelope = BaseEnvelope<CheckInEnvelopeHeaders, CheckInItem>;
 export type SpanEnvelope = BaseEnvelope<SpanEnvelopeHeaders, SpanItem>;
+export type AttachmentEnvelope = BaseEnvelope<AttachmentEnvelopeHeaders, AttachmentItem>;
 export type ProfileChunkEnvelope = BaseEnvelope<BaseEnvelopeHeaders, ProfileChunkItem>;
 export type RawSecurityEnvelope = BaseEnvelope<BaseEnvelopeHeaders, RawSecurityItem>;
 export type LogEnvelope = BaseEnvelope<LogEnvelopeHeaders, LogContainerItem>;
@@ -157,6 +160,7 @@ export type Envelope =
   | ReplayEnvelope
   | CheckInEnvelope
   | SpanEnvelope
+  | AttachmentEnvelope
   | RawSecurityEnvelope
   | LogEnvelope
   | MetricEnvelope;

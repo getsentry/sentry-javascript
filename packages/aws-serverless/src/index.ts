@@ -1,6 +1,7 @@
 export {
   addEventProcessor,
   addBreadcrumb,
+  addAttachment,
   addIntegration,
   captureException,
   captureEvent,

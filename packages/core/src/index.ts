@@ -9,7 +9,7 @@ export type { IntegrationIndex } from './integration';
 
 export * from './tracing';
 export * from './semanticAttributes';
-export { createEventEnvelope, createSessionEnvelope, createSpanEnvelope } from './envelope';
+export { createAttachmentEnvelope, createEventEnvelope, createSessionEnvelope, createSpanEnvelope } from './envelope';
 export {
   captureCheckIn,
   withMonitor,
@@ -103,6 +103,7 @@ export {
 } from './utils/request';
 export { DEFAULT_ENVIRONMENT, DEV_ENVIRONMENT } from './constants';
 export { addBreadcrumb } from './breadcrumbs';
+export { addAttachment } from './attachments';
 export { functionToStringIntegration } from './integrations/functiontostring';
 // eslint-disable-next-line deprecation/deprecation
 export { inboundFiltersIntegration } from './integrations/eventFilters';
@@ -280,6 +281,7 @@ export {
   createEnvelope,
   createEventEnvelopeHeaders,
   createSpanEnvelopeItem,
+  createTraceAttachmentEnvelopeItem,
   envelopeContainsItemType,
   envelopeItemTypeToDataCategory,
   forEachEnvelopeItem,
@@ -349,6 +351,7 @@ export type { DataCategory } from './types-hoist/datacategory';
 export type { DsnComponents, DsnLike, DsnProtocol } from './types-hoist/dsn';
 export type { DebugImage, DebugMeta } from './types-hoist/debugMeta';
 export type {
+  AttachmentEnvelope,
   AttachmentItem,
   BaseEnvelopeHeaders,
   BaseEnvelopeItemHeaders,

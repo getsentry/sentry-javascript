@@ -58,6 +58,7 @@ export {
 
 export {
   addBreadcrumb,
+  addAttachment,
   isInitialized,
   isEnabled,
   getGlobalScope,

@@ -58,6 +58,7 @@ export {
 } from '@sentry/opentelemetry';
 
 export {
+  addAttachment,
   addBreadcrumb,
   isInitialized,
   isEnabled,

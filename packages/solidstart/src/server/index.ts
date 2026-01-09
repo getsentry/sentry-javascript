@@ -7,6 +7,7 @@
 // on the top - level namespace.
 // Hence, we export everything from the Node SDK explicitly:
 export {
+  addAttachment,
   addBreadcrumb,
   addEventProcessor,
   addIntegration,
