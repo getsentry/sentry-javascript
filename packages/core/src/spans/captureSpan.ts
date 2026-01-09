@@ -1,7 +1,7 @@
 import type { Client } from '../client';
-import { getClient, getGlobalScope } from '../currentScopes';
+import { getClient } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
-import type { Scope, ScopeData } from '../scope';
+import type { ScopeData } from '../scope';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_ENVIRONMENT,
   SEMANTIC_ATTRIBUTE_SENTRY_RELEASE,
@@ -18,9 +18,9 @@ import {
 } from '../semanticAttributes';
 import { getCapturedScopesOnSpan } from '../tracing/utils';
 import type { Span, SpanV2JSON } from '../types-hoist/span';
-import { mergeScopeData } from '../utils/applyScopeDataToEvent';
 import { isV2BeforeSendSpanCallback } from '../utils/beforeSendSpan';
 import { debug } from '../utils/debug-logger';
+import { getCombinedScopeData } from '../utils/scopeData';
 import { INTERNAL_getSegmentSpan, spanToV2JSON } from '../utils/spanUtils';
 import { applyBeforeSendSpanCallback, contextsToAttributes, safeSetSpanJSONAttributes } from './spanFirstUtils';
 /**
@@ -43,7 +43,7 @@ export function captureSpan(span: Span, client = getClient()): void {
 
   const { isolationScope: spanIsolationScope, scope: spanScope } = getCapturedScopesOnSpan(span);
 
-  const finalScopeData = getFinalScopeData(spanIsolationScope, spanScope);
+  const finalScopeData = getCombinedScopeData(spanIsolationScope, spanScope);
 
   applyCommonSpanAttributes(spanJSON, serializedSegmentSpan, client, finalScopeData);
 
@@ -106,16 +106,4 @@ function applyCommonSpanAttributes(
       : {}),
     ...scopeData.attributes,
   });
-}
-
-// TODO: Extract this to a helper in core. It's used in multiple places.
-function getFinalScopeData(isolationScope: Scope | undefined, scope: Scope | undefined): ScopeData {
-  const finalScopeData = getGlobalScope().getScopeData();
-  if (isolationScope) {
-    mergeScopeData(finalScopeData, isolationScope.getScopeData());
-  }
-  if (scope) {
-    mergeScopeData(finalScopeData, scope.getScopeData());
-  }
-  return finalScopeData;
 }

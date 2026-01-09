@@ -51,17 +51,16 @@ function setAttributeOnSpanJSONWithMaybeUnit(
   attributeKey: string,
   attributeValue: unknown,
 ): void {
-  if (isAttributeObject(attributeValue)) {
-    const { value, unit } = attributeValue;
+  const { value, unit } = isAttributeObject(attributeValue)
+    ? attributeValue
+    : { value: attributeValue, unit: undefined };
+  const typedAttributeValue = attributeValueToTypedAttributeValue(value);
 
-    if (isSupportedSerializableType(value)) {
-      spanJSON.attributes[attributeKey] = attributeValueToTypedAttributeValue(attributeValue);
-      if (unit) {
-        spanJSON.attributes[attributeKey].unit = unit;
-      }
+  if (typedAttributeValue && isSupportedSerializableType(value)) {
+    spanJSON.attributes[attributeKey] = typedAttributeValue;
+    if (unit) {
+      spanJSON.attributes[attributeKey].unit = unit;
     }
-  } else if (isSupportedSerializableType(attributeValue)) {
-    spanJSON.attributes[attributeKey] = attributeValueToTypedAttributeValue(attributeValue);
   }
 }
 

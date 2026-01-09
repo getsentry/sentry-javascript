@@ -1,5 +1,5 @@
 import { getAsyncContextStrategy } from '../asyncContext';
-import type { TypedAttributes } from '../attributes';
+import type { Attributes } from '../attributes';
 import { attributeValueToTypedAttributeValue } from '../attributes';
 import { getMainCarrier } from '../carrier';
 import { getCurrentScope } from '../currentScopes';
@@ -111,7 +111,7 @@ export function convertSpanLinksForEnvelope(links?: SpanLink[]): SpanLinkJSON[] 
  * @param links
  * @returns
  */
-export function getV2SpanLinks(links?: SpanLink[]): SpanLinkJSON<TypedAttributes>[] | undefined {
+export function getV2SpanLinks(links?: SpanLink[]): SpanLinkJSON<Attributes>[] | undefined {
   if (links?.length) {
     return links.map(({ context: { spanId, traceId, traceFlags, ...restContext }, attributes }) => ({
       span_id: spanId,
@@ -320,11 +320,14 @@ export function getV2StatusMessage(status: SpanStatus | undefined): 'ok' | 'erro
 /**
  * Convert the attributes to the ones expected by Sentry, including the type annotation
  */
-export function getV2Attributes(attributes: SpanAttributes): TypedAttributes {
+export function getV2Attributes(attributes: SpanAttributes): Attributes {
   return Object.entries(attributes).reduce((acc, [key, value]) => {
-    acc[key] = attributeValueToTypedAttributeValue(value);
+    const typedAttributeValue = attributeValueToTypedAttributeValue(value);
+    if (typedAttributeValue) {
+      acc[key] = typedAttributeValue;
+    }
     return acc;
-  }, {} as TypedAttributes);
+  }, {} as Attributes);
 }
 
 const CHILD_SPANS_FIELD = '_sentryChildSpans';
