@@ -1,4 +1,4 @@
-import { serializeAttributes } from '../attributes';
+import { type RawAttributes, serializeAttributes } from '../attributes';
 import { getGlobalSingleton } from '../carrier';
 import type { Client } from '../client';
 import { getClient, getCurrentScope, getIsolationScope } from '../currentScopes';
@@ -6,6 +6,7 @@ import { DEBUG_BUILD } from '../debug-build';
 import type { Scope } from '../scope';
 import type { Integration } from '../types-hoist/integration';
 import type { Metric, SerializedMetric } from '../types-hoist/metric';
+import type { User } from '../types-hoist/user';
 import { debug } from '../utils/debug-logger';
 import { getCombinedScopeData } from '../utils/scopeData';
 import { _getSpanForScope } from '../utils/spanOnScope';
@@ -77,7 +78,7 @@ export interface InternalCaptureMetricOptions {
 /**
  * Enriches metric with all contextual attributes (user, SDK metadata, replay, etc.)
  */
-function _enrichMetricAttributes(beforeMetric: Metric, client: Client, currentScope: Scope): Metric {
+function _enrichMetricAttributes(beforeMetric: Metric, client: Client, user: User): Metric {
   const { release, environment } = client.getOptions();
 
   const processedMetricAttributes = {
@@ -85,12 +86,9 @@ function _enrichMetricAttributes(beforeMetric: Metric, client: Client, currentSc
   };
 
   // Add user attributes
-  const {
-    user: { id, email, username },
-  } = getCombinedScopeData(getIsolationScope(), currentScope);
-  setMetricAttribute(processedMetricAttributes, 'user.id', id, false);
-  setMetricAttribute(processedMetricAttributes, 'user.email', email, false);
-  setMetricAttribute(processedMetricAttributes, 'user.name', username, false);
+  setMetricAttribute(processedMetricAttributes, 'user.id', user.id, false);
+  setMetricAttribute(processedMetricAttributes, 'user.email', user.email, false);
+  setMetricAttribute(processedMetricAttributes, 'user.name', user.username, false);
 
   // Add Sentry metadata
   setMetricAttribute(processedMetricAttributes, 'sentry.release', release);
@@ -125,7 +123,12 @@ function _enrichMetricAttributes(beforeMetric: Metric, client: Client, currentSc
 /**
  * Creates a serialized metric ready to be sent to Sentry.
  */
-function _buildSerializedMetric(metric: Metric, client: Client, currentScope: Scope): SerializedMetric {
+function _buildSerializedMetric(
+  metric: Metric,
+  client: Client,
+  currentScope: Scope,
+  scopeAttributes: RawAttributes<Record<string, unknown>> | undefined,
+): SerializedMetric {
   // Get trace context
   const [, traceContext] = _getTraceInfoFromScope(client, currentScope);
   const span = _getSpanForScope(currentScope);
@@ -140,7 +143,10 @@ function _buildSerializedMetric(metric: Metric, client: Client, currentScope: Sc
     type: metric.type,
     unit: metric.unit,
     value: metric.value,
-    attributes: serializeAttributes(metric.attributes, 'skip-undefined'),
+    attributes: {
+      ...serializeAttributes(scopeAttributes),
+      ...serializeAttributes(metric.attributes, 'skip-undefined'),
+    },
   };
 }
 
@@ -174,7 +180,8 @@ export function _INTERNAL_captureMetric(beforeMetric: Metric, options?: Internal
   }
 
   // Enrich metric with contextual attributes
-  const enrichedMetric = _enrichMetricAttributes(beforeMetric, client, currentScope);
+  const { user, attributes: scopeAttributes } = getCombinedScopeData(getIsolationScope(), currentScope);
+  const enrichedMetric = _enrichMetricAttributes(beforeMetric, client, user);
 
   client.emit('processMetric', enrichedMetric);
 
@@ -188,7 +195,7 @@ export function _INTERNAL_captureMetric(beforeMetric: Metric, options?: Internal
     return;
   }
 
-  const serializedMetric = _buildSerializedMetric(processedMetric, client, currentScope);
+  const serializedMetric = _buildSerializedMetric(processedMetric, client, currentScope, scopeAttributes);
 
   DEBUG_BUILD && debug.log('[Metric]', serializedMetric);
 

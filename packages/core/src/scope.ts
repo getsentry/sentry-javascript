@@ -306,8 +306,8 @@ export class Scope {
   /**
    * Sets attributes onto the scope.
    *
-   * These attributes are currently only applied to logs.
-   * In the future, they will also be applied to metrics and spans.
+   * These attributes are currently applied to logs and metrics.
+   * In the future, they will also be applied to spans.
    *
    * Important: For now, only strings, numbers and boolean attributes are supported, despite types allowing for
    * more complex attribute types. We'll add this support in the future but already specify the wider type to
@@ -338,8 +338,8 @@ export class Scope {
   /**
    * Sets an attribute onto the scope.
    *
-   * These attributes are currently only applied to logs.
-   * In the future, they will also be applied to metrics and spans.
+   * These attributes are currently applied to logs and metrics.
+   * In the future, they will also be applied to spans.
    *
    * Important: For now, only strings, numbers and boolean attributes are supported, despite types allowing for
    * more complex attribute types. We'll add this support in the future but already specify the wider type to

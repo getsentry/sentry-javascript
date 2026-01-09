@@ -171,6 +171,52 @@ describe('_INTERNAL_captureMetric', () => {
     });
   });
 
+  it('includes scope attributes in metric attributes', () => {
+    const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
+    const client = new TestClient(options);
+    const scope = new Scope();
+    scope.setClient(client);
+    scope.setAttribute('scope_attribute_1', 1);
+    scope.setAttributes({ scope_attribute_2: { value: 'test' }, scope_attribute_3: { value: 38, unit: 'gigabyte' } });
+
+    _INTERNAL_captureMetric({ type: 'counter', name: 'test.metric', value: 1 }, { scope });
+
+    const metricAttributes = _INTERNAL_getMetricBuffer(client)?.[0]?.attributes;
+    expect(metricAttributes).toEqual({
+      scope_attribute_1: {
+        value: 1,
+        type: 'integer',
+      },
+      scope_attribute_2: {
+        value: 'test',
+        type: 'string',
+      },
+      scope_attribute_3: {
+        value: 38,
+        unit: 'gigabyte',
+        type: 'integer',
+      },
+    });
+  });
+
+  it('prefers metric attributes over scope attributes', () => {
+    const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
+    const client = new TestClient(options);
+    const scope = new Scope();
+    scope.setClient(client);
+    scope.setAttribute('my-attribute', 42);
+
+    _INTERNAL_captureMetric(
+      { type: 'counter', name: 'test.metric', value: 1, attributes: { 'my-attribute': 43 } },
+      { scope },
+    );
+
+    const metricAttributes = _INTERNAL_getMetricBuffer(client)?.[0]?.attributes;
+    expect(metricAttributes).toEqual({
+      'my-attribute': { value: 43, type: 'integer' },
+    });
+  });
+
   it('flushes metrics buffer when it reaches max size', () => {
     const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
     const client = new TestClient(options);
