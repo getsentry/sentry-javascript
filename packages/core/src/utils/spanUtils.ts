@@ -1,6 +1,6 @@
 import { getAsyncContextStrategy } from '../asyncContext';
 import type { Attributes } from '../attributes';
-import { attributeValueToTypedAttributeValue } from '../attributes';
+import { attributeValueToTypedAttributeValue, serializeAttributes } from '../attributes';
 import { getMainCarrier } from '../carrier';
 import { getCurrentScope } from '../currentScopes';
 import {
@@ -117,7 +117,7 @@ export function getV2SpanLinks(links?: SpanLink[]): SpanLinkJSON<Attributes>[] |
       span_id: spanId,
       trace_id: traceId,
       sampled: traceFlags === TRACE_FLAG_SAMPLED,
-      ...(attributes && { attributes: getV2Attributes(attributes) }),
+      ...(attributes && { attributes: serializeAttributes(attributes) }),
       ...restContext,
     }));
   } else {
@@ -242,7 +242,7 @@ export function spanToV2JSON(span: Span): SpanV2JSON {
       end_timestamp: spanTimeInputToSeconds(endTime),
       is_segment: span === INTERNAL_getSegmentSpan(span),
       status: getV2StatusMessage(status),
-      attributes: getV2Attributes(attributes),
+      attributes: serializeAttributes(attributes),
       links: getV2SpanLinks(links),
     };
   }
@@ -315,19 +315,6 @@ export function getStatusMessage(status: SpanStatus | undefined): string | undef
  */
 export function getV2StatusMessage(status: SpanStatus | undefined): 'ok' | 'error' {
   return !status || status.code === SPAN_STATUS_OK || status.code === SPAN_STATUS_UNSET ? 'ok' : 'error';
-}
-
-/**
- * Convert the attributes to the ones expected by Sentry, including the type annotation
- */
-export function getV2Attributes(attributes: SpanAttributes): Attributes {
-  return Object.entries(attributes).reduce((acc, [key, value]) => {
-    const typedAttributeValue = attributeValueToTypedAttributeValue(value);
-    if (typedAttributeValue) {
-      acc[key] = typedAttributeValue;
-    }
-    return acc;
-  }, {} as Attributes);
 }
 
 const CHILD_SPANS_FIELD = '_sentryChildSpans';

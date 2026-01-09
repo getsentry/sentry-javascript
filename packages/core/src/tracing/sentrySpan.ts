@@ -1,4 +1,5 @@
 /* eslint-disable max-lines */
+import { serializeAttributes } from '../attributes';
 import { getClient, getCurrentScope } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
 import { createSpanEnvelope } from '../envelope';
@@ -33,7 +34,6 @@ import {
   getRootSpan,
   getSpanDescendants,
   getStatusMessage,
-  getV2Attributes,
   getV2SpanLinks,
   getV2StatusMessage,
   spanTimeInputToSeconds,
@@ -265,7 +265,7 @@ export class SentrySpan implements Span {
       end_timestamp: this._endTime ?? this._startTime,
       is_segment: this._isStandaloneSpan || this === getRootSpan(this),
       status: getV2StatusMessage(this._status),
-      attributes: getV2Attributes(this._attributes),
+      attributes: serializeAttributes(this._attributes),
       links: getV2SpanLinks(this._links),
     };
   }
