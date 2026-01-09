@@ -91,8 +91,7 @@ function getBrowserTimeOrigin(): number | undefined {
     return undefined;
   }
 
-  // TOOD: We should probably set a much tighter threshold here as skew can already happen within just a few minutes.
-  const threshold = 3_600_000; // 1 hour in milliseconds
+  const threshold = 300_000; // 5 minutes in milliseconds
   const performanceNow = performance.now();
   const dateNow = Date.now();
 

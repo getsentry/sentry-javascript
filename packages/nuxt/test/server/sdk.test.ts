@@ -41,6 +41,42 @@ describe('Nuxt Server SDK', () => {
       expect(init({})).not.toBeUndefined();
     });
 
+    it('uses default integrations when not provided in options', () => {
+      init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
+
+      expect(nodeInit).toHaveBeenCalledTimes(1);
+      const callArgs = nodeInit.mock.calls[0]?.[0];
+      expect(callArgs).toBeDefined();
+      expect(callArgs?.defaultIntegrations).toBeDefined();
+      expect(Array.isArray(callArgs?.defaultIntegrations)).toBe(true);
+    });
+
+    it('allows options.defaultIntegrations to override default integrations', () => {
+      const customIntegrations = [{ name: 'CustomIntegration' }];
+
+      init({
+        dsn: 'https://public@dsn.ingest.sentry.io/1337',
+        defaultIntegrations: customIntegrations as any,
+      });
+
+      expect(nodeInit).toHaveBeenCalledTimes(1);
+      const callArgs = nodeInit.mock.calls[0]?.[0];
+      expect(callArgs).toBeDefined();
+      expect(callArgs?.defaultIntegrations).toBe(customIntegrations);
+    });
+
+    it('allows options.defaultIntegrations to be set to false', () => {
+      init({
+        dsn: 'https://public@dsn.ingest.sentry.io/1337',
+        defaultIntegrations: false,
+      });
+
+      expect(nodeInit).toHaveBeenCalledTimes(1);
+      const callArgs = nodeInit.mock.calls[0]?.[0];
+      expect(callArgs).toBeDefined();
+      expect(callArgs?.defaultIntegrations).toBe(false);
+    });
+
     describe('lowQualityTransactionsFilter', () => {
       const options = { debug: false };
       const filter = lowQualityTransactionsFilter(options);

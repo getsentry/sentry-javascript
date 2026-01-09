@@ -7,7 +7,7 @@ async function getFreshPerformanceTimeOrigin() {
   return timeModule.browserPerformanceTimeOrigin();
 }
 
-const RELIABLE_THRESHOLD_MS = 3_600_000;
+const RELIABLE_THRESHOLD_MS = 300_000;
 
 describe('browserPerformanceTimeOrigin', () => {
   it('returns `performance.timeOrigin` if it is available and reliable', async () => {

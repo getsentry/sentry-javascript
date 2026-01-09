@@ -8,7 +8,7 @@ if (!testEnv) {
 
 const getStartCommand = () => {
   if (testEnv === 'development') {
-    return 'bash ./nuxt-start-dev-server.bash';
+    return "NODE_OPTIONS='--import ./.nuxt/dev/sentry.server.config.mjs' nuxt dev -p 3030";
   }
 
   if (testEnv === 'production') {
