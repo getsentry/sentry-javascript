@@ -30,6 +30,11 @@ jobs:
       with:
         token: ${{ steps.token.outputs.token }}
         fetch-depth: 0
+    - name: Set up Node
+      uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f # v6
+      with:
+        node-version-file: 'package.json'
+
     - name: Prepare release
       uses: getsentry/craft@39ee616a6a58dc64797feecb145d66770492b66c # v2
       env:
