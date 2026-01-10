@@ -1,41 +1,64 @@
 name: 'Gitflow: Auto prepare release'
 on:
-  workflow_dispatch:
-    inputs:
-      version:
-        description: Version to release (or "auto")
-        required: false
-      force:
-        description: Force a release even when there are release-blockers
-        required: false
-      merge_target:
-        description: Target branch to merge into
-        required: false
+  pull_request:
+    types:
+      - closed
+    branches:
+      - master
+
 permissions:
   contents: write
   pull-requests: write
 
+# This workflow triggers a release when merging a branch with the pattern `prepare-release/VERSION` into master.
 jobs:
   release:
-    runs-on: ubuntu-latest
-    name: Release a new version
+    runs-on: ubuntu-24.04
+    name: 'Prepare a new version'
     steps:
-    - name: Get auth token
-      id: token
-      uses: actions/create-github-app-token@d72941d797fd3113feb6b93fd0dec494b13a2547 # v2
-      with:
-        app-id: ${{ vars.SENTRY_RELEASE_BOT_CLIENT_ID }}
-        private-key: ${{ secrets.SENTRY_RELEASE_BOT_PRIVATE_KEY }}
-    - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v2
-      with:
-        token: ${{ steps.token.outputs.token }}
-        fetch-depth: 0
-    - name: Prepare release
-      uses: getsentry/craft@39ee616a6a58dc64797feecb145d66770492b66c # v2
-      env:
-        GITHUB_TOKEN: ${{ steps.token.outputs.token }}
-      with:
-        version: ${{ inputs.version }}
-        force: ${{ inputs.force }}
-        merge_target: ${{ inputs.merge_target }}
-        craft_config_from_merge_target: 'true'
+      - name: Get auth token
+        id: token
+        uses: actions/create-github-app-token@d72941d797fd3113feb6b93fd0dec494b13a2547 # v1
+        with:
+          app-id: ${{ vars.SENTRY_RELEASE_BOT_CLIENT_ID }}
+          private-key: ${{ secrets.SENTRY_RELEASE_BOT_PRIVATE_KEY }}
+
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          token: ${{ steps.token.outputs.token }}
+          fetch-depth: 0
+
+      # https://github.com/actions-ecosystem/action-regex-match
+      - uses: actions-ecosystem/action-regex-match@v2
+        id: version-regex
+        with:
+          # Parse version from head branch
+          text: ${{ github.head_ref }}
+          # match: prepare-release/xx.xx.xx
+          regex: '^prepare-release\/(\d+\.\d+\.\d+)(?:-(alpha|beta|rc)\.\d+)?$'
+
+      - name: Extract version
+        id: get_version
+        run: |
+          version=${{ steps.version-regex.outputs.match }}
+          version=${version/'prepare-release/'/''}
+          echo "version=$version" >> $GITHUB_OUTPUT
+
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version-file: 'package.json'
+
+      - name: Prepare release
+        uses: getsentry/craft@39ee616a6a58dc64797feecb145d66770492b66c # v2
+        if: >-
+          github.event.pull_request.merged == true && 
+          steps.version-regex.outputs.match != '' &&
+          steps.get_version.outputs.version != ''
+        env:
+          GITHUB_TOKEN: ${{ steps.token.outputs.token }}
+        with:
+          version: ${{ steps.get_version.outputs.version }}
+          force: false
+          merge_target: master
+          craft_config_from_merge_target: 'true'
