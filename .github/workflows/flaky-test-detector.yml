@@ -30,9 +30,9 @@ jobs:
     if: ${{ github.base_ref != 'master' && github.ref != 'refs/heads/master' }}
     steps:
       - name: Check out current branch
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v2
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6 # v2
       - name: Set up Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f # v6
         with:
           node-version-file: 'package.json'
           cache: 'yarn'
