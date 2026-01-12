@@ -23,6 +23,25 @@
   Sentry.metrics.count('response_time', 283.33, { unit: 'millisecond' });
   ```
 
+- **feat(wasm): Add applicationKey option for third-party error filtering ([#18762])(https://github.com/getsentry/sentry-javascript/pull/18762)**
+
+  Adds support for applying an application key to WASM stack frames that can be then used in the `thirdPartyErrorFilterIntegration` for detection of first-party code.
+
+  Usage:
+
+  ```js
+  Sentry.init({
+    integrations: [
+      // Integration order matters: wasmIntegration needs to be before thirdPartyErrorFilterIntegration
+      wasmIntegration({ applicationKey: 'your-custom-application-key' }), ←───┐
+      thirdPartyErrorFilterIntegration({                                      │
+        behaviour: 'drop-error-if-exclusively-contains-third-party-frames',   ├─ matching keys
+        filterKeys: ['your-custom-application-key'] ←─────────────────────────┘
+      }),
+    ],
+  });
+  ```
+
 - ref(nextjs): Drop `resolve` dependency from the Next.js SDK ([#18618](https://github.com/getsentry/sentry-javascript/pull/18618))
 
 ## 10.32.1
