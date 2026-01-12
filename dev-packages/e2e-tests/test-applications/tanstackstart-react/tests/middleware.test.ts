@@ -1,4 +1,4 @@
- import { expect, test } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Sends spans for multiple middlewares and verifies they are siblings under the same parent span', async ({

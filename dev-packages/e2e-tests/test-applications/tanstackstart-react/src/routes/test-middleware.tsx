@@ -1,10 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { createServerFn } from '@tanstack/react-start';
-import {
-  wrappedServerFnMiddleware,
-  wrappedEarlyReturnMiddleware,
-  wrappedErrorMiddleware,
-} from '../middleware';
+import { wrappedServerFnMiddleware, wrappedEarlyReturnMiddleware, wrappedErrorMiddleware } from '../middleware';
 
 // Server function with specific middleware (also gets global function middleware)
 const serverFnWithMiddleware = createServerFn()
