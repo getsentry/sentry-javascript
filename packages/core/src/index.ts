@@ -314,7 +314,13 @@ export {
   isURLObjectRelative,
   getSanitizedUrlStringFromUrlObject,
 } from './utils/url';
-export { eventFromMessage, eventFromUnknownInput, exceptionFromError, parseStackFrames } from './utils/eventbuilder';
+export {
+  eventFromMessage,
+  eventFromUnknownInput,
+  exceptionFromError,
+  parseStackFrames,
+  _enhanceErrorWithSentryInfo as _INTERNAL_enhanceErrorWithSentryInfo,
+} from './utils/eventbuilder';
 export { callFrameToStackFrame, watchdogTimer } from './utils/anr';
 export { LRUMap } from './utils/lru';
 export { generateTraceId, generateSpanId } from './utils/propagationContext';
@@ -515,3 +521,9 @@ export type {
   UnstableRollupPluginOptions,
   UnstableWebpackPluginOptions,
 } from './build-time-plugins/buildTimeOptionsBase';
+export {
+  withRandomSafeContext as _INTERNAL_withRandomSafeContext,
+  type RandomSafeContextRunner as _INTERNAL_RandomSafeContextRunner,
+  safeMathRandom as _INTERNAL_safeMathRandom,
+  safeDateNow as _INTERNAL_safeDateNow,
+} from './utils/randomSafeContext';

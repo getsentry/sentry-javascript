@@ -45,6 +45,7 @@ import { checkOrSetAlreadyCaught, uuid4 } from './utils/misc';
 import { parseSampleRate } from './utils/parseSampleRate';
 import { prepareEvent } from './utils/prepareEvent';
 import { makePromiseBuffer, type PromiseBuffer, SENTRY_BUFFER_FULL_ERROR } from './utils/promisebuffer';
+import { safeMathRandom } from './utils/randomSafeContext';
 import { reparentChildSpans, shouldIgnoreSpan } from './utils/should-ignore-span';
 import { showSpanDropWarning } from './utils/spanUtils';
 import { rejectedSyncPromise } from './utils/syncpromise';
@@ -1288,7 +1289,7 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
     // 0.0 === 0% events are sent
     // Sampling for transaction happens somewhere else
     const parsedSampleRate = typeof sampleRate === 'undefined' ? undefined : parseSampleRate(sampleRate);
-    if (isError && typeof parsedSampleRate === 'number' && Math.random() > parsedSampleRate) {
+    if (isError && typeof parsedSampleRate === 'number' && safeMathRandom() > parsedSampleRate) {
       this.recordDroppedEvent('sample_rate', 'error');
       return rejectedSyncPromise(
         _makeDoNotSendEventError(

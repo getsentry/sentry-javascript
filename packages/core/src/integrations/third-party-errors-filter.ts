@@ -153,9 +153,13 @@ function getBundleKeysForAllFramesWithFilenames(
 
   return frames
     .filter((frame, index) => {
-      // Exclude frames without a filename or without lineno and colno,
-      // since these are likely native code or built-ins
-      if (!frame.filename || (frame.lineno == null && frame.colno == null)) {
+      // Exclude frames without a filename
+      if (!frame.filename) {
+        return false;
+      }
+      // Exclude frames without location info, since these are likely native code or built-ins.
+      // JS frames have lineno/colno, WASM frames have instruction_addr instead.
+      if (frame.lineno == null && frame.colno == null && frame.instruction_addr == null) {
         return false;
       }
       // Optionally ignore Sentry internal frames

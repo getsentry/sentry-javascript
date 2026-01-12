@@ -34,6 +34,7 @@ import { isBuild } from '../common/utils/isBuild';
 import { setUrlProcessingMetadata } from '../common/utils/setUrlProcessingMetadata';
 import { distDirRewriteFramesIntegration } from './distDirRewriteFramesIntegration';
 import { handleOnSpanStart } from './handleOnSpanStart';
+import { prepareSafeIdGeneratorContext } from './prepareSafeIdGeneratorContext';
 
 export * from '@sentry/node';
 
@@ -92,6 +93,7 @@ export function showReportDialog(): void {
 
 /** Inits the Sentry NextJS SDK on node. */
 export function init(options: NodeOptions): NodeClient | undefined {
+  prepareSafeIdGeneratorContext();
   if (isBuild()) {
     return;
   }
