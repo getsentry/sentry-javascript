@@ -1,5 +1,7 @@
 /* eslint-disable max-lines */
 
+export * from './utils/ring-buffer';
+export * from './telemetry-processor/telemetry-buffer';
 export type { ClientClass as SentryCoreCurrentScopes } from './sdk';
 export type { AsyncContextStrategy } from './asyncContext/types';
 export type { Carrier } from './carrier';
