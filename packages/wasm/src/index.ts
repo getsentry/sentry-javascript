@@ -5,7 +5,16 @@ import { getImage, getImages } from './registry';
 
 const INTEGRATION_NAME = 'Wasm';
 
-const _wasmIntegration = (() => {
+interface WasmIntegrationOptions {
+  /**
+   * Key to identify this application for third-party error filtering.
+   * This key should match one of the keys provided to the `filterKeys` option
+   * of the `thirdPartyErrorFilterIntegration`.
+   */
+  applicationKey?: string;
+}
+
+const _wasmIntegration = ((options: WasmIntegrationOptions = {}) => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
@@ -18,7 +27,7 @@ const _wasmIntegration = (() => {
         event.exception.values.forEach(exception => {
           if (exception.stacktrace?.frames) {
             hasAtLeastOneWasmFrameWithImage =
-              hasAtLeastOneWasmFrameWithImage || patchFrames(exception.stacktrace.frames);
+              hasAtLeastOneWasmFrameWithImage || patchFrames(exception.stacktrace.frames, options.applicationKey);
           }
         });
       }
@@ -37,13 +46,17 @@ export const wasmIntegration = defineIntegration(_wasmIntegration);
 
 const PARSER_REGEX = /^(.*?):wasm-function\[\d+\]:(0x[a-fA-F0-9]+)$/;
 
+// We use the same prefix as bundler plugins so that thirdPartyErrorFilterIntegration
+// recognizes WASM frames as first-party code without needing modifications.
+const BUNDLER_PLUGIN_APP_KEY_PREFIX = '_sentryBundlerPluginAppKey:';
+
 /**
  * Patches a list of stackframes with wasm data needed for server-side symbolication
  * if applicable. Returns true if the provided list of stack frames had at least one
  * matching registered image.
  */
 // Only exported for tests
-export function patchFrames(frames: Array<StackFrame>): boolean {
+export function patchFrames(frames: Array<StackFrame>, applicationKey?: string): boolean {
   let hasAtLeastOneWasmFrameWithImage = false;
   frames.forEach(frame => {
     if (!frame.filename) {
@@ -70,6 +83,13 @@ export function patchFrames(frames: Array<StackFrame>): boolean {
       frame.instruction_addr = match[2];
       frame.filename = match[1];
       frame.platform = 'native';
+
+      if (applicationKey) {
+        frame.module_metadata = {
+          ...frame.module_metadata,
+          [`${BUNDLER_PLUGIN_APP_KEY_PREFIX}${applicationKey}`]: true,
+        };
+      }
 
       if (index >= 0) {
         frame.addr_mode = `rel:${index}`;
