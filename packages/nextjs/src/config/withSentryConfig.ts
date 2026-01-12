@@ -122,8 +122,16 @@ function migrateDeprecatedWebpackOptions(userSentryOptions: SentryBuildOptions):
     return newValue ?? deprecatedValue;
   };
 
-  const deprecatedMessage = (deprecatedPath: string, newPath: string): string =>
-    `[@sentry/nextjs] DEPRECATION WARNING: ${deprecatedPath} is deprecated and will be removed in a future version. Use ${newPath} instead.`;
+  const deprecatedMessage = (deprecatedPath: string, newPath: string): string => {
+    const message = `[@sentry/nextjs] DEPRECATION WARNING: ${deprecatedPath} is deprecated and will be removed in a future version. Use ${newPath} instead.`;
+
+    // In Turbopack builds, webpack configuration is not applied, so webpack-scoped options won't have any effect.
+    if (detectActiveBundler() === 'turbopack' && newPath.startsWith('webpack.')) {
+      return `${message} (Not supported with Turbopack.)`;
+    }
+
+    return message;
+  };
 
   /* eslint-disable deprecation/deprecation */
   // Migrate each deprecated option to the new path, but only if the new path isn't already set
