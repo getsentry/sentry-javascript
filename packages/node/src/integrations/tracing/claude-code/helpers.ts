@@ -242,12 +242,12 @@ async function* _instrumentQueryGenerator(
       // Handle assistant messages
       if (msg.type === 'assistant') {
         // Close previous LLM span if still open
-        if (previousLLMSpan) {
+        if (previousLLMSpan?.isRecording()) {
           previousLLMSpan.setStatus({ code: 1 });
           previousLLMSpan.end();
-          previousLLMSpan = null;
-          previousTurnTools = [];
         }
+        previousLLMSpan = null;
+        previousTurnTools = [];
 
         // Create new LLM span for each assistant message (each is a new LLM turn)
         // Close the current span first if it exists (this handles multiple assistant messages)
@@ -382,13 +382,13 @@ async function* _instrumentQueryGenerator(
           finalResult = msg.result as string;
         }
 
-        // Close previous LLM span
-        if (previousLLMSpan) {
+        // Close previous LLM span if still recording
+        if (previousLLMSpan?.isRecording()) {
           previousLLMSpan.setStatus({ code: 1 });
           previousLLMSpan.end();
-          previousLLMSpan = null;
-          previousTurnTools = [];
         }
+        previousLLMSpan = null;
+        previousTurnTools = [];
 
         // Finalize current LLM span (if still open)
         if (currentLLMSpan) {
