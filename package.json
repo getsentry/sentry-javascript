@@ -104,6 +104,7 @@
     "dev-packages/bundler-tests"
   ],
   "devDependencies": {
+    "@spotlightjs/spotlight": "^4.8.0",
     "@rollup/plugin-commonjs": "^25.0.7",
     "@rollup/plugin-esm-shim": "^0.1.5",
     "@rollup/plugin-json": "^6.1.0",

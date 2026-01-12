@@ -2,7 +2,8 @@
 
 ## Unreleased
 
-- "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
+- feat(browser): Add environment variable support for Spotlight configuration ([#18198](https://github.com/getsentry/sentry-javascript/pull/18198))
+  - `SENTRY_SPOTLIGHT`, `PUBLIC_SENTRY_SPOTLIGHT`, `NEXT_PUBLIC_SENTRY_SPOTLIGHT`, `VITE_SENTRY_SPOTLIGHT`, `NUXT_PUBLIC_SENTRY_SPOTLIGHT`, `REACT_APP_SENTRY_SPOTLIGHT`, `VUE_APP_SENTRY_SPOTLIGHT`, and `GATSBY_SENTRY_SPOTLIGHT`
 
 - **feat(core): Apply scope attributes to metrics ([#18738](https://github.com/getsentry/sentry-javascript/pull/18738))**
 

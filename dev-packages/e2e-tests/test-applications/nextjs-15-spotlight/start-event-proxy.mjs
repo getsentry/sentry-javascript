@@ -2,5 +2,5 @@ import { startEventProxyServer } from '@sentry-internal/test-utils';
 
 startEventProxyServer({
   port: 3031,
-  proxyServerName: 'react-router-7-lazy-routes',
+  proxyServerName: 'nextjs-15-spotlight',
 });

@@ -46,6 +46,7 @@ export function constructWebpackConfigFunction({
   routeManifest,
   nextJsVersion,
   useRunAfterProductionCompileHook,
+  spotlightConfig,
 }: {
   userNextConfig: NextConfigObject;
   userSentryOptions: SentryBuildOptions;
@@ -53,6 +54,7 @@ export function constructWebpackConfigFunction({
   routeManifest: RouteManifest | undefined;
   nextJsVersion: string | undefined;
   useRunAfterProductionCompileHook: boolean | undefined;
+  spotlightConfig: string | undefined;
 }): WebpackConfigFunction {
   // Will be called by nextjs and passed its default webpack configuration and context data about the build (whether
   // we're building server or client, whether we're in dev, what version of webpack we're using, etc). Note that
@@ -106,6 +108,7 @@ export function constructWebpackConfigFunction({
       releaseName,
       routeManifest,
       nextJsVersion,
+      spotlightConfig,
     });
 
     addOtelWarningIgnoreRule(newConfig);
@@ -707,6 +710,7 @@ function addValueInjectionLoader({
   releaseName,
   routeManifest,
   nextJsVersion,
+  spotlightConfig,
 }: {
   newConfig: WebpackConfigObjectWithModuleRules;
   userNextConfig: NextConfigObject;
@@ -715,6 +719,7 @@ function addValueInjectionLoader({
   releaseName: string | undefined;
   routeManifest: RouteManifest | undefined;
   nextJsVersion: string | undefined;
+  spotlightConfig: string | undefined;
 }): void {
   const assetPrefix = userNextConfig.assetPrefix || userNextConfig.basePath || '';
 
@@ -759,6 +764,11 @@ function addValueInjectionLoader({
       ? 'true'
       : undefined,
     _sentryRouteManifest: JSON.stringify(routeManifest),
+    // Inject Spotlight config so the browser SDK can auto-enable Spotlight.
+    // The browser SDK's getEnvValue() checks globalThis as a fallback for bundler-injected values.
+    // We also inject _sentrySpotlight as a fallback for the Next.js SDK's client/index.ts.
+    NEXT_PUBLIC_SENTRY_SPOTLIGHT: spotlightConfig,
+    _sentrySpotlight: spotlightConfig,
   };
 
   if (buildContext.isServer) {

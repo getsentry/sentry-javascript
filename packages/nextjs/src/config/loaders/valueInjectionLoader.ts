@@ -23,7 +23,8 @@ const SKIP_COMMENT_AND_DIRECTIVE_REGEX =
  */
 export default function valueInjectionLoader(this: LoaderThis<ValueInjectionLoaderOptions>, userCode: string): string {
   // We know one or the other will be defined, depending on the version of webpack being used
-  const { values } = 'getOptions' in this ? this.getOptions() : this.query;
+  // Turbopack also supports webpack loaders and should provide options via getOptions or query
+  const { values } = 'getOptions' in this ? this.getOptions() : (this as { query: ValueInjectionLoaderOptions }).query;
 
   // We do not want to cache injected values across builds
   this.cacheable(false);

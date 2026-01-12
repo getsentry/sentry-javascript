@@ -56,8 +56,7 @@ function getRuntimeConfig(): { lazyRouteTimeout?: number; idleTimeout?: number }
 const runtimeConfig = getRuntimeConfig();
 
 Sentry.init({
-  environment: 'qa', // dynamic sampling bias to keep transactions
-  dsn: process.env.REACT_APP_E2E_TEST_DSN,
+  dsn: process.env.E2E_TEST_DSN,
   integrations: [
     Sentry.reactRouterV7BrowserTracingIntegration({
       useEffect: React.useEffect,
@@ -71,11 +70,9 @@ Sentry.init({
       idleTimeout: runtimeConfig.idleTimeout,
     }),
   ],
-  // We recommend adjusting this value in production, or using tracesSampler
-  // for finer control
   tracesSampleRate: 1.0,
   release: 'e2e-test',
-
+  environment: 'qa',
   tunnel: 'http://localhost:3031',
 });
 

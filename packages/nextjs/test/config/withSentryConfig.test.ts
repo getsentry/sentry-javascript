@@ -482,12 +482,15 @@ describe('withSentryConfig', () => {
       process.argv = originalArgv;
     });
 
-    it('uses webpack config by default when TURBOPACK env var is not set', () => {
+    it('constructs both turbopack and webpack config by default when TURBOPACK env var is not set', () => {
+      // Note: We always construct turbopack config for supported Next.js versions because
+      // Next.js 15+ uses Turbopack by default for `next dev` without setting TURBOPACK=1.
+      // Webpack ignores the turbopack config, so it's safe to always include it.
       vi.spyOn(util, 'getNextjsVersion').mockReturnValue('16.0.0');
 
       const finalConfig = materializeFinalNextConfig(exportedNextConfig);
 
-      expect(finalConfig.turbopack).toBeUndefined();
+      expect(finalConfig.turbopack).toBeDefined();
       expect(finalConfig.webpack).toBeInstanceOf(Function);
     });
 
@@ -553,23 +556,29 @@ describe('withSentryConfig', () => {
       expect(finalConfig.webpack).toBe(exportedNextConfig.webpack);
     });
 
-    it('uses webpack when TURBOPACK env var is empty string', () => {
+    it('constructs both turbopack and webpack config when TURBOPACK env var is empty string', () => {
+      // Note: We always construct turbopack config for supported Next.js versions because
+      // Next.js 15+ uses Turbopack by default for `next dev` without setting TURBOPACK=1.
+      // Webpack ignores the turbopack config, so it's safe to always include it.
       process.env.TURBOPACK = '';
       vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.4.1');
 
       const finalConfig = materializeFinalNextConfig(exportedNextConfig);
 
-      expect(finalConfig.turbopack).toBeUndefined();
+      expect(finalConfig.turbopack).toBeDefined();
       expect(finalConfig.webpack).toBeInstanceOf(Function);
     });
 
-    it('uses webpack when TURBOPACK env var is false string', () => {
+    it('constructs both turbopack and webpack config when TURBOPACK env var is false string', () => {
+      // Note: We always construct turbopack config for supported Next.js versions because
+      // Next.js 15+ uses Turbopack by default for `next dev` without setting TURBOPACK=1.
+      // Webpack ignores the turbopack config, so it's safe to always include it.
       process.env.TURBOPACK = 'false';
       vi.spyOn(util, 'getNextjsVersion').mockReturnValue('15.4.1');
 
       const finalConfig = materializeFinalNextConfig(exportedNextConfig);
 
-      expect(finalConfig.turbopack).toBeUndefined();
+      expect(finalConfig.turbopack).toBeDefined();
       expect(finalConfig.webpack).toBeInstanceOf(Function);
     });
 
@@ -578,6 +587,7 @@ describe('withSentryConfig', () => {
 
       const finalConfig = materializeFinalNextConfig(exportedNextConfig);
 
+      // Malformed version won't be detected as supporting turbopack
       expect(finalConfig.turbopack).toBeUndefined();
       expect(finalConfig.webpack).toBeInstanceOf(Function);
     });

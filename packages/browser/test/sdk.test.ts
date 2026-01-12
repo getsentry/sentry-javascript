@@ -234,6 +234,153 @@ describe('init', () => {
     });
   });
 
+  describe('Spotlight environment variable support', () => {
+    let originalProcess: typeof globalThis.process | undefined;
+
+    afterEach(() => {
+      if (originalProcess !== undefined) {
+        globalThis.process = originalProcess;
+      } else {
+        delete (globalThis as any).process;
+      }
+    });
+
+    it('uses environment variable when options.spotlight is undefined', () => {
+      originalProcess = globalThis.process;
+      globalThis.process = {
+        env: {
+          SENTRY_SPOTLIGHT: 'true',
+        } as Record<string, string>,
+      } as NodeJS.Process;
+
+      // @ts-expect-error this is fine for testing
+      const initAndBindSpy = vi.spyOn(SentryCore, 'initAndBind').mockImplementationOnce(() => {});
+      const options = getDefaultBrowserOptions({ dsn: PUBLIC_DSN, spotlight: undefined });
+      init(options);
+
+      const optionsPassed = initAndBindSpy.mock.calls[0]?.[1];
+      // Spotlight integration should be added
+      const spotlightIntegration = optionsPassed?.integrations.find((i: Integration) => i.name === 'SpotlightBrowser');
+      expect(spotlightIntegration).toBeDefined();
+    });
+
+    it('does not add Spotlight when environment variable is false', () => {
+      originalProcess = globalThis.process;
+      globalThis.process = {
+        env: {
+          SENTRY_SPOTLIGHT: 'false',
+        } as Record<string, string>,
+      } as NodeJS.Process;
+
+      // @ts-expect-error this is fine for testing
+      const initAndBindSpy = vi.spyOn(SentryCore, 'initAndBind').mockImplementationOnce(() => {});
+      const options = getDefaultBrowserOptions({ dsn: PUBLIC_DSN, spotlight: undefined });
+      init(options);
+
+      const optionsPassed = initAndBindSpy.mock.calls[0]?.[1];
+      // Spotlight integration should NOT be added
+      const spotlightIntegration = optionsPassed?.integrations.find((i: Integration) => i.name === 'SpotlightBrowser');
+      expect(spotlightIntegration).toBeUndefined();
+    });
+
+    it('options.spotlight=false takes precedence over environment variable', () => {
+      originalProcess = globalThis.process;
+      globalThis.process = {
+        env: {
+          SENTRY_SPOTLIGHT: 'true',
+        } as Record<string, string>,
+      } as NodeJS.Process;
+
+      // @ts-expect-error this is fine for testing
+      const initAndBindSpy = vi.spyOn(SentryCore, 'initAndBind').mockImplementationOnce(() => {});
+      const options = getDefaultBrowserOptions({ dsn: PUBLIC_DSN, spotlight: false });
+      init(options);
+
+      const optionsPassed = initAndBindSpy.mock.calls[0]?.[1];
+      // Spotlight integration should NOT be added even though env var is true
+      const spotlightIntegration = optionsPassed?.integrations.find((i: Integration) => i.name === 'SpotlightBrowser');
+      expect(spotlightIntegration).toBeUndefined();
+    });
+
+    it('options.spotlight=url takes precedence over environment variable', () => {
+      originalProcess = globalThis.process;
+      const customUrl = 'http://custom:1234/stream';
+      globalThis.process = {
+        env: {
+          SENTRY_SPOTLIGHT: 'http://env:5678/stream',
+        } as Record<string, string>,
+      } as NodeJS.Process;
+
+      // @ts-expect-error this is fine for testing
+      const initAndBindSpy = vi.spyOn(SentryCore, 'initAndBind').mockImplementationOnce(() => {});
+      const options = getDefaultBrowserOptions({ dsn: PUBLIC_DSN, spotlight: customUrl });
+      init(options);
+
+      const optionsPassed = initAndBindSpy.mock.calls[0]?.[1];
+      // Spotlight integration should be added (we can't easily check the URL here without deeper inspection)
+      const spotlightIntegration = optionsPassed?.integrations.find((i: Integration) => i.name === 'SpotlightBrowser');
+      expect(spotlightIntegration).toBeDefined();
+    });
+
+    it('uses environment variable URL when options.spotlight=true', () => {
+      originalProcess = globalThis.process;
+      globalThis.process = {
+        env: {
+          SENTRY_SPOTLIGHT: 'http://env:5678/stream',
+        } as Record<string, string>,
+      } as NodeJS.Process;
+
+      // @ts-expect-error this is fine for testing
+      const initAndBindSpy = vi.spyOn(SentryCore, 'initAndBind').mockImplementationOnce(() => {});
+      const options = getDefaultBrowserOptions({ dsn: PUBLIC_DSN, spotlight: true });
+      init(options);
+
+      const optionsPassed = initAndBindSpy.mock.calls[0]?.[1];
+      // Spotlight integration should be added
+      const spotlightIntegration = optionsPassed?.integrations.find((i: Integration) => i.name === 'SpotlightBrowser');
+      expect(spotlightIntegration).toBeDefined();
+    });
+
+    it('respects priority order: PUBLIC_SENTRY_SPOTLIGHT over SENTRY_SPOTLIGHT', () => {
+      originalProcess = globalThis.process;
+      globalThis.process = {
+        env: {
+          PUBLIC_SENTRY_SPOTLIGHT: 'true',
+          SENTRY_SPOTLIGHT: 'false',
+        } as Record<string, string>,
+      } as NodeJS.Process;
+
+      // @ts-expect-error this is fine for testing
+      const initAndBindSpy = vi.spyOn(SentryCore, 'initAndBind').mockImplementationOnce(() => {});
+      const options = getDefaultBrowserOptions({ dsn: PUBLIC_DSN, spotlight: undefined });
+      init(options);
+
+      const optionsPassed = initAndBindSpy.mock.calls[0]?.[1];
+      // Spotlight integration should be added (PUBLIC_SENTRY_SPOTLIGHT=true wins)
+      const spotlightIntegration = optionsPassed?.integrations.find((i: Integration) => i.name === 'SpotlightBrowser');
+      expect(spotlightIntegration).toBeDefined();
+    });
+
+    it('uses framework-specific prefix when base is not set', () => {
+      originalProcess = globalThis.process;
+      globalThis.process = {
+        env: {
+          NEXT_PUBLIC_SENTRY_SPOTLIGHT: 'true',
+        } as Record<string, string>,
+      } as NodeJS.Process;
+
+      // @ts-expect-error this is fine for testing
+      const initAndBindSpy = vi.spyOn(SentryCore, 'initAndBind').mockImplementationOnce(() => {});
+      const options = getDefaultBrowserOptions({ dsn: PUBLIC_DSN, spotlight: undefined });
+      init(options);
+
+      const optionsPassed = initAndBindSpy.mock.calls[0]?.[1];
+      // Spotlight integration should be added
+      const spotlightIntegration = optionsPassed?.integrations.find((i: Integration) => i.name === 'SpotlightBrowser');
+      expect(spotlightIntegration).toBeDefined();
+    });
+  });
+
   it('returns a client from init', () => {
     const client = init();
     expect(client).not.toBeUndefined();

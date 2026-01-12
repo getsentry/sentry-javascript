@@ -2,9 +2,21 @@
 // can be removed once following issue is fixed: https://github.com/import-js/eslint-plugin-import/issues/703
 /* eslint-disable import/export */
 import type { Client, EventProcessor, Integration } from '@sentry/core';
-import { addEventProcessor, applySdkMetadata, consoleSandbox, getGlobalScope, GLOBAL_OBJ } from '@sentry/core';
+import {
+  addEventProcessor,
+  applySdkMetadata,
+  consoleSandbox,
+  envToBool,
+  getGlobalScope,
+  GLOBAL_OBJ,
+  resolveSpotlightOptions,
+} from '@sentry/core';
 import type { BrowserOptions } from '@sentry/react';
-import { getDefaultIntegrations as getReactDefaultIntegrations, init as reactInit } from '@sentry/react';
+import {
+  getDefaultIntegrations as getReactDefaultIntegrations,
+  init as reactInit,
+  spotlightBrowserIntegration,
+} from '@sentry/react';
 import { DEBUG_BUILD } from '../common/debug-build';
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
 import { getVercelEnv } from '../common/getVercelEnv';
@@ -32,6 +44,8 @@ const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   _sentryBasePath?: string;
   _sentryRelease?: string;
   _experimentalThirdPartyOriginStackFrames?: string;
+  _sentrySpotlight?: string;
+  NEXT_PUBLIC_SENTRY_SPOTLIGHT?: string;
 };
 
 // Treeshakable guard to remove all code related to tracing
@@ -64,12 +78,12 @@ export function init(options: BrowserOptions): Client | undefined {
     removeIsrSsgTraceMetaTags();
   }
 
-  const opts = {
+  const opts: BrowserOptions = {
     environment: getVercelEnv(true) || process.env.NODE_ENV,
     defaultIntegrations: getDefaultIntegrations(options),
     release: process.env._sentryRelease || globalWithInjectedValues._sentryRelease,
     ...options,
-  } satisfies BrowserOptions;
+  };
 
   applyTunnelRouteOption(opts);
   applySdkMetadata(opts, 'nextjs', ['nextjs', 'react']);
@@ -139,6 +153,37 @@ function getDefaultIntegrations(options: BrowserOptions): Integration[] {
       experimentalThirdPartyOriginStackFrames,
     }),
   );
+
+  // Add Spotlight integration if enabled via:
+  // 1. NEXT_PUBLIC_SENTRY_SPOTLIGHT env var (injected by Next.js build config)
+  // 2. Explicit `spotlight` option in Sentry.init()
+  //
+  // We handle this in the Next.js SDK rather than the browser SDK because the browser SDK's
+  // auto-detection is development-only (stripped from production builds that users install).
+  //
+  // Check multiple locations for Spotlight config (in priority order):
+  // 1. globalThis.NEXT_PUBLIC_SENTRY_SPOTLIGHT - set by valueInjectionLoader
+  // 2. process.env._sentrySpotlight - set via Next.js env config (works in node_modules)
+  // 3. process.env.NEXT_PUBLIC_SENTRY_SPOTLIGHT - direct env var (may not work in node_modules in dev mode)
+  const spotlightEnvValue =
+    globalWithInjectedValues.NEXT_PUBLIC_SENTRY_SPOTLIGHT ??
+    process.env._sentrySpotlight ??
+    globalWithInjectedValues._sentrySpotlight;
+
+  // Parse the env var value if present (could be 'true', 'false', or a URL)
+  let envSpotlight: boolean | string | undefined;
+  if (spotlightEnvValue !== undefined) {
+    const boolValue = envToBool(spotlightEnvValue, { strict: true });
+    envSpotlight = boolValue !== null ? boolValue : spotlightEnvValue;
+  }
+
+  // Resolve the final Spotlight config: explicit option takes precedence over env var
+  const spotlightValue = resolveSpotlightOptions(options.spotlight, envSpotlight);
+
+  if (spotlightValue) {
+    const args = typeof spotlightValue === 'string' ? { sidecarUrl: spotlightValue } : undefined;
+    customDefaultIntegrations.push(spotlightBrowserIntegration(args));
+  }
 
   return customDefaultIntegrations;
 }

@@ -3,7 +3,7 @@ import MyWorker2 from './worker2.ts?worker';
 import * as Sentry from '@sentry/browser';
 
 Sentry.init({
-  dsn: import.meta.env.PUBLIC_E2E_TEST_DSN,
+  dsn: import.meta.env.VITE_E2E_TEST_DSN,
   environment: import.meta.env.MODE || 'development',
   tracesSampleRate: 1.0,
   debug: true,

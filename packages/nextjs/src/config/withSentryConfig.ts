@@ -360,14 +360,23 @@ function getFinalConfigObject(
     );
   }
 
+  // Calculate spotlight config once for both webpack and turbopack
+  const spotlightConfig =
+    incomingUserNextConfigObject.env?.NEXT_PUBLIC_SENTRY_SPOTLIGHT ?? process.env.NEXT_PUBLIC_SENTRY_SPOTLIGHT;
+
   let turboPackConfig: TurbopackOptions | undefined;
 
-  if (isTurbopack) {
+  // IMPORTANT: Always construct turbopack config if the Next.js version supports it,
+  // regardless of detected bundler. This is because Next.js 15+ uses Turbopack by
+  // default for `next dev` without setting TURBOPACK=1, so our detection may be wrong.
+  // Applying turbopack config when webpack is used is safe (webpack ignores it).
+  if (isTurbopack || isTurbopackSupported) {
     turboPackConfig = constructTurbopackConfig({
       userNextConfig: incomingUserNextConfigObject,
       userSentryOptions,
       routeManifest,
       nextJsVersion,
+      spotlightConfig,
     });
   }
 
@@ -471,10 +480,14 @@ function getFinalConfigObject(
             routeManifest,
             nextJsVersion,
             useRunAfterProductionCompileHook: shouldUseRunAfterProductionCompileHook,
+            spotlightConfig,
           }),
         }
       : {}),
-    ...(isTurbopackSupported && isTurbopack
+    // Always apply turbopack config if supported, regardless of detected bundler.
+    // Next.js 15+ uses Turbopack by default for `next dev` without setting TURBOPACK=1,
+    // so we can't reliably detect which bundler will be used. Safe to apply both configs.
+    ...(isTurbopackSupported && turboPackConfig
       ? {
           turbopack: turboPackConfig,
         }
@@ -617,6 +630,14 @@ function setUpBuildTimeVariables(
 
   if (releaseName) {
     buildTimeVariables._sentryRelease = releaseName;
+  }
+
+  // Inject Spotlight config so the Next.js SDK can auto-enable Spotlight.
+  // We use an internal name (_sentrySpotlight) because Next.js replaces process.env.* in ALL code
+  // (including node_modules) for variables defined in the env config.
+  const spotlightConfig = userNextConfig.env?.NEXT_PUBLIC_SENTRY_SPOTLIGHT ?? process.env.NEXT_PUBLIC_SENTRY_SPOTLIGHT;
+  if (spotlightConfig) {
+    buildTimeVariables._sentrySpotlight = spotlightConfig;
   }
 
   if (typeof userNextConfig.env === 'object') {
