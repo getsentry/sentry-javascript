@@ -17,8 +17,8 @@ import {
   GEN_AI_TOOL_NAME_ATTRIBUTE,
   GEN_AI_TOOL_OUTPUT_ATTRIBUTE,
   GEN_AI_TOOL_TYPE_ATTRIBUTE,
-  GEN_AI_USAGE_INPUT_TOKENS_CACHED_ATTRIBUTE,
   GEN_AI_USAGE_INPUT_TOKENS_CACHE_WRITE_ATTRIBUTE,
+  GEN_AI_USAGE_INPUT_TOKENS_CACHED_ATTRIBUTE,
   getClient,
   getTruncatedJsonString,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
@@ -501,6 +501,26 @@ async function* _instrumentQueryGenerator(
             });
           }
         }
+      }
+
+      // Handle error messages from SDK
+      if (msg.type === 'error') {
+        encounteredError = true;
+        const errorMessage = (msg.error as Record<string, unknown>)?.message || msg.message || 'Claude Code SDK error';
+        const errorType = (msg.error as Record<string, unknown>)?.type || 'sdk_error';
+
+        captureException(new Error(String(errorMessage)), {
+          mechanism: {
+            type: SENTRY_ORIGIN,
+            handled: false,
+            data: {
+              function: 'query',
+              errorType: String(errorType),
+            },
+          },
+        });
+
+        span.setStatus({ code: 2, message: String(errorMessage) });
       }
 
       yield message;
