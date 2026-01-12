@@ -560,7 +560,10 @@ async function* _instrumentQueryGenerator(
       }
     }
 
-    span.setStatus({ code: 1 });
+    // Only set success status if no error was encountered during message processing
+    if (!encounteredError) {
+      span.setStatus({ code: 1 });
+    }
   } catch (error) {
     // Capture exception to Sentry with proper metadata
     captureException(error, {
