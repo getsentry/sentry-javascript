@@ -68,7 +68,7 @@
     "@opentelemetry/instrumentation": "^0.208.0",
     "@opentelemetry/semantic-conventions": "^1.37.0",
     "@remix-run/router": "1.x",
-    "@sentry/cli": "^2.58.2",
+    "@sentry/cli": "^3.1.0",
     "@sentry/core": "10.33.0",
     "@sentry/node": "10.33.0",
     "@sentry/react": "10.33.0",
