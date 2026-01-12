@@ -145,25 +145,36 @@ sentryTest('handles fetch invalid URL scheme errors @firefox', async ({ getLocal
   const [req, pageErrorMessage] = await Promise.all([reqPromise, pageErrorPromise]);
   const eventData = envelopeRequestParser(req);
 
-  const errorMap: Record<string, string> = {
+  /**
+   * This kind of error does show a helpful warning in the console, e.g.:
+   * Fetch API cannot load blub://sentry-test-external.io/invalid-scheme. URL scheme "blub" is not supported.
+   * But it seems we cannot really access this in the SDK :(
+   *
+   * Note: On WebKit, invalid URL schemes trigger TWO different errors:
+   * 1. A synchronous "access control checks" error (captured by pageerror)
+   * 2. A "Load failed" error from the fetch rejection (which we enhance)
+   * So we use separate error maps for pageError and sentryError on this test.
+   */
+  const pageErrorMap: Record<string, string> = {
+    chromium: 'Failed to fetch (sentry-test-external.io)',
+    webkit: '/sentry-test-external.io/invalid-scheme due to access control checks.',
+    firefox: 'NetworkError when attempting to fetch resource. (sentry-test-external.io)',
+  };
+
+  const sentryErrorMap: Record<string, string> = {
     chromium: 'Failed to fetch (sentry-test-external.io)',
     webkit: 'Load failed (sentry-test-external.io)',
     firefox: 'NetworkError when attempting to fetch resource. (sentry-test-external.io)',
   };
 
-  const error = errorMap[browserName];
+  const pageError = pageErrorMap[browserName];
+  const sentryError = sentryErrorMap[browserName];
 
-  /**
-   * This kind of error does show a helpful warning in the console, e.g.:
-   * Fetch API cannot load blub://sentry-test-external.io/invalid-scheme. URL scheme "blub" is not supported.
-   * But it seems we cannot really access this in the SDK :(
-   */
-
-  expect(pageErrorMessage).toContain(error);
+  expect(pageErrorMessage).toContain(pageError);
   expect(eventData.exception?.values).toHaveLength(1);
   expect(eventData.exception?.values?.[0]).toMatchObject({
     type: 'TypeError',
-    value: error,
+    value: sentryError,
     mechanism: {
       handled: false,
       type: 'auto.browser.global_handlers.onunhandledrejection',
