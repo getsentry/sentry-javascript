@@ -104,6 +104,55 @@ const tracingReplayFeedbackBaseBundleConfig = makeBaseBundleConfig({
   outputFileBase: () => 'bundles/bundle.tracing.replay.feedback',
 });
 
+const loggerBaseBundleConfig = makeBaseBundleConfig({
+  bundleType: 'standalone',
+  entrypoints: ['src/index.bundle.logger.ts'],
+  licenseTitle: '@sentry/browser (Logger)',
+  outputFileBase: () => 'bundles/bundle.logger',
+});
+
+const tracingLoggerBaseBundleConfig = makeBaseBundleConfig({
+  bundleType: 'standalone',
+  entrypoints: ['src/index.bundle.tracing.logger.ts'],
+  licenseTitle: '@sentry/browser (Performance Monitoring and Logger)',
+  outputFileBase: () => 'bundles/bundle.tracing.logger',
+});
+
+const replayLoggerBaseBundleConfig = makeBaseBundleConfig({
+  bundleType: 'standalone',
+  entrypoints: ['src/index.bundle.replay.logger.ts'],
+  licenseTitle: '@sentry/browser (Replay and Logger)',
+  outputFileBase: () => 'bundles/bundle.replay.logger',
+});
+
+const feedbackLoggerBaseBundleConfig = makeBaseBundleConfig({
+  bundleType: 'standalone',
+  entrypoints: ['src/index.bundle.feedback.logger.ts'],
+  licenseTitle: '@sentry/browser (Feedback and Logger)',
+  outputFileBase: () => 'bundles/bundle.feedback.logger',
+});
+
+const tracingReplayLoggerBaseBundleConfig = makeBaseBundleConfig({
+  bundleType: 'standalone',
+  entrypoints: ['src/index.bundle.tracing.replay.logger.ts'],
+  licenseTitle: '@sentry/browser (Performance Monitoring, Replay, and Logger)',
+  outputFileBase: () => 'bundles/bundle.tracing.replay.logger',
+});
+
+const replayFeedbackLoggerBaseBundleConfig = makeBaseBundleConfig({
+  bundleType: 'standalone',
+  entrypoints: ['src/index.bundle.replay.feedback.logger.ts'],
+  licenseTitle: '@sentry/browser (Replay, Feedback, and Logger)',
+  outputFileBase: () => 'bundles/bundle.replay.feedback.logger',
+});
+
+const tracingReplayFeedbackLoggerBaseBundleConfig = makeBaseBundleConfig({
+  bundleType: 'standalone',
+  entrypoints: ['src/index.bundle.tracing.replay.feedback.logger.ts'],
+  licenseTitle: '@sentry/browser (Performance Monitoring, Replay, Feedback, and Logger)',
+  outputFileBase: () => 'bundles/bundle.tracing.replay.feedback.logger',
+});
+
 builds.push(
   ...makeBundleConfigVariants(baseBundleConfig),
   ...makeBundleConfigVariants(tracingBaseBundleConfig),
@@ -112,6 +161,13 @@ builds.push(
   ...makeBundleConfigVariants(tracingReplayBaseBundleConfig),
   ...makeBundleConfigVariants(replayFeedbackBaseBundleConfig),
   ...makeBundleConfigVariants(tracingReplayFeedbackBaseBundleConfig),
+  ...makeBundleConfigVariants(loggerBaseBundleConfig),
+  ...makeBundleConfigVariants(tracingLoggerBaseBundleConfig),
+  ...makeBundleConfigVariants(replayLoggerBaseBundleConfig),
+  ...makeBundleConfigVariants(feedbackLoggerBaseBundleConfig),
+  ...makeBundleConfigVariants(tracingReplayLoggerBaseBundleConfig),
+  ...makeBundleConfigVariants(replayFeedbackLoggerBaseBundleConfig),
+  ...makeBundleConfigVariants(tracingReplayFeedbackLoggerBaseBundleConfig),
 );
 
 export default builds;
