@@ -1,4 +1,5 @@
 import type { Context } from 'hono';
+
 /**
  * Checks whether the given Hono context has a fetch event.
  */

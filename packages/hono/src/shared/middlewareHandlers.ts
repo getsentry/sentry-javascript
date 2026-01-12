@@ -8,11 +8,11 @@ import {
   winterCGRequestToRequestData,
 } from '@sentry/core';
 import type { Context } from 'hono';
-import { routePath } from 'hono/dist/types/helper/route/index';
+import { routePath } from 'hono/route';
 import { hasFetchEvent } from '../utils/hono-context';
 
 /**
- *
+ * todo
  */
 export function requestHandler(context: Context): void {
   const defaultScope = getDefaultIsolationScope();
@@ -26,7 +26,7 @@ export function requestHandler(context: Context): void {
 }
 
 /**
- *
+ * todo
  */
 export function responseHandler(context: Context): void {
   const activeSpan = getActiveSpan();
