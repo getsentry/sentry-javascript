@@ -124,7 +124,7 @@ describe('metrics', () => {
                 },
                 'sentry.sdk.version': {
                   type: 'string',
-                  value: '10.32.1',
+                  value: expect.any(String),
                 },
                 'user.email': {
                   type: 'string',
