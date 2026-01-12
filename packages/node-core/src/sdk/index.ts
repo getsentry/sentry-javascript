@@ -7,7 +7,6 @@ import {
   functionToStringIntegration,
   getCurrentScope,
   getIntegrationsToSetup,
-  GLOBAL_OBJ,
   hasSpansEnabled,
   inboundFiltersIntegration,
   linkedErrorsIntegration,
@@ -131,8 +130,6 @@ function _init(
   getCurrentScope().setClient(client);
 
   client.init();
-
-  GLOBAL_OBJ._sentryInjectLoaderHookRegister?.();
 
   debug.log(`SDK initialized from ${isCjs() ? 'CommonJS' : 'ESM'}`);
 

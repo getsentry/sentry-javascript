@@ -66,13 +66,11 @@
     "@opentelemetry/semantic-conventions": "^1.37.0"
   },
   "dependencies": {
-    "@apm-js-collab/tracing-hooks": "^0.3.1",
     "@sentry/core": "10.32.1",
     "@sentry/opentelemetry": "10.32.1",
     "import-in-the-middle": "^2.0.1"
   },
   "devDependencies": {
-    "@apm-js-collab/code-transformer": "^0.8.2",
     "@opentelemetry/api": "^1.9.0",
     "@opentelemetry/context-async-hooks": "^2.2.0",
     "@opentelemetry/core": "^2.2.0",
