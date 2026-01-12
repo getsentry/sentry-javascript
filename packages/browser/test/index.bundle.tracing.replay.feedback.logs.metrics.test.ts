@@ -14,5 +14,3 @@ describe('index.bundle.tracing.replay.feedback.logs.metrics', () => {
     expect(TracingReplayFeedbackLogsMetricsBundle.metrics).toBe(coreMetrics);
   });
 });
-
-
