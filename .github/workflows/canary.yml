@@ -31,11 +31,11 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Check out current commit
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6 # v6 # v2
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - name: Set up Node
-        uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f # v6 # v6
+        uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f # v6
         with:
           node-version-file: 'package.json'
       - name: Check canary cache
@@ -123,7 +123,7 @@ jobs:
 
     steps:
       - name: Check out current commit
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6 # v6 # v2
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
         with:
           ref: ${{ env.HEAD_COMMIT }}
       - uses: pnpm/action-setup@v4
@@ -131,7 +131,7 @@ jobs:
           version: 9.15.9
       - name: Set up Node
         if: matrix.test-application != 'angular-20'
-        uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f # v6 # v6
+        uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f # v6
         with:
           node-version-file: 'dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}/package.json'
 
