@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "@sentry/vue": "latest || *",
-    "@tanstack/vue-router": "^1.64.0",
+    "@tanstack/vue-router": "^1.141.8",
     "vue": "^3.4.15"
   },
   "devDependencies": {

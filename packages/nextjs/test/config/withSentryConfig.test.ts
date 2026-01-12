@@ -390,6 +390,21 @@ describe('withSentryConfig', () => {
         );
       });
 
+      it('adds a turbopack note when the deprecated option only applies to webpack', () => {
+        process.env.TURBOPACK = '1';
+        vi.spyOn(util, 'getNextjsVersion').mockReturnValue('16.0.0');
+
+        const sentryOptions = {
+          disableLogger: true,
+        };
+
+        materializeFinalNextConfig(exportedNextConfig, undefined, sentryOptions);
+
+        expect(consoleWarnSpy).toHaveBeenCalledWith(
+          expect.stringContaining('Use webpack.treeshake.removeDebugLogging instead. (Not supported with Turbopack.)'),
+        );
+      });
+
       it('does not warn when using new webpack path', () => {
         delete process.env.TURBOPACK;
 

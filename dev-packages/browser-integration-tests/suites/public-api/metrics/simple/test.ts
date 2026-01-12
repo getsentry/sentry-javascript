@@ -17,7 +17,7 @@ sentryTest('should capture all metric types', async ({ getLocalTestUrl, page }) 
   expect(envelopeItems[0]).toEqual([
     {
       type: 'trace_metric',
-      item_count: 5,
+      item_count: 6,
       content_type: 'application/vnd.sentry.items.trace-metric+json',
     },
     {
@@ -96,6 +96,60 @@ sentryTest('should capture all metric types', async ({ getLocalTestUrl, page }) 
             'sentry.environment': { value: 'test', type: 'string' },
             'sentry.sdk.name': { value: 'sentry.javascript.browser', type: 'string' },
             'sentry.sdk.version': { value: expect.any(String), type: 'string' },
+          },
+        },
+        {
+          timestamp: expect.any(Number),
+          trace_id: expect.stringMatching(/^[\da-f]{32}$/),
+          name: 'test.scope.attributes.counter',
+          type: 'counter',
+          value: 1,
+          attributes: {
+            action: {
+              type: 'string',
+              value: 'click',
+            },
+            scope_attribute_1: {
+              type: 'integer',
+              value: 1,
+            },
+            scope_attribute_2: {
+              type: 'string',
+              value: 'test',
+            },
+            scope_attribute_3: {
+              type: 'integer',
+              unit: 'gigabyte',
+              value: 38,
+            },
+            'sentry.environment': {
+              type: 'string',
+              value: 'test',
+            },
+            'sentry.release': {
+              type: 'string',
+              value: '1.0.0',
+            },
+            'sentry.sdk.name': {
+              type: 'string',
+              value: 'sentry.javascript.browser',
+            },
+            'sentry.sdk.version': {
+              type: 'string',
+              value: expect.any(String),
+            },
+            'user.email': {
+              type: 'string',
+              value: 'test@example.com',
+            },
+            'user.id': {
+              type: 'string',
+              value: 'user-123',
+            },
+            'user.name': {
+              type: 'string',
+              value: 'testuser',
+            },
           },
         },
       ],

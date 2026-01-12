@@ -1,4 +1,4 @@
-import { captureException, withMonitor } from '@sentry/core';
+import { captureException, type MonitorConfig, withMonitor } from '@sentry/core';
 import { replaceCronNames } from './common';
 
 export interface NodeCronOptions {
@@ -32,7 +32,10 @@ export interface NodeCron {
  * );
  * ```
  */
-export function instrumentNodeCron<T>(lib: Partial<NodeCron> & T): T {
+export function instrumentNodeCron<T>(
+  lib: Partial<NodeCron> & T,
+  monitorConfig: Pick<MonitorConfig, 'isolateTrace'> = {},
+): T {
   return new Proxy(lib, {
     get(target, prop) {
       if (prop === 'schedule' && target.schedule) {
@@ -69,6 +72,7 @@ export function instrumentNodeCron<T>(lib: Partial<NodeCron> & T): T {
                 {
                   schedule: { type: 'crontab', value: replaceCronNames(expression) },
                   timezone,
+                  ...monitorConfig,
                 },
               );
             };

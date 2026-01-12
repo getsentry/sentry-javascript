@@ -28,9 +28,10 @@ function isRouteGroup(name: string): boolean {
   return name.startsWith('(') && name.endsWith(')');
 }
 
-function normalizeRoutePath(routePath: string): string {
+function normalizeRouteGroupPath(routePath: string): string {
   // Remove route group segments from the path
-  return routePath.replace(/\/\([^)]+\)/g, '');
+  // Using positive lookahead with (?=[^)\/]*\)) to avoid polynomial matching
+  return routePath.replace(/\/\((?=[^)/]*\))[^)/]+\)/g, '');
 }
 
 function getDynamicRouteSegment(name: string): string {
@@ -140,7 +141,7 @@ function scanAppDirectory(dir: string, basePath: string = '', includeRouteGroups
 
     if (pageFile) {
       // Conditionally normalize the path based on includeRouteGroups option
-      const routePath = includeRouteGroups ? basePath || '/' : normalizeRoutePath(basePath || '/');
+      const routePath = includeRouteGroups ? basePath || '/' : normalizeRouteGroupPath(basePath || '/');
       const isDynamic = routePath.includes(':');
 
       // Check if this page has generateStaticParams (ISR/SSG indicator)

@@ -172,6 +172,7 @@ type StartResult = {
   childHasExited(): boolean;
   getLogs(): string[];
   getPort(): number | undefined;
+  sendSignal(signal: NodeJS.Signals): void;
   makeRequest<T>(
     method: 'get' | 'post' | 'put' | 'delete' | 'patch',
     path: string,
@@ -667,6 +668,9 @@ export function createRunner(...paths: string[]) {
         },
         getPort(): number | undefined {
           return scenarioServerPort;
+        },
+        sendSignal(signal: NodeJS.Signals): void {
+          child?.kill(signal);
         },
         makeRequest: async function <T>(
           method: 'get' | 'post' | 'put' | 'delete' | 'patch',

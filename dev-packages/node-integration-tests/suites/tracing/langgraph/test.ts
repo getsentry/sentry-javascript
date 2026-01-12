@@ -205,4 +205,72 @@ describe('LangGraph integration', () => {
       await createRunner().ignore('event').expect({ transaction: EXPECTED_TRANSACTION_WITH_TOOLS }).start().completed();
     });
   });
+
+  // Test for thread_id (conversation ID) support
+  const EXPECTED_TRANSACTION_THREAD_ID = {
+    transaction: 'langgraph-thread-id-test',
+    spans: expect.arrayContaining([
+      // create_agent span
+      expect.objectContaining({
+        data: {
+          'gen_ai.operation.name': 'create_agent',
+          'sentry.op': 'gen_ai.create_agent',
+          'sentry.origin': 'auto.ai.langgraph',
+          'gen_ai.agent.name': 'thread_test_agent',
+        },
+        description: 'create_agent thread_test_agent',
+        op: 'gen_ai.create_agent',
+        origin: 'auto.ai.langgraph',
+        status: 'ok',
+      }),
+      // First invoke_agent span with thread_id
+      expect.objectContaining({
+        data: expect.objectContaining({
+          'gen_ai.operation.name': 'invoke_agent',
+          'sentry.op': 'gen_ai.invoke_agent',
+          'sentry.origin': 'auto.ai.langgraph',
+          'gen_ai.agent.name': 'thread_test_agent',
+          'gen_ai.pipeline.name': 'thread_test_agent',
+          // The thread_id should be captured as conversation.id
+          'gen_ai.conversation.id': 'thread_abc123_session_1',
+        }),
+        description: 'invoke_agent thread_test_agent',
+        op: 'gen_ai.invoke_agent',
+        origin: 'auto.ai.langgraph',
+        status: 'ok',
+      }),
+      // Second invoke_agent span with different thread_id
+      expect.objectContaining({
+        data: expect.objectContaining({
+          'gen_ai.operation.name': 'invoke_agent',
+          'sentry.op': 'gen_ai.invoke_agent',
+          'sentry.origin': 'auto.ai.langgraph',
+          'gen_ai.agent.name': 'thread_test_agent',
+          'gen_ai.pipeline.name': 'thread_test_agent',
+          // Different thread_id for different conversation
+          'gen_ai.conversation.id': 'thread_xyz789_session_2',
+        }),
+        description: 'invoke_agent thread_test_agent',
+        op: 'gen_ai.invoke_agent',
+        origin: 'auto.ai.langgraph',
+        status: 'ok',
+      }),
+      // Third invoke_agent span without thread_id (should NOT have gen_ai.conversation.id)
+      expect.objectContaining({
+        data: expect.not.objectContaining({
+          'gen_ai.conversation.id': expect.anything(),
+        }),
+        description: 'invoke_agent thread_test_agent',
+        op: 'gen_ai.invoke_agent',
+        origin: 'auto.ai.langgraph',
+        status: 'ok',
+      }),
+    ]),
+  };
+
+  createEsmAndCjsTests(__dirname, 'scenario-thread-id.mjs', 'instrument.mjs', (createRunner, test) => {
+    test('should capture thread_id as gen_ai.conversation.id', async () => {
+      await createRunner().ignore('event').expect({ transaction: EXPECTED_TRANSACTION_THREAD_ID }).start().completed();
+    });
+  });
 });

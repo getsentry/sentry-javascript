@@ -61,7 +61,7 @@ export {
   _INTERNAL_shouldSkipAiProviderWrapping,
   _INTERNAL_clearAiProviderSkips,
 } from './utils/ai/providerSkip';
-export { applyScopeDataToEvent, mergeScopeData } from './utils/applyScopeDataToEvent';
+export { applyScopeDataToEvent, mergeScopeData, getCombinedScopeData } from './utils/scopeData';
 export { prepareEvent } from './utils/prepareEvent';
 export type { ExclusiveEventHintOrCaptureContext } from './utils/prepareEvent';
 export { createCheckInEnvelope } from './checkin';
@@ -101,7 +101,7 @@ export {
   headersToDict,
   httpHeadersToSpanAttributes,
 } from './utils/request';
-export { DEFAULT_ENVIRONMENT } from './constants';
+export { DEFAULT_ENVIRONMENT, DEV_ENVIRONMENT } from './constants';
 export { addBreadcrumb } from './breadcrumbs';
 export { functionToStringIntegration } from './integrations/functiontostring';
 // eslint-disable-next-line deprecation/deprecation
@@ -322,6 +322,7 @@ export { vercelWaitUntil } from './utils/vercelWaitUntil';
 export { flushIfServerless } from './utils/flushIfServerless';
 export { SDK_VERSION } from './utils/version';
 export { getDebugImagesForResources, getFilenameToDebugIdMap } from './utils/debug-ids';
+export { getFilenameToMetadataMap } from './metadata';
 export { escapeStringForRegex } from './vendor/escapeStringForRegex';
 
 export type { Attachment } from './types-hoist/attachment';
@@ -449,6 +450,7 @@ export type {
   MetricType,
   SerializedMetric,
   SerializedMetricContainer,
+  // eslint-disable-next-line deprecation/deprecation
   SerializedMetricAttributeValue,
 } from './types-hoist/metric';
 export type { TimedEvent } from './types-hoist/timedEvent';
@@ -513,3 +515,9 @@ export type {
   UnstableRollupPluginOptions,
   UnstableWebpackPluginOptions,
 } from './build-time-plugins/buildTimeOptionsBase';
+export {
+  withRandomSafeContext as _INTERNAL_withRandomSafeContext,
+  type RandomSafeContextRunner as _INTERNAL_RandomSafeContextRunner,
+  safeMathRandom as _INTERNAL_safeMathRandom,
+  safeDateNow as _INTERNAL_safeDateNow,
+} from './utils/randomSafeContext';

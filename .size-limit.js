@@ -82,7 +82,7 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/prod/index.js',
     import: createImport('init', 'browserTracingIntegration', 'replayIntegration', 'replayCanvasIntegration'),
     gzip: true,
-    limit: '85 KB',
+    limit: '85.5 KB',
   },
   {
     name: '@sentry/browser (incl. Tracing, Replay, Feedback)',
@@ -111,6 +111,27 @@ module.exports = [
     import: createImport('init', 'feedbackAsyncIntegration'),
     gzip: true,
     limit: '35 KB',
+  },
+  {
+    name: '@sentry/browser (incl. Metrics)',
+    path: 'packages/browser/build/npm/esm/prod/index.js',
+    import: createImport('init', 'metrics'),
+    gzip: true,
+    limit: '27 KB',
+  },
+  {
+    name: '@sentry/browser (incl. Logs)',
+    path: 'packages/browser/build/npm/esm/prod/index.js',
+    import: createImport('init', 'logger'),
+    gzip: true,
+    limit: '27 KB',
+  },
+  {
+    name: '@sentry/browser (incl. Metrics & Logs)',
+    path: 'packages/browser/build/npm/esm/prod/index.js',
+    import: createImport('init', 'metrics', 'logger'),
+    gzip: true,
+    limit: '28 KB',
   },
   // React SDK (ESM)
   {
@@ -222,7 +243,7 @@ module.exports = [
     import: createImport('init'),
     ignore: ['$app/stores'],
     gzip: true,
-    limit: '42 KB',
+    limit: '42.5 KB',
   },
   // Node-Core SDK (ESM)
   {
@@ -240,7 +261,7 @@ module.exports = [
     import: createImport('init'),
     ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
     gzip: true,
-    limit: '162 KB',
+    limit: '162.5 KB',
   },
   {
     name: '@sentry/node - without tracing',

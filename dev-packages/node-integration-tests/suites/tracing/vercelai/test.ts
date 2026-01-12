@@ -67,6 +67,7 @@ describe('Vercel AI integration', () => {
       expect.objectContaining({
         data: {
           'gen_ai.prompt': '{"prompt":"Where is the second span?"}',
+          'gen_ai.request.messages.original_length': 1,
           'gen_ai.request.messages': '[{"role":"user","content":"Where is the second span?"}]',
           'gen_ai.request.model': 'mock-model-id',
           'gen_ai.response.model': 'mock-model-id',
@@ -95,6 +96,7 @@ describe('Vercel AI integration', () => {
       expect.objectContaining({
         data: {
           'gen_ai.request.messages': expect.any(String),
+          'gen_ai.request.messages.original_length': expect.any(Number),
           'gen_ai.request.model': 'mock-model-id',
           'gen_ai.response.finish_reasons': ['stop'],
           'gen_ai.response.id': expect.any(String),
@@ -205,6 +207,7 @@ describe('Vercel AI integration', () => {
       expect.objectContaining({
         data: {
           'gen_ai.prompt': '{"prompt":"Where is the first span?"}',
+          'gen_ai.request.messages.original_length': 1,
           'gen_ai.request.messages': '[{"role":"user","content":"Where is the first span?"}]',
           'gen_ai.request.model': 'mock-model-id',
           'gen_ai.response.model': 'mock-model-id',
@@ -237,6 +240,7 @@ describe('Vercel AI integration', () => {
       // Second span - doGenerate for first call, should also include input/output fields when sendDefaultPii: true
       expect.objectContaining({
         data: {
+          'gen_ai.request.messages.original_length': 1,
           'gen_ai.request.messages': '[{"role":"user","content":[{"type":"text","text":"Where is the first span?"}]}]',
           'gen_ai.request.model': 'mock-model-id',
           'gen_ai.response.finish_reasons': ['stop'],
@@ -275,6 +279,7 @@ describe('Vercel AI integration', () => {
       expect.objectContaining({
         data: {
           'gen_ai.prompt': '{"prompt":"Where is the second span?"}',
+          'gen_ai.request.messages.original_length': 1,
           'gen_ai.request.messages': '[{"role":"user","content":"Where is the second span?"}]',
           'gen_ai.request.model': 'mock-model-id',
           'gen_ai.response.model': 'mock-model-id',
@@ -308,6 +313,7 @@ describe('Vercel AI integration', () => {
       expect.objectContaining({
         data: {
           'gen_ai.request.messages': expect.any(String),
+          'gen_ai.request.messages.original_length': expect.any(Number),
           'gen_ai.request.model': 'mock-model-id',
           'gen_ai.response.finish_reasons': ['stop'],
           'gen_ai.response.id': expect.any(String),
@@ -345,6 +351,7 @@ describe('Vercel AI integration', () => {
       expect.objectContaining({
         data: {
           'gen_ai.prompt': '{"prompt":"What is the weather in San Francisco?"}',
+          'gen_ai.request.messages.original_length': 1,
           'gen_ai.request.messages': '[{"role":"user","content":"What is the weather in San Francisco?"}]',
           'gen_ai.request.model': 'mock-model-id',
           'gen_ai.response.model': 'mock-model-id',
@@ -380,6 +387,7 @@ describe('Vercel AI integration', () => {
         data: {
           'gen_ai.request.available_tools': EXPECTED_AVAILABLE_TOOLS_JSON,
           'gen_ai.request.messages': expect.any(String),
+          'gen_ai.request.messages.original_length': expect.any(Number),
           'gen_ai.request.model': 'mock-model-id',
           'gen_ai.response.finish_reasons': ['tool-calls'],
           'gen_ai.response.id': expect.any(String),
@@ -697,6 +705,42 @@ describe('Vercel AI integration', () => {
       expect(errorEvent).toMatchObject(expectedError);
       expect(errorEvent!.contexts!.trace!.trace_id).toBe(transactionEvent!.contexts!.trace!.trace_id);
       expect(errorEvent!.contexts!.trace!.span_id).toBe(transactionEvent!.contexts!.trace!.span_id);
+    });
+  });
+
+  createEsmAndCjsTests(__dirname, 'scenario-late-model-id.mjs', 'instrument.mjs', (createRunner, test) => {
+    test('sets op correctly even when model ID is not available at span start', async () => {
+      const expectedTransaction = {
+        transaction: 'main',
+        spans: expect.arrayContaining([
+          // The generateText span should have the correct op even though model ID was not available at span start
+          expect.objectContaining({
+            description: 'generateText',
+            op: 'gen_ai.invoke_agent',
+            origin: 'auto.vercelai.otel',
+            status: 'ok',
+            data: expect.objectContaining({
+              'sentry.op': 'gen_ai.invoke_agent',
+              'sentry.origin': 'auto.vercelai.otel',
+              'gen_ai.operation.name': 'ai.generateText',
+            }),
+          }),
+          // The doGenerate span - name stays as 'generateText.doGenerate' since model ID is missing
+          expect.objectContaining({
+            description: 'generateText.doGenerate',
+            op: 'gen_ai.generate_text',
+            origin: 'auto.vercelai.otel',
+            status: 'ok',
+            data: expect.objectContaining({
+              'sentry.op': 'gen_ai.generate_text',
+              'sentry.origin': 'auto.vercelai.otel',
+              'gen_ai.operation.name': 'ai.generateText.doGenerate',
+            }),
+          }),
+        ]),
+      };
+
+      await createRunner().expect({ transaction: expectedTransaction }).start().completed();
     });
   });
 });

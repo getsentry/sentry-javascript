@@ -19,9 +19,10 @@ import {
   accumulateTokensForParent,
   applyAccumulatedTokens,
   convertAvailableToolsToJsonString,
+  getSpanOpFromName,
   requestMessagesFromPrompt,
 } from './utils';
-import type { ProviderMetadata } from './vercel-ai-attributes';
+import type { OpenAiProviderMetadata, ProviderMetadata } from './vercel-ai-attributes';
 import {
   AI_MODEL_ID_ATTRIBUTE,
   AI_PROMPT_MESSAGES_ATTRIBUTE,
@@ -64,10 +65,8 @@ function onVercelAiSpanStart(span: Span): void {
     return;
   }
 
-  // The AI model ID must be defined for generate, stream, and embed spans.
-  // The provider is optional and may not always be present.
-  const aiModelId = attributes[AI_MODEL_ID_ATTRIBUTE];
-  if (typeof aiModelId !== 'string' || !aiModelId) {
+  // Check if this is a Vercel AI span by name pattern.
+  if (!name.startsWith('ai.')) {
     return;
   }
 
@@ -225,76 +224,35 @@ function processGenerateSpan(span: Span, name: string, attributes: SpanAttribute
   }
   span.setAttribute('ai.streaming', name.includes('stream'));
 
-  // Generate Spans
-  if (name === 'ai.generateText') {
-    span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'gen_ai.invoke_agent');
-    return;
+  // Set the op based on the span name
+  const op = getSpanOpFromName(name);
+  if (op) {
+    span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, op);
   }
 
-  if (name === 'ai.generateText.doGenerate') {
-    span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'gen_ai.generate_text');
-    span.updateName(`generate_text ${attributes[AI_MODEL_ID_ATTRIBUTE]}`);
-    return;
-  }
-
-  if (name === 'ai.streamText') {
-    span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'gen_ai.invoke_agent');
-    return;
-  }
-
-  if (name === 'ai.streamText.doStream') {
-    span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'gen_ai.stream_text');
-    span.updateName(`stream_text ${attributes[AI_MODEL_ID_ATTRIBUTE]}`);
-    return;
-  }
-
-  if (name === 'ai.generateObject') {
-    span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'gen_ai.invoke_agent');
-    return;
-  }
-
-  if (name === 'ai.generateObject.doGenerate') {
-    span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'gen_ai.generate_object');
-    span.updateName(`generate_object ${attributes[AI_MODEL_ID_ATTRIBUTE]}`);
-    return;
-  }
-
-  if (name === 'ai.streamObject') {
-    span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'gen_ai.invoke_agent');
-    return;
-  }
-
-  if (name === 'ai.streamObject.doStream') {
-    span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'gen_ai.stream_object');
-    span.updateName(`stream_object ${attributes[AI_MODEL_ID_ATTRIBUTE]}`);
-    return;
-  }
-
-  if (name === 'ai.embed') {
-    span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'gen_ai.invoke_agent');
-    return;
-  }
-
-  if (name === 'ai.embed.doEmbed') {
-    span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'gen_ai.embed');
-    span.updateName(`embed ${attributes[AI_MODEL_ID_ATTRIBUTE]}`);
-    return;
-  }
-
-  if (name === 'ai.embedMany') {
-    span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'gen_ai.invoke_agent');
-    return;
-  }
-
-  if (name === 'ai.embedMany.doEmbed') {
-    span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'gen_ai.embed_many');
-    span.updateName(`embed_many ${attributes[AI_MODEL_ID_ATTRIBUTE]}`);
-    return;
-  }
-
-  if (name.startsWith('ai.stream')) {
-    span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'ai.run');
-    return;
+  // Update span names for .do* spans to include the model ID (only if model ID exists)
+  const modelId = attributes[AI_MODEL_ID_ATTRIBUTE];
+  if (modelId) {
+    switch (name) {
+      case 'ai.generateText.doGenerate':
+        span.updateName(`generate_text ${modelId}`);
+        break;
+      case 'ai.streamText.doStream':
+        span.updateName(`stream_text ${modelId}`);
+        break;
+      case 'ai.generateObject.doGenerate':
+        span.updateName(`generate_object ${modelId}`);
+        break;
+      case 'ai.streamObject.doStream':
+        span.updateName(`stream_object ${modelId}`);
+        break;
+      case 'ai.embed.doEmbed':
+        span.updateName(`embed ${modelId}`);
+        break;
+      case 'ai.embedMany.doEmbed':
+        span.updateName(`embed_many ${modelId}`);
+        break;
+    }
   }
 }
 
@@ -312,28 +270,28 @@ function addProviderMetadataToAttributes(attributes: SpanAttributes): void {
   if (providerMetadata) {
     try {
       const providerMetadataObject = JSON.parse(providerMetadata) as ProviderMetadata;
-      if (providerMetadataObject.openai) {
+
+      // Handle OpenAI metadata (v5 uses 'openai', v6 Azure Responses API uses 'azure')
+      const openaiMetadata: OpenAiProviderMetadata | undefined =
+        providerMetadataObject.openai ?? providerMetadataObject.azure;
+      if (openaiMetadata) {
         setAttributeIfDefined(
           attributes,
           GEN_AI_USAGE_INPUT_TOKENS_CACHED_ATTRIBUTE,
-          providerMetadataObject.openai.cachedPromptTokens,
+          openaiMetadata.cachedPromptTokens,
         );
-        setAttributeIfDefined(
-          attributes,
-          'gen_ai.usage.output_tokens.reasoning',
-          providerMetadataObject.openai.reasoningTokens,
-        );
+        setAttributeIfDefined(attributes, 'gen_ai.usage.output_tokens.reasoning', openaiMetadata.reasoningTokens);
         setAttributeIfDefined(
           attributes,
           'gen_ai.usage.output_tokens.prediction_accepted',
-          providerMetadataObject.openai.acceptedPredictionTokens,
+          openaiMetadata.acceptedPredictionTokens,
         );
         setAttributeIfDefined(
           attributes,
           'gen_ai.usage.output_tokens.prediction_rejected',
-          providerMetadataObject.openai.rejectedPredictionTokens,
+          openaiMetadata.rejectedPredictionTokens,
         );
-        setAttributeIfDefined(attributes, 'gen_ai.conversation.id', providerMetadataObject.openai.responseId);
+        setAttributeIfDefined(attributes, 'gen_ai.conversation.id', openaiMetadata.responseId);
       }
 
       if (providerMetadataObject.anthropic) {

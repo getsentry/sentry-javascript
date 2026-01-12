@@ -1,6 +1,6 @@
 import { parseSemver } from '@sentry/core';
 import * as fs from 'fs';
-import { sync as resolveSync } from 'resolve';
+import { createRequire } from 'module';
 
 /**
  * Returns the version of Next.js installed in the project, or undefined if it cannot be determined.
@@ -23,7 +23,7 @@ export function getNextjsVersion(): string | undefined {
 
 function resolveNextjsPackageJson(): string | undefined {
   try {
-    return resolveSync('next/package.json', { basedir: process.cwd() });
+    return createRequire(`${process.cwd()}/`).resolve('next/package.json');
   } catch {
     return undefined;
   }

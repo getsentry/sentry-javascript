@@ -77,6 +77,7 @@ export const _replayCanvasIntegration = ((options: Partial<ReplayCanvasOptions> 
     ] as [number, number],
   };
 
+  let currentCanvasManager: CanvasManager | undefined;
   let canvasManagerResolve: (value: CanvasManager) => void;
   const _canvasManager: Promise<CanvasManager> = new Promise(resolve => (canvasManagerResolve = resolve));
 
@@ -104,14 +105,19 @@ export const _replayCanvasIntegration = ((options: Partial<ReplayCanvasOptions> 
               }
             },
           });
+
+          currentCanvasManager = manager;
+
+          // Resolve promise on first call for backward compatibility
           canvasManagerResolve(manager);
+
           return manager;
         },
         ...(CANVAS_QUALITY[quality || 'medium'] || CANVAS_QUALITY.medium),
       };
     },
     async snapshot(canvasElement?: HTMLCanvasElement, options?: SnapshotOptions) {
-      const canvasManager = await _canvasManager;
+      const canvasManager = currentCanvasManager || (await _canvasManager);
 
       canvasManager.snapshot(canvasElement, options);
     },

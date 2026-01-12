@@ -1,7 +1,7 @@
 // import/export got a false positive, and affects most of our index barrel files
 // can be removed once following issue is fixed: https://github.com/import-js/eslint-plugin-import/issues/703
 /* eslint-disable import/export */
-import { context } from '@opentelemetry/api';
+import { context, createContextKey } from '@opentelemetry/api';
 import {
   applySdkMetadata,
   type EventProcessor,
@@ -12,6 +12,7 @@ import {
   getRootSpan,
   GLOBAL_OBJ,
   registerSpanErrorInstrumentation,
+  type Scope,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
@@ -19,9 +20,9 @@ import {
   spanToJSON,
   stripUrlQueryAndFragment,
 } from '@sentry/core';
-import { getScopesFromContext } from '@sentry/opentelemetry';
 import type { VercelEdgeOptions } from '@sentry/vercel-edge';
 import { getDefaultIntegrations, init as vercelEdgeInit } from '@sentry/vercel-edge';
+import { DEBUG_BUILD } from '../common/debug-build';
 import { ATTR_NEXT_SPAN_TYPE } from '../common/nextSpanAttributes';
 import { TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION } from '../common/span-attributes-with-logic-attached';
 import { addHeadersAsAttributes } from '../common/utils/addHeadersAsAttributes';
@@ -41,6 +42,32 @@ export { wrapApiHandlerWithSentry } from './wrapApiHandlerWithSentry';
 
 export type EdgeOptions = VercelEdgeOptions;
 
+type CurrentScopes = {
+  scope: Scope;
+  isolationScope: Scope;
+};
+
+// This key must match `@sentry/opentelemetry`'s `SENTRY_SCOPES_CONTEXT_KEY`.
+// We duplicate it here so the Edge bundle does not need to import the full `@sentry/opentelemetry` package.
+const SENTRY_SCOPES_CONTEXT_KEY = createContextKey('sentry_scopes');
+
+type ContextWithGetValue = {
+  getValue(key: unknown): unknown;
+};
+
+function getScopesFromContext(otelContext: unknown): CurrentScopes | undefined {
+  if (!otelContext || typeof otelContext !== 'object') {
+    return undefined;
+  }
+
+  const maybeContext = otelContext as Partial<ContextWithGetValue>;
+  if (typeof maybeContext.getValue !== 'function') {
+    return undefined;
+  }
+
+  return maybeContext.getValue(SENTRY_SCOPES_CONTEXT_KEY) as CurrentScopes | undefined;
+}
+
 const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   _sentryRewriteFramesDistDir?: string;
   _sentryRelease?: string;
@@ -53,6 +80,13 @@ export function init(options: VercelEdgeOptions = {}): void {
 
   if (isBuild()) {
     return;
+  }
+
+  if (!DEBUG_BUILD && options.debug) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      '[@sentry/nextjs] You have enabled `debug: true`, but Sentry debug logging was removed from your bundle (likely via `withSentryConfig({ disableLogger: true })` / `webpack.treeshake.removeDebugLogging: true`). Set that option to `false` to see Sentry debug output.',
+    );
   }
 
   const customDefaultIntegrations = getDefaultIntegrations(options);
