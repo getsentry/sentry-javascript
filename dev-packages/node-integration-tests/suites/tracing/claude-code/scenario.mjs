@@ -18,7 +18,6 @@ async function run() {
   // Basic query
   const query1 = patchedQuery({
     prompt: 'What is the capital of France?',
-    inputMessages: [{ role: 'user', content: 'What is the capital of France?' }],
     options: { model: 'claude-sonnet-4-20250514', scenario: 'basic' },
   });
 
@@ -32,7 +31,6 @@ async function run() {
   // Query with tool usage
   const query2 = patchedQuery({
     prompt: 'Read the test file',
-    inputMessages: [{ role: 'user', content: 'Read the test file' }],
     options: { model: 'claude-sonnet-4-20250514', scenario: 'withTools' },
   });
 
@@ -46,7 +44,6 @@ async function run() {
   // Query with extension tools (WebSearch, WebFetch)
   const query3 = patchedQuery({
     prompt: 'Search for information about Sentry',
-    inputMessages: [{ role: 'user', content: 'Search for information about Sentry' }],
     options: { model: 'claude-sonnet-4-20250514', scenario: 'extensionTools' },
   });
 
@@ -61,7 +58,6 @@ async function run() {
   try {
     const query4 = patchedQuery({
       prompt: 'This will fail',
-      inputMessages: [{ role: 'user', content: 'This will fail' }],
       options: { model: 'claude-sonnet-4-20250514', scenario: 'llmError' },
     });
 

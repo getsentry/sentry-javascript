@@ -20,10 +20,9 @@ export class MockClaudeAgentSdk {
   /**
    * Mock query function that returns an AsyncGenerator
    * @param {Object} params - Query parameters
-   * @param {string} params.prompt - The prompt text
+   * @param {string} params.prompt - The prompt text (primary input to the agent)
    * @param {Object} params.options - Query options
    * @param {string} params.options.model - Model to use
-   * @param {Array} params.inputMessages - Previous conversation messages
    */
   query(params) {
     const generator = this._createGenerator(params);
@@ -81,11 +80,13 @@ export class MockClaudeAgentSdk {
     return {
       messages: [
         // Session initialization
+        // Note: conversation_history is empty because the real SDK uses `prompt` as input,
+        // not inputMessages. The prompt is captured directly on the invoke_agent span.
         {
           type: 'system',
           session_id: 'will-be-replaced',
           model: 'will-be-replaced',
-          conversation_history: params.inputMessages || [],
+          conversation_history: [],
         },
         // Assistant response
         {

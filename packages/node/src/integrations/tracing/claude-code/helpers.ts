@@ -155,18 +155,27 @@ function _createInstrumentedGenerator(
 ): AsyncGenerator<unknown, void, unknown> {
   const agentName = instrumentationOptions.agentName ?? 'claude-code';
 
+  // Build attributes for the invoke_agent span
+  const attributes: Record<string, string> = {
+    [GEN_AI_SYSTEM_ATTRIBUTE]: 'anthropic',
+    [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: model,
+    [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'invoke_agent',
+    [GEN_AI_AGENT_NAME_ATTRIBUTE]: agentName,
+    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: SENTRY_ORIGIN,
+    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.invoke_agent',
+  };
+
+  // Capture the prompt as request messages on the invoke_agent span
+  // This is the primary input to the agent, captured at span creation time
+  if (instrumentationOptions.recordInputs && instrumentationOptions.prompt) {
+    attributes[GEN_AI_REQUEST_MESSAGES_ATTRIBUTE] = getTruncatedJsonString(instrumentationOptions.prompt);
+  }
+
   return startSpanManual(
     {
       name: `invoke_agent ${agentName}`,
       op: 'gen_ai.invoke_agent',
-      attributes: {
-        [GEN_AI_SYSTEM_ATTRIBUTE]: 'anthropic',
-        [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: model,
-        [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'invoke_agent',
-        [GEN_AI_AGENT_NAME_ATTRIBUTE]: agentName,
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: SENTRY_ORIGIN,
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.invoke_agent',
-      },
+      attributes,
     },
     (span: Span) => {
       // Return the instrumented generator - span.end() is called in the generator's finally block
@@ -200,7 +209,6 @@ async function* _instrumentQueryGenerator(
   let currentTurnId: string | null = null;
   let currentTurnModel: string | null = null;
   let currentTurnStopReason: string | null = null;
-  let inputMessagesCaptured = false;
   let finalResult: string | null = null;
   let previousLLMSpan: Span | null = null;
   let previousTurnTools: unknown[] = [];
@@ -231,12 +239,9 @@ async function* _instrumentQueryGenerator(
           });
         }
 
-        if (!inputMessagesCaptured && instrumentationOptions.recordInputs && msg.conversation_history) {
-          span.setAttributes({
-            [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: getTruncatedJsonString(msg.conversation_history),
-          });
-          inputMessagesCaptured = true;
-        }
+        // Note: conversation_history from system messages is intentionally not captured here.
+        // The prompt parameter (the primary input to the agent) is captured at span creation time,
+        // which is the correct behavior for the real Claude Agent SDK.
       }
 
       // Handle assistant messages

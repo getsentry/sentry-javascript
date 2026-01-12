@@ -17,11 +17,13 @@ class SimpleMockSdk {
     };
 
     // System message with session ID
+    // Note: conversation_history is empty because the real SDK uses `prompt` as input.
+    // The prompt is captured directly on the invoke_agent span.
     yield {
       type: 'system',
       session_id: 'sess_test123',
       model: 'claude-sonnet-4-20250514',
-      conversation_history: params.inputMessages || [],
+      conversation_history: [],
     };
 
     // Small delay
@@ -61,7 +63,6 @@ async function run() {
   console.log('[Test] Running patched query...');
   const query = patchedQuery({
     prompt: 'Test',
-    inputMessages: [{ role: 'user', content: 'Test' }],
     options: { model: 'claude-sonnet-4-20250514' },
   });
 
