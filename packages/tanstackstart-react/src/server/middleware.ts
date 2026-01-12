@@ -10,9 +10,15 @@ const SENTRY_WRAPPED = '__SENTRY_WRAPPED__';
  * Creates a proxy for the next function that ends the current span and restores the parent span.
  * This ensures that subsequent middleware spans are children of the root span, not nested children.
  */
-function getNextProxy<T extends (...args: unknown[]) => unknown>(next: T, span: Span, prevSpan: Span | undefined): T {
+function getNextProxy<T extends (...args: unknown[]) => unknown>(
+  next: T,
+  span: Span,
+  prevSpan: Span | undefined,
+  nextState: { called: boolean },
+): T {
   return new Proxy(next, {
     apply: (originalNext, thisArgNext, argsNext) => {
+      nextState.called = true;
       span.end();
 
       if (prevSpan) {
@@ -44,15 +50,29 @@ function wrapMiddlewareWithSentry<T extends TanStackMiddlewareBase>(
       apply: (originalServer, thisArgServer, argsServer) => {
         const prevSpan = getActiveSpan();
 
-        return startSpanManual(getMiddlewareSpanOptions(options.name), (span: Span) => {
+        return startSpanManual(getMiddlewareSpanOptions(options.name), async (span: Span) => {
+          const nextState = { called: false };
+
           // The server function receives { next, context, request } as first argument
           // We need to proxy the `next` function inside that object
           const middlewareArgs = argsServer[0] as { next?: (...args: unknown[]) => unknown } | undefined;
           if (middlewareArgs && typeof middlewareArgs === 'object' && typeof middlewareArgs.next === 'function') {
-            middlewareArgs.next = getNextProxy(middlewareArgs.next, span, prevSpan);
+            middlewareArgs.next = getNextProxy(middlewareArgs.next, span, prevSpan, nextState);
           }
 
-          return originalServer.apply(thisArgServer, argsServer);
+          try {
+            const result = await originalServer.apply(thisArgServer, argsServer);
+
+            // End span here if next() wasn't called, else we already ended it in next()
+            if (!nextState.called) {
+              span.end();
+            }
+
+            return result;
+          } catch (e) {
+            span.end();
+            throw e;
+          }
         });
       },
     });
