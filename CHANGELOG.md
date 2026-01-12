@@ -4,6 +4,22 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+- **feat(tanstackstart-react): Add `wrapMiddlewaresWithSentry` for manual middleware instrumentation**
+
+  You can now wrap your middlewares using `wrapMiddlewaresWithSentry`, allowing you to trace middleware execution in your TanStack Start application.
+
+  ```ts
+  import { createMiddleware } from '@tanstack/react-start';
+  import { wrapMiddlewaresWithSentry } from '@sentry/tanstackstart-react';
+
+  const loggingMiddleware = createMiddleware({ type: 'function' }).server(async ({ next }) => {
+    console.log('Request started');
+    return next();
+  });
+
+  export const [wrappedLoggingMiddleware] = wrapMiddlewaresWithSentry({ loggingMiddleware });
+  ```
+
 - **feat(core): Apply scope attributes to metrics ([#18738](https://github.com/getsentry/sentry-javascript/pull/18738))**
 
   You can now set attributes on the SDK's scopes which will be applied to all metrics as long as the respective scopes are active. For the time being, only `string`, `number` and `boolean` attribute values are supported.

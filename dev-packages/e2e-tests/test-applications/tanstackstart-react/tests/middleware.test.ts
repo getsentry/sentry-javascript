@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+ import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Sends spans for multiple middlewares and verifies they are siblings under the same parent span', async ({
@@ -129,6 +129,63 @@ test('Sends spans for server route request middleware', async ({ page }) => {
         op: 'middleware.tanstackstart',
         origin: 'manual.middleware.tanstackstart',
         status: 'ok',
+      }),
+    ]),
+  );
+});
+
+test('Sends span for middleware that returns early without calling next()', async ({ page }) => {
+  const transactionEventPromise = waitForTransaction('tanstackstart-react', transactionEvent => {
+    return (
+      transactionEvent?.contexts?.trace?.op === 'http.server' &&
+      !!transactionEvent?.transaction?.startsWith('GET /_serverFn')
+    );
+  });
+
+  await page.goto('/test-middleware');
+  await expect(page.locator('#server-fn-early-return-btn')).toBeVisible();
+  await page.locator('#server-fn-early-return-btn').click();
+
+  const transactionEvent = await transactionEventPromise;
+
+  expect(Array.isArray(transactionEvent?.spans)).toBe(true);
+
+  // Check for the early return middleware span
+  expect(transactionEvent?.spans).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        description: 'earlyReturnMiddleware',
+        op: 'middleware.tanstackstart',
+        origin: 'manual.middleware.tanstackstart',
+        status: 'ok',
+      }),
+    ]),
+  );
+});
+
+test('Sends span for middleware that throws an error', async ({ page }) => {
+  const transactionEventPromise = waitForTransaction('tanstackstart-react', transactionEvent => {
+    return (
+      transactionEvent?.contexts?.trace?.op === 'http.server' &&
+      !!transactionEvent?.transaction?.startsWith('GET /_serverFn')
+    );
+  });
+
+  await page.goto('/test-middleware');
+  await expect(page.locator('#server-fn-error-btn')).toBeVisible();
+  await page.locator('#server-fn-error-btn').click();
+
+  const transactionEvent = await transactionEventPromise;
+
+  expect(Array.isArray(transactionEvent?.spans)).toBe(true);
+
+  // Check for the error middleware span
+  expect(transactionEvent?.spans).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        description: 'errorMiddleware',
+        op: 'middleware.tanstackstart',
+        origin: 'manual.middleware.tanstackstart',
       }),
     ]),
   );

@@ -25,15 +25,31 @@ const serverRouteRequestMiddleware = createMiddleware().server(async ({ next }) 
   return next();
 });
 
+// Early return middleware - returns without calling next()
+const earlyReturnMiddleware = createMiddleware({ type: 'function' }).server(async () => {
+  console.log('Early return middleware executed - not calling next()');
+  return { earlyReturn: true, message: 'Middleware returned early without calling next()' };
+});
+
+// Error middleware - throws an exception
+const errorMiddleware = createMiddleware({ type: 'function' }).server(async () => {
+  console.log('Error middleware executed - throwing error');
+  throw new Error('Middleware Error Test');
+});
+
 // Manually wrap middlewares with Sentry
 export const [
   wrappedGlobalRequestMiddleware,
   wrappedGlobalFunctionMiddleware,
   wrappedServerFnMiddleware,
   wrappedServerRouteRequestMiddleware,
+  wrappedEarlyReturnMiddleware,
+  wrappedErrorMiddleware,
 ] = wrapMiddlewaresWithSentry({
   globalRequestMiddleware,
   globalFunctionMiddleware,
   serverFnMiddleware,
   serverRouteRequestMiddleware,
+  earlyReturnMiddleware,
+  errorMiddleware,
 });

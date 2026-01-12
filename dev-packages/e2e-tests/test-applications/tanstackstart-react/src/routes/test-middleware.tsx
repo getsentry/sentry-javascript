@@ -1,6 +1,10 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { createServerFn } from '@tanstack/react-start';
-import { wrappedServerFnMiddleware } from '../middleware';
+import {
+  wrappedServerFnMiddleware,
+  wrappedEarlyReturnMiddleware,
+  wrappedErrorMiddleware,
+} from '../middleware';
 
 // Server function with specific middleware (also gets global function middleware)
 const serverFnWithMiddleware = createServerFn()
@@ -15,6 +19,22 @@ const serverFnWithoutMiddleware = createServerFn().handler(async () => {
   console.log('Server function without specific middleware executed');
   return { message: 'Global middleware only test' };
 });
+
+// Server function with early return middleware (middleware returns without calling next)
+const serverFnWithEarlyReturnMiddleware = createServerFn()
+  .middleware([wrappedEarlyReturnMiddleware])
+  .handler(async () => {
+    console.log('This should not be executed - middleware returned early');
+    return { message: 'This should not be returned' };
+  });
+
+// Server function with error middleware (middleware throws an error)
+const serverFnWithErrorMiddleware = createServerFn()
+  .middleware([wrappedErrorMiddleware])
+  .handler(async () => {
+    console.log('This should not be executed - middleware threw error');
+    return { message: 'This should not be returned' };
+  });
 
 export const Route = createFileRoute('/test-middleware')({
   component: TestMiddleware,
@@ -41,6 +61,29 @@ function TestMiddleware() {
         }}
       >
         Call server function (global middleware only)
+      </button>
+      <button
+        id="server-fn-early-return-btn"
+        type="button"
+        onClick={async () => {
+          const result = await serverFnWithEarlyReturnMiddleware();
+          console.log('Early return result:', result);
+        }}
+      >
+        Call server function with early return middleware
+      </button>
+      <button
+        id="server-fn-error-btn"
+        type="button"
+        onClick={async () => {
+          try {
+            await serverFnWithErrorMiddleware();
+          } catch (error) {
+            console.log('Caught error from middleware:', error);
+          }
+        }}
+      >
+        Call server function with error middleware
       </button>
     </div>
   );
