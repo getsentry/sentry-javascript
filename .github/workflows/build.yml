@@ -63,6 +63,10 @@ env:
   # This option both controls the `v8-compile-cache-lib` and `v8-compile-cache` packages.
   DISABLE_V8_COMPILE_CACHE: '1'
 
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
   job_get_metadata:
     name: Get Metadata
