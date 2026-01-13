@@ -55,7 +55,7 @@
     "@sentry-internal/browser-utils": "10.33.0",
     "@sentry/core": "10.33.0",
     "@sentry/node": "10.33.0",
-    "@sentry/react": "10.33.0"
+    "@sentry/react": "10.33.0",
     "@sentry/vite-plugin": "^4.6.1"
   },
   "devDependencies": {
