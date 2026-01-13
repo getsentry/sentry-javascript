@@ -15,6 +15,10 @@ on:
       - v9
       - v8
 
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
   enforce-license-compliance:
     runs-on: ubuntu-24.04
