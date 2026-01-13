@@ -1,5 +1,5 @@
+import type { BuildTimeOptionsBase } from '@sentry/core';
 import type { PluginOption, UserConfig } from 'vite';
-import type { SentryTanstackStartReactPluginOptions } from '../config/types';
 import { makeAddSentryVitePlugin, makeEnableSourceMapsVitePlugin } from './sourceMaps';
 
 /**
@@ -7,18 +7,17 @@ import { makeAddSentryVitePlugin, makeEnableSourceMapsVitePlugin } from './sourc
  */
 export function addSentryPlugins(
   plugins: PluginOption[],
-  options: SentryTanstackStartReactPluginOptions,
+  options: BuildTimeOptionsBase,
   viteConfig: UserConfig,
 ): PluginOption[] {
   const sentryPlugins: PluginOption[] = [];
 
   // Only add source map plugins in production builds
   if (process.env.NODE_ENV !== 'development') {
-    // Check if source maps upload is enabled
-    // Default to enabled
-    const sourceMapsEnabled = options.sourceMapsUploadOptions?.enabled ?? true;
+    // Check if source maps upload is enabled, default is enabled
+    const sourceMapsDisabled = options.sourcemaps?.disable === true || options.sourcemaps?.disable === 'disable-upload';
 
-    if (sourceMapsEnabled) {
+    if (!sourceMapsDisabled) {
       const sourceMapsPlugins = makeAddSentryVitePlugin(options, viteConfig);
       const enableSourceMapsPlugin = makeEnableSourceMapsVitePlugin(options);
 

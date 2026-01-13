@@ -41,7 +41,7 @@ describe('makeAddSentryVitePlugin()', () => {
       {
         org: 'my-org',
         authToken: 'my-token',
-        sourceMapsUploadOptions: {
+        sourcemaps: {
           filesToDeleteAfterUpload: ['baz/*.js'],
         },
         bundleSizeOptimizations: {

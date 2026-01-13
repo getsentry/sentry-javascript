@@ -1,20 +1,17 @@
+import type { BuildTimeOptionsBase } from '@sentry/core';
 import { sentryVitePlugin } from '@sentry/vite-plugin';
 import type { Plugin, UserConfig } from 'vite';
-import type { SentryTanstackStartReactPluginOptions } from '../config/types';
 
 /**
  * A Sentry plugin for adding the @sentry/vite-plugin to automatically upload source maps to Sentry.
  */
-export function makeAddSentryVitePlugin(
-  options: SentryTanstackStartReactPluginOptions,
-  viteConfig: UserConfig,
-): Plugin[] {
-  const { authToken, bundleSizeOptimizations, debug, org, project, sourceMapsUploadOptions } = options;
+export function makeAddSentryVitePlugin(options: BuildTimeOptionsBase, viteConfig: UserConfig): Plugin[] {
+  const { authToken, bundleSizeOptimizations, debug, org, project, sourcemaps, telemetry } = options;
 
   let updatedFilesToDeleteAfterUpload: string[] | undefined = undefined;
 
   if (
-    typeof sourceMapsUploadOptions?.filesToDeleteAfterUpload === 'undefined' &&
+    typeof sourcemaps?.filesToDeleteAfterUpload === 'undefined' &&
     // Only if source maps were previously not set, we update the "filesToDeleteAfterUpload" (as we override the setting with "hidden")
     typeof viteConfig.build?.sourcemap === 'undefined'
   ) {
@@ -24,7 +21,7 @@ export function makeAddSentryVitePlugin(
     if (debug) {
       // eslint-disable-next-line no-console
       console.log(
-        `[Sentry] Automatically setting \`sourceMapsUploadOptions.filesToDeleteAfterUpload: ${JSON.stringify(
+        `[Sentry] Automatically setting \`sourcemaps.filesToDeleteAfterUpload: ${JSON.stringify(
           updatedFilesToDeleteAfterUpload,
         )}\` to delete generated source maps after they were uploaded to Sentry.`,
       );
@@ -39,9 +36,9 @@ export function makeAddSentryVitePlugin(
       org: org ?? process.env.SENTRY_ORG,
       project: project ?? process.env.SENTRY_PROJECT,
       sourcemaps: {
-        filesToDeleteAfterUpload: sourceMapsUploadOptions?.filesToDeleteAfterUpload ?? updatedFilesToDeleteAfterUpload,
+        filesToDeleteAfterUpload: sourcemaps?.filesToDeleteAfterUpload ?? updatedFilesToDeleteAfterUpload,
       },
-      telemetry: sourceMapsUploadOptions?.telemetry ?? true,
+      telemetry: telemetry ?? true,
       _metaOptions: {
         telemetry: {
           metaFramework: 'tanstackstart-react',
@@ -54,7 +51,7 @@ export function makeAddSentryVitePlugin(
 /**
  * A Sentry plugin for TanStack Start React to enable "hidden" source maps if they are unset.
  */
-export function makeEnableSourceMapsVitePlugin(options: SentryTanstackStartReactPluginOptions): Plugin[] {
+export function makeEnableSourceMapsVitePlugin(options: BuildTimeOptionsBase): Plugin[] {
   return [
     {
       name: 'sentry-tanstackstart-react-source-maps',
@@ -90,7 +87,7 @@ export function makeEnableSourceMapsVitePlugin(options: SentryTanstackStartReact
  */
 export function getUpdatedSourceMapSettings(
   viteConfig: UserConfig,
-  sentryPluginOptions?: SentryTanstackStartReactPluginOptions,
+  sentryPluginOptions?: BuildTimeOptionsBase,
 ): boolean | 'inline' | 'hidden' {
   viteConfig.build = viteConfig.build || {};
 

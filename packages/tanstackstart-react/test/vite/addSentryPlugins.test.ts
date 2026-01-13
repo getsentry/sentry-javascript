@@ -49,17 +49,25 @@ describe('addSentryPlugins()', () => {
     expect(result[0]).toBe(userPlugin);
   });
 
-  it('does not add plugins when sourceMapsUploadOptions.enabled is false', () => {
+  it('does not add plugins when sourcemaps.disable is true', () => {
     const userPlugin: Plugin = { name: 'user-plugin' };
-    const result = addSentryPlugins([userPlugin], { sourceMapsUploadOptions: { enabled: false } }, {});
+    const result = addSentryPlugins([userPlugin], { sourcemaps: { disable: true } }, {});
 
     expect(result).toHaveLength(1);
     expect(result[0]).toBe(userPlugin);
   });
 
-  it('adds plugins when sourceMapsUploadOptions.enabled is true', () => {
+  it('does not add plugins when sourcemaps.disable is "disable-upload"', () => {
     const userPlugin: Plugin = { name: 'user-plugin' };
-    const result = addSentryPlugins([userPlugin], { sourceMapsUploadOptions: { enabled: true } }, {});
+    const result = addSentryPlugins([userPlugin], { sourcemaps: { disable: 'disable-upload' } }, {});
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toBe(userPlugin);
+  });
+
+  it('adds plugins when sourcemaps.disable is false', () => {
+    const userPlugin: Plugin = { name: 'user-plugin' };
+    const result = addSentryPlugins([userPlugin], { sourcemaps: { disable: false } }, {});
 
     expect(result).toHaveLength(3);
     expect(result[0]).toBe(mockSourceMapsPlugin);
@@ -67,7 +75,7 @@ describe('addSentryPlugins()', () => {
     expect(result[2]).toBe(userPlugin);
   });
 
-  it('adds plugins by default when sourceMapsUploadOptions is not specified', () => {
+  it('adds plugins by default when sourcemaps is not specified', () => {
     const userPlugin: Plugin = { name: 'user-plugin' };
     const result = addSentryPlugins([userPlugin], {}, {});
 
