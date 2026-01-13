@@ -115,6 +115,16 @@ export function maybeCreateRouteManifest(
 
   // Apply route exclusion filter if configured
   const excludeFilter = userSentryOptions.routeManifestInjection?.exclude;
+  return filterRouteManifest(manifest, excludeFilter);
+}
+
+type ExcludeFilter = ((route: string) => boolean) | (string | RegExp)[] | undefined;
+
+/**
+ * Filters routes from the manifest based on the exclude filter.
+ * (Exported only for testing)
+ */
+export function filterRouteManifest(manifest: RouteManifest, excludeFilter: ExcludeFilter): RouteManifest {
   if (!excludeFilter) {
     return manifest;
   }
@@ -128,7 +138,8 @@ export function maybeCreateRouteManifest(
       if (typeof pattern === 'string') {
         return route === pattern;
       }
-      return pattern.test(route);
+
+      return !!route.match(pattern);
     });
   };
 
