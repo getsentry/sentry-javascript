@@ -150,3 +150,13 @@ export class RateLimitError extends Error {
     this.rateLimits = rateLimits;
   }
 }
+
+/**
+ * This error indicates that the replay duration limit was exceeded and the session is too long.
+ *
+ */
+export class ReplayDurationLimitError extends Error {
+  public constructor() {
+    super('Session is too long, not sending replay');
+  }
+}

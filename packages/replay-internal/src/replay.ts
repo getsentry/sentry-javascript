@@ -55,7 +55,7 @@ import { debug } from './util/logger';
 import { resetReplayIdOnDynamicSamplingContext } from './util/resetReplayIdOnDynamicSamplingContext';
 import { closestElementOfNode } from './util/rrweb';
 import { sendReplay } from './util/sendReplay';
-import { RateLimitError } from './util/sendReplayRequest';
+import { RateLimitError, ReplayDurationLimitError } from './util/sendReplayRequest';
 import type { SKIPPED } from './util/throttle';
 import { throttle, THROTTLED } from './util/throttle';
 
@@ -1185,7 +1185,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       // We leave 30s wiggle room to accommodate late flushing etc.
       // This _could_ happen when the browser is suspended during flushing, in which case we just want to stop
       if (timestamp - this._context.initialTimestamp > this._options.maxReplayDuration + 30_000) {
-        throw new Error('Session is too long, not sending replay');
+        throw new ReplayDurationLimitError();
       }
 
       const eventContext = this._popEventContext();
@@ -1218,7 +1218,14 @@ export class ReplayContainer implements ReplayContainerInterface {
       const client = getClient();
 
       if (client) {
-        const dropReason = err instanceof RateLimitError ? 'ratelimit_backoff' : 'send_error';
+        let dropReason: 'ratelimit_backoff' | 'send_error' | 'sample_rate';
+        if (err instanceof RateLimitError) {
+          dropReason = 'ratelimit_backoff';
+        } else if (err instanceof ReplayDurationLimitError) {
+          dropReason = 'sample_rate';
+        } else {
+          dropReason = 'send_error';
+        }
         client.recordDroppedEvent(dropReason, 'replay');
       }
     }
