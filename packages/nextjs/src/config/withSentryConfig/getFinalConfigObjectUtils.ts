@@ -98,9 +98,14 @@ export function maybeCreateRouteManifest(
     );
   }
 
-  // Check if manifest injection is disabled (new option takes precedence)
+  // If explicitly disabled, skip
+  if (userSentryOptions.routeManifestInjection === false) {
+    return undefined;
+  }
+
+  // Still check the deprecated option if the new option is not set
   // eslint-disable-next-line deprecation/deprecation
-  if (userSentryOptions.routeManifestInjection === false || userSentryOptions.disableManifestInjection) {
+  if (userSentryOptions.routeManifestInjection === undefined && userSentryOptions.disableManifestInjection) {
     return undefined;
   }
 
