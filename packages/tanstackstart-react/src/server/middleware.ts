@@ -54,7 +54,7 @@ function wrapMiddlewareWithSentry<T extends TanStackMiddlewareBase>(
           const nextState = { called: false };
 
           // The server function receives { next, context, request } as first argument
-          // We need to proxy the `next` function inside that object
+          // Users call next() inside their middleware to move down the middleware chain. We proxy next() to end the span when it is called.
           const middlewareArgs = argsServer[0] as { next?: (...args: unknown[]) => unknown } | undefined;
           if (middlewareArgs && typeof middlewareArgs === 'object' && typeof middlewareArgs.next === 'function') {
             middlewareArgs.next = getNextProxy(middlewareArgs.next, span, prevSpan, nextState);
