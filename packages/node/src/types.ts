@@ -1,13 +1,13 @@
 import type { Span as WriteableSpan } from '@opentelemetry/api';
 import type { ReadableSpan } from '@opentelemetry/sdk-trace-base';
 import type { ClientOptions, Options, SamplingContext, Scope, Span } from '@sentry/core';
-import type { NodeTransportOptions, ServerRuntimeOptions } from '@sentry/node-core';
+import type { NodeTransportOptions, OpenTelemetryServerRuntimeOptions } from '@sentry/node-core';
 
 /**
  * Base options for the Sentry Node SDK.
- * Extends the common WinterTC options shared with Bun and other server-side SDKs.
+ * Extends the common WinterTC options with OpenTelemetry support shared with Bun and other server-side SDKs.
  */
-export interface BaseNodeOptions extends ServerRuntimeOptions {
+export interface BaseNodeOptions extends OpenTelemetryServerRuntimeOptions {
   /**
    * Sets profiling sample rate when @sentry/profiling-node is installed
    *
