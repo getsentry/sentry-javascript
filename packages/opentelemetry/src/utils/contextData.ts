@@ -11,6 +11,10 @@ const SCOPE_CONTEXT_FIELD = '_scopeContext';
  * This requires a Context Manager that was wrapped with getWrappedContextManager.
  */
 export function getScopesFromContext(context: Context): CurrentScopes | undefined {
+  // NOTE: `@sentry/nextjs` has a local copy of this helper for Edge bundles:
+  // - `packages/nextjs/src/edge/index.ts` (`getScopesFromContext`)
+  //
+  // If you change how scopes are stored/read (key or retrieval), update that file too.
   return context.getValue(SENTRY_SCOPES_CONTEXT_KEY) as CurrentScopes | undefined;
 }
 

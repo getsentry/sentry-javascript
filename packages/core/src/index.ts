@@ -101,7 +101,7 @@ export {
   headersToDict,
   httpHeadersToSpanAttributes,
 } from './utils/request';
-export { DEFAULT_ENVIRONMENT } from './constants';
+export { DEFAULT_ENVIRONMENT, DEV_ENVIRONMENT } from './constants';
 export { addBreadcrumb } from './breadcrumbs';
 export { functionToStringIntegration } from './integrations/functiontostring';
 // eslint-disable-next-line deprecation/deprecation
@@ -314,7 +314,13 @@ export {
   isURLObjectRelative,
   getSanitizedUrlStringFromUrlObject,
 } from './utils/url';
-export { eventFromMessage, eventFromUnknownInput, exceptionFromError, parseStackFrames } from './utils/eventbuilder';
+export {
+  eventFromMessage,
+  eventFromUnknownInput,
+  exceptionFromError,
+  parseStackFrames,
+  _enhanceErrorWithSentryInfo as _INTERNAL_enhanceErrorWithSentryInfo,
+} from './utils/eventbuilder';
 export { callFrameToStackFrame, watchdogTimer } from './utils/anr';
 export { LRUMap } from './utils/lru';
 export { generateTraceId, generateSpanId } from './utils/propagationContext';
@@ -322,6 +328,7 @@ export { vercelWaitUntil } from './utils/vercelWaitUntil';
 export { flushIfServerless } from './utils/flushIfServerless';
 export { SDK_VERSION } from './utils/version';
 export { getDebugImagesForResources, getFilenameToDebugIdMap } from './utils/debug-ids';
+export { getFilenameToMetadataMap } from './metadata';
 export { escapeStringForRegex } from './vendor/escapeStringForRegex';
 
 export type { Attachment } from './types-hoist/attachment';
@@ -449,6 +456,7 @@ export type {
   MetricType,
   SerializedMetric,
   SerializedMetricContainer,
+  // eslint-disable-next-line deprecation/deprecation
   SerializedMetricAttributeValue,
 } from './types-hoist/metric';
 export type { TimedEvent } from './types-hoist/timedEvent';
@@ -513,3 +521,9 @@ export type {
   UnstableRollupPluginOptions,
   UnstableWebpackPluginOptions,
 } from './build-time-plugins/buildTimeOptionsBase';
+export {
+  withRandomSafeContext as _INTERNAL_withRandomSafeContext,
+  type RandomSafeContextRunner as _INTERNAL_RandomSafeContextRunner,
+  safeMathRandom as _INTERNAL_safeMathRandom,
+  safeDateNow as _INTERNAL_safeDateNow,
+} from './utils/randomSafeContext';

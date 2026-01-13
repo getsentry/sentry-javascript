@@ -171,3 +171,19 @@ test('captures an error from the third lazily added worker', async ({ page }) =>
     ],
   });
 });
+
+test('worker errors are not tagged as third-party when module metadata is present', async ({ page }) => {
+  const errorEventPromise = waitForError('browser-webworker-vite', async event => {
+    return !event.type && event.exception?.values?.[0]?.value === 'Uncaught Error: Uncaught error in worker';
+  });
+
+  await page.goto('/');
+
+  await page.locator('#trigger-error').click();
+
+  await page.waitForTimeout(1000);
+
+  const errorEvent = await errorEventPromise;
+
+  expect(errorEvent.tags?.third_party_code).toBeUndefined();
+});

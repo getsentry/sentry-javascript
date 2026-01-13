@@ -268,6 +268,21 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
   sendDefaultPii?: boolean;
 
   /**
+   * Controls whether and how to enhance fetch error messages by appending the request hostname.
+   * Generic fetch errors like "Failed to fetch" will be enhanced to include the hostname
+   * (e.g., "Failed to fetch (example.com)").
+   *
+   * - `'always'` (default): Modifies the actual error message directly. This may break third-party packages
+   *   that rely on exact message matching (e.g., is-network-error, p-retry).
+   * - `'report-only'`: Only enhances the message when sending to Sentry. The original error
+   *   message remains unchanged, preserving compatibility with third-party packages.
+   * - `false`: Disables hostname enhancement completely.
+   *
+   * @default 'always'
+   */
+  enhanceFetchErrorMessages?: 'always' | 'report-only' | false;
+
+  /**
    * Set of metadata about the SDK that can be internally used to enhance envelopes and events,
    * and provide additional data about every request.
    *

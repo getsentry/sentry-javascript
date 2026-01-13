@@ -41,7 +41,7 @@ const indexRoute = createRoute({
 
 const postsRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: 'posts/',
+  path: 'posts',
 });
 
 const postIdRoute = createRoute({

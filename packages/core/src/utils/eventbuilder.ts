@@ -19,13 +19,35 @@ export function parseStackFrames(stackParser: StackParser, error: Error): StackF
   return stackParser(error.stack || '', 1);
 }
 
+function hasSentryFetchUrlHost(error: unknown): error is Error & { __sentry_fetch_url_host__: string } {
+  return isError(error) && '__sentry_fetch_url_host__' in error && typeof error.__sentry_fetch_url_host__ === 'string';
+}
+
+/**
+ * Enhances the error message with the hostname for better Sentry error reporting.
+ * This allows third-party packages to still match on the original error message,
+ * while Sentry gets the enhanced version with context.
+ *
+ * Only used internally
+ * @hidden
+ */
+export function _enhanceErrorWithSentryInfo<T extends Error>(error: T): string {
+  // If the error has a __sentry_fetch_url_host__ property (added by fetch instrumentation),
+  // enhance the error message with the hostname.
+  if (hasSentryFetchUrlHost(error)) {
+    return `${error.message} (${error.__sentry_fetch_url_host__})`;
+  }
+
+  return error.message;
+}
+
 /**
  * Extracts stack frames from the error and builds a Sentry Exception
  */
 export function exceptionFromError(stackParser: StackParser, error: Error): Exception {
   const exception: Exception = {
     type: error.name || error.constructor.name,
-    value: error.message,
+    value: _enhanceErrorWithSentryInfo(error),
   };
 
   const frames = parseStackFrames(stackParser, error);
