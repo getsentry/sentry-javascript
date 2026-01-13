@@ -90,6 +90,7 @@ export function maybeCreateRouteManifest(
   userSentryOptions: SentryBuildOptions,
 ): RouteManifest | undefined {
   // Handle deprecated option with warning
+  // eslint-disable-next-line deprecation/deprecation
   if (userSentryOptions.disableManifestInjection) {
     // eslint-disable-next-line no-console
     console.warn(
@@ -98,6 +99,7 @@ export function maybeCreateRouteManifest(
   }
 
   // Check if manifest injection is disabled (new option takes precedence)
+  // eslint-disable-next-line deprecation/deprecation
   if (userSentryOptions.routeManifestInjection === false || userSentryOptions.disableManifestInjection) {
     return undefined;
   }
