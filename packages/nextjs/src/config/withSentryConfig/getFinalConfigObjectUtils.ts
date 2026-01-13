@@ -89,13 +89,47 @@ export function maybeCreateRouteManifest(
   incomingUserNextConfigObject: NextConfigObject,
   userSentryOptions: SentryBuildOptions,
 ): RouteManifest | undefined {
+  // Handle deprecated option with warning
   if (userSentryOptions.disableManifestInjection) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      '[@sentry/nextjs] The `disableManifestInjection` option is deprecated. Use `routeManifestInjection: false` instead.',
+    );
+  }
+
+  // Check if manifest injection is disabled (new option takes precedence)
+  if (userSentryOptions.routeManifestInjection === false || userSentryOptions.disableManifestInjection) {
     return undefined;
   }
 
-  return createRouteManifest({
+  const manifest = createRouteManifest({
     basePath: incomingUserNextConfigObject.basePath,
   });
+
+  // Apply route exclusion filter if configured
+  const excludeFilter = userSentryOptions.routeManifestInjection?.exclude;
+  if (!excludeFilter) {
+    return manifest;
+  }
+
+  const shouldExclude = (route: string): boolean => {
+    if (typeof excludeFilter === 'function') {
+      return excludeFilter(route);
+    }
+
+    return excludeFilter.some(pattern => {
+      if (typeof pattern === 'string') {
+        return route === pattern;
+      }
+      return pattern.test(route);
+    });
+  };
+
+  return {
+    staticRoutes: manifest.staticRoutes.filter(r => !shouldExclude(r.path)),
+    dynamicRoutes: manifest.dynamicRoutes.filter(r => !shouldExclude(r.path)),
+    isrRoutes: manifest.isrRoutes.filter(r => !shouldExclude(r)),
+  };
 }
 
 /**

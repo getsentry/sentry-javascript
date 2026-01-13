@@ -603,20 +603,59 @@ export type SentryBuildOptions = {
   /**
    * Disables automatic injection of the route manifest into the client bundle.
    *
-   * The route manifest is a build-time generated mapping of your Next.js App Router
-   * routes that enables Sentry to group transactions by parameterized route names
-   * (e.g., `/users/:id` instead of `/users/123`, `/users/456`, etc.).
-   *
-   * **Disable this option if:**
-   * - You want to minimize client bundle size
-   * - You're experiencing build issues related to route scanning
-   * - You're using custom routing that the scanner can't detect
-   * - You prefer raw URLs in transaction names
-   * - You're only using Pages Router (this feature is only supported in the App Router)
+   * @deprecated Use `routeManifestInjection: false` instead.
    *
    * @default false
    */
   disableManifestInjection?: boolean;
+
+  /**
+   * Options for the route manifest injection feature.
+   *
+   * The route manifest is a build-time generated mapping of your Next.js App Router
+   * routes that enables Sentry to group transactions by parameterized route names
+   * (e.g., `/users/:id` instead of `/users/123`, `/users/456`, etc.).
+   *
+   * Set to `false` to disable route manifest injection entirely.
+   *
+   * @example
+   * ```js
+   * // Disable route manifest injection
+   * routeManifestInjection: false
+   *
+   * // Exclude specific routes
+   * routeManifestInjection: {
+   *   exclude: [
+   *     '/admin',           // Exact match
+   *     /^\/internal\//,    // Regex: all routes starting with /internal/
+   *     /\/secret-/,        // Regex: any route containing /secret-
+   *   ]
+   * }
+   *
+   * // Exclude using a function
+   * routeManifestInjection: {
+   *   exclude: (route) => route.includes('hidden')
+   * }
+   * ```
+   */
+  routeManifestInjection?:
+    | false
+    | {
+        /**
+         * Exclude specific routes from the route manifest.
+         *
+         * Use this option to prevent certain routes from being included in the client bundle's
+         * route manifest. This is useful for:
+         * - Hiding confidential or unreleased feature routes
+         * - Excluding internal/admin routes you don't want exposed
+         * - Reducing bundle size by omitting rarely-used routes
+         *
+         * Can be specified as:
+         * - An array of strings (exact match) or RegExp patterns
+         * - A function that receives a route path and returns `true` to exclude it
+         */
+        exclude?: Array<string | RegExp> | ((route: string) => boolean);
+      };
 
   /**
    * Disables automatic injection of Sentry's Webpack configuration.
