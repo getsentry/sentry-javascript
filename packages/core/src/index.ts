@@ -393,7 +393,7 @@ export type { Extra, Extras } from './types-hoist/extra';
 export type { Integration, IntegrationFn } from './types-hoist/integration';
 export type { Mechanism } from './types-hoist/mechanism';
 export type { ExtractedNodeRequestData, HttpHeaderValue, Primitive, WorkerLocation } from './types-hoist/misc';
-export type { ClientOptions, CoreOptions as Options } from './types-hoist/options';
+export type { ClientOptions, CoreOptions as Options, ServerRuntimeOptions } from './types-hoist/options';
 export type { Package } from './types-hoist/package';
 export type { PolymorphicEvent, PolymorphicRequest } from './types-hoist/polymorphics';
 export type {
