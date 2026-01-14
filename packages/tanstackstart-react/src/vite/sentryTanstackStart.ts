@@ -29,15 +29,12 @@ import { makeAddSentryVitePlugin, makeEnableSourceMapsVitePlugin } from './sourc
 export function sentryTanstackStart(options: BuildTimeOptionsBase = {}): Plugin[] {
   const plugins: Plugin[] = [];
 
-  // Only add source map plugins in production builds
+  // Only add plugins in production builds
   if (process.env.NODE_ENV !== 'development') {
+    plugins.push(...makeAddSentryVitePlugin(options));
+
     const sourceMapsDisabled = options.sourcemaps?.disable === true || options.sourcemaps?.disable === 'disable-upload';
-
     if (!sourceMapsDisabled) {
-      // Add source maps upload plugin
-      plugins.push(...makeAddSentryVitePlugin(options));
-
-      // Add plugin to enable source maps if not already configured
       plugins.push(...makeEnableSourceMapsVitePlugin(options));
     }
   }

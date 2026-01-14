@@ -55,6 +55,7 @@ describe('makeAddSentryVitePlugin()', () => {
       },
       sourcemaps: {
         assets: ['dist/**/*.js'],
+        disable: false,
         ignore: ['node_modules/**'],
         filesToDeleteAfterUpload: ['baz/*.js'],
       },
@@ -80,6 +81,7 @@ describe('makeAddSentryVitePlugin()', () => {
         },
         sourcemaps: {
           assets: ['dist/**/*.js'],
+          disable: false,
           ignore: ['node_modules/**'],
           filesToDeleteAfterUpload: ['baz/*.js'],
         },
@@ -116,9 +118,28 @@ describe('makeAddSentryVitePlugin()', () => {
       expect.objectContaining({
         sourcemaps: {
           assets: undefined,
+          disable: undefined,
           ignore: undefined,
           filesToDeleteAfterUpload: ['.*/**/*.map'],
         },
+      }),
+    );
+  });
+
+  it('passes sourcemaps.disable option to vite plugin', () => {
+    makeAddSentryVitePlugin({
+      org: 'my-org',
+      authToken: 'my-token',
+      sourcemaps: {
+        disable: true,
+      },
+    });
+
+    expect(sentryVitePluginSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sourcemaps: expect.objectContaining({
+          disable: true,
+        }),
       }),
     );
   });
