@@ -60,6 +60,15 @@ export function captureSpan(span: Span, client = getClient()): void {
     ? applyBeforeSendSpanCallback(spanJSON, beforeSendSpan)
     : spanJSON;
 
+  // Backfill sentry.span.source from sentry.source for the PoC
+  // TODO(v11): Stop sending `sentry.source` attribute and only send `sentry.span.source`
+  // probably easiest done by just renaming SEMANTIC_ATTRIBUTE_SENTRY_SOURCE
+  if (processedSpan.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]) {
+    safeSetSpanJSONAttributes(processedSpan, {
+      [SEMANTIC_ATTRIBUTE_SENTRY_SPAN_SOURCE]: processedSpan.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]?.value,
+    });
+  }
+
   const spanWithRef = {
     ...processedSpan,
     _segmentSpan: segmentSpan,
@@ -92,10 +101,6 @@ function applyCommonSpanAttributes(
     [SEMANTIC_ATTRIBUTE_SENTRY_SEGMENT_ID]: serializedSegmentSpan.span_id,
     [SEMANTIC_ATTRIBUTE_SENTRY_SDK_NAME]: sdk?.sdk?.name,
     [SEMANTIC_ATTRIBUTE_SENTRY_SDK_VERSION]: sdk?.sdk?.version,
-    // Backfill sentry.span.source from sentry.source for the PoC
-    // TODO(v11): Stop sending `sentry.source` attribute and only send `sentry.span.source`
-    // probably easiest done by just renaming SEMANTIC_ATTRIBUTE_SENTRY_SOURCE
-    [SEMANTIC_ATTRIBUTE_SENTRY_SPAN_SOURCE]: spanJSON.attributes?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE],
     ...(sendDefaultPii
       ? {
           [SEMANTIC_ATTRIBUTE_USER_ID]: scopeData.user?.id,
