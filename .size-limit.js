@@ -187,6 +187,12 @@ module.exports = [
     limit: '43 KB',
   },
   {
+    name: 'CDN Bundle (incl. Tracing, Logs, Metrics)',
+    path: createCDNPath('bundle.tracing.logs.metrics.min.js'),
+    gzip: true,
+    limit: '44 KB',
+  },
+  {
     name: 'CDN Bundle (incl. Tracing, Replay)',
     path: createCDNPath('bundle.tracing.replay.min.js'),
     gzip: true,
@@ -212,6 +218,13 @@ module.exports = [
     gzip: false,
     brotli: false,
     limit: '127 KB',
+  },
+  {
+    name: 'CDN Bundle (incl. Tracing, Logs, Metrics) - uncompressed',
+    path: createCDNPath('bundle.tracing.logs.metrics.min.js'),
+    gzip: false,
+    brotli: false,
+    limit: '130 KB',
   },
   {
     name: 'CDN Bundle (incl. Tracing, Replay) - uncompressed',
