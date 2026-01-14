@@ -9,7 +9,9 @@ import type {
   SerializedLogContainer,
   SerializedMetricContainer,
   SerializedSession,
+  SerializedSpanContainer,
   SessionAggregates,
+  SpanV2JSON,
   TransactionEvent,
 } from '@sentry/core';
 import { normalize } from '@sentry/core';
@@ -29,6 +31,7 @@ import {
   assertSentryMetricContainer,
   assertSentrySession,
   assertSentrySessions,
+  assertSentrySpans,
   assertSentryTransaction,
 } from './assertions';
 
@@ -133,6 +136,7 @@ type ExpectedCheckIn = Partial<SerializedCheckIn> | ((event: SerializedCheckIn) 
 type ExpectedClientReport = Partial<ClientReport> | ((event: ClientReport) => void);
 type ExpectedLogContainer = Partial<SerializedLogContainer> | ((event: SerializedLogContainer) => void);
 type ExpectedMetricContainer = Partial<SerializedMetricContainer> | ((event: SerializedMetricContainer) => void);
+type ExpectedSpanContainer = Partial<SerializedSpanContainer> | ((spans: SerializedSpanContainer) => void);
 
 type Expected =
   | {
@@ -158,6 +162,9 @@ type Expected =
     }
   | {
       trace_metric: ExpectedMetricContainer;
+    }
+  | {
+      span: ExpectedSpanContainer;
     };
 
 type ExpectedEnvelopeHeader =
@@ -529,6 +536,9 @@ export function createRunner(...paths: string[]) {
             } else if ('trace_metric' in expected) {
               expectMetric(item[1] as SerializedMetricContainer, expected.trace_metric);
               expectCallbackCalled();
+            } else if ('span' in expected) {
+              expectSpans(item[1] as SerializedSpanContainer, expected.span);
+              expectCallbackCalled();
             } else {
               throw new Error(
                 `Unhandled expected envelope item type: ${JSON.stringify(expected)}\nItem: ${JSON.stringify(item)}`,
@@ -795,6 +805,13 @@ function expectMetric(item: SerializedMetricContainer, expected: ExpectedMetricC
   }
 }
 
+function expectSpans(item: SerializedSpanContainer, expected: ExpectedSpanContainer): void {
+  if (typeof expected === 'function') {
+    expected(item);
+  } else {
+    assertSentrySpans(item, expected);
+  }
+}
 /**
  * Converts ESM import statements to CommonJS require statements
  * @param content The content of an ESM file
