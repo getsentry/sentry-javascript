@@ -1,11 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createTransport } from '../../../src/transports/base';
-import type { ClientReport } from '../../../src/types-hoist/clientreport';
 import type { AttachmentItem, EventEnvelope, EventItem } from '../../../src/types-hoist/envelope';
 import type { TransportMakeRequestResponse } from '../../../src/types-hoist/transport';
-import { createClientReportEnvelope } from '../../../src/utils/clientreport';
 import { createEnvelope, serializeEnvelope } from '../../../src/utils/envelope';
-import { type PromiseBuffer, SENTRY_BUFFER_FULL_ERROR } from '../../../src/utils/promisebuffer';
+import type { PromiseBuffer } from '../../../src/utils/promisebuffer';
 import { resolvedSyncPromise } from '../../../src/utils/syncpromise';
 
 const ERROR_ENVELOPE = createEnvelope<EventEnvelope>({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' }, [
@@ -31,25 +29,6 @@ const ATTACHMENT_ENVELOPE = createEnvelope<EventEnvelope>(
       'attachment content',
     ] as AttachmentItem,
   ],
-);
-
-const defaultDiscardedEvents: ClientReport['discarded_events'] = [
-  {
-    reason: 'before_send',
-    category: 'error',
-    quantity: 30,
-  },
-  {
-    reason: 'network_error',
-    category: 'transaction',
-    quantity: 23,
-  },
-];
-
-const CLIENT_REPORT_ENVELOPE = createClientReportEnvelope(
-  defaultDiscardedEvents,
-  'https://public@dsn.ingest.sentry.io/1337',
-  123456,
 );
 
 const transportOptions = {
@@ -323,72 +302,6 @@ describe('createTransport', () => {
         await transport.send(ERROR_ENVELOPE);
         expect(requestExecutor).toHaveBeenCalledTimes(1);
         expect(recordDroppedEventCallback).not.toHaveBeenCalled();
-      });
-    });
-
-    describe('Client Reports', () => {
-      it('should not record outcomes when client reports fail to send', async () => {
-        expect.assertions(2);
-
-        const mockRecordDroppedEventCallback = vi.fn();
-
-        const transport = createTransport({ recordDroppedEvent: mockRecordDroppedEventCallback }, req => {
-          expect(req.body).toEqual(serializeEnvelope(CLIENT_REPORT_ENVELOPE));
-          return Promise.reject(new Error('Network error'));
-        });
-
-        try {
-          await transport.send(CLIENT_REPORT_ENVELOPE);
-        } catch (e) {
-          // Expected to throw
-        }
-
-        // recordDroppedEvent should NOT be called when a client report fails
-        expect(mockRecordDroppedEventCallback).not.toHaveBeenCalled();
-      });
-
-      it('should not record outcomes when client reports fail due to buffer overflow', async () => {
-        expect.assertions(2);
-
-        const mockRecordDroppedEventCallback = vi.fn();
-        const mockBuffer: PromiseBuffer<TransportMakeRequestResponse> = {
-          $: [],
-          add: vi.fn(() => Promise.reject(SENTRY_BUFFER_FULL_ERROR)),
-          drain: vi.fn(),
-        };
-
-        const transport = createTransport(
-          { recordDroppedEvent: mockRecordDroppedEventCallback },
-          _ => resolvedSyncPromise({}),
-          mockBuffer,
-        );
-
-        const result = await transport.send(CLIENT_REPORT_ENVELOPE);
-
-        // Should resolve without throwing
-        expect(result).toEqual({});
-        // recordDroppedEvent should NOT be called when a client report fails
-        expect(mockRecordDroppedEventCallback).not.toHaveBeenCalled();
-      });
-
-      it('should record outcomes when regular events fail to send', async () => {
-        expect.assertions(2);
-
-        const mockRecordDroppedEventCallback = vi.fn();
-
-        const transport = createTransport({ recordDroppedEvent: mockRecordDroppedEventCallback }, req => {
-          expect(req.body).toEqual(serializeEnvelope(ERROR_ENVELOPE));
-          return Promise.reject(new Error('Network error'));
-        });
-
-        try {
-          await transport.send(ERROR_ENVELOPE);
-        } catch (e) {
-          // Expected to throw
-        }
-
-        // recordDroppedEvent SHOULD be called for regular events
-        expect(mockRecordDroppedEventCallback).toHaveBeenCalledWith('network_error', 'error');
       });
     });
   });

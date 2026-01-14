@@ -10,7 +10,6 @@ import type {
 import { debug } from '../utils/debug-logger';
 import {
   createEnvelope,
-  envelopeContainsItemType,
   envelopeItemTypeToDataCategory,
   forEachEnvelopeItem,
   serializeEnvelope,
@@ -58,10 +57,6 @@ export function createTransport(
 
     // Creates client report for each item in an envelope
     const recordEnvelopeLoss = (reason: EventDropReason): void => {
-      // Don't record outcomes for client reports - we don't want to create a feedback loop if client reports themselves fail to send
-      if (envelopeContainsItemType(filteredEnvelope, ['client_report'])) {
-        return;
-      }
       forEachEnvelopeItem(filteredEnvelope, (item, type) => {
         options.recordDroppedEvent(reason, envelopeItemTypeToDataCategory(type));
       });
