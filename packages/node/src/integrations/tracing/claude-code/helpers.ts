@@ -511,10 +511,19 @@ async function* _instrumentQueryGenerator(
       // Handle error messages from SDK
       if (msg.type === 'error') {
         encounteredError = true;
-        const errorMessage = (msg.error as Record<string, unknown>)?.message || msg.message || 'Claude Code SDK error';
         const errorType = (msg.error as Record<string, unknown>)?.type || 'sdk_error';
 
-        captureException(new Error(String(errorMessage)), {
+        // Use the original error object if available to preserve the stack trace,
+        // otherwise create a new Error from the message
+        const originalError = msg.error;
+        const errorToCapture =
+          originalError instanceof Error
+            ? originalError
+            : new Error(
+                String((msg.error as Record<string, unknown>)?.message || msg.message || 'Claude Code SDK error'),
+              );
+
+        captureException(errorToCapture, {
           mechanism: {
             type: SENTRY_ORIGIN,
             handled: false,
@@ -525,7 +534,7 @@ async function* _instrumentQueryGenerator(
           },
         });
 
-        span.setStatus({ code: 2, message: String(errorMessage) });
+        span.setStatus({ code: 2, message: errorToCapture.message });
       }
 
       yield message;

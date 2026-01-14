@@ -133,7 +133,7 @@ describe('Claude Code Agent SDK integration', () => {
   });
 
   // Tests with custom options
-  createEsmAndCjsTests(__dirname, 'scenario.mjs', 'instrument-with-options.mjs', (createRunner, test) => {
+  createEsmAndCjsTests(__dirname, 'scenario-with-options.mjs', 'instrument-with-options.mjs', (createRunner, test) => {
     test('respects custom recordInputs/recordOutputs options', async () => {
       await createRunner()
         .expect({
