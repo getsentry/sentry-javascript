@@ -17,6 +17,7 @@ export {
   startSpanManual,
   withActiveSpan,
   logger,
+  consoleLoggingIntegration,
 } from '@sentry/core';
 
 export {
