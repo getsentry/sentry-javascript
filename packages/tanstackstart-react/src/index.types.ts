@@ -8,10 +8,11 @@ import type { Client, Integration, Options, StackParser } from '@sentry/core';
 import type * as clientSdk from './client';
 import type * as serverSdk from './server';
 
-export * from './vite';
+export * from './config';
 export * from './client';
 export * from './server';
 export * from './common';
+export * from './vite';
 
 /** Initializes Sentry TanStack Start SDK */
 export declare function init(options: Options | clientSdk.BrowserOptions | serverSdk.NodeOptions): Client | undefined;
