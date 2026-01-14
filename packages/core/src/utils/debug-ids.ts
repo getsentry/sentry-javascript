@@ -101,12 +101,15 @@ export function getDebugImagesForResources(
 
   const images: DebugImage[] = [];
   for (const path of resource_paths) {
-    if (path && filenameDebugIdMap[path]) {
-      images.push({
-        type: 'sourcemap',
-        code_file: path,
-        debug_id: filenameDebugIdMap[path],
-      });
+    if (path) {
+      const normalizedPath = path.startsWith('file://') ? path.slice(7) : path;
+      if (filenameDebugIdMap[normalizedPath]) {
+        images.push({
+          type: 'sourcemap',
+          code_file: path,
+          debug_id: filenameDebugIdMap[normalizedPath],
+        });
+      }
     }
   }
 
