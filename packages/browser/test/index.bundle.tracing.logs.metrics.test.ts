@@ -15,5 +15,3 @@ describe('index.bundle.tracing.logs.metrics', () => {
     expect(TracingLogsMetricsBundle.metrics).toBe(coreMetrics);
   });
 });
-
-

@@ -315,6 +315,30 @@ export function shouldSkipTracingTest(): boolean {
 }
 
 /**
+ * We can only test metrics tests in certain bundles/packages:
+ * - NPM (ESM, CJS)
+ * - CDN bundles that contain metrics
+ *
+ * @returns `true` if we should skip the metrics test
+ */
+export function shouldSkipMetricsTest(): boolean {
+  const bundle = process.env.PW_BUNDLE;
+  return bundle != null && !bundle.includes('metrics') && !bundle.includes('esm') && !bundle.includes('cjs');
+}
+
+/**
+ * We can only test logs tests in certain bundles/packages:
+ * - NPM (ESM, CJS)
+ * - CDN bundles that contain logs
+ *
+ * @returns `true` if we should skip the logs test
+ */
+export function shouldSkipLogsTest(): boolean {
+  const bundle = process.env.PW_BUNDLE;
+  return bundle != null && !bundle.includes('logs') && !bundle.includes('esm') && !bundle.includes('cjs');
+}
+
+/**
  * @returns `true` if we are testing a CDN bundle
  */
 export function testingCdnBundle(): boolean {
