@@ -1,4 +1,4 @@
-import { parseSemver } from '@sentry/core';
+import { isMatchingPattern, parseSemver } from '@sentry/core';
 import { getSentryRelease } from '@sentry/node';
 import { createRouteManifest } from '../manifest/createRouteManifest';
 import type { RouteManifest } from '../manifest/types';
@@ -134,13 +134,7 @@ export function filterRouteManifest(manifest: RouteManifest, excludeFilter: Excl
       return excludeFilter(route);
     }
 
-    return excludeFilter.some(pattern => {
-      if (typeof pattern === 'string') {
-        return route === pattern;
-      }
-
-      return !!route.match(pattern);
-    });
+    return excludeFilter.some(pattern => isMatchingPattern(route, pattern));
   };
 
   return {
