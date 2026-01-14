@@ -50,7 +50,7 @@ export { NodeClient } from './sdk/client';
 export { cron } from './cron';
 export { NODE_VERSION } from './nodeVersion';
 
-export type { NodeOptions } from './types';
+export type { NodeOptions, OpenTelemetryServerRuntimeOptions } from './types';
 
 export {
   // This needs exporting so the NodeClient can be used without calling init
