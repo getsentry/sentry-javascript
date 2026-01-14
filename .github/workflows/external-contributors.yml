@@ -20,9 +20,9 @@ jobs:
       && github.event.pull_request.author_association != 'OWNER'
       && endsWith(github.event.pull_request.user.login, '[bot]') == false
     steps:
-      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
+      - uses: actions/checkout@v6
       - name: Set up Node
-        uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f # v6
+        uses: actions/setup-node@v6
         with:
           node-version-file: 'package.json'
 

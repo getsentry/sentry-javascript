@@ -10,11 +10,6 @@ on:
         required: false
 
 # This workflow is triggered when a release is published
-permissions:
-  contents: write
-  issues: write
-  pull-requests: write
-
 jobs:
   release-comment-issues:
     runs-on: ubuntu-24.04

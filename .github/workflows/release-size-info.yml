@@ -11,10 +11,6 @@ on:
 
 # This workflow is triggered when a release is published
 # It fetches the size-limit info from the release branch and adds it to the release
-permissions:
-  contents: write
-  pull-requests: write
-
 jobs:
   release-size-info:
     runs-on: ubuntu-24.04
