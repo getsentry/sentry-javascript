@@ -278,6 +278,92 @@ describe('webWorkerIntegration', () => {
         expect(mockEvent.stopImmediatePropagation).not.toHaveBeenCalled();
       });
 
+      it('processes WASM images from worker', () => {
+        (helpers.WINDOW as any)._sentryWasmImages = undefined;
+        const wasmImages = [
+          {
+            type: 'wasm',
+            code_id: 'abc123',
+            code_file: 'http://localhost:8001/worker.wasm',
+            debug_file: null,
+            debug_id: 'abc12300000000000000000000000000',
+          },
+        ];
+
+        mockEvent.data = {
+          _sentryMessage: true,
+          _sentryWasmImages: wasmImages,
+        };
+
+        messageHandler(mockEvent);
+
+        expect(mockEvent.stopImmediatePropagation).toHaveBeenCalled();
+        expect(mockDebugLog).toHaveBeenCalledWith('Sentry WASM images web worker message received', mockEvent.data);
+        expect((helpers.WINDOW as any)._sentryWasmImages).toEqual(wasmImages);
+      });
+
+      it('deduplicates WASM images by code_file URL', () => {
+        (helpers.WINDOW as any)._sentryWasmImages = [
+          {
+            type: 'wasm',
+            code_id: 'abc123',
+            code_file: 'http://localhost:8001/existing.wasm',
+            debug_file: null,
+            debug_id: 'abc12300000000000000000000000000',
+          },
+        ];
+
+        mockEvent.data = {
+          _sentryMessage: true,
+          _sentryWasmImages: [
+            {
+              type: 'wasm',
+              code_id: 'abc123',
+              code_file: 'http://localhost:8001/existing.wasm', // duplicate, should be ignored
+              debug_file: null,
+              debug_id: 'abc12300000000000000000000000000',
+            },
+            {
+              type: 'wasm',
+              code_id: 'def456',
+              code_file: 'http://localhost:8001/new.wasm', // new, should be added
+              debug_file: null,
+              debug_id: 'def45600000000000000000000000000',
+            },
+          ],
+        };
+
+        messageHandler(mockEvent);
+
+        expect((helpers.WINDOW as any)._sentryWasmImages).toEqual([
+          {
+            type: 'wasm',
+            code_id: 'abc123',
+            code_file: 'http://localhost:8001/existing.wasm',
+            debug_file: null,
+            debug_id: 'abc12300000000000000000000000000',
+          },
+          {
+            type: 'wasm',
+            code_id: 'def456',
+            code_file: 'http://localhost:8001/new.wasm',
+            debug_file: null,
+            debug_id: 'def45600000000000000000000000000',
+          },
+        ]);
+      });
+
+      it('ignores invalid WASM images (not an array)', () => {
+        mockEvent.data = {
+          _sentryMessage: true,
+          _sentryWasmImages: 'not-an-array',
+        };
+
+        messageHandler(mockEvent);
+
+        expect(mockEvent.stopImmediatePropagation).not.toHaveBeenCalled();
+      });
+
       it('gives main thread precedence over worker for conflicting module metadata', () => {
         (helpers.WINDOW as any)._sentryModuleMetadata = {
           'Error\n    at shared-file.js:1:1': { '_sentryBundlerPluginAppKey:main-app': true, source: 'main' },
