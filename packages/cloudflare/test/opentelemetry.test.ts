@@ -142,4 +142,59 @@ describe('opentelemetry compatibility', () => {
       }),
     ]);
   });
+
+  test('name parameter should take precedence over options.name in startSpan', async () => {
+    const transactionEvents: TransactionEvent[] = [];
+
+    const client = init({
+      dsn: 'https://username@domain/123',
+      tracesSampleRate: 1,
+      beforeSendTransaction: event => {
+        transactionEvents.push(event);
+        return null;
+      },
+    });
+
+    const tracer = trace.getTracer('test');
+
+    // Pass options with a different name property - the first parameter should take precedence
+    // This is important for integrations like Prisma that add prefixes to span names
+    const span = tracer.startSpan('prisma:client:operation', { name: 'operation' } as any);
+    span.end();
+
+    await client!.flush();
+
+    expect(transactionEvents).toHaveLength(1);
+    const [transactionEvent] = transactionEvents;
+
+    expect(transactionEvent?.transaction).toBe('prisma:client:operation');
+  });
+
+  test('name parameter should take precedence over options.name in startActiveSpan', async () => {
+    const transactionEvents: TransactionEvent[] = [];
+
+    const client = init({
+      dsn: 'https://username@domain/123',
+      tracesSampleRate: 1,
+      beforeSendTransaction: event => {
+        transactionEvents.push(event);
+        return null;
+      },
+    });
+
+    const tracer = trace.getTracer('test');
+
+    // Pass options with a different name property - the first parameter should take precedence
+    // This is important for integrations like Prisma that add prefixes to span names
+    tracer.startActiveSpan('prisma:client:operation', { name: 'operation' } as any, span => {
+      span.end();
+    });
+
+    await client!.flush();
+
+    expect(transactionEvents).toHaveLength(1);
+    const [transactionEvent] = transactionEvents;
+
+    expect(transactionEvent?.transaction).toBe('prisma:client:operation');
+  });
 });
