@@ -491,7 +491,7 @@ export type SentryBuildOptions = {
      * A list of strings representing the names of components to ignore. The plugin will not apply `data-sentry` annotations on the DOM element for these components.
      */
     ignoredComponents?: string[];
-  };
+  }; // TODO(v11): remove this option
 
   /**
    * Options to be passed directly to the Sentry Webpack Plugin (`@sentry/webpack-plugin`) that ships with the Sentry Next.js SDK.
@@ -500,7 +500,7 @@ export type SentryBuildOptions = {
    * Please note that this option is unstable and may change in a breaking way in any release.
    * @deprecated Use `webpack.unstable_sentryWebpackPluginOptions` instead.
    */
-  unstable_sentryWebpackPluginOptions?: SentryWebpackPluginOptions;
+  unstable_sentryWebpackPluginOptions?: SentryWebpackPluginOptions; // TODO(v11): remove this option
 
   /**
    * Include Next.js-internal code and code from dependencies when uploading source maps.
@@ -522,19 +522,19 @@ export type SentryBuildOptions = {
    * Defaults to `true`.
    * @deprecated Use `webpack.autoInstrumentServerFunctions` instead.
    */
-  autoInstrumentServerFunctions?: boolean;
+  autoInstrumentServerFunctions?: boolean; // TODO(v11): remove this option
 
   /**
    * Automatically instrument Next.js middleware with error and performance monitoring. Defaults to `true`.
    * @deprecated Use `webpack.autoInstrumentMiddleware` instead.
    */
-  autoInstrumentMiddleware?: boolean;
+  autoInstrumentMiddleware?: boolean; // TODO(v11): remove this option
 
   /**
    * Automatically instrument components in the `app` directory with error monitoring. Defaults to `true`.
    * @deprecated Use `webpack.autoInstrumentAppDirectory` instead.
    */
-  autoInstrumentAppDirectory?: boolean;
+  autoInstrumentAppDirectory?: boolean; // TODO(v11): remove this option
 
   /**
    * Exclude certain serverside API routes or pages from being instrumented with Sentry during build-time. This option
@@ -567,7 +567,7 @@ export type SentryBuildOptions = {
    *
    * @deprecated Use `webpack.treeshake.removeDebugLogging` instead.
    */
-  disableLogger?: boolean;
+  disableLogger?: boolean; // TODO(v11): remove this option
 
   /**
    * Automatically create cron monitors in Sentry for your Vercel Cron Jobs if configured via `vercel.json`.
@@ -576,7 +576,7 @@ export type SentryBuildOptions = {
    *
    * @deprecated Use `webpack.automaticVercelMonitors` instead.
    */
-  automaticVercelMonitors?: boolean;
+  automaticVercelMonitors?: boolean; // TODO(v11): remove this option
 
   /**
    * When an error occurs during release creation or sourcemaps upload, the plugin will call this function.
@@ -607,7 +607,7 @@ export type SentryBuildOptions = {
    *
    * @default false
    */
-  disableManifestInjection?: boolean;
+  disableManifestInjection?: boolean; // TODO(v11): remove this option
 
   /**
    * Options for the route manifest injection feature.
@@ -669,7 +669,7 @@ export type SentryBuildOptions = {
    *
    * @default false
    */
-  disableSentryWebpackConfig?: boolean;
+  disableSentryWebpackConfig?: boolean; // TODO(v11): remove this option
 
   /**
    * When true (and Next.js >= 15), use the runAfterProductionCompile hook to consolidate sourcemap uploads
