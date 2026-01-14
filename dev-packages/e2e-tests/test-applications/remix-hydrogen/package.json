@@ -22,9 +22,9 @@
     "@sentry/vite-plugin": "^4.6.1",
     "@shopify/hydrogen": "2025.4.0",
     "@shopify/remix-oxygen": "2.0.10",
-    "graphql": "16.6.0",
-    "graphql-tag": "2.12.6",
-    "isbot": "3.8.0",
+    "graphql": "^16.6.0",
+    "graphql-tag": "^2.12.6",
+    "isbot": "^3.8.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },
