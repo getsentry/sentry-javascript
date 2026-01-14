@@ -1,4 +1,5 @@
 import type { SentryVitePluginOptions } from '@sentry/vite-plugin';
+import type { UserConfig } from 'vite';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   getUpdatedSourceMapSettings,
@@ -37,19 +38,16 @@ describe('makeEnableSourceMapsVitePlugin()', () => {
 
 describe('makeAddSentryVitePlugin()', () => {
   it('passes user-specified vite plugin options to vite plugin', () => {
-    makeAddSentryVitePlugin(
-      {
-        org: 'my-org',
-        authToken: 'my-token',
-        sourcemaps: {
-          filesToDeleteAfterUpload: ['baz/*.js'],
-        },
-        bundleSizeOptimizations: {
-          excludeTracing: true,
-        },
+    makeAddSentryVitePlugin({
+      org: 'my-org',
+      authToken: 'my-token',
+      sourcemaps: {
+        filesToDeleteAfterUpload: ['baz/*.js'],
       },
-      {},
-    );
+      bundleSizeOptimizations: {
+        excludeTracing: true,
+      },
+    });
 
     expect(sentryVitePluginSpy).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -65,77 +63,86 @@ describe('makeAddSentryVitePlugin()', () => {
     );
   });
 
-  it('should update `filesToDeleteAfterUpload` if source map generation was previously not defined', () => {
-    makeAddSentryVitePlugin(
-      {
-        org: 'my-org',
-        authToken: 'my-token',
-        bundleSizeOptimizations: {
-          excludeTracing: true,
-        },
-      },
-      {},
-    );
+  it('returns correct plugins including config plugin', () => {
+    const plugins = makeAddSentryVitePlugin({
+      org: 'my-org',
+      authToken: 'my-token',
+    });
+
+    // Should have: config plugin + sentry vite plugin(s)
+    expect(plugins.length).toBeGreaterThanOrEqual(2);
+
+    const configPlugin = plugins.find(p => p.name === 'sentry-tanstackstart-source-maps-config');
+    expect(configPlugin).toBeDefined();
+    expect(configPlugin?.apply).toBe('build');
+    expect(configPlugin?.enforce).toBe('pre');
+    expect(typeof configPlugin?.config).toBe('function');
+  });
+
+  it('uses default filesToDeleteAfterUpload when not specified', () => {
+    makeAddSentryVitePlugin({
+      org: 'my-org',
+      authToken: 'my-token',
+    });
 
     expect(sentryVitePluginSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        sourcemaps: expect.objectContaining({
+        sourcemaps: {
           filesToDeleteAfterUpload: ['.*/**/*.map'],
-        }),
+        },
       }),
     );
   });
 
-  it('should not update `filesToDeleteAfterUpload` if source map generation was previously enabled', () => {
-    makeAddSentryVitePlugin(
-      {
-        org: 'my-org',
-        authToken: 'my-token',
-        bundleSizeOptimizations: {
-          excludeTracing: true,
-        },
-      },
-      { build: { sourcemap: true } },
-    );
+  it('logs auto-delete message when user did not configure sourcemap', () => {
+    const plugins = makeAddSentryVitePlugin({
+      org: 'my-org',
+      authToken: 'my-token',
+      debug: true,
+    });
 
-    expect(sentryVitePluginSpy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        sourcemaps: expect.objectContaining({
-          filesToDeleteAfterUpload: undefined,
-        }),
-      }),
-    );
+    const configPlugin = plugins.find(p => p.name === 'sentry-tanstackstart-source-maps-config');
+    expect(configPlugin).toBeDefined();
+
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    // Simulate config hook with no sourcemap configured
+    if (configPlugin?.config) {
+      (configPlugin.config as (config: UserConfig) => void)({});
+    }
+
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Automatically setting'));
+
+    consoleSpy.mockRestore();
   });
 
-  it('should not update `filesToDeleteAfterUpload` if source map generation was previously disabled', () => {
-    makeAddSentryVitePlugin(
-      {
-        org: 'my-org',
-        authToken: 'my-token',
-        bundleSizeOptimizations: {
-          excludeTracing: true,
-        },
-      },
-      { build: { sourcemap: false } },
-    );
+  it('does not log auto-delete message when user configured sourcemap', () => {
+    const plugins = makeAddSentryVitePlugin({
+      org: 'my-org',
+      authToken: 'my-token',
+      debug: true,
+    });
 
-    expect(sentryVitePluginSpy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        sourcemaps: expect.objectContaining({
-          filesToDeleteAfterUpload: undefined,
-        }),
-      }),
-    );
+    const configPlugin = plugins.find(p => p.name === 'sentry-tanstackstart-source-maps-config');
+    expect(configPlugin).toBeDefined();
+
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    // Simulate config hook with sourcemap configured
+    if (configPlugin?.config) {
+      (configPlugin.config as (config: UserConfig) => void)({ build: { sourcemap: true } });
+    }
+
+    expect(consoleSpy).not.toHaveBeenCalledWith(expect.stringContaining('Automatically setting'));
+
+    consoleSpy.mockRestore();
   });
 
   it('sets the correct metaFramework in telemetry options', () => {
-    makeAddSentryVitePlugin(
-      {
-        org: 'my-org',
-        authToken: 'my-token',
-      },
-      {},
-    );
+    makeAddSentryVitePlugin({
+      org: 'my-org',
+      authToken: 'my-token',
+    });
 
     expect(sentryVitePluginSpy).toHaveBeenCalledWith(
       expect.objectContaining({

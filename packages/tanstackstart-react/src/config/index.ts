@@ -1,1 +1,0 @@
-export { wrapConfigWithSentry } from './wrapConfigWithSentry';

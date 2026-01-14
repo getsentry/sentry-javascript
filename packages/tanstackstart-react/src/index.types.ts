@@ -8,7 +8,7 @@ import type { Client, Integration, Options, StackParser } from '@sentry/core';
 import type * as clientSdk from './client';
 import type * as serverSdk from './server';
 
-export * from './config';
+export * from './vite';
 export * from './client';
 export * from './server';
 export * from './common';

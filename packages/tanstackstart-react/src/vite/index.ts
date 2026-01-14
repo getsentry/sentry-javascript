@@ -1,1 +1,1 @@
-export { addSentryPlugins } from './addSentryPlugins';
+export { sentryTanstackStart } from './sentryTanstackStart';

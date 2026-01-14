@@ -1,5 +1,3 @@
-/* eslint-disable import/export */
-
-export * from './config';
+export * from './vite';
 export * from './server';
 export * from './common';
