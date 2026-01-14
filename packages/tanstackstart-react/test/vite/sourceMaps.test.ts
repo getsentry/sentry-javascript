@@ -92,13 +92,12 @@ describe('makeAddSentryVitePlugin()', () => {
     );
   });
 
-  it('returns correct plugins including config plugin', () => {
+  it('returns Sentry Vite plugins and config plugin', () => {
     const plugins = makeAddSentryVitePlugin({
       org: 'my-org',
       authToken: 'my-token',
     });
 
-    // Should have: config plugin + sentry vite plugin(s)
     expect(plugins.length).toBeGreaterThanOrEqual(2);
 
     const configPlugin = plugins.find(p => p.name === 'sentry-tanstackstart-source-maps-config');
@@ -122,24 +121,6 @@ describe('makeAddSentryVitePlugin()', () => {
           ignore: undefined,
           filesToDeleteAfterUpload: ['.*/**/*.map'],
         },
-      }),
-    );
-  });
-
-  it('passes sourcemaps.disable option to vite plugin', () => {
-    makeAddSentryVitePlugin({
-      org: 'my-org',
-      authToken: 'my-token',
-      sourcemaps: {
-        disable: true,
-      },
-    });
-
-    expect(sentryVitePluginSpy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        sourcemaps: expect.objectContaining({
-          disable: true,
-        }),
       }),
     );
   });

@@ -39,11 +39,10 @@ describe('sentryTanstackStart()', () => {
   it('returns plugins in production mode', () => {
     const plugins = sentryTanstackStart({ org: 'test-org' });
 
-    // Should have plugins from makeAddSentryVitePlugin + makeEnableSourceMapsVitePlugin
     expect(plugins.length).toBeGreaterThan(0);
   });
 
-  it('returns empty array in development mode', () => {
+  it('returns no plugins in development mode', () => {
     process.env.NODE_ENV = 'development';
 
     const plugins = sentryTanstackStart({ org: 'test-org' });
@@ -56,7 +55,7 @@ describe('sentryTanstackStart()', () => {
       sourcemaps: { disable: true },
     });
 
-    expect(plugins.length).toBeGreaterThan(0);
+    expect(plugins).toHaveLength(2);
     expect(plugins.find(p => p.name === 'sentry-tanstackstart-source-maps-config')).toBeDefined();
     expect(plugins.find(p => p.name === 'sentry-vite-debug-id-upload-plugin')).toBeDefined();
     expect(plugins.find(p => p.name === 'sentry-tanstackstart-react-source-maps')).toBeUndefined();
@@ -67,37 +66,29 @@ describe('sentryTanstackStart()', () => {
       sourcemaps: { disable: 'disable-upload' },
     });
 
-    expect(plugins.length).toBeGreaterThan(0);
+    expect(plugins).toHaveLength(2);
     expect(plugins.find(p => p.name === 'sentry-tanstackstart-source-maps-config')).toBeDefined();
     expect(plugins.find(p => p.name === 'sentry-vite-debug-id-upload-plugin')).toBeDefined();
     expect(plugins.find(p => p.name === 'sentry-tanstackstart-react-source-maps')).toBeUndefined();
   });
 
-  it('returns plugins when sourcemaps.disable is false', () => {
+  it('returns Sentry Vite plugins and enable source maps plugin when sourcemaps.disable is false', () => {
     const plugins = sentryTanstackStart({
       sourcemaps: { disable: false },
     });
 
-    expect(plugins.length).toBeGreaterThan(0);
+    expect(plugins).toHaveLength(3);
+    expect(plugins.find(p => p.name === 'sentry-tanstackstart-source-maps-config')).toBeDefined();
+    expect(plugins.find(p => p.name === 'sentry-vite-debug-id-upload-plugin')).toBeDefined();
+    expect(plugins.find(p => p.name === 'sentry-tanstackstart-react-source-maps')).toBeDefined();
   });
 
-  it('returns plugins by default when sourcemaps is not specified', () => {
+  it('returns Sentry Vite Plugins and enable source maps plugin by default when sourcemaps is not specified', () => {
     const plugins = sentryTanstackStart({});
 
-    expect(plugins.length).toBeGreaterThan(0);
-  });
-
-  it('includes source maps config plugin from makeAddSentryVitePlugin', () => {
-    const plugins = sentryTanstackStart({});
-
-    const configPlugin = plugins.find(p => p.name === 'sentry-tanstackstart-source-maps-config');
-    expect(configPlugin).toBeDefined();
-  });
-
-  it('includes enable source maps plugin from makeEnableSourceMapsVitePlugin', () => {
-    const plugins = sentryTanstackStart({});
-
-    const enablePlugin = plugins.find(p => p.name === 'sentry-tanstackstart-react-source-maps');
-    expect(enablePlugin).toBeDefined();
+    expect(plugins).toHaveLength(3);
+    expect(plugins.find(p => p.name === 'sentry-tanstackstart-source-maps-config')).toBeDefined();
+    expect(plugins.find(p => p.name === 'sentry-vite-debug-id-upload-plugin')).toBeDefined();
+    expect(plugins.find(p => p.name === 'sentry-tanstackstart-react-source-maps')).toBeDefined();
   });
 });
