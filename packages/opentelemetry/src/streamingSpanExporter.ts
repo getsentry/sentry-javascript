@@ -2,12 +2,14 @@ import type { ReadableSpan } from '@opentelemetry/sdk-trace-base';
 import type { Client, Span } from '@sentry/core';
 import {
   captureSpan,
+  debug,
   safeSetSpanJSONAttributes,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SpanBuffer,
 } from '@sentry/core';
+import { DEBUG_BUILD } from './debug-build';
 import { getSpanData, type ISentrySpanExporter } from './spanExporter';
 
 type StreamingSpanExporterOptions = {
@@ -50,6 +52,8 @@ export class StreamingSpanExporter implements ISentrySpanExporter {
     this._client.on('enqueueSpan', spanJSON => {
       this._buffer.addSpan(spanJSON);
     });
+
+    DEBUG_BUILD && debug.log('[Tracing] Initialized StreamingSpanExporter');
   }
 
   /**
