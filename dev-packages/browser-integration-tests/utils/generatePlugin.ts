@@ -248,7 +248,9 @@ class SentryScenarioGenerationPlugin {
             .replace('loader_', 'bundle_')
             .replace('_replay', '')
             .replace('_tracing', '')
-            .replace('_feedback', '');
+            .replace('_feedback', '')
+            .replace('_logs', '')
+            .replace('_metrics', '');
 
           // For feedback bundle, make sure to add modal & screenshot integrations
           if (bundleKey.includes('_feedback')) {
