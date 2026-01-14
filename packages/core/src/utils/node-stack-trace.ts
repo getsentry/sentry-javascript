@@ -22,7 +22,7 @@
 //  THE SOFTWARE.
 
 import type { StackLineParser, StackLineParserFn } from '../types-hoist/stacktrace';
-import { UNKNOWN_FUNCTION } from './stacktrace';
+import { normalizeStackTracePath, UNKNOWN_FUNCTION } from './stacktrace';
 
 export type GetModuleFn = (filename: string | undefined) => string | undefined;
 
@@ -55,7 +55,6 @@ export function node(getModule?: GetModuleFn): StackLineParserFn {
   const FULL_MATCH = /at (?:async )?(?:(.+?)\s+\()?(?:(.+):(\d+):(\d+)?|([^)]+))\)?/;
   const DATA_URI_MATCH = /at (?:async )?(.+?) \(data:(.*?),/;
 
-  // eslint-disable-next-line complexity
   return (line: string) => {
     const dataUriMatch = line.match(DATA_URI_MATCH);
     if (dataUriMatch) {
@@ -109,13 +108,8 @@ export function node(getModule?: GetModuleFn): StackLineParserFn {
         functionName = typeName ? `${typeName}.${methodName}` : methodName;
       }
 
-      let filename = lineMatch[2]?.startsWith('file://') ? lineMatch[2].slice(7) : lineMatch[2];
+      let filename = normalizeStackTracePath(lineMatch[2]);
       const isNative = lineMatch[5] === 'native';
-
-      // If it's a Windows path, trim the leading slash so that `/C:/foo` becomes `C:/foo`
-      if (filename?.match(/\/[A-Z]:/)) {
-        filename = filename.slice(1);
-      }
 
       if (!filename && lineMatch[5] && !isNative) {
         filename = lineMatch[5];

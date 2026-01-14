@@ -1,5 +1,6 @@
 import type { DebugImage } from '../types-hoist/debugMeta';
 import type { StackParser } from '../types-hoist/stacktrace';
+import { normalizeStackTracePath } from './stacktrace';
 import { GLOBAL_OBJ } from './worldwide';
 
 type StackString = string;
@@ -9,6 +10,17 @@ let parsedStackResults: Record<StackString, CachedResult> | undefined;
 let lastSentryKeysCount: number | undefined;
 let lastNativeKeysCount: number | undefined;
 let cachedFilenameDebugIds: Record<string, string> | undefined;
+
+/**
+ * Clears the cached debug ID mappings.
+ * Useful for testing or when the global debug ID state changes.
+ */
+export function clearDebugIdCache(): void {
+  parsedStackResults = undefined;
+  lastSentryKeysCount = undefined;
+  lastNativeKeysCount = undefined;
+  cachedFilenameDebugIds = undefined;
+}
 
 /**
  * Returns a map of filenames to debug identifiers.
@@ -101,8 +113,8 @@ export function getDebugImagesForResources(
 
   const images: DebugImage[] = [];
   for (const path of resource_paths) {
-    if (path) {
-      const normalizedPath = path.startsWith('file://') ? path.slice(7) : path;
+    const normalizedPath = normalizeStackTracePath(path);
+    if (normalizedPath) {
       if (filenameDebugIdMap[normalizedPath]) {
         images.push({
           type: 'sourcemap',

@@ -1,21 +1,16 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import type { StackParser } from '../../../src/types-hoist/stacktrace';
-import { getDebugImagesForResources, getFilenameToDebugIdMap } from '../../../src/utils/debug-ids';
+import { nodeStackLineParser } from '../../../src';
+import { clearDebugIdCache, getDebugImagesForResources, getFilenameToDebugIdMap } from '../../../src/utils/debug-ids';
+import { createStackParser } from '../../../src/utils/stacktrace';
+
+const nodeStackParser = createStackParser(nodeStackLineParser());
 
 describe('getDebugImagesForResources', () => {
-  const mockStackParser: StackParser = (stack: string) => {
-    // Simple mock that extracts filename from a stack string
-    const match = stack.match(/at .* \((.*?):\d+:\d+\)/);
-    if (match) {
-      return [{ filename: match[1], function: 'mockFunction', lineno: 1, colno: 1 }];
-    }
-    return [];
-  };
-
   beforeEach(() => {
     // Clear any existing debug ID maps
     delete (globalThis as any)._sentryDebugIds;
     delete (globalThis as any)._debugIds;
+    clearDebugIdCache();
   });
 
   it('should return debug images for resources without file:// prefix', () => {
@@ -25,7 +20,7 @@ describe('getDebugImagesForResources', () => {
     };
 
     const resources = ['/var/task/index.js'];
-    const images = getDebugImagesForResources(mockStackParser, resources);
+    const images = getDebugImagesForResources(nodeStackParser, resources);
 
     expect(images).toHaveLength(1);
     expect(images[0]).toEqual({
@@ -43,7 +38,7 @@ describe('getDebugImagesForResources', () => {
 
     // V8 profiler returns resources WITH file:// prefix
     const resources = ['file:///var/task/index.js'];
-    const images = getDebugImagesForResources(mockStackParser, resources);
+    const images = getDebugImagesForResources(nodeStackParser, resources);
 
     expect(images).toHaveLength(1);
     expect(images[0]).toEqual({
@@ -60,7 +55,7 @@ describe('getDebugImagesForResources', () => {
     };
 
     const resources = ['file:///var/task/index.js', '/var/task/utils.js'];
-    const images = getDebugImagesForResources(mockStackParser, resources);
+    const images = getDebugImagesForResources(nodeStackParser, resources);
 
     expect(images).toHaveLength(2);
     expect(images[0]).toEqual({
@@ -81,14 +76,14 @@ describe('getDebugImagesForResources', () => {
     };
 
     const resources = ['file:///var/task/other.js'];
-    const images = getDebugImagesForResources(mockStackParser, resources);
+    const images = getDebugImagesForResources(nodeStackParser, resources);
 
     expect(images).toHaveLength(0);
   });
 
   it('should return empty array when no debug IDs are registered', () => {
     const resources = ['file:///var/task/index.js'];
-    const images = getDebugImagesForResources(mockStackParser, resources);
+    const images = getDebugImagesForResources(nodeStackParser, resources);
 
     expect(images).toHaveLength(0);
   });
@@ -99,28 +94,55 @@ describe('getDebugImagesForResources', () => {
     };
 
     const resources: string[] = [];
-    const images = getDebugImagesForResources(mockStackParser, resources);
+    const images = getDebugImagesForResources(nodeStackParser, resources);
 
     expect(images).toHaveLength(0);
+  });
+
+  it('should handle Windows paths with file:// prefix', () => {
+    // Stack parser normalizes Windows paths: file:///C:/foo.js -> C:/foo.js
+    (globalThis as any)._sentryDebugIds = {
+      'at mockFunction (C:/Users/dev/project/index.js:1:1)': 'debug-id-win-123',
+    };
+
+    // V8 profiler returns Windows paths with file:// prefix
+    const resources = ['file:///C:/Users/dev/project/index.js'];
+    const images = getDebugImagesForResources(nodeStackParser, resources);
+
+    expect(images).toHaveLength(1);
+    expect(images[0]).toEqual({
+      type: 'sourcemap',
+      code_file: 'file:///C:/Users/dev/project/index.js',
+      debug_id: 'debug-id-win-123',
+    });
+  });
+
+  it('should handle Windows paths without file:// prefix', () => {
+    (globalThis as any)._sentryDebugIds = {
+      'at mockFunction (C:/Users/dev/project/index.js:1:1)': 'debug-id-win-123',
+    };
+
+    const resources = ['C:/Users/dev/project/index.js'];
+    const images = getDebugImagesForResources(nodeStackParser, resources);
+
+    expect(images).toHaveLength(1);
+    expect(images[0]).toEqual({
+      type: 'sourcemap',
+      code_file: 'C:/Users/dev/project/index.js',
+      debug_id: 'debug-id-win-123',
+    });
   });
 });
 
 describe('getFilenameToDebugIdMap', () => {
-  const mockStackParser: StackParser = (stack: string) => {
-    const match = stack.match(/at .* \((.*?):\d+:\d+\)/);
-    if (match) {
-      return [{ filename: match[1], function: 'mockFunction', lineno: 1, colno: 1 }];
-    }
-    return [];
-  };
-
   beforeEach(() => {
     delete (globalThis as any)._sentryDebugIds;
     delete (globalThis as any)._debugIds;
+    clearDebugIdCache();
   });
 
   it('should return empty object when no debug IDs are registered', () => {
-    const map = getFilenameToDebugIdMap(mockStackParser);
+    const map = getFilenameToDebugIdMap(nodeStackParser);
     expect(map).toEqual({});
   });
 
@@ -130,7 +152,7 @@ describe('getFilenameToDebugIdMap', () => {
       'at anotherFunction (/var/task/utils.js:10:5)': 'debug-id-456',
     };
 
-    const map = getFilenameToDebugIdMap(mockStackParser);
+    const map = getFilenameToDebugIdMap(nodeStackParser);
 
     expect(map).toEqual({
       '/var/task/index.js': 'debug-id-123',
@@ -143,7 +165,7 @@ describe('getFilenameToDebugIdMap', () => {
       'at mockFunction (/var/task/index.js:1:1)': 'native-debug-id-123',
     };
 
-    const map = getFilenameToDebugIdMap(mockStackParser);
+    const map = getFilenameToDebugIdMap(nodeStackParser);
 
     expect(map).toEqual({
       '/var/task/index.js': 'native-debug-id-123',
@@ -158,7 +180,7 @@ describe('getFilenameToDebugIdMap', () => {
       'at mockFunction (/var/task/index.js:1:1)': 'native-debug-id',
     };
 
-    const map = getFilenameToDebugIdMap(mockStackParser);
+    const map = getFilenameToDebugIdMap(nodeStackParser);
 
     expect(map['/var/task/index.js']).toBe('native-debug-id');
   });
