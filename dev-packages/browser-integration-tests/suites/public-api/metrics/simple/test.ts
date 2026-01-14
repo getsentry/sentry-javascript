@@ -1,11 +1,15 @@
 import { expect } from '@playwright/test';
 import type { MetricEnvelope } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
-import { getFirstSentryEnvelopeRequest, properFullEnvelopeRequestParser } from '../../../../utils/helpers';
+import {
+  getFirstSentryEnvelopeRequest,
+  properFullEnvelopeRequestParser,
+  shouldSkipMetricsTest,
+} from '../../../../utils/helpers';
 
 sentryTest('should capture all metric types', async ({ getLocalTestUrl, page }) => {
-  const bundle = process.env.PW_BUNDLE || '';
-  if (bundle.startsWith('bundle') || bundle.startsWith('loader')) {
+  // Only run this for npm package exports and CDN bundles with metrics
+  if (shouldSkipMetricsTest()) {
     sentryTest.skip();
   }
 
