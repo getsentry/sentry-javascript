@@ -14,9 +14,9 @@
     "test:assert": "pnpm playwright test"
   },
   "dependencies": {
-    "@remix-run/react": "2.15.3",
-    "@remix-run/server-runtime": "2.15.3",
-    "@remix-run/cloudflare-pages": "2.15.3",
+    "@remix-run/react": "2.17.1",
+    "@remix-run/server-runtime": "2.17.1",
+    "@remix-run/cloudflare-pages": "2.17.1",
     "@sentry/cloudflare": "latest || *",
     "@sentry/remix": "latest || *",
     "@sentry/vite-plugin": "^4.6.1",
