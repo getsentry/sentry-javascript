@@ -38,10 +38,24 @@ describe('makeEnableSourceMapsVitePlugin()', () => {
 
 describe('makeAddSentryVitePlugin()', () => {
   it('passes user-specified vite plugin options to vite plugin', () => {
+    const errorHandler = vi.fn();
     makeAddSentryVitePlugin({
       org: 'my-org',
       authToken: 'my-token',
+      sentryUrl: 'https://custom.sentry.io',
+      headers: { 'X-Custom-Header': 'value' },
+      silent: true,
+      errorHandler,
+      release: {
+        name: 'my-release',
+        inject: true,
+        create: true,
+        finalize: true,
+        dist: 'dist-1',
+      },
       sourcemaps: {
+        assets: ['dist/**/*.js'],
+        ignore: ['node_modules/**'],
         filesToDeleteAfterUpload: ['baz/*.js'],
       },
       bundleSizeOptimizations: {
@@ -53,7 +67,20 @@ describe('makeAddSentryVitePlugin()', () => {
       expect.objectContaining({
         org: 'my-org',
         authToken: 'my-token',
+        url: 'https://custom.sentry.io',
+        headers: { 'X-Custom-Header': 'value' },
+        silent: true,
+        errorHandler,
+        release: {
+          name: 'my-release',
+          inject: true,
+          create: true,
+          finalize: true,
+          dist: 'dist-1',
+        },
         sourcemaps: {
+          assets: ['dist/**/*.js'],
+          ignore: ['node_modules/**'],
           filesToDeleteAfterUpload: ['baz/*.js'],
         },
         bundleSizeOptimizations: {
@@ -88,6 +115,8 @@ describe('makeAddSentryVitePlugin()', () => {
     expect(sentryVitePluginSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         sourcemaps: {
+          assets: undefined,
+          ignore: undefined,
           filesToDeleteAfterUpload: ['.*/**/*.map'],
         },
       }),

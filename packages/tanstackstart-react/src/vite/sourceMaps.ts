@@ -6,7 +6,20 @@ import type { Plugin, UserConfig } from 'vite';
  * A Sentry plugin for adding the @sentry/vite-plugin to automatically upload source maps to Sentry.
  */
 export function makeAddSentryVitePlugin(options: BuildTimeOptionsBase): Plugin[] {
-  const { authToken, bundleSizeOptimizations, debug, org, project, sourcemaps, telemetry } = options;
+  const {
+    authToken,
+    bundleSizeOptimizations,
+    debug,
+    errorHandler,
+    headers,
+    org,
+    project,
+    release,
+    sentryUrl,
+    silent,
+    sourcemaps,
+    telemetry,
+  } = options;
 
   const configPlugin: Plugin = {
     name: 'sentry-tanstackstart-source-maps-config',
@@ -36,12 +49,19 @@ export function makeAddSentryVitePlugin(options: BuildTimeOptionsBase): Plugin[]
     authToken: authToken ?? process.env.SENTRY_AUTH_TOKEN,
     bundleSizeOptimizations: bundleSizeOptimizations ?? undefined,
     debug: debug ?? false,
+    errorHandler,
+    headers,
     org: org ?? process.env.SENTRY_ORG,
     project: project ?? process.env.SENTRY_PROJECT,
+    release,
+    silent,
     sourcemaps: {
+      assets: sourcemaps?.assets,
+      ignore: sourcemaps?.ignore,
       filesToDeleteAfterUpload,
     },
     telemetry: telemetry ?? true,
+    url: sentryUrl,
     _metaOptions: {
       telemetry: {
         metaFramework: 'tanstackstart-react',
