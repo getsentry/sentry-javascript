@@ -11,3 +11,5 @@ allow-ghsas:
   - GHSA-gp8f-8m3g-qvj9
   # devalue vulnerability - this is just used by nuxt & astro as transitive dependency
   - GHSA-vj54-72f3-p5jv
+  # React Router has XSS Vulnerability - we need this for the remix-hydrogen E2E test
+  - GHSA-3cgp-3xvw-98x8
