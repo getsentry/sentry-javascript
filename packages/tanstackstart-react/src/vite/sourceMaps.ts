@@ -26,7 +26,7 @@ export function makeAddSentryVitePlugin(options: BuildTimeOptionsBase): Plugin[]
     apply: 'build',
     enforce: 'pre',
     config(config) {
-      // Log if we're auto-deleting source maps (when user didn't configure sourcemap or filesToDeleteAfterUpload)
+      // Emit a warning if we're auto-deleting source maps
       if (
         typeof sourcemaps?.filesToDeleteAfterUpload === 'undefined' &&
         typeof config.build?.sourcemap === 'undefined' &&
@@ -116,15 +116,12 @@ export function getUpdatedSourceMapSettings(
 ): boolean | 'inline' | 'hidden' {
   viteConfig.build = viteConfig.build || {};
 
-  const viteSourceMap = viteConfig.build?.sourcemap;
-  let updatedSourceMapSetting = viteSourceMap;
-
+  const viteUserSourceMapSetting = viteConfig.build?.sourcemap;
   const settingKey = 'vite.build.sourcemap';
   const debug = sentryPluginOptions?.debug;
 
-  if (viteSourceMap === false) {
-    updatedSourceMapSetting = viteSourceMap;
-
+  // Respect user source map setting if it is explicitly set
+  if (viteUserSourceMapSetting === false) {
     if (debug) {
       // eslint-disable-next-line no-console
       console.warn(
@@ -134,25 +131,26 @@ export function getUpdatedSourceMapSettings(
       // eslint-disable-next-line no-console
       console.warn('[Sentry] Source map generation is disabled in your TanStack Start configuration.');
     }
-  } else if (viteSourceMap && ['hidden', 'inline', true].includes(viteSourceMap)) {
-    updatedSourceMapSetting = viteSourceMap;
 
+    return viteUserSourceMapSetting;
+  } else if (viteUserSourceMapSetting && ['hidden', 'inline', true].includes(viteUserSourceMapSetting)) {
     if (debug) {
       // eslint-disable-next-line no-console
       console.log(
-        `[Sentry] We discovered \`${settingKey}\` is set to \`${viteSourceMap.toString()}\`. Sentry will keep this source map setting.`,
+        `[Sentry] We discovered \`${settingKey}\` is set to \`${viteUserSourceMapSetting.toString()}\`. Sentry will keep this source map setting.`,
       );
     }
-  } else {
-    updatedSourceMapSetting = 'hidden';
 
-    if (debug) {
-      // eslint-disable-next-line no-console
-      console.log(
-        `[Sentry] Enabled source map generation in the build options with \`${settingKey}: 'hidden'\`. The source maps will be deleted after they were uploaded to Sentry.`,
-      );
-    }
+    return viteUserSourceMapSetting;
   }
 
-  return updatedSourceMapSetting;
+  // If the user did not specify a source map setting, we enable 'hidden' by default
+  if (debug) {
+    // eslint-disable-next-line no-console
+    console.log(
+      `[Sentry] Enabled source map generation in the build options with \`${settingKey}: 'hidden'\`. The source maps will be deleted after they were uploaded to Sentry.`,
+    );
+  }
+
+  return 'hidden';
 }
