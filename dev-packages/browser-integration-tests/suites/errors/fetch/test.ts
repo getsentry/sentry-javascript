@@ -5,10 +5,13 @@ import { envelopeRequestParser, waitForErrorRequest } from '../../../utils/helpe
 sentryTest('handles fetch network errors @firefox', async ({ getLocalTestUrl, page, browserName }) => {
   const url = await getLocalTestUrl({ testDir: __dirname });
   const reqPromise = waitForErrorRequest(page);
+  const pageErrorPromise = new Promise<string>(resolve => page.on('pageerror', error => resolve(error.message)));
+
   await page.goto(url);
   await page.evaluate('networkError()');
 
-  const eventData = envelopeRequestParser(await reqPromise);
+  const [req, pageErrorMessage] = await Promise.all([reqPromise, pageErrorPromise]);
+  const eventData = envelopeRequestParser(req);
 
   const errorMap: Record<string, string> = {
     chromium: 'Failed to fetch (sentry-test-external.io)',
@@ -18,6 +21,7 @@ sentryTest('handles fetch network errors @firefox', async ({ getLocalTestUrl, pa
 
   const error = errorMap[browserName];
 
+  expect(pageErrorMessage).toContain(error);
   expect(eventData.exception?.values).toHaveLength(1);
   expect(eventData.exception?.values?.[0]).toMatchObject({
     type: 'TypeError',
@@ -32,10 +36,13 @@ sentryTest('handles fetch network errors @firefox', async ({ getLocalTestUrl, pa
 sentryTest('handles fetch network errors on subdomains @firefox', async ({ getLocalTestUrl, page, browserName }) => {
   const url = await getLocalTestUrl({ testDir: __dirname });
   const reqPromise = waitForErrorRequest(page);
+  const pageErrorPromise = new Promise<string>(resolve => page.on('pageerror', error => resolve(error.message)));
+
   await page.goto(url);
   await page.evaluate('networkErrorSubdomain()');
 
-  const eventData = envelopeRequestParser(await reqPromise);
+  const [req, pageErrorMessage] = await Promise.all([reqPromise, pageErrorPromise]);
+  const eventData = envelopeRequestParser(req);
 
   const errorMap: Record<string, string> = {
     chromium: 'Failed to fetch (subdomain.sentry-test-external.io)',
@@ -44,6 +51,9 @@ sentryTest('handles fetch network errors on subdomains @firefox', async ({ getLo
   };
 
   const error = errorMap[browserName];
+
+  // Verify the error message at JavaScript level includes the hostname
+  expect(pageErrorMessage).toContain(error);
 
   expect(eventData.exception?.values).toHaveLength(1);
   expect(eventData.exception?.values?.[0]).toMatchObject({
@@ -127,29 +137,44 @@ sentryTest('handles fetch invalid URL scheme errors @firefox', async ({ getLocal
 
   const url = await getLocalTestUrl({ testDir: __dirname });
   const reqPromise = waitForErrorRequest(page);
+  const pageErrorPromise = new Promise<string>(resolve => page.on('pageerror', error => resolve(error.message)));
+
   await page.goto(url);
   await page.evaluate('invalidUrlScheme()');
 
-  const eventData = envelopeRequestParser(await reqPromise);
-
-  const errorMap: Record<string, string> = {
-    chromium: 'Failed to fetch (sentry-test-external.io)',
-    webkit: 'Load failed (sentry-test-external.io)',
-    firefox: 'NetworkError when attempting to fetch resource. (sentry-test-external.io)',
-  };
-
-  const error = errorMap[browserName];
+  const [req, pageErrorMessage] = await Promise.all([reqPromise, pageErrorPromise]);
+  const eventData = envelopeRequestParser(req);
 
   /**
    * This kind of error does show a helpful warning in the console, e.g.:
    * Fetch API cannot load blub://sentry-test-external.io/invalid-scheme. URL scheme "blub" is not supported.
    * But it seems we cannot really access this in the SDK :(
+   *
+   * Note: On WebKit, invalid URL schemes trigger TWO different errors:
+   * 1. A synchronous "access control checks" error (captured by pageerror)
+   * 2. A "Load failed" error from the fetch rejection (which we enhance)
+   * So we use separate error maps for pageError and sentryError on this test.
    */
+  const pageErrorMap: Record<string, string> = {
+    chromium: 'Failed to fetch (sentry-test-external.io)',
+    webkit: '/sentry-test-external.io/invalid-scheme due to access control checks.',
+    firefox: 'NetworkError when attempting to fetch resource. (sentry-test-external.io)',
+  };
 
+  const sentryErrorMap: Record<string, string> = {
+    chromium: 'Failed to fetch (sentry-test-external.io)',
+    webkit: 'Load failed (sentry-test-external.io)',
+    firefox: 'NetworkError when attempting to fetch resource. (sentry-test-external.io)',
+  };
+
+  const pageError = pageErrorMap[browserName];
+  const sentryError = sentryErrorMap[browserName];
+
+  expect(pageErrorMessage).toContain(pageError);
   expect(eventData.exception?.values).toHaveLength(1);
   expect(eventData.exception?.values?.[0]).toMatchObject({
     type: 'TypeError',
-    value: error,
+    value: sentryError,
     mechanism: {
       handled: false,
       type: 'auto.browser.global_handlers.onunhandledrejection',

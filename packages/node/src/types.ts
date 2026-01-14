@@ -1,28 +1,13 @@
 import type { Span as WriteableSpan } from '@opentelemetry/api';
-import type { Instrumentation } from '@opentelemetry/instrumentation';
-import type { ReadableSpan, SpanProcessor } from '@opentelemetry/sdk-trace-base';
-import type { ClientOptions, Options, SamplingContext, Scope, Span, TracePropagationTargets } from '@sentry/core';
-import type { NodeTransportOptions } from '@sentry/node-core';
+import type { ReadableSpan } from '@opentelemetry/sdk-trace-base';
+import type { ClientOptions, Options, SamplingContext, Scope, Span } from '@sentry/core';
+import type { NodeTransportOptions, OpenTelemetryServerRuntimeOptions } from '@sentry/node-core';
 
-export interface BaseNodeOptions {
-  /**
-   * List of strings/regex controlling to which outgoing requests
-   * the SDK will attach tracing headers.
-   *
-   * By default the SDK will attach those headers to all outgoing
-   * requests. If this option is provided, the SDK will match the
-   * request URL of outgoing requests against the items in this
-   * array, and only attach tracing headers if a match was found.
-   *
-   * @example
-   * ```js
-   * Sentry.init({
-   *   tracePropagationTargets: ['api.site.com'],
-   * });
-   * ```
-   */
-  tracePropagationTargets?: TracePropagationTargets;
-
+/**
+ * Base options for the Sentry Node SDK.
+ * Extends the common WinterTC options with OpenTelemetry support shared with Bun and other server-side SDKs.
+ */
+export interface BaseNodeOptions extends OpenTelemetryServerRuntimeOptions {
   /**
    * Sets profiling sample rate when @sentry/profiling-node is installed
    *
@@ -65,71 +50,11 @@ export interface BaseNodeOptions {
   profileLifecycle?: 'manual' | 'trace';
 
   /**
-   * If set to `false`, the SDK will not automatically detect the `serverName`.
-   *
-   * This is useful if you are using the SDK in a CLI app or Electron where the
-   * hostname might be considered PII.
-   *
-   * @default true
-   */
-  includeServerName?: boolean;
-
-  /** Sets an optional server name (device name) */
-  serverName?: string;
-
-  /**
    * Include local variables with stack traces.
    *
    * Requires the `LocalVariables` integration.
    */
   includeLocalVariables?: boolean;
-
-  /**
-   * If you use Spotlight by Sentry during development, use
-   * this option to forward captured Sentry events to Spotlight.
-   *
-   * Either set it to true, or provide a specific Spotlight Sidecar URL.
-   *
-   * More details: https://spotlightjs.com/
-   *
-   * IMPORTANT: Only set this option to `true` while developing, not in production!
-   */
-  spotlight?: boolean | string;
-
-  /**
-   * If this is set to true, the SDK will not set up OpenTelemetry automatically.
-   * In this case, you _have_ to ensure to set it up correctly yourself, including:
-   * * The `SentrySpanProcessor`
-   * * The `SentryPropagator`
-   * * The `SentryContextManager`
-   * * The `SentrySampler`
-   *
-   * If you are registering your own OpenTelemetry Loader Hooks (or `import-in-the-middle` hooks), it is also recommended to set the `registerEsmLoaderHooks` option to false.
-   */
-  skipOpenTelemetrySetup?: boolean;
-
-  /**
-   * Provide an array of OpenTelemetry Instrumentations that should be registered.
-   *
-   * Use this option if you want to register OpenTelemetry instrumentation that the Sentry SDK does not yet have support for.
-   */
-  openTelemetryInstrumentations?: Instrumentation[];
-
-  /**
-   * Provide an array of additional OpenTelemetry SpanProcessors that should be registered.
-   */
-  openTelemetrySpanProcessors?: SpanProcessor[];
-
-  /**
-   * The max. duration in seconds that the SDK will wait for parent spans to be finished before discarding a span.
-   * The SDK will automatically clean up spans that have no finished parent after this duration.
-   * This is necessary to prevent memory leaks in case of parent spans that are never finished or otherwise dropped/missing.
-   * However, if you have very long-running spans in your application, a shorter duration might cause spans to be discarded too early.
-   * In this case, you can increase this duration to a value that fits your expected data.
-   *
-   * Defaults to 300 seconds (5 minutes).
-   */
-  maxSpanWaitDuration?: number;
 
   /**
    * Whether to register ESM loader hooks to automatically instrument libraries.
@@ -140,28 +65,6 @@ export interface BaseNodeOptions {
    * Defaults to `true`.
    */
   registerEsmLoaderHooks?: boolean;
-
-  /**
-   * Configures in which interval client reports will be flushed. Defaults to `60_000` (milliseconds).
-   */
-  clientReportFlushInterval?: number;
-
-  /**
-   * By default, the SDK will try to identify problems with your instrumentation setup and warn you about it.
-   * If you want to disable these warnings, set this to `true`.
-   */
-  disableInstrumentationWarnings?: boolean;
-
-  /**
-   * Controls how many milliseconds to wait before shutting down. The default is 2 seconds. Setting this too low can cause
-   * problems for sending events from command line applications. Setting it too
-   * high can cause the application to block for users with network connectivity
-   * problems.
-   */
-  shutdownTimeout?: number;
-
-  /** Callback that is executed when a fatal global error occurs. */
-  onFatalError?(this: void, error: Error): void;
 }
 
 /**
