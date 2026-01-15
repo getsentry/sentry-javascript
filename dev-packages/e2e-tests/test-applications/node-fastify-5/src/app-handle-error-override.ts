@@ -48,6 +48,11 @@ Sentry.setupFastifyErrorHandler(app, {
       return false;
     }
 
+    // @ts-ignore // Fastify V5 is not typed correctly
+    if (_request.routeOptions?.url?.includes('/test-error-ignored') && _reply.statusCode === 500) {
+      return false;
+    }
+
     return true;
   },
 });
@@ -128,6 +133,21 @@ app.get('/test-outgoing-http-external-allowed', async function (req, res) {
 app.get('/test-outgoing-http-external-disallowed', async function (req, res) {
   const data = await makeHttpRequest(`http://localhost:${port2}/external-disallowed`);
   res.send(data);
+});
+
+// Regression test for https://github.com/fastify/fastify/issues/6409
+// The error diagnostic channel was always sending 200 unless explicitly changed.
+// This was fixed in Fastify 5.7.0
+app.register((childApp: F.FastifyInstance, _options: F.FastifyPluginOptions, next: (err?: Error) => void) => {
+  childApp.setErrorHandler((error: Error, _request: F.FastifyRequest, reply: F.FastifyReply) => {
+    reply.send({ ok: false });
+  });
+
+  childApp.get('/test-error-ignored', async function () {
+    throw new Error('This is an error that will not be captured');
+  });
+
+  next();
 });
 
 app.post('/test-post', function (req, res) {
