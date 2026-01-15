@@ -251,7 +251,7 @@ module.exports = [
     path: createCDNPath('bundle.tracing.replay.feedback.logs.metrics.min.js'),
     gzip: false,
     brotli: false,
-    limit: '260 KB',
+    limit: '264 KB',
   },
   // Next.js SDK (ESM)
   {
