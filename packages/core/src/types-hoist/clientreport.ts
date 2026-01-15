@@ -9,7 +9,8 @@ export type EventDropReason =
   | 'sample_rate'
   | 'send_error'
   | 'internal_sdk_error'
-  | 'buffer_overflow';
+  | 'buffer_overflow'
+  | 'ignored';
 
 export type Outcome = {
   reason: EventDropReason;
