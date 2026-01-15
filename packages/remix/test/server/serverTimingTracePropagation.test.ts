@@ -1,9 +1,9 @@
 import {
   getActiveSpan,
-  getDynamicSamplingContextFromSpan,
   getRootSpan,
   getTraceData,
   isNodeEnv,
+  spanToBaggageHeader,
   spanToTraceHeader,
 } from '@sentry/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -36,12 +36,8 @@ vi.mock('@sentry/core', () => ({
     'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
     baggage: 'sentry-environment=production,sentry-release=1.0.0',
   })),
-  getDynamicSamplingContextFromSpan: vi.fn(() => ({
-    trace_id: '12345678901234567890123456789012',
-    environment: 'production',
-    release: '1.0.0',
-  })),
   spanToTraceHeader: vi.fn(() => '12345678901234567890123456789012-1234567890123456-1'),
+  spanToBaggageHeader: vi.fn(() => 'sentry-environment=production,sentry-release=1.0.0'),
   isNodeEnv: vi.fn(() => true),
 }));
 
@@ -52,6 +48,7 @@ describe('serverTimingTracePropagation', () => {
     vi.mocked(getActiveSpan).mockReturnValue(mockSpan);
     vi.mocked(getRootSpan).mockReturnValue(mockRootSpan);
     vi.mocked(spanToTraceHeader).mockReturnValue('12345678901234567890123456789012-1234567890123456-1');
+    vi.mocked(spanToBaggageHeader).mockReturnValue('sentry-environment=production,sentry-release=1.0.0');
     vi.mocked(getTraceData).mockReturnValue({
       'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
       baggage: 'sentry-environment=production,sentry-release=1.0.0',
@@ -118,15 +115,14 @@ describe('serverTimingTracePropagation', () => {
         spanContext: () => ({ traceId: 'custom-trace-id' }),
       };
       vi.mocked(spanToTraceHeader).mockReturnValue('custom-trace-id-custom-span-id-1');
-      vi.mocked(getTraceData).mockReturnValue({
-        'sentry-trace': 'custom-trace-id-custom-span-id-1',
-        baggage: 'sentry-custom=value',
-      });
+      vi.mocked(spanToBaggageHeader).mockReturnValue('sentry-custom=value');
 
       const result = generateSentryServerTimingHeader({ span: customSpan });
 
       expect(spanToTraceHeader).toHaveBeenCalledWith(customSpan);
+      expect(spanToBaggageHeader).toHaveBeenCalledWith(customSpan);
       expect(result).toContain('sentry-trace;desc="custom-trace-id-custom-span-id-1"');
+      expect(result).toContain('baggage;desc="sentry-custom=value"');
     });
 
     it('falls back to getTraceData when no span is available', () => {
@@ -157,7 +153,7 @@ describe('serverTimingTracePropagation', () => {
         'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
         baggage: '',
       });
-      vi.mocked(getDynamicSamplingContextFromSpan).mockReturnValue({});
+      vi.mocked(spanToBaggageHeader).mockReturnValue('');
 
       const result = generateSentryServerTimingHeader();
 
@@ -168,7 +164,7 @@ describe('serverTimingTracePropagation', () => {
       vi.mocked(getTraceData).mockReturnValue({
         'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
       });
-      vi.mocked(getDynamicSamplingContextFromSpan).mockReturnValue({});
+      vi.mocked(spanToBaggageHeader).mockReturnValue(undefined);
 
       const result = generateSentryServerTimingHeader();
 
