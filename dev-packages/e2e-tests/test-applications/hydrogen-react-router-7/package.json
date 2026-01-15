@@ -16,7 +16,7 @@
   "dependencies": {
     "@sentry/cloudflare": "latest || *",
     "@sentry/react-router": "latest || *",
-    "@sentry/vite-plugin": "^3.1.2",
+    "@sentry/vite-plugin": "^4.6.2",
     "@shopify/hydrogen": "2025.5.0",
     "@shopify/remix-oxygen": "^3.0.0",
     "graphql": "^16.10.0",
