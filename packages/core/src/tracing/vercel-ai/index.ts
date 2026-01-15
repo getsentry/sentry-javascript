@@ -66,8 +66,9 @@ function onVercelAiSpanStart(span: Span): void {
     return;
   }
 
-  // Check if this is a Vercel AI span by checking if the operation ID attribute is present.
-  if (!attributes[AI_OPERATION_ID_ATTRIBUTE]) {
+  // V6+ Check if this is a Vercel AI span by checking if the operation ID attribute is present.
+  // V5+ Check if this is a Vercel AI span by name pattern.
+  if (!attributes[AI_OPERATION_ID_ATTRIBUTE] && !name.startsWith('ai.')) {
     return;
   }
 
