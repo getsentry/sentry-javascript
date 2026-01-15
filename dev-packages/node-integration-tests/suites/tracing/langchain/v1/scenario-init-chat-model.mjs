@@ -89,17 +89,17 @@ async function run() {
     ]);
 
     // Test 3: Error handling
-  //   try {
-  //     const errorModel = await initChatModel('error-model', {
-  //       modelProvider: 'openai',
-  //       configuration: {
-  //         baseURL: baseUrl,
-  //       },
-  //     });
-  //     await errorModel.invoke('This will fail');
-  //   } catch {
-  //     // Expected error
-  //   }
+    //   try {
+    //     const errorModel = await initChatModel('error-model', {
+    //       modelProvider: 'openai',
+    //       configuration: {
+    //         baseURL: baseUrl,
+    //       },
+    //     });
+    //     await errorModel.invoke('This will fail');
+    //   } catch {
+    //     // Expected error
+    //   }
   });
 
   await Sentry.flush(2000);
