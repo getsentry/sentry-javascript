@@ -214,7 +214,7 @@ module.exports = [
     name: 'CDN Bundle (incl. Tracing, Replay, Feedback, Logs, Metrics)',
     path: createCDNPath('bundle.tracing.replay.feedback.logs.metrics.min.js'),
     gzip: true,
-    limit: '90 KB',
+    limit: '86 KB',
   },
   // browser CDN bundles (non-gzipped)
   {
@@ -257,7 +257,7 @@ module.exports = [
     path: createCDNPath('bundle.tracing.replay.feedback.logs.metrics.min.js'),
     gzip: false,
     brotli: false,
-    limit: '285 KB',
+    limit: '260 KB',
   },
   // Next.js SDK (ESM)
   {
