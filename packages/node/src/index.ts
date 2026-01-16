@@ -180,6 +180,7 @@ export {
   disableAnrDetectionForCallback,
   spotlightIntegration,
   childProcessIntegration,
+  processSessionIntegration,
   pinoIntegration,
   createSentryWinstonTransport,
   SentryContextManager,
