@@ -13,13 +13,14 @@
   ```ts
   // vite.config.ts
   sentryTanstackStart({
+    authToken: process.env.SENTRY_AUTH_TOKEN,
     org: 'your-org',
     project: 'your-project',
     autoInstrumentMiddleware: false,
   });
   ```
 
-- **feat(tanstackstart-react): Add `sentryTanstackStart` Vite plugin for source maps upload**
+- **feat(tanstackstart-react): Add sentryTanstackStart vite plugin to manage automatic source map uploads**
 
   You can now configure source maps upload for TanStack Start using the `sentryTanstackStart` Vite plugin:
 
@@ -32,6 +33,7 @@
   export default defineConfig({
     plugins: [
       sentryTanstackStart({
+        authToken: process.env.SENTRY_AUTH_TOKEN,
         org: 'your-org',
         project: 'your-project',
       }),

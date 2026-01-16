@@ -46,6 +46,7 @@ export interface SentryTanstackStartOptions extends BuildTimeOptionsBase {
  * @returns An array of Vite plugins
  */
 export function sentryTanstackStart(options: SentryTanstackStartOptions = {}): Plugin[] {
+  // only add plugins in production builds
   if (process.env.NODE_ENV === 'development') {
     return [];
   }
