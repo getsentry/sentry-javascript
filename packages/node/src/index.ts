@@ -158,6 +158,8 @@ export type {
   User,
   Span,
   Metric,
+  Log,
+  LogSeverityLevel,
   FeatureFlagsIntegration,
   ExclusiveEventHintOrCaptureContext,
   CaptureContext,
