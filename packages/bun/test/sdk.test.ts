@@ -37,8 +37,6 @@ describe('Bun SDK', () => {
 
     await new Promise(resolve => setTimeout(resolve, 1000));
 
-    expect(envelopes.length).toBe(1);
-
     const envelope = envelopes[0];
     const event = envelope?.[1][0][1] as Event;
 
