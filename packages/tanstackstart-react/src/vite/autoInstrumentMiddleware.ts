@@ -6,13 +6,8 @@ type AutoInstrumentMiddlewareOptions = {
 };
 
 /**
- * A Vite plugin that automatically instruments TanStack Start middlewares.
- *
- * Phase 1: Only wraps global middlewares in `createStart()` configuration
- * (`requestMiddleware` and `functionMiddleware` arrays).
- *
- * @param options - Configuration options for the plugin
- * @returns A Vite plugin
+ * A Vite plugin that automatically instruments TanStack Start middlewares
+ * by wrapping `requestMiddleware` and `functionMiddleware` arrays in `createStart()`.
  */
 export function makeAutoInstrumentMiddlewarePlugin(options: AutoInstrumentMiddlewareOptions = {}): Plugin {
   const { enabled = true, debug = false } = options;
@@ -62,7 +57,6 @@ export function makeAutoInstrumentMiddlewarePlugin(options: AutoInstrumentMiddle
 
       if (needsImport) {
         transformed = `import { wrapMiddlewaresWithSentry } from '@sentry/tanstackstart-react';\n${transformed}`;
-        console.log(`[Sentry] transformed:`, transformed);
         return { code: transformed, map: null };
       }
 

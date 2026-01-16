@@ -1,9 +1,6 @@
 import type { Plugin } from 'vite';
 import { describe, expect, it } from 'vitest';
-import {
-  arrayToObjectShorthand,
-  makeAutoInstrumentMiddlewarePlugin,
-} from '../../src/vite/autoInstrumentMiddleware';
+import { arrayToObjectShorthand, makeAutoInstrumentMiddlewarePlugin } from '../../src/vite/autoInstrumentMiddleware';
 
 type PluginWithTransform = Plugin & {
   transform: (code: string, id: string) => { code: string; map: null } | null;
@@ -32,7 +29,7 @@ export const startInstance = createStart(() => ({
 
   it('does not instrument files without createStart', () => {
     const plugin = makeAutoInstrumentMiddlewarePlugin() as PluginWithTransform;
-    const code = `export const foo = 'bar';`;
+    const code = "export const foo = 'bar';";
     const result = plugin.transform(code, '/app/other.ts');
 
     expect(result).toBeNull();
