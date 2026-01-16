@@ -37,8 +37,10 @@ describe('Bun SDK', () => {
 
     await new Promise(resolve => setTimeout(resolve, 1000));
 
-    const envelope = envelopes[0];
-    const event = envelope?.[1][0][1] as Event;
+    const errorEnvelope = envelopes.find(envelope => envelope?.[1][0]?.[0]?.type === 'event');
+    expect(errorEnvelope).toBeDefined();
+
+    const event = errorEnvelope?.[1][0][1] as Event;
 
     expect(event.sdk?.name).toBe('sentry.javascript.bun');
 
