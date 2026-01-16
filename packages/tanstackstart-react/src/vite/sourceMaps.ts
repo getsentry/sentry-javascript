@@ -2,6 +2,8 @@ import type { BuildTimeOptionsBase } from '@sentry/core';
 import { sentryVitePlugin } from '@sentry/vite-plugin';
 import type { Plugin, UserConfig } from 'vite';
 
+type FilesToDeleteAfterUpload = string | string[] | undefined;
+
 /**
  * A Sentry plugin for adding the @sentry/vite-plugin to automatically upload source maps to Sentry.
  */
@@ -21,29 +23,33 @@ export function makeAddSentryVitePlugin(options: BuildTimeOptionsBase): Plugin[]
     telemetry,
   } = options;
 
+  // defer resolving the filesToDeleteAfterUpload until we got access to the Vite config
+  let resolveFilesToDeleteAfterUpload: ((value: FilesToDeleteAfterUpload) => void) | undefined;
+  const filesToDeleteAfterUploadPromise = new Promise<FilesToDeleteAfterUpload>(resolve => {
+    resolveFilesToDeleteAfterUpload = resolve;
+  });
+
   const configPlugin: Plugin = {
-    name: 'sentry-tanstackstart-source-maps-config',
+    name: 'sentry-tanstackstart-files-to-delete-after-upload-plugin',
     apply: 'build',
     enforce: 'post',
     config(config) {
-      // Emit a warning if we're auto-deleting source maps
-      if (
-        typeof sourcemaps?.filesToDeleteAfterUpload === 'undefined' &&
-        typeof config.build?.sourcemap === 'undefined' &&
-        debug
-      ) {
-        // eslint-disable-next-line no-console
-        console.log(
-          '[Sentry] Automatically setting `sourcemaps.filesToDeleteAfterUpload: ["./**/*.map"]` to delete generated source maps after they were uploaded to Sentry.',
-        );
+      const userFilesToDelete = sourcemaps?.filesToDeleteAfterUpload;
+
+      // Only auto-delete source maps if the user didn't configure sourcemaps at all
+      if (typeof userFilesToDelete === 'undefined' && typeof config.build?.sourcemap === 'undefined') {
+        if (debug) {
+          // eslint-disable-next-line no-console
+          console.log(
+            '[Sentry] Automatically setting `sourcemaps.filesToDeleteAfterUpload: ["./**/*.map"]` to delete generated source maps after they were uploaded to Sentry.',
+          );
+        }
+        resolveFilesToDeleteAfterUpload?.(['./**/*.map']);
+      } else {
+        resolveFilesToDeleteAfterUpload?.(userFilesToDelete);
       }
     },
   };
-
-  // Default to auto-deleting all source maps after upload
-  // Users can override this by explicitly setting sourcemaps.filesToDeleteAfterUpload
-  const defaultFilesToDelete = ['./**/*.map'];
-  const filesToDeleteAfterUpload = sourcemaps?.filesToDeleteAfterUpload ?? defaultFilesToDelete;
 
   const sentryPlugins = sentryVitePlugin({
     authToken: authToken ?? process.env.SENTRY_AUTH_TOKEN,
@@ -59,7 +65,7 @@ export function makeAddSentryVitePlugin(options: BuildTimeOptionsBase): Plugin[]
       assets: sourcemaps?.assets,
       disable: sourcemaps?.disable,
       ignore: sourcemaps?.ignore,
-      filesToDeleteAfterUpload,
+      filesToDeleteAfterUpload: filesToDeleteAfterUploadPromise,
     },
     telemetry: telemetry ?? true,
     url: sentryUrl,

@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { sentryTanstackStart } from '../../src/vite/sentryTanstackStart';
 
 const mockSourceMapsConfigPlugin: Plugin = {
-  name: 'sentry-tanstackstart-source-maps-config',
+  name: 'sentry-tanstackstart-files-to-delete-after-upload-plugin',
   apply: 'build',
   enforce: 'pre',
   config: vi.fn(),

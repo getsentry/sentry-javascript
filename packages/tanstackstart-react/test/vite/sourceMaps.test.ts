@@ -37,9 +37,9 @@ describe('makeEnableSourceMapsVitePlugin()', () => {
 });
 
 describe('makeAddSentryVitePlugin()', () => {
-  it('passes user-specified vite plugin options to vite plugin', () => {
+  it('passes user-specified vite plugin options to vite plugin', async () => {
     const errorHandler = vi.fn();
-    makeAddSentryVitePlugin({
+    const plugins = makeAddSentryVitePlugin({
       org: 'my-org',
       authToken: 'my-token',
       sentryUrl: 'https://custom.sentry.io',
@@ -64,6 +64,18 @@ describe('makeAddSentryVitePlugin()', () => {
       },
     });
 
+    // The filesToDeleteAfterUpload is now a Promise that resolves when the config hook runs
+    const calledOptions = sentryVitePluginSpy.mock.calls[0]?.[0];
+    expect(calledOptions?.sourcemaps?.filesToDeleteAfterUpload).toBeInstanceOf(Promise);
+
+    // Trigger the config hook to resolve the Promise
+    const configPlugin = plugins.find(p => p.name === 'sentry-tanstackstart-files-to-delete-after-upload-plugin');
+    (configPlugin?.config as (config: UserConfig) => void)({});
+
+    // Verify the Promise resolves to the user-specified value
+    const resolvedFilesToDelete = await calledOptions?.sourcemaps?.filesToDeleteAfterUpload;
+    expect(resolvedFilesToDelete).toEqual(['baz/*.js']);
+
     expect(sentryVitePluginSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         org: 'my-org',
@@ -78,12 +90,6 @@ describe('makeAddSentryVitePlugin()', () => {
           create: true,
           finalize: true,
           dist: 'dist-1',
-        },
-        sourcemaps: {
-          assets: ['dist/**/*.js'],
-          disable: false,
-          ignore: ['node_modules/**'],
-          filesToDeleteAfterUpload: ['baz/*.js'],
         },
         bundleSizeOptimizations: {
           excludeTracing: true,
@@ -100,29 +106,49 @@ describe('makeAddSentryVitePlugin()', () => {
 
     expect(plugins.length).toBeGreaterThanOrEqual(2);
 
-    const configPlugin = plugins.find(p => p.name === 'sentry-tanstackstart-source-maps-config');
+    const configPlugin = plugins.find(p => p.name === 'sentry-tanstackstart-files-to-delete-after-upload-plugin');
     expect(configPlugin).toBeDefined();
     expect(configPlugin?.apply).toBe('build');
-    expect(configPlugin?.enforce).toBe('pre');
+    expect(configPlugin?.enforce).toBe('post');
     expect(typeof configPlugin?.config).toBe('function');
   });
 
-  it('uses default filesToDeleteAfterUpload when not specified', () => {
-    makeAddSentryVitePlugin({
+  it('uses default filesToDeleteAfterUpload when not specified', async () => {
+    const plugins = makeAddSentryVitePlugin({
       org: 'my-org',
       authToken: 'my-token',
     });
 
-    expect(sentryVitePluginSpy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        sourcemaps: {
-          assets: undefined,
-          disable: undefined,
-          ignore: undefined,
-          filesToDeleteAfterUpload: ['./**/*.map'],
-        },
-      }),
-    );
+    // The filesToDeleteAfterUpload is now a Promise
+    const calledOptions = sentryVitePluginSpy.mock.calls[0]?.[0];
+    expect(calledOptions?.sourcemaps?.filesToDeleteAfterUpload).toBeInstanceOf(Promise);
+
+    // Trigger the config hook to resolve the Promise (with no sourcemap configured)
+    const configPlugin = plugins.find(p => p.name === 'sentry-tanstackstart-files-to-delete-after-upload-plugin');
+    (configPlugin?.config as (config: UserConfig) => void)({});
+
+    // Verify the Promise resolves to the default value
+    const resolvedFilesToDelete = await calledOptions?.sourcemaps?.filesToDeleteAfterUpload;
+    expect(resolvedFilesToDelete).toEqual(['./**/*.map']);
+  });
+
+  it('does not auto-delete when user configured build.sourcemap', async () => {
+    const plugins = makeAddSentryVitePlugin({
+      org: 'my-org',
+      authToken: 'my-token',
+    });
+
+    // The filesToDeleteAfterUpload is a Promise
+    const calledOptions = sentryVitePluginSpy.mock.calls[0]?.[0];
+    expect(calledOptions?.sourcemaps?.filesToDeleteAfterUpload).toBeInstanceOf(Promise);
+
+    // Trigger the config hook with sourcemap configured by user
+    const configPlugin = plugins.find(p => p.name === 'sentry-tanstackstart-files-to-delete-after-upload-plugin');
+    (configPlugin?.config as (config: UserConfig) => void)({ build: { sourcemap: true } });
+
+    // Verify the Promise resolves to undefined (no auto-delete)
+    const resolvedFilesToDelete = await calledOptions?.sourcemaps?.filesToDeleteAfterUpload;
+    expect(resolvedFilesToDelete).toBeUndefined();
   });
 
   it('logs auto-delete message when user did not configure sourcemap', () => {
@@ -132,7 +158,7 @@ describe('makeAddSentryVitePlugin()', () => {
       debug: true,
     });
 
-    const configPlugin = plugins.find(p => p.name === 'sentry-tanstackstart-source-maps-config');
+    const configPlugin = plugins.find(p => p.name === 'sentry-tanstackstart-files-to-delete-after-upload-plugin');
     expect(configPlugin).toBeDefined();
 
     const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
@@ -154,7 +180,7 @@ describe('makeAddSentryVitePlugin()', () => {
       debug: true,
     });
 
-    const configPlugin = plugins.find(p => p.name === 'sentry-tanstackstart-source-maps-config');
+    const configPlugin = plugins.find(p => p.name === 'sentry-tanstackstart-files-to-delete-after-upload-plugin');
     expect(configPlugin).toBeDefined();
 
     const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
