@@ -5,7 +5,8 @@ sentryTest('exports a shim consoleLoggingIntegration for non-logs bundles', asyn
   const bundle = process.env.PW_BUNDLE;
 
   // Only run this for CDN bundles that do NOT include logs
-  if (!bundle?.startsWith('bundle') || bundle.includes('logs')) {
+  // Skip minified bundles because DEBUG_BUILD is false and warnings won't appear
+  if (!bundle?.startsWith('bundle') || bundle.includes('logs') || bundle.includes('min')) {
     sentryTest.skip();
   }
 
