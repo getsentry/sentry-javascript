@@ -25,6 +25,8 @@
   });
   ```
 
+Work in this release was contributed by @rreckonerr. Thank you for your contribution!
+
 ## 10.34.0
 
 ### Important Changes
