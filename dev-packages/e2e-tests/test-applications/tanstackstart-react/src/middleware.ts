@@ -39,7 +39,7 @@ const errorMiddleware = createMiddleware({ type: 'function' }).server(async () =
   throw new Error('Middleware Error Test');
 });
 
-// Manually wrap middlewares with Sentry (for middlewares that aren't auto-instrumented yet)
+// Manually wrap middlewares with Sentry (for middlewares that won't be auto-instrumented)
 export const [
   wrappedServerFnMiddleware,
   wrappedServerRouteRequestMiddleware,
