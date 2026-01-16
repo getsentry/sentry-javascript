@@ -44,7 +44,8 @@
     "clean": "rimraf build",
     "fix": "eslint . --format stylish --fix",
     "lint": "eslint . --format stylish",
-    "lint:es-compatibility": "es-check es2020 ./build/cjs/*.js && es-check es2020 ./build/esm/*.js --module"
+    "lint:es-compatibility": "es-check es2020 ./build/cjs/*.js && es-check es2020 ./build/esm/*.js --module",
+    "test": "vitest run"
   },
   "repository": {
     "type": "git",
