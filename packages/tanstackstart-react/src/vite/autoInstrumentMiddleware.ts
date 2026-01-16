@@ -73,7 +73,7 @@ export function makeAutoInstrumentMiddlewarePlugin(options: AutoInstrumentMiddle
  * Returns null if contents contain non-identifier expressions (function calls, etc.)
  * which cannot be converted to object shorthand.
  */
-function arrayToObjectShorthand(contents: string): string | null {
+export function arrayToObjectShorthand(contents: string): string | null {
   const items = contents
     .split(',')
     .map(s => s.trim())
