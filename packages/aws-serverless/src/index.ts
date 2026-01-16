@@ -112,6 +112,7 @@ export {
   pinoIntegration,
   postgresIntegration,
   postgresJsIntegration,
+  processSessionIntegration,
   prismaIntegration,
   childProcessIntegration,
   createSentryWinstonTransport,

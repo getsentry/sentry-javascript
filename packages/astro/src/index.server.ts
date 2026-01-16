@@ -101,6 +101,7 @@ export {
   postgresIntegration,
   postgresJsIntegration,
   prismaIntegration,
+  processSessionIntegration,
   childProcessIntegration,
   createSentryWinstonTransport,
   redisIntegration,
