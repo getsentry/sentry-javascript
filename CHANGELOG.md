@@ -17,6 +17,7 @@
   export default defineConfig({
     plugins: [
       sentryTanstackStart({
+        authToken: process.env.SENTRY_AUTH_TOKEN,
         org: 'your-org',
         project: 'your-project',
       }),
