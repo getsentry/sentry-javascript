@@ -27,16 +27,16 @@ import { makeAddSentryVitePlugin, makeEnableSourceMapsVitePlugin } from './sourc
  * @returns An array of Vite plugins
  */
 export function sentryTanstackStart(options: BuildTimeOptionsBase = {}): Plugin[] {
-  const plugins: Plugin[] = [];
-
   // Only add plugins in production builds
-  if (process.env.NODE_ENV !== 'development') {
-    plugins.push(...makeAddSentryVitePlugin(options));
+  if (process.env.NODE_ENV === 'development') {
+    return [];
+  }
 
-    const sourceMapsDisabled = options.sourcemaps?.disable === true || options.sourcemaps?.disable === 'disable-upload';
-    if (!sourceMapsDisabled) {
-      plugins.push(...makeEnableSourceMapsVitePlugin(options));
-    }
+  const plugins: Plugin[] = [...makeAddSentryVitePlugin(options)];
+
+  const sourceMapsDisabled = options.sourcemaps?.disable === true || options.sourcemaps?.disable === 'disable-upload';
+  if (!sourceMapsDisabled) {
+    plugins.push(...makeEnableSourceMapsVitePlugin(options));
   }
 
   return plugins;

@@ -119,7 +119,7 @@ describe('makeAddSentryVitePlugin()', () => {
           assets: undefined,
           disable: undefined,
           ignore: undefined,
-          filesToDeleteAfterUpload: ['.*/**/*.map'],
+          filesToDeleteAfterUpload: ['./**/*.map'],
         },
       }),
     );

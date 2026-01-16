@@ -34,15 +34,15 @@ export function makeAddSentryVitePlugin(options: BuildTimeOptionsBase): Plugin[]
       ) {
         // eslint-disable-next-line no-console
         console.log(
-          '[Sentry] Automatically setting `sourcemaps.filesToDeleteAfterUpload: [".*/**/*.map"]` to delete generated source maps after they were uploaded to Sentry.',
+          '[Sentry] Automatically setting `sourcemaps.filesToDeleteAfterUpload: ["./**/*.map"]` to delete generated source maps after they were uploaded to Sentry.',
         );
       }
     },
   };
 
-  // Default to auto-deleting source maps from hidden directories after upload
+  // Default to auto-deleting all source maps after upload
   // Users can override this by explicitly setting sourcemaps.filesToDeleteAfterUpload
-  const defaultFilesToDelete = ['.*/**/*.map'];
+  const defaultFilesToDelete = ['./**/*.map'];
   const filesToDeleteAfterUpload = sourcemaps?.filesToDeleteAfterUpload ?? defaultFilesToDelete;
 
   const sentryPlugins = sentryVitePlugin({
