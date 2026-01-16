@@ -24,7 +24,7 @@ export function makeAddSentryVitePlugin(options: BuildTimeOptionsBase): Plugin[]
   const configPlugin: Plugin = {
     name: 'sentry-tanstackstart-source-maps-config',
     apply: 'build',
-    enforce: 'pre',
+    enforce: 'post',
     config(config) {
       // Emit a warning if we're auto-deleting source maps
       if (
