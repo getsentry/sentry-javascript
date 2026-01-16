@@ -142,11 +142,14 @@ function listenForSentryMessages(worker: Worker): void {
         const existingImages =
           (WINDOW as typeof WINDOW & { _sentryWasmImages?: Array<DebugImage> })._sentryWasmImages || [];
         const newImages = event.data._sentryWasmImages.filter(
-          (newImg: DebugImage) => !existingImages.some(existing => existing.code_file === newImg.code_file),
+          (newImg: unknown) =>
+            isPlainObject(newImg) &&
+            typeof newImg.code_file === 'string' &&
+            !existingImages.some(existing => existing.code_file === newImg.code_file),
         );
         (WINDOW as typeof WINDOW & { _sentryWasmImages?: Array<DebugImage> })._sentryWasmImages = [
           ...existingImages,
-          ...newImages,
+          ...(newImages as Array<DebugImage>),
         ];
       }
 
@@ -314,7 +317,13 @@ function isSentryMessage(eventData: unknown): eventData is WebWorkerMessage {
   }
 
   // Validate WASM images if present
-  if (hasWasmImages && !Array.isArray(eventData._sentryWasmImages)) {
+  if (
+    hasWasmImages &&
+    (!Array.isArray(eventData._sentryWasmImages) ||
+      !eventData._sentryWasmImages.every(
+        (img: unknown) => isPlainObject(img) && typeof (img as { code_file?: unknown }).code_file === 'string',
+      ))
+  ) {
     return false;
   }
 

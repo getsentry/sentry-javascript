@@ -364,6 +364,22 @@ describe('webWorkerIntegration', () => {
         expect(mockEvent.stopImmediatePropagation).not.toHaveBeenCalled();
       });
 
+      it('ignores WASM images with invalid array elements (null, undefined, missing code_file)', () => {
+        mockEvent.data = {
+          _sentryMessage: true,
+          _sentryWasmImages: [
+            null,
+            undefined,
+            { type: 'wasm' },
+            { code_file: 123 },
+          ],
+        };
+
+        messageHandler(mockEvent);
+
+        expect(mockEvent.stopImmediatePropagation).not.toHaveBeenCalled();
+      });
+
       it('gives main thread precedence over worker for conflicting module metadata', () => {
         (helpers.WINDOW as any)._sentryModuleMetadata = {
           'Error\n    at shared-file.js:1:1': { '_sentryBundlerPluginAppKey:main-app': true, source: 'main' },
