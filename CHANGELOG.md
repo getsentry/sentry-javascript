@@ -4,6 +4,21 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+- **feat(tanstackstart-react): Auto-instrument global middleware in `sentryTanstackStart` Vite plugin**
+
+  The `sentryTanstackStart` Vite plugin now automatically instruments `requestMiddleware` and `functionMiddleware` arrays in `createStart()`. This captures performance data without requiring manual wrapping.
+
+  Auto-instrumentation is enabled by default. To disable it:
+
+  ```ts
+  // vite.config.ts
+  sentryTanstackStart({
+    org: 'your-org',
+    project: 'your-project',
+    autoInstrumentMiddleware: false,
+  });
+  ```
+
 - **feat(tanstackstart-react): Add `sentryTanstackStart` Vite plugin for source maps upload**
 
   You can now configure source maps upload for TanStack Start using the `sentryTanstackStart` Vite plugin:
