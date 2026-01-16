@@ -1,0 +1,140 @@
+import type { Plugin } from 'vite';
+import { describe, expect, it } from 'vitest';
+import {
+  arrayToObjectShorthand,
+  makeAutoInstrumentMiddlewarePlugin,
+} from '../../src/vite/autoInstrumentMiddleware';
+
+type PluginWithTransform = Plugin & {
+  transform: (code: string, id: string) => { code: string; map: null } | null;
+};
+
+describe('makeAutoInstrumentMiddlewarePlugin', () => {
+  const createStartFile = `
+import { createStart } from '@tanstack/react-start';
+import { authMiddleware, loggingMiddleware } from './middleware';
+
+export const startInstance = createStart(() => ({
+  requestMiddleware: [authMiddleware],
+  functionMiddleware: [loggingMiddleware],
+}));
+`;
+
+  it('instruments a file with createStart and middleware arrays', () => {
+    const plugin = makeAutoInstrumentMiddlewarePlugin() as PluginWithTransform;
+    const result = plugin.transform(createStartFile, '/app/start.ts');
+
+    expect(result).not.toBeNull();
+    expect(result!.code).toContain("import { wrapMiddlewaresWithSentry } from '@sentry/tanstackstart-react'");
+    expect(result!.code).toContain('requestMiddleware: wrapMiddlewaresWithSentry({ authMiddleware })');
+    expect(result!.code).toContain('functionMiddleware: wrapMiddlewaresWithSentry({ loggingMiddleware })');
+  });
+
+  it('does not instrument files without createStart', () => {
+    const plugin = makeAutoInstrumentMiddlewarePlugin() as PluginWithTransform;
+    const code = `export const foo = 'bar';`;
+    const result = plugin.transform(code, '/app/other.ts');
+
+    expect(result).toBeNull();
+  });
+
+  it('does not instrument non-TS/JS files', () => {
+    const plugin = makeAutoInstrumentMiddlewarePlugin() as PluginWithTransform;
+    const result = plugin.transform(createStartFile, '/app/start.css');
+
+    expect(result).toBeNull();
+  });
+
+  it('does not instrument when enabled is false', () => {
+    const plugin = makeAutoInstrumentMiddlewarePlugin({ enabled: false }) as PluginWithTransform;
+    const result = plugin.transform(createStartFile, '/app/start.ts');
+
+    expect(result).toBeNull();
+  });
+
+  it('wraps single middleware entry correctly', () => {
+    const plugin = makeAutoInstrumentMiddlewarePlugin() as PluginWithTransform;
+    const code = `
+import { createStart } from '@tanstack/react-start';
+createStart(() => ({ requestMiddleware: [singleMiddleware] }));
+`;
+    const result = plugin.transform(code, '/app/start.ts');
+
+    expect(result!.code).toContain('requestMiddleware: wrapMiddlewaresWithSentry({ singleMiddleware })');
+  });
+
+  it('wraps multiple middleware entries correctly', () => {
+    const plugin = makeAutoInstrumentMiddlewarePlugin() as PluginWithTransform;
+    const code = `
+import { createStart } from '@tanstack/react-start';
+createStart(() => ({ requestMiddleware: [a, b, c] }));
+`;
+    const result = plugin.transform(code, '/app/start.ts');
+
+    expect(result!.code).toContain('requestMiddleware: wrapMiddlewaresWithSentry({ a, b, c })');
+  });
+
+  it('does not wrap empty middleware arrays', () => {
+    const plugin = makeAutoInstrumentMiddlewarePlugin() as PluginWithTransform;
+    const code = `
+import { createStart } from '@tanstack/react-start';
+createStart(() => ({ requestMiddleware: [] }));
+`;
+    const result = plugin.transform(code, '/app/start.ts');
+
+    expect(result).toBeNull();
+  });
+
+  it('does not wrap if middleware contains function calls', () => {
+    const plugin = makeAutoInstrumentMiddlewarePlugin() as PluginWithTransform;
+    const code = `
+import { createStart } from '@tanstack/react-start';
+createStart(() => ({ requestMiddleware: [getMiddleware()] }));
+`;
+    const result = plugin.transform(code, '/app/start.ts');
+
+    expect(result).toBeNull();
+  });
+
+  it('does not instrument files that already use wrapMiddlewaresWithSentry', () => {
+    const plugin = makeAutoInstrumentMiddlewarePlugin() as PluginWithTransform;
+    const code = `
+import { createStart } from '@tanstack/react-start';
+import { wrapMiddlewaresWithSentry } from '@sentry/tanstackstart-react';
+createStart(() => ({ requestMiddleware: wrapMiddlewaresWithSentry({ myMiddleware }) }));
+`;
+    const result = plugin.transform(code, '/app/start.ts');
+
+    expect(result).toBeNull();
+  });
+});
+
+describe('arrayToObjectShorthand', () => {
+  it('converts single identifier', () => {
+    expect(arrayToObjectShorthand('foo')).toBe('{ foo }');
+  });
+
+  it('converts multiple identifiers', () => {
+    expect(arrayToObjectShorthand('foo, bar, baz')).toBe('{ foo, bar, baz }');
+  });
+
+  it('handles whitespace', () => {
+    expect(arrayToObjectShorthand('  foo  ,  bar  ')).toBe('{ foo, bar }');
+  });
+
+  it('returns null for empty string', () => {
+    expect(arrayToObjectShorthand('')).toBeNull();
+  });
+
+  it('returns null for function calls', () => {
+    expect(arrayToObjectShorthand('getMiddleware()')).toBeNull();
+  });
+
+  it('returns null for spread syntax', () => {
+    expect(arrayToObjectShorthand('...middlewares')).toBeNull();
+  });
+
+  it('returns null for mixed valid and invalid', () => {
+    expect(arrayToObjectShorthand('foo, bar(), baz')).toBeNull();
+  });
+});

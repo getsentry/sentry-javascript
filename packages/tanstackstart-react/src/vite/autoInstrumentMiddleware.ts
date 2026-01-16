@@ -31,8 +31,13 @@ export function makeAutoInstrumentMiddlewarePlugin(options: AutoInstrumentMiddle
         return null;
       }
 
-      // only wrap requestMiddleware and functionMiddleware in createStart()
+      // Only wrap requestMiddleware and functionMiddleware in createStart()
       if (!code.includes('createStart')) {
+        return null;
+      }
+
+      // Skip if the user already did some manual wrapping
+      if (code.includes('wrapMiddlewaresWithSentry')) {
         return null;
       }
 
