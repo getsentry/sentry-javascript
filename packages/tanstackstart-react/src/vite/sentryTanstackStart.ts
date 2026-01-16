@@ -55,7 +55,6 @@ export function sentryTanstackStart(options: SentryTanstackStartOptions = {}): P
   // middleware auto-instrumentation
   const autoInstrumentMiddleware = options.autoInstrumentMiddleware !== false;
   if (autoInstrumentMiddleware) {
-    console.log('autoInstrumentMiddleware', autoInstrumentMiddleware);
     plugins.push(makeAutoInstrumentMiddlewarePlugin({ enabled: true, debug: options.debug }));
   }
 
