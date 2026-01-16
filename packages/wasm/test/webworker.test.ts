@@ -119,4 +119,29 @@ describe('patchFrames() with worker images', () => {
     expect(frames[0]?.platform).toBe('native');
     expect(frames[0]?.addr_mode).toBeUndefined();
   });
+
+  it('should offset addr_mode indices when existingImagesOffset is provided', () => {
+    WINDOW._sentryWasmImages = [
+      {
+        type: 'wasm',
+        code_id: 'abc123',
+        code_file: 'http://localhost:8001/worker.wasm',
+        debug_file: null,
+        debug_id: 'abc12300000000000000000000000000',
+      },
+    ];
+
+    const frames: StackFrame[] = [
+      {
+        filename: 'http://localhost:8001/worker.wasm:wasm-function[10]:0x1234',
+        function: 'worker_function',
+        in_app: true,
+      },
+    ];
+
+    const result = patchFrames(frames, undefined, 3);
+
+    expect(result).toBe(true);
+    expect(frames[0]?.addr_mode).toBe('rel:3');
+  });
 });

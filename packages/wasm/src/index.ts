@@ -44,11 +44,14 @@ const _wasmIntegration = ((options: WasmIntegrationOptions = {}) => {
     processEvent(event: Event): Event {
       let hasAtLeastOneWasmFrameWithImage = false;
 
+      const existingImagesCount = event.debug_meta?.images?.length || 0;
+
       if (event.exception?.values) {
         event.exception.values.forEach(exception => {
           if (exception.stacktrace?.frames) {
             hasAtLeastOneWasmFrameWithImage =
-              hasAtLeastOneWasmFrameWithImage || patchFrames(exception.stacktrace.frames, options.applicationKey);
+              hasAtLeastOneWasmFrameWithImage ||
+              patchFrames(exception.stacktrace.frames, options.applicationKey, existingImagesCount);
           }
         });
       }
@@ -73,9 +76,18 @@ const PARSER_REGEX = /^(.*?):wasm-function\[\d+\]:(0x[a-fA-F0-9]+)$/;
  * Patches a list of stackframes with wasm data needed for server-side symbolication
  * if applicable. Returns true if the provided list of stack frames had at least one
  * matching registered image.
+ *
+ * @param frames - Stack frames to patch
+ * @param applicationKey - Optional key for third-party error filtering
+ * @param existingImagesOffset - Number of existing debug images that will be prepended
+ *                               to the final images array (used to calculate correct addr_mode indices)
  */
 // Only exported for tests
-export function patchFrames(frames: Array<StackFrame>, applicationKey?: string): boolean {
+export function patchFrames(
+  frames: Array<StackFrame>,
+  applicationKey?: string,
+  existingImagesOffset: number = 0,
+): boolean {
   let hasAtLeastOneWasmFrameWithImage = false;
   frames.forEach(frame => {
     if (!frame.filename) {
@@ -112,11 +124,11 @@ export function patchFrames(frames: Array<StackFrame>, applicationKey?: string):
       }
 
       if (index >= 0) {
-        frame.addr_mode = `rel:${index}`;
+        frame.addr_mode = `rel:${existingImagesOffset + index}`;
         hasAtLeastOneWasmFrameWithImage = true;
       } else if (workerImageIndex >= 0) {
         const mainThreadImagesCount = getImages().length;
-        frame.addr_mode = `rel:${mainThreadImagesCount + workerImageIndex}`;
+        frame.addr_mode = `rel:${existingImagesOffset + mainThreadImagesCount + workerImageIndex}`;
         hasAtLeastOneWasmFrameWithImage = true;
       }
     }
