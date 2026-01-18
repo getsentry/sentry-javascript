@@ -4,11 +4,11 @@ import { sentryTest } from '../../../../utils/fixtures';
 import {
   getFirstSentryEnvelopeRequest,
   properFullEnvelopeRequestParser,
-  testingCdnBundle,
+  shouldSkipLogsTest,
 } from '../../../../utils/helpers';
 
 sentryTest('captures logs with scope attributes', async ({ getLocalTestUrl, page }) => {
-  sentryTest.skip(testingCdnBundle());
+  sentryTest.skip(shouldSkipLogsTest());
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 

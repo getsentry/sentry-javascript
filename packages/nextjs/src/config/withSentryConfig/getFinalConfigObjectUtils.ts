@@ -1,4 +1,4 @@
-import { parseSemver } from '@sentry/core';
+import { isMatchingPattern, parseSemver } from '@sentry/core';
 import { getSentryRelease } from '@sentry/node';
 import { createRouteManifest } from '../manifest/createRouteManifest';
 import type { RouteManifest } from '../manifest/types';
@@ -89,13 +89,59 @@ export function maybeCreateRouteManifest(
   incomingUserNextConfigObject: NextConfigObject,
   userSentryOptions: SentryBuildOptions,
 ): RouteManifest | undefined {
+  // Handle deprecated option with warning
+  // eslint-disable-next-line deprecation/deprecation
   if (userSentryOptions.disableManifestInjection) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      '[@sentry/nextjs] The `disableManifestInjection` option is deprecated. Use `routeManifestInjection: false` instead.',
+    );
+  }
+
+  // If explicitly disabled, skip
+  if (userSentryOptions.routeManifestInjection === false) {
     return undefined;
   }
 
-  return createRouteManifest({
+  // Still check the deprecated option if the new option is not set
+  // eslint-disable-next-line deprecation/deprecation
+  if (userSentryOptions.routeManifestInjection === undefined && userSentryOptions.disableManifestInjection) {
+    return undefined;
+  }
+
+  const manifest = createRouteManifest({
     basePath: incomingUserNextConfigObject.basePath,
   });
+
+  // Apply route exclusion filter if configured
+  const excludeFilter = userSentryOptions.routeManifestInjection?.exclude;
+  return filterRouteManifest(manifest, excludeFilter);
+}
+
+type ExcludeFilter = ((route: string) => boolean) | (string | RegExp)[] | undefined;
+
+/**
+ * Filters routes from the manifest based on the exclude filter.
+ * (Exported only for testing)
+ */
+export function filterRouteManifest(manifest: RouteManifest, excludeFilter: ExcludeFilter): RouteManifest {
+  if (!excludeFilter) {
+    return manifest;
+  }
+
+  const shouldExclude = (route: string): boolean => {
+    if (typeof excludeFilter === 'function') {
+      return excludeFilter(route);
+    }
+
+    return excludeFilter.some(pattern => isMatchingPattern(route, pattern));
+  };
+
+  return {
+    staticRoutes: manifest.staticRoutes.filter(r => !shouldExclude(r.path)),
+    dynamicRoutes: manifest.dynamicRoutes.filter(r => !shouldExclude(r.path)),
+    isrRoutes: manifest.isrRoutes.filter(r => !shouldExclude(r)),
+  };
 }
 
 /**

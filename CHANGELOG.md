@@ -4,7 +4,43 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-- **feat(tanstackstart-react): Add `wrapMiddlewaresWithSentry` for manual middleware instrumentation**
+- **feat(tanstackstart-react): Add `sentryTanstackStart` Vite plugin for source maps upload**
+
+  You can now configure source maps upload for TanStack Start using the `sentryTanstackStart` Vite plugin:
+
+  ```ts
+  // vite.config.ts
+  import { defineConfig } from 'vite';
+  import { sentryTanstackStart } from '@sentry/tanstackstart-react';
+  import { tanstackStart } from '@tanstack/react-start/plugin/vite';
+
+  export default defineConfig({
+    plugins: [
+      sentryTanstackStart({
+        authToken: process.env.SENTRY_AUTH_TOKEN,
+        org: 'your-org',
+        project: 'your-project',
+      }),
+      tanstackStart(),
+    ],
+  });
+  ```
+
+Work in this release was contributed by @rreckonerr. Thank you for your contribution!
+
+## 10.34.0
+
+### Important Changes
+
+- **feat(core): Add option to enhance the fetch error message ([#18466](https://github.com/getsentry/sentry-javascript/pull/18466))**
+
+  You can now enable enhanced fetch error messages by setting the `enhancedFetchErrorMessage` option. When enabled, the SDK will include additional context in fetch error messages to help with debugging.
+
+- **feat(nextjs): Add routeManifestInjection option to exclude routes from client bundle ([#18798](https://github.com/getsentry/sentry-javascript/pull/18798))**
+
+  A new `routeManifestInjection` option allows you to exclude sensitive routes from being injected into the client bundle.
+
+- **feat(tanstackstart-react): Add `wrapMiddlewaresWithSentry` for manual middleware instrumentation ([#18680](https://github.com/getsentry/sentry-javascript/pull/18680))**
 
   You can now wrap your middlewares using `wrapMiddlewaresWithSentry`, allowing you to trace middleware execution in your TanStack Start application.
 
@@ -19,6 +55,23 @@
 
   export const [wrappedLoggingMiddleware] = wrapMiddlewaresWithSentry({ loggingMiddleware });
   ```
+
+### Other Changes
+
+- feat(browser): Add CDN bundle for `tracing.logs.metrics` ([#18784](https://github.com/getsentry/sentry-javascript/pull/18784))
+- feat(core,node-core): Consolidate bun and node types with ServerRuntimeOptions ([#18734](https://github.com/getsentry/sentry-javascript/pull/18734))
+- feat(nextjs): Remove tracing from generation function template ([#18733](https://github.com/getsentry/sentry-javascript/pull/18733))
+- fix(core): Don't record outcomes for failed client reports ([#18808](https://github.com/getsentry/sentry-javascript/pull/18808))
+- fix(deno,cloudflare): Prioritize name from params over name from options ([#18800](https://github.com/getsentry/sentry-javascript/pull/18800))
+- fix(web-vitals): Add error handling for invalid object keys in `WeakMap` ([#18809](https://github.com/getsentry/sentry-javascript/pull/18809))
+
+<details>
+  <summary><strong>Internal Changes</strong></summary>
+
+- ref(nextjs): Split `withSentryConfig` ([#18777](https://github.com/getsentry/sentry-javascript/pull/18777))
+- test(e2e): Pin @shopify/remix-oxygen to unblock ci ([#18811](https://github.com/getsentry/sentry-javascript/pull/18811))
+
+</details>
 
 ## 10.33.0
 

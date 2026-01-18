@@ -1,0 +1,1 @@
+export { sentryTanstackStart } from './sentryTanstackStart';

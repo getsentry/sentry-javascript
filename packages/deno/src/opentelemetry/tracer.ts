@@ -35,8 +35,8 @@ class SentryDenoTracer implements Tracer {
     const op = this._mapSpanKindToOp(options?.kind);
 
     return startInactiveSpan({
-      name,
       ...options,
+      name,
       attributes: {
         ...options?.attributes,
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'manual',
@@ -69,8 +69,8 @@ class SentryDenoTracer implements Tracer {
     const op = this._mapSpanKindToOp(opts.kind);
 
     const spanOpts = {
-      name,
       ...opts,
+      name,
       attributes: {
         ...opts.attributes,
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'manual',
