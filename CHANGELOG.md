@@ -4,6 +4,30 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+- **feat(tanstackstart-react): Add `sentryTanstackStart` Vite plugin for source maps upload**
+
+  You can now configure source maps upload for TanStack Start using the `sentryTanstackStart` Vite plugin:
+
+  ```ts
+  // vite.config.ts
+  import { defineConfig } from 'vite';
+  import { sentryTanstackStart } from '@sentry/tanstackstart-react';
+  import { tanstackStart } from '@tanstack/react-start/plugin/vite';
+
+  export default defineConfig({
+    plugins: [
+      sentryTanstackStart({
+        authToken: process.env.SENTRY_AUTH_TOKEN,
+        org: 'your-org',
+        project: 'your-project',
+      }),
+      tanstackStart(),
+    ],
+  });
+  ```
+
+Work in this release was contributed by @rreckonerr. Thank you for your contribution!
+
 ## 10.34.0
 
 ### Important Changes

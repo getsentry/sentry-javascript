@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/nextjs';
+import { Log } from '@sentry/nextjs';
 
 Sentry.init({
   environment: 'qa', // dynamic sampling bias to keep transactions
@@ -8,4 +9,8 @@ Sentry.init({
   sendDefaultPii: true,
   // debug: true,
   integrations: [Sentry.vercelAIIntegration()],
+  // Verify Log type is available
+  beforeSendLog(log: Log) {
+    return log;
+  },
 });
