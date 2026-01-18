@@ -71,15 +71,16 @@ sentryTest(
       ]),
     );
 
-    const wasmFrame = errorEvent.exception?.values?.[0]?.stacktrace?.frames?.find(
-      frame => frame.filename && frame.filename.includes('simple.wasm'),
+    expect(errorEvent.exception?.values?.[0]?.stacktrace?.frames).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          filename: expect.stringMatching(/simple\.wasm$/),
+          platform: 'native',
+          instruction_addr: expect.stringMatching(/^0x[a-fA-F0-9]+$/),
+          addr_mode: expect.stringMatching(/^rel:\d+$/),
+        }),
+      ]),
     );
-
-    if (wasmFrame) {
-      expect(wasmFrame.platform).toBe('native');
-      expect(wasmFrame.instruction_addr).toBeDefined();
-      expect(wasmFrame.addr_mode).toMatch(/^rel:\d+$/);
-    }
   },
 );
 
@@ -123,16 +124,16 @@ sentryTest(
 
     const errorEvent = envelopeRequestParser(await errorEventPromise);
 
-    const wasmFrame = errorEvent.exception?.values?.[0]?.stacktrace?.frames?.find(
-      frame => frame.filename && frame.filename.includes('simple.wasm'),
-    );
-
-    if (wasmFrame) {
-      expect(wasmFrame.module_metadata).toEqual(
+    expect(errorEvent.exception?.values?.[0]?.stacktrace?.frames).toEqual(
+      expect.arrayContaining([
         expect.objectContaining({
-          '_sentryBundlerPluginAppKey:wasm-worker-app': true,
+          filename: expect.stringMatching(/simple\.wasm$/),
+          platform: 'native',
+          module_metadata: expect.objectContaining({
+            '_sentryBundlerPluginAppKey:wasm-worker-app': true,
+          }),
         }),
-      );
-    }
+      ]),
+    );
   },
 );
