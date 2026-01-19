@@ -1,15 +1,13 @@
-import type { Client, IntegrationFn, Span, SpanV2JSON, SpanV2JSONWithSegmentRef } from '@sentry/core';
+import type { IntegrationFn } from '@sentry/core';
 import {
   captureSpan,
-  createSpanV2Envelope,
   debug,
   defineIntegration,
-  getDynamicSamplingContextFromSpan,
   isV2BeforeSendSpanCallback,
+  safeSetSpanJSONAttributes,
   SpanBuffer,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
-import { WINDOW } from '../helpers';
 
 export interface SpanStreamingOptions {
   batchLimit: number;
@@ -24,14 +22,6 @@ export const spanStreamingIntegration = defineIntegration(((userOptions?: Partia
   if (DEBUG_BUILD && userOptions?.batchLimit && !validatedUserProvidedBatchLimit) {
     debug.warn('SpanStreaming batchLimit must be between 1 and 1000, defaulting to 1000');
   }
-
-  const options: SpanStreamingOptions = {
-    ...userOptions,
-    batchLimit:
-      userOptions?.batchLimit && userOptions.batchLimit <= 1000 && userOptions.batchLimit >= 1
-        ? userOptions.batchLimit
-        : 1000,
-  };
 
   return {
     name: 'SpanStreaming',
@@ -60,6 +50,13 @@ export const spanStreamingIntegration = defineIntegration(((userOptions?: Partia
 
       client.on('afterSpanEnd', span => {
         captureSpan(span, client);
+      });
+
+      client.on('processSpan', (spanJSON) => {
+        safeSetSpanJSONAttributes(spanJSON, {
+          // browser-only: tell Sentry to infer the IP address from the request
+          'client.address': client.getOptions().sendDefaultPii ? '{{auto}}' : undefined,
+        });
       });
 
       // in addition to capturing the span, we also flush the trace when the segment

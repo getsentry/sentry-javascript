@@ -5,16 +5,16 @@ import {
   getCurrentScope,
   htmlTreeAsString,
   SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME,
-  SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_UNIT,
-  SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  startInactiveSpan,
   timestampInSeconds,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
+import { WINDOW } from '../types';
 import { addClsInstrumentationHandler } from './instrument';
 import type { WebVitalReportEvent } from './utils';
-import { listenForWebVitalReportEvents, msToSec, startStandaloneWebVitalSpan, supportsWebVital } from './utils';
+import { listenForWebVitalReportEvents, msToSec, supportsWebVital } from './utils';
 
 /**
  * Starts tracking the Cumulative Layout Shift on the current page and collects the value once
@@ -72,6 +72,17 @@ export function _sendStandaloneClsSpan(
     'sentry.pageload.span_id': pageloadSpanId,
     // describes what triggered the web vital to be reported
     'sentry.report_event': reportEvent,
+
+    // TODO: Relay currently expects 'cls', but we should consider 'cls.value'
+    'cls': clsValue,
+    'cls.value': clsValue,
+
+    transaction: routeName,
+
+    // Web vital score calculation relies on the user agent to account for different
+    // browsers setting different thresholds for what is considered a good/meh/bad value.
+    // For example: Chrome vs. Chrome Mobile
+    'user_agent.original': WINDOW.navigator?.userAgent,
   };
 
   // Add CLS sources as span attributes to help with debugging layout shifts
@@ -82,21 +93,11 @@ export function _sendStandaloneClsSpan(
     });
   }
 
-  const span = startStandaloneWebVitalSpan({
+  // LayoutShift performance entries always have a duration of 0, so we don't need to add `entry.duration` here
+  // see: https://developer.mozilla.org/en-US/docs/Web/API/PerformanceEntry/duration
+  startInactiveSpan({
     name,
-    transaction: routeName,
     attributes,
     startTime,
-  });
-
-  if (span) {
-    span.addEvent('cls', {
-      [SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_UNIT]: '',
-      [SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE]: clsValue,
-    });
-
-    // LayoutShift performance entries always have a duration of 0, so we don't need to add `entry.duration` here
-    // see: https://developer.mozilla.org/en-US/docs/Web/API/PerformanceEntry/duration
-    span.end(startTime);
-  }
+  })?.end(startTime);
 }
