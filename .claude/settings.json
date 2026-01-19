@@ -6,6 +6,8 @@
       "Bash(git:*)",
       "Bash(yarn:*)",
       "WebFetch(domain:github.com)",
+      "WebFetch(domain:docs.sentry.io)",
+      "WebFetch(domain:develop.sentry.dev)",
       "Bash(grep:*)",
       "Bash(mv:*)"
     ],
