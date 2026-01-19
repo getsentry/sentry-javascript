@@ -25,7 +25,12 @@ export default function AttachToFeedbackButton() {
   }, [feedback]);
 
   return (
-    <button className="hover:bg-hover px-4 py-2 rounded-md" type="button" ref={buttonRef} data-testid="attach-to-button">
+    <button
+      className="hover:bg-hover px-4 py-2 rounded-md"
+      type="button"
+      ref={buttonRef}
+      data-testid="attach-to-button"
+    >
       Give me feedback (attachTo)
     </button>
   );
