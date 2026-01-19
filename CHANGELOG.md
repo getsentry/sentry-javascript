@@ -4,6 +4,42 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+### Other Changes
+
+- feat(deps): Bump OpenTelemetry dependencies
+  - Bump @opentelemetry/context-async-hooks from 2.2.0 to 2.4.0
+  - Bump @opentelemetry/core from 2.2.0 to 2.4.0
+  - Bump @opentelemetry/resources from 2.2.0 to 2.4.0
+  - Bump @opentelemetry/sdk-trace-base from 2.2.0 to 2.4.0
+  - Bump @opentelemetry/sdk-trace-node from 2.2.0 to 2.4.0
+  - Bump @opentelemetry/instrumentation from 0.208.0 to 0.210.0
+  - Bump @opentelemetry/instrumentation-amqplib from 0.55.0 to 0.57.0
+  - Bump @opentelemetry/instrumentation-connect from 0.52.0 to 0.53.0
+  - Bump @opentelemetry/instrumentation-dataloader from 0.26.0 to 0.27.0
+  - Bump @opentelemetry/instrumentation-express from 0.57.0 to 0.58.0
+  - Bump @opentelemetry/instrumentation-fs from 0.28.0 to 0.29.0
+  - Bump @opentelemetry/instrumentation-generic-pool from 0.52.0 to 0.53.0
+  - Bump @opentelemetry/instrumentation-graphql from 0.56.0 to 0.57.0
+  - Bump @opentelemetry/instrumentation-hapi from 0.55.0 to 0.56.0
+  - Bump @opentelemetry/instrumentation-http from 0.208.0 to 0.210.0
+  - Bump @opentelemetry/instrumentation-ioredis from 0.56.0 to 0.58.0
+  - Bump @opentelemetry/instrumentation-kafkajs from 0.18.0 to 0.19.0
+  - Bump @opentelemetry/instrumentation-knex from 0.53.0 to 0.54.0
+  - Bump @opentelemetry/instrumentation-koa from 0.57.0 to 0.58.0
+  - Bump @opentelemetry/instrumentation-lru-memoizer from 0.53.0 to 0.54.0
+  - Bump @opentelemetry/instrumentation-mongodb from 0.61.0 to 0.63.0
+  - Bump @opentelemetry/instrumentation-mongoose from 0.55.0 to 0.56.0
+  - Bump @opentelemetry/instrumentation-mysql from 0.54.0 to 0.56.0
+  - Bump @opentelemetry/instrumentation-mysql2 from 0.55.0 to 0.56.0
+  - Bump @opentelemetry/instrumentation-nestjs-core from 0.55.0 to 0.56.0
+  - Bump @opentelemetry/instrumentation-pg from 0.61.0 to 0.62.0
+  - Bump @opentelemetry/instrumentation-redis from 0.57.0 to 0.58.0
+  - Bump @opentelemetry/instrumentation-tedious from 0.27.0 to 0.29.0
+  - Bump @opentelemetry/instrumentation-undici from 0.19.0 to 0.20.0
+  - Bump @opentelemetry/instrumentation-aws-sdk from 0.64.0 to 0.65.0
+  - Bump @opentelemetry/sdk-node from 0.208.0 to 0.210.0
+  - Bump @opentelemetry/exporter-trace-otlp-http from 0.208.0 to 0.210.0
+
 - **feat(tanstackstart-react): Add `sentryTanstackStart` vite plugin to manage automatic source map uploads ([#18712](https://github.com/getsentry/sentry-javascript/pull/18712))**
 
   You can now configure source maps upload for TanStack Start using the `sentryTanstackStart` Vite plugin:
