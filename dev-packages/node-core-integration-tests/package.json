@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/node-core-integration-tests",
-  "version": "10.34.0",
+  "version": "10.35.0",
   "license": "MIT",
   "engines": {
     "node": ">=18"
@@ -34,8 +34,8 @@
     "@opentelemetry/resources": "^2.4.0",
     "@opentelemetry/sdk-trace-base": "^2.4.0",
     "@opentelemetry/semantic-conventions": "^1.37.0",
-    "@sentry/core": "10.34.0",
-    "@sentry/node-core": "10.34.0",
+    "@sentry/core": "10.35.0",
+    "@sentry/node-core": "10.35.0",
     "body-parser": "^1.20.3",
     "cors": "^2.8.5",
     "cron": "^3.1.6",
