@@ -1,8 +1,4 @@
-import {
-  type _INTERNAL_RandomSafeContextRunner as RandomSafeContextRunner,
-  debug,
-  GLOBAL_OBJ,
-} from '@sentry/core';
+import { type _INTERNAL_RandomSafeContextRunner as RandomSafeContextRunner, debug, GLOBAL_OBJ } from '@sentry/core';
 import { DEBUG_BUILD } from '../common/debug-build';
 
 // Inline AsyncLocalStorage interface from current types
