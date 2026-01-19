@@ -109,5 +109,8 @@ export function arrayToObjectShorthand(contents: string): string | null {
     return null;
   }
 
-  return `{ ${items.join(', ')} }`;
+  // Deduplicate to avoid invalid syntax like { foo, foo }
+  const uniqueItems = [...new Set(items)];
+
+  return `{ ${uniqueItems.join(', ')} }`;
 }

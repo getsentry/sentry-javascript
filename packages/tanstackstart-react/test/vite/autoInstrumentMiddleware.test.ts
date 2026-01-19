@@ -234,4 +234,8 @@ describe('arrayToObjectShorthand', () => {
   it('returns null for mixed valid and invalid', () => {
     expect(arrayToObjectShorthand('foo, bar(), baz')).toBeNull();
   });
+
+  it('deduplicates entries', () => {
+    expect(arrayToObjectShorthand('foo, foo, bar')).toBe('{ foo, bar }');
+  });
 });
