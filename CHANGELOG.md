@@ -20,7 +20,7 @@
   });
   ```
 
-- **feat(tanstackstart-react): Add sentryTanstackStart vite plugin to manage automatic source map uploads**
+- **feat(tanstackstart-react): Add `sentryTanstackStart` vite plugin to manage automatic source map uploads**
 
   You can now configure source maps upload for TanStack Start using the `sentryTanstackStart` Vite plugin:
 
