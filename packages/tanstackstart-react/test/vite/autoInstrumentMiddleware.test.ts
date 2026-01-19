@@ -104,6 +104,71 @@ createStart(() => ({ requestMiddleware: wrapMiddlewaresWithSentry({ myMiddleware
 
     expect(result).toBeNull();
   });
+
+  it('handles files with use server directive', () => {
+    const plugin = makeAutoInstrumentMiddlewarePlugin() as PluginWithTransform;
+    const code = `'use server';
+import { createStart } from '@tanstack/react-start';
+createStart(() => ({ requestMiddleware: [authMiddleware] }));
+`;
+    const result = plugin.transform(code, '/app/start.ts');
+
+    expect(result).not.toBeNull();
+    expect(result!.code).toMatch(/^'use server';\s*\nimport \{ wrapMiddlewaresWithSentry \}/);
+  });
+
+  it('handles files with use client directive', () => {
+    const plugin = makeAutoInstrumentMiddlewarePlugin() as PluginWithTransform;
+    const code = `"use client";
+import { createStart } from '@tanstack/react-start';
+createStart(() => ({ requestMiddleware: [authMiddleware] }));
+`;
+    const result = plugin.transform(code, '/app/start.ts');
+
+    expect(result).not.toBeNull();
+    expect(result!.code).toMatch(/^"use client";\s*\nimport \{ wrapMiddlewaresWithSentry \}/);
+  });
+
+  it('handles trailing commas in middleware arrays', () => {
+    const plugin = makeAutoInstrumentMiddlewarePlugin() as PluginWithTransform;
+    const code = `
+import { createStart } from '@tanstack/react-start';
+createStart(() => ({ requestMiddleware: [authMiddleware,] }));
+`;
+    const result = plugin.transform(code, '/app/start.ts');
+
+    expect(result).not.toBeNull();
+    expect(result!.code).toContain('requestMiddleware: wrapMiddlewaresWithSentry({ authMiddleware })');
+  });
+
+  it('wraps only requestMiddleware when functionMiddleware is absent', () => {
+    const plugin = makeAutoInstrumentMiddlewarePlugin() as PluginWithTransform;
+    const code = `
+import { createStart } from '@tanstack/react-start';
+createStart(() => ({ requestMiddleware: [authMiddleware] }));
+`;
+    const result = plugin.transform(code, '/app/start.ts');
+
+    expect(result).not.toBeNull();
+    expect(result!.code).toContain('requestMiddleware: wrapMiddlewaresWithSentry({ authMiddleware })');
+    expect(result!.code).not.toContain('functionMiddleware');
+  });
+
+  it('wraps valid array and skips invalid array in same file', () => {
+    const plugin = makeAutoInstrumentMiddlewarePlugin() as PluginWithTransform;
+    const code = `
+import { createStart } from '@tanstack/react-start';
+createStart(() => ({
+  requestMiddleware: [authMiddleware],
+  functionMiddleware: [getMiddleware()]
+}));
+`;
+    const result = plugin.transform(code, '/app/start.ts');
+
+    expect(result).not.toBeNull();
+    expect(result!.code).toContain('requestMiddleware: wrapMiddlewaresWithSentry({ authMiddleware })');
+    expect(result!.code).toContain('functionMiddleware: [getMiddleware()]');
+  });
 });
 
 describe('arrayToObjectShorthand', () => {

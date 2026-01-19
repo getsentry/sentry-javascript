@@ -56,7 +56,18 @@ export function makeAutoInstrumentMiddlewarePlugin(options: AutoInstrumentMiddle
       );
 
       if (needsImport) {
-        transformed = `import { wrapMiddlewaresWithSentry } from '@sentry/tanstackstart-react';\n${transformed}`;
+        const sentryImport = `import { wrapMiddlewaresWithSentry } from '@sentry/tanstackstart-react';\n`;
+
+        // Check for 'use server' or 'use client' directive at the start
+        const directiveMatch = transformed.match(/^(['"])use (client|server)\1;?\s*\n?/);
+        if (directiveMatch) {
+          // Insert import after the directive
+          const directive = directiveMatch[0];
+          transformed = directive + sentryImport + transformed.slice(directive.length);
+        } else {
+          transformed = sentryImport + transformed;
+        }
+
         return { code: transformed, map: null };
       }
 

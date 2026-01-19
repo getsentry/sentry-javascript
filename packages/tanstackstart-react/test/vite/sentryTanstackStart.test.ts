@@ -1,5 +1,6 @@
 import type { Plugin } from 'vite';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { makeAutoInstrumentMiddlewarePlugin } from '../../src/vite/autoInstrumentMiddleware';
 import { sentryTanstackStart } from '../../src/vite/sentryTanstackStart';
 
 const mockSourceMapsConfigPlugin: Plugin = {
@@ -112,6 +113,18 @@ describe('sentryTanstackStart()', () => {
       });
 
       expect(plugins).toEqual([mockSourceMapsConfigPlugin, mockSentryVitePlugin]);
+    });
+
+    it('passes correct options to makeAutoInstrumentMiddlewarePlugin', () => {
+      sentryTanstackStart({ debug: true, sourcemaps: { disable: true } });
+
+      expect(makeAutoInstrumentMiddlewarePlugin).toHaveBeenCalledWith({ enabled: true, debug: true });
+    });
+
+    it('passes debug: undefined when not specified', () => {
+      sentryTanstackStart({ sourcemaps: { disable: true } });
+
+      expect(makeAutoInstrumentMiddlewarePlugin).toHaveBeenCalledWith({ enabled: true, debug: undefined });
     });
   });
 });
