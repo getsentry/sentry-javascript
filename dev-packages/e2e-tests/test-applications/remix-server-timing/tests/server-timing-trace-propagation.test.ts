@@ -203,16 +203,15 @@ test('Server-Timing header is present on error responses', async ({ page }) => {
   const response = await responsePromise;
   const serverTimingHeader = response.headers()['server-timing'];
 
-  if (serverTimingHeader) {
-    expect(serverTimingHeader).toContain('sentry-trace');
+  // Server-Timing header should be present on error responses
+  expect(serverTimingHeader).toBeDefined();
+  expect(serverTimingHeader).toContain('sentry-trace');
 
-    const sentryTraceMatch = serverTimingHeader?.match(/sentry-trace;desc="([^"]+)"/);
-    if (sentryTraceMatch) {
-      const [traceId, spanId] = sentryTraceMatch[1].split('-');
-      expect(traceId).toHaveLength(32);
-      expect(spanId).toHaveLength(16);
-    }
-  }
+  const sentryTraceMatch = serverTimingHeader?.match(/sentry-trace;desc="([^"]+)"/);
+  expect(sentryTraceMatch).toBeTruthy();
+  const [traceId, spanId] = sentryTraceMatch![1].split('-');
+  expect(traceId).toHaveLength(32);
+  expect(spanId).toHaveLength(16);
 
   await expect(page.locator('h1')).toContainText('Error');
 });
@@ -304,16 +303,15 @@ test('Server-Timing header is present on redirect responses', async ({ page }) =
   const redirectResponse = await redirectResponsePromise;
   const serverTimingHeader = redirectResponse.headers()['server-timing'];
 
-  if (serverTimingHeader) {
-    expect(serverTimingHeader).toContain('sentry-trace');
+  // Server-Timing header should be present on redirect responses
+  expect(serverTimingHeader).toBeDefined();
+  expect(serverTimingHeader).toContain('sentry-trace');
 
-    const sentryTraceMatch = serverTimingHeader?.match(/sentry-trace;desc="([^"]+)"/);
-    if (sentryTraceMatch) {
-      const [traceId, spanId] = sentryTraceMatch[1].split('-');
-      expect(traceId).toHaveLength(32);
-      expect(spanId).toHaveLength(16);
-    }
-  }
+  const sentryTraceMatch = serverTimingHeader?.match(/sentry-trace;desc="([^"]+)"/);
+  expect(sentryTraceMatch).toBeTruthy();
+  const [traceId, spanId] = sentryTraceMatch![1].split('-');
+  expect(traceId).toHaveLength(32);
+  expect(spanId).toHaveLength(16);
 
   await page.waitForURL(/\/user\/redirected/);
   await expect(page.locator('h1')).toContainText('User redirected');
