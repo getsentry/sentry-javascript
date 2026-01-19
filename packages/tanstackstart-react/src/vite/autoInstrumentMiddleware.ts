@@ -38,10 +38,11 @@ export function makeAutoInstrumentMiddlewarePlugin(options: AutoInstrumentMiddle
 
       let transformed = code;
       let needsImport = false;
+      const skippedMiddlewares: string[] = [];
 
       transformed = transformed.replace(
         /(requestMiddleware|functionMiddleware)\s*:\s*\[([^\]]*)\]/g,
-        (match, key, contents) => {
+        (match: string, key: string, contents: string) => {
           const objContents = arrayToObjectShorthand(contents);
           if (objContents) {
             needsImport = true;
@@ -51,12 +52,25 @@ export function makeAutoInstrumentMiddlewarePlugin(options: AutoInstrumentMiddle
             }
             return `${key}: wrapMiddlewaresWithSentry(${objContents})`;
           }
+          // Track middlewares that couldn't be auto-wrapped
+          if (contents.trim()) {
+            skippedMiddlewares.push(key);
+          }
           return match;
         },
       );
 
+      // Warn about middlewares that couldn't be auto-wrapped
+      if (skippedMiddlewares.length > 0) {
+        // eslint-disable-next-line no-console
+        console.warn(
+          `[Sentry] Could not auto-instrument ${skippedMiddlewares.join(' and ')} in ${id}. ` +
+            'To instrument these middlewares, use wrapMiddlewaresWithSentry() manually. ',
+        );
+      }
+
       if (needsImport) {
-        const sentryImport = `import { wrapMiddlewaresWithSentry } from '@sentry/tanstackstart-react';\n`;
+        const sentryImport = 'import { wrapMiddlewaresWithSentry } from \'@sentry/tanstackstart-react\';\n';
 
         // Check for 'use server' or 'use client' directive at the start
         const directiveMatch = transformed.match(/^(['"])use (client|server)\1;?\s*\n?/);

@@ -1,5 +1,5 @@
 import type { Plugin } from 'vite';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { arrayToObjectShorthand, makeAutoInstrumentMiddlewarePlugin } from '../../src/vite/autoInstrumentMiddleware';
 
 type PluginWithTransform = Plugin & {
@@ -168,6 +168,41 @@ createStart(() => ({
     expect(result).not.toBeNull();
     expect(result!.code).toContain('requestMiddleware: wrapMiddlewaresWithSentry({ authMiddleware })');
     expect(result!.code).toContain('functionMiddleware: [getMiddleware()]');
+  });
+
+  it('warns when middleware contains expressions that cannot be auto-wrapped', () => {
+    const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const plugin = makeAutoInstrumentMiddlewarePlugin() as PluginWithTransform;
+    const code = `
+import { createStart } from '@tanstack/react-start';
+createStart(() => ({ requestMiddleware: [getMiddleware()] }));
+`;
+    plugin.transform(code, '/app/start.ts');
+
+    expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('Could not auto-instrument requestMiddleware'));
+
+    consoleWarnSpy.mockRestore();
+  });
+
+  it('warns about skipped middlewares even when others are successfully wrapped', () => {
+    const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const plugin = makeAutoInstrumentMiddlewarePlugin() as PluginWithTransform;
+    const code = `
+import { createStart } from '@tanstack/react-start';
+createStart(() => ({
+  requestMiddleware: [authMiddleware],
+  functionMiddleware: [getMiddleware()]
+}));
+`;
+    plugin.transform(code, '/app/start.ts');
+
+    expect(consoleWarnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('Could not auto-instrument functionMiddleware'),
+    );
+
+    consoleWarnSpy.mockRestore();
   });
 });
 
