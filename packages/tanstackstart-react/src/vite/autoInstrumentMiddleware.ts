@@ -69,23 +69,24 @@ export function makeAutoInstrumentMiddlewarePlugin(options: AutoInstrumentMiddle
         );
       }
 
-      if (needsImport) {
-        const sentryImport = "import { wrapMiddlewaresWithSentry } from '@sentry/tanstackstart-react';\n";
-
-        // Check for 'use server' or 'use client' directive at the start
-        const directiveMatch = transformed.match(/^(['"])use (client|server)\1;?\s*\n?/);
-        if (directiveMatch) {
-          // Insert import after the directive
-          const directive = directiveMatch[0];
-          transformed = directive + sentryImport + transformed.slice(directive.length);
-        } else {
-          transformed = sentryImport + transformed;
-        }
-
-        return { code: transformed, map: null };
+      // We didn't wrap any middlewares, so we don't need to import the wrapMiddlewaresWithSentry function
+      if (!needsImport) {
+        return null;
       }
 
-      return null;
+      const sentryImport = "import { wrapMiddlewaresWithSentry } from '@sentry/tanstackstart-react';\n";
+
+      // Check for 'use server' or 'use client' directives, these need to be before any imports
+      const directiveMatch = transformed.match(/^(['"])use (client|server)\1;?\s*\n?/);
+      if (directiveMatch) {
+        // Insert import after the directive
+        const directive = directiveMatch[0];
+        transformed = directive + sentryImport + transformed.slice(directive.length);
+      } else {
+        transformed = sentryImport + transformed;
+      }
+
+      return { code: transformed, map: null };
     },
   };
 }
