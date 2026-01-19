@@ -7,11 +7,10 @@ import {
   htmlTreeAsString,
   isBrowser,
   SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME,
-  SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_UNIT,
-  SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   spanToJSON,
+  startInactiveSpan,
 } from '@sentry/core';
 import { WINDOW } from '../types';
 import type { InstrumentationHandlerCallback } from './instrument';
@@ -20,7 +19,7 @@ import {
   addPerformanceInstrumentationHandler,
   isPerformanceEventTiming,
 } from './instrument';
-import { getBrowserPerformanceAPI, msToSec, startStandaloneWebVitalSpan } from './utils';
+import { getBrowserPerformanceAPI, msToSec } from './utils';
 
 interface InteractionContext {
   span: Span | undefined;
@@ -136,23 +135,24 @@ export const _onInp: InstrumentationHandlerCallback = ({ metric }) => {
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.browser.inp',
     [SEMANTIC_ATTRIBUTE_SENTRY_OP]: `ui.interaction.${interactionType}`,
     [SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME]: entry.duration,
+
+    // TODO: Relay currently expects 'inp', but we should consider 'inp.value'
+    'inp': metric.value,
+    'inp.value': metric.value,
+
+    transaction: routeName,
+
+    // Web vital score calculation relies on the user agent to account for different
+    // browsers setting different thresholds for what is considered a good/meh/bad value.
+    // For example: Chrome vs. Chrome Mobile
+    'user_agent.original': WINDOW.navigator?.userAgent,
   };
 
-  const span = startStandaloneWebVitalSpan({
+  startInactiveSpan({
     name,
-    transaction: routeName,
     attributes,
     startTime,
-  });
-
-  if (span) {
-    span.addEvent('inp', {
-      [SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_UNIT]: 'millisecond',
-      [SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE]: metric.value,
-    });
-
-    span.end(startTime + duration);
-  }
+  })?.end(startTime + duration);
 };
 
 /**
