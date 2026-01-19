@@ -4,7 +4,7 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-- **feat(tanstackstart-react): Add `sentryTanstackStart` vite plugin to manage automatic source map uploads**
+- **feat(tanstackstart-react): Add `sentryTanstackStart` vite plugin to manage automatic source map uploads ([#18712](https://github.com/getsentry/sentry-javascript/pull/18712))**
 
   You can now configure source maps upload for TanStack Start using the `sentryTanstackStart` Vite plugin:
 
