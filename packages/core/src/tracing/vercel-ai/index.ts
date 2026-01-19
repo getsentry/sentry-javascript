@@ -25,6 +25,7 @@ import {
 import type { OpenAiProviderMetadata, ProviderMetadata } from './vercel-ai-attributes';
 import {
   AI_MODEL_ID_ATTRIBUTE,
+  AI_OPERATION_ID_ATTRIBUTE,
   AI_PROMPT_MESSAGES_ATTRIBUTE,
   AI_PROMPT_TOOLS_ATTRIBUTE,
   AI_RESPONSE_OBJECT_ATTRIBUTE,
@@ -65,8 +66,9 @@ function onVercelAiSpanStart(span: Span): void {
     return;
   }
 
-  // Check if this is a Vercel AI span by name pattern.
-  if (!name.startsWith('ai.')) {
+  // V6+ Check if this is a Vercel AI span by checking if the operation ID attribute is present.
+  // V5+ Check if this is a Vercel AI span by name pattern.
+  if (!attributes[AI_OPERATION_ID_ATTRIBUTE] && !name.startsWith('ai.')) {
     return;
   }
 

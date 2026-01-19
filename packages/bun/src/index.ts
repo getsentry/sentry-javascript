@@ -136,6 +136,7 @@ export {
   postgresIntegration,
   postgresJsIntegration,
   prismaIntegration,
+  processSessionIntegration,
   hapiIntegration,
   setupHapiErrorHandler,
   honoIntegration,
