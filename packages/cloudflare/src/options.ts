@@ -24,7 +24,7 @@ function isVersionMetadata(value: unknown): value is CfVersionMetadata {
  * Release is determined with the following priority (highest to lowest):
  * 1. User-provided release option
  * 2. SENTRY_RELEASE environment variable
- * 3. CF_VERSION_METADATA.id binding (if configured in wrangler.toml)
+ * 3. CF_VERSION_METADATA.id binding (if configured in the wrangler config)
  *
  * @param userOptions - The options passed in from the user.
  * @param env - The environment variables.
@@ -36,13 +36,13 @@ export function getFinalOptions(userOptions: CloudflareOptions, env: unknown): C
     return userOptions;
   }
 
-  // Priority: SENTRY_RELEASE > CF_VERSION_METADATA.id
-  let release: string | undefined;
-  if ('SENTRY_RELEASE' in env && typeof env.SENTRY_RELEASE === 'string') {
-    release = env.SENTRY_RELEASE;
-  } else if ('CF_VERSION_METADATA' in env && isVersionMetadata(env.CF_VERSION_METADATA)) {
-    release = env.CF_VERSION_METADATA.id;
-  }
+  // Priority: userOptions.release > SENTRY_RELEASE > CF_VERSION_METADATA.id
+  const release =
+    'SENTRY_RELEASE' in env && typeof env.SENTRY_RELEASE === 'string'
+      ? env.SENTRY_RELEASE
+      : 'CF_VERSION_METADATA' in env && isVersionMetadata(env.CF_VERSION_METADATA)
+        ? env.CF_VERSION_METADATA.id
+        : undefined;
 
   return { release, ...userOptions };
 }
