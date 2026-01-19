@@ -111,7 +111,9 @@ export function instrumentFetchRequest(
   if (shouldAttachHeaders(handlerData.fetchData.url)) {
     const request: string | Request = handlerData.args[0];
 
-    const options: { [key: string]: unknown } = handlerData.args[1] || {};
+    // Shallow clone the options object to avoid mutating the original user-provided object
+    // Examples: users re-using same options object for multiple fetch calls, frozen objects
+    const options: { [key: string]: unknown } = { ...(handlerData.args[1] || {}) };
 
     const headers = _addTracingHeadersToFetchRequest(
       request,
