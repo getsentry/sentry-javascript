@@ -23,6 +23,9 @@ updates:
       opentelemetry:
         patterns:
           - '@opentelemetry/*'
+      remix:
+        patterns:
+          - '@remix-run/*'
     versioning-strategy: increase
     commit-message:
       prefix: feat
