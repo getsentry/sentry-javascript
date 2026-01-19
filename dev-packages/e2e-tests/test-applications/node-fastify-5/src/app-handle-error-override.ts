@@ -154,6 +154,11 @@ app.post('/test-post', function (req, res) {
   res.send({ status: 'ok', body: req.body });
 });
 
+app.get('/flush', async function (_req, res) {
+  await Sentry.flush();
+  res.send({ ok: true });
+});
+
 app.listen({ port: port });
 
 // A second app so we can test header propagation between external URLs

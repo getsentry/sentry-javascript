@@ -48,12 +48,14 @@ test('Does not send error when shouldHandleError returns false', async ({ baseUR
     return transactionEvent?.transaction === 'GET /test-error-not-captured';
   });
 
-  await fetch(`${baseURL}/test-error-not-captured`);
+  const response = await fetch(`${baseURL}/test-error-not-captured`);
 
   await transactionEventPromise;
 
-  await fetch(`${baseURL}/flush`);
+  const flushResponse = await fetch(`${baseURL}/flush`);
 
+  expect(response.status).toBe(500);
+  expect(flushResponse.status).toBe(200);
   expect(errorEventOccurred).toBe(false);
 });
 
@@ -74,11 +76,13 @@ test('Error in child plugin with rethrown error handler reports correct 500 stat
     return transactionEvent?.transaction === 'GET /test-error-ignored';
   });
 
-  await fetch(`${baseURL}/test-error-ignored`);
+  const response = await fetch(`${baseURL}/test-error-ignored`);
 
   await transactionEventPromise;
 
-  await fetch(`${baseURL}/flush`);
+  const flushResponse = await fetch(`${baseURL}/flush`);
 
+  expect(response.status).toBe(500);
+  expect(flushResponse.status).toBe(200);
   expect(errorEventOccurred).toBe(false);
 });
