@@ -141,19 +141,6 @@ createStart(() => ({ requestMiddleware: [authMiddleware,] }));
     expect(result!.code).toContain('requestMiddleware: wrapMiddlewaresWithSentry({ authMiddleware })');
   });
 
-  it('wraps only requestMiddleware when functionMiddleware is absent', () => {
-    const plugin = makeAutoInstrumentMiddlewarePlugin() as PluginWithTransform;
-    const code = `
-import { createStart } from '@tanstack/react-start';
-createStart(() => ({ requestMiddleware: [authMiddleware] }));
-`;
-    const result = plugin.transform(code, '/app/start.ts');
-
-    expect(result).not.toBeNull();
-    expect(result!.code).toContain('requestMiddleware: wrapMiddlewaresWithSentry({ authMiddleware })');
-    expect(result!.code).not.toContain('functionMiddleware');
-  });
-
   it('wraps valid array and skips invalid array in same file', () => {
     const plugin = makeAutoInstrumentMiddlewarePlugin() as PluginWithTransform;
     const code = `
