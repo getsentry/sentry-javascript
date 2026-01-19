@@ -70,7 +70,7 @@ export function makeAutoInstrumentMiddlewarePlugin(options: AutoInstrumentMiddle
       }
 
       if (needsImport) {
-        const sentryImport = 'import { wrapMiddlewaresWithSentry } from \'@sentry/tanstackstart-react\';\n';
+        const sentryImport = "import { wrapMiddlewaresWithSentry } from '@sentry/tanstackstart-react';\n";
 
         // Check for 'use server' or 'use client' directive at the start
         const directiveMatch = transformed.match(/^(['"])use (client|server)\1;?\s*\n?/);
