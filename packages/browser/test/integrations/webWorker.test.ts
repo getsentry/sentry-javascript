@@ -367,12 +367,7 @@ describe('webWorkerIntegration', () => {
       it('ignores WASM images with invalid array elements (null, undefined, missing code_file)', () => {
         mockEvent.data = {
           _sentryMessage: true,
-          _sentryWasmImages: [
-            null,
-            undefined,
-            { type: 'wasm' },
-            { code_file: 123 },
-          ],
+          _sentryWasmImages: [null, undefined, { type: 'wasm' }, { code_file: 123 }],
         };
 
         messageHandler(mockEvent);
