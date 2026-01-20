@@ -43,6 +43,9 @@ const baseConfig = makeBaseNPMConfig({
       plugins.makeJsonPlugin(), // Needed because `require-in-the-middle` imports json via require
       replace({
         preventAssignment: true,
+        // Use negative lookahead/lookbehind instead of word boundaries so `process.argv0` is also replaced in
+        // `process.argv0.length` (where `.` follows). Default `\b` delimiters don't match before `.`.
+        delimiters: ['(?<![\\w$])', '(?![\\w$])'],
         values: {
           'process.argv0': JSON.stringify(''), // needed because otel relies on process.argv0 for the default service name, but that api is not available in the edge runtime.
         },
