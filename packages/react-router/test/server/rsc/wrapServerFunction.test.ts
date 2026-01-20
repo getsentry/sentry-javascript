@@ -7,7 +7,7 @@ vi.mock('@sentry/core', async () => {
   return {
     ...actual,
     startSpan: vi.fn(),
-    withIsolationScope: vi.fn(),
+    getIsolationScope: vi.fn(),
     captureException: vi.fn(),
     flushIfServerless: vi.fn().mockResolvedValue(undefined),
     getActiveSpan: vi.fn(),
@@ -24,9 +24,7 @@ describe('wrapServerFunction', () => {
     const mockServerFn = vi.fn().mockResolvedValue(mockResult);
     const mockSetTransactionName = vi.fn();
 
-    (core.withIsolationScope as any).mockImplementation(async (fn: any) => {
-      return fn({ setTransactionName: mockSetTransactionName });
-    });
+    (core.getIsolationScope as any).mockReturnValue({ setTransactionName: mockSetTransactionName });
     (core.startSpan as any).mockImplementation((_: any, fn: any) => fn({ setStatus: vi.fn() }));
 
     const wrappedFn = wrapServerFunction('testFunction', mockServerFn);
@@ -34,7 +32,7 @@ describe('wrapServerFunction', () => {
 
     expect(result).toEqual(mockResult);
     expect(mockServerFn).toHaveBeenCalledWith('arg1', 'arg2');
-    expect(core.withIsolationScope).toHaveBeenCalled();
+    expect(core.getIsolationScope).toHaveBeenCalled();
     expect(mockSetTransactionName).toHaveBeenCalledWith('serverFunction/testFunction');
     expect(core.startSpan).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -55,9 +53,7 @@ describe('wrapServerFunction', () => {
     const mockServerFn = vi.fn().mockResolvedValue('result');
     const mockSetTransactionName = vi.fn();
 
-    (core.withIsolationScope as any).mockImplementation(async (fn: any) => {
-      return fn({ setTransactionName: mockSetTransactionName });
-    });
+    (core.getIsolationScope as any).mockReturnValue({ setTransactionName: mockSetTransactionName });
     (core.startSpan as any).mockImplementation((_: any, fn: any) => fn({ setStatus: vi.fn() }));
 
     const wrappedFn = wrapServerFunction('testFunction', mockServerFn, {
@@ -78,9 +74,7 @@ describe('wrapServerFunction', () => {
     const mockServerFn = vi.fn().mockResolvedValue('result');
     const mockSetTransactionName = vi.fn();
 
-    (core.withIsolationScope as any).mockImplementation(async (fn: any) => {
-      return fn({ setTransactionName: mockSetTransactionName });
-    });
+    (core.getIsolationScope as any).mockReturnValue({ setTransactionName: mockSetTransactionName });
     (core.startSpan as any).mockImplementation((_: any, fn: any) => fn({ setStatus: vi.fn() }));
 
     const wrappedFn = wrapServerFunction('testFunction', mockServerFn, {
@@ -105,9 +99,7 @@ describe('wrapServerFunction', () => {
     const mockSetStatus = vi.fn();
     const mockSetTransactionName = vi.fn();
 
-    (core.withIsolationScope as any).mockImplementation(async (fn: any) => {
-      return fn({ setTransactionName: mockSetTransactionName });
-    });
+    (core.getIsolationScope as any).mockReturnValue({ setTransactionName: mockSetTransactionName });
     (core.startSpan as any).mockImplementation((_: any, fn: any) => fn({ setStatus: mockSetStatus }));
 
     const wrappedFn = wrapServerFunction('testFunction', mockServerFn);
@@ -136,9 +128,7 @@ describe('wrapServerFunction', () => {
     const mockSetStatus = vi.fn();
     const mockSetTransactionName = vi.fn();
 
-    (core.withIsolationScope as any).mockImplementation(async (fn: any) => {
-      return fn({ setTransactionName: mockSetTransactionName });
-    });
+    (core.getIsolationScope as any).mockReturnValue({ setTransactionName: mockSetTransactionName });
     (core.startSpan as any).mockImplementation((_: any, fn: any) => fn({ setStatus: mockSetStatus }));
 
     const wrappedFn = wrapServerFunction('testFunction', mockServerFn);
@@ -160,9 +150,7 @@ describe('wrapServerFunction', () => {
     const mockServerFn = vi.fn().mockRejectedValue(mockError);
     const mockSetTransactionName = vi.fn();
 
-    (core.withIsolationScope as any).mockImplementation(async (fn: any) => {
-      return fn({ setTransactionName: mockSetTransactionName });
-    });
+    (core.getIsolationScope as any).mockReturnValue({ setTransactionName: mockSetTransactionName });
     (core.startSpan as any).mockImplementation((_: any, fn: any) => fn({ setStatus: vi.fn() }));
 
     const wrappedFn = wrapServerFunction('testFunction', mockServerFn);
@@ -181,9 +169,7 @@ describe('wrapServerFunctions', () => {
     const mockFn2 = vi.fn().mockResolvedValue('result2');
     const mockSetTransactionName = vi.fn();
 
-    (core.withIsolationScope as any).mockImplementation(async (fn: any) => {
-      return fn({ setTransactionName: mockSetTransactionName });
-    });
+    (core.getIsolationScope as any).mockReturnValue({ setTransactionName: mockSetTransactionName });
     (core.startSpan as any).mockImplementation((_: any, fn: any) => fn({ setStatus: vi.fn() }));
 
     const wrapped = wrapServerFunctions('myModule', {
