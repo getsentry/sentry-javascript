@@ -160,8 +160,7 @@ describe('OpenAI integration', () => {
           'gen_ai.request.model': 'gpt-3.5-turbo',
           'gen_ai.request.temperature': 0.7,
           'gen_ai.request.messages.original_length': 2,
-          'gen_ai.request.messages':
-            '[{"role":"system","content":"You are a helpful assistant."},{"role":"user","content":"What is the capital of France?"}]',
+          'gen_ai.request.messages': '[{"role":"user","content":"What is the capital of France?"}]',
           'gen_ai.response.model': 'gpt-3.5-turbo',
           'gen_ai.response.id': 'chatcmpl-mock123',
           'gen_ai.response.finish_reasons': '["stop"]',
@@ -234,8 +233,7 @@ describe('OpenAI integration', () => {
           'gen_ai.request.temperature': 0.8,
           'gen_ai.request.stream': true,
           'gen_ai.request.messages.original_length': 2,
-          'gen_ai.request.messages':
-            '[{"role":"system","content":"You are a helpful assistant."},{"role":"user","content":"Tell me about streaming"}]',
+          'gen_ai.request.messages': '[{"role":"user","content":"Tell me about streaming"}]',
           'gen_ai.response.text': 'Hello from OpenAI streaming!',
           'gen_ai.response.finish_reasons': '["stop"]',
           'gen_ai.response.id': 'chatcmpl-stream-123',

@@ -86,8 +86,7 @@ describe('Anthropic integration', () => {
         data: expect.objectContaining({
           'gen_ai.operation.name': 'messages',
           'gen_ai.request.max_tokens': 100,
-          'gen_ai.request.messages':
-            '[{"role":"system","content":"You are a helpful assistant."},{"role":"user","content":"What is the capital of France?"}]',
+          'gen_ai.request.messages': '[{"role":"user","content":"What is the capital of France?"}]',
           'gen_ai.request.model': 'claude-3-haiku-20240307',
           'gen_ai.request.temperature': 0.7,
           'gen_ai.response.id': 'msg_mock123',

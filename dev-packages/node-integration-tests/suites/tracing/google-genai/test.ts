@@ -94,9 +94,7 @@ describe('Google GenAI integration', () => {
           'gen_ai.request.temperature': 0.8,
           'gen_ai.request.top_p': 0.9,
           'gen_ai.request.max_tokens': 150,
-          'gen_ai.request.messages': expect.stringMatching(
-            /\[\{"role":"system","content":"You are a friendly robot who likes to be funny."\},/,
-          ), // Should include history when recordInputs: true
+          'gen_ai.request.messages': '[{"role":"user","parts":[{"text":"Hello, how are you?"}]}]'
         }),
         description: 'chat gemini-1.5-pro create',
         op: 'gen_ai.chat',
