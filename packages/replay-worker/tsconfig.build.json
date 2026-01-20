@@ -5,10 +5,7 @@
     "lib": ["webworker", "scripthost"],
     "esModuleInterop": true,
     "target": "es2020",
-    "strictPropertyInitialization": false,
-    "inlineSourceMap": false,
-    "sourceMap": false,
-    "inlineSources": false
+    "strictPropertyInitialization": false
   },
   "include": ["src/**/*.ts"]
 }
