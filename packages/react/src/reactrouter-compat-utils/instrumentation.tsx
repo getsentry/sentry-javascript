@@ -241,12 +241,10 @@ function trackLazyRouteLoad(span: Span, promise: Promise<unknown>): void {
  * This ensures that patchedEnd waits for patchRoutesOnNavigation to be called before ending the span.
  */
 function createDeferredLazyRoutePromise(span: Span): void {
-  let resolvePromise: () => void;
   const deferredPromise = new Promise<void>(resolve => {
-    resolvePromise = resolve;
+    deferredLazyRouteResolvers.set(span, resolve);
   });
 
-  deferredLazyRouteResolvers.set(span, resolvePromise!);
   trackLazyRouteLoad(span, deferredPromise);
 }
 
@@ -259,6 +257,10 @@ function resolveDeferredLazyRoutePromise(span: Span): void {
   if (resolver) {
     resolver();
     deferredLazyRouteResolvers.delete(span);
+    // Clear the flag so patchSpanEnd doesn't wait unnecessarily for routes that have already loaded
+    if ((span as unknown as Record<string, boolean>).__sentry_may_have_lazy_routes__) {
+      (span as unknown as Record<string, boolean>).__sentry_may_have_lazy_routes__ = false;
+    }
   }
 }
 
