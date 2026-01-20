@@ -38,6 +38,7 @@ import {
   TRACE_FLAG_SAMPLED,
 } from '../utils/spanUtils';
 import { timestampInSeconds } from '../utils/time';
+import { GEN_AI_CONVERSATION_ID_ATTRIBUTE } from './ai/gen-ai-attributes';
 import { getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 import { logSpanEnd } from './logSpans';
 import { timedEventsToMeasurements } from './measurement';
@@ -221,6 +222,22 @@ export class SentrySpan implements Span {
    * use `spanToJSON(span)` instead.
    */
   public getSpanJSON(): SpanJSON {
+    // Automatically inject conversation ID from scope if not already set
+    if (!this._attributes[GEN_AI_CONVERSATION_ID_ATTRIBUTE]) {
+      const capturedScopes = getCapturedScopesOnSpan(this);
+      // Try isolation scope first (where setConversationId sets it)
+      let conversationId = capturedScopes.isolationScope?.getConversationId();
+
+      // Fallback to regular scope
+      if (!conversationId) {
+        conversationId = capturedScopes.scope?.getConversationId();
+      }
+
+      if (conversationId) {
+        this._attributes[GEN_AI_CONVERSATION_ID_ATTRIBUTE] = conversationId;
+      }
+    }
+
     return {
       data: this._attributes,
       description: this._name,

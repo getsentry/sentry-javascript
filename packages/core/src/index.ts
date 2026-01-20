@@ -25,6 +25,8 @@ export {
   setTag,
   setTags,
   setUser,
+  setConversationId,
+  getConversationId,
   isInitialized,
   isEnabled,
   startSession,

@@ -153,6 +153,9 @@ export class Scope {
   /** Contains the last event id of a captured event.  */
   protected _lastEventId?: string;
 
+  /** Conversation ID */
+  protected _conversationId?: string;
+
   // NOTE: Any field which gets added here should get added not only to the constructor but also to the `clone` method.
 
   public constructor() {
@@ -202,6 +205,7 @@ export class Scope {
     newScope._propagationContext = { ...this._propagationContext };
     newScope._client = this._client;
     newScope._lastEventId = this._lastEventId;
+    newScope._conversationId = this._conversationId;
 
     _setSpanForScope(newScope, _getSpanForScope(this));
 
@@ -282,6 +286,23 @@ export class Scope {
    */
   public getUser(): User | undefined {
     return this._user;
+  }
+
+  /**
+   * Set the conversation ID for this scope.
+   * Set to `null` to unset the conversation ID.
+   */
+  public setConversationId(conversationId: string | null | undefined): this {
+    this._conversationId = conversationId || undefined;
+    this._notifyScopeListeners();
+    return this;
+  }
+
+  /**
+   * Get the conversation ID from this scope.
+   */
+  public getConversationId(): string | undefined {
+    return this._conversationId;
   }
 
   /**
