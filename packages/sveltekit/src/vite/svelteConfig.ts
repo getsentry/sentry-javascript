@@ -62,7 +62,7 @@ export function getHooksFileName(svelteConfig: Config, hookType: 'client' | 'ser
   // `files` is deprecated in favour of unchangeable file names. Once it is removed, only the
   // fallback will be necessary. We can remove the curstom files path once we drop support
   // for that version range (presumably sveltekit 2).
-  // eslint-disable-next-line deprecation/deprecation
+   
   return svelteConfig.kit?.files?.hooks?.[hookType] || `src/hooks.${hookType}`;
 }
 

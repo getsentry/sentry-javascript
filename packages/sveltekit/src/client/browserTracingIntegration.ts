@@ -56,7 +56,7 @@ function _instrumentPageload(client: Client): void {
   }
 
   // TODO(v11): require svelte 5 or newer to switch to `page` from `$app/state`
-  // eslint-disable-next-line deprecation/deprecation
+   
   page.subscribe(page => {
     if (!page) {
       return;
@@ -79,7 +79,7 @@ function _instrumentNavigations(client: Client): void {
   let routingSpan: Span | undefined;
 
   // TODO(v11): require svelte 5 or newer to switch to `navigating` from `$app/state`
-  // eslint-disable-next-line deprecation/deprecation
+   
   navigating.subscribe(navigation => {
     if (!navigation) {
       // `navigating` emits a 'null' value when the navigation is completed.
