@@ -53,8 +53,8 @@
     "extends": "../../package.json"
   },
   "sentryTest": {
-    "skip": true,
-    "variants": [
+    "optional": true,
+    "optionalVariants": [
       {
         "build-command": "pnpm test:build-latest",
         "label": "react-router-7-rsc (latest)"

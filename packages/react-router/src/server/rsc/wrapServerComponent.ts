@@ -7,7 +7,13 @@ import {
   SPAN_STATUS_ERROR,
   SPAN_STATUS_OK,
 } from '@sentry/core';
-import { isNotFoundResponse, isRedirectResponse, safeFlushServerless } from './responseUtils';
+import {
+  isErrorCaptured,
+  isNotFoundResponse,
+  isRedirectResponse,
+  markErrorAsCaptured,
+  safeFlushServerless,
+} from './responseUtils';
 import type { ServerComponentContext } from './types';
 
 /**
@@ -73,7 +79,9 @@ export function wrapServerComponent<T extends (...args: any[]) => any>(
             }
           }
 
-          if (shouldCapture) {
+          // Only capture if not already captured by other wrappers to prevent double-capture
+          if (shouldCapture && !isErrorCaptured(error)) {
+            markErrorAsCaptured(error);
             captureException(error, {
               mechanism: {
                 type: 'instrument',

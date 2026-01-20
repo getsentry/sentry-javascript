@@ -2,15 +2,15 @@ import {
   captureException,
   flushIfServerless,
   getActiveSpan,
+  getIsolationScope,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SPAN_STATUS_ERROR,
   SPAN_STATUS_OK,
   startSpan,
-  withIsolationScope,
 } from '@sentry/core';
-import { isRedirectResponse, safeFlushServerless } from './responseUtils';
+import { isErrorCaptured, isRedirectResponse, markErrorAsCaptured, safeFlushServerless } from './responseUtils';
 import type { WrapServerFunctionOptions } from './types';
 
 /**
@@ -41,41 +41,44 @@ export function wrapServerFunction<T extends (...args: any[]) => Promise<any>>(
   options: WrapServerFunctionOptions = {},
 ): T {
   const wrappedFunction = async function (this: unknown, ...args: Parameters<T>): Promise<ReturnType<T>> {
-    // Check for active span BEFORE entering isolation scope to maintain trace continuity
-    // withIsolationScope may reset span context, so we capture this first
+    const spanName = options.name || `serverFunction/${functionName}`;
+
+    // Set transaction name on isolation scope (consistent with other RSC wrappers)
+    const isolationScope = getIsolationScope();
+    isolationScope.setTransactionName(spanName);
+
+    // Check for active span to determine if this should be a new transaction or child span
     const hasActiveSpan = !!getActiveSpan();
 
-    return withIsolationScope(async isolationScope => {
-      const spanName = options.name || `serverFunction/${functionName}`;
-
-      // Set transaction name on isolation scope
-      isolationScope.setTransactionName(spanName);
-
-      return startSpan(
-        {
-          name: spanName,
-          forceTransaction: !hasActiveSpan,
-          attributes: {
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.rsc.server_function',
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.react_router.rsc.server_function',
-            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-            'rsc.server_function.name': functionName,
-            ...options.attributes,
-          },
+    return startSpan(
+      {
+        name: spanName,
+        forceTransaction: !hasActiveSpan,
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.rsc.server_function',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.react_router.rsc.server_function',
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          'rsc.server_function.name': functionName,
+          ...options.attributes,
         },
-        async span => {
-          try {
-            const result = await serverFunction.apply(this, args);
-            return result;
-          } catch (error) {
-            // Check if the error is a redirect (common pattern in server functions)
-            if (isRedirectResponse(error)) {
-              // Don't capture redirects as errors, but still end the span
-              span.setStatus({ code: SPAN_STATUS_OK });
-              throw error;
-            }
+      },
+      async span => {
+        try {
+          const result = await serverFunction.apply(this, args);
+          return result;
+        } catch (error) {
+          // Check if the error is a redirect (common pattern in server functions)
+          if (isRedirectResponse(error)) {
+            // Don't capture redirects as errors, but still end the span
+            span.setStatus({ code: SPAN_STATUS_OK });
+            throw error;
+          }
 
-            span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+          span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+
+          // Only capture if not already captured (error may bubble through nested server functions or components)
+          if (!isErrorCaptured(error)) {
+            markErrorAsCaptured(error);
             captureException(error, {
               mechanism: {
                 type: 'instrument',
@@ -86,14 +89,14 @@ export function wrapServerFunction<T extends (...args: any[]) => Promise<any>>(
                 },
               },
             });
-            throw error;
-          } finally {
-            // Fire-and-forget flush to avoid swallowing original errors
-            safeFlushServerless(flushIfServerless);
           }
-        },
-      );
-    }) as ReturnType<T>;
+          throw error;
+        } finally {
+          // Fire-and-forget flush to avoid swallowing original errors
+          safeFlushServerless(flushIfServerless);
+        }
+      },
+    );
   };
 
   // Preserve the function name for debugging
