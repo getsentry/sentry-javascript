@@ -1,3 +1,4 @@
+import { Span } from '../types-hoist/span';
 import { RingBuffer } from '../utils/ring-buffer';
 
 /* v8 ignore start */
@@ -208,30 +209,6 @@ export abstract class TelemetryBufferBase<T, I extends T | T[]> {
   }
 
   /**
-   * Stream batches out as they become ready, consuming them asynchronously.
-   *
-   * For example:
-   *
-   * ```
-   * for await (const batch of myRingBuffer) {
-   *   await sendToTransport(batch);
-   * }
-   * ```
-   *
-   * Note that this method will *never end*, and will keep polling forever
-   * as long as the iterator continues iterating. Best to have some
-   * kind of signal to indicate when it should stop polling.
-   *
-   * That said, the `timer.unref()` will mean that it does not prevent a
-   * graceful exit in Node and similar SSJS environments.
-   */
-  public async *[Symbol.asyncIterator](): AsyncGenerator<T[], void> {
-    while (true) {
-      yield await this.poll();
-    }
-  }
-
-  /**
    * Empty the buffer and return all buffered items (if any);
    * This resets the timer, and resolves any pending polls with the
    * entire contents of the buffer.
@@ -312,7 +289,7 @@ export abstract class TelemetryBufferBase<T, I extends T | T[]> {
 }
 
 /**
- * TelemetryBuffer for single items
+ * TelemetryBuffer for single items of all kinds other than Span
  */
 export class TelemetryBuffer<T> extends TelemetryBufferBase<T, T> {
   protected [REJECT_WRITE](item: T, onDrop: TelemetryBufferOnDropCallback<T>): void {
@@ -340,35 +317,20 @@ export class TelemetryBuffer<T> extends TelemetryBufferBase<T, T> {
   }
 }
 
-export type TelemetryBucketBufferOptions<T> = TelemetryBufferOptions<T[]> & {
-  /**
-   * provide a function mapping items to their bucket signature
-   *
-   * For example:
-   * ```
-   * {
-   *   getBucket(item: Span) {
-   *     return item.spanContext().traceId;
-   *   }
-   * }
-   * ```
-   */
-  getBucket: (item: T) => string;
-};
-
 /**
- * The TelemetryBuffer class that buckets items by trace id
+ * A TelemetryBuffer class for Spans, bucketed by trace id
  */
-export class TelemetryBucketBuffer<T> extends TelemetryBufferBase<T, T[]> {
+export class TelemetrySpanBuffer extends TelemetryBufferBase<Span, Span[]> {
   #size: number;
   #capacity: number;
-  #bucketById: Map<string, T[]>;
-  #getBucket: (item: T) => string;
+  #bucketById: Map<string, Span[]>;
+  #getBucket (item: Span) {
+    return item.spanContext().traceId;
+  }
 
-  public constructor(options: TelemetryBucketBufferOptions<T>) {
+  public constructor(options: TelemetryBufferOptions<Span[]>) {
     super(options);
-    const { getBucket, capacity } = options;
-    this.#getBucket = getBucket;
+    const { capacity } = options;
     this.#capacity = capacity;
     this.#bucketById = new Map();
     this.#size = 0;
@@ -396,18 +358,18 @@ export class TelemetryBucketBuffer<T> extends TelemetryBufferBase<T, T[]> {
     this.#bucketById.clear();
   }
 
-  protected [REJECT_WRITE](item: T, onDrop: TelemetryBufferOnDropCallback<T[]>): void {
+  protected [REJECT_WRITE](item: Span, onDrop: TelemetryBufferOnDropCallback<Span[]>): void {
     onDrop([item], 'buffer_full_drop_newest');
   }
 
-  protected [DROP_OLD](bucket: T[], onDrop?: TelemetryBufferOnDropCallback<T[]>): void {
+  protected [DROP_OLD](bucket: Span[], onDrop?: TelemetryBufferOnDropCallback<Span[]>): void {
     this.#size -= bucket.length;
     const id = bucket[0] && this.#getBucket(bucket[0]);
     if (id) this.#bucketById.delete(id);
     super[DROP_OLD](bucket, onDrop);
   }
 
-  protected [ADD_ITEM](item: T, store: RingBuffer<T[]>): void {
+  protected [ADD_ITEM](item: Span, store: RingBuffer<Span[]>): void {
     const id = this.#getBucket(item);
     const bucket = this.#bucketById.get(id);
     if (bucket) {
@@ -420,34 +382,17 @@ export class TelemetryBucketBuffer<T> extends TelemetryBufferBase<T, T[]> {
     this.#size++;
   }
 
-  protected [GET_BATCH](batchSize: number, store: RingBuffer<T[]>): T[] {
-    const batch: T[] = [];
-    const all = this.#size <= batchSize;
-    if (all) {
-      // just take everything and then clear it out
-      for (const bucket of store) {
-        batch.push(...bucket);
-      }
-      this.clear();
-    } else {
-      while (batch.length < batchSize) {
-        /* v8 ignore start - we know we have *something*, or we wouldn't be
-        * getting a batch in the first place */
-        const p = store.peek() ?? [];
-        /* v8 ignore stop */
-        // if we have something and this'll put us over, stop
-        if (batch.length && batch.length + p.length > batchSize) {
-          break;
-        }
-        const bucket = store.shift();
-        if (bucket?.[0]) {
-          batch.push(...bucket);
-          this.#size -= bucket.length;
-          this.#bucketById.delete(this.#getBucket(bucket[0]));
-          /* v8 ignore start - we know something is there */
-        } else break;
-        /* v8 ignore stop */
-      }
+  /**
+   * The span buffer only ever emits a batch representing a single
+   * traceId, because a SpanEnvelope can only be spans from one trace.
+   */
+  protected [GET_BATCH](_: number, store: RingBuffer<Span[]>): Span[] {
+    /* v8 ignore next - we know SOMETHING is here */
+    const batch = store.shift() ?? [];
+    console.error("SPAN BUFFER GET BATCH", batch)
+    if (batch?.[0]) {
+      this.#size -= batch.length;
+      this.#bucketById.delete(this.#getBucket(batch[0]));
     }
     return batch;
   }

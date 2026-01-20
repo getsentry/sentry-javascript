@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
-import { TelemetryBucketBuffer, TelemetryBuffer } from '../../../src/telemetry-processor/telemetry-buffer';
+import { TelemetrySpanBuffer, TelemetryBuffer } from '../../../src/telemetry-processor/telemetry-buffer';
+import { Span } from '../../../src';
 
 // vitest doesn't mock performance.now when using fake timers
 // jury rig it to rely on Date.now()
@@ -13,6 +14,22 @@ beforeAll(() => {
 afterAll(() => {
   vi.useRealTimers();
 });
+
+type FakeSpan = {
+  id: string;
+  traceId: string;
+  spanContext(): { traceId: string };
+};
+
+function getFakeSpan(id: string, traceId: string): Span {
+  return {
+    id,
+    traceId,
+    spanContext() {
+      return { traceId: (this as FakeSpan).traceId };
+    },
+  } as unknown as Span;
+}
 
 describe('TelemetryBuffer', async () => {
   const drops: [string, string][] = [];
@@ -140,40 +157,6 @@ describe('TelemetryBuffer', async () => {
     expect(polledBatch).toStrictEqual(Array.from('qrst'));
   });
 
-  it('can stream through as an async iterator', async () => {
-    const buf = new TelemetryBuffer<string>(options);
-    let done = false;
-    const stream = async () => {
-      const results: string[][] = [];
-      for await (const batch of buf) {
-        results.push(batch);
-        if (done && !buf.size) {
-          break;
-        }
-      }
-      return results;
-    };
-    const p = stream();
-    await vi.advanceTimersByTimeAsync(75);
-    for (const a of Array.from('abcd')) buf.offer(a);
-    expect([...buf]).toStrictEqual(Array.from('abcd'));
-    await vi.advanceTimersByTimeAsync(75);
-    for (const a of Array.from('efgh')) buf.offer(a);
-    expect([...buf]).toStrictEqual(Array.from('fgh'));
-    await vi.advanceTimersByTimeAsync(75);
-    for (const a of Array.from('ijkl')) buf.offer(a);
-    expect([...buf]).toStrictEqual(Array.from('kl'));
-    await vi.advanceTimersByTimeAsync(75);
-    for (const a of Array.from('mnop')) buf.offer(a);
-    expect([...buf]).toStrictEqual(Array.from('p'));
-
-    done = true;
-
-    vi.advanceTimersByTimeAsync(100);
-
-    expect(await p).toStrictEqual([Array.from('abcde'), Array.from('fghij'), Array.from('klmno'), ['p']]);
-  });
-
   it('can be flushed', () => {
     const buf = new TelemetryBuffer<string>(options);
     expect(buf.flush()).toBe(undefined);
@@ -194,28 +177,25 @@ describe('TelemetryBuffer', async () => {
 });
 
 describe('TelemetryBucketBuffer', async () => {
-  type Item = { id: string; trace_id: string };
-  const drops: [Item[], string][] = [];
+  const drops: [Span[], string][] = [];
   const options = {
     capacity: 10,
     batchSize: 5,
     timeout: 100,
-    onDrop: (bucket: Item[], reason: string) => drops.push([bucket, reason]),
-    getBucket: (item: Item) => item.trace_id,
+    onDrop: (bucket: Span[], reason: string) => drops.push([bucket, reason]),
   };
-  const buf = new TelemetryBucketBuffer<Item>(options);
-  let poll: Promise<Item[]> | undefined = undefined;
+  const buf = new TelemetrySpanBuffer(options);
+  let poll: Promise<Span[]> | undefined = undefined;
 
   let traceCtr = -1;
 
   it('validates constructor arguments', () => {
     expect(
       () =>
-        new TelemetryBucketBuffer<string>({
+        new TelemetrySpanBuffer({
           capacity: 10,
           batchSize: 100,
           timeout: 0,
-          getBucket: () => 'x',
         }),
     ).toThrowError(
       Object.assign(new TypeError('batchSize must be < capacity'), {
@@ -225,11 +205,10 @@ describe('TelemetryBucketBuffer', async () => {
 
     expect(
       () =>
-        new TelemetryBucketBuffer<number>({
+        new TelemetrySpanBuffer({
           capacity: 0,
           batchSize: 0,
           timeout: 0,
-          getBucket: () => 'x',
         }),
     ).toThrowError(
       Object.assign(new TypeError('batchSize and capacity must be > 0'), {
@@ -239,11 +218,10 @@ describe('TelemetryBucketBuffer', async () => {
 
     expect(
       () =>
-        new TelemetryBucketBuffer<number>({
+        new TelemetrySpanBuffer({
           capacity: 100,
           batchSize: 10,
           timeout: -100,
-          getBucket: () => 'x',
         }),
     ).toThrowError(
       Object.assign(new TypeError('timeout must be >= 0'), {
@@ -254,21 +232,15 @@ describe('TelemetryBucketBuffer', async () => {
 
   it('can fill to capacity while polling', async () => {
     for (const a of Array.from('abc')) {
-      buf.offer({
-        id: a,
-        trace_id: String((traceCtr = (traceCtr + 1) % 3)),
-      });
+      buf.offer(getFakeSpan(a, String((traceCtr = (traceCtr + 1) % 3))));
     }
 
     // not ready, will resolve when data is ready.
     poll = buf.poll().then(batch => {
       poll = undefined;
-      expect(batch).toStrictEqual([
-        { id: 'a', trace_id: '0' },
-        { id: 'd', trace_id: '0' },
-        { id: 'b', trace_id: '1' },
-        { id: 'e', trace_id: '1' },
-        { id: 'c', trace_id: '2' },
+      expect(batch).toMatchObject([
+        { id: 'a', traceId: '0' },
+        { id: 'd', traceId: '0' },
       ]);
       return batch;
     });
@@ -277,76 +249,60 @@ describe('TelemetryBucketBuffer', async () => {
     // put in 2 batches of items, plus one more to drop something
     traceCtr = -1;
     for (const a of Array.from('defghij')) {
-      buf.offer({
-        id: a,
-        trace_id: String((traceCtr = (traceCtr + 1) % 3)),
-      });
+      buf.offer(getFakeSpan(a, String((traceCtr = (traceCtr + 1) % 3))));
     }
   });
 
   it('drops extra elements', () => {
+    buf.pollIfReady();
     expect(buf.size).toBe(5);
-    expect(buf.bucketCount).toBe(3);
+    expect(buf.bucketCount).toBe(2);
     for (const a of Array.from('klmn')) {
-      buf.offer({
-        id: a,
-        trace_id: String((traceCtr = (traceCtr + 1) % 3)),
-      });
+      buf.offer(getFakeSpan(a, String((traceCtr = (traceCtr + 1) % 3))));
     }
     expect(drops).toStrictEqual([]);
     expect(buf.size).toBe(9);
-    buf.offer({
-      id: 'o',
-      trace_id: String((traceCtr = (traceCtr + 1) % 3)),
-    });
+    buf.offer(getFakeSpan('o', String((traceCtr = (traceCtr + 1) % 3))));
     expect(drops).toStrictEqual([]);
     expect(buf.size).toBe(10);
-    buf.offer({
-      id: 'p',
-      trace_id: String((traceCtr = (traceCtr + 1) % 3)),
-    });
-    expect(drops).toStrictEqual([
+    buf.offer(getFakeSpan('p', String((traceCtr = (traceCtr + 1) % 3))));
+    expect(drops).toMatchObject([
       [
         [
-          { id: 'f', trace_id: '2' },
-          { id: 'i', trace_id: '2' },
-          { id: 'l', trace_id: '2' },
-          { id: 'o', trace_id: '2' },
+          { id: 'c', traceId: '2' },
+          { id: 'f', traceId: '2' },
+          { id: 'i', traceId: '2' },
+          { id: 'l', traceId: '2' },
+          { id: 'o', traceId: '2' },
         ],
         'buffer_full_drop_oldest',
       ],
     ]);
-    expect(buf.size).toBe(7);
+    expect(buf.size).toBe(6);
     drops.length = 0;
   });
 
   it('can drop the other direction', () => {
-    const buf = new TelemetryBucketBuffer<Item>({
+    const buf = new TelemetrySpanBuffer({
       ...options,
       overflowPolicy: 'drop_newest',
     });
     for (const a of Array.from('abcdefghij')) {
-      buf.offer({
-        id: a,
-        trace_id: String((traceCtr = (traceCtr + 1) % 3)),
-      });
+      buf.offer(getFakeSpan(a, String((traceCtr = (traceCtr + 1) % 3))));
     }
-    buf.offer({
-      id: 'k',
-      trace_id: String((traceCtr = (traceCtr + 1) % 3)),
-    });
-    expect(drops).toStrictEqual([[[{ id: 'k', trace_id: '2' }], 'buffer_full_drop_newest']]);
+    buf.offer(getFakeSpan('k', String((traceCtr = (traceCtr + 1) % 3))));
+    expect(drops).toMatchObject([[[{ id: 'k', traceId: '2' }], 'buffer_full_drop_newest']]);
     drops.length = 0;
   });
 
   it('can poll for data', async () => {
     expect(poll).toBe(undefined);
     poll = buf.poll();
-    expect(await poll).toStrictEqual([
-      { id: 'g', trace_id: '0' },
-      { id: 'j', trace_id: '0' },
-      { id: 'm', trace_id: '0' },
-      { id: 'p', trace_id: '0' },
+    expect(await poll).toMatchObject([
+      { id: 'g', traceId: '0' },
+      { id: 'j', traceId: '0' },
+      { id: 'm', traceId: '0' },
+      { id: 'p', traceId: '0' },
     ]);
     expect(buf.pollIfReady()).toBe(undefined);
   });
@@ -356,7 +312,7 @@ describe('TelemetryBucketBuffer', async () => {
     vi.advanceTimersByTime(50);
 
     // put less than a full bactch in
-    let polledBatch: undefined | Item[];
+    let polledBatch: undefined | Span[];
     poll = buf.poll().then(batch => {
       polledBatch = batch;
       poll = undefined;
@@ -364,165 +320,72 @@ describe('TelemetryBucketBuffer', async () => {
     });
 
     for (const a of Array.from('qrst')) {
-      buf.offer({
-        id: a,
-        trace_id: String((traceCtr = (traceCtr + 1) % 3)),
-      });
+      buf.offer(getFakeSpan(a, String((traceCtr = (traceCtr + 1) % 3))));
     }
-    expect(buf.size).toBe(7);
+    expect(buf.size).toBe(6);
     expect(polledBatch).toStrictEqual(undefined);
-    expect(buf.pollIfReady()).toStrictEqual([
-      {
-        id: 'h',
-        trace_id: '1',
-      },
+    expect(buf.pollIfReady()).toMatchObject([
       {
         id: 'k',
-        trace_id: '1',
+        traceId: '1',
       },
       {
         id: 'n',
-        trace_id: '1',
+        traceId: '1',
       },
       {
         id: 'r',
-        trace_id: '1',
+        traceId: '1',
       },
     ]);
 
     await vi.advanceTimersByTimeAsync(55);
 
-    expect(polledBatch).toStrictEqual([
-      { id: 'g', trace_id: '0' },
-      { id: 'j', trace_id: '0' },
-      { id: 'm', trace_id: '0' },
-      { id: 'p', trace_id: '0' },
+    expect(polledBatch).toMatchObject([
+      { id: 'g', traceId: '0' },
+      { id: 'j', traceId: '0' },
+      { id: 'm', traceId: '0' },
+      { id: 'p', traceId: '0' },
     ]);
     await vi.advanceTimersByTimeAsync(500);
 
-    expect(polledBatch).toStrictEqual([
-      { id: 'g', trace_id: '0' },
-      { id: 'j', trace_id: '0' },
-      { id: 'm', trace_id: '0' },
-      { id: 'p', trace_id: '0' },
-    ]);
-  });
-
-  it('can stream through as an async iterator', async () => {
-    const buf = new TelemetryBucketBuffer<Item>(options);
-    let done = false;
-    const stream = async () => {
-      const results: Item[][] = [];
-      for await (const batch of buf) {
-        results.push(batch);
-        if (done && !buf.size) {
-          break;
-        }
-      }
-      return results;
-    };
-    const p = stream();
-    await vi.advanceTimersByTimeAsync(75);
-    for (const a of Array.from('abcd')) {
-      buf.offer({
-        id: a,
-        trace_id: String((traceCtr = (traceCtr + 1) % 3)),
-      });
-    }
-    expect([...buf]).toStrictEqual([
-      [
-        { id: 'a', trace_id: '1' },
-        { id: 'd', trace_id: '1' },
-      ],
-      [{ id: 'b', trace_id: '2' }],
-      [{ id: 'c', trace_id: '0' }],
-    ]);
-    await vi.advanceTimersByTimeAsync(75);
-    for (const a of Array.from('efgh')) {
-      buf.offer({
-        id: a,
-        trace_id: String((traceCtr = (traceCtr + 1) % 3)),
-      });
-    }
-    expect([...buf]).toStrictEqual([
-      [{ id: 'f', trace_id: '0' }],
-      [{ id: 'g', trace_id: '1' }],
-      [{ id: 'h', trace_id: '2' }],
-    ]);
-    await vi.advanceTimersByTimeAsync(75);
-    for (const a of Array.from('ijkl')) {
-      buf.offer({
-        id: a,
-        trace_id: String((traceCtr = (traceCtr + 1) % 3)),
-      });
-    }
-    expect([...buf]).toStrictEqual([[{ id: 'k', trace_id: '2' }], [{ id: 'l', trace_id: '0' }]]);
-    await vi.advanceTimersByTimeAsync(75);
-    for (const a of Array.from('mnop')) {
-      buf.offer({
-        id: a,
-        trace_id: String((traceCtr = (traceCtr + 1) % 3)),
-      });
-    }
-    expect([...buf]).toStrictEqual([[{ id: 'p', trace_id: '1' }]]);
-
-    done = true;
-
-    vi.advanceTimersByTimeAsync(100);
-
-    expect(await p).toStrictEqual([
-      [
-        { id: 'a', trace_id: '1' },
-        { id: 'd', trace_id: '1' },
-        { id: 'b', trace_id: '2' },
-        { id: 'e', trace_id: '2' },
-        { id: 'c', trace_id: '0' },
-      ],
-      [
-        { id: 'f', trace_id: '0' },
-        { id: 'i', trace_id: '0' },
-        { id: 'g', trace_id: '1' },
-        { id: 'j', trace_id: '1' },
-        { id: 'h', trace_id: '2' },
-      ],
-      [
-        { id: 'k', trace_id: '2' },
-        { id: 'n', trace_id: '2' },
-        { id: 'l', trace_id: '0' },
-        { id: 'o', trace_id: '0' },
-        { id: 'm', trace_id: '1' },
-      ],
-      [{ id: 'p', trace_id: '1' }],
+    expect(polledBatch).toMatchObject([
+      { id: 'g', traceId: '0' },
+      { id: 'j', traceId: '0' },
+      { id: 'm', traceId: '0' },
+      { id: 'p', traceId: '0' },
     ]);
   });
 
   it('can be flushed', () => {
-    const buf = new TelemetryBucketBuffer<Item>(options);
+    const buf = new TelemetrySpanBuffer(options);
     expect(buf.flush()).toBe(undefined);
     for (const a of Array.from('abcd')) {
-      buf.offer({
-        id: a,
-        trace_id: String((traceCtr = (traceCtr + 1) % 3)),
-      });
+      buf.offer(getFakeSpan(a, String((traceCtr = (traceCtr + 1) % 3))));
     }
     expect(buf.size).toBe(4);
-    expect(buf.flush()).toStrictEqual([
-      { id: 'a', trace_id: '2' },
-      { id: 'd', trace_id: '2' },
-      { id: 'b', trace_id: '0' },
-      { id: 'c', trace_id: '1' },
+    expect([...buf]).toMatchObject([
+      [
+        { id: 'a', traceId: '1' },
+        { id: 'd', traceId: '1' },
+      ],
+      [{ id: "b", traceId: "2" }],
+      [{ id: "c", traceId: "0" }],
     ]);
+    expect(buf.flush()).toMatchObject([
+      { id: 'a', traceId: '1' },
+      { id: 'd', traceId: '1' },
+    ]);
+    expect(buf.flush()).toMatchObject([{ id: "b", traceId: "2" }])
+    expect(buf.flush()).toMatchObject([{ id: "c", traceId: "0" }])
     expect(buf.size).toBe(0);
   });
 
   it('can be cleared', () => {
-    const buf = new TelemetryBucketBuffer<Item>(options);
+    const buf = new TelemetrySpanBuffer(options);
     expect(buf.clear()).toBe(undefined);
     for (const a of Array.from('abcd')) {
-      buf.offer({
-        id: a,
-        trace_id: String((traceCtr = (traceCtr + 1) % 3)),
-      });
+      buf.offer(getFakeSpan(a, String((traceCtr = (traceCtr + 1) % 3))));
     }
     expect(buf.size).toBe(4);
     expect(buf.clear()).toBe(undefined);
