@@ -647,6 +647,32 @@ describe('stripDataUrlContent', () => {
     expect(stripDataUrlContent('/relative/path')).toBe('/relative/path');
   });
 
+  it('should be applied BEFORE parseStringToURLObject for data URLs', () => {
+    // This test documents an important behavior:
+    // Data URLs are treated as "relative" by parseStringToURLObject because they don't contain "://".
+    // This means getSanitizedUrlStringFromUrlObject returns just the pathname (without "data:" prefix),
+    // and stripDataUrlContent won't match since it checks url.startsWith('data:').
+    // Therefore, stripDataUrlContent MUST be applied to the original URL before parsing.
+    const dataUrl = 'data:text/javascript;base64,SGVsbG8gV29ybGQ=';
+
+    // Verify data URLs are treated as relative
+    const parsedUrl = parseStringToURLObject(dataUrl);
+    expect(parsedUrl).toBeDefined();
+    expect(isURLObjectRelative(parsedUrl!)).toBe(true);
+
+    // getSanitizedUrlStringFromUrlObject returns just the pathname for relative URLs
+    const sanitizedWithoutStripping = getSanitizedUrlStringFromUrlObject(parsedUrl!);
+    // The pathname doesn't start with 'data:', so stripDataUrlContent wouldn't work on it
+    expect(sanitizedWithoutStripping.startsWith('data:')).toBe(false);
+    // Applying stripDataUrlContent AFTER parsing is ineffective
+    expect(stripDataUrlContent(sanitizedWithoutStripping)).toBe(sanitizedWithoutStripping);
+
+    // CORRECT approach: strip data URL content FIRST, before any URL parsing
+    const strippedUrl = stripDataUrlContent(dataUrl);
+    expect(strippedUrl).toBe('<data:text/javascript,base64>');
+    // The stripped URL is already sanitized and can be used directly as the span name
+  });
+
   it('strips content from base64 data URLs', () => {
     expect(stripDataUrlContent('data:text/javascript;base64,SGVsbG8gV29ybGQ=')).toBe('<data:text/javascript,base64>');
     expect(stripDataUrlContent('data:application/json;base64,eyJrZXkiOiJ2YWx1ZSJ9')).toBe(

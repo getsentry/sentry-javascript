@@ -322,10 +322,22 @@ function getSpanStartOptions(
   method: string,
   spanOrigin: SpanOrigin,
 ): Parameters<typeof startInactiveSpan>[0] {
+  // Data URLs need special handling because parseStringToURLObject treats them as "relative"
+  // (no "://"), causing getSanitizedUrlStringFromUrlObject to return just the pathname
+  // without the "data:" prefix, making later stripDataUrlContent calls ineffective.
+  // So for data URLs, we strip the content first and use that directly.
+  if (url.startsWith('data:')) {
+    const sanitizedUrl = stripDataUrlContent(url);
+    return {
+      name: `${method} ${sanitizedUrl}`,
+      attributes: getFetchSpanAttributes(url, undefined, method, spanOrigin),
+    };
+  }
+
   const parsedUrl = parseStringToURLObject(url);
-  const sanitizedUrl = parsedUrl ? stripDataUrlContent(getSanitizedUrlStringFromUrlObject(parsedUrl)) : undefined;
+  const sanitizedUrl = parsedUrl ? getSanitizedUrlStringFromUrlObject(parsedUrl) : url;
   return {
-    name: sanitizedUrl ? `${method} ${sanitizedUrl}` : method,
+    name: `${method} ${sanitizedUrl}`,
     attributes: getFetchSpanAttributes(url, parsedUrl, method, spanOrigin),
   };
 }
