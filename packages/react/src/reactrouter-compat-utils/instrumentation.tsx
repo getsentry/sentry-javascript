@@ -773,6 +773,32 @@ export function createV6CompatibleWrapUseRoutes(origUseRoutes: UseRoutes, versio
   };
 }
 
+/**
+ * Helper to update the current span (navigation or pageload) with lazy-loaded route information.
+ * Reduces code duplication in patchRoutesOnNavigation wrapper.
+ */
+function updateSpanWithLazyRoutes(pathname: string, forceUpdate: boolean): void {
+  const currentActiveRootSpan = getActiveRootSpan();
+  if (!currentActiveRootSpan) {
+    return;
+  }
+
+  const spanOp = (spanToJSON(currentActiveRootSpan) as { op?: string }).op;
+  const location = { pathname, search: '', hash: '', state: null, key: 'default' };
+  const routesArray = Array.from(allRoutes);
+
+  if (spanOp === 'navigation') {
+    updateNavigationSpan(currentActiveRootSpan, location, routesArray, forceUpdate, _matchRoutes);
+  } else if (spanOp === 'pageload') {
+    updatePageloadTransaction({
+      activeRootSpan: currentActiveRootSpan,
+      location,
+      routes: routesArray,
+      allRoutes: routesArray,
+    });
+  }
+}
+
 function wrapPatchRoutesOnNavigation(
   opts: Record<string, unknown> | undefined,
   isMemoryRouter = false,
@@ -809,10 +835,16 @@ function wrapPatchRoutesOnNavigation(
             // to update the route objects in our allRoutes Set for proper route matching.
             if (matches && matches.length > 0) {
               const leafMatch = matches[matches.length - 1];
-              if (leafMatch?.route) {
-                // Find the matching route in allRoutes by reference or path
+              const leafRoute = leafMatch?.route;
+              if (leafRoute) {
+                // Find the matching route in allRoutes by id, reference, or path
                 for (const route of allRoutes) {
-                  if (route === leafMatch.route || (route.path && route.path === leafMatch.route.path)) {
+                  const idMatches = route.id !== undefined && route.id === routeId;
+                  const referenceMatches = route === leafRoute;
+                  const pathMatches =
+                    route.path !== undefined && leafRoute.path !== undefined && route.path === leafRoute.path;
+
+                  if (idMatches || referenceMatches || pathMatches) {
                     // Attach children to this parent route
                     addResolvedRoutesToParent(children, route);
                     break;
@@ -821,21 +853,9 @@ function wrapPatchRoutesOnNavigation(
               }
             }
 
-            const currentActiveRootSpan = getActiveRootSpan();
             // Only update if we have a valid targetPath (patchRoutesOnNavigation can be called without path)
-            if (targetPath && currentActiveRootSpan) {
-              const spanOp = (spanToJSON(currentActiveRootSpan) as { op?: string }).op;
-              const location = { pathname: targetPath, search: '', hash: '', state: null, key: 'default' };
-              if (spanOp === 'navigation') {
-                updateNavigationSpan(currentActiveRootSpan, location, Array.from(allRoutes), true, _matchRoutes);
-              } else if (spanOp === 'pageload') {
-                updatePageloadTransaction({
-                  activeRootSpan: currentActiveRootSpan,
-                  location,
-                  routes: Array.from(allRoutes),
-                  allRoutes: Array.from(allRoutes),
-                });
-              }
+            if (targetPath) {
+              updateSpanWithLazyRoutes(targetPath, true);
             }
             return originalPatch(routeId, children);
           };
@@ -857,24 +877,9 @@ function wrapPatchRoutesOnNavigation(
           }
         }
 
-        const currentActiveRootSpan = getActiveRootSpan();
-        if (currentActiveRootSpan) {
-          const spanOp = (spanToJSON(currentActiveRootSpan) as { op?: string }).op;
-          const pathname = isMemoryRouter ? targetPath : targetPath || WINDOW.location?.pathname;
-
-          if (pathname) {
-            const location = { pathname, search: '', hash: '', state: null, key: 'default' };
-            if (spanOp === 'navigation') {
-              updateNavigationSpan(currentActiveRootSpan, location, Array.from(allRoutes), false, _matchRoutes);
-            } else if (spanOp === 'pageload') {
-              updatePageloadTransaction({
-                activeRootSpan: currentActiveRootSpan,
-                location,
-                routes: Array.from(allRoutes),
-                allRoutes: Array.from(allRoutes),
-              });
-            }
-          }
+        const pathname = isMemoryRouter ? targetPath : targetPath || WINDOW.location?.pathname;
+        if (pathname) {
+          updateSpanWithLazyRoutes(pathname, false);
         }
 
         return result;
