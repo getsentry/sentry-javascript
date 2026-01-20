@@ -19,6 +19,7 @@
     autoInstrumentMiddleware: false,
   });
   ```
+
 ### Other Changes
 
 - feat(deps): Bump OpenTelemetry dependencies

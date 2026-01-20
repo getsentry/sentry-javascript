@@ -33,11 +33,11 @@ export interface SentryTanstackStartOptions extends BuildTimeOptionsBase {
  *
  * export default defineConfig({
  *   plugins: [
+ *     tanstackStart(),
  *     sentryTanstackStart({
  *       org: 'your-org',
  *       project: 'your-project',
  *     }),
- *     tanstackStart(),
  *   ],
  * });
  * ```
