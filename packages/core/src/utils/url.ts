@@ -263,3 +263,26 @@ export function getSanitizedUrlString(url: PartialURL): string {
 
   return `${protocol ? `${protocol}://` : ''}${filteredHost}${path}`;
 }
+
+/**
+ * Strips the content from a data URL, returning a placeholder with the MIME type.
+ *
+ * Data URLs can be very long (e.g. base64 encoded scripts for Web Workers),
+ * with little valuable information, often leading to envelopes getting dropped due
+ * to size limit violations. Therefore, we strip data URLs and replace them with a
+ * placeholder.
+ *
+ * @param url - The URL to process
+ * @returns For data URLs, returns a short format like `<data:text/javascript,base64>`.
+ *          For non-data URLs, returns the original URL unchanged.
+ */
+export function stripDataUrlContent(url: string): string {
+  if (url.startsWith('data:')) {
+    // Match the MIME type (everything after 'data:' until the first ';' or ',')
+    const match = url.match(/^data:([^;,]+)/);
+    const mimeType = match ? match[1] : 'text/plain';
+    const isBase64 = url.includes(';base64,');
+    return `<data:${mimeType}${isBase64 ? ',base64' : ''}>`;
+  }
+  return url;
+}

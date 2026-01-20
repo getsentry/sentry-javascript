@@ -6,6 +6,7 @@ import {
   isURLObjectRelative,
   parseStringToURLObject,
   parseUrl,
+  stripDataUrlContent,
   stripUrlQueryAndFragment,
 } from '../../../src/utils/url';
 
@@ -636,5 +637,48 @@ describe('getHttpSpanDetailsFromUrlObject', () => {
       'server.address': 'api.example.com',
       'url.scheme': 'https:',
     });
+  });
+});
+
+describe('stripDataUrlContent', () => {
+  it('returns regular URLs unchanged', () => {
+    expect(stripDataUrlContent('https://example.com/api')).toBe('https://example.com/api');
+    expect(stripDataUrlContent('http://localhost:3000/test')).toBe('http://localhost:3000/test');
+    expect(stripDataUrlContent('/relative/path')).toBe('/relative/path');
+  });
+
+  it('strips content from base64 data URLs', () => {
+    expect(stripDataUrlContent('data:text/javascript;base64,SGVsbG8gV29ybGQ=')).toBe('<data:text/javascript,base64>');
+    expect(stripDataUrlContent('data:application/json;base64,eyJrZXkiOiJ2YWx1ZSJ9')).toBe(
+      '<data:application/json,base64>',
+    );
+    expect(stripDataUrlContent('data:text/html;base64,PGh0bWw+PC9odG1sPg==')).toBe('<data:text/html,base64>');
+  });
+
+  it('strips content from non-base64 data URLs', () => {
+    expect(stripDataUrlContent('data:text/plain,Hello%20World')).toBe('<data:text/plain>');
+    expect(stripDataUrlContent('data:text/html,<h1>Hello</h1>')).toBe('<data:text/html>');
+  });
+
+  it('handles data URLs with various MIME types', () => {
+    expect(stripDataUrlContent('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUA')).toBe('<data:image/png,base64>');
+    expect(stripDataUrlContent('data:image/svg+xml;base64,PHN2Zz4=')).toBe('<data:image/svg+xml,base64>');
+    expect(stripDataUrlContent('data:application/octet-stream;base64,AQIDBA==')).toBe(
+      '<data:application/octet-stream,base64>',
+    );
+  });
+
+  it('defaults to text/plain for data URLs without MIME type', () => {
+    expect(stripDataUrlContent('data:,Hello')).toBe('<data:text/plain>');
+    expect(stripDataUrlContent('data:;base64,SGVsbG8=')).toBe('<data:text/plain,base64>');
+  });
+
+  it('handles empty data URLs', () => {
+    expect(stripDataUrlContent('data:')).toBe('<data:text/plain>');
+  });
+
+  it('handles very long base64 encoded data URLs', () => {
+    const longBase64 = 'A'.repeat(10000);
+    expect(stripDataUrlContent(`data:text/javascript;base64,${longBase64}`)).toBe('<data:text/javascript,base64>');
   });
 });
