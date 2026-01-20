@@ -677,6 +677,7 @@ describe('Anthropic integration', () => {
                   'sentry.origin': 'auto.ai.anthropic',
                   'gen_ai.system': 'anthropic',
                   'gen_ai.request.model': 'claude-3-haiku-20240307',
+                  // Only the last message (with filtered media) should be kept
                   'gen_ai.request.messages': JSON.stringify([
                     {
                       role: 'user',
@@ -690,10 +691,6 @@ describe('Anthropic integration', () => {
                           },
                         },
                       ],
-                    },
-                    {
-                      role: 'user',
-                      content: 'what number is this?',
                     },
                   ]),
                 }),

@@ -55,6 +55,10 @@ async function run() {
       messages: [
         {
           role: 'user',
+          content: 'what number is this?',
+        },
+        {
+          role: 'user',
           content: [
             {
               type: 'image',
@@ -65,10 +69,6 @@ async function run() {
               },
             },
           ],
-        },
-        {
-          role: 'user',
-          content: 'what number is this?',
         },
       ],
       temperature: 0.7,
