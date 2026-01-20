@@ -1218,11 +1218,11 @@ export class ReplayContainer implements ReplayContainerInterface {
       const client = getClient();
 
       if (client) {
-        let dropReason: 'ratelimit_backoff' | 'send_error' | 'sample_rate';
+        let dropReason: 'ratelimit_backoff' | 'send_error' | 'invalid';
         if (err instanceof RateLimitError) {
           dropReason = 'ratelimit_backoff';
         } else if (err instanceof ReplayDurationLimitError) {
-          dropReason = 'sample_rate';
+          dropReason = 'invalid';
         } else {
           dropReason = 'send_error';
         }

@@ -491,10 +491,10 @@ describe('Integration | flush', () => {
 
   /**
    * This tests that when a replay exceeds maxReplayDuration,
-   * the dropped event is recorded with the 'sample_rate' reason
+   * the dropped event is recorded with the 'invalid' reason
    * to distinguish it from actual send errors.
    */
-  it('records dropped event with sample_rate reason when session exceeds maxReplayDuration', async () => {
+  it('records dropped event with invalid reason when session exceeds maxReplayDuration', async () => {
     const client = SentryUtils.getClient()!;
     const recordDroppedEventSpy = vi.spyOn(client, 'recordDroppedEvent');
 
@@ -524,7 +524,7 @@ describe('Integration | flush', () => {
     expect(mockSendReplay).toHaveBeenCalledTimes(0);
     expect(replay.isEnabled()).toBe(false);
 
-    expect(recordDroppedEventSpy).toHaveBeenCalledWith('sample_rate', 'replay');
+    expect(recordDroppedEventSpy).toHaveBeenCalledWith('invalid', 'replay');
 
     replay.getOptions().maxReplayDuration = MAX_REPLAY_DURATION;
     recordDroppedEventSpy.mockRestore();
