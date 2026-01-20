@@ -4,7 +4,47 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-- **feat(tanstackstart-react): Add `sentryTanstackStart` Vite plugin for source maps upload**
+### Other Changes
+
+- feat(deps): Bump OpenTelemetry dependencies
+  - Bump @opentelemetry/context-async-hooks from 2.2.0 to 2.4.0
+  - Bump @opentelemetry/core from 2.2.0 to 2.4.0
+  - Bump @opentelemetry/resources from 2.2.0 to 2.4.0
+  - Bump @opentelemetry/sdk-trace-base from 2.2.0 to 2.4.0
+  - Bump @opentelemetry/sdk-trace-node from 2.2.0 to 2.4.0
+  - Bump @opentelemetry/instrumentation from 0.208.0 to 0.210.0
+  - Bump @opentelemetry/instrumentation-amqplib from 0.55.0 to 0.57.0
+  - Bump @opentelemetry/instrumentation-connect from 0.52.0 to 0.53.0
+  - Bump @opentelemetry/instrumentation-dataloader from 0.26.0 to 0.27.0
+  - Bump @opentelemetry/instrumentation-express from 0.57.0 to 0.58.0
+  - Bump @opentelemetry/instrumentation-fs from 0.28.0 to 0.29.0
+  - Bump @opentelemetry/instrumentation-generic-pool from 0.52.0 to 0.53.0
+  - Bump @opentelemetry/instrumentation-graphql from 0.56.0 to 0.57.0
+  - Bump @opentelemetry/instrumentation-hapi from 0.55.0 to 0.56.0
+  - Bump @opentelemetry/instrumentation-http from 0.208.0 to 0.210.0
+  - Bump @opentelemetry/instrumentation-ioredis from 0.56.0 to 0.58.0
+  - Bump @opentelemetry/instrumentation-kafkajs from 0.18.0 to 0.19.0
+  - Bump @opentelemetry/instrumentation-knex from 0.53.0 to 0.54.0
+  - Bump @opentelemetry/instrumentation-koa from 0.57.0 to 0.58.0
+  - Bump @opentelemetry/instrumentation-lru-memoizer from 0.53.0 to 0.54.0
+  - Bump @opentelemetry/instrumentation-mongodb from 0.61.0 to 0.63.0
+  - Bump @opentelemetry/instrumentation-mongoose from 0.55.0 to 0.56.0
+  - Bump @opentelemetry/instrumentation-mysql from 0.54.0 to 0.56.0
+  - Bump @opentelemetry/instrumentation-mysql2 from 0.55.0 to 0.56.0
+  - Bump @opentelemetry/instrumentation-nestjs-core from 0.55.0 to 0.56.0
+  - Bump @opentelemetry/instrumentation-pg from 0.61.0 to 0.62.0
+  - Bump @opentelemetry/instrumentation-redis from 0.57.0 to 0.58.0
+  - Bump @opentelemetry/instrumentation-tedious from 0.27.0 to 0.29.0
+  - Bump @opentelemetry/instrumentation-undici from 0.19.0 to 0.20.0
+  - Bump @opentelemetry/instrumentation-aws-sdk from 0.64.0 to 0.65.0
+  - Bump @opentelemetry/sdk-node from 0.208.0 to 0.210.0
+  - Bump @opentelemetry/exporter-trace-otlp-http from 0.208.0 to 0.210.0
+
+## 10.35.0
+
+### Important Changes
+
+- **feat(tanstackstart-react): Add `sentryTanstackStart` vite plugin to manage automatic source map uploads ([#18712](https://github.com/getsentry/sentry-javascript/pull/18712))**
 
   You can now configure source maps upload for TanStack Start using the `sentryTanstackStart` Vite plugin:
 
@@ -25,6 +65,34 @@
     ],
   });
   ```
+
+### Other Changes
+
+- feat(browser): Add CDN bundle for `tracing.replay.feedback.logs.metrics` ([#18785](https://github.com/getsentry/sentry-javascript/pull/18785))
+- feat(browser): Add shim package for logs ([#18831](https://github.com/getsentry/sentry-javascript/pull/18831))
+- feat(cloudflare): Automatically set the release id when CF_VERSION_METADATA is enabled ([#18855](https://github.com/getsentry/sentry-javascript/pull/18855))
+- feat(core): Add `ignored` client report event drop reason ([#18815](https://github.com/getsentry/sentry-javascript/pull/18815))
+- feat(logs): Add `Log` exports to browser and node packages ([#18857](https://github.com/getsentry/sentry-javascript/pull/18857))
+- feat(node-core,bun): Export processSessionIntegration from node-core and add it to bun ([#18852](https://github.com/getsentry/sentry-javascript/pull/18852))
+- fix(core): Find the correct IP address regardless their case ([#18880](https://github.com/getsentry/sentry-javascript/pull/18880))
+- fix(core): Check for AI operation id to detect a vercelai span ([#18823](https://github.com/getsentry/sentry-javascript/pull/18823))
+- fix(ember): Use ES5 syntax in inline vendor scripts ([#18858](https://github.com/getsentry/sentry-javascript/pull/18858))
+- fix(fetch): Shallow-clone fetch options to prevent mutation ([#18867](https://github.com/getsentry/sentry-javascript/pull/18867))
+
+<details>
+  <summary><strong>Internal Changes</strong></summary>
+
+- chore(ci): Use javascript-sdk-gitflow app instead of personal token ([#18829](https://github.com/getsentry/sentry-javascript/pull/18829))
+- chore(deps): Bump `@sveltejs/kit` devDependency to `2.49.5` ([#18848](https://github.com/getsentry/sentry-javascript/pull/18848))
+- chore(deps): Bump bundler plugins to ^4.6.2 ([#18822](https://github.com/getsentry/sentry-javascript/pull/18822))
+- chore(deps): bump hono from 4.10.3 to 4.11.4 in /dev-packages/e2e-tests/test-applications/cloudflare-hono ([#18806](https://github.com/getsentry/sentry-javascript/pull/18806))
+- chore(test): Bump svelte dependencies ([#18850](https://github.com/getsentry/sentry-javascript/pull/18850))
+- chore(core): Comment out Error tests in langchain ([#18837](https://github.com/getsentry/sentry-javascript/pull/18837))
+- meta(changelog): Fix entry for tanstack start vite plugin ([#18883](https://github.com/getsentry/sentry-javascript/pull/18883))
+- test(e2e): Add testing app for User Feedback ([#18877](https://github.com/getsentry/sentry-javascript/pull/18877))
+- test(fastify): Verify if upstream error is fixed and won't regress ([#18838](https://github.com/getsentry/sentry-javascript/pull/18838))
+
+</details>
 
 Work in this release was contributed by @rreckonerr. Thank you for your contribution!
 
