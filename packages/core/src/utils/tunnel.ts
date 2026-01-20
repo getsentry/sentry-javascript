@@ -1,6 +1,7 @@
 import type { DsnComponents } from '../types-hoist/dsn';
 import { debug } from './debug-logger';
 import { makeDsn } from './dsn';
+import { parseEnvelope } from './envelope';
 
 export interface TunnelResult {
   status: number;
@@ -18,7 +19,7 @@ export interface TunnelResult {
  * @returns Promise resolving to status, body, and contentType
  */
 export async function handleTunnelRequest(
-  body: string,
+  body: string | Uint8Array,
   allowedDsnComponents: Array<DsnComponents>,
 ): Promise<TunnelResult> {
   if (allowedDsnComponents.length === 0) {
@@ -29,23 +30,11 @@ export async function handleTunnelRequest(
     };
   }
 
-  // Sentry envelope format: first line is JSON header with DSN
-  const [headerLine] = body.split('\n');
-  if (!headerLine) {
+  const [envelopeHeader] = parseEnvelope(body);
+  if (!envelopeHeader) {
     return {
       status: 400,
       body: 'Invalid envelope: missing header',
-      contentType: 'text/plain',
-    };
-  }
-
-  let envelopeHeader: { dsn?: string };
-  try {
-    envelopeHeader = JSON.parse(headerLine);
-  } catch {
-    return {
-      status: 400,
-      body: 'Invalid envelope: malformed header JSON',
       contentType: 'text/plain',
     };
   }
