@@ -372,4 +372,22 @@ describe('isServerComponentContext', () => {
       }),
     ).toBe(false);
   });
+
+  it('should return false for empty componentRoute', () => {
+    expect(
+      isServerComponentContext({
+        componentRoute: '',
+        componentType: 'Page',
+      }),
+    ).toBe(false);
+  });
+
+  it('should return false for invalid componentType not in VALID_COMPONENT_TYPES', () => {
+    expect(
+      isServerComponentContext({
+        componentRoute: '/users/:id',
+        componentType: 'InvalidType',
+      }),
+    ).toBe(false);
+  });
 });
