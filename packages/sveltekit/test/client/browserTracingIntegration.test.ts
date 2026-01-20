@@ -119,7 +119,7 @@ describe('browserTracingIntegration', () => {
     // We emit an update to the `page` store to simulate the SvelteKit router lifecycle
     // TODO(v11): switch to `page` from `$app/state`
     // @ts-expect-error - page is a writable but the types say it's just readable
-     
+    // eslint-disable-next-line deprecation/deprecation
     page.set({ route: { id: 'testRoute' } });
 
     // This should update the transaction name with the parameterized route:
@@ -155,7 +155,7 @@ describe('browserTracingIntegration', () => {
     // We emit an update to the `page` store to simulate the SvelteKit router lifecycle
     // TODO(v11): switch to `page` from `$app/state`
     // @ts-expect-error - page is a writable but the types say it's just readable
-     
+    // eslint-disable-next-line deprecation/deprecation
     page.set({ route: { id: 'testRoute/:id' } });
 
     // This should update the transaction name with the parameterized route:
@@ -173,7 +173,7 @@ describe('browserTracingIntegration', () => {
     // We emit an update to the `navigating` store to simulate the SvelteKit navigation lifecycle
     // TODO(v11): switch to `navigating` from `$app/state`
     // @ts-expect-error - page is a writable but the types say it's just readable
-     
+    // eslint-disable-next-line deprecation/deprecation
     navigating.set({
       from: { route: { id: '/users' }, url: { pathname: '/users' } },
       to: { route: { id: '/users/[id]' }, url: { pathname: '/users/7762' } },
@@ -193,7 +193,7 @@ describe('browserTracingIntegration', () => {
     // We emit an update to the `navigating` store to simulate the SvelteKit navigation lifecycle
     // TODO(v11): switch to `navigating` from `$app/state`
     // @ts-expect-error - page is a writable but the types say it's just readable
-     
+    // eslint-disable-next-line deprecation/deprecation
     navigating.set({
       from: { route: { id: '/users' }, url: { pathname: '/users' } },
       to: { route: { id: '/users/[id]' }, url: { pathname: '/users/7762' } },
@@ -229,7 +229,7 @@ describe('browserTracingIntegration', () => {
     // We emit `null` here to simulate the end of the navigation lifecycle
     // TODO(v11): switch to `navigating` from `$app/state`
     // @ts-expect-error - navigating is a writable but the types say it's just readable
-     
+    // eslint-disable-next-line deprecation/deprecation
     navigating.set(null);
 
     expect(routingSpanEndSpy).toHaveBeenCalledTimes(1);
@@ -246,7 +246,7 @@ describe('browserTracingIntegration', () => {
       // We emit an update to the `navigating` store to simulate the SvelteKit navigation lifecycle
       // TODO(v11): switch to `navigating` from `$app/state`
       // @ts-expect-error - navigating is a writable but the types say it's just readable
-       
+      // eslint-disable-next-line deprecation/deprecation
       navigating.set({
         from: { route: { id: '/users/[id]' }, url: { pathname: '/users/7762' } },
         to: { route: { id: '/users/[id]' }, url: { pathname: '/users/7762' } },
@@ -264,7 +264,7 @@ describe('browserTracingIntegration', () => {
 
       // TODO(v11): switch to `navigating` from `$app/state`
       // @ts-expect-error - navigating is a writable but the types say it's just readable
-       
+      // eslint-disable-next-line deprecation/deprecation
       navigating.set({
         from: { route: { id: '/users/[id]' }, url: { pathname: '/users/7762' } },
         to: { route: { id: '/users/[id]' }, url: { pathname: '/users/223412' } },
@@ -305,7 +305,7 @@ describe('browserTracingIntegration', () => {
 
       // TODO(v11): switch to `navigating` from `$app/state`
       // @ts-expect-error - navigating is a writable but the types say it's just readable
-       
+      // eslint-disable-next-line deprecation/deprecation
       navigating.set({
         to: { route: {}, url: { pathname: '/' } },
       });
