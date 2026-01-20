@@ -564,6 +564,7 @@ describe('OpenAI integration', () => {
             transaction: {
               transaction: 'main',
               spans: expect.arrayContaining([
+                // First call: Last message is large and gets truncated (only C's remain, D's are cropped)
                 expect.objectContaining({
                   data: expect.objectContaining({
                     'gen_ai.operation.name': 'chat',
@@ -573,6 +574,24 @@ describe('OpenAI integration', () => {
                     'gen_ai.request.model': 'gpt-3.5-turbo',
                     // Messages should be present (truncation happened) and should be a JSON array of a single index
                     'gen_ai.request.messages': expect.stringMatching(/^\[\{"role":"user","content":"C+"\}\]$/),
+                  }),
+                  description: 'chat gpt-3.5-turbo',
+                  op: 'gen_ai.chat',
+                  origin: 'auto.ai.openai',
+                  status: 'ok',
+                }),
+                // Second call: Last message is small and kept without truncation
+                expect.objectContaining({
+                  data: expect.objectContaining({
+                    'gen_ai.operation.name': 'chat',
+                    'sentry.op': 'gen_ai.chat',
+                    'sentry.origin': 'auto.ai.openai',
+                    'gen_ai.system': 'openai',
+                    'gen_ai.request.model': 'gpt-3.5-turbo',
+                    // Small message should be kept intact
+                    'gen_ai.request.messages': JSON.stringify([
+                      { role: 'user', content: 'This is a small message that fits within the limit' },
+                    ]),
                   }),
                   description: 'chat gpt-3.5-turbo',
                   op: 'gen_ai.chat',
@@ -636,10 +655,42 @@ describe('OpenAI integration', () => {
             transaction: {
               transaction: 'main',
               spans: expect.arrayContaining([
+                // First call: Single large string input truncated (only A's remain, B's are cropped)
                 expect.objectContaining({
                   data: expect.objectContaining({
                     'gen_ai.operation.name': 'embeddings',
+                    'sentry.op': 'gen_ai.embeddings',
+                    'gen_ai.system': 'openai',
+                    'gen_ai.request.messages': expect.stringMatching(/^A+$/),
                   }),
+                  op: 'gen_ai.embeddings',
+                  origin: 'auto.ai.openai',
+                  status: 'ok',
+                }),
+                // Second call: Array input - truncation doesn't handle plain string arrays,
+                // so the result is an empty array when all elements are too large
+                expect.objectContaining({
+                  data: expect.objectContaining({
+                    'gen_ai.operation.name': 'embeddings',
+                    'sentry.op': 'gen_ai.embeddings',
+                    'gen_ai.system': 'openai',
+                    'gen_ai.request.messages': '[]',
+                  }),
+                  op: 'gen_ai.embeddings',
+                  origin: 'auto.ai.openai',
+                  status: 'ok',
+                }),
+                // Third call: Array input with small last element - stored as JSON array
+                expect.objectContaining({
+                  data: expect.objectContaining({
+                    'gen_ai.operation.name': 'embeddings',
+                    'sentry.op': 'gen_ai.embeddings',
+                    'gen_ai.system': 'openai',
+                    'gen_ai.request.messages': '["This is a small input that fits within the limit"]',
+                  }),
+                  op: 'gen_ai.embeddings',
+                  origin: 'auto.ai.openai',
+                  status: 'ok',
                 }),
               ]),
             },

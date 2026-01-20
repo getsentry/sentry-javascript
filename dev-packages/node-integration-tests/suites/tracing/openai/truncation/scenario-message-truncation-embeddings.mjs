@@ -52,10 +52,20 @@ async function run() {
     // - Last input is large but will be truncated to fit within the 20KB limit
     const largeContent1 = 'A'.repeat(15000); // ~15KB
     const largeContent2 = 'B'.repeat(15000); // ~15KB
-    const largeContent3 = 'C'.repeat(25000); // ~25KB (will be truncated)
+    const largeContent3 = 'C'.repeat(25000) + 'D'.repeat(25000); // ~50KB (will be truncated, only C's remain)
 
     await client.embeddings.create({
       input: [largeContent1, largeContent2, largeContent3],
+      model: 'text-embedding-3-small',
+      dimensions: 1536,
+      encoding_format: 'float',
+    });
+
+    // Test 3: Last input kept WITHOUT truncation
+    // The last input is small enough to fit, so it should be kept intact
+    const smallContent = 'This is a small input that fits within the limit';
+    await client.embeddings.create({
+      input: [largeContent1, largeContent2, smallContent],
       model: 'text-embedding-3-small',
       dimensions: 1536,
       encoding_format: 'float',

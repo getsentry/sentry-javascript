@@ -638,6 +638,7 @@ describe('Anthropic integration', () => {
             transaction: {
               transaction: 'main',
               spans: expect.arrayContaining([
+                // First call: Last message is large and gets truncated (only C's remain, D's are cropped)
                 expect.objectContaining({
                   data: expect.objectContaining({
                     'gen_ai.operation.name': 'messages',
@@ -647,6 +648,24 @@ describe('Anthropic integration', () => {
                     'gen_ai.request.model': 'claude-3-haiku-20240307',
                     // Messages should be present (truncation happened) and should be a JSON array
                     'gen_ai.request.messages': expect.stringMatching(/^\[\{"role":"user","content":"C+"\}\]$/),
+                  }),
+                  description: 'messages claude-3-haiku-20240307',
+                  op: 'gen_ai.messages',
+                  origin: 'auto.ai.anthropic',
+                  status: 'ok',
+                }),
+                // Second call: Last message is small and kept without truncation
+                expect.objectContaining({
+                  data: expect.objectContaining({
+                    'gen_ai.operation.name': 'messages',
+                    'sentry.op': 'gen_ai.messages',
+                    'sentry.origin': 'auto.ai.anthropic',
+                    'gen_ai.system': 'anthropic',
+                    'gen_ai.request.model': 'claude-3-haiku-20240307',
+                    // Small message should be kept intact
+                    'gen_ai.request.messages': JSON.stringify([
+                      { role: 'user', content: 'This is a small message that fits within the limit' },
+                    ]),
                   }),
                   description: 'messages claude-3-haiku-20240307',
                   op: 'gen_ai.messages',

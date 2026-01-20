@@ -504,6 +504,7 @@ describe('Google GenAI integration', () => {
             transaction: {
               transaction: 'main',
               spans: expect.arrayContaining([
+                // First call: Last message is large and gets truncated (only C's remain, D's are cropped)
                 expect.objectContaining({
                   data: expect.objectContaining({
                     'gen_ai.operation.name': 'models',
@@ -515,6 +516,27 @@ describe('Google GenAI integration', () => {
                     'gen_ai.request.messages': expect.stringMatching(
                       /^\[\{"role":"user","parts":\[\{"text":"C+"\}\]\}\]$/,
                     ),
+                  }),
+                  description: 'models gemini-1.5-flash',
+                  op: 'gen_ai.models',
+                  origin: 'auto.ai.google_genai',
+                  status: 'ok',
+                }),
+                // Second call: Last message is small and kept without truncation
+                expect.objectContaining({
+                  data: expect.objectContaining({
+                    'gen_ai.operation.name': 'models',
+                    'sentry.op': 'gen_ai.models',
+                    'sentry.origin': 'auto.ai.google_genai',
+                    'gen_ai.system': 'google_genai',
+                    'gen_ai.request.model': 'gemini-1.5-flash',
+                    // Small message should be kept intact
+                    'gen_ai.request.messages': JSON.stringify([
+                      {
+                        role: 'user',
+                        parts: [{ text: 'This is a small message that fits within the limit' }],
+                      },
+                    ]),
                   }),
                   description: 'models gemini-1.5-flash',
                   op: 'gen_ai.models',
