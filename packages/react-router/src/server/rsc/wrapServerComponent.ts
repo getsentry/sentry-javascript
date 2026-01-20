@@ -18,6 +18,10 @@ import type { ServerComponentContext } from './types';
 
 /**
  * Wraps a server component with Sentry error instrumentation.
+ *
+ * @experimental This API is experimental and may change in minor releases.
+ * React Router RSC support requires React Router v7.9.0+ with `unstable_reactRouterRSC()`.
+ *
  * @param serverComponent - The server component function to wrap
  * @param context - Context about the component for error reporting
  *
