@@ -54,8 +54,7 @@ export function sentryTanstackStart(options: SentryTanstackStartOptions = {}): P
   const plugins: Plugin[] = [...makeAddSentryVitePlugin(options)];
 
   // middleware auto-instrumentation
-  const autoInstrumentMiddleware = options.autoInstrumentMiddleware !== false;
-  if (autoInstrumentMiddleware) {
+  if (options.autoInstrumentMiddleware !== false) {
     plugins.push(makeAutoInstrumentMiddlewarePlugin({ enabled: true, debug: options.debug }));
   }
 

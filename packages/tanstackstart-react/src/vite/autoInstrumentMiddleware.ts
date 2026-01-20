@@ -53,6 +53,7 @@ export function makeAutoInstrumentMiddlewarePlugin(options: AutoInstrumentMiddle
             return `${key}: wrapMiddlewaresWithSentry(${objContents})`;
           }
           // Track middlewares that couldn't be auto-wrapped
+          // Skip if we matched whitespace only
           if (contents.trim()) {
             skippedMiddlewares.push(key);
           }
