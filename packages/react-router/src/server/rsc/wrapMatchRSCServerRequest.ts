@@ -14,6 +14,10 @@ import type { MatchRSCServerRequestArgs, MatchRSCServerRequestFn, RSCMatch } fro
 
 /**
  * Wraps `unstable_matchRSCServerRequest` from react-router with Sentry error and performance instrumentation.
+ *
+ * @experimental This API is experimental and may change in minor releases.
+ * React Router RSC support requires React Router v7.9.0+ with `unstable_reactRouterRSC()`.
+ *
  * @param originalFn - The original `unstable_matchRSCServerRequest` function from react-router
  *
  * @example

@@ -15,6 +15,10 @@ import type { WrapServerFunctionOptions } from './types';
 
 /**
  * Wraps a server function (marked with `"use server"` directive) with Sentry error and performance instrumentation.
+ *
+ * @experimental This API is experimental and may change in minor releases.
+ * React Router RSC support requires React Router v7.9.0+ with `unstable_reactRouterRSC()`.
+ *
  * @param functionName - The name of the server function for identification in Sentry
  * @param serverFunction - The server function to wrap
  * @param options - Optional configuration for the span
@@ -111,6 +115,9 @@ export function wrapServerFunction<T extends (...args: any[]) => Promise<any>>(
 /**
  * Creates a wrapped version of a server function module.
  * Useful for wrapping all exported server functions from a module.
+ *
+ * @experimental This API is experimental and may change in minor releases.
+ * React Router RSC support requires React Router v7.9.0+ with `unstable_reactRouterRSC()`.
  *
  * @param moduleName - The name of the module for identification
  * @param serverFunctions - An object containing server functions
