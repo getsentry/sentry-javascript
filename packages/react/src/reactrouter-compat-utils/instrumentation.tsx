@@ -838,17 +838,17 @@ function wrapPatchRoutesOnNavigation(
               const leafRoute = leafMatch?.route;
               if (leafRoute) {
                 // Find the matching route in allRoutes by id, reference, or path
-                for (const route of allRoutes) {
+                const matchingRoute = Array.from(allRoutes).find(route => {
                   const idMatches = route.id !== undefined && route.id === routeId;
                   const referenceMatches = route === leafRoute;
                   const pathMatches =
                     route.path !== undefined && leafRoute.path !== undefined && route.path === leafRoute.path;
 
-                  if (idMatches || referenceMatches || pathMatches) {
-                    // Attach children to this parent route
-                    addResolvedRoutesToParent(children, route);
-                    break;
-                  }
+                  return idMatches || referenceMatches || pathMatches;
+                });
+
+                if (matchingRoute) {
+                  addResolvedRoutesToParent(children, matchingRoute);
                 }
               }
             }
