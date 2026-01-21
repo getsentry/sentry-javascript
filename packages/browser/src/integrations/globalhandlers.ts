@@ -211,5 +211,11 @@ function getFilenameFromUrl(url: string | undefined): string | undefined {
 
   // Strip data URL content to avoid long base64 strings in stack frames
   // (e.g. when initializing a Worker with a base64 encoded script)
-  return stripDataUrlContent(url);
+  // Don't include data prefix for filenames as it's not useful for stack traces
+  // Wrap with < > to indicate it's a placeholder
+  if (url.startsWith('data:')) {
+    return `<${stripDataUrlContent(url, false)}>`;
+  }
+
+  return url;
 }

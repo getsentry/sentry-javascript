@@ -1,6 +1,10 @@
 import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
-import { envelopeRequestParser, shouldSkipTracingTest, waitForTransactionRequestOnUrl } from '../../../../utils/helpers';
+import {
+  envelopeRequestParser,
+  shouldSkipTracingTest,
+  waitForTransactionRequestOnUrl,
+} from '../../../../utils/helpers';
 
 sentryTest('sanitizes data URLs in fetch span name and attributes', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
@@ -18,13 +22,14 @@ sentryTest('sanitizes data URLs in fetch span name and attributes', async ({ get
 
   const span = requestSpans?.[0];
 
-  expect(span?.description).toBe('GET <data:text/plain,base64>');
+  // SGVsbG8gV29ybGQh is "Hello World!" in base64 - we show first 10 chars for debugging
+  expect(span?.description).toBe('GET data:text/plain;base64,SGVsbG8gV2... [truncated]');
 
   expect(span?.data).toMatchObject({
     'http.method': 'GET',
-    url: '<data:text/plain,base64>',
+    url: 'data:text/plain;base64,SGVsbG8gV2... [truncated]',
     type: 'fetch',
   });
 
-  expect(span?.data?.['http.url']).toBe('<data:text/plain,base64>');
+  expect(span?.data?.['http.url']).toBe('data:text/plain;base64,SGVsbG8gV2... [truncated]');
 });
