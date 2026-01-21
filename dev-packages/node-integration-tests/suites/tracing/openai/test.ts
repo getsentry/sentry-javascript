@@ -407,7 +407,7 @@ describe('OpenAI integration', () => {
           'gen_ai.request.model': 'text-embedding-3-small',
           'gen_ai.request.encoding_format': 'float',
           'gen_ai.request.dimensions': 1536,
-          'gen_ai.request.messages': 'Embedding test!',
+          'gen_ai.embeddings.input': 'Embedding test!',
           'gen_ai.response.model': 'text-embedding-3-small',
           'gen_ai.usage.input_tokens': 10,
           'gen_ai.usage.total_tokens': 10,
@@ -427,12 +427,32 @@ describe('OpenAI integration', () => {
           'sentry.origin': 'auto.ai.openai',
           'gen_ai.system': 'openai',
           'gen_ai.request.model': 'error-model',
-          'gen_ai.request.messages': 'Error embedding test!',
+          'gen_ai.embeddings.input': 'Error embedding test!',
         },
         description: 'embeddings error-model',
         op: 'gen_ai.embeddings',
         origin: 'auto.ai.openai',
         status: 'internal_error',
+      }),
+      // Third span - embeddings API with multiple inputs (this does not get truncated)
+      expect.objectContaining({
+        data: {
+          'gen_ai.operation.name': 'embeddings',
+          'sentry.op': 'gen_ai.embeddings',
+          'sentry.origin': 'auto.ai.openai',
+          'gen_ai.system': 'openai',
+          'gen_ai.request.model': 'text-embedding-3-small',
+          'gen_ai.embeddings.input': '["First input text","Second input text","Third input text"]',
+          'gen_ai.response.model': 'text-embedding-3-small',
+          'gen_ai.usage.input_tokens': 10,
+          'gen_ai.usage.total_tokens': 10,
+          'openai.response.model': 'text-embedding-3-small',
+          'openai.usage.prompt_tokens': 10,
+        },
+        description: 'embeddings text-embedding-3-small',
+        op: 'gen_ai.embeddings',
+        origin: 'auto.ai.openai',
+        status: 'ok',
       }),
     ]),
   };
@@ -629,63 +649,6 @@ describe('OpenAI integration', () => {
                   }),
                   description: 'responses gpt-3.5-turbo',
                   op: 'gen_ai.responses',
-                  origin: 'auto.ai.openai',
-                  status: 'ok',
-                }),
-              ]),
-            },
-          })
-          .start()
-          .completed();
-      });
-    },
-  );
-
-  createEsmAndCjsTests(
-    __dirname,
-    'truncation/scenario-message-truncation-embeddings.mjs',
-    'instrument-with-pii.mjs',
-    (createRunner, test) => {
-      test('truncates messages when they exceed byte limit - keeps only last message and crops it', async () => {
-        await createRunner()
-          .ignore('event')
-          .expect({
-            transaction: {
-              transaction: 'main',
-              spans: expect.arrayContaining([
-                // First call: Single large string input truncated (only A's remain, B's are cropped)
-                expect.objectContaining({
-                  data: expect.objectContaining({
-                    'gen_ai.operation.name': 'embeddings',
-                    'sentry.op': 'gen_ai.embeddings',
-                    'gen_ai.system': 'openai',
-                    'gen_ai.request.messages': expect.stringMatching(/^A+$/),
-                  }),
-                  op: 'gen_ai.embeddings',
-                  origin: 'auto.ai.openai',
-                  status: 'ok',
-                }),
-                // Second call: Array input, last message truncated (only C's remain, D's are cropped)
-                expect.objectContaining({
-                  data: expect.objectContaining({
-                    'gen_ai.operation.name': 'embeddings',
-                    'sentry.op': 'gen_ai.embeddings',
-                    'gen_ai.system': 'openai',
-                    'gen_ai.request.messages': expect.stringMatching(/^\["C+"\]$/),
-                  }),
-                  op: 'gen_ai.embeddings',
-                  origin: 'auto.ai.openai',
-                  status: 'ok',
-                }),
-                // Third call: Array input with small last element - stored as JSON array
-                expect.objectContaining({
-                  data: expect.objectContaining({
-                    'gen_ai.operation.name': 'embeddings',
-                    'sentry.op': 'gen_ai.embeddings',
-                    'gen_ai.system': 'openai',
-                    'gen_ai.request.messages': '["This is a small input that fits within the limit"]',
-                  }),
-                  op: 'gen_ai.embeddings',
                   origin: 'auto.ai.openai',
                   status: 'ok',
                 }),
