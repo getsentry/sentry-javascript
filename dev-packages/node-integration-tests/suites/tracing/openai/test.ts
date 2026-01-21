@@ -665,14 +665,13 @@ describe('OpenAI integration', () => {
                   origin: 'auto.ai.openai',
                   status: 'ok',
                 }),
-                // Second call: Array input - truncation doesn't handle plain string arrays,
-                // so the result is an empty array when all elements are too large
+                // Second call: Array input, last message truncated (only C's remain, D's are cropped)
                 expect.objectContaining({
                   data: expect.objectContaining({
                     'gen_ai.operation.name': 'embeddings',
                     'sentry.op': 'gen_ai.embeddings',
                     'gen_ai.system': 'openai',
-                    'gen_ai.request.messages': '[]',
+                    'gen_ai.request.messages': expect.stringMatching(/^\["C+"\]$/),
                   }),
                   op: 'gen_ai.embeddings',
                   origin: 'auto.ai.openai',

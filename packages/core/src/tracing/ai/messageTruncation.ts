@@ -294,11 +294,17 @@ function truncatePartsMessage(message: PartsMessage, maxBytes: number): unknown[
  * @returns Array containing the truncated message, or empty array if truncation fails
  */
 function truncateSingleMessage(message: unknown, maxBytes: number): unknown[] {
-  /* c8 ignore start - unreachable */
-  if (!message || typeof message !== 'object') {
+  if (!message) return [];
+
+  // Handle plain strings (e.g., embeddings input)
+  if (typeof message === 'string') {
+    const truncated = truncateTextByBytes(message, maxBytes);
+    return truncated ? [truncated] : [];
+  }
+
+  if (typeof message !== 'object') {
     return [];
   }
-  /* c8 ignore stop */
 
   if (isContentMessage(message)) {
     return truncateContentMessage(message, maxBytes);
