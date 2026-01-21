@@ -171,6 +171,8 @@ export {
   statsigIntegration,
   unleashIntegration,
   metrics,
+  claudeCodeAgentSdkIntegration,
+  patchClaudeCodeQuery,
 } from '@sentry/node';
 
 export {

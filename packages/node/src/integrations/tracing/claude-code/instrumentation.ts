@@ -57,11 +57,18 @@ export class SentryClaudeCodeAgentSdkInstrumentation extends InstrumentationBase
         moduleExports.query = wrappedQuery;
       } catch {
         Object.defineProperty(moduleExports, 'query', {
-          value: wrappedQuery, writable: true, configurable: true, enumerable: true,
+          value: wrappedQuery,
+          writable: true,
+          configurable: true,
+          enumerable: true,
         });
       }
       if (moduleExports.default && typeof moduleExports.default === 'object' && 'query' in moduleExports.default) {
-        try { (moduleExports.default as Record<string, unknown>).query = wrappedQuery; } catch { /* ignore */ }
+        try {
+          (moduleExports.default as Record<string, unknown>).query = wrappedQuery;
+        } catch {
+          /* ignore */
+        }
       }
       return moduleExports;
     }

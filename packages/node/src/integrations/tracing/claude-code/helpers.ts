@@ -1,5 +1,5 @@
 /* eslint-disable max-lines */
-import type { Span } from '@opentelemetry/api';
+import type { Span, SpanStatus } from '@opentelemetry/api';
 import {
   captureException,
   GEN_AI_AGENT_NAME_ATTRIBUTE,
@@ -30,15 +30,24 @@ import type { ClaudeCodeOptions } from './types';
 
 export type ClaudeCodeInstrumentationOptions = ClaudeCodeOptions;
 
-const SENTRY_ORIGIN = 'auto.ai.claude_code';
+const ORIGIN = 'auto.ai.claude_code';
+const OK: SpanStatus = { code: 1 };
+const ERR = (m?: string): SpanStatus => ({ code: 2, message: m });
 
-// Extension tools (external API calls) - everything else defaults to 'function'
-const EXTENSION_TOOLS = new Set(['WebSearch', 'WebFetch', 'ListMcpResources', 'ReadMcpResource']);
+// Extension tools (external API calls)
+const EXT = new Set(['WebSearch', 'WebFetch', 'ListMcpResources', 'ReadMcpResource']);
 
 /** Maps tool names to OpenTelemetry tool types. */
-function getToolType(toolName: string): 'function' | 'extension' | 'datastore' {
-  if (EXTENSION_TOOLS.has(toolName)) return 'extension';
-  return 'function';
+function getToolType(n: string): 'function' | 'extension' {
+  return EXT.has(n) ? 'extension' : 'function';
+}
+
+/** Ends a span if it's recording. */
+function endSpan(s: Span | null, err?: boolean): void {
+  if (s?.isRecording()) {
+    s.setStatus(err ? ERR('Parent operation failed') : OK);
+    s.end();
+  }
 }
 
 /** Finalizes an LLM span with response attributes and ends it. */
@@ -58,7 +67,7 @@ function finalizeLLMSpan(
   if (m) a[GEN_AI_RESPONSE_MODEL_ATTRIBUTE] = m;
   if (r) a[GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE] = JSON.stringify([r]);
   s.setAttributes(a);
-  s.setStatus({ code: 1 });
+  s.setStatus(OK);
   s.end();
 }
 
@@ -123,7 +132,7 @@ function _createInstrumentedGenerator(
     [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: model,
     [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'invoke_agent',
     [GEN_AI_AGENT_NAME_ATTRIBUTE]: agentName,
-    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: SENTRY_ORIGIN,
+    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
     [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.invoke_agent',
   };
 
@@ -186,15 +195,20 @@ async function* _instrumentQueryGenerator(
       }
 
       if (msg.type === 'assistant') {
-        if (previousLLMSpan?.isRecording()) {
-          previousLLMSpan.setStatus({ code: 1 });
-          previousLLMSpan.end();
-        }
+        endSpan(previousLLMSpan);
         previousLLMSpan = null;
         previousTurnTools = [];
 
         if (currentLLMSpan) {
-          finalizeLLMSpan(currentLLMSpan, currentTurnContent, currentTurnTools, currentTurnId, currentTurnModel, currentTurnStopReason, instrumentationOptions.recordOutputs ?? false);
+          finalizeLLMSpan(
+            currentLLMSpan,
+            currentTurnContent,
+            currentTurnTools,
+            currentTurnId,
+            currentTurnModel,
+            currentTurnStopReason,
+            instrumentationOptions.recordOutputs ?? false,
+          );
           previousLLMSpan = currentLLMSpan;
           previousTurnTools = currentTurnTools;
         }
@@ -208,7 +222,7 @@ async function* _instrumentQueryGenerator(
                 [GEN_AI_SYSTEM_ATTRIBUTE]: 'anthropic',
                 [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: model,
                 [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'chat',
-                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: SENTRY_ORIGIN,
+                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
                 [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.chat',
               },
             },
@@ -276,15 +290,20 @@ async function* _instrumentQueryGenerator(
           finalResult = msg.result as string;
         }
 
-        if (previousLLMSpan?.isRecording()) {
-          previousLLMSpan.setStatus({ code: 1 });
-          previousLLMSpan.end();
-        }
+        endSpan(previousLLMSpan);
         previousLLMSpan = null;
         previousTurnTools = [];
 
         if (currentLLMSpan) {
-          finalizeLLMSpan(currentLLMSpan, currentTurnContent, currentTurnTools, currentTurnId, currentTurnModel, currentTurnStopReason, instrumentationOptions.recordOutputs ?? false);
+          finalizeLLMSpan(
+            currentLLMSpan,
+            currentTurnContent,
+            currentTurnTools,
+            currentTurnId,
+            currentTurnModel,
+            currentTurnStopReason,
+            instrumentationOptions.recordOutputs ?? false,
+          );
           previousLLMSpan = currentLLMSpan;
           previousTurnTools = currentTurnTools;
           currentLLMSpan = null;
@@ -332,7 +351,7 @@ async function* _instrumentQueryGenerator(
                     [GEN_AI_AGENT_NAME_ATTRIBUTE]: agentName,
                     [GEN_AI_TOOL_NAME_ATTRIBUTE]: toolName,
                     [GEN_AI_TOOL_TYPE_ATTRIBUTE]: toolType,
-                    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: SENTRY_ORIGIN,
+                    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: ORIGIN,
                     [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.execute_tool',
                   },
                 },
@@ -350,7 +369,7 @@ async function* _instrumentQueryGenerator(
                     });
                   }
 
-                  toolSpan.setStatus(tr.is_error ? { code: 2, message: 'Tool execution error' } : { code: 1 });
+                  toolSpan.setStatus(tr.is_error ? ERR('Tool execution error') : OK);
                 },
               );
             });
@@ -371,7 +390,7 @@ async function* _instrumentQueryGenerator(
 
         captureException(errorToCapture, {
           mechanism: {
-            type: SENTRY_ORIGIN,
+            type: ORIGIN,
             handled: false,
             data: {
               function: 'query',
@@ -380,7 +399,7 @@ async function* _instrumentQueryGenerator(
           },
         });
 
-        span.setStatus({ code: 2, message: errorToCapture.message });
+        span.setStatus(ERR(errorToCapture.message));
       }
 
       yield message;
@@ -395,37 +414,28 @@ async function* _instrumentQueryGenerator(
     }
 
     if (totalInputTokens > 0 || totalOutputTokens > 0) {
-      setTokenUsageAttributes(span, totalInputTokens, totalOutputTokens, totalCacheCreationTokens, totalCacheReadTokens);
+      setTokenUsageAttributes(
+        span,
+        totalInputTokens,
+        totalOutputTokens,
+        totalCacheCreationTokens,
+        totalCacheReadTokens,
+      );
     }
 
     if (!encounteredError) {
-      span.setStatus({ code: 1 });
+      span.setStatus(OK);
     }
   } catch (error) {
     captureException(error, {
-      mechanism: { type: SENTRY_ORIGIN, handled: false, data: { function: 'query' } },
+      mechanism: { type: ORIGIN, handled: false, data: { function: 'query' } },
     });
-    span.setStatus({ code: 2, message: (error as Error).message });
+    span.setStatus(ERR((error as Error).message));
     encounteredError = true;
     throw error;
   } finally {
-    if (currentLLMSpan?.isRecording()) {
-      if (encounteredError) {
-        currentLLMSpan.setStatus({ code: 2, message: 'Parent operation failed' });
-      } else {
-        currentLLMSpan.setStatus({ code: 1 });
-      }
-      currentLLMSpan.end();
-    }
-
-    if (previousLLMSpan?.isRecording()) {
-      if (encounteredError) {
-        previousLLMSpan.setStatus({ code: 2, message: 'Parent operation failed' });
-      } else {
-        previousLLMSpan.setStatus({ code: 1 });
-      }
-      previousLLMSpan.end();
-    }
+    endSpan(currentLLMSpan, encounteredError);
+    endSpan(previousLLMSpan, encounteredError);
     span.end();
   }
 }

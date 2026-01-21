@@ -152,6 +152,8 @@ export {
   unleashIntegration,
   growthbookIntegration,
   metrics,
+  claudeCodeAgentSdkIntegration,
+  patchClaudeCodeQuery,
 } from '@sentry/node';
 
 export {
