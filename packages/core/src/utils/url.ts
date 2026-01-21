@@ -295,7 +295,7 @@ export function stripDataUrlContent(url: string, includeDataPrefix: boolean = tr
       dataPrefix = data.length > 10 ? `${data.slice(0, 10)}... [truncated]` : data;
     }
 
-    return `data:${mimeType}${isBase64 ? ';base64' : ''}${dataPrefix ? `,${dataPrefix}` : ''}`;
+    return `data:${mimeType}${isBase64 ? ',base64' : ''}${dataPrefix ? `,${dataPrefix}` : ''}`;
   }
   return url;
 }

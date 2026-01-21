@@ -670,7 +670,7 @@ describe('stripDataUrlContent', () => {
     // CORRECT approach: strip data URL content FIRST, before any URL parsing
     const strippedUrl = stripDataUrlContent(dataUrl);
     // Default behavior includes first 10 chars of data for debugging (e.g., magic bytes)
-    expect(strippedUrl).toBe('data:text/javascript;base64,SGVsbG8gV2... [truncated]');
+    expect(strippedUrl).toBe('data:text/javascript,base64,SGVsbG8gV2... [truncated]');
     // The stripped URL is already sanitized and can be used directly as the span name
   });
 
@@ -678,10 +678,10 @@ describe('stripDataUrlContent', () => {
     it('includes first 10 chars of data for base64 data URLs', () => {
       // SGVsbG8gV29ybGQ= is "Hello World" in base64
       expect(stripDataUrlContent('data:text/javascript;base64,SGVsbG8gV29ybGQ=')).toBe(
-        'data:text/javascript;base64,SGVsbG8gV2... [truncated]',
+        'data:text/javascript,base64,SGVsbG8gV2... [truncated]',
       );
       expect(stripDataUrlContent('data:application/json;base64,eyJrZXkiOiJ2YWx1ZSJ9')).toBe(
-        'data:application/json;base64,eyJrZXkiOi... [truncated]',
+        'data:application/json,base64,eyJrZXkiOi... [truncated]',
       );
     });
 
@@ -692,25 +692,25 @@ describe('stripDataUrlContent', () => {
 
     it('includes all data if less than 10 chars', () => {
       expect(stripDataUrlContent('data:text/plain,Hi')).toBe('data:text/plain,Hi');
-      expect(stripDataUrlContent('data:text/plain;base64,SGk=')).toBe('data:text/plain;base64,SGk=');
+      expect(stripDataUrlContent('data:text/plain;base64,SGk=')).toBe('data:text/plain,base64,SGk=');
     });
 
     it('helps identify WASM by magic bytes (AGFzbQ)', () => {
       // WASM magic bytes: \0asm -> base64: AGFzbQ
       const wasmDataUrl = 'data:application/wasm;base64,AGFzbQEAAAA=';
-      expect(stripDataUrlContent(wasmDataUrl)).toBe('data:application/wasm;base64,AGFzbQEAAA... [truncated]');
+      expect(stripDataUrlContent(wasmDataUrl)).toBe('data:application/wasm,base64,AGFzbQEAAA... [truncated]');
     });
 
     it('handles various MIME types', () => {
       expect(stripDataUrlContent('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUA')).toBe(
-        'data:image/png;base64,iVBORw0KGg... [truncated]',
+        'data:image/png,base64,iVBORw0KGg... [truncated]',
       );
-      expect(stripDataUrlContent('data:image/svg+xml;base64,PHN2Zz4=')).toBe('data:image/svg+xml;base64,PHN2Zz4=');
+      expect(stripDataUrlContent('data:image/svg+xml;base64,PHN2Zz4=')).toBe('data:image/svg+xml,base64,PHN2Zz4=');
     });
 
     it('defaults to text/plain for data URLs without MIME type', () => {
       expect(stripDataUrlContent('data:,Hello')).toBe('data:text/plain,Hello');
-      expect(stripDataUrlContent('data:;base64,SGVsbG8=')).toBe('data:text/plain;base64,SGVsbG8=');
+      expect(stripDataUrlContent('data:;base64,SGVsbG8=')).toBe('data:text/plain,base64,SGVsbG8=');
     });
 
     it('handles empty data URLs', () => {
@@ -720,7 +720,7 @@ describe('stripDataUrlContent', () => {
     it('handles very long base64 encoded data URLs', () => {
       const longBase64 = 'A'.repeat(10000);
       expect(stripDataUrlContent(`data:text/javascript;base64,${longBase64}`)).toBe(
-        'data:text/javascript;base64,AAAAAAAAAA... [truncated]',
+        'data:text/javascript,base64,AAAAAAAAAA... [truncated]',
       );
     });
   });
@@ -728,10 +728,10 @@ describe('stripDataUrlContent', () => {
   describe('with includeDataPrefix=false', () => {
     it('strips all content from base64 data URLs', () => {
       expect(stripDataUrlContent('data:text/javascript;base64,SGVsbG8gV29ybGQ=', false)).toBe(
-        'data:text/javascript;base64',
+        'data:text/javascript,base64',
       );
       expect(stripDataUrlContent('data:application/json;base64,eyJrZXkiOiJ2YWx1ZSJ9', false)).toBe(
-        'data:application/json;base64',
+        'data:application/json,base64',
       );
     });
 
@@ -742,16 +742,16 @@ describe('stripDataUrlContent', () => {
 
     it('handles various MIME types', () => {
       expect(stripDataUrlContent('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUA', false)).toBe(
-        'data:image/png;base64',
+        'data:image/png,base64',
       );
       expect(stripDataUrlContent('data:application/wasm;base64,AGFzbQEAAAA=', false)).toBe(
-        'data:application/wasm;base64',
+        'data:application/wasm,base64',
       );
     });
 
     it('defaults to text/plain for data URLs without MIME type', () => {
       expect(stripDataUrlContent('data:,Hello', false)).toBe('data:text/plain');
-      expect(stripDataUrlContent('data:;base64,SGVsbG8=', false)).toBe('data:text/plain;base64');
+      expect(stripDataUrlContent('data:;base64,SGVsbG8=', false)).toBe('data:text/plain,base64');
     });
   });
 });
