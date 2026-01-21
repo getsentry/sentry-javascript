@@ -1,11 +1,13 @@
-import { afterAll, describe, expect } from 'vitest';
+import { afterAll, expect } from 'vitest';
+import { conditionalTest } from '../../../utils';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 afterAll(() => {
   cleanupChildProcesses();
 });
 
-describe('Prisma ORM v7 Tests', () => {
+// Prisma 7 requires Node.js 20.19+
+conditionalTest({ min: 20 })('Prisma ORM v7 Tests', () => {
   createEsmAndCjsTests(
     __dirname,
     'scenario.mjs',

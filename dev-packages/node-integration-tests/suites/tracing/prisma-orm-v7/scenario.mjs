@@ -1,7 +1,7 @@
 import { PrismaPg } from '@prisma/adapter-pg';
-import { PrismaClient } from './prisma/generated/prisma/client.js';
 import * as Sentry from '@sentry/node';
 import { randomBytes } from 'crypto';
+import { PrismaClient } from './prisma/generated/prisma/client.js';
 
 // Stop the process from exiting before the transaction is sent
 setInterval(() => {}, 1000);
