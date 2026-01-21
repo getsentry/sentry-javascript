@@ -4,6 +4,8 @@
 import type { Span } from '../../types-hoist/span';
 import {
   GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
+  GEN_AI_USAGE_INPUT_TOKENS_CACHE_WRITE_ATTRIBUTE,
+  GEN_AI_USAGE_INPUT_TOKENS_CACHED_ATTRIBUTE,
   GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
 } from './gen-ai-attributes';
@@ -47,15 +49,15 @@ export function buildMethodPath(currentPath: string, prop: string): string {
  * @param span - The span to add attributes to
  * @param promptTokens - The number of prompt tokens
  * @param completionTokens - The number of completion tokens
- * @param cachedInputTokens - The number of cached input tokens
- * @param cachedOutputTokens - The number of cached output tokens
+ * @param cacheWriteTokens - The number of cache creation/write input tokens
+ * @param cacheReadTokens - The number of cache read input tokens
  */
 export function setTokenUsageAttributes(
   span: Span,
   promptTokens?: number,
   completionTokens?: number,
-  cachedInputTokens?: number,
-  cachedOutputTokens?: number,
+  cacheWriteTokens?: number,
+  cacheReadTokens?: number,
 ): void {
   if (promptTokens !== undefined) {
     span.setAttributes({
@@ -67,18 +69,28 @@ export function setTokenUsageAttributes(
       [GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]: completionTokens,
     });
   }
+  if (cacheWriteTokens !== undefined) {
+    span.setAttributes({
+      [GEN_AI_USAGE_INPUT_TOKENS_CACHE_WRITE_ATTRIBUTE]: cacheWriteTokens,
+    });
+  }
+  if (cacheReadTokens !== undefined) {
+    span.setAttributes({
+      [GEN_AI_USAGE_INPUT_TOKENS_CACHED_ATTRIBUTE]: cacheReadTokens,
+    });
+  }
   if (
     promptTokens !== undefined ||
     completionTokens !== undefined ||
-    cachedInputTokens !== undefined ||
-    cachedOutputTokens !== undefined
+    cacheWriteTokens !== undefined ||
+    cacheReadTokens !== undefined
   ) {
     /**
      * Total input tokens in a request is the summation of `input_tokens`,
      * `cache_creation_input_tokens`, and `cache_read_input_tokens`.
      */
     const totalTokens =
-      (promptTokens ?? 0) + (completionTokens ?? 0) + (cachedInputTokens ?? 0) + (cachedOutputTokens ?? 0);
+      (promptTokens ?? 0) + (completionTokens ?? 0) + (cacheWriteTokens ?? 0) + (cacheReadTokens ?? 0);
 
     span.setAttributes({
       [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: totalTokens,
