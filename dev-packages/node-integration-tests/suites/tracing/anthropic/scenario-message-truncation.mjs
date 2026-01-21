@@ -48,12 +48,11 @@ async function run() {
 
     const client = instrumentAnthropicAiClient(mockClient);
 
-    // Create 3 large messages where:
-    // - First 2 messages are very large (will be dropped)
-    // - Last message is large but will be truncated to fit within the 20KB limit
+    // Test 1: Given an array of messages only the last message should be kept
+    // The last message should be truncated to fit within the 20KB limit
     const largeContent1 = 'A'.repeat(15000); // ~15KB
     const largeContent2 = 'B'.repeat(15000); // ~15KB
-    const largeContent3 = 'C'.repeat(25000) + 'D'.repeat(25000); // ~50KB (will be truncated)
+    const largeContent3 = 'C'.repeat(25000) + 'D'.repeat(25000); // ~50KB (will be truncated, only C's remain)
 
     await client.messages.create({
       model: 'claude-3-haiku-20240307',
@@ -66,8 +65,8 @@ async function run() {
       temperature: 0.7,
     });
 
-    // Test 2: Last message kept WITHOUT truncation
-    // The last message is small enough to fit, so it should be kept intact
+    // Test 2: Given an array of messages only the last message should be kept
+    // The last message is small, so it should be kept intact
     const smallContent = 'This is a small message that fits within the limit';
     await client.messages.create({
       model: 'claude-3-haiku-20240307',

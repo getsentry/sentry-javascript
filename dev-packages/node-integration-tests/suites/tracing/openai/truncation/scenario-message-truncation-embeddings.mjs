@@ -37,7 +37,7 @@ async function run() {
 
     const client = instrumentOpenAiClient(mockClient);
 
-    // Create 1 large input that gets truncated to fit within the 20KB limit
+    // Test 1: Create 1 large embedding that gets truncated to fit within the 20KB limit
     const largeContent = 'A'.repeat(25000) + 'B'.repeat(25000); // ~50KB gets truncated to include only As
 
     await client.embeddings.create({
@@ -47,9 +47,8 @@ async function run() {
       encoding_format: 'float',
     });
 
-    // Create 3 large inputs where:
-    // - First 2 inputs are very large (will be dropped)
-    // - Last input is large but will be truncated to fit within the 20KB limit
+    // Test 2: Given an array of embeddings only the last embedding should be kept
+    // The last embedding should be truncated to fit within the 20KB limit
     const largeContent1 = 'A'.repeat(15000); // ~15KB
     const largeContent2 = 'B'.repeat(15000); // ~15KB
     const largeContent3 = 'C'.repeat(25000) + 'D'.repeat(25000); // ~50KB (will be truncated, only C's remain)
@@ -61,8 +60,8 @@ async function run() {
       encoding_format: 'float',
     });
 
-    // Test 3: Last input kept WITHOUT truncation
-    // The last input is small enough to fit, so it should be kept intact
+    // Test 3: Given an array of embeddings only the last embedding should be kept
+    // The last embedding is small, so it should be kept intact
     const smallContent = 'This is a small input that fits within the limit';
     await client.embeddings.create({
       input: [largeContent1, largeContent2, smallContent],

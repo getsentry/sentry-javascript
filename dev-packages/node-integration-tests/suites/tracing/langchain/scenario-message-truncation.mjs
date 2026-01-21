@@ -56,15 +56,16 @@ async function run() {
     // Test 1: Create one very large string that gets truncated to only include Cs
     await model.invoke(largeContent3);
 
-    // Test 2: Create an array of messages that gets truncated to only include the last message (result should again contain only Cs)
+    // Test 2: Create an array of messages that gets truncated to only include the last message
+    // The last message should be truncated to fit within the 20KB limit (result should again contain only Cs)
     await model.invoke([
       { role: 'system', content: largeContent1 },
       { role: 'user', content: largeContent2 },
       { role: 'user', content: largeContent3 },
     ]);
 
-    // Test 3: Last message kept WITHOUT truncation
-    // The last message is small enough to fit, so it should be kept intact
+    // Test 3: Given an array of messages only the last message should be kept
+    // The last message is small, so it should be kept intact
     const smallContent = 'This is a small message that fits within the limit';
     await model.invoke([
       { role: 'system', content: largeContent1 },
