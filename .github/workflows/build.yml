@@ -175,9 +175,6 @@ jobs:
             'nx-never-restore'}}
 
       - name: Build packages
-        # Set the CODECOV_TOKEN for Bundle Analysis
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         run: yarn build
 
       - name: Upload build artifacts
@@ -432,17 +429,9 @@ jobs:
         if: github.event_name != 'pull_request'
 
       - name: Compute test coverage
-        uses: codecov/codecov-action@v5
+        uses: getsentry/codecov-action@main
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-
-      - name: Upload test results to Codecov
-        if: cancelled() == false
-        continue-on-error: true
-        uses: codecov/test-results-action@v1
-        with:
-          files: packages/**/*.junit.xml
-          token: ${{ secrets.CODECOV_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
   job_bun_unit_tests:
     name: Bun Unit Tests
@@ -539,17 +528,9 @@ jobs:
           NODE_VERSION: ${{ matrix.node }}
 
       - name: Compute test coverage
-        uses: codecov/codecov-action@v5
+        uses: getsentry/codecov-action@main
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-
-      - name: Upload test results to Codecov
-        if: cancelled() == false
-        continue-on-error: true
-        uses: codecov/test-results-action@v1
-        with:
-          files: packages/**/*.junit.xml
-          token: ${{ secrets.CODECOV_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
   job_browser_playwright_tests:
     name:
@@ -641,13 +622,13 @@ jobs:
           overwrite: true
           retention-days: 7
 
-      - name: Upload test results to Codecov
+      - name: Compute test coverage
         if: cancelled() == false
         continue-on-error: true
-        uses: codecov/test-results-action@v1
+        uses: getsentry/codecov-action@main
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}
           directory: dev-packages/browser-integration-tests
-          token: ${{ secrets.CODECOV_TOKEN }}
 
   job_browser_loader_tests:
     name: PW ${{ matrix.bundle }} Tests
@@ -702,13 +683,13 @@ jobs:
           overwrite: true
           retention-days: 7
 
-      - name: Upload test results to Codecov
+      - name: Compute test coverage
+        uses: getsentry/codecov-action@main
         if: cancelled() == false
         continue-on-error: true
-        uses: codecov/test-results-action@v1
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}
           directory: dev-packages/browser-integration-tests
-          token: ${{ secrets.CODECOV_TOKEN }}
 
   job_check_for_faulty_dts:
     name: Check for faulty .d.ts files
@@ -776,13 +757,13 @@ jobs:
         working-directory: dev-packages/node-integration-tests
         run: yarn test
 
-      - name: Upload test results to Codecov
+      - name: Compute test coverage
         if: cancelled() == false
         continue-on-error: true
-        uses: codecov/test-results-action@v1
+        uses: getsentry/codecov-action@main
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}
           directory: dev-packages/node-integration-tests
-          token: ${{ secrets.CODECOV_TOKEN }}
 
   job_cloudflare_integration_tests:
     name: Cloudflare Integration Tests
@@ -843,13 +824,13 @@ jobs:
           cd packages/remix
           yarn test:integration:ci
 
-      - name: Upload test results to Codecov
+      - name: Compute test coverage
         if: cancelled() == false
         continue-on-error: true
-        uses: codecov/test-results-action@v1
+        uses: getsentry/codecov-action@main
         with:
           directory: packages/remix
-          token: ${{ secrets.CODECOV_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
   job_e2e_prepare:
     name: Prepare E2E tests
@@ -1034,13 +1015,13 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore
 
-      - name: Upload test results to Codecov
+      - name: Compute test coverage
         if: cancelled() == false
         continue-on-error: true
-        uses: codecov/test-results-action@v1
+        uses: getsentry/codecov-action@main
         with:
           directory: dev-packages/e2e-tests
-          token: ${{ secrets.CODECOV_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
   # - We skip optional tests on release branches
   job_optional_e2e_tests:

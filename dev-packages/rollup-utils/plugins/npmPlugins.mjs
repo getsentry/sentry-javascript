@@ -167,18 +167,3 @@ export function makeRrwebBuildPlugin({ excludeShadowDom, excludeIframe } = {}) {
     values,
   });
 }
-
-/**
- * Plugin that uploads bundle analysis to codecov.
- *
- * @param type The type of bundle being uploaded.
- * @param prefix The prefix for the codecov bundle name. Defaults to 'npm'.
- */
-export function makeCodeCovPlugin() {
-  const packageJson = JSON.parse(fs.readFileSync(path.resolve(process.cwd(), './package.json'), { encoding: 'utf8' }));
-  return codecovRollupPlugin({
-    enableBundleAnalysis: process.env.CODECOV_TOKEN !== undefined,
-    bundleName: packageJson.name,
-    uploadToken: process.env.CODECOV_TOKEN,
-  });
-}
