@@ -23,7 +23,7 @@ test('App router transactions should be attached to the pageload request span', 
   expect(serverTransaction.contexts?.trace?.trace_id).toBe(pageloadTraceId);
 });
 
-// HTTP request headers are not extracted as span attributes on Cloudflare Workers
+// TODO: HTTP request headers are not extracted as span attributes on Cloudflare Workers
 test.skip('extracts HTTP request headers as span attributes', async ({ baseURL }) => {
   const serverTransactionPromise = waitForTransaction('nextjs-16-cf-workers', async transactionEvent => {
     return transactionEvent?.transaction === 'GET /pageload-tracing';

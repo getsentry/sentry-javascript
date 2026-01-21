@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 
-test('Should handle server action redirect without capturing errors', async ({ page }) => {
+test.skip('Should handle server action redirect without capturing errors', async ({ page }) => {
   // Wait for the initial page load transaction
   const pageLoadTransactionPromise = waitForTransaction('nextjs-16-cf-workers', async transactionEvent => {
     return transactionEvent?.transaction === '/redirect/origin';

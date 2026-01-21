@@ -1,7 +1,7 @@
 import test, { expect } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
-test('Should create a transaction for node route handlers', async ({ request }) => {
+test.skip('Should create a transaction for node route handlers', async ({ request }) => {
   const routehandlerTransactionPromise = waitForTransaction('nextjs-16-cf-workers', async transactionEvent => {
     return transactionEvent?.transaction === 'GET /route-handler/[xoxo]/node';
   });

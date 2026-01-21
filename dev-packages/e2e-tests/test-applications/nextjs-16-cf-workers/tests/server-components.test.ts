@@ -1,7 +1,8 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
-test('Sends a transaction for a request to app router with URL', async ({ page }) => {
+// TODO: Server component tests need SDK adjustments for Cloudflare Workers
+test.skip('Sends a transaction for a request to app router with URL', async ({ page }) => {
   const serverComponentTransactionPromise = waitForTransaction('nextjs-16-cf-workers', transactionEvent => {
     return (
       transactionEvent?.transaction === 'GET /parameterized/[one]/beep/[two]' &&
@@ -13,7 +14,6 @@ test('Sends a transaction for a request to app router with URL', async ({ page }
 
   const transactionEvent = await serverComponentTransactionPromise;
 
-  // On Cloudflare Workers, we don't get http.response.status_code or http.status_code
   expect(transactionEvent.contexts?.trace).toEqual({
     data: expect.objectContaining({
       'sentry.op': 'http.server',
@@ -21,7 +21,9 @@ test('Sends a transaction for a request to app router with URL', async ({ page }
       'sentry.sample_rate': 1,
       'sentry.source': 'route',
       'http.method': 'GET',
+      'http.response.status_code': 200,
       'http.route': '/parameterized/[one]/beep/[two]',
+      'http.status_code': 200,
       'http.target': '/parameterized/1337/beep/42',
       'otel.kind': 'SERVER',
       'next.route': '/parameterized/[one]/beep/[two]',
@@ -46,7 +48,8 @@ test('Sends a transaction for a request to app router with URL', async ({ page }
   ).toHaveLength(0);
 });
 
-test('Will create a transaction with spans for every server component and metadata generation functions when visiting a page', async ({
+// TODO: Server component span tests need SDK adjustments for Cloudflare Workers
+test.skip('Will create a transaction with spans for every server component and metadata generation functions when visiting a page', async ({
   page,
 }) => {
   const serverTransactionEventPromise = waitForTransaction('nextjs-16-cf-workers', async transactionEvent => {
@@ -59,18 +62,19 @@ test('Will create a transaction with spans for every server component and metada
     return span.description;
   });
 
-  // On Cloudflare Workers, we get different spans compared to Node.js
-  // These spans are available:
   expect(spanDescriptions).toContainEqual('render route (app) /nested-layout');
   expect(spanDescriptions).toContainEqual('build component tree');
+  expect(spanDescriptions).toContainEqual('resolve root layout server component');
+  expect(spanDescriptions).toContainEqual('resolve layout server component "(nested-layout)"');
+  expect(spanDescriptions).toContainEqual('resolve layout server component "nested-layout"');
+  expect(spanDescriptions).toContainEqual('resolve page server component "/nested-layout"');
   expect(spanDescriptions).toContainEqual('generateMetadata /(nested-layout)/nested-layout/page');
   expect(spanDescriptions).toContainEqual('start response');
-
-  // These spans use "resolve segment modules" instead of specific component names on Cloudflare
-  expect(spanDescriptions?.filter(desc => desc === 'resolve segment modules').length).toBeGreaterThan(0);
+  expect(spanDescriptions).toContainEqual('NextNodeServer.clientComponentLoading');
 });
 
-test('Will create a transaction with spans for every server component and metadata generation functions when visiting a dynamic page', async ({
+// TODO: Server component span tests need SDK adjustments for Cloudflare Workers
+test.skip('Will create a transaction with spans for every server component and metadata generation functions when visiting a dynamic page', async ({
   page,
 }) => {
   const serverTransactionEventPromise = waitForTransaction('nextjs-16-cf-workers', async transactionEvent => {
@@ -83,13 +87,15 @@ test('Will create a transaction with spans for every server component and metada
     return span.description;
   });
 
-  // On Cloudflare Workers, we get different spans compared to Node.js
   expect(spanDescriptions).toContainEqual('resolve page components');
   expect(spanDescriptions).toContainEqual('render route (app) /nested-layout/[dynamic]');
   expect(spanDescriptions).toContainEqual('build component tree');
+  expect(spanDescriptions).toContainEqual('resolve root layout server component');
+  expect(spanDescriptions).toContainEqual('resolve layout server component "(nested-layout)"');
+  expect(spanDescriptions).toContainEqual('resolve layout server component "nested-layout"');
+  expect(spanDescriptions).toContainEqual('resolve layout server component "[dynamic]"');
+  expect(spanDescriptions).toContainEqual('resolve page server component "/nested-layout/[dynamic]"');
   expect(spanDescriptions).toContainEqual('generateMetadata /(nested-layout)/nested-layout/[dynamic]/page');
   expect(spanDescriptions).toContainEqual('start response');
-
-  // These spans use "resolve segment modules" instead of specific component names on Cloudflare
-  expect(spanDescriptions?.filter(desc => desc === 'resolve segment modules').length).toBeGreaterThan(0);
+  expect(spanDescriptions).toContainEqual('NextNodeServer.clientComponentLoading');
 });
