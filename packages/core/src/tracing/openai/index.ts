@@ -113,22 +113,46 @@ function addRequestAttributes(span: Span, params: Record<string, unknown>, opera
   // Store embeddings input on a separate attribute and do not truncate it
   if (operationName === OPENAI_OPERATIONS.EMBEDDINGS && 'input' in params) {
     const input = params.input;
-    if (input !== undefined && input !== null && (typeof input === 'string' ? input.length > 0 : true)) {
-      span.setAttribute(GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE, typeof input === 'string' ? input : JSON.stringify(input));
+
+    // No input provided
+    if (input == null) {
+      return;
     }
+
+    // Empty input string
+    if (typeof input === 'string' && input.length === 0) {
+      return;
+    }
+
+    // Empty array input
+    if (Array.isArray(input) && input.length === 0) {
+      return;
+    }
+
+    // Store strings as-is, arrays/objects as JSON
+    span.setAttribute(GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE, typeof input === 'string' ? input : JSON.stringify(input));
     return;
   }
 
   // Apply truncation to chat completions / responses API inputs
   const src = 'input' in params ? params.input : 'messages' in params ? params.messages : undefined;
-  // typically an array, but can be other types. skip if an empty array.
-  const length = Array.isArray(src) ? src.length : undefined;
-  if (src && length !== 0) {
-    const truncatedInput = getTruncatedJsonString(src);
-    span.setAttribute(GEN_AI_REQUEST_MESSAGES_ATTRIBUTE, truncatedInput);
-    if (length) {
-      span.setAttribute(GEN_AI_REQUEST_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE, length);
-    }
+
+  // No input/messages provided
+  if (!src) {
+    return;
+  }
+
+  // Empty array input
+  if (Array.isArray(src) && src.length === 0) {
+    return;
+  }
+
+  const truncatedInput = getTruncatedJsonString(src);
+  span.setAttribute(GEN_AI_REQUEST_MESSAGES_ATTRIBUTE, truncatedInput);
+
+  // Record original length if it's an array
+  if (Array.isArray(src)) {
+    span.setAttribute(GEN_AI_REQUEST_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE, src.length);
   }
 }
 
