@@ -64,6 +64,44 @@ async function run(): Promise<void> {
     });
   }
 
+  // If custom level mapping is requested
+  if (process.env.CUSTOM_LEVEL_MAPPING === 'true') {
+    const customLevels = {
+      levels: {
+        customCritical: 0,
+        customWarning: 1,
+        customNotice: 2,
+      },
+    };
+
+    const SentryWinstonTransport = Sentry.createSentryWinstonTransport(Transport, {
+      customLevelMap: {
+        customCritical: 'fatal',
+        customWarning: 'warn',
+        customNotice: 'info',
+      },
+    });
+
+    const mappedLogger = winston.createLogger({
+      levels: customLevels.levels,
+      // https://github.com/winstonjs/winston/issues/1491
+      // when custom levels are set with a transport,
+      // the level must be set on the logger
+      level: 'customNotice',
+      transports: [new SentryWinstonTransport()],
+    });
+
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-expect-error - custom levels are not part of the winston logger
+    mappedLogger.customCritical('This is a critical message');
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-expect-error - custom levels are not part of the winston logger
+    mappedLogger.customWarning('This is a warning message');
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-expect-error - custom levels are not part of the winston logger
+    mappedLogger.customNotice('This is a notice message');
+  }
+
   await Sentry.flush();
 }
 
