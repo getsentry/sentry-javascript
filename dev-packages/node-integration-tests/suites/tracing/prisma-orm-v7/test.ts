@@ -16,7 +16,7 @@ describe('Prisma ORM v7 Tests', () => {
           .withDockerCompose({
             workingDirectory: [cwd],
             readyMatches: ['port 5432'],
-            setupCommand: `yarn prisma generate --schema ${cwd}/prisma/schema.prisma && yarn prisma migrate dev -n sentry-test --schema ${cwd}/prisma/schema.prisma`,
+            setupCommand: `prisma generate --schema ${cwd}/prisma/schema.prisma && tsc -p ${cwd}/prisma/tsconfig.json && prisma migrate dev -n sentry-test --schema ${cwd}/prisma/schema.prisma`,
           })
           .expect({
             transaction: transaction => {
@@ -64,6 +64,7 @@ describe('Prisma ORM v7 Tests', () => {
         '@prisma/client': '7.2.0',
         pg: '^8.11.0',
         prisma: '7.2.0',
+        typescript: '^5.9.0',
       },
       copyPaths: ['prisma', 'prisma.config.ts', 'docker-compose.yml'],
     },

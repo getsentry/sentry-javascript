@@ -1,5 +1,5 @@
 import { PrismaPg } from '@prisma/adapter-pg';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from './prisma/generated/prisma/client.js';
 import * as Sentry from '@sentry/node';
 import { randomBytes } from 'crypto';
 
