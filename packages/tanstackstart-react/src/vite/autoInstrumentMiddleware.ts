@@ -27,7 +27,8 @@ export function makeAutoInstrumentMiddlewarePlugin(options: AutoInstrumentMiddle
       }
 
       // Only wrap requestMiddleware and functionMiddleware in createStart()
-      if (!code.includes('createStart(')) {
+      // createStart() should always be in a file named start.ts
+      if (!id.includes('start') || !code.includes('createStart(')) {
         return null;
       }
 
