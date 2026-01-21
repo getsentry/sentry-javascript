@@ -12,8 +12,8 @@ describe('Anthropic integration', () => {
       // First span - basic message completion without PII
       expect.objectContaining({
         data: expect.objectContaining({
-          'gen_ai.operation.name': 'messages',
-          'sentry.op': 'gen_ai.messages',
+          'gen_ai.operation.name': 'chat',
+          'sentry.op': 'gen_ai.chat',
           'sentry.origin': 'auto.ai.anthropic',
           'gen_ai.system': 'anthropic',
           'gen_ai.request.model': 'claude-3-haiku-20240307',
@@ -25,36 +25,36 @@ describe('Anthropic integration', () => {
           'gen_ai.usage.output_tokens': 15,
           'gen_ai.usage.total_tokens': 25,
         }),
-        description: 'messages claude-3-haiku-20240307',
-        op: 'gen_ai.messages',
+        description: 'chat claude-3-haiku-20240307',
+        op: 'gen_ai.chat',
         origin: 'auto.ai.anthropic',
         status: 'ok',
       }),
       // Second span - error handling
       expect.objectContaining({
         data: expect.objectContaining({
-          'gen_ai.operation.name': 'messages',
-          'sentry.op': 'gen_ai.messages',
+          'gen_ai.operation.name': 'chat',
+          'sentry.op': 'gen_ai.chat',
           'sentry.origin': 'auto.ai.anthropic',
           'gen_ai.system': 'anthropic',
           'gen_ai.request.model': 'error-model',
         }),
-        description: 'messages error-model',
-        op: 'gen_ai.messages',
+        description: 'chat error-model',
+        op: 'gen_ai.chat',
         origin: 'auto.ai.anthropic',
         status: 'internal_error',
       }),
       // Third span - token counting (no response.text because recordOutputs=false by default)
       expect.objectContaining({
         data: expect.objectContaining({
-          'gen_ai.operation.name': 'messages',
-          'sentry.op': 'gen_ai.messages',
+          'gen_ai.operation.name': 'chat',
+          'sentry.op': 'gen_ai.chat',
           'sentry.origin': 'auto.ai.anthropic',
           'gen_ai.system': 'anthropic',
           'gen_ai.request.model': 'claude-3-haiku-20240307',
         }),
-        description: 'messages claude-3-haiku-20240307',
-        op: 'gen_ai.messages',
+        description: 'chat claude-3-haiku-20240307',
+        op: 'gen_ai.chat',
         origin: 'auto.ai.anthropic',
         status: 'ok',
       }),
@@ -84,7 +84,7 @@ describe('Anthropic integration', () => {
       // First span - basic message completion with PII
       expect.objectContaining({
         data: expect.objectContaining({
-          'gen_ai.operation.name': 'messages',
+          'gen_ai.operation.name': 'chat',
           'gen_ai.request.max_tokens': 100,
           'gen_ai.request.messages': '[{"role":"user","content":"What is the capital of France?"}]',
           'gen_ai.request.model': 'claude-3-haiku-20240307',
@@ -96,11 +96,11 @@ describe('Anthropic integration', () => {
           'gen_ai.usage.input_tokens': 10,
           'gen_ai.usage.output_tokens': 15,
           'gen_ai.usage.total_tokens': 25,
-          'sentry.op': 'gen_ai.messages',
+          'sentry.op': 'gen_ai.chat',
           'sentry.origin': 'auto.ai.anthropic',
         }),
-        description: 'messages claude-3-haiku-20240307',
-        op: 'gen_ai.messages',
+        description: 'chat claude-3-haiku-20240307',
+        op: 'gen_ai.chat',
         origin: 'auto.ai.anthropic',
         status: 'ok',
       }),
@@ -125,15 +125,15 @@ describe('Anthropic integration', () => {
       // Second - error handling with PII
       expect.objectContaining({
         data: expect.objectContaining({
-          'gen_ai.operation.name': 'messages',
+          'gen_ai.operation.name': 'chat',
           'gen_ai.request.messages': '[{"role":"user","content":"This will fail"}]',
           'gen_ai.request.model': 'error-model',
           'gen_ai.system': 'anthropic',
-          'sentry.op': 'gen_ai.messages',
+          'sentry.op': 'gen_ai.chat',
           'sentry.origin': 'auto.ai.anthropic',
         }),
-        description: 'messages error-model',
-        op: 'gen_ai.messages',
+        description: 'chat error-model',
+        op: 'gen_ai.chat',
         origin: 'auto.ai.anthropic',
         status: 'internal_error',
       }),
@@ -158,16 +158,16 @@ describe('Anthropic integration', () => {
       // Third - token counting with PII (response.text is present because sendDefaultPii=true enables recordOutputs)
       expect.objectContaining({
         data: expect.objectContaining({
-          'gen_ai.operation.name': 'messages',
+          'gen_ai.operation.name': 'chat',
           'gen_ai.request.messages': '[{"role":"user","content":"What is the capital of France?"}]',
           'gen_ai.request.model': 'claude-3-haiku-20240307',
           'gen_ai.response.text': '15',
           'gen_ai.system': 'anthropic',
-          'sentry.op': 'gen_ai.messages',
+          'sentry.op': 'gen_ai.chat',
           'sentry.origin': 'auto.ai.anthropic',
         }),
-        description: 'messages claude-3-haiku-20240307',
-        op: 'gen_ai.messages',
+        description: 'chat claude-3-haiku-20240307',
+        op: 'gen_ai.chat',
         origin: 'auto.ai.anthropic',
         status: 'ok',
       }),
@@ -228,7 +228,7 @@ describe('Anthropic integration', () => {
       // Fifth - messages.create with stream: true
       expect.objectContaining({
         data: expect.objectContaining({
-          'gen_ai.operation.name': 'messages',
+          'gen_ai.operation.name': 'chat',
           'gen_ai.request.messages': '[{"role":"user","content":"What is the capital of France?"}]',
           'gen_ai.request.model': 'claude-3-haiku-20240307',
           'gen_ai.request.stream': true,
@@ -240,11 +240,11 @@ describe('Anthropic integration', () => {
           'gen_ai.usage.input_tokens': 10,
           'gen_ai.usage.output_tokens': 15,
           'gen_ai.usage.total_tokens': 25,
-          'sentry.op': 'gen_ai.messages',
+          'sentry.op': 'gen_ai.chat',
           'sentry.origin': 'auto.ai.anthropic',
         }),
-        description: 'messages claude-3-haiku-20240307 stream-response',
-        op: 'gen_ai.messages',
+        description: 'chat claude-3-haiku-20240307 stream-response',
+        op: 'gen_ai.chat',
         origin: 'auto.ai.anthropic',
         status: 'ok',
       }),
@@ -269,12 +269,12 @@ describe('Anthropic integration', () => {
       // Sixth - messages.stream
       expect.objectContaining({
         data: expect.objectContaining({
-          'gen_ai.operation.name': 'messages',
+          'gen_ai.operation.name': 'chat',
           'gen_ai.request.model': 'claude-3-haiku-20240307',
           'gen_ai.request.stream': true,
         }),
-        description: 'messages claude-3-haiku-20240307 stream-response',
-        op: 'gen_ai.messages',
+        description: 'chat claude-3-haiku-20240307 stream-response',
+        op: 'gen_ai.chat',
         origin: 'auto.ai.anthropic',
         status: 'ok',
       }),
@@ -294,11 +294,11 @@ describe('Anthropic integration', () => {
       // Check token counting with options
       expect.objectContaining({
         data: expect.objectContaining({
-          'gen_ai.operation.name': 'messages',
+          'gen_ai.operation.name': 'chat',
           'gen_ai.request.messages': expect.any(String), // Should include messages when recordInputs: true
           'gen_ai.response.text': '15', // Present because recordOutputs=true is set in options
         }),
-        op: 'gen_ai.messages',
+        op: 'gen_ai.chat',
       }),
       // Check models.retrieve with options
       expect.objectContaining({
@@ -378,11 +378,11 @@ describe('Anthropic integration', () => {
     spans: expect.arrayContaining([
       // messages.create with stream: true
       expect.objectContaining({
-        description: 'messages claude-3-haiku-20240307 stream-response',
-        op: 'gen_ai.messages',
+        description: 'chat claude-3-haiku-20240307 stream-response',
+        op: 'gen_ai.chat',
         data: expect.objectContaining({
           'gen_ai.system': 'anthropic',
-          'gen_ai.operation.name': 'messages',
+          'gen_ai.operation.name': 'chat',
           'gen_ai.request.model': 'claude-3-haiku-20240307',
           'gen_ai.request.stream': true,
           'gen_ai.response.streaming': true,
@@ -396,11 +396,11 @@ describe('Anthropic integration', () => {
       }),
       // messages.stream
       expect.objectContaining({
-        description: 'messages claude-3-haiku-20240307 stream-response',
-        op: 'gen_ai.messages',
+        description: 'chat claude-3-haiku-20240307 stream-response',
+        op: 'gen_ai.chat',
         data: expect.objectContaining({
           'gen_ai.system': 'anthropic',
-          'gen_ai.operation.name': 'messages',
+          'gen_ai.operation.name': 'chat',
           'gen_ai.request.model': 'claude-3-haiku-20240307',
           'gen_ai.response.streaming': true,
           'gen_ai.response.model': 'claude-3-haiku-20240307',
@@ -412,11 +412,11 @@ describe('Anthropic integration', () => {
       }),
       // messages.stream with redundant stream: true param
       expect.objectContaining({
-        description: 'messages claude-3-haiku-20240307 stream-response',
-        op: 'gen_ai.messages',
+        description: 'chat claude-3-haiku-20240307 stream-response',
+        op: 'gen_ai.chat',
         data: expect.objectContaining({
           'gen_ai.system': 'anthropic',
-          'gen_ai.operation.name': 'messages',
+          'gen_ai.operation.name': 'chat',
           'gen_ai.request.model': 'claude-3-haiku-20240307',
           'gen_ai.request.stream': true,
           'gen_ai.response.streaming': true,
@@ -434,8 +434,8 @@ describe('Anthropic integration', () => {
     transaction: 'main',
     spans: expect.arrayContaining([
       expect.objectContaining({
-        description: 'messages claude-3-haiku-20240307 stream-response',
-        op: 'gen_ai.messages',
+        description: 'chat claude-3-haiku-20240307 stream-response',
+        op: 'gen_ai.chat',
         data: expect.objectContaining({
           'gen_ai.response.streaming': true,
           // streamed text concatenated
@@ -443,16 +443,16 @@ describe('Anthropic integration', () => {
         }),
       }),
       expect.objectContaining({
-        description: 'messages claude-3-haiku-20240307 stream-response',
-        op: 'gen_ai.messages',
+        description: 'chat claude-3-haiku-20240307 stream-response',
+        op: 'gen_ai.chat',
         data: expect.objectContaining({
           'gen_ai.response.streaming': true,
           'gen_ai.response.text': 'Hello from stream!',
         }),
       }),
       expect.objectContaining({
-        description: 'messages claude-3-haiku-20240307 stream-response',
-        op: 'gen_ai.messages',
+        description: 'chat claude-3-haiku-20240307 stream-response',
+        op: 'gen_ai.chat',
         data: expect.objectContaining({
           'gen_ai.response.streaming': true,
           'gen_ai.response.text': 'Hello from stream!',
@@ -486,7 +486,7 @@ describe('Anthropic integration', () => {
           transaction: {
             spans: expect.arrayContaining([
               expect.objectContaining({
-                op: 'gen_ai.messages',
+                op: 'gen_ai.chat',
                 data: expect.objectContaining({
                   'gen_ai.request.available_tools': EXPECTED_TOOLS_JSON,
                   'gen_ai.response.tool_calls': EXPECTED_TOOL_CALLS_JSON,
@@ -514,7 +514,7 @@ describe('Anthropic integration', () => {
             spans: expect.arrayContaining([
               expect.objectContaining({
                 description: expect.stringContaining('stream-response'),
-                op: 'gen_ai.messages',
+                op: 'gen_ai.chat',
                 data: expect.objectContaining({
                   'gen_ai.request.available_tools': EXPECTED_TOOLS_JSON,
                   'gen_ai.response.tool_calls': EXPECTED_TOOL_CALLS_JSON,
@@ -534,8 +534,8 @@ describe('Anthropic integration', () => {
     spans: expect.arrayContaining([
       // Error with messages.create on stream initialization
       expect.objectContaining({
-        description: 'messages error-stream-init stream-response',
-        op: 'gen_ai.messages',
+        description: 'chat error-stream-init stream-response',
+        op: 'gen_ai.chat',
         status: 'internal_error', // Actual status coming from the instrumentation
         data: expect.objectContaining({
           'gen_ai.request.model': 'error-stream-init',
@@ -544,8 +544,8 @@ describe('Anthropic integration', () => {
       }),
       // Error with messages.stream on stream initialization
       expect.objectContaining({
-        description: 'messages error-stream-init stream-response',
-        op: 'gen_ai.messages',
+        description: 'chat error-stream-init stream-response',
+        op: 'gen_ai.chat',
         status: 'internal_error', // Actual status coming from the instrumentation
         data: expect.objectContaining({
           'gen_ai.request.model': 'error-stream-init',
@@ -554,8 +554,8 @@ describe('Anthropic integration', () => {
       // Error midway with messages.create on streaming - note: The stream is started successfully
       // so we get a successful span with the content that was streamed before the error
       expect.objectContaining({
-        description: 'messages error-stream-midway stream-response',
-        op: 'gen_ai.messages',
+        description: 'chat error-stream-midway stream-response',
+        op: 'gen_ai.chat',
         status: 'ok',
         data: expect.objectContaining({
           'gen_ai.request.model': 'error-stream-midway',
@@ -566,8 +566,8 @@ describe('Anthropic integration', () => {
       }),
       // Error midway with messages.stream - same behavior, we get a span with the streamed data
       expect.objectContaining({
-        description: 'messages error-stream-midway stream-response',
-        op: 'gen_ai.messages',
+        description: 'chat error-stream-midway stream-response',
+        op: 'gen_ai.chat',
         status: 'ok',
         data: expect.objectContaining({
           'gen_ai.request.model': 'error-stream-midway',
@@ -590,8 +590,8 @@ describe('Anthropic integration', () => {
     spans: expect.arrayContaining([
       // Invalid tool format error
       expect.objectContaining({
-        description: 'messages invalid-format',
-        op: 'gen_ai.messages',
+        description: 'chat invalid-format',
+        op: 'gen_ai.chat',
         status: 'internal_error',
         data: expect.objectContaining({
           'gen_ai.request.model': 'invalid-format',
@@ -608,8 +608,8 @@ describe('Anthropic integration', () => {
       }),
       // Successful tool usage (for comparison)
       expect.objectContaining({
-        description: 'messages claude-3-haiku-20240307',
-        op: 'gen_ai.messages',
+        description: 'chat claude-3-haiku-20240307',
+        op: 'gen_ai.chat',
         status: 'ok',
         data: expect.objectContaining({
           'gen_ai.request.model': 'claude-3-haiku-20240307',
@@ -640,16 +640,16 @@ describe('Anthropic integration', () => {
                 // First call: Last message is large and gets truncated (only C's remain, D's are cropped)
                 expect.objectContaining({
                   data: expect.objectContaining({
-                    'gen_ai.operation.name': 'messages',
-                    'sentry.op': 'gen_ai.messages',
+                    'gen_ai.operation.name': 'chat',
+                    'sentry.op': 'gen_ai.chat',
                     'sentry.origin': 'auto.ai.anthropic',
                     'gen_ai.system': 'anthropic',
                     'gen_ai.request.model': 'claude-3-haiku-20240307',
                     // Messages should be present (truncation happened) and should be a JSON array
                     'gen_ai.request.messages': expect.stringMatching(/^\[\{"role":"user","content":"C+"\}\]$/),
                   }),
-                  description: 'messages claude-3-haiku-20240307',
-                  op: 'gen_ai.messages',
+                  description: 'chat claude-3-haiku-20240307',
+                  op: 'gen_ai.chat',
                   origin: 'auto.ai.anthropic',
                   status: 'ok',
                 }),
@@ -690,8 +690,8 @@ describe('Anthropic integration', () => {
             spans: expect.arrayContaining([
               expect.objectContaining({
                 data: expect.objectContaining({
-                  'gen_ai.operation.name': 'messages',
-                  'sentry.op': 'gen_ai.messages',
+                  'gen_ai.operation.name': 'chat',
+                  'sentry.op': 'gen_ai.chat',
                   'sentry.origin': 'auto.ai.anthropic',
                   'gen_ai.system': 'anthropic',
                   'gen_ai.request.model': 'claude-3-haiku-20240307',
@@ -712,8 +712,8 @@ describe('Anthropic integration', () => {
                     },
                   ]),
                 }),
-                description: 'messages claude-3-haiku-20240307',
-                op: 'gen_ai.messages',
+                description: 'chat claude-3-haiku-20240307',
+                op: 'gen_ai.chat',
                 origin: 'auto.ai.anthropic',
                 status: 'ok',
               }),

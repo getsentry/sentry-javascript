@@ -286,7 +286,7 @@ describe('LangChain integration', () => {
               // This should have Anthropic instrumentation (origin: 'auto.ai.anthropic')
               const firstAnthropicSpan = spans.find(
                 span =>
-                  span.description === 'messages claude-3-5-sonnet-20241022' && span.origin === 'auto.ai.anthropic',
+                  span.description === 'chat claude-3-5-sonnet-20241022' && span.origin === 'auto.ai.anthropic',
               );
 
               // Second call: LangChain call
@@ -300,7 +300,7 @@ describe('LangChain integration', () => {
               // Count how many Anthropic spans we have - should be exactly 1
               const anthropicSpans = spans.filter(
                 span =>
-                  span.description === 'messages claude-3-5-sonnet-20241022' && span.origin === 'auto.ai.anthropic',
+                  span.description === 'chat claude-3-5-sonnet-20241022' && span.origin === 'auto.ai.anthropic',
               );
 
               // Verify the edge case limitation:

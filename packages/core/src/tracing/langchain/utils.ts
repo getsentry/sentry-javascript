@@ -216,18 +216,19 @@ function extractCommonRequestAttributes(
 
 /**
  * Small helper to assemble boilerplate attributes shared by both request extractors.
+ * Both LLM and ChatModel invocations use 'chat' as the operation name since modern
+ * LLM interactions are chat-based and this aligns with OpenTelemetry semantic conventions.
  */
 function baseRequestAttributes(
   system: unknown,
   modelName: unknown,
-  operation: 'pipeline' | 'chat',
   serialized: LangChainSerialized,
   invocationParams?: Record<string, unknown>,
   langSmithMetadata?: Record<string, unknown>,
 ): Record<string, SpanAttributeValue> {
   return {
     [GEN_AI_SYSTEM_ATTRIBUTE]: asString(system ?? 'langchain'),
-    [GEN_AI_OPERATION_NAME_ATTRIBUTE]: operation,
+    [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'chat',
     [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: asString(modelName),
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: LANGCHAIN_ORIGIN,
     ...extractCommonRequestAttributes(serialized, invocationParams, langSmithMetadata),
@@ -237,7 +238,8 @@ function baseRequestAttributes(
 /**
  * Extracts attributes for plain LLM invocations (string prompts).
  *
- * - Operation is tagged as `pipeline` to distinguish from chat-style invocations.
+ * - Operation is tagged as `chat` following OpenTelemetry semantic conventions.
+ *   Modern LLM invocations typically use chat-based models even when called with string prompts.
  * - When `recordInputs` is true, string prompts are wrapped into `{role:"user"}`
  *   messages to align with the chat schema used elsewhere.
  */
@@ -251,7 +253,7 @@ export function extractLLMRequestAttributes(
   const system = langSmithMetadata?.ls_provider;
   const modelName = invocationParams?.model ?? langSmithMetadata?.ls_model_name ?? 'unknown';
 
-  const attrs = baseRequestAttributes(system, modelName, 'pipeline', llm, invocationParams, langSmithMetadata);
+  const attrs = baseRequestAttributes(system, modelName, llm, invocationParams, langSmithMetadata);
 
   if (recordInputs && Array.isArray(prompts) && prompts.length > 0) {
     setIfDefined(attrs, GEN_AI_REQUEST_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE, prompts.length);
@@ -280,7 +282,7 @@ export function extractChatModelRequestAttributes(
   const system = langSmithMetadata?.ls_provider ?? llm.id?.[2];
   const modelName = invocationParams?.model ?? langSmithMetadata?.ls_model_name ?? 'unknown';
 
-  const attrs = baseRequestAttributes(system, modelName, 'chat', llm, invocationParams, langSmithMetadata);
+  const attrs = baseRequestAttributes(system, modelName, llm, invocationParams, langSmithMetadata);
 
   if (recordInputs && Array.isArray(langChainMessages) && langChainMessages.length > 0) {
     const normalized = normalizeLangChainMessages(langChainMessages.flat());

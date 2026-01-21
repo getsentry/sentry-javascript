@@ -49,6 +49,39 @@ function addOriginToSpan(span: Span, origin: SpanOrigin): void {
 }
 
 /**
+ * Maps Vercel AI SDK operation names to OpenTelemetry semantic convention values
+ * @see https://opentelemetry.io/docs/specs/semconv/gen-ai/gen-ai-spans/#llm-request-spans
+ */
+function mapVercelAiOperationName(operationName: string): string {
+  // Map to OpenTelemetry well-known values
+  if (
+    operationName === 'ai.generateText' ||
+    operationName === 'ai.streamText' ||
+    operationName === 'ai.generateObject' ||
+    operationName === 'ai.streamObject' ||
+    operationName === 'ai.generateText.doGenerate' ||
+    operationName === 'ai.streamText.doStream' ||
+    operationName === 'ai.generateObject.doGenerate' ||
+    operationName === 'ai.streamObject.doStream'
+  ) {
+    return 'generate_content';
+  }
+  if (
+    operationName === 'ai.embed' ||
+    operationName === 'ai.embedMany' ||
+    operationName === 'ai.embed.doEmbed' ||
+    operationName === 'ai.embedMany.doEmbed'
+  ) {
+    return 'embeddings';
+  }
+  if (operationName === 'ai.toolCall') {
+    return 'execute_tool';
+  }
+  // Return the original value for unknown operations
+  return operationName;
+}
+
+/**
  * Post-process spans emitted by the Vercel AI SDK.
  * This is supposed to be used in `client.on('spanStart', ...)
  */
@@ -145,7 +178,11 @@ function processEndedVercelAiSpan(span: SpanJSON): void {
   }
 
   // Rename AI SDK attributes to standardized gen_ai attributes
-  renameAttributeKey(attributes, OPERATION_NAME_ATTRIBUTE, GEN_AI_OPERATION_NAME_ATTRIBUTE);
+  // Map operation.name to OpenTelemetry semantic convention values
+  if (attributes[OPERATION_NAME_ATTRIBUTE]) {
+    const operationName = mapVercelAiOperationName(attributes[OPERATION_NAME_ATTRIBUTE] as string);
+    attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE] = operationName;
+  }
   renameAttributeKey(attributes, AI_PROMPT_MESSAGES_ATTRIBUTE, GEN_AI_REQUEST_MESSAGES_ATTRIBUTE);
   renameAttributeKey(attributes, AI_RESPONSE_TEXT_ATTRIBUTE, 'gen_ai.response.text');
   renameAttributeKey(attributes, AI_RESPONSE_TOOL_CALLS_ATTRIBUTE, 'gen_ai.response.tool_calls');
@@ -183,6 +220,7 @@ function renameAttributeKey(attributes: Record<string, unknown>, oldKey: string,
 function processToolCallSpan(span: Span, attributes: SpanAttributes): void {
   addOriginToSpan(span, 'auto.vercelai.otel');
   span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'gen_ai.execute_tool');
+  span.setAttribute(GEN_AI_OPERATION_NAME_ATTRIBUTE, 'execute_tool');
   renameAttributeKey(attributes, AI_TOOL_CALL_NAME_ATTRIBUTE, 'gen_ai.tool.name');
   renameAttributeKey(attributes, AI_TOOL_CALL_ID_ATTRIBUTE, 'gen_ai.tool.call.id');
 

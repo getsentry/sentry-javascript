@@ -38,8 +38,8 @@ describe('OpenAI integration', () => {
       // Second span - responses API
       expect.objectContaining({
         data: {
-          'gen_ai.operation.name': 'responses',
-          'sentry.op': 'gen_ai.responses',
+          'gen_ai.operation.name': 'chat',
+          'sentry.op': 'gen_ai.chat',
           'sentry.origin': 'auto.ai.openai',
           'gen_ai.system': 'openai',
           'gen_ai.request.model': 'gpt-3.5-turbo',
@@ -55,8 +55,8 @@ describe('OpenAI integration', () => {
           'openai.usage.completion_tokens': 8,
           'openai.usage.prompt_tokens': 5,
         },
-        description: 'responses gpt-3.5-turbo',
-        op: 'gen_ai.responses',
+        description: 'chat gpt-3.5-turbo',
+        op: 'gen_ai.chat',
         origin: 'auto.ai.openai',
         status: 'ok',
       }),
@@ -105,8 +105,8 @@ describe('OpenAI integration', () => {
       // Fifth span - responses API streaming
       expect.objectContaining({
         data: {
-          'gen_ai.operation.name': 'responses',
-          'sentry.op': 'gen_ai.responses',
+          'gen_ai.operation.name': 'chat',
+          'sentry.op': 'gen_ai.chat',
           'sentry.origin': 'auto.ai.openai',
           'gen_ai.system': 'openai',
           'gen_ai.request.model': 'gpt-4',
@@ -124,8 +124,8 @@ describe('OpenAI integration', () => {
           'openai.usage.completion_tokens': 10,
           'openai.usage.prompt_tokens': 6,
         },
-        description: 'responses gpt-4 stream-response',
-        op: 'gen_ai.responses',
+        description: 'chat gpt-4 stream-response',
+        op: 'gen_ai.chat',
         origin: 'auto.ai.openai',
         status: 'ok',
       }),
@@ -182,8 +182,8 @@ describe('OpenAI integration', () => {
       // Second span - responses API with PII
       expect.objectContaining({
         data: {
-          'gen_ai.operation.name': 'responses',
-          'sentry.op': 'gen_ai.responses',
+          'gen_ai.operation.name': 'chat',
+          'sentry.op': 'gen_ai.chat',
           'sentry.origin': 'auto.ai.openai',
           'gen_ai.system': 'openai',
           'gen_ai.request.model': 'gpt-3.5-turbo',
@@ -201,8 +201,8 @@ describe('OpenAI integration', () => {
           'openai.usage.completion_tokens': 8,
           'openai.usage.prompt_tokens': 5,
         },
-        description: 'responses gpt-3.5-turbo',
-        op: 'gen_ai.responses',
+        description: 'chat gpt-3.5-turbo',
+        op: 'gen_ai.chat',
         origin: 'auto.ai.openai',
         status: 'ok',
       }),
@@ -256,8 +256,8 @@ describe('OpenAI integration', () => {
       // Fifth span - responses API streaming with PII
       expect.objectContaining({
         data: expect.objectContaining({
-          'gen_ai.operation.name': 'responses',
-          'sentry.op': 'gen_ai.responses',
+          'gen_ai.operation.name': 'chat',
+          'sentry.op': 'gen_ai.chat',
           'sentry.origin': 'auto.ai.openai',
           'gen_ai.system': 'openai',
           'gen_ai.request.model': 'gpt-4',
@@ -277,8 +277,8 @@ describe('OpenAI integration', () => {
           'openai.usage.completion_tokens': 10,
           'openai.usage.prompt_tokens': 6,
         }),
-        description: 'responses gpt-4 stream-response',
-        op: 'gen_ai.responses',
+        description: 'chat gpt-4 stream-response',
+        op: 'gen_ai.chat',
         origin: 'auto.ai.openai',
         status: 'ok',
       }),
@@ -639,16 +639,16 @@ describe('OpenAI integration', () => {
               spans: expect.arrayContaining([
                 expect.objectContaining({
                   data: expect.objectContaining({
-                    'gen_ai.operation.name': 'responses',
-                    'sentry.op': 'gen_ai.responses',
+                    'gen_ai.operation.name': 'chat',
+                    'sentry.op': 'gen_ai.chat',
                     'sentry.origin': 'auto.ai.openai',
                     'gen_ai.system': 'openai',
                     'gen_ai.request.model': 'gpt-3.5-turbo',
                     // Messages should be present and should include truncated string input (contains only As)
                     'gen_ai.request.messages': expect.stringMatching(/^A+$/),
                   }),
-                  description: 'responses gpt-3.5-turbo',
-                  op: 'gen_ai.responses',
+                  description: 'chat gpt-3.5-turbo',
+                  op: 'gen_ai.chat',
                   origin: 'auto.ai.openai',
                   status: 'ok',
                 }),
@@ -668,30 +668,30 @@ describe('OpenAI integration', () => {
       // First span - conversations.create returns conversation object with id
       expect.objectContaining({
         data: expect.objectContaining({
-          'gen_ai.operation.name': 'conversations',
-          'sentry.op': 'gen_ai.conversations',
+          'gen_ai.operation.name': 'chat',
+          'sentry.op': 'gen_ai.chat',
           'sentry.origin': 'auto.ai.openai',
           'gen_ai.system': 'openai',
           // The conversation ID should be captured from the response
           'gen_ai.conversation.id': 'conv_689667905b048191b4740501625afd940c7533ace33a2dab',
         }),
-        description: 'conversations unknown',
-        op: 'gen_ai.conversations',
+        description: 'chat unknown',
+        op: 'gen_ai.chat',
         origin: 'auto.ai.openai',
         status: 'ok',
       }),
       // Second span - responses.create with conversation parameter
       expect.objectContaining({
         data: expect.objectContaining({
-          'gen_ai.operation.name': 'responses',
-          'sentry.op': 'gen_ai.responses',
+          'gen_ai.operation.name': 'chat',
+          'sentry.op': 'gen_ai.chat',
           'sentry.origin': 'auto.ai.openai',
           'gen_ai.system': 'openai',
           'gen_ai.request.model': 'gpt-4',
           // The conversation ID should be captured from the request
           'gen_ai.conversation.id': 'conv_689667905b048191b4740501625afd940c7533ace33a2dab',
         }),
-        op: 'gen_ai.responses',
+        op: 'gen_ai.chat',
         origin: 'auto.ai.openai',
         status: 'ok',
       }),
@@ -700,22 +700,22 @@ describe('OpenAI integration', () => {
         data: expect.not.objectContaining({
           'gen_ai.conversation.id': expect.anything(),
         }),
-        op: 'gen_ai.responses',
+        op: 'gen_ai.chat',
         origin: 'auto.ai.openai',
         status: 'ok',
       }),
       // Fourth span - responses.create with previous_response_id (chaining)
       expect.objectContaining({
         data: expect.objectContaining({
-          'gen_ai.operation.name': 'responses',
-          'sentry.op': 'gen_ai.responses',
+          'gen_ai.operation.name': 'chat',
+          'sentry.op': 'gen_ai.chat',
           'sentry.origin': 'auto.ai.openai',
           'gen_ai.system': 'openai',
           'gen_ai.request.model': 'gpt-4',
           // The previous_response_id should be captured as conversation.id
           'gen_ai.conversation.id': 'resp_mock_conv_123',
         }),
-        op: 'gen_ai.responses',
+        op: 'gen_ai.chat',
         origin: 'auto.ai.openai',
         status: 'ok',
       }),
