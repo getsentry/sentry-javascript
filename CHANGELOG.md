@@ -21,6 +21,7 @@
   ```
 
 ### Other Changes
+
 ## 10.36.0
 
 - feat(node): Add Prisma v7 support ([#18908](https://github.com/getsentry/sentry-javascript/pull/18908))
