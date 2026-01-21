@@ -23,6 +23,7 @@ import {
   spanToJSON,
   startInactiveSpan,
   stringMatchesSomePattern,
+  stripDataUrlContent,
   stripUrlQueryAndFragment,
 } from '@sentry/core';
 import type { XhrHint } from '@sentry-internal/browser-utils';
@@ -199,7 +200,7 @@ export function instrumentOutgoingRequests(client: Client, _options?: Partial<Re
         const fullUrl = getFullURL(handlerData.fetchData.url);
         const host = fullUrl ? parseUrl(fullUrl).host : undefined;
         createdSpan.setAttributes({
-          'http.url': fullUrl,
+          'http.url': fullUrl ? stripDataUrlContent(fullUrl) : undefined,
           'server.address': host,
         });
 
@@ -355,7 +356,7 @@ function xhrCallback(
   const fullUrl = getFullURL(url);
   const parsedUrl = fullUrl ? parseUrl(fullUrl) : parseUrl(url);
 
-  const urlForSpanName = stripUrlQueryAndFragment(url);
+  const urlForSpanName = stripDataUrlContent(stripUrlQueryAndFragment(url));
 
   const hasParent = !!getActiveSpan();
 
@@ -364,10 +365,10 @@ function xhrCallback(
       ? startInactiveSpan({
           name: `${method} ${urlForSpanName}`,
           attributes: {
-            url,
+            url: stripDataUrlContent(url),
             type: 'xhr',
             'http.method': method,
-            'http.url': fullUrl,
+            'http.url': fullUrl ? stripDataUrlContent(fullUrl) : undefined,
             'server.address': parsedUrl?.host,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.browser',
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
