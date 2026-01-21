@@ -3,7 +3,7 @@ import { patchClaudeCodeQuery } from '@sentry/node';
 import * as Sentry from '@sentry/node';
 import { createMockSdk } from './mock-server.mjs';
 
-// This scenario tests function tool execution (Read, Bash, Glob, etc.)
+// This scenario specifically tests extension tool classification (WebSearch, WebFetch)
 
 async function run() {
   const mockSdk = createMockSdk();
@@ -14,22 +14,20 @@ async function run() {
     agentName: 'claude-code',
   });
 
-  // Test function tools
-  console.log('[Test] Running with function tools (Read)...');
+  // Test extension tools
+  console.log('[Test] Running with extension tools...');
   const query = patchedQuery({
-    prompt: 'Read the file',
-    options: { model: 'claude-sonnet-4-20250514', scenario: 'withTools' },
+    prompt: 'Search the web',
+    options: { model: 'claude-sonnet-4-20250514', scenario: 'extensionTools' },
   });
 
   for await (const message of query) {
     if (message.type === 'llm_tool_call') {
-      console.log('[Tool Call]', message.toolName, '- Type: function');
-    } else if (message.type === 'tool_result') {
-      console.log('[Tool Result]', message.toolName, '- Status:', message.status);
+      console.log('[Tool Call]', message.toolName, '- Type: extension');
     }
   }
 
-  console.log('[Test] Function tools complete');
+  console.log('[Test] Extension tools complete');
 
   // Allow spans to be sent
   await Sentry.flush(2000);
