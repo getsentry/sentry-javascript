@@ -212,6 +212,12 @@ export const GEN_AI_GENERATE_OBJECT_DO_GENERATE_OPERATION_ATTRIBUTE = 'gen_ai.ge
 export const GEN_AI_STREAM_OBJECT_DO_STREAM_OPERATION_ATTRIBUTE = 'gen_ai.stream_object';
 
 /**
+ * The embeddings input
+ * Only recorded when recordInputs is enabled
+ */
+export const GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE = 'gen_ai.embeddings.input';
+
+/**
  * The span operation name for embedding
  */
 export const GEN_AI_EMBED_DO_EMBED_OPERATION_ATTRIBUTE = 'gen_ai.embed';

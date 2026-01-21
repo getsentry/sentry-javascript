@@ -160,8 +160,7 @@ describe('OpenAI integration', () => {
           'gen_ai.request.model': 'gpt-3.5-turbo',
           'gen_ai.request.temperature': 0.7,
           'gen_ai.request.messages.original_length': 2,
-          'gen_ai.request.messages':
-            '[{"role":"system","content":"You are a helpful assistant."},{"role":"user","content":"What is the capital of France?"}]',
+          'gen_ai.request.messages': '[{"role":"user","content":"What is the capital of France?"}]',
           'gen_ai.response.model': 'gpt-3.5-turbo',
           'gen_ai.response.id': 'chatcmpl-mock123',
           'gen_ai.response.finish_reasons': '["stop"]',
@@ -234,8 +233,7 @@ describe('OpenAI integration', () => {
           'gen_ai.request.temperature': 0.8,
           'gen_ai.request.stream': true,
           'gen_ai.request.messages.original_length': 2,
-          'gen_ai.request.messages':
-            '[{"role":"system","content":"You are a helpful assistant."},{"role":"user","content":"Tell me about streaming"}]',
+          'gen_ai.request.messages': '[{"role":"user","content":"Tell me about streaming"}]',
           'gen_ai.response.text': 'Hello from OpenAI streaming!',
           'gen_ai.response.finish_reasons': '["stop"]',
           'gen_ai.response.id': 'chatcmpl-stream-123',
@@ -409,7 +407,7 @@ describe('OpenAI integration', () => {
           'gen_ai.request.model': 'text-embedding-3-small',
           'gen_ai.request.encoding_format': 'float',
           'gen_ai.request.dimensions': 1536,
-          'gen_ai.request.messages': 'Embedding test!',
+          'gen_ai.embeddings.input': 'Embedding test!',
           'gen_ai.response.model': 'text-embedding-3-small',
           'gen_ai.usage.input_tokens': 10,
           'gen_ai.usage.total_tokens': 10,
@@ -429,12 +427,32 @@ describe('OpenAI integration', () => {
           'sentry.origin': 'auto.ai.openai',
           'gen_ai.system': 'openai',
           'gen_ai.request.model': 'error-model',
-          'gen_ai.request.messages': 'Error embedding test!',
+          'gen_ai.embeddings.input': 'Error embedding test!',
         },
         description: 'embeddings error-model',
         op: 'gen_ai.embeddings',
         origin: 'auto.ai.openai',
         status: 'internal_error',
+      }),
+      // Third span - embeddings API with multiple inputs (this does not get truncated)
+      expect.objectContaining({
+        data: {
+          'gen_ai.operation.name': 'embeddings',
+          'sentry.op': 'gen_ai.embeddings',
+          'sentry.origin': 'auto.ai.openai',
+          'gen_ai.system': 'openai',
+          'gen_ai.request.model': 'text-embedding-3-small',
+          'gen_ai.embeddings.input': '["First input text","Second input text","Third input text"]',
+          'gen_ai.response.model': 'text-embedding-3-small',
+          'gen_ai.usage.input_tokens': 10,
+          'gen_ai.usage.total_tokens': 10,
+          'openai.response.model': 'text-embedding-3-small',
+          'openai.usage.prompt_tokens': 10,
+        },
+        description: 'embeddings text-embedding-3-small',
+        op: 'gen_ai.embeddings',
+        origin: 'auto.ai.openai',
+        status: 'ok',
       }),
     ]),
   };
@@ -564,6 +582,7 @@ describe('OpenAI integration', () => {
             transaction: {
               transaction: 'main',
               spans: expect.arrayContaining([
+                // First call: Last message is large and gets truncated (only C's remain, D's are cropped)
                 expect.objectContaining({
                   data: expect.objectContaining({
                     'gen_ai.operation.name': 'chat',
@@ -573,6 +592,24 @@ describe('OpenAI integration', () => {
                     'gen_ai.request.model': 'gpt-3.5-turbo',
                     // Messages should be present (truncation happened) and should be a JSON array of a single index
                     'gen_ai.request.messages': expect.stringMatching(/^\[\{"role":"user","content":"C+"\}\]$/),
+                  }),
+                  description: 'chat gpt-3.5-turbo',
+                  op: 'gen_ai.chat',
+                  origin: 'auto.ai.openai',
+                  status: 'ok',
+                }),
+                // Second call: Last message is small and kept without truncation
+                expect.objectContaining({
+                  data: expect.objectContaining({
+                    'gen_ai.operation.name': 'chat',
+                    'sentry.op': 'gen_ai.chat',
+                    'sentry.origin': 'auto.ai.openai',
+                    'gen_ai.system': 'openai',
+                    'gen_ai.request.model': 'gpt-3.5-turbo',
+                    // Small message should be kept intact
+                    'gen_ai.request.messages': JSON.stringify([
+                      { role: 'user', content: 'This is a small message that fits within the limit' },
+                    ]),
                   }),
                   description: 'chat gpt-3.5-turbo',
                   op: 'gen_ai.chat',
@@ -614,32 +651,6 @@ describe('OpenAI integration', () => {
                   op: 'gen_ai.responses',
                   origin: 'auto.ai.openai',
                   status: 'ok',
-                }),
-              ]),
-            },
-          })
-          .start()
-          .completed();
-      });
-    },
-  );
-
-  createEsmAndCjsTests(
-    __dirname,
-    'truncation/scenario-message-truncation-embeddings.mjs',
-    'instrument-with-pii.mjs',
-    (createRunner, test) => {
-      test('truncates messages when they exceed byte limit - keeps only last message and crops it', async () => {
-        await createRunner()
-          .ignore('event')
-          .expect({
-            transaction: {
-              transaction: 'main',
-              spans: expect.arrayContaining([
-                expect.objectContaining({
-                  data: expect.objectContaining({
-                    'gen_ai.operation.name': 'embeddings',
-                  }),
                 }),
               ]),
             },
