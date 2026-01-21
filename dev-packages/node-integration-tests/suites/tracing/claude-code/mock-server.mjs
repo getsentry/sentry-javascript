@@ -45,7 +45,7 @@ export class MockClaudeAgentSdk {
     const scenarioName = params.options?.scenario || 'basic';
 
     // Get scenario or use default
-    const scenario = this.scenarios[scenarioName] || this._getBasicScenario(params);
+    const scenario = this.scenarios[scenarioName] || this._getBasicScenario();
 
     // Yield messages with small delays to simulate streaming
     for (const message of scenario.messages) {
@@ -68,7 +68,7 @@ export class MockClaudeAgentSdk {
     }
   }
 
-  _getBasicScenario(params) {
+  _getBasicScenario() {
     const responseId = `resp_${Date.now()}`;
     const usage = {
       input_tokens: 10,
