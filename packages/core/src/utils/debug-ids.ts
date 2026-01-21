@@ -114,14 +114,12 @@ export function getDebugImagesForResources(
   const images: DebugImage[] = [];
   for (const path of resource_paths) {
     const normalizedPath = normalizeStackTracePath(path);
-    if (normalizedPath) {
-      if (filenameDebugIdMap[normalizedPath]) {
-        images.push({
-          type: 'sourcemap',
-          code_file: path,
-          debug_id: filenameDebugIdMap[normalizedPath],
-        });
-      }
+    if (normalizedPath && filenameDebugIdMap[normalizedPath]) {
+      images.push({
+        type: 'sourcemap',
+        code_file: path,
+        debug_id: filenameDebugIdMap[normalizedPath],
+      });
     }
   }
 
