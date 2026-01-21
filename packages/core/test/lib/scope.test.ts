@@ -1011,6 +1011,40 @@ describe('Scope', () => {
     });
   });
 
+  describe('setConversationId() / getConversationId()', () => {
+    test('sets and gets conversation ID', () => {
+      const scope = new Scope();
+      scope.setConversationId('conv_abc123');
+      expect(scope.getConversationId()).toEqual('conv_abc123');
+    });
+
+    test('unsets conversation ID with null or undefined', () => {
+      const scope = new Scope();
+      scope.setConversationId('conv_abc123');
+      scope.setConversationId(null);
+      expect(scope.getConversationId()).toBeUndefined();
+
+      scope.setConversationId('conv_abc123');
+      scope.setConversationId(undefined);
+      expect(scope.getConversationId()).toBeUndefined();
+    });
+
+    test('clones conversation ID to new scope', () => {
+      const scope = new Scope();
+      scope.setConversationId('conv_clone123');
+      const clonedScope = scope.clone();
+      expect(clonedScope.getConversationId()).toEqual('conv_clone123');
+    });
+
+    test('notifies scope listeners when conversation ID is set', () => {
+      const scope = new Scope();
+      const listener = vi.fn();
+      scope.addScopeListener(listener);
+      scope.setConversationId('conv_listener');
+      expect(listener).toHaveBeenCalledWith(scope);
+    });
+  });
+
   describe('addBreadcrumb()', () => {
     test('adds a breadcrumb', () => {
       const scope = new Scope();

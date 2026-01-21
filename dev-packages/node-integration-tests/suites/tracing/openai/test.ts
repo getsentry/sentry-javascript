@@ -720,4 +720,144 @@ describe('OpenAI integration', () => {
         .completed();
     });
   });
+
+  // Test for manual conversation ID setting using setConversationId()
+  const EXPECTED_TRANSACTION_MANUAL_CONVERSATION_ID = {
+    transaction: 'chat-with-manual-conversation-id',
+    spans: expect.arrayContaining([
+      // All three chat completion spans should have the same manually-set conversation ID
+      expect.objectContaining({
+        data: expect.objectContaining({
+          'gen_ai.conversation.id': 'user_chat_session_abc123',
+          'gen_ai.system': 'openai',
+          'gen_ai.request.model': 'gpt-4',
+          'gen_ai.operation.name': 'chat',
+          'sentry.op': 'gen_ai.chat',
+        }),
+        description: 'chat gpt-4',
+        op: 'gen_ai.chat',
+        origin: 'auto.ai.openai',
+        status: 'ok',
+      }),
+      expect.objectContaining({
+        data: expect.objectContaining({
+          'gen_ai.conversation.id': 'user_chat_session_abc123',
+          'gen_ai.system': 'openai',
+          'gen_ai.request.model': 'gpt-4',
+          'gen_ai.operation.name': 'chat',
+          'sentry.op': 'gen_ai.chat',
+        }),
+        description: 'chat gpt-4',
+        op: 'gen_ai.chat',
+        origin: 'auto.ai.openai',
+        status: 'ok',
+      }),
+      expect.objectContaining({
+        data: expect.objectContaining({
+          'gen_ai.conversation.id': 'user_chat_session_abc123',
+          'gen_ai.system': 'openai',
+          'gen_ai.request.model': 'gpt-4',
+          'gen_ai.operation.name': 'chat',
+          'sentry.op': 'gen_ai.chat',
+        }),
+        description: 'chat gpt-4',
+        op: 'gen_ai.chat',
+        origin: 'auto.ai.openai',
+        status: 'ok',
+      }),
+    ]),
+  };
+
+  createEsmAndCjsTests(__dirname, 'scenario-manual-conversation-id.mjs', 'instrument.mjs', (createRunner, test) => {
+    test('attaches manual conversation ID set via setConversationId() to all chat spans', async () => {
+      await createRunner()
+        .ignore('event')
+        .expect({ transaction: EXPECTED_TRANSACTION_MANUAL_CONVERSATION_ID })
+        .start()
+        .completed();
+    });
+  });
+
+  // Test for scope isolation - different scopes have different conversation IDs
+  const EXPECTED_TRANSACTION_CONVERSATION_1 = {
+    transaction: 'GET /chat/conversation-1',
+    spans: expect.arrayContaining([
+      // Both chat completion spans in conversation 1 should have conv_user1_session_abc
+      expect.objectContaining({
+        data: expect.objectContaining({
+          'gen_ai.conversation.id': 'conv_user1_session_abc',
+          'gen_ai.system': 'openai',
+          'gen_ai.request.model': 'gpt-4',
+          'sentry.op': 'gen_ai.chat',
+        }),
+        description: 'chat gpt-4',
+        op: 'gen_ai.chat',
+        origin: 'auto.ai.openai',
+        status: 'ok',
+      }),
+      expect.objectContaining({
+        data: expect.objectContaining({
+          'gen_ai.conversation.id': 'conv_user1_session_abc',
+          'gen_ai.system': 'openai',
+          'gen_ai.request.model': 'gpt-4',
+          'sentry.op': 'gen_ai.chat',
+        }),
+        description: 'chat gpt-4',
+        op: 'gen_ai.chat',
+        origin: 'auto.ai.openai',
+        status: 'ok',
+      }),
+    ]),
+  };
+
+  const EXPECTED_TRANSACTION_CONVERSATION_2 = {
+    transaction: 'GET /chat/conversation-2',
+    spans: expect.arrayContaining([
+      // Both chat completion spans in conversation 2 should have conv_user2_session_xyz
+      expect.objectContaining({
+        data: expect.objectContaining({
+          'gen_ai.conversation.id': 'conv_user2_session_xyz',
+          'gen_ai.system': 'openai',
+          'gen_ai.request.model': 'gpt-4',
+          'sentry.op': 'gen_ai.chat',
+        }),
+        description: 'chat gpt-4',
+        op: 'gen_ai.chat',
+        origin: 'auto.ai.openai',
+        status: 'ok',
+      }),
+      expect.objectContaining({
+        data: expect.objectContaining({
+          'gen_ai.conversation.id': 'conv_user2_session_xyz',
+          'gen_ai.system': 'openai',
+          'gen_ai.request.model': 'gpt-4',
+          'sentry.op': 'gen_ai.chat',
+        }),
+        description: 'chat gpt-4',
+        op: 'gen_ai.chat',
+        origin: 'auto.ai.openai',
+        status: 'ok',
+      }),
+    ]),
+  };
+
+  createEsmAndCjsTests(__dirname, 'scenario-separate-scope-1.mjs', 'instrument.mjs', (createRunner, test) => {
+    test('isolates conversation IDs across separate scopes - conversation 1', async () => {
+      await createRunner()
+        .ignore('event')
+        .expect({ transaction: EXPECTED_TRANSACTION_CONVERSATION_1 })
+        .start()
+        .completed();
+    });
+  });
+
+  createEsmAndCjsTests(__dirname, 'scenario-separate-scope-2.mjs', 'instrument.mjs', (createRunner, test) => {
+    test('isolates conversation IDs across separate scopes - conversation 2', async () => {
+      await createRunner()
+        .ignore('event')
+        .expect({ transaction: EXPECTED_TRANSACTION_CONVERSATION_2 })
+        .start()
+        .completed();
+    });
+  });
 });

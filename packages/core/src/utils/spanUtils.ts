@@ -152,20 +152,14 @@ export function spanToJSON(span: Span): SpanJSON {
     const { attributes, startTime, name, endTime, status, links } = span;
     // Automatically inject conversation ID from scope if not already set
     if (!attributes[GEN_AI_CONVERSATION_ID_ATTRIBUTE]) {
-      // First try captured scopes (scopes at span creation time)
       const capturedScopes = getCapturedScopesOnSpan(span);
-      // Try captured isolation scope first (where setConversationId sets it)
-      let conversationId = capturedScopes.isolationScope?.getConversationId();
+      // Check current scope first (higher precedence), then isolation scope
+      let conversationId =
+        capturedScopes.scope?.getConversationId() || capturedScopes.isolationScope?.getConversationId();
 
-      // Fallback to regular scope
+      // If not found in captured scopes, try currently active scope as fallback (for OTel spans)
       if (!conversationId) {
-        conversationId = capturedScopes.scope?.getConversationId();
-      }
-
-      // If not found in captured scopes, try current scopes (from AsyncLocalStorage)
-      if (!conversationId) {
-        const currentScope = getCurrentScope();
-        conversationId = currentScope?.getConversationId();
+        conversationId = getCurrentScope()?.getConversationId();
       }
 
       if (conversationId) {
