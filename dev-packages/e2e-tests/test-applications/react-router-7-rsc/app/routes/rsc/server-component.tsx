@@ -15,22 +15,11 @@ async function _ServerComponent({ loaderData }: Route.ComponentProps) {
   );
 }
 
-// Export the wrapped component - used when RSC mode is enabled
-export const ServerComponent = wrapServerComponent(_ServerComponent, {
-  componentRoute: '/rsc/server-component',
-  componentType: 'Page',
-});
-
 export async function loader() {
   return { message: 'Hello from server loader!' };
 }
 
-// Default export for standard framework mode
-// export default function ServerComponentPage({ loaderData }: Route.ComponentProps) {
-//   return (
-//     <main>
-//       <h1>Server Component Page</h1>
-//       <p data-testid="loader-message">Loader: {loaderData?.message ?? 'No loader data'}</p>
-//     </main>
-//   );
-// }
+export default wrapServerComponent(_ServerComponent, {
+  componentRoute: '/rsc/server-component',
+  componentType: 'Page',
+});
