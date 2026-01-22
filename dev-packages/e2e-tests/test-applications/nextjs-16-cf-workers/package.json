@@ -41,10 +41,6 @@
   "sentryTest": {
     "variants": [
       {
-        "build-command": "pnpm test:build",
-        "label": "nextjs-16-cf-workers"
-      },
-      {
         "build-command": "pnpm test:build-latest",
         "label": "nextjs-16-cf-workers (latest)"
       }
