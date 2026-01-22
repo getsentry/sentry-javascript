@@ -22,23 +22,13 @@ async function _AsyncServerComponent(_props: Route.ComponentProps) {
   );
 }
 
-export const ServerComponent = wrapServerComponent(_AsyncServerComponent, {
-  componentRoute: '/rsc/server-component-async',
-  componentType: 'Page',
-});
-
 // Loader fetches data in standard mode
 export async function loader() {
   const data = await fetchData();
   return data;
 }
 
-// Default export for standard framework mode
-// export default function AsyncServerComponentPage({ loaderData }: Route.ComponentProps) {
-//   return (
-//     <main>
-//       <h1 data-testid="title">{loaderData?.title ?? 'Loading...'}</h1>
-//       <p data-testid="content">{loaderData?.content ?? 'Loading...'}</p>
-//     </main>
-//   );
-// }
+export default wrapServerComponent(_AsyncServerComponent, {
+  componentRoute: '/rsc/server-component-async',
+  componentType: 'Page',
+});

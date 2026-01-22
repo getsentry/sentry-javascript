@@ -4,25 +4,49 @@ import { APP_NAME } from '../constants';
 
 test.describe('RSC - Server Function Wrapper', () => {
   test('creates transaction for wrapped server function via action', async ({ page }) => {
-    const txPromise = waitForTransaction(APP_NAME, async transactionEvent => {
-      // The server function is called via the action, look for the action transaction
-      return transactionEvent.transaction?.includes('/rsc/server-function');
+    const txPromise = waitForTransaction(APP_NAME, transactionEvent => {
+      const isServerTransaction = transactionEvent.contexts?.runtime?.name === 'node';
+      const matchesRoute =
+        transactionEvent.transaction?.includes('/rsc/server-function') ||
+        transactionEvent.request?.url?.includes('/rsc/server-function');
+      return Boolean(isServerTransaction && matchesRoute && !transactionEvent.transaction?.includes('-error'));
     });
 
     await page.goto(`/rsc/server-function`);
     await page.locator('#submit').click();
 
+    // Verify the form submission was successful
+    await expect(page.getByTestId('message')).toContainText('Hello, Sentry User!');
+
     const transaction = await txPromise;
 
     expect(transaction).toMatchObject({
       type: 'transaction',
+      transaction: expect.stringMatching(/\/rsc\/server-function|GET \*/),
       platform: 'node',
       environment: 'qa',
+      contexts: {
+        trace: {
+          span_id: expect.any(String),
+          trace_id: expect.any(String),
+        },
+      },
+      spans: expect.any(Array),
+      start_timestamp: expect.any(Number),
+      timestamp: expect.any(Number),
+      sdk: {
+        name: 'sentry.javascript.react-router',
+        version: expect.any(String),
+        packages: expect.arrayContaining([
+          expect.objectContaining({ name: 'npm:@sentry/react-router', version: expect.any(String) }),
+          expect.objectContaining({ name: 'npm:@sentry/node', version: expect.any(String) }),
+        ]),
+      },
     });
 
     // Check for server function span in the transaction
     const serverFunctionSpan = transaction.spans?.find(
-      (span: any) => span.data?.['rsc.server_function.name'] === 'submitForm',
+      span => span.data?.['rsc.server_function.name'] === 'submitForm',
     );
 
     if (serverFunctionSpan) {
@@ -34,14 +58,11 @@ test.describe('RSC - Server Function Wrapper', () => {
         }),
       });
     }
-
-    // Verify the form submission was successful
-    await expect(page.getByTestId('message')).toContainText('Hello, Sentry User!');
   });
 
   test('captures error from wrapped server function', async ({ page }) => {
     const errorMessage = 'RSC Server Function Error: Something went wrong!';
-    const errorPromise = waitForError(APP_NAME, async errorEvent => {
+    const errorPromise = waitForError(APP_NAME, errorEvent => {
       return errorEvent?.exception?.values?.[0]?.value === errorMessage;
     });
 

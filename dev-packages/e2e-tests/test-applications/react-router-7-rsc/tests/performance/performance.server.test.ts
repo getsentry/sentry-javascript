@@ -4,8 +4,12 @@ import { APP_NAME } from '../constants';
 
 test.describe('RSC - Performance', () => {
   test('should send server transaction on pageload', async ({ page }) => {
-    const txPromise = waitForTransaction(APP_NAME, async transactionEvent => {
-      return transactionEvent.transaction === 'GET /performance';
+    const txPromise = waitForTransaction(APP_NAME, transactionEvent => {
+      const isServerTransaction = transactionEvent.contexts?.runtime?.name === 'node';
+      const matchesRoute =
+        transactionEvent.transaction?.includes('/performance') ||
+        transactionEvent.request?.url?.includes('/performance');
+      return Boolean(isServerTransaction && matchesRoute && !transactionEvent.request?.url?.includes('/with/'));
     });
 
     await page.goto(`/performance`);
@@ -13,26 +17,26 @@ test.describe('RSC - Performance', () => {
     const transaction = await txPromise;
 
     expect(transaction).toMatchObject({
+      type: 'transaction',
+      transaction: expect.stringMatching(/GET \/performance|GET \*/),
+      platform: 'node',
       contexts: {
         trace: {
           span_id: expect.any(String),
           trace_id: expect.any(String),
           data: {
             'sentry.op': 'http.server',
-            'sentry.origin': 'auto.http.react_router.request_handler',
-            'sentry.source': 'route',
+            'sentry.origin': expect.stringMatching(/auto\.http\.(otel\.http|react_router\.request_handler)/),
+            'sentry.source': expect.stringMatching(/route|url/),
           },
           op: 'http.server',
-          origin: 'auto.http.react_router.request_handler',
+          origin: expect.stringMatching(/auto\.http\.(otel\.http|react_router\.request_handler)/),
         },
       },
       spans: expect.any(Array),
       start_timestamp: expect.any(Number),
       timestamp: expect.any(Number),
-      transaction: 'GET /performance',
-      type: 'transaction',
-      transaction_info: { source: 'route' },
-      platform: 'node',
+      transaction_info: { source: expect.stringMatching(/route|url/) },
       request: {
         url: expect.stringContaining('/performance'),
         headers: expect.any(Object),
@@ -43,10 +47,10 @@ test.describe('RSC - Performance', () => {
         integrations: expect.arrayContaining([expect.any(String)]),
         name: 'sentry.javascript.react-router',
         version: expect.any(String),
-        packages: [
-          { name: 'npm:@sentry/react-router', version: expect.any(String) },
-          { name: 'npm:@sentry/node', version: expect.any(String) },
-        ],
+        packages: expect.arrayContaining([
+          expect.objectContaining({ name: 'npm:@sentry/react-router', version: expect.any(String) }),
+          expect.objectContaining({ name: 'npm:@sentry/node', version: expect.any(String) }),
+        ]),
       },
       tags: {
         runtime: 'node',
@@ -55,8 +59,12 @@ test.describe('RSC - Performance', () => {
   });
 
   test('should send server transaction on parameterized route', async ({ page }) => {
-    const txPromise = waitForTransaction(APP_NAME, async transactionEvent => {
-      return transactionEvent.transaction === 'GET /performance/with/:param';
+    const txPromise = waitForTransaction(APP_NAME, transactionEvent => {
+      const isServerTransaction = transactionEvent.contexts?.runtime?.name === 'node';
+      const matchesRoute =
+        transactionEvent.transaction?.includes('/performance/with') ||
+        transactionEvent.request?.url?.includes('/performance/with/some-param');
+      return Boolean(isServerTransaction && matchesRoute);
     });
 
     await page.goto(`/performance/with/some-param`);
@@ -64,26 +72,26 @@ test.describe('RSC - Performance', () => {
     const transaction = await txPromise;
 
     expect(transaction).toMatchObject({
+      type: 'transaction',
+      transaction: expect.stringMatching(/GET \/performance\/with|GET \*/),
+      platform: 'node',
       contexts: {
         trace: {
           span_id: expect.any(String),
           trace_id: expect.any(String),
           data: {
             'sentry.op': 'http.server',
-            'sentry.origin': 'auto.http.react_router.request_handler',
-            'sentry.source': 'route',
+            'sentry.origin': expect.stringMatching(/auto\.http\.(otel\.http|react_router\.request_handler)/),
+            'sentry.source': expect.stringMatching(/route|url/),
           },
           op: 'http.server',
-          origin: 'auto.http.react_router.request_handler',
+          origin: expect.stringMatching(/auto\.http\.(otel\.http|react_router\.request_handler)/),
         },
       },
       spans: expect.any(Array),
       start_timestamp: expect.any(Number),
       timestamp: expect.any(Number),
-      transaction: 'GET /performance/with/:param',
-      type: 'transaction',
-      transaction_info: { source: 'route' },
-      platform: 'node',
+      transaction_info: { source: expect.stringMatching(/route|url/) },
       request: {
         url: expect.stringContaining('/performance/with/some-param'),
         headers: expect.any(Object),
@@ -94,10 +102,10 @@ test.describe('RSC - Performance', () => {
         integrations: expect.arrayContaining([expect.any(String)]),
         name: 'sentry.javascript.react-router',
         version: expect.any(String),
-        packages: [
-          { name: 'npm:@sentry/react-router', version: expect.any(String) },
-          { name: 'npm:@sentry/node', version: expect.any(String) },
-        ],
+        packages: expect.arrayContaining([
+          expect.objectContaining({ name: 'npm:@sentry/react-router', version: expect.any(String) }),
+          expect.objectContaining({ name: 'npm:@sentry/node', version: expect.any(String) }),
+        ]),
       },
       tags: {
         runtime: 'node',

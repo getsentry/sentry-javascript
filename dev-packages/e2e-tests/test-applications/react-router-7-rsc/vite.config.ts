@@ -6,4 +6,17 @@ import { defineConfig } from 'vite';
 // This enables React Server Components support in React Router
 export default defineConfig({
   plugins: [unstable_reactRouterRSC(), rsc()],
+  // Exclude chokidar from RSC bundling - it's a CommonJS file watcher
+  // that causes parse errors when the RSC plugin tries to process it
+  optimizeDeps: {
+    exclude: ['chokidar'],
+  },
+  ssr: {
+    external: ['chokidar'],
+  },
+  build: {
+    rollupOptions: {
+      external: ['chokidar'],
+    },
+  },
 });
