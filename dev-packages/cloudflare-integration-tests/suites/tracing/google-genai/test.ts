@@ -1,16 +1,4 @@
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { expect, it } from 'vitest';
-import {
-  GEN_AI_OPERATION_NAME_ATTRIBUTE,
-  GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE,
-  GEN_AI_REQUEST_MODEL_ATTRIBUTE,
-  GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE,
-  GEN_AI_REQUEST_TOP_P_ATTRIBUTE,
-  GEN_AI_SYSTEM_ATTRIBUTE,
-  GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
-  GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
-  GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
-} from '../../../../../packages/core/src/tracing/ai/gen-ai-attributes';
 import { createRunner } from '../../../runner';
 
 // These tests are not exhaustive because the instrumentation is
@@ -36,7 +24,7 @@ it('traces Google GenAI chat creation and message sending', async () => {
               [GEN_AI_SYSTEM_ATTRIBUTE]: 'google_genai',
               [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'gemini-1.5-pro',
               [GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE]: 0.8,
-              [GEN_AI_REQUEST_TOP_P_ATTRIBUTE]: 0.9,
+              'gen_ai.request.top_p': 0.9,
               [GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE]: 150,
             }),
             description: 'chat gemini-1.5-pro create',
@@ -62,20 +50,20 @@ it('traces Google GenAI chat creation and message sending', async () => {
           // Third span - models.generateContent
           expect.objectContaining({
             data: expect.objectContaining({
-              [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'models',
-              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.models',
+              [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'generate_content',
+              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.generate_content',
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.google_genai',
               [GEN_AI_SYSTEM_ATTRIBUTE]: 'google_genai',
               [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'gemini-1.5-flash',
               [GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE]: 0.7,
-              [GEN_AI_REQUEST_TOP_P_ATTRIBUTE]: 0.9,
+              'gen_ai.request.top_p': 0.9,
               [GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE]: 100,
               [GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]: 8,
               [GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]: 12,
               [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: 20,
             }),
-            description: 'models gemini-1.5-flash',
-            op: 'gen_ai.models',
+            description: 'generate_content gemini-1.5-flash',
+            op: 'gen_ai.generate_content',
             origin: 'auto.ai.google_genai',
           }),
         ]),
