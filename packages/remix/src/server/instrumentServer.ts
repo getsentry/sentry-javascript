@@ -227,13 +227,15 @@ function makeWrappedDataFunction(
   build?: ServerBuild,
 ): DataFunction {
   return async function (this: unknown, args: DataFunctionArgs): Promise<Response | AppData> {
+    let res: Response | AppData;
+
     if (instrumentTracing) {
       // Update span name for Cloudflare Workers/Hydrogen environments
       if (build) {
         updateSpanWithRoute(args, build);
       }
 
-      return startSpan(
+      res = await startSpan(
         {
           op: `function.remix.${name}`,
           name: id,
@@ -248,8 +250,24 @@ function makeWrappedDataFunction(
         },
       );
     } else {
-      return errorHandleDataFunction.call(this, origFn, name, args);
+      res = await errorHandleDataFunction.call(this, origFn, name, args);
     }
+
+    // Inject Server-Timing header for redirect responses.
+    // Redirects bypass makeWrappedDocumentRequestFunction, so we inject here using the active OTel span.
+    if (isResponse(res) && isRedirectResponse(res) && !res.headers.has('Server-Timing')) {
+      const activeSpan = getActiveSpan();
+      const rootSpan = activeSpan && getRootSpan(activeSpan);
+      if (rootSpan) {
+        const serverTimingHeader = generateSentryServerTimingHeader({ span: rootSpan });
+        if (serverTimingHeader) {
+          DEBUG_BUILD && debug.log('Injecting Server-Timing header for redirect response');
+          return injectServerTimingHeaderValue(res, serverTimingHeader);
+        }
+      }
+    }
+
+    return res;
   };
 }
 
