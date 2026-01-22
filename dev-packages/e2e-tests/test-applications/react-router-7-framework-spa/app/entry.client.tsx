@@ -9,7 +9,7 @@ Sentry.init({
   dsn: 'https://username@domain/123',
   integrations: [Sentry.reactRouterTracingIntegration()],
   tracesSampleRate: 1.0,
-  tunnel: `http://localhost:3031/`, // proxy server
+  tunnel: `http://localhost:3031/`,
   tracePropagationTargets: [/^\//],
 });
 

@@ -12,7 +12,11 @@
     "type-check": "vue-tsc --build --force",
     "test": "playwright test",
     "test:build": "pnpm install && pnpm build",
-    "test:assert": "playwright test"
+    "test:assert": "pnpm test:print-version && playwright test",
+    "test:build-canary": "pnpm install && pnpm test:install-canary && pnpm build",
+    "test:build-latest": "pnpm install && pnpm add vue@latest && pnpm build",
+    "test:install-canary": "pnpm add vue@$(git ls-remote --tags --sort='v:refname' https://github.com/vuejs/core.git | tail -n1 | awk -F'/' '{print $NF}')",
+    "test:print-version": "node -p \"'Vue version: ' + require('vue/package.json').version\""
   },
   "dependencies": {
     "@sentry/vue": "latest || *",
@@ -36,5 +40,19 @@
   },
   "volta": {
     "extends": "../../package.json"
+  },
+  "sentryTest": {
+    "variants": [
+      {
+        "build-command": "pnpm test:build-latest",
+        "label": "vue-3 (latest)"
+      }
+    ],
+    "optionalVariants": [
+      {
+        "build-command": "pnpm test:build-canary",
+        "label": "vue-3 (canary)"
+      }
+    ]
   }
 }

@@ -22,7 +22,7 @@ import {
   updateSessionDataForTransport,
 } from './sessionManagement';
 import { buildMcpServerSpanConfig, createMcpNotificationSpan, createMcpOutgoingNotificationSpan } from './spans';
-import type { ExtraHandlerData, MCPTransport, SessionData } from './types';
+import type { ExtraHandlerData, MCPTransport, ResolvedMcpOptions, SessionData } from './types';
 import { isJsonRpcNotification, isJsonRpcRequest, isJsonRpcResponse, isValidContentItem } from './validation';
 
 /**
@@ -30,8 +30,9 @@ import { isJsonRpcNotification, isJsonRpcRequest, isJsonRpcResponse, isValidCont
  * For "initialize" requests, extracts and stores client info and protocol version
  * in the session data for the transport.
  * @param transport - MCP transport instance to wrap
+ * @param options - Resolved MCP options
  */
-export function wrapTransportOnMessage(transport: MCPTransport): void {
+export function wrapTransportOnMessage(transport: MCPTransport, options: ResolvedMcpOptions): void {
   if (transport.onmessage) {
     fill(transport, 'onmessage', originalOnMessage => {
       return function (this: MCPTransport, message: unknown, extra?: unknown) {
@@ -51,7 +52,7 @@ export function wrapTransportOnMessage(transport: MCPTransport): void {
           const isolationScope = getIsolationScope().clone();
 
           return withIsolationScope(isolationScope, () => {
-            const spanConfig = buildMcpServerSpanConfig(message, this, extra as ExtraHandlerData);
+            const spanConfig = buildMcpServerSpanConfig(message, this, extra as ExtraHandlerData, options);
             const span = startInactiveSpan(spanConfig);
 
             // For initialize requests, add client info directly to span (works even for stateless transports)
@@ -73,7 +74,7 @@ export function wrapTransportOnMessage(transport: MCPTransport): void {
         }
 
         if (isJsonRpcNotification(message)) {
-          return createMcpNotificationSpan(message, this, extra as ExtraHandlerData, () => {
+          return createMcpNotificationSpan(message, this, extra as ExtraHandlerData, options, () => {
             return (originalOnMessage as (...args: unknown[]) => unknown).call(this, message, extra);
           });
         }
@@ -89,15 +90,16 @@ export function wrapTransportOnMessage(transport: MCPTransport): void {
  * For "initialize" responses, extracts and stores protocol version and server info
  * in the session data for the transport.
  * @param transport - MCP transport instance to wrap
+ * @param options - Resolved MCP options
  */
-export function wrapTransportSend(transport: MCPTransport): void {
+export function wrapTransportSend(transport: MCPTransport, options: ResolvedMcpOptions): void {
   if (transport.send) {
     fill(transport, 'send', originalSend => {
       return async function (this: MCPTransport, ...args: unknown[]) {
         const [message] = args;
 
         if (isJsonRpcNotification(message)) {
-          return createMcpOutgoingNotificationSpan(message, this, () => {
+          return createMcpOutgoingNotificationSpan(message, this, options, () => {
             return (originalSend as (...args: unknown[]) => unknown).call(this, ...args);
           });
         }
@@ -119,7 +121,7 @@ export function wrapTransportSend(transport: MCPTransport): void {
               }
             }
 
-            completeSpanWithResults(this, message.id, message.result);
+            completeSpanWithResults(this, message.id, message.result, options);
           }
         }
 

@@ -1,7 +1,8 @@
 import { describe, expect, it, test } from 'vitest';
 import type { Client } from '../../../src/client';
-import { eventFromMessage, eventFromUnknownInput } from '../../../src/utils/eventbuilder';
+import { eventFromMessage, eventFromUnknownInput, exceptionFromError } from '../../../src/utils/eventbuilder';
 import { nodeStackLineParser } from '../../../src/utils/node-stack-trace';
+import { addNonEnumerableProperty } from '../../../src/utils/object';
 import { createStackParser } from '../../../src/utils/stacktrace';
 
 const stackParser = createStackParser(nodeStackLineParser());
@@ -212,6 +213,83 @@ describe('eventFromMessage', () => {
       event_id: '123abc',
       level: 'info',
       message: 'Test Message',
+    });
+  });
+
+  describe('__sentry_fetch_url_host__ error enhancement', () => {
+    it('should enhance error message when __sentry_fetch_url_host__ property is present', () => {
+      const error = new TypeError('Failed to fetch');
+      // Simulate what fetch instrumentation does
+      addNonEnumerableProperty(error, '__sentry_fetch_url_host__', 'example.com');
+
+      const exception = exceptionFromError(stackParser, error);
+
+      expect(exception.value).toBe('Failed to fetch (example.com)');
+      expect(exception.type).toBe('TypeError');
+    });
+
+    it('should not enhance error message when property is missing', () => {
+      const error = new TypeError('Failed to fetch');
+
+      const exception = exceptionFromError(stackParser, error);
+
+      expect(exception.value).toBe('Failed to fetch');
+      expect(exception.type).toBe('TypeError');
+    });
+
+    it('should preserve original error message unchanged', () => {
+      const error = new TypeError('Failed to fetch');
+      addNonEnumerableProperty(error, '__sentry_fetch_url_host__', 'api.example.com');
+
+      // Original error message should still be accessible
+      expect(error.message).toBe('Failed to fetch');
+
+      // But Sentry exception should have enhanced message
+      const exception = exceptionFromError(stackParser, error);
+      expect(exception.value).toBe('Failed to fetch (api.example.com)');
+    });
+
+    it.each([
+      { message: 'Failed to fetch', host: 'example.com', expected: 'Failed to fetch (example.com)' },
+      { message: 'Load failed', host: 'api.test.com', expected: 'Load failed (api.test.com)' },
+      {
+        message: 'NetworkError when attempting to fetch resource.',
+        host: 'localhost:3000',
+        expected: 'NetworkError when attempting to fetch resource. (localhost:3000)',
+      },
+    ])('should work with all network error types ($message)', ({ message, host, expected }) => {
+      const error = new TypeError(message);
+
+      addNonEnumerableProperty(error, '__sentry_fetch_url_host__', host);
+
+      const exception = exceptionFromError(stackParser, error);
+      expect(exception.value).toBe(expected);
+    });
+
+    it('should not enhance if property value is not a string', () => {
+      const error = new TypeError('Failed to fetch');
+      addNonEnumerableProperty(error, '__sentry_fetch_url_host__', 123); // Not a string
+
+      const exception = exceptionFromError(stackParser, error);
+      expect(exception.value).toBe('Failed to fetch');
+    });
+
+    it('should handle errors with stack traces', () => {
+      const error = new TypeError('Failed to fetch');
+      error.stack = 'TypeError: Failed to fetch\n    at fetch (test.js:1:1)';
+      addNonEnumerableProperty(error, '__sentry_fetch_url_host__', 'example.com');
+
+      const exception = exceptionFromError(stackParser, error);
+      expect(exception.value).toBe('Failed to fetch (example.com)');
+      expect(exception.type).toBe('TypeError');
+    });
+
+    it('should preserve hostname with port', () => {
+      const error = new TypeError('Failed to fetch');
+      addNonEnumerableProperty(error, '__sentry_fetch_url_host__', 'localhost:8080');
+
+      const exception = exceptionFromError(stackParser, error);
+      expect(exception.value).toBe('Failed to fetch (localhost:8080)');
     });
   });
 });

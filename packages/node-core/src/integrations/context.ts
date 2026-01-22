@@ -204,6 +204,7 @@ function getCultureContext(): CultureContext | undefined {
  */
 export function getAppContext(): AppContext {
   const app_memory = process.memoryUsage().rss;
+  // eslint-disable-next-line @sentry-internal/sdk/no-unsafe-random-apis
   const app_start_time = new Date(Date.now() - process.uptime() * 1000).toISOString();
   // https://nodejs.org/api/process.html#processavailablememory
   const appContext: AppContext = { app_start_time, app_memory };
@@ -236,6 +237,7 @@ export function getDeviceContext(deviceOpt: DeviceContextOptions | true): Device
   // Hence, we only set boot time, if we get a valid uptime value.
   // @see https://github.com/getsentry/sentry-javascript/issues/5856
   if (typeof uptime === 'number') {
+    // eslint-disable-next-line @sentry-internal/sdk/no-unsafe-random-apis
     device.boot_time = new Date(Date.now() - uptime * 1000).toISOString();
   }
 

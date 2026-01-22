@@ -22,9 +22,10 @@ import {
   getSpanOpFromName,
   requestMessagesFromPrompt,
 } from './utils';
-import type { ProviderMetadata } from './vercel-ai-attributes';
+import type { OpenAiProviderMetadata, ProviderMetadata } from './vercel-ai-attributes';
 import {
   AI_MODEL_ID_ATTRIBUTE,
+  AI_OPERATION_ID_ATTRIBUTE,
   AI_PROMPT_MESSAGES_ATTRIBUTE,
   AI_PROMPT_TOOLS_ATTRIBUTE,
   AI_RESPONSE_OBJECT_ATTRIBUTE,
@@ -65,8 +66,9 @@ function onVercelAiSpanStart(span: Span): void {
     return;
   }
 
-  // Check if this is a Vercel AI span by name pattern.
-  if (!name.startsWith('ai.')) {
+  // V6+ Check if this is a Vercel AI span by checking if the operation ID attribute is present.
+  // V5+ Check if this is a Vercel AI span by name pattern.
+  if (!attributes[AI_OPERATION_ID_ATTRIBUTE] && !name.startsWith('ai.')) {
     return;
   }
 
@@ -270,28 +272,28 @@ function addProviderMetadataToAttributes(attributes: SpanAttributes): void {
   if (providerMetadata) {
     try {
       const providerMetadataObject = JSON.parse(providerMetadata) as ProviderMetadata;
-      if (providerMetadataObject.openai) {
+
+      // Handle OpenAI metadata (v5 uses 'openai', v6 Azure Responses API uses 'azure')
+      const openaiMetadata: OpenAiProviderMetadata | undefined =
+        providerMetadataObject.openai ?? providerMetadataObject.azure;
+      if (openaiMetadata) {
         setAttributeIfDefined(
           attributes,
           GEN_AI_USAGE_INPUT_TOKENS_CACHED_ATTRIBUTE,
-          providerMetadataObject.openai.cachedPromptTokens,
+          openaiMetadata.cachedPromptTokens,
         );
-        setAttributeIfDefined(
-          attributes,
-          'gen_ai.usage.output_tokens.reasoning',
-          providerMetadataObject.openai.reasoningTokens,
-        );
+        setAttributeIfDefined(attributes, 'gen_ai.usage.output_tokens.reasoning', openaiMetadata.reasoningTokens);
         setAttributeIfDefined(
           attributes,
           'gen_ai.usage.output_tokens.prediction_accepted',
-          providerMetadataObject.openai.acceptedPredictionTokens,
+          openaiMetadata.acceptedPredictionTokens,
         );
         setAttributeIfDefined(
           attributes,
           'gen_ai.usage.output_tokens.prediction_rejected',
-          providerMetadataObject.openai.rejectedPredictionTokens,
+          openaiMetadata.rejectedPredictionTokens,
         );
-        setAttributeIfDefined(attributes, 'gen_ai.conversation.id', providerMetadataObject.openai.responseId);
+        setAttributeIfDefined(attributes, 'gen_ai.conversation.id', openaiMetadata.responseId);
       }
 
       if (providerMetadataObject.anthropic) {

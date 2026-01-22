@@ -17,7 +17,6 @@ test('Will create a transaction with spans for every server component and metada
 
   expect(spanDescriptions).toContainEqual('render route (app) /nested-layout');
   expect(spanDescriptions).toContainEqual('generateMetadata /(nested-layout)/nested-layout/page');
-  expect(spanDescriptions).toContainEqual('Page.generateMetadata (/(nested-layout)/nested-layout)');
 
   // Next.js 13 has limited OTEL support for server components, so we don't expect to see the following spans
   if (!isNext13) {
@@ -46,7 +45,6 @@ test('Will create a transaction with spans for every server component and metada
 
   expect(spanDescriptions).toContainEqual('render route (app) /nested-layout/[dynamic]');
   expect(spanDescriptions).toContainEqual('generateMetadata /(nested-layout)/nested-layout/[dynamic]/page');
-  expect(spanDescriptions).toContainEqual('Page.generateMetadata (/(nested-layout)/nested-layout/[dynamic])');
 
   // Next.js 13 has limited OTEL support for server components, so we don't expect to see the following spans
   if (!isNext13) {

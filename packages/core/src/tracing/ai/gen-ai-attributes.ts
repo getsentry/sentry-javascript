@@ -116,6 +116,11 @@ export const GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE = 'gen_ai.usage.total_tokens';
 export const GEN_AI_OPERATION_NAME_ATTRIBUTE = 'gen_ai.operation.name';
 
 /**
+ * Original length of messages array, used to indicate truncations had occured
+ */
+export const GEN_AI_REQUEST_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE = 'gen_ai.request.messages.original_length';
+
+/**
  * The prompt messages
  * Only recorded when recordInputs is enabled
  */
@@ -153,6 +158,13 @@ export const GEN_AI_AGENT_NAME_ATTRIBUTE = 'gen_ai.agent.name';
  * The pipeline name
  */
 export const GEN_AI_PIPELINE_NAME_ATTRIBUTE = 'gen_ai.pipeline.name';
+
+/**
+ * The conversation ID for linking messages across API calls
+ * For OpenAI Assistants API: thread_id
+ * For LangGraph: configurable.thread_id
+ */
+export const GEN_AI_CONVERSATION_ID_ATTRIBUTE = 'gen_ai.conversation.id';
 
 /**
  * The number of cache creation input tokens used
@@ -198,6 +210,12 @@ export const GEN_AI_GENERATE_OBJECT_DO_GENERATE_OPERATION_ATTRIBUTE = 'gen_ai.ge
  * The span operation name for streaming object
  */
 export const GEN_AI_STREAM_OBJECT_DO_STREAM_OPERATION_ATTRIBUTE = 'gen_ai.stream_object';
+
+/**
+ * The embeddings input
+ * Only recorded when recordInputs is enabled
+ */
+export const GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE = 'gen_ai.embeddings.input';
 
 /**
  * The span operation name for embedding
@@ -254,6 +272,7 @@ export const OPENAI_OPERATIONS = {
   CHAT: 'chat',
   RESPONSES: 'responses',
   EMBEDDINGS: 'embeddings',
+  CONVERSATIONS: 'conversations',
 } as const;
 
 // =============================================================================

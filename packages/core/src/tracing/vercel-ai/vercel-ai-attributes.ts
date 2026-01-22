@@ -821,7 +821,7 @@ export const AI_TOOL_CALL_SPAN_ATTRIBUTES = {
  * @see https://github.com/vercel/ai/blob/65e042afde6aad4da9d7a62526ece839eb34f9a5/packages/openai/src/openai-chat-language-model.ts#L397-L416
  * @see https://github.com/vercel/ai/blob/65e042afde6aad4da9d7a62526ece839eb34f9a5/packages/openai/src/responses/openai-responses-language-model.ts#L377C7-L384
  */
-interface OpenAiProviderMetadata {
+export interface OpenAiProviderMetadata {
   /**
    * The number of predicted output tokens that were accepted.
    * @see https://ai-sdk.dev/providers/ai-sdk-providers/openai#predicted-outputs
@@ -1041,9 +1041,11 @@ interface PerplexityProviderMetadata {
 
 export interface ProviderMetadata {
   openai?: OpenAiProviderMetadata;
+  azure?: OpenAiProviderMetadata; // v6: Azure Responses API uses 'azure' key instead of 'openai'
   anthropic?: AnthropicProviderMetadata;
   bedrock?: AmazonBedrockProviderMetadata;
   google?: GoogleGenerativeAIProviderMetadata;
+  vertex?: GoogleGenerativeAIProviderMetadata; // v6: Google Vertex uses 'vertex' key instead of 'google'
   deepseek?: DeepSeekProviderMetadata;
   perplexity?: PerplexityProviderMetadata;
 }

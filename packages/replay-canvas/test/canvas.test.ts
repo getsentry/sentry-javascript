@@ -103,3 +103,31 @@ it('has correct types', () => {
   const res2 = rc.snapshot(document.createElement('canvas'));
   expect(res2).toBeInstanceOf(Promise);
 });
+
+it('tracks current canvas manager across multiple getCanvasManager calls', async () => {
+  const rc = _replayCanvasIntegration({ enableManualSnapshot: true });
+  const options = rc.getOptions();
+
+  // First call - simulates initial recording session
+  // @ts-expect-error don't care about the normal options we need to call this with
+  options.getCanvasManager({});
+  expect(CanvasManager).toHaveBeenCalledTimes(1);
+
+  const mockManager1 = vi.mocked(CanvasManager).mock.results[0].value;
+  mockManager1.snapshot = vi.fn();
+
+  // Second call - simulates session refresh after inactivity or max age
+  // @ts-expect-error don't care about the normal options we need to call this with
+  options.getCanvasManager({});
+  expect(CanvasManager).toHaveBeenCalledTimes(2);
+
+  const mockManager2 = vi.mocked(CanvasManager).mock.results[1].value;
+  mockManager2.snapshot = vi.fn();
+
+  void rc.snapshot();
+
+  await new Promise(resolve => setTimeout(resolve, 0));
+
+  expect(mockManager1.snapshot).toHaveBeenCalledTimes(0);
+  expect(mockManager2.snapshot).toHaveBeenCalledTimes(1);
+});

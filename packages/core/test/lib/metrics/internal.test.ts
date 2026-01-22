@@ -4,81 +4,12 @@ import {
   _INTERNAL_captureMetric,
   _INTERNAL_flushMetricsBuffer,
   _INTERNAL_getMetricBuffer,
-  metricAttributeToSerializedMetricAttribute,
 } from '../../../src/metrics/internal';
 import type { Metric } from '../../../src/types-hoist/metric';
 import * as loggerModule from '../../../src/utils/debug-logger';
 import { getDefaultTestClientOptions, TestClient } from '../../mocks/client';
 
 const PUBLIC_DSN = 'https://username@domain/123';
-
-describe('metricAttributeToSerializedMetricAttribute', () => {
-  it('serializes integer values', () => {
-    const result = metricAttributeToSerializedMetricAttribute(42);
-    expect(result).toEqual({
-      value: 42,
-      type: 'integer',
-    });
-  });
-
-  it('serializes double values', () => {
-    const result = metricAttributeToSerializedMetricAttribute(42.34);
-    expect(result).toEqual({
-      value: 42.34,
-      type: 'double',
-    });
-  });
-
-  it('serializes boolean values', () => {
-    const result = metricAttributeToSerializedMetricAttribute(true);
-    expect(result).toEqual({
-      value: true,
-      type: 'boolean',
-    });
-  });
-
-  it('serializes string values', () => {
-    const result = metricAttributeToSerializedMetricAttribute('endpoint');
-    expect(result).toEqual({
-      value: 'endpoint',
-      type: 'string',
-    });
-  });
-
-  it('serializes object values as JSON strings', () => {
-    const obj = { name: 'John', age: 30 };
-    const result = metricAttributeToSerializedMetricAttribute(obj);
-    expect(result).toEqual({
-      value: JSON.stringify(obj),
-      type: 'string',
-    });
-  });
-
-  it('serializes array values as JSON strings', () => {
-    const array = [1, 2, 3, 'test'];
-    const result = metricAttributeToSerializedMetricAttribute(array);
-    expect(result).toEqual({
-      value: JSON.stringify(array),
-      type: 'string',
-    });
-  });
-
-  it('serializes undefined values as empty strings', () => {
-    const result = metricAttributeToSerializedMetricAttribute(undefined);
-    expect(result).toEqual({
-      value: '',
-      type: 'string',
-    });
-  });
-
-  it('serializes null values as JSON strings', () => {
-    const result = metricAttributeToSerializedMetricAttribute(null);
-    expect(result).toEqual({
-      value: 'null',
-      type: 'string',
-    });
-  });
-});
 
 describe('_INTERNAL_captureMetric', () => {
   it('captures and sends metrics', () => {
@@ -237,6 +168,52 @@ describe('_INTERNAL_captureMetric', () => {
         value: 'GET',
         type: 'string',
       },
+    });
+  });
+
+  it('includes scope attributes in metric attributes', () => {
+    const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
+    const client = new TestClient(options);
+    const scope = new Scope();
+    scope.setClient(client);
+    scope.setAttribute('scope_attribute_1', 1);
+    scope.setAttributes({ scope_attribute_2: { value: 'test' }, scope_attribute_3: { value: 38, unit: 'gigabyte' } });
+
+    _INTERNAL_captureMetric({ type: 'counter', name: 'test.metric', value: 1 }, { scope });
+
+    const metricAttributes = _INTERNAL_getMetricBuffer(client)?.[0]?.attributes;
+    expect(metricAttributes).toEqual({
+      scope_attribute_1: {
+        value: 1,
+        type: 'integer',
+      },
+      scope_attribute_2: {
+        value: 'test',
+        type: 'string',
+      },
+      scope_attribute_3: {
+        value: 38,
+        unit: 'gigabyte',
+        type: 'integer',
+      },
+    });
+  });
+
+  it('prefers metric attributes over scope attributes', () => {
+    const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
+    const client = new TestClient(options);
+    const scope = new Scope();
+    scope.setClient(client);
+    scope.setAttribute('my-attribute', 42);
+
+    _INTERNAL_captureMetric(
+      { type: 'counter', name: 'test.metric', value: 1, attributes: { 'my-attribute': 43 } },
+      { scope },
+    );
+
+    const metricAttributes = _INTERNAL_getMetricBuffer(client)?.[0]?.attributes;
+    expect(metricAttributes).toEqual({
+      'my-attribute': { value: 43, type: 'integer' },
     });
   });
 

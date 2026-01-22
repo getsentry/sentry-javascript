@@ -159,8 +159,8 @@ describe('OpenAI integration (V6)', () => {
           'gen_ai.system': 'openai',
           'gen_ai.request.model': 'gpt-3.5-turbo',
           'gen_ai.request.temperature': 0.7,
-          'gen_ai.request.messages':
-            '[{"role":"system","content":"You are a helpful assistant."},{"role":"user","content":"What is the capital of France?"}]',
+          'gen_ai.request.messages.original_length': 2,
+          'gen_ai.request.messages': '[{"role":"user","content":"What is the capital of France?"}]',
           'gen_ai.response.model': 'gpt-3.5-turbo',
           'gen_ai.response.id': 'chatcmpl-mock123',
           'gen_ai.response.finish_reasons': '["stop"]',
@@ -214,6 +214,7 @@ describe('OpenAI integration (V6)', () => {
           'sentry.origin': 'auto.ai.openai',
           'gen_ai.system': 'openai',
           'gen_ai.request.model': 'error-model',
+          'gen_ai.request.messages.original_length': 1,
           'gen_ai.request.messages': '[{"role":"user","content":"This will fail"}]',
         },
         description: 'chat error-model',
@@ -231,8 +232,8 @@ describe('OpenAI integration (V6)', () => {
           'gen_ai.request.model': 'gpt-4',
           'gen_ai.request.temperature': 0.8,
           'gen_ai.request.stream': true,
-          'gen_ai.request.messages':
-            '[{"role":"system","content":"You are a helpful assistant."},{"role":"user","content":"Tell me about streaming"}]',
+          'gen_ai.request.messages.original_length': 2,
+          'gen_ai.request.messages': '[{"role":"user","content":"Tell me about streaming"}]',
           'gen_ai.response.text': 'Hello from OpenAI streaming!',
           'gen_ai.response.finish_reasons': '["stop"]',
           'gen_ai.response.id': 'chatcmpl-stream-123',
@@ -287,6 +288,7 @@ describe('OpenAI integration (V6)', () => {
           'gen_ai.operation.name': 'chat',
           'gen_ai.request.model': 'error-model',
           'gen_ai.request.stream': true,
+          'gen_ai.request.messages.original_length': 1,
           'gen_ai.request.messages': '[{"role":"user","content":"This will fail"}]',
           'gen_ai.system': 'openai',
           'sentry.op': 'gen_ai.chat',
@@ -306,6 +308,7 @@ describe('OpenAI integration (V6)', () => {
       // Check that custom options are respected
       expect.objectContaining({
         data: expect.objectContaining({
+          'gen_ai.request.messages.original_length': expect.any(Number),
           'gen_ai.request.messages': expect.any(String), // Should include messages when recordInputs: true
           'gen_ai.response.text': expect.any(String), // Should include response text when recordOutputs: true
         }),
@@ -313,6 +316,7 @@ describe('OpenAI integration (V6)', () => {
       // Check that custom options are respected for streaming
       expect.objectContaining({
         data: expect.objectContaining({
+          'gen_ai.request.messages.original_length': expect.any(Number),
           'gen_ai.request.messages': expect.any(String), // Should include messages when recordInputs: true
           'gen_ai.response.text': expect.any(String), // Should include response text when recordOutputs: true
           'gen_ai.request.stream': true, // Should be marked as stream
@@ -375,7 +379,7 @@ describe('OpenAI integration (V6)', () => {
           'gen_ai.request.model': 'text-embedding-3-small',
           'gen_ai.request.encoding_format': 'float',
           'gen_ai.request.dimensions': 1536,
-          'gen_ai.request.messages': 'Embedding test!',
+          'gen_ai.embeddings.input': 'Embedding test!',
           'gen_ai.response.model': 'text-embedding-3-small',
           'gen_ai.usage.input_tokens': 10,
           'gen_ai.usage.total_tokens': 10,
@@ -395,12 +399,32 @@ describe('OpenAI integration (V6)', () => {
           'sentry.origin': 'auto.ai.openai',
           'gen_ai.system': 'openai',
           'gen_ai.request.model': 'error-model',
-          'gen_ai.request.messages': 'Error embedding test!',
+          'gen_ai.embeddings.input': 'Error embedding test!',
         },
         description: 'embeddings error-model',
         op: 'gen_ai.embeddings',
         origin: 'auto.ai.openai',
         status: 'internal_error',
+      }),
+      // Third span - embeddings API with multiple inputs (this does not get truncated)
+      expect.objectContaining({
+        data: {
+          'gen_ai.operation.name': 'embeddings',
+          'sentry.op': 'gen_ai.embeddings',
+          'sentry.origin': 'auto.ai.openai',
+          'gen_ai.system': 'openai',
+          'gen_ai.request.model': 'text-embedding-3-small',
+          'gen_ai.embeddings.input': '["First input text","Second input text","Third input text"]',
+          'gen_ai.response.model': 'text-embedding-3-small',
+          'gen_ai.usage.input_tokens': 10,
+          'gen_ai.usage.total_tokens': 10,
+          'openai.response.model': 'text-embedding-3-small',
+          'openai.usage.prompt_tokens': 10,
+        },
+        description: 'embeddings text-embedding-3-small',
+        op: 'gen_ai.embeddings',
+        origin: 'auto.ai.openai',
+        status: 'ok',
       }),
     ]),
   };

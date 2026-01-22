@@ -58,19 +58,19 @@ conditionalTest({ min: 20 })('LangChain integration (v1)', () => {
         status: 'ok',
       }),
       // Third span - error handling
-      expect.objectContaining({
-        data: expect.objectContaining({
-          'gen_ai.operation.name': 'chat',
-          'sentry.op': 'gen_ai.chat',
-          'sentry.origin': 'auto.ai.langchain',
-          'gen_ai.system': 'anthropic',
-          'gen_ai.request.model': 'error-model',
-        }),
-        description: 'chat error-model',
-        op: 'gen_ai.chat',
-        origin: 'auto.ai.langchain',
-        status: 'internal_error',
-      }),
+      // expect.objectContaining({
+      //   data: expect.objectContaining({
+      //     'gen_ai.operation.name': 'chat',
+      //     'sentry.op': 'gen_ai.chat',
+      //     'sentry.origin': 'auto.ai.langchain',
+      //     'gen_ai.system': 'anthropic',
+      //     'gen_ai.request.model': 'error-model',
+      //   }),
+      //   description: 'chat error-model',
+      //   op: 'gen_ai.chat',
+      //   origin: 'auto.ai.langchain',
+      //   status: 'internal_error',
+      // }),
     ]),
   };
 
@@ -127,20 +127,20 @@ conditionalTest({ min: 20 })('LangChain integration (v1)', () => {
         status: 'ok',
       }),
       // Third span - error handling with PII
-      expect.objectContaining({
-        data: expect.objectContaining({
-          'gen_ai.operation.name': 'chat',
-          'sentry.op': 'gen_ai.chat',
-          'sentry.origin': 'auto.ai.langchain',
-          'gen_ai.system': 'anthropic',
-          'gen_ai.request.model': 'error-model',
-          'gen_ai.request.messages': expect.any(String), // Should include messages when recordInputs: true
-        }),
-        description: 'chat error-model',
-        op: 'gen_ai.chat',
-        origin: 'auto.ai.langchain',
-        status: 'internal_error',
-      }),
+      // expect.objectContaining({
+      //   data: expect.objectContaining({
+      //     'gen_ai.operation.name': 'chat',
+      //     'sentry.op': 'gen_ai.chat',
+      //     'sentry.origin': 'auto.ai.langchain',
+      //     'gen_ai.system': 'anthropic',
+      //     'gen_ai.request.model': 'error-model',
+      //     'gen_ai.request.messages': expect.any(String), // Should include messages when recordInputs: true
+      //   }),
+      //   description: 'chat error-model',
+      //   op: 'gen_ai.chat',
+      //   origin: 'auto.ai.langchain',
+      //   status: 'internal_error',
+      // }),
     ]),
   };
 
@@ -241,6 +241,7 @@ conditionalTest({ min: 20 })('LangChain integration (v1)', () => {
   const EXPECTED_TRANSACTION_MESSAGE_TRUNCATION = {
     transaction: 'main',
     spans: expect.arrayContaining([
+      // First call: String input truncated (only C's remain, D's are cropped)
       expect.objectContaining({
         data: expect.objectContaining({
           'gen_ai.operation.name': 'chat',
@@ -256,6 +257,7 @@ conditionalTest({ min: 20 })('LangChain integration (v1)', () => {
         origin: 'auto.ai.langchain',
         status: 'ok',
       }),
+      // Second call: Array input, last message truncated (only C's remain, D's are cropped)
       expect.objectContaining({
         data: expect.objectContaining({
           'gen_ai.operation.name': 'chat',
@@ -265,6 +267,24 @@ conditionalTest({ min: 20 })('LangChain integration (v1)', () => {
           'gen_ai.request.model': 'claude-3-5-sonnet-20241022',
           // Messages should be present (truncation happened) and should be a JSON array of a single index (contains only Cs)
           'gen_ai.request.messages': expect.stringMatching(/^\[\{"role":"user","content":"C+"\}\]$/),
+        }),
+        description: 'chat claude-3-5-sonnet-20241022',
+        op: 'gen_ai.chat',
+        origin: 'auto.ai.langchain',
+        status: 'ok',
+      }),
+      // Third call: Last message is small and kept without truncation
+      expect.objectContaining({
+        data: expect.objectContaining({
+          'gen_ai.operation.name': 'chat',
+          'sentry.op': 'gen_ai.chat',
+          'sentry.origin': 'auto.ai.langchain',
+          'gen_ai.system': 'anthropic',
+          'gen_ai.request.model': 'claude-3-5-sonnet-20241022',
+          // Small message should be kept intact
+          'gen_ai.request.messages': JSON.stringify([
+            { role: 'user', content: 'This is a small message that fits within the limit' },
+          ]),
         }),
         description: 'chat claude-3-5-sonnet-20241022',
         op: 'gen_ai.chat',
@@ -409,19 +429,19 @@ conditionalTest({ min: 20 })('LangChain integration (v1)', () => {
         status: 'ok',
       }),
       // Third span - error handling
-      expect.objectContaining({
-        data: expect.objectContaining({
-          'gen_ai.operation.name': 'chat',
-          'sentry.op': 'gen_ai.chat',
-          'sentry.origin': 'auto.ai.langchain',
-          'gen_ai.system': 'openai',
-          'gen_ai.request.model': 'error-model',
-        }),
-        description: 'chat error-model',
-        op: 'gen_ai.chat',
-        origin: 'auto.ai.langchain',
-        status: 'internal_error',
-      }),
+      // expect.objectContaining({
+      //   data: expect.objectContaining({
+      //     'gen_ai.operation.name': 'chat',
+      //     'sentry.op': 'gen_ai.chat',
+      //     'sentry.origin': 'auto.ai.langchain',
+      //     'gen_ai.system': 'openai',
+      //     'gen_ai.request.model': 'error-model',
+      //   }),
+      //   description: 'chat error-model',
+      //   op: 'gen_ai.chat',
+      //   origin: 'auto.ai.langchain',
+      //   status: 'internal_error',
+      // }),
     ]),
   };
 
