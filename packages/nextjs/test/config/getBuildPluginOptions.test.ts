@@ -28,11 +28,11 @@ describe('getBuildPluginOptions', () => {
         sourcemaps: {
           assets: ['/path/to/.next/server', '/path/to/.next/static/chunks/pages', '/path/to/.next/static/chunks/app'],
           ignore: [
-            '**/main-*',
-            '**/framework-*',
-            '**/framework.*',
-            '**/polyfills-*',
-            '**/webpack-*',
+            '/path/to/.next/static/chunks/main-*',
+            '/path/to/.next/static/chunks/framework-*',
+            '/path/to/.next/static/chunks/framework.*',
+            '/path/to/.next/static/chunks/polyfills-*',
+            '/path/to/.next/static/chunks/webpack-*',
             '**/page_client-reference-manifest.js',
             '**/server-reference-manifest.js',
             '**/next-font-manifest.js',
@@ -123,11 +123,11 @@ describe('getBuildPluginOptions', () => {
         '/path/to/.next/static/chunks/app/**',
       ]);
       expect(result.sourcemaps?.ignore).toEqual([
-        '**/main-*',
-        '**/framework-*',
-        '**/framework.*',
-        '**/polyfills-*',
-        '**/webpack-*',
+        '/path/to/.next/static/chunks/main-*',
+        '/path/to/.next/static/chunks/framework-*',
+        '/path/to/.next/static/chunks/framework.*',
+        '/path/to/.next/static/chunks/polyfills-*',
+        '/path/to/.next/static/chunks/webpack-*',
         '**/page_client-reference-manifest.js',
         '**/server-reference-manifest.js',
         '**/next-font-manifest.js',
@@ -152,10 +152,10 @@ describe('getBuildPluginOptions', () => {
 
       expect(result.sourcemaps?.assets).toEqual(['/path/to/.next/static/chunks/**']);
       expect(result.sourcemaps?.ignore).toEqual([
-        '**/framework-*',
-        '**/framework.*',
-        '**/polyfills-*',
-        '**/webpack-*',
+        '/path/to/.next/static/chunks/framework-*',
+        '/path/to/.next/static/chunks/framework.*',
+        '/path/to/.next/static/chunks/polyfills-*',
+        '/path/to/.next/static/chunks/webpack-*',
         '**/page_client-reference-manifest.js',
         '**/server-reference-manifest.js',
         '**/next-font-manifest.js',
@@ -177,11 +177,11 @@ describe('getBuildPluginOptions', () => {
       expect(result._metaOptions?.loggerPrefixOverride).toBe('[@sentry/nextjs - Node.js]');
       expect(result.sourcemaps?.assets).toEqual(['/path/to/.next/server/**', '/path/to/.next/serverless/**']);
       expect(result.sourcemaps?.ignore).toEqual([
-        '**/main-*',
-        '**/framework-*',
-        '**/framework.*',
-        '**/polyfills-*',
-        '**/webpack-*',
+        '/path/to/.next/static/chunks/main-*',
+        '/path/to/.next/static/chunks/framework-*',
+        '/path/to/.next/static/chunks/framework.*',
+        '/path/to/.next/static/chunks/polyfills-*',
+        '/path/to/.next/static/chunks/webpack-*',
         '**/page_client-reference-manifest.js',
         '**/server-reference-manifest.js',
         '**/next-font-manifest.js',
@@ -204,11 +204,11 @@ describe('getBuildPluginOptions', () => {
       expect(result._metaOptions?.loggerPrefixOverride).toBe('[@sentry/nextjs - Edge]');
       expect(result.sourcemaps?.assets).toEqual(['/path/to/.next/server/**', '/path/to/.next/serverless/**']);
       expect(result.sourcemaps?.ignore).toEqual([
-        '**/main-*',
-        '**/framework-*',
-        '**/framework.*',
-        '**/polyfills-*',
-        '**/webpack-*',
+        '/path/to/.next/static/chunks/main-*',
+        '/path/to/.next/static/chunks/framework-*',
+        '/path/to/.next/static/chunks/framework.*',
+        '/path/to/.next/static/chunks/polyfills-*',
+        '/path/to/.next/static/chunks/webpack-*',
         '**/page_client-reference-manifest.js',
         '**/server-reference-manifest.js',
         '**/next-font-manifest.js',
@@ -235,11 +235,11 @@ describe('getBuildPluginOptions', () => {
         '/path/to/.next/static/chunks/app',
       ]);
       expect(result.sourcemaps?.ignore).toEqual([
-        '**/main-*',
-        '**/framework-*',
-        '**/framework.*',
-        '**/polyfills-*',
-        '**/webpack-*',
+        '/path/to/.next/static/chunks/main-*',
+        '/path/to/.next/static/chunks/framework-*',
+        '/path/to/.next/static/chunks/framework.*',
+        '/path/to/.next/static/chunks/polyfills-*',
+        '/path/to/.next/static/chunks/webpack-*',
         '**/page_client-reference-manifest.js',
         '**/server-reference-manifest.js',
         '**/next-font-manifest.js',
@@ -265,11 +265,11 @@ describe('getBuildPluginOptions', () => {
         '/path/to/.next/static/chunks', // Turbopack uses broader pattern
       ]);
       expect(result.sourcemaps?.ignore).toEqual([
-        '**/main-*',
-        '**/framework-*',
-        '**/framework.*',
-        '**/polyfills-*',
-        '**/webpack-*',
+        '/path/to/.next/static/chunks/main-*',
+        '/path/to/.next/static/chunks/framework-*',
+        '/path/to/.next/static/chunks/framework.*',
+        '/path/to/.next/static/chunks/polyfills-*',
+        '/path/to/.next/static/chunks/webpack-*',
         '**/page_client-reference-manifest.js',
         '**/server-reference-manifest.js',
         '**/next-font-manifest.js',
@@ -512,11 +512,11 @@ describe('getBuildPluginOptions', () => {
 
       // Custom patterns should be appended to defaults, not replace them
       expect(result.sourcemaps?.ignore).toEqual([
-        '**/main-*',
-        '**/framework-*',
-        '**/framework.*',
-        '**/polyfills-*',
-        '**/webpack-*',
+        '/path/to/.next/static/chunks/main-*',
+        '/path/to/.next/static/chunks/framework-*',
+        '/path/to/.next/static/chunks/framework.*',
+        '/path/to/.next/static/chunks/polyfills-*',
+        '/path/to/.next/static/chunks/webpack-*',
         '**/page_client-reference-manifest.js',
         '**/server-reference-manifest.js',
         '**/next-font-manifest.js',
@@ -548,11 +548,11 @@ describe('getBuildPluginOptions', () => {
 
       // Single string pattern should be appended to defaults
       expect(result.sourcemaps?.ignore).toEqual([
-        '**/main-*',
-        '**/framework-*',
-        '**/framework.*',
-        '**/polyfills-*',
-        '**/webpack-*',
+        '/path/to/.next/static/chunks/main-*',
+        '/path/to/.next/static/chunks/framework-*',
+        '/path/to/.next/static/chunks/framework.*',
+        '/path/to/.next/static/chunks/polyfills-*',
+        '/path/to/.next/static/chunks/webpack-*',
         '**/page_client-reference-manifest.js',
         '**/server-reference-manifest.js',
         '**/next-font-manifest.js',
@@ -864,11 +864,11 @@ describe('getBuildPluginOptions', () => {
         disable: false,
         assets: ['/path/to/.next/server', '/path/to/.next/static/chunks/pages', '/path/to/.next/static/chunks/app'],
         ignore: [
-          '**/main-*',
-          '**/framework-*',
-          '**/framework.*',
-          '**/polyfills-*',
-          '**/webpack-*',
+          '/path/to/.next/static/chunks/main-*',
+          '/path/to/.next/static/chunks/framework-*',
+          '/path/to/.next/static/chunks/framework.*',
+          '/path/to/.next/static/chunks/polyfills-*',
+          '/path/to/.next/static/chunks/webpack-*',
           '**/page_client-reference-manifest.js',
           '**/server-reference-manifest.js',
           '**/next-font-manifest.js',
