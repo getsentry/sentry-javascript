@@ -489,7 +489,7 @@ describe('Anthropic integration', () => {
                 op: 'gen_ai.chat',
                 data: expect.objectContaining({
                   'gen_ai.request.available_tools': EXPECTED_TOOLS_JSON,
-                  'gen_ai.response.tool_calls': EXPECTED_TOOL_CALLS_JSON,
+                  [GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE]: EXPECTED_TOOL_CALLS_JSON,
                 }),
               }),
             ]),
@@ -517,7 +517,7 @@ describe('Anthropic integration', () => {
                 op: 'gen_ai.chat',
                 data: expect.objectContaining({
                   'gen_ai.request.available_tools': EXPECTED_TOOLS_JSON,
-                  'gen_ai.response.tool_calls': EXPECTED_TOOL_CALLS_JSON,
+                  [GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE]: EXPECTED_TOOL_CALLS_JSON,
                 }),
               }),
             ]),
@@ -613,7 +613,7 @@ describe('Anthropic integration', () => {
         status: 'ok',
         data: expect.objectContaining({
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'claude-3-haiku-20240307',
-          'gen_ai.response.tool_calls': expect.stringContaining('tool_ok_1'),
+          [GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE]: expect.stringContaining('tool_ok_1'),
         }),
       }),
     ]),
@@ -656,8 +656,8 @@ describe('Anthropic integration', () => {
                 // Second call: Last message is small and kept without truncation
                 expect.objectContaining({
                   data: expect.objectContaining({
-                    [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'messages',
-                    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.messages',
+                    [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'chat',
+                    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.chat',
                     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.anthropic',
                     [GEN_AI_SYSTEM_ATTRIBUTE]: 'anthropic',
                     [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'claude-3-haiku-20240307',
@@ -666,8 +666,8 @@ describe('Anthropic integration', () => {
                       { role: 'user', content: 'This is a small message that fits within the limit' },
                     ]),
                   }),
-                  description: 'messages claude-3-haiku-20240307',
-                  op: 'gen_ai.messages',
+                  description: 'chat claude-3-haiku-20240307',
+                  op: 'gen_ai.chat',
                   origin: 'auto.ai.anthropic',
                   status: 'ok',
                 }),
