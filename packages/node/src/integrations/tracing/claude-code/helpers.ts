@@ -424,9 +424,12 @@ async function* _instrumentQueryGenerator(
       span.setStatus({ code: 1 });
     }
   } catch (error) {
-    captureException(error, {
-      mechanism: { type: SENTRY_ORIGIN, handled: false, data: { function: 'query' } },
-    });
+    // Only capture if we haven't already captured this error from an error message
+    if (!encounteredError) {
+      captureException(error, {
+        mechanism: { type: SENTRY_ORIGIN, handled: false, data: { function: 'query' } },
+      });
+    }
     span.setStatus({ code: 2, message: (error as Error).message });
     encounteredError = true;
     throw error;
