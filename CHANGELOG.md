@@ -6,6 +6,8 @@
 
 Work in this release was contributed by @sebws. Thank you for your contribution!
 
+### Important Changes
+
 - **feat(tanstackstart-react): Auto-instrument global middleware in `sentryTanstackStart` Vite plugin ([#18884](https://github.com/getsentry/sentry-javascript/pull/18844))**
 
   The `sentryTanstackStart` Vite plugin now automatically instruments `requestMiddleware` and `functionMiddleware` arrays in `createStart()`. This captures performance data without requiring manual wrapping.
@@ -23,6 +25,8 @@ Work in this release was contributed by @sebws. Thank you for your contribution!
   ```
 
 ### Other Changes
+
+- feat(deps): Bump OpenTelemetry instrumentations ([#18934](https://github.com/getsentry/sentry-javascript/pull/18934))
 
 ## 10.36.0
 
