@@ -136,6 +136,10 @@ export default defineNuxtModule<ModuleOptions>({
     }
 
     nuxt.hooks.hook('nitro:init', nitro => {
+      if (nuxt.options?._prepare) {
+        return;
+      }
+
       if (serverConfigFile) {
         addMiddlewareInstrumentation(nitro);
       }
