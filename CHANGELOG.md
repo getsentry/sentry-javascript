@@ -4,41 +4,39 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+- **feat(tanstackstart-react): Auto-instrument global middleware in `sentryTanstackStart` Vite plugin ([#18884](https://github.com/getsentry/sentry-javascript/pull/18844))**
+
+  The `sentryTanstackStart` Vite plugin now automatically instruments `requestMiddleware` and `functionMiddleware` arrays in `createStart()`. This captures performance data without requiring manual wrapping.
+
+  Auto-instrumentation is enabled by default. To disable it:
+
+  ```ts
+  // vite.config.ts
+  sentryTanstackStart({
+    authToken: process.env.SENTRY_AUTH_TOKEN,
+    org: 'your-org',
+    project: 'your-project',
+    autoInstrumentMiddleware: false,
+  });
+  ```
+
 ### Other Changes
 
-- feat(deps): Bump OpenTelemetry dependencies
-  - Bump @opentelemetry/context-async-hooks from 2.2.0 to 2.4.0
-  - Bump @opentelemetry/core from 2.2.0 to 2.4.0
-  - Bump @opentelemetry/resources from 2.2.0 to 2.4.0
-  - Bump @opentelemetry/sdk-trace-base from 2.2.0 to 2.4.0
-  - Bump @opentelemetry/sdk-trace-node from 2.2.0 to 2.4.0
-  - Bump @opentelemetry/instrumentation from 0.208.0 to 0.210.0
-  - Bump @opentelemetry/instrumentation-amqplib from 0.55.0 to 0.57.0
-  - Bump @opentelemetry/instrumentation-connect from 0.52.0 to 0.53.0
-  - Bump @opentelemetry/instrumentation-dataloader from 0.26.0 to 0.27.0
-  - Bump @opentelemetry/instrumentation-express from 0.57.0 to 0.58.0
-  - Bump @opentelemetry/instrumentation-fs from 0.28.0 to 0.29.0
-  - Bump @opentelemetry/instrumentation-generic-pool from 0.52.0 to 0.53.0
-  - Bump @opentelemetry/instrumentation-graphql from 0.56.0 to 0.57.0
-  - Bump @opentelemetry/instrumentation-hapi from 0.55.0 to 0.56.0
-  - Bump @opentelemetry/instrumentation-http from 0.208.0 to 0.210.0
-  - Bump @opentelemetry/instrumentation-ioredis from 0.56.0 to 0.58.0
-  - Bump @opentelemetry/instrumentation-kafkajs from 0.18.0 to 0.19.0
-  - Bump @opentelemetry/instrumentation-knex from 0.53.0 to 0.54.0
-  - Bump @opentelemetry/instrumentation-koa from 0.57.0 to 0.58.0
-  - Bump @opentelemetry/instrumentation-lru-memoizer from 0.53.0 to 0.54.0
-  - Bump @opentelemetry/instrumentation-mongodb from 0.61.0 to 0.63.0
-  - Bump @opentelemetry/instrumentation-mongoose from 0.55.0 to 0.56.0
-  - Bump @opentelemetry/instrumentation-mysql from 0.54.0 to 0.56.0
-  - Bump @opentelemetry/instrumentation-mysql2 from 0.55.0 to 0.56.0
-  - Bump @opentelemetry/instrumentation-nestjs-core from 0.55.0 to 0.56.0
-  - Bump @opentelemetry/instrumentation-pg from 0.61.0 to 0.62.0
-  - Bump @opentelemetry/instrumentation-redis from 0.57.0 to 0.58.0
-  - Bump @opentelemetry/instrumentation-tedious from 0.27.0 to 0.29.0
-  - Bump @opentelemetry/instrumentation-undici from 0.19.0 to 0.20.0
-  - Bump @opentelemetry/instrumentation-aws-sdk from 0.64.0 to 0.65.0
-  - Bump @opentelemetry/sdk-node from 0.208.0 to 0.210.0
-  - Bump @opentelemetry/exporter-trace-otlp-http from 0.208.0 to 0.210.0
+## 10.36.0
+
+- feat(node): Add Prisma v7 support ([#18908](https://github.com/getsentry/sentry-javascript/pull/18908))
+- feat(opentelemetry): Support `db.system.name` attribute for database spans ([#18902](https://github.com/getsentry/sentry-javascript/pull/18902))
+- feat(deps): Bump OpenTelemetry dependencies ([#18878](https://github.com/getsentry/sentry-javascript/pull/18878))
+- fix(core): Sanitize data URLs in `http.client` spans ([#18896](https://github.com/getsentry/sentry-javascript/pull/18896))
+- fix(nextjs): Add ALS runner fallbacks for serverless environments ([#18889](https://github.com/getsentry/sentry-javascript/pull/18889))
+- fix(node): Profiling debug ID matching
+
+<details>
+  <summary><strong>Internal Changes</strong></summary>
+
+- chore(deps-dev): bump @remix-run/server-runtime from 2.15.2 to 2.17.3 in /packages/remix ([#18750](https://github.com/getsentry/sentry-javascript/pull/18750))
+
+</details>
 
 ## 10.35.0
 
