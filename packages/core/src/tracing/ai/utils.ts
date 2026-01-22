@@ -19,6 +19,11 @@ export function getFinalOperationName(methodPath: string): string {
   if (methodPath.includes('completions')) {
     return 'text_completion';
   }
+  // Google GenAI: models.generateContent* -> generate_content (actually generates AI responses)
+  if (methodPath.includes('generateContent')) {
+    return 'generate_content';
+  }
+  // Anthropic: models.get/retrieve -> models (metadata retrieval only)
   if (methodPath.includes('models')) {
     return 'models';
   }
