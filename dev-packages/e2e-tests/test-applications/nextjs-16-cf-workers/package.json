@@ -6,7 +6,7 @@
     "dev": "next dev",
     "cf:build": "opennextjs-cloudflare build",
     "cf:preview": "opennextjs-cloudflare preview",
-		"build": "next build",
+    "build": "next build",
     "clean": "npx rimraf node_modules pnpm-lock.yaml .tmp_dev_server_logs",
     "start": "pnpm cf:preview",
     "lint": "eslint",
@@ -33,7 +33,7 @@
     "eslint": "^9",
     "eslint-config-next": "canary",
     "typescript": "^5",
-		"wrangler": "^4.59.2"
+    "wrangler": "^4.59.2"
   },
   "volta": {
     "extends": "../../package.json"

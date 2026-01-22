@@ -49,7 +49,9 @@ test.skip('Faulty middlewares', async ({ request }) => {
 });
 
 // TODO: Middleware tests need SDK adjustments for Cloudflare Workers edge runtime
-test.skip('Should trace outgoing fetch requests inside middleware and create breadcrumbs for it', async ({ request }) => {
+test.skip('Should trace outgoing fetch requests inside middleware and create breadcrumbs for it', async ({
+  request,
+}) => {
   test.skip(isDevMode, 'The fetch requests ends up in a separate tx in dev atm');
   const middlewareTransactionPromise = waitForTransaction('nextjs-16-cf-workers', async transactionEvent => {
     return transactionEvent?.transaction === 'middleware GET';
