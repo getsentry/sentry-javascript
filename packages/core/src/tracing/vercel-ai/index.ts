@@ -182,6 +182,7 @@ function processEndedVercelAiSpan(span: SpanJSON): void {
   if (attributes[OPERATION_NAME_ATTRIBUTE]) {
     const operationName = mapVercelAiOperationName(attributes[OPERATION_NAME_ATTRIBUTE] as string);
     attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE] = operationName;
+    attributes[OPERATION_NAME_ATTRIBUTE] = operationName;
   }
   renameAttributeKey(attributes, AI_PROMPT_MESSAGES_ATTRIBUTE, GEN_AI_REQUEST_MESSAGES_ATTRIBUTE);
   renameAttributeKey(attributes, AI_RESPONSE_TEXT_ATTRIBUTE, 'gen_ai.response.text');
