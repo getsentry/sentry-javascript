@@ -270,10 +270,6 @@ export function getBuildPluginOptions({
   // glob characters. This clashes with Windows path separators.
   // See: https://www.npmjs.com/package/glob
   const normalizedDistDirAbsPath = normalizePathForGlob(distDirAbsPath);
-
-  // eslint-disable-next-line no-console
-  console.log('[Sentry DEBUG] getBuildPluginOptions called with:', { buildTool, distDirAbsPath });
-
   const loggerPrefix = LOGGER_PREFIXES[buildTool];
   const widenClientFileUpload = sentryBuildOptions.widenClientFileUpload ?? false;
   const deleteSourcemapsAfterUpload = sentryBuildOptions.sourcemaps?.deleteSourcemapsAfterUpload ?? false;
@@ -284,13 +280,7 @@ export function getBuildPluginOptions({
     widenClientFileUpload,
   );
 
-  // eslint-disable-next-line no-console
-  console.log('[Sentry DEBUG] sourcemapUploadAssets:', sourcemapUploadAssets);
-
   const sourcemapUploadIgnore = createSourcemapUploadIgnorePattern(normalizedDistDirAbsPath, widenClientFileUpload);
-
-  // eslint-disable-next-line no-console
-  console.log(4, '[Sentry DEBUG] sourcemapUploadIgnore:', sourcemapUploadIgnore);
 
   const filesToDeleteAfterUpload = createFilesToDeleteAfterUploadPattern(
     normalizedDistDirAbsPath,
