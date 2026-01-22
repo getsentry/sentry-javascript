@@ -194,7 +194,15 @@ async function* _instrumentQueryGenerator(
         previousTurnTools = [];
 
         if (currentLLMSpan) {
-          finalizeLLMSpan(currentLLMSpan, currentTurnContent, currentTurnTools, currentTurnId, currentTurnModel, currentTurnStopReason, instrumentationOptions.recordOutputs ?? false);
+          finalizeLLMSpan(
+            currentLLMSpan,
+            currentTurnContent,
+            currentTurnTools,
+            currentTurnId,
+            currentTurnModel,
+            currentTurnStopReason,
+            instrumentationOptions.recordOutputs ?? false,
+          );
           previousLLMSpan = currentLLMSpan;
           previousTurnTools = currentTurnTools;
         }
@@ -284,7 +292,15 @@ async function* _instrumentQueryGenerator(
         previousTurnTools = [];
 
         if (currentLLMSpan) {
-          finalizeLLMSpan(currentLLMSpan, currentTurnContent, currentTurnTools, currentTurnId, currentTurnModel, currentTurnStopReason, instrumentationOptions.recordOutputs ?? false);
+          finalizeLLMSpan(
+            currentLLMSpan,
+            currentTurnContent,
+            currentTurnTools,
+            currentTurnId,
+            currentTurnModel,
+            currentTurnStopReason,
+            instrumentationOptions.recordOutputs ?? false,
+          );
           previousLLMSpan = currentLLMSpan;
           previousTurnTools = currentTurnTools;
           currentLLMSpan = null;
@@ -395,7 +411,13 @@ async function* _instrumentQueryGenerator(
     }
 
     if (totalInputTokens > 0 || totalOutputTokens > 0) {
-      setTokenUsageAttributes(span, totalInputTokens, totalOutputTokens, totalCacheCreationTokens, totalCacheReadTokens);
+      setTokenUsageAttributes(
+        span,
+        totalInputTokens,
+        totalOutputTokens,
+        totalCacheCreationTokens,
+        totalCacheReadTokens,
+      );
     }
 
     if (!encounteredError) {
