@@ -77,7 +77,7 @@ export function setupSourceMaps(moduleOptions: SentryNuxtModuleOptions, nuxt: Nu
   });
 
   nuxt.hook('vite:extendConfig', async (viteConfig, env) => {
-    if (sourceMapsEnabled && viteConfig.mode !== 'development') {
+    if (sourceMapsEnabled && viteConfig.mode !== 'development' && !nuxt.options?._prepare) {
       const runtime = env.isServer ? 'server' : env.isClient ? 'client' : undefined;
       const nuxtSourceMapSetting = extractNuxtSourceMapSetting(nuxt, runtime);
 
