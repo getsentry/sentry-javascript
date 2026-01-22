@@ -656,8 +656,8 @@ describe('Anthropic integration', () => {
                 // Second call: Last message is small and kept without truncation
                 expect.objectContaining({
                   data: expect.objectContaining({
-                    'gen_ai.operation.name': 'messages',
-                    'sentry.op': 'gen_ai.messages',
+                    'gen_ai.operation.name': 'chat',
+                    'sentry.op': 'gen_ai.chat',
                     'sentry.origin': 'auto.ai.anthropic',
                     'gen_ai.system': 'anthropic',
                     'gen_ai.request.model': 'claude-3-haiku-20240307',
@@ -666,8 +666,8 @@ describe('Anthropic integration', () => {
                       { role: 'user', content: 'This is a small message that fits within the limit' },
                     ]),
                   }),
-                  description: 'messages claude-3-haiku-20240307',
-                  op: 'gen_ai.messages',
+                  description: 'chat claude-3-haiku-20240307',
+                  op: 'gen_ai.chat',
                   origin: 'auto.ai.anthropic',
                   status: 'ok',
                 }),

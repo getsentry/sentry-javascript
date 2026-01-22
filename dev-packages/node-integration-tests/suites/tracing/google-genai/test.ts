@@ -523,8 +523,8 @@ describe('Google GenAI integration', () => {
                 // Second call: Last message is small and kept without truncation
                 expect.objectContaining({
                   data: expect.objectContaining({
-                    'gen_ai.operation.name': 'models',
-                    'sentry.op': 'gen_ai.models',
+                    'gen_ai.operation.name': 'generate_content',
+                    'sentry.op': 'gen_ai.generate_content',
                     'sentry.origin': 'auto.ai.google_genai',
                     'gen_ai.system': 'google_genai',
                     'gen_ai.request.model': 'gemini-1.5-flash',
@@ -536,8 +536,8 @@ describe('Google GenAI integration', () => {
                       },
                     ]),
                   }),
-                  description: 'models gemini-1.5-flash',
-                  op: 'gen_ai.models',
+                  description: 'generate_content gemini-1.5-flash',
+                  op: 'gen_ai.generate_content',
                   origin: 'auto.ai.google_genai',
                   status: 'ok',
                 }),

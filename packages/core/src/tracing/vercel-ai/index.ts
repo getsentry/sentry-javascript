@@ -53,12 +53,19 @@ function addOriginToSpan(span: Span, origin: SpanOrigin): void {
  * @see https://opentelemetry.io/docs/specs/semconv/gen-ai/gen-ai-spans/#llm-request-spans
  */
 function mapVercelAiOperationName(operationName: string): string {
-  // Map to OpenTelemetry well-known values
+  // Top-level pipeline operations map to invoke_agent
   if (
     operationName === 'ai.generateText' ||
     operationName === 'ai.streamText' ||
     operationName === 'ai.generateObject' ||
     operationName === 'ai.streamObject' ||
+    operationName === 'ai.embed' ||
+    operationName === 'ai.embedMany'
+  ) {
+    return 'invoke_agent';
+  }
+  // .do* operations are the actual LLM calls
+  if (
     operationName === 'ai.generateText.doGenerate' ||
     operationName === 'ai.streamText.doStream' ||
     operationName === 'ai.generateObject.doGenerate' ||
@@ -66,12 +73,7 @@ function mapVercelAiOperationName(operationName: string): string {
   ) {
     return 'generate_content';
   }
-  if (
-    operationName === 'ai.embed' ||
-    operationName === 'ai.embedMany' ||
-    operationName === 'ai.embed.doEmbed' ||
-    operationName === 'ai.embedMany.doEmbed'
-  ) {
+  if (operationName === 'ai.embed.doEmbed' || operationName === 'ai.embedMany.doEmbed') {
     return 'embeddings';
   }
   if (operationName === 'ai.toolCall') {
@@ -182,7 +184,8 @@ function processEndedVercelAiSpan(span: SpanJSON): void {
   if (attributes[OPERATION_NAME_ATTRIBUTE]) {
     const operationName = mapVercelAiOperationName(attributes[OPERATION_NAME_ATTRIBUTE] as string);
     attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE] = operationName;
-    attributes[OPERATION_NAME_ATTRIBUTE] = operationName;
+    // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+    delete attributes[OPERATION_NAME_ATTRIBUTE];
   }
   renameAttributeKey(attributes, AI_PROMPT_MESSAGES_ATTRIBUTE, GEN_AI_REQUEST_MESSAGES_ATTRIBUTE);
   renameAttributeKey(attributes, AI_RESPONSE_TEXT_ATTRIBUTE, 'gen_ai.response.text');

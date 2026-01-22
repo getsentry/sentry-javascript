@@ -24,7 +24,7 @@ describe('Vercel AI integration - generateObject', () => {
           'gen_ai.usage.input_tokens': 15,
           'gen_ai.usage.output_tokens': 25,
           'gen_ai.usage.total_tokens': 40,
-          'gen_ai.operation.name': 'generate_content',
+          'gen_ai.operation.name': 'invoke_agent',
           'sentry.op': 'gen_ai.invoke_agent',
           'sentry.origin': 'auto.vercelai.otel',
         }),

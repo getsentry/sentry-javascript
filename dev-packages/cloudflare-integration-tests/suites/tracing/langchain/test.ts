@@ -18,8 +18,8 @@ it('traces langchain chat model, chain, and tool invocations', async ({ signal }
           // Chat model span
           expect.objectContaining({
             data: expect.objectContaining({
-              'gen_ai.operation.name': 'chat',
-              'sentry.op': 'gen_ai.chat',
+              'gen_ai.operation.name': 'invoke_agent',
+              'sentry.op': 'gen_ai.invoke_agent',
               'sentry.origin': 'auto.ai.langchain',
               'gen_ai.system': 'anthropic',
               'gen_ai.request.model': 'claude-3-5-sonnet-20241022',
@@ -29,8 +29,8 @@ it('traces langchain chat model, chain, and tool invocations', async ({ signal }
               'gen_ai.usage.output_tokens': 15,
               'gen_ai.usage.total_tokens': 25,
             }),
-            description: 'chat claude-3-5-sonnet-20241022',
-            op: 'gen_ai.chat',
+            description: 'invoke_agent claude-3-5-sonnet-20241022',
+            op: 'gen_ai.invoke_agent',
             origin: 'auto.ai.langchain',
           }),
           // Chain span
