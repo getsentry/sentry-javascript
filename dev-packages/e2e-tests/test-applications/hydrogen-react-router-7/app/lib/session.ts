@@ -1,5 +1,5 @@
 import type { HydrogenSession } from '@shopify/hydrogen';
-import { type Session, type SessionStorage, createCookieSessionStorage } from '@shopify/remix-oxygen';
+import { type Session, type SessionStorage, createCookieSessionStorage } from 'react-router';
 
 /**
  * This is a custom session implementation for your Hydrogen shop.
@@ -9,10 +9,15 @@ import { type Session, type SessionStorage, createCookieSessionStorage } from '@
 export class AppSession implements HydrogenSession {
   #sessionStorage;
   #session;
+  #isPending = false;
 
   constructor(sessionStorage: SessionStorage, session: Session) {
     this.#sessionStorage = sessionStorage;
     this.#session = session;
+  }
+
+  get isPending() {
+    return this.#isPending;
   }
 
   static async init(request: Request, secrets: string[]) {
@@ -48,6 +53,7 @@ export class AppSession implements HydrogenSession {
   }
 
   get set() {
+    this.#isPending = true;
     return this.#session.set;
   }
 

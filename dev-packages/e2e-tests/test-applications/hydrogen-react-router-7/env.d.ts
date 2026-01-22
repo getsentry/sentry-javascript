@@ -1,5 +1,4 @@
 /// <reference types="vite/client" />
-/// <reference types="@shopify/remix-oxygen" />
 /// <reference types="@shopify/oxygen-workers-types" />
 
 // Enhance TypeScript's built-in typings.
@@ -26,12 +25,15 @@ declare global {
     PUBLIC_CUSTOMER_ACCOUNT_API_CLIENT_ID: string;
     PUBLIC_CUSTOMER_ACCOUNT_API_URL: string;
     PUBLIC_CHECKOUT_DOMAIN: string;
+    SHOP_ID: string;
+    SENTRY_TRACE?: string;
+    SENTRY_BAGGAGE?: string;
   }
 }
 
 declare module 'react-router' {
   /**
-   * Declare local additions to the Remix loader context.
+   * Declare local additions to the React Router loader context.
    */
   interface AppLoadContext {
     env: Env;
