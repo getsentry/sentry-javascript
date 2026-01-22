@@ -6,7 +6,7 @@ async function _ServerComponentWithError(_props: Route.ComponentProps) {
   throw new Error('RSC Server Component Error: Mamma mia!');
 }
 
-export const ServerComponent = wrapServerComponent(_ServerComponentWithError, {
+const ServerComponent = wrapServerComponent(_ServerComponentWithError, {
   componentRoute: '/rsc/server-component-error',
   componentType: 'Page',
 });
@@ -23,10 +23,4 @@ export async function loader() {
   return {};
 }
 
-// export default function ServerComponentErrorPage() {
-//   return (
-//     <main>
-//       <h1>Server Component Error Page</h1>
-//     </main>
-//   );
-// }
+export default ServerComponent;
