@@ -1,8 +1,6 @@
 import { beforeEach, describe, expect, it, test } from 'vitest';
 import {
   convertSpanLinksForEnvelope,
-  getCurrentScope,
-  getIsolationScope,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
