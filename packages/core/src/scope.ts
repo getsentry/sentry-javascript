@@ -51,6 +51,7 @@ export interface ScopeContext {
   attributes?: RawAttributes<Record<string, unknown>>;
   fingerprint: string[];
   propagationContext: PropagationContext;
+  conversationId?: string;
 }
 
 export interface SdkProcessingMetadata {
@@ -85,6 +86,7 @@ export interface ScopeData {
   level?: SeverityLevel;
   transactionName?: string;
   span?: Span;
+  conversationId?: string;
 }
 
 /**
@@ -296,13 +298,6 @@ export class Scope {
     this._conversationId = conversationId || undefined;
     this._notifyScopeListeners();
     return this;
-  }
-
-  /**
-   * Get the conversation ID from this scope.
-   */
-  public getConversationId(): string | undefined {
-    return this._conversationId;
   }
 
   /**
@@ -528,6 +523,7 @@ export class Scope {
       level,
       fingerprint = [],
       propagationContext,
+      conversationId,
     } = scopeInstance || {};
 
     this._tags = { ...this._tags, ...tags };
@@ -551,6 +547,10 @@ export class Scope {
       this._propagationContext = propagationContext;
     }
 
+    if (conversationId) {
+      this._conversationId = conversationId;
+    }
+
     return this;
   }
 
@@ -570,6 +570,7 @@ export class Scope {
     this._transactionName = undefined;
     this._fingerprint = undefined;
     this._session = undefined;
+    this._conversationId = undefined;
     _setSpanForScope(this, undefined);
     this._attachments = [];
     this.setPropagationContext({
@@ -662,6 +663,7 @@ export class Scope {
       sdkProcessingMetadata: this._sdkProcessingMetadata,
       transactionName: this._transactionName,
       span: _getSpanForScope(this),
+      conversationId: this._conversationId,
     };
   }
 

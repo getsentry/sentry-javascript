@@ -38,7 +38,6 @@ import {
   TRACE_FLAG_SAMPLED,
 } from '../utils/spanUtils';
 import { timestampInSeconds } from '../utils/time';
-import { GEN_AI_CONVERSATION_ID_ATTRIBUTE } from './ai/gen-ai-attributes';
 import { getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 import { logSpanEnd } from './logSpans';
 import { timedEventsToMeasurements } from './measurement';
@@ -222,15 +221,8 @@ export class SentrySpan implements Span {
    * use `spanToJSON(span)` instead.
    */
   public getSpanJSON(): SpanJSON {
-    // Automatically inject conversation ID from scope if not already set
-    const conversationId = this._attributes[GEN_AI_CONVERSATION_ID_ATTRIBUTE] || this._getConversationIdFromScope();
-
-    const data = conversationId
-      ? { ...this._attributes, [GEN_AI_CONVERSATION_ID_ATTRIBUTE]: conversationId }
-      : this._attributes;
-
     return {
-      data,
+      data: this._attributes,
       description: this._name,
       op: this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP],
       parent_span_id: this._parentSpanId,
@@ -288,16 +280,6 @@ export class SentrySpan implements Span {
    */
   public isStandaloneSpan(): boolean {
     return !!this._isStandaloneSpan;
-  }
-
-  /**
-   * Get conversation ID from captured scopes.
-   * Current scope takes precedence over isolation scope.
-   */
-  private _getConversationIdFromScope(): string | undefined {
-    const capturedScopes = getCapturedScopesOnSpan(this);
-    // Check current scope first (higher precedence)
-    return capturedScopes.scope?.getConversationId() || capturedScopes.isolationScope?.getConversationId();
   }
 
   /** Emit `spanEnd` when the span is ended. */

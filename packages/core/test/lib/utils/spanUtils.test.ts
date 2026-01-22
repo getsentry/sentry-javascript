@@ -427,55 +427,6 @@ describe('spanToJSON', () => {
       data: {},
     });
   });
-
-  describe('conversation ID injection', () => {
-    beforeEach(() => {
-      const client = new TestClient(getDefaultTestClientOptions({ tracesSampleRate: 1 }));
-      setCurrentClient(client);
-    });
-
-    it('injects conversation ID from current scope', () => {
-      getCurrentScope().setConversationId('conv_test_123');
-
-      startSpan({ name: 'test' }, span => {
-        const spanJSON = spanToJSON(span);
-        expect(spanJSON.data?.['gen_ai.conversation.id']).toEqual('conv_test_123');
-      });
-    });
-
-    it('injects conversation ID from isolation scope when current scope is empty', () => {
-      getCurrentScope().setConversationId(null);
-      getIsolationScope().setConversationId('conv_isolation_789');
-
-      startSpan({ name: 'test' }, span => {
-        const spanJSON = spanToJSON(span);
-        expect(spanJSON.data?.['gen_ai.conversation.id']).toEqual('conv_isolation_789');
-      });
-    });
-
-    it('does not inject conversation ID when not set', () => {
-      const span = new SentrySpan({ name: 'test' });
-      const spanJSON = spanToJSON(span);
-
-      expect(spanJSON.data?.['gen_ai.conversation.id']).toBeUndefined();
-    });
-
-    it('prefers existing conversation ID attribute over scope', () => {
-      getCurrentScope().setConversationId('conv_from_scope');
-
-      const otelSpan = createMockedOtelSpan({
-        spanId: 'SPAN-1',
-        traceId: 'TRACE-1',
-        name: 'test span',
-        attributes: {
-          'gen_ai.conversation.id': 'conv_from_attribute',
-        },
-      });
-
-      const spanJSON = spanToJSON(otelSpan);
-      expect(spanJSON.data?.['gen_ai.conversation.id']).toEqual('conv_from_attribute');
-    });
-  });
 });
 
 describe('spanIsSampled', () => {

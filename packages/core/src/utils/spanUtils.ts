@@ -7,7 +7,6 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '../semanticAttributes';
-import { GEN_AI_CONVERSATION_ID_ATTRIBUTE } from '../tracing/ai/gen-ai-attributes';
 import type { SentrySpan } from '../tracing/sentrySpan';
 import { SPAN_STATUS_OK, SPAN_STATUS_UNSET } from '../tracing/spanstatus';
 import { getCapturedScopesOnSpan } from '../tracing/utils';
@@ -150,22 +149,6 @@ export function spanToJSON(span: Span): SpanJSON {
   // Handle a span from @opentelemetry/sdk-base-trace's `Span` class
   if (spanIsOpenTelemetrySdkTraceBaseSpan(span)) {
     const { attributes, startTime, name, endTime, status, links } = span;
-    // Automatically inject conversation ID from scope if not already set
-    if (!attributes[GEN_AI_CONVERSATION_ID_ATTRIBUTE]) {
-      const capturedScopes = getCapturedScopesOnSpan(span);
-      // Check current scope first (higher precedence), then isolation scope
-      let conversationId =
-        capturedScopes.scope?.getConversationId() || capturedScopes.isolationScope?.getConversationId();
-
-      // If not found in captured scopes, try currently active scope as fallback (for OTel spans)
-      if (!conversationId) {
-        conversationId = getCurrentScope()?.getConversationId();
-      }
-
-      if (conversationId) {
-        attributes[GEN_AI_CONVERSATION_ID_ATTRIBUTE] = conversationId;
-      }
-    }
 
     // In preparation for the next major of OpenTelemetry, we want to support
     // looking up the parent span id according to the new API

@@ -1011,29 +1011,29 @@ describe('Scope', () => {
     });
   });
 
-  describe('setConversationId() / getConversationId()', () => {
-    test('sets and gets conversation ID', () => {
+  describe('setConversationId() / getScopeData()', () => {
+    test('sets and gets conversation ID via getScopeData', () => {
       const scope = new Scope();
       scope.setConversationId('conv_abc123');
-      expect(scope.getConversationId()).toEqual('conv_abc123');
+      expect(scope.getScopeData().conversationId).toEqual('conv_abc123');
     });
 
     test('unsets conversation ID with null or undefined', () => {
       const scope = new Scope();
       scope.setConversationId('conv_abc123');
       scope.setConversationId(null);
-      expect(scope.getConversationId()).toBeUndefined();
+      expect(scope.getScopeData().conversationId).toBeUndefined();
 
       scope.setConversationId('conv_abc123');
       scope.setConversationId(undefined);
-      expect(scope.getConversationId()).toBeUndefined();
+      expect(scope.getScopeData().conversationId).toBeUndefined();
     });
 
     test('clones conversation ID to new scope', () => {
       const scope = new Scope();
       scope.setConversationId('conv_clone123');
       const clonedScope = scope.clone();
-      expect(clonedScope.getConversationId()).toEqual('conv_clone123');
+      expect(clonedScope.getScopeData().conversationId).toEqual('conv_clone123');
     });
 
     test('notifies scope listeners when conversation ID is set', () => {
@@ -1042,6 +1042,29 @@ describe('Scope', () => {
       scope.addScopeListener(listener);
       scope.setConversationId('conv_listener');
       expect(listener).toHaveBeenCalledWith(scope);
+    });
+
+    test('clears conversation ID when scope is cleared', () => {
+      const scope = new Scope();
+      scope.setConversationId('conv_to_clear');
+      expect(scope.getScopeData().conversationId).toEqual('conv_to_clear');
+      scope.clear();
+      expect(scope.getScopeData().conversationId).toBeUndefined();
+    });
+
+    test('updates conversation ID when scope is updated with ScopeContext', () => {
+      const scope = new Scope();
+      scope.setConversationId('conv_old');
+      scope.update({ conversationId: 'conv_updated' });
+      expect(scope.getScopeData().conversationId).toEqual('conv_updated');
+    });
+
+    test('updates conversation ID when scope is updated with another Scope', () => {
+      const scope1 = new Scope();
+      const scope2 = new Scope();
+      scope2.setConversationId('conv_from_scope2');
+      scope1.update(scope2);
+      expect(scope1.getScopeData().conversationId).toEqual('conv_from_scope2');
     });
   });
 
