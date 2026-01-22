@@ -13,17 +13,7 @@ async function _ParamServerComponent({ params }: Route.ComponentProps) {
   );
 }
 
-export const ServerComponent = wrapServerComponent(_ParamServerComponent, {
+export default wrapServerComponent(_ParamServerComponent, {
   componentRoute: '/rsc/server-component/:param',
   componentType: 'Page',
 });
-
-// Default export for standard framework mode
-// export default function ParamServerComponentPage({ params }: Route.ComponentProps) {
-//   return (
-//     <main>
-//       <h1>Server Component with Param</h1>
-//       <p data-testid="param">Param: {params.param}</p>
-//     </main>
-//   );
-// }

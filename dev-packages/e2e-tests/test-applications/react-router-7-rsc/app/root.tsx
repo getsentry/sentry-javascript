@@ -1,7 +1,8 @@
 import * as Sentry from '@sentry/react-router';
-import { Links, Meta, Outlet, Scripts, ScrollRestoration, isRouteErrorResponse } from 'react-router';
+import { Links, Meta, Outlet, ScrollRestoration, isRouteErrorResponse } from 'react-router';
 import type { Route } from './+types/root';
 import stylesheet from './app.css?url';
+import { SentryClient } from './sentry-client';
 
 export const links: Route.LinksFunction = () => [{ rel: 'stylesheet', href: stylesheet }];
 
@@ -15,9 +16,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <Links />
       </head>
       <body>
+        <SentryClient />
         {children}
         <ScrollRestoration />
-        <Scripts />
+        {/* <Scripts /> is not needed in RSC mode - scripts are injected by the RSC framework */}
       </body>
     </html>
   );
