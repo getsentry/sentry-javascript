@@ -62,8 +62,8 @@ it('traces Google GenAI chat creation and message sending', async () => {
           // Third span - models.generateContent
           expect.objectContaining({
             data: expect.objectContaining({
-              [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'models',
-              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.models',
+              [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'generate_content',
+              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.generate_content',
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.google_genai',
               [GEN_AI_SYSTEM_ATTRIBUTE]: 'google_genai',
               [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'gemini-1.5-flash',
@@ -74,8 +74,8 @@ it('traces Google GenAI chat creation and message sending', async () => {
               [GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]: 12,
               [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: 20,
             }),
-            description: 'models gemini-1.5-flash',
-            op: 'gen_ai.models',
+            description: 'generate_content gemini-1.5-flash',
+            op: 'gen_ai.generate_content',
             origin: 'auto.ai.google_genai',
           }),
         ]),

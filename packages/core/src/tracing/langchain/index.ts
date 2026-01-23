@@ -98,10 +98,10 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
       startSpanManual(
         {
           name: `${operationName} ${modelName}`,
-          op: 'gen_ai.pipeline',
+          op: 'gen_ai.chat',
           attributes: {
             ...attributes,
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.pipeline',
+            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.chat',
           },
         },
         span => {

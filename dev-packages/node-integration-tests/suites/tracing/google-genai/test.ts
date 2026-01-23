@@ -66,8 +66,8 @@ describe('Google GenAI integration', () => {
       // Third span - models.generateContent
       expect.objectContaining({
         data: {
-          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'models',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.models',
+          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'generate_content',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.generate_content',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.google_genai',
           [GEN_AI_SYSTEM_ATTRIBUTE]: 'google_genai',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'gemini-1.5-flash',
@@ -78,22 +78,22 @@ describe('Google GenAI integration', () => {
           [GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]: 12,
           [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: 20,
         },
-        description: 'models gemini-1.5-flash',
-        op: 'gen_ai.models',
+        description: 'generate_content gemini-1.5-flash',
+        op: 'gen_ai.generate_content',
         origin: 'auto.ai.google_genai',
         status: 'ok',
       }),
       // Fourth span - error handling
       expect.objectContaining({
         data: {
-          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'models',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.models',
+          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'generate_content',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.generate_content',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.google_genai',
           [GEN_AI_SYSTEM_ATTRIBUTE]: 'google_genai',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'error-model',
         },
-        description: 'models error-model',
-        op: 'gen_ai.models',
+        description: 'generate_content error-model',
+        op: 'gen_ai.generate_content',
         origin: 'auto.ai.google_genai',
         status: 'internal_error',
       }),
@@ -143,8 +143,8 @@ describe('Google GenAI integration', () => {
       // Third span - models.generateContent with PII
       expect.objectContaining({
         data: expect.objectContaining({
-          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'models',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.models',
+          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'generate_content',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.generate_content',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.google_genai',
           [GEN_AI_SYSTEM_ATTRIBUTE]: 'google_genai',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'gemini-1.5-flash',
@@ -157,23 +157,23 @@ describe('Google GenAI integration', () => {
           [GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]: 12,
           [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: 20,
         }),
-        description: 'models gemini-1.5-flash',
-        op: 'gen_ai.models',
+        description: 'generate_content gemini-1.5-flash',
+        op: 'gen_ai.generate_content',
         origin: 'auto.ai.google_genai',
         status: 'ok',
       }),
       // Fourth span - error handling with PII
       expect.objectContaining({
         data: expect.objectContaining({
-          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'models',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.models',
+          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'generate_content',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.generate_content',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.google_genai',
           [GEN_AI_SYSTEM_ATTRIBUTE]: 'google_genai',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'error-model',
           [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: expect.any(String), // Should include contents when recordInputs: true
         }),
-        description: 'models error-model',
-        op: 'gen_ai.models',
+        description: 'generate_content error-model',
+        op: 'gen_ai.generate_content',
         origin: 'auto.ai.google_genai',
         status: 'internal_error',
       }),
@@ -233,8 +233,8 @@ describe('Google GenAI integration', () => {
       // Non-streaming with tools
       expect.objectContaining({
         data: expect.objectContaining({
-          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'models',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.models',
+          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'generate_content',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.generate_content',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.google_genai',
           [GEN_AI_SYSTEM_ATTRIBUTE]: 'google_genai',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'gemini-2.0-flash-001',
@@ -246,16 +246,16 @@ describe('Google GenAI integration', () => {
           [GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]: 8,
           [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: 23,
         }),
-        description: 'models gemini-2.0-flash-001',
-        op: 'gen_ai.models',
+        description: 'generate_content gemini-2.0-flash-001',
+        op: 'gen_ai.generate_content',
         origin: 'auto.ai.google_genai',
         status: 'ok',
       }),
       // Streaming with tools
       expect.objectContaining({
         data: expect.objectContaining({
-          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'models',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.models',
+          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'generate_content',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.generate_content',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.google_genai',
           [GEN_AI_SYSTEM_ATTRIBUTE]: 'google_genai',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'gemini-2.0-flash-001',
@@ -270,16 +270,16 @@ describe('Google GenAI integration', () => {
           [GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]: 10,
           [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: 22,
         }),
-        description: 'models gemini-2.0-flash-001 stream-response',
-        op: 'gen_ai.models',
+        description: 'generate_content gemini-2.0-flash-001 stream-response',
+        op: 'gen_ai.generate_content',
         origin: 'auto.ai.google_genai',
         status: 'ok',
       }),
       // Without tools for comparison
       expect.objectContaining({
         data: expect.objectContaining({
-          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'models',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.models',
+          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'generate_content',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.generate_content',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.google_genai',
           [GEN_AI_SYSTEM_ATTRIBUTE]: 'google_genai',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'gemini-2.0-flash-001',
@@ -289,8 +289,8 @@ describe('Google GenAI integration', () => {
           [GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]: 12,
           [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: 20,
         }),
-        description: 'models gemini-2.0-flash-001',
-        op: 'gen_ai.models',
+        description: 'generate_content gemini-2.0-flash-001',
+        op: 'gen_ai.generate_content',
         origin: 'auto.ai.google_genai',
         status: 'ok',
       }),
@@ -309,8 +309,8 @@ describe('Google GenAI integration', () => {
       // First span - models.generateContentStream (streaming)
       expect.objectContaining({
         data: expect.objectContaining({
-          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'models',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.models',
+          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'generate_content',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.generate_content',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.google_genai',
           [GEN_AI_SYSTEM_ATTRIBUTE]: 'google_genai',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'gemini-1.5-flash',
@@ -325,8 +325,8 @@ describe('Google GenAI integration', () => {
           [GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]: 12,
           [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: 22,
         }),
-        description: 'models gemini-1.5-flash stream-response',
-        op: 'gen_ai.models',
+        description: 'generate_content gemini-1.5-flash stream-response',
+        op: 'gen_ai.generate_content',
         origin: 'auto.ai.google_genai',
         status: 'ok',
       }),
@@ -367,24 +367,24 @@ describe('Google GenAI integration', () => {
       // Fourth span - blocked content streaming
       expect.objectContaining({
         data: expect.objectContaining({
-          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'models',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.models',
+          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'generate_content',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.generate_content',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.google_genai',
         }),
-        description: 'models blocked-model stream-response',
-        op: 'gen_ai.models',
+        description: 'generate_content blocked-model stream-response',
+        op: 'gen_ai.generate_content',
         origin: 'auto.ai.google_genai',
         status: 'internal_error',
       }),
       // Fifth span - error handling for streaming
       expect.objectContaining({
         data: expect.objectContaining({
-          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'models',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.models',
+          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'generate_content',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.generate_content',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.google_genai',
         }),
-        description: 'models error-model stream-response',
-        op: 'gen_ai.models',
+        description: 'generate_content error-model stream-response',
+        op: 'gen_ai.generate_content',
         origin: 'auto.ai.google_genai',
         status: 'internal_error',
       }),
@@ -397,8 +397,8 @@ describe('Google GenAI integration', () => {
       // First span - models.generateContentStream (streaming) with PII
       expect.objectContaining({
         data: expect.objectContaining({
-          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'models',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.models',
+          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'generate_content',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.generate_content',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.google_genai',
           [GEN_AI_SYSTEM_ATTRIBUTE]: 'google_genai',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'gemini-1.5-flash',
@@ -414,8 +414,8 @@ describe('Google GenAI integration', () => {
           [GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]: 12,
           [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: 22,
         }),
-        description: 'models gemini-1.5-flash stream-response',
-        op: 'gen_ai.models',
+        description: 'generate_content gemini-1.5-flash stream-response',
+        op: 'gen_ai.generate_content',
         origin: 'auto.ai.google_genai',
         status: 'ok',
       }),
@@ -461,8 +461,8 @@ describe('Google GenAI integration', () => {
       // Fourth span - blocked content stream with PII
       expect.objectContaining({
         data: expect.objectContaining({
-          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'models',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.models',
+          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'generate_content',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.generate_content',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.google_genai',
           [GEN_AI_SYSTEM_ATTRIBUTE]: 'google_genai',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'blocked-model',
@@ -470,24 +470,24 @@ describe('Google GenAI integration', () => {
           [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: expect.any(String), // Should include contents when recordInputs: true
           [GEN_AI_RESPONSE_STREAMING_ATTRIBUTE]: true,
         }),
-        description: 'models blocked-model stream-response',
-        op: 'gen_ai.models',
+        description: 'generate_content blocked-model stream-response',
+        op: 'gen_ai.generate_content',
         origin: 'auto.ai.google_genai',
         status: 'internal_error',
       }),
       // Fifth span - error handling for streaming with PII
       expect.objectContaining({
         data: expect.objectContaining({
-          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'models',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.models',
+          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'generate_content',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.generate_content',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.google_genai',
           [GEN_AI_SYSTEM_ATTRIBUTE]: 'google_genai',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'error-model',
           [GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE]: 0.7,
           [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: expect.any(String), // Should include contents when recordInputs: true
         }),
-        description: 'models error-model stream-response',
-        op: 'gen_ai.models',
+        description: 'generate_content error-model stream-response',
+        op: 'gen_ai.generate_content',
         origin: 'auto.ai.google_genai',
         status: 'internal_error',
       }),
@@ -525,8 +525,8 @@ describe('Google GenAI integration', () => {
                 // First call: Last message is large and gets truncated (only C's remain, D's are cropped)
                 expect.objectContaining({
                   data: expect.objectContaining({
-                    [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'models',
-                    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.models',
+                    [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'generate_content',
+                    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.generate_content',
                     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.google_genai',
                     [GEN_AI_SYSTEM_ATTRIBUTE]: 'google_genai',
                     [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'gemini-1.5-flash',
@@ -535,16 +535,16 @@ describe('Google GenAI integration', () => {
                       /^\[\{"role":"user","parts":\[\{"text":"C+"\}\]\}\]$/,
                     ),
                   }),
-                  description: 'models gemini-1.5-flash',
-                  op: 'gen_ai.models',
+                  description: 'generate_content gemini-1.5-flash',
+                  op: 'gen_ai.generate_content',
                   origin: 'auto.ai.google_genai',
                   status: 'ok',
                 }),
                 // Second call: Last message is small and kept without truncation
                 expect.objectContaining({
                   data: expect.objectContaining({
-                    [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'models',
-                    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.models',
+                    [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'generate_content',
+                    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.generate_content',
                     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.google_genai',
                     [GEN_AI_SYSTEM_ATTRIBUTE]: 'google_genai',
                     [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'gemini-1.5-flash',
@@ -556,8 +556,8 @@ describe('Google GenAI integration', () => {
                       },
                     ]),
                   }),
-                  description: 'models gemini-1.5-flash',
-                  op: 'gen_ai.models',
+                  description: 'generate_content gemini-1.5-flash',
+                  op: 'gen_ai.generate_content',
                   origin: 'auto.ai.google_genai',
                   status: 'ok',
                 }),
