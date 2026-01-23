@@ -2,11 +2,11 @@ import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '
 import type { Event } from '@sentry/node';
 import { afterAll, describe, expect } from 'vitest';
 import {
+  GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
+  GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
   GEN_AI_PROMPT_ATTRIBUTE,
   GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE,
-  GEN_AI_REQUEST_MESSAGES_ATTRIBUTE,
-  GEN_AI_REQUEST_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
   GEN_AI_REQUEST_MODEL_ATTRIBUTE,
   GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE,
   GEN_AI_RESPONSE_ID_ATTRIBUTE,
@@ -90,8 +90,8 @@ describe('Vercel AI integration', () => {
       expect.objectContaining({
         data: {
           [GEN_AI_PROMPT_ATTRIBUTE]: '{"prompt":"Where is the second span?"}',
-          [GEN_AI_REQUEST_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 1,
-          [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: '[{"role":"user","content":"Where is the second span?"}]',
+          [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 1,
+          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: '[{"role":"user","content":"Where is the second span?"}]',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'mock-model-id',
           [GEN_AI_RESPONSE_MODEL_ATTRIBUTE]: 'mock-model-id',
           [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: expect.any(String),
@@ -118,8 +118,8 @@ describe('Vercel AI integration', () => {
       // Fourth span - doGenerate for explicit telemetry enabled call
       expect.objectContaining({
         data: {
-          [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: expect.any(String),
-          [GEN_AI_REQUEST_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: expect.any(Number),
+          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: expect.any(String),
+          [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: expect.any(Number),
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'mock-model-id',
           [GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]: ['stop'],
           [GEN_AI_RESPONSE_ID_ATTRIBUTE]: expect.any(String),
@@ -230,8 +230,8 @@ describe('Vercel AI integration', () => {
       expect.objectContaining({
         data: {
           [GEN_AI_PROMPT_ATTRIBUTE]: '{"prompt":"Where is the first span?"}',
-          [GEN_AI_REQUEST_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 1,
-          [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: '[{"role":"user","content":"Where is the first span?"}]',
+          [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 1,
+          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: '[{"role":"user","content":"Where is the first span?"}]',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'mock-model-id',
           [GEN_AI_RESPONSE_MODEL_ATTRIBUTE]: 'mock-model-id',
           [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: 'First span here!',
@@ -263,8 +263,8 @@ describe('Vercel AI integration', () => {
       // Second span - doGenerate for first call, should also include input/output fields when sendDefaultPii: true
       expect.objectContaining({
         data: {
-          [GEN_AI_REQUEST_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 1,
-          [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]:
+          [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 1,
+          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]:
             '[{"role":"user","content":[{"type":"text","text":"Where is the first span?"}]}]',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'mock-model-id',
           [GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]: ['stop'],
@@ -303,8 +303,8 @@ describe('Vercel AI integration', () => {
       expect.objectContaining({
         data: {
           [GEN_AI_PROMPT_ATTRIBUTE]: '{"prompt":"Where is the second span?"}',
-          [GEN_AI_REQUEST_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 1,
-          [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: '[{"role":"user","content":"Where is the second span?"}]',
+          [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 1,
+          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: '[{"role":"user","content":"Where is the second span?"}]',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'mock-model-id',
           [GEN_AI_RESPONSE_MODEL_ATTRIBUTE]: 'mock-model-id',
           [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: expect.any(String),
@@ -336,8 +336,8 @@ describe('Vercel AI integration', () => {
       // Fourth span - doGenerate for explicitly enabled telemetry call
       expect.objectContaining({
         data: {
-          [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: expect.any(String),
-          [GEN_AI_REQUEST_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: expect.any(Number),
+          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: expect.any(String),
+          [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: expect.any(Number),
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'mock-model-id',
           [GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]: ['stop'],
           [GEN_AI_RESPONSE_ID_ATTRIBUTE]: expect.any(String),
@@ -375,8 +375,8 @@ describe('Vercel AI integration', () => {
       expect.objectContaining({
         data: {
           [GEN_AI_PROMPT_ATTRIBUTE]: '{"prompt":"What is the weather in San Francisco?"}',
-          [GEN_AI_REQUEST_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 1,
-          [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: '[{"role":"user","content":"What is the weather in San Francisco?"}]',
+          [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 1,
+          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: '[{"role":"user","content":"What is the weather in San Francisco?"}]',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'mock-model-id',
           [GEN_AI_RESPONSE_MODEL_ATTRIBUTE]: 'mock-model-id',
           [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: 'Tool call completed!',
@@ -410,8 +410,8 @@ describe('Vercel AI integration', () => {
       expect.objectContaining({
         data: {
           [GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE]: EXPECTED_AVAILABLE_TOOLS_JSON,
-          [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: expect.any(String),
-          [GEN_AI_REQUEST_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: expect.any(Number),
+          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: expect.any(String),
+          [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: expect.any(Number),
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'mock-model-id',
           [GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]: ['tool-calls'],
           [GEN_AI_RESPONSE_ID_ATTRIBUTE]: expect.any(String),

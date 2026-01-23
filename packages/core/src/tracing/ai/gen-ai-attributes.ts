@@ -118,13 +118,13 @@ export const GEN_AI_OPERATION_NAME_ATTRIBUTE = 'gen_ai.operation.name';
 /**
  * Original length of messages array, used to indicate truncations had occured
  */
-export const GEN_AI_REQUEST_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE = 'gen_ai.request.messages.original_length';
+export const GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE = 'gen_ai.input.messages.original_length';
 
 /**
  * The prompt messages
  * Only recorded when recordInputs is enabled
  */
-export const GEN_AI_REQUEST_MESSAGES_ATTRIBUTE = 'gen_ai.request.messages';
+export const GEN_AI_INPUT_MESSAGES_ATTRIBUTE = 'gen_ai.input.messages';
 
 /**
  * The response text

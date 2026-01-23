@@ -159,8 +159,8 @@ describe('OpenAI integration (V6)', () => {
           'gen_ai.system': 'openai',
           'gen_ai.request.model': 'gpt-3.5-turbo',
           'gen_ai.request.temperature': 0.7,
-          'gen_ai.request.messages.original_length': 2,
-          'gen_ai.request.messages': '[{"role":"user","content":"What is the capital of France?"}]',
+          'gen_ai.input.messages.original_length': 2,
+          'gen_ai.input.messages': '[{"role":"user","content":"What is the capital of France?"}]',
           'gen_ai.response.model': 'gpt-3.5-turbo',
           'gen_ai.response.id': 'chatcmpl-mock123',
           'gen_ai.response.finish_reasons': '["stop"]',
@@ -187,7 +187,7 @@ describe('OpenAI integration (V6)', () => {
           'sentry.origin': 'auto.ai.openai',
           'gen_ai.system': 'openai',
           'gen_ai.request.model': 'gpt-3.5-turbo',
-          'gen_ai.request.messages': 'Translate this to French: Hello',
+          'gen_ai.input.messages': 'Translate this to French: Hello',
           'gen_ai.response.text': 'Response to: Translate this to French: Hello',
           'gen_ai.response.finish_reasons': '["completed"]',
           'gen_ai.response.model': 'gpt-3.5-turbo',
@@ -214,8 +214,8 @@ describe('OpenAI integration (V6)', () => {
           'sentry.origin': 'auto.ai.openai',
           'gen_ai.system': 'openai',
           'gen_ai.request.model': 'error-model',
-          'gen_ai.request.messages.original_length': 1,
-          'gen_ai.request.messages': '[{"role":"user","content":"This will fail"}]',
+          'gen_ai.input.messages.original_length': 1,
+          'gen_ai.input.messages': '[{"role":"user","content":"This will fail"}]',
         },
         description: 'chat error-model',
         op: 'gen_ai.chat',
@@ -232,8 +232,8 @@ describe('OpenAI integration (V6)', () => {
           'gen_ai.request.model': 'gpt-4',
           'gen_ai.request.temperature': 0.8,
           'gen_ai.request.stream': true,
-          'gen_ai.request.messages.original_length': 2,
-          'gen_ai.request.messages': '[{"role":"user","content":"Tell me about streaming"}]',
+          'gen_ai.input.messages.original_length': 2,
+          'gen_ai.input.messages': '[{"role":"user","content":"Tell me about streaming"}]',
           'gen_ai.response.text': 'Hello from OpenAI streaming!',
           'gen_ai.response.finish_reasons': '["stop"]',
           'gen_ai.response.id': 'chatcmpl-stream-123',
@@ -262,7 +262,7 @@ describe('OpenAI integration (V6)', () => {
           'gen_ai.system': 'openai',
           'gen_ai.request.model': 'gpt-4',
           'gen_ai.request.stream': true,
-          'gen_ai.request.messages': 'Test streaming responses API',
+          'gen_ai.input.messages': 'Test streaming responses API',
           'gen_ai.response.text': 'Streaming response to: Test streaming responses APITest streaming responses API',
           'gen_ai.response.finish_reasons': '["in_progress","completed"]',
           'gen_ai.response.id': 'resp_stream_456',
@@ -288,8 +288,8 @@ describe('OpenAI integration (V6)', () => {
           'gen_ai.operation.name': 'chat',
           'gen_ai.request.model': 'error-model',
           'gen_ai.request.stream': true,
-          'gen_ai.request.messages.original_length': 1,
-          'gen_ai.request.messages': '[{"role":"user","content":"This will fail"}]',
+          'gen_ai.input.messages.original_length': 1,
+          'gen_ai.input.messages': '[{"role":"user","content":"This will fail"}]',
           'gen_ai.system': 'openai',
           'sentry.op': 'gen_ai.chat',
           'sentry.origin': 'auto.ai.openai',
@@ -308,16 +308,16 @@ describe('OpenAI integration (V6)', () => {
       // Check that custom options are respected
       expect.objectContaining({
         data: expect.objectContaining({
-          'gen_ai.request.messages.original_length': expect.any(Number),
-          'gen_ai.request.messages': expect.any(String), // Should include messages when recordInputs: true
+          'gen_ai.input.messages.original_length': expect.any(Number),
+          'gen_ai.input.messages': expect.any(String), // Should include messages when recordInputs: true
           'gen_ai.response.text': expect.any(String), // Should include response text when recordOutputs: true
         }),
       }),
       // Check that custom options are respected for streaming
       expect.objectContaining({
         data: expect.objectContaining({
-          'gen_ai.request.messages.original_length': expect.any(Number),
-          'gen_ai.request.messages': expect.any(String), // Should include messages when recordInputs: true
+          'gen_ai.input.messages.original_length': expect.any(Number),
+          'gen_ai.input.messages': expect.any(String), // Should include messages when recordInputs: true
           'gen_ai.response.text': expect.any(String), // Should include response text when recordOutputs: true
           'gen_ai.request.stream': true, // Should be marked as stream
         }),

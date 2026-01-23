@@ -87,7 +87,7 @@ conditionalTest({ min: 20 })('LangChain integration (v1)', () => {
           'gen_ai.request.model': 'claude-3-5-sonnet-20241022',
           'gen_ai.request.temperature': 0.7,
           'gen_ai.request.max_tokens': 100,
-          'gen_ai.request.messages': expect.any(String), // Should include messages when recordInputs: true
+          'gen_ai.input.messages': expect.any(String), // Should include messages when recordInputs: true
           'gen_ai.response.text': expect.any(String), // Should include response when recordOutputs: true
           'gen_ai.response.id': expect.any(String),
           'gen_ai.response.model': expect.any(String),
@@ -112,7 +112,7 @@ conditionalTest({ min: 20 })('LangChain integration (v1)', () => {
           'gen_ai.request.temperature': 0.9,
           'gen_ai.request.top_p': 0.95,
           'gen_ai.request.max_tokens': 200,
-          'gen_ai.request.messages': expect.any(String), // Should include messages when recordInputs: true
+          'gen_ai.input.messages': expect.any(String), // Should include messages when recordInputs: true
           'gen_ai.response.text': expect.any(String), // Should include response when recordOutputs: true
           'gen_ai.response.id': expect.any(String),
           'gen_ai.response.model': expect.any(String),
@@ -134,7 +134,7 @@ conditionalTest({ min: 20 })('LangChain integration (v1)', () => {
       //     'sentry.origin': 'auto.ai.langchain',
       //     'gen_ai.system': 'anthropic',
       //     'gen_ai.request.model': 'error-model',
-      //     'gen_ai.request.messages': expect.any(String), // Should include messages when recordInputs: true
+      //     'gen_ai.input.messages': expect.any(String), // Should include messages when recordInputs: true
       //   }),
       //   description: 'chat error-model',
       //   op: 'gen_ai.chat',
@@ -250,7 +250,7 @@ conditionalTest({ min: 20 })('LangChain integration (v1)', () => {
           'gen_ai.system': 'anthropic',
           'gen_ai.request.model': 'claude-3-5-sonnet-20241022',
           // Messages should be present and should include truncated string input (contains only Cs)
-          'gen_ai.request.messages': expect.stringMatching(/^\[\{"role":"user","content":"C+"\}\]$/),
+          'gen_ai.input.messages': expect.stringMatching(/^\[\{"role":"user","content":"C+"\}\]$/),
         }),
         description: 'chat claude-3-5-sonnet-20241022',
         op: 'gen_ai.chat',
@@ -266,7 +266,7 @@ conditionalTest({ min: 20 })('LangChain integration (v1)', () => {
           'gen_ai.system': 'anthropic',
           'gen_ai.request.model': 'claude-3-5-sonnet-20241022',
           // Messages should be present (truncation happened) and should be a JSON array of a single index (contains only Cs)
-          'gen_ai.request.messages': expect.stringMatching(/^\[\{"role":"user","content":"C+"\}\]$/),
+          'gen_ai.input.messages': expect.stringMatching(/^\[\{"role":"user","content":"C+"\}\]$/),
         }),
         description: 'chat claude-3-5-sonnet-20241022',
         op: 'gen_ai.chat',
@@ -282,7 +282,7 @@ conditionalTest({ min: 20 })('LangChain integration (v1)', () => {
           'gen_ai.system': 'anthropic',
           'gen_ai.request.model': 'claude-3-5-sonnet-20241022',
           // Small message should be kept intact
-          'gen_ai.request.messages': JSON.stringify([
+          'gen_ai.input.messages': JSON.stringify([
             { role: 'user', content: 'This is a small message that fits within the limit' },
           ]),
         }),
