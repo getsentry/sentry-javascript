@@ -1,5 +1,12 @@
 import type { Event } from '@sentry/node';
 import { afterAll, describe, expect } from 'vitest';
+import {
+  GEN_AI_TOOL_CALL_ID_ATTRIBUTE,
+  GEN_AI_TOOL_INPUT_ATTRIBUTE,
+  GEN_AI_TOOL_NAME_ATTRIBUTE,
+  GEN_AI_TOOL_OUTPUT_ATTRIBUTE,
+  GEN_AI_TOOL_TYPE_ATTRIBUTE,
+} from '../../../../../../packages/core/src/tracing/ai/gen-ai-attributes';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/runner';
 
 describe('Vercel AI integration (V5)', () => {
@@ -178,9 +185,9 @@ describe('Vercel AI integration (V5)', () => {
       expect.objectContaining({
         data: {
           'vercel.ai.operationId': 'ai.toolCall',
-          'gen_ai.tool.call.id': 'call-1',
-          'gen_ai.tool.name': 'getWeather',
-          'gen_ai.tool.type': 'function',
+          [GEN_AI_TOOL_CALL_ID_ATTRIBUTE]: 'call-1',
+          [GEN_AI_TOOL_NAME_ATTRIBUTE]: 'getWeather',
+          [GEN_AI_TOOL_TYPE_ATTRIBUTE]: 'function',
           'gen_ai.operation.name': 'execute_tool',
           'sentry.op': 'gen_ai.execute_tool',
           'sentry.origin': 'auto.vercelai.otel',
@@ -386,11 +393,11 @@ describe('Vercel AI integration (V5)', () => {
       expect.objectContaining({
         data: expect.objectContaining({
           'vercel.ai.operationId': 'ai.toolCall',
-          'gen_ai.tool.call.id': 'call-1',
-          'gen_ai.tool.name': 'getWeather',
-          'gen_ai.tool.input': expect.any(String),
-          'gen_ai.tool.output': expect.any(String),
-          'gen_ai.tool.type': 'function',
+          [GEN_AI_TOOL_CALL_ID_ATTRIBUTE]: 'call-1',
+          [GEN_AI_TOOL_NAME_ATTRIBUTE]: 'getWeather',
+          [GEN_AI_TOOL_INPUT_ATTRIBUTE]: expect.any(String),
+          [GEN_AI_TOOL_OUTPUT_ATTRIBUTE]: expect.any(String),
+          [GEN_AI_TOOL_TYPE_ATTRIBUTE]: 'function',
           'gen_ai.operation.name': 'execute_tool',
           'sentry.op': 'gen_ai.execute_tool',
           'sentry.origin': 'auto.vercelai.otel',
@@ -496,9 +503,9 @@ describe('Vercel AI integration (V5)', () => {
             expect.objectContaining({
               data: {
                 'vercel.ai.operationId': 'ai.toolCall',
-                'gen_ai.tool.call.id': 'call-1',
-                'gen_ai.tool.name': 'getWeather',
-                'gen_ai.tool.type': 'function',
+                [GEN_AI_TOOL_CALL_ID_ATTRIBUTE]: 'call-1',
+                [GEN_AI_TOOL_NAME_ATTRIBUTE]: 'getWeather',
+                [GEN_AI_TOOL_TYPE_ATTRIBUTE]: 'function',
                 'gen_ai.operation.name': 'execute_tool',
                 'sentry.op': 'gen_ai.execute_tool',
                 'sentry.origin': 'auto.vercelai.otel',

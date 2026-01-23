@@ -232,6 +232,31 @@ export const GEN_AI_EMBED_MANY_DO_EMBED_OPERATION_ATTRIBUTE = 'gen_ai.embed_many
  */
 export const GEN_AI_EXECUTE_TOOL_OPERATION_ATTRIBUTE = 'gen_ai.execute_tool';
 
+/**
+ * The tool name for tool call spans
+ */
+export const GEN_AI_TOOL_NAME_ATTRIBUTE = 'gen_ai.tool.name';
+
+/**
+ * The tool call ID
+ */
+export const GEN_AI_TOOL_CALL_ID_ATTRIBUTE = 'gen_ai.tool.call.id';
+
+/**
+ * The tool type (e.g., 'function')
+ */
+export const GEN_AI_TOOL_TYPE_ATTRIBUTE = 'gen_ai.tool.type';
+
+/**
+ * The tool input/arguments
+ */
+export const GEN_AI_TOOL_INPUT_ATTRIBUTE = 'gen_ai.tool.input';
+
+/**
+ * The tool output/result
+ */
+export const GEN_AI_TOOL_OUTPUT_ATTRIBUTE = 'gen_ai.tool.output';
+
 // =============================================================================
 // OPENAI-SPECIFIC ATTRIBUTES
 // =============================================================================

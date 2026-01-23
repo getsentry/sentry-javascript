@@ -8,10 +8,16 @@ import {
   GEN_AI_REQUEST_MESSAGES_ATTRIBUTE,
   GEN_AI_REQUEST_MODEL_ATTRIBUTE,
   GEN_AI_RESPONSE_MODEL_ATTRIBUTE,
+  GEN_AI_TOOL_CALL_ID_ATTRIBUTE,
+  GEN_AI_TOOL_INPUT_ATTRIBUTE,
+  GEN_AI_TOOL_NAME_ATTRIBUTE,
+  GEN_AI_TOOL_OUTPUT_ATTRIBUTE,
+  GEN_AI_TOOL_TYPE_ATTRIBUTE,
   GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_INPUT_TOKENS_CACHE_WRITE_ATTRIBUTE,
   GEN_AI_USAGE_INPUT_TOKENS_CACHED_ATTRIBUTE,
   GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
+  GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
 import { EMBEDDINGS_OPS, GENERATE_CONTENT_OPS, INVOKE_AGENT_OPS, toolCallSpanMap } from './constants';
 import type { TokenSummary } from './types';
@@ -156,7 +162,7 @@ function processEndedVercelAiSpan(span: SpanJSON): void {
     typeof attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE] === 'number' &&
     typeof attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE] === 'number'
   ) {
-    attributes['gen_ai.usage.total_tokens'] =
+    attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE] =
       attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE] + attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE];
   }
 
@@ -181,8 +187,8 @@ function processEndedVercelAiSpan(span: SpanJSON): void {
   renameAttributeKey(attributes, AI_RESPONSE_OBJECT_ATTRIBUTE, 'gen_ai.response.object');
   renameAttributeKey(attributes, AI_PROMPT_TOOLS_ATTRIBUTE, 'gen_ai.request.available_tools');
 
-  renameAttributeKey(attributes, AI_TOOL_CALL_ARGS_ATTRIBUTE, 'gen_ai.tool.input');
-  renameAttributeKey(attributes, AI_TOOL_CALL_RESULT_ATTRIBUTE, 'gen_ai.tool.output');
+  renameAttributeKey(attributes, AI_TOOL_CALL_ARGS_ATTRIBUTE, GEN_AI_TOOL_INPUT_ATTRIBUTE);
+  renameAttributeKey(attributes, AI_TOOL_CALL_RESULT_ATTRIBUTE, GEN_AI_TOOL_OUTPUT_ATTRIBUTE);
 
   renameAttributeKey(attributes, AI_SCHEMA_ATTRIBUTE, 'gen_ai.request.schema');
   renameAttributeKey(attributes, AI_MODEL_ID_ATTRIBUTE, GEN_AI_REQUEST_MODEL_ATTRIBUTE);
@@ -213,22 +219,22 @@ function processToolCallSpan(span: Span, attributes: SpanAttributes): void {
   addOriginToSpan(span, 'auto.vercelai.otel');
   span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'gen_ai.execute_tool');
   span.setAttribute(GEN_AI_OPERATION_NAME_ATTRIBUTE, 'execute_tool');
-  renameAttributeKey(attributes, AI_TOOL_CALL_NAME_ATTRIBUTE, 'gen_ai.tool.name');
-  renameAttributeKey(attributes, AI_TOOL_CALL_ID_ATTRIBUTE, 'gen_ai.tool.call.id');
+  renameAttributeKey(attributes, AI_TOOL_CALL_NAME_ATTRIBUTE, GEN_AI_TOOL_NAME_ATTRIBUTE);
+  renameAttributeKey(attributes, AI_TOOL_CALL_ID_ATTRIBUTE, GEN_AI_TOOL_CALL_ID_ATTRIBUTE);
 
   // Store the span in our global map using the tool call ID
   // This allows us to capture tool errors and link them to the correct span
-  const toolCallId = attributes['gen_ai.tool.call.id'];
+  const toolCallId = attributes[GEN_AI_TOOL_CALL_ID_ATTRIBUTE];
 
   if (typeof toolCallId === 'string') {
     toolCallSpanMap.set(toolCallId, span);
   }
 
   // https://opentelemetry.io/docs/specs/semconv/registry/attributes/gen-ai/#gen-ai-tool-type
-  if (!attributes['gen_ai.tool.type']) {
-    span.setAttribute('gen_ai.tool.type', 'function');
+  if (!attributes[GEN_AI_TOOL_TYPE_ATTRIBUTE]) {
+    span.setAttribute(GEN_AI_TOOL_TYPE_ATTRIBUTE, 'function');
   }
-  const toolName = attributes['gen_ai.tool.name'];
+  const toolName = attributes[GEN_AI_TOOL_NAME_ATTRIBUTE];
   if (toolName) {
     span.updateName(`execute_tool ${toolName}`);
   }
