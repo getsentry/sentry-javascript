@@ -3,7 +3,13 @@ import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '
 import { SPAN_STATUS_ERROR } from '../../tracing';
 import { startSpanManual } from '../../tracing/trace';
 import type { Span, SpanAttributeValue } from '../../types-hoist/span';
-import { GEN_AI_OPERATION_NAME_ATTRIBUTE, GEN_AI_REQUEST_MODEL_ATTRIBUTE } from '../ai/gen-ai-attributes';
+import {
+  GEN_AI_OPERATION_NAME_ATTRIBUTE,
+  GEN_AI_REQUEST_MODEL_ATTRIBUTE,
+  GEN_AI_TOOL_INPUT_ATTRIBUTE,
+  GEN_AI_TOOL_NAME_ATTRIBUTE,
+  GEN_AI_TOOL_OUTPUT_ATTRIBUTE,
+} from '../ai/gen-ai-attributes';
 import { LANGCHAIN_ORIGIN } from './constants';
 import type {
   LangChainCallbackHandler,
@@ -241,12 +247,12 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
       const toolName = tool.name || 'unknown_tool';
       const attributes: Record<string, SpanAttributeValue> = {
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: LANGCHAIN_ORIGIN,
-        'gen_ai.tool.name': toolName,
+        [GEN_AI_TOOL_NAME_ATTRIBUTE]: toolName,
       };
 
       // Add input if recordInputs is enabled
       if (recordInputs) {
-        attributes['gen_ai.tool.input'] = input;
+        attributes[GEN_AI_TOOL_INPUT_ATTRIBUTE] = input;
       }
 
       startSpanManual(
@@ -272,7 +278,7 @@ export function createLangChainCallbackHandler(options: LangChainOptions = {}): 
         // Add output if recordOutputs is enabled
         if (recordOutputs) {
           span.setAttributes({
-            'gen_ai.tool.output': JSON.stringify(output),
+            [GEN_AI_TOOL_OUTPUT_ATTRIBUTE]: JSON.stringify(output),
           });
         }
         exitSpan(runId);

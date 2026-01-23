@@ -14,10 +14,15 @@ import {
   GEN_AI_RESPONSE_TEXT_ATTRIBUTE,
   GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
   GEN_AI_SYSTEM_ATTRIBUTE,
+  GEN_AI_TOOL_CALL_ID_ATTRIBUTE,
+  GEN_AI_TOOL_INPUT_ATTRIBUTE,
+  GEN_AI_TOOL_NAME_ATTRIBUTE,
+  GEN_AI_TOOL_OUTPUT_ATTRIBUTE,
+  GEN_AI_TOOL_TYPE_ATTRIBUTE,
   GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
-} from '../../../../packages/core/src/tracing/ai/gen-ai-attributes';
+} from '../../../../../packages/core/src/tracing/ai/gen-ai-attributes';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 describe('Vercel AI integration', () => {
@@ -199,9 +204,9 @@ describe('Vercel AI integration', () => {
       // Seventh span - tool call execution span
       expect.objectContaining({
         data: {
-          'gen_ai.tool.call.id': 'call-1',
-          'gen_ai.tool.name': 'getWeather',
-          'gen_ai.tool.type': 'function',
+          [GEN_AI_TOOL_CALL_ID_ATTRIBUTE]: 'call-1',
+          [GEN_AI_TOOL_NAME_ATTRIBUTE]: 'getWeather',
+          [GEN_AI_TOOL_TYPE_ATTRIBUTE]: 'function',
           [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'ai.toolCall',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.execute_tool',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.vercelai.otel',
@@ -444,11 +449,11 @@ describe('Vercel AI integration', () => {
       // Seventh span - tool call execution span
       expect.objectContaining({
         data: {
-          'gen_ai.tool.call.id': 'call-1',
-          'gen_ai.tool.input': expect.any(String),
-          'gen_ai.tool.name': 'getWeather',
-          'gen_ai.tool.output': expect.any(String),
-          'gen_ai.tool.type': 'function',
+          [GEN_AI_TOOL_CALL_ID_ATTRIBUTE]: 'call-1',
+          [GEN_AI_TOOL_INPUT_ATTRIBUTE]: expect.any(String),
+          [GEN_AI_TOOL_NAME_ATTRIBUTE]: 'getWeather',
+          [GEN_AI_TOOL_OUTPUT_ATTRIBUTE]: expect.any(String),
+          [GEN_AI_TOOL_TYPE_ATTRIBUTE]: 'function',
           [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'ai.toolCall',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.execute_tool',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.vercelai.otel',
@@ -536,9 +541,9 @@ describe('Vercel AI integration', () => {
           }),
           expect.objectContaining({
             data: {
-              'gen_ai.tool.call.id': 'call-1',
-              'gen_ai.tool.name': 'getWeather',
-              'gen_ai.tool.type': 'function',
+              [GEN_AI_TOOL_CALL_ID_ATTRIBUTE]: 'call-1',
+              [GEN_AI_TOOL_NAME_ATTRIBUTE]: 'getWeather',
+              [GEN_AI_TOOL_TYPE_ATTRIBUTE]: 'function',
               [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'ai.toolCall',
               [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.execute_tool',
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.vercelai.otel',
@@ -656,9 +661,9 @@ describe('Vercel AI integration', () => {
           }),
           expect.objectContaining({
             data: {
-              'gen_ai.tool.call.id': 'call-1',
-              'gen_ai.tool.name': 'getWeather',
-              'gen_ai.tool.type': 'function',
+              [GEN_AI_TOOL_CALL_ID_ATTRIBUTE]: 'call-1',
+              [GEN_AI_TOOL_NAME_ATTRIBUTE]: 'getWeather',
+              [GEN_AI_TOOL_TYPE_ATTRIBUTE]: 'function',
               [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'ai.toolCall',
               [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.execute_tool',
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.vercelai.otel',

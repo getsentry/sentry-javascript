@@ -1,4 +1,16 @@
+import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { expect, it } from 'vitest';
+import {
+  GEN_AI_OPERATION_NAME_ATTRIBUTE,
+  GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE,
+  GEN_AI_REQUEST_MODEL_ATTRIBUTE,
+  GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE,
+  GEN_AI_REQUEST_TOP_P_ATTRIBUTE,
+  GEN_AI_SYSTEM_ATTRIBUTE,
+  GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
+  GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
+  GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
+} from '../../../../../packages/core/src/tracing/ai/gen-ai-attributes';
 import { createRunner } from '../../../runner';
 
 // These tests are not exhaustive because the instrumentation is
@@ -18,14 +30,14 @@ it('traces Google GenAI chat creation and message sending', async () => {
           // First span - chats.create
           expect.objectContaining({
             data: expect.objectContaining({
-              'gen_ai.operation.name': 'chat',
-              'sentry.op': 'gen_ai.chat',
-              'sentry.origin': 'auto.ai.google_genai',
-              'gen_ai.system': 'google_genai',
-              'gen_ai.request.model': 'gemini-1.5-pro',
-              'gen_ai.request.temperature': 0.8,
-              'gen_ai.request.top_p': 0.9,
-              'gen_ai.request.max_tokens': 150,
+              [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'chat',
+              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.chat',
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.google_genai',
+              [GEN_AI_SYSTEM_ATTRIBUTE]: 'google_genai',
+              [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'gemini-1.5-pro',
+              [GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE]: 0.8,
+              [GEN_AI_REQUEST_TOP_P_ATTRIBUTE]: 0.9,
+              [GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE]: 150,
             }),
             description: 'chat gemini-1.5-pro create',
             op: 'gen_ai.chat',
@@ -34,14 +46,14 @@ it('traces Google GenAI chat creation and message sending', async () => {
           // Second span - chat.sendMessage
           expect.objectContaining({
             data: expect.objectContaining({
-              'gen_ai.operation.name': 'chat',
-              'sentry.op': 'gen_ai.chat',
-              'sentry.origin': 'auto.ai.google_genai',
-              'gen_ai.system': 'google_genai',
-              'gen_ai.request.model': 'gemini-1.5-pro',
-              'gen_ai.usage.input_tokens': 8,
-              'gen_ai.usage.output_tokens': 12,
-              'gen_ai.usage.total_tokens': 20,
+              [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'chat',
+              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.chat',
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.google_genai',
+              [GEN_AI_SYSTEM_ATTRIBUTE]: 'google_genai',
+              [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'gemini-1.5-pro',
+              [GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]: 8,
+              [GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]: 12,
+              [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: 20,
             }),
             description: 'chat gemini-1.5-pro',
             op: 'gen_ai.chat',
@@ -50,17 +62,17 @@ it('traces Google GenAI chat creation and message sending', async () => {
           // Third span - models.generateContent
           expect.objectContaining({
             data: expect.objectContaining({
-              'gen_ai.operation.name': 'models',
-              'sentry.op': 'gen_ai.models',
-              'sentry.origin': 'auto.ai.google_genai',
-              'gen_ai.system': 'google_genai',
-              'gen_ai.request.model': 'gemini-1.5-flash',
-              'gen_ai.request.temperature': 0.7,
-              'gen_ai.request.top_p': 0.9,
-              'gen_ai.request.max_tokens': 100,
-              'gen_ai.usage.input_tokens': 8,
-              'gen_ai.usage.output_tokens': 12,
-              'gen_ai.usage.total_tokens': 20,
+              [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'models',
+              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.models',
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.google_genai',
+              [GEN_AI_SYSTEM_ATTRIBUTE]: 'google_genai',
+              [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'gemini-1.5-flash',
+              [GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE]: 0.7,
+              [GEN_AI_REQUEST_TOP_P_ATTRIBUTE]: 0.9,
+              [GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE]: 100,
+              [GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]: 8,
+              [GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]: 12,
+              [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: 20,
             }),
             description: 'models gemini-1.5-flash',
             op: 'gen_ai.models',

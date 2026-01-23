@@ -1,4 +1,17 @@
+import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { expect, it } from 'vitest';
+import {
+  GEN_AI_OPERATION_NAME_ATTRIBUTE,
+  GEN_AI_REQUEST_MODEL_ATTRIBUTE,
+  GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE,
+  GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE,
+  GEN_AI_RESPONSE_ID_ATTRIBUTE,
+  GEN_AI_RESPONSE_MODEL_ATTRIBUTE,
+  GEN_AI_SYSTEM_ATTRIBUTE,
+  GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
+  GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
+  GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
+} from '../../../../../packages/core/src/tracing/ai/gen-ai-attributes';
 import { createRunner } from '../../../runner';
 
 // These tests are not exhaustive because the instrumentation is
@@ -17,18 +30,18 @@ it('traces a basic chat completion request', async ({ signal }) => {
         expect.arrayContaining([
           expect.objectContaining({
             data: expect.objectContaining({
-              'gen_ai.operation.name': 'chat',
-              'sentry.op': 'gen_ai.chat',
-              'sentry.origin': 'auto.ai.openai',
-              'gen_ai.system': 'openai',
-              'gen_ai.request.model': 'gpt-3.5-turbo',
-              'gen_ai.request.temperature': 0.7,
-              'gen_ai.response.model': 'gpt-3.5-turbo',
-              'gen_ai.response.id': 'chatcmpl-mock123',
-              'gen_ai.usage.input_tokens': 10,
-              'gen_ai.usage.output_tokens': 15,
-              'gen_ai.usage.total_tokens': 25,
-              'gen_ai.response.finish_reasons': '["stop"]',
+              [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'chat',
+              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.chat',
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.openai',
+              [GEN_AI_SYSTEM_ATTRIBUTE]: 'openai',
+              [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'gpt-3.5-turbo',
+              [GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE]: 0.7,
+              [GEN_AI_RESPONSE_MODEL_ATTRIBUTE]: 'gpt-3.5-turbo',
+              [GEN_AI_RESPONSE_ID_ATTRIBUTE]: 'chatcmpl-mock123',
+              [GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]: 10,
+              [GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]: 15,
+              [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: 25,
+              [GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]: '["stop"]',
             }),
             description: 'chat gpt-3.5-turbo',
             op: 'gen_ai.chat',

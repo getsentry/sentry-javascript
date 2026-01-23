@@ -1,4 +1,15 @@
+import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { expect, it } from 'vitest';
+import {
+  GEN_AI_OPERATION_NAME_ATTRIBUTE,
+  GEN_AI_REQUEST_MODEL_ATTRIBUTE,
+  GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE,
+  GEN_AI_RESPONSE_ID_ATTRIBUTE,
+  GEN_AI_RESPONSE_MODEL_ATTRIBUTE,
+  GEN_AI_SYSTEM_ATTRIBUTE,
+  GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
+  GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
+} from '../../../../../packages/core/src/tracing/ai/gen-ai-attributes';
 import { createRunner } from '../../../runner';
 
 // These tests are not exhaustive because the instrumentation is
@@ -17,16 +28,16 @@ it('traces a basic message creation request', async ({ signal }) => {
         expect.arrayContaining([
           expect.objectContaining({
             data: expect.objectContaining({
-              'gen_ai.operation.name': 'messages',
-              'sentry.op': 'gen_ai.messages',
-              'sentry.origin': 'auto.ai.anthropic',
-              'gen_ai.system': 'anthropic',
-              'gen_ai.request.model': 'claude-3-haiku-20240307',
-              'gen_ai.request.temperature': 0.7,
-              'gen_ai.response.model': 'claude-3-haiku-20240307',
-              'gen_ai.response.id': 'msg_mock123',
-              'gen_ai.usage.input_tokens': 10,
-              'gen_ai.usage.output_tokens': 15,
+              [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'messages',
+              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.messages',
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.anthropic',
+              [GEN_AI_SYSTEM_ATTRIBUTE]: 'anthropic',
+              [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'claude-3-haiku-20240307',
+              [GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE]: 0.7,
+              [GEN_AI_RESPONSE_MODEL_ATTRIBUTE]: 'claude-3-haiku-20240307',
+              [GEN_AI_RESPONSE_ID_ATTRIBUTE]: 'msg_mock123',
+              [GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]: 10,
+              [GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]: 15,
             }),
             description: 'messages claude-3-haiku-20240307',
             op: 'gen_ai.messages',
