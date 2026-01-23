@@ -7,7 +7,7 @@ import {
   properFullEnvelopeRequestParser,
   shouldSkipTracingTest,
 } from '../../../utils/helpers';
-import { validateProfile, validateProfileItemHeader, validateProfilePayloadMetadata } from '../test-utils';
+import { validateProfile, validateProfilePayloadMetadata } from '../test-utils';
 
 sentryTest(
   'does not send profile envelope when document-policy is not set',
@@ -51,7 +51,7 @@ sentryTest(
     const envelopeItemHeader = profileChunkEnvelopeItem[0];
     const envelopeItemPayload1 = profileChunkEnvelopeItem[1];
 
-    validateProfileItemHeader(envelopeItemHeader);
+    expect(envelopeItemHeader).toEqual({ type: 'profile_chunk', platform: 'javascript' });
     expect(envelopeItemPayload1.profile).toBeDefined();
 
     validateProfilePayloadMetadata(envelopeItemPayload1);
@@ -77,7 +77,7 @@ sentryTest(
     const envelopeItemHeader2 = profileChunkEnvelopeItem2[0];
     const envelopeItemPayload2 = profileChunkEnvelopeItem2[1];
 
-    validateProfileItemHeader(envelopeItemHeader2);
+    expect(envelopeItemHeader2).toEqual({ type: 'profile_chunk', platform: 'javascript' });
     expect(envelopeItemPayload2.profile).toBeDefined();
 
     validateProfilePayloadMetadata(envelopeItemPayload2);
