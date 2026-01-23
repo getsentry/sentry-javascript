@@ -15,7 +15,13 @@ import type {
   IntegrationFn,
   OsContext,
 } from '@sentry/core';
-import { defineIntegration } from '@sentry/core';
+import {
+  debug,
+  defineIntegration,
+  getCapturedScopesOnSpan,
+  getGlobalScope,
+  INTERNAL_getSegmentSpan,
+} from '@sentry/core';
 
 export const readFileAsync = promisify(readFile);
 export const readDirAsync = promisify(readdir);
@@ -107,6 +113,43 @@ const _nodeContextIntegration = ((options: ContextOptions = {}) => {
 
   return {
     name: INTEGRATION_NAME,
+    setup(client) {
+      // first set all contexts on the global scope
+      _getContexts()
+        .then(updatedContext => {
+          const globalScope = getGlobalScope();
+          const previousContexts = globalScope.getScopeData().contexts;
+
+          const contexts = {
+            app: { ...updatedContext.app, ...previousContexts?.app },
+            os: { ...updatedContext.os, ...previousContexts?.os },
+            device: { ...updatedContext.device, ...previousContexts?.device },
+            culture: { ...updatedContext.culture, ...previousContexts?.culture },
+            cloud_resource: { ...updatedContext.cloud_resource, ...previousContexts?.cloud_resource },
+            runtime: { name: 'node', version: global.process.version, ...previousContexts?.runtime },
+          };
+
+          Object.keys(contexts).forEach(key => {
+            globalScope.setContext(key, contexts[key as keyof Event['contexts']]);
+          });
+        })
+        .catch(() => {
+          debug.warn(`[${INTEGRATION_NAME}] Failed to get contexts from Node`);
+        });
+
+      client.on('spanEnd', span => {
+        if (INTERNAL_getSegmentSpan(span) !== span) {
+          return;
+        }
+        const currentScopeOfSpan = getCapturedScopesOnSpan(span).scope;
+        if (currentScopeOfSpan) {
+          const updatedContext = _updateContext(getGlobalScope().getScopeData().contexts);
+          Object.keys(updatedContext).forEach(key => {
+            currentScopeOfSpan.setContext(key, updatedContext[key as keyof Event['contexts']] ?? null);
+          });
+        }
+      });
+    },
     processEvent(event) {
       return addContext(event);
     },

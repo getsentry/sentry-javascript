@@ -145,7 +145,7 @@ function _shouldDropEvent(event: Event, options: Partial<EventFiltersOptions>): 
     }
   } else if (event.type === 'transaction') {
     // Filter transactions
-
+    // TODO (span-streaming): replace with ignoreSpans defaults (if we have any)
     if (_isIgnoredTransaction(event, options.ignoreTransactions)) {
       DEBUG_BUILD &&
         debug.warn(
