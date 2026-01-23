@@ -23,6 +23,8 @@ Work in this release was contributed by @sebws and @harshit078. Thank you for yo
   This is particularly useful for tracking multiple AI API calls that are part of the same conversation, allowing you to analyze entire conversation flows in Sentry.
   The conversation ID is stored on the isolation scope and automatically applied to spans via the new `conversationIdIntegration`.
 
+### Important Changes
+
 - **feat(tanstackstart-react): Auto-instrument global middleware in `sentryTanstackStart` Vite plugin ([#18884](https://github.com/getsentry/sentry-javascript/pull/18844))**
 
   The `sentryTanstackStart` Vite plugin now automatically instruments `requestMiddleware` and `functionMiddleware` arrays in `createStart()`. This captures performance data without requiring manual wrapping.
@@ -40,6 +42,8 @@ Work in this release was contributed by @sebws and @harshit078. Thank you for yo
   ```
 
 ### Other Changes
+
+- feat(deps): Bump OpenTelemetry instrumentations ([#18934](https://github.com/getsentry/sentry-javascript/pull/18934))
 
 ## 10.36.0
 
