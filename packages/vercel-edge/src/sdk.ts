@@ -9,6 +9,7 @@ import {
 import type { Client, Integration, Options } from '@sentry/core';
 import {
   consoleIntegration,
+  conversationIdIntegration,
   createStackParser,
   debug,
   dedupeIntegration,
@@ -56,6 +57,7 @@ export function getDefaultIntegrations(options: Options): Integration[] {
     // eslint-disable-next-line deprecation/deprecation
     inboundFiltersIntegration(),
     functionToStringIntegration(),
+    conversationIdIntegration(),
     linkedErrorsIntegration(),
     winterCGFetchIntegration(),
     consoleIntegration(),
