@@ -261,7 +261,8 @@ export type SentryBuildOptions = {
     /**
      * A glob or an array of globs that specifies which build artifacts should not be uploaded to Sentry.
      *
-     * Default: `[]`
+     * The SDK automatically ignores Next.js internal files that don't have source maps (such as manifest files)
+     * to prevent "Could not determine source map" warnings. Your custom patterns are merged with these defaults.
      *
      * The globbing patterns follow the implementation of the `glob` package. (https://www.npmjs.com/package/glob)
      *

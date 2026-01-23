@@ -33,6 +33,30 @@ yarn test:run <app-name> --variant <variant-name>
 
 Variant name matching is case-insensitive and partial. For example, `--variant 13` will match `nextjs-pages-dir (next@13)` if a matching variant is present in the test app's `package.json`.
 
+### Using the Makefile
+
+Alternatively, you can use the provided Makefile for an interactive test selection experience:
+
+**Prerequisites**: Install `fzf` with Homebrew:
+
+```bash
+brew install fzf
+```
+
+**Run tests interactively**:
+
+```bash
+make run
+```
+
+This will display a fuzzy-finder menu of all available test applications. Select one to run it automatically.
+
+**List all test applications**:
+
+```bash
+make list
+```
+
 For example, if you have the following variants in your test app's `package.json`:
 
 ```json
