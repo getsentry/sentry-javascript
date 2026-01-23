@@ -59,8 +59,6 @@ export function makeBaseNPMConfig(options = {}) {
       // an appropriately-named directory will be added to this base value when we specify either a cjs or esm build
       dir: hasBundles ? 'build/npm' : 'build',
 
-      cleanDir: true,
-
       sourcemap: true,
 
       // Include __esModule property when there is a default prop

@@ -1,4 +1,5 @@
 import { makeBaseNPMConfig, makeNPMConfigVariants, makeOtelLoaders } from '@sentry-internal/rollup-utils';
+import path from 'path';
 
 export default [
   ...makeNPMConfigVariants(
@@ -57,8 +58,6 @@ export default [
         output: {
           virtualDirname: '_virtual/loaders',
 
-          dir: 'config/templates',
-
           // this is going to be add-on code, so it doesn't need the trappings of a full module (and in fact actively
           // shouldn't have them, lest they muck with the module to which we're adding it)
           sourcemap: false,
@@ -103,7 +102,16 @@ import * as serverComponentModule from "__SENTRY_WRAPPING_TARGET_FILE__";${code.
         ],
       },
     }),
-  ),
+  ).map(v => {
+    // copy the templates into the config/templates directory relative to the esm/cjs build directory
+    return {
+      ...v,
+      output: {
+        ...v.output,
+        dir: path.join(v.output.dir, 'config/templates'),
+      },
+    };
+  }),
   ...makeNPMConfigVariants(
     makeBaseNPMConfig({
       entrypoints: ['src/config/loaders/index.ts'],
