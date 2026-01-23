@@ -25,7 +25,7 @@ import {
   OPENAI_RESPONSE_TIMESTAMP_ATTRIBUTE,
   OPENAI_USAGE_COMPLETION_TOKENS_ATTRIBUTE,
   OPENAI_USAGE_PROMPT_TOKENS_ATTRIBUTE,
-} from '../../../../packages/core/src/tracing/ai/gen-ai-attributes';
+} from '../../../../../packages/core/src/tracing/ai/gen-ai-attributes';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 describe('OpenAI integration', () => {

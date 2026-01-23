@@ -14,7 +14,7 @@ import {
   GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
-} from '../../../../packages/core/src/tracing/ai/gen-ai-attributes';
+} from '../../../../../packages/core/src/tracing/ai/gen-ai-attributes';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 describe('LangGraph integration', () => {
