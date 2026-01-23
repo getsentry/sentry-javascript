@@ -56,7 +56,7 @@ export default [
 
       packageSpecificConfig: {
         output: {
-          virtualDirname: '_virtual/loaders',
+          virtualDirname: '_virtual/templates',
 
           // this is going to be add-on code, so it doesn't need the trappings of a full module (and in fact actively
           // shouldn't have them, lest they muck with the module to which we're adding it)
@@ -114,11 +114,16 @@ import * as serverComponentModule from "__SENTRY_WRAPPING_TARGET_FILE__";${code.
   }),
   ...makeNPMConfigVariants(
     makeBaseNPMConfig({
-      entrypoints: ['src/config/loaders/index.ts'],
+      entrypoints: [
+        'src/config/loaders/index.ts',
+        'src/config/loaders/valueInjectionLoader.ts',
+        'src/config/loaders/prefixLoader.ts',
+        'src/config/loaders/wrappingLoader.ts',
+      ],
 
       packageSpecificConfig: {
         output: {
-          virtualDirname: '_virtual/polyfills',
+          virtualDirname: '_virtual/loaders',
 
           // make it so Rollup calms down about the fact that we're combining default and named exports
           exports: 'named',
@@ -126,7 +131,16 @@ import * as serverComponentModule from "__SENTRY_WRAPPING_TARGET_FILE__";${code.
         external: ['@rollup/plugin-commonjs', 'rollup'],
       },
     }),
-  ),
+  ).map(v => {
+    // copy the loaders into the config/loaders directory relative to the esm/cjs build directory
+    return {
+      ...v,
+      output: {
+        ...v.output,
+        dir: path.join(v.output.dir, 'config/loaders'),
+      },
+    };
+  }),
   ...makeNPMConfigVariants(
     makeBaseNPMConfig({
       entrypoints: ['src/config/polyfills/perf_hooks.js'],
