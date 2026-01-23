@@ -13,6 +13,9 @@ import { addInstrumentationConfig } from '../sdk/injectLoader';
 
 const SENTRY_TRACK_SYMBOL = Symbol('sentry-track-pino-logger');
 
+const trackedLoggers = new WeakSet<Pino>();
+const ignoredLoggers = new WeakSet<Pino>();
+
 type LevelMapping = {
   // Fortunately pino uses the same levels as Sentry
   labels: { [level: number]: LogSeverityLevel };
@@ -23,6 +26,29 @@ type Pino = {
   levels: LevelMapping;
   [SENTRY_TRACK_SYMBOL]?: 'track' | 'ignore';
 };
+
+function isPinoLogger(obj: unknown): obj is Pino {
+  if (!obj || typeof obj !== 'object') {
+    return false;
+  }
+
+  if ('levels' in obj && obj.levels && typeof obj.levels === 'object' && 'labels' in obj.levels) {
+    return true;
+  }
+
+  const hasPinoSymbols = Object.getOwnPropertySymbols(obj).some(sym =>
+    sym.toString().includes('pino')
+  );
+  let proto = Object.getPrototypeOf(obj);
+  while (proto && proto !== Object.prototype) {
+    if ('levels' in proto && proto.levels && typeof proto.levels === 'object' && 'labels' in proto.levels) {
+      return true;
+    }
+    proto = Object.getPrototypeOf(proto);
+  }
+
+  return hasPinoSymbols;
+}
 
 /**
  * Gets a custom Pino key from a logger instance by searching for the symbol.
@@ -118,9 +144,22 @@ const _pinoIntegration = defineIntegration((userOptions: DeepPartial<PinoOptions
     log: { ...DEFAULT_OPTIONS.log, ...userOptions.log },
   };
 
-  function shouldTrackLogger(logger: Pino): boolean {
-    const override = logger[SENTRY_TRACK_SYMBOL];
-    return override === 'track' || (override !== 'ignore' && options.autoInstrument);
+  function shouldTrackLogger(logger: unknown): boolean {
+    if (!isPinoLogger(logger)) {
+      return false;
+    }
+
+    const pinoLogger = logger as Pino;
+
+    if (ignoredLoggers.has(pinoLogger)) {
+      return false;
+    }
+
+    if (trackedLoggers.has(pinoLogger)) {
+      return true;
+    }
+
+    return options.autoInstrument;
   }
 
   return {
@@ -235,15 +274,51 @@ interface PinoIntegrationFunction {
  *
  * Requires Pino >=v8.0.0 and Node >=20.6.0 or >=18.19.0
  */
+function trackLoggerInstance(logger: Pino): void {
+  trackedLoggers.add(logger);
+  ignoredLoggers.delete(logger);
+
+  try {
+    // @ts-expect-error - Checking proxy internals
+    if (logger.constructor === Proxy) {
+      const target = (logger as any).__target__ || (logger as any).target;
+      if (target && isPinoLogger(target)) {
+        trackedLoggers.add(target);
+        ignoredLoggers.delete(target);
+      }
+    }
+  } catch {
+    // Ignore errors when trying to access proxy internals
+  }
+}
+
+function untrackLoggerInstance(logger: Pino): void {
+  ignoredLoggers.add(logger);
+  trackedLoggers.delete(logger);
+
+  try {
+    // @ts-expect-error - Checking proxy internals
+    if (logger.constructor === Proxy) {
+      const target = (logger as any).__target__ || (logger as any).target;
+      if (target && isPinoLogger(target)) {
+        ignoredLoggers.add(target);
+        trackedLoggers.delete(target);
+      }
+    }
+  } catch {
+    // Ignore errors
+  }
+}
+
 export const pinoIntegration = Object.assign(_pinoIntegration, {
   trackLogger(logger: unknown): void {
-    if (logger && typeof logger === 'object' && 'levels' in logger) {
-      (logger as Pino)[SENTRY_TRACK_SYMBOL] = 'track';
+    if (isPinoLogger(logger)) {
+      trackLoggerInstance(logger as Pino);
     }
   },
   untrackLogger(logger: unknown): void {
-    if (logger && typeof logger === 'object' && 'levels' in logger) {
-      (logger as Pino)[SENTRY_TRACK_SYMBOL] = 'ignore';
+    if (isPinoLogger(logger)) {
+      untrackLoggerInstance(logger as Pino);
     }
   },
 }) as PinoIntegrationFunction;
