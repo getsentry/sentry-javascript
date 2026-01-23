@@ -12,8 +12,8 @@ describe('LangChain integration', () => {
       // First span - chat model with claude-3-5-sonnet
       expect.objectContaining({
         data: expect.objectContaining({
-          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'invoke_agent',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.invoke_agent',
+          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'chat',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.chat',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.langchain',
           [GEN_AI_SYSTEM_ATTRIBUTE]: 'anthropic',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'claude-3-5-sonnet-20241022',
@@ -26,16 +26,16 @@ describe('LangChain integration', () => {
           [GEN_AI_RESPONSE_MODEL_ATTRIBUTE]: expect.any(String),
           'gen_ai.response.stop_reason': expect.any(String),
         }),
-        description: 'invoke_agent claude-3-5-sonnet-20241022',
-        op: 'gen_ai.invoke_agent',
+        description: 'chat claude-3-5-sonnet-20241022',
+        op: 'gen_ai.chat',
         origin: 'auto.ai.langchain',
         status: 'ok',
       }),
       // Second span - chat model with claude-3-opus
       expect.objectContaining({
         data: expect.objectContaining({
-          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'invoke_agent',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.invoke_agent',
+          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'chat',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.chat',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.langchain',
           [GEN_AI_SYSTEM_ATTRIBUTE]: 'anthropic',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'claude-3-opus-20240229',
@@ -49,22 +49,22 @@ describe('LangChain integration', () => {
           [GEN_AI_RESPONSE_MODEL_ATTRIBUTE]: expect.any(String),
           'gen_ai.response.stop_reason': expect.any(String),
         }),
-        description: 'invoke_agent claude-3-opus-20240229',
-        op: 'gen_ai.invoke_agent',
+        description: 'chat claude-3-opus-20240229',
+        op: 'gen_ai.chat',
         origin: 'auto.ai.langchain',
         status: 'ok',
       }),
       // Third span - error handling
       expect.objectContaining({
         data: expect.objectContaining({
-          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'invoke_agent',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.invoke_agent',
+          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'chat',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.chat',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.langchain',
           [GEN_AI_SYSTEM_ATTRIBUTE]: 'anthropic',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'error-model',
         }),
-        description: 'invoke_agent error-model',
-        op: 'gen_ai.invoke_agent',
+        description: 'chat error-model',
+        op: 'gen_ai.chat',
         origin: 'auto.ai.langchain',
         status: 'internal_error',
       }),
@@ -77,8 +77,8 @@ describe('LangChain integration', () => {
       // First span - chat model with PII
       expect.objectContaining({
         data: expect.objectContaining({
-          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'invoke_agent',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.invoke_agent',
+          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'chat',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.chat',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.langchain',
           [GEN_AI_SYSTEM_ATTRIBUTE]: 'anthropic',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'claude-3-5-sonnet-20241022',
@@ -93,16 +93,16 @@ describe('LangChain integration', () => {
           [GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]: 15,
           [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: 25,
         }),
-        description: 'invoke_agent claude-3-5-sonnet-20241022',
-        op: 'gen_ai.invoke_agent',
+        description: 'chat claude-3-5-sonnet-20241022',
+        op: 'gen_ai.chat',
         origin: 'auto.ai.langchain',
         status: 'ok',
       }),
       // Second span - chat model with PII
       expect.objectContaining({
         data: expect.objectContaining({
-          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'invoke_agent',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.invoke_agent',
+          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'chat',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.chat',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.langchain',
           [GEN_AI_SYSTEM_ATTRIBUTE]: 'anthropic',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'claude-3-opus-20240229',
@@ -118,23 +118,23 @@ describe('LangChain integration', () => {
           [GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]: 15,
           [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: 25,
         }),
-        description: 'invoke_agent claude-3-opus-20240229',
-        op: 'gen_ai.invoke_agent',
+        description: 'chat claude-3-opus-20240229',
+        op: 'gen_ai.chat',
         origin: 'auto.ai.langchain',
         status: 'ok',
       }),
       // Third span - error handling with PII
       expect.objectContaining({
         data: expect.objectContaining({
-          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'invoke_agent',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.invoke_agent',
+          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'chat',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.chat',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.langchain',
           [GEN_AI_SYSTEM_ATTRIBUTE]: 'anthropic',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'error-model',
           [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: expect.any(String), // Should include messages when recordInputs: true
         }),
-        description: 'invoke_agent error-model',
-        op: 'gen_ai.invoke_agent',
+        description: 'chat error-model',
+        op: 'gen_ai.chat',
         origin: 'auto.ai.langchain',
         status: 'internal_error',
       }),
@@ -166,8 +166,8 @@ describe('LangChain integration', () => {
     spans: expect.arrayContaining([
       expect.objectContaining({
         data: expect.objectContaining({
-          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'invoke_agent',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.invoke_agent',
+          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'chat',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.chat',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.langchain',
           [GEN_AI_SYSTEM_ATTRIBUTE]: 'anthropic',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'claude-3-5-sonnet-20241022',
@@ -179,10 +179,10 @@ describe('LangChain integration', () => {
           [GEN_AI_RESPONSE_ID_ATTRIBUTE]: expect.any(String),
           [GEN_AI_RESPONSE_MODEL_ATTRIBUTE]: expect.any(String),
           'gen_ai.response.stop_reason': 'tool_use',
-          [GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE]: expect.any(String),
+          'gen_ai.response.tool_calls': expect.any(String),
         }),
-        description: 'invoke_agent claude-3-5-sonnet-20241022',
-        op: 'gen_ai.invoke_agent',
+        description: 'chat claude-3-5-sonnet-20241022',
+        op: 'gen_ai.chat',
         origin: 'auto.ai.langchain',
         status: 'ok',
       }),
@@ -201,40 +201,40 @@ describe('LangChain integration', () => {
       // First call: String input truncated (only C's remain, D's are cropped)
       expect.objectContaining({
         data: expect.objectContaining({
-          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'invoke_agent',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.invoke_agent',
+          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'chat',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.chat',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.langchain',
           [GEN_AI_SYSTEM_ATTRIBUTE]: 'anthropic',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'claude-3-5-sonnet-20241022',
           // Messages should be present and should include truncated string input (contains only Cs)
           [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: expect.stringMatching(/^\[\{"role":"user","content":"C+"\}\]$/),
         }),
-        description: 'invoke_agent claude-3-5-sonnet-20241022',
-        op: 'gen_ai.invoke_agent',
+        description: 'chat claude-3-5-sonnet-20241022',
+        op: 'gen_ai.chat',
         origin: 'auto.ai.langchain',
         status: 'ok',
       }),
       // Second call: Array input, last message truncated (only C's remain, D's are cropped)
       expect.objectContaining({
         data: expect.objectContaining({
-          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'invoke_agent',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.invoke_agent',
+          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'chat',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.chat',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.langchain',
           [GEN_AI_SYSTEM_ATTRIBUTE]: 'anthropic',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'claude-3-5-sonnet-20241022',
           // Messages should be present (truncation happened) and should be a JSON array of a single index (contains only Cs)
           [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: expect.stringMatching(/^\[\{"role":"user","content":"C+"\}\]$/),
         }),
-        description: 'invoke_agent claude-3-5-sonnet-20241022',
-        op: 'gen_ai.invoke_agent',
+        description: 'chat claude-3-5-sonnet-20241022',
+        op: 'gen_ai.chat',
         origin: 'auto.ai.langchain',
         status: 'ok',
       }),
       // Third call: Last message is small and kept without truncation
       expect.objectContaining({
         data: expect.objectContaining({
-          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'invoke_agent',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.invoke_agent',
+          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'chat',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.chat',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.langchain',
           [GEN_AI_SYSTEM_ATTRIBUTE]: 'anthropic',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'claude-3-5-sonnet-20241022',
@@ -243,8 +243,8 @@ describe('LangChain integration', () => {
             { role: 'user', content: 'This is a small message that fits within the limit' },
           ]),
         }),
-        description: 'invoke_agent claude-3-5-sonnet-20241022',
-        op: 'gen_ai.invoke_agent',
+        description: 'chat claude-3-5-sonnet-20241022',
+        op: 'gen_ai.chat',
         origin: 'auto.ai.langchain',
         status: 'ok',
       }),
@@ -291,8 +291,7 @@ describe('LangChain integration', () => {
               // Second call: LangChain call
               // This should have LangChain instrumentation (origin: 'auto.ai.langchain')
               const langchainSpan = spans.find(
-                span =>
-                  span.description === 'invoke_agent claude-3-5-sonnet-20241022' && span.origin === 'auto.ai.langchain',
+                span => span.description === 'chat claude-3-5-sonnet-20241022' && span.origin === 'auto.ai.langchain',
               );
 
               // Third call: Direct Anthropic call made AFTER LangChain import

@@ -19,7 +19,7 @@ import {
   GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
-import { toolCallSpanMap } from './constants';
+import { EMBEDDINGS_OPS, GENERATE_CONTENT_OPS, INVOKE_AGENT_OPS, toolCallSpanMap } from './constants';
 import type { TokenSummary } from './types';
 import {
   accumulateTokensForParent,
@@ -60,26 +60,14 @@ function addOriginToSpan(span: Span, origin: SpanOrigin): void {
  */
 function mapVercelAiOperationName(operationName: string): string {
   // Top-level pipeline operations map to invoke_agent
-  if (
-    operationName === 'ai.generateText' ||
-    operationName === 'ai.streamText' ||
-    operationName === 'ai.generateObject' ||
-    operationName === 'ai.streamObject' ||
-    operationName === 'ai.embed' ||
-    operationName === 'ai.embedMany'
-  ) {
+  if (INVOKE_AGENT_OPS.has(operationName)) {
     return 'invoke_agent';
   }
   // .do* operations are the actual LLM calls
-  if (
-    operationName === 'ai.generateText.doGenerate' ||
-    operationName === 'ai.streamText.doStream' ||
-    operationName === 'ai.generateObject.doGenerate' ||
-    operationName === 'ai.streamObject.doStream'
-  ) {
+  if (GENERATE_CONTENT_OPS.has(operationName)) {
     return 'generate_content';
   }
-  if (operationName === 'ai.embed.doEmbed' || operationName === 'ai.embedMany.doEmbed') {
+  if (EMBEDDINGS_OPS.has(operationName)) {
     return 'embeddings';
   }
   if (operationName === 'ai.toolCall') {
