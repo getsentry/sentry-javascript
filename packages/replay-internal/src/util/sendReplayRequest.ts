@@ -117,14 +117,15 @@ export async function sendReplayRequest({
     throw error;
   }
 
-  // If the status code is invalid, we want to immediately stop & not retry
-  if (typeof response.statusCode === 'number' && (response.statusCode < 200 || response.statusCode >= 300)) {
-    throw new TransportStatusCodeError(response.statusCode);
-  }
-
+  // Check for rate limiting first (handles 429 and rate limit headers)
   const rateLimits = updateRateLimits({}, response);
   if (isRateLimited(rateLimits, 'replay')) {
     throw new RateLimitError(rateLimits);
+  }
+
+  // If the status code is invalid, we want to immediately stop & not retry
+  if (typeof response.statusCode === 'number' && (response.statusCode < 200 || response.statusCode >= 300)) {
+    throw new TransportStatusCodeError(response.statusCode);
   }
 
   return response;
