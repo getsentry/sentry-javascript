@@ -264,7 +264,8 @@ describe('Vercel AI integration', () => {
       expect.objectContaining({
         data: {
           [GEN_AI_REQUEST_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 1,
-          [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: '[{"role":"user","content":[{"type":"text","text":"Where is the first span?"}]}]',
+          [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]:
+            '[{"role":"user","content":[{"type":"text","text":"Where is the first span?"}]}]',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'mock-model-id',
           [GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]: ['stop'],
           [GEN_AI_RESPONSE_ID_ATTRIBUTE]: expect.any(String),

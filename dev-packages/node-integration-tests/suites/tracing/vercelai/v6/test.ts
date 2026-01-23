@@ -6,7 +6,7 @@ import {
   GEN_AI_TOOL_NAME_ATTRIBUTE,
   GEN_AI_TOOL_OUTPUT_ATTRIBUTE,
   GEN_AI_TOOL_TYPE_ATTRIBUTE,
-} from '../../../../../packages/core/src/tracing/ai/gen-ai-attributes';
+} from '../../../../../../packages/core/src/tracing/ai/gen-ai-attributes';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../../utils/runner';
 
 describe('Vercel AI integration (V6)', () => {

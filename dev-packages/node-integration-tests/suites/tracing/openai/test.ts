@@ -290,7 +290,8 @@ describe('OpenAI integration', () => {
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'gpt-4',
           [GEN_AI_REQUEST_STREAM_ATTRIBUTE]: true,
           [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: 'Test streaming responses API',
-          [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: 'Streaming response to: Test streaming responses APITest streaming responses API',
+          [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]:
+            'Streaming response to: Test streaming responses APITest streaming responses API',
           [GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]: '["in_progress","completed"]',
           [GEN_AI_RESPONSE_ID_ATTRIBUTE]: 'resp_stream_456',
           [GEN_AI_RESPONSE_MODEL_ATTRIBUTE]: 'gpt-4',
@@ -618,7 +619,9 @@ describe('OpenAI integration', () => {
                     [GEN_AI_SYSTEM_ATTRIBUTE]: 'openai',
                     [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'gpt-3.5-turbo',
                     // Messages should be present (truncation happened) and should be a JSON array of a single index
-                    [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: expect.stringMatching(/^\[\{"role":"user","content":"C+"\}\]$/),
+                    [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: expect.stringMatching(
+                      /^\[\{"role":"user","content":"C+"\}\]$/,
+                    ),
                   }),
                   description: 'chat gpt-3.5-turbo',
                   op: 'gen_ai.chat',
