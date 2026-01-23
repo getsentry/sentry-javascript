@@ -341,8 +341,7 @@ conditionalTest({ min: 20 })('LangChain integration (v1)', () => {
               // Second call: LangChain call
               // This should have LangChain instrumentation (origin: 'auto.ai.langchain')
               const langchainSpan = spans.find(
-                span =>
-                  span.description === 'chat claude-3-5-sonnet-20241022' && span.origin === 'auto.ai.langchain',
+                span => span.description === 'chat claude-3-5-sonnet-20241022' && span.origin === 'auto.ai.langchain',
               );
 
               // Third call: Direct Anthropic call made AFTER LangChain import
