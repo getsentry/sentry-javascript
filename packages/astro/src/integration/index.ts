@@ -35,13 +35,21 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
           bundleSizeOptimizations,
           unstable_sentryVitePluginOptions,
           debug,
-          ...otherOptions
+          org,
+          project,
+          authToken,
+          sentryUrl,
+          headers,
+          telemetry,
+          silent,
+          errorHandler,
+          ...doNotUseTheseOptions
         } = options;
 
-        const otherOptionsKeys = Object.keys(otherOptions);
-        if (otherOptionsKeys.length > 0) {
+        const doNotUseTheseOptionsKeys = Object.keys(doNotUseTheseOptions);
+        if (doNotUseTheseOptionsKeys.length > 0) {
           logger.warn(
-            `You passed in additional options (${otherOptionsKeys.join(
+            `You passed in additional options (${doNotUseTheseOptionsKeys.join(
               ', ',
             )}) to the Sentry integration. This is deprecated and will stop working in a future version. Instead, configure the Sentry SDK in your \`sentry.client.config.(js|ts)\` or \`sentry.server.config.(js|ts)\` files.`,
           );
@@ -101,26 +109,26 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
                 sentryVitePlugin({
                   // Priority: top-level options > deprecated options > env vars
                   // eslint-disable-next-line deprecation/deprecation
-                  org: options.org ?? uploadOptions.org ?? env.SENTRY_ORG,
+                  org: org ?? uploadOptions.org ?? env.SENTRY_ORG,
                   // eslint-disable-next-line deprecation/deprecation
-                  project: options.project ?? uploadOptions.project ?? env.SENTRY_PROJECT,
+                  project: project ?? uploadOptions.project ?? env.SENTRY_PROJECT,
                   // eslint-disable-next-line deprecation/deprecation
-                  authToken: options.authToken ?? uploadOptions.authToken ?? env.SENTRY_AUTH_TOKEN,
-                  url: options.sentryUrl ?? env.SENTRY_URL,
-                  headers: options.headers,
+                  authToken: authToken ?? uploadOptions.authToken ?? env.SENTRY_AUTH_TOKEN,
+                  url: sentryUrl ?? env.SENTRY_URL,
+                  headers,
                   // eslint-disable-next-line deprecation/deprecation
-                  telemetry: options.telemetry ?? uploadOptions.telemetry ?? true,
-                  silent: options.silent ?? false,
-                  errorHandler: options.errorHandler,
+                  telemetry: telemetry ?? uploadOptions.telemetry ?? true,
+                  silent: silent ?? false,
+                  errorHandler,
                   _metaOptions: {
                     telemetry: {
                       metaFramework: 'astro',
                     },
                   },
                   ...unstableMerged_sentryVitePluginOptions,
-                  debug: options.debug ?? false,
+                  debug: debug ?? false,
                   sourcemaps: {
-                    ...options.sourcemaps,
+                    ...sourcemaps,
                     // eslint-disable-next-line deprecation/deprecation
                     assets: sourcemaps?.assets ?? uploadOptions.assets ?? [getSourcemapsAssetsGlob(config)],
                     filesToDeleteAfterUpload:
