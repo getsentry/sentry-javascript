@@ -43,13 +43,13 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
           telemetry,
           silent,
           errorHandler,
-          ...doNotUseTheseOptions
+          ...deprecatedOptions
         } = options;
 
-        const doNotUseTheseOptionsKeys = Object.keys(doNotUseTheseOptions);
-        if (doNotUseTheseOptionsKeys.length > 0) {
+        const deprecatedOptionsKeys = Object.keys(deprecatedOptions);
+        if (deprecatedOptionsKeys.length > 0) {
           logger.warn(
-            `You passed in additional options (${doNotUseTheseOptionsKeys.join(
+            `You passed in additional options (${deprecatedOptionsKeys.join(
               ', ',
             )}) to the Sentry integration. This is deprecated and will stop working in a future version. Instead, configure the Sentry SDK in your \`sentry.client.config.(js|ts)\` or \`sentry.server.config.(js|ts)\` files.`,
           );
