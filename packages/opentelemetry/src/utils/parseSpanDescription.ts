@@ -1,6 +1,7 @@
 import type { Attributes, AttributeValue } from '@opentelemetry/api';
 import { SpanKind } from '@opentelemetry/api';
 import {
+  ATTR_DB_SYSTEM_NAME,
   ATTR_HTTP_REQUEST_METHOD,
   ATTR_HTTP_ROUTE,
   ATTR_URL_FULL,
@@ -47,7 +48,7 @@ export function inferSpanData(spanName: string, attributes: SpanAttributes, kind
   }
 
   // eslint-disable-next-line deprecation/deprecation
-  const dbSystem = attributes[SEMATTRS_DB_SYSTEM];
+  const dbSystem = attributes[ATTR_DB_SYSTEM_NAME] || attributes[SEMATTRS_DB_SYSTEM];
   const opIsCache =
     typeof attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] === 'string' &&
     attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP].startsWith('cache.');
