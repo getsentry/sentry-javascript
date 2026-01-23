@@ -31,8 +31,8 @@ Extract the test app name from user input:
 If the user recently edited files in `packages/*`, identify which packages were modified:
 
 ```bash
-# Check which packages have uncommitted changes
-git status --porcelain | grep "^[ MARC][ MD] packages/" | cut -d'/' -f2 | sort -u
+# Check which packages have uncommitted changes (including untracked files)
+git status --porcelain | grep "^[ MARC?][ MD?] packages/" | cut -d'/' -f2 | sort -u
 ```
 
 For each modified package, rebuild its tarball:
