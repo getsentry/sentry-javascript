@@ -2,10 +2,6 @@ import * as serverBuild from 'virtual:react-router/server-build';
 import { createRequestHandler, storefrontRedirect } from '@shopify/hydrogen';
 import { createHydrogenRouterContext } from '~/lib/context';
 import { wrapRequestHandler } from '@sentry/cloudflare';
-// Virtual entry point for the app
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-expect-error
-import * as serverBuild from 'virtual:react-router/server-build';
 
 /**
  * Export a fetch handler in module format.
