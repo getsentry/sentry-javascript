@@ -7,6 +7,11 @@ interface ValidateProfileOptions {
   isChunkFormat?: boolean;
 }
 
+export function validateProfileItemHeader(header: Record<string, unknown>): void {
+  expect(header).toHaveProperty('type', 'profile_chunk');
+  expect(header).toHaveProperty('platform', 'javascript');
+}
+
 /**
  * Validates the metadata of a profile chunk envelope.
  * https://develop.sentry.dev/sdk/telemetry/profiles/sample-format-v2/
