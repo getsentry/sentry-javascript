@@ -13,6 +13,7 @@ import {
   SENTRY_REEXPORTED_FUNCTIONS,
   SENTRY_WRAPPED_ENTRY,
   SENTRY_WRAPPED_FUNCTIONS,
+  shouldDisableSourceMapsUpload,
 } from '../../src/vite/utils';
 
 vi.mock('fs');
@@ -426,5 +427,78 @@ describe('addOTelCommonJSImportAlias', () => {
     addOTelCommonJSImportAlias(nuxtMock);
 
     expect(nuxtMock.options.alias).toBeUndefined();
+  });
+});
+
+describe('shouldDisableSourceMapsUpload', () => {
+  describe("pluginMode='release-injection-only'", () => {
+    it.each([
+      { moduleDisable: true, desc: 'with user option disable=true' },
+      { moduleDisable: false, desc: 'with user option disable=false' },
+      { moduleDisable: undefined, desc: 'with no user option' },
+    ])('always returns true (disabled) $desc', ({ moduleDisable }) => {
+      const result = shouldDisableSourceMapsUpload(
+        { sourcemaps: moduleDisable !== undefined ? { disable: moduleDisable } : {} },
+        'release-injection-only',
+      );
+      expect(result).toBe(true);
+    });
+
+    it('ignores deprecated enabled option when pluginMode is release-injection-only', () => {
+      const result = shouldDisableSourceMapsUpload(
+        { sourceMapsUploadOptions: { enabled: true } },
+        'release-injection-only',
+      );
+      expect(result).toBe(true);
+    });
+
+    it('defaults to disabled when pluginMode param is undefined', () => {
+      const result = shouldDisableSourceMapsUpload({}, undefined);
+      expect(result).toBe(true);
+    });
+  });
+
+  describe("pluginMode='full'", () => {
+    describe('with new option (sourcemaps.disable)', () => {
+      it('returns true when disable=true', () => {
+        const result = shouldDisableSourceMapsUpload({ sourcemaps: { disable: true } }, 'full');
+        expect(result).toBe(true);
+      });
+
+      it('returns false when disable=false', () => {
+        const result = shouldDisableSourceMapsUpload({ sourcemaps: { disable: false } }, 'full');
+        expect(result).toBe(false);
+      });
+
+      it('new option takes precedence over deprecated option', () => {
+        // New option says enable (disable=false), deprecated says disable (enabled=false)
+        // New option should win
+        const result = shouldDisableSourceMapsUpload(
+          { sourcemaps: { disable: false }, sourceMapsUploadOptions: { enabled: false } },
+          'full',
+        );
+        expect(result).toBe(false);
+      });
+    });
+
+    // todo(v11): these tests can be removed when deprecated option is removed
+    describe('with deprecated option (sourceMapsUploadOptions.enabled)', () => {
+      it('returns true when enabled=false (inverted)', () => {
+        const result = shouldDisableSourceMapsUpload({ sourceMapsUploadOptions: { enabled: false } }, 'full');
+        expect(result).toBe(true);
+      });
+
+      it('returns false when enabled=true (inverted)', () => {
+        const result = shouldDisableSourceMapsUpload({ sourceMapsUploadOptions: { enabled: true } }, 'full');
+        expect(result).toBe(false);
+      });
+    });
+
+    describe('with no user options', () => {
+      it('returns false (upload enabled by default)', () => {
+        const result = shouldDisableSourceMapsUpload({}, 'full');
+        expect(result).toBe(false);
+      });
+    });
   });
 });

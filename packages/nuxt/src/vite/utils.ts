@@ -2,6 +2,49 @@ import { consoleSandbox } from '@sentry/core';
 import * as fs from 'fs';
 import type { Nuxt } from 'nuxt/schema';
 import * as path from 'path';
+import type { SentryNuxtModuleOptions } from '../common/types';
+import type { PluginMode } from './sourceMaps';
+
+/**
+ * Determines whether source maps upload should be disabled in the bundler plugin.
+ *
+ * The logic follows a clear precedence:
+ * 1. Plugin mode check: If mode is `'release-injection-only'`, always disable upload
+ *    (upload is handled by the build-end hook instead)
+ * 2. When mode is `'full'`, check user options with precedence:
+ *    a. New option: `moduleOptions.sourcemaps.disable` (takes precedence)
+ *    b. Deprecated option: `sourceMapsUploadOptions.enabled` (inverted, used as fallback)
+ *    c. Default: `false` (upload enabled when mode is 'full' and no user option set)
+ *
+ * Only exported for testing.
+ */
+export function shouldDisableSourceMapsUpload(
+  moduleOptions: SentryNuxtModuleOptions,
+  pluginMode: PluginMode = 'release-injection-only',
+): boolean {
+  // Step 1: If plugin mode is 'release-injection-only', always disable upload
+  if (pluginMode !== 'full') {
+    return true;
+  }
+
+  // Step 2: Plugin mode is 'full' - check user options
+  // Note: disable can be boolean or 'disable-upload' - both truthy values mean disable upload
+  const disableOption = moduleOptions.sourcemaps?.disable;
+  if (disableOption !== undefined) {
+    // true or 'disable-upload' -> disable upload; false -> enable upload
+    return disableOption !== false;
+  }
+
+  // Priority 2: Deprecated option
+  // eslint-disable-next-line deprecation/deprecation
+  const deprecatedEnabled = moduleOptions.sourceMapsUploadOptions?.enabled;
+  if (deprecatedEnabled !== undefined) {
+    return !deprecatedEnabled;
+  }
+
+  // Default: upload enabled when plugin mode is 'full'
+  return false;
+}
 
 /**
  *  Find the default SDK init file for the given type (client or server).

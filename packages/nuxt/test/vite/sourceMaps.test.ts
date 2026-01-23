@@ -1,7 +1,7 @@
 import type { Nuxt } from '@nuxt/schema';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SentryNuxtModuleOptions } from '../../src/common/types';
-import type { SourceMapSetting } from '../../src/vite/sourceMaps';
+import type { PluginMode, SourceMapSetting } from '../../src/vite/sourceMaps';
 import {
   changeNuxtSourceMapSettings,
   getPluginOptions,
@@ -85,7 +85,8 @@ describe('getPluginOptions', () => {
       },
       debug: true,
     };
-    const options = getPluginOptions(customOptions, { client: true, server: false });
+    // Pass 'full' mode to test filesToDeleteAfterUpload handling
+    const options = getPluginOptions(customOptions, { client: true, server: false }, 'full');
     expect(options).toEqual(
       expect.objectContaining({
         org: 'custom-org',
@@ -151,7 +152,8 @@ describe('getPluginOptions', () => {
       },
     };
 
-    const result = getPluginOptions(options);
+    // Pass 'full' mode to test filesToDeleteAfterUpload handling (only in build-end hook)
+    const result = getPluginOptions(options, undefined, 'full');
 
     expect(result).toMatchObject({
       org: 'new-org',
@@ -318,24 +320,174 @@ describe('getPluginOptions', () => {
       expectedFilesToDelete: undefined,
     },
   ])(
-    'sets filesToDeleteAfterUpload correctly when $name',
+    'sets filesToDeleteAfterUpload correctly when $name (with pluginMode=full)',
     ({ clientFallback, serverFallback, customOptions, expectedFilesToDelete }) => {
-      const options = getPluginOptions(customOptions as SentryNuxtModuleOptions, {
-        client: clientFallback,
-        server: serverFallback,
-      });
+      // These tests verify filesToDeleteAfterUpload behavior when pluginMode is 'full'
+      const options = getPluginOptions(
+        customOptions as SentryNuxtModuleOptions,
+        { client: clientFallback, server: serverFallback },
+        'full',
+      );
 
       expect(options?.sourcemaps?.filesToDeleteAfterUpload).toEqual(expectedFilesToDelete);
     },
   );
 
-  it('enables source map upload when sourceMapsUpload and releaseInjection is true', () => {
-    const customOptions: SentryNuxtModuleOptions = { sourcemaps: { disable: false } };
+  describe('filesToDeleteAfterUpload with pluginMode', () => {
+    it.each([
+      // pluginMode='release-injection-only' - always undefined (files deleted only in buildEndUploadHook)
+      {
+        pluginMode: 'release-injection-only' as PluginMode,
+        clientFallback: true,
+        serverFallback: true,
+        customOptions: {},
+        expected: undefined,
+        desc: 'release-injection-only + fallbacks set -> undefined (deferred to buildEndUploadHook)',
+      },
+      {
+        pluginMode: 'release-injection-only' as PluginMode,
+        clientFallback: false,
+        serverFallback: false,
+        customOptions: { sourcemaps: { filesToDeleteAfterUpload: ['custom/**/*.map'] } },
+        expected: undefined,
+        desc: 'release-injection-only + custom filesToDeleteAfterUpload -> undefined (deferred to buildEndUploadHook)',
+      },
+      {
+        pluginMode: undefined as PluginMode | undefined,
+        clientFallback: true,
+        serverFallback: true,
+        customOptions: {},
+        expected: undefined,
+        desc: 'default pluginMode + fallbacks set -> undefined (deferred to buildEndUploadHook)',
+      },
 
-    const options = getPluginOptions(customOptions, undefined, { sourceMapsUpload: true, releaseInjection: true });
+      // pluginMode='full' - respects options
+      {
+        pluginMode: 'full' as PluginMode,
+        clientFallback: true,
+        serverFallback: true,
+        customOptions: {},
+        expected: [
+          '.*/**/public/**/*.map',
+          '.*/**/server/**/*.map',
+          '.*/**/output/**/*.map',
+          '.*/**/function/**/*.map',
+        ],
+        desc: 'full + both fallbacks -> uses fallback paths',
+      },
+      {
+        pluginMode: 'full' as PluginMode,
+        clientFallback: true,
+        serverFallback: false,
+        customOptions: {},
+        expected: ['.*/**/public/**/*.map'],
+        desc: 'full + client fallback only -> uses client fallback path',
+      },
+      {
+        pluginMode: 'full' as PluginMode,
+        clientFallback: false,
+        serverFallback: true,
+        customOptions: {},
+        expected: ['.*/**/server/**/*.map', '.*/**/output/**/*.map', '.*/**/function/**/*.map'],
+        desc: 'full + server fallback only -> uses server fallback paths',
+      },
+      {
+        pluginMode: 'full' as PluginMode,
+        clientFallback: false,
+        serverFallback: false,
+        customOptions: { sourcemaps: { filesToDeleteAfterUpload: ['custom/**/*.map'] } },
+        expected: ['custom/**/*.map'],
+        desc: 'full + custom filesToDeleteAfterUpload -> uses custom paths',
+      },
+      {
+        pluginMode: 'full' as PluginMode,
+        clientFallback: false,
+        serverFallback: false,
+        customOptions: {},
+        expected: undefined,
+        desc: 'full + no fallbacks + no custom -> undefined',
+      },
+    ])('$desc', ({ pluginMode, clientFallback, serverFallback, customOptions, expected }) => {
+      const options = getPluginOptions(
+        customOptions as SentryNuxtModuleOptions,
+        { client: clientFallback, server: serverFallback },
+        pluginMode,
+      );
 
-    expect(options.sourcemaps?.disable).toBe(false);
-    expect(options.release?.inject).toBe(true);
+      expect(options?.sourcemaps?.filesToDeleteAfterUpload).toEqual(expected);
+    });
+  });
+
+  describe('getPluginOptions sourcemaps.disable integration', () => {
+    it.each([
+      // pluginMode='release-injection-only' - always disabled
+      {
+        pluginMode: 'release-injection-only' as PluginMode,
+        moduleDisable: true,
+        expected: true,
+        desc: 'release-injection-only + user disable=true -> disabled',
+      },
+      {
+        pluginMode: 'release-injection-only' as PluginMode,
+        moduleDisable: false,
+        expected: true,
+        desc: 'release-injection-only + user disable=false -> disabled (pluginMode wins)',
+      },
+      {
+        pluginMode: 'release-injection-only' as PluginMode,
+        moduleDisable: undefined,
+        expected: true,
+        desc: 'release-injection-only + no user option -> disabled',
+      },
+
+      // pluginMode='full' - respects user options
+      {
+        pluginMode: 'full' as PluginMode,
+        moduleDisable: true,
+        expected: true,
+        desc: 'full + user disable=true -> disabled',
+      },
+      {
+        pluginMode: 'full' as PluginMode,
+        moduleDisable: false,
+        expected: false,
+        desc: 'full + user disable=false -> enabled',
+      },
+      {
+        pluginMode: 'full' as PluginMode,
+        moduleDisable: undefined,
+        expected: false,
+        desc: 'full + no user option -> enabled (default)',
+      },
+
+      // Default pluginMode (undefined -> defaults to 'release-injection-only')
+      {
+        pluginMode: undefined as PluginMode | undefined,
+        moduleDisable: true,
+        expected: true,
+        desc: 'default pluginMode + user disable=true -> disabled',
+      },
+      {
+        pluginMode: undefined as PluginMode | undefined,
+        moduleDisable: false,
+        expected: true,
+        desc: 'default pluginMode + user disable=false -> disabled (pluginMode wins)',
+      },
+      {
+        pluginMode: undefined as PluginMode | undefined,
+        moduleDisable: undefined,
+        expected: true,
+        desc: 'default pluginMode + no user option -> disabled',
+      },
+    ])('$desc', ({ moduleDisable, pluginMode, expected }) => {
+      const options = getPluginOptions(
+        { sourcemaps: moduleDisable !== undefined ? { disable: moduleDisable } : {} },
+        undefined,
+        pluginMode,
+      );
+
+      expect(options.sourcemaps?.disable).toBe(expected);
+    });
   });
 });
 

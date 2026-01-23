@@ -10,7 +10,6 @@ import { consoleSandbox } from '@sentry/core';
 import * as path from 'path';
 import type { SentryNuxtModuleOptions } from './common/types';
 import { addDynamicImportEntryFileWrapper, addSentryTopImport, addServerConfigToBuild } from './vite/addServerConfig';
-import { handleBuildDoneHook } from './vite/buildEndUpload';
 import { addDatabaseInstrumentation } from './vite/databaseConfig';
 import { addMiddlewareImports, addMiddlewareInstrumentation } from './vite/middlewareConfig';
 import { setupSourceMaps } from './vite/sourceMaps';
@@ -212,13 +211,6 @@ export default defineNuxtModule<ModuleOptions>({
             });
           }
         }
-      }
-    });
-
-    // This ensures debug IDs are injected and source maps uploaded only once
-    nuxt.hook('close', async () => {
-      if (!nuxt.options.dev && (clientConfigFile || serverConfigFile)) {
-        await handleBuildDoneHook(moduleOptions, nuxt);
       }
     });
   },
