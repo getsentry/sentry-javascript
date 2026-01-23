@@ -1,5 +1,5 @@
 import type { MiddlewareResponseHandler } from 'astro';
-import { handleRequest } from '../../server/middleware';
+import { handleRequest } from '../server/middleware';
 
 /**
  * This export is used by our integration to automatically add the middleware
