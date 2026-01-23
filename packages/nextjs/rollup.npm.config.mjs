@@ -57,6 +57,8 @@ export default [
         output: {
           virtualDirname: '_virtual/loaders',
 
+          dir: 'config/templates',
+
           // this is going to be add-on code, so it doesn't need the trappings of a full module (and in fact actively
           // shouldn't have them, lest they muck with the module to which we're adding it)
           sourcemap: false,
