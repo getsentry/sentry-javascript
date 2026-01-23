@@ -667,9 +667,7 @@ describe('Anthropic integration', () => {
                     [GEN_AI_SYSTEM_ATTRIBUTE]: 'anthropic',
                     [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'claude-3-haiku-20240307',
                     // Messages should be present (truncation happened) and should be a JSON array
-                    [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: expect.stringMatching(
-                      /^\[\{"role":"user","content":"C+"\}\]$/,
-                    ),
+                    [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: expect.stringMatching(/^\[\{"role":"user","content":"C+"\}\]$/),
                   }),
                   description: 'messages claude-3-haiku-20240307',
                   op: 'gen_ai.messages',

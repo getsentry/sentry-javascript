@@ -619,9 +619,7 @@ describe('OpenAI integration', () => {
                     [GEN_AI_SYSTEM_ATTRIBUTE]: 'openai',
                     [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'gpt-3.5-turbo',
                     // Messages should be present (truncation happened) and should be a JSON array of a single index
-                    [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: expect.stringMatching(
-                      /^\[\{"role":"user","content":"C+"\}\]$/,
-                    ),
+                    [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: expect.stringMatching(/^\[\{"role":"user","content":"C+"\}\]$/),
                   }),
                   description: 'chat gpt-3.5-turbo',
                   op: 'gen_ai.chat',
