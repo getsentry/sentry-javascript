@@ -1,4 +1,25 @@
+import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
+import {
+  ANTHROPIC_AI_RESPONSE_TIMESTAMP_ATTRIBUTE,
+  GEN_AI_OPERATION_NAME_ATTRIBUTE,
+  GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE,
+  GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE,
+  GEN_AI_REQUEST_MESSAGES_ATTRIBUTE,
+  GEN_AI_REQUEST_MODEL_ATTRIBUTE,
+  GEN_AI_REQUEST_STREAM_ATTRIBUTE,
+  GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE,
+  GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE,
+  GEN_AI_RESPONSE_ID_ATTRIBUTE,
+  GEN_AI_RESPONSE_MODEL_ATTRIBUTE,
+  GEN_AI_RESPONSE_STREAMING_ATTRIBUTE,
+  GEN_AI_RESPONSE_TEXT_ATTRIBUTE,
+  GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE,
+  GEN_AI_SYSTEM_ATTRIBUTE,
+  GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
+  GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
+  GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
+} from '../../../../../packages/core/src/tracing/ai/gen-ai-attributes';
 import { cleanupChildProcesses, createEsmAndCjsTests } from '../../../utils/runner';
 
 describe('Anthropic integration', () => {
@@ -12,18 +33,18 @@ describe('Anthropic integration', () => {
       // First span - basic message completion without PII
       expect.objectContaining({
         data: expect.objectContaining({
-          'gen_ai.operation.name': 'messages',
-          'sentry.op': 'gen_ai.messages',
-          'sentry.origin': 'auto.ai.anthropic',
-          'gen_ai.system': 'anthropic',
-          'gen_ai.request.model': 'claude-3-haiku-20240307',
-          'gen_ai.request.temperature': 0.7,
-          'gen_ai.request.max_tokens': 100,
-          'gen_ai.response.model': 'claude-3-haiku-20240307',
-          'gen_ai.response.id': 'msg_mock123',
-          'gen_ai.usage.input_tokens': 10,
-          'gen_ai.usage.output_tokens': 15,
-          'gen_ai.usage.total_tokens': 25,
+          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'messages',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.messages',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.anthropic',
+          [GEN_AI_SYSTEM_ATTRIBUTE]: 'anthropic',
+          [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'claude-3-haiku-20240307',
+          [GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE]: 0.7,
+          [GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE]: 100,
+          [GEN_AI_RESPONSE_MODEL_ATTRIBUTE]: 'claude-3-haiku-20240307',
+          [GEN_AI_RESPONSE_ID_ATTRIBUTE]: 'msg_mock123',
+          [GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]: 10,
+          [GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]: 15,
+          [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: 25,
         }),
         description: 'messages claude-3-haiku-20240307',
         op: 'gen_ai.messages',
@@ -33,11 +54,11 @@ describe('Anthropic integration', () => {
       // Second span - error handling
       expect.objectContaining({
         data: expect.objectContaining({
-          'gen_ai.operation.name': 'messages',
-          'sentry.op': 'gen_ai.messages',
-          'sentry.origin': 'auto.ai.anthropic',
-          'gen_ai.system': 'anthropic',
-          'gen_ai.request.model': 'error-model',
+          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'messages',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.messages',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.anthropic',
+          [GEN_AI_SYSTEM_ATTRIBUTE]: 'anthropic',
+          [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'error-model',
         }),
         description: 'messages error-model',
         op: 'gen_ai.messages',
@@ -47,11 +68,11 @@ describe('Anthropic integration', () => {
       // Third span - token counting (no response.text because recordOutputs=false by default)
       expect.objectContaining({
         data: expect.objectContaining({
-          'gen_ai.operation.name': 'messages',
-          'sentry.op': 'gen_ai.messages',
-          'sentry.origin': 'auto.ai.anthropic',
-          'gen_ai.system': 'anthropic',
-          'gen_ai.request.model': 'claude-3-haiku-20240307',
+          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'messages',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.messages',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.anthropic',
+          [GEN_AI_SYSTEM_ATTRIBUTE]: 'anthropic',
+          [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'claude-3-haiku-20240307',
         }),
         description: 'messages claude-3-haiku-20240307',
         op: 'gen_ai.messages',
@@ -61,14 +82,14 @@ describe('Anthropic integration', () => {
       // Fourth span - models.retrieve
       expect.objectContaining({
         data: expect.objectContaining({
-          'anthropic.response.timestamp': '2024-05-08T05:20:00.000Z',
-          'gen_ai.operation.name': 'models',
-          'sentry.op': 'gen_ai.models',
-          'sentry.origin': 'auto.ai.anthropic',
-          'gen_ai.system': 'anthropic',
-          'gen_ai.request.model': 'claude-3-haiku-20240307',
-          'gen_ai.response.id': 'claude-3-haiku-20240307',
-          'gen_ai.response.model': 'claude-3-haiku-20240307',
+          [ANTHROPIC_AI_RESPONSE_TIMESTAMP_ATTRIBUTE]: '2024-05-08T05:20:00.000Z',
+          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'models',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.models',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.anthropic',
+          [GEN_AI_SYSTEM_ATTRIBUTE]: 'anthropic',
+          [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'claude-3-haiku-20240307',
+          [GEN_AI_RESPONSE_ID_ATTRIBUTE]: 'claude-3-haiku-20240307',
+          [GEN_AI_RESPONSE_MODEL_ATTRIBUTE]: 'claude-3-haiku-20240307',
         }),
         description: 'models claude-3-haiku-20240307',
         op: 'gen_ai.models',
@@ -84,20 +105,20 @@ describe('Anthropic integration', () => {
       // First span - basic message completion with PII
       expect.objectContaining({
         data: expect.objectContaining({
-          'gen_ai.operation.name': 'messages',
-          'gen_ai.request.max_tokens': 100,
-          'gen_ai.request.messages': '[{"role":"user","content":"What is the capital of France?"}]',
-          'gen_ai.request.model': 'claude-3-haiku-20240307',
-          'gen_ai.request.temperature': 0.7,
-          'gen_ai.response.id': 'msg_mock123',
-          'gen_ai.response.model': 'claude-3-haiku-20240307',
-          'gen_ai.response.text': 'Hello from Anthropic mock!',
-          'gen_ai.system': 'anthropic',
-          'gen_ai.usage.input_tokens': 10,
-          'gen_ai.usage.output_tokens': 15,
-          'gen_ai.usage.total_tokens': 25,
-          'sentry.op': 'gen_ai.messages',
-          'sentry.origin': 'auto.ai.anthropic',
+          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'messages',
+          [GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE]: 100,
+          [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: '[{"role":"user","content":"What is the capital of France?"}]',
+          [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'claude-3-haiku-20240307',
+          [GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE]: 0.7,
+          [GEN_AI_RESPONSE_ID_ATTRIBUTE]: 'msg_mock123',
+          [GEN_AI_RESPONSE_MODEL_ATTRIBUTE]: 'claude-3-haiku-20240307',
+          [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: 'Hello from Anthropic mock!',
+          [GEN_AI_SYSTEM_ATTRIBUTE]: 'anthropic',
+          [GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]: 10,
+          [GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]: 15,
+          [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: 25,
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.messages',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.anthropic',
         }),
         description: 'messages claude-3-haiku-20240307',
         op: 'gen_ai.messages',
@@ -111,8 +132,8 @@ describe('Anthropic integration', () => {
           'http.response.header.content-length': 247,
           'http.response.status_code': 200,
           'otel.kind': 'CLIENT',
-          'sentry.op': 'http.client',
-          'sentry.origin': 'auto.http.otel.node_fetch',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.otel.node_fetch',
           'url.path': '/anthropic/v1/messages',
           'url.query': '',
           'url.scheme': 'http',
@@ -125,12 +146,12 @@ describe('Anthropic integration', () => {
       // Second - error handling with PII
       expect.objectContaining({
         data: expect.objectContaining({
-          'gen_ai.operation.name': 'messages',
-          'gen_ai.request.messages': '[{"role":"user","content":"This will fail"}]',
-          'gen_ai.request.model': 'error-model',
-          'gen_ai.system': 'anthropic',
-          'sentry.op': 'gen_ai.messages',
-          'sentry.origin': 'auto.ai.anthropic',
+          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'messages',
+          [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: '[{"role":"user","content":"This will fail"}]',
+          [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'error-model',
+          [GEN_AI_SYSTEM_ATTRIBUTE]: 'anthropic',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.messages',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.anthropic',
         }),
         description: 'messages error-model',
         op: 'gen_ai.messages',
@@ -144,8 +165,8 @@ describe('Anthropic integration', () => {
           'http.response.header.content-length': 15,
           'http.response.status_code': 404,
           'otel.kind': 'CLIENT',
-          'sentry.op': 'http.client',
-          'sentry.origin': 'auto.http.otel.node_fetch',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.otel.node_fetch',
           'url.path': '/anthropic/v1/messages',
           'url.query': '',
           'url.scheme': 'http',
@@ -158,13 +179,13 @@ describe('Anthropic integration', () => {
       // Third - token counting with PII (response.text is present because sendDefaultPii=true enables recordOutputs)
       expect.objectContaining({
         data: expect.objectContaining({
-          'gen_ai.operation.name': 'messages',
-          'gen_ai.request.messages': '[{"role":"user","content":"What is the capital of France?"}]',
-          'gen_ai.request.model': 'claude-3-haiku-20240307',
-          'gen_ai.response.text': '15',
-          'gen_ai.system': 'anthropic',
-          'sentry.op': 'gen_ai.messages',
-          'sentry.origin': 'auto.ai.anthropic',
+          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'messages',
+          [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: '[{"role":"user","content":"What is the capital of France?"}]',
+          [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'claude-3-haiku-20240307',
+          [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: '15',
+          [GEN_AI_SYSTEM_ATTRIBUTE]: 'anthropic',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.messages',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.anthropic',
         }),
         description: 'messages claude-3-haiku-20240307',
         op: 'gen_ai.messages',
@@ -178,8 +199,8 @@ describe('Anthropic integration', () => {
           'http.response.header.content-length': 19,
           'http.response.status_code': 200,
           'otel.kind': 'CLIENT',
-          'sentry.op': 'http.client',
-          'sentry.origin': 'auto.http.otel.node_fetch',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.otel.node_fetch',
           'url.path': '/anthropic/v1/messages/count_tokens',
           'url.query': '',
           'url.scheme': 'http',
@@ -192,14 +213,14 @@ describe('Anthropic integration', () => {
       // Fourth - models.retrieve with PII
       expect.objectContaining({
         data: expect.objectContaining({
-          'anthropic.response.timestamp': '2024-05-08T05:20:00.000Z',
-          'gen_ai.operation.name': 'models',
-          'gen_ai.request.model': 'claude-3-haiku-20240307',
-          'gen_ai.response.id': 'claude-3-haiku-20240307',
-          'gen_ai.response.model': 'claude-3-haiku-20240307',
-          'gen_ai.system': 'anthropic',
-          'sentry.op': 'gen_ai.models',
-          'sentry.origin': 'auto.ai.anthropic',
+          [ANTHROPIC_AI_RESPONSE_TIMESTAMP_ATTRIBUTE]: '2024-05-08T05:20:00.000Z',
+          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'models',
+          [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'claude-3-haiku-20240307',
+          [GEN_AI_RESPONSE_ID_ATTRIBUTE]: 'claude-3-haiku-20240307',
+          [GEN_AI_RESPONSE_MODEL_ATTRIBUTE]: 'claude-3-haiku-20240307',
+          [GEN_AI_SYSTEM_ATTRIBUTE]: 'anthropic',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.models',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.anthropic',
         }),
         description: 'models claude-3-haiku-20240307',
         op: 'gen_ai.models',
@@ -213,8 +234,8 @@ describe('Anthropic integration', () => {
           'http.response.header.content-length': 123,
           'http.response.status_code': 200,
           'otel.kind': 'CLIENT',
-          'sentry.op': 'http.client',
-          'sentry.origin': 'auto.http.otel.node_fetch',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.otel.node_fetch',
           'url.path': '/anthropic/v1/models/claude-3-haiku-20240307',
           'url.query': '',
           'url.scheme': 'http',
@@ -228,20 +249,20 @@ describe('Anthropic integration', () => {
       // Fifth - messages.create with stream: true
       expect.objectContaining({
         data: expect.objectContaining({
-          'gen_ai.operation.name': 'messages',
-          'gen_ai.request.messages': '[{"role":"user","content":"What is the capital of France?"}]',
-          'gen_ai.request.model': 'claude-3-haiku-20240307',
-          'gen_ai.request.stream': true,
-          'gen_ai.response.id': 'msg_stream123',
-          'gen_ai.response.model': 'claude-3-haiku-20240307',
-          'gen_ai.response.streaming': true,
-          'gen_ai.response.text': 'Hello from stream!',
-          'gen_ai.system': 'anthropic',
-          'gen_ai.usage.input_tokens': 10,
-          'gen_ai.usage.output_tokens': 15,
-          'gen_ai.usage.total_tokens': 25,
-          'sentry.op': 'gen_ai.messages',
-          'sentry.origin': 'auto.ai.anthropic',
+          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'messages',
+          [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: '[{"role":"user","content":"What is the capital of France?"}]',
+          [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'claude-3-haiku-20240307',
+          [GEN_AI_REQUEST_STREAM_ATTRIBUTE]: true,
+          [GEN_AI_RESPONSE_ID_ATTRIBUTE]: 'msg_stream123',
+          [GEN_AI_RESPONSE_MODEL_ATTRIBUTE]: 'claude-3-haiku-20240307',
+          [GEN_AI_RESPONSE_STREAMING_ATTRIBUTE]: true,
+          [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: 'Hello from stream!',
+          [GEN_AI_SYSTEM_ATTRIBUTE]: 'anthropic',
+          [GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]: 10,
+          [GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]: 15,
+          [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: 25,
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.messages',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.anthropic',
         }),
         description: 'messages claude-3-haiku-20240307 stream-response',
         op: 'gen_ai.messages',
@@ -254,8 +275,8 @@ describe('Anthropic integration', () => {
           'http.request.method_original': 'POST',
           'http.response.status_code': 200,
           'otel.kind': 'CLIENT',
-          'sentry.op': 'http.client',
-          'sentry.origin': 'auto.http.otel.node_fetch',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.otel.node_fetch',
           'url.path': '/anthropic/v1/messages',
           'url.query': '',
           'url.scheme': 'http',
@@ -269,9 +290,9 @@ describe('Anthropic integration', () => {
       // Sixth - messages.stream
       expect.objectContaining({
         data: expect.objectContaining({
-          'gen_ai.operation.name': 'messages',
-          'gen_ai.request.model': 'claude-3-haiku-20240307',
-          'gen_ai.request.stream': true,
+          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'messages',
+          [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'claude-3-haiku-20240307',
+          [GEN_AI_REQUEST_STREAM_ATTRIBUTE]: true,
         }),
         description: 'messages claude-3-haiku-20240307 stream-response',
         op: 'gen_ai.messages',
@@ -287,27 +308,27 @@ describe('Anthropic integration', () => {
       // Check that custom options are respected
       expect.objectContaining({
         data: expect.objectContaining({
-          'gen_ai.request.messages': expect.any(String), // Should include messages when recordInputs: true
-          'gen_ai.response.text': expect.any(String), // Should include response text when recordOutputs: true
+          [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: expect.any(String), // Should include messages when recordInputs: true
+          [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: expect.any(String), // Should include response text when recordOutputs: true
         }),
       }),
       // Check token counting with options
       expect.objectContaining({
         data: expect.objectContaining({
-          'gen_ai.operation.name': 'messages',
-          'gen_ai.request.messages': expect.any(String), // Should include messages when recordInputs: true
-          'gen_ai.response.text': '15', // Present because recordOutputs=true is set in options
+          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'messages',
+          [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: expect.any(String), // Should include messages when recordInputs: true
+          [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: '15', // Present because recordOutputs=true is set in options
         }),
         op: 'gen_ai.messages',
       }),
       // Check models.retrieve with options
       expect.objectContaining({
         data: expect.objectContaining({
-          'gen_ai.operation.name': 'models',
-          'gen_ai.system': 'anthropic',
-          'gen_ai.request.model': 'claude-3-haiku-20240307',
-          'gen_ai.response.id': 'claude-3-haiku-20240307',
-          'gen_ai.response.model': 'claude-3-haiku-20240307',
+          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'models',
+          [GEN_AI_SYSTEM_ATTRIBUTE]: 'anthropic',
+          [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'claude-3-haiku-20240307',
+          [GEN_AI_RESPONSE_ID_ATTRIBUTE]: 'claude-3-haiku-20240307',
+          [GEN_AI_RESPONSE_MODEL_ATTRIBUTE]: 'claude-3-haiku-20240307',
         }),
         op: 'gen_ai.models',
         description: 'models claude-3-haiku-20240307',
@@ -381,17 +402,17 @@ describe('Anthropic integration', () => {
         description: 'messages claude-3-haiku-20240307 stream-response',
         op: 'gen_ai.messages',
         data: expect.objectContaining({
-          'gen_ai.system': 'anthropic',
-          'gen_ai.operation.name': 'messages',
-          'gen_ai.request.model': 'claude-3-haiku-20240307',
-          'gen_ai.request.stream': true,
-          'gen_ai.response.streaming': true,
-          'gen_ai.response.model': 'claude-3-haiku-20240307',
-          'gen_ai.response.id': 'msg_stream_1',
-          'gen_ai.usage.input_tokens': 10,
-          'gen_ai.usage.output_tokens': 15,
-          'gen_ai.usage.total_tokens': 25,
-          'gen_ai.response.finish_reasons': '["end_turn"]',
+          [GEN_AI_SYSTEM_ATTRIBUTE]: 'anthropic',
+          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'messages',
+          [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'claude-3-haiku-20240307',
+          [GEN_AI_REQUEST_STREAM_ATTRIBUTE]: true,
+          [GEN_AI_RESPONSE_STREAMING_ATTRIBUTE]: true,
+          [GEN_AI_RESPONSE_MODEL_ATTRIBUTE]: 'claude-3-haiku-20240307',
+          [GEN_AI_RESPONSE_ID_ATTRIBUTE]: 'msg_stream_1',
+          [GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]: 10,
+          [GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]: 15,
+          [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: 25,
+          [GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]: '["end_turn"]',
         }),
       }),
       // messages.stream
@@ -399,15 +420,15 @@ describe('Anthropic integration', () => {
         description: 'messages claude-3-haiku-20240307 stream-response',
         op: 'gen_ai.messages',
         data: expect.objectContaining({
-          'gen_ai.system': 'anthropic',
-          'gen_ai.operation.name': 'messages',
-          'gen_ai.request.model': 'claude-3-haiku-20240307',
-          'gen_ai.response.streaming': true,
-          'gen_ai.response.model': 'claude-3-haiku-20240307',
-          'gen_ai.response.id': 'msg_stream_1',
-          'gen_ai.usage.input_tokens': 10,
-          'gen_ai.usage.output_tokens': 15,
-          'gen_ai.usage.total_tokens': 25,
+          [GEN_AI_SYSTEM_ATTRIBUTE]: 'anthropic',
+          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'messages',
+          [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'claude-3-haiku-20240307',
+          [GEN_AI_RESPONSE_STREAMING_ATTRIBUTE]: true,
+          [GEN_AI_RESPONSE_MODEL_ATTRIBUTE]: 'claude-3-haiku-20240307',
+          [GEN_AI_RESPONSE_ID_ATTRIBUTE]: 'msg_stream_1',
+          [GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]: 10,
+          [GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]: 15,
+          [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: 25,
         }),
       }),
       // messages.stream with redundant stream: true param
@@ -415,16 +436,16 @@ describe('Anthropic integration', () => {
         description: 'messages claude-3-haiku-20240307 stream-response',
         op: 'gen_ai.messages',
         data: expect.objectContaining({
-          'gen_ai.system': 'anthropic',
-          'gen_ai.operation.name': 'messages',
-          'gen_ai.request.model': 'claude-3-haiku-20240307',
-          'gen_ai.request.stream': true,
-          'gen_ai.response.streaming': true,
-          'gen_ai.response.model': 'claude-3-haiku-20240307',
-          'gen_ai.response.id': 'msg_stream_1',
-          'gen_ai.usage.input_tokens': 10,
-          'gen_ai.usage.output_tokens': 15,
-          'gen_ai.usage.total_tokens': 25,
+          [GEN_AI_SYSTEM_ATTRIBUTE]: 'anthropic',
+          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'messages',
+          [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'claude-3-haiku-20240307',
+          [GEN_AI_REQUEST_STREAM_ATTRIBUTE]: true,
+          [GEN_AI_RESPONSE_STREAMING_ATTRIBUTE]: true,
+          [GEN_AI_RESPONSE_MODEL_ATTRIBUTE]: 'claude-3-haiku-20240307',
+          [GEN_AI_RESPONSE_ID_ATTRIBUTE]: 'msg_stream_1',
+          [GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]: 10,
+          [GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]: 15,
+          [GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE]: 25,
         }),
       }),
     ]),
@@ -437,25 +458,25 @@ describe('Anthropic integration', () => {
         description: 'messages claude-3-haiku-20240307 stream-response',
         op: 'gen_ai.messages',
         data: expect.objectContaining({
-          'gen_ai.response.streaming': true,
+          [GEN_AI_RESPONSE_STREAMING_ATTRIBUTE]: true,
           // streamed text concatenated
-          'gen_ai.response.text': 'Hello from stream!',
+          [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: 'Hello from stream!',
         }),
       }),
       expect.objectContaining({
         description: 'messages claude-3-haiku-20240307 stream-response',
         op: 'gen_ai.messages',
         data: expect.objectContaining({
-          'gen_ai.response.streaming': true,
-          'gen_ai.response.text': 'Hello from stream!',
+          [GEN_AI_RESPONSE_STREAMING_ATTRIBUTE]: true,
+          [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: 'Hello from stream!',
         }),
       }),
       expect.objectContaining({
         description: 'messages claude-3-haiku-20240307 stream-response',
         op: 'gen_ai.messages',
         data: expect.objectContaining({
-          'gen_ai.response.streaming': true,
-          'gen_ai.response.text': 'Hello from stream!',
+          [GEN_AI_RESPONSE_STREAMING_ATTRIBUTE]: true,
+          [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: 'Hello from stream!',
         }),
       }),
     ]),
@@ -488,8 +509,8 @@ describe('Anthropic integration', () => {
               expect.objectContaining({
                 op: 'gen_ai.messages',
                 data: expect.objectContaining({
-                  'gen_ai.request.available_tools': EXPECTED_TOOLS_JSON,
-                  'gen_ai.response.tool_calls': EXPECTED_TOOL_CALLS_JSON,
+                  [GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE]: EXPECTED_TOOLS_JSON,
+                  [GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE]: EXPECTED_TOOL_CALLS_JSON,
                 }),
               }),
             ]),
@@ -516,8 +537,8 @@ describe('Anthropic integration', () => {
                 description: expect.stringContaining('stream-response'),
                 op: 'gen_ai.messages',
                 data: expect.objectContaining({
-                  'gen_ai.request.available_tools': EXPECTED_TOOLS_JSON,
-                  'gen_ai.response.tool_calls': EXPECTED_TOOL_CALLS_JSON,
+                  [GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE]: EXPECTED_TOOLS_JSON,
+                  [GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE]: EXPECTED_TOOL_CALLS_JSON,
                 }),
               }),
             ]),
@@ -538,8 +559,8 @@ describe('Anthropic integration', () => {
         op: 'gen_ai.messages',
         status: 'internal_error', // Actual status coming from the instrumentation
         data: expect.objectContaining({
-          'gen_ai.request.model': 'error-stream-init',
-          'gen_ai.request.stream': true,
+          [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'error-stream-init',
+          [GEN_AI_REQUEST_STREAM_ATTRIBUTE]: true,
         }),
       }),
       // Error with messages.stream on stream initialization
@@ -548,7 +569,7 @@ describe('Anthropic integration', () => {
         op: 'gen_ai.messages',
         status: 'internal_error', // Actual status coming from the instrumentation
         data: expect.objectContaining({
-          'gen_ai.request.model': 'error-stream-init',
+          [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'error-stream-init',
         }),
       }),
       // Error midway with messages.create on streaming - note: The stream is started successfully
@@ -558,10 +579,10 @@ describe('Anthropic integration', () => {
         op: 'gen_ai.messages',
         status: 'ok',
         data: expect.objectContaining({
-          'gen_ai.request.model': 'error-stream-midway',
-          'gen_ai.request.stream': true,
-          'gen_ai.response.streaming': true,
-          'gen_ai.response.text': 'This stream will ', // We received some data before error
+          [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'error-stream-midway',
+          [GEN_AI_REQUEST_STREAM_ATTRIBUTE]: true,
+          [GEN_AI_RESPONSE_STREAMING_ATTRIBUTE]: true,
+          [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: 'This stream will ', // We received some data before error
         }),
       }),
       // Error midway with messages.stream - same behavior, we get a span with the streamed data
@@ -570,9 +591,9 @@ describe('Anthropic integration', () => {
         op: 'gen_ai.messages',
         status: 'ok',
         data: expect.objectContaining({
-          'gen_ai.request.model': 'error-stream-midway',
-          'gen_ai.response.streaming': true,
-          'gen_ai.response.text': 'This stream will ', // We received some data before error
+          [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'error-stream-midway',
+          [GEN_AI_RESPONSE_STREAMING_ATTRIBUTE]: true,
+          [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: 'This stream will ', // We received some data before error
         }),
       }),
     ]),
@@ -594,7 +615,7 @@ describe('Anthropic integration', () => {
         op: 'gen_ai.messages',
         status: 'internal_error',
         data: expect.objectContaining({
-          'gen_ai.request.model': 'invalid-format',
+          [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'invalid-format',
         }),
       }),
       // Model retrieval error
@@ -603,7 +624,7 @@ describe('Anthropic integration', () => {
         op: 'gen_ai.models',
         status: 'internal_error',
         data: expect.objectContaining({
-          'gen_ai.request.model': 'nonexistent-model',
+          [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'nonexistent-model',
         }),
       }),
       // Successful tool usage (for comparison)
@@ -612,8 +633,8 @@ describe('Anthropic integration', () => {
         op: 'gen_ai.messages',
         status: 'ok',
         data: expect.objectContaining({
-          'gen_ai.request.model': 'claude-3-haiku-20240307',
-          'gen_ai.response.tool_calls': expect.stringContaining('tool_ok_1'),
+          [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'claude-3-haiku-20240307',
+          [GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE]: expect.stringContaining('tool_ok_1'),
         }),
       }),
     ]),
@@ -640,13 +661,15 @@ describe('Anthropic integration', () => {
                 // First call: Last message is large and gets truncated (only C's remain, D's are cropped)
                 expect.objectContaining({
                   data: expect.objectContaining({
-                    'gen_ai.operation.name': 'messages',
-                    'sentry.op': 'gen_ai.messages',
-                    'sentry.origin': 'auto.ai.anthropic',
-                    'gen_ai.system': 'anthropic',
-                    'gen_ai.request.model': 'claude-3-haiku-20240307',
+                    [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'messages',
+                    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.messages',
+                    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.anthropic',
+                    [GEN_AI_SYSTEM_ATTRIBUTE]: 'anthropic',
+                    [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'claude-3-haiku-20240307',
                     // Messages should be present (truncation happened) and should be a JSON array
-                    'gen_ai.request.messages': expect.stringMatching(/^\[\{"role":"user","content":"C+"\}\]$/),
+                    [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: expect.stringMatching(
+                      /^\[\{"role":"user","content":"C+"\}\]$/,
+                    ),
                   }),
                   description: 'messages claude-3-haiku-20240307',
                   op: 'gen_ai.messages',
@@ -656,13 +679,13 @@ describe('Anthropic integration', () => {
                 // Second call: Last message is small and kept without truncation
                 expect.objectContaining({
                   data: expect.objectContaining({
-                    'gen_ai.operation.name': 'messages',
-                    'sentry.op': 'gen_ai.messages',
-                    'sentry.origin': 'auto.ai.anthropic',
-                    'gen_ai.system': 'anthropic',
-                    'gen_ai.request.model': 'claude-3-haiku-20240307',
+                    [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'messages',
+                    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.messages',
+                    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.anthropic',
+                    [GEN_AI_SYSTEM_ATTRIBUTE]: 'anthropic',
+                    [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'claude-3-haiku-20240307',
                     // Small message should be kept intact
-                    'gen_ai.request.messages': JSON.stringify([
+                    [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: JSON.stringify([
                       { role: 'user', content: 'This is a small message that fits within the limit' },
                     ]),
                   }),
@@ -690,13 +713,13 @@ describe('Anthropic integration', () => {
             spans: expect.arrayContaining([
               expect.objectContaining({
                 data: expect.objectContaining({
-                  'gen_ai.operation.name': 'messages',
-                  'sentry.op': 'gen_ai.messages',
-                  'sentry.origin': 'auto.ai.anthropic',
-                  'gen_ai.system': 'anthropic',
-                  'gen_ai.request.model': 'claude-3-haiku-20240307',
+                  [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'messages',
+                  [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.messages',
+                  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.anthropic',
+                  [GEN_AI_SYSTEM_ATTRIBUTE]: 'anthropic',
+                  [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'claude-3-haiku-20240307',
                   // Only the last message (with filtered media) should be kept
-                  'gen_ai.request.messages': JSON.stringify([
+                  [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: JSON.stringify([
                     {
                       role: 'user',
                       content: [
