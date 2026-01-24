@@ -84,7 +84,7 @@ conditionalTest({ min: 20 })('LangChain integration (v1)', () => {
       //     [GEN_AI_SYSTEM_ATTRIBUTE]: 'anthropic',
       //     [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'error-model',
       //   }),
-      //   description: 'chat error-model',
+      //   description: 'invoke_agent error-model',
       //   op: 'gen_ai.chat',
       //   origin: 'auto.ai.langchain',
       //   status: 'internal_error',
@@ -154,7 +154,7 @@ conditionalTest({ min: 20 })('LangChain integration (v1)', () => {
       //     [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'error-model',
       //     [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: expect.any(String), // Should include messages when recordInputs: true
       //   }),
-      //   description: 'chat error-model',
+      //   description: 'invoke_agent error-model',
       //   op: 'gen_ai.chat',
       //   origin: 'auto.ai.langchain',
       //   status: 'internal_error',
@@ -353,8 +353,7 @@ conditionalTest({ min: 20 })('LangChain integration (v1)', () => {
               // First call: Direct Anthropic call made BEFORE LangChain import
               // This should have Anthropic instrumentation (origin: 'auto.ai.anthropic')
               const firstAnthropicSpan = spans.find(
-                span =>
-                  span.description === 'messages claude-3-5-sonnet-20241022' && span.origin === 'auto.ai.anthropic',
+                span => span.description === 'chat claude-3-5-sonnet-20241022' && span.origin === 'auto.ai.anthropic',
               );
 
               // Second call: LangChain call
@@ -367,8 +366,7 @@ conditionalTest({ min: 20 })('LangChain integration (v1)', () => {
               // This should NOT have Anthropic instrumentation (skip works correctly)
               // Count how many Anthropic spans we have - should be exactly 1
               const anthropicSpans = spans.filter(
-                span =>
-                  span.description === 'messages claude-3-5-sonnet-20241022' && span.origin === 'auto.ai.anthropic',
+                span => span.description === 'chat claude-3-5-sonnet-20241022' && span.origin === 'auto.ai.anthropic',
               );
 
               // Verify the edge case limitation:
@@ -455,7 +453,7 @@ conditionalTest({ min: 20 })('LangChain integration (v1)', () => {
       //     [GEN_AI_SYSTEM_ATTRIBUTE]: 'openai',
       //     [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'error-model',
       //   }),
-      //   description: 'chat error-model',
+      //   description: 'invoke_agent error-model',
       //   op: 'gen_ai.chat',
       //   origin: 'auto.ai.langchain',
       //   status: 'internal_error',

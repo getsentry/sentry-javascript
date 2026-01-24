@@ -141,8 +141,8 @@ describe('OpenAI Tool Calls integration', () => {
       // Third span - responses API with tools (non-streaming)
       expect.objectContaining({
         data: {
-          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'responses',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.responses',
+          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'chat',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.chat',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.openai',
           [GEN_AI_SYSTEM_ATTRIBUTE]: 'openai',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'gpt-4',
@@ -159,16 +159,16 @@ describe('OpenAI Tool Calls integration', () => {
           [OPENAI_USAGE_COMPLETION_TOKENS_ATTRIBUTE]: 12,
           [OPENAI_USAGE_PROMPT_TOKENS_ATTRIBUTE]: 8,
         },
-        description: 'responses gpt-4',
-        op: 'gen_ai.responses',
+        description: 'chat gpt-4',
+        op: 'gen_ai.chat',
         origin: 'auto.ai.openai',
         status: 'ok',
       }),
       // Fourth span - responses API with tools and streaming
       expect.objectContaining({
         data: {
-          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'responses',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.responses',
+          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'chat',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.chat',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.openai',
           [GEN_AI_SYSTEM_ATTRIBUTE]: 'openai',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'gpt-4',
@@ -187,8 +187,8 @@ describe('OpenAI Tool Calls integration', () => {
           [OPENAI_USAGE_COMPLETION_TOKENS_ATTRIBUTE]: 12,
           [OPENAI_USAGE_PROMPT_TOKENS_ATTRIBUTE]: 8,
         },
-        description: 'responses gpt-4 stream-response',
-        op: 'gen_ai.responses',
+        description: 'chat gpt-4 stream-response',
+        op: 'gen_ai.chat',
         origin: 'auto.ai.openai',
         status: 'ok',
       }),
@@ -262,8 +262,8 @@ describe('OpenAI Tool Calls integration', () => {
       // Third span - responses API with tools (non-streaming) with PII
       expect.objectContaining({
         data: {
-          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'responses',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.responses',
+          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'chat',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.chat',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.openai',
           [GEN_AI_SYSTEM_ATTRIBUTE]: 'openai',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'gpt-4',
@@ -283,16 +283,16 @@ describe('OpenAI Tool Calls integration', () => {
           [OPENAI_USAGE_COMPLETION_TOKENS_ATTRIBUTE]: 12,
           [OPENAI_USAGE_PROMPT_TOKENS_ATTRIBUTE]: 8,
         },
-        description: 'responses gpt-4',
-        op: 'gen_ai.responses',
+        description: 'chat gpt-4',
+        op: 'gen_ai.chat',
         origin: 'auto.ai.openai',
         status: 'ok',
       }),
       // Fourth span - responses API with tools and streaming with PII
       expect.objectContaining({
         data: {
-          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'responses',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.responses',
+          [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'chat',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.chat',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.openai',
           [GEN_AI_SYSTEM_ATTRIBUTE]: 'openai',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'gpt-4',
@@ -314,8 +314,8 @@ describe('OpenAI Tool Calls integration', () => {
           [OPENAI_USAGE_COMPLETION_TOKENS_ATTRIBUTE]: 12,
           [OPENAI_USAGE_PROMPT_TOKENS_ATTRIBUTE]: 8,
         },
-        description: 'responses gpt-4 stream-response',
-        op: 'gen_ai.responses',
+        description: 'chat gpt-4 stream-response',
+        op: 'gen_ai.chat',
         origin: 'auto.ai.openai',
         status: 'ok',
       }),

@@ -1,5 +1,6 @@
 import type { Client, Integration, Options } from '@sentry/core';
 import {
+  conversationIdIntegration,
   dedupeIntegration,
   functionToStringIntegration,
   getIntegrationsToSetup,
@@ -31,6 +32,7 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
     // eslint-disable-next-line deprecation/deprecation
     inboundFiltersIntegration(),
     functionToStringIntegration(),
+    conversationIdIntegration(),
     browserApiErrorsIntegration(),
     breadcrumbsIntegration(),
     globalHandlersIntegration(),

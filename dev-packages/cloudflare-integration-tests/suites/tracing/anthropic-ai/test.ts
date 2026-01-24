@@ -28,8 +28,8 @@ it('traces a basic message creation request', async ({ signal }) => {
         expect.arrayContaining([
           expect.objectContaining({
             data: expect.objectContaining({
-              [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'messages',
-              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.messages',
+              [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'chat',
+              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.chat',
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.anthropic',
               [GEN_AI_SYSTEM_ATTRIBUTE]: 'anthropic',
               [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'claude-3-haiku-20240307',
@@ -39,8 +39,8 @@ it('traces a basic message creation request', async ({ signal }) => {
               [GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]: 10,
               [GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]: 15,
             }),
-            description: 'messages claude-3-haiku-20240307',
-            op: 'gen_ai.messages',
+            description: 'chat claude-3-haiku-20240307',
+            op: 'gen_ai.chat',
             origin: 'auto.ai.anthropic',
           }),
         ]),
