@@ -61,7 +61,11 @@ const onVisibilityUpdate = (event: Event) => {
   }
 };
 
-export const getVisibilityWatcher = () => {
+export const getVisibilityWatcher = (reset = false) => {
+  if (reset) {
+    firstHiddenTime = Infinity;
+  }
+
   if (WINDOW.document && firstHiddenTime < 0) {
     // Check if we have a previous hidden `visibility-state` performance entry.
     const activationStart = getActivationStart();
