@@ -22,7 +22,7 @@ export function makeFetchTransport(
     pendingCount++;
 
     const requestOptions: RequestInit = {
-      body: request.body,
+      body: request.body as BodyInit,
       method: 'POST',
       referrerPolicy: 'strict-origin',
       headers: options.headers,
