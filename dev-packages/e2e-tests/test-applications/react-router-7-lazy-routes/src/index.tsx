@@ -134,6 +134,20 @@ const router = sentryCreateBrowserRouter(
         lazyChildren: () => import('./pages/SlowFetchLazyRoutes').then(module => module.slowFetchRoutes),
       },
     },
+    {
+      // Route with wildcard placeholder that gets replaced by lazy-loaded parameterized routes
+      // This tests that wildcard transaction names get upgraded to parameterized routes
+      path: '/wildcard-lazy',
+      children: [
+        {
+          path: '*', // Catch-all wildcard - will be matched initially before lazy routes load
+          element: <>Loading...</>,
+        },
+      ],
+      handle: {
+        lazyChildren: () => import('./pages/WildcardLazyRoutes').then(module => module.wildcardRoutes),
+      },
+    },
   ],
   {
     async patchRoutesOnNavigation({ matches, patch }: Parameters<PatchRoutesOnNavigationFunction>[0]) {
