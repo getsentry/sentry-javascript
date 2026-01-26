@@ -214,6 +214,7 @@ describe('OpenAI integration', () => {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.openai',
           [GEN_AI_SYSTEM_ATTRIBUTE]: 'openai',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'gpt-3.5-turbo',
+          [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 1,
           [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: 'Translate this to French: Hello',
           [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: 'Response to: Translate this to French: Hello',
           [GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]: '["completed"]',
@@ -289,6 +290,7 @@ describe('OpenAI integration', () => {
           [GEN_AI_SYSTEM_ATTRIBUTE]: 'openai',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'gpt-4',
           [GEN_AI_REQUEST_STREAM_ATTRIBUTE]: true,
+          [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 1,
           [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: 'Test streaming responses API',
           [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]:
             'Streaming response to: Test streaming responses APITest streaming responses API',
@@ -620,6 +622,7 @@ describe('OpenAI integration', () => {
                     [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'gpt-3.5-turbo',
                     // Messages should be present (truncation happened) and should be a JSON array of a single index
                     [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: expect.stringMatching(/^\[\{"role":"user","content":"C+"\}\]$/),
+                    [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 3,
                   }),
                   description: 'chat gpt-3.5-turbo',
                   op: 'gen_ai.chat',
@@ -638,6 +641,7 @@ describe('OpenAI integration', () => {
                     [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: JSON.stringify([
                       { role: 'user', content: 'This is a small message that fits within the limit' },
                     ]),
+                    [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 3,
                   }),
                   description: 'chat gpt-3.5-turbo',
                   op: 'gen_ai.chat',
@@ -674,6 +678,7 @@ describe('OpenAI integration', () => {
                     [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'gpt-3.5-turbo',
                     // Messages should be present and should include truncated string input (contains only As)
                     [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: expect.stringMatching(/^A+$/),
+                    [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 1,
                   }),
                   description: 'chat gpt-3.5-turbo',
                   op: 'gen_ai.chat',

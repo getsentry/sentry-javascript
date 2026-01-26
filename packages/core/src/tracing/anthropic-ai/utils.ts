@@ -20,7 +20,7 @@ export function shouldInstrument(methodPath: string): methodPath is AnthropicAiI
  * Set the messages and messages original length attributes.
  */
 export function setMessagesAttribute(span: Span, messages: unknown): void {
-  const length = Array.isArray(messages) ? messages.length : undefined;
+  const length = Array.isArray(messages) ? messages.length : 1;
   if (length !== 0) {
     span.setAttributes({
       [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: getTruncatedJsonString(messages),

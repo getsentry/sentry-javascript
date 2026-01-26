@@ -2,6 +2,7 @@ import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '
 import { afterAll, expect } from 'vitest';
 import {
   GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
+  GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
   GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE,
   GEN_AI_REQUEST_MODEL_ATTRIBUTE,
@@ -267,6 +268,7 @@ conditionalTest({ min: 20 })('LangChain integration (v1)', () => {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.langchain',
           [GEN_AI_SYSTEM_ATTRIBUTE]: 'anthropic',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'claude-3-5-sonnet-20241022',
+          [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 1,
           // Messages should be present and should include truncated string input (contains only Cs)
           [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: expect.stringMatching(/^\[\{"role":"user","content":"C+"\}\]$/),
         }),
@@ -283,6 +285,7 @@ conditionalTest({ min: 20 })('LangChain integration (v1)', () => {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.langchain',
           [GEN_AI_SYSTEM_ATTRIBUTE]: 'anthropic',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'claude-3-5-sonnet-20241022',
+          [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 3,
           // Messages should be present (truncation happened) and should be a JSON array of a single index (contains only Cs)
           [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: expect.stringMatching(/^\[\{"role":"user","content":"C+"\}\]$/),
         }),
@@ -299,6 +302,7 @@ conditionalTest({ min: 20 })('LangChain integration (v1)', () => {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.langchain',
           [GEN_AI_SYSTEM_ATTRIBUTE]: 'anthropic',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'claude-3-5-sonnet-20241022',
+          [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 3,
           // Small message should be kept intact
           [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: JSON.stringify([
             { role: 'user', content: 'This is a small message that fits within the limit' },

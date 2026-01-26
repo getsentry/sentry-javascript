@@ -213,6 +213,7 @@ describe('OpenAI integration (V6)', () => {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.openai',
           [GEN_AI_SYSTEM_ATTRIBUTE]: 'openai',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'gpt-3.5-turbo',
+          [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 1,
           [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: 'Translate this to French: Hello',
           [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: 'Response to: Translate this to French: Hello',
           [GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]: '["completed"]',
@@ -288,6 +289,7 @@ describe('OpenAI integration (V6)', () => {
           [GEN_AI_SYSTEM_ATTRIBUTE]: 'openai',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'gpt-4',
           [GEN_AI_REQUEST_STREAM_ATTRIBUTE]: true,
+          [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 1,
           [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: 'Test streaming responses API',
           [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]:
             'Streaming response to: Test streaming responses APITest streaming responses API',
@@ -335,7 +337,7 @@ describe('OpenAI integration (V6)', () => {
       // Check that custom options are respected
       expect.objectContaining({
         data: expect.objectContaining({
-          [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: expect.any(Number),
+          [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 2,
           [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: expect.any(String), // Should include messages when recordInputs: true
           [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: expect.any(String), // Should include response text when recordOutputs: true
         }),
@@ -343,7 +345,7 @@ describe('OpenAI integration (V6)', () => {
       // Check that custom options are respected for streaming
       expect.objectContaining({
         data: expect.objectContaining({
-          [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: expect.any(Number),
+          [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 2,
           [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: expect.any(String), // Should include messages when recordInputs: true
           [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: expect.any(String), // Should include response text when recordOutputs: true
           [GEN_AI_REQUEST_STREAM_ATTRIBUTE]: true, // Should be marked as stream
