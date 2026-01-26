@@ -13,9 +13,10 @@ import {
   GEN_AI_REQUEST_MODEL_ATTRIBUTE,
   GEN_AI_RESPONSE_TEXT_ATTRIBUTE,
   GEN_AI_SYSTEM_ATTRIBUTE,
+  GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE,
   OPENAI_OPERATIONS,
 } from '../ai/gen-ai-attributes';
-import { getTruncatedJsonString } from '../ai/utils';
+import { extractSystemInstructions, getTruncatedJsonString } from '../ai/utils';
 import { instrumentStream } from './streaming';
 import type {
   ChatCompletionChunk,
@@ -134,25 +135,27 @@ function addRequestAttributes(span: Span, params: Record<string, unknown>, opera
     return;
   }
 
-  // Apply truncation to chat completions / responses API inputs
   const src = 'input' in params ? params.input : 'messages' in params ? params.messages : undefined;
 
-  // No input/messages provided
   if (!src) {
     return;
   }
 
-  // Empty array input
   if (Array.isArray(src) && src.length === 0) {
     return;
   }
 
-  const truncatedInput = getTruncatedJsonString(src);
+  const { systemInstructions, filteredMessages } = extractSystemInstructions(src);
+
+  if (systemInstructions) {
+    span.setAttribute(GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE, systemInstructions);
+  }
+
+  const truncatedInput = getTruncatedJsonString(filteredMessages);
   span.setAttribute(GEN_AI_REQUEST_MESSAGES_ATTRIBUTE, truncatedInput);
 
-  // Record original length if it's an array
-  if (Array.isArray(src)) {
-    span.setAttribute(GEN_AI_REQUEST_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE, src.length);
+  if (Array.isArray(filteredMessages)) {
+    span.setAttribute(GEN_AI_REQUEST_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE, filteredMessages.length);
   }
 }
 

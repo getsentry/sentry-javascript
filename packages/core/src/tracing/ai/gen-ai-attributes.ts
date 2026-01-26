@@ -127,6 +127,13 @@ export const GEN_AI_REQUEST_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE = 'gen_ai.request
 export const GEN_AI_REQUEST_MESSAGES_ATTRIBUTE = 'gen_ai.request.messages';
 
 /**
+ * The system instructions extracted from system messages
+ * Only recorded when recordInputs is enabled
+ * According to OpenTelemetry spec: https://opentelemetry.io/docs/specs/semconv/registry/attributes/gen-ai/#gen-ai-system-instructions
+ */
+export const GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE = 'gen_ai.system_instructions';
+
+/**
  * The response text
  * Only recorded when recordOutputs is enabled
  */
