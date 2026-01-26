@@ -242,13 +242,13 @@ describe('winston integration', () => {
       })
       .start();
 
-      await runner.completed();
+    await runner.completed();
 
-      const logs = runner.getLogs();
+    const logs = runner.getLogs();
 
-      const warning = logs.find(log => log.includes('Winston log level myUnknownLevel is not captured by Sentry.'));
+    const warning = logs.find(log => log.includes('Winston log level myUnknownLevel is not captured by Sentry.'));
 
-      expect(warning).toBeDefined();
+    expect(warning).toBeDefined();
   });
 
   test('should map custom winston levels to Sentry severity levels', async () => {

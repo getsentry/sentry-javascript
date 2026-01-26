@@ -87,8 +87,7 @@ async function run(): Promise<void> {
     });
 
     // This should NOT be captured (unknown level defaults to 'info', which is not in levels)
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-expect-error - custom levels are not part of the winston logger
+    // @ts-ignore - custom levels are not part of the winston logger
     unmappedLogger.myUnknownLevel('This unknown level message should be skipped');
     // This SHOULD be captured
     unmappedLogger.error('This error message should be captured');
@@ -121,14 +120,11 @@ async function run(): Promise<void> {
       transports: [new SentryWinstonTransport()],
     });
 
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-expect-error - custom levels are not part of the winston logger
+    // @ts-ignore - custom levels are not part of the winston logger
     mappedLogger.customCritical('This is a critical message');
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-expect-error - custom levels are not part of the winston logger
+    // @ts-ignore - custom levels are not part of the winston logger
     mappedLogger.customWarning('This is a warning message');
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-expect-error - custom levels are not part of the winston logger
+    // @ts-ignore - custom levels are not part of the winston logger
     mappedLogger.customNotice('This is a notice message');
   }
 

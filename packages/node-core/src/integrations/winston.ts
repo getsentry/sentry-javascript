@@ -112,7 +112,10 @@ export function createSentryWinstonTransport<TransportStreamInstance extends obj
             'sentry.origin': 'auto.log.winston',
           });
         } else if (!customLevel) {
-          DEBUG_BUILD && debug.log(`Winston log level ${levelFromSymbol} is not captured by Sentry. Please add ${levelFromSymbol} to the "customLevelMap" option of the Sentry Winston transport.`);
+          DEBUG_BUILD &&
+            debug.log(
+              `Winston log level ${levelFromSymbol} is not captured by Sentry. Please add ${levelFromSymbol} to the "customLevelMap" option of the Sentry Winston transport.`,
+            );
         }
       } catch {
         // do nothing
