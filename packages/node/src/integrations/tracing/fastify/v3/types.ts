@@ -20,6 +20,7 @@ import type { Span } from '@opentelemetry/api';
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 
 export interface FastifyRequestInfo {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   request: any; // FastifyRequest object from fastify package
 }
 

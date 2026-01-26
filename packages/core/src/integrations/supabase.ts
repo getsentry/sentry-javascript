@@ -10,6 +10,7 @@ import { defineIntegration } from '../integration';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
 import { setHttpStatus, SPAN_STATUS_ERROR, SPAN_STATUS_OK, startSpan } from '../tracing';
 import type { IntegrationFn } from '../types-hoist/integration';
+import type { SpanAttributes } from '../types-hoist/span';
 import { debug } from '../utils/debug-logger';
 import { isPlainObject } from '../utils/is';
 import { addExceptionMechanism } from '../utils/misc';
@@ -66,7 +67,8 @@ export const FILTER_MAPPINGS = {
   not: 'not',
 };
 
-export const DB_OPERATIONS_TO_INSTRUMENT = ['select', 'insert', 'upsert', 'update', 'delete'];
+export const DB_OPERATIONS_TO_INSTRUMENT = ['select', 'insert', 'upsert', 'update', 'delete'] as const;
+type DBOperation = (typeof DB_OPERATIONS_TO_INSTRUMENT)[number];
 
 type AuthOperationFn = (...args: unknown[]) => Promise<unknown>;
 type AuthOperationName = (typeof AUTH_OPERATIONS_TO_INSTRUMENT)[number];
@@ -88,7 +90,7 @@ export interface PostgRESTFilterBuilder {
   headers: Record<string, string>;
   url: URL;
   schema: string;
-  body: any;
+  body: unknown;
 }
 
 export interface SupabaseResponse {
@@ -124,7 +126,7 @@ export interface SupabaseClientConstructor {
 export interface PostgRESTProtoThenable {
   then: <T>(
     onfulfilled?: ((value: T) => T | PromiseLike<T>) | null,
-    onrejected?: ((reason: any) => T | PromiseLike<T>) | null,
+    onrejected?: ((reason: unknown) => T | PromiseLike<T>) | null,
   ) => Promise<T>;
 }
 
@@ -154,7 +156,7 @@ function isInstrumented<T>(fn: T): boolean | undefined {
  * @param headers - The request headers
  * @returns The database operation type ('select', 'insert', 'upsert', 'update', or 'delete')
  */
-export function extractOperation(method: string, headers: Record<string, string> = {}): string {
+export function extractOperation(method: string, headers: Record<string, string> = {}): DBOperation | '<unknown-op>' {
   switch (method) {
     case 'GET': {
       return 'select';
@@ -337,7 +339,7 @@ function instrumentPostgRESTFilterBuilder(PostgRESTFilterBuilder: PostgRESTFilte
         const typedThis = thisArg as PostgRESTFilterBuilder;
         const operation = extractOperation(typedThis.method, typedThis.headers);
 
-        if (!operations.includes(operation)) {
+        if (!operations.includes(operation as DBOperation)) {
           return Reflect.apply(target, thisArg, argumentsList);
         }
 
@@ -368,7 +370,7 @@ function instrumentPostgRESTFilterBuilder(PostgRESTFilterBuilder: PostgRESTFilte
           ' ',
         )} from(${table})`;
 
-        const attributes: Record<string, any> = {
+        const attributes: SpanAttributes = {
           'db.table': table,
           'db.schema': typedThis.schema,
           'db.url': typedThis.url.origin,
@@ -384,7 +386,11 @@ function instrumentPostgRESTFilterBuilder(PostgRESTFilterBuilder: PostgRESTFilte
         }
 
         if (Object.keys(body).length) {
-          attributes['db.body'] = body;
+          try {
+            attributes['db.body'] = JSON.stringify(body);
+          } catch {
+            // could not stringify body
+          }
         }
 
         return startSpan(
@@ -479,17 +485,19 @@ function instrumentPostgRESTFilterBuilder(PostgRESTFilterBuilder: PostgRESTFilte
   markAsInstrumented((PostgRESTFilterBuilder.prototype as unknown as PostgRESTProtoThenable).then);
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type BuilderPrototype = Record<DBOperation, (...args: any[]) => any>;
+
 function instrumentPostgRESTQueryBuilder(PostgRESTQueryBuilder: new () => PostgRESTQueryBuilder): void {
   // We need to wrap _all_ operations despite them sharing the same `PostgRESTFilterBuilder`
   // constructor, as we don't know which method will be called first, and we don't want to miss any calls.
   for (const operation of DB_OPERATIONS_TO_INSTRUMENT) {
-    if (isInstrumented((PostgRESTQueryBuilder.prototype as Record<string, any>)[operation])) {
+    if (isInstrumented((PostgRESTQueryBuilder.prototype as BuilderPrototype)[operation])) {
       continue;
     }
 
-    type PostgRESTOperation = keyof Pick<PostgRESTQueryBuilder, 'select' | 'insert' | 'upsert' | 'update' | 'delete'>;
-    (PostgRESTQueryBuilder.prototype as Record<string, any>)[operation as PostgRESTOperation] = new Proxy(
-      (PostgRESTQueryBuilder.prototype as Record<string, any>)[operation as PostgRESTOperation],
+    (PostgRESTQueryBuilder.prototype as BuilderPrototype)[operation] = new Proxy(
+      (PostgRESTQueryBuilder.prototype as BuilderPrototype)[operation],
       {
         apply(target, thisArg, argumentsList) {
           const rv = Reflect.apply(target, thisArg, argumentsList);
@@ -504,7 +512,7 @@ function instrumentPostgRESTQueryBuilder(PostgRESTQueryBuilder: new () => PostgR
       },
     );
 
-    markAsInstrumented((PostgRESTQueryBuilder.prototype as Record<string, any>)[operation]);
+    markAsInstrumented((PostgRESTQueryBuilder.prototype as BuilderPrototype)[operation]);
   }
 }
 
@@ -531,6 +539,7 @@ const _supabaseIntegration = ((supabaseClient: unknown) => {
   };
 }) satisfies IntegrationFn;
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const supabaseIntegration = defineIntegration((options: { supabaseClient: any }) => {
   return _supabaseIntegration(options.supabaseClient);
 }) satisfies IntegrationFn;

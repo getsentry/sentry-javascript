@@ -47,8 +47,7 @@ interface SentryFetchData {
 }
 
 export interface HandlerDataFetch {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  args: any[];
+  args: unknown[];
   fetchData: SentryFetchData; // This data is among other things dumped directly onto the fetch breadcrumb data
   startTimestamp: number;
   endTimestamp?: number;
@@ -75,8 +74,7 @@ export interface HandlerDataDom {
 
 export interface HandlerDataConsole {
   level: ConsoleLevel;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  args: any[];
+  args: unknown[];
 }
 
 export interface HandlerDataHistory {

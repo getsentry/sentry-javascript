@@ -63,14 +63,17 @@ export const feedbackModalIntegration = ((): FeedbackModalIntegration => {
       const screenshotInput = screenshotIntegration?.createInput({ h, hooks, dialog, options });
 
       const renderContent = (open: boolean): void => {
+        const defaultName = user?.[userKey.name];
+        const defaultEmail = user?.[userKey.email];
+
         render(
           <Dialog
             options={options}
             screenshotInput={screenshotInput}
             showName={options.showName || options.isNameRequired}
             showEmail={options.showEmail || options.isEmailRequired}
-            defaultName={String((userKey && user?.[userKey.name]) || '')}
-            defaultEmail={String((userKey && user?.[userKey.email]) || '')}
+            defaultName={typeof defaultName === 'string' ? defaultName : ''}
+            defaultEmail={typeof defaultEmail === 'string' ? defaultEmail : ''}
             onFormClose={() => {
               renderContent(false);
               options.onFormClose?.();

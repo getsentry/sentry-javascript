@@ -52,8 +52,10 @@ export interface Breadcrumb {
    *
    * @summary Arbitrary data associated with this breadcrumb.
    */
+  // Note: we cannot use Record<string, unknown> here because it's not compatible with interface data types
+  // See: https://github.com/microsoft/TypeScript/issues/15300
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  data?: { [key: string]: any };
+  data?: Record<string, any>;
 
   /**
    * The format is a numeric (integer or float) value representing
@@ -71,6 +73,8 @@ export interface Breadcrumb {
 
 /** JSDoc */
 export interface BreadcrumbHint {
+  // Note: we cannot use unknown here because it's not compatible with interface data types
+  // See: https://github.com/microsoft/TypeScript/issues/15300
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: any;
 }
@@ -92,8 +96,7 @@ export interface XhrBreadcrumbData {
 }
 
 export interface FetchBreadcrumbHint {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  input: any[];
+  input: unknown[];
   data?: unknown;
   response?: unknown;
   startTimestamp: number;

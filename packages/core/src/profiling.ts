@@ -1,3 +1,4 @@
+import type { Client } from './client';
 import { getClient } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
 import type { Profiler, ProfilingIntegration } from './types-hoist/profiling';

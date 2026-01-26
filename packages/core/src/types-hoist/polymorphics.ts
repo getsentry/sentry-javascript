@@ -50,15 +50,13 @@ type NextjsRequest = NodeRequest & {
     [key: string]: string;
   };
   query?: {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    [key: string]: any;
+    [key: string]: unknown;
   };
 };
 
 type ExpressRequest = NodeRequest & {
   baseUrl?: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  body?: string | { [key: string]: any };
+  body?: string | { [key: string]: unknown };
   host?: string;
   hostname?: string;
   ip?: string;
@@ -72,12 +70,10 @@ type ExpressRequest = NodeRequest & {
     ];
   };
   query?: {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    [key: string]: any;
+    [key: string]: unknown;
   };
   user?: {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    [key: string]: any;
+    [key: string]: unknown;
   };
   _reconstructedRoute?: string;
 };

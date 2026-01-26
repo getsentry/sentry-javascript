@@ -1,7 +1,7 @@
 import type { FeatureFlag } from '../utils/featureFlags';
 import type { SpanLinkJSON } from './link';
 import type { Primitive } from './misc';
-import type { SpanOrigin } from './span';
+import type { SpanAttributes, SpanOrigin } from './span';
 
 export type Context = Record<string, unknown>;
 
@@ -99,8 +99,7 @@ export interface ResponseContext extends Record<string, unknown> {
 }
 
 export interface TraceContext extends Record<string, unknown> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  data?: { [key: string]: any };
+  data?: SpanAttributes;
   op?: string;
   parent_span_id?: string;
   span_id: string;
