@@ -6,9 +6,9 @@ import {
   GEN_AI_EXECUTE_TOOL_OPERATION_ATTRIBUTE,
   GEN_AI_GENERATE_OBJECT_DO_GENERATE_OPERATION_ATTRIBUTE,
   GEN_AI_GENERATE_TEXT_DO_GENERATE_OPERATION_ATTRIBUTE,
+  GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
+  GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
   GEN_AI_INVOKE_AGENT_OPERATION_ATTRIBUTE,
-  GEN_AI_REQUEST_MESSAGES_ATTRIBUTE,
-  GEN_AI_REQUEST_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
   GEN_AI_STREAM_OBJECT_DO_STREAM_OPERATION_ATTRIBUTE,
   GEN_AI_STREAM_TEXT_DO_STREAM_OPERATION_ATTRIBUTE,
   GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
@@ -139,14 +139,14 @@ export function requestMessagesFromPrompt(span: Span, attributes: SpanAttributes
   const prompt = attributes[AI_PROMPT_ATTRIBUTE];
   if (
     typeof prompt === 'string' &&
-    !attributes[GEN_AI_REQUEST_MESSAGES_ATTRIBUTE] &&
+    !attributes[GEN_AI_INPUT_MESSAGES_ATTRIBUTE] &&
     !attributes[AI_PROMPT_MESSAGES_ATTRIBUTE]
   ) {
     const messages = convertPromptToMessages(prompt);
     if (messages.length) {
       span.setAttributes({
-        [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: getTruncatedJsonString(messages),
-        [GEN_AI_REQUEST_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: messages.length,
+        [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: getTruncatedJsonString(messages),
+        [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: messages.length,
       });
     }
   } else if (typeof attributes[AI_PROMPT_MESSAGES_ATTRIBUTE] === 'string') {
@@ -155,8 +155,8 @@ export function requestMessagesFromPrompt(span: Span, attributes: SpanAttributes
       if (Array.isArray(messages)) {
         span.setAttributes({
           [AI_PROMPT_MESSAGES_ATTRIBUTE]: undefined,
-          [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: getTruncatedJsonString(messages),
-          [GEN_AI_REQUEST_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: messages.length,
+          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: getTruncatedJsonString(messages),
+          [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: messages.length,
         });
       }
       // eslint-disable-next-line no-empty

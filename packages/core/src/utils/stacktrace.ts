@@ -177,3 +177,15 @@ export function getVueInternalName(value: VueViewModel | VNode): string {
 
   return isVNode ? '[VueVNode]' : '[VueViewModel]';
 }
+
+/**
+ * Normalizes stack line paths by removing file:// prefix and leading slashes for Windows paths
+ */
+export function normalizeStackTracePath(path: string | undefined): string | undefined {
+  let filename = path?.startsWith('file://') ? path.slice(7) : path;
+  // If it's a Windows path, trim the leading slash so that `/C:/foo` becomes `C:/foo`
+  if (filename?.match(/\/[A-Z]:/)) {
+    filename = filename.slice(1);
+  }
+  return filename;
+}

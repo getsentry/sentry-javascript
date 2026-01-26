@@ -1228,3 +1228,83 @@ test('Query/hash navigation does not corrupt transaction name', async ({ page })
   const corruptedToRoot = navigationTransactions.filter(t => t.name === '/');
   expect(corruptedToRoot.length).toBe(0);
 });
+
+// Regression: Pageload to slow lazy route should get parameterized name even if span ends early
+test('Slow lazy route pageload with early span end still gets parameterized route name (regression)', async ({
+  page,
+}) => {
+  const transactionPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+    return (
+      !!transactionEvent?.transaction &&
+      transactionEvent.contexts?.trace?.op === 'pageload' &&
+      (transactionEvent.transaction?.startsWith('/slow-fetch') ?? false)
+    );
+  });
+
+  // idleTimeout=300 ends span before 500ms lazy route loads, timeout=1000 waits for lazy routes
+  await page.goto('/slow-fetch/123?idleTimeout=300&timeout=1000');
+
+  const event = await transactionPromise;
+
+  expect(event.transaction).toBe('/slow-fetch/:id');
+  expect(event.type).toBe('transaction');
+  expect(event.contexts?.trace?.op).toBe('pageload');
+  expect(event.contexts?.trace?.data?.['sentry.source']).toBe('route');
+
+  const idleSpanFinishReason = event.contexts?.trace?.data?.['sentry.idle_span_finish_reason'];
+  expect(['idleTimeout', 'externalFinish']).toContain(idleSpanFinishReason);
+});
+
+// Regression: Wildcard route names should be upgraded to parameterized routes when lazy routes load
+test('Wildcard route pageload gets upgraded to parameterized route name (regression)', async ({ page }) => {
+  const transactionPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+    return (
+      !!transactionEvent?.transaction &&
+      transactionEvent.contexts?.trace?.op === 'pageload' &&
+      (transactionEvent.transaction?.startsWith('/wildcard-lazy') ?? false)
+    );
+  });
+
+  await page.goto('/wildcard-lazy/456?idleTimeout=300&timeout=1000');
+
+  const event = await transactionPromise;
+
+  expect(event.transaction).toBe('/wildcard-lazy/:id');
+  expect(event.type).toBe('transaction');
+  expect(event.contexts?.trace?.op).toBe('pageload');
+  expect(event.contexts?.trace?.data?.['sentry.source']).toBe('route');
+});
+
+// Regression: Navigation to slow lazy route should get parameterized name even if span ends early.
+// Network activity from dynamic imports extends the idle timeout until lazy routes load.
+test('Slow lazy route navigation with early span end still gets parameterized route name (regression)', async ({
+  page,
+}) => {
+  // Configure short idle timeout (300ms) but longer lazy route timeout (1000ms)
+  await page.goto('/?idleTimeout=300&timeout=1000');
+
+  // Wait for pageload to complete
+  await page.waitForTimeout(500);
+
+  const navigationPromise = waitForTransaction('react-router-7-lazy-routes', async transactionEvent => {
+    return (
+      !!transactionEvent?.transaction &&
+      transactionEvent.contexts?.trace?.op === 'navigation' &&
+      (transactionEvent.transaction?.startsWith('/wildcard-lazy') ?? false)
+    );
+  });
+
+  // Navigate to wildcard-lazy route (500ms delay in module via top-level await)
+  // The dynamic import creates network activity that extends the span lifetime
+  const wildcardLazyLink = page.locator('id=navigation-to-wildcard-lazy');
+  await expect(wildcardLazyLink).toBeVisible();
+  await wildcardLazyLink.click();
+
+  const event = await navigationPromise;
+
+  // The navigation transaction should have the parameterized route name
+  expect(event.transaction).toBe('/wildcard-lazy/:id');
+  expect(event.type).toBe('transaction');
+  expect(event.contexts?.trace?.op).toBe('navigation');
+  expect(event.contexts?.trace?.data?.['sentry.source']).toBe('route');
+});

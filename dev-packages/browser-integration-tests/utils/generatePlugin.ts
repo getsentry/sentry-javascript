@@ -56,10 +56,17 @@ const BUNDLE_PATHS: Record<string, Record<string, string>> = {
     bundle_replay_min: 'build/bundles/bundle.replay.min.js',
     bundle_tracing: 'build/bundles/bundle.tracing.js',
     bundle_tracing_min: 'build/bundles/bundle.tracing.min.js',
+    bundle_tracing_logs_metrics: 'build/bundles/bundle.tracing.logs.metrics.js',
+    bundle_tracing_logs_metrics_min: 'build/bundles/bundle.tracing.logs.metrics.min.js',
+    bundle_tracing_logs_metrics_debug_min: 'build/bundles/bundle.tracing.logs.metrics.debug.min.js',
     bundle_tracing_replay: 'build/bundles/bundle.tracing.replay.js',
     bundle_tracing_replay_min: 'build/bundles/bundle.tracing.replay.min.js',
     bundle_tracing_replay_feedback: 'build/bundles/bundle.tracing.replay.feedback.js',
     bundle_tracing_replay_feedback_min: 'build/bundles/bundle.tracing.replay.feedback.min.js',
+    bundle_tracing_replay_feedback_logs_metrics: 'build/bundles/bundle.tracing.replay.feedback.logs.metrics.js',
+    bundle_tracing_replay_feedback_logs_metrics_min: 'build/bundles/bundle.tracing.replay.feedback.logs.metrics.min.js',
+    bundle_tracing_replay_feedback_logs_metrics_debug_min:
+      'build/bundles/bundle.tracing.replay.feedback.logs.metrics.debug.min.js',
     loader_base: 'build/bundles/bundle.min.js',
     loader_eager: 'build/bundles/bundle.min.js',
     loader_debug: 'build/bundles/bundle.debug.min.js',
@@ -245,7 +252,9 @@ class SentryScenarioGenerationPlugin {
             .replace('loader_', 'bundle_')
             .replace('_replay', '')
             .replace('_tracing', '')
-            .replace('_feedback', '');
+            .replace('_feedback', '')
+            .replace('_logs', '')
+            .replace('_metrics', '');
 
           // For feedback bundle, make sure to add modal & screenshot integrations
           if (bundleKey.includes('_feedback')) {

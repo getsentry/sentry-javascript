@@ -12,6 +12,7 @@ import {
 } from '@opentelemetry/semantic-conventions';
 import type { Client, SpanAttributes } from '@sentry/core';
 import {
+  _INTERNAL_safeMathRandom,
   baggageHeaderToDynamicSamplingContext,
   debug,
   hasSpansEnabled,
@@ -121,7 +122,7 @@ export class SentrySampler implements Sampler {
     const dscString = parentContext?.traceState ? parentContext.traceState.get(SENTRY_TRACE_STATE_DSC) : undefined;
     const dsc = dscString ? baggageHeaderToDynamicSamplingContext(dscString) : undefined;
 
-    const sampleRand = parseSampleRate(dsc?.sample_rand) ?? Math.random();
+    const sampleRand = parseSampleRate(dsc?.sample_rand) ?? _INTERNAL_safeMathRandom();
 
     const [sampled, sampleRate, localSampleRateWasApplied] = sampleSpan(
       options,

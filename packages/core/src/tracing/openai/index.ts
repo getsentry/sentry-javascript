@@ -5,13 +5,15 @@ import { SPAN_STATUS_ERROR } from '../../tracing';
 import { startSpan, startSpanManual } from '../../tracing/trace';
 import type { Span, SpanAttributeValue } from '../../types-hoist/span';
 import {
+  GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE,
+  GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
+  GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
   GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE,
-  GEN_AI_REQUEST_MESSAGES_ATTRIBUTE,
-  GEN_AI_REQUEST_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
   GEN_AI_REQUEST_MODEL_ATTRIBUTE,
   GEN_AI_RESPONSE_TEXT_ATTRIBUTE,
   GEN_AI_SYSTEM_ATTRIBUTE,
+  OPENAI_OPERATIONS,
 } from '../ai/gen-ai-attributes';
 import { getTruncatedJsonString } from '../ai/utils';
 import { instrumentStream } from './streaming';
@@ -107,16 +109,52 @@ function addResponseAttributes(span: Span, result: unknown, recordOutputs?: bool
 }
 
 // Extract and record AI request inputs, if present. This is intentionally separate from response attributes.
-function addRequestAttributes(span: Span, params: Record<string, unknown>): void {
-  const src = 'input' in params ? params.input : 'messages' in params ? params.messages : undefined;
-  // typically an array, but can be other types. skip if an empty array.
-  const length = Array.isArray(src) ? src.length : undefined;
-  if (src && length !== 0) {
-    const truncatedInput = getTruncatedJsonString(src);
-    span.setAttribute(GEN_AI_REQUEST_MESSAGES_ATTRIBUTE, truncatedInput);
-    if (length) {
-      span.setAttribute(GEN_AI_REQUEST_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE, length);
+function addRequestAttributes(span: Span, params: Record<string, unknown>, operationName: string): void {
+  // Store embeddings input on a separate attribute and do not truncate it
+  if (operationName === OPENAI_OPERATIONS.EMBEDDINGS && 'input' in params) {
+    const input = params.input;
+
+    // No input provided
+    if (input == null) {
+      return;
     }
+
+    // Empty input string
+    if (typeof input === 'string' && input.length === 0) {
+      return;
+    }
+
+    // Empty array input
+    if (Array.isArray(input) && input.length === 0) {
+      return;
+    }
+
+    // Store strings as-is, arrays/objects as JSON
+    span.setAttribute(GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE, typeof input === 'string' ? input : JSON.stringify(input));
+    return;
+  }
+
+  // Apply truncation to chat completions / responses API inputs
+  const src = 'input' in params ? params.input : 'messages' in params ? params.messages : undefined;
+
+  // No input/messages provided
+  if (!src) {
+    return;
+  }
+
+  // Empty array input
+  if (Array.isArray(src) && src.length === 0) {
+    return;
+  }
+
+  const truncatedInput = getTruncatedJsonString(src);
+  span.setAttribute(GEN_AI_INPUT_MESSAGES_ATTRIBUTE, truncatedInput);
+
+  // Record original length
+  if (Array.isArray(src)) {
+    span.setAttribute(GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE, src.length);
+  } else {
+    span.setAttribute(GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE, 1);
   }
 }
 
@@ -150,7 +188,7 @@ function instrumentMethod<T extends unknown[], R>(
         async (span: Span) => {
           try {
             if (options.recordInputs && params) {
-              addRequestAttributes(span, params);
+              addRequestAttributes(span, params, operationName);
             }
 
             const result = await originalMethod.apply(context, args);
@@ -189,7 +227,7 @@ function instrumentMethod<T extends unknown[], R>(
         async (span: Span) => {
           try {
             if (options.recordInputs && params) {
-              addRequestAttributes(span, params);
+              addRequestAttributes(span, params, operationName);
             }
 
             const result = await originalMethod.apply(context, args);

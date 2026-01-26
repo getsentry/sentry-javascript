@@ -261,7 +261,8 @@ export type SentryBuildOptions = {
     /**
      * A glob or an array of globs that specifies which build artifacts should not be uploaded to Sentry.
      *
-     * Default: `[]`
+     * The SDK automatically ignores Next.js internal files that don't have source maps (such as manifest files)
+     * to prevent "Could not determine source map" warnings. Your custom patterns are merged with these defaults.
      *
      * The globbing patterns follow the implementation of the `glob` package. (https://www.npmjs.com/package/glob)
      *
@@ -491,7 +492,7 @@ export type SentryBuildOptions = {
      * A list of strings representing the names of components to ignore. The plugin will not apply `data-sentry` annotations on the DOM element for these components.
      */
     ignoredComponents?: string[];
-  };
+  }; // TODO(v11): remove this option
 
   /**
    * Options to be passed directly to the Sentry Webpack Plugin (`@sentry/webpack-plugin`) that ships with the Sentry Next.js SDK.
@@ -500,7 +501,7 @@ export type SentryBuildOptions = {
    * Please note that this option is unstable and may change in a breaking way in any release.
    * @deprecated Use `webpack.unstable_sentryWebpackPluginOptions` instead.
    */
-  unstable_sentryWebpackPluginOptions?: SentryWebpackPluginOptions;
+  unstable_sentryWebpackPluginOptions?: SentryWebpackPluginOptions; // TODO(v11): remove this option
 
   /**
    * Include Next.js-internal code and code from dependencies when uploading source maps.
@@ -522,19 +523,19 @@ export type SentryBuildOptions = {
    * Defaults to `true`.
    * @deprecated Use `webpack.autoInstrumentServerFunctions` instead.
    */
-  autoInstrumentServerFunctions?: boolean;
+  autoInstrumentServerFunctions?: boolean; // TODO(v11): remove this option
 
   /**
    * Automatically instrument Next.js middleware with error and performance monitoring. Defaults to `true`.
    * @deprecated Use `webpack.autoInstrumentMiddleware` instead.
    */
-  autoInstrumentMiddleware?: boolean;
+  autoInstrumentMiddleware?: boolean; // TODO(v11): remove this option
 
   /**
    * Automatically instrument components in the `app` directory with error monitoring. Defaults to `true`.
    * @deprecated Use `webpack.autoInstrumentAppDirectory` instead.
    */
-  autoInstrumentAppDirectory?: boolean;
+  autoInstrumentAppDirectory?: boolean; // TODO(v11): remove this option
 
   /**
    * Exclude certain serverside API routes or pages from being instrumented with Sentry during build-time. This option
@@ -567,7 +568,7 @@ export type SentryBuildOptions = {
    *
    * @deprecated Use `webpack.treeshake.removeDebugLogging` instead.
    */
-  disableLogger?: boolean;
+  disableLogger?: boolean; // TODO(v11): remove this option
 
   /**
    * Automatically create cron monitors in Sentry for your Vercel Cron Jobs if configured via `vercel.json`.
@@ -576,7 +577,7 @@ export type SentryBuildOptions = {
    *
    * @deprecated Use `webpack.automaticVercelMonitors` instead.
    */
-  automaticVercelMonitors?: boolean;
+  automaticVercelMonitors?: boolean; // TODO(v11): remove this option
 
   /**
    * When an error occurs during release creation or sourcemaps upload, the plugin will call this function.
@@ -603,20 +604,59 @@ export type SentryBuildOptions = {
   /**
    * Disables automatic injection of the route manifest into the client bundle.
    *
+   * @deprecated Use `routeManifestInjection: false` instead.
+   *
+   * @default false
+   */
+  disableManifestInjection?: boolean; // TODO(v11): remove this option
+
+  /**
+   * Options for the route manifest injection feature.
+   *
    * The route manifest is a build-time generated mapping of your Next.js App Router
    * routes that enables Sentry to group transactions by parameterized route names
    * (e.g., `/users/:id` instead of `/users/123`, `/users/456`, etc.).
    *
-   * **Disable this option if:**
-   * - You want to minimize client bundle size
-   * - You're experiencing build issues related to route scanning
-   * - You're using custom routing that the scanner can't detect
-   * - You prefer raw URLs in transaction names
-   * - You're only using Pages Router (this feature is only supported in the App Router)
+   * Set to `false` to disable route manifest injection entirely.
    *
-   * @default false
+   * @example
+   * ```js
+   * // Disable route manifest injection
+   * routeManifestInjection: false
+   *
+   * // Exclude specific routes
+   * routeManifestInjection: {
+   *   exclude: [
+   *     '/admin',           // Exact match
+   *     /^\/internal\//,    // Regex: all routes starting with /internal/
+   *     /\/secret-/,        // Regex: any route containing /secret-
+   *   ]
+   * }
+   *
+   * // Exclude using a function
+   * routeManifestInjection: {
+   *   exclude: (route) => route.includes('hidden')
+   * }
+   * ```
    */
-  disableManifestInjection?: boolean;
+  routeManifestInjection?:
+    | false
+    | {
+        /**
+         * Exclude specific routes from the route manifest.
+         *
+         * Use this option to prevent certain routes from being included in the client bundle's
+         * route manifest. This is useful for:
+         * - Hiding confidential or unreleased feature routes
+         * - Excluding internal/admin routes you don't want exposed
+         * - Reducing bundle size by omitting rarely-used routes
+         *
+         * Can be specified as:
+         * - An array of strings (exact match) or RegExp patterns
+         * - A function that receives a route path and returns `true` to exclude it
+         */
+        exclude?: Array<string | RegExp> | ((route: string) => boolean);
+      };
 
   /**
    * Disables automatic injection of Sentry's Webpack configuration.
@@ -630,7 +670,7 @@ export type SentryBuildOptions = {
    *
    * @default false
    */
-  disableSentryWebpackConfig?: boolean;
+  disableSentryWebpackConfig?: boolean; // TODO(v11): remove this option
 
   /**
    * When true (and Next.js >= 15), use the runAfterProductionCompile hook to consolidate sourcemap uploads

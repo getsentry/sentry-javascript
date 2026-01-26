@@ -4,16 +4,22 @@ import type { Event } from '../../types-hoist/event';
 import type { Span, SpanAttributes, SpanAttributeValue, SpanJSON, SpanOrigin } from '../../types-hoist/span';
 import { spanToJSON } from '../../utils/spanUtils';
 import {
+  GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
-  GEN_AI_REQUEST_MESSAGES_ATTRIBUTE,
   GEN_AI_REQUEST_MODEL_ATTRIBUTE,
   GEN_AI_RESPONSE_MODEL_ATTRIBUTE,
+  GEN_AI_TOOL_CALL_ID_ATTRIBUTE,
+  GEN_AI_TOOL_INPUT_ATTRIBUTE,
+  GEN_AI_TOOL_NAME_ATTRIBUTE,
+  GEN_AI_TOOL_OUTPUT_ATTRIBUTE,
+  GEN_AI_TOOL_TYPE_ATTRIBUTE,
   GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_INPUT_TOKENS_CACHE_WRITE_ATTRIBUTE,
   GEN_AI_USAGE_INPUT_TOKENS_CACHED_ATTRIBUTE,
   GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
+  GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
-import { toolCallSpanMap } from './constants';
+import { EMBEDDINGS_OPS, GENERATE_CONTENT_OPS, INVOKE_AGENT_OPS, toolCallSpanMap } from './constants';
 import type { TokenSummary } from './types';
 import {
   accumulateTokensForParent,
@@ -22,9 +28,10 @@ import {
   getSpanOpFromName,
   requestMessagesFromPrompt,
 } from './utils';
-import type { ProviderMetadata } from './vercel-ai-attributes';
+import type { OpenAiProviderMetadata, ProviderMetadata } from './vercel-ai-attributes';
 import {
   AI_MODEL_ID_ATTRIBUTE,
+  AI_OPERATION_ID_ATTRIBUTE,
   AI_PROMPT_MESSAGES_ATTRIBUTE,
   AI_PROMPT_TOOLS_ATTRIBUTE,
   AI_RESPONSE_OBJECT_ATTRIBUTE,
@@ -48,6 +55,29 @@ function addOriginToSpan(span: Span, origin: SpanOrigin): void {
 }
 
 /**
+ * Maps Vercel AI SDK operation names to OpenTelemetry semantic convention values
+ * @see https://opentelemetry.io/docs/specs/semconv/gen-ai/gen-ai-spans/#llm-request-spans
+ */
+function mapVercelAiOperationName(operationName: string): string {
+  // Top-level pipeline operations map to invoke_agent
+  if (INVOKE_AGENT_OPS.has(operationName)) {
+    return 'invoke_agent';
+  }
+  // .do* operations are the actual LLM calls
+  if (GENERATE_CONTENT_OPS.has(operationName)) {
+    return 'generate_content';
+  }
+  if (EMBEDDINGS_OPS.has(operationName)) {
+    return 'embeddings';
+  }
+  if (operationName === 'ai.toolCall') {
+    return 'execute_tool';
+  }
+  // Return the original value for unknown operations
+  return operationName;
+}
+
+/**
  * Post-process spans emitted by the Vercel AI SDK.
  * This is supposed to be used in `client.on('spanStart', ...)
  */
@@ -65,8 +95,9 @@ function onVercelAiSpanStart(span: Span): void {
     return;
   }
 
-  // Check if this is a Vercel AI span by name pattern.
-  if (!name.startsWith('ai.')) {
+  // V6+ Check if this is a Vercel AI span by checking if the operation ID attribute is present.
+  // V5+ Check if this is a Vercel AI span by name pattern.
+  if (!attributes[AI_OPERATION_ID_ATTRIBUTE] && !name.startsWith('ai.')) {
     return;
   }
 
@@ -131,7 +162,7 @@ function processEndedVercelAiSpan(span: SpanJSON): void {
     typeof attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE] === 'number' &&
     typeof attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE] === 'number'
   ) {
-    attributes['gen_ai.usage.total_tokens'] =
+    attributes[GEN_AI_USAGE_TOTAL_TOKENS_ATTRIBUTE] =
       attributes[GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE] + attributes[GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE];
   }
 
@@ -143,15 +174,21 @@ function processEndedVercelAiSpan(span: SpanJSON): void {
   }
 
   // Rename AI SDK attributes to standardized gen_ai attributes
-  renameAttributeKey(attributes, OPERATION_NAME_ATTRIBUTE, GEN_AI_OPERATION_NAME_ATTRIBUTE);
-  renameAttributeKey(attributes, AI_PROMPT_MESSAGES_ATTRIBUTE, GEN_AI_REQUEST_MESSAGES_ATTRIBUTE);
+  // Map operation.name to OpenTelemetry semantic convention values
+  if (attributes[OPERATION_NAME_ATTRIBUTE]) {
+    const operationName = mapVercelAiOperationName(attributes[OPERATION_NAME_ATTRIBUTE] as string);
+    attributes[GEN_AI_OPERATION_NAME_ATTRIBUTE] = operationName;
+    // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+    delete attributes[OPERATION_NAME_ATTRIBUTE];
+  }
+  renameAttributeKey(attributes, AI_PROMPT_MESSAGES_ATTRIBUTE, GEN_AI_INPUT_MESSAGES_ATTRIBUTE);
   renameAttributeKey(attributes, AI_RESPONSE_TEXT_ATTRIBUTE, 'gen_ai.response.text');
   renameAttributeKey(attributes, AI_RESPONSE_TOOL_CALLS_ATTRIBUTE, 'gen_ai.response.tool_calls');
   renameAttributeKey(attributes, AI_RESPONSE_OBJECT_ATTRIBUTE, 'gen_ai.response.object');
   renameAttributeKey(attributes, AI_PROMPT_TOOLS_ATTRIBUTE, 'gen_ai.request.available_tools');
 
-  renameAttributeKey(attributes, AI_TOOL_CALL_ARGS_ATTRIBUTE, 'gen_ai.tool.input');
-  renameAttributeKey(attributes, AI_TOOL_CALL_RESULT_ATTRIBUTE, 'gen_ai.tool.output');
+  renameAttributeKey(attributes, AI_TOOL_CALL_ARGS_ATTRIBUTE, GEN_AI_TOOL_INPUT_ATTRIBUTE);
+  renameAttributeKey(attributes, AI_TOOL_CALL_RESULT_ATTRIBUTE, GEN_AI_TOOL_OUTPUT_ATTRIBUTE);
 
   renameAttributeKey(attributes, AI_SCHEMA_ATTRIBUTE, 'gen_ai.request.schema');
   renameAttributeKey(attributes, AI_MODEL_ID_ATTRIBUTE, GEN_AI_REQUEST_MODEL_ATTRIBUTE);
@@ -181,22 +218,23 @@ function renameAttributeKey(attributes: Record<string, unknown>, oldKey: string,
 function processToolCallSpan(span: Span, attributes: SpanAttributes): void {
   addOriginToSpan(span, 'auto.vercelai.otel');
   span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'gen_ai.execute_tool');
-  renameAttributeKey(attributes, AI_TOOL_CALL_NAME_ATTRIBUTE, 'gen_ai.tool.name');
-  renameAttributeKey(attributes, AI_TOOL_CALL_ID_ATTRIBUTE, 'gen_ai.tool.call.id');
+  span.setAttribute(GEN_AI_OPERATION_NAME_ATTRIBUTE, 'execute_tool');
+  renameAttributeKey(attributes, AI_TOOL_CALL_NAME_ATTRIBUTE, GEN_AI_TOOL_NAME_ATTRIBUTE);
+  renameAttributeKey(attributes, AI_TOOL_CALL_ID_ATTRIBUTE, GEN_AI_TOOL_CALL_ID_ATTRIBUTE);
 
   // Store the span in our global map using the tool call ID
   // This allows us to capture tool errors and link them to the correct span
-  const toolCallId = attributes['gen_ai.tool.call.id'];
+  const toolCallId = attributes[GEN_AI_TOOL_CALL_ID_ATTRIBUTE];
 
   if (typeof toolCallId === 'string') {
     toolCallSpanMap.set(toolCallId, span);
   }
 
   // https://opentelemetry.io/docs/specs/semconv/registry/attributes/gen-ai/#gen-ai-tool-type
-  if (!attributes['gen_ai.tool.type']) {
-    span.setAttribute('gen_ai.tool.type', 'function');
+  if (!attributes[GEN_AI_TOOL_TYPE_ATTRIBUTE]) {
+    span.setAttribute(GEN_AI_TOOL_TYPE_ATTRIBUTE, 'function');
   }
-  const toolName = attributes['gen_ai.tool.name'];
+  const toolName = attributes[GEN_AI_TOOL_NAME_ATTRIBUTE];
   if (toolName) {
     span.updateName(`execute_tool ${toolName}`);
   }
@@ -270,28 +308,28 @@ function addProviderMetadataToAttributes(attributes: SpanAttributes): void {
   if (providerMetadata) {
     try {
       const providerMetadataObject = JSON.parse(providerMetadata) as ProviderMetadata;
-      if (providerMetadataObject.openai) {
+
+      // Handle OpenAI metadata (v5 uses 'openai', v6 Azure Responses API uses 'azure')
+      const openaiMetadata: OpenAiProviderMetadata | undefined =
+        providerMetadataObject.openai ?? providerMetadataObject.azure;
+      if (openaiMetadata) {
         setAttributeIfDefined(
           attributes,
           GEN_AI_USAGE_INPUT_TOKENS_CACHED_ATTRIBUTE,
-          providerMetadataObject.openai.cachedPromptTokens,
+          openaiMetadata.cachedPromptTokens,
         );
-        setAttributeIfDefined(
-          attributes,
-          'gen_ai.usage.output_tokens.reasoning',
-          providerMetadataObject.openai.reasoningTokens,
-        );
+        setAttributeIfDefined(attributes, 'gen_ai.usage.output_tokens.reasoning', openaiMetadata.reasoningTokens);
         setAttributeIfDefined(
           attributes,
           'gen_ai.usage.output_tokens.prediction_accepted',
-          providerMetadataObject.openai.acceptedPredictionTokens,
+          openaiMetadata.acceptedPredictionTokens,
         );
         setAttributeIfDefined(
           attributes,
           'gen_ai.usage.output_tokens.prediction_rejected',
-          providerMetadataObject.openai.rejectedPredictionTokens,
+          openaiMetadata.rejectedPredictionTokens,
         );
-        setAttributeIfDefined(attributes, 'gen_ai.conversation.id', providerMetadataObject.openai.responseId);
+        setAttributeIfDefined(attributes, 'gen_ai.conversation.id', openaiMetadata.responseId);
       }
 
       if (providerMetadataObject.anthropic) {
