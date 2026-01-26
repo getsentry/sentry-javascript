@@ -1,4 +1,4 @@
-import { sentry } from '@sentry/hono/cloudflare-workers';
+import { sentry } from '@sentry/hono/cloudflare';
 import { Hono } from 'hono';
 
 interface Env {
