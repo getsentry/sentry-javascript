@@ -2,10 +2,10 @@ import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '
 import { expect, it } from 'vitest';
 import {
   GEN_AI_AGENT_NAME_ATTRIBUTE,
+  GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
   GEN_AI_PIPELINE_NAME_ATTRIBUTE,
   GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE,
-  GEN_AI_REQUEST_MESSAGES_ATTRIBUTE,
   GEN_AI_RESPONSE_MODEL_ATTRIBUTE,
   GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE,
   GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE,
@@ -49,7 +49,7 @@ it('traces langgraph compile and invoke operations', async ({ signal }) => {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.langgraph',
           [GEN_AI_AGENT_NAME_ATTRIBUTE]: 'weather_assistant',
           [GEN_AI_PIPELINE_NAME_ATTRIBUTE]: 'weather_assistant',
-          [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: '[{"role":"user","content":"What is the weather in SF?"}]',
+          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: '[{"role":"user","content":"What is the weather in SF?"}]',
           [GEN_AI_RESPONSE_MODEL_ATTRIBUTE]: 'mock-model',
           [GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]: 20,
           [GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]: 10,

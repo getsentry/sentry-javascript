@@ -1,11 +1,11 @@
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../../semanticAttributes';
 import type { SpanAttributeValue } from '../../types-hoist/span';
 import {
+  GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
+  GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
   GEN_AI_REQUEST_FREQUENCY_PENALTY_ATTRIBUTE,
   GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE,
-  GEN_AI_REQUEST_MESSAGES_ATTRIBUTE,
-  GEN_AI_REQUEST_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
   GEN_AI_REQUEST_MODEL_ATTRIBUTE,
   GEN_AI_REQUEST_PRESENCE_PENALTY_ATTRIBUTE,
   GEN_AI_REQUEST_STREAM_ATTRIBUTE,
@@ -255,9 +255,9 @@ export function extractLLMRequestAttributes(
   const attrs = baseRequestAttributes(system, modelName, llm, invocationParams, langSmithMetadata);
 
   if (recordInputs && Array.isArray(prompts) && prompts.length > 0) {
-    setIfDefined(attrs, GEN_AI_REQUEST_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE, prompts.length);
+    setIfDefined(attrs, GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE, prompts.length);
     const messages = prompts.map(p => ({ role: 'user', content: p }));
-    setIfDefined(attrs, GEN_AI_REQUEST_MESSAGES_ATTRIBUTE, asString(messages));
+    setIfDefined(attrs, GEN_AI_INPUT_MESSAGES_ATTRIBUTE, asString(messages));
   }
 
   return attrs;
@@ -286,9 +286,9 @@ export function extractChatModelRequestAttributes(
 
   if (recordInputs && Array.isArray(langChainMessages) && langChainMessages.length > 0) {
     const normalized = normalizeLangChainMessages(langChainMessages.flat());
-    setIfDefined(attrs, GEN_AI_REQUEST_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE, normalized.length);
+    setIfDefined(attrs, GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE, normalized.length);
     const truncated = truncateGenAiMessages(normalized);
-    setIfDefined(attrs, GEN_AI_REQUEST_MESSAGES_ATTRIBUTE, asString(truncated));
+    setIfDefined(attrs, GEN_AI_INPUT_MESSAGES_ATTRIBUTE, asString(truncated));
   }
 
   return attrs;

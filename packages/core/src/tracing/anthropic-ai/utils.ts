@@ -2,8 +2,8 @@ import { captureException } from '../../exports';
 import { SPAN_STATUS_ERROR } from '../../tracing';
 import type { Span } from '../../types-hoist/span';
 import {
-  GEN_AI_REQUEST_MESSAGES_ATTRIBUTE,
-  GEN_AI_REQUEST_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
+  GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
+  GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
 import { getTruncatedJsonString } from '../ai/utils';
 import { ANTHROPIC_AI_INSTRUMENTED_METHODS } from './constants';
@@ -23,8 +23,8 @@ export function setMessagesAttribute(span: Span, messages: unknown): void {
   const length = Array.isArray(messages) ? messages.length : undefined;
   if (length !== 0) {
     span.setAttributes({
-      [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: getTruncatedJsonString(messages),
-      [GEN_AI_REQUEST_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: length,
+      [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: getTruncatedJsonString(messages),
+      [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: length,
     });
   }
 }

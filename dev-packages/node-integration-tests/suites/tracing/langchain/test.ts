@@ -1,9 +1,9 @@
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
 import {
+  GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
   GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE,
-  GEN_AI_REQUEST_MESSAGES_ATTRIBUTE,
   GEN_AI_REQUEST_MODEL_ATTRIBUTE,
   GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE,
   GEN_AI_REQUEST_TOP_P_ATTRIBUTE,
@@ -102,7 +102,7 @@ describe('LangChain integration', () => {
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'claude-3-5-sonnet-20241022',
           [GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE]: 0.7,
           [GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE]: 100,
-          [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: expect.any(String), // Should include messages when recordInputs: true
+          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: expect.any(String), // Should include messages when recordInputs: true
           [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: expect.any(String), // Should include response when recordOutputs: true
           [GEN_AI_RESPONSE_ID_ATTRIBUTE]: expect.any(String),
           [GEN_AI_RESPONSE_MODEL_ATTRIBUTE]: expect.any(String),
@@ -127,7 +127,7 @@ describe('LangChain integration', () => {
           [GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE]: 0.9,
           [GEN_AI_REQUEST_TOP_P_ATTRIBUTE]: 0.95,
           [GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE]: 200,
-          [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: expect.any(String), // Should include messages when recordInputs: true
+          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: expect.any(String), // Should include messages when recordInputs: true
           [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: expect.any(String), // Should include response when recordOutputs: true
           [GEN_AI_RESPONSE_ID_ATTRIBUTE]: expect.any(String),
           [GEN_AI_RESPONSE_MODEL_ATTRIBUTE]: expect.any(String),
@@ -149,7 +149,7 @@ describe('LangChain integration', () => {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.langchain',
           [GEN_AI_SYSTEM_ATTRIBUTE]: 'anthropic',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'error-model',
-          [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: expect.any(String), // Should include messages when recordInputs: true
+          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: expect.any(String), // Should include messages when recordInputs: true
         }),
         description: 'chat error-model',
         op: 'gen_ai.chat',
@@ -225,7 +225,7 @@ describe('LangChain integration', () => {
           [GEN_AI_SYSTEM_ATTRIBUTE]: 'anthropic',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'claude-3-5-sonnet-20241022',
           // Messages should be present and should include truncated string input (contains only Cs)
-          [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: expect.stringMatching(/^\[\{"role":"user","content":"C+"\}\]$/),
+          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: expect.stringMatching(/^\[\{"role":"user","content":"C+"\}\]$/),
         }),
         description: 'chat claude-3-5-sonnet-20241022',
         op: 'gen_ai.chat',
@@ -241,7 +241,7 @@ describe('LangChain integration', () => {
           [GEN_AI_SYSTEM_ATTRIBUTE]: 'anthropic',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'claude-3-5-sonnet-20241022',
           // Messages should be present (truncation happened) and should be a JSON array of a single index (contains only Cs)
-          [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: expect.stringMatching(/^\[\{"role":"user","content":"C+"\}\]$/),
+          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: expect.stringMatching(/^\[\{"role":"user","content":"C+"\}\]$/),
         }),
         description: 'chat claude-3-5-sonnet-20241022',
         op: 'gen_ai.chat',
@@ -257,7 +257,7 @@ describe('LangChain integration', () => {
           [GEN_AI_SYSTEM_ATTRIBUTE]: 'anthropic',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'claude-3-5-sonnet-20241022',
           // Small message should be kept intact
-          [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: JSON.stringify([
+          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: JSON.stringify([
             { role: 'user', content: 'This is a small message that fits within the limit' },
           ]),
         }),
