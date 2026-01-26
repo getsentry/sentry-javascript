@@ -13,10 +13,18 @@ class AI_NoOutputGeneratedError extends Error {
   }
 }
 
+class AbortError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = 'AbortError';
+  }
+}
+
 setTimeout(() => {
   process.stdout.write("I'm alive!");
   process.exit(0);
 }, 500);
 
-// This should be ignored by default and not produce a warning
+// These should be ignored by default and not produce a warning
 Promise.reject(new AI_NoOutputGeneratedError('Stream aborted'));
+Promise.reject(new AbortError('Stream aborted'));
