@@ -31,7 +31,7 @@ const DEFAULT_IGNORES: IgnoreMatcher[] = [
   },
   {
     name: 'AbortError', // When stream aborts in Vercel AI SDK V6
-  }
+  },
 ];
 
 const _onUnhandledRejectionIntegration = ((options: Partial<OnUnhandledRejectionOptions> = {}) => {
