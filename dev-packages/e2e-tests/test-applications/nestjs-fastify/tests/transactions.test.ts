@@ -80,7 +80,7 @@ test('Sends an API route transaction', async ({ baseURL }) => {
           trace_id: expect.stringMatching(/[a-f0-9]{32}/),
           data: {
             'sentry.origin': 'auto.http.otel.fastify',
-            'sentry.op': 'request-handler.fastify',
+            'sentry.op': 'request_handler.fastify',
             'service.name': 'fastify',
             'hook.name': 'fastify -> @fastify/otel -> @fastify/middie - route-handler',
             'fastify.type': 'request-handler',
@@ -88,7 +88,7 @@ test('Sends an API route transaction', async ({ baseURL }) => {
             'hook.callback.name': 'anonymous',
           },
           description: '@fastify/middie - route-handler',
-          op: 'request-handler.fastify',
+          op: 'request_handler.fastify',
           parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
           start_timestamp: expect.any(Number),
           timestamp: expect.any(Number),
