@@ -2,10 +2,11 @@ import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '
 import { afterAll, describe, expect } from 'vitest';
 import {
   ANTHROPIC_AI_RESPONSE_TIMESTAMP_ATTRIBUTE,
+  GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
+  GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
   GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE,
   GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE,
-  GEN_AI_REQUEST_MESSAGES_ATTRIBUTE,
   GEN_AI_REQUEST_MODEL_ATTRIBUTE,
   GEN_AI_REQUEST_STREAM_ATTRIBUTE,
   GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE,
@@ -108,7 +109,7 @@ describe('Anthropic integration', () => {
         data: expect.objectContaining({
           [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'chat',
           [GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE]: 100,
-          [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: '[{"role":"user","content":"What is the capital of France?"}]',
+          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: '[{"role":"user","content":"What is the capital of France?"}]',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'claude-3-haiku-20240307',
           [GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE]: 0.7,
           [GEN_AI_RESPONSE_ID_ATTRIBUTE]: 'msg_mock123',
@@ -148,7 +149,7 @@ describe('Anthropic integration', () => {
       expect.objectContaining({
         data: expect.objectContaining({
           [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'chat',
-          [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: '[{"role":"user","content":"This will fail"}]',
+          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: '[{"role":"user","content":"This will fail"}]',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'error-model',
           [GEN_AI_SYSTEM_ATTRIBUTE]: 'anthropic',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.chat',
@@ -181,7 +182,7 @@ describe('Anthropic integration', () => {
       expect.objectContaining({
         data: expect.objectContaining({
           [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'chat',
-          [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: '[{"role":"user","content":"What is the capital of France?"}]',
+          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: '[{"role":"user","content":"What is the capital of France?"}]',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'claude-3-haiku-20240307',
           [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: '15',
           [GEN_AI_SYSTEM_ATTRIBUTE]: 'anthropic',
@@ -251,7 +252,7 @@ describe('Anthropic integration', () => {
       expect.objectContaining({
         data: expect.objectContaining({
           [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'chat',
-          [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: '[{"role":"user","content":"What is the capital of France?"}]',
+          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: '[{"role":"user","content":"What is the capital of France?"}]',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'claude-3-haiku-20240307',
           [GEN_AI_REQUEST_STREAM_ATTRIBUTE]: true,
           [GEN_AI_RESPONSE_ID_ATTRIBUTE]: 'msg_stream123',
@@ -309,7 +310,7 @@ describe('Anthropic integration', () => {
       // Check that custom options are respected
       expect.objectContaining({
         data: expect.objectContaining({
-          [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: expect.any(String), // Should include messages when recordInputs: true
+          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: expect.any(String), // Should include messages when recordInputs: true
           [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: expect.any(String), // Should include response text when recordOutputs: true
         }),
       }),
@@ -317,7 +318,7 @@ describe('Anthropic integration', () => {
       expect.objectContaining({
         data: expect.objectContaining({
           [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'chat',
-          [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: expect.any(String), // Should include messages when recordInputs: true
+          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: expect.any(String), // Should include messages when recordInputs: true
           [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: '15', // Present because recordOutputs=true is set in options
         }),
         op: 'gen_ai.chat',
@@ -667,10 +668,9 @@ describe('Anthropic integration', () => {
                     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.anthropic',
                     [GEN_AI_SYSTEM_ATTRIBUTE]: 'anthropic',
                     [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'claude-3-haiku-20240307',
+                    [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 3,
                     // Messages should be present (truncation happened) and should be a JSON array
-                    [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: expect.stringMatching(
-                      /^\[\{"role":"user","content":"C+"\}\]$/,
-                    ),
+                    [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: expect.stringMatching(/^\[\{"role":"user","content":"C+"\}\]$/),
                   }),
                   description: 'chat claude-3-haiku-20240307',
                   op: 'gen_ai.chat',
@@ -685,8 +685,9 @@ describe('Anthropic integration', () => {
                     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.anthropic',
                     [GEN_AI_SYSTEM_ATTRIBUTE]: 'anthropic',
                     [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'claude-3-haiku-20240307',
+                    [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 3,
                     // Small message should be kept intact
-                    [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: JSON.stringify([
+                    [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: JSON.stringify([
                       { role: 'user', content: 'This is a small message that fits within the limit' },
                     ]),
                   }),
@@ -719,8 +720,9 @@ describe('Anthropic integration', () => {
                   [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.anthropic',
                   [GEN_AI_SYSTEM_ATTRIBUTE]: 'anthropic',
                   [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'claude-3-haiku-20240307',
+                  [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 2,
                   // Only the last message (with filtered media) should be kept
-                  [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: JSON.stringify([
+                  [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: JSON.stringify([
                     {
                       role: 'user',
                       content: [

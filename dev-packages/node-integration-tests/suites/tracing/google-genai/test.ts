@@ -1,10 +1,11 @@
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { afterAll, describe, expect } from 'vitest';
 import {
+  GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
+  GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
   GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE,
   GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE,
-  GEN_AI_REQUEST_MESSAGES_ATTRIBUTE,
   GEN_AI_REQUEST_MODEL_ATTRIBUTE,
   GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE,
   GEN_AI_REQUEST_TOP_P_ATTRIBUTE,
@@ -115,7 +116,7 @@ describe('Google GenAI integration', () => {
           [GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE]: 0.8,
           [GEN_AI_REQUEST_TOP_P_ATTRIBUTE]: 0.9,
           [GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE]: 150,
-          [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: '[{"role":"user","parts":[{"text":"Hello, how are you?"}]}]',
+          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: '[{"role":"user","parts":[{"text":"Hello, how are you?"}]}]',
         }),
         description: 'chat gemini-1.5-pro create',
         op: 'gen_ai.chat',
@@ -130,7 +131,7 @@ describe('Google GenAI integration', () => {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.google_genai',
           [GEN_AI_SYSTEM_ATTRIBUTE]: 'google_genai',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'gemini-1.5-pro',
-          [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: expect.any(String), // Should include message when recordInputs: true
+          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: expect.any(String), // Should include message when recordInputs: true
           [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: expect.any(String), // Should include response when recordOutputs: true
           [GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]: 8,
           [GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]: 12,
@@ -152,7 +153,7 @@ describe('Google GenAI integration', () => {
           [GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE]: 0.7,
           [GEN_AI_REQUEST_TOP_P_ATTRIBUTE]: 0.9,
           [GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE]: 100,
-          [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: expect.any(String), // Should include contents when recordInputs: true
+          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: expect.any(String), // Should include contents when recordInputs: true
           [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: expect.any(String), // Should include response when recordOutputs: true
           [GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]: 8,
           [GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]: 12,
@@ -171,7 +172,7 @@ describe('Google GenAI integration', () => {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.google_genai',
           [GEN_AI_SYSTEM_ATTRIBUTE]: 'google_genai',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'error-model',
-          [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: expect.any(String), // Should include contents when recordInputs: true
+          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: expect.any(String), // Should include contents when recordInputs: true
         }),
         description: 'generate_content error-model',
         op: 'gen_ai.generate_content',
@@ -187,7 +188,7 @@ describe('Google GenAI integration', () => {
       // Check that custom options are respected
       expect.objectContaining({
         data: expect.objectContaining({
-          [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: expect.any(String), // Should include messages when recordInputs: true
+          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: expect.any(String), // Should include messages when recordInputs: true
           [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: expect.any(String), // Should include response text when recordOutputs: true
         }),
         description: expect.not.stringContaining('stream-response'), // Non-streaming span
@@ -240,7 +241,7 @@ describe('Google GenAI integration', () => {
           [GEN_AI_SYSTEM_ATTRIBUTE]: 'google_genai',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'gemini-2.0-flash-001',
           [GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE]: EXPECTED_AVAILABLE_TOOLS_JSON,
-          [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: expect.any(String), // Should include contents
+          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: expect.any(String), // Should include contents
           [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: expect.any(String), // Should include response text
           [GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE]: expect.any(String), // Should include tool calls
           [GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]: 15,
@@ -261,7 +262,7 @@ describe('Google GenAI integration', () => {
           [GEN_AI_SYSTEM_ATTRIBUTE]: 'google_genai',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'gemini-2.0-flash-001',
           [GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE]: EXPECTED_AVAILABLE_TOOLS_JSON,
-          [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: expect.any(String), // Should include contents
+          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: expect.any(String), // Should include contents
           [GEN_AI_RESPONSE_STREAMING_ATTRIBUTE]: true,
           [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: expect.any(String), // Should include response text
           [GEN_AI_RESPONSE_TOOL_CALLS_ATTRIBUTE]: expect.any(String), // Should include tool calls
@@ -284,7 +285,7 @@ describe('Google GenAI integration', () => {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.google_genai',
           [GEN_AI_SYSTEM_ATTRIBUTE]: 'google_genai',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'gemini-2.0-flash-001',
-          [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: expect.any(String), // Should include contents
+          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: expect.any(String), // Should include contents
           [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: expect.any(String), // Should include response text
           [GEN_AI_USAGE_INPUT_TOKENS_ATTRIBUTE]: 8,
           [GEN_AI_USAGE_OUTPUT_TOKENS_ATTRIBUTE]: 12,
@@ -406,7 +407,7 @@ describe('Google GenAI integration', () => {
           [GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE]: 0.7,
           [GEN_AI_REQUEST_TOP_P_ATTRIBUTE]: 0.9,
           [GEN_AI_REQUEST_MAX_TOKENS_ATTRIBUTE]: 100,
-          [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: expect.any(String), // Should include contents when recordInputs: true
+          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: expect.any(String), // Should include contents when recordInputs: true
           [GEN_AI_RESPONSE_STREAMING_ATTRIBUTE]: true,
           [GEN_AI_RESPONSE_ID_ATTRIBUTE]: 'mock-response-streaming-id',
           [GEN_AI_RESPONSE_MODEL_ATTRIBUTE]: 'gemini-1.5-pro',
@@ -445,7 +446,7 @@ describe('Google GenAI integration', () => {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.google_genai',
           [GEN_AI_SYSTEM_ATTRIBUTE]: 'google_genai',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'gemini-1.5-pro',
-          [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: expect.any(String), // Should include message when recordInputs: true
+          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: expect.any(String), // Should include message when recordInputs: true
           [GEN_AI_RESPONSE_STREAMING_ATTRIBUTE]: true,
           [GEN_AI_RESPONSE_ID_ATTRIBUTE]: 'mock-response-streaming-id',
           [GEN_AI_RESPONSE_MODEL_ATTRIBUTE]: 'gemini-1.5-pro',
@@ -468,7 +469,7 @@ describe('Google GenAI integration', () => {
           [GEN_AI_SYSTEM_ATTRIBUTE]: 'google_genai',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'blocked-model',
           [GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE]: 0.7,
-          [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: expect.any(String), // Should include contents when recordInputs: true
+          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: expect.any(String), // Should include contents when recordInputs: true
           [GEN_AI_RESPONSE_STREAMING_ATTRIBUTE]: true,
         }),
         description: 'generate_content blocked-model stream-response',
@@ -485,7 +486,7 @@ describe('Google GenAI integration', () => {
           [GEN_AI_SYSTEM_ATTRIBUTE]: 'google_genai',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'error-model',
           [GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE]: 0.7,
-          [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: expect.any(String), // Should include contents when recordInputs: true
+          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: expect.any(String), // Should include contents when recordInputs: true
         }),
         description: 'generate_content error-model stream-response',
         op: 'gen_ai.generate_content',
@@ -532,9 +533,10 @@ describe('Google GenAI integration', () => {
                     [GEN_AI_SYSTEM_ATTRIBUTE]: 'google_genai',
                     [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'gemini-1.5-flash',
                     // Messages should be present (truncation happened) and should be a JSON array with parts
-                    [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: expect.stringMatching(
+                    [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: expect.stringMatching(
                       /^\[\{"role":"user","parts":\[\{"text":"C+"\}\]\}\]$/,
                     ),
+                    [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 3,
                   }),
                   description: 'generate_content gemini-1.5-flash',
                   op: 'gen_ai.generate_content',
@@ -550,12 +552,13 @@ describe('Google GenAI integration', () => {
                     [GEN_AI_SYSTEM_ATTRIBUTE]: 'google_genai',
                     [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'gemini-1.5-flash',
                     // Small message should be kept intact
-                    [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: JSON.stringify([
+                    [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: JSON.stringify([
                       {
                         role: 'user',
                         parts: [{ text: 'This is a small message that fits within the limit' }],
                       },
                     ]),
+                    [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 3,
                   }),
                   description: 'generate_content gemini-1.5-flash',
                   op: 'gen_ai.generate_content',

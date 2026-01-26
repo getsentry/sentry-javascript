@@ -4,8 +4,8 @@ import type { Event } from '../../types-hoist/event';
 import type { Span, SpanAttributes, SpanAttributeValue, SpanJSON, SpanOrigin } from '../../types-hoist/span';
 import { spanToJSON } from '../../utils/spanUtils';
 import {
+  GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
-  GEN_AI_REQUEST_MESSAGES_ATTRIBUTE,
   GEN_AI_REQUEST_MODEL_ATTRIBUTE,
   GEN_AI_RESPONSE_MODEL_ATTRIBUTE,
   GEN_AI_TOOL_CALL_ID_ATTRIBUTE,
@@ -181,7 +181,7 @@ function processEndedVercelAiSpan(span: SpanJSON): void {
     // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
     delete attributes[OPERATION_NAME_ATTRIBUTE];
   }
-  renameAttributeKey(attributes, AI_PROMPT_MESSAGES_ATTRIBUTE, GEN_AI_REQUEST_MESSAGES_ATTRIBUTE);
+  renameAttributeKey(attributes, AI_PROMPT_MESSAGES_ATTRIBUTE, GEN_AI_INPUT_MESSAGES_ATTRIBUTE);
   renameAttributeKey(attributes, AI_RESPONSE_TEXT_ATTRIBUTE, 'gen_ai.response.text');
   renameAttributeKey(attributes, AI_RESPONSE_TOOL_CALLS_ATTRIBUTE, 'gen_ai.response.tool_calls');
   renameAttributeKey(attributes, AI_RESPONSE_OBJECT_ATTRIBUTE, 'gen_ai.response.object');

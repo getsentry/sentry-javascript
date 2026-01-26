@@ -3,11 +3,11 @@ import { afterAll, describe, expect } from 'vitest';
 import {
   GEN_AI_CONVERSATION_ID_ATTRIBUTE,
   GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE,
+  GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
+  GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
   GEN_AI_REQUEST_DIMENSIONS_ATTRIBUTE,
   GEN_AI_REQUEST_ENCODING_FORMAT_ATTRIBUTE,
-  GEN_AI_REQUEST_MESSAGES_ATTRIBUTE,
-  GEN_AI_REQUEST_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
   GEN_AI_REQUEST_MODEL_ATTRIBUTE,
   GEN_AI_REQUEST_STREAM_ATTRIBUTE,
   GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE,
@@ -187,8 +187,8 @@ describe('OpenAI integration', () => {
           [GEN_AI_SYSTEM_ATTRIBUTE]: 'openai',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'gpt-3.5-turbo',
           [GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE]: 0.7,
-          [GEN_AI_REQUEST_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 1,
-          [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: '[{"role":"user","content":"What is the capital of France?"}]',
+          [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 1,
+          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: '[{"role":"user","content":"What is the capital of France?"}]',
           [GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE]: JSON.stringify([
             { type: 'text', content: 'You are a helpful assistant.' },
           ]),
@@ -218,7 +218,8 @@ describe('OpenAI integration', () => {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.openai',
           [GEN_AI_SYSTEM_ATTRIBUTE]: 'openai',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'gpt-3.5-turbo',
-          [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: 'Translate this to French: Hello',
+          [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 1,
+          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: 'Translate this to French: Hello',
           [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: 'Response to: Translate this to French: Hello',
           [GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]: '["completed"]',
           [GEN_AI_RESPONSE_MODEL_ATTRIBUTE]: 'gpt-3.5-turbo',
@@ -245,8 +246,8 @@ describe('OpenAI integration', () => {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.openai',
           [GEN_AI_SYSTEM_ATTRIBUTE]: 'openai',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'error-model',
-          [GEN_AI_REQUEST_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 1,
-          [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: '[{"role":"user","content":"This will fail"}]',
+          [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 1,
+          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: '[{"role":"user","content":"This will fail"}]',
         },
         description: 'chat error-model',
         op: 'gen_ai.chat',
@@ -263,8 +264,8 @@ describe('OpenAI integration', () => {
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'gpt-4',
           [GEN_AI_REQUEST_TEMPERATURE_ATTRIBUTE]: 0.8,
           [GEN_AI_REQUEST_STREAM_ATTRIBUTE]: true,
-          [GEN_AI_REQUEST_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 1,
-          [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: '[{"role":"user","content":"Tell me about streaming"}]',
+          [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 1,
+          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: '[{"role":"user","content":"Tell me about streaming"}]',
           [GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE]: JSON.stringify([
             { type: 'text', content: 'You are a helpful assistant.' },
           ]),
@@ -296,7 +297,8 @@ describe('OpenAI integration', () => {
           [GEN_AI_SYSTEM_ATTRIBUTE]: 'openai',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'gpt-4',
           [GEN_AI_REQUEST_STREAM_ATTRIBUTE]: true,
-          [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: 'Test streaming responses API',
+          [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 1,
+          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: 'Test streaming responses API',
           [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]:
             'Streaming response to: Test streaming responses APITest streaming responses API',
           [GEN_AI_RESPONSE_FINISH_REASONS_ATTRIBUTE]: '["in_progress","completed"]',
@@ -323,8 +325,8 @@ describe('OpenAI integration', () => {
           [GEN_AI_OPERATION_NAME_ATTRIBUTE]: 'chat',
           [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'error-model',
           [GEN_AI_REQUEST_STREAM_ATTRIBUTE]: true,
-          [GEN_AI_REQUEST_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 1,
-          [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: '[{"role":"user","content":"This will fail"}]',
+          [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 1,
+          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: '[{"role":"user","content":"This will fail"}]',
           [GEN_AI_SYSTEM_ATTRIBUTE]: 'openai',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'gen_ai.chat',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ai.openai',
@@ -343,14 +345,14 @@ describe('OpenAI integration', () => {
       // Check that custom options are respected
       expect.objectContaining({
         data: expect.objectContaining({
-          [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: expect.any(String), // Should include messages when recordInputs: true
+          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: expect.any(String), // Should include messages when recordInputs: true
           [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: expect.any(String), // Should include response text when recordOutputs: true
         }),
       }),
       // Check that custom options are respected for streaming
       expect.objectContaining({
         data: expect.objectContaining({
-          [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: expect.any(String), // Should include messages when recordInputs: true
+          [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: expect.any(String), // Should include messages when recordInputs: true
           [GEN_AI_RESPONSE_TEXT_ATTRIBUTE]: expect.any(String), // Should include response text when recordOutputs: true
           [GEN_AI_REQUEST_STREAM_ATTRIBUTE]: true, // Should be marked as stream
         }),
@@ -626,9 +628,8 @@ describe('OpenAI integration', () => {
                     [GEN_AI_SYSTEM_ATTRIBUTE]: 'openai',
                     [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'gpt-3.5-turbo',
                     // Messages should be present (truncation happened) and should be a JSON array of a single index
-                    [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: expect.stringMatching(
-                      /^\[\{"role":"user","content":"C+"\}\]$/,
-                    ),
+                    [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: expect.stringMatching(/^\[\{"role":"user","content":"C+"\}\]$/),
+                    [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 3,
                   }),
                   description: 'chat gpt-3.5-turbo',
                   op: 'gen_ai.chat',
@@ -644,9 +645,10 @@ describe('OpenAI integration', () => {
                     [GEN_AI_SYSTEM_ATTRIBUTE]: 'openai',
                     [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'gpt-3.5-turbo',
                     // Small message should be kept intact
-                    [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: JSON.stringify([
+                    [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: JSON.stringify([
                       { role: 'user', content: 'This is a small message that fits within the limit' },
                     ]),
+                    [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 3,
                   }),
                   description: 'chat gpt-3.5-turbo',
                   op: 'gen_ai.chat',
@@ -682,7 +684,8 @@ describe('OpenAI integration', () => {
                     [GEN_AI_SYSTEM_ATTRIBUTE]: 'openai',
                     [GEN_AI_REQUEST_MODEL_ATTRIBUTE]: 'gpt-3.5-turbo',
                     // Messages should be present and should include truncated string input (contains only As)
-                    [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: expect.stringMatching(/^A+$/),
+                    [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: expect.stringMatching(/^A+$/),
+                    [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: 1,
                   }),
                   description: 'chat gpt-3.5-turbo',
                   op: 'gen_ai.chat',

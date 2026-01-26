@@ -2,8 +2,8 @@ import { captureException } from '../../exports';
 import { SPAN_STATUS_ERROR } from '../../tracing';
 import type { Span } from '../../types-hoist/span';
 import {
-  GEN_AI_REQUEST_MESSAGES_ATTRIBUTE,
-  GEN_AI_REQUEST_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
+  GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
+  GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
   GEN_AI_SYSTEM_INSTRUCTIONS_ATTRIBUTE,
 } from '../ai/gen-ai-attributes';
 import { extractSystemInstructions, getTruncatedJsonString } from '../ai/utils';
@@ -22,7 +22,7 @@ export function shouldInstrument(methodPath: string): methodPath is AnthropicAiI
  * Extracts system instructions before truncation.
  */
 export function setMessagesAttribute(span: Span, messages: unknown): void {
-  const length = Array.isArray(messages) ? messages.length : undefined;
+  const length = Array.isArray(messages) ? messages.length : 1;
   if (length !== 0) {
     const { systemInstructions, filteredMessages } = extractSystemInstructions(messages);
 
@@ -32,8 +32,8 @@ export function setMessagesAttribute(span: Span, messages: unknown): void {
 
     const filteredLength = Array.isArray(filteredMessages) ? filteredMessages.length : undefined;
     span.setAttributes({
-      [GEN_AI_REQUEST_MESSAGES_ATTRIBUTE]: getTruncatedJsonString(filteredMessages),
-      [GEN_AI_REQUEST_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: filteredLength,
+      [GEN_AI_INPUT_MESSAGES_ATTRIBUTE]: getTruncatedJsonString(filteredMessages),
+      [GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE]: filteredLength,
     });
   }
 }

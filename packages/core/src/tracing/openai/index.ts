@@ -6,10 +6,10 @@ import { startSpan, startSpanManual } from '../../tracing/trace';
 import type { Span, SpanAttributeValue } from '../../types-hoist/span';
 import {
   GEN_AI_EMBEDDINGS_INPUT_ATTRIBUTE,
+  GEN_AI_INPUT_MESSAGES_ATTRIBUTE,
+  GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
   GEN_AI_OPERATION_NAME_ATTRIBUTE,
   GEN_AI_REQUEST_AVAILABLE_TOOLS_ATTRIBUTE,
-  GEN_AI_REQUEST_MESSAGES_ATTRIBUTE,
-  GEN_AI_REQUEST_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE,
   GEN_AI_REQUEST_MODEL_ATTRIBUTE,
   GEN_AI_RESPONSE_TEXT_ATTRIBUTE,
   GEN_AI_SYSTEM_ATTRIBUTE,
@@ -152,10 +152,12 @@ function addRequestAttributes(span: Span, params: Record<string, unknown>, opera
   }
 
   const truncatedInput = getTruncatedJsonString(filteredMessages);
-  span.setAttribute(GEN_AI_REQUEST_MESSAGES_ATTRIBUTE, truncatedInput);
+  span.setAttribute(GEN_AI_INPUT_MESSAGES_ATTRIBUTE, truncatedInput);
 
   if (Array.isArray(filteredMessages)) {
-    span.setAttribute(GEN_AI_REQUEST_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE, filteredMessages.length);
+    span.setAttribute(GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE, filteredMessages.length);
+  } else {
+    span.setAttribute(GEN_AI_INPUT_MESSAGES_ORIGINAL_LENGTH_ATTRIBUTE, 1);
   }
 }
 
