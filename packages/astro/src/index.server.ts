@@ -114,6 +114,7 @@ export {
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setContext,
+  setConversationId,
   setCurrentClient,
   setExtra,
   setExtras,

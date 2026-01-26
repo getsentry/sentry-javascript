@@ -35,7 +35,7 @@ export function setupSourceMaps(moduleOptions: SentryNuxtModuleOptions, nuxt: Nu
   let shouldDeleteFilesFallback = { client: true, server: true };
 
   nuxt.hook('modules:done', () => {
-    if (sourceMapsEnabled && !nuxt.options.dev) {
+    if (sourceMapsEnabled && !nuxt.options.dev && !nuxt.options?._prepare) {
       // Changing this setting will propagate:
       // - for client to viteConfig.build.sourceMap
       // - for server to viteConfig.build.sourceMap and nitro.sourceMap
@@ -49,23 +49,35 @@ export function setupSourceMaps(moduleOptions: SentryNuxtModuleOptions, nuxt: Nu
         server: previousSourceMapSettings.server === 'unset',
       };
 
-      if (
-        isDebug &&
-        !moduleOptions.sourcemaps?.filesToDeleteAfterUpload &&
-        // eslint-disable-next-line deprecation/deprecation
-        !sourceMapsUploadOptions.sourcemaps?.filesToDeleteAfterUpload &&
-        (shouldDeleteFilesFallback.client || shouldDeleteFilesFallback.server)
-      ) {
-        // eslint-disable-next-line no-console
-        console.log(
-          "[Sentry] As Sentry enabled `'hidden'` source maps, source maps will be automatically deleted after uploading them to Sentry.",
-        );
+      if (isDebug && (shouldDeleteFilesFallback.client || shouldDeleteFilesFallback.server)) {
+        const enabledDeleteFallbacks =
+          shouldDeleteFilesFallback.client && shouldDeleteFilesFallback.server
+            ? 'client-side and server-side'
+            : shouldDeleteFilesFallback.server
+              ? 'server-side'
+              : 'client-side';
+
+        if (
+          !moduleOptions.sourcemaps?.filesToDeleteAfterUpload &&
+          // eslint-disable-next-line deprecation/deprecation
+          !sourceMapsUploadOptions.sourcemaps?.filesToDeleteAfterUpload
+        ) {
+          // eslint-disable-next-line no-console
+          console.log(
+            `[Sentry] We enabled \`'hidden'\` source maps for your ${enabledDeleteFallbacks} build. Source map files will be automatically deleted after uploading them to Sentry.`,
+          );
+        } else {
+          // eslint-disable-next-line no-console
+          console.log(
+            `[Sentry] We enabled \`'hidden'\` source maps for your ${enabledDeleteFallbacks} build. Source map files will be deleted according to your \`sourcemaps.filesToDeleteAfterUpload\` configuration. To use automatic deletion instead, leave \`filesToDeleteAfterUpload\` empty.`,
+          );
+        }
       }
     }
   });
 
   nuxt.hook('vite:extendConfig', async (viteConfig, env) => {
-    if (sourceMapsEnabled && viteConfig.mode !== 'development') {
+    if (sourceMapsEnabled && viteConfig.mode !== 'development' && !nuxt.options?._prepare) {
       const runtime = env.isServer ? 'server' : env.isClient ? 'client' : undefined;
       const nuxtSourceMapSetting = extractNuxtSourceMapSetting(nuxt, runtime);
 
@@ -99,7 +111,7 @@ export function setupSourceMaps(moduleOptions: SentryNuxtModuleOptions, nuxt: Nu
   });
 
   nuxt.hook('nitro:config', (nitroConfig: NitroConfig) => {
-    if (sourceMapsEnabled && !nitroConfig.dev) {
+    if (sourceMapsEnabled && !nitroConfig.dev && !nuxt.options?._prepare) {
       if (!nitroConfig.rollupConfig) {
         nitroConfig.rollupConfig = {};
       }

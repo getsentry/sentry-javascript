@@ -9,15 +9,21 @@ import {
 } from './gen-ai-attributes';
 import { truncateGenAiMessages, truncateGenAiStringInput } from './messageTruncation';
 /**
- * Maps AI method paths to Sentry operation name
+ * Maps AI method paths to OpenTelemetry semantic convention operation names
+ * @see https://opentelemetry.io/docs/specs/semconv/gen-ai/gen-ai-spans/#llm-request-spans
  */
 export function getFinalOperationName(methodPath: string): string {
   if (methodPath.includes('messages')) {
-    return 'messages';
+    return 'chat';
   }
   if (methodPath.includes('completions')) {
-    return 'completions';
+    return 'text_completion';
   }
+  // Google GenAI: models.generateContent* -> generate_content (actually generates AI responses)
+  if (methodPath.includes('generateContent')) {
+    return 'generate_content';
+  }
+  // Anthropic: models.get/retrieve -> models (metadata retrieval only)
   if (methodPath.includes('models')) {
     return 'models';
   }

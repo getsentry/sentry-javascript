@@ -48,6 +48,7 @@ export {
   Scope,
   SDK_VERSION,
   setContext,
+  setConversationId,
   setExtra,
   setExtras,
   setTag,
