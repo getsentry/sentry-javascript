@@ -64,6 +64,18 @@ export class CloudflareClient extends ServerRuntimeClient {
   }
 
   /**
+   * Returns a promise that resolves when all waitUntil promises have completed.
+   * This allows the root span to stay open until all waitUntil work is done.
+   *
+   * @return {Promise<void>} A promise that resolves when all waitUntil promises are done.
+   */
+  public async waitUntilDone(): Promise<void> {
+    if (this._flushLock) {
+      await this._flushLock.finalize();
+    }
+  }
+
+  /**
    * Flushes pending operations and ensures all data is processed.
    * If a timeout is provided, the operation will be completed within the specified time limit.
    *
@@ -73,9 +85,7 @@ export class CloudflareClient extends ServerRuntimeClient {
    * @return {Promise<boolean>} A promise that resolves to a boolean indicating whether the flush operation was successful.
    */
   public async flush(timeout?: number): Promise<boolean> {
-    if (this._flushLock) {
-      await this._flushLock.finalize();
-    }
+    await this.waitUntilDone();
 
     if (this._pendingSpans.size > 0 && this._spanCompletionPromise) {
       DEBUG_BUILD &&
