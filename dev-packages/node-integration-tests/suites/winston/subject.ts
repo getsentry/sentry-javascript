@@ -65,6 +65,18 @@ async function run(): Promise<void> {
     });
   }
 
+  if (process.env.WITH_FILTER === 'true') {
+    const FilteredSentryWinstonTransport = Sentry.createSentryWinstonTransport(Transport, {
+      levels: ['error'],
+    });
+    const filteredLogger = winston.createLogger({
+      transports: [new FilteredSentryWinstonTransport()],
+    });
+
+    filteredLogger.info('Ignored message');
+    filteredLogger.error('Test error message');
+  }
+
   // If unmapped custom level is requested (tests debug line for unknown levels)
   if (process.env.UNMAPPED_CUSTOM_LEVEL === 'true') {
     const customLevels = {

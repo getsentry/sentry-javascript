@@ -103,15 +103,15 @@ export function createSentryWinstonTransport<TransportStreamInstance extends obj
         attributes[SPLAT_SYMBOL] = undefined;
 
         const customLevel = sentryWinstonOptions?.customLevelMap?.[levelFromSymbol as string];
-        const logSeverityLevel =
-          customLevel ?? WINSTON_LEVEL_TO_LOG_SEVERITY_LEVEL_MAP[levelFromSymbol as string] ?? 'info';
+        const winstonLogLevel = WINSTON_LEVEL_TO_LOG_SEVERITY_LEVEL_MAP[levelFromSymbol as string];
+        const logSeverityLevel = customLevel ?? winstonLogLevel ?? 'info';
 
         if (this._levels.has(logSeverityLevel)) {
           captureLog(logSeverityLevel, message as string, {
             ...attributes,
             'sentry.origin': 'auto.log.winston',
           });
-        } else if (!customLevel) {
+        } else if (!customLevel && !winstonLogLevel) {
           DEBUG_BUILD &&
             debug.log(
               `Winston log level ${levelFromSymbol} is not captured by Sentry. Please add ${levelFromSymbol} to the "customLevelMap" option of the Sentry Winston transport.`,

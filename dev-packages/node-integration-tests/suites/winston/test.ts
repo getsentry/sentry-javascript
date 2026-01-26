@@ -123,6 +123,71 @@ describe('winston integration', () => {
     await runner.completed();
   });
 
+  test("should capture winston logs with filter but don't show custom level warnings", async () => {
+    const runner = createRunner(__dirname, 'subject.ts')
+      .withEnv({ WITH_FILTER: 'true' })
+      .expect({
+        log: {
+          items: [
+            {
+              timestamp: expect.any(Number),
+              level: 'info',
+              body: 'Test info message',
+              severity_number: expect.any(Number),
+              trace_id: expect.any(String),
+              attributes: {
+                'sentry.origin': { value: 'auto.log.winston', type: 'string' },
+                'sentry.release': { value: '1.0.0', type: 'string' },
+                'sentry.environment': { value: 'test', type: 'string' },
+                'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
+                'sentry.sdk.version': { value: expect.any(String), type: 'string' },
+                'server.address': { value: expect.any(String), type: 'string' },
+              },
+            },
+            {
+              timestamp: expect.any(Number),
+              level: 'error',
+              body: 'Test error message',
+              severity_number: expect.any(Number),
+              trace_id: expect.any(String),
+              attributes: {
+                'sentry.origin': { value: 'auto.log.winston', type: 'string' },
+                'sentry.release': { value: '1.0.0', type: 'string' },
+                'sentry.environment': { value: 'test', type: 'string' },
+                'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
+                'sentry.sdk.version': { value: expect.any(String), type: 'string' },
+                'server.address': { value: expect.any(String), type: 'string' },
+              },
+            },
+            {
+              timestamp: expect.any(Number),
+              level: 'error',
+              body: 'Test error message',
+              severity_number: expect.any(Number),
+              trace_id: expect.any(String),
+              attributes: {
+                'sentry.origin': { value: 'auto.log.winston', type: 'string' },
+                'sentry.release': { value: '1.0.0', type: 'string' },
+                'sentry.environment': { value: 'test', type: 'string' },
+                'sentry.sdk.name': { value: 'sentry.javascript.node', type: 'string' },
+                'sentry.sdk.version': { value: expect.any(String), type: 'string' },
+                'server.address': { value: expect.any(String), type: 'string' },
+              },
+            },
+          ],
+        },
+      })
+      .start();
+
+    await runner.completed();
+
+    const logs = runner.getLogs();
+
+    const warning = logs.find(log => log.includes('Winston log level info is not captured by Sentry.'));
+
+    expect(warning).not.toBeDefined();
+  });
+
   test('should capture winston logs with metadata', async () => {
     const runner = createRunner(__dirname, 'subject.ts')
       .withEnv({ WITH_METADATA: 'true' })
