@@ -86,7 +86,7 @@
     "@sentry/opentelemetry": "10.36.0",
     "@sentry/react": "10.36.0",
     "@sentry/vercel-edge": "10.36.0",
-    "@sentry/webpack-plugin": "^4.6.2",
+    "@sentry/webpack-plugin": "^4.7.0",
     "rollup": "^4.35.0",
     "stacktrace-parser": "^0.1.10"
   },
