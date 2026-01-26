@@ -4,6 +4,7 @@
 // We need to explicitly export @sentry/node as they end up under `default` in ESM builds
 // See: https://github.com/getsentry/sentry-javascript/issues/8474
 export {
+  addAttachment,
   addBreadcrumb,
   addEventProcessor,
   addIntegration,

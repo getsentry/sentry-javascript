@@ -24,6 +24,7 @@ export type {
 export {
   addEventProcessor,
   addBreadcrumb,
+  addAttachment,
   addIntegration,
   captureException,
   captureEvent,

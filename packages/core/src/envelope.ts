@@ -1,9 +1,11 @@
 import type { Client } from './client';
 import { getDynamicSamplingContextFromSpan } from './tracing/dynamicSamplingContext';
 import type { SentrySpan } from './tracing/sentrySpan';
+import type { Attachment } from './types-hoist/attachment';
 import type { LegacyCSPReport } from './types-hoist/csp';
 import type { DsnComponents } from './types-hoist/dsn';
 import type {
+  AttachmentEnvelope,
   DynamicSamplingContext,
   EventEnvelope,
   EventItem,
@@ -23,11 +25,13 @@ import {
   createEnvelope,
   createEventEnvelopeHeaders,
   createSpanEnvelopeItem,
+  createTraceAttachmentEnvelopeItem,
   getSdkMetadataForEnvelopeHeader,
 } from './utils/envelope';
 import { uuid4 } from './utils/misc';
 import { shouldIgnoreSpan } from './utils/should-ignore-span';
 import { showSpanDropWarning, spanToJSON } from './utils/spanUtils';
+import { timestampInSeconds } from './utils/time';
 
 /**
  * Apply SdkInfo (name, version, packages, integrations) to the corresponding event key.
@@ -195,4 +199,45 @@ export function createRawSecurityEnvelope(
   ];
 
   return createEnvelope<RawSecurityEnvelope>(envelopeHeaders, [eventItem]);
+}
+
+/**
+ * Create envelope from Attachment item using the trace attachment format.
+ *
+ * This creates a standalone attachment envelope with trace context according to
+ * the experimental trace attachment specification:
+ * https://develop.sentry.dev/sdk/data-model/envelope-items/#trace-attachment
+ *
+ * The attachment payload includes metadata with trace_id, attachment_id,
+ * timestamp, and optional attributes.
+ *
+ * @param attachment - The attachment to send
+ * @param dsc - Dynamic Sampling Context containing trace information
+ * @param dsn - DSN components for the envelope header
+ * @param tunnel - Tunnel URL if configured
+ * @param attributes - Optional arbitrary attributes for querying in EAP
+ * @param traceId - The trace_id to associate with this attachment
+ */
+export function createAttachmentEnvelope(
+  attachment: Attachment,
+  dsc: Partial<DynamicSamplingContext> | undefined,
+  dsn: DsnComponents | undefined,
+  tunnel: string | undefined,
+  attributes: Record<string, { type: string; value: unknown }> | undefined,
+  traceId: string,
+): AttachmentEnvelope {
+  function dscHasRequiredProps(dsc: Partial<DynamicSamplingContext>): dsc is DynamicSamplingContext {
+    return !!dsc.trace_id && !!dsc.public_key;
+  }
+
+  const headers: AttachmentEnvelope[0] = {
+    sent_at: new Date().toISOString(),
+    ...(dsc && dscHasRequiredProps(dsc) && { trace: dsc }),
+    ...(!!tunnel && dsn && { dsn: dsnToString(dsn) }),
+  };
+
+  const timestamp = timestampInSeconds();
+  const attachmentItem = createTraceAttachmentEnvelopeItem(attachment, traceId, timestamp, attributes);
+
+  return createEnvelope<AttachmentEnvelope>(headers, [attachmentItem]);
 }

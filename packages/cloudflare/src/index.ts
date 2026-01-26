@@ -25,6 +25,7 @@ export type { CloudflareOptions } from './client';
 
 export {
   addEventProcessor,
+  addAttachment,
   addBreadcrumb,
   addIntegration,
   captureException,

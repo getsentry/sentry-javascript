@@ -27,6 +27,7 @@ export type { BrowserOptions } from './client';
 export {
   addEventProcessor,
   addBreadcrumb,
+  addAttachment,
   addIntegration,
   captureException,
   captureEvent,

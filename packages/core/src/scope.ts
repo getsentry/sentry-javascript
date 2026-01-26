@@ -2,7 +2,9 @@
 import type { AttributeObject, RawAttribute, RawAttributes } from './attributes';
 import type { Client } from './client';
 import { DEBUG_BUILD } from './debug-build';
+import { createAttachmentEnvelope } from './envelope';
 import { updateSession } from './session';
+import { getDynamicSamplingContextFromSpan } from './tracing/dynamicSamplingContext';
 import type { Attachment } from './types-hoist/attachment';
 import type { Breadcrumb } from './types-hoist/breadcrumb';
 import type { Context, Contexts } from './types-hoist/context';
@@ -24,6 +26,7 @@ import { uuid4 } from './utils/misc';
 import { generateTraceId } from './utils/propagationContext';
 import { safeMathRandom } from './utils/randomSafeContext';
 import { _getSpanForScope, _setSpanForScope } from './utils/spanOnScope';
+import { getActiveSpan } from './utils/spanUtils';
 import { truncate } from './utils/string';
 import { dateTimestampInSeconds } from './utils/time';
 
@@ -630,9 +633,23 @@ export class Scope {
 
   /**
    * Add an attachment to the scope.
+   *
+   * For the trace attachments PoC, this will immediately send the attachment
+   * in a standalone envelope with trace context.
    */
   public addAttachment(attachment: Attachment): this {
-    this._attachments.push(attachment);
+    const span = getActiveSpan();
+    const dsc = span ? getDynamicSamplingContextFromSpan(span) : undefined;
+    const traceId = span?.spanContext().traceId || dsc?.trace_id || this._propagationContext.traceId;
+    const dsn = this._client?.getDsn();
+    const tunnel = this._client?.getOptions().tunnel;
+    const envelope = createAttachmentEnvelope(attachment, dsc, dsn, tunnel, undefined, traceId);
+
+    void this._client?.sendEnvelope(envelope);
+
+    // Still add to the scope's attachments array for backward compatibility
+    // this._attachments.push(attachment);
+
     return this;
   }
 
